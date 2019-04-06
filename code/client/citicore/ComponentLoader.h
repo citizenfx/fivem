@@ -140,7 +140,7 @@ public:
 		m_dependencyComponents.push_back(dependency);
 	}
 
-	inline const std::vector<fwRefContainer<ComponentData>>& GetDependencyDataList()
+	inline const std::vector<fwRefContainer<ComponentData>>& GetDependencyDataList() const
 	{
 		return m_dependencyComponents;
 	}
@@ -153,7 +153,7 @@ private:
 public:
 	void Load();
 
-	inline bool IsLoaded()
+	inline bool IsLoaded() const
 	{
 		return m_isLoaded;
 	}
@@ -167,7 +167,7 @@ public:
 
 	fwRefContainer<Component> CreateManualInstance();
 
-	inline const std::vector<fwRefContainer<Component>>& GetInstances()
+	inline const std::vector<fwRefContainer<Component>>& GetInstances() const
 	{
 		return m_instances;
 	}
@@ -196,7 +196,7 @@ public:
 
 	void ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback);
 
-	fwRefContainer<ComponentData> LoadComponent(const char* component);
+	fwRefContainer<ComponentData> LoadComponent(const char* componentName);
 
 	inline auto& GetKnownComponents()
 	{
@@ -215,7 +215,7 @@ struct GetDependencies
 template<>
 struct GetDependencies<fwRefContainer<ComponentData>>
 {
-	const std::vector<fwRefContainer<ComponentData>>& operator()(const fwRefContainer<ComponentData>& componentData)
+	const std::vector<fwRefContainer<ComponentData>>& operator()(const fwRefContainer<ComponentData>& componentData) const
 	{
 		return componentData->GetDependencyDataList();
 	}

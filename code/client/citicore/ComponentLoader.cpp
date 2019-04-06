@@ -48,7 +48,6 @@ void ComponentLoader::Initialize()
 	}
 
 	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));
-
 	if (!componentCache)
 	{
 		FatalError("Could not find component cache storage file (components.json).");
@@ -60,17 +59,16 @@ void ComponentLoader::Initialize()
 
 	fseek(componentCache, 0, SEEK_SET);
 
-	char* cacheBuf = new char[length + 1];
-	fread(cacheBuf, 1, length, componentCache);
+	std::vector<char> cacheBuf(length + 1);
+
+	fread(cacheBuf.data(), 1, length, componentCache);
 	cacheBuf[length] = '\0';
 
 	fclose(componentCache);
 
 	// parse the list
 	rapidjson::Document doc;
-	doc.Parse(cacheBuf);
-
-	delete[] cacheBuf;
+	doc.Parse(cacheBuf.data(), cacheBuf.size());
 
 	if (doc.HasParseError())
 	{
@@ -78,37 +76,25 @@ void ComponentLoader::Initialize()
 	}
 
 	// look through the list for components to load
-	std::vector<std::string> components;
-	for (auto it = doc.Begin(); it != doc.End(); it++)
+	for (auto it = doc.Begin(); it != doc.End(); ++it)
 	{
-		const char* name = it->GetString();
+		const auto& componentNameElement = *it;
 
-		components.push_back(name);
+		fwPlatformString nameWide;
+		nameWide.reserve(componentNameElement.GetStringLength());
+		nameWide.assign(componentNameElement.GetString());
 
 		// replace colons with dashes
-		char* nameStr = strdup(name);
-		char* p = nameStr;
-
-		while (*p)
-		{
-			if (*p == ':')
-			{
-				*p = '-';
-			}
-
-			p++;
-		}
-
-		fwPlatformString nameWide(nameStr);
-
-		free(nameStr);
+		std::replace(nameWide.begin(), nameWide.end(), ':', '-');
 
 		AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, nameWide.c_str())));
 	}
 
-	for (auto& component : m_knownComponents)
+	for (auto& componentNamePair : m_knownComponents)
 	{
-		LoadDependencies(this, component.second);
+		auto& component = componentNamePair.second;
+
+		LoadDependencies(this, component);
 	}
 
 	// sort the list by dependency
@@ -128,11 +114,10 @@ void ComponentLoader::Initialize()
 
 	while (!sortedList.empty())
 	{
-		auto comp = sortedList.front();
+		auto componentName = sortedList.front()->GetName();
 		sortedList.pop();
 
-		comp = LoadComponent(comp->GetName().c_str());
-
+		auto comp = LoadComponent(componentName.c_str());
 		if (!comp.GetRef())
 		{
 			FatalError("Could not load component %s.", comp->GetName().c_str());
@@ -151,22 +136,22 @@ void ComponentLoader::Initialize()
 static void LoadDependencies(ComponentLoader* loader, fwRefContainer<ComponentData>& component)
 {
 	// match and resolve dependencies
-	auto dependencies = component->GetDepends();
-
-	for (auto& dependency : dependencies)
+	for (const auto& dependency : component->GetDepends())
 	{
 		// find the first component to provide this
 		bool match = false;
-
-		for (auto& it : loader->GetKnownComponents())
+			
+		for (auto& knownNameComponentPair : loader->GetKnownComponents())
 		{
-			auto matchProvides = it.second->GetProvides();
+			auto& knownComponent = knownNameComponentPair.second;
+
+			auto matchProvides = knownComponent->GetProvides();
 
 			for (auto& provide : matchProvides)
 			{
 				if (dependency.IsMatchedBy(provide))
 				{
-					component->AddDependency(it.second);
+					component->AddDependency(knownComponent);
 
 					match = true;
 
@@ -194,7 +179,7 @@ void ComponentLoader::DoGameLoad(void* hModule)
 	{
 		auto& instances = component->GetInstances();
 
-		if (instances.size() > 0)
+		if (!instances.empty())
 		{
 			instances[0]->DoGameLoad(hModule);
 		}

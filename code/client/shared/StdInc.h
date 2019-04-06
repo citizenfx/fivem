@@ -125,7 +125,7 @@
 class fwPlatformString : public std::wstring
 {
 private:
-	inline std::wstring ConvertString(const char* narrowString)
+	static inline std::wstring ConvertString(const char* narrowString)
 	{
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		return converter.from_bytes(narrowString);
@@ -150,13 +150,23 @@ public:
 	inline fwPlatformString(const std::string& narrowString)
 		: std::wstring(ConvertString(narrowString.c_str()))
 	{
-
 	}
 
 	inline fwPlatformString(const char* narrowString)
 		: std::wstring(ConvertString(narrowString))
 	{
+	}
 
+	inline fwPlatformString& assign(const std::string& narrowString)
+	{
+		std::wstring::assign(ConvertString(narrowString.c_str()));
+		return *this;
+	}
+
+	inline fwPlatformString& assign(const char* narrowString)
+	{
+		std::wstring::assign(ConvertString(narrowString));
+		return *this;
 	}
 };
 typedef wchar_t pchar_t;
@@ -191,8 +201,7 @@ public:
 
 	inline fwPlatformString(const wchar_t* wideString)
 		: std::string(ConvertString(wideString))
-	{
-		
+	{		
 	}
 };
 
