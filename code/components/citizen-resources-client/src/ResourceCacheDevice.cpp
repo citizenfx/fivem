@@ -19,7 +19,7 @@
 
 namespace fx
 {
-	fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
+	DLL_EXPORT fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
 }
 
 #pragma comment(lib, "winmm.lib")
@@ -558,26 +558,34 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 	auto handleData = &m_handles[handle];
 
 	// if the file isn't fetched, fetch it first
-	bool fetched = EnsureFetched(handleData);
+	bool fetched = false;
+	
+	if (size != 0xFFFFFFFC)
+	{
+		fetched = EnsureFetched(handleData);
+	}
 
 	// special sentinel for PatchStreamingPreparation to determine if file is fetched
-	if (size == 0xFFFFFFFE || size == 0xFFFFFFFD)
+	if (size == 0xFFFFFFFE || size == 0xFFFFFFFD || size == 0xFFFFFFFC)
 	{
 		auto getRequest = handleData->getRequest;
 
-		int newWeight = (size == 0xFFFFFFFE) ? -1 : 1;
+		if (size != 0xFFFFFFFC)
+		{
+			int newWeight = (size == 0xFFFFFFFE) ? -1 : 1;
 
-		if (getRequest)
-		{
-			// if FFFFFFFE, this is an active request; if FFFFFFFD, this isn't
-			// no ExtensionCtl support exists for RageVFSDeviceAdapter yet, so we do it this way
-			getRequest->SetRequestWeight(newWeight);
-		}
-		else
-		{
-			if (!handleData->extHandle.empty())
+			if (getRequest)
 			{
-				m_extDownloader->SetRequestWeight(handleData->extHandle, newWeight);
+				// if FFFFFFFE, this is an active request; if FFFFFFFD, this isn't
+				// no ExtensionCtl support exists for RageVFSDeviceAdapter yet, so we do it this way
+				getRequest->SetRequestWeight(newWeight);
+			}
+			else
+			{
+				if (!handleData->extHandle.empty())
+				{
+					m_extDownloader->SetRequestWeight(handleData->extHandle, newWeight);
+				}
 			}
 		}
 

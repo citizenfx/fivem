@@ -93,5 +93,5 @@ namespace fx
 
 	extern RESCLIENT_EXPORT fwEvent<> OnUnlockStreaming;
 
-	extern fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
+	extern RESCLIENT_EXPORT fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
 }
