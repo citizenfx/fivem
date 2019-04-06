@@ -326,6 +326,10 @@ namespace CitizenFX.Core
 			}
 			catch (Exception e)
 			{
+				//Switching the FileNotFound to a NotImplemented tells mono to disable I18N support.
+				//See: https://github.com/mono/mono/blob/8fee89e530eb3636325306c66603ba826319e8c5/mcs/class/corlib/System.Text/EncodingHelper.cs#L131
+				if (e is FileNotFoundException && string.Equals(name, "I18N", StringComparison.OrdinalIgnoreCase))
+					throw new NotImplementedException("I18N not found", e);
 				Debug.WriteLine($"Exception loading assembly {name}: {e}");
 			}
 
