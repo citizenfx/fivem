@@ -241,6 +241,7 @@ void FinalizeInitNUI()
 	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = true;
 	cSettings.log_severity = LOGSEVERITY_DEFAULT;
+	cSettings.background_color = 0;
 	
 	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 	

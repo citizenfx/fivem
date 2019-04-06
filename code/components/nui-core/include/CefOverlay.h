@@ -157,6 +157,9 @@ namespace nui
 		CefChannelLayout channelLayout;
 		int sampleRate;
 		int framesPerBuffer;
+
+		std::string frameName;
+		std::string categoryName;
 	};
 
 	class IAudioStream

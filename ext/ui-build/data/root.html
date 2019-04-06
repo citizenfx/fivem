@@ -61,6 +61,7 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 	{
 		var frame = document.createElement('iframe');
 	
+		frame.name = frameName;
 		frame.style.visibility = 'hidden';
 		frame.allow = 'microphone *;';
 		frame.src = frameUrl;

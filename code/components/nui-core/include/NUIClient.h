@@ -88,6 +88,7 @@ protected:
 // CefAudioHandler
 protected:
 	virtual void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
 		int audio_stream_id,
 		int channels,
 		ChannelLayout channel_layout,
@@ -95,16 +96,25 @@ protected:
 		int frames_per_buffer) override;
 
 	virtual void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
 		int audio_stream_id,
 		const float** data,
 		int frames,
 		int64 pts) override;
 
 	virtual void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
 		int audio_stream_id) override;
 
+public:
+	virtual void OnAudioCategoryConfigure(const std::string& frame, const std::string& category);
+
 private:
-	std::map<std::pair<int, int>, std::shared_ptr<nui::IAudioStream>> m_audioStreams;
+	std::map<std::pair<int, int>, std::tuple<std::shared_ptr<nui::IAudioStream>, nui::AudioStreamParams>> m_audioStreams;
+
+	std::multimap<std::string, std::pair<int, int>> m_audioStreamsByFrame;
+
+	std::map<std::string, std::string> m_audioFrameCategories;
 
 // CefRequestHandler
 protected:

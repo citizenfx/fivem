@@ -12,6 +12,8 @@
 #include "memdbgon.h"
 #include "HttpClient.h"
 
+#include <IteratorView.h>
+
 #include <CoreConsole.h>
 
 #include <rapidjson/document.h>
@@ -146,7 +148,34 @@ void NUIClient::AddProcessMessageHandler(std::string key, TProcessMessageHandler
 	m_processMessageHandlers[key] = handler;
 }
 
-void NUIClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, int audio_stream_id, int channels, ChannelLayout channel_layout, int sample_rate, int frames_per_buffer)
+void NUIClient::OnAudioCategoryConfigure(const std::string& frame, const std::string& category)
+{
+	m_audioFrameCategories[frame] = category;
+
+	if (!g_audioSink)
+	{
+		return;
+	}
+
+	// recreate any streams
+	for (auto& streamEntry : fx::GetIteratorView(m_audioStreamsByFrame.equal_range(frame)))
+	{
+		auto streamIt = m_audioStreams.find(streamEntry.second);
+
+		if (streamIt != m_audioStreams.end())
+		{
+			auto params = std::get<1>(streamIt->second);
+			params.categoryName = category;
+
+			m_audioStreams.erase(streamIt);
+
+			auto stream = g_audioSink->CreateAudioStream(params);
+			m_audioStreams.insert({ streamEntry.second, { stream, params } });
+		}
+	}
+}
+
+void NUIClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id, int channels, ChannelLayout channel_layout, int sample_rate, int frames_per_buffer)
 {
 	if (g_audioSink)
 	{
@@ -156,24 +185,64 @@ void NUIClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, int audio_st
 		params.sampleRate = sample_rate;
 		params.framesPerBuffer = frames_per_buffer;
 
+		// try finding the second-topmost frame
+		auto refFrame = frame;
+
+		for (auto f = refFrame; f->GetParent(); f = f->GetParent())
+		{
+			if (!f->GetParent()->GetParent())
+			{
+				refFrame = f;
+				break;
+			}
+		}
+
+		// get frame name
+		auto frameName = ToNarrow(refFrame->GetName().ToWString());
+		params.frameName = std::move(frameName);
+
+		auto categoryIt = m_audioFrameCategories.find(params.frameName);
+
+		if (categoryIt != m_audioFrameCategories.end())
+		{
+			params.categoryName = categoryIt->second;
+		}
+
+		// and create audio stream
 		auto stream = g_audioSink->CreateAudioStream(params);
 
-		m_audioStreams.insert({ { browser->GetIdentifier(), audio_stream_id }, stream });
+		m_audioStreams.insert({ { browser->GetIdentifier(), audio_stream_id }, { stream, params } });
+		m_audioStreamsByFrame.insert({ params.frameName, { browser->GetIdentifier(), audio_stream_id } });
 	}
 }
 
-void NUIClient::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, int audio_stream_id, const float** data, int frames, int64 pts)
+void NUIClient::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id, const float** data, int frames, int64 pts)
 {
 	auto it = m_audioStreams.find({ browser->GetIdentifier(), audio_stream_id });
 
 	if (it != m_audioStreams.end())
 	{
-		it->second->ProcessPacket(data, frames, pts);
+		std::get<0>(it->second)->ProcessPacket(data, frames, pts);
 	}
 }
 
-void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, int audio_stream_id)
+void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id)
 {
+	auto refFrame = frame;
+
+	for (auto f = refFrame; f->GetParent(); f = f->GetParent())
+	{
+		if (!f->GetParent()->GetParent())
+		{
+			refFrame = f;
+			break;
+		}
+	}
+
+	// get frame name
+	auto frameName = ToNarrow(refFrame->GetName().ToWString());
+	m_audioStreamsByFrame.erase(frameName);
+
 	m_audioStreams.erase({ browser->GetIdentifier(), audio_stream_id });
 }
 

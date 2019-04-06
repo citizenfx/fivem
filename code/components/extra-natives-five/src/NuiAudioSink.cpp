@@ -128,14 +128,42 @@ namespace rage
 		return _audExternalStreamSound_InitStreamPlayer(this, buffer, channels, frequency);
 	}
 
+	class audCategory
+	{
+
+	};
+
+	class audCategoryManager
+	{
+	public:
+		rage::audCategory* GetCategoryPtr(uint32_t category);
+	};
+
+	static hook::cdecl_stub<rage::audCategory*(rage::audCategoryManager*, uint32_t)> _audCategoryManager_GetCategoryPtr([]()
+	{
+		return hook::get_call(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", 8));
+	});
+
+	rage::audCategory* audCategoryManager::GetCategoryPtr(uint32_t category)
+	{
+		return _audCategoryManager_GetCategoryPtr(this, category);
+	}
+
 	class audSoundInitParams
 	{
 	public:
 		audSoundInitParams();
 
+		void SetCategory(rage::audCategory* category);
+
 	private:
 		uint8_t m_pad[0xB0];
 	};
+
+	void audSoundInitParams::SetCategory(rage::audCategory* category)
+	{
+		*(audCategory**)(&m_pad[88]) = category;
+	}
 
 	static hook::cdecl_stub<void(rage::audSoundInitParams*)> _audSoundInitParams_ctor([]()
 	{
@@ -182,9 +210,13 @@ namespace rage
 
 	audEntity* g_frontendAudioEntity;
 
+	audCategoryManager* g_categoryMgr;
+
 	static HookFunction hookFunction([]()
 	{
 		g_frontendAudioEntity = hook::get_address<audEntity*>(hook::get_pattern("4C 8D 4C 24 50 4C 8D 43 08 48 8D 0D", 0xC));
+
+		g_categoryMgr = hook::get_address<audCategoryManager*>(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", -4));
 	});
 }
 
@@ -213,9 +245,9 @@ private:
 private:
 	rage::audExternalStreamSound* m_sound;
 
-	std::unique_ptr<rage::audReferencedRingBuffer> m_buffer;
+	rage::audReferencedRingBuffer* m_buffer;
 
-	std::unique_ptr<uint8_t[]> m_bufferData;
+	uint8_t* m_bufferData;
 
 	nui::AudioStreamParams m_initParams;
 
@@ -307,6 +339,17 @@ bool RageAudioStream::TryEnsureInitialized()
 	if (audioRunning)
 	{
 		rage::audSoundInitParams initValues;
+		
+		// set the audio category
+		if (!m_initParams.categoryName.empty())
+		{
+			auto category = rage::g_categoryMgr->GetCategoryPtr(HashString(m_initParams.categoryName.c_str()));
+
+			if (category)
+			{
+				initValues.SetCategory(category);
+			}
+		}
 
 		rage::g_frontendAudioEntity->CreateSound_PersistentReference(0xD8CE9439, (rage::audSound**)&m_sound, initValues);
 
@@ -323,12 +366,12 @@ bool RageAudioStream::TryEnsureInitialized()
 
 			// have ~1 second of audio buffer room
 			auto size = 48000 * sizeof(int16_t) * m_initParams.channels;
-			m_bufferData = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
+			m_bufferData = (uint8_t*)rage::GetAllocator()->Allocate(size, 16, 0);
 
-			m_buffer = std::make_unique<rage::audReferencedRingBuffer>();
-			m_buffer->SetBuffer(m_bufferData.get(), size);
+			m_buffer = new rage::audReferencedRingBuffer();
+			m_buffer->SetBuffer(m_bufferData, size);
 
-			m_sound->InitStreamPlayer(m_buffer.get(), m_initParams.channels, 44100);
+			m_sound->InitStreamPlayer(m_buffer, m_initParams.channels, 44100);
 			m_sound->PrepareAndPlay(nullptr, true, -1, false);
 
 			_updateAudioThread();
