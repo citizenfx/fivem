@@ -135,6 +135,13 @@ NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
 
 	if (NtQueryObject(Handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(OBJECT_HANDLE_ATTRIBUTE_INFORMATION), nullptr) >= 0)
 	{
+		DWORD flags = 0;
+
+		if (GetHandleInformation(Handle, &flags) && (flags & HANDLE_FLAG_PROTECT_FROM_CLOSE) != 0)
+		{
+			return STATUS_SUCCESS;
+		}
+
 		return origClose(Handle);
 	}
 	
