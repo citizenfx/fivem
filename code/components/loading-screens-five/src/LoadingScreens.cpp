@@ -19,7 +19,14 @@
 
 #include <GameInit.h>
 
+#include <CoreConsole.h>
+
 #include <Error.h>
+
+static std::shared_ptr<ConVar<bool>> g_loadProfileConvar;
+static std::map<uint64_t, std::chrono::milliseconds> g_loadTiming;
+static std::chrono::milliseconds g_loadTimingBase;
+static std::set<uint64_t> g_visitedTimings;
 
 // 1365
 // 1493
@@ -157,14 +164,66 @@ static HookFunction hookFunction([]()
 	});
 });
 
+static void UpdateLoadTiming(uint64_t loadTimingIdentity)
+{
+	if (g_loadProfileConvar->GetValue())
+	{
+		auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()) - g_loadTimingBase;
+
+		g_loadTiming.insert({ loadTimingIdentity, now });
+	}
+	else
+	{
+		auto curTiming = g_loadTiming[loadTimingIdentity];
+
+		if (curTiming.count() != 0 && g_visitedTimings.find(loadTimingIdentity) == g_visitedTimings.end())
+		{
+			rapidjson::Document doc;
+			doc.SetObject();
+			doc.AddMember("loadFraction", rapidjson::Value((curTiming - g_loadTimingBase).count() / (double)(g_loadTiming[1] - g_loadTimingBase).count()), doc.GetAllocator());
+
+			InvokeNUIScript("loadProgress", doc);
+
+			g_visitedTimings.insert(loadTimingIdentity);
+		}
+	}
+}
+
 extern int dlcIdx;
 
 static InitFunction initFunction([] ()
 {
+	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_Archive, false);
+
 	OnKillNetworkDone.Connect([] ()
 	{
 		DestroyFrame();
 	});
+
+	rapidjson::Document doc;
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/load_profile.json").c_str(), L"rb");
+
+	if (f)
+	{
+		fseek(f, 0, SEEK_END);
+
+		std::vector<char> data(ftell(f));
+		fseek(f, 0, SEEK_SET);
+
+		fread(data.data(), 1, data.size(), f);
+		fclose(f);
+
+		doc.Parse(data.data(), data.size());
+
+		if (!doc.HasParseError())
+		{
+			for (auto it = doc.MemberBegin(); it != doc.MemberEnd(); it++)
+			{
+				g_loadTiming.insert({ _strtoui64(it->name.GetString(), nullptr, 10), std::chrono::milliseconds(it->value.GetInt()) });
+			}
+		}
+	}
 
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([] ()
 	{
@@ -198,6 +257,8 @@ static InitFunction initFunction([] ()
 		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");
 	}, 100);
 
+	static bool isGameReload = false;
+
 	rage::OnInitFunctionStart.Connect([] (rage::InitFunctionType type)
 	{
 		if (type == rage::INIT_AFTER_MAP_LOADED)
@@ -214,6 +275,44 @@ static InitFunction initFunction([] ()
 			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 
 			InvokeNUIScript("startInitFunction", doc);
+		}
+
+		if (type == rage::INIT_BEFORE_MAP_LOADED)
+		{
+			if (g_loadProfileConvar->GetValue())
+			{
+				g_loadTiming.clear();
+				g_loadTimingBase = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+			}
+			else
+			{
+				rapidjson::Document doc;
+				doc.SetObject();
+				doc.AddMember("loadFraction", 0.0, doc.GetAllocator());
+
+				InvokeNUIScript("loadProgress", doc);
+
+				g_visitedTimings.clear();
+			}
+		}
+		else if (type == rage::INIT_SESSION)
+		{
+			if (g_loadProfileConvar->GetValue())
+			{
+				g_loadTiming[2] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()) - g_loadTimingBase;
+			}
+			else if (isGameReload)
+			{
+				rapidjson::Document doc;
+				doc.SetObject();
+				doc.AddMember("loadFraction", 0.0, doc.GetAllocator());
+
+				InvokeNUIScript("loadProgress", doc);
+
+				g_visitedTimings.clear();
+
+				g_loadTimingBase = g_loadTiming[2];
+			}
 		}
 	});
 
@@ -241,6 +340,10 @@ static InitFunction initFunction([] ()
 		{
 			idx += NUM_DLC_CALLS;
 		}
+
+		uint64_t loadTimingIdentity = data.funcHash | ((int64_t)type << 48);
+
+		UpdateLoadTiming(loadTimingIdentity);
 
 		rapidjson::Document doc;
 		doc.SetObject();
@@ -277,6 +380,48 @@ static InitFunction initFunction([] ()
 		}
 		else if (type == rage::INIT_SESSION)
 		{
+			if (g_loadProfileConvar->GetValue())
+			{
+				auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()) - g_loadTimingBase;
+
+				g_loadTiming[1] = now;
+
+				rapidjson::Document doc;
+				doc.SetObject();
+
+				for (auto& timingEntry : g_loadTiming)
+				{
+					auto [idx, count] = timingEntry;
+
+					doc.AddMember(rapidjson::Value(fmt::sprintf("%lld", idx).c_str(), doc.GetAllocator()), uint32_t(count.count()), doc.GetAllocator());
+				}
+
+				rapidjson::StringBuffer sb;
+				rapidjson::Writer w(sb);
+
+				if (doc.Accept(w))
+				{
+					FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/load_profile.json").c_str(), L"wb");
+					
+					if (f)
+					{
+						fwrite(sb.GetString(), 1, sb.GetSize(), f);
+						fclose(f);
+					}
+				}
+			}
+			else
+			{
+				rapidjson::Document doc;
+				doc.SetObject();
+				doc.AddMember("loadFraction", 1.0, doc.GetAllocator());
+
+				InvokeNUIScript("loadProgress", doc);
+			}
+
+			// for next time
+			isGameReload = true;
+
 			if (Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
 			{
 				DestroyFrame();
@@ -364,6 +509,10 @@ static InitFunction initFunction([] ()
 					isNew = true;
 				}
 			}
+
+			uint64_t loadTimingIdentity = HashString(name) | (16 << 48);
+
+			UpdateLoadTiming(loadTimingIdentity);
 
 			rapidjson::Document doc;
 			doc.SetObject();
