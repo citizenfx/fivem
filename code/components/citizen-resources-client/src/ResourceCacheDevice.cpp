@@ -15,7 +15,7 @@
 
 #include <ICoreGameInit.h>
 
-#include <Brofiler.h>
+#include <optick.h>
 
 namespace fx
 {
@@ -237,7 +237,7 @@ static int GetWeightForFileName(const std::string& fileName)
 
 bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 {
-	PROFILE;
+	OPTICK_EVENT();
 
 	// is it fetched already?
 	if (handleData->fileData->status == FileData::StatusFetched)
@@ -271,7 +271,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	{
 		if (m_blocking)
 		{
-			BROFILER_EVENT("block on Fetching");
+			OPTICK_EVENT("block on Fetching");
 
 			WaitForSingleObject(handleData->fileData->eventHandle, INFINITE);
 
@@ -286,7 +286,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 		return false;
 	}
 
-	BROFILER_EVENT("set StatusFetching");
+	OPTICK_EVENT("set StatusFetching");
 
 	ResetEvent(handleData->fileData->eventHandle);
 	handleData->fileData->status = FileData::StatusFetching;
@@ -482,7 +482,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 	if (m_blocking)
 	{
-		BROFILER_EVENT("block on NotFetched");
+		OPTICK_EVENT("block on NotFetched");
 
 		while (handleData->fileData->status == FileData::StatusFetching)
 		{

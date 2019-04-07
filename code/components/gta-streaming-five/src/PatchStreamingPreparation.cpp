@@ -9,7 +9,7 @@
 
 #include <nutsnbolts.h>
 
-#include <Brofiler.h>
+#include <optick.h>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -111,7 +111,7 @@ static void ProcessErasure()
 
 static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, int* requests, int a5, int a6, int a7)
 {
-	PROFILE;
+	OPTICK_EVENT();
 
 	int remainingRequests = g_origHandleObjectLoad(streaming, a2, a3, requests, a5, a6, a7);
 
@@ -159,7 +159,7 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 			if (isCache)
 			{
-				BROFILER_EVENT("isCache");
+				OPTICK_EVENT("isCache");
 
 				g_thisSeenRequests[fileName] = timeGetTime();
 
@@ -183,7 +183,7 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 					uint32_t numRead;
 
 					{
-						BROFILER_EVENT("readBulk");
+						OPTICK_EVENT("readBulk");
 						numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFE);
 					}
 

@@ -8,7 +8,7 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
-#include <Brofiler.h>
+#include <optick.h>
 
 static HANDLE CreateThreadWrapper(_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ SIZE_T dwStackSize, _In_ LPTHREAD_START_ROUTINE lpStartAddress,
 								  _In_opt_ __drv_aliasesMem LPVOID lpParameter, _In_ DWORD dwCreationFlags, _Out_opt_ LPDWORD lpThreadId)
@@ -39,9 +39,9 @@ static HANDLE CreateThreadWrapper(_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttribu
 		if (meta.threadName)
 		{
 			SetThreadName(-1, meta.threadName);
-		}
 
-		BROFILER_THREAD(meta.threadName);
+			OPTICK_START_THREAD(meta.threadName);
+		}
 
 		// invoke original thread start
 		return meta.origRoutine(meta.originalData);
