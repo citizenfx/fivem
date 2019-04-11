@@ -1889,4 +1889,14 @@ static HookFunction hookFunction([] ()
 		hook::set_call(&_origLoadMeta, location);
 		hook::call(location, WaitForScAndLoadMeta);
 	}
+
+	// default netnoupnp and netnopcp to true
+	auto netNoUpnp = hook::get_address<int*>(hook::get_pattern("8A D1 76 02 B2 01 48 39 0D", 9));
+	auto netNoPcp = hook::get_address<int*>(hook::get_pattern("8A D1 EB 02 B2 01 48 39 0D", 9));
+
+	OnGameFrame.Connect([netNoPcp, netNoUpnp]()
+	{
+		*netNoUpnp = TRUE;
+		*netNoPcp = TRUE;
+	});
 });
