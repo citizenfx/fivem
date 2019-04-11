@@ -129,6 +129,10 @@ static InitFunction initFunction([] ()
 			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
 			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
 			relativeDeviceCrc->Mount("commoncrc:/");
+
+			rage::fiDeviceRelative* relativeDeviceGc = new rage::fiDeviceRelative();
+			relativeDeviceGc->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDeviceGc->Mount("gamecache:/");
 		}
 
 		{

@@ -207,6 +207,8 @@ BOOL WINAPI AnimateWindowStub(
 
 #include "RSAKey.h"
 
+FARPROC GetProcAddressStub(HMODULE hModule, LPCSTR name);
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	auto args = map["cake"].as<std::vector<std::wstring>>();
@@ -250,6 +252,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		}
 
 		hook::iat("crypt32.dll", CertGetNameStringStub, "CertGetNameStringW");
+
+		hook::iat("kernel32.dll", GetProcAddressStub, "GetProcAddress");
 	});
 
 	// delete in- files (these being present will trigger safe mode, and the function can't be hooked due to hook checks)

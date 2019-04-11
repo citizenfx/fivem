@@ -160,7 +160,7 @@ static hook::thiscall_stub<rage::fiCollection*(rage::fiCollection*)> packfileCto
 #define GET_HANDLE(x) ((x) & 0x7FFFFFFF)
 #define UNDEF_ASSERT() FatalError("Undefined function " __FUNCTION__)
 
-static atArray<StreamingPackfileEntry>* g_streamingPackfiles;
+atArray<StreamingPackfileEntry>* g_streamingPackfiles;
 
 struct IgnoreCaseLess
 {

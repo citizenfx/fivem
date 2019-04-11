@@ -7,6 +7,8 @@
 
 #include <Streaming.h>
 
+#include <MinHook.h>
+
 #include <VFSManager.h>
 
 int GetCollectionIndexByTag(const std::string& tag);
@@ -27,6 +29,28 @@ static hook::cdecl_stub<bool()> _parseCache([]()
 {
 	return hook::get_pattern("74 1B E8 ? ? ? ? 3B 05", -0x16);
 });
+
+extern atArray<StreamingPackfileEntry>* g_streamingPackfiles;
+
+static void(*g_loadCacheOld)(const char* filenameBase, const char* rootPath, int isDlc, const atHashMap<bool>& enabledDLC);
+
+static void LoadCacheHook(const char* filenameBase, const char* rootPath, int isDlc, const atHashMap<bool>& enabledDLC)
+{
+	if (!isDlc)
+	{
+		for (auto& file : *g_streamingPackfiles)
+		{
+			if (file.isDLC)
+			{
+				file.isDLC = false;
+
+				file.cacheFlags &= ~1;
+			}
+		}
+	}
+
+	g_loadCacheOld(filenameBase, rootPath, isDlc, enabledDLC);
+}
 
 struct
 {
@@ -127,6 +151,10 @@ static HookFunction hookFunction([]()
 		hook::call(hook::get_pattern("E8 ? ? ? ? 48 85 C0 74 07 8A 40 48", 0), GetPackIndex);
 		hook::call(hook::get_pattern("8B C8 E8 ? ? ? ? 45 33 E4 40 8A 78 48", 2), GetPackIndex); // CInteriorProxy load
 	}
+
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("B9 00 00 04 00 BF 01 00 00 00 39", -0x5D), LoadCacheHook, (void**)& g_loadCacheOld);
+	MH_EnableHook(MH_ALL_HOOKS);
 });
 
 void LoadCache(const char* tagName)
@@ -156,19 +184,27 @@ static InitFunction initFunction([]()
 {
 	static ConsoleCommand saveCacheCmd("save_gta_cache", [](const std::string& resourceName)
 	{
-		int index = GetCollectionIndexByTag(resourceName);
-
-		if (index < 0)
-		{
-			console::PrintError("cacheloader", "No such collection tag %s\n", resourceName);
-			return;
-		}
-
-		// prepare the cache data set
 		atHashMap<bool> packfileMap;
-		atHashMap_bool_insert(&packfileMap, index, true);
 
-		_loadCacheFile(resourceName.c_str(), va("cache:/%s/", resourceName), true, packfileMap);
+		if (resourceName != "gta5")
+		{
+			int index = GetCollectionIndexByTag(resourceName);
+
+			if (index < 0)
+			{
+				console::PrintError("cacheloader", "No such collection tag %s\n", resourceName);
+				return;
+			}
+
+			// prepare the cache data set
+			atHashMap_bool_insert(&packfileMap, index, true);
+
+			_loadCacheFile(resourceName.c_str(), va("cache:/%s/", resourceName), true, packfileMap);
+		}
+		else
+		{
+			_loadCacheFile("gta5", nullptr, false, packfileMap);
+		}
 
 		// save the cache
 		std::string outFileName = fmt::sprintf("fxd:/%s_cache_y.dat", resourceName);
@@ -197,7 +233,19 @@ static InitFunction initFunction([]()
 
 		std::stringstream fileData;
 		fileData << "<fileDates>\n";
-		fileData << fmt::sprintf("%u %lld", HashString(va("resource_surrogate:/%s.rpf", resourceName)), GetPackHashByTag(resourceName)) << "\n";
+
+		if (resourceName != "gta5")
+		{
+			fileData << fmt::sprintf("%u %lld", HashString(va("resource_surrogate:/%s.rpf", resourceName)), GetPackHashByTag(resourceName)) << "\n";
+		}
+		else
+		{
+			for (auto& file : *g_streamingPackfiles)
+			{
+				fileData << fmt::sprintf("%u %lld\n", file.nameHash, ((uint64_t)file.modificationTime.dwHighDateTime << 32) | file.modificationTime.dwLowDateTime);
+			}
+		}
+
 		fileData << "</fileDates>\n";
 
 		for (int i = 0; i < g_cacheMgr->numModules; i++)
