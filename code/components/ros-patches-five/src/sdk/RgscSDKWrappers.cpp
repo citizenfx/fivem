@@ -270,6 +270,47 @@ private:
 	IRgscProfileManager* m_baseRgsc;
 };
 
+#include <shlwapi.h>
+#include <shlobj.h>
+
+#pragma comment(lib, "shlwapi.lib")
+
+static void AppendPathComponent(std::wstring& value, const wchar_t* component)
+{
+	value += component;
+
+	if (GetFileAttributes(value.c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		CreateDirectoryW(value.c_str(), nullptr);
+	}
+}
+
+static std::wstring GetCitizenSavePath()
+{
+	PWSTR saveBasePath;
+
+	// get the 'Saved Games' shell directory
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_SavedGames, 0, nullptr, &saveBasePath)))
+	{
+		// create a STL string and free the used memory
+		std::wstring savePath(saveBasePath);
+
+		CoTaskMemFree(saveBasePath);
+
+		// append our path components
+		AppendPathComponent(savePath, L"\\CitizenFX");
+		AppendPathComponent(savePath, L"\\GTA5");
+
+		// append a final separator
+		savePath += L"\\";
+
+		// and return the path
+		return savePath;
+	}
+
+	return MakeRelativeCitPath(L"saves");
+}
+
 class FileSystemStub : public IRgscFileSystem
 {
 public:
@@ -300,11 +341,9 @@ public:
 	{
 		LOG_CALL();
 
-		auto hr = m_baseRgsc->getProfilePath(buffer, flag);
+		strncpy(buffer, ToNarrow(GetCitizenSavePath()).c_str(), 256);
 
-		trace("path %d -> %s\n", flag, buffer);
-
-		return hr;
+		return S_OK;
 	}
 
 	GENERIC_STUB(m_03);
