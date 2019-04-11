@@ -400,5 +400,5 @@ static InitFunction initFunction([]()
 		}
 	});
 
-	nui::SetAudioSink(&g_audioSink);
+	//nui::SetAudioSink(&g_audioSink);
 });

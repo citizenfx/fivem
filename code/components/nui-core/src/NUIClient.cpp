@@ -64,7 +64,10 @@ NUIClient::NUIClient(NUIWindow* window)
 
 void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType)
 {
-	browser->GetHost()->SetAudioMuted(true);
+	if (g_audioSink)
+	{
+		browser->GetHost()->SetAudioMuted(true);
+	}
 
 	GetWindow()->OnClientContextCreated(browser, frame, nullptr);
 }
