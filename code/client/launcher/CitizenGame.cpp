@@ -220,6 +220,9 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 
 	// ignore loading 'videos'
 	hook::call(hook::get_pattern("8B F8 48 85 C0 74 47 48 8B C8 E8 ? ? ? ? 4C", -6), DeleteVideo);
+	
+	// draw loading screen even if 'not' enabled
+	hook::nop(hook::get_pattern("0F 29 74 24 30 85 DB", 7), 6);
 
 	// game elements for crash handling purposes
 	char* vtablePtrLoc = hook::pattern("41 89 40 10 49 83 60 18 00 48 8D 05").count(1).get(0).get<char>(12);
