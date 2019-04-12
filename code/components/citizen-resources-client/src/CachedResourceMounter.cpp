@@ -12,6 +12,8 @@
 
 #include <ResourceManager.h>
 
+#include <StreamingEvents.h>
+
 #include <HttpClient.h>
 #include <VFSRagePackfile.h>
 

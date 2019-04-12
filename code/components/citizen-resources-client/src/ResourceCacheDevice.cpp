@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "ResourceCacheDevice.h"
 
+#include <StreamingEvents.h>
+
 #include <ResourceManager.h>
 
 #include <concurrent_unordered_map.h>
@@ -16,11 +18,6 @@
 #include <ICoreGameInit.h>
 
 #include <optick.h>
-
-namespace fx
-{
-	DLL_EXPORT fwEvent<const std::string&, size_t, size_t> OnCacheDownloadStatus;
-}
 
 #pragma comment(lib, "winmm.lib")
 #include <mmsystem.h>

@@ -7,7 +7,7 @@
 #include <Streaming.h>
 #include <nutsnbolts.h>
 
-#include <CachedResourceMounter.h>
+#include <StreamingEvents.h>
 
 #include <shared_mutex>
 
