@@ -1291,17 +1291,18 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 		}
 
 		{
-			std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
-
-			auto entity = m_entitiesById[set & 0xFFFF];
+			std::weak_ptr<sync::SyncEntityState> entity;
 
 			{
-				auto entityRef = entity.lock();
+				std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+				entity = m_entitiesById[set & 0xFFFF];
+			}
 
-				if (entityRef)
-				{
-					OnCloneRemove(entityRef);
-				}
+			auto entityRef = entity.lock();
+
+			if (entityRef)
+			{
+				OnCloneRemove(entityRef);
 			}
 		}
 
@@ -1867,13 +1868,15 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 			auto [data, lock] = GetClientData(this, client);
 			int used = 0;
 
-			std::shared_lock<std::shared_mutex> entityListLock(m_entitiesByIdMutex);
-
-			for (auto object : data->objectIds)
 			{
-				if (!m_entitiesById[object].expired())
+				std::shared_lock<std::shared_mutex> entityListLock(m_entitiesByIdMutex);
+
+				for (auto object : data->objectIds)
 				{
-					used++;
+					if (!m_entitiesById[object].expired())
+					{
+						used++;
+					}
 				}
 			}
 
