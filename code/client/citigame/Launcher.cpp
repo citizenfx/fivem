@@ -116,6 +116,8 @@ bool LauncherInterface::PreInitializeGame()
 	// run callbacks on the component loader
     if (!getenv("CitizenFX_ToolMode"))
     {
+		DisableToolHelpScope thScope;
+
         RunLifeCycleCallback([] (LifeCycleComponent* component)
         {
             component->PreInitGame();
