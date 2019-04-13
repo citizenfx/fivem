@@ -592,176 +592,121 @@ std::shared_ptr<EntitlementBlock> EntitlementBlock::Read(const uint8_t* buffer, 
 HRESULT RunCor(PCWSTR pszVersion, PCWSTR pszAssemblyName,
     PCWSTR pszClassName, std::string* outArg);
 
+void RunLegitimacyNui();
+
+std::string g_rosData;
+
 bool VerifyRetailOwnership()
 {
-    std::string outArg;
-    if (FAILED(RunCor(L"v4.0.30319", MakeRelativeCitPath(L"OwnershipUI.dll").c_str(), L"OwnershipUI.InitUX", &outArg)))
-    {
-		std::string exceptionStr;
+	RunLegitimacyNui();
 
-		std::wstring tempPath = _wgetenv(L"TEMP");
-		tempPath += L"\\FiveM_OwnershipUICrash.log";
+	if (g_rosData.empty())
+	{
+		return false;
+	}
 
-		FILE* ef = _wfopen(tempPath.c_str(), L"rb");
+	rapidjson::Document doc;
+	doc.Parse(g_rosData.c_str());
 
-		if (ef)
+	std::string ticket = doc["Ticket"].GetString();
+	std::string sessionKey = doc["SessionKey"].GetString();
+	std::string sessionTicket = doc["SessionTicket"].GetString();
+
+	Botan::AutoSeeded_RNG rng;
+	auto machineHash = rng.random_vec(32);
+	*(uint64_t*)& machineHash[4] = atoi(doc["RockstarId"].GetString()) ^ 0xDEADCAFEBABEFEED;
+
+	rapidjson::Document doc2;
+	doc2.SetObject();
+
+	doc2.AddMember("ticket", rapidjson::Value(ticket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	doc2.AddMember("sessionKey", rapidjson::Value(sessionKey.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	doc2.AddMember("sessionTicket", rapidjson::Value(sessionTicket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	doc2.AddMember("machineHash", rapidjson::Value(Botan::base64_encode(machineHash).c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+
+	rapidjson::StringBuffer sb;
+	rapidjson::Writer<rapidjson::StringBuffer> w(sb);
+
+	doc2.Accept(w);
+
+	auto b = cpr::Post(cpr::Url{ "http://localhost:32891/ros/validate" },
+		cpr::Body{ std::string(sb.GetString(), sb.GetLength()) });
+
+	if (!b.error && b.status_code == 200)
+	{
+		auto blob = Botan::base64_decode(b.text);
+
+		auto cbc = new Botan::CBC_Decryption(new EntitlementBlockCipher(), new Botan::Null_Padding());
+		cbc->start(&blob[4], 16);
+
+		cbc->finish(blob, 20);
+
+		auto entitlementBlock = EntitlementBlock::Read(&blob[20]);
+
+		if (entitlementBlock->IsValid())
 		{
-			char buffer[65536];
-			int len = fread(buffer, 1, sizeof(buffer), ef);
+			if (time(nullptr) < entitlementBlock->GetExpirationDate())
+			{
+				if (entitlementBlock->GetMachineHash() == Botan::base64_encode(machineHash))
+				{
+					// if (entitlementBlock->GetRockstarId() == someID)
+					{
+						std::istringstream stream(entitlementBlock->GetXml());
 
-			buffer[len] = '\0';
+						boost::property_tree::ptree tree;
+						boost::property_tree::read_xml(stream, tree);
 
-			fclose(ef);
+						for (auto& p : tree.get_child("EntitlementsListXml"))
+						{
+							if (p.first == "Entitlement")
+							{
+								try
+								{
+									std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
 
-			exceptionStr = buffer;
-
-			_wunlink(tempPath.c_str());
-		}
-
-        FatalError("Could not initialize the Common Language Runtime for validation. Make sure you've installed the .NET Framework 4.0 or higher.\n%s", exceptionStr);
-    }
-
-    if (outArg.empty())
-    {
-        return false;
-    }
-
-    std::string body;
-
-    {
-        std::stringstream ss(outArg);
-        std::string username;
-        std::string password;
-
-        std::getline(ss, username, '\n');
-        std::getline(ss, password, '\n');
-        
-        rapidjson::Document doc2;
-        doc2.SetObject();
-
-        doc2.AddMember("username", rapidjson::Value(username.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-        doc2.AddMember("password", rapidjson::Value(password.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-
-        rapidjson::StringBuffer sb;
-        rapidjson::Writer<rapidjson::StringBuffer> w(sb);
-
-        doc2.Accept(w);
-        
-        body = std::string(sb.GetString(), sb.GetSize());
-    }
-
-    auto r = cpr::Post(cpr::Url{ "http://localhost:32891/ros/login" },
-        cpr::Body{ body });
-
-    if (!r.error && r.status_code == 200)
-    {
-        rapidjson::Document doc;
-        doc.Parse(r.text.c_str());
-
-        std::string ticket = doc["Ticket"].GetString();
-        std::string sessionKey = doc["SessionKey"].GetString();
-        std::string sessionTicket = doc["SessionTicket"].GetString();
-
-        Botan::AutoSeeded_RNG rng;
-        auto machineHash = rng.random_vec(32);
-		*(uint64_t*)&machineHash[4] = atoi(doc["RockstarId"].GetString()) ^ 0xDEADCAFEBABEFEED;
-
-        rapidjson::Document doc2;
-        doc2.SetObject();
-
-        doc2.AddMember("ticket", rapidjson::Value(ticket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-        doc2.AddMember("sessionKey", rapidjson::Value(sessionKey.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-        doc2.AddMember("sessionTicket", rapidjson::Value(sessionTicket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-        doc2.AddMember("machineHash", rapidjson::Value(Botan::base64_encode(machineHash).c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-
-        rapidjson::StringBuffer sb;
-        rapidjson::Writer<rapidjson::StringBuffer> w(sb);
-
-        doc2.Accept(w);
-
-        auto b = cpr::Post(cpr::Url{ "http://localhost:32891/ros/validate" },
-            cpr::Body{ std::string(sb.GetString(), sb.GetLength()) });
-
-        if (!b.error && b.status_code == 200)
-        {
-            auto blob = Botan::base64_decode(b.text);
-            
-            auto cbc = new Botan::CBC_Decryption(new EntitlementBlockCipher(), new Botan::Null_Padding());
-            cbc->start(&blob[4], 16);
-
-            cbc->finish(blob, 20);
-
-            auto entitlementBlock = EntitlementBlock::Read(&blob[20]);
-
-            if (entitlementBlock->IsValid())
-            {
-                if (time(nullptr) < entitlementBlock->GetExpirationDate())
-                {
-                    if (entitlementBlock->GetMachineHash() == Botan::base64_encode(machineHash))
-                    {
-                        // if (entitlementBlock->GetRockstarId() == someID)
-                        {
-                            std::istringstream stream(entitlementBlock->GetXml());
-
-                            boost::property_tree::ptree tree;
-                            boost::property_tree::read_xml(stream, tree);
-
-                            for (auto& p : tree.get_child("EntitlementsListXml"))
-                            {
-                                if (p.first == "Entitlement")
-                                {
-									try
+									if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
 									{
-										std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
+										auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros" },
+											cpr::Payload{ { "rosData", b.text } });
 
-										if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
+										if (r.error)
 										{
-											auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros" },
-												cpr::Payload{ { "rosData", b.text } });
+											FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.error.code, r.error.message);
+											return false;
+										}
 
-											if (r.error)
-											{
-												FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.error.code, r.error.message);
-												return false;
-											}
+										if (r.status_code >= 500)
+										{
+											FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.status_code, r.text);
+											return false;
+										}
 
-											if (r.status_code >= 500)
-											{
-												FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.status_code, r.text);
-												return false;
-											}
-
-											if (r.status_code == 200)
-											{
-												g_entitlementSource = r.text;
-												return true;
-											}
+										if (r.status_code == 200)
+										{
+											g_entitlementSource = r.text;
+											return true;
 										}
 									}
-									catch (const std::exception& e)
-									{
+								}
+								catch (const std::exception & e)
+								{
 
-									}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
-			MessageBox(nullptr, va(L"The Social Club account specified (%s) does not own a valid license to Grand Theft Auto V.", ToWide(doc["OrigNickname"].GetString())), L"Authentication error", MB_OK | MB_ICONWARNING);
-        }
-        else if (!b.error)
-        {
-            MessageBox(nullptr, ToWide(b.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
-        }
-    }
-    else if (!r.error)
-    {
-        MessageBox(nullptr, ToWide(r.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
-    }
+		MessageBox(nullptr, va(L"The Social Club account specified (%s) does not own a valid license to Grand Theft Auto V.", ToWide(doc["OrigNickname"].GetString())), L"Authentication error", MB_OK | MB_ICONWARNING);
+	}
+	else if (!b.error)
+	{
+		MessageBox(nullptr, ToWide(b.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
+	}
 
-    return false;
+	return false;
 }
 
 #include <coreconsole.h>
