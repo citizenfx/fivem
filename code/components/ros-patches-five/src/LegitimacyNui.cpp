@@ -393,23 +393,26 @@ function RGSC_SIGN_IN(s)
 {
 	var data = JSON.parse(s);
 
-	// TODO: store other credentials in native code
-	rosCredentials.Ticket = data.ticket;
+	if (data.XMLResponse)
+	{
+		// TODO: store other credentials in native code
+		rosCredentials.Ticket = data.ticket;
 
-	var profileData = {
-		Local: false,
-		RockstarId: data.RockstarId,
-		LastSignInTime: new Date().getTime(),
-		AvatarUrl: data.AvatarUrl,
-		Nickname: data.Nickname,
-		SaveEmail: data.SaveEmail || data.SavePassword || data.AutoSignIn,
-		SavePassword: data.SavePassword || data.AutoSignIn,
-		AutoSignIn: data.AutoSignIn,
-		Password: (data.SavePassword || data.AutoSignIn) ? data.Password : '',
-		Email: (data.SaveEmail || data.SavePassword || data.AutoSignIn) ? data.Email : ''
-	};
+		var profileData = {
+			Local: false,
+			RockstarId: data.RockstarId,
+			LastSignInTime: new Date().getTime(),
+			AvatarUrl: data.AvatarUrl,
+			Nickname: data.Nickname,
+			SaveEmail: data.SaveEmail || data.SavePassword || data.AutoSignIn,
+			SavePassword: data.SavePassword || data.AutoSignIn,
+			AutoSignIn: data.AutoSignIn,
+			Password: (data.SavePassword || data.AutoSignIn) ? data.Password : '',
+			Email: (data.SaveEmail || data.SavePassword || data.AutoSignIn) ? data.Email : ''
+		};
 
-	window.invokeNative('signin', s);
+		window.invokeNative('signin', s);
+	}
 
 	RGSC_JS_FINISH_SIGN_IN(JSON.stringify(data));
 }
