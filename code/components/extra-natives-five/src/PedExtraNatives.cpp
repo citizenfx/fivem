@@ -86,4 +86,40 @@ static HookFunction initFunction([]()
 
 		context.SetResult<bool>(result);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_HAIR_COLOR", [=](fx::ScriptContext& context)
+	{
+		int result = -1;
+
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+		if (entity && entity->IsOfType<CPed>())
+		{
+			auto address = (char*)entity + 16;
+			auto table = g_extensionList_get(address, *_id_CPedHeadBlendData);
+			if (table)
+			{
+				result = *(uint8_t*)(table + 312);
+			}
+		}
+
+		context.SetResult<int>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_HAIR_HIGHLIGHT_COLOR", [=](fx::ScriptContext& context)
+	{
+		int result = -1;
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		if (entity && entity->IsOfType<CPed>())
+		{
+			auto address = (char*)entity + 16;
+			auto table = g_extensionList_get(address, *_id_CPedHeadBlendData);
+			if (table)
+			{
+				result = *(uint8_t*)(table + 313);
+			}
+		}
+
+		context.SetResult<int>(result);
+	});
 });
