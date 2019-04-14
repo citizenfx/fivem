@@ -90,7 +90,7 @@ print("const _rl = Citizen.resultAsLong();")
 print("const _s = Citizen.resultAsString();")
 print("const _rv = Citizen.resultAsVector();")
 print("const _ro = Citizen.resultAsObject();")
-print("const _in = Citizen.invokeNative;")
+print("const _in = Citizen.invokeNativeByHash;")
 print("const _ii = Citizen.pointerValueIntInitialized;")
 print("const _fi = Citizen.pointerValueFloatInitialized;")
 
@@ -220,7 +220,8 @@ end
 
 local function printInvocationArguments(native)
 	local args = {
-		'"' .. native.hash .. '"'
+		("0x%08x"):format((native.hash >> 32) & 0xFFFFFFFF),
+		("0x%08x"):format(native.hash & 0xFFFFFFFF),
 	}
 
 	if native.arguments then

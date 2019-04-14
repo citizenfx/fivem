@@ -634,6 +634,28 @@ const char* V8ScriptRuntime::AssignStringValue(const Local<Value>& value)
 	return str;
 }
 
+struct StringHashGetter
+{
+	static const int BaseArgs = 1;
+
+	uint64_t operator()(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		String::Utf8Value hashString(GetV8Isolate(), args[0]);
+		return strtoull(*hashString, nullptr, 16);
+	}
+};
+
+struct IntHashGetter
+{
+	static const int BaseArgs = 2;
+
+	uint64_t operator()(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		return (args[1]->Uint32Value() | (((uint64_t)args[0]->Uint32Value()) << 32));
+	}
+};
+
+template<typename HashGetter>
 static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	// get required entries
@@ -645,7 +667,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	auto pointerFields = runtime->GetPointerFields();
 
 	// exception thrower
-	auto throwException = [&] (const std::string& exceptionString)
+	auto throwException = [&](const std::string & exceptionString)
 	{
 		args.GetIsolate()->ThrowException(Exception::Error(String::NewFromUtf8(args.GetIsolate(), exceptionString.c_str())));
 	};
@@ -674,13 +696,12 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 
 	// get the hash
-	String::Utf8Value hashString(GetV8Isolate(), args[0]);
-	uint64_t hash = strtoull(*hashString, nullptr, 16);
+	uint64_t hash = typename HashGetter()(args);
 
 	context.nativeIdentifier = hash;
 
 	// pushing function
-	auto push = [&] (const auto& value)
+	auto push = [&](const auto & value)
 	{
 		*reinterpret_cast<uintptr_t*>(&context.arguments[context.numArguments]) = 0;
 		*reinterpret_cast<std::decay_t<decltype(value)>*>(&context.arguments[context.numArguments]) = value;
@@ -688,39 +709,24 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	};
 
 	// the big argument loop
-	for (int i = 1; i < numArgs; i++)
+	for (int i = typename HashGetter::BaseArgs; i < numArgs; i++)
 	{
 		// get the type and decide what to do based on it
 		auto arg = args[i];
 
-		// null/undefined: add '0'
-		if (arg->IsNull() || arg->IsUndefined())
+		if (arg->IsNumber())
 		{
-			push(0);
-		}
-		else if (arg->IsNumber() || arg->IsNumberObject())
-		{
-			Local<Number> number = arg->ToNumber(runtime->GetContext()).ToLocalChecked();
-			double value = number->Value();
+			double value = arg->NumberValue();
+			int64_t intValue = static_cast<int64_t>(value);
 
-			if (floor(value) == value)
+			if (intValue == value)
 			{
-				push(static_cast<int64_t>(value));
+				push(intValue);
 			}
 			else
 			{
 				push(static_cast<float>(value));
 			}
-		}
-		else if (arg->IsInt32())
-		{
-			Local<Int32> int32 = arg->ToInt32(runtime->GetContext()).ToLocalChecked();
-			push(int32->Int32Value());
-		}
-		else if (arg->IsUint32())
-		{
-			Local<Uint32> int32 = arg->ToUint32(runtime->GetContext()).ToLocalChecked();
-			push(int32->Uint32Value());
 		}
 		else if (arg->IsBoolean() || arg->IsBooleanObject())
 		{
@@ -730,13 +736,105 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		{
 			push(runtime->AssignStringValue(arg));
 		}
+		// null/undefined: add '0'
+		else if (arg->IsNull() || arg->IsUndefined())
+		{
+			push(0);
+		}
+		// metafield
+		else if (arg->IsExternal())
+		{
+			auto pushPtr = [&](V8MetaFields metaField)
+			{
+				if (numReturnValues >= _countof(retvals))
+				{
+					throwException("too many return value arguments");
+					return false;
+				}
+
+				// push the offset and set the type
+				push(&retvals[numReturnValues]);
+				rettypes[numReturnValues] = metaField;
+
+				// increment the counter
+				if (metaField == V8MetaFields::PointerValueVector)
+				{
+					numReturnValues += 3;
+				}
+				else
+				{
+					numReturnValues += 1;
+				}
+
+				return true;
+			};
+
+			uint8_t* ptr = reinterpret_cast<uint8_t*>(Local<External>::Cast(arg)->Value());
+
+			// if the pointer is a metafield
+			if (ptr >= g_metaFields && ptr < &g_metaFields[(int)V8MetaFields::Max])
+			{
+				V8MetaFields metaField = static_cast<V8MetaFields>(ptr - g_metaFields);
+
+				// switch on the metafield
+				switch (metaField)
+				{
+				case V8MetaFields::PointerValueInt:
+				case V8MetaFields::PointerValueFloat:
+				case V8MetaFields::PointerValueVector:
+				{
+					if (!pushPtr(metaField))
+					{
+						return;
+					}
+
+					break;
+				}
+				case V8MetaFields::ReturnResultAnyway:
+					returnResultAnyway = true;
+					break;
+				case V8MetaFields::ResultAsInteger:
+				case V8MetaFields::ResultAsLong:
+				case V8MetaFields::ResultAsString:
+				case V8MetaFields::ResultAsFloat:
+				case V8MetaFields::ResultAsVector:
+				case V8MetaFields::ResultAsObject:
+					returnValueCoercion = metaField;
+					break;
+				}
+			}
+			// or if the pointer is a runtime pointer field
+			else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
+			{
+				// guess the type based on the pointer field type
+				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
+				V8MetaFields metaField = static_cast<V8MetaFields>(ptrField / sizeof(PointerField));
+
+				if (metaField == V8MetaFields::PointerValueInt || metaField == V8MetaFields::PointerValueFloat)
+				{
+					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
+
+					retvals[numReturnValues] = ptrFieldEntry->value;
+					ptrFieldEntry->empty = true;
+
+					if (!pushPtr(metaField))
+					{
+						return;
+					}
+				}
+			}
+			else
+			{
+				push(ptr);
+			}
+		}
 		// placeholder vectors
 		else if (arg->IsArray())
 		{
 			Local<Array> array = Local<Array>::Cast(arg);
 			float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
 
-			auto getNumber = [&] (int idx)
+			auto getNumber = [&](int idx)
 			{
 				Local<Value> value = array->Get(idx);
 
@@ -789,93 +887,6 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 				}
 
 				push(w);
-			}
-		}
-		// metafield
-		else if (arg->IsExternal())
-		{
-			auto pushPtr = [&] (V8MetaFields metaField)
-			{
-				if (numReturnValues >= _countof(retvals))
-				{
-					throwException("too many return value arguments");
-					return false;
-				}
-
-				// push the offset and set the type
-				push(&retvals[numReturnValues]);
-				rettypes[numReturnValues] = metaField;
-
-				// increment the counter
-				if (metaField == V8MetaFields::PointerValueVector)
-				{
-					numReturnValues += 3;
-				}
-				else
-				{
-					numReturnValues += 1;
-				}
-
-				return true;
-			};
-
-			uint8_t* ptr = reinterpret_cast<uint8_t*>(Local<External>::Cast(arg)->Value());
-
-			// if the pointer is a metafield
-			if (ptr >= g_metaFields && ptr < &g_metaFields[(int)V8MetaFields::Max])
-			{
-				V8MetaFields metaField = static_cast<V8MetaFields>(ptr - g_metaFields);
-
-				// switch on the metafield
-				switch (metaField)
-				{
-					case V8MetaFields::PointerValueInt:
-					case V8MetaFields::PointerValueFloat:
-					case V8MetaFields::PointerValueVector:
-					{
-						if (!pushPtr(metaField))
-						{
-							return;
-						}
-
-						break;
-					}
-					case V8MetaFields::ReturnResultAnyway:
-						returnResultAnyway = true;
-						break;
-					case V8MetaFields::ResultAsInteger:
-					case V8MetaFields::ResultAsLong:
-					case V8MetaFields::ResultAsString:
-					case V8MetaFields::ResultAsFloat:
-					case V8MetaFields::ResultAsVector:
-					case V8MetaFields::ResultAsObject:
-						returnValueCoercion = metaField;
-						break;
-				}
-			}
-			// or if the pointer is a runtime pointer field
-			else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
-			{
-				// guess the type based on the pointer field type
-				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
-				V8MetaFields metaField = static_cast<V8MetaFields>(ptrField / sizeof(PointerField));
-
-				if (metaField == V8MetaFields::PointerValueInt || metaField == V8MetaFields::PointerValueFloat)
-				{
-					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
-
-					retvals[numReturnValues] = ptrFieldEntry->value;
-					ptrFieldEntry->empty = true;
-
-					if (!pushPtr(metaField))
-					{
-						return;
-					}
-				}
-			}
-			else
-			{
-				push(ptr);
 			}
 		}
 		else if (arg->IsArrayBufferView())
@@ -948,7 +959,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	};
 
 	// number of Lua results
-	Local<Array> returnValueArray = Array::New(args.GetIsolate());
+	Local<Value> returnValue = Undefined(args.GetIsolate());
 	int numResults = 0;
 
 	// if no other result was requested, or we need to return the result anyway, push the result
@@ -960,69 +971,69 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		// handle the type coercion
 		switch (returnValueCoercion)
 		{
-			case V8MetaFields::ResultAsString:
+		case V8MetaFields::ResultAsString:
+		{
+			const char* str = *reinterpret_cast<const char**>(&context.arguments[0]);
+
+			if (str)
 			{
-				const char* str = *reinterpret_cast<const char**>(&context.arguments[0]);
-
-				if (str)
-				{
-					returnValueArray->Set(0, String::NewFromUtf8(args.GetIsolate(), str));
-				}
-				else
-				{
-					returnValueArray->Set(0, Null(args.GetIsolate()));
-				}
-
-				break;
+				returnValue = String::NewFromUtf8(args.GetIsolate(), str);
 			}
-			case V8MetaFields::ResultAsFloat:
-				returnValueArray->Set(0, Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&context.arguments[0])));
-				break;
-			case V8MetaFields::ResultAsVector:
+			else
 			{
-				scrVector vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
-
-				Local<Array> vectorArray = Array::New(args.GetIsolate(), 3);
-				vectorArray->Set(0, Number::New(args.GetIsolate(), vector.x));
-				vectorArray->Set(1, Number::New(args.GetIsolate(), vector.y));
-				vectorArray->Set(2, Number::New(args.GetIsolate(), vector.z));
-				
-				returnValueArray->Set(0, vectorArray);
-
-				break;
+				returnValue = Null(args.GetIsolate());
 			}
-			case V8MetaFields::ResultAsObject:
+
+			break;
+		}
+		case V8MetaFields::ResultAsFloat:
+			returnValue = Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&context.arguments[0]));
+			break;
+		case V8MetaFields::ResultAsVector:
+		{
+			scrVector vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
+
+			Local<Array> vectorArray = Array::New(args.GetIsolate(), 3);
+			vectorArray->Set(0, Number::New(args.GetIsolate(), vector.x));
+			vectorArray->Set(1, Number::New(args.GetIsolate(), vector.y));
+			vectorArray->Set(2, Number::New(args.GetIsolate(), vector.z));
+
+			returnValue = vectorArray;
+
+			break;
+		}
+		case V8MetaFields::ResultAsObject:
+		{
+			scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
+
+			Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), object.length);
+			memcpy(outValueBuffer->GetContents().Data(), object.data, object.length);
+
+			Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, object.length);
+
+			returnValue = outArray;
+
+			break;
+		}
+		case V8MetaFields::ResultAsInteger:
+			returnValue = Int32::New(args.GetIsolate(), *reinterpret_cast<int32_t*>(&context.arguments[0]));
+			break;
+		case V8MetaFields::ResultAsLong:
+			returnValue = Number::New(args.GetIsolate(), double(*reinterpret_cast<int64_t*>(&context.arguments[0])));
+			break;
+		default:
+		{
+			int32_t integer = *reinterpret_cast<int32_t*>(&context.arguments[0]);
+
+			if ((integer & 0xFFFFFFFF) == 0)
 			{
-				scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
-				
-				Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), object.length);
-				memcpy(outValueBuffer->GetContents().Data(), object.data, object.length);
-
-				Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, object.length);
-
-				returnValueArray->Set(0, outArray);
-
-				break;
+				returnValue = Boolean::New(args.GetIsolate(), false);
 			}
-			case V8MetaFields::ResultAsInteger:
-				returnValueArray->Set(0, Int32::New(args.GetIsolate(), *reinterpret_cast<int32_t*>(&context.arguments[0])));
-				break;
-			case V8MetaFields::ResultAsLong:
-				returnValueArray->Set(0, Number::New(args.GetIsolate(), double(*reinterpret_cast<int64_t*>(&context.arguments[0]))));
-				break;
-			default:
+			else
 			{
-				int32_t integer = *reinterpret_cast<int32_t*>(&context.arguments[0]);
-
-				if ((integer & 0xFFFFFFFF) == 0)
-				{
-					returnValueArray->Set(0, Boolean::New(args.GetIsolate(), false));
-				}
-				else
-				{
-					returnValueArray->Set(0, Int32::New(args.GetIsolate(), integer));
-				}
+				returnValue = Int32::New(args.GetIsolate(), integer);
 			}
+		}
 		}
 	}
 
@@ -1030,17 +1041,56 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	{
 		int i = 0;
 
-		while (i < numReturnValues)
+		// fast path non-array result
+		if (numReturnValues == 1 && numResults == 0)
 		{
-			switch (rettypes[i])
+			switch (rettypes[0])
 			{
+			case V8MetaFields::PointerValueInt:
+				returnValue = Int32::New(args.GetIsolate(), retvals[0]);
+				break;
+
+			case V8MetaFields::PointerValueFloat:
+				returnValue = Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&retvals[0]));
+				break;
+
+			case V8MetaFields::PointerValueVector:
+			{
+				scrVector vector = *reinterpret_cast<scrVector*>(&retvals[0]);
+
+				Local<Array> vectorArray = Array::New(args.GetIsolate(), 3);
+				vectorArray->Set(0, Number::New(args.GetIsolate(), vector.x));
+				vectorArray->Set(1, Number::New(args.GetIsolate(), vector.y));
+				vectorArray->Set(2, Number::New(args.GetIsolate(), vector.z));
+
+				returnValue = vectorArray;
+				break;
+			}
+			}
+		}
+		else if (numReturnValues > 0)
+		{
+			Local<Object> arrayValue = Array::New(args.GetIsolate());
+
+			// transform into array
+			{
+				Local<Value> oldValue = returnValue;
+
+				returnValue = arrayValue;
+				arrayValue->Set(0, oldValue);
+			}
+
+			while (i < numReturnValues)
+			{
+				switch (rettypes[i])
+				{
 				case V8MetaFields::PointerValueInt:
-					returnValueArray->Set(numResults, Int32::New(args.GetIsolate(), retvals[i]));
+					arrayValue->Set(numResults, Int32::New(args.GetIsolate(), retvals[i]));
 					i++;
 					break;
 
 				case V8MetaFields::PointerValueFloat:
-					returnValueArray->Set(numResults, Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&retvals[i])));
+					arrayValue->Set(numResults, Number::New(args.GetIsolate(), *reinterpret_cast<float*>(&retvals[i])));
 					i++;
 					break;
 
@@ -1053,26 +1103,20 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 					vectorArray->Set(1, Number::New(args.GetIsolate(), vector.y));
 					vectorArray->Set(2, Number::New(args.GetIsolate(), vector.z));
 
-					returnValueArray->Set(numResults, vectorArray);
+					arrayValue->Set(numResults, vectorArray);
 
 					i += 3;
 					break;
 				}
-			}
+				}
 
-			numResults++;
+				numResults++;
+			}
 		}
 	}
 
 	// and set the return value(s)
-	if (numResults == 1)
-	{
-		args.GetReturnValue().Set(returnValueArray->Get(0));
-	}
-	else
-	{
-		args.GetReturnValue().Set(returnValueArray);
-	}
+	args.GetReturnValue().Set(returnValue);
 }
 
 template<V8MetaFields MetaField>
@@ -1201,7 +1245,8 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "makeFunctionReference", V8_MakeFunctionReference },
 	// internals
 	{ "getTickCount", V8_GetTickCount },
-	{ "invokeNative", V8_InvokeNative },
+	{ "invokeNative", V8_InvokeNative<StringHashGetter> },
+	{ "invokeNativeByHash", V8_InvokeNative<IntHashGetter> },
 	{ "startProfiling", V8_StartProfiling },
 	{ "stopProfiling", V8_StopProfiling },
 	// metafields
