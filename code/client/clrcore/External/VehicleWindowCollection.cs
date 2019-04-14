@@ -62,7 +62,18 @@ namespace CitizenFX.Core
 
 		public void RollDownAllWindows()
 		{
-			API.RollDownWindows(_owner.Handle);
+			foreach(VehicleWindow vehicleWindow in this.GetAllWindows())
+			{
+				vehicleWindow.RollDown();
+			}
+		}
+
+		public void RollUpAllWindows()
+		{
+			foreach (VehicleWindow vehicleWindow in this.GetAllWindows())
+			{
+				vehicleWindow.RollUp();
+			}
 		}
 
 		public bool HasWindow(VehicleWindowIndex window)
