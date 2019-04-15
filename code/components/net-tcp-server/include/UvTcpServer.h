@@ -106,15 +106,27 @@ public:
 }
 
 // helpful wrappers
-template<typename Handle, typename TFn>
-auto UvCallback(Handle* handle, const TFn& fn)
+class UvClosable
 {
-	struct Request
+public:
+	virtual ~UvClosable() = default;
+};
+
+class UvVirtualBase
+{
+public:
+	virtual ~UvVirtualBase() = 0;
+};
+
+template<typename Handle, typename TFn>
+auto UvCallback(Handle* handle, TFn&& fn)
+{
+	struct Request : public UvClosable
 	{
 		TFn fn;
 
-		Request(const TFn& fn)
-			: fn(fn)
+		Request(TFn&& fn)
+			: fn(std::move(fn))
 		{
 
 		}
@@ -128,7 +140,66 @@ auto UvCallback(Handle* handle, const TFn& fn)
 		}
 	};
 
-	auto req = new Request(fn);
+	auto req = new Request(std::move(fn));
+	handle->data = req;
+
+	return &Request::cb;
+}
+
+template<typename... TArgs>
+struct UvCallbackArgs
+{
+	template<typename Handle, typename TFn>
+	static auto Get(Handle* handle, TFn&& fn)
+	{
+		struct Request : public UvClosable
+		{
+			TFn fn;
+
+			Request(TFn&& fn)
+				: fn(std::move(fn))
+			{
+
+			}
+
+			static void cb(Handle* handle, TArgs... args)
+			{
+				Request* request = reinterpret_cast<Request*>(handle->data);
+
+				request->fn(handle, args...);
+				delete request;
+			}
+		};
+
+		auto req = new Request(std::move(fn));
+		handle->data = req;
+
+		return &Request::cb;
+	}
+};
+
+template<typename Handle, typename TFn>
+auto UvPersistentCallback(Handle* handle, TFn&& fn)
+{
+	struct Request : public UvClosable
+	{
+		TFn fn;
+
+		Request(TFn&& fn)
+			: fn(std::move(fn))
+		{
+
+		}
+
+		static void cb(Handle* handle)
+		{
+			Request* request = reinterpret_cast<Request*>(handle->data);
+
+			request->fn(handle);
+		}
+	};
+
+	auto req = new Request(std::move(fn));
 	handle->data = req;
 
 	return &Request::cb;
@@ -141,17 +212,42 @@ void UvCloseHelper(std::unique_ptr<Handle> handle, const TFn& fn)
 	struct TempCloseData
 	{
 		std::unique_ptr<Handle> item;
+		UvClosable* closable;
 	};
 
 	// create temporary object and give it our reference
 	TempCloseData* tempCloseData = new TempCloseData;
+	tempCloseData->closable = nullptr;
+
+	try
+	{
+		if (handle->data)
+		{
+			auto closable = dynamic_cast<UvClosable*>(static_cast<UvVirtualBase*>(handle->data));
+
+			if (closable)
+			{
+				tempCloseData->closable = closable;
+			}
+		}
+	}
+	catch (std::exception&)
+	{
+
+	}
+
 	tempCloseData->item = std::move(handle);
 	tempCloseData->item->data = tempCloseData;
 
 	fn(tempCloseData->item.get(), [](auto* handle)
 	{
+		auto closeData = reinterpret_cast<TempCloseData*>(handle->data);
+
+		// delete the closable, if any
+		delete closeData->closable;
+
 		// delete the close holder
-		delete reinterpret_cast<TempCloseData*>(handle->data);
+		delete closeData;
 	});
 }
 
@@ -164,3 +260,39 @@ void UvClose(std::unique_ptr<Handle> handle)
 		uv_close((uv_handle_t*)handle, cb);
 	});
 }
+
+template<typename T>
+class UvHandleContainer
+{
+public:
+	UvHandleContainer()
+	{
+		m_handle = std::make_unique<T>();
+	}
+
+	UvHandleContainer(UvHandleContainer&& right)
+	{
+		m_handle = std::move(right.m_handle);
+	}
+
+	~UvHandleContainer()
+	{
+		if (m_handle)
+		{
+			UvClose(std::move(m_handle));
+		}
+	}
+
+	inline T* get()
+	{
+		return m_handle.get();
+	}
+
+	inline T* operator&()
+	{
+		return m_handle.get();
+	}
+
+private:
+	std::unique_ptr<T> m_handle;
+};

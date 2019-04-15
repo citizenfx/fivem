@@ -17,12 +17,17 @@
 
 #include <msgpack.hpp>
 
+#include <UvLoopManager.h>
+#include <UvTcpServer.h> // for UvCallback
+
 #include <protocol/reqrep0/req.h>
 #include <protocol/reqrep0/rep.h>
 
 static fx::GameServer* g_gameServer;
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
+
+extern fwEvent<> OnEnetReceive;
 
 namespace fx
 {
@@ -70,14 +75,72 @@ namespace fx
 			ForceHeartbeat();
 		});
 
+		m_mainThreadCallbacks = std::make_unique<CallbackListNng>("inproc://main_client", 0);
+
 		instance->OnInitialConfiguration.Connect([=]()
 		{
-			m_thread = std::thread([=]()
+			if (!m_net->SupportsUvUdp())
 			{
-				SetThreadName(-1, "[Cfx] Server Thread");
+				m_thread = std::thread([=]()
+				{
+					SetThreadName(-1, "[Cfx] Server Thread");
 
-				Run();
-			});
+					Run();
+				});
+			}
+			else
+			{
+				m_mainThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain");
+
+				auto asyncInitHandle = std::make_shared<UvHandleContainer<uv_async_t>>();;
+				uv_async_init(m_mainThreadLoop->GetLoop(), asyncInitHandle->get(), UvPersistentCallback(asyncInitHandle->get(), [this, asyncInitHandle](uv_async_t*)
+				{
+					// private data for the net thread
+					struct MainPersistentData
+					{
+						UvHandleContainer<uv_timer_t> tickTimer;
+
+						std::shared_ptr<UvHandleContainer<uv_async_t>> callbackAsync;
+
+						std::chrono::milliseconds lastTime;
+					};
+
+					auto mainData = std::make_shared<MainPersistentData>();
+					mainData->lastTime = msec();
+
+					auto loop = m_mainThreadLoop->GetLoop();
+
+					// periodic timer for network ticks
+					auto frameTime = 1000 / 20;
+
+					auto mpd = mainData.get();
+
+					uv_timer_init(loop, &mainData->tickTimer);
+					uv_timer_start(&mainData->tickTimer, UvPersistentCallback(&mainData->tickTimer, [this, mpd](uv_timer_t*)
+					{
+						auto now = msec();
+						auto thisTime = now - mpd->lastTime;
+						mpd->lastTime = now;
+
+						ProcessServerFrame(thisTime.count());
+					}), frameTime, frameTime);
+
+					// event handle for callback list evaluation
+					mainData->callbackAsync = std::make_shared<UvHandleContainer<uv_async_t>>();
+
+					uv_async_init(loop, mainData->callbackAsync->get(), UvPersistentCallback(mainData->callbackAsync->get(), [this](uv_async_t*)
+					{
+						m_mainThreadCallbacks->Run();
+					}));
+
+					m_mainThreadCallbacks = std::make_unique<CallbackListUv>(mainData->callbackAsync);
+
+					// store the pointer in the class for lifetime purposes
+					m_mainThreadData = std::move(mainData);
+				}));
+
+				uv_async_send(asyncInitHandle->get());
+			}
 		}, 100);
 
 		m_clientRegistry = instance->GetComponent<ClientRegistry>().GetRef();
@@ -111,6 +174,70 @@ namespace fx
 				std::this_thread::sleep_for(60s);
 			}
 		}).detach();
+
+		if (m_net->SupportsUvUdp())
+		{
+			InitializeNetUv();
+		}
+		else
+		{
+			InitializeNetThread();
+		}
+	}
+
+	void GameServer::InitializeNetUv()
+	{
+		m_netThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork");
+
+		auto asyncInitHandle = std::make_shared<UvHandleContainer<uv_async_t>>();;
+		uv_async_init(m_netThreadLoop->GetLoop(), asyncInitHandle->get(), UvPersistentCallback(asyncInitHandle->get(), [this, asyncInitHandle](uv_async_t*)
+		{
+			// private data for the net thread
+			struct NetPersistentData
+			{
+				UvHandleContainer<uv_timer_t> tickTimer;
+
+				std::shared_ptr<UvHandleContainer<uv_async_t>> callbackAsync;
+			};
+
+			auto netData = std::make_shared<NetPersistentData>();
+			auto loop = m_netThreadLoop->GetLoop();
+
+			// periodic timer for network ticks
+			auto frameTime = 1000 / 30;
+			
+			uv_timer_init(loop, &netData->tickTimer);
+			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this](uv_timer_t*)
+			{
+				OnNetworkTick();
+			}), frameTime, frameTime);
+
+			// event handle for callback list evaluation
+			netData->callbackAsync = std::make_shared<UvHandleContainer<uv_async_t>>();
+
+			uv_async_init(loop, netData->callbackAsync->get(), UvPersistentCallback(netData->callbackAsync->get(), [this](uv_async_t*)
+			{
+				m_netThreadCallbacks->Run();
+			}));
+
+			m_netThreadCallbacks = std::make_unique<CallbackListUv>(netData->callbackAsync);
+
+			// process hosts on a command
+			OnEnetReceive.Connect([this]()
+			{
+				m_net->Process();
+			});
+
+			// store the pointer in the class for lifetime purposes
+			m_netThreadData = std::move(netData);
+		}));
+
+		uv_async_send(asyncInitHandle->get());
+	}
+
+	void GameServer::InitializeNetThread()
+	{
+		m_netThreadCallbacks = std::make_unique<CallbackListNng>("inproc://netlib_client", 1);
 
 		std::thread([this]()
 		{
@@ -170,7 +297,7 @@ namespace fx
 				{
 					void* msgBuffer;
 					size_t msgLen;
-					
+
 					while (nng_recv(netSocket, &msgBuffer, &msgLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC) == 0)
 					{
 						nng_free(msgBuffer, msgLen);
@@ -178,7 +305,7 @@ namespace fx
 						int ok = 0;
 						nng_send(netSocket, &ok, 4, NNG_FLAG_NONBLOCK);
 
-						m_netThreadCallbacks.Run();
+						m_netThreadCallbacks->Run();
 					}
 				}
 			}
@@ -197,7 +324,7 @@ namespace fx
 			int ok = 0;
 			nng_send(socket, &ok, 4, NNG_FLAG_NONBLOCK);
 
-			m_mainThreadCallbacks.Run();
+			m_mainThreadCallbacks->Run();
 		}
 	}
 
@@ -413,11 +540,27 @@ namespace fx
 		m_deferCallbacks.insert({ cbIdx.fetch_add(1), { m_serverTime + inMsec, fn } });
 	}
 
-	void GameServer::CallbackList::Add(const std::function<void()>& fn)
+	void GameServer::CallbackListBase::Add(const std::function<void()>& fn)
 	{
 		// add to the queue
 		callbacks.push(fn);
 
+		// signal the waiting thread
+		SignalThread();
+	}
+
+	void GameServer::CallbackListBase::Run()
+	{
+		std::function<void()> fn;
+
+		while (callbacks.try_pop(fn))
+		{
+			fn();
+		}
+	}
+
+	void GameServer::CallbackListNng::SignalThread()
+	{
 		// submit to the owning thread
 		static thread_local nng_socket sockets[2];
 		static thread_local nng_dialer dialers[2];
@@ -436,13 +579,13 @@ namespace fx
 		nng_send(sockets[i], &idxList[0], idxList.size() * sizeof(int), NNG_FLAG_NONBLOCK);
 	}
 
-	void GameServer::CallbackList::Run()
+	void GameServer::CallbackListUv::SignalThread()
 	{
-		std::function<void()> fn;
+		auto async = m_async.lock();
 
-		while (callbacks.try_pop(fn))
+		if (async)
 		{
-			fn();
+			uv_async_send(async->get());
 		}
 	}
 

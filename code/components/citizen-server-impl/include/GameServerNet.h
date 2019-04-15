@@ -38,6 +38,11 @@ namespace fx
 		virtual void AddRawInterceptor(const std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)>& interceptor) = 0;
 
 		virtual int GetClientVersion() = 0;
+
+		virtual bool SupportsUvUdp()
+		{
+			return false;
+		}
 	};
 
 	class NetPeerBase : public fwRefCountable

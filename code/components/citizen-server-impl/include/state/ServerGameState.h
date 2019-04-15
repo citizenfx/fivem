@@ -285,7 +285,9 @@ private:
 
 	void ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId);
 
-	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity);
+	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove);
+
+	void RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId);
 
 public:
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);

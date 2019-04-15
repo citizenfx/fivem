@@ -828,12 +828,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	++m_frameIndex;
 }
 
-void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity)
+void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove)
 {
 	// trigger a clone removal event
-	// TODO: is this thread-safe? this kind of has to run synchronously
-	auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
-	evComponent->TriggerEvent2("entityRemoved", { }, MakeScriptHandle(entity));
+	gscomms_execute_callback_on_main_thread([this, entity, doRemove]()
+	{
+		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+		evComponent->TriggerEvent2("entityRemoved", { }, MakeScriptHandle(entity));
+
+		gscomms_execute_callback_on_net_thread(doRemove);
+	});
 
 	// remove vehicle occupants
 	if (entity->type == sync::NetObjEntityType::Ped ||
@@ -1284,61 +1288,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	// here temporarily, needs to be unified with ProcessCloneRemove
 	for (auto& set : toErase)
 	{
-		{
-			std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
-
-			m_objectIdsUsed.reset(set & 0xFFFF);
-		}
-
-		{
-			std::weak_ptr<sync::SyncEntityState> entity;
-
-			{
-				std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
-				entity = m_entitiesById[set & 0xFFFF];
-			}
-
-			auto entityRef = entity.lock();
-
-			if (entityRef)
-			{
-				OnCloneRemove(entityRef);
-			}
-		}
-
-		{
-			std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
-
-			for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
-			{
-				if ((*it)->handle == set)
-				{
-					m_entityList.erase(it);
-					break;
-				}
-			}
-		}
-
-		{
-			std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
-
-			// unset weak pointer, as well
-			m_entitiesById[set & 0xFFFF] = {};
-		}
-
-		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
-		{
-			if (thisClient->GetNetId() == client->GetNetId())
-			{
-				return;
-			}
-
-			net::Buffer netBuffer;
-			netBuffer.Write<uint32_t>(HashRageString("msgCloneRemove"));
-			netBuffer.Write<uint16_t>(set & 0xFFFF);
-
-			thisClient->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
-		});		
+		RemoveClone(client, set & 0xFFFF);
 	}
 
 	{
@@ -1469,40 +1419,60 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 		}
 	}
 
+	RemoveClone(client, objectId);
+}
+
+void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId)
+{
 	Log("%s: deleting object %d %d\n", __func__, client->GetNetId(), objectId);
 
-	if (entity)
+	// defer deletion of the object so script has time to do things
+	auto continueCloneRemoval = [this, objectId]()
 	{
-		OnCloneRemove(entity);
-	}
-
-	{
-		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
-		m_objectIdsUsed.reset(objectId);
-	}
-
-	std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
-
-	for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
-	{
-		if (((*it)->handle & 0xFFFF) == objectId)
 		{
-			m_entityList.erase(it);
-			break;
+			std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+			m_objectIdsUsed.reset(objectId);
+		}
+
+		std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
+
+		for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
+		{
+			if (((*it)->handle & 0xFFFF) == objectId)
+			{
+				m_entityList.erase(it);
+				break;
+			}
+		}
+
+		// unset weak pointer, as well
+		{
+			std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+			m_entitiesById[objectId] = {};
+		}
+	};
+
+	{
+		std::weak_ptr<sync::SyncEntityState> entity;
+
+		{
+			std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+			entity = m_entitiesById[objectId];
+		}
+
+		auto entityRef = entity.lock();
+
+		if (entityRef)
+		{
+			OnCloneRemove(entityRef, continueCloneRemoval);
+		}
+		else
+		{
+			continueCloneRemoval();
 		}
 	}
 
-	// unset weak pointer, as well
-	{
-		std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
-		m_entitiesById[objectId] = {};
-	}
-
-	// these seem to cause late deletes of state on client, leading to excessive sending of creates
-	/*ackPacket.Write<uint8_t>(3);
-	ackPacket.Write<uint16_t>(objectId);*/
-
-	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
+	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client> & thisClient)
 	{
 		auto tgtClient = thisClient;
 

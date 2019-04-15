@@ -19,6 +19,9 @@
 
 #include <GameServerNet.h>
 
+#include <UvLoopHolder.h>
+#include <UvTcpServer.h>
+
 namespace fx
 {
 	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
@@ -71,34 +74,61 @@ namespace fx
 		}
 
 	public:
-		struct CallbackList
+		struct CallbackListBase
 		{
-			inline CallbackList(const std::string& socketName, int socketIdx)
-				: m_socketName(socketName), m_socketIdx(socketIdx)
-			{
-
-			}
+			virtual ~CallbackListBase() = default;
 
 			void Add(const std::function<void()>& fn);
 
 			void Run();
 
+		protected:
+			virtual void SignalThread() = 0;
+
 		private:
 			tbb::concurrent_queue<std::function<void()>> callbacks;
+		};
 
+		struct CallbackListNng : public CallbackListBase
+		{
+			inline CallbackListNng(const std::string& socketName, int socketIdx)
+				: m_socketName(socketName), m_socketIdx(socketIdx)
+			{
+
+			}
+
+		protected:
+			virtual void SignalThread() override;
+
+		private:
 			std::string m_socketName;
 
 			int m_socketIdx;
 		};
 
+		struct CallbackListUv : public CallbackListBase
+		{
+			inline CallbackListUv(std::weak_ptr<UvHandleContainer<uv_async_t>> async)
+				: m_async(async)
+			{
+
+			}
+
+		protected:
+			virtual void SignalThread() override;
+
+		private:
+			std::weak_ptr<UvHandleContainer<uv_async_t>> m_async;
+		};
+
 		inline void InternalAddMainThreadCb(const std::function<void()>& fn)
 		{
-			m_mainThreadCallbacks.Add(fn);
+			m_mainThreadCallbacks->Add(fn);
 		}
 
 		inline void InternalAddNetThreadCb(const std::function<void()>& fn)
 		{
-			m_netThreadCallbacks.Add(fn);
+			m_netThreadCallbacks->Add(fn);
 		}
 
 		fwRefContainer<NetPeerBase> InternalGetPeer(int peerId);
@@ -122,6 +152,11 @@ namespace fx
 		{
 			m_packetHandler = handler;
 		}
+
+	private:
+		void InitializeNetUv();
+
+		void InitializeNetThread();
 
 	public:
 		fwEvent<> OnTick;
@@ -163,11 +198,19 @@ namespace fx
 
 		fwRefContainer<GameServerNetBase> m_net;
 
+		fwRefContainer<net::UvLoopHolder> m_netThreadLoop;
+
+		fwRefContainer<net::UvLoopHolder> m_mainThreadLoop;
+
+		std::any m_netThreadData;
+
+		std::any m_mainThreadData;
+
 		std::function<bool(const uint8_t *, size_t, const net::PeerAddress &)> m_interceptor;
 
-		CallbackList m_mainThreadCallbacks{ "inproc://main_client", 0 };
+		std::unique_ptr<CallbackListBase> m_mainThreadCallbacks;
 
-		CallbackList m_netThreadCallbacks{ "inproc://netlib_client", 1 };
+		std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;

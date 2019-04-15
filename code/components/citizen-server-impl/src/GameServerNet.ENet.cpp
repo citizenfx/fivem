@@ -165,6 +165,11 @@ namespace fx
 			}
 		}
 
+		virtual bool SupportsUvUdp() override
+		{
+			return true;
+		}
+
 	private:
 		void ProcessHost(ENetHost* host)
 		{
