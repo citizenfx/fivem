@@ -85,6 +85,8 @@ namespace fx
 				{
 					SetThreadName(-1, "[Cfx] Server Thread");
 
+					m_mainThreadCallbacks->AttachToThread();
+
 					Run();
 				});
 			}
@@ -144,6 +146,7 @@ namespace fx
 					}));
 
 					m_mainThreadCallbacks = std::make_unique<CallbackListUv>(mainData->callbackAsync);
+					m_mainThreadCallbacks->AttachToThread();
 
 					// store the pointer in the class for lifetime purposes
 					m_mainThreadData = std::move(mainData);
@@ -251,6 +254,7 @@ namespace fx
 			}));
 
 			m_netThreadCallbacks = std::make_unique<CallbackListUv>(netData->callbackAsync);
+			m_netThreadCallbacks->AttachToThread();
 
 			// process hosts on a command
 			OnEnetReceive.Connect([this]()
@@ -272,6 +276,8 @@ namespace fx
 		std::thread([this]()
 		{
 			SetThreadName(-1, "[Cfx] Network Thread");
+
+			m_netThreadCallbacks->AttachToThread();
 
 			nng_socket netSocket;
 			nng_rep0_open(&netSocket);
@@ -572,6 +578,12 @@ namespace fx
 
 	void GameServer::CallbackListBase::Add(const std::function<void()>& fn)
 	{
+		if (threadId == std::this_thread::get_id())
+		{
+			fn();
+			return;
+		}
+
 		// add to the queue
 		callbacks.push(fn);
 
@@ -771,7 +783,12 @@ namespace fx
 
 	void GameServer::SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix)
 	{
-		m_net->SendOutOfBand(to, oob, prefix);
+		std::string oobStr(oob);
+
+		gscomms_execute_callback_on_net_thread([this, to, oobStr, prefix]()
+		{
+			m_net->SendOutOfBand(to, oobStr, prefix);
+		});
 	}
 
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server)

@@ -1,6 +1,8 @@
 #include <StdInc.h>
 #include <uv.h>
 
+#include <DebugAlias.h>
+
 #include <queue>
 
 #include <UvLoopManager.h>
@@ -216,20 +218,28 @@ enet_socket_send(ENetSocket socket,
 	std::vector<uv_buf_t> uvBuffers(bufferCount);
 	for (size_t i = 0; i < bufferCount; i++)
 	{
-		uvBuffers[i].base = (char*)buffers[i].data;
+		// manual memory management, ew!
+		auto memory = new char[buffers[i].dataLength];
+		memcpy(memory, buffers[i].data, buffers[i].dataLength);
+
+		uvBuffers[i].base = memory;
 		uvBuffers[i].len = buffers[i].dataLength;
 
 		sentLength += buffers[i].dataLength;
 	}
 
-	auto sendReq = std::make_unique<uv_udp_send_t>();
+	auto sendReq = std::make_shared<uv_udp_send_t>();
 
-	// since std::move in construction may execute before we do
-	auto orderReq = sendReq.get();
-
-	uv_udp_send(orderReq, &sd->udp, uvBuffers.data(), bufferCount, (sockaddr*)&sin, UvCallbackArgs<int>::Get(orderReq, [sendReq = std::move(sendReq)](uv_udp_send_t*, int)
+	uv_udp_send(sendReq.get(), &sd->udp, uvBuffers.data(), bufferCount, (sockaddr*)&sin, UvCallbackArgs<int>::Get(sendReq.get(), [sendReq, uvBuffers](uv_udp_send_t*, int)
 	{
-		// no-op
+		// alias sendReq
+		debug::Alias(&sendReq);
+
+		// free buffers
+		for (auto& buffer : uvBuffers)
+		{
+			delete[] buffer.base;
+		}
 	}));
 
 	return sentLength;

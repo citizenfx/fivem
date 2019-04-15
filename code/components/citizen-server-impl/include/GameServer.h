@@ -76,7 +76,18 @@ namespace fx
 	public:
 		struct CallbackListBase
 		{
+			inline CallbackListBase()
+				: threadId(std::this_thread::get_id())
+			{
+
+			}
+
 			virtual ~CallbackListBase() = default;
+
+			inline void AttachToThread()
+			{
+				threadId = std::this_thread::get_id();
+			}
 
 			void Add(const std::function<void()>& fn);
 
@@ -87,6 +98,8 @@ namespace fx
 
 		private:
 			tbb::concurrent_queue<std::function<void()>> callbacks;
+
+			std::thread::id threadId;
 		};
 
 		struct CallbackListNng : public CallbackListBase
