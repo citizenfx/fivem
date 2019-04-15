@@ -20,5 +20,10 @@ return {
 		files_project "../vendor/enet/" {
 			"*.c"
 		}
+		
+		if _OPTIONS['game'] == 'server' then
+			removefiles '../vendor/enet/win32.c'
+			removefiles '../vendor/enet/unix.c'
+		end
 	end
 }
