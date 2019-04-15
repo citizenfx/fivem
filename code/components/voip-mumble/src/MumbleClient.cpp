@@ -251,6 +251,10 @@ void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
 		return;
 	}
 
+	// update UDP timestamp
+	m_lastUdp = msec();
+
+	// handle voice packet
 	HandleVoice(outBuf, size - 4);
 }
 
