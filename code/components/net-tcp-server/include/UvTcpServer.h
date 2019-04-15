@@ -119,14 +119,14 @@ public:
 };
 
 template<typename Handle, typename TFn>
-auto UvCallbackWrap(Handle* handle, TFn&& fn)
+auto UvCallbackWrap(Handle* handle, const TFn& fn)
 {
 	struct Request : public UvClosable
 	{
 		TFn fn;
 
-		Request(TFn&& fn)
-			: fn(std::forward<TFn>(fn))
+		Request(const TFn& fn)
+			: fn(fn)
 		{
 
 		}
@@ -140,7 +140,7 @@ auto UvCallbackWrap(Handle* handle, TFn&& fn)
 		}
 	};
 
-	auto req = new Request(std::forward<TFn>(fn));
+	auto req = new Request(fn);
 	handle->data = req;
 
 	return &Request::cb;
@@ -150,14 +150,14 @@ template<typename... TArgs>
 struct UvCallbackArgs
 {
 	template<typename Handle, typename TFn>
-	static auto Get(Handle* handle, TFn&& fn)
+	static auto Get(Handle* handle, TFn fn)
 	{
 		struct Request : public UvClosable
 		{
 			TFn fn;
 
-			Request(TFn&& fn)
-				: fn(std::forward<TFn>(fn))
+			Request(TFn fn)
+				: fn(std::move(fn))
 			{
 
 			}
@@ -171,7 +171,7 @@ struct UvCallbackArgs
 			}
 		};
 
-		auto req = new Request(std::forward<TFn>(fn));
+		auto req = new Request(std::move(fn));
 		handle->data = req;
 
 		return &Request::cb;
@@ -179,14 +179,14 @@ struct UvCallbackArgs
 };
 
 template<typename Handle, typename TFn>
-auto UvPersistentCallback(Handle* handle, TFn&& fn)
+auto UvPersistentCallback(Handle* handle, TFn fn)
 {
 	struct Request : public UvClosable
 	{
 		TFn fn;
 
-		Request(TFn&& fn)
-			: fn(std::forward<TFn>(fn))
+		Request(TFn fn)
+			: fn(std::move(fn))
 		{
 
 		}
@@ -199,7 +199,7 @@ auto UvPersistentCallback(Handle* handle, TFn&& fn)
 		}
 	};
 
-	auto req = new Request(std::forward<TFn>(fn));
+	auto req = new Request(std::move(fn));
 	handle->data = req;
 
 	return &Request::cb;
