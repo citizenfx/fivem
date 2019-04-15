@@ -16,7 +16,10 @@ namespace CitizenFX.Core
 
 		public void Add(string name, Delegate method)
 		{
-			ms_exportRoutines[$"__cfx_export_{Native.API.GetCurrentResourceName()}_{name}"] = method;
+			string eventName = $"__cfx_export_{Native.API.GetCurrentResourceName()}_{name}";
+
+			Native.API.RegisterResourceAsEventHandler(eventName);
+			ms_exportRoutines[eventName] = method;
 		}
 
 		internal static void Invoke(string eventName, object[] objArray)
