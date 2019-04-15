@@ -696,7 +696,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 
 	// get the hash
-	uint64_t hash = typename HashGetter()(args);
+	uint64_t hash = HashGetter()(args);
 
 	context.nativeIdentifier = hash;
 
@@ -709,7 +709,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	};
 
 	// the big argument loop
-	for (int i = typename HashGetter::BaseArgs; i < numArgs; i++)
+	for (int i = HashGetter::BaseArgs; i < numArgs; i++)
 	{
 		// get the type and decide what to do based on it
 		auto arg = args[i];
