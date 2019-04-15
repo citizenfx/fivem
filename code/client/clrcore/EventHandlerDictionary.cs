@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using static CitizenFX.Core.Native.API;
+
 namespace CitizenFX.Core
 {
     public class EventHandlerDictionary : Dictionary<string, EventHandlerEntry>
@@ -23,6 +25,8 @@ namespace CitizenFX.Core
 
                 var entry = new EventHandlerEntry(key);
                 base.Add(lookupKey, entry);
+
+				RegisterResourceAsEventHandler(key);
 
                 return entry;
             }

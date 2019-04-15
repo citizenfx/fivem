@@ -217,6 +217,16 @@ void ResourceScriptingComponent::CreateEnvironments()
 		// add the event
 		eventComponent->OnTriggerEvent.Connect([=](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 		{
+			if (m_eventsHandled.find(eventName) == m_eventsHandled.end())
+			{
+				// '*' event is an override to accept all in this resource
+				if (m_eventsHandled.find("*") == m_eventsHandled.end())
+				{
+					// skip the HLL ScRT
+					return;
+				}
+			}
+
 			// invoke the event runtime
 			for (auto&& runtime : eventRuntimes)
 			{

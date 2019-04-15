@@ -126,6 +126,8 @@ const EXT_LOCALFUNCREF = 11;
 		if (netSafe) {
 			netSafeEventNames.add(name);
 		}
+		
+		RegisterResourceAsEventHandler(name);
 
 		emitter.on(name, callback);
 	};
