@@ -108,7 +108,7 @@ namespace fx
 
 		struct CallbackListUv : public CallbackListBase
 		{
-			inline CallbackListUv(std::weak_ptr<UvHandleContainer<uv_async_t>> async)
+			inline CallbackListUv(std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> async)
 				: m_async(async)
 			{
 
@@ -118,7 +118,7 @@ namespace fx
 			virtual void SignalThread() override;
 
 		private:
-			std::weak_ptr<UvHandleContainer<uv_async_t>> m_async;
+			std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> m_async;
 		};
 
 		inline void InternalAddMainThreadCb(const std::function<void()>& fn)

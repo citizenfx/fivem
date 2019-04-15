@@ -100,7 +100,7 @@ namespace fx
 					{
 						UvHandleContainer<uv_timer_t> tickTimer;
 
-						std::shared_ptr<UvHandleContainer<uv_async_t>> callbackAsync;
+						std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
 
 						std::chrono::milliseconds lastTime;
 					};
@@ -126,9 +126,12 @@ namespace fx
 					}), frameTime, frameTime);
 
 					// event handle for callback list evaluation
-					mainData->callbackAsync = std::make_shared<UvHandleContainer<uv_async_t>>();
+					
+					// unique_ptr wrapper is a workaround for libc++ bug (fixed in LLVM r340823)
+					mainData->callbackAsync = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();
+					*mainData->callbackAsync = std::make_unique<UvHandleContainer<uv_async_t>>();
 
-					uv_async_init(loop, mainData->callbackAsync->get(), UvPersistentCallback(mainData->callbackAsync->get(), [this](uv_async_t*)
+					uv_async_init(loop, (*mainData->callbackAsync)->get(), UvPersistentCallback((*mainData->callbackAsync)->get(), [this](uv_async_t*)
 					{
 						m_mainThreadCallbacks->Run();
 					}));
@@ -197,7 +200,7 @@ namespace fx
 			{
 				UvHandleContainer<uv_timer_t> tickTimer;
 
-				std::shared_ptr<UvHandleContainer<uv_async_t>> callbackAsync;
+				std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
 			};
 
 			auto netData = std::make_shared<NetPersistentData>();
@@ -213,9 +216,12 @@ namespace fx
 			}), frameTime, frameTime);
 
 			// event handle for callback list evaluation
-			netData->callbackAsync = std::make_shared<UvHandleContainer<uv_async_t>>();
 
-			uv_async_init(loop, netData->callbackAsync->get(), UvPersistentCallback(netData->callbackAsync->get(), [this](uv_async_t*)
+			// unique_ptr wrapper is a workaround for libc++ bug (fixed in LLVM r340823)
+			netData->callbackAsync = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();
+			*netData->callbackAsync = std::make_unique<UvHandleContainer<uv_async_t>>();
+
+			uv_async_init(loop, (*netData->callbackAsync)->get(), UvPersistentCallback((*netData->callbackAsync)->get(), [this](uv_async_t*)
 			{
 				m_netThreadCallbacks->Run();
 			}));
@@ -585,7 +591,7 @@ namespace fx
 
 		if (async)
 		{
-			uv_async_send(async->get());
+			uv_async_send((*async)->get());
 		}
 	}
 
