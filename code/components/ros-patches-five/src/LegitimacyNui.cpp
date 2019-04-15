@@ -335,7 +335,8 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefP
 				{ "Ticket", json["ticket"] },
 				{ "SessionKey", json["sessionKey"] },
 				{ "RockstarId", tree.get<std::string>("Response.RockstarAccount.RockstarId") },
-				{ "SessionTicket", tree.get<std::string>("Response.SessionTicket") }
+				{ "SessionTicket", tree.get<std::string>("Response.SessionTicket") },
+				{ "OrigNickname", json["Nickname"] },
 			});
 
 			g_rosData = obj.dump();
