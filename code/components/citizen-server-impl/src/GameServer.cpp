@@ -92,8 +92,10 @@ namespace fx
 			{
 				m_mainThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain");
 
-				auto asyncInitHandle = std::make_shared<UvHandleContainer<uv_async_t>>();;
-				uv_async_init(m_mainThreadLoop->GetLoop(), asyncInitHandle->get(), UvPersistentCallback(asyncInitHandle->get(), [this, asyncInitHandle](uv_async_t*)
+				auto asyncInitHandle = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();;
+				*asyncInitHandle = std::make_unique<UvHandleContainer<uv_async_t>>();
+
+				uv_async_init(m_mainThreadLoop->GetLoop(), (*asyncInitHandle)->get(), UvPersistentCallback((*asyncInitHandle)->get(), [this, asyncInitHandle](uv_async_t*)
 				{
 					// private data for the net thread
 					struct MainPersistentData
@@ -122,6 +124,11 @@ namespace fx
 						auto thisTime = now - mpd->lastTime;
 						mpd->lastTime = now;
 
+						if (thisTime > 150ms)
+						{
+							trace("server thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
+						}
+
 						ProcessServerFrame(thisTime.count());
 					}), frameTime, frameTime);
 
@@ -142,7 +149,7 @@ namespace fx
 					m_mainThreadData = std::move(mainData);
 				}));
 
-				uv_async_send(asyncInitHandle->get());
+				uv_async_send((*asyncInitHandle)->get());
 			}
 		}, 100);
 
@@ -192,8 +199,10 @@ namespace fx
 	{
 		m_netThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork");
 
-		auto asyncInitHandle = std::make_shared<UvHandleContainer<uv_async_t>>();;
-		uv_async_init(m_netThreadLoop->GetLoop(), asyncInitHandle->get(), UvPersistentCallback(asyncInitHandle->get(), [this, asyncInitHandle](uv_async_t*)
+		auto asyncInitHandle = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();;
+		*asyncInitHandle = std::make_unique<UvHandleContainer<uv_async_t>>();
+
+		uv_async_init(m_netThreadLoop->GetLoop(), (*asyncInitHandle)->get(), UvPersistentCallback((*asyncInitHandle)->get(), [this, asyncInitHandle](uv_async_t*)
 		{
 			// private data for the net thread
 			struct NetPersistentData
@@ -201,17 +210,32 @@ namespace fx
 				UvHandleContainer<uv_timer_t> tickTimer;
 
 				std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
+
+				std::chrono::milliseconds lastTime;
 			};
 
 			auto netData = std::make_shared<NetPersistentData>();
 			auto loop = m_netThreadLoop->GetLoop();
 
+			netData->lastTime = msec();
+
 			// periodic timer for network ticks
 			auto frameTime = 1000 / 30;
+
+			auto mpd = netData.get();
 			
 			uv_timer_init(loop, &netData->tickTimer);
-			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this](uv_timer_t*)
+			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
 			{
+				auto now = msec();
+				auto thisTime = now - mpd->lastTime;
+				mpd->lastTime = now;
+
+				if (thisTime > 150ms)
+				{
+					trace("network thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
+				}
+
 				OnNetworkTick();
 			}), frameTime, frameTime);
 
@@ -238,7 +262,7 @@ namespace fx
 			m_netThreadData = std::move(netData);
 		}));
 
-		uv_async_send(asyncInitHandle->get());
+		uv_async_send((*asyncInitHandle)->get());
 	}
 
 	void GameServer::InitializeNetThread()
