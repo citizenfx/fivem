@@ -19,6 +19,7 @@
 
 #include <Error.h>
 
+#include <IteratorView.h>
 #include <ICoreGameInit.h>
 
 #include <MinHook.h>
@@ -666,7 +667,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 	}
 }
 
-static std::map<std::string, std::string, std::less<>> g_manifestNames;
+static std::multimap<std::string, std::string, std::less<>> g_manifestNames;
 
 #include <fiCustomDevice.h>
 
@@ -855,10 +856,12 @@ static hook::cdecl_stub<void(void*, void* packfile, const char*)> loadManifest([
 
 void LoadManifest(const char* tagName)
 {
-	std::string name = g_manifestNames[tagName];
+	auto range = g_manifestNames.equal_range(tagName);
 
-	if (!name.empty())
+	for (auto& namePair : fx::GetIteratorView(range))
 	{
+		auto name = namePair.second;
+
 		_initManifestChunk(manifestChunkPtr);
 
 		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
@@ -924,9 +927,9 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 {
 	auto baseName = std::string(strrchr(fileName.c_str(), '/') + 1);
 
-	if (baseName == "_manifest.ymf")
+	if (baseName.find(".ymf") == baseName.length() - 4)
 	{
-		g_manifestNames[tag] = fileName;
+		g_manifestNames.emplace(tag, fileName);
 	}
 
 	g_customStreamingFilesByTag[tag].push_back(fileName);
@@ -1015,6 +1018,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 	}
 
 	g_customStreamingFilesByTag.erase(tag);
+	g_manifestNames.erase(tag);
 }
 
 static void UnloadDataFiles()
