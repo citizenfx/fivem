@@ -25,6 +25,7 @@ class TestScriptThread : public GtaThread
 		OPTICK_EVENT();
 
 		static bool initedGame = false;
+		static int tickCount = 0;
 
 		if (!initedGame)
 		{
@@ -49,9 +50,19 @@ class TestScriptThread : public GtaThread
 		{
 			OnKillNetwork.Connect([](const char*)
 			{
+				Instance<ICoreGameInit>::Get()->ClearVariable("gameSettled");
+
+				tickCount = 0;
 				initedGame = false;
 			});
 		});
+
+		tickCount++;
+
+		if (tickCount == 10)
+		{
+			Instance<ICoreGameInit>::Get()->SetVariable("gameSettled");
+		}
 
 		g_resourceManager->Tick();
 	}
