@@ -181,7 +181,7 @@ static float* g_actorPos;
 
 static void Mumble_RunFrame()
 {
-	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("gameSettled"))
 	{
 		return;
 	}
