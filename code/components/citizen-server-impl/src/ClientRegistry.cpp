@@ -19,7 +19,11 @@ namespace fx
 	std::shared_ptr<Client> ClientRegistry::MakeClient(const std::string& guid)
 	{
 		auto client = std::make_shared<Client>(guid);
-		m_clients[guid] = client;
+
+		{
+			std::unique_lock<std::shared_mutex> lock(m_clientsMutex);
+			m_clients[guid] = client;
+		}
 
 		std::weak_ptr<Client> weakClient(client);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shared_mutex>
+
 #include <Client.h>
 #include <ComponentHolder.h>
 
@@ -45,11 +47,16 @@ namespace fx
 				m_clientsBySlotId[client->GetSlotId()].reset();
 			}
 
-			m_clients[client->GetGuid()] = nullptr;
+			{
+				std::unique_lock<std::shared_mutex> lock(m_clientsMutex);
+				m_clients[client->GetGuid()] = nullptr;
+			}
 		}
 
 		inline std::shared_ptr<Client> GetClientByGuid(const std::string& guid)
 		{
+			std::shared_lock<std::shared_mutex> lock(m_clientsMutex);
+
 			auto ptr = std::shared_ptr<Client>();
 			auto it = m_clients.find(guid);
 
@@ -143,15 +150,23 @@ namespace fx
 
 		inline void ForAllClients(const std::function<void(const std::shared_ptr<Client>&)>& cb)
 		{
-			for (auto& client : m_clients)
+			m_clientsMutex.lock_shared();
+
+			for (auto client : m_clients)
 			{
+				m_clientsMutex.unlock_shared();
+
 				auto cl = client.second;
 
 				if (cl)
 				{
 					cb(cl);
 				}
+
+				m_clientsMutex.lock_shared();
 			}
+
+			m_clientsMutex.unlock_shared();
 		}
 
 		std::shared_ptr<Client> GetHost();
@@ -175,6 +190,9 @@ namespace fx
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
 		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByConnectionToken;
 		tbb::concurrent_unordered_map<int, std::weak_ptr<Client>> m_clientsByPeer;
+
+		// pending C++20 std::atomic overloads, again
+		std::shared_mutex m_clientsMutex;
 
 		std::vector<std::weak_ptr<Client>> m_clientsBySlotId;
 
