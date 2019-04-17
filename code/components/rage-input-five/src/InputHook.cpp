@@ -171,6 +171,10 @@ static HookFunction hookFunction([] ()
 	// jump over raw input keyboard handling
 	hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
 
+	// default international keyboard mode to on
+	// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
+	hook::put<uint8_t>(hook::get_pattern("8D 48 EF 41 3B CE 76 0C", 6), 0xEB);
+
 	// fix repeated ClipCursor calls (causing DWM load)
 	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");
 	hook::iat("user32.dll", ActivateKeyboardLayoutWrap, "ActivateKeyboardLayout");
