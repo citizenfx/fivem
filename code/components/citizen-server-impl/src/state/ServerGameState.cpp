@@ -1569,6 +1569,32 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			return;
 		}
 	}
+	else if (parsingType == 1) // duplicate create? that's not supposed to happen
+	{
+		auto lcl = entity->client.lock();
+
+		Log("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
+			__func__,
+			client->GetNetId(),
+			client->GetName(),
+			objectId,
+			(int)objectType,
+			(lcl) ? lcl->GetNetId() : -1,
+			(lcl) ? lcl->GetName() : "(null)",
+			(int)entity->type);
+
+		trace("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
+			__func__,
+			client->GetNetId(),
+			client->GetName(),
+			objectId,
+			(int)objectType,
+			(lcl) ? lcl->GetNetId() : -1,
+			(lcl) ? lcl->GetName() : "(null)",
+			(int)entity->type);
+
+		return;
+	}
 
 	entity->didDeletion.reset(client->GetSlotId());
 	entity->ackedCreation.set(client->GetSlotId());
