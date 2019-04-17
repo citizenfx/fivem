@@ -9,6 +9,8 @@
 #include <ros/EndpointMapper.h>
 
 #include <base64.h>
+#include <botan/base64.h>
+#include <botan/exceptn.h>
 
 #include <zlib.h>
 
@@ -105,6 +107,8 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 
 	std::string outStr;
 
+	bool success = false;
+
 	if (f)
 	{
 		std::vector<uint8_t> fileData;
@@ -124,8 +128,22 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 		fclose(f);
 
 		outStr = std::string(fileData.begin(), fileData.end());
+
+		try
+		{
+			Botan::base64_decode(outStr);
+
+			success = true;
+		}
+		catch (Botan::Exception&)
+		{
+			trace("Couldn't decode base64 entitlement data (%s) - refetching...\n", outStr);
+
+			success = false;
+		}
 	}
-	else
+	
+	if (!success)
 	{
 		auto r = cpr::Post(
 			cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement" },
