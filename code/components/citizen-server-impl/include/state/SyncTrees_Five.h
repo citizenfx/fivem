@@ -923,9 +923,9 @@ struct CPlayerCameraDataNode
 
 			if (hasPositionOffset)
 			{
-				float camPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
-				float camPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
-				float camPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+				float camPosX = state.buffer.ReadSignedFloat(19, 16000.0f);
+				float camPosY = state.buffer.ReadSignedFloat(19, 16000.0f);
+				float camPosZ = state.buffer.ReadSignedFloat(19, 16000.0f);
 
 				state.entity->data["camMode"] = data.camMode = 2;
 
