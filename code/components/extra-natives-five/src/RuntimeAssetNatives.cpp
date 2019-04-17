@@ -19,6 +19,8 @@
 
 #include <grcTexture.h>
 
+#include <RageParser.h>
+
 #include <wrl.h>
 #include <wincodec.h>
 
@@ -434,186 +436,10 @@ struct GetRagePageFlagsExtension
 
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 
-namespace rage
-{
-	enum class parMemberType : uint8_t
-	{
-		Bool = 0,
-		Int8 = 1,
-		UInt8 = 2,
-		Int16 = 3,
-		UInt16 = 4,
-		Int32 = 5,
-		UInt32 = 6,
-		Float = 7,
-		Vector2 = 8,
-		Vector3 = 9,
-		Vector4 = 10,
-		String = 11,
-		Struct = 12,
-		Array = 13,
-		Enum = 14,
-		Bitset = 15,
-		Map = 16,
-		Matrix4x3 = 17,
-		Matrix4x4 = 18,
-		Vector2_Padded = 19,
-		Vector3_Padded = 20,
-		Vector4_Padded = 21,
-		Matrix3x4 = 22,
-		Matrix4x3_2 = 23,
-		Matrix4x4_2 = 24,
-		Vector1_Padded = 25,
-		Flag1_Padded = 26, // for shaders?
-		Flag4_Padded = 27,
-		Int32_64 = 28,
-		Int32_U64 = 29,
-		Half = 30,
-		Int64 = 31,
-		UInt64 = 32,
-		Double = 33
-	};
-
-	struct parEnumField
-	{
-		uint32_t hash;
-		uint32_t index; // 0xFFFFFFFF for last
-	};
-
-	struct parEnumDefinition
-	{
-		parEnumField* fields;
-	};
-
-	enum class parArrayType : uint8_t
-	{
-		// type is atArray
-		atArray = 0,
-
-		// count*size, trailing integer (after alignment)
-		FixedTrailingCount = 1,
-
-		// count*size, fixed
-		Fixed = 2,
-
-		// pointer to count*size
-		FixedPointer = 3,
-
-		// unknown difference from 2
-		Fixed_2 = 4,
-
-		// atArray but with uint32_t index
-		atArray32 = 5,
-
-		// pointer with a trailing count at +size
-		TrailerInt = 6,
-
-		TrailerByte = 7,
-
-		TrailerShort = 8
-	};
-
-	enum class parStructType : uint8_t
-	{
-		// not a pointer, just the offset
-		Inline = 0,
-
-		// other types
-		Struct_1 = 1,
-		Struct_2 = 2,
-		Struct_3 = 3,
-		Struct_4 = 4,
-	};
-
-	class parStructure;
-
-	struct parMemberDefinition
-	{
-		uint32_t hash; // +0
-		uint32_t pad; // +4
-		uint64_t offset; // +8
-		parMemberType type; // +16
-		union
-		{
-			parArrayType arrayType; // +17
-			parStructType structType;
-		};
-		uint8_t pad2[2]; // +18
-		uint8_t pad3[12]; // +20
-		union // +32
-		{
-			uint32_t arrayElemSize;
-			uint64_t __pad;
-			parStructure* structure;
-		};
-		union // +40
-		{
-			parEnumDefinition* enumData;
-			uint32_t arrayElemCount;
-		};
-	};
-
-	class parMember
-	{
-	public:
-		virtual ~parMember() = default;
-
-		parMemberDefinition* m_definition;
-		parMember* m_arrayDefinition; // in case of array
-	};
-
-	class parStructure
-	{
-	public:
-		virtual ~parStructure() = default;
-
-		uint32_t m_nameHash; // +8
-
-		char m_pad[4]; // +12
-
-		parStructure* m_baseClass; // +16
-
-		char m_pad2[24]; // +24
-
-		atArray<rage::parMember*> m_members; // +48
-
-		char m_pad3[8];
-
-		void* m_newPtr; // +72
-		void*(*m_new)();
-
-		void* m_placementNewPtr;
-		void*(*m_placementNew)(void*);
-
-		void* m_getTypePtr;
-		parStructure*(*m_getType)(void*);
-
-		void* m_deletePtr;
-		void(*m_delete)(void*);
-	};
-}
-
 static hook::cdecl_stub<void(fwArchetype*)> registerArchetype([]()
 {
 	return hook::get_pattern("48 8B D9 8A 49 60 80 F9", -11);
 });
-
-static void** g_parser;
-
-static hook::cdecl_stub<rage::parStructure*(void* parser, uint32_t)> _parser_getStructure([]()
-{
-	return hook::get_pattern("74 30 44 0F B7 41 38 33 D2", -0xB);
-});
-
-static rage::parStructure* GetStructureDefinition(const char* structType)
-{
-	return _parser_getStructure(*g_parser, HashRageString(structType));
-}
-
-static rage::parStructure* GetStructureDefinition(uint32_t structHash)
-{
-	return _parser_getStructure(*g_parser, structHash);
-}
 
 static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old = nullptr);
 
@@ -979,11 +805,11 @@ static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, ms
 		}
 	}
 
-	auto structDef = GetStructureDefinition(hash);
+	auto structDef = rage::GetStructureDefinition(hash);
 
 	if (!structTypeReal.empty())
 	{
-		structDef = GetStructureDefinition(structTypeReal.c_str());
+		structDef = rage::GetStructureDefinition(structTypeReal.c_str());
 	}
 
 	if (!structDef)
@@ -1022,14 +848,6 @@ static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, ms
 
 	return retval;
 }
-
-static HookFunction hookFunction([]()
-{
-	g_parser = hook::get_address<void**>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8D 54 24 48 41 B0 01", 3));
-
-	// test
-	//hook::put<uint8_t>(hook::get_pattern("FF FF 45 84 ED 75 04 33 C0 EB", 5), 0xEB);
-});
 
 static hook::cdecl_stub<CMapDataContents*()> makeMapDataContents([]()
 {
