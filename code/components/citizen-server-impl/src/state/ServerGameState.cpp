@@ -1448,7 +1448,7 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 		// unset weak pointer, as well
 		{
 			std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
-			m_entitiesById[objectId] = {};
+			m_entitiesById[objectId].reset();
 		}
 	};
 
@@ -1559,7 +1559,9 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 			{
 				std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
-				m_entitiesById[objectId] = entity;
+
+				std::weak_ptr<sync::SyncEntityState> weakEntity(entity);
+				m_entitiesById[objectId].swap(weakEntity);
 			}
 		}
 		else
