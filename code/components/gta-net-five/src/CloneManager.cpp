@@ -821,6 +821,12 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 			// give us the object ID
 			ObjectIds_AddObjectId(msg.GetObjectId());
+
+			// store object data as being synced (so we don't have to send creation to the server)
+			auto& objectData = m_trackedObjects[obj->objectId];
+
+			objectData.lastSyncTime = msec();
+			objectData.lastSyncAck = msec();
 		}
 		else
 		{
@@ -1258,6 +1264,9 @@ void CloneManagerLocal::WriteUpdates()
 				m_extendedData[objectId].clientId != 0 ? "... already initialized?" : "");
 
 			m_extendedData[objectId].clientId = m_netLibrary->GetServerNetID();
+
+			objectData.lastSyncTime = msec();
+			objectData.lastSyncAck = msec();
 		}
 	};
 
