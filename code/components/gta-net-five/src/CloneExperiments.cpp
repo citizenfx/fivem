@@ -570,6 +570,25 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 		return g_origSetOwner(netObject, newOwner);
 	}
 
+	if (newOwner->physicalPlayerIndex == g_playerMgr->localPlayer->physicalPlayerIndex)
+	{
+		TheClones->Log("%s: taking ownership of object id %d - stack trace:\n", __func__, netObject->objectId);
+
+		uintptr_t* traceStart = (uintptr_t*)_AddressOfReturnAddress();
+
+		for (int i = 0; i < 96; i++)
+		{
+			if ((i % 6) == 0)
+			{
+				TheClones->Log("\n");
+			}
+
+			TheClones->Log("%016llx ", traceStart[i]);
+		}
+
+		TheClones->Log("\n");
+	}
+
 	g_origSetOwner(netObject, newOwner);
 
 	if (newOwner->physicalPlayerIndex == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex)
