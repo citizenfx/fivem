@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<rage__ControlInput__Keyboard__Layout>
+	<Keys>
+		<!-- NOTE: These are based on the American keyboard keys but refer to the key location !The order is how they appear on the (US) keyboard. -->
+		
+		<!-- The first TOP row!	-->
+		<Item>
+			<Key>KEY_ESCAPE</Key>
+			<Icon value="199"/>
+			<Text />
+		</Item>
+		
+		<Item>
+			<Key>KEY_F1</Key>
+			<Icon value="170"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F2</Key>
+			<Icon value="171"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F3</Key>
+			<Icon value="172"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F4</Key>
+			<Icon value="173"/>
+			<Text/>
+		</Item>
+		
+		<Item>
+			<Key>KEY_F5</Key>
+			<Icon value="174"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F6</Key>
+			<Icon value="175"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F7</Key>
+			<Icon value="176"/>
+			<Text/>
+		</Item>
+		
+		<Item>
+			<Key>KEY_F8</Key>
+			<Icon value="177"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F9</Key>
+			<Icon value="178"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_F10</Key>
+			<Icon value="179"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F11</Key>
+			<Icon value="180"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F12</Key>
+			<Icon value="181"/>
+			<Text/>
+		</Item>
+		
+		
+		
+				
+		<!-- These keys are not actually on a US/101/102 keyboard but we support them and they are related to the F* keys above. -->
+		<Item>
+			<Key>KEY_F13</Key>
+			<Icon value="182"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F14</Key>
+			<Icon value="183"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F15</Key>
+			<Icon value="184"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F16</Key>
+			<Icon value="185"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F17</Key>
+			<Icon value="186"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F18</Key>
+			<Icon value="187"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F19</Key>
+			<Icon value="188"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F20</Key>
+			<Icon value="189"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F21</Key>
+			<Icon value="190"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F22</Key>
+			<Icon value="191"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F23</Key>
+			<Icon value="192"/>
+			<Text/>
+		</Item>
+		<Item>
+			<Key>KEY_F24</Key>
+			<Icon value="193"/>
+			<Text/>
+		</Item>
+		
+		
+		
+		
+		<!-- The second row! -->
+		<Item>
+			<Key>KEY_GRAVE</Key>
+			<Icon value="0"/>
+			<Text>½</Text>
+		</Item>
+		<Item>
+			<Key>KEY_1</Key>
+			<Icon value="0"/>
+			<Text>1</Text>
+		</Item>
+		<Item>
+			<Key>KEY_2</Key>
+			<Icon value="0"/>
+			<Text>2</Text>
+		</Item>
+		<Item>
+			<Key>KEY_3</Key>
+			<Icon value="0"/>
+			<Text>3</Text>
+		</Item>
+		<Item>
+			<Key>KEY_4</Key>
+			<Icon value="0"/>
+			<Text>4</Text>
+		</Item>
+		<Item>
+			<Key>KEY_5</Key>
+			<Icon value="0"/>
+			<Text>5</Text>
+		</Item>
+		<Item>
+			<Key>KEY_6</Key>
+			<Icon value="0"/>
+			<Text>6</Text>
+		</Item>
+		<Item>
+			<Key>KEY_7</Key>
+			<Icon value="0"/>
+			<Text>7</Text>
+		</Item>
+		<Item>
+			<Key>KEY_8</Key>
+			<Icon value="0"/>
+			<Text>8</Text>
+		</Item>
+		<Item>
+			<Key>KEY_9</Key>
+			<Icon value="0"/>
+			<Text>9</Text>
+		</Item>
+		<Item>
+			<Key>KEY_0</Key>
+			<Icon value="0"/>
+			<Text>0</Text>
+		</Item>
+		<Item>
+			<Key>KEY_MINUS</Key>
+			<Icon value="0"/>
+			<Text>+</Text>
+		</Item>
+		<!-- This is also known as KEY_EQUALS -->
+		<Item>
+			<Key>KEY_PLUS</Key>
+			<Icon value="0"/>
+			<Text>`</Text>
+		</Item>
+		<Item>
+			<Key>KEY_BACK</Key>
+			<Icon value="1004"/>
+			<Text />
+		</Item>
+		
+		
+		
+		
+		<!-- The third row. -->	
+		<Item>
+			<Key>KEY_TAB</Key>
+			<Icon value="1002"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_Q</Key>
+			<Icon value="0"/>
+			<Text>Q</Text>
+		</Item>
+		<Item>
+			<Key>KEY_W</Key>
+			<Icon value="0"/>
+			<Text>W</Text>
+		</Item>
+		<Item>
+			<Key>KEY_E</Key>
+			<Icon value="0"/>
+			<Text>E</Text>
+		</Item>
+		<Item>
+			<Key>KEY_R</Key>
+			<Icon value="0"/>
+			<Text>R</Text>
+		</Item>
+		<Item>
+			<Key>KEY_T</Key>
+			<Icon value="0"/>
+			<Text>T</Text>
+		</Item>
+		<Item>
+			<Key>KEY_Y</Key>
+			<Icon value="0"/>
+			<Text>Y</Text>
+		</Item>
+		<Item>
+			<Key>KEY_U</Key>
+			<Icon value="0"/>
+			<Text>U</Text>
+		</Item>
+		<Item>
+			<Key>KEY_I</Key>
+			<Icon value="0"/>
+			<Text>I</Text>
+		</Item>
+		<Item>
+			<Key>KEY_O</Key>
+			<Icon value="0"/>
+			<Text>O</Text>
+		</Item>
+		<Item>
+			<Key>KEY_P</Key>
+			<Icon value="0"/>
+			<Text>P</Text>
+		</Item>
+		<Item>
+			<Key>KEY_LBRACKET</Key>
+			<Icon value="0"/>
+			<Text>Å</Text>
+		</Item>
+		<Item>
+			<Key>KEY_RBRACKET</Key>
+			<Icon value="0"/>
+			<Text>"</Text>
+		</Item>
+		<!-- NOTE: This key is not on this line on international keyboards but is next to the enter key on the line below! -->
+		<Item>
+			<Key>KEY_BACKSLASH</Key>
+			<Icon value="0"/>
+			<Text>'</Text>
+		</Item>
+		
+		
+		
+		
+		<!-- Forth row. -->
+		<Item>
+			<Key>KEY_CAPITAL</Key>
+			<Icon value="1012"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_A</Key>
+			<Icon value="0"/>
+			<Text>A</Text>
+		</Item>
+		<Item>
+			<Key>KEY_S</Key>
+			<Icon value="0"/>
+			<Text>S</Text>
+		</Item>
+		<Item>
+			<Key>KEY_D</Key>
+			<Icon value="0"/>
+			<Text>D</Text>
+		</Item>
+		<Item>
+			<Key>KEY_F</Key>
+			<Icon value="0"/>
+			<Text>F</Text>
+		</Item>
+		<Item>
+			<Key>KEY_G</Key>
+			<Icon value="0"/>
+			<Text>G</Text>
+		</Item>
+		<Item>
+			<Key>KEY_H</Key>
+			<Icon value="0"/>
+			<Text>H</Text>
+		</Item>
+		<Item>
+			<Key>KEY_J</Key>
+			<Icon value="0"/>
+			<Text>J</Text>
+		</Item>
+		<Item>
+			<Key>KEY_K</Key>
+			<Icon value="0"/>
+			<Text>K</Text>
+		</Item>
+		<Item>
+			<Key>KEY_L</Key>
+			<Icon value="0"/>
+			<Text>L</Text>
+		</Item>
+		<Item>
+			<Key>KEY_SEMICOLON</Key>
+			<Icon value="0"/>
+			<Text>Æ</Text>
+		</Item>
+		<Item>
+			<Key>KEY_APOSTROPHE</Key>
+			<Icon value="0"/>
+			<Text>Ø</Text>
+		</Item>
+		<!-- NOTE: On non-us keyboards there is another key here (e.g. #/~ on UK keyboard). This is KEY_BACKSLASH on US keyboards and is on the line above. -->
+		<Item>
+			<Key>KEY_RETURN</Key>
+			<Icon value="1003"/>
+			<Text />
+		</Item>
+		
+		
+		
+		
+		<!-- Fifth row. -->
+		<Item>
+			<Key>KEY_LSHIFT</Key>
+			<Icon value="1000"/>
+			<Text />
+		</Item>
+		<!-- NOTE: This key does *NOT* exist on a US keyboard (which has 101 keys). On other keyboards it is next to the left shift (\ on UK < on German etc.). -->
+		<!--       As this key does not exist, we set the text to &#x20; which is Unicode for  space (an actual space will be trimmed). This makes a blank icon. -->
+		<Item>
+			<Key>KEY_OEM_102</Key>
+			<Icon value="0"/>
+			<Text>&lt;</Text>
+		</Item>
+		<Item>
+			<Key>KEY_Z</Key>
+			<Icon value="0"/>
+			<Text>Z</Text>
+		</Item>
+		<Item>
+			<Key>KEY_X</Key>
+			<Icon value="0"/>
+			<Text>X</Text>
+		</Item>
+		<Item>
+			<Key>KEY_C</Key>
+			<Icon value="0"/>
+			<Text>C</Text>
+		</Item>
+		<Item>
+			<Key>KEY_V</Key>
+			<Icon value="0"/>
+			<Text>V</Text>
+		</Item>
+		<Item>
+			<Key>KEY_B</Key>
+			<Icon value="0"/>
+			<Text>B</Text>
+		</Item>
+		<Item>
+			<Key>KEY_N</Key>
+			<Icon value="0"/>
+			<Text>N</Text>
+		</Item>
+		<Item>
+			<Key>KEY_M</Key>
+			<Icon value="0"/>
+			<Text>M</Text>
+		</Item>
+		<Item>
+			<Key>KEY_COMMA</Key>
+			<Icon value="0"/>
+			<Text>,</Text>
+		</Item>
+		<Item>
+			<Key>KEY_PERIOD</Key>
+			<Icon value="0"/>
+			<Text>.</Text>
+		</Item>
+		<Item>
+			<Key>KEY_SLASH</Key>
+			<Icon value="0"/>
+			<Text>-</Text>
+		</Item>
+		<Item>
+			<Key>KEY_RSHIFT</Key>
+			<Icon value="1001"/>
+			<Text />
+		</Item>
+		
+		
+		
+		
+		<!-- Sixth/Last row. -->
+		<Item>
+			<Key>KEY_LCONTROL</Key>
+			<Icon value="1013"/>
+			<Text />
+		</Item>
+		<!-- KEY_LWIN shouldn't be used but it is required here! -->
+		<Item>
+			<Key>KEY_LWIN</Key>
+			<Icon value="1018"/>
+			<Text />
+		</Item>
+		<!-- Left Alt. -->
+		<Item>
+			<Key>KEY_LMENU</Key>
+			<Icon value="1015"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_SPACE</Key>
+			<Icon value="2000"/>
+			<Text />
+		</Item>
+		<!-- Right Alt/AltGr. -->
+		<Item>
+			<Key>KEY_RMENU</Key>
+			<Icon value="1016"/>
+			<Text />
+		</Item>
+		<!-- KEY_RWIN shouldn't be used but it is required here! -->
+		<Item>
+			<Key>KEY_RWIN</Key>
+			<Icon value="1019"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_APPS</Key>
+			<Icon value="01017"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_RCONTROL</Key>
+			<Icon value="1014"/>
+			<Text />
+		</Item>
+		
+		
+		
+		
+		<!-- Control Keys. -->
+		<Item>
+			<Key>KEY_SNAPSHOT</Key>
+			<Icon value="1005"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_SCROLL</Key>
+			<Icon value="1006"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_PAUSE</Key>
+			<Icon value="1007"/>
+			<Text />
+		</Item>
+		
+		<Item>
+			<Key>KEY_INSERT</Key>
+			<Icon value="200"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_HOME</Key>
+			<Icon value="1008"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_PAGEUP</Key>
+			<Icon value="1009"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_DELETE</Key>
+			<Icon value="198"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_END</Key>
+			<Icon value="201"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_PAGEDOWN</Key>
+			<Icon value="1010"/>
+			<Text />
+		</Item>
+		
+		<Item>
+			<Key>KEY_UP</Key>
+			<Icon value="194"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_DOWN</Key>
+			<Icon value="195"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_LEFT</Key>
+			<Icon value="196"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_RIGHT</Key>
+			<Icon value="197"/>
+			<Text />
+		</Item>
+		
+		
+		
+		
+		<!-- Numpad Keys. -->
+		<Item>
+			<Key>KEY_NUMLOCK</Key>
+			<Icon value="1011"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_DIVIDE</Key>
+			<Icon value="133"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_MULTIPLY</Key>
+			<Icon value="134"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_SUBTRACT</Key>
+			<Icon value="130"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD7</Key>
+			<Icon value="143"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD8</Key>
+			<Icon value="144"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD9</Key>
+			<Icon value="145"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_ADD</Key>
+			<Icon value="131"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD4</Key>
+			<Icon value="140"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD5</Key>
+			<Icon value="141"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD6</Key>
+			<Icon value="142"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD1</Key>
+			<Icon value="137"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD2</Key>
+			<Icon value="138"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD3</Key>
+			<Icon value="139"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPAD0</Key>
+			<Icon value="136"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_NUMPADENTER</Key>
+			<Icon value="135"/>
+			<Text />
+		</Item>
+		<Item>
+			<Key>KEY_DECIMAL</Key>
+			<Icon value="132"/>
+			<Text />
+		</Item>
+		
+		<!-- This is only found on some international keyboards. -->
+		<Item>
+			<Key>KEY_NUMPADEQUALS</Key>
+			<Icon value="146"/>
+			<Text />
+		</Item>
+	</Keys>
+</rage__ControlInput__Keyboard__Layout>
