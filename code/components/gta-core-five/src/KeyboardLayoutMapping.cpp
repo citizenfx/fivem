@@ -236,7 +236,8 @@ static void UpdateControlData(ControlClass* a1)
 		strcpy_s(a1->keys[key].text, text.c_str());
 	}
 
-	UnloadKeyboardLayout(hkl);
+	// HKL isn't reference counted, this would unload the US keyboard layout for any non-US system, leading to mapping breaking!
+	//UnloadKeyboardLayout(hkl);
 }
 
 static void LoadKeyboardLayoutWrap(ControlClass* a1)
