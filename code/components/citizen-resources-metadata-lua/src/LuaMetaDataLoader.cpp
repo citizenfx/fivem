@@ -110,6 +110,8 @@ bool LuaMetaDataLoader::DoFile(const std::string& filename, int results)
 
 boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath)
 {
+	using namespace std::string_literals;
+
 	// reset any errors
 	m_error.reset();
 
@@ -132,7 +134,14 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	{
 		LuaMetaDataLoader* loader = reinterpret_cast<LuaMetaDataLoader*>(const_cast<void*>(lua_topointer(L, lua_upvalueindex(1))));
 
-		loader->GetComponent()->AddMetaData(luaL_checkstring(L, 1), luaL_checkstring(L, 2));
+		auto key = luaL_checkstring(L, 1);
+		auto value = luaL_checkstring(L, 2);
+
+		// don't load any key named "is_cfxv2" from user metadata
+		if (stricmp(key, "is_cfxv2") != 0)
+		{
+			loader->GetComponent()->AddMetaData(key, value);
+		}
 
 		return 0;
 	}, 1);
@@ -157,20 +166,42 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 		lua_setglobal(m_luaState, removeThat);
 	}
 
-	// run the user file
-	result = result && LoadFile(resourcePath + "/__resource.lua");
+	auto fileNameAttempts = { "fxmanifest.lua"s, "__resource.lua"s };
+	bool attemptResults[] = { true, true };
 
 	if (result)
 	{
-		// invoke the init function with the resource chunk as argument
-		if (lua_pcall(m_luaState, 1, 0, eh) != 0)
-		{
-			m_error = "Could not execute resource metadata file " + resourcePath + "/__resource.lua: " + luaL_checkstring(m_luaState, -1);
-			lua_remove(m_luaState, -1);
+		int i = 0;
 
-			result = false;
+		for (auto& attempt : fileNameAttempts)
+		{
+			// run the user file
+			attemptResults[i] = attemptResults[i] && LoadFile(fmt::sprintf("%s/%s", resourcePath, attempt));
+
+			if (attemptResults[i])
+			{
+				// invoke the init function with the resource chunk as argument
+				if (lua_pcall(m_luaState, 1, 0, eh) != 0)
+				{
+					m_error = "Could not execute resource metadata file " + resourcePath + "/" + attempt + ": " + luaL_checkstring(m_luaState, -1);
+					lua_remove(m_luaState, -1);
+
+					attemptResults[i] = false;
+				}
+
+				if (attemptResults[i] && attempt == "fxmanifest.lua")
+				{
+					m_component->AddMetaData("is_cfxv2", "true");
+				}
+
+				break;
+			}
+
+			i++;
 		}
 	}
+
+	result = result && (attemptResults[0] || attemptResults[1]);
 
 	// remove the exception handler
 	lua_remove(m_luaState, eh);
@@ -183,7 +214,7 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	lua_close(m_luaState);
 	m_luaState = nullptr;
 
-	return m_error;
+	return (result) ? boost::optional<std::string>{} : m_error;
 }
 
 static LuaMetaDataLoader g_metaDataLoader;

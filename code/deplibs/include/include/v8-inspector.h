@@ -99,6 +99,7 @@ class V8_EXPORT V8ContextInfo {
 
 class V8_EXPORT V8StackTrace {
  public:
+  virtual StringView firstNonEmptySourceURL() const = 0;
   virtual bool isEmpty() const = 0;
   virtual StringView topSourceURL() const = 0;
   virtual int topLineNumber() const = 0;
@@ -149,8 +150,9 @@ class V8_EXPORT V8InspectorSession {
 
   // Remote objects.
   virtual std::unique_ptr<protocol::Runtime::API::RemoteObject> wrapObject(
-      v8::Local<v8::Context>, v8::Local<v8::Value>,
-      const StringView& groupName) = 0;
+      v8::Local<v8::Context>, v8::Local<v8::Value>, const StringView& groupName,
+      bool generatePreview) = 0;
+
   virtual bool unwrapObject(std::unique_ptr<StringBuffer>* error,
                             const StringView& objectId, v8::Local<v8::Value>*,
                             v8::Local<v8::Context>*,
@@ -211,6 +213,27 @@ class V8_EXPORT V8InspectorClient {
   // TODO(dgozman): this was added to support service worker shadow page. We
   // should not connect at all.
   virtual bool canExecuteScripts(int contextGroupId) { return true; }
+
+  virtual void maxAsyncCallStackDepthChanged(int depth) {}
+
+  virtual std::unique_ptr<StringBuffer> resourceNameToUrl(
+      const StringView& resourceName) {
+    return nullptr;
+  }
+};
+
+// These stack trace ids are intended to be passed between debuggers and be
+// resolved later. This allows to track cross-debugger calls and step between
+// them if a single client connects to multiple debuggers.
+struct V8_EXPORT V8StackTraceId {
+  uintptr_t id;
+  std::pair<int64_t, int64_t> debugger_id;
+
+  V8StackTraceId();
+  V8StackTraceId(uintptr_t id, const std::pair<int64_t, int64_t> debugger_id);
+  ~V8StackTraceId() = default;
+
+  bool IsInvalid() const;
 };
 
 class V8_EXPORT V8Inspector {
@@ -222,6 +245,8 @@ class V8_EXPORT V8Inspector {
   virtual void contextCreated(const V8ContextInfo&) = 0;
   virtual void contextDestroyed(v8::Local<v8::Context>) = 0;
   virtual void resetContextGroup(int contextGroupId) = 0;
+  virtual v8::MaybeLocal<v8::Context> contextById(int groupId,
+                                                  v8::Maybe<int> contextId) = 0;
 
   // Various instrumentation.
   virtual void idleStarted() = 0;
@@ -234,6 +259,11 @@ class V8_EXPORT V8Inspector {
   virtual void asyncTaskStarted(void* task) = 0;
   virtual void asyncTaskFinished(void* task) = 0;
   virtual void allAsyncTasksCanceled() = 0;
+
+  virtual V8StackTraceId storeCurrentStackTrace(
+      const StringView& description) = 0;
+  virtual void externalAsyncTaskStarted(const V8StackTraceId& parent) = 0;
+  virtual void externalAsyncTaskFinished(const V8StackTraceId& parent) = 0;
 
   // Exceptions instrumentation.
   virtual unsigned exceptionThrown(

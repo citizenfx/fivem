@@ -8,6 +8,8 @@
 #include <NetLibrary.h>
 #include <MumbleClient.h>
 
+#include <sstream>
+
 #include <json.hpp>
 
 using json = nlohmann::json;
@@ -18,6 +20,8 @@ static uint32_t* g_preferenceArray;
 
 // 1290
 // #TODO1365
+// #TODO1493
+// #TODO1604
 enum PrefEnum
 {
 	PREF_VOICE_ENABLE = 0x60,
@@ -38,54 +42,9 @@ static hook::cdecl_stub<void()> _initVoiceChatConfig([]()
 	return hook::get_pattern("89 44 24 58 0F 29 44 24 40 E8", -0x12E);
 });
 
-static bool g_mumbleAllowed;
-
 void MumbleVoice_BindNetLibrary(NetLibrary* library)
 {
 	g_netLibrary = library;
-
-	g_netLibrary->OnConnectOKReceived.Connect([](NetAddress addr)
-	{
-		g_mumbleAllowed = false;
-
-		/*Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("http://%s:%d/info.json", addr.GetAddress(), addr.GetPort()), [=](bool success, const char* data, size_t size)
-		{
-			if (success)
-			{
-				try
-				{
-					json info = json::parse(data, data + size);
-
-					if (info.is_object() && info["vars"].is_object())
-					{
-						auto val = info["vars"].value("sv_licenseKeyToken", "");
-
-						if (!val.empty())
-						{
-							Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/mumble_voice_prerelease", val), [=](bool success, const char* data, size_t size)
-							{
-								if (success)
-								{
-#ifndef _DEBUG
-									if (std::string(data, size).find("yes") != std::string::npos)
-#endif
-									{
-										trace("Server policy - Mumble allowed: yes\n");
-
-										g_mumbleAllowed = true;
-									}
-								}
-							});
-						}
-					}
-				}
-				catch (std::exception& e)
-				{
-					trace("Server policy - Mumble check failed for %s\n", e.what());
-				}
-			}
-		});*/
-	});
 }
 
 #include <rapidjson/document.h>
@@ -222,7 +181,7 @@ static float* g_actorPos;
 
 static void Mumble_RunFrame()
 {
-	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("gameSettled"))
 	{
 		return;
 	}
@@ -232,7 +191,7 @@ static void Mumble_RunFrame()
 		return;
 	}
 
-	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE] && g_mumbleAllowed;
+	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE] && Instance<ICoreGameInit>::Get()->OneSyncEnabled;
 
 	if (!g_mumble.connected || (g_mumble.connectionInfo && !g_mumble.connectionInfo->isConnected))
 	{
@@ -434,6 +393,8 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 
 	// 1290
 	// #TODO1365
+	// #TODO1493
+	// #TODO1604
 	auto playerInfo = playerData - 32 - 48 - 16;
 
 	// get the ped

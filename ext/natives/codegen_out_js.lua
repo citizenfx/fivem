@@ -90,7 +90,7 @@ print("const _rl = Citizen.resultAsLong();")
 print("const _s = Citizen.resultAsString();")
 print("const _rv = Citizen.resultAsVector();")
 print("const _ro = Citizen.resultAsObject();")
-print("const _in = Citizen.invokeNative;")
+print("const _in = Citizen.invokeNativeByHash;")
 print("const _ii = Citizen.pointerValueIntInitialized;")
 print("const _fi = Citizen.pointerValueFloatInitialized;")
 
@@ -102,7 +102,7 @@ print("\treturn hash;")
 print("}\n")
 
 print("function _ts(num) {")
-print("\tif (num == 0 || !num) { // workaround for users calling string parameters with '0', also nil being translated")
+print("\tif (num === 0 || num === null || num === undefined || num === false) { // workaround for users calling string parameters with '0', also nil being translated")
 print("\t\treturn null;")
 print("\t}")
 print("\tif (ArrayBuffer.isView(num) || num instanceof ArrayBuffer) { // these are handled as strings internally")
@@ -220,7 +220,8 @@ end
 
 local function printInvocationArguments(native)
 	local args = {
-		'"' .. native.hash .. '"'
+		("0x%08x"):format((native.hash >> 32) & 0xFFFFFFFF),
+		("0x%08x"):format(native.hash & 0xFFFFFFFF),
 	}
 
 	if native.arguments then

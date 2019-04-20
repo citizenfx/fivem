@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ViewChildren, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ViewChildren, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject } from 'rxjs/Subject';
@@ -14,6 +14,9 @@ import { Avatar } from '../avatar';
 import { GameService } from '../../game.service';
 
 import { ServersService } from '../servers.service';
+
+import { isPlatformBrowser } from '@angular/common';
+import { MetaService } from '@ngx-meta/core';
 
 class VariablePair {
     public key: string;
@@ -34,10 +37,11 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     serverVariables: VariablePair[] = [];
     filterFuncs: {[key: string]: (pair: VariablePair) => VariablePair} = {};
     resourceString = '';
+    resourceCount = 0;
     error = '';
     canRefresh = true;
 
-    interval: number;
+    interval: ReturnType<typeof setInterval>;
 
     currentAddr = '';
 
@@ -46,7 +50,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     addrEvent = new Subject<[string, number]>();
 
     disallowedVars = ['sv_enhancedHostSupport', 'sv_licenseKeyToken', 'sv_lan', 'sv_maxClients'];
-    
+
     @Language()
     lang: string;
 
@@ -55,7 +59,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
 
     constructor(private gameService: GameService, private serversService: ServersService,
         private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
-        private router: Router) {
+        private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService) {
         super();
 
         this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
@@ -85,6 +89,13 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
             }
         };
 
+        this.filterFuncs['tags'] = (pair) => {
+            return {
+                key: '#ServerList_Tags',
+                value: pair.value
+            };
+        };
+
         this.route.params.subscribe(params => {
             this.currentAddr = params['addr'];
 
@@ -96,24 +107,35 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
         this.serversService.getServer(this.currentAddr)
             .then(a => {
                 this.server = a;
-                this.resourceString = (<string[]>a.data.resources)
-                    .filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager')
+
+                const resources = (<string[]>a.data.resources)
+                    .filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager');
+
+                this.resourceString = resources
                     .join(', ');
+
+                this.resourceCount = resources.length;
 
                 this.serverVariables = Object.entries(a.data.vars as {[key: string]: string })
                     .map(([key, value]) => ( { key, value }) )
                     .filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
                     .filter(({ key }) => key.indexOf('banner_') < 0)
                     .map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
+
+                this.meta.setTag('og:image', this.server.iconUri);
+                this.meta.setTag('og:type', 'website');
+                this.meta.setTitle(this.server.hostname.replace(/\^[0-9]/g, ''));
+                this.meta.setTag('og:description', `${this.server.currentPlayers} players on ${this.server.data.mapname}`);
+                this.meta.setTag('og:site_name', 'FiveM');
             });
     }
 
     refreshServer() {
-        if (this.canRefresh) {
+        if (this.canRefresh && isPlatformBrowser(this.platformId)) {
             this.updateServer();
 
             this.canRefresh = false;
-            window.setTimeout(() => {
+            setTimeout(() => {
                 this.canRefresh = true;
             }, 2000);
         }
@@ -140,12 +162,14 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     }
 
     ngOnInit() {
-        this.interval = window.setInterval(() => this.updateServer(), 45000);
+        if (isPlatformBrowser(this.platformId)) {
+            this.interval = setInterval(() => this.updateServer(), 45000);
+        }
     }
 
     ngOnDestroy() {
         if (this.interval) {
-            window.clearInterval(this.interval);
+            clearInterval(this.interval);
         }
     }
 }

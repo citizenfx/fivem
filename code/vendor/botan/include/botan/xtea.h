@@ -24,11 +24,6 @@ class BOTAN_PUBLIC_API(2,0) XTEA final : public Block_Cipher_Fixed_Params<8, 16>
       void clear() override;
       std::string name() const override { return "XTEA"; }
       BlockCipher* clone() const override { return new XTEA; }
-   protected:
-      /**
-      * @return const reference to the key schedule
-      */
-      const secure_vector<uint32_t>& get_EK() const { return m_EK; }
 
    private:
       void key_schedule(const uint8_t[], size_t) override;

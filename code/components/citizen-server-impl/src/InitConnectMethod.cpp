@@ -233,6 +233,8 @@ static InitFunction initFunction([]()
 
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
+		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_None, "");
+
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
 		{
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
@@ -263,6 +265,7 @@ static InitFunction initFunction([]()
 
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
+			auto gameBuildIt = postMap.find("gameBuild");
 
 			auto protocolIt = postMap.find("protocol");
 
@@ -275,6 +278,7 @@ static InitFunction initFunction([]()
 			auto name = nameIt->second;
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
+			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 
 			// limit name length
 			if (name.length() >= 200)
@@ -316,14 +320,16 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
+			data["bitVersion"] = 0x201903031957;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
 			data["token"] = token;
-			data["netlibVersion"] = 2;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto gameServer = instance->GetComponent<fx::GameServer>();
+
+			data["netlibVersion"] = gameServer->GetNetLibVersion();
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);
@@ -403,13 +409,29 @@ static InitFunction initFunction([]()
 					return;
 				}
 
+				if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
+				{
+					clientRegistry->RemoveClient(client);
+
+					sendError(
+						fmt::sprintf(
+							"This server requires a different game build (%s) from the one you're using (%s). Tell the server owner to remove this check.",
+							enforceGameBuildVar->GetValue(),
+							gameBuild
+						)
+					);
+
+					return;
+				}
+
 				auto resman = instance->GetComponent<fx::ResourceManager>();
 				auto eventManager = resman->GetComponent<fx::ResourceEventManagerComponent>();
 				auto cbComponent = resman->GetComponent<fx::ResourceCallbackComponent>();
 
 				// TODO: replace with event stacks once implemented
-				std::string noReason("Resource prevented connection.");
-
+				auto noReason = std::make_shared<std::shared_ptr<std::string>>();
+				*noReason = std::make_shared<std::string>("Resource prevented connection.");
+				
 				auto deferrals = std::make_shared<std::shared_ptr<fx::ClientDeferral>>();
 				*deferrals = std::make_shared<fx::ClientDeferral>(instance, client);
 
@@ -468,13 +490,13 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([&](const msgpack::unpacked& unpacked)
+				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
 					if (obj.size() == 1)
 					{
-						noReason = obj[0].as<std::string>();
+						**noReason = obj[0].as<std::string>();
 					}
 				}), (*deferrals)->GetCallbacks());
 
@@ -482,7 +504,7 @@ static InitFunction initFunction([]()
 				{
 					clientRegistry->RemoveClient(client);
 
-					sendError(noReason);
+					sendError(**noReason);
 					return;
 				}
 

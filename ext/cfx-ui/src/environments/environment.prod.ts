@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  web: false
+  web: false,
+  game: true
 };

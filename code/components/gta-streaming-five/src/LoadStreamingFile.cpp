@@ -19,6 +19,7 @@
 
 #include <Error.h>
 
+#include <IteratorView.h>
 #include <ICoreGameInit.h>
 
 #include <MinHook.h>
@@ -666,7 +667,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 	}
 }
 
-static std::map<std::string, std::string, std::less<>> g_manifestNames;
+static std::multimap<std::string, std::string, std::less<>> g_manifestNames;
 
 #include <fiCustomDevice.h>
 
@@ -855,10 +856,12 @@ static hook::cdecl_stub<void(void*, void* packfile, const char*)> loadManifest([
 
 void LoadManifest(const char* tagName)
 {
-	std::string name = g_manifestNames[tagName];
+	auto range = g_manifestNames.equal_range(tagName);
 
-	if (!name.empty())
+	for (auto& namePair : fx::GetIteratorView(range))
 	{
+		auto name = namePair.second;
+
 		_initManifestChunk(manifestChunkPtr);
 
 		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
@@ -904,16 +907,29 @@ void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
 #include <nutsnbolts.h>
 
 static bool g_reloadStreamingFiles;
+static std::atomic<int> g_lockedStreamingFiles;
 
 void origCfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+
+void DLL_EXPORT CfxCollection_SetStreamingLoadLocked(bool locked)
+{
+	if (locked)
+	{
+		g_lockedStreamingFiles++;
+	}
+	else
+	{
+		g_lockedStreamingFiles--;
+	}
+}
 
 void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
 {
 	auto baseName = std::string(strrchr(fileName.c_str(), '/') + 1);
 
-	if (baseName == "_manifest.ymf")
+	if (baseName.find(".ymf") == baseName.length() - 4)
 	{
-		g_manifestNames[tag] = fileName;
+		g_manifestNames.emplace(tag, fileName);
 	}
 
 	g_customStreamingFilesByTag[tag].push_back(fileName);
@@ -1002,6 +1018,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 	}
 
 	g_customStreamingFilesByTag.erase(tag);
+	g_manifestNames.erase(tag);
 }
 
 static void UnloadDataFiles()
@@ -1180,6 +1197,32 @@ void WrapAddMapBoolEntry(void* map, int* index, bool* value)
 	}
 }
 
+static void(*g_origExecuteGroup)(void* mgr, uint32_t hashValue, bool value);
+
+static void ExecuteGroupForWeaponInfo(void* mgr, uint32_t hashValue, bool value)
+{
+	g_origExecuteGroup(mgr, hashValue, value);
+
+	for (auto it = g_loadedDataFiles.begin(); it != g_loadedDataFiles.end();)
+	{
+		auto[fileType, fileName] = *it;
+
+		if (fileType == "WEAPONINFO_FILE_PATCH" || fileType == "WEAPONINFO_FILE")
+		{
+			HandleDataFile(*it, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
+			{
+				return mounter->UnmountFile(&entry);
+			}, "early-unloading for CWeaponMgr");
+
+			it = g_loadedDataFiles.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1318,7 +1361,7 @@ static HookFunction hookFunction([] ()
 
 	OnMainGameFrame.Connect([=]()
 	{
-		if (g_reloadStreamingFiles)
+		if (g_reloadStreamingFiles && g_lockedStreamingFiles == 0)
 		{
 			LoadStreamingFiles();
 
@@ -1361,12 +1404,20 @@ static HookFunction hookFunction([] ()
 		}
 	});
 
+	// special point for CWeaponMgr streaming unload
+	// (game calls CExtraContentManager::ExecuteTitleUpdateDataPatchGroup with a specific group intended for weapon info here)
+	{
+		auto location = hook::get_pattern("45 33 C0 BA E9 C8 73 AA E8", 8);
+		hook::set_call(&g_origExecuteGroup, location);
+		hook::call(location, ExecuteGroupForWeaponInfo);
+	}
+
 	// support CfxRequest for pgRawStreamer
 	hook::jump(hook::get_pattern("4D 63 C1 41 8B C2 41 81 E2 FF 03 00 00", -0xD), pgRawStreamer__GetEntryNameToBuffer);
 
 	// do not ever register our streaming files as part of DLC packfile dependencies
 	{
-		auto location = hook::get_pattern("48 8B CE C6 85 B8 00 00 00 01 89 44 24 20 E8", 14);
+		auto location = hook::get_pattern("48 8B CE C6 85 ? 00 00 00 01 89 44 24 20 E8", 14);
 		hook::set_call(&g_origAddMapBoolEntry, location);
 		hook::call(location, WrapAddMapBoolEntry);
 	}

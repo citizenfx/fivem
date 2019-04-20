@@ -6,7 +6,9 @@
 		"net",
 		"nui:core",
 		"gta:core",
+		"scripting:gta",
 		"conhost",
+		"font-renderer",
 		"vendor:cpp-uri",
 		"vendor:nng",
 		"vendor:msgpack-c"

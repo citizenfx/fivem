@@ -95,7 +95,9 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 	UNICODE_STRING newString;
 	std::wstring moduleNameStr(moduleName->Buffer, moduleName->Length / sizeof(wchar_t));
 
-	if (moduleNameStr.find(L"socialclub.dll") != std::string::npos)
+	if (moduleNameStr.find(L"socialclub.dll") != std::string::npos ||
+		// check .exe files as well for Wine GetFileVersionInfo* calls
+		moduleNameStr.find(L".exe") != std::string::npos)
 	{
 		moduleNameStr = MapRedirectedFilename(moduleNameStr.c_str());
 
@@ -145,9 +147,9 @@ LONG WINAPI RegOpenKeyExWStub(HKEY key, const wchar_t* subKey, DWORD options, RE
 			RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", name, REG_SZ, keyString, (wcslen(keyString) * 2) + 2);
 		};
 
-		setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros_1238").c_str());
+		setValue(L"InstallFolder", MakeRelativeCitPath(L"cache\\game\\ros_1241").c_str());
 		setValue(L"InstallLang", L"1033");
-		setValue(L"Version", L"1.2.3.8");
+		setValue(L"Version", L"1.2.4.1");
 
         LONG status = g_origRegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\Social Club", 0, KEY_READ, outKey);
 
@@ -464,13 +466,16 @@ VOID CALLBACK LdrDllNotification(
 		UNICODE_STRING amdHdl;
 		RtlInitUnicodeString(&amdHdl, L"amdhdl64.dll");
 
-		if (RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &amdHdl, TRUE))
+		UNICODE_STRING nvDlistX;
+		RtlInitUnicodeString(&nvDlistX, L"nvdlistx.dll");
+
+		if (RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &amdHdl, TRUE) || RtlEqualUnicodeString(NotificationData->Loaded.BaseDllName, &nvDlistX, TRUE))
 		{
 			void* proc = GetProcAddress(reinterpret_cast<HMODULE>(NotificationData->Loaded.DllBase), "QueryDListForApplication1");
 			MH_CreateHook(proc, QueryDListForApplication1Stub, (void**)&g_origQueryDListForApplication1);
 			MH_EnableHook(proc);
 
-			trace("Hooked amdhdl64.dll.\n");
+			trace("Hooked external (mobile) GPU drivers to force enablement.\n");
 		}
 	}
 }

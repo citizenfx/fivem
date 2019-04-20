@@ -3,6 +3,10 @@ local a = ...
 return {
 	include = function()
 		includedirs "../vendor/cpr/include/"
+		
+		if not os.istarget('windows') then
+			linkoptions { '/usr/lib/libcurl.so' }
+		end
 	end,
 
 	run = function()
@@ -14,7 +18,7 @@ return {
 		defines { 'CURL_STATICLIB' }
 
 		if a then
-			flags "StaticRuntime"
+			staticruntime 'On'
 		end
 
 		files {

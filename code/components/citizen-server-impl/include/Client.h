@@ -8,12 +8,11 @@
 #include <ComponentHolder.h>
 
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_queue.h>
 
 #include <any>
 
 #include <se/Security.h>
-
-#include <enet/enet.h>
 
 #define MAX_CLIENTS 64 // don't change this past 256 ever, also needs to be synced with client code
 
@@ -24,7 +23,7 @@ namespace {
 	constexpr const auto CLIENT_DEAD_TIMEOUT = 86400s;
 	constexpr const auto CLIENT_VERY_DEAD_TIMEOUT = 86400s;
 #else
-	constexpr const auto CLIENT_DEAD_TIMEOUT = 10s;
+	constexpr const auto CLIENT_DEAD_TIMEOUT = 60s;
 	constexpr const auto CLIENT_VERY_DEAD_TIMEOUT = 120s;
 #endif
 }
@@ -37,6 +36,15 @@ namespace {
 
 namespace fx
 {
+	namespace sync
+	{
+		class ClientSyncDataBase
+		{
+		public:
+			virtual ~ClientSyncDataBase() = default;
+		};
+	}
+
 	struct gs_peer_deleter
 	{
 		inline void operator()(int* data)
@@ -49,7 +57,7 @@ namespace fx
 		}
 	};
 
-	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>
+	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public std::enable_shared_from_this<Client>
 	{
 	public:
 		Client(const std::string& guid);
@@ -166,11 +174,38 @@ namespace fx
 			return std::move(principals);
 		}
 
+		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
+		{
+			return m_syncData;
+		}
+
+		inline void SetSyncData(const std::shared_ptr<sync::ClientSyncDataBase>& ptr)
+		{
+			m_syncData = ptr;
+		}
+
+		inline void PushReplayPacket(int channel, const net::Buffer& buffer)
+		{
+			m_replayQueue.push({ buffer, channel });
+		}
+
+		inline void ReplayPackets()
+		{
+			std::tuple<net::Buffer, int> value;
+
+			while (m_replayQueue.try_pop(value))
+			{
+				const auto&[buffer, channel] = value;
+
+				SendPacket(channel, buffer, NetPacketType_Reliable);
+			}
+		}
+
 		const std::any& GetData(const std::string& key);
 
 		void SetData(const std::string& key, const std::any& data);
 
-		void SendPacket(int channel, const net::Buffer& buffer, ENetPacketFlag flags = (ENetPacketFlag)0);
+		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
 
 		fwEvent<> OnAssignNetId;
 		fwEvent<> OnAssignPeer;
@@ -213,8 +248,14 @@ namespace fx
 		// the client's ENet peer
 		std::unique_ptr<int, gs_peer_deleter> m_peer;
 
+		// sync data
+		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
+
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;
+
+		// packets to resend when a new peer connects using this client
+		tbb::concurrent_queue<std::tuple<net::Buffer, int>> m_replayQueue;
 
 		// an arbitrary set of data
 		tbb::concurrent_unordered_map<std::string, std::any> m_userData;

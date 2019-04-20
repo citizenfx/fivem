@@ -3,7 +3,9 @@
 
 #include <VFSManager.h>
 
-#include <SHA1.h>
+#include <ResourceFileDatabase.h>
+
+#include <botan/sha160.h>
 
 #include <json.hpp>
 
@@ -67,7 +69,7 @@ namespace fx
 
 	bool ResourceStreamComponent::ShouldUpdateSet()
 	{
-		auto fileName = fmt::sprintf("cache:/files/%s.sfl", m_resource->GetName());
+		auto fileName = fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName());
 		auto device = vfs::GetDevice(fileName);
 
 		if (!device.GetRef())
@@ -75,9 +77,17 @@ namespace fx
 			return true;
 		}
 
-		// check if the modification time differs
-		time_t listTime = device->GetModifiedTime(fileName);
-		time_t streamTime = 0;
+		// open the resource database
+		auto dbName = fileName + ".db";
+		auto setDatabase = std::make_shared<ResourceFileDatabase>();
+
+		if (!setDatabase->Load(dbName))
+		{
+			return true;
+		}
+
+		// collect a set of file names
+		std::vector<std::string> files;
 
 		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [&](const std::string& fullPath)
 		{
@@ -85,22 +95,17 @@ namespace fx
 
 			if (device.GetRef())
 			{
-				auto time = device->GetModifiedTime(fullPath);
-
-				if (time != -1 && time >= streamTime)
-				{
-					streamTime = time;
-				}
+				files.push_back(fullPath);
 			}
 		});
 
-		if (streamTime > listTime)
+		if (setDatabase->Check(files))
 		{
 			return true;
 		}
 
 		// load the list and verify if all files still exist
-		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s.sfl", m_resource->GetName()));
+		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName()));
 
 		if (!stream.GetRef())
 		{
@@ -125,16 +130,35 @@ namespace fx
 
 	bool ResourceStreamComponent::UpdateSet()
 	{
+		std::vector<std::string> files;
+
 		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [&](const std::string& fullPath)
 		{
-			AddStreamingFile(fullPath)->isAutoScan = true;
+			files.push_back(fullPath);
+
+			auto file = AddStreamingFile(fullPath);
+
+			if (file)
+			{
+				file->isAutoScan = true;
+			}
 		});
 
-		std::string outFileName = fmt::sprintf("cache:/files/%s.sfl", m_resource->GetName());
+		std::string outFileName = fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName());
 
 		fwRefContainer<vfs::Device> device = vfs::GetDevice(outFileName);
 		device->CreateDirectory(outFileName.substr(0, outFileName.find_last_of('/')));
 
+		// first, save the resource database
+		{
+			auto dbName = outFileName + ".db";
+			auto setDatabase = std::make_shared<ResourceFileDatabase>();
+
+			setDatabase->Snapshot(files);
+			setDatabase->Save(dbName);
+		}
+
+		// then, save the actual SFL
 		auto handle = device->Create(outFileName);
 
 		if (handle == INVALID_DEVICE_HANDLE)
@@ -210,20 +234,18 @@ namespace fx
 		{
 			// calculate the file hash
 			std::vector<uint8_t> data(8192);
-			sha1nfo sha1;
-			size_t numRead;
 
-			// initialize context
-			sha1_init(&sha1);
+			auto sha1 = std::make_unique<Botan::SHA_160>();
+			size_t numRead;
 
 			// read from the stream
 			while ((numRead = stream->Read(data)) > 0)
 			{
-				sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+				sha1->update(&data[0], numRead);
 			}
 
 			// get the hash result and convert it to a string
-			uint8_t* hash = sha1_result(&sha1);
+			auto hash = sha1->final();
 
 			strcpy(entry.hashString, fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 				hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
@@ -244,7 +266,7 @@ namespace fx
 			{ "size", this->size}
 		});
 
-		return json.dump();
+		return json.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 	}
 
 	auto ResourceStreamComponent::AddStreamingFile(const std::string& entryName, const std::string& diskPath, const std::string& cacheString) -> StorageEntry*
@@ -270,8 +292,9 @@ namespace fx
 		}
 		catch (std::exception&)
 		{
-			return nullptr;
 		}
+
+		return nullptr;
 	}
 
 	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> StorageEntry*
@@ -295,7 +318,7 @@ namespace fx
 			}
 			else
 			{
-				fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s.sfl", m_resource->GetName()));
+				fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName()));
 
 				if (stream.GetRef())
 				{
@@ -306,7 +329,12 @@ namespace fx
 
 					for (auto& entry : entries)
 					{
-						AddStreamingFile(entry)->isAutoScan = true;
+						auto file = AddStreamingFile(entry);
+
+						if (file)
+						{
+							file->isAutoScan = true;
+						}
 					}
 				}
 			}

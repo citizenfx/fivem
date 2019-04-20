@@ -1,9 +1,12 @@
-import { Component, OnInit, OnChanges, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { Server, PinConfig } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
-import { ServerFilters } from './server-filter.component';
+import { ServerFilterContainer } from './server-filter.component';
 import { Subject } from 'rxjs/Subject';
 import { environment } from '../../../environments/environment';
+import { LocalStorage } from '../../local-storage';
+
+import { isPlatformBrowser } from '@angular/common';
 
 import 'rxjs/add/operator/throttleTime';
 
@@ -18,7 +21,7 @@ export class ServersListComponent implements OnInit, OnChanges {
     private servers: Server[];
 
     @Input()
-    private filters: ServerFilters;
+    private filters: ServerFilterContainer;
 
     @Input()
     private pinConfig: PinConfig;
@@ -32,7 +35,7 @@ export class ServersListComponent implements OnInit, OnChanges {
     localServers: Server[];
     sortedServers: Server[];
 
-    constructor() {
+    constructor(private zone: NgZone, @Inject(LocalStorage) private localStorage: any, @Inject(PLATFORM_ID) private platformId: any) {
         this.servers = [];
 
         this.columns = [
@@ -61,13 +64,13 @@ export class ServersListComponent implements OnInit, OnChanges {
             }
         ];
 
-        const storedOrder = localStorage.getItem('sortOrder');
+        const storedOrder = this.localStorage.getItem('sortOrder');
 
-        if (storedOrder) {
-            this.sortOrder = JSON.parse(storedOrder);
-        } else {
-            this.sortOrder = environment.web ? ['players', '-'] : ['ping', '+'];
-        }
+        //if (storedOrder) {
+        //    this.sortOrder = JSON.parse(storedOrder);
+        //} else {
+        this.sortOrder = ['upvotePower', '-'];
+        //}
 
         let changed = false;
 
@@ -75,12 +78,21 @@ export class ServersListComponent implements OnInit, OnChanges {
             changed = true;
         });
 
-        setInterval(() => {
-            if (changed) {
-                changed = false;
-                this.sortAndFilterServers();
-            }
-        }, 250);
+        zone.runOutsideAngular(() => {
+            setInterval(() => {
+                if (changed) {
+                    changed = false;
+
+                    zone.run(() => {
+                        this.sortAndFilterServers();
+                    });
+                }
+            }, 250);
+        });
+    }
+
+    isBrowser() {
+        return isPlatformBrowser(this.platformId);
     }
 
     isPinned(server: Server) {
@@ -107,7 +119,8 @@ export class ServersListComponent implements OnInit, OnChanges {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    private buildSearchMatch(filters: ServerFilters) {
+    private buildSearchMatch(filterList: ServerFilterContainer) {
+        const filters = filterList.filters;
         const searchText = filters.searchText;
         const filterFns: ((server: Server) => boolean)[] = [];
 
@@ -195,15 +208,45 @@ export class ServersListComponent implements OnInit, OnChanges {
         };
     }
 
-    getFilter(filters: ServerFilters): (server: Server) => boolean {
-        const nameMatchCallback = this.buildSearchMatch(filters);
+    getFilter(filterList: ServerFilterContainer): (server: Server) => boolean {
+        const nameMatchCallback = this.buildSearchMatch(filterList);
+        const filters = filterList.filters;
+
+        const hiddenByTags = (server: Server) => {
+            if (filterList.tags) {
+                const tags =
+                    (server && server.data && server.data.vars && server.data.vars.tags) ?
+                        (<string>server.data.vars.tags)
+                            .split(',')
+                            .map(a => a.trim().toLowerCase())
+                            .filter(a => a)
+                        :
+                            [];
+
+                const tagSet = new Set<string>(tags);
+
+                for (const [ tag, active ] of Object.entries(filterList.tags.tagList)) {
+                    if (active) {
+                        if (!tagSet.has(tag)) {
+                            return true;
+                        }
+                    } else {
+                        if (tagSet.has(tag)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        };
 
         return (server) => {
             if (!nameMatchCallback(server)) {
                 return false;
             }
 
-            if (server.currentPlayers == 0 && filters.hideEmpty) {
+            if (server.currentPlayers === 0 && filters.hideEmpty) {
                 if (!this.isPinned(server) || !this.pinConfig.pinIfEmpty) {
                     return false;
                 }
@@ -213,8 +256,14 @@ export class ServersListComponent implements OnInit, OnChanges {
                 return false;
             }
 
-            if (filters.capPing && (server.ping > filters.maxPing || typeof server.ping == 'string')) {
+            if (filters.capPing && (server.ping > filters.maxPing || typeof server.ping === 'string')) {
                 return false;
+            }
+
+            if (filterList.tags.tagList) {
+                if (hiddenByTags(server)) {
+                    return false;
+                }
             }
 
             return true;
@@ -279,6 +328,7 @@ export class ServersListComponent implements OnInit, OnChanges {
                     }
                 },
                 sortSortable(this.sortOrder),
+                sortSortable(['upvotePower', '-']),
                 sortSortable(['ping', '+']),
                 sortSortable(['name', '+'])
             );
@@ -286,7 +336,7 @@ export class ServersListComponent implements OnInit, OnChanges {
 
         this.sortedServers = servers;
 
-        window.localStorage.setItem('sortOrder', JSON.stringify(this.sortOrder));
+        this.localStorage.setItem('sortOrder', JSON.stringify(this.sortOrder));
     }
 
     updateSorting(column: string) {

@@ -22,13 +22,13 @@ namespace CitizenFX.Core
 
 		public bool IsInstalled
 		{
-			get { return Function.Call<bool>(Hash.IS_TOGGLE_MOD_ON, _owner.Handle, ModType); }
-			set { Function.Call(Hash.TOGGLE_VEHICLE_MOD, _owner.Handle, ModType, value); }
+			get { return API.IsToggleModOn(_owner.Handle, (int)ModType); }
+			set { API.ToggleVehicleMod(_owner.Handle, (int)ModType, value); }
 		}
 
 		public string LocalizedModTypeName
 		{
-			get { return Function.Call<string>(Hash.GET_MOD_SLOT_NAME, _owner.Handle, ModType); }
+			get { return API.GetModSlotName(_owner.Handle, (int)ModType); }
 		}
 
 		public Vehicle Vehicle
@@ -38,7 +38,7 @@ namespace CitizenFX.Core
 
 		public void Remove()
 		{
-			Function.Call(Hash.REMOVE_VEHICLE_MOD, _owner.Handle, ModType);
+			API.RemoveVehicleMod(_owner.Handle, (int)ModType);
 		}
 	}
 }

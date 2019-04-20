@@ -64,7 +64,7 @@ namespace hook
 
 	protected:
 		inline pattern(void* module)
-			: m_module(module), m_matched(false), m_rangeEnd(0)
+			: m_rangeStart((uintptr_t)module), m_matched(false), m_rangeEnd(0)
 		{
 		}
 

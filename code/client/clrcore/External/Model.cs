@@ -8,10 +8,10 @@ namespace CitizenFX.Core
 {
 	public class Model : INativeValue, IEquatable<Model>
 	{
-        public Model()
-        {
+		public Model()
+		{
 
-        }
+		}
 		public Model(int hash) : this()
 		{
 			Hash = hash;
@@ -56,7 +56,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_MODEL_VALID, Hash);
+				return API.IsModelValid((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -69,7 +69,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_MODEL_IN_CDIMAGE, Hash);
+				return API.IsModelInCdimage((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -82,7 +82,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.HAS_MODEL_LOADED, Hash);
+				return API.HasModelLoaded((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -95,7 +95,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.HAS_COLLISION_FOR_MODEL_LOADED, Hash);
+				return API.HasCollisionForModelLoaded((uint)Hash);
 			}
 		}
 
@@ -109,7 +109,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_BICYCLE, Hash);
+				return API.IsThisModelABicycle((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -122,7 +122,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_BIKE, Hash);
+				return API.IsThisModelABike((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -135,7 +135,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_BOAT, Hash);
+				return API.IsThisModelABoat((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -148,7 +148,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_CAR, Hash);
+				return API.IsThisModelACar((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -175,7 +175,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_HELI, Hash);
+				return API.IsThisModelAHeli((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -188,9 +188,20 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-                // CFX-TODO
-                return false;
-				//return MemoryAccess.IsModelAPed(Hash);
+				// Not sure why the other stuff below was used, but this works perfectly fine. 
+				return API.IsModelAPed((uint)Hash);
+
+				// CFX-TODO
+				// Not the most dynamic solution, but much better than returning false on all model hashes.
+				//foreach (uint hash in Enum.GetValues(typeof(PedHash)))
+				//{
+				//	if (Hash == hash)
+				//	{
+				//		return true;
+				//	}
+				//}
+
+				//return false;
 			}
 		}
 		/// <summary>
@@ -203,7 +214,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_PLANE, Hash);
+				return API.IsThisModelAPlane((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -216,7 +227,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return IsValid && !IsPed && !IsVehicle;
+				return IsValid && !IsPed && !IsVehicle && !API.IsWeaponValid((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -229,7 +240,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_QUADBIKE, Hash);
+				return API.IsThisModelAQuadbike((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -242,7 +253,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_THIS_MODEL_A_TRAIN, Hash);
+				return API.IsThisModelATrain((uint)Hash);
 			}
 		}
 		/// <summary>
@@ -255,7 +266,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.IS_MODEL_A_VEHICLE, Hash);
+				return API.IsModelAVehicle((uint)Hash);
 			}
 		}
 
@@ -270,22 +281,20 @@ namespace CitizenFX.Core
 
 			return Vector3.Subtract(left, right);
 		}
-        /// <summary>
-        /// Gets the dimensions of this <see cref="Model"/>.
-        /// </summary>
-        /// <param name="minimum">The minimum dimensions.</param>
-        /// <param name="maximum">The maximum dimensions.</param>
-        [SecuritySafeCritical]
-        public void GetDimensions(out Vector3 minimum, out Vector3 maximum)
+		/// <summary>
+		/// Gets the dimensions of this <see cref="Model"/>.
+		/// </summary>
+		/// <param name="minimum">The minimum dimensions output <see cref="Vector3"/>.</param>
+		/// <param name="maximum">The maximum dimensions output <see cref="Vector3"/>.</param>
+		public void GetDimensions(out Vector3 minimum, out Vector3 maximum)
 		{
-		    NativeVector3 min, max;
-			unsafe
-			{
-				Function.Call(Native.Hash.GET_MODEL_DIMENSIONS, Hash, &min, &max);
-			}
+			Vector3 min = new Vector3(0f, 0f, 0f);
+			Vector3 max = new Vector3(0f, 0f, 0f);
 
-		    minimum = min;
-		    maximum = max;
+			API.GetModelDimensions((uint)Hash, ref min, ref max);
+
+			minimum = min;
+			maximum = max;
 		}
 
 		/// <summary>
@@ -293,7 +302,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void Request()
 		{
-			Function.Call(Native.Hash.REQUEST_MODEL, Hash);
+			API.RequestModel((uint)Hash);
 		}
 		/// <summary>
 		/// Attempt to load this <see cref="Model"/> into memory for a given period of time.
@@ -302,21 +311,31 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if this <see cref="Model"/> is loaded; otherwise, <c>false</c></returns>
 		public async Task<bool> Request(int timeout)
 		{
-			Request();
-
-			DateTime endtime = timeout >= 0 ? DateTime.UtcNow + new TimeSpan(0, 0, 0, 0, timeout) : DateTime.MaxValue;
-
-			while (!IsLoaded)
+			// Only request the model if it's not yet loaded.
+			if (!IsLoaded)
 			{
-                await BaseScript.Delay(0);
-                Request();
+				// Make sure the model is valid (needs || checks because weapon models don't return true when IsModelValid or IsModelInCdimage is called).
+				if (API.IsModelInCdimage((uint)Hash) || API.IsModelValid((uint)Hash) || API.IsWeaponValid((uint)Hash))
+				{
+					Request();
 
-				if (DateTime.UtcNow >= endtime)
+					int timer = API.GetGameTimer();
+
+					while (!IsLoaded)
+					{
+						await BaseScript.Delay(1);
+
+						if (API.GetGameTimer() - timer >= timeout)
+						{
+							return false;
+						}
+					}
+				}
+				else
 				{
 					return false;
 				}
 			}
-
 			return true;
 		}
 		/// <summary>
@@ -324,7 +343,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void MarkAsNoLongerNeeded()
 		{
-			Function.Call(Native.Hash.SET_MODEL_AS_NO_LONGER_NEEDED, Hash);
+			API.SetModelAsNoLongerNeeded((uint)Hash);
 		}
 
 		public bool Equals(Model model)

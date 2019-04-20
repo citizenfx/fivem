@@ -189,6 +189,24 @@ void LocalDevice::FindClose(THandle handle)
 	closedir(data->dir);
 	delete data;
 }
+
+bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
+{
+	if (controlIdx == VFS_GET_FILE_ID && controlSize == sizeof(GetFileIdExtension))
+	{
+		auto data = reinterpret_cast<GetFileIdExtension*>(controlData);
+
+		struct stat buf;
+		fstat(static_cast<int>(data->handle), &buf);
+
+		data->fileId = vfs::FileId{};
+		memcpy(data->fileId.data(), &buf.st_ino, std::min(sizeof(buf.st_ino), data->fileId.size()));
+
+		return true;
+	}
+
+	return false;
+}
 }
 
 #ifdef EMSCRIPTEN

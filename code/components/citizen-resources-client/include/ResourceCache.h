@@ -97,6 +97,8 @@ private:
 
 	std::string m_cachePath;
 
+	std::string m_physCachePath;
+
 public:
 	class Entry
 	{
@@ -130,7 +132,7 @@ public:
 	};
 
 public:
-	ResourceCache(const std::string& cachePath);
+	ResourceCache(const std::string& cachePath, const std::string& physCachePath);
 
 	void AddEntry(const std::string& localFileName, const std::map<std::string, std::string>& metaData);
 
@@ -145,6 +147,11 @@ public:
 	inline const std::string& GetCachePath()
 	{
 		return m_cachePath;
+	}
+
+	inline const std::string& GetPhysCachePath()
+	{
+		return m_physCachePath;
 	}
 
 private:

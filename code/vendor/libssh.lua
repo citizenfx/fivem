@@ -6,6 +6,10 @@ return {
 	run = function()
 		language "C++"
 		kind "SharedLib"
+		
+		if _OPTIONS['with-asan'] then
+			buildoptions { '-Wno-error=non-pod-varargs -Wno-error=register' }
+		end
 
 		add_dependencies 'vendor:zlib'
 		add_dependencies 'vendor:botan'

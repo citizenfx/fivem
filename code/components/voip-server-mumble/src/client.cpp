@@ -52,7 +52,7 @@ extern char system_string[], version_string[];
 
 static int Client_read(client_t *client);
 static int Client_write(client_t *client);
-static int Client_send_udp(client_t *client, uint8_t *data, int len);
+int Client_send_udp(client_t *client, uint8_t *data, int len);
 void Client_free(client_t *client);
 
 declare_list(clients);
@@ -65,6 +65,8 @@ bool_t bPreferAlpha;
 
 extern int* udpsocks;
 extern bool_t hasv4;
+
+std::recursive_mutex g_mumbleClientMutex;
 
 void Client_init()
 {
@@ -95,6 +97,8 @@ int Client_getfds(struct pollfd *pollfds)
 
 void Client_janitor()
 {
+	std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
+
 	struct dlist *itr, *save;
 	int bwTop = maxBandwidth + maxBandwidth / 4;
 	list_iterate_safe(itr, save, &clients) {
@@ -330,6 +334,8 @@ int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client)
 	newclient = new client_t();
 
 	*client = newclient;
+
+	newclient->numFailedCrypt = 0;
 
 	newclient->stream = stream;
 	//memcpy(&newclient->remote_tcp, remote, sizeof(struct sockaddr_storage));
@@ -718,7 +724,7 @@ int Client_send_message_except_ver(client_t *client, message_t *msg, uint32_t ve
 	return 0;
 }
 
-static bool_t checkDecrypt(client_t *client, const uint8_t *encrypted, uint8_t *plain, unsigned int len)
+bool_t checkDecrypt(client_t *client, const uint8_t *encrypted, uint8_t *plain, unsigned int len)
 {
 	if (CryptState_isValid(&client->cryptState) &&
 		CryptState_decrypt(&client->cryptState, encrypted, plain, len))
@@ -1001,13 +1007,13 @@ out:
 	return 0;
 }
 
-static int Client_send_udp(client_t *client, uint8_t *data, int len)
+int Client_send_udp(client_t *client, uint8_t *data, int len)
 {
 	uint8_t *buf, *mbuf;
 
 	int udpsock = 0;// (client->remote_udp.GetAddressFamily() == AF_INET) ? udpsocks[0] : udpsocks[(hasv4) ? 1 : 0];
 
-	if (Util_clientAddressToPortUDP(client) != 0 && CryptState_isValid(&client->cryptState) &&
+	if (CryptState_isValid(&client->cryptState) &&
 		client->bUDP) {
 #if defined(__LP64__)
 		buf = mbuf = (uint8_t*)Memory_safeMalloc(1, len + 4 + 16);
@@ -1017,11 +1023,13 @@ static int Client_send_udp(client_t *client, uint8_t *data, int len)
 #endif
 		CryptState_encrypt(&client->cryptState, data, buf, len);
 
-#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
+/*#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
 			sendto(udpsock, buf, len + 4, 0, (struct sockaddr *)&client->remote_udp, client->remote_tcp.ss_len);
 #else
 			sendto(udpsock, (char*)buf, len + 4, 0, (struct sockaddr *)&client->remote_udp, sizeof(struct sockaddr_storage));
-#endif
+#endif*/
+
+		client->interceptor->Send(client->remote_udp, buf, len + 4);
 
 		free(mbuf);
 	} else {

@@ -35,6 +35,8 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
+#include <cpr/util.h>
+
 static NetAddress g_netAddress;
 
 static std::set<std::string> g_resourceStartRequestSet;
@@ -46,9 +48,9 @@ static std::string CrackResourceName(const std::string& uri)
 
 	if (!static_cast<bool>(ec))
 	{
-		if (parsed.host())
+		if (!parsed.host().empty())
 		{
-			return parsed.host().get().to_string();
+			return parsed.host().to_string();
 		}
 	}
 
@@ -123,6 +125,16 @@ static InitFunction initFunction([] ()
 	{
 		static std::recursive_mutex executeNextGameFrameMutex;
 		static std::vector<std::function<void()>> executeNextGameFrame;
+
+		auto urlEncodeWrap = [](const std::string& str)
+		{
+			if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201902111010)
+			{
+				return cpr::util::urlEncode(str);
+			}
+
+			return str;
+		};
 
 		auto updateResources = [=] (const std::string& updateList, const std::function<void()>& doneCb)
 		{
@@ -241,6 +253,8 @@ static InitFunction initFunction([] ()
 
 				std::vector<std::string> requiredResources;
 
+				fx::OnLockStreaming();
+
 				if (hasValidResources)
 				{
 					auto& resources = node["resources"];
@@ -297,7 +311,7 @@ static InitFunction initFunction([] ()
 						{
 							fwString filename = i->name.GetString();
 
-							mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), resourceBaseUrl + filename);
+							mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), resourceBaseUrl + urlEncodeWrap(filename));
 						}
 
 						if (resource.HasMember("streamFiles"))
@@ -336,7 +350,7 @@ static InitFunction initFunction([] ()
 									continue;
 								}
 
-								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + filename, size, {
+								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + urlEncodeWrap(filename), size, {
 									{ "rscVersion", std::to_string(entry.rscVersion) },
 									{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
 									{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
@@ -376,6 +390,11 @@ static InitFunction initFunction([] ()
 								GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
 							}
 
+							executeNextGameFrame.push_back([]
+							{
+								fx::OnUnlockStreaming();
+							});
+
 							return;
 						}
 					}
@@ -407,6 +426,11 @@ static InitFunction initFunction([] ()
 							netLibrary->DownloadsComplete();
 						});
 					}
+
+					executeNextGameFrame.push_back([]
+					{
+						fx::OnUnlockStreaming();
+					});
 
 					doneCb();
 				});

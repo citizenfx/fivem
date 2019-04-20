@@ -9,68 +9,78 @@ using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-    public abstract class BaseScript
-    {
-        private Dictionary<Delegate, Task> CurrentTaskList { get; set; }
+	public abstract class BaseScript
+	{
+		private Dictionary<Delegate, Task> CurrentTaskList { get; set; }
 
-        /// <summary>
-        /// An event containing callbacks to attempt to schedule on every game tick.
-        /// A callback will only be rescheduled once the associated task completes.
-        /// </summary>
-        protected event Func<Task> Tick;
+		/// <summary>
+		/// An event containing callbacks to attempt to schedule on every game tick.
+		/// A callback will only be rescheduled once the associated task completes.
+		/// </summary>
+		protected event Func<Task> Tick;
 
-        protected internal EventHandlerDictionary EventHandlers { get; private set; }
+		protected internal EventHandlerDictionary EventHandlers { get; private set; }
 
-        protected ExportDictionary Exports { get; private set; }
+		protected ExportDictionary Exports { get; private set; }
 
 #if !IS_FXSERVER
 		private Player m_player;
 
-        protected Player LocalPlayer
-        {
-            get
-            {
-                var id = Function.Call<int>(Hash.PLAYER_ID);
+		protected Player LocalPlayer
+		{
+			get
+			{
+				var id = API.PlayerId();
 
-                if (m_player == null || id != m_player.Handle)
-                {
-                    m_player = new Player(id);
-                }
+				if (m_player == null || id != m_player.Handle)
+				{
+					m_player = new Player(id);
+				}
 
-                return m_player;
-            }
-        }
+				return m_player;
+			}
+		}
 #endif
 
 		protected PlayerList Players { get; private set; }
 
-	    protected BaseScript()
-        {
-            EventHandlers = new EventHandlerDictionary();
-            Exports = new ExportDictionary();
-            CurrentTaskList = new Dictionary<Delegate, Task>();
+		protected BaseScript()
+		{
+			EventHandlers = new EventHandlerDictionary();
+			Exports = new ExportDictionary();
+			CurrentTaskList = new Dictionary<Delegate, Task>();
 
-            Players = new PlayerList();
-        }
-        
-        internal void ScheduleRun()
-        {
-            if (Tick != null)
-            {
-                var calls = Tick.GetInvocationList();
+			Players = new PlayerList();
+		}
 
-                foreach (var call in calls)
-                {
-                    ScheduleTick(call);
-                }
-            }
-        }
+		internal void ScheduleRun()
+		{
+			if (Tick != null)
+			{
+				var calls = Tick.GetInvocationList();
 
-        internal void ScheduleTick(Delegate call)
-        {
-            if (!CurrentTaskList.ContainsKey(call))
-            {
-                CurrentTaskList.Add(call, Task.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
+				foreach (var call in calls)
+				{
+					ScheduleTick(call);
+				}
+			}
+		}
+
+		internal void RegisterTick(Func<Task> tick)
+		{
+			Tick += tick;
+		}
+
+		internal void RegisterEventHandler(string eventName, Delegate callback)
+		{
+			EventHandlers[eventName] += callback;
+		}
+
+		internal void ScheduleTick(Delegate call)
+		{
+			if (!CurrentTaskList.ContainsKey(call))
+			{
+				CurrentTaskList.Add(call, Task.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
 				{
 					if (a.IsFaulted)
 					{
@@ -79,38 +89,38 @@ namespace CitizenFX.Core
 
 					CurrentTaskList.Remove(call);
 				}));
-            }
-        }
-        
-        /// <summary>
-        /// Returns a task that will delay scheduling of the current interval function by the passed amount of time.
-        /// </summary>
-        /// <example>
-        /// await Delay(500);
-        /// </example>
-        /// <param name="msecs">The amount of time by which to delay scheduling this interval function.</param>
-        /// <returns>An awaitable task.</returns>
-        public static Task Delay(int msecs)
-        {
-            return Task.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
-        }
+			}
+		}
 
-        [SecuritySafeCritical]
-        public static void TriggerEvent(string eventName, params object[] args)
-        {
-            var argsSerialized = MsgPackSerializer.Serialize(args);
+		/// <summary>
+		/// Returns a task that will delay scheduling of the current interval function by the passed amount of time.
+		/// </summary>
+		/// <example>
+		/// await Delay(500);
+		/// </example>
+		/// <param name="msecs">The amount of time by which to delay scheduling this interval function.</param>
+		/// <returns>An awaitable task.</returns>
+		public static Task Delay(int msecs)
+		{
+			return Task.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
+		}
 
-            TriggerEventInternal(eventName, argsSerialized, false);
-        }
+		[SecuritySafeCritical]
+		public static void TriggerEvent(string eventName, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			TriggerEventInternal(eventName, argsSerialized, false);
+		}
 
 #if !IS_FXSERVER
 		[SecuritySafeCritical]
-        public static void TriggerServerEvent(string eventName, params object[] args)
-        {
-            var argsSerialized = MsgPackSerializer.Serialize(args);
+		public static void TriggerServerEvent(string eventName, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
 
-            TriggerEventInternal(eventName, argsSerialized, true);
-        }
+			TriggerEventInternal(eventName, argsSerialized, true);
+		}
 #else
 		public static void TriggerClientEvent(Player player, string eventName, params object[] args)
 		{
@@ -137,8 +147,8 @@ namespace CitizenFX.Core
 #endif
 
 		[SecurityCritical]
-        private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
-        {
+		private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
+		{
 			var nativeHash = Hash.TRIGGER_EVENT_INTERNAL;
 
 #if !IS_FXSERVER
@@ -149,47 +159,47 @@ namespace CitizenFX.Core
 #endif
 
 			unsafe
-            {
-                fixed (byte* serialized = &argsSerialized[0])
-                {
-                    Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
-                }
-            }
-        }
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
+				}
+			}
+		}
 
-        private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
-        {
-            InternalManager.AddDelay(delay, callback);
+		private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
+		{
+			InternalManager.AddDelay(delay, callback);
 
-            return new DummyAsyncResult();
-        }
+			return new DummyAsyncResult();
+		}
 
-        private static void EndDelay(IAsyncResult result)
-        {
-            
-        }
+		private static void EndDelay(IAsyncResult result)
+		{
 
-        public static void RegisterScript(BaseScript script)
-        {
-            InternalManager.AddScript(script);
-        }
+		}
 
-        public static void UnregisterScript(BaseScript script)
-        {
-            InternalManager.RemoveScript(script);
-        }
-    }
+		public static void RegisterScript(BaseScript script)
+		{
+			InternalManager.AddScript(script);
+		}
 
-    class DummyAsyncResult : IAsyncResult
-    {
-        public object AsyncState => null;
+		public static void UnregisterScript(BaseScript script)
+		{
+			InternalManager.RemoveScript(script);
+		}
+	}
 
-	    public System.Threading.WaitHandle AsyncWaitHandle => null;
+	class DummyAsyncResult : IAsyncResult
+	{
+		public object AsyncState => null;
 
-	    public bool CompletedSynchronously => false;
+		public System.Threading.WaitHandle AsyncWaitHandle => null;
 
-	    public bool IsCompleted => false;
-    }
+		public bool CompletedSynchronously => false;
+
+		public bool IsCompleted => false;
+	}
 
 #if test
 	class TestScript : BaseScript

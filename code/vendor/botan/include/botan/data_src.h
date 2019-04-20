@@ -49,7 +49,7 @@ class BOTAN_PUBLIC_API(2,0) DataSource
 
       /**
       * Test whether the source still has data that can be read.
-      * @return true if there is still data to read, false otherwise
+      * @return true if there is no more data to read, false otherwise
       */
       virtual bool end_of_data() const = 0;
       /**

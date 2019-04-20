@@ -33,8 +33,8 @@ public:
 	{
 		try
 		{
-			std::ifstream serverKeyStream(serverKey);
-			std::ifstream serverCertStream(serverCert);
+			std::ifstream serverKeyStream(serverKey, std::ios::binary);
+			std::ifstream serverCertStream(serverCert, std::ios::binary);
 			
 			if (serverCertStream && serverKeyStream)
 			{
@@ -115,9 +115,42 @@ public:
 	}
 };
 
+// policy allowing TLS_RSA_WITH_AES_256_CBC_SHA256 since ROS SDK wants this
 class TLSPolicy : public Botan::TLS::Policy
 {
 public:
+	virtual std::vector<std::string> allowed_ciphers() const override
+	{
+		return {
+			"ChaCha20Poly1305",
+			"AES-256/GCM",
+			"AES-128/GCM",
+			"AES-256/CCM",
+			"AES-128/CCM",
+			//"AES-256/CCM(8)",
+			//"AES-128/CCM(8)",
+			//"Camellia-256/GCM",
+			//"Camellia-128/GCM",
+			//"ARIA-256/GCM",
+			//"ARIA-128/GCM",
+			"AES-256", // ROS wants this
+			"AES-128",
+			//"Camellia-256",
+			//"Camellia-128",
+			//"SEED"
+			//"3DES",
+		};
+	}
+
+	virtual std::vector<std::string> allowed_signature_methods() const override
+	{
+		return {
+			"ECDSA",
+			"RSA",
+			"IMPLICIT",
+		};
+	}
+
 	virtual bool acceptable_protocol_version(Botan::TLS::Protocol_Version version) const override
 	{
 		return true;
@@ -138,7 +171,7 @@ public:
 			"CECPQ1",
 			"ECDH",
 			"DH",
-			"RSA",
+			"RSA", // ROS wants this
 		};
 	}
 };
@@ -166,6 +199,18 @@ void TLSServerStream::Initialize()
 		m_rng
 	));
 
+	// first set the close callback, since SetReadCallback may in fact replay queued reads
+	{
+		fwRefContainer<TLSServerStream> thisRef = this;
+
+		m_baseStream->SetCloseCallback([=]()
+		{
+			fwRefContainer<TLSServerStream> scopedThisRef = thisRef;
+
+			CloseInternal();
+		});
+	}
+
 	m_baseStream->SetReadCallback([=] (const std::vector<uint8_t>& data)
 	{
 		// keep a reference to the TLS server in case we close due to a TLS alert
@@ -180,15 +225,6 @@ void TLSServerStream::Initialize()
 			trace("%s\n", e.what());
 		}
 	});
-
-	fwRefContainer<TLSServerStream> thisRef = this;
-
-	m_baseStream->SetCloseCallback([=] ()
-	{
-		fwRefContainer<TLSServerStream> scopedThisRef = thisRef;
-
-		CloseInternal();
-	});
 }
 
 PeerAddress TLSServerStream::GetPeerAddress()
@@ -198,7 +234,10 @@ PeerAddress TLSServerStream::GetPeerAddress()
 
 void TLSServerStream::Write(const std::vector<uint8_t>& data)
 {
-	m_tlsServer->send(data);
+	if (m_tlsServer->is_active())
+	{
+		m_tlsServer->send(data);
+	}
 }
 
 void TLSServerStream::Close()

@@ -17,11 +17,9 @@
 
 :host {
     display: flex;
+    overflow: hidden;
     
-	@include fullWidthPadded;
-	height: $appContentHeight;
-	margin-top: $appContentMargin;
-    margin-left: $appContentPadding;
+    @include appContent;
     padding-bottom: $appContentPadding;
 
     flex-direction: column;
@@ -30,16 +28,27 @@
         user-select: text;
     }
 
+
+    @include themeHostWorkaround() using ($theme) {
+        &>div {
+            border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
+        }
+    };
+
     &>div {
         margin-bottom: $padding;
         padding: $padding $padding*$multiplier;
-        background-color: rgba($bgColour, .2);
+
+        &:first-of-type {
+            border-top: none;
+        }
 
         &.banner {
             padding: 0;
 
             position: relative;
 
+            min-height: 10vh;
 			height: 15vh;
 
 			&>div {
@@ -81,6 +90,10 @@
             position: relative;
             padding-left: calc(128px + #{$padding*$multiplier + $padding});
 
+            &.withBanner {
+                padding-left: $padding;
+            }
+
             .bg {
                 position: absolute;
                 left: 0;
@@ -95,6 +108,10 @@
                 background-size: 500%;
                 background-repeat: no-repeat;
                 background-position: center center;
+            }
+
+            .server-buttons button {
+                margin-right: $padding * 0.25;
             }
 
             .icon {
@@ -120,7 +137,9 @@
                 .key {
                     display: inline-block;
                     font-weight: 100;
-                    color: $textColour;
+                    @include theme() using ($theme) {
+                        color: gtv($theme, textColour);
+                    };
                     width: 15%;
                 }
             }
@@ -134,15 +153,38 @@
                 transition: opacity .4s;
             }
 
+            position: relative;
+            
+            .count {
+                position: absolute;
+                right: 0;
+                bottom: 0;
+
+                z-index: -1;
+            }
+
             &.player-list {
-                overflow: auto;
-                flex: 1;
+                overflow: hidden;
+                min-height: min-content;
+
+                flex-grow: 1;
+
+                .count {
+                    bottom: -($padding * 2);
+                }
+
+                h1 {
+                    font-size: 1.5em;
+                }
 
                 ::ng-deep figure, ::ng-deep span {
                     display: inline-block;
                     vertical-align: middle;
 
                     line-height: $fontSize * 1.1;
+
+                    text-overflow: ellipsis;
+                    overflow: hidden;
 
                     img {
                         height: $fontSize * 1.2;
@@ -155,22 +197,50 @@
                 ::ng-deep figure {
                     height: $fontSize * 1.2;
                     width: $fontSize * 1.2;
+
+                    margin-right: $padding * 0.25;
                 }
 
                 ul {
-                    list-style-type: none;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(12.5%, 1fr));
 
-                    column-count: 5;
+                    list-style-type: none;
 
                     li {
                         margin-bottom: $padding * 0.25;
+                        max-width: 100%;
+
+                        white-space: nowrap;
+
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }
                 }
             }
 
             &.resource-list {
                 overflow: hidden;
+
+                min-height: $fontSize * 5;
+
+                display: flex;
+                flex-direction: column;
+
+                &>p {
+                    overflow: scroll;
+                    flex-grow: 1;
+                }
+
+                flex-shrink: 1;
             }
         }
     }
+
+    @include themeHostWorkaround() using($theme) {
+        &>div.info .count {
+            color: rgba(gtv($theme, fgColour), .2);
+            font-size: $fontSize*5;
+        }
+    };
 }

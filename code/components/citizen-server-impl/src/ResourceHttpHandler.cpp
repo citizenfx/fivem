@@ -103,7 +103,15 @@ public:
 
 			requestWrap.setDataHandler = cbComponent->CreateCallback([=](const msgpack::unpacked& unpacked)
 			{
-				auto callback = unpacked.get().as<std::vector<msgpack::object>>()[0];
+				auto args = unpacked.get().as<std::vector<msgpack::object>>();
+
+				auto callback = args[0];
+				bool isBinary = false;
+
+				if (args.size() > 1)
+				{
+					isBinary = (args[1].as<std::string>() == "binary");
+				}
 
 				if (callback.type == msgpack::type::EXT)
 				{
@@ -111,9 +119,16 @@ public:
 					{
 						fx::FunctionRef functionRef{ std::string{callback.via.ext.data(), callback.via.ext.size} };
 
-						request->SetDataHandler(make_shared_function([this, functionRef = std::move(functionRef)](const std::vector<uint8_t>& bodyArray)
+						request->SetDataHandler(make_shared_function([this, functionRef = std::move(functionRef), isBinary](const std::vector<uint8_t>& bodyArray)
 						{
-							m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), std::string(bodyArray.begin(), bodyArray.end()));
+							if (isBinary)
+							{
+								m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), bodyArray);
+							}
+							else
+							{
+								m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), std::string(bodyArray.begin(), bodyArray.end()));
+							}
 						}));
 					}
 				}

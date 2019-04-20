@@ -1,6 +1,6 @@
 /*
  * XMSS Public Key
- * (C) 2016 Matthias Gierlings
+ * (C) 2016,2017 Matthias Gierlings
  *
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
@@ -198,8 +198,8 @@ class BOTAN_PUBLIC_API(2,0) XMSS_PublicKey : public virtual Public_Key
          }
 
       std::unique_ptr<PK_Ops::Verification>
-         create_verification_op(const std::string&,
-                                const std::string& provider) const override;
+      create_verification_op(const std::string&,
+                             const std::string& provider) const override;
 
       size_t estimated_strength() const override
          {

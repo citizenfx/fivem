@@ -20,6 +20,7 @@ class DataSource;
 
 /**
 * The two types of X509 encoding supported by Botan.
+* This enum is not used anymore, and will be removed in a future major release.
 */
 enum X509_Encoding { RAW_BER, PEM };
 

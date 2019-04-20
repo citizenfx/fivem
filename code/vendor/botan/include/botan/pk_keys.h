@@ -12,6 +12,7 @@
 #include <botan/asn1_oid.h>
 #include <botan/alg_id.h>
 #include <botan/pk_ops_fwd.h>
+#include <string>
 
 namespace Botan {
 
@@ -84,6 +85,11 @@ class BOTAN_PUBLIC_API(2,0) Public_Key
       * @return X.509 subject key encoding for this key object
       */
       std::vector<uint8_t> subject_public_key() const;
+
+      /**
+       * @return Hash of the subject public key
+       */
+      std::string fingerprint_public(const std::string& alg = "SHA-256") const;
 
       // Internal or non-public declarations follow
 
@@ -192,7 +198,13 @@ class BOTAN_PUBLIC_API(2,0) Private_Key : public virtual Public_Key
       /**
        * @return Hash of the PKCS #8 encoding for this key object
        */
-      std::string fingerprint(const std::string& alg = "SHA") const;
+      std::string fingerprint_private(const std::string& alg) const;
+
+      BOTAN_DEPRECATED("Use fingerprint_private or fingerprint_public")
+         inline std::string fingerprint(const std::string& alg) const
+         {
+         return fingerprint_private(alg); // match behavior in previous versions
+         }
 
       /**
       * This is an internal library function exposed on key types.
@@ -288,6 +300,18 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement_Key : public virtual Private_Key
 typedef PK_Key_Agreement_Key PK_KA_Key;
 typedef Public_Key X509_PublicKey;
 typedef Private_Key PKCS8_PrivateKey;
+
+std::string BOTAN_PUBLIC_API(2,4)
+   create_hex_fingerprint(const uint8_t bits[], size_t len,
+                          const std::string& hash_name);
+
+template<typename Alloc>
+std::string create_hex_fingerprint(const std::vector<uint8_t, Alloc>& vec,
+                                   const std::string& hash_name)
+   {
+   return create_hex_fingerprint(vec.data(), vec.size(), hash_name);
+   }
+
 
 }
 

@@ -12,9 +12,23 @@
 #include "memdbgon.h"
 #include "HttpClient.h"
 
+#include <IteratorView.h>
+
+#include <CoreConsole.h>
+
 #include <rapidjson/document.h>
 
 #include <sstream>
+
+static nui::IAudioSink* g_audioSink;
+
+namespace nui
+{
+	void SetAudioSink(IAudioSink* sinkRef)
+	{
+		g_audioSink = sinkRef;
+	}
+}
 
 NUIClient::NUIClient(NUIWindow* window)
 	: m_window(window)
@@ -50,6 +64,11 @@ NUIClient::NUIClient(NUIWindow* window)
 
 void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType)
 {
+	if (g_audioSink)
+	{
+		browser->GetHost()->SetAudioMuted(true);
+	}
+
 	GetWindow()->OnClientContextCreated(browser, frame, nullptr);
 }
 
@@ -59,7 +78,9 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 
 	if (url == "nui://game/ui/root.html" && nui::HasMainUI())
 	{
-		nui::CreateFrame("mpMenu", "nui://game/ui/app/index.html");
+		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+
+		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 	}
 
 	// replace any segoe ui symbol font
@@ -130,6 +151,104 @@ void NUIClient::AddProcessMessageHandler(std::string key, TProcessMessageHandler
 	m_processMessageHandlers[key] = handler;
 }
 
+void NUIClient::OnAudioCategoryConfigure(const std::string& frame, const std::string& category)
+{
+	m_audioFrameCategories[frame] = category;
+
+	if (!g_audioSink)
+	{
+		return;
+	}
+
+	// recreate any streams
+	for (auto& streamEntry : fx::GetIteratorView(m_audioStreamsByFrame.equal_range(frame)))
+	{
+		auto streamIt = m_audioStreams.find(streamEntry.second);
+
+		if (streamIt != m_audioStreams.end())
+		{
+			auto params = std::get<1>(streamIt->second);
+			params.categoryName = category;
+
+			m_audioStreams.erase(streamIt);
+
+			auto stream = g_audioSink->CreateAudioStream(params);
+			m_audioStreams.insert({ streamEntry.second, { stream, params } });
+		}
+	}
+}
+
+void NUIClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id, int channels, ChannelLayout channel_layout, int sample_rate, int frames_per_buffer)
+{
+	if (g_audioSink)
+	{
+		nui::AudioStreamParams params;
+		params.channelLayout = (nui::CefChannelLayout)channel_layout;
+		params.channels = channels;
+		params.sampleRate = sample_rate;
+		params.framesPerBuffer = frames_per_buffer;
+
+		// try finding the second-topmost frame
+		auto refFrame = frame;
+
+		for (auto f = refFrame; f->GetParent(); f = f->GetParent())
+		{
+			if (!f->GetParent()->GetParent())
+			{
+				refFrame = f;
+				break;
+			}
+		}
+
+		// get frame name
+		auto frameName = ToNarrow(refFrame->GetName().ToWString());
+		params.frameName = std::move(frameName);
+
+		auto categoryIt = m_audioFrameCategories.find(params.frameName);
+
+		if (categoryIt != m_audioFrameCategories.end())
+		{
+			params.categoryName = categoryIt->second;
+		}
+
+		// and create audio stream
+		auto stream = g_audioSink->CreateAudioStream(params);
+
+		m_audioStreams.insert({ { browser->GetIdentifier(), audio_stream_id }, { stream, params } });
+		m_audioStreamsByFrame.insert({ params.frameName, { browser->GetIdentifier(), audio_stream_id } });
+	}
+}
+
+void NUIClient::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id, const float** data, int frames, int64 pts)
+{
+	auto it = m_audioStreams.find({ browser->GetIdentifier(), audio_stream_id });
+
+	if (it != m_audioStreams.end())
+	{
+		std::get<0>(it->second)->ProcessPacket(data, frames, pts);
+	}
+}
+
+void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int audio_stream_id)
+{
+	auto refFrame = frame;
+
+	for (auto f = refFrame; f->GetParent(); f = f->GetParent())
+	{
+		if (!f->GetParent()->GetParent())
+		{
+			refFrame = f;
+			break;
+		}
+	}
+
+	// get frame name
+	auto frameName = ToNarrow(refFrame->GetName().ToWString());
+	m_audioStreamsByFrame.erase(frameName);
+
+	m_audioStreams.erase({ browser->GetIdentifier(), audio_stream_id });
+}
+
 CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
 {
 	return this;
@@ -151,6 +270,11 @@ CefRefPtr<CefLoadHandler> NUIClient::GetLoadHandler()
 }
 
 CefRefPtr<CefRequestHandler> NUIClient::GetRequestHandler()
+{
+	return this;
+}
+
+CefRefPtr<CefAudioHandler> NUIClient::GetAudioHandler()
 {
 	return this;
 }

@@ -10,6 +10,8 @@
 
 #include <botan/sym_algo.h>
 #include <string>
+#include <memory>
+#include <vector>
 
 namespace Botan {
 
@@ -57,6 +59,17 @@ class BOTAN_PUBLIC_API(2,0) StreamCipher : public SymmetricAlgorithm
       virtual void cipher(const uint8_t in[], uint8_t out[], size_t len) = 0;
 
       /**
+      * Write keystream bytes to a buffer
+      * @param out the byte array to hold the keystream
+      * @param len the length of out in bytes
+      */
+      virtual void write_keystream(uint8_t out[], size_t len)
+         {
+         clear_mem(out, len);
+         cipher1(out, len);
+         }
+
+      /**
       * Encrypt or decrypt a message
       * The message is encrypted/decrypted in place.
       * @param buf the plaintext / ciphertext
@@ -98,6 +111,12 @@ class BOTAN_PUBLIC_API(2,0) StreamCipher : public SymmetricAlgorithm
       * @param iv_len the length of the IV in bytes
       */
       virtual void set_iv(const uint8_t iv[], size_t iv_len) = 0;
+
+      /**
+      * Return the default (preferred) nonce length
+      * If this function returns 0, then this cipher does not support nonces
+      */
+      virtual size_t default_iv_length() const { return 0; }
 
       /**
       * @param iv_len the length of the IV in bytes

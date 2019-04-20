@@ -14,6 +14,7 @@
 #include <botan/tls_session_manager.h>
 #include <botan/tls_callbacks.h>
 #include <botan/x509cert.h>
+#include <functional>
 #include <vector>
 #include <string>
 #include <map>
@@ -236,7 +237,7 @@ class BOTAN_PUBLIC_API(2,0) Channel
 
       const Policy& policy() const { return m_policy; }
 
-      bool save_session(const Session& session) const { return callbacks().tls_session_established(session); }
+      bool save_session(const Session& session);
 
       Callbacks& callbacks() const { return m_callbacks; }
    private:

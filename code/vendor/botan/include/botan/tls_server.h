@@ -61,12 +61,13 @@ class BOTAN_PUBLIC_API(2,0) Server final : public Channel
       /**
        * DEPRECATED. This constructor is only provided for backward
        * compatibility and should not be used in new implementations.
+       * It will be removed in a future release.
        */
       BOTAN_DEPRECATED("Use TLS::Server(TLS::Callbacks ...)")
       Server(output_fn output,
              data_cb data_cb,
-             alert_cb alert_cb,
-             handshake_cb handshake_cb,
+             alert_cb recv_alert_cb,
+             handshake_cb hs_cb,
              Session_Manager& session_manager,
              Credentials_Manager& creds,
              const Policy& policy,
@@ -79,12 +80,13 @@ class BOTAN_PUBLIC_API(2,0) Server final : public Channel
       /**
        * DEPRECATED. This constructor is only provided for backward
        * compatibility and should not be used in new implementations.
+       * It will be removed in a future release.
        */
       BOTAN_DEPRECATED("Use TLS::Server(TLS::Callbacks ...)")
       Server(output_fn output,
              data_cb data_cb,
-             alert_cb alert_cb,
-             handshake_cb handshake_cb,
+             alert_cb recv_alert_cb,
+             handshake_cb hs_cb,
              handshake_msg_cb hs_msg_cb,
              Session_Manager& session_manager,
              Credentials_Manager& creds,
@@ -96,11 +98,19 @@ class BOTAN_PUBLIC_API(2,0) Server final : public Channel
 
       /**
       * Return the protocol notification set by the client (using the
-      * NPN extension) for this connection, if any. This value is not
+      * ALPN extension) for this connection, if any. This value is not
       * tied to the session and a later renegotiation of the same
       * session can choose a new protocol.
       */
       std::string next_protocol() const { return m_next_protocol; }
+
+      /**
+      * Return the protocol notification set by the client (using the
+      * ALPN extension) for this connection, if any. This value is not
+      * tied to the session and a later renegotiation of the same
+      * session can choose a new protocol.
+      */
+      std::string application_protocol() const { return m_next_protocol; }
 
    private:
       std::vector<X509_Certificate>

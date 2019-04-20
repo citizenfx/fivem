@@ -18,7 +18,7 @@ namespace Botan {
  * OTS-Hash-Address can be called depending on the type currently
  * assigned to the XMSS address using set_type().
  **/
-class XMSS_Address
+class XMSS_Address final
    {
    public:
       /**

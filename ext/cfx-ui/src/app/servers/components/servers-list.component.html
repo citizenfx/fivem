@@ -4,11 +4,12 @@
 	(sort)="updateSorting($event)"
 ></servers-list-header>
 
-<div class="list">
+<div class="list" *ngIf="isBrowser()">
 	<virtual-scroller
 		[items]="sortedServers"
 		(update)="localServers = $event"
-		childWidth="1000"
+		[bufferAmount]="15"
+		[stripedTable]="true"
 	>
 		<div class="dummy"></div>
 		<servers-list-item

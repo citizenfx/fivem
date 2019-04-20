@@ -9,36 +9,42 @@ import {ServersContainerComponent} from './servers/components/servers-container.
 import {DirectConnectComponent} from './servers/direct/direct-connect.component';
 
 import { environment } from '../environments/environment';
+import { MetaGuard } from '@ngx-meta/core';
 
 const routes: Routes = [
 	{
 		path:      '',
 		component: (environment.web) ? ServersContainerComponent : HomeComponent,
-		data: 	   { type: 'browse' }
+		data: 	   { type: 'browse', meta: { title: 'FiveM' } },
+		canActivateChild: [MetaGuard],
 	},
 	{
 		path:      'servers',
 		component: ServersComponent,
+		data: {
+			meta: { title: 'Servers' }
+		},
+		canActivateChild: [MetaGuard],
 		children:  [
 			{
 				path:      '',
 				component: ServersContainerComponent,
-				data:      {type: 'browse'}
+				data:      {type: 'browse', meta: { title: 'Servers' }}
 			},
 			{
 				path:      'favorites',
 				component: ServersContainerComponent,
-				data:      {type: 'favorites'}
+				data:      {type: 'favorites', meta: { title: 'Favorites' }}
 			},
 			{
 				path:      'history',
 				component: ServersContainerComponent,
-				data:      {type: 'history'}
+				data:      {type: 'history', meta: { title: 'History' }}
 			},
 			{
 				path:      'premium',
 				component: ServersContainerComponent,
-				data:      {type: 'premium'}
+				data:      {type: 'premium', meta: { title: 'Premium' }}
 			},
 			{
 				path:      'direct-connect',
@@ -57,7 +63,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-	imports: [RouterModule.forRoot(routes, { useHash: true })],
+	imports: [RouterModule.forRoot(routes, { useHash: !environment.web })],
 	exports: [RouterModule]
 })
 export class AppRoutingModule {

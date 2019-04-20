@@ -162,4 +162,24 @@ public:
 
 		return retval;
 	}
+
+	virtual bool IsA(uint32_t type) override
+	{
+		if (type == HashString("OMComponent"))
+		{
+			return true;
+		}
+
+		return TBaseComponent::IsA(type);
+	}
+
+	virtual void* As(uint32_t type) override
+	{
+		if (type == HashString("OMComponent"))
+		{
+			return static_cast<OMComponent*>(this);
+		}
+
+		return TBaseComponent::As(type);
+	}
 };

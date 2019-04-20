@@ -14,6 +14,10 @@ namespace CitizenFX.Core
 	{
 		private static readonly ConcurrentQueue<Action> ms_finalizers = new ConcurrentQueue<Action>();
 
+		private static readonly object ms_lock = new object();
+
+		internal static object Lock => ms_lock;
+
 		[ThreadStatic]
 		internal static fxScriptContext m_context = new fxScriptContext();
 
@@ -246,7 +250,7 @@ namespace CitizenFX.Core
 
 			return null;
 		}
-
+		
 		[SecurityCritical]
 		private static unsafe object GetResultInternal(Type type, byte[] ptr)
 		{
@@ -259,7 +263,7 @@ namespace CitizenFX.Core
 		internal void Invoke(ulong nativeIdentifier) => Invoke(nativeIdentifier, InternalManager.ScriptHost);
 
 		[SecuritySafeCritical]
-		public void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
+		internal void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
 
 		[SecurityCritical]
 		private void InvokeInternal(ulong nativeIdentifier, IScriptHost scriptHost)
@@ -277,9 +281,12 @@ namespace CitizenFX.Core
 
 		internal static void GlobalCleanUp()
 		{
-			while (ms_finalizers.TryDequeue(out var cb))
+			lock (ms_lock)
 			{
-				cb();
+				while (ms_finalizers.TryDequeue(out var cb))
+				{
+					cb();
+				}
 			}
 		}
 	}

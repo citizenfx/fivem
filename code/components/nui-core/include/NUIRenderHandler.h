@@ -25,7 +25,7 @@ private:
 	CefRect m_popupRect;
 
 protected:
-	virtual bool GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
+	virtual void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
 
 	virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) override;
 
@@ -43,7 +43,7 @@ protected:
 	void UpdateDragCursor(CefRefPtr<CefBrowser> browser,
 		CefRenderHandler::DragOperation operation) override;
 
-	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, uint64 sync_key) override;
+	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle) override;
 
 private:
 	void PaintView(const RectList& dirtyRects, const void* buffer, int width, int height);

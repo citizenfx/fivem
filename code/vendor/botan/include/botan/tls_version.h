@@ -59,7 +59,7 @@ class BOTAN_PUBLIC_API(2,0) Protocol_Version final
       * @param minor the minor version
       */
       Protocol_Version(uint8_t major, uint8_t minor) :
-         m_version((static_cast<uint16_t>(major) << 8) | minor) {}
+         m_version(static_cast<uint16_t>((static_cast<uint16_t>(major) << 8) | minor)) {}
 
       /**
       * @return true if this is a valid protocol version

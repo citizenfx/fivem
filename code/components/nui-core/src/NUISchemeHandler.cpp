@@ -72,7 +72,7 @@ public:
 
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
-		if (hostname == L"game")
+		if (hostname == L"game" || hostname == L"nui-game-internal")
 		{
 			filename_ = "citizen:/";
 			
@@ -215,6 +215,22 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 	if (scheme_name == "nui")
 	{
 		return new NUIResourceHandler();
+	}
+	else if (scheme_name == "https")
+	{
+		// parse the URL to get the hostname
+		CefString url = request->GetURL();
+		CefURLParts urlParts;
+
+		if (CefParseURL(url, urlParts))
+		{
+			CefString hostString = &urlParts.host;
+
+			if (hostString == "nui-game-internal")
+			{
+				return new NUIResourceHandler();
+			}
+		}
 	}
 
 	CefRefPtr<CefResourceHandler> outHandler;

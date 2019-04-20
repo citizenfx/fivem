@@ -55,7 +55,7 @@ interface CitizenInterface {
     makeRefFunction(refFunction: Function): string
 }
 
-declare const Citizen: CitizenInterface;
+declare var Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
 
@@ -79,4 +79,4 @@ declare function removeEventListener(eventName: string, callback: Function): voi
 
 declare function setTick(callback: Function): void
 
-declare const exports: any;
+declare var exports: any;

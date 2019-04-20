@@ -46,17 +46,17 @@ public:
 			auto pathRef = uriParsed.path();
 			auto fragRef = uriParsed.fragment();
 
-			if (pathRef && fragRef)
+			if (!pathRef.empty() && !fragRef.empty())
 			{
 				std::vector<char> path;
 #ifdef _WIN32
-				std::string pr = pathRef->substr(1).to_string();
+				std::string pr = pathRef.substr(1).to_string();
 #else
-				std::string pr = pathRef->to_string();
+				std::string pr = pathRef.to_string();
 #endif
 				network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
 
-				resource = m_manager->CreateResource(fragRef->to_string());
+				resource = m_manager->CreateResource(fragRef.to_string());
 				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
 			}
 		}
@@ -71,6 +71,12 @@ private:
 static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 {
 	uint16_t eventNameLength = buffer.Read<uint16_t>();
+
+	// validate input
+	if (eventNameLength <= 0 || eventNameLength > std::numeric_limits<uint16_t>::max())
+	{
+		return;
+	}
 
 	std::vector<char> eventNameBuffer(eventNameLength - 1);
 	buffer.Read(eventNameBuffer.data(), eventNameBuffer.size());
@@ -204,7 +210,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 				});
 			}, 99999999);
 
@@ -228,7 +234,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
-					client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 				});
 			}, -1000);
 		});
@@ -243,6 +249,9 @@ static InitFunction initFunction([]()
 			if (device.GetRef())
 			{
 				device->CreateDirectory(cacheDir);
+
+				// precreate cache/files/ so that later components won't have to
+				device->CreateDirectory(cacheDir + "files/");
 			}
 
 			vfs::Mount(new vfs::RelativeDevice(citizenDir->GetValue() + "/"), "citizen:/");
@@ -319,6 +328,26 @@ static InitFunction initFunction([]()
 
 			auto conCtx = instance->GetComponent<console::Context>();
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
+			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
+		});
+
+		static auto ensureCommandRef = instance->AddCommand("ensure", [=](const std::string& resourceName)
+		{
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			auto conCtx = instance->GetComponent<console::Context>();
+
+			if (resource->GetState() == fx::ResourceState::Started)
+			{
+				conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
+			}
+
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
 
@@ -440,14 +469,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (client)
 		{
 			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		}
 	}
 	else
 	{
 		clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
-			client->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		});
 	}
 }

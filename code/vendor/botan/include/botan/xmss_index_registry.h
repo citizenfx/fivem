@@ -18,7 +18,7 @@ namespace Botan {
  * A registry for XMSS private keys, keeps track of the leaf index for
  * independend copies of the same key.
  **/
-class XMSS_Index_Registry
+class XMSS_Index_Registry final
    {
    public:
       XMSS_Index_Registry(const XMSS_Index_Registry&) = delete;

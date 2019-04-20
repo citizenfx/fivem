@@ -20,7 +20,7 @@ template <typename T>
  * std::vector. The construction of instances of this wrapper is NOT atomic
  * and needs to be properly guarded.
  **/
-class Atomic
+class Atomic final
    {
    public:
       Atomic() = default;

@@ -1,10 +1,13 @@
-import {Injectable, EventEmitter, NgZone} from '@angular/core';
+import {Injectable, EventEmitter, NgZone, Inject} from '@angular/core';
 import {DomSanitizer} from '@angular/platform-browser';
 
 import {Server} from './servers/server';
 import {ServersService} from './servers/servers.service';
 
 import { environment } from '../environments/environment';
+import { DiscourseService } from './discourse.service';
+import { LocaleStorage } from 'angular-l10n';
+import { LocalStorage } from './local-storage';
 
 export class ConnectStatus {
 	public server: Server;
@@ -34,8 +37,10 @@ export abstract class GameService {
 	connecting = new EventEmitter<Server>();
 
 	errorMessage = new EventEmitter<string>();
+	infoMessage = new EventEmitter<string>();
 
 	devModeChange = new EventEmitter<boolean>();
+	darkThemeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
 	localhostPortChange = new EventEmitter<string>();
 
@@ -57,6 +62,14 @@ export abstract class GameService {
 
 	set devMode(value: boolean) {
 
+	}
+
+	get darkTheme(): boolean {
+		return false;
+	}
+
+	set darkTheme(value: boolean) {
+		
 	}
 
 	get localhostPort(): string {
@@ -110,8 +123,12 @@ export abstract class GameService {
 		this.connectFailed.emit([server, message]);
 	}
 
-	protected invokeError(message: string) {
+	public invokeError(message: string) {
 		this.errorMessage.emit(message);
+	}
+
+	public invokeInformational(message: string) {
+		this.infoMessage.emit(message);
 	}
 
 	protected invokeConnecting(server: Server) {
@@ -134,6 +151,10 @@ export abstract class GameService {
 	protected invokeDevModeChanged(value: boolean) {
 		this.devModeChange.emit(value);
 	}
+
+	protected invokeDarkThemeChanged(value: boolean) {
+		this.darkThemeChange.emit(value);
+	}
 	
 	protected invokeLocalhostPortChanged(port: string) {
 		this.localhostPortChange.emit(port);
@@ -152,6 +173,7 @@ export class ServerHistoryEntry {
 @Injectable()
 export class CfxGameService extends GameService {
 	private _devMode = false;
+	private _darkTheme = false;
 
 	private lastServer: Server;
 
@@ -169,19 +191,23 @@ export class CfxGameService extends GameService {
 	
 	private inConnecting = false;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private discourseService: DiscourseService) {
 		super();
 	}
 
 	init() {
 		(<any>window).invokeNative('getFavorites', '');
 
-		fetch('http://nui-internal/profiles/list').then(async response => {
+		fetch('https://nui-internal/profiles/list').then(async response => {
 			const json = <Profiles>await response.json();
 
 			if (json.profiles && json.profiles.length > 0) {
 				this.handleSignin(json.profiles[0]);
 			}
+		});
+
+		this.discourseService.messageEvent.subscribe((msg) => {
+			this.invokeInformational(msg);
 		});
 
 		this.zone.runOutsideAngular(() => {
@@ -192,6 +218,9 @@ export class CfxGameService extends GameService {
 						break;
 					case 'setWarningMessage':
 						this.zone.run(() => this.invokeError(event.data.message));
+						break;
+					case 'authPayload':
+						this.zone.run(() => this.invokeAuthPayload(event.data.data));
 						break;
 					case 'connecting':
 						this.zone.run(() => this.invokeConnecting(this.lastServer));
@@ -205,6 +234,9 @@ export class CfxGameService extends GameService {
 						if (event.data.addr in this.pingList) {
 							this.pingListEvents.push([event.data.addr, event.data.ping]);
 						}
+						break;
+					case 'setComputerName':
+						this.discourseService.setComputerName(event.data.data);
 						break;
 					case 'getFavorites':
 						this.zone.run(() => this.favorites = event.data.list);
@@ -240,6 +272,10 @@ export class CfxGameService extends GameService {
 
 		if (localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
+		}
+
+		if (localStorage.getItem('darkTheme')) {
+			this._darkTheme = localStorage.getItem('darkTheme') === 'yes';
 		}
 
 		if (localStorage.getItem('localhostPort')) {
@@ -279,6 +315,12 @@ export class CfxGameService extends GameService {
 		return (JSON.parse((localStorage.getItem('lastServers') || '[]')) as ServerHistoryEntry[]);
 	}
 
+	invokeAuthPayload(data: string) {
+		console.log(data);
+
+		this.discourseService.handleAuthPayload(data);
+	}
+
 	get nickname(): string {
 		return this.realNickname;
 	}
@@ -289,6 +331,16 @@ export class CfxGameService extends GameService {
 		this.invokeNicknameChanged(name);
 
 		(<any>window).invokeNative('checkNickname', name);
+	}
+
+	get darkTheme(): boolean {
+		return this._darkTheme;
+	}
+
+	set darkTheme(value: boolean) {
+		this._darkTheme = value;
+		localStorage.setItem('darkTheme', value ? 'yes' : 'no');
+		this.invokeDarkThemeChanged(value);
 	}
 
 	get devMode(): boolean {
@@ -450,13 +502,14 @@ export class CfxGameService extends GameService {
 @Injectable()
 export class DummyGameService extends GameService {
 	private _devMode = false;
+	private _darkTheme = false;
 	private _localhostPort = '';
 	private pinExample = '';
 
-	constructor(private serversService: ServersService) {
+	constructor(private serversService: ServersService, @Inject(LocalStorage) private localStorage: any) {
 		super();
 
-		if (localStorage.getItem('devMode')) {
+		if (this.localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
@@ -553,11 +606,12 @@ export class DummyGameService extends GameService {
 	}
 
 	get nickname(): string {
-		return window.localStorage['nickOverride'] || 'UnknownPlayer';
+		return this.localStorage.getItem('nickOverride') || 'UnknownPlayer';
 	}
 
 	set nickname(name: string) {
-		window.localStorage.setItem('nickOverride', name);
+		this.localStorage.setItem('nickOverride', name);
+
 		this.invokeNicknameChanged(name);
 	}
 
@@ -566,7 +620,8 @@ export class DummyGameService extends GameService {
 	}
 
 	set localhostPort(port: string) {
-		localStorage.setItem('localhostPort', port);
+		this.localStorage.setItem('localhostPort', port);
+
 		this.invokeLocalhostPortChanged(port);
 	}	
 	
@@ -576,7 +631,8 @@ export class DummyGameService extends GameService {
 
 	set devMode(value: boolean) {
 		this._devMode = value;
-		localStorage.setItem('devMode', value ? 'yes' : 'no');
+		this.localStorage.setItem('devMode', value ? 'yes' : 'no');
+
 		this.invokeDevModeChanged(value);
 	}
 }

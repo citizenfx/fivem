@@ -1,3 +1,5 @@
+local a = ...
+
 local openssl = require('./vendor/openssl_ext')
 local openssl_cfg = require('./vendor/openssl_cfg')
 
@@ -22,6 +24,10 @@ return {
 		
 		language "C"
 		kind "StaticLib"
+		
+		if a then
+			staticruntime 'On'
+		end
 		
 		buildoptions { '/MP' }
 		

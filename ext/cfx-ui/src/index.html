@@ -3,22 +3,72 @@
 <head>
 	<meta charset="utf-8">
 	<title>FiveM server list™</title>
-	<base href=".">
+	<base href="/">
 
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
 	<link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
 
-<svg style="display: none;">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
 	<symbol id="logo" viewBox="0 0 342 390.5">
 		<g transform="matrix(1,0,0,-1,-124.2,606.4)">
 			<path d="m 125.8,215.9 85.1,0 c 1.9,0 7.4,18.3 16.7,54.9 32.3,112.4 50.9,178.1 55.7,197.2 l -54.9,54.1 -1.6,0 C 219.4,499 185.2,397.2 124.2,216.7 l 1.6,-0.8 z m 163.8,275.2 0.8,0 c 1.1,4.5 1.6,7.2 1.6,8 l 0,1.6 c -15.9,16.7 -33.7,34.5 -53.3,53.3 -2.1,-3.2 -3.2,-5.8 -3.2,-8 l 0,-0.8 c 19.9,-20.5 37.9,-38.5 54.1,-54.1 z M 393,429 l 0.8,0 c -10.9,34.5 -17.5,52.2 -19.9,53.3 L 254.6,600.8 c -1.3,0 -4.2,-8.5 -8.7,-25.4 L 393,429 Z m -22.3,65.3 0.8,0 c -24.4,74 -37.4,111.3 -39,112.1 l -73.2,0 0,-0.8 C 286.4,578 323.5,540.9 370.7,494.3 Z m 43.8,-128.1 0.8,0 c -2.7,13 -9,23.1 -19.1,30.2 -31,31.8 -62,62.8 -93,93 l -0.8,0 c 1.9,-10.9 6.1,-19.1 12.7,-24.7 l 99.4,-98.5 z m 50.1,-150.3 1.6,0.8 c -22.8,67.9 -35,102.9 -36.6,105 l -109.8,108.9 0,-0.8 c 4.2,-16.7 24.7,-88 61.2,-213.9 l 83.6,0 z" />
 		</g>
 	</symbol>
-</svg>
 
-<div id="bg"></div>
+	<defs>
+		<filter id="acrylicBlur">
+			<feGaussianBlur in="SourceImage" result="blurImage" stdDeviation="30" />
+			<feColorMatrix  in="blurImage" type="saturate" values="1.5" result="satImage" />
+			<feFlood
+				flood-color="white" flood-opacity="0.1" result="exclusionColor"/>
+			
+			<feFlood
+				flood-color="#ffffff" flood-opacity="0.7" result="tintColor"/>
+			
+			<feBlend in="satImage" in2="exclusionColor" result="excluded" mode="exclusion" />
+			
+			<feComposite in="tintColor" in2="excluded" operator="over" result="composite" />
+			
+			<!--<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
+			<feTile in="noise" result="noiseTile" />
+			<feComponentTransfer result="noiseOpacity" in="noise">
+				<feFuncA type="linear" slope="0.02" />
+			</feComponentTransfer>
+
+		
+			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />-->
+			<!---->
+			<!-- feTile doesn't work yet in Chrome for backdrop-filter -->
+		</filter>
+
+		<filter id="acrylicBlurDark">
+			<feGaussianBlur in="SourceImage" result="blurImage" stdDeviation="30" />
+			<feColorMatrix  in="blurImage" type="saturate" values="1.5" result="satImage" />
+			<feFlood
+				flood-color="white" flood-opacity="0.1" result="exclusionColor"/>
+			
+			<feFlood
+				flood-color="#000000" flood-opacity="0.7" result="tintColor"/>
+			
+			<feBlend in="satImage" in2="exclusionColor" result="excluded" mode="exclusion" />
+			
+			<feComposite in="tintColor" in2="excluded" operator="over" result="composite" />
+			
+			<!--<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
+			<feTile in="noise" result="noiseTile" />
+			<feComponentTransfer result="noiseOpacity" in="noise">
+				<feFuncA type="linear" slope="0.02" />
+			</feComponentTransfer>
+
+		
+			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />-->
+			<!---->
+			<!-- feTile doesn't work yet in Chrome for backdrop-filter -->
+		</filter>
+	</defs>
+</svg>
 
 <app-root>Loading...</app-root>
 

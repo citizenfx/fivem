@@ -45,6 +45,10 @@
 #include "pds.h"
 #include "ssl.h"
 
+#include <deque>
+
+#include <UdpInterceptor.h>
+
 #include <NetAddress.h>
 
 #define BUFSIZE 8192
@@ -97,6 +101,8 @@ typedef struct {
 	bool_t isSuppressed;
 	float UDPPingAvg, UDPPingVar, TCPPingAvg, TCPPingVar;
 	uint32_t UDPPackets, TCPPackets;
+	fx::UdpInterceptor* interceptor;
+	uint32_t numFailedCrypt;
 } client_t;
 
 typedef struct {

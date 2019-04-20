@@ -14,7 +14,7 @@
 #include <udis86.h>
 #include <jitasm.h>
 
-#include <Brofiler.h>
+#include <optick.h>
 
 static int g_instrumentedFuncs;
 
@@ -330,11 +330,11 @@ static HookFunction hookFunction([] ()
 		hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
 	}
 
-#ifdef USE_PROFILER
+#if USE_OPTICK
 	struct ProfilerMetaData
 	{
-		Profiler::EventDescription* desc;
-		std::unique_ptr<Profiler::Event> ev;
+		Optick::EventDescription* desc;
+		std::unique_ptr<Optick::Event> ev;
 	};
 
 	static std::unordered_map<void*, ProfilerMetaData> g_profilerMap;
@@ -352,10 +352,10 @@ static HookFunction hookFunction([] ()
 
 			if (it == g_profilerMap.end())
 			{
-				it = g_profilerMap.emplace(func.func, ProfilerMetaData{ Profiler::EventDescription::Create(strdup(va("ProfileFunc %llx", (uintptr_t)func.func)), __FILE__, __LINE__, Profiler::Color::Red), nullptr }).first;
+				it = g_profilerMap.emplace(func.func, ProfilerMetaData{ Optick::EventDescription::Create(strdup(va("ProfileFunc %llx", (uintptr_t)func.func)), __FILE__, __LINE__, Optick::Color::Red), nullptr }).first;
 			}
 
-			it->second.ev = std::make_unique<Profiler::Event>(*it->second.desc);
+			it->second.ev = std::make_unique<Optick::Event>(*it->second.desc);
 		}
 
 		static void OnEnd(const InstrumentedFuncMeta& func)

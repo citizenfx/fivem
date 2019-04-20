@@ -2,10 +2,10 @@
 
 namespace rage
 {
-class netBuffer
+class datBitBuffer
 {
 public:
-	inline netBuffer(void* data, size_t size)
+	inline datBitBuffer(void* data, size_t size)
 	{
 		m_data = data;
 		m_f8 = 0;
@@ -45,7 +45,10 @@ public:
 
 	bool ReadInteger(uint32_t* integer, int bits);
 
+	// NOTE: SIGNED
 	bool WriteInteger(uint32_t integer, int bits);
+
+	bool WriteUns(uint32_t integer, int bits);
 
 	bool WriteBit(bool bit);
 

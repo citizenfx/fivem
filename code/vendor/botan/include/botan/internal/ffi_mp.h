@@ -12,8 +12,6 @@
 
 extern "C" {
 
-using namespace Botan_FFI;
-
 BOTAN_FFI_DECLARE_STRUCT(botan_mp_struct, Botan::BigInt, 0xC828B9D2);
 
 }

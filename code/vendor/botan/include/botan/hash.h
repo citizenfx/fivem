@@ -10,6 +10,7 @@
 
 #include <botan/buf_comp.h>
 #include <string>
+#include <memory>
 
 namespace Botan {
 
@@ -33,7 +34,7 @@ class BOTAN_PUBLIC_API(2,0) HashFunction : public Buffered_Computation
       * If provider is empty then best available is chosen.
       * @param algo_spec algorithm name
       * @param provider provider implementation to use
-      * Throws Lookup_Error if not not found.
+      * Throws Lookup_Error if not found.
       */
       static std::unique_ptr<HashFunction>
          create_or_throw(const std::string& algo_spec,

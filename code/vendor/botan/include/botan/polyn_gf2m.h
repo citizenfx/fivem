@@ -15,6 +15,7 @@
 #include <botan/secmem.h>
 #include <botan/gf2m_small_m.h>
 #include <utility>
+#include <string>
 
 namespace Botan {
 

@@ -15,11 +15,14 @@ class NUIApp : public CefApp, public CefRenderProcessHandler, public CefResource
 public:
 	typedef std::function<bool(CefRefPtr<CefBrowser>, CefRefPtr<CefProcessMessage>)> TProcessMessageHandler;
 	typedef std::function<CefRefPtr<CefV8Value>(const CefV8ValueList&, CefString&)> TV8Handler;
+	typedef std::function<void(CefRefPtr<CefV8Context>)> TContextReleaseHandler;
 
 public:
 	void AddProcessMessageHandler(std::string key, TProcessMessageHandler handler);
 
 	void AddV8Handler(std::string key, TV8Handler handler);
+
+	void AddContextReleaseHandler(TContextReleaseHandler handler);
 
 protected:
 	// CefApp overrides
@@ -32,6 +35,8 @@ protected:
 	virtual bool GetLocalizedString(int messageID, CefString& string) override;
 
 	virtual void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
+
+	virtual void OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
 
 	virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override;
 
@@ -47,6 +52,8 @@ private:
 	std::map<std::string, TProcessMessageHandler> m_processMessageHandlers;
 
 	std::map<std::string, TV8Handler> m_v8Handlers;
+
+	std::vector<TContextReleaseHandler> m_v8ReleaseHandlers;
 
 protected:
 	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) override;

@@ -9,32 +9,6 @@
 
 #include <ServerInstanceBase.h>
 
-template<typename T>
-class UvHandleContainer
-{
-public:
-	UvHandleContainer()
-	{
-		m_handle = std::make_unique<T>();
-	}
-
-	~UvHandleContainer()
-	{
-		if (m_handle)
-		{
-			UvClose(std::move(m_handle));
-		}
-	}
-
-	inline T* get()
-	{
-		return m_handle.get();
-	}
-
-private:
-	std::unique_ptr<T> m_handle;
-};
-
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)

@@ -14,7 +14,7 @@ namespace Botan {
 
 /**
 * Serpent is the most conservative of the AES finalists
-* http://www.cl.cam.ac.uk/~rja14/serpent.html
+* https://www.cl.cam.ac.uk/~rja14/serpent.html
 */
 class BOTAN_PUBLIC_API(2,0) Serpent final : public Block_Cipher_Fixed_Params<16, 16, 32, 8>
    {
@@ -29,37 +29,20 @@ class BOTAN_PUBLIC_API(2,0) Serpent final : public Block_Cipher_Fixed_Params<16,
 
       size_t parallelism() const override { return 4; }
 
-   protected:
-#if defined(BOTAN_HAS_SERPENT_SIMD)
-      /**
-      * Encrypt 4 blocks in parallel using SSE2 or AltiVec
-      */
-      void simd_encrypt_4(const uint8_t in[64], uint8_t out[64]) const;
+   private:
 
-      /**
-      * Decrypt 4 blocks in parallel using SSE2 or AltiVec
-      */
+#if defined(BOTAN_HAS_SERPENT_SIMD)
+      void simd_encrypt_4(const uint8_t in[64], uint8_t out[64]) const;
       void simd_decrypt_4(const uint8_t in[64], uint8_t out[64]) const;
 #endif
 
-      /**
-      * For use by subclasses using SIMD, asm, etc
-      * @return const reference to the key schedule
-      */
-      const secure_vector<uint32_t>& get_round_keys() const
-         { return m_round_key; }
+#if defined(BOTAN_HAS_SERPENT_AVX2)
+      void avx2_encrypt_8(const uint8_t in[64], uint8_t out[64]) const;
+      void avx2_decrypt_8(const uint8_t in[64], uint8_t out[64]) const;
+#endif
 
-      /**
-      * For use by subclasses that implement the key schedule
-      * @param ks is the new key schedule value to set
-      */
-      void set_round_keys(const uint32_t ks[132])
-         {
-         m_round_key.assign(&ks[0], &ks[132]);
-         }
-
-   private:
       void key_schedule(const uint8_t key[], size_t length) override;
+
       secure_vector<uint32_t> m_round_key;
    };
 

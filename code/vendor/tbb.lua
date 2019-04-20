@@ -9,7 +9,7 @@ return {
 		language "C++"
 		kind "StaticLib"
 
-		includedirs { "../vendor/tbb/src/", "../vendor/tbb/src/rml/include/", "../vendor/tbb/build/vs2012/" }
+		includedirs { "../vendor/tbb/src/", "../vendor/tbb/src/rml/include/", "../vendor/tbb/build/vs2013/" }
 
 		defines { '__TBB_BUILD', '__TBB_DYNAMIC_LOAD_ENABLED=0', '_TBB_USE_DEBUG=0', '_HAS_STD_BYTE=0' }
 

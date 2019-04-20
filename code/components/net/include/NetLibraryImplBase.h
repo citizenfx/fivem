@@ -1,5 +1,10 @@
 #pragma once
 
+namespace net
+{
+	class PeerAddress;
+}
+
 class NetAddress;
 
 struct RoutingPacket
@@ -36,6 +41,8 @@ public:
 
 	virtual bool HasTimedOut() = 0;
 
+	virtual bool IsDisconnected() { return false; }
+
 	virtual void Flush() = 0;
 };
 
@@ -67,4 +74,6 @@ public:
 	virtual void AddReceiveTick() = 0;
 	
 	virtual void AddSendTick() = 0;
+
+	virtual net::PeerAddress GetCurrentPeer() = 0;
 };

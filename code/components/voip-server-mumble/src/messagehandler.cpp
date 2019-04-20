@@ -140,8 +140,6 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			goto disconnect;
 		}*/
 
-		client->authenticated = true;
-
 		client_itr = NULL;
 		while (Client_iterate(&client_itr) != NULL) {
 			if (!IS_AUTH(client_itr))
@@ -181,6 +179,8 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			sendServerReject(client, buf, MumbleProto::Reject_RejectType_ServerFull);
 			goto disconnect;
 		}
+
+		client->authenticated = true;
 
 		/* Name */
 		client->username = strdup(msg->payload.authenticate->username().c_str());

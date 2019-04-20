@@ -88,7 +88,17 @@ struct phBoundMaterial1
 #ifdef RAGE_FORMATS_GAME_NY
 	uint8_t pad;
 	uint16_t roomId : 5;
-	uint16_t unk : 11;
+	uint16_t f5 : 1; // "sidewalk spec 1"
+	uint16_t f6 : 1; // "sidewalk spec 2"
+	uint16_t f7 : 1;
+	uint16_t stairs : 1;
+	uint16_t blockGrip : 1;
+	uint16_t blockClimb : 1;
+	uint16_t shootThrough : 1;
+	uint16_t blockJumpOver : 1;
+	uint16_t f13 : 1; // "sidewalk spec 3"
+	uint16_t seeThrough : 1;
+	uint16_t f15 : 1;
 #elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint8_t proceduralId;
 
@@ -96,14 +106,28 @@ struct phBoundMaterial1
 	uint8_t roomId : 5;
 	uint8_t pedDensity : 3;
 
-	uint8_t unk4F;
+	uint8_t stairs : 1;
+	uint8_t blockClimb : 1;
+	uint8_t seeThrough : 1;
+	uint8_t shootThrough : 1;
+	uint8_t notCover : 1;
+	uint8_t walkablePath : 1;
+	uint8_t noCamCollision : 1;
+	uint8_t shootThroughFx : 1;
 #endif
 };
 
 #if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)
 struct phBoundMaterial2
 {
-	uint8_t polyFlags;
+	uint8_t noDecal : 1;
+	uint8_t noNavmesh : 1;
+	uint8_t noRagdoll : 1;
+	uint8_t vehicleWheel : 1;
+	uint8_t noPtfx : 1;
+	uint8_t tooSteepForPlayer : 1;
+	uint8_t noNetworkSpawn : 1;
+	uint8_t noCamCollisionAllowClipping : 1;
 	uint8_t materialColorIdx;
 	uint16_t unknown;
 };
@@ -188,10 +212,24 @@ public:
 		m_material.pedDensity = 0;
 		m_material.proceduralId = 0;
 		m_material.roomId = 0;
-		m_material.unk4F = 0;
+		m_material.stairs = 0;
+		m_material.seeThrough = 0;
+		m_material.blockClimb = 0;
+		m_material.shootThrough = 0;
+		m_material.notCover = 0;
+		m_material.walkablePath = 0;
+		m_material.noCamCollision = 0;
+		m_material.shootThroughFx = 0;
 
+		m_material2.noDecal = 0;
+		m_material2.noNavmesh = 0;
+		m_material2.noRagdoll = 0;
+		m_material2.vehicleWheel = 0;
+		m_material2.noPtfx = 0;
+		m_material2.tooSteepForPlayer = 0;
+		m_material2.noNetworkSpawn = 0;
+		m_material2.noCamCollisionAllowClipping = 0;
 		m_material2.materialColorIdx = 0;
-		m_material2.polyFlags = 0;
 		m_material2.unknown = 0;
 
 		m_pad = 0;

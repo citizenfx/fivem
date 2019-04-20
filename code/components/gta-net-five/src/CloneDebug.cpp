@@ -96,7 +96,7 @@ namespace rage
 		virtual void m_90() = 0;
 		virtual void m_98() = 0;
 		virtual void m_A0() = 0;
-		virtual void WriteObject(rage::netObject* object, rage::netBuffer* buffer, rage::netLogStub* logger, bool readFromObject) = 0;
+		virtual void WriteObject(rage::netObject* object, rage::datBitBuffer* buffer, rage::netLogStub* logger, bool readFromObject) = 0;
 		virtual void m_B0() = 0;
 		virtual void m_B8() = 0;
 		virtual void LogNode(rage::netLogStub* stub) = 0;
@@ -164,7 +164,7 @@ static void RenderSyncTree(rage::netObject* object, rage::netSyncTree* syncTree)
 
 static void RenderNetObjectTree()
 {
-	for (int player = 0; player < 64; player++)
+	for (int player = 0; player < 64 + 1; player++)
 	{
 		std::vector<rage::netObject*> objects;
 
@@ -313,15 +313,16 @@ struct WriteTreeState
 	rage::netObject* object;
 	int flags;
 	int objFlags;
-	rage::netBuffer* buffer;
+	rage::datBitBuffer* buffer;
 	rage::netLogStub* logger;
 	uint32_t time;
 	bool wroteAny;
+	uint32_t* lastChangeTimePtr;
 };
 
 struct NetObjectNodeData
 {
-	std::array<uint8_t, 256> lastData;
+	std::array<uint8_t, 768> lastData;
 	uint32_t lastChange;
 	uint32_t lastAck;
 
@@ -388,7 +389,7 @@ inline uint32_t GetDelayForUpdateFrequency(uint8_t updateFrequency)
 	}
 }
 
-bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
+bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull, uint32_t* lastChangeTime)
 {
 	WriteTreeState state;
 	state.object = object;
@@ -398,6 +399,12 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	state.logger = (rage::netLogStub*)logger;
 	state.time = time;
 	state.wroteAny = false;
+	state.lastChangeTimePtr = lastChangeTime;
+
+	if (lastChangeTime)
+	{
+		*lastChangeTime = 0;
+	}
 
 	if (flags == 2 || flags == 4)
 	{
@@ -405,7 +412,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 		buffer->WriteBit(objFlags & 1);
 	}
 
-	TraverseTree<WriteTreeState>(this, state, [](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	// #NETVER: 2018-12-27 17:41 -> increased maximum packet size to 768 from 256 to account for large CPlayerAppearanceDataNode
+	int sizeLength = (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201812271741) ? 13 : 11;
+
+	TraverseTree<WriteTreeState>(this, state, [sizeLength](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		auto buffer = state.buffer;
 		bool didWrite = false;
@@ -424,7 +434,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			// write Cfx length placeholder
 			if (node->IsDataNode())
 			{
-				buffer->WriteInteger(0, 11);
+				buffer->WriteUns(0, sizeLength);
 			}
 
 			if (node->IsParentNode())
@@ -439,10 +449,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
 				// calculate node change state
-				std::array<uint8_t, 256> tempData;
+				std::array<uint8_t, 768> tempData;
 				memset(tempData.data(), 0, tempData.size());
 
-				rage::netBuffer tempBuf(tempData.data(), tempData.size());
+				rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
 
 				node->WriteObject(state.object, &tempBuf, nullptr, true);
 
@@ -455,6 +465,16 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					{
 						nodeData->lastChange = state.time;
 						nodeData->lastData = tempData;
+					}
+				}
+
+				if (state.lastChangeTimePtr)
+				{
+					auto oldVal = *state.lastChangeTimePtr;
+
+					if (nodeData->lastChange > oldVal)
+					{
+						*state.lastChangeTimePtr = nodeData->lastChange;
 					}
 				}
 
@@ -472,7 +492,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (shouldWriteNode)
 				{
-					node->WriteObject(state.object, buffer, state.logger, true);
+					node->WriteObject(state.object, buffer, state.logger, false);
 
 					didWrite = true;
 				}
@@ -509,14 +529,14 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (node->IsDataNode())
 				{
-					auto length = endPos - startPos - 11;
+					auto length = endPos - startPos - sizeLength;
 
 					if (node->flags2 & state.flags)
 					{
 						length -= 1;
 					}
 
-					buffer->WriteInteger(length, 11);
+					buffer->WriteUns(length, sizeLength);
 				}
 
 				buffer->Seek(endPos);
@@ -558,6 +578,11 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 		return true;
 	});
 }
+}
+
+void DirtyNode(void* object, void* node)
+{
+	rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node].lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
 }
 
 static bool g_captureSyncLog;
@@ -664,18 +689,20 @@ uint32_t GetRemoteTime();
 static InitFunction initFunction([]()
 {
 	static bool netViewerEnabled;
+	static bool timeWindowEnabled;
 
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
+	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || Instance<ICoreGameInit>::Get()->OneSyncEnabled;
+		*should = *should || netViewerEnabled || timeWindowEnabled;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
-		if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+		if (timeWindowEnabled)
 		{
 			static bool timeOpen = true;
 
@@ -737,8 +764,58 @@ static InitFunction initFunction([]()
 	});
 });
 
+#if _DEBUG
+static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t", bool last = true)
+{
+	std::string objectName = typeid(*node).name();
+	objectName = objectName.substr(6);
+
+	if (node->IsParentNode())
+	{
+		trace("%sParentNode<\n", indent);
+		trace("%s\tNodeIds<%d, %d, %d>,\n", indent, node->flags1, node->flags2, node->flags3);
+
+		for (auto child = node->firstChild; child; child = child->nextSibling)
+		{
+			DumpSyncNode(child, indent + "\t", (child->nextSibling == nullptr));
+		}
+
+		trace("%s>%s\n", indent, !last ? "," : "");
+	}
+	else
+	{
+		trace("%sNodeWrapper<NodeIds<%d, %d, %d>, %s>%s\n", indent, node->flags1, node->flags2, node->flags3, objectName, !last ? "," : "");
+	}
+}
+
+static void DumpSyncTree(rage::netSyncTree* syncTree)
+{
+	std::string objectName = typeid(*syncTree).name();
+	objectName = objectName.substr(6);
+
+	trace("using %s = SyncTree<\n", objectName);
+
+	DumpSyncNode(*(rage::netSyncNodeBase**)((char*)syncTree + 16));
+
+	trace(">;\n");
+}
+#endif
+
 static HookFunction hookFunction([]()
 {
+#if _DEBUG
+	static ConsoleCommand dumpSyncTreesCmd("dumpSyncTrees", []()
+	{
+		for (int i = 0; i <= 13; i++)
+		{
+			auto obj = rage::CreateCloneObject((NetObjEntityType)i, i + 204, 0, 0, 32);
+			auto tree = obj->GetSyncTree();
+
+			DumpSyncTree(tree);
+		}
+	});
+#endif
+
 	// allow CSyncDataLogger even without label string
 	hook::nop(hook::get_pattern("4D 85 C9 74 44 48 8D 4C", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C0 74 25 80 3A 00", 3), 2);

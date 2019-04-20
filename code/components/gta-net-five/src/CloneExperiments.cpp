@@ -19,11 +19,15 @@
 #include <NetLibrary.h>
 #include <NetBuffer.h>
 
+#include <Pool.h>
+
 #include <EntitySystem.h>
 
 extern NetLibrary* g_netLibrary;
 
 class CNetGamePlayer;
+
+static ICoreGameInit* icgi;
 
 namespace rage
 {
@@ -53,7 +57,9 @@ public:
 // 1103
 // 1290
 // 1365
-static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x1427D2320;
+// 1493
+// 1604
+static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x142875710;
 
 void* g_tempRemotePlayer;
 
@@ -64,11 +70,14 @@ std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
 static CNetGamePlayer* g_playerList[256];
 static int g_playerListCount;
 
+static CNetGamePlayer* g_playerListRemote[256];
+static int g_playerListCountRemote;
+
 static CNetGamePlayer*(*g_origGetPlayerByIndex)(int);
 
 static CNetGamePlayer* GetPlayerByIndex(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetPlayerByIndex(index);
 	}
@@ -93,7 +102,7 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 {
 	g_origJoinBubble(bubbleMgr, player);
 
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return;
 	}
@@ -118,6 +127,8 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 	// add to sequential list
 	g_playerList[g_playerListCount] = player;
 	g_playerListCount++;
+
+	// don't add to g_playerListRemote(!)
 }
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t netId)
@@ -134,7 +145,7 @@ static CNetGamePlayer*(*g_origGetPlayerByIndexNet)(int);
 
 static CNetGamePlayer* GetPlayerByIndexNet(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetPlayerByIndexNet(index);
 	}
@@ -147,7 +158,7 @@ static bool(*g_origIsNetworkPlayerActive)(int);
 
 static bool IsNetworkPlayerActive(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origIsNetworkPlayerActive(index);
 	}
@@ -159,7 +170,7 @@ static bool(*g_origIsNetworkPlayerConnected)(int);
 
 static bool IsNetworkPlayerConnected(int index)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origIsNetworkPlayerConnected(index);
 	}
@@ -181,16 +192,24 @@ namespace sync
 		inAddr->ipLan = clientId ^ 0xFEED;
 		inAddr->ipUnk = clientId ^ 0xFEED;
 		inAddr->ipOnline = clientId ^ 0xFEED;
+		inAddr->rockstarAccountId = clientId;
 
 		// 1290
 		// 1365
-		void* nonphys = calloc(256, 1);
-		((void(*)(void*))0x141076C58)(nonphys); // ctor
+		// 1493
+		// 1604
+		//void* nonphys = calloc(256, 1);
 
+		// this has to come from the pool directly as the game will expect to free it
+		void* nonPhys = rage::PoolAllocate(rage::GetPoolBase("CNonPhysicalPlayerData"));
+		((void(*)(void*))0x1410A4024)(nonPhys); // ctor
+
+		// 1493
+		// 1604
 		void* phys = calloc(1024, 1);
-		((void(*)(void*))0x1410750F8)(phys);
+		((void(*)(void*))0x1410A2480)(phys);
 
-		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonphys);
+		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonPhys);
 		g_tempRemotePlayer = player;
 
 		if (idx == -1)
@@ -207,6 +226,20 @@ namespace sync
 
 		g_playerList[g_playerListCount] = player;
 		g_playerListCount++;
+
+		g_playerListRemote[g_playerListCountRemote] = player;
+		g_playerListCountRemote++;
+
+		// resort player lists
+		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer * left, CNetGamePlayer * right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
+
+		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
 	}
 }
 
@@ -246,8 +279,10 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// 1103
 		// 1290
 		// 1365
+		// 1493
+		// 1604
 		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x140FF4D34)(nullptr, &objectId, player);
+		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x141022B20)(nullptr, &objectId, player);
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
@@ -257,7 +292,8 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 			trace("deleted object id\n");
 
-			((void(*)(void*, uint16_t, CNetGamePlayer*))0x140FDB078)(ped, objectId, player);
+			// 1604
+			((void(*)(void*, uint16_t, CNetGamePlayer*))0x141008D14)(ped, objectId, player);
 
 			trace("success! reassigned the ped!\n");
 		}
@@ -280,15 +316,39 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 			}
 		}
 
+		for (int i = 0; i < g_playerListCountRemote; i++)
+		{
+			if (g_playerListRemote[i] == player)
+			{
+				memmove(&g_playerListRemote[i], &g_playerListRemote[i + 1], sizeof(*g_playerListRemote) * (g_playerListCountRemote - i - 1));
+				g_playerListCountRemote--;
+
+				break;
+			}
+		}
+
+		// resort player lists
+		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer * left, CNetGamePlayer * right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
+
+		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
+		{
+			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
+		});
+
+		player->Reset();
+
 		g_players[info.slotId] = nullptr;
 	}
 }
 
 static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 
-static CNetGamePlayer* netObject__GetOwnerNetPlayer(rage::netObject* object)
+static CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetOwnerNetPlayer(object);
 	}
@@ -305,6 +365,40 @@ static CNetGamePlayer* netObject__GetOwnerNetPlayer(rage::netObject* object)
 	}
 
 	return g_playerMgr->localPlayer;
+}
+
+static uint8_t(*g_origGetOwnerPlayerId)(rage::netObject*);
+
+static uint8_t netObject__GetPlayerOwnerId(rage::netObject* object)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origGetOwnerPlayerId(object);
+	}
+
+	return netObject__GetPlayerOwner(object)->physicalPlayerIndex;
+}
+
+static CNetGamePlayer*(*g_origGetPendingPlayerOwner)(rage::netObject*);
+
+static CNetGamePlayer* netObject__GetPendingPlayerOwner(rage::netObject* object)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origGetPendingPlayerOwner(object);
+	}
+
+	if (object->syncData.nextOwnerId != 0xFF)
+	{
+		auto player = g_playersByNetId[TheClones->GetPendingClientId(object)];
+
+		if (player != nullptr && player->playerInfo != nullptr)
+		{
+			return player;
+		}
+	}
+
+	return nullptr;
 }
 
 static hook::cdecl_stub<void*(int handle)> getScriptEntity([]()
@@ -391,7 +485,7 @@ static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 
 static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origAllocateNetPlayer(mgr);
 	}
@@ -401,7 +495,9 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	// 1103
 	// 1290
 	// 1365
-	return ((CNetGamePlayer*(*)(void*))0x141074F78)(plr);
+	// 1493
+	// 1604
+	return ((CNetGamePlayer*(*)(void*))0x1410A2300)(plr);
 }
 
 #include <minhook.h>
@@ -412,21 +508,23 @@ void ObjectIds_RemoveObjectId(int objectId);
 
 static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netObject, int a3)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origPassObjectControl(player, netObject, a3);
 	}
 
-	if (player->physicalPlayerIndex == netObject__GetOwnerNetPlayer(netObject)->physicalPlayerIndex)
+	if (player->physicalPlayerIndex == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex)
 	{
 		return;
 	}
 
 	trace("passing object %016llx (%d) control from %d to %d\n", (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
+	TheClones->Log("%s: passing object %016llx (%d) control from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
 
-	TheClones->GiveObjectToClient(netObject, g_netIdsByPlayer[player]);
+	netObject->syncData.nextOwnerId = 31;
+	TheClones->SetTargetOwner(netObject, g_netIdsByPlayer[player]);
 
 	fwEntity* entity = (fwEntity*)netObject->GetGameObject();
 	if (entity && entity->IsOfType(HashString("CVehicle")))
@@ -461,6 +559,49 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 	g_origPassObjectControl(player, netObject, a3);
 
 	//player->physicalPlayerIndex = lastIndex;
+}
+
+static void(*g_origSetOwner)(rage::netObject* object, CNetGamePlayer* newOwner);
+
+static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origSetOwner(netObject, newOwner);
+	}
+
+	if (newOwner->physicalPlayerIndex == g_playerMgr->localPlayer->physicalPlayerIndex)
+	{
+		TheClones->Log("%s: taking ownership of object id %d - stack trace:\n", __func__, netObject->objectId);
+
+		uintptr_t* traceStart = (uintptr_t*)_AddressOfReturnAddress();
+
+		for (int i = 0; i < 96; i++)
+		{
+			if ((i % 6) == 0)
+			{
+				TheClones->Log("\n");
+			}
+
+			TheClones->Log("%016llx ", traceStart[i]);
+		}
+
+		TheClones->Log("\n");
+	}
+
+	g_origSetOwner(netObject, newOwner);
+
+	if (newOwner->physicalPlayerIndex == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex)
+	{
+		return;
+	}
+
+	TheClones->Log("%s: passing object %016llx (%d) ownership from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, newOwner->physicalPlayerIndex);
+
+	ObjectIds_RemoveObjectId(netObject->objectId);
+
+	netObject->syncData.nextOwnerId = 31;
+	TheClones->SetTargetOwner(netObject, g_netIdsByPlayer[newOwner]);
 }
 
 static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
@@ -528,7 +669,7 @@ int getPlayerId()
 
 static bool mD0Stub(rage::netSyncTree* tree, int a2)
 {
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (icgi->OneSyncEnabled)
 	{
 		return false;
 	}
@@ -539,32 +680,32 @@ static bool mD0Stub(rage::netSyncTree* tree, int a2)
 static int(*g_origGetNetworkPlayerListCount)();
 static CNetGamePlayer**(*g_origGetNetworkPlayerList)();
 
-static int GetNetworkPlayerListCount()
+static int netInterface_GetNumRemotePhysicalPlayers()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerListCount();
 	}
 
-	return g_playerListCount;
+	return g_playerListCountRemote;
 }
 
-static CNetGamePlayer** GetNetworkPlayerList()
+static CNetGamePlayer** netInterface_GetRemotePhysicalPlayers()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerList();
 	}
 
-	return g_playerList;
+	return g_playerListRemote;
 }
 
 static int(*g_origGetNetworkPlayerListCount2)();
 static CNetGamePlayer**(*g_origGetNetworkPlayerList2)();
 
-static int GetNetworkPlayerListCount2()
+static int netInterface_GetNumPhysicalPlayers()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerListCount2();
 	}
@@ -572,14 +713,282 @@ static int GetNetworkPlayerListCount2()
 	return g_playerListCount;
 }
 
-static CNetGamePlayer** GetNetworkPlayerList2()
+static CNetGamePlayer** netInterface_GetAllPhysicalPlayers()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetNetworkPlayerList2();
 	}
 
 	return g_playerList;
+}
+
+static void netObject__ClearPendingPlayerIndex(rage::netObject* object)
+{
+	if (icgi->OneSyncEnabled)
+	{
+		if (object->syncData.nextOwnerId == 31 && TheClones->GetPendingClientId(object) != 0xFFFF)
+		{
+			return;
+		}
+	}
+
+	object->syncData.nextOwnerId = -1;
+}
+
+static void*(*g_origGetScenarioTaskScenario)(void* scenarioTask);
+
+static void* GetScenarioTaskScenario(char* scenarioTask)
+{
+	void* scenario = g_origGetScenarioTaskScenario(scenarioTask);
+
+	if (!scenario)
+	{
+		static bool hasCrashedBefore = false;
+
+		if (!hasCrashedBefore)
+		{
+			hasCrashedBefore = true;
+
+			trace("WARNING: invalid scenario task triggered (scenario ID: %d)\n", *(uint32_t*)(scenarioTask + 168));
+		}
+
+		*(uint32_t*)(scenarioTask + 168) = 0;
+
+		scenario = g_origGetScenarioTaskScenario(scenarioTask);
+
+		assert(scenario);
+	}
+
+	return scenario;
+}
+
+static int(*g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels)(void* mgr, int* a2, int* a3, int* a4);
+
+static int networkBandwidthMgr_CalculatePlayerUpdateLevelsStub(void* mgr, int* a2, int* a3, int* a4)
+{
+	if (icgi->OneSyncEnabled)
+	{
+		return 0;
+	}
+
+	return g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels(mgr, a2, a3, a4);
+}
+
+static int(*g_origGetNetObjPlayerGroup)(void* entity);
+
+static int GetNetObjPlayerGroup(void* entity)
+{
+	// #TODO1S: groups
+	// indexes a fixed-size array of 64, of which 32 are players, and 16+16 are script/code groups
+	// we don't want to write past 32 ever, and _especially_ not past 64
+	// this needs additional patching that currently isn't done.
+	if (icgi->OneSyncEnabled)
+	{
+		return 0;
+	}
+
+	return g_origGetNetObjPlayerGroup(entity);
+}
+
+using TObjectPred = bool(*)(rage::netObject*);
+
+static int(*g_origCountObjects)(rage::netObjectMgr* objectMgr, TObjectPred pred);
+
+static int netObjectMgr__CountObjects(rage::netObjectMgr* objectMgr, TObjectPred pred)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origCountObjects(objectMgr, pred);
+	}
+
+	auto objectList = TheClones->GetObjectList();
+
+	return std::count_if(objectList.begin(), objectList.end(), pred);
+}
+
+static void(*g_origObjectManager_End)(void*);
+
+void ObjectManager_End(rage::netObjectMgr* objectMgr)
+{
+	if (icgi->OneSyncEnabled)
+	{
+		// don't run deletion if object manager is already shut down
+		char* mgrPtr = (char*)objectMgr;
+
+		if (*(bool*)(mgrPtr + 9992))
+		{
+			auto objectCb = [objectMgr](rage::netObject* object)
+			{
+				if (!object)
+				{
+					return;
+				}
+
+				// don't force-delete the local player
+				if (object->objectType == (uint16_t)NetObjEntityType::Player && !object->syncData.isRemote)
+				{
+					objectMgr->UnregisterNetworkObject(object, 0, true, false);
+					return;
+				}
+
+				objectMgr->UnregisterNetworkObject(object, 0, true, true);
+			};
+
+			for (int i = 0; i < 65; i++)
+			{
+				objectMgr->ForAllNetObjects(i, objectCb);
+			}
+
+			for (auto netObj : TheClones->GetObjectList())
+			{
+				objectCb(netObj);
+			}
+		}
+	}
+
+	g_origObjectManager_End(objectMgr);
+}
+
+static void(*g_origPlayerManager_End)(void*);
+
+void PlayerManager_End(void* mgr)
+{
+	if (icgi->OneSyncEnabled)
+	{
+		g_netIdsByPlayer.clear();
+		g_playersByNetId.clear();
+
+		for (auto& p : g_players)
+		{
+			if (p)
+			{
+				if (p != g_playerMgr->localPlayer)
+				{
+					trace("player manager shutdown: resetting player %s\n", p->GetName());
+					p->Reset();
+				}
+			}
+
+			p = nullptr;
+		}
+
+		// reset the player list so we won't try removing _any_ players
+		// #TODO1S: don't corrupt the physical linked list in the first place
+		*(void**)((char*)g_playerMgr + 288) = nullptr;
+		*(void**)((char*)g_playerMgr + 296) = nullptr;
+		*(uint32_t*)((char*)g_playerMgr + 304) = 0;
+
+		*(void**)((char*)g_playerMgr + 312) = nullptr;
+		*(void**)((char*)g_playerMgr + 320) = nullptr;
+		*(uint32_t*)((char*)g_playerMgr + 328) = 0;
+
+		g_playerListCount = 0;
+		g_playerListCountRemote = 0;
+	}
+
+	g_origPlayerManager_End(mgr);
+}
+
+namespace rage
+{
+	struct rlGamerId
+	{
+		uint64_t accountId;
+	};
+}
+
+static rage::netPlayer*(*g_origGetPlayerFromGamerId)(rage::netPlayerMgrBase* mgr, const rage::rlGamerId& gamerId, bool flag);
+
+static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const rage::rlGamerId& gamerId, bool flag)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origGetPlayerFromGamerId(mgr, gamerId, flag);
+	}
+
+	for (auto p : g_players)
+	{
+		if (p)
+		{
+			if (p->GetPlatformPlayerData()->addr.rockstarAccountId == gamerId.accountId)
+			{
+				return p;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+static float VectorDistance(const float* point1, const float* point2)
+{
+	float xd = point1[0] - point2[0];
+	float yd = point1[1] - point2[1];
+	float zd = point1[2] - point2[2];
+
+	return sqrtf((xd * xd) + (yd * yd) + (zd * zd));
+}
+
+static hook::cdecl_stub<void*(CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
+{
+	return hook::get_call(hook::get_pattern("84 C0 74 1C 48 8B CF E8 ? ? ? ? 48 8B D8", 7));
+});
+
+static hook::cdecl_stub<float*(float*, CNetGamePlayer*, void*, bool)> getNetPlayerRelevancePosition([]()
+{
+	return hook::get_pattern("45 33 FF 48 85 C0 0F 84 5B 01 00 00", -0x34);
+});
+
+static int(*g_origGetPlayersNearPoint)(const float* point, float range, CNetGamePlayer* outArray[32], bool sorted, bool unkVal);
+
+static int GetPlayersNearPoint(const float* point, float range, CNetGamePlayer* outArray[32], bool sorted, bool unkVal)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origGetPlayersNearPoint(point, range, outArray, sorted, unkVal);
+	}
+
+	CNetGamePlayer* tempArray[512];
+
+	int idx = 0;
+
+	auto playerList = netInterface_GetRemotePhysicalPlayers();
+	for (int i = 0; i < netInterface_GetNumRemotePhysicalPlayers(); i++)
+	{
+		auto player = playerList[i];
+
+		if (getPlayerPedForNetPlayer(player))
+		{
+			float vectorPos[4];
+
+			if (range >= 100000000.0f || VectorDistance(point, getNetPlayerRelevancePosition(vectorPos, player, nullptr, unkVal)) < range)
+			{
+				tempArray[idx] = player;
+				idx++;
+			}
+		}
+	}
+
+	if (sorted)
+	{
+		std::sort(tempArray, tempArray + idx, [point](CNetGamePlayer* a1, CNetGamePlayer* a2)
+		{
+			float vectorPos1[4];
+			float vectorPos2[4];
+
+			float d1 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos1, a1, nullptr, false));
+			float d2 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos2, a2, nullptr, false));
+
+			return (d1 < d2);
+		});
+	}
+
+	idx = std::min(idx, 32);
+
+	std::copy(tempArray, tempArray + idx, outArray);
+
+	return idx;
 }
 
 static HookFunction hookFunction([]()
@@ -591,8 +1000,17 @@ static HookFunction hookFunction([]()
 	//hook::put(0x141980A50, NetLogStub_DoTrace);
 	//hook::jump(0x140A19640, NetLogStub_DoLog);
 
+	// netobjmgr count, temp dbg
+	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 64);
+
+	// 1604, netobjmgr alloc size, temp dbg
+	hook::put<uint32_t>(0x14101CF4F, 32712 + 4096);
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
+	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
+
+	MH_CreateHook(hook::get_pattern("0F 29 70 C8 0F 28 F1 33 DB 45", -0x1C), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 
 	// return to disable breaking hooks
 	//return;
@@ -604,16 +1022,33 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern("48 8B CF FF 90 68 01 00 00 84 C0 74 12 48 8B CF", 3);
+		auto location = hook::get_pattern("48 8B CF FF 90 70 01 00 00 84 C0 74 12 48 8B CF", 3);
 		hook::nop(location, 6);
+
+		// m170 in 1604 now
 		hook::call(location, m168Stub);
 	}
 
 	// 1290
 	// 1365
-	MH_CreateHook((void*)0x14107D370, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	// 1493
+	// 1604
+	MH_CreateHook((void*)0x1410AA870, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
-	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetOwnerNetPlayer, (void**)&g_origGetOwnerNetPlayer);
+	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
+	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
+
+	// function is only 4 bytes, can't be hooked like this
+	//MH_CreateHook(hook::get_call(hook::get_pattern("FF 50 68 49 8B CE E8 ? ? ? ? 48 8B 05", 6)), netObject__GetPlayerOwnerId, (void**)&g_origGetOwnerPlayerId);
+
+	// NETWORK_GET_PLAYER_INDEX_FROM_PED
+	{
+		auto location = hook::get_pattern("48 85 C9 74 0A E8 ? ? ? ? 0F B6 C0", 5);
+		hook::set_call(&g_origGetOwnerPlayerId, location);
+		hook::call(location, netObject__GetPlayerOwnerId);
+	}
+
+	hook::jump(hook::get_pattern("C6 41 4A FF C3", 0), netObject__ClearPendingPlayerIndex);
 
 	// replace joining local net player to bubble
 	{
@@ -636,15 +1071,29 @@ static HookFunction hookFunction([]()
 
 	{
 		auto location = hook::get_pattern<char>("44 0F 28 CF F3 41 0F 59 C0 F3 44 0F 59 CF F3 44 0F 58 C8 E8", 19);
-		MH_CreateHook(hook::get_call(location + 0), GetNetworkPlayerListCount, (void**)&g_origGetNetworkPlayerListCount);
-		MH_CreateHook(hook::get_call(location + 8), GetNetworkPlayerList, (void**)&g_origGetNetworkPlayerList);
+		MH_CreateHook(hook::get_call(location + 0), netInterface_GetNumRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerListCount);
+		MH_CreateHook(hook::get_call(location + 8), netInterface_GetRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerList);
 	}
 
 	{
 		auto location = hook::get_pattern<char>("48 8B F0 85 DB 74 56 8B", -0x34);
-		MH_CreateHook(hook::get_call(location + 0x28), GetNetworkPlayerListCount2, (void**)&g_origGetNetworkPlayerListCount2);
-		MH_CreateHook(hook::get_call(location + 0x2F), GetNetworkPlayerList2, (void**)&g_origGetNetworkPlayerList2);
+		MH_CreateHook(hook::get_call(location + 0x28), netInterface_GetNumPhysicalPlayers, (void**)&g_origGetNetworkPlayerListCount2);
+		MH_CreateHook(hook::get_call(location + 0x2F), netInterface_GetAllPhysicalPlayers, (void**)&g_origGetNetworkPlayerList2);
 	}
+
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
+
+	MH_CreateHook(hook::get_pattern("4C 8B F9 74 7D", -0x2B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
+
+	MH_CreateHook(hook::get_pattern("78 18 4C 8B 05", -10), GetScenarioTaskScenario, (void**)&g_origGetScenarioTaskScenario);
+
+	MH_CreateHook(hook::get_pattern("0F 29 70 C8 4D 8B E1 4D 8B E8", -0x1C), networkBandwidthMgr_CalculatePlayerUpdateLevelsStub, (void**)&g_origNetworkBandwidthMgr_CalculatePlayerUpdateLevels);
+
+	// #TODO1S: fix player/ped groups so we don't need this workaround anymore
+	MH_CreateHook(hook::get_call(hook::get_pattern("48 83 C1 10 48 C1 E0 06 48 03 C8 E8", -21)), GetNetObjPlayerGroup, (void**)&g_origGetNetObjPlayerGroup);
+
+	MH_CreateHook(hook::get_pattern("45 8D 65 20 C6 81 ? ? 00 00 01 48 8D 59 08", -0x2F), ObjectManager_End, (void**)&g_origObjectManager_End);
+	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B CB E8", -0x19) + 0x32)), PlayerManager_End, (void**)&g_origPlayerManager_End);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
@@ -664,7 +1113,7 @@ static HookFunction hookFunction([]()
 
 		static void DeletionMethod(rage::netObject* object)
 		{
-			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (icgi->OneSyncEnabled)
 			{
 				TheClones->OnObjectDeletion(object);
 			}
@@ -716,6 +1165,24 @@ static HookFunction hookFunction([]()
 		hook::put<uint32_t>(location + 0xD5, intsBase);
 	}
 
+	// 32 array size somewhere called by CTaskNMShot
+	{
+		auto location = hook::get_pattern<char>("48 8D A8 38 FF FF FF 48 81 ? ? ? ? 00 80 3D", -0x1C);
+
+		hook::put<uint32_t>(location + 0x26, 0xA0 + (256 * 8));
+		hook::put<uint32_t>(location + 0x269, 0xA0 + (256 * 8));
+	}
+
+	// CNetworkDamageTracker float[32] array
+	// (would overflow into pool data and be.. quite bad)
+	{
+		// pool constructor call
+		hook::put<uint32_t>(hook::get_pattern("C7 44 24 20 88 00 00 00 E8", 4), sizeof(void*) + (sizeof(float) * 256));
+
+		// memset in CNetworkDamageTracker::ctor
+		hook::put<uint32_t>(hook::get_pattern("48 89 11 48 8B D9 41 B8 80 00 00 00", 8), sizeof(float) * 256);
+	}
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
@@ -731,25 +1198,25 @@ namespace rage
 
 		virtual const char* GetName() = 0;
 
-		virtual bool IsApplicableToPlayer(CNetGamePlayer* player) = 0;
+		virtual bool IsInScope(CNetGamePlayer* player) = 0;
 
-		virtual void m_18() = 0;
+		virtual bool TimeToResend(uint32_t) = 0;
 
-		virtual void m_20() = 0;
+		virtual bool CanChangeScope() = 0;
 
-		virtual void WriteToBuffer(rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void Prepare(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
-		virtual void ReadFromBuffer(rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void Handle(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
-		virtual bool Execute(CNetGamePlayer* sourcePlayer, void* connUnk) = 0;
+		virtual bool Decide(CNetGamePlayer* sourcePlayer, void* connUnk) = 0;
 
-		virtual void WriteReply(rage::netBuffer* buffer, CNetGamePlayer* replyPlayer) = 0;
+		virtual void PrepareReply(rage::datBitBuffer* buffer, CNetGamePlayer* replyPlayer) = 0;
 
-		virtual void ApplyReply(rage::netBuffer* buffer, CNetGamePlayer* sourcePlayer) = 0;
+		virtual void HandleReply(rage::datBitBuffer* buffer, CNetGamePlayer* sourcePlayer) = 0;
 
-		virtual void WritePostData(rage::netBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void PrepareExtraData(rage::datBitBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
-		virtual void ApplyPostData(rage::netBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
+		virtual void HandleExtraData(rage::datBitBuffer* buffer, bool isReply, CNetGamePlayer* player, CNetGamePlayer* unkPlayer) = 0;
 
 		virtual void m_60() = 0;
 
@@ -787,9 +1254,15 @@ static void(*g_origAddEvent)(void*, rage::netGameEvent*);
 
 static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origAddEvent(eventMgr, ev);
+	}
+
+	// don't give control using events!
+	if (strcmp(ev->GetName(), "GIVE_CONTROL_EVENT") == 0)
+	{
+		return;
 	}
 
 	// is this a duplicate event?
@@ -816,10 +1289,10 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 
 	// allocate a RAGE buffer
 	uint8_t packetStub[1024];
-	rage::netBuffer rlBuffer(packetStub, sizeof(packetStub));
+	rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
-	ev->WriteToBuffer(&rlBuffer, g_player31, nullptr);
-	ev->WritePostData(&rlBuffer, false, g_player31, nullptr);
+	ev->Prepare(&rlBuffer, g_player31, nullptr);
+	ev->PrepareExtraData(&rlBuffer, false, g_player31, nullptr);
 
 	net::Buffer outBuffer;
 
@@ -835,9 +1308,9 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 			{
 				// make it 31 for a while (objectmgr dependencies mandate this)
 				auto originalIndex = player->physicalPlayerIndex;
-				player->physicalPlayerIndex = 31;
+				player->physicalPlayerIndex = (player != g_playerMgr->localPlayer) ? 31 : 0;
 
-				if (ev->IsApplicableToPlayer(player))
+				if (ev->IsInScope(player))
 				{
 					targetPlayers.insert(g_netIdsByPlayer[player]);
 				}
@@ -896,7 +1369,7 @@ static void EventManager_Update()
 
 static void HandleNetGameEvent(const char* idata, size_t len)
 {
-	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+	if (!icgi->HasVariable("networkInited"))
 	{
 		return;
 	}
@@ -925,7 +1398,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	std::vector<uint8_t> data(length);
 	buf.Read(data.data(), data.size());
 
-	rage::netBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
+	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
 	rlBuffer.m_f1C = 1;
 
 	if (eventType > 0x5A)
@@ -939,8 +1412,8 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 		if (ev)
 		{
-			ev->ApplyReply(&rlBuffer, player);
-			ev->ApplyPostData(&rlBuffer, true, player, g_playerMgr->localPlayer);
+			ev->HandleReply(&rlBuffer, player);
+			ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
 
 			delete ev;
 			g_events[eventHeader] = {};
@@ -948,7 +1421,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	}
 	else
 	{
-		using TEventHandlerFn = void(*)(rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
+		using TEventHandlerFn = void(*)(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
 
 		// for all intents and purposes, the player will be 31
 		auto lastIndex = player->physicalPlayerIndex;
@@ -961,31 +1434,31 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	}
 }
 
-static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
+static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
 
-static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::netBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
+static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origExecuteNetGameEvent(eventMgr, ev, buffer, player, unkConn, evH, a, b);
 	}
 
 	//trace("executing a %s\n", ev->GetName());
 
-	ev->ReadFromBuffer(buffer, player, unkConn);
+	ev->Handle(buffer, player, unkConn);
 
 	// missing: some checks
-	if (ev->Execute(player, unkConn))
+	if (ev->Decide(player, unkConn))
 	{
-		ev->ApplyPostData(buffer, false, player, unkConn);
+		ev->HandleExtraData(buffer, false, player, unkConn);
 
 		if (ev->requiresReply)
 		{
 			uint8_t packetStub[1024];
-			rage::netBuffer rlBuffer(packetStub, sizeof(packetStub));
+			rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
-			ev->WriteReply(&rlBuffer, player);
-			ev->WritePostData(&rlBuffer, true, player, nullptr);
+			ev->PrepareReply(&rlBuffer, player);
+			ev->PrepareExtraData(&rlBuffer, true, player, nullptr);
 
 			net::Buffer outBuffer;
 			outBuffer.Write<uint8_t>(1);
@@ -1008,9 +1481,11 @@ static InitFunction initFunctionEv([]()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* netLibrary)
 	{
+		icgi = Instance<ICoreGameInit>::Get();
+
 		netLibrary->OnClientInfoReceived.Connect([](const NetLibraryClientInfo& info)
 		{
-			if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (!icgi->OneSyncEnabled)
 			{
 				return;
 			}
@@ -1020,7 +1495,7 @@ static InitFunction initFunctionEv([]()
 
 		netLibrary->OnClientInfoDropped.Connect([](const NetLibraryClientInfo& info)
 		{
-			if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (!icgi->OneSyncEnabled)
 			{
 				return;
 			}
@@ -1030,7 +1505,7 @@ static InitFunction initFunctionEv([]()
 
 		netLibrary->AddReliableHandler("msgNetGameEvent", [](const char* data, size_t len)
 		{
-			if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (!icgi->OneSyncEnabled)
 			{
 				return;
 			}
@@ -1044,7 +1519,7 @@ static bool(*g_origSendGameEvent)(void*, void*);
 
 static bool SendGameEvent(void* eventMgr, void* ev)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origSendGameEvent(eventMgr, ev);
 	}
@@ -1056,12 +1531,13 @@ static uint32_t(*g_origGetFireApplicability)(void* event, void* pos);
 
 static uint32_t GetFireApplicability(void* event, void* pos)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origGetFireApplicability(event, pos);
 	}
 
-	return (0xFFFFFFFF);
+	// send all fires to all remote players
+	return (1 << 31);
 }
 
 static HookFunction hookFunctionEv([]()
@@ -1088,7 +1564,7 @@ static HookFunction hookFunctionEv([]()
 #include <nutsnbolts.h>
 #include <GameInit.h>
 
-static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk);
+static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk);
 
 
 struct VirtualBase
@@ -1121,20 +1597,21 @@ std::string GetType(void* d)
 
 extern rage::netObject* g_curNetObject;
 
-static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object);
+static char(*g_origReadDataNode)(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object);
 
 std::map<int, std::map<void*, std::tuple<int, uint32_t>>> g_netObjectNodeMapping;
 
-static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuffer* buffer, rage::netObject* object)
+static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBitBuffer* buffer, rage::netObject* object)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origReadDataNode(node, flags, mA0, buffer, object);
 	}
 
+	// enable this for boundary checks
 	/*if (flags == 1 || flags == 2)
 	{
-		uint32_t in;
+		uint32_t in = 0;
 		buffer->ReadInteger(&in, 8);
 		assert(in == 0x5A);
 	}*/
@@ -1147,9 +1624,9 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netBuf
 	}
 }
 
-static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::netBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
+static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
 	}
@@ -1163,7 +1640,7 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 		// save position and write a placeholder length frame
 		uint32_t position = buffer->GetPosition();
 		buffer->WriteBit(false);
-		buffer->WriteInteger(0, 11);
+		buffer->WriteUns(0, 11);
 
 		bool rv = g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
 
@@ -1176,7 +1653,7 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 			buffer->Seek(position);
 
 			buffer->WriteBit(true);
-			buffer->WriteInteger(length, 11);
+			buffer->WriteUns(length, 11);
 			buffer->Seek(endPosition);
 
 			if (g_curNetObject)
@@ -1199,17 +1676,32 @@ static void(*g_origUpdateSyncDataOn108)(void* node, void* object);
 
 static void UpdateSyncDataOn108Stub(void* node, void* object)
 {
-	//if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	//if (!icgi->OneSyncEnabled)
 	{
 		g_origUpdateSyncDataOn108(node, object);
 	}
+}
+
+static void(*g_origManuallyDirtyNode)(void* node, void* object);
+
+extern void DirtyNode(void* object, void* node);
+
+static void ManuallyDirtyNodeStub(void* node, void* object)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_origManuallyDirtyNode(node, object);
+		return;
+	}
+
+	DirtyNode(object, node);
 }
 
 static void(*g_origCallSkip)(void* a1, void* a2, void* a3, void* a4, void* a5);
 
 static void SkipCopyIf1s(void* a1, void* a2, void* a3, void* a4, void* a5)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		g_origCallSkip(a1, a2, a3, a4, a5);
 	}
@@ -1235,6 +1727,8 @@ static HookFunction hookFunction2([]()
 			hook::call(floc + 0xD9, SkipCopyIf1s);
 			MH_CreateHook(floc, UpdateSyncDataOn108Stub, (void**)&g_origUpdateSyncDataOn108);
 		}
+
+		MH_CreateHook(hook::get_pattern("48 83 79 48 00 48 8B D9 74 19", -6), ManuallyDirtyNodeStub, (void**)&g_origManuallyDirtyNode);
 
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
@@ -1316,7 +1810,7 @@ bool netTimeSync::IsInitialized()
 
 void netTimeSync::Update()
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return;
 	}
@@ -1442,7 +1936,7 @@ static InitFunction initFunctionTime([]()
 bool netTimeSync__InitializeTimeStub(netTimeSync* timeSync, void* connectionMgr, int flags, void* trustHost,
 	uint32_t sessionSeed, int* deltaStart, int packetFlags, int initialBackoff, int maxBackoff)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origInitializeTime(timeSync, connectionMgr, flags, trustHost, sessionSeed, deltaStart, packetFlags, initialBackoff, maxBackoff);
 	}
@@ -1504,7 +1998,7 @@ bool(*g_origDoesLocalPlayerOwnWorldGrid)(float* pos);
 
 bool DoesLocalPlayerOwnWorldGrid(float* pos)
 {
-	if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origDoesLocalPlayerOwnWorldGrid(pos);
 	}
@@ -1528,6 +2022,11 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 	return does;
 }
 
+static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
+{
+	return player->physicalPlayerIndex;
+}
+
 static HookFunction hookFunctionWorldGrid([]()
 {
 	MH_Initialize();
@@ -1535,7 +2034,15 @@ static HookFunction hookFunctionWorldGrid([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// if population breaks in non-1s, this is possibly why
-	hook::nop(hook::get_pattern("38 05 ? ? ? ? 75 0A 48 8B CF E8", 6), 2);
+	//hook::nop(hook::get_pattern("38 05 ? ? ? ? 75 0A 48 8B CF E8", 6), 2);
+
+	// 1493+ of the above patch
+	//hook::nop(hook::get_pattern("80 3D ? ? ? ? 00 75 0A 48 8B CF E8", 7), 2);
+
+	// this patch above ^ shouldn't be needed with timeSync properly implemented, gamerIDs being set and RemotePlayer list fixes
+
+	// this should apply to both 1s and non-1s (as participants are - hopefully? - not used by anyone in regular net)
+	hook::jump(hook::get_pattern("84 C0 74 06 0F BF 43 38", -0x18), GetScriptParticipantIndexForPlayer);
 });
 
 int ObjectToEntity(int objectId)
@@ -1591,7 +2098,7 @@ static InitFunction initFunction([]()
 		}
 
 		// only work with 1s enabled
-		if (!Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+		if (!icgi->OneSyncEnabled)
 		{
 			return;
 		}
@@ -1623,7 +2130,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto owner = netObject__GetOwnerNetPlayer(netObj);
+		auto owner = netObject__GetPlayerOwner(netObj);
 		context.SetResult<int>(owner->physicalPlayerIndex);
 	});
 #if 0
@@ -1761,7 +2268,7 @@ static InitFunction initFunction([]()
 		}
 
 		st->ApplyToObject(obj, nullptr);
-		rage::netObjectMgr::GetInstance()->RegisterObject(obj);
+		rage::netObjectMgr::GetInstance()->RegisterNetworkObject(obj);
 
 		netBlender_SetTimestamp(obj->GetBlender(), g_queryFunctions->GetTimestamp());
 
@@ -1883,7 +2390,7 @@ static InitFunction initFunction([]()
 		}
 
 		st->ApplyToObject(obj, nullptr);
-		rage::netObjectMgr::GetInstance()->RegisterObject(obj);
+		rage::netObjectMgr::GetInstance()->RegisterNetworkObject(obj);
 
 		netBlender_SetTimestamp(obj->GetBlender(), g_queryFunctions->GetTimestamp());
 

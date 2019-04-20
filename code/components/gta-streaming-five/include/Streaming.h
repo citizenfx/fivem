@@ -23,7 +23,9 @@ struct StreamingPackfileEntry
 	uint8_t loadedFlag;              // +66
 	uint8_t pad3;                    // +67
 	uint8_t enabled;                 // +68
-	uint8_t pad4[3];                 // +69
+	uint8_t pad4;                    // +69
+	uint8_t isDLC;                   // +70
+	uint8_t isUnk;                   // +71
 	uint8_t cacheFlags;              // +72
 	uint8_t pad5[15];                // +73
 	uint32_t parentIdentifier;       // +88

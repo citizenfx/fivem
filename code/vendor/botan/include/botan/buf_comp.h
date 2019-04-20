@@ -71,7 +71,7 @@ class BOTAN_PUBLIC_API(2,0) Buffered_Computation
       */
       void update(const std::string& str)
          {
-         add_data(reinterpret_cast<const uint8_t*>(str.data()), str.size());
+         add_data(cast_char_ptr_to_uint8(str.data()), str.size());
          }
 
       /**
@@ -163,7 +163,7 @@ class BOTAN_PUBLIC_API(2,0) Buffered_Computation
          return final();
          }
 
-      virtual ~Buffered_Computation() {}
+      virtual ~Buffered_Computation() = default;
    private:
       /**
       * Add more data to the computation

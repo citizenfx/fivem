@@ -35,6 +35,8 @@ class BOTAN_PUBLIC_API(2,2) Streebog : public HashFunction
 
       void compress(const uint8_t input[], bool lastblock = false);
 
+      void compress_64(const uint64_t input[], bool lastblock = false);
+
    private:
       const size_t m_output_bits;
       uint64_t m_count;

@@ -13,28 +13,17 @@
 
 #include <boost/bimap.hpp>
 
-#include <enet/enet.h>
-
 #include <tbb/concurrent_queue.h>
 
 #include <ServerTime.h>
 
+#include <GameServerNet.h>
+
+#include <UvLoopHolder.h>
+#include <UvTcpServer.h>
+
 namespace fx
 {
-	struct enet_host_deleter
-	{
-		inline void operator()(ENetHost* data)
-		{
-			enet_host_destroy(data);
-		}
-	};
-
-	ENetAddress GetENetAddress(const net::PeerAddress& peerAddress);
-
-	net::PeerAddress GetPeerAddress(const ENetAddress& enetAddress);
-
-	using AddressPair = std::tuple<ENetHost*, net::PeerAddress>;
-
 	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
 	{
 	public:
@@ -44,9 +33,7 @@ namespace fx
 
 		virtual void AttachToObject(ServerInstanceBase* instance) override;
 
-		virtual void SendOutOfBand(const AddressPair& to, const std::string_view& oob);
-
-		void ProcessHost(ENetHost* host);
+		void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix = true);
 
 		void ProcessServerFrame(int frameTime);
 
@@ -61,6 +48,10 @@ namespace fx
 		void ForceHeartbeat();
 
 		void DeferCall(int inMsec, const std::function<void()>& fn);
+
+		void CreateUdpHost(const net::PeerAddress& address);
+
+		void AddRawInterceptor(const std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)>& interceptor);
 
 		inline void SetRunLoop(const std::function<void()>& runLoop)
 		{
@@ -77,49 +68,95 @@ namespace fx
 			return m_rconPassword->GetValue();
 		}
 
-	public:
-		struct CallbackList
+		inline int GetNetLibVersion()
 		{
-			inline CallbackList(const std::string& socketName, int socketIdx)
-				: m_socketName(socketName), m_socketIdx(socketIdx)
+			return m_net->GetClientVersion();
+		}
+
+	public:
+		struct CallbackListBase
+		{
+			inline CallbackListBase()
+				: threadId(std::this_thread::get_id())
 			{
 
+			}
+
+			virtual ~CallbackListBase() = default;
+
+			inline void AttachToThread()
+			{
+				threadId = std::this_thread::get_id();
 			}
 
 			void Add(const std::function<void()>& fn);
 
 			void Run();
 
+		protected:
+			virtual void SignalThread() = 0;
+
 		private:
 			tbb::concurrent_queue<std::function<void()>> callbacks;
 
+			std::thread::id threadId;
+		};
+
+		struct CallbackListNng : public CallbackListBase
+		{
+			inline CallbackListNng(const std::string& socketName, int socketIdx)
+				: m_socketName(socketName), m_socketIdx(socketIdx)
+			{
+
+			}
+
+		protected:
+			virtual void SignalThread() override;
+
+		private:
 			std::string m_socketName;
 
 			int m_socketIdx;
 		};
 
+		struct CallbackListUv : public CallbackListBase
+		{
+			inline CallbackListUv(std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> async)
+				: m_async(async)
+			{
+
+			}
+
+		protected:
+			virtual void SignalThread() override;
+
+		private:
+			std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> m_async;
+		};
+
 		inline void InternalAddMainThreadCb(const std::function<void()>& fn)
 		{
-			m_mainThreadCallbacks.Add(fn);
+			m_mainThreadCallbacks->Add(fn);
 		}
 
 		inline void InternalAddNetThreadCb(const std::function<void()>& fn)
 		{
-			m_netThreadCallbacks.Add(fn);
+			m_netThreadCallbacks->Add(fn);
 		}
 
-		const ENetPeer* InternalGetPeer(int peerId);
+		fwRefContainer<NetPeerBase> InternalGetPeer(int peerId);
 
 		void InternalResetPeer(int peerId);
 
-		void InternalSendPacket(int peer, int channel, const net::Buffer& buffer, ENetPacketFlag flags);
+		void InternalSendPacket(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
 
 		void InternalRunMainThreadCbs(nng_socket socket);
 
 	private:
 		void Run();
 
-		void ProcessPacket(ENetPeer* peer, const uint8_t* data, size_t size);
+	public:
+		void ProcessPacket(const fwRefContainer<NetPeerBase>& peer, const uint8_t* data, size_t size);
 
 	public:
 		using TPacketHandler = std::function<void(uint32_t packetId, const std::shared_ptr<Client>& client, net::Buffer& packet)>;
@@ -129,13 +166,12 @@ namespace fx
 			m_packetHandler = handler;
 		}
 
+	private:
+		void InitializeNetUv();
+
+		void InitializeNetThread();
+
 	public:
-		using THostPtr = std::unique_ptr<ENetHost, enet_host_deleter>;
-
-		std::vector<THostPtr> hosts;
-
-		fwEvent<ENetHost*> OnHostRegistered;
-
 		fwEvent<> OnTick;
 
 		fwEvent<> OnNetworkTick;
@@ -152,8 +188,6 @@ namespace fx
 		uint64_t m_residualTime;
 
 		uint64_t m_serverTime;
-
-		int m_basePeerId;
 
 		ClientRegistry* m_clientRegistry;
 
@@ -175,11 +209,21 @@ namespace fx
 
 		tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
 
-		boost::bimap<int, ENetPeer*> m_peerHandles;
+		fwRefContainer<GameServerNetBase> m_net;
 
-		CallbackList m_mainThreadCallbacks{ "inproc://main_client", 0 };
+		fwRefContainer<net::UvLoopHolder> m_netThreadLoop;
 
-		CallbackList m_netThreadCallbacks{ "inproc://netlib_client", 1 };
+		fwRefContainer<net::UvLoopHolder> m_mainThreadLoop;
+
+		std::any m_netThreadData;
+
+		std::any m_mainThreadData;
+
+		std::function<bool(const uint8_t *, size_t, const net::PeerAddress &)> m_interceptor;
+
+		std::unique_ptr<CallbackListBase> m_mainThreadCallbacks;
+
+		std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;

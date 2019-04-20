@@ -107,7 +107,7 @@ namespace fx
 			auto req = std::make_shared<uv_fs_t>();
 
 			// stat() the file
-			uv_fs_stat(uvLoop, req.get(), fn.c_str(), UvCallback<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
+			uv_fs_stat(uvLoop, req.get(), fn.c_str(), UvCallbackWrap<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
 			{
 				// failed? return failure
 				if (req->result < 0)
@@ -120,12 +120,13 @@ namespace fx
 				// store the size and send content-length
 				auto size = fsReq->statbuf.st_size;
 				response->SetHeader("content-length", std::to_string(size));
+				response->SetHeader("transfer-encoding", "identity");
 
 				// free the request
 				uv_fs_req_cleanup(fsReq);
 
 				// open the file
-				uv_fs_open(uvLoop, req.get(), fn.c_str(), O_RDONLY, 0644, UvCallback<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
+				uv_fs_open(uvLoop, req.get(), fn.c_str(), O_RDONLY, 0644, UvCallbackWrap<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
 				{
 					// handle failure and clean up
 					if (req->result < 0)
@@ -194,7 +195,7 @@ namespace fx
 						// if not, call another read
 						if (*readOffset != size)
 						{
-							uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallback<uv_fs_t>(req.get(), *readCallback));
+							uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
 						}
 						else
 						{
@@ -207,7 +208,7 @@ namespace fx
 					};
 
 					// trigger the first read
-					uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallback<uv_fs_t>(req.get(), *readCallback));
+					uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
 				}));
 			}));
 		};
@@ -239,7 +240,10 @@ namespace fx
 						resourceEnd = filesPath.find('/');
 					} while (resourceEnd != std::string::npos);
 
-					sendFile(request, response, resourceName, filesPath);
+					std::string filesPathDecoded;
+					UrlDecode(filesPath, filesPathDecoded);
+
+					sendFile(request, response, resourceName, filesPathDecoded);
 					return;
 				}
 			}

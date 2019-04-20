@@ -11,7 +11,7 @@ extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 namespace fx
 {
 	ClientRegistry::ClientRegistry()
-		: m_hostNetId(-1), m_curNetId(1), m_clientsBySlotId(MAX_CLIENTS)
+		: m_hostNetId(-1), m_curNetId(1), m_clientsBySlotId(MAX_CLIENTS + 1)
 	{
 
 	}
@@ -19,7 +19,11 @@ namespace fx
 	std::shared_ptr<Client> ClientRegistry::MakeClient(const std::string& guid)
 	{
 		auto client = std::make_shared<Client>(guid);
-		m_clients[guid] = client;
+
+		{
+			std::unique_lock<std::shared_mutex> lock(m_clientsMutex);
+			m_clients[guid] = client;
+		}
 
 		std::weak_ptr<Client> weakClient(client);
 
@@ -28,7 +32,7 @@ namespace fx
 			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
 		});
 
-		client->OnAssignPeer.Connect([=]()
+		client->OnAssignPeer.Connect([this, weakClient]()
 		{
 			m_clientsByPeer[weakClient.lock()->GetPeer()] = weakClient;
 
@@ -47,7 +51,7 @@ namespace fx
 
 				if (m_clientsBySlotId[slot].expired())
 				{
-					client->SetSlotId(slot);
+					weakClient.lock()->SetSlotId(slot);
 
 					m_clientsBySlotId[slot] = weakClient;
 

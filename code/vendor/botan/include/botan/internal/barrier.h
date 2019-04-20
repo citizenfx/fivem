@@ -9,14 +9,9 @@
 #define BOTAN_UTIL_BARRIER_H_
 
 #include <botan/mutex.h>
-
-#if defined(BOTAN_TARGET_OS_HAS_THREADS)
-   #include <condition_variable>
-#endif
+#include <condition_variable>
 
 namespace Botan {
-
-#if defined(BOTAN_TARGET_OS_HAS_THREADS)
 
 /**
 Barrier implements a barrier synchronization primitive. wait() will
@@ -41,8 +36,6 @@ class Barrier final
       mutex_type m_mutex;
       std::condition_variable m_cond;
    };
-
-#endif
 
 }
 

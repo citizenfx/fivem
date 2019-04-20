@@ -23,7 +23,7 @@ LONG WINAPI ProcessLSPRegOpenKeyExA(HKEY key, const char* subKey, DWORD options,
 
             setValue(L"AppFullPath", modulePath);
             
-            DWORD permittedCategories = 0x80000000;
+            DWORD permittedCategories = 0;
             RegSetKeyValue(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\AppID_Catalog", L"PermittedLspCategories", REG_DWORD, &permittedCategories, sizeof(permittedCategories));
 
             LONG status = g_origRegOpenKeyExA(HKEY_CURRENT_USER, "SOFTWARE\\CitizenFX\\AppID_Catalog", options, samDesired, outKey);
@@ -135,10 +135,18 @@ NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
 
 	if (NtQueryObject(Handle, (OBJECT_INFORMATION_CLASS)4, &info, sizeof(OBJECT_HANDLE_ATTRIBUTE_INFORMATION), nullptr) >= 0)
 	{
+		DWORD flags = 0;
+
+		if (GetHandleInformation(Handle, &flags) && (flags & HANDLE_FLAG_PROTECT_FROM_CLOSE) != 0)
+		{
+			return STATUS_SUCCESS;
+		}
+
 		return origClose(Handle);
 	}
 	
-	return STATUS_INVALID_HANDLE;
+	//return STATUS_INVALID_HANDLE;
+	return STATUS_SUCCESS;
 }
 
 

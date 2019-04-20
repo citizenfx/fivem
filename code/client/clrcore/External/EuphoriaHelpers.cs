@@ -137,7 +137,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </summary>
 		public AnimSource AnimSource
 		{
-			set { SetArgument("animSource", (int) value); }
+			set { SetArgument("animSource", (int)value); }
 		}
 	}
 
@@ -1113,7 +1113,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public FallType FallType
 		{
-			set { SetArgument("fallType", (int) value); }
+			set { SetArgument("fallType", (int)value); }
 		}
 
 		/// <summary>
@@ -2027,7 +2027,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TorqueMode TorqueMode
 		{
-			set { SetArgument("torqueMode", (int) value); }
+			set { SetArgument("torqueMode", (int)value); }
 		}
 
 		/// <summary>
@@ -2039,7 +2039,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TorqueSpinMode TorqueSpinMode
 		{
-			set { SetArgument("torqueSpinMode", (int) value); }
+			set { SetArgument("torqueSpinMode", (int)value); }
 		}
 
 		/// <summary>
@@ -2050,7 +2050,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TorqueFilterMode TorqueFilterMode
 		{
-			set { SetArgument("torqueFilterMode", (int) value); }
+			set { SetArgument("torqueFilterMode", (int)value); }
 		}
 
 		/// <summary>
@@ -2943,7 +2943,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>.
 		public RbTwistAxis RbTwistAxis
 		{
-			set { SetArgument("rbTwistAxis", (int) value); }
+			set { SetArgument("rbTwistAxis", (int)value); }
 		}
 
 		/// <summary>
@@ -3066,7 +3066,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TorqueMode TorqueMode
 		{
-			set { SetArgument("torqueMode", (int) value); }
+			set { SetArgument("torqueMode", (int)value); }
 		}
 
 		/// <summary>
@@ -3078,7 +3078,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TorqueSpinMode TorqueSpinMode
 		{
-			set { SetArgument("torqueSpinMode", (int) value); }
+			set { SetArgument("torqueSpinMode", (int)value); }
 		}
 
 		/// <summary>
@@ -3089,7 +3089,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TorqueFilterMode TorqueFilterMode
 		{
-			set { SetArgument("torqueFilterMode", (int) value); }
+			set { SetArgument("torqueFilterMode", (int)value); }
 		}
 
 		/// <summary>
@@ -3982,7 +3982,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>.
 		public RbTwistAxis RbTwistAxis
 		{
-			set { SetArgument("rbTwistAxis", (int) value); }
+			set { SetArgument("rbTwistAxis", (int)value); }
 		}
 
 		/// <summary>
@@ -5910,7 +5910,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>.
 		public WeaponMode WeaponMode
 		{
-			set { SetArgument("weaponMode", (int) value); }
+			set { SetArgument("weaponMode", (int)value); }
 		}
 	}
 
@@ -5938,7 +5938,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public Hand Hand
 		{
-			set { SetArgument("hand", (int) value); }
+			set { SetArgument("hand", (int)value); }
 		}
 
 		/// <summary>
@@ -6153,7 +6153,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public Hand GunHandEnum
 		{
-			set { SetArgument("gunHandEnum", (int) value); }
+			set { SetArgument("gunHandEnum", (int)value); }
 		}
 
 		/// <summary>
@@ -8492,7 +8492,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </summary>
 		public AnimSource AnimSource
 		{
-			set { SetArgument("animSource", (int) value); }
+			set { SetArgument("animSource", (int)value); }
 		}
 
 		/// <summary>
@@ -8980,7 +8980,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public MirrorMode MirrorMode
 		{
-			set { SetArgument("mirrorMode", (int) value); }
+			set { SetArgument("mirrorMode", (int)value); }
 		}
 
 		/// <summary>
@@ -8991,7 +8991,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public AdaptiveMode AdaptiveMode
 		{
-			set { SetArgument("adaptiveMode", (int) value); }
+			set { SetArgument("adaptiveMode", (int)value); }
 		}
 
 		/// <summary>
@@ -9271,7 +9271,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public ArmDirection ArmDirection
 		{
-			set { SetArgument("armDirection", (int) value); }
+			set { SetArgument("armDirection", (int)value); }
 		}
 
 		/// <summary>
@@ -14329,7 +14329,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public TurnType TurnToTarget
 		{
-			set { SetArgument("turnToTarget", (int) value); }
+			set { SetArgument("turnToTarget", (int)value); }
 		}
 
 		/// <summary>
@@ -15341,7 +15341,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public Synchroisation Arms2LegsSync
 		{
-			set { SetArgument("arms2LegsSync", (int) value); }
+			set { SetArgument("arms2LegsSync", (int)value); }
 		}
 
 		/// <summary>
@@ -22736,7 +22736,7 @@ namespace CitizenFX.Core.NaturalMotion
 		/// </remarks>
 		public Synchroisation Arms2LegsSync
 		{
-			set { SetArgument("arms2LegsSync", (int) value); }
+			set { SetArgument("arms2LegsSync", (int)value); }
 		}
 
 		/// <summary>

@@ -20,7 +20,7 @@ namespace Botan {
 * Ciphers: BEAR and LION". It has a variable block size and is
 * designed to encrypt very large blocks (up to a megabyte)
 
-* http://www.cl.cam.ac.uk/~rja14/Papers/bear-lion.pdf
+* https://www.cl.cam.ac.uk/~rja14/Papers/bear-lion.pdf
 */
 class BOTAN_PUBLIC_API(2,0) Lion final : public BlockCipher
    {

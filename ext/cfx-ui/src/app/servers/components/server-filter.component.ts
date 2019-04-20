@@ -22,6 +22,15 @@ export class ServerFilters {
     }
 }
 
+export class ServerTags {
+    public tagList: {[key: string]: boolean};
+}
+
+export class ServerFilterContainer {
+    public filters: ServerFilters;
+    public tags: ServerTags;
+}
+
 class ServerAutocompleteEntry {
     public name = '';
     public description = '';
@@ -67,20 +76,20 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
 
     constructor(private serversService: ServersService, private gameService: GameService) {
         this.serversService
-            .getServers()
+            .getReplayedServers()
             .filter(server => !server)
             .subscribe(server => this.isRefreshing = false);
 
         this.serversService
-            .getServers()
+            .getReplayedServers()
             .filter(server => !!server)
             .subscribe(server => {
                 this.addAutocompleteIndex(server);
             });
 
-        this.refreshEvent
+/*        this.refreshEvent
             .throttleTime(10000)
-            .subscribe(() => { this.wantsToBeRefreshing = false; this.isRefreshing = true; this.serversService.refreshServers() });
+            .subscribe(() => { this.wantsToBeRefreshing = false; this.isRefreshing = true; this.serversService.refreshServers() });*/
     }
 
     addAutocompleteIndex(server: Server) {
@@ -272,7 +281,7 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     acceptAutocomplete(entry: ServerAutocompleteEntry) {
-        if (entry.completion !== '') {
+        if (entry && entry.completion !== '') {
             this.filters.searchText = this.filters.searchText.replace(/(\s?)([^\s]*)$/, (str, space) => space + entry.completion) + ' ';
             this.filtersChanged.emit(this.filters);
 
@@ -298,7 +307,7 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
             }
 
             event.preventDefault();
-        } else if (event.keyCode === 13 || event.keyCode === 32) { // enter
+        } else if (event.keyCode === 13 || event.keyCode === 9) { // enter
             this.acceptAutocomplete(this.searchAutocomplete[this.selectedCompletionIndex]);
 
             event.preventDefault();

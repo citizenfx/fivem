@@ -1,0 +1,2 @@
+T:System.Security.SecurityCriticalAttribute
+T:System.Security.SecuritySafeCriticalAttribute

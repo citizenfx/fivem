@@ -180,7 +180,7 @@ PEM_encode_encrypted_pbkdf_msec(const Private_Key& key,
 /**
 * Load an encrypted key from a data source.
 * @param source the data source providing the encoded key
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @param get_passphrase a function that returns passphrases
 * @return loaded private key object
 */
@@ -190,7 +190,7 @@ BOTAN_PUBLIC_API(2,0) Private_Key* load_key(DataSource& source,
 
 /** Load an encrypted key from a data source.
 * @param source the data source providing the encoded key
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @param pass the passphrase to decrypt the key
 * @return loaded private key object
 */
@@ -200,7 +200,7 @@ BOTAN_PUBLIC_API(2,0) Private_Key* load_key(DataSource& source,
 
 /** Load an unencrypted key from a data source.
 * @param source the data source providing the encoded key
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @return loaded private key object
 */
 BOTAN_PUBLIC_API(2,0) Private_Key* load_key(DataSource& source,
@@ -210,7 +210,7 @@ BOTAN_PUBLIC_API(2,0) Private_Key* load_key(DataSource& source,
 /**
 * Load an encrypted key from a file.
 * @param filename the path to the file containing the encoded key
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @param get_passphrase a function that returns passphrases
 * @return loaded private key object
 */
@@ -220,7 +220,7 @@ BOTAN_PUBLIC_API(2,0) Private_Key* load_key(const std::string& filename,
 
 /** Load an encrypted key from a file.
 * @param filename the path to the file containing the encoded key
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @param pass the passphrase to decrypt the key
 * @return loaded private key object
 */
@@ -230,7 +230,7 @@ BOTAN_PUBLIC_API(2,0) Private_Key* load_key(const std::string& filename,
 
 /** Load an unencrypted key from a file.
 * @param filename the path to the file containing the encoded key
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @return loaded private key object
 */
 BOTAN_PUBLIC_API(2,0) Private_Key* load_key(const std::string& filename,
@@ -240,7 +240,7 @@ BOTAN_PUBLIC_API(2,0) Private_Key* load_key(const std::string& filename,
 /**
 * Copy an existing encoded key object.
 * @param key the key to copy
-* @param rng ignored for compatability
+* @param rng ignored for compatibility
 * @return new copy of the key
 */
 BOTAN_PUBLIC_API(2,0) Private_Key* copy_key(const Private_Key& key,

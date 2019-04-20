@@ -14,6 +14,8 @@
 
 #include <MinHook.h>
 
+#include <GameInit.h>
+
 #include <scrEngine.h>
 #include <ScriptEngine.h>
 
@@ -336,6 +338,11 @@ static hook::cdecl_stub<bool()> isSessionStarted([] ()
 	return hook::pattern("74 0E 83 B9 ? ? 00 00 ? 75 05 B8 01").count(1).get(0).get<void>(-12);
 });
 
+static hook::cdecl_stub<void(int reason, int, int, int, bool)> networkBail([]()
+{
+	return hook::get_pattern("41 8B F1 41 8B E8 8B FA 8B D9 74 26", -0x1B);
+});
+
 static bool(*_isScWaitingForInit)();
 
 #include <HostSystem.h>
@@ -574,6 +581,39 @@ struct
 				state = HS_IDLE;
 			}
 		}
+		else if (state == HS_HOSTED || state == HS_JOINED)
+		{
+			int playerCount = 0;
+
+			for (int i = 0; i < 256; i++)
+			{
+				// NETWORK_IS_PLAYER_ACTIVE
+				if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
+				{
+					++playerCount;
+				}
+			}
+
+			if (isNetworkHost() && playerCount == 1 && !cgi->OneSyncEnabled && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
+			{
+				state = HS_MISMATCH;
+			}
+		}
+		else if (state == HS_MISMATCH)
+		{
+			cgi->ClearVariable("networkInited");
+
+			networkBail(7, -1, -1, -1, true);
+
+			state = HS_DISCONNECTING;
+		}
+		else if (state == HS_DISCONNECTING)
+		{
+			if (!isSessionStarted())
+			{
+				state = HS_LOADED;
+			}
+		}
 	}
 } hostSystem;
 
@@ -740,16 +780,23 @@ static HookFunction initFunction([]()
 				gameLoaded = true;
 			});
 
+			OnKillNetwork.Connect([](const char*)
+			{
+				gameLoaded = false;
+			});
+
 			eventConnected = true;
 		}
 
 		if (gameLoaded && doTickThisFrame)
 		{
 			gameLoaded = false;
+
+			trace("dlc mounts: %d\n", *g_dlcMountCount);
 			
-			if (*g_dlcMountCount != 122)
+			if (*g_dlcMountCount != 132)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 122);
+				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
 
 				return;
 			}
@@ -1119,6 +1166,11 @@ static void SendMetric(const std::string& metric)
 	auto utils = reinterpret_cast<terminal::IUtils1*>(terminalClient->GetUtilsService(terminal::IUtils1::InterfaceID).GetDetail());
 
 	utils->SendRandomString("cfx_metric [ \"" + g_globalServerAddress + "\", \"" + metric + "\" ]");*/
+
+	/*Instance<HttpClient>::Get()->DoPostRequest("http://195.154.161.214:1880/log_fivem_metric", metric, [](bool, const char*, size_t)
+	{
+
+	});*/
 }
 
 struct CMsgJoinResponse
@@ -1286,10 +1338,12 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 	while (_isScWaitingForInit())
 	{
 		// 1365
-		((void(*)())0x1400067AC)();
-		((void(*)())0x1407D60E4)();
-		((void(*)())0x140025CFC)();
-		((void(*)())0x14156494C)();
+		// 1493
+		// 1604
+		((void(*)())0x1400067E8)();
+		((void(*)())0x1407D1960)();
+		((void(*)())0x140025F7C)();
+		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0); // rly? renderthreadinterface stuff
 
 		Sleep(0);
 	}
@@ -1670,7 +1724,7 @@ static HookFunction hookFunction([] ()
 	g_isNetGame = (bool*)(location + *(int32_t*)location + 4 + 1); // 1 as end of instruction is after '00', cmp
 
 	// CMsgJoinResponse sending
-	location = hook::pattern("48 8D 4C 24 28 41 B8 00 02 00 00 E8").count(1).get(0).get<char>(11);
+	location = hook::pattern("48 8D 4C 24 30 41 B8 00 02 00 00 E8").count(1).get(0).get<char>(11);
 
 	hook::set_call(&g_origJoinResponse, location);
 	hook::call(location, HookSendJoinResponse);
@@ -1730,7 +1784,8 @@ static HookFunction hookFunction([] ()
 	//hook::put<uint16_t>(hook::get_pattern("0F 85 60 01 00 00 48 8B 1D", 0), 0xE990);
 
 	// change session count
-	hook::put<uint32_t>(hook::get_pattern("C7 87 ? ? ? 00 18 00 00 00", 6), 0x40 >> 1);
+	// 1604 changed this address to be a bit more specific
+	hook::put<uint32_t>(hook::get_pattern("89 B7 ? ? 00 00 C7 87 ? ? ? 00 18 00 00 00", 12), 0x40 >> 1);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()
@@ -1746,7 +1801,8 @@ static HookFunction hookFunction([] ()
 
 	// network timeout
 	{
-		*hook::get_address<int*>(hook::get_pattern("BA 2B 2F A8 09 48 8B CF E8", 0x1B)) *= 2.5f;
+		// ADD THIS BACK
+		//*hook::get_address<int*>(hook::get_pattern("BA 2B 2F A8 09 48 8B CF E8", 0x1B)) *= 2.5f;
 	}
 
 	// find autoid descriptors
@@ -1833,4 +1889,14 @@ static HookFunction hookFunction([] ()
 		hook::set_call(&_origLoadMeta, location);
 		hook::call(location, WaitForScAndLoadMeta);
 	}
+
+	// default netnoupnp and netnopcp to true
+	auto netNoUpnp = hook::get_address<int*>(hook::get_pattern("8A D1 76 02 B2 01 48 39 0D", 9));
+	auto netNoPcp = hook::get_address<int*>(hook::get_pattern("8A D1 EB 02 B2 01 48 39 0D", 9));
+
+	OnGameFrame.Connect([netNoPcp, netNoUpnp]()
+	{
+		*netNoUpnp = TRUE;
+		*netNoPcp = TRUE;
+	});
 });

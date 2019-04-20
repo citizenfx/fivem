@@ -35,17 +35,17 @@ inline std::string ConvertSpsName_NY_Five(const char* oldSps)
 
 	if (strstr(oldSps, "3lyr") || strstr(oldSps, "2lyr"))
 	{
-		return "terrain_cb_4lyr_lod.sps"; // regular 4lyr has bump mapping/normals
+		return "terrain_cb_4lyr.sps"; // regular 4lyr has bump mapping/normals
 	}
 
 	if (strstr(oldSps, "va_4lyr"))
 	{
-		return "terrain_cb_4lyr_lod.sps"; // regular 4lyr has bump mapping/normals
+		return "terrain_cb_4lyr.sps"; // regular 4lyr has bump mapping/normals
 	}
 
 	if (strstr(oldSps, "gta_wire"))
 	{
-		return "cable.sps";
+		return "default.sps";
 	}
 
 	if (strstr(oldSps, "gta_"))
@@ -62,12 +62,17 @@ inline std::string ConvertShaderName_NY_Five(const char* oldSps)
 {
 	if (strstr(oldSps, "3lyr") || strstr(oldSps, "2lyr"))
 	{
-		return "terrain_cb_4lyr_lod";
+		return "terrain_cb_4lyr";
+	}
+
+	if (strstr(oldSps, "va_4lyr"))
+	{
+		return "terrain_cb_4lyr";
 	}
 
 	if (strstr(oldSps, "gta_wire"))
 	{
-		return "cable";
+		return "default";
 	}
 
 	if (strstr(oldSps, "gta_"))
@@ -266,19 +271,14 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 				{
 					newShader->SetParameter("specularIntensityMult", &multiplier, sizeof(multiplier));
 				}
+
+				multiplier[0] *= 125.0f;
+
+				if (newShader->GetParameter("SpecularFalloffMult"))
+				{
+					newShader->SetParameter("SpecularFalloffMult", &multiplier, sizeof(multiplier));
+				}
 			}
-		}
-
-		if (auto falloffMult = newShader->GetParameter("SpecularFalloffMult"); falloffMult != nullptr)
-		{
-			float falloffMultValue[] = { *(float*)falloffMult->GetValue() * 4.0f, 0.0f, 0.0f, 0.0f };
-
-			if (newShaderName.find("decal") == 0)
-			{
-				falloffMultValue[0] = 100.f;
-			}
-
-			memcpy(falloffMult->GetValue(), falloffMultValue, sizeof(falloffMultValue));
 		}
 
 		if (auto emissiveMult = newShader->GetParameter("EmissiveMultiplier"); emissiveMult != nullptr)
@@ -298,6 +298,27 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 			// add missing layer2/3 maps
 			if (newShaderName == "terrain_cb_4lyr_lod")
 			{
+				int missingEntries = newShader->GetResourceCount() - rescount;
+
+				if (missingEntries >= 1)
+				{
+					newShader->SetParameter("TextureSampler_layer3", "none");
+				}
+
+				if (missingEntries >= 2)
+				{
+					newShader->SetParameter("TextureSampler_layer2", "none");
+				}
+			}
+			else if (newShaderName == "terrain_cb_4lyr")
+			{
+				newShader->SetParameter("BumpSampler_layer0", "none");
+				newShader->SetParameter("BumpSampler_layer1", "none");
+				newShader->SetParameter("BumpSampler_layer2", "none");
+				newShader->SetParameter("BumpSampler_layer3", "none");
+
+				rescount += 4;
+
 				int missingEntries = newShader->GetResourceCount() - rescount;
 
 				if (missingEntries >= 1)
@@ -477,11 +498,8 @@ five::grmModel* convert(ny::grmModel* model)
 	return out;
 }
 
-template<>
-five::gtaDrawable* convert(ny::gtaDrawable* drawable)
+inline void ConvertBaseDrawable(ny::rmcDrawable* drawable, five::gtaDrawable* out)
 {
-	auto out = new(false) five::gtaDrawable;
-
 	auto& oldLodGroup = drawable->GetLodGroup();
 
 	out->SetBlockMap();
@@ -489,7 +507,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 	out->SetShaderGroup(convert<five::grmShaderGroup*>(drawable->GetShaderGroup()));
 
 	auto& lodGroup = out->GetLodGroup();
-	
+
 	Vector3 minBounds = oldLodGroup.GetBoundsMin();
 	minBounds = Vector3(minBounds.x - oldLodGroup.GetRadius(), minBounds.y - oldLodGroup.GetRadius(), minBounds.z - oldLodGroup.GetRadius());
 
@@ -542,6 +560,14 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 
 	out->SetPrimaryModel();
 	out->SetName("lovely.#dr");
+}
+
+template<>
+five::gtaDrawable* convert(ny::gtaDrawable* drawable)
+{
+	auto out = new(false) five::gtaDrawable;
+
+	ConvertBaseDrawable(drawable, out);
 
 	if (drawable->GetNumLightAttrs())
 	{
@@ -559,7 +585,7 @@ five::gtaDrawable* convert(ny::gtaDrawable* drawable)
 			outAttr.color[1] = inAttr.color[1];
 			outAttr.color[2] = inAttr.color[2];
 			outAttr.flashiness = inAttr.flashiness;
-			outAttr.intensity = inAttr.lightIntensity;
+			outAttr.intensity = inAttr.lightIntensity / 10.f;
 			outAttr.flags = inAttr.flags;
 			outAttr.boneID = inAttr.boneID;
 			outAttr.lightType = inAttr.lightType;
@@ -626,6 +652,15 @@ five::pgDictionary<five::gtaDrawable>* convert(ny::pgDictionary<ny::gtaDrawable>
 	}
 
 	out->SetFrom(&newDrawables);
+
+	return out;
+}
+
+template<>
+five::gtaDrawable* convert(ny::fragType* frag)
+{
+	auto out = new(false) five::gtaDrawable;
+	ConvertBaseDrawable(frag->GetDrawable(), out);
 
 	return out;
 }

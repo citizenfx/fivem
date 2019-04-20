@@ -12,6 +12,7 @@
 #define BOTAN_ED25519_FE_H_
 
 #include <botan/mem_ops.h>
+#include <botan/exceptn.h>
 
 namespace Botan {
 
@@ -29,16 +30,16 @@ class FE_25519
       FE_25519(int init = 0)
          {
          if(init != 0 && init != 1)
-            { throw std::invalid_argument("Invalid FE_25519 initial value"); }
-         memset(m_fe, 0, 10 * sizeof(int32_t));
+            throw Invalid_Argument("Invalid FE_25519 initial value");
+         clear_mem(m_fe, 10);
          m_fe[0] = init;
          }
 
       FE_25519(std::initializer_list<int32_t> x)
          {
          if(x.size() != 10)
-            { throw std::invalid_argument("Invalid FE_25519 initializer list"); }
-         memcpy(m_fe, x.begin(), 10 * sizeof(int32_t));
+            throw Invalid_Argument("Invalid FE_25519 initializer list");
+         copy_mem(m_fe, x.begin(), 10);
          }
 
       FE_25519(int64_t h0, int64_t h1, int64_t h2, int64_t h3, int64_t h4,
@@ -59,10 +60,8 @@ class FE_25519
       FE_25519(const FE_25519& other) = default;
       FE_25519& operator=(const FE_25519& other) = default;
 
-#if !defined(BOTAN_BUILD_COMPILER_IS_MSVC_2013)
       FE_25519(FE_25519&& other) = default;
       FE_25519& operator=(FE_25519&& other) = default;
-#endif
 
       void from_bytes(const uint8_t b[32]);
       void to_bytes(uint8_t b[32]) const;

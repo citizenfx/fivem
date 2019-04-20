@@ -24,6 +24,8 @@ fwEvent<const std::string&> OnRichPresenceSetTemplate;
 fwEvent<int, const std::string&> OnRichPresenceSetValue;
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
+std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV3(INetLibraryInherit* base);
+std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV4(INetLibraryInherit* base);
 
 #define TIMEOUT_DATA_SIZE 16
 
@@ -76,6 +78,13 @@ inline ISteamComponent* GetSteam()
 		}
 	}
 
+	// if private client is unavailable, panic out
+	// (usually caused by inaccurate Steam client DLL emulation/wrappers)
+	if (!steamComponent->GetPrivateClient())
+	{
+		return nullptr;
+	}
+
 	return steamComponent;
 }
 
@@ -114,11 +123,21 @@ void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, i
 	m_serverSlotID = slotID;
 	m_serverTime = serverTime;
 
+	m_reconnectAttempts = 0;
+	m_lastReconnect = 0;
+
 	trace("connectOK, our id %d (slot %d), host id %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
 
 	OnConnectOKReceived(m_currentServer);
 
-	m_connectionState = CS_CONNECTED;
+	if (m_connectionState != CS_ACTIVE)
+	{
+		m_connectionState = CS_CONNECTED;
+	}
+	else
+	{
+		Instance<ICoreGameInit>::Get()->ClearVariable("networkTimedOut");
+	}
 }
 
 bool NetLibrary::GetOutgoingPacket(RoutingPacket& packet)
@@ -301,12 +320,12 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			{
 				auto steam = GetSteam();
 
-				char hostname[256] = { 0 };
-				strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 255);
+				static char hostname[8192] = { 0 };
+				strncpy(hostname, Info_ValueForKey(infoString, "hostname"), 8191);
 
-				char cleaned[256];
+				static char cleaned[8192];
 
-				StripColors(hostname, cleaned, 256);
+				StripColors(hostname, cleaned, 8192);
 
 #ifdef GTA_FIVE
 				SetWindowText(FindWindow(L"grcWindow", nullptr), va(L"FiveM - %s", ToWide(cleaned)));
@@ -365,6 +384,9 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			m_connectionState = CS_CONNECTING;
 			m_lastConnect = 0;
 			m_connectAttempts = 0;
+
+			m_lastReconnect = 0;
+			m_reconnectAttempts = 0;
 		}
 		else if (!_strnicmp(oob, "error", 5))
 		{
@@ -465,18 +487,26 @@ inline uint64_t GetGUID()
 	{
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
-		InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-		if (steamUser.IsValid())
+		if (steamClient)
 		{
-			uint64_t steamID;
-			steamUser.Invoke<void>("GetSteamID", &steamID);
+			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
 
-			return steamID;
+			if (steamUser.IsValid())
+			{
+				uint64_t steamID;
+				steamUser.Invoke<void>("GetSteamID", &steamID);
+
+				return steamID;
+			}
 		}
 	}
 
 	return (uint64_t)(0x210000100000000 | m_tempGuid);
+}
+
+uint64_t NetLibrary::GetGUID()
+{
+	return ::GetGUID();
 }
 
 void NetLibrary::RunMainFrame()
@@ -596,6 +626,42 @@ void NetLibrary::RunFrame()
 				m_connectionState = CS_IDLE;
 				m_currentServer = NetAddress();
 			}
+			else if (m_impl->IsDisconnected())
+			{
+				if ((GetTickCount() - m_lastReconnect) > 5000)
+				{
+					m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
+
+					m_lastReconnect = GetTickCount();
+
+					m_reconnectAttempts++;
+
+					// advertise status
+					auto specStatus = (m_reconnectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_reconnectAttempts) : "";
+
+					OnReconnectProgress(fmt::sprintf("Connection interrupted!\nReconnecting to server...%s", specStatus));
+				}
+				else if (m_reconnectAttempts == 0)
+				{
+					Instance<ICoreGameInit>::Get()->SetVariable("networkTimedOut");
+
+					OnReconnectProgress("Connection interrupted!\nReconnecting to server SOON!");
+				}
+
+				if (m_reconnectAttempts > 10)
+				{
+					g_disconnectReason = "Connection timed out.";
+					FinalizeDisconnect();
+
+					OnConnectionTimedOut();
+
+					GlobalError("Failed to reconnect to server after 10 attempts.");
+				}
+			}
+			else
+			{
+				m_lastReconnect = GetTickCount() - 2500;
+			}
 
 			break;
 	}
@@ -704,6 +770,13 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
 
+	std::string gameBuild;
+
+	if (Instance<ICoreGameInit>::Get()->GetData("gameBuild", &gameBuild))
+	{
+		postMap["gameBuild"] = gameBuild;
+	}
+
 	static std::function<void()> performRequest;
 
 	postMap["guid"] = va("%lld", GetGUID());
@@ -726,12 +799,11 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			// TODO: add UI output
 			m_connectionState = CS_IDLE;
 
-			//nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: 'General handshake failure.' }, '*');");
 			OnConnectionError(va("Failed handshake to server %s:%d%s%s.", m_currentServer.GetAddress(), m_currentServer.GetPort(), connData.length() > 0 ? " - " : "", connData));
 
 			return;
 		}
-		else if (!isLegacyDeferral)
+		else if (!isLegacyDeferral && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 		{
 			OnConnectionError(va("Failed handshake to server %s:%d - it closed the connection while deferring.", m_currentServer.GetAddress(), m_currentServer.GetPort()));
 		}
@@ -820,6 +892,9 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
 			Instance<ICoreGameInit>::Get()->OneSyncEnabled = (node["onesync"].IsDefined() && node["onesync"].as<bool>(false));
+			Instance<ICoreGameInit>::Get()->NetProtoVersion = (node["bitVersion"].IsDefined() ? node["bitVersion"].as<uint64_t>(0) : 0);
+
+			AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
 
 			m_serverProtocol = node["protocol"].as<uint32_t>();
 
@@ -895,6 +970,14 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			if (node["netlibVersion"].as<int>(1) == 2)
 			{
 				m_impl = CreateNetLibraryImplV2(this);
+			}
+			else if (node["netlibVersion"].as<int>(1) == 3)
+			{
+				m_impl = CreateNetLibraryImplV3(this);
+			}
+			else if (node["netlibVersion"].as<int>(1) == 4)
+			{
+				m_impl = CreateNetLibraryImplV4(this);
 			}
 			else
 			{
@@ -1008,30 +1091,25 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 	auto initiateRequest = [this, address, continueRequest]()
 	{
-		OnConnectionProgress("Requesting authentication ticket...", 0, 100);
-
-		m_httpClient->DoPostRequest("https://lambda.fivem.net/api/ticket/create", { { "token", ros::GetEntitlementSource() }, { "server", address.ToString() }, { "guid", fmt::sprintf("%lld", GetGUID()) } }, [=](bool success, const char* data, size_t dataLen)
+		if (OnInterceptConnectionForAuth(address, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
 		{
 			if (success)
 			{
-				auto node = YAML::Load(std::string(data, dataLen));
-
-				if (node["error"].IsDefined())
+				for (const auto& entry : additionalPostData)
 				{
-					OnConnectionError(va("%s", node["error"].as<std::string>()));
-
-					m_connectionState = CS_IDLE;
-
-					return;
+					postMap[entry.first] = entry.second;
 				}
-				else if (node["ticket"].IsDefined())
-				{
-					postMap["cfxTicket"] = node["ticket"].as<std::string>();
-				}
+
+				continueRequest();
 			}
-
+			else
+			{
+				m_connectionState = CS_IDLE;
+			}
+		}))
+		{
 			continueRequest();
-		});
+		}
 	};
 
 	if (OnInterceptConnection(address, initiateRequest))
@@ -1107,11 +1185,13 @@ void NetLibrary::SendOutOfBand(const NetAddress& address, const char* format, ..
 	SendData(address, buffer, strlen(buffer));
 }
 
+bool NetLibrary::IsPendingInGameReconnect()
+{
+	return (m_connectionState == CS_ACTIVE && m_impl->IsDisconnected());
+}
+
 const char* NetLibrary::GetPlayerName()
 {
-	/*
-	ProfileManager* profileManager = Instance<ProfileManager>::Get();
-	fwRefContainer<Profile> profile = profileManager->GetPrimaryProfile();*/
 	if (!m_playerName.empty()) return m_playerName.c_str();
 
 	auto steamComponent = GetSteam();
@@ -1134,31 +1214,32 @@ const char* NetLibrary::GetPlayerName()
 		}
 	}
 
-	const char* returnName = nullptr;
-	/*
-	if (profile.GetRef())
-	{
-		returnName = profile->GetDisplayName();
-	}
-	else
-	{
-		static char computerName[64];
-		DWORD nameSize = sizeof(computerName);
-		GetComputerNameA(computerName, &nameSize);
+	static std::wstring returnNameWide;
+	static std::string returnName;
 
-		returnName = computerName;
-	}*/
-	returnName = getenv("USERNAME");
-	if (returnName == nullptr || !returnName[0]) {
-		static char computerName[64];
-		DWORD nameSize = sizeof(computerName);
-		GetComputerNameA(computerName, &nameSize);
-		returnName = computerName;
+	auto envName = _wgetenv(L"USERNAME");
+
+	if (envName != nullptr)
+	{
+		returnNameWide = envName;
 	}
-	if (returnName == nullptr || !returnName[0]) {
-		returnName = "Unknown Solderer";
+
+	if (returnNameWide.empty())
+	{
+		static wchar_t computerName[64];
+		DWORD nameSize = _countof(computerName);
+		GetComputerNameW(computerName, &nameSize);
+		returnNameWide = computerName;
 	}
-	return returnName;
+
+	if (returnNameWide.empty())
+	{
+		returnNameWide = L"UnknownPlayer";
+	}
+
+	returnName = ToNarrow(returnNameWide);
+
+	return returnName.c_str();
 }
 
 void NetLibrary::SetPlayerName(const char* name)

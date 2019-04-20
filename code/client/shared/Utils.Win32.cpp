@@ -14,6 +14,8 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include <Error.h>
+
 fwPlatformString GetAbsoluteCitPath()
 {
 	static fwPlatformString citizenPath;
@@ -189,7 +191,7 @@ void SetThreadName(int dwThreadID, const char* threadName)
 		memcpy(record.ExceptionInformation, &info, sizeof(info));
 		record.ExceptionRecord = &record;
 
-		DoNtRaiseException(&record);			
+		DoNtRaiseException(&record);
 	}
 }
 
@@ -213,3 +215,22 @@ void AddCrashometry(const std::string& key, const std::string& format, const fmt
 		fclose(f);
 	}
 }
+
+#if !defined(COMPILING_SHARED_LIBC)
+void __cdecl _wwassert(
+	_In_z_ wchar_t const* _Message,
+	_In_z_ wchar_t const* _File,
+	_In_   unsigned       _Line
+)
+{
+	FatalErrorNoExcept("Assertion failure: %s (%s:%d)", ToNarrow(_Message), ToNarrow(_File), _Line);
+
+#if defined(_M_IX86) || defined(_M_AMD64)
+	DWORD oldProtect;
+	VirtualProtect(_ReturnAddress(), 1, PAGE_EXECUTE_READWRITE, &oldProtect);
+	*(uint8_t*)_ReturnAddress() = 0xCC;
+#else
+#error No architecture for asserts?
+#endif
+}
+#endif

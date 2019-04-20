@@ -60,6 +60,9 @@ public:
 	int defaultWeight;
 	int weight;
 	HttpHeaderListPtr responseHeaders;
+	std::shared_ptr<int> responseCode;
+	std::chrono::milliseconds timeoutNoResponse;
+	std::chrono::high_resolution_clock::duration reqStart;
 
 	CurlData();
 
@@ -70,6 +73,9 @@ public:
 
 CurlData::CurlData()
 {
+	timeoutNoResponse = std::chrono::milliseconds(0);
+	reqStart = std::chrono::high_resolution_clock::duration(0);
+
 	writeFunction = [=] (const void* data, size_t size)
 	{
 		ss << std::string((const char*)data, size);
@@ -99,6 +105,11 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 	{
 		long code;
 		curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &code);
+
+		if (this->responseCode)
+		{
+			*this->responseCode = (int)code;
+		}
 
 		if (code >= 400)
 		{
@@ -182,12 +193,13 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 
 						auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
 						(*data)->HandleResult(curl, result);
-						(*data)->curlHandle = nullptr;
-
-						delete data;
 
 						curl_multi_remove_handle(m_impl->multi, curl);
 						curl_easy_cleanup(curl);
+
+						// delete data
+						(*data)->curlHandle = nullptr;
+						delete data;
 					}
 				} while (msg);
 
@@ -262,6 +274,28 @@ static int CurlXferInfo(void *userdata, curl_off_t dltotal, curl_off_t dlnow, cu
 		cd->progressCallback(info);
 	}
 
+	using namespace std::chrono_literals;
+
+	if (cd->timeoutNoResponse != 0ms)
+	{
+		// first progress callback is the start of the timeout
+		// if we do this any earlier, we run the risk of having concurrent connections that
+		// are throttled due to max-connection limit time out instantly
+		if (cd->reqStart.count() == 0)
+		{
+			cd->reqStart = std::chrono::high_resolution_clock::now().time_since_epoch();
+		}
+
+		if (dlnow == 0 && dltotal == 0)
+		{
+			if (std::chrono::high_resolution_clock::now().time_since_epoch() - cd->reqStart > cd->timeoutNoResponse)
+			{
+				// abort due to timeout
+				return 1;
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -273,9 +307,19 @@ static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* use
 	if (cd->responseHeaders)
 	{
 		std::string str(buffer, size * nitems);
-		auto colonPos = str.find_first_of(": ");
+
+		// reset HTTP headers if we followed a Location and got a new HTTP response
+		if (str.find("HTTP/") == 0)
+		{
+			(*cd->responseHeaders).clear();
+		}
+
+		auto colonPos = str.find(": ");
 		
-		(*cd->responseHeaders)[str.substr(0, colonPos)] = str.substr(colonPos + 2, str.length() - 2 - colonPos - 2);
+		if (colonPos != std::string::npos)
+		{
+			(*cd->responseHeaders)[str.substr(0, colonPos)] = str.substr(colonPos + 2, str.length() - 2 - colonPos - 2);
+		}
 	}
 
 	return size * nitems;
@@ -293,6 +337,8 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curlData->impl = impl;
 	curlData->defaultWeight = curlData->weight = options.weight;
 	curlData->responseHeaders = options.responseHeaders;
+	curlData->responseCode = options.responseCode;
+	curlData->timeoutNoResponse = options.timeoutNoResponse;
 
 	auto scb = options.streamingCallback;
 
@@ -400,13 +446,15 @@ public:
 			curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
 
 			auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
-			(*data)->curlHandle = nullptr;
-
-			delete data;
 
 			// remove and delete the handle
 			curl_multi_remove_handle(impl->multi, curl);
 			curl_easy_cleanup(curl);
+
+			// delete cURL data
+			(*data)->curlHandle = nullptr;
+
+			delete data;
 		});
 	}
 };
@@ -481,6 +529,27 @@ HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::stri
 	curlData->postData = postData;
 
 	curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+
+	// write out
+	m_impl->AddCurlHandle(curlHandle);
+
+	return SetupRequestHandle(curlData);
+}
+
+HttpRequestPtr HttpClient::DoMethodRequest(const std::string& method, const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
+{
+	// make handle
+	auto[curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
+
+	if (!postData.empty())
+	{
+		// assign post data
+		curlData->postData = postData;
+
+		curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+	}
+
+	curl_easy_setopt(curlHandle, CURLOPT_CUSTOMREQUEST, method.c_str());
 
 	// write out
 	m_impl->AddCurlHandle(curlHandle);

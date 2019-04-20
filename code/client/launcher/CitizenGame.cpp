@@ -22,6 +22,8 @@
 
 static ILauncherInterface* g_launcher;
 
+void InitializeMiniDumpOverride();
+
 #if defined(PAYNE)
 BYTE g_gmfOrig[5];
 BYTE g_gmfOrigW[5];
@@ -218,6 +220,9 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 
 	// ignore loading 'videos'
 	hook::call(hook::get_pattern("8B F8 48 85 C0 74 47 48 8B C8 E8 ? ? ? ? 4C", -6), DeleteVideo);
+	
+	// draw loading screen even if 'not' enabled
+	hook::nop(hook::get_pattern("0F 29 74 24 30 85 DB", 7), 6);
 
 	// game elements for crash handling purposes
 	char* vtablePtrLoc = hook::pattern("41 89 40 10 49 83 60 18 00 48 8D 05").count(1).get(0).get<char>(12);
@@ -383,6 +388,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
     SetCoreMapping();
 
+	InitializeMiniDumpOverride();
+
 	// get the launcher interface
 	GetLauncherInterface_t getLauncherInterface = (GetLauncherInterface_t)GetProcAddress(gameLibrary, "GetLauncherInterface");
 
@@ -407,7 +414,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	// prevent accidental duplicate instances
-	if (isMainGame && !initState->IsMasterProcess())
+	if (isMainGame && !initState->IsMasterProcess() && !initState->IsGameProcess())
 	{
 		return;
 	}

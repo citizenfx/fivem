@@ -977,7 +977,7 @@
 			<MenuItems>
 				<Item> <cTextId>PM_SCR_MAP</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MAP</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_BRF</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_INFO</MenuUniqueId> </Item>
-				<!--<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>-->
+				<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_GAM</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GAME</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_SET</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS</MenuUniqueId> </Item>
 				<!--<Item> <cTextId>PM_SCR_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MISSION_CREATOR</MenuUniqueId> </Item>
@@ -1008,7 +1008,7 @@
 				<!--<Item> <cTextId>PM_SCR_PLA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_PLAYERS</MenuUniqueId> </Item>-->
 				<!--<Item> <cTextId>PM_SCR_FRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_FRIENDS_MP</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_SCR_INF</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_INFO</MenuUniqueId> </Item>
-				<!--<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>-->
+				<Item> <cTextId>PM_SCR_STA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STATS</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_SET</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS</MenuUniqueId> </Item>
 				<!-- MOVED INTO THE MP MENU
 				<Item> <cTextId>PM_SCR_CRW</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREWS</MenuUniqueId> </Item>
@@ -1962,6 +1962,10 @@
 			<Flags>LayoutChangedOnBack EnterMenuOnMouseClick</Flags>
 			<depth>1</depth>
 			<MenuItems>
+				<Item> <cTextId>PM_REPEAT</cTextId>		<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_REPLAY_MISSION</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> <!--<Contexts>HAS_DONE_MISSIONS</Contexts>--></Item>
+				<Item> <cTextId>PM_REPEATRC</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_REPLAY_RANDOM</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> <!--<Contexts>HAS_DONE_MISSIONS</Contexts>--></Item>
+				<Item> <cTextId>PM_PANE_LOA</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_LOAD_GAME</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
+				<Item> <cTextId>PM_PANE_NEW</cTextId>	<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_NEW_GAME</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
 				<Item> <cTextId>PM_PANE_LEAVE</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SHOW_ACCOUNT_PICKER</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
 				<Item> <cTextId>PM_PANE_QUIT</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_EXIT_TO_WINDOWS</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
 				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT</MenuAction> </Item>

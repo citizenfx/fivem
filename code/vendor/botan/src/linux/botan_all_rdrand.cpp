@@ -1,6 +1,6 @@
 /*
-* Botan 2.3.0 Amalgamation
-* (C) 1999-2013,2014,2015,2016 Jack Lloyd and others
+* Botan 2.10.0 Amalgamation
+* (C) 1999-2018 The Botan Authors
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -8,7 +8,7 @@
 #include "botan_all.h"
 #include "botan_all_internal.h"
 
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__clang__)
 #pragma GCC target ("rdrnd")
 #endif
 /*
@@ -27,8 +27,14 @@ namespace Botan {
 
 RDRAND_RNG::RDRAND_RNG()
    {
-   if(!CPUID::has_rdrand())
-      throw Exception("Current CPU does not support RDRAND instruction");
+   if(!RDRAND_RNG::available())
+      throw Invalid_State("Current CPU does not support RDRAND instruction");
+   }
+
+//static
+bool RDRAND_RNG::available()
+   {
+   return CPUID::has_rdrand();
    }
 
 //static

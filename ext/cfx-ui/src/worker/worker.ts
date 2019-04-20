@@ -1,15 +1,6 @@
-import { Observable } from 'rxjs/Observable';
-import { Subject } from 'rxjs/Subject';
+import { Subject, from } from 'rxjs';
 
-import 'rxjs/add/observable/fromPromise';
-import 'rxjs/add/operator/bufferTime';
-import 'rxjs/add/operator/toPromise';
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/filter';
-import 'rxjs/add/operator/finally';
-import 'rxjs/add/operator/map';
-
-import { Server, ServerIcon, PinConfig } from '../app/servers/server';
+import { bufferTime, mergeMap, finalize } from 'rxjs/operators';
 
 import { master } from '../app/servers/master';
 
@@ -99,23 +90,24 @@ class FrameReader {
 
 onmessage = (e: MessageEvent) => {
     if (e.data.type === 'queryServers') {
-            Observable
-                .fromPromise(fetch(new Request(e.data.url)))
-                .mergeMap(response => {
-                    const subject = new Subject<master.IServer>();
-                    const frameReader = new FrameReader(response.body, this.zone);
+            from(fetch(new Request(e.data.url)))
+                .pipe(
+                    mergeMap(response => {
+                        const subject = new Subject<master.IServer>();
+                        const frameReader = new FrameReader(response.body);
 
-                    frameReader.frame
-                        .subscribe(message => subject.next(master.Server.decode(message)))
+                        frameReader.frame
+                            .subscribe(message => subject.next(master.Server.decode(message)))
 
-                    frameReader.end.subscribe(() => subject.complete());
+                        frameReader.end.subscribe(() => subject.complete());
 
-                    frameReader.beginRead();
+                        frameReader.beginRead();
 
-                    return subject;
-                })
-                .bufferTime(250, null, 50)
-                .finally(() => (<any>postMessage)({ type: 'serversDone' }))
+                        return subject;
+                    }),
+                    bufferTime(250, null, 50),
+                    finalize(() => (<any>postMessage)({ type: 'serversDone' }))
+                )
                 .subscribe(servers => {
                     if (servers.length) {
                         (<any>postMessage)({ type: 'addServers', servers })

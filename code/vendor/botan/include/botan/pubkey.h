@@ -11,6 +11,7 @@
 #include <botan/pk_keys.h>
 #include <botan/pk_ops_fwd.h>
 #include <botan/symkey.h>
+#include <string>
 
 #if defined(BOTAN_HAS_SYSTEM_RNG)
   #include <botan/system_rng.h>
@@ -65,6 +66,11 @@ class BOTAN_PUBLIC_API(2,0) PK_Encryptor
       * @return maximum message size in bytes
       */
       virtual size_t maximum_input_size() const = 0;
+
+      /**
+      * Return an upper bound on the ciphertext length
+      */
+      virtual size_t ciphertext_length(size_t ctext_len) const = 0;
 
       PK_Encryptor() = default;
       virtual ~PK_Encryptor() = default;
@@ -139,6 +145,12 @@ class BOTAN_PUBLIC_API(2,0) PK_Decryptor
                         const uint8_t required_content_bytes[],
                         const uint8_t required_content_offsets[],
                         size_t required_contents) const;
+
+      /**
+      * Return an upper bound on the plaintext length for a particular
+      * ciphertext input length
+      */
+      virtual size_t plaintext_length(size_t ctext_len) const = 0;
 
       PK_Decryptor() = default;
       virtual ~PK_Decryptor() = default;
@@ -217,19 +229,12 @@ class BOTAN_PUBLIC_API(2,0) PK_Signer final
       * @param rng the rng to use
       * @return signature
       */
-      std::vector<uint8_t> sign_message(const std::vector<uint8_t>& in,
-                                     RandomNumberGenerator& rng)
-         { return sign_message(in.data(), in.size(), rng); }
-
-      /**
-      * Sign a message.
-      * @param in the message to sign
-      * @param rng the rng to use
-      * @return signature
-      */
-      std::vector<uint8_t> sign_message(const secure_vector<uint8_t>& in,
-                                     RandomNumberGenerator& rng)
-         { return sign_message(in.data(), in.size(), rng); }
+      template<typename Alloc>
+         std::vector<uint8_t> sign_message(const std::vector<uint8_t, Alloc>& in,
+                                           RandomNumberGenerator& rng)
+         {
+         return sign_message(in.data(), in.size(), rng);
+         }
 
       /**
       * Add a message part (single byte).
@@ -248,7 +253,11 @@ class BOTAN_PUBLIC_API(2,0) PK_Signer final
       * Add a message part.
       * @param in the message part to add
       */
-      void update(const std::vector<uint8_t>& in) { update(in.data(), in.size()); }
+      template<typename Alloc>
+      void update(const std::vector<uint8_t, Alloc>& in)
+         {
+         update(in.data(), in.size());
+         }
 
       /**
       * Add a message part.
@@ -256,7 +265,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Signer final
       */
       void update(const std::string& in)
          {
-         update(reinterpret_cast<const uint8_t*>(in.data()), in.size());
+         update(cast_char_ptr_to_uint8(in.data()), in.size());
          }
 
       /**
@@ -267,11 +276,19 @@ class BOTAN_PUBLIC_API(2,0) PK_Signer final
       */
       std::vector<uint8_t> signature(RandomNumberGenerator& rng);
 
+
       /**
       * Set the output format of the signature.
       * @param format the signature format to use
       */
       void set_output_format(Signature_Format format) { m_sig_format = format; }
+
+      /**
+      * Return an upper bound on the length of the signatures this
+      * PK_Signer will produce
+      */
+      size_t signature_length() const;
+
    private:
       std::unique_ptr<PK_Ops::Signature> m_op;
       Signature_Format m_sig_format;
@@ -347,8 +364,11 @@ class BOTAN_PUBLIC_API(2,0) PK_Verifier final
       * signature to be verified.
       * @param in the new message part
       */
-      void update(const std::vector<uint8_t>& in)
-         { update(in.data(), in.size()); }
+      template<typename Alloc>
+         void update(const std::vector<uint8_t, Alloc>& in)
+         {
+         update(in.data(), in.size());
+         }
 
       /**
       * Add a message part of the message corresponding to the
@@ -356,7 +376,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Verifier final
       */
       void update(const std::string& in)
          {
-         update(reinterpret_cast<const uint8_t*>(in.data()), in.size());
+         update(cast_char_ptr_to_uint8(in.data()), in.size());
          }
 
       /**
@@ -393,7 +413,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Verifier final
    };
 
 /**
-* Key used for key agreement
+* Object used for key agreement
 */
 class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
    {
@@ -435,7 +455,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
       PK_Key_Agreement& operator=(const PK_Key_Agreement&) = delete;
       PK_Key_Agreement(const PK_Key_Agreement&) = delete;
 
-      /*
+      /**
       * Perform Key Agreement Operation
       * @param key_len the desired key output size
       * @param in the other parties key
@@ -449,11 +469,10 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
                               const uint8_t params[],
                               size_t params_len) const;
 
-      /*
+      /**
       * Perform Key Agreement Operation
       * @param key_len the desired key output size
       * @param in the other parties key
-      * @param in_len the length of in in bytes
       * @param params extra derivation params
       * @param params_len the length of params in bytes
       */
@@ -466,7 +485,7 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
                            params, params_len);
          }
 
-      /*
+      /**
       * Perform Key Agreement Operation
       * @param key_len the desired key output size
       * @param in the other parties key
@@ -478,11 +497,11 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
                               const std::string& params = "") const
          {
          return derive_key(key_len, in, in_len,
-                           reinterpret_cast<const uint8_t*>(params.data()),
+                           cast_char_ptr_to_uint8(params.data()),
                            params.length());
          }
 
-      /*
+      /**
       * Perform Key Agreement Operation
       * @param key_len the desired key output size
       * @param in the other parties key
@@ -493,9 +512,16 @@ class BOTAN_PUBLIC_API(2,0) PK_Key_Agreement final
                               const std::string& params = "") const
          {
          return derive_key(key_len, in.data(), in.size(),
-                           reinterpret_cast<const uint8_t*>(params.data()),
+                           cast_char_ptr_to_uint8(params.data()),
                            params.length());
          }
+
+      /**
+      * Return the underlying size of the value that is agreed.
+      * If derive_key is called with a length of 0 with a "Raw"
+      * KDF, it will return a value of this size.
+      */
+      size_t agreed_value_size() const;
 
    private:
       std::unique_ptr<PK_Ops::Key_Agreement> m_op;
@@ -539,6 +565,12 @@ class BOTAN_PUBLIC_API(2,0) PK_Encryptor_EME final : public PK_Encryptor
 
       PK_Encryptor_EME& operator=(const PK_Encryptor_EME&) = delete;
       PK_Encryptor_EME(const PK_Encryptor_EME&) = delete;
+
+      /**
+      * Return an upper bound on the ciphertext length for a particular
+      * plaintext input length
+      */
+      size_t ciphertext_length(size_t ptext_len) const override;
    private:
       std::vector<uint8_t> enc(const uint8_t[], size_t,
                              RandomNumberGenerator& rng) const override;
@@ -577,6 +609,8 @@ class BOTAN_PUBLIC_API(2,0) PK_Decryptor_EME final : public PK_Decryptor
                        const std::string& provider = "") :
          PK_Decryptor_EME(key, system_rng(), eme, provider) {}
 #endif
+
+      size_t plaintext_length(size_t ptext_len) const override;
 
       ~PK_Decryptor_EME();
       PK_Decryptor_EME& operator=(const PK_Decryptor_EME&) = delete;

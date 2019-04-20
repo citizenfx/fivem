@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>CitizenFX.Core.Server</id>
+    <version>0.1.0</version>
+    <authors>CitizenFX</authors>
+    <owners>CitizenFX</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/citizenfx/fivem/blob/master/code/LICENSE</licenseUrl>
+    <projectUrl>https://fivem.net/</projectUrl>
+    <iconUrl>https://camo.githubusercontent.com/6cea51f9fab47feabf68cc6b4e577e2d15b4dcd4/68747470733a2f2f63646e6a732e636c6f7564666c6172652e636f6d2f616a61782f6c6962732f656d6f6a696f6e652f322e322e362f6173736574732f706e672f31663430632e706e67</iconUrl>
+    <description>The *official* server-side reference assembly for the FiveM CitizenFX.Core component.</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2019</copyright>
+    <tags>fivem gta citizenfx</tags>
+  </metadata>
+</package>

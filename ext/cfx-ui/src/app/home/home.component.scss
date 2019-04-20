@@ -1,13 +1,18 @@
 @import "variables";
 
+:host {
+	@include theme() using ($theme) {
+		color: gtv($theme, textColour);
+	};
+
+	@include appContent;
+}
+
 .home {
 	display: flex;
 	justify-content: flex-end;
 
-	@include fullWidthPadded;
-	height: $appContentHeight;
-	margin-top: $appContentMargin;
-	margin-left: $appContentPadding;
+	font-weight: 100;
 
 	iframe {
 		width: 20%;
@@ -16,77 +21,68 @@
 		margin-left: $padding*$multiplier;
 	}
 
-	.feed {
-		position: relative;
-		width: 100%;
+	::ng-deep a {
+        color: inherit;
+    }
 
+	&>div {
+		overflow-y: scroll;
+	}
+
+	.welcome {
+		flex-grow: 1;
 		height: $appContentHeight;
 
-		overflow-y: scroll;
+		font-weight: normal;
 
-		.message {
-			background-color: rgba($bgColour, .2);
+		&>div {
+			padding: $padding;
+			padding-right: $padding/4;
+
+			margin-bottom: $padding/4;
+
+			@include theme() using ($theme) {
+				border-bottom: rgba(gtv($theme, bgColour), .3) 1px solid;
+			};
+
 			border-radius: 1px;
 			transition: all .2s ease;
 
-			.rt {
-				float: right;
+			h1 {
+				font-size: 1.6em;
+				font-weight: normal;
 			}
 
-			::ng-deep a {
-				color: inherit;
-			}
-			
-			.additional {
-				opacity: 0;
-				padding-left: 0;
-				transition: all .2s ease;
+			h2 {
+				font-style: italic;
+				font-weight: normal;
 
-				&:hover {
-					color: #fff;
-				}				
-			}
-			
-			&:hover {
-				background-color: rgba($bgColour, .4);
-			
-				.additional {
-					opacity: 1;
-					padding-left: 5px;
-				}
-			}
-			
-			.backdroppy {
-				padding: $padding $padding $padding $padding*2+4vh;
-
-				margin-bottom: $padding/4;
+				font-size: 0.9em;
 			}
 
-			.message-header {
-				position: relative;
-				margin-bottom: $padding;
-
-				font-size: $fontSize*.7;
-				color: $textColour;
-
-				.avatar {
-					position: absolute;
-					left: -4vh-$padding;
-					width: 4vh;
-					height: 4vh;
-					border-radius: 2px;
-				}
+			::ng-deep p {
+				margin-top: $padding;
 			}
 
-			.message-body {
-				img {
-					width: 40%;
-					height: auto;
-					border-radius: 2px;
-					margin-bottom: $padding/2;
-				}
+			&.oi {
+				@include theme() using ($theme) {
+					background-color: rgba(gtv($theme, yellowColour), .2);
+				};
+
+				border-bottom: none;
 			}
 		}
+	}
+
+	.feed {
+		position: relative;
+		width: 35%;
+
+		@include theme() using ($theme) {
+			border-left: rgba(gtv($theme, bgColour), .3) 1px solid;
+		};
+
+		height: $appContentHeight;
 	}
 }
 

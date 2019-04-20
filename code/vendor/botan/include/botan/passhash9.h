@@ -30,8 +30,8 @@ class RandomNumberGenerator;
 */
 std::string BOTAN_PUBLIC_API(2,0) generate_passhash9(const std::string& password,
                                          RandomNumberGenerator& rng,
-                                         uint16_t work_factor = 10,
-                                         uint8_t alg_id = 1);
+                                         uint16_t work_factor = 15,
+                                         uint8_t alg_id = 4);
 
 /**
 * Check a previously created password hash

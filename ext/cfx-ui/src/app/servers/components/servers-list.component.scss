@@ -14,6 +14,7 @@
 virtual-scroller {
 	display: block;
 	height: 100%;
+	will-change: transform; /* Chrome calls this a 'slow scroll rect' */
 }
 
 /deep/ .scrollable-content {

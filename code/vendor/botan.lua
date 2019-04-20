@@ -15,9 +15,13 @@ return {
 		kind "SharedLib"
 
 		if os.istarget('windows') then
-			defines { "BOTAN_DLL=__declspec(dllexport)" }
+			defines { "BOTAN_DLL=__declspec(dllexport)", "_DISABLE_EXTENDED_ALIGNED_STORAGE" }
 
 			buildoptions '/bigobj'
+			
+			if _OPTIONS['with-asan'] then
+				buildoptions '-mrdrnd -mrdseed'
+			end
 		else
 			defines { "BOTAN_DLL=" }
 
@@ -32,6 +36,13 @@ return {
 				"vendor/botan/src/*.h"
 			}
 		elseif os.istarget('linux') then
+			prebuildcommands {
+				('cp %s %s'):format(
+					path.getabsolute('vendor/botan/include/build_linux.h'),
+					path.getabsolute('vendor/botan/include/botan/build.h')
+				)
+			}
+
 			files {
 				"vendor/botan/src/linux/*.cpp",
 				"vendor/botan/src/linux/*.h"

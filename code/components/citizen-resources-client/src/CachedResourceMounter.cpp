@@ -12,6 +12,8 @@
 
 #include <ResourceManager.h>
 
+#include <StreamingEvents.h>
+
 #include <HttpClient.h>
 #include <VFSRagePackfile.h>
 
@@ -55,7 +57,7 @@ CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager)
 CachedResourceMounter::CachedResourceMounter(fx::ResourceManager* manager, const std::string& cachePath)
 	: m_manager(manager)
 {
-	m_resourceCache = std::make_shared<ResourceCache>(cachePath);
+	m_resourceCache = std::make_shared<ResourceCache>(cachePath, ToNarrow(MakeRelativeCitPath(L"cache/")));
 
 	MountResourceCacheDevice(m_resourceCache);
 }
@@ -81,10 +83,10 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 		// get the host name
 		auto hostRef = uriParsed.host();
 
-		if (hostRef)
+		if (!hostRef.empty())
 		{
 			// convert to a regular string
-			std::string host = hostRef->to_string();
+			std::string host = hostRef.to_string();
 
 			// find a resource entry in the entry list
 			if (m_resourceEntries.find(host) != m_resourceEntries.end())
@@ -244,6 +246,9 @@ namespace fx
 	}
 
 	fwEvent<const StreamingEntryData&> OnAddStreamingResource;
+
+	fwEvent<> OnLockStreaming;
+	fwEvent<> OnUnlockStreaming;
 }
 
 static InitFunction initFunction([]()

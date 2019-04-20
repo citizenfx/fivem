@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <queue>
@@ -47,12 +48,15 @@ struct HttpRequestOptions
 {
 	std::map<std::string, std::string> headers;
 	HttpHeaderListPtr responseHeaders;
+	std::shared_ptr<int> responseCode;
 	std::function<void(const ProgressInfo&)> progressCallback;
 	std::function<bool(const std::string&)> streamingCallback;
+	std::chrono::milliseconds timeoutNoResponse;
 	int weight;
 
 	inline HttpRequestOptions()
 	{
+		timeoutNoResponse = std::chrono::milliseconds(0);
 		weight = 16;
 	}
 };
@@ -95,6 +99,8 @@ public:
 	HttpRequestPtr DoPostRequest(const std::string& url, const std::string& postData, const fwMap<fwString, fwString>& headers, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback = std::function<void(const std::map<std::string, std::string>&)>());
 
 	HttpRequestPtr DoPostRequest(const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback = std::function<void(const std::map<std::string, std::string>&)>());
+
+	HttpRequestPtr DoMethodRequest(const std::string& method, const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback = std::function<void(const std::map<std::string, std::string>&)>());
 
 	HttpRequestPtr DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);
 	HttpRequestPtr DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback);

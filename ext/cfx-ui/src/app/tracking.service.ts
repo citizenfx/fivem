@@ -9,6 +9,8 @@ import {Angulartics2Piwik} from 'angulartics2/piwik';
 @Injectable()
 export class TrackingService {
 	constructor(private gameService: GameService, private angulartics: Angulartics2, private piwik: Angulartics2Piwik) {
+		this.piwik.startTracking();
+
 		this.gameService.connecting.subscribe((event: Server) => {
 			if (!event) {
 				return;

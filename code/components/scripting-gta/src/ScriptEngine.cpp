@@ -10,15 +10,21 @@
 
 #include "Hooking.h"
 
-#include <Brofiler.h>
+#include <optick.h>
 
 #include <scrEngine.h>
+
+#include <NativeHandlerLogging.h>
 
 template<typename THandler>
 static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
 {
 	// call the original function
 	static void* exceptionAddress;
+
+#ifdef ENABLE_NATIVE_HANDLER_LOGGING
+	NativeHandlerLogging::CountNative(nativeIdentifier);
+#endif
 
 #ifndef _DEBUG
 	__try
@@ -47,17 +53,17 @@ namespace fx
 
 		return boost::optional<TNativeHandler>([=] (ScriptContext& context)
 		{
-/*#if USE_PROFILER
-			static std::unordered_map<uint64_t, Profiler::EventDescription*> staticDescriptions;
+/*#if USE_OPTICK
+			static std::unordered_map<uint64_t, Optick::EventDescription*> staticDescriptions;
 
 			auto it = staticDescriptions.find(nativeIdentifier);
 
 			if (it == staticDescriptions.end())
 			{
-				it = staticDescriptions.emplace(nativeIdentifier, Profiler::EventDescription::Create(va("NativeHandler %llx", nativeIdentifier), __FILE__, __LINE__, Profiler::Color::Azure)).first;
+				it = staticDescriptions.emplace(nativeIdentifier, Optick::EventDescription::Create(va("NativeHandler %llx", nativeIdentifier), __FILE__, __LINE__, Optick::Color::Azure)).first;
 			}
 
-			Profiler::Event ev(*it->second);
+			Optick::Event ev(*it->second);
 #endif*/
 
 			// push arguments from the original context

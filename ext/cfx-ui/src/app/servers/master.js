@@ -328,6 +328,7 @@ $root.master = (function() {
          * @property {number} [iconVersion] ServerData iconVersion
          * @property {Object.<string,string>} [vars] ServerData vars
          * @property {boolean} [enhancedHostSupport] ServerData enhancedHostSupport
+         * @property {number} [upvotePower] ServerData upvotePower
          */
 
         /**
@@ -444,6 +445,14 @@ $root.master = (function() {
         ServerData.prototype.enhancedHostSupport = false;
 
         /**
+         * ServerData upvotePower.
+         * @member {number}upvotePower
+         * @memberof master.ServerData
+         * @instance
+         */
+        ServerData.prototype.upvotePower = 0;
+
+        /**
          * Creates a new ServerData instance using the specified properties.
          * @function create
          * @memberof master.ServerData
@@ -494,6 +503,8 @@ $root.master = (function() {
                     writer.uint32(/* id 12, wireType 2 =*/98).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]).uint32(/* id 2, wireType 2 =*/18).string(message.vars[keys[i]]).ldelim();
             if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
                 writer.uint32(/* id 16, wireType 0 =*/128).bool(message.enhancedHostSupport);
+            if (message.upvotePower != null && message.hasOwnProperty("upvotePower"))
+                writer.uint32(/* id 17, wireType 0 =*/136).int32(message.upvotePower);
             return writer;
         };
 
@@ -572,6 +583,9 @@ $root.master = (function() {
                     break;
                 case 16:
                     message.enhancedHostSupport = reader.bool();
+                    break;
+                case 17:
+                    message.upvotePower = reader.int32();
                     break;
                 default:
                     reader.skipType(tag & 7);
@@ -659,6 +673,9 @@ $root.master = (function() {
             if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
                 if (typeof message.enhancedHostSupport !== "boolean")
                     return "enhancedHostSupport: boolean expected";
+            if (message.upvotePower != null && message.hasOwnProperty("upvotePower"))
+                if (!$util.isInteger(message.upvotePower))
+                    return "upvotePower: integer expected";
             return null;
         };
 
@@ -716,6 +733,8 @@ $root.master = (function() {
             }
             if (object.enhancedHostSupport != null)
                 message.enhancedHostSupport = Boolean(object.enhancedHostSupport);
+            if (object.upvotePower != null)
+                message.upvotePower = object.upvotePower | 0;
             return message;
         };
 
@@ -748,6 +767,7 @@ $root.master = (function() {
                 object.server = "";
                 object.iconVersion = 0;
                 object.enhancedHostSupport = false;
+                object.upvotePower = 0;
             }
             if (message.svMaxclients != null && message.hasOwnProperty("svMaxclients"))
                 object.svMaxclients = message.svMaxclients;
@@ -783,6 +803,8 @@ $root.master = (function() {
             }
             if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
                 object.enhancedHostSupport = message.enhancedHostSupport;
+            if (message.upvotePower != null && message.hasOwnProperty("upvotePower"))
+                object.upvotePower = message.upvotePower;
             return object;
         };
 

@@ -10,9 +10,11 @@
 
 #include <variant>
 
-#include <bitset>
+#include <array>
+#include <EASTL/bitset.h>
 
 #include <tbb/concurrent_unordered_map.h>
+#include <tbb/task_group.h>
 
 namespace fx
 {
@@ -36,11 +38,17 @@ struct SyncParseState
 
 struct SyncUnparseState
 {
-	rl::MessageBuffer buffer;
+	rl::MessageBuffer& buffer;
 	int syncType;
 	int objType;
 
 	std::shared_ptr<Client> client;
+
+	SyncUnparseState(rl::MessageBuffer& buffer)
+		: buffer(buffer)
+	{
+
+	}
 };
 
 struct NodeBase;
@@ -50,7 +58,7 @@ using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 struct NodeBase
 {
 public:
-	std::bitset<256> ackedPlayers;
+	eastl::bitset<256> ackedPlayers;
 
 	uint64_t frameIndex;
 
@@ -61,14 +69,88 @@ public:
 	virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
 };
 
+struct CPlayerCameraNodeData
+{
+	int camMode;
+	float freeCamPosX;
+	float freeCamPosY;
+	float freeCamPosZ;
+
+	float cameraX;
+	float cameraZ;
+
+	float camOffX;
+	float camOffY;
+	float camOffZ;
+};
+
+struct CPedGameStateNodeData
+{
+	int curVehicle;
+	int curVehicleSeat;
+
+	int lastVehicle;
+	int lastVehicleSeat;
+
+	inline CPedGameStateNodeData()
+		: lastVehicle(-1), lastVehicleSeat(-1)
+	{
+
+	}
+};
+
+struct CVehicleGameStateNodeData
+{
+	uint16_t occupants[32];
+	eastl::bitset<32> playerOccupants;
+
+	inline CVehicleGameStateNodeData()
+	{
+		memset(occupants, 0, sizeof(occupants));
+	}
+};
+
+enum ePopType
+{
+	POPTYPE_UNKNOWN = 0,
+	POPTYPE_RANDOM_PERMANENT,
+	POPTYPE_RANDOM_PARKED,
+	POPTYPE_RANDOM_PATROL,
+	POPTYPE_RANDOM_SCENARIO,
+	POPTYPE_RANDOM_AMBIENT,
+	POPTYPE_PERMANENT,
+	POPTYPE_MISSION,
+	POPTYPE_REPLAY,
+	POPTYPE_CACHE,
+	POPTYPE_TOOL
+};
+
 struct SyncTreeBase
 {
 public:
+	virtual ~SyncTreeBase() = default;
+
 	virtual void Parse(SyncParseState& state) = 0;
 
 	virtual bool Unparse(SyncUnparseState& state) = 0;
 
 	virtual void Visit(const SyncTreeVisitor& visitor) = 0;
+
+	// accessors
+public:
+	virtual void GetPosition(float* posOut) = 0;
+
+	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
+
+	virtual CPedGameStateNodeData* GetPedGameState() = 0;
+
+	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
+
+	virtual bool GetPopulationType(ePopType* popType) = 0;
+
+	virtual bool GetModelHash(uint32_t* modelHash) = 0;
+
+	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
 };
 
 enum class NetObjEntityType
@@ -96,10 +178,14 @@ struct SyncEntityState
 	tbb::concurrent_unordered_map<std::string, TData> data;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
-	std::bitset<256> ackedCreation;
-	std::bitset<256> didDeletion;
+	eastl::bitset<256> ackedCreation;
+	eastl::bitset<256> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
+	uint64_t lastFrameIndex;
+
+	std::array<std::chrono::milliseconds, 256> lastResends{};
+	std::array<std::chrono::milliseconds, 256> lastSyncs{};
 
 	std::unique_ptr<SyncTreeBase> syncTree;
 
@@ -170,10 +256,11 @@ class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerIn
 public:
 	ServerGameState();
 
-
 	void Tick(fx::ServerInstanceBase* instance);
 
 	void UpdateWorldGrid(fx::ServerInstanceBase* instance);
+
+	void UpdateEntities();
 
 	void ParseGameStatePacket(const std::shared_ptr<fx::Client>& client, const std::vector<uint8_t>& packetData);
 
@@ -198,20 +285,25 @@ private:
 
 	void ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId);
 
-private:
-	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
+	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove);
+
+	void RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId);
 
 public:
+	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint32_t handle);
 
 private:
 	fx::ServerInstanceBase* m_instance;
 
+	std::unique_ptr<tbb::task_group> m_tg;
+
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
 
-	std::bitset<8192> m_objectIdsSent;
-	std::bitset<8192> m_objectIdsUsed;
+	eastl::bitset<8192> m_objectIdsSent;
+	eastl::bitset<8192> m_objectIdsUsed;
+	eastl::bitset<8192> m_objectIdsStolen;
 
 	uint64_t m_frameIndex;
 
@@ -236,11 +328,29 @@ private:
 
 	WorldGridState m_worldGrid[256];
 
+	struct WorldGridOwnerIndexes
+	{
+		uint8_t slots[256][256];
+
+		inline WorldGridOwnerIndexes()
+		{
+			memset(slots, 0xFF, sizeof(slots));
+		}
+	};
+
+	WorldGridOwnerIndexes m_worldGridAccel;
+
 	void SendWorldGrid(void* entry = nullptr, const std::shared_ptr<fx::Client>& client = {});
 
 //private:
 public:
-	tbb::concurrent_unordered_map<uint32_t, std::shared_ptr<sync::SyncEntityState>> m_entities;
+	std::vector<std::weak_ptr<sync::SyncEntityState>> m_entitiesById;
+
+	// this mutex is needed at least until C++20 std::atomic<std::weak_ptr<..>> reaches implementations
+	std::shared_mutex m_entitiesByIdMutex;
+
+	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
+	std::shared_mutex m_entityListMutex;
 };
 
 std::unique_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);

@@ -22,6 +22,7 @@ static int(__stdcall* g_oldGetAddrInfoW)(const wchar_t*, const wchar_t*, const A
 static int(__stdcall* g_oldGetAddrInfoExW)(const wchar_t* name, const wchar_t* serviceName, DWORD namespace_, LPGUID nspId, const ADDRINFOEXW* hints,
 										   ADDRINFOEXW** result, timeval* timeout, LPOVERLAPPED overlapped, LPLOOKUPSERVICE_COMPLETION_ROUTINE completionRoutine,
 										   LPHANDLE nameHandle);
+static int(__stdcall* g_oldGetAddrInfo)(const char*, const char*, const addrinfo*, addrinfo**);
 
 LoopbackTcpServerStream::LoopbackTcpServerStream(LoopbackTcpServer* server, SOCKET socket)
 	: m_server(server), m_socket(socket), m_nextReadWillBlock(false)
@@ -133,6 +134,40 @@ bool LoopbackTcpServerManager::GetHostByName(const char* name, hostent** outValu
 
 		// mm
 		*outValue = &hostEntity;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool LoopbackTcpServerManager::GetAddrInfoA(const char* name, const char* serviceName, const addrinfo* hints, addrinfo** addrInfo, int* outValue)
+{
+	scoped_lock lock(m_loopbackLock);
+
+	// hash the hostname for lookup in the server dictionary
+	uint32_t hostHash = HashRageString(name);
+
+	hostHash &= 0xFFFFFF; // for adding the 127.x netname
+
+	// find the matching server
+	auto it = m_tcpServers.find(hostHash);
+
+	if (it != m_tcpServers.end())
+	{
+		// we can't fill structs directly as we can't hook FreeAddrInfoW (hook checks) and that'll mean instant heap corruption
+		// therefore, we parse it into an IP and return that *natively*
+
+		uint32_t addr = hostHash | (127 << 24);
+
+		*outValue = g_oldGetAddrInfo(va("%u.%u.%u.%u", addr >> 24, (addr >> 16) & 0xFF, (addr >> 8) & 0xFF, addr & 0xFF), serviceName, hints, addrInfo);
+
+		return true;
+	}
+
+	if (strcmp(name, "ros.citizenfx.internal") == 0)
+	{
+		*outValue = g_oldGetAddrInfo("prod.ros.rockstargames.com", serviceName, hints, addrInfo);
 
 		return true;
 	}
@@ -554,7 +589,6 @@ static hostent*(__stdcall* g_oldGetHostByName)(const char*);
 static int(__stdcall* g_oldGetSockName)(SOCKET, sockaddr*, int*);
 static int(__stdcall* g_oldGetPeerName)(SOCKET, sockaddr*, int*);
 static int(__stdcall* g_oldSetSockOpt)(SOCKET, int, int, const char*, int);
-static int(__stdcall* g_oldGetAddrInfo)(const char*, const char*, const addrinfo*, addrinfo**);
 static void(__stdcall* g_oldFreeAddrInfo)(addrinfo*);
 static void(__stdcall* g_oldFreeAddrInfoW)(ADDRINFOW*);
 static int(__stdcall* g_oldSelect)(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, const timeval* timeout);
@@ -595,6 +629,11 @@ struct ModuleData
 
 			if (ptr >= it->first && ptr < it->second)
 			{
+				/*wchar_t fn[260];
+				GetModuleFileName((HMODULE)it->first, fn, sizeof(fn) / sizeof(*fn));
+
+				trace("Shouldn't be hooked - %016llx >= %016llx & < %016llx (%s)\n", ptr, it->first, it->second, ToNarrow(fn));*/
+
 				return true;
 			}
 		}
@@ -905,19 +944,19 @@ static int __stdcall EP_GetAddrInfo(const char* name, const char* serviceName, c
 {
 	int outValue;
 
-	//if (!g_manager->GetAddrInfo(name, result, &outValue))
+	if (!ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfoA(name, serviceName, hints, result, &outValue))
 	{
 		return g_oldGetAddrInfo(name, serviceName, hints, result);
 	}
 
-	//return outValue;
+	return outValue;
 }
 
 static int __stdcall EP_GetAddrInfoW(const wchar_t* name, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** result)
 {
 	int outValue;
 
-	if (!ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfo(ToNarrow(name).c_str(), serviceName, hints, result, &outValue))
+	if (!ShouldBeHooked(_ReturnAddress()) || !name || !g_manager->GetAddrInfo(ToNarrow(name).c_str(), serviceName, hints, result, &outValue))
 	{
 		return g_oldGetAddrInfoW(name, serviceName, hints, result);
 	}
@@ -933,12 +972,6 @@ static int __stdcall EP_GetAddrInfoExW(const wchar_t* name, const wchar_t* servi
 
 	if (overlapped || !ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfoEx(ToNarrow(name).c_str(), serviceName, hints, result, &outValue))
 	{
-		// map to original ROS if needed
-		if (name == L"ros.citizenfx.internal")
-		{
-			name = L"prod.ros.rockstargames.com";
-		}
-
 		return g_oldGetAddrInfoExW(name, serviceName, namespace_, nspId, hints, result, timeout, overlapped, completionRoutine, nameHandle);
 	}
 
@@ -1074,97 +1107,7 @@ static BOOL __stdcall EP_CallbackMayRunLong(PTP_CALLBACK_INSTANCE cb)
 
 #include <sstream>
 
-struct EnvVarComparator : std::binary_function<std::wstring, std::wstring, bool>
-{
-	bool operator()(const std::wstring& left, const std::wstring& right) const
-	{
-		return _wcsicmp(left.c_str(), right.c_str()) < 0;
-	}
-};
-
-typedef std::map<std::wstring, std::wstring, EnvVarComparator> EnvironmentMap;
-
-static void ParseEnvironmentBlock(const wchar_t* block, EnvironmentMap& out)
-{
-	const wchar_t* p = block;
-
-	std::wstringstream curString;
-
-	std::wstring curKey;
-	std::wstring curValue;
-
-	bool inKey = true;
-	bool firstKeyChar = true;
-
-	while (true)
-	{
-		wchar_t curChar = *p;
-
-		if (inKey)
-		{
-			if (curChar == L'\0')
-			{
-				break;
-			}
-			else if (curChar == L'=' && !firstKeyChar)
-			{
-				curKey = curString.str();
-				curString.str(L"");
-				curString.clear();
-
-				inKey = false;
-			}
-			else
-			{
-				curString << curChar;
-			}
-
-			firstKeyChar = false;
-		}
-		else
-		{
-			if (curChar == L'\0')
-			{
-				curValue = curString.str();
-				curString.str(L"");
-				curString.clear();
-
-				out[curKey] = curValue;
-
-				inKey = true;
-				firstKeyChar = true;
-			}
-			else
-			{
-				curString << curChar;
-			}
-		}
-
-		p++;
-	}
-}
-
-static void BuildEnvironmentBlock(const EnvironmentMap& map, std::vector<wchar_t>& outBlock)
-{
-	outBlock.clear();
-
-	for (auto& pair : map)
-	{
-		// write the key
-		outBlock.insert(outBlock.end(), pair.first.cbegin(), pair.first.cend());
-
-		// equals symbol
-		outBlock.push_back(L'=');
-
-		// value
-		outBlock.insert(outBlock.end(), pair.second.cbegin(), pair.second.cend());
-
-		// null terminator
-		outBlock.push_back(L'\0');
-	}
-
-	outBlock.push_back(L'\0');
-}
+#include <EnvironmentBlockHelpers.h>
 
 static BOOL(*g_oldCreateProcessW)(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 								  BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
@@ -1174,6 +1117,8 @@ int g_rosParentPid;
 
 std::vector<int> g_subProcessHandles;
 
+#include <shlwapi.h>
+
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
@@ -1181,7 +1126,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 	// compare the first part of the command line with the Social Club subprocess name
 	HMODULE socialClubLib = GetModuleHandle(L"socialclub.dll");
 
-	bool isSubprocess = wcsstr(commandLine, L"subprocess.exe");
+	bool isSubprocess = wcsstr(commandLine, L"subprocess.exe") || StrStrIW(commandLine, L"SocialClubHelper.exe");
 
 	if (/*socialClubLib && */applicationName || isSubprocess)
 	{
@@ -1192,7 +1137,10 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 		wcscat(rosFolder, L"subprocess.exe");*/
 
 		//if (boost::filesystem::equivalent(rosFolder, applicationName))
-		if (isSubprocess || boost::filesystem::path(applicationName).filename() == "subprocess.exe")
+		if (isSubprocess ||
+			boost::filesystem::path(applicationName).filename() == "subprocess.exe" ||
+			boost::filesystem::path(applicationName).filename() == "SocialClubHelper.exe" ||
+			boost::filesystem::path(applicationName).filename() == "socialclubhelper.exe")
 		{
             // don't create any more subprocesses if this is the case :/
             if (g_subProcessHandles.size() == 42)
@@ -1487,13 +1435,19 @@ static HANDLE __stdcall CreateFileAStub(
 		trace("Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
 
 		WaitNamedPipe(L"\\\\.\\pipe\\GTAVLauncher_Pipe", INFINITE);
-
 		WaitForLauncher();
 
 		trace("Launcher is fine, continuing!\n");
 	}
 
 	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+static BOOL(*g_oldWriteFile)(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped);
+
+static BOOL __stdcall WriteFileStub(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped)
+{
+	return g_oldWriteFile(hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
 }
 
 static InitFunction initFunction([] ()
@@ -1520,6 +1474,9 @@ static InitFunction hookFunction([] ()
 
 #define DO_HOOK(dll, func, ep, oldEP) \
 	{ auto err = MH_CreateHookApi(dll, func, ep, reinterpret_cast<void**>(&oldEP)); assert(err == MH_OK); }
+
+#define DO_HOOK_NO_ASSERT(dll, func, ep, oldEP) \
+	{ MH_CreateHookApi(dll, func, ep, reinterpret_cast<void**>(&oldEP)); }
 	
  	DO_HOOK(L"ws2_32.dll", "closesocket", EP_CloseSocket, g_oldCloseSocket);
   	DO_HOOK(L"ws2_32.dll", "connect", EP_Connect, g_oldConnect);
@@ -1533,7 +1490,12 @@ static InitFunction hookFunction([] ()
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoW", EP_GetAddrInfoW, g_oldGetAddrInfoW);
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoExW", EP_GetAddrInfoExW, g_oldGetAddrInfoExW);
 //	DO_HOOK(L"ws2_32.dll", "FreeAddrInfoW", EP_FreeAddrInfoW, g_oldFreeAddrInfoW); // these three are hook-checked
-//	DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo);
+
+	if (GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "wine_get_version") != nullptr)
+	{
+		DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo); // enabled because wine, probably going to fail
+	}
+
 //	DO_HOOK(L"ws2_32.dll", "freeaddrinfo", EP_FreeAddrInfo, g_oldFreeAddrInfo);
  	DO_HOOK(L"ws2_32.dll", "WSALookupServiceBeginW", EP_WSALookupServiceBeginW, g_oldLookupService);
 	DO_HOOK(L"ws2_32.dll", "WSAEventSelect", EP_WSAEventSelect, g_oldEventSelect);
@@ -1551,8 +1513,8 @@ static InitFunction hookFunction([] ()
 		DO_HOOK(L"kernelbase.dll", "CreateThreadpoolIo", EP_CreateThreadpoolIo, g_oldCreateThreadpoolIo);
 		DO_HOOK(L"kernelbase.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
 
-		DO_HOOK(L"kernel32.dll", "CreateThreadpoolIo", EP_CreateThreadpoolIo, g_oldCreateThreadpoolIo);
-		DO_HOOK(L"kernel32.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
+		DO_HOOK_NO_ASSERT(L"kernel32.dll", "CreateThreadpoolIo", EP_CreateThreadpoolIo, g_oldCreateThreadpoolIo);
+		DO_HOOK_NO_ASSERT(L"kernel32.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
 	}
 
 	DO_HOOK(L"kernel32.dll", "CreateProcessW", EP_CreateProcessW, g_oldCreateProcessW);
@@ -1566,6 +1528,7 @@ static InitFunction hookFunction([] ()
 	DO_HOOK(L"wininet.dll", "InternetOpenW", EP_InternetOpenW, g_oldInternetOpenW);
 
 	DO_HOOK(L"kernel32.dll", "CreateFileA", CreateFileAStub, g_oldCreateFileA);
+	DO_HOOK(L"kernel32.dll", "WriteFile", WriteFileStub, g_oldWriteFile);
 
 	trace("hello from %s\n", GetCommandLineA());
 

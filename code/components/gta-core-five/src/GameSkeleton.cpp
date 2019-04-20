@@ -3,7 +3,7 @@
 
 #include <ETWProviders/etwprof.h>
 
-#include <Brofiler.h>
+#include <optick.h>
 
 #include <gameSkeleton.h>
 #include <Error.h>
@@ -136,8 +136,8 @@ namespace rage
 	{
 		for (auto entry = update; entry; entry = entry->m_nextPtr)
 		{
-#if USE_PROFILER
-			static std::unordered_map<uint32_t, Profiler::EventDescription*> events;
+#if USE_OPTICK
+			static std::unordered_map<uint32_t, Optick::EventDescription*> events;
 
 			auto it = events.find(entry->m_hash);
 
@@ -155,10 +155,10 @@ namespace rage
 					name = fmt::sprintf("0x%08x", entry->m_hash);
 				}
 
-				it = events.emplace(entry->m_hash, Profiler::EventDescription::Create(strdup(va("%s update", name)), __FILE__, __LINE__, Profiler::Color::Beige)).first;
+				it = events.emplace(entry->m_hash, Optick::EventDescription::Create(strdup(va("%s update", name)), __FILE__, __LINE__, Optick::Color::Beige)).first;
 			}
 
-			Profiler::Event event(*it->second);
+			Optick::Event event(*it->second);
 #endif
 
 			// skip a potential crashing subsystem
@@ -173,14 +173,14 @@ namespace rage
 
 	void gameSkeleton::RunUpdate(int type)
 	{
-#if USE_PROFILER
-		static Profiler::EventDescription* events[3];
+#if USE_OPTICK
+		static Optick::EventDescription* events[3];
 		if (events[type] == nullptr)
 		{
-			events[type] = Profiler::EventDescription::Create(strdup(va("gameSkeleton update %d", type)), __FILE__, __LINE__, Profiler::Color::Gold);
+			events[type] = Optick::EventDescription::Create(strdup(va("gameSkeleton update %d", type)), __FILE__, __LINE__, Optick::Color::Gold);
 		}
 
-		Profiler::Event outerEvent(*events[type]);
+		Optick::Event outerEvent(*events[type]);
 #endif
 
 		for (auto list = m_updateFunctionList; list; list = list->next)

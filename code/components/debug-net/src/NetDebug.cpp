@@ -47,6 +47,8 @@ public:
 
 	virtual void OnOutgoingCommand(uint32_t type, size_t size) override;
 
+	virtual void OverrideBandwidthStats(uint32_t in, uint32_t out) override;
+
 private:
 	int m_ping;
 
@@ -281,6 +283,12 @@ void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size)
 
 // log data if enabled
 static ConVar<std::string> netLogFile("net_statsFile", ConVar_Archive, "");
+
+void NetOverlayMetricSink::OverrideBandwidthStats(uint32_t in, uint32_t out)
+{
+	m_lastInBytes = in;
+	m_lastOutBytes = out;
+}
 
 void NetOverlayMetricSink::UpdateMetrics()
 {

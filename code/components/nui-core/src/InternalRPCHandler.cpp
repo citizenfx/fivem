@@ -175,7 +175,9 @@ void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int
 	CefResponse::HeaderMap map;
 	response->GetHeaderMap(map);
 
-	map.insert(std::make_pair("cache-control", "no-cache, must-revalidate"));
+	map.insert({ "cache-control", "no-cache, must-revalidate" });
+	map.insert({ "access-control-allow-origin", "*" });
+	map.insert({ "access-control-allow-methods", "POST, GET, OPTIONS" });
 	response->SetHeaderMap(map);
 
 	if (m_found)
@@ -231,13 +233,13 @@ static HookFunction initFunction([] ()
 {
 	OnSchemeCreateRequest.Connect([] (const char* scheme, CefRefPtr<CefRequest> request, CefRefPtr<CefResourceHandler>& handler)
 	{
-		if (!strcmp(scheme, "http"))
+		if (!strcmp(scheme, "http") || !strcmp(scheme, "https"))
 		{
 			// parse the URL to get the hostname
 			CefString url = request->GetURL();
 			CefURLParts urlParts;
 
-			if (CefParseURL(url, urlParts))
+			if (CefParseURL(url, urlParts)) 
 			{
 				CefString hostString = &urlParts.host;
 
@@ -254,4 +256,5 @@ static HookFunction initFunction([] ()
 	}, -100);
 
 	CefRegisterSchemeHandlerFactory("http", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
+	CefRegisterSchemeHandlerFactory("https", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
 });

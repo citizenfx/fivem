@@ -8,11 +8,13 @@
 			kind "StaticLib"
 
 			if libc then
-				flags { "StaticRuntime" }
+				staticruntime "On"
 				add_dependencies { 'vendor:fmtlib-crt' }
 			else
 				add_dependencies { 'vendor:fmtlib' }
 			end
+			
+			add_dependencies { 'vendor:utfcpp' }
 
 			if os.is('windows') then
 				links { libc and 'fmtlib-crt' or 'fmtlib' }

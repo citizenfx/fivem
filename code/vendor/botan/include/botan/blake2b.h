@@ -14,12 +14,6 @@
 
 namespace Botan {
 
-enum blake2b_constant {
-  BLAKE2B_BLOCKBYTES = 128,
-  BLAKE2B_OUTBYTES   = 64,
-  BLAKE2B_IVU64COUNT = 8
-};
-
 /**
 * BLAKE2B
 */
@@ -31,7 +25,7 @@ class BOTAN_PUBLIC_API(2,0) Blake2b final : public HashFunction
       */
       explicit Blake2b(size_t output_bits = 512);
 
-      size_t hash_block_size() const override { return BLAKE2B_BLOCKBYTES; }
+      size_t hash_block_size() const override { return 128; }
       size_t output_length() const override { return m_output_bits / 8; }
 
       HashFunction* clone() const override;
@@ -44,14 +38,13 @@ class BOTAN_PUBLIC_API(2,0) Blake2b final : public HashFunction
       void add_data(const uint8_t input[], size_t length) override;
       void final_result(uint8_t out[]) override;
 
-      inline void state_init();
-      inline void increment_counter(const uint64_t inc);
-      void compress(bool lastblock = false);
+      void state_init();
+      void compress(const uint8_t* data, size_t blocks, uint64_t increment);
 
-      size_t m_output_bits;
+      const size_t m_output_bits;
 
       secure_vector<uint8_t> m_buffer;
-      size_t m_buflen;
+      size_t m_bufpos;
 
       secure_vector<uint64_t> m_H;
       uint64_t m_T[2];

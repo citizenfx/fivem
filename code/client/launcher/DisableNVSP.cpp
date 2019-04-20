@@ -113,49 +113,52 @@ void NVSP_DisableOnStartup()
 		return;
 	}
 
-	auto nvConn = GetNvidiaState();
-
-	if (nvConn)
+	std::thread([]()
 	{
-		trace("Detected NVIDIA Node, attempting to query ShadowPlay status...\n");
+		auto nvConn = GetNvidiaState();
 
-		auto state = GetShadowPlayStatus(*nvConn);
-
-		if (!state)
+		if (nvConn)
 		{
-			trace("Couldn't query ShadowPlay status from NvNode, bailing out.\n");
-		}
-		else if (!*state)
-		{
-			trace("NvNode claims ShadowPlay is disabled, bailing out.\n");
-		}
-		else
-		{
-			trace("NvNode claims ShadowPlay is *enabled*, disabling for this session.\n");
+			trace("Detected NVIDIA Node, attempting to query ShadowPlay status...\n");
 
-			WriteSPEnableCookie();
+			auto state = GetShadowPlayStatus(*nvConn);
 
-			SetShadowPlayStatus(*nvConn, false);
-
-			// wait for NVSP to be disabled
-			int attempts = 0;
-
-			while (*GetShadowPlayStatus(*nvConn))
+			if (!state)
 			{
-				Sleep(100);
+				trace("Couldn't query ShadowPlay status from NvNode, bailing out.\n");
+			}
+			else if (!*state)
+			{
+				trace("NvNode claims ShadowPlay is disabled, bailing out.\n");
+			}
+			else
+			{
+				trace("NvNode claims ShadowPlay is *enabled*, disabling for this session.\n");
 
-				if (attempts > 30)
+				WriteSPEnableCookie();
+
+				SetShadowPlayStatus(*nvConn, false);
+
+				// wait for NVSP to be disabled
+				int attempts = 0;
+
+				while (*GetShadowPlayStatus(*nvConn))
 				{
-					trace("Waited 30x for ShadowPlay to be disabled, continuing anyway.\n");
-					break;
+					Sleep(100);
+
+					if (attempts > 30)
+					{
+						trace("Waited 30x for ShadowPlay to be disabled, continuing anyway.\n");
+						break;
+					}
+
+					++attempts;
 				}
 
-				++attempts;
+				trace("Disabled NVSP.\n");
 			}
-
-			trace("Disabled NVSP.\n");
 		}
-	}
+	}).detach();
 }
 
 void NVSP_ShutdownSafely()

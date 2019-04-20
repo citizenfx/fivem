@@ -41,6 +41,8 @@ class BOTAN_PUBLIC_API(2,0) XTS_Mode : public Cipher_Mode
 
       const uint8_t* tweak() const { return m_tweak.data(); }
 
+      bool tweak_set() const { return m_tweak.empty() == false; }
+
       const BlockCipher& cipher() const { return *m_cipher; }
 
       void update_tweak(size_t last_used);

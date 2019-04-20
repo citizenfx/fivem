@@ -33,6 +33,17 @@ BOTAN_PUBLIC_API(2,3) BOTAN_MALLOC_FN void* allocate_memory(size_t elems, size_t
 BOTAN_PUBLIC_API(2,3) void deallocate_memory(void* p, size_t elems, size_t elem_size);
 
 /**
+* Ensure the allocator is initialized
+*/
+void initialize_allocator();
+
+class Allocator_Initializer
+   {
+   public:
+      Allocator_Initializer() { initialize_allocator(); }
+   };
+
+/**
 * Scrub memory contents in a way that a compiler should not elide,
 * using some system specific technique. Note that this function might
 * not zero the memory (for example, in some hypothetical
@@ -54,11 +65,25 @@ BOTAN_PUBLIC_API(2,0) void secure_scrub_memory(void* ptr, size_t n);
 * @param x a pointer to an array
 * @param y a pointer to another array
 * @param len the number of Ts in x and y
+* @return 0xFF iff x[i] == y[i] forall i in [0...n) or 0x00 otherwise
+*/
+BOTAN_PUBLIC_API(2,9) uint8_t ct_compare_u8(const uint8_t x[],
+                                            const uint8_t y[],
+                                            size_t len);
+
+/**
+* Memory comparison, input insensitive
+* @param x a pointer to an array
+* @param y a pointer to another array
+* @param len the number of Ts in x and y
 * @return true iff x[i] == y[i] forall i in [0...n)
 */
-BOTAN_PUBLIC_API(2,3) bool constant_time_compare(const uint8_t x[],
-                                     const uint8_t y[],
-                                     size_t len);
+inline bool constant_time_compare(const uint8_t x[],
+                                  const uint8_t y[],
+                                  size_t len)
+   {
+   return ct_compare_u8(x, y, len) == 0xFF;
+   }
 
 /**
 * Zero out some bytes
@@ -102,6 +127,21 @@ template<typename T> inline void copy_mem(T* out, const T* in, size_t n)
       }
    }
 
+template<typename T> inline void typecast_copy(uint8_t out[], T in)
+   {
+   std::memcpy(out, &in, sizeof(T));
+   }
+
+template<typename T> inline void typecast_copy(T& out, const uint8_t in[])
+   {
+   std::memcpy(&out, in, sizeof(T));
+   }
+
+template<typename T> inline void typecast_copy(T out[], const uint8_t in[], size_t N)
+   {
+   std::memcpy(out, in, sizeof(T)*N);
+   }
+
 /**
 * Set memory to a fixed value
 * @param ptr a pointer to an array
@@ -115,6 +155,26 @@ inline void set_mem(T* ptr, size_t n, uint8_t val)
       {
       std::memset(ptr, val, sizeof(T)*n);
       }
+   }
+
+inline const uint8_t* cast_char_ptr_to_uint8(const char* s)
+   {
+   return reinterpret_cast<const uint8_t*>(s);
+   }
+
+inline const char* cast_uint8_ptr_to_char(const uint8_t* b)
+   {
+   return reinterpret_cast<const char*>(b);
+   }
+
+inline uint8_t* cast_char_ptr_to_uint8(char* s)
+   {
+   return reinterpret_cast<uint8_t*>(s);
+   }
+
+inline char* cast_uint8_ptr_to_char(uint8_t* b)
+   {
+   return reinterpret_cast<char*>(b);
    }
 
 /**
@@ -140,9 +200,34 @@ template<typename T> inline bool same_mem(const T* p1, const T* p2, size_t n)
 * @param in the read-only input buffer
 * @param length the length of the buffers
 */
-BOTAN_PUBLIC_API(2,3) void xor_buf(uint8_t out[],
-                       const uint8_t in[],
-                       size_t length);
+inline void xor_buf(uint8_t out[],
+                    const uint8_t in[],
+                    size_t length)
+   {
+   while(length >= 16)
+      {
+      uint64_t x0, x1, y0, y1;
+
+      typecast_copy(x0, in);
+      typecast_copy(x1, in + 8);
+      typecast_copy(y0, out);
+      typecast_copy(y1, out + 8);
+
+      y0 ^= x0;
+      y1 ^= x1;
+      typecast_copy(out, y0);
+      typecast_copy(out + 8, y1);
+      out += 16; in += 16; length -= 16;
+      }
+
+   while(length > 0)
+      {
+      out[0] ^= in[0];
+      out += 1;
+      in += 1;
+      length -= 1;
+      }
+   }
 
 /**
 * XOR arrays. Postcondition out[i] = in[i] ^ in2[i] forall i = 0...length
@@ -151,10 +236,29 @@ BOTAN_PUBLIC_API(2,3) void xor_buf(uint8_t out[],
 * @param in2 the second output buffer
 * @param length the length of the three buffers
 */
-BOTAN_PUBLIC_API(2,3) void xor_buf(uint8_t out[],
-                       const uint8_t in[],
-                       const uint8_t in2[],
-                       size_t length);
+inline void xor_buf(uint8_t out[],
+                    const uint8_t in[],
+                    const uint8_t in2[],
+                    size_t length)
+   {
+   while(length >= 16)
+      {
+      uint64_t x0, x1, y0, y1;
+      typecast_copy(x0, in);
+      typecast_copy(x1, in + 8);
+      typecast_copy(y0, in2);
+      typecast_copy(y1, in2 + 8);
+
+      x0 ^= y0;
+      x1 ^= y1;
+      typecast_copy(out, x0);
+      typecast_copy(out + 8, x1);
+      out += 16; in += 16; in2 += 16; length -= 16;
+      }
+
+   for(size_t i = 0; i != length; ++i)
+      out[i] = in[i] ^ in2[i];
+   }
 
 template<typename Alloc, typename Alloc2>
 void xor_buf(std::vector<uint8_t, Alloc>& out,

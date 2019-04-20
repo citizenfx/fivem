@@ -1,0 +1,12 @@
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="growableArrayEx &lt;*,*,*,*,*,*&gt;">
+    <Expand>
+      <Item Name="[capacity]">this->sizeCount</Item>
+      <Item Name="[count]">this->numActiveEntries</Item>
+      <ArrayItems>
+        <Size>this->numActiveEntries</Size>
+        <ValuePointer>this->data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

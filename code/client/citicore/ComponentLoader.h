@@ -11,6 +11,8 @@
 #include "EventCore.h"
 #include <unordered_map>
 
+#include <boost/type_index.hpp>
+
 //
 // An identifier for a Fx component. These are formatted like `category:subcategory:...[version]`.
 // 
@@ -77,12 +79,42 @@ public:
     {
         return true;
     }
+
+	virtual inline bool IsA(uint32_t type)
+	{
+		return false;
+	}
+
+	virtual inline void* As(uint32_t type)
+	{
+		return nullptr;
+	}
 };
 
 class EXPORTED_TYPE RunnableComponent : public Component
 {
 public:
 	virtual void Run() = 0;
+
+	virtual bool IsA(uint32_t type)
+	{
+		if (type == HashString("RunnableComponent"))
+		{
+			return true;
+		}
+
+		return Component::IsA(type);
+	}
+
+	virtual void* As(uint32_t type)
+	{
+		if (type == HashString("RunnableComponent"))
+		{
+			return static_cast<RunnableComponent*>(this);
+		}
+
+		return Component::As(type);
+	}
 };
 
 class CORE_EXPORT ComponentData : public fwRefCountable
@@ -108,7 +140,7 @@ public:
 		m_dependencyComponents.push_back(dependency);
 	}
 
-	inline const std::vector<fwRefContainer<ComponentData>>& GetDependencyDataList()
+	inline const std::vector<fwRefContainer<ComponentData>>& GetDependencyDataList() const
 	{
 		return m_dependencyComponents;
 	}
@@ -121,7 +153,7 @@ private:
 public:
 	void Load();
 
-	inline bool IsLoaded()
+	inline bool IsLoaded() const
 	{
 		return m_isLoaded;
 	}
@@ -135,7 +167,7 @@ public:
 
 	fwRefContainer<Component> CreateManualInstance();
 
-	inline const std::vector<fwRefContainer<Component>>& GetInstances()
+	inline const std::vector<fwRefContainer<Component>>& GetInstances() const
 	{
 		return m_instances;
 	}
@@ -164,7 +196,7 @@ public:
 
 	void ForAllComponents(const std::function<void(fwRefContainer<ComponentData>)>& callback);
 
-	fwRefContainer<ComponentData> LoadComponent(const char* component);
+	fwRefContainer<ComponentData> LoadComponent(const char* componentName);
 
 	inline auto& GetKnownComponents()
 	{
@@ -183,7 +215,7 @@ struct GetDependencies
 template<>
 struct GetDependencies<fwRefContainer<ComponentData>>
 {
-	const std::vector<fwRefContainer<ComponentData>>& operator()(const fwRefContainer<ComponentData>& componentData)
+	const std::vector<fwRefContainer<ComponentData>>& operator()(const fwRefContainer<ComponentData>& componentData) const
 	{
 		return componentData->GetDependencyDataList();
 	}
@@ -231,12 +263,18 @@ std::queue<TListEntry> SortDependencyList(const std::vector<TListEntry>& list)
 template<typename T, typename TOther>
 inline T dynamic_component_cast(TOther value)
 {
-	try
+	auto type = HashString(
+		boost::typeindex::type_id<std::remove_pointer_t<T>>()
+		.pretty_name()
+#ifdef _MSC_VER
+		.substr(6) // remove 'class ' prefix for MSVC
+#endif
+		.c_str());
+
+	if (value->IsA(type))
 	{
-		return dynamic_cast<T>(value);
+		return reinterpret_cast<T>(value->As(type));
 	}
-	catch (std::bad_typeid)
-	{
-		return T();
-	}
+
+	return T();
 }

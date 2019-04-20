@@ -1,6 +1,6 @@
 <section class="setting">
 	<div class="key">
-		Nickname
+		<div>Nickname</div>
 	</div>
 	<div class="value">
 		<input
@@ -17,7 +17,26 @@
 
 <section class="setting">
 	<div class="key">
-		Dev mode
+		<div>"Dark" "theme"</div>
+	</div>
+	<div class="value">
+		<div class="checkbox">
+			<input
+				type="checkbox"
+				id="dark-theme"
+				[checked]="darkTheme"
+				(change)="toggleDarkTheme()"
+			>
+			<label for="dark-theme">
+				Makes the interface use a "dark" "theme"
+			</label>
+		</div>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
+		<div>Dev mode</div>
 	</div>
 	<div class="value">
 		<div class="checkbox">
@@ -36,7 +55,7 @@
 
 <section class="setting" *ngIf="devMode">
 	<div class="key">
-		Localhost port
+		<div>Localhost port</div>
 	</div>
 	<div class="value">
 		<input
@@ -48,5 +67,29 @@
 			[(ngModel)]="localhostPort"
 			(ngModelChange)="localhostPortChanged($event)"		
 		>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
+		<div>Connected FiveM account</div>
+	</div>
+	<div class="value">
+		<span *ngIf="currentAccount">Linked: {{ currentAccount.username }}</span>
+		<span *ngIf="!currentAccount">
+			<button (click)="linkAccount()">Link</button>
+		</span>
+	</div>
+</section>
+
+<section class="setting" *ngIf="currentAccount && currentAccount.isPremium">
+	<div class="key">
+		<div>Current Server BOOST™</div>
+	</div>
+	<div class="value">
+		<span *ngIf="!currentBoost && !noCurrentBoost">Loading...</span>
+		<span *ngIf="!currentBoost && noCurrentBoost">None! BOOST™ a server by clicking the upvote button in the server list.</span>
+		<span *ngIf="currentBoost && !currentBoost.server">{{ currentBoost.address }}</span>
+		<span *ngIf="currentBoost && currentBoost.server" [innerHTML]="(currentBoost.server && currentBoost.server.hostname)||'test' | escape | colorize"></span>
 	</div>
 </section>

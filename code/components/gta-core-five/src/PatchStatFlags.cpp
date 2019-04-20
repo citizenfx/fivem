@@ -1,12 +1,27 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <MinHook.h>
+#include <ICoreGameInit.h>
+
 #include <LaunchMode.h>
 
 template<typename T, T Value>
 static T Return()
 {
 	return Value;
+}
+
+static int(*g_origGetPedStatIndex)(void* ped);
+
+static int GetPedStatIndex(void* ped)
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origGetPedStatIndex(ped);
+	}
+
+	return 3;
 }
 
 static HookFunction hookFunction([]()
@@ -21,6 +36,9 @@ static HookFunction hookFunction([]()
 	// patch 'get ped stat index' function to return MP0 at all times
 	if (!CfxIsSinglePlayer())
 	{
-		hook::jump(hook::get_pattern("83 C8 FF 48 85 C9 74 04", -4), Return<int, 3>);
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("83 C8 FF 48 85 C9 74 04", -4), GetPedStatIndex, (void**)&g_origGetPedStatIndex);
+		MH_EnableHook(MH_ALL_HOOKS);
+		//hook::jump(hook::get_pattern("83 C8 FF 48 85 C9 74 04", -4), Return<int, 3>);
 	}
 });

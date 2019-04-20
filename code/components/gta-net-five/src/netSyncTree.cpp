@@ -8,7 +8,7 @@ static hook::cdecl_stub<rage::netSyncTree*(void*, int)> getSyncTreeForType([]()
 	return hook::get_pattern("0F B7 CA 83 F9 07 7F 5E");
 });
 
-static hook::cdecl_stub<bool(rage::netSyncTree* self, int flags, int flags2, rage::netBuffer* buffer, void* netLogStub)> netSyncTree_ReadFromBuffer([]()
+static hook::cdecl_stub<bool(rage::netSyncTree* self, int flags, int flags2, rage::datBitBuffer* buffer, void* netLogStub)> netSyncTree_ReadFromBuffer([]()
 {
 	return hook::get_pattern("45 89 43 18 57 48 83 EC 30 48 83 79 10 00 49", -15);
 });
@@ -30,7 +30,7 @@ namespace rage
 		return netSyncTree_CanApplyToObject(this, object);
 	}
 
-	bool netSyncTree::ReadFromBuffer(int flags, int flags2, rage::netBuffer* buffer, void* netLogStub)
+	bool netSyncTree::ReadFromBuffer(int flags, int flags2, rage::datBitBuffer* buffer, void* netLogStub)
 	{
 		return netSyncTree_ReadFromBuffer(this, flags, flags2, buffer, netLogStub);
 	}

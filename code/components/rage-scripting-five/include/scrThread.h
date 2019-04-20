@@ -190,8 +190,7 @@ class
 		public rage::scrThread
 {
 protected:
-	char scriptName[16];                        // 208
-	char gta_pad[48];                           // 224
+	char scriptName[64];                        // 208
 	rage::scriptHandler* m_pScriptHandler;      // 272
 	void* m_pNetcomponent;                      // 280
 	char gta_pad2[24];                          // 288

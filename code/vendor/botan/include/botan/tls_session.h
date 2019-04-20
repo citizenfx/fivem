@@ -35,7 +35,6 @@ class BOTAN_PUBLIC_API(2,0) Session final
          m_start_time(std::chrono::system_clock::time_point::min()),
          m_version(),
          m_ciphersuite(0),
-         m_compression_method(0),
          m_connection_side(static_cast<Connection_Side>(0)),
          m_srtp_profile(0),
          m_extended_master_secret(false),
@@ -49,7 +48,6 @@ class BOTAN_PUBLIC_API(2,0) Session final
               const secure_vector<uint8_t>& master_secret,
               Protocol_Version version,
               uint16_t ciphersuite,
-              uint8_t compression_method,
               Connection_Side side,
               bool supports_extended_master_secret,
               bool supports_encrypt_then_mac,
@@ -130,11 +128,6 @@ class BOTAN_PUBLIC_API(2,0) Session final
       Ciphersuite ciphersuite() const { return Ciphersuite::by_id(m_ciphersuite); }
 
       /**
-      * Get the compression method used in the saved session
-      */
-      uint8_t compression_method() const { return m_compression_method; }
-
-      /**
       * Get which side of the connection the resumed session we are/were
       * acting as.
       */
@@ -190,7 +183,7 @@ class BOTAN_PUBLIC_API(2,0) Session final
       const Server_Information& server_info() const { return m_server_info; }
 
    private:
-      enum { TLS_SESSION_PARAM_STRUCT_VERSION = 20160812};
+      enum { TLS_SESSION_PARAM_STRUCT_VERSION = 20160812 };
 
       std::chrono::system_clock::time_point m_start_time;
 
@@ -200,7 +193,6 @@ class BOTAN_PUBLIC_API(2,0) Session final
 
       Protocol_Version m_version;
       uint16_t m_ciphersuite;
-      uint8_t m_compression_method;
       Connection_Side m_connection_side;
       uint16_t m_srtp_profile;
       bool m_extended_master_secret;

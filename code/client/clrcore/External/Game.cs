@@ -3,6 +3,7 @@ using CitizenFX.Core.Native;
 using System.Threading.Tasks;
 using CitizenFX.Core;
 using System.Security;
+using System.Runtime.InteropServices;
 
 namespace CitizenFX.Core
 {
@@ -125,7 +126,7 @@ namespace CitizenFX.Core
 
 		static Game()
 		{
-            Version = GameVersion.v1_0_1103_2_NoSteam;
+			Version = GameVersion.v1_0_1103_2_NoSteam;
 		}
 
 		/// <summary>
@@ -140,7 +141,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return (Language)Function.Call<int>(Hash._GET_UI_LANGUAGE_ID);
+				return (Language)API.GetUiLanguageId();
 			}
 		}
 
@@ -151,7 +152,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_GAME_TIMER);
+				return API.GetGameTimer();
 			}
 		}
 		/// <summary>
@@ -164,7 +165,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_TIME_SCALE, value);
+				API.SetTimeScale(value);
 			}
 		}
 		/// <summary>
@@ -174,7 +175,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_FRAME_COUNT);
+				return API.GetFrameCount();
 			}
 		}
 		/// <summary>
@@ -194,12 +195,12 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_FRAME_TIME);
+				return API.GetFrameTime();
 			}
 		}
 
 		/// <summary>
-		/// Gets or sets the maximum wanted level a <see cref="GTA.Player"/> can receive.
+		/// Gets or sets the maximum wanted level a <see cref="Player"/> can receive.
 		/// </summary>
 		/// <value>
 		/// The maximum wanted level, only accepts values 0 to 5
@@ -208,7 +209,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_MAX_WANTED_LEVEL);
+				return API.GetMaxWantedLevel();
 			}
 			set
 			{
@@ -221,7 +222,7 @@ namespace CitizenFX.Core
 					value = 5;
 				}
 
-				Function.Call(Hash.SET_MAX_WANTED_LEVEL, value);
+				API.SetMaxWantedLevel(value);
 			}
 		}
 
@@ -235,7 +236,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_WANTED_LEVEL_MULTIPLIER, value);
+				API.SetWantedLevelMultiplier(value);
 			}
 		}
 
@@ -246,7 +247,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_POLICE_RADAR_BLIPS, value);
+				API.SetPoliceRadarBlips(value);
 			}
 		}
 
@@ -257,37 +258,36 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				string radioName = Function.Call<string>(Hash.GET_PLAYER_RADIO_STATION_NAME);
+				string radioName = API.GetPlayerRadioStationName();
 
-				if (String.IsNullOrEmpty(radioName))
+				if (string.IsNullOrEmpty(radioName))
 				{
 					return RadioStation.RadioOff;
 				}
 
 				return (RadioStation)Array.IndexOf(_radioNames, radioName);
 			}
-			[SecuritySafeCritical]
 			set
 			{
 				if (Enum.IsDefined(typeof(RadioStation), value) && value != RadioStation.RadioOff)
 				{
-					Function.Call(Hash.SET_RADIO_TO_STATION_NAME, _radioNames[(int)value]);
+					API.SetRadioToStationName(_radioNames[(int)value]);
 				}
 				else
 				{
-					Function.Call(Hash.SET_RADIO_TO_STATION_NAME, MemoryAccess.NullString);
+					API.SetRadioToStationName(null);
 				}
 			}
 		}
 
 		/// <summary>
-		/// Gets the <see cref="GTA.Player"/> that you are controling
+		/// Gets the <see cref="Player"/> that you are controling
 		/// </summary>
 		public static Player Player
 		{
 			get
 			{
-				int handle = Function.Call<int>(Hash.PLAYER_ID);
+				int handle = API.PlayerId();
 
 				if (ReferenceEquals(_cachedPlayer, null) || handle != _cachedPlayer.Handle)
 				{
@@ -299,7 +299,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets the <see cref="GTA.Ped"/> that you are controling
+		/// Gets the <see cref="Ped"/> that you are controling
 		/// </summary>
 		public static Ped PlayerPed
 		{
@@ -316,11 +316,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return !Function.Call<bool>(Hash._IS_NIGHTVISION_INACTIVE);
+				return API.IsNightvisionActive();
 			}
 			set
 			{
-				Function.Call(Hash.SET_NIGHTVISION, value);
+				API.SetNightvision(value);
 			}
 		}
 		/// <summary>
@@ -330,11 +330,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash._IS_SEETHROUGH_ACTIVE);
+				return API.IsSeethroughActive();
 			}
 			set
 			{
-				Function.Call(Hash.SET_SEETHROUGH, value);
+				API.SetSeethrough(value);
 			}
 		}
 
@@ -348,15 +348,15 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_MISSION_FLAG);
+				return API.GetMissionFlag();
 			}
 			set
 			{
-				Function.Call(Hash.SET_MISSION_FLAG, value);
+				API.SetMissionFlag(value);
 			}
 		}
 		/// <summary>
-		/// Gets or sets a value informing the Game Engine if a random event is in progress
+		/// Gets or sets a value informing the Game Engine if a random event is in progress.
 		/// </summary>
 		/// <value>
 		/// if <c>true</c> a random event is currently active; otherwise, <c>false</c>
@@ -365,13 +365,14 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_RANDOM_EVENT_FLAG);
+				return API.GetRandomEventFlag() == 1;
 			}
 			set
 			{
-				Function.Call(Hash.SET_RANDOM_EVENT_FLAG, value);
+				API.SetRandomEventFlag(value ? 1 : 0);
 			}
 		}
+
 		/// <summary>
 		/// Gets or a value indicating whether the cutscene is active.
 		/// </summary>
@@ -382,7 +383,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_CUTSCENE_ACTIVE);
+				return API.IsCutsceneActive();
 			}
 		}
 		/// <summary>
@@ -392,7 +393,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_WAYPOINT_ACTIVE);
+				return API.IsWaypointActive();
 			}
 		}
 
@@ -403,11 +404,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PAUSE_MENU_ACTIVE);
+				return API.IsPauseMenuActive();
 			}
 			set
 			{
-				Function.Call(Hash.SET_PAUSE_MENU_ACTIVE, value);
+				API.SetPauseMenuActive(value);
 			}
 		}
 		/// <summary>
@@ -417,7 +418,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_IS_LOADING_SCREEN_ACTIVE);
+				return API.GetIsLoadingScreenActive();
 			}
 		}
 
@@ -428,19 +429,20 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash._IS_INPUT_DISABLED, 2) ? InputMode.MouseAndKeyboard : InputMode.GamePad;
+				return API.IsInputDisabled(2) ? InputMode.MouseAndKeyboard : InputMode.GamePad;
 			}
 		}
-
+		/*
 		/// <summary>
 		/// Gets whether a <see cref="Keys"/> is currently held down
 		/// </summary>
 		/// <param name="key">The key.</param>
 		/// <returns></returns>
-		/*public static bool IsKeyPressed(Keys key)
+		public static bool IsKeyPressed(Keys key)
 		{
 			return ScriptDomain.CurrentDomain.IsKeyPressed(key);
-		}*/
+		}
+		*/
 
 		/// <summary>
 		/// Gets whether a <see cref="ButtonCombination"/> was entered.
@@ -453,7 +455,7 @@ namespace CitizenFX.Core
 		/// </remarks>
 		public static bool WasButtonCombinationJustEntered(ButtonCombination combination)
 		{
-			return Function.Call<bool>(Hash._HAS_BUTTON_COMBINATION_JUST_BEEN_ENTERED, combination.Hash, combination.Length);
+			return API.HasButtonCombinationJustBeenEntered((uint)combination.Hash, combination.Length);
 		}
 		/// <summary>
 		/// Gets whether a cheat code was entered into the cheat text box
@@ -462,7 +464,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the cheat was just entered; otherwise, <c>false</c></returns>
 		public static bool WasCheatStringJustEntered(string cheat)
 		{
-			return Function.Call<bool>((Hash) 0x557E43C447E700A8, GenerateHash(cheat));
+			return API.HasCheatStringJustBeenEntered((uint)GenerateHash(cheat));
 		}
 
 		/// <summary>
@@ -473,7 +475,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> is pressed; otherwise, <c>false</c></returns>
 		public static bool IsControlPressed(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_DISABLED_CONTROL_PRESSED, index, control);
+			return API.IsDisabledControlPressed(index, (int)control);
 		}
 		/// <summary>
 		/// Gets whether a <see cref="Control"/> was just pressed this frame
@@ -483,7 +485,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> was just pressed this frame; otherwise, <c>false</c></returns>
 		public static bool IsControlJustPressed(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_DISABLED_CONTROL_JUST_PRESSED, index, control);
+			return API.IsDisabledControlJustPressed(index, (int)control);
 		}
 		/// <summary>
 		/// Gets whether a <see cref="Control"/> was just released this frame
@@ -493,7 +495,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> was just released this frame; otherwise, <c>false</c></returns>
 		public static bool IsControlJustReleased(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_DISABLED_CONTROL_JUST_RELEASED, index, control);
+			return API.IsDisabledControlJustReleased(index, (int)control);
 		}
 		/// <summary>
 		/// Gets whether a <see cref="Control"/> is Enabled this frame and is currently pressed
@@ -503,7 +505,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> is pressed; otherwise, <c>false</c></returns>
 		public static bool IsEnabledControlPressed(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_CONTROL_PRESSED, index, control);
+			return API.IsControlPressed(index, (int)control);
 		}
 		/// <summary>
 		/// Gets whether a <see cref="Control"/> is Enabled and was just pressed this frame
@@ -513,7 +515,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> was just pressed this frame; otherwise, <c>false</c></returns>
 		public static bool IsEnabledControlJustPressed(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_CONTROL_JUST_PRESSED, index, control);
+			return API.IsControlJustPressed(index, (int)control);
 		}
 		/// <summary>
 		/// Gets whether a <see cref="Control"/> is Enabled and was just released this frame
@@ -523,7 +525,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> was just released this frame; otherwise, <c>false</c></returns>
 		public static bool IsEnabledControlJustReleased(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_CONTROL_JUST_RELEASED, index, control);
+			return API.IsControlJustReleased(index, (int)control);
 		}
 		/// <summary>
 		/// Gets whether a <see cref="Control"/> is Disabled this frame and is currently pressed
@@ -563,7 +565,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the <see cref="Control"/> is Enabled; otherwise, <c>false</c></returns>
 		public static bool IsControlEnabled(int index, Control control)
 		{
-			return Function.Call<bool>(Hash.IS_CONTROL_ENABLED, index, control);
+			return API.IsControlEnabled(index, (int)control);
 		}
 
 		/// <summary>
@@ -573,7 +575,7 @@ namespace CitizenFX.Core
 		/// <param name="control">The <see cref="Control"/>.</param>
 		public static void EnableControlThisFrame(int index, Control control)
 		{
-			Function.Call(Hash.ENABLE_CONTROL_ACTION, index, control, true);
+			API.EnableControlAction(index, (int)control, true);
 		}
 		/// <summary>
 		/// Makes the Game Engine ignore to the given Control this frame
@@ -582,7 +584,7 @@ namespace CitizenFX.Core
 		/// <param name="control">The <see cref="Control"/>.</param>
 		public static void DisableControlThisFrame(int index, Control control)
 		{
-			Function.Call(Hash.DISABLE_CONTROL_ACTION, index, control, true);
+			API.DisableControlAction(index, (int)control, true);
 		}
 		/// <summary>
 		/// Disables all <see cref="Control"/>s this frame.
@@ -590,7 +592,7 @@ namespace CitizenFX.Core
 		/// <param name="index">The Input Method (0 = Mouse and Keyboard, 2 = GamePad).</param>
 		public static void DisableAllControlsThisFrame(int index)
 		{
-			Function.Call(Hash.DISABLE_ALL_CONTROL_ACTIONS, index);
+			API.DisableAllControlActions(index);
 		}
 		/// <summary>
 		/// Enables all <see cref="Control"/>s this frame.
@@ -598,7 +600,7 @@ namespace CitizenFX.Core
 		/// <param name="index">The Input Method (0 = Mouse and Keyboard, 2 = GamePad).</param>
 		public static void EnableAllControlsThisFrame(int index)
 		{
-			Function.Call(Hash.ENABLE_ALL_CONTROL_ACTIONS, index);
+			API.EnableAllControlActions(index);
 		}
 
 		/// <summary>
@@ -609,7 +611,7 @@ namespace CitizenFX.Core
 		/// <returns>The normalised <see cref="Control"/> value</returns>
 		public static float GetControlNormal(int index, Control control)
 		{
-			return Function.Call<float>(Hash.GET_CONTROL_NORMAL, index, control);
+			return API.GetControlNormal(index, (int)control);
 		}
 		/// <summary>
 		/// Gets an Analog value of a Disabled <see cref="Control"/> input between -1.0f and 1.0f
@@ -619,7 +621,7 @@ namespace CitizenFX.Core
 		/// <returns>The normalised <see cref="Control"/> value</returns>
 		public static float GetDisabledControlNormal(int index, Control control)
 		{
-			return Function.Call<float>(Hash.GET_DISABLED_CONTROL_NORMAL, index, control);
+			return API.GetDisabledControlNormal(index, (int)control);
 		}
 		/// <summary>
 		/// Gets an value of a <see cref="Control"/> input.
@@ -629,7 +631,7 @@ namespace CitizenFX.Core
 		/// <returns>The <see cref="Control"/> value</returns>
 		public static int GetControlValue(int index, Control control)
 		{
-			return Function.Call<int>(Hash.GET_CONTROL_VALUE, index, control);
+			return API.GetControlValue(index, (int)control);
 		}
 		/// <summary>
 		/// Override a <see cref="Control"/> by giving it a user defined value this frame.
@@ -639,7 +641,7 @@ namespace CitizenFX.Core
 		/// <param name="value">the value to set the control to.</param>
 		public static void SetControlNormal(int index, Control control, float value)
 		{
-			Function.Call(Hash._SET_CONTROL_NORMAL, index, control, value);
+			API.SetControlNormal(index, (int)control, value);
 		}
 
 		/// <summary>
@@ -648,7 +650,7 @@ namespace CitizenFX.Core
 		/// <param name="value">if set to <c>true</c> Pause the game; otherwise, resume the game.</param>
 		public static void Pause(bool value)
 		{
-			Function.Call(Hash.SET_GAME_PAUSED, value);
+			API.SetGamePaused(value);
 		}
 		/// <summary>
 		/// Pauses or Resumes the game clock
@@ -656,7 +658,7 @@ namespace CitizenFX.Core
 		/// <param name="value">if set to <c>true</c> Pause the game clock; otherwise, resume the game clock.</param>
 		public static void PauseClock(bool value)
 		{
-			Function.Call(Hash.PAUSE_CLOCK, value);
+			API.PauseClock(value);
 		}
 
 		/// <summary>
@@ -664,14 +666,14 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static void DoAutoSave()
 		{
-			Function.Call(Hash.DO_AUTO_SAVE);
+			API.DoAutoSave();
 		}
 		/// <summary>
 		/// Shows the save menu enabling the user to perform a manual game save.
 		/// </summary>
 		public static void ShowSaveMenu()
 		{
-			Function.Call(Hash.SET_SAVE_MENU_ACTIVE, true);
+			API.SetSaveMenuActive(true);
 		}
 
 		/// <summary>
@@ -681,7 +683,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if GXT entry exists; otherwise, <c>false</c></returns>
 		public static bool DoesGXTEntryExist(string entry)
 		{
-			return Function.Call<bool>(Hash.DOES_TEXT_LABEL_EXIST, entry);
+			return API.DoesTextLabelExist(entry);
 		}
 
 		/// <summary>
@@ -691,16 +693,16 @@ namespace CitizenFX.Core
 		/// <returns>The localised <see cref="string"/> if the key exists; otherwise, <see cref="string.Empty"/></returns>
 		public static string GetGXTEntry(string entry)
 		{
-			return DoesGXTEntryExist(entry) ? Function.Call<string>(Hash._GET_LABEL_TEXT, entry) : String.Empty;
+			return DoesGXTEntryExist(entry) ? API.GetLabelText(entry) : string.Empty;
 		}
 		internal static bool DoesGXTEntryExist(ulong entry)
 		{
-			return Function.Call<bool>(Hash.DOES_TEXT_LABEL_EXIST, entry);
+			return API.DoesTextLabelExist(entry.ToString());
 		}
 
 		internal static string GetGXTEntry(ulong entry)
 		{
-			return DoesGXTEntryExist(entry) ? Function.Call<string>(Hash._GET_LABEL_TEXT, entry) : String.Empty;
+			return DoesGXTEntryExist(entry) ? API.GetLabelText(entry.ToString()) : string.Empty;
 		}
 
 		/// <summary>
@@ -714,7 +716,7 @@ namespace CitizenFX.Core
 			{
 				return 0;
 			}
-			return unchecked((int) MemoryAccess.GetHashKey(input));
+			return unchecked((int)MemoryAccess.GetHashKey(input));
 		}
 
 		/// <summary>
@@ -733,7 +735,7 @@ namespace CitizenFX.Core
 		/// <param name="musicFile">The music file to play.</param>
 		public static void PlayMusic(string musicFile)
 		{
-			Function.Call(Hash.TRIGGER_MUSIC_EVENT, musicFile);
+			API.TriggerMusicEvent(musicFile);
 		}
 		/// <summary>
 		/// Stops playing a music file
@@ -741,7 +743,7 @@ namespace CitizenFX.Core
 		/// <param name="musicFile">The music file to stop.</param>
 		public static void StopMusic(string musicFile)
 		{
-			Function.Call(Hash.CANCEL_MUSIC_EVENT, musicFile);
+			API.CancelMusicEvent(musicFile);
 		}
 		/// <summary>
 		/// Creates an input box for enabling a user to input text using the keyboard
@@ -785,19 +787,312 @@ namespace CitizenFX.Core
 
 			ClearKeyboard(windowTitle, defaultText, maxLength);
 
-			while (Function.Call<int>(Hash.UPDATE_ONSCREEN_KEYBOARD) == 0)
+			while (API.UpdateOnscreenKeyboard() == 0)
 			{
-                await BaseScript.Delay(0);
+				await BaseScript.Delay(0);
 			}
 
 			//ScriptDomain.CurrentDomain.PauseKeyboardEvents(false);
 
-			return Function.Call<string>(Hash.GET_ONSCREEN_KEYBOARD_RESULT);
+			return API.GetOnscreenKeyboardResult();
 		}
-		[SecuritySafeCritical]
+
 		private static void ClearKeyboard(WindowTitle windowTitle, string defaultText, int maxLength)
 		{
-			Function.Call(Hash.DISPLAY_ONSCREEN_KEYBOARD, true, windowTitle.ToString(), MemoryAccess.NullString, defaultText, MemoryAccess.NullString, MemoryAccess.NullString, MemoryAccess.NullString, maxLength + 1);
+			API.DisplayOnscreenKeyboard(1, windowTitle.ToString(), null, defaultText, null, null, null, maxLength + 1);
+		}
+
+
+
+		/// <summary>
+		/// Private unsafe version of <see cref="GetTattooCollectionData(int, int)"/>
+		/// </summary>
+		/// <param name="characterType"></param>
+		/// <param name="decorationIndex"></param>
+		/// <returns></returns>
+		[SecuritySafeCritical]
+		private static TattooCollectionData _GetTattooCollectionData(int characterType, int decorationIndex)
+		{
+			UnsafeTattooCollectionData data;
+			unsafe
+			{
+				Function.Call((Hash)0xFF56381874F82086, characterType, decorationIndex, &data);
+			}
+			return data.GetData();
+		}
+
+		/// <summary>
+		/// Returns a <see cref="TattooCollectionData"/> struct containing information about a specific tattoo.
+		/// Currently only the <see cref="TattooCollectionData.TattooCollectionHash"/>, <see cref="TattooCollectionData.TattooNameHash"/>
+		/// and <see cref="TattooCollectionData.TattooZone"/> are known. It's still unkown what the other values are used for or if 
+		/// they're even correctly offset in the byte array.
+		/// </summary>
+		/// <param name="characterType">Character types 0 = Michael, 1 = Franklin, 2 = Trevor, 3 = MPMale, 4 = MPFemale</param>
+		/// <param name="decorationIndex">Tattoo index, value between 0 and <see cref="API.GetNumDecorations(int)"/></param>
+		/// <returns></returns>
+		public static TattooCollectionData GetTattooCollectionData(int characterType, int decorationIndex)
+		{
+			if (characterType > -1 && characterType < 5)
+			{
+				return _GetTattooCollectionData(characterType, decorationIndex);
+			}
+			return new TattooCollectionData();
+		}
+
+
+
+		/// <summary>
+		/// Private (unsafe) version of <see cref="GetAltPropVariationData(int, int)"/>
+		/// </summary>
+		/// <param name="ped"></param>
+		/// <param name="propIndex"></param>
+		/// <returns></returns>
+		[SecuritySafeCritical]
+		private static AltPropVariationData[] _GetAltPropVariationData(int ped, int propIndex)
+		{
+			int prop = API.GetPedPropIndex(ped, propIndex);
+			int propTexture = API.GetPedPropTextureIndex(ped, propIndex);
+			uint propHashName = (uint)API.GetHashNameForProp(ped, propIndex, prop, propTexture);
+
+			uint someHash = 0;
+			int unk1 = 0;
+			int unk2 = 0;
+
+			int maxVariations = API.N_0xd40aac51e8e4c663(propHashName);
+
+			AltPropVariationData[] items = new AltPropVariationData[maxVariations];
+			if (maxVariations > 0)
+			{
+				items = new AltPropVariationData[maxVariations];
+				for (var i = 0; i < maxVariations; i++)
+				{
+					UnsafeAltPropVariationData data = new UnsafeAltPropVariationData();
+					unsafe
+					{
+						Function.Call((Hash)0xD81B7F27BC773E66, propHashName, i, &someHash, &unk1, &unk2);
+					}
+					unsafe
+					{
+						Function.Call((Hash)0x5D5CAFF661DDF6FC, someHash, &data);
+					}
+					items[i] = data.GetData(someHash, unk1, unk2);
+				}
+				return items;
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Gets the alternate prop index data for a specific prop on a specific ped.
+		/// This is used to check for the 'alternate' version of a helmet with a visor for example (open/closed visor variants).
+		/// </summary>
+		/// <param name="ped"></param>
+		/// <param name="propIndex"></param>
+		/// <returns></returns>
+		public static AltPropVariationData[] GetAltPropVariationData(int ped, int propIndex)
+		{
+			return _GetAltPropVariationData(ped, propIndex);
+		}
+
+
+		[StructLayout(LayoutKind.Explicit, Size = 0x28)]
+		[SecuritySafeCritical]
+		internal struct UnsafeWeaponHudStats
+		{
+			[FieldOffset(0x00)] private int hudDamage;
+
+			[FieldOffset(0x08)] private int hudSpeed;
+
+			[FieldOffset(0x10)] private int hudCapacity;
+
+			[FieldOffset(0x18)] private int hudAccuracy;
+
+			[FieldOffset(0x20)] private int hudRange;
+
+
+			public WeaponHudStats GetSafeStats()
+			{
+				return new WeaponHudStats(hudDamage, hudSpeed, hudCapacity, hudAccuracy, hudRange);
+			}
+		}
+
+		public struct WeaponHudStats
+		{
+			public int hudDamage;
+			public int hudSpeed;
+			public int hudCapacity;
+			public int hudAccuracy;
+			public int hudRange;
+
+			public WeaponHudStats(int hudDamage, int hudSpeed, int hudCapacity, int hudAccuracy, int hudRange)
+			{
+				this.hudDamage = hudDamage;
+				this.hudSpeed = hudSpeed;
+				this.hudCapacity = hudCapacity;
+				this.hudAccuracy = hudAccuracy;
+				this.hudRange = hudRange;
+			}
+
+			public override bool Equals(object obj)
+			{
+				if (obj is WeaponHudStats stat)
+				{
+					return stat.hudDamage == hudDamage &&
+						stat.hudSpeed == hudSpeed &&
+						stat.hudCapacity == hudCapacity &&
+						stat.hudAccuracy == hudAccuracy &&
+						stat.hudRange == hudRange;
+				}
+				return false;
+			}
+
+			public override int GetHashCode()
+			{
+				unchecked
+				{
+					int hash = 13;
+					hash = (hash * 7) + hudDamage.GetHashCode();
+					hash = (hash * 7) + hudSpeed.GetHashCode();
+					hash = (hash * 7) + hudCapacity.GetHashCode();
+					hash = (hash * 7) + hudAccuracy.GetHashCode();
+					hash = (hash * 7) + hudRange.GetHashCode();
+					return hash;
+				}
+			}
+
+			public static bool operator ==(WeaponHudStats left, WeaponHudStats right)
+			{
+				return left.Equals(right);
+			}
+
+			public static bool operator !=(WeaponHudStats left, WeaponHudStats right)
+			{
+				return !(left == right);
+			}
+		}
+
+		[StructLayout(LayoutKind.Explicit, Size = 0x28)]
+		[SecuritySafeCritical]
+		internal struct UnsafeWeaponComponentHudStats
+		{
+			[FieldOffset(0x00)] private int hudDamage;
+
+			[FieldOffset(0x08)] private int hudSpeed;
+
+			[FieldOffset(0x10)] private int hudCapacity;
+
+			[FieldOffset(0x18)] private int hudAccuracy;
+
+			[FieldOffset(0x20)] private int hudRange;
+
+
+			public WeaponComponentHudStats GetSafeStats()
+			{
+				return new WeaponComponentHudStats(hudDamage, hudSpeed, hudCapacity, hudAccuracy, hudRange);
+			}
+		}
+
+		public struct WeaponComponentHudStats
+		{
+			public int hudDamage;
+			public int hudSpeed;
+			public int hudCapacity;
+			public int hudAccuracy;
+			public int hudRange;
+
+			public WeaponComponentHudStats(int hudDamage, int hudSpeed, int hudCapacity, int hudAccuracy, int hudRange)
+			{
+				this.hudDamage = hudDamage;
+				this.hudSpeed = hudSpeed;
+				this.hudCapacity = hudCapacity;
+				this.hudAccuracy = hudAccuracy;
+				this.hudRange = hudRange;
+			}
+
+			public override bool Equals(object obj)
+			{
+				if (obj is WeaponComponentHudStats stat)
+				{
+					return stat.hudDamage == hudDamage &&
+						stat.hudSpeed == hudSpeed &&
+						stat.hudCapacity == hudCapacity &&
+						stat.hudAccuracy == hudAccuracy &&
+						stat.hudRange == hudRange;
+				}
+				return false;
+			}
+
+			public override int GetHashCode()
+			{
+				unchecked
+				{
+					int hash = 13;
+					hash = (hash * 7) + hudDamage.GetHashCode();
+					hash = (hash * 7) + hudSpeed.GetHashCode();
+					hash = (hash * 7) + hudCapacity.GetHashCode();
+					hash = (hash * 7) + hudAccuracy.GetHashCode();
+					hash = (hash * 7) + hudRange.GetHashCode();
+					return hash;
+				}
+			}
+
+			public static bool operator ==(WeaponComponentHudStats left, WeaponComponentHudStats right)
+			{
+				return left.Equals(right);
+			}
+
+			public static bool operator !=(WeaponComponentHudStats left, WeaponComponentHudStats right)
+			{
+				return !(left == right);
+			}
+		}
+
+		[SecuritySafeCritical]
+		private static WeaponHudStats _GetWeaponHudStats(uint weaponHash)
+		{
+			UnsafeWeaponHudStats unsafeStats = new UnsafeWeaponHudStats();
+			unsafe
+			{
+				Function.Call(Hash.GET_WEAPON_HUD_STATS, weaponHash, &unsafeStats);
+			}
+			return unsafeStats.GetSafeStats();
+		}
+
+		[SecuritySafeCritical]
+		private static WeaponComponentHudStats _GetWeaponComponentHudStats(uint weaponComponentHash)
+		{
+			UnsafeWeaponComponentHudStats unsafeStats = new UnsafeWeaponComponentHudStats();
+			unsafe
+			{
+				Function.Call(Hash.GET_WEAPON_COMPONENT_HUD_STATS, weaponComponentHash, &unsafeStats);
+			}
+			return unsafeStats.GetSafeStats();
+		}
+
+		/// <summary>
+		/// Get the hud stats for this weapon.
+		/// </summary>
+		/// <param name="weaponHash"></param>
+		/// <param name="weaponStats"></param>
+		/// <returns></returns>
+		public static bool GetWeaponHudStats(uint weaponHash, ref WeaponHudStats weaponStats)
+		{
+			if (!API.IsWeaponValid(weaponHash))
+				return false;
+			weaponStats = _GetWeaponHudStats(weaponHash);
+			return true;
+		}
+
+		/// <summary>
+		/// Get the hud stats for this weapon component.
+		/// </summary>
+		/// <param name="weaponHash"></param>
+		/// <param name="weaponComponentStats"></param>
+		/// <returns></returns>
+		public static bool GetWeaponComponentHudStats(uint weaponHash, ref WeaponComponentHudStats weaponComponentStats)
+		{
+			weaponComponentStats = _GetWeaponComponentHudStats(weaponHash);
+			return true;
 		}
 	}
 }

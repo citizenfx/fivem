@@ -28,15 +28,13 @@ NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	}
 }
 
-bool NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
+void NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 {
 	if (m_owner->GetWindowValid())
 	{
 		NUIWindow* window = m_owner->GetWindow();
 		rect.Set(0, 0, window->GetWidth(), window->GetHeight());
 	}
-
-	return true;
 }
 
 void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds)
@@ -53,13 +51,13 @@ void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browse
 	}
 }
 
-void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, uint64 sync_key)
+void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle)
 {
 	if (type == PET_VIEW)
 	{
 		if (m_owner->GetWindowValid())
 		{
-			m_owner->GetWindow()->UpdateSharedResource(shared_handle, sync_key, dirtyRects);
+			m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects);
 		}
 	}
 }

@@ -24,7 +24,7 @@ namespace CitizenFX.Core
 		}
 
 		internal PedBone(Ped owner, Bone boneId)
-			: base(owner, Function.Call<int>(Hash.GET_PED_BONE_INDEX, owner.Handle, boneId))
+			: base(owner, API.GetPedBoneIndex(owner.Handle, (int)boneId))
 		{
 			_owner = owner;
 		}

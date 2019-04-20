@@ -137,6 +137,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 			{
 				trace("Triggering OnGameFinalizeLoad\n");
 
+				ClearVariable("shutdownGame");
+
 				OnGameFinalizeLoad();
 				isLoading = false;
 			}
@@ -158,6 +160,8 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 		trace("Killing network: %s\n", message);
 
 		g_shouldKillNetwork = true;
+
+		Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 
 		SetRenderThreadOverride();
 	}, 500);
@@ -825,6 +829,13 @@ static void ErrorDo(uint32_t error)
 		FatalError("Invalid rage::fiPackfile encryption type specified. If you have any modified game files, please remove or verify them. See http://rsg.ms/verify for more information.");
 	}
 
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		trace("OneSync enabled, sleeping for 2500ms to allow onesync log to flush...\n");
+
+		Sleep(2500);
+	}
+
 	trace("error function called from %p for code 0x%08x\n", _ReturnAddress(), error);
 
 	// provide pickup file for minidump handler to use
@@ -840,10 +851,46 @@ static void ErrorDo(uint32_t error)
 		fclose(dbgFile);
 	}
 
+	// overwrite the CALL address with a marker containing the error code, then move the return address ahead
+	// this should lead to crash dumps showing the exact location of the CALL as the exception address
+	{
+		DWORD oldProtect;
+
+		static struct : jitasm::Frontend
+		{
+			uint32_t error;
+
+			virtual void InternalMain() override
+			{
+				mov(rax, 0x1000000000 | error);
+				mov(dword_ptr[rax], 0xDEADBADE);
+			}
+		} code;
+
+		code.error = error;
+
+		// assemble *first* as GetCodeSize does not automatically call Assemble
+		code.Assemble();
+
+		// 5: CALL size
+		// 6: size of mov dword_ptr[rax], ...
+		char* retAddr = (char*)_ReturnAddress() - 5 - code.GetCodeSize() + 6;
+
+		VirtualProtect(retAddr, code.GetCodeSize(), PAGE_EXECUTE_READWRITE, &oldProtect);
+		memcpy(retAddr, code.GetCode(), code.GetCodeSize());
+
+		// for good measure
+		FlushInstructionCache(GetCurrentProcess(), retAddr, code.GetCodeSize());
+
+		// jump to the new return address
+		*(void**)_AddressOfReturnAddress() = retAddr;
+	}
+
+	/*
 	// NOTE: crashes on this line are supposed to be read based on the exception-write address!
 	*(uint32_t*)(error | 0x1000000000) = 0xDEADBADE;
 
-	TerminateProcess(GetCurrentProcess(), -1);
+	TerminateProcess(GetCurrentProcess(), -1);*/
 }
 
 static void(*g_runInitFunctions)(void*, int);
@@ -1086,8 +1133,8 @@ static void(*g_shutdownSession)();
 
 void ShutdownSessionWrap()
 {
-	Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
+	Instance<ICoreGameInit>::Get()->SetVariable("shutdownGame");
 
 	g_isNetworkKilled = true;
 	*g_initState = MapInitState(14);
@@ -1107,6 +1154,12 @@ void ShutdownSessionWrap()
 		// warning screens apparently need to run on main thread
 		OnGameFrame();
 		OnMainGameFrame();
+
+		// 1604 (same as nethook)
+		((void(*)())0x1400067E8)();
+		((void(*)())0x1407D1960)();
+		((void(*)())0x140025F7C)();
+		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0);
 
 		g_runWarning();
 	}
@@ -1322,8 +1375,9 @@ static HookFunction hookFunction([] ()
 	//hook::call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), DebugBreakDo);
 	//hook::jump(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)), DebugBreakDo);
 
-	char* errorFunc = reinterpret_cast<char*>(hook::get_call(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5)));
+	char* errorFunc = reinterpret_cast<char*>(hook::get_call(hook::pattern("B9 84 EC F4 C6 E8").count(1).get(0).get<void>(5)));
 	hook::jump(hook::get_call(errorFunc + 6), ErrorDo);
+	hook::jump(errorFunc, ErrorDo);
 
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(0x14), 5);
 	//hook::nop(hook::pattern("B9 CD 36 41 A8 E8").count(1).get(0).get<void>(5), 5);
@@ -1566,7 +1620,9 @@ static HookFunction hookFunction([] ()
 	});
 
 	// disable eventschedule.json refetching on failure
-	hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
+	//hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
+	// 1493+:
+	hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
 
 	// don't set pause on focus loss, force it to 0
 	{
@@ -1578,6 +1634,9 @@ static HookFunction hookFunction([] ()
 
 	// commandline overriding stuff (replace a nullsub near sysParam_init)
 	hook::call(hook::get_pattern("48 8B 54 24 48 8B 4C 24 40 E8", 25), OverrideArguments);
+
+	// don't complain about not meeting minimum system requirements
+	hook::return_function(hook::get_pattern("B9 11 90 02 8A 8B FA E8", -10));
 
 	// early init command stuff
 	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)

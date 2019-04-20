@@ -57,7 +57,11 @@ const char lua_ident[] =
 	api_check(l, isstackindex(i, o), "index not in the stack")
 
 
-static TValue *index2addr (lua_State *L, int idx) {
+static
+#ifdef _MSC_VER
+__forceinline
+#endif
+	TValue *index2addr (lua_State *L, int idx) {
   CallInfo *ci = L->ci;
   if (idx > 0) {
     TValue *o = ci->func + idx;
@@ -302,6 +306,37 @@ LUA_API void *lua_valuetouserdata (lua_State *L, TValue o) {
     case LUA_TLIGHTUSERDATA: return pvalue(&o);
     default: return NULL;
   }
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
+	lua_Integer lua_utointeger(lua_State* L, int idx) {
+  const TValue *val = L->ci->func + idx;
+  return val->value_.i;
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
+	lua_Number lua_utonumber(lua_State* L, int idx) {
+  //const TValue* val = index2addr(L, idx);
+  const TValue *val = L->ci->func + idx;
+  return val->value_.n;
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
+	int lua_asserttop(const lua_State* L, int idx) {
+
+  const TValue *o = L->ci->func + idx;
+  if (o >= L->top) return 0;
+
+  return 1;
 }
 
 LUA_API int lua_type (lua_State *L, int idx) {
@@ -1449,14 +1484,14 @@ LUA_API void *lua_upvalueid (lua_State *L, int fidx, int n) {
 
 LUA_API void lua_upvaluejoin (lua_State *L, int fidx1, int n1,
                                             int fidx2, int n2) {
-  LClosure *f1;
-  UpVal **up1 = getupvalref(L, fidx1, n1, &f1);
+  UpVal **up1 = getupvalref(L, fidx1, n1, NULL); /* the last parameter not needed */
   UpVal **up2 = getupvalref(L, fidx2, n2, NULL);
+  if (*up1 == *up2) return; /* Already joined */
+  (*up2)->refcount++;
+  if (upisopen(*up2)) (*up2)->u.open.touched = 1;
+  luaC_upvalbarrier(L, *up2);
   luaC_upvdeccount(L, *up1);
   *up1 = *up2;
-  (*up1)->refcount++;
-  if (upisopen(*up1)) (*up1)->u.open.touched = 1;
-  luaC_upvalbarrier(L, *up1);
 }
 
 

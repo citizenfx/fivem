@@ -62,7 +62,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& cl)
 				{
-					cl->SendPacket(0, outBuffer, ENET_PACKET_FLAG_RELIABLE);
+					cl->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 				});
 
 				g_entityCreationList[creationToken] = {};
@@ -276,7 +276,7 @@ static InitFunction initFunction([]()
 
 				auto sendToClient = [&](const std::shared_ptr<fx::Client>& cl)
 				{
-					cl->SendPacket(0, buffer, ENET_PACKET_FLAG_RELIABLE);
+					cl->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
 				};
 
 				if (clientIdx == -1)

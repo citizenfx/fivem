@@ -31,7 +31,7 @@ a {
 				.checkbox {
 					label, button {
 						height: $filterHeight;
-						padding: $padding*2 $padding*$multiplier;
+						padding: ($filterHeight - ($fontSize * .8))/2 $padding*$multiplier;
 					}
 
 					button {
@@ -55,15 +55,18 @@ a {
 			height: $appServersHeaderHeight;
 			padding: $padding $padding;
 
-			color: $secondaryColour;
-
-			background: rgba($bgColour, .5);
 			@include backdropBlur;
 
-			&:hover,
-			&:focus {
-				background: rgba($bgColour, .2);
-			}
+			@include theme using ($theme) {
+				color: gtv($theme, secondaryColour);
+
+				background: rgba(gtv($theme, bgColour), .5);
+
+				&:hover,
+				&:focus {
+					background: rgba(gtv($theme, bgColour), .2);
+				}
+			};
 		}
 
 		.search-dropdown {
@@ -75,7 +78,10 @@ a {
 			z-index: 100;
 			overflow: hidden;
 
-			background-color: rgba($bgColour, .8);
+			@include theme using ($theme) {
+				background-color: rgba(gtv($theme, bgColour), .8);
+			};
+
 			@include backdropBlur;
 
 			ul {
@@ -93,15 +99,17 @@ a {
 						}
 					}
 
-					h4 + span {
-						font-size: 0.7em;
+					@include theme using ($theme) {
+						h4 + span {
+							font-size: 0.7em;
 
-						color: desaturate(darken($fgColour, 10%), 20%);
-					}
+							color: desaturate(darken(gtv($theme, fgColour), 10%), 20%);
+						}
 
-					&:hover, &.active {
-						background-color: rgba(lighten($bgColour, 15%), 1);
-					}
+						&:hover, &.active {
+							background-color: rgba(lighten(gtv($theme, bgColour), 15%), 1);
+						}
+					};
 				}
 			}
 		}
@@ -114,7 +122,9 @@ a {
 				position: relative;
 				flex-grow: 1;
 
-				color: $secondaryColour;
+				@include theme using ($theme) {
+					color: gtv($theme, secondaryColour);
+				};
 
 				margin-right: $padding/4;
 
@@ -138,10 +148,13 @@ a {
 					width: 100%;
 
 					font-size: $fontSize*.8;
-					font-weight: 100;
+					font-weight: 400;
 					line-height: 1;
 
-					background-color: rgba($secondaryColour, .1);
+					@include theme using ($theme) {
+						background-color: rgba(gtv($theme, secondaryColour), .1);
+					};
+
 					border-radius: 1px;
 
 					transition: all .2s ease;
@@ -156,27 +169,32 @@ a {
 						content: '';
 						display: inline-block;
 
-						width: 1.4vh;
-						height: 1.4vh;
+						width: $fontSize*.8;
+						height: $fontSize*.8;
 						margin-right: $padding/2;
 
 						border-radius: 1px;
 
-						vertical-align: baseline;
+						vertical-align: top;
 						overflow: hidden;
 
-						font-size: 1.7vh;
+						font-size: $fontSize * .8;
 						line-height: 1;
 						text-align: center;
 
-						background-color: rgba($bgColour, .5);
+						@include theme using ($theme) {
+							background-color: rgba(gtv($theme, bgColour), .5);
+						};
+						
 						color: white;
 						transition: all .2s ease;
 					}
 				}
 
 				&:hover label, &:hover button {
-					background-color: rgba($bgColour, .2);
+					@include theme using ($theme) {
+						background-color: rgba(gtv($theme, bgColour), .2);
+					};
 
 					box-shadow: none;
 				}
@@ -184,9 +202,12 @@ a {
 				input:checked + label {
 					&::before {
 						content: '✓';
-						background: $greenyColour;
-						box-shadow: 0 0 25px darken($greenyColour, 10%);
-						text-shadow: 0 0 2px rgba($bgColour, .5);
+
+						@include theme using ($theme) {
+							background: gtv($theme, greenyColour);
+							/*box-shadow: 0 0 25px darken(gtv($theme, greenyColour), 10%);*/
+							text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .5);
+						};
 					}
 				}
 			}
@@ -203,7 +224,10 @@ a {
 					width: 100%; 
 					top: 0px; 
 					position: absolute; 
-					background-color: rgba($bgColour, .5);
+
+					@include theme using ($theme) {
+						background-color: rgba(gtv($theme, bgColour), .5);
+					};
 					
 					font-size: 0.5vh;
 					line-height: 1.5;
@@ -214,7 +238,10 @@ a {
 						width: 0px;
 						height: 0vh;
 						top: 0px; 
-						background-color: rgba($greenyColour, .5)
+
+						@include theme using ($theme) {
+							background-color: rgba(gtv($theme, greenyColour), .5)
+						};
 					}
 				}
 				
@@ -247,7 +274,9 @@ a {
 				height: 100%;
 				width: 76%;
 
-				background-color: rgba($bgColour, .5);
+				@include theme using ($theme) {
+					background-color: rgba(gtv($theme, bgColour), .5);
+				};
 
 				z-index: -1;
 			}
@@ -256,71 +285,16 @@ a {
 				pointer-events: none;
 
 				font-size: 14px;
-				color: $secondaryColour;
+
+				@include theme using ($theme) {
+					color: gtv($theme, secondaryColour);
+				};
+
 				padding: $padding/2 $padding*$multiplier;
 
-				background-color: rgba($bgColour, .1);
-			}
-		}
-
-		.tags {
-			h4 {
-				font-weight: normal;
-				cursor: default;
-				color: $textColour;
-
-				padding: $padding $padding;
-				margin-bottom: $padding/2;
-
-				background-color: rgba($bgColour, .2);
-			}
-
-			.tag {
-				position: relative;
-				font-size: 1rem;
-				font-weight: 300;
-				line-height: 1;
-				cursor: default;
-
-				overflow-x: hidden;
-
-				padding: $padding $padding;
-				margin-bottom: $padding/4;
-
-				border-radius: 1px;
-				background-color: rgba($secondaryColour, .1);
-
-				transition: all .2s ease;
-
-				&.active::before {
-					content: '✓';
-					background-color: $greenyColour;
-					text-shadow: 0 0 1px rgba($bgColour, .5);
-					box-shadow: 0 0 15px darken($greenyColour, 10%);
-				}
-
-				&:hover {
-					background-color: rgba($bgColour, .2);
-				}
-
-				&::before {
-					content: '';
-					display: inline-block;
-
-					width: 15px;
-					height: 15px;
-					margin-right: $padding/2;
-
-					border-radius: 1px;
-
-					vertical-align: -3px;
-					overflow: hidden;
-
-					font-size: 1rem;
-					line-height: 1;
-
-					background-color: rgba($bgColour, .8);
-				}
+				@include theme using ($theme) {
+					background-color: rgba(gtv($theme, bgColour), .1);
+				};
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-﻿using CitizenFX.Core.Native;
+using CitizenFX.Core.Native;
 using System;
 using System.Drawing;
 using System.Security;
@@ -50,7 +50,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int handle = Function.Call<int>(Hash.GET_PLAYER_PED, Handle);
+				int handle = API.GetPlayerPed(Handle);
 
 				if (ReferenceEquals(_ped, null) || handle != _ped.Handle)
 				{
@@ -68,7 +68,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<string>(Hash.GET_PLAYER_NAME, Handle);
+				return API.GetPlayerName(Handle);
 			}
 		}
 		/// <summary>
@@ -77,8 +77,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public int Money
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
 				int stat;
 
@@ -97,34 +96,31 @@ namespace CitizenFX.Core
 						return 0;
 				}
 
-				int result;
-				unsafe
-				{
-					Function.Call(Hash.STAT_GET_INT, stat, &result, -1);
-				}
+				int result = 0;
+				API.StatGetInt((uint)stat, ref result, -1);
 
 				return result;
 			}
 			set
 			{
-				int stat;
+				uint stat;
 
 				switch ((PedHash)Character.Model.Hash)
 				{
 					case PedHash.Michael:
-						stat = Game.GenerateHash("SP0_TOTAL_CASH");
+						stat = (uint)Game.GenerateHash("SP0_TOTAL_CASH");
 						break;
 					case PedHash.Franklin:
-						stat = Game.GenerateHash("SP1_TOTAL_CASH");
+						stat = (uint)Game.GenerateHash("SP1_TOTAL_CASH");
 						break;
 					case PedHash.Trevor:
-						stat = Game.GenerateHash("SP2_TOTAL_CASH");
+						stat = (uint)Game.GenerateHash("SP2_TOTAL_CASH");
 						break;
 					default:
 						return;
 				}
 
-				Function.Call(Hash.STAT_SET_INT, stat, value, 1);
+				API.StatSetInt(stat, value, true);
 			}
 		}
 
@@ -135,12 +131,12 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_PLAYER_WANTED_LEVEL, Handle);
+				return API.GetPlayerWantedLevel(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_WANTED_LEVEL, Handle, value, false);
-				Function.Call(Hash.SET_PLAYER_WANTED_LEVEL_NOW, Handle, false);
+				API.SetPlayerWantedLevel(Handle, value, false);
+				API.SetPlayerWantedLevelNow(Handle, false);
 			}
 		}
 		/// <summary>
@@ -153,11 +149,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_PLAYER_WANTED_CENTRE_POSITION, Handle);
+				return API.GetPlayerWantedCentrePosition(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_WANTED_CENTRE_POSITION, Handle, value.X, value.Y, value.Z);
+				API.SetPlayerWantedCentrePosition(Handle, value.X, value.Y, value.Z);
 			}
 		}
 
@@ -168,11 +164,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_PLAYER_MAX_ARMOUR, Handle);
+				return API.GetPlayerMaxArmour(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_MAX_ARMOUR, Handle, value);
+				API.SetPlayerMaxArmour(Handle, value);
 			}
 		}
 
@@ -181,21 +177,17 @@ namespace CitizenFX.Core
 		/// </summary>
 		public ParachuteTint PrimaryParachuteTint
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int result;
+				int result = 0;
 
-				unsafe
-				{
-					Function.Call(Hash.GET_PLAYER_PARACHUTE_TINT_INDEX, Handle, &result);
-				}
+				API.GetPlayerParachuteTintIndex(Handle, ref result);
 
 				return (ParachuteTint)result;
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_PARACHUTE_TINT_INDEX, Handle, value);
+				API.SetPlayerParachuteTintIndex(Handle, (int)value);
 			}
 		}
 		/// <summary>
@@ -203,21 +195,17 @@ namespace CitizenFX.Core
 		/// </summary>
 		public ParachuteTint ReserveParachuteTint
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int result;
+				int result = 0;
 
-				unsafe
-				{
-					Function.Call(Hash.GET_PLAYER_RESERVE_PARACHUTE_TINT_INDEX, Handle, &result);
-				}
+				API.GetPlayerReserveParachuteTintIndex(Handle, ref result);
 
 				return (ParachuteTint)result;
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_RESERVE_PARACHUTE_TINT_INDEX, Handle, value);
+				API.SetPlayerReserveParachuteTintIndex(Handle, (int)value);
 			}
 		}
 
@@ -231,7 +219,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_CAN_LEAVE_PARACHUTE_SMOKE_TRAIL, Handle, value);
+				API.SetPlayerCanLeaveParachuteSmokeTrail(Handle, value);
 			}
 		}
 		/// <summary>
@@ -242,20 +230,17 @@ namespace CitizenFX.Core
 		/// </value>
 		public Color ParachuteSmokeTrailColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int r, g, b;
-				unsafe
-				{
-					Function.Call(Hash.GET_PLAYER_PARACHUTE_SMOKE_TRAIL_COLOR, Handle, &r, &g, &b);
-				}
+				int r = 0, g = 0, b = 0;
+
+				API.GetPlayerParachuteSmokeTrailColor(Handle, ref r, ref g, ref b);
 
 				return Color.FromArgb(r, g, b);
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_PARACHUTE_SMOKE_TRAIL_COLOR, Handle, value.R, value.G, value.B);
+				API.SetPlayerParachuteSmokeTrailColor(Handle, value.R, value.G, value.B);
 			}
 		}
 
@@ -282,7 +267,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_DEAD, Handle);
+				return API.IsPlayerDead(Handle);
 			}
 		}
 		/// <summary>
@@ -295,7 +280,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_FREE_AIMING, Handle);
+				return API.IsPlayerFreeAiming(Handle);
 			}
 		}
 		/// <summary>
@@ -308,7 +293,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_CLIMBING, Handle);
+				return API.IsPlayerClimbing(Handle);
 			}
 		}
 		/// <summary>
@@ -321,7 +306,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_RIDING_TRAIN, Handle);
+				return API.IsPlayerRidingTrain(Handle);
 			}
 		}
 		/// <summary>
@@ -334,7 +319,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_PRESSING_HORN, Handle);
+				return API.IsPlayerPressingHorn(Handle);
 			}
 		}
 		/// <summary>
@@ -347,7 +332,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_PLAYING, Handle);
+				return API.IsPlayerPlaying(Handle);
 			}
 		}
 		/// <summary>
@@ -360,11 +345,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_PLAYER_INVINCIBLE, Handle);
+				return API.GetPlayerInvincible(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_INVINCIBLE, Handle, value);
+				API.SetPlayerInvincible(Handle, value);
 			}
 		}
 
@@ -378,7 +363,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_POLICE_IGNORE_PLAYER, Handle, value);
+				API.SetPoliceIgnorePlayer(Handle, value);
 			}
 		}
 		/// <summary>
@@ -391,7 +376,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_EVERYONE_IGNORE_PLAYER, Handle, value);
+				API.SetEveryoneIgnorePlayer(Handle, value);
 			}
 		}
 
@@ -405,7 +390,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_DISPATCH_COPS_FOR_PLAYER, Handle, value);
+				API.SetDispatchCopsForPlayer(Handle, value);
 			}
 		}
 
@@ -419,7 +404,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_CAN_USE_COVER, Handle, value);
+				API.SetPlayerCanUseCover(Handle, value);
 			}
 		}
 		/// <summary>
@@ -432,7 +417,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.CAN_PLAYER_START_MISSION, Handle);
+				return API.CanPlayerStartMission(Handle);
 			}
 		}
 
@@ -446,7 +431,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.GIVE_PLAYER_RAGDOLL_CONTROL, Handle, value);
+				API.GivePlayerRagdollControl(Handle, value);
 			}
 		}
 		/// <summary>
@@ -459,11 +444,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_CONTROL_ON, Handle);
+				return API.IsPlayerControlOn(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_PLAYER_CONTROL, Handle, value, 0);
+				API.SetPlayerControl(Handle, value, 0);
 			}
 		}
 
@@ -474,13 +459,12 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if the change was sucessful; otherwise, <c>false</c>.</returns>
 		public async Task<bool> ChangeModel(Model model)
 		{
-			// TODO: Implement IsPed
-			if (!model.IsInCdImage /*|| !model.IsPed*/ || !await model.Request(1000))
+			if (!model.IsInCdImage || !model.IsPed || !await model.Request(1000))
 			{
 				return false;
 			}
 
-			Function.Call(Hash.SET_PLAYER_MODEL, Handle, model.Hash);
+			API.SetPlayerModel(Handle, (uint)model.Hash);
 
 			model.MarkAsNoLongerNeeded();
 
@@ -494,7 +478,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_PLAYER_SPRINT_TIME_REMAINING, Handle);
+				return API.GetPlayerSprintTimeRemaining(Handle);
 			}
 		}
 
@@ -505,7 +489,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_PLAYER_SPRINT_STAMINA_REMAINING, Handle);
+				return API.GetPlayerSprintStaminaRemaining(Handle);
 			}
 		}
 		/// <summary>
@@ -515,7 +499,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_PLAYER_UNDERWATER_TIME_REMAINING, Handle);
+				return API.GetPlayerUnderwaterTimeRemaining(Handle);
 			}
 		}
 
@@ -529,7 +513,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_SPECIAL_ABILITY_ACTIVE, Handle);
+				return API.IsSpecialAbilityActive(Handle);
 			}
 		}
 		/// <summary>
@@ -542,11 +526,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_SPECIAL_ABILITY_ENABLED, Handle);
+				return API.IsSpecialAbilityEnabled(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.ENABLE_SPECIAL_ABILITY, Handle, value);
+				API.EnableSpecialAbility(Handle, value);
 			}
 		}
 		/// <summary>
@@ -555,7 +539,7 @@ namespace CitizenFX.Core
 		/// <param name="absoluteAmount">The absolute amount.</param>
 		public void ChargeSpecialAbility(int absoluteAmount)
 		{
-			Function.Call(Hash.SPECIAL_ABILITY_CHARGE_ABSOLUTE, Handle, absoluteAmount, true);
+			API.SpecialAbilityChargeAbsolute(Handle, absoluteAmount, true);
 		}
 		/// <summary>
 		/// Charges the special ability for this <see cref="Player"/>.
@@ -563,21 +547,21 @@ namespace CitizenFX.Core
 		/// <param name="normalizedRatio">The amount between <c>0.0f</c> and <c>1.0f</c></param>
 		public void ChargeSpecialAbility(float normalizedRatio)
 		{
-			Function.Call(Hash.SPECIAL_ABILITY_CHARGE_NORMALIZED, Handle, normalizedRatio, true);
+			API.SpecialAbilityChargeNormalized(Handle, normalizedRatio, true);
 		}
 		/// <summary>
 		/// Refills the special ability for this <see cref="Player"/>.
 		/// </summary>
 		public void RefillSpecialAbility()
 		{
-			Function.Call(Hash.SPECIAL_ABILITY_FILL_METER, Handle, 1);
+			API.SpecialAbilityFillMeter(Handle, true);
 		}
 		/// <summary>
 		/// Depletes the special ability for this <see cref="Player"/>.
 		/// </summary>
 		public void DepleteSpecialAbility()
 		{
-			Function.Call(Hash.SPECIAL_ABILITY_DEPLETE_METER, Handle, 1);
+			API.SpecialAbilityDepleteMeter(Handle, true);
 		}
 
 		/// <summary>
@@ -588,7 +572,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				Vehicle veh = new Vehicle(Function.Call<int>(Hash.GET_PLAYERS_LAST_VEHICLE));
+				Vehicle veh = new Vehicle(API.GetPlayersLastVehicle());
 				return veh.Exists() ? veh : null;
 			}
 		}
@@ -602,7 +586,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsTargetting(Entity entity)
 		{
-			return Function.Call<bool>(Hash.IS_PLAYER_FREE_AIMING_AT_ENTITY, Handle, entity.Handle);
+			return API.IsPlayerFreeAimingAtEntity(Handle, entity.Handle);
 		}
 		/// <summary>
 		/// Gets a value indicating whether this <see cref="Player"/> is targetting anything.
@@ -614,24 +598,21 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_PLAYER_TARGETTING_ANYTHING, Handle);
+				return API.IsPlayerTargettingAnything(Handle);
 			}
 		}
-        /// <summary>
-        /// Gets the <see cref="Entity"/> this <see cref="Player"/> is targetting.
-        /// </summary>
-        /// <returns>The <see cref="Entity"/> if this <see cref="Player"/> is targetting any <see cref="Entity"/>; otherwise, <c>null</c></returns>
-        [SecuritySafeCritical]
-        public Entity GetTargetedEntity()
+		/// <summary>
+		/// Gets the <see cref="Entity"/> this <see cref="Player"/> is targetting.
+		/// </summary>
+		/// <returns>The <see cref="Entity"/> if this <see cref="Player"/> is targetting any <see cref="Entity"/>; otherwise, <c>null</c></returns>
+		public Entity GetTargetedEntity()
 		{
-			int entityHandle;
+			int entityHandle = 0;
 
-			unsafe
+			if (API.GetEntityPlayerIsFreeAimingAt(Handle, ref entityHandle))
 			{
-				if (Function.Call<bool>(Hash.GET_ENTITY_PLAYER_IS_FREE_AIMING_AT, Handle, &entityHandle))
-				{
+				if (API.DoesEntityExist(entityHandle))
 					return Entity.FromHandle(entityHandle);
-				}
 			}
 			return null;
 		}
@@ -643,7 +624,7 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool ForcedAim
 		{
-			set { Function.Call(Hash.SET_PLAYER_FORCED_AIM, Handle, value); }
+			set { API.SetPlayerForcedAim(Handle, value); }
 		}
 
 		/// <summary>
@@ -651,10 +632,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void DisableFiringThisFrame()
 		{
-			Function.Call(Hash.DISABLE_PLAYER_FIRING, Handle, 0);
+			API.DisablePlayerFiring(Handle, false);
 		}
 		/// <summary>
-		/// Sets the run speed mult for this this <see cref="Player"/> this frame.
+		/// Sets the run speed mult for this this <see cref="Player"/> this frame. (THIS NAME IS WRONG, SHOULD NOT BE CALLED EVERY FRAME).
 		/// </summary>
 		/// <param name="mult">The factor - min: <c>0.0f</c>, default: <c>1.0f</c>, max: <c>1.499f</c>.</param>
 		public void SetRunSpeedMultThisFrame(float mult)
@@ -664,10 +645,10 @@ namespace CitizenFX.Core
 				mult = 1.499f;
 			}
 
-			Function.Call(Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER, Handle, mult);
+			API.SetRunSprintMultiplierForPlayer(Handle, mult);
 		}
 		/// <summary>
-		/// Sets the swim speed mult for this this <see cref="Player"/> this frame.
+		/// Sets the swim speed mult for this this <see cref="Player"/> this frame. (THIS NAME IS WRONG, SHOULD NOT BE CALLED EVERY FRAME).
 		/// </summary>
 		/// <param name="mult">The factor - min: <c>0.0f</c>, default: <c>1.0f</c>, max: <c>1.499f</c>.</param>
 		public void SetSwimSpeedMultThisFrame(float mult)
@@ -677,42 +658,42 @@ namespace CitizenFX.Core
 				mult = 1.499f;
 			}
 
-			Function.Call(Hash.SET_SWIM_MULTIPLIER_FOR_PLAYER, Handle, mult);
+			API.SetSwimMultiplierForPlayer(Handle, mult);
 		}
 		/// <summary>
 		/// Makes this <see cref="Player"/> shoot fire bullets this frame.
 		/// </summary>
 		public void SetFireAmmoThisFrame()
 		{
-			Function.Call(Hash.SET_FIRE_AMMO_THIS_FRAME, Handle);
+			API.SetFireAmmoThisFrame(Handle);
 		}
 		/// <summary>
 		/// Makes this <see cref="Player"/> shoot explosive bullets this frame.
 		/// </summary>
 		public void SetExplosiveAmmoThisFrame()
 		{
-			Function.Call(Hash.SET_EXPLOSIVE_AMMO_THIS_FRAME, Handle);
+			API.SetExplosiveAmmoThisFrame(Handle);
 		}
 		/// <summary>
 		/// Makes this <see cref="Player"/> have an explosive melee attack this frame.
 		/// </summary>
 		public void SetExplosiveMeleeThisFrame()
 		{
-			Function.Call(Hash.SET_EXPLOSIVE_MELEE_THIS_FRAME, Handle);
+			API.SetExplosiveMeleeThisFrame(Handle);
 		}
 		/// <summary>
 		/// Lets this <see cref="Player"/> jump really high this frame.
 		/// </summary>
 		public void SetSuperJumpThisFrame()
 		{
-			Function.Call(Hash.SET_SUPER_JUMP_THIS_FRAME, Handle);
+			API.SetSuperJumpThisFrame(Handle);
 		}
 		/// <summary>
 		/// Blocks this <see cref="Player"/> from entering any <see cref="Vehicle"/> this frame.
 		/// </summary>
 		public void SetMayNotEnterAnyVehicleThisFrame()
 		{
-			Function.Call(Hash.SET_PLAYER_MAY_NOT_ENTER_ANY_VEHICLE, Handle);
+			API.SetPlayerMayNotEnterAnyVehicle(Handle);
 		}
 		/// <summary>
 		/// Only lets this <see cref="Player"/> enter a specific <see cref="Vehicle"/> this frame.
@@ -720,7 +701,7 @@ namespace CitizenFX.Core
 		/// <param name="vehicle">The <see cref="Vehicle"/> this <see cref="Player"/> is allowed to enter.</param>
 		public void SetMayOnlyEnterThisVehicleThisFrame(Vehicle vehicle)
 		{
-			Function.Call(Hash.SET_PLAYER_MAY_ONLY_ENTER_THIS_VEHICLE, Handle, vehicle.Handle);
+			API.SetPlayerMayOnlyEnterThisVehicle(Handle, vehicle.Handle);
 		}
 
 		public bool Equals(Player player)
@@ -746,13 +727,13 @@ namespace CitizenFX.Core
 			return !(left == right);
 		}
 
-        // CFX-EXTENSION
-        public int ServerId
-        {
-            get
-            {
-                return Function.Call<int>(Hash.GET_PLAYER_SERVER_ID, this.Handle);
-            }
-        }
+		// CFX-EXTENSION
+		public int ServerId
+		{
+			get
+			{
+				return API.GetPlayerServerId(Handle);
+			}
+		}
 	}
 }

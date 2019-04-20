@@ -7,7 +7,11 @@
 		"net",
 		"rage:nutsnbolts",
 		"gta:core",
-		"scripting"
+		"scripting",
+		"vendor:websocketpp",
+		"vendor:boost_system",
+		"vendor:cpp-uri",
+		"http-client"
 	],
 	"provides": []
 }

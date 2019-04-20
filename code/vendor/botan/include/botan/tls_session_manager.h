@@ -76,7 +76,7 @@ class BOTAN_PUBLIC_API(2,0) Session_Manager
       */
       virtual std::chrono::seconds session_lifetime() const = 0;
 
-      virtual ~Session_Manager() {}
+      virtual ~Session_Manager() = default;
    };
 
 /**

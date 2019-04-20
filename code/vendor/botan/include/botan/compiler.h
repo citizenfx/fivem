@@ -13,8 +13,12 @@
 #define BOTAN_UTIL_COMPILER_FLAGS_H_
 
 /* Should we use GCC-style inline assembler? */
-#if !defined(BOTAN_USE_GCC_INLINE_ASM) && (defined(__GNUC__) || defined(__xlc__))
-  #define BOTAN_USE_GCC_INLINE_ASM 1
+#if defined(BOTAN_BUILD_COMPILER_IS_GCC) || \
+   defined(BOTAN_BUILD_COMPILER_IS_CLANG) || \
+   defined(BOTAN_BUILD_COMPILER_IS_XLC) || \
+   defined(BOTAN_BUILD_COMPILER_IS_SUN_STUDIO)
+
+  #define BOTAN_USE_GCC_INLINE_ASM
 #endif
 
 /**
@@ -59,17 +63,9 @@
 #endif
 
 /*
-* Define special macro when building under MSVC 2013 since there are
-* many compiler workarounds required for that version.
-*/
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-  #define BOTAN_BUILD_COMPILER_IS_MSVC_2013
-#endif
-
-/*
 * Define BOTAN_FUNC_ISA
 */
-#if defined(__GNUG__) || (BOTAN_CLANG_VERSION > 38)
+#if (defined(__GNUG__) && !defined(__clang__)) || (BOTAN_CLANG_VERSION > 38)
   #define BOTAN_FUNC_ISA(isa) __attribute__ ((target(isa)))
 #else
   #define BOTAN_FUNC_ISA(isa)
@@ -135,32 +131,15 @@
 #endif
 
 /*
-* Define BOTAN_CURRENT_FUNCTION
+* Define BOTAN_IF_CONSTEXPR
 */
-#if defined(_MSC_VER)
-  #define BOTAN_CURRENT_FUNCTION __FUNCTION__
-#else
-  #define BOTAN_CURRENT_FUNCTION __func__
-#endif
 
-/*
-* Define BOTAN_NOEXCEPT (for MSVC 2013)
-*/
-#if defined(BOTAN_BUILD_COMPILER_IS_MSVC_2013)
-  // noexcept is not supported in VS 2013
-  #include <yvals.h>
-  #define BOTAN_NOEXCEPT _NOEXCEPT
-#else
-  #define BOTAN_NOEXCEPT noexcept
-#endif
-
-/*
-* Define BOTAN_ALIGNAS (for MSVC 2013)
-*/
-#if defined(BOTAN_BUILD_COMPILER_IS_MSVC_2013)
-  #define BOTAN_ALIGNAS(n) /**/
-#else
-  #define BOTAN_ALIGNAS(n) alignas(n)
+#if !defined(BOTAN_IF_CONSTEXPR)
+   #if __cplusplus > 201402
+      #define BOTAN_IF_CONSTEXPR if constexpr
+   #else
+      #define BOTAN_IF_CONSTEXPR if
+   #endif
 #endif
 
 /*
@@ -168,9 +147,7 @@
 */
 #if !defined(BOTAN_PARALLEL_FOR)
 
-#if defined(BOTAN_TARGET_HAS_CILKPLUS)
-  #define BOTAN_PARALLEL_FOR _Cilk_for
-#elif defined(BOTAN_TARGET_HAS_OPENMP)
+#if defined(BOTAN_TARGET_HAS_OPENMP)
   #define BOTAN_PARALLEL_FOR _Pragma("omp parallel for") for
 #else
   #define BOTAN_PARALLEL_FOR for
@@ -183,40 +160,12 @@
 */
 #if !defined(BOTAN_PARALLEL_SIMD_FOR)
 
-#if defined(BOTAN_TARGET_HAS_CILKPLUS)
-  #define BOTAN_PARALLEL_SIMD_FOR _Pragma("simd") for
-#elif defined(BOTAN_TARGET_HAS_OPENMP)
+#if defined(BOTAN_TARGET_HAS_OPENMP)
   #define BOTAN_PARALLEL_SIMD_FOR _Pragma("omp simd") for
 #elif defined(BOTAN_BUILD_COMPILER_IS_GCC) && (BOTAN_GCC_VERSION >= 490)
   #define BOTAN_PARALLEL_SIMD_FOR _Pragma("GCC ivdep") for
 #else
   #define BOTAN_PARALLEL_SIMD_FOR for
-#endif
-
-#endif
-
-/*
-* Define BOTAN_PARALLEL_SPAWN
-*/
-#if !defined(BOTAN_PARALLEL_SPAWN)
-
-#if defined(BOTAN_TARGET_HAS_CILKPLUS)
-  #define BOTAN_PARALLEL_SPAWN _Cilk_spawn
-#else
-  #define BOTAN_PARALLEL_SPAWN
-#endif
-
-#endif
-
-/*
-* Define BOTAN_PARALLEL_SYNC
-*/
-#if !defined(BOTAN_PARALLEL_SYNC)
-
-#if defined(BOTAN_TARGET_HAS_CILKPLUS)
-  #define BOTAN_PARALLEL_SYNC _Cilk_sync
-#else
-  #define BOTAN_PARALLEL_SYNC BOTAN_FORCE_SEMICOLON
 #endif
 
 #endif

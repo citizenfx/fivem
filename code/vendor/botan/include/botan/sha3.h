@@ -50,6 +50,20 @@ class BOTAN_PUBLIC_API(2,0) SHA_3 : public HashFunction
                            const uint8_t input[], size_t length);
 
       /**
+      * Add final padding and permute. The padding is assumed to be
+      * init_pad || 00... || fini_pad
+      *
+      * @param bitrate the bitrate to absorb into the sponge
+      * @param S the sponge state
+      * @param S_pos where to begin absorbing into S
+      * @param init_pad the leading pad bits
+      * @param fini_pad the final pad bits
+      */
+      static void finish(size_t bitrate,
+                         secure_vector<uint64_t>& S, size_t S_pos,
+                         uint8_t init_pad, uint8_t fini_pad);
+
+      /**
       * Expand from provided state
       * @param bitrate sponge parameter
       * @param S the state

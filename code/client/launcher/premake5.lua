@@ -6,7 +6,11 @@
 
 		flags "NoManifest"
 		
+		symbols "Full"
+		
 		links { "SharedLibc", "dbghelp", "psapi", "comctl32", "breakpad", "wininet", "winhttp" }
+		
+		dependson { "retarget_pe", "pe_debug" }
 
 		files
 		{
@@ -15,14 +19,27 @@
 			"../common/Error.cpp"
 		}
 		
+		postbuildcommands {
+			("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
+				path.getabsolute('../../tools/dbg/bin/msobj140.dll'):gsub('/', '\\')
+			),
+			("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
+				path.getabsolute('../../tools/dbg/bin/mspdbcore.dll'):gsub('/', '\\')
+			),
+			"if exist C:\\f\\GTA5_1604_dump.exe ( %{cfg.buildtarget.directory}\\retarget_pe \"%{cfg.buildtarget.abspath}\" C:\\f\\GTA5_1604_dump.exe )",
+			("%%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\""):format(
+				path.getabsolute('../../tools/dbg/dump_1604.txt')
+			)
+		}
+		
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
-		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:curl-crt', 'vendor:cpr-crt' }
+		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:minizip-crt' }
 		
 		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
 
-		flags { "StaticRuntime" }
+		staticruntime 'On'
 
 		configuration "game=ny"
 			targetname "CitizenFX"

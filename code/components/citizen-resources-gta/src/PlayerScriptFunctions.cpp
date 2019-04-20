@@ -20,7 +20,7 @@ static InitFunction initFunction([] ()
 	{
 		int serverId = context.GetArgument<int>(0);
 
-		for (int i = 0; i < 32; i++)
+		for (int i = 0; i < 256; i++)
 		{
 			CNetGamePlayer* player = CNetworkPlayerMgr::GetPlayer(i);
 

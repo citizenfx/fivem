@@ -22,6 +22,32 @@ struct DatabaseHolder
 		options.create_if_missing = true;
 
 		auto status = leveldb::DB::Open(options, "fxd:/kvs/", &dbPointer);
+
+		if (!status.ok())
+		{
+			if (status.IsCorruption())
+			{
+				leveldb::Options repairOptions;
+				repairOptions.reuse_logs = false;
+				repairOptions.create_if_missing = true;
+				repairOptions.env = GetVFSEnvironment();
+				
+				status = leveldb::RepairDB("fxd:/kvs/", repairOptions);
+
+				if (status.ok())
+				{
+					status = leveldb::DB::Open(options, "fxd:/kvs/", &dbPointer);
+				}
+
+				if (!status.ok())
+				{
+					status = leveldb::DestroyDB("fxd:/kvs/", options);
+
+					status = leveldb::DB::Open(options, "fxd:/kvs/", &dbPointer);
+				}
+			}
+		}
+
 		assert(status.ok());
 
 		db = std::unique_ptr<leveldb::DB>(dbPointer);

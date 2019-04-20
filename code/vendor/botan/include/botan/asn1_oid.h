@@ -27,7 +27,13 @@ class BOTAN_PUBLIC_API(2,0) OID final : public ASN1_Object
       * Find out whether this OID is empty
       * @return true is no OID value is set
       */
-      bool empty() const { return m_id.size() == 0; }
+      bool empty() const { return m_id.empty(); }
+
+      /**
+      * Find out whether this OID has a value
+      * @return true is this OID has a value
+      */
+      bool has_value() const { return (m_id.empty() == false); }
 
       /**
       * Get this OID as list (vector) of its components.
@@ -39,7 +45,13 @@ class BOTAN_PUBLIC_API(2,0) OID final : public ASN1_Object
       * Get this OID as a string
       * @return string representing this OID
       */
-      std::string as_string() const;
+      std::string as_string() const { return this->to_string(); }
+
+      /**
+      * Get this OID as a string
+      * @return string representing this OID
+      */
+      std::string to_string() const;
 
       /**
       * Compare two OIDs.
@@ -64,6 +76,8 @@ class BOTAN_PUBLIC_API(2,0) OID final : public ASN1_Object
       * @param str a string in the form "a.b.c" etc., where a,b,c are numbers
       */
       OID(const std::string& str = "");
+
+      explicit OID(std::initializer_list<uint32_t> init) : m_id(init) {}
    private:
       std::vector<uint32_t> m_id;
    };

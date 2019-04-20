@@ -7,7 +7,7 @@ return {
 		targetname "fmtlib-crt"
 		language "C++"
 		kind "StaticLib"
-		flags "StaticRuntime"
+		staticruntime 'On'
 		
 		files
 		{

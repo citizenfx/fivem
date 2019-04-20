@@ -69,7 +69,7 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
         })).reverse();
 
         this.serversService
-            .getServers()
+            .getReplayedServers()
             .filter(server => server != null)
             .map(server => ({ server, history: this.history.find(history => history.entry.address === server.address
                 || (server.data && server.data.vars && history.entry.token === server.data.vars.sv_licenseKeyToken)) }))
@@ -85,8 +85,6 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
 
             this.addrChanged(entry.title || entry.address);
         }
-
-        this.serversService.refreshServers();
     }
 
     tryConnect() {

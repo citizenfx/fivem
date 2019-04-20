@@ -17,7 +17,7 @@ curl -s -d "$json" "$TG_WEBHOOK" || true
 curl -s -d "$json" "$DISCORD_WEBHOOK" || true
 
 # get an alpine rootfs
-curl -sLo alpine-minirootfs-3.7.0-x86_64.tar.gz http://dl-cdn.alpinelinux.org/alpine/v3.7/releases/x86_64/alpine-minirootfs-3.7.0-x86_64.tar.gz
+curl -sLo alpine-minirootfs-3.8.0-x86_64.tar.gz http://dl-cdn.alpinelinux.org/alpine/edge/releases/x86_64/alpine-minirootfs-3.8.0-x86_64.tar.gz
 
 # get our patched proot build
 # source code: https://runtime.fivem.net/build/proot-v5.1.1.tar.gz
@@ -47,7 +47,7 @@ adduser -D -u 1000 build
 # extract the alpine root FS
 mkdir alpine
 cd alpine
-tar xf ../alpine-minirootfs-3.7.0-x86_64.tar.gz
+tar xf ../alpine-minirootfs-3.8.0-x86_64.tar.gz
 cd ..
 
 echo '#pragma once' > code/shared/cfx_version.h
@@ -57,7 +57,34 @@ echo '#define GIT_DESCRIPTION "'$CI_BUILD_REF_NAME' v1.0.0.'$CI_PIPELINE_ID' lin
 chown -R build:build .
 
 # build
-sudo -u build ./proot-x86_64 -S $PWD/alpine/ -b $PWD/:/src/ -b $PWD/../fivem-private/:/fivem-private/ /bin/sh /src/code/tools/ci/build_server_2.sh
+#sudo -u build ./proot-x86_64 -S $PWD/alpine/ -b $PWD/:/src/ -b $PWD/../fivem-private/:/fivem-private/ /bin/sh /src/code/tools/ci/build_server_2.sh
+mount --bind /dev $PWD/alpine/dev
+mount --bind /sys $PWD/alpine/sys
+mount --bind /proc $PWD/alpine/proc
+mount --bind /tmp $PWD/alpine/tmp
+mount --bind /root $PWD/alpine/root
+
+mkdir $PWD/alpine/src
+mkdir $PWD/alpine/fivem-private
+
+mount --bind $PWD $PWD/alpine/src
+mount --bind $PWD/../fivem-private $PWD/alpine/fivem-private
+
+echo nameserver 1.1.1.1 > $PWD/alpine/etc/resolv.conf
+echo nameserver 8.8.8.8 >> $PWD/alpine/etc/resolv.conf
+
+chroot $PWD/alpine/ /bin/sh /src/code/tools/ci/build_server_2.sh
+
+umount $PWD/alpine/dev
+umount $PWD/alpine/sys
+umount $PWD/alpine/proc
+umount $PWD/alpine/tmp
+umount $PWD/alpine/root
+umount $PWD/alpine/src
+umount $PWD/alpine/fivem-private
+
+rm -r $PWD/alpine/src
+rm -r $PWD/alpine/fivem-private
 
 # patch elf interpreter
 cp -a alpine/lib/ld-musl-x86_64.so.1 alpine/opt/cfx-server/
@@ -65,6 +92,9 @@ cp -a alpine/lib/ld-musl-x86_64.so.1 alpine/opt/cfx-server/
 # package artifacts
 cp data/server_proot/run.sh run.sh
 chmod +x run.sh
+
+# again change ownership
+chown -R build:build .
 
 tar cJf fx.tar.xz alpine/ run.sh
 

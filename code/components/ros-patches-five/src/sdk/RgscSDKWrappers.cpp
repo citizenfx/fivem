@@ -1,11 +1,15 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <botan/base64.h>
+
 #include <ICoreGameInit.h>
 
 #include <MinHook.h>
 
 HRESULT(*g_origInitializeGraphics)(void*, void*, void*);
+
+static HANDLE g_uiEvent;
 
 LONG_PTR DontSetWindowLongPtrW(HWND hWnd, int nIndex, LONG_PTR dwNewLong)
 {
@@ -44,6 +48,524 @@ class IRgscUi
 
 };
 
+class IProfileV3
+{
+public:
+	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
+	virtual void SetAccountId(uint64_t accountId) = 0; // 0x000000000FABDF22
+	virtual void SetUsername(const char* userName) = 0; // R0fabdf22
+	virtual void SetKey(const uint8_t* key) = 0; // 32 bytes
+	virtual void SetBool1(bool value) = 0; // false
+	virtual void SetTicket(const char* ticket) = 0; // YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh
+	virtual void SetEmail(const char* email) = 0; // onlineservices@fivem.net
+	virtual void SetUnkString(const char* str) = 0; // 0 byte string, ""
+	virtual void SetScAuthToken(const char* str) = 0; // base64 blob, 120 bytes
+};
+
+class IRgscProfileManager
+{
+public:
+	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
+	virtual bool isX() = 0; // bool isX()
+	virtual bool isOnline() = 0; // bool isY()
+	virtual int getProfileData(IProfileV3*) = 0; // int getProfileData(rgsc::ProfileV3*)
+	virtual void* m_04(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual bool isZ() = 0; // bool isZ() - only called after /cfx/login call?
+	virtual bool is1() = 0; // bool is1() - called from a background thread
+	virtual void* m_07(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_08(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_09(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_10(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_11(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_12(void*, void*, void*, void*, void*, void*, void*) = 0;
+};
+
+class IRgscCommerceManager
+{
+public:
+	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
+
+	virtual void* m_1(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_2(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_3(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_4(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_5(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_6(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_7(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_8(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_9(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_10(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_11(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_12(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_13(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_14(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_15(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_16(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_17(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_18(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_19(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_20(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_21(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_22(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_23(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_24(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_25(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_26(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_27(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_28(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_29(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_30(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_31(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_32(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_33(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_34(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_35(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_36(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_37(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_38(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_39(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_40(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_41(void*, void*, void*, void*, void*, void*, void*) = 0;
+};
+
+class IRgscFileSystem
+{
+public:
+	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
+	virtual void* m_01(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual HRESULT getProfilePath(char* buffer, int flag) = 0; // HRESULT getProfilePath(char* buffer, bool flag) -> C:\users\user\documents\rockstar games\gta v\profiles\8957495874\ 
+	virtual void* m_03(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_04(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_05(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_06(void*, void*, void*, void*, void*, void*, void*) = 0;
+	virtual void* m_07(void*, void*, void*, void*, void*, void*, void*) = 0;
+};
+
+class IRgscTaskManager
+{
+public:
+	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
+
+	virtual HRESULT CreateTask(void** asyncTask) = 0;
+};
+
+class TaskManagerStub : public IRgscTaskManager
+{
+public:
+	TaskManagerStub(void* basePtr)
+		: m_baseRgsc((IRgscTaskManager*)basePtr)
+	{
+
+	}
+
+	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	{
+		LOG_CALL();
+
+		HRESULT hr = m_baseRgsc->QueryInterface(iid, out);
+
+		if (*out == m_baseRgsc)
+		{
+			*out = this;
+		}
+
+		return hr;
+	}
+
+	virtual HRESULT CreateTask(void** asyncTask) override
+	{
+		LOG_CALL();
+
+		return m_baseRgsc->CreateTask(asyncTask);
+	}
+
+private:
+	IRgscTaskManager* m_baseRgsc;
+};
+
+static bool g_signedIn;
+
+class ProfileManagerStub : public IRgscProfileManager
+{
+public:
+	ProfileManagerStub(void* basePtr)
+		: m_baseRgsc((IRgscProfileManager*)basePtr)
+	{
+
+	}
+
+#define GENERIC_STUB(m) \
+	virtual void* m(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7) override \
+	{ \
+		LOG_CALL(); \
+		\
+		return m_baseRgsc->m(a1, a2, a3, a4, a5, a6, a7); \
+	}
+
+	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	{
+		LOG_CALL();
+
+		HRESULT hr = m_baseRgsc->QueryInterface(iid, out);
+
+		if (*out == m_baseRgsc)
+		{
+			*out = this;
+		}
+
+		return hr;
+	}
+
+	virtual bool isX() override
+	{
+		//return true;
+		bool ov = m_baseRgsc->isX();
+		//return ov;
+		return g_signedIn;
+	}
+
+	virtual bool isOnline() override
+	{
+		return true;
+		//return m_baseRgsc->isOnline();
+		//return true;
+	}
+
+	virtual int getProfileData(IProfileV3* profile) override
+	{
+		//m_baseRgsc->getProfileData(profile);
+		//profile->SetAccountId(0x000000000FABDF22);
+		profile->SetAccountId(ROS_DUMMY_ACCOUNT_ID);
+		profile->SetEmail("onlineservices@fivem.net");
+		profile->SetBool1(false);
+		profile->SetUsername(va("R%08x", ROS_DUMMY_ACCOUNT_ID));
+		profile->SetTicket("YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh");
+		profile->SetScAuthToken("AAAAArgQdyps/xBHKUumlIADBO75R0gAekcl3m2pCg3poDsXy9n7Vv4DmyEmHDEtv49b5BaUWBiRR/lVOYrhQpaf3FJCp4+22ETI8H0NhuTTijxjbkvDEViW9x6bOEAWApixmQue2CNN3r7X8vQ/wcXteChEHUHi");
+
+		return 0;
+	}
+
+	GENERIC_STUB(m_04);
+
+	virtual bool isZ() override
+	{
+		//return m_baseRgsc->isZ();
+		return true;
+	}
+
+	virtual bool is1() override
+	{
+		//return m_baseRgsc->is1();
+		return true;
+	}
+
+	GENERIC_STUB(m_07);
+	GENERIC_STUB(m_08);
+	GENERIC_STUB(m_09);
+	GENERIC_STUB(m_10);
+	GENERIC_STUB(m_11);
+	GENERIC_STUB(m_12);
+
+private:
+	IRgscProfileManager* m_baseRgsc;
+};
+
+#include <shlwapi.h>
+#include <shlobj.h>
+
+#pragma comment(lib, "shlwapi.lib")
+
+static void AppendPathComponent(std::wstring& value, const wchar_t* component)
+{
+	value += component;
+
+	if (GetFileAttributes(value.c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		CreateDirectoryW(value.c_str(), nullptr);
+	}
+}
+
+static std::wstring GetCitizenSavePath()
+{
+	PWSTR saveBasePath;
+
+	// get the 'Saved Games' shell directory
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_SavedGames, 0, nullptr, &saveBasePath)))
+	{
+		// create a STL string and free the used memory
+		std::wstring savePath(saveBasePath);
+
+		CoTaskMemFree(saveBasePath);
+
+		// append our path components
+		AppendPathComponent(savePath, L"\\CitizenFX");
+		AppendPathComponent(savePath, L"\\GTA5");
+
+		// append a final separator
+		savePath += L"\\";
+
+		// and return the path
+		return savePath;
+	}
+
+	return MakeRelativeCitPath(L"saves");
+}
+
+class FileSystemStub : public IRgscFileSystem
+{
+public:
+	FileSystemStub(void* basePtr)
+		: m_baseRgsc((IRgscFileSystem*)basePtr)
+	{
+
+	}
+
+	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	{
+		LOG_CALL();
+
+		HRESULT hr = m_baseRgsc->QueryInterface(iid, out);
+
+		if (*out == m_baseRgsc)
+		{
+			*out = this;
+		}
+
+		return hr;
+	}
+
+	GENERIC_STUB(m_07);
+	GENERIC_STUB(m_01);
+	
+	virtual HRESULT getProfilePath(char* buffer, int flag) override
+	{
+		LOG_CALL();
+
+		strncpy(buffer, ToNarrow(GetCitizenSavePath()).c_str(), 256);
+
+		return S_OK;
+	}
+
+	GENERIC_STUB(m_03);
+	GENERIC_STUB(m_04);
+	GENERIC_STUB(m_05);
+	GENERIC_STUB(m_06);
+
+private:
+	IRgscFileSystem* m_baseRgsc;
+};
+
+std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHash);
+
+class CommerceManagerStub : public IRgscCommerceManager
+{
+public:
+	CommerceManagerStub(void* basePtr)
+		: m_baseRgsc((IRgscCommerceManager*)basePtr)
+	{
+
+	}
+
+	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	{
+		LOG_CALL();
+
+		HRESULT hr = m_baseRgsc->QueryInterface(iid, out);
+
+		if (*out == m_baseRgsc)
+		{
+			*out = this;
+		}
+
+		return hr;
+	}
+
+	GENERIC_STUB(m_1);
+	GENERIC_STUB(m_2);
+	GENERIC_STUB(m_3);
+	GENERIC_STUB(m_4);
+	GENERIC_STUB(m_5);
+	GENERIC_STUB(m_6);
+	GENERIC_STUB(m_7);
+	GENERIC_STUB(m_8);
+	GENERIC_STUB(m_9);
+	GENERIC_STUB(m_10);
+	GENERIC_STUB(m_11);
+	GENERIC_STUB(m_12);
+	GENERIC_STUB(m_13);
+	GENERIC_STUB(m_14);
+	GENERIC_STUB(m_15);
+	GENERIC_STUB(m_16);
+	GENERIC_STUB(m_17);
+	GENERIC_STUB(m_18);
+	GENERIC_STUB(m_19);
+	GENERIC_STUB(m_20);
+	GENERIC_STUB(m_21);
+	GENERIC_STUB(m_22);
+	GENERIC_STUB(m_23);
+	GENERIC_STUB(m_24);
+	GENERIC_STUB(m_25);
+	GENERIC_STUB(m_26);
+	GENERIC_STUB(m_27);
+	GENERIC_STUB(m_28);
+
+	virtual void* m_29(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+	{
+		auto block = GetEntitlementBlock(ROS_DUMMY_ACCOUNT_ID, (const char*)a1);
+
+		auto declen = Botan::base64_decode((uint8_t*)a3, block);
+
+		*(uint32_t*)a5 = 1;
+		*(uint32_t*)a6 = declen;
+
+		// async status
+		*(uint32_t*)((char*)a7 + 12) = 3;
+
+		return (void*)1;
+	}
+
+	virtual void* m_30(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+	{
+		return (void*)1;
+	}
+
+	GENERIC_STUB(m_31);
+
+	virtual void* m_32(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+	{
+		return (void*)1;
+	}
+
+	//GENERIC_STUB(m_33);
+
+	virtual void* m_33(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+	{
+		return (void*)1;
+	}
+
+	GENERIC_STUB(m_34);
+	GENERIC_STUB(m_35);
+	GENERIC_STUB(m_36);
+	GENERIC_STUB(m_37);
+	//GENERIC_STUB(m_38);
+
+	virtual void* m_38(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+	{
+		return (void*)1;
+	}
+
+	GENERIC_STUB(m_39);
+	GENERIC_STUB(m_40);
+	GENERIC_STUB(m_41);
+
+private:
+	IRgscCommerceManager* m_baseRgsc;
+};
+
+enum class RgscEvent
+{
+	GameInviteAccepted = 1,
+	FriendStatusChanged = 2,
+	RosTicketChanged = 3, // arg: const char* with CreateTicketResponse
+	SigninStateChanged = 4, // arg: int
+	SocialClubMessage = 5,
+	JoinedViaPresence = 6,
+	SdkInitError = 7, // arg: int
+	UiEvent = 8, // arg: const char* with json/xml/something
+	OpenUrl = 9,
+	UnkSteamUserOp = 10,
+	UnkCommerce = 11
+};
+
+class IRgscDelegate
+{
+public:
+	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
+	virtual void* m_01(void* a1, void* a2) = 0;
+	virtual void* m_02(void* a1) = 0; // implemented in gta, return 0?
+	virtual void* m_03(void* a1) = 0;
+	virtual void* m_04(void* a1) = 0;
+	virtual void* m_05(void* a1) = 0;
+	virtual void* m_06(bool a1, void* a2, void* a3, bool a4, uint32_t a5) = 0; // implemented in gta
+	virtual void* OnEvent(RgscEvent event, const void* data) = 0;
+};
+
+struct FriendStatus
+{
+	uint32_t status;
+	uint8_t pad[32 - 4 - 8];
+	const char* jsonDataString;
+	uint32_t jsonDataLength;
+	uint32_t unk0x1000;
+	uint32_t unk0x1;
+	uint32_t unk0x7FFA;
+};
+
+class RgscLogDelegate : public IRgscDelegate
+{
+	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	{
+		*out = this;
+		return S_OK;
+	}
+
+	virtual void* m_01(void* a1, void* a2) override
+	{
+		LOG_CALL();
+
+		return nullptr;
+	}
+
+	virtual void* m_02(void* a1) override
+	{
+		return nullptr;
+	}
+
+	virtual void* m_03(void* a1) override
+	{
+		LOG_CALL();
+
+		return nullptr;
+	}
+
+	virtual void* m_04(void* a1) override
+	{
+		LOG_CALL();
+
+		return nullptr;
+	}
+
+	virtual void* m_05(void* a1) override
+	{
+		LOG_CALL();
+
+		return nullptr;
+	}
+
+	virtual void* m_06(bool a1, void* a2, void* a3, bool a4, uint32_t a5) override
+	{
+		LOG_CALL();
+
+		return nullptr;
+	}
+
+	virtual void* OnEvent(RgscEvent event, const void* data) override
+	{
+		LOG_CALL();
+
+		if (event == RgscEvent::FriendStatusChanged)
+		{
+			auto fdata = (FriendStatus*)data;
+		}
+		else if (event == (RgscEvent)0xD)
+		{
+			SetEvent(g_uiEvent);
+		}
+
+		return nullptr;
+	}
+};
+
 class IRgsc
 {
 public:
@@ -51,14 +573,14 @@ public:
 	virtual HRESULT m_01(void* a1, void* a2, void* a3) = 0;
 	virtual HRESULT m_02() = 0;
 	virtual void* m_03() = 0;
-	virtual void* m_04() = 0; // get
-	virtual void* m_05() = 0; // get
-	virtual void* m_06() = 0; // get
+	virtual void* GetAchievementManager() = 0; // get
+	virtual void* GetProfileManager() = 0; // get
+	virtual void* GetFileSystem() = 0; // get
 	virtual IRgscUi* GetUI() = 0; // get
-	virtual HRESULT Initialize(void*, void*, void*, void* a4, void* a5, void* a6) = 0;
-	virtual void* m_07() = 0; // get
-	virtual void* m_08() = 0;
-	virtual void* m_09() = 0;
+	virtual HRESULT Initialize(void*, void*, void*, IRgscDelegate* a4, void* a5, void* a6) = 0;
+	virtual void* GetPlayerManager() = 0; // get
+	virtual void* GetTaskManager() = 0;
+	virtual void* GetPresenceManager() = 0;
 	virtual void* m_10() = 0;
 	virtual void SetSomething(void*) = 0;
 	virtual void* SetSomethingSteamTicket(void*) = 0;
@@ -70,6 +592,8 @@ public:
 	virtual void* m_16() = 0;
 	virtual void* m_17() = 0;
 };
+
+std::string GetRockstarTicketXml();
 
 class RgscStub : public IRgsc
 {
@@ -113,6 +637,11 @@ public:
 	{
 		//LOG_CALL();
 
+		if (getenv("CitizenFX_ToolMode"))
+		{
+			return m_baseRgsc->m_03();
+		}
+
 		static uint32_t lastAllowedScUpdate;
 
 		if ((GetTickCount() - lastAllowedScUpdate > 250) || !Instance<ICoreGameInit>::Get()->GetGameLoaded())
@@ -125,30 +654,35 @@ public:
 		return nullptr;
 	}
 
-	virtual void* m_04() override
+	virtual void* GetAchievementManager() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_04();
+		return m_baseRgsc->GetAchievementManager(); // 6 methods
 	}
 
-	virtual void* m_05() override
+	virtual void* GetProfileManager() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_05();
+		return new ProfileManagerStub(m_baseRgsc->GetProfileManager());
 	}
 
-	virtual void* m_06() override
+	virtual void* GetFileSystem() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_06();
+		return new FileSystemStub(m_baseRgsc->GetFileSystem());
 	}
 
 	virtual IRgscUi* GetUI() override
 	{
 		LOG_CALL();
+
+		if (getenv("CitizenFX_ToolMode"))
+		{
+			return m_baseRgsc->GetUI();
+		}
 
 		IRgscUi* ui = m_baseRgsc->GetUI();
 
@@ -168,39 +702,68 @@ public:
 		return ui;
 	}
 
-	virtual HRESULT Initialize(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6) override
+	virtual HRESULT Initialize(void* a1, void* a2, void* a3, IRgscDelegate* delegate, void* a5, void* a6) override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->Initialize(a1, a2, a3, a4, a5, a6);
+		g_uiEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+
+		std::thread([delegate]()
+		{
+			WaitForSingleObject(g_uiEvent, INFINITE);
+
+			int zero = 0;
+			delegate->OnEvent((RgscEvent)0xD, &zero);
+
+			FriendStatus fs = { 0 };
+			fs.status = 5;
+			fs.unk0x1 = 1;
+			fs.unk0x1000 = 0x1000;
+			fs.unk0x7FFA = 0x7FFA;
+			fs.jsonDataLength = 0x1D0;
+			fs.jsonDataString = R"({"SignedIn":true,"SignedOnline":true,"ScAuthToken":"AAAAArgQdyps/xBHKUumlIADBO75R0gAekcl3m2pCg3poDsXy9n7Vv4DmyEmHDEtv49b5BaUWBiRR/lVOYrhQpaf3FJCp4+22ETI8H0NhuTTijxjbkvDEViW9x6bOEAWApixmQue2CNN3r7X8vQ/wcXteChEHUHi","ScAuthTokenError":false,"ProfileSaved":true,"AchievementsSynced":false,"FriendsSynced":false,"Local":false,"NumFriendsOnline":0,"NumFriendsPlayingSameTitle":0,"NumBlocked":0,"NumFriends":0,"NumInvitesReceieved":0,"NumInvitesSent":0,"CallbackData":2})";
+
+			delegate->OnEvent(RgscEvent::FriendStatusChanged, &fs);
+
+			delegate->OnEvent(RgscEvent::RosTicketChanged, GetRockstarTicketXml().c_str());
+
+			//int yes = 1;
+			//delegate->OnEvent(RgscEvent::SigninStateChanged, &yes);
+
+			g_signedIn = true;
+		}).detach();
+
+		static RgscLogDelegate fakeDelegate;
+
+		return m_baseRgsc->Initialize(a1, a2, a3, &fakeDelegate, a5, a6);
 	}
 
-	virtual void* m_07() override
+	virtual void* GetPlayerManager() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_07();
+		return m_baseRgsc->GetPlayerManager(); // 12 functions
 	}
 
-	virtual void* m_08() override
+	virtual void* GetTaskManager() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_08();
+		return new TaskManagerStub(m_baseRgsc->GetTaskManager()); // 3 functions
 	}
 
-	virtual void* m_09() override
+	virtual void* GetPresenceManager() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_09();
+		return m_baseRgsc->GetPresenceManager(); // 26 functions(!)
 	}
 
 	virtual void* m_10() override
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_10();
+		return new CommerceManagerStub(m_baseRgsc->m_10()); // commerce manager, 41(?!) functions
 	}
 
 	virtual void SetSomething(void* a1) override
@@ -221,7 +784,7 @@ public:
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_11();
+		return m_baseRgsc->m_11(); // telemetry manager
 	}
 
 	virtual bool m_12(void* a1, void* a2) override
@@ -242,7 +805,7 @@ public:
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_14();
+		return m_baseRgsc->m_14(); // gamepad manager
 	}
 
 	virtual void* m_15() override
@@ -256,7 +819,7 @@ public:
 	{
 		LOG_CALL();
 
-		return m_baseRgsc->m_16();
+		return m_baseRgsc->m_16(); // cloud save manager
 	}
 
 	virtual void* m_17() override

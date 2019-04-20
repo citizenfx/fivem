@@ -8,14 +8,22 @@
 #ifndef BOTAN_FILTERS_H_
 #define BOTAN_FILTERS_H_
 
-#include <botan/stream_cipher.h>
-#include <botan/hash.h>
-#include <botan/mac.h>
-
-#include <botan/pipe.h>
 #include <botan/basefilt.h>
 #include <botan/key_filt.h>
 #include <botan/data_snk.h>
+#include <botan/pipe.h>
+
+#if defined(BOTAN_HAS_STREAM_CIPHER)
+   #include <botan/stream_cipher.h>
+#endif
+
+#if defined(BOTAN_HAS_HASH)
+   #include <botan/hash.h>
+#endif
+
+#if defined(BOTAN_HAS_MAC)
+   #include <botan/mac.h>
+#endif
 
 #if defined(BOTAN_HAS_CODEC_FILTERS)
   #include <botan/b64_filt.h>
@@ -23,6 +31,8 @@
 #endif
 
 namespace Botan {
+
+#if defined(BOTAN_HAS_STREAM_CIPHER)
 
 /**
 * Stream Cipher Filter
@@ -89,6 +99,9 @@ class BOTAN_PUBLIC_API(2,0) StreamCipher_Filter final : public Keyed_Filter
       secure_vector<uint8_t> m_buffer;
       std::unique_ptr<StreamCipher> m_cipher;
    };
+#endif
+
+#if defined(BOTAN_HAS_HASH)
 
 /**
 * Hash Filter.
@@ -126,6 +139,9 @@ class BOTAN_PUBLIC_API(2,0) Hash_Filter final : public Filter
       std::unique_ptr<HashFunction> m_hash;
       const size_t m_out_len;
    };
+#endif
+
+#if defined(BOTAN_HAS_MAC)
 
 /**
 * MessageAuthenticationCode Filter.
@@ -204,6 +220,7 @@ class BOTAN_PUBLIC_API(2,0) MAC_Filter final : public Keyed_Filter
       std::unique_ptr<MessageAuthenticationCode> m_mac;
       const size_t m_out_len;
    };
+#endif
 
 }
 

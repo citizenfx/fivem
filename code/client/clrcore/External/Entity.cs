@@ -32,8 +32,8 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-                // CFX-TODO
-                return Function.Call<IntPtr>((Hash)MemoryAccess.GetHashKey("get_entity_address"), Handle);
+				// CFX-TODO
+				return Function.Call<IntPtr>((Hash)MemoryAccess.GetHashKey("get_entity_address"), Handle);
 				//return MemoryAccess.GetEntityAddress(Handle);
 			}
 		}
@@ -49,11 +49,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_ENTITY_HEALTH, Handle) - 100;
+				return API.GetEntityHealth(Handle) - 100;
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_HEALTH, Handle, value + 100);
+				API.SetEntityHealth(Handle, value + 100);
 			}
 		}
 		/// <summary>
@@ -94,11 +94,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_ENTITY_MAX_HEALTH, Handle) - 100;
+				return API.GetEntityMaxHealth(Handle) - 100;
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_MAX_HEALTH, Handle, value + 100);
+				API.SetEntityMaxHealth(Handle, value + 100);
 			}
 		}
 		/// <summary>
@@ -138,7 +138,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_DEAD, Handle);
+				return API.IsEntityDead(Handle);
 			}
 		}
 		/// <summary>
@@ -159,7 +159,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return new Model(Function.Call<int>(Hash.GET_ENTITY_MODEL, Handle));
+				return new Model(API.GetEntityModel(Handle));
 			}
 		}
 
@@ -173,11 +173,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_ENTITY_COORDS, Handle, 0);
+				return API.GetEntityCoords(Handle, false);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_COORDS, Handle, value.X, value.Y, value.Z, 0, 0, 0, 1);
+				API.SetEntityCoords(Handle, value.X, value.Y, value.Z, false, false, false, true);
 			}
 		}
 		/// <summary>
@@ -190,7 +190,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_COORDS_NO_OFFSET, Handle, value.X, value.Y, value.Z, 1, 1, 1);
+				API.SetEntityCoordsNoOffset(Handle, value.X, value.Y, value.Z, true, true, true);
 			}
 		}
 		/// <summary>
@@ -203,11 +203,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_ENTITY_ROTATION, Handle, 2);
+				return API.GetEntityRotation(Handle, 2);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_ROTATION, Handle, value.X, value.Y, value.Z, 2, 1);
+				API.SetEntityRotation(Handle, value.X, value.Y, value.Z, 2, true);
 			}
 		}
 		/// <summary>
@@ -215,23 +215,20 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Quaternion Quaternion
 		{
-            [SecuritySafeCritical]
 			get
 			{
-				float x;
-				float y;
-				float z;
-				float w;
-				unsafe
-				{
-					Function.Call(Hash.GET_ENTITY_QUATERNION, Handle, &x, &y, &z, &w);
-				}
+				float x = 0f;
+				float y = 0f;
+				float z = 0f;
+				float w = 0f;
+
+				API.GetEntityQuaternion(Handle, ref x, ref y, ref z, ref w);
 
 				return new Quaternion(x, y, z, w);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_QUATERNION, Handle, value.X, value.Y, value.Z, value.W);
+				API.SetEntityQuaternion(Handle, value.X, value.Y, value.Z, value.W);
 			}
 		}
 		/// <summary>
@@ -244,11 +241,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_ENTITY_HEADING, Handle);
+				return API.GetEntityHeading(Handle);
 			}
 			set
 			{
-				Function.Call<float>(Hash.SET_ENTITY_HEADING, Handle, value);
+				API.SetEntityHeading(Handle, value);
 			}
 		}
 		/// <summary>
@@ -261,7 +258,7 @@ namespace CitizenFX.Core
 			{
 				if (MemoryAddress == IntPtr.Zero)
 				{
-                    return Vector3.Zero;//.RelativeTop;
+					return Vector3.Zero;//.RelativeTop;
 				}
 				return MemoryAccess.ReadVector3(MemoryAddress + 0x80);
 			}
@@ -330,7 +327,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash.FREEZE_ENTITY_POSITION, Handle, value);
+				API.FreezeEntityPosition(Handle, value);
 			}
 		}
 
@@ -341,11 +338,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_ENTITY_VELOCITY, Handle);
+				return API.GetEntityVelocity(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_VELOCITY, Handle, value.X, value.Y, value.Z);
+				API.SetEntityVelocity(Handle, value.X, value.Y, value.Z);
 			}
 		}
 		/// <summary>
@@ -355,7 +352,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<Vector3>(Hash.GET_ENTITY_ROTATION_VELOCITY, Handle);
+				return API.GetEntityRotationVelocity(Handle);
 			}
 		}
 		/// <summary>
@@ -365,7 +362,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_MAX_SPEED, Handle, value);
+				API.SetEntityMaxSpeed(Handle, value);
 			}
 		}
 
@@ -394,7 +391,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_HAS_GRAVITY, Handle, value);
+				API.SetEntityHasGravity(Handle, value);
 			}
 		}
 		/// <summary>
@@ -404,7 +401,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_ENTITY_HEIGHT_ABOVE_GROUND, Handle);
+				return API.GetEntityHeightAboveGround(Handle);
 			}
 		}
 		/// <summary>
@@ -414,7 +411,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<float>(Hash.GET_ENTITY_SUBMERGED_LEVEL, Handle);
+				return API.GetEntitySubmergedLevel(Handle);
 			}
 		}
 
@@ -425,11 +422,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_ENTITY_LOD_DIST, Handle);
+				return API.GetEntityLodDist(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_LOD_DIST, Handle, value);
+				API.SetEntityLodDist(Handle, value);
 			}
 		}
 
@@ -443,11 +440,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_VISIBLE, Handle);
+				return API.IsEntityVisible(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_VISIBLE, Handle, value);
+				API.SetEntityVisible(Handle, value, false);
 			}
 		}
 		/// <summary>
@@ -460,7 +457,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_OCCLUDED, Handle);
+				return API.IsEntityOccluded(Handle);
 			}
 		}
 		/// <summary>
@@ -473,7 +470,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_ON_SCREEN, Handle);
+				return API.IsEntityOnScreen(Handle);
 			}
 		}
 		/// <summary>
@@ -504,7 +501,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_UPRIGHT, Handle);
+				return API.IsEntityUpright(Handle, 0f);
 			}
 		}
 		/// <summary>
@@ -517,7 +514,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_UPSIDEDOWN, Handle);
+				return API.IsEntityUpsidedown(Handle);
 			}
 		}
 
@@ -529,10 +526,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsInAir
 		{
-
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_IN_AIR, Handle);
+				return API.IsEntityInAir(Handle);
 			}
 		}
 		/// <summary>
@@ -546,7 +542,7 @@ namespace CitizenFX.Core
 
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_IN_WATER, Handle);
+				return API.IsEntityInWater(Handle);
 			}
 		}
 
@@ -560,13 +556,13 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_A_MISSION_ENTITY, Handle);
+				return API.IsEntityAMissionEntity(Handle);
 			}
 			set
 			{
 				if (value)
 				{
-					Function.Call(Hash.SET_ENTITY_AS_MISSION_ENTITY, Handle, true, false);
+					API.SetEntityAsMissionEntity(Handle, true, false);
 				}
 				else
 				{
@@ -585,7 +581,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.IS_ENTITY_ON_FIRE, Handle);
+				return API.IsEntityOnFire(Handle);
 			}
 		}
 		/// <summary>
@@ -787,7 +783,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_INVINCIBLE, Handle, value);
+				API.SetEntityInvincible(Handle, value);
 			}
 		}
 		/// <summary>
@@ -809,7 +805,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_ONLY_DAMAGED_BY_PLAYER, Handle, value);
+				API.SetEntityOnlyDamagedByPlayer(Handle, value);
 			}
 		}
 
@@ -823,11 +819,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_ENTITY_ALPHA, Handle);
+				return API.GetEntityAlpha(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_ALPHA, Handle, value, false);
+				API.SetEntityAlpha(Handle, value, 0); // p2 used to be false
 			}
 		}
 		/// <summary>
@@ -835,7 +831,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void ResetOpacity()
 		{
-			Function.Call(Hash.RESET_ENTITY_ALPHA, Handle);
+			API.ResetEntityAlpha(Handle);
 		}
 
 		/// <summary>
@@ -849,9 +845,22 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.HAS_ENTITY_COLLIDED_WITH_ANYTHING, Handle);
+				return API.HasEntityCollidedWithAnything(Handle);
 			}
 		}
+
+		/// <summary>
+		/// Gets the material this entity is currently brushing up against. Only works
+		/// for the material the entity is facing towards.
+		/// </summary>
+		public MaterialHash MaterialCollidingWith
+		{
+			get
+			{
+				return (MaterialHash) API.GetLastMaterialHitByEntity(Handle);
+			}
+		}
+
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> has collision.
 		/// </summary>
@@ -862,11 +871,11 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return !Function.Call<bool>(Hash._GET_ENTITY_COLLISON_DISABLED, Handle);
+				return !API.GetEntityCollisonDisabled(Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_COLLISION, Handle, value, false);
+				API.SetEntityCollision(Handle, value, false);
 			}
 		}
 		/// <summary>
@@ -876,7 +885,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				Function.Call(Hash.SET_ENTITY_RECORDS_COLLISIONS, Handle, value);
+				API.SetEntityRecordsCollisions(Handle, value);
 			}
 		}
 		/// <summary>
@@ -886,7 +895,7 @@ namespace CitizenFX.Core
 		/// <param name="toggle">if set to <c>true</c> the 2 <see cref="Entity"/>s wont collide with each other.</param>
 		public void SetNoCollision(Entity entity, bool toggle)
 		{
-			Function.Call(Hash.SET_ENTITY_NO_COLLISION_ENTITY, Handle, entity.Handle, toggle);
+			API.SetEntityNoCollisionEntity(Handle, entity.Handle, toggle);
 		}
 
 		/// <summary>
@@ -898,7 +907,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool HasBeenDamagedBy(Entity entity)
 		{
-			return Function.Call<bool>(Hash.HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY, Handle, entity.Handle, 1);
+			return API.HasEntityBeenDamagedByEntity(Handle, entity.Handle, true);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> has been damaged by a specific weapon].
@@ -909,7 +918,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public virtual bool HasBeenDamagedBy(WeaponHash weapon)
 		{
-			return Function.Call<bool>(Hash.HAS_ENTITY_BEEN_DAMAGED_BY_WEAPON, Handle, weapon, 0);
+			return API.HasEntityBeenDamagedByWeapon(Handle, (uint)weapon, 0);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> has been damaged by any weapon.
@@ -919,7 +928,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public virtual bool HasBeenDamagedByAnyWeapon()
 		{
-			return Function.Call<bool>(Hash.HAS_ENTITY_BEEN_DAMAGED_BY_WEAPON, Handle, 0, 2);
+			return API.HasEntityBeenDamagedByWeapon(Handle, 0, 2);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> has been damaged by any melee weapon.
@@ -929,14 +938,14 @@ namespace CitizenFX.Core
 		/// </returns>
 		public virtual bool HasBeenDamagedByAnyMeleeWeapon()
 		{
-			return Function.Call<bool>(Hash.HAS_ENTITY_BEEN_DAMAGED_BY_WEAPON, Handle, 0, 1);
+			return API.HasEntityBeenDamagedByWeapon(Handle, 0, 1);
 		}
 		/// <summary>
 		/// Clears the last weapon damage this <see cref="Entity"/> received.
 		/// </summary>
 		public virtual void ClearLastWeaponDamage()
 		{
-			Function.Call(Hash.CLEAR_ENTITY_LAST_WEAPON_DAMAGE, Handle);
+			API.ClearEntityLastWeaponDamage(Handle);
 		}
 
 		/// <summary>
@@ -949,7 +958,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsInArea(Vector3 minBounds, Vector3 maxBounds)
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_IN_AREA, Handle, minBounds.X, minBounds.Y, minBounds.Z, maxBounds.X, maxBounds.Y, maxBounds.Z);
+			return API.IsEntityInArea(Handle, minBounds.X, minBounds.Y, minBounds.Z, maxBounds.X, maxBounds.Y, maxBounds.Z, false, false, 0);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> is in a specified angled area
@@ -962,7 +971,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsInAngledArea(Vector3 origin, Vector3 edge, float angle)
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_IN_ANGLED_AREA, Handle, origin.X, origin.Y, origin.Z, edge.X, edge.Y, edge.Z, angle, false, true, false);
+			return API.IsEntityInAngledArea(Handle, origin.X, origin.Y, origin.Z, edge.X, edge.Y, edge.Z, angle, false, true, 0);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> is in range of a specified position
@@ -986,7 +995,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsNearEntity(Entity entity, Vector3 bounds)
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_AT_ENTITY, Handle, entity.Handle, bounds.X, bounds.Y, bounds.Z, false, true, false);
+			return API.IsEntityAtEntity(Handle, entity.Handle, bounds.X, bounds.Y, bounds.Z, false, true, 0);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> is touching an <see cref="Entity"/> with the <see cref="Model"/> <paramref name="model"/>.
@@ -997,7 +1006,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsTouching(Model model)
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_TOUCHING_MODEL, Handle, model.Hash);
+			return API.IsEntityTouchingModel(Handle, (uint)model.Hash);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> is touching the <see cref="Entity"/> <paramref name="entity"/>.
@@ -1008,7 +1017,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsTouching(Entity entity)
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_TOUCHING_ENTITY, Handle, entity.Handle);
+			return API.IsEntityTouchingEntity(Handle, entity.Handle);
 		}
 
 		/// <summary>
@@ -1017,7 +1026,7 @@ namespace CitizenFX.Core
 		/// <param name="offset">The offset from this <see cref="Entity"/>.</param>
 		public Vector3 GetOffsetPosition(Vector3 offset)
 		{
-			return Function.Call<Vector3>(Hash.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS, Handle, offset.X, offset.Y, offset.Z);
+			return API.GetOffsetFromEntityInWorldCoords(Handle, offset.X, offset.Y, offset.Z);
 		}
 		/// <summary>
 		/// Gets the relative offset of this <see cref="Entity"/> from a world coords position
@@ -1025,7 +1034,7 @@ namespace CitizenFX.Core
 		/// <param name="worldCoords">The world coords.</param>
 		public Vector3 GetPositionOffset(Vector3 worldCoords)
 		{
-			return Function.Call<Vector3>(Hash.GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS, Handle, worldCoords.X, worldCoords.Y, worldCoords.Z);
+			return API.GetOffsetFromEntityGivenWorldCoords(Handle, worldCoords.X, worldCoords.Y, worldCoords.Z);
 		}
 
 		/// <summary>
@@ -1048,7 +1057,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Blip AttachBlip()
 		{
-			return new Blip(Function.Call<int>(Hash.ADD_BLIP_FOR_ENTITY, Handle));
+			return new Blip(API.AddBlipForEntity(Handle));
 		}
 		/// <summary>
 		/// Gets the <see cref="Blip"/> attached to this <see cref="Entity"/>
@@ -1058,9 +1067,9 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int handle = Function.Call<int>(Hash.GET_BLIP_FROM_ENTITY, Handle);
+				int handle = API.GetBlipFromEntity(Handle);
 
-				if (Function.Call<bool>(Hash.DOES_BLIP_EXIST, handle))
+				if (API.DoesBlipExist(handle))
 				{
 					return new Blip(handle);
 				}
@@ -1075,7 +1084,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return World.GetAllBlips().Where(x => Function.Call<int>(Hash.GET_BLIP_INFO_ID_ENTITY_INDEX, x) == Handle).ToArray();
+				return World.GetAllBlips().Where(x => x.Entity != null && x.Entity.Exists() && x.Entity.Handle == Handle).ToArray();
 			}
 		}
 
@@ -1087,7 +1096,7 @@ namespace CitizenFX.Core
 		/// <param name="rotation">The rotation to apply to this <see cref="Entity"/> relative to the <paramref name="entity"/></param>
 		public void AttachTo(Entity entity, Vector3 position = default(Vector3), Vector3 rotation = default(Vector3))
 		{
-			Function.Call(Hash.ATTACH_ENTITY_TO_ENTITY, Handle, entity.Handle, -1, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 0, 0, 0, 0, 2, 1);
+			API.AttachEntityToEntity(Handle, entity.Handle, -1, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, false, false, false, false, 2, true);
 		}
 		/// <summary>
 		/// Attaches this <see cref="Entity"/> to a different <see cref="Entity"/>
@@ -1097,14 +1106,14 @@ namespace CitizenFX.Core
 		/// <param name="rotation">The rotation to apply to this <see cref="Entity"/> relative to the <paramref name="entityBone"/></param>
 		public void AttachTo(EntityBone entityBone, Vector3 position = default(Vector3), Vector3 rotation = default(Vector3))
 		{
-			Function.Call(Hash.ATTACH_ENTITY_TO_ENTITY, Handle, entityBone.Owner.Handle, entityBone, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 0, 0, 0, 0, 2, 1);
+			API.AttachEntityToEntity(Handle, entityBone.Owner.Handle, entityBone, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, false, false, false, false, 2, true);
 		}
 		/// <summary>
 		/// Detaches this <see cref="Entity"/> from any <see cref="Entity"/> it may be attached to.
 		/// </summary>
 		public void Detach()
 		{
-			Function.Call(Hash.DETACH_ENTITY, Handle, true, true);
+			API.DetachEntity(Handle, true, true);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> is attached to any other <see cref="Entity"/>.
@@ -1114,7 +1123,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsAttached()
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_ATTACHED, Handle);
+			return API.IsEntityAttached(Handle);
 		}
 		/// <summary>
 		/// Determines whether this <see cref="Entity"/> is attached to the specified <see cref="Entity"/>.
@@ -1125,7 +1134,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public bool IsAttachedTo(Entity entity)
 		{
-			return Function.Call<bool>(Hash.IS_ENTITY_ATTACHED_TO_ENTITY, Handle, entity.Handle);
+			return API.IsEntityAttachedToEntity(Handle, entity.Handle);
 		}
 		/// <summary>
 		/// Gets the <see cref="Entity"/> this <see cref="Entity"/> is attached to.
@@ -1133,7 +1142,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Entity GetEntityAttachedTo()
 		{
-			return FromHandle(Function.Call<int>(Hash.GET_ENTITY_ATTACHED_TO, Handle));
+			return FromHandle(API.GetEntityAttachedTo(Handle));
 		}
 
 		/// <summary>
@@ -1144,7 +1153,7 @@ namespace CitizenFX.Core
 		/// <param name="forceType">Type of the force to apply.</param>
 		public void ApplyForce(Vector3 direction, Vector3 rotation = default(Vector3), ForceType forceType = ForceType.MaxForceRot2)
 		{
-			Function.Call(Hash.APPLY_FORCE_TO_ENTITY, Handle, forceType, direction.X, direction.Y, direction.Z, rotation.X, rotation.Y, rotation.Z, false, false, true, true, false, true);
+			API.ApplyForceToEntity(Handle, (int)forceType, direction.X, direction.Y, direction.Z, rotation.X, rotation.Y, rotation.Z, 0, false, true, true, false, true);
 		}
 		/// <summary>
 		/// Applies a force to this <see cref="Entity"/>.
@@ -1154,7 +1163,7 @@ namespace CitizenFX.Core
 		/// <param name="forceType">Type of the force to apply.</param>
 		public void ApplyForceRelative(Vector3 direction, Vector3 rotation = default(Vector3), ForceType forceType = ForceType.MaxForceRot2)
 		{
-			Function.Call(Hash.APPLY_FORCE_TO_ENTITY, Handle, forceType, direction.X, direction.Y, direction.Z, rotation.X, rotation.Y, rotation.Z, false, true, true, true, false, true);
+			API.ApplyForceToEntity(Handle, (int)forceType, direction.X, direction.Y, direction.Z, rotation.X, rotation.Y, rotation.Z, 0, true, true, true, false, true);
 		}
 
 		/// <summary>
@@ -1162,47 +1171,59 @@ namespace CitizenFX.Core
 		/// </summary>
 		public void RemoveAllParticleEffects()
 		{
-			Function.Call(Hash.REMOVE_PARTICLE_FX_FROM_ENTITY, Handle);
+			API.RemoveParticleFxFromEntity(Handle);
 		}
 
-        /// <summary>
-        /// Deletes this <see cref="Entity"/>
-        /// </summary>
-        [SecuritySafeCritical]
-        public override void Delete()
-        {
-            _Delete();
-        }
-
-        [SecuritySafeCritical]
-        private void _Delete()
+		/// <summary>
+		/// Gets the network ID of this <see cref="Entity"/>
+		/// </summary>
+		public int NetworkId
 		{
-			Function.Call(Hash.SET_ENTITY_AS_MISSION_ENTITY, Handle, false, true);
-			int handle = Handle;
-			unsafe
+			get
 			{
-				Function.Call(Hash.DELETE_ENTITY, &handle);
+				return API.NetworkGetNetworkIdFromEntity(Handle);
 			}
-			Handle = handle;
 		}
-        /// <summary>
-        /// Marks this <see cref="Entity"/> as no longer needed letting the game delete it when its too far away.
-        /// </summary>
-        [SecuritySafeCritical]
-        public void MarkAsNoLongerNeeded()
-        {
-            _MarkAsNoLongerNeeded();
-        }
 
-        [SecuritySafeCritical]
-        private void _MarkAsNoLongerNeeded()
+		/// <summary>
+		/// Deletes this <see cref="Entity"/>
+		/// </summary>
+		[SecuritySafeCritical]
+		public override void Delete()
 		{
-			Function.Call(Hash.SET_ENTITY_AS_MISSION_ENTITY, Handle, false, true);
-			int handle = Handle;
-			unsafe
+			_Delete();
+		}
+
+		[SecuritySafeCritical]
+		private void _Delete()
+		{
+			// prevent the game from crashing if this is called on the player ped.
+			if (Handle != Game.PlayerPed.Handle)
 			{
-				Function.Call(Hash.SET_ENTITY_AS_NO_LONGER_NEEDED, &handle);
+				API.SetEntityAsMissionEntity(Handle, false, true);
+				int handle = Handle;
+				API.DeleteEntity(ref handle);
+				Handle = handle;
 			}
+		}
+		/// <summary>
+		/// Marks this <see cref="Entity"/> as no longer needed letting the game delete it when its too far away.
+		/// </summary>
+		[SecuritySafeCritical]
+		public void MarkAsNoLongerNeeded()
+		{
+			_MarkAsNoLongerNeeded();
+		}
+
+		[SecuritySafeCritical]
+		private void _MarkAsNoLongerNeeded()
+		{
+			API.SetEntityAsMissionEntity(Handle, false, true);
+
+			int handle = Handle;
+
+			API.SetEntityAsNoLongerNeeded(ref handle);
+
 			Handle = handle;
 		}
 
@@ -1216,16 +1237,28 @@ namespace CitizenFX.Core
 		/// Returns <c>null</c> if no <see cref="Entity"/> exists this the specified <paramref name="handle"/></returns>
 		public static Entity FromHandle(int handle)
 		{
-			switch (Function.Call<int>(Hash.GET_ENTITY_TYPE, handle))
+			switch (API.GetEntityType(handle))
 			{
 				case 1:
 					return new Ped(handle);
 				case 2:
-					return new Vehicle(handle);	
+					return new Vehicle(handle);
 				case 3:
-					return new Prop(handle); 
+					return new Prop(handle);
 			}
 			return null;
+		}
+		/// <summary>
+		/// Creates a new instance of an <see cref="Entity"/> from the given network ID.
+		/// </summary>
+		/// <param name="networkId">The network ID of the entity.</param>
+		/// <returns>Returns a <see cref="Ped"/> if this network ID corresponds to a Ped.
+		/// Returns a <see cref="Vehicle"/> if this network ID corresponds to a Vehicle.
+		/// Returns a <see cref="Prop"/> if this network ID corresponds to a Prop.
+		/// Returns <c>null</c> if no <see cref="Entity"/> exists for the specified <paramref name="networkId"/></returns>
+		public static Entity FromNetworkId(int networkId)
+		{
+			return Entity.FromHandle(API.NetworkGetEntityFromNetworkId(networkId));
 		}
 
 		/// <summary>
@@ -1234,7 +1267,7 @@ namespace CitizenFX.Core
 		/// <returns><c>true</c> if this <see cref="Entity"/> exists; otherwise, <c>false</c></returns>
 		public override bool Exists()
 		{
-			return Function.Call<bool>(Hash.DOES_ENTITY_EXIST, Handle);
+			return API.DoesEntityExist(Handle);
 		}
 		/// <summary>
 		/// Determines whether the <see cref="Entity"/> exists.

@@ -142,7 +142,7 @@ namespace CitizenFX.Core
 
 		public bool HasVehicleMod(VehicleModType type)
 		{
-			return Function.Call<int>(Hash.GET_NUM_VEHICLE_MODS, _owner.Handle, type) > 0;
+			return API.GetNumVehicleMods(_owner.Handle, (int)type) > 0;
 		}
 
 		public VehicleMod[] GetAllMods()
@@ -153,8 +153,8 @@ namespace CitizenFX.Core
 
 		public VehicleWheelType WheelType
 		{
-			get { return Function.Call<VehicleWheelType>(Hash.GET_VEHICLE_WHEEL_TYPE, _owner.Handle); }
-			set { Function.Call(Hash.SET_VEHICLE_WHEEL_TYPE, _owner.Handle, value); }
+			get { return (VehicleWheelType)API.GetVehicleWheelType(_owner.Handle); }
+			set { API.SetVehicleWheelType(_owner.Handle, (int)value); }
 		}
 
 		public VehicleWheelType[] AllowedWheelTypes
@@ -163,7 +163,7 @@ namespace CitizenFX.Core
 			{
 				if (_owner.Model.IsBicycle || _owner.Model.IsBike)
 				{
-					return new VehicleWheelType[] {VehicleWheelType.BikeWheels};
+					return new VehicleWheelType[] { VehicleWheelType.BikeWheels };
 				}
 				if (_owner.Model.IsCar)
 				{
@@ -191,7 +191,7 @@ namespace CitizenFX.Core
 						case VehicleHash.Minivan2:
 						case VehicleHash.SlamVan3:
 						case VehicleHash.Faction3:
-							res.AddRange(new VehicleWheelType[] {VehicleWheelType.BennysOriginals, VehicleWheelType.BennysBespoke});
+							res.AddRange(new VehicleWheelType[] { VehicleWheelType.BennysOriginals, VehicleWheelType.BennysBespoke });
 							break;
 						case VehicleHash.SultanRS:
 						case VehicleHash.Banshee2:
@@ -211,10 +211,10 @@ namespace CitizenFX.Core
 
 		public string GetLocalizedWheelTypeName(VehicleWheelType wheelType)
 		{
-			if (!Function.Call<bool>(Hash.HAS_THIS_ADDITIONAL_TEXT_LOADED, "mod_mnu", 10))
+			if (!API.HasThisAdditionalTextLoaded("mod_mnu", 10))
 			{
-				Function.Call(Hash.CLEAR_ADDITIONAL_TEXT, 10, true);
-				Function.Call(Hash.REQUEST_ADDITIONAL_TEXT, "mod_mnu", 10);
+				API.ClearAdditionalText(10, true);
+				API.RequestAdditionalText("mod_mnu", 10);
 			}
 			if (_wheelNames.ContainsKey(wheelType))
 			{
@@ -229,23 +229,24 @@ namespace CitizenFX.Core
 
 		public void InstallModKit()
 		{
-			Function.Call(Hash.SET_VEHICLE_MOD_KIT, _owner.Handle, 0);
+			API.SetVehicleModKit(_owner.Handle, 0);
 		}
 
 		public async Task<bool> RequestAdditionTextFile(int timeout = 1000)
 		{
-			if (!Function.Call<bool>(Hash.HAS_THIS_ADDITIONAL_TEXT_LOADED, "mod_mnu", 10))
+			if (!API.HasThisAdditionalTextLoaded("mod_mnu", 10))
 			{
-				Function.Call(Hash.CLEAR_ADDITIONAL_TEXT, 10, true);
-				Function.Call(Hash.REQUEST_ADDITIONAL_TEXT, "mod_mnu", 10);
+				API.ClearAdditionalText(10, true);
+				API.RequestAdditionalText("mod_mnu", 10);
+
 				int end = Game.GameTime + timeout;
 				{
 					while (Game.GameTime < end)
 					{
-						if (Function.Call<bool>(Hash.HAS_THIS_ADDITIONAL_TEXT_LOADED, "mod_mnu", 10))
+						if (API.HasThisAdditionalTextLoaded("mod_mnu", 10))
 							return true;
-                        await BaseScript.Delay(0);
-                    }
+						await BaseScript.Delay(0);
+					}
 					return false;
 				}
 			}
@@ -263,7 +264,7 @@ namespace CitizenFX.Core
 					return modCount;
 				}
 
-				return Function.Call<int>(Hash.GET_VEHICLE_LIVERY, _owner.Handle);
+				return API.GetVehicleLivery(_owner.Handle);
 			}
 			set
 			{
@@ -273,7 +274,7 @@ namespace CitizenFX.Core
 				}
 				else
 				{
-					Function.Call(Hash.SET_VEHICLE_LIVERY, _owner.Handle, value);
+					API.SetVehicleLivery(_owner.Handle, value);
 				}
 			}
 		}
@@ -288,7 +289,7 @@ namespace CitizenFX.Core
 					return modCount;
 				}
 
-				return Function.Call<int>(Hash.GET_VEHICLE_LIVERY_COUNT, _owner.Handle);
+				return API.GetVehicleLiveryCount(_owner.Handle);
 			}
 		}
 
@@ -308,190 +309,158 @@ namespace CitizenFX.Core
 			{
 				return this[VehicleModType.Livery].GetLocalizedModName(index);
 			}
-			return Game.GetGXTEntry(Function.Call<ulong>(Hash.GET_LIVERY_NAME, _owner.Handle, index));
+			return Game.GetGXTEntry(API.GetLiveryName(_owner.Handle, index));
 		}
 
 		public VehicleWindowTint WindowTint
 		{
 			get
 			{
-				return Function.Call<VehicleWindowTint>(Hash.GET_VEHICLE_WINDOW_TINT,_owner.Handle);
+				return (VehicleWindowTint)API.GetVehicleWindowTint(_owner.Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_WINDOW_TINT,_owner.Handle, value);
+				API.SetVehicleWindowTint(_owner.Handle, (int)value);
 			}
 		}
 
 		public VehicleColor PrimaryColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int color1, color2;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_COLOURS,_owner.Handle, &color1, &color2);
-				}
+				int color1 = 0, color2 = 0;
+				API.GetVehicleColours(_owner.Handle, ref color1, ref color2);
 
 				return (VehicleColor)color1;
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_COLOURS,_owner.Handle, value, SecondaryColor);
+				API.SetVehicleColours(_owner.Handle, (int)value, (int)SecondaryColor);
 			}
 		}
 		public VehicleColor SecondaryColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int color1, color2;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_COLOURS, _owner.Handle, &color1, &color2);
-				}
+				int color1 = 0, color2 = 0;
+				API.GetVehicleColours(_owner.Handle, ref color1, ref color2);
 
 				return (VehicleColor)color2;
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_COLOURS,_owner.Handle, PrimaryColor, value);
+				API.SetVehicleColours(_owner.Handle, (int)PrimaryColor, (int)value);
 			}
 		}
 		public VehicleColor RimColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int color1, color2;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_EXTRA_COLOURS,_owner.Handle, &color1, &color2);
-				}
+				int color1 = 0, color2 = 0;
+				API.GetVehicleExtraColours(_owner.Handle, ref color1, ref color2);
 
 				return (VehicleColor)color2;
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_EXTRA_COLOURS,_owner.Handle, PearlescentColor, value);
+				API.SetVehicleExtraColours(_owner.Handle, (int)PearlescentColor, (int)value);
 			}
 		}
 		public VehicleColor PearlescentColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int color1, color2;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_EXTRA_COLOURS,_owner.Handle, &color1, &color2);
-				}
+				int color1 = 0, color2 = 0;
+				API.GetVehicleExtraColours(_owner.Handle, ref color1, ref color2);
 
 				return (VehicleColor)color1;
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_EXTRA_COLOURS,_owner.Handle, value, RimColor);
+				API.SetVehicleExtraColours(_owner.Handle, (int)value, (int)RimColor);
 			}
 		}
 		public VehicleColor TrimColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int color;
-				unsafe
-				{
-					Function.Call((Hash)9012939617897488694uL,_owner.Handle, &color);
-				}
+				int color = 0;
+				API.GetVehicleInteriorColour(_owner.Handle, ref color);
 
 				return (VehicleColor)color;
 			}
 			set
 			{
-				Function.Call((Hash)17585947422526242585uL,_owner.Handle, value);
+				API.SetVehicleInteriorColour(_owner.Handle, (int)value);
 			}
 		}
 		public VehicleColor DashboardColor
 		{
-            [SecuritySafeCritical]
 			get
 			{
-				int color;
-				unsafe
-				{
-					Function.Call((Hash)13214509638265019391uL,_owner.Handle, &color);
-				}
+				int color = 0;
+				API.GetVehicleDashboardColour(_owner.Handle, ref color);
 
 				return (VehicleColor)color;
 			}
 			set
 			{
-				Function.Call((Hash)6956317558672667244uL,_owner.Handle, value);
+				API.SetVehicleDashboardColour(_owner.Handle, (int)value);
 			}
 		}
 		public int ColorCombination
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_VEHICLE_COLOUR_COMBINATION,_owner.Handle);
+				return API.GetVehicleColourCombination(_owner.Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_COLOUR_COMBINATION,_owner.Handle, value);
+				API.SetVehicleColourCombination(_owner.Handle, value);
 			}
 		}
 		public int ColorCombinationCount
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_NUMBER_OF_VEHICLE_COLOURS,_owner.Handle);
+				return API.GetNumberOfVehicleColours(_owner.Handle);
 			}
 		}
 		public Color TireSmokeColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int red, green, blue;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_TYRE_SMOKE_COLOR,_owner.Handle, &red, &green, &blue);
-				}
+				int red = 0, green = 0, blue = 0;
+				API.GetVehicleTyreSmokeColor(_owner.Handle, ref red, ref green, ref blue);
 
 				return Color.FromArgb(red, green, blue);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_TYRE_SMOKE_COLOR,_owner.Handle, value.R, value.G, value.B);
+				API.SetVehicleTyreSmokeColor(_owner.Handle, value.R, value.G, value.B);
 			}
 		}
 		public Color NeonLightsColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int red, green, blue;
-				unsafe
-				{
-					Function.Call(Hash._GET_VEHICLE_NEON_LIGHTS_COLOUR, _owner.Handle, &red, &green, &blue);
-				}
+				int red = 0, green = 0, blue = 0;
+				API.GetVehicleNeonLightsColour(_owner.Handle, ref red, ref green, ref blue);
 
 				return Color.FromArgb(red, green, blue);
 			}
 			set
 			{
-				Function.Call(Hash._SET_VEHICLE_NEON_LIGHTS_COLOUR,_owner.Handle, value.R, value.G, value.B);
+				API.SetVehicleNeonLightsColour(_owner.Handle, value.R, value.G, value.B);
 			}
 		}
 		public bool IsNeonLightsOn(VehicleNeonLight light)
 		{
-			return Function.Call<bool>(Hash._IS_VEHICLE_NEON_LIGHT_ENABLED, _owner.Handle, light);
+			return API.IsVehicleNeonLightEnabled(_owner.Handle, (int)light);
 		}
 		public void SetNeonLightsOn(VehicleNeonLight light, bool on)
 		{
-			Function.Call(Hash._SET_VEHICLE_NEON_LIGHT_ENABLED, _owner.Handle, light, on);
+			API.SetVehicleNeonLightEnabled(_owner.Handle, (int)light, on);
 		}
 		public bool HasNeonLights
 		{
@@ -517,91 +486,82 @@ namespace CitizenFX.Core
 
 		public Color CustomPrimaryColor
 		{
-            [SecuritySafeCritical]
-            get
+			get
 			{
-				int red, green, blue;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_CUSTOM_PRIMARY_COLOUR, _owner.Handle, &red, &green, &blue);
-				}
+				int red = 0, green = 0, blue = 0;
+				API.GetVehicleCustomPrimaryColour(_owner.Handle, ref red, ref green, ref blue);
 
 				return Color.FromArgb(red, green, blue);
-
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_CUSTOM_PRIMARY_COLOUR,_owner.Handle, value.R, value.G, value.B);
+				API.SetVehicleCustomPrimaryColour(_owner.Handle, value.R, value.G, value.B);
 			}
 		}
 		public Color CustomSecondaryColor
 		{
-            [SecuritySafeCritical]
 			get
 			{
-				int red, green, blue;
-				unsafe
-				{
-					Function.Call(Hash.GET_VEHICLE_CUSTOM_SECONDARY_COLOUR, _owner.Handle, &red, &green, &blue);
-				}
+				int red = 0, green = 0, blue = 0;
+				API.GetVehicleCustomSecondaryColour(_owner.Handle, ref red, ref green, ref blue);
 
 				return Color.FromArgb(red, green, blue);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_CUSTOM_SECONDARY_COLOUR,_owner.Handle, value.R, value.G, value.B);
+				API.SetVehicleCustomSecondaryColour(_owner.Handle, value.R, value.G, value.B);
 			}
 		}
 		public bool IsPrimaryColorCustom
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_IS_VEHICLE_PRIMARY_COLOUR_CUSTOM,_owner.Handle);
+				return API.GetIsVehiclePrimaryColourCustom(_owner.Handle);
 			}
 		}
 		public bool IsSecondaryColorCustom
 		{
 			get
 			{
-				return Function.Call<bool>(Hash.GET_IS_VEHICLE_SECONDARY_COLOUR_CUSTOM,_owner.Handle);
+				return API.GetIsVehicleSecondaryColourCustom(_owner.Handle);
 			}
 		}
 		public void ClearCustomPrimaryColor()
 		{
-			Function.Call(Hash.CLEAR_VEHICLE_CUSTOM_PRIMARY_COLOUR,_owner.Handle);
+			API.ClearVehicleCustomPrimaryColour(_owner.Handle);
 		}
 		public void ClearCustomSecondaryColor()
 		{
-			Function.Call(Hash.CLEAR_VEHICLE_CUSTOM_SECONDARY_COLOUR,_owner.Handle);
+			API.ClearVehicleCustomSecondaryColour(_owner.Handle);
 		}
 
 		public LicensePlateStyle LicensePlateStyle
 		{
 			get
 			{
-				return Function.Call<LicensePlateStyle>(Hash.GET_VEHICLE_NUMBER_PLATE_TEXT_INDEX,_owner.Handle);
+				return (LicensePlateStyle)API.GetVehicleNumberPlateTextIndex(_owner.Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_NUMBER_PLATE_TEXT_INDEX,_owner.Handle, value);
+				API.SetVehicleNumberPlateTextIndex(_owner.Handle, (int)value);
 			}
 		}
 		public LicensePlateType LicensePlateType
 		{
 			get
 			{
-				return Function.Call<LicensePlateType>(Hash.GET_VEHICLE_PLATE_TYPE,_owner.Handle);
+				return (LicensePlateType)API.GetVehiclePlateType(_owner.Handle);
 			}
 		}
 		public string LicensePlate
 		{
 			get
 			{
-				return Function.Call<string>(Hash.GET_VEHICLE_NUMBER_PLATE_TEXT,_owner.Handle);
+				return API.GetVehicleNumberPlateText(_owner.Handle);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_NUMBER_PLATE_TEXT,_owner.Handle, value);
+				API.SetVehicleNumberPlateText(_owner.Handle, value);
 			}
 		}
 	}

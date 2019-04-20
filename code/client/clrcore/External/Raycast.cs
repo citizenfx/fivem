@@ -5,28 +5,21 @@ namespace CitizenFX.Core
 {
 	public struct RaycastResult
 	{
-        [SecuritySafeCritical]
-        public RaycastResult(int handle) : this()
+		public RaycastResult(int handle) : this()
 		{
-			InitializeCritical(handle);
-		}
+			Vector3 hitPositionArg = new Vector3();
+			bool hitSomethingArg = false;
+			int entityHandleArg = 0;
+			Vector3 surfaceNormalArg = new Vector3();
+			uint materialArg = 0;
 
-		[SecurityCritical]
-		private void InitializeCritical(int handle)
-		{
-			NativeVector3 hitPositionArg;
-			bool hitSomethingArg;
-			int entityHandleArg;
-			NativeVector3 surfaceNormalArg;
-			unsafe
-			{
-				Result = Function.Call<int>(Hash.GET_SHAPE_TEST_RESULT, handle, &hitSomethingArg, &hitPositionArg, &surfaceNormalArg, &entityHandleArg);
-			}
+			Result = API.GetShapeTestResultEx( handle, ref hitSomethingArg, ref hitPositionArg, ref surfaceNormalArg, ref materialArg, ref entityHandleArg );
 
 			DitHit = hitSomethingArg;
 			HitPosition = hitPositionArg;
 			SurfaceNormal = surfaceNormalArg;
-			HitEntity = Entity.FromHandle(entityHandleArg);
+			HitEntity = Entity.FromHandle( entityHandleArg );
+			Material = (MaterialHash) materialArg;
 		}
 
 		/// <summary>
@@ -59,6 +52,11 @@ namespace CitizenFX.Core
 				return !ReferenceEquals(HitEntity, null);
 			}
 		}
+
+		/// <summary>
+		/// Gets a value indicating the material type of the collision.
+		/// </summary>
+		public MaterialHash Material { get; private set; }
 
 		public int Result { get; private set; }
 	}

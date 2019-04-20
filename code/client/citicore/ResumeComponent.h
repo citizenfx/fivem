@@ -23,6 +23,26 @@ public:
 	{
 		// empty
 	}
+
+	virtual bool IsA(uint32_t type) override
+	{
+		if (type == HashString("LifeCycleComponent"))
+		{
+			return true;
+		}
+
+		return TBaseComponent::IsA(type);
+	}
+
+	virtual void* As(uint32_t type) override
+	{
+		if (type == HashString("LifeCycleComponent"))
+		{
+			return static_cast<LifeCycleComponent*>(this);
+		}
+
+		return TBaseComponent::As(type);
+	}
 };
 
 void Component_RunPreInit();
@@ -31,11 +51,6 @@ template<typename TBaseComponent>
 class LifeCyclePreInitComponentBase : public LifeCycleComponentBase<TBaseComponent>
 {
 public:
-	virtual void PreResumeGame() override
-	{
-		OnResumeGame();
-	}
-
 	virtual void PreInitGame() override
 	{
 		Component_RunPreInit();

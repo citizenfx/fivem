@@ -30,6 +30,13 @@ class BOTAN_PUBLIC_API(2,0) RDRAND_RNG final : public Hardware_RNG
       static uint32_t rdrand();
 
       /**
+      * Return true if RDRAND is available on the current processor
+      */
+      static bool available();
+
+      bool accepts_input() const override { return false; }
+
+      /**
       * Constructor will throw if CPU does not have RDRAND bit set
       */
       RDRAND_RNG();
@@ -54,8 +61,6 @@ class BOTAN_PUBLIC_API(2,0) RDRAND_RNG final : public Hardware_RNG
       std::string name() const override { return "RDRAND"; }
 
       bool is_seeded() const override { return true; }
-
-      void clear() override {}
    };
 
 }

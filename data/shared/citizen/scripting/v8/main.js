@@ -48,7 +48,16 @@ const EXT_LOCALFUNCREF = 11;
 		const fnRef = Citizen.makeFunctionReference(refSerialized);
 	
 		return function (...args) {
-			return unpack(fnRef(pack(args)));
+			const retvals = unpack(fnRef(pack(args)));
+
+			switch (retvals.length) {
+				case 0:
+					return undefined;
+				case 1:
+					return retvals[0];
+				default:
+					return retvals;
+			}
 		};
 	}
 
@@ -117,6 +126,8 @@ const EXT_LOCALFUNCREF = 11;
 		if (netSafe) {
 			netSafeEventNames.add(name);
 		}
+		
+		RegisterResourceAsEventHandler(name);
 
 		emitter.on(name, callback);
 	};

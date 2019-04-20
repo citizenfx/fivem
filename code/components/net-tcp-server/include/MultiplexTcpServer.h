@@ -10,6 +10,8 @@
 #include "TcpServer.h"
 #include "TcpServerFactory.h"
 
+#include <mutex>
+
 #ifdef COMPILING_NET_TCP_SERVER
 #define TCP_SERVER_EXPORT DLL_EXPORT
 #else
@@ -64,6 +66,8 @@ class MultiplexTcpChildServer : public TcpServer
 {
 private:
 	MultiplexPatternMatchFn m_patternMatcher;
+
+	std::mutex m_connectionsMutex;
 
 	std::set<fwRefContainer<TcpServerStream>> m_connections;
 

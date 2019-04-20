@@ -23,6 +23,9 @@ class BOTAN_PUBLIC_API(2,0) Cipher_Mode_Filter final : public Keyed_Filter,
    public:
       explicit Cipher_Mode_Filter(Cipher_Mode* t);
 
+      explicit Cipher_Mode_Filter(std::unique_ptr<Cipher_Mode> t) :
+         Cipher_Mode_Filter(t.release()) {}
+
       void set_iv(const InitializationVector& iv) override;
 
       void set_key(const SymmetricKey& key) override;
@@ -32,11 +35,6 @@ class BOTAN_PUBLIC_API(2,0) Cipher_Mode_Filter final : public Keyed_Filter,
       bool valid_iv_length(size_t length) const override;
 
       std::string name() const override;
-
-   protected:
-      const Cipher_Mode& get_mode() const { return *m_mode; }
-
-      Cipher_Mode& get_mode() { return *m_mode; }
 
    private:
       void write(const uint8_t input[], size_t input_length) override;

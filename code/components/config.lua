@@ -15,9 +15,9 @@ component 'profiles'
 if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-main'
 	component 'citizen-server-net'
-	if os.is('windows') then
+	--[[if os.is('windows') then
 		component 'citizen-ssh-server'
-	end
+	end]]
 	component 'citizen-scripting-v8'
 	component 'citizen-scripting-mono'
 	component 'citizen-server-instance'
@@ -78,3 +78,4 @@ component 'devtools-five'
 component 'devcon'
 component 'extra-natives-five'
 component 'discord'
+component 'citizen-mod-loader-five'

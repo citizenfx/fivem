@@ -160,7 +160,7 @@ namespace CitizenFX.Core
             Buffer.MemoryCopy(p + (index * elementSize), ptr, elementSize * count, elementSize * count);
         }
     }
-
+	
     /// <summary>
     /// Emits optimized IL for the reading and writing of structures to/from memory.
     /// <para>For a 32-byte structure with 1 million iterations:</para>
@@ -170,7 +170,7 @@ namespace CitizenFX.Core
     /// <see cref="System.Runtime.InteropServices.Marshal.StructureToPtr(object, IntPtr, bool)"/> (4ms vs 34ms). </para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public static class FastStructure<T>
+    internal static class FastStructure<T>
         where T : struct
     {
         /// <summary>

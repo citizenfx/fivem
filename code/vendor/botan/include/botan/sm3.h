@@ -32,11 +32,10 @@ class BOTAN_PUBLIC_API(2,2) SM3 final : public MDx_HashFunction
 
       SM3() : MDx_HashFunction(SM3_BLOCK_BYTES, true, true), m_digest(SM3_DIGEST_BYTES)
          { clear(); }
-   protected:
+   private:
       void compress_n(const uint8_t[], size_t blocks) override;
       void copy_out(uint8_t[]) override;
 
-   private:
       /**
       * The digest value
       */

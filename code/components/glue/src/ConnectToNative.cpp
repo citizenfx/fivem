@@ -21,6 +21,8 @@
 #include "KnownFolders.h"
 #include <ShlObj.h>
 
+#include <json.hpp>
+
 #include <CfxState.h>
 #include <HostSharedData.h>
 
@@ -79,7 +81,7 @@ void loadSettings() {
 			settingsFile.close();
 
 			//trace(va("Loaded JSON settings %s\n", json.c_str()));
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'loadedSettings', json: %s }, '*');", settingsStream.str()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "loadedSettings", "json": %s })", settingsStream.str()));
 		}
 		
 		CoTaskMemFree(appDataPath);
@@ -140,13 +142,29 @@ static void ConnectTo(const std::string& hostnameStr)
 
 	if (npa)
 	{
-		nui::ExecuteRootScript("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connecting' }, '*');");
+		nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
 
 		netLibrary->ConnectToServer(npa.get());
 	}
 	else
 	{
 		trace("Could not resolve %s.\n", hostnameStr);
+	}
+}
+
+static std::string g_pendingAuthPayload;
+
+static void HandleAuthPayload(const std::string& payloadStr)
+{
+	if (nui::HasMainUI())
+	{
+		auto payloadJson = nlohmann::json(payloadStr).dump();
+
+		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "authPayload", "data": %s })", payloadJson));
+	}
+	else
+	{
+		g_pendingAuthPayload = payloadStr;
 	}
 }
 
@@ -168,7 +186,7 @@ static InitFunction initFunction([] ()
 
 			document.Accept(writer);
 
-			nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectFailed', message: %s }, '*');", sbuffer.GetString()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", sbuffer.GetString()));
 		});
 
 		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
@@ -186,7 +204,7 @@ static InitFunction initFunction([] ()
 
 			if (nui::HasMainUI())
 			{
-				nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'connectStatus', data: %s }, '*');", sbuffer.GetString()));
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectStatus", "data": %s })", sbuffer.GetString()));
 			}
 		});
 
@@ -195,18 +213,28 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnInterceptConnection.Connect([](const net::PeerAddress& peer, const std::function<void()>& cb)
 		{
-			if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !disconnected)
+			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
-				netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100);
+				if (!disconnected)
+				{
+					netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100);
 
-				finishConnectCb = cb;
+					finishConnectCb = cb;
 
-				return false;
+					return false;
+				}
+			}
+			else
+			{
+				disconnected = false;
 			}
 
-			disconnected = false;
-
 			return true;
+		});
+
+		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+		{
+			disconnected = false;
 		});
 
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
@@ -215,8 +243,6 @@ static InitFunction initFunction([] ()
 			{
 				auto cb = std::move(finishConnectCb);
 				cb();
-
-				disconnected = false;
 			}
 			else
 			{
@@ -274,7 +300,7 @@ static InitFunction initFunction([] ()
 				if (newusername.c_str() != netLibrary->GetPlayerName()) {
 					netLibrary->SetPlayerName(newusername.c_str());
 					trace(va("Changed player name to %s\n", newusername.c_str()));
-					nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setSettingsNick', nickname: '%s' }, '*');", newusername.c_str()));
+					nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setSettingsNick", "nickname": "%s" })", newusername));
 				}
 			}
 		}
@@ -304,11 +330,17 @@ static InitFunction initFunction([] ()
 
 					document.Accept(writer);
 
-					nui::ExecuteRootScript(fmt::sprintf("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setWarningMessage', message: %s }, '*');", sbuffer.GetString()));
+					nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setWarningMessage", "message": %s })", sbuffer.GetString()));
 				}
 
 				Instance<ICoreGameInit>::Get()->SetData("warningMessage", "");
 			}
+
+			wchar_t computerName[256] = { 0 };
+			DWORD len = _countof(computerName);
+			GetComputerNameW(computerName, &len);
+
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setComputerName", "data": "%s" })", ToNarrow(computerName)));
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
@@ -320,6 +352,15 @@ static InitFunction initFunction([] ()
 			{
 				trace("Loaded nickname: %s\n", newusername.c_str());
 				netLibrary->SetPlayerName(newusername.c_str());
+			}
+
+			if (!g_pendingAuthPayload.empty())
+			{
+				auto pendingAuthPayload = g_pendingAuthPayload;
+
+				g_pendingAuthPayload = "";
+
+				HandleAuthPayload(pendingAuthPayload);
 			}
 		}
 		else if (!_wcsicmp(type, L"exit"))
@@ -346,7 +387,7 @@ static InitFunction initFunction([] ()
 	{
 		nui::SetMainUI(true);
 
-		nui::CreateFrame("mpMenu", "nui://game/ui/app/index.html");
+		nui::CreateFrame("mpMenu", console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_url")->GetValue());
 	});
 });
 
@@ -407,10 +448,18 @@ static void ProtocolRegister()
 
 void Component_RunPreInit()
 {
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
+	if (hostData->IsMasterProcess())
+	{
+		ProtocolRegister();
+	}
+
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
 	static std::string connectHost;
+	static std::string authPayload;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -423,13 +472,20 @@ void Component_RunPreInit()
 
 			if (!static_cast<bool>(ec))
 			{
-				if (parsed.host())
+				if (!parsed.host().empty())
 				{
-					if (*parsed.host() == "connect")
+					if (parsed.host().to_string() == "connect")
 					{
-						if (parsed.path())
+						if (!parsed.path().empty())
 						{
-							connectHost = parsed.path()->substr(1).to_string();
+							connectHost = parsed.path().substr(1).to_string();
+						}
+					}
+					else if (parsed.host().to_string() == "accept-auth")
+					{
+						if (!parsed.query().empty())
+						{
+							authPayload = parsed.query().to_string();
 						}
 					}
 				}
@@ -441,34 +497,74 @@ void Component_RunPreInit()
 
 	LocalFree(argv);
 
-	if (connectHost.empty())
+	if (!connectHost.empty())
 	{
-		return;
-	}
-
-	static HostSharedData<CfxState> hostData("CfxInitState");
-
-	if (hostData->IsMasterProcess())
-	{
-		rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+		if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 		{
-			if (type == rage::InitFunctionType::INIT_CORE)
+			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 			{
-				ConnectTo(connectHost);
-				connectHost = "";
+				if (type == rage::InitFunctionType::INIT_CORE)
+				{
+					ConnectTo(connectHost);
+					connectHost = "";
+				}
+			}, 999999);
+		}
+		else
+		{
+			nng_socket socket;
+			nng_dialer dialer;
+
+			nng_push0_open(&socket);
+			nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
+			nng_send(socket, const_cast<char*>(connectHost.c_str()), connectHost.size(), 0);
+
+			if (!hostData->gamePid)
+			{
+				AllowSetForegroundWindow(hostData->initialPid);
 			}
-		}, 999999);
+			else
+			{
+				AllowSetForegroundWindow(hostData->gamePid);
+			}
+
+			TerminateProcess(GetCurrentProcess(), 0);
+		}
 	}
-	else
+
+	if (!authPayload.empty())
 	{
-		nng_socket socket;
-		nng_dialer dialer;
+		if (hostData->IsMasterProcess() || hostData->IsGameProcess())
+		{
+			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+			{
+				if (type == rage::InitFunctionType::INIT_CORE)
+				{
+					HandleAuthPayload(authPayload);
+					authPayload = "";
+				}
+			}, 999999);
+		}
+		else
+		{
+			nng_socket socket;
+			nng_dialer dialer;
 
-		nng_push0_open(&socket);
-		nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
-		nng_send(socket, const_cast<char*>(connectHost.c_str()), connectHost.size(), 0);
+			nng_push0_open(&socket);
+			nng_dial(socket, "ipc:///tmp/fivem_auth", &dialer, 0);
+			nng_send(socket, const_cast<char*>(authPayload.c_str()), authPayload.size(), 0);
 
-		TerminateProcess(GetCurrentProcess(), 0);
+			if (!hostData->gamePid)
+			{
+				AllowSetForegroundWindow(hostData->initialPid);
+			}
+			else
+			{
+				AllowSetForegroundWindow(hostData->gamePid);
+			}
+
+			TerminateProcess(GetCurrentProcess(), 0);
+		}
 	}
 }
 
@@ -480,6 +576,12 @@ static InitFunction connectInitFunction([]()
 	nng_pull0_open(&netSocket);
 	nng_listen(netSocket, "ipc:///tmp/fivem_connect", &listener, 0);
 
+	static nng_socket netAuthSocket;
+	static nng_listener authListener;
+
+	nng_pull0_open(&netAuthSocket);
+	nng_listen(netAuthSocket, "ipc:///tmp/fivem_auth", &authListener, 0);
+
 	OnGameFrame.Connect([]()
 	{
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
@@ -490,7 +592,9 @@ static InitFunction connectInitFunction([]()
 		char* buffer;
 		size_t bufLen;
 
-		int err = nng_recv(netSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
+		int err;
+
+		err = nng_recv(netSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
 
 		if (err == 0)
 		{
@@ -498,11 +602,20 @@ static InitFunction connectInitFunction([]()
 			nng_free(buffer, bufLen);
 
 			ConnectTo(connectMsg);
+
+			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
+		}
+
+		err = nng_recv(netAuthSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
+
+		if (err == 0)
+		{
+			std::string msg(buffer, buffer + bufLen);
+			nng_free(buffer, bufLen);
+
+			HandleAuthPayload(msg);
+
+			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
 		}
 	});
-});
-
-static HookFunction hookFunction([]()
-{
-	ProtocolRegister();
 });

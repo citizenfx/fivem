@@ -34,6 +34,8 @@ public:
 
 	virtual void SendConnect(const std::string& connectData) override;
 
+	virtual bool IsDisconnected() override;
+
 private:
 	void ProcessPacket(const uint8_t* data, size_t size);
 
@@ -129,6 +131,11 @@ bool NetLibraryImplV2::HasTimedOut()
 	return m_timedOut;
 }
 
+bool NetLibraryImplV2::IsDisconnected()
+{
+	return !m_serverPeer;
+}
+
 void NetLibraryImplV2::Reset()
 {
 	m_timedOut = false;
@@ -169,11 +176,24 @@ void NetLibraryImplV2::RunFrame()
 			ProcessPacket(event.packet->data, event.packet->dataLength);
 			inDataSize += event.packet->dataLength;
 
+			enet_packet_destroy(event.packet);
+
 			break;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
-			m_timedOut = true;
+		{
+			if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201902101056)
+			{
+				m_serverPeer = nullptr;
+			}
+			else
+			{
+				m_timedOut = true;
+			}
+
+			//m_timedOut = true;
 			break;
+		}
 		}
 	}
 
@@ -263,7 +283,7 @@ void NetLibraryImplV2::SendConnect(const std::string& connectData)
 	m_serverPeer = enet_host_connect(m_host, &addr, 2, 0);
 
 #ifdef _DEBUG
-	enet_peer_timeout(m_serverPeer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
+	//enet_peer_timeout(m_serverPeer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
 #endif
 }
 

@@ -48,6 +48,11 @@ class BOTAN_PUBLIC_API(2,0) AES_128 final : public Block_Cipher_Fixed_Params<16,
       void armv8_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
 #endif
 
+#if defined(BOTAN_HAS_AES_POWER8)
+      void power8_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
+      void power8_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
+#endif
+
       secure_vector<uint32_t> m_EK, m_DK;
       secure_vector<uint8_t> m_ME, m_MD;
    };
@@ -84,6 +89,11 @@ class BOTAN_PUBLIC_API(2,0) AES_192 final : public Block_Cipher_Fixed_Params<16,
 #if defined(BOTAN_HAS_AES_ARMV8)
       void armv8_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
       void armv8_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
+#endif
+
+#if defined(BOTAN_HAS_AES_POWER8)
+      void power8_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
+      void power8_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
 #endif
 
       void key_schedule(const uint8_t key[], size_t length) override;
@@ -125,6 +135,11 @@ class BOTAN_PUBLIC_API(2,0) AES_256 final : public Block_Cipher_Fixed_Params<16,
 #if defined(BOTAN_HAS_AES_ARMV8)
       void armv8_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
       void armv8_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
+#endif
+
+#if defined(BOTAN_HAS_AES_POWER8)
+      void power8_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
+      void power8_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const;
 #endif
 
       void key_schedule(const uint8_t key[], size_t length) override;

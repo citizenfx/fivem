@@ -24,6 +24,12 @@
 
 #include <ConsoleHost.h>
 
+#ifdef __has_feature
+#define HAS_FEATURE(x) __has_feature(x)
+#else
+#define HAS_FEATURE(x) 0
+#endif
+
 namespace fx
 {
 class StreamWrapper : public OMClass<StreamWrapper, fxIStream>
@@ -136,7 +142,10 @@ result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 		}
 		catch (std::exception& e)
 		{
+// https://github.com/google/sanitizers/issues/749
+#if !HAS_FEATURE(address_sanitizer)
 			trace("%s: execution failed: %s\n", __func__, e.what());
+#endif
 
 			return FX_E_INVALIDARG;
 		}

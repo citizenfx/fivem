@@ -66,6 +66,12 @@ class BOTAN_PUBLIC_API(2,0) SHA_256 final : public MDx_HashFunction
                                         size_t blocks);
 #endif
 
+#if defined(BOTAN_HAS_SHA2_32_X86_BMI2)
+      static void compress_digest_x86_bmi2(secure_vector<uint32_t>& digest,
+                                           const uint8_t input[],
+                                           size_t blocks);
+#endif
+
 #if defined(BOTAN_HAS_SHA2_32_X86)
       static void compress_digest_x86(secure_vector<uint32_t>& digest,
                                       const uint8_t input[],

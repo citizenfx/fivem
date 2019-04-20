@@ -21,9 +21,9 @@ namespace Botan {
  * needs to be stored together with the key and passed to the
  * XMSS_WOTS_Signature_Operation() on creation.
  **/
-class XMSS_WOTS_Addressed_PrivateKey
-   final : public virtual XMSS_WOTS_Addressed_PublicKey,
-     public virtual Private_Key
+class XMSS_WOTS_Addressed_PrivateKey final :
+      public virtual XMSS_WOTS_Addressed_PublicKey,
+      public virtual Private_Key
    {
    public:
       XMSS_WOTS_Addressed_PrivateKey(const XMSS_WOTS_PrivateKey& private_key)

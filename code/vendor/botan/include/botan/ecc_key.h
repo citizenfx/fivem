@@ -78,6 +78,12 @@ class BOTAN_PUBLIC_API(2,0) EC_PublicKey : public virtual Public_Key
       void set_parameter_encoding(EC_Group_Encoding enc);
 
       /**
+      * Set the point encoding method to be used when encoding this key.
+      * @param enc the encoding to use
+      */
+      void set_point_encoding(PointGFp::Compression_Type enc);
+
+      /**
       * Return the DER encoding of this keys domain in whatever format
       * is preset for this particular key
       */
@@ -91,6 +97,13 @@ class BOTAN_PUBLIC_API(2,0) EC_PublicKey : public virtual Public_Key
       EC_Group_Encoding domain_format() const
          { return m_domain_encoding; }
 
+      /**
+      * Get the point encoding method to be used when encoding this key.
+      * @result the encoding to use
+      */
+      PointGFp::Compression_Type point_encoding() const
+         { return m_point_encoding; }
+
       size_t key_length() const override;
       size_t estimated_strength() const override;
 
@@ -101,6 +114,7 @@ class BOTAN_PUBLIC_API(2,0) EC_PublicKey : public virtual Public_Key
       EC_Group m_domain_params;
       PointGFp m_public_key;
       EC_Group_Encoding m_domain_encoding;
+      PointGFp::Compression_Type m_point_encoding = PointGFp::UNCOMPRESSED;
    };
 
 /**

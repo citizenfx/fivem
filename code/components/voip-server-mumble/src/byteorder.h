@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #ifdef _WIN32
-#define SWAPPED(x) _byteswap_ushort(x)
+#define SWAPPED(x) _byteswap_ulong(x)
 #else
 #define SWAPPED(x) htonl(x)
 #endif

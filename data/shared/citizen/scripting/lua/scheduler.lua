@@ -195,6 +195,8 @@ function AddEventHandler(eventName, eventRoutine)
 	eventKey = eventKey + 1
 	tableEntry.handlers[eventKey] = eventRoutine
 
+	RegisterResourceAsEventHandler(eventName)
+
 	return {
 		key = eventKey,
 		name = eventName

@@ -274,6 +274,9 @@ void Server_shutdown()
 #include <TcpServerManager.h>
 #include <MultiplexTcpServer.h>
 
+#include <ServerInstanceBase.h>
+#include <UdpInterceptor.h>
+
 #include "messages.h"
 
 #undef PROTOCOL_VERSION
@@ -283,6 +286,14 @@ void Server_shutdown()
 #include "messagehandler.h"
 
 #include <thread>
+
+bool_t checkDecrypt(client_t *client, const uint8_t *encrypted, uint8_t *plain, unsigned int len);
+int Client_send_udp(client_t *client, uint8_t *data, int len);
+
+static std::mutex mumblePairsMutex;
+static std::map<net::PeerAddress, bool> mumblePairs;
+
+extern std::recursive_mutex g_mumbleClientMutex;
 
 static InitFunction initFunction([]()
 {
@@ -319,10 +330,17 @@ static InitFunction initFunction([]()
 		server->SetConnectionCallback([=](fwRefContainer<net::TcpServerStream> stream)
 		{
 			client_t* client;
-			Client_add(stream, &client);
+
+			{
+				std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
+
+				Client_add(stream, &client);
+			}
 
 			stream->SetReadCallback([=](const std::vector<uint8_t>& data)
 			{
+				std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
+
 				Timer_restart(&client->lastActivity);
 
 #if 0
@@ -401,11 +419,22 @@ static InitFunction initFunction([]()
 							Mh_handle_message(client, msg);
 						client->rxcount = client->msgsize = 0;
 					}
+					else
+					{
+						break;
+					}
+				}
+
+				// close stream if shutting down
+				if (client->shutdown_wait)
+				{
+					client->stream->Close();
 				}
 			});
 
 			stream->SetCloseCallback([=]()
 			{
+				std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
 				Client_free(client);
 			});
 		});
@@ -423,4 +452,168 @@ static InitFunction initFunction([]()
 			}
 		}).detach();
 	});
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		auto interceptor = instance->GetComponent<fx::UdpInterceptor>();
+
+		interceptor->OnIntercept.Connect([interceptor](const net::PeerAddress& address, const uint8_t* data, size_t len, bool* intercepted)
+		{
+			bool known = false;
+
+			{
+				std::lock_guard<std::mutex> lock(mumblePairsMutex);
+				auto isKnownIt = mumblePairs.find(address);
+
+				// if this is already known to not be a Mumble client, ignore
+				if (isKnownIt != mumblePairs.end())
+				{
+					if (!isKnownIt->second)
+					{
+						return;
+					}
+					
+					known = true;
+				}
+			}
+
+			// is this a Mumble ping?
+			if (len == 12 && *(uint32_t*)data == 0)
+			{
+				uint32_t ping[6];
+				memcpy(ping, data, len);
+
+				ping[0] = htonl((uint32_t)((PROTVER_MAJOR << 16) | (PROTVER_MINOR << 8) | (PROTVER_PATCH)));
+				ping[3] = htonl((uint32_t)Client_count());
+				ping[4] = htonl((uint32_t)getIntConf(MAX_CLIENTS));
+				ping[5] = htonl((uint32_t)getIntConf(MAX_BANDWIDTH));
+
+				*intercepted = true;
+
+				interceptor->Send(address, ping, sizeof(ping));
+
+				return;
+			}
+
+			auto fromAddress = address.GetHost();
+
+			// Mumble clients are expected to be connected to TCP already - if this is not a known Mumble TCP pair, mark and drop
+			client_t* client = nullptr;
+
+			uint8_t buffer[1024] = { 0 };
+
+			if (!known)
+			{
+				client_t* itr = nullptr;
+
+				while (Client_iterate(&itr) != nullptr)
+				{
+					if (itr->remote_udp == net::PeerAddress{} &&
+						(itr->remote_tcp.GetHost() == fromAddress ||
+						 fromAddress == fmt::sprintf("[::ffff:%s]", itr->remote_tcp.GetHost())))
+					{
+						known = true;
+						break;
+					}
+				}
+
+				// still not known? don't intercept
+				if (!known)
+				{
+					std::lock_guard<std::mutex> lock(mumblePairsMutex);
+					mumblePairs.insert({ address, false });
+
+					return;
+				}
+
+				// try decrypting the packet, maybe it'll be mumble
+				if (!checkDecrypt(itr, data, buffer, std::min(len, sizeof(buffer))))
+				{
+					// quite certainly not mumble
+					if (itr->numFailedCrypt > 10)
+					{
+						std::lock_guard<std::mutex> lock(mumblePairsMutex);
+						mumblePairs.insert({ address, false });
+
+						itr->numFailedCrypt = 0;
+
+						return;
+					}
+
+					itr->numFailedCrypt++;
+
+					return;
+				}
+
+				itr->numFailedCrypt = 0;
+
+				// mumble! let's mark it
+				std::lock_guard<std::mutex> lock(mumblePairsMutex);
+				mumblePairs.insert({ address, true });
+
+				itr->remote_udp = address;
+
+				client = itr;
+			}
+			else
+			{
+				client_t* itr = nullptr;
+
+				// find the right client from our client list
+				while (Client_iterate(&itr) != nullptr)
+				{
+					if (itr->remote_udp == address)
+					{
+						client = itr;
+						break;
+					}
+				}
+
+				if (!client)
+				{
+					return;
+				}
+
+				if (!checkDecrypt(client, data, buffer, std::min(len, sizeof(buffer))))
+				{
+					*intercepted = true;
+					return;
+				}
+			}
+
+			if (!client)
+			{
+				return;
+			}
+
+			std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
+
+			client->interceptor = interceptor.GetRef();
+
+			*intercepted = true;
+
+			client->bUDP = true;
+			len -= 4; /* Adjust for crypt header */
+			auto msgType = (UDPMessageType_t)((buffer[0] >> 5) & 0x7);
+
+			switch (msgType) {
+			case UDPVoiceSpeex:
+			case UDPVoiceCELTAlpha:
+			case UDPVoiceCELTBeta:
+				break;
+			case UDPVoiceOpus:
+				Client_voiceMsg(client, buffer, len);
+				break;
+			case UDPPing:
+				Log_debug("UDP Ping reply len %d", len);
+				Client_send_udp(client, buffer, len);
+				break;
+			default:
+				auto clientAddressString = Util_clientAddressToString(client);
+				Log_debug("Unknown UDP message type from %s port %d", clientAddressString, address.GetPort());
+				free(clientAddressString);
+				break;
+			}
+		});
+	}, 999);
 });

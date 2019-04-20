@@ -37,13 +37,13 @@ class BOTAN_PUBLIC_API(2,0) Filter
       * Start a new message. Must be closed by end_msg() before another
       * message can be started.
       */
-      virtual void start_msg() {}
+      virtual void start_msg() { /* default empty */ }
 
       /**
       * Notify that the current message is finished; flush buffers and
       * do end-of-message processing (if any).
       */
-      virtual void end_msg() {}
+      virtual void end_msg() { /* default empty */ }
 
       /**
       * Check whether this filter is an attachable filter.
@@ -67,28 +67,20 @@ class BOTAN_PUBLIC_API(2,0) Filter
       /**
       * @param in some input for the filter
       */
-      void send(const secure_vector<uint8_t>& in) { send(in.data(), in.size()); }
-
-      /**
-      * @param in some input for the filter
-      */
-      void send(const std::vector<uint8_t>& in) { send(in.data(), in.size()); }
-
-      /**
-      * @param in some input for the filter
-      * @param length the number of bytes of in to send
-      */
-      void send(const secure_vector<uint8_t>& in, size_t length)
+      template<typename Alloc>
+      void send(const std::vector<uint8_t, Alloc>& in)
          {
-         send(in.data(), length);
+         send(in.data(), in.size());
          }
 
       /**
       * @param in some input for the filter
       * @param length the number of bytes of in to send
       */
-      void send(const std::vector<uint8_t>& in, size_t length)
+      template<typename Alloc>
+      void send(const std::vector<uint8_t, Alloc>& in, size_t length)
          {
+         BOTAN_ASSERT_NOMSG(length <= in.size());
          send(in.data(), length);
          }
 

@@ -10,6 +10,9 @@
 
 #include <Error.h>
 
+#include <ICoreGameInit.h>
+#include <gameSkeleton.h>
+
 #include <LaunchMode.h>
 
 static void* ProbePointer(char* pointer)
@@ -176,6 +179,71 @@ static int ReturnFalse()
 	return 0;
 }
 
+static bool(*g_origLoadFromStructureChar)(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk);
+
+static bool LoadFromStructureCharHook(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk)
+{
+	bool result = g_origLoadFromStructureChar(parManager, fileName, extension, structure, outStruct, unk);
+
+	if (result && !*outStruct)
+	{
+		result = false;
+
+		console::PrintError("gta:core", "Failed to parse %s in rage::parManager::LoadFromStructure(const char*, ...). Make sure this is a well-formed XML/PSO file.\n", fileName);
+	}
+
+	return result;
+}
+
+void(*g_origReinitRenderPhase)(void*);
+
+static void* g_pendingReinit;
+
+void ReinitRenderPhaseWrap(void* a)
+{
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("shutdownGame"))
+	{
+		g_origReinitRenderPhase(a);
+	}
+	else
+	{
+		g_pendingReinit = a;
+	}
+}
+
+static void(*g_origCVehicleModelInfo__init)(void* mi, void* data);
+
+static hook::cdecl_stub<void*(uint32_t)> _getExplosionInfo([]()
+{
+	return hook::get_call(hook::get_pattern("BA 52 28 0C 03 85 D2 74 09 8B CA E8", 11));
+});
+
+void CVehicleModelInfo__init(char* mi, char* data)
+{
+	uint32_t explosionHash = *(uint32_t*)(data + 96);
+
+	if (!explosionHash || !_getExplosionInfo(explosionHash))
+	{
+		explosionHash = HashString("explosion_info_default");
+	}
+
+	*(uint32_t*)(data + 96) = explosionHash;
+
+	g_origCVehicleModelInfo__init(mi, data);
+}
+
+static uint32_t(*g_origScrProgramReturn)(void* a1, uint32_t a2);
+
+static uint32_t ReturnIfMp(void* a1, uint32_t a2)
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origScrProgramReturn(a1, a2);
+	}
+
+	return -1;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -202,7 +270,10 @@ static HookFunction hookFunction([] ()
 	if (!CfxIsSinglePlayer())
 	{
 		// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
-		hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+		//hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+		MH_Initialize();
+		MH_CreateHook(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnIfMp, (void**)&g_origScrProgramReturn);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	// make sure a drawfrag dc doesn't actually run if there's no frag (bypass ERR_GFX_DRAW_DATA)
@@ -580,6 +651,11 @@ static HookFunction hookFunction([] ()
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 
+	// vehicles.meta explosionInfo field invalidity
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 08 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
+	MH_EnableHook(MH_ALL_HOOKS);
+
 	// fwMapTypesStore double unloading workaround
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
@@ -596,4 +672,50 @@ static HookFunction hookFunction([] ()
 	
 	// test: disable 'classification' compute shader users by claiming it is unsupported
 	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
+
+	// test: disable ERR_GEN_MAPSTORE_X error asserts (RDR3 seems to not have any assertion around these at all, so this ought to be safe)
+	{
+		auto location = hook::get_pattern<char>("CD 36 41 A8 E8", 4);
+		hook::nop(location, 5);
+		hook::nop(location + 15, 5);
+	}
+
+	// increase size of unknown ped-related pointer array (with 100 entries max)
+	{
+		auto location = hook::get_pattern<char>("B8 64 00 00 00 48 83 C3 10 66 89 43 FA");
+		hook::put<uint32_t>(location + 1, 400);
+		hook::put<uint32_t>(location - 12, 400 * sizeof(void*));
+	}
+
+	// don't initialize/update render phases right after a renderer reinitialization (this *also* gets done by gameSkeleton update normally)
+	// if the game is unloaded, this'll fail because camManager is not initialized
+	// 1604 signature: magnesium-september-wisconsin (FIVEM-CLIENT-1604-34)
+	//                 massachusetts-skylark-black   (FIVEM-CLIENT-1604-3D) <- CPedFactory::ms_playerPed being NULL with same call stack in CPortalTracker
+	{
+		auto location = hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 84 DB 74 0C 48 8D 0D", 23);
+		hook::set_call(&g_origReinitRenderPhase, location);
+		hook::call(location, ReinitRenderPhaseWrap);
+
+		if (!CfxIsSinglePlayer())
+		{
+			Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+			{
+				if (g_pendingReinit)
+				{
+					trace("Attempted a mode change during shutdown - executing it now...\n");
+
+					g_origReinitRenderPhase(g_pendingReinit);
+					g_pendingReinit = nullptr;
+				}
+			});
+		}
+	}
+
+	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
+	// only returns false if LoadFromStructure(parTreeNode*) fails
+	// make it return failure state on failure of rage::parManager::LoadTree as well, and log the failure.
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4C 8B EA 48 8B F1 E8 ? ? ? ? 40 B5 01 48 8B F8", -0x2D), LoadFromStructureCharHook, (void**)&g_origLoadFromStructureChar);
+	// TODO: fiStream version?
+	MH_EnableHook(MH_ALL_HOOKS);
 });

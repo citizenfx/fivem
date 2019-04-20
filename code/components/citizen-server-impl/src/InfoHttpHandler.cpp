@@ -31,6 +31,11 @@ static InitFunction initFunction([]()
 		static auto instanceRef = instance;
 		static auto ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
 		static auto maxClientsVar = instance->AddVariable<int>("sv_maxClients", ConVar_ServerInfo, 30);
+		static auto versionVar = instance->AddVariable<std::string>("version", ConVar_None, "FXServer-" GIT_DESCRIPTION);
+		static auto crashCmd = instance->AddCommand("_crash", []()
+		{
+			*(volatile int*)0 = 0;
+		});
 		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, false);
 
 		// max clients cap
@@ -39,6 +44,7 @@ static InitFunction initFunction([]()
 		struct InfoData
 		{
 			json infoJson;
+			std::recursive_mutex infoJsonMutex;
 			int infoHash;
 
 			InfoData()
@@ -49,6 +55,8 @@ static InitFunction initFunction([]()
 
 			void Update()
 			{
+				std::unique_lock<std::recursive_mutex> lock(infoJsonMutex);
+
 				auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
 
 				infoJson["vars"] = json::object();
@@ -87,7 +95,7 @@ static InitFunction initFunction([]()
 
 				infoJson["version"] = 0;
 
-				infoHash = static_cast<int>(std::hash<std::string>()(infoJson.dump()) & 0x7FFFFFFF);
+				infoHash = static_cast<int>(std::hash<std::string>()(infoJson.dump(-1, ' ', false, json::error_handler_t::replace)) & 0x7FFFFFFF);
 				infoJson["version"] = infoHash;
 
 				ivVar->GetHelper()->SetRawValue(infoHash);
@@ -173,7 +181,10 @@ static InitFunction initFunction([]()
 		{
 			infoData->Update();
 
-			response->End(infoData->infoJson.dump());
+			{
+				std::unique_lock<std::recursive_mutex> lock(infoData->infoJsonMutex);
+				response->End(infoData->infoJson.dump(-1, ' ', false, json::error_handler_t::replace));
+			}
 		});
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
@@ -203,16 +214,18 @@ static InitFunction initFunction([]()
 					identifiers.erase(newEnd, identifiers.end());
 				}
 
+				auto peer = gscomms_get_peer(client->GetPeer());
+
 				data.push_back({
 					{ "endpoint", (showEP) ? client->GetAddress().ToString() : "127.0.0.1" },
 					{ "id", client->GetNetId() },
 					{ "identifiers", identifiers },
 					{ "name", client->GetName() },
-					{ "ping", gscomms_get_peer(client->GetPeer())->roundTripTime }
+					{ "ping", peer.GetRef() ? peer->GetPing() : -1 }
 				});
 			});
 
-			response->End(data.dump());
+			response->End(data.dump(-1, ' ', false, json::error_handler_t::replace));
 		});
 	}, 1500);
 });

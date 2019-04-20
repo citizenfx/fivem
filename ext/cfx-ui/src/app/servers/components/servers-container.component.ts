@@ -1,11 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, PLATFORM_ID, Inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { Server, ServerIcon, PinConfig } from '../server';
 import { ServersService } from '../servers.service';
-import { ServerFilters } from './server-filter.component';
+import { ServerFilters, ServerFilterContainer, ServerTags } from './server-filter.component';
 
 import { GameService } from '../../game.service';
+
+import { isPlatformBrowser } from '@angular/common';
 
 import { Observable } from 'rxjs/observable';
 
@@ -25,16 +27,45 @@ export class ServersContainerComponent implements OnInit {
 
     pinConfig: PinConfig;
 
-    filters: ServerFilters;
+    filters: ServerFilterContainer;
 
     type: string;
 
-    constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute) {
-        this.filters = new ServerFilters();
+    constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute,
+        @Inject(PLATFORM_ID) private platformId: any) {
+        this.filters = new ServerFilterContainer();
         this.pinConfig = new PinConfig();
+    }
+
+    serversArray: Server[] = [];
+
+    ngOnInit() {
+        this.type = this.route.snapshot.data.type;
+
+        if (isPlatformBrowser(this.platformId)) {
+            this.loadServers();
+        }
+    }
+
+    setFilters(filters: ServerFilters) {
+        this.filters = {...this.filters, filters};
+    }
+
+    setTags(tags: ServerTags) {
+        this.filters = {...this.filters, tags: { tagList: { ...tags.tagList } }};
+    }
+
+    isBrowser() {
+        return isPlatformBrowser(this.platformId);
+    }
+
+    loadServers() {
+        this.serverService.loadPinConfig()
+            .then(pinConfig => this.pinConfig = pinConfig);
+
 
         const typedServers = this.serverService
-            .getServers()
+            .getReplayedServers()
             .filter(a => a && this.gameService.isMatchingServer(this.type, a));
 
         // add each new server to our server list
@@ -57,24 +88,5 @@ export class ServersContainerComponent implements OnInit {
         typedServers
             .bufferTime(100, null, 250)
             .subscribe(servers => (servers.length > 0) ? this.gameService.pingServers(servers) : null);
-    }
-
-    serversArray: Server[] = [];
-
-    ngOnInit() {
-        this.type = this.route.snapshot.data.type;
-
-        this.loadServers();
-    }
-
-    setFilters(filters: ServerFilters) {
-        this.filters = {...filters};
-    }
-
-    loadServers() {
-        this.serverService.loadPinConfig()
-            .then(pinConfig => this.pinConfig = pinConfig);
-
-        this.serverService.refreshServers();
     }
 }

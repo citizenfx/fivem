@@ -311,3 +311,10 @@ void CryptState_ocb_decrypt(cryptState_t *cs, const unsigned char *encrypted, un
 	XOR(tmp, delta, checksum);
 	CRYPT_AES_ENCRYPT(tmp, tag, cs);
 }
+
+mbedtls_havege_state hs;
+
+static InitFunction initFunction([]()
+{
+	mbedtls_havege_init(&hs);
+});

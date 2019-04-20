@@ -33,6 +33,8 @@ class BOTAN_PUBLIC_API(2,0) System_RNG final : public RandomNumberGenerator
 
       bool is_seeded() const override { return system_rng().is_seeded(); }
 
+      bool accepts_input() const override { return system_rng().accepts_input(); }
+
       void clear() override { system_rng().clear(); }
    };
 

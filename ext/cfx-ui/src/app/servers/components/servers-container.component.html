@@ -1,9 +1,10 @@
-<div class="servers vertical">
+<div class="servers vertical" *ngIf="isBrowser()">
 	<aside>
 		<app-server-filter [type]="type" (filtersChanged)="setFilters($event)"></app-server-filter>
 	</aside>
 
 	<article>
+		<app-server-tag-filter [type]="type" (tagsChanged)="setTags($event)"></app-server-tag-filter>
 		<servers-list [servers]="serversArray" [filters]="filters" [pinConfig]="pinConfig"></servers-list>
 	</article>
 

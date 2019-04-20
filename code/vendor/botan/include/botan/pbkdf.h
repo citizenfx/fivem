@@ -9,7 +9,6 @@
 #define BOTAN_PBKDF_H_
 
 #include <botan/symkey.h>
-#include <botan/exceptn.h>
 #include <chrono>
 
 namespace Botan {
@@ -18,6 +17,9 @@ namespace Botan {
 * Base class for PBKDF (password based key derivation function)
 * implementations. Converts a password into a key using a salt
 * and iterated hashing to make brute force attacks harder.
+*
+* Starting in 2.8 this functionality is also offered by PasswordHash.
+* The PBKDF interface may be removed in a future release.
 */
 class BOTAN_PUBLIC_API(2,0) PBKDF
    {
@@ -217,7 +219,7 @@ class BOTAN_PUBLIC_API(2,0) PBKDF
    };
 
 /*
-* Compatability typedef
+* Compatibility typedef
 */
 typedef PBKDF S2K;
 
@@ -230,10 +232,7 @@ typedef PBKDF S2K;
 inline PBKDF* get_pbkdf(const std::string& algo_spec,
                         const std::string& provider = "")
    {
-   std::unique_ptr<PBKDF> p(PBKDF::create(algo_spec, provider));
-   if(p)
-      return p.release();
-   throw Algorithm_Not_Found(algo_spec);
+   return PBKDF::create_or_throw(algo_spec, provider).release();
    }
 
 inline PBKDF* get_s2k(const std::string& algo_spec)

@@ -13,6 +13,7 @@
 #define VFS_CORE_EXPORT DLL_IMPORT
 #endif
 
+#include <array>
 #include <ctime>
 
 #ifndef FILE_ATTRIBUTE_DIRECTORY
@@ -90,5 +91,18 @@ public:
 struct FlushBuffersExtension
 {
 	Device::THandle handle;
+};
+
+using FileId = std::array<uint8_t, 16>;
+
+#define VFS_GET_FILE_ID 0x10003
+
+struct GetFileIdExtension
+{
+	// in
+	Device::THandle handle;
+
+	// out
+	FileId fileId;
 };
 }

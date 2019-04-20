@@ -306,9 +306,9 @@ private:    // Hard work goes here
 	}
 
 	// Returns the new size for a grow operation (see Grow())
-	int Growt(int requires)
+	int Growt(int requires_)
 	{
-		if (this->m_Size < requires)
+		if (this->m_Size < requires_)
 		{
 			// Normally the pool should grow by 50%
 			auto half = this->m_Size / 2;
@@ -316,7 +316,7 @@ private:    // Hard work goes here
 				this->m_Size + half);
 
 			// Make sure the grow was enought to have 'requires' size
-			return (size < requires ? requires : size);
+			return (size < requires_ ? requires_ : size);
 		}
 		return this->m_Size;
 	}

@@ -1,3 +1,5 @@
+local a = ...
+
 local openssl = require('./vendor/openssl_ext')
 local openssl_cfg = require('./vendor/openssl_cfg')
 
@@ -23,9 +25,18 @@ return {
 		
 		buildoptions { '/MP' }
 		
-		add_dependencies 'vendor:openssl_crypto'
+		if not a then
+			add_dependencies 'vendor:openssl_crypto'
+		else
+			staticruntime 'On'
 		
-		if not os.isdir('vendor/openssl/') then
+			add_dependencies 'vendor:openssl_crypto_crt'
+		end
+		
+		if not os.isdir('vendor/openssl/') or not os.isfile('vendor/openssl/update_2019-03-13') then
+			local f = io.open('vendor/openssl/update_2019-03-13', 'w')
+			f:close()
+			
 			openssl.copy_public_headers(openssl_cfg)
 			os.copyfile('vendor/opensslconf.h', 'vendor/openssl/include/openssl/opensslconf.h')
 		end

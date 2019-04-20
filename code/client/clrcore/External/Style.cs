@@ -124,23 +124,23 @@ namespace CitizenFX.Core
 				case PedHash.Trevor:
 				case PedHash.FreemodeMale01:
 				case PedHash.FreemodeFemale01:
-					return;//these models freeze when randomized
+					return; //these models freeze when randomized
 			}
-			Function.Call(Hash.SET_PED_RANDOM_COMPONENT_VARIATION, _ped.Handle, false);
+			API.SetPedRandomComponentVariation(_ped.Handle, false);
 		}
 		public void SetDefaultClothes()
 		{
-			Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, _ped.Handle);
+			API.SetPedDefaultComponentVariation(_ped.Handle);
 		}
 
 		public void RandomizeProps()
 		{
-			Function.Call(Hash.SET_PED_RANDOM_PROPS, _ped.Handle);
+			API.SetPedRandomProps(_ped.Handle);
 		}
 
 		public void ClearProps()
 		{
-			Function.Call(Hash.CLEAR_ALL_PED_PROPS, _ped.Handle);
+			API.ClearAllPedProps(_ped.Handle);
 		}
 
 	}
@@ -173,12 +173,12 @@ namespace CitizenFX.Core
 
 		public int Count
 		{
-			get { return Function.Call<int>(Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, _ped.Handle, _componentdId); }
+			get { return API.GetNumberOfPedDrawableVariations(_ped.Handle, (int)_componentdId); }
 		}
 
 		public int Index
 		{
-			get { return Function.Call<int>(Hash.GET_PED_DRAWABLE_VARIATION, _ped.Handle, _componentdId); }
+			get { return API.GetPedDrawableVariation(_ped.Handle, (int)_componentdId); }
 			set { SetVariation(value); }
 		}
 
@@ -186,7 +186,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int count = Function.Call<int>(Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, _ped.Handle, _componentdId, Index) + 1;
+				int count = API.GetNumberOfPedTextureVariations(_ped.Handle, (int)_componentdId, Index) + 1;
 				while (count > 0)
 				{
 					if (IsVariationValid(Index, count - 1))
@@ -201,20 +201,20 @@ namespace CitizenFX.Core
 
 		public int TextureIndex
 		{
-			get { return Function.Call<int>(Hash.GET_PED_TEXTURE_VARIATION, _ped.Handle, _componentdId); }
+			get { return API.GetPedTextureVariation(_ped.Handle, (int)_componentdId); }
 			set { SetVariation(Index, value); }
 		}
 
 		public bool IsVariationValid(int index, int textureIndex = 0)
 		{
-			return Function.Call<bool>(Hash.IS_PED_COMPONENT_VARIATION_VALID, _ped.Handle, _componentdId, index, textureIndex);
+			return API.IsPedComponentVariationValid(_ped.Handle, (int)_componentdId, index, textureIndex);
 		}
 
 		public bool SetVariation(int index, int textureIndex = 0)
 		{
 			if (IsVariationValid(index, textureIndex))
 			{
-				Function.Call(Hash.SET_PED_COMPONENT_VARIATION, _ped.Handle, _componentdId, index, textureIndex, 0);
+				API.SetPedComponentVariation(_ped.Handle, (int)_componentdId, index, textureIndex, 0);
 				return true;
 			}
 			return false;
@@ -256,23 +256,23 @@ namespace CitizenFX.Core
 
 		public int Count
 		{
-			get { return Function.Call<int>(Hash.GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS, _ped.Handle, _propId) + 1; }//+1 to accomodate for no prop selected(value = -1);
+			get { return API.GetNumberOfPedPropDrawableVariations(_ped.Handle, (int)_propId) + 1; }//+1 to accomodate for no prop selected(value = -1);
 		}
 
 		public int Index
 		{
-			get { return Function.Call<int>(Hash.GET_PED_PROP_INDEX, _ped.Handle, _propId) + 1; }
+			get { return API.GetPedPropIndex(_ped.Handle, (int)_propId) + 1; }
 			set { SetVariation(value); }
 		}
 
 		public int TextureCount
 		{
-			get { return Function.Call<int>(Hash.GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS, _ped.Handle, _propId, Index - 1); }
+			get { return API.GetNumberOfPedPropTextureVariations(_ped.Handle, (int)_propId, Index - 1); }
 		}
 
 		public int TextureIndex
 		{
-			get { return Index == 0 ? 0 : Function.Call<int>(Hash.GET_PED_PROP_TEXTURE_INDEX, _ped.Handle, _propId); }
+			get { return Index == 0 ? 0 : API.GetPedPropTextureIndex(_ped.Handle, (int)_propId); }
 			set
 			{
 				if (Index > 0) SetVariation(Index, value);
@@ -283,20 +283,20 @@ namespace CitizenFX.Core
 		{
 			if (index == 0)
 			{
-				return true;//no prop always valid
+				return true; // no prop always valid
 			}
-			return Function.Call<bool>(Hash._IS_PED_PROP_VALID, _ped.Handle, _propId, index - 1, textureIndex);
+			return API.IsPedPropValid(_ped.Handle, (int)_propId, index - 1, textureIndex);
 		}
 		public bool SetVariation(int index, int textureIndex = 0)
 		{
 			if (index == 0)
 			{
-				Function.Call(Hash.CLEAR_PED_PROP, _ped.Handle, _propId);
+				API.ClearPedProp(_ped.Handle, (int)_propId);
 				return true;
 			}
 			if (IsVariationValid(index, textureIndex))
 			{
-				Function.Call(Hash.SET_PED_PROP_INDEX, _ped.Handle, _propId, index - 1, textureIndex, 1);
+				API.SetPedPropIndex(_ped.Handle, (int)_propId, index - 1, textureIndex, true);
 				return true;
 			}
 			return false;

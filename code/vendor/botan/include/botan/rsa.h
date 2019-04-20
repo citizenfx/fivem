@@ -10,6 +10,8 @@
 
 #include <botan/pk_keys.h>
 #include <botan/bigint.h>
+#include <string>
+#include <vector>
 
 namespace Botan {
 

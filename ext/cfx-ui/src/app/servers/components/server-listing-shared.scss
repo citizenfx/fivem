@@ -3,7 +3,7 @@
 $columns: (
 	icon: $appServersItemHeight,
 	name: 50%,
-	actions: 70px,
+	actions: 140px,
 	players: 120px,
 	ping: 90px,
 );
@@ -16,11 +16,18 @@ $columns: (
 		overflow: hidden;
 		text-overflow: ellipsis;
 
-		color: $textColour;
+		@include theme() using ($theme) {
+			color: gtv($theme, textColour);
+		};
+		
 		text-align: right;
 	}
 }
 
 .name {
 	flex-grow: 1;
+}
+
+.actions {
+	overflow: visible;
 }

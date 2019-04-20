@@ -1,10 +1,11 @@
 #include "StdInc.h"
 #include <ResourceFilesComponent.h>
 #include <ResourceMetaDataComponent.h>
+#include <ResourceFileDatabase.h>
 
 #include <VFSManager.h>
 
-#include <SHA1.h>
+#include <botan/sha160.h>
 
 #include <any>
 
@@ -383,10 +384,33 @@ namespace fx
 {
 	bool ResourceFilesComponent::BuildResourceSet(const std::string& setName)
 	{
-		fi::PackfileBuilder packfile;
 		auto files = GetFilesForSet(setName);
 
-		for (const auto& file : files)
+		// use a std::set to deduplicate files
+		std::set<std::string> fileSet(files.begin(), files.end());
+
+		// collect the database first, so if things change since then we know to rebuild
+		{
+			std::string setDatabaseFileName = GetSetDatabaseName(setName);
+
+			auto setDatabase = std::make_shared<ResourceFileDatabase>();
+
+			std::vector<std::string> fileNames;
+
+			for (const auto& file : fileSet)
+			{
+				fileNames.emplace_back(m_resource->GetPath() + "/" + file);
+			}
+
+			setDatabase->Snapshot(fileNames);
+
+			setDatabase->Save(setDatabaseFileName);
+		}
+
+		// build the new packfile
+		fi::PackfileBuilder packfile;
+
+		for (const auto& file : fileSet)
 		{
 			packfile.AddFile(file, m_resource->GetPath() + "/" + file);
 		}
@@ -398,35 +422,37 @@ namespace fx
 
 	bool ResourceFilesComponent::ShouldBuildSet(const std::string& setName)
 	{
+		// if the set doesn't exist anymore, we _always_ want to build the set
 		std::string setFileName = GetSetFileName(setName);
 		
-		fwRefContainer<vfs::Device> device = vfs::GetDevice(setFileName);
+		{
+			fwRefContainer<vfs::Stream> setStream = vfs::OpenRead(setFileName);
 
-		if (!device.GetRef())
+			if (!setStream.GetRef())
+			{
+				return true;
+			}
+		}
+
+		// load the set database
+		std::string setDatabaseFileName = GetSetDatabaseName(setName);
+
+		auto setDatabase = std::make_shared<ResourceFileDatabase>();
+
+		if (!setDatabase->Load(setDatabaseFileName))
 		{
 			return true;
 		}
 
-		// get the last-modified time for the set
-		std::time_t setModifiedTime = device->GetModifiedTime(setFileName);
-
-		// get the highest modified time for the set's files
-		std::time_t lastModifiedTime = std::numeric_limits<std::time_t>::min();
-
+		std::vector<std::string> fileNames;
 		auto files = GetFilesForSet(setName);
 
-		for (auto& file : files)
+		for (const auto& file : files)
 		{
-			device = vfs::GetDevice(m_resource->GetPath() + "/" + file);
-
-			if (device.GetRef())
-			{
-				lastModifiedTime = std::max(device->GetModifiedTime(m_resource->GetPath() + "/" + file), lastModifiedTime);
-			}
+			fileNames.emplace_back(m_resource->GetPath() + "/" + file);
 		}
 
-		// return true if the files were modified after the set
-		return (setModifiedTime == 0 || lastModifiedTime > setModifiedTime);
+		return setDatabase->Check(fileNames);
 	}
 
 	void ResourceFilesComponent::AddFileToDefaultSet(const std::string& fileName)
@@ -442,7 +468,17 @@ namespace fx
 			
 			auto metaData = m_resource->GetComponent<fx::ResourceMetaDataComponent>();
 
-			fileEntries.emplace_back("__resource.lua");
+			// add the metadata definition file
+			auto isCfxV2 = metaData->GetEntries("is_cfxv2");
+
+			if (isCfxV2.begin() == isCfxV2.end())
+			{
+				fileEntries.emplace_back("__resource.lua");
+			}
+			else
+			{
+				fileEntries.emplace_back("fxmanifest.lua");
+			}
 
 			// add files
 			auto files = metaData->GetEntries("file");
@@ -520,20 +556,18 @@ namespace fx
 			{
 				// calculate a hash of the file
 				std::vector<uint8_t> data(8192);
-				sha1nfo sha1;
-				size_t numRead;
 
-				// initialize context
-				sha1_init(&sha1);
+				auto sha1 = std::make_unique<Botan::SHA_160>();
+				size_t numRead;
 
 				// read from the stream
 				while ((numRead = stream->Read(data)) > 0)
 				{
-					sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+					sha1->update(&data[0], numRead);
 				}
 
 				// get the hash result and convert it to a string
-				uint8_t* hash = sha1_result(&sha1);
+				auto hash = sha1->final();
 
 				m_fileHashPairs["resource.rpf"] = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 					hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
@@ -545,6 +579,11 @@ namespace fx
 	std::string ResourceFilesComponent::GetSetFileName(const std::string& setName)
 	{
 		return "cache:/files/" + m_resource->GetName() + "/" + setName;
+	}
+
+	std::string ResourceFilesComponent::GetSetDatabaseName(const std::string& setName)
+	{
+		return "cache:/files/" + m_resource->GetName() + "/" + setName + ".db";
 	}
 
 	std::string ResourceFilesComponent::GetDefaultSetName()

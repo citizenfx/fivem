@@ -17,13 +17,13 @@ public:
 
 	virtual void AddEntity() = 0;
 	virtual void m_28() = 0;
-	virtual void RemoveClone(rage::netObject* object, int reason, bool force1, bool force2) = 0;
-	virtual void AddObjectForPlayer(rage::netObject* object, CNetGamePlayer* player, int a4) = 0;
+	virtual void UnregisterNetworkObject(rage::netObject* object, int reason, bool force1, bool force2) = 0;
+	virtual void ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType) = 0;
 	virtual void m_40() = 0;
 	virtual void m_48() = 0;
 	virtual void m_50() = 0;
 	virtual void m_58() = 0;
-	virtual void RegisterObject(rage::netObject* entity) = 0;
+	virtual void RegisterNetworkObject(rage::netObject* entity) = 0;
 
 private:
 	struct atDNetObjectNode
@@ -55,6 +55,8 @@ public:
 			}
 		}
 	}
+
+	netObject* GetNetworkObject(uint16_t id, bool a3);
 
 	static netObjectMgr* GetInstance();
 };

@@ -58,6 +58,8 @@ class BOTAN_PUBLIC_API(2,0) Blinder final
 
       Blinder& operator=(const Blinder&) = delete;
 
+      RandomNumberGenerator& rng() const { return m_rng; }
+
    private:
       BigInt blinding_nonce() const;
 

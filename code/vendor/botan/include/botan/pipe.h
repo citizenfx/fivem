@@ -270,6 +270,9 @@ class BOTAN_PUBLIC_API(2,0) Pipe final : public DataSource
 
       /**
       * Insert a new filter at the front of the pipe
+      * Deprecated because runtime modification of Pipes is deprecated.
+      * You can instead use prepend_filter which only works before the first
+      * message is processed.
       * @param filt the new filter to insert
       */
       BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
@@ -277,6 +280,9 @@ class BOTAN_PUBLIC_API(2,0) Pipe final : public DataSource
 
       /**
       * Insert a new filter at the back of the pipe
+      * Deprecated because runtime modification of Pipes is deprecated.
+      * You can instead use append_filter which only works before the first
+      * message is processed.
       * @param filt the new filter to insert
       */
       BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
@@ -293,6 +299,28 @@ class BOTAN_PUBLIC_API(2,0) Pipe final : public DataSource
       */
       BOTAN_DEPRECATED("Runtime modification of Pipe deprecated")
       void reset();
+
+      /**
+      * Append a new filter onto the filter sequence. This may only be
+      * called immediately after initial construction, before _any_
+      * calls to start_msg have been made.
+      *
+      * This function (unlike append) is not deprecated, as it allows
+      * only modification of the pipe at initialization (before use)
+      * rather than after messages have been processed.
+      */
+      void append_filter(Filter* filt);
+
+      /**
+      * Prepend a new filter onto the filter sequence. This may only be
+      * called immediately after initial construction, before _any_
+      * calls to start_msg have been made.
+      *
+      * This function (unlike prepend) is not deprecated, as it allows
+      * only modification of the pipe at initialization (before use)
+      * rather than after messages have been processed.
+      */
+      void prepend_filter(Filter* filt);
 
       /**
       * Construct a Pipe of up to four filters. The filters are set up
@@ -312,9 +340,9 @@ class BOTAN_PUBLIC_API(2,0) Pipe final : public DataSource
 
       ~Pipe();
    private:
-      void init();
       void destruct(Filter*);
       void do_append(Filter* filt);
+      void do_prepend(Filter* filt);
       void find_endpoints(Filter*);
       void clear_endpoints(Filter*);
 

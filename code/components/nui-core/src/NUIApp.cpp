@@ -12,7 +12,8 @@
 void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
 {
 	// add the 'nui://' internal scheme
-	registrar->AddCustomScheme("nui", true, false, false, true, false, true);
+	registrar->AddCustomScheme("nui", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_FETCH_ENABLED);
+	//registrar->AddCustomScheme("nui", true, false, false, true, false, true);
 }
 
 // null data resource functions
@@ -44,7 +45,17 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 	window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("registerPushFunction", CefV8Value::CreateFunction("registerPushFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("nuiSetAudioCategory", CefV8Value::CreateFunction("nuiSetAudioCategory", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+}
+
+void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
+{
+	for (auto& handler : m_v8ReleaseHandlers)
+	{
+		handler(context);
+	}
 }
 
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
@@ -65,13 +76,12 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// this just forces D3D11 anyway.
 	command_line->AppendSwitchWithValue("use-angle", "d3d11");
 
-	// M65 enables these by default, but CEF doesn't pass the required phase data at this time (2018-03-31)
-	// this breaks scrolling 'randomly' - after a middle click, and some other scenarios
-	command_line->AppendSwitchWithValue("disable-features", "TouchpadAndWheelScrollLatching,AsyncWheelEvents");
+	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
+	command_line->AppendSwitch("disable-web-security");
 
-	// M66 enables this by default, this breaks scrolling in iframes, however only in the Cfx embedder scenario (2018-03-31)
-	// cefclient is not affected, code was compared with cefclient but not that different.
-	command_line->AppendSwitchWithValue("disable-blink-features", "RootLayerScrolling");
+	// register the CitizenFX game view plugin
+	// in M73+ it ends up entirely breaking UI rendering
+	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
 }
 
 bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
@@ -123,4 +133,9 @@ void NUIApp::AddProcessMessageHandler(std::string key, TProcessMessageHandler ha
 void NUIApp::AddV8Handler(std::string key, TV8Handler handler)
 {
 	m_v8Handlers[key] = handler;
+}
+
+void NUIApp::AddContextReleaseHandler(TContextReleaseHandler handler)
+{
+	m_v8ReleaseHandlers.emplace_back(handler);
 }

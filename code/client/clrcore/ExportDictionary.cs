@@ -8,15 +8,18 @@ using System.Threading.Tasks;
 
 namespace CitizenFX.Core
 {
-    public class ExportDictionary
-    {
+	public class ExportDictionary
+	{
 		private static Dictionary<string, Delegate> ms_exportRoutines = new Dictionary<string, Delegate>();
 
-        public dynamic this[string resourceName] => new ExportSet(resourceName);
+		public dynamic this[string resourceName] => new ExportSet(resourceName);
 
 		public void Add(string name, Delegate method)
 		{
-			ms_exportRoutines[$"__cfx_export_{Native.Function.Call<string>(Native.Hash.GET_CURRENT_RESOURCE_NAME)}_{name}"] = method;
+			string eventName = $"__cfx_export_{Native.API.GetCurrentResourceName()}_{name}";
+
+			Native.API.RegisterResourceAsEventHandler(eventName);
+			ms_exportRoutines[eventName] = method;
 		}
 
 		internal static void Invoke(string eventName, object[] objArray)
@@ -28,39 +31,39 @@ namespace CitizenFX.Core
 		}
 	}
 
-    public class ExportSet : DynamicObject
-    {
-        private readonly string m_resourceName;
+	public class ExportSet : DynamicObject
+	{
+		private readonly string m_resourceName;
 
-        public ExportSet(string resourceName)
-        {
+		public ExportSet(string resourceName)
+		{
 			m_resourceName = resourceName ?? throw new ArgumentNullException(nameof(resourceName));
-        }
+		}
 
-        private class DelegateFn
-        {
-            public dynamic Delegate { get; set; }
-        }
+		private class DelegateFn
+		{
+			public dynamic Delegate { get; set; }
+		}
 
-        public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
-        {
-            // get the event name
-            var eventName = $"__cfx_export_{m_resourceName}_{binder.Name}";
+		public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
+		{
+			// get the event name
+			var eventName = $"__cfx_export_{m_resourceName}_{binder.Name}";
 
-            // get the member
-            var exportDelegate = new DelegateFn();
-            BaseScript.TriggerEvent(eventName, new Action<dynamic>(a => exportDelegate.Delegate = a));
+			// get the member
+			var exportDelegate = new DelegateFn();
+			BaseScript.TriggerEvent(eventName, new Action<dynamic>(a => exportDelegate.Delegate = a));
 
-            if (exportDelegate.Delegate == null)
-            {
-                result = null;
-                return false;
-            }
+			if (exportDelegate.Delegate == null)
+			{
+				result = null;
+				return false;
+			}
 
-            // try invoking it
-            result = exportDelegate.Delegate(args);
+			// try invoking it
+			result = exportDelegate.Delegate(args);
 
-            return true;
-        }
-    }
+			return true;
+		}
+	}
 }

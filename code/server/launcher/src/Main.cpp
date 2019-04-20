@@ -14,6 +14,8 @@
 #include <pthread.h>
 #endif
 
+bool InitializeExceptionHandler();
+
 int main(int argc, char* argv[])
 {
 #ifndef _WIN32
@@ -24,6 +26,11 @@ int main(int argc, char* argv[])
 		pthread_setattr_default_np(&attrs);
 	}
 #endif
+
+	if (InitializeExceptionHandler())
+	{
+		return 0;
+	}
 
 	fx::Server server;
 	server.Start(argc, argv);

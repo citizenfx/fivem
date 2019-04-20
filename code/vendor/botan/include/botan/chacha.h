@@ -1,6 +1,6 @@
 /*
 * ChaCha20
-* (C) 2014 Jack Lloyd
+* (C) 2014,2018 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -13,13 +13,11 @@
 namespace Botan {
 
 /**
-* DJB's ChaCha (http://cr.yp.to/chacha.html)
+* DJB's ChaCha (https://cr.yp.to/chacha.html)
 */
 class BOTAN_PUBLIC_API(2,0) ChaCha final : public StreamCipher
    {
    public:
-      StreamCipher* clone() const override { return new ChaCha(m_rounds); }
-
       /**
       * @param rounds number of rounds
       * @note Currently only 8, 12 or 20 rounds are supported, all others
@@ -31,20 +29,25 @@ class BOTAN_PUBLIC_API(2,0) ChaCha final : public StreamCipher
 
       void cipher(const uint8_t in[], uint8_t out[], size_t length) override;
 
+      void write_keystream(uint8_t out[], size_t len) override;
+
       void set_iv(const uint8_t iv[], size_t iv_len) override;
 
       /*
-      * ChaCha accepts 0, 8, or 12 byte IVs. The default IV is a 8 zero bytes.
+      * ChaCha accepts 0, 8, 12 or 24 byte IVs.
+      * The default IV is a 8 zero bytes.
       * An IV of length 0 is treated the same as the default zero IV.
+      * An IV of length 24 selects XChaCha mode
       */
       bool valid_iv_length(size_t iv_len) const override;
 
-      Key_Length_Specification key_spec() const override
-         {
-         return Key_Length_Specification(16, 32, 16);
-         }
+      size_t default_iv_length() const override;
+
+      Key_Length_Specification key_spec() const override;
 
       void clear() override;
+
+      StreamCipher* clone() const override;
 
       std::string name() const override;
 
@@ -53,13 +56,20 @@ class BOTAN_PUBLIC_API(2,0) ChaCha final : public StreamCipher
    private:
       void key_schedule(const uint8_t key[], size_t key_len) override;
 
-      void chacha_x4(uint8_t output[64*4], uint32_t state[16], size_t rounds);
+      void initialize_state();
 
-#if defined(BOTAN_HAS_CHACHA_SSE2)
-      void chacha_sse2_x4(uint8_t output[64*4], uint32_t state[16], size_t rounds);
+      void chacha_x8(uint8_t output[64*8], uint32_t state[16], size_t rounds);
+
+#if defined(BOTAN_HAS_CHACHA_SIMD32)
+      void chacha_simd32_x4(uint8_t output[64*4], uint32_t state[16], size_t rounds);
+#endif
+
+#if defined(BOTAN_HAS_CHACHA_AVX2)
+      void chacha_avx2_x8(uint8_t output[64*8], uint32_t state[16], size_t rounds);
 #endif
 
       size_t m_rounds;
+      secure_vector<uint32_t> m_key;
       secure_vector<uint32_t> m_state;
       secure_vector<uint8_t> m_buffer;
       size_t m_position = 0;

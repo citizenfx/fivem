@@ -9,6 +9,8 @@
 #include <ros/EndpointMapper.h>
 
 #include <base64.h>
+#include <botan/base64.h>
+#include <botan/exceptn.h>
 
 #include <zlib.h>
 
@@ -80,6 +82,101 @@ std::string GetFilePath(const std::string& str)
 
 std::string GetOwnershipPath();
 
+std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHash)
+{
+	if (!LoadOwnershipTicket())
+	{
+		FatalError("RS10");
+	}
+
+	std::string filePath = GetFilePath(fmt::sprintf("%08x_%lld", HashString(machineHash.c_str()), accountId));
+
+	FILE* f = _wfopen(ToWide(filePath).c_str(), L"rb");
+
+	if (f)
+	{
+		struct _stat64i32 stat;
+		_wstat(ToWide(filePath).c_str(), &stat);
+
+		if ((_time64(nullptr) - stat.st_mtime) > 259200)
+		{
+			fclose(f);
+			f = nullptr;
+		}
+	}
+
+	std::string outStr;
+
+	bool success = false;
+
+	if (f)
+	{
+		std::vector<uint8_t> fileData;
+		int pos;
+
+		// get the file length
+		fseek(f, 0, SEEK_END);
+		pos = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		// resize the buffer
+		fileData.resize(pos);
+
+		// read the file and close it
+		fread(&fileData[0], 1, pos, f);
+
+		fclose(f);
+
+		outStr = std::string(fileData.begin(), fileData.end());
+
+		try
+		{
+			Botan::base64_decode(outStr);
+
+			success = true;
+		}
+		catch (Botan::Exception&)
+		{
+			trace("Couldn't decode base64 entitlement data (%s) - refetching...\n", outStr);
+
+			success = false;
+		}
+	}
+	
+	if (!success)
+	{
+		auto r = cpr::Post(
+			cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement" },
+			cpr::Payload{
+				{ "entitlementId", g_entitlementSource },
+				{ "machineHash", machineHash },
+				{ "rosId", fmt::sprintf("%lld", accountId) }
+			});
+
+		if (r.status_code != 200)
+		{
+			if (r.status_code < 500)
+			{
+				DeleteFileW(ToWide(GetOwnershipPath()).c_str());
+			}
+
+			FatalError("Could not contact entitlement service. Status code: %d, error message: %d/%s, response body: %s", r.status_code, (int)r.error.code, r.error.message, r.text);
+		}
+
+		f = _wfopen(ToWide(filePath).c_str(), L"wb");
+
+		if (f)
+		{
+			fwrite(r.text.c_str(), 1, r.text.size(), f);
+			fclose(f);
+		}
+
+		outStr = r.text;
+	}
+
+	return outStr;
+}
+
 static InitFunction initFunction([] ()
 {
 	EndpointMapper* mapper = Instance<EndpointMapper>::Get();
@@ -92,76 +189,7 @@ static InitFunction initFunction([] ()
 		auto accountId = ROS_DUMMY_ACCOUNT_ID;
 		auto machineHash = postData["machineHash"];
 
-		if (!LoadOwnershipTicket())
-		{
-			FatalError("RS10");
-		}
-
-		std::string filePath = GetFilePath(fmt::sprintf("%08x_%lld", HashString(machineHash.c_str()), accountId));
-
-		FILE* f = _wfopen(ToWide(filePath).c_str(), L"rb");
-
-		if (f)
-		{
-			struct _stat64i32 stat;
-			_wstat(ToWide(filePath).c_str(), &stat);
-
-			if ((_time64(nullptr) - stat.st_mtime) > 259200)
-			{
-				fclose(f);
-				f = nullptr;
-			}
-		}
-
-		std::string outStr;
-
-		if (f)
-		{
-			std::vector<uint8_t> fileData;
-			int pos;
-
-			// get the file length
-			fseek(f, 0, SEEK_END);
-			pos = ftell(f);
-			fseek(f, 0, SEEK_SET);
-
-			// resize the buffer
-			fileData.resize(pos);
-
-			// read the file and close it
-			fread(&fileData[0], 1, pos, f);
-
-			fclose(f);
-
-			outStr = std::string(fileData.begin(), fileData.end());
-		}
-		else
-		{
-			auto r = cpr::Post(
-				cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement" },
-				cpr::Payload{
-					{ "entitlementId", g_entitlementSource },
-					{ "machineHash", machineHash },
-					{ "rosId", fmt::sprintf("%lld", accountId) }
-				});
-
-			if (r.status_code != 200)
-			{
-				DeleteFileW(ToWide(GetOwnershipPath()).c_str());
-
-				FatalError("Could not contact entitlement service. Status code: %d, error message: %d/%s, response body: %s", r.status_code, (int)r.error.code, r.error.message, r.text);
-			}
-
-			f = _wfopen(ToWide(filePath).c_str(), L"wb");
-
-			if (f)
-			{
-				fwrite(r.text.c_str(), 1, r.text.size(), f);
-				fclose(f);
-			}
-
-			outStr = r.text;
-		}
+		auto outStr = GetEntitlementBlock(accountId, machineHash);
 
 		return fmt::sprintf(
 			"<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0.574\" xmlns=\"GetEntitlementBlockResponse\"><Status>1</Status><Result Version=\"1\"><Data>%s</Data></Result></Response>",

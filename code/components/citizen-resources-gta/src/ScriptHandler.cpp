@@ -12,17 +12,20 @@
 
 #include <GameInit.h>
 
-#include <Brofiler.h>
+#include <optick.h>
 
 extern fwRefContainer<fx::ResourceManager> g_resourceManager;
+
+bool DLL_IMPORT UpdateScriptInitialization();
 
 class TestScriptThread : public GtaThread
 {
 	virtual void DoRun() override
 	{
-		PROFILE;
+		OPTICK_EVENT();
 
 		static bool initedGame = false;
+		static int tickCount = 0;
 
 		if (!initedGame)
 		{
@@ -31,15 +34,35 @@ class TestScriptThread : public GtaThread
 			return;
 		}
 
+		if (Instance<ICoreGameInit>::Get()->HasVariable("networkTimedOut"))
+		{
+			return;
+		}
+
+		if (!UpdateScriptInitialization())
+		{
+			return;
+		}
+
 		static std::once_flag of;
 
 		std::call_once(of, []()
 		{
-			OnKillNetworkDone.Connect([]()
+			OnKillNetwork.Connect([](const char*)
 			{
+				Instance<ICoreGameInit>::Get()->ClearVariable("gameSettled");
+
+				tickCount = 0;
 				initedGame = false;
 			});
 		});
+
+		tickCount++;
+
+		if (tickCount == 10)
+		{
+			Instance<ICoreGameInit>::Get()->SetVariable("gameSettled");
+		}
 
 		g_resourceManager->Tick();
 	}
@@ -48,7 +71,7 @@ class TestScriptThread : public GtaThread
 TestScriptThread thread;
 extern GtaThread* g_resourceThread;
 
-#ifdef USE_PROFILER
+#if USE_OPTICK
 class ProfilerEventHolder : public fwRefCountable
 {
 public:
@@ -64,10 +87,10 @@ private:
 	{
 		if (!m_desc)
 		{
-			m_desc = Profiler::EventDescription::Create(va("Resource::Tick %s", resource->GetName()), __FILE__, __LINE__, Profiler::Color::GreenYellow);
+			m_desc = Optick::EventDescription::Create(va("Resource::Tick %s", resource->GetName()), __FILE__, __LINE__, Optick::Color::GreenYellow);
 		}
 
-		m_event = std::make_unique<Profiler::Event>(*m_desc);
+		m_event = std::make_unique<Optick::Event>(*m_desc);
 	}
 
 	void EndTick()
@@ -76,9 +99,9 @@ private:
 	}
 
 private:
-	Profiler::EventDescription* m_desc;
+	Optick::EventDescription* m_desc;
 
-	std::unique_ptr<Profiler::Event> m_event;
+	std::unique_ptr<Optick::Event> m_event;
 };
 
 DECLARE_INSTANCE_TYPE(ProfilerEventHolder);
@@ -92,7 +115,7 @@ static InitFunction initFunction([] ()
 		g_resourceThread = &thread;
 	});
 
-#ifdef USE_PROFILER
+#if USE_OPTICK
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 	{
 		resource->SetComponent(new ProfilerEventHolder(resource));

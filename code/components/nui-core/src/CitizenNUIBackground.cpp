@@ -224,7 +224,7 @@ void CitizenNUIBackground::Initialize()
 			{
 				CRGBA baseColor = GetCurrentColor(false);
 
-				nui::ExecuteRootScript(va("citFrames[\"mpMenu\"].contentWindow.postMessage({ type: 'setColor', color: [%d, %d, %d] }, '*');", baseColor.red, baseColor.green, baseColor.blue));
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setColor", "color": [ %d, %d, %d ] })", baseColor.red, baseColor.green, baseColor.blue));
 
 				lastColorUpdate = GetTickCount();
 			}

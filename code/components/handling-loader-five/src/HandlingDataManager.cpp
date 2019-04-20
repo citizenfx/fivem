@@ -98,6 +98,8 @@ public:
 	// 1103 now
 	// 1290 now
 	// 1365 as well
+	// 1493 too? #TODO1493
+	// 1604 too?? #TODO1604
 	char pad[1200]; // +8
 	int handlingDataIndex; // +1208
 
@@ -183,6 +185,12 @@ static bool LoadHandlingFile(const char* handlingPath)
 
 	for (CHandlingData* handling : handlingDataList)
 	{
+		if (!handling)
+		{
+			trace("Loaded a NULL handling in %s - skipping.\n", handlingPath);
+			continue;
+		}
+
 		handling->ProcessEntry();
 
 		int idx = FindFreeHandlingData();

@@ -42,6 +42,8 @@ class BOTAN_PUBLIC_API(2,0) Encryption
 
       virtual size_t max_input_bits() const = 0;
 
+      virtual size_t ciphertext_length(size_t ptext_len) const = 0;
+
       virtual ~Encryption() = default;
    };
 
@@ -54,6 +56,8 @@ class BOTAN_PUBLIC_API(2,0) Decryption
       virtual secure_vector<uint8_t> decrypt(uint8_t& valid_mask,
                                           const uint8_t ciphertext[],
                                           size_t ciphertext_len) = 0;
+
+      virtual size_t plaintext_length(size_t ctext_len) const = 0;
 
       virtual ~Decryption() = default;
    };
@@ -99,6 +103,11 @@ class BOTAN_PUBLIC_API(2,0) Signature
       */
       virtual secure_vector<uint8_t> sign(RandomNumberGenerator& rng) = 0;
 
+      /*
+      * Return an upper bound on the length of the output signature
+      */
+      virtual size_t signature_length() const = 0;
+
       virtual ~Signature() = default;
    };
 
@@ -109,8 +118,10 @@ class BOTAN_PUBLIC_API(2,0) Key_Agreement
    {
    public:
       virtual secure_vector<uint8_t> agree(size_t key_len,
-                                        const uint8_t other_key[], size_t other_key_len,
-                                        const uint8_t salt[], size_t salt_len) = 0;
+                                           const uint8_t other_key[], size_t other_key_len,
+                                           const uint8_t salt[], size_t salt_len) = 0;
+
+      virtual size_t agreed_value_size() const = 0;
 
       virtual ~Key_Agreement() = default;
    };

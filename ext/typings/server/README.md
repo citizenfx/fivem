@@ -1,0 +1,1 @@
+# FiveM server typings

@@ -1,13 +1,14 @@
 const config = {
-  entry: './src/worker/worker.ts',
+  entry: __dirname + '/src/worker/worker.ts',
   output: {
-    filename: './src/worker/index.js'
+    path: __dirname + '/src/worker/',
+    filename: 'index.js'
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js']
   },
   module: {
-    loaders: [
+    rules: [
       {test: /\.tsx?$/, loader: 'ts-loader'}
     ]
   }

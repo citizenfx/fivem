@@ -19,8 +19,7 @@
 
 namespace fx
 {
-static tbb::concurrent_unordered_map<int, std::function<void()>> g_onNetInitCbs;
-static std::atomic<int> g_onNetInitCbCtr;
+static tbb::concurrent_queue<std::function<void()>> g_onNetInitCbs;
 
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
@@ -125,12 +124,27 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 			else
 			{
-				int ctr = g_onNetInitCbCtr.fetch_add(1);
-				g_onNetInitCbs.emplace(ctr, loadScripts);
+				auto ignoreFlag = std::make_shared<bool>(false);
+				auto ignoreFlagWeak = std::weak_ptr{ ignoreFlag };
 
-				resource->OnStop.Connect([ctr]()
+				g_onNetInitCbs.emplace([loadScripts, ignoreFlag]()
 				{
-					g_onNetInitCbs[ctr] = {};
+					if (*ignoreFlag)
+					{
+						return;
+					}
+
+					loadScripts();
+				});
+
+				resource->OnStop.Connect([ignoreFlagWeak]()
+				{
+					auto ignoreFlag = ignoreFlagWeak.lock();
+
+					if (ignoreFlag)
+					{
+						*ignoreFlag = true;
+					}
 				});
 			}
 #endif
@@ -168,6 +182,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 void ResourceScriptingComponent::CreateEnvironments()
 {
+	trace("Creating script environments for %s\n", m_resource->GetName());
 
 	for (auto& environmentPair : m_scriptRuntimes)
 	{
@@ -202,6 +217,16 @@ void ResourceScriptingComponent::CreateEnvironments()
 		// add the event
 		eventComponent->OnTriggerEvent.Connect([=](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 		{
+			if (m_eventsHandled.find(eventName) == m_eventsHandled.end())
+			{
+				// '*' event is an override to accept all in this resource
+				if (m_eventsHandled.find("*") == m_eventsHandled.end())
+				{
+					// skip the HLL ScRT
+					return;
+				}
+			}
+
 			// invoke the event runtime
 			for (auto&& runtime : eventRuntimes)
 			{
@@ -263,25 +288,30 @@ static InitFunction initFunction([]()
 });
 
 #ifndef IS_FXSERVER
-// HORRIBLE HACK
-
-#include <Hooking.h>
-static HookFunction hookFunction([] ()
+bool DLL_EXPORT UpdateScriptInitialization()
 {
-	Instance<ICoreGameInit>::Get()->OnSetVariable.Connect([=](const std::string& variable, bool result)
-	{
-		if (result && variable == "networkInited")
-		{
-			for (auto& cb : fx::g_onNetInitCbs)
-			{
-				if (cb.second)
-				{
-					cb.second();
-				}
-			}
+	using namespace std::chrono_literals;
 
-			fx::g_onNetInitCbs.clear();
+	if (!fx::g_onNetInitCbs.empty())
+	{
+		std::chrono::high_resolution_clock::duration startTime = std::chrono::high_resolution_clock::now().time_since_epoch();
+
+		std::function<void()> initCallback;
+
+		while (fx::g_onNetInitCbs.try_pop(initCallback))
+		{
+			initCallback();
+
+			// break and yield after 2 seconds of script initialization so the game gets a chance to breathe
+			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 2s)
+			{
+				trace("Still executing script initialization routines...\n");
+
+				break;
+			}
 		}
-	});
-});
+	}
+
+	return fx::g_onNetInitCbs.empty();
+}
 #endif

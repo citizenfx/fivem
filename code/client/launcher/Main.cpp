@@ -18,6 +18,8 @@
 
 #include <shellscalingapi.h>
 
+#include <shobjidl.h>
+
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
@@ -111,6 +113,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		return 0;
 	}
 
+	// store the last run directory for assistance purposes
+	{
+		auto regPath = MakeRelativeCitPath(L"");
+
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FiveM", L"Last Run Location", REG_SZ, regPath.c_str(), (regPath.size() + 1) * 2);
+	}
+
+	SetCurrentProcessExplicitAppUserModelID(L"CitizenFX.FiveM.Client");
+
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	// check if the master process still lives
@@ -167,6 +178,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
+	// laod V8 DLLs in case end users have these in a 'weird' directory
+	LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
+
 	// assign us to a job object
 	if (initState->IsMasterProcess())
 	{
@@ -220,7 +236,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 			if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
 			{
-				return 0;
+				// and not a fivem:// protocol handler
+				if (wcsstr(GetCommandLineW(), L"fivem://") == nullptr)
+				{
+					return 0;
+				}
 			}
 		}
 	}
@@ -396,9 +416,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
 				
-				if ((fixedInfo->dwFileVersionLS >> 16) != 1365)
+				if ((fixedInfo->dwFileVersionLS >> 16) != 1604)
 				{
-					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.1365.1 is currently supported. Please obtain this version, and try again.",
+					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.1604.0 is currently supported. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),
 										   (fixedInfo->dwFileVersionMS >> 16),
 										   (fixedInfo->dwFileVersionMS & 0xFFFF),

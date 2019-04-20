@@ -28,7 +28,8 @@
             "styles": [
               "src/styles/global.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "baseHref": "."
           },
           "configurations": {
             "production": {
@@ -46,7 +47,8 @@
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.prod.ts"
                 }
-              ]
+              ],
+              "baseHref": "."
             },
             "web": {
               "fileReplacements": [
@@ -54,7 +56,17 @@
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.web.ts"
                 }
-              ]
+              ],
+              "baseHref": "/"
+            },
+            "game": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.game.ts"
+                }
+              ],
+              "baseHref": "."
             },
             "webprod": {
               "optimization": true,
@@ -71,6 +83,26 @@
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.webprod.ts"
                 }
+              ],
+              "baseHref": "/"
+            }
+          }
+        },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/cfx-ui-server",
+            "main": "src/main.server.ts",
+            "tsConfig": "src/tsconfig.server.json",
+            "fileReplacements": [
+              {
+                "replace": "src/environments/environment.ts",
+                "with": "src/environments/environment.web.ts"
+              }
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
               ]
             }
           }
@@ -89,6 +121,9 @@
             },
             "webprod": {
               "browserTarget": "cfx-ui:build:webprod"
+            },
+            "game": {
+              "browserTarget": "cfx-ui:build:game"
             }
           }
         },

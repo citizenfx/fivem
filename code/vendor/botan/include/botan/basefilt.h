@@ -23,7 +23,7 @@ namespace Botan {
 class BOTAN_PUBLIC_API(2,0) BitBucket final : public Filter
    {
    public:
-      void write(const uint8_t[], size_t) override {}
+      void write(const uint8_t[], size_t) override { /* discard */ }
 
       std::string name() const override { return "BitBucket"; }
    };
@@ -82,7 +82,7 @@ class BOTAN_PUBLIC_API(2,0) Fork : public Fanout_Filter
       Fork(Filter* filter_arr[], size_t length);
    };
 
-#if defined(BOTAN_TARGET_OS_HAS_THREADS)
+#if defined(BOTAN_HAS_THREAD_UTILS)
 
 /**
 * This class is a threaded version of the Fork filter. While this uses
@@ -108,11 +108,9 @@ class BOTAN_PUBLIC_API(2,0) Threaded_Fork final : public Fork
 
       ~Threaded_Fork();
 
-   protected:
+   private:
       void set_next(Filter* f[], size_t n);
       void send(const uint8_t in[], size_t length) override;
-
-   private:
       void thread_delegate_work(const uint8_t input[], size_t length);
       void thread_entry(Filter* filter);
 

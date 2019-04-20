@@ -1,6 +1,6 @@
 /*
 * Number Theory Functions
-* (C) 1999-2007 Jack Lloyd
+* (C) 1999-2007,2018 Jack Lloyd
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -22,8 +22,8 @@ class RandomNumberGenerator;
 * @return (a*b)+c
 */
 BigInt BOTAN_PUBLIC_API(2,0) mul_add(const BigInt& a,
-                         const BigInt& b,
-                         const BigInt& c);
+                                     const BigInt& b,
+                                     const BigInt& c);
 
 /**
 * Fused subtract-multiply
@@ -33,8 +33,8 @@ BigInt BOTAN_PUBLIC_API(2,0) mul_add(const BigInt& a,
 * @return (a-b)*c
 */
 BigInt BOTAN_PUBLIC_API(2,0) sub_mul(const BigInt& a,
-                         const BigInt& b,
-                         const BigInt& c);
+                                     const BigInt& b,
+                                     const BigInt& c);
 
 /**
 * Fused multiply-subtract
@@ -44,8 +44,8 @@ BigInt BOTAN_PUBLIC_API(2,0) sub_mul(const BigInt& a,
 * @return (a*b)-c
 */
 BigInt BOTAN_PUBLIC_API(2,0) mul_sub(const BigInt& a,
-                         const BigInt& b,
-                         const BigInt& c);
+                                     const BigInt& b,
+                                     const BigInt& c);
 
 /**
 * Return the absolute value
@@ -84,7 +84,17 @@ BigInt BOTAN_PUBLIC_API(2,0) square(const BigInt& x);
 * Not const time
 */
 BigInt BOTAN_PUBLIC_API(2,0) inverse_mod(const BigInt& x,
-                             const BigInt& modulus);
+                                         const BigInt& modulus);
+
+/**
+* Modular inversion using extended binary Euclidian algorithm
+* @param x a positive integer
+* @param modulus a positive integer
+* @return y st (x*y) % modulus == 1 or 0 if no such value
+* Not const time
+*/
+BigInt BOTAN_PUBLIC_API(2,5) inverse_euclid(const BigInt& x,
+                                            const BigInt& modulus);
 
 /**
 * Const time modular inversion
@@ -98,8 +108,8 @@ BigInt BOTAN_PUBLIC_API(2,0) ct_inverse_mod_odd_modulus(const BigInt& n, const B
 * Not const time
 */
 size_t BOTAN_PUBLIC_API(2,0) almost_montgomery_inverse(BigInt& result,
-                                           const BigInt& a,
-                                           const BigInt& b);
+                                                       const BigInt& a,
+                                                       const BigInt& b);
 
 /**
 * Call almost_montgomery_inverse and correct the result to a^-1 mod b
@@ -116,8 +126,7 @@ BigInt BOTAN_PUBLIC_API(2,0) normalized_montgomery_inverse(const BigInt& a, cons
 * @param n is an odd integer > 1
 * @return (n / m)
 */
-int32_t BOTAN_PUBLIC_API(2,0) jacobi(const BigInt& a,
-                        const BigInt& n);
+int32_t BOTAN_PUBLIC_API(2,0) jacobi(const BigInt& a, const BigInt& n);
 
 /**
 * Modular exponentation
@@ -127,8 +136,8 @@ int32_t BOTAN_PUBLIC_API(2,0) jacobi(const BigInt& a,
 * @return (b^x) % m
 */
 BigInt BOTAN_PUBLIC_API(2,0) power_mod(const BigInt& b,
-                           const BigInt& x,
-                           const BigInt& m);
+                                       const BigInt& x,
+                                       const BigInt& m);
 
 /**
 * Compute the square root of x modulo a prime using the
@@ -141,8 +150,8 @@ BigInt BOTAN_PUBLIC_API(2,0) power_mod(const BigInt& b,
 BigInt BOTAN_PUBLIC_API(2,0) ressol(const BigInt& x, const BigInt& p);
 
 /*
-* Compute -input^-1 mod 2^MP_WORD_BITS. Returns zero if input
-* is even. If input is odd, input and 2^n are relatively prime
+* Compute -input^-1 mod 2^MP_WORD_BITS. Throws an exception if input
+* is even. If input is odd, then input and 2^n are relatively prime
 * and an inverse exists.
 */
 word BOTAN_PUBLIC_API(2,0) monty_inverse(word input);
@@ -164,9 +173,18 @@ size_t BOTAN_PUBLIC_API(2,0) low_zero_bits(const BigInt& x);
 * @return true if all primality tests passed, otherwise false
 */
 bool BOTAN_PUBLIC_API(2,0) is_prime(const BigInt& n,
-                        RandomNumberGenerator& rng,
-                        size_t prob = 56,
-                        bool is_random = false);
+                                    RandomNumberGenerator& rng,
+                                    size_t prob = 64,
+                                    bool is_random = false);
+
+/**
+* Test if the positive integer x is a perfect square ie if there
+* exists some positive integer y st y*y == x
+* See FIPS 186-4 sec C.4
+* @return 0 if the integer is not a perfect square, otherwise
+*         returns the positive y st y*y == x
+*/
+BigInt BOTAN_PUBLIC_API(2,8) is_perfect_square(const BigInt& x);
 
 inline bool quick_check_prime(const BigInt& n, RandomNumberGenerator& rng)
    { return is_prime(n, rng, 32); }
@@ -177,20 +195,38 @@ inline bool check_prime(const BigInt& n, RandomNumberGenerator& rng)
 inline bool verify_prime(const BigInt& n, RandomNumberGenerator& rng)
    { return is_prime(n, rng, 80); }
 
-
 /**
-* Randomly generate a prime
+* Randomly generate a prime suitable for discrete logarithm parameters
 * @param rng a random number generator
 * @param bits how large the resulting prime should be in bits
 * @param coprime a positive integer that (prime - 1) should be coprime to
 * @param equiv a non-negative number that the result should be
                equivalent to modulo equiv_mod
 * @param equiv_mod the modulus equiv should be checked against
+* @param prob use test so false positive is bounded by 1/2**prob
 * @return random prime with the specified criteria
 */
 BigInt BOTAN_PUBLIC_API(2,0) random_prime(RandomNumberGenerator& rng,
-                              size_t bits, const BigInt& coprime = 1,
-                              size_t equiv = 1, size_t equiv_mod = 2);
+                                          size_t bits,
+                                          const BigInt& coprime = 0,
+                                          size_t equiv = 1,
+                                          size_t equiv_mod = 2,
+                                          size_t prob = 128);
+
+/**
+* Generate a prime suitable for RSA p/q
+* @param keygen_rng a random number generator
+* @param prime_test_rng a random number generator
+* @param bits how large the resulting prime should be in bits (must be >= 512)
+* @param coprime a positive integer that (prime - 1) should be coprime to
+* @param prob use test so false positive is bounded by 1/2**prob
+* @return random prime with the specified criteria
+*/
+BigInt BOTAN_PUBLIC_API(2,7) generate_rsa_prime(RandomNumberGenerator& keygen_rng,
+                                                RandomNumberGenerator& prime_test_rng,
+                                                size_t bits,
+                                                const BigInt& coprime,
+                                                size_t prob = 128);
 
 /**
 * Return a 'safe' prime, of the form p=2*q+1 with q prime
@@ -199,7 +235,7 @@ BigInt BOTAN_PUBLIC_API(2,0) random_prime(RandomNumberGenerator& rng,
 * @return prime randomly chosen from safe primes of length bits
 */
 BigInt BOTAN_PUBLIC_API(2,0) random_safe_prime(RandomNumberGenerator& rng,
-                                   size_t bits);
+                                               size_t bits);
 
 /**
 * Generate DSA parameters using the FIPS 186 kosherizer

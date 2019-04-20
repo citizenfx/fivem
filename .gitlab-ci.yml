@@ -16,7 +16,7 @@ build_client:
       - caches/caches.xml
       - caches/CitizenFX.exe.xz
       - caches/version.txt
-    expire_in: 1 week
+    expire_in: 1 month
   cache:
     key: client
     untracked: true
@@ -42,6 +42,7 @@ build_server_windows:
     - tags
     #- master
     - feature/update-to-1365
+    #- feature/update-to-1493
   cache:
     key: server
     untracked: true
@@ -62,6 +63,7 @@ build_proot_linux:
     - tags
     - master
     - feature/update-to-1365
+    - feature/update-to-1604
     - feature/cloning-stuff-releng
   tags:
     - linux
@@ -112,3 +114,52 @@ deploy_prod:
     - client
   only:
     - master
+    
+typings_server:
+  stage: deploy
+  dependencies:
+    - build_server_windows
+  image: node:alpine
+  tags:
+    - linux
+  only:
+    - master
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    # workaround gitlab-ci-multi-runner#2148
+    GIT_SSL_CAPATH: /etc/ssl/certs/
+  script:
+    - sh ext/typings/server/build.sh
+    
+typings_client:
+  stage: deploy
+  dependencies:
+    - build_client
+  tags:
+    - vs2017
+  only:
+    - master
+  script:
+    - "cmd /c ext\\typings\\client\\build.bat"
+    
+nuget_client:
+  stage: deploy
+  dependencies:
+    - build_client
+  tags:
+    - vs2017
+  only:
+    - master
+  script:
+    - "cmd /c ext\\nuget\\client\\build.bat"
+    
+nuget_server:
+  stage: deploy
+  dependencies:
+    - build_server_windows
+  tags:
+    - vs2017
+  only:
+    - master
+  script:
+    - "cmd /c ext\\nuget\\server\\build.bat"

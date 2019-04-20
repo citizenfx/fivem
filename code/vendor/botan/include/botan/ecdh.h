@@ -48,13 +48,13 @@ class BOTAN_PUBLIC_API(2,0) ECDH_PublicKey : public virtual EC_PublicKey
       * @return public point value
       */
       std::vector<uint8_t> public_value() const
-         { return unlock(EC2OSP(public_point(), PointGFp::UNCOMPRESSED)); }
+         { return public_point().encode(PointGFp::UNCOMPRESSED); }
 
       /**
       * @return public point value
       */
-      std::vector<uint8_t> public_value(PointGFp::Compression_Type type) const
-         { return unlock(EC2OSP(public_point(), static_cast<uint8_t>(type))); }
+      std::vector<uint8_t> public_value(PointGFp::Compression_Type format) const
+         { return public_point().encode(format); }
 
    protected:
       ECDH_PublicKey() = default;

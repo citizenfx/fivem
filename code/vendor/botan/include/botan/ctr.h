@@ -23,18 +23,15 @@ class BOTAN_PUBLIC_API(2,0) CTR_BE final : public StreamCipher
 
       void set_iv(const uint8_t iv[], size_t iv_len) override;
 
-      bool valid_iv_length(size_t iv_len) const override
-         { return (iv_len <= m_cipher->block_size()); }
+      size_t default_iv_length() const override;
 
-      Key_Length_Specification key_spec() const override
-         {
-         return m_cipher->key_spec();
-         }
+      bool valid_iv_length(size_t iv_len) const override;
+
+      Key_Length_Specification key_spec() const override;
 
       std::string name() const override;
 
-      CTR_BE* clone() const override
-         { return new CTR_BE(m_cipher->clone()); }
+      CTR_BE* clone() const override;
 
       void clear() override;
 
@@ -48,14 +45,16 @@ class BOTAN_PUBLIC_API(2,0) CTR_BE final : public StreamCipher
       void seek(uint64_t offset) override;
    private:
       void key_schedule(const uint8_t key[], size_t key_len) override;
-      void increment_counter();
       void add_counter(const uint64_t counter);
 
       std::unique_ptr<BlockCipher> m_cipher;
+
+      const size_t m_block_size;
+      const size_t m_ctr_size;
+      const size_t m_ctr_blocks;
+
       secure_vector<uint8_t> m_counter, m_pad;
       std::vector<uint8_t> m_iv;
-      const size_t m_block_size;
-      size_t m_ctr_size;
       size_t m_pad_pos;
    };
 

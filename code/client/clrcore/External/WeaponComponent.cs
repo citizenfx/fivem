@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CitizenFX.Core.Native;
 using System.Security;
 
@@ -56,17 +56,17 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<bool>(Native.Hash.HAS_PED_GOT_WEAPON_COMPONENT, _owner.Handle, _weapon.Hash, _component);
+				return API.HasPedGotWeaponComponent(_owner.Handle, (uint)_weapon.Hash, (uint)_component);
 			}
 			set
 			{
 				if (value)
 				{
-					Function.Call(Native.Hash.GIVE_WEAPON_COMPONENT_TO_PED, _owner.Handle, _weapon.Hash, _component);
+					API.GiveWeaponComponentToPed(_owner.Handle, (uint)_weapon.Hash, (uint)_component);
 				}
 				else
 				{
-					Function.Call(Native.Hash.REMOVE_WEAPON_COMPONENT_FROM_PED, _owner.Handle, _weapon.Hash, _component);
+					API.RemoveWeaponComponentFromPed(_owner.Handle, (uint)_weapon.Hash, (uint)_component);
 				}
 			}
 		}
@@ -92,13 +92,13 @@ namespace CitizenFX.Core
 			get { return GetAttachmentPoint(_weapon.Hash, _component); }
 		}
 
-        [SecuritySafeCritical]
-        public static string GetComponentDisplayNameFromHash(WeaponHash hash, WeaponComponentHash component)
-        {
-            return _GetComponentDisplayNameFromHash(hash, component);
-        }
+		[SecuritySafeCritical]
+		public static string GetComponentDisplayNameFromHash(WeaponHash hash, WeaponComponentHash component)
+		{
+			return _GetComponentDisplayNameFromHash(hash, component);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 		private static string _GetComponentDisplayNameFromHash(WeaponHash hash, WeaponComponentHash component)
 		{
 			if (hash == WeaponHash.KnuckleDuster)
@@ -107,7 +107,7 @@ namespace CitizenFX.Core
 				{
 					case WeaponComponentHash.KnuckleVarmodBase:
 						return "WT_KNUCKLE";
-						case WeaponComponentHash.KnuckleVarmodPimp:
+					case WeaponComponentHash.KnuckleVarmodPimp:
 						return "WCT_KNUCK_02";
 					case WeaponComponentHash.KnuckleVarmodBallas:
 						return "WCT_KNUCK_BG";
@@ -425,21 +425,21 @@ namespace CitizenFX.Core
 			}
 			string result = "WCT_INVALID";
 
-			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
+			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)
 			{
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
-							int maxComp = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPON_COMPONENTS, i);
+							int maxComp = API.GetNumDlcWeaponComponents(i);
 
 							for (int j = 0; j < maxComp; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									if (componentData.Hash == component)
 									{
@@ -456,13 +456,13 @@ namespace CitizenFX.Core
 			return result;
 		}
 
-        [SecuritySafeCritical]
-        public static ComponentAttachmentPoint GetAttachmentPoint(WeaponHash hash, WeaponComponentHash componentHash)
-        {
-            return _GetAttachmentPoint(hash, componentHash);
-        }
+		[SecuritySafeCritical]
+		public static ComponentAttachmentPoint GetAttachmentPoint(WeaponHash hash, WeaponComponentHash componentHash)
+		{
+			return _GetAttachmentPoint(hash, componentHash);
+		}
 
-        [SecurityCritical]
+		[SecurityCritical]
 		private static ComponentAttachmentPoint _GetAttachmentPoint(WeaponHash hash, WeaponComponentHash componentHash)
 		{
 			switch (hash)
@@ -1151,21 +1151,21 @@ namespace CitizenFX.Core
 					}
 
 			}
-			for (int i = 0, count = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPONS); i < count; i++)
+			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)
 			{
 				unsafe
 				{
 					DlcWeaponData weaponData;
-					if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
+					if (Function.Call<bool>(Hash.GET_DLC_WEAPON_DATA, i, &weaponData))
 					{
 						if (weaponData.Hash == hash)
 						{
-							int maxComp = Function.Call<int>(Native.Hash.GET_NUM_DLC_WEAPON_COMPONENTS, i);
+							int maxComp = API.GetNumDlcWeaponComponents(i);
 
 							for (int j = 0; j < maxComp; j++)
 							{
 								DlcWeaponComponentData componentData;
-								if (Function.Call<bool>(Native.Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
+								if (Function.Call<bool>(Hash.GET_DLC_WEAPON_COMPONENT_DATA, i, j, &componentData))
 								{
 									if (componentData.Hash == componentHash)
 									{
@@ -1180,11 +1180,27 @@ namespace CitizenFX.Core
 			}
 			return ComponentAttachmentPoint.Invalid;
 		}
+
+		/// <summary>
+		/// Gets the <see cref="Game.WeaponComponentHudStats"/> data from this <see cref="WeaponComponent"/>.
+		/// </summary>
+		public Game.WeaponComponentHudStats HudStats
+		{
+			get
+			{
+				Game.WeaponComponentHudStats stats = new Game.WeaponComponentHudStats();
+				if (Game.GetWeaponComponentHudStats((uint)this.ComponentHash, ref stats))
+				{
+					return stats;
+				}
+				return new Game.WeaponComponentHudStats();
+			}
+		}
 	}
 
 	public class InvalidWeaponComponent : WeaponComponent
 	{
-		internal InvalidWeaponComponent(): base(null, null, WeaponComponentHash.Invalid)
+		internal InvalidWeaponComponent() : base(null, null, WeaponComponentHash.Invalid)
 		{
 		}
 
@@ -1221,6 +1237,7 @@ namespace CitizenFX.Core
 			get { return ComponentAttachmentPoint.Invalid; }
 		}
 	}
+
 
 
 }

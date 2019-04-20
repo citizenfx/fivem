@@ -1,6 +1,7 @@
 /*
  * GMAC
  * (C) 2016 Matthias Gierlings, René Korthaus
+ * (C) 2017 Jack Lloyd
  *
  * Botan is released under the Simplified BSD License (see license.txt)
  */
@@ -9,10 +10,11 @@
 #define BOTAN_GMAC_H_
 
 #include <botan/mac.h>
-#include <botan/gcm.h>
-#include <botan/block_cipher.h>
 
 namespace Botan {
+
+class BlockCipher;
+class GHASH;
 
 /**
 * GMAC
@@ -20,7 +22,7 @@ namespace Botan {
 * GMAC requires a unique initialization vector be used for each message.
 * This must be provided via the MessageAuthenticationCode::start() API
 */
-class BOTAN_PUBLIC_API(2,0) GMAC final : public MessageAuthenticationCode, public GHASH
+class BOTAN_PUBLIC_API(2,0) GMAC final : public MessageAuthenticationCode
    {
    public:
       void clear() override;
@@ -28,10 +30,7 @@ class BOTAN_PUBLIC_API(2,0) GMAC final : public MessageAuthenticationCode, publi
       size_t output_length() const override;
       MessageAuthenticationCode* clone() const override;
 
-      Key_Length_Specification key_spec() const override
-         {
-         return m_cipher->key_spec();
-         }
+      Key_Length_Specification key_spec() const override;
 
       /**
       * Creates a new GMAC instance.
@@ -43,6 +42,8 @@ class BOTAN_PUBLIC_API(2,0) GMAC final : public MessageAuthenticationCode, publi
       GMAC(const GMAC&) = delete;
       GMAC& operator=(const GMAC&) = delete;
 
+      ~GMAC();
+
    private:
       void add_data(const uint8_t[], size_t) override;
       void final_result(uint8_t[]) override;
@@ -50,8 +51,10 @@ class BOTAN_PUBLIC_API(2,0) GMAC final : public MessageAuthenticationCode, publi
       void key_schedule(const uint8_t key[], size_t size) override;
 
       static const size_t GCM_BS = 16;
-      secure_vector<uint8_t> m_aad_buf;
       std::unique_ptr<BlockCipher> m_cipher;
+      std::unique_ptr<GHASH> m_ghash;
+      secure_vector<uint8_t> m_aad_buf;
+      size_t m_aad_buf_pos;
       bool m_initialized;
    };
 

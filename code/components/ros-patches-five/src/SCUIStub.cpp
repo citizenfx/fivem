@@ -212,6 +212,8 @@ public:
         {
             if (r.error)
             {
+				trace("ROS error: %s\n", r.error.message);
+
                 cb("Error contacting Rockstar Online Services.", "");
             }
             else
@@ -296,6 +298,9 @@ public:
         {
             if (r.error || r.status_code != 200)
             {
+				trace("ROS error: %s\n", r.error.message);
+				trace("ROS error text: %s\n", r.text);
+
                 cb("Error contacting Rockstar Online Services.", "");
             }
             else
@@ -405,12 +410,6 @@ public:
                     return appendChildElement(rootElement, key, value);
                 };
 
-                // computer name as placeholder nick (f- yeah!)
-                char nickname[16];
-                DWORD size = 16;
-
-                GetComputerNameA(nickname, &size);
-
                 // create the document
                 appendElement("Status", 1);
                 appendElement("Ticket", tree.get<std::string>("Response.Ticket").c_str()); // 'a' repeated
@@ -435,7 +434,7 @@ public:
                 appendChildElement(rockstarElement, "CountryCode", "CA");
                 appendChildElement(rockstarElement, "Email", tree.get<std::string>("Response.RockstarAccount.Email").c_str());
                 appendChildElement(rockstarElement, "LanguageCode", "en");
-                appendChildElement(rockstarElement, "Nickname", nickname);
+                appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
                 appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
 
@@ -467,7 +466,7 @@ public:
                 appendJson("SaveEmail", true);
                 appendJson("SavePassword", true);
                 appendJson("Password", "DetCon1");
-                appendJson("Nickname", const_cast<const char*>(nickname));
+                appendJson("Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
                 appendJson("RockstarId", tree.get<std::string>("Response.RockstarAccount.RockstarId").c_str());
                 appendJson("CallbackData", 2);
                 appendJson("Local", false);
@@ -723,74 +722,75 @@ ROSCryptoState::ROSCryptoState()
     delete m_rc4;
 }
 
+std::string GetRockstarTicketXml()
+{
+	// generate initial XML to be contained by JSON
+	tinyxml2::XMLDocument document;
+
+	auto rootElement = document.NewElement("Response");
+	document.InsertFirstChild(rootElement);
+
+	// set root attributes
+	rootElement->SetAttribute("ms", 30.0);
+	rootElement->SetAttribute("xmlns", "CreateTicketResponse");
+
+	// elements
+	auto appendChildElement = [&](tinyxml2::XMLNode * node, const char* key, auto value)
+	{
+		auto element = document.NewElement(key);
+		element->SetText(value);
+
+		node->InsertEndChild(element);
+
+		return element;
+	};
+
+	auto appendElement = [&](const char* key, auto value)
+	{
+		return appendChildElement(rootElement, key, value);
+	};
+
+	// create the document
+	appendElement("Status", 1);
+	appendElement("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh"); // 'a' repeated
+	appendElement("PosixTime", static_cast<unsigned int>(time(nullptr)));
+	appendElement("SecsUntilExpiration", 86399);
+	appendElement("PlayerAccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
+	appendElement("PublicIp", "127.0.0.1");
+	appendElement("SessionId", 5);
+	appendElement("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg=="); // '0123456789abcdef'
+	appendElement("SessionTicket", "vhASmPR0NnA7MZsdVCTCV/3XFABWGa9duCEscmAM0kcCDVEa7YR/rQ4kfHs2HIPIttq08TcxIzuwyPWbaEllvQ==");
+	appendElement("CloudKey", "8G8S9JuEPa3kp74FNQWxnJ5BXJXZN1NFCiaRRNWaAUR=");
+
+	// services
+	auto servicesElement = appendElement("Services", "");
+	servicesElement->SetAttribute("Count", 0);
+
+	// Rockstar account
+	tinyxml2::XMLNode* rockstarElement = appendElement("RockstarAccount", "");
+	appendChildElement(rockstarElement, "RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
+	appendChildElement(rockstarElement, "Age", 18);
+	appendChildElement(rockstarElement, "AvatarUrl", "Bully/b20.png");
+	appendChildElement(rockstarElement, "CountryCode", "CA");
+	appendChildElement(rockstarElement, "Email", "onlineservices@fivem.net");
+	appendChildElement(rockstarElement, "LanguageCode", "en");
+	appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
+
+	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
+
+	// format as string
+	tinyxml2::XMLPrinter printer;
+	document.Print(&printer);
+
+	return printer.CStr();
+}
+
 class LoginHandler : public net::HttpHandler
 {
 public:
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
 	{
-		// generate initial XML to be contained by JSON
-		tinyxml2::XMLDocument document;
-
-		auto rootElement = document.NewElement("Response");
-		document.InsertFirstChild(rootElement);
-
-		// set root attributes
-		rootElement->SetAttribute("ms", 30.0);
-		rootElement->SetAttribute("xmlns", "CreateTicketResponse");
-
-		// elements
-		auto appendChildElement = [&] (tinyxml2::XMLNode* node, const char* key, auto value)
-		{
-			auto element = document.NewElement(key);
-			element->SetText(value);
-
-			node->InsertEndChild(element);
-
-			return element;
-		};
-
-		auto appendElement = [&] (const char* key, auto value)
-		{
-			return appendChildElement(rootElement, key, value);
-		};
-
-		// computer name as placeholder nick (f- yeah!)
-		char nickname[16];
-		DWORD size = 16;
-
-		GetComputerNameA(nickname, &size);
-
-		// create the document
-		appendElement("Status", 1);
-		appendElement("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh"); // 'a' repeated
-		appendElement("PosixTime", static_cast<unsigned int>(time(nullptr)));
-		appendElement("SecsUntilExpiration", 86399);
-		appendElement("PlayerAccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
-		appendElement("PublicIp", "127.0.0.1");
-		appendElement("SessionId", 5);
-		appendElement("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg=="); // '0123456789abcdef'
-		appendElement("SessionTicket", "vhASmPR0NnA7MZsdVCTCV/3XFABWGa9duCEscmAM0kcCDVEa7YR/rQ4kfHs2HIPIttq08TcxIzuwyPWbaEllvQ==");
-		appendElement("CloudKey", "8G8S9JuEPa3kp74FNQWxnJ5BXJXZN1NFCiaRRNWaAUR=");
-		
-		// services
-		auto servicesElement = appendElement("Services", "");
-		servicesElement->SetAttribute("Count", 0);
-
-		// Rockstar account
-		tinyxml2::XMLNode* rockstarElement = appendElement("RockstarAccount", "");
-		appendChildElement(rockstarElement, "RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
-		appendChildElement(rockstarElement, "Age", 18);
-		appendChildElement(rockstarElement, "AvatarUrl", "Bully/b20.png");
-		appendChildElement(rockstarElement, "CountryCode", "CA");
-		appendChildElement(rockstarElement, "Email", "onlineservices@citizen.re");
-		appendChildElement(rockstarElement, "LanguageCode", "en");
-		appendChildElement(rockstarElement, "Nickname", nickname);
-		
-		appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
-
-		// format as string
-		tinyxml2::XMLPrinter printer;
-		document.Print(&printer);
+		auto rockstarTicket = GetRockstarTicketXml();
 
 		// JSON document
 		rapidjson::Document json;
@@ -811,11 +811,11 @@ public:
 
 		appendJson("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg==");
 		appendJson("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh");
-		appendJson("Email", "onlineservices@citizen.re");
+		appendJson("Email", "onlineservices@fivem.net");
 		appendJson("SaveEmail", true);
 		appendJson("SavePassword", true);
 		appendJson("Password", "DetCon1");
-		appendJson("Nickname", const_cast<const char*>(nickname));
+		appendJson("Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 		appendJson("RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
 		appendJson("CallbackData", 2);
 		appendJson("Local", false);
@@ -826,7 +826,7 @@ public:
 		appendJson("AccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
 		appendJson("Age", 18);
 		appendJson("AvatarUrl", "Bully/b20.png");
-		appendJson("XMLResponse", printer.CStr());
+		appendJson("XMLResponse", rockstarTicket.c_str());
 
 		// serialize json
 		rapidjson::StringBuffer buffer;

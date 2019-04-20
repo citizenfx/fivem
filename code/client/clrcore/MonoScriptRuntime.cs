@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Security;
 
@@ -16,6 +19,12 @@ namespace CitizenFX.Core
 
 		private static readonly Random ms_random = new Random();
 
+		[SecuritySafeCritical]
+		static MonoScriptRuntime()
+		{
+
+		}
+
 		public MonoScriptRuntime()
 		{
 			m_instanceId = ms_random.Next();
@@ -28,7 +37,29 @@ namespace CitizenFX.Core
 			{
 				m_scriptHost = host;
 
-				m_appDomain = AppDomain.CreateDomain($"ScriptDomain_{m_instanceId}");
+#if IS_FXSERVER
+				string resourceName = "";
+				string basePath = "";
+
+				{
+					((IScriptHostWithResourceData)host).GetResourceName(out var nameString);
+
+					resourceName = Marshal.PtrToStringAnsi(nameString);
+
+					// we can't invoke natives if not doing this
+					InternalManager.ScriptHost = host;
+
+					basePath = Native.API.GetResourcePath(resourceName);
+				}
+#endif
+
+				m_appDomain = AppDomain.CreateDomain($"ScriptDomain_{m_instanceId}", AppDomain.CurrentDomain.Evidence, new AppDomainSetup()
+				{
+#if IS_FXSERVER
+					ApplicationBase = basePath
+#endif
+				});
+
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
@@ -88,22 +119,7 @@ namespace CitizenFX.Core
 			{
 				using (GetPushRuntime())
 				{
-					var assemblyStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile)));
-					var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
-
-					byte[] symbolBytes = null;
-
-					try
-					{
-						var symbolStream = new BinaryReader(new FxStreamWrapper(m_scriptHost.OpenHostFile(scriptFile + ".mdb")));
-						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
-					}
-					catch
-					{
-						// nothing
-					}
-
-					m_intManager.CreateAssembly(assemblyBytes, symbolBytes);
+					m_intManager.LoadAssembly(scriptFile);
 				}
 			}
 			catch (Exception e)
@@ -114,12 +130,40 @@ namespace CitizenFX.Core
 			}
 		}
 
+		[SecuritySafeCritical]
 		public void Tick()
 		{
 			using (GetPushRuntime())
 			{
+#if IS_FXSERVER
 				m_intManager?.Tick();
+#else
+				// we *shouldn't* do .Id here as that's yet another free remoting call
+				ms_fastTickInDomain.method(m_appDomain);
+#endif
 			}
+		}
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr LoadLibrary(string dllToLoad);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+
+		private static FastMethod<Action<AppDomain>> ms_fastTickInDomain =
+#if IS_FXSERVER
+			null;
+#else
+			BuildFastTick();
+#endif
+
+		[SecurityCritical]
+		private unsafe static FastMethod<Action<AppDomain>> BuildFastTick()
+		{
+			var lib = LoadLibrary("citizen-scripting-mono.dll");
+			var fn = GetProcAddress(lib, "GI_TickInDomain");
+
+			return new FastMethod<Action<AppDomain>>("TickInDomain", fn);
 		}
 
 		public void TriggerEvent(string eventName, byte[] argsSerialized, int serializedSize, string sourceId)
@@ -282,5 +326,64 @@ namespace CitizenFX.Core
 				return null;
 			}
 		}
+	}
+
+	internal class FastMethod<T> where T : Delegate
+	{
+		[SecuritySafeCritical]
+		public FastMethod(string name, IntPtr obj, int midx)
+		{
+			var vtblStart = Marshal.ReadIntPtr(obj);
+			vtblStart += (IntPtr.Size * midx) + (IntPtr.Size * 3);
+
+			Initialize(name, Marshal.ReadIntPtr(vtblStart));
+		}
+
+		[SecuritySafeCritical]
+		public FastMethod(string name, object obj, Type tint, int midx)
+		{
+			if (!Marshal.IsComObject(obj))
+			{
+				throw new ArgumentException("Not a COM interface.");
+			}
+
+			var castObj = Marshal.GetComInterfaceForObject(obj, tint);
+			var vtblStart = Marshal.ReadIntPtr(castObj);
+			vtblStart += (IntPtr.Size * midx) + (IntPtr.Size * 3);
+
+			Initialize(name, Marshal.ReadIntPtr(vtblStart));
+		}
+
+		[SecuritySafeCritical]
+		public FastMethod(string name, IntPtr fn)
+		{
+			Initialize(name, fn);
+		}
+
+		[SecurityCritical]
+		private void Initialize(string name, IntPtr fn)
+		{
+			var invokeMethod = typeof(T).GetMethod("Invoke");
+			var paramTypes = invokeMethod.GetParameters().Select(p => p.ParameterType).ToArray();
+
+			m_method = new DynamicMethod(name,
+				invokeMethod.ReturnType, paramTypes, typeof(MonoScriptRuntime).Module, true);
+			ILGenerator generator = m_method.GetILGenerator();
+
+			for (int i = 0; i < paramTypes.Length; i++)
+			{
+				generator.Emit(OpCodes.Ldarg, i);
+			}
+
+			generator.Emit(OpCodes.Ldc_I8, fn.ToInt64());
+			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, invokeMethod.ReturnType, paramTypes, null);
+			generator.Emit(OpCodes.Ret);
+
+			method = (T)m_method.CreateDelegate(typeof(T));
+		}
+
+		private DynamicMethod m_method;
+
+		public T method;
 	}
 }

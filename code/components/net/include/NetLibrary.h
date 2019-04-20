@@ -163,6 +163,10 @@ private:
 
 	uint32_t m_connectAttempts;
 
+	uint32_t m_lastReconnect;
+
+	uint32_t m_reconnectAttempts;
+
 	HttpClient* m_httpClient;
 
 	HttpRequestPtr m_handshakeRequest;
@@ -252,6 +256,8 @@ public:
 
 	void DownloadsComplete();
 
+	bool IsPendingInGameReconnect();
+
 	// waits for connection during the pre-game loading sequence
 	bool ProcessPreGameTick();
 
@@ -262,6 +268,8 @@ public:
 	void Resurrection();
 
 	void CancelDeferredConnection();
+
+	uint64_t GetGUID();
 
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
 
@@ -338,12 +346,18 @@ public:
 	// a1: detailed progress message
 	fwEvent<const std::string&> OnConnectionSubProgress;
 
+	// a1: message to spam the player with
+	fwEvent<const std::string&> OnReconnectProgress;
+
 	// event to intercept connection requests
 	// return false to intercept connection (and call the callback to continue)
 	// this won't like more than one interception attempt, however
 	// a1: connection address
 	// a2: continuation callback
 	fwEvent<const net::PeerAddress&, const std::function<void()>&> OnInterceptConnection;
+
+	// same as the other routine, except it's for authentication
+	fwEvent<const net::PeerAddress&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
 
 	static
 #ifndef COMPILING_NET

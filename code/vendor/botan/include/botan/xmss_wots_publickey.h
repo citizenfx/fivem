@@ -1,6 +1,6 @@
 /*
  * XMSS WOTS Public Key
- * (C) 2016 Matthias Gierlings
+ * (C) 2016,2017 Matthias Gierlings
  *
  * Botan is released under the Simplified BSD License (see license.txt)
  **/
@@ -29,10 +29,10 @@ typedef std::vector<secure_vector<uint8_t>> wots_keysig_t;
  * A Winternitz One Time Signature public key for use with Extended Hash-Based
  * Signatures.
  **/
-class BOTAN_PUBLIC_API(2,0) XMSS_WOTS_PublicKey : virtual public Public_Key
+class XMSS_WOTS_PublicKey : virtual public Public_Key
    {
    public:
-      class TreeSignature
+      class TreeSignature final
          {
          public:
             TreeSignature() = default;
@@ -246,10 +246,6 @@ class BOTAN_PUBLIC_API(2,0) XMSS_WOTS_PublicKey : virtual public Public_Key
          return true;
          }
 
-      std::unique_ptr<PK_Ops::Verification>
-         create_verification_op(const std::string&,
-                                const std::string& provider) const override;
-
       size_t estimated_strength() const override
          {
          return m_wots_params.estimated_strength();
@@ -283,6 +279,9 @@ class BOTAN_PUBLIC_API(2,0) XMSS_WOTS_PublicKey : virtual public Public_Key
        * result iterating the cryptographic hash function "F" steps times on
        * the input x using the outputs of the PRNG "G".
        *
+       * This overload is used in multithreaded scenarios, where it is
+       * required to provide seperate instances of XMSS_Hash to each
+       * thread.
        *
        * @param[out] x An n-byte input string, that will be transformed into
        *               the chaining function result.
@@ -290,17 +289,41 @@ class BOTAN_PUBLIC_API(2,0) XMSS_WOTS_PublicKey : virtual public Public_Key
        * @param steps A number of steps.
        * @param adrs An OTS Hash Address.
        * @param public_seed A public seed.
-       *
+       * @param hash Instance of XMSS_Hash, that may only by the thead
+       *        executing chain.
        **/
       void chain(secure_vector<uint8_t>& x,
                  size_t start_idx,
                  size_t steps,
                  XMSS_Address& adrs,
-                 const secure_vector<uint8_t>& public_seed);
+                 const secure_vector<uint8_t>& public_seed,
+                 XMSS_Hash& hash);
+
+      /**
+       * Algorithm 2: Chaining Function.
+       *
+       * Takes an n-byte input string and transforms it into a the function
+       * result iterating the cryptographic hash function "F" steps times on
+       * the input x using the outputs of the PRNG "G".
+       *
+       * @param[out] x An n-byte input string, that will be transformed into
+       *               the chaining function result.
+       * @param start_idx The start index.
+       * @param steps A number of steps.
+       * @param adrs An OTS Hash Address.
+       * @param public_seed A public seed.
+       **/
+      inline void chain(secure_vector<uint8_t>& x,
+                        size_t start_idx,
+                        size_t steps,
+                        XMSS_Address& adrs,
+                        const secure_vector<uint8_t>& public_seed)
+         {
+         chain(x, start_idx, steps, adrs, public_seed, m_hash);
+         }
 
       XMSS_WOTS_Parameters m_wots_params;
       XMSS_Hash m_hash;
-
       wots_keysig_t m_key;
       secure_vector<uint8_t> m_public_seed;
 

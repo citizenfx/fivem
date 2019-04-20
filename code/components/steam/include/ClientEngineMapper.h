@@ -33,7 +33,7 @@ private:
 	std::recursive_mutex m_mutex;
 
 private:
-	bool IsMethodAnInterface(void* method, bool* isUser);
+	bool IsMethodAnInterface(void* method, bool* isUser, bool child = false);
 
 	void LookupMethods();
 

@@ -35,7 +35,7 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 
 		for (auto& mounterEntry : m_mounters)
 		{
-			if (mounterEntry->HandlesScheme(parsed.scheme()->to_string()))
+			if (mounterEntry->HandlesScheme(parsed.scheme().to_string()))
 			{
 				mounter = mounterEntry;
 				break;

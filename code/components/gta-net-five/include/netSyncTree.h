@@ -22,20 +22,20 @@ enum class NetObjEntityType
 namespace rage
 {
 class netObject;
-class netBuffer;
+class datBitBuffer;
 
 class netSyncTree
 {
 public:
 	virtual ~netSyncTree() = 0;
 
-	virtual void WriteTree(int flags, int objFlags, netObject* object, netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull) = 0;
+	virtual void WriteTree(int flags, int objFlags, netObject* object, datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull) = 0;
 
 	virtual void ApplyToObject(netObject* object, void*) = 0;
 
 	virtual void m_18() = 0;
 
-	virtual void m_20(uint32_t, uint32_t, rage::netBuffer*, void*) = 0;
+	virtual void m_20(uint32_t, uint32_t, rage::datBitBuffer*, void*) = 0;
 
 	virtual void m_28() = 0;
 
@@ -86,9 +86,9 @@ public:
 public:
 	bool CanApplyToObject(netObject* object);
 
-	bool ReadFromBuffer(int flags, int flags2, rage::netBuffer* buffer, void* netLogStub);
+	bool ReadFromBuffer(int flags, int flags2, rage::datBitBuffer* buffer, void* netLogStub);
 
-	bool WriteTreeCfx(int flags, int objFlags, netObject* object, netBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull);
+	bool WriteTreeCfx(int flags, int objFlags, netObject* object, datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull, uint32_t* lastChangeTime);
 
 	void AckCfx(netObject* object, uint32_t timestamp);
 

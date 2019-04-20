@@ -61,7 +61,7 @@ static void Launcher_HandleArguments(boost::program_options::wcommand_line_parse
 
 	desc.add_options()
 		("parent_pid", boost::program_options::value<int>()->default_value(-1), "")
-		("cake", boost::program_options::value<std::vector<std::string>>()->required(), "");
+		("cake", boost::program_options::wvalue<std::vector<std::wstring>>()->required(), "");
 
 	boost::program_options::positional_options_description positional;
 	positional.add("cake", -1);
@@ -124,7 +124,7 @@ void VerifyOwnership(int parentPid);
 
 static void Legit_Run(const boost::program_options::variables_map& map)
 {
-    auto args = map["cake"].as<std::vector<std::string>>();
+    auto args = map["cake"].as<std::vector<std::wstring>>();
     g_rosParentPid = map["parent_pid"].as<int>();
 
     VerifyOwnership(g_rosParentPid);
@@ -207,9 +207,11 @@ BOOL WINAPI AnimateWindowStub(
 
 #include "RSAKey.h"
 
+FARPROC GetProcAddressStub(HMODULE hModule, LPCSTR name);
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
-	auto args = map["cake"].as<std::vector<std::string>>();
+	auto args = map["cake"].as<std::vector<std::wstring>>();
 	g_rosParentPid = map["parent_pid"].as<int>();
 
 	boost::filesystem::path programPath(args[0]);
@@ -250,6 +252,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		}
 
 		hook::iat("crypt32.dll", CertGetNameStringStub, "CertGetNameStringW");
+
+		hook::iat("kernel32.dll", GetProcAddressStub, "GetProcAddress");
 	});
 
 	// delete in- files (these being present will trigger safe mode, and the function can't be hooked due to hook checks)

@@ -83,24 +83,24 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_VEHICLE_MOD, _owner.Handle, ModType);
+				return API.GetVehicleMod(_owner.Handle, (int)ModType);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_MOD, _owner.Handle, ModType, value, Variation);
+				API.SetVehicleMod(_owner.Handle, (int)ModType, value, Variation);
 			}
 		}
 
 		public bool Variation
 		{
 			get
-			{				  
-				return Function.Call<bool>(Hash.GET_VEHICLE_MOD_VARIATION, _owner.Handle, ModType);
+			{
+				return API.GetVehicleModVariation(_owner.Handle, (int)ModType);
 			}
 			set
 			{
-				Function.Call(Hash.SET_VEHICLE_MOD, _owner.Handle, ModType, Index, value);
-			}	 
+				API.SetVehicleMod(_owner.Handle, (int)ModType, Index, value);
+			}
 
 		}
 
@@ -108,10 +108,10 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				if (!Function.Call<bool>(Hash.HAS_THIS_ADDITIONAL_TEXT_LOADED, "mod_mnu", 10))
+				if (!API.HasThisAdditionalTextLoaded("mod_mnu", 10))
 				{
-					Function.Call(Hash.CLEAR_ADDITIONAL_TEXT, 10, true);
-					Function.Call(Hash.REQUEST_ADDITIONAL_TEXT, "mod_mnu", 10);
+					API.ClearAdditionalText(10, true);
+					API.RequestAdditionalText("mod_mnu", 10);
 				}
 				string cur = "";
 				switch (ModType)
@@ -148,7 +148,7 @@ namespace CitizenFX.Core
 						cur = Game.GetGXTEntry("CMOD_WHE0_1");
 						break;
 
-					  //Bennys
+					//Bennys
 					case VehicleModType.PlateHolder:
 						cur = Game.GetGXTEntry("CMM_MOD_S0");
 						break;
@@ -172,7 +172,7 @@ namespace CitizenFX.Core
 						cur = Game.GetGXTEntry("CMM_MOD_S4");
 						break;
 					case VehicleModType.DialDesign:
-						cur = Game.GetGXTEntry("CMM_MOD_S5"); 
+						cur = Game.GetGXTEntry("CMM_MOD_S5");
 						break;
 					case VehicleModType.DoorSpeakers:
 						cur = Game.GetGXTEntry("CMM_MOD_S6");
@@ -297,7 +297,7 @@ namespace CitizenFX.Core
 						break;
 
 					default:
-						cur = Function.Call<string>(Hash.GET_MOD_SLOT_NAME, _owner.Handle, ModType);
+						cur = API.GetModSlotName(_owner.Handle, (int)ModType);
 						if (Game.DoesGXTEntryExist(cur))
 						{
 							cur = Game.GetGXTEntry(cur);
@@ -324,10 +324,10 @@ namespace CitizenFX.Core
 				return "";
 			if (index < -1 || index >= ModCount)
 				return "";
-			if (!Function.Call<bool>(Hash.HAS_THIS_ADDITIONAL_TEXT_LOADED, "mod_mnu", 10))
+			if (!API.HasThisAdditionalTextLoaded("mod_mnu", 10))
 			{
-				Function.Call(Hash.CLEAR_ADDITIONAL_TEXT, 10, true);
-				Function.Call(Hash.REQUEST_ADDITIONAL_TEXT, "mod_mnu", 10);
+				API.ClearAdditionalText(10, true);
+				API.RequestAdditionalText("mod_mnu", 10);
 			}
 			string cur;
 			if (ModType == VehicleModType.Horns)
@@ -358,11 +358,11 @@ namespace CitizenFX.Core
 				if (index >= ModCount / 2)
 				{
 					return Game.GetGXTEntry("CHROME") + " " +
-						   Game.GetGXTEntry(Function.Call<ulong>(Hash.GET_MOD_TEXT_LABEL, _owner.Handle, ModType, index));
+						   Game.GetGXTEntry(API.GetModTextLabel(_owner.Handle, (int)ModType, index));
 				}
 				else
 				{
-					return Game.GetGXTEntry(Function.Call<ulong>(Hash.GET_MOD_TEXT_LABEL, _owner.Handle, ModType, index));
+					return Game.GetGXTEntry(API.GetModTextLabel(_owner.Handle, (int)ModType, index));
 				}
 			}
 
@@ -386,7 +386,7 @@ namespace CitizenFX.Core
 			}
 			if (index > -1)
 			{
-				cur = Function.Call<string>(Hash.GET_MOD_TEXT_LABEL, _owner.Handle, ModType, index);
+				cur = API.GetModTextLabel(_owner.Handle, (int)ModType, index);
 				if (Game.DoesGXTEntryExist(cur))
 				{
 					cur = Game.GetGXTEntry(cur);
@@ -408,7 +408,7 @@ namespace CitizenFX.Core
 						}
 						break;
 					case VehicleModType.Struts:
-						switch ((VehicleHash) _owner.Model)
+						switch ((VehicleHash)_owner.Model)
 						{
 							case VehicleHash.Banshee:
 							case VehicleHash.Banshee2:
@@ -419,13 +419,13 @@ namespace CitizenFX.Core
 
 				}
 				return Game.GetGXTEntry("CMOD_DEF_0");
-			}			
+			}
 		}
 		public int ModCount
 		{
 			get
 			{
-				return Function.Call<int>(Hash.GET_NUM_VEHICLE_MODS, _owner.Handle, ModType);
+				return API.GetNumVehicleMods(_owner.Handle, (int)ModType);
 			}
 		}
 		public Vehicle Vehicle
@@ -435,7 +435,7 @@ namespace CitizenFX.Core
 
 		public void Remove()
 		{
-			Function.Call(Hash.REMOVE_VEHICLE_MOD, _owner.Handle, ModType);
+			API.RemoveVehicleMod(_owner.Handle, (int)ModType);
 		}
 	}
 }

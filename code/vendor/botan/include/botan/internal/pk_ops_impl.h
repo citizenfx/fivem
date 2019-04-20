@@ -46,7 +46,6 @@ class Decryption_with_EME : public Decryption
    protected:
       explicit Decryption_with_EME(const std::string& eme);
    private:
-      virtual size_t max_raw_input_bits() const = 0;
       virtual secure_vector<uint8_t> raw_decrypt(const uint8_t msg[], size_t len) = 0;
       std::unique_ptr<EME> m_eme;
    };
@@ -83,7 +82,7 @@ class Verification_with_EMSA : public Verification
       * @return the message prefix if this signature scheme uses
       * a message prefix, signaled via has_prefix()
       */
-      virtual secure_vector<uint8_t> message_prefix() const { throw Exception( "No prefix" ); }
+      virtual secure_vector<uint8_t> message_prefix() const { throw Invalid_State("No prefix"); }
 
       /**
       * @return boolean specifying if this key type supports message
@@ -117,9 +116,10 @@ class Verification_with_EMSA : public Verification
          throw Invalid_State("Message recovery not supported");
          }
 
-      std::unique_ptr<EMSA> m_emsa;
+      std::unique_ptr<EMSA> clone_emsa() const { return std::unique_ptr<EMSA>(m_emsa->clone()); }
 
    private:
+      std::unique_ptr<EMSA> m_emsa;
       const std::string m_hash;
       bool m_prefix_used;
    };
@@ -146,9 +146,10 @@ class Signature_with_EMSA : public Signature
       * @return the message prefix if this signature scheme uses
       * a message prefix, signaled via has_prefix()
       */
-      virtual secure_vector<uint8_t> message_prefix() const { throw Exception( "No prefix" ); }
+      virtual secure_vector<uint8_t> message_prefix() const { throw Invalid_State("No prefix"); }
 
-      std::unique_ptr<EMSA> m_emsa;
+      std::unique_ptr<EMSA> clone_emsa() const { return std::unique_ptr<EMSA>(m_emsa->clone()); }
+
    private:
 
       /**
@@ -163,6 +164,7 @@ class Signature_with_EMSA : public Signature
       virtual secure_vector<uint8_t> raw_sign(const uint8_t msg[], size_t msg_len,
                                            RandomNumberGenerator& rng) = 0;
 
+      std::unique_ptr<EMSA> m_emsa;
       const std::string m_hash;
       bool m_prefix_used;
    };

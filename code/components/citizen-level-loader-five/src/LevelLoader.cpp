@@ -201,7 +201,10 @@ static void LoadLevel(const char* levelName)
 
 	if (!gameInit->GetGameLoaded())
 	{
-		rage::scrEngine::CreateThread(&spawnThread);
+		if (!gameInit->HasVariable("storyMode"))
+		{
+			rage::scrEngine::CreateThread(&spawnThread);
+		}
 
 		gameInit->LoadGameFirstLaunch([] ()
 		{
@@ -210,7 +213,7 @@ static void LoadLevel(const char* levelName)
 	}
 	else
 	{
-		gameInit->KillNetwork((wchar_t*)1);
+		//gameInit->KillNetwork((wchar_t*)1);
 
 		gameInit->ReloadGame();
 	}
@@ -233,6 +236,13 @@ static InitFunction initFunction([] ()
 	{
 		LoadLevel(level.c_str());
 	});
+
+	static ConsoleCommand storyModeyCommand("storymode", []()
+	{
+		Instance<ICoreGameInit>::Get()->SetVariable("storyMode");
+		LoadLevel("gta5");
+	});
+
 
 	static ConsoleCommand loadLevelCommand2("invoke-levelload", [](const std::string& level)
 	{

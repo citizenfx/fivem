@@ -12,9 +12,11 @@
 #include <NUIWindow.h>
 #include <include/cef_client.h>
 
+#include <CefOverlay.h>
+
 #include <regex>
 
-class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRequestHandler
+class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRequestHandler, public CefAudioHandler
 {
 private:
 	NUIWindow* m_window;
@@ -50,6 +52,7 @@ protected:
 	virtual CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override;
 	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override;
+	virtual CefRefPtr<CefAudioHandler> GetAudioHandler() override;
 	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
 
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
@@ -81,6 +84,37 @@ protected:
 // CefDisplayHandler
 protected:
 	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
+
+// CefAudioHandler
+protected:
+	virtual void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		int audio_stream_id,
+		int channels,
+		ChannelLayout channel_layout,
+		int sample_rate,
+		int frames_per_buffer) override;
+
+	virtual void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		int audio_stream_id,
+		const float** data,
+		int frames,
+		int64 pts) override;
+
+	virtual void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		int audio_stream_id) override;
+
+public:
+	virtual void OnAudioCategoryConfigure(const std::string& frame, const std::string& category);
+
+private:
+	std::map<std::pair<int, int>, std::tuple<std::shared_ptr<nui::IAudioStream>, nui::AudioStreamParams>> m_audioStreams;
+
+	std::multimap<std::string, std::pair<int, int>> m_audioStreamsByFrame;
+
+	std::map<std::string, std::string> m_audioFrameCategories;
 
 // CefRequestHandler
 protected:

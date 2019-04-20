@@ -80,16 +80,142 @@ void for_each_in_tuple(std::tuple<Ts...> & tuple, F func) {
 	for_each_in_tuple(tuple, func, std::make_index_sequence<sizeof...(Ts)>());
 }
 
+template<class... TChildren>
+struct ChildList
+{
+
+};
+
+template<typename T, typename... TRest>
+struct ChildList<T, TRest...>
+{
+	T first;
+	ChildList<TRest...> rest;
+};
+
+template<typename T>
+struct ChildList<T>
+{
+	T first;
+};
+
+template<typename T>
+struct ChildListInfo
+{
+
+};
+
+template<typename... TChildren>
+struct ChildListInfo<ChildList<TChildren...>>
+{
+	static constexpr size_t Size = sizeof...(TChildren);
+};
+
+template<size_t I, typename T>
+struct ChildListElement;
+
+template<size_t I, typename T, typename... TChildren>
+struct ChildListElement<I, ChildList<T, TChildren...>>
+	: ChildListElement<I - 1, ChildList<TChildren...>>
+{
+};
+
+template<typename T, typename... TChildren>
+struct ChildListElement<0, ChildList<T, TChildren...>>
+{
+	using Type = T;
+};
+
+template<size_t I>
+struct ChildListGetter
+{
+	template<typename... TChildren>
+	static inline auto& Get(ChildList<TChildren...>& list)
+	{
+		return ChildListGetter<I - 1>::Get(list.rest);
+	}
+
+	template<typename TList>
+	static inline constexpr size_t GetOffset(size_t offset = 0)
+	{
+		return ChildListGetter<I - 1>::template GetOffset<decltype(TList::rest)>(
+			offset + offsetof(TList, rest)
+		);
+	}
+};
+
+template<>
+struct ChildListGetter<0>
+{
+	template<typename... TChildren>
+	static inline auto& Get(ChildList<TChildren...>& list)
+	{
+		return list.first;
+	}
+
+	template<typename TList>
+	static inline constexpr size_t GetOffset(size_t offset = 0)
+	{
+		return offset +
+			offsetof(TList, first);
+	}
+};
+
+template<typename TTuple>
+struct Foreacher
+{
+	template<typename TFn, size_t I = 0>
+	static inline std::enable_if_t<(I == ChildListInfo<TTuple>::Size)> for_each_in_tuple(TTuple& tuple, const TFn& fn)
+	{
+
+	}
+
+	template<typename TFn, size_t I = 0>
+	static inline std::enable_if_t<(I != ChildListInfo<TTuple>::Size)> for_each_in_tuple(TTuple& tuple, const TFn& fn)
+	{
+		fn(ChildListGetter<I>::Get(tuple));
+
+		for_each_in_tuple<TFn, I + 1>(tuple, fn);
+	}
+};
+
 template<typename TIds, typename... TChildren>
 struct ParentNode : public NodeBase
 {
-	std::tuple<TChildren...> children;
+	ChildList<TChildren...> children;
 
-	virtual bool Parse(SyncParseState& state) override
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		return LoopChildren<TData>();
+	}
+
+	template<typename TData, size_t I = 0>
+	inline static constexpr std::enable_if_t<I == sizeof...(TChildren), size_t> LoopChildren()
+	{
+		return 0;
+	}
+
+	template<typename TData, size_t I = 0>
+	inline static constexpr std::enable_if_t<I != sizeof...(TChildren), size_t> LoopChildren()
+	{
+		size_t offset = ChildListElement<I, decltype(children)>::Type::template GetOffsetOf<TData>();
+
+		if (offset != 0)
+		{
+			constexpr size_t elemOff = ChildListGetter<I>::template GetOffset<decltype(children)>();
+
+			return offset + elemOff + offsetof(ParentNode, children);
+		}
+
+		return LoopChildren<TData, I + 1>();
+	}
+
+	virtual bool Parse(SyncParseState& state) final override
 	{
 		if (shouldRead(state, TIds::GetIds()))
 		{
-			for_each_in_tuple(children, [&](auto& child)
+			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 			{
 				child.Parse(state);
 			});
@@ -98,13 +224,13 @@ struct ParentNode : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) override
+	virtual bool Unparse(SyncUnparseState& state) final override
 	{
 		bool should = false;
 
 		if (shouldWrite(state, TIds::GetIds()))
 		{
-			for_each_in_tuple(children, [&](auto& child)
+			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 			{
 				bool thisShould = child.Unparse(state);
 
@@ -115,11 +241,11 @@ struct ParentNode : public NodeBase
 		return should;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) override
+	virtual bool Visit(const SyncTreeVisitor& visitor) final override
 	{
 		visitor(*this);
 
-		for_each_in_tuple(children, [&](auto& child)
+		Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 		{
 			child.Visit(visitor);
 		});
@@ -131,7 +257,7 @@ struct ParentNode : public NodeBase
 template<typename TIds, typename TNode, typename = void>
 struct NodeWrapper : public NodeBase
 {
-	std::array<uint8_t, 256> data;
+	std::array<uint8_t, 768> data;
 	uint32_t length;
 
 	TNode node;
@@ -142,7 +268,18 @@ struct NodeWrapper : public NodeBase
 		ackedPlayers.set();
 	}
 	
-	virtual bool Parse(SyncParseState& state) override
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		if constexpr (std::is_same_v<TNode, TData>)
+		{
+			return offsetof(NodeWrapper, node);
+		}
+
+		return 0;
+	}
+
+	virtual bool Parse(SyncParseState& state) final override
 	{
 		/*auto isWrite = state.buffer.ReadBit();
 
@@ -156,7 +293,7 @@ struct NodeWrapper : public NodeBase
 		if (shouldRead(state, TIds::GetIds()))
 		{
 			// read into data array
-			auto length = state.buffer.Read<uint32_t>(11);
+			auto length = state.buffer.Read<uint32_t>(13);
 			auto endBit = state.buffer.GetCurrentBit();
 			//auto leftoverLength = length - (endBit - curBit);
 			auto leftoverLength = length;
@@ -164,7 +301,7 @@ struct NodeWrapper : public NodeBase
 			auto oldData = data;
 
 			this->length = leftoverLength;
-			state.buffer.ReadBits(data.data(), leftoverLength);
+			state.buffer.ReadBits(data.data(), std::min(uint32_t(data.size() * 8), leftoverLength));
 
 			state.buffer.SetCurrentBit(endBit);
 
@@ -176,6 +313,11 @@ struct NodeWrapper : public NodeBase
 				//trace("resetting acks on node %s\n", boost::typeindex::type_id<TNode>().pretty_name());
 				frameIndex = state.frameIndex;
 
+				if (frameIndex > state.entity->lastFrameIndex)
+				{
+					state.entity->lastFrameIndex = frameIndex;
+				}
+
 				ackedPlayers.reset();
 			}
 
@@ -185,16 +327,33 @@ struct NodeWrapper : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) override
+	virtual bool Unparse(SyncUnparseState& state) final override
 	{
 		bool hasData = (length > 0);
 
+		// do we even want to write?
+		bool couldWrite = false;
+
+		// we can only write if we have data
+		if (hasData)
+		{
+			// if creating, ignore acks
+			if (state.syncType == 1)
+			{
+				couldWrite = true;
+			}
+			// otherwise, we only want to write if the player hasn't acked
+			else if (!ackedPlayers.test(state.client->GetSlotId()))
+			{
+				couldWrite = true;
+			}
+		}
+
+		// enable this for boundary checks
 		//state.buffer.Write(8, 0x5A);
 
-		if (shouldWrite(state, TIds::GetIds(), (hasData && !ackedPlayers.test(state.client->GetSlotId()))))
+		if (shouldWrite(state, TIds::GetIds(), couldWrite))
 		{
-			//trace("writing out node %s\n", boost::typeindex::type_id<TNode>().pretty_name());
-
 			state.buffer.WriteBits(data.data(), length);
 
 			return true;
@@ -203,7 +362,7 @@ struct NodeWrapper : public NodeBase
 		return false;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) override
+	virtual bool Visit(const SyncTreeVisitor& visitor) final override
 	{
 		visitor(*this);
 
@@ -211,57 +370,19 @@ struct NodeWrapper : public NodeBase
 	}
 };
 
-template<typename TNode>
-struct SyncTree : public SyncTreeBase
-{
-	TNode root;
-	std::mutex mutex;
-
-	virtual void Parse(SyncParseState& state) override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		//trace("parsing root\n");
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			// mA0 flag
-			state.objType = state.buffer.ReadBit();
-		}
-
-		root.Parse(state);
-	}
-
-	virtual bool Unparse(SyncUnparseState& state) override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			state.objType = 1;
-
-			state.buffer.WriteBit(1);
-		}
-
-		return root.Unparse(state);
-	}
-
-	virtual void Visit(const SyncTreeVisitor& visitor) override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		root.Visit(visitor);
-	}
-};
-
 struct CVehicleCreationDataNode
 {
+	uint32_t m_model;
+	ePopType m_popType;
+
 	bool Parse(SyncParseState& state)
 	{
 		uint32_t model = state.buffer.Read<uint32_t>(32);
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
+
+		m_model = model;
+		m_popType = (ePopType)popType;
+
 		return true;
 	}
 };
@@ -270,11 +391,65 @@ struct CAutomobileCreationDataNode { bool Parse(SyncParseState& state) { return 
 struct CGlobalFlagsDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDynamicEntityGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CVehicleGameStateDataNode
+{
+	CVehicleGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		return true;
+	}
+};
+
 struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CEntityScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CEntityScriptInfoDataNode
+{
+	uint32_t m_scriptHash;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto hasScript = state.buffer.ReadBit();
+
+		if (hasScript) // Has script info
+		{
+			// deserialize CGameScriptObjInfo
+
+			// -> CGameScriptId
+			
+			// ---> rage::scriptId
+			m_scriptHash = state.buffer.Read<uint32_t>(32);
+			// ---> end
+
+			auto timestamp = state.buffer.Read<uint32_t>(32);
+
+			if (state.buffer.ReadBit())
+			{
+				auto positionHash = state.buffer.Read<uint32_t>(32);
+			}
+
+			if (state.buffer.ReadBit())
+			{
+				auto instanceId = state.buffer.Read<uint32_t>(7);
+			}
+
+			// -> end
+
+			auto scriptObjectId = state.buffer.Read<uint32_t>(32);
+
+			auto hostTokenLength = state.buffer.ReadBit() ? 16 : 3;
+			auto hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
+
+			// end
+		}
+
+		return true;
+	}
+};
+
 struct CPhysicalAttachDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleDamageStatusDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -284,6 +459,10 @@ struct CVehicleTaskDataNode { bool Parse(SyncParseState& state) { return true; }
 
 struct CSectorDataNode
 {
+	int m_sectorX;
+	int m_sectorY;
+	int m_sectorZ;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto sectorX = state.buffer.Read<int>(10);
@@ -294,6 +473,10 @@ struct CSectorDataNode
 		state.entity->data["sectorY"] = sectorY;
 		state.entity->data["sectorZ"] = sectorZ;
 
+		m_sectorX = sectorX;
+		m_sectorY = sectorY;
+		m_sectorZ = sectorZ;
+
 		state.entity->CalculatePosition();
 
 		return true;
@@ -302,6 +485,10 @@ struct CSectorDataNode
 
 struct CSectorPositionDataNode
 {
+	float m_posX;
+	float m_posY;
+	float m_posZ;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto posX = state.buffer.ReadFloat(12, 54.0f);
@@ -311,6 +498,10 @@ struct CSectorPositionDataNode
 		state.entity->data["sectorPosX"] = posX;
 		state.entity->data["sectorPosY"] = posY;
 		state.entity->data["sectorPosZ"] = posZ;
+
+		m_posX = posX;
+		m_posY = posY;
+		m_posZ = posZ;
 
 		state.entity->CalculatePosition();
 
@@ -365,6 +556,8 @@ struct CPedCreationDataNode
 
 struct CPedGameStateDataNode
 {
+	CPedGameStateNodeData data;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto bool1 = state.buffer.ReadBit();
@@ -419,26 +612,26 @@ struct CPedGameStateDataNode
 		{
 			vehicleId = state.buffer.Read<int>(13);
 
-			state.entity->data["curVehicle"] = int32_t(vehicleId);
-			state.entity->data["curVehicleSeat"] = int32_t(-2);
+			state.entity->data["curVehicle"] = data.curVehicle = int32_t(vehicleId);
+			state.entity->data["curVehicleSeat"] = data.curVehicleSeat = int32_t(-2);
 
 			auto inSeat = state.buffer.ReadBit();
 
 			if (inSeat)
 			{
 				vehicleSeat = state.buffer.Read<int>(5);
-				state.entity->data["curVehicleSeat"] = int32_t(vehicleSeat);
+				state.entity->data["curVehicleSeat"] = data.curVehicleSeat = int32_t(vehicleSeat);
 			}
 			else
 			{
-				state.entity->data["curVehicle"] = -1;
-				state.entity->data["curVehicleSeat"] = -1;
+				state.entity->data["curVehicle"] = data.curVehicle = -1;
+				state.entity->data["curVehicleSeat"] = data.curVehicleSeat = -1;
 			}
 		}
 		else
 		{
-			state.entity->data["curVehicle"] = -1;
-			state.entity->data["curVehicleSeat"] = -1;
+			state.entity->data["curVehicle"] = data.curVehicle = -1;
+			state.entity->data["curVehicleSeat"] = data.curVehicleSeat = -1;
 		}
 
 		// TODO
@@ -527,7 +720,37 @@ struct CObjectCreationDataNode { bool Parse(SyncParseState& state) { return true
 struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CObjectSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CObjectSectorPosNode
+{
+	float m_sectorPosX;
+	float m_sectorPosY;
+	float m_sectorPosZ;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool highRes = state.buffer.ReadBit();
+
+		int bits = (highRes) ? 20 : 12;
+
+		auto posX = state.buffer.ReadFloat(bits, 54.0f);
+		auto posY = state.buffer.ReadFloat(bits, 54.0f);
+		auto posZ = state.buffer.ReadFloat(bits, 69.0f);
+
+		state.entity->data["sectorPosX"] = posX;
+		state.entity->data["sectorPosY"] = posY;
+		state.entity->data["sectorPosZ"] = posZ;
+
+		m_sectorPosX = posX;
+		m_sectorPosY = posY;
+		m_sectorPosZ = posZ;
+
+		state.entity->CalculatePosition();
+
+		return true;
+	}
+};
+
 struct CPhysicalAngVelocityDataNode
 {
 	bool Parse(SyncParseState& state)
@@ -557,7 +780,35 @@ struct CPedOrientationDataNode { bool Parse(SyncParseState& state) { return true
 struct CPedMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskTreeDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskSpecificDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedSectorPosMapNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPedSectorPosMapNode
+{
+	float m_sectorPosX;
+	float m_sectorPosY;
+	float m_sectorPosZ;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto posX = state.buffer.ReadFloat(12, 54.0f);
+		auto posY = state.buffer.ReadFloat(12, 54.0f);
+		auto posZ = state.buffer.ReadFloat(12, 69.0f);
+
+		state.entity->data["sectorPosX"] = posX;
+		state.entity->data["sectorPosY"] = posY;
+		state.entity->data["sectorPosZ"] = posZ;
+
+		m_sectorPosX = posX;
+		m_sectorPosY = posY;
+		m_sectorPosZ = posZ;
+
+		state.entity->CalculatePosition();
+
+		// more data follows
+
+		return true;
+	}
+};
+
 struct CPedSectorPosNavMeshNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedInventoryDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskSequenceDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -570,9 +821,22 @@ struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true
 struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerAppearanceDataNode { bool Parse(SyncParseState& state) { /*trace("PlayerAppearanceDataNode!\n");*/ return true; } };
+
+struct CPlayerAppearanceDataNode
+{
+	uint32_t model;
+
+	bool Parse(SyncParseState& state)
+	{
+		model = state.buffer.Read<uint32_t>(32);
+
+		return true;
+	}
+};
+
 struct CPlayerPedGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerAmbientModelStreamingNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGamerDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -580,6 +844,10 @@ struct CPlayerExtendedGameStateNode { bool Parse(SyncParseState& state) { return
 
 struct CPlayerSectorPosNode
 {
+	float m_sectorPosX;
+	float m_sectorPosY;
+	float m_sectorPosZ;
+
 	bool Parse(SyncParseState& state)
 	{
 		// extra data
@@ -610,6 +878,10 @@ struct CPlayerSectorPosNode
 		state.entity->data["sectorPosY"] = posY;
 		state.entity->data["sectorPosZ"] = posZ;
 
+		m_sectorPosX = posX;
+		m_sectorPosY = posY;
+		m_sectorPosZ = posZ;
+
 		state.entity->CalculatePosition();
 
 		return true;
@@ -618,6 +890,8 @@ struct CPlayerSectorPosNode
 
 struct CPlayerCameraDataNode
 {
+	CPlayerCameraNodeData data;
+
 	bool Parse(SyncParseState& state)
 	{
 		bool freeCamOverride = state.buffer.ReadBit();
@@ -634,13 +908,13 @@ struct CPlayerCameraDataNode
 			float cameraX = state.buffer.ReadSignedFloat(10, 6.2831855f);
 			float cameraZ = state.buffer.ReadSignedFloat(10, 6.2831855f);
 
-			state.entity->data["camMode"] = 1;
-			state.entity->data["freeCamPosX"] = freeCamPosX;
-			state.entity->data["freeCamPosY"] = freeCamPosY;
-			state.entity->data["freeCamPosZ"] = freeCamPosZ;
+			state.entity->data["camMode"] = data.camMode = 1;
+			state.entity->data["freeCamPosX"] = data.freeCamPosX = freeCamPosX;
+			state.entity->data["freeCamPosY"] = data.freeCamPosY = freeCamPosY;
+			state.entity->data["freeCamPosZ"] = data.freeCamPosZ = freeCamPosZ;
 
-			state.entity->data["cameraX"] = cameraX;
-			state.entity->data["cameraZ"] = cameraZ;
+			state.entity->data["cameraX"] = data.cameraX = cameraX;
+			state.entity->data["cameraZ"] = data.cameraZ = cameraZ;
 		}
 		else
 		{
@@ -649,26 +923,26 @@ struct CPlayerCameraDataNode
 
 			if (hasPositionOffset)
 			{
-				float camPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
-				float camPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
-				float camPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+				float camPosX = state.buffer.ReadSignedFloat(19, 16000.0f);
+				float camPosY = state.buffer.ReadSignedFloat(19, 16000.0f);
+				float camPosZ = state.buffer.ReadSignedFloat(19, 16000.0f);
 
-				state.entity->data["camMode"] = 2;
+				state.entity->data["camMode"] = data.camMode = 2;
 
-				state.entity->data["camOffX"] = camPosX;
-				state.entity->data["camOffY"] = camPosY;
-				state.entity->data["camOffZ"] = camPosZ;
+				state.entity->data["camOffX"] = data.camOffX = camPosX;
+				state.entity->data["camOffY"] = data.camOffY = camPosY;
+				state.entity->data["camOffZ"] = data.camOffZ = camPosZ;
 			}
 			else
 			{
-				state.entity->data["camMode"] = 0;
+				state.entity->data["camMode"] = data.camMode = 0;
 			}
 
 			float cameraX = state.buffer.ReadSignedFloat(10, 6.2831855f);
 			float cameraZ = state.buffer.ReadSignedFloat(10, 6.2831855f);
 
-			state.entity->data["cameraX"] = cameraX;
-			state.entity->data["cameraZ"] = cameraZ;
+			state.entity->data["cameraX"] = data.cameraX = cameraX;
+			state.entity->data["cameraZ"] = data.cameraZ = cameraZ;
 
 			// TODO
 		}
@@ -680,6 +954,183 @@ struct CPlayerCameraDataNode
 };
 
 struct CPlayerWantedAndLOSDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+template<typename TNode>
+struct SyncTree : public SyncTreeBase
+{
+	TNode root;
+	std::mutex mutex;
+
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOf()
+	{
+		auto doff = TNode::template GetOffsetOf<TData>();
+
+		return (doff) ? offsetof(SyncTree, root) + doff : 0;
+	}
+
+	template<typename TData>
+	inline std::tuple<bool, TData*> GetData()
+	{
+		constexpr auto offset = GetOffsetOf<TData>();
+
+		if constexpr (offset != 0)
+		{
+			return { true, (TData*)((uintptr_t)this + offset) };
+		}
+
+		return { false, nullptr };
+	}
+
+	virtual void GetPosition(float* posOut) override
+	{
+		auto [hasSdn, secDataNode] = GetData<CSectorDataNode>();
+		auto [hasSpdn, secPosDataNode] = GetData<CSectorPositionDataNode>();
+		auto [hasPspdn, playerSecPosDataNode] = GetData<CPlayerSectorPosNode>();
+		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
+		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
+
+		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
+		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
+		auto sectorZ = (hasSdn) ? secDataNode->m_sectorZ : 0;
+
+		auto sectorPosX =
+			(hasSpdn) ? secPosDataNode->m_posX :
+				(hasPspdn) ? playerSecPosDataNode->m_sectorPosX :
+					(hasOspdn) ? objectSecPosDataNode->m_sectorPosX :
+						(hasPspmdn) ? pedSecPosMapDataNode->m_sectorPosX :
+							0.0f;
+
+		auto sectorPosY =
+			(hasSpdn) ? secPosDataNode->m_posY :
+				(hasPspdn) ? playerSecPosDataNode->m_sectorPosY :
+					(hasOspdn) ? objectSecPosDataNode->m_sectorPosY :
+						(hasPspmdn) ? pedSecPosMapDataNode->m_sectorPosY :
+							0.0f;
+
+		auto sectorPosZ =
+			(hasSpdn) ? secPosDataNode->m_posZ :
+				(hasPspdn) ? playerSecPosDataNode->m_sectorPosZ :
+					(hasOspdn) ? objectSecPosDataNode->m_sectorPosZ :
+						(hasPspmdn) ? pedSecPosMapDataNode->m_sectorPosZ :
+							0.0f;
+
+		posOut[0] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
+		posOut[1] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
+		posOut[2] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
+	}
+
+	virtual CPlayerCameraNodeData* GetPlayerCamera() override
+	{
+		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
+
+		return (hasCdn) ? &cameraNode->data : nullptr;
+	}
+
+	virtual CPedGameStateNodeData* GetPedGameState() override
+	{
+		auto[hasPdn, pedNode] = GetData<CPedGameStateDataNode>();
+
+		return (hasPdn) ? &pedNode->data : nullptr;
+	}
+
+	virtual CVehicleGameStateNodeData* GetVehicleGameState() override
+	{
+		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
+
+		return (hasVdn) ? &vehNode->data : nullptr;
+	}
+
+	virtual bool GetPopulationType(ePopType* popType) override
+	{
+		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+
+		if (hasVcn)
+		{
+			*popType = vehCreationNode->m_popType;
+			return true;
+		}
+
+		// TODO: non-vehicles
+
+		return false;
+	}
+
+	virtual bool GetModelHash(uint32_t* modelHash) override
+	{
+		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+
+		if (hasVcn)
+		{
+			*modelHash = vehCreationNode->m_model;
+			return true;
+		}
+
+		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
+
+		if (hasPan)
+		{
+			*modelHash = playerAppearanceNode->model;
+			return true;
+		}
+
+		// TODO: non-vehicle/player entities
+
+		return false;
+	}
+
+	virtual bool GetScriptHash(uint32_t* scriptHash) override
+	{
+		auto[hasSin, scriptInfoNode] = GetData<CEntityScriptInfoDataNode>();
+
+		if (hasSin)
+		{
+			*scriptHash = scriptInfoNode->m_scriptHash;
+			return true;
+		}
+
+		return false;
+	}
+
+	virtual void Parse(SyncParseState& state) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		//trace("parsing root\n");
+		state.objType = 0;
+
+		if (state.syncType == 2 || state.syncType == 4)
+		{
+			// mA0 flag
+			state.objType = state.buffer.ReadBit();
+		}
+
+		root.Parse(state);
+	}
+
+	virtual bool Unparse(SyncUnparseState& state) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		state.objType = 0;
+
+		if (state.syncType == 2 || state.syncType == 4)
+		{
+			state.objType = 1;
+
+			state.buffer.WriteBit(1);
+		}
+
+		return root.Unparse(state);
+	}
+
+	virtual void Visit(const SyncTreeVisitor& visitor) final override
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+
+		root.Visit(visitor);
+	}
+};
 
 using CAutomobileSyncTree = SyncTree<
 	ParentNode<
@@ -859,13 +1310,13 @@ using CDoorSyncTree = SyncTree<
 			NodeIds<1, 0, 0>, 
 			NodeWrapper<NodeIds<1, 0, 0>, CDoorCreationDataNode>
 		>, 
-		NodeWrapper<NodeIds<86, 86, 0>, CDoorMovementDataNode>, 
 		ParentNode<
 			NodeIds<127, 127, 0>, 
 			NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>, 
 			NodeWrapper<NodeIds<127, 127, 1>, CDoorScriptInfoDataNode>, 
 			NodeWrapper<NodeIds<127, 127, 1>, CDoorScriptGameStateDataNode>
 		>, 
+		NodeWrapper<NodeIds<86, 86, 0>, CDoorMovementDataNode>, 
 		ParentNode<
 			NodeIds<4, 0, 0>, 
 			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>, 
@@ -1289,6 +1740,63 @@ using CAutomobileSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>, 
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>, 
 					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
+				>, 
+				ParentNode<
+					NodeIds<127, 127, 1>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
+				>
+			>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>, 
+			NodeWrapper<NodeIds<127, 127, 0>, CVehicleTaskDataNode>
+		>, 
+		ParentNode<
+			NodeIds<127, 86, 0>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>, 
+			ParentNode<
+				NodeIds<127, 86, 0>, 
+				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>, 
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>, 
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
+			>
+		>, 
+		ParentNode<
+			NodeIds<4, 0, 0>, 
+			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>, 
+			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>, 
+			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>, 
+			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
+		>
+	>
+>;
+using CTrainSyncTree = SyncTree<
+	ParentNode<
+		NodeIds<127, 0, 0>, 
+		ParentNode<
+			NodeIds<1, 0, 0>, 
+			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>
+		>, 
+		ParentNode<
+			NodeIds<127, 127, 0>, 
+			ParentNode<
+				NodeIds<127, 127, 0>, 
+				ParentNode<
+					NodeIds<127, 127, 0>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>, 
+					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode>
 				>, 
 				ParentNode<
 					NodeIds<127, 127, 1>, 

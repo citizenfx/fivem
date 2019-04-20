@@ -21,6 +21,7 @@
 // MSVC odd defines
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_DEPRECATE
+#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #endif
 
 #if defined(_WIN32)
@@ -77,12 +78,32 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#if defined(_MSC_VER)
+// HACK: since we can't redefine something defined in the UCRT .lib, we just rename the definition
+#define _wassert _wwassert
+
+#undef _ACRTIMP
+#define _ACRTIMP extern
+#endif
+
 #ifdef NDEBUG
 #undef NDEBUG
 #include <assert.h>
 #define NDEBUG
 #else
 #include <assert.h>
+#endif
+
+#if defined(_MSC_VER)
+#ifndef _ACRTIMP
+#if defined _CRTIMP && !defined _VCRT_DEFINED_CRTIMP
+#define _ACRTIMP _CRTIMP
+#elif !defined _CORECRT_BUILD && defined _DLL
+#define _ACRTIMP __declspec(dllimport)
+#else
+#define _ACRTIMP
+#endif
+#endif
 #endif
 
 #include <map>
@@ -94,6 +115,7 @@
 #include <locale>
 #include <codecvt>
 #include <thread>
+#include <mutex> // for once_flag on GCC
 
 // our common includes
 #define COMPONENT_EXPORT
@@ -103,7 +125,7 @@
 class fwPlatformString : public std::wstring
 {
 private:
-	inline std::wstring ConvertString(const char* narrowString)
+	static inline std::wstring ConvertString(const char* narrowString)
 	{
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		return converter.from_bytes(narrowString);
@@ -128,13 +150,23 @@ public:
 	inline fwPlatformString(const std::string& narrowString)
 		: std::wstring(ConvertString(narrowString.c_str()))
 	{
-
 	}
 
 	inline fwPlatformString(const char* narrowString)
 		: std::wstring(ConvertString(narrowString))
 	{
+	}
 
+	inline fwPlatformString& assign(const std::string& narrowString)
+	{
+		std::wstring::assign(ConvertString(narrowString.c_str()));
+		return *this;
+	}
+
+	inline fwPlatformString& assign(const char* narrowString)
+	{
+		std::wstring::assign(ConvertString(narrowString));
+		return *this;
 	}
 };
 typedef wchar_t pchar_t;
@@ -169,8 +201,7 @@ public:
 
 	inline fwPlatformString(const wchar_t* wideString)
 		: std::string(ConvertString(wideString))
-	{
-		
+	{		
 	}
 };
 

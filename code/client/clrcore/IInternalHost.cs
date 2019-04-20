@@ -1,6 +1,6 @@
 namespace CitizenFX.Core
 {
-	public interface IInternalHost
+	internal interface IInternalHost
 	{
 		void InvokeNative(ref fxScriptContext context);
 	}
