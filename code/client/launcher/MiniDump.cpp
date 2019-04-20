@@ -831,7 +831,21 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
 
-		TerminateProcess(parentProcess, -2);
+		// avoid libcef.dll subprocess crashes terminating the entire job
+		bool shouldTerminate = true;
+
+		if (GetProcessId(parentProcess) != GetProcessId(info->process_handle()))
+		{
+			if (crashHash.find(L"libcef") != std::string::npos)
+			{
+				shouldTerminate = false;
+			}
+		}
+
+		if (shouldTerminate)
+		{
+			TerminateProcess(parentProcess, -2);
+		}
 
 		static std::wstring windowTitle = PRODUCT_NAME L" Error";
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
@@ -976,7 +990,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		auto thread = std::thread([=]()
 		{
-			TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+			if (shouldTerminate)
+			{
+				TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+			}
 		});
 
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -990,7 +1007,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			uploadCrashes = (GetPrivateProfileInt(L"Game", L"DisableCrashUpload", 0, fpath.c_str()) != 1);
 		}
 
-		if (bigMemoryDump)
+		if (bigMemoryDump && shouldTerminate)
 		{
 			STARTUPINFOW si = { 0 };
 			si.cb = sizeof(si);
