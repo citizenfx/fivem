@@ -991,6 +991,18 @@ static int GetPlayersNearPoint(const float* point, float range, CNetGamePlayer* 
 	return idx;
 }
 
+static void(*g_origVoiceChatMgr_EstimateBandwidth)(void*);
+
+static void VoiceChatMgr_EstimateBandwidth(void* mgr)
+{
+	if (icgi->OneSyncEnabled)
+	{
+		return;
+	}
+
+	g_origVoiceChatMgr_EstimateBandwidth(mgr);
+}
+
 static HookFunction hookFunction([]()
 {
 	// temp dbg
@@ -1094,6 +1106,9 @@ static HookFunction hookFunction([]()
 
 	MH_CreateHook(hook::get_pattern("45 8D 65 20 C6 81 ? ? 00 00 01 48 8D 59 08", -0x2F), ObjectManager_End, (void**)&g_origObjectManager_End);
 	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B CB E8", -0x19) + 0x32)), PlayerManager_End, (void**)&g_origPlayerManager_End);
+
+	// disable voice chat bandwidth estimation for 1s (it will overwrite some memory)
+	MH_CreateHook(hook::get_pattern("40 8A 72 2D 40 80 FE FF 0F 84", -0x46), VoiceChatMgr_EstimateBandwidth, (void**)&g_origVoiceChatMgr_EstimateBandwidth);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
@@ -1427,8 +1442,13 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 		auto lastIndex = player->physicalPlayerIndex;
 		player->physicalPlayerIndex = 31;
 
-		auto eventHandlerList = (TEventHandlerFn*)((*(char**)g_netEventMgr) + 0x3AB80);
-		eventHandlerList[eventType](&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
+		auto eventMgr = *(char**)g_netEventMgr;
+
+		if (eventMgr)
+		{
+			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + 0x3AB80);
+			eventHandlerList[eventType](&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
+		}
 
 		player->physicalPlayerIndex = lastIndex;
 	}
