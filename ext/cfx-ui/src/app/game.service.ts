@@ -43,6 +43,7 @@ export abstract class GameService {
 	darkThemeChange = new EventEmitter<boolean>();
 	nicknameChange = new EventEmitter<string>();
 	localhostPortChange = new EventEmitter<string>();
+	languageChange = new EventEmitter<string>();
 
 	signinChange = new EventEmitter<Profile>();
 
@@ -78,7 +79,15 @@ export abstract class GameService {
 
 	set localhostPort(name: string) {
 
-	}	
+	}
+
+	get language(): string {
+		return 'en';
+	}
+
+	set language(lang: string) {
+
+	}
 	
 	abstract init(): void;
 
@@ -158,7 +167,11 @@ export abstract class GameService {
 	
 	protected invokeLocalhostPortChanged(port: string) {
 		this.localhostPortChange.emit(port);
-	}	
+	}
+
+	protected invokeLanguageChanged(lang: string) {
+		this.languageChange.emit(lang);
+	}
 }
 
 export class ServerHistoryEntry {
@@ -188,6 +201,8 @@ export class CfxGameService extends GameService {
 	private realNickname: string;
 	
 	private _localhostPort: string;
+
+	private _language: string;
 	
 	private inConnecting = false;
 
@@ -280,7 +295,11 @@ export class CfxGameService extends GameService {
 
 		if (localStorage.getItem('localhostPort')) {
 			this._localhostPort = localStorage.getItem('localhostPort');
-		}		
+		}
+
+		if (localStorage.getItem('language')) {
+			this._language = localStorage.getItem('language');
+		}
 		
 		this.connecting.subscribe(server => {
 			this.inConnecting = false;
@@ -361,6 +380,16 @@ export class CfxGameService extends GameService {
 		this._localhostPort = port;
 		localStorage.setItem('localhostPort', port);
 		this.invokeLocalhostPortChanged(port);
+	}
+
+	get language(): string {
+		return this._language;
+	}
+
+	set language(lang: string) {
+		this._language = lang;
+		localStorage.setItem('language', lang);
+		this.invokeLanguageChanged(lang);
 	}
 	
 	private saveHistory() {
@@ -504,6 +533,7 @@ export class DummyGameService extends GameService {
 	private _devMode = false;
 	private _darkTheme = false;
 	private _localhostPort = '';
+	private _language = '';
 	private pinExample = '';
 
 	constructor(private serversService: ServersService, @Inject(LocalStorage) private localStorage: any) {
@@ -623,7 +653,7 @@ export class DummyGameService extends GameService {
 		this.localStorage.setItem('localhostPort', port);
 
 		this.invokeLocalhostPortChanged(port);
-	}	
+	}
 	
 	get devMode(): boolean {
 		return this._devMode;
@@ -634,5 +664,15 @@ export class DummyGameService extends GameService {
 		this.localStorage.setItem('devMode', value ? 'yes' : 'no');
 
 		this.invokeDevModeChanged(value);
+	}
+
+	get language(): string {
+		return this.localStorage.getItem('language') || navigator.language;
+	}
+
+	set language(lang: string) {
+		this.localStorage.setItem('language', lang);
+
+		this.invokeLanguageChanged(lang);
 	}
 }

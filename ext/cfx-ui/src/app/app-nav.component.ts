@@ -15,6 +15,7 @@ export class AppNavComponent extends Translation {
 	nickname = '';
 	devMode = false;
 	localhostPort = '';
+	language = '';
 	hasSubNav = false;
 	isInSteam = false;
 
@@ -29,6 +30,7 @@ export class AppNavComponent extends Translation {
 		this.nickname = gameService.nickname;
 		this.devMode = gameService.devMode;
 		this.localhostPort = gameService.localhostPort;
+		this.language = gameService.language;
 		
 
 		router.events.subscribe(event => {
@@ -44,6 +46,7 @@ export class AppNavComponent extends Translation {
 		gameService.nicknameChange.subscribe(value => this.nickname = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
+		gameService.languageChange.subscribe(value => this.language = value);
 	}
 
 	connectToLocal() {

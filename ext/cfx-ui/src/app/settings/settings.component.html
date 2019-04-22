@@ -1,6 +1,6 @@
 <section class="setting">
 	<div class="key">
-		<div>Nickname</div>
+		<div translate>#Settings_Nickname</div>
 	</div>
 	<div class="value">
 		<input
@@ -17,7 +17,7 @@
 
 <section class="setting">
 	<div class="key">
-		<div>"Dark" "theme"</div>
+		<div translate>#Settings_DarkTheme</div>
 	</div>
 	<div class="value">
 		<div class="checkbox">
@@ -27,8 +27,8 @@
 				[checked]="darkTheme"
 				(change)="toggleDarkTheme()"
 			>
-			<label for="dark-theme">
-				Makes the interface use a "dark" "theme"
+			<label for="dark-theme" translate>
+				#Settings_DarkThemeDesc
 			</label>
 		</div>
 	</div>
@@ -36,7 +36,7 @@
 
 <section class="setting">
 	<div class="key">
-		<div>Dev mode</div>
+		<div translate>#Settings_DevMode</div>
 	</div>
 	<div class="value">
 		<div class="checkbox">
@@ -46,8 +46,8 @@
 				[checked]="devMode"
 				(change)="toggleDevMode()"
 			>
-			<label for="dev-mode">
-				Enables "localhost" menu item
+			<label for="dev-mode" translate>
+				#Settings_DevModeDesc
 			</label>
 		</div>
 	</div>
@@ -55,7 +55,7 @@
 
 <section class="setting" *ngIf="devMode">
 	<div class="key">
-		<div>Localhost port</div>
+		<div translate>#Settings_LocalhostPort</div>
 	</div>
 	<div class="value">
 		<input
@@ -72,24 +72,36 @@
 
 <section class="setting">
 	<div class="key">
-		<div>Connected FiveM account</div>
+		<div translate>#Settings_Account</div>
 	</div>
 	<div class="value">
-		<span *ngIf="currentAccount">Linked: {{ currentAccount.username }}</span>
+		<span *ngIf="currentAccount" translate>#Settings_AccountLinked</span>
 		<span *ngIf="!currentAccount">
-			<button (click)="linkAccount()">Link</button>
+			<button (click)="linkAccount()" translate>#Settings_AccountLink</button>
 		</span>
 	</div>
 </section>
 
 <section class="setting" *ngIf="currentAccount && currentAccount.isPremium">
 	<div class="key">
-		<div>Current Server BOOST™</div>
+		<div translate>#Settings_Boost</div>
 	</div>
 	<div class="value">
-		<span *ngIf="!currentBoost && !noCurrentBoost">Loading...</span>
-		<span *ngIf="!currentBoost && noCurrentBoost">None! BOOST™ a server by clicking the upvote button in the server list.</span>
+		<span *ngIf="!currentBoost && !noCurrentBoost" translate>#Settings_BoostLoading</span>
+		<span *ngIf="!currentBoost && noCurrentBoost" translate>#Settings_BoostNone</span>
 		<span *ngIf="currentBoost && !currentBoost.server">{{ currentBoost.address }}</span>
 		<span *ngIf="currentBoost && currentBoost.server" [innerHTML]="(currentBoost.server && currentBoost.server.hostname)||'test' | escape | colorize"></span>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
+		<div translate>#Settings_Language</div>
+	</div>
+	<div class="value">
+		<select [(ngModel)]="language" (ngModelChange)="languageChanged($event)">
+			<option value="en">English</option>
+			<option value="fr">Français</option>
+		</select>
 	</div>
 </section>
