@@ -636,6 +636,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [] (void*, const ClientInfo* info, const std::wstring* filePath)
 	{
 		auto process_handle = info->process_handle();
+		DWORD exceptionCode = 0;
 
 		{
 			EXCEPTION_POINTERS* ei;
@@ -710,6 +711,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 								}
 							}
 						}
+
+						// store exception code
+						exceptionCode = ex.ExceptionCode;
 
 						// try parsing any C++ exception
 						if (ex.ExceptionCode == 0xE06D7363 && ex.ExceptionInformation[0] == 0x19930520)
@@ -833,12 +837,20 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		// avoid libcef.dll subprocess crashes terminating the entire job
 		bool shouldTerminate = true;
+		bool shouldUpload = true;
 
 		if (GetProcessId(parentProcess) != GetProcessId(info->process_handle()))
 		{
 			if (crashHash.find(L"libcef") != std::string::npos)
 			{
 				shouldTerminate = false;
+			}
+
+			// Chrome OOM situations (kOomExceptionCode)
+			if (exceptionCode == 0xE0000008)
+			{
+				shouldTerminate = false;
+				shouldUpload = false;
 			}
 		}
 
@@ -998,7 +1010,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
-		bool uploadCrashes = true;
+		bool uploadCrashes = shouldUpload;
 		bool bigMemoryDump = false;
 
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
@@ -1019,6 +1031,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			dumpPath.append(TEXT("-full.dmp"));
 
 			CreateProcessW(nullptr, const_cast<wchar_t*>(va(L"explorer /select,\"%s\"", dumpPath)), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
 		}
 
 		// upload the actual minidump file as well
