@@ -1638,6 +1638,9 @@ static HookFunction hookFunction([] ()
 	// don't complain about not meeting minimum system requirements
 	hook::return_function(hook::get_pattern("B9 11 90 02 8A 8B FA E8", -10));
 
+	// increase reserved physical memory amount threefold (to ~900 MB)
+	hook::put<uint32_t>(hook::get_pattern("48 81 C1 00 00 00 12 48 89 0D", 3), 0x36000000);
+
 	// early init command stuff
 	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 	{
