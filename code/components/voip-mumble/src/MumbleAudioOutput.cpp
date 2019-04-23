@@ -640,6 +640,8 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
 DEFINE_GUID(CLSID_AudioReverb, 0x6a93130e, 0x1d53, 0x41d1, 0xa9, 0xcf, 0xe7, 0x58, 0x80, 0x0b, 0xb1, 0x79);
 
+void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
+
 void MumbleAudioOutput::InitializeAudioDevice()
 {
 	{
@@ -655,6 +657,9 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		{
 			return;
 		}
+
+		// opt out of ducking
+		DuckingOptOut(device);
 	}
 	else
 	{

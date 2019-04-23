@@ -5,6 +5,8 @@
 #include <functiondiscoverykeys_devpkey.h>
 #include <wrl.h>
 
+#include <audiopolicy.h>
+
 namespace WRL = Microsoft::WRL;
 
 extern "C" const PROPERTYKEY PKEY_AudioEndpoint_GUID = { {
@@ -97,4 +99,23 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid)
 	}
 
 	return nullptr;
+}
+
+void DuckingOptOut(WRL::ComPtr<IMMDevice> device)
+{
+	WRL::ComPtr<IAudioSessionManager2> sessionManager;
+
+	if (SUCCEEDED(device->Activate(__uuidof(IAudioSessionManager2), CLSCTX_INPROC_SERVER, NULL, &sessionManager)))
+	{
+		WRL::ComPtr<IAudioSessionControl> sessionControl;
+		WRL::ComPtr<IAudioSessionControl2> sessionControl2;
+
+		if (SUCCEEDED(sessionManager->GetAudioSessionControl(NULL, 0, &sessionControl)))
+		{
+			if (SUCCEEDED(sessionControl.As(&sessionControl2)))
+			{
+				sessionControl2->SetDuckingPreference(TRUE);
+			}
+		}
+	}
 }

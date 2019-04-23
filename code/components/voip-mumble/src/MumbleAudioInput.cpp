@@ -405,6 +405,8 @@ static webrtc::VoiceDetection::Likelihood ConvertLikelihood(MumbleVoiceLikelihoo
 
 WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
+void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
+
 void MumbleAudioInput::InitializeAudioDevice()
 {
 	// destroy
@@ -447,6 +449,8 @@ void MumbleAudioInput::InitializeAudioDevice()
 			return;
 		}
 	}
+
+	DuckingOptOut(device);
 
 	if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
 	{
