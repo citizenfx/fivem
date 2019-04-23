@@ -19,6 +19,7 @@ MumbleUser::MumbleUser(MumbleClient* client, MumbleProto::UserState& userState)
 	m_selfDeafened = false;
 	m_selfMuted = false;
 	m_suppressed = false;
+	m_currentChannelId = 0;
 
 	UpdateUser(userState);
 }
@@ -71,35 +72,39 @@ void MumbleClientState::ProcessUserState(MumbleProto::UserState& userState)
 	if (userState.has_session())
 	{
 		// is this an update to a channel we know?
+		std::unique_lock<std::shared_mutex> lock(m_usersMutex);
+
 		auto id = userState.session();
 		auto& userIt = m_users.find(id);
 
 		if (userIt == m_users.end())
 		{
-			auto user = MumbleUser(m_client, userState);
+			auto user = std::make_shared<MumbleUser>(m_client, userState);
 
 			m_users.insert(std::make_pair(id, user));
 
-			m_client->GetOutput().HandleClientConnect(user);
+			m_client->GetOutput().HandleClientConnect(*user);
 
-			auto name = user.GetName();
+			auto name = user->GetName();
 
 			trace("New user: %s\n", std::string(name.begin(), name.end()).c_str());
 		}
 		else
 		{
-			userIt->second.UpdateUser(userState);
+			userIt->second->UpdateUser(userState);
 		}
 	}
 }
 
 void MumbleClientState::ProcessRemoveUser(uint32_t id)
 {
+	std::unique_lock<std::shared_mutex> lock(m_usersMutex);
+
 	auto it = m_users.find(id);
 
 	if (it != m_users.end())
 	{
-		m_client->GetOutput().HandleClientDisconnect(it->second);
+		m_client->GetOutput().HandleClientDisconnect(*it->second);
 	}
 
 	m_users.erase(id);

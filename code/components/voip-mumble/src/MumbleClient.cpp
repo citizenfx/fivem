@@ -172,7 +172,10 @@ void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
 	{
 		auto user = m_state.GetUser(session);
 
-		referenceIds->push_back(ToNarrow(user->GetName()));
+		if (user)
+		{
+			referenceIds->push_back(ToNarrow(user->GetName()));
+		}
 	}
 
 	// local talker talking?
@@ -425,7 +428,7 @@ void MumbleClient::ThreadFuncImpl()
 
 					bind(m_udpSocket, (sockaddr*)&sn, sizeof(sn));
 
-					m_state = {};
+					m_state.Reset();
 					m_state.SetClient(this);
 					m_state.SetUsername(ToWide(m_connectionInfo.username));
 

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <shared_mutex>
 #include "MumbleTypes.h"
 
 class MumbleClient;
@@ -89,9 +90,20 @@ private:
 
 	std::map<uint32_t, MumbleChannel> m_channels;
 
-	std::map<uint32_t, MumbleUser> m_users;
+	std::shared_mutex m_usersMutex;
+
+	std::map<uint32_t, std::shared_ptr<MumbleUser>> m_users;
 
 public:
+	inline void Reset()
+	{
+		m_client = nullptr;
+		m_session = 0;
+		m_username = L"";
+		m_channels.clear();
+		m_users.clear();
+	}
+
 	inline void SetClient(MumbleClient* client) { m_client = client; }
 
 	inline void SetUsername(std::wstring& value) { m_username = value; }
@@ -104,11 +116,13 @@ public:
 
 	inline std::map<uint32_t, MumbleChannel>& GetChannels() { return m_channels; }
 
-	inline MumbleUser* GetUser(uint32_t id)
+	inline std::shared_ptr<MumbleUser> GetUser(uint32_t id)
 	{
+		std::shared_lock<std::shared_mutex> lock(m_usersMutex);
+
 		auto it = m_users.find(id);
 
-		return (it != m_users.end()) ? &it->second : nullptr;
+		return (it != m_users.end()) ? it->second : nullptr;
 	}
 
 	void ProcessChannelState(MumbleProto::ChannelState& channelState);
