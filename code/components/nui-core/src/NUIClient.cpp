@@ -28,6 +28,8 @@ namespace nui
 	{
 		g_audioSink = sinkRef;
 	}
+
+	void RecreateFrames();
 }
 
 NUIClient::NUIClient(NUIWindow* window)
@@ -76,11 +78,16 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 {
 	auto url = frame->GetURL();
 
-	if (url == "nui://game/ui/root.html" && nui::HasMainUI())
+	if (url == "nui://game/ui/root.html")
 	{
 		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
 
-		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+		nui::RecreateFrames();
+
+		if (nui::HasMainUI())
+		{
+			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+		}
 	}
 
 	// replace any segoe ui symbol font
@@ -249,6 +256,23 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	m_audioStreams.erase({ browser->GetIdentifier(), audio_stream_id });
 }
 
+extern bool g_shouldCreateRootWindow;
+
+void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
+{
+	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html")
+	{
+		browser->GetHost()->CloseBrowser(true);
+
+		g_shouldCreateRootWindow = true;
+	}
+}
+
+void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
+{
+	m_browser = {};
+}
+
 CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
 {
 	return this;
@@ -276,7 +300,10 @@ CefRefPtr<CefRequestHandler> NUIClient::GetRequestHandler()
 
 CefRefPtr<CefAudioHandler> NUIClient::GetAudioHandler()
 {
-	return this;
+	// #TODONUI: render process termination does not work this way, needs an owning reference to the browser
+	// or otherwise tracking why the browser doesn't become null when playing audio and killing the render process
+	return nullptr;
+	//return this;
 }
 
 CefRefPtr<CefRenderHandler> NUIClient::GetRenderHandler()

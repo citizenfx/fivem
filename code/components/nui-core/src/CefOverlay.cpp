@@ -105,8 +105,6 @@ namespace nui
 	{
 		auto window = NUIWindow::Create(false, width, height, windowURL);
 
-		Instance<NUIWindowManager>::Get()->AddWindow(window.GetRef());
-
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 		windowList[windowName] = window;
 	}
@@ -114,7 +112,15 @@ namespace nui
 	__declspec(dllexport) void DestroyNUIWindow(fwString windowName)
 	{
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
-		windowList.erase(windowName);
+
+		auto windowIt = windowList.find(windowName);
+
+		if (windowIt != windowList.end())
+		{
+			Instance<NUIWindowManager>::Get()->RemoveWindow(windowIt->second.GetRef());
+
+			windowList.erase(windowName);
+		}
 	}
 
 	static fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName)
@@ -186,24 +192,34 @@ namespace nui
 		}
 	}
 
-	static std::unordered_set<std::string> frameList;
+	static std::unordered_map<std::string, std::string> frameList;
 	static std::shared_mutex frameListMutex;
 
 	__declspec(dllexport) void CreateFrame(fwString frameName, fwString frameURL)
 	{
-		auto procMessage = CefProcessMessage::Create("createFrame");
-		auto argumentList = procMessage->GetArgumentList();
+		bool exists = false;
 
-		argumentList->SetSize(2);
-		argumentList->SetString(0, frameName.c_str());
-		argumentList->SetString(1, frameURL.c_str());
+		{
+			std::shared_lock<std::shared_mutex> lock(frameListMutex);
+			exists = frameList.find(frameName) != frameList.end();
+		}
 
-		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
-		auto browser = rootWindow->GetBrowser();
-		browser->SendProcessMessage(PID_RENDERER, procMessage);
+		if (!exists)
+		{
+			auto procMessage = CefProcessMessage::Create("createFrame");
+			auto argumentList = procMessage->GetArgumentList();
 
-		std::unique_lock<std::shared_mutex> lock(frameListMutex);
-		frameList.insert(frameName);
+			argumentList->SetSize(2);
+			argumentList->SetString(0, frameName.c_str());
+			argumentList->SetString(1, frameURL.c_str());
+
+			auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
+			auto browser = rootWindow->GetBrowser();
+			browser->SendProcessMessage(PID_RENDERER, procMessage);
+
+			std::unique_lock<std::shared_mutex> lock(frameListMutex);
+			frameList.insert({ frameName, frameURL });
+		}
 	}
 
 	__declspec(dllexport) void DestroyFrame(fwString frameName)
@@ -226,6 +242,30 @@ namespace nui
 	{
 		std::shared_lock<std::shared_mutex> lock(frameListMutex);
 		return frameList.find(frameName) != frameList.end();
+	}
+
+	void RecreateFrames()
+	{
+		std::vector<std::pair<std::string, std::string>> frameData;
+
+		{
+			std::shared_lock<std::shared_mutex> lock(frameListMutex);
+
+			for (auto& frame : frameList)
+			{
+				frameData.push_back(frame);
+			}
+		}
+
+		{
+			std::unique_lock<std::shared_mutex> lock(frameListMutex);
+			frameList.clear();
+		}
+
+		for (auto& frame : frameData)
+		{
+			CreateFrame(frame.first, frame.second);
+		}
 	}
 
 	__declspec(dllexport) void SignalPoll(fwString frameName)

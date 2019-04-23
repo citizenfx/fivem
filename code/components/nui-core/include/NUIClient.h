@@ -71,6 +71,8 @@ private:
 protected:
 	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
 
+	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
+
 // CefLoadHandler
 protected:
 	virtual void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType) override;
@@ -119,6 +121,8 @@ private:
 // CefRequestHandler
 protected:
 	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
+
+	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
 
 	IMPLEMENT_REFCOUNTING(NUIClient);
 };

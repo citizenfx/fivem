@@ -216,6 +216,19 @@ void Component_RunPreInit()
 	}
 }
 
+void CreateRootWindow()
+{
+	int resX, resY;
+	GetGameResolution(resX, resY);
+
+	auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
+	rootWindow->SetPaintType(NUIPaintTypePostRender);
+
+	Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
+}
+
+bool g_shouldCreateRootWindow;
+
 void FinalizeInitNUI()
 {
     if (getenv("CitizenFX_ToolMode"))
@@ -281,17 +294,21 @@ void FinalizeInitNUI()
 
 #endif
 
-	//g_hooksDLL->SetHookCallback(StringHash("d3dCreate"), [] (void*)
 	OnGrcCreateDevice.Connect([]()
 	{
-		//int resX = *(int*)0xFDCEAC;
-		//int resY = *(int*)0xFDCEB0;
-		int resX, resY;
-		GetGameResolution(resX, resY);
+		CreateRootWindow();
+	});
 
-		auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
-		rootWindow->SetPaintType(NUIPaintTypePostRender);
+	OnPostFrontendRender.Connect([]()
+	{
+		if (g_shouldCreateRootWindow)
+		{
+			Instance<NUIWindowManager>::Get()->RemoveWindow(Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef());
+			Instance<NUIWindowManager>::Get()->SetRootWindow({});
 
-		Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
+			CreateRootWindow();
+
+			g_shouldCreateRootWindow = false;
+		}
 	});
 }
