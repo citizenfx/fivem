@@ -1010,7 +1010,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
-		bool uploadCrashes = shouldUpload;
+		bool uploadCrashes = true;
 		bool bigMemoryDump = false;
 
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
@@ -1040,7 +1040,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
-		if (uploadCrashes && HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
+		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
 #endif
 		{
 			trace("Crash report service returned %s\n", ToNarrow(responseBody));
