@@ -197,6 +197,32 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName)
 	ShellExecute(NULL, L"open", fileName, L"", L"", SW_SHOWDEFAULT);
 }
 
+void Bootstrap_MoveExecutable(const wchar_t* mode)
+{
+	wchar_t thisFileName[512];
+	GetModuleFileName(GetModuleHandle(NULL), thisFileName, sizeof(thisFileName) / 2);
+
+	std::wstring outFileName = fmt::sprintf(L"%s\\CitizenFX_uninstall_%d.exe", _wgetenv(L"temp"), time(NULL));
+
+	if (CopyFile(thisFileName, outFileName.c_str(), FALSE))
+	{
+		wcsrchr(thisFileName, L'\\')[0] = L'\0';
+
+		STARTUPINFO startupInfo;
+		memset(&startupInfo, 0, sizeof(startupInfo));
+		startupInfo.cb = sizeof(startupInfo);
+
+		PROCESS_INFORMATION processInfo;
+
+		CreateProcess(NULL, const_cast<LPWSTR>(va(L"%s -doUninstall \"%s\"", outFileName, thisFileName)), NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, &processInfo);
+
+		CloseHandle(processInfo.hProcess);
+		CloseHandle(processInfo.hThread);
+	}
+}
+
+void Install_Uninstall(const wchar_t* directory);
+
 bool Bootstrap_RunInit()
 {
 	int argc;
@@ -207,6 +233,20 @@ bool Bootstrap_RunInit()
 		if (!_wcsicmp(argv[1], L"-bootstrap"))
 		{
 			Bootstrap_ReplaceExecutable(argv[2]);
+			LocalFree(argv);
+			return true;
+		}
+
+		if (!_wcsicmp(argv[1], L"-uninstall"))
+		{
+			Bootstrap_MoveExecutable(argv[2]);
+			LocalFree(argv);
+			return true;
+		}
+
+		if (!_wcsicmp(argv[1], L"-doUninstall"))
+		{
+			Install_Uninstall(argv[2]);
 			LocalFree(argv);
 			return true;
 		}

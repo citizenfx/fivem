@@ -5,6 +5,8 @@
 
 #include <shlwapi.h>
 #include <shlobj.h>
+#include <shobjidl.h>
+#include <shellapi.h>
 
 #include <propkey.h>
 #include <propvarutil.h>
@@ -65,6 +67,117 @@ static std::wstring GetRootPath()
 	return appDataPath;
 }
 
+static void CreateUninstallEntryIfNeeded()
+{
+	// is this actually running from an install root?
+	wchar_t filename[MAX_PATH];
+	GetModuleFileNameW(NULL, filename, std::size(filename));
+
+	if (_wcsnicmp(filename, GetRootPath().c_str(), GetRootPath().length()) != 0)
+	{
+		return;
+	}
+
+	auto setUninstallString = [](const std::wstring& name, const std::wstring& value)
+	{
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CitizenFX_" PRODUCT_NAME, name.c_str(), REG_SZ, value.c_str(), (value.length() * 2) + 2);
+	};
+
+	auto setUninstallDword = [](const std::wstring& name, DWORD value)
+	{
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CitizenFX_" PRODUCT_NAME, name.c_str(), REG_DWORD, &value, sizeof(value));
+	};
+
+	setUninstallString(L"DisplayName", PRODUCT_NAME);
+	setUninstallString(L"DisplayIcon", filename + std::wstring(L",0"));
+	setUninstallString(L"HelpLink", L"https://fivem.net/");
+	setUninstallString(L"InstallLocation", GetRootPath());
+	setUninstallString(L"Publisher", L"The CitizenFX Collective");
+	setUninstallString(L"UninstallString", fmt::sprintf(L"\"%s\" -uninstall app", filename));
+	setUninstallString(L"URLInfoAbout", L"https://fivem.net/");
+	setUninstallDword(L"NoModify", 1);
+	setUninstallDword(L"NoRepair", 1);
+}
+
+void Install_Uninstall(const wchar_t* directory)
+{
+	// check if this is actually a FiveM directory we're trying to uninstall
+	if (GetFileAttributes(fmt::sprintf(L"%s\\%s", directory, L"FiveM.app").c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		return;
+	}
+
+	// prompt the user
+	int button;
+
+	if (FAILED(TaskDialog(
+		NULL,
+		GetModuleHandle(NULL),
+		L"Uninstall FiveM",
+		L"Uninstall FiveM?",
+		fmt::sprintf(L"Are you sure you want to remove FiveM from the installation root at %s?", directory).c_str(),
+		TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+		NULL,
+		&button)))
+	{
+		return;
+	}
+
+	if (button != IDYES)
+	{
+		return;
+	}
+
+	CoInitialize(NULL);
+
+	WRL::ComPtr<IFileOperation> ifo;
+	HRESULT hr = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_INPROC_SERVER, IID_IFileOperation, (void**)&ifo);
+
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"Failed to create instance of IFileOperation.", L"InsnailShield", MB_OK | MB_ICONSTOP);
+		return;
+	}
+
+	ifo->SetOperationFlags(FOF_NOCONFIRMATION);
+
+	auto addDelete = [ifo](const std::wstring & item)
+	{
+		WRL::ComPtr<IShellItem> shitem;
+		if (FAILED(SHCreateItemFromParsingName(item.c_str(), NULL, IID_IShellItem, (void**)& shitem)))
+		{
+			return false;
+		}
+
+		ifo->DeleteItem(shitem.Get(), NULL);
+		return true;
+	};
+
+	addDelete(directory);
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\FiveM.lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\FiveM.lnk");
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\FiveM Singleplayer.lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\FiveM Singleplayer.lnk");
+
+	hr = ifo->PerformOperations();
+
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, fmt::sprintf(L"Failed to uninstall FiveM. HRESULT = 0x%08x", hr).c_str(), L"InsnailShield", MB_OK | MB_ICONSTOP);
+		return;
+	}
+
+	BOOL aborted = FALSE;
+	ifo->GetAnyOperationsAborted(&aborted);
+
+	if (aborted)
+	{
+		MessageBox(NULL, L"The uninstall operation was canceled. Some files may still remain. Please remove these files manually.", L"InsnailShield", MB_OK | MB_ICONSTOP);
+	}
+
+	RegDeleteKey(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CitizenFX_" PRODUCT_NAME);
+}
+
 bool Install_PerformInstallation()
 {
 	auto rootPath = GetRootPath();
@@ -77,10 +190,42 @@ bool Install_PerformInstallation()
 	// the executable goes to the target
 	auto targetExePath = rootPath + L"\\FiveM.exe";
 
+	auto doHandoff = [targetExePath]()
+	{
+		STARTUPINFO si = { sizeof(si) };
+		PROCESS_INFORMATION pi;
+
+		if (CreateProcess(nullptr, const_cast<wchar_t*>(va(L"\"%s\"", targetExePath)),
+			nullptr, nullptr, FALSE, CREATE_BREAKAWAY_FROM_JOB | CREATE_SUSPENDED, nullptr, nullptr, &si, &pi))
+		{
+			static HostSharedData<CfxState> hostData("CfxInitState");
+			hostData->inJobObject = false;
+			hostData->initialPid = pi.dwProcessId;
+
+			ResumeThread(pi.hThread);
+
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
+
+			return true;
+		}
+		
+		return false;
+	};
+
 	// but only if it doesn't exist
 	if (GetFileAttributes(targetExePath.c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
-		MessageBox(nullptr, L"FiveM is already installed. You should launch it through the shortcut in the Start menu.\nIf you want to create a portable installation, put FiveM.exe into an empty folder instead.", L"FiveM", MB_OK | MB_ICONINFORMATION);
+		// at least re-verify the game, if the user 'tried' to reinstall
+		DeleteFileW((rootPath + L"\\caches.xml").c_str());
+		DeleteFileW((rootPath + L"\\FiveM.app\\caches.xml").c_str());
+
+		// hand off to the actual game
+		if (!doHandoff())
+		{
+			MessageBox(nullptr, L"FiveM is already installed. You should launch it through the shortcut in the Start menu.\nIf you want to create a portable installation, put FiveM.exe into an empty folder instead.", L"FiveM", MB_OK | MB_ICONINFORMATION);
+		}
+
 		return true;
 	}
 
@@ -156,21 +301,8 @@ bool Install_PerformInstallation()
 	}
 
 	// hand-off the process elsewhere
-	STARTUPINFO si = { sizeof(si) };
-	PROCESS_INFORMATION pi;
-
-	if (CreateProcess(nullptr, const_cast<wchar_t*>(va(L"\"%s\"", targetExePath)),
-		nullptr, nullptr, FALSE, CREATE_BREAKAWAY_FROM_JOB | CREATE_SUSPENDED, nullptr, nullptr, &si, &pi))
+	if (doHandoff())
 	{
-		static HostSharedData<CfxState> hostData("CfxInitState");
-		hostData->inJobObject = false;
-		hostData->initialPid = pi.dwProcessId;
-
-		ResumeThread(pi.hThread);
-
-		CloseHandle(pi.hProcess);
-		CloseHandle(pi.hThread);
-
 		return true;
 	}
 
@@ -223,6 +355,8 @@ bool Install_RunInstallMode()
 
 			CoUninitialize();
 		}
+
+		CreateUninstallEntryIfNeeded();
 
 		return false;
 	}
