@@ -9,7 +9,8 @@
 		"gta:streaming",
 		"gta:mission-cleanup",
 		"citizen:resources:core",
-		"citizen:scripting:core"
+		"citizen:scripting:core",
+		"net"
 	],
 	"provides": []
 }

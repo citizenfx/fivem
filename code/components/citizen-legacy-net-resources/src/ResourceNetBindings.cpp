@@ -588,6 +588,8 @@ static InitFunction initFunction([] ()
 			
 			std::string eventPayload = std::string(context.GetArgument<const char*>(1), payloadSize);
 
+			netLibrary->OnTriggerServerEvent(eventName, eventPayload);
+
 			NetBuffer buffer(131072);
 			buffer.Write<uint16_t>(eventName.size() + 1);
 			buffer.Write(eventName.c_str(), eventName.size() + 1);

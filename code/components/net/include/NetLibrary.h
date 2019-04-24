@@ -359,6 +359,11 @@ public:
 	// same as the other routine, except it's for authentication
 	fwEvent<const net::PeerAddress&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
 
+	// event to intercept server events for debugging
+	// a1: event name
+	// a2: event payload
+	fwEvent<const std::string&, const std::string&> OnTriggerServerEvent;
+
 	static
 #ifndef COMPILING_NET
 		__declspec(dllimport)

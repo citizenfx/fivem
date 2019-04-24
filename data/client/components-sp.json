@@ -30,5 +30,7 @@
 	"scripthookv",
 	"citizen:resources:core",
 	"scrbind:base",
-	"citizen:scripting:core"
+	"citizen:scripting:core",
+	"profiles",
+	"net"
 ]
