@@ -6,6 +6,7 @@
 		"rage:allocator:five",
 		"rage:nutsnbolts:five",
 		"rage:scripting:five",
+		"rage:input:five",
 		"vendor:minhook"
 	],
 	"provides": []
