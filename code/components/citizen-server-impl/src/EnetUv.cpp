@@ -8,8 +8,26 @@
 #include <UvLoopManager.h>
 #include <UvTcpServer.h>
 
+#include <EASTL/internal/fixed_pool.h>
+
+using TPacketPool = eastl::fixed_node_allocator<65536, 256, 16, 0, true>;
+
+static uint8_t packetArena[TPacketPool::kBufferSize];
+static TPacketPool packetAllocator(packetArena);
+
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
+
+// needed for eastl
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
 
 static std::chrono::nanoseconds timeBase{ 0 };
 
@@ -87,7 +105,7 @@ enet_socket_set_option(ENetSocket socket, ENetSocketOption option, int value)
 
 static void alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
-	*buf = uv_buf_init((char*)malloc(suggested_size), suggested_size);
+	*buf = uv_buf_init((char*)((suggested_size <= TPacketPool::kNodeSize) ? packetAllocator.allocate(TPacketPool::kNodeSize) : malloc(suggested_size)), suggested_size);
 }
 
 fwEvent<> OnEnetReceive;
@@ -154,7 +172,14 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 
 			OnEnetReceive();
 
-			free(buf->base);
+			if (buf->len > TPacketPool::kNodeSize)
+			{
+				free(buf->base);
+			}
+			else
+			{
+				packetAllocator.deallocate(buf->base, TPacketPool::kNodeSize);
+			}
 		});
 	}
 
