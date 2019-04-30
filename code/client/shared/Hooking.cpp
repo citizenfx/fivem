@@ -51,7 +51,9 @@ namespace hook
 	ptrdiff_t baseAddressDifference;
 }
 
+#ifndef IS_FXSERVER
 static InitFunction initHookingFunction([]()
 {
 	hook::set_base();
 }, INT32_MIN);
+#endif

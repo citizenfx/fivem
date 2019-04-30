@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifndef IS_FXSERVER
 #include "Hooking.Patterns.h"
 
 #include <windows.h>
@@ -290,3 +291,4 @@ namespace hook
 	}
 #endif
 }
+#endif
