@@ -536,6 +536,8 @@ void CaptureBufferOutput()
 		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
 		GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &g_rtv);
 
+		d3dTex.CopyTo(&g_myTexture);
+
 		WRL::ComPtr<IDXGIResource> dxgiResource;
 		HANDLE sharedHandle;
 		hr = d3dTex.As(&dxgiResource);
@@ -552,8 +554,6 @@ void CaptureBufferOutput()
 		}
 
 		handleData->handle = sharedHandle;
-
-		d3dTex.CopyTo(&g_myTexture);
 	}
 
 	if (!handleData->requested)
