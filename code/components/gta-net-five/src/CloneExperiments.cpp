@@ -840,7 +840,9 @@ void ObjectManager_End(rage::netObjectMgr* objectMgr)
 				objectMgr->ForAllNetObjects(i, objectCb);
 			}
 
-			for (auto netObj : TheClones->GetObjectList())
+			auto listCopy = TheClones->GetObjectList();
+
+			for (auto netObj : listCopy)
 			{
 				objectCb(netObj);
 			}
