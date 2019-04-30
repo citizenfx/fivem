@@ -380,7 +380,7 @@ void SendPrintMessage(const std::string& message)
 
 	while (std::getline(ss, to, '\n'))
 	{
-		g_console->AddLog(to.c_str());
+		g_console->AddLog("%s", to.c_str());
 	}
 }
 
