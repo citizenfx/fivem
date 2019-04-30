@@ -19,7 +19,7 @@
 namespace hook
 {
 // for link /DYNAMICBASE executables
-static ptrdiff_t baseAddressDifference;
+extern ptrdiff_t baseAddressDifference;
 
 // sets the base address difference based on an obtained pointer
 inline void set_base(uintptr_t address)
@@ -44,14 +44,32 @@ inline void set_base()
 template<typename T>
 inline void adjust_base(T& address)
 {
-	*(uintptr_t*)&address += baseAddressDifference;
+	if ((uintptr_t)address >= 0x140000000 && (uintptr_t)address <= 0x146000000)
+	{
+		*(uintptr_t*)& address += baseAddressDifference;
+	}
 }
 
 // returns the adjusted address to the stated base
 template<typename T>
 inline uintptr_t get_adjusted(T address)
 {
-	return (uintptr_t)address + baseAddressDifference;
+	if ((uintptr_t)address >= 0x140000000 && (uintptr_t)address <= 0x146000000)
+	{
+		return (uintptr_t)address + baseAddressDifference;
+	}
+
+	return (uintptr_t)address;
+}
+
+// returns the adjusted address to the stated base
+template<typename T>
+inline uintptr_t get_unadjusted(T address)
+{
+	if ((uintptr_t)address >= hook::get_adjusted(0x140000000) && (uintptr_t)address <= hook::get_adjusted(0x146000000))
+	{
+		return (uintptr_t)address - baseAddressDifference;
+	}
 }
 
 struct pass
@@ -139,7 +157,7 @@ inline T* getRVA(uintptr_t rva)
 #ifdef _M_IX86
 	return (T*)(baseAddressDifference + 0x400000 + rva);
 #elif defined(_M_AMD64)
-	return (T*)(0x140000000 + rva);
+	return (T*)(baseAddressDifference + 0x140000000 + rva);
 #endif
 }
 

@@ -47,4 +47,11 @@ namespace hook
 #endif
 	}
 #endif
+
+	ptrdiff_t baseAddressDifference;
 }
+
+static InitFunction initHookingFunction([]()
+{
+	hook::set_base();
+}, INT32_MIN);

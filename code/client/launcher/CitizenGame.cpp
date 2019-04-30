@@ -199,6 +199,8 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 
 	g_ranStartupInfo = true;
 
+	hook::set_base();
+
 	if (getenv("CitizenFX_ToolMode"))
 	{
 		auto plRoutine = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "ToolMode_RunPostLaunchRoutine");

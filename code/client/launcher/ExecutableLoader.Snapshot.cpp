@@ -1,6 +1,8 @@
 #include <StdInc.h>
 #include "ExecutableLoader.h"
 
+#include <Hooking.h>
+
 // 1604 now...!
 #define TRIGGER_EP 0x14175DE00
 
@@ -42,20 +44,25 @@ static void SetDebugBits(std::function<void(CONTEXT*)> cb, CONTEXT* curContext)
 template<typename T>
 static inline T* GetTargetRVA(uint32_t rva)
 {
-	return (T*)((uint8_t*)0x140000000 + rva);
+	return (T*)((uint8_t*)hook::get_adjusted(0x140000000 + rva));
 }
+
+static void UnapplyRelocations(bool a);
 
 static LONG CALLBACK SnapshotVEH(PEXCEPTION_POINTERS pointers)
 {
 	static bool primed = false;
 
-	if (pointers->ExceptionRecord->ExceptionAddress == (void*)TRIGGER_EP)
+	if (pointers->ExceptionRecord->ExceptionAddress == (void*)hook::get_adjusted(TRIGGER_EP))
 	{
 		// clear the breakpoint
 		SetDebugBits([=](CONTEXT* context)
 		{
 			context->Dr7 &= ~((3 << 6) | (3 << 22) | (3 << 30));
 		}, pointers->ContextRecord);
+
+		// remove relocations
+		UnapplyRelocations(false);
 
 		// snapshot the process
 		IMAGE_DOS_HEADER* header = GetTargetRVA<IMAGE_DOS_HEADER>(0);
@@ -79,6 +86,8 @@ static LONG CALLBACK SnapshotVEH(PEXCEPTION_POINTERS pointers)
 			fclose(f);
 		}
 
+		UnapplyRelocations(true);
+
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 
@@ -96,12 +105,93 @@ void DoCreateSnapshot()
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		context->Dr3 = (DWORD64)TRIGGER_EP;
+		context->Dr3 = (DWORD64)hook::get_adjusted(TRIGGER_EP);
 	}, nullptr);
 }
 
 static void* g_dumpEP;
 static std::wstring g_dumpFileName;
+
+static void UnapplyRelocations(bool a)
+{
+	IMAGE_DOS_HEADER* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(hook::get_adjusted(0x140000000));
+
+	IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
+
+	IMAGE_DATA_DIRECTORY* relocationDirectory = &ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+
+	IMAGE_BASE_RELOCATION* relocation = GetTargetRVA<IMAGE_BASE_RELOCATION>(relocationDirectory->VirtualAddress);
+	IMAGE_BASE_RELOCATION* endRelocation = reinterpret_cast<IMAGE_BASE_RELOCATION*>((char*)relocation + relocationDirectory->Size);
+
+	intptr_t relocOffset = static_cast<intptr_t>(hook::get_adjusted(0x140000000)) - 0x140000000;
+
+	if (relocOffset == 0)
+	{
+		return;
+	}
+
+	// loop
+	while (true)
+	{
+		// are we past the size?
+		if (relocation >= endRelocation)
+		{
+			break;
+		}
+
+		// is this an empty block?
+		if (relocation->SizeOfBlock == 0)
+		{
+			break;
+		}
+
+		// go through each and every relocation
+		size_t numRelocations = (relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(uint16_t);
+		uint16_t * relocStart = reinterpret_cast<uint16_t*>(relocation + 1);
+
+		for (size_t i = 0; i < numRelocations; i++)
+		{
+			uint16_t type = relocStart[i] >> 12;
+			uint32_t rva = (relocStart[i] & 0xFFF) + relocation->VirtualAddress;
+
+			void* addr = GetTargetRVA<void>(rva);
+			DWORD oldProtect;
+			VirtualProtect(addr, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+			if (type == IMAGE_REL_BASED_HIGHLOW)
+			{
+				if (a)
+				{
+					*reinterpret_cast<int32_t*>(addr) += relocOffset;
+				}
+				else
+				{
+					*reinterpret_cast<int32_t*>(addr) -= relocOffset;
+				}
+			}
+			else if (type == IMAGE_REL_BASED_DIR64)
+			{
+				if (a)
+				{
+					*reinterpret_cast<int64_t*>(addr) += relocOffset;
+				}
+				else
+				{
+					*reinterpret_cast<int64_t*>(addr) -= relocOffset;
+				}
+			}
+			else if (type != IMAGE_REL_BASED_ABSOLUTE)
+			{
+				return;
+			}
+
+			VirtualProtect(addr, 4, oldProtect, &oldProtect);
+		}
+
+		// on to the next one!
+		relocation = reinterpret_cast<IMAGE_BASE_RELOCATION*>((char*)relocation + relocation->SizeOfBlock);
+	}
+}
 
 static LONG CALLBACK DumpVEH(PEXCEPTION_POINTERS pointers)
 {
@@ -112,6 +202,9 @@ static LONG CALLBACK DumpVEH(PEXCEPTION_POINTERS pointers)
 		{
 			context->Dr7 &= ~((3 << 6) | (3 << 22) | (3 << 30));
 		}, pointers->ContextRecord);
+
+		// rebase to the original base
+		UnapplyRelocations(false);
 
 		// snapshot the process
 		IMAGE_DOS_HEADER* header = GetTargetRVA<IMAGE_DOS_HEADER>(0);
@@ -215,6 +308,9 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 
 	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
 	{
+		DWORD oldProtect;
+		VirtualProtect(GetTargetRVA<void>(section->VirtualAddress), section->SizeOfRawData, PAGE_EXECUTE_READWRITE, &oldProtect);
+
 		fread(GetTargetRVA<void>(section->VirtualAddress), 1, section->SizeOfRawData, f);
 
 		++section;
@@ -225,5 +321,6 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 	DWORD oldProtect;
 	VirtualProtect(ntHeader, 0x1000, PAGE_READWRITE, &oldProtect);
 
+	// no-adjust
 	ntHeader->OptionalHeader.AddressOfEntryPoint = TRIGGER_EP - 0x140000000;
 }

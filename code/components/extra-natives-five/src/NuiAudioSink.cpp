@@ -175,7 +175,7 @@ namespace rage
 		_audSoundInitParams_ctor(this);
 
 		// 1604
-		m_pad[0x9A] = *(uint32_t*)0x141C5F998;
+		m_pad[0x9A] = *(uint32_t*)hook::get_adjusted(0x141C5F998);
 	}
 
 	class audEntity

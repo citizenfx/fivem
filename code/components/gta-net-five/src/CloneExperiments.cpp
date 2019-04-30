@@ -59,7 +59,7 @@ public:
 // 1365
 // 1493
 // 1604
-static rage::netPlayerMgrBase* g_playerMgr = (rage::netPlayerMgrBase*)0x142875710;
+static rage::netPlayerMgrBase* g_playerMgr;
 
 void* g_tempRemotePlayer;
 
@@ -202,12 +202,12 @@ namespace sync
 
 		// this has to come from the pool directly as the game will expect to free it
 		void* nonPhys = rage::PoolAllocate(rage::GetPoolBase("CNonPhysicalPlayerData"));
-		((void(*)(void*))0x1410A4024)(nonPhys); // ctor
+		((void(*)(void*))hook::get_adjusted(0x1410A4024))(nonPhys); // ctor
 
 		// 1493
 		// 1604
 		void* phys = calloc(1024, 1);
-		((void(*)(void*))0x1410A2480)(phys);
+		((void(*)(void*))hook::get_adjusted(0x1410A2480))(phys);
 
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonPhys);
 		g_tempRemotePlayer = player;
@@ -282,7 +282,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// 1493
 		// 1604
 		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))0x141022B20)(nullptr, &objectId, player);
+		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))hook::get_adjusted(0x141022B20))(nullptr, &objectId, player);
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
@@ -293,7 +293,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 			trace("deleted object id\n");
 
 			// 1604
-			((void(*)(void*, uint16_t, CNetGamePlayer*))0x141008D14)(ped, objectId, player);
+			((void(*)(void*, uint16_t, CNetGamePlayer*))hook::get_adjusted(0x141008D14))(ped, objectId, player);
 
 			trace("success! reassigned the ped!\n");
 		}
@@ -497,7 +497,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	// 1365
 	// 1493
 	// 1604
-	return ((CNetGamePlayer*(*)(void*))0x1410A2300)(plr);
+	return ((CNetGamePlayer*(*)(void*))hook::get_adjusted(0x1410A2300))(plr);
 }
 
 #include <minhook.h>
@@ -1007,6 +1007,8 @@ static void VoiceChatMgr_EstimateBandwidth(void* mgr)
 
 static HookFunction hookFunction([]()
 {
+	g_playerMgr = (rage::netPlayerMgrBase*)hook::get_adjusted(0x142875710);
+
 	// temp dbg
 	//hook::put<uint16_t>(hook::get_pattern("0F 84 80 00 00 00 49 8B 07 49 8B CF FF 50 20"), 0xE990);
 
@@ -1047,7 +1049,7 @@ static HookFunction hookFunction([]()
 	// 1365
 	// 1493
 	// 1604
-	MH_CreateHook((void*)0x1410AA870, AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	MH_CreateHook((void*)hook::get_adjusted(0x1410AA870), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);

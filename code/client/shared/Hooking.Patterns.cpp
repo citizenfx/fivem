@@ -172,7 +172,7 @@ namespace hook
 			{
 				std::for_each(range.first, range.second, [&](const std::pair<uint64_t, uintptr_t>& hint)
 				{
-					ConsiderMatch(hint.second);
+					ConsiderMatch(hook::get_adjusted(hint.second));
 				});
 
 				// if the hints succeeded, we don't need to do anything more
@@ -199,8 +199,8 @@ namespace hook
 		auto matchSuccess = [&](uintptr_t address)
 		{
 #if PATTERNS_USE_HINTS
-			GetHints().emplace(m_hash, address);
-			Citizen_PatternSaveHint(m_hash, address);
+			GetHints().emplace(m_hash, hook::get_unadjusted(address));
+			Citizen_PatternSaveHint(m_hash, hook::get_unadjusted(address));
 #else
 			(void)address;
 #endif

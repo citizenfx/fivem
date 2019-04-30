@@ -8,13 +8,15 @@
 #include "StdInc.h"
 
 #ifdef GTA_FIVE
+#include <Hooking.h>
+
 static uintptr_t g_currentStub = 0x146000000;
 
 extern "C"
 {
 	DLL_EXPORT void* AllocateFunctionStubImpl(void* function, int type)
 	{
-		char* code = (char*)g_currentStub;
+		char* code = (char*)g_currentStub + hook::baseAddressDifference;
 
 		DWORD oldProtect;
 		VirtualProtect(code, 15, PAGE_EXECUTE_READWRITE, &oldProtect);

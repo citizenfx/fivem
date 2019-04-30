@@ -498,7 +498,7 @@ void CaptureBufferOutput()
 
 	// 1365
 	// 1604
-	rage::grcRenderTargetDX11* backBuf = *(rage::grcRenderTargetDX11**)0x142AD7A88;
+	rage::grcRenderTargetDX11* backBuf = *(rage::grcRenderTargetDX11**)hook::get_adjusted(0x142AD7A88);
 
 	if (backBuf)
 	{

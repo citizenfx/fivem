@@ -1340,10 +1340,10 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 		// 1365
 		// 1493
 		// 1604
-		((void(*)())0x1400067E8)();
-		((void(*)())0x1407D1960)();
-		((void(*)())0x140025F7C)();
-		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0); // rly? renderthreadinterface stuff
+		((void(*)())hook::get_adjusted(0x1400067E8))();
+		((void(*)())hook::get_adjusted(0x1407D1960))();
+		((void(*)())hook::get_adjusted(0x140025F7C))();
+		((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0)); // rly? renderthreadinterface stuff
 
 		Sleep(0);
 	}
@@ -1828,7 +1828,7 @@ static HookFunction hookFunction([] ()
 
 		if (locator->signature == 1)
 		{
-			char* namePtr = (char*)(0x140000000 + locator->pTypeDescriptor + 16);
+			char* namePtr = (char*)(hook::get_adjusted(0x140000000) + locator->pTypeDescriptor + 16);
 
 			if (strcmp(namePtr, ".?AV?$AutoIdDescriptor_T@VnetMessage@rage@@@rage@@") == 0)
 			{

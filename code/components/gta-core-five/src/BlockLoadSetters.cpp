@@ -1156,10 +1156,10 @@ void ShutdownSessionWrap()
 		OnMainGameFrame();
 
 		// 1604 (same as nethook)
-		((void(*)())0x1400067E8)();
-		((void(*)())0x1407D1960)();
-		((void(*)())0x140025F7C)();
-		((void(*)(void*))0x141595FD4)((void*)0x142DC9BA0);
+		((void(*)())hook::get_adjusted(0x1400067E8))();
+		((void(*)())hook::get_adjusted(0x1407D1960))();
+		((void(*)())hook::get_adjusted(0x140025F7C))();
+		((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
 
 		g_runWarning();
 	}

@@ -28,6 +28,8 @@ private:
 	void LoadSection(IMAGE_SECTION_HEADER* section);
 	void LoadSections(IMAGE_NT_HEADERS* ntHeader);
 
+	bool ApplyRelocations();
+
 #ifdef _M_AMD64
 	void LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader);
 #endif
