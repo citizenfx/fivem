@@ -11,6 +11,7 @@
 #include <ros/LoopbackTcpServer.h>
 #include <IteratorView.h>
 
+#include <LaunchMode.h>
 #include <CfxSubProcess.h>
 
 #define REMOVE_EVENT_INSTANTLY (1 << 16)
@@ -1491,7 +1492,7 @@ static InitFunction hookFunction([] ()
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoExW", EP_GetAddrInfoExW, g_oldGetAddrInfoExW);
 //	DO_HOOK(L"ws2_32.dll", "FreeAddrInfoW", EP_FreeAddrInfoW, g_oldFreeAddrInfoW); // these three are hook-checked
 
-	if (GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "wine_get_version") != nullptr)
+	if (CfxIsWine())
 	{
 		DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo); // enabled because wine, probably going to fail
 	}

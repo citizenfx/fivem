@@ -15,6 +15,9 @@
 
 #include <Error.h>
 
+#include <LaunchMode.h>
+#include <CoreConsole.h>
+
 #include <include/base/cef_bind.h>
 #include <include/wrapper/cef_closure_task.h>
 
@@ -78,6 +81,11 @@ NUIWindow::~NUIWindow()
 	if (m_swapSrv)
 	{
 		m_swapSrv->Release();
+	}
+
+	if (m_renderBuffer)
+	{
+		delete[] m_renderBuffer;
 	}
 
 	Instance<NUIWindowManager>::Get()->RemoveWindow(this);
@@ -319,6 +327,9 @@ const BYTE quadVS[] =
 
 void NUIWindow::Initialize(CefString url)
 {
+	static bool nuiSharedResourcesEnabled = true;
+	static ConVar<bool> nuiSharedResources("nui_useSharedResources", ConVar_Archive, true, &nuiSharedResourcesEnabled);
+
 	InitializeCriticalSection(&m_renderBufferLock);
 
 	if (m_renderBuffer)
@@ -335,9 +346,6 @@ void NUIWindow::Initialize(CefString url)
 	// create the temporary backing store
 	m_roundedHeight = roundUp(m_height, 16);
 	m_roundedWidth = roundUp(m_width, 16);
-
-	// not used anymore since shared resources
-	//m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
 
 	// create the backing texture
 	rage::grcManualTextureDef textureDef;
@@ -364,7 +372,7 @@ void NUIWindow::Initialize(CefString url)
 
 	CefWindowInfo info;
 	info.SetAsWindowless(FindWindow(L"grcWindow", nullptr));
-	info.shared_texture_enabled = true;
+	info.shared_texture_enabled = (!CfxIsWine() && nuiSharedResourcesEnabled);
 	info.external_begin_frame_enabled = true;
 	info.width = m_width;
 	info.height = m_height;
@@ -377,6 +385,11 @@ void NUIWindow::Initialize(CefString url)
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
+
+	if (!info.shared_texture_enabled)
+	{
+		m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
+	}
 }
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
@@ -592,7 +605,6 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					//deviceContext->CopySubresourceRegion(m_nuiTexture->texture, 0, m_lastDirtyRect.left, m_lastDirtyRect.top, 0, texture, 0, &box);
 					if (m_primary)
 					{
 						deviceContext->CopyResource(m_nuiTexture->texture, texture);
@@ -736,6 +748,66 @@ void NUIWindow::UpdateFrame()
 			else
 			{
 				MarkRenderBufferDirty();
+			}
+		}
+	}
+	else if (m_renderBuffer)
+	{
+		if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
+		{
+			void* pBits = nullptr;
+			int pitch;
+			bool discarded = false;
+
+			rage::grcLockedTexture lockedTexture;
+
+			if (m_nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
+			{
+				pBits = lockedTexture.pBits;
+				pitch = lockedTexture.pitch;
+			}
+			else if (m_nuiTexture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
+			{
+				pBits = lockedTexture.pBits;
+				pitch = lockedTexture.pitch;
+
+				discarded = true;
+			}
+
+			if (pBits)
+			{
+				if (!discarded)
+				{
+					while (!m_dirtyRects.empty())
+					{
+						EnterCriticalSection(&m_renderBufferLock);
+						CefRect rect = m_dirtyRects.front();
+						m_dirtyRects.pop();
+						LeaveCriticalSection(&m_renderBufferLock);
+
+						int height = m_height;
+
+						for (int y = rect.y; y < (rect.y + rect.height); y++)
+						{
+							int dy = height - y;
+
+							int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
+							int* dest = &((int*)(pBits))[(dy * (pitch / 4)) + rect.x];
+
+							memcpy(dest, src, (rect.width * 4));
+						}
+					}
+				}
+				else
+				{
+					EnterCriticalSection(&m_renderBufferLock);
+					m_dirtyRects = std::queue<CefRect>();
+					LeaveCriticalSection(&m_renderBufferLock);
+
+					memcpy(pBits, m_renderBuffer, m_height * pitch);
+				}
+
+				m_nuiTexture->Unmap(&lockedTexture);
 			}
 		}
 	}

@@ -64,12 +64,7 @@ void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintEl
 
 void NUIRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 {
-	// OnPaint shouldn't be reached anymore
-	//assert(!"NUIRenderHandler::OnPaint");
-
-	return;
-
-	if (m_owner->GetWindowValid())
+	if (m_owner->GetWindowValid() && m_owner->GetWindow()->GetRenderBuffer())
 	{
 		// lock the window lock
 		auto& lock = m_owner->GetWindowLock();
@@ -177,7 +172,6 @@ void NUIRenderHandler::PaintView(const RectList& dirtyRects, const void* buffer,
 
 	for (auto& rect : dirtyRects)
 	{
-		if (!rage::grcTexture::IsRenderSystemColorSwapped())
 		{
 			for (int y = rect.y; y < (rect.y + rect.height); y++)
 			{
@@ -186,10 +180,6 @@ void NUIRenderHandler::PaintView(const RectList& dirtyRects, const void* buffer,
 
 				memcpy(dest, src, (rect.width * 4));
 			}
-		}
-		else
-		{
-			ConvertImageDataRGBA_BGRA(rect.x, rect.y, rect.width, rect.height, width * 4, buffer, roundedWidth * 4, renderBuffer);
 		}
 
 		window->AddDirtyRect(rect);
@@ -233,7 +223,6 @@ void NUIRenderHandler::PaintPopup(const void* buffer, int width, int height)
 	void* renderBuffer = window->GetRenderBuffer();
 	int roundedWidth = window->GetRoundedWidth();
 
-	if (!rage::grcTexture::IsRenderSystemColorSwapped())
 	{
 		for (int y = yy; y < (yy + h); y++)
 		{
@@ -242,10 +231,6 @@ void NUIRenderHandler::PaintPopup(const void* buffer, int width, int height)
 
 			memcpy(dest, src, (w * 4));
 		}
-	}
-	else
-	{
-		ConvertImageDataRGBA_BGRA(x, yy, w, h, width * 4, buffer, roundedWidth * 4, renderBuffer);
 	}
 
 	// add dirty rect
