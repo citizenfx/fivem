@@ -573,7 +573,7 @@ static HookFunction initFunction([]()
 	});
 
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x31), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
+	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
 	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
