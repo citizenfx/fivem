@@ -13,6 +13,8 @@
 
 #include <optional>
 
+#include <MonoThreadAttachment.h>
+
 // HTTP handler
 static auto GetHttpHandler(fx::Resource* resource)
 {
@@ -181,6 +183,7 @@ public:
 				}
 			});
 
+			MonoEnsureThreadAttached();
 			m_resource->GetManager()->CallReference<void>(*m_handlerRef, requestWrap, responseWrap);
 		}
 	}

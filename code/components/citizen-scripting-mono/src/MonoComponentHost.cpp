@@ -394,7 +394,7 @@ struct MonoAttachment
 	}
 };
 
-static void MonoEnsureThreadAttached()
+DLL_EXPORT void MonoEnsureThreadAttached()
 {
 	static thread_local MonoAttachment attachment;
 }

@@ -26,6 +26,8 @@
 
 #include <ServerIdentityProvider.h>
 
+#include <MonoThreadAttachment.h>
+
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
 static std::map<std::string, fx::ServerIdentityProviderBase*> g_providersByType;
 
@@ -489,6 +491,8 @@ static InitFunction initFunction([]()
 					*cbRef = nullptr;
 					*deferrals = nullptr;
 				});
+
+				MonoEnsureThreadAttached();
 
 				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{

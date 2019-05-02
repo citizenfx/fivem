@@ -7,6 +7,7 @@
 		"citizen:scripting:core",
 		"citizen:server:instance",
 		"citizen:server:net",
+		"citizen:scripting:mono",
 		"vfs:impl:server",
 		"vendor:cpr",
 		"vendor:curl",
