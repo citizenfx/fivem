@@ -12,7 +12,7 @@
 #define RAGE_FORMATS_IN_GAME
 #include <gtaDrawable.h>
 
-static rage::grcTexture* LookupTexture(const std::string& txd, const std::string& txn)
+rage::grcTexture* LookupTexture(const std::string& txd, const std::string& txn)
 {
 	streaming::Manager* streaming = streaming::Manager::GetInstance();
 	auto txdStore = streaming->moduleMgr.GetStreamingModule("ytd");
