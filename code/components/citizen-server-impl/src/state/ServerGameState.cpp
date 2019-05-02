@@ -557,7 +557,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				return;
 			}
 
-			auto entityClient = entity->client.lock();
+			std::shared_ptr<fx::Client> entityClient;
+			
+			{
+				std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+				entityClient = entity->client.lock();
+			}
 
 			if (!entityClient)
 			{
@@ -875,7 +880,12 @@ void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>
 
 	if (stolen)
 	{
-		auto clientRef = entity->client.lock();
+		std::shared_ptr<fx::Client> clientRef;
+		
+		{
+			std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+			clientRef = entity->client.lock();
+		}
 
 		if (clientRef)
 		{
@@ -899,7 +909,14 @@ void ServerGameState::UpdateEntities()
 		// update client camera
 		if (entity->type == sync::NetObjEntityType::Player)
 		{
-			if (auto client = entity->client.lock(); client)
+			std::shared_ptr<fx::Client> client;
+
+			{
+				std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+				client = entity->client.lock();
+			}
+
+			if (client)
 			{
 				float playerPos[3];
 				entity->syncTree->GetPosition(playerPos);
@@ -1107,8 +1124,14 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 		return;
 	}
 
-	auto oldClient = entity->client;
-	entity->client = targetClient;
+	std::weak_ptr<fx::Client> oldClient;
+
+	{
+		std::unique_lock<std::shared_mutex> clientLock(entity->clientMutex);
+
+		oldClient = entity->client;
+		entity->client = targetClient;
+	}
 
 	{
 		auto oldClientRef = oldClient.lock();
@@ -1194,6 +1217,8 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			bool hasClient = true;
 
 			{
+				std::shared_lock<std::shared_mutex> clientLock(entity->clientMutex);
+
 				auto entityClient = entity->client.lock();
 
 				if (!entityClient)
@@ -1371,6 +1396,8 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 
 		// don't do duplicate migrations
 		{
+			std::shared_lock<std::shared_mutex> clientLock(entity->clientMutex);
+
 			auto entityClient = entity->client.lock();
 
 			if (entityClient && entityClient->GetNetId() == tgtCl->GetNetId())
@@ -1406,6 +1433,8 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 
 	if (entity)
 	{
+		std::shared_lock<std::shared_mutex> clientLock(entity->clientMutex);
+
 		auto entityClient = entity->client.lock();
 
 		if (entityClient)
@@ -1524,7 +1553,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	// move this back down under
 	{
-		auto[data, lock] = GetClientData(this, client);
+		auto [data, lock] = GetClientData(this, client);
 		data->playerId = playerId;
 	}
 
@@ -1535,9 +1564,20 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	bool createdHere = false;
 
-	if (!entity || entity->client.expired())
+	bool validEntity = false;
+
 	{
-		if (parsingType == 1)
+		if (entity)
+		{
+			std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+
+			validEntity = !entity->client.expired();
+		}
+	}
+
+	if (parsingType == 1)
+	{
+		if (!validEntity)
 		{
 			entity = std::make_shared<sync::SyncEntityState>();
 			entity->client = client;
@@ -1564,39 +1604,41 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 				m_entitiesById[objectId].swap(weakEntity);
 			}
 		}
-		else
+		else // duplicate create? that's not supposed to happen
 		{
-			Log("%s: wrong entity (%d)!\n", __func__, objectId);
+			std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+
+			auto lcl = entity->client.lock();
+
+			if (objectType != entity->type)
+			{
+				Log("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
+					__func__,
+					client->GetNetId(),
+					client->GetName(),
+					objectId,
+					(int)objectType,
+					(lcl) ? lcl->GetNetId() : -1,
+					(lcl) ? lcl->GetName() : "(null)",
+					(int)entity->type);
+
+				trace("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
+					__func__,
+					client->GetNetId(),
+					client->GetName(),
+					objectId,
+					(int)objectType,
+					(lcl) ? lcl->GetNetId() : -1,
+					(lcl) ? lcl->GetName() : "(null)",
+					(int)entity->type);
+			}
 
 			return;
 		}
 	}
-	else if (parsingType == 1) // duplicate create? that's not supposed to happen
+	else if (!validEntity)
 	{
-		auto lcl = entity->client.lock();
-
-		if (objectType != entity->type)
-		{
-			Log("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
-				__func__,
-				client->GetNetId(),
-				client->GetName(),
-				objectId,
-				(int)objectType,
-				(lcl) ? lcl->GetNetId() : -1,
-				(lcl) ? lcl->GetName() : "(null)",
-				(int)entity->type);
-
-			trace("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
-				__func__,
-				client->GetNetId(),
-				client->GetName(),
-				objectId,
-				(int)objectType,
-				(lcl) ? lcl->GetNetId() : -1,
-				(lcl) ? lcl->GetName() : "(null)",
-				(int)entity->type);
-		}
+		Log("%s: wrong entity (%d)!\n", __func__, objectId);
 
 		return;
 	}
@@ -1604,7 +1646,12 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	entity->didDeletion.reset(client->GetSlotId());
 	entity->ackedCreation.set(client->GetSlotId());
 
-	auto entityClient = entity->client.lock();
+	std::shared_ptr<fx::Client> entityClient;
+
+	{
+		std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+		entityClient = entity->client.lock();
+	}
 
 	if (!entityClient)
 	{

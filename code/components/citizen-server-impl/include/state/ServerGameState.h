@@ -12,6 +12,7 @@
 
 #include <array>
 #include <EASTL/bitset.h>
+#include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/task_group.h>
@@ -176,6 +177,7 @@ struct SyncEntityState
 	using TData = std::variant<int, float, bool, std::string>;
 
 	tbb::concurrent_unordered_map<std::string, TData> data;
+	std::shared_mutex clientMutex;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
 	eastl::bitset<256> ackedCreation;
