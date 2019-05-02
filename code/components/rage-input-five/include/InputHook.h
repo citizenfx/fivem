@@ -13,4 +13,6 @@ namespace InputHook
 	extern INPUT_DECL fwEvent<int&> QueryMayLockCursor;
 
 	INPUT_DECL void SetGameMouseFocus(bool focus);
+
+	INPUT_DECL void EnableSetCursorPos(bool enabled);
 }

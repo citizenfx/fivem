@@ -6,6 +6,7 @@
 static WNDPROC origWndProc;
 
 static bool g_isFocused = true;
+static bool g_enableSetCursorPos = false;
 static bool g_isFocusStolen = false;
 
 static void(*disableFocus)();
@@ -33,6 +34,10 @@ void InputHook::SetGameMouseFocus(bool focus)
 	g_isFocusStolen = !focus;
 
 	return (focus) ? enableFocus() : disableFocus();
+}
+
+void InputHook::EnableSetCursorPos(bool enabled) {
+	g_enableSetCursorPos = enabled;
 }
 
 static char* g_gameKeyArray;
@@ -121,13 +126,15 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 
 BOOL WINAPI SetCursorPosWrap(int X, int Y)
 {
-	if (!g_isFocused)
+	if (!g_isFocused || g_enableSetCursorPos)
 	{
 		return SetCursorPos(X, Y);
 	}
 
 	return TRUE;
 }
+
+
 
 static HookFunction hookFunction([] ()
 {
