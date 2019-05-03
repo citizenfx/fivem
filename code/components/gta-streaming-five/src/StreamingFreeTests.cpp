@@ -13,6 +13,9 @@
 
 #include <Error.h>
 
+#include <CoreConsole.h>
+#include <MinHook.h>
+
 struct ResBmInfoInt
 {
 	void* pad;
@@ -169,8 +172,79 @@ void WrapAssetRelease(AssetStore* assetStore, uint32_t entry)
 	}
 }
 
+namespace rage
+{
+	struct PageMap
+	{
+		void* f0;
+		uint8_t f8;
+		uint8_t f9;
+		uint8_t fA;
+
+		void* pageInfo[3 * 128];
+	};
+
+	struct pgBase
+	{
+		void* vtbl;
+		PageMap* pageMap;
+	};
+
+	struct datResourceMap
+	{
+		uint8_t numPages1;
+		uint8_t numPages2;
+	};
+}
+
+static void(*g_origPgBaseDtor)(rage::pgBase* self);
+
+static void pgBaseDtorHook(rage::pgBase* self)
+{
+	g_origPgBaseDtor(self);
+
+	delete self->pageMap;
+	self->pageMap = nullptr;
+}
+
+static void(*g_origMakeDefragmentable)(rage::pgBase*, const rage::datResourceMap&, bool);
+
+static void MakeDefragmentableHook(rage::pgBase* self, const rage::datResourceMap& map, bool a3)
+{
+	if (self->pageMap)
+	{
+		auto newPageMap = new rage::PageMap;
+		memcpy(newPageMap, self->pageMap, offsetof(rage::PageMap, pageInfo) + (3 * sizeof(void*) * (map.numPages1 + map.numPages2)));
+
+		self->pageMap = newPageMap;
+	}
+
+	g_origMakeDefragmentable(self, map, a3);
+}
+
+struct strStreamingInterface
+{
+	virtual ~strStreamingInterface() = 0;
+
+	virtual void LoadAllRequestedObjects(bool) = 0;
+
+	virtual void RequestFlush() = 0;
+};
+
+static strStreamingInterface** g_strStreamingInterface;
+
 static HookFunction hookFunction([] ()
 {
+	static ConsoleCommand flushCommand("str_requestFlush", []()
+	{
+		if (*g_strStreamingInterface)
+		{
+			(*g_strStreamingInterface)->RequestFlush();
+		}
+	});
+
+	g_strStreamingInterface = hook::get_address<decltype(g_strStreamingInterface)>(hook::get_pattern("48 8B 0D ? ? ? ? 33 D2  48 8B 01 FF 50 08 40 84", 3));
+
 	void* getBlockMapCall = hook::pattern("CC FF 50 48 48 85 C0 74 0D").count(1).get(0).get<void>(17);
 
 	hook::set_call(&g_getBlockMap, getBlockMapCall);
@@ -248,4 +322,19 @@ static HookFunction hookFunction([] ()
 			hook::call_reg<1>(location, fixStub.GetCode());
 		}
 	}
+
+	// since various versions of ZModeler don't write valid page map pointers (not reserving enough memory for the page map,
+	// instead reserving a much smaller amount) and this leads to corrupting random values
+
+	// common crash hash (1604): lithium-leopard-fourteen, crSkeletonBase bone list counter overwritten
+
+	MH_Initialize();
+	
+	// pgBase constructor -> MakeDefragmentable
+	MH_CreateHook(hook::get_pattern("41 8A F0 4D 85 C9 74 07 41 80 79 0B 00", -0x18), MakeDefragmentableHook, (void**)&g_origMakeDefragmentable);
+
+	// pgBase destructor, to free the relocated page map we created
+	MH_CreateHook(hook::get_pattern("48 81 EC 48 0C 00 00 48 8B"), pgBaseDtorHook, (void**)&g_origPgBaseDtor);
+
+	MH_EnableHook(MH_ALL_HOOKS);
 });
