@@ -143,6 +143,8 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 		return false;
 	};
 
+	std::map<int, int> offCounts;
+
 	// loop the instructions
 	while (true)
 	{
@@ -249,6 +251,20 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 					if (*(char**)operandPtr == (char*)GetProcAddress(GetModuleHandleW(L"tier0_s64.dll"), "?Lock@CThreadMutex@@QEAAXXZ"))
 					{
 						hadExternCall = true;
+					}
+				}
+				else
+				{
+					// 2019-05 Steam seems to refactor this again, now user functions will do `call qword ptr [rdi+0F8h]` twice and don't have any nested normal CALL
+					if (hadExternCall)
+					{
+						offCounts[operand->lval.sdword]++;
+
+						if (offCounts[operand->lval.sdword] == 2)
+						{
+							*isUser = true;
+							return true;
+						}
 					}
 				}
 			}
