@@ -34,9 +34,22 @@ namespace fx
 
 		client->OnAssignPeer.Connect([this, weakClient]()
 		{
-			m_clientsByPeer[weakClient.lock()->GetPeer()] = weakClient;
+			auto client = weakClient.lock();
+
+			if (!client)
+			{
+				return;
+			}
+
+			m_clientsByPeer[client->GetPeer()] = weakClient;
 
 			if (!g_oneSyncVar->GetValue())
+			{
+				return;
+			}
+
+			// reconnecting clients will assign a peer again, but should *not* be assigned a new slot ID
+			if (client->GetSlotId() != -1)
 			{
 				return;
 			}
@@ -51,7 +64,7 @@ namespace fx
 
 				if (m_clientsBySlotId[slot].expired())
 				{
-					weakClient.lock()->SetSlotId(slot);
+					client->SetSlotId(slot);
 
 					m_clientsBySlotId[slot] = weakClient;
 
