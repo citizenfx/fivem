@@ -51,7 +51,7 @@
 			targetname "FiveM"
 		
 		configuration "windows"
-			linkoptions "/IGNORE:4254 /SAFESEH:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
+			linkoptions "/IGNORE:4254 /SAFESEH:NO /DYNAMICBASE:NO /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 
 			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
 			-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
