@@ -20,6 +20,8 @@
 #include <UvLoopManager.h>
 #include <UvTcpServer.h> // for UvCallback
 
+#include <MonoThreadAttachment.h>
+
 #include <protocol/reqrep0/req.h>
 #include <protocol/reqrep0/rep.h>
 
@@ -736,6 +738,9 @@ namespace fx
 
 		// force a hearbeat
 		ForceHeartbeat();
+
+		// ensure mono thread attachment (if this was a worker thread)
+		MonoEnsureThreadAttached();
 
 		// trigger a event signaling the player's drop
 		m_instance
