@@ -55,6 +55,9 @@ private:
 	uint32_t m_lastKeepaliveSent;
 };
 
+static int g_maxMtu = 1400;
+static std::shared_ptr<ConVar<int>> g_maxMtuVar;
+
 NetLibraryImplV2::NetLibraryImplV2(INetLibraryInherit* base)
 	: m_base(base), m_host(nullptr), m_timedOut(false), m_serverPeer(nullptr), m_lastKeepaliveSent(0)
 {
@@ -97,6 +100,8 @@ void NetLibraryImplV2::CreateResources()
 
 		return 0;
 	};
+
+	m_host->mtu = g_maxMtu;
 }
 
 void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, size_t length)
@@ -387,6 +392,12 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
 static InitFunction initFunction([]()
 {
 	enet_initialize();
+
+	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary*)
+	{
+		g_maxMtuVar = std::make_shared<ConVar<int>>("net_maxMtu", ConVar_Archive, 1400, &g_maxMtu);
+		g_maxMtuVar->GetHelper()->SetConstraints(ENET_PROTOCOL_MINIMUM_MTU, ENET_PROTOCOL_MAXIMUM_MTU);
+	});
 });
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base)
