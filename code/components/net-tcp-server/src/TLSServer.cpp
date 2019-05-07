@@ -234,10 +234,13 @@ PeerAddress TLSServerStream::GetPeerAddress()
 
 void TLSServerStream::Write(const std::vector<uint8_t>& data)
 {
-	if (m_tlsServer->is_active())
+	ScheduleCallback([this, data]()
 	{
-		m_tlsServer->send(data);
-	}
+		if (m_tlsServer && m_tlsServer->is_active())
+		{
+			m_tlsServer->send(data);
+		}
+	});
 }
 
 void TLSServerStream::Close()
@@ -324,6 +327,11 @@ void TLSServerStream::CloseInternal()
 	SetReadCallback(TReadCallback());
 
 	m_parentServer->CloseStream(this);
+}
+
+void TLSServerStream::ScheduleCallback(const TScheduledCallback& callback)
+{
+	m_baseStream->ScheduleCallback(callback);
 }
 
 TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath, bool autoGenerate)

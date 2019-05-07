@@ -239,6 +239,13 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 	uv_async_send(m_writeCallback.get());
 }
 
+void UvTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
+{
+	m_pendingRequests.push(callback);
+
+	uv_async_send(m_writeCallback.get());
+}
+
 void UvTcpServerStream::HandlePendingWrites()
 {
 	if (!m_client)

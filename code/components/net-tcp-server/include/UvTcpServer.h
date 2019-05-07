@@ -67,6 +67,8 @@ public:
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
 	virtual void Close() override;
+
+	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
 };
 
 class TcpServerManager;

@@ -45,4 +45,9 @@ void TcpServerStream::SetReadCallback(const TReadCallback& callback)
 		OnFirstSetReadCallback();
 	}
 }
+
+void TcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
+{
+	callback();
+}
 }

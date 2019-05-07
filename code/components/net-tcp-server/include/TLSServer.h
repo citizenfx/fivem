@@ -107,6 +107,8 @@ public:
 		}
 	}
 
+	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
+
 private:
 	void WriteToClient(const uint8_t buf[], size_t length);
 

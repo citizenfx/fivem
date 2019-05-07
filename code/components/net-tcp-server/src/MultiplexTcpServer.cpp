@@ -234,6 +234,11 @@ void MultiplexTcpChildServerStream::SetInitialData(const std::vector<uint8_t>& i
 	m_initialData = initialData;
 }
 
+void MultiplexTcpChildServerStream::ScheduleCallback(const TScheduledCallback& callback)
+{
+	m_baseStream->ScheduleCallback(callback);
+}
+
 fwRefContainer<TcpServer> MultiplexTcpServer::CreateServer(const MultiplexPatternMatchFn& patternMatchFunction)
 {
 	fwRefContainer<MultiplexTcpChildServer> child = new MultiplexTcpChildServer();

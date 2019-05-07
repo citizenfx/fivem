@@ -24,6 +24,8 @@ public:
 
 	typedef std::function<void()> TCloseCallback;
 
+	typedef std::function<void()> TScheduledCallback;
+
 private:
 	TReadCallback m_readCallback;
 
@@ -54,6 +56,8 @@ public:
 	void SetReadCallback(const TReadCallback& callback);
 
 	void SetCloseCallback(const TCloseCallback& callback);
+
+	virtual void ScheduleCallback(const TScheduledCallback& callback);
 
 protected:
 	TcpServerStream() { }
