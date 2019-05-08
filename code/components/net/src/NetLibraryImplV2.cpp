@@ -55,7 +55,7 @@ private:
 	uint32_t m_lastKeepaliveSent;
 };
 
-static int g_maxMtu = 1400;
+static int g_maxMtu = 1300;
 static std::shared_ptr<ConVar<int>> g_maxMtuVar;
 
 NetLibraryImplV2::NetLibraryImplV2(INetLibraryInherit* base)
@@ -400,7 +400,7 @@ static InitFunction initFunction([]()
 
 	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary*)
 	{
-		g_maxMtuVar = std::make_shared<ConVar<int>>("net_maxMtu", ConVar_Archive, 1400, &g_maxMtu);
+		g_maxMtuVar = std::make_shared<ConVar<int>>("net_maxMtu", ConVar_Archive, 1300, &g_maxMtu);
 		g_maxMtuVar->GetHelper()->SetConstraints(ENET_PROTOCOL_MINIMUM_MTU, ENET_PROTOCOL_MAXIMUM_MTU);
 	});
 });
