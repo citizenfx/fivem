@@ -102,6 +102,11 @@ void NetLibraryImplV2::CreateResources()
 	};
 
 	m_host->mtu = g_maxMtu;
+
+	for (int peer = 0; peer < m_host->peerCount; peer++)
+	{
+		m_host->peers[peer].mtu = g_maxMtu;
+	}
 }
 
 void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, size_t length)
