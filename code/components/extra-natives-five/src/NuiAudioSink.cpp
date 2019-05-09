@@ -7,8 +7,20 @@
 
 #include <sysAllocator.h>
 
+#include <nutsnbolts.h>
+
+#include <fiDevice.h>
+
+#include <CoreConsole.h>
+
 namespace rage
 {
+	class audWaveSlot
+	{
+	public:
+		static audWaveSlot* FindWaveSlot(uint32_t hash);
+	};
+
 	class audSound
 	{
 	public:
@@ -24,7 +36,7 @@ namespace rage
 
 		virtual void m_28() = 0;
 
-		void PrepareAndPlay(void* a1, bool a2, int a3, bool a4);
+		void PrepareAndPlay(audWaveSlot* waveSlot, bool a2, int a3, bool a4);
 
 		void StopAndForget(void* a1);
 	};
@@ -39,7 +51,7 @@ namespace rage
 		return hook::get_pattern("74 24 45 0F B6 41 62", -0x10);
 	});
 
-	void audSound::PrepareAndPlay(void* a1, bool a2, int a3, bool a4)
+	void audSound::PrepareAndPlay(audWaveSlot* a1, bool a2, int a3, bool a4)
 	{
 		_audSound_PrepareAndPlay(this, a1, a2, a3, a4);
 	}
@@ -218,6 +230,16 @@ namespace rage
 
 		g_categoryMgr = hook::get_address<audCategoryManager*>(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", -4));
 	});
+
+	static hook::cdecl_stub<audWaveSlot*(uint32_t)> _findWaveSlot([]()
+	{
+		return hook::get_call(hook::get_pattern("B9 A1 C7 05 92 E8", 5));
+	});
+
+	audWaveSlot* audWaveSlot::FindWaveSlot(uint32_t hash)
+	{
+		return _findWaveSlot(hash);
+	}
 }
 
 static hook::cdecl_stub<void()> _updateAudioThread([]()
@@ -390,13 +412,60 @@ std::shared_ptr<nui::IAudioStream> RageAudioSink::CreateAudioStream(const nui::A
 
 static RageAudioSink g_audioSink;
 
+DLL_IMPORT void ForceMountDataFile(const std::pair<std::string, std::string>& dataFile);
+
 static InitFunction initFunction([]()
 {
 	rage::OnInitFunctionInvoked.Connect([](rage::InitFunctionType type, const rage::InitFunctionData& data)
 	{
 		if (type == rage::InitFunctionType::INIT_CORE && data.funcHash == 0xE6D408DF)
 		{
-			audioRunning = true;
+			rage::fiPackfile* xm18 = new rage::fiPackfile();
+			if (xm18->OpenPackfile("dlcpacks:/mpchristmas2018/dlc.rpf", true, 3, false))
+			{
+				xm18->Mount("xm18:/");
+
+				ForceMountDataFile({ "AUDIO_SOUNDDATA", "xm18:/x64/audio/dlcAWXM2018_sounds.dat" });
+				ForceMountDataFile({ "AUDIO_WAVEPACK", "xm18:/x64/audio/sfx/dlc_AWXM2018" });
+
+				audioRunning = true;
+			}
+		}
+	});
+
+	OnGameFrame.Connect([]()
+	{
+		static ConVar<bool> arenaWarVariable("tbhidonotlikethearenawarthemeandrockstarcommittedcrimesagainsteverything", ConVar_Archive, false);
+		static ConVar<bool> arenaWarVariableForce("arenawarthemeisthebestsongofthecentury", ConVar_Archive, false);
+
+		static rage::audSound* g_sound;
+
+		if (audioRunning)
+		{
+			bool active = nui::HasMainUI() && !arenaWarVariable.GetValue();
+
+			if (arenaWarVariableForce.GetValue())
+			{
+				active = true;
+			}
+
+			if (active && !g_sound)
+			{
+				rage::audSoundInitParams initValues;
+
+				rage::g_frontendAudioEntity->CreateSound_PersistentReference(HashString("dlc_awxm2018_theme_5_stems"), (rage::audSound**)&g_sound, initValues);
+
+				if (g_sound)
+				{
+					g_sound->PrepareAndPlay(rage::audWaveSlot::FindWaveSlot(HashString("interactive_music_1")), true, -1, false);
+					_updateAudioThread();
+				}
+			}
+			else if (g_sound && !active)
+			{
+				g_sound->StopAndForget(nullptr);
+				_updateAudioThread();
+			}
 		}
 	});
 

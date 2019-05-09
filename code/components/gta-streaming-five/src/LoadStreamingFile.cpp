@@ -896,6 +896,16 @@ static void LoadDataFiles()
 	}
 }
 
+DLL_EXPORT void ForceMountDataFile(const std::pair<std::string, std::string>& dataFile)
+{
+	std::vector<std::pair<std::string, std::string>> dataFiles = { dataFile };
+
+	HandleDataFileList(dataFiles, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
+	{
+		return mounter->MountFile(&entry);
+	});
+}
+
 void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
 {
 	for (auto& entry : g_customStreamingFileRefs)
