@@ -64,13 +64,13 @@ public:
 	{
 		resource->OnTick.Connect([=]()
 		{
-			ResourceActivationScope activationScope(resource);
-
 			QueuedEvent entry;
 			std::queue<QueuedEvent> pushQueue;
 
 			while (m_queue.try_pop(entry))
 			{
+				ResourceActivationScope activationScope(resource);
+
 				if (entry.cond && !entry.cond())
 				{
 					pushQueue.push(std::move(entry));
@@ -82,6 +82,8 @@ public:
 
 			while (!pushQueue.empty())
 			{
+				ResourceActivationScope activationScope(resource);
+
 				auto& entry = pushQueue.front();
 				m_queue.push(std::move(entry));
 
