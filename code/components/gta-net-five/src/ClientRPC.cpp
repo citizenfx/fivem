@@ -30,6 +30,26 @@ extern NetLibrary* g_netLibrary;
 
 static std::shared_ptr<RpcConfiguration> g_rpcConfiguration;
 
+struct ResourceActivationScope
+{
+	ResourceActivationScope(fx::Resource* resource)
+	{
+		resource->OnActivate();
+
+		m_resource = resource;
+	}
+
+	~ResourceActivationScope()
+	{
+		m_resource->OnDeactivate();
+
+		m_resource = nullptr;
+	}
+
+private:
+	fx::Resource* m_resource;
+};
+
 class RpcNextTickQueue : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
 private:
@@ -44,6 +64,8 @@ public:
 	{
 		resource->OnTick.Connect([=]()
 		{
+			ResourceActivationScope activationScope(resource);
+
 			QueuedEvent entry;
 			std::queue<QueuedEvent> pushQueue;
 
