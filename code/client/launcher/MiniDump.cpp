@@ -522,6 +522,20 @@ static void GatherCrashInformation()
 
 			if (err == MZ_OK)
 			{
+				auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
+
+				if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+				{
+					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
+				}
+
+				extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info2.bin");
+
+				if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+				{
+					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
+				}
+
 				success = true;
 			}
 		}
@@ -1050,6 +1064,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		{
 			crashId = L"";
 		}
+
+		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info.bin").c_str());
+		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info2.bin").c_str());
 
 		if (thread.joinable())
 		{

@@ -852,6 +852,9 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 }
 
+net::Buffer g_cloneMsgPacket;
+std::vector<uint8_t> g_cloneMsgData;
+
 void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 {
 	if (!rage::netObjectMgr::GetInstance())
@@ -860,6 +863,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	}
 
 	net::Buffer netBuffer(reinterpret_cast<const uint8_t*>(data), len);
+	g_cloneMsgPacket = netBuffer.Clone();
 
 	// read the packet
 	msgPackedClones msg;
@@ -869,6 +873,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 	for (auto& clone : msg.GetClones())
 	{
+		g_cloneMsgData = clone.GetCloneData();
+
 		switch (clone.GetSyncType())
 		{
 		case 1:

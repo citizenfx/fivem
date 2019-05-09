@@ -1005,6 +1005,47 @@ static void VoiceChatMgr_EstimateBandwidth(void* mgr)
 	g_origVoiceChatMgr_EstimateBandwidth(mgr);
 }
 
+static void(*g_origCPedGameStateDataNode__access)(void*, void*);
+
+namespace sync
+{
+	extern net::Buffer g_cloneMsgPacket;
+	extern std::vector<uint8_t> g_cloneMsgData;
+}
+
+static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
+{
+	g_origCPedGameStateDataNode__access(dataNode, accessor);
+
+	// 1604
+
+	// if on mount/mount ID is set
+	if (*(uint16_t*)(dataNode + 310) && icgi->OneSyncEnabled)
+	{
+		auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
+
+		auto f = _wfopen(extraDumpPath.c_str(), L"wb");
+
+		if (f)
+		{
+			fwrite(sync::g_cloneMsgPacket.GetData().data(), 1, sync::g_cloneMsgPacket.GetData().size(), f);
+			fclose(f);
+		}
+
+		extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info2.bin");
+
+		f = _wfopen(extraDumpPath.c_str(), L"wb");
+
+		if (f)
+		{
+			fwrite(sync::g_cloneMsgData.data(), 1, sync::g_cloneMsgData.size(), f);
+			fclose(f);
+		}
+
+		FatalError("CPedGameStateDataNode: tried to read a mount ID, this is wrong, please click 'save information' below and post the file in https://forum.fivem.net/t/318260 to help us resolve this issue.");
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	g_playerMgr = (rage::netPlayerMgrBase*)hook::get_adjusted(0x142875710);
@@ -1113,6 +1154,9 @@ static HookFunction hookFunction([]()
 
 	// disable voice chat bandwidth estimation for 1s (it will overwrite some memory)
 	MH_CreateHook(hook::get_pattern("40 8A 72 2D 40 80 FE FF 0F 84", -0x46), VoiceChatMgr_EstimateBandwidth, (void**)&g_origVoiceChatMgr_EstimateBandwidth);
+
+	// crash logging for invalid mount indices
+	MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 44 01 00 00 48 8B F1", -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
