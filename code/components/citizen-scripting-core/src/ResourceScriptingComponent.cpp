@@ -247,8 +247,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 		fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
 
-		auto sharedScripts = metaData->GetEntries("shared_script");
-		auto clientScripts = metaData->GetEntries(
+		auto sharedScripts = metaData->GlobEntriesVector("shared_script");
+		auto clientScripts = metaData->GlobEntriesVector(
 #ifdef IS_FXSERVER
 			"server_script"
 #else
@@ -263,13 +263,13 @@ void ResourceScriptingComponent::CreateEnvironments()
 			for (auto& list : { sharedScripts, clientScripts }) {
 				for (auto& script : list)
 				{
-					if (ptr->HandlesFile(const_cast<char*>(script.second.c_str())))
+					if (ptr->HandlesFile(const_cast<char*>(script.c_str())))
 					{
-						result_t hr = ptr->LoadFile(const_cast<char*>(script.second.c_str()));
+						result_t hr = ptr->LoadFile(const_cast<char*>(script.c_str()));
 
 						if (FX_FAILED(hr))
 						{
-							trace("Failed to load script %s.\n", script.second.c_str());
+							trace("Failed to load script %s.\n", script.c_str());
 						}
 					}
 				}
