@@ -8,7 +8,17 @@
 #include "StdInc.h"
 #include "ResourceMetaDataComponent.h"
 
+#include <Resource.h>
+#include <VFSManager.h>
+
 #include <ManifestVersion.h>
+
+#include <regex>
+#include <boost/algorithm/string/replace.hpp>
+
+#include <filesystem>
+
+std::string path_normalize(const std::string& pathRef);
 
 namespace fx
 {
@@ -93,5 +103,221 @@ std::optional<bool> ResourceMetaDataComponent::IsManifestVersionBetween(const gu
 	}
 
 	return matches;
+}
+
+static std::string getDirectory(const std::string& in)
+{
+	auto i = in.find_last_of('/');
+
+	if (i != std::string::npos)
+	{
+		return in.substr(0, i);
+	}
+	else
+	{
+		return ".";
+	}
+}
+
+struct Match
+{
+	Match(const fwRefContainer<vfs::Device>& device, const std::string& pattern)
+	{
+		auto slashPos = pattern.find_last_of('/');
+		auto root = pattern.substr(0, slashPos) + "/";
+		auto after = pattern.substr(slashPos + 1);
+
+		this->findHandle = device->FindFirst(root, &findData);
+
+		this->device = device;
+		this->pattern = after;
+		this->root = root;
+		this->end = (this->findHandle == INVALID_DEVICE_HANDLE);
+
+		auto patternCopy = after;
+
+		boost::replace_all(patternCopy, "\\", "\\\\");
+		boost::replace_all(patternCopy, "^", "\\^");
+		boost::replace_all(patternCopy, ".", "\\.");
+		boost::replace_all(patternCopy, "$", "\\$");
+		boost::replace_all(patternCopy, "|", "\\|");
+		boost::replace_all(patternCopy, "(", "\\(");
+		boost::replace_all(patternCopy, ")", "\\)");
+		boost::replace_all(patternCopy, "[", "\\[");
+		boost::replace_all(patternCopy, "]", "\\]");
+		boost::replace_all(patternCopy, "*", "\\*");
+		boost::replace_all(patternCopy, "+", "\\+");
+		boost::replace_all(patternCopy, "?", "\\?");
+		boost::replace_all(patternCopy, "/", "\\/");
+		boost::replace_all(patternCopy, "\\?", ".");
+		boost::replace_all(patternCopy, "\\*", ".*");
+
+		this->re = std::regex{ "^" + patternCopy + "$" };
+
+		while (!Matches() && !end)
+		{
+			FindNext();
+		}
+
+		this->has = false;
+
+		if (Matches())
+		{
+			this->has = true;
+		}
+	}
+
+	const vfs::FindData& Get()
+	{
+		return findData;
+	}
+
+	bool Matches()
+	{
+		if (findData.name != "." && findData.name != "..")
+		{
+			return std::regex_match(findData.name, re);
+		}
+
+		return false;
+	}
+
+	void Next()
+	{
+		if (!end)
+		{
+			do
+			{
+				FindNext();
+			} while (!Matches() && !end);
+
+			has = Matches();
+		}
+		else
+		{
+			has = false;
+		}
+	}
+
+	operator bool()
+	{
+		return findHandle != INVALID_DEVICE_HANDLE && has;
+	}
+
+	~Match()
+	{
+		device->FindClose(findHandle);
+		findHandle = INVALID_DEVICE_HANDLE;
+	}
+
+private:
+	void FindNext()
+	{
+		end = !device->FindNext(findHandle, &findData);
+	}
+
+private:
+	fwRefContainer<vfs::Device> device;
+	std::string root;
+	std::string pattern;
+	vfs::Device::THandle findHandle;
+	vfs::FindData findData;
+	std::regex re;
+	bool end;
+	bool has;
+};
+
+static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& device, const std::string& pattern)
+{
+	auto patternNorm = path_normalize(pattern);
+
+	auto starPos = patternNorm.find('*');
+	auto before = getDirectory((starPos != std::string::npos) ? patternNorm.substr(0, starPos) : patternNorm);
+	auto slashPos = (starPos != std::string::npos) ? patternNorm.find('/', starPos) : std::string::npos;
+	auto after = (slashPos != std::string::npos) ? patternNorm.substr(slashPos + 1) : "";
+
+	bool recurse = (starPos != std::string::npos &&
+		patternNorm.substr(starPos + 1, 1) == "*" &&
+		(starPos == 0 || patternNorm.substr(starPos - 1, 1) == "/"));
+
+	std::vector<std::string> results;
+
+	if (recurse)
+	{
+		auto submask = patternNorm.substr(0, starPos) + patternNorm.substr(starPos + 2);
+		results = MatchFiles(device, submask);
+
+		auto findPattern = patternNorm.substr(0, starPos + 1);
+
+		for (Match match{ device, findPattern }; match; match.Next())
+		{
+			if (match.Get().attributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				auto matchPath = before + "/" + match.Get().name + "/" + patternNorm.substr(starPos);
+				auto resultsSecond = MatchFiles(device, matchPath);
+
+				for (auto& result : resultsSecond)
+				{
+					results.push_back(std::move(result));
+				}
+			}
+		}
+	}
+	else
+	{
+		auto findPattern = patternNorm.substr(0, slashPos != std::string::npos ? slashPos - 1 : std::string::npos);
+
+		for (Match match{ device, findPattern }; match; match.Next())
+		{
+			bool isfile = !(match.Get().attributes & FILE_ATTRIBUTE_DIRECTORY);
+			bool hasSlashPos = slashPos != std::string::npos;
+
+			if (!(hasSlashPos && isfile))
+			{
+				auto matchPath = before + "/" + match.Get().name;
+
+				if (!after.empty())
+				{
+					auto resultsSecond = MatchFiles(device, matchPath + "/" + after);
+
+					for (auto& result : resultsSecond)
+					{
+						results.push_back(std::move(result));
+					}
+				}
+				else
+				{
+					results.push_back(matchPath);
+				}
+			}
+		}
+	}
+
+	return results;
+}
+
+void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::function<void(const std::string&)>& entryCallback)
+{
+	const auto& rootPath = m_resource->GetPath() + "/";
+	fwRefContainer<vfs::Device> device = vfs::GetDevice(rootPath);
+
+	if (!device.GetRef())
+	{
+		return;
+	}
+
+	auto relRoot = path_normalize(rootPath);
+
+	for (auto& entry : GetEntries(key))
+	{
+		std::string pattern = entry.second;
+
+		auto mf = MatchFiles(device, rootPath + pattern);
+
+		for (auto& file : mf)
+		{
+			entryCallback(file.substr(relRoot.length() + 1));
+		}
+	}
 }
 }

@@ -55,8 +55,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 		{
 			fwRefContainer<ResourceMetaDataComponent> metaData = resource->GetComponent<ResourceMetaDataComponent>();
 
-			auto sharedScripts = metaData->GetEntries("shared_script");
-			auto clientScripts = metaData->GetEntries(
+			auto sharedScripts = metaData->GlobEntriesVector("shared_script");
+			auto clientScripts = metaData->GlobEntriesVector(
 #ifdef IS_FXSERVER
 				"server_script"
 #else
@@ -73,7 +73,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				{
 					for (auto& script : list)
 					{
-						if (ptr->HandlesFile(const_cast<char*>(script.second.c_str())))
+						if (ptr->HandlesFile(const_cast<char*>(script.c_str())))
 						{
 							environmentUsed = true;
 							break;
