@@ -1065,9 +1065,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			crashId = L"";
 		}
 
-		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info.bin").c_str());
-		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info2.bin").c_str());
-
 		if (thread.joinable())
 		{
 			thread.join();
@@ -1077,6 +1074,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		{
 			saveThread.join();
 		}
+
+		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info.bin").c_str());
+		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info2.bin").c_str());
 	};
 
 	CrashGenerationServer::OnClientExitedCallback exitCallback = [] (void*, const ClientInfo* info)
