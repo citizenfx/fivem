@@ -18,14 +18,16 @@
 #include <LaunchMode.h>
 #include <CoreConsole.h>
 
+#include <sysAllocator.h>
+
 #include <include/base/cef_bind.h>
 #include <include/wrapper/cef_closure_task.h>
 
 #include "memdbgon.h"
 
 NUIWindow::NUIWindow(bool primary, int width, int height)
-	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_parentTexture(nullptr), m_swapTexture(nullptr),
-	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_lastParentHandle(nullptr), m_dereferencedNuiTexture(false)
+	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
+	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 
@@ -63,9 +65,14 @@ NUIWindow::~NUIWindow()
 		mutex.unlock();
 	}
 
-	if (m_parentTexture)
+	for (auto& texPair : m_parentTextures)
 	{
-		m_parentTexture->Release();
+		auto tex = texPair.second;
+
+		if (tex)
+		{
+			tex->Release();
+		}
 	}
 
 	if (m_swapTexture)
@@ -404,19 +411,27 @@ CefBrowser* NUIWindow::GetBrowser()
 	return ((NUIClient*)m_client.get())->GetBrowser();
 }
 
-void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects)
+void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type)
 {
+	if (!m_primary && type != CefRenderHandler::PaintElementType::PET_VIEW)
+	{
+		return;
+	}
+
 	static bool createdClient;
 
 	HANDLE parentHandle = (void*)sharedHandle;
 	m_syncKey = syncKey;
 	
 	{
-		if (m_lastParentHandle != parentHandle)
+		if (m_lastParentHandle[type] != parentHandle)
 		{
-			trace("Changing NUI shared resource...\n");
+			if (type == CefRenderHandler::PaintElementType::PET_VIEW)
+			{
+				trace("Changing NUI shared resource...\n");
+			}
 
-			m_lastParentHandle = parentHandle;
+			m_lastParentHandle[type] = parentHandle;
 
 			ID3D11Device* device = GetD3D11Device();
 
@@ -432,12 +447,14 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				D3D11_TEXTURE2D_DESC desc;
 				texture->GetDesc(&desc);
 
-				if (GetParentTexture())
+				auto& texRef = (type == CefRenderHandler::PaintElementType::PET_VIEW) ? m_nuiTexture : m_popupTexture;
+
+				if (GetParentTexture(type))
 				{
-					oldTexture = GetParentTexture();
+					oldTexture = GetParentTexture(type);
 				}
 
-				SetParentTexture(texture);
+				SetParentTexture(type, texture);
 
 				// only release afterward to prevent the parent texture being invalid
 				if (oldTexture)
@@ -455,7 +472,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				{
 					auto oldSrv = m_swapSrv;
 
-					deviceStuff->rawDevice->CreateShaderResourceView(GetParentTexture(), nullptr, &m_swapSrv);
+					deviceStuff->rawDevice->CreateShaderResourceView(GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW), nullptr, &m_swapSrv);
 
 					if (oldSrv)
 					{
@@ -464,16 +481,16 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				}
 				else
 				{
-					if (m_nuiTexture)
+					if (texRef)
 					{
-						m_nuiTexture->texture->Release();
+						texRef->texture->Release();
 
-						m_nuiTexture->texture = texture;
+						texRef->texture = texture;
 						texture->AddRef();
 
-						m_nuiTexture->srv->Release();
+						texRef->srv->Release();
 
-						deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &m_nuiTexture->srv);
+						deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &texRef->srv);
 					}
 				}
 
@@ -573,7 +590,7 @@ void NUIWindow::UpdateFrame()
 	m_pollQueue.clear();
 
 	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
-	ID3D11Texture2D* texture = GetParentTexture();
+	ID3D11Texture2D* texture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW);
 
 	if (texture)
 	{
@@ -819,6 +836,41 @@ void NUIWindow::SignalPoll(std::string& argument)
 	{
 		m_pollQueue.insert(argument);
 	}
+}
+
+void NUIWindow::HandlePopupShow(bool show)
+{
+	if (!show)
+	{
+		if (m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
+		{
+			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP]->Release();
+			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP] = nullptr;
+		}
+
+		if (m_popupTexture)
+		{
+			m_popupTexture->srv->Release();
+			m_popupTexture->srv = nullptr;
+
+			delete m_popupTexture;
+			m_popupTexture = nullptr;
+		}
+	}
+}
+
+void NUIWindow::SetPopupRect(const CefRect& rect)
+{
+	m_popupRect = rect;
+
+	rage::sysMemAllocator::UpdateAllocatorValue();
+
+	rage::grcManualTextureDef textureDef;
+	memset(&textureDef, 0, sizeof(textureDef));
+	textureDef.isStaging = 0;
+	textureDef.arraySize = 1;
+
+	m_popupTexture = rage::grcTextureFactory::getInstance()->createManualTexture(rect.width, rect.height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
 }
 
 void NUIWindow::SetPaintType(NUIPaintType type)

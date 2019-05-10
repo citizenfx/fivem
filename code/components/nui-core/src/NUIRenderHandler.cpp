@@ -53,12 +53,9 @@ void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browse
 
 void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle)
 {
-	if (type == PET_VIEW)
+	if (m_owner->GetWindowValid())
 	{
-		if (m_owner->GetWindowValid())
-		{
-			m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects);
-		}
+		m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects, type);
 	}
 }
 
@@ -105,6 +102,9 @@ void NUIRenderHandler::OnPopupShow(CefRefPtr<CefBrowser> browser, bool show)
 		m_popupRect.Set(0, 0, 0, 0);
 		browser->GetHost()->Invalidate(PET_VIEW);
 	}
+
+	// accelerated handling
+	m_owner->GetWindow()->HandlePopupShow(show);
 }
 
 void NUIRenderHandler::OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect& rect)
@@ -147,6 +147,9 @@ void NUIRenderHandler::OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect&
 	{
 		m_popupRect.y = 0;
 	}
+
+	// accelerated handling
+	m_owner->GetWindow()->SetPopupRect(m_popupRect);
 }
 
 void NUIRenderHandler::UpdatePopup()

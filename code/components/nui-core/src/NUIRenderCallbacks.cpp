@@ -94,6 +94,15 @@ static InitFunction initFunction([] ()
 #endif
 				}
 
+				if (window->GetPopupTexture())
+				{
+					SetTextureGtaIm(window->GetPopupTexture());
+
+					uint32_t color = 0xFFFFFFFF;
+					const CefRect& rect = window->GetPopupRect();
+					DrawImSprite(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, &color, 0);
+				}
+
 #ifdef _HAVE_GRCORE_NEWSTATES
 				SetBlendState(oldBlendState);
 #endif

@@ -55,11 +55,13 @@ private:
 
 	rage::grcTexture* m_nuiTexture;
 
+	rage::grcTexture* m_popupTexture;
+
 	NUIPaintType m_paintType;
 
 	uint64_t m_syncKey;
 
-	ID3D11Texture2D* m_parentTexture;
+	std::map<CefRenderHandler::PaintElementType, ID3D11Texture2D*> m_parentTextures;
 
 	ID3D11Texture2D* m_swapTexture;
 
@@ -67,9 +69,11 @@ private:
 
 	ID3D11ShaderResourceView* m_swapSrv;
 
-	HANDLE m_lastParentHandle;
+	std::map<CefRenderHandler::PaintElementType, HANDLE> m_lastParentHandle;
 
 	bool m_dereferencedNuiTexture;
+
+	CefRect m_popupRect;
 
 public:
 	inline int		GetWidth() { return m_width; }
@@ -99,7 +103,7 @@ public:
 
 	void SignalPoll(std::string& argument);
 
-	void UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects);
+	void UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type);
 
 	inline void SetClientContextCreated(void(__cdecl* cb)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context))
 	{
@@ -116,15 +120,26 @@ public:
 
 	inline rage::grcTexture* GetTexture() { return m_nuiTexture; }
 
+	inline rage::grcTexture* GetPopupTexture() { return m_popupTexture; }
+
 	inline NUIPaintType GetPaintType() { return m_paintType; }
 
-	inline ID3D11Texture2D* GetParentTexture()
+	inline ID3D11Texture2D* GetParentTexture(CefRenderHandler::PaintElementType type)
 	{
-		return m_parentTexture;
+		return m_parentTextures[type];
 	}
 
-	inline void SetParentTexture(ID3D11Texture2D* texture)
+	inline void SetParentTexture(CefRenderHandler::PaintElementType type, ID3D11Texture2D* texture)
 	{
-		m_parentTexture = texture;
+		m_parentTextures[type] = texture;
 	}
+
+	inline const CefRect& GetPopupRect()
+	{
+		return m_popupRect;
+	}
+
+	void SetPopupRect(const CefRect& rect);
+
+	void HandlePopupShow(bool show);
 };
