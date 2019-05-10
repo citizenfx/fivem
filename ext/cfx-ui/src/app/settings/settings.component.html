@@ -102,6 +102,46 @@
 		<select [(ngModel)]="language" (ngModelChange)="languageChanged($event)">
 			<option value="en">English</option>
 			<option value="fr">Français</option>
+			<option value="nl">Nederlands</option>
 		</select>
 	</div>
 </section>
+
+<section class="setting">
+	<div class="key">
+		<div translate>#Settings_MenuAudio</div>
+	</div>
+	<div class="value">
+		<div class="checkbox">
+			<input
+				type="checkbox"
+				id="menu-audio"
+				[checked]="!ui_disableMusicTheme"
+				(change)="toggleConvar('ui_disableMusicTheme')"
+			>
+			<label for="menu-audio" translate>
+				#Settings_MenuAudioDesc
+			</label>
+		</div>
+	</div>
+</section>
+
+<section class="setting">
+	<div class="key">
+		<div translate>#Settings_GameStreamProgress</div>
+	</div>
+	<div class="value">
+		<div class="checkbox">
+			<input
+				type="checkbox"
+				id="menu-gameprogress"
+				[checked]="game_showStreamingProgress"
+				(change)="toggleConvar('game_showStreamingProgress')"
+			>
+			<label for="menu-gameprogress" translate>
+				#Settings_GameStreamProgressDesc
+			</label>
+		</div>
+	</div>
+</section>
+

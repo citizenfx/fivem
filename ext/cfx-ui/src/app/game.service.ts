@@ -8,6 +8,7 @@ import { environment } from '../environments/environment';
 import { DiscourseService } from './discourse.service';
 import { LocaleStorage } from 'angular-l10n';
 import { LocalStorage } from './local-storage';
+import { Observable, BehaviorSubject } from 'rxjs';
 
 export class ConnectStatus {
 	public server: Server;
@@ -30,6 +31,15 @@ export class Profiles {
 	public profiles: Profile[];
 }
 
+class ConvarWrapper {
+	observable: BehaviorSubject<string>;
+	value: string;
+
+	constructor(public name: string) {
+		this.observable = new BehaviorSubject<string>('');
+	}
+}
+
 @Injectable()
 export abstract class GameService {
 	connectFailed = new EventEmitter<[Server, string]>();
@@ -48,6 +58,8 @@ export abstract class GameService {
 	signinChange = new EventEmitter<Profile>();
 
 	profile: Profile = null;
+
+	convars: { [name: string]: ConvarWrapper } = {};
 
 	get nickname(): string {
 		return 'UnknownPlayer';
@@ -88,7 +100,7 @@ export abstract class GameService {
 	set language(lang: string) {
 
 	}
-	
+
 	abstract init(): void;
 
 	abstract connectTo(server: Server, enteredAddress?: string): void;
@@ -172,6 +184,30 @@ export abstract class GameService {
 	protected invokeLanguageChanged(lang: string) {
 		this.languageChange.emit(lang);
 	}
+
+	protected getConvarSubject(name: string) {
+		if (!this.convars[name]) {
+			this.convars[name] = new ConvarWrapper(name);
+		}
+
+		return this.convars[name].observable;
+	}
+
+	public getConvar(name: string): Observable<string> {
+		return this.getConvarSubject(name);
+	}
+
+	public getConvarValue(name: string) {
+		if (!this.convars[name]) {
+			this.convars[name] = new ConvarWrapper(name);
+		}
+
+		return this.convars[name].value;
+	}
+
+	public setConvar(name: string, value: string) {
+
+	}
 }
 
 export class ServerHistoryEntry {
@@ -212,6 +248,7 @@ export class CfxGameService extends GameService {
 
 	init() {
 		(<any>window).invokeNative('getFavorites', '');
+		(<any>window).invokeNative('getConvars', '');
 
 		fetch('https://nui-internal/profiles/list').then(async response => {
 			const json = <Profiles>await response.json();
@@ -259,6 +296,14 @@ export class CfxGameService extends GameService {
 					case 'addToHistory':
 						this.history.push(event.data.address);
 						this.saveHistory();
+						break;
+					case 'convarSet':
+						const convar = this.getConvarSubject(event.data.name);
+
+						const convarItem = this.convars[event.data.name];
+						convarItem.value = event.data.value;
+
+						this.zone.run(() => convar.next(event.data.value));
 						break;
 				}
 			});
@@ -473,6 +518,10 @@ export class CfxGameService extends GameService {
 
 	cancelNativeConnect(): void {
 		(<any>window).invokeNative('cancelDefer', '');
+	}
+
+	public setConvar(name: string, value: string) {
+		(<any>window).invokeNative('setConvar', JSON.stringify({ name, value }));
 	}
 
 	lastQuery: string;
