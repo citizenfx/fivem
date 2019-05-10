@@ -191,7 +191,7 @@ struct Match
 				FindNext();
 			} while (!Matches() && !end);
 
-			has = Matches();
+			has = !end && Matches();
 		}
 		else
 		{
@@ -311,6 +311,13 @@ void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::f
 	for (auto& entry : GetEntries(key))
 	{
 		std::string pattern = entry.second;
+
+		// @ prefixes for files are special and handled later on
+		if (pattern.length() >= 1 && pattern[0] == '@')
+		{
+			entryCallback(pattern);
+			continue;
+		}
 
 		auto mf = MatchFiles(device, rootPath + pattern);
 
