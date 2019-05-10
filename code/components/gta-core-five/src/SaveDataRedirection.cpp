@@ -6,6 +6,8 @@
 #include <shlwapi.h>
 #include <shlobj.h>
 
+#include <fiDevice.h>
+
 #pragma comment(lib, "shlwapi.lib")
 
 static void AppendPathComponent(std::wstring& value, const wchar_t* component)
@@ -66,6 +68,14 @@ static int ReturnTrue()
 	return 1;
 }
 
+static uint8_t dummyScProfile[512];
+
+static void* GetDummyScProfile()
+{
+	memset(dummyScProfile, 0xCC, sizeof(dummyScProfile));
+	return dummyScProfile;
+}
+
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
@@ -74,4 +84,15 @@ static HookFunction hookFunction([]()
 
 	// force parts of game to think SC is always signed on
 	hook::jump(hook::get_pattern("FF 52 08 84 C0 74 04 B0 01 EB", -0x26), ReturnTrue);
+
+	// load user profile settings with a 'fake' profile all the time
+	hook::call(hook::get_pattern("40 8A F2 48 8B D9 E8 ? ? ? ? 45 33 F6 48", 6), GetDummyScProfile);
+
+	// add save path to user:/ device stack
+	rage::fiDevice::OnInitialMount.Connect([]()
+	{
+		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
+		device->SetPath(ToNarrow(GetCitizenSavePath()).c_str(), true);
+		device->Mount("fxu:/");
+	});
 });

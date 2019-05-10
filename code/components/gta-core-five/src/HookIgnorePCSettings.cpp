@@ -16,7 +16,12 @@ static HookFunction hookFunction([] ()
 	{
 		char* location = matches.get(i).get<char>(-11);
 
-		strcpy((char*)(location + *(int32_t*)location + 4), "fivem_set.bin");
+		strcpy(hook::get_address<char*>(location), "fivem_set.bin");
+
+		location = matches.get(i).get<char>(14);
+
+		strcpy(hook::get_address<char*>(location), "fxu:/fivem_set.bin");
+
 	}
 
 	// testing hook to not kill blip data when changing to a network game

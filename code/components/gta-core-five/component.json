@@ -7,6 +7,7 @@
 		"rage:nutsnbolts:five",
 		"rage:scripting:five",
 		"rage:input:five",
+		"rage:device:five",
 		"vendor:minhook"
 	],
 	"provides": []

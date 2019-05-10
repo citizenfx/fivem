@@ -168,6 +168,8 @@ namespace rage
 
 		void SetCategory(rage::audCategory* category);
 
+		void SetVolume(float volume);
+
 	private:
 		uint8_t m_pad[0xB0];
 	};
@@ -175,6 +177,11 @@ namespace rage
 	void audSoundInitParams::SetCategory(rage::audCategory* category)
 	{
 		*(audCategory**)(&m_pad[88]) = category;
+	}
+
+	void audSoundInitParams::SetVolume(float volume)
+	{
+		*(float*)(&m_pad[48]) = volume;
 	}
 
 	static hook::cdecl_stub<void(rage::audSoundInitParams*)> _audSoundInitParams_ctor([]()
@@ -239,6 +246,16 @@ namespace rage
 	audWaveSlot* audWaveSlot::FindWaveSlot(uint32_t hash)
 	{
 		return _findWaveSlot(hash);
+	}
+
+	static hook::cdecl_stub<float(float)> _linearToDb([]()
+	{
+		return hook::get_pattern("8B 4C 24 08 8B C1 81 E1 FF FF 7F 00", -0x14);
+	});
+
+	float GetDbForLinear(float x)
+	{
+		return _linearToDb(x);
 	}
 }
 
@@ -414,11 +431,25 @@ static RageAudioSink g_audioSink;
 
 DLL_IMPORT void ForceMountDataFile(const std::pair<std::string, std::string>& dataFile);
 
+static uint32_t* g_preferenceArray;
+
+enum AudioPrefs
+{
+	PREF_SFX_VOLUME = 7,
+	PREF_MUSIC_VOLUME = 8,
+	PREF_MUSIC_VOLUME_IN_MP = 0x25,
+};
+
+static HookFunction hookFunction([]()
+{
+	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
+});
+
 static InitFunction initFunction([]()
 {
 	rage::OnInitFunctionInvoked.Connect([](rage::InitFunctionType type, const rage::InitFunctionData& data)
 	{
-		if (type == rage::InitFunctionType::INIT_CORE && data.funcHash == 0xE6D408DF)
+		if (type == rage::InitFunctionType::INIT_CORE && data.funcHash == /*0xE6D408DF*/0xF0F5A94D)
 		{
 			rage::fiPackfile* xm18 = new rage::fiPackfile();
 			if (xm18->OpenPackfile("dlcpacks:/mpchristmas2018/dlc.rpf", true, 3, false))
@@ -452,6 +483,9 @@ static InitFunction initFunction([]()
 			if (active && !g_sound)
 			{
 				rage::audSoundInitParams initValues;
+
+				float volume = rage::GetDbForLinear(std::min({ g_preferenceArray[PREF_MUSIC_VOLUME], g_preferenceArray[PREF_MUSIC_VOLUME_IN_MP], g_preferenceArray[PREF_SFX_VOLUME] }) / 10.0f);
+				initValues.SetVolume(volume);
 
 				rage::g_frontendAudioEntity->CreateSound_PersistentReference(HashString("dlc_awxm2018_theme_5_stems"), (rage::audSound**)&g_sound, initValues);
 
