@@ -9,9 +9,13 @@
 #include "NUIApp.h"
 #include "NUIClient.h"
 #include "CefOverlay.h"
+#include <CoreConsole.h>
+#include <json.hpp>
 #include "memdbgon.h"
 
 #include <shellapi.h>
+
+void NuiConsole_SetConvars();
 
 static InitFunction initFunction([] ()
 {
@@ -57,6 +61,33 @@ static InitFunction initFunction([] ()
 				if (arg.find("http://") == 0 || arg.find("https://") == 0)
 				{
 					ShellExecute(nullptr, L"open", ToWide(arg).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+				}
+			}
+			else if (nativeType == "setConvar")
+			{
+				if (nui::HasMainUI())
+				{
+					auto json = nlohmann::json::parse(args->GetString(1).ToString());
+
+					try
+					{
+						auto name = json.value("name", "");
+						auto value = json.value("value", "");
+
+						se::ScopedPrincipal ps{ se::Principal{"system.console"} };
+						console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", name, value });
+					}
+					catch (std::exception&)
+					{
+
+					}
+				}
+			}
+			else if (nativeType == "getConvars")
+			{
+				if (nui::HasMainUI())
+				{
+					NuiConsole_SetConvars();
 				}
 			}
 

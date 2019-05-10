@@ -133,6 +133,8 @@ public:
 	{
 		return Instance<ConsoleVariableManager>::Get();
 	}
+
+	fwEvent<const std::string&> OnConvarModified;
 };
 
 namespace internal
@@ -140,6 +142,7 @@ namespace internal
 inline void MarkConsoleVarModified(ConsoleVariableManager* manager, const std::string& name)
 {
 	manager->AddEntryFlags(name, ConVar_Modified);
+	manager->OnConvarModified(name);
 }
 
 template <typename T>
@@ -227,18 +230,22 @@ public:
 		}
 #endif
 
-		// update modified flags if changed
-		if (!typename ConsoleArgumentTraits<T>::Equal()(m_curValue, newValue))
-		{
-			// indirection as manager isn't declared by now
-			MarkConsoleVarModified(m_manager, m_name);
-		}
+		// keep the old value for comparison
+		auto oldValue = m_curValue;
 
+		// set the new value
 		m_curValue = newValue;
 
 		if (m_trackingVar)
 		{
 			*m_trackingVar = m_curValue;
+		}
+
+		// update modified flags and trigger change events
+		if (!typename ConsoleArgumentTraits<T>::Equal()(oldValue, m_curValue))
+		{
+			// indirection as manager isn't declared by now
+			MarkConsoleVarModified(m_manager, m_name);
 		}
 
 		return true;
