@@ -70,6 +70,41 @@
 				};
 			}
 
+			select {
+				position: relative;
+				width: auto;
+
+				padding: $padding/2 $padding*$multiplier;
+
+				border-radius: 2px;
+				border: none;
+				outline: none;
+				margin-top: 8px;
+				margin-left: 16px;
+
+				transition: all .2s ease;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, fgColour);
+					text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .8);
+					background: darken(gtv($theme, greenyColour), 10%);
+				};
+
+				&:hover,
+				&:focus {
+					@include theme() using ($theme) {
+						background: gtv($theme, greenyColour);
+						box-shadow: 0 5px 25px darken(gtv($theme, greenyColour), 10%);
+					};
+				}
+			}
+
+			option {
+				@include theme() using ($theme) {
+					box-shadow: 0 5px 25px darken(gtv($theme, greenyColour), 10%);
+				};
+			}
+
             .checkbox {
 				position: relative;
 				flex-grow: 1;

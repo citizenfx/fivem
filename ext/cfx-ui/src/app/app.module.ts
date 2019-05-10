@@ -48,7 +48,8 @@ import { LocalStorage } from './local-storage';
 const l10nConfig: L10nConfig = {
 	locale: {
 		languages: [
-			{ code: 'en', dir: 'ltr' }
+			{ code: 'en', dir: 'ltr' },
+			{ code: 'fr', dir: 'ltr' }
 		],
 		language: 'en'
 	},
@@ -131,7 +132,8 @@ export class AppModule {
 		const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
 
 		this.configuration.translation.providers = [
-			{ type: ProviderType.Static, prefix: localePrefix + 'assets/locale-' }
+			{ type: ProviderType.Fallback, prefix: localePrefix + 'assets/languages/locale-en', fallbackLanguage: [] },
+			{ type: ProviderType.Static, prefix: localePrefix + 'assets/languages/locale-' }
 		];
 
 		this.l10nLoader.load();

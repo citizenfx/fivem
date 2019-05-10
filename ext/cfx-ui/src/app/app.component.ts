@@ -30,6 +30,10 @@ export class AppComponent extends Translation {
 		this.gameService.darkThemeChange.subscribe(value => {
 			this.classes[1] = (value) ? 'theme-dark' : 'theme-light'
 		});
+
+		this.gameService.languageChange.subscribe(value => {
+			this.locale.setCurrentLanguage(value);
+		})
 	}
 
 	ngOnInit() {
@@ -37,6 +41,11 @@ export class AppComponent extends Translation {
 			environment.web ? 'webapp' : 'gameapp',
 			(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light'
 		];
+
+		const lang = this.gameService.language;
+		if (lang && this.locale.getAvailableLanguages().includes(lang)) {
+			this.locale.setCurrentLanguage(lang);
+		}
 	}
 
 

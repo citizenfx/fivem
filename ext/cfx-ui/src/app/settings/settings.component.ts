@@ -19,6 +19,7 @@ export class SettingsComponent implements OnInit {
     darkTheme = false;
     currentBoost: BoostData = null;
     noCurrentBoost = false;
+    language = 'en';
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
         private serversService: ServersService, private http: Http) {
@@ -26,6 +27,7 @@ export class SettingsComponent implements OnInit {
         gameService.devModeChange.subscribe(value => this.devMode = value);
         gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
         gameService.darkThemeChange.subscribe(value => this.darkTheme = value);
+        gameService.languageChange.subscribe(value => this.language = value);
 
         discourseService.signinChange.subscribe(user => this.currentAccount = user);
     }
@@ -35,6 +37,7 @@ export class SettingsComponent implements OnInit {
         this.devMode = this.gameService.devMode;
         this.localhostPort = this.gameService.localhostPort;
         this.darkTheme = this.gameService.darkTheme;
+        this.language = this.gameService.language;
         this.currentAccount = this.discourseService.currentUser;
         this.currentBoost = this.discourseService.currentBoost;
         this.noCurrentBoost = this.discourseService.noCurrentBoost;
@@ -54,6 +57,10 @@ export class SettingsComponent implements OnInit {
 
     localhostPortChanged(newPort) {
         this.gameService.localhostPort = newPort;
+    }
+
+    languageChanged(lang) {
+        this.gameService.language = lang;
     }
 
     async linkAccount() {
