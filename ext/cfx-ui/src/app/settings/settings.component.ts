@@ -3,6 +3,7 @@ import { GameService } from '../game.service';
 import { DiscourseService, BoostData } from '../discourse.service';
 import { ServersService } from '../servers/servers.service';
 import { Http } from '@angular/http';
+import { Language, TranslationService, Translation } from 'angular-l10n';
 
 @Component({
     moduleId: module.id,
@@ -11,7 +12,7 @@ import { Http } from '@angular/http';
 	styleUrls:   ['settings.component.scss']
 })
 
-export class SettingsComponent implements OnInit {
+export class SettingsComponent extends Translation implements OnInit {
     nickname = '';
     localhostPort = '30120';
     devMode = false;
@@ -23,8 +24,13 @@ export class SettingsComponent implements OnInit {
     ui_disableMusicTheme = false;
     game_showStreamingProgress = false;
 
+    @Language() lang: string;
+
     constructor(private gameService: GameService, private discourseService: DiscourseService,
-        private serversService: ServersService, private http: Http) {
+        private serversService: ServersService, private http: Http,
+        public translation: TranslationService) {
+        super();
+
         gameService.nicknameChange.subscribe(value => this.nickname = value);
         gameService.devModeChange.subscribe(value => this.devMode = value);
         gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
