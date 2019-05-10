@@ -49,7 +49,8 @@ const l10nConfig: L10nConfig = {
 	locale: {
 		languages: [
 			{ code: 'en', dir: 'ltr' },
-			{ code: 'fr', dir: 'ltr' }
+			{ code: 'fr', dir: 'ltr' },
+			{ code: 'it', dir: 'ltr' }
 		],
 		language: 'en'
 	},
