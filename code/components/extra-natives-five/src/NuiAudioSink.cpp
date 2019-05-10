@@ -475,8 +475,10 @@ static InitFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		static ConVar<bool> arenaWarVariable("ui_disableAWXM2018Theme", ConVar_Archive, false);
-		static ConVar<bool> arenaWarVariableForce("ui_forceAWXM2018Theme", ConVar_Archive, false);
+		static ConVar<bool> arenaWarVariable("ui_disableMusicTheme", ConVar_Archive, false);
+		static ConVar<bool> arenaWarVariableForce("ui_forceMusicTheme", ConVar_Archive, false);
+		static ConVar<std::string> musicThemeVariable("ui_selectMusic", ConVar_Archive, "dlc_awxm2018_theme_5_stems");
+		static std::string lastSong = musicThemeVariable.GetValue();
 
 		static rage::audSound* g_sound;
 
@@ -496,18 +498,26 @@ static InitFunction initFunction([]()
 				float volume = rage::GetDbForLinear(std::min(std::min({ g_preferenceArray[PREF_MUSIC_VOLUME], g_preferenceArray[PREF_MUSIC_VOLUME_IN_MP], g_preferenceArray[PREF_SFX_VOLUME] }) / 10.0f, 0.75f));
 				initValues.SetVolume(volume);
 
-				rage::g_frontendAudioEntity->CreateSound_PersistentReference(HashString("dlc_awxm2018_theme_5_stems"), (rage::audSound**)&g_sound, initValues);
+				rage::g_frontendAudioEntity->CreateSound_PersistentReference(HashString(musicThemeVariable.GetValue().c_str()), (rage::audSound**)&g_sound, initValues);
 
 				if (g_sound)
 				{
 					g_sound->PrepareAndPlay(rage::audWaveSlot::FindWaveSlot(HashString("interactive_music_1")), true, -1, false);
 					_updateAudioThread();
 				}
+				else
+				{
+					musicThemeVariable.GetHelper()->SetValue("dlc_awxm2018_theme_5_stems");
+				}
 			}
-			else if (g_sound && !active)
+			else if ((g_sound && !active) || musicThemeVariable.GetValue() != lastSong)
 			{
 				g_sound->StopAndForget(nullptr);
+				g_sound = nullptr;
+
 				_updateAudioThread();
+
+				lastSong = musicThemeVariable.GetValue();
 			}
 		}
 	});
