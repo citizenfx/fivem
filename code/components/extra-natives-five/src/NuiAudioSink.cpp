@@ -13,6 +13,8 @@
 
 #include <CoreConsole.h>
 
+#include <NetLibrary.h>
+
 namespace rage
 {
 	class audWaveSlot
@@ -464,6 +466,13 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	static NetLibrary* netLibrary;
+
+	NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary* lib)
+	{
+		netLibrary = lib;
+	});
+
 	OnGameFrame.Connect([]()
 	{
 		static ConVar<bool> arenaWarVariable("tbhidonotlikethearenawarthemeandrockstarcommittedcrimesagainsteverything", ConVar_Archive, false);
@@ -473,7 +482,7 @@ static InitFunction initFunction([]()
 
 		if (audioRunning)
 		{
-			bool active = nui::HasMainUI() && !arenaWarVariable.GetValue();
+			bool active = nui::HasMainUI() && (!netLibrary || netLibrary->GetConnectionState() == NetLibrary::CS_IDLE) && !arenaWarVariable.GetValue();
 
 			if (arenaWarVariableForce.GetValue())
 			{
