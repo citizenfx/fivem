@@ -475,8 +475,8 @@ static InitFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		static ConVar<bool> arenaWarVariable("tbhidonotlikethearenawarthemeandrockstarcommittedcrimesagainsteverything", ConVar_Archive, false);
-		static ConVar<bool> arenaWarVariableForce("arenawarthemeisthebestsongofthecentury", ConVar_Archive, false);
+		static ConVar<bool> arenaWarVariable("ui_disableAWXM2018Theme", ConVar_Archive, false);
+		static ConVar<bool> arenaWarVariableForce("ui_forceAWXM2018Theme", ConVar_Archive, false);
 
 		static rage::audSound* g_sound;
 
@@ -493,7 +493,7 @@ static InitFunction initFunction([]()
 			{
 				rage::audSoundInitParams initValues;
 
-				float volume = rage::GetDbForLinear(std::min({ g_preferenceArray[PREF_MUSIC_VOLUME], g_preferenceArray[PREF_MUSIC_VOLUME_IN_MP], g_preferenceArray[PREF_SFX_VOLUME] }) / 10.0f);
+				float volume = rage::GetDbForLinear(std::min(std::min({ g_preferenceArray[PREF_MUSIC_VOLUME], g_preferenceArray[PREF_MUSIC_VOLUME_IN_MP], g_preferenceArray[PREF_SFX_VOLUME] }) / 10.0f, 0.75f));
 				initValues.SetVolume(volume);
 
 				rage::g_frontendAudioEntity->CreateSound_PersistentReference(HashString("dlc_awxm2018_theme_5_stems"), (rage::audSound**)&g_sound, initValues);
