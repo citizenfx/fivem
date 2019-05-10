@@ -48,7 +48,7 @@
     "#DirectConnect_ServerInvalid_SubTitle": "Assicurati di aver inserito l'indirizzo corretto.",
     "#DirectConnect_IPPort": "IP:Porta",
     "#DirectConnect_Connect": "Connettiti",
-    "#DirectConnect_LastPlayed": "Giocato l'ultima volta",
+    "#DirectConnect_LastPlayed": "Ultima connessione",
     "#ServerDetail_Players": "Giocatori",
     "#ServerDetail_PlayersEmpty": "Nessun giocatore online su questo server.",
     "#ServerDetail_Back": "Indietro",
