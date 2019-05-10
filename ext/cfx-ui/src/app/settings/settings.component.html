@@ -75,9 +75,9 @@
 		<div translate>#Settings_Account</div>
 	</div>
 	<div class="value">
-		<span *ngIf="currentAccount" translate>#Settings_AccountLinked</span>
+		<span *ngIf="currentAccount">{{'#Settings_AccountLinked'|translate:lang:currentAccount}}</span>
 		<span *ngIf="!currentAccount">
-			<button (click)="linkAccount()" translate>{{'#Settings_AccountLink'|translate:lang:currentAccount}}</button>
+			<button (click)="linkAccount()" translate>#Settings_AccountLink</button>
 		</span>
 	</div>
 </section>
