@@ -33,6 +33,9 @@ copy /y dist\*.* %UIRoot%\app\
 mkdir %UIRoot%\app\assets\
 copy /y dist\assets\*.json %UIRoot%\app\assets\
 
+mkdir %UIRoot%\app\assets\languages\
+copy /y dist\assets\languages\*.json %UIRoot%\app\assets\languages\
+
 :: pop directory
 popd
 
