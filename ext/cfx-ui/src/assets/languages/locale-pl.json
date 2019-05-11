@@ -35,7 +35,7 @@
     "#Settings_DevModeDesc": "Włącza menu \"localhost\"",
     "#Settings_Account": "Połączone konto FiveM",
     "#Settings_AccountLink": "Połącz",
-    "#Settings_AccountLinked": "Połączono: {{ currentAccount.username }}",
+    "#Settings_AccountLinked": "Połączono: {{ username }}",
     "#Settings_Boost": "Aktualny BOOST™ serwera",
     "#Settings_BoostLoading": "Ładowanie..",
     "#Settings_BoostNone": "Brak! BOOST™-uj serwer, głosując na niego na liście serwerów.",
