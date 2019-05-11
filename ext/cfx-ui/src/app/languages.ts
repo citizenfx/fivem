@@ -17,9 +17,13 @@ const languages = [
         name: 'da',
         displayName: 'Dansk'
     },
-    {    
+    {
         name: 'de',
         displayName: 'Deutsch'
+    },
+    {
+        name: 'pl',
+        displayName: 'Polski'
     },
 ];
 
