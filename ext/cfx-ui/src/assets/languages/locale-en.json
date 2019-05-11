@@ -46,6 +46,7 @@
     "#Settings_GameStreamProgressDesc": "Display progress when downloading in-game streamed assets (BETA™)",
     "#DirectConnect_TimedOut": "Server query timed out.",
     "#DirectConnect_Failed": "Failed to query server.",
+    "#DirectConnect_Loading": "Loading",
     "#DirectConnect_ServerInvalid": "Server could not be found",
     "#DirectConnect_ServerInvalid_SubTitle": "Make sure you've entered the correct address.",
     "#DirectConnect_IPPort": "IP:Port",
