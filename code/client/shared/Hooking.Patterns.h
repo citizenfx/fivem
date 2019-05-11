@@ -93,6 +93,12 @@ namespace hook
 			Initialize(pattern, Len);
 		}
 
+		pattern(std::string_view pattern)
+			: pattern(getRVA<void>(0))
+		{
+			Initialize(pattern.data(), pattern.size());
+		}
+
 		inline pattern& count(uint32_t expected) &
 		{
 			EnsureMatches(expected);
@@ -197,6 +203,12 @@ namespace hook
 	auto get_pattern(const char(&pattern_string)[Len], ptrdiff_t offset = 0)
 	{
 		return pattern(pattern_string).get_first<T>(offset);
+	}
+
+	template<typename T = void>
+	auto get_pattern(std::string_view pattern_view, ptrdiff_t offset = 0)
+	{
+		return pattern(pattern_view).get_first<T>(offset);
 	}
 }
 

@@ -46,6 +46,23 @@ namespace hook
 		return ptr;
 #endif
 	}
+
+	void* AllocateStubMemory(size_t size)
+	{
+#if defined(GTA_FIVE)
+		static decltype(&AllocateStubMemory) func;
+
+		if (func == nullptr)
+		{
+			HMODULE coreRuntime = GetModuleHandleW(L"CoreRT.dll");
+			func = (decltype(func))GetProcAddress(coreRuntime, "AllocateStubMemoryImpl");
+		}
+
+		return func(size);
+#else
+		return nullptr;
+#endif
+	}
 #endif
 
 	ptrdiff_t baseAddressDifference;

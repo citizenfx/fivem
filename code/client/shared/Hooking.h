@@ -604,6 +604,8 @@ public:
 #else
 void* AllocateFunctionStub(void* ptr, int type = 0);
 
+void* AllocateStubMemory(size_t size);
+
 template<typename T>
 struct get_func_ptr
 {

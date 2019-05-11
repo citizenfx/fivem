@@ -34,5 +34,17 @@ extern "C"
 
 		return code;
 	}
+
+	DLL_EXPORT void* AllocateStubMemoryImpl(size_t size)
+	{
+		char* code = (char*)g_currentStub + hook::baseAddressDifference;
+
+		DWORD oldProtect;
+		VirtualProtect(code, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+		g_currentStub += size;
+
+		return code;
+	}
 }
 #endif
