@@ -6,6 +6,9 @@
 
 #include <msgpack.hpp>
 
+#include <ResourceManagerImpl.h>
+#include <ResourceEventComponent.h>
+
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 
 namespace fx
@@ -95,6 +98,9 @@ namespace fx
 
 	void ClientRegistry::HandleConnectedClient(const std::shared_ptr<Client>& client)
 	{
+		auto eventManager = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("net:%d", client->GetNetId()) });
+
 		// for name handling, send player state
 		fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
