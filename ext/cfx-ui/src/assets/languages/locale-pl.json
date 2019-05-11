@@ -30,7 +30,7 @@
     "#Settings_Nickname": "Nazwa gracza",
     "#Settings_LocalhostPort": "Niestandardowy port",
     "#Settings_DarkTheme": "\"Ciemny\" \"styl\"",
-    "#Settings_DarkThemeDesc": "Makes the interface use a \"dark\" \"theme\"",
+    "#Settings_DarkThemeDesc": "Sprawia, że interefejs używa \"ciemnego\" \"stylu\"",
     "#Settings_DevMode": "Tryb developerski",
     "#Settings_DevModeDesc": "Włącza menu \"localhost\"",
     "#Settings_Account": "Połączone konto FiveM",
