@@ -25,6 +25,10 @@ const languages = [
         name: 'pl',
         displayName: 'Polski'
     },
+	{
+        name: 'it',
+        displayName: 'Italiano'
+    },
 ];
 
 export class Languages {
