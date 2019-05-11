@@ -29,7 +29,7 @@
     "#ServerList_RemoveFavorite": "Fjern Favorit",
     "#Settings_Nickname": "Spillernavn",
     "#Settings_LocalhostPort": "Localhost port",
-	"#Settings_LocalhostPortDsc": "Vælg localhost port hvis ikke standard (30120)",
+	"#Settings_LocalhostPortDesc": "Vælg localhost port hvis ikke standard (30120)",
     "#Settings_DarkTheme": "Mørkt Tema",
     "#Settings_DarkThemeDesc": "Gør brugerfladen samt menuer mørke",
     "#Settings_DevMode": "Dev tilstand",
