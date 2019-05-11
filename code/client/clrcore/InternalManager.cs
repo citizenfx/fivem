@@ -94,7 +94,7 @@ namespace CitizenFX.Core
 
 			ms_loadedAssemblies[assemblyFile] = assembly;
 
-			var definedTypes = assembly.GetTypes().Where(t => !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)));
+			var definedTypes = assembly.GetTypes().Where(t => !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)) && t.GetConstructor(Type.EmptyTypes) != null);
 
 			foreach (var type in definedTypes)
 			{
