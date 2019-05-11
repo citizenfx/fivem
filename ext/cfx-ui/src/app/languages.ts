@@ -38,7 +38,12 @@ export class Languages {
     static toSettingsOptions() {
         const options: {[code: string]: string} = {};
 
-        for (const lang of languages) {
+        const languagesSet = languages;
+        languagesSet.sort((a, b) => {
+            return a.displayName.localeCompare(b.displayName);
+        });
+
+        for (const lang of languagesSet) {
             options[lang.name] = lang.displayName;
         }
 
