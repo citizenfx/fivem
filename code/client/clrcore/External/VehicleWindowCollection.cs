@@ -1,6 +1,7 @@
 using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CitizenFX.Core
 {
@@ -48,6 +49,12 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public VehicleWindow[] GetAllWindows()
+		{
+			return
+				Enum.GetValues(typeof(VehicleWindowIndex)).Cast<VehicleWindowIndex>().Where(HasWindow).Select(windowIndex => this[windowIndex]).ToArray();
+		}
+
 		public bool AreAllWindowsIntact
 		{
 			get { return API.AreAllVehicleWindowsIntact(_owner.Handle); }
@@ -55,7 +62,35 @@ namespace CitizenFX.Core
 
 		public void RollDownAllWindows()
 		{
-			API.RollDownWindows(_owner.Handle);
+			foreach(VehicleWindow vehicleWindow in this.GetAllWindows())
+			{
+				vehicleWindow.RollDown();
+			}
+		}
+
+		public void RollUpAllWindows()
+		{
+			foreach (VehicleWindow vehicleWindow in this.GetAllWindows())
+			{
+				vehicleWindow.RollUp();
+			}
+		}
+
+		public bool HasWindow(VehicleWindowIndex window)
+		{
+			switch (window)
+			{
+				case VehicleWindowIndex.FrontLeftWindow:
+					return _owner.Bones.HasBone("window_lf");
+				case VehicleWindowIndex.FrontRightWindow:
+					return _owner.Bones.HasBone("window_rf");
+				case VehicleWindowIndex.BackLeftWindow:
+					return _owner.Bones.HasBone("window_lr");
+				case VehicleWindowIndex.BackRightWindow:
+					return _owner.Bones.HasBone("window_rr");
+				default:
+					return false;
+			}
 		}
 	}
 }
