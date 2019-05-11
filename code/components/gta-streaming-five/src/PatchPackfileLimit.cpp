@@ -63,6 +63,52 @@ static void SetStreamingInterface(char* si)
 	g_origSetStreamingInterface(si);
 }
 
+static void(*g_origStreamerTick)(void*, void*);
+
+static void CustomStreamerTick(void* a1, void* a2)
+{
+	static auto patternLoc = hook::get_pattern<int32_t>("4D 8B A4 C7 ? ? ? ? 4C 8D 45 58 49 8B 04 24", 4);
+
+	auto oldLoc = *patternLoc;
+	*patternLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
+
+	g_origStreamerTick(a1, a2);
+
+	*patternLoc = oldLoc;
+}
+
+static void*(*g_origQueueStrTask)(uint32_t a1, void* a2, int a3, int a4, void* a5, void* a6, void* a7, uint32_t a8, void* a9, int a10);
+
+static void* CustomQueueStrTask(uint32_t a1, void* a2, int a3, int a4, void* a5, void* a6, void* a7, uint32_t a8, void* a9, int a10)
+{
+	static auto patternLoc = hook::get_pattern<int32_t>("4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4);
+
+	auto oldLoc = *patternLoc;
+	*patternLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
+
+	auto rv = g_origQueueStrTask(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+
+	*patternLoc = oldLoc;
+
+	return rv;
+}
+
+static void*(*g_origQueueSemaTask)(uint32_t a1, void* a2, int a3, int a4, void* a5, uint32_t a6, int a7);
+
+static void* CustomQueueSemaTask(uint32_t a1, void* a2, int a3, int a4, void* a5, uint32_t a6, int a7)
+{
+	static auto patternLoc = hook::get_pattern<int32_t>("4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4);
+
+	auto oldLoc = *patternLoc;
+	*patternLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
+
+	auto rv = g_origQueueSemaTask(a1, a2, a3, a4, a5, a6, a7);
+
+	*patternLoc = oldLoc;
+
+	return rv;
+}
+
 static HookFunction hookFunction([]()
 {
 	rage__fiCollection__sm_Collections = (rage::fiCollection**)hook::AllocateStubMemory(sizeof(rage::fiCollection*) * NUM_STREAMING_ARCHIVES);
@@ -88,10 +134,50 @@ static HookFunction hookFunction([]()
 		{ "41 8B CE 48 8D 05 ? ? ? ? C1 E9 10", 6 }
 	});
 
+	// NOTE: BOTH OF THESE ARE ARXAN TRIGGERS
+	// (it is assumed that Arxan changes any function it 'protects' to `rva` addressing so that
+	// it can safely hash the function content even if the OS does image rebasing)
 	RelocateAbsolute({
-		{ "4D 8B A4 C7 ? ? ? ? 4C 8D 45 58 49 8B 04 24", 4 },
-		{ "4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4 }
+		//{ "4D 8B A4 C7 ? ? ? ? 4C 8D 45 58 49 8B 04 24", 4 }, // arxan trigger(!)
+		//{ "4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4 }
 	});
+
+	// first arxan function
+	{
+		// replace arxan trigger to *only* be patched while it runs
+		// and hope there's no cross-thread integrity checking going on
+
+		auto location = hook::get_pattern("48 85 C0 74 E6 48 8B D7 48 8B CB E8", 11);
+		hook::set_call(&g_origStreamerTick, location);
+		hook::call(location, CustomStreamerTick);
+	}
+
+	// second arxan function
+	{
+		// 6 callers, many of which annoyingly patterned, so hardcoded
+		// 1604
+		auto location = hook::get_adjusted(0x140D57C62);
+		hook::set_call(&g_origQueueStrTask, location);
+		hook::call(location, CustomQueueStrTask);
+		hook::call(0x141222331, CustomQueueStrTask);
+		hook::call(0x1412224B2, CustomQueueStrTask);
+		hook::call(0x14127D884, CustomQueueStrTask);
+		//hook::call(0x1412807C9, CustomQueueStrTask); // also an arxan trigger
+		hook::call(0x14157F677, CustomQueueStrTask);
+	}
+
+	// second arxan functions, sublevel variant
+	{
+		auto location = hook::get_adjusted(0x140D4F852);
+		hook::set_call(&g_origQueueSemaTask, location);
+		hook::call(location, CustomQueueSemaTask);
+		hook::call(0x140D57BED, CustomQueueSemaTask);
+		hook::call(0x141219077, CustomQueueSemaTask);
+		hook::call(0x14121981F, CustomQueueSemaTask); // risk
+		hook::call(0x1412220C7, CustomQueueSemaTask); // risk
+		hook::call(0x14122236B, CustomQueueSemaTask);
+		hook::call(0x141886A61, CustomQueueSemaTask); // odd section?
+	}
 
 	// archive count
 	hook::put<int>(hook::get_address<int*>(hook::get_pattern("8B C3 C1 E8 10 3B 05 ? ? ? ? 0F 8D", 7)), NUM_STREAMING_ARCHIVES);
