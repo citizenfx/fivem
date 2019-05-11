@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 import { Translation, LocaleService, TranslationService } from 'angular-l10n';
 
@@ -12,7 +12,7 @@ import { environment } from '../environments/environment';
 	templateUrl: 'app.component.html',
 	styleUrls: ['app.component.scss']
 })
-export class AppComponent extends Translation {
+export class AppComponent extends Translation implements OnInit {
 	overlayActive = false;
 
 	constructor(public locale: LocaleService,
@@ -27,10 +27,6 @@ export class AppComponent extends Translation {
 
 		this.gameService.init();
 
-		this.gameService.darkThemeChange.subscribe(value => {
-			this.classes[1] = (value) ? 'theme-dark' : 'theme-light'
-		});
-
 		this.gameService.languageChange.subscribe(value => {
 			this.locale.setCurrentLanguage(value);
 		})
@@ -41,6 +37,10 @@ export class AppComponent extends Translation {
 			environment.web ? 'webapp' : 'gameapp',
 			(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light'
 		];
+
+		this.gameService.darkThemeChange.subscribe(value => {
+			this.classes[1] = (value) ? 'theme-dark' : 'theme-light'
+		});
 
 		const lang = this.gameService.language;
 		if (lang && this.locale.getAvailableLanguages().includes(lang)) {

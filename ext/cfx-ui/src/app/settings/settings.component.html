@@ -1,147 +1,50 @@
-<section class="setting">
+<div *ngFor="let setting of settings">
+<section class="setting" *ngIf="setting.show">
 	<div class="key">
-		<div translate>#Settings_Nickname</div>
+		<div>{{ setting.setting.name | translate:lang }}</div>
 	</div>
 	<div class="value">
+		<div class="checkbox" *ngIf="setting.setting.type === 'checkbox'">
+			<input
+				type="checkbox"
+				[id]="setting.setting.id"
+				[(ngModel)]="setting.boolValue"
+				[name]="setting.setting.id"
+			>
+			<label [for]="setting.setting.id">
+				{{ setting.setting.description | translate:lang }}
+			</label>
+		</div>
 		<input
+			*ngIf="setting.setting.type === 'text'"
 			#input
 			class="text"
 			type="text"
-			placeholder="{{'#Settings_Nickname'|translate}}"
+			[placeholder]="setting.setting.description | translate:lang"
 			spellcheck="false"
-			[(ngModel)]="nickname"
-			(ngModelChange)="nameChanged($event)"
+			[name]="setting.setting.id"
+			[(ngModel)]="setting.value"
 		>
-	</div>
-</section>
+		<span *ngIf="setting.setting.type === 'button'">
+			<button (click)="setting.setting.setCb('')">{{ setting.setting.description | translate:lang }}</button>
+		</span>
 
-<section class="setting">
-	<div class="key">
-		<div translate>#Settings_DarkTheme</div>
-	</div>
-	<div class="value">
-		<div class="checkbox">
-			<input
-				type="checkbox"
-				id="dark-theme"
-				[checked]="darkTheme"
-				(change)="toggleDarkTheme()"
+		<span *ngIf="setting.setting.type === 'label' && !setting.setting.colorizeValue">
+			{{ setting.label }}
+		</span>
+
+		<span *ngIf="setting.setting.type === 'label' && setting.setting.colorizeValue"
+			[innerHTML]="setting.label | escape | colorize">
+		</span>
+
+		<span *ngIf="setting.setting.type === 'select'">
+			<select
+				[(ngModel)]="setting.value"
+				[name]="setting.setting.id"
 			>
-			<label for="dark-theme" translate>
-				#Settings_DarkThemeDesc
-			</label>
-		</div>
-	</div>
-</section>
-
-<section class="setting">
-	<div class="key">
-		<div translate>#Settings_DevMode</div>
-	</div>
-	<div class="value">
-		<div class="checkbox">
-			<input
-				type="checkbox"
-				id="dev-mode"
-				[checked]="devMode"
-				(change)="toggleDevMode()"
-			>
-			<label for="dev-mode" translate>
-				#Settings_DevModeDesc
-			</label>
-		</div>
-	</div>
-</section>
-
-<section class="setting" *ngIf="devMode">
-	<div class="key">
-		<div translate>#Settings_LocalhostPort</div>
-	</div>
-	<div class="value">
-		<input
-			#input
-			class="text"
-			type="text"
-			placeholder="{{'#Settings_LocalhostPort'|translate}}"
-			spellcheck="false"
-			[(ngModel)]="localhostPort"
-			(ngModelChange)="localhostPortChanged($event)"		
-		>
-	</div>
-</section>
-
-<section class="setting">
-	<div class="key">
-		<div translate>#Settings_Account</div>
-	</div>
-	<div class="value">
-		<span *ngIf="currentAccount">{{'#Settings_AccountLinked'|translate:lang:currentAccount}}</span>
-		<span *ngIf="!currentAccount">
-			<button (click)="linkAccount()" translate>#Settings_AccountLink</button>
+				<option *ngFor="let option of setting.optionsArray" [value]="option.value">{{ option.name }}</option>
+			</select>
 		</span>
 	</div>
 </section>
-
-<section class="setting" *ngIf="currentAccount && currentAccount.isPremium">
-	<div class="key">
-		<div translate>#Settings_Boost</div>
-	</div>
-	<div class="value">
-		<span *ngIf="!currentBoost && !noCurrentBoost" translate>#Settings_BoostLoading</span>
-		<span *ngIf="!currentBoost && noCurrentBoost" translate>#Settings_BoostNone</span>
-		<span *ngIf="currentBoost && !currentBoost.server">{{ currentBoost.address }}</span>
-		<span *ngIf="currentBoost && currentBoost.server" [innerHTML]="(currentBoost.server && currentBoost.server.hostname)||'test' | escape | colorize"></span>
-	</div>
-</section>
-
-<section class="setting">
-	<div class="key">
-		<div translate>#Settings_Language</div>
-	</div>
-	<div class="value">
-		<select [(ngModel)]="language" (ngModelChange)="languageChanged($event)">
-			<option value="en">English</option>
-			<option value="fr">Français</option>
-			<option value="nl">Nederlands</option>
-		</select>
-	</div>
-</section>
-
-<section class="setting">
-	<div class="key">
-		<div translate>#Settings_MenuAudio</div>
-	</div>
-	<div class="value">
-		<div class="checkbox">
-			<input
-				type="checkbox"
-				id="menu-audio"
-				[checked]="!ui_disableMusicTheme"
-				(change)="toggleConvar('ui_disableMusicTheme')"
-			>
-			<label for="menu-audio" translate>
-				#Settings_MenuAudioDesc
-			</label>
-		</div>
-	</div>
-</section>
-
-<section class="setting">
-	<div class="key">
-		<div translate>#Settings_GameStreamProgress</div>
-	</div>
-	<div class="value">
-		<div class="checkbox">
-			<input
-				type="checkbox"
-				id="menu-gameprogress"
-				[checked]="game_showStreamingProgress"
-				(change)="toggleConvar('game_showStreamingProgress')"
-			>
-			<label for="menu-gameprogress" translate>
-				#Settings_GameStreamProgressDesc
-			</label>
-		</div>
-	</div>
-</section>
-
+</div>

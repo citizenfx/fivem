@@ -49,11 +49,11 @@ export abstract class GameService {
 	errorMessage = new EventEmitter<string>();
 	infoMessage = new EventEmitter<string>();
 
-	devModeChange = new EventEmitter<boolean>();
-	darkThemeChange = new EventEmitter<boolean>();
-	nicknameChange = new EventEmitter<string>();
-	localhostPortChange = new EventEmitter<string>();
-	languageChange = new EventEmitter<string>();
+	devModeChange = new BehaviorSubject<boolean>(false);
+	darkThemeChange = new BehaviorSubject<boolean>(false);
+	nicknameChange = new BehaviorSubject<string>('');
+	localhostPortChange = new BehaviorSubject<string>('');
+	languageChange = new BehaviorSubject<string>('en');
 
 	signinChange = new EventEmitter<Profile>();
 
@@ -166,23 +166,23 @@ export abstract class GameService {
 	}
 
 	protected invokeNicknameChanged(name: string) {
-		this.nicknameChange.emit(name);
+		this.nicknameChange.next(name);
 	}
 
 	protected invokeDevModeChanged(value: boolean) {
-		this.devModeChange.emit(value);
+		this.devModeChange.next(value);
 	}
 
 	protected invokeDarkThemeChanged(value: boolean) {
-		this.darkThemeChange.emit(value);
+		this.darkThemeChange.next(value);
 	}
 	
 	protected invokeLocalhostPortChanged(port: string) {
-		this.localhostPortChange.emit(port);
+		this.localhostPortChange.next(port);
 	}
 
 	protected invokeLanguageChanged(lang: string) {
-		this.languageChange.emit(lang);
+		this.languageChange.next(lang);
 	}
 
 	protected getConvarSubject(name: string) {
@@ -326,24 +326,24 @@ export class CfxGameService extends GameService {
 		this.history = JSON.parse(localStorage.getItem('history')) || [];
 
 		if (localStorage.getItem('nickOverride')) {
-			(<any>window).invokeNative('checkNickname', localStorage.getItem('nickOverride'));
-			this.realNickname = localStorage.getItem('nickOverride');
+			//(<any>window).invokeNative('checkNickname', localStorage.getItem('nickOverride'));
+			this.nickname = localStorage.getItem('nickOverride');
 		}
 
 		if (localStorage.getItem('devMode')) {
-			this._devMode = localStorage.getItem('devMode') === 'yes';
+			this.devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
 		if (localStorage.getItem('darkTheme')) {
-			this._darkTheme = localStorage.getItem('darkTheme') === 'yes';
+			this.darkTheme = localStorage.getItem('darkTheme') === 'yes';
 		}
 
 		if (localStorage.getItem('localhostPort')) {
-			this._localhostPort = localStorage.getItem('localhostPort');
+			this.localhostPort = localStorage.getItem('localhostPort');
 		}
 
 		if (localStorage.getItem('language')) {
-			this._language = localStorage.getItem('language');
+			this.language = localStorage.getItem('language');
 		}
 		
 		this.connecting.subscribe(server => {
@@ -535,7 +535,7 @@ export class CfxGameService extends GameService {
 					return;
 				}
 
-				reject(new Error("Server query timed out."));
+				reject(new Error('#DirectConnect_TimedOut'));
 
 				window.removeEventListener('message', cb);
 			}, 2500);
@@ -548,7 +548,7 @@ export class CfxGameService extends GameService {
 
 				if (event.data.type == 'queryingFailed') {
 					if (event.data.arg == addrString) {
-						reject(new Error("Failed to query server."));
+						reject(new Error('#DirectConnect_Failed'));
 						window.removeEventListener('message', cb);
 						window.clearTimeout(to);
 					}

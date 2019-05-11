@@ -11,6 +11,7 @@ import { ServersService } from '../servers.service';
 import { GameService, ServerHistoryEntry } from '../../game.service';
 
 import { DomSanitizer } from '@angular/platform-browser';
+import { Language } from 'angular-l10n';
 
 class ServerHistoryData {
     entry: ServerHistoryEntry;
@@ -31,6 +32,9 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     server: Server;
     error = '';
     inputInvalid = false;
+
+    @Language()
+    lang: string;
 
     onFetchCB: () => void;
 

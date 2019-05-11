@@ -4,6 +4,7 @@ import { ServersService } from './servers/servers.service';
 
 import * as forge from 'node-forge';
 import * as query from 'query-string';
+import { BehaviorSubject } from 'rxjs';
 
 class RSAKeyCollection {
     public: string;
@@ -38,7 +39,7 @@ export class DiscourseService {
     private computerName = 'UNKNOWN';
 
     public messageEvent = new EventEmitter<string>();
-    public signinChange = new EventEmitter<any>();
+    public signinChange = new BehaviorSubject<any>(null);
 
     public currentUser: any;
 
@@ -50,7 +51,7 @@ export class DiscourseService {
 
         if (this.authToken && this.authToken.length > 0) {
             this.getCurrentUser().then(user => {
-                this.signinChange.emit(user);
+                this.signinChange.next(user);
 
                 this.currentUser = user;
             });
@@ -117,7 +118,7 @@ export class DiscourseService {
             window.localStorage.setItem('discourseAuthToken', '');
             this.authToken = '';
 
-            this.signinChange.emit(null);
+            this.signinChange.next(null);
             this.currentUser = null;
 
             throw new Error('User was logged out.');
@@ -201,7 +202,7 @@ export class DiscourseService {
             const userInfo = await this.getCurrentUser();
 
             this.messageEvent.emit(`Thanks for linking your FiveM user account, ${userInfo.username}.`);
-            this.signinChange.emit(userInfo);
+            this.signinChange.next(userInfo);
 
             this.currentUser = userInfo;
         } catch (e) {

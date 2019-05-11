@@ -2,7 +2,7 @@
 	<input
 		#input
 		type="text"
-		placeholder="{{'#DirectConnect_IPPort'|translate}}"
+		placeholder="{{'#DirectConnect_IPPort'|translate:lang}}"
 		spellcheck="false"
 		[class.invalid]="inputInvalid"
 		[ngModel]="addr"
@@ -13,13 +13,13 @@
 
 <section class="server-info">
 	<div class="loading" *ngIf="isWaiting()">
-		Loading
+		{{ '#DirectConnect_Loading' | translate:lang }}
 	</div>
 
 	<div class="error" *ngIf="isInvalid()">
 		<h1 class="title" translate>#DirectConnect_ServerInvalid</h1>
 		<p>
-			<span>{{error}}</span> <span translate>#DirectConnect_ServerInvalid_SubTitle</span>
+			<span>{{error | translate:lang}} {{ '#DirectConnect_ServerInvalid_SubTitle' | translate:lang }}</span>
 		</p>
 	</div>
 
@@ -62,7 +62,7 @@
 			<div>
 				<h1 class="title" [innerHTML]="(server && server.entry.hostname)||'test' | escape | colorize"></h1>
 				<span class="players" *ngIf="server.server">{{server.server.currentPlayers}}/{{server.server.maxPlayers}}</span>
-				<span class="time">{{ '#DirectConnect_LastPlayed' | translate }}: {{ server.entry.time | amTimeAgo }}</span>
+				<span class="time">{{ '#DirectConnect_LastPlayed' | translate:lang }}: {{ server.entry.time | amTimeAgo }}</span>
 			</div>
 		</li>
 	</ul>

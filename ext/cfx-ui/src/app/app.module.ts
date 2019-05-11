@@ -37,6 +37,7 @@ import {DirectConnectComponent} from './servers/direct/direct-connect.component'
 import {ServersService} from './servers/servers.service';
 import {TweetService} from './home/tweet.service';
 import {TrackingService} from './tracking.service';
+import {SettingsService} from './settings.service';
 
 import {GameService, CfxGameService, DummyGameService} from './game.service';
 import {DiscourseService} from './discourse.service';
@@ -45,12 +46,11 @@ import {ColorizePipe} from './colorize.pipe';
 import {EscapePipe} from './escape.pipe';
 import { LocalStorage } from './local-storage';
 
+import { Languages } from './languages';
+
 const l10nConfig: L10nConfig = {
 	locale: {
-		languages: [
-			{ code: 'en', dir: 'ltr' },
-			{ code: 'fr', dir: 'ltr' }
-		],
+		languages: Languages.toList(),
 		language: 'en'
 	},
 	translation: {
@@ -121,7 +121,8 @@ export function metaFactory(): MetaLoader {
 		{
 			provide: LocalStorage,
 			useFactory: (localStorageFactory)
-		}
+		},
+		SettingsService
 	],
 	bootstrap:    [
 		AppComponent

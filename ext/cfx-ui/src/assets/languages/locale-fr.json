@@ -35,7 +35,7 @@
     "#Settings_DevModeDesc": "Activer l'onglet \"localhost\"",
     "#Settings_Account": "Compte FiveM connecté",
     "#Settings_AccountLink": "Lier",
-    "#Settings_AccountLinked": "Lié: {{ currentAccount.username }}",
+    "#Settings_AccountLinked": "Lié: {{ username }}",
     "#Settings_Boost": "Serveur actuellement BOOSTÉ™",
     "#Settings_BoostLoading": "Chargement...",
     "#Settings_BoostNone": "Aucun! BOOSTEZ™ un serveur en cliquant sur le bouton 'upvote' dans la liste des serveurs.",
