@@ -1017,6 +1017,9 @@ static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
 {
 	g_origCPedGameStateDataNode__access(dataNode, accessor);
 
+	// not needed right now
+	return;
+
 	// 1604
 
 	// if on mount/mount ID is set
