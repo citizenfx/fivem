@@ -50,7 +50,7 @@ export class AppNavComponent extends Translation {
 	}
 
 	connectToLocal() {
-		(<any>window).invokeNative('connectTo', (typeof this.localhostPort === 'undefined') ? '127.0.0.1:30120' : '127.0.0.1:' + this.localhostPort );
+		(<any>window).invokeNative('connectTo', '127.0.0.1:' + (this.localhostPort || '30120') );
 	}
 
 	exitGame() {
