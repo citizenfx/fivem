@@ -331,7 +331,10 @@ void TLSServerStream::CloseInternal()
 
 void TLSServerStream::ScheduleCallback(const TScheduledCallback& callback)
 {
-	m_baseStream->ScheduleCallback(callback);
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->ScheduleCallback(callback);
+	}
 }
 
 TLSServer::TLSServer(fwRefContainer<TcpServer> baseServer, const std::string& certificatePath, const std::string& keyPath, bool autoGenerate)
