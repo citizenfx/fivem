@@ -19,6 +19,8 @@
 
 #include <ICoreGameInit.h>
 
+#include <Error.h>
+
 #include <Hooking.h>
 
 static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
@@ -322,7 +324,7 @@ struct WriteTreeState
 
 struct NetObjectNodeData
 {
-	std::array<uint8_t, 768> lastData;
+	std::array<uint8_t, 1024> lastData;
 	uint32_t lastChange;
 	uint32_t lastAck;
 
@@ -449,7 +451,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
 				// calculate node change state
-				std::array<uint8_t, 768> tempData;
+				std::array<uint8_t, 1024> tempData;
 				memset(tempData.data(), 0, tempData.size());
 
 				rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
@@ -534,6 +536,24 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					if (node->flags2 & state.flags)
 					{
 						length -= 1;
+					}
+
+					if (length >= (1 << 13))
+					{
+						auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
+
+						auto f = _wfopen(extraDumpPath.c_str(), L"wb");
+
+						if (f)
+						{
+							fwrite(buffer->m_data, 1, buffer->m_maxBit / 8, f);
+							fclose(f);
+						}
+
+						trace("Node type: %s\n", typeid(*node).name());
+						trace("Start offset: %d\n", startPos);
+
+						FatalError("Tried to write a bad node length of %d bits in a '%s'. There should only ever be 8192 bits. Please report this on https://forum.fivem.net/t/318260 together with the .zip file from 'save information' below.", length, typeid(*node).name());
 					}
 
 					buffer->WriteUns(length, sizeLength);
