@@ -17,9 +17,9 @@ static hook::cdecl_stub<bool(uint32_t* mi)> hasModelLoaded([]()
 
 DLL_EXPORT fwEvent<PopulationCreationState*> OnCreatePopulationPed;
 
-static void*(*g_createPopulationPed)(int32_t mi, float* position, float, void*, char a5, unsigned int a6, __int64 a7, char a8, char a9, char a10, char a11, __int64 a12, char a13, char a14, unsigned int a15, int a16, __int64 a17, __int64 a18, char a19, int a20);
+static void*(*g_createPopulationPed)(int32_t mi, float* position, float, void*, char a5, unsigned int a6, __int64 a7, char a8, char a9, char a10, char a11, __int64 a12, char a13, char a14, unsigned int a15, int a16, __int64 a17, __int64 a18, char a19, int a20, char a21);
 
-static void* CreatePopulationPedWrap(uint32_t mi, float* position, float a3, void* a4, char a5, unsigned int a6, __int64 a7, char a8, char a9, char a10, char a11, __int64 a12, char a13, char a14, unsigned int a15, int a16, __int64 a17, __int64 a18, char a19, int a20)
+static void* CreatePopulationPedWrap(uint32_t mi, float* position, float a3, void* a4, char a5, unsigned int a6, __int64 a7, char a8, char a9, char a10, char a11, __int64 a12, char a13, char a14, unsigned int a15, int a16, __int64 a17, __int64 a18, char a19, int a20, char a21)
 {
 	auto archetype = getArchetypeFromUnk(&mi);
 	uint32_t modelHash = 0;
@@ -62,7 +62,7 @@ static void* CreatePopulationPedWrap(uint32_t mi, float* position, float a3, voi
 	// if allowed, create the ped
 	if (creationState.allowed)
 	{
-		return g_createPopulationPed(mi, position, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20);
+		return g_createPopulationPed(mi, position, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21);
 	}
 
 	return nullptr;
