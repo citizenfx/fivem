@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#if 0
 #include <fiCollectionWrapper.h>
 
 constexpr int NUM_STREAMING_ARCHIVES = 4096;
@@ -192,3 +193,4 @@ static HookFunction hookFunction([]()
 		hook::call(location, SetStreamingInterface);
 	}
 });
+#endif
