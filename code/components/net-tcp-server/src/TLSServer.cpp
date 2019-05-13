@@ -238,14 +238,36 @@ void TLSServerStream::Write(const std::vector<uint8_t>& data)
 	{
 		if (m_tlsServer && m_tlsServer->is_active())
 		{
-			m_tlsServer->send(data);
+			try
+			{
+				m_tlsServer->send(data);
+			}
+			catch (const std::exception& e)
+			{
+				trace("tls send: %s\n", e.what());
+
+				Close();
+			}
 		}
 	});
 }
 
 void TLSServerStream::Close()
 {
-	m_tlsServer->close();
+	ScheduleCallback([this]()
+	{
+		if (m_tlsServer)
+		{
+			try
+			{
+				m_tlsServer->close();
+			}
+			catch (const std::exception& e)
+			{
+				trace("tls close: %s\n", e.what());
+			}
+		}
+	});
 }
 
 void TLSServerStream::WriteToClient(const uint8_t buf[], size_t length)
