@@ -290,55 +290,84 @@ namespace CitizenFX.Core
 			Debug.WriteLine("Unhandled exception: {0}", e.ExceptionObject.ToString());
 		}
 
+		private static HashSet<string> ms_assemblySearchPaths = new HashSet<string>();
+
 		public void LoadAssembly(string name)
 		{
 			LoadAssemblyInternal(name.Replace(".dll", ""));
 		}
 
-		static Assembly LoadAssemblyInternal(string name)
+		static Assembly LoadAssemblyInternal(string baseName, bool useSearchPaths = false)
 		{
-			try
+			var attemptPaths = new List<string>();
+			attemptPaths.Add(baseName);
+
+			if (useSearchPaths)
 			{
-				var assemblyStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll")));
-				var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
+				foreach (var path in ms_assemblySearchPaths)
+				{
+					attemptPaths.Add($"{path.Replace('\\', '/')}/{baseName}");
+				}
+			}
 
-				byte[] symbolBytes = null;
-
+			foreach (var name in attemptPaths)
+			{
 				try
 				{
-					var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll.mdb")));
-					symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
-				}
-				catch
-				{
+					var assemblyStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll")));
+					var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
+
+					byte[] symbolBytes = null;
+
 					try
 					{
-						var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".pdb")));
+						var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll.mdb")));
 						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
 					}
 					catch
 					{
-						// nothing
+						try
+						{
+							var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".pdb")));
+							symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+						}
+						catch
+						{
+							// nothing
+						}
 					}
-				}
 
-				return CreateAssemblyInternal(name + ".dll", assemblyBytes, symbolBytes);
+					if (assemblyBytes != null)
+					{
+						var dirName = Path.GetDirectoryName(name);
+
+						if (!string.IsNullOrWhiteSpace(dirName))
+						{
+							ms_assemblySearchPaths.Add(dirName);
+						}
+					}
+
+					return CreateAssemblyInternal(name + ".dll", assemblyBytes, symbolBytes);
+				}
+				catch (Exception e)
+				{
+					//Switching the FileNotFound to a NotImplemented tells mono to disable I18N support.
+					//See: https://github.com/mono/mono/blob/8fee89e530eb3636325306c66603ba826319e8c5/mcs/class/corlib/System.Text/EncodingHelper.cs#L131
+					if (e is FileNotFoundException && string.Equals(name, "I18N", StringComparison.OrdinalIgnoreCase))
+						throw new NotImplementedException("I18N not found", e);
+
+					Debug.WriteLine($"Exception loading assembly {name}: {e}");
+				}
 			}
-			catch (Exception e)
-			{
-				//Switching the FileNotFound to a NotImplemented tells mono to disable I18N support.
-				//See: https://github.com/mono/mono/blob/8fee89e530eb3636325306c66603ba826319e8c5/mcs/class/corlib/System.Text/EncodingHelper.cs#L131
-				if (e is FileNotFoundException && string.Equals(name, "I18N", StringComparison.OrdinalIgnoreCase))
-					throw new NotImplementedException("I18N not found", e);
-				Debug.WriteLine($"Exception loading assembly {name}: {e}");
-			}
+
+			Debug.WriteLine($"Could not load assembly {baseName} - see above for loading exceptions.");
 
 			return null;
 		}
 
 		static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
 		{
-			return LoadAssemblyInternal(args.Name.Split(',')[0]);
+			return LoadAssemblyInternal(args.Name.Split(',')[0], useSearchPaths: true);
 		}
 
 		public static void AddDelay(int delay, AsyncCallback callback)
