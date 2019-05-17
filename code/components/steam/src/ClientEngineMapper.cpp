@@ -101,7 +101,9 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 	ud_set_mode(&ud, 64);
 #endif
 
+	bool hadUnwantedCall = false;
 	bool hadExternCall = false;
+	bool hadMov = false;
 
 	// set the program counter
 	ud_set_pc(&ud, reinterpret_cast<uint64_t>(methodPtr));
@@ -224,6 +226,8 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 			// get the first operand
 			auto operand = ud_insn_opr(&ud, 0);
 
+			bool isWantedCall = false;
+
 			// if the operand is immediate
 			if (operand->type == UD_OP_JIMM)
 			{
@@ -251,6 +255,7 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 					if (*(char**)operandPtr == (char*)GetProcAddress(GetModuleHandleW(L"tier0_s64.dll"), "?Lock@CThreadMutex@@QEAAXXZ"))
 					{
 						hadExternCall = true;
+						isWantedCall = true;
 					}
 				}
 				else
@@ -267,6 +272,32 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 						}
 					}
 				}
+			}
+
+			if (!isWantedCall)
+			{
+				hadUnwantedCall = true;
+			}
+		}
+		// and another 2019-05 update breaks yet another thing
+		else if (!child && ud_insn_mnemonic(&ud) == UD_Icmp)
+		{
+			auto operand1 = ud_insn_opr(&ud, 0);
+			auto operand = ud_insn_opr(&ud, 1);
+
+			if (operand1->type == UD_OP_REG && operand->type == UD_OP_IMM && operand->lval.udword == 0xFF && hadExternCall && hadMov && !hadUnwantedCall)
+			{
+				*isUser = true;
+				return true;
+			}
+		}
+		else if (!child && ud_insn_mnemonic(&ud) == UD_Imov)
+		{
+			auto operand = ud_insn_opr(&ud, 1);
+
+			if (operand->type == UD_OP_REG && operand->base == UD_R_R8D)
+			{
+				hadMov = true;
 			}
 		}
 #else
