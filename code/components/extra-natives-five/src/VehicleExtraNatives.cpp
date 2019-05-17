@@ -269,7 +269,7 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_SPEED", readVehicleMemory<float, DashSpeedOffset>);
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ACCELERATION", readVehicleMemory<float, AccelerationOffset>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CURRENT_ACCELERATION", readVehicleMemory<float, AccelerationOffset>);
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_GRAVITY", readVehicleMemory<float, AccelerationOffset>);
 
