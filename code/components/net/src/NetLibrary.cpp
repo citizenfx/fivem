@@ -418,6 +418,11 @@ void NetLibrary::SetHost(uint16_t netID, uint32_t base)
 	m_hostBase = base;
 }
 
+void NetLibrary::SetQueryString(const std::string queryString)
+{
+	m_queryString = queryString;
+}
+
 void NetLibrary::SetBase(uint32_t base)
 {
 	m_serverBase = base;
@@ -769,6 +774,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
+	postMap["queryString"] = m_queryString;
 
 	std::string gameBuild;
 

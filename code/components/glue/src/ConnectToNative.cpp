@@ -128,7 +128,7 @@ inline bool HasDefaultName()
 static NetLibrary* netLibrary;
 static bool g_connected;
 
-static void ConnectTo(const std::string& hostnameStr)
+static void ConnectTo(const std::string& hostnameStr, const std::string& queryString)
 {
 	if (g_connected)
 	{
@@ -144,6 +144,7 @@ static void ConnectTo(const std::string& hostnameStr)
 	{
 		nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
 
+		netLibrary->SetQueryString(queryString);
 		netLibrary->ConnectToServer(npa.get());
 	}
 	else
@@ -258,7 +259,7 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand connectCommand("connect", [](const std::string& server)
 	{
-		ConnectTo(server);
+		ConnectTo(server, "");
 	});
 
 	static ConsoleCommand disconnectCommand("disconnect", []()
@@ -274,7 +275,7 @@ static InitFunction initFunction([] ()
 	{
 		if (!_stricmp(type, "connectTo"))
 		{
-			ConnectTo(arg);
+			ConnectTo(arg, "");
 		}
 	});
 
@@ -285,7 +286,7 @@ static InitFunction initFunction([] ()
 			std::wstring hostnameStrW = arg;
 			std::string hostnameStr(hostnameStrW.begin(), hostnameStrW.end());
 
-			ConnectTo(hostnameStr);
+			ConnectTo(hostnameStr, "");
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{
@@ -459,6 +460,7 @@ void Component_RunPreInit()
 	LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
 	static std::string connectHost;
+	static std::string queryString;
 	static std::string authPayload;
 
 	for (int i = 1; i < argc; i++)
@@ -478,7 +480,15 @@ void Component_RunPreInit()
 					{
 						if (!parsed.path().empty())
 						{
+
+
+
 							connectHost = parsed.path().substr(1).to_string();
+							queryString = parsed.query().to_string();
+							trace("query string : %s\n",queryString);
+
+
+
 						}
 					}
 					else if (parsed.host().to_string() == "accept-auth")
@@ -505,7 +515,7 @@ void Component_RunPreInit()
 			{
 				if (type == rage::InitFunctionType::INIT_CORE)
 				{
-					ConnectTo(connectHost);
+					ConnectTo(connectHost, queryString);
 					connectHost = "";
 				}
 			}, 999999);
@@ -601,7 +611,7 @@ static InitFunction connectInitFunction([]()
 			std::string connectMsg(buffer, buffer + bufLen);
 			nng_free(buffer, bufLen);
 
-			ConnectTo(connectMsg);
+			ConnectTo(connectMsg, "");
 
 			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
 		}

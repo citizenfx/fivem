@@ -159,6 +159,8 @@ private:
 
 	std::string m_token;
 
+	std::string m_queryString;
+
 	uint32_t m_lastConnect;
 
 	uint32_t m_connectAttempts;
@@ -221,6 +223,8 @@ public:
 	virtual void SetPlayerName(const char* name) override;
 
 	virtual void SetBase(uint32_t base) override;
+
+	virtual void SetQueryString(const std::string queryString);
 
 	virtual void RunFrame() override;
 

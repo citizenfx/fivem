@@ -268,6 +268,9 @@ static InitFunction initFunction([]()
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
+			auto queryString = postMap.find("queryString");
+
+			trace("Query String : %s\n", queryString);
 
 			auto protocolIt = postMap.find("protocol");
 
