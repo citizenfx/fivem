@@ -545,7 +545,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float Acceleration
 		{
-			get => API.GetVehicleAcceleration2(Handle);
+			get => API.GetVehicleCurrentAcceleration(Handle);
 		}
 		/// <summary>
 		/// Gets or sets the current RPM of this <see cref="Vehicle"/>.
