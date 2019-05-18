@@ -729,9 +729,9 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	Log("%s: id %d obj [obj:%d] ts %d\n", __func__, msg.GetClientId(), msg.GetObjectId(), msg.GetTimestamp());
 
 	// get saved object
-	auto obj = m_savedEntities[msg.GetObjectId()];
+	auto objIt = m_savedEntities.find(msg.GetObjectId());
 
-	if (!obj)
+	if (objIt == m_savedEntities.end())
 	{
 		ackPacket();
 
@@ -740,6 +740,8 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		// pretend it acked, we don't want the server to spam us with even more nodes we can't handle
 		return true;
 	}
+
+	auto obj = objIt->second;
 
 	// update client id if changed
 	CheckMigration(msg);
@@ -797,7 +799,14 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 void CloneManagerLocal::CheckMigration(const msgClone& msg)
 {
-	auto obj = m_savedEntities[msg.GetObjectId()];
+	auto objIt = m_savedEntities.find(msg.GetObjectId());
+	rage::netObject* obj = nullptr;
+
+	if (objIt != m_savedEntities.end())
+	{
+		obj = objIt->second;
+	}
+
 	auto& extData = m_extendedData[msg.GetObjectId()];
 
 	if (extData.clientId != msg.GetClientId())
@@ -930,10 +939,12 @@ void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
 
 void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
 {
-	auto object = m_savedEntities[objectId];
+	auto objectIt = m_savedEntities.find(objectId);
 
-	if (object)
+	if (objectIt != m_savedEntities.end())
 	{
+		auto object = objectIt->second;
+
 		// set flags
 		object->syncData.wantsToDelete = true;
 		object->syncData.shouldNotBeDeleted = false;
