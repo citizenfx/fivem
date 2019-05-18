@@ -20,7 +20,7 @@ static hook::cdecl_stub<bool(void*, bool)> _netBuffer_WriteBit([]()
 
 static hook::cdecl_stub<bool(void*, uint32_t*, int)> _netBuffer_ReadInteger([]()
 {
-	return hook::get_pattern("2D 44 8B 4B 08 48 8B 0B 48 8D 54 24 30", -0x38);
+	return hook::get_pattern("8B 44 24 30 8B D6 48 8B CB 89 07 E8", -0x50);
 });
 
 static hook::cdecl_stub<void(rage::datBitBuffer*, int)> _netBuffer_BumpReadWriteCursor([]()
