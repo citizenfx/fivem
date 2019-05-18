@@ -96,7 +96,7 @@ public:
 	virtual void m_98() = 0;
 	virtual int GetObjectFlags() = 0;
 	virtual void m_A8() = 0;
-	virtual void m_B0() = 0;
+	virtual void CreateNetBlender() = 0;
 	virtual void m_B8() = 0;
 	virtual void m_C0() = 0;
 	virtual void m_C8() = 0;
@@ -108,11 +108,11 @@ public:
 	virtual void m_F8() = 0;
 	virtual void Update() = 0;
 	virtual bool m_108_1604() = 0; // added in 1604
-	virtual void m_108() = 0;
+	virtual void StartSynchronising() = 0;
 	virtual void m_110() = 0;
 	virtual void m_118() = 0;
 	virtual void m_120() = 0;
-	virtual void m_128() = 0;
+	virtual bool CanSynchronise(bool) = 0;
 	virtual void m_130() = 0;
 	virtual void m_138() = 0;
 	virtual void m_140() = 0;
@@ -123,8 +123,8 @@ public:
 	virtual bool m_168(int* outReason) = 0;
 	virtual void m_170() = 0;
 	virtual void m_178() = 0;
-	virtual void m_180() = 0;
-	virtual void m_188() = 0;
+	virtual void ChangeOwner(CNetGamePlayer* player, int migrationType) = 0;
+	virtual void OnRegistered() = 0;
 	virtual void m_190() = 0;
 	virtual void m_198() = 0;
 	virtual void m_1A0() = 0;
@@ -134,10 +134,10 @@ public:
 	virtual void m_1C0() = 0;
 	virtual void m_1C8() = 0;
 	virtual void m_1D0() = 0;
-	virtual void m_1D8() = 0;
+	virtual void PostMigrate(int migrationType) = 0;
 	virtual void m_1E0() = 0;
 	virtual void m_1E8() = 0;
-	virtual void m_1F0() = 0;
+	virtual const char* GetTypeString() = 0;
 	virtual void m_1F8() = 0;
 	virtual void m_200() = 0;
 	virtual void m_208() = 0;
@@ -177,6 +177,11 @@ public:
 	virtual void m_318() = 0;
 	virtual void m_320() = 0;
 	virtual void UpdatePendingVisibilityChanges() = 0;
+
+	inline std::string ToString()
+	{
+		return fmt::sprintf("[netObj:%d:%s]", objectId, GetTypeString());
+	}
 };
 
 netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a2, int a3, int a4);
