@@ -688,9 +688,6 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	obj->m_1C0();
 
-	m_savedEntitySet.insert(obj);
-	m_savedEntities[msg.GetObjectId()] = obj;
-
 	// for the last time, ensure it's not local
 	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
 	{
@@ -751,9 +748,6 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	{
 		Log("%s: our object, bailing out\n", __func__);
 
-		m_savedEntities[msg.GetObjectId()] = obj;
-		m_savedEntitySet.insert(obj);
-
 		ackPacket();
 
 		// our object, it's fine
@@ -795,9 +789,6 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	// call post-apply
 	obj->m_1D0();
-
-	m_savedEntities[msg.GetObjectId()] = obj;
-	m_savedEntitySet.insert(obj);
 
 	ackPacket();
 
