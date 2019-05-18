@@ -14,7 +14,7 @@
 
 #include <se/Security.h>
 
-#define MAX_CLIENTS 64 // don't change this past 256 ever, also needs to be synced with client code
+#define MAX_CLIENTS 128 // don't change this past 256 ever, also needs to be synced with client code
 
 namespace {
 	using namespace std::literals::chrono_literals;
