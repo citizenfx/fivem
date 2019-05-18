@@ -72,6 +72,11 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 	return false;
 }
 
+void ObjectIds_ReturnObjectId(uint16_t objectId)
+{
+	ReturnObjectId(nullptr, objectId);
+}
+
 static bool(*g_origHasSpaceForObjectId)(void*, int, bool);
 
 static bool HasSpaceForObjectId(void* objectIds, int num, bool unkScript)
