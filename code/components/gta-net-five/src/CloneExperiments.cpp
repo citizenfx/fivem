@@ -837,7 +837,8 @@ void ObjectManager_End(rage::netObjectMgr* objectMgr)
 
 			for (int i = 0; i < 65; i++)
 			{
-				objectMgr->ForAllNetObjects(i, objectCb);
+				// #TODO1S: fix this to use CloneManager
+				//objectMgr->ForAllNetObjects(i, objectCb);
 			}
 
 			auto listCopy = TheClones->GetObjectList();
@@ -962,7 +963,7 @@ static int GetPlayersNearPoint(const float* point, float range, CNetGamePlayer* 
 
 		if (getPlayerPedForNetPlayer(player))
 		{
-			float vectorPos[4];
+			alignas(16) float vectorPos[4];
 
 			if (range >= 100000000.0f || VectorDistance(point, getNetPlayerRelevancePosition(vectorPos, player, nullptr, unkVal)) < range)
 			{
@@ -976,8 +977,8 @@ static int GetPlayersNearPoint(const float* point, float range, CNetGamePlayer* 
 	{
 		std::sort(tempArray, tempArray + idx, [point](CNetGamePlayer* a1, CNetGamePlayer* a2)
 		{
-			float vectorPos1[4];
-			float vectorPos2[4];
+			alignas(16) float vectorPos1[4];
+			alignas(16) float vectorPos2[4];
 
 			float d1 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos1, a1, nullptr, false));
 			float d2 = VectorDistance(point, getNetPlayerRelevancePosition(vectorPos2, a2, nullptr, false));
@@ -1693,6 +1694,8 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBit
 	{
 		g_netObjectNodeMapping[g_curNetObject->objectId][node] = { 0, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
 	}
+
+	return didRead;
 }
 
 static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
