@@ -480,15 +480,8 @@ void Component_RunPreInit()
 					{
 						if (!parsed.path().empty())
 						{
-
-
-
 							connectHost = parsed.path().substr(1).to_string();
 							queryString = parsed.query().to_string();
-							trace("query string : %s\n",queryString);
-
-
-
 						}
 					}
 					else if (parsed.host().to_string() == "accept-auth")
