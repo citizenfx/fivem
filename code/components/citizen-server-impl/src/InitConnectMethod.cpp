@@ -268,9 +268,6 @@ static InitFunction initFunction([]()
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
-			auto queryString = postMap.find("queryString");
-
-			trace("Query String : %s\n", queryString);
 
 			auto protocolIt = postMap.find("protocol");
 
@@ -284,6 +281,7 @@ static InitFunction initFunction([]()
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
 			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
+			auto queryString = postMap.find("queryString");
 
 			// limit name length
 			if (name.length() >= 200)
@@ -355,6 +353,10 @@ static InitFunction initFunction([]()
 			client->SetConnectionToken(token);
 			client->SetTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
 			client->SetNetId(0x10000 + tempId);
+			if (!queryString->second.empty())
+			{
+				client->AddIdentifier(fmt::sprintf("querystring:%s", queryString->second));
+			}
 
 			// add the entitlement hash if needed
 			if (ticketData.entitlementHash)

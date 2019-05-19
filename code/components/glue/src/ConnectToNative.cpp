@@ -128,7 +128,7 @@ inline bool HasDefaultName()
 static NetLibrary* netLibrary;
 static bool g_connected;
 
-static void ConnectTo(const std::string& hostnameStr, const std::string& queryString)
+static void ConnectTo(const std::string& hostnameStr, const std::string& queryString = "")
 {
 	if (g_connected)
 	{
@@ -259,7 +259,7 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand connectCommand("connect", [](const std::string& server)
 	{
-		ConnectTo(server, "");
+		ConnectTo(server);
 	});
 
 	static ConsoleCommand disconnectCommand("disconnect", []()
@@ -275,7 +275,7 @@ static InitFunction initFunction([] ()
 	{
 		if (!_stricmp(type, "connectTo"))
 		{
-			ConnectTo(arg, "");
+			ConnectTo(arg);
 		}
 	});
 
@@ -286,7 +286,7 @@ static InitFunction initFunction([] ()
 			std::wstring hostnameStrW = arg;
 			std::string hostnameStr(hostnameStrW.begin(), hostnameStrW.end());
 
-			ConnectTo(hostnameStr, "");
+			ConnectTo(hostnameStr);
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{
@@ -611,7 +611,7 @@ static InitFunction connectInitFunction([]()
 			std::string connectMsg(buffer, buffer + bufLen);
 			nng_free(buffer, bufLen);
 
-			ConnectTo(connectMsg, "");
+			ConnectTo(connectMsg);
 
 			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
 		}
