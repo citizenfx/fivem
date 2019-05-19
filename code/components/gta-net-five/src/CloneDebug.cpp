@@ -166,11 +166,11 @@ static void RenderSyncTree(rage::netObject* object, rage::netSyncTree* syncTree)
 
 static void RenderNetObjectTree()
 {
-	for (int player = 0; player < 64 + 1; player++)
+	for (int player = 0; player < 128 + 1; player++)
 	{
 		std::vector<rage::netObject*> objects;
 
-		rage::netObjectMgr::GetInstance()->ForAllNetObjects(player, [&objects](rage::netObject* object)
+		CloneObjectMgr->ForAllNetObjects(player, [&objects](rage::netObject* object)
 		{
 			objects.push_back(object);
 		});
