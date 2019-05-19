@@ -102,6 +102,14 @@ public:
 
 	virtual rage::netObject* GetNetworkObject(uint16_t id) override;
 
+	virtual void ForAllNetObjects(int playerId, const std::function<void(rage::netObject*)>& callback) override
+	{
+		for (auto& entry : m_netObjects[playerId])
+		{
+			callback(entry.second);
+		}
+	}
+
 private:
 	void WriteUpdates();
 
@@ -174,6 +182,8 @@ private:
 
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
+	std::unordered_set<int> m_pendingRemoveAcks;
+
 	tbb::concurrent_queue<std::string> m_logQueue;
 
 	std::condition_variable m_consoleCondVar;
@@ -207,17 +217,11 @@ void CloneManagerLocal::Log(const char* format, const fmt::ArgList& argumentList
 
 void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 {
-	auto& netBuffer = m_sendBuffer;
-
 	Log("%s: %s\n", __func__, netObject->ToString());
 
 	if (!netObject->syncData.isRemote)
 	{
-		netBuffer.Write(3, 3);
-		//netBuffer.Write<uint8_t>(0); // player ID (byte)
-		netBuffer.Write(13, netObject->objectId); // object ID (short)
-
-		AttemptFlushNetBuffer();
+		m_pendingRemoveAcks.insert(netObject->objectId);
 	}
 
 	m_trackedObjects.erase(netObject->objectId);
@@ -377,6 +381,14 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 				// this is now done the same time we send a remove
 				/*auto objId = buf.Read<uint16_t>();
 				m_trackedObjects.erase(objId);*/
+
+				auto objId = buf.Read<uint16_t>();
+
+				// #NETVER: resend removes and handle acks here
+				if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201905190829)
+				{
+					m_pendingRemoveAcks.erase(objId);
+				}
 
 				break;
 			}
@@ -591,15 +603,13 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// find existence
 	bool exists = false;
 
-	/*rage::netObjectMgr::GetInstance()->ForAllNetObjects(31, [&](rage::netObject* object)
+	CloneObjectMgr->ForAllNetObjects(31, [&](rage::netObject* object)
 	{
 		if (object->objectId == msg.GetObjectId())
 		{
 			exists = true;
 		}
-	});*/
-
-	exists = m_savedEntities.find(msg.GetObjectId()) != m_savedEntities.end();
+	});
 
 	// already exists! bail out
 	if (exists)
@@ -1022,6 +1032,11 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 	if (object->syncData.ownerId != 0xFF)
 	{
 		m_netObjects[object->syncData.ownerId][object->objectId] = object;
+
+		if (object->syncData.ownerId != 31)
+		{
+			m_extendedData[object->objectId].clientId = m_netLibrary->GetServerNetID();
+		}
 	}
 
 	m_savedEntities[object->objectId] = object;
@@ -1041,13 +1056,10 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 
 	m_savedEntities.erase(object->objectId);
 	m_savedEntitySet.erase(object);
+	m_trackedObjects.erase(object->objectId);
+	m_extendedData.erase(object->objectId);
 
-	auto& netBuffer = m_sendBuffer;
-
-	netBuffer.Write(3, 3);
-	netBuffer.Write(13, object->objectId); // object ID (short)
-
-	AttemptFlushNetBuffer();
+	m_pendingRemoveAcks.insert(object->objectId);
 }
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
@@ -1367,6 +1379,22 @@ void CloneManagerLocal::WriteUpdates()
 		{
 			objectCb(objects[i]);
 		}
+	}
+
+	for (auto& objectId : m_pendingRemoveAcks)
+	{
+		auto& netBuffer = m_sendBuffer;
+
+		netBuffer.Write(3, 3);
+		netBuffer.Write(13, objectId); // object ID (short)
+
+		AttemptFlushNetBuffer();
+	}
+
+	// #NETVER: older servers won't ack removes, so we don't try resending removals ever
+	if (Instance<ICoreGameInit>::Get()->NetProtoVersion < 0x201905190829)
+	{
+		m_pendingRemoveAcks.clear();
 	}
 
 	Log("sync: got %d creates, %d syncs, %d removes and %d migrates\n", syncCount1, syncCount2, syncCount3, syncCount4);
