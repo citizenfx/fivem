@@ -25,6 +25,8 @@ public:
 	virtual void ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType) = 0;
 
 	virtual rage::netObject* GetNetworkObject(uint16_t id) = 0;
+
+	virtual void ForAllNetObjects(int playerId, const std::function<void(rage::netObject*)>& callback) = 0;
 };
 
 class CloneManager
