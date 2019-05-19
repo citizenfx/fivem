@@ -39,8 +39,10 @@ NUIClient::NUIClient(NUIWindow* window)
 
 	m_renderHandler = new NUIRenderHandler(this);
 
+	CefRefPtr<NUIClient> thisRef(this);
+
 	auto httpClient = Instance<HttpClient>::Get();
-	httpClient->DoGetRequest("https://runtime.fivem.net/nui-blacklist.json", [=](bool success, const char* data, size_t length)
+	httpClient->DoGetRequest("https://runtime.fivem.net/nui-blacklist.json", [thisRef](bool success, const char* data, size_t length)
 	{
 		if (success)
 		{
@@ -55,7 +57,7 @@ NUIClient::NUIClient(NUIWindow* window)
 					{
 						if (it->IsString())
 						{
-							m_requestBlacklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
+							thisRef->m_requestBlacklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
 						}
 					}
 				}
