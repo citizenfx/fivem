@@ -835,10 +835,9 @@ void ObjectManager_End(rage::netObjectMgr* objectMgr)
 				objectMgr->UnregisterNetworkObject(object, 0, true, true);
 			};
 
-			for (int i = 0; i < 65; i++)
+			for (int i = 0; i < 256; i++)
 			{
-				// #TODO1S: fix this to use CloneManager
-				//objectMgr->ForAllNetObjects(i, objectCb);
+				CloneObjectMgr->ForAllNetObjects(i, objectCb);
 			}
 
 			auto listCopy = TheClones->GetObjectList();
