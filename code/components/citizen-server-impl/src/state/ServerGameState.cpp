@@ -1428,6 +1428,10 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	auto playerId = 0;
 	auto objectId = inPacket.Read<uint16_t>(13);
 
+	// ack remove no matter if we accept it
+	ackPacket.Write<uint8_t>(3);
+	ackPacket.Write<uint16_t>(objectId);
+
 	// TODO: verify ownership
 	auto entity = GetEntity(0, objectId);
 
