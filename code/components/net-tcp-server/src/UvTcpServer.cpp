@@ -204,39 +204,42 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 		fwRefContainer<UvTcpServerStream> stream;
 	};
 
-	// prepare a write request
-	UvWriteReq* writeReq = new UvWriteReq;
-	writeReq->sendData = data;
-	writeReq->buffer.base = reinterpret_cast<char*>(&writeReq->sendData[0]);
-	writeReq->buffer.len = writeReq->sendData.size();
-	writeReq->stream = this;
-	
-	writeReq->write.data = writeReq;
-
-	// submit the write request
-	m_pendingRequests.push([=]()
+	if (m_writeCallback)
 	{
-		if (!m_client)
-		{
-			return;
-		}
+		// prepare a write request
+		UvWriteReq* writeReq = new UvWriteReq;
+		writeReq->sendData = data;
+		writeReq->buffer.base = reinterpret_cast<char*>(&writeReq->sendData[0]);
+		writeReq->buffer.len = writeReq->sendData.size();
+		writeReq->stream = this;
 
-		// send the write request
-		uv_write(&writeReq->write, reinterpret_cast<uv_stream_t*>(m_client.get()), &writeReq->buffer, 1, [](uv_write_t* write, int status)
-		{
-			UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
+		writeReq->write.data = writeReq;
 
-			if (status < 0)
+		// submit the write request
+		m_pendingRequests.push([=]()
+		{
+			if (!m_client)
 			{
-				//trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
+				return;
 			}
 
-			delete req;
-		});
-	});
+			// send the write request
+			uv_write(&writeReq->write, reinterpret_cast<uv_stream_t*>(m_client.get()), &writeReq->buffer, 1, [](uv_write_t * write, int status)
+			{
+				UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
 
-	// wake the callback
-	uv_async_send(m_writeCallback.get());
+				if (status < 0)
+				{
+					//trace("write to %s failed - %s\n", req->stream->GetPeerAddress().ToString().c_str(), uv_strerror(status));
+				}
+
+				delete req;
+			});
+		});
+
+		// wake the callback
+		uv_async_send(m_writeCallback.get());
+	}
 }
 
 void UvTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
