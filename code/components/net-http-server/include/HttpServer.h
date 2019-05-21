@@ -106,6 +106,9 @@ struct HttpState
 
 	// a function to call when we want to unblock the request
 	std::function<void()> ping;
+
+	// a lock for ping being set
+	std::mutex pingLock;
 };
 
 class

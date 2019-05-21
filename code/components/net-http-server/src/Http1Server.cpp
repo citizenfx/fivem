@@ -144,7 +144,7 @@ public:
 
 	virtual void End() override
 	{
-		if (m_chunked)
+		if (m_chunked && m_clientStream.GetRef())
 		{
 			// assume chunked
 			m_clientStream->Write("0\r\n\r\n");
@@ -154,13 +154,20 @@ public:
 		{
 			m_requestState->blocked = false;
 
-			if (m_requestState->ping)
+			decltype(m_requestState->ping) ping;
+
 			{
-				m_requestState->ping();
+				std::unique_lock<std::mutex> lock(m_requestState->pingLock);
+				ping = m_requestState->ping;
+			}
+
+			if (ping)
+			{
+				ping();
 			}
 		}
 
-		if (m_closeConnection)
+		if (m_closeConnection && m_clientStream.GetRef())
 		{
 			m_clientStream->Close();
 		}
@@ -479,10 +486,17 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		}
 	};
 
-	reqState->ping = [=]()
 	{
-		readCallback({});
-	};
+		std::unique_lock<std::mutex> lock(reqState->pingLock);
+
+		reqState->ping = [readCallback]()
+		{
+			if (readCallback)
+			{
+				readCallback({});
+			}
+		};
+	}
 
 	stream->SetReadCallback(readCallback);
 
@@ -502,6 +516,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			connectionData->request = nullptr;
 		}
 
+		std::unique_lock<std::mutex> lock(reqState->pingLock);
 		reqState->ping = {};
 	});
 }
