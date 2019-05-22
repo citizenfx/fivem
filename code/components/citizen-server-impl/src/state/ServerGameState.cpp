@@ -1991,7 +1991,7 @@ static InitFunction initFunction([]()
 			{
 				auto targetClient = clientRegistry->GetClientByNetID(player);
 
-				if (targetClient)
+				if (targetClient && (msec() - targetClient->GetLastSeen()) < 1000ms)
 				{
 					targetClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
 				}
