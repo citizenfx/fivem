@@ -2,7 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using CitizenFX.Core.Native;
+
+using static CitizenFX.Core.Native.API;
 
 namespace CitizenFX.Core
 {
@@ -22,19 +23,19 @@ namespace CitizenFX.Core
 			m_handle = sourceString;
 		}
 
-		public string Name => API.GetPlayerName(m_handle);
+		public string Name => GetPlayerName(m_handle);
 
-		public int Ping => API.GetPlayerPing(m_handle);
+		public int Ping => GetPlayerPing(m_handle);
 
-		public int LastMsg => API.GetPlayerLastMsg(m_handle);
+		public int LastMsg => GetPlayerLastMsg(m_handle);
 
 		public IdentifierCollection Identifiers => new IdentifierCollection(this);
 
-		public string EndPoint => API.GetPlayerEndpoint(m_handle);
+		public string EndPoint => GetPlayerEndpoint(m_handle);
 
 		public Ped Character => Ped.FromPlayerHandle(m_handle);
 
-		public void Drop(string reason) => API.DropPlayer(m_handle, reason);
+		public void Drop(string reason) => DropPlayer(m_handle, reason);
 
 		public void TriggerEvent(string eventName, params object[] args)
 		{
@@ -44,7 +45,7 @@ namespace CitizenFX.Core
 			{
 				fixed (byte* serialized = &argsSerialized[0])
 				{
-					API.TriggerClientEventInternal(eventName, m_handle, serialized, argsSerialized.Length);
+					TriggerClientEventInternal(eventName, m_handle, serialized, argsSerialized.Length);
 				}
 			}
 		}
@@ -91,11 +92,11 @@ namespace CitizenFX.Core
 
 		public IEnumerator<string> GetEnumerator()
 		{
-			int numIndices = API.GetNumPlayerIdentifiers(m_player.Handle);
+			int numIndices = GetNumPlayerIdentifiers(m_player.Handle);
 
 			for (var i = 0; i < numIndices; i++)
 			{
-				yield return API.GetPlayerIdentifier(m_player.Handle, i);
+				yield return GetPlayerIdentifier(m_player.Handle, i);
 			}
 		}
 
@@ -119,11 +120,11 @@ namespace CitizenFX.Core
 	{
 		public IEnumerator<Player> GetEnumerator()
 		{
-			int numIndices = API.GetNumPlayerIndices();
+			int numIndices = GetNumPlayerIndices();
 
 			for (var i = 0; i < numIndices; i++)
 			{
-				yield return new Player(API.GetPlayerFromIndex(i));
+				yield return new Player(GetPlayerFromIndex(i));
 			}
 		}
 
