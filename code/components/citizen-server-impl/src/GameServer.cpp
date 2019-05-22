@@ -668,7 +668,7 @@ namespace fx
 					outMsg.Write(0x53FFFA3F);
 					outMsg.Write(0);
 
-					client->SendPacket(0, outMsg, NetPacketType_Reliable);
+					client->SendPacket(0, outMsg, NetPacketType_Unreliable);
 				}
 
 				// time out the client if needed
