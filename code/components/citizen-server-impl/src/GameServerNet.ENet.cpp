@@ -133,6 +133,8 @@ namespace fx
 #ifdef _DEBUG
 			//enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
 #endif
+
+			enet_peer_timeout(peer, ENET_PEER_TIMEOUT_LIMIT, ENET_PEER_TIMEOUT_MINIMUM, 10000);
 		}
 
 	private:
@@ -303,7 +305,7 @@ namespace fx
 		{
 			// create an ENet host
 			ENetAddress addr = GetENetAddress(address);
-			ENetHost* host = enet_host_create(&addr, 64, 2, 0, 0);
+			ENetHost* host = enet_host_create(&addr, 256, 2, 0, 0);
 
 			// ensure the host exists
 			if (!host)
