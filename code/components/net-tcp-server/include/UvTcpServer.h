@@ -10,6 +10,7 @@
 #include <uv.h>
 
 #include <memory>
+#include <shared_mutex>
 
 #include "TcpServer.h"
 
@@ -27,6 +28,8 @@ private:
 	std::unique_ptr<uv_tcp_t> m_client;
 
 	std::unique_ptr<uv_async_t> m_writeCallback;
+
+	std::shared_mutex m_writeCallbackMutex;
 
 	tbb::concurrent_queue<std::function<void()>> m_pendingRequests;
 
