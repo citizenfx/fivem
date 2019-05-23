@@ -1,3 +1,5 @@
+using CitizenFX.Core.Native;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,7 +47,7 @@ namespace CitizenFX.Core
 			{
 				fixed (byte* serialized = &argsSerialized[0])
 				{
-					TriggerClientEventInternal(eventName, m_handle, serialized, argsSerialized.Length);
+					Function.Call(Hash.TRIGGER_CLIENT_EVENT_INTERNAL, eventName, m_handle, serialized, argsSerialized.Length);
 				}
 			}
 		}
