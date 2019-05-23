@@ -73,6 +73,10 @@ namespace CitizenFX.Core
             {
                 packer.Pack(obj);
             }
+			else if (obj is byte[] bytes)
+			{
+				packer.Pack(bytes);
+			}
             else if (obj is IDictionary)
             {
                 var dict = (IDictionary)obj;
