@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -187,6 +189,180 @@ namespace CitizenFX.Core
 		public static void UnregisterScript(BaseScript script)
 		{
 			InternalManager.RemoveScript(script);
+		}
+
+		private bool m_initialized = false;
+
+		internal void InitializeOnAdd()
+		{
+			if (m_initialized)
+			{
+				return;
+			}
+
+			m_initialized = true;
+
+			var allMethods = this.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
+
+			IEnumerable<MethodInfo> GetMethods(Type t)
+			{
+				return allMethods.Where(m => m.GetCustomAttributes(t, false).Length > 0);
+			}
+
+			// register all Tick decorators
+			try
+			{
+				foreach (var method in GetMethods(typeof(TickAttribute)))
+				{
+					Debug.WriteLine("Registering Tick for attributed method {0}", method.Name);
+
+					if (method.IsStatic)
+						this.RegisterTick((Func<Task>)Delegate.CreateDelegate(typeof(Func<Task>), method));
+					else
+						this.RegisterTick((Func<Task>)Delegate.CreateDelegate(typeof(Func<Task>), this, method.Name));
+				}
+			}
+			catch (Exception e)
+			{
+				Debug.WriteLine("Registering Tick failed: {0}", e.ToString());
+			}
+
+			// register all EventHandler decorators
+			try
+			{
+				foreach (var method in GetMethods(typeof(EventHandlerAttribute)))
+				{
+					var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();
+					var actionType = Expression.GetDelegateType(parameters.Concat(new[] { typeof(void) }).ToArray());
+					var attribute = method.GetCustomAttribute<EventHandlerAttribute>();
+
+					Debug.WriteLine("Registering EventHandler {2} for attributed method {0}, with parameters {1}", method.Name, string.Join(", ", parameters.Select(p => p.GetType().ToString())), attribute.Name);
+
+					if (method.IsStatic)
+						this.RegisterEventHandler(attribute.Name, Delegate.CreateDelegate(actionType, method));
+					else
+						this.RegisterEventHandler(attribute.Name, Delegate.CreateDelegate(actionType, this, method.Name));
+				}
+			}
+			catch (Exception e)
+			{
+				Debug.WriteLine("Registering EventHandler failed: {0}", e.ToString());
+			}
+
+			// register all commands
+			try
+			{
+				foreach (var method in GetMethods(typeof(CommandAttribute)))
+				{
+					var attribute = method.GetCustomAttribute<CommandAttribute>();
+					var parameters = method.GetParameters();
+
+					Debug.WriteLine("Registering command {0}", attribute.Command);
+
+					// no params, trigger only
+					if (parameters.Length == 0)
+					{
+						if (method.IsStatic)
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(null, null);
+							}), attribute.Restricted);
+						}
+						else
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(this, null);
+							}), attribute.Restricted);
+						}
+					}
+					// Player
+					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 1)
+					{
+#if IS_FXSERVER
+						if (method.IsStatic)
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(null, new object[] { new Player(source.ToString()) });
+							}), attribute.Restricted);
+						}
+						else
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(this, new object[] { new Player(source.ToString()) });
+							}), attribute.Restricted);
+						}
+#else
+						Debug.WriteLine("Client commands with parameter type Player not supported");
+#endif
+					}
+					// string[]
+					else if (parameters.Length == 1)
+					{
+						if (method.IsStatic)
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(null, new object[] { args.Select(a => (string)a).ToArray() });
+							}), attribute.Restricted);
+						}
+						else
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(this, new object[] { args.Select(a => (string)a).ToArray() });
+							}), attribute.Restricted);
+						}
+					}
+					// Player, string[]
+					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 2)
+					{
+#if IS_FXSERVER
+						if (method.IsStatic)
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(null, new object[] { new Player(source.ToString()), args.Select(a => (string)a).ToArray() });
+							}), attribute.Restricted);
+						}
+						else
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(this, new object[] { new Player(source.ToString()), args.Select(a => (string)a).ToArray() });
+							}), attribute.Restricted);
+						}
+#else
+						Debug.WriteLine("Client commands with parameter type Player not supported");
+#endif
+					}
+					// legacy --> int, List<object>, string
+					else
+					{
+						if (method.IsStatic)
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(null, new object[] { source, args, rawCommand });
+							}), attribute.Restricted);
+						}
+						else
+						{
+							Native.API.RegisterCommand(attribute.Command, new Action<int, List<object>, string>((source, args, rawCommand) =>
+							{
+								method.Invoke(this, new object[] { source, args, rawCommand });
+							}), attribute.Restricted);
+						}
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				Debug.WriteLine("Registering command failed: {0}", e.ToString());
+			}
 		}
 	}
 
