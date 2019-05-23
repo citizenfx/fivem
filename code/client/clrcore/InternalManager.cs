@@ -142,6 +142,8 @@ namespace CitizenFX.Core
 			var attemptPaths = new List<string>();
 			attemptPaths.Add(baseName);
 
+			var exceptions = new StringBuilder();
+
 			if (useSearchPaths)
 			{
 				foreach (var path in ms_assemblySearchPaths)
@@ -196,11 +198,11 @@ namespace CitizenFX.Core
 					if (e is FileNotFoundException && string.Equals(name, "I18N", StringComparison.OrdinalIgnoreCase))
 						throw new NotImplementedException("I18N not found", e);
 
-					Debug.WriteLine($"Exception loading assembly {name}: {e}");
+					exceptions.AppendLine($"Exception loading assembly {name}: {e}");
 				}
 			}
 
-			Debug.WriteLine($"Could not load assembly {baseName} - see above for loading exceptions.");
+			Debug.WriteLine($"Could not load assembly {baseName} - loading exceptions: {exceptions}");
 
 			return null;
 		}
