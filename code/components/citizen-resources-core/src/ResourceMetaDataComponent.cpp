@@ -321,6 +321,11 @@ void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::f
 
 		for (auto& file : mf)
 		{
+			if (file.length() < (relRoot.length() + 1))
+			{
+				continue;
+			}
+
 			entryCallback(file.substr(relRoot.length() + 1));
 		}
 	}
