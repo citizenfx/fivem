@@ -10,6 +10,7 @@
 #include "TcpServer.h"
 
 #include <forward_list>
+#include <shared_mutex>
 
 namespace net
 {
@@ -37,33 +38,53 @@ private:
 
 	HeaderMap m_headerList;
 
-	std::function<void(const std::vector<uint8_t>&)> m_dataHandler;
+	std::shared_ptr<std::function<void(const std::vector<uint8_t>&)>> m_dataHandler;
 
-	std::function<void()> m_cancelHandler;
+	std::shared_mutex m_dataHandlerMutex;
+
+	std::shared_ptr<std::function<void()>> m_cancelHandler;
+
+	std::shared_mutex m_cancelHandlerMutex;
 
 public:
 	HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList, const std::string& remoteAddress);
 
 	virtual ~HttpRequest() override;
 
-	inline const std::function<void(const std::vector<uint8_t>& data)>& GetDataHandler() const
+	inline std::shared_ptr<std::function<void(const std::vector<uint8_t>& data)>> GetDataHandler()
 	{
+		std::shared_lock<std::shared_mutex> lock(m_dataHandlerMutex);
 		return m_dataHandler;
+	}
+
+	inline void SetDataHandler()
+	{
+		std::unique_lock<std::shared_mutex> lock(m_dataHandlerMutex);
+		m_dataHandler = {};
 	}
 
 	inline void SetDataHandler(const std::function<void(const std::vector<uint8_t>& data)>& handler)
 	{
-		m_dataHandler = handler;
+		std::unique_lock<std::shared_mutex> lock(m_dataHandlerMutex);
+		m_dataHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
 	}
 
-	inline const std::function<void()>& GetCancelHandler() const
+	inline std::shared_ptr<std::function<void()>> GetCancelHandler()
 	{
+		std::shared_lock<std::shared_mutex> lock(m_cancelHandlerMutex);
 		return m_cancelHandler;
+	}
+
+	inline void SetCancelHandler()
+	{
+		std::unique_lock<std::shared_mutex> lock(m_cancelHandlerMutex);
+		m_cancelHandler = {};
 	}
 
 	inline void SetCancelHandler(const std::function<void()>& handler)
 	{
-		m_cancelHandler = handler;
+		std::unique_lock<std::shared_mutex> lock(m_cancelHandlerMutex);
+		m_cancelHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
 	}
 
 	inline std::pair<int, int> GetHttpVersion() const

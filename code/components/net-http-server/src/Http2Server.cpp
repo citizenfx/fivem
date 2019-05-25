@@ -126,13 +126,13 @@ public:
 	{
 		if (m_request.GetRef() && !m_ended)
 		{
-			auto& cancelHandler = m_request->GetCancelHandler();
+			auto cancelHandler = m_request->GetCancelHandler();
 
 			if (cancelHandler)
 			{
-				cancelHandler();
+				(*cancelHandler)();
 
-				m_request->SetCancelHandler(std::function<void()>());
+				m_request->SetCancelHandler();
 			}
 		}
 
@@ -318,11 +318,11 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					if (req->httpReq.GetRef())
 					{
 						auto handler = req->httpReq->GetDataHandler();
-						req->httpReq->SetDataHandler({});
+						req->httpReq->SetDataHandler();
 
 						if (handler)
 						{
-							handler(req->body);
+							(*handler)(req->body);
 						}
 					}
 				}

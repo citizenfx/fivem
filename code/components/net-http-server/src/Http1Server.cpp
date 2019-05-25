@@ -396,13 +396,13 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					readQueue.erase(readQueue.begin(), readQueue.begin() + contentLength);
 
 					// call the data handler
-					auto& dataHandler = localConnectionData->request->GetDataHandler();
+					auto dataHandler = localConnectionData->request->GetDataHandler();
 
 					if (dataHandler)
 					{
-						dataHandler(requestData);
+						localConnectionData->request->SetDataHandler();
 
-						localConnectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+						(*dataHandler)(requestData);
 					}
 
 					// clean up the req/res
@@ -460,15 +460,15 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					readQueue.erase(readQueue.begin(), readQueue.begin() + readQueue.size() - result);
 
 					// call the data handler
-					auto& dataHandler = localConnectionData->request->GetDataHandler();
+					auto dataHandler = localConnectionData->request->GetDataHandler();
 
 					if (dataHandler)
 					{
+						localConnectionData->request->SetDataHandler();
+
 						requestData.resize(localConnectionData->lastLength);
 
-						dataHandler(requestData);
-
-						localConnectionData->request->SetDataHandler(std::function<void(const std::vector<uint8_t>&)>());
+						(*dataHandler)(requestData);
 					}
 
 					// clean up the req/res
@@ -508,9 +508,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 			if (cancelHandler)
 			{
-				cancelHandler();
+				(*cancelHandler)();
 
-				connectionData->request->SetCancelHandler(std::function<void()>());
+				connectionData->request->SetCancelHandler();
 			}
 
 			connectionData->request = nullptr;
