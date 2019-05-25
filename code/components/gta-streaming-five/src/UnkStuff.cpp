@@ -633,7 +633,7 @@ static HookFunction hookFunction([]()
 		// additional netgame checks for scenarios
 		hook::nop(hook::get_pattern("B2 04 75 65 80 7B 39", 2), 2);
 		hook::put<uint8_t>(hook::get_pattern("74 24 84 D2 74 20 8B 83", 4), 0xEB);
-		hook::nop(hook::get_pattern("84 D2 75 41 8B 83", 2), 2);
+		hook::put<uint8_t>(hook::get_pattern("84 D2 75 41 8B 83", 0x5F), 0xEB);
 		//hook::put<uint8_t>(hook::get_pattern("40 B6 01 74 52 F3 0F 10 01", 3), 0xEB); // this skips a world grid check, might be bad!
 
 		// another scenario cluster network game check
