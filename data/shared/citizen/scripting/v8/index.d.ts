@@ -80,3 +80,4 @@ declare function removeEventListener(eventName: string, callback: Function): voi
 declare function setTick(callback: Function): void
 
 declare var exports: any;
+declare var source: string;
