@@ -57,7 +57,7 @@ private:
 	std::set<int> m_ownedSkus;
 };
 
-static HttpClient* httpClient = new HttpClient(L"FXServer/Licensing");
+static HttpClient* httpClient;
 
 void CommerceComponent::LoadCommerceData()
 {
@@ -158,6 +158,8 @@ DECLARE_INSTANCE_TYPE(CommerceComponent);
 
 static InitFunction initFunction([]()
 {
+	httpClient = new HttpClient(L"FXServer/Licensing");
+
 	fx::ScriptEngine::RegisterNativeHandler("CAN_PLAYER_START_COMMERCE_SESSION", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
 	{
 		return client->GetComponent<CommerceComponent>()->GetUserId() ? true : false;
