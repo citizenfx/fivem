@@ -11,60 +11,26 @@
 
 #include <se/Security.h>
 
+#include <MakeClientFunction.h>
+
 static InitFunction initFunction([]()
 {
-	auto makeClientFunction = [](auto fn, uintptr_t defaultValue = 0)
-	{
-		return [=](fx::ScriptContext& context)
-		{
-			// get the current resource manager
-			auto resourceManager = fx::ResourceManager::GetCurrent();
-
-			// get the owning server instance
-			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
-			// get the server's client registry
-			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-
-			// parse the client ID
-			const char* id = context.CheckArgument<const char*>(0);
-
-			if (!id)
-			{
-				context.SetResult(defaultValue);
-				return;
-			}
-
-			uint32_t netId = atoi(id);
-
-			auto client = clientRegistry->GetClientByNetID(netId);
-
-			if (!client)
-			{
-				context.SetResult(defaultValue);
-				return;
-			}
-
-			context.SetResult(fn(context, client));
-		};
-	};
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_NAME", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_NAME", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		return client->GetName().c_str();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_GUID", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_GUID", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		return client->GetGuid().c_str();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_IDENTIFIERS", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_IDENTIFIERS", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		return client->GetIdentifiers().size();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		int idx = context.GetArgument<int>(1);
 
@@ -76,7 +42,7 @@ static InitFunction initFunction([]()
 		return client->GetIdentifiers()[idx].c_str();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ENDPOINT", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ENDPOINT", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		static thread_local std::string str;
 		str = client->GetTcpEndPoint();
@@ -84,7 +50,7 @@ static InitFunction initFunction([]()
 		return str.c_str();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PING", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PING", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		auto peer = gscomms_get_peer(client->GetPeer());
 
@@ -96,12 +62,12 @@ static InitFunction initFunction([]()
 		return int(peer->GetPing());
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_LAST_MSG", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_LAST_MSG", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		return (msec() - client->GetLastSeen()).count();
 	}, 0x7fffffff));
 
-	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -117,7 +83,7 @@ static InitFunction initFunction([]()
 		return true;
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_ACE_ALLOWED", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_ACE_ALLOWED", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
 		const char* object = context.CheckArgument<const char*>(1);
 
@@ -210,7 +176,7 @@ static InitFunction initFunction([]()
 		}
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PED", makeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PED", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
 	{
 		try
 		{

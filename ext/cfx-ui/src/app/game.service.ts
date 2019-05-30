@@ -208,6 +208,10 @@ export abstract class GameService {
 	public setConvar(name: string, value: string) {
 
 	}
+
+	public setDiscourseIdentity(token: string, clientId: string) {
+
+	}
 }
 
 export class ServerHistoryEntry {
@@ -256,6 +260,10 @@ export class CfxGameService extends GameService {
 			if (json.profiles && json.profiles.length > 0) {
 				this.handleSignin(json.profiles[0]);
 			}
+		});
+
+		this.discourseService.signinChange.subscribe(identity => {
+			this.setDiscourseIdentity(this.discourseService.getToken(), this.discourseService.getExtClientId());
 		});
 
 		this.discourseService.messageEvent.subscribe((msg) => {
@@ -574,6 +582,10 @@ export class CfxGameService extends GameService {
 
 	openUrl(url: string): void {
 		(<any>window).invokeNative('openUrl', url);
+	}
+
+	setDiscourseIdentity(token: string, clientId: string) {
+		(<any>window).invokeNative('setDiscourseIdentity', JSON.stringify({ token, clientId }));
 	}
 }
 

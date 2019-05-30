@@ -20,6 +20,8 @@
 #include <sstream>
 #include "KnownFolders.h"
 #include <ShlObj.h>
+#include <Shellapi.h>
+#include <HttpClient.h>
 
 #include <json.hpp>
 
@@ -168,8 +170,15 @@ static void HandleAuthPayload(const std::string& payloadStr)
 	}
 }
 
+#include <LegitimacyAPI.h>
+
+static std::string g_discourseClientId;
+static std::string g_discourseUserToken;
+
 static InitFunction initFunction([] ()
 {
+	static std::function<void()> g_onYesCallback;
+
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* lib)
 	{
 		netLibrary = lib;
@@ -249,6 +258,66 @@ static InitFunction initFunction([] ()
 				disconnected = true;
 			}
 		}, 5000);
+
+		lib->AddReliableHandler("msgPaymentRequest", [](const char* buf, size_t len)
+		{
+			try
+			{
+				auto json = nlohmann::json::parse(std::string(buf, len));
+
+				se::ScopedPrincipal scope(se::Principal{ "system.console" });
+				console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("warningMessageResult")->SetValue("0");
+				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "warningmessage", "PURCHASE REQUEST", fmt::sprintf("The server is requesting a purchase of %s for %s.", json.value("sku_name", ""), json.value("sku_price", "")), "Do you want to purchase this item?", "20" });
+
+				g_onYesCallback = [json]()
+				{
+					std::map<std::string, std::string> postMap;
+					postMap["data"] = json.value<std::string>("data", "");
+					postMap["sig"] = json.value<std::string>("sig", "");
+					postMap["clientId"] = g_discourseClientId;
+					postMap["userToken"] = g_discourseUserToken;
+
+					Instance<HttpClient>::Get()->DoPostRequest("https://keymaster.fivem.net/api/paymentAssign", postMap, [](bool success, const char* data, size_t length)
+					{
+						if (success)
+						{
+							auto res = nlohmann::json::parse(std::string(data, length));
+							auto url = res.value("url", "");
+
+							if (!url.empty())
+							{
+								if (url.find("http://") == 0 || url.find("https://") == 0)
+								{
+									ShellExecute(nullptr, L"open", ToWide(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+								}
+							}
+						}
+					});
+				};
+			}
+			catch (const std::exception& e)
+			{
+
+			}
+		}, true);
+	});
+
+	OnMainGameFrame.Connect([]()
+	{
+		if (g_onYesCallback)
+		{
+			int result = atoi(console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("warningMessageResult")->GetValue().c_str());
+
+			if (result != 0)
+			{
+				if (result == 4)
+				{
+					g_onYesCallback();
+				}
+
+				g_onYesCallback = {};
+			}
+		}
 	});
 
 	OnKillNetwork.Connect([](const char*)
@@ -373,6 +442,25 @@ static InitFunction initFunction([] ()
 				CefShutdown();
 
 				TerminateProcess(GetCurrentProcess(), 0);
+			});
+		}
+		else if (!_wcsicmp(type, L"setDiscourseIdentity"))
+		{
+			auto json = nlohmann::json::parse(ToNarrow(arg));
+
+			g_discourseUserToken = json.value<std::string>("token", "");
+			g_discourseClientId = json.value<std::string>("clientId", "");
+
+			Instance<::HttpClient>::Get()->DoPostRequest(
+				"https://lambda.fivem.net/api/validate/discourse",
+				{
+					{ "entitlementId", ros::GetEntitlementSource() },
+					{ "authToken", g_discourseUserToken },
+					{ "clientId", g_discourseClientId },
+				},
+				[](bool, const char*, size_t)
+			{
+
 			});
 		}
 	});
