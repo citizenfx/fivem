@@ -446,22 +446,29 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"setDiscourseIdentity"))
 		{
-			auto json = nlohmann::json::parse(ToNarrow(arg));
-
-			g_discourseUserToken = json.value<std::string>("token", "");
-			g_discourseClientId = json.value<std::string>("clientId", "");
-
-			Instance<::HttpClient>::Get()->DoPostRequest(
-				"https://lambda.fivem.net/api/validate/discourse",
-				{
-					{ "entitlementId", ros::GetEntitlementSource() },
-					{ "authToken", g_discourseUserToken },
-					{ "clientId", g_discourseClientId },
-				},
-				[](bool, const char*, size_t)
+			try
 			{
+				auto json = nlohmann::json::parse(ToNarrow(arg));
 
-			});
+				g_discourseUserToken = json.value<std::string>("token", "");
+				g_discourseClientId = json.value<std::string>("clientId", "");
+
+				Instance<::HttpClient>::Get()->DoPostRequest(
+					"https://lambda.fivem.net/api/validate/discourse",
+					{
+						{ "entitlementId", ros::GetEntitlementSource() },
+						{ "authToken", g_discourseUserToken },
+						{ "clientId", g_discourseClientId },
+					},
+					[](bool, const char*, size_t)
+				{
+
+				});
+			}
+			catch (const std::exception& e)
+			{
+				trace("failed to set discourse identity: %s\n", e.what());
+			}
 		}
 	});
 
