@@ -19,6 +19,8 @@
 #include <scrEngine.h>
 #include <ScriptEngine.h>
 
+#include <CoreConsole.h>
+
 #include <Error.h>
 
 NetLibrary* g_netLibrary;
@@ -1320,11 +1322,13 @@ void RunNetworkStuff()
 	}*/
 }
 
+static std::string g_quitMsg;
+
 static void WINAPI ExitProcessReplacement(UINT exitCode)
 {
 	if (g_netLibrary)
 	{
-		g_netLibrary->Disconnect("Exiting");
+		g_netLibrary->Disconnect((g_quitMsg.empty()) ? "Exiting" : g_quitMsg.c_str());
 		g_netLibrary->FinalizeDisconnect();
 	}
 
@@ -1353,6 +1357,12 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 
 static HookFunction hookFunction([] ()
 {
+	static ConsoleCommand quitCommand("quit", [](const std::string& message)
+	{
+		g_quitMsg = message;
+		ExitProcess(-1);
+	});
+
 	/*OnPostFrontendRender.Connect([] ()
 	{
 		int value = *(int*)getNetworkManager();
