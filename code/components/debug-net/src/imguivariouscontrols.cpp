@@ -2471,7 +2471,7 @@ bool InputComboWithAutoCompletion(const char* label, int *current_item, size_t a
         ImGui::SameLine();
         //ImGui::Text("%s",label);    // This doesn't cut "##". We must add all this cucumberson and error-prone code to workaround this (for correct alignment and isHovered detection):
         const ImVec2 label_size = CalcTextSize(label, NULL, true);
-        if (label_size.x>0) ImGui::RenderText(ImVec2(window->DC.CursorPos.x,window->DC.CursorPos.y+window->DC.CurrentLineTextBaseOffset),label);
+        if (label_size.x>0) ImGui::RenderText(ImVec2(window->DC.CursorPos.x,window->DC.CursorPos.y+window->DC.CurrLineTextBaseOffset),label);
         const ImRect label_bb(window->DC.CursorPos,ImVec2(window->DC.CursorPos.x + label_size.x, window->DC.CursorPos.y + label_size.y + ImGui::GetStyle().FramePadding.y*2.0f));
         ImGui::ItemSize(label_bb, ImGui::GetStyle().FramePadding.y);
         const ImGuiID labelID = 0;  // is this allowed ?

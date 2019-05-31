@@ -743,7 +743,7 @@ static InitFunction initFunction([]()
 
 		ImGui::SetNextWindowSizeConstraints(ImVec2(1020.0f, 400.0f), ImVec2(1020.0f, 2000.0f));
 
-		if (ImGui::Begin("Network Object Viewer", &novOpen))
+		if (ImGui::Begin("Network Object Viewer", &novOpen) && rage::netObjectMgr::GetInstance())
 		{
 			static float treeSize = 400.f;
 			static float detailSize = 600.f;
