@@ -253,6 +253,24 @@ struct ScriptGuid
 	};
 };
 
+struct AckPacketWrapper
+{
+	rl::MessageBuffer& ackPacket;
+	std::function<void()> flush;
+
+	inline explicit AckPacketWrapper(rl::MessageBuffer& ackPacket)
+		: ackPacket(ackPacket)
+	{
+		
+	}
+
+	template<typename TData>
+	inline void Write(int length, TData data)
+	{
+		ackPacket.Write(length, data);
+	}
+};
+
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
 {
 public:
@@ -277,11 +295,11 @@ public:
 	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
 
 private:
-	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
+	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneRemove(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
+	void ProcessCloneRemove(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
+	void ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
 	void ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket);
 
@@ -290,6 +308,10 @@ private:
 	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove);
 
 	void RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId);
+
+	void ParseClonePacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
+
+	void ParseAckPacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
 
 public:
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
