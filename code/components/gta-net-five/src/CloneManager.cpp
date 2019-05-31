@@ -1250,12 +1250,22 @@ void CloneManagerLocal::WriteUpdates()
 
 	int syncCount1 = 0, syncCount2 = 0, syncCount3 = 0, syncCount4 = 0;
 
+	bool hitTimestamp = false;
+
+	auto touchTimestamp = [&hitTimestamp, this]()
 	{
+		if (hitTimestamp)
+		{
+			return;
+		}
+
 		uint32_t timestamp = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
 
 		m_sendBuffer.Write(3, 5);
 		m_sendBuffer.Write(32, timestamp);
-	}
+
+		hitTimestamp = true;
+	};
 
 	// collect object IDs that we have seen this time
 	std::set<int> seenObjects;
@@ -1477,6 +1487,9 @@ void CloneManagerLocal::WriteUpdates()
 						// 1290
 						//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
 					}
+
+					// touch the timestamp
+					touchTimestamp();
 
 					// write header to send buffer
 					netBuffer.Write(3, syncType);
