@@ -2103,7 +2103,7 @@ static InitFunction initFunction([]()
 			{
 				auto targetClient = clientRegistry->GetClientByNetID(player);
 
-				if (targetClient && (msec() - targetClient->GetLastSeen()) < 1000ms)
+				if (targetClient)
 				{
 					targetClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
 				}
