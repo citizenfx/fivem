@@ -43,6 +43,8 @@ inline std::chrono::milliseconds msec()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+static ICoreGameInit* icgi;
+
 static hook::cdecl_stub<uint32_t()> _getNetAckTimestamp([]()
 {
 	return hook::get_pattern("3B CA 76 02 FF", -0x31);
@@ -113,12 +115,18 @@ public:
 private:
 	void WriteUpdates();
 
-	void SendUpdates();
+	void SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType);
 
-	void AttemptFlushNetBuffer();
+	void AttemptFlushNetBuffer(rl::MessageBuffer& buffer, uint32_t msgType);
+
+	void AttemptFlushCloneBuffer();
+
+	void AttemptFlushAckBuffer();
 
 private:
 	void HandleCloneAcks(const char* data, size_t len);
+
+	void HandleCloneAcksNew(const char* data, size_t len);
 
 	void HandleCloneSync(const char* data, size_t len);
 
@@ -130,12 +138,26 @@ private:
 
 	void CheckMigration(const msgClone& msg);
 
+	void AddCreateAck(uint16_t objectId);
+
+	void AddRemoveAck(uint16_t objectId);
+
+	void ProcessCreateAck(uint16_t objectId);
+
+	void ProcessSyncAck(uint16_t objectId);
+
+	void ProcessRemoveAck(uint16_t objectId);
+
+	void ProcessTimestampAck(uint32_t timestamp);
+
 private:
 	NetLibrary* m_netLibrary;
 
 private:
 	std::chrono::milliseconds m_lastSend;
+	std::chrono::milliseconds m_lastAck;
 	rl::MessageBuffer m_sendBuffer{ 16384 };
+	rl::MessageBuffer m_ackBuffer{ 16384 };
 
 	uint32_t m_ackTimestamp{ 0 };
 
@@ -246,6 +268,11 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 		HandleCloneSync(data, len);
 	}, true);
 
+	m_netLibrary->AddReliableHandler("msgPackedAcks", [this](const char* data, size_t len)
+	{
+		HandleCloneAcksNew(data, len);
+	}, true);
+
 	m_netLibrary->AddReliableHandler("msgCloneRemove", [this](const char* data, size_t len)
 	{
 		HandleCloneRemove(data, len);
@@ -312,6 +339,58 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 		console::Printf("CloneManager", "Game client ID: %d\n", obj->syncData.ownerId);
 		console::Printf("CloneManager", "\n");
 	});
+
+	icgi = Instance<ICoreGameInit>::Get();
+}
+
+void CloneManagerLocal::ProcessCreateAck(uint16_t objId)
+{
+	m_trackedObjects[objId].lastSyncAck = msec();
+
+	Log("%s: create ack %d\n", __func__, objId);
+}
+
+void CloneManagerLocal::ProcessSyncAck(uint16_t objId)
+{
+	auto netObjIt = m_savedEntities.find(objId);
+
+	Log("%s: sync ack %d\n", __func__, objId);
+
+	if (netObjIt != m_savedEntities.end())
+	{
+		auto netObj = netObjIt->second;
+
+		if (netObj)
+		{
+			auto syncTree = netObj->GetSyncTree();
+			syncTree->AckCfx(netObj, m_ackTimestamp);
+
+			if (netObj->m_20())
+			{
+				// 1290
+				// 1365
+				// 1493
+				// 1604
+				((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))hook::get_adjusted(0x141613EAC))(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
+			}
+		}
+	}
+}
+
+void CloneManagerLocal::ProcessRemoveAck(uint16_t objId)
+{
+	// #NETVER: resend removes and handle acks here
+	if (icgi->NetProtoVersion >= 0x201905190829)
+	{
+		m_pendingRemoveAcks.erase(objId);
+	}
+}
+
+void CloneManagerLocal::ProcessTimestampAck(uint32_t timestamp)
+{
+	m_ackTimestamp = timestamp;
+
+	Log("%s: ts ack %d\n", __func__, timestamp);
 }
 
 void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
@@ -330,9 +409,7 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 			case 1:
 			{
 				auto objId = buf.Read<uint16_t>();
-				m_trackedObjects[objId].lastSyncAck = msec();
-
-				Log("%s: create ack %d\n", __func__, objId);
+				ProcessCreateAck(objId);
 
 				break;
 			}
@@ -340,55 +417,23 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 			case 2:
 			{
 				auto objId = buf.Read<uint16_t>();
-				auto netObjIt = m_savedEntities.find(objId);
+				ProcessSyncAck(objId);
 
-				Log("%s: sync ack %d\n", __func__, objId);
-
-				if (netObjIt != m_savedEntities.end())
-				{
-					auto netObj = netObjIt->second;
-
-					if (netObj)
-					{
-						auto syncTree = netObj->GetSyncTree();
-						syncTree->AckCfx(netObj, m_ackTimestamp);
-
-						if (netObj->m_20())
-						{
-							// 1290
-							// 1365
-							// 1493
-							// 1604
-							((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))hook::get_adjusted(0x141613EAC))(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
-						}
-					}
-				}
 				break;
 			}
 			// timestamp ack?
 			case 5:
 			{
 				auto timestamp = buf.Read<uint32_t>();
-				m_ackTimestamp = timestamp;
-
-				Log("%s: ts ack %d\n", __func__, timestamp);
+				ProcessTimestampAck(timestamp);
 
 				break;
 			}
 			// remove ack?
 			case 3:
 			{
-				// this is now done the same time we send a remove
-				/*auto objId = buf.Read<uint16_t>();
-				m_trackedObjects.erase(objId);*/
-
 				auto objId = buf.Read<uint16_t>();
-
-				// #NETVER: resend removes and handle acks here
-				if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201905190829)
-				{
-					m_pendingRemoveAcks.erase(objId);
-				}
+				ProcessRemoveAck(objId);
 
 				break;
 			}
@@ -396,6 +441,87 @@ void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
 				return;
 		}
 	}
+}
+
+void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
+{
+	net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
+
+	// dummy frame index
+	buffer.Read<uint64_t>();
+
+	uint8_t bufferData[16384] = { 0 };
+	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), buffer.GetRemainingBytes(), sizeof(bufferData));
+
+	if (bufferLength > 0)
+	{
+		rl::MessageBuffer msgBuf(bufferData, bufferLength);
+
+		bool end = false;
+
+		while (!msgBuf.IsAtEnd() && !end)
+		{
+			auto type = msgBuf.Read<uint8_t>(3);
+
+			Log("%s: read ack type %d\n", __func__, type);
+
+			switch (type)
+			{
+				// create ack?
+				case 1:
+				{
+					auto objId = msgBuf.Read<uint16_t>(13);
+					ProcessCreateAck(objId);
+
+					break;
+				}
+				// sync ack?
+				case 2:
+				{
+					auto objId = msgBuf.Read<uint16_t>(13);
+					ProcessSyncAck(objId);
+
+					break;
+				}
+				// remove ack?
+				case 3:
+				{
+					auto objId = msgBuf.Read<uint16_t>(13);
+					ProcessRemoveAck(objId);
+
+					break;
+				}
+				case 5:
+				// timestamp ack?
+				{
+					auto timestamp = msgBuf.Read<uint32_t>(32);
+					ProcessTimestampAck(timestamp);
+
+					break;
+				}
+				case 7:
+				default:
+					end = true;
+					break;
+			}
+		}
+	}
+}
+
+void CloneManagerLocal::AddCreateAck(uint16_t objectId)
+{
+	m_ackBuffer.Write(3, 1);
+	m_ackBuffer.Write(13, objectId);
+
+	AttemptFlushAckBuffer();
+}
+
+void CloneManagerLocal::AddRemoveAck(uint16_t objectId)
+{
+	m_ackBuffer.Write(3, 3);
+	m_ackBuffer.Write(13, objectId);
+
+	AttemptFlushAckBuffer();
 }
 
 class msgClone
@@ -498,6 +624,11 @@ public:
 		return m_clones;
 	}
 
+	inline const std::vector<uint16_t>& GetRemoves() const
+	{
+		return m_removes;
+	}
+
 	inline uint64_t GetFrameIndex()
 	{
 		return m_frameIndex;
@@ -507,6 +638,8 @@ private:
 	uint64_t m_frameIndex;
 
 	std::list<msgClone> m_clones;
+
+	std::vector<uint16_t> m_removes;
 };
 
 msgPackedClones::msgPackedClones()
@@ -539,6 +672,13 @@ void msgPackedClones::Read(net::Buffer& buffer)
 				clone.Read(dataType, msgBuf);
 
 				m_clones.push_back(std::move(clone));
+				break;
+			}
+			case 3: // clone remove
+			{
+				auto remove = msgBuf.Read<uint16_t>(13);
+
+				m_removes.push_back(remove);
 				break;
 			}
 			case 5:
@@ -577,11 +717,19 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 {
 	auto ackPacket = [&]()
 	{
-		// send ack
-		net::Buffer outBuffer;
-		outBuffer.Write<uint16_t>(msg.GetObjectId());
+		// #NETVER: refactored ACKs
+		if (icgi->NetProtoVersion >= 0x201905310838)
+		{
+			AddCreateAck(msg.GetObjectId());
+		}
+		else
+		{
+			// send ack
+			net::Buffer outBuffer;
+			outBuffer.Write<uint16_t>(msg.GetObjectId());
 
-		m_netLibrary->SendReliableCommand("ccack", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+			m_netLibrary->SendReliableCommand("ccack", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		}
 	};
 
 	Log("%s: id %d obj [obj:%d] ts %d\n", __func__, msg.GetClientId(), msg.GetObjectId(), msg.GetTimestamp());
@@ -923,6 +1071,11 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		}
 	}
 
+	for (uint16_t remove : msg.GetRemoves())
+	{
+		DeleteObjectId(remove);
+	}
+
 	{
 		net::Buffer outBuffer;
 		outBuffer.Write<uint64_t>(msg.GetFrameIndex());
@@ -967,6 +1120,12 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
 
 		Log("%s: object ID [obj:%d]\n", __func__, objectId);
 	}
+
+	// #NETVER: refactored ACKs
+	if (icgi->NetProtoVersion >= 0x201905310838)
+	{
+		AddRemoveAck(objectId);
+	}
 }
 
 void CloneManagerLocal::SetTargetOwner(rage::netObject* object, uint16_t clientId)
@@ -983,7 +1142,7 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 	//m_sendBuffer.Write<uint8_t>(0); // player ID (byte)
 	m_sendBuffer.Write(13, object->objectId);
 
-	AttemptFlushNetBuffer();
+	AttemptFlushCloneBuffer();
 
 	Log("%s: Migrating object %s (of type %s) from %s to %s (remote player).\n", __func__, object->ToString(), GetType(object),
 		!object->syncData.isRemote ? "us" : "a remote player",
@@ -999,7 +1158,9 @@ void CloneManagerLocal::Update()
 {
 	WriteUpdates();
 
-	SendUpdates();
+	SendUpdates(m_sendBuffer, HashString("netClones"));
+
+	SendUpdates(m_ackBuffer, HashString("netAcks"));
 
 	// run Update() on all clones
 	for (auto& clone : m_savedEntities)
@@ -1338,7 +1499,7 @@ void CloneManagerLocal::WriteUpdates()
 
 					Log("uncompressed clone sync for [obj:%d]: %d bytes\n", objectId, len);
 
-					AttemptFlushNetBuffer();
+					AttemptFlushCloneBuffer();
 
 					objectData.lastResendTime = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
 					objectData.lastSyncTime = msec();
@@ -1388,11 +1549,11 @@ void CloneManagerLocal::WriteUpdates()
 		netBuffer.Write(3, 3);
 		netBuffer.Write(13, objectId); // object ID (short)
 
-		AttemptFlushNetBuffer();
+		AttemptFlushCloneBuffer();
 	}
 
 	// #NETVER: older servers won't ack removes, so we don't try resending removals ever
-	if (Instance<ICoreGameInit>::Get()->NetProtoVersion < 0x201905190829)
+	if (icgi->NetProtoVersion < 0x201905190829)
 	{
 		m_pendingRemoveAcks.clear();
 	}
@@ -1400,29 +1561,40 @@ void CloneManagerLocal::WriteUpdates()
 	Log("sync: got %d creates, %d syncs, %d removes and %d migrates\n", syncCount1, syncCount2, syncCount3, syncCount4);
 }
 
-void CloneManagerLocal::AttemptFlushNetBuffer()
+void CloneManagerLocal::AttemptFlushCloneBuffer()
+{
+	AttemptFlushNetBuffer(m_sendBuffer, HashString("netClones"));
+}
+
+void CloneManagerLocal::AttemptFlushAckBuffer()
+{
+	AttemptFlushNetBuffer(m_ackBuffer, HashString("netAcks"));
+}
+
+void CloneManagerLocal::AttemptFlushNetBuffer(rl::MessageBuffer& buffer, uint32_t msgType)
 {
 	// flush the send buffer in case it could compress to >1100 bytes
-	if (LZ4_compressBound(m_sendBuffer.GetDataLength()) > 1100)
+	if (LZ4_compressBound(buffer.GetDataLength()) > 1100)
 	{
-		SendUpdates();
+		SendUpdates(buffer, msgType);
 	}
 }
 
-void CloneManagerLocal::SendUpdates()
+void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 {
-	// if ((timeGetTime() - lastSend) > 100 || netBuffer.GetCurOffset() >= 1200)
-	if (m_sendBuffer.GetDataLength() > 600 || (msec() - m_lastSend) > 20ms)
+	auto lastSendVar = (msgType == HashString("netClones")) ? &m_lastSend : &m_lastAck;
+
+	if (buffer.GetDataLength() > 600 || (msec() - *lastSendVar) > 20ms)
 	{
-		m_sendBuffer.Write(3, 7);
+		buffer.Write(3, 7);
 
 		// compress and send data
-		std::vector<char> outData(LZ4_compressBound(m_sendBuffer.GetDataLength()) + 4);
-		int len = LZ4_compress_default(reinterpret_cast<const char*>(m_sendBuffer.GetBuffer().data()), outData.data() + 4, m_sendBuffer.GetDataLength(), outData.size() - 4);
+		std::vector<char> outData(LZ4_compressBound(buffer.GetDataLength()) + 4);
+		int len = LZ4_compress_default(reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
 
-		Log("compressed %d bytes to %d bytes\n", m_sendBuffer.GetDataLength(), len);
+		Log("compressed %d bytes to %d bytes\n", buffer.GetDataLength(), len);
 
-		*(uint32_t*)(outData.data()) = HashString("netClones");
+		*(uint32_t*)(outData.data()) = msgType;
 		m_netLibrary->RoutePacket(outData.data(), len + 4, 0xFFFF);
 
 #if _DEBUG && WRITE_BYTEHUNK
@@ -1437,8 +1609,8 @@ void CloneManagerLocal::SendUpdates()
 		}
 #endif
 
-		m_sendBuffer.SetCurrentBit(0);
-		m_lastSend = msec();
+		buffer.SetCurrentBit(0);
+		*lastSendVar = msec();
 	}
 }
 
