@@ -37,7 +37,7 @@ public:
 	virtual bool IsDisconnected() override;
 
 private:
-	void ProcessPacket(const uint8_t* data, size_t size);
+	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
 
 private:
 	std::string m_connectData;
@@ -122,7 +122,7 @@ void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, si
 		enet_peer_send(m_serverPeer, 0, packet);
 	}
 
-	m_base->GetMetricSink()->OnOutgoingCommand(type, length);
+	m_base->GetMetricSink()->OnOutgoingCommand(type, length, true);
 }
 
 void NetLibraryImplV2::SendData(const NetAddress& netAddress, const char* data, size_t length)
@@ -164,6 +164,7 @@ void NetLibraryImplV2::Flush()
 void NetLibraryImplV2::RunFrame()
 {
 	uint32_t inDataSize = 0;
+	NetPacketMetrics inMetrics;
 
 	ENetEvent event;
 
@@ -183,7 +184,7 @@ void NetLibraryImplV2::RunFrame()
 		}
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
-			ProcessPacket(event.packet->data, event.packet->dataLength);
+			ProcessPacket(event.packet->data, event.packet->dataLength, inMetrics, (ENetPacketFlag)event.packet->flags);
 			inDataSize += event.packet->dataLength;
 
 			enet_packet_destroy(event.packet);
@@ -224,7 +225,7 @@ void NetLibraryImplV2::RunFrame()
 
 			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
 
-			m_base->GetMetricSink()->OnOutgoingCommand(0xE938445B, packet.payload.size() + 4);
+			m_base->GetMetricSink()->OnOutgoingCommand(0xE938445B, packet.payload.size() + 4, false);
 			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
 		}
 
@@ -244,18 +245,18 @@ void NetLibraryImplV2::RunFrame()
 		// update received metrics
 		if (m_host->totalReceivedData != 0)
 		{
-			for (uint32_t i = 0; i < m_host->totalReceivedPackets; ++i)
+			// actually: overhead
+			inMetrics.AddElementSize(NET_PACKET_SUB_OVERHEAD, m_host->totalReceivedData - inDataSize);
+
+			m_base->GetMetricSink()->OnIncomingPacket(inMetrics);
+
+			m_host->totalReceivedData = 0;
+			inDataSize = 0;
+
+			for (uint32_t i = 1; i < m_host->totalReceivedPackets; ++i)
 			{
 				NetPacketMetrics m;
-				m.AddElementSize(NET_PACKET_SUB_MISC, inDataSize);
-
-				// actually: overhead
-				m.AddElementSize(NET_PACKET_SUB_RELIABLES, m_host->totalReceivedData - inDataSize);
-
 				m_base->GetMetricSink()->OnIncomingPacket(m);
-
-				m_host->totalReceivedData = 0;
-				inDataSize = 0;
 			}
 
 			m_base->AddReceiveTick();
@@ -297,7 +298,7 @@ void NetLibraryImplV2::SendConnect(const std::string& connectData)
 #endif
 }
 
-void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
+void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags)
 {
 	NetBuffer msg((char*)data, size);
 	uint32_t msgType = msg.Read<uint32_t>();
@@ -358,9 +359,9 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
 		return;
 	}
 
-	m_base->GetMetricSink()->OnIncomingCommand(msgType, size);
+	m_base->GetMetricSink()->OnIncomingCommand(msgType, size, (flags & ENET_PACKET_FLAG_RELIABLE) != 0);
 
-	if (msgType == 0xE938445B) // 'msgRoute'
+	if (msgType == HashRageString("msgRoute")) // 'msgRoute'
 	{
 		uint16_t netID = msg.Read<uint16_t>();
 		uint16_t rlength = msg.Read<uint16_t>();
@@ -377,9 +378,26 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size)
 
 		// add to metrics
 		m_base->GetMetricSink()->OnIncomingRoutePackets(1);
+
+		// add as routed message
+		metrics.AddElementSize(NET_PACKET_SUB_ROUTED_MESSAGES, size);
 	}
-	else if (msgType != 0xCA569E63) // reliable command
+	else if (msgType != HashRageString("msgEnd")) // reliable command
 	{
+		auto subType = NET_PACKET_SUB_MISC;
+
+		// cloning data is considered routing
+		if (msgType == HashRageString("msgPackedAcks") || msgType == HashRageString("msgPackedClones"))
+		{
+			subType = NET_PACKET_SUB_ROUTED_MESSAGES;
+		}
+		else if (flags & ENET_PACKET_FLAG_RELIABLE)
+		{
+			subType = NET_PACKET_SUB_RELIABLES;
+		}
+
+		metrics.AddElementSize(subType, size);
+
 		size_t reliableSize = size - 4;
 
 		std::vector<char> reliableBuf(reliableSize);

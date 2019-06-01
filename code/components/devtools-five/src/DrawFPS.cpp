@@ -67,6 +67,7 @@ static InitFunction initFunction([]()
 			}
 		}
 
+		ImGui::PopStyleVar();
 		ImGui::End();
 	});
 });

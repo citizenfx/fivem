@@ -28,6 +28,64 @@ const int g_netOverlayHeight = 300;
 const int g_netOverlaySampleSize = 200; // milliseconds per sample frame
 const int g_netOverlaySampleCount = 150;
 
+class RageHashList
+{
+public:
+	template<int Size>
+	RageHashList(const char* (&list)[Size])
+	{
+		for (int i = 0; i < Size; i++)
+		{
+			m_lookupList.insert({ HashRageString(list[i]), list[i] });
+		}
+	}
+
+	inline std::string LookupHash(uint32_t hash)
+	{
+		auto it = m_lookupList.find(hash);
+
+		if (it != m_lookupList.end())
+		{
+			return std::string(it->second);
+		}
+
+		return fmt::sprintf("0x%08x", hash);
+	}
+
+private:
+	std::map<uint32_t, std::string_view> m_lookupList;
+};
+
+static const char* g_knownPackets[]
+{
+	"msgConVars",
+	"msgEnd",
+	"msgEntityCreate",
+	"msgNetGameEvent",
+	"msgObjectIds",
+	"msgPackedAcks",
+	"msgPackedClones",
+	"msgPaymentRequest",
+	"msgRequestObjectIds",
+	"msgResStart",
+	"msgResStop",
+	"msgRoute",
+	"msgRpcEntityCreation",
+	"msgRpcNative",
+	"msgServerCommand",
+	"msgServerEvent",
+	"msgTimeSync",
+	"msgTimeSyncReq",
+	"msgWorldGrid",
+	"msgFrame",
+	"msgIHost",
+	"gameStateAck",
+	"msgNetEvent",
+	"msgServerEvent",
+};
+
+static RageHashList g_hashes{ g_knownPackets };
+
 class NetOverlayMetricSink : public INetMetricSink
 {
 public:
@@ -45,9 +103,9 @@ public:
 
 	virtual void OnRouteDelayResult(int msec) override;
 
-	virtual void OnIncomingCommand(uint32_t type, size_t size) override;
+	virtual void OnIncomingCommand(uint32_t type, size_t size, bool reliable) override;
 
-	virtual void OnOutgoingCommand(uint32_t type, size_t size) override;
+	virtual void OnOutgoingCommand(uint32_t type, size_t size, bool reliable) override;
 
 	virtual void OverrideBandwidthStats(uint32_t in, uint32_t out) override;
 
@@ -92,6 +150,10 @@ private:
 	uint32_t m_lastUpdatePerSample;
 
 	std::mutex m_metricMutex;
+
+	std::map<uint32_t, bool> m_incomingReliable;
+
+	std::map<uint32_t, bool> m_outgoingReliable;
 
 	std::map<uint32_t, size_t> m_incomingMetrics;
 
@@ -204,13 +266,16 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 				static bool showIncoming = true;
 				static bool showOutgoing = true;
 
-				auto showList = [](const decltype(m_lastIncomingMetrics)& list)
+				auto showList = [](const decltype(m_lastIncomingMetrics)& list, const decltype(m_incomingReliable)& reliable)
 				{
-					ImGui::Columns(2);
+					ImGui::Columns(3);
 
 					for (auto& entry : list)
 					{
-						ImGui::Text("0x%08x", entry.first);
+						ImGui::Text("%s", (reliable.find(entry.first)->second ? "R" : "U"));
+						ImGui::NextColumn();
+
+						ImGui::Text("%s", g_hashes.LookupHash(entry.first));
 						ImGui::NextColumn();
 
 						ImGui::Text("%d B", entry.second);
@@ -222,12 +287,12 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 				if (ImGui::CollapsingHeader("Incoming", &showIncoming))
 				{
-					showList(m_lastIncomingMetrics);
+					showList(m_lastIncomingMetrics, m_incomingReliable);
 				}
 
 				if (ImGui::CollapsingHeader("Outgoing", &showOutgoing))
 				{
-					showList(m_lastOutgoingMetrics);
+					showList(m_lastOutgoingMetrics, m_outgoingReliable);
 				}
 			}
 
@@ -293,16 +358,18 @@ void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 	m_inRouteDelayMax = *std::max_element(m_inRouteDelaySamplesArchive, m_inRouteDelaySamplesArchive + _countof(m_inRouteDelaySamplesArchive));
 }
 
-void NetOverlayMetricSink::OnIncomingCommand(uint32_t type, size_t size)
+void NetOverlayMetricSink::OnIncomingCommand(uint32_t type, size_t size, bool reliable)
 {
 	std::unique_lock<std::mutex> lock(m_metricMutex);
 	m_incomingMetrics[type] += size;
+	m_incomingReliable[type] = reliable;
 }
 
-void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size)
+void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size, bool reliable)
 {
 	std::unique_lock<std::mutex> lock(m_metricMutex);
 	m_outgoingMetrics[type] += size;
+	m_outgoingReliable[type] = reliable;
 }
 
 // log data if enabled
@@ -407,14 +474,16 @@ void NetOverlayMetricSink::DrawGraph()
 	{
 		"Routed Messages",
 		"Reliables",
-		"Misc"
+		"Misc",
+		"Overhead"
 	};
 
 	static const ImColor colors[NET_PACKET_SUB_MAX] =
 	{
 		GetColorIndex(0),
 		GetColorIndex(1),
-		GetColorIndex(2)
+		GetColorIndex(2),
+		GetColorIndex(3)
 	};
 
 	struct DataContext
@@ -426,12 +495,14 @@ void NetOverlayMetricSink::DrawGraph()
 	auto data0 = DataContext{ m_metrics, NET_PACKET_SUB_ROUTED_MESSAGES };
 	auto data1 = DataContext{ m_metrics, NET_PACKET_SUB_RELIABLES };
 	auto data2 = DataContext{ m_metrics, NET_PACKET_SUB_MISC };
+	auto data3 = DataContext{ m_metrics, NET_PACKET_SUB_OVERHEAD };
 
 	const void* datas[NET_PACKET_SUB_MAX] =
 	{
 		&data0,
 		&data1,
-		&data2
+		&data2,
+		&data3
 	};
 
 	ImGui::PlotMultiLines("Net Bw", NET_PACKET_SUB_MAX, names, colors, [](const void* cxt, int idx) -> float
