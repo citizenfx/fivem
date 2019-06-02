@@ -1697,7 +1697,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 					(lcl) ? lcl->GetName() : "(null)",
 					(int)entity->type);
 
-				trace("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
+				/*trace("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
 					__func__,
 					client->GetNetId(),
 					client->GetName(),
@@ -1705,7 +1705,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 					(int)objectType,
 					(lcl) ? lcl->GetNetId() : -1,
 					(lcl) ? lcl->GetName() : "(null)",
-					(int)entity->type);
+					(int)entity->type);*/
 			}
 
 			return;
