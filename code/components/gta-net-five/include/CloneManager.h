@@ -53,7 +53,7 @@ public:
 	virtual const std::unordered_set<rage::netObject*>& GetObjectList() = 0;
 
 	// TEMP: for temporary use during player deletion
-	virtual void DeleteObjectId(uint16_t objectId) = 0;
+	virtual void DeleteObjectId(uint16_t objectId, bool force = false) = 0;
 
 public:
 	virtual void Log(const char* format, const fmt::ArgList& argumentList) = 0;

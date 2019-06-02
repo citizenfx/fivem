@@ -87,7 +87,7 @@ public:
 
 	virtual rage::netObject* GetNetObject(uint16_t objectId) override;
 
-	virtual void DeleteObjectId(uint16_t objectId) override;
+	virtual void DeleteObjectId(uint16_t objectId, bool force) override;
 
 	virtual void Log(const char* format, const fmt::ArgList& argumentList) override;
 
@@ -1073,7 +1073,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 	for (uint16_t remove : msg.GetRemoves())
 	{
-		DeleteObjectId(remove);
+		DeleteObjectId(remove, false);
 	}
 
 	{
@@ -1097,10 +1097,10 @@ void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
 
 	Log("%s: deleting [obj:%d]\n", __func__, objectId);
 
-	DeleteObjectId(objectId);
+	DeleteObjectId(objectId, false);
 }
 
-void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
+void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 {
 	auto objectIt = m_savedEntities.find(objectId);
 
@@ -1122,7 +1122,7 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId)
 	}
 
 	// #NETVER: refactored ACKs
-	if (icgi->NetProtoVersion >= 0x201905310838)
+	if (icgi->NetProtoVersion >= 0x201905310838 && !force)
 	{
 		AddRemoveAck(objectId);
 	}

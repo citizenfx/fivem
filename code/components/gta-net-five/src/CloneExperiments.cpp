@@ -288,7 +288,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 		if (ped)
 		{
-			TheClones->DeleteObjectId(objectId);
+			TheClones->DeleteObjectId(objectId, true);
 
 			trace("deleted object id\n");
 
