@@ -509,6 +509,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			return;
 		}
 
+		if (client->GetSlotId() == -1)
+		{
+			return;
+		}
+
 		{
 			auto[data, lock] = GetClientData(this, client);
 
@@ -728,6 +733,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 
 				bool shouldSend = true;
+
+				// TODO: proper hazards
+				if (client->GetSlotId() == -1)
+				{
+					break;
+				}
 
 				auto lastResend = entity->lastResends[client->GetSlotId()];
 				auto lastTime = (curTime - lastResend);
