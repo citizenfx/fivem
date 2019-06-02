@@ -779,6 +779,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							return;
 						}
 
+						if (cmdState.client->GetSlotId() == -1)
+						{
+							return;
+						}
+
 						// create a buffer once (per thread) to save allocations
 						static thread_local rl::MessageBuffer mb(1200);
 						mb.SetCurrentBit(0);
@@ -827,6 +832,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							}
 							else
 							{
+								if (cmdState.client->GetSlotId() == -1)
+								{
+									return;
+								}
+
 								entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = curTime;
 							}
 
