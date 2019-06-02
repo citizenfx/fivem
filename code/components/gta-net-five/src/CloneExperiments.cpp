@@ -315,7 +315,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		}
 
 		// TEMP: properly handle order so that we don't have to fake out the game
-		g_playersByNetId[info.netId] = reinterpret_cast<CNetGamePlayer*>(g_tempRemotePlayer);
+		g_playersByNetId[info.netId] = nullptr;
 		g_netIdsByPlayer[player] = -1;
 
 		// TODO: actually leave the player including playerinfo
@@ -1076,6 +1076,9 @@ static HookFunction hookFunction([]()
 
 	// 1604, netobjmgr alloc size, temp dbg
 	hook::put<uint32_t>(0x14101CF4F, 32712 + 4096);
+
+	// 1604, some bubble stuff
+	hook::return_function(0x14104D148);
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
