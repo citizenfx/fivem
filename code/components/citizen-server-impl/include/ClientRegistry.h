@@ -51,6 +51,9 @@ namespace fx
 				std::unique_lock<std::shared_mutex> lock(m_clientsMutex);
 				m_clients[client->GetGuid()] = nullptr;
 			}
+
+			// unassign slot ID
+			client->SetSlotId(-1);
 		}
 
 		inline std::shared_ptr<Client> GetClientByGuid(const std::string& guid)

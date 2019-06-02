@@ -255,7 +255,7 @@ void HandleClientInfo(const NetLibraryClientInfo& info)
 
 void HandleCliehtDrop(const NetLibraryClientInfo& info)
 {
-	if (info.netId != g_netLibrary->GetServerNetID())
+	if (info.netId != g_netLibrary->GetServerNetID() && info.slotId != g_netLibrary->GetServerSlotID())
 	{
 		trace("Processing removal for player %d (%s)\n", info.slotId, info.name);
 
