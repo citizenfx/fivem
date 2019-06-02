@@ -16,6 +16,7 @@
 #include <Hooking.h>
 
 #include <CoreConsole.h>
+#include <scrEngine.h>
 
 FiveGameInit g_gameInit;
 
@@ -152,6 +153,40 @@ static InitFunction initFunction([] ()
 	static ConsoleCommand crashCmd("_crash", []()
 	{
 		*(volatile int*)0 = 0;
+	});
+
+	static int warningMessageActive = false;
+	static ConVar<int> warningMessageResult("warningMessageResult", ConVar_None, 0);
+	static int wmButtons;
+
+	static ConsoleCommand warningMessageCmd("warningMessage", [](const std::string& heading, const std::string& label, const std::string& label2, int buttons)
+	{
+		AddCustomText("CUST_WARN_HEADING", heading.c_str());
+		AddCustomText("CUST_WARN_LABEL", label.c_str());
+		AddCustomText("CUST_WARN_LABEL2", label2.c_str());
+
+		wmButtons = buttons;
+		warningMessageActive = true;
+	});
+
+	OnGameFrame.Connect([]()
+	{
+		if (warningMessageActive)
+		{
+			uint32_t headingHash = HashString("CUST_WARN_HEADING");
+			uint32_t labelHash = HashString("CUST_WARN_LABEL");
+			uint32_t label2Hash = HashString("CUST_WARN_LABEL2");
+
+			NativeInvoke::Invoke<0xDC38CC1E35B6A5D7, uint32_t>("CUST_WARN_HEADING", "CUST_WARN_LABEL", wmButtons, "CUST_WARN_LABEL2", 0, -1, 0, 0, 1);
+
+			int result = getWarningResult(true, 0);
+
+			if (result != 0)
+			{
+				warningMessageResult.GetHelper()->SetRawValue(result);
+				warningMessageActive = false;
+			}
+		}
 	});
 
 	Instance<ICoreGameInit>::Set(&g_gameInit);

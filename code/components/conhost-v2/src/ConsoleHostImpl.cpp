@@ -195,6 +195,11 @@ static InitFunction initFunction([] ()
 	io.KeyMap[ImGuiKey_Y] = 'Y';
 	io.KeyMap[ImGuiKey_Z] = 'Z';
 
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.ConfigDockingWithShift = true;
+	io.ConfigWindowsResizeFromEdges = true;
+
+	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 
 	static std::string imguiIni = ToNarrow(MakeRelativeCitPath(L"citizen/imgui.ini"));
 	io.IniFilename = const_cast<char*>(imguiIni.c_str());

@@ -16,7 +16,9 @@
 #include <mmsystem.h>
 
 #include <ConsoleHost.h>
+
 #include <imgui.h>
+#include <imguivariouscontrols.h>
 
 const int g_netOverlayOffsetX = -30;
 const int g_netOverlayOffsetY = -60;
@@ -25,6 +27,64 @@ const int g_netOverlayHeight = 300;
 
 const int g_netOverlaySampleSize = 200; // milliseconds per sample frame
 const int g_netOverlaySampleCount = 150;
+
+class RageHashList
+{
+public:
+	template<int Size>
+	RageHashList(const char* (&list)[Size])
+	{
+		for (int i = 0; i < Size; i++)
+		{
+			m_lookupList.insert({ HashRageString(list[i]), list[i] });
+		}
+	}
+
+	inline std::string LookupHash(uint32_t hash)
+	{
+		auto it = m_lookupList.find(hash);
+
+		if (it != m_lookupList.end())
+		{
+			return std::string(it->second);
+		}
+
+		return fmt::sprintf("0x%08x", hash);
+	}
+
+private:
+	std::map<uint32_t, std::string_view> m_lookupList;
+};
+
+static const char* g_knownPackets[]
+{
+	"msgConVars",
+	"msgEnd",
+	"msgEntityCreate",
+	"msgNetGameEvent",
+	"msgObjectIds",
+	"msgPackedAcks",
+	"msgPackedClones",
+	"msgPaymentRequest",
+	"msgRequestObjectIds",
+	"msgResStart",
+	"msgResStop",
+	"msgRoute",
+	"msgRpcEntityCreation",
+	"msgRpcNative",
+	"msgServerCommand",
+	"msgServerEvent",
+	"msgTimeSync",
+	"msgTimeSyncReq",
+	"msgWorldGrid",
+	"msgFrame",
+	"msgIHost",
+	"gameStateAck",
+	"msgNetEvent",
+	"msgServerEvent",
+};
+
+static RageHashList g_hashes{ g_knownPackets };
 
 class NetOverlayMetricSink : public INetMetricSink
 {
@@ -43,9 +103,9 @@ public:
 
 	virtual void OnRouteDelayResult(int msec) override;
 
-	virtual void OnIncomingCommand(uint32_t type, size_t size) override;
+	virtual void OnIncomingCommand(uint32_t type, size_t size, bool reliable) override;
 
-	virtual void OnOutgoingCommand(uint32_t type, size_t size) override;
+	virtual void OnOutgoingCommand(uint32_t type, size_t size, bool reliable) override;
 
 	virtual void OverrideBandwidthStats(uint32_t in, uint32_t out) override;
 
@@ -91,6 +151,10 @@ private:
 
 	std::mutex m_metricMutex;
 
+	std::map<uint32_t, bool> m_incomingReliable;
+
+	std::map<uint32_t, bool> m_outgoingReliable;
+
 	std::map<uint32_t, size_t> m_incomingMetrics;
 
 	std::map<uint32_t, size_t> m_outgoingMetrics;
@@ -124,7 +188,7 @@ private:
 		}
 	}
 
-	CRGBA GetColorIndex(int i);
+	ImColor GetColorIndex(int i);
 
 	void UpdateMetrics();
 
@@ -146,20 +210,42 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 	static ConVar<bool> conVar("netgraph", ConVar_Archive, false, &m_enabled);
 
+	ConHost::OnShouldDrawGui.Connect([this](bool* should)
+	{
+		*should = *should || m_enabled;
+	});
+
+	ConHost::OnDrawGui.Connect([this]()
+	{
+		if (!m_enabled)
+		{
+			return;
+		}
+
+		auto& io = ImGui::GetIO();
+
+		ImGui::SetNextWindowBgAlpha(0.0f);
+		ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x + g_netOverlayOffsetX, io.DisplaySize.y + g_netOverlayOffsetY), ImGuiCond_Once, ImVec2(1.0f, 1.0f));
+		ImGui::SetNextWindowSize(ImVec2(g_netOverlayWidth, g_netOverlayHeight));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
+		{
+			// draw the graph
+			DrawGraph();
+
+			// draw the base metrics
+			DrawBaseMetrics();
+		}
+
+		ImGui::PopStyleVar();
+		ImGui::End();
+	});
+
 	OnPostFrontendRender.Connect([=] ()
 	{
 		// update metrics
 		UpdateMetrics();
-
-		// if enabled, render
-		if (m_enabled)
-		{
-			// draw the base metrics
-			DrawBaseMetrics();
-
-			// draw the graph
-			DrawGraph();
-		}
 	}, 50);
 
 	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive, false, &m_enabledCommands);
@@ -180,13 +266,16 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 				static bool showIncoming = true;
 				static bool showOutgoing = true;
 
-				auto showList = [](const decltype(m_lastIncomingMetrics)& list)
+				auto showList = [](const decltype(m_lastIncomingMetrics)& list, const decltype(m_incomingReliable)& reliable)
 				{
-					ImGui::Columns(2);
+					ImGui::Columns(3);
 
 					for (auto& entry : list)
 					{
-						ImGui::Text("0x%08x", entry.first);
+						ImGui::Text("%s", (reliable.find(entry.first)->second ? "R" : "U"));
+						ImGui::NextColumn();
+
+						ImGui::Text("%s", g_hashes.LookupHash(entry.first));
 						ImGui::NextColumn();
 
 						ImGui::Text("%d B", entry.second);
@@ -198,12 +287,12 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 				if (ImGui::CollapsingHeader("Incoming", &showIncoming))
 				{
-					showList(m_lastIncomingMetrics);
+					showList(m_lastIncomingMetrics, m_incomingReliable);
 				}
 
 				if (ImGui::CollapsingHeader("Outgoing", &showOutgoing))
 				{
-					showList(m_lastOutgoingMetrics);
+					showList(m_lastOutgoingMetrics, m_outgoingReliable);
 				}
 			}
 
@@ -269,16 +358,18 @@ void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 	m_inRouteDelayMax = *std::max_element(m_inRouteDelaySamplesArchive, m_inRouteDelaySamplesArchive + _countof(m_inRouteDelaySamplesArchive));
 }
 
-void NetOverlayMetricSink::OnIncomingCommand(uint32_t type, size_t size)
+void NetOverlayMetricSink::OnIncomingCommand(uint32_t type, size_t size, bool reliable)
 {
 	std::unique_lock<std::mutex> lock(m_metricMutex);
 	m_incomingMetrics[type] += size;
+	m_incomingReliable[type] = reliable;
 }
 
-void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size)
+void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size, bool reliable)
 {
 	std::unique_lock<std::mutex> lock(m_metricMutex);
 	m_outgoingMetrics[type] += size;
+	m_outgoingReliable[type] = reliable;
 }
 
 // log data if enabled
@@ -379,50 +470,50 @@ void NetOverlayMetricSink::UpdateMetrics()
 
 void NetOverlayMetricSink::DrawGraph()
 {
-	// calculate maximum height for this data subset
-	float maxHeight = 0;
-
-	for (int i = 0; i < _countof(m_metrics); i++)
+	static const char* names[NET_PACKET_SUB_MAX] =
 	{
-		auto metric = m_metrics[i];
-		auto totalSize = metric.GetTotalSize();
+		"Routed Messages",
+		"Reliables",
+		"Misc",
+		"Overhead"
+	};
 
-		if (totalSize > maxHeight)
-		{
-			maxHeight = totalSize;
-		}
-	}
-
-	// calculate per-sample size
-	int perSampleSize = (g_netOverlayWidth / g_netOverlaySampleCount);
-
-	for (int i = 0; i < _countof(m_metrics) - 1; i++) // the last entry is transient, so ignore that
+	static const ImColor colors[NET_PACKET_SUB_MAX] =
 	{
-		auto metric = m_metrics[i];
+		GetColorIndex(0),
+		GetColorIndex(1),
+		GetColorIndex(2),
+		GetColorIndex(3)
+	};
 
-		// base X/Y for this metric
-		int x = GetOverlayLeft() + (perSampleSize * i);
-		int y = GetOverlayTop() + (g_netOverlayHeight - 100);
+	struct DataContext
+	{
+		NetPacketMetrics* metrics;
+		NetPacketSubComponent index;
+	};
 
-		for (int j = 0; j < NET_PACKET_SUB_MAX; j++)
-		{
-			// get Y for this submetric
-			float y1 = ceilf(y - ((metric.GetElementSize((NetPacketSubComponent)j) / maxHeight) * (g_netOverlayHeight - 100)));
-			float y2 = y;
+	auto data0 = DataContext{ m_metrics, NET_PACKET_SUB_ROUTED_MESSAGES };
+	auto data1 = DataContext{ m_metrics, NET_PACKET_SUB_RELIABLES };
+	auto data2 = DataContext{ m_metrics, NET_PACKET_SUB_MISC };
+	auto data3 = DataContext{ m_metrics, NET_PACKET_SUB_OVERHEAD };
 
-			// set a rectangle
-			CRect rect(x, y1, x + perSampleSize, y2);
-			CRGBA color = GetColorIndex(j);
+	const void* datas[NET_PACKET_SUB_MAX] =
+	{
+		&data0,
+		&data1,
+		&data2,
+		&data3
+	};
 
-			TheFonts->DrawRectangle(rect, color);
+	ImGui::PlotMultiLines("Net Bw", NET_PACKET_SUB_MAX, names, colors, [](const void* cxt, int idx) -> float
+	{
+		auto dataContext = (DataContext*)cxt;
 
-			// the next one starts where this one left off
-			y = y1;
-		}
-	}
+		return dataContext->metrics[idx].GetElementSize(dataContext->index);
+	}, datas, _countof(m_metrics) - 1, FLT_MAX, FLT_MAX, ImVec2(g_netOverlayWidth, g_netOverlayHeight - 100));
 }
 
-CRGBA NetOverlayMetricSink::GetColorIndex(int index)
+ImColor NetOverlayMetricSink::GetColorIndex(int index)
 {
 	static CRGBA colorTable[] = {
 		CRGBA(0x00, 0x00, 0xAA),
@@ -439,7 +530,9 @@ CRGBA NetOverlayMetricSink::GetColorIndex(int index)
 		CRGBA(0xFF, 0xFF, 0x55)
 	};
 
-	return colorTable[index % _countof(colorTable)];
+	auto thisColor = colorTable[index % _countof(colorTable)];
+
+	return ImColor{ thisColor.red, thisColor.green, thisColor.blue, thisColor.alpha };
 }
 
 void NetOverlayMetricSink::DrawBaseMetrics()
@@ -459,7 +552,9 @@ void NetOverlayMetricSink::DrawBaseMetrics()
 	int outRoutePackets = m_lastOutRoutePackets;
 
 	// drawing
-	TheFonts->DrawText(va(L"ping: %dms\nin: %d/s\nout: %d/s\nrt: %d/%d/s", ping, inPackets, outPackets, inRoutePackets, outRoutePackets), rect, color, 22.0f, 1.0f, "Lucida Console");
+	ImGui::Columns(2);
+	ImGui::Text("%s", va("ping: %dms\nin: %d/s\nout: %d/s\nrt: %d/%d/s", ping, inPackets, outPackets, inRoutePackets, outRoutePackets));
+	ImGui::NextColumn();
 
 	//
 	// second column
@@ -475,7 +570,8 @@ void NetOverlayMetricSink::DrawBaseMetrics()
 	int inRouteDelayMax = m_inRouteDelayMax;
 
 	// drawing
-	TheFonts->DrawText(va(L"\nin: %d b/s\nout: %d b/s\nrd: %d~%dms", inBytes, outBytes, inRouteDelay, inRouteDelayMax), rect, color, 22.0f, 1.0f, "Lucida Console");
+	ImGui::Text("%s", va("\nin: %d b/s\nout: %d b/s\nrd: %d~%dms", inBytes, outBytes, inRouteDelay, inRouteDelayMax));
+	ImGui::Columns(1);
 }
 
 static InitFunction initFunction([] ()

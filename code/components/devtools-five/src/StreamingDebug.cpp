@@ -232,6 +232,7 @@ static InitFunction initFunction([]()
 		if (ImGui::Begin("Streaming Memory", &streamingMemoryOpen))
 		{
 			static std::vector<StreamingMemoryInfo> entryList(streaming->numEntries);
+			entryList.resize(streaming->numEntries);
 
 			int entryIdx = 0;
 			size_t lockedMem = 0;
@@ -250,7 +251,12 @@ static InitFunction initFunction([]()
 					info.virtualMemory = entry.ComputeVirtualSize(i, nullptr, false);
 					info.physicalMemory = entry.ComputePhysicalSize(i);
 
-					entryList[entryIdx] = info;
+					if (entryIdx < entryList.size())
+					{
+						entryList[entryIdx] = info;
+
+						entryIdx++;
+					}
 
 					if (!streaming->IsObjectReadyToDelete(i, 0xF1 | 8))
 					{
@@ -274,8 +280,6 @@ static InitFunction initFunction([]()
 
 					usedMem += info.virtualMemory;
 					usedPhys += info.physicalMemory;
-
-					entryIdx++;
 				}
 			}
 

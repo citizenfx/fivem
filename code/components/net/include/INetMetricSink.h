@@ -28,9 +28,9 @@ public:
 
 	virtual void OnRouteDelayResult(int msec) = 0;
 
-	virtual void OnIncomingCommand(uint32_t type, size_t size) = 0;
+	virtual void OnIncomingCommand(uint32_t type, size_t size, bool reliable = false) = 0;
 
-	virtual void OnOutgoingCommand(uint32_t type, size_t size) = 0;
+	virtual void OnOutgoingCommand(uint32_t type, size_t size, bool reliable = false) = 0;
 
 	virtual void OverrideBandwidthStats(uint32_t in, uint32_t out) = 0;
 };
@@ -40,6 +40,7 @@ enum NetPacketSubComponent
 	NET_PACKET_SUB_ROUTED_MESSAGES,
 	NET_PACKET_SUB_RELIABLES,
 	NET_PACKET_SUB_MISC,
+	NET_PACKET_SUB_OVERHEAD,
 	NET_PACKET_SUB_MAX
 };
 

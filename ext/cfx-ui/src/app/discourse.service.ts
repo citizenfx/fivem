@@ -231,6 +231,14 @@ export class DiscourseService {
         return `${DiscourseService.BASE_URL}/user-api-key/new?${this.serializeParams(params)}`;
     }
 
+    public getToken() {
+        return this.authToken;
+    }
+
+    public getExtClientId() {
+        return this.clientId;
+    }
+
     private async generateNonce() {
         this.nonce = randomBytes(16);
         window.localStorage.setItem('lastAuthNonce', this.nonce);
