@@ -24,6 +24,10 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
+							<PoolName>CNetworkDamageTracker</PoolName>
+							<PoolSize value="256"/>
+						</Item>
+						<Item>
 							<PoolName>CNetObjPed</PoolName>
 							<PoolSize value="238"/> <!-- 110 + player count -->
 						</Item>
