@@ -253,6 +253,11 @@ void HandleClientInfo(const NetLibraryClientInfo& info)
 	}
 }
 
+static hook::cdecl_stub<void* (CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
+{
+	return hook::get_call(hook::get_pattern("84 C0 74 1C 48 8B CF E8 ? ? ? ? 48 8B D8", 7));
+});
+
 void HandleCliehtDrop(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID() && info.slotId != g_netLibrary->GetServerSlotID())
@@ -281,8 +286,19 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 		// 1365
 		// 1493
 		// 1604
-		uint16_t objectId;
-		auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))hook::get_adjusted(0x141022B20))(nullptr, &objectId, player);
+		uint16_t objectId = 0;
+		//auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))hook::get_adjusted(0x141022B20))(nullptr, &objectId, player);
+		auto ped = getPlayerPedForNetPlayer(player);
+
+		if (ped)
+		{
+			auto netObj = *(rage::netObject**)((char*)ped + 208);
+
+			if (netObj)
+			{
+				objectId = netObj->objectId;
+			}
+		}
 
 		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
@@ -293,7 +309,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 			trace("deleted object id\n");
 
 			// 1604
-			((void(*)(void*, uint16_t, CNetGamePlayer*))hook::get_adjusted(0x141008D14))(ped, objectId, player);
+			//((void(*)(void*, uint16_t, CNetGamePlayer*))hook::get_adjusted(0x141008D14))(ped, objectId, player);
 
 			trace("success! reassigned the ped!\n");
 		}
@@ -931,11 +947,6 @@ static float VectorDistance(const float* point1, const float* point2)
 
 	return sqrtf((xd * xd) + (yd * yd) + (zd * zd));
 }
-
-static hook::cdecl_stub<void*(CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
-{
-	return hook::get_call(hook::get_pattern("84 C0 74 1C 48 8B CF E8 ? ? ? ? 48 8B D8", 7));
-});
 
 static hook::cdecl_stub<float*(float*, CNetGamePlayer*, void*, bool)> getNetPlayerRelevancePosition([]()
 {
