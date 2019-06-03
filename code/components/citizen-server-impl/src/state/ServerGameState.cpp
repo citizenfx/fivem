@@ -275,7 +275,7 @@ struct SchedulerInit
 ServerGameState::ServerGameState()
 	: m_frameIndex(0), m_entitiesById(1 << 13)
 {
-	static SchedulerInit si;
+	static SchedulerInit* si = new SchedulerInit;
 
 	m_tg = std::make_unique<tbb::task_group>();
 }
@@ -810,7 +810,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 		}
 
-		static SchedulerInit si;
+		static SchedulerInit* si = new SchedulerInit();
 
 		m_tg->run([this, scl]()
 		{
