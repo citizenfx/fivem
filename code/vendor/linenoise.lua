@@ -1,6 +1,6 @@
 return {
 	include = function()
-		includedirs "../vendor/linenoise-ng/include/"
+		includedirs "../vendor/replxx/include/"
 	end,
 
 	run = function()
@@ -8,7 +8,8 @@ return {
 		kind "StaticLib"
 
 		files {
-			"../vendor/linenoise-ng/src/*.cpp",
+			"../vendor/replxx/src/*.cpp",
+			"../vendor/replxx/src/*.cxx",
 		}
 	end
 }

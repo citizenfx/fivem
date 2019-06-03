@@ -19,7 +19,8 @@
 		"vendor:lz4",
 		"vendor:glm",
 		"vendor:eastl",
-		"vendor:slikenet"
+		"vendor:slikenet",
+		"vendor:utfcpp"
 	],
 	"provides": []
 }
