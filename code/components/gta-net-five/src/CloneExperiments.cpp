@@ -258,6 +258,20 @@ static hook::cdecl_stub<void* (CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
 	return hook::get_call(hook::get_pattern("84 C0 74 1C 48 8B CF E8 ? ? ? ? 48 8B D8", 7));
 });
 
+rage::netObject* GetLocalPlayerPedNetObject()
+{
+	auto ped = getPlayerPedForNetPlayer(g_playerMgr->localPlayer);
+
+	if (ped)
+	{
+		auto netObj = *(rage::netObject * *)((char*)ped + 208);
+
+		return netObj;
+	}
+
+	return nullptr;
+}
+
 void HandleCliehtDrop(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID() && info.slotId != g_netLibrary->GetServerSlotID())

@@ -36,6 +36,8 @@ void ObjectIds_AddObjectId(int objectId);
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
 
+rage::netObject* GetLocalPlayerPedNetObject();
+
 using namespace std::chrono_literals;
 
 inline std::chrono::milliseconds msec()
@@ -1102,11 +1104,18 @@ void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
 
 void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 {
+	// find object and remove
 	auto objectIt = m_savedEntities.find(objectId);
 
 	if (objectIt != m_savedEntities.end())
 	{
 		auto object = objectIt->second;
+
+		// don't allow removing the local player ped, that'll lead to a few issues
+		if (object == GetLocalPlayerPedNetObject())
+		{
+			return;
+		}
 
 		// set flags
 		object->syncData.wantsToDelete = true;
