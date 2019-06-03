@@ -1793,6 +1793,14 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 		evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
 	}
+
+	// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
+	// (otherwise embarrassing things happen like a new player's ped having the same object ID as a pending-removed entity, and the game trying to remove it)
+	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, objectId](const std::shared_ptr<fx::Client>& client)
+	{
+		auto [clientData, lock] = GetClientData(this, client);
+		clientData->pendingRemovals.erase(objectId);
+	});
 }
 
 static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(const std::vector<uint8_t>& packetData)
