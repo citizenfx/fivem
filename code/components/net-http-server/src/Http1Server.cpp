@@ -50,7 +50,7 @@ public:
 
 		outData << "HTTP/1.1 " << std::to_string(statusCode) << " " << (statusMessage.empty() ? GetStatusMessage(statusCode) : statusMessage) << "\r\n";
 
-		auto& usedHeaders = (headers.size() == 0) ? m_headerList : headers;
+		auto usedHeaders = (headers.size() == 0) ? m_headerList : headers;
 
 		if (usedHeaders.find("date") == usedHeaders.end())
 		{
@@ -504,7 +504,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		if (connectionData->request.GetRef())
 		{
-			auto& cancelHandler = connectionData->request->GetCancelHandler();
+			auto cancelHandler = connectionData->request->GetCancelHandler();
 
 			if (cancelHandler)
 			{
