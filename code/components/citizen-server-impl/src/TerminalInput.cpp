@@ -70,10 +70,13 @@ static InitFunction initFunction([]()
 	static replxx::Replxx rxx;
 	rxx.install_window_change_handler();
 
+	// replxx printing does *not* like incremental writes that don't involve \n as it will instantly overwrite them with its prompt
+#if 0
 	console::CoreSetPrintFunction([](const char* str)
 	{
 		rxx.print("%s", str);
 	});
+#endif
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
