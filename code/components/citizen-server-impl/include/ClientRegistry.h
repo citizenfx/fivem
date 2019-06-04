@@ -155,11 +155,11 @@ namespace fx
 		{
 			m_clientsMutex.lock_shared();
 
-			for (auto client : m_clients)
+			for (auto& client : m_clients)
 			{
-				m_clientsMutex.unlock_shared();
-
 				auto cl = client.second;
+
+				m_clientsMutex.unlock_shared();
 
 				if (cl)
 				{

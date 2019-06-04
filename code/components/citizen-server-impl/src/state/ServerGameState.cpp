@@ -23,6 +23,13 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
+// TODO: clang style defines/checking
+#if defined(_M_IX86) || defined(_M_AMD64)
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_SSE2
+#define GLM_FORCE_SSE3
+#endif
+
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
@@ -30,6 +37,8 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
+
+static constexpr const int MaxObjectId = 1 << 13;
 
 CPool<fx::ScriptGuid>* g_scriptHandlePool;
 
@@ -162,7 +171,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	std::unordered_multimap<uint64_t, uint16_t> idsForGameState;
 
-	std::unordered_set<uint16_t> pendingRemovals;
+	eastl::bitset<MaxObjectId> pendingRemovals;
 
 	std::weak_ptr<fx::Client> client;
 
@@ -179,26 +188,26 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
 {
-	auto data = std::static_pointer_cast<GameStateClientData>(client->GetSyncData());
+	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
+	// Doing this makes it so that there's only *one* increment for the fast case.
+	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
 
-	if (data)
+	if (!data)
 	{
-		return data;
+		data = std::make_shared<GameStateClientData>();
+		data->client = client;
+
+		client->SetSyncData(data);
+
+		std::weak_ptr<fx::Client> weakClient(client);
+
+		client->OnDrop.Connect([weakClient, state]()
+		{
+			state->HandleClientDrop(weakClient.lock());
+		});
 	}
 
-	auto val = std::make_shared<GameStateClientData>();
-	val->client = client;
-
-	client->SetSyncData(val);
-
-	std::weak_ptr<fx::Client> weakClient(client);
-
-	client->OnDrop.Connect([weakClient, state]()
-	{
-		state->HandleClientDrop(weakClient.lock());
-	});
-
-	return val;
+	return data;
 }
 
 inline std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> GetClientData(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
@@ -853,7 +862,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					{
 						auto [clientData, clientDataLock] = GetClientData(this, client);
-						clientData->pendingRemovals.insert(entity->handle & 0xFFFF);
+						clientData->pendingRemovals.set(entity->handle & 0xFFFF);
 					}
 
 					// unacknowledge creation
@@ -864,19 +873,24 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 
 		{
-			auto [clientData, clientDataLock] = GetClientData(this, client);
-
-			for (uint16_t removal : clientData->pendingRemovals)
+			scl->commands.emplace_back([
+				this
+			] (SyncCommandState& cmdState)
 			{
-				scl->commands.emplace_back([
-					removal
-				] (SyncCommandState& cmdState)
+				// NOTE: this is a thread hazard, but generally it doesn't matter if the bitset is inconsistent here
+				// all that'll happen is we'll send a removal _later_, or send _duplicates_, both of which are typically fine.
+				auto clientData = GetClientDataUnlocked(this, cmdState.client);
+
+				for (uint16_t i = 0; i < MaxObjectId; i++)
 				{
-					cmdState.cloneBuffer.Write(3, 3);
-					cmdState.cloneBuffer.Write(13, removal);
-					cmdState.maybeFlushBuffer();
-				});
-			}
+					if (clientData->pendingRemovals.test(i))
+					{
+						cmdState.cloneBuffer.Write(3, 3);
+						cmdState.cloneBuffer.Write(13, i);
+						cmdState.maybeFlushBuffer();
+					}
+				}
+			});
 		}
 
 		static SchedulerInit* si = new SchedulerInit();
@@ -1571,10 +1585,6 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 		{
 			OnCloneRemove(entityRef, continueCloneRemoval);
 		}
-		else
-		{
-			continueCloneRemoval();
-		}
 	}
 
 	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client> & thisClient)
@@ -1592,8 +1602,8 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 		}
 
 		{
-			auto [clientData, clientDataLock] = GetClientData(this, tgtClient);
-			clientData->pendingRemovals.insert(objectId);
+			auto [ clientData, lock ] = GetClientData(this, tgtClient);
+			clientData->pendingRemovals.set(objectId);
 		}
 	});
 }
@@ -1792,15 +1802,15 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	{
 		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 		evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
-	}
 
-	// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
-	// (otherwise embarrassing things happen like a new player's ped having the same object ID as a pending-removed entity, and the game trying to remove it)
-	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, objectId](const std::shared_ptr<fx::Client>& client)
-	{
-		auto [clientData, lock] = GetClientData(this, client);
-		clientData->pendingRemovals.erase(objectId);
-	});
+		// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
+		// (otherwise embarrassing things happen like a new player's ped having the same object ID as a pending-removed entity, and the game trying to remove it)
+		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, objectId](const std::shared_ptr<fx::Client> & client)
+		{
+			auto [clientData, lock] = GetClientData(this, client);
+			clientData->pendingRemovals.reset(objectId);
+		});
+	}
 }
 
 static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(const std::vector<uint8_t>& packetData)
@@ -1884,7 +1894,7 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 			auto objectId = msgBuf.Read<uint16_t>(13);
 
 			auto [clientData, lock] = GetClientData(this, client);
-			clientData->pendingRemovals.erase(objectId);
+			clientData->pendingRemovals.reset(objectId);
 
 			break;
 		}
