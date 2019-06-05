@@ -25,7 +25,7 @@
 						</Item>
 						<Item>
 							<PoolName>CNetObjPed</PoolName>
-							<PoolSize value="174"/> <!-- 110 + player count -->
+							<PoolSize value="238"/> <!-- 110 + player count -->
 						</Item>
 						<Item>
 							<PoolName>CNetBlenderPed</PoolName>
