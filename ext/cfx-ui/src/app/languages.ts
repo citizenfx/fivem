@@ -35,11 +35,11 @@ const languages = [
     },
 	{
         name: 'cn',
-        displayName: '简体中文'
+        displayName: 'Chinese-Simplified'
     },
 	{
         name: 'zh',
-        displayName: '繁體中文'
+        displayName: 'Chinese-Traditional'
     },
 ];
 
