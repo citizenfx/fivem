@@ -88,7 +88,6 @@ bool ComponentInstance::DoGameLoad(void* module)
 		}
 		std::vector<std::wstring> blacklistedAsis = std::vector<std::wstring>({
 			L"openiv.asi",
-			L"scripthookvdotnet.asi",
 			L"fspeedometerv.asi"
 		});
 
