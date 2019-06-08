@@ -301,21 +301,29 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				if (!VerifyTicket(guid, ticketIt->second))
+				try
 				{
-					sendError("FiveM ticket authorization failed.");
+					if (!VerifyTicket(guid, ticketIt->second))
+					{
+						sendError("FiveM ticket authorization failed.");
+						return;
+					}
+
+					auto optionalTicket = VerifyTicketEx(ticketIt->second);
+
+					if (!optionalTicket)
+					{
+						sendError("FiveM ticket authorization failed. (2)");
+						return;
+					}
+
+					ticketData = *optionalTicket;
+				}
+				catch (const std::exception& e)
+				{
+					sendError(fmt::sprintf("Parsing error while verifying FiveM ticket. %s", e.what()));
 					return;
 				}
-
-				auto optionalTicket = VerifyTicketEx(ticketIt->second);
-
-				if (!optionalTicket)
-				{
-					sendError("FiveM ticket authorization failed. (2)");
-					return;
-				}
-
-				ticketData = *optionalTicket;
 			}
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
