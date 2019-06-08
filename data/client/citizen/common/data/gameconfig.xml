@@ -29,7 +29,7 @@
 						</Item>
 						<Item>
 							<PoolName>CNetBlenderPed</PoolName>
-							<PoolSize value="174"/> <!-- 110 + player count -->
+							<PoolSize value="238"/> <!-- 110 + player count -->
 						</Item>
 						<Item>
 							<PoolName>CNetObjPed::CNetTennisMotionData</PoolName>
