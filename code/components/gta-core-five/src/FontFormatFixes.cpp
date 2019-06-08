@@ -213,7 +213,7 @@ static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, 
 				p = c;
 			}
 			else {
-				codePointString << std::hex << c << L"-";
+				codePointString << std::hex << uint32_t(c) << L"_";
 			}
 		}
 
