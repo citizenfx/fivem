@@ -177,7 +177,7 @@ public:
 	virtual void Free(void* memory) = 0;
 };
 
-static GFxMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
+GFxMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
 
 class GFxRefCountBase
 {
@@ -293,6 +293,8 @@ static uint32_t* g_gfxId;
 static void SetupTerritories()
 {
 	g_origSetupTerritories();
+	
+	overlayRootClip = {};
 
 	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D");
 
