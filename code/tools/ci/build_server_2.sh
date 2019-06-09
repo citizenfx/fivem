@@ -46,7 +46,7 @@ rm premake.zip
 cd premake-*
 
 cd build/gmake.unix/
-make -j4
+make -j24
 cd ../../
 
 mv bin/release/premake5 /usr/local/bin
