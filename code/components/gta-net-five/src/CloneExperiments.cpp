@@ -1074,8 +1074,29 @@ static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
 	}
 }
 
+static void(*g_origManageHostMigration)(void*);
+
+static void ManageHostMigrationStub(void* a1)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_origManageHostMigration(a1);
+	}
+}
+
+static void(*g_origUnkBubbleWrap)();
+
+static void UnkBubbleWrap()
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_origUnkBubbleWrap();
+	}
+}
+
 static HookFunction hookFunction([]()
 {
+	// 1604
 	g_playerMgr = (rage::netPlayerMgrBase*)hook::get_adjusted(0x142875710);
 
 	// temp dbg
@@ -1091,12 +1112,16 @@ static HookFunction hookFunction([]()
 	// 1604, netobjmgr alloc size, temp dbg
 	hook::put<uint32_t>(0x14101CF4F, 32712 + 4096);
 
-	// 1604, some bubble stuff
-	hook::return_function(0x14104D148);
-
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
 	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
+
+	// scriptHandlerMgr::ManageHostMigration, has fixed 32 player array and isn't needed* for 1s
+	MH_CreateHook(hook::get_pattern("01 4F 60 81 7F 60 D0 07 00 00 0F 8E", -0x47), ManageHostMigrationStub, (void**)&g_origManageHostMigration);
+
+	// 1604, some bubble stuff
+	//hook::return_function(0x14104D148);
+	MH_CreateHook(hook::get_pattern("33 F6 33 DB 33 ED 0F 28 80", -0x3A), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);
 
 	MH_CreateHook(hook::get_pattern("0F 29 70 C8 0F 28 F1 33 DB 45", -0x1C), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
 
