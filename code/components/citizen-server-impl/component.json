@@ -20,6 +20,7 @@
 		"vendor:glm",
 		"vendor:eastl",
 		"vendor:slikenet",
+		"vendor:thread-pool-cpp",
 		"vendor:utfcpp"
 	],
 	"provides": []

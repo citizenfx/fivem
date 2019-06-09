@@ -15,7 +15,7 @@
 #include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
-#include <tbb/task_group.h>
+#include <thread_pool.hpp>
 
 namespace fx
 {
@@ -277,6 +277,9 @@ struct AckPacketWrapper
 
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
 {
+private:
+	using ThreadPool = tp::ThreadPool;
+
 public:
 	ServerGameState();
 
@@ -324,7 +327,7 @@ public:
 private:
 	fx::ServerInstanceBase* m_instance;
 
-	std::unique_ptr<tbb::task_group> m_tg;
+	std::unique_ptr<ThreadPool> m_tg;
 
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;

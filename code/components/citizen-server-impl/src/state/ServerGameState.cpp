@@ -10,7 +10,7 @@
 #include <lz4.h>
 
 #include <tbb/concurrent_queue.h>
-#include <tbb/task_scheduler_init.h>
+#include <thread_pool.hpp>
 
 #include <state/Pool.h>
 
@@ -110,6 +110,15 @@ static void Log(const char* format, const fmt::ArgList& argumentList)
 
 FMT_VARIADIC(void, Log, const char*);
 
+#define GS_LOG(x, ...) \
+	do \
+	{ \
+		if (!g_oneSyncLogVar->GetValue().empty()) \
+		{ \
+			Log(x, __VA_ARGS__); \
+		} \
+	} while (false)
+
 namespace fx
 {
 static const glm::mat4x4 g_projectionMatrix = glm::perspective(90.0f, 4.f / 3.f, 0.1f, 1000.f);
@@ -144,7 +153,9 @@ static bool IsInFrustum(const glm::vec3& pos, float radius, const glm::mat4x4& v
 
 	auto testPlane = [&viewCoords, &radius](const glm::vec4& plane)
 	{
-		return (viewCoords.x * plane.x + viewCoords.y * plane.y + viewCoords.z * plane.z + plane.w + radius) >= 0.0f;
+		glm::vec3 mcoords = viewCoords * plane;
+
+		return (mcoords.x + mcoords.y + mcoords.z + plane.w + radius) >= 0.0f;
 	};
 
 	return (testPlane(g_projectionClips.nearClip)
@@ -286,23 +297,10 @@ inline glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>&
 	}
 }
 
-struct SchedulerInit
-{
-	tbb::task_scheduler_init init;
-
-	SchedulerInit()
-		: init(std::max(4, tbb::task_scheduler_init::default_num_threads()))
-	{
-
-	}
-};
-
 ServerGameState::ServerGameState()
 	: m_frameIndex(0), m_entitiesById(1 << 13)
 {
-	static SchedulerInit* si = new SchedulerInit;
-
-	m_tg = std::make_unique<tbb::task_group>();
+	m_tg = std::make_unique<ThreadPool>();
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
@@ -371,7 +369,7 @@ struct SyncCommandState
 	}
 };
 
-using SyncCommand = std::function<void(SyncCommandState&)>;
+using SyncCommand = tp::FixedFunction<void(SyncCommandState&), 128>;
 
 struct SyncCommandList
 {
@@ -400,7 +398,7 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 		net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4 + 8);
 		netBuffer.Seek(len + 4 + 8); // since the buffer constructor doesn't actually set the offset
 
-		Log("flushBuffer: sending %d bytes to %d\n", len + 4 + 8, client->GetNetId());
+		GS_LOG("flushBuffer: sending %d bytes to %d\n", len + 4 + 8, client->GetNetId());
 
 		client->SendPacket(1, netBuffer);
 
@@ -632,6 +630,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 
 		auto clientDataUnlocked = GetClientDataUnlocked(this, client);
+		auto slotId = client->GetSlotId();
 
 		for (const auto& entityTuple : relevantEntities)
 		{
@@ -647,7 +646,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				continue; 
 			}
 
-			bool hasCreated = entity->ackedCreation.test(client->GetSlotId());
+			bool hasCreated = entity->ackedCreation.test(slotId);
 
 			bool shouldBeCreated = (g_oneSyncCulling->GetValue()) ? false : true;
 
@@ -755,9 +754,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				// default to it being a sync
 				int syncType = 2;
 
-				if (!hasCreated || entity->didDeletion.test(client->GetSlotId()))
+				if (!hasCreated || entity->didDeletion.test(slotId))
 				{
-					Log("Tick: %screating object %d for %d\n", (hasCreated) ? "re" : "", entity->handle & 0xFFFF, client->GetNetId());
+					GS_LOG("Tick: %screating object %d for %d\n", (hasCreated) ? "re" : "", entity->handle & 0xFFFF, client->GetNetId());
 
 					// make it a create
 					syncType = 1;
@@ -766,28 +765,28 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				bool shouldSend = true;
 
 				// TODO: proper hazards
-				if (client->GetSlotId() == -1)
+				if (slotId == -1)
 				{
 					break;
 				}
 
-				auto lastResend = entity->lastResends[client->GetSlotId()];
+				auto lastResend = entity->lastResends[slotId];
 				auto lastTime = (curTime - lastResend);
 
 				if (lastResend != 0ms && lastTime < resendDelay)
 				{
-					Log("%s: skipping resend for object %d (resend delay %dms, last resend %d)\n", __func__, entity->handle & 0xFFFF, resendDelay.count(), lastTime.count());
+					GS_LOG("%s: skipping resend for object %d (resend delay %dms, last resend %d)\n", __func__, entity->handle & 0xFFFF, resendDelay.count(), lastTime.count());
 					shouldSend = false;
 				}
 
 				if (syncType == 2 && shouldSend)
 				{
-					auto lastSync = entity->lastSyncs[client->GetSlotId()];
+					auto lastSync = entity->lastSyncs[slotId];
 					auto lastTime = (curTime - lastSync);
 
 					if (lastTime < syncDelay)
 					{
-						Log("%s: skipping sync for object %d (sync delay %dms, last sync %d)\n", __func__, entity->handle & 0xFFFF, syncDelay.count(), lastTime.count());
+						GS_LOG("%s: skipping sync for object %d (sync delay %dms, last sync %d)\n", __func__, entity->handle & 0xFFFF, syncDelay.count(), lastTime.count());
 
 						shouldSend = false;
 					}
@@ -880,7 +879,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (hasCreated)
 				{
-					Log("Tick: distance-culling object %d for %d\n", entity->handle & 0xFFFF, client->GetNetId());
+					GS_LOG("Tick: distance-culling object %d for %d\n", entity->handle & 0xFFFF, client->GetNetId());
 
 					{
 						auto [clientData, clientDataLock] = GetClientData(this, client);
@@ -888,8 +887,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 
 					// unacknowledge creation
-					entity->ackedCreation.reset(client->GetSlotId());
-					entity->didDeletion.set(client->GetSlotId());
+					entity->ackedCreation.reset(slotId);
+					entity->didDeletion.set(slotId);
 				}
 			}
 		}
@@ -915,17 +914,18 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			});
 		}
 
-		static SchedulerInit* si = new SchedulerInit();
-
-		m_tg->run([this, scl]()
+		if (!m_tg->tryPost([this, scl]()
 		{
 			scl->Execute();
 
-			auto[clientData, clientDataLock] = GetClientData(this, scl->client);
+			auto [clientData, clientDataLock] = GetClientData(this, scl->client);
 			clientData->syncing = false;
-		});
+		}))
+		{
+			GS_LOG("Thread pool full?\n");
+		}
 
-		Log("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
+		GS_LOG("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
 
 		{
 			auto[clientData, clientDataLock] = GetClientData(this, client);
@@ -1241,7 +1241,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 	{
 		auto oldClientRef = oldClient.lock();
 
-		Log("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle & 0xFFFF, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), targetClient->GetNetId());
+		GS_LOG("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle & 0xFFFF, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), targetClient->GetNetId());
 
 		if (oldClientRef)
 		{
@@ -1285,7 +1285,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
-	Log("client drop - reassigning\n");
+	GS_LOG("client drop - reassigning\n");
 
 	// clear the player's world grid ownership
 	if (auto slotId = client->GetSlotId(); slotId != -1)
@@ -1401,13 +1401,13 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				if (candidates.empty() || // no candidate?
 					std::get<float>(candidates[0]) >= (300.0f * 300.0f)) // closest candidate beyond distance culling range?
 				{
-					Log("no candidates for entity %d, deleting\n", entity->handle);
+					GS_LOG("no candidates for entity %d, deleting\n", entity->handle);
 
 					toErase.insert(entity->handle);
 				}
 				else
 				{
-					Log("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidates[0])->GetName());
+					GS_LOG("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidates[0])->GetName());
 
 					ReassignEntity(entity->handle, std::get<1>(candidates[0]));
 				}
@@ -1469,7 +1469,7 @@ void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& clie
 	ackPacket.Write(13, objectId);
 	ackPacket.flush();
 
-	Log("%s: cl %d, id %d\n", __func__, client->GetNetId(), objectId);
+	GS_LOG("%s: cl %d, id %d\n", __func__, client->GetNetId(), objectId);
 }
 
 void ServerGameState::ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket)
@@ -1481,7 +1481,7 @@ void ServerGameState::ProcessCloneSync(const std::shared_ptr<fx::Client>& client
 	ackPacket.Write(13, objectId);
 	ackPacket.flush();
 
-	Log("%s: cl %d, id %d\n", __func__, client->GetNetId(), objectId);
+	GS_LOG("%s: cl %d, id %d\n", __func__, client->GetNetId(), objectId);
 }
 
 void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket)
@@ -1514,11 +1514,11 @@ void ServerGameState::ProcessCloneTakeover(const std::shared_ptr<fx::Client>& cl
 
 			if (entityClient && entityClient->GetNetId() != client->GetNetId())
 			{
-				Log("%s: trying to send object %d from %s to %s, but the sender is %s. Rejecting.\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName(), client->GetName());
+				GS_LOG("%s: trying to send object %d from %s to %s, but the sender is %s. Rejecting.\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName(), client->GetName());
 				return;
 			}
 
-			Log("%s: migrating object %d from %s to %s\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName());
+			GS_LOG("%s: migrating object %d from %s to %s\n", __func__, objectId, (!entityClient) ? "null?" : entityClient->GetName(), tgtCl->GetName());
 		}
 
 		if (!entity || !entity->syncTree)
@@ -1553,7 +1553,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 		{
 			if (client->GetNetId() != entityClient->GetNetId())
 			{
-				Log("%s: wrong owner (%d)\n", __func__, objectId);
+				GS_LOG("%s: wrong owner (%d)\n", __func__, objectId);
 
 				return;
 			}
@@ -1565,7 +1565,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 
 void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId)
 {
-	Log("%s: deleting object %d %d\n", __func__, client->GetNetId(), objectId);
+	GS_LOG("%s: deleting object %d %d\n", __func__, client->GetNetId(), objectId);
 
 	// defer deletion of the object so script has time to do things
 	auto continueCloneRemoval = [this, objectId]()
@@ -1721,7 +1721,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 			if (objectType != entity->type)
 			{
-				Log("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
+				GS_LOG("%s: client %d %s tried to create entity %d (type %d), but this is already owned by %d %s (type %d). bad!\n",
 					__func__,
 					client->GetNetId(),
 					client->GetName(),
@@ -1747,7 +1747,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	}
 	else if (!validEntity)
 	{
-		Log("%s: wrong entity (%d)!\n", __func__, objectId);
+		GS_LOG("%s: wrong entity (%d)!\n", __func__, objectId);
 
 		return;
 	}
@@ -1769,7 +1769,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	if (entityClient->GetNetId() != client->GetNetId())
 	{
-		Log("%s: wrong owner (%d)!\n", __func__, objectId);
+		GS_LOG("%s: wrong owner (%d)!\n", __func__, objectId);
 
 		return;
 	}
