@@ -224,6 +224,10 @@ struct SyncEntityState
 	ScriptGuid* guid;
 	uint32_t handle;
 
+	bool deleting;
+
+	SyncEntityState();
+
 	virtual ~SyncEntityState();
 };
 }
