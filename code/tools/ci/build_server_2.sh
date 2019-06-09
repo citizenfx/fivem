@@ -111,7 +111,7 @@ fi
 
 make clean
 make clean config=release
-make -j5 config=release
+make -j24 config=release
 
 cd ../../../
 
