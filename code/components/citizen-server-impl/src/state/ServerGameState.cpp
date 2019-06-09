@@ -155,6 +155,12 @@ static bool IsInFrustum(const glm::vec3& pos, float radius, const glm::mat4x4& v
 		&& testPlane(g_projectionClips.farClip));
 }
 
+sync::SyncEntityState::SyncEntityState()
+	: deleting(false)
+{
+
+}
+
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
@@ -251,7 +257,7 @@ uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr)
 	return g_scriptHandlePool->GetIndex(ptr->guid) + 0x20000;
 }
 
-inline std::tuple<float, float, float> GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
+inline glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
 	if (!entity->syncTree)
 	{
@@ -481,7 +487,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	std::vector<
 		std::tuple<
 			std::shared_ptr<sync::SyncEntityState>,
-			glm::vec3
+			glm::vec3,
+			sync::CVehicleGameStateNodeData*,
+			std::shared_ptr<fx::Client>
 		>
 	> relevantEntities;
 
@@ -502,7 +510,28 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			glm::vec3 entityPosition(position[0], position[1], position[2]);
 
-			relevantEntities.emplace_back(entity, entityPosition);
+			sync::CVehicleGameStateNodeData* vehicleData = nullptr;
+
+			if (entity->type == sync::NetObjEntityType::Automobile ||
+				entity->type == sync::NetObjEntityType::Bike ||
+				entity->type == sync::NetObjEntityType::Boat ||
+				entity->type == sync::NetObjEntityType::Heli ||
+				entity->type == sync::NetObjEntityType::Plane ||
+				entity->type == sync::NetObjEntityType::Submarine ||
+				entity->type == sync::NetObjEntityType::Trailer ||
+				entity->type == sync::NetObjEntityType::Train)
+			{
+				vehicleData = entity->syncTree->GetVehicleGameState();
+			}
+
+			std::shared_ptr<fx::Client> entityClient;
+
+			{
+				std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
+				entityClient = entity->client.lock();
+			}
+
+			relevantEntities.emplace_back(entity, entityPosition, vehicleData, entityClient);
 		}
 	}
 
@@ -595,20 +624,22 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerEntity = entityRef.lock();
 		}
 
-		for (auto& entityTuple : relevantEntities)
+		glm::vec3 playerPos;
+
+		if (playerEntity)
 		{
-			auto [entity, entityPos] = entityTuple;
+			playerPos = GetPlayerFocusPos(playerEntity);
+		}
+
+		auto clientDataUnlocked = GetClientDataUnlocked(this, client);
+
+		for (const auto& entityTuple : relevantEntities)
+		{
+			const auto& [entity, entityPos, vehicleData, entityClient] = entityTuple;
 
 			if (!client)
 			{
 				return;
-			}
-
-			std::shared_ptr<fx::Client> entityClient;
-			
-			{
-				std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
-				entityClient = entity->client.lock();
 			}
 
 			if (!entityClient)
@@ -630,10 +661,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (playerEntity)
 				{
-					auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
-
-					float diffX = entityPos.x - playerPosX;
-					float diffY = entityPos.y - playerPosY;
+					float diffX = entityPos.x - playerPos.x;
+					float diffY = entityPos.y - playerPos.y;
 
 					float distSquared = (diffX * diffX) + (diffY * diffY);
 
@@ -666,8 +695,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->type == sync::NetObjEntityType::Trailer ||
 					entity->type == sync::NetObjEntityType::Train)
 				{
-					auto vehicleData = (entity && entity->syncTree) ? entity->syncTree->GetVehicleGameState() : nullptr;
-
 					if (vehicleData)
 					{
 						if (vehicleData->playerOccupants.any())
@@ -682,12 +709,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (g_oneSyncRadiusFrequency->GetValue())
 			{
-				float position[3];
+				const auto& position = entityPos;
 
 				if (entity->syncTree)
 				{
-					entity->syncTree->GetPosition(position);
-
 					// get an average radius from a list of type radii (until we store modelinfo somewhere)
 					float objRadius = 5.0f;
 
@@ -704,17 +729,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						break;
 					}
 
-					auto clientData = GetClientDataUnlocked(this, client);
-
-					if (!IsInFrustum({ position[0], position[1], position[2] }, objRadius, clientData->viewMatrix))
+					if (!IsInFrustum(position, objRadius, clientDataUnlocked->viewMatrix))
 					{
 						syncDelay = 150ms;
 					}
 
 					if (playerEntity)
 					{
-						auto[playerPosX, playerPosY, playerPosZ] = GetPlayerFocusPos(playerEntity);
-						auto dist = glm::distance2(glm::vec3{ position[0], position[1], position[2] }, glm::vec3{ playerPosX, playerPosY, playerPosZ });
+						auto dist = glm::distance2(position, playerPos);
 
 						if (dist > 500.0f * 500.0f)
 						{
@@ -1130,12 +1152,12 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		auto[posX, posY, posZ] = GetPlayerFocusPos(playerEntity);
+		auto pos = GetPlayerFocusPos(playerEntity);
 
-		int minSectorX = std::max((posX - 149.0f) + 8192.0f, 0.0f) / 75;
-		int maxSectorX = std::max((posX + 149.0f) + 8192.0f, 0.0f) / 75;
-		int minSectorY = std::max((posY - 149.0f) + 8192.0f, 0.0f) / 75;
-		int maxSectorY = std::max((posY + 149.0f) + 8192.0f, 0.0f) / 75;
+		int minSectorX = std::max((pos.x - 149.0f) + 8192.0f, 0.0f) / 75;
+		int maxSectorX = std::max((pos.x + 149.0f) + 8192.0f, 0.0f) / 75;
+		int minSectorY = std::max((pos.y - 149.0f) + 8192.0f, 0.0f) / 75;
+		int maxSectorY = std::max((pos.y + 149.0f) + 8192.0f, 0.0f) / 75;
 
 		auto slotID = client->GetSlotId();
 
@@ -1349,13 +1371,13 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 						if (playerEntity)
 						{
-							auto[tgtX, tgtY, tgtZ] = GetPlayerFocusPos(playerEntity);
+							auto tgt = GetPlayerFocusPos(playerEntity);
 
 							if (posX != 0.0f)
 							{
-								float deltaX = (tgtX - posX);
-								float deltaY = (tgtY - posY);
-								float deltaZ = (tgtZ - posZ);
+								float deltaX = (tgt.x - posX);
+								float deltaY = (tgt.y - posY);
+								float deltaZ = (tgt.z - posZ);
 
 								distance = (deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ);
 							}
@@ -1581,31 +1603,33 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 
 		auto entityRef = entity.lock();
 
-		if (entityRef)
+		if (entityRef && !entityRef->deleting)
 		{
+			entityRef->deleting = true;
+
 			OnCloneRemove(entityRef, continueCloneRemoval);
+
+			m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& thisClient)
+			{
+				auto tgtClient = thisClient;
+
+				if (!tgtClient)
+				{
+					return;
+				}
+
+				if (tgtClient->GetNetId() == client->GetNetId())
+				{
+					return;
+				}
+
+				{
+					auto [clientData, lock] = GetClientData(this, tgtClient);
+					clientData->pendingRemovals.set(objectId);
+				}
+			});
 		}
 	}
-
-	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client> & thisClient)
-	{
-		auto tgtClient = thisClient;
-
-		if (!tgtClient)
-		{
-			return;
-		}
-
-		if (tgtClient->GetNetId() == client->GetNetId())
-		{
-			return;
-		}
-
-		{
-			auto [ clientData, lock ] = GetClientData(this, tgtClient);
-			clientData->pendingRemovals.set(objectId);
-		}
-	});
 }
 
 void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId)
