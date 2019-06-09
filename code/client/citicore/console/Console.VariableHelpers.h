@@ -59,7 +59,7 @@ public:
 		}
 	}
 
-	inline TVariable GetValue()
+	inline const TVariable& GetValue()
 	{
 		return m_helper->GetRawValue();
 	}

@@ -151,7 +151,8 @@ namespace fx
 			return ptr;
 		}
 
-		inline void ForAllClients(const std::function<void(const std::shared_ptr<Client>&)>& cb)
+		template<typename TFn>
+		inline void ForAllClients(TFn&& cb)
 		{
 			m_clientsMutex.lock_shared();
 
