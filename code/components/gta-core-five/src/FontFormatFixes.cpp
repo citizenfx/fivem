@@ -277,6 +277,8 @@ static GSizeF GetHtmlTextExtentWrap(void* self, const char* putf8Str, float widt
 
 static void(*g_origFormatGtaText)(const char* in, char* out, bool a3, void* a4, float size, bool* html, int maxLength, bool a8);
 
+static std::regex condRe{"&lt;(/?C)&gt;"};
+
 static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, float size, bool* html, int maxLength, bool a8)
 {
 	g_origFormatGtaText(in, out, a3, a4, size, html, maxLength, a8);
@@ -285,6 +287,9 @@ static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, floa
 	{
 		std::string outRef = out;
 		EscapeXml<char>(outRef);
+
+		// workaround for <C> tags
+		outRef = std::regex_replace(outRef, condRe, "<$1>");
 
 		strcpy_s(out, maxLength, outRef.c_str());
 		out[maxLength - 1] = '\0';
