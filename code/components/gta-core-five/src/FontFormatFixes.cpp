@@ -248,10 +248,6 @@ static void GFxEditTextCharacterDef__SetTextValue(void* self, const char* newTex
 
 	if (!html)
 	{
-		textRef = newText;
-		EscapeXml<char>(textRef);
-
-		newText = textRef.c_str();
 		html = true;
 	}
 
@@ -269,10 +265,10 @@ static GSizeF (*getHtmlTextExtent)(void* self, const char* putf8Str, float width
 static GSizeF GetHtmlTextExtentWrap(void* self, const char* putf8Str, float width, const void* ptxtParams)
 {
 	// escape (since this is actually non-HTML text extent)
-	std::string textRef = putf8Str;
-	EscapeXml<char>(textRef);
+	//std::string textRef = putf8Str;
+	//EscapeXml<char>(textRef);
 
-	return getHtmlTextExtent(self, textRef.c_str(), width, ptxtParams);
+	return getHtmlTextExtent(self, putf8Str, width, ptxtParams);
 }
 
 static void(*g_origFormatGtaText)(const char* in, char* out, bool a3, void* a4, float size, bool* html, int maxLength, bool a8);
@@ -285,15 +281,6 @@ static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, floa
 
 	if (!*html)
 	{
-		std::string outRef = out;
-		EscapeXml<char>(outRef);
-
-		// workaround for <C> tags
-		outRef = std::regex_replace(outRef, condRe, "<$1>");
-
-		strcpy_s(out, maxLength, outRef.c_str());
-		out[maxLength - 1] = '\0';
-
 		*html = true;
 	}
 }
