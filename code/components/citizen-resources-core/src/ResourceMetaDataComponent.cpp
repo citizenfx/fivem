@@ -204,7 +204,11 @@ struct Match
 
 	~Match()
 	{
-		device->FindClose(findHandle);
+		if (findHandle != INVALID_DEVICE_HANDLE)
+		{
+			device->FindClose(findHandle);
+		}
+
 		findHandle = INVALID_DEVICE_HANDLE;
 	}
 
