@@ -236,11 +236,13 @@ void TLSServerStream::Write(const std::vector<uint8_t>& data)
 {
 	ScheduleCallback([this, data]()
 	{
-		if (m_tlsServer && m_tlsServer->is_active())
+		auto tlsServer = m_tlsServer;
+
+		if (tlsServer && tlsServer->is_active())
 		{
 			try
 			{
-				m_tlsServer->send(data);
+				tlsServer->send(data);
 			}
 			catch (const std::exception& e)
 			{
@@ -256,11 +258,13 @@ void TLSServerStream::Close()
 {
 	ScheduleCallback([this]()
 	{
-		if (m_tlsServer)
+		auto tlsServer = m_tlsServer;
+
+		if (tlsServer)
 		{
 			try
 			{
-				m_tlsServer->close();
+				tlsServer->close();
 			}
 			catch (const std::exception& e)
 			{
