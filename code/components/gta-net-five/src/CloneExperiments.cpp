@@ -1099,6 +1099,29 @@ static HookFunction hookFunction([]()
 	// 1604
 	g_playerMgr = (rage::netPlayerMgrBase*)hook::get_adjusted(0x142875710);
 
+	// net damage array, size 32*4
+	uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(256 * sizeof(uint32_t));
+	memset(damageArrayReplacement, 0, 256 * sizeof(uint32_t));
+
+	{
+		std::initializer_list<std::tuple<std::string_view, int>> bits = {
+			{ "74 30 3C 20 73 0D 48 8D 0D", 9 },
+			{ "0F 85 9F 00 00 00 48 85 FF", 0x12 },
+			{ "80 F9 FF 74 2F 48 8D 15", 8 },
+			{ "80 BF 90 00 00 00 FF 74 21 48 8D", 12 }
+		};
+
+		for (const auto& bit : bits)
+		{
+			auto location = hook::get_pattern<int32_t>(std::get<0>(bit), std::get<1>(bit));
+
+			*location = (intptr_t)damageArrayReplacement - (intptr_t)location - 4;
+		}
+
+		// 128
+		hook::put<uint8_t>(hook::get_pattern("74 30 3C 20 73 0D 48 8D 0D", 3), 0x80);
+	}
+
 	// temp dbg
 	//hook::put<uint16_t>(hook::get_pattern("0F 84 80 00 00 00 49 8B 07 49 8B CF FF 50 20"), 0xE990);
 
