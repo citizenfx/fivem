@@ -699,11 +699,19 @@ bool VerifyRetailOwnership()
 			}
 		}
 
-		MessageBox(nullptr, va(L"The Social Club account specified (%s) does not own a valid license to Grand Theft Auto V.", ToWide(doc["OrigNickname"].GetString())), L"Authentication error", MB_OK | MB_ICONWARNING);
+		// create a thread as CEF does something odd to the current thread's win32k functionality leading to a crash as it's already shut down
+		// we pass using & since we join
+		std::thread([&doc]()
+		{
+			MessageBox(nullptr, va(L"The Social Club account specified (%s) does not own a valid license to Grand Theft Auto V.", ToWide(doc["OrigNickname"].GetString())), L"Authentication error", MB_OK | MB_ICONWARNING);
+		}).join();
 	}
 	else if (!b.error)
 	{
-		MessageBox(nullptr, ToWide(b.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
+		std::thread([&b]()
+		{
+			MessageBox(nullptr, ToWide(b.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
+		}).join();
 	}
 
 	return false;
