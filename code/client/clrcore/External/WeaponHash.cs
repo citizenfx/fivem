@@ -86,7 +86,21 @@ namespace CitizenFX.Core
 		CarbineRifleMk2 = 0xFAD1F1C9,
 		CombatMGMk2 = 0xDBBD7280,
 		HeavySniperMk2 = 0xA914799,
-		SMGMk2 = 0x78A97CD0
+		SMGMk2 = 0x78A97CD0,
+		//mpchristmas2017
+        RevolverMk2 = 0xCB96392F,
+        SpecialCarbineMk2 = 0x969C3D67,
+        MarksmanRifleMk2 = 0x6A6C02E0,
+        PumpShotgunMk2 = 0x555AF99A,
+        SNSPistolMk2 = 0x88374054,
+        BullpupRifleMk2 = 0x84D6FAFD,
+        DoubleAction = 0x97EA20B8,
+        //mpbattle
+        StoneHatchet = 0x3813FC08,
+        //mpchristmas2018
+        RayPistol = 0xAF3696A1,
+        RayMinigun = 0xB62D1F67,
+        RayCarbine = 0x476BF155
 	}
 
 	public enum VehicleWeaponHash
@@ -133,6 +147,7 @@ namespace CitizenFX.Core
 		ProximityMine = 0xAF2208A7,
 		PipeBomb = 0x155663F8,
 		SmokeGrenade = 0xE60E08A6,
-		BZGas = 0x9B747EA4
+		BZGas = 0x9B747EA4,
+		RayPistol = 0xA50ABB74
 	}
 }
