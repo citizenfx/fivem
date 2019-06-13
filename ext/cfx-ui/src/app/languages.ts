@@ -33,9 +33,9 @@ const languages = [
         name: 'pt',
         displayName: 'Português'
     },
-		{
+	{
         name: 'cs',
-        displayName: 'Češtína'
+        displayName: 'Čeština'
     },
 ];
 
