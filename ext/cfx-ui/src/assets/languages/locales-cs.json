@@ -16,7 +16,7 @@
     "#ServerList_HideFull": "Nezobrazovat plné",
     "#ServerList_HideEmpty": "Nezobrazovat prázdné",
     "#ServerList_MaxPing": "Max. odezva",
-    "#Servers_Connecting": "Připojování,
+    "#Servers_Connecting": "Připojování",
     "#Servers_ConnectingTo": "Připojování k {{ serverName }}...",
     "#Servers_ConnectFailed": "Připojení selhalo",
     "#Servers_Error": "Neočekávaná chyba",
