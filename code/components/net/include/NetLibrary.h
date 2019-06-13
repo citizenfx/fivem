@@ -157,6 +157,8 @@ private:
 
 	net::PeerAddress m_currentServerPeer;
 
+	std::string m_currentServerUrl;
+
 	std::string m_token;
 
 	uint32_t m_lastConnect;
@@ -224,7 +226,7 @@ public:
 
 	virtual void RunFrame() override;
 
-	virtual void ConnectToServer(const net::PeerAddress& address);
+	virtual void ConnectToServer(const std::string& rootUrl);
 
 	virtual void Disconnect(const char* reason) override;
 
@@ -292,6 +294,11 @@ public:
 		return m_currentServerPeer;
 	}
 
+	inline virtual const std::string& GetCurrentServerUrl() override
+	{
+		return m_currentServerUrl;
+	}
+
 	inline int GetServerProtocol() override
 	{
 		return m_serverProtocol;
@@ -354,10 +361,10 @@ public:
 	// this won't like more than one interception attempt, however
 	// a1: connection address
 	// a2: continuation callback
-	fwEvent<const net::PeerAddress&, const std::function<void()>&> OnInterceptConnection;
+	fwEvent<const std::string&, const std::function<void()>&> OnInterceptConnection;
 
 	// same as the other routine, except it's for authentication
-	fwEvent<const net::PeerAddress&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
+	fwEvent<const std::string&, const std::function<void(bool success, const std::map<std::string, std::string>& additionalPostData)>&> OnInterceptConnectionForAuth;
 
 	// event to intercept server events for debugging
 	// a1: event name

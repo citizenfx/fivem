@@ -15,6 +15,9 @@
 #include <SteamComponentAPI.h>
 #include <LegitimacyAPI.h>
 #include <IteratorView.h>
+#include <optional>
+#include <random>
+#include <network/uri.hpp>
 
 #include <json.hpp>
 
@@ -706,8 +709,64 @@ struct GetAuthSessionTicketResponse_t
 	int m_eResult;
 };
 
-void NetLibrary::ConnectToServer(const net::PeerAddress& address)
+static std::optional<std::string> ResolveUrl(const std::string& rootUrl)
 {
+	try
+	{
+		auto uri = network::uri(rootUrl);
+
+		if (uri.has_scheme())
+		{
+			if (uri.scheme().to_string() == "fivem")
+			{
+				uri = network::uri_builder(uri)
+					.scheme("https")
+					.port(uri.has_port() ? atoi(uri.port().to_string().c_str()) : 30120)
+					.path("/")
+					.uri();
+			}
+
+			if (uri.scheme().to_string() == "http" || uri.scheme().to_string() == "https")
+			{
+				uri = network::uri_builder(uri)
+					.uri();
+
+				return uri.string();
+			}
+		}
+	}
+	catch (const std::exception& e)
+	{
+		
+	}
+
+	auto peerAddress = net::PeerAddress::FromString(rootUrl);
+	
+	if (peerAddress)
+	{
+		return network::uri_builder()
+			.scheme("http")
+			.host(peerAddress->ToString())
+			.path("/")
+			.uri()
+			.string();
+	}
+
+	return {};
+}
+
+void NetLibrary::ConnectToServer(const std::string& rootUrl)
+{
+	auto urlRef = ResolveUrl(rootUrl);
+
+	if (!urlRef)
+	{
+		OnConnectionError(va("Couldn't resolve URL %s.", rootUrl));
+		return;
+	}
+
+	auto url = *urlRef;
+
 	if (m_connectionState != CS_IDLE)
 	{
 		Disconnect("Connecting to another server.");
@@ -752,11 +811,10 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		}
 	} es(this);
 
-	m_currentServer = NetAddress(address.GetSocketAddress());
-	m_currentServerPeer = address;
 	m_connectionState = CS_INITING;
+	m_currentServerUrl = url;
 
-	AddCrashometry("last_server", "%s", address.ToString());
+	AddCrashometry("last_server_url", "%s", url);
 
 	if (m_impl)
 	{
@@ -799,13 +857,13 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 			// TODO: add UI output
 			m_connectionState = CS_IDLE;
 
-			OnConnectionError(va("Failed handshake to server %s:%d%s%s.", m_currentServer.GetAddress(), m_currentServer.GetPort(), connData.length() > 0 ? " - " : "", connData));
+			OnConnectionError(va("Failed handshake to server %s%s%s.", url, connData.length() > 0 ? " - " : "", connData));
 
 			return;
 		}
 		else if (!isLegacyDeferral && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 		{
-			OnConnectionError(va("Failed handshake to server %s:%d - it closed the connection while deferring.", m_currentServer.GetAddress(), m_currentServer.GetPort()));
+			OnConnectionError(va("Failed handshake to server %s - it closed the connection while deferring.", url));
 		}
 	};
 
@@ -852,7 +910,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 
 				HttpRequestOptions options;
 				options.streamingCallback = handleAuthResultData;
-				m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(newMap), options, handleAuthResult);
+				m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(newMap), options, handleAuthResult);
 
 				return true;
 			}
@@ -879,6 +937,47 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 				Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
 			}
 
+			// gather endpoints
+			std::vector<std::string> endpoints;
+
+			if (node["endpoints"].IsDefined())
+			{
+				for (const auto& endpoint : node["endpoints"])
+				{
+					endpoints.push_back(endpoint.as<std::string>());
+				}
+			}
+			else
+			{
+				network::uri uri{ url };
+				std::string endpoint;
+			
+				if (uri.has_port())
+				{
+					endpoint = fmt::sprintf("%s:%d", uri.host().to_string(), atoi(uri.port().to_string().c_str()));
+				}
+				else
+				{
+					endpoint = uri.host().to_string();
+				}
+
+				endpoints.push_back(endpoint);
+			}
+
+			// select an endpoint
+			static std::random_device rand;
+			static std::mt19937 rng(rand());
+			std::uniform_int_distribution<> values(0, endpoints.size() - 1);
+
+			const auto& endpoint = endpoints[values(rng)];
+			auto address = *net::PeerAddress::FromString(endpoint);
+			auto oldAddress = NetAddress(address.GetSocketAddress());
+
+			m_currentServer = oldAddress;
+			m_currentServerPeer = address;
+
+			AddCrashometry("last_server", "%s", address.ToString());
+
 			m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
 			{
 				if (success)
@@ -887,6 +986,22 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 					{
 						Instance<ICoreGameInit>::Get()->ShAllowed = false;
 					}
+				}
+			});
+
+			m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+			{
+				if (success)
+				{
+					FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
+				}
+			});
+
+			m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), [=](bool success, const char* data, size_t length)
+			{
+				if (success)
+				{
+					FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
 				}
 			});
 
@@ -918,7 +1033,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 					m_connectionState = CS_INITRECEIVED;
 				};
 
-				m_httpClient->DoGetRequest(fmt::sprintf("http://%s:%d/info.json", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t size)
+				m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
 				{
 					using json = nlohmann::json;
 
@@ -1002,24 +1117,8 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		HttpRequestOptions options;
 		options.streamingCallback = handleAuthResultData;
 
-		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("http://%s/client", address.ToString()), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
+		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
 	};
-
-	m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
-	{
-		if (success)
-		{
-			FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
-		}
-	});
-
-	m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), [=](bool success, const char* data, size_t length)
-	{
-		if (success)
-		{
-			FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
-		}
-	});
 
 	auto continueRequest = [=]()
 	{
@@ -1089,9 +1188,9 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		}
 	};
 
-	auto initiateRequest = [this, address, continueRequest]()
+	auto initiateRequest = [this, url, continueRequest]()
 	{
-		if (OnInterceptConnectionForAuth(address, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
+		if (OnInterceptConnectionForAuth(url, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
 		{
 			if (success)
 			{
@@ -1112,7 +1211,7 @@ void NetLibrary::ConnectToServer(const net::PeerAddress& address)
 		}
 	};
 
-	if (OnInterceptConnection(address, initiateRequest))
+	if (OnInterceptConnection(url, initiateRequest))
 	{
 		initiateRequest();
 	}

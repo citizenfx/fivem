@@ -140,18 +140,9 @@ static void ConnectTo(const std::string& hostnameStr)
 
 	g_connected = true;
 
-	auto npa = net::PeerAddress::FromString(hostnameStr);
+	nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
 
-	if (npa)
-	{
-		nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
-
-		netLibrary->ConnectToServer(npa.get());
-	}
-	else
-	{
-		trace("Could not resolve %s.\n", hostnameStr);
-	}
+	netLibrary->ConnectToServer(hostnameStr);
 }
 
 static std::string g_pendingAuthPayload;
@@ -220,7 +211,7 @@ static InitFunction initFunction([] ()
 		static std::function<void()> finishConnectCb;
 		static bool disconnected;
 
-		netLibrary->OnInterceptConnection.Connect([](const net::PeerAddress& peer, const std::function<void()>& cb)
+		netLibrary->OnInterceptConnection.Connect([](const std::string& url, const std::function<void()>& cb)
 		{
 			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{

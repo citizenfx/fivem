@@ -76,4 +76,6 @@ public:
 	virtual void AddSendTick() = 0;
 
 	virtual net::PeerAddress GetCurrentPeer() = 0;
+
+	virtual const std::string& GetCurrentServerUrl() = 0;
 };
