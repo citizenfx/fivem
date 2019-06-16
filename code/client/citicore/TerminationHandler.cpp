@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#ifndef IS_FXSERVER
 #include <ComponentLoader.h>
 #include <ResumeComponent.h>
 
@@ -22,3 +24,4 @@ extern "C" DLL_EXPORT void CoreOnProcessAbnormalTermination(void* reason)
 		}
 	});
 }
+#endif
