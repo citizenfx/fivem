@@ -142,17 +142,26 @@ public:
 
 	inline void SetCallRefRoutine(const TCallRefRoutine& routine)
 	{
-		m_callRefRoutine = routine;
+		if (!m_callRefRoutine)
+		{
+			m_callRefRoutine = routine;
+		}
 	}
 
 	inline void SetDuplicateRefRoutine(const TDuplicateRefRoutine& routine)
 	{
-		m_duplicateRefRoutine = routine;
+		if (!m_duplicateRefRoutine)
+		{
+			m_duplicateRefRoutine = routine;
+		}
 	}
 
 	inline void SetDeleteRefRoutine(const TDeleteRefRoutine& routine)
 	{
-		m_deleteRefRoutine = routine;
+		if (!m_deleteRefRoutine)
+		{
+			m_deleteRefRoutine = routine;
+		}
 	}
 
 	inline IScriptHost* GetScriptHost()
@@ -338,7 +347,10 @@ static int Lua_SetTickRoutine(lua_State* L)
 
 void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
 {
-	m_tickRoutine = tickRoutine;
+	if (!m_tickRoutine)
+	{
+		m_tickRoutine = tickRoutine;
+	}
 }
 
 static int Lua_SetEventRoutine(lua_State* L)
@@ -385,7 +397,10 @@ static int Lua_SetEventRoutine(lua_State* L)
 
 void LuaScriptRuntime::SetEventRoutine(const TEventRoutine& eventRoutine)
 {
-	m_eventRoutine = eventRoutine;
+	if (!m_eventRoutine)
+	{
+		m_eventRoutine = eventRoutine;
+	}
 }
 
 static int Lua_SetCallRefRoutine(lua_State* L)
