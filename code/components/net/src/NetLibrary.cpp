@@ -18,6 +18,7 @@
 #include <optional>
 #include <random>
 #include <network/uri.hpp>
+#include <ResumeComponent.h>
 
 #include <json.hpp>
 
@@ -1441,6 +1442,15 @@ NetLibrary* NetLibrary::Create()
 	});
 
 	OnNetLibraryCreate(lib);
+
+	OnAbnormalTermination.Connect([lib](void* reason)
+	{
+		if (lib->GetConnectionState() != NetLibrary::CS_IDLE)
+		{
+			lib->Disconnect((const char*)reason);
+			lib->FinalizeDisconnect();
+		}
+	});
 
 	return lib;
 }

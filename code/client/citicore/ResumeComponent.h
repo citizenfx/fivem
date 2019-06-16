@@ -6,9 +6,13 @@ public:
 	virtual void PreResumeGame() = 0;
 
 	virtual void PreInitGame() = 0;
+
+	virtual void HandleAbnormalTermination(void* reason) = 0;
 };
 
 __declspec(selectany) fwEvent<> OnResumeGame;
+
+__declspec(selectany) fwEvent<void*> OnAbnormalTermination;
 
 template<typename TBaseComponent>
 class LifeCycleComponentBase : public TBaseComponent, public LifeCycleComponent
@@ -22,6 +26,11 @@ public:
 	virtual void PreInitGame() override
 	{
 		// empty
+	}
+
+	virtual void HandleAbnormalTermination(void* reason) override
+	{
+		OnAbnormalTermination(reason);
 	}
 
 	virtual bool IsA(uint32_t type) override

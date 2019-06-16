@@ -1,7 +1,8 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
+#include <ResumeComponent.h>
 
-class ComponentInstance : public Component
+class ComponentInstance : public LifeCycleComponentBase<Component>
 {
 public:
 	virtual bool Initialize();

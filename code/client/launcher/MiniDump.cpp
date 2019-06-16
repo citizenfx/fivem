@@ -23,7 +23,9 @@
 
 #include <optional>
 
+#include <CfxState.h>
 #include <CfxSubProcess.h>
+#include <HostSharedData.h>
 
 #include <citversion.h>
 
@@ -420,6 +422,29 @@ static DWORD RemoteExceptionFunc(LPVOID objectPtr)
 	}
 }
 
+static DWORD BeforeTerminateHandler(LPVOID arg)
+{
+	__try
+	{
+		auto coreRt = GetModuleHandleW(L"CoreRT.dll");
+
+		if (coreRt)
+		{
+			auto func = (void(*)(void*))GetProcAddress(coreRt, "CoreOnProcessAbnormalTermination");
+
+			if (func)
+			{
+				func(arg);
+			}
+		}
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+	}
+
+	return 0;
+}
+
 // c/p from ros-patches:five
 // #TODO: factor out sanely
 
@@ -640,7 +665,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	static bool g_running = true;
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
-	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE, FALSE, parentPid);
+	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, parentPid);
 
 	CrashGenerationServer::OnClientConnectedCallback connectCallback = [] (void*, const ClientInfo* info)
 	{
@@ -868,11 +893,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			}
 		}
 
-		if (shouldTerminate)
-		{
-			TerminateProcess(parentProcess, -2);
-		}
-
 		static std::wstring windowTitle = PRODUCT_NAME L" Error";
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
 		
@@ -923,6 +943,49 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		if (!crashHash.empty())
 		{
 			content += fmt::sprintf(L"\n\nLegacy crash hash: %s", HashCrash(crashHash));
+		}
+
+		if (shouldTerminate)
+		{
+			std::thread([]()
+			{
+				static HostSharedData<CfxState> hostData("CfxInitState");
+				HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
+
+				if (!gameProcess)
+				{
+					gameProcess = parentProcess;
+				}
+
+				if (gameProcess)
+				{
+					std::string friendlyReason = ToNarrow(HashCrash(crashHash) + L" (" + UnblameCrash(crashHash) + L")");
+
+					if (!exType.empty())
+					{
+						friendlyReason = "Unhandled exception: " + exType;
+					}
+
+					friendlyReason = "Game crashed: " + friendlyReason;
+
+					LPVOID memPtr = VirtualAllocEx(gameProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+					if (memPtr)
+					{
+						WriteProcessMemory(gameProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
+					}
+
+					HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, BeforeTerminateHandler, memPtr, 0, NULL);
+
+					if (hThread)
+					{
+						WaitForSingleObject(hThread, 7500);
+						CloseHandle(hThread);
+					}
+				}
+
+				TerminateProcess(parentProcess, -2);
+			}).detach();
 		}
 
 		static std::optional<std::wstring> crashId;
