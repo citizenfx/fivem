@@ -923,7 +923,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			clientData->syncing = false;
 		}))
 		{
-			GS_LOG("Thread pool full?\n");
+			GS_LOG("Thread pool full?\n", 0);
 		}
 
 		GS_LOG("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
@@ -1286,7 +1286,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
-	GS_LOG("client drop - reassigning\n");
+	GS_LOG("client drop - reassigning\n", 0);
 
 	// clear the player's world grid ownership
 	if (auto slotId = client->GetSlotId(); slotId != -1)
