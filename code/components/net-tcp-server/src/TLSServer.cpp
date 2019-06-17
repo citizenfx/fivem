@@ -234,9 +234,11 @@ PeerAddress TLSServerStream::GetPeerAddress()
 
 void TLSServerStream::Write(const std::vector<uint8_t>& data)
 {
-	ScheduleCallback([this, data]()
+	fwRefContainer<TLSServerStream> thisRef = this;
+
+	ScheduleCallback([thisRef, data]()
 	{
-		auto tlsServer = m_tlsServer;
+		auto tlsServer = thisRef->m_tlsServer;
 
 		if (tlsServer && tlsServer->is_active())
 		{
@@ -248,7 +250,7 @@ void TLSServerStream::Write(const std::vector<uint8_t>& data)
 			{
 				trace("tls send: %s\n", e.what());
 
-				Close();
+				thisRef->Close();
 			}
 		}
 	});
@@ -256,9 +258,11 @@ void TLSServerStream::Write(const std::vector<uint8_t>& data)
 
 void TLSServerStream::Close()
 {
-	ScheduleCallback([this]()
+	fwRefContainer<TLSServerStream> thisRef = this;
+
+	ScheduleCallback([thisRef]()
 	{
-		auto tlsServer = m_tlsServer;
+		auto tlsServer = thisRef->m_tlsServer;
 
 		if (tlsServer)
 		{
