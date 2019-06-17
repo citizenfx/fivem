@@ -207,8 +207,11 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 {
 	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
 	// Doing this makes it so that there's only *one* increment for the fast case.
-	auto& sd = client->GetSyncData();
-	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(sd) };
+#ifndef _MSC_VER
+	auto data = std::static_pointer_cast<GameStateClientData>(client->GetSyncData());
+#else
+	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
+#endif
 
 	if (!data)
 	{
@@ -923,7 +926,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			clientData->syncing = false;
 		}))
 		{
+#ifndef _MSC_VER
 			GS_LOG("Thread pool full?\n", 0);
+#else
+			GS_LOG("Thread pool full?\n");
+#endif
 		}
 
 		GS_LOG("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
@@ -1286,7 +1293,11 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
+#ifndef _MSC_VER
 	GS_LOG("client drop - reassigning\n", 0);
+#else
+	GS_LOG("client drop - reassigning\n");
+#endif
 
 	// clear the player's world grid ownership
 	if (auto slotId = client->GetSlotId(); slotId != -1)
