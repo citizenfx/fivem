@@ -207,7 +207,8 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 {
 	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
 	// Doing this makes it so that there's only *one* increment for the fast case.
-	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
+	auto& sd = client->GetSyncData();
+	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(sd) };
 
 	if (!data)
 	{

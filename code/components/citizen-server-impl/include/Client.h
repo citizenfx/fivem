@@ -174,7 +174,7 @@ namespace fx
 			return std::move(principals);
 		}
 
-		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
+		inline std::shared_ptr<sync::ClientSyncDataBase>& GetSyncData()
 		{
 			return m_syncData;
 		}
