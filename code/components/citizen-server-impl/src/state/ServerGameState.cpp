@@ -866,12 +866,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							}
 							else
 							{
-								if (cmdState.client->GetSlotId() == -1)
+								auto slotId = cmdState.client->GetSlotId();
+
+								if (slotId == -1)
 								{
 									return;
 								}
 
-								entity->lastSyncs[cmdState.client->GetSlotId()] = entity->lastResends[cmdState.client->GetSlotId()] = curTime;
+								entity->lastSyncs[slotId] = entity->lastResends[slotId] = curTime;
 							}
 
 							cmdState.maybeFlushBuffer();
