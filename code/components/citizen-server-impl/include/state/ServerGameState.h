@@ -15,7 +15,7 @@
 #include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
-#include <tbb/task_group.h>
+#include <thread_pool.hpp>
 
 namespace fx
 {
@@ -224,6 +224,10 @@ struct SyncEntityState
 	ScriptGuid* guid;
 	uint32_t handle;
 
+	bool deleting;
+
+	SyncEntityState();
+
 	virtual ~SyncEntityState();
 };
 }
@@ -253,8 +257,29 @@ struct ScriptGuid
 	};
 };
 
+struct AckPacketWrapper
+{
+	rl::MessageBuffer& ackPacket;
+	std::function<void()> flush;
+
+	inline explicit AckPacketWrapper(rl::MessageBuffer& ackPacket)
+		: ackPacket(ackPacket)
+	{
+		
+	}
+
+	template<typename TData>
+	inline void Write(int length, TData data)
+	{
+		ackPacket.Write(length, data);
+	}
+};
+
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
 {
+private:
+	using ThreadPool = tp::ThreadPool;
+
 public:
 	ServerGameState();
 
@@ -277,11 +302,11 @@ public:
 	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
 
 private:
-	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
+	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneRemove(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
+	void ProcessCloneRemove(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, net::Buffer& ackPacket);
+	void ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
 	void ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket);
 
@@ -291,6 +316,10 @@ private:
 
 	void RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId);
 
+	void ParseClonePacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
+
+	void ParseAckPacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
+
 public:
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint32_t handle);
@@ -298,7 +327,7 @@ public:
 private:
 	fx::ServerInstanceBase* m_instance;
 
-	std::unique_ptr<tbb::task_group> m_tg;
+	std::unique_ptr<ThreadPool> m_tg;
 
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;

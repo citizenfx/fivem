@@ -330,7 +330,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x201903031957;
+			data["bitVersion"] = 0x201905310838;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
@@ -340,6 +340,7 @@ static InitFunction initFunction([]()
 			auto gameServer = instance->GetComponent<fx::GameServer>();
 
 			data["netlibVersion"] = gameServer->GetNetLibVersion();
+			data["maxClients"] = atoi(gameServer->GetVariable("sv_maxclients").c_str());
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);

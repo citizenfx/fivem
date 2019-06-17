@@ -22,11 +22,20 @@
 
 #include <se/Security.h>
 
+#ifdef _WIN32
+#include <mmsystem.h>
+#endif
+
 namespace fx
 {
 	ServerInstance::ServerInstance()
 		: m_shouldTerminate(false)
 	{
+		// increase timer resolution on Windows
+#ifdef _WIN32
+		timeBeginPeriod(1);
+#endif
+
 		// create a console context
 		fwRefContainer<console::Context> consoleContext;
 		console::CreateContext(console::GetDefaultContext(), &consoleContext);

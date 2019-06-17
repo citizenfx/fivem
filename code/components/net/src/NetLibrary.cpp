@@ -1010,6 +1010,22 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			Instance<ICoreGameInit>::Get()->OneSyncEnabled = (node["onesync"].IsDefined() && node["onesync"].as<bool>(false));
 			Instance<ICoreGameInit>::Get()->NetProtoVersion = (node["bitVersion"].IsDefined() ? node["bitVersion"].as<uint64_t>(0) : 0);
 
+			std::string onesyncType = "onesync";
+			auto maxClients = (node["maxClients"].IsDefined()) ? node["maxClients"].as<int>() : 64;
+
+			if (maxClients <= 32)
+			{
+				onesyncType = "";
+			}
+			else if (maxClients <= 64)
+			{
+				onesyncType = "onesync";
+			}
+			else if (maxClients <= 128)
+			{
+				//onesyncType = "onesync_plus";
+			}
+
 			AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
 
 			m_serverProtocol = node["protocol"].as<uint32_t>();
@@ -1021,7 +1037,7 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 				steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
 			}
 
-			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
 			{
 				auto oneSyncFailure = [this]()
 				{
@@ -1050,7 +1066,7 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 								if (!val.empty())
 								{
-									m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/onesync", val), [=](bool success, const char* data, size_t size)
+									m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/%s", val, onesyncType), [=](bool success, const char* data, size_t size)
 									{
 										if (success)
 										{

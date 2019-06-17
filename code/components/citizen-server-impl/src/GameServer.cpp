@@ -668,7 +668,7 @@ namespace fx
 					outMsg.Write(0x53FFFA3F);
 					outMsg.Write(0);
 
-					client->SendPacket(0, outMsg, NetPacketType_Reliable);
+					client->SendPacket(0, outMsg, NetPacketType_Unreliable);
 				}
 
 				// time out the client if needed
@@ -773,7 +773,7 @@ namespace fx
 			// for name handling, send player state
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
-			// send every player information about the joining client
+			// send every player information about the dropping client
 			events->TriggerClientEvent("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
 		}
 
