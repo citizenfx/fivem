@@ -832,8 +832,7 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	if (Instance<ICoreGameInit>::Get()->GetData("gameBuild", &gameBuild))
 	{
-		// TODO: REMOVE WHEN SHIPPING
-		postMap["gameBuild"] = "1337";//gameBuild;
+		postMap["gameBuild"] = gameBuild;
 	}
 
 	static std::function<void()> performRequest;
