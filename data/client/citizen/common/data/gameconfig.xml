@@ -40,6 +40,10 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
+							<PoolName>TaskSequenceInfo</PoolName>
+							<PoolSize value="2400"/>
+						</Item>
+						<Item>
 							<PoolName>AnimatedBuilding</PoolName>
 							<PoolSize value="600"/>
 						</Item>

@@ -1574,7 +1574,12 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 		if (eventMgr)
 		{
 			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + 0x3AB80);
-			eventHandlerList[eventType](&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
+			auto eh = eventHandlerList[eventType];
+			
+			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(0x146000000))
+			{
+				eh(&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
+			}
 		}
 
 		player->physicalPlayerIndex = lastIndex;

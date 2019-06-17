@@ -711,6 +711,33 @@ static HookFunction hookFunction([] ()
 		}
 	}
 
+	// CScene_unk_callsBlenderM58: over 50 iterated objects (CEntity+40 == 5, CObject) will lead to a stack buffer overrun
+	// 1604 signature: happy-venus-purple (FIVEM-CLIENT-1604-NEW-18G4)
+	{
+		static struct : jitasm::Frontend
+		{
+			void InternalMain() override
+			{
+				cmp(rbx, 50);
+				jge("nope");
+
+				mov(qword_ptr[rbp + rbx * 8 + 0x190], rax);
+				ret();
+
+				L("nope");
+
+				dec(edi);
+				dec(rbx);
+
+				ret();
+			}
+		} objectArrayStub;
+
+		auto location = hook::get_pattern("48 89 84 DD 90 01 00 00");
+		hook::nop(location, 8);
+		hook::call_rcx(location, objectArrayStub.GetCode());
+	}
+
 	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
 	// only returns false if LoadFromStructure(parTreeNode*) fails
 	// make it return failure state on failure of rage::parManager::LoadTree as well, and log the failure.
