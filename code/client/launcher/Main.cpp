@@ -62,7 +62,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
-	GetEnvironmentVariable(L"PATH", pathBuf, sizeof(pathBuf));
+	GetEnvironmentVariable(L"PATH", pathBuf, std::size(pathBuf));
 
 	std::wstring newPath = MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"") + L";" + std::wstring(pathBuf);
 
