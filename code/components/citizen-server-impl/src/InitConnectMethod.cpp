@@ -340,6 +340,7 @@ static InitFunction initFunction([]()
 			auto gameServer = instance->GetComponent<fx::GameServer>();
 
 			data["netlibVersion"] = gameServer->GetNetLibVersion();
+			data["maxClients"] = atoi(gameServer->GetVariable("sv_maxclients").c_str());
 
 			{
 				auto oldClient = clientRegistry->GetClientByGuid(guid);
