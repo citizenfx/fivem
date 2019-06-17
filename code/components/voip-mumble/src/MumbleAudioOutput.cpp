@@ -450,7 +450,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				auto emitterPos = DirectX::XMVectorSet(position[0], position[1], position[2], 0.0f);
 				auto listenerPos = DirectX::XMVectorSet(m_listener.Position.x, m_listener.Position.y, m_listener.Position.z, 0.0f);
 
-				bool shouldHear = (m_distance == 0.0f) ? true : (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos)) < (m_distance * m_distance));
+				bool shouldHear = (abs(m_distance) < 0.01f) ? true : (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos)) < (m_distance * m_distance));
 				client->voice->SetVolume(shouldHear ? 1.0f : 0.0f);
 
 				client->isAudible = shouldHear;

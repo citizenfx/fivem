@@ -368,7 +368,7 @@ static InitFunction initFunction([]()
 
 	OnKillNetworkDone.Connect([]()
 	{
-		g_mumbleClient->SetAudioDistance(FLT_MAX);
+		g_mumbleClient->SetAudioDistance(0.0f);
 
 		Mumble_Disconnect();
 		o_talkers.reset();
@@ -608,12 +608,9 @@ static HookFunction hookFunction([]()
 		{
 			(*origSetProximity)(context);
 
-			if (g_mumble.connected)
-			{
-				float dist = context.GetArgument<float>(0);
+			float dist = context.GetArgument<float>(0);
 
-				g_mumbleClient->SetAudioDistance(dist == 0.0f ? FLT_MAX : dist);
-			}
+			g_mumbleClient->SetAudioDistance(dist);
 		});
 	});
 
