@@ -232,28 +232,24 @@ PeerAddress TLSServerStream::GetPeerAddress()
 	return m_baseStream->GetPeerAddress();
 }
 
+void TLSServerStream::Write(const std::string& data)
+{
+	DoWrite<decltype(data)>(data);
+}
+
 void TLSServerStream::Write(const std::vector<uint8_t>& data)
 {
-	fwRefContainer<TLSServerStream> thisRef = this;
+	DoWrite<decltype(data)>(data);
+}
 
-	ScheduleCallback([thisRef, data]()
-	{
-		auto tlsServer = thisRef->m_tlsServer;
+void TLSServerStream::Write(std::string&& data)
+{
+	DoWrite<decltype(data)>(std::move(data));
+}
 
-		if (tlsServer && tlsServer->is_active())
-		{
-			try
-			{
-				tlsServer->send(data);
-			}
-			catch (const std::exception& e)
-			{
-				trace("tls send: %s\n", e.what());
-
-				thisRef->Close();
-			}
-		}
-	});
+void TLSServerStream::Write(std::vector<uint8_t>&& data)
+{
+	DoWrite<decltype(data)>(std::move(data));
 }
 
 void TLSServerStream::Close()

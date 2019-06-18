@@ -48,10 +48,42 @@ private:
 
 	bool m_closing;
 
+private:
+	template<typename TContainer>
+	inline void DoWrite(TContainer data)
+	{
+		fwRefContainer<TLSServerStream> thisRef = this;
+
+		ScheduleCallback([thisRef, data = std::forward<TContainer>(data)]()
+		{
+			auto tlsServer = thisRef->m_tlsServer;
+
+			if (tlsServer && tlsServer->is_active())
+			{
+				try
+				{
+					tlsServer->send(data);
+				}
+				catch (const std::exception& e)
+				{
+					trace("tls send: %s\n", e.what());
+
+					thisRef->Close();
+				}
+			}
+		});
+	}
+
 public:
 	TLSServerStream(TLSServer* server, fwRefContainer<TcpServerStream> baseStream);
 
 	virtual PeerAddress GetPeerAddress() override;
+
+	virtual void Write(std::string&& data) override;
+
+	virtual void Write(std::vector<uint8_t>&& data) override;
+
+	virtual void Write(const std::string& data) override;
 
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
