@@ -152,7 +152,7 @@ protected:
 	HeaderMap m_headerList;
 
 protected:
-	static std::string GetStatusMessage(int statusCode);
+	static std::string_view GetStatusMessage(int statusCode);
 
 public:
 	HttpResponse(fwRefContainer<HttpRequest> request);

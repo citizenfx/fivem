@@ -116,107 +116,54 @@ void HttpResponse::End(const std::string& data)
 	End();
 }
 
-
-std::string HttpResponse::GetStatusMessage(int statusCode)
+static std::map<int, std::string_view> httpStatuses =
 {
-	static std::map<int, std::string> httpStatuses;
+	{ 100, "Continue" },
+	{ 101, "Switching Protocols" },
+	{ 200, "OK" },
+	{ 201, "Created" },
+	{ 202, "Accepted" },
+	{ 203, "Non-Authoritative Information" },
+	{ 204, "No Content" },
+	{ 205, "Reset Content" },
+	{ 206, "Partial Content" },
+	{ 300, "Multiple Choices" },
+	{ 301, "Moved Permanently" },
+	{ 302, "Found" },
+	{ 303, "See Other" },
+	{ 304, "Not Modified" },
+	{ 305, "Use Proxy" },
+	{ 307, "Temporary Redirect" },
+	{ 400, "Bad Request" },
+	{ 401, "Unauthorized" },
+	{ 402, "Payment Required" },
+	{ 403, "Forbidden" },
+	{ 404, "Not Found" },
+	{ 405, "Method Not Allowed" },
+	{ 406, "Not Acceptable" },
+	{ 407, "Proxy Authentication Required" },
+	{ 408, "Request Time-out" },
+	{ 409, "Conflict" },
+	{ 410, "Gone" },
+	{ 411, "Length Required" },
+	{ 412, "Precondition Failed" },
+	{ 413, "Request Entity Too Large" },
+	{ 414, "Request-URI Too Large" },
+	{ 415, "Unsupported Media Type" },
+	{ 416, "Requested Range not Satisfiable" },
+	{ 417, "Expectation Failed" },
+	{ 422, "Unprocessable Entity" },
+	{ 429, "Too Many Requests" },
+	{ 500, "Internal Server Error" },
+	{ 501, "Not Implemented" },
+	{ 502, "Bad Gateway" },
+	{ 503, "Service Unavailable" },
+	{ 504, "Gateway Time-out" },
+	{ 505, "HTTP Version not Supported" },
+};
 
-	if (httpStatuses.empty())
-	{
-		httpStatuses[100] = "Continue";
-		httpStatuses[101] = "Switching Protocols";
-		httpStatuses[200] = "OK";
-		httpStatuses[201] = "Created";
-		httpStatuses[202] = "Accepted";
-		httpStatuses[203] = "Non-Authoritative Information";
-		httpStatuses[204] = "No Content";
-		httpStatuses[205] = "Reset Content";
-		httpStatuses[206] = "Partial Content";
-		httpStatuses[300] = "Multiple Choices";
-		httpStatuses[301] = "Moved Permanently";
-		httpStatuses[302] = "Found";
-		httpStatuses[303] = "See Other";
-		httpStatuses[304] = "Not Modified";
-		httpStatuses[305] = "Use Proxy";
-		httpStatuses[307] = "Temporary Redirect";
-		httpStatuses[400] = "Bad Request";
-		httpStatuses[401] = "Unauthorized";
-		httpStatuses[402] = "Payment Required";
-		httpStatuses[403] = "Forbidden";
-		httpStatuses[404] = "Not Found";
-		httpStatuses[405] = "Method Not Allowed";
-		httpStatuses[406] = "Not Acceptable";
-		httpStatuses[407] = "Proxy Authentication Required";
-		httpStatuses[408] = "Request Time-out";
-		httpStatuses[409] = "Conflict";
-		httpStatuses[410] = "Gone";
-		httpStatuses[411] = "Length Required";
-		httpStatuses[412] = "Precondition Failed";
-		httpStatuses[413] = "Request Entity Too Large";
-		httpStatuses[414] = "Request-URI Too Large";
-		httpStatuses[415] = "Unsupported Media Type";
-		httpStatuses[416] = "Requested Range not Satisfiable";
-		httpStatuses[417] = "Expectation Failed";
-		httpStatuses[422] = "Unprocessable Entity";
-		httpStatuses[429] = "Too Many Requests";
-		httpStatuses[500] = "Internal Server Error";
-		httpStatuses[501] = "Not Implemented";
-		httpStatuses[502] = "Bad Gateway";
-		httpStatuses[503] = "Service Unavailable";
-		httpStatuses[504] = "Gateway Time-out";
-		httpStatuses[505] = "HTTP Version not Supported";
-
-	}
-
+std::string_view HttpResponse::GetStatusMessage(int statusCode)
+{
 	return httpStatuses[statusCode];
 }
 }
-
-#include "MultiplexTcpServer.h"
-#include "TcpServerManager.h"
-
-class LovelyHttpHandler : public net::HttpHandler
-{
-public:
-	virtual bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
-	{
-		response->SetHeader(std::string("Content-Type"), std::string("text/plain"));
-
-		if (request->GetRequestMethod() == "GET")
-		{
-			response->End(std::string(request->GetPath()));
-		}
-		else if (request->GetRequestMethod() == "POST")
-		{
-			request->SetDataHandler([=] (const std::vector<uint8_t>& data)
-			{
-				std::string dataStr(data.begin(), data.end());
-				response->End(dataStr);
-			});
-		}
-
-		return true;
-	}
-};
-
-/*
-static InitFunction initFunction([] ()
-{
-	static fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
-	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString("localhost:8081").get());
-
-	//static fwRefContainer<net::TLSServer> tlsServer = new net::TLSServer(tcpServer);
-
-	static fwRefContainer<net::HttpServer> impl = new net::HttpServerImpl();
-	impl->AttachToServer(tcpServer);
-
-	static fwRefContainer<net::HttpHandler> rc = new LovelyHttpHandler();
-	impl->RegisterHandler(rc);
-
-	impl->AddRef();
-	tcpServer->AddRef();
-	tcpStack->AddRef();
-
-	//std::this_thread::sleep_for(std::chrono::seconds(3600));
-});
-*/

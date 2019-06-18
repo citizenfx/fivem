@@ -15,6 +15,7 @@
 #include <deque>
 #include <iomanip>
 #include <sstream>
+#include <string_view>
 
 namespace net
 {
