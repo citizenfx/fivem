@@ -49,7 +49,11 @@ public:
 
 	virtual void Write(const std::string& data);
 
+	virtual void Write(std::string&& data);
+
 	virtual void Write(const std::vector<uint8_t>& data) = 0;
+
+	virtual void Write(std::vector<uint8_t>&& data);
 
 	virtual void Close() = 0;
 

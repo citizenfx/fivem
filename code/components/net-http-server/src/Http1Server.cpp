@@ -84,10 +84,7 @@ public:
 
 		std::string outStr = outData.str();
 
-		std::vector<uint8_t> dataBuffer(outStr.size());
-		memcpy(&dataBuffer[0], outStr.c_str(), outStr.size());
-
-		m_clientStream->Write(dataBuffer);
+		m_clientStream->Write(std::move(outStr));
 
 		m_sentHeaders = true;
 	}
@@ -128,20 +125,44 @@ public:
 		}
 	}
 
-	virtual void WriteOut(const std::vector<uint8_t>& data) override
+	private:
+	template<typename TContainer>
+	void WriteOutInternal(TContainer data)
 	{
 		if (m_chunked)
 		{
 			// assume chunked
 			m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
-			m_clientStream->Write(data);
+			m_clientStream->Write(std::forward<TContainer>(data));
 			m_clientStream->Write("\r\n");
 		}
 		else
 		{
-			m_clientStream->Write(data);
+			m_clientStream->Write(std::forward<TContainer>(data));
 		}
 	}
+
+	public:
+	virtual void WriteOut(const std::vector<uint8_t>& data) override
+	{
+		WriteOutInternal<decltype(data)>(data);
+	}
+
+	virtual void WriteOut(std::vector<uint8_t>&& data) override
+	{
+		WriteOutInternal<decltype(data)>(std::move(data));
+	}
+
+	virtual void WriteOut(const std::string& data) override
+	{
+		WriteOutInternal<decltype(data)>(data);
+	}
+
+	virtual void WriteOut(std::string&& data) override
+	{
+		WriteOutInternal<decltype(data)>(std::move(data));
+	}
+
 
 	virtual void End() override
 	{

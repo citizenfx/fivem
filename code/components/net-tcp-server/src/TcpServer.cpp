@@ -26,7 +26,17 @@ void TcpServerStream::Write(const std::string& data)
 	std::vector<uint8_t> dataBuf(data.size());
 	memcpy(dataBuf.data(), data.data(), dataBuf.size());
 
-	Write(dataBuf);
+	Write(std::move(dataBuf));
+}
+
+void TcpServerStream::Write(std::string&& data)
+{
+	Write(static_cast<const std::string&>(data));
+}
+
+void TcpServerStream::Write(std::vector<uint8_t>&& data)
+{
+	Write(static_cast<const std::vector<uint8_t>&>(data));
 }
 
 void TcpServerStream::SetCloseCallback(const TCloseCallback& callback)

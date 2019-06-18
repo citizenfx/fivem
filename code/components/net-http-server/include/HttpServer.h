@@ -175,13 +175,23 @@ public:
 
 	void Write(const std::string& data);
 
+	void Write(std::string&& data);
+
 	virtual void End() = 0;
 
 	virtual void BeforeWriteHead(const std::string& data);
 
 	virtual void WriteOut(const std::vector<uint8_t>& data) = 0;
 
+	virtual void WriteOut(std::vector<uint8_t>&& data);
+
+	virtual void WriteOut(const std::string& data);
+
+	virtual void WriteOut(std::string&& data);
+
 	void End(const std::string& data);
+
+	void End(std::string&& data);
 
 	inline int GetStatusCode()
 	{

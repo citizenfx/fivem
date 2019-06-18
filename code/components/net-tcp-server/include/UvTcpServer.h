@@ -69,9 +69,103 @@ public:
 
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
+	virtual void Write(const std::string& data) override;
+
+	virtual void Write(std::vector<uint8_t>&&) override;
+
+	virtual void Write(std::string&&) override;
+
 	virtual void Close() override;
 
 	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
+
+private:
+	template<typename TContainer>
+	struct UvWriteReq
+	{
+	private:
+		TContainer sendData;
+		uv_buf_t buffer;
+		uv_write_t write;
+
+		fwRefContainer<UvTcpServerStream> stream;
+
+	public:
+		UvWriteReq(const fwRefContainer<UvTcpServerStream>& stream)
+			: stream(stream)
+		{
+			write.data = this;
+		}
+
+		inline void SetData(const TContainer& container)
+		{
+			sendData = container;
+		}
+
+		inline void SetData(TContainer&& container)
+		{
+			sendData = std::move(container);
+		}
+
+		inline void operator()()
+		{
+			if (!stream->m_client)
+			{
+				return;
+			}
+
+			buffer = uv_buf_init(const_cast<char*>(reinterpret_cast<const char*>(sendData.data())), static_cast<uint32_t>(sendData.size()));
+
+			// send the write request
+			uv_write(&write, reinterpret_cast<uv_stream_t*>(stream->m_client.get()), &buffer, 1, [](uv_write_t* write, int status)
+			{
+				UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
+
+				delete req;
+			});
+		}
+	};
+
+	template<typename TStuff>
+	inline auto MakeReq(const TStuff& in)
+	{
+		auto req = new UvWriteReq<std::remove_reference_t<TStuff>>(this);
+		req->SetData(in);
+
+		return req;
+	}
+
+	template<typename TStuff>
+	inline auto MakeReq(TStuff&& in)
+	{
+		auto req = new UvWriteReq<std::remove_reference_t<TStuff>>(this);
+		req->SetData(std::move(in));
+
+		return req;
+	}
+
+	template<typename TContainer>
+	inline void PushWrite(UvWriteReq<TContainer>* req)
+	{
+		if (!m_client)
+		{
+			return;
+		}
+
+		std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
+
+		if (m_writeCallback)
+		{
+			// submit the write request
+			m_pendingRequests.push([req]()
+			{
+				(*req)();
+			});
+
+			// wake the callback
+			uv_async_send(m_writeCallback.get());
+		}
+	}
 };
 
 class TcpServerManager;

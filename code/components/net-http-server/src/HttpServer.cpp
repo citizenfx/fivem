@@ -104,15 +104,48 @@ void HttpResponse::Write(const std::string& data)
 		WriteHead(m_statusCode);
 	}
 
-	std::vector<uint8_t> dataBuffer(data.size());
-	memcpy(&dataBuffer[0], data.c_str(), data.size());
+	WriteOut(data);
+}
 
-	WriteOut(dataBuffer);
+void HttpResponse::Write(std::string&& data)
+{
+	BeforeWriteHead(data);
+
+	if (!m_sentHeaders)
+	{
+		WriteHead(m_statusCode);
+	}
+
+	WriteOut(std::move(data));
+}
+
+void HttpResponse::WriteOut(const std::string& data)
+{
+	std::vector<uint8_t> dataBuf(data.size());
+	memcpy(dataBuf.data(), data.data(), dataBuf.size());
+
+	WriteOut(std::move(dataBuf));
+}
+
+void HttpResponse::WriteOut(std::vector<uint8_t>&& data)
+{
+	WriteOut(static_cast<const std::vector<uint8_t>&>(data));
+}
+
+void HttpResponse::WriteOut(std::string&& data)
+{
+	WriteOut(static_cast<const std::string&>(data));
 }
 
 void HttpResponse::End(const std::string& data)
 {
 	Write(data);
+	End();
+}
+
+void HttpResponse::End(std::string&& data)
+{
+	Write(std::move(data));
 	End();
 }
 
