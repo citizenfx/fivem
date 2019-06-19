@@ -95,7 +95,7 @@ void SteamSuggestionProvider::GetProfiles(std::function<void(fwRefContainer<Prof
 
 					fwRefContainer<ProfileImpl> profile = new ProfileImpl();
 					std::vector<ProfileIdentifier> identifiers;
-					identifiers.push_back(std::make_pair("steam", va("%llx", steamID)));
+					identifiers.push_back(std::make_pair("steam", fmt::sprintf("%llx", steamID)));
 
 					profile->SetDisplayName(personaName);
 					profile->SetIdentifiers(identifiers);

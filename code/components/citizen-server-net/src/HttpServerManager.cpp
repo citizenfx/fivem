@@ -31,7 +31,7 @@ namespace fx
 			}
 
 			response->SetStatusCode(404);
-			response->End(va("Route %s not found.", request->GetPath().c_str()));
+			response->End(fmt::sprintf("Route %s not found.", request->GetPath()));
 
 			return true;
 		};
