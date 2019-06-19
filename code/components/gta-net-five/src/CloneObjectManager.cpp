@@ -102,6 +102,32 @@ static rage::netObject* netObjectMgrBase__GetNetworkObject(rage::netObjectMgr* m
 	return object;
 }
 
+CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object);
+
+static rage::netObject* (*g_orig_netObjectMgrBase__GetNetworkObjectForPlayer)(rage::netObjectMgr* manager, uint16_t id, rage::netPlayer* player, bool evenIfDeleting);
+
+static rage::netObject* netObjectMgrBase__GetNetworkObjectForPlayer(rage::netObjectMgr* manager, uint16_t id, rage::netPlayer* player, bool evenIfDeleting)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_orig_netObjectMgrBase__GetNetworkObjectForPlayer(manager, id, player, evenIfDeleting);
+	}
+
+	auto object = CloneObjectMgr->GetNetworkObject(id);
+
+	if (object && object->syncData.wantsToDelete && !evenIfDeleting)
+	{
+		object = nullptr;
+	}
+
+	if (object && netObject__GetPlayerOwner(object) != player)
+	{
+		object = nullptr;
+	}
+
+	return object;
+}
+
 static HookFunction hookFunction([]()
 {
 	// 1604
@@ -110,6 +136,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook((void*)0x141605054, netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject);
 	MH_CreateHook((void*)0x1416033D0, netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner);
 	MH_CreateHook((void*)0x141608454, netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject);
+	MH_CreateHook((void*)0x141608524, netObjectMgrBase__GetNetworkObjectForPlayer, (void**)& g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 

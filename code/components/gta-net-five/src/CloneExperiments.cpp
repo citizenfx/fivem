@@ -376,7 +376,7 @@ void HandleCliehtDrop(const NetLibraryClientInfo& info)
 
 static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 
-static CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
+CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
 	if (!icgi->OneSyncEnabled)
 	{
