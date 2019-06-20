@@ -1851,6 +1851,34 @@ static void ManuallyDirtyNodeStub(void* node, void* object)
 	DirtyNode(object, node);
 }
 
+static void(*g_orig_netSyncDataNode_ForceSend)(void* node, int actFlag1, int actFlag2, rage::netObject* object);
+
+static void netSyncDataNode_ForceSendStub(void* node, int actFlag1, int actFlag2, rage::netObject* object)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_orig_netSyncDataNode_ForceSend(node, actFlag1, actFlag2, object);
+		return;
+	}
+
+	// maybe needs to read act flags?
+	DirtyNode(object, node);
+}
+
+static void(*g_orig_netSyncDataNode_ForceSendToPlayer)(void* node, int player, int actFlag1, int actFlag2, rage::netObject* object);
+
+static void netSyncDataNode_ForceSendToPlayerStub(void* node, int player, int actFlag1, int actFlag2, rage::netObject* object)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_orig_netSyncDataNode_ForceSendToPlayer(node, player, actFlag1, actFlag2, object);
+		return;
+	}
+
+	// maybe needs to read act flags?
+	DirtyNode(object, node);
+}
+
 static void(*g_origCallSkip)(void* a1, void* a2, void* a3, void* a4, void* a5);
 
 static void SkipCopyIf1s(void* a1, void* a2, void* a3, void* a4, void* a5)
@@ -1883,6 +1911,10 @@ static HookFunction hookFunction2([]()
 		}
 
 		MH_CreateHook(hook::get_pattern("48 83 79 48 00 48 8B D9 74 19", -6), ManuallyDirtyNodeStub, (void**)&g_origManuallyDirtyNode);
+
+		MH_CreateHook(hook::get_pattern("85 51 28 0F 84 E4 00 00 00 33 DB", -0x24), netSyncDataNode_ForceSendStub, (void**)&g_orig_netSyncDataNode_ForceSend);
+
+		MH_CreateHook(hook::get_pattern("44 85 41 28 74 73 83 79 30 00", -0x1F), netSyncDataNode_ForceSendToPlayerStub, (void**)&g_orig_netSyncDataNode_ForceSendToPlayer);
 
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
