@@ -1370,6 +1370,14 @@ namespace rage
 
 		virtual bool Equals(const netGameEvent* event) = 0;
 
+		virtual bool NotEquals(const netGameEvent* event) = 0;
+
+		virtual bool MustPersist() = 0;
+
+		virtual bool MustPersistWhenOutOfScope() = 0;
+
+		virtual bool HasTimedOut() = 0;
+
 	public:
 		uint16_t eventId;
 
@@ -1497,9 +1505,9 @@ static void EventManager_Update()
 
 		if (ev)
 		{
-			auto expiryDuration = (ev->requiresReply) ? 3s : 200ms;
+			auto expiryDuration = 5s;
 
-			if ((msec() - time) > expiryDuration)
+			if (ev->HasTimedOut() || (msec() - time) > expiryDuration)
 			{
 				delete ev;
 
