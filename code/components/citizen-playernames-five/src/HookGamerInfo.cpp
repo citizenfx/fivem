@@ -144,61 +144,65 @@ static HookFunction hookFunction([]()
 
 	// update size
 	// CPauseMenu::CloseInternal
-	hook::put<uint32_t>(0x140179599 + 1, sizeof(CGamerInfo));
+	hook::put<uint32_t>(hook::get_pattern("B9 ? ? ? ? E8 ? ? ? ? 48 8B D8 48 85 C0 74 ? 48 8B C8 E8 ? ? ? ? 48 89 1D ? ? ? ? EB ? 48 89 3D ? ? ? ?", 1), sizeof(CGamerInfo));
 	// _gamerInfoMenu_initSession
-	hook::put<uint32_t>(0x1401B2D08 + 1, sizeof(CGamerInfo));
+	hook::put<uint32_t>(hook::get_pattern("B9 ? ? ? ? E8 ? ? ? ? 48 8B D8 48 85 C0 74 ? 48 8B C8 E8 ? ? ? ? 48 89 1D ? ? ? ? EB ? 48 83 25 ? ? ? ? ? 48 83 C4 ? 5B C3 ? 0B 56 ?", 1), sizeof(CGamerInfo));
 
 	// update locker offset
 	uint32_t lockerOffset = offsetof(CGamerInfo, locker);
 
 	// GAMER_INFO::GAMER_INFO
-	hook::put<uint32_t>(0x140157648 + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8D 8B ? ? ? ? BA ? ? ? ? E8 ? ? ? ? 21 BC 24 ? ? ? ?", 3), lockerOffset);
 	// GAMER_INFO::~GAMER_INFO
-	hook::put<uint32_t>(0x14015BD40 + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("4C 8D B9 ? ? ? ? 48 8B F9 49 8B CF E8 ? ? ? ? 4C 8D 77 ?", 3), lockerOffset);
 	// GAMER_INFO::sub_1401D1358
-	hook::put<uint32_t>(0x1401D13A0 + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("4C 8D B7 ? ? ? ? 49 8B CE E8 ? ? ? ? 48 8B CF", 3), lockerOffset);
 	// GAMER_INFO::createGamerTag
-	hook::put<uint32_t>(0x140206DCD + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8D 9D ? ? ? ? 48 8B CB E8 ? ? ? ? 48 8B CB", 3), lockerOffset);
 	// GAMER_INFO::createMovieClip
-	hook::put<uint32_t>(0x140206E4A + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8D BB ? ? ? ? 48 8B CF E8 ? ? ? ? 8B 73 ?", 3), lockerOffset);
 	// GAMER_INFO::gamerTagRemove
-	hook::put<uint32_t>(0x14020727E + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8D 9E ? ? ? ? 48 8B CB E8 ? ? ? ? C6 87 ? ? ? ? ?", 3), lockerOffset);
 	// GAMER_INFO::removeMovieClip
-	hook::put<uint32_t>(0x1402072FD + 3, lockerOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8D B3 ? ? ? ? 48 8B CE E8 ? ? ? ? 8B 6B ?", 3), lockerOffset);
 
 	// update compnent offsets
 	uint32_t componentNamesOffset = offsetof(CGamerInfo, componentNames);
 	uint32_t componentFlagsOffset = offsetof(CGamerInfo, componentFlags);
 
+	uint64_t componentsNameAddr = (uint64_t)hook::get_pattern("48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 83 ? ? ? ?", 0);
+	uint64_t componentsFlagsAddr = (uint64_t)hook::get_pattern("44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ? 44 89 BB ? ? ? ?", 0);
+
 	for (int i = 0; i < 30; i++)
 	{
 		// GAMER_INFO::GAMER_INFO
-		hook::put<uint32_t>(0x1401576CB + 3 + 14 * i, componentNamesOffset + 8 * i);
-		hook::put<uint32_t>(0x140157868 + 3 + 7 * i, componentFlagsOffset + 4 * i);
+		hook::put<uint32_t>(componentsNameAddr + 3 + 14 * i, componentNamesOffset + 8 * i);
+		hook::put<uint32_t>(componentsFlagsAddr + 3 + 7 * i, componentFlagsOffset + 4 * i);
 	}
 
 	// GAMER_INFO::sub_1401D094C
-	hook::put<uint32_t>(0x1401D09E3 + 4, componentFlagsOffset);
-	hook::put<uint32_t>(0x1401D09EB + 4, componentNamesOffset);
-	hook::put<uint32_t>(0x1401D0A1E + 4, componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("42 8B 84 BB ? ? ? ? 4A 8B AC FB ? ? ? ?", 4), componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("4A 8B AC FB ? ? ? ?", 4), componentNamesOffset);
+	hook::put<uint32_t>(hook::get_pattern("42 8B 84 BB ? ? ? ? B9 ? ? ? ?", 4), componentFlagsOffset);
 	// GAMER_INFO::sub_1401D0AB0
-	hook::put<uint32_t>(0x1401D0B0D + 3, componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8D BE ? ? ? ? F6 07 ?", 3), componentFlagsOffset);
 	// GAMER_INFO::sub_1401D0B5C
-	hook::put<uint32_t>(0x1401D0B7A + 4, componentNamesOffset);
-	hook::put<uint32_t>(0x1401D0BA3 + 3, componentFlagsOffset);
-	hook::put<uint32_t>(0x1401D0BD0 + 3, componentFlagsOffset);
-	hook::put<uint32_t>(0x1401D0C0F + 3, componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("48 8B B4 F9 ? ? ? ? 24 ?", 4), componentNamesOffset);
+	hook::put<uint32_t>(hook::get_pattern("83 8C BB ? ? ? ? ? EB ? 48 8B 4C 24 ?", 3), componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("83 8C BB ? ? ? ? ? EB ? 48 8B CD", 3), componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("83 8C BB ? ? ? ? ? 48 8B 5C 24 ? 48 8B 6C 24 ?", 3), componentFlagsOffset);
 	// GAMER_INFO::sub_1401D17B4
-	hook::put<uint32_t>(0x1401D1832 + 4, componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("41 F6 84 9E ? ? ? ? ?", 4), componentFlagsOffset);
 	// GAMER_INFO::sub_1401D1968
-	hook::put<uint32_t>(0x1401D19D0 + 3, componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("F6 84 9F ? ? ? ? ? 74 ?", 3), componentFlagsOffset);
 	// GAMER_INFO::sub_1401D2230
-	hook::put<uint32_t>(0x1401D265C + 3, componentFlagsOffset);
-	hook::put<uint32_t>(0x1401D276F + 3, componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("8B 84 BE ? ? ? ? 45 33 FF", 3), componentFlagsOffset);
+	hook::put<uint32_t>(hook::get_pattern("8B 84 BE ? ? ? ? A8 ?", 3), componentFlagsOffset);
 
 	// change limits
 	// GAMER_INFO::GAMER_INFO
 	{
+		uint64_t addr = (uint64_t) hook::get_pattern("8D 6F ? 44 88 79 ?", 0);
 		uint8_t payload[] =
 		{
 			0x8D, 0xAF, 0x00, 0x00, 0x00, 0x00,
@@ -212,23 +216,23 @@ static HookFunction hookFunction([]()
 
 		*(uint32_t *)&stub[2] = GAMER_TAG_LIMIT - 1;
 
-		*(uint32_t *)(&stub[11]) = (0x14015761F + 3 + 4) - ((uint64_t)&stub[11] + 4);
+		*(uint32_t *)(&stub[11]) = (addr + 3 + 4) - ((uint64_t)&stub[11] + 4);
 
-		*(uint8_t *)0x14015761F = 0xE9;
-		*(uint32_t *)(0x14015761F + 1) = (uint64_t)stub - (0x14015761F + 5);
+		*(uint8_t *)addr = 0xE9;
+		*(uint32_t *)(addr + 1) = (uint64_t)stub - (addr + 5);
 	}
-
-	LimitCheckPatch(0x14015795B);
+	LimitCheckPatch((uint64_t)hook::get_pattern("66 83 FF ? 7C ?", 0));
 	// GAMER_TAG::Release
-	hook::put<uint32_t>(0x14015B36B + 1, GAMER_TAG_LIMIT - 1);
-	hook::put<uint32_t>(0x14015B370 + 3, GAMER_TAG_LIMIT * sizeof(CGamerTag) + 0x270);
+	hook::put<uint32_t>(hook::get_pattern("BE ? ? ? ? 48 8D 99 ? ? ? ? 48 81 EB ? ? ? ? 8B 43 ?", 1), GAMER_TAG_LIMIT - 1);
+	hook::put<uint32_t>(hook::get_pattern("48 8D 99 ? ? ? ? 48 81 EB ? ? ? ? 8B 43 ?", 3), GAMER_TAG_LIMIT * sizeof(CGamerTag) + 0x270);
 
-	hook::put<uint32_t>(0x14015BD6C + 1, GAMER_TAG_LIMIT); // GAMER_INFO::~GAMER_INFO
-	LimitCheckPatch(0x1401D156D); // GAMER_INFO::sub_1401D1358
+	hook::put<uint32_t>(hook::get_pattern("BD ? ? ? ? 80 7B ? ? 75 ?", 1), GAMER_TAG_LIMIT); // GAMER_INFO::~GAMER_INFO
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 0F 8C ? ? ? ? 45 84 E4", 0)); // GAMER_INFO::sub_1401D1358
 
 	// GAMER_INFO::sub_1401D1FA4 changes the tag drawing order by the distence
-	hook::put<uint32_t>(0x1401D1FBA + 3, 0xB0 + (8 * GAMER_TAG_LIMIT));
+	hook::put<uint32_t>(hook::get_pattern("48 81 EC ? ? ? ? 8B 15 ? ? ? ? 0F 29 70 ? 0F 29 78 ? 48 8B F9 B9 ? ? ? ?", 3), 0xB0 + (8 * GAMER_TAG_LIMIT));
 	{
+		uint64_t addr = (uint64_t)hook::get_pattern("41 8D 4E ? F3 0F 10 18", 0);
 		uint8_t payload[] =
 		{
 			0x41, 0x8D, 0x8E, 0x00, 0x00, 0x00, 0x00,
@@ -242,39 +246,39 @@ static HookFunction hookFunction([]()
 
 		*(uint32_t *)&stub[3] = GAMER_TAG_LIMIT - 2;
 
-		*(uint32_t *)(&stub[12]) = (0x1401D2016 + 4 + 4) - ((uint64_t)&stub[12] + 4);
+		*(uint32_t *)(&stub[12]) = (addr + 4 + 4) - ((uint64_t)&stub[12] + 4);
 
-		*(uint8_t *)0x1401D2016 = 0xE9;
-		*(uint32_t *)(0x1401D2016 + 1) = (uint64_t)stub - (0x1401D2016 + 5);
+		*(uint8_t *)addr = 0xE9;
+		*(uint32_t *)(addr + 1) = (uint64_t)stub - (addr + 5);
 	}
-	LimitCheckPatch(0x1401D20E1);
-	hook::put<uint32_t>(0x01401D2209 + 4, 0xB0 + (8 * GAMER_TAG_LIMIT));
+	LimitCheckPatch((uint64_t)hook::get_pattern("66 83 FA ? 0F 8C ? ? ? ?", 0));
+	hook::put<uint32_t>(hook::get_pattern("4C 8D 9C 24 ? ? ? ? 49 8B 5B ? 49 8B 73 ? 41 0F 28 73 ? 41 0F 28 7B ? 45 0F 28 43 ? 49 8B E3 41 5E 5F 5D C3 48 8B C4 48 89 58 ? 4C 89 48 ?", 4), 0xB0 + (8 * GAMER_TAG_LIMIT));
 
 	// GAMER_INFO::createGamerTagForPed
-	hook::put<uint32_t>(0x140206AF3 + 1, GAMER_TAG_FOR_NET_PLAYER_LIMIT);
-	LimitCheckPatch(0x140206B33);
-	LimitCheckPatch(0x140206B62);
-	hook::put<uint32_t>(0x140206B3C + 3, 0x40 + sizeof(CGamerTag) * GAMER_TAG_FOR_NET_PLAYER_LIMIT + 0xC7);
-	hook::put<uint32_t>(0x140206B04 + 3, 0x40 + sizeof(CGamerTag) * GAMER_TAG_FOR_NET_PLAYER_LIMIT + 0xC7);
+	hook::put<uint32_t>(hook::get_pattern("BB ? ? ? ? 41 B8 ? ? ? ? 75 ?", 1), GAMER_TAG_FOR_NET_PLAYER_LIMIT);
+	LimitCheckPatch((uint64_t)hook::get_pattern("48 83 FA ? 7C ? 48 8B CB", 0));
+	LimitCheckPatch((uint64_t)hook::get_pattern("48 83 F9 ? 7C ? 83 C8 ? 48 8B 5C 24 ?", 0));
+	hook::put<uint32_t>(hook::get_pattern("48 8D 87 ? ? ? ? 80 78 ? ? 75 ? 80 38 ? 75 ? 80 78 ? ? 75 ? 80 78 ? ? 74 ? 48 FF C1", 3), 0x40 + sizeof(CGamerTag) * GAMER_TAG_FOR_NET_PLAYER_LIMIT + 0xC7);
+	hook::put<uint32_t>(hook::get_pattern("48 8D 87 ? ? ? ? 80 78 ? ? 75 ? 80 38 ? 75 ? 80 78 ? ? 75 ? 80 78 ? ? 74 ? 48 3B B0 ? ? ? ?", 3), 0x40 + sizeof(CGamerTag) * GAMER_TAG_FOR_NET_PLAYER_LIMIT + 0xC7);
 
-	LimitCheckPatch(0x140206CAE); // GAMER_INFO::createGamerTag
-	LimitCheckPatch(0x140206F9B); // GAMER_INFO::gamerTagOfLocalPed
-	LimitCheckPatch(0x140206FE9); // GAMER_INFO::gamerTagGetPed
-	LimitCheckPatch(0x1402070A7); // IS_MP_GAMER_TAG_ACTIVE
-	LimitCheckPatch(0x14020712B); // GAMER_INFO::gamerTagAddTrevorRandomModifier
-	LimitCheckPatch(0x1402071B4); // GAMER_INFO::gamerTagIsCrewConfigSet
-	LimitCheckPatch(0x140207236); // GAMER_INFO::gamerTagRemove
-	LimitCheckPatch(0x140207458); // GAMER_INFO::gamerTagUnknown
-	LimitCheckPatch(0x140207556); // GAMER_INFO::gamerTagSetGamerInfoSTR
-	LimitCheckPatch(0x14020760A); // GAMER_INFO::gamerTagSetName
-	LimitCheckPatch(0x1402076B8); // GAMER_INFO::gamerTagSetCrew
-	LimitCheckPatch(0x14020774C); // GAMER_INFO::gamerTagSetHealthBarColour
-	LimitCheckPatch(0x140207808); // GAMER_INFO::gamerTagSetAlpha
-	LimitCheckPatch(0x14020795C); // GAMER_INFO::gamerTagSetColour
-	LimitCheckPatch(0x140207A54); // GAMER_INFO::gamerTagSetLevel
-	LimitCheckPatch(0x140207B4C); // GAMER_INFO::gamerTagSetVisibility
-	LimitCheckPatch(0x140207C62); // GAMER_INFO::gamerTagNewNative
-	LimitCheckPatch(0x140207CF8); // GAMER_INFO::gamerTagNewNative2
-	LimitCheckPatch(0x140207D9C); // GAMER_INFO::gamerTagSetIcons
-	LimitCheckPatch(0x140208578); // GAMER_INFO::update
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 0F 87 ? ? ? ? 48 8B C6", 0)); // GAMER_INFO::createGamerTag
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 7C ? 83 C8 ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 83 C4 ? 5F C3 8B C3 EB ? 48 89 5C 24 ?", 0)); // GAMER_INFO::gamerTagOfLocalPed
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FA ? 7D ? 8A CA", 0)); // GAMER_INFO::gamerTagGetPed
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 48 8B C6 48 69 C0 ? ? ? ? 38 9C 38 ? ? ? ? 75 ? 38 9C 38 ? ? ? ? 74 ?", 0)); // IS_MP_GAMER_TAG_ACTIVE
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 48 8B C6 48 69 C0 ? ? ? ? 38 9C 38 ? ? ? ? 75 ? 38 9C 38 ? ? ? ? 75 ?", 0)); // GAMER_INFO::gamerTagAddTrevorRandomModifier
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 77 ? 48 8B C3 48 69 C0 ? ? ? ?", 0)); // GAMER_INFO::gamerTagIsCrewConfigSet
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 77 ? 48 8B FB", 0)); // GAMER_INFO::gamerTagRemove
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FF ? 0F 87 ? ? ? ? 4C 8B CF", 0)); // GAMER_INFO::gamerTagUnknown
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FF ? 77 ? 48 8B C7 48 69 C0 ? ? ? ? 38 8C 18 ? ? ? ? 75 ? 38 8C 18 ? ? ? ? 74 ? 38 8C 18 ? ? ? ? 75 ?", 0)); // GAMER_INFO::gamerTagSetGamerInfoSTR
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 77 ? 48 69 DB ? ? ? ? 48 8B D6", 0)); // GAMER_INFO::gamerTagSetName
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 77 ? 48 69 DB ? ? ? ? 80 BC 3B ? ? ? ? ?", 0)); // GAMER_INFO::gamerTagSetCrew
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FF ? 77 ? 48 8B CF", 0)); // GAMER_INFO::gamerTagSetHealthBarColour
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 0F 87 ? ? ? ? 83 FF ?", 0)); // GAMER_INFO::gamerTagSetAlpha
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 83 FF ? 7D ? 4C 8B C6 48 8B CE 4D 69 C0 ? ? ? ? 41 80 BC 18 ? ? ? ? ? 75 ? 41 80 BC 18 ? ? ? ? ? 74 ? 48 69 C9 ? ? ? ? 48 63 C7 48 03 C1 39 AC 83 ? ? ? ? 74 ? 89 AC 83 ? ? ? ? 48 63 15 ? ? ? ? 48 8B C7 48 C1 E8 ? 83 E7 ? 48 03 C1 40 8A CF 48 03 D0 B8 ? ? ? ? D3 E0 09 84 93 ? ? ? ? 48 63 05 ? ? ? ? 49 03 C0 C6 84 18 ? ? ? ? ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 83 C4 ? 5F C3 90 0C ?", 0)); // GAMER_INFO::gamerTagSetColour
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 83 FF ? 7D ? 4C 8B C6 48 8B CE 4D 69 C0 ? ? ? ? 41 80 BC 18 ? ? ? ? ? 75 ? 41 80 BC 18 ? ? ? ? ? 74 ? 48 69 C9 ? ? ? ? 48 63 C7 48 03 C1 39 AC 83 ? ? ? ? 74 ? 89 AC 83 ? ? ? ? 48 63 15 ? ? ? ? 48 8B C7 48 C1 E8 ? 83 E7 ? 48 03 C1 40 8A CF 48 03 D0 B8 ? ? ? ? D3 E0 09 84 93 ? ? ? ? 48 63 05 ? ? ? ? 49 03 C0 C6 84 18 ? ? ? ? ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 8B 74 24 ? 48 83 C4 ? 5F C3 90 40 55", 0)); // GAMER_INFO::gamerTagSetLevel
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FD ? 0F 87 ? ? ? ? 83 FF ?", 0)); // GAMER_INFO::gamerTagSetVisibility
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FF ? 77 ? 48 8B C7 48 69 C0 ? ? ? ? 38 8C 18 ? ? ? ? 75 ? 38 8C 18 ? ? ? ? 74 ? 38 8C 18 ? ? ? ? 74 ?", 0)); // GAMER_INFO::gamerTagNewNative
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 48 8B C6 48 69 C0 ? ? ? ? 80 BC 18 ? ? ? ? ? 75 ? 80 BC 18 ? ? ? ? ? 74 ? 40 38 BC 18 ? ? ? ? 74 ? 40 88 BC 18 ? ? ? ? 40 84 FF", 0)); // GAMER_INFO::gamerTagNewNative2
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 48 8B C6 48 69 C0 ? ? ? ? 80 BC 18 ? ? ? ? ? 75 ? 80 BC 18 ? ? ? ? ? 74 ? 40 38 BC 18 ? ? ? ? 74 ? 40 88 BC 18 ? ? ? ? 48 8B 5C 24 ?", 0)); // GAMER_INFO::gamerTagSetIcons
+	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 0F 8C ? ? ? ? 4C 8D 9C 24 ? ? ? ? 49 8B 5B ? 41 0F 28 73 ?", 0)); // GAMER_INFO::update
 });
