@@ -1023,7 +1023,7 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			}
 			else if (maxClients <= 128)
 			{
-				//onesyncType = "onesync_plus";
+				onesyncType = "onesync_plus";
 			}
 
 			AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
@@ -1039,9 +1039,9 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 			if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
 			{
-				auto oneSyncFailure = [this]()
+				auto oneSyncFailure = [this, onesyncType]()
 				{
-					OnConnectionError("OneSync is not whitelisted for this server, or requesting whitelist status failed. You'll have to wait a little while longer!");
+					OnConnectionError(va("OneSync (policy type %s) is not whitelisted for this server, or requesting whitelist status failed. You'll have to wait a little while longer!", onesyncType));
 					m_connectionState = CS_IDLE;
 				};
 
