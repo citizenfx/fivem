@@ -281,4 +281,6 @@ static HookFunction hookFunction([]()
 	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 48 8B C6 48 69 C0 ? ? ? ? 80 BC 18 ? ? ? ? ? 75 ? 80 BC 18 ? ? ? ? ? 74 ? 40 38 BC 18 ? ? ? ? 74 ? 40 88 BC 18 ? ? ? ? 40 84 FF", 0)); // GAMER_INFO::gamerTagNewNative2
 	LimitCheckPatch((uint64_t)hook::get_pattern("83 FE ? 77 ? 48 8B C6 48 69 C0 ? ? ? ? 80 BC 18 ? ? ? ? ? 75 ? 80 BC 18 ? ? ? ? ? 74 ? 40 38 BC 18 ? ? ? ? 74 ? 40 88 BC 18 ? ? ? ? 48 8B 5C 24 ?", 0)); // GAMER_INFO::gamerTagSetIcons
 	LimitCheckPatch((uint64_t)hook::get_pattern("83 FB ? 0F 8C ? ? ? ? 4C 8D 9C 24 ? ? ? ? 49 8B 5B ? 41 0F 28 73 ?", 0)); // GAMER_INFO::update
+
+	hook::nop(hook::get_pattern("48 8B CB E8 ? ? ? ? 84 C0 74 ? F6 83 ? ? ? ? ? 75 ? 48 8B CB", 0), 12); // GAMER_INFO::gamerTagGetPed onesync fix
 });
