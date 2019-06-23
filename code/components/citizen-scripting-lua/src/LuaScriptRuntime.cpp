@@ -974,7 +974,7 @@ int Lua_InvokeNative(lua_State* L)
 			switch (rettypes[i])
 			{
 				case LuaMetaFields::PointerValueInt:
-					lua_pushinteger(L, retvals[i]);
+					lua_pushinteger(L, *reinterpret_cast<int32_t*>(&retvals[i]));
 					i++;
 					break;
 
