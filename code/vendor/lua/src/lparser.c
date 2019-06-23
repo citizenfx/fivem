@@ -157,10 +157,33 @@ static void checkname (LexState *ls, expdesc *e) {
   codestring(ls, e, str_checkname(ls));
 }
 
-static void codepath (LexState *ls, expdesc *e, TString *s) {
-  init_exp(e, VKPATH, luaK_stringK(ls->fs, s));
+inline char ToLower(const char c)
+{
+	return (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
 }
 
+static lua_Integer gethash(const char* string)
+{
+	unsigned int hash = 0;
+
+	for (; *string; ++string)
+	{
+		hash += ToLower(*string);
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return (lua_Integer)(int)hash;
+}
+
+static void codehash (LexState *ls, expdesc *e, TString *s) {
+  init_exp(e, VKINT, 0);
+  e->u.ival = gethash(getstr(s));
+}
 
 static int registerlocalvar (LexState *ls, TString *varname) {
   FuncState *fs = ls->fs;
@@ -837,8 +860,8 @@ static void funcargs (LexState *ls, expdesc *f, int line) {
       luaX_next(ls);  /* must use 'seminfo' before 'next' */
       break;
     }
-    case TK_PATH: {  /* funcargs -> STRING */
-      codepath(ls, &args, ls->t.seminfo.ts);
+    case TK_HASH: {  /* funcargs -> STRING */
+      codehash(ls, &args, ls->t.seminfo.ts);
       luaX_next(ls);  /* must use `seminfo' before `next' */
       break;
     }
@@ -920,7 +943,7 @@ static void suffixedexp (LexState *ls, expdesc *v) {
         funcargs(ls, v, line);
         break;
       }
-      case '(': case TK_STRING: case TK_PATH: case '{': {  /* funcargs */
+      case '(': case TK_STRING: case TK_HASH: case '{': {  /* funcargs */
         luaK_exp2nextreg(fs, v);
         funcargs(ls, v, line);
         break;
@@ -949,8 +972,8 @@ static void simpleexp (LexState *ls, expdesc *v) {
       codestring(ls, v, ls->t.seminfo.ts);
       break;
     }
-    case TK_PATH: {
-      codepath(ls, v, ls->t.seminfo.ts);
+    case TK_HASH: {
+      codehash(ls, v, ls->t.seminfo.ts);
       break;
     }
     case TK_NIL: {

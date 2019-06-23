@@ -537,7 +537,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '`': {  /* relative paths */
         read_string(ls, ls->current, seminfo);
-        return TK_PATH;
+        return TK_HASH;
       }
       case '.': {  /* '.', '..', '...', or number */
         save_and_next(ls);
