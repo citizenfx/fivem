@@ -94,6 +94,10 @@
                 padding-left: $padding;
             }
 
+            h1.title {
+                font-size: $fontSize * 1.6;
+            }
+
             .bg {
                 position: absolute;
                 left: 0;
@@ -112,6 +116,7 @@
 
             .server-buttons button {
                 margin-right: $padding * 0.25;
+                font-size: $fontSize * 0.6;
             }
 
             .icon {
@@ -132,7 +137,7 @@
             .desc {
                 list-style: none;
                 margin-top: $padding;
-                font-size: 1.1rem;
+                font-size: $fontSize * 0.7;
 
                 .key {
                     display: inline-block;
@@ -164,17 +169,17 @@
             }
 
             &.player-list {
-                overflow: hidden;
-                min-height: min-content;
-
+                overflow: auto;
                 flex-grow: 1;
+                min-height: min-content;
+                overflow: hidden;
 
                 .count {
                     bottom: -($padding * 2);
                 }
 
                 h1 {
-                    font-size: 1.5em;
+                    font-size: $fontSize * 1.2;
                 }
 
                 ::ng-deep figure, ::ng-deep span {
@@ -203,7 +208,12 @@
 
                 ul {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(12.5%, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(10%, 1fr));
+
+                    &.huge {
+                        grid-template-columns: repeat(auto-fill, minmax(7.5%, 1fr));
+                        font-size: 0.8 * $fontSize;
+                    }
 
                     list-style-type: none;
 
@@ -223,6 +233,7 @@
                 overflow: hidden;
 
                 min-height: $fontSize * 5;
+                font-size: $fontSize * 0.8;
 
                 display: flex;
                 flex-direction: column;

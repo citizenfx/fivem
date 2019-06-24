@@ -367,4 +367,8 @@ export class ServersListComponent implements OnInit, OnChanges {
         //this.sortAndFilterServers();
         this.changeSubject.next();
     }
+
+    svTrack(index: number, serverRow: Server) {
+        return serverRow.address;
+    }
 }

@@ -12,8 +12,8 @@
 };
 
 @keyframes fadeIn { 
-	from { text-shadow: 0 0 5px hsl(180, 40%, 40%); }
-	to { text-shadow: 0 0 0 hsl(180, 40%, 40%); }
+	from { filter: saturate(100%) brightness(100%); }
+	to { filter: saturate(200%) brightness(125%); }
 }
 
 @include themeHostWorkaround() using ($theme) {
@@ -23,7 +23,7 @@
 
 			box-shadow: 0 0 0 100px rgba(gtv($theme, redColour), .25) inset;
 
-			.name {
+			.icon {
 				animation: fadeIn 1s infinite alternate ease-in-out;
 			}
 		}
@@ -91,24 +91,6 @@
 		.actions span {
 			opacity: 1;
 		}
-	}
-
-	.bg {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		bottom: 0;
-		z-index: -1;
-
-		filter: grayscale(.5);
-		opacity: .25;
-
-		background-size: 500%;
-		background-repeat: no-repeat;
-		background-position: center center;
-
-		display: none;
 	}
 
 	.icon {
@@ -199,33 +181,6 @@
 		img {
 			width: $appServersItemHeight;
 			height: $appServersItemHeight;
-
-			transition: .2s ease-out;
-		}
-
-		&:hover::after {
-			transform: scale(1.3);
-		}
-
-		&::after {
-			position: absolute;
-			display: block;
-			content: '';
-
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-
-			display: flex;
-
-			opacity: 0;
-			transition: transform .1s ease-out;
-
-			background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImhzbCg3NiwgMTAwJSwgNDAlKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJmZWF0aGVyIGZlYXRoZXItcGxheSI+PHBvbHlnb24gcG9pbnRzPSI1IDMgMTkgMTIgNSAyMSA1IDMiPjwvcG9seWdvbj48L3N2Zz4=);
-			background-repeat: no-repeat;
-			background-position: center center;
-			background-size: $appServersItemHeight/$multiplier $appServersItemHeight/$multiplier;
 		}
 	}
 }

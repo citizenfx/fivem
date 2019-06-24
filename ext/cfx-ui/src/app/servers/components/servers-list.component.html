@@ -6,8 +6,8 @@
 
 <div class="list" *ngIf="isBrowser()">
 	<virtual-scroller
+		#scroll
 		[items]="sortedServers"
-		(update)="localServers = $event"
 		[bufferAmount]="15"
 		[stripedTable]="true"
 	>
@@ -16,7 +16,7 @@
 			[class.premium]="isPremium(server)" [class.argentum]="getPremium(server) == 'ag'"
 			[class.aurum]="getPremium(server) == 'au'"  [class.platinum]="getPremium(server) == 'pt'"
 			[class.pinned]="isPinned(server)" [server]="server"
-			*ngFor="let server of localServers"
+			*ngFor="let server of scroll.viewPortItems; trackBy: svTrack"
 		></servers-list-item>
 	</virtual-scroller>
 </div>

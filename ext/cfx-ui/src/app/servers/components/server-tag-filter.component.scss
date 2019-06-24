@@ -7,6 +7,7 @@
 .tags {
     overflow-y: scroll;
     height: 100%;
+    will-change: transform;
 
     h4 {
         font-size: $fontSize*0.8;

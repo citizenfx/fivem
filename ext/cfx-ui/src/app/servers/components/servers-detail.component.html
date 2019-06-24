@@ -70,7 +70,7 @@
 	<div class="info player-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
 		<h1 translate>#ServerDetail_Players</h1>
 		<span *ngIf="server.data.players.length == 0" translate>#ServerDetail_PlayersEmpty</span>
-		<ul>
+		<ul [class.huge]="server && server.data && server.data.players.length > 64">
 			<li *ngFor="let player of server.data.players"><app-player-avatar [player]="player"></app-player-avatar>
 				<span>
 					{{player.name}}

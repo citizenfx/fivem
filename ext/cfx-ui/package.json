@@ -43,7 +43,7 @@
     "int64-buffer": "^0.99.1007",
     "js-md5": "0.7.3",
     "ngx-linky": "^2.0.1",
-    "ngx-virtual-scroller": "^1.0.16",
+    "ngx-virtual-scroller": "^3.0.2",
     "node-forge": "^0.7.6",
     "node-sass": "git+https://github.com/citizenfx/node-sass.git",
     "protobufjs": "^6.8.8",
