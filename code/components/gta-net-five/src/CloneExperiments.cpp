@@ -73,9 +73,9 @@ static int g_playerListCount;
 static CNetGamePlayer* g_playerListRemote[256];
 static int g_playerListCountRemote;
 
-static CNetGamePlayer*(*g_origGetPlayerByIndex)(int);
+static CNetGamePlayer*(*g_origGetPlayerByIndex)(uint8_t);
 
-static CNetGamePlayer* GetPlayerByIndex(int index)
+static CNetGamePlayer* __fastcall GetPlayerByIndex(uint8_t index)
 {
 	if (!icgi->OneSyncEnabled)
 	{
