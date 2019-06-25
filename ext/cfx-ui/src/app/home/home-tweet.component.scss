@@ -39,7 +39,7 @@
         border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
 
         &:first-of-type {
-            border-top: 0px;
+            border-top: 0px !important;
         }
 
         &:hover + ::ng-deep * {
@@ -69,7 +69,7 @@
 
         .avatar {
             position: absolute;
-            left: -4vh-$padding;
+            left: -4vh - $padding;
             width: 4vh;
             height: 4vh;
             border-radius: 2px;

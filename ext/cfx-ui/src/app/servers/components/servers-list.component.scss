@@ -17,6 +17,6 @@ virtual-scroller {
 	will-change: transform; /* Chrome calls this a 'slow scroll rect' */
 }
 
-/deep/ .scrollable-content {
+::ng-deep .scrollable-content {
 	will-change: transform;
 }

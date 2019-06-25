@@ -110,8 +110,10 @@ export class HomeComponent implements OnInit {
     }
 
     clickContent(event: MouseEvent) {
-        if (event.srcElement.localName === 'a') {
-            this.gameService.openUrl(event.srcElement.getAttribute('href'));
+        const srcElement = event.srcElement as HTMLElement;
+
+        if (srcElement.localName === 'a') {
+            this.gameService.openUrl(srcElement.getAttribute('href'));
 
             event.preventDefault();
         }

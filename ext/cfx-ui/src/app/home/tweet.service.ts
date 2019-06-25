@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Http } from '@angular/http';
+import { HttpClient } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
 
 import * as unicodeSubstring from 'unicode-substring';
@@ -85,12 +85,12 @@ export class Tweet {
 
 @Injectable()
 export class TweetService {
-    constructor(private http: Http) { }
+    constructor(private http: HttpClient) { }
 
     public getTweets(uri: string): Promise<Tweet[]> {
         return this.http.get(uri)
             .toPromise()
-            .then(result => result.json()
+            .then((result: any) => result
                 .filter(t => !t.in_reply_to_user_id)
                 .map(t => new Tweet(t)));
     }

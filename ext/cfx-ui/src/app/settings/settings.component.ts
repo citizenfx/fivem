@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { GameService } from '../game.service';
 import { DiscourseService } from '../discourse.service';
 import { ServersService } from '../servers/servers.service';
-import { Http } from '@angular/http';
 import { Language, TranslationService, Translation } from 'angular-l10n';
 import { SettingsService, Setting } from '../settings.service';
 import { Subscription } from 'rxjs';
@@ -91,7 +90,7 @@ export class SettingsComponent extends Translation implements OnInit, OnDestroy 
     @Language() lang: string;
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
-        private serversService: ServersService, private http: Http,
+        private serversService: ServersService,
         public translation: TranslationService, private settingsService: SettingsService) {
         super();
 

@@ -48,13 +48,20 @@ import { LocalStorage } from './local-storage';
 
 import { Languages } from './languages';
 
+const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
+
 const l10nConfig: L10nConfig = {
 	locale: {
 		languages: Languages.toList(),
 		language: 'en'
 	},
 	translation: {
-		providers: [] // see AppModule constructor
+		//providers: [] // see AppModule constructor
+					  // broke on Angular 8, here again
+		providers: [
+			{ type: ProviderType.Fallback, prefix: localePrefix + 'assets/languages/locale-en', fallbackLanguage: [] },
+			{ type: ProviderType.Static, prefix: localePrefix + 'assets/languages/locale-' }
+		]
 	}
 };
 
@@ -129,13 +136,13 @@ export function metaFactory(): MetaLoader {
 	]
 })
 export class AppModule {
-	constructor(public l10nLoader: L10nLoader, @Inject(L10N_CONFIG) private configuration: L10nConfigRef) {
-		const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
+	constructor(public l10nLoader: L10nLoader/*, @Inject(L10N_CONFIG) private configuration: L10nConfigRef*/) {
+		/*const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
 
 		this.configuration.translation.providers = [
 			{ type: ProviderType.Fallback, prefix: localePrefix + 'assets/languages/locale-en', fallbackLanguage: [] },
 			{ type: ProviderType.Static, prefix: localePrefix + 'assets/languages/locale-' }
-		];
+		];*/
 
 		this.l10nLoader.load();
 	}

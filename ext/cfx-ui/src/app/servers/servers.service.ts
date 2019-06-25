@@ -40,7 +40,7 @@ export class ServersService {
 
     private servers: {[ addr: string ]: Server} = {};
 
-    constructor(private http: Http, private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
+    constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
         @Inject(PLATFORM_ID) private platformId: any) {
         this.requestEvent = new Subject<string>();
 
@@ -149,10 +149,9 @@ export class ServersService {
     }
 
     public getServer(address: string): Promise<Server> {
-        return this.http.get('https://servers-live.fivem.net/api/servers/single/' + address)
+        return this.httpClient.get('https://servers-live.fivem.net/api/servers/single/' + address)
             .toPromise()
-            .then(resp => resp.json())
-            .then(data => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
+            .then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
     }
 
     public getServers(): Observable<Server> {
@@ -171,8 +170,8 @@ export class ServersService {
     }
 
     public loadPinConfig(): Promise<PinConfig> {
-        return this.http.get('https://runtime.fivem.net/pins.json')
+        return this.httpClient.get('https://runtime.fivem.net/pins.json')
             .toPromise()
-            .then(result => <PinConfig>result.json());
+            .then((result: PinConfig) => result);
     }
 }
