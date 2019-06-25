@@ -244,7 +244,7 @@ static uint32_t ReturnIfMp(void* a1, uint32_t a2)
 	return -1;
 }
 
-static HookFunction hookFunction([] ()
+static HookFunction hookFunction{[] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
 	static struct : jitasm::Frontend
@@ -745,4 +745,4 @@ static HookFunction hookFunction([] ()
 	MH_CreateHook(hook::get_pattern("4C 8B EA 48 8B F1 E8 ? ? ? ? 40 B5 01 48 8B F8", -0x2D), LoadFromStructureCharHook, (void**)&g_origLoadFromStructureChar);
 	// TODO: fiStream version?
 	MH_EnableHook(MH_ALL_HOOKS);
-});
+} };
