@@ -1,4 +1,4 @@
-local a = ...
+local a, static = ...
 
 return {
 	include = function()
@@ -24,6 +24,8 @@ return {
 
 		if a then
 			targetname "curl"
+		elseif static then
+			targetname "curl-static"
 		else
 			targetname "curl-crt"
 		end
@@ -32,8 +34,11 @@ return {
 
 		flags "NoRuntimeChecks"
 
-		if not a then
-			staticruntime 'On'
+		if (not a) or static then
+			if not a then
+				staticruntime 'On'
+			end
+			
 			kind "StaticLib"
 			
 			defines { 'CURL_STATICLIB' }

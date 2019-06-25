@@ -29,6 +29,7 @@ public:
 	std::thread thread;
 	tbb::concurrent_queue<CURL*> handlesToAdd;
 	tbb::concurrent_queue<std::function<void()>> cbsToRun;
+	HttpClient* client;
 
 	HttpClientImpl()
 		: multi(nullptr), shouldRun(true)
@@ -129,6 +130,7 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 	: m_impl(new HttpClientImpl())
 {
+	m_impl->client = this;
 	m_impl->multi = curl_multi_init();
 	curl_multi_setopt(m_impl->multi, CURLMOPT_PIPELINING, CURLPIPE_HTTP1 | CURLPIPE_MULTIPLEX);
 	curl_multi_setopt(m_impl->multi, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
@@ -381,6 +383,8 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	}
 
 	curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
+
+	impl->client->OnSetupCurlHandle(curlHandle, url);
 
 	return { curlHandle, curlData };
 }
