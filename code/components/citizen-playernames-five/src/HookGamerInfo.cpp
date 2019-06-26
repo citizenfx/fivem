@@ -321,4 +321,6 @@ static HookFunction hookFunction([]()
 	LimitCheckPatch((uint64_t)hook::get_pattern("74 ? 38 8C 18 ? ? ? ? 74 ?", -31)); // GAMER_INFO::gamerTagNewNative
 	LimitCheckPatch((uint64_t)hook::get_pattern("74 ? 40 88 BC 18 ? ? ? ? 40 84 FF", -45)); // GAMER_INFO::gamerTagNewNative2
 	LimitCheckPatch((uint64_t)hook::get_pattern("74 ? 40 88 BC 18 ? ? ? ? 48 8B 5C 24", -45)); // GAMER_INFO::gamerTagSetIcons
+
+	hook::nop(hook::get_pattern("48 8B CB E8 ? ? ? ? 84 C0 74 ? F6 83 ? ? ? ? ? 75 ? 48 8B CB", 0), 12); // GAMER_INFO::gamerTagGetPed onesync fix
 });
