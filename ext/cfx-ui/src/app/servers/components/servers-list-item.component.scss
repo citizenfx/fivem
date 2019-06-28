@@ -7,6 +7,19 @@
 			margin-top: $padding/3;
 
 			box-shadow: 0 0 0 100px rgba(gtv($theme, greenyColour), .25) inset;
+
+			.icon {
+				position: relative;
+
+				&:before {
+					content: '📌';
+					position: absolute;
+					bottom: $fontSize * .1;
+					right: 0px;
+					font-size: $fontSize * .65;
+					line-height: 1;
+				}
+			}
 		}
 	}
 };
