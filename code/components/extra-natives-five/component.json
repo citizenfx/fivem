@@ -5,6 +5,7 @@
 		"fx[2]",
 		"scripting",
 		"gta:core:five",
+		"gta:game:five",
 		"gta:streaming:five",
 		"rage:graphics:five",
 		"scrbind:base",
