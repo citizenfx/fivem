@@ -5,7 +5,7 @@ apiset: client
 ## SET_VISUAL_SETTING_FLOAT
 
 ```c
-void SET_VISUAL_SETTING_FLOAT(const char* name, float value);
+void SET_VISUAL_SETTING_FLOAT(char* name, float value);
 ```
 
 Overrides a floating point value from `visualsettings.dat` temporarily.
