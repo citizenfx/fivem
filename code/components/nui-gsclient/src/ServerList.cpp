@@ -14,6 +14,8 @@
 #include <fstream>
 #include <array>
 
+#include <CoreConsole.h>
+
 #include <NetAddress.h> // net:base
 
 #include <rapidjson/document.h>
@@ -258,19 +260,23 @@ void GSClient_QueryServer(gameserveritemext_t& server)
 	auto socket = (server.m_Address.GetAddressFamily() == AF_INET6) ? g_cls.socket6 : g_cls.socket;
 	
 	char message[128];
-	_snprintf(message, sizeof(message), "\xFF\xFF\xFF\xFFgetinfo xxx");
+	strcpy(message, "\xFF\xFF\xFF\xFFgetinfo xxx");
 
 	sendto(socket, message, strlen(message), 0, (sockaddr*)addr, addrlen);
 }
 
+static std::unique_ptr<ConVar<int>> ui_maxQueriesPerMinute;
+
 void GSClient_QueryStep()
 {
-	if ((GetTickCount() - g_cls.lastQueryStep) < 75)
+	if ((timeGetTime() - g_cls.lastQueryStep) < 250)
 	{
 		return;
 	}
 
-	g_cls.lastQueryStep = GetTickCount();
+	int queriesPerStep = round(ui_maxQueriesPerMinute->GetValue() / 60.0f / (1000.0f / 250.0f));
+
+	g_cls.lastQueryStep = timeGetTime();
 
 	int count = 0;
 
@@ -280,7 +286,7 @@ void GSClient_QueryStep()
 	{
 		if (!serverPair.second->queried)
 		{
-			if (count < 100)
+			if (count < queriesPerStep)
 			{
 				GSClient_QueryServer(*serverPair.second);
 				count++;
@@ -510,7 +516,7 @@ void GSClient_PollSocket(SOCKET socket)
 				buf[len] = '\0';
 			}
 
-			GSClient_HandleOOB(&buf[4], len - 4, net::PeerAddress((sockaddr*)&from, fromlen));
+			GSClient_HandleOOB(&buf[4], size_t(len) - 4, net::PeerAddress((sockaddr*)&from, fromlen));
 		}
 	}
 }
@@ -675,6 +681,8 @@ void GSClient_SaveFavorites(const wchar_t *json)
 
 static InitFunction initFunction([] ()
 {
+	ui_maxQueriesPerMinute = std::make_unique<ConVar<int>>("ui_maxQueriesPerMinute", ConVar_Archive, 5000);
+
 	CreateDirectory(MakeRelativeCitPath(L"cache\\servers\\").c_str(), nullptr);
 
 	nui::OnInvokeNative.Connect([] (const wchar_t* type, const wchar_t* arg)

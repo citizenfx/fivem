@@ -87,6 +87,22 @@ export class SettingsService {
             setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value)
         });
 
+        this.addSetting('queriesPerMinute', {
+            name: '#Settings_QueriesPerMinute',
+            type: 'select',
+            getCb: () => this.gameService.getConvar('ui_maxQueriesPerMinute'),
+            setCb: (value) => this.gameService.setConvar('ui_maxQueriesPerMinute', value),
+            options: {
+                '10000': '10000',
+                '5000': '5000',
+                '3000': '3000',
+                '1500': '1500',
+                '1000': '1000',
+                '500': '500',
+                '250': '250',
+            }
+        });
+
         this.addSetting('accountButton', {
             name: '#Settings_Account',
             type: 'button',

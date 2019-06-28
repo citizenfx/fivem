@@ -44,6 +44,7 @@
     "#Settings_MenuAudioDesc": "Enable background music while idle in the main menu",
     "#Settings_GameStreamProgress": "Streaming progress",
     "#Settings_GameStreamProgressDesc": "Display progress when downloading in-game streamed assets (BETA™)",
+    "#Settings_QueriesPerMinute": "Server browser: Max pings / minute",
     "#DirectConnect_TimedOut": "Server query timed out.",
     "#DirectConnect_Failed": "Failed to query server.",
     "#DirectConnect_Loading": "Loading",

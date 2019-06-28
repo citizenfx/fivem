@@ -82,8 +82,6 @@ export class SettingsComponent extends Translation implements OnInit, OnDestroy 
     currentAccount: any = null;
     darkTheme = false;
     language = 'en';
-    ui_disableMusicTheme = false;
-    game_showStreamingProgress = false;
 
     public settings: DisplaySetting[] = [];
 
@@ -101,9 +99,6 @@ export class SettingsComponent extends Translation implements OnInit, OnDestroy 
         gameService.languageChange.subscribe(value => this.language = value);
 
         discourseService.signinChange.subscribe(user => this.currentAccount = user);
-
-        this.registerConvar('ui_disableMusicTheme', (value) => this.ui_disableMusicTheme = (value === 'true'));
-        this.registerConvar('game_showStreamingProgress', (value) => this.game_showStreamingProgress = (value === 'true'));
     }
 
     registerConvar(name: string, valueCallback: (value: string) => void) {
