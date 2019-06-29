@@ -6,6 +6,9 @@
 #include <ResourceManager.h>
 #include <ResourceCallbackComponent.h>
 
+#include <MsgpackJson.h>
+#include <rapidjson/writer.h>
+
 namespace fx
 {
 ClientDeferral::ClientDeferral(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client)
@@ -203,8 +206,24 @@ TCallbackMap ClientDeferral::GetCallbacks()
 
 		if (obj.size() >= 1)
 		{
-			// TODO: msgpack object -> json as option?
-			self->PresentCard(obj[0].as<std::string>());
+			if (obj[0].type == msgpack::type::STR || obj[0].type == msgpack::type::BIN)
+			{
+				self->PresentCard(obj[0].as<std::string>());
+			}
+			else
+			{
+				rapidjson::Document document;
+				ConvertToJSON(obj[0], document, document.GetAllocator());
+
+				// write as a json string
+				rapidjson::StringBuffer sb;
+				rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+				if (document.Accept(writer))
+				{
+					self->PresentCard({ sb.GetString(), sb.GetSize() });
+				}
+			}
 
 			if (obj.size() >= 2)
 			{
@@ -218,7 +237,17 @@ TCallbackMap ClientDeferral::GetCallbacks()
 
 						self->SetCardResponseHandler(make_shared_function([self, functionRef = std::move(functionRef)](const std::string& cardJson)
 						{
-							self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(functionRef.GetRef(), cardJson);
+							rapidjson::Document cardJSON;
+							cardJSON.Parse(cardJson.c_str(), cardJson.size());
+
+							if (!cardJSON.HasParseError())
+							{
+								msgpack::object cardObject;
+								msgpack::zone zone;
+								ConvertToMsgPack(cardJSON, cardObject, zone);
+
+								self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(functionRef.GetRef(), cardObject, cardJson);
+							}
 						}));
 					}
 				}
