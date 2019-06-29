@@ -6,7 +6,8 @@
 		"conhost",
 		"rage:device",
 		"gta:streaming:five",
-		"rage:scripting"
+		"rage:scripting",
+		"citizen:resources:core"
 	],
 	"provides": []
 }

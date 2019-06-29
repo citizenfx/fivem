@@ -84,6 +84,7 @@ static InitFunction initFunction([] ()
 			library->Disconnect(message);
 
 			Instance<ICoreGameInit>::Get()->ClearVariable("storyMode");
+			Instance<ICoreGameInit>::Get()->ClearVariable("localMode");
 		});
 
 		OnKillNetworkDone.Connect([=]()

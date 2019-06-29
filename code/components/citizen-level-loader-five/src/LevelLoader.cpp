@@ -13,6 +13,11 @@
 
 #include <scrEngine.h>
 
+#include <ResourceManager.h>
+#include <ResourceMetaDataComponent.h>
+
+#include <network/uri.hpp>
+
 #include "Hooking.h"
 
 static std::string g_overrideNextLoadedLevel;
@@ -201,7 +206,7 @@ static void LoadLevel(const char* levelName)
 
 	if (!gameInit->GetGameLoaded())
 	{
-		if (!gameInit->HasVariable("storyMode"))
+		if (!gameInit->HasVariable("storyMode") && !gameInit->HasVariable("localMode"))
 		{
 			rage::scrEngine::CreateThread(&spawnThread);
 		}
@@ -220,6 +225,50 @@ static void LoadLevel(const char* levelName)
 
 	gameInit->ShAllowed = true;
 }
+
+class SPResourceMounter : public fx::ResourceMounter
+{
+public:
+	SPResourceMounter(fx::ResourceManager* manager)
+		: m_manager(manager)
+	{
+
+	}
+
+	virtual bool HandlesScheme(const std::string& scheme) override
+	{
+		return (scheme == "file");
+	}
+
+	virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override
+	{
+		std::error_code ec;
+		auto uriParsed = network::make_uri(uri, ec);
+
+		fwRefContainer<fx::Resource> resource;
+
+		if (!ec)
+		{
+			auto pathRef = uriParsed.path();
+			auto fragRef = uriParsed.fragment();
+
+			if (!pathRef.empty() && !fragRef.empty())
+			{
+				std::vector<char> path;
+				std::string pr = pathRef.substr(1).to_string();
+				network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
+
+				resource = m_manager->CreateResource(fragRef.to_string());
+				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
+			}
+		}
+
+		return pplx::task_from_result<fwRefContainer<fx::Resource>>(resource);
+	}
+
+private:
+	fx::ResourceManager* m_manager;
+};
 
 static InitFunction initFunction([] ()
 {
@@ -243,6 +292,37 @@ static InitFunction initFunction([] ()
 		LoadLevel("gta5");
 	});
 
+	static ConsoleCommand localGameCommand("localGame", [](const std::string& resourceDir)
+	{
+		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
+
+		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+		resourceManager->AddMounter(new SPResourceMounter(resourceManager));
+
+		auto resourceRoot = "usermaps:/resources/" + resourceDir;
+
+		resourceManager->AddResource(network::uri_builder{}
+			.scheme("file")
+			.host("")
+			.path(resourceRoot)
+			.fragment(resourceDir)
+			.uri().string())
+			.then([](fwRefContainer<fx::Resource> resource)
+		{
+			resource->Start();
+		});
+
+		static ConsoleCommand localRestartCommand("localRestart", [resourceRoot, resourceDir, resourceManager]()
+		{
+			auto res = resourceManager->GetResource(resourceDir);
+			res->GetComponent<fx::ResourceMetaDataComponent>()->LoadMetaData(resourceRoot);
+
+			res->Stop();
+			res->Start();
+		});
+
+		LoadLevel("gta5");
+	});
 
 	static ConsoleCommand loadLevelCommand2("invoke-levelload", [](const std::string& level)
 	{
