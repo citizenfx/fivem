@@ -895,7 +895,14 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 				if (node["deferVersion"].IsDefined())
 				{
 					// new deferral system
-					OnConnectionProgress(node["message"].as<std::string>(), 133, 133);
+					if (node["message"].IsDefined())
+					{
+						OnConnectionProgress(node["message"].as<std::string>(), 133, 133);
+					}
+					else if (node["card"].IsDefined())
+					{
+						OnConnectionCardPresent(node["card"].as<std::string>(), node["token"].as<std::string>());
+					}
 
 					return true;
 				}
@@ -1137,6 +1144,20 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
 	};
 
+	m_cardResponseHandler = [this, url](const std::string& cardData, const std::string& token)
+	{
+		auto handleCardResult = [](bool result, const char* connDataStr, size_t size)
+		{
+			// TODO: response handling
+		};
+
+		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString({
+			{ "method", "submitCard" },
+			{ "data", cardData },
+			{ "token", token }
+		}), handleCardResult);
+	};
+
 	auto continueRequest = [=]()
 	{
 		auto steamComponent = GetSteam();
@@ -1231,6 +1252,16 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 	if (OnInterceptConnection(url, initiateRequest))
 	{
 		initiateRequest();
+	}
+}
+
+void NetLibrary::SubmitCardResponse(const std::string& dataJson, const std::string& token)
+{
+	auto responseHandler = m_cardResponseHandler;
+
+	if (responseHandler)
+	{
+		responseHandler(dataJson, token);
 	}
 }
 

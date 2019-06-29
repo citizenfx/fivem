@@ -17,6 +17,11 @@ export class ConnectStatus {
 	public total: number;
 }
 
+export class ConnectCard {
+	public server: Server;
+	public card: string;
+}
+
 export class Profile {
 	public name: string;
 	public tile: string;
@@ -44,6 +49,7 @@ class ConvarWrapper {
 export abstract class GameService {
 	connectFailed = new EventEmitter<[Server, string]>();
 	connectStatus = new EventEmitter<ConnectStatus>();
+	connectCard = new EventEmitter<ConnectCard>();
 	connecting = new EventEmitter<Server>();
 
 	errorMessage = new EventEmitter<string>();
@@ -165,6 +171,13 @@ export abstract class GameService {
 		});
 	}
 
+	protected invokeConnectCard(server: Server, cardBlob: string) {
+		this.connectCard.emit({
+			server:  server,
+			card:    cardBlob
+		});
+	}
+
 	protected invokeNicknameChanged(name: string) {
 		this.nicknameChange.next(name);
 	}
@@ -210,6 +223,10 @@ export abstract class GameService {
 	}
 
 	public setDiscourseIdentity(token: string, clientId: string) {
+
+	}
+
+	public submitCardResponse(data: any) {
 
 	}
 }
@@ -289,6 +306,11 @@ export class CfxGameService extends GameService {
 						this.zone.run(() =>
 							this.invokeConnectStatus(
 								this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total));
+						break;
+					case 'connectCard':
+						this.zone.run(() =>
+							this.invokeConnectCard(
+								this.lastServer, event.data.data.card));
 						break;
 					case 'serverAdd':
 						if (event.data.addr in this.pingList) {
@@ -586,6 +608,10 @@ export class CfxGameService extends GameService {
 
 	setDiscourseIdentity(token: string, clientId: string) {
 		(<any>window).invokeNative('setDiscourseIdentity', JSON.stringify({ token, clientId }));
+	}
+
+	public submitCardResponse(data: any) {
+		(<any>window).invokeNative('submitCardResponse', JSON.stringify({ data }));
 	}
 }
 

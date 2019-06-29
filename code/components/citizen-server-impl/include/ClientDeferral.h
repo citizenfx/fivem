@@ -15,6 +15,7 @@ using TCallbackMap = std::map<std::string, fx::ResourceCallbackComponent::Callba
 class ClientDeferral : public std::enable_shared_from_this<ClientDeferral>
 {
 public:
+	using TCardCallback = std::function<void(const std::string&)>;
 	using TMessageCallback = std::function<void(const std::string&)>;
 	using TResolveCallback = std::function<void()>;
 	using TRejectCallback = std::function<void(const std::string&)>;
@@ -38,6 +39,20 @@ public:
 	{
 		m_messageCallback = callback;
 	}
+
+	inline void SetCardCallback(const TCardCallback& callback)
+	{
+		m_cardCallback = callback;
+	}
+
+	inline void SetCardResponseHandler(const TCardCallback& callback)
+	{
+		m_cardResponseCallback = callback;
+	}
+
+	void PresentCard(const std::string& cardJson);
+
+	void HandleCardResponse(const std::string& dataJson);
 
 	bool IsDeferred();
 
@@ -71,6 +86,8 @@ private:
 	TResolveCallback m_resolveCallback;
 	TRejectCallback m_rejectCallback;
 	TMessageCallback m_messageCallback;
+	TCardCallback m_cardCallback;
+	TCardCallback m_cardResponseCallback;
 
 	std::weak_ptr<fx::Client> m_client;
 

@@ -461,6 +461,16 @@ static InitFunction initFunction([]()
 					}
 				});
 
+				(*deferrals)->SetCardCallback([deferrals, cbRef, token](const std::string& card)
+				{
+					auto ref1 = *cbRef;
+
+					if (ref1)
+					{
+						(*ref1)(json::object({ { "defer", true }, { "card", card }, { "token", token }, { "deferVersion", 2 } }));
+					}
+				});
+
 				(*deferrals)->SetResolveCallback([data, deferrals, cbRef, allowClient]()
 				{
 					allowClient();
@@ -579,6 +589,42 @@ static InitFunction initFunction([]()
 			});
 
 			(**runOneIdentifier)(it);
+		});
+
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("submitCard", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		{
+			auto dataIt = postMap.find("data");
+			auto tokenIt = postMap.find("token");
+
+			if (dataIt == postMap.end() || tokenIt == postMap.end())
+			{
+				cb(json::object({ {"error", "fields missing"} }));
+				return;
+			}
+
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
+
+			if (!client)
+			{
+				cb(json::object({ {"error", "no client"} }));
+				return;
+			}
+
+			auto deferralRef = client->GetData("deferralPtr");
+
+			if (deferralRef.has_value())
+			{
+				auto deferralPtr = std::any_cast<std::weak_ptr<fx::ClientDeferral>>(deferralRef);
+				auto deferrals = deferralPtr.lock();
+
+				if (deferrals)
+				{
+					deferrals->HandleCardResponse(dataIt->second);
+				}
+			}
+
+			cb(json::object({ { "result", "ok" } }));
 		});
 	}, 50);
 });

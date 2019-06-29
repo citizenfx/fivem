@@ -166,6 +166,8 @@ static void HandleAuthPayload(const std::string& payloadStr)
 static std::string g_discourseClientId;
 static std::string g_discourseUserToken;
 
+static std::string g_cardConnectionToken;
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
@@ -205,6 +207,25 @@ static InitFunction initFunction([] ()
 			if (nui::HasMainUI())
 			{
 				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectStatus", "data": %s })", sbuffer.GetString()));
+			}
+		});
+
+		netLibrary->OnConnectionCardPresent.Connect([](const std::string& card, const std::string& token)
+		{
+			g_cardConnectionToken = token;
+
+			rapidjson::Document document;
+			document.SetObject();
+			document.AddMember("card", rapidjson::Value(card.c_str(), card.size(), document.GetAllocator()), document.GetAllocator());
+
+			rapidjson::StringBuffer sbuffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+			document.Accept(writer);
+
+			if (nui::HasMainUI())
+			{
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectCard", "data": %s })", sbuffer.GetString()));
 			}
 		});
 
@@ -459,6 +480,22 @@ static InitFunction initFunction([] ()
 			catch (const std::exception& e)
 			{
 				trace("failed to set discourse identity: %s\n", e.what());
+			}
+		}
+		else if (!_wcsicmp(type, L"submitCardResponse"))
+		{
+			try
+			{
+				auto json = nlohmann::json::parse(ToNarrow(arg));
+
+				if (!g_cardConnectionToken.empty())
+				{
+					netLibrary->SubmitCardResponse(json["data"].dump(), g_cardConnectionToken);
+				}
+			}
+			catch (const std::exception& e)
+			{
+				trace("failed to set card response: %s\n", e.what());
 			}
 		}
 	});

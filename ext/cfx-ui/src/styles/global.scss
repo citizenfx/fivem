@@ -143,6 +143,19 @@ button {
 	}
 }
 
+.ac-adaptiveCard {
+	padding: 0px !important;
+
+	&:focus {
+		outline: none;
+	}
+
+	.ac-image {
+		max-width: 10vw !important;
+		max-height: initial !important;
+	}
+}
+
 .color-1 {
 	color: #F44336;
 }

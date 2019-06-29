@@ -83,6 +83,48 @@ void ClientDeferral::UpdateDeferrals()
 	}
 }
 
+void ClientDeferral::PresentCard(const std::string& cardJson)
+{
+	if (m_cardCallback)
+	{
+		m_cardCallback(cardJson);
+	}
+}
+
+void ClientDeferral::HandleCardResponse(const std::string& dataJson)
+{
+	if (m_cardResponseCallback)
+	{
+		m_cardResponseCallback(dataJson);
+	}
+}
+
+// blindly copypasted from StackOverflow (to allow std::function to store the funcref types with their move semantics)
+// TODO: we use this *thrice* now, time for a shared header?
+template<class F>
+struct shared_function
+{
+	std::shared_ptr<F> f;
+	shared_function() = default;
+	shared_function(F&& f_) : f(std::make_shared<F>(std::move(f_))) {}
+	shared_function(shared_function const&) = default;
+	shared_function(shared_function&&) = default;
+	shared_function& operator=(shared_function const&) = default;
+	shared_function& operator=(shared_function&&) = default;
+
+	template<class...As>
+	auto operator()(As&& ...as) const
+	{
+		return (*f)(std::forward<As>(as)...);
+	}
+};
+
+template<class F>
+shared_function<std::decay_t<F>> make_shared_function(F&& f)
+{
+	return { std::forward<F>(f) };
+}
+
 TCallbackMap ClientDeferral::GetCallbacks()
 {
 	TCallbackMap cbs;
@@ -150,6 +192,37 @@ TCallbackMap ClientDeferral::GetCallbacks()
 			deferralState.message = obj[0].as<std::string>();
 
 			self->UpdateDeferrals();
+		}
+	}));
+
+	cbs["presentCard"] = cbComponent->CreateCallback(createDeferralCallback([](const std::shared_ptr<ClientDeferral>& self, const std::string& deferralKey, const msgpack::unpacked& unpacked)
+	{
+		auto& deferralState = self->m_deferralStates[deferralKey];
+
+		auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+
+		if (obj.size() >= 1)
+		{
+			// TODO: msgpack object -> json as option?
+			self->PresentCard(obj[0].as<std::string>());
+
+			if (obj.size() >= 2)
+			{
+				const auto& callback = obj[1];
+
+				if (callback.type == msgpack::type::EXT)
+				{
+					if (callback.via.ext.type() == 10 || callback.via.ext.type() == 11)
+					{
+						fx::FunctionRef functionRef{ std::string{callback.via.ext.data(), callback.via.ext.size} };
+
+						self->SetCardResponseHandler(make_shared_function([self, functionRef = std::move(functionRef)](const std::string& cardJson)
+						{
+							self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(functionRef.GetRef(), cardJson);
+						}));
+					}
+				}
+			}
 		}
 	}));
 

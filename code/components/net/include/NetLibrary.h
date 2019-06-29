@@ -187,6 +187,8 @@ private:
 
 	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
 
+	std::function<void(const std::string&, const std::string&)> m_cardResponseHandler;
+
 private:
 	typedef std::function<void(const char* buf, size_t len)> ReliableHandlerType;
 
@@ -271,6 +273,8 @@ public:
 
 	void CancelDeferredConnection();
 
+	void SubmitCardResponse(const std::string& dataJson, const std::string& token);
+
 	uint64_t GetGUID();
 
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
@@ -344,6 +348,10 @@ public:
 	fwEvent<NetAddress> OnFinalizeDisconnect;
 
 	fwEvent<const char*> OnConnectionError;
+
+	// a1: adaptive card JSON
+	// a2: connection token
+	fwEvent<const std::string&, const std::string&> OnConnectionCardPresent;
 
 	// a1: status message
 	// a2: current progress
