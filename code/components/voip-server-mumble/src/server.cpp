@@ -609,10 +609,12 @@ static InitFunction initFunction([]()
 				Client_send_udp(client, buffer, len);
 				break;
 			default:
+			{
 				auto clientAddressString = Util_clientAddressToString(client);
 				Log_debug("Unknown UDP message type from %s port %d", clientAddressString, address.GetPort());
 				free(clientAddressString);
 				break;
+			}
 			}
 		});
 	}, 999);
