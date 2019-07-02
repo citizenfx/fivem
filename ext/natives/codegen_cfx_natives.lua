@@ -2026,3 +2026,11 @@ native "SET_DISCORD_RICH_PRESENCE_ASSET"
 </summary>
 <param name="assetName">The name of a valid asset registered on Discordapp's developer dashboard. note that the asset has to be registered under the same discord API application set using the SET_DISCORD_APP_ID native.</param>
 	]]
+
+native 'SET_PLAYER_NAME'
+	arguments {
+		charPtr 'playerSrc',
+		charPtr 'name'
+	}
+	apiset 'server'
+	returns 'void'

@@ -187,4 +187,16 @@ static InitFunction initFunction([]()
 			return 0;
 		}
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_NAME", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	{
+		const char* str = context.GetArgument<const char*>(1);
+
+		if (str)
+		{
+			client->SetName(str);
+		}
+
+		return true;
+	}));
 });
