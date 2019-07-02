@@ -8,6 +8,9 @@
 #include <NetAddress.h>
 #include <NetBuffer.h>
 
+#include <ClientRegistry.h>
+#include <ServerInstanceBase.h>
+
 #include <enet/enet.h>
 
 namespace fx
@@ -150,6 +153,8 @@ namespace fx
 		{
 			static ConsoleCommand cmd("force_enet_disconnect", [this](int peerIdx)
 			{
+				peerIdx = m_server->GetInstance()->GetComponent<fx::ClientRegistry>()->GetClientByNetID(peerIdx)->GetPeer();
+
 				auto peer = m_peerHandles.left.find(peerIdx);
 
 				if (peer != m_peerHandles.left.end())
