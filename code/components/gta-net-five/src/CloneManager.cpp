@@ -903,9 +903,6 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	auto obj = objIt->second;
 
-	// update client id if changed
-	CheckMigration(msg);
-
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
 	{
 		Log("%s: our object, bailing out\n", __func__);
@@ -951,6 +948,10 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	// call post-apply
 	obj->m_1D0();
+
+	// update client id if changed
+	// this has to be done AFTER apply since the sync update might contain critical state we didn't have yet!
+	CheckMigration(msg);
 
 	ackPacket();
 
