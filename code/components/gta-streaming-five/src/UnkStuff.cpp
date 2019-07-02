@@ -648,6 +648,10 @@ static HookFunction hookFunction([]()
 
 		// scenario point network game check
 		hook::put<uint8_t>(hook::get_pattern("74 0D 3C 02 0F 94 C0 38 05", 0), 0xEB);
+
+		// netgame checks for vehicle fuel tank leaking
+		hook::nop(hook::get_pattern("48 83 65 7F 00 0F 29 45 27 48 8D 45 77", -0xE3), 7);
+		hook::nop(hook::get_call(hook::get_pattern<char>("40 53 48 83 EC 20 48 8B D9 E8 ? ? ? ? 84 C0 74 32 8A 83 D8", 9)) + 0x19, 2);
 	}
 
 	// increase the heap size for allocator 0
