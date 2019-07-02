@@ -904,7 +904,9 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	auto& extData = m_extendedData[msg.GetObjectId()];
 	auto obj = objIt->second;
 
-	if (extData.clientId == m_netLibrary->GetServerNetID())
+	// if owned locally
+	if (msg.GetClientId() == m_netLibrary->GetServerNetID()
+		&& extData.clientId == msg.GetClientId() /* and this is not a migration */)
 	{
 		Log("%s: our object, bailing out\n", __func__);
 
