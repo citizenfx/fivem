@@ -1,6 +1,10 @@
 import { Language } from 'angular-l10n';
 
 const languages = [
+	{
+        name: 'tr',
+        displayName: 'Türkçe'
+    },
     {
         name: 'en',
         displayName: 'English'
