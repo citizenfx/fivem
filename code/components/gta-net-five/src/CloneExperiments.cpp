@@ -1497,8 +1497,15 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	++eventHeader;
 }
 
+static atPoolBase** g_netGameEventPool;
+
 static void EventManager_Update()
 {
+	if (!*g_netGameEventPool)
+	{
+		return;
+	}
+
 	for (auto& eventPair : g_events)
 	{
 		auto [ev, time] = eventPair.second;
@@ -1719,6 +1726,11 @@ static HookFunction hookFunctionEv([]()
 	MH_CreateHook(hook::get_pattern("85 DB 74 78 44 8B F3 48", -0x30), GetFireApplicability, (void**)&g_origGetFireApplicability);
 
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	{
+		auto location = hook::get_pattern("44 8B 40 20 8B 40 10 41 C1 E0 02 41 C1 F8 02 41 2B C0 0F 85", -7);
+		g_netGameEventPool = hook::get_address<decltype(g_netGameEventPool)>(location);
+	}
 });
 
 #include <nutsnbolts.h>
