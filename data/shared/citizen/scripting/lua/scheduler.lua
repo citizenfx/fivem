@@ -1,4 +1,10 @@
-local threads = {}
+local newThreads = {}
+local threads = setmetatable({}, {
+	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
+	__newindex = newThreads,
+	-- This is needed for CreateThreadNow to work correctly
+	__index = newThreads
+})
 
 --[[
 
@@ -96,6 +102,11 @@ SetTimeout = Citizen.SetTimeout
 
 Citizen.SetTickRoutine(function()
 	local curTime = GetGameTimer()
+
+	for coro, thread in pairs(newThreads) do
+		rawset(threads, coro, thread)
+		newThreads[coro] = nil
+	end
 
 	for coro, thread in pairs(threads) do
 		if curTime >= thread.wakeTime then
