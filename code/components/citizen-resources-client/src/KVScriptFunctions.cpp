@@ -25,7 +25,7 @@ struct DatabaseHolder
 
 		if (!status.ok())
 		{
-			if (status.IsCorruption())
+			if (status.IsCorruption() || status.IsIOError())
 			{
 				leveldb::Options repairOptions;
 				repairOptions.reuse_logs = false;

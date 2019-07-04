@@ -35,7 +35,7 @@ void ResourceCache::OpenDatabase()
 
 	auto status = leveldb::DB::Open(options, m_cachePath + "/db/", &dbPointer);
 
-	if (status.IsCorruption())
+	if (status.IsCorruption() || status.IsIOError())
 	{
 		leveldb::Options repairOptions;
 		repairOptions.reuse_logs = false;
