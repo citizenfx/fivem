@@ -21,6 +21,9 @@
 
 #include <CoreConsole.h>
 
+#include <Rect.h>
+#include <DrawCommands.h>
+
 #include <Error.h>
 
 static std::shared_ptr<ConVar<bool>> g_loadProfileConvar;
@@ -35,6 +38,7 @@ static std::set<uint64_t> g_visitedTimings;
 
 using fx::Resource;
 
+static bool g_doDrawBelowLoadingScreens;
 static bool frameOn = false;
 static bool primedMapLoad = false;
 
@@ -60,6 +64,8 @@ static void DestroyFrame()
 {
 	if (frameOn)
 	{
+		g_doDrawBelowLoadingScreens = false;
+
 		nui::DestroyFrame("loadingScreen");
 
 		frameOn = false;
@@ -250,6 +256,8 @@ static InitFunction initFunction([] ()
 				}
 			}
 		});
+
+		g_doDrawBelowLoadingScreens = true;
 
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 		nui::OverrideFocus(true);
@@ -523,4 +531,45 @@ static InitFunction initFunction([] ()
 			InvokeNUIScript("onDataFileEntry", doc);
 		}
 	});
+
+	OnPostFrontendRender.Connect([]()
+	{
+		if (!g_doDrawBelowLoadingScreens)
+		{
+			return;
+		}
+
+		SetTextureGtaIm(rage::grcTextureFactory::GetNoneTexture());
+
+		auto oldRasterizerState = GetRasterizerState();
+		SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
+
+		auto oldBlendState = GetBlendState();
+		SetBlendState(GetStockStateIdentifier(BlendStateNoBlend));
+
+		auto oldDepthStencilState = GetDepthStencilState();
+		SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+
+		PushDrawBlitImShader();
+
+		BeginImVertices(4, 4);
+
+		CRect rect(0.0f, 0.0f, 6144.0f, 6144.0f);
+		uint32_t color = 0x00000000;
+
+		AddImVertex(rect.fX1, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		AddImVertex(rect.fX2, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		AddImVertex(rect.fX1, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		AddImVertex(rect.fX2, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+
+		DrawImVertices();
+
+		PopDrawBlitImShader();
+
+		SetRasterizerState(oldRasterizerState);
+
+		SetBlendState(oldBlendState);
+
+		SetDepthStencilState(oldDepthStencilState);
+	}, INT32_MIN);
 });
