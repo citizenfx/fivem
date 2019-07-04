@@ -1,7 +1,7 @@
 import { Component, OnInit, PLATFORM_ID, Inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { Server, ServerIcon, PinConfig } from '../server';
+import { Server, ServerIcon, PinConfigCached } from '../server';
 import { ServersService } from '../servers.service';
 import { ServerFilters, ServerFilterContainer, ServerTags } from './server-filter.component';
 
@@ -25,7 +25,7 @@ export class ServersContainerComponent implements OnInit {
     localServers: Server[]; // temp value
     icons: ServerIcon[];
 
-    pinConfig: PinConfig;
+    pinConfig: PinConfigCached;
 
     filters: ServerFilterContainer;
 
@@ -34,7 +34,7 @@ export class ServersContainerComponent implements OnInit {
     constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute,
         @Inject(PLATFORM_ID) private platformId: any) {
         this.filters = new ServerFilterContainer();
-        this.pinConfig = new PinConfig();
+        this.pinConfig = new PinConfigCached(null);
     }
 
     serversArray: Server[] = [];
@@ -61,7 +61,7 @@ export class ServersContainerComponent implements OnInit {
 
     loadServers() {
         this.serverService.loadPinConfig()
-            .then(pinConfig => this.pinConfig = pinConfig);
+            .then(pinConfig => this.pinConfig = new PinConfigCached(pinConfig));
 
 
         const typedServers = this.serverService

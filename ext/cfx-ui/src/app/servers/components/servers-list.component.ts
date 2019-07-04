@@ -1,5 +1,5 @@
-import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID } from '@angular/core';
-import { Server, PinConfig } from '../server';
+import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { Server, PinConfigCached } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
 import { ServerFilterContainer } from './server-filter.component';
 import { Subject } from 'rxjs/Subject';
@@ -24,9 +24,11 @@ export class ServersListComponent implements OnInit, OnChanges {
     private filters: ServerFilterContainer;
 
     @Input()
-    private pinConfig: PinConfig;
+    private pinConfig: PinConfigCached;
 
     private subscriptions: { [addr: string]: any } = {};
+
+    private lastLength: number;
 
     sortOrder: string[];
 
@@ -35,7 +37,8 @@ export class ServersListComponent implements OnInit, OnChanges {
     localServers: Server[];
     sortedServers: Server[];
 
-    constructor(private zone: NgZone, @Inject(LocalStorage) private localStorage: any, @Inject(PLATFORM_ID) private platformId: any) {
+    constructor(private zone: NgZone, @Inject(LocalStorage) private localStorage: any, @Inject(PLATFORM_ID) private platformId: any,
+        public changeDetectorRef: ChangeDetectorRef) {
         this.servers = [];
 
         this.columns = [
@@ -83,6 +86,12 @@ export class ServersListComponent implements OnInit, OnChanges {
                 if (changed) {
                     changed = false;
 
+                    for (const server of (this.servers || [])) {
+                        if (!this.subscriptions[server.address]) {
+                            this.subscriptions[server.address] = server.onChanged.subscribe(a => this.changeSubject.next());
+                        }
+                    }
+
                     zone.run(() => {
                         this.sortAndFilterServers();
                     });
@@ -100,7 +109,7 @@ export class ServersListComponent implements OnInit, OnChanges {
             return false;
         }
 
-        return (this.pinConfig.pinnedServers.indexOf(server.address) >= 0)
+        return this.pinConfig.pinnedServers.has(server.address);
     }
 
     isPremium(server: Server) {
@@ -213,7 +222,9 @@ export class ServersListComponent implements OnInit, OnChanges {
         const filters = filterList.filters;
 
         const hiddenByTags = (server: Server) => {
-            if (filterList.tags) {
+            const tagListEntries = (filterList.tags) ? Object.entries(filterList.tags.tagList) : [];
+
+            if (tagListEntries.length > 0) {
                 const tags =
                     (server && server.data && server.data.vars && server.data.vars.tags) ?
                         (<string>server.data.vars.tags)
@@ -225,7 +236,7 @@ export class ServersListComponent implements OnInit, OnChanges {
 
                 const tagSet = new Set<string>(tags);
 
-                for (const [ tag, active ] of Object.entries(filterList.tags.tagList)) {
+                for (const [ tag, active ] of tagListEntries) {
                     if (active) {
                         if (!tagSet.has(tag)) {
                             return true;
@@ -247,7 +258,7 @@ export class ServersListComponent implements OnInit, OnChanges {
             }
 
             if (server.currentPlayers === 0 && filters.hideEmpty) {
-                if (!this.isPinned(server) || !this.pinConfig.pinIfEmpty) {
+                if (!this.isPinned(server) || !this.pinConfig.data.pinIfEmpty) {
                     return false;
                 }
             }
@@ -271,7 +282,7 @@ export class ServersListComponent implements OnInit, OnChanges {
     }
 
     sortAndFilterServers() {
-        const servers = (this.servers || []).concat().filter(this.getFilter(this.filters));
+        const servers = (this.servers || []).filter(this.getFilter(this.filters));
 
         const sortChain = (a: Server, b: Server, ...stack: ((a: Server, b: Server) => number)[]) => {
             for (const entry of stack) {
@@ -311,26 +322,30 @@ export class ServersListComponent implements OnInit, OnChanges {
             }
         };
 
+        const sortList = [
+            (a: Server, b: Server) => {
+                const aPinned = this.isPinned(a);
+                const bPinned = this.isPinned(b);
+
+                if (aPinned === bPinned) {
+                    return 0;
+                } else if (aPinned && !bPinned) {
+                    return -1;
+                } else if (!aPinned && bPinned) {
+                    return 1;
+                }
+            },
+            sortSortable(this.sortOrder),
+            sortSortable(['upvotePower', '-']),
+            sortSortable(['ping', '+']),
+            sortSortable(['name', '+'])
+        ];
+
         servers.sort((a, b) => {
             return sortChain(
                 a,
                 b,
-                (a: Server, b: Server) => {
-                    const aPinned = this.isPinned(a);
-                    const bPinned = this.isPinned(b);
-
-                    if (aPinned === bPinned) {
-                        return 0;
-                    } else if (aPinned && !bPinned) {
-                        return -1;
-                    } else if (!aPinned && bPinned) {
-                        return 1;
-                    }
-                },
-                sortSortable(this.sortOrder),
-                sortSortable(['upvotePower', '-']),
-                sortSortable(['ping', '+']),
-                sortSortable(['name', '+'])
+                ...sortList
             );
         });
 
@@ -358,14 +373,10 @@ export class ServersListComponent implements OnInit, OnChanges {
     changeObservable = this.changeSubject.asObservable();
 
     ngOnChanges() {
-        for (const server of (this.servers || [])) {
-            if (!this.subscriptions[server.address]) {
-                this.subscriptions[server.address] = server.onChanged.subscribe(a => this.changeSubject.next());
-            }
+        if (this.servers.length !== this.lastLength) {
+            this.changeSubject.next();
+            this.lastLength = this.servers.length;
         }
-
-        //this.sortAndFilterServers();
-        this.changeSubject.next();
     }
 
     svTrack(index: number, serverRow: Server) {

@@ -8,8 +8,11 @@
 	<virtual-scroller
 		#scroll
 		[items]="sortedServers"
-		[bufferAmount]="15"
+		[bufferAmount]="25"
 		[stripedTable]="true"
+		[executeRefreshOutsideAngularZone]="true"
+		[scrollThrottlingTime]="100"
+		(vsUpdate)="changeDetectorRef.detectChanges()"
 	>
 		<div class="dummy"></div>
 		<servers-list-item

@@ -25,26 +25,46 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
     @Output()
     public tagsChanged = new EventEmitter<ServerTags>();
 
-    get tags(): ServerTag[] {
-        const tagList = Object.entries(
-                Object.values(this.serverTags)
-                     .reduce<{[k: string]: number}>((acc: {[k: string]: number}, val: string[]) => {
-                        for (const str of val) {
-                            if (!acc.hasOwnProperty(str)) {
-                                acc[str] = 0;
-                            }
+    tags: ServerTag[] = [];
 
-                            acc[str]++;
+    serverTags: {[addr: string]: string[]} = {};
+
+    constructor(private serversService: ServersService) {
+        this.serversService
+            .getReplayedServers()
+            .filter(server => !!server)
+            .subscribe(server => {
+                this.addFilterIndex(server);
+            });
+
+        this.serversService
+            .getReplayedServers()
+            .bufferTime(500)
+            .subscribe(server => {
+                this.updateTagList();
+            });
+    }
+
+    private updateTagList() {
+        const tagList = Object.entries(
+            Object.values(this.serverTags)
+                 .reduce<{[k: string]: number}>((acc: {[k: string]: number}, val: string[]) => {
+                    for (const str of val) {
+                        if (!acc.hasOwnProperty(str)) {
+                            acc[str] = 0;
                         }
-                        return acc;
-                     }, {})
-                )
-                .map(([name, count]) => {
-                    return {
-                        name,
-                        count
+
+                        acc[str]++;
                     }
-                });
+                    return acc;
+                 }, {})
+            )
+            .map(([name, count]) => {
+                return {
+                    name,
+                    count
+                }
+            });
 
         tagList.sort((a, b) => {
             if (a.count === b.count) {
@@ -56,18 +76,7 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
             }
         });
 
-        return tagList.slice(0, 50);
-    }
-
-    serverTags: {[addr: string]: string[]} = {};
-
-    constructor(private serversService: ServersService) {
-        this.serversService
-            .getReplayedServers()
-            .filter(server => !!server)
-            .subscribe(server => {
-                this.addFilterIndex(server);
-            });
+        this.tags = tagList.slice(0, 50);
     }
 
     private addFilterIndex(server: Server) {
