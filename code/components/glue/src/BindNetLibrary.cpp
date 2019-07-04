@@ -81,6 +81,11 @@ static InitFunction initFunction([] ()
 
 		OnKillNetwork.Connect([=] (const char* message)
 		{
+			{
+				std::unique_lock<std::mutex> lock(netLibWarningMessageLock);
+				netLibWarningMessage = "";
+			}
+
 			library->Disconnect(message);
 
 			Instance<ICoreGameInit>::Get()->ClearVariable("storyMode");
