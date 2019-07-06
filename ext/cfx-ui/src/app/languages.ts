@@ -30,6 +30,10 @@ const languages = [
         displayName: 'Italiano'
     },
 	{
+        name: 'es',
+        displayName: 'Español'
+    },
+	{
         name: 'pt',
         displayName: 'Português'
     },
