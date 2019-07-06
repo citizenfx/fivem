@@ -22,6 +22,10 @@ const languages = [
         displayName: 'Deutsch'
     },
     {
+        name: 'es',
+        displayName: 'Español'
+    },
+    {
         name: 'pl',
         displayName: 'Polski'
     },
