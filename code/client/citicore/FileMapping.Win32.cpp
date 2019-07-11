@@ -123,8 +123,11 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"nvspcap") != std::string::npos ||
 		// Proxifier, causes LoopbackTcpServer crashes
 		moduleNameStr.find(L"PrxerNsp.dll") != std::string::npos ||
+		moduleNameStr.find(L"PrxerDrv.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
-		moduleNameStr.find(L"am64-34121.dll") != std::string::npos
+		moduleNameStr.find(L"am64-34121.dll") != std::string::npos ||
+		// VulkanRT loader, we don't use Vulkan, CEF does (to 'collect info'), and this crashes a lot of Vulkan drivers
+		moduleNameStr.find(L"vulkan-1.dll") != std::string::npos
 	)
 	{
 		return 0xC0000135;
