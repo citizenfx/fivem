@@ -40,7 +40,7 @@ build_server_windows:
       - out/server.zip
   except:
     - tags
-    - master
+    #- master
     - feature/update-to-1365
     #- feature/update-to-1493
   cache:
