@@ -1,4 +1,4 @@
-import { Component, OnInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, PLATFORM_ID, Inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { Server, ServerIcon, PinConfigCached } from '../server';
@@ -17,7 +17,8 @@ import 'rxjs/add/operator/bufferTime';
     moduleId: module.id,
     selector: 'servers-container',
     templateUrl: 'servers-container.component.html',
-    styleUrls: ['servers-container.component.scss']
+    styleUrls: ['servers-container.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServersContainerComponent implements OnInit {
     servers: { [addr: string]: Server } = {};
@@ -32,7 +33,7 @@ export class ServersContainerComponent implements OnInit {
     type: string;
 
     constructor(private serverService: ServersService, private gameService: GameService, private route: ActivatedRoute,
-        @Inject(PLATFORM_ID) private platformId: any) {
+        @Inject(PLATFORM_ID) private platformId: any, private cdr: ChangeDetectorRef) {
         this.filters = new ServerFilterContainer();
         this.pinConfig = new PinConfigCached(null);
     }
@@ -49,10 +50,14 @@ export class ServersContainerComponent implements OnInit {
 
     setFilters(filters: ServerFilters) {
         this.filters = {...this.filters, filters};
+
+        this.cdr.markForCheck();
     }
 
     setTags(tags: ServerTags) {
         this.filters = {...this.filters, tags: { tagList: { ...tags.tagList } }};
+
+        this.cdr.markForCheck();
     }
 
     isBrowser() {
@@ -82,6 +87,8 @@ export class ServersContainerComponent implements OnInit {
             this.serversArray = this.serversArray.slice();
 
             this.servers[server.address] = server;
+
+            this.cdr.markForCheck();
         });
 
         // ping new servers after a while

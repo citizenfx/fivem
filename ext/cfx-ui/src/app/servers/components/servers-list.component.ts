@@ -1,4 +1,5 @@
-import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef,
+    ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { Server, PinConfigCached } from '../server';
 import { ServersListHeadingColumn } from './servers-list-header.component';
 import { ServerFilterContainer } from './server-filter.component';
@@ -14,9 +15,10 @@ import 'rxjs/add/operator/throttleTime';
     moduleId: module.id,
     selector: 'servers-list',
     templateUrl: 'servers-list.component.html',
-    styleUrls: ['servers-list.component.scss']
+    styleUrls: ['servers-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ServersListComponent implements OnInit, OnChanges {
+export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
     @Input()
     private servers: Server[];
 
@@ -26,9 +28,15 @@ export class ServersListComponent implements OnInit, OnChanges {
     @Input()
     private pinConfig: PinConfigCached;
 
+    private lastFilters: ServerFilterContainer;
+
     private subscriptions: { [addr: string]: any } = {};
 
     private lastLength: number;
+
+    @ViewChild('list', { static: false }) private list: ElementRef;
+
+    private interactingUntil = 0;
 
     sortOrder: string[];
 
@@ -84,6 +92,10 @@ export class ServersListComponent implements OnInit, OnChanges {
         zone.runOutsideAngular(() => {
             setInterval(() => {
                 if (changed) {
+                    if (this.interactingUntil >= new Date().getTime()) {
+                        return;
+                    }
+
                     changed = false;
 
                     for (const server of (this.servers || [])) {
@@ -122,6 +134,11 @@ export class ServersListComponent implements OnInit, OnChanges {
         }
 
         return server.data.vars.premium;
+    }
+
+    // to prevent auto-filtering while scrolling (to make scrolling feel smoother)
+    updateInteraction() {
+        this.interactingUntil = new Date().getTime() + 500;
     }
 
     private static quoteRe(text: string) {
@@ -367,7 +384,18 @@ export class ServersListComponent implements OnInit, OnChanges {
         this.sortAndFilterServers();
     }
 
-    ngOnInit() { }
+    ngOnInit() {
+    }
+
+    ngAfterViewInit() {
+        const element = this.list.nativeElement as HTMLElement;
+
+        this.zone.runOutsideAngular(() => {
+            element.addEventListener('wheel', (e) => {
+                this.updateInteraction();
+            });
+        });
+    }
 
     changeSubject: Subject<void> = new Subject<void>();
     changeObservable = this.changeSubject.asObservable();
@@ -376,6 +404,11 @@ export class ServersListComponent implements OnInit, OnChanges {
         if (this.servers.length !== this.lastLength) {
             this.changeSubject.next();
             this.lastLength = this.servers.length;
+        }
+
+        if (this.filters !== this.lastFilters) {
+            this.sortAndFilterServers();
+            this.lastFilters = this.filters;
         }
     }
 

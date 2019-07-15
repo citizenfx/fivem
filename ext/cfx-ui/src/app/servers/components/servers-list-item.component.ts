@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild } from '@angular/core';
+import { Component, Input, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Server } from '../server';
@@ -10,7 +10,8 @@ import { DiscourseService, BoostData } from 'app/discourse.service';
     moduleId: module.id,
     selector: 'servers-list-item',
     templateUrl: 'servers-list-item.component.html',
-    styleUrls: ['servers-list-item.component.scss']
+    styleUrls: ['servers-list-item.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 
 export class ServersListItemComponent {

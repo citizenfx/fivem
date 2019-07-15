@@ -107,7 +107,7 @@ export class Server {
 
             this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
         } else {
-            this.iconUri = `https://runtime.fivem.net/servers/icon/${address}/${object.iconVersion}.png`;
+            this.iconUri = `https://servers-live.fivem.net/servers/icon/${address}/${object.iconVersion}.png`;
         }
     }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 import { Server } from '../server';
 
@@ -42,7 +42,8 @@ class ServerAutocompleteEntry {
     moduleId: module.id,
     selector: 'app-server-filter',
     templateUrl: 'server-filter.component.html',
-    styleUrls: ['server-filter.component.scss']
+    styleUrls: ['server-filter.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
     filters: ServerFilters = new ServerFilters();
@@ -74,7 +75,7 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
 	private minPingLimit = 30;
     private maxPingLimit = 200;
 
-    constructor(private serversService: ServersService, private gameService: GameService) {
+    constructor(private serversService: ServersService, private gameService: GameService, private cdr: ChangeDetectorRef) {
         this.serversService
             .getReplayedServers()
             .filter(server => !server)
@@ -325,6 +326,8 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
     onSearchBlur() {
         setTimeout(() => {
             this.searchFocused = false;
+
+            this.cdr.markForCheck();
         }, 200);
     }
 
