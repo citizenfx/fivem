@@ -66,7 +66,7 @@
 	branch = ipv6
 [submodule "vendor/imgui"]
 	path = vendor/imgui
-	url = https://github.com/ocornut/imgui.git
+	url = https://github.com/citizenfx/imgui.git
 [submodule "vendor/tbb"]
 	path = vendor/tbb
 	url = https://github.com/01org/tbb.git
