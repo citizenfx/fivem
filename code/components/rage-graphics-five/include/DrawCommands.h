@@ -67,6 +67,8 @@ enum StateType
 
 uint32_t GAMESPEC_EXPORT GetStockStateIdentifier(StateType state);
 
+void GAMESPEC_EXPORT GfxForceVsync(bool enabled);
+
 extern
 #ifdef COMPILING_RAGE_GRAPHICS_FIVE
 	__declspec(dllexport)

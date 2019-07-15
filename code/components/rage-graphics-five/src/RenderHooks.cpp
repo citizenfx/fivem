@@ -26,6 +26,8 @@ namespace WRL = Microsoft::WRL;
 fwEvent<> OnGrcCreateDevice;
 fwEvent<> OnPostFrontendRender;
 
+static bool g_overrideVsync;
+
 static void(*g_origCreateCB)(const char*);
 
 static void InvokeCreateCB(const char* arg)
@@ -705,6 +707,11 @@ void CaptureBufferOutput()
 
 void D3DPresent(int syncInterval, int flags)
 {
+	if (g_overrideVsync)
+	{
+		syncInterval = 1;
+	}
+
 	if (syncInterval == 0)
 	{
 		BOOL fullscreen;
@@ -805,6 +812,11 @@ void RemoveTextureOverride(rage::grcTexture* orig)
 	AcquireSRWLockExclusive(&g_textureOverridesLock);
 	g_textureOverrides.erase(orig);
 	ReleaseSRWLockExclusive(&g_textureOverridesLock);
+}
+
+void GfxForceVsync(bool enabled)
+{
+	g_overrideVsync = enabled;
 }
 
 static HookFunction hookFunction([] ()
