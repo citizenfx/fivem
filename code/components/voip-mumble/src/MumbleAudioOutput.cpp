@@ -182,7 +182,16 @@ void MumbleAudioOutput::Initialize()
 	m_volume = 1.0f;
 	m_masteringVoice = nullptr;
 	m_submixVoice = nullptr;
-	m_thread = std::thread([this] { ThreadFunc(); });
+	m_thread = std::thread([this]
+	{
+		ThreadFunc();
+
+		// COM FLS cleanup will fail on thread exit and crash in an unloaded XAudio DLL, so instead we opt to spin
+		while (true)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(60));
+		}
+	});
 }
 
 MumbleAudioOutput::ClientAudioState::ClientAudioState()
@@ -561,6 +570,7 @@ void MumbleAudioOutput::ThreadFunc()
 
 	if (FAILED(hr))
 	{
+		trace("%s: failed MMDeviceEnumerator\n", __func__);
 		return;
 	}
 
@@ -655,6 +665,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 	{
 		if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eCommunications, device.ReleaseAndGetAddressOf())))
 		{
+			trace("%s: failed GetDefaultAudioEndpoint\n", __func__);
 			return;
 		}
 
@@ -667,6 +678,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 		if (!device.Get())
 		{
+			trace("%s: failed GetMMDeviceFromGUID\n", __func__);
 			return;
 		}
 	}
@@ -680,6 +692,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 		if (FAILED(_XAudio2Create(m_xa2.ReleaseAndGetAddressOf(), 0, 1)))
 		{
+			trace("%s: failed XA2.8 create\n", __func__);
 			return;
 		}
 
@@ -725,6 +738,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 	if (FAILED(m_xa2->CreateMasteringVoice(&m_masteringVoice, 2, 48000, 0, deviceIdStr.c_str())))
 	{
+		trace("%s: failed CreateMasteringVoice\n", __func__);
 		return;
 	}
 
