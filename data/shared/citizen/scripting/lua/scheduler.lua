@@ -1,3 +1,8 @@
+-- temp
+local function FormatStackTrace()
+	return Citizen.InvokeNative(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
+end
+
 local newThreads = {}
 local threads = setmetatable({}, {
 	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
@@ -5,6 +10,35 @@ local threads = setmetatable({}, {
 	-- This is needed for CreateThreadNow to work correctly
 	__index = newThreads
 })
+
+local boundaryIdx = 1
+local runningThread
+
+local function dummyUseBoundary(idx)
+	return nil
+end
+
+local function getBoundaryFunc(bfn, bid)
+	return function(fn, ...)
+		local boundary = bid or (boundaryIdx + 1)
+		boundaryIdx = boundaryIdx + 1
+		
+		bfn(boundary, coroutine.running())
+
+		local wrap = function(...)
+			dummyUseBoundary(boundary)
+			
+			local v = table.pack(fn(...))
+			return table.unpack(v)
+		end
+		
+		local v = table.pack(wrap(...))
+		return table.unpack(v)
+	end
+end
+
+local runWithBoundaryStart = getBoundaryFunc(Citizen.SubmitBoundaryStart)
+local runWithBoundaryEnd = getBoundaryFunc(Citizen.SubmitBoundaryEnd)
 
 --[[
 
@@ -17,23 +51,43 @@ local function resumeThread(coro) -- Internal utility
 		return false
 	end
 
-	local ok, wakeTimeOrErr = coroutine.resume(coro)
+	runningThread = coro
 
+	Citizen.SubmitBoundaryStart(threads[coro].boundary)
+	local ok, wakeTimeOrErr = coroutine.resume(coro)
+	
 	if ok then
 		local thread = threads[coro]
 		if thread then
 			thread.wakeTime = wakeTimeOrErr or 0
 		end
 	else
-		Citizen.Trace("Error resuming coroutine: " .. debug.traceback(coro, wakeTimeOrErr) .. "\n")
+		--Citizen.Trace("Error resuming coroutine: " .. debug.traceback(coro, wakeTimeOrErr) .. "\n")
+		local fst = FormatStackTrace()
+		
+		if fst then
+			Citizen.Trace("^1SCRIPT ERROR: " .. wakeTimeOrErr .. "^7\n")
+			Citizen.Trace(fst)
+		end
 	end
+	
+	runningThread = nil
+	
 	-- Return not finished
 	return coroutine.status(coro) ~= "dead"
 end
 
 function Citizen.CreateThread(threadFunction)
-	threads[coroutine.create(threadFunction)] = {
-		wakeTime = 0
+	local bid = boundaryIdx + 1
+	boundaryIdx = boundaryIdx + 1
+
+	local tfn = function()
+		return runWithBoundaryStart(threadFunction, bid)
+	end
+
+	threads[coroutine.create(tfn)] = {
+		wakeTime = 0,
+		boundary = bid
 	}
 end
 
@@ -46,9 +100,17 @@ Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
 function Citizen.CreateThreadNow(threadFunction)
-	local coro = coroutine.create(threadFunction)
+	local bid = boundaryIdx + 1
+	boundaryIdx = boundaryIdx + 1
+
+	local tfn = function()
+		return runWithBoundaryStart(threadFunction, bid)
+	end
+
+	local coro = coroutine.create(tfn)
 	threads[coro] = {
-		wakeTime = 0
+		wakeTime = 0,
+		boundary = bid
 	}
 	return resumeThread(coro)
 end
@@ -92,9 +154,17 @@ function Citizen.Await(promise)
 end
 
 function Citizen.SetTimeout(msec, callback)
-	local coro = coroutine.create(callback)
+	local bid = boundaryIdx + 1
+	boundaryIdx = boundaryIdx + 1
+
+	local tfn = function()
+		return runWithBoundaryStart(callback, bid)
+	end
+
+	local coro = coroutine.create(tfn)
 	threads[coro] = {
-		wakeTime = GetGameTimer() + msec
+		wakeTime = GetGameTimer() + msec,
+		boundary = bid
 	}
 end
 
@@ -175,6 +245,77 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	_G.source = lastSource
 end)
 
+local stackTraceBoundaryIdx
+
+Citizen.SetStackTraceRoutine(function(bs, ts, be, te)
+	if not ts then
+		ts = runningThread
+	end
+
+	local t
+	local n = 1
+	
+	local frames = {}
+	local skip = false
+	
+	if bs then
+		skip = true
+	end
+	
+	repeat
+		if ts then
+			t = debug.getinfo(ts, n, 'nlfS')
+		else
+			t = debug.getinfo(n, 'nlfS')
+		end
+		
+		if t then
+			if t.name == 'wrap' and t.source == '@citizen:/scripting/lua/scheduler.lua' then
+				if not stackTraceBoundaryIdx then
+					local b, v
+					local u = 1
+					
+					repeat
+						b, v = debug.getupvalue(t.func, u)
+						
+						if b == 'boundary' then
+							break
+						end
+						
+						u = u + 1
+					until not b
+					
+					stackTraceBoundaryIdx = u
+				end
+				
+				local _, boundary = debug.getupvalue(t.func, stackTraceBoundaryIdx)
+				
+				if boundary == bs then
+					skip = false
+				end
+				
+				if boundary == be then
+					break
+				end
+			end
+			
+			if not skip then
+				if t.source and t.source:sub(1, 1) ~= '=' and t.source:sub(1, 10) ~= '@citizen:/' then
+					table.insert(frames, {
+						file = t.source:sub(2),
+						line = t.currentline,
+						name = t.name or '[global chunk]'
+					})
+				end
+			end
+		
+			n = n + 1
+		end
+	until not t
+	
+	return msgpack.pack(frames)
+end)
+
 local eventKey = 10
 
 function AddEventHandler(eventName, eventRoutine)
@@ -225,7 +366,9 @@ end
 function TriggerEvent(eventName, ...)
 	local payload = msgpack.pack({...})
 
-	return TriggerEventInternal(eventName, payload, payload:len())
+	return runWithBoundaryEnd(function()
+		return TriggerEventInternal(eventName, payload, payload:len())
+	end)
 end
 
 if IsDuplicityVersion() then
@@ -321,6 +464,17 @@ function Citizen.GetFunctionReference(func)
 	return nil
 end
 
+local function doStackFormat(err)
+	local fst = FormatStackTrace()
+	
+	-- already recovering from an error
+	if not fst then
+		return nil
+	end
+
+	return '^1SCRIPT ERROR: ' .. err .. "^7\n" .. fst
+end
+
 Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local refPtr = funcRefs[refId]
 
@@ -339,10 +493,10 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local waited = Citizen.CreateThreadNow(function()
 		local status, result, error = xpcall(function()
 			retvals = { ref(table.unpack(msgpack.unpack(argsSerialized))) }
-		end, debug.traceback)
+		end, doStackFormat)
 
 		if not status then
-			err = result
+			err = result or ''
 		end
 
 		if cb.cb then
@@ -352,7 +506,12 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 
 	if not waited then
 		if err then
-			error(err)
+			--error(err)
+			if err ~= '' then
+				Citizen.Trace(err)
+			end
+			
+			return msgpack.pack(nil)
 		end
 
 		return msgpack.pack(retvals)
@@ -454,20 +613,22 @@ if GetCurrentResourceName() == 'sessionmanager' then
 
 		makeArgRefs(args)
 
-		local payload = Citizen.InvokeFunctionReference(refId, msgpack.pack(args))
+		runWithBoundaryEnd(function()
+			local payload = Citizen.InvokeFunctionReference(refId, msgpack.pack(args))
 
-		if #payload == 0 then
-			returnEvent(false, 'err')
-			return
-		end
+			if #payload == 0 then
+				returnEvent(false, 'err')
+				return
+			end
 
-		local rvs = msgpack.unpack(payload)
+			local rvs = msgpack.unpack(payload)
 
-		if type(rvs[1]) == 'table' and rvs[1].__cfx_async_retval then
-			rvs[1].__cfx_async_retval(returnEvent)
-		else
-			returnEvent(rvs)
-		end
+			if type(rvs[1]) == 'table' and rvs[1].__cfx_async_retval then
+				rvs[1].__cfx_async_retval(returnEvent)
+			else
+				returnEvent(rvs)
+			end
+		end)
 	end)
 end
 
@@ -574,7 +735,9 @@ local funcref_mt = {
 			local args = msgpack.pack({...})
 
 			-- as Lua doesn't allow directly getting lengths from a data buffer, and _s will zero-terminate, we have a wrapper in the game itself
-			local rv = Citizen.InvokeFunctionReference(ref, args)
+			local rv = runWithBoundaryEnd(function()
+				return Citizen.InvokeFunctionReference(ref, args)
+			end)
 			local rvs = msgpack.unpack(rv)
 
 			-- handle async retvals from refs

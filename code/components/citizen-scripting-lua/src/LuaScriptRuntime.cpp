@@ -10,6 +10,8 @@
 
 #include <ManifestVersion.h>
 
+#include <msgpack.hpp>
+
 #ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_21e43a33.lua",  guid_t{0} },
@@ -88,7 +90,7 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -98,6 +100,8 @@ private:
 	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
 
 	typedef std::function<void(int32_t)> TDeleteRefRoutine;
+
+	typedef std::function<void(void*, void*, char**, size_t*)> TStackTraceRoutine;
 
 private:
 	LuaStateHolder m_state;
@@ -117,6 +121,8 @@ private:
 	TDuplicateRefRoutine m_duplicateRefRoutine;
 
 	TDeleteRefRoutine m_deleteRefRoutine;
+
+	TStackTraceRoutine m_stackTraceRoutine;
 
 	void* m_parentObject;
 
@@ -161,6 +167,14 @@ public:
 		if (!m_deleteRefRoutine)
 		{
 			m_deleteRefRoutine = routine;
+		}
+	}
+
+	inline void SetStackTraceRoutine(const TStackTraceRoutine& routine)
+	{
+		if (!m_stackTraceRoutine)
+		{
+			m_stackTraceRoutine = routine;
 		}
 	}
 
@@ -217,6 +231,8 @@ public:
 	NS_DECL_ISCRIPTREFRUNTIME;
 
 	NS_DECL_ISCRIPTMEMINFORUNTIME;
+
+	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
 };
 
 static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
@@ -351,6 +367,91 @@ void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
 	{
 		m_tickRoutine = tickRoutine;
 	}
+}
+
+struct LuaBoundary
+{
+	int hint;
+	lua_State* thread;
+};
+
+static int Lua_SetStackTraceRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the tick callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
+
+	luaRuntime->SetStackTraceRoutine([=](void* start, void* end, char** blob, size_t* size)
+	{
+		// static array for retval output (sadly)
+		static std::vector<char> retvalArray(32768);
+
+		// set the error handler
+		lua_getglobal(L, "debug");
+		lua_getfield(L, -1, "traceback");
+		lua_replace(L, -2);
+
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// push arguments on the stack
+		if (start)
+		{
+			auto startRef = (LuaBoundary*)start;
+			lua_pushinteger(L, startRef->hint);
+			lua_pushthread(startRef->thread);
+			lua_xmove(startRef->thread, L, 1);
+		}
+		else
+		{
+			lua_pushnil(L);
+			lua_pushnil(L);
+		}
+
+		if (end)
+		{
+			auto endRef = (LuaBoundary*)end;
+			lua_pushinteger(L, endRef->hint);
+			lua_pushthread(endRef->thread);
+			lua_xmove(endRef->thread, L, 1);
+		}
+		else
+		{
+			lua_pushnil(L);
+			lua_pushnil(L);
+		}
+
+		// invoke the tick routine
+		if (lua_pcall(L, 4, 1, eh) != 0)
+		{
+			std::string err = luaL_checkstring(L, -1);
+			lua_pop(L, 1);
+
+			ScriptTrace("Error running stack trace function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+
+			*blob = nullptr;
+			*size = 0;
+		}
+		else
+		{
+			const char* retvalString = lua_tolstring(L, -1, size);
+			memcpy(&retvalArray[0], retvalString, fwMin(retvalArray.size(), *size));
+
+			*blob = &retvalArray[0];
+
+			lua_pop(L, 1); // as there's a result
+		}
+
+		lua_pop(L, 1);
+	});
+
+	return 0;
 }
 
 static int Lua_SetEventRoutine(lua_State* L)
@@ -596,6 +697,42 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 
 	// return as such
 	return 1;
+}
+
+static int Lua_SubmitBoundaryStart(lua_State* L)
+{
+	// get required entries
+	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto scriptHost = luaRuntime->GetScriptHost();
+
+	auto val = lua_tointeger(L, 1);
+	lua_State* thread = lua_tothread(L, 2);
+
+	LuaBoundary b;
+	b.hint = val;
+	b.thread = thread;
+
+	scriptHost->SubmitBoundaryStart((char*)&b, sizeof(b));
+
+	return 0;
+}
+
+static int Lua_SubmitBoundaryEnd(lua_State* L)
+{
+	// get required entries
+	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	auto scriptHost = luaRuntime->GetScriptHost();
+
+	auto val = lua_tointeger(L, 1);
+	lua_State* thread = lua_tothread(L, 2);
+
+	LuaBoundary b;
+	b.hint = val;
+	b.thread = thread;
+
+	scriptHost->SubmitBoundaryEnd((char*)& b, sizeof(b));
+
+	return 0;
 }
 
 int Lua_Trace(lua_State* L)
@@ -1119,6 +1256,10 @@ static const struct luaL_Reg g_citizenLib[] =
 	{ "SetDuplicateRefRoutine", Lua_SetDuplicateRefRoutine },
 	{ "CanonicalizeRef", Lua_CanonicalizeRef },
 	{ "InvokeFunctionReference", Lua_InvokeFunctionReference },
+	// boundary
+	{ "SubmitBoundaryStart", Lua_SubmitBoundaryStart },
+	{ "SubmitBoundaryEnd", Lua_SubmitBoundaryEnd },
+	{ "SetStackTraceRoutine", Lua_SetStackTraceRoutine },
 	// metafields
 	{ "PointerValueIntInitialized", Lua_GetPointerField<LuaMetaFields::PointerValueInt> },
 	{ "PointerValueFloatInitialized", Lua_GetPointerField<LuaMetaFields::PointerValueFloat> },
@@ -1443,6 +1584,36 @@ result_t LuaScriptRuntime::Tick()
 		LuaPushEnvironment pushed(this);
 
 		m_tickRoutine();
+	}
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::WalkStack(char* boundaryStart, uint32_t boundaryStartLength, char* boundaryEnd, uint32_t boundaryEndLength, IScriptStackWalkVisitor* visitor)
+{
+	if (m_stackTraceRoutine)
+	{
+		LuaPushEnvironment pushed(this);
+
+		char* out = nullptr;
+		size_t outLen = 0;
+
+		m_stackTraceRoutine(boundaryStart, boundaryEnd, &out, &outLen);
+
+		if (out)
+		{
+			msgpack::unpacked up = msgpack::unpack(out, outLen);
+
+			auto o = up.get().as<std::vector<msgpack::object>>();
+
+			for (auto& e : o)
+			{
+				msgpack::sbuffer sb;
+				msgpack::pack(sb, e);
+
+				visitor->SubmitStackFrame(sb.data(), sb.size());
+			}
+		}
 	}
 
 	return FX_S_OK;

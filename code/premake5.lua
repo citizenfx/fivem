@@ -263,7 +263,9 @@ end)
 		csversion '7.3'
 
 		files { "client/clrcore/*.cs", "client/clrcore/Math/*.cs" }
-
+		
+		files { "../vendor/ben-demystifier/src/Ben.Demystifier/**.cs" }
+		
 		if _OPTIONS['game'] ~= 'server' then
 			files { "client/clrcore/External/*.cs" }
 		else
@@ -277,7 +279,14 @@ end)
 			
 		end
 
-		links { "System.dll", "Microsoft.CSharp.dll", "System.Core.dll", "../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll" }
+		links {
+			"System.dll",
+			"Microsoft.CSharp.dll",
+			"System.Core.dll",
+			"../data/client/citizen/clr2/lib/mono/4.5/System.Reflection.Metadata.dll",
+			"../data/client/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll",
+			"../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll"
+		}
 
 		buildoptions '/debug:portable /langversion:7.3'
 

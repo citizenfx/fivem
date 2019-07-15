@@ -11,8 +11,15 @@
 
     let animationFrames = [];
 
-    function printError(where, e) {
-        console.error(`Unhandled error in ${where}: ${e.toString()}\n${e.stack}`);
+    global.printError = function(where, e) {
+		const stackBlob = global.msgpack_pack(e.stack);
+		const fst = global.FormatStackTrace(stackBlob, stackBlob.length);
+		
+		if (fst) {
+			console.log('^1SCRIPT ERROR in ' + where + ': ' + e.toString() + "^7\n");
+			console.log(fst);
+		}
+        //console.error(`Unhandled error in ${where}: ${e.toString()}\n${e.stack}`);
     }
 
     function setTimer(timer, callback, interval) {
@@ -203,5 +210,9 @@
         requestAnimationFrame,
     });
 
-    global.Citizen.setTickFunction(onTick);
+    global.Citizen.setTickFunction(() => {
+		global.runWithBoundaryStart(() => {
+			onTick();
+		});
+	});
 })(this || window);

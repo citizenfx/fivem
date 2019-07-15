@@ -59,6 +59,11 @@ using namespace v8;
 
 namespace fx
 {
+struct V8Boundary
+{
+	int hint;
+};
+
 Isolate* GetV8Isolate();
 
 static Platform* GetV8Platform();
@@ -83,7 +88,7 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
-class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime>
+class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -93,6 +98,8 @@ private:
 	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
 
 	typedef std::function<void(int32_t)> TDeleteRefRoutine;
+
+	typedef std::function<void(void*, void*, char**, size_t*)> TStackTraceRoutine;
 
 private:
 	UniquePersistent<Context> m_context;
@@ -118,6 +125,8 @@ private:
 	IScriptHostWithManifest* m_manifestHost;
 
 	int m_instanceId;
+
+	TStackTraceRoutine m_stackTraceRoutine;
 
 	void* m_parentObject;
 
@@ -178,6 +187,14 @@ public:
 		m_deleteRefRoutine = routine;
 	}
 
+	inline void SetStackTraceRoutine(const TStackTraceRoutine& routine)
+	{
+		if (!m_stackTraceRoutine)
+		{
+			m_stackTraceRoutine = routine;
+		}
+	}
+
 	inline OMPtr<IScriptHost> GetScriptHost()
 	{
 		return m_scriptHost;
@@ -207,6 +224,8 @@ public:
 	NS_DECL_ISCRIPTEVENTRUNTIME;
 
 	NS_DECL_ISCRIPTREFRUNTIME;
+
+	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
 };
 
 static OMPtr<V8ScriptRuntime> g_currentV8Runtime;
@@ -490,6 +509,72 @@ static void V8_SetDuplicateRefFunction(const v8::FunctionCallbackInfo<v8::Value>
 			}
 
 			return -1;
+		}
+	}));
+}
+
+static void V8_SetStackTraceRoutine(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	Local<Function> function = Local<Function>::Cast(args[0]);
+	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
+
+	runtime->SetStackTraceRoutine(make_shared_function([runtime, functionRef{ std::move(functionRef) }](void* start, void* end, char** blob, size_t* size)
+	{
+		// static array for retval output (sadly)
+		static std::vector<char> retvalArray(32768);
+
+		Local<Function> function = functionRef.Get(GetV8Isolate());
+
+		{
+			TryCatch eh(GetV8Isolate());
+
+			Local<Value> arguments[2];
+
+			// push arguments on the stack
+			if (start)
+			{
+				auto startRef = (V8Boundary*)start;
+				arguments[0] = Int32::New(GetV8Isolate(), startRef->hint);
+			}
+			else
+			{
+				arguments[0] = Null(GetV8Isolate());
+			}
+
+			if (end)
+			{
+				auto endRef = (V8Boundary*)end;
+				arguments[1] = Int32::New(GetV8Isolate(), endRef->hint);
+			}
+			else
+			{
+				arguments[1] = Null(GetV8Isolate());
+			}
+
+			Local<Value> value = function->Call(Null(GetV8Isolate()), 2, arguments);
+
+			if (eh.HasCaught())
+			{
+				String::Utf8Value str(GetV8Isolate(), eh.Exception());
+				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+
+				trace("Error calling system stack trace function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
+			}
+			else
+			{
+				if (!value->IsArrayBufferView())
+				{
+					return;
+				}
+
+				Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
+				*size = abv->ByteLength();
+
+				abv->CopyContents(retvalArray.data(), fwMin(retvalArray.size(), *size));
+				*blob = retvalArray.data();
+			}
 		}
 	}));
 }
@@ -1232,6 +1317,34 @@ static void V8_GetResourcePath(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set(String::NewFromUtf8(args.GetIsolate(), path.c_str(), NewStringType::kNormal, path.size()).ToLocalChecked());
 }
 
+static void V8_SubmitBoundaryStart(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	// get required entries
+	auto scrt = GetScriptRuntimeFromArgs(args);
+	auto scriptHost = scrt->GetScriptHost();
+
+	auto val = args[0]->IntegerValue();
+
+	V8Boundary b;
+	b.hint = val;
+
+	scriptHost->SubmitBoundaryStart((char*)& b, sizeof(b));
+}
+
+static void V8_SubmitBoundaryEnd(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	// get required entries
+	auto scrt = GetScriptRuntimeFromArgs(args);
+	auto scriptHost = scrt->GetScriptHost();
+
+	auto val = args[0]->IntegerValue();
+
+	V8Boundary b;
+	b.hint = val;
+
+	scriptHost->SubmitBoundaryEnd((char*)&b, sizeof(b));
+}
+
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
 	{ "trace", V8_Trace },
@@ -1249,6 +1362,10 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "invokeNativeByHash", V8_InvokeNative<IntHashGetter> },
 	{ "startProfiling", V8_StartProfiling },
 	{ "stopProfiling", V8_StopProfiling },
+	// boundary
+	{ "submitBoundaryStart", V8_SubmitBoundaryStart },
+	{ "submitBoundaryEnd", V8_SubmitBoundaryEnd },
+	{ "setStackTraceFunction", V8_SetStackTraceRoutine },
 	// metafields
 	{ "pointerValueIntInitialized", V8_GetPointerField<V8MetaFields::PointerValueInt> },
 	{ "pointerValueFloatInitialized", V8_GetPointerField<V8MetaFields::PointerValueFloat> },
@@ -1550,7 +1667,10 @@ result_t V8ScriptRuntime::LoadHostFileInternal(char* scriptFile, Local<Script>* 
 		return hr;
 	}
 
-	return LoadFileInternal(stream, scriptFile, outScript);
+	char* resourceName;
+	m_resourceHost->GetResourceName(&resourceName);
+
+	return LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile, outScript);
 }
 
 result_t V8ScriptRuntime::LoadSystemFileInternal(char* scriptFile, Local<Script>* outScript)
@@ -1685,6 +1805,36 @@ result_t V8ScriptRuntime::RemoveRef(int32_t refIdx)
 		V8PushEnvironment pushed(this);
 
 		m_deleteRefRoutine(refIdx);
+	}
+
+	return FX_S_OK;
+}
+
+result_t V8ScriptRuntime::WalkStack(char* boundaryStart, uint32_t boundaryStartLength, char* boundaryEnd, uint32_t boundaryEndLength, IScriptStackWalkVisitor* visitor)
+{
+	if (m_stackTraceRoutine)
+	{
+		V8PushEnvironment pushed(this);
+
+		char* out = nullptr;
+		size_t outLen = 0;
+
+		m_stackTraceRoutine(boundaryStart, boundaryEnd, &out, &outLen);
+
+		if (out)
+		{
+			msgpack::unpacked up = msgpack::unpack(out, outLen);
+
+			auto o = up.get().as<std::vector<msgpack::object>>();
+
+			for (auto& e : o)
+			{
+				msgpack::sbuffer sb;
+				msgpack::pack(sb, e);
+
+				visitor->SubmitStackFrame(sb.data(), sb.size());
+			}
+		}
 	}
 
 	return FX_S_OK;

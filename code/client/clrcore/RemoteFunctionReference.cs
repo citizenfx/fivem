@@ -75,6 +75,11 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private byte[] _InvokeNative(byte[] argsSerialized)
 		{
+			if (GameInterface.SnapshotStackBoundary(out var b))
+			{
+				InternalManager.ScriptHost.SubmitBoundaryEnd(b, b.Length);
+			}
+
 			IntPtr resBytes;
 			long retLength;
 

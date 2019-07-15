@@ -26,6 +26,12 @@ namespace CitizenFX.Core
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		[PreserveSig]
 		void ScriptTrace([MarshalAs(UnmanagedType.LPStr)] string message);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		void SubmitBoundaryStart([In] [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] boundaryData, int boundarySize);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		void SubmitBoundaryEnd([In] [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] boundaryData, int boundarySize);
 	}
 
 	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

@@ -20,6 +20,14 @@ namespace CitizenFX.Core
 		public static extern ulong GetMemoryUsage();
 
 		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern bool SnapshotStackBoundary(out byte[] data);
+
+		[SecurityCritical]
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		public static extern bool WalkStackBoundary(string resourceName, byte[] start, byte[] end, out byte[] blob);
+
+		[SecurityCritical]
 		[DllImport("CoreRT", EntryPoint = "CoreFxCreateObjectInstance")]
 		public static extern int CreateObjectInstance([MarshalAs(UnmanagedType.LPStruct)] Guid clsid, [MarshalAs(UnmanagedType.LPStruct)] Guid iid, out IntPtr objectPtr);
     }

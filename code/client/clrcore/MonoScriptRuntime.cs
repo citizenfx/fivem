@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -9,7 +10,7 @@ using System.Security;
 namespace CitizenFX.Core
 {
 	[Guid("C068E0AB-DD9C-48F2-A7F3-69E866D27F17")]
-	class MonoScriptRuntime : IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime
+	class MonoScriptRuntime : IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime
 	{
 		private IScriptHost m_scriptHost;
 		private readonly int m_instanceId;
@@ -37,15 +38,13 @@ namespace CitizenFX.Core
 			{
 				m_scriptHost = host;
 
+				((IScriptHostWithResourceData)host).GetResourceName(out var nameString);
+				string resourceName = Marshal.PtrToStringAnsi(nameString);
+
 #if IS_FXSERVER
-				string resourceName = "";
 				string basePath = "";
 
 				{
-					((IScriptHostWithResourceData)host).GetResourceName(out var nameString);
-
-					resourceName = Marshal.PtrToStringAnsi(nameString);
-
 					// we can't invoke natives if not doing this
 					InternalManager.ScriptHost = host;
 
@@ -63,6 +62,8 @@ namespace CitizenFX.Core
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
+
+				m_intManager.SetResourceName(resourceName);
 
 				// TODO: figure out a cleaner solution to Mono JIT corruption so server doesn't have to be slower
 #if IS_FXSERVER
@@ -249,6 +250,29 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public void WalkStack(byte[] boundaryStart, int boundaryStartLength, byte[] boundaryEnd, int boundaryEndLength, IScriptStackWalkVisitor visitor)
+		{
+			var data = m_intManager?.WalkStack(boundaryStart, boundaryEnd);
+
+			if (data == null)
+			{
+				return;
+			}
+
+			var frames = (IEnumerable<object>)MsgPackDeserializer.Deserialize(data);
+
+#if !IS_FXSERVER
+			visitor = new DirectVisitor(visitor);
+#endif
+
+			foreach (var frame in frames)
+			{
+				var f = MsgPackSerializer.Serialize(frame);
+
+				visitor.SubmitStackFrame(f, f.Length);
+			}
+		}
+
 		public PushRuntime GetPushRuntime()
 		{
 			return new PushRuntime(this);
@@ -320,10 +344,50 @@ namespace CitizenFX.Core
 				m_realHost.ScriptTrace(message);
 			}
 
+			public void SubmitBoundaryStart(byte[] d, int l)
+			{
+				m_realHost.SubmitBoundaryStart(d, l);
+			}
+
+			public void SubmitBoundaryEnd(byte[] d, int l)
+			{
+				m_realHost.SubmitBoundaryEnd(d, l);
+			}
+
 			[SecurityCritical]
 			public override object InitializeLifetimeService()
 			{
 				return null;
+			}
+		}
+
+		private class DirectVisitor : IScriptStackWalkVisitor
+		{
+			private IntPtr visitor;
+
+			private FastMethod<Func<IntPtr, IntPtr, int, int>> submitFrameMethod;
+
+			[SecuritySafeCritical]
+			public DirectVisitor(IScriptStackWalkVisitor visitor)
+			{
+				this.visitor = Marshal.GetIUnknownForObject(visitor);
+
+				submitFrameMethod = new FastMethod<Func<IntPtr, IntPtr, int, int>>(nameof(submitFrameMethod), this.visitor, 0);
+			}
+
+			[SecuritySafeCritical]
+			public void SubmitStackFrame([In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] frameBlob, int frameBlobSize)
+			{
+				SubmitStackFrameInternal(frameBlob, frameBlobSize);
+			}
+
+			[SecurityCritical]
+			private unsafe void SubmitStackFrameInternal(byte[] blob, int size)
+			{
+				fixed (byte* p = blob)
+				{
+					submitFrameMethod.method(visitor, new IntPtr(p), size);
+				}
 			}
 		}
 	}

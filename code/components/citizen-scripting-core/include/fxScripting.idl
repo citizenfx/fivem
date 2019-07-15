@@ -33,6 +33,10 @@ interface IScriptHost : fxIBase
 	void CanonicalizeRef(in int32_t localRef, in int32_t instanceId, out charPtr refString);
 	
 	void ScriptTrace(in charPtr message);
+
+	void SubmitBoundaryStart(in charPtr boundaryData, in int32_t boundarySize);
+
+	void SubmitBoundaryEnd(in charPtr boundaryData, in int32_t boundarySize);
 };
 
 [uuid(9568DF2D-27C8-4B9E-B29D-48272C317084)]
@@ -105,6 +109,18 @@ interface IScriptFileHandlingRuntime : fxIBase
 	[notxpcom] int32_t HandlesFile(in charPtr scriptFile);
 
 	void LoadFile(in charPtr scriptFile);
+};
+
+[uuid(182CAAF3-E33D-474B-A6AF-33D59FF0E9ED)]
+interface IScriptStackWalkVisitor : fxIBase
+{
+	void SubmitStackFrame(in charPtr frameBlob, in uint32_t frameBlobSize);
+};
+
+[uuid(567D2FDA-610C-4FA0-AE3E-4F700AE5CE56)]
+interface IScriptStackWalkingRuntime : fxIBase
+{
+	void WalkStack(in charPtr boundaryStart, in uint32_t boundaryStartLength, in charPtr boundaryEnd, in uint32_t boundaryEndLength, in IScriptStackWalkVisitor visitor);
 };
 
 [uuid(D98A35CF-D6EE-4B51-A1C3-99B70F4EC1E6)]

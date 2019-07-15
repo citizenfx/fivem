@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -18,6 +19,8 @@ namespace CitizenFX.Core
 		private static readonly List<BaseScript> ms_definedScripts = new List<BaseScript>();
 		private static readonly List<Tuple<DateTime, AsyncCallback>> ms_delays = new List<Tuple<DateTime, AsyncCallback>>();
 		private static int ms_instanceId;
+
+		private string m_resourceName;
 
 		public static IScriptHost ScriptHost { get; internal set; }
 
@@ -41,6 +44,11 @@ namespace CitizenFX.Core
 #if !IS_FXSERVER
 			SynchronizationContext.SetSynchronizationContext(new CitizenSynchronizationContext());
 #endif
+		}
+
+		public void SetResourceName(string resourceName)
+		{
+			m_resourceName = resourceName;
 		}
 
 		[SecuritySafeCritical]
@@ -207,6 +215,14 @@ namespace CitizenFX.Core
 			return null;
 		}
 
+		[SecuritySafeCritical]
+		public byte[] WalkStack(byte[] boundaryStart, byte[] boundaryEnd)
+		{
+			var success = GameInterface.WalkStackBoundary(m_resourceName, boundaryStart, boundaryEnd, out var blob);
+
+			return (success) ? blob : null;
+		}
+
 		static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
 		{
 			return LoadAssemblyInternal(args.Name.Split(',')[0], useSearchPaths: true);
@@ -222,8 +238,14 @@ namespace CitizenFX.Core
 			GlobalManager.Tick();
 		}
 
+		[SecuritySafeCritical]
 		public void Tick()
 		{
+			if (GameInterface.SnapshotStackBoundary(out var b))
+			{
+				ScriptHost.SubmitBoundaryStart(b, b.Length);
+			}
+
 			try
 			{
 				ScriptContext.GlobalCleanUp();
@@ -251,12 +273,18 @@ namespace CitizenFX.Core
 			}
 			catch (Exception e)
 			{
-				Debug.WriteLine("Error during Tick: {0}", e.ToString());
+				PrintError("tick", e);
 			}
 		}
 
+		[SecuritySafeCritical]
 		public void TriggerEvent(string eventName, byte[] argsSerialized, string sourceString)
 		{
+			if (GameInterface.SnapshotStackBoundary(out var bo))
+			{
+				ScriptHost.SubmitBoundaryStart(bo, bo.Length);
+			}
+
 			try
 			{
 				var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource: (sourceString.StartsWith("net") ? sourceString : null)) as List<object> ?? (IEnumerable<object>)new object[0];
@@ -285,7 +313,7 @@ namespace CitizenFX.Core
 			}
 			catch (Exception e)
 			{
-				Debug.WriteLine(e.ToString());
+				PrintError($"event ({eventName})", e);
 			}
 		}
 
@@ -306,30 +334,45 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize)
 		{
-			var retvalData = FunctionReference.Invoke(refIndex, argsSerialized);
-
-			if (retvalData != null)
+			if (GameInterface.SnapshotStackBoundary(out var b))
 			{
-				if (m_retvalBuffer == IntPtr.Zero)
-				{
-					m_retvalBuffer = Marshal.AllocHGlobal(32768);
-					m_retvalBufferSize = 32768;
-				}
-
-				if (m_retvalBufferSize < retvalData.Length)
-				{
-					m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
-				}
-
-				Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
-
-				retvalSerialized = m_retvalBuffer;
-				retvalSize = retvalData.Length;
+				ScriptHost.SubmitBoundaryStart(b, b.Length);
 			}
-			else
+
+			try
+			{
+				var retvalData = FunctionReference.Invoke(refIndex, argsSerialized);
+
+				if (retvalData != null)
+				{
+					if (m_retvalBuffer == IntPtr.Zero)
+					{
+						m_retvalBuffer = Marshal.AllocHGlobal(32768);
+						m_retvalBufferSize = 32768;
+					}
+
+					if (m_retvalBufferSize < retvalData.Length)
+					{
+						m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
+					}
+
+					Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
+
+					retvalSerialized = m_retvalBuffer;
+					retvalSize = retvalData.Length;
+				}
+				else
+				{
+					retvalSerialized = IntPtr.Zero;
+					retvalSize = 0;
+				}
+			}
+			catch (Exception e)
 			{
 				retvalSerialized = IntPtr.Zero;
 				retvalSize = 0;
+
+				PrintError($"reference call", e.InnerException ?? e);
 			}
 		}
 
@@ -371,6 +414,47 @@ namespace CitizenFX.Core
 			return null;
 		}
 
+		[SecuritySafeCritical]
+		private void PrintError(string where, Exception what)
+		{
+			ScriptHost.SubmitBoundaryEnd(null, 0);
+
+			var stackTrace = new StackTrace(what, true);
+			var frames = stackTrace.GetFrames()
+				.Select(a => new
+				{
+					Frame = a,
+					Method = a.GetMethod(),
+					Type = a.GetMethod()?.DeclaringType
+				})
+				.Where(a => a.Method != null && (!a.Type.Assembly.GetName().Name.Contains("mscorlib") && !a.Type.Assembly.GetName().Name.Contains("CitizenFX.Core") && !a.Type.Assembly.GetName().Name.StartsWith("System")))
+				.Select(a => new
+				{
+					name = EnhancedStackTrace.GetMethodDisplayString(a.Method).ToString(),
+					sourcefile = a.Frame.GetFileName() ?? "",
+					line = a.Frame.GetFileLineNumber(),
+					file = $"@{m_resourceName}/{a.Type?.Assembly.GetName().Name ?? "UNK"}.dll"
+				});
+
+			var serializedFrames = MsgPackSerializer.Serialize(frames);
+			var formattedStackTrace = FormatStackTrace(serializedFrames);
+
+			if (formattedStackTrace != null)
+			{
+				Debug.WriteLine($"^1SCRIPT ERROR in {where}: {what.GetType().FullName}: {what.Message}^7");
+				Debug.WriteLine("{0}", formattedStackTrace);
+			}
+		}
+
+		[SecurityCritical]
+		private unsafe string FormatStackTrace(byte[] serializedFrames)
+		{
+			fixed (byte* ptr = serializedFrames)
+			{
+				return Native.Function.Call<string>((Native.Hash)0xd70c3bca, ptr, serializedFrames.Length);
+			}
+		}
+
 		private class DirectScriptHost : IScriptHost
 		{
 			private IntPtr hostPtr;
@@ -380,6 +464,8 @@ namespace CitizenFX.Core
 			private FastMethod<Func<IntPtr, IntPtr, IntPtr, int>> openHostFileMethod;
 			private FastMethod<Func<IntPtr, int, int, IntPtr, int>> canonicalizeRefMethod;
 			private FastMethod<Action<IntPtr, IntPtr>> scriptTraceMethod;
+			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryStartMethod;
+			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryEndMethod;
 
 			[SecuritySafeCritical]
 			public DirectScriptHost(IntPtr hostPtr)
@@ -391,6 +477,8 @@ namespace CitizenFX.Core
 				openHostFileMethod = new FastMethod<Func<IntPtr, IntPtr, IntPtr, int>>(nameof(openHostFileMethod), hostPtr, 2);
 				canonicalizeRefMethod = new FastMethod<Func<IntPtr, int, int, IntPtr, int>>(nameof(canonicalizeRefMethod), hostPtr, 3);
 				scriptTraceMethod = new FastMethod<Action<IntPtr, IntPtr>>(nameof(scriptTraceMethod), hostPtr, 4);
+				submitBoundaryStartMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryStartMethod), hostPtr, 5);
+				submitBoundaryEndMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryEndMethod), hostPtr, 6);
 			}
 
 			[SecuritySafeCritical]
@@ -493,6 +581,27 @@ namespace CitizenFX.Core
 				fixed (byte* p = bytes)
 				{
 					scriptTraceMethod.method(hostPtr, new IntPtr(p));
+				}
+			}
+
+			[SecuritySafeCritical]
+			public void SubmitBoundaryStart(byte[] boundaryData, int boundarySize)
+			{
+				SubmitBoundaryInternal(submitBoundaryStartMethod, boundaryData, boundarySize);
+			}
+
+			[SecuritySafeCritical]
+			public void SubmitBoundaryEnd(byte[] boundaryData, int boundarySize)
+			{
+				SubmitBoundaryInternal(submitBoundaryEndMethod, boundaryData, boundarySize);
+			}
+
+			[SecurityCritical]
+			private unsafe void SubmitBoundaryInternal(FastMethod<Action<IntPtr, IntPtr, int>> method, byte[] boundaryData, int boundarySize)
+			{
+				fixed (byte* p = boundaryData)
+				{
+					method.method(hostPtr, new IntPtr(p), boundarySize);
 				}
 			}
 		}

@@ -1,4 +1,7 @@
 N:System.Drawing
+N:System.Diagnostics
+N:System.Collections.Generic.Enumerable
+N:System.Diagnostics.Internal
 
 F:CitizenFX.Core.PlayerList.MaxPlayers
 M:CitizenFX.Core.PlayerList.#ctor

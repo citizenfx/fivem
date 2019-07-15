@@ -23,6 +23,9 @@
 #include <string_view>
 
 #include <ConsoleHost.h>
+#include <msgpack.hpp>
+
+#include <sstream>
 
 #ifdef __has_feature
 #define HAS_FEATURE(x) __has_feature(x)
@@ -285,6 +288,43 @@ result_t TestScriptHost::IsManifestVersionBetween(const guid_t & lowerBound, con
 	return FX_E_INVALIDARG;
 }
 
+using Boundary = std::vector<uint8_t>;
+using BoundaryPair = std::pair<std::optional<Boundary>, std::optional<Boundary>>;
+
+static std::deque<IScriptRuntime*> ms_runtimeStack;
+static std::deque<BoundaryPair> ms_boundaryStack;
+
+static std::recursive_mutex ms_runtimeMutex;
+
+static bool g_suppressErrors;
+
+result_t TestScriptHost::SubmitBoundaryStart(char* boundaryData, int boundarySize)
+{
+	if (!ms_boundaryStack.empty())
+	{
+		ms_boundaryStack.front().first = Boundary{ (uint8_t*)boundaryData, (uint8_t*)boundaryData + boundarySize };
+	}
+
+	return FX_S_OK;
+}
+
+result_t TestScriptHost::SubmitBoundaryEnd(char* boundaryData, int boundarySize)
+{
+	if (!ms_boundaryStack.empty())
+	{
+		if (boundaryData)
+		{
+			ms_boundaryStack.front().second = Boundary{ (uint8_t*)boundaryData, (uint8_t*)boundaryData + boundarySize };
+		}
+		else
+		{
+			ms_boundaryStack.front().second = {};
+		}
+	}
+
+	return FX_S_OK;
+}
+
 // TODO: don't ship with this in
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource)
 {
@@ -305,24 +345,16 @@ FX_IMPLEMENTS(CLSID_TestScriptHost, IScriptHost);
 // more stuff
 class ScriptRuntimeHandler : public OMClass<ScriptRuntimeHandler, IScriptRuntimeHandler>
 {
-private:
-	static std::stack<IScriptRuntime*> ms_runtimeStack;
-
-	static std::recursive_mutex ms_runtimeMutex;
-
 public:
 	NS_DECL_ISCRIPTRUNTIMEHANDLER;
 };
-
-std::stack<IScriptRuntime*> ScriptRuntimeHandler::ms_runtimeStack;
-
-std::recursive_mutex ScriptRuntimeHandler::ms_runtimeMutex;
 
 result_t ScriptRuntimeHandler::PushRuntime(IScriptRuntime* runtime)
 {
 	ms_runtimeMutex.lock();
 
-	ms_runtimeStack.push(runtime);
+	ms_runtimeStack.push_front(runtime);
+	ms_boundaryStack.push_front({});
 
 	fx::Resource* parentResource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
@@ -336,7 +368,7 @@ result_t ScriptRuntimeHandler::PushRuntime(IScriptRuntime* runtime)
 
 result_t ScriptRuntimeHandler::PopRuntime(IScriptRuntime* runtime)
 {
-	IScriptRuntime* poppedRuntime = ms_runtimeStack.top();
+	IScriptRuntime* poppedRuntime = ms_runtimeStack.front();
 	assert(poppedRuntime == runtime);
 
 	fx::Resource* parentResource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
@@ -346,7 +378,13 @@ result_t ScriptRuntimeHandler::PopRuntime(IScriptRuntime* runtime)
 		parentResource->OnDeactivate();
 	}
 
-	ms_runtimeStack.pop();
+	ms_boundaryStack.pop_front();
+	ms_runtimeStack.pop_front();
+
+	if (ms_runtimeStack.empty())
+	{
+		g_suppressErrors = false;
+	}
 
 	ms_runtimeMutex.unlock();
 
@@ -361,7 +399,7 @@ result_t ScriptRuntimeHandler::GetCurrentRuntime(IScriptRuntime** runtime)
 		return FX_E_INVALIDARG;
 	}
 
-	*runtime = ms_runtimeStack.top();
+	*runtime = ms_runtimeStack.front();
 
 	// conventions state we should AddRef anything we return, so we will
 	(*runtime)->AddRef();
@@ -378,8 +416,9 @@ result_t ScriptRuntimeHandler::GetInvokingRuntime(IScriptRuntime** runtime)
 	}
 
 	// std::stack is bad, even more so as we're copying the entire stack
+	// TODO: redo since we're a deque now
 	auto copyStack = ms_runtimeStack;
-	copyStack.pop();
+	copyStack.pop_front();
 
 	if (copyStack.empty())
 	{
@@ -387,7 +426,7 @@ result_t ScriptRuntimeHandler::GetInvokingRuntime(IScriptRuntime** runtime)
 	}
 	else
 	{
-		auto lastRuntime = copyStack.top();
+		auto lastRuntime = copyStack.front();
 		*runtime = lastRuntime;
 
 		// conventions state we should AddRef anything we return, so we will
@@ -403,3 +442,86 @@ FX_IMPLEMENTS(CLSID_ScriptRuntimeHandler, IScriptRuntimeHandler);
 FX_NEW_FACTORY(ScriptRuntimeHandler);
 
 }
+
+struct StringifyingStackVisitor : fx::OMClass<StringifyingStackVisitor, IScriptStackWalkVisitor>
+{
+	std::stringstream stringTrace;
+
+	NS_DECL_ISCRIPTSTACKWALKVISITOR;
+};
+
+struct ScriptStackFrame
+{
+	std::string name;
+	std::string file;
+	std::string sourcefile;
+	int line;
+
+	MSGPACK_DEFINE_MAP(name, file, sourcefile, line);
+};
+
+result_t StringifyingStackVisitor::SubmitStackFrame(char* blob, uint32_t size)
+{
+	msgpack::unpacked up = msgpack::unpack(blob, size);
+	auto frame = up.get().as<ScriptStackFrame>();
+
+	stringTrace << fmt::sprintf("^3> %s^7 (^5%s^7%s:%d)\n", frame.name, frame.file, (!frame.sourcefile.empty()) ? " <- " + frame.sourcefile : "", frame.line);
+
+	return FX_S_OK;
+}
+
+static InitFunction initFunction([]()
+{
+	fx::ScriptEngine::RegisterNativeHandler("FORMAT_STACK_TRACE", [](fx::ScriptContext& context)
+	{
+		if (fx::g_suppressErrors)
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+		fx::g_suppressErrors = true;
+
+		auto topLevelStackBlob = context.GetArgument<char*>(0);
+		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
+
+		auto vis = fx::MakeNew<StringifyingStackVisitor>();
+
+		if (topLevelStackBlob)
+		{
+			msgpack::unpacked up = msgpack::unpack(topLevelStackBlob, topLevelStackSize);
+
+			auto o = up.get().as<std::vector<msgpack::object>>();
+
+			for (auto& e : o)
+			{
+				msgpack::sbuffer sb;
+				msgpack::pack(sb, e);
+
+				vis->SubmitStackFrame(sb.data(), sb.size());
+			}
+		}
+
+		for (int i = 0; i < fx::ms_runtimeStack.size(); i++)
+		{
+			auto rit = fx::ms_runtimeStack.begin() + i;
+			auto bit = fx::ms_boundaryStack.begin() + i;
+
+			fx::OMPtr<IScriptRuntime> rt(*rit);
+			fx::OMPtr<IScriptStackWalkingRuntime> srt;
+
+			if (FX_SUCCEEDED(rt.As(&srt)))
+			{
+				auto& b = bit->first;
+				auto& e = bit->second;
+
+				srt->WalkStack(e ? (char*)e->data() : NULL, e ? e->size() : 0, b ? (char*)b->data() : NULL, b ? b->size() : NULL, vis.GetRef());
+			}
+		}
+
+		static std::string stackTraceBuffer;
+		stackTraceBuffer = vis->stringTrace.str();
+
+		context.SetResult(stackTraceBuffer.c_str());
+	});
+});

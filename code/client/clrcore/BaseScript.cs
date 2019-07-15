@@ -151,6 +151,11 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
 		{
+			if (GameInterface.SnapshotStackBoundary(out var b))
+			{
+				InternalManager.ScriptHost.SubmitBoundaryEnd(b, b.Length);
+			}
+
 			var nativeHash = Hash.TRIGGER_EVENT_INTERNAL;
 
 #if !IS_FXSERVER
