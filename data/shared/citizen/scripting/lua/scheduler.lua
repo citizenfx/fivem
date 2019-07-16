@@ -56,7 +56,7 @@ local function resumeThread(coro) -- Internal utility
 
 	runningThread = coro
 
-	Citizen.SubmitBoundaryStart(threads[coro].boundary)
+	Citizen.SubmitBoundaryStart(threads[coro].boundary, coro)
 	local ok, wakeTimeOrErr = coroutine.resume(coro)
 	
 	if ok then

@@ -405,8 +405,16 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		{
 			auto startRef = (LuaBoundary*)start;
 			lua_pushinteger(L, startRef->hint);
-			lua_pushthread(startRef->thread);
-			lua_xmove(startRef->thread, L, 1);
+
+			if (startRef->thread)
+			{
+				lua_pushthread(startRef->thread);
+				lua_xmove(startRef->thread, L, 1);
+			}
+			else
+			{
+				lua_pushnil(L);
+			}
 		}
 		else
 		{
@@ -418,8 +426,16 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		{
 			auto endRef = (LuaBoundary*)end;
 			lua_pushinteger(L, endRef->hint);
-			lua_pushthread(endRef->thread);
-			lua_xmove(endRef->thread, L, 1);
+
+			if (endRef->thread)
+			{
+				lua_pushthread(endRef->thread);
+				lua_xmove(endRef->thread, L, 1);
+			}
+			else
+			{
+				lua_pushnil(L);
+			}
 		}
 		else
 		{
