@@ -172,6 +172,8 @@ namespace CitizenFX.Core
 					Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
 				}
 			}
+
+			InternalManager.ScriptHost.SubmitBoundaryEnd(null, 0);
 		}
 
 		private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)

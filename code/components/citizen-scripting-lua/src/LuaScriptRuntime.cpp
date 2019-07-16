@@ -1593,8 +1593,6 @@ result_t LuaScriptRuntime::WalkStack(char* boundaryStart, uint32_t boundaryStart
 {
 	if (m_stackTraceRoutine)
 	{
-		LuaPushEnvironment pushed(this);
-
 		char* out = nullptr;
 		size_t outLen = 0;
 

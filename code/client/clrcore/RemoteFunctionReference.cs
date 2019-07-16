@@ -94,6 +94,8 @@ namespace CitizenFX.Core
 			var retval = new byte[retLength];
 			Marshal.Copy(resBytes, retval, 0, retval.Length);
 
+			InternalManager.ScriptHost.SubmitBoundaryEnd(null, 0);
+
 			return retval;
 		}
 	}

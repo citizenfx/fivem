@@ -33,6 +33,9 @@ local function getBoundaryFunc(bfn, bid)
 		end
 		
 		local v = table.pack(wrap(...))
+		
+		bfn(boundary, nil)
+		
 		return table.unpack(v)
 	end
 end
