@@ -19,6 +19,8 @@ namespace fx
 
 		std::shared_ptr<ConsoleCommand> m_addEndpointCommand;
 
+		int m_primaryPort;
+
 	public:
 		TcpListenManager();
 
@@ -29,6 +31,11 @@ namespace fx
 		inline fwRefContainer<net::TcpServerManager> GetTcpStack()
 		{
 			return m_tcpStack;
+		}
+
+		inline int GetPrimaryPort()
+		{
+			return m_primaryPort;
 		}
 
 		virtual void AttachToObject(ServerInstanceBase* instance) override;
