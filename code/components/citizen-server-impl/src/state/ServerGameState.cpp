@@ -317,7 +317,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 	uint16_t objIdAlias = objectId;
 	debug::Alias(&objIdAlias);
 
-	std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+	std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 	auto ptr = m_entitiesById[objectId];
 
 	return ptr.lock();
@@ -335,7 +335,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
 	{
 		if (guidData->type == ScriptGuid::Type::Entity)
 		{
-			std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+			std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 			auto ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
 
 			return ptr.lock();
@@ -1602,7 +1602,7 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 
 		// unset weak pointer, as well
 		{
-			std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+			std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 			m_entitiesById[objectId].reset();
 		}
 	};
@@ -1611,7 +1611,7 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 		std::weak_ptr<sync::SyncEntityState> entity;
 
 		{
-			std::shared_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+			std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 			entity = m_entitiesById[objectId];
 		}
 
@@ -1721,7 +1721,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			createdHere = true;
 
 			{
-				std::unique_lock<std::shared_mutex> lock(m_entitiesByIdMutex);
+				std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 
 				std::weak_ptr<sync::SyncEntityState> weakEntity(entity);
 				m_entitiesById[objectId].swap(weakEntity);
@@ -2110,7 +2110,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 			int used = 0;
 
 			{
-				std::shared_lock<std::shared_mutex> entityListLock(m_entitiesByIdMutex);
+				std::unique_lock<std::mutex> entityListLock(m_entitiesByIdMutex);
 
 				for (auto object : data->objectIds)
 				{

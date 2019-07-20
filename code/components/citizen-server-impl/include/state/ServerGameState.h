@@ -378,7 +378,8 @@ public:
 	std::vector<std::weak_ptr<sync::SyncEntityState>> m_entitiesById;
 
 	// this mutex is needed at least until C++20 std::atomic<std::weak_ptr<..>> reaches implementations
-	std::shared_mutex m_entitiesByIdMutex;
+	// NOTE: this can't be a shared_mutex as control block moving might still be a write op
+	std::mutex m_entitiesByIdMutex;
 
 	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
 	std::shared_mutex m_entityListMutex;
