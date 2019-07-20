@@ -155,6 +155,8 @@ const int EnginePowerMultiplierOffset = 0xAC0;
 const int CanWheelsBreakOffset = 0x923; // todo - check?
 const int BlinkerState = 0x929;
 const int WheelieState = 0x14F9;
+const int VehicleTypeOffset = 0xBA8;
+const int TrainTrackNodeIndex = 0x14C0;
 
 // Wheel class
 const int WheelXOffsetOffset = 0x030;
@@ -450,6 +452,21 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEELIE_STATE", readVehicleMemory<unsigned char, WheelieState>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEELIE_STATE", writeVehicleMemory<unsigned char, WheelieState>);
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CURRENT_TRACK_NODE", [](fx::ScriptContext& context)
+	{
+		int trackNode = -1;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			if (readValue<int>(vehicle, VehicleTypeOffset) == 14) // is vehicle a train
+			{
+				trackNode = readValue<int>(vehicle, TrainTrackNodeIndex);
+			}
+		}
+
+		context.SetResult<int>(trackNode);
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_X_OFFSET", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
