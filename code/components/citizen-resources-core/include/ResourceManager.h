@@ -169,7 +169,7 @@ public:
 	//
 	// Gets the current resource manager.
 	//
-	static RESOURCES_CORE_EXPORT ResourceManager* GetCurrent();
+	static RESOURCES_CORE_EXPORT ResourceManager* GetCurrent(bool allowFallback = true);
 };
 
 RESOURCES_CORE_EXPORT ResourceManager* CreateResourceManager();

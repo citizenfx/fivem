@@ -19,7 +19,7 @@ static InitFunction initFunction([] ()
 {
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_EVENT_INTERNAL", [] (fx::ScriptContext& context)
 	{
-		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
+		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent(false);
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		// trigger the event
@@ -31,7 +31,7 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("CANCEL_EVENT", [] (fx::ScriptContext& context)
 	{
-		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
+		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent(false);
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		eventManager->CancelEvent();
@@ -39,7 +39,7 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("WAS_EVENT_CANCELED", [] (fx::ScriptContext& context)
 	{
-		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent();
+		static fx::ResourceManager* manager = fx::ResourceManager::GetCurrent(false);
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		context.SetResult(eventManager->WasLastEventCanceled());

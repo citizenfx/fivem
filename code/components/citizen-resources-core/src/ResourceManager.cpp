@@ -12,6 +12,7 @@
 
 #include <ETWProviders/etwprof.h>
 
+static fx::ResourceManager* g_globalManager;
 static thread_local fx::ResourceManager* g_currentManager;
 
 namespace fx
@@ -202,11 +203,16 @@ void ResourceManagerImpl::Tick()
 	g_currentManager = lastManager;
 }
 
-ResourceManager* ResourceManager::GetCurrent()
+ResourceManager* ResourceManager::GetCurrent(bool allowFallback /* = true */)
 {
 	if (!g_currentManager)
 	{
-		throw std::runtime_error("No current resource manager.");
+		if (!allowFallback)
+		{
+			throw std::runtime_error("No current resource manager.");
+		}
+
+		return g_globalManager;
 	}
 
 	return g_currentManager;
@@ -215,6 +221,7 @@ ResourceManager* ResourceManager::GetCurrent()
 void ResourceManagerImpl::MakeCurrent()
 {
 	g_currentManager = this;
+	g_globalManager = this;
 }
 
 static std::function<std::string(const std::string&, const std::string&)> g_callRefCallback;
