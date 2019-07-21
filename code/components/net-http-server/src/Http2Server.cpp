@@ -285,6 +285,10 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 						{
 							headerList.insert(header);
 						}
+						else if (header.first == ":authority")
+						{
+							headerList.emplace("host", header.second);
+						}
 					}
 
 					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, req->headers[":method"], req->headers[":path"], headerList, req->connection->stream->GetPeerAddress().ToString());
