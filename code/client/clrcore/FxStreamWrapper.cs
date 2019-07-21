@@ -1,15 +1,34 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace CitizenFX.Core
 {
 	public class FxStreamWrapper : Stream
 	{
-		private readonly fxIStream m_stream;
+		private fxIStream m_stream;
 
 		public FxStreamWrapper(fxIStream stream)
 		{
 			m_stream = stream;
+		}
+
+		~FxStreamWrapper()
+		{
+			Dispose(false);
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				if (m_stream is IDisposable disposable)
+				{
+					disposable.Dispose();
+				}
+			}
+
+			m_stream = null;
 		}
 
 		public override void Flush()

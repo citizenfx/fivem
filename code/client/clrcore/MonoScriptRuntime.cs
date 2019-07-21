@@ -87,10 +87,13 @@ namespace CitizenFX.Core
 
 		public void Destroy()
 		{
+			m_intManager?.Destroy();
+
 			AppDomain.Unload(m_appDomain);
 
 			m_appDomain = null;
 			m_intManager = null;
+			m_scriptHost = null;
 		}
 
 		public IntPtr GetParentObject()
@@ -278,9 +281,9 @@ namespace CitizenFX.Core
 			return new PushRuntime(this);
 		}
 
-		public class WrapIStream : MarshalByRefObject, fxIStream
+		public class WrapIStream : MarshalByRefObject, fxIStream, IDisposable
 		{
-			private readonly fxIStream m_realStream;
+			private fxIStream m_realStream;
 
 			public WrapIStream(fxIStream realStream)
 			{
@@ -305,6 +308,26 @@ namespace CitizenFX.Core
 			public long GetLength()
 			{
 				return m_realStream.GetLength();
+			}
+
+			private bool disposedValue = false;
+
+			protected virtual void Dispose(bool disposing)
+			{
+				if (!disposedValue)
+				{
+					if (disposing)
+					{
+						m_realStream = null;
+					}
+
+					disposedValue = true;
+				}
+			}
+
+			public void Dispose()
+			{
+				Dispose(true);
 			}
 		}
 

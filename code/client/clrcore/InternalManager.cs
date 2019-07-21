@@ -46,6 +46,16 @@ namespace CitizenFX.Core
 #endif
 		}
 
+		[SecuritySafeCritical]
+		public void Destroy()
+		{
+			if (m_retvalBuffer != IntPtr.Zero)
+			{
+				Marshal.FreeHGlobal(m_retvalBuffer);
+				m_retvalBuffer = IntPtr.Zero;
+			}
+		}
+
 		public void SetResourceName(string resourceName)
 		{
 			m_resourceName = resourceName;
@@ -164,22 +174,30 @@ namespace CitizenFX.Core
 			{
 				try
 				{
-					var assemblyStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll")));
-					var assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
+					byte[] assemblyBytes;
+
+					using (var assemblyStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll"))))
+					{
+						assemblyBytes = assemblyStream.ReadBytes((int)assemblyStream.BaseStream.Length);
+					}
 
 					byte[] symbolBytes = null;
 
 					try
 					{
-						var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll.mdb")));
-						symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+						using (var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".dll.mdb"))))
+						{
+							symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+						}
 					}
 					catch
 					{
 						try
 						{
-							var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".pdb")));
-							symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+							using (var symbolStream = new BinaryReader(new FxStreamWrapper(ScriptHost.OpenHostFile(name + ".pdb"))))
+							{
+								symbolBytes = symbolStream.ReadBytes((int)symbolStream.BaseStream.Length);
+							}
 						}
 						catch
 						{
@@ -354,6 +372,7 @@ namespace CitizenFX.Core
 					if (m_retvalBufferSize < retvalData.Length)
 					{
 						m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
+						m_retvalBufferSize = retvalData.Length;
 					}
 
 					Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
@@ -512,7 +531,10 @@ namespace CitizenFX.Core
 					Marshal.FreeHGlobal(stringRef);
 				}
 
-				return (fxIStream)Marshal.GetObjectForIUnknown(retVal);
+				var s = (fxIStream)Marshal.GetObjectForIUnknown(retVal);
+				Marshal.Release(retVal);
+
+				return s;
 			}
 
 			[SecuritySafeCritical]
@@ -539,7 +561,10 @@ namespace CitizenFX.Core
 					Marshal.FreeHGlobal(stringRef);
 				}
 
-				return (fxIStream)Marshal.GetObjectForIUnknown(retVal);
+				var s = (fxIStream)Marshal.GetObjectForIUnknown(retVal);
+				Marshal.Release(retVal);
+
+				return s;
 			}
 
 			[SecuritySafeCritical]
