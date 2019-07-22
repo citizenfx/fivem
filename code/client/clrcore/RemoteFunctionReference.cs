@@ -80,23 +80,28 @@ namespace CitizenFX.Core
 				InternalManager.ScriptHost.SubmitBoundaryEnd(b, b.Length);
 			}
 
-			IntPtr resBytes;
-			long retLength;
-
-			unsafe
+			try
 			{
-				fixed (byte* argsSerializedRef = &argsSerialized[0])
+				IntPtr resBytes;
+				long retLength;
+
+				unsafe
 				{
-					resBytes = Native.Function.Call<IntPtr>(Native.Hash.INVOKE_FUNCTION_REFERENCE, m_reference, argsSerializedRef, argsSerialized.Length, &retLength);
+					fixed (byte* argsSerializedRef = &argsSerialized[0])
+					{
+						resBytes = Native.Function.Call<IntPtr>(Native.Hash.INVOKE_FUNCTION_REFERENCE, m_reference, argsSerializedRef, argsSerialized.Length, &retLength);
+					}
 				}
+
+				var retval = new byte[retLength];
+				Marshal.Copy(resBytes, retval, 0, retval.Length);
+
+				return retval;
 			}
-
-			var retval = new byte[retLength];
-			Marshal.Copy(resBytes, retval, 0, retval.Length);
-
-			InternalManager.ScriptHost.SubmitBoundaryEnd(null, 0);
-
-			return retval;
+			finally
+			{
+				InternalManager.ScriptHost.SubmitBoundaryEnd(null, 0);
+			}
 		}
 	}
 

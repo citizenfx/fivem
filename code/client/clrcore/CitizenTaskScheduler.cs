@@ -168,7 +168,11 @@ namespace CitizenFX.Core
             Factory = new TaskFactory(Instance);
 
 			TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+		}
 
+		[SecuritySafeCritical]
+		public static void MakeDefault()
+		{
 			var field = typeof(TaskScheduler).GetField("s_defaultTaskScheduler", BindingFlags.Static | BindingFlags.NonPublic);
 			field.SetValue(null, Instance);
 

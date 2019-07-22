@@ -39,7 +39,14 @@ namespace CitizenFX.Core
 			Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
 			InitializeAssemblyResolver();
+
 			CitizenTaskScheduler.Create();
+		}
+
+		[SecuritySafeCritical]
+		public void CreateTaskScheduler()
+		{
+			CitizenTaskScheduler.MakeDefault();
 
 #if !IS_FXSERVER
 			SynchronizationContext.SetSynchronizationContext(new CitizenSynchronizationContext());
@@ -293,6 +300,10 @@ namespace CitizenFX.Core
 			{
 				PrintError("tick", e);
 			}
+			finally
+			{
+				ScriptHost.SubmitBoundaryStart(null, 0);
+			}
 		}
 
 		[SecuritySafeCritical]
@@ -332,6 +343,10 @@ namespace CitizenFX.Core
 			catch (Exception e)
 			{
 				PrintError($"event ({eventName})", e);
+			}
+			finally
+			{
+				ScriptHost.SubmitBoundaryStart(null, 0);
 			}
 		}
 

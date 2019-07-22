@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -82,7 +83,7 @@ namespace CitizenFX.Core
 		{
 			if (!CurrentTaskList.ContainsKey(call))
 			{
-				CurrentTaskList.Add(call, Task.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
+				CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
 				{
 					if (a.IsFaulted)
 					{
@@ -104,7 +105,7 @@ namespace CitizenFX.Core
 		/// <returns>An awaitable task.</returns>
 		public static Task Delay(int msecs)
 		{
-			return Task.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
+			return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, CitizenTaskScheduler.Instance);
 		}
 
 		[SecuritySafeCritical]
@@ -151,29 +152,42 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private static void TriggerEventInternal(string eventName, byte[] argsSerialized, bool isRemote)
 		{
-			if (GameInterface.SnapshotStackBoundary(out var b))
+			try
 			{
-				InternalManager.ScriptHost.SubmitBoundaryEnd(b, b.Length);
-			}
+				if (GameInterface.SnapshotStackBoundary(out var b))
+				{
+					InternalManager.ScriptHost.SubmitBoundaryEnd(b, b.Length);
+				}
 
-			var nativeHash = Hash.TRIGGER_EVENT_INTERNAL;
+				var nativeHash = Hash.TRIGGER_EVENT_INTERNAL;
 
 #if !IS_FXSERVER
-			if (isRemote)
-			{
-				nativeHash = Hash.TRIGGER_SERVER_EVENT_INTERNAL;
-			}
+				if (isRemote)
+				{
+					nativeHash = Hash.TRIGGER_SERVER_EVENT_INTERNAL;
+				}
 #endif
 
-			unsafe
-			{
-				fixed (byte* serialized = &argsSerialized[0])
+				unsafe
 				{
-					Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
+					fixed (byte* serialized = &argsSerialized[0])
+					{
+						Function.Call(nativeHash, eventName, serialized, argsSerialized.Length);
+					}
 				}
-			}
 
-			InternalManager.ScriptHost.SubmitBoundaryEnd(null, 0);
+				PreventTailCall();
+			}
+			finally
+			{
+				InternalManager.ScriptHost.SubmitBoundaryEnd(null, 0);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static void PreventTailCall()
+		{
+
 		}
 
 		private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)

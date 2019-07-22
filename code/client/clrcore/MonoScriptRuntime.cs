@@ -41,6 +41,8 @@ namespace CitizenFX.Core
 				((IScriptHostWithResourceData)host).GetResourceName(out var nameString);
 				string resourceName = Marshal.PtrToStringAnsi(nameString);
 
+				bool useTaskScheduler = true;
+
 #if IS_FXSERVER
 				string basePath = "";
 
@@ -49,6 +51,7 @@ namespace CitizenFX.Core
 					InternalManager.ScriptHost = host;
 
 					basePath = Native.API.GetResourcePath(resourceName);
+					useTaskScheduler = Native.API.GetNumResourceMetadata(resourceName, "clr_disable_task_scheduler") == 0;
 				}
 #endif
 
@@ -62,6 +65,11 @@ namespace CitizenFX.Core
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
+
+				if (useTaskScheduler)
+				{
+					m_intManager.CreateTaskScheduler();
+				}
 
 				m_intManager.SetResourceName(resourceName);
 
