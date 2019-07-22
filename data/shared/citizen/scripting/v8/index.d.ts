@@ -78,5 +78,6 @@ declare function TriggerClientEvent(eventName: string, target: number|string, ..
 declare function removeEventListener(eventName: string, callback: Function): void
 
 declare function setTick(callback: Function): void
+declare function clearTick(id: number): void
 
 declare var exports: any;
