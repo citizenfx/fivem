@@ -664,11 +664,13 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 	std::vector<std::string> right = syncLog[netObject->objectId][node];
 
 	auto t = g_netObjectNodeMapping[netObject->objectId][node];
+	int max = std::max(left.size(), right.size());
 	
 	ImGui::Text("Last %s: %d ms ago", std::get<int>(t) ? "written" : "read", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - std::get<uint32_t>(t));
 	ImGui::Text("Last ack: %d ms ago", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - rage::g_syncData[netObject->objectId].nodes[node].lastAck);
 	ImGui::Text("Last change: %d ms ago", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - rage::g_syncData[netObject->objectId].nodes[node].lastChange);
 	ImGui::Text("Change - Ack: %d ms", rage::g_syncData[netObject->objectId].nodes[node].lastChange - rage::g_syncData[netObject->objectId].nodes[node].lastAck);
+	ImGui::Text("Total: %d", max);
 
 	ImGui::Columns(2);
 	ImGui::Text("Current");
@@ -676,7 +678,7 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 	ImGui::Text("Saved");
 	ImGui::NextColumn();
 
-	for (int i = 0; i < std::max(left.size(), right.size()); i++)
+	for (int i = 0; i < max; i++)
 	{
 		if (i < left.size())
 		{
