@@ -54,5 +54,6 @@
 	"extra-natives:five",
 	"discord",
 	"voip:mumble",
-	"scrbind:base"
+	"scrbind:base",
+	"citizen:mod-loader:five"
 ]

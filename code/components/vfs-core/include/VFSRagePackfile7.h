@@ -38,6 +38,7 @@ namespace vfs
 			bool compressed;
 			Entry entry;
 			size_t curOffset;
+			size_t curDecOffset;
 
 			uint8_t zbuf[0x2000];
 			z_stream strm;
@@ -48,6 +49,8 @@ namespace vfs
 
 			}
 		};
+
+		void InternalRead(HandleData* handleData);
 
 	private:
 		fwRefContainer<Device> m_parentDevice;
@@ -109,6 +112,6 @@ namespace vfs
 		virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
 
 	public:
-		bool OpenArchive(const std::string& archivePath);
+		bool OpenArchive(const std::string& archivePath, bool needsEncryption = false);
 	};
 }
