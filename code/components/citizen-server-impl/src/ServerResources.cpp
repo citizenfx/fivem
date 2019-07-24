@@ -97,14 +97,18 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::share
 	);
 }
 
+static std::shared_ptr<ConVar<std::string>> g_citizenDir;
+
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
 	auto resMan = instance->GetComponent<fx::ResourceManager>();
 
 	std::string resourceRoot(instance->GetRootPath() + "/resources/");
+	std::string systemResourceRoot(g_citizenDir->GetValue() + "/system_resources/");
 
 	std::queue<std::string> pathsToIterate;
 	pathsToIterate.push(resourceRoot);
+	pathsToIterate.push(systemResourceRoot);
 
 	std::vector<pplx::task<fwRefContainer<fx::Resource>>> tasks;
 
@@ -240,7 +244,7 @@ static InitFunction initFunction([]()
 		});
 
 		{
-			static auto citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, "");
+			g_citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, "");
 
 			// create cache directory if needed
 			auto device = vfs::GetDevice(instance->GetRootPath());
@@ -254,7 +258,7 @@ static InitFunction initFunction([]()
 				device->CreateDirectory(cacheDir + "files/");
 			}
 
-			vfs::Mount(new vfs::RelativeDevice(citizenDir->GetValue() + "/"), "citizen:/");
+			vfs::Mount(new vfs::RelativeDevice(g_citizenDir->GetValue() + "/"), "citizen:/");
 			vfs::Mount(new vfs::RelativeDevice(cacheDir), "cache:/");
 		}
 
