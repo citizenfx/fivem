@@ -153,14 +153,9 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnTick.Connect([=] ()
 	{
-		for (auto& environmentPair : m_scriptRuntimes)
+		for (const auto& [id, tickRuntime] : m_tickRuntimes)
 		{
-			OMPtr<IScriptTickRuntime> tickRuntime;
-
-			if (FX_SUCCEEDED(environmentPair.second.As(&tickRuntime)))
-			{
-				tickRuntime->Tick();
-			}
+			tickRuntime->Tick();
 		}
 	});
 
@@ -176,6 +171,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			environmentPair.second->Destroy();
 		}
 
+		m_tickRuntimes.clear();
 		m_scriptRuntimes.clear();
 	});
 }
@@ -240,6 +236,19 @@ void ResourceScriptingComponent::CreateEnvironments()
 		});
 	}
 
+	// pre-cache tick runtimes
+	{
+		for (auto& [ id, runtime ] : m_scriptRuntimes)
+		{
+			OMPtr<IScriptTickRuntime> tickRuntime;
+
+			if (FX_SUCCEEDED(runtime.As(&tickRuntime)))
+			{
+				m_tickRuntimes[id] = tickRuntime;
+			}
+		}
+	}
+
 	// iterate over the runtimes and load scripts as requested
 	for (auto& environmentPair : m_scriptRuntimes)
 	{
@@ -258,8 +267,6 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 		if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 		{
-			bool environmentUsed = false;
-
 			for (auto& list : { sharedScripts, clientScripts }) {
 				for (auto& script : list)
 				{
