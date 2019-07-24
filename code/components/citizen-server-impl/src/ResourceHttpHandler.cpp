@@ -279,9 +279,8 @@ static InitFunction initFunction([]()
 
 			if (resource.GetRef() && resource->GetState() == fx::ResourceState::Started)
 			{
-				response->WriteHead(302, {
-					{ "Location", "/webadmin/" }
-				});
+				response->SetStatusCode(302);
+				response->SetHeader("Location", "/webadmin/");
 
 				response->End("Redirecting...");
 				return;
