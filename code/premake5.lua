@@ -288,6 +288,13 @@ end)
 			"../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll"
 		}
 
+		if os.istarget('linux') then
+			links {
+				"/usr/lib/mono/4.5/Facades/System.Runtime.dll",
+				"/usr/lib/mono/4.5/Facades/System.IO.dll"
+			}
+		end
+
 		buildoptions '/debug:portable /langversion:7.3'
 
 		configuration "Debug*"
