@@ -102,6 +102,9 @@ namespace fx
 			// start sessionmanager
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
 
+			// start webadmin
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
+
 			for (const auto& bit : optionParser->GetArguments())
 			{
 				consoleCtx->ExecuteSingleCommandDirect(bit);

@@ -13,6 +13,9 @@
 
 #include <optional>
 
+#include <json.hpp>
+#include <cfx_version.h>
+
 #include <MonoThreadAttachment.h>
 
 // HTTP handler
@@ -266,5 +269,31 @@ static InitFunction initFunction([]()
 				resource->GetComponent<ResourceHttpComponent>()->SetHandlerRef(context.GetArgument<const char*>(0));
 			}
 		}
+	});
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		{
+			auto resource = instance->GetComponent<fx::ResourceManager>()->GetResource("webadmin");
+
+			if (resource.GetRef() && resource->GetState() == fx::ResourceState::Started)
+			{
+				response->WriteHead(302, {
+					{ "Location", "/webadmin/" }
+				});
+
+				response->End("Redirecting...");
+				return;
+			}
+
+			auto data = nlohmann::json::object(
+				{
+					{ "version", "FXServer-" GIT_DESCRIPTION }
+				}
+			);
+
+			response->End(data.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
+		});
 	});
 });

@@ -112,12 +112,16 @@ namespace CitizenFX.Core
 		{
 			if (ms_loadedAssemblies.ContainsKey(assemblyFile))
 			{
+#if !IS_FXSERVER
 				Debug.WriteLine("Returning previously loaded assembly {0}", ms_loadedAssemblies[assemblyFile].FullName);
+#endif
 				return ms_loadedAssemblies[assemblyFile];
 			}
 
 			var assembly = Assembly.Load(assemblyData, symbolData);
+#if !IS_FXSERVER
 			Debug.WriteLine("Loaded {1} into {0}", AppDomain.CurrentDomain.FriendlyName, assembly.FullName);
+#endif
 
 			ms_loadedAssemblies[assemblyFile] = assembly;
 

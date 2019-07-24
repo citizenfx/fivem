@@ -1,0 +1,49 @@
+<header class="app-header navbar">
+  <button class="navbar-toggler sidebar-toggler d-lg-none mr-auto" type="button" data-toggle="sidebar-show">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <a class="navbar-brand" href="#">
+    FXServer
+  </a>
+
+  @await Html.PartialAsync("_HeaderNav.cshtml")
+
+  @if (User?.Identity?.IsAuthenticated ?? false)
+  {
+    <ul class="nav navbar-nav ml-auto">
+        <li class="nav-item dropdown">
+            <a class="nav-link px-3" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                @User.Identity.Name
+                <img class="img-avatar" src='@(User.FindFirst("cfx:avatar")?.Value ?? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==")'>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right">
+                <div class="dropdown-header text-center">
+                    <strong>Account</strong>
+                </div>
+                <form asp-controller="Auth" asp-action="Logout" method="post" id="logoutForm">
+                    <script>
+                    function logout() {
+                        $('#logoutForm').submit();
+                    }
+                    </script>
+                    <a class="dropdown-item" href="javascript: void(0)" onclick="logout()">
+                    <i class="fa fa-lock"></i> Logout
+                    </a>
+                </form>
+
+            </div>
+        </li>
+    </ul>
+  }
+  else
+  {
+    <ul class="nav navbar-nav ml-auto">
+        <li class="nav-item">
+            <a class="nav-link px-3" asp-controller="Auth" asp-action="Login" role="button">
+                Login
+            </a>
+        </li>
+    </ul>   
+  }
+
+</header>

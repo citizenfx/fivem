@@ -279,6 +279,16 @@ $LauncherVersion = $GameVersion
 
 if (!$DontBuild -and $IsServer) {
     Remove-Item -Recurse -Force $WorkDir\out
+    
+    Push-Location $WorkDir\ext\system-resources
+    .\build.cmd
+
+    if ($?) {
+        New-Item -ItemType Directory -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
+        Copy-Item -Force -Recurse $WorkDir\ext\system-resources\data\* $WorkDir\data\server\citizen\system_resources\
+    }
+
+    Pop-Location
 
     New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
     New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
