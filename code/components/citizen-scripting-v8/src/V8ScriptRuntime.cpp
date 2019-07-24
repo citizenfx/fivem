@@ -42,6 +42,8 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 
 #include <fstream>
 
+#include <tbb/concurrent_queue.h>
+
 #include <Error.h>
 
 extern int g_argc;
@@ -597,6 +599,8 @@ struct RefAndPersistent {
 	fx::OMPtr<IScriptHost> host;
 };
 
+static tbb::concurrent_queue<RefAndPersistent*> g_cleanUpFuncRefs;
+
 static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto external = Local<External>::Cast(args.Data());
@@ -646,7 +650,9 @@ static void FnRefWeakCallback(
 	v8::Local<Function> v = data.GetParameter()->handle.Get(data.GetIsolate());
 
 	data.GetParameter()->handle.Reset();
-	delete data.GetParameter();
+
+	// defer this to the next tick so that we won't end up deadlocking (the V8 lock is held at GC interrupt time, but the runtime lock is not)
+	g_cleanUpFuncRefs.push(data.GetParameter());
 }
 
 static void V8_MakeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -2050,6 +2056,20 @@ void V8ScriptGlobals::Initialize()
 static InitFunction initFunction([]()
 {
 	g_v8.Initialize();
+
+	// trigger removing funcrefs on the *resource manager* so that it'll still happen when a runtime is destroyed
+	ResourceManager::OnInitializeInstance.Connect([](ResourceManager* manager)
+	{
+		manager->OnTick.Connect([]()
+		{
+			RefAndPersistent* deleteRef;
+
+			while (g_cleanUpFuncRefs.try_pop(deleteRef))
+			{
+				delete deleteRef;
+			}
+		});
+	});
 });
 
 V8ScriptGlobals::~V8ScriptGlobals()
