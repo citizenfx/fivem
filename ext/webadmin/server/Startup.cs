@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -58,10 +59,41 @@ namespace FxWebAdmin
                 })
                 .AddRemoteScheme<Authentication.DiscourseAuthenticationOptions, Authentication.DiscourseAuthenticationHandler>
                     ("discourse", "Discourse", options => {
+                        var clientId = "12345678901234567890123456789012";
+
+                        string BuildRandomString(int bytes)
+                        {
+                            var byteArray = new byte[bytes];
+
+                            using (var rng = RandomNumberGenerator.Create())
+                            {
+                                rng.GetBytes(byteArray);
+                            }
+
+                            return string.Concat(byteArray.Select(a => $"{a:X2}"));
+                        }
+
+                        var clientIdPath = Path.Combine(Startup.RootPath, "discourse_client_id");
+
+                        try
+                        {
+                            if (File.Exists(clientIdPath))
+                            {
+                                clientId = File.ReadAllText(clientIdPath);
+                            }
+                            else
+                            {
+                                clientId = BuildRandomString(16);
+
+                                File.WriteAllText(clientIdPath, clientId);
+                            }
+                        }
+                        catch {}
+
                         using (var rsa = RSA.Create())
                         {
                             options.RSAKey = rsa.ExportParameters(true);
-                            options.ClientId = "12345678901234567890123456789012";
+                            options.ClientId = clientId;
                             options.ApplicationName = $"FXServer on {GetConvar("sv_hostname", "")}";
                             options.DiscourseUri = new Uri("https://forum.fivem.net/");
                         }

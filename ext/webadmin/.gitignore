@@ -6,6 +6,9 @@
 # MaxMind DB
 *.mmdb
 
+# webadmin discourse id
+discourse_client_id
+
 # User-specific files
 *.rsuser
 *.suo
