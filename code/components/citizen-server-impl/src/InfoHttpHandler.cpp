@@ -31,6 +31,7 @@ static InitFunction initFunction([]()
 		static auto instanceRef = instance;
 		static auto ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
 		static auto maxClientsVar = instance->AddVariable<int>("sv_maxClients", ConVar_ServerInfo, 30);
+		static auto iconVar = instance->AddVariable<std::string>("sv_icon", ConVar_None, "");
 		static auto versionVar = instance->AddVariable<std::string>("version", ConVar_None, "FXServer-" GIT_DESCRIPTION);
 		static auto crashCmd = instance->AddCommand("_crash", []()
 		{
@@ -152,9 +153,12 @@ static InitFunction initFunction([]()
 						{
 							stream->Seek(0, SEEK_SET);
 							auto iconBytes = stream->ReadToEnd();
+							auto iconString = Botan::base64_encode(iconBytes);;
 
-							infoData->infoJson["icon"] = Botan::base64_encode(iconBytes);
+							infoData->infoJson["icon"] = iconString;
 							infoData->Update();
+
+							iconVar->GetHelper()->SetRawValue(iconString);
 						}
 						else
 						{
