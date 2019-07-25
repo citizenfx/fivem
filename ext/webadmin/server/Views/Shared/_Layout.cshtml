@@ -2,6 +2,8 @@
     Layout = "_LayoutBase";
 }
 @using CitizenFX.Core.Native
+@using Microsoft.AspNetCore.Http
+@using FxWebAdmin
 
 @await Html.PartialAsync("_Header.cshtml")
 
@@ -13,6 +15,22 @@
 </div>
 <main class="main">
 <div class="container-fluid">
+@if (Context.Session.GetString("alert") != null)
+{
+    var alert = Context.Session.Get<Alert>("alert");
+    Context.Session.Remove("alert");
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12 my-2">
+                <div class="@alert.Class" role="alert">
+                    @(alert.Text)
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @RenderBody()
 </div>
 </main>

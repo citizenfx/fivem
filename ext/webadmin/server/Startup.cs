@@ -22,6 +22,15 @@ namespace FxWebAdmin
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDistributedMemoryCache();
+
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromHours(1);
+                options.Cookie.IsEssential = true;
+                options.Cookie.Name = ".FxWebAdmin.Session";
+            });
+
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options => {
                     options.LoginPath = "/Auth/Login";
@@ -83,6 +92,8 @@ namespace FxWebAdmin
 
         public void Configure(IApplicationBuilder app)
         {
+            app.UseSession();
+
             app.UseAuthentication();
 
             app.UseMvc(routes => {

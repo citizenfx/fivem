@@ -58,6 +58,23 @@ namespace FxWebAdmin
             return tcs.Task;
         }
 
+        private class RefHolder<T>
+        {
+            public T Value { get; set; }
+        }
+
+        public static async Task<T> QueueTick<T>(Func<T> action)
+        {
+            var refHolder = new RefHolder<T>();
+
+            await QueueTick(() => 
+            {
+                refHolder.Value = action();
+            });
+
+            return refHolder.Value;
+        }
+
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
         public void Dispose()
@@ -142,7 +159,7 @@ namespace FxWebAdmin
                     {
                         res.writeHead(owinEnvironment.ContainsKey("owin.ResponseStatusCode") ? (int)owinEnvironment["owin.ResponseStatusCode"] : 200, 
                             realOutHeaders.ToDictionary(a => a.Key, a => a.Value));
-                    
+
                         res.write(outStream.ToArray());
 
                         res.send();
@@ -296,8 +313,8 @@ namespace FxWebAdmin
 
     internal class FxOwinFeatureCollection : OwinFeatureCollection, IHttpResponseFeature
     {
-        private Func<Task> m_onStarting;
-        private Func<Task> m_onCompleted;
+        private List<Func<Task>> m_onStarting = new List<Func<Task>>();
+        private List<Func<Task>> m_onCompleted = new List<Func<Task>>();
 
         public FxOwinFeatureCollection(IDictionary<string, object> environment)
             : base(environment)
@@ -307,28 +324,34 @@ namespace FxWebAdmin
 
         void IHttpResponseFeature.OnStarting(Func<object, Task> callback, object state)
         {
-            m_onStarting = () =>
+            m_onStarting.Add(() =>
             {
                 return callback(state);
-            };
+            });
         }
 
         void IHttpResponseFeature.OnCompleted(Func<object, Task> callback, object state)
         {
-            m_onCompleted = () =>
+            m_onCompleted.Add(() =>
             {
                 return callback(state);
-            };
+            });
         }
 
-        public Task InvokeOnCompleted()
+        public async Task InvokeOnCompleted()
         {
-            return m_onCompleted?.Invoke() ?? Task.CompletedTask;
+            foreach (var action in m_onCompleted)
+            {
+                await action();
+            }
         }
 
-        public Task InvokeOnStarting()
+        public async Task InvokeOnStarting()
         {
-            return m_onStarting?.Invoke() ?? Task.CompletedTask;
+            foreach (var action in m_onStarting)
+            {
+                await action();
+            }
         }
     }
 
