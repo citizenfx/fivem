@@ -110,15 +110,13 @@
                                     </td>
                                     <td>
                                         <div class="text-muted">
-                                            @foreach (var identifier in player.Identifiers)
+                                            @foreach (var identifier in await IdentifierInfo.Format(player.Identifiers))
                                             {
-                                                @if (!identifier.StartsWith("ip:") || (User?.IsInRole("webadmin.userinfo") ?? false))
+                                                @if (!identifier.Identifier.StartsWith("ip:") || (User?.IsInRole("webadmin.userinfo") ?? false))
                                                 {
-                                                    var identifierInfo = await IdentifierInfo.Format(identifier);
-
                                                     <span class="p-1">
-                                                        <a href="@identifierInfo.Url">
-                                                            <i class="@identifierInfo.Class"></i> @identifierInfo.Name
+                                                        <a href="@identifier.Url">
+                                                            <i class="@identifier.Class"></i> @identifier.Name
                                                         </a>
                                                     </span>
                                                 }

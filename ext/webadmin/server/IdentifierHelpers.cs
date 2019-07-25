@@ -20,6 +20,14 @@ namespace FxWebAdmin
             m_cache = cache;
         }
 
+        public async Task<IEnumerable<IdentifierInfo>> Format(IEnumerable<string> identifiers)
+        {
+            var tasks = identifiers.Select(a => Format(a));
+            var results = await Task.WhenAll(tasks);
+
+            return results;
+        }
+
         public async Task<IdentifierInfo> Format(string identifier)
         {
             var cacheKey = $".IdentifierInfo:{identifier}";
@@ -54,7 +62,6 @@ namespace FxWebAdmin
 
         public async Task<string> FormatAvatar(IEnumerable<string> identifiers)
         {
-            var infos = new List<IdentifierInfo>();
             var tasks = identifiers.Select(a => Format(a));
 
             var results = await Task.WhenAll(tasks);
@@ -90,6 +97,8 @@ namespace FxWebAdmin
                 return cachedString;
             }
 
+            string cc = "us";
+
             try
             {
                 var response = await ms_httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"https://freegeoip.app/json/{endPoint.Replace("[", "").Replace("]", "")}"));
@@ -97,24 +106,22 @@ namespace FxWebAdmin
                 if (response.IsSuccessStatusCode)
                 {
                     var obj = JObject.Parse(await response.Content.ReadAsStringAsync());
-                    var cc = obj.Value<string>("country_code").ToLowerInvariant();
+                    cc = obj.Value<string>("country_code").ToLowerInvariant();
 
                     if (cc == "")
                     {
                         cc = "us";
                     }
-
-                    await m_cache.SetStringAsync(cacheKey, cc, new DistributedCacheEntryOptions()
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6)
-                    });
-
-                    return cc;
                 }
             }
             catch {}
 
-            return "us";
+            await m_cache.SetStringAsync(cacheKey, cc, new DistributedCacheEntryOptions()
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6)
+            });
+
+            return cc;
         }
 
         protected static HttpClient ms_httpClient = new HttpClient();
@@ -146,7 +153,7 @@ namespace FxWebAdmin
                 {
                     var obj = JObject.Parse(await response.Content.ReadAsStringAsync());
 
-                    var userInfo = new IdentifierInfo()
+                    var userInfo = new IdentifierInfo(identifier)
                     {
                         Name = obj.Value<string>("username") + "#" + obj.Value<string>("discriminator"),
                         AvatarUrl = $"https://cdn.discordapp.com/avatars/{userId}/{obj.Value<string>("avatar")}.png",
@@ -177,7 +184,7 @@ namespace FxWebAdmin
                 {
                     var obj = XDocument.Parse(await response.Content.ReadAsStringAsync());
 
-                    var userInfo = new IdentifierInfo()
+                    var userInfo = new IdentifierInfo(identifier)
                     {
                         Name = obj.Root.Element("steamID").Value,
                         AvatarUrl = obj.Root.Element("avatarMedium").Value,
@@ -214,7 +221,7 @@ namespace FxWebAdmin
                         avatarUrl = token.Value<string>().Replace("{size}", "96");
                     }
 
-                    var userInfo = new IdentifierInfo()
+                    var userInfo = new IdentifierInfo(identifier)
                     {
                         Name = obj.Value<string>("username"),
                         AvatarUrl = avatarUrl,
@@ -245,6 +252,12 @@ namespace FxWebAdmin
                 case "live":
                     clss = "fab fa-microsoft";
                     break;
+                case "discord":
+                    clss = "fab fa-discord";
+                    break;
+                case "steam":
+                    clss = "fab fa-steam";
+                    break;
                 case "license":
                     clss = "fa fa-key";
                     break;
@@ -253,7 +266,7 @@ namespace FxWebAdmin
                     break;
             }
 
-            return Task.FromResult(new IdentifierInfo()
+            return Task.FromResult(new IdentifierInfo(identifier)
             {
                 Name = identifier,
                 AvatarUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
@@ -269,5 +282,11 @@ namespace FxWebAdmin
         public string Class { get; set; }
         public string Url { get; set; }
         public string AvatarUrl { get; set; }
+        public string Identifier { get; }
+
+        public IdentifierInfo(string identifier)
+        {
+            Identifier = identifier;
+        }
     }
 }
