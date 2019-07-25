@@ -131,10 +131,14 @@ public:
 	{
 		if (m_chunked)
 		{
-			// assume chunked
-			m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
-			m_clientStream->Write(std::forward<TContainer>(data));
-			m_clientStream->Write("\r\n");
+			// we _don't_ want to send a 0-sized chunk
+			if (data.size() > 0)
+			{
+				// assume chunked
+				m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
+				m_clientStream->Write(std::forward<TContainer>(data));
+				m_clientStream->Write("\r\n");
+			}
 		}
 		else
 		{
