@@ -66,6 +66,7 @@ namespace FxWebAdmin
                     });
 
             services.AddTransient<IClaimsTransformation, FxClaimsTransformer>();
+            services.AddSingleton<IdentifierHelpers, IdentifierHelpers>();
 
             services.AddMvc(service => {
                 var policy = new AuthorizationPolicyBuilder()

@@ -5,6 +5,7 @@
 
 @using FxWebAdmin
 @using CitizenFX.Core.Native
+@inject IdentifierHelpers IdentifierInfo
 @model FxWebAdmin.IndexData
 
 <div class="container-fluid">
@@ -98,22 +99,28 @@
                                 <tr>
                                     <td class="text-center">
                                         <div class="avatar">
-                                            <img class="img-avatar" width="48" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==">
+                                            <img class="img-avatar" width="48" src="@(await IdentifierInfo.FormatAvatar(player.Identifiers))">
                                         </div>
                                     </td>
                                     <td>
                                         @player.Name
                                     </td>
                                     <td class="text-center">
-                                        <i class="flag-icon flag-icon-us h4 mb-0" title="us"></i>
+                                        <i class='@("flag-icon flag-icon-" + (await IdentifierInfo.FormatCountry(player.EndPoint)) + " h4 mb-0")'></i>
                                     </td>
                                     <td>
-                                        <div class="small text-muted">
+                                        <div class="text-muted">
                                             @foreach (var identifier in player.Identifiers)
                                             {
                                                 @if (!identifier.StartsWith("ip:") || (User?.IsInRole("webadmin.userinfo") ?? false))
                                                 {
-                                                    <span>@identifier</span>
+                                                    var identifierInfo = await IdentifierInfo.Format(identifier);
+
+                                                    <span class="p-1">
+                                                        <a href="@identifierInfo.Url">
+                                                            <i class="@identifierInfo.Class"></i> @identifierInfo.Name
+                                                        </a>
+                                                    </span>
                                                 }
                                             }
                                         </div>
