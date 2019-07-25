@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -17,7 +19,7 @@ namespace FxWebAdmin
     {
         public static BaseServer Self { get; private set; }
 
-        public PlayerList ExternalPlayers => Players;
+        public IEnumerable<Player> ExternalPlayers => Players.ToArray(); // ToArray so that it doesn't break if used async
 
         public BaseServer()
         {

@@ -59,7 +59,7 @@ namespace FxWebAdmin
 
             var results = await Task.WhenAll(tasks);
 
-            return results.FirstOrDefault(a => !a.AvatarUrl.StartsWith("data:"))?.AvatarUrl 
+            return results.FirstOrDefault(a => !(a.AvatarUrl ?? "data:").StartsWith("data:"))?.AvatarUrl 
                 ?? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
         }
 
