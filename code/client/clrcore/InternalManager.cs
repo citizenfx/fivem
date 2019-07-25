@@ -239,7 +239,10 @@ namespace CitizenFX.Core
 				}
 			}
 
-			Debug.WriteLine($"Could not load assembly {baseName} - loading exceptions: {exceptions}");
+			if (!baseName.Contains(".resources"))
+			{
+				Debug.WriteLine($"Could not load assembly {baseName} - loading exceptions: {exceptions}");
+			}
 
 			return null;
 		}
