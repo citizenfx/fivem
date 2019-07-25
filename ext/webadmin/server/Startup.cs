@@ -20,6 +20,8 @@ namespace FxWebAdmin
 {
     public class Startup
     {
+        public static string RootPath = GetResourcePath(GetCurrentResourceName());
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDistributedMemoryCache();

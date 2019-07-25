@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -87,6 +88,8 @@ namespace FxWebAdmin
             return null;
         }
 
+        private static MaxMind.GeoIP2.DatabaseReader ms_mmdbReader;
+
         public async Task<string> FormatCountry(string endPoint)
         {
             var cacheKey = $".CountryInfo:{endPoint}";
@@ -98,23 +101,41 @@ namespace FxWebAdmin
             }
 
             string cc = "us";
+            var geoLitePath = Path.Combine(Startup.RootPath, "GeoLite2-Country.mmdb");
 
-            try
+            if (File.Exists(geoLitePath))
             {
-                var response = await ms_httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"https://freegeoip.app/json/{endPoint.Replace("[", "").Replace("]", "")}"));
-
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var obj = JObject.Parse(await response.Content.ReadAsStringAsync());
-                    cc = obj.Value<string>("country_code").ToLowerInvariant();
-
-                    if (cc == "")
+                    if (ms_mmdbReader == null)
                     {
-                        cc = "us";
+                        ms_mmdbReader = new MaxMind.GeoIP2.DatabaseReader(geoLitePath);
+                    }
+
+                    var country = ms_mmdbReader.Country(endPoint.Replace("[", "").Replace("]", "").Replace("::ffff:", ""));
+                    cc = country.Country.IsoCode.ToLowerInvariant();
+                }
+                catch {}
+            }
+            else
+            {
+                try
+                {
+                    var response = await ms_httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"https://freegeoip.app/json/{endPoint.Replace("[", "").Replace("]", "")}"));
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var obj = JObject.Parse(await response.Content.ReadAsStringAsync());
+                        cc = obj.Value<string>("country_code").ToLowerInvariant();
+
+                        if (cc == "")
+                        {
+                            cc = "us";
+                        }
                     }
                 }
+                catch {}
             }
-            catch {}
 
             await m_cache.SetStringAsync(cacheKey, cc, new DistributedCacheEntryOptions()
             {

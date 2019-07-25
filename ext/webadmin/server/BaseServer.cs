@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 using CitizenFX.Core;
@@ -27,7 +30,7 @@ namespace FxWebAdmin
             Self = this;
         }
 
-        private Task FirstTick()
+        private async Task FirstTick()
         {
             Tick -= FirstTick;
 
@@ -52,7 +55,47 @@ namespace FxWebAdmin
 
             host.Start();
 
-            return Task.CompletedTask;
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            // try downloading maxmind
+            var geoLitePath = Path.Combine(Startup.RootPath, "GeoLite2-Country.mmdb");
+
+            if (!File.Exists(geoLitePath))
+            {
+                await Task.Run(async () =>
+                {
+                    try
+                    {
+                        var httpClient = new HttpClient();
+                        var httpResponse = await httpClient.GetAsync("https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz", HttpCompletionOption.ResponseHeadersRead);
+
+                        if (httpResponse.IsSuccessStatusCode)
+                        {
+                            using (var stream = await httpResponse.Content.ReadAsStreamAsync())
+                            {
+                                using (var reader = SharpCompress.Readers.ReaderFactory.Open(stream))
+                                {
+                                    while (reader.MoveToNextEntry())
+                                    {
+                                        if (reader.Entry.Key.EndsWith(".mmdb"))
+                                        {
+                                            using (var file = File.Open(geoLitePath, FileMode.Create, FileAccess.Write))
+                                            {
+                                                reader.WriteEntryTo(file);
+
+                                                Debug.WriteLine($"Saved GeoLite2-Country to {geoLitePath}.");
+
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch {}
+                });
+            }
         }
     }
 }
