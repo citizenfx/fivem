@@ -5,6 +5,8 @@
 @using Microsoft.AspNetCore.Http
 @using FxWebAdmin
 
+@section page
+{
 @await Html.PartialAsync("_Header.cshtml")
 
 <div class="app-body">
@@ -31,7 +33,9 @@
     </div>
 }
 
+@await FlushAsync()
 @RenderBody()
+@await RenderSectionAsync("content", false)
 </div>
 </main>
 
@@ -45,3 +49,4 @@
 <a href="https://coreui.io">CoreUI</a>
 </div>
 </footer>
+}

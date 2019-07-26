@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CitizenFX.Core;
@@ -95,6 +96,12 @@ namespace FxWebAdmin
                 var oldSc = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
 
+                var cts = new CancellationTokenSource();
+                req.setCancelHandler(new Action(() =>
+                {
+                    cts.Cancel();
+                }));
+
                 await Task.Factory.StartNew(async () => 
                 {
                     var owinEnvironment = new Dictionary<string, object>();
@@ -116,13 +123,13 @@ namespace FxWebAdmin
                     owinEnvironment["owin.RequestQueryString"] = (req.path.Contains('?')) ? req.path.Split('?', 2)[1] : "";
                     owinEnvironment["owin.RequestScheme"] = "http";
 
-                    var outStream = new MemoryStream();
+                    var outStream = new HttpOutStream(owinEnvironment, res);
                     owinEnvironment["owin.ResponseBody"] = outStream;
 
                     var outHeaders = new Dictionary<string, string[]>();
                     owinEnvironment["owin.ResponseHeaders"] = outHeaders;
 
-                    owinEnvironment["owin.CallCancelled"] = new CancellationToken();
+                    owinEnvironment["owin.CallCancelled"] = cts.Token;
                     owinEnvironment["owin.Version"] = "1.0";
 
                     var ofc = new FxOwinFeatureCollection(owinEnvironment);
@@ -141,29 +148,18 @@ namespace FxWebAdmin
 
                         application.DisposeContext(context, ex);
 
-                        await QueueTick(() =>
-                        {
-                            res.writeHead(500);
-                            res.write("Error.");
-                            res.send();
-                        });
+                        var errorText = Encoding.UTF8.GetBytes("Error.");
+
+                        owinEnvironment["owin.ResponseStatusCode"] = 500;
+                        await outStream.WriteAsync(errorText, 0, errorText.Length);
+                        await outStream.EndStream();
 
                         return;
                     }
 
                     application.DisposeContext(context, null);
 
-                    var realOutHeaders = owinEnvironment["owin.ResponseHeaders"] as IDictionary<string, string[]>;
-
-                    await QueueTick(() =>
-                    {
-                        res.writeHead(owinEnvironment.ContainsKey("owin.ResponseStatusCode") ? (int)owinEnvironment["owin.ResponseStatusCode"] : 200, 
-                            realOutHeaders.ToDictionary(a => a.Key, a => a.Value));
-
-                        res.write(outStream.ToArray());
-
-                        res.send();
-                    });
+                    await outStream.EndStream();
 
                     await ofc.InvokeOnCompleted();
                 }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.FromCurrentSynchronizationContext());
@@ -193,6 +189,108 @@ namespace FxWebAdmin
         }
     }
 
+    internal class HttpOutStream : Stream
+    {
+        private Dictionary<string, object> owinEnvironment;
+        private dynamic res;
+        private bool headersSent = false;
+
+        public HttpOutStream(Dictionary<string, object> owinEnvironment, dynamic res)
+        {
+            this.owinEnvironment = owinEnvironment;
+            this.res = res;
+        }
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => throw new NotImplementedException();
+
+        public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public override void Flush()
+        {
+            FlushAsync().Wait();
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            if (!headersSent)
+            {
+                return HttpServer.QueueTick(() =>
+                {
+                    EnsureHeadersSent();
+                });
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private void EnsureHeadersSent()
+        {
+            if (!headersSent)
+            {
+                headersSent = true;
+                
+                var realOutHeaders = owinEnvironment["owin.ResponseHeaders"] as IDictionary<string, string[]>;
+
+                res.writeHead(owinEnvironment.ContainsKey("owin.ResponseStatusCode") ? (int)owinEnvironment["owin.ResponseStatusCode"] : 200, 
+                realOutHeaders.ToDictionary(a => a.Key, a => a.Value));
+            }
+        }
+
+        public Task EndStream()
+        {
+            return HttpServer.QueueTick(() =>
+            {
+                EnsureHeadersSent();
+
+                res.send();
+            });
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            this.WriteAsync(buffer, offset, count).Wait();
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            void SendBuffer()
+            {
+                var outBytes = new byte[count];
+                Buffer.BlockCopy(buffer, offset, outBytes, 0, count);
+
+                res.write(outBytes);
+            }
+
+            return HttpServer.QueueTick(() =>
+            {
+                EnsureHeadersSent();
+
+                SendBuffer();
+            });
+        }
+    }
+
     internal class DummyAsyncResult : IAsyncResult
 	{
 		public object AsyncState => null;
@@ -203,6 +301,8 @@ namespace FxWebAdmin
 
 		public bool IsCompleted => false;
 	}
+
+    
 
     internal class BodyStream : Stream
     {

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CitizenFX.Core;
+using Lib.AspNetCore.ServerSentEvents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +13,13 @@ namespace FxWebAdmin
 {
     public class HomeController : Controller
     {
+        private IServerSentEventsService eventsService;
+
+        public HomeController(IServerSentEventsService events)
+        {
+            this.eventsService = events;
+        }
+
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> Index()
@@ -48,8 +57,10 @@ namespace FxWebAdmin
         }
 
         [Authorize(Roles = "webadmin.hi")]
-        public IActionResult Hi()
+        public async Task<IActionResult> Hi()
         {
+            await this.eventsService.SendEventAsync("hi! " + DateTime.UtcNow.ToLongTimeString());
+
             return View();
         }
 

@@ -8,6 +8,8 @@
 @inject IdentifierHelpers IdentifierInfo
 @model FxWebAdmin.IndexData
 
+@section content
+{
 <div class="container-fluid">
     <div class="row">
         <h1 class="px-3">@API.GetConvar("sv_hostname", "")</h1>
@@ -96,6 +98,8 @@
                         <tbody>
                             @foreach (var player in BaseServer.Self.ExternalPlayers)
                             {
+                                @await FlushAsync()
+
                                 <tr>
                                     <td class="text-center">
                                         <div class="avatar">
@@ -146,3 +150,4 @@
         </div> 
     </div>
 </div>
+}

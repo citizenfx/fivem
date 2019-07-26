@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Lib.AspNetCore.ServerSentEvents;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -123,6 +124,8 @@ namespace FxWebAdmin
                     }
                 }
             });
+
+            services.AddServerSentEvents();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -130,6 +133,8 @@ namespace FxWebAdmin
             app.UseSession();
 
             app.UseAuthentication();
+
+            app.MapServerSentEvents("/events");
 
             app.UseMvc(routes => {
                 routes.MapRoute(
