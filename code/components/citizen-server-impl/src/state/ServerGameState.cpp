@@ -46,6 +46,7 @@ std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncRadiusFrequency;
 std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
+std::shared_ptr<ConVar<bool>> g_oneSyncDumpClonePackets;
 
 static tbb::concurrent_queue<std::string> g_logQueue;
 
@@ -118,6 +119,23 @@ FMT_VARIADIC(void, Log, const char*);
 			Log(x, __VA_ARGS__); \
 		} \
 	} while (false)
+
+static void WriteClonePacketToFile(rl::MessageBuffer msgBuf)
+{
+	if (g_oneSyncDumpClonePackets->GetValue())
+	{
+		static std::atomic<int> g_logSequence;
+		fwPlatformString dir = MakeRelativeCitPath(_P("netClonePackets"));
+		fwPlatformString filePath = va(_P("%s/%d-out-route.bin"), dir, g_logSequence++);
+		FILE* file = _pfopen(filePath.c_str(), _P("wb"));
+
+		if (file != nullptr)
+		{
+			fwrite(msgBuf.GetBuffer().data(), msgBuf.GetLength(), 1, file);
+			fclose(file);
+		}
+	}
+}
 
 namespace fx
 {
@@ -1950,6 +1968,8 @@ void ServerGameState::ParseClonePacket(const std::shared_ptr<fx::Client>& client
 {
 	rl::MessageBuffer msgBuf(buffer.GetData().data() + buffer.GetCurOffset(), buffer.GetRemainingBytes());
 
+	WriteClonePacketToFile(msgBuf);
+	
 	rl::MessageBuffer ackPacket;
 
 	{
@@ -1967,7 +1987,7 @@ void ServerGameState::ParseClonePacket(const std::shared_ptr<fx::Client>& client
 	uint32_t numCreates = 0, numSyncs = 0, numRemoves = 0;
 
 	bool end = false;
-	
+
 	while (!msgBuf.IsAtEnd() && !end)
 	{
 		auto dataType = msgBuf.Read<uint8_t>(3);
@@ -2144,6 +2164,7 @@ static InitFunction initFunction([]()
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
 		g_oneSyncRadiusFrequency = instance->AddVariable<bool>("onesync_radiusFrequency", ConVar_None, true);
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
+		g_oneSyncDumpClonePackets = instance->AddVariable<bool>("onesync_dumpClonePackets", ConVar_None, false);
 
 		instance->SetComponent(new fx::ServerGameState);
 
