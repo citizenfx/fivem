@@ -339,6 +339,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 					reqState->blocked = true;
 
+					localConnectionData->request = request;
+					localConnectionData->response = response;
+
 					for (auto& handler : m_handlers)
 					{
 						if (handler->HandleRequest(request, response) || response->HasEnded())
@@ -360,8 +363,6 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 						if (contentLength > 0)
 						{
-							localConnectionData->request = request;
-							localConnectionData->response = response;
 							localConnectionData->contentLength = contentLength;
 
 							localConnectionData->readState = ReadStateBody;
@@ -374,8 +375,6 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 							if (request->GetHeader(transferEncodingKey, transferEncodingDefault) == transferEncodingComparison)
 							{
-								localConnectionData->request = request;
-								localConnectionData->response = response;
 								localConnectionData->contentLength = -1;
 
 								localConnectionData->lastLength = 0;
