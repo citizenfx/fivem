@@ -134,7 +134,10 @@ namespace FxWebAdmin
 
             app.UseAuthentication();
 
-            app.MapServerSentEvents("/events");
+            app.MapServerSentEvents("/events", new ServerSentEventsOptions()
+            {
+                Authorization = new ServerSentEventsAuthorization { Roles = "webadmin.console.read" }
+            });
 
             app.UseMvc(routes => {
                 routes.MapRoute(

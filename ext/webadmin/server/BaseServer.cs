@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using CitizenFX.Core;
+using CitizenFX.Core.Native;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
@@ -43,6 +44,7 @@ namespace FxWebAdmin
             var host = new WebHostBuilder()
                 .ConfigureServices(services => {
                     services.AddSingleton<IServer, HttpServer>();
+                    services.AddSingleton<ConsoleLog>();
                 })
                 .ConfigureLogging(l =>
                 {

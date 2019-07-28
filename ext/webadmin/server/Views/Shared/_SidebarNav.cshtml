@@ -11,6 +11,12 @@
         <i class="nav-icon fa fa-plug"></i> Resources
     </a>
 }
+@if ((User?.IsInRole("webadmin.console.read") ?? false))
+{
+    <a class="nav-link" asp-area="" asp-controller="Console" asp-action="Log" asp-active-controllers="Console" asp-active-actions="Log">
+        <i class="nav-icon fa fa-terminal"></i> Console
+    </a>
+}
 </li>
 </ul>
 </nav>
