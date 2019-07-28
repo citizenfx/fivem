@@ -35,6 +35,8 @@ export class DiscourseService {
     private clientId: string;
     private nonce: string;
 
+    private ownershipTicket: string;
+
     private authToken: string;
     private computerName = 'UNKNOWN';
 
@@ -84,6 +86,10 @@ export class DiscourseService {
 
     public setComputerName(computerName: string) {
         this.computerName = computerName;
+    }
+
+    public setOwnershipTicket(ticket: string) {
+        this.ownershipTicket = ticket;
     }
 
     public async apiCall(path: string, method?: string, data?: any) {
@@ -137,7 +143,8 @@ export class DiscourseService {
             'User-Agent': 'CitizenFX/Five',
             'Content-Type': 'application/json',
             'User-Api-Client-Id': clientId,
-            'User-Api-Key': this.authToken
+            'User-Api-Key': this.authToken,
+            'Cfx-Entitlement-Ticket': this.ownershipTicket,
         };
 
         const finalData = (data) ? JSON.stringify(data) : undefined;
@@ -150,17 +157,10 @@ export class DiscourseService {
 
         const res = await window.fetch(req);
 
-        if (res.ok) {
-            return {
-                status: res.status,
-                data: await res.json()
-            };
-        }
-
         return {
             status: res.status,
-            data: null
-        }
+            data: await res.json()
+        };
     }
 
     public async getCurrentUser() {

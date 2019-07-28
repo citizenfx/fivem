@@ -334,6 +334,10 @@ export class CfxGameService extends GameService {
 						convarItem.value = event.data.value;
 
 						this.zone.run(() => convar.next(event.data.value));
+
+						setTimeout(() => {
+							this.discourseService.setOwnershipTicket(this.getConvarValue('cl_ownershipTicket'));
+						}, 500);
 						break;
 				}
 			});
