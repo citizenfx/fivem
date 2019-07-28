@@ -719,7 +719,7 @@ bool VerifyRetailOwnership()
 
 #include <coreconsole.h>
 
-static ConVar<std::string> tokenVar("cl_ownershipTicket", ConVar_None, "");
+static ConVar<std::string>* tokenVar;
 
 bool LegitimateCopy()
 {
@@ -746,9 +746,11 @@ namespace ros
 
 static InitFunction initFunction([]()
 {
-	if (!tokenVar.GetValue().empty())
+	tokenVar = new ConVar<std::string>("cl_ownershipTicket", ConVar_None, "");
+
+	if (!tokenVar->GetValue().empty())
 	{
-		SaveOwnershipTicket(tokenVar.GetValue());
+		SaveOwnershipTicket(tokenVar->GetValue());
 	}
 });
 
@@ -756,5 +758,5 @@ static HookFunction hookFunction([]()
 {
 	LoadOwnershipTicket();
 
-	tokenVar.GetHelper()->SetValue(g_entitlementSource);
+	tokenVar->GetHelper()->SetValue(g_entitlementSource);
 });
