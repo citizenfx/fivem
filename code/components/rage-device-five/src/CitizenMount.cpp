@@ -124,7 +124,7 @@ static InitFunction initFunction([] ()
 		{
 			std::string narrowPath;
 
-			if (CfxIsSinglePlayer())
+			if (CfxIsSinglePlayer() || true)
 			{
 				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
@@ -158,7 +158,7 @@ static InitFunction initFunction([] ()
 		{
 			std::string narrowPath;
 
-			if (CfxIsSinglePlayer())
+			if (CfxIsSinglePlayer() || true)
 			{
 				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
