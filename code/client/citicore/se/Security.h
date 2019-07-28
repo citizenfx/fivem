@@ -94,7 +94,7 @@ public:
 
 	virtual bool CheckPrivilege(const Principal& principal, const Object& object);
 
-	virtual void PushPrincipal(const Principal& principal);
+	virtual void PushPrincipal(Principal& principal);
 
 	virtual void PopPrincipal();
 
@@ -158,22 +158,29 @@ namespace se
 class ScopedPrincipal
 {
 public:
-	inline ScopedPrincipal(const Principal& principal)
+	inline ScopedPrincipal(Principal& principal)
+		: m_principal(std::string{})
 	{
 		seGetCurrentContext()->PushPrincipal(principal);
 	}
 
+	inline ScopedPrincipal(const Principal& principal)
+		: m_principal(principal)
+	{
+		seGetCurrentContext()->PushPrincipal(m_principal);
+	}
+
 	inline ScopedPrincipal(const ScopedPrincipal&) = delete;
 
-	inline ScopedPrincipal(ScopedPrincipal&&)
-	{
-
-	}
+	inline ScopedPrincipal(ScopedPrincipal&&) = delete;
 
 	inline ~ScopedPrincipal()
 	{
 		seGetCurrentContext()->PopPrincipal();
 	}
+
+private:
+	Principal m_principal;
 };
 
 class ScopedPrincipalReset
