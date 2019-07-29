@@ -164,8 +164,10 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 			}
 
 			auto lastArchive = entry.archiveRoots.back();
+			auto srcFile = entry.targetFile;
 			auto tgtFile = entry.targetFile;
 
+			std::replace(srcFile.begin(), srcFile.end(), '\\', '/');
 			std::replace(tgtFile.begin(), tgtFile.end(), '\\', '/');
 
 			if (tgtFile[0] == '/')
@@ -190,15 +192,15 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 					continue;
 				}
 
-				m_entries[tgtFile] = entry.sourceFile;
+				m_entries[tgtFile] = srcFile;
 			}
 			else if (lastArchive.length() == 8 /* x64N.rpf */ && lastArchive.find("x64") == 0 && lastArchive.find(".rpf") == 3)
 			{
-				m_entries["platform/" + tgtFile] = entry.sourceFile;
+				m_entries["platform/" + tgtFile] = srcFile;
 			}
 			else if (lastArchive == "common.rpf")
 			{
-				m_entries["common/" + tgtFile] = entry.sourceFile;
+				m_entries["common/" + tgtFile] = srcFile;
 			}
 		}
 	}
