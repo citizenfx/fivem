@@ -184,7 +184,7 @@ static InitFunction initFunction([] ()
 			relativeDeviceCrc->Mount("platformcrc:/");
 		}
 
-		if (CfxIsSinglePlayer())
+		if (CfxIsSinglePlayer() || true)
 		{
 			rage::fiFindData findData;
 			auto handle = cfxDevice->FindFirst("cfx:/addons/", &findData);
