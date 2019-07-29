@@ -49,11 +49,12 @@ build_server_windows:
 
 build_proot_linux:
   stage: build
-  image: alpine:edge
+  image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine3.9
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
+    DOCKER_TLS_CERTDIR: ""
   script: 
     - sh code/tools/ci/build_server_proot.sh
   artifacts:
@@ -61,7 +62,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    - master
+    #- master
     - feature/update-to-1365
     - feature/update-to-1604
     - feature/cloning-stuff-releng

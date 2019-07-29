@@ -38,6 +38,14 @@ extern "C" {
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/profiler.h>
 
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
 #include <msgpack.hpp>
 
 #include <shared_mutex>
@@ -236,11 +244,11 @@ static bool GI_SnapshotStackBoundary(MonoArray** blob)
 {
 #if _WIN32
 	*blob = mono_get_current_context((void*)((uintptr_t)_AddressOfReturnAddress() + sizeof(void*)));
-
-	return true;
+#else
+	*blob = mono_get_current_context((void*)((uintptr_t)__builtin_frame_address(0U) + sizeof(void*)));
 #endif
 
-	return false;
+	return true;
 }
 
 struct ScriptStackFrame
@@ -264,7 +272,6 @@ MonoMethod* g_getMethodDisplayStringMethod;
 
 static bool GI_WalkStackBoundary(MonoString* resourceName, MonoArray* start, MonoArray* end, MonoArray** outBlob)
 {
-#if _WIN32
 	struct WD
 	{
 		MonoString* resourceName;
@@ -359,9 +366,6 @@ static bool GI_WalkStackBoundary(MonoString* resourceName, MonoArray* start, Mon
 	*outBlob = blob;
 
 	return true;
-#endif
-
-	return false;
 }
 
 #ifndef IS_FXSERVER
