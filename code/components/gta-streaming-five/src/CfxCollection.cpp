@@ -1098,9 +1098,15 @@ private:
 		}
 		else if (!IsPseudoPackPath(archive) || _strnicmp(archive, "pseudoPack:/", 12) == 0)
 		{
-			// 2019-07: removed snippet here
-			// we do not support legacy CfxCollection anymore
-			return;
+			const char* colon = strchr(archive, ':');
+
+			// temporary: make citizen/ path manually
+			static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			basePath << converter.to_bytes(MakeRelativeCitPath(L"citizen/"));
+
+			basePath << std::string(archive, colon);
+			basePath << "/";
+			basePath << std::string(&colon[1], const_cast<const char*>(strrchr(colon, '.')));
 		}
 		else
 		{
