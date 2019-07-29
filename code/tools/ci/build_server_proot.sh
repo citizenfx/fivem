@@ -42,7 +42,7 @@ adduser -D -u 1000 build
 # extract the alpine root FS
 mkdir alpine
 cd alpine
-tar xf ../alpine-minirootfs-3.8.0-x86_64.tar.gz
+tar xf ../alpine-minirootfs-3.8.4-x86_64.tar.gz
 cd ..
 
 echo '#pragma once' > code/shared/cfx_version.h
