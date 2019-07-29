@@ -97,10 +97,17 @@ namespace FxWebAdmin.Authentication
 
             var responseBody = JObject.Parse(await response.Content.ReadAsStringAsync());
 
+            var avatarTemplate = responseBody["current_user"].Value<string>("avatar_template");
+
+            if (!avatarTemplate.Contains("://"))
+            {
+                avatarTemplate = Options.DiscourseUri + avatarTemplate;
+            }
+
             var identity = new ClaimsIdentity(Scheme.Name);
             identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, Options.DiscourseUri + "internal/user/" + responseBody["current_user"].Value<int>("id"), ClaimValueTypes.String, Options.ClaimsIssuer));
             identity.AddClaim(new Claim(ClaimTypes.Name, responseBody["current_user"].Value<string>("username"), ClaimValueTypes.String, Options.ClaimsIssuer));
-            identity.AddClaim(new Claim("cfx:avatar", responseBody["current_user"].Value<string>("avatar_template").Replace("{size}", "128"), ClaimValueTypes.String, Options.ClaimsIssuer));
+            identity.AddClaim(new Claim("cfx:avatar", avatarTemplate.Replace("{size}", "128"), ClaimValueTypes.String, Options.ClaimsIssuer));
 
             var principal = new ClaimsPrincipal(identity);
             properties.StoreTokens(new AuthenticationToken[] { new AuthenticationToken() { Name = "key", Value = authToken } });
