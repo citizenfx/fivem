@@ -430,7 +430,7 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 
 		bool isThisOneQuery = (g_cls.isOneQuery && from == g_cls.oneQueryAddress);
 
-		if (!doc.HasParseError())
+		if (!doc.HasParseError() && nui::HasFrame("mpMenu"))
 		{
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
 				R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
