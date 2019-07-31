@@ -411,7 +411,7 @@ namespace FxWebAdmin
         }
     }
 
-    internal class FxOwinFeatureCollection : OwinFeatureCollection, IHttpResponseFeature
+    internal class FxOwinFeatureCollection : OwinFeatureCollection, IHttpResponseFeature, IHttpRequestLifetimeFeature
     {
         private List<Func<Task>> m_onStarting = new List<Func<Task>>();
         private List<Func<Task>> m_onCompleted = new List<Func<Task>>();
@@ -436,6 +436,11 @@ namespace FxWebAdmin
             {
                 return callback(state);
             });
+        }
+
+        void IHttpRequestLifetimeFeature.Abort()
+        {
+            
         }
 
         public async Task InvokeOnCompleted()
