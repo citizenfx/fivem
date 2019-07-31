@@ -98,7 +98,7 @@ chmod +x run.sh
 # again change ownership
 chown -R build:build .
 
-tar cJf fx.tar.xz alpine/ run.sh
+XZ_OPT=-T0 tar cJf fx.tar.xz alpine/ run.sh
 
 # announce build end
 text="Woop, building a SERVER/LINUX-PROOT build completed!"
