@@ -437,6 +437,13 @@ static void InitMono()
 
 	mono_assembly_setrootdir(citizenClrPath.c_str());
 
+	// https://github.com/mono/mono/pull/9811
+	// https://www.mono-project.com/docs/advanced/runtime/docs/coop-suspend/#cant-handle-the-embedding-api
+	// Mono coop suspend does not work for embedders, and on systems not designed for multithreading (aka any POSIX system)
+	// it'll infinitely wait for the main thread's infinite loop to handle a GC suspend call. Since the 'yield for the GC'
+	// API isn't exposed, and it's clearly not meant for embedding, we just switch to the old non-coop suspender.
+	putenv("MONO_THREADS_SUSPEND=preemptive");
+
 	putenv("MONO_DEBUG=casts");
 
 #ifndef IS_FXSERVER
