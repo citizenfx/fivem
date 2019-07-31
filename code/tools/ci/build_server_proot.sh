@@ -92,7 +92,7 @@ mkdir -p alpine/opt/cfx-server/citizen/system_resources/
 cp -a ext/system-resources/data/* alpine/opt/cfx-server/citizen/system_resources/
 
 # package artifacts
-cp data/server_proot/run.sh run.sh
+cp -a data/server_proot/* .
 chmod +x run.sh
 
 # again change ownership
