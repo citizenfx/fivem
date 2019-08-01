@@ -107,6 +107,7 @@ export CXXFLAGS="-std=c++1z -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_P
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
 	echo '#define GIT_DESCRIPTION "'$CI_BRANCH' '$CI_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
+	echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >> /src/code/shared/cfx_version.h
 fi
 
 make clean
