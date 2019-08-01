@@ -567,6 +567,14 @@ static void ProtocolRegister()
 	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler\\shell\\open\\command", &key));
 	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
 	CHECK_STATUS(RegCloseKey(key));
+
+	if (!IsWindows8Point1OrGreater())
+	{
+		// these are for compatibility on downlevel Windows systems
+		CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem\\shell\\open\\command", &key));
+		CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+		CHECK_STATUS(RegCloseKey(key));
+	}
 }
 
 void Component_RunPreInit()
