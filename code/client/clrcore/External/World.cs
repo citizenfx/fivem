@@ -177,6 +177,7 @@ namespace CitizenFX.Core
 		Wispy
 	}
 
+	[Flags]
 	public enum IntersectOptions
 	{
 		Everything = -1,
@@ -190,6 +191,7 @@ namespace CitizenFX.Core
 		Vegetation = 256,
 		Unk4 = 512
 	}
+
 	public enum MarkerType
 	{
 		UpsideDownCone,
