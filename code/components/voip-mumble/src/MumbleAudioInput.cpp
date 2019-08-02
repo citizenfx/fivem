@@ -499,7 +499,8 @@ void MumbleAudioInput::InitializeAudioDevice()
 	// sample format
 	AVSampleFormat sampleFormat = AV_SAMPLE_FMT_S16;
 
-	if (formatEx->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)
+	if (waveFormat->wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
+		(waveFormat->wFormatTag == WAVE_FORMAT_EXTENSIBLE && formatEx->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))
 	{
 		sampleFormat = AV_SAMPLE_FMT_FLT;
 	}
