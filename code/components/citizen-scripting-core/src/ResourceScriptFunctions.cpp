@@ -217,7 +217,7 @@ static InitFunction initFunction([] ()
 	{
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		if (!resource.GetRef())
 		{
