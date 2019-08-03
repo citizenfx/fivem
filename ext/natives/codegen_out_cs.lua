@@ -285,6 +285,7 @@ local function formatImpl(native)
 	local t = '\t\t\t'
 	local body = ''
 	
+	local nativeName = printFunctionName(native)
 	local args, argsDefs, nativeArgs = formatArgs(native)
 
 	body = body .. '(' .. table.concat(argsDefs, ', ') .. ')\n'
@@ -321,39 +322,51 @@ local function formatImpl(native)
 	
 	local appendix = ''
 	
-	--body = body .. t .. 'using (var scriptContext = new ScriptContext())\n'
 	body = body .. t .. '{\n'
-	body = body .. t .. '\tvar scriptContext = new ScriptContext();\n'
+	--body = body .. t .. '\tScriptContext.Reset();\n'
+	
+	body = body .. t .. '\tbyte* cxtBytes = stackalloc byte[sizeof(ContextType)];\n'
+	body = body .. t .. '\tContextType* cxt = (ContextType*)cxtBytes;\n'
 	
 	local fastEligible = true
+	local pushFree = true
 	
 	for argn, arg in pairs(args) do
 		local _, type = table.unpack(arg)
 		
-		if type == 'string' or type == 'InputArgument' or type == 'object' then
+		if type == 'InputArgument' or type == 'object' then
 			fastEligible = false
+			pushFree = false
+		end
+		
+		if type == 'string' then
+			pushFree = false
 		end
 	end
+	
+	if not pushFree and not fastEligible then
+		body = body .. t .. '\tcxt->numArguments = 0;\n'
+		body = body .. t .. '\tcxt->numResults = 0;\n'
+	end
+	
+	body = body .. t .. '\tlong* _fnPtr = (long*)&cxt->functionData[0];\n'
 	
 	if not fastEligible then
 		for argn, arg in pairs(args) do
 			local name, type, ptr = table.unpack(arg)
 
 			if ptr then
-				body = body .. t .. '\tscriptContext.PushFast(new System.IntPtr(&ref_' .. name .. '));\n'
+				body = body .. t .. '\tScriptContext.PushFast(cxt, new System.IntPtr(&ref_' .. name .. '));\n'
 				appendix = appendix .. t .. '\t' .. name .. ' = ref_' .. name .. ';\n'
 			elseif type == 'string' then
-				body = body .. t .. '\tscriptContext.PushString(' .. name .. ');\n'
+				body = body .. t .. '\tScriptContext.PushString(cxt, ' .. name .. ');\n'
 			elseif type == 'InputArgument' or type == 'object' then
-				body = body .. t .. '\tscriptContext.Push(' .. name .. ');\n'
+				body = body .. t .. '\tScriptContext.Push(cxt, ' .. name .. ');\n'
 			else
-				body = body .. t .. '\tscriptContext.PushFast(' .. name .. ');\n'
+				body = body .. t .. '\tScriptContext.PushFast(cxt, ' .. name .. ');\n'
 			end
 		end
 	else
-		body = body .. t .. '\tfixed (byte* functionData = ScriptContext.m_context.functionData)\n'
-		body = body .. t .. '\t{\n'
-		
 		local numArgs = 0
 		
 		for argn, arg in pairs(args) do
@@ -368,9 +381,20 @@ local function formatImpl(native)
 				appendix = appendix .. t .. '\t' .. name .. ' = ref_' .. name .. ';\n'
 			end
 			
-			body = body .. t .. '\t\t*(long*)(&functionData[' .. (8 * numArgs) .. ']) = 0;\n'
+			if type == 'int' then
+				body = body .. t .. '\t_fnPtr[' .. numArgs .. '] = (long)' .. val .. ';\n'
+			--elseif type == 'bool' then
+			--	body = body .. t .. '\tfnPtr[' .. numArgs .. ']) = (long)(' .. val .. ' ? 1 : 0);\n'
+			elseif type == 'string' then
+				body = body .. t .. '\tcxt->numArguments = ' .. tostring(argn - 1) .. ';\n'
+				body = body .. t .. '\tScriptContext.PushString(cxt, ' .. name .. ');\n'
+			else
+				if type ~= 'float' then -- assuming this is safe as only doing 32 bit reads?
+					body = body .. t .. '\t_fnPtr[' .. numArgs .. '] = 0;\n'
+				end
 			
-			body = body .. t .. '\t\t*(' .. type .. '*)(&functionData[' .. (8 * numArgs) .. ']) = ' .. val .. ';\n'
+				body = body .. t .. '\t*(' .. type .. '*)(&_fnPtr[' .. numArgs .. ']) = ' .. val .. ';\n'
+			end
 			
 			if type == 'Vector3' then
 				numArgs = numArgs + 3
@@ -379,12 +403,20 @@ local function formatImpl(native)
 			end
 		end
 		
-		body = body .. t .. '\t}\n\n'
-		
-		body = body .. t .. '\tScriptContext.m_context.numArguments = ' .. numArgs .. ';\n'
+		if native.ns == 'CFX' then
+			body = body .. t .. '\tcxt->numArguments = ' .. numArgs .. ';\n'
+		end
 	end
 	
-	body = body .. t .. '\tscriptContext.Invoke((ulong)' .. native.hash .. ');\n'
+	body = body .. "\n#if !USE_HYPERDRIVE\n"
+	body = body .. t .. '\tScriptContext.Invoke(cxt, (ulong)' .. native.hash .. ');\n'
+	body = body .. "#else\n"
+	body = body .. t .. '\tcxt->functionDataPtr = _fnPtr;\n'
+	body = body .. t .. '\tcxt->retDataPtr = _fnPtr;\n'
+	body = body .. t .. ("\tvar invv = m_invoker%s;\n"):format(nativeName)
+	body = body .. t .. ("\tif (invv == null) m_invoker%s = invv = ScriptContext.DoGetNative(%s);\n"):format(nativeName, native.hash)
+	body = body .. t .. ("\tinvv(cxt);\n")
+	body = body .. "#endif\n"
 	
 	if retType ~= 'void' then
 		local tempRetType = retType
@@ -394,13 +426,14 @@ local function formatImpl(native)
 				tempRetType = 'object'
 			end
 		
-			appendix = appendix .. t .. '\treturn (' .. retType .. ')scriptContext.GetResult(typeof(' .. tempRetType .. '));\n'
+			appendix = appendix .. t .. '\treturn (' .. retType .. ')ScriptContext.GetResult(cxt, typeof(' .. tempRetType .. '));\n'
 		else
 			if retType == 'Vector3' then
 				tempRetType = 'NativeVector3'
 			end
-		
-			appendix = appendix .. t .. '\treturn scriptContext.GetResultFast<' .. tempRetType .. '>();\n'
+
+			appendix = appendix .. '\n'
+			appendix = appendix .. t .. '\treturn *(' .. tempRetType .. '*)(&cxt->functionData[0]);\n'
 		end
 	end
 	
@@ -444,6 +477,7 @@ local function printNative(native)
 	end
 	
 	str = str .. string.format("\t\t[System.Security.SecurityCritical]\n\t\tprivate static unsafe %s Internal%s%s", retType, nativeName .. baseAppendix, def)
+	str = str .. string.format("\n#if USE_HYPERDRIVE\n\t\tprivate static ScriptContext.CallFunc m_invoker%s;\n#endif\n", nativeName);
 
 	return str
 end

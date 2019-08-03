@@ -9,6 +9,12 @@ CODEGEN_SCRIPTS=codegen.lua codegen_cfx_natives.lua codegen_types.lua markdown.l
 
 define NATIVES_FIVE_HEADER
 #if GTA_FIVE
+#if USE_HYPERDRIVE
+using ContextType = CitizenFX.Core.RageScriptContext;
+#else
+using ContextType = CitizenFX.Core.fxScriptContext;
+#endif
+
 namespace CitizenFX.Core.Native
 {
 endef
@@ -23,6 +29,8 @@ export NATIVES_FIVE_FOOTER
 
 define NATIVES_SERVER_HEADER
 #if IS_FXSERVER
+using ContextType = CitizenFX.Core.fxScriptContext;
+
 namespace CitizenFX.Core.Native
 {
 endef

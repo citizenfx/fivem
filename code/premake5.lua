@@ -267,6 +267,7 @@ end)
 		files { "../vendor/ben-demystifier/src/Ben.Demystifier/**.cs" }
 		
 		if _OPTIONS['game'] ~= 'server' then
+			defines { 'USE_HYPERDRIVE' }
 			files { "client/clrcore/External/*.cs" }
 		else
 			files { "client/clrcore/Server/*.cs" }

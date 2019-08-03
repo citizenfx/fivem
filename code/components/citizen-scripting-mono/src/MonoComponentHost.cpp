@@ -456,15 +456,17 @@ static void InitMono()
 	mono_profiler_set_events(MONO_PROFILE_GC);
 #endif
 
-	char* args[1];
+	char* args[2];
 
 #ifdef _WIN32
 	args[0] = "--soft-breakpoints";
+	args[1] = "--optimize=peephole,cfold,inline,consprop,copyprop,deadce,branch,linears,intrins,loop,exception,cmov,gshared,simd,alias-analysis,float32,unsafe";
 #else
 	args[0] = "--use-fallback-tls";
+	args[1] = "";
 #endif
 
-	mono_jit_parse_options(1, args);
+	mono_jit_parse_options(std::size(args), args);
 
 	mono_debug_init(MONO_DEBUG_FORMAT_MONO);
 

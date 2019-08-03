@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -8,9 +9,15 @@ using System.Text;
 
 using CitizenFX.Core.Native;
 
+#if USE_HYPERDRIVE
+using ContextType = CitizenFX.Core.RageScriptContext;
+#else
+using ContextType = CitizenFX.Core.fxScriptContext;
+#endif
+
 namespace CitizenFX.Core
 {
-	public class ScriptContext
+	public static class ScriptContext
 	{
 		private static readonly ConcurrentQueue<Action> ms_finalizers = new ConcurrentQueue<Action>();
 
@@ -19,29 +26,39 @@ namespace CitizenFX.Core
 		internal static object Lock => ms_lock;
 
 		[ThreadStatic]
-		internal static fxScriptContext m_context = new fxScriptContext();
-
-		public ScriptContext()
-		{
-			Reset();
-		}
+		internal static ContextType m_extContext = new ContextType();
 
 		[SecuritySafeCritical]
-		public void Reset()
+		public static void Reset()
 		{
 			InternalReset();
 		}
 
 		[SecurityCritical]
-		private void InternalReset()
+		private static void InternalReset()
 		{
-			m_context.numArguments = 0;
-			m_context.numResults = 0;
+			m_extContext.numArguments = 0;
+			m_extContext.numResults = 0;
 			//CleanUp();
 		}
 
 		[SecuritySafeCritical]
-		public void Push(object arg)
+		public static void Push(object arg)
+		{
+			PushInternal(arg);
+		}
+
+		[SecurityCritical]
+		private unsafe static void PushInternal(object arg)
+		{
+			fixed (ContextType* context = &m_extContext)
+			{
+				Push(context, arg);
+			}
+		}
+
+		[SecurityCritical]
+		internal unsafe static void Push(ContextType* context, object arg)
 		{
 			if (arg == null)
 			{
@@ -56,74 +73,74 @@ namespace CitizenFX.Core
 			if (arg is string)
 			{
 				var str = (string)Convert.ChangeType(arg, typeof(string));
-				PushString(str);
+				PushString(context, str);
 
 				return;
 			}
 			else if (arg is Vector3 v)
 			{
-				PushFast(v);
+				PushFast(context, v);
 
 				return;
 			}
 			else if (arg is InputArgument ia)
 			{
-				Push(ia.Value);
+				Push(context, ia.Value);
 
 				return;
 			}
 			else if (Marshal.SizeOf(arg.GetType()) <= 8)
 			{
-				PushUnsafe(arg);
+				PushUnsafe(context, arg);
 			}
 
-			m_context.numArguments++;
+			context->numArguments++;
 		}
 
 		[SecurityCritical]
-		internal unsafe void PushUnsafe(object arg)
+		internal static unsafe void PushUnsafe(ContextType* cxt, object arg)
 		{
-			fixed (byte* functionData = m_context.functionData)
-			{
-				*(long*)(&functionData[8 * m_context.numArguments]) = 0;
-				Marshal.StructureToPtr(arg, new IntPtr(functionData + (8 * m_context.numArguments)), false);
-			}
+			*(long*)(&cxt->functionData[8 * cxt->numArguments]) = 0;
+			Marshal.StructureToPtr(arg, new IntPtr(cxt->functionData + (8 * cxt->numArguments)), false);
 		}
 
 		[SecuritySafeCritical]
-		internal unsafe void PushFast<T>(T arg)
+		internal static unsafe void PushFast<T>(ContextType* cxt, T arg)
 			where T : struct
 		{
 			var size = FastStructure<T>.Size;
 
 			var numArgs = (size / 8);
 
-			fixed (byte* functionData = m_context.functionData)
+			if ((size % 8) != 0)
 			{
-				if ((size % 8) != 0)
-				{
-					*(long*)(&functionData[8 * m_context.numArguments]) = 0;
-					numArgs++;
-				}
-
-				FastStructure<T>.StructureToPtr(ref arg, new IntPtr(&functionData[8 * m_context.numArguments]));
+				*(long*)(&cxt->functionData[8 * cxt->numArguments]) = 0;
+				numArgs++;
 			}
 
-			m_context.numArguments += numArgs;
+			FastStructure<T>.StructureToPtr(ref arg, new IntPtr(&cxt->functionData[8 * cxt->numArguments]));
+
+			cxt->numArguments += numArgs;
 		}
 
 		[SecurityCritical]
-		internal unsafe T GetResultFast<T>()
+		internal static unsafe T GetResultFast<T>(ContextType* cxt)
 			where T : struct
 		{
-			fixed (byte* functionData = m_context.functionData)
+			return FastStructure<T>.PtrToStructure(new IntPtr(&cxt->functionData));
+		}
+
+		[SecurityCritical]
+		internal unsafe static void PushString(string str)
+		{
+			fixed (ContextType* cxt = &m_extContext)
 			{
-				return FastStructure<T>.PtrToStructure(new IntPtr(functionData));
+				PushString(cxt, str);
 			}
 		}
 
 		[SecurityCritical]
-		internal void PushString(string str)
+		internal unsafe static void PushString(ContextType* cxt, string str)
 		{
 			var ptr = IntPtr.Zero;
 
@@ -141,13 +158,10 @@ namespace CitizenFX.Core
 
 			unsafe
 			{
-				fixed (byte* functionData = m_context.functionData)
-				{
-					*(IntPtr*)(&functionData[8 * m_context.numArguments]) = ptr;
-				}
+				*(IntPtr*)(&cxt->functionData[8 * cxt->numArguments]) = ptr;
 			}
 
-			m_context.numArguments++;
+			cxt->numArguments++;
 		}
 
 		[SecuritySafeCritical]
@@ -157,43 +171,44 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		public T GetResult<T>()
+		public static T GetResult<T>()
 		{
 			return (T)GetResult(typeof(T));
 		}
 
 		[SecuritySafeCritical]
-		public object GetResult(Type type)
+		public static object GetResult(Type type)
 		{
 			return GetResultHelper(type);
 		}
 
 		[SecurityCritical]
-		private unsafe object GetResultHelper(Type type)
+		internal unsafe static object GetResult(ContextType* cxt, Type type)
 		{
-			var bytes = new byte[3 * 8];
-
-			fixed (byte* inPtr = m_context.functionData)
-			{
-				fixed (byte* outPtr = bytes)
-				{
-#if IS_FXSERVER
-					Buffer.MemoryCopy(inPtr, outPtr, bytes.Length, 24);
-#else
-					UnsafeNativeMethods.CopyMemoryPtr(outPtr, inPtr, 24);
-#endif
-				}
-			}
-
-			return GetResult(type, bytes);
+			return GetResultHelper(cxt, type);
 		}
 
 		[SecurityCritical]
-		internal static object GetResult(Type type, byte[] ptr)
+		private static unsafe object GetResultHelper(Type type)
+		{
+			fixed (ContextType* cxt = &m_extContext)
+			{
+				return GetResultHelper(cxt, type);
+			}
+		}
+
+		[SecurityCritical]
+		private static unsafe object GetResultHelper(ContextType* context, Type type)
+		{
+			return GetResult(type, &context->functionData[0]);
+		}
+
+		[SecurityCritical]
+		internal unsafe static object GetResult(Type type, byte* ptr)
 		{
 			if (type == typeof(string))
 			{
-				var nativeUtf8 = new IntPtr(BitConverter.ToInt64(ptr, 0));
+				var nativeUtf8 = *(IntPtr*)&ptr[0];
 
 				if (nativeUtf8 == IntPtr.Zero)
 				{
@@ -213,8 +228,8 @@ namespace CitizenFX.Core
 
 			if (type == typeof(object))
 			{
-				var dataPtr = new IntPtr(BitConverter.ToInt64(ptr, 0));
-				var dataLength = BitConverter.ToInt64(ptr, 8);
+				var dataPtr = *(IntPtr*)&ptr[0];
+				var dataLength = *(long*)&ptr[8];
 
 				byte[] data = new byte[dataLength];
 				Marshal.Copy(dataPtr, data, 0, (int)dataLength);
@@ -236,9 +251,9 @@ namespace CitizenFX.Core
 
 			if (type == typeof(Vector3))
 			{
-				var x = BitConverter.ToSingle(ptr, 0);
-				var y = BitConverter.ToSingle(ptr, 8);
-				var z = BitConverter.ToSingle(ptr, 16);
+				var x = *(float*)(&ptr[0]);
+				var y = *(float*)(&ptr[8]);
+				var z = *(float*)(&ptr[16]);
 
 				return new Vector3(x, y, z);
 			}
@@ -252,30 +267,80 @@ namespace CitizenFX.Core
 		}
 		
 		[SecurityCritical]
-		private static unsafe object GetResultInternal(Type type, byte[] ptr)
+		private static unsafe object GetResultInternal(Type type, byte* ptr)
 		{
-			fixed (byte* bit = &ptr[0])
+			return Marshal.PtrToStructure(new IntPtr(ptr), type);
+		}
+
+#if USE_HYPERDRIVE
+		internal unsafe delegate void CallFunc(void* cxtRef);
+
+		[ThreadStatic]
+		private static Dictionary<ulong, CallFunc> ms_invokers = new Dictionary<ulong, CallFunc>();
+
+		[SecurityCritical]
+		internal unsafe static CallFunc DoGetNative(ulong native)
+		{
+			return BuildFunction(GetNative(native));
+		}
+
+		[SecurityCritical]
+		private unsafe static CallFunc BuildFunction(ulong ptr)
+		{
+			var method = new DynamicMethod($"NativeCallFn_{ptr}",
+				typeof(void), new Type[1] { typeof(void*) }, typeof(ScriptContext).Module);
+
+			ILGenerator generator = method.GetILGenerator();
+			generator.Emit(OpCodes.Ldarg_0);
+			generator.Emit(OpCodes.Ldc_I8, (long)ptr);
+			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), new Type[1] { typeof(void*) }, null);
+			generator.Emit(OpCodes.Ret);
+
+			return (CallFunc)method.CreateDelegate(typeof(CallFunc));
+		}
+
+		[DllImport("rage-scripting-five.dll", EntryPoint = "?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z")]
+		private static extern ulong GetNative(ulong hash);
+#endif
+
+		[SecurityCritical]
+		internal unsafe static void Invoke(ContextType* cxt, ulong nativeIdentifier) => InvokeInternal(cxt, nativeIdentifier, InternalManager.ScriptHost);
+
+		internal static void Invoke(ulong nativeIdentifier) => Invoke(nativeIdentifier, InternalManager.ScriptHost);
+
+		[SecuritySafeCritical]
+		internal static void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
+
+		[SecurityCritical]
+		private unsafe static void InvokeInternal(ulong nativeIdentifier, IScriptHost scriptHost)
+		{
+			fixed (ContextType* cxt = &m_extContext)
 			{
-				return Marshal.PtrToStructure(new IntPtr(bit), type);
+				InvokeInternal(cxt, nativeIdentifier, scriptHost);
 			}
 		}
 
-		internal void Invoke(ulong nativeIdentifier) => Invoke(nativeIdentifier, InternalManager.ScriptHost);
-
-		[SecuritySafeCritical]
-		internal void Invoke(ulong nativeIdentifier, IScriptHost scriptHost) => InvokeInternal(nativeIdentifier, scriptHost);
-
 		[SecurityCritical]
-		private void InvokeInternal(ulong nativeIdentifier, IScriptHost scriptHost)
+		private unsafe static void InvokeInternal(ContextType* cxt, ulong nativeIdentifier, IScriptHost scriptHost)
 		{
-			m_context.nativeIdentifier = nativeIdentifier;
+			cxt->nativeIdentifier = nativeIdentifier;
 
 			unsafe
 			{
-				fixed (fxScriptContext* cxt = &m_context)
+#if !USE_HYPERDRIVE
+				scriptHost.InvokeNative(new IntPtr(cxt));
+#else
+				if (!ms_invokers.TryGetValue(nativeIdentifier, out CallFunc invoker))
 				{
-					scriptHost.InvokeNative(new IntPtr(cxt));
+					invoker = BuildFunction(GetNative(nativeIdentifier));
+					ms_invokers.Add(nativeIdentifier, invoker);
 				}
+
+				cxt->functionDataPtr = &cxt->functionData[0];
+				cxt->retDataPtr = &cxt->functionData[0];
+
+				invoker(cxt);
+#endif
 			}
 		}
 

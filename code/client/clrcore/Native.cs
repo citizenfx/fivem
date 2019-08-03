@@ -18,17 +18,18 @@ namespace CitizenFX.Core.Native
 
 		private static object InvokeInternal(Hash nativeHash, Type returnType, InputArgument[] args)
 		{
-			var scriptContext = new ScriptContext();
+			ScriptContext.Reset();
+
 			foreach (var arg in args)
 			{
-				scriptContext.Push(arg.Value);
+				ScriptContext.Push(arg.Value);
 			}
 
-			scriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
+			ScriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
 
 			if (returnType != typeof(void))
 			{
-				return scriptContext.GetResult(returnType);
+				return ScriptContext.GetResult(returnType);
 			}
 
 			return null;
@@ -421,8 +422,14 @@ namespace CitizenFX.Core.Native
 		[SecuritySafeCritical]
 		public T GetResult<T>()
 		{
-			var data = new byte[24];
-			Marshal.Copy(m_dataPtr, data, 0, 24);
+			return GetResultInternal<T>();
+		}
+
+		[SecurityCritical]
+		private unsafe T GetResultInternal<T>()
+		{
+			byte* data = stackalloc byte[24];
+			Buffer.MemoryCopy(m_dataPtr.ToPointer(), data, 24, 24);
 
 			return (T)ScriptContext.GetResult(typeof(T), data);
 		}
