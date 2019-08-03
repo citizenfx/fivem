@@ -32,7 +32,7 @@ apk del curl
 apk add --no-cache libc++ curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 c-ares-dev v8-dev
+apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev
 
 # install ply
 pip install ply
@@ -82,6 +82,8 @@ lua5.3 codegen.lua out/natives_global.lua dts server > /opt/cfx-server/citizen/s
 
 cat > /src/code/client/clrcore/NativesServer.cs << EOF
 #if IS_FXSERVER
+using ContextType = CitizenFX.Core.fxScriptContext;
+
 namespace CitizenFX.Core.Native
 {
 EOF
