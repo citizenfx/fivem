@@ -378,10 +378,26 @@ struct CVehicleCreationDataNode
 	bool Parse(SyncParseState& state)
 	{
 		uint32_t model = state.buffer.Read<uint32_t>(32);
-		uint8_t popType = state.buffer.Read<uint8_t>(4);
-
 		m_model = model;
+
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
 		m_popType = (ePopType)popType;
+
+		auto randomSeed = state.buffer.Read<int>(16);
+
+		if (m_popType - 6 <= 1)
+		{
+			bool carBudget = state.buffer.ReadBit();
+		}
+
+		int maxHealth = state.buffer.Read<int>(19);
+		int vehicleStatus = state.buffer.Read<int>(3);
+
+		auto time = state.buffer.Read<uint32_t>(32);
+
+		bool needsToBeHotwired = state.buffer.ReadBit();
+		bool tyresDontBurst = state.buffer.ReadBit();
+		bool unk5 = state.buffer.ReadBit();
 
 		return true;
 	}
