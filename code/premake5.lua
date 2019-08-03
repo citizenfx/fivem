@@ -75,13 +75,13 @@ workspace "CitizenMP"
 	location ((_OPTIONS['builddir'] or "build/") .. _OPTIONS['game'])
 
 	if os.istarget('windows') then
-		buildoptions '/std:c++latest'
+		buildoptions '/std:c++17'
 		
 		if _OPTIONS['game'] ~= 'server' then
 			buildoptions '/await'
 		end
 
-		systemversion '10.0.17134.0'
+		systemversion '10.0.18362.0'
 	end
 
 	-- special build dirs for FXServer

@@ -240,7 +240,7 @@ if (!$DontBuild)
         $BuildPath = "$BuildRoot\server\windows"
     }
 
-    Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2017 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
+    Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
 
     $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
     $LauncherVersion = $GameVersion
