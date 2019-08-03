@@ -107,6 +107,7 @@ export CXXFLAGS="-std=c++1z -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_P
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
 	echo '#define GIT_DESCRIPTION "'$CI_BRANCH' '$CI_BUILD_NUMBER' linux"' >> /src/code/shared/cfx_version.h
+	echo '#define GIT_TAG "'$CI_BUILD_NUMBER'"' >> /src/code/shared/cfx_version.h
 fi
 
 make clean
@@ -120,6 +121,7 @@ mkdir -p /opt/cfx-server
 
 cp -a ../data/shared/* /opt/cfx-server
 cp -a ../data/server/* /opt/cfx-server
+cp -a ../data/server_linux/* /opt/cfx-server
 cp -a bin/server/linux/release/FXServer /opt/cfx-server
 cp -a bin/server/linux/release/*.so /opt/cfx-server
 cp -a bin/server/linux/release/*.json /opt/cfx-server
