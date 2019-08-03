@@ -648,8 +648,6 @@ static bool SafeCallX3DA(decltype(&X3DAudioInitialize) func, UINT32 SpeakerChann
 
 WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
-DEFINE_GUID(CLSID_AudioReverb, 0x6a93130e, 0x1d53, 0x41d1, 0xa9, 0xcf, 0xe7, 0x58, 0x80, 0x0b, 0xb1, 0x79);
-
 void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
 
 void MumbleAudioOutput::InitializeAudioDevice()
@@ -710,7 +708,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 		m_xa2 = WRL::Make<XAudio2DownlevelWrap>();
 
-		_CreateAudioReverb = [](IUnknown** ppApo)
+		_CreateAudioReverb = [](IUnknown** ppApo) -> HRESULT
 		{
 			return CoCreateInstance(CLSID_AudioReverb,
 				NULL, CLSCTX_INPROC_SERVER, IID_IUnknown, (void**)ppApo);
