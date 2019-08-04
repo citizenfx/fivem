@@ -428,10 +428,13 @@ namespace CitizenFX.Core.Native
 		[SecurityCritical]
 		private unsafe T GetResultInternal<T>()
 		{
-			byte* data = stackalloc byte[24];
-			Buffer.MemoryCopy(m_dataPtr.ToPointer(), data, 24, 24);
+			var data = new byte[24];
+			Marshal.Copy(m_dataPtr, data, 0, 24);
 
-			return (T)ScriptContext.GetResult(typeof(T), data);
+			fixed (byte* dataPtr = data)
+			{
+				return (T)ScriptContext.GetResult(typeof(T), dataPtr);
+			}
 		}
 
 		[SecuritySafeCritical]
