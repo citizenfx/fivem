@@ -1589,14 +1589,16 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 			m_objectIdsUsed.reset(objectId);
 		}
 
-		std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
-
-		for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
 		{
-			if (((*it)->handle & 0xFFFF) == objectId)
+			std::unique_lock<std::shared_mutex> entityListLock(m_entityListMutex);
+
+			for (auto it = m_entityList.begin(); it != m_entityList.end(); it++)
 			{
-				m_entityList.erase(it);
-				break;
+				if (((*it)->handle & 0xFFFF) == objectId)
+				{
+					m_entityList.erase(it);
+					break;
+				}
 			}
 		}
 
