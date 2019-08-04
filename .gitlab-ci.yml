@@ -62,7 +62,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    #- master
+    - master
     - feature/update-to-1365
     - feature/update-to-1604
     - feature/cloning-stuff-releng
