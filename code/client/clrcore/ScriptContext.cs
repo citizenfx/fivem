@@ -327,7 +327,7 @@ namespace CitizenFX.Core
 
 			unsafe
 			{
-#if !USE_HYPERDRIVE_IN_CONTEXT
+#if !USE_HYPERDRIVE
 				scriptHost.InvokeNative(new IntPtr(cxt));
 #else
 				if (!ms_invokers.TryGetValue(nativeIdentifier, out CallFunc invoker))
@@ -340,9 +340,33 @@ namespace CitizenFX.Core
 				cxt->retDataPtr = &cxt->functionData[0];
 
 				invoker(cxt);
+
+				CopyReferencedParametersOut(cxt);
 #endif
 			}
 		}
+
+#if USE_HYPERDRIVE
+		[SecurityCritical]
+		internal unsafe static void CopyReferencedParametersOut(ContextType* cxt)
+		{
+			uint result = 0;
+			long a1 = (long)cxt;
+
+			for (; *(uint*)(a1 + 24) != 0; *(uint*)(*(ulong*)(a1 + 8 * *(int *)(a1 + 24) + 32) + 16) = result)
+			{
+				--*(uint*)(a1 + 24);
+				**(uint**)(a1 + 8 * *(int*)(a1 + 24) + 32) = *(uint*)(a1 + 16 * (*(int*)(a1 + 24) + 4));
+				*(uint*)(*(ulong*)(a1 + 8 * *(int*)(a1 + 24) + 32) + 8) = *(uint*)(a1
+					+ 16
+					* *(int*)(a1 + 24)
+					+ 68);
+				result = *(uint*)(a1 + 16 * *(int*)(a1 + 24) + 72);
+			}
+
+			--*(uint*)(a1 + 24);
+		}
+#endif
 
 		internal static void GlobalCleanUp()
 		{
