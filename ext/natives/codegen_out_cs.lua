@@ -297,6 +297,8 @@ local function formatImpl(native)
 	end
 
 	-- First lets make output args containers if needed
+	local hyperDriveSafe = true
+	
 	local refValNum = 0
 	local refToArg = {}
 	for argn, arg in pairs(args) do
@@ -304,6 +306,7 @@ local function formatImpl(native)
 
 		if ptr == true then
 			if type == 'Vector3' then
+				hyperDriveSafe = false
 				type = 'NativeVector3'
 			end
 		
@@ -389,7 +392,8 @@ local function formatImpl(native)
 				body = body .. t .. '\tcxt->numArguments = ' .. tostring(argn - 1) .. ';\n'
 				body = body .. t .. '\tScriptContext.PushString(cxt, ' .. name .. ');\n'
 			else
-				if type ~= 'float' then -- assuming this is safe as only doing 32 bit reads?
+				-- assuming float is safe as only doing 32 bit reads?
+				if type ~= 'float' and type ~= 'System.IntPtr' then
 					body = body .. t .. '\t_fnPtr[' .. numArgs .. '] = 0;\n'
 				end
 			
@@ -408,15 +412,21 @@ local function formatImpl(native)
 		end
 	end
 	
-	body = body .. "\n#if !USE_HYPERDRIVE\n"
+	if hyperDriveSafe then
+		body = body .. "\n#if !USE_HYPERDRIVE\n"
+	end
+	
 	body = body .. t .. '\tScriptContext.Invoke(cxt, (ulong)' .. native.hash .. ');\n'
-	body = body .. "#else\n"
-	body = body .. t .. '\tcxt->functionDataPtr = _fnPtr;\n'
-	body = body .. t .. '\tcxt->retDataPtr = _fnPtr;\n'
-	body = body .. t .. ("\tvar invv = m_invoker%s;\n"):format(nativeName)
-	body = body .. t .. ("\tif (invv == null) m_invoker%s = invv = ScriptContext.DoGetNative(%s);\n"):format(nativeName, native.hash)
-	body = body .. t .. ("\tinvv(cxt);\n")
-	body = body .. "#endif\n"
+	
+	if hyperDriveSafe then
+		body = body .. "#else\n"
+		body = body .. t .. '\tcxt->functionDataPtr = _fnPtr;\n'
+		body = body .. t .. '\tcxt->retDataPtr = _fnPtr;\n'
+		body = body .. t .. ("\tvar invv = m_invoker%s;\n"):format(nativeName)
+		body = body .. t .. ("\tif (invv == null) m_invoker%s = invv = ScriptContext.DoGetNative(%s);\n"):format(nativeName, native.hash)
+		body = body .. t .. ("\tinvv(cxt);\n")
+		body = body .. "#endif\n"
+	end
 	
 	if retType ~= 'void' then
 		local tempRetType = retType

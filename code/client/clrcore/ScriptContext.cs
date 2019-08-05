@@ -327,7 +327,7 @@ namespace CitizenFX.Core
 
 			unsafe
 			{
-#if !USE_HYPERDRIVE
+#if !USE_HYPERDRIVE_IN_CONTEXT
 				scriptHost.InvokeNative(new IntPtr(cxt));
 #else
 				if (!ms_invokers.TryGetValue(nativeIdentifier, out CallFunc invoker))
