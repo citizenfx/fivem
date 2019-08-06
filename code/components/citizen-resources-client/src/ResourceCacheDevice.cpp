@@ -175,7 +175,7 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 						// read from the stream
 						size_t off = 0;
-						size_t toRead = data.size();
+						size_t toRead = std::min(data.size(), length - off);
 
 						while ((numRead = this->ReadBulk(handle, off, data.data(), toRead)) > 0)
 						{
