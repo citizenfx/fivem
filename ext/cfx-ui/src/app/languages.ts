@@ -34,8 +34,8 @@ const languages = [
         displayName: 'Português'
     },
 	{
-        name: 'tr',
-        displayName: 'Turkish'
+        	name: 'tr',
+        	displayName: 'Turkish'
     },
 ];
 
