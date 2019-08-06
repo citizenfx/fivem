@@ -5,10 +5,6 @@ const languages = [
         name: 'en',
         displayName: 'English'
     },
-	{
-        name: 'es',
-        displayName: 'Español'
-    },
     {
         name: 'fr',
         displayName: 'Français'
@@ -36,6 +32,10 @@ const languages = [
 	{
         name: 'pt',
         displayName: 'Português'
+    },
+	{
+        name: 'es',
+        displayName: 'Español'
     },
 ];
 
