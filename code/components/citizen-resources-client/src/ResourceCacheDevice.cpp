@@ -24,6 +24,8 @@
 
 #include <Error.h>
 
+#include <SHA1.h>
+
 static concurrency::concurrent_unordered_map<uint32_t, bool> g_downloadingSet;
 static concurrency::concurrent_unordered_set<uint32_t> g_downloadedSet;
 
@@ -137,9 +139,11 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 					MarkFetched(handleData);
 				}
 
-				// validate RSC-ness of the file
+				// validate the file
 				if (bulkPtr)
 				{
+					bool valid = true;
+
 					if (entry->extData.find("rscVersion") != entry->extData.end() && entry->extData["rscVersion"] != "0")
 					{
 						char rscHeader[4];
@@ -153,11 +157,67 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 							AddCrashometry("rcd_invalid_resource", "true");
 
-							handleData->fileData->status = FileData::StatusNotFetched;
-
-							// close the file so we can refetch it
-							handleData->parentDevice->CloseBulk(handleData->parentHandle);
+							valid = false;
 						}
+					}
+
+					if (valid)
+					{
+						auto length = handleData->parentDevice->GetLength(localPath);
+
+						// calculate a hash of the file
+						std::vector<uint8_t> data(8192);
+						sha1nfo sha1;
+						size_t numRead;
+
+						// initialize context
+						sha1_init(&sha1);
+
+						// read from the stream
+						size_t off = 0;
+						size_t toRead = data.size();
+
+						while ((numRead = this->ReadBulk(handle, off, data.data(), toRead)) > 0)
+						{
+							sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+							off += numRead;
+							toRead = std::min(data.size(), length - off);
+						}
+
+						if (off < length)
+						{
+							AddCrashometry("rcd_corrupted_read", "true");
+
+							valid = false;
+						}
+
+						if (valid)
+						{
+							// get the hash result and convert it to a string
+							uint8_t* hash = sha1_result(&sha1);
+
+							std::string h = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+								hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+								hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+
+							if (h != cacheEntry->GetHashString())
+							{
+								AddCrashometry("rcd_corrupted_file", "true");
+
+								valid = false;
+							}
+						}
+					}
+
+					if (!valid)
+					{
+						handleData->fileData->status = FileData::StatusNotFetched;
+
+						// close the file so we can refetch it
+						handleData->parentDevice->CloseBulk(handleData->parentHandle);
+
+						// and remove it
+						handleData->parentDevice->RemoveFile(localPath);
 					}
 				}
 			}
