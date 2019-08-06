@@ -2313,6 +2313,11 @@ static InitFunction initFunction([]()
 		TheClones->Update();
 	});
 
+	OnKillNetwork.Connect([](const char*)
+	{
+		g_events.clear();
+	});
+
 	OnKillNetworkDone.Connect([]()
 	{
 		trackedObjects.clear();
