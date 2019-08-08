@@ -314,10 +314,13 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private unsafe static void InvokeInternal(ulong nativeIdentifier, IScriptHost scriptHost)
 		{
-			fixed (ContextType* cxt = &m_extContext)
-			{
-				InvokeInternal(cxt, nativeIdentifier, scriptHost);
-			}
+			var context = m_extContext;
+			m_extContext = new ContextType();
+
+			ContextType* cxt = &context;
+			InvokeInternal(cxt, nativeIdentifier, scriptHost);
+
+			m_extContext = context;
 		}
 
 		[SecurityCritical]
