@@ -745,6 +745,8 @@ bool ResourceCacheDevice::Close(THandle handle)
 	// clear the handle and return
 	handleData->fileData = nullptr;
 	handleData->allocated = false;
+	handleData->localPath = {};
+	handleData->fileName = {};
 
 	return retval;
 }
@@ -765,6 +767,8 @@ bool ResourceCacheDevice::CloseBulk(THandle handle)
 	// clear the handle and return
 	handleData->fileData = nullptr;
 	handleData->allocated = false;
+	handleData->localPath = {};
+	handleData->fileName = {};
 
 	return retval;
 }
