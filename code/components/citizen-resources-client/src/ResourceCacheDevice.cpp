@@ -253,6 +253,11 @@ void ResourceCacheDevice::EnsureDeferredOpen(THandle handle, HandleData* handleD
 
 					// and remove it
 					handleData->parentDevice->RemoveFile(handleData->localPath);
+
+					// unset stuff so nobody gets the bright idea to think we have a handle
+					handleData->parentDevice = {};
+					handleData->parentHandle = InvalidHandle;
+					handleData->localPath = {};
 				}
 			}
 		}
@@ -740,6 +745,9 @@ bool ResourceCacheDevice::Close(THandle handle)
 	if (handleData->parentDevice.GetRef() && handleData->parentHandle != INVALID_DEVICE_HANDLE)
 	{
 		retval = handleData->parentDevice->Close(handleData->parentHandle);
+
+		handleData->parentDevice = {};
+		handleData->parentHandle = InvalidHandle;
 	}
 
 	// clear the handle and return
@@ -762,6 +770,9 @@ bool ResourceCacheDevice::CloseBulk(THandle handle)
 	if (handleData->parentDevice.GetRef() && handleData->parentHandle != INVALID_DEVICE_HANDLE)
 	{
 		retval = handleData->parentDevice->CloseBulk(handleData->parentHandle);
+
+		handleData->parentDevice = {};
+		handleData->parentHandle = InvalidHandle;
 	}
 
 	// clear the handle and return
