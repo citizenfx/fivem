@@ -81,6 +81,9 @@ protected:
 
 		std::string extHandle;
 
+		std::string localPath;
+		std::string fileName;
+
 		inline HandleData()
 			: parentHandle(vfs::Device::InvalidHandle), downloadProgress(0), downloadSize(0), allocated(false)
 		{
@@ -118,6 +121,8 @@ protected:
 	HandleData* AllocateHandle(THandle* idx);
 
 	THandle OpenInternal(const std::string& fileName, uint64_t* bulkPtr);
+
+	void EnsureDeferredOpen(THandle handle, HandleData* handleData);
 
 	bool EnsureFetched(HandleData* handleData);
 

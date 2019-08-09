@@ -114,6 +114,7 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 	handleData->entry = entry.get();
 	handleData->fileData = GetFileDataForEntry(*entry);
 	handleData->fileData->status = FileData::StatusNotFetched;
+	handleData->fileName = fileName;
 
 	// open the file beforehand if it's in the cache
 	auto cacheEntry = m_cache->GetEntryFor(*entry);
@@ -121,110 +122,141 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 	if (cacheEntry.is_initialized())
 	{
 		const std::string& localPath = cacheEntry->GetLocalPath();
+		handleData->localPath = localPath;
 
-		handleData->parentDevice = vfs::GetDevice(localPath);
-		
-		if (handleData->parentDevice.GetRef())
+		auto parentDevice = vfs::GetDevice(handleData->localPath);
+
+		if (parentDevice.GetRef())
 		{
-			handleData->parentHandle = (bulkPtr) ? handleData->parentDevice->OpenBulk(localPath, &handleData->bulkPtr) : handleData->parentDevice->Open(localPath, true);
-
-			if (handleData->parentHandle != InvalidHandle)
+			if (parentDevice->GetAttributes(localPath) != INVALID_FILE_ATTRIBUTES)
 			{
-				{
-					std::unique_lock<std::mutex> lock(handleData->fileData->fetchLock);
+				std::unique_lock<std::mutex> lock(handleData->fileData->fetchLock);
 
-					handleData->fileData->status = FileData::StatusFetched;
-					handleData->fileData->metaData = cacheEntry->GetMetaData();
+				handleData->fileData->status = FileData::StatusFetched;
+				handleData->fileData->metaData = cacheEntry->GetMetaData();
 
-					MarkFetched(handleData);
-				}
-
-				// validate the file
-				if (bulkPtr)
-				{
-					bool valid = true;
-
-					if (entry->extData.find("rscVersion") != entry->extData.end() && entry->extData["rscVersion"] != "0")
-					{
-						char rscHeader[4];
-						this->ReadBulk(handle, 0, &rscHeader, 4);
-
-						memcpy(handleData->fileData->rscHeader, rscHeader, 4);
-
-						if (rscHeader[0] != 'R' || rscHeader[1] != 'S' || rscHeader[2] != 'C')
-						{
-							trace(__FUNCTION__ ": %s didn't parse as an RSC. Refetching?\n", fileName);
-
-							AddCrashometry("rcd_invalid_resource", "true");
-
-							valid = false;
-						}
-					}
-
-					if (valid)
-					{
-						auto length = handleData->parentDevice->GetLength(localPath);
-
-						// calculate a hash of the file
-						std::vector<uint8_t> data(8192);
-						sha1nfo sha1;
-						size_t numRead;
-
-						// initialize context
-						sha1_init(&sha1);
-
-						// read from the stream
-						size_t off = 0;
-						size_t toRead = std::min(data.size(), length - off);
-
-						while ((numRead = this->ReadBulk(handle, off, data.data(), toRead)) > 0)
-						{
-							sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
-							off += numRead;
-							toRead = std::min(data.size(), length - off);
-						}
-
-						if (off < length)
-						{
-							AddCrashometry("rcd_corrupted_read", "true");
-
-							valid = false;
-						}
-
-						if (valid)
-						{
-							// get the hash result and convert it to a string
-							uint8_t* hash = sha1_result(&sha1);
-
-							std::string h = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-								hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
-								hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
-
-							if (h != cacheEntry->GetHashString())
-							{
-								AddCrashometry("rcd_corrupted_file", "true");
-
-								valid = false;
-							}
-						}
-					}
-
-					if (!valid)
-					{
-						handleData->fileData->status = FileData::StatusNotFetched;
-
-						// close the file so we can refetch it
-						handleData->parentDevice->CloseBulk(handleData->parentHandle);
-
-						// and remove it
-						handleData->parentDevice->RemoveFile(localPath);
-					}
-				}
+				MarkFetched(handleData);
 			}
 		}
 	}
 
 	return handle;
+}
+
+void ResourceCacheDevice::EnsureDeferredOpen(THandle handle, HandleData* handleData)
+{
+	if (handleData->parentDevice.GetRef() && handleData->parentHandle != InvalidHandle)
+	{
+		return;
+	}
+
+	if (handleData->localPath.empty())
+	{
+		return;
+	}
+
+	handleData->parentDevice = vfs::GetDevice(handleData->localPath);
+
+	if (handleData->parentDevice.GetRef())
+	{
+		handleData->parentHandle = (handleData->bulkHandle) ? handleData->parentDevice->OpenBulk(handleData->localPath, &handleData->bulkPtr) : handleData->parentDevice->Open(handleData->localPath, true);
+
+		if (handleData->parentHandle != InvalidHandle)
+		{
+			auto cacheEntry = m_cache->GetEntryFor(handleData->entry);
+
+			{
+				std::unique_lock<std::mutex> lock(handleData->fileData->fetchLock);
+
+				handleData->fileData->status = FileData::StatusFetched;
+				handleData->fileData->metaData = cacheEntry->GetMetaData();
+
+				MarkFetched(handleData);
+			}
+
+			// validate the file
+			if (handleData->bulkHandle)
+			{
+				bool valid = true;
+
+				if (handleData->entry.extData.find("rscVersion") != handleData->entry.extData.end() && handleData->entry.extData["rscVersion"] != "0")
+				{
+					char rscHeader[4];
+					this->ReadBulk(handle, 0, &rscHeader, 4);
+
+					memcpy(handleData->fileData->rscHeader, rscHeader, 4);
+
+					if (rscHeader[0] != 'R' || rscHeader[1] != 'S' || rscHeader[2] != 'C')
+					{
+						trace(__FUNCTION__ ": %s didn't parse as an RSC. Refetching?\n", handleData->fileName);
+
+						AddCrashometry("rcd_invalid_resource", "true");
+
+						valid = false;
+					}
+				}
+
+				if (valid)
+				{
+					auto length = handleData->parentDevice->GetLength(handleData->localPath);
+
+					// calculate a hash of the file
+					std::vector<uint8_t> data(8192);
+					sha1nfo sha1;
+					size_t numRead;
+
+					// initialize context
+					sha1_init(&sha1);
+
+					// read from the stream
+					size_t off = 0;
+					size_t toRead = std::min(data.size(), length - off);
+
+					while ((numRead = this->ReadBulk(handle, off, data.data(), toRead)) > 0)
+					{
+						sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+						off += numRead;
+						toRead = std::min(data.size(), length - off);
+					}
+
+					if (off < length)
+					{
+						AddCrashometry("rcd_corrupted_read", "true");
+
+						valid = false;
+					}
+
+					if (valid)
+					{
+						// get the hash result and convert it to a string
+						uint8_t* hash = sha1_result(&sha1);
+
+						std::string h = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+							hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+							hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+
+						if (h != cacheEntry->GetHashString())
+						{
+							AddCrashometry("rcd_corrupted_file", "true");
+
+							valid = false;
+						}
+					}
+				}
+
+				if (!valid)
+				{
+					handleData->fileData->status = FileData::StatusNotFetched;
+
+					// close the file so we can refetch it
+					handleData->parentDevice->CloseBulk(handleData->parentHandle);
+
+					// and remove it
+					handleData->parentDevice->RemoveFile(handleData->localPath);
+				}
+			}
+		}
+	}
 }
 
 ResourceCacheDevice::THandle ResourceCacheDevice::Open(const std::string& fileName, bool readOnly)
@@ -583,6 +615,9 @@ size_t ResourceCacheDevice::Read(THandle handle, void* outBuffer, size_t size)
 	// get the handle
 	auto handleData = &m_handles[handle];
 
+	// open it if we can
+	EnsureDeferredOpen(handle, handleData);
+
 	// if the file isn't fetched, fetch it first
 	bool fetched = EnsureFetched(handleData);
 
@@ -649,6 +684,14 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 		return (handleData->fileData->status == FileData::StatusFetched) ? 2048 : 0;
 	}
 
+	EnsureDeferredOpen(handle, handleData);
+
+	if (fetched)
+	{
+		// fetched status might've changed
+		fetched = EnsureFetched(handleData);
+	}
+
 	if (m_blocking && !fetched)
 	{
 		while (!fetched)
@@ -678,7 +721,7 @@ size_t ResourceCacheDevice::Seek(THandle handle, intptr_t offset, int seekType)
 	auto handleData = &m_handles[handle];
 
 	// make sure the file is fetched
-	if (handleData->fileData->status != FileData::StatusFetched)
+	if (handleData->parentDevice.GetRef() && handleData->parentHandle != InvalidHandle && handleData->fileData->status != FileData::StatusFetched)
 	{
 		return -1;
 	}
@@ -746,7 +789,7 @@ size_t ResourceCacheDevice::GetLength(THandle handle)
 	auto handleData = &m_handles[handle];
 
 	// close any parent device handle
-	if (handleData->fileData->status == FileData::StatusFetched)
+	if (handleData->parentDevice.GetRef() && handleData->parentHandle != InvalidHandle && handleData->fileData->status == FileData::StatusFetched)
 	{
 		return handleData->parentDevice->GetLength(handleData->parentHandle);
 	}
