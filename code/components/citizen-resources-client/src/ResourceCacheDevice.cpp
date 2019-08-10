@@ -26,7 +26,7 @@
 
 #include <SHA1.h>
 
-static concurrency::concurrent_unordered_map<uint32_t, bool> g_downloadingSet;
+static concurrency::concurrent_unordered_map<uint32_t, std::shared_ptr<std::atomic<int32_t>>> g_downloadingSet;
 static concurrency::concurrent_unordered_set<uint32_t> g_downloadedSet;
 
 static concurrency::concurrent_unordered_map<std::string, std::shared_ptr<ResourceCacheDevice::FileData>> g_fileDataSet;
@@ -358,7 +358,14 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 				handleData->parentDevice->Open(entry.GetLocalPath(), true);
 		}
 
-		MarkFetched(handleData);
+		if (handleData->parentDevice.GetRef() && handleData->parentHandle != InvalidHandle)
+		{
+			MarkFetched(handleData);
+
+			return true;
+		}
+
+		return false;
 	};
 
 	if (handleData->fileData->status == FileData::StatusFetching)
@@ -371,9 +378,12 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 			if (handleData->fileData->status == FileData::StatusFetched && (handleData->parentDevice.GetRef() == nullptr || handleData->parentHandle == INVALID_DEVICE_HANDLE))
 			{
-				openFile(*m_cache->GetEntryFor(handleData->entry));
+				auto entry = m_cache->GetEntryFor(handleData->entry);
 
-				return true;
+				if (entry)
+				{
+					return openFile(*entry);
+				}
 			}
 		}
 
@@ -385,10 +395,15 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	ResetEvent(handleData->fileData->eventHandle);
 	handleData->fileData->status = FileData::StatusFetching;
 
-	if (auto it = g_downloadingSet.find(remoteHash); (it == g_downloadingSet.end() || !it->second))
+	if (auto it = g_downloadingSet.find(remoteHash); (it == g_downloadingSet.end() || *it->second == 0))
 	{
 		// mark this hash as downloading (to prevent multiple concurrent downloads)
-		g_downloadingSet.insert({ remoteHash, true });
+		if (it == g_downloadingSet.end())
+		{
+			it = g_downloadingSet.insert({ remoteHash, std::make_shared<std::atomic<int32_t>>() }).first;
+		}
+
+		(*g_downloadingSet[remoteHash])++;
 
 		// log the request starting
 		uint32_t initTime = timeGetTime();
@@ -486,7 +501,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 
 					if (entry)
 					{
-						openFile(*entry);
+						success = openFile(*entry);
 					}
 					else
 					{
@@ -511,7 +526,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 			SetEvent(fileDataRef->eventHandle);
 
 			// allow downloading this file again
-			g_downloadingSet[remoteHash] = false;
+			(*g_downloadingSet[remoteHash])--;
 		};
 
 		// http request
@@ -588,11 +603,7 @@ bool ResourceCacheDevice::EnsureFetched(HandleData* handleData)
 	{
 		auto cacheEntry = m_cache->GetEntryFor(handleData->entry);
 
-		if (cacheEntry)
-		{
-			openFile(*cacheEntry);
-		}
-		else
+		if (!cacheEntry || !openFile(*cacheEntry))
 		{
 			ICoreGameInit* init = Instance<ICoreGameInit>::Get();
 
