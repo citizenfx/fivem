@@ -151,9 +151,10 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						{
 							trace("Found new resource %s in %s\n", findData.name, resPath);
 
-							skyr::url url;
-							url.set_protocol("file");
-							url.set_host("");
+							skyr::url_record record;
+							record.scheme = "file";
+
+							skyr::url url{ std::move(record) };
 							url.set_pathname(resPath);
 							url.set_hash(findData.name);
 

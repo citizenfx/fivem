@@ -300,9 +300,10 @@ static InitFunction initFunction([] ()
 
 		auto resourceRoot = "usermaps:/resources/" + resourceDir;
 
-		skyr::url url;
-		url.set_protocol("file");
-		url.set_host("");
+		skyr::url_record record;
+		record.scheme = "file";
+
+		skyr::url url{ std::move(record) };
 		url.set_pathname(resourceRoot);
 		url.set_hash(resourceDir);
 
