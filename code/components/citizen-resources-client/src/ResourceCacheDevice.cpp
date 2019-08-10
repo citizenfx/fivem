@@ -728,6 +728,21 @@ size_t ResourceCacheDevice::ReadBulk(THandle handle, uint64_t ptr, void* outBuff
 		return -1;
 	}
 
+	if (m_blocking)
+	{
+		while (!handleData->parentDevice.GetRef() || handleData->parentHandle == InvalidHandle)
+		{
+			EnsureDeferredOpen(handle, handleData);
+
+			fetched = EnsureFetched(handleData);
+
+			if (!fetched)
+			{
+				Sleep(1000);
+			}
+		}
+	}
+
 	return handleData->parentDevice->ReadBulk(handleData->parentHandle, ptr + handleData->bulkPtr, outBuffer, size);
 }
 
