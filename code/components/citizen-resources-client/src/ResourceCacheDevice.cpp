@@ -975,10 +975,21 @@ void ResourceCacheEntryList::AttachToObject(fx::Resource* resource)
 
 void MountKvpDevice();
 
+void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache);
+
+static bool g_useNewRcd = true;
+
 void MountResourceCacheDevice(std::shared_ptr<ResourceCache> cache)
 {
-	vfs::Mount(new ResourceCacheDevice(cache, true), "cache:/");
-	vfs::Mount(new ResourceCacheDevice(cache, false), "cache_nb:/");
+	if (g_useNewRcd)
+	{
+		MountResourceCacheDeviceV2(cache);
+	}
+	else
+	{
+		vfs::Mount(new ResourceCacheDevice(cache, true), "cache:/");
+		vfs::Mount(new ResourceCacheDevice(cache, false), "cache_nb:/");
+	}
 
 	MountKvpDevice();
 }

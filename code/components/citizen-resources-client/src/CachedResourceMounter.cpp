@@ -74,7 +74,10 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 
 	if (uriParsed)
 	{
-		*parsedUri = *uriParsed;
+		if (parsedUri)
+		{
+			*parsedUri = *uriParsed;
+		}
 
 		// get the host name
 		auto host = uriParsed->host();

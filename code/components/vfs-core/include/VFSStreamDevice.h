@@ -21,6 +21,7 @@ namespace vfs
 {
 struct SeekableStream {};
 struct WritableStream {};
+struct LengthableStream {};
 struct BulkWritableStream {};
 
 namespace detail
@@ -162,6 +163,40 @@ public:
 		if (data && data->stream)
 		{
 			return SeekImpl<std::is_base_of_v<SeekableStream, StreamType>>::Seek(data->stream.get(), offset, seekType);
+		}
+
+		return -1;
+	}
+
+protected:
+	template<bool value>
+	struct GetLengthImpl
+	{
+		template<typename TStream>
+		static size_t GetLength(TStream* stream)
+		{
+			return -1;
+		}
+	};
+
+	template<>
+	struct GetLengthImpl<true>
+	{
+		template<typename TStream>
+		static size_t GetLength(TStream* stream)
+		{
+			return stream->GetLength();
+		}
+	};
+
+public:
+	virtual size_t GetLength(THandle handle) override
+	{
+		auto data = GetHandle(handle);
+
+		if (data && data->stream)
+		{
+			return GetLengthImpl<std::is_base_of_v<LengthableStream, StreamType>>::GetLength(data->stream.get());
 		}
 
 		return -1;
@@ -317,6 +352,18 @@ public:
 		}
 
 		return -1;
+	}
+
+	virtual size_t GetLength(Device::THandle handle) override
+	{
+		auto data = GetHandle(handle);
+
+		if (data && data->bulkStream)
+		{
+			return GetLengthImpl<std::is_base_of_v<LengthableStream, BulkType>>::GetLength(data->bulkStream.get());
+		}
+
+		return StreamDevice::GetLength(handle);
 	}
 	
 	virtual bool CloseBulk(Device::THandle handle) override
