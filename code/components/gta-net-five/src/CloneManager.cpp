@@ -106,11 +106,23 @@ public:
 
 	virtual rage::netObject* GetNetworkObject(uint16_t id) override;
 
-	virtual void ForAllNetObjects(int playerId, const std::function<void(rage::netObject*)>& callback) override
+	virtual void ForAllNetObjects(int playerId, const std::function<void(rage::netObject*)>& callback, bool safe) override
 	{
-		for (auto& entry : m_netObjects[playerId])
+		if (safe)
 		{
-			callback(entry.second);
+			auto nol = m_netObjects[playerId]; // copy the list, we want to remove from it
+
+			for (auto& entry : nol)
+			{
+				callback(entry.second);
+			}
+		}
+		else
+		{
+			for (auto& entry : m_netObjects[playerId])
+			{
+				callback(entry.second);
+			}
 		}
 	}
 

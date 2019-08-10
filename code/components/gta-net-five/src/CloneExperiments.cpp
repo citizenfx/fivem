@@ -867,7 +867,7 @@ void ObjectManager_End(rage::netObjectMgr* objectMgr)
 
 			for (int i = 0; i < 256; i++)
 			{
-				CloneObjectMgr->ForAllNetObjects(i, objectCb);
+				CloneObjectMgr->ForAllNetObjects(i, objectCb, true);
 			}
 
 			auto listCopy = TheClones->GetObjectList();
@@ -1130,10 +1130,10 @@ static HookFunction hookFunction([]()
 	//hook::jump(0x140A19640, NetLogStub_DoLog);
 
 	// netobjmgr count, temp dbg
-	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 64);
+	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 128);
 
 	// 1604, netobjmgr alloc size, temp dbg
-	hook::put<uint32_t>(0x14101CF4F, 32712 + 4096);
+	hook::put<uint32_t>(0x14101CF4F, 32712 + 8192);
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
