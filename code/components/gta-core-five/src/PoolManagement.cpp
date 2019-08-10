@@ -207,7 +207,7 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 
 static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
 {
-	g_pools.insert({ hash, pool });
+	g_pools[hash] = pool;
 	g_inversePools.insert({ pool, hash });
 
 	return pool;
