@@ -9,7 +9,7 @@
 		"scripting:gta",
 		"conhost",
 		"font-renderer",
-		"vendor:cpp-uri",
+		"vendor:cpp-url",
 		"vendor:nng",
 		"vendor:msgpack-c"
 	],

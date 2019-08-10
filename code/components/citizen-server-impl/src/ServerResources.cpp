@@ -14,7 +14,7 @@
 
 #include <VFSManager.h>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include <PrintListener.h>
 
@@ -36,28 +36,25 @@ public:
 
 	virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override
 	{
-		std::error_code ec;
-		auto uriParsed = network::make_uri(uri, ec);
+		auto uriParsed = skyr::make_url(uri);
 
 		fwRefContainer<fx::Resource> resource;
 
-		if (!ec)
+		if (uriParsed)
 		{
-			auto pathRef = uriParsed.path();
-			auto fragRef = uriParsed.fragment();
+			auto pathRef = uriParsed->pathname();
+			auto fragRef = uriParsed->hash().substr(1);
 
 			if (!pathRef.empty() && !fragRef.empty())
 			{
-				std::vector<char> path;
 #ifdef _WIN32
-				std::string pr = pathRef.substr(1).to_string();
+				std::string pr = pathRef.substr(1);
 #else
-				std::string pr = pathRef.to_string();
+				std::string pr = pathRef;
 #endif
-				network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
 
-				resource = m_manager->CreateResource(fragRef.to_string());
-				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
+				resource = m_manager->CreateResource(fragRef);
+				resource->LoadFrom(pr);
 			}
 		}
 
@@ -154,12 +151,13 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						{
 							trace("Found new resource %s in %s\n", findData.name, resPath);
 
-							tasks.push_back(resMan->AddResource(network::uri_builder{}
-								.scheme("file")
-								.host("")
-								.path(resPath)
-								.fragment(findData.name)
-								.uri().string()));
+							skyr::url url;
+							url.set_protocol("file");
+							url.set_host("");
+							url.set_pathname(resPath);
+							url.set_hash(findData.name);
+
+							tasks.push_back(resMan->AddResource(url.href()));
 						}
 					}
 				}

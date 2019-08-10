@@ -8,7 +8,7 @@
 #include <StdInc.h>
 #include <ResourceManagerImpl.h>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include <ETWProviders/etwprof.h>
 
@@ -27,16 +27,15 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 	// parse the URI
 	fwRefContainer<ResourceMounter> mounter;
 
-	std::error_code ec;
-	network::uri parsed = network::make_uri(uri, ec);
+	auto parsed = skyr::make_url(uri);
 
-	if (!static_cast<bool>(ec))
+	if (parsed)
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mountersMutex);
 
 		for (auto& mounterEntry : m_mounters)
 		{
-			if (mounterEntry->HandlesScheme(parsed.scheme().to_string()))
+			if (mounterEntry->HandlesScheme(parsed->protocol().substr(0, parsed->protocol().length() - 1)))
 			{
 				mounter = mounterEntry;
 				break;
@@ -45,7 +44,7 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 	}
 	else
 	{
-		trace("%s: %s\n", __func__, ec.message());
+		trace("%s: %s\n", __func__, parsed.error().message());
 	}
 
 	return mounter;

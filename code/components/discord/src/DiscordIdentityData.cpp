@@ -7,7 +7,7 @@
 
 #include <json.hpp>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include <HttpClient.h>
 
@@ -127,12 +127,11 @@ static HookFunction initFunction([]()
 
 												if (!location.empty())
 												{
-													std::error_code ec;
-													auto uri = network::make_uri(location, ec);
+													auto uri = skyr::make_url(location);
 													
-													if (!ec)
+													if (uri)
 													{
-														auto queryStr = uri.query().to_string();
+														auto queryStr = uri->search();
 														queryStr = queryStr.substr(queryStr.find_first_of("=") + 1);
 
 														Instance<::HttpClient>::Get()->DoPostRequest(

@@ -142,3 +142,6 @@
 [submodule "vendor/ben-demystifier"]
 	path = vendor/ben-demystifier
 	url = https://github.com/citizenfx/Ben.Demystifier.git
+[submodule "vendor/cpp-url"]
+	path = vendor/cpp-url
+	url = https://github.com/cpp-netlib/url.git

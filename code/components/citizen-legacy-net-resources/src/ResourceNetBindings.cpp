@@ -22,7 +22,8 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <network/uri.hpp>
+#include <skyr/percent_encode.hpp>
+#include <skyr/url.hpp>
 
 #include <CoreConsole.h>
 
@@ -35,22 +36,19 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
-#include <cpr/util.h>
-
 static NetAddress g_netAddress;
 
 static std::set<std::string> g_resourceStartRequestSet;
 
 static std::string CrackResourceName(const std::string& uri)
 {
-	std::error_code ec;
-	network::uri parsed = network::make_uri(uri, ec);
+	auto parsed = skyr::make_url(uri);
 
-	if (!static_cast<bool>(ec))
+	if (parsed)
 	{
-		if (!parsed.host().empty())
+		if (!parsed->host().empty())
 		{
-			return parsed.host().to_string();
+			return parsed->host();
 		}
 	}
 
@@ -126,14 +124,27 @@ static InitFunction initFunction([] ()
 		static std::recursive_mutex executeNextGameFrameMutex;
 		static std::vector<std::function<void()>> executeNextGameFrame;
 
-		auto urlEncodeWrap = [](const std::string& str)
+		auto urlEncodeWrap = [](const std::string& base, const std::string& str)
 		{
 			if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201902111010)
 			{
-				return cpr::util::urlEncode(str);
+				auto baseUrl = skyr::make_url(base);
+
+				if (baseUrl)
+				{
+					std::string strCopy(str);
+					boost::algorithm::replace_all(strCopy, "+", "%2B");
+
+					auto url = skyr::make_url(strCopy, *baseUrl);
+
+					if (url)
+					{
+						return url->href();
+					}
+				}
 			}
 
-			return str;
+			return base + str;
 		};
 
 		auto updateResources = [=] (const std::string& updateList, const std::function<void()>& doneCb)
@@ -314,7 +325,7 @@ static InitFunction initFunction([] ()
 						{
 							fwString filename = i->name.GetString();
 
-							mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), resourceBaseUrl + urlEncodeWrap(filename));
+							mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), urlEncodeWrap(resourceBaseUrl, filename));
 						}
 
 						if (resource.HasMember("streamFiles"))
@@ -353,7 +364,7 @@ static InitFunction initFunction([] ()
 									continue;
 								}
 
-								mounter->AddResourceEntry(resourceName, filename, hash, resourceBaseUrl + urlEncodeWrap(filename), size, {
+								mounter->AddResourceEntry(resourceName, filename, hash, urlEncodeWrap(resourceBaseUrl, filename), size, {
 									{ "rscVersion", std::to_string(entry.rscVersion) },
 									{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
 									{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },

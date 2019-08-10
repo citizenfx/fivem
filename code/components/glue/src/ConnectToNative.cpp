@@ -28,7 +28,7 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include <se/Security.h>
 
@@ -598,25 +598,24 @@ void Component_RunPreInit()
 
 		if (arg.find("fivem:") == 0)
 		{
-			std::error_code ec;
-			network::uri parsed = network::make_uri(arg, ec);
+			auto parsed = skyr::make_url(arg);
 
-			if (!static_cast<bool>(ec))
+			if (parsed)
 			{
-				if (!parsed.host().empty())
+				if (!parsed->host().empty())
 				{
-					if (parsed.host().to_string() == "connect")
+					if (parsed->host() == "connect")
 					{
-						if (!parsed.path().empty())
+						if (!parsed->pathname().empty())
 						{
-							connectHost = parsed.path().substr(1).to_string();
+							connectHost = parsed->pathname().substr(1);
 						}
 					}
-					else if (parsed.host().to_string() == "accept-auth")
+					else if (parsed->host() == "accept-auth")
 					{
-						if (!parsed.query().empty())
+						if (!parsed->search().empty())
 						{
-							authPayload = parsed.query().to_string();
+							authPayload = parsed->search().substr(1);
 						}
 					}
 				}

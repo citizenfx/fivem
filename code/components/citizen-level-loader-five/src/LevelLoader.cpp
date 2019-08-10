@@ -16,7 +16,7 @@
 #include <ResourceManager.h>
 #include <ResourceMetaDataComponent.h>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include "Hooking.h"
 
@@ -242,24 +242,23 @@ public:
 
 	virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override
 	{
-		std::error_code ec;
-		auto uriParsed = network::make_uri(uri, ec);
+		auto uriParsed = skyr::make_url(uri);
 
 		fwRefContainer<fx::Resource> resource;
 
-		if (!ec)
+		if (uriParsed)
 		{
-			auto pathRef = uriParsed.path();
-			auto fragRef = uriParsed.fragment();
+			auto pathRef = uriParsed->pathname();
+			auto fragRef = uriParsed->hash().substr(1);
 
 			if (!pathRef.empty() && !fragRef.empty())
 			{
 				std::vector<char> path;
-				std::string pr = pathRef.substr(1).to_string();
-				network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
+				std::string pr = pathRef.substr(1);
+				//network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
 
-				resource = m_manager->CreateResource(fragRef.to_string());
-				resource->LoadFrom(std::string(path.begin(), path.begin() + path.size()));
+				resource = m_manager->CreateResource(fragRef);
+				resource->LoadFrom(pr);
 			}
 		}
 
@@ -301,12 +300,13 @@ static InitFunction initFunction([] ()
 
 		auto resourceRoot = "usermaps:/resources/" + resourceDir;
 
-		resourceManager->AddResource(network::uri_builder{}
-			.scheme("file")
-			.host("")
-			.path(resourceRoot)
-			.fragment(resourceDir)
-			.uri().string())
+		skyr::url url;
+		url.set_protocol("file");
+		url.set_host("");
+		url.set_pathname(resourceRoot);
+		url.set_hash(resourceDir);
+
+		resourceManager->AddResource(url.href())
 			.then([](fwRefContainer<fx::Resource> resource)
 		{
 			resource->Start();

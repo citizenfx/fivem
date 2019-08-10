@@ -17,7 +17,7 @@
 #include <IteratorView.h>
 #include <optional>
 #include <random>
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 #include <ResumeComponent.h>
 
 #include <json.hpp>
@@ -714,25 +714,30 @@ static std::optional<std::string> ResolveUrl(const std::string& rootUrl)
 {
 	try
 	{
-		auto uri = network::uri(rootUrl);
+		auto uri = skyr::make_url(rootUrl);
 
-		if (uri.has_scheme())
+		if (uri && !uri->protocol().empty())
 		{
-			if (uri.scheme().to_string() == "fivem")
+			if (uri->protocol() == "fivem:")
 			{
-				uri = network::uri_builder(uri)
-					.scheme("https")
-					.port(uri.has_port() ? atoi(uri.port().to_string().c_str()) : 30120)
-					.path("/")
-					.uri();
+				// this whatwg url spec is very 'special' and doesn't allow you to ever make a new url and set protocol to any 'special' scheme
+				// such as 'http' or 'https' or 'file'
+				// and compared to cpp-uri the uri_builder was removed too
+				// so we do super verbose making a record
+
+				skyr::url_record record;
+				record.scheme = "https";
+
+				skyr::url newUri{ std::move(record) };
+				newUri.set_port(uri->port().empty() ? atoi(uri->port().c_str()) : 30120);
+				newUri.set_pathname("/");
+
+				*uri = newUri;
 			}
 
-			if (uri.scheme().to_string() == "http" || uri.scheme().to_string() == "https")
+			if (uri->protocol() == "http:" || uri->protocol() == "https:")
 			{
-				uri = network::uri_builder(uri)
-					.uri();
-
-				return uri.string();
+				return uri->href();
 			}
 		}
 	}
@@ -745,12 +750,15 @@ static std::optional<std::string> ResolveUrl(const std::string& rootUrl)
 	
 	if (peerAddress)
 	{
-		return network::uri_builder()
-			.scheme("http")
-			.host(peerAddress->ToString())
-			.path("/")
-			.uri()
-			.string();
+		// same as above, we need a record
+		skyr::url_record record;
+		record.scheme = "http";
+
+		skyr::url newUri{ std::move(record) };
+		newUri.set_host(peerAddress->ToString());
+		newUri.set_pathname("/");
+
+		return newUri.href();
 	}
 
 	return {};
@@ -957,16 +965,16 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			}
 			else
 			{
-				network::uri uri{ url };
+				auto uri = skyr::make_url(url);
 				std::string endpoint;
 			
-				if (uri.has_port())
+				if (!uri->port().empty())
 				{
-					endpoint = fmt::sprintf("%s:%d", uri.host().to_string(), atoi(uri.port().to_string().c_str()));
+					endpoint = fmt::sprintf("%s:%d", uri->hostname(), uri->port<int>());
 				}
 				else
 				{
-					endpoint = uri.host().to_string();
+					endpoint = uri->hostname();
 				}
 
 				endpoints.push_back(endpoint);
