@@ -227,6 +227,11 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				// read from the stream
 				while ((numRead = localStream->Read(data.data(), data.size())) > 0)
 				{
+					if (numRead == -1)
+					{
+						break;
+					}
+
 					sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
 				}
 
