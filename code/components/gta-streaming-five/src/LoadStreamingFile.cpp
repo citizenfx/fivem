@@ -1233,6 +1233,34 @@ static void ExecuteGroupForWeaponInfo(void* mgr, uint32_t hashValue, bool value)
 	}
 }
 
+static void(*g_origUnloadWeaponInfos)();
+
+static hook::cdecl_stub<void(void*)> wib_ctor([]()
+{
+	// 1604
+	return (void*)0x140E78710;
+});
+
+struct CWeaponInfoBlob
+{
+	char m_pad[248];
+
+	CWeaponInfoBlob()
+	{
+		wib_ctor(this);
+	}
+};
+
+static atArray<CWeaponInfoBlob>* g_weaponInfoArray;
+
+static void UnloadWeaponInfosStub()
+{
+	g_origUnloadWeaponInfos();
+
+	g_weaponInfoArray->Clear();
+	g_weaponInfoArray->Expand(0x80);
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1417,9 +1445,25 @@ static HookFunction hookFunction([] ()
 	// special point for CWeaponMgr streaming unload
 	// (game calls CExtraContentManager::ExecuteTitleUpdateDataPatchGroup with a specific group intended for weapon info here)
 	{
-		auto location = hook::get_pattern("45 33 C0 BA E9 C8 73 AA E8", 8);
+		auto location = hook::get_pattern<char>("45 33 C0 BA E9 C8 73 AA E8", 8);
 		hook::set_call(&g_origExecuteGroup, location);
 		hook::call(location, ExecuteGroupForWeaponInfo);
+
+		g_weaponInfoArray = hook::get_address<decltype(g_weaponInfoArray)>(location + 0x74);
+	}
+
+	// don't create an unarmed weapon when *unloading* a WEAPONINFO_FILE in the mounter (this will get badly freed later
+	// which will lead to InitSession failing)
+	{
+		hook::return_function(hook::get_pattern("7C 94 48 85 F6 74 0D 48 8B 06 BA 01 00 00 00", 0x3C));
+	}
+
+	// fully clean weaponinfoblob array when resetting weapon manager
+	// not doing so will lead to parser crashes when a half-reset value is reused
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("45 33 C0 BA E9 C8 73 AA E8", -0x11), UnloadWeaponInfosStub, (void**)&g_origUnloadWeaponInfos);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	// support CfxRequest for pgRawStreamer
