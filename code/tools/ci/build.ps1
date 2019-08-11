@@ -174,11 +174,12 @@ if (!$DontBuild)
     $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
 
     foreach ($submodule in $SubModules) {
-		if (Test-Path $SubmodulePath) {
+        $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
+
+        if (Test-Path $SubmodulePath) {
 			continue;
 		}
 		
-        $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
         $SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
 
         $Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash) -replace '^.*tags/([^^]+).*$','$1'
