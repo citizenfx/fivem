@@ -192,6 +192,27 @@ premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
 end)
 
+premake.override(premake.vstudio.vc2010, 'importLanguageTargets', function(base, prj)
+	base(prj)
+
+	local hasPostBuild = false
+
+	for cfg in premake.project.eachconfig(prj) do
+		if cfg.postbuildcommands and #cfg.postbuildcommands > 0 then
+			hasPostBuild = true
+			break
+		end
+	end
+
+	if hasPostBuild then
+		_p(1, '<Target Name="DisablePostBuildEvent" AfterTargets="Link" BeforeTargets="PostBuildEvent">')
+		_p(2, '<PropertyGroup>')
+		_p(3, '<PostBuildEventUseInBuild Condition="\'$(LinkSkippedExecution)\' == \'True\'">false</PostBuildEventUseInBuild>')
+		_p(2, '</PropertyGroup>')
+		_p(1, '</Target>')
+	end
+end)
+
 local function WriteDocumentationFileXml(_premake, _cfg)
 	if _cfg.project.name == 'CitiMonoSystemDrawingStub' then
 		_premake.w(('<AssemblyOriginatorKeyFile>%s</AssemblyOriginatorKeyFile>'):format(
