@@ -15,6 +15,7 @@
 #include <VFSManager.h>
 
 #include <skyr/url.hpp>
+#include <skyr/percent_encode.hpp>
 
 #include <PrintListener.h>
 
@@ -155,8 +156,8 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 							record.scheme = "file";
 
 							skyr::url url{ std::move(record) };
-							url.set_pathname(resPath);
-							url.set_hash(findData.name);
+							url.set_pathname(*skyr::percent_encode(resPath, skyr::encode_set::path));
+							url.set_hash(*skyr::percent_encode(findData.name, skyr::encode_set::fragment));
 
 							tasks.push_back(resMan->AddResource(url.href()));
 						}
