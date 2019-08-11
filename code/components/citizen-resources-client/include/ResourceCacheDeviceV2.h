@@ -40,6 +40,8 @@ public:
 protected:
 	virtual vfs::Device::THandle OpenFile(const std::string& localPath) = 0;
 
+	virtual void CloseFile() = 0;
+
 	virtual bool EnsureRead();
 
 protected:
@@ -67,12 +69,16 @@ public:
 
 	}
 
+	virtual ~RcdStream() override;
+
 	virtual size_t Read(void* outBuffer, size_t size);
 
 	virtual size_t Seek(intptr_t off, int at);
 
 protected:
 	virtual vfs::Device::THandle OpenFile(const std::string& localPath) override;
+
+	virtual void CloseFile() override;
 };
 
 class 
@@ -90,10 +96,14 @@ public:
 
 	}
 
+	virtual ~RcdBulkStream() override;
+
 	virtual size_t ReadBulk(uint64_t ptr, void* outBuffer, size_t size);
 
 protected:
 	virtual vfs::Device::THandle OpenFile(const std::string& localPath) override;
+
+	virtual void CloseFile() override;
 
 private:
 	size_t m_parentPtr;

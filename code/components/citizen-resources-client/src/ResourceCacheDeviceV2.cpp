@@ -76,6 +76,15 @@ bool RcdBaseStream::EnsureRead()
 	return true;
 }
 
+RcdStream::~RcdStream()
+{
+	if (m_parentDevice.GetRef() && m_parentHandle != INVALID_DEVICE_HANDLE)
+	{
+		CloseFile();
+		m_parentHandle = INVALID_DEVICE_HANDLE;
+	}
+}
+
 size_t RcdStream::Read(void* outBuffer, size_t size)
 {
 	if (!EnsureRead())
@@ -96,9 +105,23 @@ size_t RcdStream::Seek(intptr_t off, int at)
 	return m_parentDevice->Seek(m_parentHandle, off, at);
 }
 
+void RcdStream::CloseFile()
+{
+	m_parentDevice->Close(m_parentHandle);
+}
+
 vfs::Device::THandle RcdStream::OpenFile(const std::string& localPath)
 {
 	return m_parentDevice->Open(localPath, true);
+}
+
+RcdBulkStream::~RcdBulkStream()
+{
+	if (m_parentDevice.GetRef() && m_parentHandle != INVALID_DEVICE_HANDLE)
+	{
+		CloseFile();
+		m_parentHandle = INVALID_DEVICE_HANDLE;
+	}
 }
 
 size_t RcdBulkStream::ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
@@ -124,6 +147,11 @@ size_t RcdBulkStream::ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
 vfs::Device::THandle RcdBulkStream::OpenFile(const std::string& localPath)
 {
 	return m_parentDevice->OpenBulk(localPath, &m_parentPtr);
+}
+
+void RcdBulkStream::CloseFile()
+{
+	m_parentDevice->CloseBulk(m_parentHandle);
 }
 
 std::shared_ptr<RcdStream> ResourceCacheDeviceV2::OpenStream(const std::string& fileName, bool readOnly)
