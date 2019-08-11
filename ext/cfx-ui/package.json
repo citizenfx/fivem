@@ -45,7 +45,6 @@
     "ngx-linky": "^2.1.0",
     "ngx-virtual-scroller": "^3.0.2",
     "node-forge": "^0.8.5",
-    "node-sass": "git+https://github.com/citizenfx/node-sass.git",
     "protobufjs": "^6.8.8",
     "query-string": "^6.8.1",
     "reconnecting-websocket": "^4.1.10",
