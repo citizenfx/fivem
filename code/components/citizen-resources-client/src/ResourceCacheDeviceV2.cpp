@@ -67,6 +67,12 @@ bool RcdBaseStream::EnsureRead()
 		}
 		catch (const std::exception& e)
 		{
+			// propagate throw for nonblocking
+			if (!m_fetcher->IsBlocking())
+			{
+				throw e;
+			}
+
 			FatalError("Unable to ensure read in RCD: %s\n\nPlease report this issue, together with the information from 'Save information' down below on https://forum.fivem.net/.", e.what());
 
 			return false;
@@ -87,22 +93,40 @@ RcdStream::~RcdStream()
 
 size_t RcdStream::Read(void* outBuffer, size_t size)
 {
-	if (!EnsureRead())
+	try
 	{
-		return 0;
-	}
+		if (!EnsureRead())
+		{
+			return 0;
+		}
 
-	return m_parentDevice->Read(m_parentHandle, outBuffer, size);
+		return m_parentDevice->Read(m_parentHandle, outBuffer, size);
+	}
+	catch (const std::exception& e)
+	{
+		trace(__FUNCTION__ ": failing read for %s\n", e.what());
+
+		return -1;
+	}
 }
 
 size_t RcdStream::Seek(intptr_t off, int at)
 {
-	if (!EnsureRead())
+	try
 	{
+		if (!EnsureRead())
+		{
+			return -1;
+		}
+
+		return m_parentDevice->Seek(m_parentHandle, off, at);
+	}
+	catch (const std::exception& e)
+	{
+		trace(__FUNCTION__ ": failing seek for %s\n", e.what());
+
 		return -1;
 	}
-
-	return m_parentDevice->Seek(m_parentHandle, off, at);
 }
 
 void RcdStream::CloseFile()
@@ -131,17 +155,26 @@ size_t RcdBulkStream::ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
 		return m_fetcher->ExistsOnDisk(m_fileName) ? 2048 : 0;
 	}
 
-	if (!EnsureRead())
+	try
 	{
-		return 0;
-	}
+		if (!EnsureRead())
+		{
+			return 0;
+		}
 
-	if (size == 0xFFFFFFFE || size == 0xFFFFFFFD || size == 0xFFFFFFFC)
+		if (size == 0xFFFFFFFE || size == 0xFFFFFFFD || size == 0xFFFFFFFC)
+		{
+			return 2048;
+		}
+
+		return m_parentDevice->ReadBulk(m_parentHandle, m_parentPtr + ptr, outBuffer, size);
+	}
+	catch (const std::exception& e)
 	{
-		return 2048;
-	}
+		trace(__FUNCTION__ ": failing read for %s\n", e.what());
 
-	return m_parentDevice->ReadBulk(m_parentHandle, m_parentPtr + ptr, outBuffer, size);
+		return -1;
+	}
 }
 
 vfs::Device::THandle RcdBulkStream::OpenFile(const std::string& localPath)
