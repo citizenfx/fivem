@@ -659,6 +659,58 @@ bool LoadOwnershipTicket()
 	return false;
 }
 
+// copied here so that we don't have to rebuild Shared (and HostSharedData does not support custom names)
+struct MDSharedTickCount
+{
+	struct Data
+	{
+		uint64_t tickCount;
+
+		Data()
+		{
+			tickCount = GetTickCount64();
+		}
+	};
+
+	MDSharedTickCount()
+	{
+		m_data = &m_fakeData;
+
+		bool initTime = true;
+		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(Data), L"CFX_SharedTickCount");
+
+		if (m_fileMapping != nullptr)
+		{
+			if (GetLastError() == ERROR_ALREADY_EXISTS)
+			{
+				initTime = false;
+			}
+
+			m_data = (Data*)MapViewOfFile(m_fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Data));
+
+			if (initTime)
+			{
+				m_data = new(m_data) Data();
+			}
+		}
+	}
+
+	inline Data& operator*()
+	{
+		return *m_data;
+	}
+
+	inline Data* operator->()
+	{
+		return m_data;
+	}
+
+private:
+	HANDLE m_fileMapping;
+	Data* m_data;
+
+	Data m_fakeData;
+};
 
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
@@ -884,11 +936,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		parameters[L"AdditionalData"] = GetAdditionalData();
 
+		{
+			static MDSharedTickCount tickCount;
+			parameters[L"StartTime"] = fmt::sprintf(L"%lld", _time64(nullptr) - ((GetTickCount64() - tickCount->tickCount) / 1000));
+		}
+
 		std::wstring responseBody;
 		int responseCode;
 
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
+		files[L"upload_file_log"] = MakeRelativeCitPath(L"CitizenFX.log");
 
 		// avoid libcef.dll subprocess crashes terminating the entire job
 		bool shouldTerminate = true;
