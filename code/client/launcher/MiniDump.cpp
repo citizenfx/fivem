@@ -864,7 +864,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			fgets(ver, sizeof(ver), f);
 			fclose(f);
 
-			parameters[L"Version"] = va(L"1.3.0.%s", ver);
+			parameters[L"Version"] = va(L"1.3.0.%d", atoi(ver));
 		}
 		else
 		{
