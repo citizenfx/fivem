@@ -142,10 +142,10 @@ NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
 			return STATUS_SUCCESS;
 		}
 
-		return origClose(Handle);
+		origClose(Handle);
+		return STATUS_SUCCESS;
 	}
-	
-	//return STATUS_INVALID_HANDLE;
+
 	return STATUS_SUCCESS;
 }
 
@@ -160,8 +160,9 @@ void LSP_InitializeHooks()
 	if (CoreIsDebuggerPresent())
 	{
 		MH_CreateHookApi(L"ntdll.dll", "NtQueryInformationProcess", NtQueryInformationProcessHook, (void**)&origQIP);
-		MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
 	}
+
+	MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
