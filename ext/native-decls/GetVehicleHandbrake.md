@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: shared
+apiset: client
 ---
 ## GET_VEHICLE_HANDBRAKE
 
