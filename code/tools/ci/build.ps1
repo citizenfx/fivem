@@ -146,6 +146,13 @@ if (!($env:BOOST_ROOT)) {
     }
 }
 
+Push-Location $WorkDir
+$GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
+
+$LauncherCommit = (git rev-list -1 HEAD code/client/launcher/ code/shared/ code/client/shared/ code/tools/dbg/ vendor/breakpad/ vendor/tinyxml2/ vendor/xz/ vendor/curl/ vendor/cpr/ vendor/minizip/ code/premake5.lua)
+$LauncherVersion = ((git rev-list $LauncherCommit | measure-object).Count * 10) + 1100000
+Pop-Location
+
 if (!$DontBuild)
 {
     Invoke-WebHook "Bloop, building a new $env:CI_PROJECT_NAME $UploadBranch build, triggered by $Triggerer"
@@ -247,11 +254,13 @@ if (!$DontBuild)
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
 
-    $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
-    $LauncherVersion = $GameVersion
-
     "#pragma once
-    #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
+    #define BASE_EXE_VERSION $LauncherVersion" | Out-File -Force shared\citversion.h.tmp
+
+    if ((!(Test-Path shared\citversion.h)) -or ($null -ne (Compare-Object (Get-Content shared\citversion.h.tmp) (Get-Content shared\citversion.h)))) {
+        Remove-Item -Force shared\citversion.h
+        Move-Item -Force shared\citversion.h.tmp shared\citversion.h
+    }
 
     "#pragma once
     #define GIT_DESCRIPTION ""$UploadBranch $GlobalTag win32""
@@ -279,8 +288,6 @@ if (!$DontBuild)
 }
 
 Set-Location $WorkRootDir
-$GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
-$LauncherVersion = $GameVersion
 
 if (!$DontBuild -and $IsServer) {
     Remove-Item -Recurse -Force $WorkDir\out
@@ -377,6 +384,8 @@ if (!$DontBuild -and !$IsServer) {
 
     Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
     
+    "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
+
     if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
         Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
     }
@@ -430,9 +439,11 @@ if (!$DontBuild -and !$IsServer) {
     $LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
     "$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
 
-    if (!(Test-Path $WorkDir\caches)) {
-        New-Item -ItemType SymbolicLink -Force -Path $WorkDir -Name caches -Value $CacheDir
-    }
+    #if (!(Test-Path $WorkDir\caches)) {
+    #    New-Item -ItemType SymbolicLink -Force -Path $WorkDir -Name caches -Value $CacheDir
+    #}
+    Remove-Item -Recurse -Force $WorkDir\caches
+    Copy-Item -Recurse -Force $CacheDir $WorkDir\caches
 }
 
 if (!$DontUpload) {

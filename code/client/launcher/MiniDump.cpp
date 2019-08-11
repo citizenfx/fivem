@@ -854,7 +854,23 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		parameters[L"ProductName"] = L"FiveM";
-		parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
+
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/version.txt").c_str(), L"r");
+
+		if (f)
+		{
+			char ver[128];
+
+			fgets(ver, sizeof(ver), f);
+			fclose(f);
+
+			parameters[L"Version"] = va(L"1.3.0.%s", ver);
+		}
+		else
+		{
+			parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
+		}
+
 		parameters[L"BuildID"] = L"20170101";
 		parameters[L"UserID"] = ToWide(g_entitlementSource);
 

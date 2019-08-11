@@ -18,7 +18,7 @@ pushd ..\cfx-ui\
 
 :: copy cfx-ui node_modules from cache
 if exist %CacheRoot%\cfx-ui-modules (
-	rmdir /s /y node_modules
+	rmdir /s /q node_modules
 	move %CacheRoot%\cfx-ui-modules node_modules
 )
 
@@ -45,7 +45,7 @@ mkdir %UIRoot%\app\assets\languages\
 copy /y dist\assets\languages\*.json %UIRoot%\app\assets\languages\
 
 if exist %CacheRoot% (
-	rmdir /s /y %CacheRoot%\cfx-ui-modules
+	rmdir /s /q %CacheRoot%\cfx-ui-modules
 	move node_modules %CacheRoot%\cfx-ui-modules
 )
 
