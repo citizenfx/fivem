@@ -55,7 +55,7 @@ public:
 #endif
 
 				resource = m_manager->CreateResource(fragRef);
-				resource->LoadFrom(pr);
+				resource->LoadFrom(*skyr::percent_decode(pr));
 			}
 		}
 
