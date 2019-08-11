@@ -342,19 +342,26 @@ if (!$DontBuild -and $IsServer) {
     Invoke-WebHook "Bloop, building a SERVER/WINDOWS build completed!"
 }
 
-if (!$DontBuild -and !$IsServer) {
-    $CacheDir = "$SaveDir\caches"
+$CacheDir = "$SaveDir\caches"
 
+if (!$DontBuild -and !$IsServer) {
     # prepare caches
     New-Item -ItemType Directory -Force $CacheDir | Out-Null
     New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
     Set-Location $CacheDir
 
-    # create cache folders
+    # build UI
+    Push-Location $WorkDir
+    $UICommit = (git rev-list -1 HEAD ext/ui-build/ ext/cfx-ui/)
+    Pop-Location
 
-    # copy output files
     Push-Location $WorkDir\ext\ui-build
-    .\build.cmd
+
+    if ($UICommit -ne (Get-Content data\.commit)) {
+        .\build.cmd
+        
+        $UICommit | Out-File -Encoding ascii -NoNewline data\.commit
+    }
 
     if ($?) {
         New-Item -ItemType Directory -Force $CacheDir\fivereborn\citizen\ui\ | Out-Null
@@ -363,6 +370,7 @@ if (!$DontBuild -and !$IsServer) {
 
     Pop-Location
 
+    # copy output files
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $CacheDir\fivereborn\bin\
 
