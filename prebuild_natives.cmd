@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 
 set path=C:\msys64\usr\bin;%path%
 
-pacman --noconfirm --needed -S make curl
+pacman --noconfirm --needed -S make curl diffutils
 
 pushd ext\natives\
 mkdir out
