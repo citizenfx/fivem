@@ -174,6 +174,10 @@ if (!$DontBuild)
     $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
 
     foreach ($submodule in $SubModules) {
+		if (Test-Path $SubmodulePath) {
+			continue;
+		}
+		
         $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
         $SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
 
@@ -331,10 +335,12 @@ if (!$DontBuild -and $IsServer) {
 }
 
 if (!$DontBuild -and !$IsServer) {
+    $CacheDir = "$SaveDir\caches"
+
     # prepare caches
-    New-Item -ItemType Directory -Force $WorkDir\caches | Out-Null
-    New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn | Out-Null
-    Set-Location $WorkDir\caches
+    New-Item -ItemType Directory -Force $CacheDir | Out-Null
+    New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
+    Set-Location $CacheDir
 
     # create cache folders
 
@@ -343,50 +349,50 @@ if (!$DontBuild -and !$IsServer) {
     .\build.cmd
 
     if ($?) {
-        New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn\citizen\ui\ | Out-Null
-        Copy-Item -Force -Recurse $WorkDir\ext\ui-build\data\* $WorkDir\caches\fivereborn\citizen\ui\
+        New-Item -ItemType Directory -Force $CacheDir\fivereborn\citizen\ui\ | Out-Null
+        Copy-Item -Force -Recurse $WorkDir\ext\ui-build\data\* $CacheDir\fivereborn\citizen\ui\
     }
 
     Pop-Location
 
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $WorkDir\caches\fivereborn\bin\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $WorkDir\caches\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $CacheDir\fivereborn\bin\
 
-    New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn\bin\cef
+    New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin\cef
 
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $WorkDir\caches\fivereborn\bin\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $WorkDir\caches\fivereborn\bin\cef\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $WorkDir\caches\fivereborn\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $CacheDir\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $CacheDir\fivereborn\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $CacheDir\fivereborn\bin\cef\
 
     # remove CEF as redownloading is broken and this slows down gitlab ci cache
     Remove-Item -Recurse $WorkDir\vendor\cef\*
 
-    Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\caches\fivereborn\
-    Copy-Item -Force -Recurse $WorkDir\data\client\* $WorkDir\caches\fivereborn\
+    Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
+    Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
 
-    Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $WorkDir\caches\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
+    Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
 
-    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
+    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
     
-    if (Test-Path $WorkDir\caches\fivereborn\adhesive.dll) {
-        Remove-Item -Force $WorkDir\caches\fivereborn\adhesive.dll
+    if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
+        Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
     }
 
     # build compliance stuff
     if ($env:COMPUTERNAME -eq "AVALON") {
-        Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $WorkDir\caches\fivereborn\adhesive.dll
+        Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
 
         Push-Location C:\f\bci\
-        .\BuildComplianceInfo.exe $WorkDir\caches\fivereborn\ C:\f\bci-list.txt
+        .\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
         Pop-Location
     }
 
     # build meta/xz variants
     "<Caches>
         <Cache ID=`"fivereborn`" Version=`"$GameVersion`" />
-    </Caches>" | Out-File -Encoding ascii $WorkDir\caches\caches.xml
+    </Caches>" | Out-File -Encoding ascii $CacheDir\caches.xml
 
     Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
 
@@ -422,12 +428,16 @@ if (!$DontBuild -and !$IsServer) {
 
     $LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
     "$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
+
+    if (!(Test-Path $WorkDir\caches)) {
+        New-Item -ItemType SymbolicLink -Force -Path $WorkDir -Name caches -Value $CacheDir
+    }
 }
 
 if (!$DontUpload) {
     $UploadBranch = $env:CI_ENVIRONMENT_NAME
 
-    Set-Location $WorkDir\caches
+    Set-Location $CacheDir
 
     $Branch = $UploadBranch
 

@@ -8,11 +8,19 @@ if errorlevel 1 (
     exit /B 1
 )
 
+set CacheRoot=C:\f\save
+
 :: build UI
 set UIRoot=%~dp0\data
 
 :: push directory
 pushd ..\cfx-ui\
+
+:: copy cfx-ui node_modules from cache
+if exist %CacheRoot%\cfx-ui-modules (
+	rmdir /s /y node_modules
+	move %CacheRoot%\cfx-ui-modules node_modules
+)
 
 :: install npm stuff
 call npm i
@@ -35,6 +43,11 @@ copy /y dist\assets\*.json %UIRoot%\app\assets\
 
 mkdir %UIRoot%\app\assets\languages\
 copy /y dist\assets\languages\*.json %UIRoot%\app\assets\languages\
+
+if exist %CacheRoot% (
+	rmdir /s /y %CacheRoot%\cfx-ui-modules
+	move node_modules %CacheRoot%\cfx-ui-modules
+)
 
 :: pop directory
 popd

@@ -22,7 +22,6 @@ build_client:
     untracked: true
     paths:
       - code/shared/citversion.h
-      - caches/
       - code/build/
   except:
     - server-ci
