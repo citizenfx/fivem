@@ -23,6 +23,8 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
+#include <Error.h>
+
 #include <IteratorView.h>
 
 extern std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
@@ -38,26 +40,35 @@ bool RcdBaseStream::EnsureRead()
 {
 	if (!m_parentDevice.GetRef() || m_parentHandle == INVALID_DEVICE_HANDLE)
 	{
-		auto task = m_fetcher->FetchEntry(m_fileName);
-
-		if (m_fetcher->IsBlocking())
+		try
 		{
-			task.wait();
+			auto task = m_fetcher->FetchEntry(m_fileName);
+
+			if (m_fetcher->IsBlocking())
+			{
+				task.wait();
+			}
+
+			if (!task.is_done())
+			{
+				return false;
+			}
+
+			m_metaData = task.get().metaData;
+
+			const auto& localPath = task.get().localPath;
+			m_parentDevice = vfs::GetDevice(localPath);
+			assert(m_parentDevice.GetRef());
+
+			m_parentHandle = OpenFile(localPath);
+			assert(m_parentHandle != INVALID_DEVICE_HANDLE);
 		}
-
-		if (!task.is_done())
+		catch (const std::exception& e)
 		{
+			FatalError("Unable to ensure read in RCD: %s\n\nPlease report this issue, together with the information from 'Save information' down below on https://forum.fivem.net/.", e.what());
+
 			return false;
 		}
-
-		m_metaData = task.get().metaData;
-
-		const auto& localPath = task.get().localPath;
-		m_parentDevice = vfs::GetDevice(localPath);
-		assert(m_parentDevice.GetRef());
-
-		m_parentHandle = OpenFile(localPath);
-		assert(m_parentHandle != INVALID_DEVICE_HANDLE);
 	}
 
 	return true;
@@ -323,7 +334,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 			}
 			else
 			{
-				auto error = std::get<size_t>(std::get<1>(fetchResult));
+				auto error = std::get<std::string>(std::get<1>(fetchResult));
 
 				trace("ResourceCacheDevice reporting failure: %s", error);
 			}
