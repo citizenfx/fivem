@@ -15,6 +15,7 @@
 #define VFS_CORE_EXPORT DLL_IMPORT
 #endif
 
+#include <deque>
 #include <mutex>
 
 namespace vfs
@@ -278,7 +279,7 @@ protected:
 	}
 
 private:
-	std::vector<HandleDataType> m_handles;
+	std::deque<HandleDataType> m_handles;
 
 	std::mutex m_mutex;
 };

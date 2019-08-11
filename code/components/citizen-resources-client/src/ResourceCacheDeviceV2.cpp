@@ -48,10 +48,12 @@ bool RcdBaseStream::EnsureRead()
 			{
 				task.wait();
 			}
-
-			if (!task.is_done())
+			else
 			{
-				return false;
+				if (!task.is_done())
+				{
+					return false;
+				}
 			}
 
 			m_metaData = task.get().metaData;
