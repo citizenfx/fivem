@@ -308,6 +308,13 @@ void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::f
 
 void ResourceMetaDataComponent::GlobValue(const std::string& value, const std::function<void(const std::string&)>& entryCallback)
 {
+	// why... would anyone pass an empty value?!
+	// this makes the VFS all odd so let's ignore it
+	if (value.empty())
+	{
+		return;
+	}
+
 	const auto& rootPath = m_resource->GetPath() + "/";
 	fwRefContainer<vfs::Device> device = vfs::GetDevice(rootPath);
 
