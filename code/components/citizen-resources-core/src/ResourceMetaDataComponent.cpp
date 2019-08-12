@@ -300,6 +300,14 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 
 void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::function<void(const std::string&)>& entryCallback)
 {
+	for (auto& entry : GetEntries(key))
+	{
+		GlobValue(entry.second, entryCallback);
+	}
+}
+
+void ResourceMetaDataComponent::GlobValue(const std::string& value, const std::function<void(const std::string&)>& entryCallback)
+{
 	const auto& rootPath = m_resource->GetPath() + "/";
 	fwRefContainer<vfs::Device> device = vfs::GetDevice(rootPath);
 
@@ -310,28 +318,25 @@ void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::f
 
 	auto relRoot = path_normalize(rootPath);
 
-	for (auto& entry : GetEntries(key))
-	{
-		std::string pattern = entry.second;
+	std::string pattern = value;
 
-		// @ prefixes for files are special and handled later on
-		if (pattern.length() >= 1 && pattern[0] == '@')
+	// @ prefixes for files are special and handled later on
+	if (pattern.length() >= 1 && pattern[0] == '@')
+	{
+		entryCallback(pattern);
+		return;
+	}
+
+	auto mf = MatchFiles(device, rootPath + pattern);
+
+	for (auto& file : mf)
+	{
+		if (file.length() < (relRoot.length() + 1))
 		{
-			entryCallback(pattern);
 			continue;
 		}
 
-		auto mf = MatchFiles(device, rootPath + pattern);
-
-		for (auto& file : mf)
-		{
-			if (file.length() < (relRoot.length() + 1))
-			{
-				continue;
-			}
-
-			entryCallback(file.substr(relRoot.length() + 1));
-		}
+		entryCallback(file.substr(relRoot.length() + 1));
 	}
 }
 }
