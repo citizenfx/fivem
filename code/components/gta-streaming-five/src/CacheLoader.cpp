@@ -11,10 +11,6 @@
 
 #include <VFSManager.h>
 
-int GetCollectionIndexByTag(const std::string& tag);
-StreamingPackfileEntry* GetStreamingPackfileByTag(const std::string& tag);
-void InvalidateCacheByTag(const std::string& tag);
-
 static hook::cdecl_stub<void(atHashMap<bool>*, const uint32_t&, const bool&)> atHashMap_bool_insert([]()
 {
 	return hook::get_call(hook::get_pattern("49 8B CF C6 45 60 01 E8 ? ? ? ? 0F B7", 7));
@@ -79,6 +75,46 @@ static int*(*g_origGetCacheIndex)(int*, int);
 
 extern std::unordered_map<int, std::string> g_handlesToTag;
 
+static std::mutex g_dummyPackfileMutex;
+static std::unordered_map<std::string, std::shared_ptr<StreamingPackfileEntry>> g_dummyPackfiles;
+
+static StreamingPackfileEntry* GetDummyStreamingPackfileByTag(const std::string& tag)
+{
+	std::unique_lock<std::mutex> lock(g_dummyPackfileMutex);
+	auto it = g_dummyPackfiles.find(tag);
+
+	if (it == g_dummyPackfiles.end())
+	{
+		auto entry = std::make_shared<StreamingPackfileEntry>();
+		memset(&*entry, 0, sizeof(StreamingPackfileEntry));
+		entry->cacheFlags = 1;
+		entry->nameHash = HashString(fmt::sprintf("resource_surrogate:/%s.rpf", tag).c_str());
+
+		it = g_dummyPackfiles.insert({ tag, entry }).first;
+	}
+
+	return &*it->second;
+}
+
+int GetDummyCollectionIndexByTag(const std::string& tag)
+{
+	auto pf = GetDummyStreamingPackfileByTag(tag);
+
+	return (pf->nameHash & 0x7FFFFFFF) | 0x40000000;
+}
+
+static void InvalidateDummyCacheByTag(const std::string& tag)
+{
+	auto pf = GetDummyStreamingPackfileByTag(tag);
+	pf->cacheFlags |= 1;
+}
+
+static void ValidateDummyCacheByTag(const std::string& tag)
+{
+	auto pf = GetDummyStreamingPackfileByTag(tag);
+	pf->cacheFlags &= ~1;
+}
+
 static int* GetCacheIndex(int* outPtr, int handle)
 {
 	int* origRet = g_origGetCacheIndex(outPtr, handle);
@@ -87,7 +123,7 @@ static int* GetCacheIndex(int* outPtr, int handle)
 
 	if (it != g_handlesToTag.end())
 	{
-		*outPtr = GetCollectionIndexByTag(it->second);
+		*outPtr = GetDummyCollectionIndexByTag(it->second);
 	}
 
 	return outPtr;
@@ -103,7 +139,7 @@ static StreamingPackfileEntry* GetPackIndex(int handle)
 
 	if (it != g_handlesToTag.end())
 	{
-		retval = GetStreamingPackfileByTag(it->second);
+		retval = GetDummyStreamingPackfileByTag(it->second);
 	}
 
 	if (retval == nullptr)
@@ -159,7 +195,7 @@ static HookFunction hookFunction([]()
 
 void LoadCache(const char* tagName)
 {
-	int index = GetCollectionIndexByTag(tagName);
+	int index = GetDummyCollectionIndexByTag(tagName);
 
 	if (index < 0)
 	{
@@ -174,7 +210,11 @@ void LoadCache(const char* tagName)
 
 	if (!_parseCache())
 	{
-		InvalidateCacheByTag(tagName);
+		InvalidateDummyCacheByTag(tagName);
+	}
+	else
+	{
+		ValidateDummyCacheByTag(tagName);
 	}
 }
 
@@ -188,13 +228,16 @@ static InitFunction initFunction([]()
 
 		if (resourceName != "gta5")
 		{
-			int index = GetCollectionIndexByTag(resourceName);
+			int index = GetDummyCollectionIndexByTag(resourceName);
 
 			if (index < 0)
 			{
 				console::PrintError("cacheloader", "No such collection tag %s\n", resourceName);
 				return;
 			}
+
+			auto pf = GetDummyStreamingPackfileByTag(resourceName);
+			pf->cacheFlags = 0;
 
 			// prepare the cache data set
 			atHashMap_bool_insert(&packfileMap, index, true);
@@ -236,7 +279,7 @@ static InitFunction initFunction([]()
 
 		if (resourceName != "gta5")
 		{
-			fileData << fmt::sprintf("%u %lld", HashString(va("resource_surrogate:/%s.rpf", resourceName)), GetPackHashByTag(resourceName)) << "\n";
+			fileData << fmt::sprintf("%u %lld", HashString(va("resource_surrogate:/%s.rpf", resourceName)), 0xDEADBEEF) << "\n";
 		}
 		else
 		{
