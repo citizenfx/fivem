@@ -194,6 +194,11 @@ std::shared_ptr<RcdStream> ResourceCacheDeviceV2::OpenStream(const std::string& 
 		return {};
 	}
 
+	if (!GetEntryForFileName(fileName))
+	{
+		return {};
+	}
+
 	return std::make_shared<RcdStream>(static_cast<RcdFetcher*>(this), fileName);
 }
 
@@ -204,6 +209,11 @@ std::shared_ptr<RcdStream> ResourceCacheDeviceV2::CreateStream(const std::string
 
 std::shared_ptr<RcdBulkStream> ResourceCacheDeviceV2::OpenBulkStream(const std::string& fileName, uint64_t* ptr)
 {
+	if (!GetEntryForFileName(fileName))
+	{
+		return {};
+	}
+
 	*ptr = 0;
 
 	return std::make_shared<RcdBulkStream>(static_cast<RcdFetcher*>(this), fileName);
