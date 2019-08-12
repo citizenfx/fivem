@@ -186,6 +186,8 @@ struct SyncEntityState
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 
+	std::chrono::milliseconds lastReceivedAt;
+
 	std::array<std::chrono::milliseconds, 256> lastResends{};
 	std::array<std::chrono::milliseconds, 256> lastSyncs{};
 
@@ -372,6 +374,8 @@ private:
 	WorldGridOwnerIndexes m_worldGridAccel;
 
 	void SendWorldGrid(void* entry = nullptr, const std::shared_ptr<fx::Client>& client = {});
+
+	bool MoveEntityToCandidate(const std::shared_ptr<sync::SyncEntityState>& entity, const std::shared_ptr<fx::Client>& client);
 
 //private:
 public:
