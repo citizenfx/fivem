@@ -176,7 +176,15 @@ static InitFunction initFunction([] ()
 
 				if (!document.HasParseError() && document.IsString())
 				{
-					for (auto& entry : metaData->GlobValueVector(document.GetString()))
+					std::string key = document.GetString();
+					auto list = metaData->GlobValueVector(key);
+
+					if (list.empty() && key.find('*') == std::string::npos)
+					{
+						list.push_back(key);
+					}
+
+					for (auto& entry : list)
 					{
 						auto path = resourceRoot + entry;
 
