@@ -44,6 +44,7 @@ CPool<fx::ScriptGuid>* g_scriptHandlePool;
 
 std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
+std::shared_ptr<ConVar<bool>> g_oneSyncVehicleCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncRadiusFrequency;
 std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 
@@ -702,7 +703,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					{
 						if (vehicleData->playerOccupants.any())
 						{
-							shouldBeCreated = true;
+							if (!g_oneSyncVehicleCulling->GetValue())
+							{
+								shouldBeCreated = true;
+							}
 						}
 					}
 				}
@@ -2144,6 +2148,7 @@ static InitFunction initFunction([]()
 	{
 		g_oneSyncVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
+		g_oneSyncVehicleCulling = instance->AddVariable<bool>("onesync_distanceCullVehicles", ConVar_None, false);
 		g_oneSyncRadiusFrequency = instance->AddVariable<bool>("onesync_radiusFrequency", ConVar_None, true);
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
 
