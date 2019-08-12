@@ -11,6 +11,7 @@
 #include <fiDevice.h>
 #include <CachedResourceMounter.h>
 
+#include <ResourceCache.h>
 #include <ResourceMetaDataComponent.h>
 
 #include <boost/fusion/adapted/std_tuple.hpp>
@@ -18,12 +19,16 @@
 
 #include <boost/iterator/zip_iterator.hpp>
 
+#include <boost/algorithm/string.hpp>
+
 #include <rapidjson/document.h>
 
 #include <CoreConsole.h>
 
 #include <GlobalEvents.h>
 #include <ResourceGameLifetimeEvents.h>
+
+#include <VFSManager.h>
 
 #include <Error.h>
 
@@ -171,10 +176,13 @@ static InitFunction initFunction([] ()
 
 				if (!document.HasParseError() && document.IsString())
 				{
-					auto path = resourceRoot + document.GetString();
+					for (auto& entry : metaData->GlobValueVector(document.GetString()))
+					{
+						auto path = resourceRoot + entry;
 
-					streaming::AddDataFileToLoadList(type, path);
-					entryListComponent->list.push_front({ type, path });
+						streaming::AddDataFileToLoadList(type, path);
+						entryListComponent->list.push_front({ type, path });
+					}
 				}
 			}
 
@@ -184,14 +192,43 @@ static InitFunction initFunction([] ()
 				if (map.begin() != map.end())
 				{
 					// only load resource surrogates for this_is_a_map resources (as they might involve gta_cache files)
-					streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
-					entryListComponent->list.push_front({ "RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf" });
+					// due to R* packfile/collection limits, *don't* load RPF_FILE anymore
+					// instead, we're faking this out for cache
+
+					//streaming::AddDataFileToLoadList("RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf");
+					//entryListComponent->list.push_front({ "RPF_FILE", "resource_surrogate:/" + resource->GetName() + ".rpf" });
 
 					streaming::AddDataFileToLoadList("CFX_PSEUDO_ENTRY", "RELOAD_MAP_STORE");
 				}
 			}
 
-			streaming::AddDataFileToLoadList("CFX_PSEUDO_CACHE", resource->GetName());
+			bool shouldCache = false;
+
+			{
+				if (vfs::OpenRead(fmt::sprintf("%s%s_cache_y.dat", resourceRoot, resource->GetName())).GetRef())
+				{
+					shouldCache = true;
+				}
+			}
+
+			if (!shouldCache)
+			{
+				auto cacheList = resource->GetComponent<ResourceCacheEntryList>();
+
+				for (const auto& entry : cacheList->GetEntries())
+				{
+					if (boost::algorithm::ends_with(entry.first, ".ymf"))
+					{
+						shouldCache = true;
+						break;
+					}
+				}
+			}
+
+			if (shouldCache)
+			{
+				streaming::AddDataFileToLoadList("CFX_PSEUDO_CACHE", resource->GetName());
+			}
 		}, 500);
 
 		resource->OnStop.Connect([=] ()
