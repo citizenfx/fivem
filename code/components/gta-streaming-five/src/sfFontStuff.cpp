@@ -35,6 +35,15 @@ namespace sf
 {
 	int RegisterFontIndex(const std::string& fontName)
 	{
+		// find if the same font is already registered
+		auto it = std::find(g_fontIds.begin(), g_fontIds.end(), fontName);
+
+		if (it != g_fontIds.end())
+		{
+			return it - g_fontIds.begin();
+		}
+
+		// if not, don't
 		g_fontIds.push_back(fontName);
 		return g_fontIds.size() - 1;
 	}
