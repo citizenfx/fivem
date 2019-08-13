@@ -304,6 +304,7 @@ if (!$DontBuild -and $IsServer) {
 
     New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
     New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
+    New-Item -ItemType Directory -Force $WorkDir\out\server\citizen | Out-Null
 
     Copy-Item -Force $BinRoot\server\windows\release\*.exe $WorkDir\out\server\
     Copy-Item -Force $BinRoot\server\windows\release\*.dll $WorkDir\out\server\
