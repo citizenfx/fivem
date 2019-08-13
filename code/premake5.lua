@@ -305,10 +305,20 @@ end)
 			"System.dll",
 			"Microsoft.CSharp.dll",
 			"System.Core.dll",
-			"../data/client/citizen/clr2/lib/mono/4.5/System.Reflection.Metadata.dll",
-			"../data/client/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll",
 			"../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll"
 		}
+		
+		if _OPTIONS['game'] == 'server' then
+			links {
+				"../data/server_windows/citizen/clr2/lib/mono/4.5/System.Reflection.Metadata.dll",
+				"../data/server_windows/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll",
+			}		
+		else
+			links {
+				"../data/client/citizen/clr2/lib/mono/4.5/System.Reflection.Metadata.dll",
+				"../data/client/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll",
+			}
+		end
 
 		if os.istarget('linux') then
 			links {
