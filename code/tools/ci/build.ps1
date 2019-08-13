@@ -308,14 +308,14 @@ if (!$DontBuild -and $IsServer) {
     Copy-Item -Force $BinRoot\server\windows\release\*.exe $WorkDir\out\server\
     Copy-Item -Force $BinRoot\server\windows\release\*.dll $WorkDir\out\server\
 
+    Copy-Item -Force -Recurse $BinRoot\server\windows\release\citizen\* $WorkDir\out\server\citizen\
+
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\client\v8* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\client\bin\icu* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
 
-    Copy-Item -Force -Recurse $BinRoot\server\windows\release\citizen\* $WorkDir\out\server\citizen\
-    
     Remove-Item -Force $WorkDir\out\server\citizen\.gitignore
 
     Copy-Item -Force "$WorkRootDir\tools\ci\7z.exe" 7z.exe
