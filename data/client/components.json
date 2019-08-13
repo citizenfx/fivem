@@ -55,5 +55,6 @@
 	"discord",
 	"voip:mumble",
 	"scrbind:base",
-	"citizen:mod-loader:five"
+	"citizen:mod-loader:five",
+	"n19ui"
 ]

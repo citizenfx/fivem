@@ -40,6 +40,8 @@ else
 
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-v8'
+	
+	component 'n19ui'
 end
 
 component 'net-base'
@@ -79,3 +81,4 @@ component 'devcon'
 component 'extra-natives-five'
 component 'discord'
 component 'citizen-mod-loader-five'
+

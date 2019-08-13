@@ -76,6 +76,12 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		lresult = FALSE;
 	}
 
+	if (uMsg == WM_PARENTNOTIFY)
+	{
+		pass = false;
+		lresult = DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+
 	if (!pass)
 	{
 		return lresult;

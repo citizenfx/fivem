@@ -147,7 +147,7 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 	d3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 #endif
 
-	BeginImVertices(3, numIndices);
+	rage::grcBegin(3, numIndices);
 
 	for (int j = 0; j < numIndices; j++)
 	{
@@ -160,10 +160,10 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
 		}
 
-		AddImVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
+		rage::grcVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
 
-	DrawImVertices();
+	rage::grcEnd();
 
 #if GTA_NY
 	d3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC);
@@ -195,7 +195,7 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 	{
 		auto rectangle = &rectangles[i];
 
-		BeginImVertices(4, 4);
+		rage::grcBegin(4, 4);
 
 		auto& rect = rectangle->rectangle;
 		uint32_t color = *(uint32_t*)&rectangle->color;
@@ -206,12 +206,12 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
 		}
 
-		AddImVertex(rect.fX1, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-		AddImVertex(rect.fX2, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-		AddImVertex(rect.fX1, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-		AddImVertex(rect.fX2, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX1, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX2, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX1, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX2, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
 
-		DrawImVertices();
+		rage::grcEnd();
 	}
 
 	PopDrawBlitImShader();
