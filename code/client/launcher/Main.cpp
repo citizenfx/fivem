@@ -184,7 +184,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	// init tenUI
-	auto tui = UI_InitTen();
+	std::unique_ptr<TenUIBase> tui;
+
+	if (initState->IsMasterProcess())
+	{
+		tui = UI_InitTen();
+	}
 
 	if (!devMode)
 	{
