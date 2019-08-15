@@ -61,7 +61,11 @@
 			linkoptions "/LAST:.zdata"
 
 	externalproject "Win2D"
-	   filename "../../../vendor/win2d/winrt/lib/winrt.lib.uap"
-	   uuid "26b85b6e-3520-42b5-adb6-971010cc99fa"
-	   kind "StaticLib"
-	   language "C++"
+		if os.getenv('COMPUTERNAME') ~= 'AVALON' then
+			filename "../../../vendor/win2d/winrt/lib/winrt.lib.uap"
+		else
+			filename "../../vendor/win2d/winrt/lib/winrt.lib.uap"
+		end
+		uuid "26b85b6e-3520-42b5-adb6-971010cc99fa"
+		kind "StaticLib"
+		language "C++"
