@@ -39,6 +39,9 @@ void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
 bool ExecutablePreload_Init();
 
+volatile bool g_exitUi;
+HANDLE g_uiDoneEvent;
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	bool toolMode = false;
@@ -472,6 +475,45 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
 	tui = {};
+
+	if (initState->IsMasterProcess())
+	{
+		g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+		std::thread([/*tui = std::move(tui)*/]() mutable
+		{
+			{
+				//auto tuiTen = std::move(tui);
+				auto tuiTen = UI_InitTen();
+
+				// say hi
+				UI_DoCreation(false);
+
+				auto st = GetTickCount64();
+				UI_UpdateText(0, L"Starting FiveM...");
+				UI_UpdateText(1, L"We're getting there.");
+
+				while (GetTickCount64() < (st + 3500) && !g_exitUi)
+				{
+					HANDLE h = GetCurrentThread();
+					MsgWaitForMultipleObjects(1, &h, FALSE, 50, QS_ALLEVENTS);
+
+					MSG msg;
+					while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+					{
+						TranslateMessage(&msg);
+						DispatchMessage(&msg);
+					}
+
+					UI_UpdateProgress((GetTickCount64() - st) / 35.0);
+				}
+
+				UI_DoDestruction();
+			}
+
+			SetEvent(g_uiDoneEvent);
+		}).detach();
+	}
 
 	if (!toolMode)
 	{

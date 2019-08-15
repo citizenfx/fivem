@@ -67,7 +67,6 @@ using namespace winrt::Windows::Foundation::Numerics;
 
 struct TenUI
 {
-	WindowsXamlManager manager{ nullptr };
 	DesktopWindowXamlSource uiSource{ nullptr };
 
 	winrt::Windows::UI::Xaml::Controls::TextBlock topStatic{ nullptr };
@@ -75,13 +74,15 @@ struct TenUI
 	winrt::Windows::UI::Xaml::Controls::ProgressBar progressBar{ nullptr };
 };
 
-static struct  
+static thread_local struct  
 {
 	HWND rootWindow;
 	HWND topStatic;
 	HWND bottomStatic;
 	HWND progressBar;
 	HWND cancelButton;
+
+	HWND tenWindow;
 
 	UINT taskbarMsg;
 
@@ -161,7 +162,7 @@ static std::wstring g_mainXaml = LR"(
             </Viewbox>
             <TextBlock x:Name="static1" Text=" " TextAlignment="Center" Foreground="#ffffffff" FontSize="24" />
 			<Grid Margin="0,15,0,15">
-				<ProgressBar x:Name="progressBar" Foreground="CornflowerBlue" Width="250" />
+				<ProgressBar x:Name="progressBar" Foreground="White" Width="250" />
 			</Grid>
             <TextBlock x:Name="static2" Text=" " TextAlignment="Center" Foreground="#ffeeeeee" FontSize="18" />
         </StackPanel>
@@ -173,11 +174,13 @@ struct BackdropBrush : winrt::CitiLaunch::implementation::BackdropBrushT<Backdro
 {
 	BackdropBrush() = default;
 
-	void OnConnected() const;
-	void OnDisconnected() const;
+	void OnConnected();
+	void OnDisconnected();
+
+	winrt::Windows::UI::Composition::CompositionPropertySet ps{ nullptr };
 };
 
-void BackdropBrush::OnConnected() const
+void BackdropBrush::OnConnected()
 {
 	if (!CompositionBrush())
 	{
@@ -258,7 +261,7 @@ void BackdropBrush::OnConnected() const
 		auto ag = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreateAnimationGroup();
 		ag.Add(kfa);
 
-		static auto ps = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreatePropertySet();
+		ps = winrt::Windows::UI::Xaml::Window::Current().Compositor().CreatePropertySet();
 		ps.InsertVector2(L"xlate", { 0.0f, 0.0f });
 		ps.StartAnimationGroup(ag);
 
@@ -273,7 +276,7 @@ void BackdropBrush::OnConnected() const
 	}
 }
 
-void BackdropBrush::OnDisconnected() const
+void BackdropBrush::OnDisconnected()
 {
 	if (CompositionBrush())
 	{
@@ -285,7 +288,7 @@ void UI_CreateWindow()
 {
 	g_uui.taskbarMsg = RegisterWindowMessage(L"TaskbarButtonCreated");
 
-	HWND rootWindow = CreateWindowEx(0, L"NotSteamAtAll", L"Updating " PRODUCT_NAME, 13238272 /* lol */, 0x80000000, 0, g_dpi.ScaleX(500), g_dpi.ScaleY(129), NULL, NULL, GetModuleHandle(NULL), 0);
+	HWND rootWindow = CreateWindowEx(0, L"NotSteamAtAll", PRODUCT_NAME, 13238272 /* lol */, 0x80000000, 0, g_dpi.ScaleX(500), g_dpi.ScaleY(129), NULL, NULL, GetModuleHandle(NULL), 0);
 
 	int wwidth = 500;
 	int wheight = 139;
@@ -325,7 +328,7 @@ void UI_CreateWindow()
 
 		// make TenUI
 		auto ten = std::make_unique<TenUI>();
-		ten->uiSource = DesktopWindowXamlSource{};
+		ten->uiSource = std::move(DesktopWindowXamlSource{});
 
 		// attach window
 		auto interop = ten->uiSource.as<IDesktopWindowXamlSourceNative>();
@@ -353,6 +356,8 @@ void UI_CreateWindow()
 		ten->progressBar = ui.FindName(L"progressBar").as<winrt::Windows::UI::Xaml::Controls::ProgressBar>();
 
 		ten->uiSource.Content(ui);
+
+		g_uui.tenWindow = FindWindowExW(rootWindow, NULL, L"Windows.UI.Core.CoreWindow", NULL);
 
 		g_uui.ten = std::move(ten);
 	}
@@ -566,18 +571,37 @@ bool GenManifest()
 	return false;
 }
 
+struct TenUIStorage;
+
+static TenUIStorage* g_tenUI;
+
 struct TenUIStorage : public TenUIBase
 {
 	WindowsXamlManager manager{ nullptr };
 
 	TenUIStorage()
 	{
-		manager = WindowsXamlManager::InitializeForCurrentThread();
+		g_tenUI = this;
+	}
+
+	void InitManager()
+	{
+		if (!manager)
+		{
+			manager = WindowsXamlManager::InitializeForCurrentThread();
+		}
 	}
 
 	virtual ~TenUIStorage() override
 	{
-		manager.Close();
+		if (manager)
+		{
+			manager.Close();
+		}
+
+		ShowWindow(g_uui.tenWindow, SW_HIDE);
+
+		g_tenUI = nullptr;
 	}
 };
 
@@ -614,6 +638,11 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 void UI_DoCreation(bool safeMode)
 {
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
+	if (g_tenUI)
+	{
+		g_tenUI->InitManager();
+	}
 
 	if (IsWindows7OrGreater())
 	{
@@ -666,7 +695,17 @@ void UI_DoCreation(bool safeMode)
 
 void UI_DoDestruction()
 {
+	if (g_uui.ten)
+	{
+		if (g_uui.ten->uiSource)
+		{
+			g_uui.ten->uiSource.Close();
+		}
+	}
+
 	g_uui.ten = {};
+
+	AllowSetForegroundWindow(GetCurrentProcessId());
 
 	DestroyWindow(g_uui.rootWindow);
 }
