@@ -1,0 +1,8 @@
+namespace CitiLaunch
+{
+    [default_interface]
+    runtimeclass BackdropBrush : Windows.UI.Xaml.Media.XamlCompositionBrushBase
+    {
+        BackdropBrush();
+    }
+}

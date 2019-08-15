@@ -249,6 +249,20 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
+	uint64_t fileStart = 0;
+	uint64_t fileTotal = 0;
+
+	for (auto& filePair : queuedFiles)
+	{
+		struct _stat64 stat;
+		if (_wstat64(MakeRelativeCitPath(converter.from_bytes(filePair.second.name)).c_str(), &stat) >= 0)
+		{
+			fileTotal += stat.st_size;
+		}
+	}
+
+	UI_UpdateText(0, L"Verifying content...");
+
 	for (auto& filePair : queuedFiles)
 	{
 		cache_t& cache = filePair.first;
@@ -258,7 +272,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 		std::array<uint8_t, 20> hashEntry;
 		memcpy(hashEntry.data(), file.hash, hashEntry.size());
 
-		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry });
+		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry }, &fileStart, fileTotal);
 
 		if (fileOutdated)
 		{
@@ -269,6 +283,8 @@ bool Updater_RunUpdate(int numCaches, ...)
 			CL_QueueDownload(url, outPath.c_str(), file.downloadSize, file.compressed);
 		}
 	}
+
+	UI_UpdateText(0, L"Updating " PRODUCT_NAME L"...");
 
 	bool retval = DL_RunLoop();
 
@@ -306,7 +322,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 	return retval;
 }
 
-bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, std::array<uint8_t, 20>* foundHash)
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash)
 {
 	bool fileOutdated = true;
 
@@ -332,7 +348,6 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 		}
 
 		UI_UpdateText(1, va(L"Checking %s", &fileName[fileNameOffset]));
-		UI_UpdateProgress(0.0);
 
 		LARGE_INTEGER fileSize;
 		GetFileSizeEx(hFile, &fileSize);
@@ -404,8 +419,17 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 			fileOffset += bytesRead;
 
-			UI_UpdateProgress((fileOffset / (double)fileSize.QuadPart) * 100.0);
+			if (fileSize.QuadPart == 0)
+			{
+				UI_UpdateProgress(100.0);
+			}
+			else
+			{
+				UI_UpdateProgress(((*fileStart + fileOffset) / (double)fileTotal) * 100.0);
+			}
 		}
+
+		*fileStart += fileOffset;
 
 		uint8_t outHash[20];
 		SHA1Result(&ctx, outHash);

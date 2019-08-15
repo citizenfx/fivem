@@ -27,7 +27,7 @@ bool DL_Process();
 bool DL_RunLoop();
 
 // UI functions
-void UI_DoCreation();
+void UI_DoCreation(bool safeMode = false);
 void UI_DoDestruction();
 void UI_UpdateText(int textControl, const wchar_t* text);
 void UI_UpdateProgress(double percentage);
@@ -40,6 +40,28 @@ const char* GetUpdateChannel();
 
 #include <array>
 
-bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, std::array<uint8_t, 20>* foundHash = nullptr);
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash = nullptr);
 
 #include "LauncherConfig.h"
+
+// cppwinrt is slow, add it to pch
+#include <unknwn.h>
+
+#include <winrt/windows.system.h>
+#include <winrt/windows.ui.composition.core.h>
+#include <winrt/windows.ui.composition.effects.h>
+#include <winrt/windows.ui.xaml.hosting.h>
+#include <windows.ui.xaml.hosting.desktopwindowxamlsource.h>
+#include <winrt/windows.ui.xaml.controls.h>
+#include <winrt/Windows.ui.xaml.media.h>
+#include <winrt/Windows.Graphics.Effects.h>
+#include <winrt/Windows.UI.Xaml.Markup.h>
+#include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
+
+struct TenUIBase
+{
+	virtual ~TenUIBase() = default;
+};
+
+std::unique_ptr<TenUIBase> UI_InitTen();

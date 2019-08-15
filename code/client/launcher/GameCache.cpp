@@ -6,6 +6,8 @@
 */
 
 #include "StdInc.h"
+
+#undef interface
 #include "InstallerExtraction.h"
 #include <array>
 
@@ -543,6 +545,21 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	// entries for notification purposes
 	std::vector<std::pair<GameCacheEntry, bool>> notificationEntries;
 
+	uint64_t fileStart = 0;
+	uint64_t fileTotal = 0;
+
+	for (auto& entry : entries)
+	{
+		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
+		{
+			struct _stat64 stat;
+			if (_wstat64(entry.GetLocalFileName().c_str(), &stat) >= 0)
+			{
+				fileTotal += stat.st_size;
+			}
+		}
+	}
+
 	for (auto& entry : entries)
 	{
 		// check if the file is outdated
@@ -558,7 +575,9 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		
 		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
 		{
-			fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &outHash);
+			UI_UpdateText(0, L"Verifying GTA content...");
+
+			fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &fileStart, fileTotal, &outHash);
 		}
 		else
 		{
@@ -666,6 +685,8 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	{
 		return;
 	}
+
+	UI_UpdateText(0, L"Updating game cache...");
 
 	bool retval = DL_RunLoop();
 

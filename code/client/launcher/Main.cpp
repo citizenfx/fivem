@@ -57,6 +57,37 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 
+#if 0
+	// TEST
+	auto tenner = UI_InitTen();
+
+	UI_DoCreation();
+
+	while (!UI_IsCanceled())
+	{
+		HANDLE h = GetCurrentThread();
+		MsgWaitForMultipleObjects(1, &h, FALSE, 50, QS_ALLEVENTS);
+		
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		UI_UpdateText(0, va(L"%d", GetTickCount()));
+		UI_UpdateText(1, va(L"%x", GetTickCount()));
+
+		UI_UpdateProgress(50.0);
+	}
+
+	UI_DoDestruction();
+
+	tenner = {};
+
+	ExitProcess(0);
+#endif
+
 	// delete any old .exe.new file
 	_unlink("CitizenFX.exe.new");
 
@@ -151,6 +182,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		devMode = !initState->IsMasterProcess();
 	}
+
+	// init tenUI
+	auto tui = UI_InitTen();
 
 	if (!devMode)
 	{
@@ -431,6 +465,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 #endif
+
+	tui = {};
 
 	if (!toolMode)
 	{

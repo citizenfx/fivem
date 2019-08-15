@@ -24,7 +24,9 @@ bool Bootstrap_UpdateEXE(int exeSize)
 	const char* fn = "CitizenFX.exe.new";
 	CL_QueueDownload(va(CONTENT_URL "/%s/bootstrap/CitizenFX.exe.xz", GetUpdateChannel()), fn, exeSize, true);
 
-	UI_DoCreation();
+	UI_DoCreation(true);
+
+	UI_UpdateText(0, L"Bootstrapping " PRODUCT_NAME L"...");
 
 	if (!DL_RunLoop())
 	{

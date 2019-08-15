@@ -6,6 +6,8 @@
 */
 
 #include "StdInc.h"
+#undef interface
+
 #include "InstallerExtraction.h"
 
 #define restrict
