@@ -278,6 +278,8 @@ namespace CitizenFX.Core
 		[ThreadStatic]
 		private static Dictionary<ulong, CallFunc> ms_invokers = new Dictionary<ulong, CallFunc>();
 
+		private static long ms_nativeInvokeFn = GetProcAddress(LoadLibrary("scripting-gta.dll"), "WrapNativeInvoke").ToInt64();
+
 		[SecurityCritical]
 		internal unsafe static CallFunc DoGetNative(ulong native)
 		{
@@ -291,9 +293,10 @@ namespace CitizenFX.Core
 				typeof(void), new Type[1] { typeof(void*) }, typeof(ScriptContext).Module);
 
 			ILGenerator generator = method.GetILGenerator();
-			generator.Emit(OpCodes.Ldarg_0);
 			generator.Emit(OpCodes.Ldc_I8, (long)ptr);
-			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), new Type[1] { typeof(void*) }, null);
+			generator.Emit(OpCodes.Ldarg_0);
+			generator.Emit(OpCodes.Ldc_I8, ms_nativeInvokeFn);
+			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), new Type[2] { typeof(void*), typeof(void*) }, null);
 			generator.Emit(OpCodes.Ret);
 
 			return (CallFunc)method.CreateDelegate(typeof(CallFunc));
@@ -301,6 +304,12 @@ namespace CitizenFX.Core
 
 		[DllImport("rage-scripting-five.dll", EntryPoint = "?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z")]
 		private static extern ulong GetNative(ulong hash);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr LoadLibrary(string dllToLoad);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 #endif
 
 		[SecurityCritical]

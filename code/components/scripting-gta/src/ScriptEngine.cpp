@@ -40,6 +40,20 @@ static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdent
 #endif
 }
 
+extern "C" void DLL_EXPORT WrapNativeInvoke(rage::scrEngine::NativeHandler handler, rage::scrNativeCallContext* context)
+{
+	static void* exceptionAddress;
+
+	__try
+	{
+		handler(context);
+	}
+	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
+	{
+		trace("Error executing native handler %016llx at address %p.\n", (uintptr_t)handler, exceptionAddress);
+	}
+}
+
 namespace fx
 {
 	boost::optional<TNativeHandler> ScriptEngine::GetNativeHandler(uint64_t nativeIdentifier)
