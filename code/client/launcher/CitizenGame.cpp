@@ -24,9 +24,6 @@ static ILauncherInterface* g_launcher;
 
 void InitializeMiniDumpOverride();
 
-extern HANDLE g_uiExitEvent;
-extern HANDLE g_uiDoneEvent;
-
 #if defined(PAYNE)
 BYTE g_gmfOrig[5];
 BYTE g_gmfOrigW[5];
@@ -243,16 +240,6 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	if (!g_launcher->PreResumeGame())
 	{
 		ExitProcess(0);
-	}
-
-	if (g_uiExitEvent)
-	{
-		SetEvent(g_uiExitEvent);
-	}
-
-	if (g_uiDoneEvent)
-	{
-		WaitForSingleObject(g_uiDoneEvent, INFINITE);
 	}
 }
 #endif

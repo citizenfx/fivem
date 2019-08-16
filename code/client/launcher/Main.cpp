@@ -479,7 +479,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIExit");
 	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIDone");
 
-	if (initState->IsMasterProcess())
+	if (initState->IsMasterProcess() && !toolMode)
 	{
 		std::thread([/*tui = std::move(tui)*/]() mutable
 		{
@@ -496,17 +496,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				while (GetTickCount64() < (st + 3500))
 				{
-					HANDLE h = GetCurrentThread();
-
 					HANDLE hs[] =
 					{
-						h,
 						g_uiExitEvent
 					};
 
 					auto res = MsgWaitForMultipleObjects(std::size(hs), hs, FALSE, 50, QS_ALLEVENTS);
 
-					if (res == WAIT_OBJECT_0 + 1)
+					if (res == WAIT_OBJECT_0)
 					{
 						break;
 					}
