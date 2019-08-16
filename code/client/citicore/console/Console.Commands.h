@@ -274,7 +274,7 @@ inline bool ParseArgument(const ConsoleExecutionContext& context, int argInput, 
 template<>
 inline bool ParseArgument<ProgramArguments>(const ConsoleExecutionContext& context, int argInput, ProgramArguments* out)
 {
-	int numRemaining = context.arguments.Count() - argInput;
+	size_t numRemaining = context.arguments.Count() - argInput;
 	std::vector<std::string> argList(numRemaining);
 
 	for (int arg = 0; arg < numRemaining; arg++)

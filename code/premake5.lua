@@ -61,7 +61,7 @@ workspace "CitizenMP"
 		"client/shared/",
 		"../vendor/jitasm/",
 		"../vendor/rapidjson/include/",
-		"../vendor/fmtlib/",
+		"../vendor/fmtlib/include/",
 		"deplibs/include/",
 		os.getenv("BOOST_ROOT")
 	}

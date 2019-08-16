@@ -56,9 +56,13 @@ public:
 	virtual void DeleteObjectId(uint16_t objectId, bool force = false) = 0;
 
 public:
-	virtual void Log(const char* format, const fmt::ArgList& argumentList) = 0;
+	virtual void Logv(const char* format, fmt::printf_args argumentList) = 0;
 
-	FMT_VARIADIC(void, Log, const char*);
+	template<typename... TArgs>
+	inline void Log(const char* format, const TArgs&... args)
+	{
+		Logv(format, fmt::make_printf_args(args...));
+	}
 };
 }
 

@@ -195,9 +195,9 @@ void SetThreadName(int dwThreadID, const char* threadName)
 	}
 }
 
-void AddCrashometry(const std::string& key, const std::string& format, const fmt::ArgList& value)
+void AddCrashometryV(const std::string& key, const std::string& format, fmt::printf_args value)
 {
-	std::string formatted = fmt::sprintf(format, value);
+	std::string formatted = fmt::vsprintf(format, value);
 
 	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"ab");
 

@@ -56,8 +56,8 @@ void InitFunctionBase::RunAll()
 #define BUFFER_COUNT 8
 #define BUFFER_LENGTH 32768
 
-template<typename CharType>
-inline const CharType* va_impl(const CharType* string, const fmt::ArgList& formatList)
+template<typename CharType, typename TArgs>
+inline const CharType* va_impl(std::basic_string_view<CharType> string, const TArgs& formatList)
 {
 	static thread_local int currentBuffer;
 	static thread_local std::vector<CharType> buffer;
@@ -69,7 +69,7 @@ inline const CharType* va_impl(const CharType* string, const fmt::ArgList& forma
 
 	int thisBuffer = currentBuffer;
 
-	auto formatted = fmt::sprintf(string, formatList);
+	auto formatted = fmt::vsprintf(string, formatList);
 
 	if (formatted.length() >= BUFFER_LENGTH)
 	{
@@ -83,12 +83,12 @@ inline const CharType* va_impl(const CharType* string, const fmt::ArgList& forma
 	return &buffer[thisBuffer * BUFFER_LENGTH];
 }
 
-const char* va(const char* string, const fmt::ArgList& formatList)
+const char* vva(std::string_view string, fmt::printf_args formatList)
 {
 	return va_impl(string, formatList);
 }
 
-const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList)
+const wchar_t* vva(std::wstring_view string, fmt::wprintf_args formatList)
 {
 	return va_impl(string, formatList);
 }
@@ -240,17 +240,17 @@ static void RaiseDebugException(const char* buffer, size_t length)
 }
 #endif
 
-void TraceReal(const char* channel, const char* func, const char* file, int line, const char* string, const fmt::ArgList& formatList)
+void TraceRealV(const char* channel, const char* func, const char* file, int line, std::string_view string, fmt::printf_args formatList)
 {
 	std::string buffer;
 
 	try
 	{
-		buffer = fmt::sprintf(string, formatList);
+		buffer = fmt::vsprintf(string, formatList);
 	}
-	catch (fmt::FormatError& e)
+	catch (fmt::format_error& e)
 	{
-		buffer = fmt::sprintf("fmt::FormatError while formatting %s: %s\n", string, e.what());
+		buffer = fmt::sprintf("fmt::format_error while formatting %s: %s\n", string, e.what());
 	}
 
 	CoreTrace(channel, func, file, line, buffer.data());

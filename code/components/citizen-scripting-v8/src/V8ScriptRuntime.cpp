@@ -283,14 +283,19 @@ const OMPtr<V8ScriptRuntime>& V8ScriptRuntime::GetCurrent()
 	return g_currentV8Runtime;
 }
 
-void ScriptTrace(const char* string, const fmt::ArgList& formatList)
+void ScriptTraceV(const char* string, fmt::printf_args formatList)
 {
-	trace(string, formatList);
+	auto t = fmt::vsprintf(string, formatList);
+	trace("%s", t);
 
-	V8ScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(fmt::sprintf(string, formatList).c_str()));
+	V8ScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
 
-FMT_VARIADIC(void, ScriptTrace, const char*);
+template<typename... TArgs>
+void ScriptTrace(const char* string, const TArgs& ... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
 
 // blindly copypasted from StackOverflow (to allow std::function to store V8 UniquePersistent types with their move semantics)
 template<class F>

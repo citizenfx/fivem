@@ -56,7 +56,7 @@ static std::mutex g_consoleMutex;
 
 static std::once_flag g_logOnceFlag;
 
-static void Log(const char* format, const fmt::ArgList& argumentList)
+static void Logv(const char* format, fmt::printf_args argumentList)
 {
 	if (!g_oneSyncLogVar->GetValue().empty())
 	{
@@ -104,13 +104,17 @@ static void Log(const char* format, const fmt::ArgList& argumentList)
 		});
 
 		g_logQueue.push(fmt::sprintf("[% 10d] ", msec().count()));
-		g_logQueue.push(fmt::sprintf(format, argumentList));
+		g_logQueue.push(fmt::vsprintf(format, argumentList));
 
 		g_consoleCondVar.notify_all();
 	}
 }
 
-FMT_VARIADIC(void, Log, const char*);
+template<typename... TArgs>
+inline void Log(const char* msg, const TArgs&... args)
+{
+	Logv(msg, fmt::make_printf_args(args...));
+}
 
 #define GS_LOG(x, ...) \
 	do \

@@ -41,9 +41,13 @@ namespace fx
 
 		std::string GetVariable(const std::string& key);
 
-		void DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args);
+		void DropClientv(const std::shared_ptr<Client>& client, const std::string& reason, fmt::printf_args args);
 
-		FMT_VARIADIC(void, DropClient, const std::shared_ptr<Client>&, const std::string&);
+		template<typename... TArgs>
+		inline void DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const TArgs&... args)
+		{
+			DropClientv(client, reason, fmt::make_printf_args(args...));
+		}
 
 		void ForceHeartbeat();
 

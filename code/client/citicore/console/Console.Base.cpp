@@ -121,9 +121,9 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 static std::vector<void(*)(ConsoleChannel, const char*)> g_printListeners = { PrintfTraceListener };
 static int g_useDeveloper;
 
-void Printf(ConsoleChannel channel, const char* format, const fmt::ArgList& argList)
+void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
-	auto buffer = fmt::sprintf(format, argList);
+	auto buffer = fmt::vsprintf(format, argList);
 
 	// print to all interested listeners
 	for (auto& listener : g_printListeners)
@@ -132,24 +132,24 @@ void Printf(ConsoleChannel channel, const char* format, const fmt::ArgList& argL
 	}
 }
 
-void DPrintf(ConsoleChannel channel, const char* format, const fmt::ArgList& argList)
+void DPrintfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
 	if (g_useDeveloper > 0)
 	{
-		Printf(channel, format, argList);
+		Printfv(channel, format, argList);
 	}
 }
 
-void PrintWarning(ConsoleChannel channel, const char* format, const fmt::ArgList& argList)
+void PrintWarningv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
 	// print the string directly
-	Printf(channel, "^3Warning: %s^7", fmt::sprintf(format, argList));
+	Printf(channel, "^3Warning: %s^7", fmt::vsprintf(format, argList));
 }
 
-void PrintError(ConsoleChannel channel, const char* format, const fmt::ArgList& argList)
+void PrintErrorv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
 	// print the string directly
-	Printf(channel, "^1Error: %s^7", fmt::sprintf(format, argList));
+	Printf(channel, "^1Error: %s^7", fmt::vsprintf(format, argList));
 }
 
 static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Archive, 0, &g_useDeveloper);

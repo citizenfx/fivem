@@ -475,7 +475,7 @@ void DL_ProcessDownload()
 								L"Unable to write to %s. Windows error code %d was returned.%s",
 								tmpPathWide,
 								errNo,
-								(errNo == ERROR_VIRUS_INFECTED) ? "\nThis is usually caused by anti-malware software. Please report this issue to your anti-malware software vendor." : ""
+								(errNo == ERROR_VIRUS_INFECTED) ? L"\nThis is usually caused by anti-malware software. Please report this issue to your anti-malware software vendor." : L""
 							),
 							L"Error",
 							MB_OK | MB_ICONSTOP);

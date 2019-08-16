@@ -91,11 +91,9 @@ public:
 
 	virtual void DeleteObjectId(uint16_t objectId, bool force) override;
 
-	virtual void Log(const char* format, const fmt::ArgList& argumentList) override;
+	virtual void Logv(const char* format, fmt::printf_args argumentList) override;
 
 	virtual const std::unordered_set<rage::netObject*>& GetObjectList() override;
-
-	FMT_VARIADIC(void, Log, const char*);
 
 	// netobjmgr abstraction
 	virtual bool RegisterNetworkObject(rage::netObject* object) override;
@@ -240,12 +238,12 @@ uint16_t CloneManagerLocal::GetPendingClientId(rage::netObject* netObject)
 	return m_extendedData[netObject->objectId].pendingClientId;
 }
 
-void CloneManagerLocal::Log(const char* format, const fmt::ArgList& argumentList)
+void CloneManagerLocal::Logv(const char* format, fmt::printf_args argumentList)
 {
 	if (!m_logFile.empty())
 	{
 		m_logQueue.push(fmt::sprintf("[% 10d] ", (!IsWaitingForTimeSync()) ? rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() : 0));
-		m_logQueue.push(fmt::sprintf(format, argumentList));
+		m_logQueue.push(fmt::vsprintf(format, argumentList));
 
 		m_consoleCondVar.notify_all();
 	}

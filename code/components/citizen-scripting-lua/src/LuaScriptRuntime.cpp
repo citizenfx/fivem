@@ -286,14 +286,19 @@ const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
 	return g_currentLuaRuntime;
 }
 
-void ScriptTrace(const char* string, const fmt::ArgList& formatList)
+void ScriptTraceV(const char* string, fmt::printf_args formatList)
 {
-	trace(string, formatList);
+	auto t = fmt::vsprintf(string, formatList);
+	trace("%s", t);
 
-	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(fmt::sprintf(string, formatList).c_str()));
+	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
 
-FMT_VARIADIC(void, ScriptTrace, const char*);
+template<typename... TArgs>
+void ScriptTrace(const char* string, const TArgs&... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
 
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] =

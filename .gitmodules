@@ -148,3 +148,6 @@
 [submodule "vendor/win2d"]
 	path = vendor/win2d
 	url = https://github.com/citizenfx/Win2D.git
+[submodule "vendor/uvw"]
+	path = vendor/uvw
+	url = https://github.com/skypjack/uvw.git

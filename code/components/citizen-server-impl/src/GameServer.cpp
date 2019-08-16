@@ -721,9 +721,9 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args)
+	void GameServer::DropClientv(const std::shared_ptr<Client>& client, const std::string& reason, fmt::printf_args args)
 	{
-		std::string realReason = fmt::sprintf(reason, args);
+		std::string realReason = fmt::vsprintf(reason, args);
 
 		if (reason.empty())
 		{
