@@ -39,8 +39,8 @@ void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
 bool ExecutablePreload_Init();
 
-volatile bool g_exitUi;
 HANDLE g_uiDoneEvent;
+HANDLE g_uiExitEvent;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -476,10 +476,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	tui = {};
 
+	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIExit");
+	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIDone");
+
 	if (initState->IsMasterProcess())
 	{
-		g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
 		std::thread([/*tui = std::move(tui)*/]() mutable
 		{
 			{
@@ -493,10 +494,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				UI_UpdateText(0, L"Starting FiveM...");
 				UI_UpdateText(1, L"We're getting there.");
 
-				while (GetTickCount64() < (st + 3500) && !g_exitUi)
+				while (GetTickCount64() < (st + 3500))
 				{
 					HANDLE h = GetCurrentThread();
-					MsgWaitForMultipleObjects(1, &h, FALSE, 50, QS_ALLEVENTS);
+
+					HANDLE hs[] =
+					{
+						h,
+						g_uiExitEvent
+					};
+
+					auto res = MsgWaitForMultipleObjects(std::size(hs), hs, FALSE, 50, QS_ALLEVENTS);
+
+					if (res == WAIT_OBJECT_0 + 1)
+					{
+						break;
+					}
 
 					MSG msg;
 					while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))

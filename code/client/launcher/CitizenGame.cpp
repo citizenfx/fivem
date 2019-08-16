@@ -24,7 +24,7 @@ static ILauncherInterface* g_launcher;
 
 void InitializeMiniDumpOverride();
 
-extern volatile bool g_exitUi;
+extern HANDLE g_uiExitEvent;
 extern HANDLE g_uiDoneEvent;
 
 #if defined(PAYNE)
@@ -245,7 +245,10 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 		ExitProcess(0);
 	}
 
-	g_exitUi = true;
+	if (g_uiExitEvent)
+	{
+		SetEvent(g_uiExitEvent);
+	}
 
 	if (g_uiDoneEvent)
 	{

@@ -14,7 +14,6 @@
 
 #include <winrt/Windows.Storage.Streams.h>
 
-#include "winrt/Microsoft.Graphics.Canvas.Effects.h"
 #include "CitiLaunch/BackdropBrush.g.h"
 
 #include <DirectXMath.h>
@@ -29,6 +28,129 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "shcore.lib")
+
+extern "C" DLL_EXPORT HRESULT WINRT_CALL DllGetActivationFactory(HSTRING classId, IActivationFactory** factory);
+
+namespace winrt
+{
+	namespace Microsoft::Graphics::Canvas::Effects
+	{
+		class ColorSourceEffect;
+		class Transform2DEffect;
+		class ColorMatrixEffect;
+		class CompositeEffect;
+	}
+
+	namespace impl
+	{
+		template <typename Class, typename Interface = Windows::Foundation::IActivationFactory>
+		auto get_local_activation_factory(hresult_error * exception = nullptr) noexcept
+		{
+			param::hstring const name{ name_of<Class>() };
+			impl::com_ref<Interface> object;
+			hresult const hr = ::DllGetActivationFactory((HSTRING)get_abi(name), (IActivationFactory**)put_abi(object));
+
+			check_hresult(hr);
+
+			return object;
+		}
+
+		template <typename Class>
+		struct factory_local_entry
+		{
+			template <typename F>
+			auto call(F&& callback)
+			{
+				{
+					count_guard const guard(m_value.count);
+
+					if (m_value.object)
+					{
+						return callback(*reinterpret_cast<com_ref<Windows::Foundation::IActivationFactory> const*>(&m_value.object));
+					}
+				}
+
+				auto object = get_local_activation_factory<Class>();
+
+				if (!object.template try_as<IAgileObject>())
+				{
+					return callback(object);
+				}
+
+				{
+					count_guard const guard(m_value.count);
+
+					if (nullptr == _InterlockedCompareExchangePointer((void**)& m_value.object, get_abi(object), nullptr))
+					{
+						// This thread successfully updated the entry to hold the factory object. We thus detach, since the
+						// factory_cache_entry now owns the reference, and add the entry to the cache list. The callback
+						// may be safely called using the cached object since the count guard is currently being held.
+						detach_abi(object);
+						get_factory_cache().add(reinterpret_cast<factory_cache_typeless_entry*>(this));
+						return callback(*reinterpret_cast<com_ref<Windows::Foundation::IActivationFactory> const*>(&m_value.object));
+					}
+					else
+					{
+						// This thread failed to update the entry since another thread managed to exchange pointers first.
+						// The callback must still be called and can simply use the temporary factory object before allowing
+						// it to be released. 
+						return callback(object);
+					}
+				}
+			}
+
+		private:
+
+			struct count_guard
+			{
+				count_guard(count_guard const&) = delete;
+				count_guard& operator=(count_guard const&) = delete;
+
+				explicit count_guard(size_t& count) noexcept : m_count(count)
+				{
+#ifdef _WIN64
+					_InterlockedIncrement64((int64_t*)& m_count);
+#else
+					_InterlockedIncrement((long*)& m_count);
+#endif
+				}
+
+				~count_guard() noexcept
+				{
+#ifdef _WIN64
+					_InterlockedDecrement64((int64_t*)& m_count);
+#else
+					_InterlockedDecrement((long*)& m_count);
+#endif
+				}
+
+			private:
+
+				size_t& m_count;
+			};
+
+			struct alignas(sizeof(void*) * 2) object_and_count
+			{
+				void* object;
+				size_t count;
+			};
+
+			object_and_count m_value;
+			alignas(memory_allocation_alignment) slist_entry m_next;
+		};
+
+		#define MAKE_LOCAL_AF(x) \
+			template <> \
+			struct factory_cache_entry<Microsoft::Graphics::Canvas::Effects::x, Windows::Foundation::IActivationFactory> : factory_local_entry<Microsoft::Graphics::Canvas::Effects::x> {};
+
+		MAKE_LOCAL_AF(ColorSourceEffect);
+		MAKE_LOCAL_AF(Transform2DEffect);
+		MAKE_LOCAL_AF(ColorMatrixEffect);
+		MAKE_LOCAL_AF(CompositeEffect);
+	}
+}
+
+#include "winrt/Microsoft.Graphics.Canvas.Effects.h"
 
 static class DPIScaler
 {
@@ -137,8 +259,8 @@ static std::wstring g_mainXaml = LR"(
 
     <Grid Width="525" Height="525">
         <Grid.Resources>
-            <ThemeShadow x:Name="SharedShadow">
-            </ThemeShadow>
+            <!--<ThemeShadow x:Name="SharedShadow">
+            </ThemeShadow>-->
         </Grid.Resources>
         <Grid x:Name="BackdropGrid" />
         <StackPanel Orientation="Vertical" VerticalAlignment="Center">
@@ -348,8 +470,8 @@ void UI_CreateWindow()
 		auto bg = ui.FindName(L"BackdropGrid").as<winrt::Windows::UI::Xaml::Controls::Grid>();
 		bg.Background(winrt::make<BackdropBrush>());
 
-		auto shadow = ui.FindName(L"SharedShadow").as<winrt::Windows::UI::Xaml::Media::ThemeShadow>();
-		shadow.Receivers().Append(bg);
+		/*auto shadow = ui.FindName(L"SharedShadow").as<winrt::Windows::UI::Xaml::Media::ThemeShadow>();
+		shadow.Receivers().Append(bg);*/
 
 		ten->topStatic = ui.FindName(L"static1").as<winrt::Windows::UI::Xaml::Controls::TextBlock>();
 		ten->bottomStatic = ui.FindName(L"static2").as<winrt::Windows::UI::Xaml::Controls::TextBlock>();
@@ -506,8 +628,6 @@ void UI_RegisterClass()
 	RegisterClassEx(&wndClass);
 }
 
-extern "C" DLL_EXPORT HRESULT WINRT_CALL DllGetActivationFactory(HSTRING classId, IActivationFactory** factory);
-
 static HANDLE g_actCtx;
 
 bool GenManifest()
@@ -609,11 +729,11 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 {
 	bool mf = GenManifest();
 
-	// Windows 10 19H1+ gets a neat UI
+	// Windows 10 RS5+ gets a neat UI
 	DWORDLONG viMask = 0;
 	OSVERSIONINFOEXW osvi = { 0 };
 	osvi.dwOSVersionInfoSize = sizeof(osvi);
-	osvi.dwBuildNumber = 18362; // 19H1+
+	osvi.dwBuildNumber = 17763; // RS5+
 
 	VER_SET_CONDITION(viMask, VER_BUILDNUMBER, VER_GREATER_EQUAL);
 
