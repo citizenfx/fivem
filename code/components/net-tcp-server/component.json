@@ -6,7 +6,8 @@
 		"net:base",
 		"vendor:tbb",
 		"vendor:libuv",
-		"vendor:botan"
+		"vendor:botan",
+		"vendor:uvw"
 	],
 	"provides": []
 }

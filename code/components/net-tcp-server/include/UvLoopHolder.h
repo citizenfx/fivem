@@ -11,12 +11,14 @@
 
 #include <uv.h>
 
+#include <uvw.hpp>
+
 namespace net
 {
 class UvLoopHolder : public fwRefCountable
 {
 private:
-	uv_loop_t m_loop;
+	std::shared_ptr<uvw::Loop> m_loop;
 
 	std::thread m_thread;
 
@@ -33,7 +35,12 @@ public:
 
 	inline uv_loop_t* GetLoop()
 	{
-		return &m_loop;
+		return m_loop->raw();
+	}
+
+	inline const std::shared_ptr<uvw::Loop>& Get()
+	{
+		return m_loop;
 	}
 
 	inline const std::string& GetLoopTag() const

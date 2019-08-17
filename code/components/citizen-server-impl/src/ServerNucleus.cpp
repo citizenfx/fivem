@@ -11,6 +11,7 @@
 #include <ServerLicensingComponent.h>
 
 #include <TcpListenManager.h>
+#include <ReverseTcpServer.h>
 
 #include <json.hpp>
 
@@ -35,14 +36,16 @@ static InitFunction initFunction([]()
 
 					if (!nucleusToken.empty())
 					{
+						auto tlm = instance->GetComponent<fx::TcpListenManager>();
+
 						auto jsonData = nlohmann::json::object({
 							{ "token", nucleusToken },
-							{ "port", fmt::sprintf("%d", instance->GetComponent<fx::TcpListenManager>()->GetPrimaryPort()) }
+							{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) }
 						});
 
 						trace("^3Authenticating with Nucleus...^7\n");
 
-						httpClient->DoPostRequest("https://cfx.re/api/register/", jsonData.dump(), [](bool success, const char* data, size_t length)
+						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [tlm](bool success, const char* data, size_t length)
 						{
 							if (!success)
 							{
@@ -50,8 +53,15 @@ static InitFunction initFunction([]()
 							}
 							else
 							{
+								auto jsonData = nlohmann::json::parse(std::string(data, length));
+
 								trace("^1        fff                          \n  cccc ff   xx  xx     rr rr    eee  \ncc     ffff   xx       rrr  r ee   e \ncc     ff     xx   ... rr     eeeee  \n ccccc ff   xx  xx ... rr      eeeee \n                                     ^7\n");
-								trace("^2Authenticated with cfx.re Nucleus: ^7https://%s/\n", std::string(data, length));
+								trace("^2Authenticated with cfx.re Nucleus: ^7https://%s/\n", jsonData.value("host", ""));
+
+								fwRefContainer<net::ReverseTcpServer> rts = new net::ReverseTcpServer();
+								rts->Listen("cfx.re:30130", jsonData.value("rpToken", ""));
+
+								tlm->AddExternalServer(rts);
 							}
 						});
 					}
