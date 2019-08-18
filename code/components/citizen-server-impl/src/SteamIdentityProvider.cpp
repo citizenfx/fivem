@@ -89,15 +89,7 @@ static InitFunction initFunction([]()
 					{
 						try
 						{
-							if (!result)
-							{
-								cb({ "Steam authentication failed: " + response });
-							}
-							/*else if (r.status_code >= 400)
-							{
-								cb({ fmt::sprintf("Steam authentication failed: HTTP %d", r.status_code) });
-							}*/
-							else
+							if (result)
 							{
 								json object = json::parse(response)["response"];
 
@@ -109,9 +101,9 @@ static InitFunction initFunction([]()
 
 								uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
 								clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
-
-								cb({});
 							}
+
+							cb({});
 						}
 						catch (std::exception& e)
 						{
