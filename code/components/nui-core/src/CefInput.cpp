@@ -192,6 +192,17 @@ static HookFunction initFunction([] ()
 			return;
 		}
 
+		if (nui::HasMainUI())
+		{
+			if (msg == WM_CLOSE)
+			{
+				ExitProcess(0);
+				pass = false;
+
+				return;
+			}
+		}
+
 		static bool g_lastFocus = false;
 
 		// send a focus event to CEF if focus changed
