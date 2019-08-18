@@ -1300,6 +1300,8 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 
 #include <GameInit.h>
 
+static bool g_lockReload;
+
 static HookFunction hookFunction([] ()
 {
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
@@ -1417,6 +1419,7 @@ static HookFunction hookFunction([] ()
 		// safely drain the RAGE streamer before we unload everything
 		SafelyDrainStreamer();
 
+		g_lockReload = true;
 		g_unloadingCfx = true;
 
 		UnloadDataFiles();
@@ -1464,7 +1467,7 @@ static HookFunction hookFunction([] ()
 
 	OnMainGameFrame.Connect([=]()
 	{
-		if (g_reloadStreamingFiles && g_lockedStreamingFiles == 0)
+		if (g_reloadStreamingFiles && g_lockedStreamingFiles == 0 && !g_lockReload)
 		{
 			LoadStreamingFiles();
 
@@ -1494,6 +1497,8 @@ static HookFunction hookFunction([] ()
 	{
 		if (type == rage::INIT_SESSION)
 		{
+			g_lockReload = false;
+
 			LoadStreamingFiles(true);
 		}
 	});
