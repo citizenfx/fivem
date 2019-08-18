@@ -181,7 +181,7 @@ typedef struct lua_TValue TValue;
 #define ttisvector3(o)	(ttype(o) == LUA_TVECTOR3)
 #define ttisvector2(o)	(ttype(o) == LUA_TVECTOR2)
 #define ttisquat(o)	(ttype(o) == LUA_TQUAT)
-
+#define ttisgrit(o) (ttisnumber(o) || ttype(o) == LUA_TVECTOR4 || ttype(o) == LUA_TVECTOR3 || ttype(o) == LUA_TVECTOR2 || ttype(o) == LUA_TQUAT)    
 
 /* Macros to access values */
 #define ivalue(o)	check_exp(ttisinteger(o), val_(o).i)

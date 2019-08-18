@@ -622,6 +622,10 @@ static int luaB_dot (lua_State *L) {
     lua_checkvector2(L, 1, &x1, &y1);
     lua_checkvector2(L, 2, &x2, &y2);
     lua_pushnumber(L,dot2(x1,y1, x2,y2));
+  } else if (lua_isquat(L, 1)) {
+    lua_checkquat(L, 1, &w1, &x1, &y1, &z1);
+    lua_checkquat(L, 2, &w2, &x2, &y2, &z2);
+    lua_pushnumber(L, dot4(x1, y1, z1, w1, x2, y2, z2, w2));
   }
   return 1;
 }
