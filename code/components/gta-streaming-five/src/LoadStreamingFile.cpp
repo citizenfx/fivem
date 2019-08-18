@@ -530,6 +530,7 @@ static std::set<std::tuple<std::string, std::string>> g_customStreamingFiles;
 static std::set<std::string> g_customStreamingFileRefs;
 static std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
+static std::set<std::pair<streaming::strStreamingModule*, int>> g_pendingRemovals;
 std::unordered_map<int, std::string> g_handlesToTag;
 
 static std::unordered_set<int> g_ourIndexes;
@@ -613,6 +614,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 			strModule->GetOrCreate(&strId, nameWithoutExt.c_str());
 
 			g_ourIndexes.insert(strId + strModule->baseIdx);
+			g_pendingRemovals.erase({ strModule, strId });
 
 			// if the asset is already registered...
 			if (cstreaming->Entries[strId + strModule->baseIdx].handle != 0)
@@ -1014,7 +1016,8 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 						streaming::Manager::GetInstance()->ReleaseObject(strId + strModule->baseIdx);
 					}
 
-					// TODO: fully delete the streaming object from the module/streamer
+					g_pendingRemovals.insert({ strModule, strId });
+
 					g_customStreamingFileRefs.erase(baseName);
 					entry.handle = 0;
 				}
@@ -1261,6 +1264,40 @@ static void UnloadWeaponInfosStub()
 	g_weaponInfoArray->Expand(0x80);
 }
 
+static hook::cdecl_stub<void(int32_t)> rage__fwArchetypeManager__FreeArchetypes([]()
+{
+	return hook::get_pattern("8B F9 8B DE 66 41 3B F0 73 33", -0x19);
+});
+
+static void(*g_origUnloadMapTypes)(void*, uint32_t);
+
+void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
+{
+	auto pool = (atPoolBase*)(assetStore + 56);
+	auto entry = pool->GetAt<char>(index);
+
+	if (entry != nullptr)
+	{
+		if (*(uintptr_t*)entry != 0)
+		{
+			if (g_unloadingCfx)
+			{
+				*(uint16_t*)(entry + 16) &= ~0x14;
+			}
+
+			g_origUnloadMapTypes(assetStore, index);
+		}
+		else
+		{
+			AddCrashometry("maptypesstore_workaround_2", "true");
+		}
+	}
+	else
+	{
+		AddCrashometry("maptypesstore_workaround", "true");
+	}
+}
+
 #include <GameInit.h>
 
 static HookFunction hookFunction([] ()
@@ -1380,6 +1417,8 @@ static HookFunction hookFunction([] ()
 		// safely drain the RAGE streamer before we unload everything
 		SafelyDrainStreamer();
 
+		g_unloadingCfx = true;
+
 		UnloadDataFiles();
 
 		std::set<std::string> tags;
@@ -1393,6 +1432,32 @@ static HookFunction hookFunction([] ()
 		{
 			CfxCollection_RemoveStreamingTag(tag);
 		}
+
+		auto typesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+
+		for (auto [ module, idx ] : g_pendingRemovals)
+		{
+			if (module == typesStore)
+			{
+				atPoolBase* entryPool = (atPoolBase*)((char*)module + 56);
+				auto entry = entryPool->GetAt<char>(idx);
+
+				*(uint16_t*)(entry + 16) &= ~0x14;
+			}
+
+			streaming::Manager::GetInstance()->ReleaseObject(idx + module->baseIdx);
+
+			if (module == typesStore)
+			{
+				// if unloaded at *runtime* but flags were set, archetypes likely weren't freed - we should
+				// free them now.
+				rage__fwArchetypeManager__FreeArchetypes(idx);
+			}
+
+			module->DeleteEntry(idx);
+		}
+
+		g_pendingRemovals.clear();
 
 		g_unloadingCfx = false;
 	}, -9999);
@@ -1463,6 +1528,13 @@ static HookFunction hookFunction([] ()
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("45 33 C0 BA E9 C8 73 AA E8", -0x11), UnloadWeaponInfosStub, (void**)&g_origUnloadWeaponInfos);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	// fwMapTypesStore double unloading workaround
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 

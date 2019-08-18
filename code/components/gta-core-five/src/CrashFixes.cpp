@@ -148,32 +148,6 @@ static bool VehicleEntryPointValidate(VehicleLayoutInfo* info)
 	return true;
 }
 
-#include <atPool.h>
-
-static void(*g_origUnloadMapTypes)(void*, uint32_t);
-
-void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
-{
-	auto pool = (atPoolBase*)(assetStore + 56);
-	auto entry = pool->GetAt<char>(index);
-
-	if (entry != nullptr)
-	{
-		if (*(uintptr_t*)entry != 0)
-		{
-			g_origUnloadMapTypes(assetStore, index);
-		}
-		else
-		{
-			AddCrashometry("maptypesstore_workaround_2", "true");
-		}
-	}
-	else
-	{
-		AddCrashometry("maptypesstore_workaround", "true");
-	}
-}
-
 static int ReturnFalse()
 {
 	return 0;
@@ -654,11 +628,6 @@ static HookFunction hookFunction{[] ()
 	// vehicles.meta explosionInfo field invalidity
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 08 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
-	MH_EnableHook(MH_ALL_HOOKS);
-
-	// fwMapTypesStore double unloading workaround
-	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// disable TXD script resource unloading to work around a crash
