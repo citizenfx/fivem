@@ -185,6 +185,14 @@ namespace sync
 {
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
 	{
+		auto npPool = rage::GetPoolBase("CNonPhysicalPlayerData");
+
+		// probably shutting down the network subsystem
+		if (!npPool)
+		{
+			return;
+		}
+
 		void* fakeInAddr = calloc(256, 1);
 		void* fakeFakeData = calloc(256, 1);
 
@@ -201,7 +209,7 @@ namespace sync
 		//void* nonphys = calloc(256, 1);
 
 		// this has to come from the pool directly as the game will expect to free it
-		void* nonPhys = rage::PoolAllocate(rage::GetPoolBase("CNonPhysicalPlayerData"));
+		void* nonPhys = rage::PoolAllocate(npPool);
 		((void(*)(void*))hook::get_adjusted(0x1410A4024))(nonPhys); // ctor
 
 		// 1493
