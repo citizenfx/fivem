@@ -278,7 +278,7 @@ function rpcEnvironment.entity_rpc(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
-		codeEnvironment.returns('void')
+		codeEnvironment.returns('Entity')
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
