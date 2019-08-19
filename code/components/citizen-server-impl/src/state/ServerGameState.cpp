@@ -2180,6 +2180,116 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 #include <ServerInstanceBaseRef.h>
 #include <ScriptEngine.h>
 
+struct CExplosionEvent
+{
+	void Parse(rl::MessageBuffer& buffer);
+
+	inline std::string GetName()
+	{
+		return "explosionEvent";
+	}
+
+	int ownerNetId;
+	int explosionType;
+	float damageScale;
+	float cameraShake;
+	float posX;
+	float posY;
+	float posZ;
+	bool isAudible;
+	bool isInvisible;
+
+	MSGPACK_DEFINE_MAP(ownerNetId, explosionType, damageScale, cameraShake, posX, posY, posZ, isAudible, isInvisible);
+};
+
+void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
+{
+	auto f186 = buffer.Read<uint16_t>(16);
+	auto f208 = buffer.Read<uint16_t>(13);
+	ownerNetId = buffer.Read<uint16_t>(13);
+	auto f214 = buffer.Read<uint16_t>(13); // 1604+
+	explosionType = buffer.ReadSigned<int>(8); // 1604+ bit size
+	damageScale = buffer.Read<int>(8) / 255.0f;
+
+	posX = buffer.ReadSignedFloat(22, 27648.0f);
+	posY = buffer.ReadSignedFloat(22, 27648.0f);
+	posZ = buffer.ReadFloat(22, 4416.0f) - 1700.0f;
+
+	bool f242 = buffer.Read<uint8_t>(1);
+	auto f104 = buffer.Read<uint16_t>(16);
+	cameraShake = buffer.Read<int>(8) / 127.0f;
+
+	isAudible = buffer.Read<uint8_t>(1);
+	bool f189 = buffer.Read<uint8_t>(1);
+	isInvisible = buffer.Read<uint8_t>(1);
+	bool f126 = buffer.Read<uint8_t>(1);
+	bool f241 = buffer.Read<uint8_t>(1);
+	bool f243 = buffer.Read<uint8_t>(1); // 1604+
+
+	auto f210 = buffer.Read<uint16_t>(13);
+
+	auto unkX = buffer.ReadSignedFloat(16, 1.1f);
+	auto unkY = buffer.ReadSignedFloat(16, 1.1f);
+	auto unkZ = buffer.ReadSignedFloat(16, 1.1f);
+
+	bool f190 = buffer.Read<uint8_t>(1);
+	bool f191 = buffer.Read<uint8_t>(1);
+
+	auto f164 = buffer.Read<uint32_t>(32);
+	
+	if (f242)
+	{
+		float posX224 = buffer.ReadSignedFloat(31, 27648.0f);
+		float posY224 = buffer.ReadSignedFloat(31, 27648.0f);
+		float posZ224 = buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+	}
+
+	bool f240 = buffer.Read<uint8_t>(1);
+
+	if (f240)
+	{
+		auto f218 = buffer.Read<uint16_t>(16);
+
+		if (f191)
+		{
+			bool f216 = buffer.Read<uint8_t>(8);
+		}
+	}
+}
+
+template<typename TEvent>
+inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
+{
+	uint16_t length = buffer.Read<uint16_t>();
+
+	std::vector<uint8_t> data(length);
+	buffer.Read(data.data(), data.size());
+
+	rl::MessageBuffer msgBuf(data);
+	auto ev = std::make_shared<TEvent>();
+	ev->Parse(msgBuf);
+
+	return [instance, client, ev = std::move(ev)]()
+	{
+		auto evComponent = instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+		return evComponent->TriggerEvent2(ev->GetName(), { }, fmt::sprintf("%d", client->GetNetId()), *ev);
+	};
+}
+
+static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
+{
+	buffer.Read<uint16_t>(); // eventHeader
+	bool isReply = buffer.Read<uint8_t>(); // is reply
+	uint16_t eventType = buffer.Read<uint16_t>(); // event ID
+
+	if (eventType == 17) // EXPLOSION_EVENT
+	{
+		return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
+	}
+
+	return {};
+}
+
 static InitFunction initFunction([]()
 {
 	g_scriptHandlePool = new CPool<fx::ScriptGuid>(1500, "fx::ScriptGuid");
@@ -2224,14 +2334,37 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-			for (uint16_t player : targetPlayers)
+			auto routeEvent = [netBuffer, targetPlayers, clientRegistry]()
 			{
-				auto targetClient = clientRegistry->GetClientByNetID(player);
-
-				if (targetClient)
+				for (uint16_t player : targetPlayers)
 				{
-					targetClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+					auto targetClient = clientRegistry->GetClientByNetID(player);
+
+					if (targetClient)
+					{
+						targetClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+					}
 				}
+			};
+
+			auto copyBuf = netBuffer.Clone();
+			copyBuf.Seek(6);
+
+			auto eventHandler = GetEventHandler(instance, client, std::move(copyBuf));
+
+			if (eventHandler)
+			{
+				gscomms_execute_callback_on_main_thread([eventHandler, routeEvent]()
+				{
+					if (eventHandler())
+					{
+						routeEvent();
+					}
+				});
+			}
+			else
+			{
+				routeEvent();
 			}
 		});
 
