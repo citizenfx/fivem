@@ -533,7 +533,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	return (outButton != IDNO && outButton != 42);
 }
 
-static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
+static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 {
 	// create UI
 	UI_DoCreation();
@@ -678,12 +678,12 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		{
 			UI_DoDestruction();
 
-			ExitProcess(0);
+			return false;
 		}
 	}
 	else
 	{
-		return;
+		return true;
 	}
 
 	UI_UpdateText(0, L"Updating game cache...");
@@ -871,8 +871,10 @@ static void PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	// failed?
 	if (!retval)
 	{
-		FatalError("Fetching game cache failed.");
+		return false;
 	}
+
+	return true;
 }
 
 std::map<std::string, std::string> UpdateGameCache()
@@ -898,7 +900,10 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	if (!differences.empty())
 	{
-		PerformUpdate(differences);
+		if (!PerformUpdate(differences))
+		{
+			return {};
+		}
 	}
 
 	// get a list of cache files that should be mapped given an updated cache

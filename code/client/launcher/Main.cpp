@@ -23,7 +23,7 @@
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
-void EnsureGamePath();
+std::optional<int> EnsureGamePath();
 
 bool InitializeExceptionHandler();
 
@@ -293,7 +293,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	// make sure the game path exists
-	EnsureGamePath();
+	if (auto gamePathExit = EnsureGamePath(); gamePathExit)
+	{
+		return *gamePathExit;
+	}
 
 	if (addDllDirectory)
 	{
@@ -438,6 +441,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	auto redirectionData = UpdateGameCache();
+
+	if (redirectionData.empty())
+	{
+		return 0;
+	}
+
 	g_redirectionData = redirectionData;
 
 	gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
