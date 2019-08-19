@@ -22,11 +22,28 @@ static MappingFunctionType g_mappingFunction;
 
 static NTSTATUS(*g_origLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*, HANDLE*);
 
+static bool g_d3dx11;
+
 static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 {
 	if (wcsstr(origFileName, L"autosignin.dat") != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\autosignin.dat");
+	}
+
+	if (wcsstr(origFileName, L"signintransfer.dat") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\signintransfer.dat");
+	}
+
+	if (wcsstr(origFileName, L"d3dx11_43.dll") != nullptr || wcsstr(origFileName, L"D3DX11_43") && !g_d3dx11)
+	{
+		return MakeRelativeCitPath(L"bin\\d3dcompiler_43.dll");
+	}
+
+	if (wcsstr(origFileName, L"Social Club\\Profiles") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\ros_profiles") + &wcsstr(origFileName, L"Social Club\\Profiles")[20];
 	}
 
 	if (wcsstr(origFileName, L"version.txt") != nullptr)
@@ -67,6 +84,22 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	{
 		return true;
 	}
+
+	if (fileName.find(L"signintransfer.dat") != std::string::npos)
+	{
+		return true;
+	}
+
+	if (wcsstr(fileName.c_str(), L"d3dx11_43.dll") != nullptr || wcsstr(fileName.c_str(), L"D3DX11_43") && !g_d3dx11)
+	{
+		return true;
+	}
+
+	if (wcsstr(fileName.c_str(), L"Social Club\\Profiles") != nullptr)
+	{
+		return true;
+	}
+
 
 	if (fileName.length() > 10 && fileName.compare(fileName.length() - 8, 8, L"GTA5.exe") == 0)
 	{
@@ -481,6 +514,17 @@ VOID CALLBACK LdrDllNotification(
 extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 {
 	DisableToolHelpScope scope;
+
+	{
+		HMODULE dx = LoadLibraryW(L"d3dx11_43.dll");
+
+		if (dx)
+		{
+			FreeLibrary(dx);
+
+			g_d3dx11 = true;
+		}
+	}
 
 	g_mappingFunction = function;
 	g_tlsHandle = TlsAlloc();
