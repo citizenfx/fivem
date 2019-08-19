@@ -78,8 +78,11 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 			g_allowVt = true;
 		}
 
-		SetConsoleCP(65001);
-		SetConsoleOutputCP(65001);
+		if (IsWindows10OrGreater())
+		{
+			SetConsoleCP(65001);
+			SetConsoleOutputCP(65001);
+		}
 	});
 #else
 	g_allowVt = true;
