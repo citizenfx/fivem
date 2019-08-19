@@ -1091,6 +1091,9 @@ void ServerGameState::UpdateEntities()
 					}
 
 					MoveEntityToCandidate(entity, client);
+
+					// store the current time so we'll only try again in 10 seconds, not *the next frame*
+					entity->lastReceivedAt = time;
 				}
 			}
 		}
