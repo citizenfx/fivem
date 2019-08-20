@@ -157,7 +157,7 @@ static void checkname (LexState *ls, expdesc *e) {
   codestring(ls, e, str_checkname(ls));
 }
 
-inline char ToLower(const char c)
+static char ToLower(const char c)
 {
 	return (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
 }

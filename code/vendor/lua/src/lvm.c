@@ -165,7 +165,7 @@ int luaV_swizzle (const char *key, lua_Float4 *from, int from_sz, lua_Float4 *to
 **
 ** Returning 1 if the TValue has been parsed & the StkId has been set.
 */
-inline int luaV_gritparsenumeric(lua_State *L, const TValue *t, const lua_Integer key, StkId val)
+static int luaV_gritparsenumeric(lua_State *L, const TValue *t, const lua_Integer key, StkId val)
 {
   int result = 1;
   if (ttisvector4(t)) {
@@ -216,7 +216,7 @@ inline int luaV_gritparsenumeric(lua_State *L, const TValue *t, const lua_Intege
 ** Access the contents of a vector type through string-indexing. Returning 1 if
 ** the TValue has been parsed & the StkId has been set.
 */
-inline int luaV_gritparsestring(lua_State *L, const TValue* t, const char* key, StkId val, int parseFields) {
+static int luaV_gritparsestring(lua_State *L, const TValue* t, const char* key, StkId val, int parseFields) {
   int result = 1;
 
   lua_Float4 out;
