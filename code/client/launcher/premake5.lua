@@ -61,7 +61,7 @@
 			linkoptions "/LAST:.zdata"
 
 	externalproject "Win2D"
-		if os.getenv('COMPUTERNAME') ~= 'AVALON' then
+		if os.getenv('COMPUTERNAME') ~= 'AVALON' and not os.getenv('CI') then
 			filename "../../../vendor/win2d/winrt/lib/winrt.lib.uap"
 		else
 			filename "../../vendor/win2d/winrt/lib/winrt.lib.uap"
