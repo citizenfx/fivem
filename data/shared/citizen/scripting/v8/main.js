@@ -200,6 +200,11 @@ const EXT_LOCALFUNCREF = 11;
 
 	global.TriggerEvent = global.emit;
 
+	// Event listing
+	global.ListEvents = () =>{
+		return emitter.eventNames().filter((e) => {return !e.startsWith('__cfx')});
+	}
+
 	if (IsDuplicityVersion()) {
 		global.emitNet = (name, source, ...args) => {
 			const dataSerialized = pack(args);

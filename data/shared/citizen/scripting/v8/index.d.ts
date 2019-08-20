@@ -69,6 +69,8 @@ declare function onNet(eventName: string, callback: Function): void
 declare function emit(eventName: string, ...args: any[]): void
 declare function TriggerEvent(eventName: string, ...args: any[]): void
 
+declare function ListEvents(): string[]
+
 declare function emitNet(eventName: string, ...args: any[]): void
 declare function TriggerServerEvent(eventName: string, ...args: any[]): void
 

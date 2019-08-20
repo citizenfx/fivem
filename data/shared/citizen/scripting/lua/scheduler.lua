@@ -374,6 +374,16 @@ function TriggerEvent(eventName, ...)
 	end)
 end
 
+function ListEvents()
+	local events={}
+	for e,_ in pairs(eventHandlers) do
+		if e:sub(1, 5) ~= "__cfx" then
+			table.insert(events, e)
+		end
+	end
+	return events
+end
+
 if IsDuplicityVersion() then
 	function TriggerClientEvent(eventName, playerId, ...)
 		local payload = msgpack.pack({...})
