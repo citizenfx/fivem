@@ -76,7 +76,6 @@ return {
 				'src/unix/no-proctitle.c',
 				'src/unix/procfs-exepath.c',
 				'src/unix/sysinfo-loadavg.c',
-				'src/unix/sysinfo-memory.c',
 				
 			}
 
