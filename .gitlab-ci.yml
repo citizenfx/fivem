@@ -1,3 +1,8 @@
+stages:
+  - build
+  - deploy
+  - linux
+
 .buildscript: &build_windows
   stage: build
   script:
@@ -47,7 +52,7 @@ build_server_windows:
     untracked: true
 
 build_proot_linux:
-  stage: build
+  stage: linux
   image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine3.9
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -61,7 +66,7 @@ build_proot_linux:
       - fx.tar.xz
   except:
     - tags
-    - master
+    #- master
     - feature/update-to-1365
     - feature/update-to-1604
     - feature/cloning-stuff-releng
