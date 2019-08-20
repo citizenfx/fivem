@@ -368,14 +368,16 @@ void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
       if (ttisstring(key)) {
         if (luaV_gritparsestring(L, t, svalue(key), val, ttisnil(tm)))
           return;
-        else if (ttisnil(tm))
-          luaG_typeerror(L, t, "index");
+        else if (ttisnil(tm)) {
+          luaG_runerror(L, "invalid vector field: %s", svalue(key));
+          return;
+        }
 
         /* else will try metamethod */
       }
       else if (ttisinteger(key)) {
         if (!luaV_gritparsenumeric(L, t, ivalue(key), val))
-          luaG_typeerror(L, t, "index");
+          luaG_runerror(L, "invalid vector index: %d", ivalue(key));
         return;
       }
       else {
@@ -1016,7 +1018,7 @@ static TString *resolve_absolute_path (lua_State *L, const char *file, const cha
   // Even this is a tiny amount of memory though, so we're fine.
   pieces = malloc(sizeof(char*) * (file_len + rel_len));
   pieces2 = malloc(sizeof(char*) * (file_len + rel_len));
-  
+
   if (rel2[0] != '/') {
     unsigned last_slash = 0;
     lua_assert(file2[0] == '/');
@@ -1286,7 +1288,7 @@ void luaV_execute (lua_State *L) {
 		if (tonumber(rb, &nb) && tonumber(rc, &nc)) {
 			setfltvalue(ra, luai_numdiv(L, nb, nc));
 		}
-        else { 
+        else {
 			Protect(luaT_trybinTM(L, rb, rc, ra, TM_DIV));
 		}
         vmbreak;
