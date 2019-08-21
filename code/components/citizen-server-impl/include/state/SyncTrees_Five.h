@@ -656,7 +656,112 @@ struct CPhysicalAttachDataNode { bool Parse(SyncParseState& state) { return true
 struct CVehicleAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleDamageStatusDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CVehicleHealthDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		bool unk0 = state.buffer.ReadBit();
+		bool unk1 = state.buffer.ReadBit();
+		bool engineDamaged = state.buffer.ReadBit();
+		bool petrolTankDamaged = state.buffer.ReadBit();
+
+		if (engineDamaged)
+		{
+			auto engineHealth = state.buffer.ReadSigned<int>(19);
+			state.entity->data["engineHealth"] = engineHealth;
+		}
+		else
+		{
+			state.entity->data["engineHealth"] = 1000;
+		}
+
+		if (petrolTankDamaged)
+		{
+			auto petrolTankHealth = state.buffer.ReadSigned<int>(19);
+			state.entity->data["petrolTankHealth"] = petrolTankHealth;
+		}
+		else
+		{
+			state.entity->data["petrolTankHealth"] = 1000;
+		}
+
+		bool tyresFine = state.buffer.ReadBit();
+		state.entity->data["tyresFine"] = tyresFine;
+
+		bool unk7 = state.buffer.ReadBit();
+
+		if (!tyresFine || !unk7)
+		{
+			int totalWheels = state.buffer.Read<int>(4);
+
+			if (!tyresFine)
+			{
+				for (int i = 0; i < totalWheels; i++)
+				{
+					bool bursted = state.buffer.ReadBit();
+					bool onRim = state.buffer.ReadBit();
+					auto unk11 = state.buffer.ReadBit();
+					auto unk12 = state.buffer.ReadBit();
+
+					state.entity->data["tyreStatus" + i] = onRim ? 2 : (bursted ? 1 : 0);
+				}
+			}
+
+			if (!unk7)
+			{
+				for (int i = 0; i < totalWheels; i++)
+				{
+					bool unk13 = state.buffer.ReadBit();
+
+					if (unk13)
+					{
+						int unk14 = state.buffer.Read<int>(10); // Maximum 10000.0
+					}
+				}
+			}
+		}
+
+		bool bodyHealthFine = state.buffer.ReadBit();
+
+		if (!bodyHealthFine)
+		{
+			auto bodyHealth = state.buffer.ReadSigned<int>(19);
+			state.entity->data["bodyHealth"] = bodyHealth;
+		}
+		else
+		{
+			state.entity->data["bodyHealth"] = 1000;
+		}
+
+		bool unk16 = state.buffer.ReadBit();
+
+		if (!unk16)
+		{
+			auto unk17 = state.buffer.ReadSigned<int>(19);
+		}
+
+		bool unk18 = state.buffer.ReadBit();
+
+		if (unk18)
+		{
+			auto unk19 = state.buffer.ReadBit();
+			int lastDamageSource = state.buffer.Read<int>(32);
+		}
+
+		int unk21 = state.buffer.Read<int>(4);
+		int totalRepairs = state.buffer.Read<int>(4); // maximum 15
+		auto unk23 = state.buffer.ReadBit();
+
+		if (unk23)
+		{
+			int unk24 = state.buffer.Read<int>(64);
+		}
+
+		return true;
+	}
+};
+
 struct CVehicleTaskDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CSectorDataNode
