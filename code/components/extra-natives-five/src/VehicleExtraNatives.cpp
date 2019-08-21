@@ -530,6 +530,11 @@ static HookFunction initFunction([]()
 		static void CleanupVehicle(fwEntity* VehPointer)
 		{
 			g_skipRepairVehicles.erase(VehPointer);
+
+			// Delete the handling if it has been set to hooked.
+			void* handling = readValue<void*>(VehPointer, 0x918);
+			if (*((char*)handling + 28) == 1)
+				delete handling;
 		}
 		virtual void InternalMain() override
 		{
