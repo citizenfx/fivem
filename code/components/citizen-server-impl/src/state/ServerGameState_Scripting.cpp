@@ -386,4 +386,45 @@ static InitFunction initFunction([]()
 
 		return lockedForPlayer;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["maxHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_ARMOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["armour"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_CAUSE_OF_DEATH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["causeOfDeath"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		switch (entity->type)
+		{
+		case fx::sync::NetObjEntityType::Player:
+			return entity->GetData("maxHealth", 0);
+		case fx::sync::NetObjEntityType::Ped:
+			return entity->GetData("maxHealth", 0);
+		default:
+			return 0;
+		}
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		switch (entity->type)
+		{
+		case fx::sync::NetObjEntityType::Player:
+			return entity->GetData("health", 0);
+		case fx::sync::NetObjEntityType::Ped:
+			return entity->GetData("health", 0);
+		default:
+			return 0;
+		}
+	}));
 });

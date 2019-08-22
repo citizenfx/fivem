@@ -974,7 +974,71 @@ struct CPedScriptCreationDataNode { bool Parse(SyncParseState& state) { return t
 struct CPedComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedAttachDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPedHealthDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		bool isFine = state.buffer.ReadBit();
+		auto maxHealthChanged = state.buffer.ReadBit();
+
+		int maxHealth = 200;
+
+		if (maxHealthChanged)
+		{
+			maxHealth = state.buffer.Read<int>(13);
+		}
+
+		state.entity->data["maxHealth"] = maxHealth;
+
+		if (!isFine)
+		{
+			int pedHealth = state.buffer.Read<int>(13);
+			auto unk4 = state.buffer.ReadBit();
+			auto unk5 = state.buffer.ReadBit();
+
+			state.entity->data["health"] = pedHealth;
+		}
+		else
+		{
+			state.entity->data["health"] = maxHealth;
+		}
+
+		bool noArmour = state.buffer.ReadBit();
+
+		if (!noArmour)
+		{
+			int pedArmour = state.buffer.Read<int>(13);
+			state.entity->data["armour"] = pedArmour;
+		}
+		else
+		{
+			state.entity->data["armour"] = 0;
+		}
+
+		auto unk8 = state.buffer.ReadBit();
+
+		if (unk8) // unk9 != 0
+		{
+			auto unk9 = state.buffer.Read<short>(13);
+		}
+
+		int causeOfDeath = state.buffer.Read<int>(32);
+		state.entity->data["causeOfDeath"] = causeOfDeath;
+
+		int injuredStatus = state.buffer.Read<int>(2); // Change below 150 HP, injured data?
+
+		auto unk13 = state.buffer.ReadBit();
+
+		if (unk13)
+		{
+			int unk14 = state.buffer.Read<int>(8);
+		}
+
+		return true;
+	}
+};
+
 struct CPedMovementGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedAIDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -1293,7 +1357,7 @@ struct SyncTree : public SyncTreeBase
 
 		return false;
 	}
-
+		
 	virtual void Parse(SyncParseState& state) final override
 	{
 		std::unique_lock<std::mutex> lock(mutex);
