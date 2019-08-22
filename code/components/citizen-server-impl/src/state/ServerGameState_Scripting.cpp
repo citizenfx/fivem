@@ -387,6 +387,42 @@ static InitFunction initFunction([]()
 		return lockedForPlayer;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ENGINE_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["engineHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_PETROL_TANK_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["petrolTankHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_TYRE_BURST", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		bool tyreBurst = false;
+		bool wheelsFine = entity->GetData("tyresFine", true);
+
+		if (!wheelsFine && context.GetArgumentCount() > 1)
+		{
+			int tyreID = context.GetArgument<int>(1);
+			bool completely = context.GetArgument<bool>(2);
+
+			int tyreStatus = entity->GetData("tyreStatus" + tyreID, 0);
+
+			if (completely && tyreStatus == 2 || !completely && tyreStatus == 1)
+			{
+				tyreBurst = true;
+			}
+		}
+
+		return tyreBurst;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_BODY_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["bodyHealth"];
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		return entity->data["maxHealth"];
