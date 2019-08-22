@@ -543,6 +543,17 @@ static InitFunction initFunction2([]()
 		context.SetResult(success);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SCHEDULE_RESOURCE_TICK", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
+
+		gscomms_execute_callback_on_main_thread([resource]()
+		{
+			resource->Tick();
+		}, true);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_RESOURCE_ASSET", [](fx::ScriptContext& context)
 	{
 		auto resourceManager = fx::ResourceManager::GetCurrent();

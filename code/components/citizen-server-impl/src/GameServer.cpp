@@ -578,9 +578,9 @@ namespace fx
 		m_deferCallbacks.insert({ cbIdx.fetch_add(1), { m_serverTime + inMsec, fn } });
 	}
 
-	void GameServer::CallbackListBase::Add(const std::function<void()>& fn)
+	void GameServer::CallbackListBase::Add(const std::function<void()>& fn, bool force)
 	{
-		if (threadId == std::this_thread::get_id())
+		if (threadId == std::this_thread::get_id() && !force)
 		{
 			fn();
 			return;
@@ -1219,9 +1219,9 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithProcessTick.h>
 #include <decorators/WithPacketHandler.h>
 
-void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn)
+void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
-	g_gameServer->InternalAddMainThreadCb(fn);
+	g_gameServer->InternalAddMainThreadCb(fn, force);
 }
 
 void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn)

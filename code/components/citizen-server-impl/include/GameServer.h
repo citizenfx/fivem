@@ -93,7 +93,7 @@ namespace fx
 				threadId = std::this_thread::get_id();
 			}
 
-			void Add(const std::function<void()>& fn);
+			void Add(const std::function<void()>& fn, bool force = false);
 
 			void Run();
 
@@ -138,9 +138,9 @@ namespace fx
 			std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> m_async;
 		};
 
-		inline void InternalAddMainThreadCb(const std::function<void()>& fn)
+		inline void InternalAddMainThreadCb(const std::function<void()>& fn, bool force = false)
 		{
-			m_mainThreadCallbacks->Add(fn);
+			m_mainThreadCallbacks->Add(fn, force);
 		}
 
 		inline void InternalAddNetThreadCb(const std::function<void()>& fn)
