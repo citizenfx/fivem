@@ -1020,13 +1020,12 @@ struct CPedHealthDataNode
 
 		if (unk8) // unk9 != 0
 		{
-			auto unk9 = state.buffer.ReadBit();
+			auto unk9 = state.buffer.Read<short>(13);
 		}
 
 		int causeOfDeath = state.buffer.Read<int>(32);
-		// state.entity->data["causeOfDeath"] = causeOfDeath;
+		state.entity->data["causeOfDeath"] = causeOfDeath;
 
-		int unk11 = state.buffer.Read<int>(32);
 		int injuredStatus = state.buffer.Read<int>(2); // Change below 150 HP, injured data?
 
 		auto unk13 = state.buffer.ReadBit();
