@@ -505,7 +505,7 @@ struct CVehicleGameStateDataNode
 
 			bool unk25 = state.buffer.ReadBit();
 			bool unk26 = state.buffer.ReadBit();
-			bool unk27 = state.buffer.ReadBit();
+			bool noLongerNeeded = state.buffer.ReadBit();
 			bool unk28 = state.buffer.ReadBit();
 			bool unk29 = state.buffer.ReadBit();
 			bool unk30 = state.buffer.ReadBit();
