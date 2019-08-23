@@ -24,36 +24,41 @@ namespace FxWebAdmin
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var resCount = GetResources().Count(a => GetResourceState(a) == "started");
-
-            var data = new IndexData();
-            data.Add("Players", $"{GetNumPlayerIndices()}/{GetConvarInt("sv_maxClients", 0)}");
-            data.Add("Resources", $"{resCount} running, {GetNumResources()} loaded");
-
-            data.ResourceCount = resCount;
-
-            var numPlayers = GetNumPlayerIndices();
-            var totalPing = 0;
-            var totalPingCount = 0;
-
-            for (int i = 0; i < numPlayers; i++)
+            var viewData = await HttpServer.QueueTick(() =>
             {
-                var index = GetPlayerFromIndex(i);
-                var ping = GetPlayerPing(index);
+                var resCount = GetResources().Count(a => GetResourceState(a) == "started");
 
-                if (ping > 0)
+                var data = new IndexData();
+                data.Add("Players", $"{GetNumPlayerIndices()}/{GetConvarInt("sv_maxClients", 0)}");
+                data.Add("Resources", $"{resCount} running, {GetNumResources()} loaded");
+
+                data.ResourceCount = resCount;
+
+                var numPlayers = GetNumPlayerIndices();
+                var totalPing = 0;
+                var totalPingCount = 0;
+
+                for (int i = 0; i < numPlayers; i++)
                 {
-                    totalPing += ping;
-                    totalPingCount++;
+                    var index = GetPlayerFromIndex(i);
+                    var ping = GetPlayerPing(index);
+
+                    if (ping > 0)
+                    {
+                        totalPing += ping;
+                        totalPingCount++;
+                    }
                 }
-            }
 
-            if (totalPingCount > 0)
-            {
-                data.AverageLatency = (int)((double)totalPing / totalPingCount);
-            }
+                if (totalPingCount > 0)
+                {
+                    data.AverageLatency = (int)((double)totalPing / totalPingCount);
+                }
 
-            return View(data);
+                return data;
+            });
+
+            return View(viewData);
         }
 
         [Authorize(Roles = "webadmin.hi")]
