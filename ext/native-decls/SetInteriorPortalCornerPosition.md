@@ -5,7 +5,7 @@ apiset: client
 ## SET_INTERIOR_PORTAL_CORNER_POSITION
 
 ```c
-void SET_INTERIOR_PORTAL_CORNER_POSITION(int interiorId, int portalIndex, int cornerIndex float posX, float posY, float posZ);
+void SET_INTERIOR_PORTAL_CORNER_POSITION(int interiorId, int portalIndex, int cornerIndex, float posX, float posY, float posZ);
 ```
 
 ## Examples
