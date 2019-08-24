@@ -27,5 +27,26 @@ namespace CitizenFX.Core
 
 			return null;
 		}
+		/// <summary>
+		/// Gets or sets how much Armor this <see cref="Ped"/> is wearing.
+		/// </summary>
+		public int Armor
+		{
+			get
+			{
+				return API.GetPedArmour(Handle);
+			}
+		}
+
+		/// <summary>
+		/// Returns the hash of the weapon/model/object that killed the <see cref="Ped"/>.
+		/// </summary>
+		public Hash CauseOfDeath
+		{
+			get
+			{
+				return API.GetPedCauseOfDeath(Handle);
+			}
+		}
 	}
 }

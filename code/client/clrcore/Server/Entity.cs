@@ -226,5 +226,31 @@ namespace CitizenFX.Core
 		{
 			return !(left == right);
 		}
+		/// <summary>
+		/// Gets or sets the health of this <see cref="Entity"/> as an <see cref="int"/>.
+		/// </summary>
+		/// <value>
+		/// The health from 0 - 100 as an integer.
+		/// </value>
+		public int Health
+		{
+			get
+			{
+				return API.GetEntityHealth(Handle) - 100;
+			}
+		}
+		/// <summary>
+		/// Gets or sets the maximum health of this <see cref="Entity"/> as an <see cref="int"/>.
+		/// </summary>
+		/// <value>
+		/// The maximum health from 0 - 100 as an integer.
+		/// </value>
+		public int MaxHealth
+		{
+			get
+			{
+				return API.GetEntityMaxHealth(Handle) - 100;
+			}
+		}
 	}
 }
