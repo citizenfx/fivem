@@ -550,8 +550,11 @@ static InitFunction initFunction2([]()
 
 		gscomms_execute_callback_on_main_thread([resource]()
 		{
-			resource->GetManager()->MakeCurrent();
-			resource->Tick();
+			if (resource)
+			{
+				resource->GetManager()->MakeCurrent();
+				resource->Tick();
+			}
 		}, true);
 	});
 
