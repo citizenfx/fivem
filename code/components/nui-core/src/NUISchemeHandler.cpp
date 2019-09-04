@@ -138,6 +138,10 @@ public:
 			{
 				mimeType_ = "text/css";
 			}
+			else if (ext == "svg")
+			{
+				mimeType_ = "image/svg+xml";
+			}
 
 			callback->Continue();
 		};

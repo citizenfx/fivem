@@ -1,5 +1,3 @@
-import { Language } from 'angular-l10n';
-
 const languages = [
     {
         name: 'en',

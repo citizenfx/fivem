@@ -9,13 +9,19 @@
       "projectType": "application",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-builders/custom-webpack:browser",
           "options": {
+            "customWebpackConfig": {
+              "path": "./webpack-overrides.config.js",
+              "replaceDuplicatePlugins": true,
+              "mergeStrategies": { "module.rules": "prepend" }
+            },
             "outputPath": "dist",
             "index": "src/index.html",
             "main": "src/main.ts",
             "tsConfig": "src/tsconfig.app.json",
             "polyfills": "src/polyfills.ts",
+            "outputHashing": "all",
             "stylePreprocessorOptions": {
               "includePaths": [
                 "src/styles"
@@ -108,7 +114,7 @@
           }
         },
         "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
+          "builder": "@angular-builders/custom-webpack:dev-server",
           "options": {
             "browserTarget": "cfx-ui:build"
           },

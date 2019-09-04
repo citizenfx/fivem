@@ -6,7 +6,7 @@
 
 .tags {
     overflow-y: scroll;
-    height: 100%;
+    height: 50%;
     will-change: transform;
 
     h4 {
@@ -29,6 +29,14 @@
         @include theme using ($theme) {
             background-color: rgba(gtv($theme, bgColour), .5);
         };
+    }
+
+    span {
+        vertical-align: middle;
+
+        &.flag-icon {
+            margin-right: 0.5vh;
+        }
     }
 
     .tag {

@@ -24,6 +24,7 @@ export class ServerFilters {
 
 export class ServerTags {
     public tagList: {[key: string]: boolean};
+    public localeList: {[key: string]: boolean};
 }
 
 export class ServerFilterContainer {

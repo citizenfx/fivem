@@ -36,6 +36,9 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
+#include <VFSManager.h>
+#include <VFSZipFile.h>
+
 void FinalizeInitNUI();
 
 struct GameRenderData
@@ -311,4 +314,19 @@ void FinalizeInitNUI()
 			g_shouldCreateRootWindow = false;
 		}
 	});
+
+	rage::fiDevice::OnInitialMount.Connect([]()
+	{
+		auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
+
+		for (auto zip : zips)
+		{
+			fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
+
+			if (file->OpenArchive(zip))
+			{
+				vfs::Mount(file, "citizen:/ui/");
+			}
+		}
+	}, 100);
 }

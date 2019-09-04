@@ -55,7 +55,7 @@ export class ServersContainerComponent implements OnInit {
     }
 
     setTags(tags: ServerTags) {
-        this.filters = {...this.filters, tags: { tagList: { ...tags.tagList } }};
+        this.filters = {...this.filters, tags: { tagList: { ...tags.tagList }, localeList: { ...tags.localeList } }};
 
         this.cdr.markForCheck();
     }

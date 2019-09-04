@@ -269,6 +269,33 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
             return false;
         };
 
+        const hiddenByLocales = (server: Server) => {
+            const localeListEntries = (filterList.tags) ? Object.entries(filterList.tags.localeList) : [];
+
+            let matchesLocales = true;
+
+            if (localeListEntries.length > 0) {
+                const sl = (server && server.data && server.data.vars && server.data.vars.locale
+                    && (Intl as any).getCanonicalLocales(server.data.vars.locale)[0]);
+
+                matchesLocales = false;
+
+                for (const [ locale, active ] of localeListEntries) {
+                    if (active) {
+                        if (sl === locale) {
+                            matchesLocales = true;
+                        }
+                    } else {
+                        if (sl === locale) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return !matchesLocales;
+        };
+
         return (server) => {
             if (!nameMatchCallback(server)) {
                 return false;
@@ -290,6 +317,12 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
             if (filterList.tags.tagList) {
                 if (hiddenByTags(server)) {
+                    return false;
+                }
+            }
+
+            if (filterList.tags.localeList) {
+                if (hiddenByLocales(server)) {
                     return false;
                 }
             }

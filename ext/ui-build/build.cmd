@@ -29,7 +29,7 @@ call npm i
 call node_modules\.bin\webpack.cmd --config=worker.config.js
 
 :: ng build
-call node_modules\.bin\ng.cmd build --prod --output-hashing none
+call node_modules\.bin\ng.cmd build --prod
 
 :: delete old app
 rmdir /s /q %UIRoot%\app\
@@ -51,5 +51,15 @@ if exist %CacheRoot% (
 
 :: pop directory
 popd
+
+mkdir %~dp0\data_big\app
+move /y %UIRoot%\app\*.jpg %~dp0\data_big\app\
+
+del %~dp0\data.zip
+%~dp0\..\..\code\tools\ci\7z a -mx=0 %~dp0\data.zip %UIRoot%\*
+
+del %~dp0\data_big.zip
+
+%~dp0\..\..\code\tools\ci\7z a -mx=0 %~dp0\data_big.zip %~dp0\data_big\*
 
 exit /B 0

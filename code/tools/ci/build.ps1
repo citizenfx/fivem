@@ -365,8 +365,8 @@ if (!$DontBuild -and !$IsServer) {
     }
 
     if ($?) {
-        New-Item -ItemType Directory -Force $CacheDir\fivereborn\citizen\ui\ | Out-Null
-        Copy-Item -Force -Recurse $WorkDir\ext\ui-build\data\* $CacheDir\fivereborn\citizen\ui\
+        Copy-Item -Force $WorkDir\ext\ui-build\data.zip $CacheDir\fivereborn\citizen\ui.zip
+        Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $CacheDir\fivereborn\citizen\ui-big.zip
     }
 
     Pop-Location
