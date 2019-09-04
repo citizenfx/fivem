@@ -31,13 +31,17 @@ const languages = [
         name: 'pt',
         displayName: 'Português'
     },
+	{
+		name: 'ar',
+		displayName: 'العربية'
+	},
 ];
 
 export class Languages {
     static toList() {
         return languages.map(({name}) => ({
             code: name,
-            dir: 'ltr'
+            dir: name == 'ar' || name == 'fa' ? 'rtl' : 'ltr'
         }));
     }
 
