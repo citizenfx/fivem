@@ -133,6 +133,7 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
                     return acc;
                  }, {})
             )
+            .filter(([name, count]) => name.indexOf('-') > 0 && name.indexOf('root') !== 0)
             .map(([name, count]) => {
                 const parts = name.split('-');
                 const t = parts[parts.length - 1];
