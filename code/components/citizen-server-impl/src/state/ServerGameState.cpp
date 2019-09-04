@@ -48,6 +48,7 @@ std::shared_ptr<ConVar<bool>> g_oneSyncVehicleCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncForceMigration;
 std::shared_ptr<ConVar<bool>> g_oneSyncRadiusFrequency;
 std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
+std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 
 static tbb::concurrent_queue<std::string> g_logQueue;
 
@@ -1977,6 +1978,19 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 		{
 			auto objectId = msgBuf.Read<uint16_t>(13);
 
+			// if there's already an existing entity, unack creation here as well (so we know the client
+			// currently has *not* created the entity)
+			if (g_oneSyncWorkaround763185->GetValue())
+			{
+				auto entity = GetEntity(0, objectId);
+
+				if (entity && entity->syncTree)
+				{
+					entity->ackedCreation.reset(client->GetSlotId());
+					entity->didDeletion.set(client->GetSlotId());
+				}
+			}
+
 			auto [clientData, lock] = GetClientData(this, client);
 			clientData->pendingRemovals.reset(objectId);
 
@@ -2302,6 +2316,7 @@ static InitFunction initFunction([]()
 		g_oneSyncForceMigration = instance->AddVariable<bool>("onesync_forceMigration", ConVar_None, false);
 		g_oneSyncRadiusFrequency = instance->AddVariable<bool>("onesync_radiusFrequency", ConVar_None, true);
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
+		g_oneSyncWorkaround763185 = instance->AddVariable<bool>("onesync_workaround763185", ConVar_None, false);
 
 		instance->SetComponent(new fx::ServerGameState);
 
