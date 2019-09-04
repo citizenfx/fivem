@@ -550,7 +550,7 @@ static InitFunction initFunction2([]()
 
 		gscomms_execute_callback_on_main_thread([resource]()
 		{
-			if (resource)
+			if (resource.GetRef())
 			{
 				resource->GetManager()->MakeCurrent();
 				resource->Tick();
