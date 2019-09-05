@@ -125,9 +125,23 @@ static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
 		};
 
 		EGLConfig configs;
-		EGLint numConfigs;
+		EGLint numConfigs = 0;
 
-		_eglGetConfigs(m_display, &configs, 1, &numConfigs);
+		EGLint config_attributes[] =
+		{
+			EGL_RED_SIZE,			8,
+			EGL_GREEN_SIZE,			8,
+			EGL_BLUE_SIZE,			8,
+			EGL_ALPHA_SIZE,			8,
+			EGL_NONE,				EGL_NONE,
+		};
+
+		_eglChooseConfig(m_display, config_attributes, &configs, 1, &numConfigs);
+
+		if (numConfigs == 0)
+		{
+			_eglGetConfigs(m_display, &configs, 1, &numConfigs);
+		}
 
 		EGLSurface pbuffer = _eglCreatePbufferFromClientBuffer(
 			m_display,

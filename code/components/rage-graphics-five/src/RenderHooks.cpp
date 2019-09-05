@@ -538,7 +538,7 @@ void CaptureBufferOutput()
 		D3D11_TEXTURE2D_DESC texDesc = { 0 };
 		texDesc.Width = resDesc.Width;
 		texDesc.Height = resDesc.Height;
-		texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 		texDesc.MipLevels = 1;
 		texDesc.ArraySize = 1;
 		texDesc.SampleDesc.Count = 1;
