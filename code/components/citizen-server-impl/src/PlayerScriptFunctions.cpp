@@ -13,7 +13,17 @@
 
 #include <MakeClientFunction.h>
 
+static void CreatePlayerCommands();
+
 static InitFunction initFunction([]()
+{
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase*)
+	{
+		CreatePlayerCommands();
+	});
+});
+
+static void CreatePlayerCommands()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_NAME", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
@@ -187,4 +197,4 @@ static InitFunction initFunction([]()
 			return 0;
 		}
 	}));
-});
+}
