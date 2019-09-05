@@ -9,6 +9,8 @@ import { LocalStorage } from '../../local-storage';
 
 import { isPlatformBrowser } from '@angular/common';
 
+import { getCanonicalLocale } from './utils';
+
 import 'rxjs/add/operator/throttleTime';
 
 @Component({
@@ -276,7 +278,7 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
             if (localeListEntries.length > 0) {
                 const sl = (server && server.data && server.data.vars && server.data.vars.locale
-                    && (Intl as any).getCanonicalLocales(server.data.vars.locale)[0]);
+                    && getCanonicalLocale(server.data.vars.locale));
 
                 matchesLocales = false;
 

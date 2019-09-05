@@ -7,6 +7,7 @@ import cldrLanguages from 'cldr-data/main/en/languages.json';
 import cldrTerritories from 'cldr-data/main/en/territories.json';
 import cldrSubTags from 'cldr-data/supplemental/likelySubtags.json';
 import * as cldrjs from 'cldrjs';
+import { getCanonicalLocale } from './utils';
 
 class ServerTag {
     public name: string;
@@ -192,7 +193,7 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
 
     private addLocaleIndex(server: Server) {
         if (server && server.data && server.data.vars && server.data.vars.locale) {
-            this.serverLocale[server.address] = (Intl as any).getCanonicalLocales(server.data.vars.locale)[0];
+            this.serverLocale[server.address] = getCanonicalLocale(server.data.vars.locale);
         }
     }
 
