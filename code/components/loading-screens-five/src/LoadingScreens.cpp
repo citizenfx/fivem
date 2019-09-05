@@ -670,8 +670,11 @@ static InitFunction initFunction([] ()
 
 			InvokeNUIScript("onLogLine", doc);
 
-			// 1604
-			((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
+			if (autoShutdownNui)
+			{
+				// 1604
+				((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
+			}
 		};
 
 		if (newState == HS_FATAL)
