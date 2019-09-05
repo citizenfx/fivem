@@ -3,6 +3,8 @@
 
 #include <ICoreGameInit.h>
 
+#include <Hooking.h>
+
 #include <Resource.h>
 
 #include <gameSkeleton.h>
@@ -16,6 +18,7 @@
 #include <ResourceMetaDataComponent.h>
 
 #include <ScriptEngine.h>
+#include <ScriptHandlerMgr.h>
 
 #include <GameInit.h>
 
@@ -78,12 +81,40 @@ extern fwEvent<int, void*, void*> OnInstrumentedFunctionCall;
 
 #include <scrEngine.h>
 
+class LoadsThread : public GtaThread
+{
+public:
+	virtual void DoRun() override;
+
+	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
+	{
+		doSetup = false;
+		doShutdown = false;
+		isShutdown = false;
+		sh = false;
+
+		return GtaThread::Reset(scriptHash, pArgs, argCount);
+	}
+
+public:
+	bool doShutdown;
+	bool doSetup;
+	bool isShutdown;
+	bool sh;
+
+	int cam;
+};
+
+static LoadsThread loadsThread;
+
+static bool autoShutdownNui = true;
+static fx::TNativeHandler g_origShutdown;
+
 static HookFunction hookFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		static bool endedLoadingScreens = false;
-		static bool autoShutdownNui = true;
 
 		auto endLoadingScreens = [=]()
 		{
@@ -106,19 +137,27 @@ static HookFunction hookFunction([]()
 				FatalError("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!");
 			}
 
+			g_origShutdown = *handler;
+
 			fx::ScriptEngine::RegisterNativeHandler("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI", [](fx::ScriptContext& ctx)
 			{
 				autoShutdownNui = !ctx.GetArgument<bool>(0);
+
+				trace("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI is not supported at this time. Use `loadscreen_manual_shutdown 'yes'` in your fxmanifest.lua instead.\n");
 			});
 
 			fx::ScriptEngine::RegisterNativeHandler("SHUTDOWN_LOADING_SCREEN_NUI", [=](fx::ScriptContext& ctx)
 			{
+				loadsThread.doSetup = true;
+
 				endLoadingScreens();
 			});
 
 			fx::ScriptEngine::RegisterNativeHandler(0x078EBE9809CCD637, [=](fx::ScriptContext& ctx)
 			{
 				(*handler)(ctx);
+
+				loadsThread.doSetup = true;
 
 				if (autoShutdownNui)
 				{
@@ -167,6 +206,81 @@ static HookFunction hookFunction([]()
 				(*handler)(ctx);
 			});
 		}
+
+		{
+			static uint64_t fakeFadeOutTime;
+			static int fakeFadeOutLength;
+
+			// override DO_SCREEN_FADE_OUT
+			auto handler = fx::ScriptEngine::GetNativeHandler(0x891B5B39AC6302AF);
+
+			fx::ScriptEngine::RegisterNativeHandler(0x891B5B39AC6302AF, [=](fx::ScriptContext& ctx)
+			{
+				// reset so a spawnmanager-style wait for collision will be fine
+				if (loadsThread.isShutdown)
+				{
+					// CLEAR_FOCUS
+					NativeInvoke::Invoke<0x31B73D1EA9F01DA2, int>();
+				}
+
+				// IS_SCREEN_FADED_OUT
+				if (NativeInvoke::Invoke<0xB16FCE9DDC7BA182, bool>())
+				{
+					fakeFadeOutTime = GetTickCount64();
+					fakeFadeOutLength = ctx.GetArgument<int>(0);
+					return;
+				}
+
+				(*handler)(ctx);
+			});
+
+			// override IS_SCREEN_FADING_OUT
+			auto handlerIs = fx::ScriptEngine::GetNativeHandler(0x797AC7CB535BA28F);
+
+			fx::ScriptEngine::RegisterNativeHandler(0x797AC7CB535BA28F, [=](fx::ScriptContext& ctx)
+			{
+				(*handlerIs)(ctx);
+
+				if ((GetTickCount64() - fakeFadeOutTime) < fakeFadeOutLength)
+				{
+					ctx.SetResult(1);
+				}
+			});
+		}
+
+		{
+			static uint64_t fakeFadeOutTime;
+			static int fakeFadeOutLength;
+
+			// override DO_SCREEN_FADE_IN
+			auto handler = fx::ScriptEngine::GetNativeHandler(0xD4E8E24955024033);
+
+			fx::ScriptEngine::RegisterNativeHandler(0xD4E8E24955024033, [=](fx::ScriptContext& ctx)
+			{
+				// IS_SCREEN_FADED_IN
+				if (NativeInvoke::Invoke<0x5A859503B0C08678, bool>())
+				{
+					fakeFadeOutTime = GetTickCount64();
+					fakeFadeOutLength = ctx.GetArgument<int>(0);
+					return;
+				}
+
+				(*handler)(ctx);
+			});
+
+			// override IS_SCREEN_FADING_IN
+			auto handlerIs = fx::ScriptEngine::GetNativeHandler(0x5C544BC6C57AC575);
+
+			fx::ScriptEngine::RegisterNativeHandler(0x5C544BC6C57AC575, [=](fx::ScriptContext& ctx)
+			{
+				(*handlerIs)(ctx);
+
+				if ((GetTickCount64() - fakeFadeOutTime) < fakeFadeOutLength)
+				{
+					ctx.SetResult(1);
+				}
+			});
+		}
 	});
 });
 
@@ -195,10 +309,111 @@ static void UpdateLoadTiming(uint64_t loadTimingIdentity)
 	}
 }
 
+void LoadsThread::DoRun()
+{
+	if (!autoShutdownNui)
+	{
+		return;
+	}
+
+	if (!sh)
+	{
+		CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
+
+		sh = true;
+	}
+
+	if (doShutdown)
+	{
+		// CREATE_CAM
+		cam = NativeInvoke::Invoke<0xC3981DCE61D9E13F, int>("DEFAULT_SCRIPTED_CAMERA", true);
+
+		// SET_CAM_COORD
+		NativeInvoke::Invoke<0x4D41783FB745E42E, int>(cam, -2153.641f, 4597.957f, 116.662f);
+
+		// SET_CAM_ROT
+		NativeInvoke::Invoke<0x85973643155D0B07, int>(cam, -8.601f, 0.0f, 253.026f, 0);
+
+		// SET_CAM_FOV
+		NativeInvoke::Invoke<0xB13C14F66A00D047, int>(cam, 45.0f);
+
+		// RENDER_SCRIPT_CAMS
+		NativeInvoke::Invoke<0x07E5B515DB0636FC, int>(true, false, 0, false, false);
+
+		// LOAD_SCENE(?)
+		NativeInvoke::Invoke<0x4448EB75B4904BDB, int>(-2153.641f, 4597.957f, 116.662f);
+
+		// SHUTDOWN_LOADING_SCREEN
+		fx::ScriptContextBuffer ctx;
+		g_origShutdown(ctx);
+
+		// DO_SCREEN_FADE_IN(0)
+		NativeInvoke::Invoke<0xD4E8E24955024033, int>(0);
+
+		// SET_WEATHER_TYPE_PERSIST
+		NativeInvoke::Invoke<0xED712CA327900C8A, int>("EXTRASUNNY");
+
+		// NETWORK_OVERRIDE_CLOCK_TIME
+		NativeInvoke::Invoke<0xE679E3E06E363892, int>(12, 30, 0);
+
+		// SET_ENTITY_COORDS so we can start streaming
+		NativeInvoke::Invoke<0x06843DA7060A026B, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), 0.0f, 0.0f, 0.0f);
+
+		// FREEZE_ENTITY_POSITION
+		NativeInvoke::Invoke<0x428CA6DBD1094446, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), true);
+
+		// focus coords (_SET_FOCUS_AREA)
+		NativeInvoke::Invoke<0xBB7454BAFF08FE25, int>(-2153.641f, 4597.957f, 116.662f, 0.0f, 0.0f, 0.0f);
+
+		// do shutdown
+		DestroyFrame();
+
+		nui::OverrideFocus(false);
+
+		isShutdown = true;
+		doShutdown = false;
+	}
+
+	if (isShutdown)
+	{
+		// HIDE_HUD_AND_RADAR_THIS_FRAME
+		NativeInvoke::Invoke<0x719FF505F097FD20, int>();
+	}
+
+	if (doSetup)
+	{
+		// RENDER_SCRIPT_CAMS
+		NativeInvoke::Invoke<0x07E5B515DB0636FC, int>(false, false, 0, false, false);
+
+		// DESTROY_CAM
+		NativeInvoke::Invoke<0x865908C81A2C22E9, int>(cam, false);
+
+		// CLEAR_FOCUS
+		NativeInvoke::Invoke<0x31B73D1EA9F01DA2, int>();
+
+		// CLEAR_WEATHER_TYPE_PERSIST
+		NativeInvoke::Invoke<0xCCC39339BEF76CF5, int>();
+
+		cam = 0;
+
+		// 1604
+		((void(*)(int))hook::get_adjusted(0x1401C3438))(1);
+
+		// done
+		isShutdown = false;
+		doSetup = false;
+	}
+}
+
 extern int dlcIdx;
 
 static InitFunction initFunction([] ()
 {
+	rage::scrEngine::OnScriptInit.Connect([]()
+	{
+		rage::scrEngine::CreateThread(&loadsThread);
+	});
+
 	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_Archive, false);
 
 	OnKillNetworkDone.Connect([] ()
@@ -253,6 +468,12 @@ static InitFunction initFunction([] ()
 				else
 				{
 					loadingScreens.push_back("nui://" + resource->GetName() + "/" + path);
+				}
+
+				auto entriesTwo = mdComponent->GetEntries("loadscreen_manual_shutdown");
+				if (entriesTwo.begin() != entriesTwo.end())
+				{
+					autoShutdownNui = false;
 				}
 			}
 		});
@@ -434,6 +655,8 @@ static InitFunction initFunction([] ()
 			{
 				DestroyFrame();
 			}
+
+			loadsThread.doShutdown = true;
 		}
 	});
 
@@ -446,6 +669,9 @@ static InitFunction initFunction([] ()
 			doc.AddMember("message", rapidjson::Value(message.c_str(), message.size(), doc.GetAllocator()), doc.GetAllocator());
 
 			InvokeNUIScript("onLogLine", doc);
+
+			// 1604
+			((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
 		};
 
 		if (newState == HS_FATAL)
@@ -467,6 +693,10 @@ static InitFunction initFunction([] ()
 		else if (newState == HS_HOSTING)
 		{
 			printLog("Initializing session");
+		}
+		else if (newState == HS_HOSTED || newState == HS_JOINED)
+		{
+			printLog("Starting game");
 		}
 	});
 
