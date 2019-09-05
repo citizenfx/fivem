@@ -819,6 +819,20 @@ private:
 
 int Lua_InvokeNative(lua_State* L)
 {
+	// get the hash
+	uint64_t hash = lua_tointeger(L, 1);
+
+#ifdef GTA_FIVE
+	// hacky super fast path for 323 GET_HASH_KEY in GTA
+	if (hash == 0xD24D37CC275948CC)
+	{
+		const char* str = luaL_checkstring(L, 2);
+		lua_pushinteger(L, static_cast<lua_Integer>(static_cast<int32_t>(HashString(str))));
+
+		return 1;
+	}
+#endif
+
 	// get required entries
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
@@ -841,9 +855,6 @@ int Lua_InvokeNative(lua_State* L)
 
 	// get argument count for the loop
 	int numArgs = lua_gettop(L);
-
-	// get the hash
-	uint64_t hash = lua_tointeger(L, 1);
 
 	context.nativeIdentifier = hash;
 
