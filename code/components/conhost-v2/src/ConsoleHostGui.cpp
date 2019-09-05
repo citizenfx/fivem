@@ -375,13 +375,49 @@ void SendPrintMessage(const std::string& message)
 		g_console = std::make_unique<FiveMConsole>();
 	}
 
-	std::stringstream ss(message);
-	std::string to;
-
-	while (std::getline(ss, to, '\n'))
+	if (g_console->Items.Size == 0)
 	{
-		g_console->AddLog("%s", to.c_str());
+		g_console->AddLog("");
 	}
+
+	static bool wasNewLine;
+	std::stringstream msgStream;
+
+	auto flushStream = [&]()
+	{
+		auto str = msgStream.str();
+
+		auto strRef = FiveMConsole::Strdup((g_console->Items[g_console->Items.size() - 1] + str).c_str());
+		std::swap(g_console->Items[g_console->Items.size() - 1], strRef);
+
+		free(strRef);
+
+		msgStream.str("");
+	};
+
+	for (auto c = 0; c < message.size(); c++)
+	{
+		char b[2] = { message[c], 0 };
+
+		if (wasNewLine)
+		{
+			g_console->AddLog("");
+			wasNewLine = false;
+		}
+
+		if (b[0] == '\n')
+		{
+			flushStream();
+
+			wasNewLine = true;
+
+			continue;
+		}
+
+		msgStream << std::string_view(b);
+	}
+
+	flushStream();
 }
 
 static InitFunction initFunction([]()
