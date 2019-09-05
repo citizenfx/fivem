@@ -79,6 +79,12 @@ static void CreatePlayerCommands()
 
 	fx::ScriptEngine::RegisterNativeHandler("DROP_PLAYER", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
 	{
+		// don't allow dropping of a player that hasn't finished connecting/configuring
+		if (client->GetNetId() > 0xFFFF)
+		{
+			return false;
+		}
+
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
 
