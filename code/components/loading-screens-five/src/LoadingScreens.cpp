@@ -141,7 +141,7 @@ static HookFunction hookFunction([]()
 
 			fx::ScriptEngine::RegisterNativeHandler("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI", [](fx::ScriptContext& ctx)
 			{
-				autoShutdownNui = !ctx.GetArgument<bool>(0);
+				//autoShutdownNui = !ctx.GetArgument<bool>(0);
 
 				trace("SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI is not supported at this time. Use `loadscreen_manual_shutdown 'yes'` in your fxmanifest.lua instead.\n");
 			});
