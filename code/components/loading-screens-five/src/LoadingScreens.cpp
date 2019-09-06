@@ -323,6 +323,19 @@ void LoadsThread::DoRun()
 		sh = true;
 	}
 
+	if (!GetScriptHandler())
+	{
+		if (doSetup)
+		{
+			// 1604
+			((void(*)(int))hook::get_adjusted(0x1401C3438))(1);
+
+			doSetup = false;
+		}
+
+		return;
+	}
+
 	if (doShutdown)
 	{
 		// CREATE_CAM
@@ -660,23 +673,23 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	OnHostStateTransition.Connect([] (HostState newState, HostState oldState)
+	auto printLog = [](const std::string& message)
 	{
-		auto printLog = [] (const std::string& message)
+		rapidjson::Document doc;
+		doc.SetObject();
+		doc.AddMember("message", rapidjson::Value(message.c_str(), message.size(), doc.GetAllocator()), doc.GetAllocator());
+
+		InvokeNUIScript("onLogLine", doc);
+
+		if (autoShutdownNui)
 		{
-			rapidjson::Document doc;
-			doc.SetObject();
-			doc.AddMember("message", rapidjson::Value(message.c_str(), message.size(), doc.GetAllocator()), doc.GetAllocator());
+			// 1604
+			((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
+		}
+	};
 
-			InvokeNUIScript("onLogLine", doc);
-
-			if (autoShutdownNui)
-			{
-				// 1604
-				((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
-			}
-		};
-
+	OnHostStateTransition.Connect([printLog] (HostState newState, HostState oldState)
+	{
 		if (newState == HS_FATAL)
 		{
 			DestroyFrame();
