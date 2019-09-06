@@ -19,7 +19,7 @@
 
 namespace fx
 {
-static tbb::concurrent_queue<std::function<void()>> g_onNetInitCbs;
+static tbb::concurrent_queue<std::tuple<std::string, std::function<void()>>> g_onNetInitCbs;
 
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
@@ -127,7 +127,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				auto ignoreFlag = std::make_shared<bool>(false);
 				auto ignoreFlagWeak = std::weak_ptr{ ignoreFlag };
 
-				g_onNetInitCbs.emplace([loadScripts, ignoreFlag]()
+				g_onNetInitCbs.emplace("Starting " + m_resource->GetName(), [loadScripts, ignoreFlag]()
 				{
 					if (*ignoreFlag)
 					{
@@ -295,6 +295,8 @@ static InitFunction initFunction([]()
 });
 
 #ifndef IS_FXSERVER
+DLL_EXPORT fwEvent<const std::string&> OnScriptInitStatus;
+
 bool DLL_EXPORT UpdateScriptInitialization()
 {
 	using namespace std::chrono_literals;
@@ -303,11 +305,13 @@ bool DLL_EXPORT UpdateScriptInitialization()
 	{
 		std::chrono::high_resolution_clock::duration startTime = std::chrono::high_resolution_clock::now().time_since_epoch();
 
-		std::function<void()> initCallback;
+		std::tuple<std::string, std::function<void()>> initCallback;
 
 		while (fx::g_onNetInitCbs.try_pop(initCallback))
 		{
-			initCallback();
+			OnScriptInitStatus(std::get<0>(initCallback));
+
+			std::get<1>(initCallback)();
 
 			// break and yield after 2 seconds of script initialization so the game gets a chance to breathe
 			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 5ms)
@@ -317,6 +321,11 @@ bool DLL_EXPORT UpdateScriptInitialization()
 				break;
 			}
 		}
+	}
+
+	if (fx::g_onNetInitCbs.empty())
+	{
+		OnScriptInitStatus("Awaiting scripts");
 	}
 
 	return fx::g_onNetInitCbs.empty();

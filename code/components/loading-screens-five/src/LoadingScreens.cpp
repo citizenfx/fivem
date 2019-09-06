@@ -419,6 +419,7 @@ void LoadsThread::DoRun()
 }
 
 extern int dlcIdx;
+DLL_IMPORT fwEvent<const std::string&> OnScriptInitStatus;
 
 static InitFunction initFunction([] ()
 {
@@ -714,6 +715,11 @@ static InitFunction initFunction([] ()
 		{
 			printLog("Starting game");
 		}
+	});
+
+	OnScriptInitStatus.Connect([printLog](const std::string& text)
+	{
+		printLog(text);
 	});
 
 	OnInstrumentedFunctionCall.Connect([] (int idx, void* origin, void* target)
