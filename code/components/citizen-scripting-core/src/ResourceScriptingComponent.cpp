@@ -301,6 +301,8 @@ bool DLL_EXPORT UpdateScriptInitialization()
 {
 	using namespace std::chrono_literals;
 
+	static bool wasExecuting;
+
 	if (!fx::g_onNetInitCbs.empty())
 	{
 		std::chrono::high_resolution_clock::duration startTime = std::chrono::high_resolution_clock::now().time_since_epoch();
@@ -313,6 +315,8 @@ bool DLL_EXPORT UpdateScriptInitialization()
 
 			std::get<1>(initCallback)();
 
+			wasExecuting = true;
+
 			// break and yield after 2 seconds of script initialization so the game gets a chance to breathe
 			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 5ms)
 			{
@@ -323,9 +327,11 @@ bool DLL_EXPORT UpdateScriptInitialization()
 		}
 	}
 
-	if (fx::g_onNetInitCbs.empty())
+	if (fx::g_onNetInitCbs.empty() && wasExecuting)
 	{
 		OnScriptInitStatus("Awaiting scripts");
+
+		wasExecuting = false;
 	}
 
 	return fx::g_onNetInitCbs.empty();
