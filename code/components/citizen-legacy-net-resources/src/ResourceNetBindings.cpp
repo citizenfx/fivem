@@ -33,6 +33,8 @@
 
 #include <ResourceGameLifetimeEvents.h>
 
+#include <tbb/concurrent_queue.h>
+
 #include <pplawait.h>
 #include <experimental/resumable>
 
@@ -121,8 +123,7 @@ static InitFunction initFunction([] ()
 {
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
 	{
-		static std::recursive_mutex executeNextGameFrameMutex;
-		static std::vector<std::function<void()>> executeNextGameFrame;
+		static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 
 		auto urlEncodeWrap = [](const std::string& base, const std::string& str)
 		{
@@ -404,7 +405,7 @@ static InitFunction initFunction([] ()
 								GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
 							}
 
-							executeNextGameFrame.push_back([]
+							executeNextGameFrame.push([]
 							{
 								fx::OnUnlockStreaming();
 							});
@@ -421,8 +422,7 @@ static InitFunction initFunction([] ()
 						{
 							std::string resourceName = resource->GetName();
 
-							std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
-							executeNextGameFrame.push_back([=]()
+							executeNextGameFrame.push([=]()
 							{
 								if (!resource->Start())
 								{
@@ -434,14 +434,13 @@ static InitFunction initFunction([] ()
 
 					// mark DownloadsComplete on the next frame so all resources will have started
 					{
-						std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
-						executeNextGameFrame.push_back([=]()
+						executeNextGameFrame.push([=]()
 						{
 							netLibrary->DownloadsComplete();
 						});
 					}
 
-					executeNextGameFrame.push_back([]
+					executeNextGameFrame.push([]
 					{
 						fx::OnUnlockStreaming();
 					});
@@ -465,8 +464,10 @@ static InitFunction initFunction([] ()
 				{
 					g_resourceStartRequestSet.erase(resource);
 
-					std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
-					executeNextGameFrame.push_back(**updateResource);
+					if (**updateResource)
+					{
+						executeNextGameFrame.push(**updateResource);
+					}
 				});
 			}
 		});
@@ -486,9 +487,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([](const char* error)
 		{
-			std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
-
-			executeNextGameFrame.push_back([]()
+			executeNextGameFrame.push([]()
 			{
 				fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 				resourceManager->ResetResources();
@@ -497,14 +496,15 @@ static InitFunction initFunction([] ()
 
 		OnGameFrame.Connect([] ()
 		{
-			std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
+			std::function<void()> func;
 
-			for (auto& func : executeNextGameFrame)
+			while (executeNextGameFrame.try_pop(func))
 			{
-				func();
+				if (func)
+				{
+					func();
+				}
 			}
-
-			executeNextGameFrame.clear();
 		});
 
 		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
@@ -589,8 +589,7 @@ static InitFunction initFunction([] ()
 				g_resourceUpdateQueue.push(resourceName);
 
 				{
-					std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
-					executeNextGameFrame.push_back(**updateResource);
+					executeNextGameFrame.push(**updateResource);
 				}
 			}
 		});
@@ -616,9 +615,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
 		{
-			std::unique_lock<std::recursive_mutex> lock(executeNextGameFrameMutex);
-
-			executeNextGameFrame.push_back([]()
+			executeNextGameFrame.push([]()
 			{
 				Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
 				{

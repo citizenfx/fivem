@@ -8,6 +8,8 @@
 #include <StdInc.h>
 #include <ResourceManagerImpl.h>
 
+#include <ResourceMetaDataComponent.h>
+
 #include <skyr/url.hpp>
 
 #include <ETWProviders/etwprof.h>
@@ -63,6 +65,15 @@ pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std:
 		// set a completion event, as well
 		mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
 		{
+			// handle provides
+			auto md = resource->GetComponent<ResourceMetaDataComponent>();
+
+			for (const auto& entry : md->GetEntries("provide"))
+			{
+				std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+				m_resourceProvides.emplace(entry.second, resource);
+			}
+
 			completionEvent.set(resource);
 		});
 
@@ -83,11 +94,29 @@ void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)
 
 fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& identifier)
 {
+	fwRefContainer<Resource> resource;
 	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
 	auto it = m_resources.find(identifier);
+	resource = (it == m_resources.end()) ? nullptr : it->second;
 
-	return (it == m_resources.end()) ? nullptr : it->second;
+	// if non-existent, or stopped
+	if (!resource.GetRef() || resource->GetState() == ResourceState::Stopped)
+	{
+		auto provides = m_resourceProvides.equal_range(identifier);
+
+		for (auto it = provides.first; it != provides.second; it++)
+		{
+			// if the provides is started (and the identifier is stopped), or if the identifier does not exist
+			if (it->second->GetState() == ResourceState::Started || !resource.GetRef())
+			{
+				resource = it->second;
+				break;
+			}
+		}
+	}
+
+	return resource;
 }
 
 void ResourceManagerImpl::ForAllResources(const std::function<void(const fwRefContainer<Resource>&)>& function)
@@ -145,6 +174,7 @@ void ResourceManagerImpl::ResetResources()
 		}
 	});
 
+	m_resourceProvides.clear();
 	m_resources.clear();
 
 	m_resources["_cfx_internal"] = cfxInternal;

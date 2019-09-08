@@ -11,6 +11,7 @@
 #include <ResourceManager.h>
 
 #include <mutex>
+#include <unordered_map>
 
 namespace fx
 {
@@ -20,6 +21,8 @@ private:
 	std::recursive_mutex m_resourcesMutex;
 
 	std::unordered_map<std::string, fwRefContainer<ResourceImpl>> m_resources;
+
+	std::unordered_multimap<std::string, fwRefContainer<Resource>> m_resourceProvides;
 
 	std::recursive_mutex m_mountersMutex;
 
