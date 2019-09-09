@@ -37,7 +37,7 @@ public:
 
 	fwEvent<> OnCreatedRuntimes;
 
-	fwEvent<const std::string&> OnOpenScript;
+	fwEvent<const std::string&, const std::string&> OnOpenScript;
 
 	inline fx::OMPtr<IScriptHost> GetScriptHost()
 	{

@@ -134,13 +134,15 @@ interface IScriptMemInfoRuntime : fxIBase
 [uuid(08E68541-A1C9-4F51-8737-3C77F8AB5B21)]
 interface IDebugEventListener : fxIBase
 {
-	
+	void OnBreakpointsDefined(in int32_t scriptId, in charPtr breakpointJson);
 };
 
 [uuid(7EB9F56A-8EBE-4BB2-B467-A6F6C099597B)]
 interface IScriptDebugRuntime : fxIBase
 {
 	void SetDebugEventListener(in IDebugEventListener listener);
+
+	void SetScriptIdentifier(in charPtr fileName, in int32_t scriptId);
 };
 
 

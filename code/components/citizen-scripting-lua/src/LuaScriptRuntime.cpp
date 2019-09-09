@@ -8,9 +8,13 @@
 #include "StdInc.h"
 #include "fxScripting.h"
 
+#include <Resource.h>
 #include <ManifestVersion.h>
 
 #include <msgpack.hpp>
+#include <json.hpp>
+
+using json = nlohmann::json;
 
 #ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
@@ -133,6 +137,8 @@ private:
 	int m_instanceId;
 
 	std::string m_nativesDir;
+
+	std::unordered_map<std::string, int> m_scriptIds;
 
 public:
 	inline LuaScriptRuntime()
@@ -1516,6 +1522,47 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 		return FX_E_INVALIDARG;
 	}
 
+	{
+		auto idIt = m_scriptIds.find(scriptFile);
+
+		if (idIt != m_scriptIds.end())
+		{
+			std::vector<int> lineNums;
+
+			int numProtos = lua_toprotos(m_state, -1);
+
+			for (int i = 0; i < numProtos; i++)
+			{
+				lua_Debug debug;
+				lua_getinfo(m_state, ">L", &debug);
+
+				lua_pushnil(m_state);
+
+				while (lua_next(m_state, -2) != 0)
+				{
+					int lineNum = lua_tointeger(m_state, -2); // 'whose indices are the numbers of the lines that are valid on the function'
+					lineNums.push_back(lineNum - 1);
+
+					lua_pop(m_state, 1);
+				}
+
+				lua_pop(m_state, 1);
+			}
+
+			if (m_debugListener.GetRef())
+			{
+				auto j = json::array();
+
+				for (auto& line : lineNums)
+				{
+					j.push_back(line);
+				}
+
+				m_debugListener->OnBreakpointsDefined(idIt->second, const_cast<char*>(j.dump().c_str()));
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -1727,6 +1774,13 @@ result_t LuaScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
 {
 	LuaPushEnvironment pushed(this);
 	*memoryUsage = (lua_gc(m_state, LUA_GCCOUNT, 0) * 1024) + lua_gc(m_state, LUA_GCCOUNTB, 0);
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::SetScriptIdentifier(char* fileName, int32_t scriptId)
+{
+	m_scriptIds[fileName] = scriptId;
 
 	return FX_S_OK;
 }

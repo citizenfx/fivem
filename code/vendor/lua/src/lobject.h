@@ -619,6 +619,12 @@ LUA_API int lua_asserttop(const lua_State* L, int count);
 LUA_API lua_Integer lua_utointeger(lua_State* L, int idx);
 LUA_API lua_Number lua_utonumber(lua_State* L, int idx);
 
+/*
+** internal dbg
+*/
+
+LUA_API int lua_toprotos(lua_State* L, int idx);
+
 
 #endif
 

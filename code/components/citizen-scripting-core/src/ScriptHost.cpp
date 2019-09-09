@@ -189,7 +189,7 @@ result_t TestScriptHost::ScriptTrace(char* string)
 
 result_t TestScriptHost::OpenSystemFile(char *fileName, fxIStream * *stream)
 {
-	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileName);
+	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileName, fileName);
 
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileName);
 
@@ -217,7 +217,7 @@ result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 		fileNameStr = resource->GetPath() + "/" + std::string(fn);
 	}
 
-	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileNameStr);
+	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileNameStr, "@" + m_resource->GetName() + "/" + fileName);
 
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileNameStr);
 	

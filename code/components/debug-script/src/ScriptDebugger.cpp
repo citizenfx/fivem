@@ -3,6 +3,7 @@
 #include <tbb/concurrent_unordered_map.h>
 
 #include <atomic>
+#include <optional>
 #include <thread>
 
 #include <ResourceManager.h>
@@ -11,7 +12,10 @@
 #include <fxScripting.h>
 #include <om/OMClass.h>
 
-#include <src/uWS.h>
+#include <CoreConsole.h>
+
+#undef trace
+#include <src/App.h>
 
 #include <json.hpp>
 
@@ -19,6 +23,31 @@
 #include <VFSManager.h>
 
 using json = nlohmann::json;
+
+struct Location
+{
+	std::string scriptId;
+	int lineNumber;
+	int columnNumber;
+};
+
+void from_json(const json& j, Location& l)
+{
+	j.at("scriptId").get_to(l.scriptId);
+	j.at("lineNumber").get_to(l.lineNumber);
+	j.at("columnNumber").get_to(l.columnNumber);
+}
+
+struct BreakLocation
+{
+	std::string scriptId;
+	int lineNumber;
+};
+
+void to_json(json& j, const BreakLocation& l)
+{
+	j = json{ {"scriptId", l.scriptId}, {"lineNumber", l.lineNumber } };
+}
 
 class ScriptDebugger
 {
@@ -37,19 +66,19 @@ private:
 
 	std::thread m_listenThread;
 
-	uWS::Hub m_socketHub;
-
 public:
 	class Connection
 	{
 	public:
-		Connection(ScriptDebugger* debugger, uWS::WebSocket<true>* socket, uWS::HttpRequest initReq)
-			: m_debugger(debugger), m_socket(socket)
+		void init(ScriptDebugger* debugger, uWS::WebSocket<false, true>* socket, uWS::HttpRequest initReq)
 		{
+			m_debugger = debugger;
+			m_socket = socket;
+
 			debugger->AttachConnection(this);
 		}
 
-		~Connection()
+		void uninit()
 		{
 			m_debugger->DetachConnection(this);
 		}
@@ -61,7 +90,7 @@ public:
 	private:
 		ScriptDebugger* m_debugger;
 
-		uWS::WebSocket<true>* m_socket;
+		uWS::WebSocket<false, true>* m_socket;
 	};
 
 public:
@@ -86,7 +115,7 @@ private:
 		m_connections.erase(conn);
 	}
 
-private:
+public:
 	struct ExecutionContext
 	{
 		int id;
@@ -94,6 +123,7 @@ private:
 		fx::OMPtr<IScriptRuntime> runtime;
 	};
 
+private:
 	std::atomic<int> m_curExecContext;
 
 	tbb::concurrent_unordered_map<int, ExecutionContext> m_execContexts;
@@ -107,7 +137,11 @@ public:
 
 	void RemoveExecutionContext(int context);
 
-private:
+	void AddBreakLocation(const BreakLocation& location);
+
+	std::vector<BreakLocation> GetBreakLocationsBetween(const Location& start, const Location& end);
+
+public:
 	struct ScriptMetaData
 	{
 		int id;
@@ -119,7 +153,10 @@ private:
 		int length;
 	};
 
+private:
 	tbb::concurrent_unordered_map<int, ScriptMetaData> m_scripts;
+
+	tbb::concurrent_unordered_map<std::string, std::set<int>> m_breakLocations;
 
 public:
 
@@ -130,7 +167,58 @@ public:
 	void SendScriptsParsed(Connection* connection);
 
 	std::string GetScriptSource(const std::string& id);
+
+	std::optional<ScriptMetaData> GetScript(const std::string& id);
+
+	std::optional<ExecutionContext> GetExecutionContext(int id);
 };
+
+auto ScriptDebugger::GetExecutionContext(int id) -> std::optional<ExecutionContext>
+{
+	auto it = m_execContexts.find(id);
+
+	if (it != m_execContexts.end())
+	{
+		return it->second;
+	}
+
+	return {};
+}
+
+auto ScriptDebugger::GetScript(const std::string& id) -> std::optional<ScriptMetaData>
+{
+	auto it = m_scripts.find(std::stoi(id));
+
+	if (it != m_scripts.end())
+	{
+		return it->second;
+	}
+
+	return {};
+}
+
+void ScriptDebugger::AddBreakLocation(const BreakLocation& location)
+{
+	m_breakLocations[location.scriptId].insert(location.lineNumber);
+}
+
+std::vector<BreakLocation> ScriptDebugger::GetBreakLocationsBetween(const Location& start, const Location& end)
+{
+	const auto& set = m_breakLocations[start.scriptId];
+	std::vector<BreakLocation> vec;
+
+	for (auto it = set.lower_bound(start.lineNumber); it != set.upper_bound(end.lineNumber); it++)
+	{
+		if (*it >= end.lineNumber)
+		{
+			continue;
+		}
+
+		vec.push_back(BreakLocation{ start.scriptId, *it });
+	}
+
+	return vec;
+}
 
 std::map<std::string, ScriptDebugger::THandler>* ScriptDebugger::ms_handlers;
 
@@ -172,8 +260,8 @@ void ScriptDebugger::Connection::HandleMessage(std::string_view data)
 			retval["result"] = data;
 		}
 
-		auto dataStr = retval.dump();
-		m_socket->send(dataStr.c_str(), dataStr.size(), uWS::OpCode::TEXT);
+		auto dataStr = retval.dump(-1, ' ', false, json::error_handler_t::ignore);
+		m_socket->send(dataStr, uWS::OpCode::TEXT);
 	};
 
 	if (handler != ms_handlers->end())
@@ -206,7 +294,7 @@ void ScriptDebugger::Connection::SendMethod(const std::string& method, const jso
 	};
 
 	auto dataStr = retval.dump();
-	m_socket->send(dataStr.c_str(), dataStr.size(), uWS::OpCode::TEXT);
+	m_socket->send(dataStr, uWS::OpCode::TEXT);
 }
 
 ScriptDebugger::ScriptDebugger(fx::ResourceManager* resman)
@@ -217,35 +305,46 @@ ScriptDebugger::ScriptDebugger(fx::ResourceManager* resman)
 
 void ScriptDebugger::RunThread()
 {
-	m_socketHub.onConnection([this](uWS::WebSocket<true>* ws, uWS::HttpRequest req)
-	{
-		ws->setUserData(new Connection(this, ws, req));
-	});
+	uWS::App::WebSocketBehavior behavior;
 
-	m_socketHub.onDisconnection([this](uWS::WebSocket<true>* ws, int code, char* message, size_t length)
+	behavior.open = [this](auto* ws, auto* req)
 	{
 		auto connection = reinterpret_cast<Connection*>(ws->getUserData());
-		delete connection;
-	});
+		connection->init(this, ws, *req);
+	};
 
-	m_socketHub.onMessage([this](uWS::WebSocket<true>* ws, char* msg, size_t len, uWS::OpCode opCode)
+	behavior.close = [this](auto* ws, int code, std::string_view message)
+	{
+		auto connection = reinterpret_cast<Connection*>(ws->getUserData());
+		connection->uninit();
+	};
+
+	behavior.message = [this](auto* ws, std::string_view msg, uWS::OpCode opCode)
 	{
 		if (opCode == uWS::OpCode::TEXT)
 		{
 			auto connection = reinterpret_cast<Connection*>(ws->getUserData());
-			connection->HandleMessage(std::string_view{ msg, len });
+			connection->HandleMessage(msg);
 		}
-	});
+	};
 
-	m_socketHub.onHttpRequest([](uWS::HttpResponse* res, uWS::HttpRequest, char*, size_t, size_t)
-	{
-		res->end("", 0);
-	});
+	uWS::App()
+		.get("/json/list", [](uWS::HttpResponse<false>* res, auto* req)
+		{
+			res->writeHeader("content-type", "application/json; charset=UTF-8");
 
-	if (m_socketHub.listen(13173))
-	{
-		m_socketHub.run();
-	}
+			res->end(json::array({
+				json{
+					{ "description", "cfx" },
+					{ "title", "cfx" },
+					{ "id", "fade" },
+					{ "url", "file://"},
+					{ "type", "page" },
+					{ "webSocketDebuggerUrl", "ws://localhost:13173/meow" }
+				}
+			}).dump());
+		})
+		.ws<Connection>("/*", std::move(behavior)).listen(13173, [](auto*) {}).run();
 }
 
 int ScriptDebugger::AddExecutionContext(fx::Resource* resource, fx::OMPtr<IScriptRuntime> rt)
@@ -308,6 +407,12 @@ int ScriptDebugger::AddScript(fx::Resource* resource, const std::string& fileNam
 
 	{
 		auto stream = vfs::OpenRead(fileName);
+
+		if (!stream.GetRef())
+		{
+			return -1;
+		}
+
 		md.length = stream->GetLength();
 
 		auto d = stream->ReadToEnd();
@@ -376,13 +481,35 @@ class DebugEventListener : public fx::OMClass<DebugEventListener, IDebugEventLis
 {
 public:
 	inline DebugEventListener(ScriptDebugger* debugger, fx::Resource* resource, IScriptDebugRuntime* scRt)
+		: m_debugger(debugger)
 	{
 
 	}
 
 public:
 	NS_DECL_IDEBUGEVENTLISTENER;
+
+private:
+	ScriptDebugger* m_debugger;
 };
+
+result_t DebugEventListener::OnBreakpointsDefined(int scriptId, char* blob)
+{
+	console::Printf("meh", "defined %d\n", scriptId);
+
+	auto breakpointLines = json::parse(blob);
+	BreakLocation location;
+
+	for (int line : breakpointLines)
+	{
+		location.scriptId = std::to_string(scriptId);
+		location.lineNumber = line;
+
+		m_debugger->AddBreakLocation(location);
+	}
+
+	return FX_S_OK;
+}
 
 void ScriptDebugger::Start()
 {
@@ -407,9 +534,27 @@ void ScriptDebugger::Start()
 				});
 			});
 
-			scripting->OnOpenScript.Connect([this, resource, scripting](const std::string& fileName)
+			scripting->OnOpenScript.Connect([this, resource, scripting](const std::string& fileName, const std::string& tempHackReferenceName)
 			{
 				int scriptId = AddScript(resource, fileName);
+
+				auto script = GetScript(fmt::sprintf("%d", scriptId));
+
+				if (script)
+				{
+					auto ec = GetExecutionContext(script->execContext);
+
+					if (ec)
+					{
+						fx::OMPtr<IScriptDebugRuntime> debugRuntime;
+
+						if (FX_SUCCEEDED(ec->runtime.As(&debugRuntime)))
+						{
+							console::Printf("ok", "%s: %d\n", const_cast<char*>(fileName.c_str()), scriptId);
+							debugRuntime->SetScriptIdentifier(const_cast<char*>(tempHackReferenceName.c_str()), scriptId);
+						}
+					}
+				}
 			});
 		}, -1000000);
 
@@ -490,4 +635,29 @@ static ScriptDebuggerHandler _debuggerGetScriptSource("Debugger.getScriptSource"
 	cb(true, json{
 		{"scriptSource", g_scriptDebugger->GetScriptSource(data.value("scriptId", "0"))}
 	});
+});
+
+static ScriptDebuggerHandler _debuggerGetPossibleBreakpoints("Debugger.getPossibleBreakpoints", [](ScriptDebugger::Connection*, json& data, const ScriptDebugger::TResultCB& cb)
+{
+	Location start = data["start"];
+	Location end = data["end"];
+
+	auto breakLocations = g_scriptDebugger->GetBreakLocationsBetween(start, end);
+
+	cb(true, json{
+		{"locations", breakLocations}
+	});
+});
+
+static ScriptDebuggerHandler _debuggerSetBreakpointsActive("Debugger.setBreakpointsActive", [](ScriptDebugger::Connection*, json& data, const ScriptDebugger::TResultCB& cb)
+{
+	cb(true, json::object());
+});
+
+static ScriptDebuggerHandler _debuggerSetBreakpointByUrl("Debugger.setBreakpointByUrl", [](ScriptDebugger::Connection*, json& data, const ScriptDebugger::TResultCB& cb)
+{
+	cb(true, json::object({
+		{ "breakpointId", "11111" },
+		{ "locations", json::array() }
+	}));
 });
