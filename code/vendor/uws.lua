@@ -1,7 +1,7 @@
 return {
 	include = function()
 		includedirs '../vendor/uws/'
-		includedirs '../vendor/uws/uSockets/src/'
+		includedirs '../vendor/uSockets/src/'
 		
 		add_dependencies 'vendor:libuv'
 		add_dependencies 'vendor:zlib'
@@ -22,7 +22,7 @@ return {
 			'**.h'
 		}
 		
-		files_project '../vendor/uws/uSockets/src/'
+		files_project '../vendor/uSockets/src/'
 		{
 			'**.c',
 			'**.h'
