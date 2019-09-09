@@ -104,6 +104,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 		}
 
+		OnCreatedRuntimes();
+
 		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
 		{
 			m_scriptHost = GetScriptHostForResource(m_resource);

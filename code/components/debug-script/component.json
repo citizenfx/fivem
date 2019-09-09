@@ -1,0 +1,13 @@
+{
+	"name": "debug:script",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"citizen:resources:core",
+		"citizen:scripting:core",
+		"vfs:core",
+		"vendor:uws",
+		"vendor:tbb"
+	],
+	"provides": []
+}

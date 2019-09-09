@@ -81,4 +81,4 @@ component 'devcon'
 component 'extra-natives-five'
 component 'discord'
 component 'citizen-mod-loader-five'
-
+component 'debug-script'

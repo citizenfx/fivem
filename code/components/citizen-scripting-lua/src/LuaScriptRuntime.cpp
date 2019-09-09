@@ -90,7 +90,7 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -111,6 +111,8 @@ private:
 	IScriptHostWithResourceData* m_resourceHost;
 
 	IScriptHostWithManifest* m_manifestHost;
+
+	OMPtr<IDebugEventListener> m_debugListener;
 
 	std::function<void()> m_tickRoutine;
 
@@ -233,6 +235,8 @@ public:
 	NS_DECL_ISCRIPTMEMINFORUNTIME;
 
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
+
+	NS_DECL_ISCRIPTDEBUGRUNTIME;
 };
 
 static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
@@ -1723,6 +1727,13 @@ result_t LuaScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
 {
 	LuaPushEnvironment pushed(this);
 	*memoryUsage = (lua_gc(m_state, LUA_GCCOUNT, 0) * 1024) + lua_gc(m_state, LUA_GCCOUNTB, 0);
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::SetDebugEventListener(IDebugEventListener* listener)
+{
+	m_debugListener = listener;
 
 	return FX_S_OK;
 }

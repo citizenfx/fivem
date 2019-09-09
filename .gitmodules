@@ -151,3 +151,6 @@
 [submodule "vendor/uvw"]
 	path = vendor/uvw
 	url = https://github.com/skypjack/uvw.git
+[submodule "vendor/uws"]
+	path = vendor/uws
+	url = https://github.com/uNetworking/uWebSockets.git
