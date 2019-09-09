@@ -10,6 +10,10 @@
 #include <thread>
 #include <chrono>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 #include "PacketDataStream.h"
 
 static __declspec(thread) MumbleClient* g_currentMumbleClient;
@@ -153,7 +157,13 @@ void MumbleClient::SetChannel(const std::string& channelName)
 
 void MumbleClient::SetAudioDistance(float distance)
 {
+	m_audioInput.SetDistance(distance);
 	m_audioOutput.SetDistance(distance);
+}
+
+void MumbleClient::SetPositionHook(const TPositionHook& hook)
+{
+	m_positionHook = hook;
 }
 
 float MumbleClient::GetInputAudioLevel()
@@ -375,12 +385,30 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 
 	if (pds.left() >= 12)
 	{
-		float pos[3];
+		std::array<float, 3> pos;
 		pds >> pos[0];
 		pds >> pos[1];
 		pds >> pos[2];
 
-		this->GetOutput().HandleClientPosition(*user, pos);
+		if (m_positionHook)
+		{
+			auto newPos = m_positionHook(ToNarrow(user->GetName()));
+
+			if (newPos)
+			{
+				pos = *newPos;
+			}
+		}
+
+		if (pds.left() >= 4)
+		{
+			float distance;
+			pds >> distance;
+
+			this->GetOutput().HandleClientDistance(*user, distance);
+		}
+
+		this->GetOutput().HandleClientPosition(*user, pos.data());
 	}
 
 	printf("\n");

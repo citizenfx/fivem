@@ -314,11 +314,13 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		auto packet = m_opusPackets.front();
 		m_opusPackets.pop();
 
-		//buffer.append(packet.size() | ((m_opusPackets.empty()) ? (1 << 7) : 0));
-		buffer << (packet.size());
+		buffer << (packet.size() | ((m_opusPackets.empty()) ? (1 << 7) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
 		m_sequence++;
+
+		// receiver also breaks after first packet, so we'll break too
+		break;
 	}
 
 	//buffer << uint64_t(1 << 13);
@@ -327,6 +329,9 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 	buffer << m_positionX;
 	buffer << m_positionY;
 	buffer << m_positionZ;
+
+	// extension: send our voice distance
+	buffer << m_voiceDistance;
 
 	m_client->SendVoice(outBuf, buffer.size());
 }
