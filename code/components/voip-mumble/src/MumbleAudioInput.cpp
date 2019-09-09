@@ -314,7 +314,7 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 		buffer << m_sequence;
 
-		buffer << (packet.size() | ((m_opusPackets.empty()) ? (1 << 7) : 0));
+		buffer << (packet.size() | ((m_opusPackets.empty()) ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
 		m_sequence++;
