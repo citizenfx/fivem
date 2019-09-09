@@ -236,38 +236,43 @@ enet_socket_send(ENetSocket socket,
 		return -1;
 	}
 
-	auto sd = socketIt->second;
+	// we assume scatter/gather is not cleanly implemented in the system,
+	// so we concatenate the datagram here
+	size_t totalSize = 0;
 
-	int sentLength = 0;
-
-	std::vector<uv_buf_t> uvBuffers(bufferCount);
-	for (size_t i = 0; i < bufferCount; i++)
+	for (size_t buf = 0; buf < bufferCount; buf++)
 	{
-		// manual memory management, ew!
-		auto memory = new char[buffers[i].dataLength];
-		memcpy(memory, buffers[i].data, buffers[i].dataLength);
-
-		uvBuffers[i].base = memory;
-		uvBuffers[i].len = buffers[i].dataLength;
-
-		sentLength += buffers[i].dataLength;
+		totalSize += buffers[buf].dataLength;
 	}
+
+	// allocate a large enough buffer
+	uv_buf_t uvBuf;
+	alloc_buffer(nullptr, totalSize, &uvBuf);
+
+	// copy memory into the buffer
+	totalSize = 0;
+
+	for (size_t buf = 0; buf < bufferCount; buf++)
+	{
+		memcpy(&uvBuf.base[totalSize], buffers[buf].data, buffers[buf].dataLength);
+		totalSize += buffers[buf].dataLength;
+	}
+
+	// start sending the buffer
+	auto sd = socketIt->second;
 
 	auto sendReq = std::make_shared<uv_udp_send_t>();
 
-	uv_udp_send(sendReq.get(), &sd->udp, uvBuffers.data(), bufferCount, (sockaddr*)&sin, UvCallbackArgs<int>::Get(sendReq.get(), [sendReq, uvBuffers](uv_udp_send_t*, int)
+	uv_udp_send(sendReq.get(), &sd->udp, &uvBuf, 1, (sockaddr*)&sin, UvCallbackArgs<int>::Get(sendReq.get(), [sendReq, uvBuf](uv_udp_send_t*, int)
 	{
 		// alias sendReq
 		debug::Alias(&sendReq);
 
-		// free buffers
-		for (auto& buffer : uvBuffers)
-		{
-			delete[] buffer.base;
-		}
+		// free buffer
+		packetAllocator.deallocate(uvBuf.base, TPacketPool::kNodeSize);
 	}));
 
-	return sentLength;
+	return totalSize;
 }
 
 extern "C" int
