@@ -826,6 +826,14 @@ int Lua_InvokeNative(lua_State* L)
 	// hacky super fast path for 323 GET_HASH_KEY in GTA
 	if (hash == 0xD24D37CC275948CC)
 	{
+		// if NULL or an integer, return 0
+		if (lua_isnil(L, 2) || lua_isnumber(L, 2))
+		{
+			lua_pushinteger(L, 0);
+
+			return 1;
+		}
+
 		const char* str = luaL_checkstring(L, 2);
 		lua_pushinteger(L, static_cast<lua_Integer>(static_cast<int32_t>(HashString(str))));
 
