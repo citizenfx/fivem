@@ -837,7 +837,7 @@ int Lua_InvokeNative(lua_State* L)
 	if (hash == 0xD24D37CC275948CC)
 	{
 		// if NULL or an integer, return 0
-		if (lua_isnil(L, 2) || lua_isnumber(L, 2))
+		if (lua_isnil(L, 2) || lua_type(L, 2) == LUA_TNUMBER)
 		{
 			lua_pushinteger(L, 0);
 
