@@ -1,34 +1,92 @@
 
 #include "StdInc.h"
 
-#include <atArray.h>
 #include <Local.h>
 #include <Hooking.h>
 #include <ScriptEngine.h>
 #include <nutsnbolts.h>
 #include "NativeWrappers.h"
 
+class CPedHeadBlendData
+{
+public:
+	void* vtable; // +0
+	DWORD unk_0; // +8
+	BYTE unk_1; // +12
+	BYTE unk_2; // +13
+	char pad_0[26]; // +14
+	float shapeMix; // +40
+	float skinMix; // +44
+	float unknownMix; // +48
+	DWORD unk_3; // +52
+	float overlayAlpha[13]; // +56
+	float overlayAlphaCopy[13]; // +108
+	float faceFeature[20]; // +160
+	uint8_t overlayColorId[13]; // +240
+	uint8_t overlayHighlightId[13]; // +253
+	uint8_t overlayColorType[13]; // +266
+	uint8_t firstShapeId; // +279
+	uint8_t secondShapeId; // +280
+	uint8_t thirdShapeId; // +281
+	uint8_t firstSkinId; // +282
+	uint8_t secondSkinId; // +283
+	uint8_t thirdSkinId; // +284
+	uint8_t overlayValue[13]; // +285
+	uint8_t palleteColorR0; // +298
+	uint8_t palleteColorR1; // +299
+	uint8_t palleteColorR2; // +300
+	uint8_t palleteColorR3; // +301
+	uint8_t palleteColorG0; // +302
+	uint8_t palleteColorG1; // +303
+	uint8_t palleteColorG2; // +304
+	uint8_t palleteColorG3; // +305
+	uint8_t palleteColorB0; // +306
+	uint8_t palleteColorB1; // +307
+	uint8_t palleteColorB2; // +308
+	uint8_t palleteColorB3; // +309
+	uint16_t eyeColour; // +310
+	uint8_t hairColour; // +312
+	uint8_t hairHighlight; // +313
+	BYTE unk_4; // +314
+	BYTE unk_5; // +315
+	BYTE unk_6; // +316
+};
+
+static uint64_t* _id_CPedHeadBlendData;
+
 static hook::cdecl_stub<uint64_t(void* entity, uint64_t list)> g_extensionList_get([]()
 {
 	return hook::get_pattern("41 83 E0 1F 8B 44 81 08 44 0F A3 C0", -31);
 });
 
+static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
+{
+	auto address = (char*)entity;
+	if (*(BYTE*)(*(uint64_t*)(address + 32) + 646) & 2)
+	{
+		auto data = (CPedHeadBlendData*)g_extensionList_get(address + 16, *_id_CPedHeadBlendData);
+		return data;
+	}
+
+	return nullptr;
+}
+
 static HookFunction initFunction([]()
 {
-	uint64_t* _id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
+	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_EYE_COLOR", [=](fx::ScriptContext& context)
 	{
 		int result = -1;
 
 		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
 		if (entity && entity->IsOfType<CPed>())
 		{
-			auto address = (char*)entity + 16;
-			auto table = g_extensionList_get(address, *_id_CPedHeadBlendData);
-			if (table)
+			CPedHeadBlendData* data = GetPedHeadBlendData(entity);
+			if (data != nullptr)
 			{
-				result = *(uint8_t*)(table + 310);
+				result = data->eyeColour;
 			}
 		}
 
@@ -42,16 +100,12 @@ static HookFunction initFunction([]()
 		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
 		int index = context.GetArgument<int>(1);
 
-		if (index < 20 && entity && entity->IsOfType<CPed>())
+		if (index >= 0 && index < 20 && entity && entity->IsOfType<CPed>())
 		{
-			auto address = (char*)entity;
-			if (*(BYTE *)(*(uint64_t *)(address + 32) + 646) & 2)
+			CPedHeadBlendData* data = GetPedHeadBlendData(entity);
+			if (data != nullptr)
 			{
-				auto table = g_extensionList_get(address + 16, *_id_CPedHeadBlendData);
-				if (table)
-				{
-					result = *(float *)(table + 4 * index + 160);
-				}
+				result = data->faceFeature[index];
 			}
 		}
 
@@ -65,22 +119,18 @@ static HookFunction initFunction([]()
 		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
 		int index = context.GetArgument<int>(1);
 
-		if (entity && entity->IsOfType<CPed>())
+		if (index >= 0 && index <= 13 && entity && entity->IsOfType<CPed>())
 		{
-			auto address = (char*)entity;
-			if (*(BYTE *)(*(uint64_t *)(address + 32) + 646) & 2)
+			CPedHeadBlendData* data = GetPedHeadBlendData(entity);
+			if (data != nullptr)
 			{
-				auto table = g_extensionList_get(address + 16, *_id_CPedHeadBlendData);
-				if (table)
-				{
-					*context.GetArgument<int*>(2) = *(uint8_t *)(table + 285 + index); // overlay value
-					*context.GetArgument<int*>(3) = *(uint8_t *)(table + 266 + index); // colour type
-					*context.GetArgument<int*>(4) = *(uint8_t *)(table + 240 + index); // main colour
-					*context.GetArgument<int*>(5) = *(uint8_t *)(table + 253 + index); // secondary colour
-					*context.GetArgument<float*>(6) = *(float *)(table + 56 + 4 * index); // overlay alpha
+				*context.GetArgument<int*>(2) = data->overlayValue[index];
+				*context.GetArgument<int*>(3) = data->overlayColorType[index];
+				*context.GetArgument<int*>(4) = data->overlayColorId[index];
+				*context.GetArgument<int*>(5) = data->overlayHighlightId[index];
+				*context.GetArgument<float*>(6) = data->overlayAlpha[index];
 
-					result = true;
-				}
+				result = true;
 			}
 		}
 
@@ -94,11 +144,10 @@ static HookFunction initFunction([]()
 		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
 		if (entity && entity->IsOfType<CPed>())
 		{
-			auto address = (char*)entity + 16;
-			auto table = g_extensionList_get(address, *_id_CPedHeadBlendData);
-			if (table)
+			CPedHeadBlendData* data = GetPedHeadBlendData(entity);
+			if (data != nullptr)
 			{
-				result = *(uint8_t*)(table + 312);
+				result = data->hairColour;
 			}
 		}
 
@@ -112,11 +161,10 @@ static HookFunction initFunction([]()
 
 		if (entity && entity->IsOfType<CPed>())
 		{
-			auto address = (char*)entity + 16;
-			auto table = g_extensionList_get(address, *_id_CPedHeadBlendData);
-			if (table)
+			CPedHeadBlendData* data = GetPedHeadBlendData(entity);
+			if (data != nullptr)
 			{
-				result = *(uint8_t*)(table + 313);
+				result = data->hairHighlight;
 			}
 		}
 
