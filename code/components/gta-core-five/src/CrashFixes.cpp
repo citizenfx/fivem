@@ -218,6 +218,39 @@ static uint32_t ReturnIfMp(void* a1, uint32_t a2)
 	return -1;
 }
 
+#include <atArray.h>
+
+struct grcVertexProgram
+{
+	void* vtbl;
+	const char* name;
+	char pad[568];
+};
+
+struct grmShaderProgram
+{
+	char pad[48];
+	atArray<grcVertexProgram> vertexPrograms;
+};
+
+struct grmShaderFx
+{
+	void* padParams;
+	grmShaderProgram* program;
+};
+
+static void(*g_origDrawModelGeometry)(grmShaderFx* shader, int a2, void* a3, int a4, bool a5);
+
+static void DrawModelGeometryHook(grmShaderFx* shader, int a2, void* a3, int a4, bool a5)
+{
+	if (shader->program && shader->program->vertexPrograms.GetSize() && shader->program->vertexPrograms[0].name && strstr(shader->program->vertexPrograms[0].name, "_batch:") != nullptr)
+	{
+		return;
+	}
+
+	g_origDrawModelGeometry(shader, a2, a3, a4, a5);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -705,6 +738,13 @@ static HookFunction hookFunction{[] ()
 		auto location = hook::get_pattern("48 89 84 DD 90 01 00 00");
 		hook::nop(location, 8);
 		hook::call_rcx(location, objectArrayStub.GetCode());
+	}
+
+	// don't allow rendering grass_batch from plain geometry draw functions
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("4D 8B F0 44 8A 44 24 50 41 8B", -0x19), DrawModelGeometryHook, (void**)&g_origDrawModelGeometry);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
