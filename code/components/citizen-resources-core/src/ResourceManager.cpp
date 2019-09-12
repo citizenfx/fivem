@@ -65,13 +65,16 @@ pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std:
 		// set a completion event, as well
 		mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
 		{
-			// handle provides
-			auto md = resource->GetComponent<ResourceMetaDataComponent>();
-
-			for (const auto& entry : md->GetEntries("provide"))
+			if (resource.GetRef())
 			{
-				std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
-				m_resourceProvides.emplace(entry.second, resource);
+				// handle provides
+				auto md = resource->GetComponent<ResourceMetaDataComponent>();
+
+				for (const auto& entry : md->GetEntries("provide"))
+				{
+					std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+					m_resourceProvides.emplace(entry.second, resource);
+				}
 			}
 
 			completionEvent.set(resource);
