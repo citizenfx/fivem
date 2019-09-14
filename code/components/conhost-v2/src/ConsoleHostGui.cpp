@@ -387,10 +387,14 @@ void SendPrintMessage(const std::string& message)
 	{
 		auto str = msgStream.str();
 
-		auto strRef = FiveMConsole::Strdup((g_console->Items[g_console->Items.size() - 1] + str).c_str());
-		std::swap(g_console->Items[g_console->Items.size() - 1], strRef);
+		{
+			std::unique_lock<std::recursive_mutex> lock(g_console->ItemsMutex);
 
-		free(strRef);
+			auto strRef = FiveMConsole::Strdup((g_console->Items[g_console->Items.size() - 1] + str).c_str());
+			std::swap(g_console->Items[g_console->Items.size() - 1], strRef);
+
+			free(strRef);
+		}
 
 		msgStream.str("");
 	};
