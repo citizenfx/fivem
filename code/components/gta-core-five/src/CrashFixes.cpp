@@ -251,6 +251,43 @@ static void DrawModelGeometryHook(grmShaderFx* shader, int a2, void* a3, int a4,
 	g_origDrawModelGeometry(shader, a2, a3, a4, a5);
 }
 
+static void(*g_origCText__UnloadSlot)(int slotId, bool a2);
+
+static void CText__UnloadSlotHook(int slotId, bool a2)
+{
+	if (slotId > 20)
+	{
+		return;
+	}
+
+	g_origCText__UnloadSlot(slotId, a2);
+}
+
+static bool(*g_origCText__IsSlotLoaded)(void* text, int slot);
+
+static bool CText__IsSlotLoadedHook(void* text, int slot)
+{
+	if (slot > 20)
+	{
+		return true;
+	}
+
+	return g_origCText__IsSlotLoaded(text, slot);
+}
+
+static void(*g_origCText__LoadSlot)(void* text, void* name, int slot, int a4);
+
+static void CText__LoadSlotHook(void* text, void* name, int slot, int a4)
+{
+	if (slot > 20)
+	{
+		trace("REQUEST_ADDITIONAL_TEXT has a slot range of 0 to 19 (inclusive). Slot %d is out of this range, so it has been ignored.\n", slot);
+		return;
+	}
+
+	return g_origCText__LoadSlot(text, name, slot, a4);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -753,5 +790,15 @@ static HookFunction hookFunction{[] ()
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B EA 48 8B F1 E8 ? ? ? ? 40 B5 01 48 8B F8", -0x2D), LoadFromStructureCharHook, (void**)&g_origLoadFromStructureChar);
 	// TODO: fiStream version?
+
+	// CText: don't allow loading additional text in slots above 19 (leads to arbitrary memory corruption)
+	MH_CreateHook(hook::get_pattern("EB 08 C7 44 24 20 01 00 00 00 45 33 C9", -0x17), CText__LoadSlotHook, (void**)&g_origCText__LoadSlot);
+
+	// hook to pretend any such slot is loaded
+	MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
+
+	// and to prevent unloading
+	MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+
 	MH_EnableHook(MH_ALL_HOOKS);
 } };
