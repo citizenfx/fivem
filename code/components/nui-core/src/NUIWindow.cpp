@@ -483,12 +483,18 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				{
 					if (texRef)
 					{
-						texRef->texture->Release();
+						if (texRef->texture)
+						{
+							texRef->texture->Release();
+						}
 
 						texRef->texture = texture;
 						texture->AddRef();
 
-						texRef->srv->Release();
+						if (texRef->srv)
+						{
+							texRef->srv->Release();
+						}
 
 						deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &texRef->srv);
 					}
