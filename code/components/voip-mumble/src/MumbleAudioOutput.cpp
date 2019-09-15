@@ -176,10 +176,12 @@ public:
 };
 
 static std::shared_ptr<ConVar<bool>> g_use3dAudio;
+static std::shared_ptr<ConVar<bool>> g_useSendingRangeOnly;
 
 void MumbleAudioOutput::Initialize()
 {
 	g_use3dAudio = std::make_shared<ConVar<bool>>("voice_use3dAudio", ConVar_None, false);
+	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
 
 	m_initialized = false;
 	m_distance = FLT_MAX;
@@ -404,6 +406,17 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				distance = client->distance;
 			}
 
+			// override with the transmitter's range if this is configured like that
+			if (g_useSendingRangeOnly->GetValue())
+			{
+				distance = 0.0f;
+
+				if (abs(client->distance) >= 0.01f)
+				{
+					distance = client->distance;
+				}
+			}
+
 			if (g_use3dAudio->GetValue() && m_x3daCalculate)
 			{
 				X3DAUDIO_EMITTER emitter = { 0 };
@@ -468,6 +481,9 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 					client->voice->SetFrequencyRatio(dsp.DopplerFactor);
 				}
 
+				// reset the volume in case we were in 2d mode
+				client->voice->SetVolume(1.0f);
+
 				client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, dsp.pMatrixCoefficients);
 
 				if (m_submixVoice)
@@ -490,6 +506,13 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				bool shouldHear = (abs(distance) < 0.01f) ? true : (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos)) < (distance * distance));
 				client->voice->SetVolume(shouldHear ? 1.0f : 0.0f);
 
+				// reset the output matrix in case we were in 3d mode
+				float monoAllSpeakers[] = {
+					1.0f, 1.0f
+				};
+
+				client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, monoAllSpeakers);
+
 				client->isAudible = shouldHear;
 			}
 		}
@@ -497,8 +520,8 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 		{
 			if (g_use3dAudio->GetValue())
 			{
-				// reset matrix
-				float matrix[2] = { 1.f, 1.f };
+				// reset matrix (to inaudible)
+				float matrix[2] = { 0.f, 0.f };
 				client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, matrix);
 
 				// disable submix voice
@@ -512,7 +535,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				// reset frequency ratio
 				client->voice->SetFrequencyRatio(1.0f);
 
-				client->isAudible = true;
+				client->isAudible = false;
 			}
 			else
 			{
