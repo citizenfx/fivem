@@ -16,6 +16,7 @@
 
 static bool g_hasFocus = false;
 bool g_hasCursor = false;
+bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
@@ -59,6 +60,20 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+	}
+
+	void KeepInput(bool keepInput)
+	{
+		if (keepInput && HasFocus())
+		{
+			InputHook::SetGameMouseFocus(true);
+		}
+		else if (!keepInput && HasFocus())
+		{
+			InputHook::SetGameMouseFocus(false);
+		}
+
+		g_keepInput = keepInput;
 	}
 
 	void ProcessInput()
@@ -178,7 +193,7 @@ static HookFunction initFunction([] ()
 {
 	InputHook::QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (HasFocus())
+		if (HasFocus() && !g_keepInput)
 		{
 			argPtr = 0;
 		}
@@ -290,8 +305,11 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, false, lastClickCount);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 			} break;
 
 			case WM_LBUTTONUP:
@@ -315,8 +333,11 @@ static HookFunction initFunction([] ()
 						lastClickCount);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				break;
 			}
 			case WM_MOUSEMOVE: {
@@ -344,8 +365,11 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendMouseMoveEvent(mouse_event, false);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				break;
 			}
 
@@ -375,8 +399,11 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendMouseMoveEvent(mouse_event, true);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 			} break;
 
 			case WM_MOUSEWHEEL: {
@@ -401,8 +428,11 @@ static HookFunction initFunction([] ()
 						!isKeyDown(VK_SHIFT) ? delta : 0);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				break;
 			}
 			}
@@ -431,11 +461,14 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendKeyEvent(keyEvent);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				return;
 			}
-			else if (msg == WM_INPUT && g_hasCursor)
+			else if (msg == WM_INPUT && g_hasCursor && !g_keepInput)
 			{
 				pass = false;
 				lresult = TRUE;
@@ -450,8 +483,11 @@ static HookFunction initFunction([] ()
 					g_imeHandler->ResetComposition();
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				return;
 			}
 			else if (msg == WM_IME_SETCONTEXT)
@@ -468,8 +504,11 @@ static HookFunction initFunction([] ()
 					g_imeHandler->MoveImeWindow();
 				}
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = false;
+				}
 				return;
 			}
 			else if (msg == WM_IME_COMPOSITION)
@@ -514,8 +553,11 @@ static HookFunction initFunction([] ()
 					}
 				}
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = false;
+				}
 
 				return;
 			}
@@ -525,12 +567,15 @@ static HookFunction initFunction([] ()
 				g_imeHandler->ResetComposition();
 				g_imeHandler->DestroyImeWindow();
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = false;
+				}
 
 				return;
 			}
-			else if (msg == WM_IME_KEYLAST || msg == WM_IME_KEYDOWN || msg == WM_IME_KEYUP)
+			else if ((msg == WM_IME_KEYLAST || msg == WM_IME_KEYDOWN || msg == WM_IME_KEYUP) && !g_keepInput)
 			{
 				pass = false;
 				lresult = false;
