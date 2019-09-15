@@ -23,7 +23,7 @@ namespace FxWebAdmin
 
         public async Task<IEnumerable<IdentifierInfo>> Format(IEnumerable<string> identifiers)
         {
-            var tasks = identifiers.Select(a => Format(a));
+            var tasks = identifiers.Where(a => !string.IsNullOrEmpty(a)).Select(a => Format(a));
             var results = await Task.WhenAll(tasks);
 
             return results;
@@ -63,7 +63,7 @@ namespace FxWebAdmin
 
         public async Task<string> FormatAvatar(IEnumerable<string> identifiers)
         {
-            var tasks = identifiers.Select(a => Format(a));
+            var tasks = identifiers.Where(a => !string.IsNullOrEmpty(a)).Select(a => Format(a));
 
             var results = await Task.WhenAll(tasks);
 
