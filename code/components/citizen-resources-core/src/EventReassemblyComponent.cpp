@@ -250,7 +250,7 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 	{
 		auto targetData = std::make_shared<SendEvent::PerTargetData>();
 		targetData->ackBits.resize(packetCount);
-		targetData->lastSend = { 0 };
+		targetData->lastSend = std::chrono::milliseconds{ 0 };
 
 		sendPacket->targetData[target] = targetData;
 	}
@@ -272,7 +272,7 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 
 		readSize += std::get<0>(packet.second);
 
-		packet.second = {};
+		packet.second = std::tuple<size_t, std::unique_ptr<uint8_t[]>>{};
 	}
 
 	// parse event data
