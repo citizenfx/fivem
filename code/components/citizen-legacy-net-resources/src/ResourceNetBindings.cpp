@@ -8,6 +8,7 @@
 #include <StdInc.h>
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
+#include <EventReassemblyComponent.h>
 
 #include <ScriptEngine.h>
 
@@ -119,10 +120,29 @@ static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::stri
 	return list;
 }
 
+static NetLibrary* g_netLibrary;
+
+static class : public fx::EventReassemblySink
+{
+	virtual void SendPacket(int target, std::string_view packet) override
+	{
+		g_netLibrary->SendUnreliableCommand("msgReassembledEvent", packet.data(), packet.size());
+	}
+} g_eventSink;
+
 static InitFunction initFunction([] ()
 {
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
+	{
+		manager->SetComponent(fx::EventReassemblyComponent::Create());
+
+		manager->GetComponent<fx::EventReassemblyComponent>()->SetSink(&g_eventSink);
+	});
+
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
 	{
+		g_netLibrary = netLibrary;
+
 		static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 
 		auto urlEncodeWrap = [](const std::string& base, const std::string& str)
@@ -483,6 +503,11 @@ static InitFunction initFunction([] ()
 			updateResources("", []()
 			{
 			});
+
+			// reinit the reassembler
+			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+			reassembler->UnregisterTarget(0);
+			reassembler->RegisterTarget(0);
 		});
 
 		netLibrary->OnConnectionError.Connect([](const char* error)
@@ -505,7 +530,16 @@ static InitFunction initFunction([] ()
 					func();
 				}
 			}
+
+			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+			reassembler->NetworkTick();
 		});
+
+		netLibrary->AddReliableHandler("msgReassembledEvent", [](const char* buf, size_t len)
+		{
+			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+			reassembler->HandlePacket(0, std::string_view{ buf, len });
+		}, true);
 
 		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
 		{
@@ -612,6 +646,18 @@ static InitFunction initFunction([] ()
 			netLibrary->SendReliableCommand("msgServerEvent", buffer.GetBuffer(), buffer.GetCurLength());
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [=](fx::ScriptContext& context)
+		{
+			std::string eventName = context.GetArgument<const char*>(0);
+			size_t payloadSize = context.GetArgument<uint32_t>(2);
+
+			std::string_view eventPayload = std::string_view(context.GetArgument<const char*>(1), payloadSize);
+
+			int bps = context.GetArgument<int>(3);
+
+			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+			reassembler->TriggerEvent(0, eventName, eventPayload, bps);
+		});
 
 		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
 		{

@@ -37,6 +37,11 @@ public:
 
 	virtual void SendReliableCommand(uint32_t type, const char* buffer, size_t length) = 0;
 
+	virtual void SendUnreliableCommand(uint32_t type, const char* buffer, size_t length)
+	{
+		return SendReliableCommand(type, buffer, length);
+	}
+
 	virtual void SendConnect(const std::string& connectData) = 0;
 
 	virtual bool HasTimedOut() = 0;

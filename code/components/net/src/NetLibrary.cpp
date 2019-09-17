@@ -479,6 +479,11 @@ void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_
 	m_impl->SendReliableCommand(HashRageString(type), buffer, length);
 }
 
+void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
+{
+	m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+}
+
 static std::string g_disconnectReason;
 
 static std::mutex g_netFrameMutex;

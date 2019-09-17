@@ -380,6 +380,12 @@ if IsDuplicityVersion() then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
+	
+	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
+		local payload = msgpack.pack({...})
+
+		return TriggerLatentClientEventInternal(eventName, playerId, payload, payload:len(), bps)
+	end
 
 	RegisterServerEvent = RegisterNetEvent
 	RconPrint = Citizen.Trace
@@ -435,6 +441,12 @@ else
 		local payload = msgpack.pack({...})
 
 		return TriggerServerEventInternal(eventName, payload, payload:len())
+	end
+	
+	function TriggerLatentServerEvent(eventName, bps, ...)
+		local payload = msgpack.pack({...})
+
+		return TriggerLatentServerEventInternal(eventName, payload, payload:len(), bps)
 	end
 end
 
