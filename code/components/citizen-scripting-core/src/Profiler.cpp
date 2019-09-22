@@ -396,12 +396,12 @@ namespace profilerCommand {
 
 			std::string outFn = path;
 
-#if !IS_FXSERVER
+#ifndef IS_FXSERVER
 			outFn = "citizen:/" + outFn;
 #endif
 
-			auto vfsDevice = vfs::GetDevice(path);
-			auto handle = vfsDevice->Create(path);
+			auto vfsDevice = vfs::GetDevice(outFn);
+			auto handle = vfsDevice->Create(outFn);
 
 			vfs::Stream writeStream(vfsDevice, handle);
 
@@ -438,7 +438,7 @@ namespace profilerCommand {
 		static ConsoleCommand viewCmd1(profilerCtx.GetRef(), "view", [](std::string path) {
 			std::string inFn = path;
 
-#if !IS_FXSERVER
+#ifndef IS_FXSERVER
 			inFn = "citizen:/" + inFn;
 #endif
 
