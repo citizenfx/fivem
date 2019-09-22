@@ -148,35 +148,43 @@ local function trimAndNormalize(str)
 	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] '):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
 end
 
-local function formatDocString(native)
+local function wrapLines(str, openTag, closeTag)
+	local firstLine, nextLines = str:match("([^\n]+)\n?(.*)")
+
+	if not firstLine then
+		return ''
+	end
+	
 	local t = '\t\t'
+
+	local l = t .. '/// ' .. openTag .. '\n'
+	l = l .. t .. '/// ' .. trimAndNormalize(firstLine) .. "\n"
+	for line in nextLines:gmatch("([^\n]+)") do
+		l = l ..t .. '/// ' .. trimAndNormalize(line) .. "\n"
+	end
+	l = l .. t .. '/// ' .. closeTag .. '\n'
+	
+	return l
+end
+
+local function formatDocString(native)
 	local d = parseDocString(native)
 
 	if not d then
 		return ''
 	end
-
-	local firstLine, nextLines = d.summary:match("([^\n]+)\n?(.*)")
-
-	if not firstLine then
-		return ''
-	end
-
-	local l = t .. '/// <summary>\n'
-	l = l .. t .. '/// ' .. trimAndNormalize(firstLine) .. "\n"
-	for line in nextLines:gmatch("([^\n]+)") do
-		l = l ..t .. '/// ' .. trimAndNormalize(line) .. "\n"
-	end
-	l = l .. t .. '/// </summary>\n'
+	
+	local l = ''
+	l = l .. wrapLines(d.summary, '<summary>', '</summary>')
 
 	if d.hasParams then
 		for _, v in ipairs(d.params) do
-			l = l ..t .. '/// <param name="' .. v[1] .. '">' .. trimAndNormalize(v[2]) .. '</param>\n'
+			l = l .. wrapLines(v[2], '<param name="' .. v[1] .. '">', '</param>')
 		end
 	end
 
 	if d.returns then
-		l = l ..t .. '/// <returns>' .. trimAndNormalize(d.returns) .. '</returns>\n'
+		l = l .. wrapLines(d.returns, '<returns>', '</returns>')
 	end
 
 	return l
