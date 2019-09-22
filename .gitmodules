@@ -157,3 +157,6 @@
 [submodule "vendor/uSockets"]
 	path = vendor/uSockets
 	url = https://github.com/uNetworking/uSockets.git
+[submodule "vendor/toojpeg"]
+	path = vendor/toojpeg
+	url = https://github.com/stbrumme/toojpeg.git

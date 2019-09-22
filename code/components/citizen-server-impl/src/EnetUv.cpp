@@ -10,10 +10,60 @@
 
 #include <EASTL/internal/fixed_pool.h>
 
-using TPacketPool = eastl::fixed_node_allocator<65536, 256, 16, 0, true>;
+using TPacketPool = eastl::fixed_node_allocator<65536, 1024, 16, 0, true>;
 
 static uint8_t packetArena[TPacketPool::kBufferSize];
 static TPacketPool packetAllocator(packetArena);
+
+using TSendPool = eastl::fixed_node_allocator<sizeof(uv_udp_send_t), 1024, 16, 0, true>;
+static uint8_t sendArena[TSendPool::kBufferSize];
+static TSendPool sendAllocator(sendArena);
+
+using TReqPool = eastl::fixed_node_allocator<1024, 1024, 16, 0, true>;
+static uint8_t reqArena[TReqPool::kBufferSize];
+static TReqPool reqAllocator(reqArena);
+
+template<typename... TArgs>
+struct UvCallbackArgsPooled
+{
+	template<typename Handle, typename TFn>
+	static auto Get(Handle* handle, TFn fn)
+	{
+		struct Request : public UvClosable
+		{
+			TFn fn;
+
+			Request(TFn fn)
+				: fn(std::move(fn))
+			{
+
+			}
+
+			static void cb(Handle* handle, TArgs... args)
+			{
+				Request* request = reinterpret_cast<Request*>(handle->data);
+
+				request->fn(handle, args...);
+				request->~Request();
+
+				reqAllocator.deallocate(request, TReqPool::kNodeSize);
+			}
+		};
+
+		auto req = new(reqAllocator.allocate(TReqPool::kNodeSize)) Request(std::move(fn));
+		handle->data = req;
+
+		return &Request::cb;
+	}
+};
+
+struct send_deleter
+{
+	inline void operator()(void* ptr)
+	{
+		sendAllocator.deallocate(ptr, sizeof(uv_udp_send_t));
+	}
+};
 
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
@@ -261,9 +311,10 @@ enet_socket_send(ENetSocket socket,
 	// start sending the buffer
 	auto sd = socketIt->second;
 
-	auto sendReq = std::make_shared<uv_udp_send_t>();
+	auto sendReq = std::unique_ptr<uv_udp_send_t, send_deleter>(new(sendAllocator.allocate(sizeof(uv_udp_send_t))) uv_udp_send_t());
+	auto reqRef = sendReq.get();
 
-	uv_udp_send(sendReq.get(), &sd->udp, &uvBuf, 1, (sockaddr*)&sin, UvCallbackArgs<int>::Get(sendReq.get(), [sendReq, uvBuf](uv_udp_send_t*, int)
+	uv_udp_send(reqRef, &sd->udp, &uvBuf, 1, (sockaddr*)&sin, UvCallbackArgsPooled<int>::Get(reqRef, [sendReq = std::move(sendReq), uvBuf](uv_udp_send_t*, int)
 	{
 		// alias sendReq
 		debug::Alias(&sendReq);
