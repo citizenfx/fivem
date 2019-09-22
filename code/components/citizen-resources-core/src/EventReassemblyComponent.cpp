@@ -216,6 +216,18 @@ void EventReassemblyComponentImpl::UnregisterTarget(int id)
 
 void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eventName, std::string_view eventPayload, int bytesPerSecond)
 {
+	// default BPS if it's 0/negative so we won't end up with weird calculation artifacts later on
+	if (bytesPerSecond <= 0)
+	{
+		bytesPerSecond = 25000;
+	}
+
+	// skip oversized packets
+	if ((eventPayload.size() + eventName.size() + sizeof(uint16_t)) >= kMaxPacketSize)
+	{
+		return;
+	}
+
 	std::set<int> targets;
 
 	if (target == -1)
