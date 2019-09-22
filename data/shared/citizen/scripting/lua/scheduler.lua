@@ -384,7 +384,7 @@ if IsDuplicityVersion() then
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
 		local payload = msgpack.pack({...})
 
-		return TriggerLatentClientEventInternal(eventName, playerId, payload, payload:len(), bps)
+		return TriggerLatentClientEventInternal(eventName, playerId, payload, payload:len(), tonumber(bps))
 	end
 
 	RegisterServerEvent = RegisterNetEvent
@@ -446,7 +446,7 @@ else
 	function TriggerLatentServerEvent(eventName, bps, ...)
 		local payload = msgpack.pack({...})
 
-		return TriggerLatentServerEventInternal(eventName, payload, payload:len(), bps)
+		return TriggerLatentServerEventInternal(eventName, payload, payload:len(), tonumber(bps))
 	end
 end
 
