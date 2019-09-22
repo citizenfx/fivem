@@ -22,6 +22,16 @@ namespace fx
 ResourceManagerImpl::ResourceManagerImpl()
 {
 	OnInitializeInstance(this);
+
+	OnTick.Connect([this]()
+	{
+		// execute resource tick functions
+		ForAllResources([](fwRefContainer<Resource> resource)
+		{
+			CETWScope etwScope(va("%s tick", resource->GetName()));
+			resource->Tick();
+		});
+	});
 }
 
 fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std::string& uri)
@@ -221,13 +231,6 @@ void ResourceManagerImpl::Tick()
 {
 	auto lastManager = g_currentManager;
 	g_currentManager = this;
-
-	// execute resource tick functions
-	ForAllResources([] (fwRefContainer<Resource> resource)
-	{
-		CETWScope etwScope(va("%s tick", resource->GetName()));
-		resource->Tick();
-	});
 
 	// execute tick events
 	OnTick();

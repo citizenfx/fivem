@@ -1,6 +1,16 @@
+local debug = debug
+
 -- temp
 local function FormatStackTrace()
 	return Citizen.InvokeNative(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
+end
+
+local function ProfilerEnterScope(scopeName)
+	return Citizen.InvokeNative(`PROFILER_ENTER_SCOPE` & 0xFFFFFFFF, scopeName)
+end
+
+local function ProfilerExitScope()
+	return Citizen.InvokeNative(`PROFILER_EXIT_SCOPE` & 0xFFFFFFFF)
 end
 
 local newThreads = {}
@@ -55,12 +65,23 @@ local function resumeThread(coro) -- Internal utility
 	end
 
 	runningThread = coro
+	
+	local thread = threads[coro]
 
-	Citizen.SubmitBoundaryStart(threads[coro].boundary, coro)
+	if thread then
+		if thread.name then
+			ProfilerEnterScope(thread.name)
+		else
+			ProfilerEnterScope('thread')
+		end
+
+		Citizen.SubmitBoundaryStart(thread.boundary, coro)
+	end
+	
 	local ok, wakeTimeOrErr = coroutine.resume(coro)
 	
 	if ok then
-		local thread = threads[coro]
+		thread = threads[coro]
 		if thread then
 			thread.wakeTime = wakeTimeOrErr or 0
 		end
@@ -76,6 +97,8 @@ local function resumeThread(coro) -- Internal utility
 	
 	runningThread = nil
 	
+	ProfilerExitScope()
+	
 	-- Return not finished
 	return coroutine.status(coro) ~= "dead"
 end
@@ -87,10 +110,13 @@ function Citizen.CreateThread(threadFunction)
 	local tfn = function()
 		return runWithBoundaryStart(threadFunction, bid)
 	end
-
+	
+	local di = debug.getinfo(threadFunction, 'S')
+	
 	threads[coroutine.create(tfn)] = {
 		wakeTime = 0,
-		boundary = bid
+		boundary = bid,
+		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
 	}
 end
 
@@ -102,9 +128,12 @@ end
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
-function Citizen.CreateThreadNow(threadFunction)
+function Citizen.CreateThreadNow(threadFunction, name)
 	local bid = boundaryIdx + 1
 	boundaryIdx = boundaryIdx + 1
+	
+	local di = debug.getinfo(threadFunction, 'S')
+	name = name or ('thread_now %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
 
 	local tfn = function()
 		return runWithBoundaryStart(threadFunction, bid)
@@ -113,7 +142,8 @@ function Citizen.CreateThreadNow(threadFunction)
 	local coro = coroutine.create(tfn)
 	threads[coro] = {
 		wakeTime = 0,
-		boundary = bid
+		boundary = bid,
+		name = name
 	}
 	return resumeThread(coro)
 end
@@ -238,9 +268,11 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 		if type(data) == 'table' then
 			-- loop through all the event handlers
 			for k, handler in pairs(eventHandlerEntry.handlers) do
+				local di = debug.getinfo(handler)
+			
 				Citizen.CreateThreadNow(function()
 					handler(table.unpack(data))
-				end)
+				end, ('event %s [%s[%d..%d]]'):format(eventName, di.shortsrc, di.linedefined, di.lastlinedefined))
 			end
 		end
 	end
@@ -504,6 +536,8 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local err
 	local retvals
 	local cb = {}
+	
+	local di = debug.getinfo(ref)
 
 	local waited = Citizen.CreateThreadNow(function()
 		local status, result, error = xpcall(function()
@@ -517,7 +551,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		if cb.cb then
 			cb.cb(retvals or false, err)
 		end
-	end)
+	end, ('ref call [%s[%d..%d]]'):format(di.shortsrc, di.linedefined, di.lastlinedefined))
 
 	if not waited then
 		if err then

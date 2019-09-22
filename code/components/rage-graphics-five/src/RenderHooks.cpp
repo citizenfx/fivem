@@ -26,6 +26,9 @@ namespace WRL = Microsoft::WRL;
 fwEvent<> OnGrcCreateDevice;
 fwEvent<> OnPostFrontendRender;
 
+fwEvent<bool*> OnRequestInternalScreenshot;
+fwEvent<const uint8_t*, int, int> OnInternalScreenshot;
+
 static bool g_overrideVsync;
 
 static void(*g_origCreateCB)(const char*);
@@ -38,6 +41,7 @@ static void InvokeCreateCB(const char* arg)
 }
 
 static void CaptureBufferOutput();
+static void CaptureInternalScreenshot();
 
 static void InvokeRender()
 {
@@ -54,6 +58,7 @@ static void InvokeRender()
 	EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
 	{
 		CaptureBufferOutput();
+		CaptureInternalScreenshot();
 	}, &a1, &a2);
 
 	OnPostFrontendRender();
@@ -205,8 +210,7 @@ namespace rage
 
 static bool(*g_resetVideoMode)(VideoModeInfo*);
 
-static ID3D11RenderTargetView* g_rtv;
-static ID3D11Texture2D* g_myTexture;
+static std::vector<ID3D11Resource**> g_resources;
 
 void(*g_origCreateBackbuffer)(void*);
 
@@ -223,17 +227,13 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 {
 	trace("Changing video mode.\n");
 
-	if (g_rtv)
+	for (auto& res : g_resources)
 	{
-		g_rtv->Release();
-		g_rtv = nullptr;
+		(*res)->Release();
+		*res = nullptr;
 	}
 
-	if (g_myTexture)
-	{
-		g_myTexture->Release();
-		g_myTexture = nullptr;
-	}
+	g_resources = {};
 
 	bool success = g_origVideoModeChange(info);
 
@@ -512,75 +512,24 @@ struct GameRenderData
 	}
 };
 
-void CaptureBufferOutput()
+// 1365
+// 1604
+static auto GetBackbuf()
 {
-	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+	return *(rage::grcRenderTargetDX11 * *)hook::get_adjusted(0x142AD7A88);
+}
 
-	static D3D11_TEXTURE2D_DESC resDesc;
-
-	// 1365
-	// 1604
-	rage::grcRenderTargetDX11* backBuf = *(rage::grcRenderTargetDX11**)hook::get_adjusted(0x142AD7A88);
+void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
+{
+	D3D11_TEXTURE2D_DESC resDesc = { 0 };
+	auto backBuf = GetBackbuf();
 
 	if (backBuf)
 	{
 		if (backBuf->texture)
 		{
 			((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
-
-			handleData->width = resDesc.Width;
-			handleData->height = resDesc.Height;
 		}
-	}
-
-	if (!g_myTexture)
-	{
-		D3D11_TEXTURE2D_DESC texDesc = { 0 };
-		texDesc.Width = resDesc.Width;
-		texDesc.Height = resDesc.Height;
-		texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		texDesc.MipLevels = 1;
-		texDesc.ArraySize = 1;
-		texDesc.SampleDesc.Count = 1;
-		texDesc.SampleDesc.Quality = 0;
-		texDesc.Usage = D3D11_USAGE_DEFAULT;
-		texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-		texDesc.CPUAccessFlags = 0;
-		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-
-		WRL::ComPtr<ID3D11Texture2D> d3dTex;
-		HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
-		if FAILED(hr)
-		{
-			// error handling code
-		}
-
-		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-		GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &g_rtv);
-
-		d3dTex.CopyTo(&g_myTexture);
-
-		WRL::ComPtr<IDXGIResource> dxgiResource;
-		HANDLE sharedHandle;
-		hr = d3dTex.As(&dxgiResource);
-		if (FAILED(hr))
-		{
-			// error handling code
-			return;
-		}
-
-		hr = dxgiResource->GetSharedHandle(&sharedHandle);
-		if FAILED(hr)
-		{
-			// error handling code
-		}
-
-		handleData->handle = sharedHandle;
-	}
-
-	if (!handleData->requested)
-	{
-		return;
 	}
 
 	// guess what we can't just CopyResource, so time for copy/pasted D3D11 garbage
@@ -633,7 +582,7 @@ void CaptureBufferOutput()
 
 		deviceContext->RSGetViewports(&numVPs, &oldVp);
 
-		CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, m_width, m_height);
+		CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, width ? width : m_width, height ? height : m_height);
 		deviceContext->RSSetViewports(1, &vp);
 
 		deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
@@ -644,7 +593,7 @@ void CaptureBufferOutput()
 
 		deviceContext->VSGetShader(&oldVs, nullptr, nullptr);
 
-		deviceContext->OMSetRenderTargets(1, &g_rtv, nullptr);
+		deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
 		deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
 
 		deviceContext->PSSetShader(ps, nullptr, 0);
@@ -663,7 +612,7 @@ void CaptureBufferOutput()
 		deviceContext->IASetInputLayout(nullptr);
 
 		FLOAT blank[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		deviceContext->ClearRenderTargetView(g_rtv, blank);
+		deviceContext->ClearRenderTargetView(rtv, blank);
 
 		deviceContext->Draw(4, 0);
 
@@ -723,6 +672,216 @@ void CaptureBufferOutput()
 
 		pPerf->Release();
 	}
+}
+
+void CaptureInternalScreenshot()
+{
+	static D3D11_TEXTURE2D_DESC resDesc;
+
+	auto backBuf = GetBackbuf();
+
+	static int intWidth;
+	static int intHeight;
+
+	if (backBuf)
+	{
+		if (backBuf->texture)
+		{
+			((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
+
+			intWidth = resDesc.Width;
+			intHeight = resDesc.Height;
+		}
+	}
+
+	static ID3D11Texture2D* myTexture;
+	static ID3D11Texture2D* myStagingTexture;
+	static ID3D11RenderTargetView* rtv;
+
+	if (!myTexture)
+	{
+		{
+			D3D11_TEXTURE2D_DESC texDesc = { 0 };
+			texDesc.Width = resDesc.Width / 4;
+			texDesc.Height = resDesc.Height / 4;
+			texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			texDesc.MipLevels = 1;
+			texDesc.ArraySize = 1;
+			texDesc.SampleDesc.Count = 1;
+			texDesc.SampleDesc.Quality = 0;
+			texDesc.Usage = D3D11_USAGE_DEFAULT;
+			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+			texDesc.CPUAccessFlags = 0;
+			texDesc.MiscFlags = 0;
+
+			WRL::ComPtr<ID3D11Texture2D> d3dTex;
+			HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			if FAILED(hr)
+			{
+				return;
+			}
+
+			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
+			GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+
+			d3dTex.CopyTo(&myTexture);
+		}
+
+		{
+			D3D11_TEXTURE2D_DESC texDesc = { 0 };
+			texDesc.Width = resDesc.Width / 4;
+			texDesc.Height = resDesc.Height / 4;
+			texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			texDesc.MipLevels = 1;
+			texDesc.ArraySize = 1;
+			texDesc.SampleDesc.Count = 1;
+			texDesc.SampleDesc.Quality = 0;
+			texDesc.Usage = D3D11_USAGE_STAGING;
+			texDesc.BindFlags = 0;
+			texDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+			texDesc.MiscFlags = 0;
+
+			WRL::ComPtr<ID3D11Texture2D> d3dTex;
+			HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			if FAILED(hr)
+			{
+				return;
+			}
+
+			d3dTex.CopyTo(&myStagingTexture);
+		}
+
+		g_resources.push_back((ID3D11Resource**)&myTexture);
+		g_resources.push_back((ID3D11Resource**)&myStagingTexture);
+		g_resources.push_back((ID3D11Resource**)&rtv);
+	}
+
+	bool should = false;
+	OnRequestInternalScreenshot(&should);
+
+	if (!should)
+	{
+		return;
+	}
+
+	RenderBufferToBuffer(rtv, resDesc.Width / 4, resDesc.Height / 4);
+
+	GetD3D11DeviceContext()->CopyResource(myStagingTexture, myTexture);
+
+	D3D11_MAPPED_SUBRESOURCE msr;
+	
+	if (SUCCEEDED(GetD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
+	{
+		size_t blen = (resDesc.Height / 4) * msr.RowPitch;
+		std::unique_ptr<uint8_t[]> data(new uint8_t[blen]);
+		memcpy(data.get(), msr.pData, blen);
+
+		GetD3D11DeviceContext()->Unmap(myStagingTexture, 0);
+
+		// convert RGBA to RGB
+		int w = (resDesc.Width / 4);
+		int h = (resDesc.Height / 4);
+
+		int rgbPitch = (w * 3);
+
+		std::unique_ptr<uint8_t[]> outData(new uint8_t[h * rgbPitch]);
+
+		for (int y = 0; y < h; y++)
+		{
+			int rgbaStart = (msr.RowPitch * y);
+			int rgbStart = (rgbPitch * (h - y - 1));
+
+			for (int x = 0; x < w; x++)
+			{
+				outData[rgbStart + 2] = data[rgbaStart];
+				outData[rgbStart + 1] = data[rgbaStart + 1];
+				outData[rgbStart] = data[rgbaStart + 2];
+
+				rgbaStart += 4;
+				rgbStart += 3;
+			}
+		}
+
+		OnInternalScreenshot(outData.get(), resDesc.Width / 4, resDesc.Height / 4);
+	}
+}
+
+void CaptureBufferOutput()
+{
+	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+
+	static D3D11_TEXTURE2D_DESC resDesc;
+
+	auto backBuf = GetBackbuf();
+
+	if (backBuf)
+	{
+		if (backBuf->texture)
+		{
+			((ID3D11Texture2D*)backBuf->texture)->GetDesc(&resDesc);
+
+			handleData->width = resDesc.Width;
+			handleData->height = resDesc.Height;
+		}
+	}
+
+	static ID3D11Texture2D* myTexture;
+	static ID3D11RenderTargetView* rtv;
+
+	if (!myTexture)
+	{
+		D3D11_TEXTURE2D_DESC texDesc = { 0 };
+		texDesc.Width = resDesc.Width;
+		texDesc.Height = resDesc.Height;
+		texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		texDesc.MipLevels = 1;
+		texDesc.ArraySize = 1;
+		texDesc.SampleDesc.Count = 1;
+		texDesc.SampleDesc.Quality = 0;
+		texDesc.Usage = D3D11_USAGE_DEFAULT;
+		texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+		texDesc.CPUAccessFlags = 0;
+		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+
+		WRL::ComPtr<ID3D11Texture2D> d3dTex;
+		HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+		if FAILED(hr)
+		{
+			// error handling code
+		}
+
+		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
+		GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+
+		d3dTex.CopyTo(&myTexture);
+
+		WRL::ComPtr<IDXGIResource> dxgiResource;
+		HANDLE sharedHandle;
+		hr = d3dTex.As(&dxgiResource);
+		if (FAILED(hr))
+		{
+			// error handling code
+			return;
+		}
+
+		hr = dxgiResource->GetSharedHandle(&sharedHandle);
+		if FAILED(hr)
+		{
+			// error handling code
+		}
+
+		handleData->handle = sharedHandle;
+
+		g_resources.push_back((ID3D11Resource**)&myTexture);
+		g_resources.push_back((ID3D11Resource**)&rtv);
+	}
+
+	if (!handleData->requested)
+	{
+		return;
+	}
+
+	RenderBufferToBuffer(rtv);
 }
 
 void D3DPresent(int syncInterval, int flags)

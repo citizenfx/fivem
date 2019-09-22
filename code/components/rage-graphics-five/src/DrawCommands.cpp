@@ -319,6 +319,11 @@ void GetGameResolution(int& resX, int& resY)
 	}
 }
 
+static hook::cdecl_stub<uint32_t(const D3D11_RASTERIZER_DESC*)> createRasterizerState([]()
+{
+	return hook::get_pattern("48 8D  4D D7 F3 0F 11 7D FF F3 44 0F", -0x86);
+});
+
 hook::cdecl_stub<void(uint32_t)> setRasterizerState([] ()
 {
 	return hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<void>(-6);
@@ -329,6 +334,11 @@ static uint32_t* g_nextBlendState;
 static float** g_nextBlendFactor;
 static uint32_t* g_nextSampleMask;
 static uint32_t* g_nextDepthStencilState;
+
+uint32_t CreateRasterizerState(const D3D11_RASTERIZER_DESC* desc)
+{
+	return createRasterizerState(desc);
+}
 
 uint32_t GetRasterizerState()
 {

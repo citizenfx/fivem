@@ -26,6 +26,15 @@ namespace CitizenFX.Core
 
 		protected ExportDictionary Exports { get; private set; }
 
+		[ThreadStatic]
+		private static string ms_curName = null;
+
+		internal static string CurrentName
+		{
+			get => ms_curName;
+			set => ms_curName = value;
+		}
+
 #if !IS_FXSERVER
 		private Player m_player;
 
@@ -83,15 +92,46 @@ namespace CitizenFX.Core
 		{
 			if (!CurrentTaskList.ContainsKey(call))
 			{
-				CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
-				{
-					if (a.IsFaulted)
-					{
-						Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
-					}
+				var curName = $"{GetType().Name} -> tick {call.GetMethodInfo().Name}";
 
-					CurrentTaskList.Remove(call);
-				}));
+				try
+				{
+					ms_curName = curName;
+
+					using (var scope = new ProfilerScope(() => curName))
+					{
+						CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew(() =>
+						{
+							ms_curName = curName;
+
+							try
+							{
+								using (var innerScope = new ProfilerScope(() => curName))
+								{
+									var t = ((Func<Task>)call)();
+
+									return t;
+								}
+							}
+							finally
+							{
+								ms_curName = null;
+							}
+						}).Unwrap().ContinueWith(a =>
+						{
+							if (a.IsFaulted)
+							{
+								Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
+							}
+
+							CurrentTaskList.Remove(call);
+						}));
+					}
+				}
+				finally
+				{
+					ms_curName = null;
+				}
 			}
 		}
 
@@ -239,7 +279,7 @@ namespace CitizenFX.Core
 
 		private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
 		{
-			InternalManager.AddDelay(delay, callback);
+			InternalManager.AddDelay(delay, callback, ms_curName);
 
 			return new DummyAsyncResult();
 		}

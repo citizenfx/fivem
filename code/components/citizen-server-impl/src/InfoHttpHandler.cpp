@@ -6,6 +6,7 @@
 #include <HttpServerManager.h>
 
 #include <ResourceManager.h>
+#include <Profiler.h>
 
 #include <VFSManager.h>
 
@@ -14,6 +15,7 @@
 #include <json.hpp>
 
 #include <cfx_version.h>
+#include <optional>
 
 using json = nlohmann::json;
 
@@ -230,6 +232,36 @@ static InitFunction initFunction([]()
 			});
 
 			response->End(data.dump(-1, ' ', false, json::error_handler_t::replace));
+		});
+
+		static std::optional<json> lastProfile;
+
+		instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ProfilerComponent>()->OnRequestView.Connect([instance](const json& json)
+		{
+			lastProfile = json;
+
+			auto baseUrl = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
+			
+			if (baseUrl)
+			{
+				console::Printf("profiler", "You can view the recorded profile data at ^4https://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=https://%s/profileData.json^7 in Chrome (or compatible).\n",
+					baseUrl->GetValue());
+			}
+		});
+
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		{
+			if (!lastProfile)
+			{
+				response->SetStatusCode(404);
+				response->End("[]");
+
+				return;
+			}
+
+			response->SetHeader("Access-Control-Allow-Origin", "*");
+
+			response->End(lastProfile->dump(-1, ' ', false, json::error_handler_t::replace));
 		});
 	}, 1500);
 });
