@@ -85,7 +85,7 @@ static InitFunction initFunction([]()
 				trace("A client has tried to authenticate using Steam, but `steam_webApiKey` is unset. Please set steam_webApiKey to a Steam Web API key as registered on "
 					"Valve's ^4https://steamcommunity.com/dev/apikey^7 web page. Steam identifier information will be unavailable otherwise.\n");
 
-				trace("To suppress this message, `set steam_webApiKey \"none\"`.");
+				trace("To suppress this message, `set steam_webApiKey \"none\"`.\n");
 
 				cb({});
 				return;
