@@ -18,6 +18,7 @@ RUN source /src/.env && /bin/sh /src/code/tools/ci/build_server_2.sh
 RUN mkdir -p /opt/cfx-server/citizen/system_resources/
 RUN cp -a /src/ext/system-resources/data/* /opt/cfx-server/citizen/system_resources/
 ENV LD_LIBRARY_PATH /usr/lib/v8/:/lib:/usr/lib/
+LABEL CI_BUILD_NUMBER=$CI_BUILD_NUMBER
 WORKDIR /opt/cfx-server
 CMD ["/bin/sh", "/opt/cfx-server/run.sh"]
 PUSH citizenfx/server:dev
