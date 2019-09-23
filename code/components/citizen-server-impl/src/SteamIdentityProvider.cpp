@@ -120,6 +120,10 @@ static InitFunction initFunction([]()
 								uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
 								clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
 							}
+							else
+							{
+								trace("Steam authentication for %s^7 failed: %s\n", clientPtr->GetName(), response);
+							}
 
 							cb({});
 						}
