@@ -366,6 +366,6 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     rentServer() {
-        this.gameService.openUrl('https://zap-hosting.com/fivem4');
+        this.gameService.openUrl('https://zap-hosting.com/fivemigcl');
     }
 }
