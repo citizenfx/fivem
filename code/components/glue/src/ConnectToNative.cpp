@@ -350,6 +350,8 @@ static InitFunction initFunction([] ()
 			OnMsgConfirm();
 		}
 	});
+
+	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
 	
 	ConHost::OnInvokeNative.Connect([](const char* type, const char* arg)
 	{
@@ -472,9 +474,40 @@ static InitFunction initFunction([] ()
 						{ "authToken", g_discourseUserToken },
 						{ "clientId", g_discourseClientId },
 					},
-					[](bool, const char*, size_t)
+					[](bool success, const char* data, size_t size)
 				{
+					if (success)
+					{
+						std::string response{ data, size };
 
+						bool hasEndUserPremium = false;
+
+						try
+						{
+							auto json = nlohmann::json::parse(response);
+
+							for (const auto& group : json["user"]["groups"])
+							{
+								auto name = group.value<std::string>("name", "");
+
+								if (name == "staff" || name == "patreon_enduser")
+								{
+									hasEndUserPremium = true;
+									break;
+								}
+							}
+						}
+						catch (const std::exception& e)
+						{
+
+						}
+
+						if (hasEndUserPremium)
+						{
+							uiPremium.GetHelper()->SetRawValue(true);
+							Instance<ICoreGameInit>::Get()->SetVariable("endUserPremium");
+						}
+					}
 				});
 			}
 			catch (const std::exception& e)

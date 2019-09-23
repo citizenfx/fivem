@@ -8,6 +8,8 @@ import { GameService } from './game.service';
 import { Languages } from './languages';
 import { DiscourseService } from './discourse.service';
 
+import * as emojiList from 'emoji.json/emoji-compact.json';
+
 export class Setting {
     name: string;
     description?: string;
@@ -21,6 +23,13 @@ export class Setting {
     setCb?: (value: string) => void;
 
     id?: string;
+}
+
+function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
+    return [...iterable].reduce<{ [key: string]: TValue }>((obj, [key, val]) => {
+        (obj as any)[key] = val;
+        return obj;
+    }, {} as any);
 }
 
 @Injectable()
@@ -85,6 +94,26 @@ export class SettingsService {
             type: 'checkbox',
             getCb: () => this.gameService.getConvar('game_showStreamingProgress'),
             setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value)
+        });
+
+        this.addSetting('customEmoji', {
+            name: '#Settings_CustomEmoji',
+            description: '#Settings_CustomEmojiDesc',
+            type: 'select',
+            getCb: () => this.gameService.getConvar('ui_customBrandingEmoji'),
+            setCb: (value) => this.gameService.setConvar('ui_customBrandingEmoji', value),
+            showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a === 'true')),
+            options: fromEntries([
+                [ '', 'Default' ],
+                ...emojiList.default.filter(emoji => emoji.length === 2).map(emoji => [ emoji, emoji ])
+            ])
+        });
+
+        this.addSetting('customEmojiUpsell', {
+            name: '#Settings_CustomEmoji',
+            description: '#Settings_CustomEmojiUpsell',
+            type: 'label',
+            showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true'))
         });
 
         this.addSetting('queriesPerMinute', {
