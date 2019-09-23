@@ -111,9 +111,9 @@ export class SettingsService {
 
         this.addSetting('customEmojiUpsell', {
             name: '#Settings_CustomEmoji',
-            description: '#Settings_CustomEmojiUpsell',
             type: 'label',
-            showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true'))
+            showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true')),
+            labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell'))
         });
 
         this.addSetting('queriesPerMinute', {
@@ -174,7 +174,7 @@ export class SettingsService {
             type: 'label',
             showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
                 && !this.discourseService.currentBoost.server)),
-            labelCb: () => of(this.discourseService.currentBoost.address)
+            labelCb: () => of(this.discourseService.currentBoost ? this.discourseService.currentBoost.address : '')
         });
 
         this.addSetting('boostServer', {
