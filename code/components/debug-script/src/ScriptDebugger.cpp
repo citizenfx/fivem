@@ -1,5 +1,6 @@
 #include <StdInc.h>
 
+#if !defined(_MSC_VER) || _MSC_VER < 1923
 #include <tbb/concurrent_unordered_map.h>
 
 #include <atomic>
@@ -568,6 +569,9 @@ void ScriptDebugger::Start()
 	{
 		RunThread();
 	} };
+
+	// for now
+	m_listenThread.detach();
 }
 
 static std::unique_ptr<ScriptDebugger> g_scriptDebugger;
@@ -661,3 +665,4 @@ static ScriptDebuggerHandler _debuggerSetBreakpointByUrl("Debugger.setBreakpoint
 		{ "locations", json::array() }
 	}));
 });
+#endif

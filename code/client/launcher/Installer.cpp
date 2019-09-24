@@ -19,7 +19,7 @@
 
 namespace WRL = Microsoft::WRL;
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 static void SetAumid(const WRL::ComPtr<IShellLink>& link)
 {
