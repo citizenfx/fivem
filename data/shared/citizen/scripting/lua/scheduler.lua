@@ -272,7 +272,7 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			
 				Citizen.CreateThreadNow(function()
 					handler(table.unpack(data))
-				end, ('event %s [%s[%d..%d]]'):format(eventName, di.shortsrc, di.linedefined, di.lastlinedefined))
+				end, ('event %s [%s[%d..%d]]'):format(eventName, di.short_src, di.linedefined, di.lastlinedefined))
 			end
 		end
 	end
@@ -551,7 +551,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		if cb.cb then
 			cb.cb(retvals or false, err)
 		end
-	end, ('ref call [%s[%d..%d]]'):format(di.shortsrc, di.linedefined, di.lastlinedefined))
+	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
 	if not waited then
 		if err then
