@@ -818,13 +818,16 @@ struct CSectorPositionDataNode
 
 struct CPedCreationDataNode
 {
+	uint32_t m_model;
+
 	bool Parse(SyncParseState& state)
 	{
 		auto isRespawnObjectId = state.buffer.ReadBit();
 		auto respawnFlaggedForRemoval = state.buffer.ReadBit();
 
 		auto popType = state.buffer.Read<int>(4);
-		auto model = state.buffer.Read<int>(32);
+		uint32_t model = state.buffer.Read<uint32_t>(32);
+		m_model = model;
 
 		auto randomSeed = state.buffer.Read<int>(16);
 		auto inVehicle = state.buffer.ReadBit();
@@ -1445,7 +1448,15 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		// TODO: non-vehicle/player entities
+		auto[hasPcn, pedCreationNode] = GetData<CPedCreationDataNode>();
+
+		if (hasPcn)
+		{
+			*modelHash = pedCreationNode->m_model;
+			return true;
+		}
+
+		// TODO: non-vehicle/player/ped entities
 
 		return false;
 	}
