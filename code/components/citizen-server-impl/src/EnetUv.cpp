@@ -10,16 +10,19 @@
 
 #include <EASTL/internal/fixed_pool.h>
 
-using TPacketPool = eastl::fixed_node_allocator<65536, 1024, 16, 0, true>;
-
+using TPacketPool = eastl::fixed_node_allocator<65536, 512, 16, 0, true>;
 static uint8_t packetArena[TPacketPool::kBufferSize];
 static TPacketPool packetAllocator(packetArena);
 
-using TSendPool = eastl::fixed_node_allocator<sizeof(uv_udp_send_t), 1024, 16, 0, true>;
+using TSendPacketPool = eastl::fixed_node_allocator<4096, 32768, 16, 0, true>;
+static uint8_t sendPacketArena[TPacketPool::kBufferSize];
+static TSendPacketPool sendPacketAllocator(sendPacketArena);
+
+using TSendPool = eastl::fixed_node_allocator<sizeof(uv_udp_send_t), 32768, 16, 0, true>;
 static uint8_t sendArena[TSendPool::kBufferSize];
 static TSendPool sendAllocator(sendArena);
 
-using TReqPool = eastl::fixed_node_allocator<1024, 1024, 16, 0, true>;
+using TReqPool = eastl::fixed_node_allocator<1024, 32768, 16, 0, true>;
 static uint8_t reqArena[TReqPool::kBufferSize];
 static TReqPool reqAllocator(reqArena);
 
@@ -153,9 +156,10 @@ enet_socket_set_option(ENetSocket socket, ENetSocketOption option, int value)
 	return 0;
 }
 
-static void alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+template<typename TAllocator>
+static void alloc_buffer(TAllocator& allocator, uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
-	*buf = uv_buf_init((char*)((suggested_size <= TPacketPool::kNodeSize) ? packetAllocator.allocate(TPacketPool::kNodeSize) : malloc(suggested_size)), suggested_size);
+	*buf = uv_buf_init((char*)((suggested_size <= typename TAllocator::kNodeSize) ? allocator.allocate(typename TAllocator::kNodeSize) : malloc(suggested_size)), suggested_size);
 }
 
 fwEvent<> OnEnetReceive;
@@ -197,7 +201,10 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 	{
 		sd->udp.get()->data = sd.get();
 
-		uv_udp_recv_start(&sd->udp, alloc_buffer, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
+		uv_udp_recv_start(&sd->udp, [](uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf)
+		{
+			return alloc_buffer(packetAllocator, handle, suggestedSize, buf);
+		}, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
 			const struct sockaddr* addr, unsigned flags)
 		{
 			auto udpSocket = (UdpSocket*)handle->data;
@@ -295,9 +302,15 @@ enet_socket_send(ENetSocket socket,
 		totalSize += buffers[buf].dataLength;
 	}
 
+	// drop oversize packets (as a temporary test)
+	if (totalSize >= TSendPacketPool::kNodeSize)
+	{
+		return -1;
+	}
+
 	// allocate a large enough buffer
 	uv_buf_t uvBuf;
-	alloc_buffer(nullptr, totalSize, &uvBuf);
+	alloc_buffer(sendPacketAllocator, nullptr, totalSize, &uvBuf);
 
 	// copy memory into the buffer
 	totalSize = 0;
@@ -320,7 +333,7 @@ enet_socket_send(ENetSocket socket,
 		debug::Alias(&sendReq);
 
 		// free buffer
-		packetAllocator.deallocate(uvBuf.base, TPacketPool::kNodeSize);
+		sendPacketAllocator.deallocate(uvBuf.base, TSendPacketPool::kNodeSize);
 	}));
 
 	return totalSize;
