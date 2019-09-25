@@ -8,6 +8,10 @@ FROM alpine:3.8
 ARG CI_BRANCH
 ARG CI_BUILD_NUMBER
 ARG JOB_SLOTS
+LABEL org.label-schema.name="fxserver"
+LABEL org.label-schema.vendor="citizenfx"
+LABEL org.label-schema.vcs-ref=$CI_BRANCH
+LABEL org.label-schema.version=$CI_BUILD_NUMBER
 MOUNT ..:/src
 RUN /bin/sh /src/code/tools/ci/build_server_2.sh
 RUN mkdir -p /opt/cfx-server/citizen/system_resources/
