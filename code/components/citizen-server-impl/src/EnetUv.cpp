@@ -159,7 +159,7 @@ enet_socket_set_option(ENetSocket socket, ENetSocketOption option, int value)
 template<typename TAllocator>
 static void alloc_buffer(TAllocator& allocator, uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
-	*buf = uv_buf_init((char*)((suggested_size <= typename TAllocator::kNodeSize) ? allocator.allocate(typename TAllocator::kNodeSize) : malloc(suggested_size)), suggested_size);
+	*buf = uv_buf_init((char*)((suggested_size <= TAllocator::kNodeSize) ? allocator.allocate(TAllocator::kNodeSize) : malloc(suggested_size)), suggested_size);
 }
 
 fwEvent<> OnEnetReceive;
