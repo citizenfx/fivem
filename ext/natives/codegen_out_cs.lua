@@ -179,7 +179,7 @@ local function formatDocString(native)
 
 	if d.hasParams then
 		for _, v in ipairs(d.params) do
-			l = l .. wrapLines(v[2], '<param name="' .. v[1] .. '">', '</param>')
+			l = l .. wrapLines(v[2], '<param name="' .. (langWords[v[1]] or v[1]) .. '">', '</param>')
 		end
 	end
 
