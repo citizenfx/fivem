@@ -88,7 +88,7 @@
     function setInterval(callback, interval, ...argsForCallback) {
         const id = nextTimerId();
 
-	setTimer(
+        setTimer(
             id,
             function() {
                 try {
