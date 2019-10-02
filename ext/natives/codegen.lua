@@ -314,7 +314,7 @@ function parseDocString(native)
 	end
 
 	local summary = trim(docString:match("<summary>(.+)</summary>"))
-	local params = docString:gmatch("<param name=\"([^\"]+)\">([^<]+)</param>")
+	local params = docString:gmatch("<param name=\"([^\"]+)\">([^<]*)</param>")
 	local returns = docString:match("<returns>(.+)</returns>")
 
 	if not summary then

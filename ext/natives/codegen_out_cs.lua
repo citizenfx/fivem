@@ -148,23 +148,23 @@ local function trimAndNormalize(str)
 	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] '):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
 end
 
-local function wrapLines(str, openTag, closeTag)
+local function wrapLines(str, openTag, closeTag, allowEmptyTag)
 	local firstLine, nextLines = str:match("([^\n]+)\n?(.*)")
 
-	if not firstLine then
-		return ''
-	end
-	
 	local t = '\t\t'
-
-	local l = t .. '/// ' .. openTag .. '\n'
-	l = l .. t .. '/// ' .. trimAndNormalize(firstLine) .. "\n"
-	for line in nextLines:gmatch("([^\n]+)") do
-		l = l ..t .. '/// ' .. trimAndNormalize(line) .. "\n"
-	end
-	l = l .. t .. '/// ' .. closeTag .. '\n'
-	
-	return l
+	if firstLine then
+		local l = t .. '/// ' .. openTag .. '\n'
+		l = l .. t .. '/// ' .. trimAndNormalize(firstLine) .. "\n"
+		for line in nextLines:gmatch("([^\n]+)") do
+			l = l ..t .. '/// ' .. trimAndNormalize(line) .. "\n"
+		end
+		l = l .. t .. '/// ' .. closeTag .. '\n'
+		return l
+	elseif allowEmptyTag then
+		return t .. '/// ' .. openTag:sub(1, openTag:len() - 1) .. ' />\n'
+	else
+		return ''
+	end	
 end
 
 local function formatDocString(native)
@@ -179,7 +179,7 @@ local function formatDocString(native)
 
 	if d.hasParams then
 		for _, v in ipairs(d.params) do
-			l = l .. wrapLines(v[2], '<param name="' .. (langWords[v[1]] or v[1]) .. '">', '</param>')
+			l = l .. wrapLines(v[2], '<param name="' .. (langWords[v[1]] or v[1]) .. '">', '</param>', true)
 		end
 	end
 
