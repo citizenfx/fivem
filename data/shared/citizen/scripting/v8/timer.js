@@ -93,7 +93,7 @@
             function() {
                 try {
                     callback(...argsForCallback);
-                }
+                } catch { }
             },
             interval
         );
