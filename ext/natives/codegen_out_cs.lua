@@ -457,7 +457,7 @@ local function formatImpl(native)
 	
 	appendix = appendix .. t .. '}\n'
 
-	return retType, body .. appendix .. '\t\t}\n'
+	return retType, (body .. appendix .. '\t\t}\n'), hyperDriveSafe
 end
 
 local function printNative(native)
@@ -474,7 +474,7 @@ local function printNative(native)
 	local baseAppendix = appendix
 
 	local doc = formatDocString(native)
-	local retType, def = formatImpl(native)
+	local retType, def, hyperDriveSafe = formatImpl(native)
 	local wrapper = formatWrapper(native, 'Internal' .. nativeName .. baseAppendix)
 
 	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. appendix, wrapper)
@@ -494,9 +494,10 @@ local function printNative(native)
 		end
 	end
 	
-	str = str .. string.format("\t\t[System.Security.SecurityCritical]\n\t\tprivate static unsafe %s Internal%s%s", retType, nativeName .. baseAppendix, def)
-	str = str .. string.format("\n#if USE_HYPERDRIVE\n\t\tprivate static ScriptContext.CallFunc m_invoker%s;\n#endif\n", nativeName);
-
+	str = str .. string.format("\t\t[System.Security.SecurityCritical]\n\t\tprivate static unsafe %s Internal%s%s", retType, nativeName .. baseAppendix, def)	
+	if hyperDriveSafe then
+		str = str .. string.format("\n#if USE_HYPERDRIVE\n\t\tprivate static ScriptContext.CallFunc m_invoker%s;\n#endif\n", nativeName);
+	end	
 	return str
 end
 
