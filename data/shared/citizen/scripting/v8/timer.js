@@ -91,9 +91,7 @@
         setTimer(
             id,
             function() {
-                try {
-                    callback(...argsForCallback);
-                } catch { }
+		callback(...argsForCallback);
             },
             interval
         );
