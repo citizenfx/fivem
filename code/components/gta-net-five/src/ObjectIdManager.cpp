@@ -180,7 +180,14 @@ static HookFunction hookFunction([]()
 			return;
 		}
 
-		if (g_objectIds.size() < 16)
+		int reqCount = 16;
+
+		if (Instance<ICoreGameInit>::Get()->HasVariable("onesync_big"))
+		{
+			reqCount = 4;
+		}
+
+		if (g_objectIds.size() < reqCount)
 		{
 			if (!g_requestedIds)
 			{
