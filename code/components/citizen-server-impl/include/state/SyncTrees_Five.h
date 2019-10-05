@@ -1023,7 +1023,74 @@ struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true
 struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CObjectCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CObjectCreationDataNode {
+	uint32_t m_model;
+
+	bool Parse(SyncParseState& state)
+	{
+		int unk0 = state.buffer.Read<int>(5);
+		if (unk0 & 0xFFFFFFFD)
+		{
+			uint32_t model = state.buffer.Read<uint32_t>(32);
+			m_model = model;
+
+			bool unk2 = state.buffer.ReadBit();
+			bool unk3 = state.buffer.ReadBit();
+			bool unk4 = state.buffer.ReadBit();
+
+			if (unk3)
+			{
+				auto unk5 = state.buffer.Read<int>(19);
+				auto unk6 = state.buffer.ReadFloat(8, 2000); // wrong divisor
+			}
+		}
+		else
+		{
+			int unk7 = state.buffer.Read<int>(31);
+			auto unk8 = state.buffer.ReadBit();
+			auto unk9 = state.buffer.ReadBit();
+			auto unk10 = state.buffer.ReadBit();
+			auto unk11 = state.buffer.ReadBit();
+			auto unk12 = state.buffer.ReadBit();
+			auto unk13 = state.buffer.ReadBit();
+			auto unk14 = state.buffer.ReadBit();
+
+			if (unk9)
+			{
+				auto unk15 = state.buffer.Read<int>(5);
+			}
+
+			auto unk16 = state.buffer.ReadBit();
+
+			if (!unk16)
+			{
+				auto unk17 = state.buffer.Read<int>(10);
+				auto unk18 = state.buffer.Read<int>(19);
+				auto unk19 = state.buffer.ReadBit();
+			}
+		}
+
+		bool unk20 = state.buffer.ReadBit();
+
+		if (unk20)
+		{
+			auto unk21 = state.buffer.ReadBit();
+		}
+
+		bool unk22 = state.buffer.ReadBit();
+
+		if (unk22)
+		{
+			auto unk23 = state.buffer.Read<int>(16);
+		}
+
+		bool unk24 = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -1445,7 +1512,13 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		// TODO: non-vehicle/player entities
+		auto[hasOcn, objectCreationNode] = GetData<CObjectCreationDataNode>();
+
+		if (hasOcn)
+		{
+			*modelHash = objectCreationNode->m_model;
+			return true;
+		}
 
 		return false;
 	}
