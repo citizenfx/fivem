@@ -174,7 +174,7 @@ namespace rage
 			{
 				if (entry->m_hash == HashString("CVehiclePopulation") || entry->m_hash == HashString("CPedPopulation"))
 				{
-					return;
+					//return;
 				}
 			}
 
