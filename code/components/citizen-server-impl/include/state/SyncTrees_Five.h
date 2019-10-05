@@ -676,7 +676,8 @@ struct CVehicleAppearanceDataNode {
 		state.entity->data["dashboardColour"] = dashboardColour;
 
 
-		bool isPrimaryColourRGB = state.buffer.ReadBit();
+		int isPrimaryColourRGB = state.buffer.ReadBit();
+		state.entity->data["isPrimaryColour"] = isPrimaryColourRGB;
 
 		if (isPrimaryColourRGB)
 		{
@@ -688,14 +689,9 @@ struct CVehicleAppearanceDataNode {
 			state.entity->data["primaryGreenColour"] = primaryGreenColour;
 			state.entity->data["primaryBlueColour"] = primaryBlueColour;
 		}
-		else
-		{
-			state.entity->data["primaryRedColour"] = 255;
-			state.entity->data["primaryGreenColour"] = 255;
-			state.entity->data["primaryBlueColour"] = 255;
-		}
 
-		bool isSecondaryColourRGB = state.buffer.ReadBit();
+		int isSecondaryColourRGB = state.buffer.ReadBit();
+		state.entity->data["isSecondaryColour"] = isSecondaryColourRGB;
 
 		if (isSecondaryColourRGB)
 		{
@@ -706,12 +702,6 @@ struct CVehicleAppearanceDataNode {
 			state.entity->data["secondaryRedColour"] = secondaryRedColour;
 			state.entity->data["secondaryGreenColour"] = secondaryGreenColour;
 			state.entity->data["secondaryBlueColour"] = secondaryBlueColour;
-		}
-		else
-		{
-			state.entity->data["secondaryRedColour"] = 255;
-			state.entity->data["secondaryGreenColour"] = 255;
-			state.entity->data["secondaryBlueColour"] = 255;
 		}
 
 		int unk0 = state.buffer.Read<int>(8);

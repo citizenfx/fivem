@@ -510,9 +510,11 @@ static InitFunction initFunction([]()
 	{
 		if (context.GetArgumentCount() > 3)
 		{
-			*context.GetArgument<int*>(1) = entity->GetData("primaryRedColour", 0);
-			*context.GetArgument<int*>(2) = entity->GetData("primaryGreenColour", 0);
-			*context.GetArgument<int*>(3) = entity->GetData("primaryBlueColour", 0);
+			bool isPrimaryColour = entity->GetData("isPrimaryColour", 0);
+
+			*context.GetArgument<int*>(1) = isPrimaryColour ? entity->GetData("primaryRedColour", 0) : 0;
+			*context.GetArgument<int*>(2) = isPrimaryColour ? entity->GetData("primaryGreenColour", 0) : 0;
+			*context.GetArgument<int*>(3) = isPrimaryColour ? entity->GetData("primaryBlueColour", 0) : 0;
 		}
 
 		return 1;
@@ -520,14 +522,26 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CUSTOM_SECONDARY_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		if (context.GetArgumentCount() > 2)
+		if (context.GetArgumentCount() > 3)
 		{
-			*context.GetArgument<int*>(1) = entity->GetData("secondaryRedColour", 0);
-			*context.GetArgument<int*>(2) = entity->GetData("secondaryGreenColour", 0);
-			*context.GetArgument<int*>(3) = entity->GetData("secondaryBlueColour", 0);
+			bool isSecondaryColour = entity->GetData("isSecondaryColour", 0);
+
+			*context.GetArgument<int*>(1) = isSecondaryColour ? entity->GetData("secondaryRedColour", 0) : 0;
+			*context.GetArgument<int*>(2) = isSecondaryColour ? entity->GetData("secondaryGreenColour", 0) : 0;
+			*context.GetArgument<int*>(3) = isSecondaryColour ? entity->GetData("secondaryBlueColour", 0) : 0;
 		}
 
 		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_VEHICLE_PRIMARY_COLOUR_CUSTOM", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["isPrimaryColour"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_VEHICLE_SECONDARY_COLOUR_CUSTOM", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["isSecondaryColour"];
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LIVERY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
