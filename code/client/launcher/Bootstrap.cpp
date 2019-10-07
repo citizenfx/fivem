@@ -12,6 +12,9 @@
 #include <wintrust.h>
 #include <softpub.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 #include <citversion.h>
 
 #pragma comment(lib, "wintrust")
@@ -102,6 +105,9 @@ bool Bootstrap_DoBootstrap()
 			return false;
 		}
 	}
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+	initState->ranPastInstaller = true;
 
     if (!VerifyViability())
     {

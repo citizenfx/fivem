@@ -9,6 +9,7 @@ struct CfxState
 
 	bool inJobObject;
 	bool running;
+	bool ranPastInstaller;
 
 	wchar_t initPath[1024];
 
@@ -17,6 +18,8 @@ struct CfxState
 		running = true;
 		initialPid = GetCurrentProcessId();
 		gamePid = 0;
+		ranPastInstaller = false;
+		inJobObject = false;
 
 		// get the init path
 		wchar_t modulePath[512];
