@@ -280,7 +280,7 @@ rage::netObject* GetLocalPlayerPedNetObject()
 	return nullptr;
 }
 
-void HandleCliehtDrop(const NetLibraryClientInfo& info)
+void HandleClientDrop(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID() && info.slotId != g_netLibrary->GetServerSlotID())
 	{
@@ -1665,6 +1665,12 @@ static InitFunction initFunctionEv([]()
 				return;
 			}
 
+			if (g_players[info.slotId])
+			{
+				trace("Dropping duplicate player for slotID %d.\n", info.slotId);
+				HandleClientDrop(info);
+			}
+
 			HandleClientInfo(info);
 		});
 
@@ -1675,7 +1681,7 @@ static InitFunction initFunctionEv([]()
 				return;
 			}
 
-			HandleCliehtDrop(info);
+			HandleClientDrop(info);
 		});
 
 		netLibrary->AddReliableHandler("msgNetGameEvent", [](const char* data, size_t len)
