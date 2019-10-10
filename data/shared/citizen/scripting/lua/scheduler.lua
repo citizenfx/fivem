@@ -790,21 +790,23 @@ local funcref_mt = {
 			local rvs = msgpack.unpack(rv)
 
 			-- handle async retvals from refs
-			if rvs and type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine.running() then
-				local p = promise.new()
+			if rvs then
+				if type(rvs[1]) == 'table' and rawget(rvs[1], '__cfx_async_retval') and coroutine.running() then
+					local p = promise.new()
 
-				rvs[1].__cfx_async_retval(function(r, e)
-					if r then
-						p:resolve(r)
-					elseif e then
-						p:reject(e)
-					end
-				end)
+					rvs[1].__cfx_async_retval(function(r, e)
+						if r then
+							p:resolve(r)
+						elseif e then
+							p:reject(e)
+						end
+					end)
 
-				return table.unpack(Citizen.Await(p))
+					return table.unpack(Citizen.Await(p))
+				end
+
+				return table.unpack(rvs)
 			end
-
-			return table.unpack(rvs)
 		else
 			return InvokeRpcEvent(tonumber(netSource.source:sub(5)), ref, {...})
 		end
