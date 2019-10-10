@@ -33,6 +33,7 @@ namespace CitizenFX.Core
 		StayInEndFrame = 2,
 		UpperBodyOnly = 16,
 		AllowRotation = 32,
+		UpperBodyControllable = 49,
 		CancelableWithMovement = 128,
 		RagdollOnCollision = 4194304
 	}
