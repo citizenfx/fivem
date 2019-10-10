@@ -1029,26 +1029,36 @@ struct CObjectCreationDataNode {
 
 	bool Parse(SyncParseState& state)
 	{
-		int unk0 = state.buffer.Read<int>(5);
-		if (unk0 & 0xFFFFFFFD)
+		/*
+			Probably a subsystem ID
+			If it's 0 or 2, it's a dummy object
+		*/
+		int createdBy = state.buffer.Read<int>(5);
+		if (createdBy & 0xFFFFFFFD)
 		{
 			uint32_t model = state.buffer.Read<uint32_t>(32);
 			m_model = model;
 
-			bool unk2 = state.buffer.ReadBit();
-			bool unk3 = state.buffer.ReadBit();
-			bool unk4 = state.buffer.ReadBit();
+			bool hasInitPhysics = state.buffer.ReadBit();
+			bool scriptGrabbedFromWorld = state.buffer.ReadBit();
+			bool noReassign = state.buffer.ReadBit();
 
-			if (unk3)
+			if (scriptGrabbedFromWorld)
 			{
-				auto unk5 = state.buffer.Read<int>(19);
-				auto unk6 = state.buffer.ReadFloat(8, 2000); // wrong divisor
+				float scriptGrabPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float scriptGrabPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float scriptGrabPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+				auto scriptGrabRadius = state.buffer.ReadFloat(8, 20); // wrong divisor
 			}
 		}
 		else
 		{
-			int unk7 = state.buffer.Read<int>(31);
-			auto unk8 = state.buffer.ReadBit();
+			float dummyPosX = state.buffer.ReadSignedFloat(31, 27648.0f);
+			float dummyPosY = state.buffer.ReadSignedFloat(31, 27648.0f);
+			float dummyPosZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+
+			auto playerWantsControl = state.buffer.ReadBit();
 			auto unk9 = state.buffer.ReadBit();
 			auto unk10 = state.buffer.ReadBit();
 			auto unk11 = state.buffer.ReadBit();
@@ -1058,16 +1068,21 @@ struct CObjectCreationDataNode {
 
 			if (unk9)
 			{
-				auto unk15 = state.buffer.Read<int>(5);
+				auto fragGroupIndex = state.buffer.Read<int>(5);
 			}
 
 			auto unk16 = state.buffer.ReadBit();
 
 			if (!unk16)
 			{
-				auto unk17 = state.buffer.Read<int>(10);
-				auto unk18 = state.buffer.Read<int>(19);
-				auto unk19 = state.buffer.ReadBit();
+				auto ownershipToken = state.buffer.Read<int>(10);
+				float objectPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float objectPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float objectPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+				
+				auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
 			}
 		}
 
