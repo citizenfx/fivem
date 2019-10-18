@@ -190,22 +190,7 @@ bool GetOurSystemKey(char* systemKey);
 #pragma comment(lib, "winmm.lib")
 
 #include <strsafe.h>
-
-struct ScInAddr
-{
-	uint64_t unkKey1;
-	uint64_t unkKey2;
-	uint32_t secKeyTime; // added in 393
-	uint32_t ipLan;
-	uint16_t portLan;
-	uint32_t ipUnk;
-	uint16_t portUnk;
-	uint32_t ipOnline;
-	uint16_t portOnline;
-	uint16_t pad3;
-	uint32_t newVal; // added in 372
-	uint64_t rockstarAccountId; // 463/505 addition - really R*? given this field one could easily replace everything with a Steam-like implementation only passing around user IDs...
-};
+#include <NetworkPlayerMgr.h>
 
 struct ScSessionAddr
 {
@@ -661,6 +646,13 @@ void ObjectIds_BindNetLibrary(NetLibrary*);
 
 #include <CloneManager.h>
 
+static hook::cdecl_stub<void(ScPlayerData*)> _setGameGamerInfo([]()
+{
+	return hook::get_pattern("3A D8 0F 95 C3 40 0A DE 40", -0x53);
+});
+
+static ScPlayerData** g_gamerInfo;
+
 static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
@@ -724,11 +716,37 @@ static HookFunction initFunction([]()
 
 	g_netLibrary->SetBase(GetTickCount());
 
+	g_gamerInfo = hook::get_address<decltype(g_gamerInfo)>(hook::get_pattern("FF C8 0F 85 AC 00 00 00 48 39 35", 11));
+
 	static bool doTickThisFrame = false;
 
 	OnGameFrame.Connect([]()
 	{
 		GetOurOnlineAddressRaw();
+
+		if (!*g_gamerInfo)
+		{
+			return;
+		}
+
+		static auto origNonce = (*g_gamerInfo)->gamerId;
+		uint64_t tgtNonce;
+
+		if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+		{
+			tgtNonce = g_netLibrary->GetServerNetID();
+		}
+		else
+		{
+			tgtNonce = origNonce;
+		}
+
+		if ((*g_gamerInfo)->gamerId != tgtNonce)
+		{
+			(*g_gamerInfo)->gamerId = tgtNonce;
+
+			_setGameGamerInfo(*g_gamerInfo);
+		}
 	});
 
 	OnCriticalGameFrame.Connect([]()

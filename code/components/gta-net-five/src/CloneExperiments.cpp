@@ -196,11 +196,12 @@ namespace sync
 		void* fakeInAddr = calloc(256, 1);
 		void* fakeFakeData = calloc(256, 1);
 
-		ScInAddr* inAddr = (ScInAddr*)fakeInAddr;
-		inAddr->ipLan = clientId ^ 0xFEED;
-		inAddr->ipUnk = clientId ^ 0xFEED;
-		inAddr->ipOnline = clientId ^ 0xFEED;
-		inAddr->rockstarAccountId = clientId;
+		ScPlayerData* inAddr = (ScPlayerData*)fakeInAddr;
+		inAddr->addr.ipLan = clientId ^ 0xFEED;
+		inAddr->addr.ipUnk = clientId ^ 0xFEED;
+		inAddr->addr.ipOnline = clientId ^ 0xFEED;
+		inAddr->addr.rockstarAccountId = clientId;
+		inAddr->gamerId = clientId;
 
 		// 1290
 		// 1365
