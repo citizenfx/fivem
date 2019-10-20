@@ -14,11 +14,14 @@ public:
 	DWORD unk_0; // +8
 	BYTE unk_1; // +12
 	BYTE unk_2; // +13
-	char pad_0[26]; // +14
+	BYTE unk_3; // +14
+	BYTE unk_4; // +15
+	DWORD unk_5; // +16
+	char pad_0[20]; // +20
 	float shapeMix; // +40
 	float skinMix; // +44
 	float unknownMix; // +48
-	DWORD unk_3; // +52
+	DWORD unk_6; // +52
 	float overlayAlpha[13]; // +56
 	float overlayAlphaCopy[13]; // +108
 	float faceFeature[20]; // +160
@@ -32,24 +35,17 @@ public:
 	uint8_t secondSkinId; // +283
 	uint8_t thirdSkinId; // +284
 	uint8_t overlayValue[13]; // +285
-	uint8_t palleteColorR0; // +298
-	uint8_t palleteColorR1; // +299
-	uint8_t palleteColorR2; // +300
-	uint8_t palleteColorR3; // +301
-	uint8_t palleteColorG0; // +302
-	uint8_t palleteColorG1; // +303
-	uint8_t palleteColorG2; // +304
-	uint8_t palleteColorG3; // +305
-	uint8_t palleteColorB0; // +306
-	uint8_t palleteColorB1; // +307
-	uint8_t palleteColorB2; // +308
-	uint8_t palleteColorB3; // +309
+	uint8_t paletteColorR[4]; // +298
+	uint8_t paletteColorG[4]; // +302
+	uint8_t paletteColorB[4]; // +306
 	uint16_t eyeColour; // +310
 	uint8_t hairColour; // +312
 	uint8_t hairHighlight; // +313
-	BYTE unk_4; // +314
-	BYTE unk_5; // +315
-	BYTE unk_6; // +316
+	BYTE unk_7; // +314
+	BYTE isPaletteUsed; // +315
+	BYTE unk_8; // +316
+	BYTE isParentBlend; // +317
+	BYTE unk_9; // +318
 };
 
 static uint64_t* _id_CPedHeadBlendData;
@@ -142,6 +138,7 @@ static HookFunction initFunction([]()
 		int result = -1;
 
 		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
 		if (entity && entity->IsOfType<CPed>())
 		{
 			CPedHeadBlendData* data = GetPedHeadBlendData(entity);
@@ -157,6 +154,7 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_HAIR_HIGHLIGHT_COLOR", [=](fx::ScriptContext& context)
 	{
 		int result = -1;
+
 		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
 
 		if (entity && entity->IsOfType<CPed>())
