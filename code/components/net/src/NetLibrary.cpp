@@ -1056,9 +1056,10 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 				onesyncType = "onesync_plus";
 			}
-			else
+
+			if (big1s)
 			{
-				onesyncType = "";
+				onesyncType = "onesync_big";
 			}
 
 			AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
