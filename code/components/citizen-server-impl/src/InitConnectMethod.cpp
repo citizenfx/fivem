@@ -334,6 +334,7 @@ static InitFunction initFunction([]()
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
+			data["onesync_big"] = fx::IsBigMode();
 			data["token"] = token;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();

@@ -1023,7 +1023,28 @@ struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true
 struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CObjectCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CObjectCreationDataNode
+{
+	uint32_t m_model;
+
+	bool Parse(SyncParseState& state)
+	{
+		int createdBy = state.buffer.Read<int>(5);
+
+		if (createdBy != 0 && createdBy != 2)
+		{
+			m_model = state.buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			m_model = 0;
+		}
+
+		return true;
+	}
+};
+
 struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -1445,7 +1466,13 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		// TODO: non-vehicle/player entities
+		auto[hasOcn, objectCreationNode] = GetData<CObjectCreationDataNode>();
+
+		if (hasOcn)
+		{
+			*modelHash = objectCreationNode->m_model;
+			return true;
+		}
 
 		return false;
 	}

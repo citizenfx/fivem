@@ -232,6 +232,8 @@ namespace fx
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
 	using HandlerMapComponent = MapComponent<uint32_t, TPacketTypeHandler>;
+
+	bool IsBigMode();
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);

@@ -14,7 +14,7 @@ using TPacketPool = eastl::fixed_node_allocator<65536, 512, 16, 0, true>;
 static uint8_t packetArena[TPacketPool::kBufferSize];
 static TPacketPool packetAllocator(packetArena);
 
-using TSendPacketPool = eastl::fixed_node_allocator<4096, 32768, 16, 0, true>;
+using TSendPacketPool = eastl::fixed_node_allocator<8192, 32768, 16, 0, true>;
 static uint8_t sendPacketArena[TPacketPool::kBufferSize];
 static TSendPacketPool sendPacketAllocator(sendPacketArena);
 
@@ -207,6 +207,12 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 		}, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
 			const struct sockaddr* addr, unsigned flags)
 		{
+			// we don't want to tell the world about errors
+			if (nread < 0)
+			{
+				return;
+			}
+
 			auto udpSocket = (UdpSocket*)handle->data;
 
 			if (addr && addr->sa_family == AF_INET6)
