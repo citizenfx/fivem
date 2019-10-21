@@ -1030,7 +1030,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						entity = std::move(entity),
 						entityClient = std::move(entityClient),
 						resendDelay,
-						syncDelay,
+						syncDelay = syncDelay,
 						syncType,
 						curTime
 					] (SyncCommandState& cmdState)
