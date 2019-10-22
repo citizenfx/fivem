@@ -3,6 +3,9 @@
 # fail on error
 set -e
 
+# set the number of job slots
+JOB_SLOTS=${JOB_SLOTS:-24}
+
 # upgrade to edge
 echo http://dl-cdn.alpinelinux.org/alpine/edge/main > /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
@@ -46,7 +49,7 @@ rm premake.zip
 cd premake-*
 
 cd build/gmake.unix/
-make -j24
+make -j${JOB_SLOTS}
 cd ../../
 
 mv bin/release/premake5 /usr/local/bin
@@ -114,7 +117,7 @@ fi
 
 make clean
 make clean config=release
-make -j24 config=release
+make -j${JOB_SLOTS} config=release
 
 cd ../../../
 
