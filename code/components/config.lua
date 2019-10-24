@@ -1,9 +1,6 @@
 component 'comptest'
 component 'http-client'
-component 'nui-core'
 component 'glue'
-component 'nui-gsclient'
-component 'nui-resources'
 component 'font-renderer'
 component 'debug-net'
 component 'scrbind-formats'
@@ -30,6 +27,11 @@ if _OPTIONS['game'] == 'server' then
 else
 	component 'tool-formats'
 	component 'tool-vehrec'
+	component 'nui-core'
+	component 'nui-gsclient'
+	component 'nui-resources'
+	component 'citizen-game-main'
+	component 'citizen-game-ipc'
 	
 	if _OPTIONS['game'] ~= 'launcher' then
 		component 'rage-formats-x'
@@ -87,5 +89,3 @@ component 'extra-natives-five'
 component 'discord'
 component 'citizen-mod-loader-five'
 component 'debug-script'
-component 'citizen-game-main'
-component 'citizen-game-ipc'
