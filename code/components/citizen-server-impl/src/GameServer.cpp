@@ -22,8 +22,8 @@
 
 #include <MonoThreadAttachment.h>
 
-#include <protocol/reqrep0/req.h>
-#include <protocol/reqrep0/rep.h>
+#include <nng/protocol/reqrep0/req.h>
+#include <nng/protocol/reqrep0/rep.h>
 
 static fx::GameServer* g_gameServer;
 
@@ -617,7 +617,7 @@ namespace fx
 
 		int i = m_socketIdx;
 
-		if (!sockets[i])
+		if (!sockets[i].id)
 		{
 			nng_req0_open(&sockets[i]);
 			nng_dial(sockets[i], m_socketName.c_str(), &dialers[i], 0);

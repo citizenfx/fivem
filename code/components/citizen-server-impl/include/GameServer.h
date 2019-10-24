@@ -9,7 +9,7 @@
 #include <MapComponent.h>
 #include <NetAddress.h>
 
-#include <nng.h>
+#include <nng/nng.h>
 
 #include <boost/bimap.hpp>
 
