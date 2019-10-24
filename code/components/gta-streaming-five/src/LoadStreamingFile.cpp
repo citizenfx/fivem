@@ -239,6 +239,8 @@ static std::set<std::string> loadedCollisions;
 int GetDummyCollectionIndexByTag(const std::string& tag);
 extern std::unordered_map<int, std::string> g_handlesToTag;
 
+fwEvent<> OnReloadMapStore;
+
 static void ReloadMapStore()
 {
 	if (!g_reloadMapStore)
@@ -261,6 +263,7 @@ static void ReloadMapStore()
 				}
 
 				auto mgr = streaming::Manager::GetInstance();
+				auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
 
 				if (_isResourceNotCached(mgr, obj) || GetDummyCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1)
 				{
@@ -272,21 +275,29 @@ static void ReloadMapStore()
 
 					loadedCollisions.insert(file);
 
-					trace("Loaded %s (id %d)\n", file, obj);
+					trace("Loaded %s (id %d)\n", file, relId);
 				}
 				else
 				{
-					trace("Skipped %s - it's cached! (id %d)\n", file, obj);
+					trace("Skipped %s - it's cached! (id %d)\n", file, relId);
 				}
 			}
 		}
 	});
 
+	OnReloadMapStore();
+
 	// workaround by unloading/reloading MP map group
 	g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+
+	// again for enablement
+	OnReloadMapStore();
+
 	g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
 
 	g_clearContentCache(0);
+
+	loadedCollisions.clear();
 
 	// load gtxd files
 	for (auto& file : g_gtxdFiles)
@@ -594,7 +605,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 
 		if (earlyLoad)
 		{
-			if (ext == "ymap" || ext == "ytyp")
+			if (ext == "ymap" || ext == "ytyp" || ext == "ybn")
 			{
 				++it;
 				continue;
