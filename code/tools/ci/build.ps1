@@ -406,12 +406,15 @@ if (!$DontBuild -and !$IsServer) {
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
     }
 
-    Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
-
     if (!$IsLauncher) {
+        Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
+
         Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
+    } else {
+        Copy-Item -Force $BinRoot\launcher\release\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\launcher\release\*.com $CacheDir\fivereborn\
     }
     
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
