@@ -1310,16 +1310,41 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 }
 
 #include <GameInit.h>
+#include <regex>
+
+static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int idx, int* status)
+{
+	if (*status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
+	{
+		auto thisName = streaming::GetStreamingNameForIndex(module->baseIdx + idx);
+
+		// if this is, say, vb_02.ymap, and we also load hei_vb_02.ymap, skip this file
+		// this'll still break if people override only the non-DLC variants, but then they've got what's coming to them
+		std::regex re{ fmt::sprintf("[a-z]{1,3}_%s", thisName), std::regex::icase };
+		bool found = false;
+
+		for (const auto& name : g_customStreamingFileRefs)
+		{
+			if (std::regex_match(name, re))
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			*status = 2;
+		}
+	}
+}
 
 static bool(*g_orig_fwStaticBoundsStore__ModifyHierarchyStatus)(streaming::strStreamingModule* module, int idx, int status);
 
 static bool fwStaticBoundsStore__ModifyHierarchyStatus(streaming::strStreamingModule* module, int idx, int status)
 {
 	// don't disable hierarchy overlay for any custom overrides
-	if (status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
-	{
-		status = 2;
-	}
+	ModifyHierarchyStatusHook(module, idx, &status);
 
 	return g_orig_fwStaticBoundsStore__ModifyHierarchyStatus(module, idx, status);
 }
@@ -1329,14 +1354,10 @@ static bool(*g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive)(streaming::s
 static bool fwMapDataStore__ModifyHierarchyStatusRecursive(streaming::strStreamingModule* module, int idx, int status)
 {
 	// don't disable hierarchy overlay for any custom overrides
-	if (status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
-	{
-		status = 2;
-	}
+	ModifyHierarchyStatusHook(module, idx, &status);
 
 	return g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive(module, idx, status);
 }
-
 
 static bool g_lockReload;
 
