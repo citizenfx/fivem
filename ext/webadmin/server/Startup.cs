@@ -123,7 +123,8 @@ namespace FxWebAdmin
                         apm.ApplicationParts.Add(part);
                     }
                 }
-            });
+            })
+            .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
             services.AddServerSentEvents();
         }
