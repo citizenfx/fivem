@@ -11,6 +11,7 @@
 #include <wincrypt.h>
 #include <wintrust.h>
 #include <softpub.h>
+#include <sstream>
 
 #include <CfxState.h>
 #include <HostSharedData.h>
@@ -54,7 +55,14 @@ bool Bootstrap_UpdateEXE(int exeSize)
 
 	PROCESS_INFORMATION processInfo;
 
-	CreateProcess(wfn, (LPWSTR)va(L"%s -bootstrap \"%s\"", wfn, exePath), NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, &processInfo);
+	int argc;
+	LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+	std::wstringstream passThroughStream;
+	for (auto i = 1; i < argc; i++) {
+		passThroughStream << L" " << argv[i];
+	}
+	std::wstring passThrough = passThroughStream.str();
+	CreateProcess(wfn, (LPWSTR)va(L"%s -bootstrap \"%s\"%s", wfn, exePath, passThrough.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, &processInfo);
 
 	return false;
 }
@@ -121,7 +129,7 @@ bool Bootstrap_DoBootstrap()
 #endif
 }
 
-void Bootstrap_ReplaceExecutable(const wchar_t* fileName)
+void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& passThrough)
 {
 	wchar_t thisFileName[512];
 	GetModuleFileName(GetModuleHandle(NULL), thisFileName, sizeof(thisFileName) / 2);
@@ -202,7 +210,7 @@ void Bootstrap_ReplaceExecutable(const wchar_t* fileName)
 
 	DeleteFile(va(L"%s.old", fileName));
 
-	ShellExecute(NULL, L"open", fileName, L"", L"", SW_SHOWDEFAULT);
+	ShellExecute(NULL, L"open", fileName, passThrough.c_str(), L"", SW_SHOWDEFAULT);
 }
 
 void Bootstrap_MoveExecutable(const wchar_t* mode)
@@ -236,11 +244,16 @@ bool Bootstrap_RunInit()
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
-	if (argc == 3)
+	if (argc >= 3)
 	{
 		if (!_wcsicmp(argv[1], L"-bootstrap"))
 		{
-			Bootstrap_ReplaceExecutable(argv[2]);
+			std::wstringstream passThrough(L"");
+			for (auto i = 3; i < argc; i++) {
+				passThrough << (i > 3 ? L" " : L"") << argv[i];
+			}
+
+			Bootstrap_ReplaceExecutable(argv[2], passThrough.str());
 			LocalFree(argv);
 			return true;
 		}
