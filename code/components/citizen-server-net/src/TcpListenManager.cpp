@@ -38,6 +38,7 @@ namespace fx
 			if (m_primaryPort == 0)
 			{
 				m_primaryPort = peerAddress->GetPort();
+				m_primaryPortVar->GetHelper()->SetRawValue(m_primaryPort);
 			}
 
 			// create a multiplexable TCP server and bind it
@@ -74,6 +75,8 @@ namespace fx
 		{
 			AddEndpoint(endPoint);
 		});
+
+		m_primaryPortVar = instance->AddVariable<int>("netPort", ConVar_None, m_primaryPort);
 	}
 }
 

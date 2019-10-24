@@ -26,6 +26,7 @@ if _OPTIONS['game'] == 'server' then
 	component 'scripting-server'
 	component 'vfs-impl-server'
 	component 'voip-server-mumble'
+	component 'citizen-server-monitor'
 else
 	component 'tool-formats'
 	component 'tool-vehrec'
