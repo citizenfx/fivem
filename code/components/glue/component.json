@@ -9,6 +9,7 @@
 		"scripting:gta",
 		"conhost",
 		"font-renderer",
+		"citizen:game:ipc",
 		"vendor:cpp-url",
 		"vendor:nng",
 		"vendor:msgpack-c"

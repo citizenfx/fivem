@@ -254,7 +254,7 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 		return nullptr;
 	}
 
-	auto tex = std::make_shared<RuntimeTex>(nui::GetWindowTexture(duiHandle));
+	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)nui::GetWindowTexture(duiHandle)->GetHostTexture());
 	m_txd->Add(name, tex->GetTexture());
 
 	m_textures[name] = tex;

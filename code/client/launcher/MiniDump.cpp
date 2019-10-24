@@ -1192,6 +1192,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
 		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
+#else
+		if (false)
 #endif
 		{
 			trace("Crash report service returned %s\n", ToNarrow(responseBody));

@@ -77,8 +77,195 @@ void MakeDummyDevice(ID3D11Device** device, ID3D11DeviceContext** context, const
 
 fwEvent<IDXGIFactory2*, ID3D11Device*, HWND, DXGI_SWAP_CHAIN_DESC1*, DXGI_SWAP_CHAIN_FULLSCREEN_DESC*, IDXGISwapChain1**> OnTryCreateSwapChain;
 
+#include <HostSharedData.h>
+#include <ReverseGameData.h>
+#include <CfxState.h>
+
+#include <dcomp.h>
+
+#pragma comment(lib, "dcomp.lib")
+
+#include <mmsystem.h>
+
+class BufferBackedDXGISwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGISwapChain>
+{
+public:
+	// Inherited via RuntimeClass
+	virtual HRESULT SetPrivateData(REFGUID Name, UINT DataSize, const void * pData) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT SetPrivateDataInterface(REFGUID Name, const IUnknown * pUnknown) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT GetPrivateData(REFGUID Name, UINT * pDataSize, void * pData) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT GetParent(REFIID riid, void ** ppParent) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT GetDevice(REFIID riid, void ** ppDevice) override
+	{
+		trace("GetDevice\n");
+
+		return E_NOTIMPL;
+	}
+	virtual HRESULT Present(UINT SyncInterval, UINT Flags) override
+	{
+		if (Flags & DXGI_PRESENT_TEST)
+		{
+			// TODO: request more information from the device/host game
+			return S_OK;
+		}
+
+		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+		int idx = rgd->GetNextSurface(INFINITE);
+
+		if (idx >= 0)
+		{
+			auto surface = m_frontTextures[idx];
+			WRL::ComPtr<IDXGIKeyedMutex> mutex;
+
+			GetD3D11DeviceContext()->CopyResource(surface.Get(), m_texture.Get());
+			rgd->SubmitSurface();
+		}
+		else
+		{
+			trace("frame dropped - presenter was busy?\n");
+		}
+
+		return S_OK;
+	}
+	virtual HRESULT GetBuffer(UINT Buffer, REFIID riid, void ** ppSurface) override
+	{
+		//trace("GetBuffer %d\n", Buffer);
+
+		if (Buffer == 0)
+		{
+			return m_texture.CopyTo(riid, ppSurface);
+		}
+
+		return E_NOTIMPL;
+	}
+	virtual HRESULT SetFullscreenState(BOOL Fullscreen, IDXGIOutput * pTarget) override
+	{
+		//trace("SetFullscreenState %d\n", Fullscreen);
+
+		return S_OK;
+	}
+	virtual HRESULT GetFullscreenState(BOOL * pFullscreen, IDXGIOutput ** ppTarget) override
+	{
+		//trace("GetFullscreenState\n");
+
+		*pFullscreen = FALSE;
+		return S_OK;
+	}
+
+private:
+	WRL::ComPtr<ID3D11Texture2D> m_texture;
+	WRL::ComPtr<ID3D11Texture2D> m_frontTextures[4];
+
+public:
+	DXGI_SWAP_CHAIN_DESC desc;
+	ID3D11Device* device;
+
+	BufferBackedDXGISwapChain(ID3D11Device* device, DXGI_SWAP_CHAIN_DESC desc)
+		: desc(desc), device(device)
+	{
+		RecreateFromDesc();
+	}
+
+private:
+	void RecreateFromDesc()
+	{
+		D3D11_TEXTURE2D_DESC tdesc = CD3D11_TEXTURE2D_DESC(desc.BufferDesc.Format, desc.BufferDesc.Width, desc.BufferDesc.Height, 1, 1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_DEFAULT, 0, 1, 0, /*D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX*/ D3D11_RESOURCE_MISC_SHARED);
+
+		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+		if (rgd->twidth != desc.BufferDesc.Width || rgd->theight != desc.BufferDesc.Height)
+		{
+			rgd->twidth = desc.BufferDesc.Width;
+			rgd->theight = desc.BufferDesc.Height;
+
+			rgd->editWidth = true;
+		}
+
+		for (int i = 0; i < std::size(m_frontTextures); i++)
+		{
+			WRL::ComPtr<ID3D11Texture2D> tex;
+			device->CreateTexture2D(&tdesc, nullptr, tex.ReleaseAndGetAddressOf());
+
+			m_frontTextures[i] = tex;
+
+			WRL::ComPtr<IDXGIResource> res;
+
+			if (SUCCEEDED(tex.As(&res)))
+			{
+				HANDLE hdl;
+				res->GetSharedHandle(&hdl);
+
+				rgd->surfaces[i] = hdl;
+			}
+		}
+
+		tdesc.MiscFlags &= ~D3D11_RESOURCE_MISC_SHARED;
+		tdesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		device->CreateTexture2D(&tdesc, nullptr, m_texture.ReleaseAndGetAddressOf());
+
+		if (rgd->inited)
+		{
+			rgd->createHandles = true;
+		}
+
+		rgd->inited = true;
+	}
+
+public:
+
+	virtual HRESULT GetDesc(DXGI_SWAP_CHAIN_DESC * pDesc) override
+	{
+		*pDesc = desc;
+		return S_OK;
+	}
+	virtual HRESULT ResizeBuffers(UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags) override
+	{
+		desc.BufferCount = BufferCount;
+		desc.BufferDesc.Width = Width;
+		desc.BufferDesc.Height = Height;
+		desc.BufferDesc.Format = NewFormat;
+		desc.Flags = SwapChainFlags;
+
+		RecreateFromDesc();
+
+		return S_OK;
+	}
+	virtual HRESULT ResizeTarget(const DXGI_MODE_DESC * pNewTargetParameters) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT GetContainingOutput(IDXGIOutput ** ppOutput) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT GetFrameStatistics(DXGI_FRAME_STATISTICS * pStats) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT GetLastPresentCount(UINT * pLastPresentCount) override
+	{
+		return S_OK;
+	}
+};
+
+
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	static HostSharedData<CfxState> initState("CfxInitState");
+
 	auto uiExitEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIExit");
 	auto uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIDone");
 
@@ -159,10 +346,18 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 		if (!swapChain1)
 		{
-			dxgiFactory->CreateSwapChainForHwnd(*ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, &fsDesc, nullptr, &swapChain1);
+			if (!initState->isReverseGame)
+			{
+				dxgiFactory->CreateSwapChainForHwnd(*ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, &fsDesc, nullptr, &swapChain1);
+				swapChain1->QueryInterface(__uuidof(IDXGISwapChain), (void**)ppSwapChain);
+			}
 		}
 
-		swapChain1->QueryInterface(__uuidof(IDXGISwapChain), (void**)ppSwapChain);
+		if (initState->isReverseGame)
+		{
+			auto sc = WRL::Make<BufferBackedDXGISwapChain>(*ppDevice, *pSwapChainDesc);
+			sc.CopyTo(ppSwapChain);
+		}
 	}
 
 	// patch stuff here as only now do we know swapchain flags
@@ -172,7 +367,10 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 	hook::put<uint32_t>(pattern.get(1).get<void>(4), g_swapChainFlags | 2);
 
 	// we assume all users will stop using the object by the time it is dereferenced
-	g_swapChain1 = swapChain1.Get();
+	if (!initState->isReverseGame)
+	{
+		g_swapChain1 = swapChain1.Get();
+	}
 
 	g_dc = *ppImmediateContext;
 
@@ -929,6 +1127,8 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 
 static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)
 {
+	dc->GetData(async, data, dataSize, flags);
+
 	*(int*)data = 1;
 
 	return S_OK;
@@ -996,6 +1196,86 @@ void RemoveTextureOverride(rage::grcTexture* orig)
 void GfxForceVsync(bool enabled)
 {
 	g_overrideVsync = enabled;
+}
+
+static HWND g_gtaWindow;
+
+static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lpClassName, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam)
+{
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+	auto w = CreateWindowExW(dwExStyle, lpClassName, lpWindowName, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, rgd->width, rgd->height, NULL, hMenu, hInstance, lpParam);
+	
+	g_gtaWindow = w;
+
+	return w;
+}
+
+static HWND WINAPI HookGetForegroundWindow()
+{
+	auto orig = GetForegroundWindow();
+
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+	if (rgd->mainWindowHandle == orig)
+	{
+		orig = g_gtaWindow;
+	}
+
+	return orig;
+}
+
+static BOOL WINAPI HookShowWindow(HWND, int)
+{
+	return TRUE;
+}
+
+static HWND HookSetFocus(_In_opt_ HWND hWnd)
+{
+	return hWnd;
+}
+
+static HWND HookSetCapture(_In_opt_ HWND hWnd)
+{
+	return NULL;
+}
+
+static INT HookShowCursor(BOOL show)
+{
+	return (show) ? 0 : -1;
+}
+
+static BOOL HookClipCursor(const LPRECT rect)
+{
+	return TRUE;
+}
+
+static BOOL HookGetCursorPos(LPPOINT point)
+{
+	point->x = 24;
+	point->y = 24;
+
+	ClientToScreen(g_gtaWindow, point);
+
+	return TRUE;
+}
+
+static BOOL HookAdjustWindowRect(_Inout_ LPRECT lpRect, _In_ DWORD dwStyle, _In_ BOOL bMenu)
+{
+	return TRUE;
+}
+
+static LONG_PTR SetWindowLongPtrAHook(HWND hWnd,
+	int  nIndex,
+	LONG_PTR dwNewLong)
+{
+	if (nIndex == GWL_STYLE)
+	{
+		dwNewLong &= ~WS_OVERLAPPEDWINDOW;
+		dwNewLong = WS_POPUP;
+	}
+
+	return SetWindowLongPtrA(hWnd, nIndex, dwNewLong);
 }
 
 static HookFunction hookFunction([] ()
@@ -1087,10 +1367,20 @@ static HookFunction hookFunction([] ()
 	MH_CreateHook(hook::get_pattern("48 8B D9 48 89 01 48 8B 49 28 E8 ? ? ? ? 48 8D", -0xD), grcTextureDtorHook, (void**)&g_origGrcTextureDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	// query GetData, always return 1 (why even wait for presentation with a really weird Sleep loop?)
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->isReverseGame)
 	{
-		//auto location = hook::get_pattern("48 8B 01 8B FE FF 90 E8 00 00 00", 5);
-		//hook::nop(location, 6);
-		//hook::call(location, D3DGetData);
+		// make window a child
+		hook::iat("user32.dll", HookCreateWindowExW, "CreateWindowExW");
+		hook::iat("user32.dll", HookShowWindow, "ShowWindow");
+		hook::iat("user32.dll", HookGetForegroundWindow, "GetForegroundWindow");
+		hook::iat("user32.dll", HookSetFocus, "SetFocus");
+		hook::iat("user32.dll", HookGetCursorPos, "GetCursorPos");
+		hook::iat("user32.dll", HookSetCapture, "SetCapture");
+		hook::iat("user32.dll", HookShowCursor, "ShowCursor");
+		hook::iat("user32.dll", HookClipCursor, "ClipCursor");
+		//hook::iat("user32.dll", HookAdjustWindowRect, "AdjustWindowRect");
+		hook::iat("user32.dll", SetWindowLongPtrAHook, "SetWindowLongPtrA");
 	}
 });

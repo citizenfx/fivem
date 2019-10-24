@@ -119,7 +119,9 @@ void ManagerServer::Unmount(const std::string& path)
 }
 }
 
+#ifdef IS_FXSERVER
 static InitFunction initfunction([]()
 {
 	Instance<vfs::Manager>::Set(new vfs::ManagerServer());
 });
+#endif

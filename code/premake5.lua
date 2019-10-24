@@ -133,6 +133,12 @@ workspace "CitizenMP"
 
 		filter 'language:C or language:C++'
 			architecture 'x64'
+			
+	configuration "game=launcher"
+		defines "IS_LAUNCHER"
+
+		filter 'language:C or language:C++'
+			architecture 'x64'
 
 	configuration "windows"
 		links { "winmm" }
@@ -269,6 +275,7 @@ premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, p
 	return base(prj)
 end)
 
+if _OPTIONS['game'] ~= 'launcher' then
 	project "CitiMono"
 		targetname "CitizenFX.Core"
 		language "C#"
@@ -386,7 +393,7 @@ end)
 			configuration "Release*"
 				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/ref/')
 	end
-
+end
 	group ""
 
 	-- TARGET: shared component

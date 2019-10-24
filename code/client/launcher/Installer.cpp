@@ -200,7 +200,7 @@ bool Install_PerformInstallation()
 		{
 			static HostSharedData<CfxState> hostData("CfxInitState");
 			hostData->inJobObject = false;
-			hostData->initialPid = pi.dwProcessId;
+			hostData->SetInitialPid(pi.dwProcessId);
 
 			ResumeThread(pi.hThread);
 
@@ -366,8 +366,8 @@ bool Install_RunInstallMode()
 
 	bool isDownloadsFolder = false;
 
-	if (StrStrIW(hostData->initPath, L"downloads") != nullptr ||
-		StrStrIW(hostData->initPath, L"\\dls") != nullptr)
+	if (StrStrIW(hostData->GetInitPath().c_str(), L"downloads") != nullptr ||
+		StrStrIW(hostData->GetInitPath().c_str(), L"\\dls") != nullptr)
 	{
 		isDownloadsFolder = true;
 	}
@@ -375,7 +375,7 @@ bool Install_RunInstallMode()
 	size_t maxOtherFiles = (isDownloadsFolder) ? 3 : 5;
 
 	// count the amount of files 'together' with us in our folder
-	fs::directory_iterator it(hostData->initPath), end;
+	fs::directory_iterator it(hostData->GetInitPath()), end;
 	size_t numFiles = std::count_if(it, end, [](const fs::directory_entry& entry)
 	{
 		if (entry.path().filename().string()[0] == '.')

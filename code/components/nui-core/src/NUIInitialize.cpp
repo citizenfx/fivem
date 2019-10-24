@@ -10,8 +10,7 @@
 #include "NUISchemeHandlerFactory.h"
 #include "NUIWindowManager.h"
 
-#include <DrawCommands.h>
-#include <fiDevice.h>
+#include <CefOverlay.h>
 
 #include <delayimp.h>
 
@@ -39,7 +38,7 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
-void FinalizeInitNUI();
+nui::GameInterface* g_nuiGi;
 
 struct GameRenderData
 {
@@ -218,11 +217,6 @@ void Component_RunPreInit()
 
     InitFunctionBase::RunAll();
 
-    OnResumeGame.Connect([] ()
-    {
-        FinalizeInitNUI();
-    });
-
 	// try to execute as a CEF process
 	int exitCode = CefExecuteProcess(args, app, nullptr);
 
@@ -236,7 +230,7 @@ void Component_RunPreInit()
 void CreateRootWindow()
 {
 	int resX, resY;
-	GetGameResolution(resX, resY);
+	g_nuiGi->GetGameResolution(&resX, &resY);
 
 	auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
@@ -246,8 +240,12 @@ void CreateRootWindow()
 
 bool g_shouldCreateRootWindow;
 
-void FinalizeInitNUI()
+namespace nui
 {
+void Initialize(nui::GameInterface* gi)
+{
+	g_nuiGi = gi;
+
     if (getenv("CitizenFX_ToolMode"))
     {
         return;
@@ -311,17 +309,24 @@ void FinalizeInitNUI()
 
 #endif
 
-	OnGrcCreateDevice.Connect([]()
+	g_nuiGi->OnInitRenderer.Connect([]()
 	{
 		CreateRootWindow();
 	});
 
-	OnPostFrontendRender.Connect([]()
+	g_nuiGi->OnRender.Connect([]()
 	{
 		if (g_shouldCreateRootWindow)
 		{
-			Instance<NUIWindowManager>::Get()->RemoveWindow(Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef());
-			Instance<NUIWindowManager>::Get()->SetRootWindow({});
+			{
+				auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
+
+				if (rw)
+				{
+					Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
+					Instance<NUIWindowManager>::Get()->SetRootWindow({});
+				}
+			}
 
 			CreateRootWindow();
 
@@ -329,7 +334,7 @@ void FinalizeInitNUI()
 		}
 	});
 
-	rage::fiDevice::OnInitialMount.Connect([]()
+	g_nuiGi->OnInitVfs.Connect([]()
 	{
 		auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
 
@@ -342,5 +347,6 @@ void FinalizeInitNUI()
 				vfs::Mount(file, "citizen:/ui/");
 			}
 		}
-	}, 100);
+	});
+}
 }

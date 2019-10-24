@@ -597,7 +597,7 @@ static void* SMPACreateStub(void* a1, void* a2, size_t size, void* a4, bool a5)
        return g_origSMPACreate(a1, a2, size, a4, a5);
 }
 
-static HookFunction hookFunction([]()
+static HookFunction hookFunction([] ()
 {
 #if 0
 	hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);

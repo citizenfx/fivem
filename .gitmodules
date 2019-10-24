@@ -160,3 +160,15 @@
 [submodule "vendor/toojpeg"]
 	path = vendor/toojpeg
 	url = https://github.com/stbrumme/toojpeg.git
+[submodule "vendor/bgfx"]
+	path = vendor/bgfx
+	url = https://github.com/citizenfx/bgfx.git
+[submodule "vendor/bx"]
+	path = vendor/bx
+	url = https://github.com/bkaradzic/bx.git
+[submodule "vendor/bimg"]
+	path = vendor/bimg
+	url = https://github.com/bkaradzic/bimg.git
+[submodule "vendor/nngpp"]
+	path = vendor/nngpp
+	url = https://github.com/citizenfx/nngpp.git
