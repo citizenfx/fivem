@@ -118,6 +118,8 @@ namespace CitizenFX.Core
 			"RADIO_18_90S_ROCK",
 			"RADIO_19_USER",
 			"RADIO_20_THELAB",
+			"RADIO_21_DLC_XM17",
+			"RADIO_22_DLC_BATTLE_MIX1_RADIO",
 			"RADIO_OFF"
 		};
 
