@@ -22,7 +22,7 @@ namespace CitizenFX.Core
 		SelfRadio,
 		TheLab,
 		BlondedLosSantos,
-		LosSantosUndergroundRadio
+		LosSantosUndergroundRadio,
 		RadioOff = 255
 	}
 }
