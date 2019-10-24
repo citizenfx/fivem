@@ -21,6 +21,8 @@ using Vector4 = rage::Vector4;
 #define RAGE_FORMATS_five_datBase 1
 #elif defined(RAGE_FORMATS_GAME_PAYNE)
 #define RAGE_FORMATS_payne_datBase 1
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+#define RAGE_FORMATS_rdr3_datBase 1
 #endif
 
 #define SwapShortRead(x) (x)
@@ -58,7 +60,7 @@ class FORMATS_EXPORT datBase
 public:
 #if (defined(GTA_FIVE) && defined(RAGE_FORMATS_GAME_FIVE)) || (defined(GTA_NY) && defined(RAGE_FORMATS_GAME_NY))
 	virtual ~datBase() {}
-#elif defined(RAGE_FORMATS_GAME_FIVE)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 	uint64_t m_vt;
 #elif defined(RAGE_FORMATS_GAME_NY) || defined(RAGE_FORMATS_GAME_PAYNE)
 	uint32_t m_vt;

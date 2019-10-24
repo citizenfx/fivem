@@ -135,6 +135,14 @@ namespace fx
 			return ptr;
 		}
 
+		inline std::shared_ptr<Client> GetClientBySlotID(uint32_t slotId)
+		{
+			assert(slotId < m_clientsBySlotId.size());
+
+			auto weakPtr = m_clientsBySlotId[slotId];
+			return weakPtr.lock();
+		}
+
 		inline std::shared_ptr<Client> GetClientByConnectionToken(const std::string& token)
 		{
 			auto ptr = std::shared_ptr<Client>();

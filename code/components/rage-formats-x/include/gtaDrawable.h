@@ -20,6 +20,8 @@
 #define RAGE_FORMATS_ny_gtaDrawable 1
 #elif defined(RAGE_FORMATS_GAME_PAYNE)
 #define RAGE_FORMATS_payne_gtaDrawable 1
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+#define RAGE_FORMATS_rdr3_gtaDrawable 1
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE)
@@ -104,13 +106,17 @@ public:
 class gtaDrawable : public rmcDrawable
 {
 private:
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_RDR3)
+	uint8_t padGtaDrawable1[24];
+#endif
+
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 	pgPtr<const char> m_name;
 #endif
 
 	pgArray<CLightAttr> m_lightAttrs;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 	pgPtr<void> m_unk1;
 	pgPtr<phBound> m_bound;
 #endif
@@ -134,6 +140,13 @@ public:
 		}
 #endif
 	}
+
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
+	inline const char* GetName()
+	{
+		return *m_name;
+	}
+#endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 	inline void SetName(const char* name)

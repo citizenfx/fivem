@@ -196,11 +196,12 @@ namespace sync
 		void* fakeInAddr = calloc(256, 1);
 		void* fakeFakeData = calloc(256, 1);
 
-		ScInAddr* inAddr = (ScInAddr*)fakeInAddr;
-		inAddr->ipLan = clientId ^ 0xFEED;
-		inAddr->ipUnk = clientId ^ 0xFEED;
-		inAddr->ipOnline = clientId ^ 0xFEED;
-		inAddr->rockstarAccountId = clientId;
+		ScPlayerData* inAddr = (ScPlayerData*)fakeInAddr;
+		inAddr->addr.ipLan = clientId ^ 0xFEED;
+		inAddr->addr.ipUnk = clientId ^ 0xFEED;
+		inAddr->addr.ipOnline = clientId ^ 0xFEED;
+		inAddr->addr.rockstarAccountId = clientId;
+		inAddr->gamerId = clientId;
 
 		// 1290
 		// 1365
@@ -280,7 +281,7 @@ rage::netObject* GetLocalPlayerPedNetObject()
 	return nullptr;
 }
 
-void HandleCliehtDrop(const NetLibraryClientInfo& info)
+void HandleClientDrop(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID() && info.slotId != g_netLibrary->GetServerSlotID())
 	{
@@ -1102,6 +1103,16 @@ static void UnkBubbleWrap()
 	}
 }
 
+static void(*g_origUnkEventMgr)(void*, void*);
+
+static void UnkEventMgr(void* mgr, void* ply)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_origUnkEventMgr(mgr, ply);
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	// 1604
@@ -1155,6 +1166,9 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("33 F6 33 DB 33 ED 0F 28 80", -0x3A), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);
 
 	MH_CreateHook(hook::get_pattern("0F 29 70 C8 0F 28 F1 33 DB 45", -0x1C), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
+
+	// func that reads neteventmgr by player idx, crashes page heap
+	MH_CreateHook(hook::get_pattern("80 7A 2D FF 48 8B EA 48 8B F1 0F", -0x13), UnkEventMgr, (void**)&g_origUnkEventMgr);
 
 	// return to disable breaking hooks
 	//return;
@@ -1665,6 +1679,12 @@ static InitFunction initFunctionEv([]()
 				return;
 			}
 
+			if (g_players[info.slotId])
+			{
+				trace("Dropping duplicate player for slotID %d.\n", info.slotId);
+				HandleClientDrop(info);
+			}
+
 			HandleClientInfo(info);
 		});
 
@@ -1675,7 +1695,7 @@ static InitFunction initFunctionEv([]()
 				return;
 			}
 
-			HandleCliehtDrop(info);
+			HandleClientDrop(info);
 		});
 
 		netLibrary->AddReliableHandler("msgNetGameEvent", [](const char* data, size_t len)

@@ -2,9 +2,11 @@
 FROM alpine:3.8
 ARG CI_BRANCH
 ARG CI_BUILD_NUMBER
+ARG JOB_SLOTS
 MOUNT ..:/src
 RUN echo 'export CI_BRANCH='$CI_BRANCH > /src/.env
 RUN echo 'export CI_BUILD_NUMBER='$CI_BUILD_NUMBER >> /src/.env
+RUN echo 'export JOB_SLOTS='$JOB_SLOTS >> /src/.env
 
 # build system resources
 FROM mcr.microsoft.com/dotnet/core/sdk:2.2-alpine3.9

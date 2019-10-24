@@ -21,6 +21,8 @@ namespace CitizenFX.Core
 		VinewoodBoulevardRadio,
 		SelfRadio,
 		TheLab,
+		BlondedLosSantos,
+		LosSantosUndergroundRadio,
 		RadioOff = 255
 	}
 }

@@ -1029,6 +1029,17 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (node["enhancedHostSupport"].IsDefined() && node["enhancedHostSupport"].as<bool>(false));
 			Instance<ICoreGameInit>::Get()->OneSyncEnabled = (node["onesync"].IsDefined() && node["onesync"].as<bool>(false));
 			Instance<ICoreGameInit>::Get()->NetProtoVersion = (node["bitVersion"].IsDefined() ? node["bitVersion"].as<uint64_t>(0) : 0);
+			
+			bool big1s = (node["onesync_big"].IsDefined() && node["onesync_big"].as<bool>(false));
+
+			if (big1s)
+			{
+				Instance<ICoreGameInit>::Get()->SetVariable("onesync_big");
+			}
+			else
+			{
+				Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
+			}
 
 			std::string onesyncType = "onesync";
 			auto maxClients = (node["maxClients"].IsDefined()) ? node["maxClients"].as<int>() : 64;
@@ -1044,6 +1055,11 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			else if (maxClients <= 128)
 			{
 				onesyncType = "onesync_plus";
+			}
+
+			if (big1s)
+			{
+				onesyncType = "onesync_big";
 			}
 
 			AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");

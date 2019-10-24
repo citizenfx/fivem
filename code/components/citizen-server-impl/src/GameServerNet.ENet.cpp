@@ -181,8 +181,9 @@ namespace fx
 		void ProcessHost(ENetHost* host)
 		{
 			ENetEvent event;
+			int enetEntry = 0;
 
-			while (enet_host_service(host, &event, 0) > 0)
+			while ((enetEntry = enet_host_service(host, &event, 0)) != 0)
 			{
 				switch (event.type)
 				{
@@ -310,7 +311,7 @@ namespace fx
 		{
 			// create an ENet host
 			ENetAddress addr = GetENetAddress(address);
-			ENetHost* host = enet_host_create(&addr, 256, 2, 0, 0);
+			ENetHost* host = enet_host_create(&addr, 1024, 2, 0, 0);
 
 			// ensure the host exists
 			if (!host)
