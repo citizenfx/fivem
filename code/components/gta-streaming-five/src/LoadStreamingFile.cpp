@@ -1300,6 +1300,33 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 
 #include <GameInit.h>
 
+static bool(*g_orig_fwStaticBoundsStore__ModifyHierarchyStatus)(streaming::strStreamingModule* module, int idx, int status);
+
+static bool fwStaticBoundsStore__ModifyHierarchyStatus(streaming::strStreamingModule* module, int idx, int status)
+{
+	// don't disable hierarchy overlay for any custom overrides
+	if (status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
+	{
+		status = 2;
+	}
+
+	return g_orig_fwStaticBoundsStore__ModifyHierarchyStatus(module, idx, status);
+}
+
+static bool(*g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive)(streaming::strStreamingModule* module, int idx, int status);
+
+static bool fwMapDataStore__ModifyHierarchyStatusRecursive(streaming::strStreamingModule* module, int idx, int status)
+{
+	// don't disable hierarchy overlay for any custom overrides
+	if (status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
+	{
+		status = 2;
+	}
+
+	return g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive(module, idx, status);
+}
+
+
 static bool g_lockReload;
 
 static HookFunction hookFunction([] ()
@@ -1557,5 +1584,7 @@ static HookFunction hookFunction([] ()
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("8B D5 81 E2", -0x24), pgRawStreamer__OpenCollectionEntry, (void**)&g_origOpenCollectionEntry);
 	MH_CreateHook(hook::get_pattern("0F B7 C3 48 8B 5C 24 30 8B D0 25 FF", -0x14), pgRawStreamer__GetEntry, (void**)&g_origGetEntry);
+	MH_CreateHook(hook::get_pattern("45 8B E8 4C 8B F1 83 FA FF 0F 84", -0x18), fwStaticBoundsStore__ModifyHierarchyStatus, (void**)&g_orig_fwStaticBoundsStore__ModifyHierarchyStatus);
+	MH_CreateHook(hook::get_pattern("45 33 D2 84 C0 0F 84 ? 01 00 00 4C", -0x28), fwMapDataStore__ModifyHierarchyStatusRecursive, (void**)&g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
