@@ -1252,16 +1252,78 @@ struct CObjectCreationDataNode
 
 	bool Parse(SyncParseState& state)
 	{
+		/*
+			Probably a subsystem ID
+			If it's 0 or 2, it's a dummy object
+		*/
 		int createdBy = state.buffer.Read<int>(5);
-
 		if (createdBy != 0 && createdBy != 2)
 		{
-			m_model = state.buffer.Read<uint32_t>(32);
+			uint32_t model = state.buffer.Read<uint32_t>(32);
+			m_model = model;
+
+			bool hasInitPhysics = state.buffer.ReadBit();
+			bool scriptGrabbedFromWorld = state.buffer.ReadBit();
+			bool noReassign = state.buffer.ReadBit();
+
+			if (scriptGrabbedFromWorld)
+			{
+				float scriptGrabPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float scriptGrabPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float scriptGrabPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+				auto scriptGrabRadius = state.buffer.ReadFloat(8, 20); // wrong divisor
+			}
 		}
 		else
 		{
-			m_model = 0;
+			float dummyPosX = state.buffer.ReadSignedFloat(31, 27648.0f);
+			float dummyPosY = state.buffer.ReadSignedFloat(31, 27648.0f);
+			float dummyPosZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+
+			auto playerWantsControl = state.buffer.ReadBit();
+			auto unk9 = state.buffer.ReadBit();
+			auto unk10 = state.buffer.ReadBit();
+			auto unk11 = state.buffer.ReadBit();
+			auto unk12 = state.buffer.ReadBit();
+			auto unk13 = state.buffer.ReadBit();
+			auto unk14 = state.buffer.ReadBit();
+
+			if (unk9)
+			{
+				auto fragGroupIndex = state.buffer.Read<int>(5);
+			}
+
+			auto unk16 = state.buffer.ReadBit();
+
+			if (!unk16)
+			{
+				auto ownershipToken = state.buffer.Read<int>(10);
+				float objectPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float objectPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
+				float objectPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+				
+				auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
+			}
 		}
+
+		bool unk20 = state.buffer.ReadBit();
+
+		if (unk20)
+		{
+			auto unk21 = state.buffer.ReadBit();
+		}
+
+		bool unk22 = state.buffer.ReadBit();
+
+		if (unk22)
+		{
+			auto unk23 = state.buffer.Read<int>(16);
+		}
+
+		bool unk24 = state.buffer.ReadBit();
 
 		return true;
 	}
