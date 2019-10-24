@@ -239,6 +239,8 @@ static std::set<std::string> loadedCollisions;
 int GetDummyCollectionIndexByTag(const std::string& tag);
 extern std::unordered_map<int, std::string> g_handlesToTag;
 
+fwEvent<> OnReloadMapStore;
+
 static void ReloadMapStore()
 {
 	if (!g_reloadMapStore)
@@ -261,6 +263,7 @@ static void ReloadMapStore()
 				}
 
 				auto mgr = streaming::Manager::GetInstance();
+				auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
 
 				if (_isResourceNotCached(mgr, obj) || GetDummyCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1)
 				{
@@ -272,21 +275,29 @@ static void ReloadMapStore()
 
 					loadedCollisions.insert(file);
 
-					trace("Loaded %s (id %d)\n", file, obj);
+					trace("Loaded %s (id %d)\n", file, relId);
 				}
 				else
 				{
-					trace("Skipped %s - it's cached! (id %d)\n", file, obj);
+					trace("Skipped %s - it's cached! (id %d)\n", file, relId);
 				}
 			}
 		}
 	});
 
+	OnReloadMapStore();
+
 	// workaround by unloading/reloading MP map group
 	g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+
+	// again for enablement
+	OnReloadMapStore();
+
 	g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
 
 	g_clearContentCache(0);
+
+	loadedCollisions.clear();
 
 	// load gtxd files
 	for (auto& file : g_gtxdFiles)
@@ -594,7 +605,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 
 		if (earlyLoad)
 		{
-			if (ext == "ymap" || ext == "ytyp")
+			if (ext == "ymap" || ext == "ytyp" || ext == "ybn")
 			{
 				++it;
 				continue;
@@ -611,7 +622,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 			// try to create/get an asset in the streaming module
 			// RegisterStreamingFile will still work if one exists as long as the handle remains 0
 			uint32_t strId;
-			strModule->GetOrCreate(&strId, nameWithoutExt.c_str());
+			strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
 
 			g_ourIndexes.insert(strId + strModule->baseIdx);
 			g_pendingRemovals.erase({ strModule, strId });
@@ -980,7 +991,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 		if (strModule)
 		{
 			uint32_t strId;
-			strModule->GetIndexByName(&strId, nameWithoutExt.c_str());
+			strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
 
 			auto rawStreamer = getRawStreamer();
 			uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
@@ -1299,6 +1310,54 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 }
 
 #include <GameInit.h>
+#include <regex>
+
+static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int idx, int* status)
+{
+	if (*status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
+	{
+		auto thisName = streaming::GetStreamingNameForIndex(module->baseIdx + idx);
+
+		// if this is, say, vb_02.ymap, and we also load hei_vb_02.ymap, skip this file
+		// this'll still break if people override only the non-DLC variants, but then they've got what's coming to them
+		std::regex re{ fmt::sprintf("[a-z]{1,3}_%s", thisName), std::regex::icase };
+		bool found = false;
+
+		for (const auto& name : g_customStreamingFileRefs)
+		{
+			if (std::regex_match(name, re))
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			*status = 2;
+		}
+	}
+}
+
+static bool(*g_orig_fwStaticBoundsStore__ModifyHierarchyStatus)(streaming::strStreamingModule* module, int idx, int status);
+
+static bool fwStaticBoundsStore__ModifyHierarchyStatus(streaming::strStreamingModule* module, int idx, int status)
+{
+	// don't disable hierarchy overlay for any custom overrides
+	ModifyHierarchyStatusHook(module, idx, &status);
+
+	return g_orig_fwStaticBoundsStore__ModifyHierarchyStatus(module, idx, status);
+}
+
+static bool(*g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive)(streaming::strStreamingModule* module, int idx, int status);
+
+static bool fwMapDataStore__ModifyHierarchyStatusRecursive(streaming::strStreamingModule* module, int idx, int status)
+{
+	// don't disable hierarchy overlay for any custom overrides
+	ModifyHierarchyStatusHook(module, idx, &status);
+
+	return g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive(module, idx, status);
+}
 
 static bool g_lockReload;
 
@@ -1457,7 +1516,7 @@ static HookFunction hookFunction([] ()
 				rage__fwArchetypeManager__FreeArchetypes(idx);
 			}
 
-			module->DeleteEntry(idx);
+			module->RemoveSlot(idx);
 		}
 
 		g_pendingRemovals.clear();
@@ -1557,5 +1616,7 @@ static HookFunction hookFunction([] ()
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("8B D5 81 E2", -0x24), pgRawStreamer__OpenCollectionEntry, (void**)&g_origOpenCollectionEntry);
 	MH_CreateHook(hook::get_pattern("0F B7 C3 48 8B 5C 24 30 8B D0 25 FF", -0x14), pgRawStreamer__GetEntry, (void**)&g_origGetEntry);
+	MH_CreateHook(hook::get_pattern("45 8B E8 4C 8B F1 83 FA FF 0F 84", -0x18), fwStaticBoundsStore__ModifyHierarchyStatus, (void**)&g_orig_fwStaticBoundsStore__ModifyHierarchyStatus);
+	MH_CreateHook(hook::get_pattern("45 33 D2 84 C0 0F 84 ? 01 00 00 4C", -0x28), fwMapDataStore__ModifyHierarchyStatusRecursive, (void**)&g_orig_fwMapDataStore__ModifyHierarchyStatusRecursive);
 	MH_EnableHook(MH_ALL_HOOKS);
 });

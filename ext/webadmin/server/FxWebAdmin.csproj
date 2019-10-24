@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OpenId.Steam" Version="2.1.0" />
     <PackageReference Include="CitizenFX.Core.Server" Version="1.0.1550" />
+    <PackageReference Include="dotliquid" Version="2.0.314" />
     <PackageReference Include="Lib.AspNetCore.ServerSentEvents" Version="3.1.0" />
     <PackageReference Include="MaxMind.GeoIP2" Version="3.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />

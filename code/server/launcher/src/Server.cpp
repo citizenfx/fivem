@@ -29,7 +29,28 @@ namespace fx
 		ComponentLoader* loader = ComponentLoader::GetInstance();
 		loader->Initialize();
 
-		fwRefContainer<ComponentData> serverComponent = loader->LoadComponent("citizen:server:main");
+		// combine argv to a separate command list
+		std::stringstream args;
+	
+		for (int i = 1; i < argc; i++)
+		{
+			std::string arg = argv[i];
+			boost::algorithm::replace_all(arg, "\\", "\\\\");
+
+			args << "\"" << arg << "\" ";
+		}
+
+		std::string argStr = args.str();
+
+		// get the right component
+		auto compName = "citizen:server:main";
+
+		if (argStr.find("\"+exec\" ") == std::string::npos)
+		{
+			compName = "citizen:server:monitor";
+		}
+
+		fwRefContainer<ComponentData> serverComponent = loader->LoadComponent(compName);
 
 		ComponentLoader::GetInstance()->ForAllComponents([&](fwRefContainer<ComponentData> componentData)
 		{
@@ -46,19 +67,8 @@ namespace fx
 			return;
 		}
 
-		// combine argv to a separate command list
-		std::stringstream args;
-	
-		for (int i = 1; i < argc; i++)
-		{
-			std::string arg = argv[i];
-			boost::algorithm::replace_all(arg, "\\", "\\\\");
-
-			args << "\"" << arg << "\" ";
-		}
-
 		// create a component instance
-		fwRefContainer<Component> componentInstance = serverComponent->CreateInstance(args.str());
+		fwRefContainer<Component> componentInstance = serverComponent->CreateInstance(argStr);
 
 		// check if the server initialized properly
 		if (componentInstance.GetRef() == nullptr)

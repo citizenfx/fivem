@@ -59,7 +59,7 @@ using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 struct NodeBase
 {
 public:
-	eastl::bitset<256> ackedPlayers;
+	eastl::bitset<MAX_CLIENTS> ackedPlayers;
 
 	uint64_t frameIndex;
 
@@ -180,16 +180,16 @@ struct SyncEntityState
 	std::shared_mutex clientMutex;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
-	eastl::bitset<256> ackedCreation;
-	eastl::bitset<256> didDeletion;
+	eastl::bitset<MAX_CLIENTS> ackedCreation;
+	eastl::bitset<MAX_CLIENTS> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 
 	std::chrono::milliseconds lastReceivedAt;
 
-	std::array<std::chrono::milliseconds, 256> lastResends{};
-	std::array<std::chrono::milliseconds, 256> lastSyncs{};
+	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastResends{};
+	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs{};
 
 	std::unique_ptr<SyncTreeBase> syncTree;
 
@@ -359,7 +359,7 @@ private:
 		WorldGridEntry entries[12];
 	};
 
-	WorldGridState m_worldGrid[256];
+	WorldGridState m_worldGrid[MAX_CLIENTS];
 
 	struct WorldGridOwnerIndexes
 	{

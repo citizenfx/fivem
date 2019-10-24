@@ -104,6 +104,10 @@ namespace fx
 
 			// start webadmin
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+
+			// add system console access
+			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
 
 			for (const auto& bit : optionParser->GetArguments())
 			{

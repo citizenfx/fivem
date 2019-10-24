@@ -503,7 +503,7 @@ static InitFunction initFunction([]()
 #include <ScriptEngine.h>
 #include <optional>
 
-void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
+void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc, bool replayed)
 {
 	// build the target event
 	net::Buffer outBuffer;
@@ -533,14 +533,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (client)
 		{
 			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		}
 	}
 	else
 	{
 		clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
-			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		});
 	}
 }

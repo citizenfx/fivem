@@ -8,79 +8,8 @@
 #include <UvLoopManager.h>
 #include <UvTcpServer.h>
 
-#include <EASTL/internal/fixed_pool.h>
-
-using TPacketPool = eastl::fixed_node_allocator<65536, 512, 16, 0, true>;
-static uint8_t packetArena[TPacketPool::kBufferSize];
-static TPacketPool packetAllocator(packetArena);
-
-using TSendPacketPool = eastl::fixed_node_allocator<4096, 32768, 16, 0, true>;
-static uint8_t sendPacketArena[TPacketPool::kBufferSize];
-static TSendPacketPool sendPacketAllocator(sendPacketArena);
-
-using TSendPool = eastl::fixed_node_allocator<sizeof(uv_udp_send_t), 32768, 16, 0, true>;
-static uint8_t sendArena[TSendPool::kBufferSize];
-static TSendPool sendAllocator(sendArena);
-
-using TReqPool = eastl::fixed_node_allocator<1024, 32768, 16, 0, true>;
-static uint8_t reqArena[TReqPool::kBufferSize];
-static TReqPool reqAllocator(reqArena);
-
-template<typename... TArgs>
-struct UvCallbackArgsPooled
-{
-	template<typename Handle, typename TFn>
-	static auto Get(Handle* handle, TFn fn)
-	{
-		struct Request : public UvClosable
-		{
-			TFn fn;
-
-			Request(TFn fn)
-				: fn(std::move(fn))
-			{
-
-			}
-
-			static void cb(Handle* handle, TArgs... args)
-			{
-				Request* request = reinterpret_cast<Request*>(handle->data);
-
-				request->fn(handle, args...);
-				request->~Request();
-
-				reqAllocator.deallocate(request, TReqPool::kNodeSize);
-			}
-		};
-
-		auto req = new(reqAllocator.allocate(TReqPool::kNodeSize)) Request(std::move(fn));
-		handle->data = req;
-
-		return &Request::cb;
-	}
-};
-
-struct send_deleter
-{
-	inline void operator()(void* ptr)
-	{
-		sendAllocator.deallocate(ptr, sizeof(uv_udp_send_t));
-	}
-};
-
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
-
-// needed for eastl
-void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return ::operator new[](size);
-}
-
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return ::operator new[](size);
-}
 
 static std::chrono::nanoseconds timeBase{ 0 };
 
@@ -120,7 +49,7 @@ struct Datagram
 
 struct UdpSocket
 {
-	UvHandleContainer<uv_udp_t> udp;
+	std::shared_ptr<uvw::UDPHandle> udp;
 	std::deque<Datagram> recvQueue;
 };
 
@@ -139,7 +68,7 @@ enet_socket_create(ENetSocketType type)
 
 	g_sockets[fd] = socketData;
 
-	uv_udp_init(Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork")->GetLoop(), &socketData->udp);
+	socketData->udp = Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork")->Get()->resource<uvw::UDPHandle>();
 	
 	return fd;
 }
@@ -195,52 +124,48 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 
 	auto sd = socketIt->second;
 
-	int rv = uv_udp_bind(&sd->udp, (sockaddr*)&sin, 0);
+	sd->udp->bind(*(sockaddr*)&sin);
 
-	if (rv >= 0)
+	sd->udp->on<uvw::ErrorEvent>([sd](const uvw::ErrorEvent& ev, uvw::UDPHandle& socket)
 	{
-		sd->udp.get()->data = sd.get();
 
-		uv_udp_recv_start(&sd->udp, [](uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf)
+	});
+
+	sd->udp->on<uvw::UDPDataEvent>([sd](const uvw::UDPDataEvent& ev, uvw::UDPHandle& socket)
+	{
+		// we don't want to tell the world about errors
+		if (ev.length < 0)
 		{
-			return alloc_buffer(packetAllocator, handle, suggestedSize, buf);
-		}, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
-			const struct sockaddr* addr, unsigned flags)
+			return;
+		}
+
+		const auto& udpSocket = sd;
+
+		typename uvw::details::IpTraits<uvw::IPv6>::Type addr;
+		uvw::details::IpTraits<uvw::IPv6>::addrFunc(ev.sender.ip.data(), ev.sender.port, &addr);
+
+		if (addr.sin6_family == AF_INET6)
 		{
-			auto udpSocket = (UdpSocket*)handle->data;
+			Datagram dgram;
 
-			if (addr && addr->sa_family == AF_INET6)
+			if (ev.length > 0)
 			{
-				const sockaddr_in6* in6 = (const sockaddr_in6*)addr;
-
-				Datagram dgram;
-
-				if (nread > 0)
-				{
-					dgram.data = std::unique_ptr<char[]>(new char[nread]);
-					memcpy(dgram.data.get(), buf->base, nread);
-				}
-
-				dgram.read = nread;
-				dgram.from = *in6;
-
-				udpSocket->recvQueue.push_back(std::move(dgram));
+				dgram.data = std::unique_ptr<char[]>(new char[ev.length]);
+				memcpy(dgram.data.get(), ev.data.get(), ev.length);
 			}
 
-			OnEnetReceive();
+			dgram.read = ev.length;
+			dgram.from = addr;
 
-			if (buf->len > TPacketPool::kNodeSize)
-			{
-				free(buf->base);
-			}
-			else
-			{
-				packetAllocator.deallocate(buf->base, TPacketPool::kNodeSize);
-			}
-		});
-	}
+			udpSocket->recvQueue.push_back(std::move(dgram));
+		}
 
-	return rv;
+		OnEnetReceive();
+	});
+
+	sd->udp->recv<uvw::IPv6>();
+
+	return 0;
 }
 
 extern "C" int
@@ -258,7 +183,7 @@ enet_socket_get_address(ENetSocket socket, ENetAddress* address)
 	struct sockaddr_in6 sin;
 	int sinLength = sizeof(struct sockaddr_in6);
 
-	if (uv_udp_getsockname(&sd->udp, (struct sockaddr*)&sin, &sinLength) < 0)
+	if (uv_udp_getsockname(sd->udp->raw(), (struct sockaddr*)&sin, &sinLength) < 0)
 		return -1;
 
 	address->host = sin.sin6_addr;
@@ -302,39 +227,22 @@ enet_socket_send(ENetSocket socket,
 		totalSize += buffers[buf].dataLength;
 	}
 
-	// drop oversize packets (as a temporary test)
-	if (totalSize >= TSendPacketPool::kNodeSize)
-	{
-		return -1;
-	}
-
 	// allocate a large enough buffer
-	uv_buf_t uvBuf;
-	alloc_buffer(sendPacketAllocator, nullptr, totalSize, &uvBuf);
+	auto uniqueBuf = std::unique_ptr<char[]>(new char[totalSize]);
 
 	// copy memory into the buffer
 	totalSize = 0;
 
 	for (size_t buf = 0; buf < bufferCount; buf++)
 	{
-		memcpy(&uvBuf.base[totalSize], buffers[buf].data, buffers[buf].dataLength);
+		memcpy(&uniqueBuf.get()[totalSize], buffers[buf].data, buffers[buf].dataLength);
 		totalSize += buffers[buf].dataLength;
 	}
 
 	// start sending the buffer
 	auto sd = socketIt->second;
 
-	auto sendReq = std::unique_ptr<uv_udp_send_t, send_deleter>(new(sendAllocator.allocate(sizeof(uv_udp_send_t))) uv_udp_send_t());
-	auto reqRef = sendReq.get();
-
-	uv_udp_send(reqRef, &sd->udp, &uvBuf, 1, (sockaddr*)&sin, UvCallbackArgsPooled<int>::Get(reqRef, [sendReq = std::move(sendReq), uvBuf](uv_udp_send_t*, int)
-	{
-		// alias sendReq
-		debug::Alias(&sendReq);
-
-		// free buffer
-		sendPacketAllocator.deallocate(uvBuf.base, TSendPacketPool::kNodeSize);
-	}));
+	sd->udp->send(*(sockaddr*)&sin, std::move(uniqueBuf), totalSize);
 
 	return totalSize;
 }

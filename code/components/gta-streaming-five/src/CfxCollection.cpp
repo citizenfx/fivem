@@ -2061,6 +2061,7 @@ static std::unordered_set<std::string, IgnoreCaseHash, IgnoreCaseEqualTo> g_regi
 static std::map<uint32_t, std::string> g_hashes;
 
 std::string g_lastStreamingName;
+extern fwEvent<> OnReloadMapStore;
 
 static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch)
 {
@@ -2246,6 +2247,12 @@ static HookFunction hookFunction([] ()
 			((CfxCollection*)collection)->Invalidate();
 		}
 	}, -500);
+
+	// will rescan dlc collisions, if a dlc collision is overriden it breaks(?)
+	OnReloadMapStore.Connect([]()
+	{
+		g_registeredFileSet.clear();
+	});
 
 	{
 		void* location = hook::pattern("41 B0 01 BA 1B E6 DA 93 E8").count(1).get(0).get<void>(-12);

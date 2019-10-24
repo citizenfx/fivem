@@ -13,7 +13,6 @@
 #define GTA_GAME_EXPORT DLL_IMPORT
 #endif
 
- // needs to be kept in sync with gta:net:five
 struct ScInAddr
 {
 	uint64_t unkKey1;
@@ -33,6 +32,8 @@ struct ScInAddr
 struct ScPlayerData
 {
 	ScInAddr addr;
+	uint64_t systemKey;
+	uint64_t gamerId;
 };
 
 namespace rage

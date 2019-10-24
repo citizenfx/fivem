@@ -8,9 +8,15 @@
 #include <ServerInstanceBase.h>
 #include <ComponentHolder.h>
 
+#ifdef COMPILING_CITIZEN_SERVER_NET
+#define CSNET_EXPORT DLL_EXPORT
+#else
+#define CSNET_EXPORT DLL_IMPORT
+#endif
+
 namespace fx
 {
-	class TcpListenManager : public fwRefCountable, public IAttached<ServerInstanceBase>
+	class CSNET_EXPORT TcpListenManager : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
 	private:
 		fwRefContainer<net::TcpServerManager> m_tcpStack;
@@ -20,6 +26,8 @@ namespace fx
 		std::vector<fwRefContainer<net::TcpServer>> m_externalServers;
 
 		std::shared_ptr<ConsoleCommand> m_addEndpointCommand;
+
+		std::shared_ptr<ConVar<int>> m_primaryPortVar;
 
 		int m_primaryPort;
 

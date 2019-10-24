@@ -673,4 +673,12 @@ static HookFunction hookFunction([] ()
 		g_realResolution[0] = g_resolution[0];
 		g_realResolution[1] = g_resolution[1];
 	}, -500);
+
+	// set immediate mode vertex limit to 8x what it was (so, 32 MB)
+	// 1604
+	hook::nop(0x1412FD99C, 6); // setter
+	hook::put<uint8_t>(0x1412FD99C, 0xB8); // write to eax for later
+	hook::put<uint32_t>(0x1412FD99C + 1, 0x4000000);
+	hook::put<uint32_t>(0x141D7D194, 0x4000000);
+	hook::put<uint32_t>(0x141D7D198, 0x7FFF8 * 4);
 });

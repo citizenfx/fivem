@@ -204,7 +204,7 @@ namespace fx
 	{
 		m_netThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork");
 
-		auto asyncInitHandle = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();;
+		auto asyncInitHandle = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();
 		*asyncInitHandle = std::make_unique<UvHandleContainer<uv_async_t>>();
 
 		uv_async_init(m_netThreadLoop->GetLoop(), (*asyncInitHandle)->get(), UvPersistentCallback((*asyncInitHandle)->get(), [this, asyncInitHandle](uv_async_t*)
@@ -225,7 +225,7 @@ namespace fx
 			netData->lastTime = msec();
 
 			// periodic timer for network ticks
-			auto frameTime = 1000 / 30;
+			auto frameTime = 1000 / 120;
 
 			auto mpd = netData.get();
 			
@@ -241,6 +241,7 @@ namespace fx
 					trace("network thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
 				}
 
+				m_net->Process();
 				OnNetworkTick();
 			}), frameTime, frameTime);
 
@@ -259,10 +260,11 @@ namespace fx
 			m_netThreadCallbacks->AttachToThread();
 
 			// process hosts on a command
-			OnEnetReceive.Connect([this]()
+			// #TODO1SBIG: add bigmode check/convar?
+			/*OnEnetReceive.Connect([this]()
 			{
 				m_net->Process();
-			});
+			});*/
 
 			// store the pointer in the class for lifetime purposes
 			m_netThreadData = std::move(netData);
@@ -508,7 +510,11 @@ namespace fx
 						client->GetNetId(),
 						(host) ? host->GetNetId() : -1,
 						(host) ? host->GetNetBase() : -1,
-						(g_oneSyncVar->GetValue()) ? client->GetSlotId() : -1,
+						(g_oneSyncVar->GetValue())
+							? ((fx::IsBigMode())
+								? 128
+								: client->GetSlotId())
+							: -1,
 						(g_oneSyncVar->GetValue()) ? msec().count() : -1);
 
 					outMsg.Write(outStr.c_str(), outStr.size());
@@ -526,7 +532,7 @@ namespace fx
 
 						if (g_oneSyncVar->GetValue())
 						{
-							m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, 64);
+							m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
 						}
 
 						ForceHeartbeat();
@@ -773,8 +779,11 @@ namespace fx
 			// for name handling, send player state
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
-			// send every player information about the dropping client
-			events->TriggerClientEvent("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
+			if (!fx::IsBigMode())
+			{
+				// send every player information about the dropping client
+				events->TriggerClientEventReplayed("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
+			}
 		}
 
 		// drop the client
