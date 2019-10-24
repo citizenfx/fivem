@@ -79,7 +79,7 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	case 3:
 	{
 		static int refCount;
-		refCount = strModule->GetRefCount(relativeIndex);
+		refCount = strModule->GetNumRefs(relativeIndex);
 
 		cellDataOut.fieldPtr = &refCount;
 	}

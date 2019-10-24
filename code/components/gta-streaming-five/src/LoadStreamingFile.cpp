@@ -622,7 +622,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 			// try to create/get an asset in the streaming module
 			// RegisterStreamingFile will still work if one exists as long as the handle remains 0
 			uint32_t strId;
-			strModule->GetOrCreate(&strId, nameWithoutExt.c_str());
+			strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
 
 			g_ourIndexes.insert(strId + strModule->baseIdx);
 			g_pendingRemovals.erase({ strModule, strId });
@@ -991,7 +991,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 		if (strModule)
 		{
 			uint32_t strId;
-			strModule->GetIndexByName(&strId, nameWithoutExt.c_str());
+			strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
 
 			auto rawStreamer = getRawStreamer();
 			uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
@@ -1516,7 +1516,7 @@ static HookFunction hookFunction([] ()
 				rage__fwArchetypeManager__FreeArchetypes(idx);
 			}
 
-			module->DeleteEntry(idx);
+			module->RemoveSlot(idx);
 		}
 
 		g_pendingRemovals.clear();
