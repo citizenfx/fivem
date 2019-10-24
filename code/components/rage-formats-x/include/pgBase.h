@@ -17,6 +17,8 @@
 #define RAGE_FORMATS_ny_pgBase 1
 #elif defined(RAGE_FORMATS_GAME_PAYNE)
 #define RAGE_FORMATS_payne_pgBase 1
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+#define RAGE_FORMATS_rdr3_pgBase 1
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE)
@@ -135,7 +137,7 @@ union
 {
 	pgPtrRepresentation on_disk;
 
-#if (!defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_IX86)) || (defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64))
+#if (!defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_IX86)) || (defined(RAGE_FORMATS_GAME_FIVE) && defined(_M_AMD64)) || (defined(RAGE_FORMATS_GAME_RDR3) && defined(_M_AMD64))
 	T* pointer;
 #elif defined(__i386__) || defined(__amd64__)
 	T* pointer;
