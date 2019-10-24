@@ -1103,6 +1103,16 @@ static void UnkBubbleWrap()
 	}
 }
 
+static void(*g_origUnkEventMgr)(void*, void*);
+
+static void UnkEventMgr(void* mgr, void* ply)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_origUnkEventMgr(mgr, ply);
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	// 1604
@@ -1156,6 +1166,9 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("33 F6 33 DB 33 ED 0F 28 80", -0x3A), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);
 
 	MH_CreateHook(hook::get_pattern("0F 29 70 C8 0F 28 F1 33 DB 45", -0x1C), GetPlayersNearPoint, (void**)&g_origGetPlayersNearPoint);
+
+	// func that reads neteventmgr by player idx, crashes page heap
+	MH_CreateHook(hook::get_pattern("80 7A 2D FF 48 8B EA 48 8B F1 0F", -0x13), UnkEventMgr, (void**)&g_origUnkEventMgr);
 
 	// return to disable breaking hooks
 	//return;
