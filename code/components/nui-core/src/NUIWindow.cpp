@@ -441,6 +441,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 			if (oldRef)
 			{
 				delete oldRef;
+				oldRef = nullptr;
 			}
 
 			if (!m_primary)
@@ -805,11 +806,6 @@ void NUIWindow::HandlePopupShow(bool show)
 		{
 			delete m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP];
 			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP] = nullptr;
-		}
-
-		if (m_popupTexture)
-		{
-			delete m_popupTexture;
 			m_popupTexture = nullptr;
 		}
 	}
