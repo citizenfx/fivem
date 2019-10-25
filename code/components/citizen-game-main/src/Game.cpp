@@ -129,6 +129,16 @@ public:
 
 				cmp("Starting the target game.", 0, 1);
 			}
+			else if (!_wcsicmp(type, L"exit"))
+			{
+				// queue an ExitProcess on the next game frame
+				doNext = []()
+				{
+					CefShutdown();
+
+					TerminateProcess(GetCurrentProcess(), 0);
+				};
+			}
 		});
 	}
 
