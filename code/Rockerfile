@@ -1,13 +1,3 @@
-# environment variables workaround
-FROM alpine:3.8
-ARG CI_BRANCH
-ARG CI_BUILD_NUMBER
-ARG JOB_SLOTS
-MOUNT ..:/src
-RUN echo 'export CI_BRANCH='$CI_BRANCH > /src/.env
-RUN echo 'export CI_BUILD_NUMBER='$CI_BUILD_NUMBER >> /src/.env
-RUN echo 'export JOB_SLOTS='$JOB_SLOTS >> /src/.env
-
 # build system resources
 FROM mcr.microsoft.com/dotnet/core/sdk:2.2-alpine3.9
 MOUNT ..:/src
@@ -15,8 +5,15 @@ RUN cd /src/ext/system-resources/ && /bin/sh build.sh
 
 # build server
 FROM alpine:3.8
+ARG CI_BRANCH
+ARG CI_BUILD_NUMBER
+ARG JOB_SLOTS
+LABEL org.label-schema.name="fxserver"
+LABEL org.label-schema.vendor="citizenfx"
+LABEL org.label-schema.vcs-ref=$CI_BRANCH
+LABEL org.label-schema.version=$CI_BUILD_NUMBER
 MOUNT ..:/src
-RUN source /src/.env && /bin/sh /src/code/tools/ci/build_server_2.sh
+RUN /bin/sh /src/code/tools/ci/build_server_2.sh
 RUN mkdir -p /opt/cfx-server/citizen/system_resources/
 RUN cp -a /src/ext/system-resources/data/* /opt/cfx-server/citizen/system_resources/
 ENV LD_LIBRARY_PATH /usr/lib/v8/:/lib:/usr/lib/
