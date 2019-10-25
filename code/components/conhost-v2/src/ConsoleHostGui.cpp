@@ -14,7 +14,9 @@
 
 #include <ICoreGameInit.h>
 
+#ifndef IS_LAUNCHER
 #include <nutsnbolts.h>
+#endif
 
 #include <se/Security.h>
 
@@ -387,10 +389,14 @@ void SendPrintMessage(const std::string& message)
 	{
 		auto str = msgStream.str();
 
-		auto strRef = FiveMConsole::Strdup((g_console->Items[g_console->Items.size() - 1] + str).c_str());
-		std::swap(g_console->Items[g_console->Items.size() - 1], strRef);
+		{
+			std::unique_lock<std::recursive_mutex> lock(g_console->ItemsMutex);
 
-		free(strRef);
+			auto strRef = FiveMConsole::Strdup((g_console->Items[g_console->Items.size() - 1] + str).c_str());
+			std::swap(g_console->Items[g_console->Items.size() - 1], strRef);
+
+			free(strRef);
+		}
 
 		msgStream.str("");
 	};
@@ -420,13 +426,17 @@ void SendPrintMessage(const std::string& message)
 	flushStream();
 }
 
+DLL_EXPORT void RunConsoleGameFrame()
+{
+	if (g_console)
+	{
+		g_console->RunCommandQueue();
+	}
+}
+
+#ifndef IS_LAUNCHER
 static InitFunction initFunction([]()
 {
-	OnGameFrame.Connect([]()
-	{
-		if (g_console)
-		{
-			g_console->RunCommandQueue();
-		}
-	});
+	OnGameFrame.Connect([] { RunConsoleGameFrame(); });
 });
+#endif

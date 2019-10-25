@@ -2,7 +2,13 @@
 
 #include "include/internal/cef_types_wrappers.h"
 
-class OsrImeHandlerWin {
+class
+#ifdef COMPILING_NUI_CORE
+	DLL_EXPORT
+#else
+	DLL_IMPORT
+#endif
+	OsrImeHandlerWin {
 public:
 	explicit OsrImeHandlerWin(HWND hwnd);
 	virtual ~OsrImeHandlerWin();

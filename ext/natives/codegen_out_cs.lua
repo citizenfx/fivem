@@ -148,35 +148,43 @@ local function trimAndNormalize(str)
 	return trim(str):gsub('/%*', ' -- [['):gsub('%*/', ']] '):gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
 end
 
-local function formatDocString(native)
+local function wrapLines(str, openTag, closeTag, allowEmptyTag)
+	local firstLine, nextLines = str:match("([^\n]+)\n?(.*)")
+
 	local t = '\t\t'
+	if firstLine then
+		local l = t .. '/// ' .. openTag .. '\n'
+		l = l .. t .. '/// ' .. trimAndNormalize(firstLine) .. "\n"
+		for line in nextLines:gmatch("([^\n]+)") do
+			l = l ..t .. '/// ' .. trimAndNormalize(line) .. "\n"
+		end
+		l = l .. t .. '/// ' .. closeTag .. '\n'
+		return l
+	elseif allowEmptyTag then
+		return t .. '/// ' .. openTag:sub(1, openTag:len() - 1) .. ' />\n'
+	else
+		return ''
+	end	
+end
+
+local function formatDocString(native)
 	local d = parseDocString(native)
 
 	if not d then
 		return ''
 	end
-
-	local firstLine, nextLines = d.summary:match("([^\n]+)\n?(.*)")
-
-	if not firstLine then
-		return ''
-	end
-
-	local l = t .. '/// <summary>\n'
-	l = l .. t .. '/// ' .. trimAndNormalize(firstLine) .. "\n"
-	for line in nextLines:gmatch("([^\n]+)") do
-		l = l ..t .. '/// ' .. trimAndNormalize(line) .. "\n"
-	end
-	l = l .. t .. '/// </summary>\n'
+	
+	local l = ''
+	l = l .. wrapLines(d.summary, '<summary>', '</summary>')
 
 	if d.hasParams then
 		for _, v in ipairs(d.params) do
-			l = l ..t .. '/// <param name="' .. v[1] .. '">' .. trimAndNormalize(v[2]) .. '</param>\n'
+			l = l .. wrapLines(v[2], '<param name="' .. (langWords[v[1]] or v[1]) .. '">', '</param>', true)
 		end
 	end
 
 	if d.returns then
-		l = l ..t .. '/// <returns>' .. trimAndNormalize(d.returns) .. '</returns>\n'
+		l = l .. wrapLines(d.returns, '<returns>', '</returns>')
 	end
 
 	return l
@@ -449,7 +457,7 @@ local function formatImpl(native)
 	
 	appendix = appendix .. t .. '}\n'
 
-	return retType, body .. appendix .. '\t\t}\n'
+	return retType, (body .. appendix .. '\t\t}\n'), hyperDriveSafe
 end
 
 local function printNative(native)
@@ -466,7 +474,7 @@ local function printNative(native)
 	local baseAppendix = appendix
 
 	local doc = formatDocString(native)
-	local retType, def = formatImpl(native)
+	local retType, def, hyperDriveSafe = formatImpl(native)
 	local wrapper = formatWrapper(native, 'Internal' .. nativeName .. baseAppendix)
 
 	local str = string.format("%s\t\t[System.Security.SecuritySafeCritical]\n\t\tpublic static %s %s%s", doc, retType, nativeName .. appendix, wrapper)
@@ -486,9 +494,10 @@ local function printNative(native)
 		end
 	end
 	
-	str = str .. string.format("\t\t[System.Security.SecurityCritical]\n\t\tprivate static unsafe %s Internal%s%s", retType, nativeName .. baseAppendix, def)
-	str = str .. string.format("\n#if USE_HYPERDRIVE\n\t\tprivate static ScriptContext.CallFunc m_invoker%s;\n#endif\n", nativeName);
-
+	str = str .. string.format("\t\t[System.Security.SecurityCritical]\n\t\tprivate static unsafe %s Internal%s%s", retType, nativeName .. baseAppendix, def)	
+	if hyperDriveSafe then
+		str = str .. string.format("\n#if USE_HYPERDRIVE\n\t\tprivate static ScriptContext.CallFunc m_invoker%s;\n#endif\n", nativeName);
+	end	
 	return str
 end
 

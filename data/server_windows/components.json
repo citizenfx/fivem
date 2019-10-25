@@ -8,6 +8,7 @@
   "conhost:server",
   "citizen:server:main",
   "citizen:server:instance",
+  "citizen:server:monitor",
   "citizen:server:impl",
   "citizen:resources:core",
   "citizen:resources:metadata:lua",

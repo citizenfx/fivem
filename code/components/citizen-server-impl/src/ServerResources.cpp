@@ -20,6 +20,7 @@
 #include <PrintListener.h>
 
 #include <ResourceStreamComponent.h>
+#include <EventReassemblyComponent.h>
 
 class LocalResourceMounter : public fx::ResourceMounter
 {
@@ -177,6 +178,27 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 		->TriggerEvent2("onResourceListRefresh", {});
 }
 
+static class : public fx::EventReassemblySink
+{
+public:
+	virtual void SendPacket(int target, std::string_view packet) override
+	{
+		auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(target);
+
+		if (client)
+		{
+			net::Buffer outPacket;
+			outPacket.Write(HashRageString("msgReassembledEvent"));
+			outPacket.Write(packet.data(), packet.size());
+
+			client->SendPacket(1, outPacket);
+		}
+	}
+
+public:
+	fx::ServerInstanceBase* instance;
+} g_reassemblySink;
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -187,6 +209,44 @@ static InitFunction initFunction([]()
 		fwRefContainer<fx::ResourceManager> resman = instance->GetComponent<fx::ResourceManager>();
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
 		resman->SetComponent(instance->GetComponent<console::Context>());
+		resman->SetComponent(fx::EventReassemblyComponent::Create());
+
+		// TODO: not instanceable
+		auto rac = resman->GetComponent<fx::EventReassemblyComponent>();
+
+		instance
+			->GetComponent<fx::GameServer>()
+			->GetComponent<fx::HandlerMapComponent>()
+			->Add(HashRageString("msgReassembledEvent"), [rac](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+			{
+				rac->HandlePacket(client->GetNetId(), std::string_view{ (char*)(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
+			});
+
+		g_reassemblySink.instance = instance;
+		rac->SetSink(&g_reassemblySink);
+
+		instance->GetComponent<fx::ClientRegistry>()->OnClientCreated.Connect([rac](fx::Client* client)
+		{
+			client->OnAssignNetId.Connect([rac, client]()
+			{
+				if (client->GetNetId() < 0xFFFF)
+				{
+					rac->RegisterTarget(client->GetNetId());
+
+					client->OnDrop.Connect([rac, client]()
+					{
+						rac->UnregisterTarget(client->GetNetId());
+					});
+				}
+			});
+		});
+
+		instance->GetComponent<fx::GameServer>()->OnNetworkTick.Connect([rac]()
+		{
+			rac->NetworkTick();
+		});
+
+		
 
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 
@@ -443,7 +503,7 @@ static InitFunction initFunction([]()
 #include <ScriptEngine.h>
 #include <optional>
 
-void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
+void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc, bool replayed)
 {
 	// build the target event
 	net::Buffer outBuffer;
@@ -473,14 +533,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (client)
 		{
 			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		}
 	}
 	else
 	{
 		clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 		{
-			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		});
 	}
 }
@@ -511,6 +571,25 @@ static InitFunction initFunction2([]()
 		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
 		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientEvent(eventName, data, dataLen, targetSrc);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
+	{
+		std::string_view eventName = context.CheckArgument<const char*>(0);
+		auto targetSrcIdx = context.CheckArgument<const char*>(1);
+
+		const void* data = context.GetArgument<const void*>(2);
+		uint32_t dataLen = context.GetArgument<uint32_t>(3);
+
+		int bps = context.GetArgument<int>(4);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
+
+		rac->TriggerEvent(std::stoi(targetSrcIdx), eventName, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("START_RESOURCE", [](fx::ScriptContext& context)

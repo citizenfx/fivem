@@ -38,6 +38,11 @@ public:
 public:
 	virtual fwRefContainer<TcpServer> CreateServer(const PeerAddress& bindAddress) override;
 
+	inline std::shared_ptr<uvw::Loop> GetWrapLoop()
+	{
+		return m_uvLoop->Get();
+	}
+
 	inline uv_loop_t* GetLoop()
 	{
 		return m_uvLoop->GetLoop();

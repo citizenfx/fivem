@@ -51,6 +51,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\version_orig.txt");
 	}
 
+	if (wcsstr(origFileName, L"PlayGTAV.exe") != nullptr)
+	{
+		return MakeRelativeCitPath(L"nodontfuckingplaygtav.exe");
+	}
+
 	wchar_t* fileName = g_mappingFunction(origFileName, malloc);
 
 	std::wstring retval(fileName);
@@ -100,6 +105,10 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
+	if (wcsstr(fileName.c_str(), L"PlayGTAV.exe") != nullptr)
+	{
+		return true;
+	}
 
 	if (fileName.length() > 10 && fileName.compare(fileName.length() - 8, 8, L"GTA5.exe") == 0)
 	{

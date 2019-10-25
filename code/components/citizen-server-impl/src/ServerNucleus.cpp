@@ -5,6 +5,9 @@
 #include <GameServer.h>
 #include <HttpClient.h>
 
+#include <ResourceEventComponent.h>
+#include <ResourceManager.h>
+
 #include <ServerInstanceBase.h>
 #include <ServerInstanceBaseRef.h>
 
@@ -45,7 +48,7 @@ static InitFunction initFunction([]()
 
 						trace("^3Authenticating with Nucleus...^7\n");
 
-						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [tlm](bool success, const char* data, size_t length)
+						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
 						{
 							if (!success)
 							{
@@ -62,6 +65,16 @@ static InitFunction initFunction([]()
 								rts->Listen("cfx.re:30130", jsonData.value("rpToken", ""));
 
 								tlm->AddExternalServer(rts);
+
+								instance->GetComponent<fx::ResourceManager>()
+									->GetComponent<fx::ResourceEventManagerComponent>()
+									->QueueEvent2(
+										"_cfx_internal:nucleusConnected",
+										{},
+										fmt::sprintf("https://%s/", jsonData.value("host", ""))
+									);
+
+								static auto webVar = instance->AddVariable<std::string>("web_baseUrl", ConVar_None, jsonData.value("host", ""));
 							}
 						});
 					}

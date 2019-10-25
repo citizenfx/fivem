@@ -404,6 +404,27 @@ public:
 		return T(val);
 	}
 
+
+	template<typename T>
+	inline bool Read(int length, T* out)
+	{
+		static_assert(sizeof(T) <= 4, "maximum of 32 bit read");
+
+		uint32_t val = 0;
+		bool success = ReadBitsSingle(&val, length);
+
+		if (success)
+		{
+			*out = T(val);
+		}
+		else
+		{
+			*out = T();
+		}
+
+		return success;
+	}
+
 	template<typename T>
 	inline T ReadSigned(int length)
 	{
@@ -481,7 +502,7 @@ public:
 		return m_curBit >= m_maxBit;
 	}
 
-	inline const std::vector<uint8_t>& GetBuffer()
+	inline std::vector<uint8_t>& GetBuffer()
 	{
 		return m_data;
 	}

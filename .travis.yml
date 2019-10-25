@@ -17,8 +17,8 @@ env:
 
 script:
   - git submodule update --init
-  - curl -O -L https://github.com/grammarly/rocker/releases/download/1.3.0/rocker_linux_amd64.tar.gz
+  - curl -O -L https://github.com/Hellslicer/rocker/releases/download/1.3.4/rocker_linux_amd64.tar.gz
   - tar xvf rocker_linux_amd64.tar.gz
   - cd code/
-  - 'if [ -z "$TRAVIS_TAG" ]; then ../rocker build; fi'
-  - 'if [ ! -z "$TRAVIS_TAG" ]; then ../rocker build --build-arg CI_BRANCH=${GIT_BRANCH} --build-arg CI_BUILD_NUMBER=${TRAVIS_TAG} --auth $DOCKER_USER:$DOCKER_PASS --push; fi'
+  - 'if [ -z "$TRAVIS_TAG" ]; then ../rocker build --build-arg JOB_SLOTS=$(nproc); fi'
+  - 'if [ ! -z "$TRAVIS_TAG" ]; then ../rocker build --build-arg JOB_SLOTS=$(nproc) --build-arg CI_BRANCH=${GIT_BRANCH} --build-arg CI_BUILD_NUMBER=${TRAVIS_TAG} --auth $DOCKER_USER:$DOCKER_PASS --push; fi'

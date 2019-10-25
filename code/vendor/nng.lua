@@ -1,6 +1,6 @@
 return {
 	include = function()
-		includedirs { "../vendor/nng/src/" }
+		includedirs { "../vendor/nng/include/" }
 	end,
 	
 	run = function()
@@ -8,7 +8,9 @@ return {
 		language "C"
 		kind "SharedLib"
 		
-		defines { "NNG_HAVE_PULL0", "NNG_HAVE_PUSH0", "NNG_HAVE_REQ0", "NNG_HAVE_REP0", "NNG_TRANSPORT_INPROC", "NNG_TRANSPORT_IPC", "NNG_SHARED_LIB", "NNG_LITTLE_ENDIAN" }
+		defines { "NNG_HAVE_PULL0", "NNG_HAVE_PUSH0", "NNG_HAVE_REQ0", "NNG_HAVE_REP0", "NNG_TRANSPORT_INPROC", "NNG_TRANSPORT_IPC", "NNG_SHARED_LIB", "NNG_LITTLE_ENDIAN", "NNG_ENABLE_STATS" }
+		
+		includedirs { "../vendor/nng/src/" }
 		
 		files_project '../vendor/nng/src/' {
 			"nng.c",
@@ -22,8 +24,10 @@ return {
 			"core/clock.h",
 			"core/device.c",
 			"core/device.h",
-			"core/endpt.c",
-			"core/endpt.h",
+			"core/dialer.c",
+			"core/dialer.h",
+			--"core/endpt.c",
+			--"core/endpt.h",
 			"core/file.c",
 			"core/file.h",
 			"core/idhash.c",
@@ -32,6 +36,8 @@ return {
 			"core/init.h",
 			"core/list.c",
 			"core/list.h",
+			"core/listener.c",
+			"core/listener.h",
 			"core/message.c",
 			"core/message.h",
 			"core/msgqueue.c",
@@ -39,8 +45,8 @@ return {
 			"core/nng_impl.h",
 			"core/options.c",
 			"core/options.h",
-			--"core/pollable.c",
-			--"core/pollable.h",
+			"core/pollable.c",
+			"core/pollable.h",
 			"core/panic.c",
 			"core/panic.h",
 			"core/pipe.c",
@@ -54,6 +60,10 @@ return {
 			"core/reap.h",
 			"core/socket.c",
 			"core/socket.h",
+			"core/stats.c",
+			"core/stats.h",
+			"core/stream.c",
+			"core/stream.h",
 			"core/strs.c",
 			"core/strs.h",
 			"core/taskq.c",
@@ -78,13 +88,18 @@ return {
 				"platform/windows/win_clock.c",
 				"platform/windows/win_debug.c",
 				"platform/windows/win_file.c",
-				"platform/windows/win_iocp.c",
-				"platform/windows/win_ipc.c",
+				"platform/windows/win_io.c",
+				"platform/windows/win_ipcconn.c",
+				"platform/windows/win_ipcdial.c",
+				"platform/windows/win_ipclisten.c",
 				"platform/windows/win_pipe.c",
 				"platform/windows/win_rand.c",
 				"platform/windows/win_resolv.c",
 				"platform/windows/win_sockaddr.c",
 				"platform/windows/win_tcp.c",
+				"platform/windows/win_tcpconn.c",
+				"platform/windows/win_tcpdial.c",
+				"platform/windows/win_tcplisten.c",
 				"platform/windows/win_thread.c",
 				"platform/windows/win_udp.c",
 			}
@@ -93,22 +108,27 @@ return {
 		
 			files_project '../vendor/nng/src/' {
 				"platform/posix/posix_impl.h",
-				"platform/posix/posix_config.h",
 				"platform/posix/posix_aio.h",
+				"platform/posix/posix_ipc.h",
+				"platform/posix/posix_config.h",
 				"platform/posix/posix_pollq.h",
+				"platform/posix/posix_tcp.h",
 
 				"platform/posix/posix_alloc.c",
+				"platform/posix/posix_atomic.c",
 				"platform/posix/posix_clock.c",
 				"platform/posix/posix_debug.c",
-				"platform/posix/posix_epdesc.c",
 				"platform/posix/posix_file.c",
-				"platform/posix/posix_ipc.c",
+				"platform/posix/posix_ipcconn.c",
+				"platform/posix/posix_ipcdial.c",
+				"platform/posix/posix_ipclisten.c",
 				"platform/posix/posix_pipe.c",
-				"platform/posix/posix_pipedesc.c",
 				"platform/posix/posix_rand.c",
 				"platform/posix/posix_resolv_gai.c",
 				"platform/posix/posix_sockaddr.c",
-				"platform/posix/posix_tcp.c",
+				"platform/posix/posix_tcpconn.c",
+				"platform/posix/posix_tcpdial.c",
+				"platform/posix/posix_tcplisten.c",
 				"platform/posix/posix_thread.c",
 				"platform/posix/posix_udp.c",
 				
@@ -127,6 +147,9 @@ return {
 			
 			"protocol/pipeline0/push.h",
 			"protocol/pipeline0/pull.h",
+			
+			"protocol/pair1/pair.c",
+			"protocol/pair0/pair.c",
 
 			"protocol/reqrep0/req.c",
 			--"protocol/reqrep0/xreq.c",
@@ -141,6 +164,10 @@ return {
 			
 			"transport/ipc/ipc.c",
 			"transport/ipc/ipc.h",
+			
+			"supplemental/tls/none/tls.c",
+			"supplemental/websocket/stub.c",
+			"supplemental/tcp/tcp.c",
 		}
 	end
 }

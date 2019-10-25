@@ -104,6 +104,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 		}
 
+		OnCreatedRuntimes();
+
 		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
 		{
 			m_scriptHost = GetScriptHostForResource(m_resource);
@@ -267,7 +269,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 		if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 		{
-			for (auto& list : { sharedScripts, clientScripts }) {
+			for (auto& list : { sharedScripts, clientScripts })
+			{
 				for (auto& script : list)
 				{
 					if (ptr->HandlesFile(const_cast<char*>(script.c_str())))

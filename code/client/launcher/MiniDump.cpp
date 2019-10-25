@@ -1192,6 +1192,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
 		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
+#else
+		if (false)
 #endif
 		{
 			trace("Crash report service returned %s\n", ToNarrow(responseBody));
@@ -1236,7 +1238,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		WaitForSingleObject(parentProcess, INFINITE);
 	}
 
+	// at this point we can safely perform some cleanup tasks, no matter whether the game exited cleanly or crashed
+
+	// revert NVSP disablement
 	NVSP_ShutdownSafely();
+
+	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
+	_wunlink(MakeRelativeGamePath(L"steam_appid.txt").c_str());
 }
 
 namespace google_breakpad

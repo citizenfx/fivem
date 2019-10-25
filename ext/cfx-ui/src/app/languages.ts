@@ -23,13 +23,17 @@ const languages = [
         name: 'pl',
         displayName: 'Polski'
     },
-	{
+    {
         name: 'it',
         displayName: 'Italiano'
     },
-	{
+    {
         name: 'pt',
         displayName: 'Português'
+    },
+    {
+        name: 'ru',
+        displayName: 'Русский'
     },
 ];
 

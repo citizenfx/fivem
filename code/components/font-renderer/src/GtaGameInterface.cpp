@@ -10,7 +10,9 @@
 #include <DrawCommands.h>
 #include <grcTexture.h>
 #include <ICoreGameInit.h>
+#include <CoreConsole.h>
 #include <LaunchMode.h>
+#include <utf8.h>
 
 #include "memdbgon.h"
 
@@ -286,6 +288,8 @@ FontRendererGameInterface* CreateGameInterface()
 
 static InitFunction initFunction([] ()
 {
+	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive, "");
+
 	static std::random_device random_core;
 	static std::mt19937 random(random_core());
 
@@ -369,10 +373,35 @@ static InitFunction initFunction([] ()
 					break;
 			}
 
-			std::wstring brandName = L"FiveM";
+			std::wstring_view brandName = L"FiveM";
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 			{
+				auto emoji = customBrandingEmoji.GetValue();
+
+				if (!emoji.empty())
+				{
+					if (Instance<ICoreGameInit>::Get()->HasVariable("endUserPremium"))
+					{
+						try
+						{
+							auto it = emoji.begin();
+							utf8::advance(it, 1, emoji.end());
+
+							std::vector<uint16_t> uchars;
+							uchars.reserve(2);
+
+							utf8::utf8to16(emoji.begin(), it, std::back_inserter(uchars));
+
+							brandingEmoji = std::wstring{ uchars.begin(), uchars.end() };
+						}
+						catch (const utf8::exception& e)
+						{
+
+						}
+					}
+				}
+
 				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 				{
 					brandName = L"FiveM/OneSync-ALPHA";

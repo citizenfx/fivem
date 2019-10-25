@@ -19,6 +19,9 @@
 #include <DirectXMath.h>
 #include <roapi.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 #include <boost/algorithm/string.hpp>
 
 #pragma comment(lib, "runtimeobject.lib")
@@ -737,7 +740,20 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 
 	VER_SET_CONDITION(viMask, VER_BUILDNUMBER, VER_GREATER_EQUAL);
 
-	if (mf && VerifyVersionInfoW(&osvi, VER_BUILDNUMBER, viMask))
+	bool forceOff = false;
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->isReverseGame)
+	{
+		forceOff = true;
+	}
+
+#ifdef IS_LAUNCHER
+	forceOff = true;
+#endif
+
+	if (mf && VerifyVersionInfoW(&osvi, VER_BUILDNUMBER, viMask) && !forceOff)
 	{
 		RO_REGISTRATION_COOKIE cookie;
 

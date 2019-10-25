@@ -1,9 +1,6 @@
 component 'comptest'
 component 'http-client'
-component 'nui-core'
 component 'glue'
-component 'nui-gsclient'
-component 'nui-resources'
 component 'font-renderer'
 component 'debug-net'
 component 'scrbind-formats'
@@ -24,12 +21,22 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-impl'
 	component 'conhost-server'
 	component 'scripting-server'
-	component 'vfs-impl-server'
 	component 'voip-server-mumble'
+	component 'citizen-server-monitor'
+	component 'vfs-impl-server'
 else
 	component 'tool-formats'
 	component 'tool-vehrec'
-	component 'rage-formats-x'
+	component 'nui-core'
+	component 'nui-gsclient'
+	component 'nui-resources'
+	component 'citizen-game-main'
+	component 'citizen-game-ipc'
+	
+	if _OPTIONS['game'] ~= 'launcher' then
+		component 'rage-formats-x'
+	end
+	
 	component 'conhost-v2'
 	component 'voip-mumble'
 
@@ -81,4 +88,4 @@ component 'devcon'
 component 'extra-natives-five'
 component 'discord'
 component 'citizen-mod-loader-five'
-
+component 'debug-script'

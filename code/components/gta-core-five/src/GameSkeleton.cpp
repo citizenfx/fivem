@@ -8,6 +8,8 @@
 #include <gameSkeleton.h>
 #include <Error.h>
 
+#include <ICoreGameInit.h>
+
 static std::unordered_map<uint32_t, std::string> g_initFunctionNames;
 
 namespace rage
@@ -165,6 +167,15 @@ namespace rage
 			if (entry->m_hash == 0x73AA6F9E)
 			{
 				return;
+			}
+
+			// #TODO1SBIG: remove for non-big
+			if (Instance<ICoreGameInit>::Get()->HasVariable("onesync_big"))
+			{
+				if (entry->m_hash == HashString("CVehiclePopulation") || entry->m_hash == HashString("CPedPopulation"))
+				{
+					//return;
+				}
 			}
 
 			entry->Run();

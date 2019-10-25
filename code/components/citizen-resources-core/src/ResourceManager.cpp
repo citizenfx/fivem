@@ -22,6 +22,16 @@ namespace fx
 ResourceManagerImpl::ResourceManagerImpl()
 {
 	OnInitializeInstance(this);
+
+	OnTick.Connect([this]()
+	{
+		// execute resource tick functions
+		ForAllResources([](fwRefContainer<Resource> resource)
+		{
+			CETWScope etwScope(va("%s tick", resource->GetName()));
+			resource->Tick();
+		});
+	});
 }
 
 fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std::string& uri)
@@ -65,13 +75,16 @@ pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std:
 		// set a completion event, as well
 		mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
 		{
-			// handle provides
-			auto md = resource->GetComponent<ResourceMetaDataComponent>();
-
-			for (const auto& entry : md->GetEntries("provide"))
+			if (resource.GetRef())
 			{
-				std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
-				m_resourceProvides.emplace(entry.second, resource);
+				// handle provides
+				auto md = resource->GetComponent<ResourceMetaDataComponent>();
+
+				for (const auto& entry : md->GetEntries("provide"))
+				{
+					std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+					m_resourceProvides.emplace(entry.second, resource);
+				}
 			}
 
 			completionEvent.set(resource);
@@ -218,13 +231,6 @@ void ResourceManagerImpl::Tick()
 {
 	auto lastManager = g_currentManager;
 	g_currentManager = this;
-
-	// execute resource tick functions
-	ForAllResources([] (fwRefContainer<Resource> resource)
-	{
-		CETWScope etwScope(va("%s tick", resource->GetName()));
-		resource->Tick();
-	});
 
 	// execute tick events
 	OnTick();

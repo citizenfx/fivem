@@ -383,7 +383,7 @@ void SteamComponent::InitializePresence()
 
 		static HostSharedData<CfxState> hostData("CfxInitState");
 
-		std::wstring commandLine = va(L"\"%s\" -steamchild:%d", ourPath, hostData->initialPid);
+		std::wstring commandLine = va(L"\"%s\" -steamchild:%d", ourPath, hostData->GetInitialPid());
 
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 

@@ -17,7 +17,7 @@ namespace CitizenFX.Core
 	class InternalManager : MarshalByRefObject, InternalManagerInterface
 	{
 		private static readonly List<BaseScript> ms_definedScripts = new List<BaseScript>();
-		private static readonly List<Tuple<DateTime, AsyncCallback>> ms_delays = new List<Tuple<DateTime, AsyncCallback>>();
+		private static readonly List<Tuple<DateTime, AsyncCallback, string>> ms_delays = new List<Tuple<DateTime, AsyncCallback, string>>();
 		private static int ms_instanceId;
 
 		private string m_resourceName;
@@ -260,9 +260,9 @@ namespace CitizenFX.Core
 			return LoadAssemblyInternal(args.Name.Split(',')[0], useSearchPaths: true);
 		}
 
-		public static void AddDelay(int delay, AsyncCallback callback)
+		public static void AddDelay(int delay, AsyncCallback callback, string name = null)
 		{
-			ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback));
+			ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback, name));
 		}
 
 		public static void TickGlobal()
@@ -273,6 +273,8 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public void Tick()
 		{
+			IsProfiling = ProfilerIsRecording();
+
 			if (GameInterface.SnapshotStackBoundary(out var b))
 			{
 				ScriptHost.SubmitBoundaryStart(b, b.Length);
@@ -280,28 +282,55 @@ namespace CitizenFX.Core
 
 			try
 			{
-				ScriptContext.GlobalCleanUp();
-
-				var delays = ms_delays.ToArray();
-				var now = DateTime.UtcNow;
-
-				foreach (var delay in delays)
+				using (var scope = new ProfilerScope(() => "c# cleanup"))
 				{
-					if (now >= delay.Item1)
-					{
-						delay.Item2(new DummyAsyncResult());
+					ScriptContext.GlobalCleanUp();
+				}
 
-						ms_delays.Remove(delay);
+				using (var scope = new ProfilerScope(() => "c# deferredDelay"))
+				{
+					var delays = ms_delays.ToArray();
+					var now = DateTime.UtcNow;
+
+					foreach (var delay in delays)
+					{
+						if (now >= delay.Item1)
+						{
+							using (var inScope = new ProfilerScope(() => delay.Item3))
+							{
+								try
+								{
+									BaseScript.CurrentName = delay.Item3;
+									delay.Item2(new DummyAsyncResult());
+								}
+								finally
+								{
+									BaseScript.CurrentName = null;
+								}
+							}
+
+							ms_delays.Remove(delay);
+						}
 					}
 				}
 
-				foreach (var script in ms_definedScripts.ToArray())
+				using (var scope = new ProfilerScope(() => "c# schedule"))
 				{
-					script.ScheduleRun();
+					foreach (var script in ms_definedScripts.ToArray())
+					{
+						script.ScheduleRun();
+					}
 				}
 
-				CitizenTaskScheduler.Instance.Tick();
-				CitizenSynchronizationContext.Tick();
+				using (var scope = new ProfilerScope(() => "c# tasks"))
+				{
+					CitizenTaskScheduler.Instance.Tick();
+				}
+
+				using (var scope = new ProfilerScope(() => "c# syncCtx"))
+				{
+					CitizenSynchronizationContext.Tick();
+				}
 			}
 			catch (Exception e)
 			{
@@ -333,7 +362,14 @@ namespace CitizenFX.Core
 
 				foreach (var script in scripts)
 				{
-					Task.Factory.StartNew(() => script.EventHandlers.Invoke(eventName, sourceString, objArray)).Unwrap().ContinueWith(a =>
+					Task.Factory.StartNew(() =>
+					{
+						BaseScript.CurrentName = $"eventHandler {script.GetType().Name} -> {eventName}";
+						var t = script.EventHandlers.Invoke(eventName, sourceString, objArray);
+						BaseScript.CurrentName = null;
+
+						return t;
+					}).Unwrap().ContinueWith(a =>
 					{
 						if (a.IsFaulted)
 						{
@@ -651,6 +687,47 @@ namespace CitizenFX.Core
 					method.method(hostPtr, new IntPtr(p), boundarySize);
 				}
 			}
+		}
+
+		internal static bool ProfilerIsRecording()
+		{
+			return Native.API.ProfilerIsRecording();
+		}
+
+		internal static void ProfilerEnterScope(string scopeName)
+		{
+			Native.API.ProfilerEnterScope(scopeName);
+		}
+
+		internal static void ProfilerExitScope()
+		{
+			Native.API.ProfilerExitScope();
+		}
+
+		internal static bool IsProfiling { get; private set; }
+	}
+
+
+	internal class ProfilerScope : IDisposable
+	{
+		public ProfilerScope(Func<string> name)
+		{
+			if (!InternalManager.IsProfiling)
+			{
+				return;
+			}
+
+			InternalManager.ProfilerEnterScope(name() ?? "c# scope");
+		}
+
+		public void Dispose()
+		{
+			if (!InternalManager.IsProfiling)
+			{
+				return;
+			}
+
+			InternalManager.ProfilerExitScope();
 		}
 	}
 }

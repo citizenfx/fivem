@@ -601,10 +601,10 @@ static int(__stdcall* g_oldWSARecv)(SOCKET, LPWSABUF, DWORD, LPDWORD, LPDWORD, L
 static int(__stdcall* g_oldWSASend)(SOCKET, LPWSABUF, DWORD, LPDWORD, DWORD, LPWSAOVERLAPPED, LPWSAOVERLAPPED_COMPLETION_ROUTINE);
 static int(__stdcall* g_oldWSAIoctl)(SOCKET, DWORD, LPVOID, DWORD, LPVOID, DWORD, LPDWORD, LPWSAOVERLAPPED, LPWSAOVERLAPPED_COMPLETION_ROUTINE);
 
-#include <experimental/filesystem>
+#include <filesystem>
 #include <psapi.h>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 struct ModuleData
 {

@@ -43,6 +43,10 @@ private:
 
 std::optional<int> EnsureGamePath()
 {
+#ifdef IS_LAUNCHER
+	return {};
+#endif
+
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	const wchar_t* pathKey = L"IVPath";
 

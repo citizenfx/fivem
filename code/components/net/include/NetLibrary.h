@@ -240,6 +240,8 @@ public:
 
 	virtual void SendReliableCommand(const char* type, const char* buffer, size_t length) override;
 
+	void SendUnreliableCommand(const char* type, const char* buffer, size_t length);
+
 	void RunMainFrame();
 
 	void HandleConnected(int serverNetID, int hostNetID, int hostBase, int slotID, uint64_t serverTime) override;

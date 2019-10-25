@@ -25,9 +25,10 @@ fwPlatformString GetAbsoluteCitPath()
 #ifndef IS_FXSERVER
 		static HostSharedData<CfxState> initState("CfxInitState");
 
-		citizenPath = initState->initPath;
+		citizenPath = initState->GetInitPath();
 
 		// is this a new install, if so, migrate to subdirectory-based Citizen
+		if (initState->ranPastInstaller)
 		{
 			if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{

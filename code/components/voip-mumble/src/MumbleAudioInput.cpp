@@ -302,33 +302,35 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		return;
 	}
 
-	char outBuf[16384];
-	PacketDataStream buffer(outBuf, sizeof(outBuf));
-
-	buffer.append((4 << 5));
-
-	buffer << m_sequence;
-
 	while (!m_opusPackets.empty())
 	{
 		auto packet = m_opusPackets.front();
 		m_opusPackets.pop();
 
-		//buffer.append(packet.size() | ((m_opusPackets.empty()) ? (1 << 7) : 0));
-		buffer << (packet.size());
+		char outBuf[16384];
+		PacketDataStream buffer(outBuf, sizeof(outBuf));
+
+		buffer.append((4 << 5));
+
+		buffer << m_sequence;
+
+		buffer << (packet.size() | ((m_opusPackets.empty()) ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
 		m_sequence++;
+
+		//buffer << uint64_t(1 << 13);
+
+		// send placeholder position
+		buffer << m_positionX;
+		buffer << m_positionY;
+		buffer << m_positionZ;
+
+		// extension: send our voice distance
+		buffer << m_voiceDistance;
+
+		m_client->SendVoice(outBuf, buffer.size());
 	}
-
-	//buffer << uint64_t(1 << 13);
-
-	// send placeholder position
-	buffer << m_positionX;
-	buffer << m_positionY;
-	buffer << m_positionZ;
-
-	m_client->SendVoice(outBuf, buffer.size());
 }
 
 HRESULT MumbleAudioInput::HandleIncomingAudio()

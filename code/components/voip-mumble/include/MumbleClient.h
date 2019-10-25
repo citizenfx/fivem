@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <array>
+#include <optional>
+
 #include <NetAddress.h>
 #include <ppltasks.h>
 
@@ -35,6 +38,9 @@ enum class MumbleVoiceLikelihood
 class IMumbleClient : public fwRefCountable
 {
 public:
+	using TPositionHook = std::function<std::optional<std::array<float, 3>>(const std::string&)>;
+
+public:
 	virtual void Initialize() = 0;
 
 	virtual concurrency::task<MumbleConnectionInfo*> ConnectAsync(const net::PeerAddress& address, const std::string& userName) = 0;
@@ -50,6 +56,8 @@ public:
 	virtual void SetChannel(const std::string& channelName) = 0;
 
 	virtual void GetTalkers(std::vector<std::string>* names) = 0;
+
+	virtual void SetPositionHook(const TPositionHook& hook) = 0;
 
 	virtual void SetAudioDistance(float distance) = 0;
 

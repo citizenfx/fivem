@@ -1,0 +1,8 @@
+[
+"vfs:core",
+"citizen:game:main",
+"nui:core",
+"http-client",
+"citizen:game:ipc",
+"conhost:v2"
+]
