@@ -1310,7 +1310,8 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 }
 
 #include <GameInit.h>
-#include <regex>
+
+std::set<std::string> g_streamingSuffixSet;
 
 static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int idx, int* status)
 {
@@ -1318,21 +1319,8 @@ static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int
 	{
 		auto thisName = streaming::GetStreamingNameForIndex(module->baseIdx + idx);
 
-		// if this is, say, vb_02.ymap, and we also load hei_vb_02.ymap, skip this file
-		// this'll still break if people override only the non-DLC variants, but then they've got what's coming to them
-		std::regex re{ fmt::sprintf("[a-z]{1,3}_%s", thisName), std::regex::icase };
-		bool found = false;
-
-		for (const auto& name : g_customStreamingFileRefs)
-		{
-			if (std::regex_match(name, re))
-			{
-				found = true;
-				break;
-			}
-		}
-
-		if (!found)
+		// if this is, say, vb_02.ymap, and we also loaded hei_vb_02.ymap, skip this file
+		if (g_streamingSuffixSet.find(thisName) != g_streamingSuffixSet.end())
 		{
 			*status = 2;
 		}
