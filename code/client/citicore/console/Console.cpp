@@ -10,6 +10,7 @@
 #include <console/ConsoleWriter.h>
 
 static console::IWriter* g_writer;
+extern bool GIsPrinting();
 
 namespace console
 {
@@ -28,7 +29,7 @@ Context::Context()
 }
 
 Context::Context(Context* fallbackContext)
-    : m_fallbackContext(fallbackContext)
+    : m_fallbackContext(fallbackContext), m_executing(false)
 {
 	m_managers = std::make_unique<ConsoleManagers>();
 
@@ -121,6 +122,24 @@ void Context::AddToBuffer(const std::string& text)
 	m_commandBuffer += text;
 }
 
+template<typename TFn>
+struct defer
+{
+	inline defer(TFn&& fn)
+		: fn(fn)
+	{
+
+	}
+
+	inline ~defer()
+	{
+		fn();
+	}
+
+private:
+	TFn fn;
+};
+
 void Context::ExecuteBuffer()
 {
 	std::vector<std::string> toExecute;
@@ -171,6 +190,9 @@ void Context::ExecuteBuffer()
 			toExecute.push_back(command);
 		}
 	}
+
+	auto d = defer{ [this] {m_executing = false; } };
+	m_executing = true;
 
 	for (const std::string& command : toExecute)
 	{
@@ -227,6 +249,11 @@ void Context::SaveConfigurationIfNeeded(const std::string& path)
 void Context::SetVariableModifiedFlags(int flags)
 {
 	m_variableModifiedFlags |= flags;
+}
+
+bool Context::GIsPrinting()
+{
+	return ::GIsPrinting();
 }
 
 // default context functions

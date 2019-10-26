@@ -60,6 +60,13 @@ static void CfxPrintf(const std::string& str)
 	g_printf(buf.str().c_str());
 }
 
+static std::once_flag g_initConsoleFlag;
+static std::condition_variable g_consoleCondVar;
+static std::mutex g_consoleMutex;
+
+static tbb::concurrent_queue<std::string> g_consolePrintQueue;
+static bool g_isPrinting;
+
 static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 {
 #ifdef _WIN32
@@ -88,12 +95,6 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 	g_allowVt = true;
 #endif
 
-	static std::once_flag g_initConsoleFlag;
-	static std::condition_variable g_consoleCondVar;
-	static std::mutex g_consoleMutex;
-
-	static tbb::concurrent_queue<std::string> g_consolePrintQueue;
-
 	std::call_once(g_initConsoleFlag, []()
 	{
 		std::thread([]()
@@ -111,7 +112,9 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 
 				while (g_consolePrintQueue.try_pop(str))
 				{
+					g_isPrinting = true;
 					CfxPrintf(str);
+					g_isPrinting = false;
 				}
 			}
 		}).detach();
@@ -120,7 +123,15 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 	g_consolePrintQueue.push(std::string{ out });
 	g_consoleCondVar.notify_all();
 }
+}
 
+bool GIsPrinting()
+{
+	return !console::g_consolePrintQueue.empty() || console::g_isPrinting;
+}
+
+namespace console
+{
 static std::vector<void(*)(ConsoleChannel, const char*)> g_printListeners = { PrintfTraceListener };
 static int g_useDeveloper;
 
