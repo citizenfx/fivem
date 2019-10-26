@@ -65,6 +65,16 @@ NUIWindow::~NUIWindow()
 		mutex.unlock();
 	}
 
+	if (m_popupTexture != m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
+	{
+		delete m_popupTexture;
+	}
+
+	if (m_nuiTexture != m_parentTextures[CefRenderHandler::PaintElementType::PET_VIEW])
+	{
+		delete m_popupTexture;
+	}
+
 	for (auto& texPair : m_parentTextures)
 	{
 		auto tex = texPair.second;
@@ -428,24 +438,18 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 			auto& texRef = (type == CefRenderHandler::PaintElementType::PET_VIEW) ? m_nuiTexture : m_popupTexture;
 
-			nui::GITexture* oldRef = nullptr;
-
-			if (texRef)
-			{
-				oldRef = texRef;
-			}
-
-			texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle);
-			SetParentTexture(type, texRef);
-
-			if (oldRef)
-			{
-				delete oldRef;
-				oldRef = nullptr;
-			}
-
 			if (!m_primary)
 			{
+				auto oldRef = m_parentTextures[type];
+
+				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle);
+				SetParentTexture(type, fakeTexRef);
+
+				if (oldRef)
+				{
+					delete oldRef;
+				}
+
 				auto oldSrv = m_swapSrv;
 
 				struct
@@ -459,6 +463,24 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				if (oldSrv)
 				{
 					oldSrv->Release();
+				}
+			}
+			else
+			{
+				nui::GITexture* oldRef = nullptr;
+
+				if (texRef)
+				{
+					oldRef = texRef;
+				}
+
+				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle);
+				SetParentTexture(type, texRef);
+
+				if (oldRef)
+				{
+					delete oldRef;
+					oldRef = nullptr;
 				}
 			}
 		}
@@ -805,6 +827,12 @@ void NUIWindow::HandlePopupShow(bool show)
 		if (m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
 		{
 			delete m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP];
+
+			if (m_popupTexture != m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
+			{
+				delete m_popupTexture;
+			}
+
 			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP] = nullptr;
 			m_popupTexture = nullptr;
 		}
