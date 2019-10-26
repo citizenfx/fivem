@@ -1320,7 +1320,7 @@ static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int
 		auto thisName = streaming::GetStreamingNameForIndex(module->baseIdx + idx);
 
 		// if this is, say, vb_02.ymap, and we also loaded hei_vb_02.ymap, skip this file
-		if (g_streamingSuffixSet.find(thisName) != g_streamingSuffixSet.end())
+		if (g_streamingSuffixSet.find(thisName) == g_streamingSuffixSet.end())
 		{
 			*status = 2;
 		}
