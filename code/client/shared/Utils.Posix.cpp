@@ -18,7 +18,11 @@ fwPlatformString GetAbsoluteCitPath()
 	{
 		// TODO: Linux-specific!
 		pchar_t modulePath[512];
-		readlink("/proc/self/exe", modulePath, sizeof(modulePath));
+
+		ssize_t off = readlink("/proc/self/exe", modulePath, sizeof(modulePath) - 1);
+		assert(off >= 0);
+
+		modulePath[off] = '\0';
 
 		pchar_t* dirPtr = strrchr(modulePath, '/');
 
@@ -39,7 +43,10 @@ bool IsRunningTests()
 {
 	// TODO: Linux-specific!
 	pchar_t modulePath[512];
-	readlink("/proc/self/exe", modulePath, sizeof(modulePath));
+	ssize_t off = readlink("/proc/self/exe", modulePath, sizeof(modulePath) - 1);
+	assert(off >= 0);
+
+	modulePath[off] = '\0';
 
 	pchar_t* filenamePart = strrchr(modulePath, '/');
 
