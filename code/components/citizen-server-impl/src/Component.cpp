@@ -8,7 +8,16 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
 
-class ComponentInstance : public Component
+#ifdef _WIN32
+#include <ResumeComponent.h>
+#endif
+
+class ComponentInstance : public 
+#ifdef _WIN32
+	LifeCycleComponentBase<Component>
+#else
+	Component
+#endif
 {
 public:
 	virtual bool Initialize();

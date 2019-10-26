@@ -25,6 +25,10 @@
 #include <nng/protocol/reqrep0/req.h>
 #include <nng/protocol/reqrep0/rep.h>
 
+#ifdef _WIN32
+#include <ResumeComponent.h>
+#endif
+
 static fx::GameServer* g_gameServer;
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
@@ -57,6 +61,22 @@ namespace fx
 	{
 		m_instance = instance;
 
+#ifdef _WIN32
+		OnAbnormalTermination.Connect([this](void* reason)
+		{
+			auto realReason = fmt::sprintf("Server shutting down: %s", (const char*)reason);
+
+			m_clientRegistry->ForAllClients([this, realReason](const std::shared_ptr<fx::Client>& client)
+			{
+				if (client->GetPeer())
+				{
+					auto oob = fmt::sprintf("error %s", realReason);
+					m_net->SendOutOfBand(client->GetAddress(), oob);
+				}
+			});
+		});
+#endif
+
 		m_net = fx::CreateGSNet(this);
 
 		if (m_interceptor)
@@ -79,6 +99,14 @@ namespace fx
 
 		m_mainThreadCallbacks = std::make_unique<CallbackListNng>("inproc://main_client", 0);
 
+		instance->OnRequestQuit.Connect([this](const std::string& reason)
+		{
+			m_clientRegistry->ForAllClients([this, &reason](const std::shared_ptr<fx::Client>& client)
+			{
+				DropClient(client, "Server shutting down: %s", reason);
+			});
+		});
+
 		instance->OnInitialConfiguration.Connect([=]()
 		{
 			if (!m_net->SupportsUvUdp())
@@ -95,6 +123,24 @@ namespace fx
 			else
 			{
 				m_mainThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain");
+
+				static std::shared_ptr<uvw::SignalHandle> sigint = m_mainThreadLoop->Get()->resource<uvw::SignalHandle>();
+				sigint->start(SIGINT);
+
+				static std::shared_ptr<uvw::SignalHandle> sighup = m_mainThreadLoop->Get()->resource<uvw::SignalHandle>();
+				sighup->start(SIGHUP);
+
+				sigint->on<uvw::SignalEvent>([this](const uvw::SignalEvent& ev, uvw::SignalHandle& sig)
+				{
+					se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+					m_instance->GetComponent<console::Context>()->ExecuteSingleCommandDirect(ProgramArguments{ "quit", "SIGINT received" });
+				});
+
+				sighup->on<uvw::SignalEvent>([this](const uvw::SignalEvent& ev, uvw::SignalHandle& sig)
+				{
+					se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+					m_instance->GetComponent<console::Context>()->ExecuteSingleCommandDirect(ProgramArguments{ "quit", "SIGHUP received" });
+				});
 
 				auto asyncInitHandle = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();;
 				*asyncInitHandle = std::make_unique<UvHandleContainer<uv_async_t>>();

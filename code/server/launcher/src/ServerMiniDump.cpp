@@ -12,6 +12,29 @@
 
 static google_breakpad::ExceptionHandler* g_exceptionHandler;
 
+static DWORD BeforeTerminateHandler(LPVOID arg)
+{
+	__try
+	{
+		auto coreRt = GetModuleHandleW(L"CoreRT.dll");
+
+		if (coreRt)
+		{
+			auto func = (void(*)(void*))GetProcAddress(coreRt, "CoreOnProcessAbnormalTermination");
+
+			if (func)
+			{
+				func(arg);
+			}
+		}
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+	}
+
+	return 0;
+}
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	using namespace google_breakpad;
@@ -19,7 +42,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	static bool g_running = true;
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
-	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE, FALSE, parentPid);
+	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | SYNCHRONIZE, FALSE, parentPid);
 
 	static std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 
@@ -86,6 +109,30 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = dumpPath;
+
+		{
+			std::string friendlyReason = "Server crashed.";
+
+			// try to send the clients a bit of a obituary notice
+			LPVOID memPtr = VirtualAllocEx(parentProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+			if (memPtr)
+			{
+				WriteProcessMemory(parentProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
+			}
+
+			// we assume that (since unlike the game, we enable ASLR), as both processes are usually created around the same time, that we'll be the same binary
+			// and have the same ASLR location. this might need some better logic in the future if this turns out to not be the case.
+			//
+			// however, if it isn't - the target will just crash again.
+			HANDLE hThread = CreateRemoteThread(parentProcess, NULL, 0, BeforeTerminateHandler, memPtr, 0, NULL);
+
+			if (hThread)
+			{
+				WaitForSingleObject(hThread, 15000);
+				CloseHandle(hThread);
+			}
+		}
 
 		DebugActiveProcess(GetProcessId(parentProcess));
 

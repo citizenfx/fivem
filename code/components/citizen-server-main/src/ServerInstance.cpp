@@ -60,6 +60,23 @@ namespace fx
 			consoleCtx->ExecuteBuffer();
 		});
 
+		auto quit = [this](const std::string& reason)
+		{
+			OnRequestQuit(reason);
+
+			m_shouldTerminate = true;
+		};
+
+		m_quitCommand_0 = AddCommand("quit", [quit]()
+		{
+			quit("Quit command executed.");
+		});
+
+		m_quitCommand_1 = AddCommand("quit", [quit](const std::string& reason)
+		{
+			quit(reason);
+		});
+
 		SetComponent(new fx::OptionParser());
 	}
 

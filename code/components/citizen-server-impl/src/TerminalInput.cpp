@@ -292,7 +292,7 @@ static InitFunction initFunction([]()
 					// null result?
 					if (result == nullptr)
 					{
-						std::exit(0);
+						con->AddToBuffer(fmt::sprintf("quit \"Ctrl-C pressed in server console.\"\n"));
 						break;
 					}
 
