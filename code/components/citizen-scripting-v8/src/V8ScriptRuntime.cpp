@@ -2106,7 +2106,32 @@ void V8ScriptGlobals::Initialize()
 		// (GNU stack size presets do not seem to work here)
 		std::thread([&ec]
 		{
-			ec = node::Start(g_argc, (char**)g_argv);
+			// TODO: code duplication with above
+#ifdef _WIN32
+			std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
+#else
+			std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
+#endif
+
+			std::string rootPath = selfPath;
+			boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
+
+			auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
+				rootPath,
+				rootPath,
+				rootPath);
+
+			const char* execArgv[] = {
+		#ifndef _WIN32
+				"--library-path",
+				libPath.c_str(),
+				"--",
+				selfPath.c_str(),
+		#endif
+				"",
+			};
+
+			ec = node::Start(g_argc, (char**)g_argv, std::size(execArgv), const_cast<char**>(execArgv));
 		}).join();
 
 #ifdef _WIN32
