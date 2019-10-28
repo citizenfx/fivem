@@ -6,7 +6,8 @@ local openssl_cfg = require('./vendor/openssl_cfg')
 return {
 	include = function()
 		if os.istarget('windows') then
-			includedirs { "vendor/openssl/include/" }
+			includedirs { "vendor/openssl/" }
+			includedirs { "../vendor/openssl/include/" }
 		else
 			links { 'crypto' }
 		end

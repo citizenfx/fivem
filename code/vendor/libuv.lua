@@ -26,6 +26,7 @@ return {
 			'src/timer.c',
 			'src/uv-common.c',
 			'src/uv-common.h',
+			'src/uv-data-getter-setters.c',
 			'src/version.c'
 		}
 
