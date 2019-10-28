@@ -36,7 +36,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\signintransfer.dat");
 	}
 
-	if (wcsstr(origFileName, L"d3dx11_43.dll") != nullptr || wcsstr(origFileName, L"D3DX11_43") && !g_d3dx11)
+	if ((wcsstr(origFileName, L"d3dx11_43.dll") != nullptr || wcsstr(origFileName, L"D3DX11_43")) && !g_d3dx11)
 	{
 		return MakeRelativeCitPath(L"bin\\d3dcompiler_43.dll");
 	}
@@ -95,7 +95,7 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
-	if (wcsstr(fileName.c_str(), L"d3dx11_43.dll") != nullptr || wcsstr(fileName.c_str(), L"D3DX11_43") && !g_d3dx11)
+	if ((wcsstr(fileName.c_str(), L"d3dx11_43.dll") != nullptr || wcsstr(fileName.c_str(), L"D3DX11_43")) && !g_d3dx11)
 	{
 		return true;
 	}
