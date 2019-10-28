@@ -434,7 +434,7 @@ static InitFunction initFunction([]()
 			return (eventComponent->TriggerEvent2("rconCommand", {}, commandName, arguments.GetArguments()));
 		}, -100);
 
-		static thread_local std::string rawCommand;
+		static std::string rawCommand;
 
 		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
 		{
