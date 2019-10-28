@@ -32,10 +32,10 @@ apk --no-cache update
 apk del curl
 
 # install runtime dependencies
-apk add --no-cache libc++ curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
+apk add --no-cache curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps libc++-dev curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev
+apk add --no-cache --virtual .dev-deps curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-pip lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev
 
 # install ply
 pip install ply
@@ -107,7 +107,7 @@ cd /src/code
 premake5 gmake2 --game=server --cc=clang --dotnet=msnet
 cd build/server/linux
 
-export CXXFLAGS="-std=c++1z -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-invalid-offsetof"
+export CXXFLAGS="-std=c++17 -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
