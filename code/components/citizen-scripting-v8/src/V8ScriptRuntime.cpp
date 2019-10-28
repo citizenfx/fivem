@@ -2098,7 +2098,14 @@ void V8ScriptGlobals::Initialize()
 
 	if (g_argc >= 2 && strcmp(g_argv[1], "--start-node") == 0)
 	{
-		int ec = node::Start(g_argc, (char**)g_argv);
+		int ec = 0;
+		
+		// run in a thread so that pthread attributes take effect on musl-based Linux
+		// (GNU stack size presets do not seem to work here)
+		std::thread([&ec]
+		{
+			ec = node::Start(g_argc, (char**)g_argv);
+		}).join();
 
 #ifdef _WIN32
 		// newer Node won't play nice
