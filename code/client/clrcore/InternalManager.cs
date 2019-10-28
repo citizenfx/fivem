@@ -369,7 +369,7 @@ namespace CitizenFX.Core
 						BaseScript.CurrentName = null;
 
 						return t;
-					}).Unwrap().ContinueWith(a =>
+					}, CancellationToken.None, TaskCreationOptions.None, CitizenTaskScheduler.Instance).Unwrap().ContinueWith(a =>
 					{
 						if (a.IsFaulted)
 						{
