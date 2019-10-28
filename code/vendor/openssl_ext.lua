@@ -28,7 +28,7 @@
 -- Create an openssl namespace to isolate the plugin
 --
 	local module = {}
-    module._VERSION = "1.0.2f"
+    module._VERSION = "1.1.1d"
 
 	module.printf = function(msg, ...)
 		printf("[openssl] " .. msg, ...)
@@ -78,7 +78,13 @@
 		module.crypto_project = function(cfg)
 			opensslimpl.verify_cfg(cfg)
 			includedirs {
+				cfg.src_dir,
 				cfg.include_dir,
+				cfg.src_dir .. "crypto/include/",
+				cfg.src_dir .. "crypto/ec/curve448/",
+				cfg.src_dir .. "crypto/ec/curve448/arch_32/",
+				cfg.src_dir .. "crypto/modes/",
+				
 			}
 
 			opensslimpl.set_defaults()
@@ -114,6 +120,7 @@
 		module.ssl_project = function(cfg)
 			opensslimpl.verify_cfg(cfg)
 			includedirs {
+				cfg.src_dir,
 				cfg.include_dir,
 			}
 
@@ -156,6 +163,37 @@
 			assert(cfg.src_dir, "OpenSSL configuration does not contain a src_dir field")
 			assert(cfg.include_dir, "OpenSSL configuration does not contain an include_dir field")
 		end
+		
+		opensslimpl.templates = {
+			-- from openssl/Configurations/00-base-templates.conf
+			apps_aux_src	= "",
+			apps_init_src	= "",
+			cpuid_asm_src	= "mem_clr.c",
+			uplink_aux_src	= "",
+			bn_asm_src	= "bn_asm.c",
+			ec_asm_src	= "",
+			des_asm_src	= "des_enc.c fcrypt_b.c",
+			aes_asm_src	= "aes_core.c aes_cbc.c",
+			bf_asm_src	= "bf_enc.c",
+			md5_asm_src	= "",
+			cast_asm_src	= "c_enc.c",
+			rc4_asm_src	= "rc4_enc.c rc4_skey.c",
+			rmd160_asm_src	= "",
+			rc5_asm_src	= "rc5_enc.c",
+			wp_asm_src	= "wp_block.c",
+			cmll_asm_src	= "camellia.c cmll_misc.c cmll_cbc.c",
+			modes_asm_src	= "",
+			padlock_asm_src	= "",
+			chacha_asm_src	= "chacha_enc.c",
+			poly1305_asm_src	= "",
+			keccak1600_asm_src	= "keccak1600.c",
+		}
+		
+		opensslimpl.format_templates = function(line)
+			return line:gsub('%{%- %$target%{([^%}]*)%} %-%}', function(part)
+				return opensslimpl.templates[part]
+			end)
+		end
 
 		-- generate system-level defaults
 		opensslimpl.set_defaults = function()
@@ -167,8 +205,11 @@
 					"WIN32_LEAN_AND_MEAN",
 					"_CRT_SECURE_NO_DEPRECATE",
 					"OPENSSL_SYSNAME_WIN32",
-					"OPENSSL_NO_EC_NISTP_64_GCC_128"
+					"OPENSSL_NO_ASM",
+					"OPENSSL_NO_EC_NISTP_64_GCC_128",
+					"OPENSSLDIR=\"C:\\Program Files\\Common Files\\SSL\""
 				}
+
 			filter {"architecture:x32 or architecture:x64"}
 				defines {
 					"L_ENDIAN",
@@ -193,6 +234,7 @@
 		-- Parse an openssl makefile and generate a library description
 		opensslimpl.parse_library = function(pathToMakefile)
 			local lib = {
+				name = "",
 				public_headers = {},
 				private_headers = {},
 				source = {},
@@ -210,16 +252,12 @@
 					if curr:sub(#curr) == "\\" then
 						line = line:sub(0, #line-1)
 					else
-						-- openssl splits header files into two categories:
-						--    private headers (HEADER=...)
-						--    public headers  (EXHEADER=...)
-						-- source files are denoted by LIBSRC=...
-						if string.sub(line, 1, 9) == "EXHEADER=" then
-							lib.public_headers = opensslimpl.split_words(line:sub(10))
-						elseif string.sub(line, 1, 7) == "HEADER=" then
-							lib.private_headers = opensslimpl.split_words(line:sub(8))
-						elseif string.sub(line, 1, 7) == "LIBSRC=" then
-							lib.source = opensslimpl.split_words(line:sub(8))
+						line = opensslimpl.format_templates(line)
+					
+						if string.sub(line, 1, 5) == "LIBS=" then
+							lib.name = line:sub(6)
+						elseif string.sub(line, 1, 7) == "SOURCE[" then
+							lib.source = opensslimpl.split_words(line:sub(10 + #lib.name))
 						end
 
 						line = ""
@@ -261,7 +299,7 @@
 			-- find makefiles in crypto/
 			local cryptoPrefix = OPENSSL_DIR .. "crypto/"
 			local makefile
-			for _, makefile in ipairs(os.matchfiles(cryptoPrefix .. "**/Makefile")) do
+			for _, makefile in ipairs(os.matchfiles(cryptoPrefix .. "**/build.info")) do
 				local libraryName = path.getdirectory(makefile)
 				if string.sub(libraryName, 1, #cryptoPrefix) == cryptoPrefix then
 					libraryName = string.sub(libraryName, #cryptoPrefix + 1)
@@ -270,16 +308,14 @@
 			end
 
 			-- describe the core crypto library
-			libraries["crypto"] = opensslimpl.parse_library(OPENSSL_DIR .. "crypto/Makefile")
+			libraries["crypto"] = opensslimpl.parse_library(OPENSSL_DIR .. "crypto/build.info")
 
 			-- describe the SSL library
-			libraries["ssl"] = opensslimpl.parse_library(OPENSSL_DIR .. "ssl/Makefile")
+			libraries["ssl"] = opensslimpl.parse_library(OPENSSL_DIR .. "ssl/build.info")
 
 			-- describe the core openssl library
-			if os.isfile(OPENSSL_DIR .. "Makefile") then
-				libraries[""] = opensslimpl.parse_library(OPENSSL_DIR .. "Makefile")
-			elseif os.isfile(OPENSSL_DIR .. "Makefile.org") then
-				libraries[""] = opensslimpl.parse_library(OPENSSL_DIR .. "Makefile.org")
+			if os.isfile(OPENSSL_DIR .. "build.info") then
+				libraries[""] = opensslimpl.parse_library(OPENSSL_DIR .. "build.info")
 			end
 
 			return libraries
