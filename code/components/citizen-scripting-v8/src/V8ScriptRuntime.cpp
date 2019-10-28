@@ -2121,17 +2121,18 @@ void V8ScriptGlobals::Initialize()
 				rootPath,
 				rootPath);
 
+#ifndef _WIN32
 			const char* execArgv[] = {
-		#ifndef _WIN32
 				"--library-path",
 				libPath.c_str(),
 				"--",
 				selfPath.c_str(),
-		#endif
-				"",
 			};
 
 			ec = node::Start(g_argc, (char**)g_argv, std::size(execArgv), const_cast<char**>(execArgv));
+#else
+			ec = node::Start(g_argc, (char**)g_argv, 0, nullptr);
+#endif			
 		}).join();
 
 #ifdef _WIN32
