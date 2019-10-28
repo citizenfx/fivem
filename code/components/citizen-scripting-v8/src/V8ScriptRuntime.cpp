@@ -29,6 +29,8 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 #include <v8-profiler.h>
 #include <libplatform/libplatform.h>
 
+#include <boost/algorithm/string.hpp>
+
 #ifdef IS_FXSERVER
 #include <node.h>
 #endif
@@ -1616,11 +1618,33 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	Context::Scope scope(context);
 
 #ifdef IS_FXSERVER
-	const char* execArgv[] = { "--start-node" };
+#ifdef _WIN32
+	std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
+#else
+	std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
+#endif
+
+	std::string rootPath = selfPath;
+	boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
+
+	auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
+		rootPath,
+		rootPath,
+		rootPath);
+
+	const char* execArgv[] = {
+#ifndef _WIN32
+		"--library-path",
+		libPath.c_str(),
+		"--",
+		selfPath.c_str(),
+#endif
+		"--start-node",
+	};
 
 	node::InitializeContext(context);
 
-	auto env = node::CreateEnvironment(GetNodeIsolate(), context, 0, nullptr, 1, execArgv);
+	auto env = node::CreateEnvironment(GetNodeIsolate(), context, 0, nullptr, std::size(execArgv), execArgv);
 	node::LoadEnvironment(env);
 
 	g_envRuntimes[env] = this;
