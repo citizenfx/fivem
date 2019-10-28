@@ -182,6 +182,12 @@ int GetCefMouseModifiers() {
 		modifiers |= EVENTFLAG_SHIFT_DOWN;
 	if (isKeyDown(VK_MENU))
 		modifiers |= EVENTFLAG_ALT_DOWN;
+	if (isKeyDown(VK_LBUTTON))
+		modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+	if (isKeyDown(VK_MBUTTON))
+		modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
+	if (isKeyDown(VK_RBUTTON))
+		modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
 
 	// Low bit set from GetKeyState indicates "toggled".
 	if (::GetKeyState(VK_NUMLOCK) & 1)
@@ -281,6 +287,7 @@ static HookFunction initFunction([] ()
 					lastClickX = x;
 					lastClickY = y;
 				}
+
 				lastClickTime = currentTime;
 				lastClickButton = btnType;
 
