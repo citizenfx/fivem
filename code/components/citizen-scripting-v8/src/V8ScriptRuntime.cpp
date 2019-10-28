@@ -1707,6 +1707,8 @@ result_t V8ScriptRuntime::Destroy()
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
 #ifdef IS_FXSERVER
+	g_envRuntimes.erase(m_nodeEnvironment);
+
 	node::FreeEnvironment(m_nodeEnvironment);
 #endif
 
