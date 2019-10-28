@@ -146,7 +146,7 @@ workspace "CitizenMP"
 	filter { 'system:not windows', 'language:C or language:C++' }
 		architecture 'x64'
 		
-		links { 'c++' }
+		links { 'stdc++' }
 
 		buildoptions {
 			"-fPIC", -- required to link on AMD64
