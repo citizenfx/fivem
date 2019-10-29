@@ -13,6 +13,9 @@
 
 #include <mmsystem.h>
 
+#include <ResourceCacheDeviceV2.h>
+#include <VFSManager.h>
+
 struct StreamingDownloadProgress
 {
 	size_t downloadDone;
@@ -116,27 +119,25 @@ static void StreamingProgress_Update()
 
 					if (isCache)
 					{
-						auto device = rage::fiDevice::GetDevice(fileName.c_str(), true);
-						uint64_t ptr;
-						auto handle = device->OpenBulk(fileName.c_str(), &ptr);
-						auto numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFC);
+						auto device = vfs::GetDevice(fileName);
+						fwRefContainer<resources::ResourceCacheDeviceV2> resDevice(device);
 
-						if (numRead == 0)
+						if (!resDevice->ExistsOnDisk(fileName))
 						{
 							std::unique_lock<std::shared_mutex> lock(g_mutex);
 
-							g_downloadList.insert({ nameBuffer, device->GetFileLength(handle) });
+							if (g_downloadList.find(nameBuffer) == g_downloadList.end())
+							{
+								g_downloadList.insert({ nameBuffer, resDevice->GetLength(fileName) });
+							}
+
 							foundNow.insert(nameBuffer);
-							//g_nameMap.insert({ nameBuffer, entryName });
 
 							thisRequests++;
 						}
-
-						device->CloseBulk(handle);
 					}
 				}
 			}
-			//}
 		}
 	}
 

@@ -66,7 +66,7 @@ ResourceCacheDevice::ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, b
 	}
 }
 
-boost::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForFileName(const std::string& fileName)
+std::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForFileName(const std::string& fileName)
 {
 	// strip the path prefix
 	std::string relativeName = fileName.substr(m_pathPrefix.length());
@@ -83,7 +83,7 @@ boost::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForF
 	// TODO: handle this some better way
 	if (!resource.GetRef())
 	{
-		return boost::optional<ResourceCacheEntryList::Entry>();
+		return std::optional<ResourceCacheEntryList::Entry>();
 	}
 
 	// get the entry list component
@@ -92,7 +92,12 @@ boost::optional<ResourceCacheEntryList::Entry> ResourceCacheDevice::GetEntryForF
 	// get the entry from the component
 	auto entry = entryList->GetEntry(itemName);
 
-	return entry;
+	if (!entry)
+	{
+		return {};
+	}
+
+	return entry->get();
 }
 
 ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string& fileName, uint64_t* bulkPtr)
@@ -100,7 +105,7 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 	// find the entry for this file
 	auto entry = GetEntryForFileName(fileName);
 
-	if (!entry.is_initialized())
+	if (!entry)
 	{
 		return InvalidHandle;
 	}
@@ -111,7 +116,7 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 
 	// is this a bulk handle?
 	handleData->bulkHandle = (bulkPtr != nullptr);
-	handleData->entry = entry.get();
+	handleData->entry = *entry;
 	handleData->fileData = GetFileDataForEntry(*entry);
 	handleData->fileData->status = FileData::StatusNotFetched;
 	handleData->fileName = fileName;
@@ -119,7 +124,7 @@ ResourceCacheDevice::THandle ResourceCacheDevice::OpenInternal(const std::string
 	// open the file beforehand if it's in the cache
 	auto cacheEntry = m_cache->GetEntryFor(*entry);
 	
-	if (cacheEntry.is_initialized())
+	if (cacheEntry)
 	{
 		const std::string& localPath = cacheEntry->GetLocalPath();
 		handleData->localPath = localPath;

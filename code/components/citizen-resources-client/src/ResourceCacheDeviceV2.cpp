@@ -262,7 +262,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 
 	std::unique_lock<std::mutex> lock(m_lock);
 
-	const auto& referenceHash = entry->referenceHash;
+	const auto& e = entry->get();
+	const auto& referenceHash = e.referenceHash;
 	auto it = m_entries.find(referenceHash);
 
 	if (it == m_entries.end())
@@ -427,19 +428,19 @@ void ResourceCacheDeviceV2::AddEntryToCache(const std::string& outFileName, std:
 	m_cache->AddEntry(outFileName, metaData);
 }
 
-std::optional<ResourceCacheEntryList::Entry> ResourceCacheDeviceV2::GetEntryForFileName(const std::string& fileName)
+std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> ResourceCacheDeviceV2::GetEntryForFileName(std::string_view fileName)
 {
 	// strip the path prefix
-	std::string relativeName = fileName.substr(m_pathPrefix.length());
+	std::string_view relativeName = fileName.substr(m_pathPrefix.length());
 
 	// relative paths are {resource}/{filepath}
 	int slashOffset = relativeName.find_first_of('/');
-	std::string resourceName = relativeName.substr(0, slashOffset);
-	std::string itemName = relativeName.substr(slashOffset + 1);
+	std::string_view resourceName = relativeName.substr(0, slashOffset);
+	std::string_view itemName = relativeName.substr(slashOffset + 1);
 
 	// get the relative resource
 	fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
-	fwRefContainer<fx::Resource> resource = resourceManager->GetResource(resourceName);
+	fwRefContainer<fx::Resource> resource = resourceManager->GetResource(std::string(resourceName));
 
 	// TODO: handle this some better way
 	if (!resource.GetRef())
@@ -458,7 +459,7 @@ std::optional<ResourceCacheEntryList::Entry> ResourceCacheDeviceV2::GetEntryForF
 		return {};
 	}
 
-	return *entry;
+	return entry;
 }
 
 #define VFS_GET_RAGE_PAGE_FLAGS 0x20001
@@ -494,9 +495,11 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		if (entry)
 		{
-			data->version = atoi(entry->extData["rscVersion"].c_str());
-			data->flags.flag1 = strtoul(entry->extData["rscPagesVirtual"].c_str(), nullptr, 10);
-			data->flags.flag2 = strtoul(entry->extData["rscPagesPhysical"].c_str(), nullptr, 10);
+			auto extData = entry->get().extData;
+
+			data->version = atoi(extData["rscVersion"].c_str());
+			data->flags.flag1 = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
+			data->flags.flag2 = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
 			return true;
 		}
 	}
@@ -508,16 +511,18 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		if (entry)
 		{
+			auto extData = entry->get().extData;
+
 			data->outData = fmt::sprintf("RSC version: %d\nRSC page flags: virt %08x/phys %08x\nResource name: %s\nReference hash: %s\n",
-				atoi(entry->extData["rscVersion"].c_str()),
-				strtoul(entry->extData["rscPagesVirtual"].c_str(), nullptr, 10),
-				strtoul(entry->extData["rscPagesPhysical"].c_str(), nullptr, 10),
-				entry->resourceName,
-				entry->referenceHash);
+				atoi(extData["rscVersion"].c_str()),
+				strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10),
+				strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10),
+				entry->get().resourceName,
+				entry->get().referenceHash);
 
 			data->outData += "Resources for hash:\n";
 
-			for (auto& views : fx::GetIteratorView(g_referenceHashList.equal_range(entry->referenceHash)))
+			for (auto& views : fx::GetIteratorView(g_referenceHashList.equal_range(entry->get().referenceHash)))
 			{
 				data->outData += fmt::sprintf("-> %s/%s\n", views.second.first, views.second.second);
 			}
@@ -535,7 +540,7 @@ size_t ResourceCacheDeviceV2::GetLength(const std::string& fileName)
 
 	if (entry)
 	{
-		return entry->size;
+		return entry->get().size;
 	}
 
 	return -1;

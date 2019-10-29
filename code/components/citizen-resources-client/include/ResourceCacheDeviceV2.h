@@ -122,7 +122,7 @@ public:
 
 	virtual concurrency::task<RcdFetchResult> FetchEntry(const std::string& fileName) = 0;
 
-	virtual std::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName) = 0;
+	virtual std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> GetEntryForFileName(std::string_view fileName) = 0;
 
 	virtual size_t GetLength(const std::string& fileName) = 0;
 
@@ -173,7 +173,7 @@ protected:
 	std::mutex m_lock;
 
 public:
-	std::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);
+	std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> GetEntryForFileName(std::string_view fileName);
 
 protected:
 	virtual fwRefContainer<vfs::Stream> GetVerificationStream(const ResourceCacheEntryList::Entry& entry, const ResourceCache::Entry& cacheEntry);

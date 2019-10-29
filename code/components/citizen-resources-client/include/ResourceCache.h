@@ -10,15 +10,22 @@
 #include <leveldb/db.h>
 #include <array>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <Resource.h>
 
+#include <boost/algorithm/string.hpp>
+#include <tbb/concurrent_unordered_map.h>
+
 struct IgnoreCaseLess
 {
-	inline bool operator()(const std::string& left, const std::string& right) const
+	using is_transparent = int;
+
+	template< class T, class U>
+	inline auto operator()(T&& lhs, U&& rhs) const
+		-> decltype(std::forward<T>(lhs) < std::forward<U>(rhs))
 	{
-		return _stricmp(left.c_str(), right.c_str()) < 0;
+		return boost::ilexicographical_compare(lhs, rhs);
 	}
 };
 
@@ -63,16 +70,16 @@ public:
 		return m_entries;
 	}
 
-	inline boost::optional<Entry> GetEntry(const std::string& baseName)
+	inline std::optional<std::reference_wrapper<const Entry>> GetEntry(std::string_view baseName)
 	{
 		auto it = m_entries.find(baseName);
 
 		if (it == m_entries.end())
 		{
-			return boost::optional<Entry>();
+			return {};
 		}
 
-		return boost::optional<Entry>(it->second);
+		return it->second;
 	}
 
 	inline void AddEntry(const Entry& entry)
@@ -138,11 +145,11 @@ public:
 
 	void AddEntry(const std::string& localFileName, const std::array<uint8_t, 20>& hashData, const std::map<std::string, std::string>& metaData);
 
-	boost::optional<Entry> GetEntryFor(const ResourceCacheEntryList::Entry& entry);
+	std::optional<Entry> GetEntryFor(const ResourceCacheEntryList::Entry& entry);
 
-	boost::optional<Entry> GetEntryFor(const std::string& hashString);
+	std::optional<Entry> GetEntryFor(const std::string& hashString);
 
-	boost::optional<Entry> GetEntryFor(const std::array<uint8_t, 20>& hash);
+	std::optional<Entry> GetEntryFor(const std::array<uint8_t, 20>& hash);
 
 	inline const std::string& GetCachePath()
 	{
@@ -156,4 +163,6 @@ public:
 
 private:
 	void OpenDatabase();
+
+	tbb::concurrent_unordered_map<std::string, std::optional<std::optional<Entry>>> m_entryCache;
 };

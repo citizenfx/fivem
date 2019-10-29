@@ -116,7 +116,7 @@ public:
 	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath, const std::string& physCachePath);
 
 protected:
-	boost::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);
+	std::optional<ResourceCacheEntryList::Entry> GetEntryForFileName(const std::string& fileName);
 
 	HandleData* AllocateHandle(THandle* idx);
 
