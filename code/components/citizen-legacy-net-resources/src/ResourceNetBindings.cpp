@@ -145,7 +145,7 @@ static InitFunction initFunction([] ()
 
 		static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 
-		auto urlEncodeWrap = [](const std::string& base, const std::string& str, const std::string& hash)
+		auto urlEncodeWrap = [](const std::string& base, const std::string& str)
 		{
 			if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201902111010)
 			{
@@ -157,11 +157,6 @@ static InitFunction initFunction([] ()
 					boost::algorithm::replace_all(strCopy, "+", "%2B");
 
 					auto url = skyr::make_url(strCopy, *baseUrl);
-
-					if (!hash.empty())
-					{
-						url->set_search("?hash=" + hash);
-					}
 
 					if (url)
 					{
@@ -350,9 +345,8 @@ static InitFunction initFunction([] ()
 						for (auto i = files.MemberBegin(); i != files.MemberEnd(); i++)
 						{
 							fwString filename = i->name.GetString();
-							fwString refHash = i->value.GetString();
 
-							mounter->AddResourceEntry(resourceName, filename, refHash, urlEncodeWrap(resourceBaseUrl, filename, refHash));
+							mounter->AddResourceEntry(resourceName, filename, i->value.GetString(), urlEncodeWrap(resourceBaseUrl, filename));
 						}
 
 						if (resource.HasMember("streamFiles"))
@@ -391,7 +385,7 @@ static InitFunction initFunction([] ()
 									continue;
 								}
 
-								mounter->AddResourceEntry(resourceName, filename, hash, urlEncodeWrap(resourceBaseUrl, filename, hash), size, {
+								mounter->AddResourceEntry(resourceName, filename, hash, urlEncodeWrap(resourceBaseUrl, filename), size, {
 									{ "rscVersion", std::to_string(entry.rscVersion) },
 									{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
 									{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
