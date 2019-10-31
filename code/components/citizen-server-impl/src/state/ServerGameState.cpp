@@ -334,6 +334,8 @@ ServerGameState::ServerGameState()
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
+	std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
+
 	if (objectId >= m_entitiesById.size() || objectId < 0)
 	{
 		return {};
@@ -342,7 +344,6 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 	uint16_t objIdAlias = objectId;
 	debug::Alias(&objIdAlias);
 
-	std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 	auto ptr = m_entitiesById[objectId];
 
 	return ptr.lock();
@@ -2017,7 +2018,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 				std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
 
 				std::weak_ptr<sync::SyncEntityState> weakEntity(entity);
-				m_entitiesById[objectId].swap(weakEntity);
+				m_entitiesById[objectId] = weakEntity;
 			}
 		}
 		else // duplicate create? that's not supposed to happen
