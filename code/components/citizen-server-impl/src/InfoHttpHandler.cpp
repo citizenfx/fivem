@@ -98,7 +98,7 @@ static InitFunction initFunction([]()
 
 				infoJson["version"] = 0;
 
-				infoHash = static_cast<int>(std::hash<std::string>()(infoJson.dump(-1, ' ', false, json::error_handler_t::replace)) & 0x7FFFFFFF);
+				infoHash = static_cast<int>(HashRageString(infoJson.dump(-1, ' ', false, json::error_handler_t::replace).c_str()) & 0x7FFFFFFF);
 				infoJson["version"] = infoHash;
 
 				ivVar->GetHelper()->SetRawValue(infoHash);
