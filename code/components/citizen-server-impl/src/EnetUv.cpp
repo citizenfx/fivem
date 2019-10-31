@@ -13,18 +13,22 @@
 using TPacketPool = eastl::fixed_node_allocator<65536, 512, 16, 0, true>;
 static uint8_t packetArena[TPacketPool::kBufferSize];
 static TPacketPool packetAllocator(packetArena);
+static std::mutex packetAllocatorLock;
 
 using TSendPacketPool = eastl::fixed_node_allocator<8192, 32768, 16, 0, true>;
 static uint8_t sendPacketArena[TPacketPool::kBufferSize];
 static TSendPacketPool sendPacketAllocator(sendPacketArena);
+static std::mutex sendPacketAllocatorLock;
 
 using TSendPool = eastl::fixed_node_allocator<sizeof(uv_udp_send_t), 32768, 16, 0, true>;
 static uint8_t sendArena[TSendPool::kBufferSize];
 static TSendPool sendAllocator(sendArena);
+static std::mutex sendAllocatorLock;
 
 using TReqPool = eastl::fixed_node_allocator<1024, 32768, 16, 0, true>;
 static uint8_t reqArena[TReqPool::kBufferSize];
 static TReqPool reqAllocator(reqArena);
+static std::mutex reqAllocatorLock;
 
 template<typename... TArgs>
 struct UvCallbackArgsPooled
@@ -49,10 +53,12 @@ struct UvCallbackArgsPooled
 				request->fn(handle, args...);
 				request->~Request();
 
+				std::unique_lock<std::mutex> lock(reqAllocatorLock);
 				reqAllocator.deallocate(request, TReqPool::kNodeSize);
 			}
 		};
 
+		std::unique_lock<std::mutex> lock(reqAllocatorLock);
 		auto req = new(reqAllocator.allocate(TReqPool::kNodeSize)) Request(std::move(fn));
 		handle->data = req;
 
@@ -64,6 +70,7 @@ struct send_deleter
 {
 	inline void operator()(void* ptr)
 	{
+		std::unique_lock<std::mutex> lock(sendAllocatorLock);
 		sendAllocator.deallocate(ptr, sizeof(uv_udp_send_t));
 	}
 };
@@ -157,8 +164,9 @@ enet_socket_set_option(ENetSocket socket, ENetSocketOption option, int value)
 }
 
 template<typename TAllocator>
-static void alloc_buffer(TAllocator& allocator, uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+static void alloc_buffer(TAllocator& allocator, std::mutex& allocatorLock, uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
+	std::unique_lock<std::mutex> lock(allocatorLock);
 	*buf = uv_buf_init((char*)((suggested_size <= TAllocator::kNodeSize) ? allocator.allocate(TAllocator::kNodeSize) : malloc(suggested_size)), suggested_size);
 }
 
@@ -203,7 +211,7 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 
 		uv_udp_recv_start(&sd->udp, [](uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf)
 		{
-			return alloc_buffer(packetAllocator, handle, suggestedSize, buf);
+			return alloc_buffer(packetAllocator, packetAllocatorLock, handle, suggestedSize, buf);
 		}, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
 			const struct sockaddr* addr, unsigned flags)
 		{
@@ -241,6 +249,7 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 			}
 			else
 			{
+				std::unique_lock<std::mutex> lock(packetAllocatorLock);
 				packetAllocator.deallocate(buf->base, TPacketPool::kNodeSize);
 			}
 		});
@@ -316,7 +325,7 @@ enet_socket_send(ENetSocket socket,
 
 	// allocate a large enough buffer
 	uv_buf_t uvBuf;
-	alloc_buffer(sendPacketAllocator, nullptr, totalSize, &uvBuf);
+	alloc_buffer(sendPacketAllocator, sendPacketAllocatorLock, nullptr, totalSize, &uvBuf);
 
 	// copy memory into the buffer
 	totalSize = 0;
@@ -330,7 +339,9 @@ enet_socket_send(ENetSocket socket,
 	// start sending the buffer
 	auto sd = socketIt->second;
 
+	std::unique_lock<std::mutex> lock(sendAllocatorLock);
 	auto sendReq = std::unique_ptr<uv_udp_send_t, send_deleter>(new(sendAllocator.allocate(sizeof(uv_udp_send_t))) uv_udp_send_t());
+
 	auto reqRef = sendReq.get();
 
 	uv_udp_send(reqRef, &sd->udp, &uvBuf, 1, (sockaddr*)&sin, UvCallbackArgsPooled<int>::Get(reqRef, [sendReq = std::move(sendReq), uvBuf](uv_udp_send_t*, int)
@@ -339,6 +350,7 @@ enet_socket_send(ENetSocket socket,
 		debug::Alias(&sendReq);
 
 		// free buffer
+		std::unique_lock<std::mutex> lock(sendPacketAllocatorLock);
 		sendPacketAllocator.deallocate(uvBuf.base, TSendPacketPool::kNodeSize);
 	}));
 
