@@ -15,8 +15,8 @@ static uint8_t packetArena[TPacketPool::kBufferSize];
 static TPacketPool packetAllocator(packetArena);
 static std::mutex packetAllocatorLock;
 
-using TSendPacketPool = eastl::fixed_node_allocator<8192, 32768, 16, 0, true>;
-static uint8_t sendPacketArena[TPacketPool::kBufferSize];
+using TSendPacketPool = eastl::fixed_node_allocator<8192, 16384, 16, 0, true>;
+static uint8_t sendPacketArena[TSendPacketPool::kBufferSize];
 static TSendPacketPool sendPacketAllocator(sendPacketArena);
 static std::mutex sendPacketAllocatorLock;
 
