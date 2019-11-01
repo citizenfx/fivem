@@ -29,6 +29,7 @@
 	"handling-loader:five",
 	"scripthookv",
 	"citizen:resources:core",
+	"citizen:resources:client",
 	"scrbind:base",
 	"citizen:scripting:core",
 	"profiles",
