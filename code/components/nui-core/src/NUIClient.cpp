@@ -134,7 +134,7 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 	msg << sourceStr << ":" << line << ", " << messageStr << std::endl;
 
 	OutputDebugString(msg.str().c_str());
-	trace("%s\n", ToNarrow(msg.str()));
+	trace("%s", ToNarrow(msg.str()));
 
 	return false;
 }
