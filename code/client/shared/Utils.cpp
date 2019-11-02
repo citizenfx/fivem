@@ -119,105 +119,6 @@ void DoNtRaiseException(EXCEPTION_RECORD* record)
 	}
 }
 
-struct SharedTickCount
-{
-	struct Data
-	{
-		uint64_t tickCount;
-
-		Data()
-		{
-			tickCount = GetTickCount64();
-		}
-	};
-
-	SharedTickCount()
-	{
-		m_data = &m_fakeData;
-
-		bool initTime = true;
-		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(Data), L"CFX_SharedTickCount");
-
-		if (m_fileMapping != nullptr)
-		{
-			if (GetLastError() == ERROR_ALREADY_EXISTS)
-			{
-				initTime = false;
-			}
-
-			m_data = (Data*)MapViewOfFile(m_fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Data));
-
-			if (initTime)
-			{
-				m_data = new(m_data) Data();
-			}
-		}
-	}
-
-	inline Data& operator*()
-	{
-		return *m_data;
-	}
-
-	inline Data* operator->()
-	{
-		return m_data;
-	}
-
-private:
-	HANDLE m_fileMapping;
-	Data* m_data;
-
-	Data m_fakeData;
-};
-
-static void PerformFileLog(const char* string)
-{
-	static std::vector<char> lineBuffer(8192);
-	static size_t lineIndex;
-	static std::mutex logMutex;
-
-	static SharedTickCount initTickCount;
-
-	{
-		std::unique_lock<std::mutex> lock(logMutex);
-
-		for (const char* p = string; *p; ++p)
-		{
-			if (*p == '\n')
-			{
-				// flush the line
-				FILE* logFile = _wfopen(MakeRelativeCitPath(L"CitizenFX.log").c_str(), L"ab");
-
-				if (logFile)
-				{
-					// null-terminate the string
-					lineBuffer[lineIndex] = '\0';
-
-					fprintf(logFile, "[%10lld] %s\r\n", GetTickCount64() - initTickCount->tickCount, lineBuffer.data());
-					fclose(logFile);
-				}
-
-				// clear the line
-				lineIndex = 0;
-
-				// skip this char
-				continue;
-			}
-
-			// append the character
-			lineBuffer[lineIndex] = *p;
-			++lineIndex;
-
-			// overflow? if so, resize
-			if (lineIndex >= (lineBuffer.size() - 1))
-			{
-				lineBuffer.resize(lineBuffer.size() * 2);
-			}
-		}
-	}
-}
-
 static void RaiseDebugException(const char* buffer, size_t length)
 {
 	__try
@@ -237,6 +138,28 @@ static void RaiseDebugException(const char* buffer, size_t length)
 	{
 		OutputDebugStringA(buffer);
 	}
+}
+#endif
+
+#if defined(_WIN32) && !defined(IS_FXSERVER)
+inline void AsyncTrace(const char* string)
+{
+	using TCoreTraceFunc = decltype(&AsyncTrace);
+
+	static TCoreTraceFunc func;
+
+	if (!func)
+	{
+		func = (TCoreTraceFunc)GetProcAddress(GetModuleHandle(NULL), "AsyncTrace");
+
+		if (!func)
+		{
+			// try getting function proxy from CoreRT, could be we've already loaded a game
+			func = (TCoreTraceFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "AsyncTrace");
+		}
+	}
+
+	(func) ? func(string) : (void)0;
 }
 #endif
 
@@ -278,7 +201,7 @@ void TraceRealV(const char* channel, const char* func, const char* file, int lin
 	}
 
 #ifndef IS_FXSERVER
-	PerformFileLog(buffer.c_str());
+	AsyncTrace(buffer.data());
 #endif
 #endif
 }

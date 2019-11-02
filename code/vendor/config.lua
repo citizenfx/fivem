@@ -29,6 +29,7 @@ vendor_component 'cpr-crt'
 vendor_component 'imgui'
 vendor_component 'enet'
 vendor_component 'tbb'
+vendor_component 'tbb-crt'
 vendor_component 'nng'
 
 vendor_component 'boost_program_options'

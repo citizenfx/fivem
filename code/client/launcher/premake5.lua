@@ -37,7 +37,7 @@
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
-		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:minizip-crt' }
+		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:minizip-crt', 'vendor:tbb-crt' }
 		
 		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
 

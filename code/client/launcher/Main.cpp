@@ -38,6 +38,7 @@ extern "C" int wmainCRTStartup();
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
 bool ExecutablePreload_Init();
+void InitLogging();
 
 HANDLE g_uiDoneEvent;
 HANDLE g_uiExitEvent;
@@ -210,6 +211,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		return 0;
 	}
+
+	InitLogging();
 
 	// load global dinput8.dll over any that might exist in the game directory
 	{

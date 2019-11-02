@@ -519,6 +519,18 @@ static HRESULT GetUIObjectOfFile(HWND hwnd, LPCWSTR pszPath, REFIID riid, void**
 	return hr;
 }
 
+struct TickCountData
+{
+	uint64_t tickCount;
+	SYSTEMTIME initTime;
+
+	TickCountData()
+	{
+		tickCount = GetTickCount64();
+		GetSystemTime(&initTime);
+	}
+};
+
 static void GatherCrashInformation()
 {
 	void* writer = nullptr;
@@ -533,13 +545,20 @@ static void GatherCrashInformation()
 	mz_zip_writer_set_compress_level(writer, 9);
 	mz_zip_writer_set_compress_method(writer, MZ_COMPRESS_METHOD_DEFLATE);
 
+	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+
 	bool success = false;
 	
 	int err = mz_zip_writer_open_file(writer, ToNarrow(tempDir).c_str(), 0, false);
 
 	if (err == MZ_OK)
 	{
-		err = mz_zip_writer_add_path(writer, ToNarrow(MakeRelativeCitPath(L"CitizenFX.log")).c_str(), nullptr, false, false);
+		static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
+			initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
+
+		static fwPlatformString fp = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
+
+		err = mz_zip_writer_add_path(writer, ToNarrow(fp).c_str(), nullptr, false, false);
 
 		if (err == MZ_OK)
 		{
@@ -715,6 +734,9 @@ private:
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
+
+	// needed to initialize logging(!)
+	trace("DumpServer is active and waiting.\n");
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
 	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, parentPid);

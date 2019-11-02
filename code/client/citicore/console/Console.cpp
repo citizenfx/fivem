@@ -498,8 +498,24 @@ void SetConsoleWriter(console::IWriter* writer)
 	g_writer = writer;
 }
 
+#ifdef _WIN32
+static void(*g_asyncTrace)(const char*);
+
+extern "C" DLL_EXPORT void AsyncTrace(const char* string)
+{
+	if (g_asyncTrace)
+	{
+		g_asyncTrace(string);
+	}
+}
+#endif
+
 static InitFunction initFunction([]()
 {
+#ifdef _WIN32
+	g_asyncTrace = (decltype(g_asyncTrace))GetProcAddress(GetModuleHandle(NULL), "AsyncTrace");
+#endif
+
 	auto cxt = console::GetDefaultContext();
 	Instance<ConsoleCommandManager>::Set(cxt->GetCommandManager());
 	Instance<ConsoleVariableManager>::Set(cxt->GetVariableManager());
