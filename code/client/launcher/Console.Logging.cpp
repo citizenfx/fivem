@@ -197,7 +197,7 @@ void InitLogging()
 		for (auto& f : std::filesystem::directory_iterator{ MakeRelativeCitPath(L"logs/") })
 		{
 			int year, month, day, hour, minute, second;
-			int fields = wscanf(f.path().filename().c_str(), "CitizenFX_log_%04d-%02d-%02dT%02d%02d%02d.log", &year, &month, &day, &hour, &minute, &second);
+			int fields = swscanf(f.path().filename().c_str(), L"CitizenFX_log_%04d-%02d-%02dT%02d%02d%02d.log", &year, &month, &day, &hour, &minute, &second);
 
 			if (fields == 6)
 			{
