@@ -139,6 +139,8 @@ deploy_specific:
     - build_client
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  variables:
+    IS_RDR3: '1'
   environment:
     name: specific/$CI_BUILD_REF_NAME
   only:
