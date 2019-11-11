@@ -25,6 +25,8 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType)
 	outPath += L"FiveM_" + processType;
 #elif defined(IS_FXSERVER)
 	outPath += L"FXS_" + processType;
+#elif defined(IS_RDR3)
+	outPath += L"RedM_" + processType;
 #else
 #error No subprocess name!
 #endif

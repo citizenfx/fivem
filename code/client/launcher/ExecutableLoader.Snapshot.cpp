@@ -4,7 +4,11 @@
 #include <Hooking.h>
 
 // 1604 now...!
+#ifdef GTA_FIVE
 #define TRIGGER_EP 0x14175DE00
+#elif defined(IS_RDR3)
+#define TRIGGER_EP 0x142D55C2C
+#endif
 
 // on NT pre-6.3 (or 6.2, even), VEHs can't modify debug registers
 // making a new thread for every single block is a bad idea as well, but perf isn't _that_ bad

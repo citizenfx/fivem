@@ -780,7 +780,7 @@ __declspec(thread) int tls768;
 __declspec(thread) int tls769;
 __declspec(thread) int tls770;
 __declspec(thread) int tls771;
-#if defined(PAYNE)
+#if defined(PAYNE) || defined(IS_RDR3)
 __declspec(thread) int tls772;
 __declspec(thread) int tls773;
 __declspec(thread) int tls774;
@@ -7137,6 +7137,12 @@ char data[0x95000];
 // only use a single segment as we're supposed to be patch-proof; we'll protect these appropriately later
 #pragma bss_seg(".cdummy")
 char dummy_seg[0x6000000];
+
+char stub_seg[0x100000];
+#elif defined(IS_RDR3)
+// only use a single segment as we're supposed to be patch-proof; we'll protect these appropriately later
+#pragma bss_seg(".cdummy")
+char dummy_seg[0x8000000];
 
 char stub_seg[0x100000];
 #elif (!defined(IS_LAUNCHER))

@@ -1,9 +1,11 @@
-﻿#include <StdInc.h>
+#include <StdInc.h>
 
 #include <DrawCommands.h>
 
-#pragma comment(lib, "runtimeobject.lib")
 #pragma comment(lib, "delayimp.lib")
+
+#ifdef GTA_FIVE
+#pragma comment(lib, "runtimeobject.lib")
 
 #include <winrt/windows.ui.xaml.media.h>
 
@@ -120,3 +122,4 @@ static InitFunction initFunction([]()
 		}
 	});
 });
+#endif

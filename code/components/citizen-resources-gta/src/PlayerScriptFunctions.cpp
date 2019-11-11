@@ -6,6 +6,8 @@
  */
 
 #include <StdInc.h>
+
+#if defined(GTA_FIVE)
 #include <ScriptEngine.h>
 #include <NetworkPlayerMgr.h>
 
@@ -55,3 +57,4 @@ static InitFunction initFunction([] ()
 		}
 	});
 });
+#endif

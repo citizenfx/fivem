@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <CefOverlay.h>
 
+#ifdef GTA_FIVE
 #include <fiDevice.h>
 #include <DrawCommands.h>
 #include <grcTexture.h>
@@ -332,3 +333,4 @@ static InitFunction initFunction([]()
 		nuiGi.QueryMayLockCursor(a);
 	});
 });
+#endif

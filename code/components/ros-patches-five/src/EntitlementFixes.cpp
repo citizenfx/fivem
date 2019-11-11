@@ -32,7 +32,7 @@ static HookFunction hookFunction([] ()
 		{
 			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
 		}
-
+		
 		SetEvent(g_rosClearedEvent);
 
 		if (GetModuleHandle(L"clr.dll") != nullptr)

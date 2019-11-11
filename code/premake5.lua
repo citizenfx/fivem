@@ -134,6 +134,12 @@ workspace "CitizenMP"
 		filter 'language:C or language:C++'
 			architecture 'x64'
 			
+	configuration "game=rdr3"
+		defines "IS_RDR3"
+
+		filter 'language:C or language:C++'
+			architecture 'x64'
+			
 	configuration "game=launcher"
 		defines "IS_LAUNCHER"
 
@@ -296,7 +302,13 @@ if _OPTIONS['game'] ~= 'launcher' then
 		
 		if _OPTIONS['game'] ~= 'server' then
 			defines { 'USE_HYPERDRIVE' }
-			files { "client/clrcore/External/*.cs" }
+			
+			if _OPTIONS['game'] == 'five' then
+				files { "client/clrcore/External/*.cs" }
+			else
+				-- #TODORDR3: temporary
+				defines { 'GTA_FIVE' }
+			end
 		else
 			files { "client/clrcore/Server/*.cs" }
 		end

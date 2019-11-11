@@ -242,4 +242,8 @@ static InitFunction initFunction([] ()
 		}, 10000);
 	}, -50);
 });
+#else
+#include <scrThread.h>
+
+GtaThread* g_resourceThread;
 #endif

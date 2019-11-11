@@ -6,6 +6,8 @@
  */
 
 #include "StdInc.h"
+
+#ifdef GTA_FIVE
 #include <CefOverlay.h>
 #include <NetLibrary.h>
 #include <strsafe.h>
@@ -875,3 +877,8 @@ static InitFunction connectInitFunction([]()
 		}
 	});
 });
+#else
+void Component_RunPreInit()
+{
+}
+#endif

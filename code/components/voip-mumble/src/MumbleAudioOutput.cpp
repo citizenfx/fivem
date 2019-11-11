@@ -180,7 +180,7 @@ static std::shared_ptr<ConVar<bool>> g_useSendingRangeOnly;
 
 void MumbleAudioOutput::Initialize()
 {
-	g_use3dAudio = std::make_shared<ConVar<bool>>("voice_use3dAudio", ConVar_None, false);
+	g_use3dAudio = std::make_shared<ConVar<bool>>("voice_use3dAudio", ConVar_None, true);
 	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
 
 	m_initialized = false;

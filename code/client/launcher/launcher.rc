@@ -25,6 +25,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 IDI_ICON1               ICON                    "citizeniv.ico"
 #elif defined(GTA_FIVE)
 IDI_ICON1               ICON                    "fivem.ico"
+#elif defined(IS_RDR3)
+IDI_ICON1               ICON                    "redm.ico"
 #endif
 
 201						ICON					"snail.ico"
@@ -36,7 +38,11 @@ IDI_ICON1               ICON                    "fivem.ico"
 
 STRINGTABLE
 BEGIN
+#if defined(GTA_FIVE)
 	IDS_FOLDER_NAME, L"FiveM Application Data"
+#elif defined(IS_RDR3)
+	IDS_FOLDER_NAME, L"RedM Application Data"
+#endif
 END
 
 /////////////////////////////////////////////////////////////////////////////

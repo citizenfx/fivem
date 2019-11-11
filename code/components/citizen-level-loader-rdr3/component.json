@@ -1,0 +1,14 @@
+{
+	"name": "citizen:level-loader:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"conhost",
+		"rage:device",
+		"gta:core",
+		"gta:streaming:rdr3",
+		"rage:scripting",
+		"citizen:resources:core"
+	],
+	"provides": []
+}

@@ -7,9 +7,15 @@
 
 #include "StdInc.h"
 
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE)
 #define RAGE_FORMATS_GAME rdr3
 #define RAGE_FORMATS_GAME_RDR3
 
 #include "pgBase.cpp"
+#elif defined(IS_RDR3)
+#define RAGE_FORMATS_GAME five
+#define RAGE_FORMATS_GAME_FIVE
+
+#include "pgBase.cpp"
+#include "BlockDump.cpp"
 #endif

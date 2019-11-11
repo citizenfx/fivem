@@ -266,10 +266,10 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 		dls.lastBytes = dls.completedSize;
 	}
 
-	DL_UpdateGlobalProgress(size * nmemb);
-
 	if ((GetTickCount() - dls.lastPoll) > 50)
 	{
+		DL_UpdateGlobalProgress(size * nmemb);
+
 		// poll message loop in case of file:// transfers or similar
 		MSG msg;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -279,6 +279,10 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 		}
 
 		dls.lastPoll = GetTickCount();
+	}
+	else
+	{
+		dls.doneTotalBytes += size * nmemb;
 	}
 
 	return written;

@@ -597,6 +597,45 @@ static void* SMPACreateStub(void* a1, void* a2, size_t size, void* a4, bool a5)
        return g_origSMPACreate(a1, a2, size, a4, a5);
 }
 
+static void* GetNvapi(uint32_t hash)
+{
+	auto patternString = fmt::sprintf("74 27 B9 %02X %02X %02X %02x FF 15", hash & 0xFF, (hash >> 8) & 0xFF, (hash >> 16) & 0xFF, (hash >> 24) & 0xFF);
+	auto p = hook::get_pattern(patternString, -0x97);
+
+	return p;
+}
+
+static int NvAPI_Stereo_IsEnabled(bool* enabled)
+{
+	*enabled = 1;
+	return 0;
+}
+
+static int NvAPI_Stereo_CreateHandleFromIUnknown(void* iunno, uintptr_t* hdl)
+{
+	*hdl = 1;
+	return 0;
+}
+
+static int NvAPI_Stereo_Activate(uintptr_t hdl)
+{
+	return 0;
+}
+
+static int NvAPI_Stereo_IsActivated(uintptr_t hdl, uint8_t* on)
+{
+	*on = 1;
+	return 0;
+}
+
+static void HookStereo()
+{
+	hook::jump(GetNvapi(0x348FF8E1), NvAPI_Stereo_IsEnabled);
+	hook::jump(GetNvapi(0xAC7E37F4), NvAPI_Stereo_CreateHandleFromIUnknown);
+	hook::jump(GetNvapi(0xF6A1AD68), NvAPI_Stereo_Activate);
+	hook::jump(GetNvapi(0x1FB0BC30), NvAPI_Stereo_IsActivated);
+}
+
 static HookFunction hookFunction([] ()
 {
 #if 0
@@ -688,4 +727,6 @@ static HookFunction hookFunction([] ()
 
 	// trace ERR_GEN_ZLIB_2 errors
 	CompTrace();
+
+	HookStereo();
 });

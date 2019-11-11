@@ -25,7 +25,10 @@
 
 #include <CoreConsole.h>
 
+#if __has_include(<GlobalEvents.h>)
 #include <GlobalEvents.h>
+#endif
+
 #include <ResourceGameLifetimeEvents.h>
 
 #include <VFSManager.h>
@@ -36,6 +39,7 @@
 
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
+#if __has_include(<streaming.h>)
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 void DLL_IMPORT CfxCollection_RemoveStreamingTag(const std::string& tag);
 void DLL_IMPORT CfxCollection_SetStreamingLoadLocked(bool locked);
@@ -49,6 +53,7 @@ namespace streaming
 
 	void SetNextLevelPath(const std::string& path);
 }
+#endif
 
 template<typename... T>
 auto MakeIterator(const T&&... args)
@@ -87,6 +92,7 @@ DECLARE_INSTANCE_TYPE(ResourceEntryListComponent);
 
 static InitFunction initFunction([] ()
 {
+#if __has_include(<streaming.h>)
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
 		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
@@ -101,7 +107,9 @@ static InitFunction initFunction([] ()
 	{
 		CfxCollection_SetStreamingLoadLocked(false);
 	});
+#endif
 
+#if __has_include(<GlobalEvents.h>)
 	OnMsgConfirm.Connect([]()
 	{
 		Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
@@ -109,11 +117,13 @@ static InitFunction initFunction([] ()
 			resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown();
 		});
 	}, -500);
+#endif
 
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
 		resource->SetComponent(new ResourceEntryListComponent());
 
+#if __has_include(<streaming.h>)
 		resource->OnStart.Connect([=] ()
 		{
 			if (resource->GetName() == "_cfx_internal")
@@ -251,21 +261,19 @@ static InitFunction initFunction([] ()
 
 			CfxCollection_RemoveStreamingTag(resource->GetName());
 		}, -500);
+#endif
 	});
 
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
-		//while (true)
-		{
-			fwRefContainer<fx::ResourceManager> manager = fx::CreateResourceManager();
-			manager->SetComponent(console::GetDefaultContext());
+		fwRefContainer<fx::ResourceManager> manager = fx::CreateResourceManager();
+		manager->SetComponent(console::GetDefaultContext());
 
-			Instance<fx::ResourceManager>::Set(manager.GetRef());
+		Instance<fx::ResourceManager>::Set(manager.GetRef());
 
-			g_resourceManager = manager;
+		g_resourceManager = manager;
 
-			// prevent this from getting destructed on exit - that might try doing really weird things to the game
-			g_resourceManager->AddRef();
-		}
+		// prevent this from getting destructed on exit - that might try doing really weird things to the game
+		g_resourceManager->AddRef();
 	}, 9000);
 });

@@ -85,7 +85,7 @@ static std::string GetThreadName()
 	return rv;
 }
 
-static void PerformFileLog(const std::tuple<std::string_view, std::string>& pair)
+static void PerformFileLog(const std::tuple<std::string, std::string>& pair)
 {
 	static std::vector<char> lineBuffer(8192);
 	static size_t lineIndex;
@@ -142,7 +142,7 @@ static std::once_flag g_initLogFlag;
 static std::condition_variable g_logCondVar;
 static std::mutex g_logMutex;
 
-static tbb::concurrent_queue<std::tuple<std::string_view, std::string>> g_logPrintQueue;
+static tbb::concurrent_queue<std::tuple<std::string, std::string>> g_logPrintQueue;
 
 struct LoggerInit
 {
@@ -159,7 +159,7 @@ struct LoggerInit
 					g_logCondVar.wait(lock);
 				}
 
-				std::tuple<std::string_view, std::string> str;
+				std::tuple<std::string, std::string> str;
 
 				while (g_logPrintQueue.try_pop(str))
 				{
@@ -174,7 +174,7 @@ static LoggerInit logger;
 
 extern "C" DLL_EXPORT void AsyncTrace(const char* string)
 {
-	static thread_local std::string threadName = GetThreadName();
+	std::string threadName = GetThreadName();
 
 	g_logPrintQueue.push({ threadName, string });
 	g_logCondVar.notify_all();

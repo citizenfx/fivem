@@ -72,66 +72,64 @@ static InitFunction initFunction([] ()
 
 	if (wcsstr(GetCommandLine(), L"ros:legit") == nullptr)
 	{
-		// create the HTTP (non-TLS) backend server
-		fwRefContainer<LoopbackTcpServer> insecureServer = tcpServerManager->RegisterTcpServer("prod.ros.rockstargames.com");
-		insecureServer->AddRef();
-		insecureServer->SetPort(80);
+		auto domains = {
+			"prod.ros.rockstargames.com",
+			"auth-prod.ros.rockstargames.com",
+			"auth-gta5-prod.ros.rockstargames.com",
+			"rgl-prod.ros.rockstargames.com",
+			"auth-rgl-prod.ros.rockstargames.com",
+			"ps-rgl-prod.ros.rockstargames.com",
+			"prs-rgl-prod.ros.rockstargames.com",
+			"app-rgl-prod.ros.rockstargames.com",
+			"crews-rdr2-prod.ros.rockstargames.com",
+			"prs-rdr2-prod.ros.rockstargames.com",
+			"ugc-rdr2-prod.ros.rockstargames.com",
+			"inbox-rdr2-prod.ros.rockstargames.com",
+			"tm-rdr2-prod.ros.rockstargames.com",
+			"posse-rdr2-prod.ros.rockstargames.com",
+			"feed-rdr2-prod.ros.rockstargames.com",
+			"prod-locator-cloud.rockstargames.com",
+			"www.google-analytics.com",
+		};
 
-		// create the TLS backend server
-		fwRefContainer<LoopbackTcpServer> secureServer = tcpServerManager->RegisterTcpServer("prod.ros.rockstargames.com");
-		secureServer->AddRef();
-		secureServer->SetPort(443);
+		for (auto& domain : domains)
+		{
+			// create the HTTP (non-TLS) backend server
+			fwRefContainer<LoopbackTcpServer> insecureServer = tcpServerManager->RegisterTcpServer(domain);
+			insecureServer->AddRef();
+			insecureServer->SetPort(80);
 
-		// create auth-prod TLS servers
-		fwRefContainer<LoopbackTcpServer> insecureServer2 = tcpServerManager->RegisterTcpServer("auth-prod.ros.rockstargames.com");
-		insecureServer2->AddRef();
-		insecureServer2->SetPort(80);
+			// create the TLS backend server
+			fwRefContainer<LoopbackTcpServer> secureServer = tcpServerManager->RegisterTcpServer(domain);
+			secureServer->AddRef();
+			secureServer->SetPort(443);
 
-		// create the TLS backend server
-		fwRefContainer<LoopbackTcpServer> secureServer2 = tcpServerManager->RegisterTcpServer("auth-prod.ros.rockstargames.com");
-		secureServer2->AddRef();
-		secureServer2->SetPort(443);
+			// create the TLS wrapper for the TLS backend
+			net::TLSServer* tlsWrapper = new net::TLSServer(secureServer, "citizen/ros/ros.crt", "citizen/ros/ros.key");
+			tlsWrapper->AddRef();
 
-		// create auth-gta5-prod TLS servers
-		fwRefContainer<LoopbackTcpServer> insecureServer3 = tcpServerManager->RegisterTcpServer("auth-gta5-prod.ros.rockstargames.com");
-		insecureServer3->AddRef();
-		insecureServer3->SetPort(80);
-
-		// create the TLS backend server
-		fwRefContainer<LoopbackTcpServer> secureServer3 = tcpServerManager->RegisterTcpServer("auth-gta5-prod.ros.rockstargames.com");
-		secureServer3->AddRef();
-		secureServer3->SetPort(443);
-
-		// create the TLS wrapper for the TLS backend
-		net::TLSServer* tlsWrapper = new net::TLSServer(secureServer, "citizen/ros/ros.crt", "citizen/ros/ros.key");
-		tlsWrapper->AddRef();
-
-		net::TLSServer* tlsWrapper2 = new net::TLSServer(secureServer2, "citizen/ros/ros.crt", "citizen/ros/ros.key");
-		tlsWrapper2->AddRef();
-
-		net::TLSServer* tlsWrapper3 = new net::TLSServer(secureServer3, "citizen/ros/ros.crt", "citizen/ros/ros.key");
-		tlsWrapper3->AddRef();
-
-		// attach the endpoint mappers
-		httpServer->AttachToServer(tlsWrapper);
-		httpServer->AttachToServer(tlsWrapper2);
-		httpServer->AttachToServer(tlsWrapper3);
-		httpServer->AttachToServer(insecureServer);
-		httpServer->AttachToServer(insecureServer2);
-		httpServer->AttachToServer(insecureServer3);
+			// attach the endpoint mappers
+			httpServer->AttachToServer(tlsWrapper);
+			httpServer->AttachToServer(insecureServer);
+		}
 	}
 
 	// create the local socket server, if enabled
-	if (wcsstr(GetCommandLine(), L"ros:legit") != nullptr)
+	// or always do so *shrug* for now
+	// #TODORDR: figure out
+	//if (wcsstr(GetCommandLine(), L"ros:legit") != nullptr)
 	{
 		net::PeerAddress address = net::PeerAddress::FromString("localhost:32891").get();
 
 		fwRefContainer<net::TcpServerFactory> manager = new net::TcpServerManager();
 		fwRefContainer<net::TcpServer> tcpServer = manager->CreateServer(address);
 
-		manager->AddRef();
-		tcpServer->AddRef();
+		if (tcpServer.GetRef())
+		{
+			manager->AddRef();
+			tcpServer->AddRef();
 
-		httpServer->AttachToServer(tcpServer);
+			httpServer->AttachToServer(tcpServer);
+		}
 	}
 }, -500);

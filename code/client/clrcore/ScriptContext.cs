@@ -302,7 +302,11 @@ namespace CitizenFX.Core
 			return (CallFunc)method.CreateDelegate(typeof(CallFunc));
 		}
 
+#if IS_RDR3
+		[DllImport("rage-scripting-rdr3.dll", EntryPoint = "?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z")]
+#else
 		[DllImport("rage-scripting-five.dll", EntryPoint = "?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z")]
+#endif
 		private static extern ulong GetNative(ulong hash);
 
 		[DllImport("kernel32.dll")]

@@ -855,3 +855,28 @@ fwRefContainer<IMumbleClient> CreateMumbleClient()
 {
 	return new MumbleClient();
 }
+
+/*
+static HookFunction hookFunction([]()
+{
+	auto mumbleClient = CreateMumbleClient();
+
+	mumbleClient->Initialize();
+
+	mumbleClient->SetPositionHook([](const std::string&) -> std::optional<std::array<float, 3>>
+	{
+		return { { 1.2f, 1.2f, 1.2f} };
+	});
+
+	mumbleClient->ConnectAsync(net::PeerAddress::FromString("192.168.178.83", 30120).get(), "g").then([](MumbleConnectionInfo*)
+	{
+	});
+
+	while (true)
+	{
+		Sleep(15);
+	}
+
+	return;
+});
+*/

@@ -14,6 +14,8 @@
 
 #include <zlib.h>
 
+#include <sstream>
+
 int StoreDecryptedBlob(void* a1, void* a2, uint32_t a3, void* inOutBlob, uint32_t a5, void* a6);
 
 // TODO: turn into a generic utility
@@ -55,6 +57,7 @@ static std::map<std::string, std::string> ParsePOSTString(const std::string& pos
 extern std::string g_entitlementSource;
 
 bool LoadOwnershipTicket();
+std::string GetRockstarTicketXml();
 
 #include <ShlObj.h>
 #include <KnownFolders.h>
@@ -177,9 +180,69 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 	return outStr;
 }
 
+#include <regex>
+#include <array>
+
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
+bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey);
+
+static std::string GetRosTicket(const std::string& body)
+{
+	auto postData = ParsePOSTString(body);
+
+	std::string ticket;
+	std::string sessionTicket;
+	std::array<uint8_t, 16> sessionKeyArray;
+	
+	assert(GetMTLSessionInfo(ticket, sessionTicket, sessionKeyArray));
+
+	std::string sessionKey = Botan::base64_encode(sessionKeyArray.data(), 16);
+
+	rapidjson::Document doc2;
+	doc2.SetObject();
+
+	doc2.AddMember("ticket", rapidjson::Value(ticket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	doc2.AddMember("sessionKey", rapidjson::Value(sessionKey.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	doc2.AddMember("sessionTicket", rapidjson::Value(sessionTicket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	doc2.AddMember("payload", rapidjson::Value(postData["payload"].c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+
+	rapidjson::StringBuffer sb;
+	rapidjson::Writer<rapidjson::StringBuffer> w(sb);
+
+	doc2.Accept(w);
+
+	auto r = cpr::Post(cpr::Url{ "http://localhost:32891/ros/validate" },
+		cpr::Body{ std::string(sb.GetString(), sb.GetLength()) });
+
+	trace("%s\n", r.text);
+
+	return r.text;
+}
+
 static InitFunction initFunction([] ()
 {
 	EndpointMapper* mapper = Instance<EndpointMapper>::Get();
+
+	mapper->AddGameService("entitlements.asmx/GetTitleAccessTokenEntitlementBlock", [](const std::string& body)
+	{
+		return GetRosTicket(body);
+
+#if 0
+		auto r = cpr::Post(
+			cpr::Url{ "http://localhost:8902/entitlements.asmx/GetTitleAccessTokenEntitlementBlock" },
+			cpr::Payload{
+				{ "titleAccessToken", postData["titleAccessToken"] },
+				{ "payload", postData["payload"] },
+				{ "requestedVersion", postData["requestedVersion"] },
+			});
+
+		trace("%s\n", r.text);
+
+		return r.text;
+#endif
+	});
 
 	mapper->AddGameService("entitlements.asmx/GetEntitlementBlock", [] (const std::string& body)
 	{
@@ -195,6 +258,44 @@ static InitFunction initFunction([] ()
 			"<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0.574\" xmlns=\"GetEntitlementBlockResponse\"><Status>1</Status><Result Version=\"1\"><Data>%s</Data></Result></Response>",
 			outStr
 		);
+	});
+
+	mapper->AddGameService("entitlements.asmx/GetEntitlementBlock2", [](const std::string& body)
+	{
+		//MessageBox(NULL, ToWide(body).c_str(), L"lol", MB_OK);
+
+		//return "";
+
+		return GetRosTicket(body);
+
+#if 0
+		auto postData = ParsePOSTString(body);
+
+		auto r = cpr::Post(
+			cpr::Url{ "http://localhost:8902/app.asmx/GetTitleAccessToken" },
+			cpr::Payload{
+				{ "titleId", "13" }
+			});
+
+		auto t = r.text;
+
+		auto a = t.find("<Result>") + 8;
+		auto b = t.find("</Result>");
+
+		auto tkn = t.substr(a, b - a);
+
+		r = cpr::Post(
+			cpr::Url{ "http://localhost:8902/entitlements.asmx/GetTitleAccessTokenEntitlementBlock" },
+			cpr::Payload{
+				{ "titleAccessToken", tkn },
+				{ "payload", postData["payload"] },
+				{ "requestedVersion", postData["requestedVersion"] },
+			});
+
+		trace("%s\n", r.text);
+
+		return r.text;
+#endif
 	});
 
 	mapper->AddGameService("entitlements.asmx/GetEntitlements", [] (const std::string& body)
@@ -232,6 +333,16 @@ static InitFunction initFunction([] ()
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" ScAuthToken=\"AAAAArgQdyps/xBHKUumlIADBO75R0gAekcl3m2pCg3poDsXy9n7Vv4DmyEmHDEtv49b5BaUWBiRR/lVOYrhQpaf3FJCp4+22ETI8H0NhuTTijxjbkvDEViW9x6bOEAWApixmQue2CNN3r7X8vQ/wcXteChEHUHi\" xmlns=\"CreateScAuthToken2\"><Status xmlns=\"CreateScAuthTokenResponse\">1</Status></Response>";
 	});
 
+	mapper->AddGameService("auth.asmx/ExchangeTicket", [](const std::string& body)
+	{
+		return GetRockstarTicketXml();
+	});
+
+	mapper->AddGameService("auth.asmx/CreateScAuthToken2", [](const std::string& body)
+	{
+		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" ScAuthToken=\"AAAAArgQdyps/xBHKUumlIADBO75R0gAekcl3m2pCg3poDsXy9n7Vv4DmyEmHDEtv49b5BaUWBiRR/lVOYrhQpaf3FJCp4+22ETI8H0NhuTTijxjbkvDEViW9x6bOEAWApixmQue2CNN3r7X8vQ/wcXteChEHUHi\" xmlns=\"CreateScAuthToken2\"><Status xmlns=\"CreateScAuthTokenResponse\">1</Status></Response>";
+	});
+
 	mapper->AddGameService("socialclub.asmx/CheckText", [] (const std::string& body)
 	{
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" xmlns=\"CheckText\"><Status>1</Status></Response>";
@@ -241,6 +352,268 @@ static InitFunction initFunction([] ()
 	{
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" xmlns=\"CheckText\"><Status>1</Status></Response>";
 	});
+
+	mapper->AddGameService("ProfileStatGroups.asmx/ReadByGroup", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="ReadUnrankedStatsResponse">
+    <Status>1</Status>
+    <Results count="0" total="0" />
+</Response>)";
+	});
+
+	mapper->AddGameService("Friends.asmx/GetFriends", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetFriends">
+    <Status>1</Status>
+    <Result Count="0" Total="0" />
+</Response>)";
+	});
+
+	mapper->AddGameService("achievements.asmx/GetPlayerAchievements", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetPlayerAchievements">
+    <Status>1</Status>
+    <Result Count="0" Total="0" />
+</Response>)";
+	});
+
+	mapper->AddGameService("Friends.asmx/GetBlocked", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetFriends">
+    <Status>1</Status>
+    <Result Count="0" Total="0" />
+</Response>)";
+	});
+
+	mapper->AddGameService("Friends.asmx/CountAll", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<TResponseOfCountAllResult xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="http://services.ros.rockstargames.com/">
+    <Status>1</Status>
+    <Result b="0" f="0" ir="0" is="0" />
+</TResponseOfCountAllResult>)";
+	});
+
+	mapper->AddGameService("App.asmx/GetBuildManifestFullNoAuth", [](const std::string& body)
+	{
+		auto postData = ParsePOSTString(body);
+
+		if (postData["branchAccessToken"].find("YAFA") != std::string::npos)
+		{
+			return R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFullNoAuth">
+  <Status>1</Status>
+  <Result BuildId="59" VersionNumber="1.0.8.161" BuildDateUtc="2019-11-05T10:11:09.2666667">
+    <FileManifest>
+      <!--<FileDetails FileEntryId="973" FileEntryVersionId="9369" FileSize="36705936" TimestampUtc="2019-10-29T13:11:52.1166667">
+        <RelativePath>Launcher.exe</RelativePath>
+        <SHA256Hash>1f88c8fe80c9a7776dcbf99202a292d368d17e471c47768ce89de23aede389c3</SHA256Hash>
+        <FileChunks>
+          <Chunk FileChunkId="11625" SHA256Hash="1f88c8fe80c9a7776dcbf99202a292d368d17e471c47768ce89de23aede389c3" StartByteOffset="0" Size="36705936" />
+        </FileChunks>
+      </FileDetails>-->
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)";
+		}
+
+		return R"(<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="RetrieveFileChunkNoAuth" ms="0">
+<Status>0</Status>
+<Error Code="Expired" CodeEx="BranchAccessToken"/>
+</Response>)";
+	});
+
+	mapper->AddGameService("app.asmx/RetrieveFileChunkMulti", [](const std::string& body)
+	{
+		// fileEntryAndChunkIdCsv=1%3a1
+
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="RetrieveFileChunkNoAuthMulti">
+  <Status>1</Status>
+  <Result>
+    <Chunk FileEntryId="1" FileChunkId="1">
+      <RedirectUrl>http://fivem.net/a.dll</RedirectUrl>
+    </Chunk>
+  </Result>
+</Response>)";
+	});
+
+	mapper->AddGameService("app.asmx/GetTitleAccessToken", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="15" xmlns="GetTitleAccessToken">
+    <Status>1</Status>
+    <Result>TITLEACCESS token="GAME",signature="GAME"</Result>
+</Response>)";
+
+#if 0
+		auto r = cpr::Post(
+			cpr::Url{ "http://localhost:8902/app.asmx/GetTitleAccessToken" },
+			cpr::Payload{
+				{ "titleId", "13" }
+			});
+
+		auto t = r.text;
+
+		auto a = t.find("<Result>") + 8;
+		auto b = t.find("</Result>");
+
+		auto tkn = t.substr(a, b - a);
+
+		trace("%s\n", tkn);
+
+		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="15" xmlns="GetTitleAccessToken">
+    <Status>1</Status>
+    <Result>%s</Result>
+</Response>)", tkn);
+#endif
+	});
+
+	mapper->AddGameService("App.asmx/GetBuildManifestFull", [](const std::string& body)
+	{
+		auto postData = ParsePOSTString(body);
+
+		if (postData["branchAccessToken"].find("RDR2") != std::string::npos)
+		{
+			std::stringstream rss;
+			rss << "<!--";
+
+			for (int i = 0; i < 131072 / 26; i++)
+			{
+				rss << "abcdefghijklmnopqrstuvqxyz";
+			}
+
+			rss << "-->";
+
+			auto rs = rss.str();
+			rs = "";
+
+			return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="60" VersionNumber="1.0.1207.58" BuildDateUtc="2019-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9647" FileSize="89647760" TimestampUtc="2019-11-05T11:39:34.8800000">
+			<RelativePath>RDR2.exe</RelativePath>
+			<SHA256Hash>745f31710c646c25961360db151a7b9565384cf034cf45e038c0aae56d972206</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13045" SHA256Hash="745f31710c646c25961360db151a7b9565384cf034cf45e038c0aae56d972206" StartByteOffset="0" Size="89647760" />
+			</FileChunks>
+		</FileDetails>
+%s
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)", rs);
+		}
+
+		return std::string{ R"(<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="RetrieveFileChunkNoAuth" ms="0">
+<Status>0</Status>
+<Error Code="Expired" CodeEx="BranchAccessToken"/>
+</Response>)" };
+	});
+
+	mapper->AddGameService("app.asmx/GetDefaultApps", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetDefaultApps">
+  <Status>1</Status>
+  <Result>
+    <App Id="8" Name="lanoire" TitleId="9" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="9" Name="mp3" TitleId="10" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="3" Name="gta5" TitleId="11" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="6" Name="gtasa" TitleId="18" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="2" Name="launcher" TitleId="21" IsReleased="true">
+      <Branches>
+        <Branch Id="4" Name="default" BuildId="59" IsDefault="true" AppId="2">
+          <AccessToken>BRANCHACCESS token="YAFA",signature="YAFA"</AccessToken>
+        </Branch>
+      </Branches>
+    </App>
+    <App Id="4" Name="bully" TitleId="23" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="1" Name="lanoirevr" TitleId="24" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="5" Name="gta3" TitleId="26" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="7" Name="gtavc" TitleId="27" IsReleased="true">
+      <Branches />
+    </App>
+  </Result>
+</Response>)";
+	});
+
+	mapper->AddGameService("app.asmx/GetApps", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetApps">
+  <Status>1</Status>
+  <Result>
+    <App Id="8" Name="lanoire" TitleId="9" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="9" Name="mp3" TitleId="10" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="3" Name="gta5" TitleId="11" IsReleased="true">
+	  <Branches />
+    </App>
+    <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
+		<!--<Branches />-->
+      <Branches>
+        <Branch Id="12" Name="default" BuildId="60" IsDefault="true" AppId="10">
+          <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
+        </Branch>
+      </Branches>
+    </App>
+    <App Id="6" Name="gtasa" TitleId="18" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="2" Name="launcher" TitleId="21" IsReleased="true">
+      <Branches>
+        <Branch Id="4" Name="default" BuildId="59" IsDefault="true" AppId="2">
+          <AccessToken>BRANCHACCESS token="YAFA",signature="YAFA"</AccessToken>
+        </Branch>
+      </Branches>
+    </App>
+    <App Id="4" Name="bully" TitleId="23" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="1" Name="lanoirevr" TitleId="24" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="5" Name="gta3" TitleId="26" IsReleased="true">
+      <Branches />
+    </App>
+    <App Id="7" Name="gtavc" TitleId="27" IsReleased="true">
+      <Branches />
+    </App>
+  </Result>
+</Response>)";
+	});
+
 
 	/*mapper->AddGameService("Telemetry.asmx/SubmitCompressed", [](const std::string& body)
 	{

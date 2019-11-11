@@ -70,28 +70,38 @@ static void RenderDrawListInternal(DrawList* drawList)
 
 			PushDrawBlitImShader();
 
-			rage::grcBegin(3, cmd.ElemCount);
-
-			for (int i = 0; i < cmd.ElemCount; i++)
+			for (int s = 0; s < cmd.ElemCount; s += 2046)
 			{
-				auto& vertex = drawList->VtxBuffer.Data[drawList->IdxBuffer.Data[i + idxOff]];
-				auto color = vertex.col;
+				int c = std::min(cmd.ElemCount - s, uint32_t(2046));
+				rage::grcBegin(3, c);
 
-				rage::grcVertex(vertex.pos.x, vertex.pos.y, 0.0f, 0.0f, 0.0f, -1.0f, color, vertex.uv.x, vertex.uv.y);
+				//trace("imgui draw %d tris\n", cmd.ElemCount);
+
+				for (int i = 0; i < c; i++)
+				{
+					auto& vertex = drawList->VtxBuffer.Data[drawList->IdxBuffer.Data[i + idxOff]];
+					auto color = vertex.col;
+
+					rage::grcVertex(vertex.pos.x, vertex.pos.y, 0.0f, 0.0f, 0.0f, -1.0f, color, vertex.uv.x, vertex.uv.y);
+				}
+
+				idxOff += c;
+
+#if defined(GTA_FIVE)
+				// set scissor rects here, as they might be overwritten by a matrix push
+				D3D11_RECT scissorRect;
+				scissorRect.left = cmd.ClipRect.x;
+				scissorRect.top = cmd.ClipRect.y;
+				scissorRect.right = cmd.ClipRect.z;
+				scissorRect.bottom = cmd.ClipRect.w;
+
+				GetD3D11DeviceContext()->RSSetScissorRects(1, &scissorRect);
+#else
+				SetScissorRect(cmd.ClipRect.x, cmd.ClipRect.y, cmd.ClipRect.z, cmd.ClipRect.w);
+#endif
+
+				rage::grcEnd();
 			}
-
-			idxOff += cmd.ElemCount;
-
-			// set scissor rects here, as they might be overwritten by a matrix push
-			D3D11_RECT scissorRect;
-			scissorRect.left = cmd.ClipRect.x;
-			scissorRect.top = cmd.ClipRect.y;
-			scissorRect.right = cmd.ClipRect.z;
-			scissorRect.bottom = cmd.ClipRect.w;
-
-			GetD3D11DeviceContext()->RSSetScissorRects(1, &scissorRect);
-
-			rage::grcEnd();
 
 			PopDrawBlitImShader();
 		}
@@ -105,6 +115,7 @@ static void RenderDrawListInternal(DrawList* drawList)
 
 	delete drawList;
 
+#if defined(GTA_FIVE)
 	{
 		D3D11_RECT scissorRect;
 		scissorRect.left = 0.0f;
@@ -114,6 +125,9 @@ static void RenderDrawListInternal(DrawList* drawList)
 
 		GetD3D11DeviceContext()->RSSetScissorRects(1, &scissorRect);
 	}
+#else
+	SetScissorRect(0, 0, 0x1FFF, 0x1FFF);
+#endif
 }
 
 static void RenderDrawLists(ImDrawData* drawData)
@@ -409,11 +423,15 @@ static InitFunction initFunction([]()
 #ifndef IS_LAUNCHER
 	OnGrcCreateDevice.Connect([=]()
 	{
+#ifndef IS_RDR3
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 		samplerDesc.MaxAnisotropy = 0;
 
 		g_pointSamplerState = CreateSamplerState(&samplerDesc);
+#else
+		g_pointSamplerState = GetStockStateIdentifier(SamplerStatePoint);
+#endif
 	});
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)

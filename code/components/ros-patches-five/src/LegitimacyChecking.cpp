@@ -20,6 +20,7 @@ __declspec(dllexport) void IDidntDoNothing()
 
 }
 
+#ifdef GTA_FIVE
 // {E091E21C-C61F-49F6-8560-CEF64DC42002}
 #define INITGUID
 #include <guiddef.h>
@@ -760,3 +761,30 @@ static HookFunction hookFunction([]()
 
 	tokenVar->GetHelper()->SetValue(g_entitlementSource);
 });
+#else
+std::string g_entitlementSource;
+std::string g_rosData;
+
+bool LoadOwnershipTicket()
+{
+	return true;
+}
+
+void VerifyOwnership(int parentPid)
+{
+
+}
+
+std::string GetOwnershipPath()
+{
+	return "";
+}
+
+namespace ros
+{
+	std::string GetEntitlementSource()
+	{
+		return "";
+	}
+}
+#endif

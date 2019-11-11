@@ -199,7 +199,8 @@ struct TenUI
 	winrt::Windows::UI::Xaml::Controls::ProgressBar progressBar{ nullptr };
 };
 
-static thread_local struct  
+//static thread_local struct  
+static struct
 {
 	HWND rootWindow;
 	HWND topStatic;

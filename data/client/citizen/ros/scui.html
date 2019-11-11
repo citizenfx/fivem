@@ -2,6 +2,11 @@
 <html style="height: 100%; overflow-y: hidden;">
 <head>
     <script type="text/javascript">
+		const targetTitle = 'rdr2';//'gta5';
+		let verified = false;
+		let launched = false;
+		let verifying = false;
+    
         function RGSC_JS_READY_TO_ACCEPT_COMMANDS()
         {
             RGSC_READY_TO_ACCEPT_COMMANDS();
@@ -16,6 +21,8 @@
             {
                 document.querySelector('div.ingame').style.display = 'block';
             }
+            
+            //if (!titleId.IsLauncher) { return; }
 
             setTimeout(function()
             {
@@ -34,7 +41,98 @@
 
                 xhr.open("GET", "/cfx/login", true);
                 xhr.send();
-            }, 1000);
+            }, 150);
+        }
+        
+        function RGSC_JS_RECEIVE_MESSAGE(a) {
+			const data = JSON.parse(a);
+			
+			console.log(data);
+			
+			for (const command of data.Commands) {
+				const cmd = command.Command;
+				const p = command.Parameter;
+				
+				if (cmd == 'SetTitleInfo') {
+					if (p.titleName == targetTitle) {
+						if (p.status.entitlement && !p.status.install && !verified) {
+							if (!verifying) {
+								RGSC_RAISE_UI_EVENT(JSON.stringify({
+									EventId: 2, // LauncherV3UiEvent
+									
+									Data: {
+										Action: 'Install',
+										Parameter: {
+											titleName: targetTitle,
+											location: "C:\\Program Files\\Rockstar Games\\Red Dead Redemption 2",
+											desktopShortcut: false,
+											startMenuShortcut: false
+										}
+									}
+								}).replace(/","/gi, '", "'));
+								
+								verifying = true;
+							}
+							
+							setTimeout(function() {
+								RGSC_RAISE_UI_EVENT(JSON.stringify({
+									EventId: 2, // LauncherV3UiEvent
+									
+									Data: {
+										Action: 'Verify',
+										Parameter: {
+											titleName: targetTitle
+										}
+									}
+								}).replace(/","/gi, '", "'));
+							}, 500);
+						} else if (p.status.install && (p.status.updateState === 'notUpdating' || p.status.updateState == 'updateQueued')) {
+							if (verified && !launched) {
+								launched = true;
+
+								RGSC_SET_CLOUD_SAVE_ENABLED(JSON.stringify({
+									Enabled: false,
+									RosTitleName: targetTitle
+								}));
+								
+								setTimeout(function() {
+									RGSC_RAISE_UI_EVENT(JSON.stringify({
+										EventId: 2, // LauncherV3UiEvent
+										
+										Data: {
+											Action: 'Launch',
+											Parameter: {
+												titleName: targetTitle,
+												args: ''
+											}
+										}
+									}).replace(/","/gi, '", "'));
+								}, /*1500*/0);
+							} else if (!verified) {
+								RGSC_RAISE_UI_EVENT(JSON.stringify({
+									EventId: 2, // LauncherV3UiEvent
+									
+									Data: {
+										Action: 'Verify',
+										Parameter: {
+											titleName: targetTitle
+										}
+									}
+								}).replace(/","/gi, '", "'));
+							}
+						} else if (p.status.updateState === 'verifying') {
+							verified = true;
+						}
+					}
+				}
+			}
+        
+			document.querySelector('body').innerHTML += '<pre>' + a + '</pre>';
+			document.querySelector('body').style.overflowY = 'scroll';
+        }
+        
+        function RGSC_JS_FINISH_SIGN_IN()
+        {
         }
 
         function RGSC_JS_PING()
@@ -52,6 +150,8 @@
             {
                 document.querySelector('body').classList.add("rotate");
             }
+            
+            RGSC_UI_STATE_RESPONSE(JSON.stringify({Visible: true}));
 
             //document.querySelector('p').innerHTML = s.State;
         }
@@ -104,7 +204,7 @@
             height: 100%;
             width: 100%;
 
-            background-image: url('/prod/gtav/splash.png');
+            background-color: #f0f;
         }
 
         @font-face {
@@ -223,7 +323,7 @@
         <div style="height: 100%; position: absolute; top: 0px; left: 0px; right: 0px;">
             <div style="position: relative; top: 50%; transform: translateY(-50%); z-index: 99; text-align: center;">
                 <p style="font-family: Segoe UI, sans-serif; font-size: 40px; color: #fff; line-height: 40px; margin: 0px; text-shadow: 0px 0px 4px #333;">
-                    CitizenFX ROS &copy; http://citizen.re/
+                    SCUI &copy; cfx.re
                 </p>
             </div>
         </div>
