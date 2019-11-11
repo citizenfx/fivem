@@ -10,7 +10,7 @@ pushd ext\natives\
 mkdir out
 ::curl -z out\natives_global.lua -Lo out\natives_global_new.lua http://runtime.fivem.net/doc/natives.lua
 ::curl -z out\natives_cfx.lua -Lo out\natives_cfx_new.lua http://runtime.fivem.net/doc/natives_cfx.lua
-curl -z out\natives_global.lua -Lo out\natives_global_new.lua http://runtime.fivem.net/doc/natives_rdr_tmp.lua
+curl -Lo out\natives_global_new.lua http://runtime.fivem.net/doc/natives_rdr_tmp.lua
 ::curl -z out\natives_cfx.lua -Lo out\natives_cfx_new.lua http://runtime.fivem.net/doc/natives_cfx.lua
 echo -- ok > out\natives_cfx_new.lua
 
