@@ -308,7 +308,6 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "launcher/LauncherPatcher.exe", "3748A111BE9C4BF7EC19C5E15E4B04B78F613AE1", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/LauncherPatcher.exe", 479888, 85063288 },
 	{ "launcher/mtl_libovr.dll", "3AADE10DBF3C51233AA701AD1E12CD17A9DCB722", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/mtl_libovr.dll", 190952, 85063288 },
 	{ "launcher/offline.pak", "C1EA3EF8587EC1BA896398912EA3BCA9D5C934B3", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/offline.pak", 1726729, 85063288 },
-	{ "launcher/offline.pak.old", "20A20FC082F7C2EBEEED49A193F554D97544E8FB", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/offline.pak.old", 1438996, 85063288 },
 	{ "launcher/RockstarService.exe", "724C0E73F5E59DF9302AE734D918D364E3ACEF54", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/RockstarService.exe", 474256, 85063288 },
 	{ "launcher/RockstarSteamHelper.exe", "FD742FB740A99B4705CA9AD977B036323C2094C7", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/RockstarSteamHelper.exe", 444560, 85063288 },
 	{ "launcher/steam_api64.dll", "BD014660F7978A07BA2F99B6CF0621D678602663", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/steam_api64.dll", 121256, 85063288 },
