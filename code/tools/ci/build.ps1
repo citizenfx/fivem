@@ -73,6 +73,7 @@ $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
 $IsServer = $false
 $IsLauncher = $false
+$IsRDR = $false
 $UploadType = "client"
 
 if ($env:IS_FXSERVER -eq 1) {
@@ -81,6 +82,9 @@ if ($env:IS_FXSERVER -eq 1) {
 } elseif ($env:IS_LAUNCHER -eq 1) {
     $IsLauncher = $true
     $UploadType = "launcher"
+} elseif ($env:IS_RDR3 -eq 1) {
+    $IsRDR = $true
+    $UploadType = "rdr3"
 }
 
 if ($env:CI) {
@@ -121,6 +125,8 @@ if ($env:CI) {
         $UploadBranch += " SERVER"
     } elseif ($IsLauncher) {
         $UploadBranch += " COMPOSITOR"
+    } elseif ($IsRDR) {
+        $UploadBranch += " RDR3"
     }
 }
 
@@ -259,6 +265,9 @@ if (!$DontBuild)
     } elseif ($IsLauncher) {
         $GameName = "launcher"
         $BuildPath = "$BuildRoot\launcher"
+    } elseif ($IsRDR) {
+        $GameName = "rdr3"
+        $BuildPath = "$BuildRoot\rdr3"
     }
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
@@ -358,31 +367,37 @@ if ($IsLauncher) {
     $CacheDir = "$SaveDir\lcaches"
 }
 
+if ($IsRDR) {
+    $CacheDir = "$SaveDir\rcaches"
+}
+
 if (!$DontBuild -and !$IsServer) {
     # prepare caches
     New-Item -ItemType Directory -Force $CacheDir | Out-Null
     New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
     Set-Location $CacheDir
 
-    # build UI
-    Push-Location $WorkDir
-    $UICommit = (git rev-list -1 HEAD ext/ui-build/ ext/cfx-ui/)
-    Pop-Location
+    if (!$IsRDR) {
+        # build UI
+        Push-Location $WorkDir
+        $UICommit = (git rev-list -1 HEAD ext/ui-build/ ext/cfx-ui/)
+        Pop-Location
 
-    Push-Location $WorkDir\ext\ui-build
+        Push-Location $WorkDir\ext\ui-build
 
-    if ($UICommit -ne (Get-Content data\.commit)) {
-        .\build.cmd
-        
-        $UICommit | Out-File -Encoding ascii -NoNewline data\.commit
+        if ($UICommit -ne (Get-Content data\.commit)) {
+            .\build.cmd
+            
+            $UICommit | Out-File -Encoding ascii -NoNewline data\.commit
+        }
+
+        if ($?) {
+            Copy-Item -Force $WorkDir\ext\ui-build\data.zip $CacheDir\fivereborn\citizen\ui.zip
+            Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $CacheDir\fivereborn\citizen\ui-big.zip
+        }
+
+        Pop-Location
     }
-
-    if ($?) {
-        Copy-Item -Force $WorkDir\ext\ui-build\data.zip $CacheDir\fivereborn\citizen\ui.zip
-        Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $CacheDir\fivereborn\citizen\ui-big.zip
-    }
-
-    Pop-Location
 
     # copy output files
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
@@ -397,29 +412,42 @@ if (!$DontBuild -and !$IsServer) {
     # remove CEF as redownloading is broken and this slows down gitlab ci cache
     Remove-Item -Recurse $WorkDir\vendor\cef\*
 
-    if (!$IsLauncher) {
+    if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
-    } else {
+    } elseif ($IsLauncher) {
         Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
+    } elseif ($IsRDR) {
+        Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2\* $CacheDir\fivereborn\citizen\clr2\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $CacheDir\fivereborn\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros\* $CacheDir\fivereborn\citizen\ros\
+        Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $CacheDir\fivereborn\
     }
 
-    if (!$IsLauncher) {
+    if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
         Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
 
         Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
-    } else {
+    } elseif ($IsLauncher) {
         Copy-Item -Force $BinRoot\launcher\release\*.dll $CacheDir\fivereborn\
         Copy-Item -Force $BinRoot\launcher\release\*.com $CacheDir\fivereborn\
+    } elseif ($IsRDR) {
+        Copy-Item -Force $BinRoot\rdr3\release\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\rdr3\release\*.com $CacheDir\fivereborn\
+
+        Copy-Item -Force -Recurse $BinRoot\rdr3\release\citizen\* $CacheDir\fivereborn\citizen\
     }
     
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
 
-    if (!$IsLauncher) {
+    if (!$IsLauncher -and !$IsRDR) {
         if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
             Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
         }
@@ -444,10 +472,12 @@ if (!$DontBuild -and !$IsServer) {
     Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
 
     # build bootstrap executable
-    if (!$IsLauncher) {
+    if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
-    } else {
+    } elseif ($IsLauncher) {
         Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe CitizenFX.exe
+    } elseif ($IsRDR) {
+        Copy-Item -Force $BinRoot\rdr3\release\CitiLaunch.exe CitizenFX.exe
     }
 
     if (Test-Path CitizenFX.exe.xz) {
@@ -509,6 +539,10 @@ if (!$DontUpload) {
         rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_LAUNCHER
 
         Invoke-WebHook "Built and uploaded a new CfxGL version ($GameVersion) to $UploadBranch! Go and test it!"
+    } elseif ($IsRDR) {
+        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_RDR
+
+        Invoke-WebHook "Built and uploaded a new RedM version ($GameVersion) to $UploadBranch! Go and test it!"
     } else {
         rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
 
