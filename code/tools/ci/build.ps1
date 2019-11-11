@@ -423,9 +423,9 @@ if (!$DontBuild -and !$IsServer) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
-        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2\* $CacheDir\fivereborn\citizen\clr2\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2 $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $CacheDir\fivereborn\citizen\
-        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros\* $CacheDir\fivereborn\citizen\ros\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $CacheDir\fivereborn\
     }
 
