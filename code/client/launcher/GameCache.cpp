@@ -312,7 +312,6 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "launcher/RockstarSteamHelper.exe", "FD742FB740A99B4705CA9AD977B036323C2094C7", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/RockstarSteamHelper.exe", 444560, 85063288 },
 	{ "launcher/steam_api64.dll", "BD014660F7978A07BA2F99B6CF0621D678602663", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/steam_api64.dll", 121256, 85063288 },
 	{ "launcher/ucrtbase.dll", "4189F4459C54E69C6D3155A82524BDA7549A75A6", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/ucrtbase.dll", 1016584, 85063288 },
-	{ "launcher/uninstall.exe", "02692B80121EE2005E165B6AA01843FFE635EBE1", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/uninstall.exe", 6623132, 85063288 },
 	{ "launcher/Redistributables/SocialClub/Social-Club-Setup.exe", "8260133F1A5BF9131BF01172D2A181881BB98BD0", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/Redistributables/SocialClub/Social-Club-Setup.exe", 99013544, 85063288 },
 	{ "launcher/Redistributables/VCRed/vc_redist.x64.exe", "BE4F7AD520349D9D0683AB9DD171B3A1E4DB426B", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/Redistributables/VCRed/vc_redist.x64.exe", 15080792, 85063288 },
 	{ "launcher/Redistributables/VCRed/vc_redist.x86.exe", "13439C916FAAF5E08CAFCE790381578685B0A552", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/Redistributables/VCRed/vc_redist.x86.exe", 14381032, 85063288 },
@@ -395,7 +394,7 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "ros_2034/swiftshader/libGLESv2.dll", "DDB924538652AAED98AA9F4CE8268658C2D5BC15", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libGLESv2.dll", 2686440, 85063288 },
 
 	{ "launcher/LauncherPatcher.exe", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "", "", 0, 0 },
-	{ "launcher/index.bin", "85e2cc75d6d07518883ce5d377d3425b74636667", "", "", 0, 0 },
+	{ "launcher/index.bin", "BDCAE0D75B5C31FEF9C0A9259142CE84D4C0FE88", "", "", 0, 0 },
 
 #if defined(GTA_FIVE)
 	{ "GTAVLauncher.exe", "0962fb5a39d9ec40d4fce2ac636ef11dcd0457cf", "http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_1604_0.exe", "$/GTAVLauncher.exe", 21606840, 20081224 },
