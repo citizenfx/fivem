@@ -12,7 +12,7 @@ hook::cdecl_stub<rage::fiDevice*(const char*, bool, bool, bool)> fiDevice__GetDe
 	return (void*)0x1425050B4;
 });
 
-fiDevice* fiDevice::GetDevice(const char* path, bool allowRoot) { return fiDevice__GetDevice(path, allowRoot, false, true); }
+fiDevice* fiDevice::GetDevice(const char* path, bool allowRoot) { return fiDevice__GetDevice(path, allowRoot, true, true); }
 
 hook::cdecl_stub<bool(const char*, fiDevice*, bool)> fiDevice__MountGlobal([] ()
 {
