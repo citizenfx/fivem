@@ -665,7 +665,7 @@ private:
 			while (it != end)
 			{
 				// gta-net-five hooks select() after us, so our hook will think any caller is Cfx
-				if (it->path().extension() == ".dll" && it->path().filename() != "gta-net-five.dll")
+				if (it->path().extension() == ".dll" && it->path().filename() != "gta-net-five.dll" && it->path().filename() != "gta-net-rdr3.dll")
 				{
 					HMODULE hMod = GetModuleHandle(it->path().c_str());
 

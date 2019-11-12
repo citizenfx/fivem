@@ -23,9 +23,13 @@
 	"citizen:resources:gta",
 	"citizen:scripting:core",
 	"citizen:scripting:lua",
-	"citizen:scripting:v8",
-	"citizen:scripting:mono",
 	"gta:core:rdr3",
-	"scripting:gta",
-	"http-client"
+	"http-client",
+	"debug:net",
+	"gta:net:rdr3",
+	"citizen:legacy-net:resources",
+	"net",
+	"profiles",
+	"steam",
+	"scripting:gta"
 ]

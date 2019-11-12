@@ -261,6 +261,11 @@ uint64_t ROSGetDummyAccountID()
 #endif
 }
 
+extern "C" DLL_EXPORT uint64_t GetAccountID()
+{
+	return ROSGetDummyAccountID();
+}
+
 #include <shlobj.h>
 
 #include <boost/property_tree/ptree.hpp>

@@ -279,6 +279,8 @@ static InitFunction initFunction([]()
 		device->Mount("usermaps:/");
 	});
 
+	rage::scrEngine::CreateThread(&spawnThread);
+
 	static ConsoleCommand loadLevelCommand("loadlevel", [](const std::string& level)
 	{
 		LoadLevel(level.c_str());

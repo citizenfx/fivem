@@ -308,8 +308,24 @@ static InitFunction initFunction([] ()
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"15.6263\" xmlns=\"RegionBucketLookUpResponse\"><Status>1</Status><LocInfo RegionCode=\"3\" Longitude=\"0.0\" Latitude=\"0.0\" CountryCode=\"US\" /><RelaysList Count=\"1\" IsSecure=\"false\"><Server Host=\"185.56.65.153:61456\" IsXblSg=\"false\" /></RelaysList></Response>";
 	});
 
+	mapper->AddGameService("matchmaking.asmx/Find", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="281" xmlns="FindResponse">
+    <Status>1</Status>
+    <Results Count="1">
+        <R MatchId="feedbabe-feed-feed-1212-91533740d43e" Owner="40404">
+            <Data>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</Data>
+            <Attributes>0,0,2014912610,0,14,0,3,0,0,0</Attributes>
+        </R>
+    </Results>
+</Response>)";
+	});
+
 	mapper->AddGameService("matchmaking.asmx/Advertise", [] (const std::string& body)
 	{
+		trace("advertise: %s\n", body);
+
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"15.6263\" xmlns=\"AdvertiseResponse\"><Status>1</Status><MatchId>875fd057-fe8d-4145-a4e1-76b57a81817d</MatchId></Response>";
 	});
 

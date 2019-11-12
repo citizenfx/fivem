@@ -54,12 +54,14 @@ void RageGameInit::ReloadGame()
 }
 
 static bool canContinueLoad;
+static bool(*g_callBeforeLoad)();
 
 void RageGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 {
-	OnGameRequestLoad();
-
 	canContinueLoad = true;
+	g_callBeforeLoad = callBeforeLoad;
+
+	OnGameRequestLoad();
 }
 
 bool RageGameInit::TryDisconnect()
@@ -138,7 +140,7 @@ static InitFunction initFunctionTwo([]()
 	{
 		if (type == rage::INIT_SESSION)
 		{
-			while (!canContinueLoad)
+			while (!canContinueLoad || (g_callBeforeLoad && !g_callBeforeLoad()))
 			{
 				Sleep(0);
 
@@ -183,4 +185,45 @@ static InitFunction initFunctionTwo([]()
 	});
 
 	Instance<ICoreGameInit>::Set(&g_gameInit);
+});
+
+static int Return1()
+{
+	return 1;
+}
+
+static bool ReturnTrueAndForcePedMPFlag(char* playerObj)
+{
+	char* ped = *(char**)(playerObj + 88);
+	char* task = *(char**)(ped + 32); // why is this in fwEntity anyway?
+
+	task[861] &= ~0x40;
+
+	return true;
+}
+
+static void LogStubLog1(void* stub, const char* type, const char* format, ...)
+{
+	if (type && format)
+	{
+		char buffer[4096];
+		va_list ap;
+		va_start(ap, format);
+		vsnprintf(buffer, 4096, format, ap);
+		va_end(ap);
+
+		trace("%s: %s\n", type, buffer);
+	}
+}
+
+static HookFunction hookFunction([]()
+{
+	hook::jump(0x14222EABC, Return1);
+	hook::jump(0x1422153F0, Return1);
+	hook::jump(0x1423389D4, ReturnTrueAndForcePedMPFlag);
+
+	//hook::jump(0x1406B50E8, LogStubLog1);
+
+	// skip use of SC session based queryfunctions
+	hook::nop(0x142219850, 4);
 });
