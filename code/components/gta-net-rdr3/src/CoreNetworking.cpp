@@ -545,8 +545,8 @@ static HookFunction hookFunction([]()
 	}
 
 	// all uwuids be 2
-	hook::jump(hook::get_pattern("80 3D ? ? ? ? 00 75 48 48 8D 0D ? ? ? ? E8", -0x15), ZeroUUID);
-	//hook::call(0x1426D3E64, ZeroUUID);
+	//hook::jump(hook::get_pattern("80 3D ? ? ? ? 00 75 48 48 8D 0D ? ? ? ? E8", -0x15), ZeroUUID);
+	hook::call(0x1426D3E64, ZeroUUID);
 
 	// get session for find result
 	// 1207.58
