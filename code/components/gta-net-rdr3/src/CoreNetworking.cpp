@@ -454,14 +454,14 @@ static bool ZeroUUID(uint64_t* uuid)
 	return true;
 }
 
-static bool(*origSendGamer)(char* a1, uint32_t pidx, uint32_t a3, void* null, void* msg);
+static bool(*origSendGamer)(char* a1, uint32_t pidx, uint32_t a3, void* null, void* msg, void* a6, void* a7);
 
 static void* curGamer;
 static uint32_t playerCountOffset;
 static uint32_t playerListOffset;
 static uint32_t backwardsOffset;
 
-static bool SendGamerToMultiple(char* a1, uint32_t pidx, uint32_t a3, void* null, void* msg)
+static bool SendGamerToMultiple(char* a1, uint32_t pidx, uint32_t a3, void* null, void* msg, void* a6, void* a7)
 {
 	char* session = (a1 - backwardsOffset);
 	int count = *(int*)(session + playerCountOffset);
@@ -476,7 +476,7 @@ static bool SendGamerToMultiple(char* a1, uint32_t pidx, uint32_t a3, void* null
 			continue;
 		}
 
-		origSendGamer(a1, *p, a3, null, msg);
+		origSendGamer(a1, *p, a3, null, msg, a6, a7);
 	}
 
 	return true;
