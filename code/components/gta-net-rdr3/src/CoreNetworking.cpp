@@ -454,6 +454,34 @@ static bool ZeroUUID(uint64_t* uuid)
 	return true;
 }
 
+static bool(*origSendGamer)(char* a1, uint32_t pidx, uint32_t a3, void* null, void* msg);
+
+static void* curGamer;
+static uint32_t playerCountOffset;
+static uint32_t playerListOffset;
+static uint32_t backwardsOffset;
+
+static bool SendGamerToMultiple(char* a1, uint32_t pidx, uint32_t a3, void* null, void* msg)
+{
+	char* session = (a1 - backwardsOffset);
+	int count = *(int*)(session + playerCountOffset);
+	int** list = (int**)(session + playerListOffset);
+
+	for (int i = 0; i < count; i++)
+	{
+		auto p = list[i];
+
+		if (p == curGamer)
+		{
+			continue;
+		}
+
+		origSendGamer(a1, *p, a3, null, msg);
+	}
+
+	return true;
+}
+
 static bool ReadSession(void* self, void* parTree, rlSessionInfo* session)
 {
 	if (g_netLibrary->GetHostNetID() == 0xFFFF || g_netLibrary->GetHostNetID() == g_netLibrary->GetServerNetID())
@@ -547,4 +575,30 @@ static HookFunction hookFunction([]()
 	{
 		tryHost = true;
 	});
+
+	// rlSession::InformPeersOfJoiner bugfix: reintroduce loop (as in, remove break; statement)
+	// (by handling the _called function_ and adding the loop in a wrapper there)
+	{
+		auto location = hook::get_pattern<char>("4C 63 83 ? ? 00 00 4D 85 C0 7E 4F 33");
+
+		playerCountOffset = *(uint32_t*)(location + 3);
+		playerListOffset = *(uint32_t*)(location + 14 + 3);
+		backwardsOffset = *(uint32_t*)(location + 62 + 3);
+
+		hook::set_call(&origSendGamer, location + 86);
+
+		static struct : jitasm::Frontend
+		{
+			void InternalMain() override
+			{
+				mov(rax, (uintptr_t)&curGamer);
+				mov(qword_ptr[rax], rsi);
+
+				mov(rax, (uintptr_t)SendGamerToMultiple);
+				jmp(rax);
+			}
+		} stub;
+
+		hook::call(location + 86, stub.GetCode());
+	}
 });
