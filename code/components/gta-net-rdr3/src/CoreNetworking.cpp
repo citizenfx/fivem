@@ -471,15 +471,20 @@ static bool SendGamerToMultiple(char* a1, uint32_t pidx, uint32_t a3, void* null
 	{
 		auto p = list[i];
 
-		if (p == curGamer)
+		/*if (p == curGamer)
 		{
 			continue;
-		}
+		}*/
 
 		origSendGamer(a1, *p, a3, null, msg, a6, a7);
 	}
 
 	return true;
+}
+
+static void SetSeamlessOn(bool)
+{
+	*(uint8_t*)0x1450DB1BD = 1;
 }
 
 static bool ReadSession(void* self, void* parTree, rlSessionInfo* session)
@@ -601,4 +606,7 @@ static HookFunction hookFunction([]()
 
 		hook::call(location + 86, stub.GetCode());
 	}
+
+	// test: don't allow setting odd seamless mode
+	hook::jump(0x1422286A8, SetSeamlessOn);
 });
