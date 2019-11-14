@@ -23,6 +23,8 @@
 	"citizen:resources:gta",
 	"citizen:scripting:core",
 	"citizen:scripting:lua",
+	"citizen:scripting:mono",
+	"citizen:scripting:v8",
 	"gta:core:rdr3",
 	"http-client",
 	"debug:net",
