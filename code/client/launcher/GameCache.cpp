@@ -422,7 +422,7 @@ static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, s
 	}
 
 	// find the first underscore following the file extension
-	const char* underscorePos = strchr(inString, '_');
+	const char* underscorePos = strchr(dotPos, '_');
 
 	if (!underscorePos)
 	{

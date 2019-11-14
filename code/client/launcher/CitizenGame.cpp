@@ -336,7 +336,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* lpFileName)
 			size_t start = fileName.length() - redirectedPair.first.length();
 
 			// FIXME: what if this is actually a UTF-8 subfilename?
-			if (_stricmp(fileName.substr(start).c_str(), redirectedPair.first.c_str()) == 0 && fileName.find("appdata0") == std::string::npos) // #TODORDR: hack
+			if (_stricmp(fileName.substr(start).c_str(), redirectedPair.first.c_str()) == 0)
 			{
 				fileName = redirectedPair.second;
 
