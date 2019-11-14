@@ -37,8 +37,7 @@ misrepresented as being the original software.
 
 static hook::thiscall_stub<rage::eThreadState(GtaThread*, uint32_t)> gtaThreadTick([] ()
 {
-	return (void*)0x140EBB030;
-	//return hook::pattern("80 B9 46 01 00 00 00 8B  FA 48 8B D9 74 05").count(1).get(0).get<void>(-0xF);
+	return hook::get_pattern("8B FA 48 8B D9 74 05 8B 41 10", -0x11);
 });
 
 rage::eThreadState WRAPPER GtaThread::Tick(uint32_t opsToExecute)
@@ -48,8 +47,7 @@ rage::eThreadState WRAPPER GtaThread::Tick(uint32_t opsToExecute)
 
 static hook::thiscall_stub<void(GtaThread*)> gtaThreadKill([] ()
 {
-	return (void*)0x140EB03E0;
-	//return hook::pattern("48 83 EC 20 48 83 B9 10 01 00 00 00 48 8B D9 74 14").count(1).get(0).get<void>(-6);
+	return hook::get_pattern("48 8B D7 FF 50 58 0F BE", -0x3A);
 });
 
 void GtaThread::Kill()
@@ -76,8 +74,7 @@ rage::eThreadState GtaThread::Run(uint32_t opsToExecute)
 
 static hook::cdecl_stub<void(GtaThread*)> gtaThreadInit([] ()
 {
-	return (void*)0x140EAEC0C;
-	//return hook::pattern("83 89 38 01 00 00 FF 83 A1 50 01 00 00 F0").count(1).get(0).get<void>();
+	return hook::get_pattern("84 C0 74 07 40 88 BB 86", -0x7C);
 });
 
 extern rage::scriptHandlerMgr* g_scriptHandlerMgr;
@@ -118,6 +115,5 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 
 static hook::thiscall_stub<void(rage::scrNativeCallContext*)> setVectorResults([] ()
 {
-	//return hook::pattern("83 79 18 00 48 8B D1 74 4A FF 4A 18").count(1).get(0).get<void>();
-	return (void*)0x142A0C8C8;
+	return hook::get_pattern("8B 41 18 4C 8B C1 85 C0");
 });

@@ -259,10 +259,10 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "ros_2034/swiftshader/libEGL.dll", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libEGL.dll", 139240, 85063288 },
 	{ "ros_2034/swiftshader/libGLESv2.dll", "484A9699A06A7D87EE5D2BACDF21B284F53328C5", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libGLESv2.dll", 3019240, 85063288 },
 #elif defined(IS_RDR3)
-	{ "RDR2.exe", "e029fb412cfbeff6aeabb3aa87f174153a5df33c", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", 89647760 },
-	{ "appdata0_update.rpf", "aed2266229f915387921d524704a87f6babad329", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", 2860735 },
-	{ "update.rpf", "9a7cfd3d124e4937c7af1689a875be7fe0579ecd", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", 2801065062 },
-	{ "shaders_x64.rpf", "95ea5bda57e48fca8b2b69dc214d2d35fe130b36", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", 233132638 },
+	{ "RDR2.exe", "e3548977700a80de6eb3f241cc091810cdfc04ea", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache_rdr2", 89376912 },
+	{ "appdata0_update.rpf", "e312b3d8b213a46fbbbf138fe7ed3b7bac20dca6", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache_appdata0", 2860767 },
+	{ "update.rpf", "86a19a74de8a37e8f926968d27b35f0f9889bd54", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache_update", 2801186198 },
+	{ "shaders_x64.rpf", "cc018f7a7316bcc33107c3bbc8640d55afa84a80", "http://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache_shaders-x64", 233006430 },
 #endif
 
 	{ "launcher/api-ms-win-core-console-l1-1-0.dll", "724F4F91041AD595E365B724A0348C83ACF12BBB", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/api-ms-win-core-console-l1-1-0.dll", 19208, 85063288 },

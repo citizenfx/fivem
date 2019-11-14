@@ -316,7 +316,7 @@ static InitFunction initFunction([] ()
     <Results Count="1">
         <R MatchId="feedbabe-feed-feed-1212-91533740d43e" Owner="40404">
             <Data>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</Data>
-            <Attributes>0,0,2014912610,0,14,0,3,0,0,0</Attributes>
+            <Attributes>0,0,1107077218,0,14,0,3,0,0,0</Attributes>
         </R>
     </Results>
 </Response>)";
@@ -515,13 +515,13 @@ static InitFunction initFunction([] ()
 <?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
   <Status>1</Status>
-  <Result BuildId="60" VersionNumber="1.0.1207.58" BuildDateUtc="2019-11-05T11:39:37.0266667">
+  <Result BuildId="61" VersionNumber="1.0.1207.69" BuildDateUtc="2019-11-05T11:39:37.0266667">
     <FileManifest>
-		<FileDetails FileEntryId="9178" FileEntryVersionId="9647" FileSize="89647760" TimestampUtc="2019-11-05T11:39:34.8800000">
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="89376912" TimestampUtc="2019-11-05T11:39:34.8800000">
 			<RelativePath>RDR2.exe</RelativePath>
-			<SHA256Hash>745f31710c646c25961360db151a7b9565384cf034cf45e038c0aae56d972206</SHA256Hash>
+			<SHA256Hash>178abc924f738d4edb65f242dd44cde28fe502fb850ec603087297997a1e61ef</SHA256Hash>
 			<FileChunks>
-				<Chunk FileChunkId="13045" SHA256Hash="745f31710c646c25961360db151a7b9565384cf034cf45e038c0aae56d972206" StartByteOffset="0" Size="89647760" />
+				<Chunk FileChunkId="13046" SHA256Hash="178abc924f738d4edb65f242dd44cde28fe502fb850ec603087297997a1e61ef" StartByteOffset="0" Size="89376912" />
 			</FileChunks>
 		</FileDetails>
 %s
@@ -599,7 +599,7 @@ static InitFunction initFunction([] ()
     <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
 		<!--<Branches />-->
       <Branches>
-        <Branch Id="12" Name="default" BuildId="60" IsDefault="true" AppId="10">
+        <Branch Id="12" Name="default" BuildId="61" IsDefault="true" AppId="10">
           <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
         </Branch>
       </Branches>

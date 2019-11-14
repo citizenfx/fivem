@@ -7,7 +7,11 @@
 #ifdef GTA_FIVE
 #define TRIGGER_EP 0x14175DE00
 #elif defined(IS_RDR3)
-#define TRIGGER_EP 0x142D55C2C
+// 1207.58
+//#define TRIGGER_EP 0x142D55C2C
+
+// 1207.69
+#define TRIGGER_EP 0x142D5B8FC
 #endif
 
 // on NT pre-6.3 (or 6.2, even), VEHs can't modify debug registers

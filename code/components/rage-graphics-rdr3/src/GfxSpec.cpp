@@ -34,7 +34,7 @@ grcTexture* grcTextureFactory::GetNoneTexture()
 
 static hook::cdecl_stub<void(void*)> drawMatrix_ctor([]()
 {
-	return (void*)0x1425B6F14;
+	return hook::get_pattern("40 53 48 83 EC 30 66 C7 81 70 06 00 00 01 00 0F 57 C0", 0);
 });
 
 struct grcViewport
@@ -50,35 +50,50 @@ struct grcViewport
 // grcViewport::SetCurrent
 static hook::cdecl_stub<void(grcViewport*, bool)> activateMatrix([]()
 {
-	return (void*)0x140192904;
+	return hook::get_pattern("48 85 DB 74 ? 8A 83 71 06 00 00", -0x32);
 });
 
 static grcViewport* g_imMatrix;
 
 static hook::cdecl_stub<void(void*, void*, bool)> setScreenSpaceMatrix([]()
 {
-	return (void*)0x140586144;
+	return hook::get_pattern("75 16 65 48 8B 0C 25 58 00 00 00 BB ? ? 00 00", -0x1C);
 });
 
 // rage::grmShader::BeginDraw
 static hook::thiscall_stub<void(intptr_t, int, int, int32_t)> setSubShader([]()
 {
-	return (void*)0x14050CA70;
+	return hook::get_pattern("41 8A D8 4C 8B D1 41 80 F9 FF", -0xC);
 });
 
 // rage::sga::Effect::BeginTechnique
 static hook::thiscall_stub<void(intptr_t, void* cxt, int)> setSubShaderUnk([]()
 {
-	return (void*)0x1404EF9E0;
+	return hook::get_pattern("57 41 56 41 57 48 83 EC 20 4C 8B 19", -0xF);
 });
 
 static void* get_sgaGraphicsContext()
 {
-	return *(void**)(*(uintptr_t*)(__readgsqword(88)) + 5040);
+	// 1207.69
+	return *(void**)(*(uintptr_t*)(__readgsqword(88)) + 0x12E0);
+
+	// 1207.58
+	//return *(void**)(*(uintptr_t*)(__readgsqword(88)) + 0x13B0);
 }
 
-static intptr_t* gtaImShader = (intptr_t*)0x143D96A60;
-static intptr_t* gtaImTechnique = (intptr_t*)0x143F1303C; // CS_BLIT
+static intptr_t* gtaImShader;// = (intptr_t*)0x143D96A60;
+static intptr_t* gtaImTechnique;// = (intptr_t*)0x143F1303C; // CS_BLIT
+
+static HookFunction hf([]()
+{
+	gtaImShader = hook::get_address<intptr_t*>(hook::get_pattern("41 B9 10 00 00 00 48 8B 0D ? ? ? ? F3 0F 7F 44 24 20", 9));
+	gtaImTechnique = hook::get_address<intptr_t*>(hook::get_pattern("C7 40 C0 00 00 80 3F 45 0F 57 C0 4D 8B F9 E8", 22));
+});
+
+static hook::cdecl_stub<int(intptr_t, const char*)> _getFunc([]()
+{
+	return hook::get_pattern("E8 ? ? ? ? 48 8B 0B 8B D0 48 83 C4 20", -0x11);
+});
 
 void PushDrawBlitImShader()
 {
@@ -101,7 +116,7 @@ void PushDrawBlitImShader()
 
 	// old gtadrawblit was split up in various clip-space methods which don't transform anymore,
 	// but rage_unlit_draw is similar in that it does a basic transform + textured draw
-	intptr_t blit = ((int(*)(intptr_t, const char*))0x142619834)(*gtaImShader, "rage_unlit_draw");
+	intptr_t blit = _getFunc(*gtaImShader, "rage_unlit_draw");
 
 	// shader methods: set subshader?
 	setSubShader(*gtaImShader, 0, 0, blit);//*gtaImTechnique);
@@ -110,7 +125,7 @@ void PushDrawBlitImShader()
 
 static hook::cdecl_stub<void()> popImShaderAndResetParams([]
 {
-	return (void*)0x140538AF0;
+	return hook::get_pattern("48 83 EC 38 65 48 8B 04 25 58", 0);
 });
 
 void PopDrawBlitImShader()
@@ -137,12 +152,12 @@ void EnqueueGenericDrawCommand(void(*cb)(uintptr_t, uintptr_t), uintptr_t* arg1,
 
 static hook::cdecl_stub<void(rage::sga::Texture*)> setTextureGtaIm([]()
 {
-	return (void*)0x14058C3A8;
+	return hook::pattern("40 53 48 83 EC 20 8B 15 ? ? ? ? 48 8B D9 4C 8B C1").count(2).get(1).get<void>();
 });
 
 static hook::cdecl_stub<void(const float*, const float*)> setImGenParams([]()
 {
-	return (void*)0x140589B38;
+	return hook::get_pattern("41 B9 10 00 00 00 F3 0F 7F 44 24 20", -0x1E);
 });
 
 void SetTextureGtaIm(rage::sga::Texture* texture)
@@ -154,7 +169,6 @@ void SetTextureGtaIm(rage::sga::Texture* texture)
 	setTextureGtaIm(texture);
 }
 
-// 142AC0FDC
 static int32_t g_renderThreadTlsIndex = 1052;
 
 bool IsOnRenderThread()
@@ -166,20 +180,18 @@ bool IsOnRenderThread()
 
 static hook::cdecl_stub<void()> drawImVertices([]()
 {
-	return (void*)0x1425C97D0;
+	return hook::get_call(hook::get_pattern("F3 44 0F 11 44 24 20 E8 ? ? ? ? E8", 12));
 });
 
 static hook::cdecl_stub<void(int, int, int)> beginImVertices([]()
 {
-	return (void*)0x1425C7E60;
+	return hook::get_pattern("4C 39 92 58 9F 00 00 74", -0x49);
 });
 
 static hook::cdecl_stub<void(float, float, float, float, float, float, uint32_t, float, float)> addImVertex([]()
 {
-	return (void*)0x1425C9944;
+	return hook::get_pattern("48 83 EC 78 8B 05 ? ? ? ? 65 48", 0);
 });
-
-
 
 namespace rage
 {
@@ -216,7 +228,7 @@ void GetGameResolution(int& x, int& y)
 
 static hook::cdecl_stub<bool(float*, int)> _transformToScreenSpace([]()
 {
-	return (void*)0x140561574;
+	return hook::get_pattern("48 83 EC 30 48 63 DA 48 8B F9 E8", -6);
 });
 
 bool TransformToScreenSpace(float* verts2d, int len)
@@ -239,19 +251,26 @@ uint32_t GetStockStateIdentifier(StateType state)
 	return 0;
 }
 
+static uint32_t* diffSS;
+
 uint32_t GetImDiffuseSamplerState()
 {
-	return *(uint8_t*)0x145938978;
+	return *diffSS;
 }
 
 static hook::cdecl_stub<void(intptr_t, int, uint8_t)> _setSamplerState([]
 {
-	return (void*)0x141261BF0;
+	return hook::get_pattern("45 8A D0 84 D2 74", 0);
+});
+
+static hook::cdecl_stub<int(intptr_t, const char*, int, int)> _getSamplerIdx([]
+{
+	return hook::get_call(hook::get_pattern("89 47 48 48 8B D6 45 33 C9 41 B0 03", 15));
 });
 
 void SetImDiffuseSamplerState(uint32_t samplerStateIdentifier)
 {
-	int sampler = ((int(*)(intptr_t, const char*, int, int))0x142619990)(*gtaImShader, "DiffuseSampler", 2, 1);
+	int sampler = _getSamplerIdx(*gtaImShader, "DiffuseSampler", 2, 1);
 	assert(sampler);
 
 	_setSamplerState(*gtaImShader, sampler, samplerStateIdentifier);
@@ -351,7 +370,8 @@ static void InvokeRender()
 	state[7] = 0;
 	state[8] = 0x41400000; // 12.0f
 
-	pointSampler = ((uint8_t(*)(void* state))0x1425F5B30)(&state);
+	static auto fn = hook::get_call(hook::get_pattern("66 C7 45 E1 01 00 40 88 7D E3", 14));
+	pointSampler = ((uint8_t(*)(void* state))fn)(&state);
 
 	if (!*(uintptr_t*)((char*)get_sgaGraphicsContext() + 40600))
 	{
@@ -370,17 +390,17 @@ static void InvokeRender()
 
 static hook::cdecl_stub<void(void*, void*, bool)> setDSs([]()
 {
-	return (void*)0x142625348;
+	return hook::get_pattern("83 89 C0 9D 00 00 20 48 89 91 98 9E 00 00", -0x19);
 });
 
 static hook::cdecl_stub<void(void*, int, void**, bool)> setRTs([]()
 {
-	return (void*)0x142625784;
+	return hook::get_pattern("41 56 48 83 EC 20 33 DB 41 8A E9", -0x13);
 });
 
 static hook::cdecl_stub<void(void*, int, int, int, int)> setSRs([]()
 {
-	return (void*)0x14058C7DC;
+	return hook::get_pattern("89 44 24 0C 89 14 24 44 89 44", -0x8);
 });
 
 void SetScissorRect(int x, int y, int z, int w)
@@ -388,21 +408,25 @@ void SetScissorRect(int x, int y, int z, int w)
 	setSRs(get_sgaGraphicsContext(), x, y, z, w);
 }
 
+static uint64_t** sgaDriver;
+
 static void(*origEndDraw)(void*);
 static void WrapEndDraw(void* cxt)
 {
-	(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)0x14556ADA8 + 896i64))(*(uint64_t*)0x14556ADA8, cxt);
+	(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 896i64))(*(uint64_t*)sgaDriver, cxt);
 
 	// get swapchain backbuffer
 	void* rt[1];
-	rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)0x14556ADA8 + 1984i64))(*(uint64_t*)0x14556ADA8);
+	rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1984i64))(*(uint64_t*)sgaDriver);
+
+	static auto ds = hook::get_address<int*>(hook::get_pattern("44 8B CE 48 8B 05 ? ? ? ? 33 C9 48 89", 6));
 
 	setRTs(cxt, 1, rt, true);
-	setDSs(cxt, *(void**)0x143D96B68, true);
-	(*(void(__fastcall**)(__int64, void*, uint64_t, uint64_t, uint64_t, char, char))(**(uint64_t**)0x14556ADA8 + 880i64))(*(uint64_t*)0x14556ADA8, cxt, NULL, NULL, NULL, 1, 0);
+	setDSs(cxt, *(void**)ds, true);
+	(*(void(__fastcall**)(__int64, void*, uint64_t, uint64_t, uint64_t, char, char))(**(uint64_t**)sgaDriver + 880i64))(*(uint64_t*)sgaDriver, cxt, NULL, NULL, NULL, 1, 0);
 	InvokeRender();
 	// end draw
-	(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)0x14556ADA8 + 896i64))(*(uint64_t*)0x14556ADA8, cxt);
+	(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 896i64))(*(uint64_t*)sgaDriver, cxt);
 
 	origEndDraw(cxt);
 }
@@ -422,19 +446,24 @@ static LPWSTR GetCommandLineWHook()
 
 static HookFunction hookFunction([]()
 {
-	hook::set_call(&origEndDraw, 0x1425FDD84);
-	hook::call(0x1425FDD84, WrapEndDraw);
+	auto ed1 = hook::get_call(hook::pattern("C6 44 24 28 01 83 64 24 20 00 45 33 C9 33 D2").count(2).get(1).get<char>(583));
 
-	stockStates[RasterizerStateNoCulling] = (uint16_t*)0x1455624C7;
-	stockStates[DepthStencilStateNoDepth] = (uint16_t*)0x1455624E0;
+	hook::set_call(&origEndDraw, ed1 + 4);
+	hook::call(ed1 + 4, WrapEndDraw);
+
+	stockStates[RasterizerStateNoCulling] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 6));//(uint16_t*)0x1455624C7;
+	stockStates[DepthStencilStateNoDepth] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", -186));
 	stockStates[SamplerStatePoint] = (uint16_t*)&pointSampler;
-	stockStates[BlendStateNoBlend] = (uint16_t*)0x145562504;
-	stockStates[BlendStateDefault] = (uint16_t*)0x14556250C;
+	stockStates[BlendStateNoBlend] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 60));//(uint16_t*)0x145562504;
+	stockStates[BlendStateDefault] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 167));//(uint16_t*)0x14556250C;
+
+	diffSS = hook::get_address<decltype(diffSS)>(hook::get_pattern("66 C7 45 60 15 03 C6 45 62 03", 17));
+	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01", 17));
 
 	g_textureFactory = hook::get_address<decltype(g_textureFactory)>(hook::get_pattern("EB 03 40 32 ED 83 64 24 30 00 48 8D 0D", 13));
 
 	{
-		auto location = hook::get_pattern<char>("83 25 0B ? ? ? ? 83 25 ? ? ? ? 00 D1 F8 89 05", -0x26);
+		auto location = hook::get_pattern<char>("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 D1 F8 89 05", -0x26);
 		rage::g_WindowWidth = hook::get_address<int*>(location + 6);
 		rage::g_WindowHeight = hook::get_address<int*>(location + 0x3E);
 	}

@@ -1,7 +1,5 @@
 #include "StdInc.h"
 #include "Hooking.h"
-#include "Hooking.Patterns.h"
-#include "Hooking.Invoke.h"
 #include "fiDevice.h"
 #include "CrossLibraryInterfaces.h"
 
@@ -9,14 +7,14 @@ namespace rage
 {
 hook::cdecl_stub<rage::fiDevice*(const char*, bool, bool, bool)> fiDevice__GetDevice([] ()
 {
-	return (void*)0x1425050B4;
+	return hook::get_pattern("41 8A F0 40 8A EA 41 B8 07 00 00 00", -0x14);
 });
 
 fiDevice* fiDevice::GetDevice(const char* path, bool allowRoot) { return fiDevice__GetDevice(path, allowRoot, true, true); }
 
 hook::cdecl_stub<bool(const char*, fiDevice*, bool)> fiDevice__MountGlobal([] ()
 {
-	return (void*)0x1425080CC;
+	return hook::get_pattern("48 83 EC 30 4C 8B FA 41 8A F0", -0x1A);
 });
 
 bool fiDevice::MountGlobal(const char* mountPoint, fiDevice* device, bool allowRoot)
@@ -27,8 +25,7 @@ bool fiDevice::MountGlobal(const char* mountPoint, fiDevice* device, bool allowR
 // DCEC20
 hook::cdecl_stub<void(const char*)> fiDevice__Unmount([] ()
 {
-	// TODO: PATTERN
-	return (void*)0x14250B7E8;
+	return hook::get_pattern("33 DB 85 C0 75 1F 48 39 1D", -0x2B);
 });
 
 void fiDevice::Unmount(const char* rootPath) { fiDevice__Unmount(rootPath); }
@@ -60,9 +57,3 @@ public:
 	virtual int GetEntryFileExtId(uint32_t id) = 0;
 };
 }
-
-#include <boost/algorithm/string.hpp>
-
-static InitFunction initFunction([] ()
-{
-});

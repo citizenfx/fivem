@@ -39,7 +39,7 @@ int __stdcall CfxRecvFrom(SOCKET s, char* buf, int len, int flags, sockaddr* fro
 
 			lastReceivedFrom = netID;
 
-			if (CoreIsDebuggerPresent())
+			if (CoreIsDebuggerPresent() && false)
 			{
 				trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, (void*)s);
 			}
@@ -66,7 +66,7 @@ int __stdcall CfxSendTo(SOCKET s, char* buf, int len, int flags, sockaddr* to, i
 		{
 			g_pendSendVar = 0;
 
-			if (CoreIsDebuggerPresent())
+			if (CoreIsDebuggerPresent() && false)
 			{
 				trace("CfxSendTo (to internal address %i) %i b (from thread 0x%x)\n", (htonl(toIn->sin_addr.s_addr) & 0xFFFF) ^ 0xFEED, len, GetCurrentThreadId());
 			}
@@ -250,8 +250,7 @@ static void ConnectTo(const std::string& hostnameStr)
 
 static hook::cdecl_stub<bool()> isNetworkHost([]()
 {
-	// 1207.58
-	return (void*)0x14221DAF0;
+	return hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", -6);
 });
 
 static HookFunction initFunction([]()
@@ -482,9 +481,11 @@ static bool SendGamerToMultiple(char* a1, uint32_t pidx, uint32_t a3, void* null
 	return true;
 }
 
+static uint8_t* seamlessOff;
+
 static void SetSeamlessOn(bool)
 {
-	*(uint8_t*)0x1450DB1BD = 1;
+	*seamlessOff = 1;
 }
 
 static bool ReadSession(void* self, void* parTree, rlSessionInfo* session)
@@ -524,13 +525,113 @@ static bool ReadSession(void* self, void* parTree, rlSessionInfo* session)
 	return true;
 }
 
+static void DumpHex(const void* data, size_t size) {
+	char ascii[17];
+	size_t i, j;
+	ascii[16] = '\0';
+	for (i = 0; i < size; ++i) {
+		trace("%02X ", ((unsigned char*)data)[i]);
+		if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
+			ascii[i % 16] = ((unsigned char*)data)[i];
+		}
+		else {
+			ascii[i % 16] = '.';
+		}
+		if ((i + 1) % 8 == 0 || i + 1 == size) {
+			trace(" ");
+			if ((i + 1) % 16 == 0) {
+				trace("|  %s \n", ascii);
+			}
+			else if (i + 1 == size) {
+				ascii[(i + 1) % 16] = '\0';
+				if ((i + 1) % 16 <= 8) {
+					trace(" ");
+				}
+				for (j = (i + 1) % 16; j < 16; ++j) {
+					trace("   ");
+				}
+				trace("|  %s \n", ascii);
+			}
+		}
+	}
+}
+
+static bool ParseAddGamer(void* a1, void* a2, void* gamer)
+{
+	auto rv = ((bool(*)(void*, void*, void*))0x1426A77BC)(a1, a2, gamer);
+
+	if (rv)
+	{
+		trace("--- ADD GAMER CMD ---\n");
+		DumpHex(gamer, 384);
+	}
+
+	return rv;
+}
+
+static void LogStubLog1(void* stub, const char* type, const char* format, ...)
+{
+	if (type && format)
+	{
+		char buffer[4096];
+		va_list ap;
+		va_start(ap, format);
+		vsnprintf(buffer, 4096, format, ap);
+		va_end(ap);
+
+		trace("%s: %s\n", type, buffer);
+	}
+}
+
+#include <MinHook.h>
+
+static int(*of1)(int*, void*);
+
+static int f1(int* a, void* b)
+{
+	auto rv = of1(a, b);
+
+	if (CoreIsDebuggerPresent() && false)
+	{
+		trace("RECV PKT %d\n", *a);
+	}
+
+	return rv;
+}
+
+static int(*of2)(int, void*);
+
+static int f2(int a, void* b)
+{
+	auto rv = of2(a, b);
+
+	if (CoreIsDebuggerPresent() && false)
+	{
+		trace("SEND PKT %d\n", a);
+	}
+
+	return rv;
+}
+
+static int Return1()
+{
+	return 1;
+}
+
 static HookFunction hookFunction([]()
 {
+	//MH_Initialize();
+	//MH_CreateHook((void*)0x1422306FC, f2, (void**)&of2);
+	//MH_CreateHook((void*)0x1422304F8, f1, (void**)&of1);
+	//MH_EnableHook(MH_ALL_HOOKS);
+
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
 	hook::iat("ws2_32.dll", CfxRecvFrom, 17);
 	hook::iat("ws2_32.dll", CfxBind, 2);
 	hook::iat("ws2_32.dll", CfxSelect, 18);
 	hook::iat("ws2_32.dll", CfxGetSockName, 6);
+
+	//hook::jump(0x1406B50E8, LogStubLog1);
 
 	{
 		auto getLocalPeerAddress = hook::get_pattern<char>("48 8B D0 80 78 18 02 75 1D", -0x32);
@@ -544,16 +645,20 @@ static HookFunction hookFunction([]()
 		//hook::call(0x14267B5A0, InitP2PCryptKey);
 	}
 
+	//
+	//hook::call(0x1426E100B, ParseAddGamer);
+
 	// all uwuids be 2
-	//hook::jump(hook::get_pattern("80 3D ? ? ? ? 00 75 48 48 8D 0D ? ? ? ? E8", -0x15), ZeroUUID);
-	hook::call(0x1426D3E64, ZeroUUID);
+	hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", -85), ZeroUUID);
 
 	// get session for find result
 	// 1207.58
-	hook::jump(0x1426F3A58, ReadSession);
+	hook::jump(hook::get_pattern("48 85 C0 74 31 80 38 00 74 2C 45", -0x1B), ReadSession);
+
+	seamlessOff = hook::get_address<uint8_t*>(hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", 4));
 
 	// skip seamless host for is-host call
-	hook::put<uint8_t>(0x14221DAFE, 0xEB);
+	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
 	static bool tryHost = true;
 
@@ -608,5 +713,8 @@ static HookFunction hookFunction([]()
 	}
 
 	// test: don't allow setting odd seamless mode
-	hook::jump(0x1422286A8, SetSeamlessOn);
+	hook::jump(hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? 80 3D", 2)), SetSeamlessOn);
+
+	// always not seamless
+	hook::jump(hook::get_call(hook::get_pattern("84 C0 0F 84 2C 01 00 00 E8", 8)), Return1);
 });

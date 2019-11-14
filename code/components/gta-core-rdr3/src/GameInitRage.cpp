@@ -216,14 +216,16 @@ static void LogStubLog1(void* stub, const char* type, const char* format, ...)
 	}
 }
 
-static HookFunction hookFunction([]()
+static HookFunction hookFunctionNet([]()
 {
-	hook::jump(0x14222EABC, Return1);
-	hook::jump(0x1422153F0, Return1);
-	hook::jump(0x1423389D4, ReturnTrueAndForcePedMPFlag);
+	// tunable privilege check
+	hook::jump(hook::get_pattern("BA 0C 7C 4B B5 B9 BD C5 AF E3", -0x20), Return1);
+
+	// player can-clone SP model skip
+	hook::jump(hook::get_pattern("84 C0 74 04 32 C0 EB 0E 4C 8B C7 48 8B D6", -0x1D), ReturnTrueAndForcePedMPFlag);
 
 	//hook::jump(0x1406B50E8, LogStubLog1);
 
 	// skip use of SC session based queryfunctions
-	hook::nop(0x142219850, 4);
+	hook::nop(hook::get_pattern("48 0F 44 C1 48 8D 0D ? ? ? ? 48 89 44"), 4);
 });

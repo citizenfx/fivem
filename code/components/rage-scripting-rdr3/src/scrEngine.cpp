@@ -137,22 +137,17 @@ pgPtrCollection<GtaThread>* scrEngine::GetThreadCollection()
 	return scrThreadCollection;
 }
 
+scrThread** g_activeThread;
+
 scrThread* scrEngine::GetActiveThread()
 {
-	//char* moduleTls = *(char**)__readgsqword(88);
-
-	//return *reinterpret_cast<scrThread**>(moduleTls + activeThreadTlsOffset);
-
 	// 1207.58
-	return *reinterpret_cast<scrThread**>(0x1457C3F40);
+	return *g_activeThread;
 }
 
 void scrEngine::SetActiveThread(scrThread* thread)
 {
-	//char* moduleTls = *(char**)__readgsqword(88);
-
-	//*reinterpret_cast<scrThread**>(moduleTls + activeThreadTlsOffset) = thread;
-	*reinterpret_cast<scrThread**>(0x1457C3F40) = thread;
+	*g_activeThread = thread;
 }
 
 static std::vector<std::function<void()>> g_onScriptInitQueue;
@@ -538,26 +533,21 @@ static HookFunction hookFunction([] ()
 	//char* location = hook::pattern("48 8B C8 EB 03 48 8B CB 48 8B 05").count(1).get(0).get<char>(11);
 
 	// 1207.58
-	scrThreadCollection = reinterpret_cast<decltype(scrThreadCollection)>(0x1457C3518);
+	scrThreadCollection = hook::get_address<decltype(scrThreadCollection)>(hook::get_pattern("48 8B CF 48 8B 05 ? ? ? ? 49 89 0C 07", 6));
 
-	//activeThreadTlsOffset = *hook::pattern("48 8B 04 D0 4A 8B 14 00 48 8B 01 F3 44 0F 2C 42 20").count(1).get(0).get<uint32_t>(-4);
+	rage::g_activeThread = hook::get_address<decltype(rage::g_activeThread)>(hook::get_pattern("EB 59 48 8B 05 ? ? ? ? 48 85 C0 74 05", 5));
 
-	//location = hook::pattern("89 15 ? ? ? ? 48 8B 0C D8").count(1).get(0).get<char>(2);
+	scrThreadId = hook::get_address<decltype(scrThreadId)>(hook::get_pattern("8B 0D ? ? ? ? 3B CA 7D 28 4C 8B 0D", 2));
 
-	//scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
-	scrThreadId = reinterpret_cast<decltype(scrThreadId)>(0x1448D8BA0);
-
-	//location = hook::get_pattern<char>("FF 0D ? ? ? ? 48 8B F9", 2);
-
-	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(0x1457C3520);
+	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>((char*)scrThreadCollection + 8);
 
 	//location = hook::pattern("76 32 48 8B 53 40").count(1).get(0).get<char>(9);
 
-	registrationTable = reinterpret_cast<decltype(registrationTable)>(0x1457C28F0);
+	registrationTable = hook::get_address<decltype(registrationTable)>(hook::get_pattern("48 8D 0D ? ? ? ? 33 D2 C6 05 ? ? ? ? 00 41", 3));
 
 	//location = hook::pattern("74 17 48 8B C8 E8 ? ? ? ? 48 8D 0D").count(1).get(0).get<char>(13);
 
-	g_scriptHandlerMgr = reinterpret_cast<decltype(g_scriptHandlerMgr)>(0x1448F3D60);
+	g_scriptHandlerMgr = hook::get_address<decltype(g_scriptHandlerMgr)>(hook::get_pattern("48 8D 96 ? ? 00 00 48 C1 E0 07 48 8D 0D", 14));
 
 	// disable nested script behavior on tick
 	hook::put<uint8_t>(hook::get_pattern("C6 05 ? ? ? ? 01 74 19 E8", 7), 0xEB);
@@ -567,10 +557,8 @@ static HookFunction hookFunction([] ()
 
 	// script re-init
 	{
-		auto location = (void*)0x140EAB634; // arxan?//hook::get_pattern("83 FB FF 0F 84 D6 00 00 00", -0x37);
-
 		MH_Initialize();
-		MH_CreateHook(location, StartupScriptWrap, (void**)&origStartupScript);
+		MH_CreateHook(hook::get_pattern("48 8B D9 4C 8D 05 ? ? ? ? 4C 0F 45 C0", -0x14), StartupScriptWrap, (void**)&origStartupScript);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
