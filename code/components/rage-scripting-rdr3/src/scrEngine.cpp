@@ -525,7 +525,7 @@ static int ReturnScriptType()
 		return 0xFFFF;
 	}
 
-	return 0;
+	return 1;
 }
 
 static HookFunction hookFunction([] ()
