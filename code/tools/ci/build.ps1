@@ -426,6 +426,7 @@ if (!$DontBuild -and !$IsServer) {
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2 $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $CacheDir\fivereborn\
     }
 
