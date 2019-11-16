@@ -172,3 +172,6 @@
 [submodule "vendor/nngpp"]
 	path = vendor/nngpp
 	url = https://github.com/citizenfx/nngpp.git
+[submodule "vendor/vulkan-headers"]
+	path = vendor/vulkan-headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git

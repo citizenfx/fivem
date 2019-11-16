@@ -136,6 +136,7 @@ static InitFunction initFunction([] ()
 			}
 		});
 
+#ifdef GTA_FIVE
 		// pre-disconnect handling
 		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([=]()
 		{
@@ -147,6 +148,7 @@ static InitFunction initFunction([] ()
 				g_resourceUIs.erase(resource->GetName());
 			}
 		});
+#endif
 
 		// add component
 		resource->SetComponent(resourceUI);

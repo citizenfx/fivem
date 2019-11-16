@@ -62,3 +62,15 @@ void GFX_EXPORT SetScissorRect(int x, int y, int z, int w);
 
 extern GFX_EXPORT fwEvent<> OnPostFrontendRender;
 extern GFX_EXPORT fwEvent<> OnGrcCreateDevice;
+
+enum class GraphicsAPI
+{
+	Unknown,
+	Vulkan,
+	D3D12
+};
+
+extern GFX_EXPORT GraphicsAPI GetCurrentGraphicsAPI();
+
+// VK context or D3D12 device
+extern GFX_EXPORT void* GetGraphicsDriverHandle();

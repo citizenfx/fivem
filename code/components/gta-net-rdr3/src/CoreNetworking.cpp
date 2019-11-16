@@ -226,21 +226,7 @@ struct rlSessionInfo
 	netPeerAddress peerAddress;
 };
 
-static bool g_connected;
 #include <CoreConsole.h>
-
-static void ConnectTo(const std::string& hostnameStr)
-{
-	if (g_connected)
-	{
-		trace("Ignoring ConnectTo because we're already connecting/connected.\n");
-		return;
-	}
-
-	g_connected = true;
-
-	g_netLibrary->ConnectToServer(hostnameStr);
-}
 
 #include <ICoreGameInit.h>
 #include <nutsnbolts.h>
@@ -257,43 +243,6 @@ static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
 	g_netLibrary->SetPlayerName("suka blyaaaaat!");
-
-// 	g_netLibrary->OnInitReceived.Connect([](NetAddress)
-// 	{
-// 		g_netLibrary->DownloadsComplete();
-// 	});
-
-	g_netLibrary->OnStateChanged.Connect([](NetLibrary::ConnectionState curState, NetLibrary::ConnectionState lastState)
-	{
-		if (curState == NetLibrary::CS_ACTIVE)
-		{
-			ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
-
-			if (!gameInit->GetGameLoaded())
-			{
-				trace("Triggering LoadGameFirstLaunch()\n");
-
-				gameInit->LoadGameFirstLaunch([]()
-				{
-					// download frame code
-					Sleep(1);
-
-					return g_netLibrary->AreDownloadsComplete();
-				});
-			}
-			else
-			{
-				trace("Triggering ReloadGame()\n");
-
-				gameInit->ReloadGame();
-			}
-		}
-	});
-
-	g_netLibrary->OnConnectionError.Connect([](const char* e)
-	{
-		GlobalError("%s", e);
-	});
 
 	g_netLibrary->OnBuildMessage.Connect([](const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
@@ -319,11 +268,6 @@ static HookFunction initFunction([]()
 			lastHostState = false;
 			lastHostSend = timeGetTime();
 		}
-	});
-
-	static ConsoleCommand connectCommand("connect", [](const std::string& server)
-	{
-		ConnectTo(server);
 	});
 
 	OnGameFrame.Connect([]()

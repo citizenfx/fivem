@@ -444,6 +444,64 @@ static LPWSTR GetCommandLineWHook()
 	return str;
 }
 
+static hook::cdecl_stub<void* (const char* appName)> _getD3D12Driver([]()
+{
+	//return hook::get_call(hook::get_pattern("75 59 48 8B CB E8", -5));
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? EB 3B 48 8D 15 ? ? ? ? 48 8B CF"));
+});
+
+static hook::cdecl_stub<void* (const char* appName)> _getVulkanDriver([]()
+{
+	//return hook::get_call(hook::get_pattern("75 59 48 8B CB E8", 8));
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? EB 3B 48 8D 15 ? ? ? ? 48 8B CF", -29));
+});
+
+GraphicsAPI GetCurrentGraphicsAPI()
+{
+	static auto d3d12 = _getD3D12Driver("Red Dead Redemption 2");
+	static auto vk = _getVulkanDriver("Red Dead Redemption 2");
+
+	if (*sgaDriver == d3d12)
+	{
+		return GraphicsAPI::D3D12;
+	}
+	else if (*sgaDriver == vk)
+	{
+		return GraphicsAPI::Vulkan;
+	}
+
+	return GraphicsAPI::Unknown;
+}
+
+void** g_d3d12Device;
+VkDevice* g_vkHandle;
+
+void* GetGraphicsDriverHandle()
+{
+	switch (GetCurrentGraphicsAPI())
+	{
+	case GraphicsAPI::D3D12:
+		return *g_d3d12Device;
+	case GraphicsAPI::Vulkan:
+		return *g_vkHandle;
+	default:
+		return nullptr;
+	}
+}
+
+namespace rage::sga
+{
+	void Driver_Create_ShaderResourceView(rage::sga::Texture* texture, const rage::sga::TextureViewDesc& desc)
+	{
+		(*(void(__fastcall**)(__int64, void*, void*, const void*))(**(uint64_t**)sgaDriver + 272i64))(*(uint64_t*)sgaDriver, *(char**)((char*)texture + 48), texture, &desc);
+	}
+
+	void Driver_Destroy_Texture(rage::sga::Texture* texture)
+	{
+		(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 464i64))(*(uint64_t*)sgaDriver, texture);
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	auto ed1 = hook::get_call(hook::pattern("C6 44 24 28 01 83 64 24 20 00 45 33 C9 33 D2").count(2).get(1).get<char>(583));
@@ -461,6 +519,9 @@ static HookFunction hookFunction([]()
 	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01", 17));
 
 	g_textureFactory = hook::get_address<decltype(g_textureFactory)>(hook::get_pattern("EB 03 40 32 ED 83 64 24 30 00 48 8D 0D", 13));
+
+	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("45 8B CD 45 8B C5 48 8B 01 FF 90 D0 00 00 00", 18));
+	g_vkHandle = hook::get_address<decltype(g_vkHandle)>(hook::get_pattern("8D 50 41 8B CA 44 8B C2 F3 48 AB 48 8B 0D", 14));
 
 	{
 		auto location = hook::get_pattern<char>("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 D1 F8 89 05", -0x26);

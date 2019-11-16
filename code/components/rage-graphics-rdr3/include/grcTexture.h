@@ -1,5 +1,12 @@
 #pragma once
 
+struct ID3D12Resource;
+
+#include <sysAllocator.h>
+
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.h>
+
 #ifdef COMPILING_RAGE_GRAPHICS_RDR3
 #define GFX_EXPORT DLL_EXPORT
 #else
@@ -10,14 +17,72 @@ namespace rage
 {
 	namespace sga
 	{
-		class Texture
+		class GFX_EXPORT Texture
 		{
 		public:
+			virtual ~Texture() = default;
+
 			inline static bool IsRenderSystemColorSwapped()
 			{
 				return false;
 			}
 		};
+
+		class TextureD3D12 : public Texture
+		{
+		public:
+			char pad[64];
+			ID3D12Resource* resource;
+		};
+
+		class TextureVK : public Texture
+		{
+		public:
+			struct ImageData : public sysUseAllocator
+			{
+				VkDeviceMemory memory;
+				VkImage image;
+				uint32_t pad[24];
+			};
+
+			char pad[64];
+			ImageData* image;
+		};
+
+		enum BufferType
+		{
+			Image = 2
+		};
+
+		struct TextureViewDesc
+		{
+			BufferType bufferType; // +0
+			int mostDetailedMip; // +4
+			int mipLevels; // +8
+			int arrayStart; // +12
+			int arraySize; // +16
+			float minLodClamp; // +20
+			bool unkSingleChannel; // +24
+			uint8_t dimension;
+			uint8_t formatOverride;
+
+			inline TextureViewDesc()
+			{
+				bufferType = BufferType::Image;
+				mostDetailedMip = 0;
+				mipLevels = 0xF;
+				arrayStart = 0xFFF;
+				minLodClamp = 0.0f;
+				arraySize = 1;
+				unkSingleChannel = false;
+				dimension = 0;
+				formatOverride = 0;
+			}
+		};
+
+		void GFX_EXPORT Driver_Create_ShaderResourceView(Texture* texture, const TextureViewDesc& desc);
+
+		void GFX_EXPORT Driver_Destroy_Texture(Texture* texture);
 	}
 
 	// rage::grcImage, in reality

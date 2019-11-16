@@ -35,6 +35,11 @@ static void EnableFocus()
 
 void InputHook::SetGameMouseFocus(bool focus)
 {
+	if (!enableFocus || !disableFocus)
+	{
+		return;
+	}
+
 	g_isFocusStolen = !focus;
 
 	return (focus) ? enableFocus() : disableFocus();
@@ -59,7 +64,7 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 		if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userName))
 		{
-			if (HashString(userName.c_str()) == 0x448645b5)
+			if (HashString(userName.c_str()) == 0x448645b5 || HashString(userName.c_str()) == 0x96ea6c22)
 			{
 				userName = "root@root.aq";
 			}

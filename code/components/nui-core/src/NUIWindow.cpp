@@ -438,11 +438,24 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 			auto& texRef = (type == CefRenderHandler::PaintElementType::PET_VIEW) ? m_nuiTexture : m_popupTexture;
 
+			int w, h;
+
+			if (type == CefRenderHandler::PaintElementType::PET_VIEW)
+			{
+				w = m_width;
+				h = m_height;
+			}
+			else
+			{
+				w = m_popupRect.width;
+				h = m_popupRect.height;
+			}
+
 			if (!m_primary)
 			{
 				auto oldRef = m_parentTextures[type];
 
-				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle);
+				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, fakeTexRef);
 
 				if (oldRef)
@@ -474,7 +487,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 					oldRef = texRef;
 				}
 
-				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle);
+				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, texRef);
 
 				if (oldRef)

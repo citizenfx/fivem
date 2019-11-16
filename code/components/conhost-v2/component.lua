@@ -10,6 +10,8 @@ if _OPTIONS['game'] ~= 'launcher' and _OPTIONS['game'] ~= 'rdr3' then
 elseif _OPTIONS['game'] == 'rdr3' then
 	filter {}
 	configuration {}
+	
+	includedirs { '../../../vendor/vulkan-headers/include/' }
 
 	add_dependencies {
 		"rage:input:rdr3",
