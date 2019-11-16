@@ -67,6 +67,29 @@ export abstract class GameService {
 
 	convars: { [name: string]: ConvarWrapper } = {};
 
+	get gameName(): string {
+		const targetGame = (window as any).nuiTargetGame;
+
+		if (!targetGame) {
+			return 'rdr3';
+		}
+
+		return targetGame;
+	}
+
+	get brandingName(): string {
+		switch (this.gameName) {
+			case 'rdr3':
+				return 'RedM';
+			case 'launcher':
+				return 'Cfx.re';
+			case 'fivem':
+				return 'FiveM';
+			default:
+				return 'CitizenFX';
+		}
+	}
+
 	get nickname(): string {
 		return 'UnknownPlayer';
 	}

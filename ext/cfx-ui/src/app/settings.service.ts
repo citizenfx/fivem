@@ -47,13 +47,15 @@ export class SettingsService {
             setCb: (value) => this.gameService.nickname = value,
         });
 
-        this.addSetting('darkTheme', {
-            name: '#Settings_DarkTheme',
-            description: '#Settings_DarkThemeDesc',
-            type: 'checkbox',
-            getCb: () => this.gameService.darkThemeChange.map(a => a ? 'true' : 'false'),
-            setCb: (value) => this.gameService.darkTheme = (value === 'true')
-        });
+        if (this.gameService.gameName !== 'rdr3') {
+            this.addSetting('darkTheme', {
+                name: '#Settings_DarkTheme',
+                description: '#Settings_DarkThemeDesc',
+                type: 'checkbox',
+                getCb: () => this.gameService.darkThemeChange.map(a => a ? 'true' : 'false'),
+                setCb: (value) => this.gameService.darkTheme = (value === 'true')
+            });
+        }
 
         this.addSetting('devMode', {
             name: '#Settings_DevMode',
@@ -80,41 +82,43 @@ export class SettingsService {
             options: Languages.toSettingsOptions()
         });
 
-        this.addSetting('menuAudio', {
-            name: '#Settings_MenuAudio',
-            description: '#Settings_MenuAudioDesc',
-            type: 'checkbox',
-            getCb: () => this.gameService.getConvar('ui_disableMusicTheme').pipe(map(a => a === 'true' ? 'false' : 'true')),
-            setCb: (value) => this.gameService.setConvar('ui_disableMusicTheme', value === 'true' ? 'false' : 'true')
-        });
+        if (this.gameService.gameName !== 'rdr3') {
+            this.addSetting('menuAudio', {
+                name: '#Settings_MenuAudio',
+                description: '#Settings_MenuAudioDesc',
+                type: 'checkbox',
+                getCb: () => this.gameService.getConvar('ui_disableMusicTheme').pipe(map(a => a === 'true' ? 'false' : 'true')),
+                setCb: (value) => this.gameService.setConvar('ui_disableMusicTheme', value === 'true' ? 'false' : 'true')
+            });
 
-        this.addSetting('streamingProgress', {
-            name: '#Settings_GameStreamProgress',
-            description: '#Settings_GameStreamProgressDesc',
-            type: 'checkbox',
-            getCb: () => this.gameService.getConvar('game_showStreamingProgress'),
-            setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value)
-        });
+            this.addSetting('streamingProgress', {
+                name: '#Settings_GameStreamProgress',
+                description: '#Settings_GameStreamProgressDesc',
+                type: 'checkbox',
+                getCb: () => this.gameService.getConvar('game_showStreamingProgress'),
+                setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value)
+            });
 
-        this.addSetting('customEmoji', {
-            name: '#Settings_CustomEmoji',
-            description: '#Settings_CustomEmojiDesc',
-            type: 'select',
-            getCb: () => this.gameService.getConvar('ui_customBrandingEmoji'),
-            setCb: (value) => this.gameService.setConvar('ui_customBrandingEmoji', value),
-            showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a === 'true')),
-            options: fromEntries([
-                [ '', 'Default' ],
-                ...emojiList.default.filter(emoji => emoji.length === 2).map(emoji => [ emoji, emoji ])
-            ])
-        });
+            this.addSetting('customEmoji', {
+                name: '#Settings_CustomEmoji',
+                description: '#Settings_CustomEmojiDesc',
+                type: 'select',
+                getCb: () => this.gameService.getConvar('ui_customBrandingEmoji'),
+                setCb: (value) => this.gameService.setConvar('ui_customBrandingEmoji', value),
+                showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a === 'true')),
+                options: fromEntries([
+                    [ '', 'Default' ],
+                    ...emojiList.default.filter(emoji => emoji.length === 2).map(emoji => [ emoji, emoji ])
+                ])
+            });
 
-        this.addSetting('customEmojiUpsell', {
-            name: '#Settings_CustomEmoji',
-            type: 'label',
-            showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true')),
-            labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell'))
-        });
+            this.addSetting('customEmojiUpsell', {
+                name: '#Settings_CustomEmoji',
+                type: 'label',
+                showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true')),
+                labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell'))
+            });
+        }
 
         this.addSetting('queriesPerMinute', {
             name: '#Settings_QueriesPerMinute',
@@ -132,62 +136,64 @@ export class SettingsService {
             }
         });
 
-        this.addSetting('accountButton', {
-            name: '#Settings_Account',
-            type: 'button',
-            description: '#Settings_AccountLink',
-            setCb: (value) => this.linkAccount(),
-            showCb: () => discourseService.signinChange.pipe(map(user => !user)),
-        });
+        if (this.gameService.gameName !== 'rdr3') {
+            this.addSetting('accountButton', {
+                name: '#Settings_Account',
+                type: 'button',
+                description: '#Settings_AccountLink',
+                setCb: (value) => this.linkAccount(),
+                showCb: () => discourseService.signinChange.pipe(map(user => !user)),
+            });
 
-        this.addSetting('accountLabel', {
-            name: '#Settings_Account',
-            type: 'label',
-            showCb: () => discourseService.signinChange.pipe(map(user => !!user)),
-            labelCb: () =>
-                combineLatest(
-                    discourseService.signinChange,
-                    translation.translationChanged()
-                ).pipe(map(
-                    ([ user, _ ]) => translation.translate('#Settings_AccountLinked', { username: user ? user.username : '' })
-                ))
-        });
+            this.addSetting('accountLabel', {
+                name: '#Settings_Account',
+                type: 'label',
+                showCb: () => discourseService.signinChange.pipe(map(user => !!user)),
+                labelCb: () =>
+                    combineLatest(
+                        discourseService.signinChange,
+                        translation.translationChanged()
+                    ).pipe(map(
+                        ([ user, _ ]) => translation.translate('#Settings_AccountLinked', { username: user ? user.username : '' })
+                    ))
+            });
 
-        this.addSetting('boostLoading', {
-            name: '#Settings_Boost',
-            type: 'label',
-            showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
-                && !this.discourseService.noCurrentBoost)),
-            labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_BoostLoading'))
-        });
+            this.addSetting('boostLoading', {
+                name: '#Settings_Boost',
+                type: 'label',
+                showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
+                    && !this.discourseService.noCurrentBoost)),
+                labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_BoostLoading'))
+            });
 
-        this.addSetting('boostNone', {
-            name: '#Settings_Boost',
-            type: 'label',
-            showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
-                && this.discourseService.noCurrentBoost)),
-            labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_BoostNone'))
-        });
+            this.addSetting('boostNone', {
+                name: '#Settings_Boost',
+                type: 'label',
+                showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
+                    && this.discourseService.noCurrentBoost)),
+                labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_BoostNone'))
+            });
 
-        this.addSetting('boostUnknown', {
-            name: '#Settings_Boost',
-            type: 'label',
-            showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
-                && !this.discourseService.currentBoost.server)),
-            labelCb: () => of(this.discourseService.currentBoost ? this.discourseService.currentBoost.address : '')
-        });
+            this.addSetting('boostUnknown', {
+                name: '#Settings_Boost',
+                type: 'label',
+                showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
+                    && !this.discourseService.currentBoost.server)),
+                labelCb: () => of(this.discourseService.currentBoost ? this.discourseService.currentBoost.address : '')
+            });
 
-        this.addSetting('boostServer', {
-            name: '#Settings_Boost',
-            type: 'label',
-            showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
-                && !!this.discourseService.currentBoost.server)),
-            labelCb: () => of(
-                this.discourseService.currentBoost.server && this.discourseService.currentBoost.server.hostname ?
-                    this.discourseService.currentBoost.server.hostname : 'test'
-            ),
-            colorizeValue: true
-        });
+            this.addSetting('boostServer', {
+                name: '#Settings_Boost',
+                type: 'label',
+                showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
+                    && !!this.discourseService.currentBoost.server)),
+                labelCb: () => of(
+                    this.discourseService.currentBoost.server && this.discourseService.currentBoost.server.hostname ?
+                        this.discourseService.currentBoost.server.hostname : 'test'
+                ),
+                colorizeValue: true
+            });
+        }
     }
 
     public addSetting(label: string, setting: Setting) {

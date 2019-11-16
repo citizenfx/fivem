@@ -7,7 +7,7 @@ $itemHeight: $appNavHeight*.5;
 	height: $appNavHeight;
 	width: $width;
 
-	padding: $padding*2 0 $padding*2 $padding*2;
+	padding: $padding;
 }
 
 .app-nav-container {
@@ -46,6 +46,17 @@ $itemHeight: $appNavHeight*.5;
 			@include theme() using ($theme) {
 				fill: gtv($theme, textColour);
 			};
+
+			:host-context(.game-rdr3) & {
+				vertical-align: middle;
+				height: $itemHeight * 1.8;
+				width: $itemHeight * 1.8;
+				fill: #d80d0d;
+			}
+		}
+
+		span {
+			vertical-align: middle;
 		}
 	}
 

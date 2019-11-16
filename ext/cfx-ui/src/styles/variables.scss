@@ -1,7 +1,7 @@
 $fonts: 'Segoe UI', 'Roboto';
 
-$width: 100vw;
-$height: 100vh;
+$width: 93vw;
+$height: 96vh;
 
 $fontSize: 2vh;
 $padding: 1vh;
@@ -9,7 +9,7 @@ $multiplier: 1.6813;
 
 $appNavHeight: 5vh;
 $appContentPadding: $padding*2;
-$appContentMargin: $appNavHeight;
+$appContentMargin: 4vh;
 $appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
 $appContentWidth: calc(#{$width} - #{$appContentPadding});
 
@@ -44,6 +44,19 @@ $colorsDark: (
     backgroundImage: url(assets/images/bg-night.jpg)
 );
 
+$colorsRdr: (
+    bgColour: rgb(40, 40, 40),
+    fgColour: rgb(240, 240, 240),
+    secondaryColour: rgb(240, 240, 240),
+    greenyColour: rgb(216, 13, 13),
+    yellowColour: hsl(53, 100%, 50%),
+    redColour: hsl(10, 100%, 40%),
+    blueColour: hsl(180, 100%, 40%),
+    textColour: rgb(240, 240, 240),
+    acrylicBlur: url(#acrylicBlurDark),
+    backgroundImage: url(https://cdn.discordapp.com/attachments/644430138276184066/645339402847125504/Red_Dead_Redemption_2_Screenshot_2019.11.16_-_20.07.53.92.png) /* temp placeholder */
+);
+
 $themeLight: (
     name: light,
     data: $colorsLight
@@ -54,7 +67,12 @@ $themeDark: (
     data: $colorsDark
 );
 
-$themes: $themeLight $themeDark;
+$themeRdr: (
+    name: rdr3,
+    data: $colorsRdr
+);
+
+$themes: $themeLight $themeDark $themeRdr;
 
 @function gtv($theme, $name) {
     @return map-get(
@@ -95,8 +113,22 @@ $themes: $themeLight $themeDark;
     }
 }
 
+@mixin aspectLimited() {
+    @for $w from 21 to 33 {
+        @media only screen and (min-aspect-ratio: #{$w}/9) {
+            & {
+                width: calc(100% - (100vw * (16 / #{$w})) + 4vw);
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+    }
+}
+
 @mixin fullWidthPadded($extraPadding: $padding*4) {
     width: calc(#{$width} - #{$extraPadding});
+
+    @include aspectLimited();
 }
 
 @mixin backdropBlur($amount: 5px) {
@@ -106,17 +138,18 @@ $themes: $themeLight $themeDark;
 @mixin appContent() {
     height: $appContentHeight;
 	margin-top: $appContentMargin;
-    padding-left: calc(#{$appContentPadding} + 4vw);
-    padding-right: calc(#{$appContentPadding} + 4vw);
-    margin-left: -4vw;
-    margin-right: -4vw;
+    padding-left: #{$appContentPadding};
+    padding-right: #{$appContentPadding};
     padding-top: $padding*2;
 
     position: relative;
     
-    box-shadow: rgba(30, 30, 30, .2) 0vw -0.4vh 2.5vh;
+    /*box-shadow: rgba(30, 30, 30, .2) 0vw -0.4vh 8.5vh;*/
+    box-shadow: 0 2.03vh 6.5vh 0.005vh rgba(0, 0, 0, 0.56);
 
     overflow: hidden;
+
+    @include aspectLimited();
     
     &:after {
         content: '';
