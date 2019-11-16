@@ -303,7 +303,6 @@ static InitFunction initFunction([] ()
 
 	static bool shouldDraw = false;
 
-#if !defined(IS_RDR3)
 	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 	{
 		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
@@ -317,7 +316,6 @@ static InitFunction initFunction([] ()
 		});
 	}
 	else
-#endif
 	{
 		shouldDraw = true;
 	}
