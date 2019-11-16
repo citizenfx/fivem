@@ -377,7 +377,7 @@ if (!$DontBuild -and !$IsServer) {
     New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
     Set-Location $CacheDir
 
-    if (!$IsRDR) {
+    if ($true) {
         # build UI
         Push-Location $WorkDir
         $UICommit = (git rev-list -1 HEAD ext/ui-build/ ext/cfx-ui/)
