@@ -416,6 +416,10 @@ GITexture* GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int
 				MemoryAllocateInfo.pNext = &ImportMemoryWin32HandleInfo;
 				MemoryAllocateInfo.allocationSize = MemoryRequirements.size;
 
+				unsigned long typeIndex;
+				_BitScanForward(&typeIndex, MemoryRequirements.memoryTypeBits);
+				MemoryAllocateInfo.memoryTypeIndex = typeIndex;
+
 				static auto _vkBindImageMemory2 = (PFN_vkBindImageMemory2)vkGetDeviceProcAddr(device, "vkBindImageMemory2");
 
 				VkDeviceMemory ImageMemory;
