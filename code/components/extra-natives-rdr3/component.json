@@ -1,0 +1,18 @@
+{
+	"name": "extra-natives:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"scripting",
+		"gta:core:rdr3",
+		"gta:game:rdr3",
+		"gta:streaming:rdr3",
+		"rage:graphics:rdr3",
+		"scrbind:base",
+		"citizen:scripting:core",
+		"nui:core",
+		"citizen:resources:client",
+		"net"
+	],
+	"provides": []
+}
