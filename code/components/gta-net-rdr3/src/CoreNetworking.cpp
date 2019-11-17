@@ -3,6 +3,8 @@
 #include <Hooking.h>
 #include <NetLibrary.h>
 
+#include <CoreNetworking.h>
+
 static NetLibrary* g_netLibrary;
 
 // shared relay functions (from early rev. gta:net:five; do update!)
@@ -164,68 +166,6 @@ int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR* readfds, _Inout_o
 	return nfds;
 }
 
-// rline
-struct netPeerId
-{
-	uint64_t val;
-};
-
-struct rlGamerHandle
-{
-	uint8_t handle[16];
-};
-
-struct netIpAddress
-{
-	union
-	{
-		uint32_t addr;
-		uint8_t bytes[4];
-	};
-};
-
-struct netSocketAddress
-{
-	netIpAddress ip;
-	uint16_t port;
-};
-
-struct netPeerUnkStructInner
-{
-	netSocketAddress addr;
-	uint32_t unk;
-};
-
-struct netPeerUnkStruct
-{
-	netPeerUnkStructInner unks[4];
-	int numUnks;
-};
-
-struct netPeerAddress
-{
-	netPeerId peerId;
-	rlGamerHandle gamerHandle;
-	uint8_t peerKey[32];
-	uint8_t hasPeerKey;
-	netSocketAddress relayAddr;
-	netSocketAddress publicAddr;
-	netSocketAddress localAddr;
-	netPeerUnkStruct unk;
-	int natType;
-};
-
-struct rlSessionToken
-{
-	uint64_t token;
-};
-
-struct rlSessionInfo
-{
-	rlSessionToken sessionToken;
-	netPeerAddress peerAddress;
-};
-
 #include <CoreConsole.h>
 
 #include <ICoreGameInit.h>
@@ -242,7 +182,6 @@ static hook::cdecl_stub<bool()> isNetworkHost([]()
 static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
-	g_netLibrary->SetPlayerName("suka blyaaaaat!");
 
 	g_netLibrary->OnBuildMessage.Connect([](const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
@@ -562,6 +501,23 @@ static int Return1()
 	return 1;
 }
 
+static void* rlPresence__m_GamerPresences;
+
+static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
+{
+	return hook::get_call(hook::get_pattern("48 89 5D 38 48 89 5D 40 48 89 5D 48 E8", 12));
+});
+
+static hook::cdecl_stub<void(int)> _rlPresence_refreshSigninState([]()
+{
+	return hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", -0x35);
+});
+
+static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
+{
+	return hook::get_pattern("45 33 FF 8B DE EB 0F 48 8D", -0x7D);
+});
+
 static HookFunction hookFunction([]()
 {
 	//MH_Initialize();
@@ -604,6 +560,8 @@ static HookFunction hookFunction([]()
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
+	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", 0x44 - 0x35));
+
 	static bool tryHost = true;
 
 	OnMainGameFrame.Connect([]()
@@ -616,7 +574,9 @@ static HookFunction hookFunction([]()
 		if (tryHost)
 		{
 			// update presence
-			//((void(*)(int))0x1426F40F4)(0);
+			_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
+			_rlPresence_refreshSigninState(0);
+			_rlPresence_refreshNetworkStatus(0);
 
 			static char outBuf[48];
 			joinOrHost(0, nullptr, outBuf);
