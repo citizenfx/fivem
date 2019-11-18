@@ -519,12 +519,39 @@ static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
 	return hook::get_pattern("45 33 FF 8B DE EB 0F 48 8D", -0x7D);
 });
 
+static void* curMigrate;
+
+static void DoSessionMigrateToSelf()
+{
+	// pretend CmdMigrate succeeded
+	InterlockedExchange((uint32_t*)((char*)curMigrate + 0xDC), 3); // success?
+	*(uint32_t*)((char*)curMigrate + 0xE0) = 0;
+}
+
+static void* (*g_orig_rlSessionEventMigrateEnd)(void* self, const rlGamerInfo& info, bool a3, int a4, int a5);
+
+static void* rlSessionEventMigrateEnd_stub(void* self, const rlGamerInfo& info, bool a3, int a4, int a5)
+{
+	std::unique_ptr<NetBuffer> msgBuffer(new NetBuffer(64));
+
+	msgBuffer->Write<uint32_t>((info.peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED);
+	msgBuffer->Write<uint32_t>(info.peerAddress.peerId.val);
+
+	g_netLibrary->SendReliableCommand("msgHeHost", msgBuffer->GetBuffer(), msgBuffer->GetCurLength());
+
+	return g_orig_rlSessionEventMigrateEnd(self, info, a3, a4, a5);
+}
+
 static HookFunction hookFunction([]()
 {
 	//MH_Initialize();
 	//MH_CreateHook((void*)0x1422306FC, f2, (void**)&of2);
 	//MH_CreateHook((void*)0x1422304F8, f1, (void**)&of1);
 	//MH_EnableHook(MH_ALL_HOOKS);
+
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("48 89 49 08 41 8A F0 48 83 C1 20 48 8B FA E8", -0x33), rlSessionEventMigrateEnd_stub, (void**)&g_orig_rlSessionEventMigrateEnd);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
 	hook::iat("ws2_32.dll", CfxRecvFrom, 17);
@@ -622,6 +649,26 @@ static HookFunction hookFunction([]()
 		} stub;
 
 		hook::call(location + 86, stub.GetCode());
+	}
+
+	// rage::rlMigrateSessionTask::Commence bugfix: reintroduce success state for local player
+	// migrating to themselves (rlSession::CmdMigrate was removed, and this code was broken in result)
+	{
+		static struct : jitasm::Frontend
+		{
+			void InternalMain() override
+			{
+				mov(rax, (uintptr_t)&curMigrate);
+				mov(qword_ptr[rax], rbx);
+
+				mov(rax, (uintptr_t)DoSessionMigrateToSelf);
+				jmp(rax);
+			}
+		} stub;
+
+		auto location = hook::get_pattern<char>("E9 AA 00 00 00 48 8D 4C 24 60 E8 ? ? ? ? E9");
+		hook::call(location + 10, stub.GetCode());
+		hook::jump(location + 15, location - 10);
 	}
 
 	// don't allow tunable download requests to be considered pending
