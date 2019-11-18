@@ -496,9 +496,10 @@ static int f2(int a, void* b)
 	return rv;
 }
 
-static int Return1()
+template<typename T, T Value>
+static T Return()
 {
-	return 1;
+	return Value;
 }
 
 static void* rlPresence__m_GamerPresences;
@@ -563,6 +564,7 @@ static HookFunction hookFunction([]()
 	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", 0x44 - 0x35));
 
 	static bool tryHost = true;
+	static bool tryHostNow = false;
 
 	OnMainGameFrame.Connect([]()
 	{
@@ -578,10 +580,16 @@ static HookFunction hookFunction([]()
 			_rlPresence_refreshSigninState(0);
 			_rlPresence_refreshNetworkStatus(0);
 
+			tryHostNow = true;
+			tryHost = false;
+		}
+
+		if (tryHostNow)
+		{
 			static char outBuf[48];
 			joinOrHost(0, nullptr, outBuf);
 
-			tryHost = false;
+			tryHostNow = false;
 		}
 	});
 
@@ -616,9 +624,16 @@ static HookFunction hookFunction([]()
 		hook::call(location + 86, stub.GetCode());
 	}
 
+	// don't allow tunable download requests to be considered pending
+	hook::jump(hook::get_pattern("44 8B C1 44 0F B7 50 40 45 85 D2 74 18", -0x15), Return<int, 0>);
+
 	// test: don't allow setting odd seamless mode
 	hook::jump(hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? 80 3D", 2)), SetSeamlessOn);
 
 	// always not seamless
-	hook::jump(hook::get_call(hook::get_pattern("84 C0 0F 84 2C 01 00 00 E8", 8)), Return1);
+	hook::jump(hook::get_call(hook::get_pattern("84 C0 0F 84 2C 01 00 00 E8", 8)), Return<int, 1>);
+
+	// 1207.69
+	// mp cond
+	hook::jump(0x140E0E14C, Return<int, 1>);
 });
