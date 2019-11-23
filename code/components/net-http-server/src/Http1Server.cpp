@@ -514,11 +514,14 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		std::unique_lock<std::mutex> lock(reqState->pingLock);
 
-		reqState->ping = [readCallback]()
+		reqState->ping = [stream, readCallback]()
 		{
 			if (readCallback)
 			{
-				readCallback({});
+				stream->ScheduleCallback([readCallback]()
+				{
+					readCallback({});
+				});
 			}
 		};
 	}
