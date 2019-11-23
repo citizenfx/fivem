@@ -101,7 +101,10 @@ public:
 							packer.pack_bin(payload.size() - 4);
 							packer.pack_bin_body(payload.data() + 4, payload.size() - 4);
 
-							g_netLibrary->SendNetEvent("__cfx_internal:pbRlScSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+							if (g_netLibrary)
+							{
+								g_netLibrary->SendNetEvent("__cfx_internal:pbRlScSession", std::string(nameArgs.data(), nameArgs.size()), -2);
+							}
 						});
 					}
 					else

@@ -476,12 +476,18 @@ RoutingPacket::RoutingPacket()
 
 void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
 {
-	m_impl->SendReliableCommand(HashRageString(type), buffer, length);
+	if (m_impl)
+	{
+		m_impl->SendReliableCommand(HashRageString(type), buffer, length);
+	}
 }
 
 void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
 {
-	m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+	if (m_impl)
+	{
+		m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+	}
 }
 
 static std::string g_disconnectReason;
