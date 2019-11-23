@@ -529,7 +529,12 @@ public:
                 appendChildElement(rockstarElement, "LanguageCode", "en");
                 appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
-                appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
+                appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27");
+
+				auto privsElement = appendElement("Privs", "");
+				auto privElement = appendChildElement(privsElement, "p", "");
+				privElement->SetAttribute("id", "27");
+				privElement->SetAttribute("g", "True");
 
                 // format as string
                 tinyxml2::XMLPrinter printer;
@@ -848,8 +853,7 @@ std::string GetRockstarTicketXml()
 	appendElement("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh"); // 'a' repeated
 	appendElement("PosixTime", static_cast<unsigned int>(time(nullptr)));
 	appendElement("SecsUntilExpiration", 86399);
-	//appendElement("PlayerAccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
-	appendElement("PlayerAccountId", va("%lld", 135682229));
+	appendElement("PlayerAccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
 	appendElement("PublicIp", "127.0.0.1");
 	appendElement("SessionId", 5);
 	appendElement("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg=="); // '0123456789abcdef'
@@ -870,7 +874,12 @@ std::string GetRockstarTicketXml()
 	appendChildElement(rockstarElement, "LanguageCode", "en");
 	appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
-	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
+	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27");
+
+	auto privsElement = appendElement("Privs", "");
+	auto privElement = appendChildElement(privsElement, "p", "");
+	privElement->SetAttribute("id", "27");
+	privElement->SetAttribute("g", "True");
 
 	// format as string
 	tinyxml2::XMLPrinter printer;
@@ -917,8 +926,7 @@ public:
 		appendJson("SignedOnline", true);
 		appendJson("AutoSignIn", false);
 		appendJson("Expiration", 86399);
-		//appendJson("AccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
-		appendJson("AccountId", va("%lld", 135682229));
+		appendJson("AccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
 		appendJson("Age", 18);
 		appendJson("AvatarUrl", "Bully/b20.png");
 		appendJson("XMLResponse", rockstarTicket.c_str());

@@ -5,7 +5,7 @@
 
 #include <CoreNetworking.h>
 
-static NetLibrary* g_netLibrary;
+NetLibrary* g_netLibrary;
 
 // shared relay functions (from early rev. gta:net:five; do update!)
 #include <ws2tcpip.h>
@@ -194,7 +194,7 @@ static HookFunction initFunction([]()
 			if (isHost)
 			{
 				auto base = g_netLibrary->GetServerBase();
-				writeReliable(0xB3EA30DE, (char*)&base, sizeof(base));
+				writeReliable(HashRageString("msgIHost"), (char*)&base, sizeof(base));
 			}
 
 			lastHostState = isHost;
@@ -332,7 +332,7 @@ static bool InitP2PCryptKey(P2PCryptKey* struc)
 
 static bool ZeroUUID(uint64_t* uuid)
 {
-	*uuid = g_netLibrary->GetServerBase();
+	*uuid = 2;
 	return true;
 }
 
@@ -378,7 +378,7 @@ static bool ReadSession(void* self, void* parTree, rlSessionInfo* session)
 		return false;
 	}
 
-	session->sessionToken.token = g_netLibrary->GetHostBase();
+	session->sessionToken.token = 2;
 
 	auto out = &session->peerAddress;
 	memset(out, 0, sizeof(*out));
@@ -404,6 +404,11 @@ static bool ReadSession(void* self, void* parTree, rlSessionInfo* session)
 	{
 		out->unk.unks[i].addr.ip.addr = 0xFFFFFFFF;
 	}
+
+	char sessionBlob[176];
+	((void(*)(rlSessionInfo*, char*, size_t, size_t*))0x1427048AC)(session, sessionBlob, 161, nullptr);
+
+	trace("tryna join %s\n", sessionBlob);
 
 	return true;
 }
@@ -519,13 +524,24 @@ static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
 	return hook::get_pattern("45 33 FF 8B DE EB 0F 48 8D", -0x7D);
 });
 
+// unused if we use sc sessions
+#if 0
 static void* curMigrate;
+static char* g_session;
 
 static void DoSessionMigrateToSelf()
 {
 	// pretend CmdMigrate succeeded
 	InterlockedExchange((uint32_t*)((char*)curMigrate + 0xDC), 3); // success?
 	*(uint32_t*)((char*)curMigrate + 0xE0) = 0;
+
+	// TODO: is this only going to run on a local peer?
+	rlSessionInfo* sessionInfo = (rlSessionInfo*)(g_session + 384);
+
+	netPeerAddress peerAddress;
+	GetLocalPeerAddress(0, &peerAddress);
+
+	sessionInfo->peerAddress = peerAddress;
 }
 
 static void* (*g_orig_rlSessionEventMigrateEnd)(void* self, const rlGamerInfo& info, bool a3, int a4, int a5);
@@ -535,22 +551,109 @@ static void* rlSessionEventMigrateEnd_stub(void* self, const rlGamerInfo& info, 
 	std::unique_ptr<NetBuffer> msgBuffer(new NetBuffer(64));
 
 	msgBuffer->Write<uint32_t>((info.peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED);
-	msgBuffer->Write<uint32_t>(info.peerAddress.peerId.val);
+	msgBuffer->Write<uint32_t>(static_cast<uint32_t>(info.peerAddress.peerId.val));
 
 	g_netLibrary->SendReliableCommand("msgHeHost", msgBuffer->GetBuffer(), msgBuffer->GetCurLength());
+
+	if (isNetworkHost())
+	{
+		static uint64_t state;
+
+		((void(*)(int, int, int, void*, uint64_t, void*, void*, void*))0x1426BB634)(
+			0,
+			*(uint32_t*)(g_session + 540),
+			*(uint32_t*)(g_session + 540) - *(uint32_t*)(g_session + 15996),
+			g_session + 560,
+			*(uint64_t*)(g_session + 552),
+			g_session + 384,
+			g_session + 888,
+			&state
+		);
+
+		// 1207.69 again
+		((void(*)())0x14232206C)(); // reset net time sync on host
+	}
 
 	return g_orig_rlSessionEventMigrateEnd(self, info, a3, a4, a5);
 }
 
+static void* sessionCtor(char* a)
+{
+	g_session = a;
+
+	return ((void* (*)(void*))0x1426B3CE8)(a);
+}
+#endif
+
+static std::string g_quitMsg;
+
+static void WINAPI ExitProcessReplacement(UINT exitCode)
+{
+	if (g_netLibrary)
+	{
+		g_netLibrary->Disconnect((g_quitMsg.empty()) ? "Exiting" : g_quitMsg.c_str());
+		g_netLibrary->FinalizeDisconnect();
+	}
+
+	TerminateProcess(GetCurrentProcess(), exitCode);
+}
+
+static hook::cdecl_stub<uint32_t()> _getCurrentTransitionState([]()
+{
+	return hook::get_pattern("33 C0 48 85 C9 74 03 8B 41 70 C3", -7);
+});
+
+static hook::cdecl_stub<bool(uint32_t)> _transitionToState([]()
+{
+	return hook::get_pattern("75 04 83 60 10 00 40 B7 01 E9", -0x74);
+});
+
+static bool g_initedPlayer;
+
+static void(*g_origHandleInitPlayerResult)(void* mgr, void* status, void* reader);
+
+static void HandleInitPlayerResultStub(void* mgr, void* status, void* reader)
+{
+	g_origHandleInitPlayerResult(mgr, status, reader);
+
+	g_initedPlayer = true;
+}
+
+#include <scrEngine.h>
+#include <scrThread.h>
+
+static struct : GtaThread
+{
+	virtual void DoRun() override
+	{
+	}
+} fakeThread;
+
 static HookFunction hookFunction([]()
 {
-	//MH_Initialize();
-	//MH_CreateHook((void*)0x1422306FC, f2, (void**)&of2);
-	//MH_CreateHook((void*)0x1422304F8, f1, (void**)&of1);
-	//MH_EnableHook(MH_ALL_HOOKS);
+	static ConsoleCommand quitCommand("quit", [](const std::string& message)
+	{
+		g_quitMsg = message;
+		ExitProcess(-1);
+	});
+
+#if 0
+	hook::call(0x1422E4B72, sessionCtor);
+
+	MH_Initialize();
+	MH_CreateHook((void*)0x1422357B8, f2, (void**)&of2);
+	MH_CreateHook((void*)0x1422355B4, f1, (void**)&of1);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("48 89 49 08 41 8A F0 48 83 C1 20 48 8B FA E8", -0x33), rlSessionEventMigrateEnd_stub, (void**)&g_orig_rlSessionEventMigrateEnd);
+	MH_EnableHook(MH_ALL_HOOKS);
+#endif
+
+	// exitprocess -> terminateprocess
+	MH_Initialize();
+	MH_CreateHookApi(L"kernel32.dll", "ExitProcess", ExitProcessReplacement, nullptr);
+	MH_CreateHook(hook::get_pattern("48 8B F9 48 89 44 24 20 41 FF 52 28 85", -0x22), HandleInitPlayerResultStub, (void**)&g_origHandleInitPlayerResult);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
@@ -590,8 +693,7 @@ static HookFunction hookFunction([]()
 
 	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", 0x44 - 0x35));
 
-	static bool tryHost = true;
-	static bool tryHostNow = false;
+	static int tryHostStage = 0;
 
 	OnMainGameFrame.Connect([]()
 	{
@@ -600,29 +702,64 @@ static HookFunction hookFunction([]()
 			return;
 		}
 
-		if (tryHost)
+		switch (tryHostStage)
 		{
+		case 0:
 			// update presence
 			_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
 			_rlPresence_refreshSigninState(0);
 			_rlPresence_refreshNetworkStatus(0);
 
-			tryHostNow = true;
-			tryHost = false;
-		}
+			tryHostStage = 2;
+			break;
 
-		if (tryHostNow)
+		case 1:
+			tryHostStage = 2;
+			break;
+
+		case 2:
 		{
-			static char outBuf[48];
-			joinOrHost(0, nullptr, outBuf);
+			auto lastThread = rage::scrEngine::GetActiveThread();
+			rage::scrEngine::SetActiveThread(&fakeThread);
 
-			tryHostNow = false;
+			// transition to mp
+			_transitionToState(0x73040199);
+
+			rage::scrEngine::SetActiveThread(lastThread);
+
+			tryHostStage = 3;
+			break;
+		}
+		case 3:
+			// wait for transition
+			if (_getCurrentTransitionState() == 0x73040199)
+			{
+				tryHostStage = 4;
+			}
+
+			break;
+
+		case 4:
+			if (g_initedPlayer)
+			{
+				tryHostStage = 5;
+			}
+
+			break;
+
+		case 5:
+			static char sessionIdPtr[48];
+			joinOrHost(0, nullptr, sessionIdPtr);
+
+			tryHostStage = 6;
+
+			break;
 		}
 	});
 
 	static ConsoleCommand hhh("hhh", []()
 	{
-		tryHost = true;
+		tryHostStage = 0;
 	});
 
 	// rlSession::InformPeersOfJoiner bugfix: reintroduce loop (as in, remove break; statement)
@@ -651,6 +788,7 @@ static HookFunction hookFunction([]()
 		hook::call(location + 86, stub.GetCode());
 	}
 
+#if 0
 	// rage::rlMigrateSessionTask::Commence bugfix: reintroduce success state for local player
 	// migrating to themselves (rlSession::CmdMigrate was removed, and this code was broken in result)
 	{
@@ -670,17 +808,37 @@ static HookFunction hookFunction([]()
 		hook::call(location + 10, stub.GetCode());
 		hook::jump(location + 15, location - 10);
 	}
+#endif
 
 	// don't allow tunable download requests to be considered pending
 	hook::jump(hook::get_pattern("44 8B C1 44 0F B7 50 40 45 85 D2 74 18", -0x15), Return<int, 0>);
 
 	// test: don't allow setting odd seamless mode
-	hook::jump(hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? 80 3D", 2)), SetSeamlessOn);
+	//hook::jump(hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? 80 3D", 2)), SetSeamlessOn);
 
 	// always not seamless
-	hook::jump(hook::get_call(hook::get_pattern("84 C0 0F 84 2C 01 00 00 E8", 8)), Return<int, 1>);
+	//hook::jump(hook::get_call(hook::get_pattern("84 C0 0F 84 2C 01 00 00 E8", 8)), Return<int, 1>);
 
-	// 1207.69
 	// mp cond
-	hook::jump(0x140E0E14C, Return<int, 1>);
+	hook::jump(hook::get_pattern("75 30 81 FB C7 EC 67 C1", -0xBC), Return<int, 1>); // 140E0E14C
+
+	// reason 10
+	hook::jump(hook::get_pattern("8A 81 21 20 00 00 C3"), Return<int, 1>);
+
+	// reason 12
+	hook::jump(hook::get_pattern("32 C0 45 33 C0 83 B9 D8 3F 00 00 03 74 09"), Return<int, 1>);
+
+	// has finished loading unlocks (as these come from rtp?)
+	hook::jump(hook::get_pattern("33 C0 39 41 18 74 11 F6 81 B4 00 00"), Return<int, 1>); // 1408A1014
+
+	// skip cash/inventory
+	hook::jump(hook::get_pattern("75 21 4C 8D 0D ? ? ? ? 41 B8 30 10 00 10", -0x21), Return<int, 2>); // 1423E93A8
+	hook::jump(hook::get_pattern("A9 FD FF FF FF 75 64 48 8B 0D", -0x3A), Return<int, 2>); // 0x1423FAB4C
+
+	// skip poker
+	hook::jump(hook::get_pattern("48 83 EC 28 48 8B 0D ? ? ? ? E8 ? ? ? ? F6 D8 1B C0 83 C0 02"), Return<int, 2>); // 0x1423E9338
+	hook::jump(hook::get_pattern("B8 02 00 00 00 EB 1F 38 91", -0x22), Return<int, 2>); // 0x1423FAAFC
+
+	// don't stop unsafe network scripts
+	hook::jump(hook::get_pattern("83 7B 10 02 74 21 48 8B CB E8", -0x35), Return<int, 0>); // 0x140E8A58C
 });

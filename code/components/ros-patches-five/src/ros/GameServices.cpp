@@ -203,7 +203,7 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 
 		request->SetDataHandler([=] (const std::vector<uint8_t>& data)
 		{
-			if (securityFlags == 8)
+			if (securityFlags == 8 || serviceName.find(".svc") != std::string::npos)
 			{
 				handleDispatch(std::string{ data.begin(), data.end() });
 			}
@@ -438,5 +438,6 @@ static InitFunction initFunction([] ()
 
 	endpointMapper->AddPrefix("/gta5/11/gameservices/", new GameServicesHandler("gta5"));
 	endpointMapper->AddPrefix("/rdr2/11/gameservices/", new GameServicesHandler("gta5"));
+	endpointMapper->AddPrefix("/rdr2/11/wcfgameservices/", new GameServicesHandler("gta5"));
 	endpointMapper->AddPrefix("/launcher/11/launcherservices/", new GameServicesHandler("launcher"));
 });

@@ -16,6 +16,10 @@
 
 #include <sstream>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 int StoreDecryptedBlob(void* a1, void* a2, uint32_t a3, void* inOutBlob, uint32_t a5, void* a6);
 
 // TODO: turn into a generic utility
@@ -384,6 +388,68 @@ static InitFunction initFunction([] ()
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetFriends">
     <Status>1</Status>
     <Result Count="0" Total="0" />
+</Response>)";
+	});
+
+	mapper->AddGameService("Presence.asmx/GetPresenceServers", [](const std::string& body)
+	{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetFriends">
+    <Status>1</Status>
+    <Result Count="0" Total="0" />
+</Response>)";
+	});
+
+	mapper->AddGameService("Conductor.svc/Route", [](const std::string& body)
+	{
+		json v = json::parse(body);
+		int viewIdx = v["request"]["views"][0].value("view", 0);
+
+		return fmt::sprintf(R"({"Result":{"tokenInfo":{"token":"GSTOKEN token=\"RDR2\",signature=\"RDR2\"","ttlSeconds":300},"views":[{"view":%d,"uri":"ws:\/\/cfx-web-rdr2-prod.ros.rockstargames.com:80","sandboxViewChannel":%d,"gatewayChannel":1337}]},"ms":15,"Status":1})", viewIdx, viewIdx);
+	});
+
+	mapper->AddGameService("Conductor.svc/ImpersonateRoute", [](const std::string& body)
+	{
+		json v = json::parse(body);
+		int viewIdx = v["request"]["views"][0].value("view", 0);
+
+		return fmt::sprintf(R"({"Result":{"tokenInfo":{"token":"GSTOKEN token=\"RDR2\",signature=\"RDR2\"","ttlSeconds":300},"views":[{"view":%d,"uri":"ws:\/\/cfx-web-rdr2-prod.ros.rockstargames.com:80","sandboxViewChannel":%d,"gatewayChannel":1337}]},"ms":15,"Status":1})", viewIdx, viewIdx);
+	});
+
+	mapper->AddGameService("Rdr2Title.asmx/TitlePromotion", [](const std::string& body)
+	{
+		trace("returning title promotions for %s\n", body);
+
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="15" xmlns="TitlePromotion">
+    <Status>1</Status>
+    <Result>
+        <Promotions count="4" lut="1574334907">
+            <P n="SP_GAME_CONTENT_CROSS_PROMOTION_REVOLVER" v="0" gm="0" />
+            <P n="SP_GAME_CONTENT_CROSS_PROMOTION_HATCHET" v="0" gm="0" />
+            <P n="AWARD_MP_GAME_CONTENT_CROSS_PROMOTION_MASK" v="0" gm="1" />
+            <P n="AWARD_MP_GAME_CONTENT_CROSS_PROMOTION_CARDS" v="0" gm="1" />
+        </Promotions>
+    </Result>
+</Response>)";
+	});
+
+	mapper->AddGameService("ugc.asmx/QueryContent", [](const std::string& body)
+	{
+		trace("ugc body: %s\n", body);
+
+		/*auto r = cpr::Post(
+			cpr::Url{ "http://localhost:8902/ugc.asmx/QueryContent" },
+			cpr::Body{ body },
+			cpr::Header{ { "content-type", "application/x-www-form-urlencoded" } });
+
+		return r.text;*/
+
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="93" xmlns="QueryContent">
+	<Status>1</Status>
+	<Result Count="0" Total="0" Hash="0">
+	</Result>
 </Response>)";
 	});
 

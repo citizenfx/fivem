@@ -5,7 +5,12 @@
 		"fx[2]",
 		"net",
 		"gta:core",
-		"rage:nutsnbolts"
+		"rage:nutsnbolts",
+		"rage:scripting",
+		"vendor:websocketpp",
+		"vendor:protobuf_lite",
+		"citizen:resources:core",
+		"ros-patches"
 	],
 	"provides": []
 }

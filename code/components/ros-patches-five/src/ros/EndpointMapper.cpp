@@ -55,6 +55,8 @@ boost::optional<TGameServiceHandler> EndpointMapper::GetGameServiceHandler(const
 	return boost::optional<TGameServiceHandler>();
 }
 
+DLL_EXPORT fwEvent<net::TcpServer*> OnConfigureWebSocket;
+
 static InitFunction initFunction([] ()
 {
 	// create the endpoint mapper
@@ -88,6 +90,8 @@ static InitFunction initFunction([] ()
 			"tm-rdr2-prod.ros.rockstargames.com",
 			"posse-rdr2-prod.ros.rockstargames.com",
 			"feed-rdr2-prod.ros.rockstargames.com",
+			"conductor-rdr2-prod.ros.rockstargames.com",
+			"challenges-rdr2-prod.ros.rockstargames.com",
 			"prod-locator-cloud.rockstargames.com",
 			"www.google-analytics.com",
 		};
@@ -111,6 +115,17 @@ static InitFunction initFunction([] ()
 			// attach the endpoint mappers
 			httpServer->AttachToServer(tlsWrapper);
 			httpServer->AttachToServer(insecureServer);
+		}
+
+		{
+			static fwRefContainer<LoopbackTcpServer> wsServer = tcpServerManager->RegisterTcpServer("cfx-web-rdr2-prod.ros.rockstargames.com");
+			wsServer->AddRef();
+			wsServer->SetPort(80);
+
+			static HookFunction hf([]()
+			{
+				OnConfigureWebSocket(wsServer.GetRef());
+			});
 		}
 	}
 
