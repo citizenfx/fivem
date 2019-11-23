@@ -136,7 +136,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		DebugActiveProcess(GetProcessId(parentProcess));
 
-		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA minidump can be found at %s.\n", ToNarrow(dumpPath).c_str());
+		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA dump can be found at %s.\n", ToNarrow(dumpPath).c_str());
 
 		bool uploadCrashes = true;
 
@@ -200,7 +200,7 @@ bool InitializeExceptionHandler()
 		return true;
 	}
 
-	CrashGenerationClient* client = new CrashGenerationClient(L"\\\\.\\pipe\\CitizenFX_Server_Dump", (MINIDUMP_TYPE)(MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo), new CustomClientInfo());
+	CrashGenerationClient* client = new CrashGenerationClient(L"\\\\.\\pipe\\CitizenFX_Server_Dump", (MINIDUMP_TYPE)(MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo | MiniDumpWithFullMemory), new CustomClientInfo());
 
 	if (!client->Register())
 	{
