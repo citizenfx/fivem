@@ -129,7 +129,7 @@
 	url = https://github.com/citizenfx/reliable.io.git
 [submodule "vendor/websocketpp"]
 	path = vendor/websocketpp
-	url = https://github.com/zaphoyd/websocketpp.git
+	url = https://github.com/citizenfx/websocketpp.git
 [submodule "vendor/slikenet"]
 	path = vendor/slikenet
 	url = https://github.com/SLikeSoft/SLikeNet.git

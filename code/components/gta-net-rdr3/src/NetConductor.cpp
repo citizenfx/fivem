@@ -24,14 +24,25 @@ DLL_IMPORT fwEvent<net::TcpServer*> OnConfigureWebSocket;
 
 static tbb::concurrent_queue<std::function<void()>> g_mainFrameQueue;
 
+namespace websocketpp
+{
+	namespace config
+	{
+		struct core_no_utf8 : public core
+		{
+			static bool const disable_utf8 = true;
+		};
+	}
+}
+
 class ConductorServer
 {
 private:
 	struct ConnectionData
 	{
 		net::TcpServerStream* stream;
-		websocketpp::server<websocketpp::config::core> server;
-		websocketpp::connection<websocketpp::config::core>::ptr conn;
+		websocketpp::server<websocketpp::config::core_no_utf8> server;
+		websocketpp::connection<websocketpp::config::core_no_utf8>::ptr conn;
 
 		std::deque<uint8_t> readBuffer;
 	};
@@ -64,7 +75,7 @@ public:
 
 			dataRef->conn = dataRef->server.get_connection();
 
-			dataRef->conn->set_message_handler([weakRef](websocketpp::connection_hdl hdl, websocketpp::server<websocketpp::config::core>::message_ptr msg)
+			dataRef->conn->set_message_handler([weakRef](websocketpp::connection_hdl hdl, websocketpp::server<websocketpp::config::core_no_utf8>::message_ptr msg)
 			{
 				auto dataRef = weakRef.lock();
 
