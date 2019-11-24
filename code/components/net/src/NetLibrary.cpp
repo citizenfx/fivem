@@ -331,6 +331,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 
 				StripColors(hostname, cleaned, 8192);
 
+#ifdef GTA_FIVE
 				SetWindowText(FindWindow(
 #ifdef GTA_FIVE
 					L"grcWindow"
@@ -346,6 +347,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 					L"RedM"
 #endif
 					L" - %s", ToWide(cleaned)));
+#endif
 
 				auto richPresenceSetTemplate = [&](const auto& tpl)
 				{
