@@ -56,7 +56,15 @@ public:
 
 	virtual HWND GetHWND() override
 	{
-		return FindWindowW(L"grcWindow", NULL);
+		return FindWindowW(
+#ifdef GTA_FIVE
+			L"grcWindow"
+#elif defined(IS_RDR3)
+			L"sgaWindow"
+#else
+			L"UNKNOWN_WINDOW"
+#endif
+		, NULL);
 	}
 
 	virtual void BlitTexture(GITexture* dst, GITexture* src) override

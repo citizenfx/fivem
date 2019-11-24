@@ -28,7 +28,15 @@ static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = FindWindow(L"grcWindow", nullptr);
+	HWND wnd = FindWindow(
+#ifdef GTA_FIVE
+		L"grcWindow"
+#elif defined(IS_RDR3)
+		L"sgaWindow"
+#else
+		L"UNKNOWN_WINDOW"
+#endif
+	, nullptr);
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
 	if (CoreIsDebuggerPresent())

@@ -353,7 +353,15 @@ static InitFunction initFunction([] ()
 	{
 		POINT cursorPos;
 		GetCursorPos(&cursorPos);
-		ScreenToClient(FindWindow(L"grcWindow", nullptr), &cursorPos);
+		ScreenToClient(FindWindow(
+#ifdef GTA_FIVE
+			L"grcWindow"
+#elif defined(IS_RDR3)
+			L"sgaWindow"
+#else
+			L"UNKNOWN_WINDOW"
+#endif
+		, nullptr), &cursorPos);
 
 		*context.GetArgument<int*>(0) = cursorPos.x;
 		*context.GetArgument<int*>(1) = cursorPos.y;
