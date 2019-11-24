@@ -428,6 +428,8 @@ if (!$DontBuild -and !$IsServer) {
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $CacheDir\fivereborn\
+        
+        Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
     }
 
     if (!$IsLauncher -and !$IsRDR) {

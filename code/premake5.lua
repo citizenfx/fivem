@@ -172,6 +172,8 @@ workspace "CitizenMP"
 	include 'client/citicore'
 
 if _OPTIONS['game'] ~= 'server' then
+	include 'client/ipfsdl'
+
 	project "CitiGame"
 		targetname "CitizenGame"
 		language "C++"
