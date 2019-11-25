@@ -34,7 +34,11 @@ IDI_ICON1               ICON                    "redm.ico"
 
 1						RT_MANIFEST				"launcher.manifest"
 
+#if defined(GTA_FIVE)
 1010					MEOW					"backdrop.png"
+#else
+1010					MEOW					"backdrop_rdr.png"
+#endif
 
 STRINGTABLE
 BEGIN
