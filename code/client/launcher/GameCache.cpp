@@ -752,7 +752,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		
 		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
 		{
-			UI_UpdateText(0, L"Verifying GTA content...");
+			UI_UpdateText(0, L"Verifying game content...");
 
 			fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &fileStart, fileTotal, &outHash);
 		}
