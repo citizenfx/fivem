@@ -7,6 +7,9 @@
 
 #include "StdInc.h"
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 #undef interface
 #include "InstallerExtraction.h"
 #include <array>
@@ -1063,8 +1066,10 @@ std::map<std::string, std::string> UpdateGameCache()
 	{
 		ipfsPeer = (GetPrivateProfileInt(L"Game", L"DisableIPFSPeer", 0, fpath.c_str()) != 1);
 	}
+
+	static HostSharedData<CfxState> initState("CfxInitState");
 	
-	if (ipfsPeer)
+	if (ipfsPeer && initState->IsMasterProcess())
 	{
 		StartIPFS();
 	}

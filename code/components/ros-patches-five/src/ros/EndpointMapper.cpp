@@ -14,6 +14,9 @@
 
 #include <HttpServerImpl.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 void EndpointMapper::AddPrefix(const std::string& routeOrigin, fwRefContainer<net::HttpHandler> handler)
 {
 	m_prefixes.insert({ routeOrigin, handler });
@@ -129,10 +132,10 @@ static InitFunction initFunction([] ()
 		}
 	}
 
-	// create the local socket server, if enabled
-	// or always do so *shrug* for now
-	// #TODORDR: figure out
-	//if (wcsstr(GetCommandLine(), L"ros:legit") != nullptr)
+	// create the local socket server, if this is the master process
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->IsMasterProcess())
 	{
 		net::PeerAddress address = net::PeerAddress::FromString("localhost:32891").get();
 
