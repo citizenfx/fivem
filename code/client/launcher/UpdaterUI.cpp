@@ -341,7 +341,7 @@ void BackdropBrush::OnConnected()
 #ifdef GTA_FIVE
 		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 229, 151, 74));
 #elif defined(IS_RDR3)
-		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 188, 16, 16));
+		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
 #endif
 
 		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp{ L"layer" };
@@ -367,9 +367,10 @@ void BackdropBrush::OnConnected()
 		mat.M22 = 163 / 255.f;
 		mat.M33 = 85 / 255.f;
 #elif defined(IS_RDR3)
-		mat.M11 = 216 / 255.f;
-		mat.M22 = 13 / 255.f;
-		mat.M33 = 13 / 255.f;
+		mat.M11 = 1.0f;
+		mat.M22 = 1.0f;
+		mat.M33 = 1.0f;
+		mat.M44 = 0.15f;
 #endif
 
 		auto layerColor = winrt::Microsoft::Graphics::Canvas::Effects::ColorMatrixEffect();
