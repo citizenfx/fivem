@@ -85,7 +85,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 	if (getenv("CitizenFX_ToolMode"))
 	{
-		if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2\\") != nullptr)
+		if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
 		{
 			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game").c_str(), NULL);
 
@@ -182,7 +182,7 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	if (getenv("CitizenFX_ToolMode"))
 	{
-		if (wcsstr(fileName.c_str(), L"Rockstar Games\\Red Dead Redemption 2\\") != nullptr/* && wcsstr(fileName.c_str(), L"index.bin") == nullptr*/)
+		if (wcsstr(fileName.c_str(), L"Rockstar Games\\Red Dead Redemption 2") != nullptr/* && wcsstr(fileName.c_str(), L"index.bin") == nullptr*/)
 		{
 			return true;
 		}
@@ -248,6 +248,9 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 #if !defined(IS_RDR3)
 		// VulkanRT loader, we don't use Vulkan, CEF does (to 'collect info'), and this crashes a lot of Vulkan drivers
 		moduleNameStr.find(L"vulkan-1.dll") != std::string::npos ||
+#else
+		// VulkanRT loader, we don't use Vulkan, CEF does (to 'collect info'), and this crashes a lot of Vulkan drivers
+		(moduleNameStr.find(L"vulkan-1.dll") != std::string::npos && getenv("CitizenFX_ToolMode")) ||
 #endif
 		false
 	)
