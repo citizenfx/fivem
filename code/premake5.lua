@@ -312,7 +312,9 @@ if _OPTIONS['game'] ~= 'launcher' then
 				defines { 'GTA_FIVE' }
 			end
 		else
-			files { "client/clrcore/Server/*.cs" }
+			-- #TODORDR3: temporary, still
+			--files { "client/clrcore/Server/*.cs" }
+			files { "client/clrcore/Server/ServerWrappers.cs" }
 		end
 		
 		if os.istarget('windows') then

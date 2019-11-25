@@ -35,7 +35,8 @@ namespace CitizenFX.Core
 
 		public string EndPoint => GetPlayerEndpoint(m_handle);
 
-		public Ped Character => Ped.FromPlayerHandle(m_handle);
+		// #TODORDR3: readd
+		//public Ped Character => Ped.FromPlayerHandle(m_handle);
 
 		public void Drop(string reason) => DropPlayer(m_handle, reason);
 
