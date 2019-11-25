@@ -116,9 +116,6 @@ namespace fx
 			// invoke target events
 			OnServerCreate(this);
 
-			// start sessionmanager
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
-
 			// start webadmin
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
 

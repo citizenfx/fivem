@@ -268,6 +268,7 @@ static InitFunction initFunction([]()
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
+			auto gameNameIt = postMap.find("gameName");
 
 			auto protocolIt = postMap.find("protocol");
 
@@ -281,6 +282,37 @@ static InitFunction initFunction([]()
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
 			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
+			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
+
+			// verify game name
+			bool validGameName = false;
+			std::string intendedGameName;
+
+			switch (instance->GetComponent<fx::GameServer>()->GetGameName())
+			{
+			case fx::GameName::GTA5:
+				intendedGameName = "gta5";
+
+				if (gameName.empty() || gameName == "gta5")
+				{
+					validGameName = true;
+				}
+				break;
+			case fx::GameName::RDR3:
+				intendedGameName = "rdr3";
+
+				if (gameName == "rdr3")
+				{
+					validGameName = true;
+				}
+				break;
+			}
+
+			if (!validGameName)
+			{
+				sendError(fmt::sprintf("Client/Server game mismatch: %s/%s", gameName, intendedGameName));
+				return;
+			}
 
 			// limit name length
 			if (name.length() >= 200)
@@ -291,7 +323,7 @@ static InitFunction initFunction([]()
 
 			TicketData ticketData;
 
-			if (!lanVar->GetValue())
+			if (!lanVar->GetValue() && intendedGameName != "rdr3")
 			{
 				auto ticketIt = postMap.find("cfxTicket");
 
@@ -336,6 +368,7 @@ static InitFunction initFunction([]()
 			data["onesync"] = g_oneSyncVar->GetValue();
 			data["onesync_big"] = fx::IsBigMode();
 			data["token"] = token;
+			data["gamename"] = gameName;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto gameServer = instance->GetComponent<fx::GameServer>();

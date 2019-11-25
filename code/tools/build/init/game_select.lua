@@ -1,4 +1,4 @@
-gamenames = { "ny", "payne", "server", "five" }
+gamenames = { "ny", "payne", "server", "five", "launcher", "rdr3" }
 
 newoption {
 	trigger		= "game",

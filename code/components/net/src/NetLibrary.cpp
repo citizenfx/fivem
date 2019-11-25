@@ -869,6 +869,12 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 		postMap["gameBuild"] = gameBuild;
 	}
 
+#if defined(IS_RDR3)
+	postMap["gameName"] = "rdr3";
+#elif defined(GTA_FIVE)
+	postMap["gameName"] = "gta5";
+#endif
+
 	static std::function<void()> performRequest;
 
 	postMap["guid"] = va("%lld", GetGUID());
@@ -977,6 +983,15 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 				Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
 			}
+
+#if defined(IS_RDR3)
+			if (!node["gamename"].IsDefined() || node["gamename"].as<std::string>() != "rdr3")
+			{
+				OnConnectionError("This server is not compatible with RedM, as it's for FiveM. Please join an actual RedM server instead.");
+				m_connectionState = CS_IDLE;
+				return true;
+			}
+#endif
 
 			// gather endpoints
 			std::vector<std::string> endpoints;

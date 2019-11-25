@@ -53,6 +53,8 @@ interface IScriptHostWithResourceData : fxIBase
 interface IScriptHostWithManifest : fxIBase
 {
 	boolean IsManifestVersionBetween(in fxIIDRef lowerBound, in fxIIDRef upperBound);
+
+	boolean IsManifestVersionV2Between(in charPtr lowerBound, in charPtr upperBound);
 };
 
 [uuid(67B28AF1-AAF9-4368-8296-F93AFC7BDE96)]

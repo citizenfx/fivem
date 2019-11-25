@@ -1197,6 +1197,12 @@ int Lua_LoadNative(lua_State* L)
 	int isCfxv2 = 0;
 	runtime->GetScriptHost2()->GetNumResourceMetaData("is_cfxv2", &isCfxv2);
 
+	// TODO/TEMPORARY: fxv2 oal is disabled by default for now
+	if (isCfxv2)
+	{
+		runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
+	}
+
 	if (isCfxv2)
 	{
 		auto nativeImpl = Lua_GetNative(L, fn);
@@ -1376,6 +1382,21 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 			{
 				nativesBuild = std::get<const char*>(versionPair);
 			}
+		}
+	}
+
+	{
+		bool isGreater;
+
+		if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionV2Between("adamant", "", &isGreater)) && isGreater)
+		{
+			nativesBuild =
+#if !defined(IS_FXSERVER)
+				"natives_universal.lua"
+#else
+				"natives_server.lua"
+#endif
+				;
 		}
 	}
 

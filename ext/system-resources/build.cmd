@@ -14,7 +14,7 @@ popd
 
 mkdir %SRRoot%\webadmin\wwwroot\
 mkdir %SRRoot%\webadmin\server\bin\Release\netstandard2.0\publish\
-copy /y ..\webadmin\__resource.lua %SRRoot%\webadmin\
+copy /y ..\webadmin\fxmanifest.lua %SRRoot%\webadmin\
 
 xcopy /y /e ..\webadmin\wwwroot\. %SRRoot%\webadmin\wwwroot\
 xcopy /y /e ..\webadmin\server\bin\Release\netstandard2.0\publish\. %SRRoot%\webadmin\server\bin\Release\netstandard2.0\publish\
@@ -24,7 +24,7 @@ dotnet publish -c Release
 popd
 
 mkdir %SRRoot%\monitor\server\bin\Release\netstandard2.0\publish\
-copy /y ..\monitor\__resource.lua %SRRoot%\monitor\
+copy /y ..\monitor\fxmanifest.lua %SRRoot%\monitor\
 
 xcopy /y /e ..\monitor\server\bin\Release\netstandard2.0\publish\. %SRRoot%\monitor\server\bin\Release\netstandard2.0\publish\
 

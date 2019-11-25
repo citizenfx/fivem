@@ -61,6 +61,8 @@ namespace fx
 	{
 		m_instance = instance;
 
+		m_gamename = instance->AddVariable<GameName>("gamename", ConVar_ServerInfo, GameName::GTA5);
+
 #ifdef _WIN32
 		OnAbnormalTermination.Connect([this](void* reason)
 		{
@@ -770,6 +772,17 @@ namespace fx
 			ctx->ExecuteBuffer();
 		}
 
+		if (m_gamename->GetHelper()->GetValue() != m_lastGameName)
+		{
+			if (!m_lastGameName.empty())
+			{
+				console::PrintError("server", "Reverted a `gamename` change. You can't change gamename while the server is running!\n");
+				m_gamename->GetHelper()->SetValue(m_lastGameName);
+			}
+
+			m_lastGameName = m_gamename->GetHelper()->GetValue();
+		}
+
 		OnTick();
 	}
 
@@ -1328,4 +1341,19 @@ static InitFunction initFunction([]()
 
 		instance->SetComponent(new fx::ServerDecorators::HostVoteCount());
 	});
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		auto consoleCtx = instance->GetComponent<console::Context>();
+
+		// start sessionmanager
+		if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager-rdr3" });
+		}
+		else
+		{
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+		}
+	}, INT32_MAX);
 });

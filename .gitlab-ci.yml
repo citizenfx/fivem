@@ -103,7 +103,7 @@ build_server_windows:
     - tags
     #- master
     - feature/update-to-1365
-    - portability-rdr3
+    #- portability-rdr3
     #- feature/update-to-1493
   cache:
     key: server
