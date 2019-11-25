@@ -841,4 +841,7 @@ static HookFunction hookFunction([]()
 
 	// don't stop unsafe network scripts
 	hook::jump(hook::get_pattern("83 7B 10 02 74 21 48 8B CB E8", -0x35), Return<int, 0>); // 0x140E8A58C
+
+	// pretend inventory net check (also some other subsystems but mainly inventory) is always SP
+	hook::jump(hook::get_pattern("74 03 B0 01 C3 48 8B 0D", -7), Return<int, 0>);
 });
