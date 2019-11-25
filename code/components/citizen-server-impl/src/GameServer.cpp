@@ -62,6 +62,7 @@ namespace fx
 		m_instance = instance;
 
 		m_gamename = instance->AddVariable<GameName>("gamename", ConVar_ServerInfo, GameName::GTA5);
+		m_lastGameName = m_gamename->GetHelper()->GetValue();
 
 #ifdef _WIN32
 		OnAbnormalTermination.Connect([this](void* reason)
