@@ -24,6 +24,7 @@ import { Server, ServerIcon, PinConfig } from './server';
 
 import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
+import { GameService } from '../game.service';
 
 const serverWorker = require('file-loader?name=worker.[hash:20].[ext]!../../worker/index.js');
 
@@ -41,7 +42,7 @@ export class ServersService {
     private servers: {[ addr: string ]: Server} = {};
 
     constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
-        @Inject(PLATFORM_ID) private platformId: any) {
+        private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
         this.requestEvent = new Subject<string>();
 
         this.serversEvent = new Subject<Server>();
@@ -54,7 +55,9 @@ export class ServersService {
                 this.worker.addEventListener('message', (event) => {
                     if (event.data.type === 'addServers') {
                         for (const server of event.data.servers) {
-                            this.internalServerEvent.next(server);
+                            if (this.matchesGame(server)) {
+                                this.internalServerEvent.next(server);
+                            }
                         }
                     } else if (event.data.type === 'serversDone') {
                         this.internalServerEvent.next(null);
@@ -105,6 +108,22 @@ export class ServersService {
             .asObservable()
             .mergeMap(url => this.httpClient.get(url + 'proto/', { responseType: 'arraybuffer' }))
             .mergeMap(result => master.Servers.decode(new Uint8Array(result)).servers);
+    }
+
+    private matchesGame(server: master.IServer) {
+        const serverGame = (server && server.Data && server.Data.vars && server.Data.vars.gamename) ?
+            server.Data.vars.gamename :
+            '';
+
+        const localGame = this.gameService.gameName;
+
+        if (serverGame === localGame) {
+            return true;
+        } else if (serverGame === '' && localGame === 'gta5') {
+            return true;
+        }
+
+        return false;
     }
 
     private subscribeWebSocket() {

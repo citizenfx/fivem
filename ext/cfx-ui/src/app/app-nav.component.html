@@ -23,7 +23,6 @@
 			[routerLink]="['/servers']"
 			routerLinkActive="active"
 			[routerLinkActiveOptions]="{ exact: true }"
-			*ngIf="gameName !== 'rdr3'"
 		>
 			<span translate>
 				#BottomNav_Servers
@@ -61,9 +60,8 @@
 		</a>
 		<a
 			[routerLink]="['/servers/direct-connect']"
-			class="nav-item"
+			class="nav-item subnav-item"
 			routerLinkActive="active"
-			[class.subnav-item]="gameName !== 'rdr3'"
 		>
 			<span translate>
 				#ServerList_DirectConnect

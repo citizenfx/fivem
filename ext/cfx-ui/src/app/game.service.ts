@@ -2,11 +2,9 @@ import {Injectable, EventEmitter, NgZone, Inject} from '@angular/core';
 import {DomSanitizer} from '@angular/platform-browser';
 
 import {Server} from './servers/server';
-import {ServersService} from './servers/servers.service';
 
 import { environment } from '../environments/environment';
 import { DiscourseService } from './discourse.service';
-import { LocaleStorage } from 'angular-l10n';
 import { LocalStorage } from './local-storage';
 import { Observable, BehaviorSubject } from 'rxjs';
 
@@ -648,16 +646,13 @@ export class DummyGameService extends GameService {
 	private _darkTheme = false;
 	private _localhostPort = '';
 	private _language = '';
-	private pinExample = '';
 
-	constructor(private serversService: ServersService, @Inject(LocalStorage) private localStorage: any) {
+	constructor(@Inject(LocalStorage) private localStorage: any) {
 		super();
 
 		if (this.localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
-
-		this.serversService.loadPinConfig().then(config => this.pinExample = config.pinnedServers[0]);
 	}
 
 	init() {
