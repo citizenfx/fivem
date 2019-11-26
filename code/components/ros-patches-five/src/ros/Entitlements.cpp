@@ -581,13 +581,13 @@ static InitFunction initFunction([] ()
 <?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
   <Status>1</Status>
-  <Result BuildId="61" VersionNumber="1.0.1207.69" BuildDateUtc="2019-11-05T11:39:37.0266667">
+  <Result BuildId="62" VersionNumber="1.0.1207.77" BuildDateUtc="2019-11-05T11:39:37.0266667">
     <FileManifest>
-		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="89376912" TimestampUtc="2019-11-05T11:39:34.8800000">
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="89381520" TimestampUtc="2019-11-05T11:39:34.8800000">
 			<RelativePath>RDR2.exe</RelativePath>
-			<SHA256Hash>178abc924f738d4edb65f242dd44cde28fe502fb850ec603087297997a1e61ef</SHA256Hash>
+			<SHA256Hash>9e5620806deb50e8c6b671ed480d4f7b775e9be8ddc3e0af5d1836d92ebc06a4</SHA256Hash>
 			<FileChunks>
-				<Chunk FileChunkId="13046" SHA256Hash="178abc924f738d4edb65f242dd44cde28fe502fb850ec603087297997a1e61ef" StartByteOffset="0" Size="89376912" />
+				<Chunk FileChunkId="13046" SHA256Hash="9e5620806deb50e8c6b671ed480d4f7b775e9be8ddc3e0af5d1836d92ebc06a4" StartByteOffset="0" Size="89381520" />
 			</FileChunks>
 		</FileDetails>
 %s
@@ -665,7 +665,7 @@ static InitFunction initFunction([] ()
     <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
 		<!--<Branches />-->
       <Branches>
-        <Branch Id="12" Name="default" BuildId="61" IsDefault="true" AppId="10">
+        <Branch Id="12" Name="default" BuildId="62" IsDefault="true" AppId="10">
           <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
         </Branch>
       </Branches>

@@ -75,6 +75,7 @@ static hook::thiscall_stub<void(intptr_t, void* cxt, int)> setSubShaderUnk([]()
 static void* get_sgaGraphicsContext()
 {
 	// 1207.69
+	// 1207.77
 	return *(void**)(*(uintptr_t*)(__readgsqword(88)) + 0x12E0);
 
 	// 1207.58
@@ -509,11 +510,21 @@ static HookFunction hookFunction([]()
 	hook::set_call(&origEndDraw, ed1 + 4);
 	hook::call(ed1 + 4, WrapEndDraw);
 
-	stockStates[RasterizerStateNoCulling] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 6));//(uint16_t*)0x1455624C7;
+	// rage::sga::RS_NoBackfaceCull
+	stockStates[RasterizerStateNoCulling] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 6));
+
 	stockStates[DepthStencilStateNoDepth] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", -186));
 	stockStates[SamplerStatePoint] = (uint16_t*)&pointSampler;
-	stockStates[BlendStateNoBlend] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 60));//(uint16_t*)0x145562504;
-	stockStates[BlendStateDefault] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 167));//(uint16_t*)0x14556250C;
+
+	// rage::sga::BS_Default
+	stockStates[BlendStateNoBlend] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 60));
+
+	// rage::sga::BS_Normal
+	stockStates[BlendStateDefault] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 167));
+
+	// rage::sga::BS_AlphaAdd
+	//stockStates[BlendStatePremultiplied] = hook::get_address<uint16_t*>(hook::get_pattern("48 8D 4D BF 88 05 ? ? ? ? C6 45 BF 02", 347));
+	stockStates[BlendStatePremultiplied] = stockStates[BlendStateDefault];
 
 	diffSS = hook::get_address<decltype(diffSS)>(hook::get_pattern("66 C7 45 60 15 03 C6 45 62 03", 17));
 	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01", 17));

@@ -262,10 +262,10 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "ros_2034/swiftshader/libEGL.dll", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libEGL.dll", 139240, 85063288 },
 	{ "ros_2034/swiftshader/libGLESv2.dll", "484A9699A06A7D87EE5D2BACDF21B284F53328C5", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libGLESv2.dll", 3019240, 85063288 },
 #elif defined(IS_RDR3)
-	{ "RDR2.exe", "e3548977700a80de6eb3f241cc091810cdfc04ea", "ipfs://bafybeidfsyzzijulnnxoskegcmkjcrqgszos4u2hwjqtjql3orlw7uum7q", 89376912 },
-	{ "appdata0_update.rpf", "e312b3d8b213a46fbbbf138fe7ed3b7bac20dca6", "ipfs://bafybeigc6pfglf3bhiki6lna6oxbqzxkarge5gi757lzy4lswghvbanude", 2860767 },
-	{ "update.rpf", "86a19a74de8a37e8f926968d27b35f0f9889bd54", "ipfs://bafybeig6df4wibiuy4dv2yoo5tttbyllrt3wuli7snivojaoma5vxfbpne", 2801186198 },
-	{ "shaders_x64.rpf", "cc018f7a7316bcc33107c3bbc8640d55afa84a80", "ipfs://bafybeicncagqngk3brfu4m5xgvj4mll6ae2dwbz3gfkhkkvpkkffkaqam4", 233006430 },
+	{ "RDR2.exe", "18d70b5b2232af3fc99720515ff17056ffb680be", "ipfs://bafybeidzqoqcflbtvoc6kq26vs2ok7nyana722zxrhkgiuhmjqbvx45fey", 89381520 },
+	{ "appdata0_update.rpf", "cac38190ede22da826256627879d0478070e7f37", "ipfs://bafybeiadi5o6wiykwvvjcrtyspakhkdc5d7lum5mdqekne6527wyeu5gty", 2860767 },
+	{ "update.rpf", "401b9bceb2e8b8657e290856819ca753c0b19851", "ipfs://bafybeiebkp2ozscfpnxnwrvbutqud2i4mjtnlc4z2hj7dovrufkj7tcpvu", 2801194246 },
+	{ "shaders_x64.rpf", "78b5e4b5cc89338950c9bf27ad078190447e7291", "ipfs://bafybeidhiu2teenx452t7o5at63ewnpiv7cl4urdj3v5xlok3jc6o5vh4u", 233006430 },
 #endif
 
 	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "ipfs://bafybeicam5f3ptgq6oazcswjcksb5xwnxwed2jhcelbcnpj43zcvg62dyi", 37970576 },

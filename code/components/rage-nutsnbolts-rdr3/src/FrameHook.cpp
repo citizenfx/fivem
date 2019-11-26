@@ -142,7 +142,8 @@ static HookFunction hookFunction([]()
 {
 	g_mainThreadId = GetCurrentThreadId();
 
-	void* lookAliveFrameCall = hook::pattern("84 C0 75 05 40 84 FF 74 22 E8").count(1).get(0).get<void>(-5);
+	//void* lookAliveFrameCall = hook::pattern("84 C0 75 05 40 84 FF 74 22 E8").count(1).get(0).get<void>(-5);
+	void* lookAliveFrameCall = hook::pattern("84 C0 75 15 40 84 FF 75 10 48 8B").count(1).get(0).get<void>(-5);
 
 	hook::set_call(&g_origLookAlive, lookAliveFrameCall);
 	hook::call(lookAliveFrameCall, OnLookAlive);

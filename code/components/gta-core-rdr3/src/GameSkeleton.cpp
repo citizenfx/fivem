@@ -222,8 +222,8 @@ namespace rage
 static HookFunction hookFunction([] ()
 {
 	{
-		//void* loc = hook::pattern("BA 04 00 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8").count(1).get(0).get<void>(12);
-		void* loc = hook::pattern("BA 04 00 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05").count(1).get(0).get<void>(12);
+		void* loc = hook::pattern("BA 04 00 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8").count(1).get(0).get<void>(12);
+		//void* loc = hook::pattern("BA 04 00 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05").count(1).get(0).get<void>(12);
 
 		hook::jump(hook::get_call(loc), hook::get_member(&rage::gameSkeleton::RunInitFunctions));
 	}
