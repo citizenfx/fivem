@@ -402,6 +402,7 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
         });
 
         this.sortedServers = servers;
+        this.changeDetectorRef.markForCheck();
 
         this.localStorage.setItem('sortOrder', JSON.stringify(this.sortOrder));
     }
