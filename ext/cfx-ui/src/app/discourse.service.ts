@@ -5,6 +5,7 @@ import { ServersService } from './servers/servers.service';
 import * as forge from 'node-forge';
 import * as query from 'query-string';
 import { BehaviorSubject } from 'rxjs';
+import { GameService } from './game.service';
 
 class RSAKeyCollection {
     public: string;
@@ -48,7 +49,7 @@ export class DiscourseService {
     public currentBoost: BoostData;
     public noCurrentBoost = false;
 
-    public constructor(private serversService: ServersService) {
+    public constructor(private serversService: ServersService, private gameService: GameService) {
         this.authToken = window.localStorage.getItem('discourseAuthToken');
 
         if (this.authToken && this.authToken.length > 0) {
@@ -82,13 +83,33 @@ export class DiscourseService {
                 }
             });
         });
+
+		this.signinChange.subscribe(identity => {
+			this.gameService.setDiscourseIdentity(this.getToken(), this.getExtClientId());
+		});
+
+		this.messageEvent.subscribe((msg: string) => {
+			this.gameService.invokeInformational(msg);
+        });
+
+        this.gameService.computerNameChange.subscribe((data: string) => {
+            this.setComputerName(data);
+        });
+
+        this.gameService.ownershipTicketChange.subscribe((ticket: string) => {
+            this.setOwnershipTicket(ticket);
+        });
+
+        this.gameService.authPayloadSet.subscribe((payload: string) => {
+            this.handleAuthPayload(payload);
+        })
     }
 
-    public setComputerName(computerName: string) {
+    private setComputerName(computerName: string) {
         this.computerName = computerName;
     }
 
-    public setOwnershipTicket(ticket: string) {
+    private setOwnershipTicket(ticket: string) {
         this.ownershipTicket = ticket;
     }
 
@@ -179,7 +200,7 @@ export class DiscourseService {
         };
     }
 
-    public async handleAuthPayload(queryString: string) {
+    private async handleAuthPayload(queryString: string) {
         const parts = query.parse(queryString);
         const payload = parts['payload'] as string;
 

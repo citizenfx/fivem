@@ -4,7 +4,6 @@ import {DomSanitizer} from '@angular/platform-browser';
 import {Server} from './servers/server';
 
 import { environment } from '../environments/environment';
-import { DiscourseService } from './discourse.service';
 import { LocalStorage } from './local-storage';
 import { Observable, BehaviorSubject } from 'rxjs';
 
@@ -60,6 +59,9 @@ export abstract class GameService {
 	languageChange = new BehaviorSubject<string>('en');
 
 	signinChange = new EventEmitter<Profile>();
+	ownershipTicketChange = new EventEmitter<string>();
+	computerNameChange = new EventEmitter<string>();
+	authPayloadSet = new EventEmitter<string>();
 
 	profile: Profile = null;
 
@@ -284,7 +286,7 @@ export class CfxGameService extends GameService {
 	
 	private inConnecting = false;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private discourseService: DiscourseService) {
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
 		super();
 	}
 
@@ -298,14 +300,6 @@ export class CfxGameService extends GameService {
 			if (json.profiles && json.profiles.length > 0) {
 				this.handleSignin(json.profiles[0]);
 			}
-		});
-
-		this.discourseService.signinChange.subscribe(identity => {
-			this.setDiscourseIdentity(this.discourseService.getToken(), this.discourseService.getExtClientId());
-		});
-
-		this.discourseService.messageEvent.subscribe((msg) => {
-			this.invokeInformational(msg);
 		});
 
 		this.zone.runOutsideAngular(() => {
@@ -339,7 +333,7 @@ export class CfxGameService extends GameService {
 						}
 						break;
 					case 'setComputerName':
-						this.discourseService.setComputerName(event.data.data);
+						this.computerNameChange.emit(event.data.data);
 						break;
 					case 'getFavorites':
 						this.zone.run(() => this.favorites = event.data.list);
@@ -357,7 +351,7 @@ export class CfxGameService extends GameService {
 						this.zone.run(() => convar.next(event.data.value));
 
 						setTimeout(() => {
-							this.discourseService.setOwnershipTicket(this.getConvarValue('cl_ownershipTicket'));
+							this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
 						}, 500);
 						break;
 				}
@@ -435,9 +429,7 @@ export class CfxGameService extends GameService {
 	}
 
 	invokeAuthPayload(data: string) {
-		console.log(data);
-
-		this.discourseService.handleAuthPayload(data);
+		this.authPayloadSet.emit(data);
 	}
 
 	get nickname(): string {
