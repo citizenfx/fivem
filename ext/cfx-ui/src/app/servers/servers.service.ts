@@ -133,10 +133,14 @@ export class ServersService {
 
             switch (data.op) {
                 case 'ADD_SERVER':
-                    this.internalServerEvent.next({
+                    const server = {
                         Data: data.data.data,
                         EndPoint: data.id
-                    });
+                    };
+
+                    if (this.matchesGame(server)) {
+                        this.internalServerEvent.next(server);
+                    }
                 break;
                 case 'UPDATE_SERVER':
                     const old = this.servers[data.id];
