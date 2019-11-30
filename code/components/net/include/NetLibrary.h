@@ -10,6 +10,7 @@
 #include <bitset>
 #include <functional>
 #include <thread>
+#include <ppltasks.h>
 #include <WS2tcpip.h>
 #include "HttpClient.h"
 #include "CrossLibraryInterfaces.h"
@@ -228,7 +229,7 @@ public:
 
 	virtual void RunFrame() override;
 
-	virtual void ConnectToServer(const std::string& rootUrl);
+	virtual concurrency::task<void> ConnectToServer(const std::string& rootUrl);
 
 	virtual void Disconnect(const char* reason) override;
 

@@ -22,6 +22,12 @@
 
 #include <MonoThreadAttachment.h>
 
+#include <HttpClient.h>
+#include <TcpListenManager.h>
+#include <ServerLicensingComponent.h>
+
+#include <json.hpp>
+
 #include <nng/protocol/reqrep0/req.h>
 #include <nng/protocol/reqrep0/rep.h>
 
@@ -91,9 +97,11 @@ namespace fx
 
 		m_rconPassword = instance->AddVariable<std::string>("rcon_password", ConVar_None, "");
 		m_hostname = instance->AddVariable<std::string>("sv_hostname", ConVar_ServerInfo, "default FXServer");
-		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, "live-internal.fivem.net:30110");
+		m_masters[0] = instance->AddVariable<std::string>("sv_master1", ConVar_None, "https://servers-ingress-live.fivem.net/ingress");
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
 		m_masters[2] = instance->AddVariable<std::string>("sv_master3", ConVar_None, "");
+		m_listingIpOverride = instance->AddVariable<std::string>("sv_listingIpOverride", ConVar_None, "");
+		m_useDirectListing = instance->AddVariable<bool>("sv_useDirectListing", ConVar_None, false);
 
 		m_heartbeatCommand = instance->AddCommand("heartbeat", [=]()
 		{
@@ -218,7 +226,7 @@ namespace fx
 					// if the master is set
 					std::string masterName = master->GetValue();
 
-					if (!masterName.empty())
+					if (!masterName.empty() && masterName.find("https://") != 0 && masterName.find("http://") != 0)
 					{
 						// look up if not cached
 						auto address = net::PeerAddress::FromString(masterName, 30110, net::PeerAddress::LookupType::ResolveName);
@@ -750,15 +758,43 @@ namespace fx
 
 				if (!masterName.empty())
 				{
-					// find a cached address
-					auto it = m_masterCache.find(masterName);
-
-					if (it != m_masterCache.end())
+					if (masterName.find("https://") != 0 && masterName.find("http://") != 0)
 					{
-						// send a heartbeat to the master
-						SendOutOfBand(it->second, "heartbeat DarkPlaces\n");
+						// find a cached address
+						auto it = m_masterCache.find(masterName);
 
+						if (it != m_masterCache.end())
+						{
+							// send a heartbeat to the master
+							SendOutOfBand(it->second, "heartbeat DarkPlaces\n");
+
+							trace("Sending heartbeat to %s\n", masterName);
+						}
+					}
+					else
+					{
 						trace("Sending heartbeat to %s\n", masterName);
+
+						auto json = nlohmann::json::object({
+							{ "port", m_instance->GetComponent<fx::TcpListenManager>()->GetPrimaryPort() },
+							{ "listingToken", m_instance->GetComponent<ServerLicensingComponent>()->GetListingToken() },
+							{ "ipOverride", m_listingIpOverride->GetValue() },
+							{ "useDirectListing", m_useDirectListing->GetValue() },
+						});
+
+						HttpRequestOptions ro;
+						ro.ipv4 = true;
+						ro.headers = std::map<std::string, std::string>{
+							{ "Content-Type", "application/json; charset=utf-8" }
+						};
+
+						Instance<HttpClient>::Get()->DoPostRequest(masterName, json.dump(), ro, [](bool success, const char* d, size_t s)
+						{
+							if (!success)
+							{
+								trace("e\n");
+							}
+						});
 					}
 				}
 			}

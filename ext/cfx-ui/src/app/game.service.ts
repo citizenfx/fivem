@@ -574,7 +574,7 @@ export class CfxGameService extends GameService {
 	lastQuery: string;
 
 	queryAddress(address: [string, number]): Promise<Server> {
-		const addrString = address[0] + ':' + address[1];
+		const addrString = (address[0].indexOf('cfx.re') === -1) ? address[0] + ':' + address[1] : address[0];
 
 		const promise = new Promise<Server>((resolve, reject) => {
 			const to = window.setTimeout(() => {

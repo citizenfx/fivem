@@ -8,6 +8,7 @@
 #include <ResourceManager.h>
 #include <Profiler.h>
 
+#include <GameServer.h>
 #include <VFSManager.h>
 
 #include <botan/base64.h>
@@ -191,6 +192,32 @@ static InitFunction initFunction([]()
 				std::unique_lock<std::recursive_mutex> lock(infoData->infoJsonMutex);
 				response->End(infoData->infoJson.dump(-1, ' ', false, json::error_handler_t::replace));
 			}
+		});
+
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		{
+			auto server = instance->GetComponent<fx::GameServer>();
+
+			int numClients = 0;
+
+			instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			{
+				if (client->GetNetId() < 0xFFFF)
+				{
+					++numClients;
+				}
+			});
+
+			auto json = json::object({
+				{ "hostname", server->GetVariable("sv_hostname") },
+				{ "gametype", server->GetVariable("gametype") },
+				{ "mapname", server->GetVariable("mapname") },
+				{ "clients", numClients },
+				{ "iv", server->GetVariable("sv_infoVersion") },
+				{ "sv_maxclients", server->GetVariable("sv_maxclients") },
+			});
+
+			response->End(json.dump(-1, ' ', false, json::error_handler_t::replace));
 		});
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)

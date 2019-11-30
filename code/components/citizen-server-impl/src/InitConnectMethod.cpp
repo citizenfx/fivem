@@ -274,7 +274,7 @@ static InitFunction initFunction([]()
 
 			if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end())
 			{
-				cb(json::object({ {"error", "fields missing"} }));
+				sendError("fields missing");
 				return;
 			}
 
