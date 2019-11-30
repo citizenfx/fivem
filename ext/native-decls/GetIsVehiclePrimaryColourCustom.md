@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: server
 ---
 ## GET_IS_VEHICLE_PRIMARY_COLOUR_CUSTOM
 

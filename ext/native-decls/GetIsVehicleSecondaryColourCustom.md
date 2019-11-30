@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: server
 ---
 ## GET_IS_VEHICLE_SECONDARY_COLOUR_CUSTOM
 
