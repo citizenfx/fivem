@@ -363,13 +363,17 @@ local outputType = 'lua'
 local globalNatives = false
 
 if #arg > 0 then
-	if arg[1]:match('gta_universal') or arg[1]:match('rdr3_universal') then
+	if arg[1]:match('gta_universal') then
 		arg[1] = 'inp/natives_global.lua'
+	end
+	
+	if arg[1]:match('rdr3_universal') then
+		arg[1] = 'inp/natives_rdr3.lua'
 	end
 	
 	loadDefinition(arg[1])
 	
-	if arg[1]:match('natives_global') then
+	if arg[1]:match('natives_global') or arg[1]:match('natives_rdr3') then
 		globalNatives = true
 	end
 
