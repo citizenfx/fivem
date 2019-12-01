@@ -1398,8 +1398,10 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionV2Between("adamant", "", &isGreater)) && isGreater)
 		{
 			nativesBuild =
-#if !defined(IS_FXSERVER)
+#if defined(GTA_FIVE)
 				"natives_universal.lua"
+#elif defined(IS_RDR3)
+				"rdr3_universal.lua"
 #else
 				"natives_server.lua"
 #endif
