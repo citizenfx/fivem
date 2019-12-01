@@ -39,11 +39,9 @@
 			},
 			"preqs":
 			[
-				"vcredist2008",
-				"directx"
 			],
 			"safeMode": true,
-			"modScan": true,
+			"modScan": false,
 			"modWhitelist" : [ "GTAVLanguageSelect.exe", "GTAVLauncher.exe", "Rockstar-Games-Launcher.exe", "PlayGTAV.exe", "console_final.log", "commandline.txt"],
 			"installshieldGuid": "5EFC6C07-6B87-43FC-9524-F9E967241741",
 			"languages" : [
@@ -136,7 +134,7 @@
 			[
 			],
 			"safeMode": true,
-			"modScan": true,
+			"modScan": false,
 			"modWhitelist" : [ ".log" ],
 			"languages" : [
 				"en-US",
