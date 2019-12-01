@@ -147,7 +147,7 @@ deploy_specific:
     - branches
   tags:
     - vs2017
-    - client
+    - client2
   except:
     - master
     - server-ci
