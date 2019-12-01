@@ -363,8 +363,8 @@ local outputType = 'lua'
 local globalNatives = false
 
 if #arg > 0 then
-	if arg[1]:match('gta_universal') then
-		arg[1] = 'out/natives_global.lua'
+	if arg[1]:match('gta_universal') or arg[1]:match('rdr3_universal') then
+		arg[1] = 'in/natives_global.lua'
 	end
 	
 	loadDefinition(arg[1])
@@ -385,7 +385,7 @@ if #arg > 2 then
 end
 
 if not globalNatives then
-	loadDefinition 'out/natives_cfx.lua'
+	loadDefinition 'in/natives_cfx.lua'
 	loadDefinition 'codegen_dlc_natives.lua'
 end
 

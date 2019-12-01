@@ -7,47 +7,47 @@ set path=C:\msys64\usr\bin;%path%
 pacman --noconfirm --needed -Sy make curl diffutils libcurl
 
 pushd ext\natives\
-mkdir out
-curl -z out\natives_global.lua -Lo out\natives_global_new.lua http://runtime.fivem.net/doc/natives.lua
-curl -z out\natives_cfx.lua -Lo out\natives_cfx_new.lua http://runtime.fivem.net/doc/natives_cfx.lua
-curl -z out\natives_rdr3.lua -Lo out\natives_rdr3_new.lua http://runtime.fivem.net/doc/natives_rdr_tmp.lua
-::curl -Lo out\natives_global_new.lua http://runtime.fivem.net/doc/natives_rdr_tmp.lua
-::curl -z out\natives_cfx.lua -Lo out\natives_cfx_new.lua http://runtime.fivem.net/doc/natives_cfx.lua
-echo -- ok > out\natives_cfx_new.lua
+mkdir in
+curl -z in\natives_global.lua -Lo in\natives_global_new.lua http://runtime.fivem.net/doc/natives.lua
+curl -z in\natives_cfx.lua -Lo in\natives_cfx_new.lua http://runtime.fivem.net/doc/natives_cfx.lua
+curl -z in\natives_rdr3.lua -Lo in\natives_rdr3_new.lua http://runtime.fivem.net/doc/natives_rdr_tmp.lua
+::curl -Lo in\natives_global_new.lua http://runtime.fivem.net/doc/natives_rdr_tmp.lua
+::curl -z in\natives_cfx.lua -Lo in\natives_cfx_new.lua http://runtime.fivem.net/doc/natives_cfx.lua
+echo -- ok > in\natives_cfx_new.lua
 
-if exist out\natives_cfx.lua (
-	diff out\natives_cfx.lua out\natives_cfx_new.lua > nul
+if exist in\natives_cfx.lua (
+	diff in\natives_cfx.lua in\natives_cfx_new.lua > nul
 	
 	if errorlevel 0 (
-		copy /y out\natives_cfx_new.lua out\natives_cfx.lua
+		copy /y in\natives_cfx_new.lua in\natives_cfx.lua
 	)
 ) else (
-	copy /y out\natives_cfx_new.lua out\natives_cfx.lua
+	copy /y in\natives_cfx_new.lua in\natives_cfx.lua
 )
 
-if exist out\natives_global.lua (
-	diff out\natives_global.lua out\natives_global_new.lua > nul
+if exist in\natives_global.lua (
+	diff in\natives_global.lua in\natives_global_new.lua > nul
 	
 	if errorlevel 0 (
-		copy /y out\natives_global_new.lua out\natives_global.lua
+		copy /y in\natives_global_new.lua in\natives_global.lua
 	)
 ) else (
-	copy /y out\natives_global_new.lua out\natives_global.lua
+	copy /y in\natives_global_new.lua in\natives_global.lua
 )
 
-if exist out\natives_rdr3.lua (
-	diff out\natives_rdr3.lua out\natives_rdr3_new.lua > nul
+if exist in\natives_rdr3.lua (
+	diff in\natives_rdr3.lua in\natives_rdr3_new.lua > nul
 	
 	if errorlevel 0 (
-		copy /y out\natives_rdr3_new.lua out\natives_rdr3.lua
+		copy /y in\natives_rdr3_new.lua in\natives_rdr3.lua
 	)
 ) else (
-	copy /y out\natives_rdr3_new.lua out\natives_rdr3.lua
+	copy /y in\natives_rdr3_new.lua in\natives_rdr3.lua
 )
 
-del out\natives_global_new.lua
-del out\natives_cfx_new.lua
-del out\natives_rdr3_new.lua
+del in\natives_global_new.lua
+del in\natives_cfx_new.lua
+del in\natives_rdr3_new.lua
 
 make -q
 

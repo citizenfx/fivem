@@ -307,9 +307,6 @@ if _OPTIONS['game'] ~= 'launcher' then
 			
 			if _OPTIONS['game'] == 'five' then
 				files { "client/clrcore/External/*.cs" }
-			else
-				-- #TODORDR3: temporary
-				defines { 'GTA_FIVE' }
 			end
 		else
 			-- #TODORDR3: temporary, still
