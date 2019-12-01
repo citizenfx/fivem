@@ -1,7 +1,10 @@
 
 param (
     [string]
-    $BinRoot
+    $BinRoot,
+
+    [string]
+    $GameName
 )
 
 $lastSymDate = (Get-Item R:\sym-pack.zip).LastWriteTime
@@ -13,10 +16,10 @@ mkdir R:\sym-upload
 mkdir R:\sym-pack
 mkdir R:\sym-tmp
 
-foreach ($file in (Get-ChildItem -Recurse $BinRoot\five\release)) {
+foreach ($file in (Get-ChildItem -Recurse $BinRoot\$GameName\release)) {
     if ($file.LastWriteTime -ge $lastSymDate) {
         if ($file.Extension -in @(".dll", ".pdb", ".exe")) {
-            Push-Location $BinRoot\five\release
+            Push-Location $BinRoot\$GameName\release
             $relPath = (Resolve-Path -Relative $file.FullName)
             Pop-Location
 

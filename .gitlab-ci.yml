@@ -39,7 +39,7 @@ build_client_rdr3:
   <<: *build_windows
   tags:
     - vs2017
-    - client
+    - client2
   variables:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
