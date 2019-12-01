@@ -295,11 +295,13 @@ export class CfxGameService extends GameService {
 		(<any>window).invokeNative('getConvars', '');
 
 		fetch('https://nui-internal/profiles/list').then(async response => {
-			const json = <Profiles>await response.json();
+			try {
+				const json = <Profiles>await response.json();
 
-			if (json.profiles && json.profiles.length > 0) {
-				this.handleSignin(json.profiles[0]);
-			}
+				if (json.profiles && json.profiles.length > 0) {
+					this.handleSignin(json.profiles[0]);
+				}
+			} catch (e) {}
 		});
 
 		this.zone.runOutsideAngular(() => {

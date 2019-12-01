@@ -740,6 +740,11 @@ void GSClient_GetFavorites()
 	favFile >> json;
 	favFile.close();
 
+	if (json.empty())
+	{
+		json = "[]";
+	}
+
 	nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "getFavorites", "list": %s })", json));
 }
 
