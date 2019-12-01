@@ -32,7 +32,6 @@ build_client:
       - code/build/
   except:
     - server-ci
-    - portability-rdr3
     - tags
 
 build_client_rdr3:
@@ -85,7 +84,6 @@ build_launcher:
       - code/build/
   except:
     - server-ci
-    - portability-rdr3
     - tags
 
 build_server_windows:
@@ -139,8 +137,24 @@ deploy_specific:
     - build_client
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  variables:
-    IS_RDR3: '1'
+  environment:
+    name: specific/$CI_BUILD_REF_NAME
+  only:
+    - branches
+  tags:
+    - vs2017
+    - client
+  except:
+    - master
+    - server-ci
+    - tags
+    
+deploy_rdr3_specific:
+  stage: deploy
+  dependencies:
+    - build_client_rdr3
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
     name: specific/$CI_BUILD_REF_NAME
   only:
@@ -148,6 +162,10 @@ deploy_specific:
   tags:
     - vs2017
     - client2
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
+    IS_RDR3: '1'
   except:
     - master
     - server-ci

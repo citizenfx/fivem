@@ -385,7 +385,11 @@ void HookLibGL(HMODULE libGL)
 {
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
+
+#if defined(IS_RDR3)
 	MH_CreateHook(GetProcAddress(LoadLibraryW(L"d3d11.dll"), "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+#endif
+
 	MH_EnableHook(MH_ALL_HOOKS);
 }
 

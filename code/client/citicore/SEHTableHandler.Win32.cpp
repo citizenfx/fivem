@@ -279,11 +279,6 @@ static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* conte
 
 extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POINTERS*))
 {
-	if (CoreIsDebuggerPresent())
-	{
-		//return;
-	}
-
 	g_exceptionHandler = handler;
 
 	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "KiUserExceptionDispatcher");

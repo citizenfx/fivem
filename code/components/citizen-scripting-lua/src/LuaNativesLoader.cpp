@@ -43,9 +43,13 @@ static InitFunction initFunction([]()
 
 		if (!mountedFiles)
 		{
+#if defined(IS_RDR3)
+			MountNatives("rdr3_universal");
+#else
 			MountNatives("natives_universal");
 			MountNatives("natives_21e43a33");
 			MountNatives("natives_0193d0af");
+#endif
 
 			mountedFiles = true;
 		}

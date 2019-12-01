@@ -523,15 +523,6 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 
 	if (!IS_INTRESOURCE(lpProcName))
 	{
-		static thread_local bool in;
-
-		if (!in)
-		{
-			in = true;
-			//trace("%s\n", lpProcName);
-			in = false;
-		}
-
 		if (!getenv("CitizenFX_ToolMode") || true)
 		{
 			if (hModule == GetModuleHandleW(L"ntdll.dll") && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)

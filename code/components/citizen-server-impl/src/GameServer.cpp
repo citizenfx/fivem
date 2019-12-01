@@ -792,7 +792,7 @@ namespace fx
 						{
 							if (!success)
 							{
-								trace("e\n");
+								trace("error submitting to ingress: %s\n", std::string{ d, s });
 							}
 						});
 					}

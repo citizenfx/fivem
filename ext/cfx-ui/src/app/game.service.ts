@@ -83,7 +83,7 @@ export abstract class GameService {
 				return 'RedM';
 			case 'launcher':
 				return 'Cfx.re';
-			case 'fivem':
+			case 'gta5':
 				return 'FiveM';
 			default:
 				return 'CitizenFX';

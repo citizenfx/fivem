@@ -30,6 +30,9 @@ public:
 
 private:
 	void SendResponse(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response, const std::string& outputData);
+
+private:
+	std::string m_securityKey;
 };
 
 class ROSCryptoState
@@ -126,7 +129,19 @@ void GameServicesBodyParser::ParseBody(const std::vector<uint8_t>& data)
 GameServicesHandler::GameServicesHandler(const std::string& gameName)
 	: m_gameName(gameName)
 {
-	assert(gameName == "gta5" || gameName == "launcher"); // as the platform key is hardcoded
+	if (gameName == "gta5")
+	{
+		m_securityKey = "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc=";
+	}
+	else if (gameName == "rdr2")
+	{
+		m_securityKey = "CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk=";
+	}
+	else if (gameName == "launcher")
+	{
+
+	}
+	//assert(gameName == "gta5" || gameName == "launcher"); // as the platform key is hardcoded
 }
 
 bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
@@ -198,8 +213,7 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 	if (request->GetRequestMethod() == "POST")
 	{
 		// set up a ROS body parser for the request
-		//auto bodyParser = std::make_shared<GameServicesBodyParser>("C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc=", request);
-		auto bodyParser = std::make_shared<GameServicesBodyParser>("CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk=", request);
+		auto bodyParser = std::make_shared<GameServicesBodyParser>(m_securityKey, request);
 
 		request->SetDataHandler([=] (const std::vector<uint8_t>& data)
 		{
@@ -230,8 +244,7 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response, const std::string& outputData)
 {
 	// output stream and other state
-	//ROSCryptoState cryptoState("C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc=");
-	ROSCryptoState cryptoState("CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk=");
+	ROSCryptoState cryptoState(m_securityKey);
 	std::stringstream outStream;
 
 	// session key, again
@@ -437,7 +450,7 @@ static InitFunction initFunction([] ()
 	EndpointMapper* endpointMapper = Instance<EndpointMapper>::Get();
 
 	endpointMapper->AddPrefix("/gta5/11/gameservices/", new GameServicesHandler("gta5"));
-	endpointMapper->AddPrefix("/rdr2/11/gameservices/", new GameServicesHandler("gta5"));
-	endpointMapper->AddPrefix("/rdr2/11/wcfgameservices/", new GameServicesHandler("gta5"));
+	endpointMapper->AddPrefix("/rdr2/11/gameservices/", new GameServicesHandler("rdr2"));
+	endpointMapper->AddPrefix("/rdr2/11/wcfgameservices/", new GameServicesHandler("rdr2"));
 	endpointMapper->AddPrefix("/launcher/11/launcherservices/", new GameServicesHandler("launcher"));
 });

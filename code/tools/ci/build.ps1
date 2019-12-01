@@ -415,6 +415,8 @@ if (!$DontBuild -and !$IsServer) {
     if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
+        
+        Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
     } elseif ($IsLauncher) {
         Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\

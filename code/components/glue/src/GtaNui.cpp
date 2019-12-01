@@ -476,8 +476,7 @@ void GtaNuiInterface::SetTexture(GITexture* texture, bool pm)
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
 
 	m_oldBlendState = GetBlendState();
-	//SetBlendState(GetStockStateIdentifier(pm ? BlendStatePremultiplied : BlendStateDefault));
-	SetBlendState(GetStockStateIdentifier(pm ? BlendStateDefault : BlendStateDefault));
+	SetBlendState(GetStockStateIdentifier(pm ? BlendStatePremultiplied : BlendStateDefault));
 
 	m_oldDepthStencilState = GetDepthStencilState();
 	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));

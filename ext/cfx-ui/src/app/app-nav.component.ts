@@ -19,7 +19,7 @@ export class AppNavComponent extends Translation {
 	hasSubNav = false;
 	isInSteam = false;
 	brandingName = 'CitizenFX';
-	gameName = 'fivem';
+	gameName = 'gta5';
 
 	constructor(
 		private gameService: GameService,

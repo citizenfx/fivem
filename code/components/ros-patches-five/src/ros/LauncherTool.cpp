@@ -347,7 +347,12 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 	g_origProcess = programPath.wstring();
 	ToolMode_SetPostLaunchRoutine([] ()
 	{
-		assert(LoadLibrary(L"C:\\prograC:m files\\rockstar games\\social club\\socialclub.dll") != nullptr);
+		HMODULE scDll = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Social Club\\socialclub.dll");
+
+		if (!scDll)
+		{
+			FatalError("Couldn't load SC SDK: Windows error code %d", GetLastError());
+		}
 
 		// rosdll
 		HMODULE rosDll = LoadLibrary(L"ros.dll");

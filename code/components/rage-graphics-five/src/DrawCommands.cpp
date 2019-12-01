@@ -273,8 +273,7 @@ void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, flo
 	SetRasterizerState(GetStockStateIdentifier(StateType::RasterizerStateNoCulling));
 
 	auto oldDepthStencilState = GetDepthStencilState();
-	SetDepthStencilState(Get
-	ateIdentifier(StateType::DepthStencilStateNoDepth));
+	SetDepthStencilState(GetStockStateIdentifier(StateType::DepthStencilStateNoDepth));
 
 	PushDrawBlitImShader();
 

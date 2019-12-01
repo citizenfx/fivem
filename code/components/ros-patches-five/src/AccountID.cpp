@@ -20,6 +20,7 @@
 #include <Hooking.Patterns.h>
 #include <psapi.h>
 
+#if defined(IS_RDR3)
 static uint8_t* accountBlob;
 
 static DWORD GetMTLPid()
@@ -174,6 +175,7 @@ static HookFunction hookFunction([]()
 {
 	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[8]);
 });
+#endif
 
 uint64_t ROSGetDummyAccountID()
 {

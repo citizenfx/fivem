@@ -103,7 +103,11 @@ fdb4684a58cda3f34aa289e603751631e6526f4ca332e876eca163b6b91a37d7)";
 	bool Exit()
 	{
 		auto stop = (decltype(&::Stop))GetProcAddress(hModule, "Stop");
-		return stop() == nullptr;
+
+		if (stop)
+		{
+			return stop() == nullptr;
+		}
 	}
 
 	void Poll()

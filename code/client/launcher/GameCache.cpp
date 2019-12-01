@@ -66,7 +66,7 @@ struct GameCacheEntry
 	// methods
 	bool IsPrimitiveFile() const
 	{
-		return std::string(filename).find("ros_2034/") == 0 || std::string(filename).find("launcher/") == 0;
+		return std::string(filename).find("ros_2034/") == 0 || std::string(filename).find("ros_1241/") == 0 || std::string(filename).find("launcher/") == 0;
 	}
 
 	std::wstring GetCacheFileName() const
@@ -185,82 +185,6 @@ static GameCacheEntry g_requiredEntries[] =
 	//DLCPacks19
 	{ "update/x64/dlcpacks/mpchristmas2018/dlc.rpf", "c4cda116420f14a28e5a999740cc53cf53a950ec", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3247781888 },
 	{ "update/x64/dlcpacks/patchday20ng/dlc.rpf", "fbba396a0ede622e08f76c5ced8ac1d6839c0227", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 457129984 },
-
-	{ "ros_2034/SocialClubD3D12Renderer.dll", "C308AC7D34F80FE9486716FBF4C713B55924B661", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/cef.pak", 3866710, 85063288 },
-	{ "ros_2034/SocialClubVulkanLayer.dll", "C308AC7D34F80FE9486716FBF4C713B55924B661", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/cef.pak", 3866710, 85063288 },
-	{ "ros_2034/SocialClubVulkanLayer.json", "C308AC7D34F80FE9486716FBF4C713B55924B661", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/cef.pak", 3866710, 85063288 },
-	{ "ros_2034/cef.pak", "C308AC7D34F80FE9486716FBF4C713B55924B661", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/cef.pak", 3866710, 85063288 },
-	{ "ros_2034/cef_100_percent.pak", "66EF9A8559E1A8F7976F95FDD2355A0D0E101532", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/cef_100_percent.pak", 647967, 85063288 },
-	{ "ros_2034/cef_200_percent.pak", "0E65DCF353901A8F5D4309585337F6465C3DFC78", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/cef_200_percent.pak", 753127, 85063288 },
-	{ "ros_2034/chrome_elf.dll", "D616A5BB2670476ACC87A8FDF5211F9A46F03688", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/chrome_elf.dll", 547304, 85063288 },
-	{ "ros_2034/d3dcompiler_43.dll", "80FE574E9EB795C8B148C218E4CE5EE52E9C6AB9", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/d3dcompiler_43.dll", 2106344, 85063288 },
-	{ "ros_2034/d3dcompiler_47.dll", "5E5D103067802BB20ACB660CF6FCD74DADC4F6ED", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/d3dcompiler_47.dll", 4300776, 85063288 },
-	{ "ros_2034/icudtl.dat", "C35D6E4DB540518263214697F589C54FAAC87533", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/icudtl.dat", 10171360, 85063288 },
-	{ "ros_2034/libcef.dll", "C30E1DD3CA864BD46A7F316B4663472CF3601423", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/libcef.dll", 94052328, 85063288 },
-	{ "ros_2034/libEGL.dll", "6399CE3EC756586380DE8DDE4734CD8C98255654", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/libEGL.dll", 98792, 85063288 },
-	{ "ros_2034/libGLESv2.dll", "7FBD036872AEADCAAEC84501E255F73DFB70CDDD", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/libGLESv2.dll", 4434920, 85063288 },
-	{ "ros_2034/natives_blob.bin", "7BCA7FCF54CC81CAFBAEEF44EF23DAE4A7C97619", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/natives_blob.bin", 218121, 85063288 },
-	{ "ros_2034/scui.pak", "97DB3B1AAAB9D410A33B3B280069886708535F7A", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/scui.pak", 6035130, 85063288 },
-	{ "ros_2034/snapshot_blob.bin", "0EC391456619FC5BCA046A23BADCF151D72D1B35", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/snapshot_blob.bin", 1362716, 85063288 },
-	{ "ros_2034/socialclub.dll", "EAEA6D9A4564E5C58A401CEFED378AB947F1A5C3", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/socialclub.dll", 7962088, 85063288 },
-	{ "ros_2034/SocialClubHelper.exe", "8D6C6BC68548951358ACC4F51265CAD8177E35D6", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/SocialClubHelper.exe", 1092072, 85063288 },
-	{ "ros_2034/v8_context_snapshot.bin", "9A66D10886CC99BFD7E32C2178894717F33664EE", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/v8_context_snapshot.bin", 1772488, 85063288 },
-	{ "ros_2034/widevinecdmadapter.dll", "9D58F5009C73D5FB9BE1089A46CD9576D2F5654B", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/widevinecdmadapter.dll", 286696, 85063288 },
-	{ "ros_2034/locales/am.pak", "780E74DA7D6299BA8D8278CB42685287BFE9D1DE", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/am.pak", 288192, 85063288 },
-	{ "ros_2034/locales/ar.pak", "0E34AE587EAC54F8535C80EAC6F8D0C73CF8ADD3", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ar.pak", 283698, 85063288 },
-	{ "ros_2034/locales/bg.pak", "8EBA4746AF8927CB75390CD6EBEE59E027B4636E", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/bg.pak", 329621, 85063288 },
-	{ "ros_2034/locales/bn.pak", "AD5A2E603C97D9B48DE47DCA188315D0790765DE", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/bn.pak", 430606, 85063288 },
-	{ "ros_2034/locales/ca.pak", "97EF23AF64A67C8A444E1983D600B4D610F03D34", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ca.pak", 204954, 85063288 },
-	{ "ros_2034/locales/cs.pak", "9ADAE19B1982968EE0650AD5DCDED1E625632B14", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/cs.pak", 208304, 85063288 },
-	{ "ros_2034/locales/da.pak", "463ECE138DACBD6835F72A84EABAA57E20E99DDF", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/da.pak", 187208, 85063288 },
-	{ "ros_2034/locales/de.pak", "60FE88E7AA2E52A57C6F679F235943DF943E3263", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/de.pak", 203794, 85063288 },
-	{ "ros_2034/locales/el.pak", "E3E89A5C4729F20916F40DCCC13D6B8C4AF4C6DA", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/el.pak", 362601, 85063288 },
-	{ "ros_2034/locales/en-GB.pak", "249E3084DD6D148F2487CE9E1A48B7FAE97FDF0E", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/en-GB.pak", 168518, 85063288 },
-	{ "ros_2034/locales/en-US.pak", "5DE10AAD0EFA91043E80C2397375DF52AD825545", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/en-US.pak", 169455, 85063288 },
-	{ "ros_2034/locales/es-419.pak", "5323B07879FCEFE5A0C4924A83DC811F7B6DF6D7", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/es-419.pak", 201890, 85063288 },
-	{ "ros_2034/locales/es.pak", "17D3C5F66B050D4A7B8D798647DB60D64E7E25FB", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/es.pak", 205495, 85063288 },
-	{ "ros_2034/locales/et.pak", "58514249041B33360A8DD0D21A7DABE921E7DC3C", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/et.pak", 182828, 85063288 },
-	{ "ros_2034/locales/fa.pak", "ADAD87081BD3208868B98B5BEE32CB097EBCEBFB", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/fa.pak", 289551, 85063288 },
-	{ "ros_2034/locales/fi.pak", "AC64415B900EDC0F1FECE2638E19E1B1E104F5CB", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/fi.pak", 189663, 85063288 },
-	{ "ros_2034/locales/fil.pak", "D619F2F3ED06DCA54AC02BC6410A291B78A3CD42", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/fil.pak", 208302, 85063288 },
-	{ "ros_2034/locales/fr.pak", "B44BDC854769EFF7755055470D4B743968281F04", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/fr.pak", 219692, 85063288 },
-	{ "ros_2034/locales/gu.pak", "22D4631FF1D32F332F1133E809E774E1A8D29EB3", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/gu.pak", 408074, 85063288 },
-	{ "ros_2034/locales/he.pak", "581690EBCAF2137839220341FBA5B44207153BD2", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/he.pak", 241853, 85063288 },
-	{ "ros_2034/locales/hi.pak", "BD9998EC61BD9F9FD48E890DCF323D9409772AC5", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/hi.pak", 415545, 85063288 },
-	{ "ros_2034/locales/hr.pak", "C41F1E90E9313B13D1BCE7055354596992935CD5", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/hr.pak", 196271, 85063288 },
-	{ "ros_2034/locales/hu.pak", "272AD9767C2DC35938C8104D7AB5D40BCEACF933", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/hu.pak", 215127, 85063288 },
-	{ "ros_2034/locales/id.pak", "32EF210DAAEE35E675525CE50A91F0EC303EB8FF", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/id.pak", 181124, 85063288 },
-	{ "ros_2034/locales/it.pak", "C26951918D1A44CC0F518EEF3C2E7C91BC4AFB23", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/it.pak", 198516, 85063288 },
-	{ "ros_2034/locales/ja.pak", "74D460ACEC0C1791824D0CF9470B76D2771F1CF8", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ja.pak", 246094, 85063288 },
-	{ "ros_2034/locales/kn.pak", "5E8AE3EEBA26548897D10551DB651F753911B179", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/kn.pak", 471779, 85063288 },
-	{ "ros_2034/locales/ko.pak", "FD5072F271E90A9DBF4637C0C56B3B0F60678C41", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ko.pak", 207438, 85063288 },
-	{ "ros_2034/locales/lt.pak", "61779BFDEDE897F89C2618E489C3E57600046FB2", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/lt.pak", 211038, 85063288 },
-	{ "ros_2034/locales/lv.pak", "7383BDF2105F822923483721BFAD83CF721D9236", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/lv.pak", 210459, 85063288 },
-	{ "ros_2034/locales/ml.pak", "6177F6C89BF61827217323EF2056B6A5B9772A5A", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ml.pak", 512370, 85063288 },
-	{ "ros_2034/locales/mr.pak", "A6592A51E543527BD68CD4770260EDF22E8828A0", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/mr.pak", 409172, 85063288 },
-	{ "ros_2034/locales/ms.pak", "06E8900F5BB63FBF8044091CAAA95AE8ED5FC15C", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ms.pak", 187796, 85063288 },
-	{ "ros_2034/locales/nb.pak", "56258B92C4B1E4032F7C45DAAEFC64DFD300D426", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/nb.pak", 184630, 85063288 },
-	{ "ros_2034/locales/nl.pak", "1C64BE844AEF9059234F201B1FF4401ABC4C18AA", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/nl.pak", 193431, 85063288 },
-	{ "ros_2034/locales/pl.pak", "887A8304EAFDEA125E45D83F624C16EBBF772F97", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/pl.pak", 203748, 85063288 },
-	{ "ros_2034/locales/pt-BR.pak", "2CB78986FD9DD8F8A9D50C90E860F28B9F052F2F", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/pt-BR.pak", 199224, 85063288 },
-	{ "ros_2034/locales/pt-PT.pak", "13E7F9FCC875ECA59F49B9B87CDF1FD07A649D29", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/pt-PT.pak", 200771, 85063288 },
-	{ "ros_2034/locales/ro.pak", "B896211961B3F0F53ED64C0D4DB7E7F00E5D3BFF", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ro.pak", 206682, 85063288 },
-	{ "ros_2034/locales/ru.pak", "9B9E82643E7669D3F50C43FB8C4BD85AFD7833DB", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ru.pak", 313752, 85063288 },
-	{ "ros_2034/locales/sk.pak", "8BF7EE156BCFFBDAB6A10285F518441E3E2533A6", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/sk.pak", 212466, 85063288 },
-	{ "ros_2034/locales/sl.pak", "4C578336BAF8A662CB2951C8274201C9DCBE498E", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/sl.pak", 196260, 85063288 },
-	{ "ros_2034/locales/sr.pak", "460513B76BA9845F3E580EFD71922E07EADC9DD3", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/sr.pak", 307758, 85063288 },
-	{ "ros_2034/locales/sv.pak", "05125215C5451A7471BA7972BF18F99D3925C1CA", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/sv.pak", 185484, 85063288 },
-	{ "ros_2034/locales/sw.pak", "1EA9F306A47DB04637D501A0FDBD0EDA5F84C80E", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/sw.pak", 189595, 85063288 },
-	{ "ros_2034/locales/ta.pak", "1C08DAA3F94E6DC72B9B275218F3DC8D496760B6", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/ta.pak", 478276, 85063288 },
-	{ "ros_2034/locales/te.pak", "BEE2FDC9533FA8552A73AB760132714338E9F84F", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/te.pak", 453971, 85063288 },
-	{ "ros_2034/locales/th.pak", "0BB6902FEA12BB6A5496AB0CD2D71B70DD26D5A2", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/th.pak", 389366, 85063288 },
-	{ "ros_2034/locales/tr.pak", "6CCC0C8B430D14335707947B897835D0529C436B", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/tr.pak", 200055, 85063288 },
-	{ "ros_2034/locales/uk.pak", "43092BD4966E2C7F2A0A3425456C61704A1BD398", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/uk.pak", 322593, 85063288 },
-	{ "ros_2034/locales/vi.pak", "CAB3084DB7531EAB27DD8A804780E7EF83D16B6C", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/vi.pak", 228436, 85063288 },
-	{ "ros_2034/locales/zh-CN.pak", "BC70FAC761065BED92E317946F6A4AF5879ECDA8", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/zh-CN.pak", 171281, 85063288 },
-	{ "ros_2034/locales/zh-TW.pak", "490DEE3F6B8B04BAF930803A8C34F51A508B5F71", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/locales/zh-TW.pak", 171913, 85063288 },
-	{ "ros_2034/swiftshader/libEGL.dll", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libEGL.dll", 139240, 85063288 },
-	{ "ros_2034/swiftshader/libGLESv2.dll", "484A9699A06A7D87EE5D2BACDF21B284F53328C5", "https://fivem.net/404-intentional-please-follow-instructions-to-prime-game-cache", "$/swiftshader/libGLESv2.dll", 3019240, 85063288 },
 #elif defined(IS_RDR3)
 	{ "RDR2.exe", "18d70b5b2232af3fc99720515ff17056ffb680be", "ipfs://bafybeidzqoqcflbtvoc6kq26vs2ok7nyana722zxrhkgiuhmjqbvx45fey", 89381520 },
 	{ "appdata0_update.rpf", "cac38190ede22da826256627879d0478070e7f37", "ipfs://bafybeiadi5o6wiykwvvjcrtyspakhkdc5d7lum5mdqekne6527wyeu5gty", 2860767 },
@@ -400,7 +324,7 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "launcher/index.bin", "85e2cc75d6d07518883ce5d377d3425b74636667", "", "", 0, 0 },
 
 #if defined(GTA_FIVE)
-	{ "GTAVLauncher.exe", "0962fb5a39d9ec40d4fce2ac636ef11dcd0457cf", "http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_1604_0.exe", "$/GTAVLauncher.exe", 21606840, 20081224 },
+	//{ "GTAVLauncher.exe", "0962fb5a39d9ec40d4fce2ac636ef11dcd0457cf", "http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_1604_0.exe", "$/GTAVLauncher.exe", 21606840, 20081224 },
 #endif
 };
 
@@ -561,8 +485,11 @@ static std::vector<GameCacheEntry> CompareCacheDifferences()
 
 					if (GetFileAttributes(cacheFileName.c_str()) == INVALID_FILE_ATTRIBUTES && (GetFileAttributes(entry.GetLocalFileName().c_str()) == INVALID_FILE_ATTRIBUTES || strncmp(entry.remotePath, "nope:", 5) != 0))
 					{
-						// as it doesn't add to the list
-						retval.push_back(entry);
+						if (entry.localSize != 0)
+						{
+							// as it doesn't add to the list
+							retval.push_back(entry);
+						}
 					}
 
 					found = true;
@@ -1109,7 +1036,7 @@ std::map<std::string, std::string> UpdateGameCache()
 	{
 		std::string origFileName = entry.filename;
 
-		if (origFileName.find("ros_2034/") == 0)
+		if (origFileName.find("ros_2034/") == 0 || origFileName.find("ros_1241/") == 0)
 		{
 			origFileName = "Social Club/" + origFileName.substr(9);
 		}

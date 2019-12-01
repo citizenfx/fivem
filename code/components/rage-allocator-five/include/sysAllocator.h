@@ -25,7 +25,7 @@ namespace rage
 
 		virtual void Free(void* pointer) = 0;
 
-		virtual void free(void* pointer)
+		inline void free(void* pointer)
 		{
 			return Free(pointer);
 		}

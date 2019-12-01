@@ -190,6 +190,7 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#if defined(IS_RDR3)
 bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey);
 
 static std::string GetRosTicket(const std::string& body)
@@ -224,35 +225,23 @@ static std::string GetRosTicket(const std::string& body)
 
 	return r.text;
 }
+#endif
 
 static InitFunction initFunction([] ()
 {
 	EndpointMapper* mapper = Instance<EndpointMapper>::Get();
 
+#if defined(IS_RDR3)
 	mapper->AddGameService("entitlements.asmx/GetTitleAccessTokenEntitlementBlock", [](const std::string& body)
 	{
 		return GetRosTicket(body);
-
-#if 0
-		auto r = cpr::Post(
-			cpr::Url{ "http://localhost:8902/entitlements.asmx/GetTitleAccessTokenEntitlementBlock" },
-			cpr::Payload{
-				{ "titleAccessToken", postData["titleAccessToken"] },
-				{ "payload", postData["payload"] },
-				{ "requestedVersion", postData["requestedVersion"] },
-			});
-
-		trace("%s\n", r.text);
-
-		return r.text;
-#endif
 	});
+#endif
 
 	mapper->AddGameService("entitlements.asmx/GetEntitlementBlock", [] (const std::string& body)
 	{
 		auto postData = ParsePOSTString(body);
 
-		//return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0\" xmlns=\"GetEntitlementBlockResponse\"><Status>1</Status><Result Version=\"1\"><Data>%s</Data></Result></Response>";
 		auto accountId = ROS_DUMMY_ACCOUNT_ID;
 		auto machineHash = postData["machineHash"];
 
@@ -264,43 +253,12 @@ static InitFunction initFunction([] ()
 		);
 	});
 
+#if defined(IS_RDR3)
 	mapper->AddGameService("entitlements.asmx/GetEntitlementBlock2", [](const std::string& body)
 	{
-		//MessageBox(NULL, ToWide(body).c_str(), L"lol", MB_OK);
-
-		//return "";
-
 		return GetRosTicket(body);
-
-#if 0
-		auto postData = ParsePOSTString(body);
-
-		auto r = cpr::Post(
-			cpr::Url{ "http://localhost:8902/app.asmx/GetTitleAccessToken" },
-			cpr::Payload{
-				{ "titleId", "13" }
-			});
-
-		auto t = r.text;
-
-		auto a = t.find("<Result>") + 8;
-		auto b = t.find("</Result>");
-
-		auto tkn = t.substr(a, b - a);
-
-		r = cpr::Post(
-			cpr::Url{ "http://localhost:8902/entitlements.asmx/GetTitleAccessTokenEntitlementBlock" },
-			cpr::Payload{
-				{ "titleAccessToken", tkn },
-				{ "payload", postData["payload"] },
-				{ "requestedVersion", postData["requestedVersion"] },
-			});
-
-		trace("%s\n", r.text);
-
-		return r.text;
-#endif
 	});
+#endif
 
 	mapper->AddGameService("entitlements.asmx/GetEntitlements", [] (const std::string& body)
 	{
@@ -596,6 +554,26 @@ static InitFunction initFunction([] ()
   </Result>
 </Response>)", rs);
 		}
+		else if (postData["branchAccessToken"].find("GTA5") != std::string::npos)
+		{
+			return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="80" VersionNumber="1.0.1604.1" BuildDateUtc="2019-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="72484280" TimestampUtc="2019-11-05T11:39:34.8800000">
+			<RelativePath>GTA5.exe</RelativePath>
+			<SHA256Hash>f5912107843d200a91c7c59e8cf6f504acfbd0a527cc69558b3710a6ef8c9c33</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="f5912107843d200a91c7c59e8cf6f504acfbd0a527cc69558b3710a6ef8c9c33" StartByteOffset="0" Size="72484280" />
+			</FileChunks>
+		</FileDetails>
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)");
+		}
 
 		return std::string{ R"(<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="RetrieveFileChunkNoAuth" ms="0">
 <Status>0</Status>
@@ -660,7 +638,11 @@ static InitFunction initFunction([] ()
       <Branches />
     </App>
     <App Id="3" Name="gta5" TitleId="11" IsReleased="true">
-	  <Branches />
+      <Branches>
+        <Branch Id="13" Name="default" BuildId="80" IsDefault="true" AppId="3">
+          <AccessToken>BRANCHACCESS token="GTA5",signature="GTA5"</AccessToken>
+        </Branch>
+      </Branches>
     </App>
     <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
 		<!--<Branches />-->

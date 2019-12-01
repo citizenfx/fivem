@@ -19,6 +19,8 @@
 #include <botan/stream_cipher.h>
 #include <botan/base64.h>
 
+#include <boost/algorithm/string.hpp>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -65,6 +67,13 @@ public:
 		std::ifstream scuiFile(MakeRelativeCitPath(L"citizen/ros/scui.html"));
 
 		m_scuiData = std::string(std::istreambuf_iterator<char>(scuiFile), std::istreambuf_iterator<char>());
+		boost::algorithm::replace_all(m_scuiData, "{{ TITLE }}",
+#if defined(GTA_FIVE)
+			"gta5"
+#else
+			"rdr2"
+#endif
+		);
 	}
 
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override

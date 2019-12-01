@@ -220,8 +220,12 @@ public:
 	{
 		//return true;
 		bool ov = m_baseRgsc->isX();
+
+#if defined(IS_RDR3)
 		return ov;
-		//return g_signedIn;
+#else
+		return g_signedIn;
+#endif
 	}
 
 	virtual bool isOnline() override
