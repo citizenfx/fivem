@@ -163,13 +163,6 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 		auto vertex = &vertices[indices[j]];
 		uint32_t color = *(uint32_t*)&vertex->color;
 
-		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
-#ifndef IS_RDR3
-		{
-			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
-		}
-#endif
-
 		rage::grcVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
 
