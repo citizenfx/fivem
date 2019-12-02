@@ -603,7 +603,7 @@ static InitFunction initFunction([]()
 
 					auto thisIt = ++it;
 
-					auth->RunAuthentication(client, postMap, [=](boost::optional<std::string> err)
+					auth->RunAuthentication(client, request, postMap, [=](boost::optional<std::string> err)
 					{
 						if (err)
 						{
