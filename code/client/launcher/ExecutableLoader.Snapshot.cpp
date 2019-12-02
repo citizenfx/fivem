@@ -15,6 +15,8 @@
 
 // 1207.77
 #define TRIGGER_EP 0x142D5F80C
+#else
+#define TRIGGER_EP 0xDECEA5ED
 #endif
 
 // on NT pre-6.3 (or 6.2, even), VEHs can't modify debug registers
