@@ -22,7 +22,7 @@ import 'rxjs/add/operator/bufferTime';
 })
 export class ServersContainerComponent implements OnInit {
     servers: { [addr: string]: Server } = {};
-    
+
     localServers: Server[]; // temp value
     icons: ServerIcon[];
 
@@ -46,6 +46,8 @@ export class ServersContainerComponent implements OnInit {
         if (isPlatformBrowser(this.platformId)) {
             this.loadServers();
         }
+
+        this.serverService.rawServers = this.servers;
     }
 
     setFilters(filters: ServerFilters) {

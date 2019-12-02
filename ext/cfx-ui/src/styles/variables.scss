@@ -13,7 +13,7 @@ $appContentMargin: 4vh;
 $appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
 $appContentWidth: calc(#{$width} - #{$appContentPadding});
 
-$appServersItemHeight: 3.0vh;
+$appServersItemHeight: 2.5vh;
 $appServersHeaderHeight: $appServersItemHeight;
 
 $filterHeight: 5.5vh;

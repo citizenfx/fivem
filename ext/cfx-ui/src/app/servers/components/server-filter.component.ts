@@ -194,10 +194,6 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
             this.selectedCompletionIndex = -1;
         }
 
-		let pingBar = document.getElementById("progress").clientWidth;
-		let widthPercent = (this.filters.maxPing-this.minPingLimit)/(this.maxPingLimit-this.minPingLimit);
-		this.maxPingPercent = widthPercent*100;
-		
         this.filtersChanged.emit(this.filters);
         localStorage.setItem(`sfilters:${this.type}`, JSON.stringify(this.filters));
     }

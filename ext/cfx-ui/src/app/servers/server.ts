@@ -14,6 +14,7 @@ export class Server {
     readonly data: any;
     readonly int: master.IServerData;
 
+    bitmap: ImageBitmap;
     onChanged = new EventEmitter<void>();
 
     realIconUri: string;
@@ -24,8 +25,11 @@ export class Server {
 
     set iconUri(value: string) {
         this.realIconUri = value;
-        this.sanitizedUri = this.sanitizer.bypassSecurityTrustUrl(value);
-        this.sanitizedStyleUri = this.sanitizer.bypassSecurityTrustStyle('url(' + value + ')');
+
+        if (this.sanitizer) {
+            this.sanitizedUri = this.sanitizer.bypassSecurityTrustUrl(value);
+            this.sanitizedStyleUri = this.sanitizer.bypassSecurityTrustStyle('url(' + value + ')');
+        }
     }
 
     sanitizedUri: any;
@@ -102,7 +106,7 @@ export class Server {
         this.data = object;
         this.int = object;
 
-        if (!object.iconVersion) {
+        if (!object.iconVersion && sanitizer) {
             const svg = Avatar.getFor(this.address);
 
             this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;

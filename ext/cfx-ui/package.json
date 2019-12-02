@@ -32,6 +32,7 @@
     "@types/color": "^3.0.0",
     "@types/js-md5": "0.4.2",
     "@types/node-forge": "^0.8.4",
+    "@types/offscreencanvas": "^2019.6.0",
     "adaptivecards": "^1.2.0",
     "angular-l10n": "^8.0.0",
     "angular2-moment": "^1.9.0",

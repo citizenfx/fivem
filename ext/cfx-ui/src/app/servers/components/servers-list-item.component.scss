@@ -78,9 +78,14 @@
 	align-items: center;
 	overflow: hidden;
 
-	font-size: $fontSize * 0.9;
+	font-size: $fontSize * 0.75;
 
 	height: $appServersItemHeight;
+
+	.name {
+		font-family: Inter !important;
+		font-feature-settings: 'case', 'liga' 1;
+	}
 
 	cursor: default;
 	user-select: none;

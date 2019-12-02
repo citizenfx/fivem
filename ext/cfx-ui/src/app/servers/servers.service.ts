@@ -25,6 +25,7 @@ import { Server, ServerIcon, PinConfig } from './server';
 import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
+import { FilterRequest } from './filter-request';
 
 const serverWorker = require('file-loader?name=worker.[hash:20].[ext]!../../worker/index.js');
 
@@ -57,6 +58,12 @@ export class ServersService {
 
     private serverCache: { [addr: string]: ServerCacheEntry } = {};
 
+    private onSortCB: ((servers: string[]) => void)[] = [];
+
+    // rawServers is a list of raw servers used for sharing between ServersContainer
+    // and ServersList
+    public rawServers: { [addr: string]: Server } = {};
+
     constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
         private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
         this.requestEvent = new Subject<string>();
@@ -77,6 +84,18 @@ export class ServersService {
                         }
                     } else if (event.data.type === 'serversDone') {
                         this.internalServerEvent.next(null);
+                    } else if (event.data.type === 'sortedServers') {
+                        if (this.onSortCB.length) {
+                            zone.run(() => {
+                                this.onSortCB[0](event.data.servers);
+                                this.onSortCB.shift();
+                            });
+                        }
+                    } else if (event.data.type === 'pushBitmap') {
+                        const addr: string = event.data.server;
+                        const bitmap: ImageBitmap = event.data.bitmap;
+
+                        this.rawServers[addr].bitmap = bitmap;
                     }
                 });
             });
@@ -85,6 +104,13 @@ export class ServersService {
                 .subscribe(url => {
                     this.worker.postMessage({ type: 'queryServers', url: url + 'stream/' });
                 });
+
+            const canvas = new OffscreenCanvas(2560, 40);
+
+            this.worker.postMessage({
+                type: 'setCanvas',
+                canvas
+            }, [ canvas ]);
 
             this.subscribeWebSocket();
         }
@@ -140,6 +166,22 @@ export class ServersService {
         }
 
         return false;
+    }
+
+    public sortAndFilter(filterRequest: FilterRequest, cb: (servers: string[]) => void) {
+        // don't try to sort when we're already trying
+        if (this.onSortCB.length > 0 && !filterRequest.fromInteraction) {
+            return false;
+        }
+
+        this.onSortCB.push(cb);
+
+        this.worker.postMessage({
+            type: 'sort',
+            data: filterRequest
+        });
+
+        return true;
     }
 
     private subscribeWebSocket() {

@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ChangeDetectionStrategy, OnDestroy, OnInit, ElementRef } from '@angular/core';
+import { Component, Input, ViewChild, ChangeDetectionStrategy, OnDestroy, OnInit, ElementRef, OnChanges, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Server } from '../server';
