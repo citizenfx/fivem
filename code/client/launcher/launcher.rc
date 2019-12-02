@@ -38,6 +38,7 @@ IDI_ICON1               ICON                    "redm.ico"
 1010					MEOW					"backdrop.png"
 #else
 1010					MEOW					"backdrop_rdr.png"
+1011					MEOW					"backdrop_ink.png"
 #endif
 
 STRINGTABLE
@@ -46,6 +47,8 @@ BEGIN
 	IDS_FOLDER_NAME, L"FiveM Application Data"
 #elif defined(IS_RDR3)
 	IDS_FOLDER_NAME, L"RedM Application Data"
+#else
+	IDS_FOLDER_NAME, L"Cfx.re Application Data"
 #endif
 END
 
