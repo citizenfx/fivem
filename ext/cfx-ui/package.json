@@ -49,6 +49,7 @@
     "fast-json-patch": "^2.1.0",
     "flag-icon-css": "^3.3.0",
     "font-awesome": "^4.7.0",
+    "hoverintent": "^2.2.1",
     "idb": "^4.0.3",
     "int64-buffer": "^0.99.1007",
     "js-md5": "0.7.3",

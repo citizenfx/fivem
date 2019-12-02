@@ -1,10 +1,13 @@
-import { Component, Input, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, ViewChild, ChangeDetectionStrategy, OnDestroy, OnInit, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Server } from '../server';
 
 import { GameService } from '../../game.service'
 import { DiscourseService, BoostData } from 'app/discourse.service';
+
+import * as hoverintent from 'hoverintent';
+import { ServersService } from '../servers.service';
 
 @Component({
     moduleId: module.id,
@@ -14,17 +17,33 @@ import { DiscourseService, BoostData } from 'app/discourse.service';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 
-export class ServersListItemComponent {
+export class ServersListItemComponent implements OnInit, OnDestroy {
     @Input()
     server: Server;
 
     @Input()
     pinned = false;
 
+    private hoverIntent: any;
+
     private upvoting = false;
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
-        private router: Router) { }
+        private serversService: ServersService, private router: Router, private elementRef: ElementRef) { }
+
+    public ngOnInit() {
+        this.hoverIntent = hoverintent(this.elementRef.nativeElement, () => {
+            this.serversService.getServer(this.server.address, true);
+        }, () => {});
+
+        this.hoverIntent.options({
+            interval: 50
+        });
+    }
+
+    public ngOnDestroy() {
+        this.hoverIntent.remove();
+    }
 
     attemptConnect(event: Event) {
         this.gameService.connectTo(this.server);

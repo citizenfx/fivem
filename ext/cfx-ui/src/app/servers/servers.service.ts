@@ -28,6 +28,20 @@ import { GameService } from '../game.service';
 
 const serverWorker = require('file-loader?name=worker.[hash:20].[ext]!../../worker/index.js');
 
+class ServerCacheEntry {
+    public server: Server;
+    public lastTime: Date;
+
+    public constructor(server: Server) {
+        this.lastTime = new Date();
+        this.server = server;
+    }
+
+    public isValid() {
+        return (new Date().getTime() - this.lastTime.getTime()) < 15000;
+    }
+}
+
 @Injectable()
 export class ServersService {
     private requestEvent: Subject<string>;
@@ -40,6 +54,8 @@ export class ServersService {
     private webSocket: ReconnectingWebSocket;
 
     private servers: {[ addr: string ]: Server} = {};
+
+    private serverCache: { [addr: string]: ServerCacheEntry } = {};
 
     constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
         private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
@@ -171,10 +187,18 @@ export class ServersService {
         this.requestEvent.next('https://servers-live.fivem.net/api/servers/');
     }
 
-    public getServer(address: string): Promise<Server> {
-        return this.httpClient.get('https://servers-live.fivem.net/api/servers/single/' + address)
+    public async getServer(address: string, force?: boolean): Promise<Server> {
+        if (this.serverCache[address] && this.serverCache[address].isValid() && !force) {
+            return this.serverCache[address].server;
+        }
+
+        const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
             .toPromise()
             .then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
+
+        this.serverCache[address] = new ServerCacheEntry(server);
+
+        return server;
     }
 
     public getServers(): Observable<Server> {
