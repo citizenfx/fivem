@@ -38,7 +38,6 @@ IDI_ICON1               ICON                    "redm.ico"
 1010					MEOW					"backdrop.png"
 #else
 1010					MEOW					"backdrop_rdr.png"
-1011					MEOW					"backdrop_ink.png"
 #endif
 
 STRINGTABLE
