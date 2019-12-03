@@ -190,6 +190,11 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 
 PeerAddress UvTcpServerStream::GetPeerAddress()
 {
+	if (!m_client)
+	{
+		return PeerAddress{};
+	}
+
 	sockaddr_storage addr;
 	int len = sizeof(addr);
 
@@ -245,7 +250,10 @@ void UvTcpServerStream::HandlePendingWrites()
 
 	while (m_pendingRequests.try_pop(request))
 	{
-		request();
+		if (m_client)
+		{
+			request();
+		}
 	}
 }
 
