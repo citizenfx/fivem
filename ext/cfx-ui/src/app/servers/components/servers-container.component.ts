@@ -1,9 +1,11 @@
 import { Component, OnInit, PLATFORM_ID, Inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { Server, ServerIcon, PinConfigCached } from '../server';
+import { Server, ServerIcon } from '../server';
+import { PinConfigCached } from '../pins';
 import { ServersService } from '../servers.service';
-import { ServerFilters, ServerFilterContainer, ServerTags } from './server-filter.component';
+import { ServerFilters, ServerTags } from './server-filter-container';
+import { ServerFilterContainer } from './server-filter-container';
 
 import { GameService } from '../../game.service';
 

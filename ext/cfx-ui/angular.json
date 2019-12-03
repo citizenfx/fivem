@@ -35,7 +35,8 @@
               "src/styles/global.scss"
             ],
             "scripts": [],
-            "baseHref": "."
+            "baseHref": ".",
+            "webWorkerTsConfig": "tsconfig.worker.json"
           },
           "configurations": {
             "production": {
@@ -161,7 +162,8 @@
           "options": {
             "tsConfig": [
               "src/tsconfig.app.json",
-              "src/tsconfig.spec.json"
+              "src/tsconfig.spec.json",
+              "tsconfig.worker.json"
             ],
             "exclude": []
           }

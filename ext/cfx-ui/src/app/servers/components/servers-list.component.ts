@@ -1,8 +1,9 @@
 import { Component, OnInit, OnChanges, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef,
     ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
-import { Server, PinConfigCached } from '../server';
+import { Server } from '../server';
+import { PinConfigCached } from '../pins';
 import { ServersListHeadingColumn } from './servers-list-header.component';
-import { ServerFilterContainer } from './server-filter.component';
+import { ServerFilterContainer } from './server-filter-container';
 import { Subject } from 'rxjs/Subject';
 import { environment } from '../../../environments/environment';
 import { LocalStorage } from '../../local-storage';

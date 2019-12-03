@@ -1,5 +1,5 @@
 import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
-import { ServerTags } from './server-filter.component';
+import { ServerTags } from './server-filter-container';
 import { ServerTagsService, ServerTag, ServerLocale } from '../server-tags.service';
 
 @Component({

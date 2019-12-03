@@ -2,11 +2,11 @@ import { Subject, from } from 'rxjs';
 
 import { bufferTime, mergeMap, finalize } from 'rxjs/operators';
 
-import { master } from '../app/servers/master';
-import { FilterRequest } from '../app/servers/filter-request';
-import { Server, PinConfigCached, PinConfig } from '../app/servers/server';
-import { ServerFilterContainer } from '../app/servers/components/server-filter.component';
-import { getCanonicalLocale } from '../app/servers/components/utils';
+import { master } from './master';
+import { FilterRequest } from './filter-request';
+import { PinConfigCached, PinConfig } from './pins';
+import { ServerFilterContainer } from './components/server-filter-container';
+import { getCanonicalLocale } from './components/utils';
 
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
@@ -92,22 +92,33 @@ class FrameReader {
     }
 }
 
-function isPinned(pinConfig: PinConfigCached, server: Server) {
+function isPinned(pinConfig: PinConfigCached, server: master.IServer) {
     if (!pinConfig || !pinConfig.pinnedServers) {
         return false;
     }
 
-    return pinConfig.pinnedServers.has(server.address);
+    return pinConfig.pinnedServers.has(server.EndPoint);
 }
 
 function quoteRe(text: string) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const sortNames: { [key: string]: string } = {};
+const stripNames: { [key: string]: string } = {};
+
+function stripName(server: master.IServerData) {
+    return (server.hostname || '').replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function sortName(server: master.IServerData) {
+    return stripName(server).replace(/[^a-zA-Z0-9]/g, '').replace(/^[0-9]+/g, '').toLowerCase();
+}
+
 function buildSearchMatch(filterList: ServerFilterContainer) {
     const filters = filterList.filters;
     const searchText = filters.searchText;
-    const filterFns: ((server: Server) => boolean)[] = [];
+    const filterFns: ((server: master.IServer) => boolean)[] = [];
 
     const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
     const categoryRe = /^([^:]*?):(.*)$/
@@ -140,7 +151,7 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
 
             try {
                 const re = new RegExp(reString, 'i');
-                filterFns.push(a => (invertSearch) ? !re.test(a.strippedname) : re.test(a.strippedname));
+                filterFns.push(a => (invertSearch) ? !re.test(stripNames[a.EndPoint]) : re.test(stripNames[a.EndPoint]));
             } catch (e) {}
         } else {
             const category = categoryMatch[1];
@@ -149,10 +160,10 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
             filterFns.push(server => {
                 let result = false;
 
-                if (server.data[category]) {
-                    result = match.test(String(server.data[category]));
-                } else if (server.data[category + 's']) {
-                    const fields = server.data[category + 's'];
+                if (server.Data[category]) {
+                    result = match.test(String(server.Data[category]));
+                } else if (server.Data[category + 's']) {
+                    const fields = server.Data[category + 's'];
 
                     if (Array.isArray(fields)) {
                         result = fields.filter(a => match.test(String(a))).length > 0;
@@ -165,12 +176,12 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
                             }
                         }
                     }
-                } else if (server.data.vars[category + 's']) {
-                    const fields = (<string>server.data.vars[category + 's']).split(',');
+                } else if (server.Data.vars[category + 's']) {
+                    const fields = (<string>server.Data.vars[category + 's']).split(',');
 
                     result = fields.filter(a => match.test(String(a))).length > 0;
-                } else if (server.data.vars[category]) {
-                    result = match.test(String(server.data.vars[category]));
+                } else if (server.Data.vars[category]) {
+                    result = match.test(String(server.Data.vars[category]));
                 }
 
                 if (invertSearch) {
@@ -182,7 +193,7 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
         }
     }
 
-    return (server: Server) => {
+    return (server: master.IServer) => {
         for (const fn of filterFns) {
             if (!fn(server)) {
                 return false;
@@ -193,17 +204,17 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
     };
 }
 
-function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer): (server: Server) => boolean {
+function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer): (server: master.IServer) => boolean {
     const nameMatchCallback = buildSearchMatch(filterList);
     const filters = filterList.filters;
 
-    const hiddenByTags = (server: Server) => {
+    const hiddenByTags = (server: master.IServer) => {
         const tagListEntries = (filterList.tags) ? Object.entries(filterList.tags.tagList) : [];
 
         if (tagListEntries.length > 0) {
             const tags =
-                (server && server.data && server.data.vars && server.data.vars.tags) ?
-                    (<string>server.data.vars.tags)
+                (server && server.Data && server.Data.vars && server.Data.vars.tags) ?
+                    (<string>server.Data.vars.tags)
                         .split(',')
                         .map(a => a.trim().toLowerCase())
                         .filter(a => a)
@@ -228,14 +239,14 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
         return false;
     };
 
-    const hiddenByLocales = (server: Server) => {
+    const hiddenByLocales = (server: master.IServer) => {
         const localeListEntries = (filterList.tags) ? Object.entries(filterList.tags.localeList) : [];
 
         let matchesLocales = true;
 
         if (localeListEntries.length > 0) {
-            const sl = (server && server.data && server.data.vars && server.data.vars.locale
-                && getCanonicalLocale(server.data.vars.locale));
+            const sl = (server && server.Data && server.Data.vars && server.Data.vars.locale
+                && getCanonicalLocale(server.Data.vars.locale));
 
             matchesLocales = false;
 
@@ -260,13 +271,13 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
             return false;
         }
 
-        if (server.currentPlayers === 0 && filters.hideEmpty) {
+        if (server.Data.clients === 0 && filters.hideEmpty) {
             if (!isPinned(pinConfig, server) || !pinConfig.data.pinIfEmpty) {
                 return false;
             }
         }
 
-        if (server.currentPlayers >= server.maxPlayers && filters.hideFull) {
+        if (server.Data.clients >= server.Data.svMaxclients && filters.hideFull) {
             return false;
         }
 
@@ -283,6 +294,21 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
         }
 
         return true;
+    }
+}
+
+function getSortable(server: master.IServer, name: string): any {
+    switch (name) {
+        case 'name':
+            return sortNames[server.EndPoint];
+        case 'ping':
+            return 0;
+        case 'players':
+            return server.Data.clients || 0;
+        case 'upvotePower':
+            return server.Data.upvotePower || 0;
+        default:
+            throw new Error('Unknown sortable');
     }
 }
 
@@ -315,10 +341,19 @@ onmessage = (e: MessageEvent) => {
         const filterRequest: FilterRequest = e.data.data;
         const pinConfig = new PinConfigCached(filterRequest.pinConfig as unknown as PinConfig);
 
-        const servers = (filterRequest.servers.map(a => Server.fromObject(null, a[0], a[1])) || [])
+        for (const [ addr, data ] of filterRequest.servers) {
+            sortNames[addr] = sortName(data);
+            stripNames[addr] = stripName(data);
+        }
+
+        const servers = (filterRequest.servers
+            .map(a => ({
+                EndPoint: a[0],
+                Data: a[1]
+            })) || [])
             .filter(getFilter(pinConfig, filterRequest.filters));
 
-        const sortChain = (a: Server, b: Server, ...stack: ((a: Server, b: Server) => number)[]) => {
+        const sortChain = (a: master.IServer, b: master.IServer, ...stack: ((a: master.IServer, b: master.IServer) => number)[]) => {
             for (const entry of stack) {
                 const retval = entry(a, b);
 
@@ -334,9 +369,9 @@ onmessage = (e: MessageEvent) => {
             const name = sortable[0];
             const invert = (sortable[1] === '-');
 
-            const sort = (a: Server, b: Server) => {
-                const val1 = a.getSortable(name);
-                const val2 = b.getSortable(name);
+            const sort = (a: master.IServer, b: master.IServer) => {
+                const val1 = getSortable(a, name);
+                const val2 = getSortable(b, name);
 
                 if (val1 > val2) {
                     return 1;
@@ -350,14 +385,14 @@ onmessage = (e: MessageEvent) => {
             };
 
             if (invert) {
-                return (a: Server, b: Server) => -(sort(a, b));
+                return (a: master.IServer, b: master.IServer) => -(sort(a, b));
             } else {
                 return sort;
             }
         };
 
         const sortList = [
-            (a: Server, b: Server) => {
+            (a: master.IServer, b: master.IServer) => {
                 const aPinned = isPinned(pinConfig, a);
                 const bPinned = isPinned(pinConfig, b);
 
@@ -384,7 +419,7 @@ onmessage = (e: MessageEvent) => {
 
         (<any>postMessage)({
             type: 'sortedServers',
-            servers: servers.map((a: Server) => a.address)
+            servers: servers.map((a: master.IServer) => a.EndPoint)
         });
     }
 };

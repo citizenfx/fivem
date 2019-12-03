@@ -69,6 +69,7 @@
     "unicode-substring": "^1.0.0",
     "webpack": "^4.35.0",
     "webpack-dev-server": "^3.7.2",
+    "worker-loader": "^2.0.0",
     "xml-js": "^1.6.11",
     "zone.js": "^0.9.1"
   },

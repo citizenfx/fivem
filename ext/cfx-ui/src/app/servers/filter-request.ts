@@ -1,5 +1,5 @@
-import { PinConfig } from "./server";
-import { ServerFilterContainer } from "./components/server-filter.component";
+import { PinConfig } from "./pins";
+import { ServerFilterContainer } from "./components/server-filter-container";
 import { master } from "./master";
 
 export class FilterRequest {

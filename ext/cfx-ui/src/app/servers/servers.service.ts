@@ -20,14 +20,13 @@ import 'rxjs/add/operator/map';
 
 import ReconnectingWebSocket from 'reconnecting-websocket';
 
-import { Server, ServerIcon, PinConfig } from './server';
+import { Server } from './server';
+import { PinConfig } from './pins';
 
 import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
-
-const serverWorker = require('file-loader?name=worker.[hash:20].[ext]!../../worker/index.js');
 
 class ServerCacheEntry {
     public server: Server;
@@ -73,7 +72,7 @@ export class ServersService {
 
         // only enable the worker if streams are supported
         if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
-            this.worker = new Worker(serverWorker);
+            this.worker = new Worker('./servers.worker', { type: 'module' });
             zone.runOutsideAngular(() => {
                 this.worker.addEventListener('message', (event) => {
                     if (event.data.type === 'addServers') {
