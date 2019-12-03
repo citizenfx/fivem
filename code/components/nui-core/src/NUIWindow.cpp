@@ -383,7 +383,7 @@ void NUIWindow::Initialize(CefString url)
 	m_client = new NUIClient(this);
 
 	CefWindowInfo info;
-	info.SetAsWindowless(g_nuiGi->GetHWND());
+	info.SetAsWindowless(NULL);
 	info.shared_texture_enabled = (!CfxIsWine() && nuiSharedResourcesEnabled);
 	info.external_begin_frame_enabled = true;
 	info.width = m_width;
