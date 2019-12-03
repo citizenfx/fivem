@@ -31,6 +31,8 @@
 #include <nng/protocol/reqrep0/req.h>
 #include <nng/protocol/reqrep0/rep.h>
 
+#include <KeyedRateLimiter.h>
+
 #ifdef _WIN32
 #include <ResumeComponent.h>
 #endif
@@ -1059,6 +1061,13 @@ namespace fx
 		{
 			void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& dataView) const
 			{
+				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
+
+				if (!limiter->Consume(from))
+				{
+					return;
+				}
+
 				std::string data(dataView);
 
 				gscomms_execute_callback_on_main_thread([=]()
@@ -1079,11 +1088,6 @@ namespace fx
 
 						std::string printString;
 
-						PrintListenerContext context([&](const std::string_view& print)
-						{
-							printString += print;
-						});
-
 						ScopeDestructor destructor([&]()
 						{
 							server->SendOutOfBand(from, "print " + printString);
@@ -1091,15 +1095,26 @@ namespace fx
 
 						if (serverPassword.empty())
 						{
-							trace("The server must set rcon_password to be able to use this command.\n");
+							printString += "The server must set rcon_password to be able to use this command.\n";
 							return;
 						}
 
 						if (password != serverPassword)
 						{
-							trace("Invalid password.\n");
+							printString += "Invalid password.\n";
 							return;
 						}
+
+						// log rcon request
+						trace("Rcon from %s\n%s\n", from.ToString(), command);
+
+						// reset rate limit for this key
+						limiter->Reset(from);
+
+						PrintListenerContext context([&](const std::string_view& print)
+						{
+							printString += print;
+						});
 
 						auto ctx = server->GetInstance()->GetComponent<console::Context>();
 						ctx->ExecuteBuffer();
@@ -1376,6 +1391,7 @@ static InitFunction initFunction([]()
 			)
 		);
 
+		instance->SetComponent(new fx::PeerAddressRateLimiterStore(instance->GetComponent<console::Context>().GetRef()));
 		instance->SetComponent(new fx::ServerDecorators::HostVoteCount());
 	});
 
