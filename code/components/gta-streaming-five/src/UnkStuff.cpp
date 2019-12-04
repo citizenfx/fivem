@@ -728,5 +728,5 @@ static HookFunction hookFunction([] ()
 	// trace ERR_GEN_ZLIB_2 errors
 	CompTrace();
 
-	HookStereo();
+	//HookStereo();
 });
