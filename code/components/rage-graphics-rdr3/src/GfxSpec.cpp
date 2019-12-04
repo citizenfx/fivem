@@ -418,7 +418,8 @@ static void WrapEndDraw(void* cxt)
 
 	// get swapchain backbuffer
 	void* rt[1];
-	rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1984i64))(*(uint64_t*)sgaDriver);
+	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1984i64))(*(uint64_t*)sgaDriver);
+	rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1992i64))(*(uint64_t*)sgaDriver);
 
 	static auto ds = hook::get_address<int*>(hook::get_pattern("44 8B CE 48 8B 05 ? ? ? ? 33 C9 48 89", 6));
 

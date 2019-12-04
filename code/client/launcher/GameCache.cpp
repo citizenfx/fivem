@@ -182,14 +182,14 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "update/x64/dlcpacks/mpbattle/dlc1.rpf", "b16fb76065132f5f9af4b2a92431b9f91b670542", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 992296960 },
 	{ "update/x64/dlcpacks/patchday19ng/dlc.rpf", "3373311add1eb5ff850e1f3fbb7d15512cbc5b8b", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 765630464 },
 
-	//DLCPacks19
+	//DLCPacks19m
 	{ "update/x64/dlcpacks/mpchristmas2018/dlc.rpf", "c4cda116420f14a28e5a999740cc53cf53a950ec", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3247781888 },
 	{ "update/x64/dlcpacks/patchday20ng/dlc.rpf", "fbba396a0ede622e08f76c5ced8ac1d6839c0227", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 457129984 },
 #elif defined(IS_RDR3)
-	{ "RDR2.exe", "18d70b5b2232af3fc99720515ff17056ffb680be", "ipfs://bafybeidzqoqcflbtvoc6kq26vs2ok7nyana722zxrhkgiuhmjqbvx45fey", 89381520 },
-	{ "appdata0_update.rpf", "cac38190ede22da826256627879d0478070e7f37", "ipfs://bafybeiadi5o6wiykwvvjcrtyspakhkdc5d7lum5mdqekne6527wyeu5gty", 2860767 },
-	{ "update.rpf", "401b9bceb2e8b8657e290856819ca753c0b19851", "ipfs://bafybeiebkp2ozscfpnxnwrvbutqud2i4mjtnlc4z2hj7dovrufkj7tcpvu", 2801194246 },
-	{ "shaders_x64.rpf", "78b5e4b5cc89338950c9bf27ad078190447e7291", "ipfs://bafybeidhiu2teenx452t7o5at63ewnpiv7cl4urdj3v5xlok3jc6o5vh4u", 233006430 },
+	{ "RDR2.exe", "d871791c58b8be77cd795e87bd54579a8a675478", "ipfs://bafybeiaebqmvwp4jrn67pnxwn7xlhdmu5zhhttznjyy6dyh5hwytzvvp7a", 89394320 },
+	{ "appdata0_update.rpf", "a13b353f014795ee9b124f48b604d3bd574c84a1", "ipfs://bafybeib67jvkayqfwxefk3hl5n7bqkfywzblpl5tilvmg5d76svljfedna", 2860767 },
+	{ "update.rpf", "9c8e93403cc7373c8cff08f546d77e2b605af2ff", "ipfs://bafybeig54htb3obdxulky3iaftwypas27vrosiqlmaomvfuvnxgs7b5lrm", 2801194246 },
+	{ "shaders_x64.rpf", "616783553892ae59df12945a29814226d9f90f5a", "ipfs://bafybeiggp4ugvb232v3fwtadswaxoiafo4uyyhpvp2k5v745zpcsxt6vmy", 233006494 },
 #endif
 
 	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "ipfs://bafybeicam5f3ptgq6oazcswjcksb5xwnxwed2jhcelbcnpj43zcvg62dyi", 37970576 },

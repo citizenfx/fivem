@@ -276,7 +276,7 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 		return;
 	}
 
-	g_f = hook::get_call(hook::get_pattern("B2 01 B9 2F A9 C2 F4", -21));
+	g_f = hook::get_call(hook::get_pattern("B2 01 B9 2F A9 C2 F4", -25));
 	memcpy(g_b, g_f, 5);
 	hook::jump(g_f, ThisIsActuallyLaunchery);
 
