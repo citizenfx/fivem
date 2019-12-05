@@ -452,7 +452,7 @@ if (!$DontBuild -and !$IsServer) {
     
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
 
-    if (!$IsLauncher -and !$IsRDR) {
+    if (!$IsLauncher) {
         if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
             Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
         }
