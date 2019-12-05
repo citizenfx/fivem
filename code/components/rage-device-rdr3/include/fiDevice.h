@@ -44,11 +44,11 @@ public:
 public:
 	virtual ~fiDevice() = 0;
 
-	virtual uint64_t Open(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags) = 0;
+	virtual uint64_t OpenFlags(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags) = 0;
 
-	virtual uint64_t Open(uint32_t* hashValue) = 0;
+	virtual uint64_t OpenHash(uint32_t* hashValue) = 0;
 
-	virtual uint64_t Open(uint32_t* hashValue, int extension) = 0;
+	virtual uint64_t OpenHashExt(uint32_t* hashValue, int extension) = 0;
 
 	virtual uint64_t Open(const char* fileName, bool readOnly) = 0;
 
@@ -60,9 +60,9 @@ public:
 	// CreateBulk
 	virtual uint64_t CreateLocal(const char* fileName) = 0;
 
-	virtual uint64_t Create(const char* fileName) = 0;
+	virtual uint64_t CreateFlags(const char* fileName, uint32_t shareFlags, uint32_t openFlags) = 0;
 
-	virtual uint64_t Create(const char* fileName, uint32_t shareFlags, uint32_t openFlags) = 0;
+	virtual uint64_t Create(const char* fileName) = 0;
 
 	virtual uint32_t Read(uint64_t handle, void* buffer, uint32_t toRead) = 0;
 
@@ -226,11 +226,11 @@ protected:
 public:
 	virtual ~fiDeviceImplemented();
 
-	virtual uint64_t Open(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags) override;
+	virtual uint64_t OpenFlags(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags) override;
 
-	virtual uint64_t Open(uint32_t* hashValue) override;
+	virtual uint64_t OpenHash(uint32_t* hashValue) override;
 
-	virtual uint64_t Open(uint32_t* hashValue, int extension) override;
+	virtual uint64_t OpenHashExt(uint32_t* hashValue, int extension) override;
 
 	virtual uint64_t Open(const char* fileName, bool readOnly) override;
 
@@ -242,7 +242,7 @@ public:
 	// CreateBulk
 	virtual uint64_t CreateLocal(const char* fileName) override;
 
-	virtual uint64_t Create(const char* fileName, uint32_t shareFlags, uint32_t openFlags) override;
+	virtual uint64_t CreateFlags(const char* fileName, uint32_t shareFlags, uint32_t openFlags) override;
 
 	virtual uint64_t Create(const char* fileName) override;
 

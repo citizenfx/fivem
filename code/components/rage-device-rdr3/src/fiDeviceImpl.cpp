@@ -16,17 +16,17 @@ fiDeviceImplemented::~fiDeviceImplemented()
 
 }
 
-uint64_t fiDeviceImplemented::Open(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags)
+uint64_t fiDeviceImplemented::OpenFlags(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags)
 {
 	PURECALL();
 }
 
-uint64_t fiDeviceImplemented::Open(uint32_t* hashValue)
+uint64_t fiDeviceImplemented::OpenHash(uint32_t* hashValue)
 {
 	PURECALL();
 }
 
-uint64_t fiDeviceImplemented::Open(uint32_t* hashValue, int extension)
+uint64_t fiDeviceImplemented::OpenHashExt(uint32_t* hashValue, int extension)
 {
 	PURECALL();
 }
@@ -51,7 +51,7 @@ uint64_t fiDeviceImplemented::CreateLocal(const char* fileName)
 	PURECALL();
 }
 
-uint64_t fiDeviceImplemented::Create(const char* fileName, uint32_t shareFlags, uint32_t openFlags)
+uint64_t fiDeviceImplemented::CreateFlags(const char* fileName, uint32_t shareFlags, uint32_t openFlags)
 {
 	PURECALL();
 }

@@ -28,24 +28,24 @@ fiCustomDevice::~fiCustomDevice()
 
 }
 
-uint64_t WRAPPER fiCustomDevice::Open(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags)
+uint64_t WRAPPER fiCustomDevice::OpenFlags(const char* fileName, bool readOnly, uint32_t shareFlags, uint32_t openFlags)
 {
-	return m_parentDeviceRef->Open(fileName, readOnly, shareFlags, openFlags);
+	return m_parentDeviceRef->OpenFlags(fileName, readOnly, shareFlags, openFlags);
 }
 
-uint64_t fiCustomDevice::Open(uint32_t* hashValue)
+uint64_t fiCustomDevice::OpenHash(uint32_t* hashValue)
 {
-	return m_parentDeviceRef->Open(hashValue);
+	return m_parentDeviceRef->OpenHash(hashValue);
 }
 
-uint64_t fiCustomDevice::Open(uint32_t* hashValue, int extension)
+uint64_t fiCustomDevice::OpenHashExt(uint32_t* hashValue, int extension)
 {
-	return m_parentDeviceRef->Open(hashValue, extension);
+	return m_parentDeviceRef->OpenHashExt(hashValue, extension);
 }
 
-uint64_t fiCustomDevice::Create(const char* fileName, uint32_t shareFlags, uint32_t openFlags)
+uint64_t fiCustomDevice::CreateFlags(const char* fileName, uint32_t shareFlags, uint32_t openFlags)
 {
-	return m_parentDeviceRef->Create(fileName, shareFlags, openFlags);
+	return m_parentDeviceRef->CreateFlags(fileName, shareFlags, openFlags);
 }
 
 int fiCustomDevice::ReadFile(const char* path, void* buffer, int size)
