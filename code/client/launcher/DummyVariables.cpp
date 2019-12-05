@@ -780,7 +780,6 @@ __declspec(thread) int tls768;
 __declspec(thread) int tls769;
 __declspec(thread) int tls770;
 __declspec(thread) int tls771;
-#if defined(PAYNE) || defined(IS_RDR3) || defined(GTA_FIVE)
 __declspec(thread) int tls772;
 __declspec(thread) int tls773;
 __declspec(thread) int tls774;
@@ -957,6 +956,7 @@ __declspec(thread) int tls944;
 __declspec(thread) int tls945;
 __declspec(thread) int tls946;
 __declspec(thread) int tls947;
+#if defined(PAYNE) || defined(IS_RDR3)
 __declspec(thread) int tls948;
 __declspec(thread) int tls949;
 __declspec(thread) int tls950;

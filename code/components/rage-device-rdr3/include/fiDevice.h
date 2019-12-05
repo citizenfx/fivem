@@ -60,9 +60,9 @@ public:
 	// CreateBulk
 	virtual uint64_t CreateLocal(const char* fileName) = 0;
 
-	virtual uint64_t Create(const char* fileName, uint32_t shareFlags, uint32_t openFlags) = 0;
-
 	virtual uint64_t Create(const char* fileName) = 0;
+
+	virtual uint64_t Create(const char* fileName, uint32_t shareFlags, uint32_t openFlags) = 0;
 
 	virtual uint32_t Read(uint64_t handle, void* buffer, uint32_t toRead) = 0;
 

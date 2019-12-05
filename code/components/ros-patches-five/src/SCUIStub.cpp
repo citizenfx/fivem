@@ -332,7 +332,11 @@ public:
 		{
 			auto r = cpr::Post(cpr::Url{ "http://ros.citizenfx.internal/launcher/11/launcherservices/app.asmx/GetTitleAccessToken" }, cpr::Body{ EncryptROSData(BuildPOSTString({
 				{ "ticket", ticket },
+#ifdef IS_RDR3
+				{ "titleId", "13" },
+#else
 				{ "titleId", (isEntitlementsV3) ? "13" : "11" }, // gta5 is 11
+#endif
 				}), sessionKey)
 			}, cpr::Header{
 				{ "User-Agent", GetROSVersionString() },

@@ -28,6 +28,10 @@
 
 #include <MonoThreadAttachment.h>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
 static std::map<std::string, fx::ServerIdentityProviderBase*> g_providersByType;
 
@@ -323,13 +327,13 @@ static InitFunction initFunction([]()
 
 			TicketData ticketData;
 
-			if (!lanVar->GetValue() && intendedGameName != "rdr3")
+			if (!lanVar->GetValue())
 			{
 				auto ticketIt = postMap.find("cfxTicket");
 
 				if (ticketIt == postMap.end())
 				{
-					sendError("No FiveM ticket was specified. If this is an offline server, maybe set sv_lan?");
+					sendError("No CitizenFX ticket was specified. If this is an offline server, maybe set sv_lan?");
 					return;
 				}
 
@@ -337,7 +341,7 @@ static InitFunction initFunction([]()
 				{
 					if (!VerifyTicket(guid, ticketIt->second))
 					{
-						sendError("FiveM ticket authorization failed.");
+						sendError("CitizenFX ticket authorization failed.");
 						return;
 					}
 
@@ -345,7 +349,7 @@ static InitFunction initFunction([]()
 
 					if (!optionalTicket)
 					{
-						sendError("FiveM ticket authorization failed. (2)");
+						sendError("CitizenFX ticket authorization failed. (2)");
 						return;
 					}
 
@@ -353,7 +357,7 @@ static InitFunction initFunction([]()
 				}
 				catch (const std::exception& e)
 				{
-					sendError(fmt::sprintf("Parsing error while verifying FiveM ticket. %s", e.what()));
+					sendError(fmt::sprintf("Parsing error while verifying CitizenFX ticket. %s", e.what()));
 					return;
 				}
 			}
@@ -405,9 +409,36 @@ static InitFunction initFunction([]()
 					hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]));
 			}
 
+			bool gameNameMatch = false;
+
 			if (ticketData.extraJson)
 			{
+				try
+				{
+					json json = json::parse(*ticketData.extraJson);
+
+					if (json["gn"].is_string())
+					{
+						auto sentGameName = json["gn"].get<std::string>();
+
+						if (sentGameName == intendedGameName)
+						{
+							gameNameMatch = true;
+						}
+					}
+				}
+				catch (std::exception& e)
+				{
+
+				}
+
 				client->SetData("entitlementJson", *ticketData.extraJson);
+			}
+
+			if (!gameNameMatch)
+			{
+				sendError("CitizenFX ticket authorization failed. (3)");
+				return;
 			}
 
 			client->Touch();

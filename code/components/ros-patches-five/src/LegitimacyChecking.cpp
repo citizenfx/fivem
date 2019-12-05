@@ -20,7 +20,6 @@ __declspec(dllexport) void IDidntDoNothing()
 
 }
 
-#ifdef GTA_FIVE
 // {E091E21C-C61F-49F6-8560-CEF64DC42002}
 #define INITGUID
 #include <guiddef.h>
@@ -28,6 +27,11 @@ __declspec(dllexport) void IDidntDoNothing()
 // {38D8F400-AA8A-4784-A9F0-26A08628577E}
 DEFINE_GUID(CfxStorageGuid,
 	0x38d8f400, 0xaa8a, 0x4784, 0xa9, 0xf0, 0x26, 0xa0, 0x86, 0x28, 0x57, 0x7e);
+
+// {45ACDD04-ECA8-4C35-9622-4FAB4CA16E14}
+DEFINE_GUID(CfxStorageGuidRDR,
+	0x45acdd04, 0xeca8, 0x4c35, 0x96, 0x22, 0x4f, 0xab, 0x4c, 0xa1, 0x6e, 0x14);
+
 
 #pragma comment(lib, "rpcrt4.lib")
 
@@ -41,7 +45,14 @@ std::string GetOwnershipPath()
         CoTaskMemFree(appDataPath);
 
         RPC_CSTR str;
+
+#ifdef GTA_FIVE
         UuidToStringA(&CfxStorageGuid, &str);
+#elif defined(IS_RDR3)
+		UuidToStringA(&CfxStorageGuidRDR, &str);
+#else
+#error No entitlement GUID?
+#endif
 
         cfxPath += "\\";
         cfxPath += (char*)str;
@@ -193,6 +204,7 @@ void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
 
 bool VerifySteamOwnership()
 {
+#ifdef GTA_FIVE
     // init Steam
     SetEnvironmentVariable(L"SteamAppId", L"271590");
 
@@ -252,6 +264,7 @@ bool VerifySteamOwnership()
 		g_entitlementSource = r.text;
 		return true;
 	}
+#endif
 
 	return false;
 }
@@ -597,8 +610,15 @@ void RunLegitimacyNui();
 
 std::string g_rosData;
 
+#if defined(IS_RDR3)
+#include <array>
+
+bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey);
+#endif
+
 bool VerifyRetailOwnership()
 {
+#ifdef GTA_FIVE
 	RunLegitimacyNui();
 
 	if (g_rosData.empty())
@@ -616,6 +636,19 @@ bool VerifyRetailOwnership()
 	Botan::AutoSeeded_RNG rng;
 	auto machineHash = rng.random_vec(32);
 	*(uint64_t*)& machineHash[4] = atoi(doc["RockstarId"].GetString()) ^ 0xDEADCAFEBABEFEED;
+#else
+	std::string ticket;
+	std::array<uint8_t, 16> sessionKeyArray;
+	std::string sessionTicket;
+
+	assert(GetMTLSessionInfo(ticket, sessionTicket, sessionKeyArray));
+
+	Botan::AutoSeeded_RNG rng;
+	auto machineHash = rng.random_vec(32);
+	*(uint64_t*)&machineHash[4] = ROS_DUMMY_ACCOUNT_ID ^ 0xDEADCAFEBABEFEED;
+
+	std::string sessionKey = Botan::base64_encode(sessionKeyArray.data(), 16);
+#endif
 
 	rapidjson::Document doc2;
 	doc2.SetObject();
@@ -665,10 +698,24 @@ bool VerifyRetailOwnership()
 								{
 									std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
 
+#ifdef GTA_FIVE
 									if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
+#else
+									if (friendlyName.find("Red Dead Redemption 2") == 0)
+#endif
 									{
 										auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros" },
-											cpr::Payload{ { "rosData", b.text } });
+											cpr::Payload{
+												{ "rosData", b.text },
+												{
+													"gameName",
+#ifdef GTA_FIVE
+													"gta5"
+#elif defined(IS_RDR3)
+													"rdr3"
+#endif
+												},
+											});
 
 										if (r.error)
 										{
@@ -700,12 +747,14 @@ bool VerifyRetailOwnership()
 			}
 		}
 
+#ifdef GTA_FIVE
 		// create a thread as CEF does something odd to the current thread's win32k functionality leading to a crash as it's already shut down
 		// we pass using & since we join
 		std::thread([&doc]()
 		{
 			MessageBox(nullptr, va(L"The Social Club account specified (%s) does not own a valid license to Grand Theft Auto V.", ToWide(doc["OrigNickname"].GetString())), L"Authentication error", MB_OK | MB_ICONWARNING);
 		}).join();
+#endif
 	}
 	else if (!b.error)
 	{
@@ -761,30 +810,3 @@ static HookFunction hookFunction([]()
 
 	tokenVar->GetHelper()->SetValue(g_entitlementSource);
 });
-#else
-std::string g_entitlementSource;
-std::string g_rosData;
-
-bool LoadOwnershipTicket()
-{
-	return true;
-}
-
-void VerifyOwnership(int parentPid)
-{
-
-}
-
-std::string GetOwnershipPath()
-{
-	return "";
-}
-
-namespace ros
-{
-	std::string GetEntitlementSource()
-	{
-		return "";
-	}
-}
-#endif

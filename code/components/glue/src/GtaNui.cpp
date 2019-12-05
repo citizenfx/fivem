@@ -213,6 +213,24 @@ void GtaNuiInterface::GetGameResolution(int* width, int* height)
 
 GITexture* GtaNuiInterface::CreateTexture(int width, int height, GITextureFormat format, void* pixelData)
 {
+#ifdef GTA_FIVE
+	rage::sysMemAllocator::UpdateAllocatorValue();
+	auto pixelMem = std::make_shared<std::vector<uint8_t>>(width * height * 4);
+	memcpy(pixelMem->data(), pixelData, pixelMem->size());
+
+	rage::grcTextureReference reference;
+	memset(&reference, 0, sizeof(reference));
+	reference.width = width;
+	reference.height = height;
+	reference.depth = 1;
+	reference.stride = width * 4;
+	reference.format = (format == GITextureFormat::ARGB) ? 11 : -1; // dxt5?
+	reference.pixelData = (uint8_t*)pixelData;
+
+	rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+
+	return new GtaNuiTexture(texture);
+#else
 	auto pixelMem = std::make_shared<std::vector<uint8_t>>(width * height * 4);
 	memcpy(pixelMem->data(), pixelData, pixelMem->size());
 
@@ -229,6 +247,7 @@ GITexture* GtaNuiInterface::CreateTexture(int width, int height, GITextureFormat
 
 		return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
 	});
+#endif
 }
 
 GITexture* GtaNuiInterface::CreateTextureBacking(int width, int height, GITextureFormat format)

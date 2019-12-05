@@ -10,6 +10,8 @@
 #include <MonitorInstance.h>
 #include <ServerInstanceBaseRef.h>
 
+#include <KeyedRateLimiter.h>
+
 #include <console/OptionTokenizer.h>
 #include <boost/filesystem.hpp>
 
@@ -198,6 +200,7 @@ FXServerMonitor is watching over the servers
 		// initialize early components
 		SetComponent(new fx::TcpListenManager());
 		SetComponent(new fx::HttpServerManager());
+		SetComponent(new fx::PeerAddressRateLimiterStore(GetComponent<console::Context>().GetRef()));
 
 		// grant Se access
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command" }, se::AccessType::Allow);

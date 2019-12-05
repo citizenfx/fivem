@@ -695,6 +695,13 @@ static InitFunction initFunction2([]()
 	fx::ScriptEngine::RegisterNativeHandler("SCHEDULE_RESOURCE_TICK", [](fx::ScriptContext& context)
 	{
 		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// #TODOMONITOR: make helper
+		if (resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode")->GetValue() != "0")
+		{
+			return;
+		}
+
 		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		gscomms_execute_callback_on_main_thread([resource]()
