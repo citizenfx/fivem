@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
 using CitizenFX.Core;
@@ -20,13 +21,18 @@ namespace FxMonitor
 
         private Process m_process;
         private int? m_port;
-        private string m_nucleusUrl;
+        private string m_nucleusUrl = "";
+
+        private DateTime m_lastHealthCheck;
+        private HttpClient m_httpClient;
+        private ExponentialBackoff m_backoff;
 
         public string Name => m_instanceConfig.Name;
 
         private static string ms_rootPath;
 
         private nng.IPairSocket m_pair;
+        private PipePeer m_peer;
         private bool m_hadPipe;
 
         static Instance()
@@ -36,7 +42,9 @@ namespace FxMonitor
 
         public Instance(InstanceConfig instanceConfig)
         {
-            this.m_instanceConfig = instanceConfig;
+            m_instanceConfig = instanceConfig;
+            m_backoff = new ExponentialBackoff(int.MaxValue, 1000, 30000);
+            m_httpClient = new HttpClient();
         }
 
         public async Task Update()
@@ -90,6 +98,11 @@ namespace FxMonitor
                 {
                     try
                     {
+                        if (m_process == null)
+                        {
+                            return;
+                        }
+
                         var pid = m_process.Id;
 
                         // c# isnt f# or rust
@@ -106,21 +119,27 @@ namespace FxMonitor
 
                         m_pair = pairResult.Unwrap();
 
+                        m_peer = new PipePeer(m_pair);
+                        m_peer.Start();
+
+                        m_peer.CommandReceived += async cmd =>
+                        {
+                            await HandleCommand(cmd);
+                        };
+
+                        m_peer.TargetUnreachable += () =>
+                        {
+                            m_pair = null;
+                        };
+
                         m_hadPipe = true;
 
                         while (m_pair != null && m_process != null && pid == m_process.Id)
                         {
-                            // he tried, ok
-                            if (m_pair.RecvMsg().TryOk(out var message))
-                            {
-                                var cmd = Serializer.Deserialize<BaseCommand>(new MemoryStream(message.AsSpan().ToArray()));
-
-                                if (cmd != null)
-                                {
-                                    await HandleCommand(cmd);
-                                }
-                            }
+                            await Task.Delay(500);
                         }
+
+                        m_peer.Stop();
                     }
                     catch (Exception e) { Debug.WriteLine(e.ToString()); }
                 }
@@ -144,12 +163,12 @@ namespace FxMonitor
                         urlBit = $", ^4{cd.NucleusUrl}^7";
                     }
 
-                    m_nucleusUrl = cd.NucleusUrl;
                     Debug.WriteLine($"^2>^7 {Name} (:{m_port}{urlBit})");
                     break;
                 }
                 case 3:
                     m_nucleusUrl = command.DeserializeAs<NucleusConnectedCommand>().Url;
+                    m_backoff = new ExponentialBackoff(int.MaxValue, 1000, 30000);
                     Debug.WriteLine($"^2:^7 {Name} -> ^4{m_nucleusUrl}^7");
                     break;
             }
@@ -218,14 +237,12 @@ namespace FxMonitor
                             ? $"\"{a}\""
                             : a));
 
-            psi.UseShellExecute = false;
             psi.CreateNoWindow = false;
             psi.WindowStyle = ProcessWindowStyle.Normal;
 
+            psi.UseShellExecute = false;
             psi.RedirectStandardError = true;
             psi.RedirectStandardOutput = true;
-
-            // TODO: redirect stdout/stderr and handle closure(?)
 
             m_process = new Process();
             m_process.StartInfo = psi;
@@ -234,17 +251,33 @@ namespace FxMonitor
                 await BaseScript.Delay(5000);
             }
 
-            void PrintOutput(object sender, DataReceivedEventArgs args) =>
-                Debug.WriteLine("^5!^7 {0} => {1}", Name, args.Data);
-
-            if (GetConvar("monitor_showServerOutput", "0") != "0")
+            void PrintOutput(string data)
             {
-                m_process.OutputDataReceived += PrintOutput;
-                m_process.ErrorDataReceived += PrintOutput;
+                if (GetConvar("monitor_showServerOutput", "0") != "0")
+                {
+                    Debug.WriteLine("^5!^7 {0} => {1}", Name, data);
+                }
             }
 
-            m_process.BeginOutputReadLine();
-            m_process.BeginErrorReadLine();
+            void PrintTask(StreamReader source)
+            {
+                Task.Run(async () =>
+                {
+                    while (!source.EndOfStream)
+                    {
+                        try
+                        {
+                            var read = await source.ReadLineAsync();
+
+                            PrintOutput(read);
+                        }
+                        catch { }
+                    }
+                });
+            }
+
+            PrintTask(m_process.StandardOutput);
+            PrintTask(m_process.StandardError);
 
             // save a pidfile
             Directory.CreateDirectory(Path.Combine(ms_rootPath, "cache"));
@@ -260,19 +293,47 @@ namespace FxMonitor
                 healthy = false;
             }
 
-            /*if (m_hadPipe && !m_inPipe.IsConnected)
+            if (m_hadPipe && m_peer == null)
             {
                 healthy = false;
-            }*/
+            }
+
+            if (healthy && (DateTime.UtcNow - m_lastHealthCheck) > TimeSpan.FromSeconds(5))
+            {
+                healthy = await RunHealthCheck();
+            }
 
             if (!healthy)
             {
-                // TODO: various kinds of backoff
                 Debug.WriteLine($"^3?^7 {Name}");
 
                 await Stop();
+                await m_backoff.Delay();
                 await Start();
             }
+        }
+
+        private async Task<bool> RunHealthCheck()
+        {
+            if (m_port.HasValue)
+            {
+                try
+                {
+                    using (var httpCheck = await m_httpClient.GetAsync($"http://localhost:{m_port}/info.json"))
+                    {
+                        if (!httpCheck.IsSuccessStatusCode)
+                        {
+                            return false;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public async Task Stop()
@@ -292,6 +353,38 @@ namespace FxMonitor
             catch {}
 
             m_process = null;
+        }
+    }
+
+    public struct ExponentialBackoff
+    {
+        private readonly int m_maxRetries, m_delayMilliseconds, m_maxDelayMilliseconds;
+        private int m_retries, m_pow;
+
+        public ExponentialBackoff(int maxRetries, int delayMilliseconds,
+            int maxDelayMilliseconds)
+        {
+            m_maxRetries = maxRetries;
+            m_delayMilliseconds = delayMilliseconds;
+            m_maxDelayMilliseconds = maxDelayMilliseconds;
+            m_retries = 0;
+            m_pow = 1;
+        }
+
+        public Task Delay()
+        {
+            if (m_retries == m_maxRetries)
+            {
+                throw new TimeoutException("Max retry attempts exceeded.");
+            }
+            ++m_retries;
+            if (m_retries < 31)
+            {
+                m_pow = m_pow << 1; // m_pow = Pow(2, m_retries - 1)
+            }
+            int delay = Math.Min(m_delayMilliseconds * (m_pow - 1) / 2,
+                m_maxDelayMilliseconds);
+            return Task.Delay(delay);
         }
     }
 }

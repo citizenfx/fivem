@@ -15,8 +15,9 @@ namespace FxMonitor
     public class MonitorClient : BaseScript
     {
         private nng.IPairSocket m_pair;
+        private PipePeer m_peer;
 
-        private bool m_running = false;
+        private bool m_firstTick = false;
 
         private string m_nucleusUrl;
 
@@ -29,44 +30,52 @@ namespace FxMonitor
                 .PairOpen()
                 .ThenDial($"ipc:///tmp/fxs_instance_{Process.GetCurrentProcess().Id}");
 
-            if (pairResult.IsErr())
+            void TryQuit()
             {
                 if (GetConvar("monitor_killServerOnBrokenPipe", "0") != "0")
                 {
-                    ExecuteCommand("quit");
+                    Tick += async () => ExecuteCommand("quit \"Monitor pipe broken.\"");
                 }
+            }
+
+            if (pairResult.IsErr())
+            {
+                TryQuit();
 
                 return;
             }
 
             m_pair = pairResult.Ok();
+            m_peer = new PipePeer(m_pair);
 
-            Task.Run(async () =>
+            m_peer.CommandReceived += async cmd =>
             {
-                // also send on initial connect
-                await WriteCommand(2, new GetPortResponseCommand(GetConvarInt("netPort", 30120), m_nucleusUrl));
+                await HandleCommand(cmd);
+            };
 
-                while (m_running)
+            m_peer.TargetUnreachable += () =>
+            {
+                TryQuit();
+            };
+
+            m_peer.Start();
+
+            Tick += MonitorClient_Tick;
+        }
+
+        private Task MonitorClient_Tick()
+        {
+            if (!m_firstTick)
+            {
+                if (m_peer != null)
                 {
-                    try
-                    {
-                        var (success, err, message) = m_pair.RecvMsg(nng.Native.Defines.NngFlag.NNG_FLAG_NONBLOCK);
+                    m_peer.WriteCommand(2, new GetPortResponseCommand(GetConvarInt("netPort", 30120), m_nucleusUrl));
 
-                        if (success)
-                        {
-                            var cmd = Serializer.Deserialize<BaseCommand>(new MemoryStream(message.AsSpan().ToArray()));
-
-                            if (cmd != null)
-                            {
-                                await HandleCommand(cmd);
-                            }
-                        }
-                    }
-                    catch (Exception e) { CitizenFX.Core.Debug.WriteLine($"{e}"); }
-
-                    await Task.Delay(500);
+                    m_firstTick = true;
                 }
-            });
+            }
+
+            return Task.CompletedTask;
         }
 
         [EventHandler("_cfx_internal:nucleusConnected")]
@@ -76,7 +85,7 @@ namespace FxMonitor
 
             Task.Run(async () =>
             {
-                await WriteCommand(3, new NucleusConnectedCommand(url));
+                await m_peer.WriteCommand(3, new NucleusConnectedCommand(url));
             });
         }
 
@@ -85,32 +94,9 @@ namespace FxMonitor
             switch (command.Type)
             {
                 case 1:
-                    await WriteCommand(2, new GetPortResponseCommand(GetConvarInt("netPort", 30120), m_nucleusUrl));
+                    await m_peer.WriteCommand(2, new GetPortResponseCommand(GetConvarInt("netPort", 30120), m_nucleusUrl));
                     break;
             }
-        }
-
-        private Task WriteCommand<T>(int type, T msg)
-        {
-            if (m_pair != null)
-            {
-                var ms = new MemoryStream();
-                Serializer.Serialize<T>(ms, msg);
-
-                try
-                {
-                    var outStream = new MemoryStream();
-                    Serializer.Serialize(outStream, new BaseCommand()
-                    {
-                        Type = type,
-                        Data = ms.ToArray()
-                    });
-
-                    m_pair.Send(outStream.ToArray());
-                } catch {}
-            }
-
-            return Task.CompletedTask;
         }
     }
 }
