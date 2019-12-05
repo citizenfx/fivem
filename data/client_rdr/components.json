@@ -41,5 +41,6 @@
 	"nui:resources",
 	"citizen:game:ipc",
 	"extra-natives:rdr3",
-	"citizen:playernames:rdr3"
+	"citizen:playernames:rdr3",
+	"adhesive"
 ]
