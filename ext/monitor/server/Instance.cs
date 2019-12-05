@@ -9,8 +9,8 @@ using Debug = CitizenFX.Core.Debug;
 
 using static CitizenFX.Core.Native.API;
 using System.Linq;
-using System.IO.Pipes;
 using ProtoBuf;
+using nng;
 
 namespace FxMonitor
 {
@@ -26,8 +26,7 @@ namespace FxMonitor
 
         private static string ms_rootPath;
 
-        private NamedPipeClientStream m_inPipe;
-        private NamedPipeClientStream m_outPipe;
+        private nng.IPairSocket m_pair;
         private bool m_hadPipe;
 
         static Instance()
@@ -84,33 +83,47 @@ namespace FxMonitor
         {
             Task.Run(async () =>
             {
-                try
+                // TODO: cleaner way?
+                var nngFactory = new nng.Tests.TestFactory();
+
+                while (!m_hadPipe)
                 {
-                    var pid = m_process.Id;
-                    m_inPipe = new NamedPipeClientStream($"FXServer_Instance_MIn_{pid}");
-                    m_outPipe = new NamedPipeClientStream($"FXServer_Instance_MOut_{pid}");
-
-                    await Task.WhenAll(m_inPipe.ConnectAsync(20000), m_outPipe.ConnectAsync(20000));
-
-                    m_hadPipe = true;
-
-                    Serializer.SerializeWithLengthPrefix(m_outPipe, new BaseCommand()
+                    try
                     {
-                        Type = 1,
-                        Data = null
-                    }, PrefixStyle.Base128);
+                        var pid = m_process.Id;
 
-                    while (m_inPipe != null && m_inPipe.IsConnected && m_process != null && pid == m_process.Id)
-                    {
-                        var cmd = Serializer.DeserializeWithLengthPrefix<BaseCommand>(m_inPipe, PrefixStyle.Base128);
+                        // c# isnt f# or rust
+                        // why is this api trying to be both at once
+                        var pairResult = nngFactory
+                            .PairOpen()
+                            .ThenListen($"ipc:///tmp/fxs_instance_{pid}");
 
-                        if (cmd != null)                            
+                        if (pairResult.TryError(out var error))
                         {
-                            await HandleCommand(cmd);
+                            await Task.Delay(500);
+                            continue;
+                        }
+
+                        m_pair = pairResult.Unwrap();
+
+                        m_hadPipe = true;
+
+                        while (m_pair != null && m_process != null && pid == m_process.Id)
+                        {
+                            // he tried, ok
+                            if (m_pair.RecvMsg().TryOk(out var message))
+                            {
+                                var cmd = Serializer.Deserialize<BaseCommand>(new MemoryStream(message.AsSpan().ToArray()));
+
+                                if (cmd != null)
+                                {
+                                    await HandleCommand(cmd);
+                                }
+                            }
                         }
                     }
+                    catch (Exception e) { Debug.WriteLine(e.ToString()); }
                 }
-                catch (Exception e) { Debug.WriteLine(e.ToString()); }
             });
         }
 
@@ -156,8 +169,17 @@ namespace FxMonitor
             }
             else
             {
-                psi.FileName = Path.Combine(GetConvar("citizen_root", ""), "ld-musl-x86_64.so.1");
-                arguments.Add(Path.Combine(GetConvar("citizen_root", ""), "FXServer"));
+                var r = GetConvar("citizen_root", "");
+                var lr = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(r))));
+
+                psi.FileName = Path.Combine(r, "ld-musl-x86_64.so.1");
+                arguments.Add("--library-path");
+                arguments.Add($"{lr}/alpine/usr/lib/v8/:{lr}/alpine/lib/:{lr}/alpine/usr/lib/");
+                arguments.Add("--");
+                arguments.Add(Path.Combine(r, "FXServer"));
+
+                arguments.Add("+start");
+                arguments.Add("monitor");
             }
 
             foreach (var config in m_instanceConfig.ConfigFiles)
@@ -195,10 +217,13 @@ namespace FxMonitor
                         a.Contains(" ") || a.Contains("\"")
                             ? $"\"{a}\""
                             : a));
- 
-            psi.UseShellExecute = true;
+
+            psi.UseShellExecute = false;
             psi.CreateNoWindow = false;
             psi.WindowStyle = ProcessWindowStyle.Normal;
+
+            psi.RedirectStandardError = true;
+            psi.RedirectStandardOutput = true;
 
             // TODO: redirect stdout/stderr and handle closure(?)
 
@@ -208,6 +233,18 @@ namespace FxMonitor
             {
                 await BaseScript.Delay(5000);
             }
+
+            void PrintOutput(object sender, DataReceivedEventArgs args) =>
+                Debug.WriteLine("^5!^7 {0} => {1}", Name, args.Data);
+
+            if (GetConvar("monitor_showServerOutput", "0") != "0")
+            {
+                m_process.OutputDataReceived += PrintOutput;
+                m_process.ErrorDataReceived += PrintOutput;
+            }
+
+            m_process.BeginOutputReadLine();
+            m_process.BeginErrorReadLine();
 
             // save a pidfile
             Directory.CreateDirectory(Path.Combine(ms_rootPath, "cache"));
@@ -223,10 +260,10 @@ namespace FxMonitor
                 healthy = false;
             }
 
-            if (m_hadPipe && !m_inPipe.IsConnected)
+            /*if (m_hadPipe && !m_inPipe.IsConnected)
             {
                 healthy = false;
-            }
+            }*/
 
             if (!healthy)
             {
@@ -242,13 +279,11 @@ namespace FxMonitor
         {
             try
             {
-                m_inPipe.Close();
-                m_outPipe.Close();
+                m_pair.Dispose();
             } catch {}
 
             m_hadPipe = false;
-            m_inPipe = null;
-            m_outPipe = null;
+            m_pair = null;
 
             try
             {

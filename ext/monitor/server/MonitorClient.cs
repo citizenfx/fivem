@@ -5,6 +5,7 @@ using System.IO.Pipes;
 using System.Threading.Tasks;
 using CitizenFX.Core;
 
+using nng;
 using ProtoBuf;
 
 using static CitizenFX.Core.Native.API;
@@ -13,73 +14,59 @@ namespace FxMonitor
 {
     public class MonitorClient : BaseScript
     {
-        private NamedPipeServerStream m_inPipe;
-        private NamedPipeServerStream m_outPipe;
+        private nng.IPairSocket m_pair;
 
-        private bool m_ran = false;
+        private bool m_running = false;
 
         private string m_nucleusUrl;
 
         internal MonitorClient()
         {
-            m_inPipe = new NamedPipeServerStream($"FXServer_Instance_MOut_{Process.GetCurrentProcess().Id}", PipeDirection.InOut, 1, PipeTransmissionMode.Byte);
-            m_outPipe = new NamedPipeServerStream($"FXServer_Instance_MIn_{Process.GetCurrentProcess().Id}", PipeDirection.InOut, 1, PipeTransmissionMode.Byte);
+            // TODO: cleaner way?
+            var nngFactory = new nng.Tests.TestFactory();
 
-            Task.Run(async () =>
-            {
-                await m_inPipe.WaitForConnectionAsync();
-            });
+            var pairResult = nngFactory
+                .PairOpen()
+                .ThenDial($"ipc:///tmp/fxs_instance_{Process.GetCurrentProcess().Id}");
 
-            Task.Run(async () =>
+            if (pairResult.IsErr())
             {
-                while (true)
+                if (GetConvar("monitor_killServerOnBrokenPipe", "0") != "0")
                 {
-                    await m_outPipe.WaitForConnectionAsync();
-
-                    while (m_outPipe.IsConnected)
-                    {
-                        await Task.Delay(500);
-                    }
-
-                    m_outPipe = new NamedPipeServerStream($"FXServer_Instance_MIn_{Process.GetCurrentProcess().Id}", PipeDirection.InOut, 1, PipeTransmissionMode.Byte);
+                    ExecuteCommand("quit");
                 }
-            });
-        }
 
-        [Tick]
-        public Task MonitorClient_Tick()
-        {
-            if (m_inPipe.IsConnected && !m_ran)
+                return;
+            }
+
+            m_pair = pairResult.Ok();
+
+            Task.Run(async () =>
             {
-                m_ran = true;
+                // also send on initial connect
+                await WriteCommand(2, new GetPortResponseCommand(GetConvarInt("netPort", 30120), m_nucleusUrl));
 
-                Task.Run(async () =>
+                while (m_running)
                 {
                     try
                     {
-                        while (m_inPipe.IsConnected)
+                        var (success, err, message) = m_pair.RecvMsg(nng.Native.Defines.NngFlag.NNG_FLAG_NONBLOCK);
+
+                        if (success)
                         {
-                            var cmd = Serializer.DeserializeWithLengthPrefix<BaseCommand>(m_inPipe, PrefixStyle.Base128);
-                            
-                            await HandleCommand(cmd);
+                            var cmd = Serializer.Deserialize<BaseCommand>(new MemoryStream(message.AsSpan().ToArray()));
+
+                            if (cmd != null)
+                            {
+                                await HandleCommand(cmd);
+                            }
                         }
                     }
                     catch (Exception e) { CitizenFX.Core.Debug.WriteLine($"{e}"); }
 
-                    if (GetConvar("monitor_killServerOnBrokenPipe", "0") != "0")
-                    {
-                        ExecuteCommand("quit");
-                    }
-
-                    m_inPipe.Close();
-                    m_inPipe = new NamedPipeServerStream($"FXServer_Instance_{Process.GetCurrentProcess().Id}", PipeDirection.InOut, 1);
-                    await m_inPipe.WaitForConnectionAsync();
-
-                    m_ran = false;
-                });
-            }
-
-            return BaseScript.Delay(1000);
+                    await Task.Delay(500);
+                }
+            });
         }
 
         [EventHandler("_cfx_internal:nucleusConnected")]
@@ -105,18 +92,21 @@ namespace FxMonitor
 
         private Task WriteCommand<T>(int type, T msg)
         {
-            if (m_outPipe.IsConnected)
+            if (m_pair != null)
             {
                 var ms = new MemoryStream();
                 Serializer.Serialize<T>(ms, msg);
 
                 try
                 {
-                    Serializer.SerializeWithLengthPrefix(m_outPipe, new BaseCommand()
+                    var outStream = new MemoryStream();
+                    Serializer.Serialize(outStream, new BaseCommand()
                     {
                         Type = type,
                         Data = ms.ToArray()
-                    }, PrefixStyle.Base128);
+                    });
+
+                    m_pair.Send(outStream.ToArray());
                 } catch {}
             }
 
