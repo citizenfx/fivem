@@ -45,6 +45,8 @@ HANDLE g_uiExitEvent;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
+
 	bool toolMode = false;
 
 	if (getenv("CitizenFX_ToolMode"))
@@ -152,10 +154,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		auto regPath = MakeRelativeCitPath(L"");
 
-		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FiveM", L"Last Run Location", REG_SZ, regPath.c_str(), (regPath.size() + 1) * 2);
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\" PRODUCT_NAME, L"Last Run Location", REG_SZ, regPath.c_str(), (regPath.size() + 1) * 2);
 	}
 
-	SetCurrentProcessExplicitAppUserModelID(L"CitizenFX.FiveM.Client");
+	SetCurrentProcessExplicitAppUserModelID(L"CitizenFX." PRODUCT_NAME L".Client");
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 
@@ -354,8 +356,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				if (showOSWarning)
 				{
-					MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the FiveM client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing "
-						L"any issues. The game will continue to start now.", L"FiveM", MB_OK | MB_ICONWARNING);
+					MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the " PRODUCT_NAME L" client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing "
+						L"any issues. The game will continue to start now.", PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 				}
 			}
 
@@ -401,7 +403,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				{
 					if (GetLastError() == ERROR_ACCESS_DENIED)
 					{
-						MessageBox(nullptr, L"FiveM could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
+						MessageBox(nullptr, PRODUCT_NAME L" could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
 						return 0;
 					}
 				}
@@ -441,7 +443,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 #endif
 
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 	if (!ExecutablePreload_Init())
 	{
 		return 0;
@@ -458,6 +460,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	g_redirectionData = redirectionData;
 
+#ifdef GTA_FIVE
 	gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
 
 	{
@@ -491,6 +494,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 #endif
+#endif
 
 	tui = {};
 
@@ -503,6 +507,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		{
 			static HostSharedData<CfxState> initState("CfxInitState");
 
+#ifndef _DEBUG
 			if (!initState->isReverseGame)
 			{
 				//auto tuiTen = std::move(tui);
@@ -512,7 +517,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				UI_DoCreation(false);
 
 				auto st = GetTickCount64();
-				UI_UpdateText(0, L"Starting FiveM...");
+				UI_UpdateText(0, L"Starting " PRODUCT_NAME L"...");
 				UI_UpdateText(1, L"We're getting there.");
 
 				while (GetTickCount64() < (st + 3500))
@@ -541,6 +546,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				UI_DoDestruction();
 			}
+#endif
 
 			SetEvent(g_uiDoneEvent);
 		}).detach();

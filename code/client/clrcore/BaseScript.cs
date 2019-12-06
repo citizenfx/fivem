@@ -35,7 +35,7 @@ namespace CitizenFX.Core
 			set => ms_curName = value;
 		}
 
-#if !IS_FXSERVER
+#if !IS_FXSERVER && !IS_RDR3
 		private Player m_player;
 
 		protected Player LocalPlayer
@@ -54,15 +54,18 @@ namespace CitizenFX.Core
 		}
 #endif
 
+#if !IS_RDR3
 		protected PlayerList Players { get; private set; }
+#endif
 
 		protected BaseScript()
 		{
 			EventHandlers = new EventHandlerDictionary();
 			Exports = new ExportDictionary();
 			CurrentTaskList = new Dictionary<Delegate, Task>();
-
+#if !IS_RDR3
 			Players = new PlayerList();
+#endif
 		}
 
 		internal void ScheduleRun()
@@ -392,6 +395,7 @@ namespace CitizenFX.Core
 						}
 					}
 					// Player
+#if !IS_RDR3
 					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 1)
 					{
 #if IS_FXSERVER
@@ -413,6 +417,7 @@ namespace CitizenFX.Core
 						Debug.WriteLine("Client commands with parameter type Player not supported");
 #endif
 					}
+#endif
 					// string[]
 					else if (parameters.Length == 1)
 					{
@@ -432,6 +437,7 @@ namespace CitizenFX.Core
 						}
 					}
 					// Player, string[]
+#if !IS_RDR3
 					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 2)
 					{
 #if IS_FXSERVER
@@ -453,6 +459,7 @@ namespace CitizenFX.Core
 						Debug.WriteLine("Client commands with parameter type Player not supported");
 #endif
 					}
+#endif
 					// legacy --> int, List<object>, string
 					else
 					{

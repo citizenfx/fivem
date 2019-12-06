@@ -77,18 +77,24 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
 		DWORD consoleMode;
-		GetConsoleMode(hConsole, &consoleMode);
-		consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+		if (GetConsoleMode(hConsole, &consoleMode))
+		{
+			consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 
-		if (SetConsoleMode(hConsole, consoleMode))
+			if (SetConsoleMode(hConsole, consoleMode))
+			{
+				g_allowVt = true;
+			}
+
+			if (IsWindows10OrGreater())
+			{
+				SetConsoleCP(65001);
+				SetConsoleOutputCP(65001);
+			}
+		}
+		else
 		{
 			g_allowVt = true;
-		}
-
-		if (IsWindows10OrGreater())
-		{
-			SetConsoleCP(65001);
-			SetConsoleOutputCP(65001);
 		}
 	});
 #else

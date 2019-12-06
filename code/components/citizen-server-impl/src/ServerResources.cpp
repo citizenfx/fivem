@@ -246,14 +246,84 @@ static InitFunction initFunction([]()
 			rac->NetworkTick();
 		});
 
-		
-
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 
 		fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 		{
 			fx::ServerInstanceBase* instance = resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 			
+			// resource game filtering
+			resource->OnStart.Connect([instance, resource]()
+			{
+				auto gameServer = instance->GetComponent<fx::GameServer>();
+				auto md = resource->GetComponent<fx::ResourceMetaDataComponent>();
+				auto games = md->GetEntries("game");
+
+				bool allowed = true;
+
+				// store the game name
+				auto gameNameString = (gameServer->GetGameName() == fx::GameName::GTA5) ? "gta5" :
+					(gameServer->GetGameName() == fx::GameName::RDR3) ? "rdr3" : "unknown";
+
+				// if is FXv2
+				auto isCfxV2 = md->GetEntries("is_cfxv2");
+
+				if (isCfxV2.begin() != isCfxV2.end())
+				{
+					// validate game name
+					std::set<std::string> gameSet;
+
+					for (const auto& game : games)
+					{
+						gameSet.insert(game.second);
+					}
+
+					bool isCommon = (gameSet.find("common") != gameSet.end());
+					bool isGame = (gameSet.find(gameNameString) != gameSet.end());
+
+					if (isCommon && isGame)
+					{
+						console::PrintWarning("resources", "Resource %s specifies both `common` and a specific game. This is considered ill-formed.\n", resource->GetName());
+						allowed = false;
+					}
+					else if (!isCommon && !isGame)
+					{
+						console::PrintWarning("resources", "Resource %s does not support the current game (%s).\n", resource->GetName(), gameNameString);
+						allowed = false;
+					}
+
+					if (!*md->IsManifestVersionBetween("adamant", ""))
+					{
+						console::PrintWarning("resources", "Resource %s does not specify an `fx_version` in fxmanifest.lua.\n", resource->GetName());
+						allowed = false;
+					}
+
+					if (isGame && gameNameString == "rdr3")
+					{
+						auto warningEntries = md->GetEntries("rdr3_warning");
+
+						static const std::string warningString = "I acknowledge that this is a prerelease build of RedM, and I am aware my resources *will* become incompatible once RedM ships.";
+
+						if (warningEntries.begin() == warningEntries.end() || warningEntries.begin()->second != warningString)
+						{
+							console::PrintWarning("resources", "Resource %s does not contain the RedM pre-release warning in fxmanifest.lua.\nPlease add ^2rdr3_warning '%s'^3 to fxmanifest.lua in this resource.\n", resource->GetName(), warningString);
+							allowed = false;
+						}
+					}
+				}
+				else
+				{
+					// allow non-FXv2 for GTA5 only
+					if (gameNameString != "gta5")
+					{
+						console::PrintWarning("resources", "Resource %s is not using CitizenFXv2 manifest. This is not allowed for the current game (%s).\n", resource->GetName(), gameNameString);
+						allowed = false;
+					}
+				}
+
+				return allowed;
+			}, INT32_MIN);
+
 			resource->OnStart.Connect([=]()
 			{
 				trace("Started resource %s\n", resource->GetName());
@@ -625,6 +695,15 @@ static InitFunction initFunction2([]()
 	fx::ScriptEngine::RegisterNativeHandler("SCHEDULE_RESOURCE_TICK", [](fx::ScriptContext& context)
 	{
 		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// #TODOMONITOR: make helper
+		auto monitorVar = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode");
+
+		if (monitorVar && monitorVar->GetValue() != "0")
+		{
+			return;
+		}
+
 		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		gscomms_execute_callback_on_main_thread([resource]()

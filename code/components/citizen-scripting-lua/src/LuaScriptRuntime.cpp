@@ -16,11 +16,18 @@
 
 using json = nlohmann::json;
 
-#ifndef IS_FXSERVER
+#if defined(GTA_FIVE)
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_21e43a33.lua",  guid_t{0} },
 	{ "natives_0193d0af.lua",  "f15e72ec-3972-4fe4-9c7d-afc5394ae207" },
 	{ "natives_universal.lua", "44febabe-d386-4d18-afbe-5e627f4af937" }
+};
+
+// we fast-path non-FXS using direct RAGE calls
+#include <scrEngine.h>
+#elif defined(IS_RDR3)
+static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
+	{ "rdr3_universal.lua", guid_t{ 0 } }
 };
 
 // we fast-path non-FXS using direct RAGE calls
@@ -1197,6 +1204,12 @@ int Lua_LoadNative(lua_State* L)
 	int isCfxv2 = 0;
 	runtime->GetScriptHost2()->GetNumResourceMetaData("is_cfxv2", &isCfxv2);
 
+	// TODO/TEMPORARY: fxv2 oal is disabled by default for now
+	if (isCfxv2)
+	{
+		runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
+	}
+
 	if (isCfxv2)
 	{
 		auto nativeImpl = Lua_GetNative(L, fn);
@@ -1376,6 +1389,23 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 			{
 				nativesBuild = std::get<const char*>(versionPair);
 			}
+		}
+	}
+
+	{
+		bool isGreater;
+
+		if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionV2Between("adamant", "", &isGreater)) && isGreater)
+		{
+			nativesBuild =
+#if defined(GTA_FIVE)
+				"natives_universal.lua"
+#elif defined(IS_RDR3)
+				"rdr3_universal.lua"
+#else
+				"natives_server.lua"
+#endif
+				;
 		}
 	}
 

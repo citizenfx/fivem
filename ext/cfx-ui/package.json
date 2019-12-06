@@ -32,6 +32,7 @@
     "@types/color": "^3.0.0",
     "@types/js-md5": "0.4.2",
     "@types/node-forge": "^0.8.4",
+    "@types/offscreencanvas": "^2019.6.0",
     "adaptivecards": "^1.2.0",
     "angular-l10n": "^8.0.0",
     "angular2-moment": "^1.9.0",
@@ -49,6 +50,7 @@
     "fast-json-patch": "^2.1.0",
     "flag-icon-css": "^3.3.0",
     "font-awesome": "^4.7.0",
+    "hoverintent": "^2.2.1",
     "idb": "^4.0.3",
     "int64-buffer": "^0.99.1007",
     "js-md5": "0.7.3",
@@ -67,6 +69,7 @@
     "unicode-substring": "^1.0.0",
     "webpack": "^4.35.0",
     "webpack-dev-server": "^3.7.2",
+    "worker-loader": "^2.0.0",
     "xml-js": "^1.6.11",
     "zone.js": "^0.9.1"
   },

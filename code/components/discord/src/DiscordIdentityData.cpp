@@ -1,5 +1,6 @@
 #include <StdInc.h>
 
+#ifdef GTA_FIVE
 #include <LegitimacyAPI.h>
 
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -170,3 +171,4 @@ static HookFunction initFunction([]()
 		}
 	}).detach();
 });
+#endif

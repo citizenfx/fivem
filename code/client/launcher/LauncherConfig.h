@@ -25,6 +25,11 @@
 #define CONTENT_URL "https://runtime.fivem.net/client"
 #define CONTENT_URL_WIDE L"https://runtime.fivem.net/client"
 #define GAME_EXECUTABLE L"GTA5.exe"
+#elif defined(IS_RDR3)
+#define PRODUCT_NAME L"RedM"
+#define CONTENT_URL "https://runtime.fivem.net/redm"
+#define CONTENT_URL_WIDE L"https://runtime.fivem.net/redm"
+#define GAME_EXECUTABLE L"RDR2.exe"
 #elif defined(IS_LAUNCHER)
 #define PRODUCT_NAME L"Cfx.re Launcher"
 #define CONTENT_URL "https://runtime.fivem.net/citfx"

@@ -7,7 +7,7 @@ using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-#if !IS_FXSERVER
+#if !IS_FXSERVER && !IS_RDR3
 	public class PlayerList : IEnumerable<Player>
 	{
 		public const int MaxPlayers = 256;

@@ -6,6 +6,8 @@
  */
 
 #include <StdInc.h>
+
+#if defined(GTA_FIVE)
 #include <ScriptEngine.h>
 
 #include <Resource.h>
@@ -90,3 +92,4 @@ static InitFunction initFunction([] ()
 		context.SetResult<bool>(g_textChatDisableResources.empty());
 	});
 });
+#endif

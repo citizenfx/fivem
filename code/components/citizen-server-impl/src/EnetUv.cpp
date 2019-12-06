@@ -11,23 +11,19 @@
 #include <EASTL/internal/fixed_pool.h>
 
 using TPacketPool = eastl::fixed_node_allocator<65536, 512, 16, 0, true>;
-static uint8_t packetArena[TPacketPool::kBufferSize];
-static TPacketPool packetAllocator(packetArena);
+static TPacketPool* packetAllocator;
 static std::mutex packetAllocatorLock;
 
 using TSendPacketPool = eastl::fixed_node_allocator<8192, 16384, 16, 0, true>;
-static uint8_t sendPacketArena[TSendPacketPool::kBufferSize];
-static TSendPacketPool sendPacketAllocator(sendPacketArena);
+static TSendPacketPool* sendPacketAllocator;
 static std::mutex sendPacketAllocatorLock;
 
 using TSendPool = eastl::fixed_node_allocator<sizeof(uv_udp_send_t), 32768, 16, 0, true>;
-static uint8_t sendArena[TSendPool::kBufferSize];
-static TSendPool sendAllocator(sendArena);
+static TSendPool* sendAllocator;
 static std::mutex sendAllocatorLock;
 
 using TReqPool = eastl::fixed_node_allocator<1024, 32768, 16, 0, true>;
-static uint8_t reqArena[TReqPool::kBufferSize];
-static TReqPool reqAllocator(reqArena);
+static TReqPool* reqAllocator;
 static std::mutex reqAllocatorLock;
 
 template<typename... TArgs>
@@ -54,12 +50,12 @@ struct UvCallbackArgsPooled
 				request->~Request();
 
 				std::unique_lock<std::mutex> lock(reqAllocatorLock);
-				reqAllocator.deallocate(request, TReqPool::kNodeSize);
+				reqAllocator->deallocate(request, TReqPool::kNodeSize);
 			}
 		};
 
 		std::unique_lock<std::mutex> lock(reqAllocatorLock);
-		auto req = new(reqAllocator.allocate(TReqPool::kNodeSize)) Request(std::move(fn));
+		auto req = new(reqAllocator->allocate(TReqPool::kNodeSize)) Request(std::move(fn));
 		handle->data = req;
 
 		return &Request::cb;
@@ -71,7 +67,7 @@ struct send_deleter
 	inline void operator()(void* ptr)
 	{
 		std::unique_lock<std::mutex> lock(sendAllocatorLock);
-		sendAllocator.deallocate(ptr, sizeof(uv_udp_send_t));
+		sendAllocator->deallocate(ptr, sizeof(uv_udp_send_t));
 	}
 };
 
@@ -131,12 +127,20 @@ struct UdpSocket
 	std::deque<Datagram> recvQueue;
 };
 
-static std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>> g_sockets;
+static std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>>* g_sockets = new std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>>();
 static int g_curFd;
 
 extern "C" ENetSocket
 enet_socket_create(ENetSocketType type)
 {
+	if (!packetAllocator)
+	{
+		packetAllocator = new TPacketPool(new uint8_t[TPacketPool::kBufferSize]);
+		reqAllocator = new TReqPool(new uint8_t[TReqPool::kBufferSize]);
+		sendAllocator = new TSendPool(new uint8_t[TSendPool::kBufferSize]);
+		sendPacketAllocator = new TSendPacketPool(new uint8_t[TSendPacketPool::kBufferSize]);
+	}
+
 	assert(type == ENET_SOCKET_TYPE_DATAGRAM);
 
 	auto socketData = std::make_shared<UdpSocket>();
@@ -144,7 +148,7 @@ enet_socket_create(ENetSocketType type)
 	g_curFd += 4;
 	auto fd = (ENetSocket)g_curFd;
 
-	g_sockets[fd] = socketData;
+	(*g_sockets)[fd] = socketData;
 
 	uv_udp_init(Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork")->GetLoop(), &socketData->udp);
 	
@@ -154,7 +158,7 @@ enet_socket_create(ENetSocketType type)
 extern "C" void
 enet_socket_destroy(ENetSocket socket)
 {
-	g_sockets.erase(socket);
+	g_sockets->erase(socket);
 }
 
 extern "C" int
@@ -194,9 +198,9 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 		sin.sin6_scope_id = 0;
 	}
 
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
@@ -211,7 +215,7 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 
 		uv_udp_recv_start(&sd->udp, [](uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf)
 		{
-			return alloc_buffer(packetAllocator, packetAllocatorLock, handle, suggestedSize, buf);
+			return alloc_buffer(*packetAllocator, packetAllocatorLock, handle, suggestedSize, buf);
 		}, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf,
 			const struct sockaddr* addr, unsigned flags)
 		{
@@ -250,7 +254,7 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 			else
 			{
 				std::unique_lock<std::mutex> lock(packetAllocatorLock);
-				packetAllocator.deallocate(buf->base, TPacketPool::kNodeSize);
+				packetAllocator->deallocate(buf->base, TPacketPool::kNodeSize);
 			}
 		});
 	}
@@ -261,9 +265,9 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 extern "C" int
 enet_socket_get_address(ENetSocket socket, ENetAddress* address)
 {
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
@@ -301,9 +305,9 @@ enet_socket_send(ENetSocket socket,
 		sin.sin6_scope_id = address->sin6_scope_id;
 	}
 
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
@@ -325,7 +329,7 @@ enet_socket_send(ENetSocket socket,
 
 	// allocate a large enough buffer
 	uv_buf_t uvBuf;
-	alloc_buffer(sendPacketAllocator, sendPacketAllocatorLock, nullptr, totalSize, &uvBuf);
+	alloc_buffer(*sendPacketAllocator, sendPacketAllocatorLock, nullptr, totalSize, &uvBuf);
 
 	// copy memory into the buffer
 	totalSize = 0;
@@ -340,7 +344,7 @@ enet_socket_send(ENetSocket socket,
 	auto sd = socketIt->second;
 
 	std::unique_lock<std::mutex> lock(sendAllocatorLock);
-	auto sendReq = std::unique_ptr<uv_udp_send_t, send_deleter>(new(sendAllocator.allocate(sizeof(uv_udp_send_t))) uv_udp_send_t());
+	auto sendReq = std::unique_ptr<uv_udp_send_t, send_deleter>(new(sendAllocator->allocate(sizeof(uv_udp_send_t))) uv_udp_send_t());
 
 	auto reqRef = sendReq.get();
 
@@ -351,7 +355,7 @@ enet_socket_send(ENetSocket socket,
 
 		// free buffer
 		std::unique_lock<std::mutex> lock(sendPacketAllocatorLock);
-		sendPacketAllocator.deallocate(uvBuf.base, TSendPacketPool::kNodeSize);
+		sendPacketAllocator->deallocate(uvBuf.base, TSendPacketPool::kNodeSize);
 	}));
 
 	return totalSize;
@@ -363,9 +367,9 @@ enet_socket_receive(ENetSocket socket,
 	ENetBuffer* buffers,
 	size_t bufferCount)
 {
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}

@@ -69,6 +69,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		MDRawAssertionInfo client_assert_info = { {0} };
 
+		std::wstring full_dump_path;
+
 		SIZE_T bytes_read = 0;
 		if (!ReadProcessMemory(client->process_handle(),
 			client->assert_info(),
@@ -93,6 +95,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			if (!dump_generator.GenerateDumpFile(&dumpPath))
 			{
 				return;
+			}
+
+			if (client->dump_type() & MiniDumpWithFullMemory)
+			{
+				if (!dump_generator.GenerateFullDumpFile(&full_dump_path))
+				{
+					return;
+				}
 			}
 
 			if (!dump_generator.WriteMinidump())
@@ -138,6 +148,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA dump can be found at %s.\n", ToNarrow(dumpPath).c_str());
 
+		if (!full_dump_path.empty())
+		{
+			printf("In addition to this, a full dump file has been generated at %s.\n\n", ToNarrow(full_dump_path).c_str());
+		}
+
 		bool uploadCrashes = true;
 
 		if (uploadCrashes && HTTPUpload::SendRequest(L"https://sentry.fivem.net/api/6/minidump/?sentry_key=0081a421fd30443ca9d5f636be197e16", parameters, files, nullptr, &responseBody, &responseCode))
@@ -146,7 +161,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 		else
 		{
-			printf("Failed to automatically report the crash. Please submit the minidump to the project developers.\n");
+			printf("Failed to automatically report the crash. Please submit the crash dump to the project developers.\n");
 		}
 
 		printf("=================================================================\n");

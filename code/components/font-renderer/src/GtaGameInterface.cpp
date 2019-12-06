@@ -149,18 +149,19 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 	d3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 #endif
 
+	/*for (int i = 0; i < numVertices; i++)
+	{
+		trace("before: %f %f\n", vertices[i].x, vertices[i].y);
+		TransformToScreenSpace((float*)&vertices[i], 1);
+		trace("aft: %f %f\n", vertices[i].x, vertices[i].y);
+	}*/
+
 	rage::grcBegin(3, numIndices);
 
 	for (int j = 0; j < numIndices; j++)
 	{
 		auto vertex = &vertices[indices[j]];
 		uint32_t color = *(uint32_t*)&vertex->color;
-
-		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
-		if (!rage::grcTexture::IsRenderSystemColorSwapped())
-		{
-			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
-		}
 
 		rage::grcVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
@@ -312,7 +313,7 @@ static InitFunction initFunction([] ()
 		shouldDraw = true;
 	}
 
-#ifdef _HAVE_GRCORE_NEWSTATES
+#if defined(_HAVE_GRCORE_NEWSTATES) && defined(GTA_FIVE)
 	OnGrcCreateDevice.Connect([] ()
 	{
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
@@ -321,11 +322,16 @@ static InitFunction initFunction([] ()
 
 		g_gtaGameInterface.SetPointSamplerState(CreateSamplerState(&samplerDesc));
 	});
+#elif defined(IS_RDR3)
+	OnGrcCreateDevice.Connect([]()
+	{
+		g_gtaGameInterface.SetPointSamplerState(GetStockStateIdentifier(SamplerStatePoint));
+	});
 #endif
 
 	OnPostFrontendRender.Connect([=] ()
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 		int x, y;
 		GetGameResolution(x, y);
 
@@ -374,9 +380,11 @@ static InitFunction initFunction([] ()
 			}
 
 			std::wstring_view brandName = L"FiveM";
+			std::wstring userName = L"";
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 			{
+#if !defined(IS_RDR3)
 				auto emoji = customBrandingEmoji.GetValue();
 
 				if (!emoji.empty())
@@ -406,9 +414,29 @@ static InitFunction initFunction([] ()
 				{
 					brandName = L"FiveM/OneSync-ALPHA";
 				}
+#endif
+
+#if defined(IS_RDR3)
+				brandName = L"RedM PRE RELEASE";
+				brandingEmoji = L"\xD83C\xDF4C";
+
+				std::string userNameRaw;
+
+				if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userNameRaw))
+				{
+					if (HashString(userNameRaw.c_str()) == 0x448645b5 || HashString(userNameRaw.c_str()) == 0x96ea6c22)
+					{
+						userNameRaw = "root@root.aq";
+					}
+				}
+
+				userNameRaw = userNameRaw.substr(0, userNameRaw.find_first_of('@'));
+
+				userName = ToWide(userNameRaw);
+#endif
 			}
 
-			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
+			brandingString = fmt::sprintf(L"%s %s\n%s", brandName, brandingEmoji, userName);
 		}
 
 		static CRect metrics;

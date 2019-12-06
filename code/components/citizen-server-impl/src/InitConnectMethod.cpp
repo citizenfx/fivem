@@ -28,6 +28,10 @@
 
 #include <MonoThreadAttachment.h>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
 static std::map<std::string, fx::ServerIdentityProviderBase*> g_providersByType;
 
@@ -268,12 +272,13 @@ static InitFunction initFunction([]()
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
+			auto gameNameIt = postMap.find("gameName");
 
 			auto protocolIt = postMap.find("protocol");
 
 			if (nameIt == postMap.end() || guidIt == postMap.end() || protocolIt == postMap.end())
 			{
-				cb(json::object({ {"error", "fields missing"} }));
+				sendError("fields missing");
 				return;
 			}
 
@@ -281,6 +286,37 @@ static InitFunction initFunction([]()
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
 			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
+			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
+
+			// verify game name
+			bool validGameName = false;
+			std::string intendedGameName;
+
+			switch (instance->GetComponent<fx::GameServer>()->GetGameName())
+			{
+			case fx::GameName::GTA5:
+				intendedGameName = "gta5";
+
+				if (gameName.empty() || gameName == "gta5")
+				{
+					validGameName = true;
+				}
+				break;
+			case fx::GameName::RDR3:
+				intendedGameName = "rdr3";
+
+				if (gameName == "rdr3")
+				{
+					validGameName = true;
+				}
+				break;
+			}
+
+			if (!validGameName)
+			{
+				sendError(fmt::sprintf("Client/Server game mismatch: %s/%s", gameName, intendedGameName));
+				return;
+			}
 
 			// limit name length
 			if (name.length() >= 200)
@@ -297,7 +333,7 @@ static InitFunction initFunction([]()
 
 				if (ticketIt == postMap.end())
 				{
-					sendError("No FiveM ticket was specified. If this is an offline server, maybe set sv_lan?");
+					sendError("No CitizenFX ticket was specified. If this is an offline server, maybe set sv_lan?");
 					return;
 				}
 
@@ -305,7 +341,7 @@ static InitFunction initFunction([]()
 				{
 					if (!VerifyTicket(guid, ticketIt->second))
 					{
-						sendError("FiveM ticket authorization failed.");
+						sendError("CitizenFX ticket authorization failed.");
 						return;
 					}
 
@@ -313,7 +349,7 @@ static InitFunction initFunction([]()
 
 					if (!optionalTicket)
 					{
-						sendError("FiveM ticket authorization failed. (2)");
+						sendError("CitizenFX ticket authorization failed. (2)");
 						return;
 					}
 
@@ -321,7 +357,7 @@ static InitFunction initFunction([]()
 				}
 				catch (const std::exception& e)
 				{
-					sendError(fmt::sprintf("Parsing error while verifying FiveM ticket. %s", e.what()));
+					sendError(fmt::sprintf("Parsing error while verifying CitizenFX ticket. %s", e.what()));
 					return;
 				}
 			}
@@ -336,6 +372,7 @@ static InitFunction initFunction([]()
 			data["onesync"] = g_oneSyncVar->GetValue();
 			data["onesync_big"] = fx::IsBigMode();
 			data["token"] = token;
+			data["gamename"] = gameName;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto gameServer = instance->GetComponent<fx::GameServer>();
@@ -372,9 +409,36 @@ static InitFunction initFunction([]()
 					hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]));
 			}
 
+			bool gameNameMatch = false;
+
 			if (ticketData.extraJson)
 			{
+				try
+				{
+					json json = json::parse(*ticketData.extraJson);
+
+					if (json["gn"].is_string())
+					{
+						auto sentGameName = json["gn"].get<std::string>();
+
+						if (sentGameName == intendedGameName)
+						{
+							gameNameMatch = true;
+						}
+					}
+				}
+				catch (std::exception& e)
+				{
+
+				}
+
 				client->SetData("entitlementJson", *ticketData.extraJson);
+			}
+
+			if (!gameNameMatch)
+			{
+				sendError("CitizenFX ticket authorization failed. (3)");
+				return;
 			}
 
 			client->Touch();
@@ -570,7 +634,7 @@ static InitFunction initFunction([]()
 
 					auto thisIt = ++it;
 
-					auth->RunAuthentication(client, postMap, [=](boost::optional<std::string> err)
+					auth->RunAuthentication(client, request, postMap, [=](boost::optional<std::string> err)
 					{
 						if (err)
 						{

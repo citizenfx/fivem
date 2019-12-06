@@ -20,6 +20,10 @@
 #include <skyr/url.hpp>
 #include <ResumeComponent.h>
 
+#include <experimental/coroutine>
+#include <pplawait.h>
+#include <ppltasks.h>
+
 #include <json.hpp>
 
 #include <Error.h>
@@ -332,7 +336,21 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 				StripColors(hostname, cleaned, 8192);
 
 #ifdef GTA_FIVE
-				SetWindowText(FindWindow(L"grcWindow", nullptr), va(L"FiveM - %s", ToWide(cleaned)));
+				SetWindowText(FindWindow(
+#ifdef GTA_FIVE
+					L"grcWindow"
+#elif defined(IS_RDR3)
+					L"sgaWindow"
+#else
+					L"UNKNOWN_WINDOW"
+#endif
+				, nullptr), va(
+#ifdef GTA_FIVE
+					L"FiveM"
+#elif defined(IS_RDR3)
+					L"RedM"
+#endif
+					L" - %s", ToWide(cleaned)));
 #endif
 
 				auto richPresenceSetTemplate = [&](const auto& tpl)
@@ -476,12 +494,18 @@ RoutingPacket::RoutingPacket()
 
 void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
 {
-	m_impl->SendReliableCommand(HashRageString(type), buffer, length);
+	if (m_impl)
+	{
+		m_impl->SendReliableCommand(HashRageString(type), buffer, length);
+	}
 }
 
 void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
 {
-	m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+	if (m_impl)
+	{
+		m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+	}
 }
 
 static std::string g_disconnectReason;
@@ -715,7 +739,7 @@ struct GetAuthSessionTicketResponse_t
 	int m_eResult;
 };
 
-static std::optional<std::string> ResolveUrl(const std::string& rootUrl)
+static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
 {
 	try
 	{
@@ -751,6 +775,44 @@ static std::optional<std::string> ResolveUrl(const std::string& rootUrl)
 		
 	}
 
+	if (rootUrl.find(".cfx.re") != std::string::npos && rootUrl.find("https:") == std::string::npos)
+	{
+		return co_await ResolveUrl(fmt::sprintf("https://%s/", rootUrl));
+	}
+	else if (rootUrl.find("cfx.re/join") != std::string::npos)
+	{
+		concurrency::task_completion_event<std::optional<std::string>> tce;
+
+		HttpRequestOptions ro;
+		ro.responseHeaders = std::make_shared<HttpHeaderList>();
+
+		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", rootUrl), ro, [ro, tce](bool success, const char* data, size_t callback)
+		{
+			if (success)
+			{
+				const auto& rh = *ro.responseHeaders;
+				
+				if (rh.find("X-CitizenFX-Url") != rh.end())
+				{
+					auto url = rh.find("X-CitizenFX-Url")->second;
+
+					auto taskRef = [tce, url]() -> concurrency::task<void>
+					{
+						tce.set(co_await ResolveUrl(url));
+					};
+
+					taskRef();
+
+					return;
+				}
+			}
+
+			tce.set({});
+		});
+
+		return co_await concurrency::task<std::optional<std::string>>{ tce };
+	}
+
 	auto peerAddress = net::PeerAddress::FromString(rootUrl);
 	
 	if (peerAddress)
@@ -769,9 +831,9 @@ static std::optional<std::string> ResolveUrl(const std::string& rootUrl)
 	return {};
 }
 
-void NetLibrary::ConnectToServer(const std::string& rootUrl)
+concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
-	auto urlRef = ResolveUrl(rootUrl);
+	auto urlRef = co_await ResolveUrl(rootUrl);
 
 	if (!urlRef)
 	{
@@ -848,6 +910,12 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 	{
 		postMap["gameBuild"] = gameBuild;
 	}
+
+#if defined(IS_RDR3)
+	postMap["gameName"] = "rdr3";
+#elif defined(GTA_FIVE)
+	postMap["gameName"] = "gta5";
+#endif
 
 	static std::function<void()> performRequest;
 
@@ -957,6 +1025,15 @@ void NetLibrary::ConnectToServer(const std::string& rootUrl)
 			{
 				Instance<ICoreGameInit>::Get()->ShAllowed = node["sH"].as<bool>(true);
 			}
+
+#if defined(IS_RDR3)
+			if (!node["gamename"].IsDefined() || node["gamename"].as<std::string>() != "rdr3")
+			{
+				OnConnectionError("This server is not compatible with RedM, as it's for FiveM. Please join an actual RedM server instead.");
+				m_connectionState = CS_IDLE;
+				return true;
+			}
+#endif
 
 			// gather endpoints
 			std::vector<std::string> endpoints;

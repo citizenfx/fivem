@@ -366,6 +366,10 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 	{
 		retval = L"GTA5+" + retval.substr(10);
 	}
+	else if (_wcsnicmp(hash.c_str(), L"redm.exe+", 9) == 0)
+	{
+		retval = L"RDR2+" + retval.substr(9);
+	}
 
 	return retval;
 }

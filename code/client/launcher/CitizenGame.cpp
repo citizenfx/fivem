@@ -242,6 +242,54 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 		ExitProcess(0);
 	}
 }
+#elif defined(IS_RDR3)
+bool g_ranStartupInfo;
+
+static void* g_f;
+static char g_b[5];
+
+int ThisIsActuallyLaunchery()
+{
+	memcpy(g_f, g_b, 5);
+
+	return 1;
+}
+
+VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
+{
+	GetStartupInfoW(lpStartupInfo);
+
+	if (g_ranStartupInfo)
+	{
+		return;
+	}
+
+	g_ranStartupInfo = true;
+
+	hook::set_base();
+
+	if (getenv("CitizenFX_ToolMode"))
+	{
+		auto plRoutine = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "ToolMode_RunPostLaunchRoutine");
+		plRoutine();
+
+		return;
+	}
+
+	g_f = hook::get_call(hook::get_pattern("B2 01 B9 2F A9 C2 F4", -25));
+	memcpy(g_b, g_f, 5);
+	hook::jump(g_f, ThisIsActuallyLaunchery);
+
+	if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
+	{
+		ExitProcess(0);
+	}
+
+	if (!g_launcher->PreResumeGame())
+	{
+		ExitProcess(0);
+	}
+}
 #endif
 
 static LONG NTAPI HandleVariant(PEXCEPTION_POINTERS exceptionInfo)
@@ -263,7 +311,7 @@ void CitizenGame::InvokeEntryPoint(void(*entryPoint)())
 	}
 }
 
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 static int NoWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD)
 {
 	return 1;
@@ -344,9 +392,12 @@ void CitizenGame::SetCoreMapping()
 #endif
 }
 
+#include <sddl.h>
+#pragma comment(lib, "ntdll.lib")
+
 void AAD_Initialize()
 {
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 	// set BeingDebugged
 	PPEB peb = (PPEB)__readgsqword(0x60);
 	peb->BeingDebugged = false;
@@ -356,6 +407,20 @@ void AAD_Initialize()
 
 	if (CoreIsDebuggerPresent())
 	{
+		/*HANDLE hdl;
+		DWORD len = 0;
+		NtQueryInformationProcess(GetCurrentProcess(), (PROCESSINFOCLASS)0x1E, &hdl, sizeof(hdl), &len);
+
+		PSECURITY_DESCRIPTOR sd;
+		ULONG cb;
+
+		ConvertStringSecurityDescriptorToSecurityDescriptor(TEXT("D:(A;;0;;;OW)"),
+			SDDL_REVISION_1, &sd, &cb);
+
+		SetKernelObjectSecurity(hdl, DACL_SECURITY_INFORMATION, sd);
+
+		LocalFree(sd);
+
 		// NOP OutputDebugStringA; the debugger doesn't like multiple async exceptions
 		uint8_t* func = (uint8_t*)OutputDebugStringA;
 
@@ -364,11 +429,25 @@ void AAD_Initialize()
 
 		//*func = 0xC3;
 
-		VirtualProtect(func, 1, oldProtect, &oldProtect);
+		VirtualProtect(func, 1, oldProtect, &oldProtect);*/
 	}
 #endif
 
 	AddVectoredExceptionHandler(0, HandleVariant);
+}
+
+#include <psapi.h>
+
+BOOL EnumProcessModulesHook(
+	HANDLE  hProcess,
+	HMODULE* lphModule,
+	DWORD   cb,
+	LPDWORD lpcbNeeded
+)
+{
+	trace("enum modules\n");
+
+	return EnumProcessModules(hProcess, lphModule, cb, lpcbNeeded);
 }
 
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
@@ -390,7 +469,10 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
 	CoreSetDebuggerPresent();
 
-    SetCoreMapping();
+	if (!getenv("CitizenFX_ToolMode"))
+	{
+		SetCoreMapping();
+	}
 
 	InitializeMiniDumpOverride();
 
@@ -458,6 +540,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	exeLoader.SetLoadLimit(0x20000000);
 #elif defined(GTA_FIVE)
 	exeLoader.SetLoadLimit(0x140000000 + 0x60000000);
+#elif defined(IS_RDR3)
+	exeLoader.SetLoadLimit(0x140000000 + 0x80000000);
 #else
 #error No load limit defined.
 #endif
@@ -525,7 +609,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
 	exeLoader.SetFunctionResolver([] (HMODULE module, const char* functionName) -> LPVOID
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 		if (!_stricmp(functionName, "GetStartupInfoW"))
 		{
 			return GetStartupInfoWHook;
@@ -545,6 +629,10 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		else if (!_stricmp(functionName, "GetFileAttributesW"))
 		{
 			return GetFileAttributesWHook;
+		}
+		else if (!_stricmp(functionName, "K32EnumProcessModules"))
+		{
+			return EnumProcessModulesHook;
 		}
 #endif
 
@@ -567,7 +655,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
 	entryPoint = (void(*)())exeLoader.GetEntryPoint();
 
-#if !defined(PAYNE) && !defined(GTA_FIVE)
+#if !defined(PAYNE) && !defined(GTA_FIVE) && !defined(IS_RDR3)
 	if (!launcher->PostLoadGame(exeModule, &entryPoint))
 	{
 		ExitProcess(0);

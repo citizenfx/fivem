@@ -114,10 +114,10 @@ void ExecutableLoader::LoadSection(IMAGE_SECTION_HEADER* section)
 		uint32_t sizeOfData = fwMin(section->SizeOfRawData, section->Misc.VirtualSize);
 
 		memcpy(targetAddress, sourceAddress, sizeOfData);
-
-		DWORD oldProtect;
-		VirtualProtect(targetAddress, sizeOfData, PAGE_EXECUTE_READWRITE, &oldProtect);
 	}
+
+	DWORD oldProtect;
+	VirtualProtect(targetAddress, section->Misc.VirtualSize, PAGE_EXECUTE_READWRITE, &oldProtect);
 }
 
 void ExecutableLoader::LoadSections(IMAGE_NT_HEADERS* ntHeader)
@@ -305,7 +305,7 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 	// copy over the offset to the new imports directory
 	sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 	memcpy(sourceNtHeader, ntHeader, sizeof(IMAGE_NT_HEADERS) + (ntHeader->FileHeader.NumberOfSections * (sizeof(IMAGE_SECTION_HEADER))));
 #endif
 

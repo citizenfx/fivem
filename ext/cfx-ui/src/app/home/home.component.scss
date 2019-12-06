@@ -76,7 +76,7 @@
 
 	.feed {
 		position: relative;
-		width: 35%;
+		width: 55%;
 
 		@include theme() using ($theme) {
 			border-left: rgba(gtv($theme, bgColour), .3) 1px solid;

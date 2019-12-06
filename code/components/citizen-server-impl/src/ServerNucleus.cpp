@@ -58,7 +58,7 @@ static InitFunction initFunction([]()
 							{
 								auto jsonData = nlohmann::json::parse(std::string(data, length));
 
-								trace("^1        fff                          \n  cccc ff   xx  xx     rr rr    eee  \ncc     ffff   xx       rrr  r ee   e \ncc     ff     xx   ... rr     eeeee  \n ccccc ff   xx  xx ... rr      eeeee \n                                     ^7\n");
+								trace("^1        fff                          \n^1  cccc ff   xx  xx     rr rr    eee  \n^1cc     ffff   xx       rrr  r ee   e \n^1cc     ff     xx   ... rr     eeeee  \n^1 ccccc ff   xx  xx ... rr      eeeee \n                                     ^7\n");
 								trace("^2Authenticated with cfx.re Nucleus: ^7https://%s/\n", jsonData.value("host", ""));
 
 								fwRefContainer<net::ReverseTcpServer> rts = new net::ReverseTcpServer();

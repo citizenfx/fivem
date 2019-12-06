@@ -33,6 +33,32 @@ build_client:
   except:
     - server-ci
     - tags
+
+build_client_rdr3:
+  <<: *build_windows
+  tags:
+    - vs2017
+    - client2
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
+    IS_RDR3: '1'
+  artifacts:
+    paths:
+      - caches/diff/
+      - caches/caches.xml
+      - caches/CitizenFX.exe.xz
+      - caches/version.txt
+    expire_in: 1 month
+  cache:
+    key: rdr3
+    untracked: true
+    paths:
+      - code/shared/citversion.h
+      - code/build/
+  except:
+    - server-ci
+    - tags
     
 build_launcher:
   <<: *build_windows
@@ -75,6 +101,7 @@ build_server_windows:
     - tags
     #- master
     - feature/update-to-1365
+    #- portability-rdr3
     #- feature/update-to-1493
   cache:
     key: server
@@ -100,6 +127,7 @@ build_proot_linux:
     - feature/update-to-1604
     - feature/cloning-stuff-releng
     - feature/cloning-plus
+    - portability-rdr3
   tags:
     - linux
 
@@ -116,6 +144,28 @@ deploy_specific:
   tags:
     - vs2017
     - client
+  except:
+    - master
+    - server-ci
+    - tags
+    
+deploy_rdr3_specific:
+  stage: deploy
+  dependencies:
+    - build_client_rdr3
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: specific/$CI_BUILD_REF_NAME
+  only:
+    - branches
+  tags:
+    - vs2017
+    - client2
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
+    IS_RDR3: '1'
   except:
     - master
     - server-ci

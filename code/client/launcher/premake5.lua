@@ -32,6 +32,10 @@
 					path.getabsolute('../../tools/dbg/dump_1604.txt')
 				)
 			}
+		elseif _OPTIONS['game'] == 'rdr3' then
+			postbuildcommands {
+				"if exist C:\\f\\RDR2.exe ( %{cfg.buildtarget.directory}\\retarget_pe \"%{cfg.buildtarget.abspath}\" C:\\f\\RDR2.exe )",
+			}
 		end
 		
 		pchsource "StdInc.cpp"

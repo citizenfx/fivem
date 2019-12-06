@@ -10,7 +10,11 @@
 #include <ResourceManager.h>
 #include <scrEngine.h>
 
+#include <ICoreGameInit.h>
+
+#if __has_include(<GameInit.h>)
 #include <GameInit.h>
+#endif
 
 #include <optick.h>
 
@@ -48,6 +52,7 @@ class TestScriptThread : public GtaThread
 
 		std::call_once(of, []()
 		{
+#if __has_include(<GameInit.h>)
 			OnKillNetwork.Connect([](const char*)
 			{
 				Instance<ICoreGameInit>::Get()->ClearVariable("gameSettled");
@@ -55,6 +60,7 @@ class TestScriptThread : public GtaThread
 				tickCount = 0;
 				initedGame = false;
 			});
+#endif
 		});
 
 		tickCount++;
@@ -107,6 +113,8 @@ private:
 DECLARE_INSTANCE_TYPE(ProfilerEventHolder);
 #endif
 
+#include <stack>
+
 static InitFunction initFunction([] ()
 {
 	rage::scrEngine::OnScriptInit.Connect([] ()
@@ -114,6 +122,25 @@ static InitFunction initFunction([] ()
 		rage::scrEngine::CreateThread(&thread);
 		g_resourceThread = &thread;
 	});
+
+#ifdef IS_RDR3
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		static thread_local std::stack<rage::scrThread*> lastActiveThread;
+
+		resource->OnActivate.Connect([]()
+		{
+			lastActiveThread.push(rage::scrEngine::GetActiveThread());
+			rage::scrEngine::SetActiveThread(g_resourceThread);
+		}, -999);
+
+		resource->OnDeactivate.Connect([]()
+		{
+			rage::scrEngine::SetActiveThread(lastActiveThread.top());
+			lastActiveThread.pop();
+		}, 999);
+	});
+#endif
 
 #if USE_OPTICK
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)

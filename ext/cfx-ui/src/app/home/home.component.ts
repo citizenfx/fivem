@@ -67,23 +67,40 @@ export class HomeComponent implements OnInit {
 
     welcomeMessage: any;
 
+    brandingName: string;
+
     constructor(private tweetService: TweetService, private gameService: GameService,
         private discourseService: DiscourseService, private domSanitizer: DomSanitizer) {
         discourseService.signinChange.subscribe(user => this.currentAccount = user);
     }
 
     ngOnInit() {
+        this.brandingName = this.gameService.brandingName;
+
+        if (this.gameService.gameName === 'rdr3') {
+            // references from RDR2 (that is, Redemption 1) executable
+            this.randomGreetings = [
+                'You\'re running a PRE-RELEASE build, pilgrim!',
+                'Howdy partner. You\'re playing with an executable built *someday*.',
+            ];
+        }
+
         this.randomGreeting = this.randomGreetings[Math.floor(Math.random() * this.randomGreetings.length)];
 
         this.fetchTweets();
         this.fetchWelcome();
-        this.fetchBeg();
+
+        if (this.gameService.gameName !== 'rdr3') {
+            this.fetchBeg();
+        }
 
         this.currentAccount = this.discourseService.currentUser;
     }
 
     fetchWelcome() {
-        window.fetch('https://runtime.fivem.net/welcome.html')
+        window.fetch((this.gameService.gameName === 'gta5') ?
+            'https://runtime.fivem.net/welcome.html' :
+            `https://runtime.fivem.net/welcome_${this.gameService.gameName}.html`)
               .then(async res => {
                   if (res.ok) {
                       this.welcomeMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());

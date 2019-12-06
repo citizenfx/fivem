@@ -20,7 +20,6 @@
 #include <CoreConsole.h>
 #include <se/Security.h>
 
-#ifdef GTA_FIVE
 static InitFunction initFunction([] ()
 {
 	seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.internal" }, se::Object{ "builtin" }, se::AccessType::Allow);
@@ -127,4 +126,3 @@ static InitFunction initFunction([] ()
 		g_gameInit.SetGameLoaded();
 	});
 });
-#endif

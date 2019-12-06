@@ -1,4 +1,4 @@
-gamenames = { "ny", "payne", "server", "five" }
+gamenames = { "ny", "payne", "server", "five", "launcher", "rdr3" }
 
 newoption {
 	trigger		= "game",
@@ -8,6 +8,7 @@ newoption {
 		{ "ny",		  "Grand Theft Auto IV" },
 		{ "payne",	  "Max Payne 3" },
 		{ "five",     "Grand Theft Auto V" },
+		{ "rdr3",     "Bob" },
 		{ "launcher", "reverse-game" },
 		{ "server",   "CitizenFX server build" }
 	}

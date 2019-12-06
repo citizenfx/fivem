@@ -116,9 +116,6 @@ namespace fx
 			// invoke target events
 			OnServerCreate(this);
 
-			// start sessionmanager
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
-
 			// start webadmin
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
 
@@ -128,6 +125,7 @@ namespace fx
 
 			// add system console access
 			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
+			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command.quit" }, se::AccessType::Allow);
 
 			for (const auto& bit : optionParser->GetArguments())
 			{

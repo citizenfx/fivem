@@ -238,7 +238,18 @@ static BOOLEAN(*g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* c
 
 static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
 {
+	// anti-anti-anti-anti-debug
+	if (CoreIsDebuggerPresent() && (record->ExceptionCode == 0xc0000008/* || record->ExceptionCode == 0x80000003*/))
+	{
+		return TRUE;
+	}
+
 	BOOLEAN success = g_origRtlDispatchException(record, context);
+
+	if (CoreIsDebuggerPresent())
+	{
+		return success;
+	}
 
 	static bool inExceptionFallback;
 
@@ -268,11 +279,6 @@ static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* conte
 
 extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POINTERS*))
 {
-	if (CoreIsDebuggerPresent())
-	{
-		return;
-	}
-
 	g_exceptionHandler = handler;
 
 	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "KiUserExceptionDispatcher");

@@ -4,11 +4,11 @@
     "outDir": "../out-tsc/app",
     "module": "es2015",
     "baseUrl": "",
-    "types": ["node"]
+    "types": ["node", "@types/offscreencanvas"]
   },
   "exclude": [
     "test.ts",
-    "worker/*.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "**/*.worker.ts"
   ]
 }

@@ -293,6 +293,23 @@ result_t TestScriptHost::IsManifestVersionBetween(const guid_t & lowerBound, con
 	return FX_E_INVALIDARG;
 }
 
+result_t TestScriptHost::IsManifestVersionV2Between(char* lowerBound, char* upperBound, bool* _retval)
+{
+	// get the manifest version
+	auto metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+
+	auto retval = metaData->IsManifestVersionBetween(lowerBound, upperBound);
+
+	if (retval)
+	{
+		*_retval = *retval;
+
+		return FX_S_OK;
+	}
+
+	return FX_E_INVALIDARG;
+}
+
 using Boundary = std::vector<uint8_t>;
 using BoundaryPair = std::pair<std::optional<Boundary>, std::optional<Boundary>>;
 

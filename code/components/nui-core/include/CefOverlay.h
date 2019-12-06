@@ -94,7 +94,7 @@ namespace nui
 		CRGBA color;
 	};
 
-	class GameInterface
+	class OVERLAY_DECL GameInterface
 	{
 	public:
 		virtual void GetGameResolution(int* width, int* height) = 0;
@@ -104,6 +104,11 @@ namespace nui
 		virtual GITexture* CreateTextureBacking(int width, int height, GITextureFormat format) = 0;
 
 		virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle) = 0;
+
+		virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
+		{
+			return CreateTextureFromShareHandle(shareHandle);
+		}
 
 		virtual void SetTexture(GITexture* texture, bool pm = false) = 0;
 

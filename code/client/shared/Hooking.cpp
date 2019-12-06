@@ -31,7 +31,7 @@ namespace hook
 #else
 	void* AllocateFunctionStub(void* ptr, int type)
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 		typedef void*(*AllocateType)(void*, int);
 		static AllocateType func;
 
@@ -49,7 +49,7 @@ namespace hook
 
 	void* AllocateStubMemory(size_t size)
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 		static decltype(&AllocateStubMemory) func;
 
 		if (func == nullptr)

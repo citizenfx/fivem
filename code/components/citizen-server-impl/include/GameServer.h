@@ -22,6 +22,8 @@
 #include <UvLoopHolder.h>
 #include <UvTcpServer.h>
 
+#include <GameNames.h>
+
 namespace fx
 {
 	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
@@ -170,6 +172,11 @@ namespace fx
 			m_packetHandler = handler;
 		}
 
+		inline fx::GameName GetGameName()
+		{
+			return m_gamename->GetValue();
+		}
+
 	private:
 		void InitializeNetUv();
 
@@ -199,11 +206,19 @@ namespace fx
 
 		std::shared_ptr<ConsoleCommand> m_heartbeatCommand;
 
+		std::shared_ptr<ConVar<std::string>> m_listingIpOverride;
+
+		std::shared_ptr<ConVar<bool>> m_useDirectListing;
+
 		std::shared_ptr<ConVar<std::string>> m_rconPassword;
 
 		std::shared_ptr<ConVar<std::string>> m_hostname;
 
+		std::shared_ptr<ConVar<GameName>> m_gamename;
+
 		std::shared_ptr<ConVar<std::string>> m_masters[3];
+
+		std::string m_lastGameName;
 
 		tbb::concurrent_unordered_map<std::string, net::PeerAddress> m_masterCache;
 

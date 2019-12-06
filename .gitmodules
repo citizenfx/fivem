@@ -129,7 +129,7 @@
 	url = https://github.com/citizenfx/reliable.io.git
 [submodule "vendor/websocketpp"]
 	path = vendor/websocketpp
-	url = https://github.com/zaphoyd/websocketpp.git
+	url = https://github.com/citizenfx/websocketpp.git
 [submodule "vendor/slikenet"]
 	path = vendor/slikenet
 	url = https://github.com/SLikeSoft/SLikeNet.git
@@ -172,3 +172,9 @@
 [submodule "vendor/nngpp"]
 	path = vendor/nngpp
 	url = https://github.com/citizenfx/nngpp.git
+[submodule "vendor/vulkan-headers"]
+	path = vendor/vulkan-headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+[submodule "vendor/grpc"]
+	path = vendor/grpc
+	url = https://github.com/grpc/grpc.git

@@ -52,6 +52,8 @@ public:
 
 	std::optional<bool> IsManifestVersionBetween(const guid_t& lowerBound, const guid_t& upperBound);
 
+	std::optional<bool> IsManifestVersionBetween(const std::string& lowerBound, const std::string& upperBound);
+
 	inline Resource* GetResource()
 	{
 		return m_resource;

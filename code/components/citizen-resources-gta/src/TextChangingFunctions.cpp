@@ -6,6 +6,8 @@
  */
 
 #include <StdInc.h>
+
+#if defined(GTA_FIVE)
 #include <ScriptEngine.h>
 
 #include <Resource.h>
@@ -141,3 +143,4 @@ static InitFunction initFunction([] ()
 			context.GetArgument<float>(5));
 	});
 });
+#endif

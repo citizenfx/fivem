@@ -11,7 +11,6 @@
 #include "NetLibrary.h"
 #include "FontRenderer.h"
 #include "DrawCommands.h"
-#include "Screen.h"
 #include <CoreConsole.h>
 #include <mmsystem.h>
 
@@ -166,9 +165,12 @@ private:
 private:
 	inline int GetOverlayLeft()
 	{
+		int x, y;
+		GetGameResolution(x, y);
+
 		if (g_netOverlayOffsetX < 0)
 		{
-			return GetScreenResolutionX() + g_netOverlayOffsetX - g_netOverlayWidth;
+			return x + g_netOverlayOffsetX - g_netOverlayWidth;
 		}
 		else
 		{
@@ -178,9 +180,12 @@ private:
 
 	inline int GetOverlayTop()
 	{
+		int x, y;
+		GetGameResolution(x, y);
+
 		if (g_netOverlayOffsetY < 0)
 		{
-			return GetScreenResolutionY() + g_netOverlayOffsetY - g_netOverlayHeight;
+			return y + g_netOverlayOffsetY - g_netOverlayHeight;
 		}
 		else
 		{

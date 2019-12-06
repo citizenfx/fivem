@@ -6,10 +6,15 @@
  */
 
 #include "StdInc.h"
+
 #include <CefOverlay.h>
 #include <NetLibrary.h>
 #include <strsafe.h>
+
+#ifdef GTA_FIVE
 #include <GlobalEvents.h>
+#endif
+
 #include <nutsnbolts.h>
 #include <ConsoleHost.h>
 #include <CoreConsole.h>
@@ -430,7 +435,9 @@ static InitFunction initFunction([] ()
 		if (netLibrary->GetConnectionState() != 0)
 		{
 			OnKillNetwork("Disconnected.");
+#ifdef GTA_FIVE
 			OnMsgConfirm();
+#endif
 		}
 	});
 
@@ -541,6 +548,7 @@ static InitFunction initFunction([] ()
 				TerminateProcess(GetCurrentProcess(), 0);
 			});
 		}
+#ifdef GTA_FIVE
 		else if (!_wcsicmp(type, L"setDiscourseIdentity"))
 		{
 			try
@@ -598,6 +606,7 @@ static InitFunction initFunction([] ()
 				trace("failed to set discourse identity: %s\n", e.what());
 			}
 		}
+#endif
 		else if (!_wcsicmp(type, L"submitCardResponse"))
 		{
 			try
@@ -630,6 +639,7 @@ static InitFunction initFunction([] ()
 		Instance<console::Context>::Get()->ExecuteBuffer();
 	});
 
+#ifdef GTA_FIVE
 	OnMsgConfirm.Connect([] ()
 	{
 		ep.Call("disconnected");
@@ -638,6 +648,7 @@ static InitFunction initFunction([] ()
 
 		nui::CreateFrame("mpMenu", console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_url")->GetValue());
 	});
+#endif
 });
 
 #include <gameSkeleton.h>
@@ -649,6 +660,7 @@ static InitFunction initFunction([] ()
 
 static void ProtocolRegister()
 {
+#ifdef GTA_FIVE
 	LSTATUS result;
 
 #define CHECK_STATUS(x) \
@@ -701,6 +713,7 @@ static void ProtocolRegister()
 		CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
 		CHECK_STATUS(RegCloseKey(key));
 	}
+#endif
 }
 
 void Component_RunPreInit()

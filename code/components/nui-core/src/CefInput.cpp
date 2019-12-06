@@ -532,6 +532,9 @@ static HookFunction initFunction([] ()
 			if (msg == WM_KEYUP || msg == WM_KEYDOWN)
 			{
 				inputTarget.KeyEvent(wParam, lParam, (msg == WM_KEYDOWN));
+
+				pass = false;
+				lresult = false;
 			}
 			else if (msg == WM_CHAR)
 			{

@@ -134,6 +134,12 @@ workspace "CitizenMP"
 		filter 'language:C or language:C++'
 			architecture 'x64'
 			
+	configuration "game=rdr3"
+		defines "IS_RDR3"
+
+		filter 'language:C or language:C++'
+			architecture 'x64'
+			
 	configuration "game=launcher"
 		defines "IS_LAUNCHER"
 
@@ -166,6 +172,8 @@ workspace "CitizenMP"
 	include 'client/citicore'
 
 if _OPTIONS['game'] ~= 'server' then
+	include 'client/ipfsdl'
+
 	project "CitiGame"
 		targetname "CitizenGame"
 		language "C++"
@@ -296,9 +304,14 @@ if _OPTIONS['game'] ~= 'launcher' then
 		
 		if _OPTIONS['game'] ~= 'server' then
 			defines { 'USE_HYPERDRIVE' }
-			files { "client/clrcore/External/*.cs" }
+			
+			if _OPTIONS['game'] == 'five' then
+				files { "client/clrcore/External/*.cs" }
+			end
 		else
-			files { "client/clrcore/Server/*.cs" }
+			-- #TODORDR3: temporary, still
+			--files { "client/clrcore/Server/*.cs" }
+			files { "client/clrcore/Server/ServerWrappers.cs" }
 		end
 		
 		if os.istarget('windows') then

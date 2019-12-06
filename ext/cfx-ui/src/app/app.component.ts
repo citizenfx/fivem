@@ -35,11 +35,16 @@ export class AppComponent extends Translation implements OnInit {
 	ngOnInit() {
 		this.classes = [
 			environment.web ? 'webapp' : 'gameapp',
-			(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light'
+			(this.gameService.gameName === 'rdr3') ?
+				'theme-rdr3' :
+				(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light',
+			'game-' + this.gameService.gameName
 		];
 
 		this.gameService.darkThemeChange.subscribe(value => {
-			this.classes[1] = (value) ? 'theme-dark' : 'theme-light'
+			if (this.gameService.gameName !== 'rdr3') {
+				this.classes[1] = (value) ? 'theme-dark' : 'theme-light';
+			}
 		});
 
 		const lang = this.gameService.language;

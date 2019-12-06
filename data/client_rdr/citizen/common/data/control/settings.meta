@@ -1,0 +1,3343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MappingSettings>
+  <HistorySupport>
+    <Item>INPUT_MELEE_ATTACK</Item>
+    <Item>INPUT_HORSE_MELEE</Item>
+    <Item>INPUT_MELEE_BLOCK</Item>
+    <Item>INPUT_MELEE_GRAPPLE</Item>
+    <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+    <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+    <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+    <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+    <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+    <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+    <Item>INPUT_AIM</Item>
+    <Item>INPUT_HORSE_AIM</Item>
+    <Item>INPUT_HORSE_STOP</Item>
+    <Item>INPUT_VEH_DRAFT_BRAKE</Item>
+    <Item>INPUT_MOVE_LR</Item>
+    <Item>INPUT_MOVE_UD</Item>
+    <Item>INPUT_LOOK_LR</Item>
+    <Item>INPUT_LOOK_UD</Item>
+    <Item>INPUT_VEH_EXIT</Item>
+    <Item>INPUT_VEH_NEXT_RADIO</Item>
+    <Item>INPUT_VEH_PREV_RADIO</Item>
+    <Item>INPUT_VEH_HORN</Item>
+    <Item>INPUT_VEH_HEADLIGHT</Item>
+    <Item>INPUT_VEH_ROOF</Item>
+    <Item>INPUT_VEH_JUMP</Item>
+    <Item>INPUT_SPRINT</Item>
+    <Item>INPUT_DETONATE</Item>
+    <Item>INPUT_VEH_FLY_SELECT_TARGET_LEFT</Item>
+    <Item>INPUT_VEH_FLY_SELECT_TARGET_RIGHT</Item>
+    <Item>INPUT_DUCK</Item>
+    <Item>INPUT_ENTER</Item>
+    <Item>INPUT_DYNAMIC_SCENARIO</Item>
+    <Item>INPUT_DIVE</Item>
+    <Item>INPUT_VEH_LOOK_BEHIND</Item>
+    <Item>INPUT_VEH_FLY_ATTACK_CAMERA</Item>
+    <Item>INPUT_VEH_PUSHBIKE_PEDAL</Item>
+    <Item>INPUT_VEH_PUSHBIKE_SPRINT</Item>
+    <Item>INPUT_INTERACT_LOCKON</Item>
+    <Item>INPUT_INTERACT_NEG</Item>
+    <Item>INPUT_INTERACT_POS</Item>
+    <Item>INPUT_SPECIAL_ABILITY</Item>
+    <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+    <Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+    <Item>INPUT_MOVE_LEFT_ONLY</Item>
+    <Item>INPUT_MOVE_RIGHT_ONLY</Item>
+    <Item>INPUT_HORSE_SPRINT</Item>
+    <Item>INPUT_HORSE_GUN_LR</Item>
+    <Item>INPUT_HORSE_GUN_UD</Item>
+    <Item>INPUT_HORSE_MOVE_LR</Item>
+    <Item>INPUT_HORSE_MOVE_UD</Item>
+    <Item>INPUT_ATTACK</Item>
+    <Item>INPUT_HORSE_ATTACK</Item>
+    <Item>INPUT_JUMP</Item>
+    <Item>INPUT_HORSE_JUMP</Item>
+    <Item>INPUT_HORSE_COLLECT</Item>
+    <Item>INPUT_VEH_DRAFT_ACCELERATE</Item>
+    <Item>INPUT_LOOK_BEHIND</Item>
+    <Item>INPUT_HORSE_LOOK_BEHIND</Item>
+    <Item>INPUT_VEH_HANDCART_ACCELERATE</Item>
+    <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+    <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+    <Item>INPUT_EMOTE_TAUNT</Item>
+    <Item>INPUT_EMOTE_GREET</Item>
+    <Item>INPUT_EMOTE_COMM</Item>
+    <Item>INPUT_EMOTE_DANCE</Item>
+	<Item>INPUT_VEH_BOAT_ACCELERATE</Item>
+  </HistorySupport>
+  <Contexts>
+    <Item>
+      <Name>OnFoot</Name>
+      <Actions>
+        <Item>INPUT_CINEMATIC_CAM</Item>
+        <Item>INPUT_CINEMATIC_CAM_HOLD</Item>
+        <Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+        <Item>INPUT_CINEMATIC_CAM_UD</Item>
+        <Item>INPUT_CINEMATIC_CAM_UP_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_DOWN_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_LR</Item>
+        <Item>INPUT_CINEMATIC_SLOWMO</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+        <Item>INPUT_SCRIPTED_FLY_UD</Item>
+        <Item>INPUT_SCRIPTED_FLY_LR</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZUP</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZDOWN</Item>
+        
+        <Item>INPUT_CHARACTER_WHEEL</Item>
+  
+        <Item>INPUT_SELECT_ITEM_WHEEL</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_SELECT_NEXT_WEAPON</Item>
+        <Item>INPUT_SELECT_PREV_WEAPON</Item>
+
+        <Item>INPUT_MAP</Item>
+
+        <!-- Start of the actual ON_FOOT controls! -->
+        <Item>INPUT_SPRINT</Item>
+        <Item>INPUT_JUMP</Item>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_PHONE</Item>
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_DUCK</Item>
+        <Item>INPUT_TWIRL_PISTOL</Item>
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_PICKUP</Item>
+        <Item>INPUT_IGNITE</Item>
+        <Item>INPUT_SNIPER_ZOOM</Item>
+        <Item>INPUT_SNIPER_ZOOM_IN_ONLY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_ONLY</Item>
+        <Item>INPUT_SNIPER_ZOOM_IN_SECONDARY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_SECONDARY</Item>
+        <Item>INPUT_TOGGLE_WEAPON_SCOPE</Item>
+        <Item>INPUT_COVER_TRANSITION</Item>
+        <Item>INPUT_COVER</Item>
+        <Item>INPUT_RELOAD</Item>
+        <Item>INPUT_TALK</Item>
+        
+        <Item>INPUT_INTERACT_LOCKON</Item>
+        <Item>INPUT_INTERACT_NEG</Item>
+        <Item>INPUT_INTERACT_POS</Item>
+        <Item>INPUT_INTERACT_OPTION1</Item>
+        <Item>INPUT_INTERACT_OPTION2</Item>
+        <Item>INPUT_INTERACT_LOCKON_NEG</Item>
+        <Item>INPUT_INTERACT_LOCKON_POS</Item>
+            <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+        <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
+        <Item>INPUT_INTERACT_ANIMAL</Item>
+            <Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LEAD_ANIMAL</Item>
+        <Item>INPUT_INTERACT_HORSE_CARE</Item>
+        <Item>INPUT_INTERACT_LOCKON_DETACH_HORSE</Item>
+        <Item>INPUT_HITCH_ANIMAL</Item>
+        <Item>INPUT_VEH_TRAVERSAL</Item>
+        <Item>INPUT_INTERACT_HIT_CARRIABLE</Item>
+        <Item>INPUT_INTERACT_LOCKON_CALL_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
+        
+        <Item>INPUT_DETONATE</Item>
+        <Item>INPUT_ARREST</Item>
+        <Item>INPUT_ACCURATE_AIM</Item>
+        <Item>INPUT_SWITCH_SHOULDER</Item>
+        <Item>INPUT_IRON_SIGHT</Item>
+        <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_CONTEXT</Item>
+        <Item>INPUT_CONTEXT_SECONDARY</Item>
+        <Item>INPUT_WEAPON_SPECIAL</Item>
+        <Item>INPUT_WEAPON_SPECIAL_TWO</Item>
+        <Item>INPUT_DIVE</Item>
+        <Item>INPUT_DROP_WEAPON</Item>
+        <Item>INPUT_DROP_AMMO</Item>
+        <Item>INPUT_THROW_GRENADE</Item>
+        <Item>INPUT_WHISTLE</Item>
+        <Item>INPUT_STOP_LEADING_ANIMAL</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_FOCUS_CAM</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_DYNAMIC_SCENARIO</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_SATCHEL_HORSE_MENU</Item>
+        <Item>INPUT_QUICK_USE_ITEM</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_HUD_SPECIAL</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+		
+        <Item>INPUT_DOCUMENT_PAGE_NEXT</Item> 
+        <Item>INPUT_DOCUMENT_PAGE_PREV</Item>
+        
+        <!-- GAME MENU -->
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        
+        <Item>INPUT_SURRENDER</Item>
+        <Item>INPUT_SHOP_BUY</Item>
+        <Item>INPUT_SHOP_SELL</Item>
+        <Item>INPUT_SHOP_SPECIAL</Item>
+        <Item>INPUT_SHOP_INSPECT</Item>
+        <Item>INPUT_QUIT</Item>
+                
+        <Item>INPUT_QUICK_EQUIP_ITEM</Item>
+        
+        <!-- From melee mapper -->
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_BLOCK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+        <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+
+        <!-- From frontend mapper -->
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_LEADERBOARD</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB_SECONDARY</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+        
+        <Item>INPUT_FRONTEND_DELETE</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
+        <Item>INPUT_MAP_POI</Item>
+        
+        <Item>INPUT_SKIP_CUTSCENE</Item>
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+        <Item>INPUT_CURSOR_CANCEL</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+        <Item>INPUT_CREATOR_LS</Item>
+        <Item>INPUT_CREATOR_RS</Item>
+        <Item>INPUT_CREATOR_LT</Item>
+        <Item>INPUT_CREATOR_RT</Item>
+        <Item>INPUT_CREATOR_MENU_TOGGLE</Item>
+        <Item>INPUT_CREATOR_ACCEPT</Item>
+        <Item>INPUT_CREATOR_DELETE</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MP_TEXT_CHAT_TEAM</Item>
+        <Item>INPUT_MP_TEXT_CHAT_FRIENDS</Item>
+        <Item>INPUT_MP_TEXT_CHAT_CREW</Item>
+        <Item>INPUT_PUSH_TO_TALK</Item>
+
+        <Item>INPUT_MULTIPLAYER_PREDATOR_ABILITY</Item>
+        
+        
+        <!-- INPUT_SCRIPT_* INPUTS ARE DEPRECATED - DO NOT USE! -->
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RUP</Item>
+        <Item>INPUT_SCRIPT_RDOWN</Item>
+        <Item>INPUT_SCRIPT_RLEFT</Item>
+        <Item>INPUT_SCRIPT_RRIGHT</Item>
+        <Item>INPUT_SCRIPT_LB</Item>
+        <Item>INPUT_SCRIPT_RB</Item>
+        <Item>INPUT_SCRIPT_LT</Item>
+        <Item>INPUT_SCRIPT_RT</Item>
+        <Item>INPUT_SCRIPT_LS</Item>
+        <Item>INPUT_SCRIPT_RS</Item>
+        <Item>INPUT_SCRIPT_PAD_UP</Item>
+        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
+        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
+        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
+        <Item>INPUT_SCRIPT_SELECT</Item>
+
+        <Item>INPUT_ENTER_CHEAT_CODE</Item>
+
+        <Item>INPUT_CUT_FREE</Item>
+        <Item>INPUT_DROP</Item>
+        <Item>INPUT_PICKUP_CARRIABLE</Item>
+        <Item>INPUT_PICKUP_CARRIABLE2</Item>
+        <Item>INPUT_MERCY_KILL</Item>
+		<Item>INPUT_REVIVE</Item>
+        <Item>INPUT_LOOT</Item>
+        <Item>INPUT_LOOT2</Item>
+        <Item>INPUT_LOOT3</Item>
+            <Item>INPUT_LOOT_AMMO</Item>
+        <Item>INPUT_CARRIABLE_SUICIDE</Item>
+        <Item>INPUT_CARRIABLE_BREAK_FREE</Item>
+        <Item>INPUT_LOOT_VEHICLE</Item>
+        <Item>INPUT_BREAK_VEHICLE_LOCK</Item>
+        <Item>INPUT_LOOT_ALIVE_COMPONENT</Item>
+        <Item>INPUT_SADDLE_TRANSFER</Item>
+        <Item>INPUT_HOGTIE</Item>
+        <Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
+        <Item>INPUT_PICKUP_CARRIABLE_FROM_PARENT</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
+        <Item>INPUT_MINIGAME_HELP</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>OnMount</Name>
+      <Actions>
+        <Item>INPUT_CINEMATIC_CAM</Item>
+        <Item>INPUT_CINEMATIC_CAM_HOLD</Item>
+        <Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+        <Item>INPUT_CINEMATIC_CAM_UD</Item>
+        <Item>INPUT_CINEMATIC_CAM_UP_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_DOWN_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_LR</Item>
+        <Item>INPUT_CINEMATIC_SLOWMO</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+        <Item>INPUT_SCRIPTED_FLY_UD</Item>
+        <Item>INPUT_SCRIPTED_FLY_LR</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZUP</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZDOWN</Item>
+
+        <Item>INPUT_CHARACTER_WHEEL</Item>
+        <Item>INPUT_INTERACTION_MENU</Item>
+
+        <Item>INPUT_SELECT_ITEM_WHEEL</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_SELECT_NEXT_WEAPON</Item>
+        <Item>INPUT_SELECT_PREV_WEAPON</Item>
+
+        <Item>INPUT_MAP</Item>
+        
+        <!-- Start of the actual ON_FOOT controls! -->
+        <Item>INPUT_SPRINT</Item>
+        <Item>INPUT_JUMP</Item>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_PHONE</Item>
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_TWIRL_PISTOL</Item>
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_PICKUP</Item>
+        <Item>INPUT_SNIPER_ZOOM</Item>
+        <Item>INPUT_SNIPER_ZOOM_IN_ONLY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_ONLY</Item>
+        <Item>INPUT_SNIPER_ZOOM_IN_SECONDARY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_SECONDARY</Item>
+        <Item>INPUT_TOGGLE_WEAPON_SCOPE</Item>
+        <Item>INPUT_COVER_TRANSITION</Item>
+        <Item>INPUT_COVER</Item>
+        <Item>INPUT_RELOAD</Item>
+        <Item>INPUT_TALK</Item>
+        
+        <Item>INPUT_INTERACT_LOCKON</Item>
+        <Item>INPUT_INTERACT_NEG</Item>
+        <Item>INPUT_INTERACT_POS</Item>
+        <Item>INPUT_INTERACT_LOCKON_NEG</Item>
+        <Item>INPUT_INTERACT_LOCKON_POS</Item>
+            <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+        <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
+        <Item>INPUT_INTERACT_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LEAD_ANIMAL</Item>
+        <Item>INPUT_INTERACT_HIT_CARRIABLE</Item>
+        <Item>INPUT_INTERACT_LOCKON_CALL_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
+        
+        <Item>INPUT_WHISTLE_HORSEBACK</Item>
+        
+        <Item>INPUT_DETONATE</Item>
+        <Item>INPUT_ARREST</Item>
+        <Item>INPUT_ACCURATE_AIM</Item>
+        <Item>INPUT_SWITCH_SHOULDER</Item>
+        <Item>INPUT_IRON_SIGHT</Item>
+        <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_CONTEXT</Item>
+        <Item>INPUT_CONTEXT_SECONDARY</Item>
+        <Item>INPUT_WEAPON_SPECIAL</Item>
+        <Item>INPUT_WEAPON_SPECIAL_TWO</Item>
+        <Item>INPUT_DIVE</Item>
+        <Item>INPUT_DROP_WEAPON</Item>
+        <Item>INPUT_DROP_AMMO</Item>
+        <Item>INPUT_THROW_GRENADE</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_FOCUS_CAM</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_DYNAMIC_SCENARIO</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_QUICK_USE_ITEM</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_HUD_SPECIAL</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+		
+        <Item>INPUT_DOCUMENT_PAGE_NEXT</Item> 
+        <Item>INPUT_DOCUMENT_PAGE_PREV</Item>
+        
+        <!-- GAME MENU -->
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+      
+        <Item>INPUT_QUIT</Item>
+  
+        <!-- From horse mapper -->
+
+        <Item>INPUT_HORSE_MOVE_LR</Item>
+        <Item>INPUT_HORSE_MOVE_UD</Item>
+        <Item>INPUT_HORSE_MOVE_UP_ONLY</Item>
+        <Item>INPUT_HORSE_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_HORSE_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_HORSE_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_HORSE_SPECIAL</Item>
+        <Item>INPUT_HORSE_GUN_LR</Item>
+        <Item>INPUT_HORSE_GUN_UD</Item>
+        <Item>INPUT_HORSE_ATTACK</Item>
+        <Item>INPUT_HORSE_ATTACK2</Item>
+        <Item>INPUT_HORSE_SPRINT</Item>
+        <Item>INPUT_HORSE_STOP</Item>
+        <Item>INPUT_HORSE_EXIT</Item>
+        <Item>INPUT_HORSE_LOOK_BEHIND</Item>
+        <Item>INPUT_HORSE_JUMP</Item>
+        <Item>INPUT_HORSE_COLLECT</Item>
+        <Item>INPUT_HORSE_AIM</Item>
+        <Item>INPUT_HITCH_ANIMAL</Item>
+        <Item>INPUT_HORSE_MELEE</Item>
+        
+        
+        <!-- From frontend mapper -->
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_LEADERBOARD</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB_SECONDARY</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+        
+        <Item>INPUT_FRONTEND_DELETE</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
+        <Item>INPUT_MAP_POI</Item>
+        <Item>INPUT_SKIP_CUTSCENE</Item>
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+        <Item>INPUT_CURSOR_CANCEL</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+        <Item>INPUT_CREATOR_LS</Item>
+        <Item>INPUT_CREATOR_RS</Item>
+        <Item>INPUT_CREATOR_LT</Item>
+        <Item>INPUT_CREATOR_RT</Item>
+        <Item>INPUT_CREATOR_MENU_TOGGLE</Item>
+        <Item>INPUT_CREATOR_ACCEPT</Item>
+        <Item>INPUT_CREATOR_DELETE</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MP_TEXT_CHAT_TEAM</Item>
+        <Item>INPUT_MP_TEXT_CHAT_FRIENDS</Item>
+        <Item>INPUT_MP_TEXT_CHAT_CREW</Item>
+        <Item>INPUT_PUSH_TO_TALK</Item>
+
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RUP</Item>
+        <Item>INPUT_SCRIPT_RDOWN</Item>
+        <Item>INPUT_SCRIPT_RLEFT</Item>
+        <Item>INPUT_SCRIPT_RRIGHT</Item>
+        <Item>INPUT_SCRIPT_LB</Item>
+        <Item>INPUT_SCRIPT_RB</Item>
+        <Item>INPUT_SCRIPT_LT</Item>
+        <Item>INPUT_SCRIPT_RT</Item>
+        <Item>INPUT_SCRIPT_LS</Item>
+        <Item>INPUT_SCRIPT_RS</Item>
+        <Item>INPUT_SCRIPT_PAD_UP</Item>
+        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
+        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
+        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
+        <Item>INPUT_SCRIPT_SELECT</Item>
+
+        <Item>INPUT_ENTER_CHEAT_CODE</Item>
+
+        <Item>INPUT_CUT_FREE</Item>
+        <Item>INPUT_DROP</Item>
+        <Item>INPUT_PICKUP_CARRIABLE</Item>
+        <Item>INPUT_PICKUP_CARRIABLE2</Item>
+        <Item>INPUT_MERCY_KILL</Item>
+		<Item>INPUT_REVIVE</Item>
+        <Item>INPUT_LOOT</Item>
+        <Item>INPUT_LOOT2</Item>
+        <Item>INPUT_LOOT3</Item>
+        <Item>INPUT_LOOT_AMMO</Item>
+        <Item>INPUT_CARRIABLE_SUICIDE</Item>
+        <Item>INPUT_CARRIABLE_BREAK_FREE</Item>
+        <Item>INPUT_LOOT_VEHICLE</Item>
+        <Item>INPUT_BREAK_VEHICLE_LOCK</Item>
+        <Item>INPUT_LOOT_ALIVE_COMPONENT</Item>
+        <Item>INPUT_HOGTIE</Item>
+        <Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
+        <Item>INPUT_PICKUP_CARRIABLE_FROM_PARENT</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
+        <Item>INPUT_MINIGAME_HELP</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
+        <Item>INPUT_SURRENDER</Item>
+        <Item>INPUT_MULTIPLAYER_RACE_RESPAWN</Item>
+        <Item>INPUT_MULTIPLAYER_PREDATOR_ABILITY</Item>
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>InVehicle</Name>
+      <Actions>
+        <Item>INPUT_CINEMATIC_CAM</Item>
+        <Item>INPUT_CINEMATIC_CAM_HOLD</Item>
+        <Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+        <Item>INPUT_CINEMATIC_CAM_UD</Item>
+        <Item>INPUT_CINEMATIC_CAM_UP_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_DOWN_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_LR</Item>
+        <Item>INPUT_CINEMATIC_SLOWMO</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+
+        <Item>INPUT_SELECT_ITEM_WHEEL</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_SELECT_NEXT_WEAPON</Item>
+        <Item>INPUT_SELECT_PREV_WEAPON</Item>
+
+        <Item>INPUT_MAP</Item>
+  
+        <!-- Start of the actual ON_FOOT controls! -->
+        <Item>INPUT_SPRINT</Item>
+        <Item>INPUT_JUMP</Item>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_PHONE</Item>
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_TWIRL_PISTOL</Item>
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_PICKUP</Item>
+        <Item>INPUT_SNIPER_ZOOM</Item>
+        <Item>INPUT_SNIPER_ZOOM_IN_ONLY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_ONLY</Item>
+        <Item>INPUT_SNIPER_ZOOM_IN_SECONDARY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_SECONDARY</Item>
+        <Item>INPUT_TOGGLE_WEAPON_SCOPE</Item>
+        <Item>INPUT_COVER_TRANSITION</Item>
+        <Item>INPUT_COVER</Item>
+        <Item>INPUT_RELOAD</Item>
+        <Item>INPUT_TALK</Item>
+                
+        <Item>INPUT_INTERACT_LOCKON</Item>
+        <Item>INPUT_INTERACT_NEG</Item>
+        <Item>INPUT_INTERACT_POS</Item>
+        <Item>INPUT_INTERACT_LOCKON_NEG</Item>
+        <Item>INPUT_INTERACT_LOCKON_POS</Item>
+            <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+        <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
+        <Item>INPUT_INTERACT_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LEAD_ANIMAL</Item>
+        <Item>INPUT_INTERACT_HIT_CARRIABLE</Item>
+        <Item>INPUT_INTERACT_LOCKON_CALL_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
+            
+        <Item>INPUT_DETONATE</Item>
+        <Item>INPUT_ARREST</Item>
+        <Item>INPUT_ACCURATE_AIM</Item>
+        <Item>INPUT_SWITCH_SHOULDER</Item>
+        <Item>INPUT_IRON_SIGHT</Item>
+        <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_CONTEXT</Item>
+        <Item>INPUT_CONTEXT_SECONDARY</Item>
+        <Item>INPUT_WEAPON_SPECIAL</Item>
+        <Item>INPUT_WEAPON_SPECIAL_TWO</Item>
+        <Item>INPUT_DIVE</Item>
+        <Item>INPUT_DROP_WEAPON</Item>
+        <Item>INPUT_DROP_AMMO</Item>
+        <Item>INPUT_THROW_GRENADE</Item>
+        <Item>INPUT_WHISTLE</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_FOCUS_CAM</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_DYNAMIC_SCENARIO</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_QUICK_USE_ITEM</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_HUD_SPECIAL</Item>
+		
+        <Item>INPUT_DOCUMENT_PAGE_NEXT</Item> 
+        <Item>INPUT_DOCUMENT_PAGE_PREV</Item>
+        
+        <!-- GAME MENU -->
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        
+        <Item>INPUT_SURRENDER</Item>
+        
+
+        <!-- From vehicle mapper -->
+        <Item>INPUT_VEH_MOVE_LR</Item>
+        <Item>INPUT_VEH_MOVE_UD</Item>
+        <Item>INPUT_VEH_MOVE_UP_ONLY</Item>
+        <Item>INPUT_VEH_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_VEH_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_VEH_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_VEH_SPECIAL</Item>
+        <Item>INPUT_VEH_GUN_LR</Item>
+        <Item>INPUT_VEH_GUN_UD</Item>
+        <Item>INPUT_VEH_AIM</Item>
+        <Item>INPUT_VEH_ATTACK</Item>
+        <Item>INPUT_VEH_ATTACK2</Item>
+        <Item>INPUT_VEH_ACCELERATE</Item>
+        <Item>INPUT_VEH_BRAKE</Item>
+        <Item>INPUT_VEH_DUCK</Item>
+        <Item>INPUT_VEH_HEADLIGHT</Item>
+        <Item>INPUT_VEH_EXIT</Item>
+        <Item>INPUT_VEH_HANDBRAKE</Item>
+        <Item>INPUT_VEH_LOOK_BEHIND</Item>
+        <Item>INPUT_QUIT</Item>
+        <Item>INPUT_VEH_NEXT_RADIO</Item>
+        <Item>INPUT_VEH_PREV_RADIO</Item>
+        <Item>INPUT_VEH_NEXT_RADIO_TRACK</Item>
+        <Item>INPUT_VEH_PREV_RADIO_TRACK</Item>
+        <Item>INPUT_VEH_HORN</Item>
+        <Item>INPUT_VEH_FLY_THROTTLE_UP</Item>
+        <Item>INPUT_VEH_FLY_THROTTLE_DOWN</Item>
+        <Item>INPUT_VEH_FLY_YAW_LEFT</Item>
+        <Item>INPUT_VEH_FLY_YAW_RIGHT</Item>
+        <Item>INPUT_VEH_SPECIAL_ABILITY_FRANKLIN</Item>
+        <Item>INPUT_VEH_PASSENGER_ATTACK</Item>
+        <Item>INPUT_VEH_PASSENGER_AIM</Item>
+        <Item>INPUT_VEH_STUNT_UD</Item>
+        <Item>INPUT_VEH_SELECT_NEXT_WEAPON</Item>
+        <Item>INPUT_VEH_SELECT_PREV_WEAPON</Item>
+        <Item>INPUT_VEH_ROOF</Item>
+        <Item>INPUT_VEH_JUMP</Item>
+        <Item>INPUT_VEH_GRAPPLING_HOOK</Item>
+        <Item>INPUT_VEH_SHUFFLE</Item>
+        <Item>INPUT_VEH_TRAVERSAL</Item>
+        <Item>INPUT_VEH_DROP_PROJECTILE</Item>
+        <Item>INPUT_VEH_MOUSE_CONTROL_OVERRIDE</Item>
+        <Item>INPUT_VEH_FLY_ROLL_LR</Item>
+        <Item>INPUT_VEH_FLY_ROLL_LEFT_ONLY</Item>
+        <Item>INPUT_VEH_FLY_ROLL_RIGHT_ONLY</Item>
+        <Item>INPUT_VEH_FLY_PITCH_UD</Item>
+        <Item>INPUT_VEH_FLY_PITCH_UP_ONLY</Item>
+        <Item>INPUT_VEH_FLY_PITCH_DOWN_ONLY</Item>
+        <Item>INPUT_VEH_FLY_UNDERCARRIAGE</Item>
+        <Item>INPUT_VEH_FLY_ATTACK</Item>
+        <Item>INPUT_VEH_FLY_SELECT_NEXT_WEAPON</Item>
+        <Item>INPUT_VEH_FLY_SELECT_PREV_WEAPON</Item>
+        <Item>INPUT_VEH_FLY_SELECT_TARGET_LEFT</Item>
+        <Item>INPUT_VEH_FLY_SELECT_TARGET_RIGHT</Item>
+        <Item>INPUT_VEH_FLY_VERTICAL_FLIGHT_MODE</Item>
+        <Item>INPUT_VEH_FLY_DUCK</Item>
+        <Item>INPUT_VEH_FLY_ATTACK_CAMERA</Item>
+        <Item>INPUT_VEH_FLY_MOUSE_CONTROL_OVERRIDE</Item>
+        <Item>INPUT_VEH_PUSHBIKE_PEDAL</Item>
+        <Item>INPUT_VEH_PUSHBIKE_SPRINT</Item>
+        <Item>INPUT_VEH_PUSHBIKE_FRONT_BRAKE</Item>
+        <Item>INPUT_VEH_PUSHBIKE_REAR_BRAKE</Item>
+        <Item>INPUT_VEH_DRAFT_MOVE_UD</Item>
+        <Item>INPUT_VEH_DRAFT_TURN_LR</Item>
+        <Item>INPUT_VEH_DRAFT_TURN_LEFT_ONLY</Item>
+        <Item>INPUT_VEH_DRAFT_TURN_RIGHT_ONLY</Item>
+        <Item>INPUT_VEH_DRAFT_ACCELERATE</Item>
+        <Item>INPUT_VEH_DRAFT_BRAKE</Item>
+        <Item>INPUT_VEH_DRAFT_AIM</Item>
+        <Item>INPUT_VEH_DRAFT_ATTACK</Item>
+        <Item>INPUT_VEH_DRAFT_ATTACK2</Item>
+        <Item>INPUT_VEH_DRAFT_SWITCH_DRIVERS</Item>
+        <Item>INPUT_VEH_BOAT_TURN_LR</Item>
+        <Item>INPUT_VEH_BOAT_TURN_LEFT_ONLY</Item>
+        <Item>INPUT_VEH_BOAT_TURN_RIGHT_ONLY</Item>
+        <Item>INPUT_VEH_BOAT_ACCELERATE</Item>
+        <Item>INPUT_VEH_BOAT_BRAKE</Item>
+        <Item>INPUT_VEH_BOAT_AIM</Item>
+        <Item>INPUT_VEH_BOAT_ATTACK</Item>
+        <Item>INPUT_VEH_BOAT_ATTACK2</Item>
+        <Item>INPUT_VEH_CAR_TURN_LR</Item>
+        <Item>INPUT_VEH_CAR_TURN_LEFT_ONLY</Item>
+        <Item>INPUT_VEH_CAR_TURN_RIGHT_ONLY</Item>
+        <Item>INPUT_VEH_CAR_ACCELERATE</Item>
+        <Item>INPUT_VEH_CAR_BRAKE</Item>
+        <Item>INPUT_VEH_CAR_AIM</Item>
+        <Item>INPUT_VEH_CAR_ATTACK</Item>
+        <Item>INPUT_VEH_CAR_ATTACK2</Item>
+        <Item>INPUT_VEH_HANDCART_ACCELERATE</Item>
+        <Item>INPUT_VEH_HANDCART_BRAKE</Item>
+        <Item>INPUT_VEH_DRIVE_LOOK</Item>
+        <Item>INPUT_VEH_DRIVE_LOOK2</Item>
+        <Item>INPUT_VEH_FLY_ATTACK2</Item>
+        <Item>INPUT_VEH_SLOWMO_UD</Item>
+        <Item>INPUT_VEH_SLOWMO_UP_ONLY</Item>
+        <Item>INPUT_VEH_SLOWMO_DOWN_ONLY</Item>
+
+        <!-- From frontend mapper -->
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_LEADERBOARD</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB_SECONDARY</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+        
+        <Item>INPUT_FRONTEND_DELETE</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
+        <Item>INPUT_MAP_POI</Item>
+        <Item>INPUT_CELLPHONE_UP</Item>
+        <Item>INPUT_CELLPHONE_DOWN</Item>
+        <Item>INPUT_CELLPHONE_LEFT</Item>
+        <Item>INPUT_CELLPHONE_RIGHT</Item>
+        <Item>INPUT_CELLPHONE_SELECT</Item>
+        <Item>INPUT_CELLPHONE_CANCEL</Item>
+        <Item>INPUT_CELLPHONE_OPTION</Item>
+        <Item>INPUT_CELLPHONE_EXTRA_OPTION</Item>
+        <Item>INPUT_CELLPHONE_SCROLL_FORWARD</Item>
+        <Item>INPUT_CELLPHONE_SCROLL_BACKWARD</Item>
+        <Item>INPUT_CELLPHONE_CAMERA_FOCUS_LOCK</Item>
+        <Item>INPUT_CELLPHONE_CAMERA_GRID</Item>
+        <Item>INPUT_CELLPHONE_CAMERA_SELFIE</Item>
+        <Item>INPUT_CELLPHONE_CAMERA_DOF</Item>
+        <Item>INPUT_CELLPHONE_CAMERA_EXPRESSION</Item>
+        <Item>INPUT_SKIP_CUTSCENE</Item>
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+        <Item>INPUT_CURSOR_CANCEL</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+        <Item>INPUT_CREATOR_LS</Item>
+        <Item>INPUT_CREATOR_RS</Item>
+        <Item>INPUT_CREATOR_LT</Item>
+        <Item>INPUT_CREATOR_RT</Item>
+        <Item>INPUT_CREATOR_MENU_TOGGLE</Item>
+        <Item>INPUT_CREATOR_ACCEPT</Item>
+        <Item>INPUT_CREATOR_DELETE</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MP_TEXT_CHAT_TEAM</Item>
+        <Item>INPUT_MP_TEXT_CHAT_FRIENDS</Item>
+        <Item>INPUT_MP_TEXT_CHAT_CREW</Item>
+        <Item>INPUT_PUSH_TO_TALK</Item>
+
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RUP</Item>
+        <Item>INPUT_SCRIPT_RDOWN</Item>
+        <Item>INPUT_SCRIPT_RLEFT</Item>
+        <Item>INPUT_SCRIPT_RRIGHT</Item>
+        <Item>INPUT_SCRIPT_LB</Item>
+        <Item>INPUT_SCRIPT_RB</Item>
+        <Item>INPUT_SCRIPT_LT</Item>
+        <Item>INPUT_SCRIPT_RT</Item>
+        <Item>INPUT_SCRIPT_LS</Item>
+        <Item>INPUT_SCRIPT_RS</Item>
+        <Item>INPUT_SCRIPT_PAD_UP</Item>
+        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
+        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
+        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
+        <Item>INPUT_SCRIPT_SELECT</Item>
+
+        <Item>INPUT_ENTER_CHEAT_CODE</Item>
+
+        <Item>INPUT_CUT_FREE</Item>
+        <Item>INPUT_DROP</Item>
+        <Item>INPUT_PICKUP_CARRIABLE</Item>
+        <Item>INPUT_PICKUP_CARRIABLE2</Item>
+        <Item>INPUT_MERCY_KILL</Item>
+		<Item>INPUT_REVIVE</Item>
+        <Item>INPUT_LOOT</Item>
+        <Item>INPUT_LOOT2</Item>
+        <Item>INPUT_LOOT3</Item>
+        <Item>INPUT_LOOT_AMMO</Item>
+        <Item>INPUT_CARRIABLE_SUICIDE</Item>
+        <Item>INPUT_CARRIABLE_BREAK_FREE</Item>
+        <Item>INPUT_LOOT_VEHICLE</Item>
+        <Item>INPUT_BREAK_VEHICLE_LOCK</Item>
+        <Item>INPUT_LOOT_ALIVE_COMPONENT</Item>
+        <Item>INPUT_HOGTIE</Item>
+        <Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
+        <Item>INPUT_PICKUP_CARRIABLE_FROM_PARENT</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
+        <Item>INPUT_MINIGAME_HELP</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_QUICK_USE_ITEM</Item>
+        <Item>INPUT_MULTIPLAYER_RACE_RESPAWN</Item>
+        <Item>INPUT_MULTIPLAYER_PREDATOR_ABILITY</Item>
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>UI_QUICK_SELECT_RADIAL_MENU</Name>
+      <Actions>
+        <Item>INPUT_SELECT_NEXT_WHEEL</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_NEXT</Item>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_PREV</Item>
+        <Item>INPUT_QUICK_SELECT_INSPECT</Item>
+        <Item>INPUT_DROP_WEAPON</Item>
+        <Item>INPUT_QUICK_SHORTCUT_ABILITIES_MENU</Item>
+        <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_NEXT</Item>
+        <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_PREV</Item>
+        <Item>INPUT_QUICK_SELECT_TOGGLE_SHORTCUT_ITEM</Item>
+		<Item>INPUT_QUICK_SELECT_PUT_AWAY_ROD</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_SELECT_ITEM_WHEEL</Item>
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_VEH_AIM</Item>
+        <Item>INPUT_VEH_PASSENGER_AIM</Item>
+        <Item>INPUT_VEH_DRAFT_AIM</Item>
+        <Item>INPUT_VEH_BOAT_AIM</Item>
+        <Item>INPUT_VEH_CAR_AIM</Item>
+        <Item>INPUT_HORSE_AIM</Item>
+        <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_ACCURATE_AIM</Item>
+		<Item>INPUT_INTERACT_LOCKON</Item>
+      </AllowedActions>
+    </Item>
+    <Item>
+      <Name>UI_EMOTES_RADIAL_MENU</Name>
+      <Actions>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_NEXT</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_EMOTES_FAVORITE</Item>
+        <Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+        <Item>INPUT_INTERACT_LOCKON</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>UI_RADAR_EDIT_MODE</Name>
+      <Actions>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_SIMPLE_RADAR</Item>
+        <Item>INPUT_EXPAND_RADAR</Item>
+        <Item>INPUT_REGULAR_RADAR</Item>
+        <Item>INPUT_DISABLE_RADAR</Item>
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>MinigamePoker</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_MINIGAME_INCREASE_BET</Item>
+		<Item>INPUT_MINIGAME_DECREASE_BET</Item>
+        <Item>INPUT_MINIGAME_CHANGE_BET_AXIS_Y</Item>
+        <Item>INPUT_MINIGAME_PLACE_BET</Item>
+        <Item>INPUT_MINIGAME_HELP</Item>
+        <Item>INPUT_MINIGAME_HELP_PREV</Item>
+        <Item>INPUT_MINIGAME_HELP_NEXT</Item>
+        <Item>INPUT_MINIGAME_POKER_SKIP</Item>
+        <Item>INPUT_MINIGAME_POKER_CALL</Item>
+        <Item>INPUT_MINIGAME_POKER_FOLD</Item>
+        <Item>INPUT_MINIGAME_POKER_CHECK</Item>
+        <Item>INPUT_MINIGAME_POKER_CHECK_FOLD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        
+        <Item>INPUT_MINIGAME_POKER_BET</Item>
+        <Item>INPUT_MINIGAME_POKER_HOLE_CARDS</Item>
+        <Item>INPUT_MINIGAME_POKER_BOARD_CARDS</Item>
+        <Item>INPUT_MINIGAME_POKER_SKIP_TUTORIAL</Item>
+		
+        <Item>INPUT_MINIGAME_POKER_YOUR_CARDS</Item>
+        <Item>INPUT_MINIGAME_POKER_COMMUNITY_CARDS</Item>
+                       
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        
+        <Item>INPUT_SKIP_CUTSCENE</Item>
+        
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>MinigameFishing</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_FISHING_RESET_CAST</Item>
+        <Item>INPUT_MINIGAME_FISHING_RELEASE_FISH</Item>
+        <Item>INPUT_MINIGAME_FISHING_KEEP_FISH</Item>
+        <Item>INPUT_MINIGAME_FISHING_HOOK</Item>
+        <Item>INPUT_MINIGAME_FISHING_LEFT_AXIS_X</Item>
+        <Item>INPUT_MINIGAME_FISHING_LEFT_AXIS_Y</Item>
+        <Item>INPUT_MINIGAME_FISHING_RIGHT_AXIS_X</Item>
+        <Item>INPUT_MINIGAME_FISHING_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_MINIGAME_FISHING_LEAN_LEFT</Item>
+        <Item>INPUT_MINIGAME_FISHING_LEAN_RIGHT</Item>
+        <Item>INPUT_MINIGAME_FISHING_QUICK_EQUIP</Item>
+      
+        <Item>INPUT_WHISTLE</Item>
+        
+        <!-- Temp to get 3658330 to work - -->
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_GAME_MENU_RS</Item>
+        
+        <!-- B* 3801449 - Needed for display objective to work -->
+        <Item>INPUT_REVEAL_HUD</Item>
+        
+        <!-- B* 4121820 - Needed to open the satchel while fishing -->
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        
+        <!-- B* 4333408 - Allow skipping cutscenes on missions -->
+        <Item>INPUT_SKIP_CUTSCENE</Item>
+        
+        <!-- Temp to get 3753808 to work -->
+        <Item>INPUT_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MOVE_RIGHT_ONLY</Item>
+        
+        <!-- The code-based fishing rod weapon requires these inputs -->
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_INTERACT_NEG</Item>
+        <Item>INPUT_INTERACT_POS</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_CINEMATIC_CAM</Item>
+
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_SWITCH_SHOULDER</Item>
+        <Item>INPUT_SPRINT</Item>
+        
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_INTERACT_LOCKON</Item>
+		<Item>INPUT_INTERACT_LOCKON_NEG</Item>
+		<Item>INPUT_INTERACT_LOCKON_POS</Item>
+		<Item>INPUT_INTERACT_LOCKON_ROB</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>MinigameDrinkingShooting</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_MINIGAME_INCREASE_BET</Item>
+        <Item>INPUT_MINIGAME_DECREASE_BET</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_MINIGAME_HELP</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+        <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>			
+      </Actions>
+    </Item>
+      
+    <Item>
+      <Name>MinigameCrackpotRCBoat</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_VEH_BOAT_ACCELERATE</Item>
+        <Item>INPUT_VEH_BOAT_BRAKE</Item>
+        <Item>INPUT_VEH_BOAT_AIM</Item>
+        <Item>INPUT_VEH_BOAT_ATTACK</Item>
+        <Item>INPUT_VEH_BOAT_TURN_LR</Item>
+        <Item>INPUT_VEH_BOAT_TURN_LEFT_ONLY</Item>
+        <Item>INPUT_VEH_BOAT_TURN_RIGHT_ONLY</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_MINIGAME_CRACKPOT_BOAT_SHOW_CONTROLS</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_FOCUS_CAM</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+      </Actions>
+    </Item>
+  
+    <Item>
+      <Name>MinigameDominoes</Name>
+      <Actions>
+      
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_MINIGAME_INCREASE_BET</Item>
+        <Item>INPUT_MINIGAME_DECREASE_BET</Item>
+        <Item>INPUT_MINIGAME_PLACE_BET</Item>
+        <Item>INPUT_MINIGAME_CLEAR_BET</Item>
+        <Item>INPUT_MINIGAME_HELP</Item>
+        <Item>INPUT_MINIGAME_HELP_PREV</Item>
+        <Item>INPUT_MINIGAME_HELP_NEXT</Item>
+        <Item>INPUT_MINIGAME_REPLAY</Item>
+        <Item>INPUT_MINIGAME_NEW_GAME</Item>
+      
+        <Item>INPUT_MINIGAME_DOMINOES_VIEW_DOMINOES</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_VIEW_MOVES</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_PLAY_TILE</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_SKIP_DEAL</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_DOWN_ONLY</Item>
+        
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        
+
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>			
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>MinigameBlackjack</Name>
+      <Actions>
+      
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_MINIGAME_INCREASE_BET</Item>
+        <Item>INPUT_MINIGAME_DECREASE_BET</Item>
+        
+        <Item>INPUT_MINIGAME_BLACKJACK_HAND_VIEW</Item>
+        <Item>INPUT_MINIGAME_BLACKJACK_TABLE_VIEW</Item>
+        
+		<Item>INPUT_MINIGAME_CHANGE_BET_AXIS_Y</Item>
+        
+        <Item>INPUT_MINIGAME_BLACKJACK_BET</Item>
+        <Item>INPUT_MINIGAME_BLACKJACK_DECLINE</Item>
+
+        <Item>INPUT_MINIGAME_BLACKJACK_STAND</Item>
+        <Item>INPUT_MINIGAME_BLACKJACK_HIT</Item>
+        <Item>INPUT_MINIGAME_BLACKJACK_DOUBLE</Item>
+        <Item>INPUT_MINIGAME_BLACKJACK_SPLIT</Item>
+            
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>				
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>MinigameFiveFingerFillet</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_MINIGAME_INCREASE_BET</Item>
+        <Item>INPUT_MINIGAME_DECREASE_BET</Item>
+
+        <Item>INPUT_MINIGAME_FFF_A</Item>
+        <Item>INPUT_MINIGAME_FFF_B</Item>
+        <Item>INPUT_MINIGAME_FFF_X</Item>
+        <Item>INPUT_MINIGAME_FFF_Y</Item>
+        <Item>INPUT_MINIGAME_FFF_ZOOM</Item>
+        <Item>INPUT_MINIGAME_FFF_SKIP_TURN</Item>
+        <Item>INPUT_MINIGAME_FFF_CYCLE_SEQUENCE_LEFT</Item>
+        <Item>INPUT_MINIGAME_FFF_CYCLE_SEQUENCE_RIGHT</Item>
+        <Item>INPUT_MINIGAME_FFF_FLOURISH_CONTINUE</Item>
+        <Item>INPUT_MINIGAME_FFF_FLOURISH_END</Item>
+        <Item>INPUT_MINIGAME_FFF_PRACTICE</Item>
+        
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        
+        <!-- Temporary until 3925552 is done -->
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        
+        <!-- Temp to get 3842186 to work -->
+        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
+        
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>			
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>FrontendMenu</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_LEADERBOARD</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB_SECONDARY</Item>
+        <Item>INPUT_FRONTEND_DELETE</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>			
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+          <Item>INPUT_CURSOR_CANCEL</Item>
+          <Item>INPUT_CURSOR_X</Item>
+          <Item>INPUT_CURSOR_Y</Item>
+          <Item>INPUT_CURSOR_SCROLL_UP</Item>
+          <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>StickyFeed</Name>
+      <Actions>
+        <Item>INPUT_STICKY_FEED_ACCEPT</Item>
+        <Item>INPUT_STICKY_FEED_CANCEL</Item>
+        <Item>INPUT_STICKY_FEED_X</Item>
+        <Item>INPUT_STICKY_FEED_Y</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>GameMenu</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_GAME_MENU_RS</Item>
+		<Item>INPUT_GAME_MENU_LS</Item>
+		<Item>INPUT_INSPECT_ZOOM</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+      </AllowedActions>
+    </Item>
+	
+	<Item>
+      <Name>HorseShopMenu</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+		<Item>INPUT_GAME_MENU_RS</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+      </AllowedActions>
+    </Item>
+	
+    
+    <Item>
+      <Name>CraftingMenu</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_GAME_MENU_LS</Item>
+        <Item>INPUT_GAME_MENU_RS</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+      </AllowedActions>
+    </Item>
+
+        <Item>
+            <Name>CharacterCreator</Name>
+            <Actions>
+                <Item>INPUT_GAME_MENU_STICK_UP</Item>
+                <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+                <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+                <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_UP</Item>
+                <Item>INPUT_GAME_MENU_DOWN</Item>
+                <Item>INPUT_GAME_MENU_LEFT</Item>
+                <Item>INPUT_GAME_MENU_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+                <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+                <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+                <Item>INPUT_GAME_MENU_ACCEPT</Item>
+                <Item>INPUT_GAME_MENU_CANCEL</Item>
+                <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
+        
+                <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+                <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+            </Actions>
+        </Item>
+
+        <Item>
+            <Name>LobbyMenu</Name>
+            <Actions>
+                <Item>INPUT_GAME_MENU_STICK_UP</Item>
+                <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+                <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+                <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_ACCEPT</Item>
+                <Item>INPUT_GAME_MENU_CANCEL</Item>
+                <Item>INPUT_GAME_MENU_OPTION</Item>
+                <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+                <Item>INPUT_GAME_MENU_UP</Item>
+                <Item>INPUT_GAME_MENU_DOWN</Item>
+                <Item>INPUT_GAME_MENU_LEFT</Item>
+                <Item>INPUT_GAME_MENU_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+                <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+                <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+                <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+                <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+                <Item>INPUT_GAME_MENU_RS</Item>
+                <Item>INPUT_FRONTEND_PAUSE</Item>
+                <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+            </Actions>
+        </Item>
+
+    <Item>
+      <Name>OnlinePlayerMenu</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+      </Actions>
+	  <DisallowedActions>
+		<Item>INPUT_INTERACT_LOCKON</Item>
+	  </DisallowedActions>
+    </Item>
+    <Item>
+      <Name>Satchel</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+  
+        <Item>INPUT_GAME_MENU_RS</Item>
+        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
+		<Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
+        
+      </Actions>
+    </Item>
+    <Item>
+      <Name>SatchelFolder</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>ShopBrowsing</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+      </Actions>
+    </Item>
+        <Item>
+      <Name>Wardrobe</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_RS</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>PlayerPerfomingChore</Name>
+      <Actions>
+
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_DYNAMIC_SCENARIO</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_FOCUS_CAM</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_MAP</Item>
+        <Item>INPUT_QUIT</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+        <Item>INPUT_INTERACT_LOCKON</Item>
+      </Actions>
+      
+      <AllowedActions>
+        <Item>INPUT_CINEMATIC_CAM</Item>
+        <Item>INPUT_CINEMATIC_CAM_HOLD</Item>
+        <Item>INPUT_CINEMATIC_CAM_UD</Item>
+        <Item>INPUT_CINEMATIC_CAM_UP_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_DOWN_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_LR</Item>
+        <Item>INPUT_CINEMATIC_SLOWMO</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+        <Item>INPUT_SCRIPTED_FLY_UD</Item>
+        <Item>INPUT_SCRIPTED_FLY_LR</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZUP</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZDOWN</Item>
+        <Item>INPUT_MAP</Item>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_SIMPLE_RADAR</Item>
+        <Item>INPUT_EXPAND_RADAR</Item>
+        <Item>INPUT_REGULAR_RADAR</Item>
+        <Item>INPUT_DISABLE_RADAR</Item>
+        <Item>INPUT_SPRINT</Item>
+		
+        <Item>INPUT_INTERACT_NEG</Item>
+        <Item>INPUT_INTERACT_LOCKON_NEG</Item>
+        <Item>INPUT_INTERACT_LOCKON_POS</Item>
+        <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
+        
+        <!-- Start of the actual ON_FOOT controls! -->
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MOVE_RIGHT_ONLY</Item>
+        <Item>INPUT_TALK</Item>	
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <!-- GAME MENU -->
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>			
+      </AllowedActions>
+    </Item>
+    <Item>
+      <Name>WildernessSuppliesShop</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>				
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>MinigameBuilding</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_MINIGAME_BUILDING_HAMMER</Item>
+        <Item>INPUT_MINIGAME_BUILDING_CAMERA_NEXT</Item>
+        <Item>INPUT_MINIGAME_BUILDING_CAMERA_PREV</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>InteractionMultiInputRightTrigger</Name>
+      <Actions>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+      </Actions>
+      <DisallowedActions>
+		<Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
+		<Item>INPUT_ENTER</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_BLOCK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+        <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+		<Item>INPUT_HORSE_MELEE</Item>
+		<Item>INPUT_JUMP</Item>
+      </DisallowedActions>
+    </Item>
+
+	<Item>
+      <Name>InteractionMultiInputRightTriggerActiveUse</Name>
+      <Actions>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+      </Actions>
+      <DisallowedActions>
+		<Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
+		<Item>INPUT_WHISTLE</Item>
+		<Item>INPUT_WHISTLE_HORSEBACK</Item>
+		<Item>INPUT_ENTER</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_BLOCK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+        <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+		<Item>INPUT_HORSE_MELEE</Item>
+		<Item>INPUT_JUMP</Item>
+      </DisallowedActions>
+    </Item>
+	
+    <Item>
+      <Name>QuickEquip</Name>
+      <Actions>
+        <Item>INPUT_QUICK_EQUIP_ITEM</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_SELECT_ITEM_WHEEL</Item>
+        <Item>INPUT_TWIRL_PISTOL</Item>
+      </Actions>
+    </Item>	
+    <Item>
+      <Name>QuickEquipAlt</Name>
+      <Actions>
+        <Item>INPUT_QUICK_EQUIP_ITEM</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+      </Actions>
+    </Item>
+    <Item>
+      <Name>AnimalControlSet</Name>
+      <Actions>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_HORSE_MOVE_LR</Item>
+        <Item>INPUT_HORSE_MOVE_UD</Item>
+        <Item>INPUT_HORSE_SPRINT</Item>
+        <Item>INPUT_HORSE_JUMP</Item>
+        <Item>INPUT_HORSE_STOP</Item>
+        <Item>INPUT_HORSE_ATTACK</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_SKIP_CUTSCENE</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        
+        <!-- B* 3715627  Temporarily added the frontend controls to allow use of the metapededitor -->
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>OnlineDeathCamera</Name>
+      <Actions>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_SWITCH_RESPAWN</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_INFORM_LAW</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_RESPAWN</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_DUEL</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_PARLEY</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_FEUD</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_LEADER_FEUD</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>			
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>OnlineSpectatorCamera</Name>
+      <Actions>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_NEXT</Item>
+        <Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_PREV</Item>
+        <Item>INPUT_MULTIPLAYER_SPECTATE_HIDE_HUD</Item>
+        <Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_OPTIONS</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_FEUD</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>ShopCatalogue</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_GAME_MENU_RS</Item>
+        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
+        <Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>Harmonica</Name>
+      <Actions>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>PlayerJournal</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+	    <Item>INPUT_HORSE_GUN_LR</Item>
+        <Item>INPUT_HORSE_GUN_UD</Item>
+	  </Actions>
+    </Item>
+    
+    <Item>
+      <Name>GenericViewable</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>					
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>SpectatorCamera</Name>
+      <Actions>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_SCRIPT_PAD_UP</Item>
+        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
+        <Item>INPUT_SCRIPT_RB</Item>
+        <Item>INPUT_SCRIPT_LB</Item>
+        <Item>INPUT_SCRIPT_RT</Item>
+        <Item>INPUT_SCRIPT_LT</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_SCRIPT_SELECT</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>HorseMeleeOverride</Name>
+      <Actions>
+        <Item>INPUT_MELEE_HORSE_ATTACK_PRIMARY</Item>
+        <Item>INPUT_MELEE_HORSE_ATTACK_SECONDARY</Item>
+        <Item>INPUT_HORSE_MELEE</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>HorseBreakingOverride</Name>
+      <Actions>
+        <Item>INPUT_INTERACT_WILD_ANIMAL</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>DocumentMenus</Name>
+      <Actions>
+        <Item>INPUT_DOCUMENT_PAGE_NEXT</Item>
+        <Item>INPUT_DOCUMENT_PAGE_PREV</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_DOCUMENT_SCROLL</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>SocialClubFeed</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_LEADERBOARD</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB_SECONDARY</Item>
+        <Item>INPUT_FRONTEND_DELETE</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>			
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+          <Item>INPUT_CURSOR_CANCEL</Item>
+          <Item>INPUT_CURSOR_X</Item>
+          <Item>INPUT_CURSOR_Y</Item>
+          <Item>INPUT_CURSOR_SCROLL_UP</Item>
+          <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+      </Actions>
+    </Item>
+    <Item>
+		<Name>SocialClubFeedControllerDisconnect</Name>
+		<Actions/>
+	</Item>
+    <Item>
+      <Name>SocialClubFeedOptions</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+      </Actions>
+    </Item>
+      <Item>
+        <Name>SocialClubFeedFilter</Name>
+        <Actions>
+          <Item>INPUT_FRONTEND_ACCEPT</Item>
+          <Item>INPUT_FRONTEND_CANCEL</Item>
+          <Item>INPUT_FRONTEND_UP</Item>
+          <Item>INPUT_FRONTEND_DOWN</Item>
+          <Item>INPUT_FRONTEND_NAV_UP</Item>
+          <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+          <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+          <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        </Actions>
+      </Item>
+    <Item>
+      <Name>PhotoFeed</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_RDOWN</Item>
+        <Item>INPUT_FRONTEND_RUP</Item>
+        <Item>INPUT_FRONTEND_RLEFT</Item>
+        <Item>INPUT_FRONTEND_RRIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+        <Item>INPUT_FRONTEND_LEADERBOARD</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB</Item>
+        <Item>INPUT_FRONTEND_SOCIAL_CLUB_SECONDARY</Item>
+        <Item>INPUT_FRONTEND_DELETE</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
+        <Item>INPUT_FRONTEND_SELECT</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_MAP_NAV_RIGHT</Item>
+        <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>			
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+          <Item>INPUT_CURSOR_CANCEL</Item>
+          <Item>INPUT_CURSOR_X</Item>
+          <Item>INPUT_CURSOR_Y</Item>
+          <Item>INPUT_CURSOR_SCROLL_UP</Item>
+          <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+      </Actions>
+    </Item>	
+    <Item>
+      <Name>PhotoFeedFullscreen</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>			
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_X</Item>
+        <Item>INPUT_FRONTEND_Y</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+      </Actions>
+    </Item>		
+    <Item>
+      <Name>PhotoFeedOptions</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_ACCEPT</Item>
+        <Item>INPUT_FRONTEND_CANCEL</Item>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+      </Actions>
+    </Item>		
+    <Item>
+      <Name>InteractionLockOn</Name>
+      <Actions>
+        <Item>INPUT_INTERACT_LOCKON</Item>
+        <Item>INPUT_INTERACT_LOCKON_NEG</Item>
+        <Item>INPUT_INTERACT_LOCKON_POS</Item>
+        <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+        <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
+        <Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_DETACH_HORSE</Item>
+        <Item>INPUT_SHOP_BUY</Item>
+        <Item>INPUT_SHOP_SELL</Item>
+        <Item>INPUT_SHOP_SPECIAL</Item>	
+        <Item>INPUT_SHOP_INSPECT</Item>
+        <Item>INPUT_INTERACT_LOCKON_CALL_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
+        <Item>INPUT_INTERACT_OPTION1</Item>
+        <Item>INPUT_INTERACT_OPTION2</Item>
+        <Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+        <Item>INPUT_HORSE_COMMAND_FLEE</Item>
+        <Item>INPUT_HORSE_COMMAND_STAY</Item>
+        <Item>INPUT_HORSE_COMMAND_FOLLOW</Item>
+        <Item>INPUT_EMOTE_ACTION</Item>
+        <Item>INPUT_EMOTE_TAUNT</Item>
+        <Item>INPUT_EMOTE_GREET</Item>
+        <Item>INPUT_EMOTE_COMM</Item>
+        <Item>INPUT_EMOTE_DANCE</Item>
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+        <Item>INPUT_SADDLE_TRANSFER</Item>
+        <Item>INPUT_INTERACT_HORSE_FEED</Item>
+        <Item>INPUT_INTERACT_HORSE_BRUSH</Item>
+      </Actions>
+      <AllowedActions>
+		<Item>INPUT_HORSE_MELEE</Item>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_INTERACT_LEAD_ANIMAL</Item>
+        <Item>INPUT_SPRINT</Item>
+        <Item>INPUT_SURRENDER</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_ATTACK2</Item>
+        <Item>INPUT_IRON_SIGHT</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_PICKUP_CARRIABLE</Item>
+        <Item>INPUT_PICKUP_CARRIABLE2</Item>
+        <Item>INPUT_HOGTIE</Item>
+        <Item>INPUT_CUT_FREE</Item>
+        <Item>INPUT_HORSE_STOP</Item>
+        <Item>INPUT_COVER</Item>
+        <Item>INPUT_COVER_TRANSITION</Item>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_SATCHEL_HORSE_MENU</Item>
+        <Item>INPUT_INTERACT_HORSE_CARE</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_LOOT</Item>
+		<Item>INPUT_LOOT2</Item>
+        <Item>INPUT_WHISTLE_HORSEBACK</Item>
+        <Item>INPUT_WHISTLE</Item>
+        <Item>INPUT_DROP</Item>
+		<Item>INPUT_MERCY_KILL</Item>
+		<Item>INPUT_REVIVE</Item>
+		<Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
+		<Item>INPUT_PICKUP_CARRIABLE_FROM_PARENT</Item>
+        
+        <!-- InVehicle & OnMount -->
+        <Item>INPUT_HORSE_AIM</Item>
+        <Item>INPUT_HORSE_ATTACK</Item>
+        <Item>INPUT_HORSE_ATTACK2</Item>
+        <Item>INPUT_HORSE_SPRINT</Item>
+        <Item>INPUT_HORSE_EXIT</Item>
+        <Item>INPUT_VEH_AIM</Item>
+        <Item>INPUT_VEH_PASSENGER_AIM</Item>
+        <Item>INPUT_VEH_ATTACK</Item>
+        <Item>INPUT_VEH_ATTACK2</Item>
+        <Item>INPUT_VEH_PASSENGER_ATTACK</Item>
+        <Item>INPUT_VEH_ACCELERATE</Item>
+        <Item>INPUT_VEH_BRAKE</Item>
+        <Item>INPUT_VEH_HANDBRAKE</Item>
+        <Item>INPUT_VEH_DRAFT_AIM</Item>
+        <Item>INPUT_VEH_DRAFT_ATTACK</Item>
+        <Item>INPUT_VEH_DRAFT_ATTACK2</Item>
+        <Item>INPUT_VEH_DRAFT_ACCELERATE</Item>
+        <Item>INPUT_VEH_DRAFT_BRAKE</Item>
+        <Item>INPUT_VEH_DRAFT_SWITCH_DRIVERS</Item>
+        <Item>INPUT_VEH_CAR_AIM</Item>
+        <Item>INPUT_VEH_CAR_ATTACK</Item>
+        <Item>INPUT_VEH_CAR_ATTACK2</Item>
+        <Item>INPUT_VEH_CAR_ACCELERATE</Item>
+        <Item>INPUT_VEH_CAR_BRAKE</Item>
+        <Item>INPUT_VEH_BOAT_AIM</Item>
+        <Item>INPUT_VEH_BOAT_ATTACK</Item>
+        <Item>INPUT_VEH_BOAT_ATTACK2</Item>
+        <Item>INPUT_VEH_BOAT_ACCELERATE</Item>
+        <Item>INPUT_VEH_BOAT_BRAKE</Item>
+        <Item>INPUT_VEH_HANDCART_ACCELERATE</Item>
+        <Item>INPUT_VEH_HANDCART_BRAKE</Item>
+        <Item>INPUT_VEH_FLY_ATTACK</Item>
+        <Item>INPUT_VEH_FLY_ATTACK2</Item>
+      </AllowedActions>
+    </Item>
+
+    <Item>
+      <Name>InspectItem</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_INSPECT_LR</Item>
+        <Item>INPUT_INSPECT_UD</Item>
+        <Item>INPUT_INSPECT_OPEN_SATCHEL</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+      </Actions>
+      <DisallowedActions>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_HORSE_MOVE_LR</Item>
+        <Item>INPUT_HORSE_MOVE_UD</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_BLOCK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+        <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+        <Item>INPUT_HORSE_MELEE</Item>
+      </DisallowedActions>
+    </Item>
+    
+    <Item>
+      <Name>InspectItemOutro</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_LT</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_INSPECT_OPEN_SATCHEL</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+      </Actions>
+      <DisallowedActions>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_BLOCK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+        <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+        <Item>INPUT_HORSE_MELEE</Item>
+      </DisallowedActions>
+    </Item>
+    
+    <Item>
+      <Name>InteractiveItemConsumption</Name>
+      <DisallowedActions>
+        <Item>INPUT_WHISTLE</Item>
+        <Item>INPUT_WHISTLE_HORSEBACK</Item>
+        <Item>INPUT_ENTER</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_BLOCK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_REVERSAL</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
+        <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
+        <Item>INPUT_HORSE_MELEE</Item>
+      </DisallowedActions>
+    </Item>
+
+    <Item>
+      <Name>OnlineLeaderboardOverride</Name>
+      <Actions>
+        <Item>INPUT_MULTIPLAYER_LEADERBOARD_SCROLL_UD</Item>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+      </Actions>
+      <DisallowedActions>
+        <Item>INPUT_LOOK_LR</Item>
+      </DisallowedActions>
+    </Item>
+    
+    <Item>
+      <Name>UIFeedInteractOverride</Name>
+      <Actions>
+        <Item>INPUT_FEED_INTERACT</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+      </AllowedActions>
+    </Item>
+    
+    
+    <Item>
+      <Name>MaintainInspectWeapon</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>HorseCommands</Name>
+      <Actions>
+        <Item>INPUT_HORSE_COMMAND_FLEE</Item>
+        <Item>INPUT_HORSE_COMMAND_STAY</Item>
+        <Item>INPUT_HORSE_COMMAND_FOLLOW</Item>
+      </Actions>
+    </Item>
+    
+    
+    <Item>
+      <Name>MinigameMilking</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_MINIGAME_MILKING_LEFT_ACTION</Item>
+        <Item>INPUT_MINIGAME_MILKING_RIGHT_ACTION</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+		<Item>INPUT_PLAYER_MENU</Item>
+		<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+      </Actions>
+    </Item>
+        
+    <Item>
+      <Name>CreatorSkyCam</Name>
+      <Actions>
+		<!-- Core inputs -->
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_CREATOR_MENU_UP</Item>
+        <Item>INPUT_CREATOR_MENU_DOWN</Item>
+        <Item>INPUT_CREATOR_MENU_LEFT</Item>
+        <Item>INPUT_CREATOR_MENU_RIGHT</Item>
+        <Item>INPUT_CREATOR_MENU_ACCEPT</Item>
+        <Item>INPUT_CREATOR_MENU_CANCEL</Item>
+        <Item>INPUT_CREATOR_MENU_FUNCTION</Item>
+        <Item>INPUT_CREATOR_MENU_EXTRA_FUNCTION</Item>
+        <Item>INPUT_CREATOR_MENU_SELECT</Item>
+        <Item>INPUT_CREATOR_PLACE</Item>
+        <Item>INPUT_CREATOR_DELETE</Item>
+        <Item>INPUT_CREATOR_DROP</Item>
+        <Item>INPUT_CREATOR_FUNCTION</Item>
+        <Item>INPUT_CREATOR_GRAB</Item>
+        <Item>INPUT_CREATOR_ROTATE_RIGHT</Item>
+        <Item>INPUT_CREATOR_ROTATE_LEFT</Item>
+        <Item>INPUT_CREATOR_SWITCH_CAM</Item>
+        <Item>INPUT_CREATOR_ZOOM_IN</Item>
+        <Item>INPUT_CREATOR_ZOOM_OUT</Item>
+        <Item>INPUT_CREATOR_SEARCH</Item>
+        <Item>INPUT_CREATOR_RAISE</Item>
+        <Item>INPUT_CREATOR_LOWER</Item>
+        <Item>INPUT_CREATOR_MOVE_UD</Item>
+        <Item>INPUT_CREATOR_MOVE_LR</Item>
+        <Item>INPUT_CREATOR_LOOK_UD</Item>
+        <Item>INPUT_CREATOR_LOOK_LR</Item>
+        
+        <!-- Additional Inputs -->
+        <Item>INPUT_SCRIPTED_FLY_LR</Item>
+        <Item>INPUT_SCRIPTED_FLY_UD</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZDOWN</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZUP</Item>
+        
+        <Item>INPUT_SPRINT</Item>
+        
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+  
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>CreatorOnFoot</Name>
+      <Actions>
+        <!-- Core inputs -->
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_CREATOR_MENU_UP</Item>
+        <Item>INPUT_CREATOR_MENU_DOWN</Item>
+        <Item>INPUT_CREATOR_MENU_LEFT</Item>
+        <Item>INPUT_CREATOR_MENU_RIGHT</Item>
+        <Item>INPUT_CREATOR_MENU_ACCEPT</Item>
+        <Item>INPUT_CREATOR_MENU_CANCEL</Item>
+        <Item>INPUT_CREATOR_MENU_FUNCTION</Item>
+        <Item>INPUT_CREATOR_MENU_EXTRA_FUNCTION</Item>
+        <Item>INPUT_CREATOR_MENU_SELECT</Item>
+        <Item>INPUT_CREATOR_PLACE</Item>
+        <Item>INPUT_CREATOR_DELETE</Item>
+        <Item>INPUT_CREATOR_DROP</Item>
+        <Item>INPUT_CREATOR_FUNCTION</Item>
+        <Item>INPUT_CREATOR_GRAB</Item>
+        <Item>INPUT_CREATOR_ROTATE_RIGHT</Item>
+        <Item>INPUT_CREATOR_ROTATE_LEFT</Item>
+        <Item>INPUT_CREATOR_SWITCH_CAM</Item>
+        <Item>INPUT_CREATOR_ZOOM_IN</Item>
+        <Item>INPUT_CREATOR_ZOOM_OUT</Item>
+        <Item>INPUT_CREATOR_SEARCH</Item>
+        <Item>INPUT_CREATOR_RAISE</Item>
+        <Item>INPUT_CREATOR_LOWER</Item>
+        <Item>INPUT_CREATOR_MOVE_UD</Item>
+        <Item>INPUT_CREATOR_MOVE_LR</Item>
+        <Item>INPUT_CREATOR_LOOK_UD</Item>
+        <Item>INPUT_CREATOR_LOOK_LR</Item>
+        
+        <!-- Additional Inputs -->
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        
+        <Item>INPUT_VEH_ACCELERATE</Item>
+        <Item>INPUT_VEH_BRAKE</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZDOWN</Item>
+        <Item>INPUT_SCRIPTED_FLY_ZUP</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>Ledger</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>MinigameCleaningStalls</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_DYNAMIC_SCENARIO</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>PhotoCameraOnFoot</Name>
+      <Actions>
+        <Item>INPUT_CAMERA_HANDHELD_USE</Item>
+        <Item>INPUT_CAMERA_SELFIE</Item>
+        <Item>INPUT_CAMERA_PUT_AWAY</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>PhotoCameraInUse</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_CAMERA_PUT_AWAY</Item>
+        <Item>INPUT_CAMERA_BACK</Item>
+        <Item>INPUT_CAMERA_TAKE_PHOTO</Item>
+        <Item>INPUT_CAMERA_CONTEXT_GALLERY</Item>
+        <Item>INPUT_CAMERA_HANDHELD_USE</Item>
+        <Item>INPUT_CAMERA_DOF</Item>
+        <Item>INPUT_CAMERA_SELFIE</Item>
+        <Item>INPUT_CAMERA_ZOOM</Item>
+        <Item>INPUT_CAMERA_POSE_NEXT</Item>
+        <Item>INPUT_CAMERA_POSE_PREV</Item>
+        <Item>INPUT_CAMERA_EXPRESSION_NEXT</Item>
+        <Item>INPUT_CAMERA_EXPRESSION_PREV</Item>
+      </Actions>
+    </Item>
+	
+	
+	 <Item>
+      <Name>MinigameBuildingFences</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+		<Item>INPUT_CONTEXT_A</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_MINIGAME_QUIT</Item>
+        <Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_PLAYER_MENU</Item>
+		<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>MinigameTriggers</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_LEFT_TRIGGER</Item>
+        <Item>INPUT_MINIGAME_RIGHT_TRIGGER</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>Tithing</Name>
+      <Actions>
+        <Item>INPUT_TITHING_INCREASE_AMOUNT</Item>
+        <Item>INPUT_TITHING_DECREASE_AMOUNT</Item>
+		<Item>INPUT_GAME_MENU_ACCEPT</Item>
+		<Item>INPUT_GAME_MENU_CANCEL</Item>
+		<Item>INPUT_GAME_MENU_OPTION</Item>
+		<Item>INPUT_LOOK_LR</Item>
+		<Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>NoPlayerControl</Name>
+	  <Actions>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>Calderon1ForceDoor</Name>
+      <Actions>
+		<Item>INPUT_CONTEXT_A</Item>
+		<Item>INPUT_CONTEXT_B</Item>
+		<Item>INPUT_MOVE_DOWN_ONLY</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+	  </Actions>
+    </Item>
+		
+	<Item>
+		<Name>ControlGamePadUI_OnFoot</Name>
+		<Actions>
+		
+		<!-- Left Stick -->
+			<Item>INPUT_MOVE_UD</Item> 
+		
+		<!-- L1 -->
+			<Item>INPUT_OPEN_WHEEL_MENU</Item>
+			<Item>INPUT_TOGGLE_HOLSTER</Item>
+			<Item>INPUT_PICKUP</Item>
+
+		<!-- L2 -->
+			<Item>INPUT_AIM</Item>
+			<Item>INPUT_INTERACT_LOCKON</Item>
+			
+		<!-- L3 -->
+			<Item>INPUT_DUCK</Item>
+			<Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+			
+		<!-- Right Stick -->
+			<Item>INPUT_LOOK_UD</Item> 
+			<Item>INPUT_SNIPER_ZOOM</Item>
+
+		<!-- R1 -->
+			<Item>INPUT_COVER</Item>
+			<Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+
+		<!-- R2 -->
+			<Item>INPUT_ATTACK</Item>
+			
+		<!-- R3 -->
+			<Item>INPUT_LOOK_BEHIND</Item>
+			<Item>INPUT_SPECIAL_ABILITY</Item>
+			<Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+			<Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+		
+		<!-- A/X -->
+			<Item>INPUT_SPRINT</Item>
+			<Item>INPUT_SKIP_CUTSCENE</Item>
+
+		<!-- B/Circle -->
+			<Item>INPUT_MELEE_ATTACK</Item>
+			<Item>INPUT_RELOAD</Item>
+			<Item>INPUT_HOGTIE</Item>
+
+		<!-- X/Square -->
+			<Item>INPUT_JUMP</Item>
+			<Item>INPUT_MELEE_BLOCK</Item>
+			<Item>INPUT_PICKUP_CARRIABLE</Item>
+		
+		<!-- Y/Triangle -->
+			 <Item>INPUT_ENTER</Item>
+			 <Item>INPUT_MELEE_GRAPPLE</Item>
+			 <Item>INPUT_LOOT</Item>
+			
+		<!-- Dpad Up -->
+			<Item>INPUT_WHISTLE</Item>
+			<Item>INPUT_AIM_IN_AIR</Item>
+		
+		<!-- Dpad Down -->
+			<Item>INPUT_SELECT_RADAR_MODE</Item>
+			<Item>INPUT_REVEAL_HUD</Item>
+			<Item>INPUT_TOGGLE_WEAPON_SCOPE</Item>
+		
+		<!-- Dpad Left -->
+			<Item>INPUT_PLAYER_MENU</Item>
+			<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+			<Item>INPUT_OPEN_JOURNAL</Item>
+			<Item>INPUT_SWITCH_SHOULDER</Item>
+		
+		<!-- Dpad Right -->
+			<Item>INPUT_OPEN_SATCHEL_MENU</Item>
+			<Item>INPUT_QUICK_USE_ITEM</Item>
+		
+		<!-- Select/Touchpad -->
+			<Item>INPUT_NEXT_CAMERA</Item>
+			<Item>INPUT_FOCUS_CAM</Item>
+			<Item>INPUT_CINEMATIC_CAM</Item>
+		
+		<!-- Start/Options -->
+			<Item>INPUT_FRONTEND_PAUSE</Item>
+			<Item>INPUT_MAP</Item>
+			
+		</Actions>
+	</Item>
+	
+	<Item>
+		<Name>ControlGamePadUI_OnMount</Name>
+		<Actions>
+		
+		<!-- Left Stick -->
+			<Item>INPUT_HORSE_MOVE_UD</Item>
+
+		<!-- L1 -->
+			<Item>INPUT_OPEN_WHEEL_MENU</Item>
+			<Item>INPUT_TOGGLE_HOLSTER</Item>
+		
+		<!-- L2 -->
+			<Item>INPUT_HORSE_AIM</Item>
+			<Item>INPUT_INTERACT_LOCKON</Item>
+			
+		<!-- L3 -->
+			<Item>INPUT_INTERACT_ANIMAL</Item>
+			<Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+			
+		<!-- Right Stick -->
+			<Item>INPUT_HORSE_GUN_UD</Item>
+		
+		<!-- R1 -->
+			<Item>INPUT_HORSE_STOP</Item>
+			<Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+
+		<!-- R2 -->
+			<Item>INPUT_HORSE_ATTACK</Item>
+			
+		<!-- R3 -->
+			<Item>INPUT_HORSE_LOOK_BEHIND</Item>
+			<Item>INPUT_SPECIAL_ABILITY</Item>
+			<Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+		
+		<!-- A/X -->
+			<Item>INPUT_HORSE_SPRINT</Item>
+			
+		<!-- B/Circle -->
+			<Item>INPUT_HORSE_MELEE</Item>
+			<Item>INPUT_RELOAD</Item>
+		
+		<!-- X/Square -->
+			<Item>INPUT_HORSE_JUMP</Item>
+			<Item>INPUT_HORSE_COLLECT</Item>
+			<Item>INPUT_MELEE_BLOCK</Item>
+		
+		<!-- Y/Triangle -->
+			<Item>INPUT_HORSE_EXIT</Item>
+			<Item>INPUT_HITCH_ANIMAL</Item>
+
+		<!-- Dpad Up -->
+			<Item>INPUT_WHISTLE_HORSEBACK</Item>
+			<Item>INPUT_AIM_IN_AIR</Item>
+		
+		<!-- Dpad Down -->
+			<Item>INPUT_SELECT_RADAR_MODE</Item>
+			<Item>INPUT_REVEAL_HUD</Item>
+			<Item>INPUT_TOGGLE_WEAPON_SCOPE</Item>
+		
+		<!-- Dpad Left -->
+			<Item>INPUT_PLAYER_MENU</Item>
+			<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+			<Item>INPUT_OPEN_JOURNAL</Item>
+			<Item>INPUT_SWITCH_SHOULDER</Item>
+		
+		<!-- Dpad Right -->
+			<Item>INPUT_OPEN_SATCHEL_MENU</Item>
+			<Item>INPUT_QUICK_USE_ITEM</Item>
+		
+		<!-- Select/Touchpad -->
+			<Item>INPUT_NEXT_CAMERA</Item>
+			<Item>INPUT_FOCUS_CAM</Item>
+			<Item>INPUT_CINEMATIC_CAM</Item>
+		
+		<!-- Start/Options -->
+			<Item>INPUT_FRONTEND_PAUSE</Item>
+			<Item>INPUT_MAP</Item>
+			
+		</Actions>
+	</Item>
+	
+	<Item>
+		<Name>ControlGamePadUI_InVehicle</Name>
+		<Actions>
+		
+		<!-- Left Stick -->
+			<Item>INPUT_VEH_DRAFT_MOVE_UD</Item>
+			
+
+		<!-- L1 -->
+			<Item>INPUT_OPEN_WHEEL_MENU</Item>
+			<Item>INPUT_TOGGLE_HOLSTER</Item>
+		
+		<!-- L2 -->
+			<Item>INPUT_VEH_DRAFT_AIM</Item>
+			<Item>INPUT_INTERACT_LOCKON</Item>
+			
+		<!-- L3 -->
+			<Item>INPUT_VEH_HORN</Item>
+			
+		<!-- Right Stick -->
+			<Item>INPUT_VEH_GUN_UD</Item>
+		
+		<!-- R1 -->
+			<Item>INPUT_VEH_DRAFT_BRAKE</Item>
+			<Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+
+		<!-- R2 -->
+			<Item>INPUT_VEH_ATTACK</Item>
+			
+		<!-- R3 -->
+			<Item>INPUT_VEH_LOOK_BEHIND</Item>
+			<Item>INPUT_SPECIAL_ABILITY</Item>
+			<Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+		
+		<!-- A/X -->
+			<Item>INPUT_VEH_DRAFT_ACCELERATE</Item>
+			
+		<!-- B/Circle -->
+			<Item>INPUT_RELOAD</Item>
+		
+		<!-- X/Square -->
+			<Item>INPUT_VEH_SHUFFLE</Item>
+	
+		<!-- Y/Triangle -->
+			<Item>INPUT_VEH_EXIT</Item>
+
+		<!-- Dpad Up -->
+			<Item>INPUT_WHISTLE</Item>
+				
+		<!-- Dpad Down -->
+			<Item>INPUT_SELECT_RADAR_MODE</Item>
+			<Item>INPUT_REVEAL_HUD</Item>
+		
+		<!-- Dpad Left -->
+			<Item>INPUT_PLAYER_MENU</Item>
+			<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+			<Item>INPUT_OPEN_JOURNAL</Item>
+		
+		<!-- Dpad Right -->
+			<Item>INPUT_OPEN_SATCHEL_MENU</Item>
+			<Item>INPUT_QUICK_USE_ITEM</Item>
+			<Item>INPUT_VEH_HEADLIGHT</Item>
+		
+		<!-- Select/Touchpad -->
+			<Item>INPUT_NEXT_CAMERA</Item>
+			<Item>INPUT_FOCUS_CAM</Item>
+			<Item>INPUT_CINEMATIC_CAM</Item>
+		
+		<!-- Start/Options -->
+			<Item>INPUT_FRONTEND_PAUSE</Item>
+			<Item>INPUT_MAP</Item>
+			
+		</Actions>
+	</Item>
+
+  
+  </Contexts>
+  
+  <StartupContext>OnFoot</StartupContext>
+  
+  <ActionGroups>
+
+    <Item>
+      <Name>INPUTGROUP_LOOK</Name>
+      <Actions>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_MOVE</Name>
+      <Actions>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_RADIAL_MENU_NAV</Name>
+      <Actions>
+        <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
+        <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_CELLPHONE_NAVIGATE</Name>
+      <Actions>
+        <Item>INPUT_CELLPHONE_UP</Item>
+        <Item>INPUT_CELLPHONE_DOWN</Item>
+        <Item>INPUT_CELLPHONE_LEFT</Item>
+        <Item>INPUT_CELLPHONE_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_CELLPHONE_NAVIGATE_UD</Name>
+      <Actions>
+        <Item>INPUT_CELLPHONE_UP</Item>
+        <Item>INPUT_CELLPHONE_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_CELLPHONE_NAVIGATE_LR</Name>
+      <Actions>
+        <Item>INPUT_CELLPHONE_LEFT</Item>
+        <Item>INPUT_CELLPHONE_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_DPAD_ALL</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_DPAD_UD</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_DPAD_LR</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_LSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_RSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_GENERIC_UD</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_GENERIC_LR</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_GENERIC_ALL</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_UP</Item>
+        <Item>INPUT_FRONTEND_DOWN</Item>
+        <Item>INPUT_FRONTEND_LEFT</Item>
+        <Item>INPUT_FRONTEND_RIGHT</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_AXIS_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_BUMPERS</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_LB</Item>
+        <Item>INPUT_FRONTEND_RB</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_TRIGGERS</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_LT</Item>
+        <Item>INPUT_FRONTEND_RT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_STICKS</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_LS</Item>
+        <Item>INPUT_FRONTEND_RS</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_DPAD_ALL</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_PAD_UP</Item>
+        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
+        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
+        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_DPAD_UD</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_PAD_UP</Item>
+        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_DPAD_LR</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
+        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_LSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_RSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
+        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_BUMPERS</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_LB</Item>
+        <Item>INPUT_SCRIPT_RB</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SCRIPT_TRIGGERS</Name>
+      <Actions>
+        <Item>INPUT_SCRIPT_LT</Item>
+        <Item>INPUT_SCRIPT_RT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_RADIAL_MENU_NAV_CYCLE</Name>
+      <Actions>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_PREV</Item>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_NEXT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_QUICK_SELECT_DAMAGE_MODE_CYCLE</Name>
+      <Actions>
+        <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_PREV</Item>
+        <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_NEXT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FLY</Name>
+      <Actions>
+        <Item>INPUT_VEH_FLY_PITCH_UD</Item>
+        <Item>INPUT_VEH_FLY_ROLL_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SUB</Name>
+      <Actions>
+        <Item>INPUT_VEH_SUB_PITCH_UD</Item>
+        <Item>INPUT_VEH_SUB_TURN_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_VEH_MOVE_ALL</Name>
+      <Actions>
+        <Item>INPUT_VEH_MOVE_UD</Item>
+        <Item>INPUT_VEH_MOVE_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_CURSOR</Name>
+      <Actions>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_X</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_CURSOR_SCROLL</Name>
+      <Actions>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_SNIPER_ZOOM_SECONDARY</Name>
+      <Actions>
+        <Item>INPUT_SNIPER_ZOOM_IN_SECONDARY</Item>
+        <Item>INPUT_SNIPER_ZOOM_OUT_SECONDARY</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_HORSE_MOVE</Name>
+      <Actions>
+        <Item>INPUT_HORSE_MOVE_UD</Item>
+        <Item>INPUT_HORSE_MOVE_LR</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_ALL</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_UD</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_LR</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_TAB_LR</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_TAB_LR_SECONDARY</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_SCROLL</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_DOCUMENT_PAGE_LR</Name>
+      <Actions>
+        <Item>INPUT_DOCUMENT_PAGE_PREV</Item>
+        <Item>INPUT_DOCUMENT_PAGE_NEXT</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_MINIGAME_FISHING_LSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_FISHING_LEFT_AXIS_X</Item>
+        <Item>INPUT_MINIGAME_FISHING_LEFT_AXIS_Y</Item>
+      </Actions>
+    </Item>
+    
+    <Item>
+      <Name>INPUTGROUP_MINIGAME_FISHING_RSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_FISHING_RIGHT_AXIS_X</Item>
+        <Item>INPUT_MINIGAME_FISHING_RIGHT_AXIS_Y</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_RSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
+        <Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
+      </Actions>
+    </Item>
+
+
+  </ActionGroups>
+
+</MappingSettings>

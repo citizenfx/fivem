@@ -199,7 +199,8 @@ struct TenUI
 	winrt::Windows::UI::Xaml::Controls::ProgressBar progressBar{ nullptr };
 };
 
-static thread_local struct  
+//static thread_local struct  
+static struct
 {
 	HWND rootWindow;
 	HWND topStatic;
@@ -266,7 +267,9 @@ static std::wstring g_mainXaml = LR"(
             </ThemeShadow>-->
         </Grid.Resources>
         <Grid x:Name="BackdropGrid" />
-        <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+        <StackPanel Orientation="Vertical" VerticalAlignment="Center">)"
+#if defined(GTA_FIVE)
+	R"(
             <Viewbox Height="150" Margin="0,0,0,15" RenderTransformOrigin="0.5,0.5">
                 <Path Data="F1 M 0,0 L 43.57,0 C 44.53,0 47.41,-9.44 52.22,-28.18 68.71,-85.82 78.32,-119.44 80.73,-129.21
         L 52.54,-156.91 51.74,-156.91 C 48.05,-145.22 30.43,-93.02 -0.8,-0.48 L 0,0 0,0 z
@@ -283,8 +286,32 @@ static std::wstring g_mainXaml = LR"(
                 </Path>
                 <Viewbox.RenderTransform>
                     <ScaleTransform ScaleX="-1" />
-                </Viewbox.RenderTransform>
-            </Viewbox>
+                </Viewbox.RenderTransform>)"
+#elif defined(IS_RDR3)
+	R"(
+			<Viewbox Height="150" Margin="0,0,0,15">
+				<Grid>
+				<Path Data="F1 M 38.56,38.56 L 779.52,38.56 779.52,1019.52 38.56,1019.52 z"  Fill="#00000000" />
+				<Path Data="F1 M 153.23,78.44 L 154.67,77.16 153.23,75.72 153.23,78.44 153.23,78.44 z"  Fill="#ffffffff" />
+				<Path Data="F1 M 677.12,48.82 L 523.2,98.61 516.32,118.63 673.43,67.71 677.12,48.82 677.12,48.82 z"  Fill="#ffffffff" />
+				<Path Data="F1 M 666.07,105.5 L 668.63,92.37 507.35,144.73 502.7,158.34 666.07,105.5 666.07,105.5 z"  Fill="#ffffffff" />
+				<Path Data="F1 M 0,0 L -13.94,40.99 -32.52,105.83 -42.61,153.07 116.91,176.77 134.69,107.28 166.24,-53.8
+					 0,0 0.16,0 z" RenderTransform="1,0,0,1,496.62,175.63" Fill="#ffffffff" />
+				<Path Data="F1 M 670.55,38.73 L 543.7,38.73 527.85,84.84 670.55,38.73 z"  Fill="#ffffffff" />
+				<Path Data="F1 M 311.47,167.46 L 152.43,218.86 151.95,224.46 151.95,236.79 310.51,185.55 311.47,167.46 z"  Fill="#ffffffff" />
+				<Path Data="F1 M 308.91,221.26 L 309.55,209.09 151.95,260.01 151.95,272.18 308.91,221.26 308.91,221.26 z"  Fill="#ffffffff" />
+				<Path Data="F1 M 0,0 L -9.45,-0.96 19.22,-146.18 -133.89,-168.92 -144.78,-118.16 -164.64,-6.72 -266.82,-6.72
+					 -245.52,-296.05 -245.52,-404.93 -244.72,-425.59 -401.04,-375.15 -401.04,-265.63 -405.2,-256.34 -404.88,-247.7
+					 -409.05,-182.05 -412.09,-168.76 -411.77,-133.06 -411.77,358.34 94.18,358.34 94.18,326.48 116.76,-5.28
+					 34.44,0 0,0 0,0 z
+					M -25.14,211.04 L -272.27,211.04 -264.26,171.33 -264.26,143.31 -272.27,124.73 -25.14,124.73 -27.87,163.16
+					 -25.14,211.04 z" RenderTransform="1,0,0,1,552.99,662.7" Fill="#ffffffff" />
+				<Path Data="F1 M 0,0 L 2.88,-108.56 -156.31,-113.84 -155.83,-101.99 -157.12,-79.41 -157.12,37.47 -158.24,51.08
+					 0,0 0,0 z" RenderTransform="1,0,0,1,311.79,155.13" Fill="#ffffffff" />
+				</Grid>
+)"
+#endif
+R"(         </Viewbox>
             <TextBlock x:Name="static1" Text=" " TextAlignment="Center" Foreground="#ffffffff" FontSize="24" />
 			<Grid Margin="0,15,0,15">
 				<ProgressBar x:Name="progressBar" Foreground="White" Width="250" />
@@ -310,7 +337,12 @@ void BackdropBrush::OnConnected()
 	if (!CompositionBrush())
 	{
 		auto effect = winrt::Microsoft::Graphics::Canvas::Effects::ColorSourceEffect();
+
+#ifdef GTA_FIVE
 		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 229, 151, 74));
+#elif defined(IS_RDR3)
+		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
+#endif
 
 		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp{ L"layer" };
 		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp2{ L"rawImage" };
@@ -330,9 +362,16 @@ void BackdropBrush::OnConnected()
 		memset(&mat, 0, sizeof(mat));
 		mat.M44 = 1.0f;
 
+#ifdef GTA_FIVE
 		mat.M11 = 241 / 255.f;
 		mat.M22 = 163 / 255.f;
 		mat.M33 = 85 / 255.f;
+#elif defined(IS_RDR3)
+		mat.M11 = 1.0f;
+		mat.M22 = 1.0f;
+		mat.M33 = 1.0f;
+		mat.M44 = 0.15f;
+#endif
 
 		auto layerColor = winrt::Microsoft::Graphics::Canvas::Effects::ColorMatrixEffect();
 		layerColor.Source(layer);
