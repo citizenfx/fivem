@@ -697,7 +697,9 @@ static InitFunction initFunction2([]()
 		auto resourceManager = fx::ResourceManager::GetCurrent();
 
 		// #TODOMONITOR: make helper
-		if (resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode")->GetValue() != "0")
+		auto monitorVar = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode");
+
+		if (monitorVar && monitorVar->GetValue() != "0")
 		{
 			return;
 		}
