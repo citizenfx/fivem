@@ -127,7 +127,7 @@ struct UdpSocket
 	std::deque<Datagram> recvQueue;
 };
 
-static std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>> g_sockets;
+static std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>>* g_sockets = new std::unordered_map<ENetSocket, std::shared_ptr<UdpSocket>>();
 static int g_curFd;
 
 extern "C" ENetSocket
@@ -148,7 +148,7 @@ enet_socket_create(ENetSocketType type)
 	g_curFd += 4;
 	auto fd = (ENetSocket)g_curFd;
 
-	g_sockets[fd] = socketData;
+	(*g_sockets)[fd] = socketData;
 
 	uv_udp_init(Instance<net::UvLoopManager>::Get()->GetOrCreate("svNetwork")->GetLoop(), &socketData->udp);
 	
@@ -158,7 +158,7 @@ enet_socket_create(ENetSocketType type)
 extern "C" void
 enet_socket_destroy(ENetSocket socket)
 {
-	g_sockets.erase(socket);
+	g_sockets->erase(socket);
 }
 
 extern "C" int
@@ -198,9 +198,9 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 		sin.sin6_scope_id = 0;
 	}
 
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
@@ -265,9 +265,9 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 extern "C" int
 enet_socket_get_address(ENetSocket socket, ENetAddress* address)
 {
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
@@ -305,9 +305,9 @@ enet_socket_send(ENetSocket socket,
 		sin.sin6_scope_id = address->sin6_scope_id;
 	}
 
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
@@ -367,9 +367,9 @@ enet_socket_receive(ENetSocket socket,
 	ENetBuffer* buffers,
 	size_t bufferCount)
 {
-	auto socketIt = g_sockets.find(socket);
+	auto socketIt = g_sockets->find(socket);
 
-	if (socketIt == g_sockets.end())
+	if (socketIt == g_sockets->end())
 	{
 		return -1;
 	}
