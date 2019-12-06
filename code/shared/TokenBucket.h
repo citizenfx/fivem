@@ -321,7 +321,11 @@ class BasicDynamicTokenBucket {
     return zeroTimeNew;
   }
 
-  alignas(std::hardware_destructive_interference_size) std::atomic<double> zeroTime_;
+// clang doesn't know this in the version we currently use
+#if defined(_MSC_VER)
+  alignas(std::hardware_destructive_interference_size)
+#endif
+	  std::atomic<double> zeroTime_;
 };
 
 /**
