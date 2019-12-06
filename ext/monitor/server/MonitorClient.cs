@@ -85,7 +85,10 @@ namespace FxMonitor
 
             Task.Run(async () =>
             {
-                await m_peer.WriteCommand(3, new NucleusConnectedCommand(url));
+                if (m_peer != null)
+                {
+                    await m_peer.WriteCommand(3, new NucleusConnectedCommand(url));
+                }
             });
         }
 
