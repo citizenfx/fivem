@@ -185,6 +185,24 @@ deploy_canary:
   only:
     - master
     
+deploy_canary_rdr3:
+  stage: deploy
+  dependencies:
+    - build_client_rdr3
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: canary
+  tags:
+    - vs2017
+    - client2
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
+    IS_RDR3: '1'
+  only:
+    - master
+    
 deploy_launcher:
   stage: linux
   dependencies:
@@ -213,6 +231,25 @@ deploy_prod:
   tags:
     - vs2017
     - client
+  only:
+    - master
+    
+deploy_prod_rdr3:
+  stage: deploy
+  dependencies:
+    - build_client_rdr3
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: production
+  when: manual
+  tags:
+    - vs2017
+    - client2
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
+    IS_RDR3: '1'
   only:
     - master
     
