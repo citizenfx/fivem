@@ -6,7 +6,7 @@
 			"titleId": "gta5",
 			"rosTitleId": 11,
 			"friendlyName": "Grand Theft Auto V",
-			"installFolderRegKey": "Rockstar Games\\Grand Theft Auto V",
+			"installFolderRegKey": "Rockstar Games\\Grand Theft Auto Vee",
 			"installFolderRegValueName": "InstallFolder",
 			"principalFileName": "GTA5.exe",
 			"appdataFolderName": "GTA V",
@@ -34,16 +34,16 @@
 				"default":
 				{
 					"cloud": true,
-					"soundCardReq" : true
+					"soundCardReq" : false
 				}
 			},
 			"preqs":
 			[
 			],
-			"safeMode": true,
+			"safeMode": false,
 			"modScan": false,
 			"modWhitelist" : [ "GTAVLanguageSelect.exe", "GTAVLauncher.exe", "Rockstar-Games-Launcher.exe", "PlayGTAV.exe", "console_final.log", "commandline.txt"],
-			"installshieldGuid": "5EFC6C07-6B87-43FC-9524-F9E967241741",
+			"installshieldGuid": "BEEFBEEF-6B87-43FC-9524-F9E967241741",
 			"languages" : [
 				"en-US",
 				"de-DE",
@@ -127,7 +127,7 @@
 				"default":
 				{
 					"cloud": true,
-					"soundCardReq" : true
+					"soundCardReq" : false
 				}
 			},
 			"preqs":
