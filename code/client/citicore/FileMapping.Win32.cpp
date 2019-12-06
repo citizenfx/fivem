@@ -527,8 +527,11 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 		{
 			if (hModule == GetModuleHandleW(L"ntdll.dll") && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)
 			{
-				//auto lol = (char*)GetModuleHandleW(L"ntdll.dll") + 0x183000;
-				auto lol = (char*)GetModuleHandleW(L"ntdll.dll") + 0x00118400 - 0x40;
+				char* ntdll = (char*)GetModuleHandleW(L"ntdll.dll");
+				auto ntdllImage = (PIMAGE_DOS_HEADER)ntdll;
+				auto ntdllPE = (PIMAGE_NT_HEADERS)(ntdll + ntdllImage->e_lfanew);
+
+				auto lol = ntdll + ntdllPE->OptionalHeader.BaseOfCode + ntdllPE->OptionalHeader.SizeOfCode - 0x40;
 
 				static std::once_flag lold;
 
