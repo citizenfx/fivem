@@ -196,11 +196,11 @@ namespace sync
 		void* fakeInAddr = calloc(256, 1);
 		void* fakeFakeData = calloc(256, 1);
 
-		ScPlayerData* inAddr = (ScPlayerData*)fakeInAddr;
-		inAddr->addr.ipLan = clientId ^ 0xFEED;
-		inAddr->addr.ipUnk = clientId ^ 0xFEED;
-		inAddr->addr.ipOnline = clientId ^ 0xFEED;
-		inAddr->addr.rockstarAccountId = clientId;
+		rlGamerInfo* inAddr = (rlGamerInfo*)fakeInAddr;
+		inAddr->peerAddress.localAddr.ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.relayAddr.ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.publicAddr.ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.rockstarAccountId = clientId;
 		inAddr->gamerId = clientId;
 
 		// 1290
@@ -952,7 +952,7 @@ static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const 
 	{
 		if (p)
 		{
-			if (p->GetPlatformPlayerData()->addr.rockstarAccountId == gamerId.accountId)
+			if (p->GetRlPeerId()->peerAddress.rockstarAccountId == gamerId.accountId)
 			{
 				return p;
 			}

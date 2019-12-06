@@ -195,12 +195,12 @@ bool GetOurSystemKey(char* systemKey);
 struct ScSessionAddr
 {
 	uint8_t sessionId[16];
-	ScInAddr addr;
+	netPeerAddress addr;
 };
 
 struct ScUnkAddr
 {
-	ScInAddr lanAddr; // ???
+	netPeerAddress lanAddr; // ???
 	uint64_t pad;
 	ScSessionAddr addr;
 	uint32_t unkVal;
@@ -208,7 +208,7 @@ struct ScUnkAddr
 	char systemKey[16];
 };
 
-static_assert(sizeof(ScInAddr) == (40 + 8 + 8), "ScInAddr size seems bad...");
+static_assert(sizeof(netPeerAddress) == (40 + 8 + 8), "ScInAddr size seems bad...");
 static_assert(sizeof(ScSessionAddr) == (56 + 8 + 8), "ScSessionAddr size seems bad...");
 
 bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr* in, void*, ScUnkAddr* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
@@ -238,7 +238,7 @@ void MigrateSessionCopy(char* target, char* source)
 	
 	std::unique_ptr<NetBuffer> msgBuffer(new NetBuffer(64));
 
-	msgBuffer->Write<uint32_t>((sessionAddress->addr.ipLan & 0xFFFF) ^ 0xFEED);
+	msgBuffer->Write<uint32_t>((sessionAddress->addr.localAddr.ip.addr & 0xFFFF) ^ 0xFEED);
 	msgBuffer->Write<uint32_t>(sessionAddress->addr.unkKey1);
 
 	g_netLibrary->SendReliableCommand("msgHeHost", msgBuffer->GetBuffer(), msgBuffer->GetCurLength());
@@ -416,14 +416,14 @@ struct
 			netAddr.addr.unkKey1 = g_netLibrary->GetHostBase();
 			netAddr.addr.unkKey2 = g_netLibrary->GetHostBase();
 
-			netAddr.addr.ipLan = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-			netAddr.addr.portLan = 6672;
+			netAddr.addr.localAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.localAddr.port = 6672;
 
-			netAddr.addr.ipUnk = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-			netAddr.addr.portUnk = 6672;
+			netAddr.addr.relayAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.relayAddr.port = 6672;
 
-			netAddr.addr.ipOnline = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-			netAddr.addr.portOnline = 6672;
+			netAddr.addr.publicAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.publicAddr.port = 6672;
 
 			*(uint32_t*)&netAddr.sessionId[0] = 0x2;//g_netLibrary->GetHostBase() ^ 0xFEAFEDE;
 			*(uint32_t*)&netAddr.sessionId[8] = 0xCDCDCDCD;
@@ -646,12 +646,12 @@ void ObjectIds_BindNetLibrary(NetLibrary*);
 
 #include <CloneManager.h>
 
-static hook::cdecl_stub<void(ScPlayerData*)> _setGameGamerInfo([]()
+static hook::cdecl_stub<void(rlGamerInfo*)> _setGameGamerInfo([]()
 {
 	return hook::get_pattern("3A D8 0F 95 C3 40 0A DE 40", -0x53);
 });
 
-static ScPlayerData** g_gamerInfo;
+static rlGamerInfo** g_gamerInfo;
 
 static HookFunction initFunction([]()
 {
@@ -918,18 +918,18 @@ static void GetOurSecurityKey(uint64_t* key)
 	//key[1] = 0;
 }
 
-bool GetOurOnlineAddress(ScInAddr* address)
+bool GetOurOnlineAddress(netPeerAddress* address)
 {
 	memset(address, 0, sizeof(*address));
 	address->secKeyTime = g_netLibrary->GetServerBase() ^ 0xABCD;
 	address->unkKey1 = g_netLibrary->GetServerBase();
 	address->unkKey2 = g_netLibrary->GetServerBase();
-	address->ipLan = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
-	address->portLan = 6672;
-	address->ipUnk = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
-	address->portUnk = 6672;
-	address->ipOnline = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
-	address->portOnline = 6672;
+	address->localAddr.ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->localAddr.port = 6672;
+	address->relayAddr.ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->relayAddr.port = 6672;
+	address->publicAddr.ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->publicAddr.port = 6672;
 	//address->pad5 = 0x19;
 
 	g_globalNetSecurityKey[0] = g_netLibrary->GetServerBase();

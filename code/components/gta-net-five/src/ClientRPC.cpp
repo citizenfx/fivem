@@ -17,9 +17,9 @@
 
 #include <Hooking.h>
 
-static inline int GetServerId(const ScPlayerData* platformData)
+static inline int GetServerId(const rlGamerInfo* platformData)
 {
-	return (platformData->addr.ipLan & 0xFFFF) ^ 0xFEED;
+	return (platformData->peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
 }
 
 extern NetLibrary* g_netLibrary;
