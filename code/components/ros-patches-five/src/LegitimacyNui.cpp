@@ -548,7 +548,7 @@ void RunLegitimacyNui()
 	trace(__FUNCTION__ ": Shutting down CEF.\n");
 
 	// Shut down CEF.
-	CefShutdown();
+	//CefShutdown();
 
 	trace(__FUNCTION__ ": Shut down CEF.\n");
 }
