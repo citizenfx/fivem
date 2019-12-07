@@ -566,5 +566,5 @@ if (!$DontUpload) {
         purge_everything=$true
     } | ConvertTo-Json
 
-    Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -Body $json -ContentType 'application/json'
+    #Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -Body $json -ContentType 'application/json'
 }
