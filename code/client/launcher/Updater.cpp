@@ -15,6 +15,8 @@
 #include <unordered_set>
 #include <string>
 
+#include <sstream>
+
 #include "sha1.h"
 
 struct cache_t
@@ -154,7 +156,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 {
 	static char cachesFile[800000];
 
-	int result = DL_RequestURL(va(CONTENT_URL "/%s/content/caches.xml", GetUpdateChannel()), cachesFile, sizeof(cachesFile));
+	int result = DL_RequestURL(va(CONTENT_URL "/%s/content/caches.xml?timeStamp=%lld", GetUpdateChannel(), _time64(NULL)), cachesFile, sizeof(cachesFile));
 
 	if (result != 0)
 	{
@@ -234,7 +236,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	for (cache_t& cache : needsUpdate)
 	{
-		result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml", GetUpdateChannel(), cache.name.c_str()), cachesFile, sizeof(cachesFile));
+		result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d", GetUpdateChannel(), cache.name.c_str(), cache.version), cachesFile, sizeof(cachesFile));
 
 		manifest_t manifest(cache);
 		manifest.Parse(cachesFile);
@@ -272,11 +274,17 @@ bool Updater_RunUpdate(int numCaches, ...)
 		std::array<uint8_t, 20> hashEntry;
 		memcpy(hashEntry.data(), file.hash, hashEntry.size());
 
+		std::stringstream formattedHash;
+		for (uint8_t b : hashEntry)
+		{
+			formattedHash << fmt::sprintf("%02X", (uint32_t)b);
+		}
+
 		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry }, &fileStart, fileTotal);
 
 		if (fileOutdated)
 		{
-			const char* url = va(CONTENT_URL "/%s/content/%s/%s%s", GetUpdateChannel(), cache.name.c_str(), file.name.c_str(), (file.compressed) ? ".xz" : "");
+			const char* url = va(CONTENT_URL "/%s/content/%s/%s%s?hash=%s", GetUpdateChannel(), cache.name.c_str(), file.name.c_str(), (file.compressed) ? ".xz" : "", formattedHash.str());
 
 			std::string outPath = converter.to_bytes(MakeRelativeCitPath(converter.from_bytes(file.name)));
 

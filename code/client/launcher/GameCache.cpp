@@ -94,6 +94,32 @@ struct GameCacheEntry
 
 	std::wstring GetLocalFileName() const
 	{
+		using namespace std::string_literals;
+
+		if (_strnicmp(filename, "launcher/", 9) == 0)
+		{
+			wchar_t rootBuf[1024] = { 0 };
+			DWORD rootLength = sizeof(rootBuf);
+
+			RegGetValue(HKEY_LOCAL_MACHINE,
+				L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Launcher", L"InstallFolder",
+				RRF_RT_REG_SZ, nullptr, rootBuf, &rootLength);
+
+			return rootBuf + L"\\"s + ToWide(&filename[9]);
+		}
+
+		if (_strnicmp(filename, "ros_", 4) == 0)
+		{
+			wchar_t rootBuf[1024] = { 0 };
+			DWORD rootLength = sizeof(rootBuf);
+
+			RegGetValue(HKEY_LOCAL_MACHINE,
+				L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Rockstar Games Social Club", L"InstallFolder",
+				RRF_RT_REG_SZ, nullptr, rootBuf, &rootLength);
+
+			return rootBuf + L"\\"s + ToWide(&filename[9]);
+		}
+
 		return MakeRelativeGamePath(ToWide(filename));
 	}
 };
@@ -192,133 +218,133 @@ static GameCacheEntry g_requiredEntries[] =
 	{ "shaders_x64.rpf", "616783553892ae59df12945a29814226d9f90f5a", "ipfs://bafybeiggp4ugvb232v3fwtadswaxoiafo4uyyhpvp2k5v745zpcsxt6vmy", 233006494 },
 #endif
 
-	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "http://mirrors.fivem.net/emergency_mirror/launcher/Launcher.exe", 37970576 },
-	{ "launcher/Launcher.rpf", "619AFA8203CF1DACEAE115898DE3EE30F40B678D", "http://mirrors.fivem.net/emergency_mirror/launcher/Launcher.rpf", 784384 },
-	{ "launcher/Redistributables/SocialClub/Social-Club-Setup.exe", "8260133F1A5BF9131BF01172D2A181881BB98BD0", "http://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/SocialClub/Social-Club-Setup.exe", 99013544 },
-	{ "launcher/Redistributables/VCRed/vc_redist.x64.exe", "BE4F7AD520349D9D0683AB9DD171B3A1E4DB426B", "http://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/VCRed/vc_redist.x64.exe", 15080792 },
-	{ "launcher/Redistributables/VCRed/vc_redist.x86.exe", "13439C916FAAF5E08CAFCE790381578685B0A552", "http://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/VCRed/vc_redist.x86.exe", 14381032 },
-	{ "launcher/RockstarService.exe", "724C0E73F5E59DF9302AE734D918D364E3ACEF54", "http://mirrors.fivem.net/emergency_mirror/launcher/RockstarService.exe", 474256 },
-	{ "launcher/RockstarSteamHelper.exe", "FD742FB740A99B4705CA9AD977B036323C2094C7", "http://mirrors.fivem.net/emergency_mirror/launcher/RockstarSteamHelper.exe", 444560 },
-	{ "launcher/ThirdParty/Epic/EOSSDK-Win64-Shipping.dll", "AF01787DDB7DE00239EDC62D33E0B20C0BE80037", "http://mirrors.fivem.net/emergency_mirror/launcher/ThirdParty/Epic/EOSSDK-Win64-Shipping.dll", 9971968 },
-	{ "launcher/api-ms-win-core-console-l1-1-0.dll", "724F4F91041AD595E365B724A0348C83ACF12BBB", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-console-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-core-datetime-l1-1-0.dll", "4940D5B92B6B80A40371F8DF073BF3EB406F5658", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-datetime-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-debug-l1-1-0.dll", "E7C8A6C29C3158F8B332EEA5C33C3B1E044B5F73", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-debug-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-errorhandling-l1-1-0.dll", "51CBB7BA47802DC630C2507750432C55F5979C27", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-errorhandling-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-file-l1-1-0.dll", "9ACBEEF0AC510C179B319CA69CD5378D0E70504D", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-file-l1-1-0.dll", 22280 },
-	{ "launcher/api-ms-win-core-file-l1-2-0.dll", "04669214375B25E2DC8A3635484E6EEB206BC4EB", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-file-l1-2-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-file-l2-1-0.dll", "402B7B8F8DCFD321B1D12FC85A1EE5137A5569B2", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-file-l2-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-handle-l1-1-0.dll", "A2E2A40CEA25EA4FD64B8DEAF4FBE4A2DB94107A", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-handle-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-heap-l1-1-0.dll", "B4310929CCB82DD3C3A779CAB68F1F9F368076F2", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-heap-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-core-interlocked-l1-1-0.dll", "F779CDEF9DED19402AA72958085213D6671CA572", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-interlocked-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-libraryloader-l1-1-0.dll", "47143A66B4A2E2BA019BF1FD07BCCA9CFB8BB117", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-libraryloader-l1-1-0.dll", 19720 },
-	{ "launcher/api-ms-win-core-localization-l1-2-0.dll", "9874398548891F6A08FC06437996F84EB7495783", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-localization-l1-2-0.dll", 21256 },
-	{ "launcher/api-ms-win-core-memory-l1-1-0.dll", "9C03356CF48112563BB845479F40BF27B293E95E", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-memory-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-core-namedpipe-l1-1-0.dll", "CB59F1FE73C17446EB196FC0DD7D944A0CD9D81F", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-namedpipe-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-processenvironment-l1-1-0.dll", "2745259F4DBBEFBF6B570EE36D224ABDB18719BC", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-processenvironment-l1-1-0.dll", 19720 },
-	{ "launcher/api-ms-win-core-processthreads-l1-1-0.dll", "50699041060D14576ED7BACBD44BE9AF80EB902A", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-processthreads-l1-1-0.dll", 20744 },
-	{ "launcher/api-ms-win-core-processthreads-l1-1-1.dll", "0BFFB9ED366853E7019452644D26E8E8F236241B", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-processthreads-l1-1-1.dll", 19208 },
-	{ "launcher/api-ms-win-core-profile-l1-1-0.dll", "E7E0B18A40A35BD8B0766AC72253DE827432E148", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-profile-l1-1-0.dll", 18184 },
-	{ "launcher/api-ms-win-core-rtlsupport-l1-1-0.dll", "24F37D46DFC0EF303EF04ABF9956241AF55D25C9", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-rtlsupport-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-core-string-l1-1-0.dll", "637E4A9946691F76E6DEB69BDC21C210921D6F07", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-string-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-core-synch-l1-1-0.dll", "5584C189216A17228CCA6CD07037AAA9A8603241", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-synch-l1-1-0.dll", 20744 },
-	{ "launcher/api-ms-win-core-synch-l1-2-0.dll", "A9AEBBBB73B7B846B051325D7572F2398F5986EE", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-synch-l1-2-0.dll", 19208 },
-	{ "launcher/api-ms-win-core-sysinfo-l1-1-0.dll", "F20AE25484A1C1B43748A1F0C422F48F092AD2C1", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-sysinfo-l1-1-0.dll", 19720 },
-	{ "launcher/api-ms-win-core-timezone-l1-1-0.dll", "4BF13DB65943E708690D6256D7DDD421CC1CC72B", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-timezone-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-core-util-l1-1-0.dll", "1E1A5AB47E4C2B3C32C81690B94954B7612BB493", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-core-util-l1-1-0.dll", 18696 },
-	{ "launcher/api-ms-win-crt-conio-l1-1-0.dll", "49002B58CB0DF2EE8D868DEC335133CF225657DF", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-conio-l1-1-0.dll", 19720 },
-	{ "launcher/api-ms-win-crt-convert-l1-1-0.dll", "C84E41FDCC4CA89A76AE683CB390A9B86500D3CA", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-convert-l1-1-0.dll", 22792 },
-	{ "launcher/api-ms-win-crt-environment-l1-1-0.dll", "9A4818897251CACB7FE1C6FE1BE3E854985186AD", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-environment-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-crt-filesystem-l1-1-0.dll", "78FA03C89EA12FF93FA499C38673039CC2D55D40", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-filesystem-l1-1-0.dll", 20744 },
-	{ "launcher/api-ms-win-crt-heap-l1-1-0.dll", "60B4CF246C5F414FC1CD12F506C41A1043D473EE", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-heap-l1-1-0.dll", 19720 },
-	{ "launcher/api-ms-win-crt-locale-l1-1-0.dll", "9C1DF49A8DBDC8496AC6057F886F5C17B2C39E3E", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-locale-l1-1-0.dll", 19208 },
-	{ "launcher/api-ms-win-crt-math-l1-1-0.dll", "8B35EC4676BD96C2C4508DC5F98CA471B22DEED7", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-math-l1-1-0.dll", 27912 },
-	{ "launcher/api-ms-win-crt-multibyte-l1-1-0.dll", "91EEF52C557AEFD0FDE27E8DF4E3C3B7F99862F2", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-multibyte-l1-1-0.dll", 26888 },
-	{ "launcher/api-ms-win-crt-private-l1-1-0.dll", "0C33CFE40EDD278A692C2E73E941184FD24286D9", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-private-l1-1-0.dll", 71432 },
-	{ "launcher/api-ms-win-crt-process-l1-1-0.dll", "EC96F7BEEAEC14D3B6C437B97B4A18A365534B9B", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-process-l1-1-0.dll", 19720 },
-	{ "launcher/api-ms-win-crt-runtime-l1-1-0.dll", "A19ACEFA3F95D1B565650FDBC40EF98C793358E9", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-runtime-l1-1-0.dll", 23304 },
-	{ "launcher/api-ms-win-crt-stdio-l1-1-0.dll", "982B5DA1C1F5B9D74AF6243885BCBA605D54DF8C", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-stdio-l1-1-0.dll", 24840 },
-	{ "launcher/api-ms-win-crt-string-l1-1-0.dll", "7F389E6F2D6E5BEB2A3BAF622A0C0EA24BC4DE60", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-string-l1-1-0.dll", 24840 },
-	{ "launcher/api-ms-win-crt-time-l1-1-0.dll", "EE815A158BAACB357D9E074C0755B6F6C286B625", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-time-l1-1-0.dll", 21256 },
-	{ "launcher/api-ms-win-crt-utility-l1-1-0.dll", "EAA07829D012206AC55FB1AF5CC6A35F341D22BE", "http://mirrors.fivem.net/emergency_mirror/launcher/api-ms-win-crt-utility-l1-1-0.dll", 19208 },
-	{ "launcher/mtl_libovr.dll", "3AADE10DBF3C51233AA701AD1E12CD17A9DCB722", "http://mirrors.fivem.net/emergency_mirror/launcher/mtl_libovr.dll", 190952 },
-	{ "launcher/offline.pak", "C1EA3EF8587EC1BA896398912EA3BCA9D5C934B3", "http://mirrors.fivem.net/emergency_mirror/launcher/offline.pak", 1726729 },
-	{ "launcher/steam_api64.dll", "BD014660F7978A07BA2F99B6CF0621D678602663", "http://mirrors.fivem.net/emergency_mirror/launcher/steam_api64.dll", 121256 },
-	{ "launcher/ucrtbase.dll", "4189F4459C54E69C6D3155A82524BDA7549A75A6", "http://mirrors.fivem.net/emergency_mirror/launcher/ucrtbase.dll", 1016584 },
-	{ "ros_2034/SocialClubD3D12Renderer.dll", "F72BA64FDA3AED8FBED7EF47A2E52112D811A3A2", "http://mirrors.fivem.net/emergency_mirror/ros_2034/SocialClubD3D12Renderer.dll", 413672 },
-	{ "ros_2034/SocialClubHelper.exe", "18C57DF6CD51B0F583A026DA4A23035C6858353E", "http://mirrors.fivem.net/emergency_mirror/ros_2034/SocialClubHelper.exe", 2614760 },
-	{ "ros_2034/SocialClubVulkanLayer.dll", "59796C13F22CF1A436DB3A878EFE1807B4ECC850", "http://mirrors.fivem.net/emergency_mirror/ros_2034/SocialClubVulkanLayer.dll", 461800 },
-	{ "ros_2034/SocialClubVulkanLayer.json", "5DA071BDE81BF96C8939978343C6B5B93730CB39", "http://mirrors.fivem.net/emergency_mirror/ros_2034/SocialClubVulkanLayer.json", 339 },
-	{ "ros_2034/cef.pak", "09F37AFFF84B2445F0AFA8CBB803D53BADA62080", "http://mirrors.fivem.net/emergency_mirror/ros_2034/cef.pak", 3659767 },
-	{ "ros_2034/cef_100_percent.pak", "22A96140286FDB004540A2051B93432AA133843D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/cef_100_percent.pak", 737157 },
-	{ "ros_2034/cef_200_percent.pak", "4BB734F61C04BFC68F7E15F128A2853A5F7649EA", "http://mirrors.fivem.net/emergency_mirror/ros_2034/cef_200_percent.pak", 864626 },
-	{ "ros_2034/chrome_elf.dll", "1279FE4A98EBDAE23DF608119272A40C51BB3A9D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/chrome_elf.dll", 805864 },
-	{ "ros_2034/d3dcompiler_43.dll", "745AADA73AA1AB448C55FF681E875D592C593870", "http://mirrors.fivem.net/emergency_mirror/ros_2034/d3dcompiler_43.dll", 2106344 },
-	{ "ros_2034/d3dcompiler_47.dll", "5226E8C8A559B7D25CB2C2516498B413B01FAAD8", "http://mirrors.fivem.net/emergency_mirror/ros_2034/d3dcompiler_47.dll", 4336616 },
-	{ "ros_2034/icudtl.dat", "5CC62646E6C73B4BE276D08719BC5E257AF972BB", "http://mirrors.fivem.net/emergency_mirror/ros_2034/icudtl.dat", 10326688 },
-	{ "ros_2034/libEGL.dll", "DAF2E612B503771FB07366749F65C46BA50E2561", "http://mirrors.fivem.net/emergency_mirror/ros_2034/libEGL.dll", 146408 },
-	{ "ros_2034/libGLESv2.dll", "23ED37EC635B37A236EB70C4833114DD4AA18AD8", "http://mirrors.fivem.net/emergency_mirror/ros_2034/libGLESv2.dll", 5431272 },
-	{ "ros_2034/libcef.dll", "C7788FE47331F6E63C806734EB52A73F462CA33B", "http://mirrors.fivem.net/emergency_mirror/ros_2034/libcef.dll", 109920232 },
-	{ "ros_2034/locales/am.pak", "C38470C74EC5FA6C39C557A9AE1C62EA8C5949E7", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/am.pak", 308569 },
-	{ "ros_2034/locales/ar.pak", "488117B83394AC599F68D89EE6CB4AFDC101617D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ar.pak", 309144 },
-	{ "ros_2034/locales/bg.pak", "82BB3358F6404168A22618C666736D45B9652C15", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/bg.pak", 354995 },
-	{ "ros_2034/locales/bn.pak", "CAEE7C690B81EE2A39D806598891BBE419FED0F0", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/bn.pak", 457090 },
-	{ "ros_2034/locales/ca.pak", "4E5A93371D8E69306FF7104EC9E4BA9F1E658DE0", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ca.pak", 220145 },
-	{ "ros_2034/locales/cs.pak", "8E28D1B3E2DCEE254DB0906470FE9EF061F6F301", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/cs.pak", 223622 },
-	{ "ros_2034/locales/da.pak", "C69E36ABB056EE8F3F79348ABAC3ACB4394A915D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/da.pak", 200457 },
-	{ "ros_2034/locales/de.pak", "BE21B950998704AC0F6A4F8FE2DFE7831E4DB188", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/de.pak", 218494 },
-	{ "ros_2034/locales/el.pak", "1C27383402BF6E116DFE35275C10A258BFB2C1DC", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/el.pak", 388334 },
-	{ "ros_2034/locales/en-GB.pak", "1FDFEE5FDC8E4DC1BF797773A4C7B381640E94DB", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/en-GB.pak", 179898 },
-	{ "ros_2034/locales/en-US.pak", "C250B53402E3CA81A5B15B4AE9EFBE374D0B40DC", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/en-US.pak", 181262 },
-	{ "ros_2034/locales/es-419.pak", "AC9C6DDCAFDED36C1B7341D715D4D5AEC80EF6C4", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/es-419.pak", 216250 },
-	{ "ros_2034/locales/es.pak", "7D68745DF63153295BA95362298A6C807E22FB8F", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/es.pak", 219649 },
-	{ "ros_2034/locales/et.pak", "0D699B20763B1617466C767422AB165B59FFA44D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/et.pak", 196109 },
-	{ "ros_2034/locales/fa.pak", "C3252469CB0704118DC87EFF963730786EDE9CF8", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/fa.pak", 311518 },
-	{ "ros_2034/locales/fi.pak", "A8E758C20BE09FB539F70A0808F16088D75F9412", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/fi.pak", 202474 },
-	{ "ros_2034/locales/fil.pak", "849467DF01B5B214DFD5BDE4E6571DD68D368164", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/fil.pak", 222492 },
-	{ "ros_2034/locales/fr.pak", "117E0FA329FD8C6CF2C50683112AA0AA9FB78E92", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/fr.pak", 234784 },
-	{ "ros_2034/locales/gu.pak", "C0CC8D54E5E10011AEE01445C84FB9F0D5886976", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/gu.pak", 433963 },
-	{ "ros_2034/locales/he.pak", "A3DE5BDE7F03F3CE7A49D8C9C3D222D4F1B92E33", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/he.pak", 263008 },
-	{ "ros_2034/locales/hi.pak", "C8E80B209AFF6C0672846E45A5CAD70E294372C4", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/hi.pak", 444860 },
-	{ "ros_2034/locales/hr.pak", "340B0FE0BFAD72027B5C4851AD0CDD1E88DB8F2E", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/hr.pak", 212148 },
-	{ "ros_2034/locales/hu.pak", "AF775FBF31FE24FF03D7F20E54A13EBB704B1243", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/hu.pak", 230497 },
-	{ "ros_2034/locales/id.pak", "48EB5000362567230AECE13533A20201BC7E9DA5", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/id.pak", 193889 },
-	{ "ros_2034/locales/it.pak", "1AA31C84E57DAFC025C7101FF67686F5CA4C1427", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/it.pak", 212034 },
-	{ "ros_2034/locales/ja.pak", "F5E8088157758222A5F12D92468E3278379ACC9D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ja.pak", 263635 },
-	{ "ros_2034/locales/kn.pak", "A404D241DC5C878EE984B9A020868C3B3A657D48", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/kn.pak", 506652 },
-	{ "ros_2034/locales/ko.pak", "CCF76DE8F9B8123534FDBC295EB611084827AE44", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ko.pak", 221281 },
-	{ "ros_2034/locales/lt.pak", "5BF289E0B7FBF3BA76C458CDEE3DA37AE8916FC6", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/lt.pak", 227745 },
-	{ "ros_2034/locales/lv.pak", "C99AE49A35A91CB65DEC70C7D047317E7A4990B1", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/lv.pak", 226576 },
-	{ "ros_2034/locales/ml.pak", "AF5EE2F04A369FF547A302FC25D8A83625B4834A", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ml.pak", 545408 },
-	{ "ros_2034/locales/mr.pak", "F5B0DAA6B06102EB7CB8E0D3A2B8A7CC8E4EB3B5", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/mr.pak", 440783 },
-	{ "ros_2034/locales/ms.pak", "F321C7D05192A568BFA9A3F1F2E1E4F990CCB0FD", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ms.pak", 200631 },
-	{ "ros_2034/locales/nb.pak", "11447469B1E2EA31E5E41175EACBF2688CFDCBFC", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/nb.pak", 197834 },
-	{ "ros_2034/locales/nl.pak", "3CF49D1A6C4EAD4DDDE1BDB7B47F27D396DEA174", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/nl.pak", 207112 },
-	{ "ros_2034/locales/pl.pak", "3B458BE93A629DD21412C90261C6E0FC75884A01", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/pl.pak", 219794 },
-	{ "ros_2034/locales/pt-BR.pak", "6D800996B7AED2CCFD61F862F5972ECD863F301D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/pt-BR.pak", 213275 },
-	{ "ros_2034/locales/pt-PT.pak", "F9510A1E9EB748A1DA710568CFA7E8E7572C8F9D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/pt-PT.pak", 215681 },
-	{ "ros_2034/locales/ro.pak", "3715F4B689B36371BE57F8B3B428463B04E3D589", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ro.pak", 220783 },
-	{ "ros_2034/locales/ru.pak", "B5E70099AB9221C7B48172615E90EEC4651BA962", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ru.pak", 342198 },
-	{ "ros_2034/locales/sk.pak", "5B1145F2AFF82A48ADFC8649468C738729BE11F5", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/sk.pak", 227524 },
-	{ "ros_2034/locales/sl.pak", "2BF6609859614FFFF59835CC646F312616CA3221", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/sl.pak", 213458 },
-	{ "ros_2034/locales/sr.pak", "DE8301191E06A92FDA4B6AA0173D13144BC9D201", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/sr.pak", 331863 },
-	{ "ros_2034/locales/sv.pak", "59BCD61F90A572EE04B653E380F7FB037558EDF7", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/sv.pak", 198993 },
-	{ "ros_2034/locales/sw.pak", "E227032C65FD15F95134D5737D6A82153D64F88E", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/sw.pak", 203901 },
-	{ "ros_2034/locales/ta.pak", "C55A45300374620C318931CB57AD40A765C310E3", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ta.pak", 513725 },
-	{ "ros_2034/locales/te.pak", "C5F840C16BBB8D881CBBE6DC5ECE0224A2B233FA", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/te.pak", 488193 },
-	{ "ros_2034/locales/th.pak", "77115AFC2AACCEAF7E06BFFA204636F5D43896DE", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/th.pak", 414114 },
-	{ "ros_2034/locales/tr.pak", "263531664B606FE910BA60E34D2FA588EEA940C6", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/tr.pak", 212733 },
-	{ "ros_2034/locales/uk.pak", "D4E839D8839A4E974D0AD0481516CDADB20CC22F", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/uk.pak", 346713 },
-	{ "ros_2034/locales/vi.pak", "816C6A6AAB8F0FD3262E55EACB26EA7F02886103", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/vi.pak", 245342 },
-	{ "ros_2034/locales/zh-CN.pak", "68887DDD4DCB4AB75A1A4FA7148CE7EECB3B1524", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/zh-CN.pak", 184050 },
-	{ "ros_2034/locales/zh-TW.pak", "7B77CAA9C113E815950835EA543F1C46638CB62A", "http://mirrors.fivem.net/emergency_mirror/ros_2034/locales/zh-TW.pak", 184212 },
-	{ "ros_2034/natives_blob.bin", "9D60E499A907811A3155E9A07F8645D6C83CB909", "http://mirrors.fivem.net/emergency_mirror/ros_2034/natives_blob.bin", 83328 },
-	{ "ros_2034/scui.pak", "BB2E5201A8CD16EDDE31D4E39257640A956F35E4", "http://mirrors.fivem.net/emergency_mirror/ros_2034/scui.pak", 6028093 },
-	{ "ros_2034/snapshot_blob.bin", "49038CDCB26B4DCC37F017787265180478E894B5", "http://mirrors.fivem.net/emergency_mirror/ros_2034/snapshot_blob.bin", 287384 },
-	{ "ros_2034/socialclub.dll", "8CB5C91391FECBF87EA4B0D1E8000CCFC046831D", "http://mirrors.fivem.net/emergency_mirror/ros_2034/socialclub.dll", 5179880 },
-	{ "ros_2034/swiftshader/libEGL.dll", "B20AD83B8D44E5A0AE98A4A430C9179D6D04CB27", "http://mirrors.fivem.net/emergency_mirror/ros_2034/swiftshader/libEGL.dll", 155112 },
-	{ "ros_2034/swiftshader/libGLESv2.dll", "DDB924538652AAED98AA9F4CE8268658C2D5BC15", "http://mirrors.fivem.net/emergency_mirror/ros_2034/swiftshader/libGLESv2.dll", 2686440 },
-	{ "ros_2034/uninstallRGSCRedistributable.exe", "5C7B092135788F36930C4FFE445830D55573E3E2", "http://mirrors.fivem.net/emergency_mirror/ros_2034/uninstallRGSCRedistributable.exe", 396664 },
-	{ "ros_2034/v8_context_snapshot.bin", "1834A6FF2B69121D01DA29EB1CB82ED29F493AE2", "http://mirrors.fivem.net/emergency_mirror/ros_2034/v8_context_snapshot.bin", 688952 },
+	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "ipfs://bafybeicam5f3ptgq6oazcswjcksb5xwnxwed2jhcelbcnpj43zcvg62dyi", 37970576 },
+	{ "launcher/Launcher.rpf", "619AFA8203CF1DACEAE115898DE3EE30F40B678D", "ipfs://bafybeiacp4ynb56vyrme3cjt2e4xke45kipbqqcggnv7ggai2o22iknuji", 784384 },
+	{ "launcher/Redistributables/SocialClub/Social-Club-Setup.exe", "8260133F1A5BF9131BF01172D2A181881BB98BD0", "ipfs://bafybeigowqcjmgwxqqwxc5z2uvrt54wukb3n36uzux6y47kc425a477px4", 99013544 },
+	{ "launcher/Redistributables/VCRed/vc_redist.x64.exe", "BE4F7AD520349D9D0683AB9DD171B3A1E4DB426B", "ipfs://bafybeiese5x5trw2o6bb3o7oqj75465unj23e4siwy6jn5yj6injqeadeq", 15080792 },
+	{ "launcher/Redistributables/VCRed/vc_redist.x86.exe", "13439C916FAAF5E08CAFCE790381578685B0A552", "ipfs://bafybeict7f4zkke24j2usbwjskdju7n3zxxatxsw3kwmcvey262zs67f3e", 14381032 },
+	{ "launcher/RockstarService.exe", "724C0E73F5E59DF9302AE734D918D364E3ACEF54", "ipfs://bafybeihjgnkp2exfzkv6ebolk3ps2mpfklbr7hwvnjqhvngeykvzxtxd2y", 474256 },
+	{ "launcher/RockstarSteamHelper.exe", "FD742FB740A99B4705CA9AD977B036323C2094C7", "ipfs://bafybeie5nd36d5b7xoeocv7van42sl22pk6c5dwn4s5xh3xdx6mcg2e7va", 444560 },
+	{ "launcher/ThirdParty/Epic/EOSSDK-Win64-Shipping.dll", "AF01787DDB7DE00239EDC62D33E0B20C0BE80037", "ipfs://bafybeicmrpc564y5w2uyfvhfgcea47xejs52rpld5z62hq4ppnvh6kik4m", 9971968 },
+	{ "launcher/api-ms-win-core-console-l1-1-0.dll", "724F4F91041AD595E365B724A0348C83ACF12BBB", "ipfs://bafkreie7gyemcxc54l2xpircbtqsjnjqqjlrpv3y6hrzihstni5lnepxgm", 19208 },
+	{ "launcher/api-ms-win-core-datetime-l1-1-0.dll", "4940D5B92B6B80A40371F8DF073BF3EB406F5658", "ipfs://bafkreib3ndl2wbsb3zvt5aosbg34bu4jnzh7u5tbpo5n2aplkqbwzxi3a4", 18696 },
+	{ "launcher/api-ms-win-core-debug-l1-1-0.dll", "E7C8A6C29C3158F8B332EEA5C33C3B1E044B5F73", "ipfs://bafkreicvk5hz5agtcmciyjc2z36sdaa5bvwjbcukkbe3jrdckpx26qqpre", 18696 },
+	{ "launcher/api-ms-win-core-errorhandling-l1-1-0.dll", "51CBB7BA47802DC630C2507750432C55F5979C27", "ipfs://bafkreiftofirfj6kjrwmb37oarf5qjce2mthun46gor6yemnq7tvmbbaju", 18696 },
+	{ "launcher/api-ms-win-core-file-l1-1-0.dll", "9ACBEEF0AC510C179B319CA69CD5378D0E70504D", "ipfs://bafkreicw3yer57sgp7rdzsmjyhxcd4zetin5wilywukrdy55kfg7clc4zm", 22280 },
+	{ "launcher/api-ms-win-core-file-l1-2-0.dll", "04669214375B25E2DC8A3635484E6EEB206BC4EB", "ipfs://bafkreibsfwld2krk57lyj2mws7cz2skikpljx3mo7vfuix2zfeutbjvrmu", 18696 },
+	{ "launcher/api-ms-win-core-file-l2-1-0.dll", "402B7B8F8DCFD321B1D12FC85A1EE5137A5569B2", "ipfs://bafkreia6ujt2fzrij4l52vemn4rilym7p3nrlvxhg6svheiubts4xfjcly", 18696 },
+	{ "launcher/api-ms-win-core-handle-l1-1-0.dll", "A2E2A40CEA25EA4FD64B8DEAF4FBE4A2DB94107A", "ipfs://bafkreieo4lpdo6qelrjlxmcqq6xdyl4vk5xn7mgcoz7ubmjuktznt53z3y", 18696 },
+	{ "launcher/api-ms-win-core-heap-l1-1-0.dll", "B4310929CCB82DD3C3A779CAB68F1F9F368076F2", "ipfs://bafkreiehuxcuoxu4e35l72wwqaw2zctc4kah4uha2ggex6w4wfpl6w6lya", 19208 },
+	{ "launcher/api-ms-win-core-interlocked-l1-1-0.dll", "F779CDEF9DED19402AA72958085213D6671CA572", "ipfs://bafkreic42ah7i4ywsh4b75jiys22fzaiksaqp36cftdfoyciwd644pp3ze", 18696 },
+	{ "launcher/api-ms-win-core-libraryloader-l1-1-0.dll", "47143A66B4A2E2BA019BF1FD07BCCA9CFB8BB117", "ipfs://bafkreieoahvzep6ekp4spj7muhekuvsd4q5tmddwwzeard2rwmkirfykua", 19720 },
+	{ "launcher/api-ms-win-core-localization-l1-2-0.dll", "9874398548891F6A08FC06437996F84EB7495783", "ipfs://bafkreifaptehrk2vswvm2svsfgthsrit7cl326wrjphmgu3zgn4ri2zasq", 21256 },
+	{ "launcher/api-ms-win-core-memory-l1-1-0.dll", "9C03356CF48112563BB845479F40BF27B293E95E", "ipfs://bafkreigc5cd2c6dv2oijtvtcuqxvrqjaxhgiu6m27wd2tze234723xjlna", 19208 },
+	{ "launcher/api-ms-win-core-namedpipe-l1-1-0.dll", "CB59F1FE73C17446EB196FC0DD7D944A0CD9D81F", "ipfs://bafkreiczh6rkujdukcfnsqv3vih5zgq3vxmbzbnq37y4io4qur6chlk7w4", 18696 },
+	{ "launcher/api-ms-win-core-processenvironment-l1-1-0.dll", "2745259F4DBBEFBF6B570EE36D224ABDB18719BC", "ipfs://bafkreihkffzp5qjdawbfcyvohynofnwbiduebpqop25vdj5hpn765wqthi", 19720 },
+	{ "launcher/api-ms-win-core-processthreads-l1-1-0.dll", "50699041060D14576ED7BACBD44BE9AF80EB902A", "ipfs://bafkreifbeimdm4y4pzjmilkybhgafml4l3ewiyawghwblkccah2chwskyq", 20744 },
+	{ "launcher/api-ms-win-core-processthreads-l1-1-1.dll", "0BFFB9ED366853E7019452644D26E8E8F236241B", "ipfs://bafkreih6oydbjeb6nvdkdpsqrxglmxhwskoxskq5wlbwl7etp4viujafaq", 19208 },
+	{ "launcher/api-ms-win-core-profile-l1-1-0.dll", "E7E0B18A40A35BD8B0766AC72253DE827432E148", "ipfs://bafkreie6tcydupfb5ov5z2363ham5nerfo3i5nuphyg7c7zzy6sv7lnddu", 18184 },
+	{ "launcher/api-ms-win-core-rtlsupport-l1-1-0.dll", "24F37D46DFC0EF303EF04ABF9956241AF55D25C9", "ipfs://bafkreignyth6x6olvbnq2olzx363ewgb6lh4w6pn2ag2fx57hcoqqdsdpe", 19208 },
+	{ "launcher/api-ms-win-core-string-l1-1-0.dll", "637E4A9946691F76E6DEB69BDC21C210921D6F07", "ipfs://bafkreiefjw35ecc4vlhyhvtbm5q5rpolvs2uubwjvgyxdmobufph3qijba", 18696 },
+	{ "launcher/api-ms-win-core-synch-l1-1-0.dll", "5584C189216A17228CCA6CD07037AAA9A8603241", "ipfs://bafkreicqufkc2fvuf3ft5xa63ueic5cbohvff5yvlzjgtljzenhq5jur3y", 20744 },
+	{ "launcher/api-ms-win-core-synch-l1-2-0.dll", "A9AEBBBB73B7B846B051325D7572F2398F5986EE", "ipfs://bafkreiczyfcuced7l4vzjo7ynbxp52dc2iarjpgjqkgsphphx5te24qrgi", 19208 },
+	{ "launcher/api-ms-win-core-sysinfo-l1-1-0.dll", "F20AE25484A1C1B43748A1F0C422F48F092AD2C1", "ipfs://bafkreiedcdmfkompqpfvxhfdvxvtldnbgvcvplwfzawi56i2fh3zur7wea", 19720 },
+	{ "launcher/api-ms-win-core-timezone-l1-1-0.dll", "4BF13DB65943E708690D6256D7DDD421CC1CC72B", "ipfs://bafkreici5nnveit3n62344glgqajzdngqnllmlz6ob63k2xzk4zyxkbhea", 19208 },
+	{ "launcher/api-ms-win-core-util-l1-1-0.dll", "1E1A5AB47E4C2B3C32C81690B94954B7612BB493", "ipfs://bafkreifedpw6da72dryddazs226fj3ytqf5o5zwvfm5lichzl6stfoaj6e", 18696 },
+	{ "launcher/api-ms-win-crt-conio-l1-1-0.dll", "49002B58CB0DF2EE8D868DEC335133CF225657DF", "ipfs://bafkreigvsyghgvxivol5bllxoohbrsaegpnco5tru3ujvfb4p5zfp7zwmm", 19720 },
+	{ "launcher/api-ms-win-crt-convert-l1-1-0.dll", "C84E41FDCC4CA89A76AE683CB390A9B86500D3CA", "ipfs://bafkreiedm6hrqh2g7z37rl7arp6erlv3bnavjlkfwlx6tp5nzedtcp3aq4", 22792 },
+	{ "launcher/api-ms-win-crt-environment-l1-1-0.dll", "9A4818897251CACB7FE1C6FE1BE3E854985186AD", "ipfs://bafkreihxy3d6uixn2l4l2b5klmz4xtugf3y5zxbce3vrgdqaddqc76i5ye", 19208 },
+	{ "launcher/api-ms-win-crt-filesystem-l1-1-0.dll", "78FA03C89EA12FF93FA499C38673039CC2D55D40", "ipfs://bafkreidbamzcapjjvmqygwpcsfabx4erxmo3djwx5wmkxgt2tfbdqs4oe4", 20744 },
+	{ "launcher/api-ms-win-crt-heap-l1-1-0.dll", "60B4CF246C5F414FC1CD12F506C41A1043D473EE", "ipfs://bafkreifpi6xl4bs26lyelim7edwh4vfg446aypu2keekmmevu4rsw5jydi", 19720 },
+	{ "launcher/api-ms-win-crt-locale-l1-1-0.dll", "9C1DF49A8DBDC8496AC6057F886F5C17B2C39E3E", "ipfs://bafkreiftw3xjrlfbjt23zhz3y6exxqrzgs7yl7clyjnxkbx6jtm2ozyepi", 19208 },
+	{ "launcher/api-ms-win-crt-math-l1-1-0.dll", "8B35EC4676BD96C2C4508DC5F98CA471B22DEED7", "ipfs://bafkreifcludfjxvqz2q254mjxiqxjuhrhppvf4ey2ou6ynwrlzf7wmgete", 27912 },
+	{ "launcher/api-ms-win-crt-multibyte-l1-1-0.dll", "91EEF52C557AEFD0FDE27E8DF4E3C3B7F99862F2", "ipfs://bafkreig76jcedx4juaw54hgzqtsnhaqiiw5p37yqkrmo2egvcajgcfyrlm", 26888 },
+	{ "launcher/api-ms-win-crt-private-l1-1-0.dll", "0C33CFE40EDD278A692C2E73E941184FD24286D9", "ipfs://bafkreifnxnsy3uol5swkptatek2rs5xtbm3mz4fhkhz3vupstu2qwgjmtq", 71432 },
+	{ "launcher/api-ms-win-crt-process-l1-1-0.dll", "EC96F7BEEAEC14D3B6C437B97B4A18A365534B9B", "ipfs://bafkreih4kcrxvtbvgrojsncaillscksk5cfkkkujjtnd3s47nw2g3bjfla", 19720 },
+	{ "launcher/api-ms-win-crt-runtime-l1-1-0.dll", "A19ACEFA3F95D1B565650FDBC40EF98C793358E9", "ipfs://bafkreibxdjckxelbjkgcnukzx24hfj5uh5ljznp2zcw2tgwotdzgji5vam", 23304 },
+	{ "launcher/api-ms-win-crt-stdio-l1-1-0.dll", "982B5DA1C1F5B9D74AF6243885BCBA605D54DF8C", "ipfs://bafkreiabrhf5qtpkanlwhj7feis6b4nh3tweajzurbkbhlotes7742efo4", 24840 },
+	{ "launcher/api-ms-win-crt-string-l1-1-0.dll", "7F389E6F2D6E5BEB2A3BAF622A0C0EA24BC4DE60", "ipfs://bafkreieikme6xbw4zwhcgs5alyj74c7vtkz5woeox67wwt6wcywy4kd6qi", 24840 },
+	{ "launcher/api-ms-win-crt-time-l1-1-0.dll", "EE815A158BAACB357D9E074C0755B6F6C286B625", "ipfs://bafkreiaavqbnhg33czagquhafsskmea7ixlppnbzpte6a2psz2aaxbiaxe", 21256 },
+	{ "launcher/api-ms-win-crt-utility-l1-1-0.dll", "EAA07829D012206AC55FB1AF5CC6A35F341D22BE", "ipfs://bafkreieyimdkgvd34l2ija6wrucgnmq53ko3jprqjpw4t763su6cnswfue", 19208 },
+	{ "launcher/mtl_libovr.dll", "3AADE10DBF3C51233AA701AD1E12CD17A9DCB722", "ipfs://bafkreibl2mipn422ovvhqk7wxzbk6kl5kd63zkgops3lydrdkltqcnggpm", 190952 },
+	{ "launcher/offline.pak", "C1EA3EF8587EC1BA896398912EA3BCA9D5C934B3", "ipfs://bafybeifmzqvwg45wjiwbxlxhzfkv52a4vtchiyeq6vau6bo56nusq7dtjq", 1726729 },
+	{ "launcher/steam_api64.dll", "BD014660F7978A07BA2F99B6CF0621D678602663", "ipfs://bafkreiayablal4hj6yh2i44q475rosr254nlac2qrd4nhm2bt5l3hs26n4", 121256 },
+	{ "launcher/ucrtbase.dll", "4189F4459C54E69C6D3155A82524BDA7549A75A6", "ipfs://bafybeibmbkp6yqvjdlejxl6sles7pemzemnah4cxyef2wf2e2ogul3w6je", 1016584 },
+	{ "ros_2034/SocialClubD3D12Renderer.dll", "F72BA64FDA3AED8FBED7EF47A2E52112D811A3A2", "ipfs://bafybeibh6mvelnf4v2quqo7amt3tznedax3z4dajtbdaxct7e66vvtztvi", 413672 },
+	{ "ros_2034/SocialClubHelper.exe", "18C57DF6CD51B0F583A026DA4A23035C6858353E", "ipfs://bafybeig6o5ez6hhkwcimldum7nh6a24allrehxe53fbxp7qinz6pouugnu", 2614760 },
+	{ "ros_2034/SocialClubVulkanLayer.dll", "59796C13F22CF1A436DB3A878EFE1807B4ECC850", "ipfs://bafybeifzlg5znzyiziskh3ugcl7gusbr4ee7n5tywwyqlvoek44mrpq37m", 461800 },
+	{ "ros_2034/SocialClubVulkanLayer.json", "5DA071BDE81BF96C8939978343C6B5B93730CB39", "ipfs://bafkreia462gkxii2ivjxi6ybhoyko24xn7tiv2yfzibv6qquoa6jq4fmsy", 339 },
+	{ "ros_2034/cef.pak", "09F37AFFF84B2445F0AFA8CBB803D53BADA62080", "ipfs://bafybeiekeql7lci4l24or3il3cwphdj3vn7iwsvnd3ns3wlt6tfh7uy7gu", 3659767 },
+	{ "ros_2034/cef_100_percent.pak", "22A96140286FDB004540A2051B93432AA133843D", "ipfs://bafybeiadr3qvz7ikdyt3dy4m6jdddl4lfcnbajysisrl53psiexffu3pbe", 737157 },
+	{ "ros_2034/cef_200_percent.pak", "4BB734F61C04BFC68F7E15F128A2853A5F7649EA", "ipfs://bafybeia7xsiqzbkkso5yr3ske2lcqazda3kpsyxbxgibljxrbqneilbdqe", 864626 },
+	{ "ros_2034/chrome_elf.dll", "1279FE4A98EBDAE23DF608119272A40C51BB3A9D", "ipfs://bafybeiex64e3al7zxifpptcx22oo7gsmu7expuk5lbsngtocvbkacnnlye", 805864 },
+	{ "ros_2034/d3dcompiler_43.dll", "745AADA73AA1AB448C55FF681E875D592C593870", "ipfs://bafybeiav2xdcp4ttckhzawfghjd2e2wqqfi6f4wpktejkhtqyfvvambjxi", 2106344 },
+	{ "ros_2034/d3dcompiler_47.dll", "5226E8C8A559B7D25CB2C2516498B413B01FAAD8", "ipfs://bafybeih2jyxdq67j5z2plkl6uf4nn3d2lrvnmux4p3mws56ukc5ho6ryx4", 4336616 },
+	{ "ros_2034/icudtl.dat", "5CC62646E6C73B4BE276D08719BC5E257AF972BB", "ipfs://bafybeibrjnvo2pe3arhxymsln5gkda7uqcuoqovkwrgaft7okaeagurgxi", 10326688 },
+	{ "ros_2034/libEGL.dll", "DAF2E612B503771FB07366749F65C46BA50E2561", "ipfs://bafkreicljoe7dgu6gm7bcg3ybi67nnbogpayz4yqbiluuzrows3cyt2yyu", 146408 },
+	{ "ros_2034/libGLESv2.dll", "23ED37EC635B37A236EB70C4833114DD4AA18AD8", "ipfs://bafybeicr3wbpm7swlyvhvx6eqbzvyjvxkx6masiirteueocobr6cb4aw3a", 5431272 },
+	{ "ros_2034/libcef.dll", "C7788FE47331F6E63C806734EB52A73F462CA33B", "ipfs://bafybeig3u3ghrakl2cnvz5ktza5dnf3vzja4udozr56y6v4yprygjpwzka", 109920232 },
+	{ "ros_2034/locales/am.pak", "C38470C74EC5FA6C39C557A9AE1C62EA8C5949E7", "ipfs://bafybeicvbbw47hwdkzqxebciauo7btygv5sfp7rrciutf47fd4b3mhgk2a", 308569 },
+	{ "ros_2034/locales/ar.pak", "488117B83394AC599F68D89EE6CB4AFDC101617D", "ipfs://bafybeih3dfdwfxjqkuyauqtnhbwf5yko2tgbq365skupcvvnrd5idv7hne", 309144 },
+	{ "ros_2034/locales/bg.pak", "82BB3358F6404168A22618C666736D45B9652C15", "ipfs://bafybeia7ptzt2h4vc7wnado63pyepri3rmazimzhi4j7rjvukz3szmdx5q", 354995 },
+	{ "ros_2034/locales/bn.pak", "CAEE7C690B81EE2A39D806598891BBE419FED0F0", "ipfs://bafybeigagugytussgw4ehtezffbui4vg2gi3fh4slhvhb6c7mvu3tgyh2q", 457090 },
+	{ "ros_2034/locales/ca.pak", "4E5A93371D8E69306FF7104EC9E4BA9F1E658DE0", "ipfs://bafkreihv24fz2xpx6yx4virunpleaxuhfgoohve2sx5rwnxzi5ryt27bz4", 220145 },
+	{ "ros_2034/locales/cs.pak", "8E28D1B3E2DCEE254DB0906470FE9EF061F6F301", "ipfs://bafkreidfknycg5zee23czhf7hhzcjzdq3h5c52bvmj5d5fral4q5x3xxc4", 223622 },
+	{ "ros_2034/locales/da.pak", "C69E36ABB056EE8F3F79348ABAC3ACB4394A915D", "ipfs://bafkreiegk4lrvvszu7m3t4w6xsgtrmq5nitlfrrkl6uya2wv6hscfap6mm", 200457 },
+	{ "ros_2034/locales/de.pak", "BE21B950998704AC0F6A4F8FE2DFE7831E4DB188", "ipfs://bafkreieup2lvkqdfw4at7cwndhfrad5ls6klb7a5a7saubkmqogql3whca", 218494 },
+	{ "ros_2034/locales/el.pak", "1C27383402BF6E116DFE35275C10A258BFB2C1DC", "ipfs://bafybeifzzqrcmzt4wxrsgsxow6gljvpdawdqhsdax6zyhadd3vnpsepmhy", 388334 },
+	{ "ros_2034/locales/en-GB.pak", "1FDFEE5FDC8E4DC1BF797773A4C7B381640E94DB", "ipfs://bafkreicvdhwrpog654ypiqocpb5j6ux4wpnwrlhc2ymvmlrw6yukulualq", 179898 },
+	{ "ros_2034/locales/en-US.pak", "C250B53402E3CA81A5B15B4AE9EFBE374D0B40DC", "ipfs://bafkreifjvvs2fpabftbc57hkit7ufxqgkayeh56oo3gkxdw2um2fnuzz44", 181262 },
+	{ "ros_2034/locales/es-419.pak", "AC9C6DDCAFDED36C1B7341D715D4D5AEC80EF6C4", "ipfs://bafkreietse7eymklz6uctlemaeb7rsi7piham4cv3aq6hcf7gnciy3tcwq", 216250 },
+	{ "ros_2034/locales/es.pak", "7D68745DF63153295BA95362298A6C807E22FB8F", "ipfs://bafkreibaubhpb5bz6s3qyfydzi3lnw4opea4neunx65kumr3ulixluc5zm", 219649 },
+	{ "ros_2034/locales/et.pak", "0D699B20763B1617466C767422AB165B59FFA44D", "ipfs://bafkreibihtzeajfucqefkeoyvdtl3xpklhxgey7ncf2rrzvfg7mvl2rngq", 196109 },
+	{ "ros_2034/locales/fa.pak", "C3252469CB0704118DC87EFF963730786EDE9CF8", "ipfs://bafybeic3ae44eclkbnp3q5hdpbnjwp75qmbphsmlbq7uq24nn73ur47fzu", 311518 },
+	{ "ros_2034/locales/fi.pak", "A8E758C20BE09FB539F70A0808F16088D75F9412", "ipfs://bafkreifxr6lxroilver3zcdgkcflbtjgjfs3c5kon6q2tmarlmtnrqb4le", 202474 },
+	{ "ros_2034/locales/fil.pak", "849467DF01B5B214DFD5BDE4E6571DD68D368164", "ipfs://bafkreifgbha5he7eabruz2qjbpwhh2ksydjeqgbonululbeai35nz3l5tu", 222492 },
+	{ "ros_2034/locales/fr.pak", "117E0FA329FD8C6CF2C50683112AA0AA9FB78E92", "ipfs://bafkreihfs75si47yhxse4rarhq5rwk5k6e2b5aluauuf6p7jmu74xexgbi", 234784 },
+	{ "ros_2034/locales/gu.pak", "C0CC8D54E5E10011AEE01445C84FB9F0D5886976", "ipfs://bafybeihinkmjhchgublm4o73zigd3pys6h2ax22gumquleckuydnizu23y", 433963 },
+	{ "ros_2034/locales/he.pak", "A3DE5BDE7F03F3CE7A49D8C9C3D222D4F1B92E33", "ipfs://bafybeih3sbhclegaroi5yy7wir5d6wkovce7hnerz2pix5fa7rbq6gkbje", 263008 },
+	{ "ros_2034/locales/hi.pak", "C8E80B209AFF6C0672846E45A5CAD70E294372C4", "ipfs://bafybeiads6vsbdue5bg4eehdsjx6zyjhnfo5pehv3hnkagsuhvfvpi5a64", 444860 },
+	{ "ros_2034/locales/hr.pak", "340B0FE0BFAD72027B5C4851AD0CDD1E88DB8F2E", "ipfs://bafkreiaguvvemvizbms3ihj5khooqdiqmd7ghxpfy7b4bbmln77la354gu", 212148 },
+	{ "ros_2034/locales/hu.pak", "AF775FBF31FE24FF03D7F20E54A13EBB704B1243", "ipfs://bafkreick6coqn3md2okliyli7j6yckwhmxd43ruuqp2bxjnznes4y2dqeu", 230497 },
+	{ "ros_2034/locales/id.pak", "48EB5000362567230AECE13533A20201BC7E9DA5", "ipfs://bafkreigqrj2rs5rlismb23mmz276wlltn355yjfnh7655uk5p35eipjmry", 193889 },
+	{ "ros_2034/locales/it.pak", "1AA31C84E57DAFC025C7101FF67686F5CA4C1427", "ipfs://bafkreiadvsgqnaz64hk754il3zpyrzncxtazc3urnek2wj4ifnzrnt3vn4", 212034 },
+	{ "ros_2034/locales/ja.pak", "F5E8088157758222A5F12D92468E3278379ACC9D", "ipfs://bafybeibs2m2dvc3tk72foc3jyjkkxy2fswvsif33jb6owusqtgkjnmurlu", 263635 },
+	{ "ros_2034/locales/kn.pak", "A404D241DC5C878EE984B9A020868C3B3A657D48", "ipfs://bafybeibnlk3kpj3fntoszsnkiwdv3owhu7tkd3ol2r2uxso2nlhk3bj65u", 506652 },
+	{ "ros_2034/locales/ko.pak", "CCF76DE8F9B8123534FDBC295EB611084827AE44", "ipfs://bafkreiadwbggxo5q44fjy7hpno3x5zvxm2crpagfwguxaniwev63j4anuq", 221281 },
+	{ "ros_2034/locales/lt.pak", "5BF289E0B7FBF3BA76C458CDEE3DA37AE8916FC6", "ipfs://bafkreigiqxeqb7mey3mj3azgcg33et2nroezpjpg2vqyhzftbtlddmrjyu", 227745 },
+	{ "ros_2034/locales/lv.pak", "C99AE49A35A91CB65DEC70C7D047317E7A4990B1", "ipfs://bafkreid3e5w2wfpx5wmk2qbhxied6d2yyq3d2jjgyp3syta7osb6unrad4", 226576 },
+	{ "ros_2034/locales/ml.pak", "AF5EE2F04A369FF547A302FC25D8A83625B4834A", "ipfs://bafybeiaqvw4y5uf36wwkl2d5sftmnm7w4mwflgtsihepsnlogtzgpgrcvm", 545408 },
+	{ "ros_2034/locales/mr.pak", "F5B0DAA6B06102EB7CB8E0D3A2B8A7CC8E4EB3B5", "ipfs://bafybeififhgqvz5clguryne5ulgb6xckpoi6d64r4d5icgg2yng6sqjvcy", 440783 },
+	{ "ros_2034/locales/ms.pak", "F321C7D05192A568BFA9A3F1F2E1E4F990CCB0FD", "ipfs://bafkreiczar27fjtqbp3rv7drzl6p5d4krnw23oluph2fdtnzumo4idog3y", 200631 },
+	{ "ros_2034/locales/nb.pak", "11447469B1E2EA31E5E41175EACBF2688CFDCBFC", "ipfs://bafkreibxmbhvvg7kuekldnzkstmgrfd3htgaoxhry3gpx5jhdhfzmy6g24", 197834 },
+	{ "ros_2034/locales/nl.pak", "3CF49D1A6C4EAD4DDDE1BDB7B47F27D396DEA174", "ipfs://bafkreics2pbxo4umlmpaj33wbz7xhynjjdzz4v2xddnkdmwm5qdluzvc6e", 207112 },
+	{ "ros_2034/locales/pl.pak", "3B458BE93A629DD21412C90261C6E0FC75884A01", "ipfs://bafkreiagsll5ccgh5eb3j7d2p4tz4ido7ugabv5yq3aisnqkurfevc5dkq", 219794 },
+	{ "ros_2034/locales/pt-BR.pak", "6D800996B7AED2CCFD61F862F5972ECD863F301D", "ipfs://bafkreiepipvufq4citasp7zx56l6enhanyhnc3qedn7kpf2tel3mx7iyqq", 213275 },
+	{ "ros_2034/locales/pt-PT.pak", "F9510A1E9EB748A1DA710568CFA7E8E7572C8F9D", "ipfs://bafkreig66wvytboyg73eso5enk2xuld5cbjzn5ta4c3md5dixptlmbmp2y", 215681 },
+	{ "ros_2034/locales/ro.pak", "3715F4B689B36371BE57F8B3B428463B04E3D589", "ipfs://bafkreie77wdxmymbx4jqf4f4rsccnyshvj5my5ypfxt7slulesfl47cwge", 220783 },
+	{ "ros_2034/locales/ru.pak", "B5E70099AB9221C7B48172615E90EEC4651BA962", "ipfs://bafybeiefjh3m6xvtywvrwrc5l7ojxd5oz6vez2cvwltkcr3udcv6tsgzuy", 342198 },
+	{ "ros_2034/locales/sk.pak", "5B1145F2AFF82A48ADFC8649468C738729BE11F5", "ipfs://bafkreihxx4wie5rqb2u3urh24zcpmktg6wjgpk3zzanurwxv7airvh4iju", 227524 },
+	{ "ros_2034/locales/sl.pak", "2BF6609859614FFFF59835CC646F312616CA3221", "ipfs://bafkreifseja5c7ymrerzn4zgh4v63vcembqevhko5g5jlxj24u74hvb5ga", 213458 },
+	{ "ros_2034/locales/sr.pak", "DE8301191E06A92FDA4B6AA0173D13144BC9D201", "ipfs://bafybeibnn4vtpbo33ixd3ts4g23dque22pvlonailtgfqrobbxwatairbu", 331863 },
+	{ "ros_2034/locales/sv.pak", "59BCD61F90A572EE04B653E380F7FB037558EDF7", "ipfs://bafkreidosobnmnulvjfzogvxnryz4lmcgwbxeuqy4xzjd45ox5w2umyazi", 198993 },
+	{ "ros_2034/locales/sw.pak", "E227032C65FD15F95134D5737D6A82153D64F88E", "ipfs://bafkreib6lco4zla4em2lqxj7c53sf7lprweizhsepeizrgvt2b57evs7um", 203901 },
+	{ "ros_2034/locales/ta.pak", "C55A45300374620C318931CB57AD40A765C310E3", "ipfs://bafybeickcdlzuhkf3ku7a7wsxo54qqhgggfdhfufjd7qtzfzun5otuiin4", 513725 },
+	{ "ros_2034/locales/te.pak", "C5F840C16BBB8D881CBBE6DC5ECE0224A2B233FA", "ipfs://bafybeicviijj6stuh47fkwfkhqrulvvqiu73kfqtkippfldoqqbplockiu", 488193 },
+	{ "ros_2034/locales/th.pak", "77115AFC2AACCEAF7E06BFFA204636F5D43896DE", "ipfs://bafybeievyx7hsppxdncdbdmppgm2or4et5cxpu2hy7cspl6av66jqs4ad4", 414114 },
+	{ "ros_2034/locales/tr.pak", "263531664B606FE910BA60E34D2FA588EEA940C6", "ipfs://bafkreibmjiczy3gick3eaijentsuutkz2x2oqm6jsilpyy23m56jccwene", 212733 },
+	{ "ros_2034/locales/uk.pak", "D4E839D8839A4E974D0AD0481516CDADB20CC22F", "ipfs://bafybeiekqgklueejjqde2idrqcgomz3etldcczkmhdtudpdknqanfah5g4", 346713 },
+	{ "ros_2034/locales/vi.pak", "816C6A6AAB8F0FD3262E55EACB26EA7F02886103", "ipfs://bafkreicju7crd34dkr5t5hhxzguyk4rzxtxlhtq62fg4rktbo7457vejve", 245342 },
+	{ "ros_2034/locales/zh-CN.pak", "68887DDD4DCB4AB75A1A4FA7148CE7EECB3B1524", "ipfs://bafkreia2keaomodaj2v4hnr4xlor2m7svhd3vkkwsgklk32z6a7aoebbom", 184050 },
+	{ "ros_2034/locales/zh-TW.pak", "7B77CAA9C113E815950835EA543F1C46638CB62A", "ipfs://bafkreifarz2moorsoymbat6xxzc34y2z6dxific6uhon6i67hasushldqi", 184212 },
+	{ "ros_2034/natives_blob.bin", "9D60E499A907811A3155E9A07F8645D6C83CB909", "ipfs://bafkreia4vyqcvwqbnt2flk7wtvmdkjfb2n5bg4nnj367vrf25ud4mqbl3u", 83328 },
+	{ "ros_2034/scui.pak", "BB2E5201A8CD16EDDE31D4E39257640A956F35E4", "ipfs://bafybeicmyipjgtb6njbkir6dftzts6e536b76y3b5mouklrwyq5z7rhcgu", 6028093 },
+	{ "ros_2034/snapshot_blob.bin", "49038CDCB26B4DCC37F017787265180478E894B5", "ipfs://bafybeifkqj3yt6gpu73bnqes5gzmtptgnm7tksywjnjuzodhplfc7y45vi", 287384 },
+	{ "ros_2034/socialclub.dll", "8CB5C91391FECBF87EA4B0D1E8000CCFC046831D", "ipfs://bafybeibddmfwo6h6syl3yd7ryp4se2mjjob2beiecsbn6rm2zhmjzstcae", 5179880 },
+	{ "ros_2034/swiftshader/libEGL.dll", "B20AD83B8D44E5A0AE98A4A430C9179D6D04CB27", "ipfs://bafkreigmtgbepae5cbkdvdourqdw4iwtgz3bvsj5m6d66ph6veimbevosq", 155112 },
+	{ "ros_2034/swiftshader/libGLESv2.dll", "DDB924538652AAED98AA9F4CE8268658C2D5BC15", "ipfs://bafybeic2cbgzh4snob6bueuezexwqzyo3ymnbydos7kcx3dt5k7v5ejav4", 2686440 },
+	{ "ros_2034/uninstallRGSCRedistributable.exe", "5C7B092135788F36930C4FFE445830D55573E3E2", "ipfs://bafybeietxbzwoybysynm5uv7ofpahuyhxdvlneqrjcwctzv2nuusmdw2ii", 396664 },
+	{ "ros_2034/v8_context_snapshot.bin", "1834A6FF2B69121D01DA29EB1CB82ED29F493AE2", "ipfs://bafybeigttpnua6jtrksibuzt27xgbix6kvcdsjf6as2pfqkc5icrsbfywq", 688952 },
 
 	{ "launcher/LauncherPatcher.exe", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "", "", 0, 0 },
 	{ "launcher/index.bin", "85e2cc75d6d07518883ce5d377d3425b74636667", "", "", 0, 0 },
@@ -637,6 +663,8 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	return (outButton != IDNO && outButton != 42);
 }
 
+extern void StartIPFS();
+
 static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 {
 	// create UI
@@ -770,8 +798,11 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				notificationEntries.push_back({ entry, false });
 			}
 
-			// if we want an archived file from here, we should *likely* note its existence
-			extractedEntries.push_back(entry);
+			if (entry.archivedFile && strlen(entry.archivedFile) > 0)
+			{
+				// if we want an archived file from here, we should *likely* note its existence
+				extractedEntries.push_back(entry);
+			}
 		}
 	}
 
@@ -788,6 +819,23 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	else
 	{
 		return true;
+	}
+
+	// start IPFS
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	bool ipfsPeer = true;
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		ipfsPeer = (GetPrivateProfileInt(L"Game", L"DisableIPFSPeer", 0, fpath.c_str()) != 1);
+	}
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (ipfsPeer && initState->IsMasterProcess())
+	{
+		StartIPFS();
 	}
 
 	UI_UpdateText(0, L"Updating game cache...");
@@ -815,10 +863,9 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 			for (auto& entry : extractedEntries)
 			{
-				if (strlen(entry.remotePath) > 0 && entry.archivedFile && strlen(entry.archivedFile) > 0 && lastArchive != entry.remotePath)
+				if (lastArchive != entry.remotePath)
 				{
 					// process each entry
-					//retval = retval && ExtractInstallerFile(entry.GetRemoteBaseName(), entry.archivedFile, entry.GetCacheFileName());
 					retval = retval && ExtractInstallerFile(lastEntries[0].GetRemoteBaseName(), [&] (const InstallerInterface& interface)
 					{
 						// scan for a section
@@ -981,28 +1028,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	return true;
 }
 
-extern void StartIPFS();
-
 std::map<std::string, std::string> UpdateGameCache()
 {
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-
-	bool ipfsPeer = true;
-
-	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
-	{
-		ipfsPeer = (GetPrivateProfileInt(L"Game", L"DisableIPFSPeer", 0, fpath.c_str()) != 1);
-	}
-
-	static HostSharedData<CfxState> initState("CfxInitState");
-	
-	if (ipfsPeer && initState->IsMasterProcess())
-	{
-#ifndef GTA_FIVE
-		StartIPFS();
-#endif
-	}
-
 	// delete bad migration on 2019-01-10 (incorrect update.rpf download URL caused Steam users to fetch 1493.1 instead of 1604.0)
 	{
 		auto dataPath = MakeRelativeCitPath(L"cache\\game\\cache.dat");

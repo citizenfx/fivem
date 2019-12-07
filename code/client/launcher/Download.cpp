@@ -407,6 +407,8 @@ static bool StartIPFSDownload(download_t* download)
 	download->doneExternal = false;
 	download->successExternal = false;
 
+	UI_UpdateText(1, va(L"Starting IPFS discovery..."));
+
 	return ipfsLib.DownloadFile(download->url, [download](const void* data, size_t size)
 	{
 		if (DL_WriteToFile(const_cast<void*>(data), 1, size, download) != size)
