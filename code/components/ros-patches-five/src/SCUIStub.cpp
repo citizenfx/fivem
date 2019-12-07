@@ -278,6 +278,8 @@ public:
 
     void HandleValidateRequest(const rapidjson::Document& document, fwRefContainer<net::HttpResponse> response)
     {
+		trace(__FUNCTION__ ": ENTER\n");
+
         std::string ticket = document["ticket"].GetString();
         std::string sessionKey = document["sessionKey"].GetString();
         std::string sessionTicket = document["sessionTicket"].GetString();
@@ -401,6 +403,8 @@ public:
 			map["payload"] = machineHash;
 		}
 
+		trace(__FUNCTION__ ": Performing request.\n");
+
 		auto cprBody = cpr::Body{ EncryptROSData(BuildPOSTString(map), sessionKey) };
 		
 		auto cprHeaders = cpr::Header{
@@ -414,6 +418,8 @@ public:
 
         m_future = cpr::PostCallback([=](cpr::Response r)
         {
+			trace(__FUNCTION__ ": Performed request.\n");
+
             if (r.error || r.status_code != 200)
             {
 				trace("ROS error: %s\n", r.error.message);
