@@ -114,10 +114,10 @@ $themes: $themeLight $themeDark $themeRdr;
 }
 
 @mixin aspectLimited() {
-    @for $w from 21 to 33 {
+    @for $w from 17 to 33 {
         @media only screen and (min-aspect-ratio: #{$w}/9) {
             & {
-                width: calc(100% - (100vw * (16 / #{$w})) + 4vw);
+                width: calc(100% - (100vw * ((#{$w} - 16) / #{$w})) + 4vw);
                 margin-left: auto;
                 margin-right: auto;
             }
