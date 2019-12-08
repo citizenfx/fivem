@@ -72,7 +72,7 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			Instance<HttpClient>::Get()->DoPostRequest("https://cfx.re/api/validateSource/?v=1", { { "ip", clep } }, [this, clep, doAccept](bool success, const char* data, size_t size)
+			Instance<HttpClient>::Get()->DoPostRequest("https://cfx.re/api/validateSource/?v=1", { { "ip", clep } }, [this, clep, doAccept, clientPtr, cb](bool success, const char* data, size_t size)
 			{
 				bool allowSourceIP = true;
 
@@ -93,6 +93,13 @@ static InitFunction initFunction([]()
 				if (allowSourceIP)
 				{
 					doAccept();
+				}
+				else
+				{
+					const auto& ep = clientPtr->GetTcpEndPoint();
+					clientPtr->AddIdentifier("ip:" + ep);
+
+					cb({});
 				}
 			});
 		}

@@ -435,6 +435,11 @@ static InitFunction initFunction([]()
 				client->SetData("entitlementJson", *ticketData.extraJson);
 			}
 
+			if (lanVar->GetValue())
+			{
+				gameNameMatch = true;
+			}
+
 			if (!gameNameMatch)
 			{
 				sendError("CitizenFX ticket authorization failed. (3)");
