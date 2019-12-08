@@ -64,7 +64,7 @@ namespace rage
 
 		virtual void m_28() = 0;
 
-		virtual rlGamerInfo* GetRlPeerId() = 0;
+		virtual rlGamerInfo* GetGamerInfo() = 0;
 	};
 }
 

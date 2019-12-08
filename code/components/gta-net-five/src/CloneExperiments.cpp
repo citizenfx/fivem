@@ -952,7 +952,7 @@ static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const 
 	{
 		if (p)
 		{
-			if (p->GetRlPeerId()->peerAddress.rockstarAccountId == gamerId.accountId)
+			if (p->GetGamerInfo()->peerAddress.rockstarAccountId == gamerId.accountId)
 			{
 				return p;
 			}

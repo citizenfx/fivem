@@ -35,13 +35,15 @@ namespace rage
 
 		virtual const char* GetLogName() = 0;
 
-		virtual rlGamerInfo* GetRlPeerId() = 0;
+		virtual netPeerId* GetRlPeerId() = 0;
 
 		virtual bool IsOnSameTeam(rage::netPlayer const& player) = 0;
 
 		virtual void ActiveUpdate() = 0;
 
 		virtual bool IsHost() = 0;
+
+		virtual rlGamerInfo* GetGamerInfo() = 0;
 	};
 }
 

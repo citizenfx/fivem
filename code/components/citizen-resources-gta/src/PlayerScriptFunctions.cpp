@@ -27,7 +27,7 @@ static InitFunction initFunction([] ()
 
 			if (player)
 			{
-				auto platformData = player->GetRlPeerId();
+				auto platformData = player->GetGamerInfo();
 				
 				if (GetServerId(*platformData) == serverId)
 				{
@@ -48,7 +48,7 @@ static InitFunction initFunction([] ()
 
 		if (player)
 		{
-			context.SetResult(GetServerId(*player->GetRlPeerId()));
+			context.SetResult(GetServerId(*player->GetGamerInfo()));
 		}
 		else
 		{
