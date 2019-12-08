@@ -93,6 +93,14 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game") + &wcsstr(origFileName, L"d Redemption 2")[14];
 			origFileName = s.c_str();
 		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\Grand Theft Auto V") != nullptr)
+		{
+			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game").c_str(), NULL);
+
+			static std::wstring s;
+			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game") + &wcsstr(origFileName, L"d Theft Auto V")[14];
+			origFileName = s.c_str();
+		}
 	}
 
 	wchar_t* fileName = g_mappingFunction(origFileName, malloc);
@@ -182,7 +190,11 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	if (getenv("CitizenFX_ToolMode"))
 	{
-		if (wcsstr(fileName.c_str(), L"Rockstar Games\\Red Dead Redemption 2") != nullptr/* && wcsstr(fileName.c_str(), L"index.bin") == nullptr*/)
+		if (wcsstr(fileName.c_str(), L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
+		{
+			return true;
+		}
+		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\Grand Theft Auto V") != nullptr)
 		{
 			return true;
 		}
