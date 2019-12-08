@@ -369,7 +369,7 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 {
 	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
-	if (SUCCEEDED(hr) && ppDevice)
+	if (SUCCEEDED(hr) && ppDevice && ppImmediateContext)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
