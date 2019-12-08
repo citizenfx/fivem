@@ -43,7 +43,7 @@ struct KeyMangler<net::PeerAddress>
 	}
 };
 
-template<typename TKey>
+template<typename TKey, bool Cooldown = false>
 class KeyedRateLimiter
 {
 private:
@@ -78,6 +78,22 @@ public:
 		std::unique_lock<std::mutex> lock(m_mutex);
 
 		auto mangled = KeyMangler<TKey>()(key);
+
+		if (Cooldown)
+		{
+			auto cit = m_cooldowns.find(mangled);
+
+			if (cit != m_cooldowns.end())
+			{
+				if (std::chrono::high_resolution_clock::now().time_since_epoch() <= cit->second)
+				{
+					return false;
+				}
+
+				m_cooldowns.erase(cit);
+			}
+		}
+
 		auto it = m_buckets.find(mangled);
 
 		if (it == m_buckets.end())
@@ -85,7 +101,26 @@ public:
 			it = m_buckets.emplace(mangled, TBucket{m_genRate, m_burstSize}).first;
 		}
 
-		return it->second.consume(n);
+		bool valid = it->second.consume(n);
+
+		if (Cooldown && !valid)
+		{
+			it = m_cooldownBuckets.find(mangled);
+
+			if (it == m_cooldownBuckets.end())
+			{
+				it = m_cooldownBuckets.emplace(mangled, TBucket{ m_genRate * 1.5, m_burstSize * 1.5 }).first;
+			}
+
+			bool cooldownValid = it->second.consume(n);
+
+			if (!cooldownValid)
+			{
+				m_cooldowns[mangled] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(60));
+			}
+		}
+
+		return valid;
 	}
 
 	void Reset(const TKey& key)
@@ -103,6 +138,8 @@ public:
 
 private:
 	std::unordered_map<TMangledKey, TBucket> m_buckets;
+	std::unordered_map<TMangledKey, TBucket> m_cooldownBuckets;
+	std::unordered_map<TMangledKey, std::chrono::milliseconds> m_cooldowns;
 	std::mutex m_mutex;
 
 	double m_genRate;
@@ -121,11 +158,11 @@ struct RateLimiterDefaults
 	}
 };
 
-template<typename TKey>
+template<typename TKey, bool Cooldown = false>
 class RateLimiterStore : public fwRefCountable
 {
 private:
-	using TRateLimiter = KeyedRateLimiter<TKey>;
+	using TRateLimiter = KeyedRateLimiter<TKey, Cooldown>;
 
 	struct RateLimiter
 	{
@@ -176,7 +213,7 @@ private:
 	console::Context* m_console;
 };
 
-using PeerAddressRateLimiterStore = RateLimiterStore<net::PeerAddress>;
+using PeerAddressRateLimiterStore = RateLimiterStore<net::PeerAddress, true>;
 }
 
 DECLARE_INSTANCE_TYPE(fx::PeerAddressRateLimiterStore);
