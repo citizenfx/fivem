@@ -11,5 +11,6 @@ void GET_VEHICLE_INTERIOR_COLOUR(Vehicle vehicle, int* color);
 
 ## Parameters
 * **vehicle**: 
+* **color**:
 
 ## Return value

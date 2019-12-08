@@ -11,5 +11,7 @@ void GET_VEHICLE_COLOURS(Vehicle vehicle, int* colorPrimary, int* colorSecondary
 
 ## Parameters
 * **vehicle**: 
+* **colorPrimary**:
+* **colorSecondary**:
 
 ## Return value

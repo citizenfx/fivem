@@ -11,5 +11,7 @@ BOOL GET_VEHICLE_LIGHTS_STATE(Vehicle vehicle, BOOL* lightsOn, BOOL* highbeamsOn
 
 ## Parameters
 * **vehicle**: 
+* **lightsOn**:
+* **highbeamsOn**:
 
 ## Return value

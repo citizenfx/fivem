@@ -11,5 +11,7 @@ void GET_VEHICLE_EXTRA_COLOURS(Vehicle vehicle, int* pearlescentColor, int* whee
 
 ## Parameters
 * **vehicle**: 
+* **pearlescentColor**:
+* **wheelColor**:
 
 ## Return value
