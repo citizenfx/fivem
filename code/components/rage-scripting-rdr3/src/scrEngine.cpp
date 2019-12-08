@@ -35,7 +35,7 @@ static rage::pgPtrCollection<GtaThread>* scrThreadCollection;
 //static uint32_t activeThreadTlsOffset;
 
 uint32_t* scrThreadId;
-static uint16_t* scrThreadCount;
+static uint32_t* scrThreadCount;
 
 rage::scriptHandlerMgr* g_scriptHandlerMgr;
 
@@ -216,10 +216,7 @@ void scrEngine::CreateThread(GtaThread* thread)
 		thread->SetScriptName(va("scr_%d", (*scrThreadId) + 1));
 		context->ScriptHash = (*scrThreadId) + 1;
 
-		if (slot > collection->count())
-		{
-			(*scrThreadCount) = slot;
-		}
+		(*scrThreadCount)++;
 
 		collection->set(slot, thread);
 
@@ -471,7 +468,10 @@ static void ResetOwnedThreads()
 {
 	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
 	{
-		return g_origResetOwnedThreads();
+		if (g_origResetOwnedThreads)
+		{
+			return g_origResetOwnedThreads();
+		}
 	}
 
 	for (auto& thread : g_ownedThreads)
@@ -528,6 +528,16 @@ static int ReturnScriptType()
 	return 1;
 }
 
+static void(*g_origCStreamedScriptHelper__LaunchScript)(void*);
+
+static void CStreamedScriptHelper__LaunchScript_Hook(void* a1)
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origCStreamedScriptHelper__LaunchScript(a1);
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	//char* location = hook::pattern("48 8B C8 EB 03 48 8B CB 48 8B 05").count(1).get(0).get<char>(11);
@@ -539,7 +549,7 @@ static HookFunction hookFunction([] ()
 
 	scrThreadId = hook::get_address<decltype(scrThreadId)>(hook::get_pattern("8B 0D ? ? ? ? 3B CA 7D 28 4C 8B 0D", 2));
 
-	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>((char*)scrThreadCollection + 8);
+	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(hook::get_address<char*>(hook::get_pattern("48 8B F1 83 2D ? ? ? ? 01 75 16 8B FB 8B CF", 5)) + 1);
 
 	//location = hook::pattern("76 32 48 8B 53 40").count(1).get(0).get<char>(9);
 
@@ -559,6 +569,7 @@ static HookFunction hookFunction([] ()
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("48 8B D9 4C 8D 05 ? ? ? ? 4C 0F 45 C0", -0x14), StartupScriptWrap, (void**)&origStartupScript);
+		MH_CreateHook(hook::get_pattern("83 79 08 00 48 8B D9 74 38 48 83 79 18 00", -6), CStreamedScriptHelper__LaunchScript_Hook, (void**)&g_origCStreamedScriptHelper__LaunchScript);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 

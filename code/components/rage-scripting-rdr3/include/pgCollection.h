@@ -66,6 +66,11 @@ public:
 	void set(uint16_t index, T* ptr)
 	{
 		m_pData[index] = ptr;
+
+		if (index > m_pCount)
+		{
+			m_pCount = index;
+		}
 	}
 };
 }
