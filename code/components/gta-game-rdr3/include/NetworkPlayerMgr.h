@@ -43,6 +43,10 @@ namespace rage
 
 		virtual bool IsHost() = 0;
 
+		virtual void m_unk1() = 0;
+
+		virtual void m_unk2() = 0;
+
 		virtual rlGamerInfo* GetGamerInfo() = 0;
 	};
 }
