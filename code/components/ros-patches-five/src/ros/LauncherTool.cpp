@@ -22,6 +22,7 @@
 #include <Error.h>
 
 #include <LaunchMode.h>
+#include <MinHook.h>
 
 #include "Hooking.h"
 
@@ -182,6 +183,8 @@ static bool IsLauncher(HWND hWnd)
 	return wcscmp(className, L"Rockstar Games Launcher") == 0;
 }
 
+static decltype(&CreateWindowExW) g_origCreateWindowExW;
+
 static HWND WINAPI CreateWindowExWStub(_In_     DWORD     dwExStyle,
 	_In_opt_ LPCWSTR   lpClassName,
 	_In_opt_ LPCWSTR   lpWindowName,
@@ -195,17 +198,32 @@ static HWND WINAPI CreateWindowExWStub(_In_     DWORD     dwExStyle,
 	_In_opt_ HINSTANCE hInstance,
 	_In_opt_ LPVOID    lpParam)
 {
-	bool isThing = lpClassName && (wcscmp(lpClassName, L"LauncherWindowClass") == 0 || wcscmp(lpClassName, L"WindowWrapper") == 0 || wcscmp(lpClassName, L"Rockstar Games Launcher") == 0);
+	bool isThing = lpClassName && !IS_INTRESOURCE(lpClassName) && (wcscmp(lpClassName, L"LauncherWindowClass") == 0 || wcscmp(lpClassName, L"WindowWrapper") == 0 || wcscmp(lpClassName, L"Rockstar Games Launcher") == 0);
 
-	if (isThing)
+	if (isThing && CanSafelySkipLauncher())
 	{
 		dwStyle &= ~WS_VISIBLE;
 	}
 
-	auto hWnd = CreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	if (CanSafelySkipLauncher())
+	{
+		dwStyle |= WS_DISABLED;
+		dwExStyle |= WS_EX_NOACTIVATE;
+	}
 
+	auto hWnd = g_origCreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	 
 	if (isThing)
 	{
+		// set up a lazy wait for closing the window
+		std::thread([hWnd]()
+		{
+			HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
+			WaitForSingleObject(hEvent, INFINITE);
+
+			ShowWindow(g_launcherWindow, SW_HIDE);
+		}).detach();
+
 		g_launcherWindow = hWnd;
 	}
 
@@ -281,16 +299,29 @@ static void LogStuff(void*, const char* format, ...)
 	trace("launcher say %s\n", buf);
 }
 
+static BOOL WINAPI SetForegroundWindowStub(_In_ HWND hWnd)
+{
+	return TRUE;
+}
+
 void DoLauncherUiSkip()
 {
+	MH_Initialize();
+	MH_CreateHookApi(L"user32.dll", "CreateWindowExW", CreateWindowExWStub, (void**)&g_origCreateWindowExW);
+	MH_CreateHookApi(L"user32.dll", "SetForegroundWindow", SetForegroundWindowStub, (void**)NULL);
+	MH_CreateHookApi(L"user32.dll", "AllowSetForegroundWindow", SetForegroundWindowStub, (void**)NULL);
+	MH_CreateHookApi(L"user32.dll", "SetActiveWindow", SetForegroundWindowStub, (void**)NULL);
+	MH_CreateHookApi(L"user32.dll", "BringWindowToTop", SetForegroundWindowStub, (void**)NULL);
+
 	if (CanSafelySkipLauncher())
 	{
-		hook::iat("user32.dll", CreateWindowExWStub, "CreateWindowExW");
 		hook::iat("user32.dll", AnimateWindowStub, "AnimateWindow");
 		hook::iat("user32.dll", ShowWindowStub, "ShowWindow");
 		hook::iat("user32.dll", SetWindowPosStub, "SetWindowPos");
 		hook::iat("shell32.dll", Shell_NotifyIconWStub, "Shell_NotifyIconW");
 	}
+
+	MH_EnableHook(MH_ALL_HOOKS);
 }
 
 #include <minhook.h>
