@@ -27,7 +27,7 @@
 
 bool CanSafelySkipLauncher()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str(), L"rb");
 
 	if (f)
 	{
@@ -43,7 +43,7 @@ void SetCanSafelySkipLauncher(bool value)
 {
 	if (value)
 	{
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl").c_str(), L"wb");
+		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str(), L"wb");
 
 		if (f)
 		{
