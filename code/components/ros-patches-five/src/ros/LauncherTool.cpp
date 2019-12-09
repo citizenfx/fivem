@@ -325,8 +325,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't whine/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata2").c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata2\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{

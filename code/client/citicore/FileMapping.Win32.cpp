@@ -65,12 +65,12 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr)
 	{
-		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_data") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_data2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (wcsstr(origFileName, L"Local\\Rockstar Games\\Launcher") != nullptr)
 	{
-		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr)
@@ -87,18 +87,18 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 	{
 		if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
 		{
-			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game").c_str(), NULL);
+			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2").c_str(), NULL);
 
 			static std::wstring s;
-			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game") + &wcsstr(origFileName, L"d Redemption 2")[14];
+			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"d Redemption 2")[14];
 			origFileName = s.c_str();
 		}
 		else if (wcsstr(origFileName, L"Rockstar Games\\Grand Theft Auto V") != nullptr)
 		{
-			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game").c_str(), NULL);
+			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2").c_str(), NULL);
 
 			static std::wstring s;
-			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game") + &wcsstr(origFileName, L"d Theft Auto V")[14];
+			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"d Theft Auto V")[14];
 			origFileName = s.c_str();
 		}
 	}
