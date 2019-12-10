@@ -57,15 +57,8 @@ static HookFunction hookFunction([] ()
 
 	// increase non-DLC fiDevice mount limit
 	{
-		/*auto location = hook::get_pattern<char>("44 8B 35 ? ? ? ? 45 85 F6 74 1B 48 8D", 3);
-		int* limit = (int*)(location + *(int32_t*)location + 4);
-
-		*limit *= 8;*/
-
-		// GTA project initialization code, arxan-obfuscated
-		// TODO RDR3
-		//auto location = hook::get_pattern<int>("C7 05 ? ? ? ? 64 00 00 00 48 8B", 6);
-		//hook::put<int>(location, *location * 5);
+		auto location = hook::get_pattern<int>("B9 ? ? 00 00 C7 05 ? ? ? ? 64 00 00 00", 11);
+		hook::put<int>(location, *location * 15); // '1500' mount limit now, instead of '500'
 	}
 
 	hook::set_call(&originalMount, hook::pattern("48 03 C3 44 88 34 38 66 01 1D").count(1).get(0).get<void>(0xE));

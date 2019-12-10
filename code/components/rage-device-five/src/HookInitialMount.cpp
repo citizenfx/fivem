@@ -65,7 +65,7 @@ static HookFunction hookFunction([] ()
 
 		// GTA project initialization code, arxan-obfuscated
 		auto location = hook::get_pattern<int>("C7 05 ? ? ? ? 64 00 00 00 48 8B", 6);
-		hook::put<int>(location, *location * 5);
+		hook::put<int>(location, *location * 15); // '1500' mount limit now, instead of '500'
 	}
 
 	// patch 2 changed register alloc (2015-04-17)
