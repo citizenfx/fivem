@@ -105,7 +105,7 @@ void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)
 	}
 }
 
-fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& identifier)
+fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& identifier, bool withProvides /* = true */)
 {
 	fwRefContainer<Resource> resource;
 	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
@@ -114,7 +114,7 @@ fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& ide
 	resource = (it == m_resources.end()) ? nullptr : it->second;
 
 	// if non-existent, or stopped
-	if (!resource.GetRef() || resource->GetState() == ResourceState::Stopped)
+	if (withProvides && (!resource.GetRef() || resource->GetState() == ResourceState::Stopped))
 	{
 		auto provides = m_resourceProvides.equal_range(identifier);
 

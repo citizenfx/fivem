@@ -143,7 +143,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 					// it's a resource
 					else
 					{
-						auto oldRes = resMan->GetResource(findData.name);
+						auto oldRes = resMan->GetResource(findData.name, false);
 
 						if (oldRes.GetRef())
 						{
