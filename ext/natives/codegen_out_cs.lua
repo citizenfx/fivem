@@ -432,7 +432,7 @@ local function formatImpl(native, baseAppendix)
 		body = body .. t .. '\tcxt->retDataPtr = _fnPtr;\n'
 		body = body .. t .. ("\tvar invv = m_invoker%s;\n"):format(nativeName)
 		body = body .. t .. ("\tif (invv == null) m_invoker%s = invv = ScriptContext.DoGetNative(%s);\n"):format(nativeName, native.hash)
-		body = body .. t .. ("\tinvv(cxt);\n")
+		body = body .. t .. ("\tif (!invv(cxt)) { throw new System.Exception(\"Native invocation failed.\"); }\n")
 		body = body .. "#endif\n"
 	end
 	
