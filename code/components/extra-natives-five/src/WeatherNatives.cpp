@@ -12,7 +12,7 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("FORCE_SNOW_PASS", [](fx::ScriptContext& context)
 	{
-		bool value = context.CheckArgument<bool>(0);
+		bool value = context.GetArgument<bool>(0);
 		g_forceSnowPass = value;
 
 		fx::OMPtr<IScriptRuntime> runtime;
