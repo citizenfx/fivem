@@ -417,22 +417,8 @@ static InitFunction initFunction([] ()
 #endif
 
 #if defined(IS_RDR3)
-				brandName = L"RedM PRE RELEASE";
-				brandingEmoji = L"\xD83C\xDF4C";
-
-				std::string userNameRaw;
-
-				if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userNameRaw))
-				{
-					if (HashString(userNameRaw.c_str()) == 0x448645b5 || HashString(userNameRaw.c_str()) == 0x96ea6c22)
-					{
-						userNameRaw = "root@root.aq";
-					}
-				}
-
-				userNameRaw = userNameRaw.substr(0, userNameRaw.find_first_of('@'));
-
-				userName = ToWide(userNameRaw);
+				brandName = L"RedM MILESTONE 2";
+				userName = L"";
 #endif
 			}
 
