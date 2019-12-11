@@ -59,7 +59,13 @@ static std::wstring GetRootPath()
 
 	if (!appDataPath.empty())
 	{
+#ifdef GTA_FIVE
 		appDataPath += L"\\FiveM";
+#elif defined(IS_RDR3)
+		appDataPath += L"\\RedM";
+#else
+		appDataPath += L"\\Cfx.re";
+#endif
 
 		CreateDirectory(appDataPath.c_str(), nullptr);
 	}
