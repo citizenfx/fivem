@@ -39,6 +39,17 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
+static bool IsBlockedResource(const std::string& resourceName, std::string* why)
+{
+	if (resourceName == "xrp" || resourceName == "xrp_skin" || resourceName == "xrp_identity" || resourceName == "xrp_respawn")
+	{
+		*why = "'xrp' has been implicated in selling paid access to core functionality outside of the Commerce system, violating the no-profit-from-UGC rule imposed by the CitizenFX Collective. Because of this, any associated resources are blocked.";
+		return true;
+	}
+
+	return false;
+}
+
 static NetAddress g_netAddress;
 
 static std::set<std::string> g_resourceStartRequestSet;
@@ -309,6 +320,15 @@ static InitFunction initFunction([] ()
 
 						// define the resource in the mounter
 						std::string resourceName = resource["name"].GetString();
+
+						// block hardcoded block-resources
+						std::string reasoning;
+
+						if (IsBlockedResource(resourceName, &reasoning))
+						{
+							GlobalError("Resource with name %s is blocked by global policy. %s", resourceName, reasoning);
+							break;
+						}
 
 						// get the mounter, first
 						auto uri = "global://" + resourceName;
