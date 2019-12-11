@@ -227,5 +227,13 @@ static HookFunction hookFunctionNet([]()
 	//hook::jump(0x1406B50E8, LogStubLog1);
 
 	// skip use of SC session based queryfunctions
+	// #TODORDR: can we safely disable this? (2019-12-11)
 	hook::nop(hook::get_pattern("48 0F 44 C1 48 8D 0D ? ? ? ? 48 89 44"), 4);
+
+	// loading screen thread FPS -> 180 max
+	{
+		auto location = hook::get_pattern<char>("0F 2F 05 ? ? ? ? 73 0F B9 0F 00 00 00");
+		*hook::get_address<float*>(location + 3) = 1000 / 180.0;
+		hook::put<int32_t>(location + 10, 0);
+	}
 });
