@@ -90,7 +90,9 @@ static InitFunction initFunction([]()
 
 	if (pid == -1)
 	{
-		FatalError("Currently, you have to run the Rockstar Games Launcher to be able to run this product.");
+		MessageBoxW(NULL, L"Currently, you have to run the Rockstar Games Launcher to be able to run this product.", L"RedM", MB_OK | MB_ICONSTOP);
+		ExitProcess(0);
+
 		return;
 	}
 
@@ -98,7 +100,9 @@ static InitFunction initFunction([]()
 
 	if (!hProcess)
 	{
-		FatalError("Couldn't open the MTL process for VM_READ. Are you running any rootkit?");
+		MessageBoxW(NULL, L"Could not read data from the Rockstar Games Launcher. If you are running it as administrator, please launch it as regular user.", L"RedM", MB_OK | MB_ICONSTOP);
+		ExitProcess(0);
+
 		return;
 	}
 
