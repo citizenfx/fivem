@@ -226,6 +226,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		LoadLibrary(systemPath);
 	}
 
+	// load global version.dll over any that might exist in the game directory
+	// really, RPH folks? a custom PE packer for a.. trainer?
+	{
+		wchar_t systemPath[512];
+		GetSystemDirectory(systemPath, _countof(systemPath));
+
+		wcscat_s(systemPath, L"\\version.dll");
+
+		LoadLibrary(systemPath);
+	}
+
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
