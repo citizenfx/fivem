@@ -378,9 +378,16 @@ bool Install_RunInstallMode()
 	fs::directory_iterator it(hostData->GetInitPath()), end;
 	size_t numFiles = std::count_if(it, end, [](const fs::directory_entry& entry)
 	{
-		if (entry.path().filename().string()[0] == '.')
+		try
 		{
-			return false;
+			if (entry.path().filename().string()[0] == '.')
+			{
+				return false;
+			}
+		}
+		catch (std::exception& e)
+		{
+
 		}
 
 		return true;
