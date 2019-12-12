@@ -339,17 +339,6 @@ static InitFunction initFunction([]()
 static HookFunction hookFunction([]()
 {
 	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[8]);
-
-	auto appID = 1174180;
-
-	SetEnvironmentVariable(L"SteamAppId", fmt::sprintf(L"%d", appID).c_str());
-	FILE* f = fopen("steam_appid.txt", "w");
-
-	if (f)
-	{
-		fprintf(f, "%d", appID);
-		fclose(f);
-	}
 });
 #else
 void ValidateSteam(int)
