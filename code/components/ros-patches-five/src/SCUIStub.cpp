@@ -24,6 +24,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+extern bool IsSteamTicket();
+
 // XOR auto-vectorization is broken in VS15.7+, so don't optimize this file
 #pragma optimize("", off)
 
@@ -31,7 +33,8 @@
 //#define ROS_PLATFORM_KEY "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc="
 
 // we launcher now
-#define ROS_PLATFORM_KEY "C6fU6TQTPgUVmy3KIB5g8ElA7DrenVpGogSZjsh+lqJaQHqv4Azoctd/v4trfX6cBjbEitUKBG/hRINF4AhQqcg="
+#define ROS_PLATFORM_KEY_LAUNCHER "C6fU6TQTPgUVmy3KIB5g8ElA7DrenVpGogSZjsh+lqJaQHqv4Azoctd/v4trfX6cBjbEitUKBG/hRINF4AhQqcg="
+#define ROS_PLATFORM_KEY_RDR2 "CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk="
 
 class ROSCryptoState
 {
@@ -117,7 +120,7 @@ namespace
 
 const char* GetROSVersionString()
 {
-    const char* baseString = va("e=%d,t=%s,p=%s,v=%d", 1, "launcher", "pcros", 11);
+    const char* baseString = va("e=%d,t=%s,p=%s,v=%d", 1, (IsSteamTicket()) ? "rdr2" : "launcher", "pcros", 11);
 
     // create the XOR'd buffer
     std::vector<uint8_t> xorBuffer(strlen(baseString) + 4);
@@ -331,61 +334,68 @@ public:
 
 		std::string titleAccessToken;
 
+		if (!IsSteamTicket())
 		{
-			auto r = cpr::Post(cpr::Url{ "http://ros.citizenfx.internal/launcher/11/launcherservices/app.asmx/GetTitleAccessToken" }, cpr::Body{ EncryptROSData(BuildPOSTString({
-				{ "ticket", ticket },
-#ifdef IS_RDR3
-				{ "titleId", "13" },
-#else
-				{ "titleId", (isEntitlementsV3) ? "13" : "11" }, // gta5 is 11
-#endif
-				}), sessionKey)
-			}, cpr::Header{
-				{ "User-Agent", GetROSVersionString() },
-				{ "Host", "prod.ros.rockstargames.com" },
-				{ "ros-SecurityFlags", "239" },
-				{ "ros-SessionTicket", sessionTicket },
-				{ "ros-Challenge", Botan::base64_encode(challenge) },
-				{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", "/launcher/11/launcherservices/app.asmx/GetTitleAccessToken", sessionKey, sessionTicket)) }
-			});
-
-			if (r.error || r.status_code != 200)
 			{
-				trace("ROS error: %s\n", r.error.message);
-				trace("ROS error text: %s\n", DecryptROSData(r.text.c_str(), r.text.size(), sessionKey));
+				auto r = cpr::Post(cpr::Url{ "http://ros.citizenfx.internal/launcher/11/launcherservices/app.asmx/GetTitleAccessToken" }, cpr::Body{ EncryptROSData(BuildPOSTString({
+					{ "ticket", ticket },
+	#ifdef IS_RDR3
+					{ "titleId", "13" },
+	#else
+					{ "titleId", (isEntitlementsV3) ? "13" : "11" }, // gta5 is 11
+	#endif
+					}), sessionKey)
+					}, cpr::Header{
+						{ "User-Agent", GetROSVersionString() },
+						{ "Host", "prod.ros.rockstargames.com" },
+						{ "ros-SecurityFlags", "239" },
+						{ "ros-SessionTicket", sessionTicket },
+						{ "ros-Challenge", Botan::base64_encode(challenge) },
+						{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", "/launcher/11/launcherservices/app.asmx/GetTitleAccessToken", sessionKey, sessionTicket)) }
+					});
 
-				cb("Error contacting Rockstar Online Services.", "");
-
-				return;
-			}
-			else
-			{
-				std::string returnedXml = DecryptROSData(r.text.data(), r.text.size(), sessionKey);
-				std::istringstream stream(returnedXml);
-
-				boost::property_tree::ptree tree;
-				boost::property_tree::read_xml(stream, tree);
-
-				if (tree.get("Response.Status", 0) == 0)
+				if (r.error || r.status_code != 200)
 				{
-					cb(va(
-						"Could not get title access token from the Social Club. Error code: %s/%s",
-						tree.get<std::string>("Response.Error.<xmlattr>.Code").c_str(),
-						tree.get<std::string>("Response.Error.<xmlattr>.CodeEx").c_str()
-					), "");
+					trace("ROS error: %s\n", r.error.message);
+					trace("ROS error text: %s\n", DecryptROSData(r.text.c_str(), r.text.size(), sessionKey));
+
+					cb("Error contacting Rockstar Online Services.", "");
 
 					return;
 				}
 				else
 				{
-					titleAccessToken = tree.get<std::string>("Response.Result");
+					std::string returnedXml = DecryptROSData(r.text.data(), r.text.size(), sessionKey);
+					std::istringstream stream(returnedXml);
+
+					boost::property_tree::ptree tree;
+					boost::property_tree::read_xml(stream, tree);
+
+					if (tree.get("Response.Status", 0) == 0)
+					{
+						cb(va(
+							"Could not get title access token from the Social Club. Error code: %s/%s",
+							tree.get<std::string>("Response.Error.<xmlattr>.Code").c_str(),
+							tree.get<std::string>("Response.Error.<xmlattr>.CodeEx").c_str()
+						), "");
+
+						return;
+					}
+					else
+					{
+						titleAccessToken = tree.get<std::string>("Response.Result");
+					}
 				}
 			}
 		}
 
-		auto method = (isEntitlementsV3) ? "GetTitleAccessTokenEntitlementBlock" : "GetEntitlementBlock";
+		auto method = (isEntitlementsV3)
+			? (IsSteamTicket()) ? "GetEntitlementBlock2" : "GetTitleAccessTokenEntitlementBlock"
+			: "GetEntitlementBlock";
 
-		auto cprUrl = cpr::Url{ fmt::sprintf("http://ros.citizenfx.internal/launcher/11/launcherservices/entitlements.asmx/%s", method) };
+		auto cprUrl = (IsSteamTicket())
+			? cpr::Url{ fmt::sprintf("http://ros.citizenfx.internal/rdr2/11/gameservices/entitlements.asmx/%s", method) }
+			: cpr::Url{ fmt::sprintf("http://ros.citizenfx.internal/launcher/11/launcherservices/entitlements.asmx/%s", method) };
 
 		auto map = std::map<std::string, std::string>{
 			{ "ticket", ticket },
@@ -413,7 +423,7 @@ public:
 			{ "ros-SecurityFlags", "239" },
 			{ "ros-SessionTicket", sessionTicket },
 			{ "ros-Challenge", Botan::base64_encode(challenge) },
-			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", fmt::sprintf("/launcher/11/launcherservices/entitlements.asmx/%s", method).c_str(), sessionKey, sessionTicket)) }
+			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", cprUrl.substr(29).c_str(), sessionKey, sessionTicket)) }
 		};
 
         m_future = cpr::PostCallback([=](cpr::Response r)
@@ -812,7 +822,16 @@ ROSCryptoState::ROSCryptoState()
 {
     // initialize the key inputs
     size_t outLength;
-    uint8_t* platformStr = base64_decode(ROS_PLATFORM_KEY, strlen(ROS_PLATFORM_KEY), &outLength);
+	uint8_t* platformStr;
+
+	if (IsSteamTicket())
+	{
+		platformStr = base64_decode(ROS_PLATFORM_KEY_RDR2, strlen(ROS_PLATFORM_KEY_RDR2), &outLength);
+	}
+	else
+	{
+		platformStr = base64_decode(ROS_PLATFORM_KEY_LAUNCHER, strlen(ROS_PLATFORM_KEY_LAUNCHER), &outLength);
+	}
 
     memcpy(m_rc4Key, &platformStr[1], sizeof(m_rc4Key));
     memcpy(m_xorKey, &platformStr[33], sizeof(m_xorKey));

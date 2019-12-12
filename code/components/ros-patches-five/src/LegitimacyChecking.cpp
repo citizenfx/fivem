@@ -202,67 +202,75 @@ void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
     pout[0] = 0;
 }
 
+std::string GetAuthSessionTicket(uint32_t appID)
+{
+	// init Steam
+	SetEnvironmentVariable(L"SteamAppId", fmt::sprintf(L"%d", appID).c_str());
+
+	{
+		struct deleter
+		{
+			~deleter()
+			{
+				_unlink("steam_appid.txt");
+			}
+		} deleter;
+
+		FILE* f = fopen("steam_appid.txt", "w");
+
+		if (f)
+		{
+			fprintf(f, "%d", appID);
+			fclose(f);
+		}
+
+		if (!SteamAPI_Init())
+		{
+			return "";
+		}
+	}
+
+	struct shutdown
+	{
+		~shutdown()
+		{
+			SteamAPI_Shutdown();
+		}
+	} shutdown;
+
+	// get local ownership
+	if (!SteamApps()->BIsSubscribedApp(appID))
+	{
+		return "";
+	}
+
+	// verify remote ownership
+	static uint8_t ticket[16384] = { 0 };
+	uint32_t ticketLength;
+	SteamUser()->GetAuthSessionTicket(ticket, sizeof(ticket), &ticketLength);
+
+	static char outHex[16384];
+	tohex(ticket, ticketLength, outHex, sizeof(outHex));
+
+	return outHex;
+}
+
 bool VerifySteamOwnership()
 {
 #ifdef GTA_FIVE
-    // init Steam
-    SetEnvironmentVariable(L"SteamAppId", L"271590");
+	std::string s = GetAuthSessionTicket(271590);
 
-    {
-        struct deleter
-        {
-            ~deleter()
-            {
-                _unlink("steam_appid.txt");
-            }
-        } deleter;
-
-        FILE* f = fopen("steam_appid.txt", "w");
-
-        if (f)
-        {
-            fprintf(f, "%d", 271590);
-            fclose(f);
-        }
-
-        if (!SteamAPI_Init())
-        {
-            return false;
-        }
-    }
-
-    struct shutdown
-    {
-        ~shutdown()
-        {
-            SteamAPI_Shutdown();
-        }
-    } shutdown;
-
-    // get local ownership
-    if (!SteamApps()->BIsSubscribedApp(271590))
-    {
-        return false;
-    }
-
-    // verify remote ownership
-    uint8_t ticket[16384] = { 0 };
-    uint32_t ticketLength;
-    SteamUser()->GetAuthSessionTicket(ticket, sizeof(ticket), &ticketLength);
-
-    char outHex[16384];
-    tohex(ticket, ticketLength, outHex, sizeof(outHex));
-
-    std::string s = outHex;
-
-    // call into remote validation API
-	auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/steam" },
-                       cpr::Payload{ {"ticket", s } });
-
-	if (r.status_code == 200)
+	if (!s.empty())
 	{
-		g_entitlementSource = r.text;
-		return true;
+		// call into remote validation API
+		auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/steam" },
+			cpr::Payload{ {"ticket", s } });
+
+		if (r.status_code == 200)
+		{
+			g_entitlementSource = r.text;
+			return true;
+		}
 	}
 #endif
 

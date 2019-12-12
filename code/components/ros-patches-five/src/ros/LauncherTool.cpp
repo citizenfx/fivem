@@ -140,6 +140,26 @@ static void Legit_Run(const boost::program_options::variables_map& map)
     }
 }
 
+void ValidateSteam(int parentPid);
+
+static void Steam_Run(const boost::program_options::variables_map& map)
+{
+	auto args = map["cake"].as<std::vector<std::wstring>>();
+	g_rosParentPid = map["parent_pid"].as<int>();
+
+	ValidateSteam(g_rosParentPid);
+
+	HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
+
+	if (hEvent != INVALID_HANDLE_VALUE)
+	{
+		SetEvent(hEvent);
+		CloseHandle(hEvent);
+	}
+
+	TerminateProcess(GetCurrentProcess(), 0);
+}
+
 #include <wincrypt.h>
 
 static DWORD WINAPI CertGetNameStringStub(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags, _In_opt_ void *pvTypePara, _Out_writes_to_opt_(cchNameString, return) LPWSTR pszNameString, _In_ DWORD cchNameString)
@@ -352,6 +372,11 @@ static LONG WinVerifyTrustStub(HWND hwnd, GUID* pgActionID, LPVOID pWVTData)
 	return 0;
 }
 
+static int ReturnFalse()
+{
+	return 0;
+}
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't whine/crash
@@ -421,6 +446,14 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		hook::iat("kernel32.dll", GetProcAddressStub, "GetProcAddress");
 		hook::iat("kernel32.dll", GetModuleFileNameWStub, "GetModuleFileNameW");
+
+		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\steam_api64.dll");
+
+		if (hSteam)
+		{
+			MH_CreateHook(GetProcAddress(hSteam, "SteamAPI_Init"), ReturnFalse, NULL);
+			MH_EnableHook(MH_ALL_HOOKS);
+		}
 	});
 
 	// delete in- files (these being present will trigger safe mode, and the function can't be hooked due to hook checks)
@@ -456,6 +489,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 static FxToolCommand rosSubprocess("ros:launcher", Launcher_HandleArguments, Launcher_Run);
 static FxToolCommand rosSubprocess2("ros:legit", Launcher_HandleArguments, Legit_Run);
+static FxToolCommand rosSubprocess3("ros:steam", Launcher_HandleArguments, Steam_Run);
 
 void RunLauncher(const wchar_t* toolName, bool instantWait);
 

@@ -75,7 +75,7 @@ static InitFunction initFunction([] ()
 	httpServer->AddRef();
 	httpServer->RegisterHandler(endpointMapper);
 
-	if (wcsstr(GetCommandLine(), L"ros:legit") == nullptr)
+	if (wcsstr(GetCommandLine(), L"ros:legit") == nullptr && wcsstr(GetCommandLine(), L"ros:steam") == nullptr)
 	{
 		auto domains = {
 			"prod.ros.rockstargames.com",
