@@ -309,9 +309,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 				files { "client/clrcore/External/*.cs" }
 			end
 		else
-			-- #TODORDR3: temporary, still
-			--files { "client/clrcore/Server/*.cs" }
-			files { "client/clrcore/Server/ServerWrappers.cs" }
+			files { "client/clrcore/Server/*.cs" }
 		end
 		
 		if os.istarget('windows') then
