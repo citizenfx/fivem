@@ -1,4 +1,4 @@
-context_rpc 'SET_ENTITY_COORDS'
+context_rpc 'SET_ENTITY_COORDS' 
 
 context_rpc 'SET_VEHICLE_COLOURS'
 
