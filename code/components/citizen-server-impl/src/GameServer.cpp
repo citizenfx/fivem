@@ -700,6 +700,7 @@ namespace fx
 
 	void GameServer::ProcessServerFrame(int frameTime)
 	{
+		MonoEnsureThreadAttached();
 		m_seContext->MakeCurrent();
 
 		m_serverTime += frameTime;
