@@ -24,11 +24,15 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		using namespace std::chrono_literals;
+
 		static bool setNucleus = false;
+		static bool setNucleusSuccess = false;
+		static std::chrono::milliseconds setNucleusTimeout;
 
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
 		{
-			if (!setNucleus)
+			if (!setNucleusSuccess && (!setNucleus || (msec() > setNucleusTimeout)))
 			{
 				auto var = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_licenseKeyToken");
 
@@ -46,13 +50,17 @@ static InitFunction initFunction([]()
 							{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) }
 						});
 
-						trace("^3Authenticating with Nucleus...^7\n");
+						trace("^3%suthenticating with Nucleus...^7\n", setNucleus ? "Rea" : "A");
+
+						setNucleusTimeout = msec() + 30s;
 
 						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
 						{
 							if (!success)
 							{
-								trace("^1Authenticating with Nucleus failed! That's bad.^7\n");
+								setNucleusTimeout = msec() + 15s;
+
+								trace("^1Authenticating with Nucleus failed! That's possibly bad.^7\n");
 							}
 							else
 							{
@@ -75,6 +83,8 @@ static InitFunction initFunction([]()
 									);
 
 								static auto webVar = instance->AddVariable<std::string>("web_baseUrl", ConVar_None, jsonData.value("host", ""));
+
+								setNucleusSuccess = true;
 							}
 						});
 					}
