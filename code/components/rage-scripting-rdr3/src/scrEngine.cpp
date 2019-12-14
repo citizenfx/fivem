@@ -128,6 +128,8 @@ struct hash<NativeHash>
 };
 }
 
+static GtaThread* hijackedThreads[512];
+
 namespace rage
 {
 static std::unordered_map<NativeHash, scrEngine::NativeHandler> g_fastPathMap;
@@ -152,15 +154,23 @@ void scrEngine::SetActiveThread(scrThread* thread)
 
 static std::vector<std::function<void()>> g_onScriptInitQueue;
 
+static thread_local bool g_inScriptReinit;
+
 void scrEngine::CreateThread(GtaThread* thread)
 {
-	if (!IsScriptInited())
+	if (!g_inScriptReinit)
 	{
 		g_onScriptInitQueue.push_back([=]()
 		{
+			g_inScriptReinit = true;
 			CreateThread(thread);
+			g_inScriptReinit = false;
 		});
-		return;
+
+		if (!IsScriptInited())
+		{
+			return;
+		}
 	}
 
 	// get a free thread slot
@@ -217,6 +227,11 @@ void scrEngine::CreateThread(GtaThread* thread)
 		context->ScriptHash = (*scrThreadId) + 1;
 
 		(*scrThreadCount)++;
+
+		if (!hijackedThreads[slot])
+		{
+			hijackedThreads[slot] = collection->at(slot);
+		}
 
 		collection->set(slot, thread);
 
@@ -306,6 +321,14 @@ void scrEngine::RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler h
 	g_nativeHandlers.push_back(std::make_pair(nativeIdentifier, handler));
 }
 
+void OnScriptReInit()
+{
+	for (auto& entry : g_onScriptInitQueue)
+	{
+		entry();
+	}
+}
+
 static InitFunction initFunction([] ()
 {
 	scrEngine::OnScriptInit.Connect([] ()
@@ -317,13 +340,6 @@ static InitFunction initFunction([] ()
 
 		// to prevent double registration resulting in a game error
 		g_nativeHandlers.clear();
-
-		for (auto& entry : g_onScriptInitQueue)
-		{
-			entry();
-		}
-
-		g_onScriptInitQueue.clear();
 	}, 50000);
 });
 
@@ -538,6 +554,27 @@ static void CStreamedScriptHelper__LaunchScript_Hook(void* a1)
 	}
 }
 
+static void(*g_origUnkScriptShutdown)(void*);
+
+static void UnkScriptShutdown(void* a1)
+{
+	for (auto& thread : g_ownedThreads)
+	{
+		for (int i = 0; i < scrThreadCollection->count(); i++)
+		{
+			if (scrThreadCollection->at(i) == thread)
+			{
+				scrThreadCollection->set(i, hijackedThreads[i]);
+				(*scrThreadCount)--;
+
+				break;
+			}
+		}
+	}
+
+	g_origUnkScriptShutdown(a1);
+}
+
 static HookFunction hookFunction([] ()
 {
 	//char* location = hook::pattern("48 8B C8 EB 03 48 8B CB 48 8B 05").count(1).get(0).get<char>(11);
@@ -549,7 +586,7 @@ static HookFunction hookFunction([] ()
 
 	scrThreadId = hook::get_address<decltype(scrThreadId)>(hook::get_pattern("8B 0D ? ? ? ? 3B CA 7D 28 4C 8B 0D", 2));
 
-	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(hook::get_address<char*>(hook::get_pattern("48 8B F1 83 2D ? ? ? ? 01 75 16 8B FB 8B CF", 5)) + 1);
+	scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(hook::get_address<char*>(hook::get_pattern("48 8B F1 83 2D ? ? ? ? 01 75 16 8B FB 8B CF", 5)) + 1 + 8);
 
 	//location = hook::pattern("76 32 48 8B 53 40").count(1).get(0).get<char>(9);
 
@@ -564,6 +601,13 @@ static HookFunction hookFunction([] ()
 
 	// always pretend root script is SP (leads to HUD loading and some other stuff lighting up
 	hook::jump(hook::get_pattern("44 8B 81 D8 06 00 00 85 D2 74", -0xE), ReturnScriptType);
+
+	// remove our scripts pre-shutdown (since this is INIT_SESSION-time now)
+	{
+		auto location = hook::get_pattern("53 48 83 EC 20 48 8D 0D ? ? ? ? E8 ? ? ? ? B9 08 00 00 00 E8", 12);
+		hook::set_call(&g_origUnkScriptShutdown, location);
+		hook::call(location, UnkScriptShutdown);
+	}
 
 	// script re-init
 	{

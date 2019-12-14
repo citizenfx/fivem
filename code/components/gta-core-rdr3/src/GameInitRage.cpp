@@ -10,13 +10,22 @@
 
 #include <Hooking.h>
 
+#include <GlobalEvents.h>
+#include <nutsnbolts.h>
+
 #include <CoreConsole.h>
 #include <console/OptionTokenizer.h>
 #include <gameSkeleton.h>
 
+#include <Error.h>
+
 RageGameInit g_gameInit;
 fwEvent<const char*> OnKillNetwork;
 fwEvent<> OnKillNetworkDone;
+DLL_EXPORT fwEvent<> OnMsgConfirm;
+
+static bool g_showWarningMessage;
+static std::string g_warningMessage;
 
 void RageGameInit::KillNetwork(const wchar_t* errorString)
 {
@@ -29,7 +38,15 @@ void RageGameInit::KillNetwork(const wchar_t* errorString)
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 		std::string smallReason = converter.to_bytes(errorString);
 
-		OnKillNetwork(smallReason.c_str());
+		if (!g_showWarningMessage)
+		{
+			g_warningMessage = smallReason;
+			g_showWarningMessage = true;
+
+			SetData("warningMessage", g_warningMessage);
+
+			OnKillNetwork(smallReason.c_str());
+		}
 	}
 }
 
@@ -48,9 +65,11 @@ void RageGameInit::SetPreventSavePointer(bool* preventSaveValue)
 
 }
 
+extern bool g_isNetworkKilled;
+
 void RageGameInit::ReloadGame()
 {
-	assert(!"not implemented!");
+	g_isNetworkKilled = false;
 }
 
 static bool canContinueLoad;
@@ -74,7 +93,7 @@ bool RageGameInit::TriggerError(const char* message)
 	return (!OnTriggerError(message));
 }
 
-static hook::cdecl_stub<void()> _doLookAlive([]()
+hook::cdecl_stub<void()> _doLookAlive([]()
 {
 	return hook::get_pattern("40 8A FB 38 1D", -0x29);
 });
@@ -171,6 +190,17 @@ static InitFunction initFunctionTwo([]()
 		if (type == rage::INIT_SESSION)
 		{
 			g_gameInit.SetGameLoaded();
+			g_gameInit.OnGameFinalizeLoad();
+		}
+	});
+
+	OnGameFrame.Connect([]()
+	{
+		if (g_showWarningMessage)
+		{
+			g_showWarningMessage = false;
+
+			OnMsgConfirm();
 		}
 	});
 

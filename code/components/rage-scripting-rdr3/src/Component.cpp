@@ -36,6 +36,11 @@ bool IsScriptInited()
 	return g_scriptInited;
 }
 
+namespace rage
+{
+	void OnScriptReInit();
+}
+
 static void* PostScriptInit(void* arg, uint32_t a2, uint32_t a3)
 {
 	void* retval = oldInitCall(arg, a2, a3);
@@ -49,6 +54,8 @@ static void* PostScriptInit(void* arg, uint32_t a2, uint32_t a3)
 	std::call_once(of, [] {
 		rage::scrEngine::OnScriptInit();
 	});
+
+	rage::OnScriptReInit();
 
 	return retval;
 }

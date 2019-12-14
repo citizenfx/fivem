@@ -17,6 +17,8 @@
 #include <ResourceManager.h>
 #include <ResourceMetaDataComponent.h>
 
+#include <GameInit.h>
+
 #include <skyr/url.hpp>
 
 #include "Hooking.h"
@@ -74,8 +76,11 @@ public:
 	}
 };
 
+static bool isLoadLevel;
+
 static void DoLoadLevel(int index)
 {
+	isLoadLevel = true;
 	g_wasLastLevelCustom = false;
 
 	if (g_overrideNextLoadedLevel.empty())
@@ -332,10 +337,15 @@ static InitFunction initFunction([]()
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
 	{
-		if (type == rage::InitFunctionType::INIT_SESSION)
+		if (type == rage::InitFunctionType::INIT_SESSION && isLoadLevel)
 		{
 			Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
 		}
+	});
+
+	OnKillNetworkDone.Connect([]()
+	{
+		isLoadLevel = false;
 	});
 
 	/*static ConsoleCommand mehCommand("tryLoad", []()

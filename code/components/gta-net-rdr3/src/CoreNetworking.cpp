@@ -3,6 +3,8 @@
 #include <Hooking.h>
 #include <NetLibrary.h>
 
+#include <GameInit.h>
+
 #include <CoreNetworking.h>
 
 NetLibrary* g_netLibrary;
@@ -695,9 +697,22 @@ static HookFunction hookFunction([]()
 
 	static int tryHostStage = 0;
 
+	static bool gameLoaded;
+
+	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+	{
+		gameLoaded = true;
+	});
+
+	OnKillNetwork.Connect([](const char*)
+	{
+		gameLoaded = false;
+		g_initedPlayer = false;
+	});
+
 	OnMainGameFrame.Connect([]()
 	{
-		if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		if (!gameLoaded)
 		{
 			return;
 		}
@@ -705,6 +720,7 @@ static HookFunction hookFunction([]()
 		switch (tryHostStage)
 		{
 		case 0:
+		{
 			// update presence
 			_rlPresence_GamerPresence_Clear(rlPresence__m_GamerPresences);
 			_rlPresence_refreshSigninState(0);
@@ -712,9 +728,14 @@ static HookFunction hookFunction([]()
 
 			tryHostStage = 2;
 			break;
-
+		}
 		case 1:
-			tryHostStage = 2;
+			// wait for transition
+			if (_getCurrentTransitionState() == 0)
+			{
+				tryHostStage = 2;
+			}
+
 			break;
 
 		case 2:
@@ -736,6 +757,10 @@ static HookFunction hookFunction([]()
 			{
 				tryHostStage = 4;
 			}
+			else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0)
+			{
+				tryHostStage = 2;
+			}
 
 			break;
 
@@ -744,13 +769,19 @@ static HookFunction hookFunction([]()
 			{
 				tryHostStage = 5;
 			}
+			else if (_getCurrentTransitionState() == 0x1D94DE8C || _getCurrentTransitionState() == 0)
+			{
+				tryHostStage = 2;
+			}
 
 			break;
 
 		case 5:
 			static char sessionIdPtr[48];
+			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
 			joinOrHost(0, nullptr, sessionIdPtr);
 
+			Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
 			tryHostStage = 6;
 
 			break;
@@ -758,6 +789,11 @@ static HookFunction hookFunction([]()
 	});
 
 	static ConsoleCommand hhh("hhh", []()
+	{
+		tryHostStage = 0;
+	});
+
+	OnKillNetworkDone.Connect([]()
 	{
 		tryHostStage = 0;
 	});

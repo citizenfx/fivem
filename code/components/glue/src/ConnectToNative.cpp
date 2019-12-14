@@ -10,10 +10,7 @@
 #include <CefOverlay.h>
 #include <NetLibrary.h>
 #include <strsafe.h>
-
-#ifdef GTA_FIVE
 #include <GlobalEvents.h>
-#endif
 
 #include <nutsnbolts.h>
 #include <ConsoleHost.h>
@@ -435,9 +432,7 @@ static InitFunction initFunction([] ()
 		if (netLibrary->GetConnectionState() != 0)
 		{
 			OnKillNetwork("Disconnected.");
-#ifdef GTA_FIVE
 			OnMsgConfirm();
-#endif
 		}
 	});
 
@@ -639,7 +634,6 @@ static InitFunction initFunction([] ()
 		Instance<console::Context>::Get()->ExecuteBuffer();
 	});
 
-#ifdef GTA_FIVE
 	OnMsgConfirm.Connect([] ()
 	{
 		ep.Call("disconnected");
@@ -648,7 +642,6 @@ static InitFunction initFunction([] ()
 
 		nui::CreateFrame("mpMenu", console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_url")->GetValue());
 	});
-#endif
 });
 
 #include <gameSkeleton.h>
