@@ -314,6 +314,7 @@ namespace net
 			thisRef->RemoveWorker(weakWorker.lock());
 		});
 
+		worker->keepAlive(true, std::chrono::duration<unsigned int>{5});
 		worker->connect(*m_curRemote.GetSocketAddress());
 
 		m_work.insert(worker);
@@ -432,6 +433,7 @@ namespace net
 			thisRef->m_reconnectTimer->start(2500ms, 0ms);
 		});
 
+		m_control->keepAlive(true, std::chrono::duration<unsigned int>{5});
 		m_control->connect(*peer->GetSocketAddress());
 		m_curRemote = *peer;
 	}
