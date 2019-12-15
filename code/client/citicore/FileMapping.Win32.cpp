@@ -73,16 +73,6 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
-	if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr)
-	{
-		return origFileName;
-	}
-
-	if (wcsstr(origFileName, L"Rockstar Games\\RDR2.exe") != nullptr)
-	{
-		return origFileName;
-	}
-
 	if (getenv("CitizenFX_ToolMode"))
 	{
 		if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
@@ -99,6 +89,24 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 			static std::wstring s;
 			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"d Theft Auto V")[14];
+			origFileName = s.c_str();
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\index.bin") != nullptr) // lol
+		{
+			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2").c_str(), NULL);
+
+			static std::wstring s;
+			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"Rockstar Games")[14];
+			origFileName = s.c_str();
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr || wcsstr(origFileName, L"Rockstar Games\\RDR2.exe") != nullptr)
+		{
+			static std::wstring s;
+#ifdef GTA_FIVE
+			s = MakeRelativeGamePath(L"GTA5.exe");
+#else
+			s = MakeRelativeGamePath(L"RDR2.exe");
+#endif
 			origFileName = s.c_str();
 		}
 	}
@@ -178,16 +186,6 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
-	if (fileName.length() > 10 && fileName.compare(fileName.length() - 8, 8, L"GTA5.exe") == 0 && fileName.find(L"Rockstar Games\\GTA5.exe") == std::string::npos)
-	{
-		return true;
-	}
-
-	if (fileName.length() > 10 && fileName.compare(fileName.length() - 8, 8, L"RDR2.exe") == 0 && fileName.find(L"Rockstar Games\\RDR2.exe") == std::string::npos)
-	{
-		return true;
-	}
-
 	if (getenv("CitizenFX_ToolMode"))
 	{
 		if (wcsstr(fileName.c_str(), L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
@@ -195,6 +193,18 @@ static bool IsMappedFilename(const std::wstring& fileName)
 			return true;
 		}
 		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\Grand Theft Auto V") != nullptr)
+		{
+			return true;
+		}
+		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\index.bin") != nullptr)
+		{
+			return true;
+		}
+		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\GTA5.exe") != nullptr)
+		{
+			return true;
+		}
+		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\RDR2.exe") != nullptr)
 		{
 			return true;
 		}
