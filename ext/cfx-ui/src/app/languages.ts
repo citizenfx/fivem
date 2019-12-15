@@ -37,7 +37,7 @@ const languages = [
         name: 'ru',
         displayName: 'Русский'
     },
-	{
+    {
         name: 'cs',
         displayName: 'Čeština'
     },
