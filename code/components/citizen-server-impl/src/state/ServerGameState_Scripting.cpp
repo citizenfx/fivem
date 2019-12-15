@@ -7,11 +7,6 @@
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 
-namespace fx
-{
-	uint32_t MakeScriptHandle(const std::shared_ptr<fx::sync::SyncEntityState>& ptr);
-}
-
 static InitFunction initFunction([]()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
@@ -119,7 +114,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		context.SetResult(fx::MakeScriptHandle(entity));
+		context.SetResult(gameState->MakeScriptHandle(entity));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)

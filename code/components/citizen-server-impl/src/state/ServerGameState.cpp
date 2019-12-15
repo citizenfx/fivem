@@ -23,23 +23,6 @@
 
 #include <DebugAlias.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-
-// TODO: clang style defines/checking
-#if defined(_M_IX86) || defined(_M_AMD64)
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_SSE2
-#define GLM_FORCE_SSE3
-#endif
-
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 static bool g_bigMode;
 
 namespace fx
@@ -50,9 +33,8 @@ namespace fx
 	}
 }
 
-static constexpr const int MaxObjectId = 1 << 13;
-
 CPool<fx::ScriptGuid>* g_scriptHandlePool;
+std::shared_mutex g_scriptHandlePoolMutex;
 
 std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
@@ -192,42 +174,6 @@ sync::SyncEntityState::SyncEntityState()
 
 }
 
-struct GameStateClientData : public sync::ClientSyncDataBase
-{
-	rl::MessageBuffer ackBuffer{ 16384 };
-	std::set<int> objectIds;
-
-	std::mutex selfMutex;
-
-	std::weak_ptr<sync::SyncEntityState> playerEntity;
-	std::optional<int> playerId;
-
-	bool syncing;
-
-	glm::mat4x4 viewMatrix;
-
-	std::unordered_multimap<uint64_t, uint16_t> idsForGameState;
-
-	eastl::bitset<MaxObjectId> pendingRemovals;
-
-	std::weak_ptr<fx::Client> client;
-
-	std::map<int, int> playersToSlots;
-	std::map<int, int> slotsToPlayers;
-
-	std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
-
-	GameStateClientData()
-		: syncing(false)
-	{
-
-	}
-
-	void FlushAcks();
-
-	void MaybeFlushAcks();
-};
-
 inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const std::shared_ptr<fx::Client>& client)
 {
 	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
@@ -269,32 +215,92 @@ inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
 	return ((playerId + 1) << 16) | objectId;
 }
 
-uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr)
+std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> ServerGameState::ExternalGetClientData(const std::shared_ptr<fx::Client>& client)
 {
+	return GetClientData(this, client);
+}
+
+uint32_t ServerGameState::MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr)
+{
+	// only one unique lock here since we can't upgrade from reader to writer
+	std::unique_lock<std::shared_mutex> guidLock(ptr->guidMutex);
+
 	if (!ptr->guid)
 	{
-		// find an existing handle (transformed TempEntity?)
-		for (int i = 0; i < g_scriptHandlePool->m_Size; i++)
 		{
-			auto hdl = g_scriptHandlePool->GetAt(i);
+			std::shared_lock<std::shared_mutex> _(g_scriptHandlePoolMutex);
 
-			if (hdl && hdl->type == ScriptGuid::Type::Entity && hdl->entity.handle == ptr->handle)
+			// find an existing handle (transformed TempEntity?)
+			for (int i = 0; i < g_scriptHandlePool->m_Size; i++)
 			{
-				ptr->guid = hdl;
+				auto hdl = g_scriptHandlePool->GetAt(i);
+
+				if (hdl && !hdl->reference && hdl->type == ScriptGuid::Type::Entity && hdl->entity.handle == ptr->handle)
+				{
+					hdl->reference = ptr.get();
+					ptr->guid = hdl;
+					break;
+				}
 			}
 		}
 
 		if (!ptr->guid)
 		{
-			auto guid = g_scriptHandlePool->New();
+			std::unique_lock<std::shared_mutex> _(g_scriptHandlePoolMutex);
+
+			auto guid = new ScriptGuid();
 			guid->type = ScriptGuid::Type::Entity;
 			guid->entity.handle = ptr->handle;
+			guid->reference = ptr.get();
 
 			ptr->guid = guid;
 		}
 	}
 
-	return g_scriptHandlePool->GetIndex(ptr->guid) + 0x20000;
+#ifdef VALIDATE_SCRIPT_GUIDS
+	if (ptr->guid->entity.handle != ptr->handle)
+	{
+		__debugbreak();
+	}
+#endif
+
+	{
+		std::shared_lock<std::shared_mutex> _(g_scriptHandlePoolMutex);
+		auto guid = g_scriptHandlePool->GetIndex(ptr->guid) + 0x20000;
+
+#ifdef VALIDATE_SCRIPT_GUIDS
+		if (!g_scriptHandlePool->AtHandle(guid - 0x20000) || guid & 0x80)
+		{
+			__debugbreak();
+		}
+
+		bool bad = false;
+		std::shared_ptr<fx::Client> badClient;
+
+		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+		{
+			try
+			{
+				if (std::any_cast<uint32_t>(client->GetData("playerEntity")) == guid)
+				{
+					bad = true;
+					badClient = client;
+				}
+			}
+			catch (std::bad_any_cast&)
+			{
+				
+			}
+		});
+
+		if (bad && ptr->type != sync::NetObjEntityType::Player)
+		{
+			__debugbreak();
+		}
+#endif
+
+		return guid;
+	}
 }
 
 inline glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
@@ -334,8 +340,6 @@ ServerGameState::ServerGameState()
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
 {
-	std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
-
 	if (objectId >= m_entitiesById.size() || objectId < 0)
 	{
 		return {};
@@ -344,9 +348,10 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 	uint16_t objIdAlias = objectId;
 	debug::Alias(&objIdAlias);
 
-	auto ptr = m_entitiesById[objectId];
+	auto& ref = m_entitiesById[objectId];
+	auto l = ref.enter();
 
-	return ptr.lock();
+	return ref.lock();
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
@@ -355,14 +360,15 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
 	guid -= 0x20000;
 
 	// get the pool entry
+	std::shared_lock<std::shared_mutex> _(g_scriptHandlePoolMutex);
 	auto guidData = g_scriptHandlePool->AtHandle(guid);
 
 	if (guidData)
 	{
 		if (guidData->type == ScriptGuid::Type::Entity)
 		{
-			std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
-			auto ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
+			auto& ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
+			auto l = ptr.enter();
 
 			return ptr.lock();
 		}
@@ -377,7 +383,8 @@ namespace sync
 	{
 		if (guid)
 		{
-			g_scriptHandlePool->Delete(guid);
+			std::unique_lock<std::shared_mutex> _(g_scriptHandlePoolMutex);
+			delete guid;
 
 			guid = nullptr;
 		}
@@ -1896,8 +1903,9 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 
 		// unset weak pointer, as well
 		{
-			std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
-			m_entitiesById[objectId].reset();
+			auto& ref = m_entitiesById[objectId];
+			auto l = ref.enter_mut();
+			ref.ptr.reset();
 		}
 	};
 
@@ -1905,8 +1913,10 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 		std::weak_ptr<sync::SyncEntityState> entity;
 
 		{
-			std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
-			entity = m_entitiesById[objectId];
+			auto& ref = m_entitiesById[objectId];
+			auto l = ref.enter();
+			
+			entity = ref.ptr;
 		}
 
 		auto entityRef = entity.lock();
@@ -2015,10 +2025,11 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			createdHere = true;
 
 			{
-				std::unique_lock<std::mutex> lock(m_entitiesByIdMutex);
-
 				std::weak_ptr<sync::SyncEntityState> weakEntity(entity);
-				m_entitiesById[objectId] = weakEntity;
+
+				auto& ref = m_entitiesById[objectId];
+				auto l = ref.enter_mut();
+				ref.ptr = weakEntity;
 			}
 		}
 		else // duplicate create? that's not supposed to happen
@@ -2047,6 +2058,11 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	{
 		GS_LOG("%s: wrong entity (%d)!\n", __func__, objectId);
 
+		return;
+	}
+
+	if (client->GetSlotId() < 0 || client->GetSlotId() > MAX_CLIENTS)
+	{
 		return;
 	}
 
@@ -2444,11 +2460,11 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 			int used = 0;
 
 			{
-				std::unique_lock<std::mutex> entityListLock(m_entitiesByIdMutex);
-
 				for (auto object : data->objectIds)
 				{
-					if (!m_entitiesById[object].expired())
+					auto l = m_entitiesById[object].enter();
+
+					if (!m_entitiesById[object].ptr.expired())
 					{
 						used++;
 					}

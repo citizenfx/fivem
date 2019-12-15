@@ -11,16 +11,36 @@
 #include <variant>
 
 #include <array>
+#include <optional>
 #include <EASTL/bitset.h>
 #include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
 #include <thread_pool.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
+// TODO: clang style defines/checking
+#if defined(_M_IX86) || defined(_M_AMD64)
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_SSE2
+#define GLM_FORCE_SSE3
+#endif
+
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 namespace fx
 {
 struct ScriptGuid;
 }
+
+extern CPool<fx::ScriptGuid>* g_scriptHandlePool;
 
 namespace fx::sync
 {
@@ -223,12 +243,15 @@ struct SyncEntityState
 		data["posZ"] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
 	}
 
+	std::shared_mutex guidMutex;
 	ScriptGuid* guid;
 	uint32_t handle;
 
 	bool deleting;
 
 	SyncEntityState();
+
+	SyncEntityState(const SyncEntityState&) = delete;
 
 	virtual ~SyncEntityState();
 };
@@ -240,6 +263,7 @@ struct ScriptGuid
 {
 	enum class Type
 	{
+		Undefined = 0,
 		Entity,
 		TempEntity
 	};
@@ -257,6 +281,18 @@ struct ScriptGuid
 			uint32_t creationToken;
 		} tempEntity;
 	};
+
+	void* reference;
+
+	inline void* operator new(size_t s)
+	{
+		return g_scriptHandlePool->New();
+	}
+
+	inline void operator delete(void* ptr)
+	{
+		g_scriptHandlePool->Delete((fx::ScriptGuid*)ptr);
+	}
 };
 
 struct AckPacketWrapper
@@ -275,6 +311,44 @@ struct AckPacketWrapper
 	{
 		ackPacket.Write(length, data);
 	}
+};
+
+static constexpr const int MaxObjectId = 1 << 13;
+
+struct GameStateClientData : public sync::ClientSyncDataBase
+{
+	rl::MessageBuffer ackBuffer{ 16384 };
+	std::set<int> objectIds;
+
+	std::mutex selfMutex;
+
+	std::weak_ptr<sync::SyncEntityState> playerEntity;
+	std::optional<int> playerId;
+
+	bool syncing;
+
+	glm::mat4x4 viewMatrix;
+
+	std::unordered_multimap<uint64_t, uint16_t> idsForGameState;
+
+	eastl::bitset<MaxObjectId> pendingRemovals;
+
+	std::weak_ptr<fx::Client> client;
+
+	std::map<int, int> playersToSlots;
+	std::map<int, int> slotsToPlayers;
+
+	std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
+
+	GameStateClientData()
+		: syncing(false)
+	{
+
+	}
+
+	void FlushAcks();
+
+	void MaybeFlushAcks();
 };
 
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
@@ -302,6 +376,10 @@ public:
 	void RemoveEntity(uint32_t entityHandle);
 
 	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
+
+	uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr);
+
+	std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> ExternalGetClientData(const std::shared_ptr<fx::Client>& client);
 
 private:
 	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
@@ -379,11 +457,32 @@ private:
 
 //private:
 public:
-	std::vector<std::weak_ptr<sync::SyncEntityState>> m_entitiesById;
+	// TODO: this is *very* inefficient
+	// replace with std::atomic<std::weak_ptr> when it comes available immediately!
+	struct EntityByIdEntry
+	{
+		std::weak_ptr<sync::SyncEntityState> ptr;
+		std::shared_mutex mut;
 
-	// this mutex is needed at least until C++20 std::atomic<std::weak_ptr<..>> reaches implementations
-	// NOTE: this can't be a shared_mutex as control block moving might still be a write op
-	std::mutex m_entitiesByIdMutex;
+		inline auto enter()
+		{
+			std::shared_lock<std::shared_mutex> _(mut);
+			return std::move(_);
+		}
+
+		inline auto enter_mut()
+		{
+			std::unique_lock<std::shared_mutex> _(mut);
+			return std::move(_);
+		}
+
+		inline auto lock()
+		{
+			return ptr.lock();
+		}
+	};
+
+	std::vector<EntityByIdEntry> m_entitiesById;
 
 	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
 	std::shared_mutex m_entityListMutex;
@@ -393,5 +492,3 @@ std::unique_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectTy
 }
 
 DECLARE_INSTANCE_TYPE(fx::ServerGameState);
-
-extern CPool<fx::ScriptGuid>* g_scriptHandlePool;

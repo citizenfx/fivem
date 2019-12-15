@@ -16,7 +16,7 @@ union tPoolObjectFlags
 		unsigned char 	uID : 7;
 		bool 			bIsFreeSlot : 1;
 	}					a;
-	signed char			b;
+	unsigned char		b;
 };
 
 /*
