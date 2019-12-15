@@ -38,6 +38,14 @@ extern "C" {
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/profiler.h>
 
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
 #include <msgpack.hpp>
 
 #include <shared_mutex>
@@ -236,11 +244,11 @@ static bool GI_SnapshotStackBoundary(MonoArray** blob)
 {
 #if _WIN32
 	*blob = mono_get_current_context((void*)((uintptr_t)_AddressOfReturnAddress() + sizeof(void*)));
-
-	return true;
+#else
+	*blob = mono_get_current_context((void*)((uintptr_t)__builtin_frame_address(0U) + sizeof(void*)));
 #endif
 
-	return false;
+	return true;
 }
 
 struct ScriptStackFrame
@@ -264,7 +272,6 @@ MonoMethod* g_getMethodDisplayStringMethod;
 
 static bool GI_WalkStackBoundary(MonoString* resourceName, MonoArray* start, MonoArray* end, MonoArray** outBlob)
 {
-#if _WIN32
 	struct WD
 	{
 		MonoString* resourceName;
@@ -359,9 +366,6 @@ static bool GI_WalkStackBoundary(MonoString* resourceName, MonoArray* start, Mon
 	*outBlob = blob;
 
 	return true;
-#endif
-
-	return false;
 }
 
 #ifndef IS_FXSERVER
@@ -433,6 +437,13 @@ static void InitMono()
 
 	mono_assembly_setrootdir(citizenClrPath.c_str());
 
+	// https://github.com/mono/mono/pull/9811
+	// https://www.mono-project.com/docs/advanced/runtime/docs/coop-suspend/#cant-handle-the-embedding-api
+	// Mono coop suspend does not work for embedders, and on systems not designed for multithreading (aka any POSIX system)
+	// it'll infinitely wait for the main thread's infinite loop to handle a GC suspend call. Since the 'yield for the GC'
+	// API isn't exposed, and it's clearly not meant for embedding, we just switch to the old non-coop suspender.
+	putenv("MONO_THREADS_SUSPEND=preemptive");
+
 	putenv("MONO_DEBUG=casts");
 
 #ifndef IS_FXSERVER
@@ -445,15 +456,17 @@ static void InitMono()
 	mono_profiler_set_events(MONO_PROFILE_GC);
 #endif
 
-	char* args[1];
+	char* args[2];
 
 #ifdef _WIN32
 	args[0] = "--soft-breakpoints";
+	args[1] = "--optimize=peephole,cfold,inline,consprop,copyprop,deadce,branch,linears,intrins,loop,exception,cmov,gshared,simd,alias-analysis,float32,unsafe";
 #else
 	args[0] = "--use-fallback-tls";
+	args[1] = "";
 #endif
 
-	mono_jit_parse_options(1, args);
+	mono_jit_parse_options(std::size(args), args);
 
 	mono_debug_init(MONO_DEBUG_FORMAT_MONO);
 

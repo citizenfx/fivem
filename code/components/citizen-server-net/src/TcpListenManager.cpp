@@ -38,6 +38,7 @@ namespace fx
 			if (m_primaryPort == 0)
 			{
 				m_primaryPort = peerAddress->GetPort();
+				m_primaryPortVar->GetHelper()->SetRawValue(m_primaryPort);
 			}
 
 			// create a multiplexable TCP server and bind it
@@ -52,6 +53,20 @@ namespace fx
 		}
 	}
 
+	void TcpListenManager::AddExternalServer(const fwRefContainer<net::TcpServer>& server)
+	{
+		// attach and create a multiplex
+		fwRefContainer<net::MultiplexTcpServer> multiplex = new net::MultiplexTcpServer();
+		multiplex->AttachToServer(server);
+
+		// store the server
+		m_externalServers.push_back(server);
+		m_multiplexServers.push_back(multiplex);
+
+		// set up the multiplex
+		OnInitializeMultiplexServer(multiplex);
+	}
+
 	void TcpListenManager::AttachToObject(ServerInstanceBase* instance)
 	{
 		instance->SetComponent(m_tcpStack);
@@ -60,6 +75,8 @@ namespace fx
 		{
 			AddEndpoint(endPoint);
 		});
+
+		m_primaryPortVar = instance->AddVariable<int>("netPort", ConVar_None, m_primaryPort);
 	}
 }
 

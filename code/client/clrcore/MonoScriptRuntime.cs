@@ -41,6 +41,8 @@ namespace CitizenFX.Core
 				((IScriptHostWithResourceData)host).GetResourceName(out var nameString);
 				string resourceName = Marshal.PtrToStringAnsi(nameString);
 
+				bool useTaskScheduler = true;
+
 #if IS_FXSERVER
 				string basePath = "";
 
@@ -49,6 +51,7 @@ namespace CitizenFX.Core
 					InternalManager.ScriptHost = host;
 
 					basePath = Native.API.GetResourcePath(resourceName);
+					useTaskScheduler = Native.API.GetNumResourceMetadata(resourceName, "clr_disable_task_scheduler") == 0;
 				}
 #endif
 
@@ -62,6 +65,11 @@ namespace CitizenFX.Core
 				m_appDomain.SetupInformation.ConfigurationFile = "dummy.config";
 
 				m_intManager = (InternalManager)m_appDomain.CreateInstanceAndUnwrap(typeof(InternalManager).Assembly.FullName, typeof(InternalManager).FullName);
+
+				if (useTaskScheduler)
+				{
+					m_intManager.CreateTaskScheduler();
+				}
 
 				m_intManager.SetResourceName(resourceName);
 
@@ -87,10 +95,13 @@ namespace CitizenFX.Core
 
 		public void Destroy()
 		{
+			m_intManager?.Destroy();
+
 			AppDomain.Unload(m_appDomain);
 
 			m_appDomain = null;
 			m_intManager = null;
+			m_scriptHost = null;
 		}
 
 		public IntPtr GetParentObject()
@@ -278,9 +289,9 @@ namespace CitizenFX.Core
 			return new PushRuntime(this);
 		}
 
-		public class WrapIStream : MarshalByRefObject, fxIStream
+		public class WrapIStream : MarshalByRefObject, fxIStream, IDisposable
 		{
-			private readonly fxIStream m_realStream;
+			private fxIStream m_realStream;
 
 			public WrapIStream(fxIStream realStream)
 			{
@@ -305,6 +316,26 @@ namespace CitizenFX.Core
 			public long GetLength()
 			{
 				return m_realStream.GetLength();
+			}
+
+			private bool disposedValue = false;
+
+			protected virtual void Dispose(bool disposing)
+			{
+				if (!disposedValue)
+				{
+					if (disposing)
+					{
+						m_realStream = null;
+					}
+
+					disposedValue = true;
+				}
+			}
+
+			public void Dispose()
+			{
+				Dispose(true);
 			}
 		}
 

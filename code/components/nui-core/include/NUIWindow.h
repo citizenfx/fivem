@@ -18,7 +18,7 @@ enum NUIPaintType
 	NUIPaintTypePostRender
 };
 
-#include "grcTexture.h"
+#include <CefOverlay.h>
 
 class
 #ifdef COMPILING_NUI_CORE
@@ -53,15 +53,15 @@ private:
 
 	std::set<std::string> m_pollQueue;
 
-	rage::grcTexture* m_nuiTexture;
+	nui::GITexture* m_nuiTexture;
 
-	rage::grcTexture* m_popupTexture;
+	nui::GITexture* m_popupTexture;
 
 	NUIPaintType m_paintType;
 
 	uint64_t m_syncKey;
 
-	std::map<CefRenderHandler::PaintElementType, ID3D11Texture2D*> m_parentTextures;
+	std::map<CefRenderHandler::PaintElementType, nui::GITexture*> m_parentTextures;
 
 	ID3D11Texture2D* m_swapTexture;
 
@@ -118,18 +118,18 @@ public:
 		}
 	}
 
-	inline rage::grcTexture* GetTexture() { return m_nuiTexture; }
+	inline nui::GITexture* GetTexture() { return m_nuiTexture; }
 
-	inline rage::grcTexture* GetPopupTexture() { return m_popupTexture; }
+	inline nui::GITexture* GetPopupTexture() { return m_popupTexture; }
 
 	inline NUIPaintType GetPaintType() { return m_paintType; }
 
-	inline ID3D11Texture2D* GetParentTexture(CefRenderHandler::PaintElementType type)
+	inline nui::GITexture* GetParentTexture(CefRenderHandler::PaintElementType type)
 	{
 		return m_parentTextures[type];
 	}
 
-	inline void SetParentTexture(CefRenderHandler::PaintElementType type, ID3D11Texture2D* texture)
+	inline void SetParentTexture(CefRenderHandler::PaintElementType type, nui::GITexture* texture)
 	{
 		m_parentTextures[type] = texture;
 	}

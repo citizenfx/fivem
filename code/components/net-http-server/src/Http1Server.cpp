@@ -131,10 +131,14 @@ public:
 	{
 		if (m_chunked)
 		{
-			// assume chunked
-			m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
-			m_clientStream->Write(std::forward<TContainer>(data));
-			m_clientStream->Write("\r\n");
+			// we _don't_ want to send a 0-sized chunk
+			if (data.size() > 0)
+			{
+				// assume chunked
+				m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
+				m_clientStream->Write(std::forward<TContainer>(data));
+				m_clientStream->Write("\r\n");
+			}
 		}
 		else
 		{
@@ -335,6 +339,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 					reqState->blocked = true;
 
+					localConnectionData->request = request;
+					localConnectionData->response = response;
+
 					for (auto& handler : m_handlers)
 					{
 						if (handler->HandleRequest(request, response) || response->HasEnded())
@@ -356,8 +363,6 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 						if (contentLength > 0)
 						{
-							localConnectionData->request = request;
-							localConnectionData->response = response;
 							localConnectionData->contentLength = contentLength;
 
 							localConnectionData->readState = ReadStateBody;
@@ -370,8 +375,6 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 							if (request->GetHeader(transferEncodingKey, transferEncodingDefault) == transferEncodingComparison)
 							{
-								localConnectionData->request = request;
-								localConnectionData->response = response;
 								localConnectionData->contentLength = -1;
 
 								localConnectionData->lastLength = 0;
@@ -511,11 +514,14 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		std::unique_lock<std::mutex> lock(reqState->pingLock);
 
-		reqState->ping = [readCallback]()
+		reqState->ping = [stream, readCallback]()
 		{
 			if (readCallback)
 			{
-				readCallback({});
+				stream->ScheduleCallback([readCallback]()
+				{
+					readCallback({});
+				});
 			}
 		};
 	}

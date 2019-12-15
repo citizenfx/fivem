@@ -8,7 +8,7 @@
 		"vendor:yaml-cpp",
 		"vendor:enet",
 		"vendor:slikenet",
-		"vendor:cpp-uri",
+		"vendor:cpp-url",
 		"ros-patches"
 	],
 	"provides": []

@@ -384,6 +384,11 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 
 	curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 
+	if (options.ipv4)
+	{
+		curl_easy_setopt(curlHandle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+	}
+
 	impl->client->OnSetupCurlHandle(curlHandle, url);
 
 	return { curlHandle, curlData };

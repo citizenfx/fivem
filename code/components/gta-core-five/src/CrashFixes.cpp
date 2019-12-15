@@ -148,32 +148,6 @@ static bool VehicleEntryPointValidate(VehicleLayoutInfo* info)
 	return true;
 }
 
-#include <atPool.h>
-
-static void(*g_origUnloadMapTypes)(void*, uint32_t);
-
-void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
-{
-	auto pool = (atPoolBase*)(assetStore + 56);
-	auto entry = pool->GetAt<char>(index);
-
-	if (entry != nullptr)
-	{
-		if (*(uintptr_t*)entry != 0)
-		{
-			g_origUnloadMapTypes(assetStore, index);
-		}
-		else
-		{
-			AddCrashometry("maptypesstore_workaround_2", "true");
-		}
-	}
-	else
-	{
-		AddCrashometry("maptypesstore_workaround", "true");
-	}
-}
-
 static int ReturnFalse()
 {
 	return 0;
@@ -242,6 +216,76 @@ static uint32_t ReturnIfMp(void* a1, uint32_t a2)
 	}
 
 	return -1;
+}
+
+#include <atArray.h>
+
+struct grcVertexProgram
+{
+	void* vtbl;
+	const char* name;
+	char pad[568];
+};
+
+struct grmShaderProgram
+{
+	char pad[48];
+	atArray<grcVertexProgram> vertexPrograms;
+};
+
+struct grmShaderFx
+{
+	void* padParams;
+	grmShaderProgram* program;
+};
+
+static void(*g_origDrawModelGeometry)(grmShaderFx* shader, int a2, void* a3, int a4, bool a5);
+
+static void DrawModelGeometryHook(grmShaderFx* shader, int a2, void* a3, int a4, bool a5)
+{
+	if (shader->program && shader->program->vertexPrograms.GetSize() && shader->program->vertexPrograms[0].name && strstr(shader->program->vertexPrograms[0].name, "_batch:") != nullptr)
+	{
+		return;
+	}
+
+	g_origDrawModelGeometry(shader, a2, a3, a4, a5);
+}
+
+static void(*g_origCText__UnloadSlot)(int slotId, bool a2);
+
+static void CText__UnloadSlotHook(int slotId, bool a2)
+{
+	if (slotId > 20)
+	{
+		return;
+	}
+
+	g_origCText__UnloadSlot(slotId, a2);
+}
+
+static bool(*g_origCText__IsSlotLoaded)(void* text, int slot);
+
+static bool CText__IsSlotLoadedHook(void* text, int slot)
+{
+	if (slot > 20)
+	{
+		return true;
+	}
+
+	return g_origCText__IsSlotLoaded(text, slot);
+}
+
+static void(*g_origCText__LoadSlot)(void* text, void* name, int slot, int a4);
+
+static void CText__LoadSlotHook(void* text, void* name, int slot, int a4)
+{
+	if (slot > 20)
+	{
+		trace("REQUEST_ADDITIONAL_TEXT has a slot range of 0 to 19 (inclusive). Slot %d is out of this range, so it has been ignored.\n", slot);
+		return;
+	}
+
+	return g_origCText__LoadSlot(text, name, slot, a4);
 }
 
 static HookFunction hookFunction{[] ()
@@ -656,11 +700,6 @@ static HookFunction hookFunction{[] ()
 	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 08 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	// fwMapTypesStore double unloading workaround
-	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
-	MH_EnableHook(MH_ALL_HOOKS);
-
 	// disable TXD script resource unloading to work around a crash
 	{
 		auto vtbl = hook::get_address<void**>(hook::get_pattern("BA 07 00 00 00 48 8B D9 E8 ? ? ? ? 48 8D 05", 16));
@@ -738,11 +777,28 @@ static HookFunction hookFunction{[] ()
 		hook::call_rcx(location, objectArrayStub.GetCode());
 	}
 
+	// don't allow rendering grass_batch from plain geometry draw functions
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("4D 8B F0 44 8A 44 24 50 41 8B", -0x19), DrawModelGeometryHook, (void**)&g_origDrawModelGeometry);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
 	// parser errors: rage::parManager::LoadFromStructure(const char*/fiStream*) returns true when LoadTree fails, and
 	// only returns false if LoadFromStructure(parTreeNode*) fails
 	// make it return failure state on failure of rage::parManager::LoadTree as well, and log the failure.
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("4C 8B EA 48 8B F1 E8 ? ? ? ? 40 B5 01 48 8B F8", -0x2D), LoadFromStructureCharHook, (void**)&g_origLoadFromStructureChar);
 	// TODO: fiStream version?
+
+	// CText: don't allow loading additional text in slots above 19 (leads to arbitrary memory corruption)
+	MH_CreateHook(hook::get_pattern("EB 08 C7 44 24 20 01 00 00 00 45 33 C9", -0x17), CText__LoadSlotHook, (void**)&g_origCText__LoadSlot);
+
+	// hook to pretend any such slot is loaded
+	MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
+
+	// and to prevent unloading
+	MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+
 	MH_EnableHook(MH_ALL_HOOKS);
 } };

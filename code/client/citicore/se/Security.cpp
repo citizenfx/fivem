@@ -45,7 +45,7 @@ public:
 	}
 };
 
-static thread_local std::deque<Principal> g_principalStack;
+static thread_local std::deque<std::reference_wrapper<Principal>> g_principalStack;
 
 Context::Context()
 {
@@ -218,7 +218,7 @@ bool Context::CheckPrivilege(const Principal& principal, const Object& object)
 	return allowed;
 }
 
-void Context::PushPrincipal(const Principal& principal)
+void Context::PushPrincipal(Principal& principal)
 {
 	g_principalStack.push_front(principal);
 }
@@ -228,7 +228,7 @@ void Context::PopPrincipal()
 	g_principalStack.pop_front();
 }
 
-static std::stack<std::deque<Principal>> g_principalStackStack;
+static std::stack<std::deque<std::reference_wrapper<Principal>>> g_principalStackStack;
 
 void Context::PushPrincipalReset()
 {

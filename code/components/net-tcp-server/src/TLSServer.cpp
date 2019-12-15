@@ -115,6 +115,18 @@ public:
 	}
 };
 
+#ifdef IS_FXSERVER
+// hardened policy
+class ServerTLSPolicy : public Botan::TLS::Policy
+{
+public:
+	virtual bool abort_connection_on_undesired_renegotiation() const
+	{
+		return true;
+	}
+};
+#endif
+
 // policy allowing TLS_RSA_WITH_AES_256_CBC_SHA256 since ROS SDK wants this
 class TLSPolicy : public Botan::TLS::Policy
 {
@@ -188,7 +200,12 @@ TLSServerStream::TLSServerStream(TLSServer* server, fwRefContainer<TcpServerStre
 
 void TLSServerStream::Initialize()
 {
+#ifndef IS_FXSERVER
 	m_policy = std::make_unique<TLSPolicy>();
+#else
+	m_policy = std::make_unique<ServerTLSPolicy>();
+#endif
+
 	m_sessionManager = std::make_unique<Botan::TLS::Session_Manager_In_Memory>(m_rng);
 
 	m_tlsServer.reset(new Botan::TLS::Server(
@@ -222,7 +239,9 @@ void TLSServerStream::Initialize()
 		}
 		catch (std::exception& e)
 		{
+#ifndef IS_FXSERVER
 			trace("%s\n", e.what());
+#endif
 		}
 	});
 }
@@ -268,7 +287,9 @@ void TLSServerStream::Close()
 			}
 			catch (const std::exception& e)
 			{
+#ifndef IS_FXSERVER
 				trace("tls close: %s\n", e.what());
+#endif
 			}
 		}
 	});
@@ -308,7 +329,9 @@ void TLSServerStream::ReceivedAlert(Botan::TLS::Alert alert, const uint8_t[], si
 	}
 	else
 	{
+#ifndef IS_FXSERVER
 		trace("alert %s\n", alert.type_string().c_str());
+#endif
 	}
 }
 

@@ -15,10 +15,10 @@ UvLoopHolder::UvLoopHolder(const std::string& loopTag)
 	: m_shouldExit(false), m_loopTag(loopTag)
 {
 	// initialize the libuv loop
-	uv_loop_init(&m_loop);
+	m_loop = uvw::Loop::create();
 
 	// assign our pointer to the loop
-	m_loop.data = this;
+	m_loop->data(std::make_shared<void*>(this));
 
 	// start the loop's runtime thread
 	m_thread = std::thread([=] ()
@@ -29,14 +29,14 @@ UvLoopHolder::UvLoopHolder(const std::string& loopTag)
 		while (!m_shouldExit)
 		{
 			// execute the loop - this will probably return instantly before any events are added
-			uv_run(&m_loop, UV_RUN_DEFAULT);
+			m_loop->run<uvw::Loop::Mode::DEFAULT>();
 
 			// wait for a bit to not cause a full-load loop
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 
 		// clean up the libuv loop
-		uv_loop_close(&m_loop);
+		m_loop = {};
 	});
 }
 
@@ -46,12 +46,12 @@ UvLoopHolder::~UvLoopHolder()
 	m_shouldExit = true;
 
 	// stop the loop as soon as possible
-	uv_stop(&m_loop);
+	m_loop->stop();
 
 	// signal the loop so it can get triggered
 	uv_async_t async;
 	
-	uv_async_init(&m_loop, &async, [] (uv_async_t*)
+	uv_async_init(m_loop->raw(), &async, [] (uv_async_t*)
 	{
 
 	});

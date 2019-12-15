@@ -19,7 +19,7 @@
 
 namespace fx
 {
-static tbb::concurrent_queue<std::function<void()>> g_onNetInitCbs;
+static tbb::concurrent_queue<std::tuple<std::string, std::function<void()>>> g_onNetInitCbs;
 
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
 
@@ -104,6 +104,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 		}
 
+		OnCreatedRuntimes();
+
 		if (!m_scriptRuntimes.empty() || m_resource->GetName() == "_cfx_internal")
 		{
 			m_scriptHost = GetScriptHostForResource(m_resource);
@@ -127,7 +129,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				auto ignoreFlag = std::make_shared<bool>(false);
 				auto ignoreFlagWeak = std::weak_ptr{ ignoreFlag };
 
-				g_onNetInitCbs.emplace([loadScripts, ignoreFlag]()
+				g_onNetInitCbs.emplace("Starting " + m_resource->GetName(), [loadScripts, ignoreFlag]()
 				{
 					if (*ignoreFlag)
 					{
@@ -153,14 +155,9 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnTick.Connect([=] ()
 	{
-		for (auto& environmentPair : m_scriptRuntimes)
+		for (const auto& [id, tickRuntime] : m_tickRuntimes)
 		{
-			OMPtr<IScriptTickRuntime> tickRuntime;
-
-			if (FX_SUCCEEDED(environmentPair.second.As(&tickRuntime)))
-			{
-				tickRuntime->Tick();
-			}
+			tickRuntime->Tick();
 		}
 	});
 
@@ -176,6 +173,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			environmentPair.second->Destroy();
 		}
 
+		m_tickRuntimes.clear();
 		m_scriptRuntimes.clear();
 	});
 }
@@ -240,6 +238,19 @@ void ResourceScriptingComponent::CreateEnvironments()
 		});
 	}
 
+	// pre-cache tick runtimes
+	{
+		for (auto& [ id, runtime ] : m_scriptRuntimes)
+		{
+			OMPtr<IScriptTickRuntime> tickRuntime;
+
+			if (FX_SUCCEEDED(runtime.As(&tickRuntime)))
+			{
+				m_tickRuntimes[id] = tickRuntime;
+			}
+		}
+	}
+
 	// iterate over the runtimes and load scripts as requested
 	for (auto& environmentPair : m_scriptRuntimes)
 	{
@@ -258,9 +269,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 		if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 		{
-			bool environmentUsed = false;
-
-			for (auto& list : { sharedScripts, clientScripts }) {
+			for (auto& list : { sharedScripts, clientScripts })
+			{
 				for (auto& script : list)
 				{
 					if (ptr->HandlesFile(const_cast<char*>(script.c_str())))
@@ -288,28 +298,43 @@ static InitFunction initFunction([]()
 });
 
 #ifndef IS_FXSERVER
+DLL_EXPORT fwEvent<const std::string&> OnScriptInitStatus;
+
 bool DLL_EXPORT UpdateScriptInitialization()
 {
 	using namespace std::chrono_literals;
+
+	static bool wasExecuting;
 
 	if (!fx::g_onNetInitCbs.empty())
 	{
 		std::chrono::high_resolution_clock::duration startTime = std::chrono::high_resolution_clock::now().time_since_epoch();
 
-		std::function<void()> initCallback;
+		std::tuple<std::string, std::function<void()>> initCallback;
 
 		while (fx::g_onNetInitCbs.try_pop(initCallback))
 		{
-			initCallback();
+			OnScriptInitStatus(std::get<0>(initCallback));
+
+			std::get<1>(initCallback)();
+
+			wasExecuting = true;
 
 			// break and yield after 2 seconds of script initialization so the game gets a chance to breathe
-			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 2s)
+			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 5ms)
 			{
 				trace("Still executing script initialization routines...\n");
 
 				break;
 			}
 		}
+	}
+
+	if (fx::g_onNetInitCbs.empty() && wasExecuting)
+	{
+		OnScriptInitStatus("Awaiting scripts");
+
+		wasExecuting = false;
 	}
 
 	return fx::g_onNetInitCbs.empty();

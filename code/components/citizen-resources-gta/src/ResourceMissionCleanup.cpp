@@ -242,4 +242,18 @@ static InitFunction initFunction([] ()
 		}, 10000);
 	}, -50);
 });
+#else
+#include <scrThread.h>
+#include <ResourceGameLifetimeEvents.h>
+
+GtaThread* g_resourceThread;
+
+static InitFunction initFunction([]()
+{
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		resource->SetComponent(new fx::ResourceGameLifetimeEvents());
+	});
+});
+
 #endif

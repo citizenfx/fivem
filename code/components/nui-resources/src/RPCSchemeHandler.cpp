@@ -210,7 +210,7 @@ static InitFunction initFunction([] ()
 {
 	OnSchemeCreateRequest.Connect([] (const char* name, CefRefPtr<CefRequest> request, CefRefPtr<CefResourceHandler>& handler)
 	{
-		if (!strcmp(name, "http"))
+		if (!strcmp(name, "http") || !strcmp(name, "https"))
 		{
 			handler = new RPCResourceHandler();
 		}

@@ -410,7 +410,7 @@ namespace vfs
 			FillFindData(findData, &m_entries[handleData->entry.dataOffset + handleData->curOffset]);
 
 			// will the next increment go past the length? if not, return true
-			return ((handleData->curOffset + 1) < handleData->entry.length);
+			return (handleData->curOffset < handleData->entry.length);
 		}
 
 		return false;

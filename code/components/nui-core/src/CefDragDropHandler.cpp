@@ -398,7 +398,15 @@ int GetCefMouseModifiers(WPARAM wparam);
 			current_drag_data_ = drag_data->Clone();
 			current_drag_data_->ResetFileContents();
 
-			AttachThreadInput(GetCurrentThreadId(), GetWindowThreadProcessId(FindWindow(L"grcWindow", nullptr), nullptr), TRUE);
+			AttachThreadInput(GetCurrentThreadId(), GetWindowThreadProcessId(FindWindow(
+#ifdef GTA_FIVE
+				L"grcWindow"
+#elif defined(IS_RDR3)
+				L"sgaWindow"
+#else
+				L"UNKNOWN_WINDOW"
+#endif
+				, nullptr), nullptr), TRUE);
 
 			HRESULT res = DoDragDrop(dataObject, dropSource, effect, &resEffect);
 			if (res != DRAGDROP_S_DROP)

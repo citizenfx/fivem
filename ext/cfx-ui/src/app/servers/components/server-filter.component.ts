@@ -10,26 +10,7 @@ import { Subject } from 'rxjs/Subject';
 
 import 'rxjs/add/operator/throttleTime';
 
-export class ServerFilters {
-    public searchText: string;
-    public hideEmpty = false;
-    public hideFull = false;
-	public capPing = false;
-    public maxPing = 0;
-
-    constructor() {
-        this.searchText = '';
-    }
-}
-
-export class ServerTags {
-    public tagList: {[key: string]: boolean};
-}
-
-export class ServerFilterContainer {
-    public filters: ServerFilters;
-    public tags: ServerTags;
-}
+import { ServerFilters } from './server-filter-container';
 
 class ServerAutocompleteEntry {
     public name = '';
@@ -193,10 +174,6 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
             this.selectedCompletionIndex = -1;
         }
 
-		let pingBar = document.getElementById("progress").clientWidth;
-		let widthPercent = (this.filters.maxPing-this.minPingLimit)/(this.maxPingLimit-this.minPingLimit);
-		this.maxPingPercent = widthPercent*100;
-		
         this.filtersChanged.emit(this.filters);
         localStorage.setItem(`sfilters:${this.type}`, JSON.stringify(this.filters));
     }
@@ -365,6 +342,6 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     rentServer() {
-        this.gameService.openUrl('https://zap-hosting.com/fivem4');
+        this.gameService.openUrl('https://zap-hosting.com/fivemigcl');
     }
 }

@@ -181,7 +181,7 @@ typedef struct lua_TValue TValue;
 #define ttisvector3(o)	(ttype(o) == LUA_TVECTOR3)
 #define ttisvector2(o)	(ttype(o) == LUA_TVECTOR2)
 #define ttisquat(o)	(ttype(o) == LUA_TQUAT)
-
+#define ttisgrit(o) (ttisnumber(o) || ttype(o) == LUA_TVECTOR4 || ttype(o) == LUA_TVECTOR3 || ttype(o) == LUA_TVECTOR2 || ttype(o) == LUA_TQUAT)    
 
 /* Macros to access values */
 #define ivalue(o)	check_exp(ttisinteger(o), val_(o).i)
@@ -618,6 +618,12 @@ LUA_API void *lua_valuetouserdata(lua_State *L, TValue o);
 LUA_API int lua_asserttop(const lua_State* L, int count);
 LUA_API lua_Integer lua_utointeger(lua_State* L, int idx);
 LUA_API lua_Number lua_utonumber(lua_State* L, int idx);
+
+/*
+** internal dbg
+*/
+
+LUA_API int lua_toprotos(lua_State* L, int idx);
 
 
 #endif

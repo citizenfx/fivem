@@ -9,7 +9,7 @@
 #include "CefOverlay.h"
 #include "NUISchemeHandlerFactory.h"
 
-#include <fiDevice.h>
+#include <VFSManager.h>
 #include <include/cef_parser.h>
 
 #include "memdbgon.h"
@@ -26,7 +26,7 @@ private:
 
 	int read_;
 
-	rage::fiDevice* device_;
+	fwRefContainer<vfs::Device> device_;
 
 	std::string filename_;
 
@@ -58,8 +58,6 @@ public:
 
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
 	{
-		rage::sysMemAllocator::UpdateAllocatorValue();
-
 		std::string url = request->GetURL();
 		std::wstring hostname;
 		std::wstring path;
@@ -85,8 +83,6 @@ public:
 			filename_ += converter.to_bytes(path);
 		}
 
-		//filename_ = exeName + std::wstring(L"/citiv/ui/") + url.substr(11);
-
 		// remove # parts
 		auto hash = filename_.find_first_of(L'#');
 
@@ -109,14 +105,13 @@ public:
 			filename_ = filename_.substr(0, 255);
 		}
 
-		//file_ = _wfopen(filename_.c_str(), "rb");
-		device_ = rage::fiDevice::GetDevice(filename_.c_str(), true);
+		device_ = vfs::GetDevice(filename_);
 
 		int count = g_fileHandleCount.fetch_add(1);
 
 		auto handleOpen = [=] ()
 		{
-			if (device_ && filename_.find("..") == std::string::npos)
+			if (device_.GetRef() && filename_.find("..") == std::string::npos)
 			{
 				file_ = device_->Open(filename_.c_str(), true);
 			}
@@ -137,6 +132,10 @@ public:
 			else if (ext == "css")
 			{
 				mimeType_ = "text/css";
+			}
+			else if (ext == "svg")
+			{
+				mimeType_ = "image/svg+xml";
 			}
 
 			callback->Continue();
@@ -175,7 +174,7 @@ public:
 
 		if (file_ != -1)
 		{
-			response_length = device_->GetFileLength(file_);
+			response_length = device_->GetLength(file_);
 		}
 		else
 		{

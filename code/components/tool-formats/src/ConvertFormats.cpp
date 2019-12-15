@@ -33,11 +33,22 @@
 #include <phBound.h>
 #include <fragType.h>
 
+#undef RAGE_FORMATS_GAME_FIVE
+#undef RAGE_FORMATS_GAME
+#define RAGE_FORMATS_GAME rdr3
+#define RAGE_FORMATS_GAME_RDR3
+#include <gtaDrawable.h>
+#include <phBound.h>
+#include <fragType.h>
+
 #include <convert/gtaDrawable_ny_five.h>
 #include <convert/phBound_ny_five.h>
 
 #include <convert/gtaDrawable_payne_five.h>
 #include <convert/phBound_payne_five.h>
+
+#include <convert/gtaDrawable_rdr3_five.h>
+#include <convert/phBound_rdr3_five.h>
 
 #include <optional>
 
@@ -51,6 +62,11 @@ namespace rage::ny
 namespace rage::payne
 {
 	rage::payne::BlockMap* UnwrapRSC5(const wchar_t* fileName);
+}
+
+namespace rage::rdr3
+{
+	rage::rdr3::BlockMap* UnwrapRSC8(const wchar_t* fileName);
 }
 
 template<typename T>
@@ -98,7 +114,7 @@ static bool AutoConvert(TBlockMap blockMap, const std::wstring& fileName, int fi
 
 	std::wstring outFileName(fileName);
 	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + L".y" + fileExt.substr(2);
-
+	
 	return OutputFile([&]()
 	{
 		auto tgt = rage::convert<TOutput*>((TInput*)blockMap->blocks[0].data);
@@ -161,6 +177,20 @@ struct GameConfig_Payne
 	using TDwd = rage::payne::pgDictionary<rage::payne::gtaDrawable>;
 };
 
+struct GameConfig_RDR3
+{
+	static auto UnwrapRSC(const wchar_t* fileName)
+	{
+		return rage::rdr3::UnwrapRSC8(fileName);
+	}
+
+	using StreamManager = rage::rdr3::pgStreamManager;
+	using TBound = rage::rdr3::phBound;
+	using TDrawable = rage::rdr3::gtaDrawable;
+	using TTxd = rage::rdr3::pgDictionary<rage::rdr3::grcTexturePC>;
+	using TDwd = rage::rdr3::pgDictionary<rage::rdr3::gtaDrawable>;
+};
+
 template<typename TConfig>
 static void ConvertFile(const boost::filesystem::path& path)
 {
@@ -181,7 +211,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 	int fileVersion = 0;
 
-	if (fileExt == L".wbn")
+	if (fileExt == L".wbn" || fileExt == L".obn")
 	{
 		wprintf(L"converting bound %s...\n", path.filename().c_str());
 
@@ -200,7 +230,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		AutoConvert<rage::five::gtaDrawable, rage::ny::fragType>(bm, fileName, 162, L".ydr");
 	}
-	else if (fileExt == L".wdr")
+	else if (fileExt == L".wdr" || fileExt == L".odr")
 	{
 		wprintf(L"converting drawable %s...\n", path.filename().c_str());
 
@@ -244,7 +274,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		AutoConvert<rage::five::pgDictionary<rage::five::gtaDrawable>, typename TConfig::TDwd>(bm, fileName, 165);
 	}
-	else if (fileExt == L".wtd")
+	else if (fileExt == L".wtd" || fileExt == L".otd")
 	{
 		wprintf(L"converting txd %s...\n", path.filename().c_str());
 
@@ -442,6 +472,10 @@ static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 		else if (map["game"].as<std::wstring>() == L"payne")
 		{
 			ConvertFile<GameConfig_Payne>(filePath);
+		}
+		else if (map["game"].as<std::wstring>() == L"rdr3")
+		{
+			ConvertFile<GameConfig_RDR3>(filePath);
 		}
 	}
 }

@@ -18,6 +18,8 @@ export class AppNavComponent extends Translation {
 	language = '';
 	hasSubNav = false;
 	isInSteam = false;
+	brandingName = 'CitizenFX';
+	gameName = 'gta5';
 
 	constructor(
 		private gameService: GameService,
@@ -31,7 +33,9 @@ export class AppNavComponent extends Translation {
 		this.devMode = gameService.devMode;
 		this.localhostPort = gameService.localhostPort;
 		this.language = gameService.language;
-		
+
+		this.brandingName = gameService.brandingName;
+		this.gameName = gameService.gameName;
 
 		router.events.subscribe(event => {
 			if ((<NavigationEnd>event).url) {

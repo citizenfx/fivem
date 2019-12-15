@@ -7,6 +7,8 @@
 
 #include <ComponentHolder.h>
 
+#include <EASTL/fixed_list.h>
+
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/concurrent_queue.h>
 
@@ -14,7 +16,7 @@
 
 #include <se/Security.h>
 
-#define MAX_CLIENTS 128 // don't change this past 256 ever, also needs to be synced with client code
+#define MAX_CLIENTS (1024 + 1) // don't change this past 256 ever, also needs to be synced with client code
 
 namespace {
 	using namespace std::literals::chrono_literals;
@@ -160,15 +162,19 @@ namespace fx
 		inline void AddIdentifier(const std::string& identifier)
 		{
 			m_identifiers.emplace_back(identifier);
+
+			UpdateCachedPrincipalValues();
 		}
 
 		inline auto EnterPrincipalScope()
 		{
-			std::vector<std::unique_ptr<se::ScopedPrincipal>> principals;
+			// since fixed_list contains the buffer inside of itself, and we have to move something unmoveable (since reference_wrapper-holding
+			// Principal instances would be allocated on the stack), we'll take *one* allocation on the heap.
+			auto principals = std::make_unique<eastl::fixed_list<se::ScopedPrincipal, 10, false>>();
 
-			for (auto& identifier : this->GetIdentifiers())
+			for (auto& principal : m_principals)
 			{
-				principals.emplace_back(std::make_unique<se::ScopedPrincipal>(se::Principal{ fmt::sprintf("identifier.%s", identifier) }));
+				principals->emplace_back(principal);
 			}
 
 			return std::move(principals);
@@ -215,6 +221,17 @@ namespace fx
 		fwEvent<> OnDrop;
 
 	private:
+		inline void UpdateCachedPrincipalValues()
+		{
+			m_principals = {};
+
+			for (auto& identifier : this->GetIdentifiers())
+			{
+				m_principals.emplace_back(se::Principal{ fmt::sprintf("identifier.%s", identifier) });
+			}
+		}
+
+	private:
 		// a temporary token for tying HTTP connections to UDP connections
 		std::string m_connectionToken;
 
@@ -259,5 +276,8 @@ namespace fx
 
 		// an arbitrary set of data
 		tbb::concurrent_unordered_map<std::string, std::any> m_userData;
+
+		// principal values
+		std::list<se::Principal> m_principals;
 	};
 }

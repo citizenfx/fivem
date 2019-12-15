@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <string_view>
 
 //
 // Returns the Citizen root directory.
@@ -183,11 +184,21 @@ std::ostream& operator<<(std::ostream& os, const TEnum& value)
 	return os;
 }
 
-const char* va(const char* string, const fmt::ArgList& formatList);
-FMT_VARIADIC(const char*, va, const char*);
+const char* vva(std::string_view string, fmt::printf_args formatList);
 
-void TraceReal(const char* channel, const char* func, const char* file, int line, const char* string, const fmt::ArgList& formatList);
-FMT_VARIADIC(void, TraceReal, const char*, const char*, const char*, int, const char*);
+template<typename... TArgs>
+inline const char* va(std::string_view string, const TArgs&... args)
+{
+	return vva(string, fmt::make_printf_args(args...));
+}
+
+void TraceRealV(const char* channel, const char* func, const char* file, int line, std::string_view string, fmt::printf_args formatList);
+
+template<typename... TArgs>
+inline void TraceReal(const char* channel, const char* func, const char* file, int line, std::string_view string, const TArgs&... args)
+{
+	TraceRealV(channel, func, file, line, string, fmt::make_printf_args(args...));
+}
 
 #if defined(COMPILING_ADHESIVE) || defined(COMPILING_SVADHESIVE)
 #define _CFX_TRACE_FILE "adhesive"
@@ -216,8 +227,13 @@ FMT_VARIADIC(void, TraceReal, const char*, const char*, const char*, int, const 
 
 #define trace(f, ...) TraceReal(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), _CFX_TRACE_FUNC, _CFX_TRACE_FILE, __LINE__, f, ##__VA_ARGS__)
 
-const wchar_t* va(const wchar_t* string, const fmt::ArgList& formatList);
-FMT_VARIADIC_W(const wchar_t*, va, const wchar_t*);
+const wchar_t* vva(std::wstring_view string, fmt::wprintf_args formatList);
+
+template<typename... TArgs>
+inline const wchar_t* va(std::wstring_view string, const TArgs& ... args)
+{
+	return vva(string, fmt::make_wprintf_args(args...));
+}
 
 // hash string, don't lowercase
 inline constexpr uint32_t HashRageString(const char* string)
@@ -334,84 +350,14 @@ extern "C" void CoreTrace(const char* channel, const char* funcName, const char*
 
 
 // min/max
-template<typename T, typename = void>
-struct MinMax
-{
-	inline static T min(T a, T b)
-	{
-		return (a < b) ? a : b;
-	}
-
-	inline static T max(T a, T b)
-	{
-		return (a > b) ? a : b;
-	}
-};
-
-template<typename TValue>
-struct MinMax<TValue, std::enable_if_t<std::is_integral<TValue>::value>>
-{
-	using TSigned = std::make_signed_t<TValue>;
-
-	inline static TValue min(TValue aa, TValue bb)
-	{
-		TSigned a = (TSigned)aa;
-		TSigned b = (TSigned)bb;
-
-		return b + ((a - b) & (a - b) >> (sizeof(TSigned) * std::numeric_limits<TSigned>::max() - 1));
-	}
-
-	inline static TValue max(TValue aa, TValue bb)
-	{
-		TSigned a = (TSigned)aa;
-		TSigned b = (TSigned)bb;
-
-		return a - ((a - b) & (a - b) >> (sizeof(TSigned) * std::numeric_limits<TSigned>::max() - 1));
-	}
-};
-
-#ifdef _MSC_VER
-template<>
-struct MinMax<float>
-{
-	inline static float min(float a, float b)
-	{
-		_mm_store_ss(&a, _mm_min_ss(_mm_set_ss(a), _mm_set_ss(b)));
-		return a;
-	}
-
-	inline static float max(float a, float b)
-	{
-		_mm_store_ss(&a, _mm_max_ss(_mm_set_ss(a), _mm_set_ss(b)));
-		return a;
-	}
-};
-
-template<>
-struct MinMax<double>
-{
-	inline static double min(double a, double b)
-	{
-		_mm_store_sd(&a, _mm_min_sd(_mm_set_sd(a), _mm_set_sd(b)));
-		return a;
-	}
-
-	inline static double max(double a, double b)
-	{
-		_mm_store_sd(&a, _mm_max_sd(_mm_set_sd(a), _mm_set_sd(b)));
-		return a;
-	}
-};
-#endif
-
 template<typename T>
 inline T fwMin(T a, T b)
 {
-	return MinMax<T>::min(a, b);
+	return std::min(a, b);
 }
 
 template<typename T>
 inline T fwMax(T a, T b)
 {
-	return MinMax<T>::max(a, b);
+	return std::max(a, b);
 }

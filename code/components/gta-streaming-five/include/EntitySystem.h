@@ -13,6 +13,20 @@
 using Vector3 = DirectX::XMFLOAT3;
 using Matrix4x4 = DirectX::XMFLOAT4X4;
 
+namespace rage
+{
+	class STREAMING_EXPORT fwRefAwareBase
+	{
+	public:
+		~fwRefAwareBase() = default;
+
+	public:
+		void AddKnownRef(void** ref) const;
+
+		void RemoveKnownRef(void** ref) const;
+	};
+}
+
 template<typename TSubClass>
 class fwFactoryBase
 {
@@ -165,7 +179,7 @@ public:
 
 extern STREAMING_EXPORT atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
 
-class STREAMING_EXPORT fwEntity
+class STREAMING_EXPORT fwEntity : public rage::fwRefAwareBase
 {
 public:
 	virtual ~fwEntity() = default;
@@ -308,17 +322,34 @@ STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
 
 struct CMapDataContents
 {
-	void* vtable;
+	virtual ~CMapDataContents() = 0;
+	virtual void Add() = 0;
+	virtual void Remove() = 0;
+	virtual void PrepareInteriors(void* meta, void* data, uint32_t id) = 0;
+
 	void* sceneNodes;
 	void** entities;
 	uint32_t numEntities;
 };
 
-struct CMapData
+struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 {
-	uint8_t pad[20];
-	uint32_t unkBool;
-	uint8_t pad2[40];
-	float aabbMin[4];
-	float aabbMax[4];
+	CMapData();
+	virtual ~CMapData() = default;
+
+	virtual CMapDataContents* CreateMapDataContents() { assert(false); return nullptr; };
+
+	uint32_t name; // +8
+	uint32_t parent; // +12
+	int32_t flags; // +16
+	int32_t contentFlags; // +20
+	alignas(16) float streamingExtentsMin[4]; // +32
+	alignas(16) float streamingExtentsMax[4]; // +48
+	alignas(16) float entitiesExtentsMin[4]; // +64
+	alignas(16) float entitiesExtentsMax[4]; // +72
+	atArray<fwEntityDef*> entities;
+
+	char pad[512 - 104];
+
+	// etc.
 };

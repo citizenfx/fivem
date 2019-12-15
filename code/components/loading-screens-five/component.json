@@ -5,6 +5,7 @@
 		"fx[2]",
 		"gta:core",
 		"gta:game",
+		"gta:mission-cleanup",
 		"rage:graphics",
 		"vfs:core",
 		"nui:core",

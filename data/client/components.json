@@ -7,6 +7,7 @@
 	"ros-patches:five",
 	"rage:scripting:five",
 	"debug:net",
+	"citizen:game:main",
 	"net",
 	"profiles",
 	"steam",
@@ -48,11 +49,14 @@
 	"gta:game:five",
 	"handling-loader:five",
 	"citizen:scripting:mono",
-	"adhesive",
 	"devtools:five",
 	"tool:vehrec",
 	"extra-natives:five",
 	"discord",
 	"voip:mumble",
-	"scrbind:base"
+	"scrbind:base",
+	"n19ui",
+	"citizen:mod-loader:five",
+	"adhesive",
+	"citizen:game:ipc"
 ]

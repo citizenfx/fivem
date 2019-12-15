@@ -3,10 +3,9 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"rage:device",
-		"rage:graphics",
-		"rage:input",
-		"http-client"
+		"vfs:core",
+		"http-client",
+		"vendor:minhook"
 	],
 	"provides": []
 }

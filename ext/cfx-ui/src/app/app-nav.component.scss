@@ -7,7 +7,7 @@ $itemHeight: $appNavHeight*.5;
 	height: $appNavHeight;
 	width: $width;
 
-	padding: $padding*2 0 $padding*2 $padding*2;
+	padding: $padding;
 }
 
 .app-nav-container {
@@ -46,6 +46,24 @@ $itemHeight: $appNavHeight*.5;
 			@include theme() using ($theme) {
 				fill: gtv($theme, textColour);
 			};
+
+			vertical-align: middle;
+
+			:host-context(.game-rdr3) & {
+				fill: #d80d0d;
+				height: $itemHeight * 1.8;
+				width: $itemHeight * 1.8;
+			}
+
+			:host-context(.game-gta5) & {
+				height: $itemHeight * 1.3;
+				width: $itemHeight * 1.3;
+				padding-right: 0.5vh;
+			}
+		}
+
+		span {
+			vertical-align: middle;
 		}
 	}
 

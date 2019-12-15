@@ -8,7 +8,8 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
 
-#include <DrawCommands.h>
+extern nui::GameInterface* g_nuiGi;
+
 #include <RGBA.h>
 
 #include <DirectXColors.h>
@@ -36,8 +37,8 @@ struct DWMP_GET_COLORIZATION_PARAMETERS_DATA
 class CitizenNUIBackground
 {
 private:
-	rage::grcTexture* m_backdropTexture;
-	rage::grcTexture* m_overlayTexture;
+	nui::GITexture* m_backdropTexture;
+	nui::GITexture* m_overlayTexture;
 
 	ComPtr<IWICImagingFactory> m_imagingFactory;
 
@@ -46,11 +47,11 @@ private:
 	DwmpGetColorizationParameters_t m_fDwmpGetColorizationParameters;
 
 private:
-	rage::grcTexture* InitializeTextureFromFile(std::wstring filename);
+	nui::GITexture* InitializeTextureFromFile(std::wstring filename);
 
 	void EnsureTextures();
 
-	void DrawBackground(rage::grcTexture* texture, CRGBA colorValue);
+	void DrawBackground(nui::GITexture* texture, CRGBA colorValue);
 
 	CRGBA GetCurrentDWMColor(bool usePulse);
 
@@ -236,28 +237,21 @@ void CitizenNUIBackground::Initialize()
 	});
 }
 
-void CitizenNUIBackground::DrawBackground(rage::grcTexture* texture, CRGBA colorValue)
+void CitizenNUIBackground::DrawBackground(nui::GITexture* texture, CRGBA colorValue)
 {
-#ifdef _HAVE_GRCORE_NEWSTATES
-	auto oldBlendState = GetBlendState();
-	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
-#endif
-
-	SetTextureGtaIm(texture);
-
 	int resX, resY;
-	GetGameResolution(resX, resY);
+	g_nuiGi->GetGameResolution(&resX, &resY);
 
-	uint32_t color = colorValue.AsARGB();
+	nui::ResultingRectangle rr;
+	rr.rectangle = CRect(0.0f, 0.0f, resX, resY);
+	rr.color = colorValue;
 
-	DrawImSprite(0.0f, 0.0f, resX, resY, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, &color, 0);
-
-#ifdef _HAVE_GRCORE_NEWSTATES
-	SetBlendState(oldBlendState);
-#endif
+	g_nuiGi->SetTexture(texture);
+	g_nuiGi->DrawRectangles(1, &rr);
+	g_nuiGi->UnsetTexture();
 }
 
-rage::grcTexture* g_cursorTexture;
+nui::GITexture* g_cursorTexture;
 
 void CitizenNUIBackground::EnsureTextures()
 {
@@ -277,7 +271,7 @@ void CitizenNUIBackground::EnsureTextures()
 	}
 }
 
-rage::grcTexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring filename)
+nui::GITexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring filename)
 {
 	ComPtr<IWICBitmapDecoder> decoder;
 
@@ -315,20 +309,7 @@ rage::grcTexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring f
 
 			if (SUCCEEDED(hr))
 			{
-				rage::grcTextureReference reference;
-				memset(&reference, 0, sizeof(reference));
-				reference.width = width;
-				reference.height = height;
-				reference.depth = 1;
-				reference.stride = width * 4;
-#ifdef GTA_NY
-				reference.format = 1; // RGBA
-#elif defined(GTA_FIVE)
-				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
-#endif
-				reference.pixelData = (uint8_t*)pixelData.data();
-
-				return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+				return g_nuiGi->CreateTexture(width, height, nui::GITextureFormat::ARGB, pixelData.data());
 			}
 		}
 	}

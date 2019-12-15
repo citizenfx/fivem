@@ -52,6 +52,19 @@ namespace CitizenFX.Core
 			}
 		}
 
+		public void TriggerLatentEvent(string eventName, int bytesPerSecond, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(Hash.TRIGGER_LATENT_CLIENT_EVENT_INTERNAL, eventName, m_handle, serialized, argsSerialized.Length, bytesPerSecond);
+				}
+			}
+		}
+
 		protected bool Equals(Player other) => string.Equals(Handle, other.Handle);
 
 		/// <inheritdoc />

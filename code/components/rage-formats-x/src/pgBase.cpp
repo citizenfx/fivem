@@ -249,6 +249,8 @@ void pgStreamManager::EndPacking()
 		}
 	}*/
 
+	g_resolvedEntries.clear();
+
 	delete g_packEntries;
 	g_packEntries = nullptr;
 }
@@ -917,6 +919,164 @@ FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC5(const wchar_t* file
 
 		size_t destLength = tempBytes.size();
 		uncompress(&tempBytes[0], (uLongf*)&destLength, &tempInBytes[0], tempInBytes.size());
+	}
+
+	char* virtualData = new char[virtualSize];
+	memcpy(virtualData, &tempBytes[0], virtualSize);
+
+	char* physicalData = new char[physicalSize];
+	memcpy(physicalData, &tempBytes[virtualSize], physicalSize);
+
+	auto bm = new rage::RAGE_FORMATS_GAME::BlockMap();
+	bm->physicalLen = 1;
+	bm->virtualLen = 1;
+
+	bm->blocks[0].data = virtualData;
+	bm->blocks[0].offset = 0;
+	bm->blocks[0].size = virtualSize;
+
+	bm->blocks[1].data = physicalData;
+	bm->blocks[1].offset = 0;
+	bm->blocks[1].size = physicalSize;
+
+	return bm;
+}
+}
+}
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+#include <zlib.h>
+
+namespace rage
+{
+namespace RAGE_FORMATS_GAME
+{
+/* ===========================================================================
+     Decompresses the source buffer into the destination buffer.  *sourceLen is
+   the byte length of the source buffer. Upon entry, *destLen is the total size
+   of the destination buffer, which must be large enough to hold the entire
+   uncompressed data. (The size of the uncompressed data must have been saved
+   previously by the compressor and transmitted to the decompressor by some
+   mechanism outside the scope of this compression library.) Upon exit,
+   *destLen is the size of the decompressed data and *sourceLen is the number
+   of source bytes consumed. Upon return, source + *sourceLen points to the
+   first unused input byte.
+     uncompress returns Z_OK if success, Z_MEM_ERROR if there was not enough
+   memory, Z_BUF_ERROR if there was not enough room in the output buffer, or
+   Z_DATA_ERROR if the input data was corrupted, including if the input data is
+   an incomplete zlib stream.
+*/
+int funcompress2 (Bytef* dest, uLongf* destLen, const Bytef* source, uLong* sourceLen)
+{
+    z_stream stream;
+    int err;
+    const uInt max = (uInt)-1;
+    uLong len, left;
+    Byte buf[1];    /* for detection of incomplete stream when *destLen == 0 */
+
+    len = *sourceLen;
+    if (*destLen) {
+        left = *destLen;
+        *destLen = 0;
+    }
+    else {
+        left = 1;
+        dest = buf;
+    }
+
+    stream.next_in = (z_const Bytef *)source;
+    stream.avail_in = 0;
+    stream.zalloc = (alloc_func)0;
+    stream.zfree = (free_func)0;
+    stream.opaque = (voidpf)0;
+
+    err = inflateInit2(&stream, -15);
+    if (err != Z_OK) return err;
+
+    stream.next_out = dest;
+    stream.avail_out = 0;
+
+    do {
+        if (stream.avail_out == 0) {
+            stream.avail_out = left > (uLong)max ? max : (uInt)left;
+            left -= stream.avail_out;
+        }
+        if (stream.avail_in == 0) {
+            stream.avail_in = len > (uLong)max ? max : (uInt)len;
+            len -= stream.avail_in;
+        }
+        err = inflate(&stream, Z_NO_FLUSH);
+    } while (err == Z_OK);
+
+    *sourceLen -= len + stream.avail_in;
+    if (dest != buf)
+        *destLen = stream.total_out;
+    else if (stream.total_out && err == Z_BUF_ERROR)
+        left = 1;
+
+    inflateEnd(&stream);
+    return err == Z_STREAM_END ? Z_OK :
+           err == Z_NEED_DICT ? Z_DATA_ERROR  :
+           err == Z_BUF_ERROR && left + stream.avail_out ? Z_DATA_ERROR :
+           err;
+}
+
+int funcompress (Bytef* dest, uLongf* destLen, const Bytef* source, uLong sourceLen)
+{
+    return funcompress2(dest, destLen, source, &sourceLen);
+}
+
+// temporary wrapper function
+FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC8(const wchar_t* fileName)
+{
+	FILE* f = _wfopen(fileName, L"rb");
+
+	if (!f)
+	{
+		return nullptr;
+	}
+
+	fseek(f, 0, SEEK_END);
+	size_t fileLength = ftell(f) - 12;
+	fseek(f, 0, SEEK_SET);
+
+	uint32_t magic;
+	fread(&magic, 1, sizeof(magic), f);
+
+	if (magic != 0x38435352)
+	{
+		printf("that's not a RSC8, you silly goose...\n");
+
+		fclose(f);
+		return nullptr;
+	}
+
+	uint32_t version;
+	fread(&version, 1, sizeof(version), f);
+
+	if (((version >> 24) & 1) != 1 || ((version >> 8 & 0xF)) != 0)
+	{
+		printf("encrypted/oodle files are not supported\n");
+
+		fclose(f);
+		return nullptr;
+	}
+
+	uint32_t virtualSize;
+	uint32_t physicalSize;
+	fread(&virtualSize, 1, sizeof(virtualSize), f);
+	fread(&physicalSize, 1, sizeof(physicalSize), f);
+
+	virtualSize &= 0x7FFFFFF0;
+	physicalSize &= 0x7FFFFFF0;
+
+	std::vector<uint8_t> tempBytes(virtualSize + physicalSize);
+
+	{
+		std::vector<uint8_t> tempInBytes(fileLength);
+		fread(&tempInBytes[0], 1, fileLength, f);
+
+		size_t destLength = tempBytes.size();
+		funcompress(&tempBytes[0], (uLongf*)& destLength, &tempInBytes[0], tempInBytes.size());
 	}
 
 	char* virtualData = new char[virtualSize];

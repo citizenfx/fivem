@@ -62,7 +62,7 @@ class V8_EXPORT StringView {
 
 class V8_EXPORT StringBuffer {
  public:
-  virtual ~StringBuffer() {}
+  virtual ~StringBuffer() = default;
   virtual const StringView& string() = 0;
   // This method copies contents.
   static std::unique_ptr<StringBuffer> create(const StringView&);
@@ -87,7 +87,6 @@ class V8_EXPORT V8ContextInfo {
 
   static int executionContextId(v8::Local<v8::Context> context);
 
- private:
   // Disallow copying and allocating this one.
   enum NotNullTagEnum { NotNullLiteral };
   void* operator new(size_t) = delete;
@@ -107,9 +106,11 @@ class V8_EXPORT V8StackTrace {
   virtual StringView topScriptId() const = 0;
   virtual StringView topFunctionName() const = 0;
 
-  virtual ~V8StackTrace() {}
+  virtual ~V8StackTrace() = default;
   virtual std::unique_ptr<protocol::Runtime::API::StackTrace>
   buildInspectorObject() const = 0;
+  virtual std::unique_ptr<protocol::Runtime::API::StackTrace>
+  buildInspectorObject(int maxAsyncDepth) const = 0;
   virtual std::unique_ptr<StringBuffer> toString() const = 0;
 
   // Safe to pass between threads, drops async chain.
@@ -118,20 +119,20 @@ class V8_EXPORT V8StackTrace {
 
 class V8_EXPORT V8InspectorSession {
  public:
-  virtual ~V8InspectorSession() {}
+  virtual ~V8InspectorSession() = default;
 
   // Cross-context inspectable values (DOM nodes in different worlds, etc.).
   class V8_EXPORT Inspectable {
    public:
     virtual v8::Local<v8::Value> get(v8::Local<v8::Context>) = 0;
-    virtual ~Inspectable() {}
+    virtual ~Inspectable() = default;
   };
   virtual void addInspectedObject(std::unique_ptr<Inspectable>) = 0;
 
   // Dispatching protocol messages.
   static bool canDispatchMethod(const StringView& method);
   virtual void dispatchProtocolMessage(const StringView& message) = 0;
-  virtual std::unique_ptr<StringBuffer> stateJSON() = 0;
+  virtual std::vector<uint8_t> state() = 0;
   virtual std::vector<std::unique_ptr<protocol::Schema::API::Domain>>
   supportedDomains() = 0;
 
@@ -162,7 +163,7 @@ class V8_EXPORT V8InspectorSession {
 
 class V8_EXPORT V8InspectorClient {
  public:
-  virtual ~V8InspectorClient() {}
+  virtual ~V8InspectorClient() = default;
 
   virtual void runMessageLoopOnPause(int contextGroupId) {}
   virtual void quitMessageLoopOnPause() {}
@@ -239,14 +240,13 @@ struct V8_EXPORT V8StackTraceId {
 class V8_EXPORT V8Inspector {
  public:
   static std::unique_ptr<V8Inspector> create(v8::Isolate*, V8InspectorClient*);
-  virtual ~V8Inspector() {}
+  virtual ~V8Inspector() = default;
 
   // Contexts instrumentation.
   virtual void contextCreated(const V8ContextInfo&) = 0;
   virtual void contextDestroyed(v8::Local<v8::Context>) = 0;
   virtual void resetContextGroup(int contextGroupId) = 0;
-  virtual v8::MaybeLocal<v8::Context> contextById(int groupId,
-                                                  v8::Maybe<int> contextId) = 0;
+  virtual v8::MaybeLocal<v8::Context> contextById(int contextId) = 0;
 
   // Various instrumentation.
   virtual void idleStarted() = 0;
@@ -277,7 +277,7 @@ class V8_EXPORT V8Inspector {
   // Connection.
   class V8_EXPORT Channel {
    public:
-    virtual ~Channel() {}
+    virtual ~Channel() = default;
     virtual void sendResponse(int callId,
                               std::unique_ptr<StringBuffer> message) = 0;
     virtual void sendNotification(std::unique_ptr<StringBuffer> message) = 0;

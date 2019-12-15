@@ -206,6 +206,8 @@ private:
 
 	char m_childPackfile[192];
 
+	char m_childPackfile_const[192];
+
 	rage::fiCollection* m_parentCollection;
 
 	tbb::concurrent_unordered_map<uint16_t, CollectionEntry> m_entries;
@@ -247,25 +249,38 @@ private:
 		rage::fiCollection* m_child;
 		CfxCollection* m_collection;
 
-		bool m_oldVal;
+		std::unique_lock<std::recursive_mutex> m_lock;
+
+		bool m_constant;
 
 	public:
-		PseudoCallContext(CfxCollection* collection)
-			: m_collection(collection)
+		PseudoCallContext(CfxCollection* collection, bool isConstant = false)
+			: m_collection(collection), m_constant(isConstant)
 		{
-			m_collection->m_mutex.lock();
+			if (!isConstant)
+			{
+				m_lock = std::move(std::unique_lock<std::recursive_mutex>{ m_collection->m_mutex });
 
-			memcpy(collection->m_childPackfile, collection, sizeof(collection->m_childPackfile));
-			*(uintptr_t*)collection->m_childPackfile = g_vTable_fiPackfile;
+				memcpy(collection->m_childPackfile, collection, sizeof(collection->m_childPackfile));
+				*(uintptr_t*)collection->m_childPackfile = g_vTable_fiPackfile;
 
-			m_child = reinterpret_cast<rage::fiCollection*>(collection->m_childPackfile);
+				m_child = reinterpret_cast<rage::fiCollection*>(collection->m_childPackfile);
+			}
+			else
+			{
+				*(uintptr_t*)collection->m_childPackfile_const = g_vTable_fiPackfile;
+				memcpy(&collection->m_childPackfile_const[8], reinterpret_cast<char*>(m_collection) + 8, sizeof(collection->m_childPackfile) - 8);
+
+				m_child = reinterpret_cast<rage::fiCollection*>(collection->m_childPackfile_const);
+			}
 		}
 
 		~PseudoCallContext()
 		{
-			memcpy(reinterpret_cast<char*>(m_collection) + 8, &m_collection->m_childPackfile[8], sizeof(m_collection->m_childPackfile) - 8);
-
-			m_collection->m_mutex.unlock();
+			if (!m_constant)
+			{
+				memcpy(reinterpret_cast<char*>(m_collection) + 8, &m_collection->m_childPackfile[8], sizeof(m_collection->m_childPackfile) - 8);
+			}
 		}
 
 		rage::fiCollection* operator->() const
@@ -742,7 +757,7 @@ public:
 
 private:
 	template<typename TFunc>
-	auto InvokeOnHandle(uint64_t handle, const TFunc& func)
+	auto InvokeOnHandle(uint64_t handle, const TFunc& func, bool isConstant = false)
 	{
 		// return an appropriate -1 error value if the handle is -1
 		if (handle == -1)
@@ -756,7 +771,7 @@ private:
 		if (handleItem.parentDevice == this)
 		{
 			{
-				PseudoCallContext ctx(this);
+				PseudoCallContext ctx(this, isConstant);
 				return func(ctx.GetPointer(), handleItem.parentHandle);
 			}
 		}
@@ -780,7 +795,7 @@ public:
 		uint32_t size = InvokeOnHandle(handle, [&] (rage::fiDevice* device, uint64_t handle)
 		{
 			return device->ReadBulk(handle, ptr, buffer, toRead);
-		});
+		}, true);
 
 		if (size != toRead)
 		{
@@ -793,8 +808,6 @@ public:
 		}
 
 		return size;
-
-		//return PseudoCallContext(this)->ReadBulk(handle, ptr, buffer, toRead);
 	}
 
 	virtual uint32_t WriteBulk(uint64_t, int, int, int, int)
@@ -2048,6 +2061,7 @@ static std::unordered_set<std::string, IgnoreCaseHash, IgnoreCaseEqualTo> g_regi
 static std::map<uint32_t, std::string> g_hashes;
 
 std::string g_lastStreamingName;
+extern fwEvent<> OnReloadMapStore;
 
 static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch)
 {
@@ -2233,6 +2247,12 @@ static HookFunction hookFunction([] ()
 			((CfxCollection*)collection)->Invalidate();
 		}
 	}, -500);
+
+	// will rescan dlc collisions, if a dlc collision is overriden it breaks(?)
+	OnReloadMapStore.Connect([]()
+	{
+		g_registeredFileSet.clear();
+	});
 
 	{
 		void* location = hook::pattern("41 B0 01 BA 1B E6 DA 93 E8").count(1).get(0).get<void>(-12);

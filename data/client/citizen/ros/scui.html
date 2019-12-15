@@ -1,7 +1,112 @@
 <!DOCTYPE html>
 <html style="height: 100%; overflow-y: hidden;">
 <head>
+<style>
+.launcher {
+    background-color: #000;
+    height: 100%;
+    overflow: hidden;
+    padding: 0 auto;
+    margin: 0 auto;
+    font-family: "Segoe UI", sans-serif;
+    user-select: none;
+}
+
+h1, h3 {
+    color: #fff;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 12%;
+    margin-bottom: 8px;
+    font-size: 4em;
+}
+
+h3 {
+    margin: 0 auto;
+    margin-top: -30px;
+    margin-bottom: 0.5em;
+    font-weight: 400;
+}
+
+.hl {
+    color: #EF0000;
+}
+
+.content-wrap {
+    text-align: center;
+
+    background: url(/prod/gtav/splash.png) no-repeat center center fixed;
+    background-size: cover;
+
+    width: 100%;
+
+    height: 30vh;
+    min-height: 30vh;
+
+    padding: 30px auto;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+}
+
+.button {
+    background-color: #000;
+    color: #fff;
+    border: 1px solid #FCAF17;
+    cursor: pointer;
+    padding: 8px 4px;
+    transition: 0.3s;
+}
+
+.button:hover {
+    transition: 0.3s;
+    background-color: #212121;
+}
+
+.loading-indicator {
+    width: 57px;
+    margin: 0 auto;
+}
+
+.loading-indicator span {
+    height: 15px;
+    width: 15px;
+    float: left;
+    margin: 0 2px;
+    background-color: #fff;
+    border-radius: 50%;
+    opacity: 0.4;
+}
+
+.loading-indicator span:nth-of-type(1) {
+    animation: 1s blink infinite 0.3333s;
+}
+
+.loading-indicator span:nth-of-type(2) {
+    animation: 1s blink infinite 0.6666s;
+}
+
+.loading-indicator span:nth-of-type(3) {
+    animation: 1s blink infinite 0.9999s;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 1;
+    }
+}
+</style>
     <script type="text/javascript">
+		const targetTitle = '{{ TITLE }}';
+		let verified = false;
+		let launched = false;
+		let verifying = false;
+    
         function RGSC_JS_READY_TO_ACCEPT_COMMANDS()
         {
             RGSC_READY_TO_ACCEPT_COMMANDS();
@@ -16,6 +121,8 @@
             {
                 document.querySelector('div.ingame').style.display = 'block';
             }
+            
+            //if (!titleId.IsLauncher) { return; }
 
             setTimeout(function()
             {
@@ -34,7 +141,120 @@
 
                 xhr.open("GET", "/cfx/login", true);
                 xhr.send();
-            }, 1000);
+            }, 150);
+        }
+        
+        let excLog = '';
+        
+        function RGSC_JS_RECEIVE_MESSAGE(a) {
+			const data = JSON.parse(a);
+			
+			console.log(data);
+			
+			for (const command of data.Commands) {
+				const cmd = command.Command;
+				const p = command.Parameter;
+				
+				if (cmd === 'SetGameLaunchState') {
+					if (p.launchState == 'failed') {
+						error('Failed to launch through MTL', excLog);
+					}
+				}
+				
+				if (cmd == 'SetTitleInfo') {
+					if (p.titleName == targetTitle) {
+						if (p.status.entitlement && !p.status.install && !verified) {
+							if (!verifying) {
+								RGSC_RAISE_UI_EVENT(JSON.stringify({
+									EventId: 2, // LauncherV3UiEvent
+									
+									Data: {
+										Action: 'Install',
+										Parameter: {
+											titleName: targetTitle,
+											location: "C:\\Program Files\\Rockstar Games\\Red Dead Redemption 2",
+											desktopShortcut: false,
+											startMenuShortcut: false
+										}
+									}
+								}).replace(/","/gi, '", "'));
+								
+								verifying = true;
+							}
+							
+							setTimeout(function() {
+								RGSC_RAISE_UI_EVENT(JSON.stringify({
+									EventId: 2, // LauncherV3UiEvent
+									
+									Data: {
+										Action: 'Verify',
+										Parameter: {
+											titleName: targetTitle
+										}
+									}
+								}).replace(/","/gi, '", "'));
+							}, 500);
+						} else if (p.status.install && (p.status.updateState === 'notUpdating' || p.status.updateState == 'updateQueued')) {
+							if (verified && !launched) {
+								launched = true;
+
+								RGSC_SET_CLOUD_SAVE_ENABLED(JSON.stringify({
+									Enabled: false,
+									RosTitleName: targetTitle
+								}));
+								
+								setTimeout(function() {
+									RGSC_RAISE_UI_EVENT(JSON.stringify({
+										EventId: 2, // LauncherV3UiEvent
+										
+										Data: {
+											Action: 'Launch',
+											Parameter: {
+												titleName: targetTitle,
+												args: ''
+											}
+										}
+									}).replace(/","/gi, '", "'));
+								}, /*1500*/0);
+							} else if (!verified) {
+								RGSC_RAISE_UI_EVENT(JSON.stringify({
+									EventId: 2, // LauncherV3UiEvent
+									
+									Data: {
+										Action: 'Verify',
+										Parameter: {
+											titleName: targetTitle
+										}
+									}
+								}).replace(/","/gi, '", "'));
+							}
+						} else if (p.status.updateState === 'verifying') {
+							verified = true;
+						}
+					}
+				}
+			}
+        
+			excLog += a + "\r\n";
+			//document.querySelector('body').innerHTML += '<pre>' + a + '</pre>';
+			//document.querySelector('body').style.overflowY = 'scroll';
+        }
+        
+        function RGSC_JS_FINISH_SIGN_IN()
+        {
+			/*RGSC_RAISE_UI_EVENT(JSON.stringify({
+				EventId: 2, // LauncherV3UiEvent
+				
+				Data: {
+					Action: 'Install',
+					Parameter: {
+						titleName: 'gta5',
+						location: "L:\\tmp\\gtafivelol\\",
+						desktopShortcut: false,
+						startMenuShortcut: false
+					}
+				}
+			}).replace(/","/gi, '", "'));*/
         }
 
         function RGSC_JS_PING()
@@ -52,6 +272,8 @@
             {
                 document.querySelector('body').classList.add("rotate");
             }
+            
+            RGSC_UI_STATE_RESPONSE(JSON.stringify({Visible: true}));
 
             //document.querySelector('p').innerHTML = s.State;
         }
@@ -91,97 +313,6 @@
         .ingame, .launcher
         {
             display: none;
-        }
-
-        .launcher *
-        {
-            padding: 0px;
-            margin: 0px;
-        }
-
-        .launcher
-        {
-            height: 100%;
-            width: 100%;
-
-            background-image: url('/prod/gtav/splash.png');
-        }
-
-        @font-face {
-            font-family: 'Titillium';
-            src: url('/prod/gtav/logotype.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-
-        }
-
-        @font-face {
-            font-family: 'Roboto';
-            src: url('/prod/gtav/roboto.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        #content
-        {
-            right: 10px;
-            top: 10px;
-            position: absolute;
-            height: 50px;
-        }
-
-        #subtitle
-        {
-            display: block;
-
-            color: #77a6b6;
-
-            font-family: "Roboto";
-            font-weight: 500;
-
-            text-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-            /* lazy fix for static page */
-            position: relative;
-            left: 80%;
-            bottom: 125%;
-        }
-
-        .logotype i
-        {
-            vertical-align: middle;
-            display: inline-block;
-            color: #77a6b6;
-
-            font-size: 150%;
-
-            text-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-        }
-
-        .logotype
-        {
-            -webkit-font-smoothing: antialiased; /* screw Trident/Gecko, they have weird fonts anyway :-) */
-
-            font-family: 'Titillium';
-            font-size: 48px;
-
-            display: inline-block;
-        }
-
-        .logotype a
-        {
-            text-decoration: none;
-            color: #77a6b6;;
-        }
-
-        #logo
-        {
-            display: inline-block;
-            vertical-align: middle;
-
-            padding-right: 10px;
-            margin-right: 5px;
-
-            border-right: 2px solid #77a6b6;
         }
     </style>
 </head>
@@ -223,19 +354,36 @@
         <div style="height: 100%; position: absolute; top: 0px; left: 0px; right: 0px;">
             <div style="position: relative; top: 50%; transform: translateY(-50%); z-index: 99; text-align: center;">
                 <p style="font-family: Segoe UI, sans-serif; font-size: 40px; color: #fff; line-height: 40px; margin: 0px; text-shadow: 0px 0px 4px #333;">
-                    CitizenFX ROS &copy; http://citizen.re/
+                    SCUI &copy; cfx.re
                 </p>
             </div>
         </div>
     </div>
     <div class="launcher">
-        <div id="content">
-                <svg width='94px' height='94px' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" class="uil-default"><rect x="0" y="0" width="100" height="100" fill="none" class="bk"></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(0 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(30 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.08333333333333333s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(60 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.16666666666666666s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(90 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.25s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(120 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.3333333333333333s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(150 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.4166666666666667s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(180 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.5s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(210 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.5833333333333334s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(240 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.6666666666666666s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(270 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.75s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(300 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.8333333333333334s' repeatCount='indefinite'/></rect><rect  x='46.5' y='40' width='7' height='20' rx='5' ry='5' fill='#abc6e9' transform='rotate(330 50 50) translate(0 -30)'>  <animate attributeName='opacity' from='1' to='0' dur='1s' begin='0.9166666666666666s' repeatCount='indefinite'/></rect></svg>
-            <div id="subtitle">
-                <br />
-                
-            </div>
+    <h1><span class="hl">Cfx</span>.re</h1>
+    <div class="content-wrap">
+        <h3>Initializing MTL</h3>
+        <div class="loading-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
         </div>
+    </div>
+
+    <script>
+
+        function error(message, exceptionMsg) {
+            var copyException = "<div id=\"button\" class=\"button\">copy log to clipboard</div>";
+            document.querySelectorAll(".content-wrap")[0].innerHTML = "<h3>" + message + "</h3>" + copyException;
+
+            document.getElementById("button").addEventListener("click", () => {
+                navigator.clipboard.writeText(exceptionMsg).then(function() {
+                    document.getElementById("button").innerText = "copied!";
+                }, function() {
+                });
+            });
+        }
+    </script>
     </div>
 </body>
 </html>

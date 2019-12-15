@@ -80,7 +80,7 @@ public:
 	//
 	// Obtains a reference to the resource with the passed identity string.
 	//
-	virtual fwRefContainer<Resource> GetResource(const std::string& identifier) = 0;
+	virtual fwRefContainer<Resource> GetResource(const std::string& identifier, bool withProvides = true) = 0;
 
 	//
 	// Iterates over all registered resources.
@@ -169,7 +169,7 @@ public:
 	//
 	// Gets the current resource manager.
 	//
-	static RESOURCES_CORE_EXPORT ResourceManager* GetCurrent();
+	static RESOURCES_CORE_EXPORT ResourceManager* GetCurrent(bool allowFallback = true);
 };
 
 RESOURCES_CORE_EXPORT ResourceManager* CreateResourceManager();

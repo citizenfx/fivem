@@ -1,0 +1,5530 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- PC CONTROL MAPPINGS -->
+
+<MappingData>
+	<Actions>
+
+		<Item key="INPUT_MOVE_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MOVE_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MOVE_LEFT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MOVE_RIGHT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+
+		<Item key="INPUT_LOOK_LEFT_ONLY">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_X</Source>
+						<Trigger>NEGATIVE</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+
+		<Item key="INPUT_LOOK_RIGHT_ONLY">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_X</Source>
+						<Trigger>POSITIVE</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MOVE_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MOVE_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MOVE_LEFT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MOVE_RIGHT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SNIPER_ZOOM_IN_ONLY">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SNIPER_ZOOM_OUT_ONLY">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_MOVE_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_MOVE_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_MOVE_LEFT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_MOVE_RIGHT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+
+		<!-- MAPPINGS -->
+
+		<Item key="INPUT_AIM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AIMING_TOGGLED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_AIM_IN_AIR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_U</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_ATTACK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_CONTEXT_GALLERY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_DOF">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_EXPRESSION_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_EXPRESSION_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_HANDHELD_USE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_POSE_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_POSE_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_SELFIE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_MIDDLE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CAMERA_TAKE_PHOTO">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CINEMATIC_CAM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CINEMATIC_CAM_CHANGE_SHOT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_C</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CINEMATIC_CAM_LR">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_X</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CINEMATIC_CAM_UD">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_Y</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CONTEXT_A">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CONTEXT_B">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CONTEXT_X">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CONTEXT_Y">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_COVER">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_DELETE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DELETE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_DROP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_FUNCTION">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_GRAB">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		<Item key="INPUT_CREATOR_LS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LCONTROL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_LT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEUP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_MENU_SELECT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_G</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_MENU_TOGGLE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_MENU_PLACE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RETURN</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_MENU_RAISE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_MENU_ROTATE_LEFT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_MENU_ROTATE_RIGHT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_RS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_C</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_RT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEDOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_SEARCH">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_CAPITAL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_SWITCH_CAM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_ZOOM_IN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEUP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CREATOR_ZOOM_OUT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEDOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_ACCEPT">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_ACCEPT_DOUBLE_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_ACCEPT_HOLD">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<Flags>WAIT ONGOING</Flags>
+							<States>
+								<Item>
+									<Source>CURSOR_ACCEPT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_CURSOR_CANCEL">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_CANCEL_DOUBLE_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_CANCEL_HOLD">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<Flags>WAIT ONGOING</Flags>
+							<States>
+								<Item>
+									<Source>MOUSE_RIGHT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_CURSOR_FORWARD_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_FORWARD_DOUBLE_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_FORWARD_HOLD">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<Flags>WAIT ONGOING</Flags>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN1</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_CURSOR_BACKWARD_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_BACKWARD_DOUBLE_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_BACKWARD_HOLD">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<Flags>WAIT ONGOING</Flags>
+							<States>
+								<Item>
+									<Source>MOUSE_EXTRABTN2</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>		
+
+		<Item key="INPUT_CURSOR_SCROLL_DOWN">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_SCROLL_UP">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_SCROLL_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_SCROLL_DOUBLE_CLICK">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="132"/>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>RELEASED</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_SCROLL_HOLD">
+			<Mappings>
+				<Item type="FullSequence">
+				<Flags>EXCLUSIVE</Flags>
+					<Steps>
+						<Item>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="200"/>
+							<Flags>WAIT ONGOING</Flags>
+							<States>
+								<Item>
+									<Source>MOUSE_MIDDLE</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>		
+		
+		<Item key="INPUT_CURSOR_X">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>CURSOR_X</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_CURSOR_Y">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>CURSOR_Y</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_DISABLE_RADAR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_DOCUMENT_PAGE_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_DOCUMENT_PAGE_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_DOCUMENT_SCROLL">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<SecondarySource>MOUSE_WHEEL_UP</SecondarySource>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+			
+		<Item key="INPUT_DOCUMENT_SCROLL_DOWN_ONLY">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_DOCUMENT_SCROLL_UP_ONLY">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_DUCK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LCONTROL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_EMOTE_COMM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_3</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_EMOTE_DANCE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_EMOTE_GREET">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_2</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_EMOTE_TAUNT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_4</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_EMOTES_MANAGE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_MIDDLE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_EMOTES_FAVORITE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_EXPAND_RADAR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_X</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FEED_INTERACT">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_HOLD</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>KEY_F1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FOCUS_CAM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_ACCEPT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_RETURN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_NUMPADENTER</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_AXIS_X">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_AXIS_Y">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_SCROLL_AXIS_X">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LEFT</Item>
+							<Item>KEY_RIGHT</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_SCROLL_AXIS_Y">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_CANCEL">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_BACK</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_ESCAPE</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<Flags>WAIT ONGOING TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_ESCAPE</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_DELETE">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_DELETE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_DOWN">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_LB">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_Q</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_LEFT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_LEFT</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_LS">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_Z</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_LT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_PAGEDOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_MAP_NAV_DOWN">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_DOWN</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_DOWN</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_DOWN</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_MAP_NAV_LEFT">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_LEFT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_LEFT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_LEFT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_MAP_NAV_RIGHT">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_RIGHT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_RIGHT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_RIGHT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_MAP_NAV_UP">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_UP</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_UP</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_UP</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_FRONTEND_NAV_DOWN">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_DOWN</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_DOWN</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_DOWN</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_S</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_S</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_S</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_NAV_LEFT">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_LEFT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_LEFT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_LEFT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_A</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_A</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_A</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_NAV_RIGHT">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_RIGHT</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_RIGHT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_RIGHT</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_D</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_D</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_D</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_NAV_UP">
+			<Mappings>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_UP</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_UP</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_UP</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+				<Item type="FullSequence">
+					<Steps>
+						<Item>
+							<Flags>TRIGGER</Flags>
+							<States>
+								<Item>
+									<Source>KEY_W</Source>
+									<Trigger>PRESSED</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="350"/>
+							<Flags>WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_W</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+						<Item>
+							<TimeDuration value="150"/>
+							<Flags>REPEAT TRIGGER WAIT</Flags>
+							<States>
+								<Item>
+									<Source>KEY_W</Source>
+									<Trigger>DOWN</Trigger>
+								</Item>
+							</States>
+						</Item>
+					</Steps>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_FRONTEND_PAUSE_ALTERNATE">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_ESCAPE</Source>
+						<Trigger>PRESSED</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_PAUSE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_P</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RB">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_E</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RDOWN">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_RETURN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RIGHT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_RIGHT</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RIGHT_AXIS_X">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RBRACKET</Item>
+							<Item>KEY_LBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RIGHT_AXIS_Y">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<SecondarySource>MOUSE_WHEEL_UP</SecondarySource>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RLEFT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_SPACE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RS">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_X</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_PAGEUP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_RUP">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_LCONTROL</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_SELECT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_TAB</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_UP">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_X">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_SPACE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_FRONTEND_Y">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_LSHIFT</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_ACCEPT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RETURN</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPADENTER</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_CANCEL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_BACK</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_ESCAPE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_DOWN">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_EXTRA_OPTION">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_LEFT">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_LS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LCONTROL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_OPTION">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT_AXIS_X">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPAD4</Item>
+							<Item>KEY_NUMPAD6</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT_AXIS_Y">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPAD8</Item>
+							<Item>KEY_NUMPAD5</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT_STICK_DOWN">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPAD5</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT_STICK_LEFT">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPAD4</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT_STICK_RIGHT">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPAD6</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RIGHT_STICK_UP">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_NUMPAD8</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_RS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_SCROLL_FORWARD">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_GAME_MENU_SCROLL_BACKWARD">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_TAB_LEFT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEUP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_TAB_LEFT_SECONDARY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Z</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_TAB_RIGHT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEDOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_TAB_RIGHT_SECONDARY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_X</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_GAME_MENU_UP">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_JUMP">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_TAP</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_HORSE_COLLECT">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_HOLD</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MELEE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MOVE_LR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_MOVE_UD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_SPRINT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LSHIFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HORSE_STOP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LCONTROL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_HUD_SPECIAL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_INSPECT_ZOOM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_INTERACT_ANIMAL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_G</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_INTERACT_HORSE_BRUSH">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_B</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_INTERACT_HORSE_FEED">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_INTERACT_OPTION1">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_G</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_INTERACT_OPTION2">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_H</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_INTERACT_LOCKON_A">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_IRON_SIGHT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_WHEEL_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_JUMP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_LOOK_BEHIND">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_C</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+
+		<Item key="INPUT_LOOK_LR">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_X</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_MAP">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_PRESS_AND_HOLD</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_M</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MAP_POI">
+			<!-- NOTE: Not sure if this is a frontend input or not -->
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_E</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_MELEE_ATTACK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MELEE_BLOCK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MELEE_GRAPPLE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MELEE_HORSE_ATTACK_PRIMARY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MELEE_HORSE_ATTACK_SECONDARY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_CHANGE_BET_AXIS_Y">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_EQUALS</Item>
+							<Item>KEY_MINUS</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>MOUSE_WHEEL_UP</Item>
+							<Item>MOUSE_WHEEL_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_DECLINE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_DOUBLE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_HAND_VIEW">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_HIT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_H</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_SPLIT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_STAND">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BLACKJACK_TABLE_VIEW">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FISHING_REEL_SPEED_UP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FISHING_REEL_SPEED_DOWN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FISHING_REEL_SPEED_AXIS">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<SecondarySource>MOUSE_WHEEL_DOWN</SecondarySource>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_MINIGAME_FISHING_MANUAL_REEL_IN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_MINIGAME_FISHING_MANUAL_REEL_OUT_MODIFER">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LSHIFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_INCREASE_BET">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_EQUALS</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_MINIGAME_DECREASE_BET">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_MINUS</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_DOMINOES_MOVE_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_DOMINOES_MOVE_LEFT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LEFT</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_DOMINOES_MOVE_RIGHT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RIGHT</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_DOMINOES_MOVE_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_DOMINOES_VIEW_DOMINOES">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_DOMINOES_VIEW_MOVES">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_A">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_B">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_CYCLE_SEQUENCE_LEFT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_CYCLE_SEQUENCE_RIGHT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_FLOURISH_CONTINUE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_FLOURISH_END">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_PRACTICE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_X">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_Y">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_FFF_ZOOM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_HELP_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_PLACE_BET">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RETURN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_POKER_CHECK_FOLD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_G</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_POKER_COMMUNITY_CARDS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_POKER_FOLD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_POKER_SKIP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_POKER_YOUR_CARDS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_MINIGAME_POKER_SHOW_POSSIBLE_HANDS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_H</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MOVE_LR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MOVE_UD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MULTIPLAYER_SPECTATE_HIDE_HUD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_H</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MULTIPLAYER_SPECTATE_PLAYER_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MULTIPLAYER_SPECTATE_PLAYER_OPTIONS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_O</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MULTIPLAYER_SPECTATE_PLAYER_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_NEXT_CAMERA">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_OPEN_EMOTE_WHEEL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_OPEN_JOURNAL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_J</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_OPEN_SATCHEL_MENU">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_B</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_OPEN_WHEEL_MENU">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_HOLD</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_PREV_WEAPON">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_WHEEL_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_NEXT_WEAPON">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_WHEEL_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PICKUP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_PLAYER_MENU">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_L</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+
+		<Item key="INPUT_PROMPT_PAGE_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_QUICK_EQUIP_ITEM">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_TAP</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_QUICK_SELECT_INSPECT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_MIDDLE</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_QUICK_SELECT_SECONDARY_NAV_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_X</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_QUICK_SELECT_SECONDARY_NAV_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Z</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_QUICK_SHORTCUT_ABILITIES_MENU">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_SPACE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_QUICK_USE_ITEM">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_I</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_RADIAL_MENU_NAV_LR">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_X</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_RADIAL_MENU_NAV_UD">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_Y</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_RADIAL_MENU_SLOT_NAV_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_RADIAL_MENU_SLOT_NAV_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_REGULAR_RADAR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_C</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_RELOAD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_REVEAL_HUD">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_TAP</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SELECT_ITEM_WHEEL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F4</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SELECT_NEXT_WHEEL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SELECT_RADAR_MODE">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_HOLD</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>KEY_LMENU</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SHOP_CHANGE_CURRENCY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LSHIFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SIMPLE_RADAR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Z</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SKIP_CUTSCENE">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_SPACE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_RETURN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_LEFT</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_SNIPER_ZOOM">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<SecondarySource>MOUSE_WHEEL_DOWN</SecondarySource>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RBRACKET</Item>
+							<Item>KEY_LBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SPECIAL_ABILITY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_MIDDLE</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_CAPITAL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SPECIAL_ABILITY_ACTION">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_SPRINT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LSHIFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_STICKY_FEED_ACCEPT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_RETURN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_NUMPADENTER</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_STICKY_FEED_CANCEL">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_BACK</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_ESCAPE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_STICKY_FEED_X">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_SPACE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_STICKY_FEED_Y">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_RSHIFT</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+
+		<Item key="INPUT_SWITCH_SHOULDER">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_X</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_TITHING_INCREASE_AMOUNT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_UP</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_TITHING_DECREASE_AMOUNT">
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>MOUSE_WHEEL_DOWN</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_TOGGLE_HOLSTER">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_TAP</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_TWIRL_PISTOL">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_DOUBLE_CLICK</SequenceName>
+				<Mappings>
+					<Item>
+						<Flags>EXCLUSIVE</Flags>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_ACCELERATE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LSHIFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+	
+		<Item key="INPUT_VEH_BRAKE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LCONTROL</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_HEADLIGHT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_O</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_HORN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_G</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_MOVE_LR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_VEH_MOVE_UD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_VEH_SHUFFLE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Z</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_WHISTLE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_H</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_PUSH_TO_TALK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_N</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<!-- CFX addition -->
+		<Item key="INPUT_MP_TEXT_CHAT_ALL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_T</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		
+		<Item key="INPUT_PC_FREE_LOOK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_MIDDLE</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>KEY_LMENU</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F6</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_CHANGE_CAMERA">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_V</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_MOVE_LR">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_MOVE_LEFT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_A</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_MOVE_RIGHT_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_D</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_MOVE_UD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_MOVE_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_W</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_MOVE_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_S</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_PHOTO_MODE_RESET">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_LENSE_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_X</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_LENSE_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Z</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_ROTATE_LEFT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_Q</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_ROTATE_RIGHT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_TOGGLE_HUD">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_H</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_VIEW_PHOTOS">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_G</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_TAKE_PHOTO">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>MOUSE_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_BACK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_BACK</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+			<Mappings>
+				<Item type="Simple">
+					<State>
+						<Source>KEY_ESCAPE</Source>
+						<Trigger>NONZERO</Trigger>
+					</State>
+				</Item>
+			</Mappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_SWITCH_MODE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_TAB</Item>
+						</Sources>
+					</Item>
+					<Item>
+						<Sources>
+							<Item>MOUSE_MIDDLE</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FILTER_INTENSITY_UP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FILTER_INTENSITY_DOWN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FOCAL_LENGTH">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FOCAL_LENGTH_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_UP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FOCAL_LENGTH_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_DOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FILTER_NEXT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RIGHT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_FILTER_PREV">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LEFT</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>		
+			
+		<Item key="INPUT_PHOTO_MODE_ZOOM_IN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_PHOTO_MODE_ZOOM_OUT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_DOF">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEUP</Item>
+							<Item>KEY_PAGEDOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_DOF_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEUP</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_DOF_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_PAGEDOWN</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>	
+		
+		<Item key="INPUT_PHOTO_MODE_EXPOSURE_UP">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_J</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_EXPOSURE_DOWN">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_K</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>	
+		
+		<Item key="INPUT_PHOTO_MODE_EXPOSURE_LOCK">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_L</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_CONTRAST">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_AXIS_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LBRACKET</Item>
+							<Item>KEY_RBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_CONTRAST_UP_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_RBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_CONTRAST_DOWN_ONLY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_LBRACKET</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_CONTEXT_LT">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_SWITCH_FIRING_MODE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_B</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_SHOP_BUY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_E</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_SHOP_SELL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_R</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_SHOP_SPECIAL">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_F</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		<Item key="INPUT_SHOP_BOUNTY">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>KEY_B</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		
+		<Item key="INPUT_MULTIPLAYER_INFO">
+			<AdaptorMappings>
+				<SequenceName>SEQUENCE_SINGLE_SOURCE_HOLD</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MELEE_GRAPPLE_STAND_SWITCH">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+		
+		<Item key="INPUT_MELEE_MODIFIER">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+
+		<Item key="INPUT_MINIGAME_BARTENDER_RAISE_BOTTLE">
+			<AdaptorMappings>
+				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+				<Mappings>
+					<Item>
+						<Sources>
+							<Item>SYSTEM_SOURCE_1</Item>
+						</Sources>
+					</Item>
+				</Mappings>
+			</AdaptorMappings>
+		</Item>
+		
+    <Item key="INPUT_SELECT_QUICKSELECT_SIDEARMS_LEFT">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_1</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_DUALWIELD">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_2</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_SIDEARMS_RIGHT">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_3</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_UNARMED">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_4</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_MELEE_NO_UNARMED">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_5</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_SECONDARY_LONGARM">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_6</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_THROWN">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_7</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+
+    <Item key="INPUT_SELECT_QUICKSELECT_PRIMARY_LONGARM">
+      <AdaptorMappings>
+        <SequenceName>SIMPLE_SINGLE_SOURCE_PRESSED</SequenceName>
+        <Mappings>
+          <Item>
+            <Sources>
+              <Item>KEY_8</Item>
+            </Sources>
+          </Item>
+        </Mappings>
+      </AdaptorMappings>
+    </Item>
+	
+	
+	<Item key="INPUT_FRONTEND_SOCIAL_CLUB">
+		<Mappings>
+			<Item type="Simple">
+				<State>
+					<Source>KEY_HOME</Source>
+					<Trigger>NONZERO</Trigger>
+				</State>
+			</Item>
+		</Mappings>
+	</Item>
+	
+	
+	</Actions>
+	
+	
+
+	<!--	INDENTICAL MAPPINGS ************************************************************** -->
+
+	<IdenticalMappings>
+
+		<Item key="INPUT_BREAK_VEHICLE_LOCK">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_DYNAMIC_SCENARIO">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_HITCH_ANIMAL">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_ENTER">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_ARREST">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_IGNITE">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_INTERACT_LEAD_ANIMAL">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_LOOT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_LOOT2">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_LOOT_VEHICLE">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_REVIVE">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_HORSE_EXIT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_VEH_EXIT">INPUT_CONTEXT_Y</Item>
+
+		<Item key="INPUT_HOGTIE">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_CUT_FREE">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_STOP_LEADING_ANIMAL">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_CAMP_BED_INSPECT">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_CARRIABLE_SUICIDE">INPUT_CONTEXT_B</Item>
+
+		<Item key="INPUT_LOOT_ALIVE_COMPONENT">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_LOOT3">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_MERCY_KILL">INPUT_CONTEXT_X</Item>
+
+		<Item key="INPUT_PICKUP_CARRIABLE">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_PICKUP_CARRIABLE_FROM_PARENT">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_PICKUP_CARRIABLE2">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_PLACE_CARRIABLE_ONTO_PARENT">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_CARRIABLE_BREAK_FREE">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_DROP">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_SADDLE_TRANSFER">INPUT_WHISTLE</Item>
+
+		<Item key="INPUT_CONTEXT_RT">INPUT_ATTACK</Item>
+		<Item key="INPUT_CONTEXT_ACTION">INPUT_ATTACK</Item>
+
+		<Item key="INPUT_HORSE_ATTACK2">INPUT_HORSE_ATTACK</Item>
+
+		<Item key="INPUT_HORSE_GUN_LR">INPUT_LOOK_LR</Item>
+
+		<Item key="INPUT_HORSE_LOOK_BEHIND">INPUT_LOOK_BEHIND</Item>
+
+		<Item key="INPUT_INSPECT_LR">INPUT_MOVE_LR</Item>
+		<Item key="INPUT_INSPECT_UD">INPUT_MOVE_UD</Item>
+
+		<Item key="INPUT_INTERACT_HIT_CARRIABLE">INPUT_HORSE_MELEE</Item>
+
+		<Item key="INPUT_INTERACT_LOCKON_ANIMAL">INPUT_INTERACT_ANIMAL</Item>
+		<Item key="INPUT_INTERACT_LOCKON_CALL_ANIMAL">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_INTERACT_LOCKON_DETACH_HORSE">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_INTERACT_LOCKON_TARGET_INFO">INPUT_COVER</Item>
+		<Item key="INPUT_INTERACT_LOCKON_TRACK_ANIMAL">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_INTERACT_LOCKON_STUDY_BINOCULARS">INPUT_COVER</Item>
+		<Item key="INPUT_INTERACT_WILD_ANIMAL">INPUT_INTERACT_ANIMAL</Item>
+
+		<Item key="INPUT_INTERACT_NEG">INPUT_MELEE_ATTACK</Item>
+		<Item key="INPUT_INTERACT_POS">INPUT_MELEE_BLOCK</Item>
+		<Item key="INPUT_SURRENDER">INPUT_MELEE_GRAPPLE</Item>
+
+		<Item key="INPUT_MELEE_GRAPPLE_BREAKOUT">INPUT_MELEE_BLOCK</Item>
+		<Item key="INPUT_MELEE_GRAPPLE_REVERSAL">INPUT_MELEE_GRAPPLE</Item>
+		<Item key="INPUT_MELEE_GRAPPLE_ATTACK">INPUT_MELEE_ATTACK</Item>
+		<Item key="INPUT_MELEE_GRAPPLE_CHOKE">INPUT_MELEE_GRAPPLE</Item>
+		
+		<Item key="INPUT_MINIGAME_BUILDING_CAMERA_PREV">INPUT_COVER</Item>
+		<Item key="INPUT_MINIGAME_BUILDING_CAMERA_NEXT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_BUILDING_HAMMER">INPUT_ATTACK</Item>
+
+		<Item key="INPUT_MINIGAME_CRACKPOT_BOAT_SHOW_CONTROLS">INPUT_OPEN_WHEEL_MENU</Item>
+
+		<Item key="INPUT_MINIGAME_FISHING_HOOK">INPUT_ATTACK</Item>
+		<Item key="INPUT_MINIGAME_FISHING_KEEP_FISH">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_FISHING_LEAN_LEFT">INPUT_COVER</Item>
+		<Item key="INPUT_MINIGAME_FISHING_LEAN_RIGHT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_FISHING_LEFT_AXIS_X">INPUT_RADIAL_MENU_NAV_LR</Item>
+		<Item key="INPUT_MINIGAME_FISHING_LEFT_AXIS_Y">INPUT_RADIAL_MENU_NAV_UD</Item>
+		<Item key="INPUT_MINIGAME_FISHING_RESET_CAST">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_FISHING_RIGHT_AXIS_X">INPUT_MOVE_LR</Item>
+		<Item key="INPUT_MINIGAME_FISHING_RIGHT_AXIS_Y">INPUT_MOVE_UD</Item>
+		<Item key="INPUT_MINIGAME_FISHING_QUICK_EQUIP">INPUT_CONTEXT_Y</Item>
+
+		<Item key="INPUT_MINIGAME_LEFT_TRIGGER">INPUT_ATTACK</Item>
+		<Item key="INPUT_MINIGAME_RIGHT_TRIGGER">INPUT_CONTEXT_LT</Item>
+
+		<Item key="INPUT_MINIGAME_MILKING_LEFT_ACTION">INPUT_ATTACK</Item>
+		<Item key="INPUT_MINIGAME_MILKING_RIGHT_ACTION">INPUT_CONTEXT_LT</Item>
+
+		<Item key="INPUT_MULTIPLAYER_DEAD_INFORM_LAW">INPUT_COVER</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_FEUD">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_LEADER_FEUD">INPUT_CONTEXT_A</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_RESPAWN">INPUT_ATTACK</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_SWITCH_RESPAWN">INPUT_DUCK</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_PARLEY">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_PRESS_CHARGES">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_MULTIPLAYER_DEAD_DUEL">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_MULTIPLAYER_RACE_RESPAWN">INPUT_CONTEXT_Y</Item>
+
+		<Item key="INPUT_MULTIPLAYER_LEADERBOARD_SCROLL_UD">INPUT_DOCUMENT_SCROLL</Item>
+
+		<Item key="INPUT_SCRIPTED_FLY_LR">INPUT_MOVE_LR</Item>
+		<Item key="INPUT_SCRIPTED_FLY_UD">INPUT_MOVE_UD</Item>
+		<Item key="INPUT_SCRIPTED_FLY_ZDOWN">INPUT_DUCK</Item>
+		<Item key="INPUT_SCRIPTED_FLY_ZUP">INPUT_JUMP</Item>
+
+		<Item key="INPUT_SHOP_INSPECT">INPUT_CONTEXT_Y</Item>
+		
+		<Item key="INPUT_VEH_BOAT_ACCELERATE">INPUT_VEH_ACCELERATE</Item>
+		<Item key="INPUT_VEH_BOAT_AIM">INPUT_AIM</Item>
+		<Item key="INPUT_VEH_BOAT_ATTACK">INPUT_ATTACK</Item>
+		<Item key="INPUT_VEH_BOAT_ATTACK2">INPUT_VEH_ATTACK</Item>
+		<Item key="INPUT_VEH_BOAT_BRAKE">INPUT_VEH_BRAKE</Item>
+		<Item key="INPUT_VEH_BOAT_TURN_LR">INPUT_VEH_MOVE_LR</Item>
+		<Item key="INPUT_VEH_BOAT_TURN_LEFT_ONLY">INPUT_VEH_MOVE_LEFT_ONLY</Item>
+		<Item key="INPUT_VEH_BOAT_TURN_RIGHT_ONLY">INPUT_VEH_MOVE_RIGHT_ONLY</Item>
+
+		<Item key="INPUT_VEH_CAR_ACCELERATE">INPUT_VEH_ACCELERATE</Item>
+		<Item key="INPUT_VEH_CAR_AIM">INPUT_AIM</Item>
+		<Item key="INPUT_VEH_CAR_ATTACK">INPUT_ATTACK</Item>
+		<Item key="INPUT_VEH_CAR_ATTACK2">INPUT_VEH_ATTACK</Item>
+		<Item key="INPUT_VEH_CAR_BRAKE">INPUT_VEH_BRAKE</Item>
+		<Item key="INPUT_VEH_CAR_TURN_LR">INPUT_VEH_MOVE_LR</Item>
+		<Item key="INPUT_VEH_CAR_TURN_LEFT_ONLY">INPUT_VEH_MOVE_LEFT_ONLY</Item>
+		<Item key="INPUT_VEH_CAR_TURN_RIGHT_ONLY">INPUT_VEH_MOVE_RIGHT_ONLY</Item>
+		
+		<Item key="INPUT_VEH_DRAFT_ACCELERATE">INPUT_VEH_ACCELERATE</Item>
+		<Item key="INPUT_VEH_DRAFT_BRAKE">INPUT_VEH_BRAKE</Item>
+		<Item key="INPUT_VEH_DRAFT_TURN_LR">INPUT_VEH_MOVE_LR</Item>
+		<Item key="INPUT_VEH_DRAFT_TURN_LEFT_ONLY">INPUT_VEH_MOVE_LEFT_ONLY</Item>
+		<Item key="INPUT_VEH_DRAFT_TURN_RIGHT_ONLY">INPUT_VEH_MOVE_RIGHT_ONLY</Item>
+		<Item key="INPUT_VEH_DRAFT_MOVE_UD">INPUT_VEH_MOVE_UD</Item>
+		<Item key="INPUT_VEH_DRAFT_MOVE_UP_ONLY">INPUT_VEH_MOVE_UP_ONLY</Item>
+		<Item key="INPUT_VEH_DRAFT_MOVE_DOWN_ONLY">INPUT_VEH_MOVE_DOWN_ONLY</Item>
+
+		<Item key="INPUT_VEH_DRAFT_AIM">INPUT_AIM</Item>
+		<Item key="INPUT_VEH_DRAFT_ATTACK">INPUT_ATTACK</Item>
+		<Item key="INPUT_VEH_DRAFT_ATTACK2">INPUT_VEH_ATTACK</Item>
+
+		<Item key="INPUT_VEH_FLY_THROTTLE_UP">INPUT_VEH_ACCELERATE</Item>
+
+		<Item key="INPUT_VEH_GUN_LR">INPUT_LOOK_LR</Item>
+		<Item key="INPUT_VEH_HANDBRAKE">INPUT_VEH_BRAKE</Item>
+
+		<Item key="INPUT_VEH_HANDCART_ACCELERATE">INPUT_VEH_ACCELERATE</Item>
+		<Item key="INPUT_VEH_HANDCART_BRAKE">INPUT_VEH_BRAKE</Item>
+
+		<Item key="INPUT_VEH_LOOK_BEHIND">INPUT_LOOK_BEHIND</Item>
+
+		<Item key="INPUT_HORSE_AIM">INPUT_AIM</Item>
+		<Item key="INPUT_VEH_AIM">INPUT_AIM</Item>
+		<Item key="INPUT_VEH_PASSENGER_AIM">INPUT_AIM</Item>
+		
+		<Item key="INPUT_HORSE_ATTACK">INPUT_ATTACK</Item>
+		<Item key="INPUT_VEH_ATTACK">INPUT_ATTACK</Item>
+		<Item key="INPUT_VEH_PASSENGER_ATTACK">INPUT_ATTACK</Item>
+
+		<Item key="INPUT_VEH_TRAVERSAL">INPUT_JUMP</Item>
+
+		<Item key="INPUT_WHISTLE_HORSEBACK">INPUT_WHISTLE</Item>
+
+		<Item key="INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY">INPUT_SPECIAL_ABILITY</Item>
+
+		<Item key="INPUT_QUICK_SELECT_PUT_AWAY_ROD">INPUT_CONTEXT_B</Item>
+
+		<Item key="INPUT_FRONTEND_RRIGHT">INPUT_FRONTEND_CANCEL</Item>
+		
+		<Item key="INPUT_MINIGAME_ACTION_UP">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_ACTION_DOWN">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_ACTION_LEFT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_ACTION_RIGHT">INPUT_CONTEXT_Y</Item>
+		
+		<Item key="INPUT_BREAK_DOOR_LOCK">INPUT_CONTEXT_X</Item>
+		
+		<Item key="INPUT_EMOTES_SLOT_NAV_NEXT">INPUT_RADIAL_MENU_SLOT_NAV_NEXT</Item>
+		
+
+		<Item key="INPUT_OPEN_SATCHEL_HORSE_MENU">INPUT_OPEN_SATCHEL_MENU</Item>
+		
+		<Item key="INPUT_INSPECT_OPEN_SATCHEL">INPUT_OPEN_SATCHEL_MENU</Item>
+		
+	
+		<Item key="INPUT_INTERROGATE_BEAT">INPUT_MELEE_ATTACK</Item>
+		<Item key="INPUT_INTERROGATE_KILL">INPUT_MELEE_GRAPPLE</Item>
+		<Item key="INPUT_INTERROGATE_RELEASE">INPUT_MELEE_BLOCK</Item>
+		<Item key="INPUT_INTERROGATE_QUESTION">INPUT_ATTACK</Item>
+		
+		<Item key="INPUT_CAMERA_ZOOM">INPUT_SNIPER_ZOOM</Item>
+		
+		<Item key="INPUT_INTERACT_LOCKON_Y">INPUT_MELEE_GRAPPLE</Item>
+	
+		<Item key="INPUT_MINIGAME_BARTENDER_RAISE_GLASS">INPUT_ATTACK</Item>
+		<Item key="INPUT_MINIGAME_BARTENDER_POUR">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_MINIGAME_BARTENDER_SERVE">INPUT_CONTEXT_X</Item>
+		
+		<Item key="INPUT_COVER_TRANSITION">INPUT_JUMP</Item>
+		<Item key="INPUT_HORSE_COVER_TRANSITION">INPUT_JUMP</Item>
+		
+		<Item key="INPUT_EMOTE_TWIRL_GUN_HOLD">INPUT_CONTEXT_LT</Item>
+		<Item key="INPUT_EMOTE_TWIRL_GUN_VAR_A">INPUT_EMOTE_GREET</Item>
+		<Item key="INPUT_EMOTE_TWIRL_GUN_VAR_B">INPUT_EMOTE_DANCE</Item>
+		<Item key="INPUT_EMOTE_TWIRL_GUN_VAR_C">INPUT_EMOTE_TAUNT</Item>
+		<Item key="INPUT_EMOTE_TWIRL_GUN_VAR_D">INPUT_EMOTE_COMM</Item>
+
+		<Item key="INPUT_FRONTEND_PHOTO_MODE">INPUT_PHOTO_MODE</Item>
+
+		<Item key="INPUT_EMOTE_GROUP_LINK">INPUT_OPEN_EMOTE_WHEEL</Item>
+		<Item key="INPUT_EMOTE_GROUP_LINK_HORSE">INPUT_OPEN_EMOTE_WHEEL</Item>
+		<Item key="INPUT_OPEN_EMOTE_WHEEL_HORSE">INPUT_OPEN_EMOTE_WHEEL</Item>
+	
+		<Item key="INPUT_CRAFTING_EAT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_CAMP_SETUP_TENT">INPUT_DUCK</Item>
+
+		<Item key="INPUT_DIVE">INPUT_COVER</Item>
+		
+		<Item key="INPUT_ACCURATE_AIM">INPUT_IRON_SIGHT</Item>
+		<Item key="INPUT_TOGGLE_WEAPON_SCOPE">INPUT_IRON_SIGHT</Item>
+		
+		<Item key="INPUT_HORSE_COMMAND_STAY">INPUT_CONTEXT_X</Item>
+		<Item key="INPUT_HORSE_COMMAND_FLEE">INPUT_CONTEXT_B</Item>
+		<Item key="INPUT_HORSE_COMMAND_FOLLOW">INPUT_CONTEXT_Y</Item>
+		
+		<Item key="INPUT_MELEE_GRAPPLE_MOUNT_SWITCH">INPUT_DUCK</Item>
+		
+		<Item key="INPUT_SPECIAL_ABILITY_SECONDARY">INPUT_CONTEXT_LT</Item>
+		
+		<Item key="INPUT_VEH_DRAFT_SWITCH_DRIVERS">INPUT_VEH_SHUFFLE</Item>
+
+		<Item key="INPUT_ATTACK2">INPUT_ATTACK</Item>
+		<Item key="INPUT_VEH_ATTACK2">INPUT_VEH_ATTACK</Item>
+		
+		<Item key="INPUT_MULTIPLAYER_PREDATOR_ABILITY">INPUT_WHISTLE</Item>
+		
+		<Item key="INPUT_MINIGAME_QUIT">INPUT_GAME_MENU_CANCEL</Item>
+		<Item key="INPUT_QUIT">INPUT_GAME_MENU_CANCEL</Item>
+	
+		<Item key="INPUT_MINIGAME_FISHING_RELEASE_FISH">INPUT_CONTEXT_B</Item>
+		
+		<Item key="INPUT_MINIGAME_FFF_SKIP_TURN">INPUT_MINIGAME_POKER_SKIP</Item>
+		<Item key="INPUT_MINIGAME_DOMINOES_SKIP_DEAL">INPUT_MINIGAME_POKER_SKIP</Item>
+		
+		<Item key="INPUT_CREATOR_MENU_UP">INPUT_GAME_MENU_UP</Item>
+        <Item key="INPUT_CREATOR_MENU_DOWN">INPUT_GAME_MENU_DOWN</Item>
+		<Item key="INPUT_CREATOR_MENU_LEFT">INPUT_GAME_MENU_LEFT</Item>
+		<Item key="INPUT_CREATOR_MENU_RIGHT">INPUT_GAME_MENU_RIGHT</Item>
+		<Item key="INPUT_CREATOR_MENU_ACCEPT">INPUT_GAME_MENU_ACCEPT</Item>
+		<Item key="INPUT_CREATOR_ACCEPT">INPUT_GAME_MENU_ACCEPT</Item>
+       	<Item key="INPUT_CREATOR_MENU_CANCEL">INPUT_GAME_MENU_CANCEL</Item>
+      	<Item key="INPUT_CREATOR_MENU_FUNCTION">INPUT_GAME_MENU_OPTION</Item>
+        <Item key="INPUT_CREATOR_MENU_EXTRA_FUNCTION">INPUT_GAME_MENU_EXTRA_OPTION</Item>
+		<Item key="INPUT_CREATOR_MENU_EXTRA_FUNCTION">INPUT_GAME_MENU_EXTRA_OPTION</Item>
+		<Item key="INPUT_CREATOR_MOVE_UD">INPUT_MOVE_UD</Item>
+		<Item key="INPUT_CREATOR_MOVE_LR">INPUT_MOVE_LR</Item>
+		<Item key="INPUT_CREATOR_LOOK_LR">INPUT_LOOK_LR</Item>
+		
+		<Item key="INPUT_MINIGAME_POKER_BET">INPUT_MINIGAME_PLACE_BET</Item>
+		<Item key="INPUT_MINIGAME_BLACKJACK_BET">INPUT_MINIGAME_PLACE_BET</Item>
+		<Item key="INPUT_MINIGAME_DOMINOES_PLAY_TILE">INPUT_MINIGAME_PLACE_BET</Item>
+		<Item key="INPUT_MINIGAME_REPLAY">INPUT_MINIGAME_PLACE_BET</Item>
+		
+		<Item key="INPUT_SELECT_NEXT_WEAPON">INPUT_NEXT_WEAPON</Item>
+		<Item key="INPUT_SELECT_PREV_WEAPON">INPUT_PREV_WEAPON</Item>
+		
+
+		<Item key="INPUT_CAMERA_BACK">INPUT_GAME_MENU_CANCEL</Item>
+		<Item key="INPUT_CAMERA_PUT_AWAY">INPUT_GAME_MENU_CANCEL</Item>
+
+		<Item key="INPUT_MINIGAME_ACTION_X">INPUT_ATTACK</Item>
+
+		<Item key="INPUT_INTERACT_LOCKON_NEG">INPUT_MELEE_ATTACK</Item>
+		<Item key="INPUT_INTERACT_LOCKON_ROB">INPUT_MELEE_GRAPPLE</Item>
+		<Item key="INPUT_INTERACT_LOCKON_POS">INPUT_MELEE_BLOCK</Item>
+		
+		<Item key="INPUT_PHOTO_MODE_PC">INPUT_PHOTO_MODE</Item>
+		
+		<Item key="INPUT_GAME_MENU_LEFT_AXIS_X">INPUT_MOVE_LR</Item>
+		<Item key="INPUT_GAME_MENU_LEFT_AXIS_Y">INPUT_MOVE_UD</Item>
+		
+		<Item key="INPUT_INTERACT_LOCKON">INPUT_AIM</Item>
+		
+		<Item key="INPUT_EMOTE_ACTION">INPUT_ATTACK</Item>
+		
+		<Item key="INPUT_WEAPON_INSPECT_ZOOM">INPUT_CONTEXT_A</Item>
+		
+	</IdenticalMappings>
+	
+	<IdenticalSourceAdaptorMappings>
+		<Item key="INPUT_REVEAL_HUD">INPUT_SELECT_RADAR_MODE</Item>
+		<Item key="INPUT_HUD_SPECIAL">INPUT_SELECT_RADAR_MODE</Item>
+		<Item key="INPUT_PICKUP">INPUT_OPEN_WHEEL_MENU</Item>
+		<Item key="INPUT_QUICK_EQUIP_ITEM">INPUT_OPEN_WHEEL_MENU</Item>
+		<Item key="INPUT_TWIRL_PISTOL">INPUT_TOGGLE_HOLSTER</Item>
+		<Item key="INPUT_HORSE_COLLECT">INPUT_HORSE_JUMP</Item>
+		<Item key="INPUT_TITHING_INCREASE_AMOUNT">INPUT_GAME_MENU_UP</Item>
+		<Item key="INPUT_TITHING_DECREASE_AMOUNT">INPUT_GAME_MENU_DOWN</Item>
+		<Item key="INPUT_CONTEXT_LT">INPUT_AIM</Item>
+		<Item key="INPUT_MULTIPLAYER_INFO">INPUT_SELECT_RADAR_MODE</Item>
+		<Item key="INPUT_MELEE_GRAPPLE_STAND_SWITCH">INPUT_AIM</Item>
+		<Item key="INPUT_MELEE_MODIFIER">INPUT_AIM</Item>
+		<Item key="INPUT_MINIGAME_BARTENDER_RAISE_BOTTLE">INPUT_AIM</Item>
+	</IdenticalSourceAdaptorMappings>
+
+
+	<!--	NAMED SEQUENCES ************************************************************** -->
+
+	<NamedSequences>
+		<Item key="SIMPLE_SINGLE_SOURCE_NONZERO" type="Simple">
+			<State>
+				<Source>SYSTEM_SOURCE_1</Source>
+				<Trigger>NONZERO</Trigger>
+			</State>
+		</Item>
+
+		<Item key="SIMPLE_SINGLE_SOURCE_POSITIVE" type="Simple">
+			<State>
+				<Source>SYSTEM_SOURCE_1</Source>
+				<Trigger>POSITIVE</Trigger>
+			</State>
+		</Item>
+
+		<Item key="SIMPLE_SINGLE_SOURCE_NEGATIVE" type="Simple">
+			<State>
+				<Source>SYSTEM_SOURCE_1</Source>
+				<Trigger>NEGATIVE</Trigger>
+			</State>
+		</Item>
+
+		<Item key="SIMPLE_SINGLE_SOURCE_PRESSED" type="Simple">
+			<State>
+				<Source>SYSTEM_SOURCE_1</Source>
+				<Trigger>PRESSED</Trigger>
+			</State>
+		</Item>
+
+		<Item key="SIMPLE_AXIS_SOURCE_NONZERO" type="Simple">
+			<State>
+				<Source>SYSTEM_SOURCE_1</Source>
+				<SecondarySource>SYSTEM_SOURCE_2</SecondarySource>
+				<Trigger>NONZERO</Trigger>
+			</State>
+		</Item>
+
+		<Item key="SEQUENCE_SINGLE_SOURCE_DOUBLE_CLICK" type="FullSequence">
+			<Steps>
+				<Item>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>RELEASED</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<TimeDuration value="132"/>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>PRESSED</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<TimeDuration value="132"/>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>RELEASED</Trigger>
+						</Item>
+					</States>
+				</Item>
+			</Steps>
+		</Item>
+
+		<Item key="SEQUENCE_SINGLE_SOURCE_HOLD" type="FullSequence">
+			<Steps>
+				<Item>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>PRESSED</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<TimeDuration value="200"/>
+					<Flags>WAIT ONGOING</Flags>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>DOWN</Trigger>
+						</Item>
+					</States>
+				</Item>
+			</Steps>
+		</Item>
+
+		<Item key="SEQUENCE_SINGLE_SOURCE_TAP" type="FullSequence">
+			<Steps>
+				<Item>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>PRESSED</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<TimeDuration value="200"/>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>RELEASED</Trigger>
+						</Item>
+					</States>
+				</Item>
+			</Steps>
+		</Item>
+
+		<Item key="SEQUENCE_SINGLE_SOURCE_AUTO_REPEAT" type="FullSequence">
+			<Steps>
+				<Item>
+					<Flags>TRIGGER</Flags>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>PRESSED</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<TimeDuration value="350"/>
+					<Flags>WAIT</Flags>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>DOWN</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<TimeDuration value="150"/>
+					<Flags>REPEAT TRIGGER WAIT</Flags>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>DOWN</Trigger>
+						</Item>
+					</States>
+				</Item>
+			</Steps>
+		</Item>
+		
+		<Item key="SEQUENCE_SINGLE_SOURCE_PRESS_AND_HOLD" type="FullSequence">
+			<Steps>
+				<Item>
+					<Flags>TRIGGER</Flags>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>PRESSED</Trigger>
+						</Item>
+					</States>
+				</Item>
+				<Item>
+					<Flags>TRIGGER ONGOING</Flags>
+					<States>
+						<Item>
+							<Source>SYSTEM_SOURCE_1</Source>
+							<Trigger>DOWN</Trigger>
+						</Item>
+					</States>
+				</Item>
+			</Steps>
+		</Item>
+		
+		<Item key="SIMPLE_AIMING_TOGGLED" type="AimingToggled">
+			<State>
+				<Source>SYSTEM_SOURCE_1</Source>
+				<Trigger>DOWN</Trigger>
+			</State>
+		</Item>
+
+	</NamedSequences>
+	<RequiredNamedSequenceCount value="2"/>
+</MappingData>

@@ -1,0 +1,45 @@
+{
+	"apps":
+	[
+		{
+			"id": "lan",
+			"regkey": "Rockstar Games\\L.A. Noire",
+			"regval": "InstallDir",
+			"exe": "LANLauncher.exe",
+			"name": "L.A. Noire"
+		},
+		{
+			"id": "mp3",
+			"regkey": "Rockstar Games\\Max Payne 3",
+			"regval": "InstallFolder",
+			"exe": "PlayMaxPayne3.exe",
+			"name": "Max Payne 3"
+		}
+	],
+	"steamapps":
+	[
+		{ "id":"12100", "name":"Grand Theft Auto III", "mtlId":"gta3" },
+		{ "id":"12110", "name":"Grand Theft Auto: Vice City", "mtlId":"gtavc" },
+		{ "id":"12120", "name":"Grand Theft Auto: San Andreas", "mtlId":"gtasa" },
+		{ "id":"12200", "name":"Bully: Scholarship Edition", "mtlId":"bully" },
+		{ "id":"12230", "name":"Grand Theft Auto III", "mtlId":"gta3" },
+		{ "id":"12240", "name":"Grand Theft Auto: Vice City", "mtlId":"gtavc" },
+		{ "id":"12250", "name":"Grand Theft Auto: San Andreas", "mtlId":"gtasa" },
+		{ "id":"12270", "name":"Bully", "mtlId":"bully" },
+		{ "id":"12280", "name":"Grand Theft Auto III", "mtlId":"gta3" },
+
+		{ "id":"110700", "name":"Grand Theft Auto Vice City", "mtlId":"gtavc" },
+		{ "id":"110720", "name":"Grand Theft Auto San Andreas", "mtlId":"gtasa" },
+
+		{ "id":"110800", "name":"L.A. Noire", "mtlId":"lanoire" },
+
+		{ "id":"204100", "name":"Max Payne 3", "mtlId":"mp3" },
+		{ "id":"210350", "name":"Max Payne 3", "mtlId":"mp3" },
+		{ "id":"210410", "name":"Max Payne 3", "mtlId":"mp3" },
+		{ "id":"210430", "name":"Max Payne 3", "mtlId":"mp3" },
+
+		{ "id":"13371337", "name":"Grand Theft Auto V", "mtlId":"gta5" },
+
+		{ "id":"722230", "name":"L.A. Noire: The VR Case Files", "mtlId":"lanoirevr" }
+	]
+}

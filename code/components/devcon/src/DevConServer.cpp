@@ -14,6 +14,21 @@
 #include <mutex>
 #include <shared_mutex>
 
+#include <MultiplexTcpServer.h>
+#include <HttpServerImpl.h>
+
+#include <ResourceManager.h>
+#include <Profiler.h>
+
+#include <shellapi.h>
+
+#pragma comment(lib, "shell32.lib")
+
+#include <optional>
+#include <json.hpp>
+
+using json = nlohmann::json;
+
 #include <strsafe.h>
 
 static std::shared_mutex g_mutex;
@@ -128,7 +143,8 @@ static void FlushKnownCommands(net::TcpServerStream* stream)
 		buf.Write<uint16_t>(0);
 
 		char cmdBuf[64];
-		strcpy_s(cmdBuf, cmd.c_str());
+		strncpy(cmdBuf, cmd.c_str(), sizeof(cmdBuf));
+		cmdBuf[63] = '\0';
 
 		buf.Write(cmdBuf, sizeof(cmdBuf));
 
@@ -242,7 +258,97 @@ static InitFunction initFunction([]()
 		return;
 	}
 
-	tcpServer->SetConnectionCallback([](fwRefContainer<net::TcpServerStream> stream)
+	static fwRefContainer<net::MultiplexTcpServer> multiServer = new net::MultiplexTcpServer();
+	multiServer->AttachToServer(tcpServer);
+
+	auto httpPatternMatcher = [](const std::vector<uint8_t>& bytes)
+	{
+		if (bytes.size() > 10)
+		{
+			auto firstR = std::find(bytes.begin(), bytes.end(), '\r');
+
+			if (firstR != bytes.end())
+			{
+				auto firstN = firstR + 1;
+
+				if (firstN != bytes.end())
+				{
+					if (*firstN == '\n')
+					{
+						std::string match(firstR - 8, firstR);
+
+						if (match.find("HTTP/") == 0)
+						{
+							return net::MultiplexPatternMatchResult::Match;
+						}
+					}
+
+					return net::MultiplexPatternMatchResult::NoMatch;
+				}
+			}
+		}
+
+		return net::MultiplexPatternMatchResult::InsufficientData;
+	};
+
+	struct Handler : public net::HttpHandler
+	{
+		std::function<bool(fwRefContainer<net::HttpRequest>, fwRefContainer<net::HttpResponse>)> handler;
+
+		virtual bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
+		{
+			return handler(request, response);
+		}
+	};
+
+	static std::optional<json> lastProfile;
+
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* resman)
+	{
+		resman->GetComponent<fx::ProfilerComponent>()->OnRequestView.Connect([](const json& json)
+		{
+			lastProfile = json;
+
+			ShellExecuteW(nullptr, L"open", fmt::sprintf(L"http://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=http://localhost:29100/profileData.json").c_str(), NULL, NULL, SW_SHOW);
+		});
+	}, INT32_MAX);
+
+	static fwRefContainer<Handler> httpHandler = new Handler();
+	httpHandler->handler = [=](fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
+	{
+		if (request->GetPath() == "/profileData.json")
+		{
+			response->SetHeader("Access-Control-Allow-Origin", "*");
+
+			response->End(lastProfile->dump(-1, ' ', false, json::error_handler_t::replace));
+
+			return true;
+		}
+
+		response->SetStatusCode(404);
+		response->End(fmt::sprintf("Route %s not found.", request->GetPath()));
+
+		return true;
+	};
+
+	static fwRefContainer<net::HttpServer> httpServer = new net::HttpServerImpl();
+	httpServer->RegisterHandler(httpHandler);
+
+	httpServer->AttachToServer(multiServer->CreateServer(httpPatternMatcher));
+
+	static auto devconServer = multiServer->CreateServer([](const std::vector<uint8_t>& bytes)
+	{
+		if (bytes.size() >= 4)
+		{
+			return (*(uint32_t*)bytes.data() == 0x52435050 || *(uint32_t*)bytes.data() == 0x444E4D43)
+				? net::MultiplexPatternMatchResult::Match
+				: net::MultiplexPatternMatchResult::NoMatch;
+		}
+
+		return net::MultiplexPatternMatchResult::InsufficientData;
+	});
+
+	devconServer->SetConnectionCallback([](fwRefContainer<net::TcpServerStream> stream)
 	{
 		auto localStream = stream;
 

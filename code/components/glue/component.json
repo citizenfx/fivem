@@ -7,9 +7,11 @@
 		"nui:core",
 		"gta:core",
 		"scripting:gta",
+		"rage:device",
 		"conhost",
 		"font-renderer",
-		"vendor:cpp-uri",
+		"citizen:game:ipc",
+		"vendor:cpp-url",
 		"vendor:nng",
 		"vendor:msgpack-c"
 	],

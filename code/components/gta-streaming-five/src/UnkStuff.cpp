@@ -585,7 +585,58 @@ static void CompTrace()
 	hook::call(hook::get_pattern("B9 48 93 55 15 E8", 5), errorBit.GetCode());
 }
 
-static HookFunction hookFunction([]()
+static void* (*g_origSMPACreate)(void* a1, void* a2, size_t size, void* a4, bool a5);
+
+static void* SMPACreateStub(void* a1, void* a2, size_t size, void* a4, bool a5)
+{
+       if (size == 0xD00000)
+       {
+               size = 0x1200000;
+       }
+
+       return g_origSMPACreate(a1, a2, size, a4, a5);
+}
+
+static void* GetNvapi(uint32_t hash)
+{
+	auto patternString = fmt::sprintf("74 27 B9 %02X %02X %02X %02x FF 15", hash & 0xFF, (hash >> 8) & 0xFF, (hash >> 16) & 0xFF, (hash >> 24) & 0xFF);
+	auto p = hook::get_pattern(patternString, -0x97);
+
+	return p;
+}
+
+static int NvAPI_Stereo_IsEnabled(bool* enabled)
+{
+	*enabled = 1;
+	return 0;
+}
+
+static int NvAPI_Stereo_CreateHandleFromIUnknown(void* iunno, uintptr_t* hdl)
+{
+	*hdl = 1;
+	return 0;
+}
+
+static int NvAPI_Stereo_Activate(uintptr_t hdl)
+{
+	return 0;
+}
+
+static int NvAPI_Stereo_IsActivated(uintptr_t hdl, uint8_t* on)
+{
+	*on = 1;
+	return 0;
+}
+
+static void HookStereo()
+{
+	hook::jump(GetNvapi(0x348FF8E1), NvAPI_Stereo_IsEnabled);
+	hook::jump(GetNvapi(0xAC7E37F4), NvAPI_Stereo_CreateHandleFromIUnknown);
+	hook::jump(GetNvapi(0xF6A1AD68), NvAPI_Stereo_Activate);
+	hook::jump(GetNvapi(0x1FB0BC30), NvAPI_Stereo_IsActivated);
+}
+
+static HookFunction hookFunction([] ()
 {
 #if 0
 	hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);
@@ -617,6 +668,11 @@ static HookFunction hookFunction([]()
 
 	hook::put<uint8_t>(hook::pattern("F6 05 ? ? ? ? ? 74 08 84 C0 0F 84").count(1).get(0).get<void>(0x18), 0xEB);
 #endif
+
+	// 1604 (ported from 1737): increase rline allocator size using a hook (as Arxan)
+	MH_Initialize();
+	MH_CreateHook((void*)0x14127385C, SMPACreateStub, (void**)&g_origSMPACreate);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	if (!CfxIsSinglePlayer())
 	{
@@ -671,4 +727,6 @@ static HookFunction hookFunction([]()
 
 	// trace ERR_GEN_ZLIB_2 errors
 	CompTrace();
+
+	//HookStereo();
 });

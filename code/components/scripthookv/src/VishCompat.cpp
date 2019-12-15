@@ -427,14 +427,43 @@ int DLL_EXPORT worldGetAllObjects(int* array, int arraySize)
 	return 0;
 }
 
-static InitFunction initFunction([] ()
+static InitFunction initFunction([]()
 {
-	rage::scrEngine::OnScriptInit.Connect([] ()
+	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		rage::scrEngine::CreateThread(&g_fish);
 	});
 
-	InputHook::OnWndProc.Connect([] (HWND, UINT wMsg, WPARAM wParam, LPARAM lParam, bool&, LRESULT& result)
+	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
+	{
+		static struct : InputTarget
+		{
+			virtual inline void KeyDown(UINT vKey, UINT scanCode) override
+			{
+				auto functions = g_keyboardFunctions;
+
+				for (auto& function : functions)
+				{
+					function(vKey, 0, 0, FALSE, FALSE, FALSE, FALSE);
+				}
+			}
+
+			virtual inline void KeyUp(UINT vKey, UINT scanCode) override
+			{
+				auto functions = g_keyboardFunctions;
+
+				for (auto& function : functions)
+				{
+					function(vKey, 0, 0, FALSE, FALSE, FALSE, TRUE);
+				}
+			}
+
+		} tgt;
+
+		targets.push_back(&tgt);
+	});
+
+	InputHook::DeprecatedOnWndProc.Connect([] (HWND, UINT wMsg, WPARAM wParam, LPARAM lParam, bool&, LRESULT& result)
 	{
 		if (wMsg == WM_KEYDOWN || wMsg == WM_KEYUP || wMsg == WM_SYSKEYDOWN || wMsg == WM_SYSKEYUP)
 		{

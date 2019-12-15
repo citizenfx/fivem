@@ -1,4 +1,14 @@
 <div class="tags">
+    <h4 translate>#ServerList_Locales</h4>
+
+    <ul>
+        <li *ngFor="let locale of locales; trackBy:localeName" class="tag" (click)="toggleLocale(locale)" [class.active]="isLocaleActive(locale)" [class.inactive]="isLocaleInactive(locale)">
+            <span [class]="'flag-icon flag-icon-' + locale.countryName.toLowerCase()"></span><span>{{ locale.displayName }} ({{ locale.count }})</span>
+        </li>
+    </ul>
+</div>
+
+<div class="tags">
     <h4 translate>#ServerList_Tags</h4>
 
     <ul>

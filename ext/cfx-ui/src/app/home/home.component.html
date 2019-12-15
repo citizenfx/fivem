@@ -5,7 +5,7 @@
 		</div>
 
 		<div>
-			<h1>Welcome to FiveM<span *ngIf="currentAccount">, {{ currentAccount.username }}</span>!</h1>
+			<h1>Welcome to {{ brandingName }}<span *ngIf="currentAccount">, {{ currentAccount.username }}</span>!</h1>
 			<h2>{{ randomGreeting }}</h2>
 
 			<article [innerHTML]="welcomeMessage" (click)="clickContent($event)">

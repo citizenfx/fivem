@@ -10,7 +10,9 @@
 #include <DrawCommands.h>
 #include <grcTexture.h>
 #include <ICoreGameInit.h>
+#include <CoreConsole.h>
 #include <LaunchMode.h>
+#include <utf8.h>
 
 #include "memdbgon.h"
 
@@ -147,23 +149,24 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 	d3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 #endif
 
-	BeginImVertices(3, numIndices);
+	/*for (int i = 0; i < numVertices; i++)
+	{
+		trace("before: %f %f\n", vertices[i].x, vertices[i].y);
+		TransformToScreenSpace((float*)&vertices[i], 1);
+		trace("aft: %f %f\n", vertices[i].x, vertices[i].y);
+	}*/
+
+	rage::grcBegin(3, numIndices);
 
 	for (int j = 0; j < numIndices; j++)
 	{
 		auto vertex = &vertices[indices[j]];
 		uint32_t color = *(uint32_t*)&vertex->color;
 
-		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
-		if (!rage::grcTexture::IsRenderSystemColorSwapped())
-		{
-			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
-		}
-
-		AddImVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
+		rage::grcVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
 
-	DrawImVertices();
+	rage::grcEnd();
 
 #if GTA_NY
 	d3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC);
@@ -195,7 +198,7 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 	{
 		auto rectangle = &rectangles[i];
 
-		BeginImVertices(4, 4);
+		rage::grcBegin(4, 4);
 
 		auto& rect = rectangle->rectangle;
 		uint32_t color = *(uint32_t*)&rectangle->color;
@@ -206,12 +209,12 @@ void GtaGameInterface::DrawRectangles(int numRectangles, const ResultingRectangl
 			color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
 		}
 
-		AddImVertex(rect.fX1, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-		AddImVertex(rect.fX2, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-		AddImVertex(rect.fX1, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-		AddImVertex(rect.fX2, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX1, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX2, rect.fY1, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX1, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+		rage::grcVertex(rect.fX2, rect.fY2, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
 
-		DrawImVertices();
+		rage::grcEnd();
 	}
 
 	PopDrawBlitImShader();
@@ -286,6 +289,8 @@ FontRendererGameInterface* CreateGameInterface()
 
 static InitFunction initFunction([] ()
 {
+	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive, "");
+
 	static std::random_device random_core;
 	static std::mt19937 random(random_core());
 
@@ -308,7 +313,7 @@ static InitFunction initFunction([] ()
 		shouldDraw = true;
 	}
 
-#ifdef _HAVE_GRCORE_NEWSTATES
+#if defined(_HAVE_GRCORE_NEWSTATES) && defined(GTA_FIVE)
 	OnGrcCreateDevice.Connect([] ()
 	{
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
@@ -317,11 +322,16 @@ static InitFunction initFunction([] ()
 
 		g_gtaGameInterface.SetPointSamplerState(CreateSamplerState(&samplerDesc));
 	});
+#elif defined(IS_RDR3)
+	OnGrcCreateDevice.Connect([]()
+	{
+		g_gtaGameInterface.SetPointSamplerState(GetStockStateIdentifier(SamplerStatePoint));
+	});
 #endif
 
 	OnPostFrontendRender.Connect([=] ()
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 		int x, y;
 		GetGameResolution(x, y);
 
@@ -369,17 +379,50 @@ static InitFunction initFunction([] ()
 					break;
 			}
 
-			std::wstring brandName = L"FiveM";
+			std::wstring_view brandName = L"FiveM";
+			std::wstring userName = L"";
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 			{
+#if !defined(IS_RDR3)
+				auto emoji = customBrandingEmoji.GetValue();
+
+				if (!emoji.empty())
+				{
+					if (Instance<ICoreGameInit>::Get()->HasVariable("endUserPremium"))
+					{
+						try
+						{
+							auto it = emoji.begin();
+							utf8::advance(it, 1, emoji.end());
+
+							std::vector<uint16_t> uchars;
+							uchars.reserve(2);
+
+							utf8::utf8to16(emoji.begin(), it, std::back_inserter(uchars));
+
+							brandingEmoji = std::wstring{ uchars.begin(), uchars.end() };
+						}
+						catch (const utf8::exception& e)
+						{
+
+						}
+					}
+				}
+
 				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 				{
 					brandName = L"FiveM/OneSync-ALPHA";
 				}
+#endif
+
+#if defined(IS_RDR3)
+				brandName = L"RedM MILESTONE 2";
+				userName = L"";
+#endif
 			}
 
-			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
+			brandingString = fmt::sprintf(L"%s %s\n%s", brandName, brandingEmoji, userName);
 		}
 
 		static CRect metrics;

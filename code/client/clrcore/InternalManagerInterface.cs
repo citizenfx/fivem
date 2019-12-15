@@ -6,6 +6,10 @@ namespace CitizenFX.Core
 	{
 		void SetResourceName(string resourceName);
 
+		void CreateTaskScheduler();
+
+		void Destroy();
+
 		void SetScriptHost(IScriptHost host, int instanceId);
 
 		void CreateAssembly(string name, byte[] assemblyData, byte[] symbolData);

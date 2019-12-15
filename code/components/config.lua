@@ -1,9 +1,6 @@
 component 'comptest'
 component 'http-client'
-component 'nui-core'
 component 'glue'
-component 'nui-gsclient'
-component 'nui-resources'
 component 'font-renderer'
 component 'debug-net'
 component 'scrbind-formats'
@@ -24,12 +21,22 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-impl'
 	component 'conhost-server'
 	component 'scripting-server'
-	component 'vfs-impl-server'
 	component 'voip-server-mumble'
+	component 'citizen-server-monitor'
+	component 'vfs-impl-server'
 else
 	component 'tool-formats'
 	component 'tool-vehrec'
-	component 'rage-formats-x'
+	component 'nui-core'
+	component 'nui-gsclient'
+	component 'nui-resources'
+	component 'citizen-game-main'
+	component 'citizen-game-ipc'
+	
+	if _OPTIONS['game'] ~= 'launcher' then
+		component 'rage-formats-x'
+	end
+	
 	component 'conhost-v2'
 	component 'voip-mumble'
 
@@ -40,6 +47,8 @@ else
 
 	component 'citizen-scripting-mono'
 	component 'citizen-scripting-v8'
+	
+	component 'n19ui'
 end
 
 component 'net-base'
@@ -48,10 +57,13 @@ component 'net-http-server'
 
 component 'rage-device-five'
 component 'rage-allocator-five'
+component 'rage-allocator-rdr3'
 component 'rage-graphics-five'
 component 'rage-scripting-five'
+component 'rage-scripting-rdr3'
 component 'lovely-script'
 component 'ros-patches-five'
+component 'ros-patches-rdr3'
 
 component 'gta-net-five'
 component 'rage-input-five'
@@ -79,3 +91,17 @@ component 'devcon'
 component 'extra-natives-five'
 component 'discord'
 component 'citizen-mod-loader-five'
+component 'debug-script'
+component 'rage-graphics-rdr3'
+component 'rage-input-rdr3'
+component 'rage-nutsnbolts-rdr3'
+component 'rage-device-rdr3'
+
+component 'gta-streaming-rdr3'
+component 'gta-game-rdr3'
+component 'gta-mission-cleanup-rdr3'
+component 'citizen-level-loader-rdr3'
+component 'gta-core-rdr3'
+component 'gta-net-rdr3'
+component 'extra-natives-rdr3'
+component 'citizen-playernames-rdr3'

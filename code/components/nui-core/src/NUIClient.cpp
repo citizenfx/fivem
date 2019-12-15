@@ -130,11 +130,18 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 	std::wstring sourceStr = source.ToWString();
 	std::wstring messageStr = message.ToWString();
 
+	// skip websocket error messages
+	// these can't be blocked from script and users get very confused by them appearing in console
+	if (messageStr.find(L"WebSocket connection to") != std::string::npos)
+	{
+		return false;
+	}
+
 	std::wstringstream msg;
 	msg << sourceStr << ":" << line << ", " << messageStr << std::endl;
 
 	OutputDebugString(msg.str().c_str());
-	trace("%s\n", ToNarrow(msg.str()));
+	trace("%s", ToNarrow(msg.str()));
 
 	return false;
 }

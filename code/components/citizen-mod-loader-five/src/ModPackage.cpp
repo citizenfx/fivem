@@ -7,6 +7,9 @@
 #include <tinyxml2.h>
 
 #include <fiDevice.h>
+#include <VFSRagePackfile7.h>
+
+#include <boost/algorithm/string.hpp>
 
 namespace fx
 {
@@ -100,12 +103,44 @@ void ModPackage::ParsePackage(const std::string& path)
 }
 
 void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage);
+bool ModsNeedEncryption();
 }
 
 static HookFunction hookFunction([]()
 {
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
+		auto cfxDevice = rage::fiDevice::GetDevice("cfx:/mods/", true);
 
-	});
+		rage::fiFindData findData;
+		auto handle = cfxDevice->FindFirst("cfx:/mods/", &findData);
+
+		if (handle != -1)
+		{
+			do
+			{
+				if ((findData.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+				{
+					std::string fn = findData.fileName;
+
+					if (boost::algorithm::ends_with(fn, ".rpf"))
+					{
+						std::string fullFn = "cfx:/mods/" + fn;
+						std::string addonRoot = "addons:/" + fn.substr(0, fn.find_last_of('.')) + "/";
+
+						fwRefContainer<vfs::RagePackfile7> addonPack = new vfs::RagePackfile7();
+						if (addonPack->OpenArchive(fullFn, fx::ModsNeedEncryption()))
+						{
+							vfs::Mount(addonPack, addonRoot);
+
+							auto modPackage = std::make_shared<fx::ModPackage>(addonRoot);
+							fx::MountModDevice(modPackage);
+						}
+					}
+				}
+			} while (cfxDevice->FindNext(handle, &findData));
+
+			cfxDevice->FindClose(handle);
+		}
+	}, 10);
 });

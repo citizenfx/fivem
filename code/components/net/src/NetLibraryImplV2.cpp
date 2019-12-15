@@ -26,6 +26,8 @@ public:
 
 	virtual void SendReliableCommand(uint32_t type, const char* buffer, size_t length) override;
 
+	virtual void SendUnreliableCommand(uint32_t type, const char* buffer, size_t length) override;
+
 	virtual bool HasTimedOut() override;
 
 	virtual void Reset() override;
@@ -123,6 +125,22 @@ void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, si
 	}
 
 	m_base->GetMetricSink()->OnOutgoingCommand(type, length, true);
+}
+
+void NetLibraryImplV2::SendUnreliableCommand(uint32_t type, const char* buffer, size_t length)
+{
+	NetBuffer msg(131072);
+	msg.Write(type);
+	msg.Write(buffer, length);
+
+	if (!m_timedOut && m_serverPeer)
+	{
+		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), (ENetPacketFlag)0);
+
+		enet_peer_send(m_serverPeer, 0, packet);
+	}
+
+	m_base->GetMetricSink()->OnOutgoingCommand(type, length, false);
 }
 
 void NetLibraryImplV2::SendData(const NetAddress& netAddress, const char* data, size_t length)

@@ -60,6 +60,23 @@ namespace fx
 			consoleCtx->ExecuteBuffer();
 		});
 
+		auto quit = [this](const std::string& reason)
+		{
+			OnRequestQuit(reason);
+
+			m_shouldTerminate = true;
+		};
+
+		m_quitCommand_0 = AddCommand("quit", [quit]()
+		{
+			quit("Quit command executed.");
+		});
+
+		m_quitCommand_1 = AddCommand("quit", [quit](const std::string& reason)
+		{
+			quit(reason);
+		});
+
 		SetComponent(new fx::OptionParser());
 	}
 
@@ -99,8 +116,16 @@ namespace fx
 			// invoke target events
 			OnServerCreate(this);
 
-			// start sessionmanager
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "sessionmanager" });
+			// start webadmin
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
+
+#ifdef _WIN32
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+#endif
+
+			// add system console access
+			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
+			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command.quit" }, se::AccessType::Allow);
 
 			for (const auto& bit : optionParser->GetArguments())
 			{

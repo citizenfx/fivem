@@ -16,6 +16,7 @@
 #include <VFSManager.h>
 
 #include <ResourceMetaDataComponent.h>
+#include <ResourceScriptingComponent.h>
 
 #include <stack>
 #include <mutex>
@@ -188,6 +189,8 @@ result_t TestScriptHost::ScriptTrace(char* string)
 
 result_t TestScriptHost::OpenSystemFile(char *fileName, fxIStream * *stream)
 {
+	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileName, fileName);
+
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileName);
 
 	return WrapVFSStreamResult(nativeStream, stream);
@@ -213,6 +216,8 @@ result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 
 		fileNameStr = resource->GetPath() + "/" + std::string(fn);
 	}
+
+	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileNameStr, "@" + m_resource->GetName() + "/" + fileName);
 
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileNameStr);
 	
@@ -272,6 +277,23 @@ result_t TestScriptHost::GetResourceMetaData(char* metaDataName, int32_t entryIn
 }
 
 result_t TestScriptHost::IsManifestVersionBetween(const guid_t & lowerBound, const guid_t & upperBound, bool *_retval)
+{
+	// get the manifest version
+	auto metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+
+	auto retval = metaData->IsManifestVersionBetween(lowerBound, upperBound);
+
+	if (retval)
+	{
+		*_retval = *retval;
+
+		return FX_S_OK;
+	}
+
+	return FX_E_INVALIDARG;
+}
+
+result_t TestScriptHost::IsManifestVersionV2Between(char* lowerBound, char* upperBound, bool* _retval)
 {
 	// get the manifest version
 	auto metaData = m_resource->GetComponent<ResourceMetaDataComponent>();

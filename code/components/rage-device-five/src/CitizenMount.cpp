@@ -14,6 +14,9 @@
 
 #include <LaunchMode.h>
 
+#include <VFSManager.h>
+#include <VFSRagePackfile7.h>
+
 #include <Error.h>
 
 using namespace std::string_literals;
@@ -119,8 +122,24 @@ static InitFunction initFunction([] ()
 		cacheDevice->Mount("rescache:/");
 
 		{
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
+			std::string narrowPath;
+
+			if (CfxIsSinglePlayer() || true)
+			{
+				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
+			}
+			else
+			{
+				static fwRefContainer<vfs::RagePackfile7> citizenCommon = new vfs::RagePackfile7();
+				if (!citizenCommon->OpenArchive("citizen:/citizen_common.rpf", true))
+				{
+					FatalError("Opening citizen_common.rpf failed!");
+				}
+
+				vfs::Mount(citizenCommon, "citizen_common:/");
+				narrowPath = "citizen_common:/";
+			}
 
 			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
 			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
@@ -133,11 +152,28 @@ static InitFunction initFunction([] ()
 			rage::fiDeviceRelative* relativeDeviceGc = new rage::fiDeviceRelative();
 			relativeDeviceGc->SetPath(narrowPath.c_str(), nullptr, true);
 			relativeDeviceGc->Mount("gamecache:/");
+
 		}
 
 		{
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			std::string narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
+			std::string narrowPath;
+
+			if (CfxIsSinglePlayer() || true)
+			{
+				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
+			}
+			else
+			{
+				static fwRefContainer<vfs::RagePackfile7> citizenPlatform = new vfs::RagePackfile7();
+				if (!citizenPlatform->OpenArchive("citizen:/citizen_platform.rpf", true))
+				{
+					FatalError("Opening citizen_platform.rpf failed!");
+				}
+
+				vfs::Mount(citizenPlatform, "citizen_platform:/");
+				narrowPath = "citizen_platform:/";
+			}
 
 			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
 			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
@@ -148,6 +184,7 @@ static InitFunction initFunction([] ()
 			relativeDeviceCrc->Mount("platformcrc:/");
 		}
 
+		if (CfxIsSinglePlayer() || true)
 		{
 			rage::fiFindData findData;
 			auto handle = cfxDevice->FindFirst("cfx:/addons/", &findData);

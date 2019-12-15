@@ -782,7 +782,7 @@ LUALIB_API const char *luaL_tolstring (lua_State *L, int idx, size_t *len) {
 	  case LUA_TQUAT: {
 		  char s[LUAI_MAXQUAT2STR];
 		  lua_Float4 a;
-		  lua_checkquat(L, idx, &a.x, &a.y, &a.z, &a.w);
+		  lua_checkquat(L, idx, &a.w, &a.x, &a.y, &a.z);
 		  int l = lua_quat2str(s, a);
 		  lua_pushfstring(L, "%s", s);
 		  break;

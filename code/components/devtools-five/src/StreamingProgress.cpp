@@ -13,6 +13,9 @@
 
 #include <mmsystem.h>
 
+#include <ResourceCacheDeviceV2.h>
+#include <VFSManager.h>
+
 struct StreamingDownloadProgress
 {
 	size_t downloadDone;
@@ -116,27 +119,25 @@ static void StreamingProgress_Update()
 
 					if (isCache)
 					{
-						auto device = rage::fiDevice::GetDevice(fileName.c_str(), true);
-						uint64_t ptr;
-						auto handle = device->OpenBulk(fileName.c_str(), &ptr);
-						auto numRead = device->ReadBulk(handle, ptr, readBuffer, 0xFFFFFFFC);
+						auto device = vfs::GetDevice(fileName);
+						fwRefContainer<resources::ResourceCacheDeviceV2> resDevice(device);
 
-						if (numRead == 0)
+						if (!resDevice->ExistsOnDisk(fileName))
 						{
 							std::unique_lock<std::shared_mutex> lock(g_mutex);
 
-							g_downloadList.insert({ nameBuffer, device->GetFileLength(handle) });
+							if (g_downloadList.find(nameBuffer) == g_downloadList.end())
+							{
+								g_downloadList.insert({ nameBuffer, resDevice->GetLength(fileName) });
+							}
+
 							foundNow.insert(nameBuffer);
-							//g_nameMap.insert({ nameBuffer, entryName });
 
 							thisRequests++;
 						}
-
-						device->CloseBulk(handle);
 					}
 				}
 			}
-			//}
 		}
 	}
 
@@ -183,12 +184,12 @@ static void StreamingProgress_Update()
 		std::string str = fmt::sprintf("Downloading assets (%d of %d)... (%.2f/%.2f MB)", std::min(g_downloadDone.size(), g_downloadList.size()), g_downloadList.size(), std::min(downloadDone, downloadSize) / 1024.0 / 1024.0, downloadSize / 1024.0 / 1024.0);
 
 		// 1604
-		((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(str.c_str(), 5, 1);
+		((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(str.c_str(), 5, 2);
 	}
 	else
 	{
 		// 1604
-		((void(*)(int))hook::get_adjusted(0x1401C3438))(1);
+		((void(*)(int))hook::get_adjusted(0x1401C3438))(2);
 
 		g_downloadList.clear();
 		g_downloadDone.clear();

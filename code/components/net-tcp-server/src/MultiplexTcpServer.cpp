@@ -216,27 +216,44 @@ void MultiplexTcpChildServerStream::Close()
 
 void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data)
 {
-	m_baseStream->Write(data);
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->Write(data);
+	}
 }
 
 void MultiplexTcpChildServerStream::Write(const std::string& data)
 {
-	m_baseStream->Write(data);
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->Write(data);
+	}
 }
 
 void MultiplexTcpChildServerStream::Write(std::vector<uint8_t>&& data)
 {
-	m_baseStream->Write(std::move(data));
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->Write(std::move(data));
+	}
 }
 
 void MultiplexTcpChildServerStream::Write(std::string&& data)
 {
-	m_baseStream->Write(std::move(data));
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->Write(std::move(data));
+	}
 }
 
 PeerAddress MultiplexTcpChildServerStream::GetPeerAddress()
 {
-	return m_baseStream->GetPeerAddress();
+	if (m_baseStream.GetRef())
+	{
+		return m_baseStream->GetPeerAddress();
+	}
+
+	return {};
 }
 
 void MultiplexTcpChildServerStream::SetInitialData(const std::vector<uint8_t>& initialData)

@@ -5,6 +5,7 @@ import { ServersService } from './servers/servers.service';
 import * as forge from 'node-forge';
 import * as query from 'query-string';
 import { BehaviorSubject } from 'rxjs';
+import { GameService } from './game.service';
 
 class RSAKeyCollection {
     public: string;
@@ -35,6 +36,8 @@ export class DiscourseService {
     private clientId: string;
     private nonce: string;
 
+    private ownershipTicket: string;
+
     private authToken: string;
     private computerName = 'UNKNOWN';
 
@@ -46,7 +49,7 @@ export class DiscourseService {
     public currentBoost: BoostData;
     public noCurrentBoost = false;
 
-    public constructor(private serversService: ServersService) {
+    public constructor(private serversService: ServersService, private gameService: GameService) {
         this.authToken = window.localStorage.getItem('discourseAuthToken');
 
         if (this.authToken && this.authToken.length > 0) {
@@ -80,10 +83,34 @@ export class DiscourseService {
                 }
             });
         });
+
+		this.signinChange.subscribe(identity => {
+			this.gameService.setDiscourseIdentity(this.getToken(), this.getExtClientId());
+		});
+
+		this.messageEvent.subscribe((msg: string) => {
+			this.gameService.invokeInformational(msg);
+        });
+
+        this.gameService.computerNameChange.subscribe((data: string) => {
+            this.setComputerName(data);
+        });
+
+        this.gameService.ownershipTicketChange.subscribe((ticket: string) => {
+            this.setOwnershipTicket(ticket);
+        });
+
+        this.gameService.authPayloadSet.subscribe((payload: string) => {
+            this.handleAuthPayload(payload);
+        })
     }
 
-    public setComputerName(computerName: string) {
+    private setComputerName(computerName: string) {
         this.computerName = computerName;
+    }
+
+    private setOwnershipTicket(ticket: string) {
+        this.ownershipTicket = ticket;
     }
 
     public async apiCall(path: string, method?: string, data?: any) {
@@ -137,7 +164,8 @@ export class DiscourseService {
             'User-Agent': 'CitizenFX/Five',
             'Content-Type': 'application/json',
             'User-Api-Client-Id': clientId,
-            'User-Api-Key': this.authToken
+            'User-Api-Key': this.authToken,
+            'Cfx-Entitlement-Ticket': this.ownershipTicket,
         };
 
         const finalData = (data) ? JSON.stringify(data) : undefined;
@@ -150,17 +178,10 @@ export class DiscourseService {
 
         const res = await window.fetch(req);
 
-        if (res.ok) {
-            return {
-                status: res.status,
-                data: await res.json()
-            };
-        }
-
         return {
             status: res.status,
-            data: null
-        }
+            data: await res.json()
+        };
     }
 
     public async getCurrentUser() {
@@ -179,7 +200,7 @@ export class DiscourseService {
         };
     }
 
-    public async handleAuthPayload(queryString: string) {
+    private async handleAuthPayload(queryString: string) {
         const parts = query.parse(queryString);
         const payload = parts['payload'] as string;
 

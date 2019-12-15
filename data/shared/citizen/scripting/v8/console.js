@@ -113,7 +113,16 @@
 
             case Array.isArray(arg):
             case arg.toString() === "[object Object]":
-                return JSON.stringify(arg, null, 2);
+                let cache = [];
+                let out = JSON.stringify(arg, (key, value) => {
+                    if (typeof value === 'object' && value !== null) {
+                        if (cache.indexOf(value) !== -1) return;
+                        cache.push(value);
+                    }
+                    return value;
+                }, 2);
+                cache = null;
+                return out;
 
             case arg.toString() === "[object Error]" || arg instanceof Error:
                 return arg.stack || Error.prototype.toString.call(arg);

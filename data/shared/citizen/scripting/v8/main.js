@@ -208,6 +208,12 @@ const EXT_LOCALFUNCREF = 11;
 		};
 
 		global.TriggerClientEvent = global.emitNet;
+		
+		global.TriggerLatentClientEvent = (name, source, bps, ...args) => {
+			const dataSerialized = pack(args);
+	
+			TriggerLatentClientEventInternal(name, source, dataSerialized, dataSerialized.length, bps);
+		};
 	} else {
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
@@ -216,6 +222,12 @@ const EXT_LOCALFUNCREF = 11;
 		};
 
 		global.TriggerServerEvent = global.emitNet;
+		
+		global.TriggerLatentServerEvent = (name, bps, ...args) => {
+			const dataSerialized = pack(args);
+	
+			TriggerLatentServerEventInternal(name, dataSerialized, dataSerialized.length, bps);
+		};
 	}
 	
 	let currentStackDumpError = null;

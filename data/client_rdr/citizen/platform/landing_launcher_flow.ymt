@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rage__fwuiFlowBlock>
+ <ID>landing_flow</ID>
+ <EntryPoints>
+  <Item>
+   <Target>input_context_switch.insta_load_sp</Target>
+   <ID>default</ID>
+   <Guid>f2434c4f-b133-499d-8ed3-854a53a89d1b</Guid>
+  </Item>
+  <Item>
+   <Target>input_context_switch.insta_load_sp</Target>
+   <ID>bye</ID>
+   <Guid>b6e35dae-dbd4-4d3e-af97-63c411ba5808</Guid>
+  </Item>
+  <Item>
+   <Target>input_context_switch.boot_flow_startup</Target>
+   <ID>startup</ID>
+   <Guid>b6e35dad-dbd4-4d3e-af97-63c411ba5808</Guid>
+  </Item>
+  <Item>
+   <Target>input_context_switch.boot_flow_sign_out</Target>
+   <ID>sign_out</ID>
+   <Guid>f300657b-936d-4d2f-8390-ef9bb498a173</Guid>
+  </Item>
+  <Item>
+   <Target>input_context_switch.mp_direct.mp_direct_host</Target>
+   <ID>mp_direct</ID>
+   <Guid>453f9314-2d4d-494c-9af7-07f05b822938</Guid>
+  </Item>
+ </EntryPoints>
+ <ExitPoints>
+  <Item>
+   <ID>exit</ID>
+   <Guid>967718b6-d587-4cf8-b645-bff3ba68d31d</Guid>
+  </Item>
+  <Item>
+   <ID>exit_to_game</ID>
+   <Guid>6e7cd25d-e1b1-48e8-b3ae-31e3d052d298</Guid>
+  </Item>
+ </ExitPoints>
+ <FlowRoot>
+  <ID>wait_for_warning</ID>
+  <State type="StateIsWarningScreenActive">
+   <WaitForClose value="True" />
+  </State>
+  <Children>
+   <Item>
+    <ID>input_context_switch</ID>
+    <State type="StateSetInputContext">
+     <ContextType>LANDING_PAGE</ContextType>
+    </State>
+    <Children>
+     <Item>
+      <ID>boot_flow_startup</ID>
+      <State type="rage__StateAppLauncher">
+       <AppID>boot_flow</AppID>
+       <EntryPoint>default_entry</EntryPoint>
+      </State>
+      <LinkMap>
+       <Item key="exit">
+        <Target>^.insta_load_sp</Target>
+       </Item>
+      </LinkMap>
+      <Guid>fd174f81-bdee-408f-85c4-1cc9cc286ff2</Guid>
+     </Item>
+     <Item>
+      <ID>insta_load_sp</ID>
+<!--      <State type="rage__StateAppLauncher">
+       <AppID>boot_flow</AppID>
+       <EntryPoint>bye</EntryPoint>
+      </State>
+      <LinkMap>
+       <Item key="exit">
+        <Target>^.landing_page_mp_or_sp</Target>
+       </Item>
+      </LinkMap>-->
+	  <State type="StateDispatchScriptEvent">
+	   <Channel>LANDING_PAGE</Channel>
+	   <Event>
+		<Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
+		<HashParameter>LOAD_SP</HashParameter>
+	   </Event>
+	  </State>
+	  <LinkMap>
+	   <Item key="next">
+		<Target>exit</Target>
+		<LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+	   </Item>
+	  </LinkMap>
+	  <Guid>1eab7ba7-5230-4ea7-a1a4-c0c750f2d72c</Guid>
+      <!--<Guid>c3e93474-6c2c-46a2-be88-9aafb5c06c82</Guid>-->
+     </Item>
+     <Item>
+      <ID>boot_flow_sign_out</ID>
+      <State type="rage__StateAppLauncher">
+       <AppID>boot_flow</AppID>
+       <EntryPoint>sign_out</EntryPoint>
+      </State>
+      <LinkMap>
+       <Item key="exit">
+        <Target>^.landing_page_mp_or_sp</Target>
+       </Item>
+      </LinkMap>
+      <Guid>c3e93473-6c2c-46a2-be88-9aafb5c06c82</Guid>
+     </Item>
+     <Item>
+      <ID>landing_page_mp_or_sp</ID>
+      <State type="StateFrontendFeedLastPlayedMultiplayer" />
+      <LinkMap>
+       <Item key="no">
+        <Target>^.landing_camera_fader.landing_main.landing_filter.priority_feed_decision_sp</Target>
+       </Item>
+       <Item key="yes">
+        <Target>^.landing_camera_fader.landing_main.landing_filter.priority_feed_decision_mp</Target>
+       </Item>
+      </LinkMap>
+      <Guid>b7f2ac01-49b6-482a-839f-37ee9e814648</Guid>
+     </Item>
+     <Item>
+      <ID>mp_direct</ID>
+      <State type="StateUIObjectStreamedSceneHost">
+       <EnterAnimation />
+       <ExitAnimation />
+       <GCOnRemove value="True" />
+       <TransitionModule>
+        <TryToHideOnSuspended value="False" />
+       </TransitionModule>
+       <SceneName>landing_page/screens/landing_mp_direct</SceneName>
+      </State>
+      <Children>
+       <Item>
+        <ID>mp_direct_host</ID>
+        <State type="rage__StateFlowblockHost">
+         <Name>landing_page/flow/frontend_feed_flow</Name>
+        </State>
+        <LinkMap>
+         <Item key="to_sign_out">
+          <Target>^.^.^.input_context_switch.boot_flow_sign_out</Target>
+         </Item>
+         <Item key="exit">
+          <Target>exit</Target>
+          <LinkType type="rage__fwuiLinkTypeBackward" />
+          <LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+         </Item>
+         <Item key="to_story">
+          <Target>exit</Target>
+          <LinkType type="rage__fwuiLinkTypeBackward" />
+          <LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+         </Item>
+         <Item key="exit_to_game">
+          <Target>exit_to_game</Target>
+          <LinkType type="rage__fwuiLinkTypeBackward" />
+          <LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+         </Item>
+        </LinkMap>
+        <Guid>f6b956ba-01e8-47c6-8b04-d6fcd12029ac</Guid>
+       </Item>
+      </Children>
+      <Guid>5d012210-2abd-4560-900e-c1fc0f80704c</Guid>
+     </Item>
+     <Item>
+      <ID>landing_camera_fader</ID>
+      <State type="StateUIObjectStreamedSceneHost">
+       <TransitionModule>
+        <TryToHideOnSuspended value="False" />
+       </TransitionModule>
+       <SceneName>landing_page/screens/landing_camera_fade</SceneName>
+      </State>
+      <Children>
+       <Item>
+        <ID>landing_main</ID>
+        <State type="StateUIObjectStreamedSceneHost">
+         <EnterAnimation />
+         <ExitAnimation />
+         <FocusGainedAnimation />
+         <FocusLostAnimation />
+         <GCOnRemove value="True" />
+         <TransitionModule>
+          <TryToHideOnSuspended value="False" />
+         </TransitionModule>
+         <SceneName>landing_page/screens/landing</SceneName>
+        </State>
+        <Children>
+         <Item>
+          <ID>landing_filter</ID>
+          <State type="StateUIObjectStreamedSceneHost">
+           <ParentPath>LandingScreen</ParentPath>
+           <EnterAnimation />
+           <ExitAnimation />
+           <FocusGainedAnimation />
+           <FocusLostAnimation />
+           <GCOnRemove value="True" />
+           <SceneName>landing_page/screens/landing_filter</SceneName>
+          </State>
+          <Children>
+           <Item>
+            <ID>priority_feed_decision_sp</ID>
+            <State type="StateShouldDisplayPriorityFeedAtBoot">
+             <area>Sp</area>
+            </State>
+            <LinkMap>
+             <Item key="yes">
+              <Target>^.priority_feed_sp</Target>
+              <Interruptible value="True" />
+             </Item>
+             <Item key="no">
+              <Target>set_feedback_context.sp_menu</Target>
+              <Interruptible value="True" />
+             </Item>
+            </LinkMap>
+            <Children>
+             <Item>
+              <ID>set_feedback_context</ID>
+              <State type="StateSetFeedbackContext">
+               <ContextType>LANDING_PAGE</ContextType>
+              </State>
+              <Children>
+               <Item>
+                <ID>sp_menu</ID>
+                <State type="StateGoogleAnalyticsDecorator">
+                 <InnerState type="StateUIObjectStreamedSceneHost">
+                  <ParentPath>LandingScreen.VB_LandingPage.PAN_LandingPage.PAN_page</ParentPath>
+                  <HideSceneOnAttachment value="True" />
+                  <EnterAnimation>pausemenu_submenu_enter</EnterAnimation>
+                  <ExitAnimation>pausemenu_submenu_exit</ExitAnimation>
+                  <TransitionModule>
+                   <TryToHideOnSuspended value="False" />
+                  </TransitionModule>
+                  <SceneName>landing_page/screens/landing_sp</SceneName>
+                 </InnerState>
+                 <Path>landing_sp</Path>
+                </State>
+                <LinkMap>
+                 <Item key="to_sp">
+                  <Target>launch_sp</Target>
+                 </Item>
+                 <Item key="to_online">
+                  <Target>^.^.^.priority_feed_decision_mp</Target>
+                  <Immediate value="True" />
+                  <Interruptible value="True" />
+                 </Item>
+                 <Item key="to_social_club">
+                  <Target>open_social_club</Target>
+                 </Item>
+                 <Item key="to_account_picker">
+                  <Target>account_picker</Target>
+                  <Interruptible value="True" />
+                 </Item>
+                 <Item key="to_story">
+                  <Target>^.^.^.priority_feed_decision_mp</Target>
+                  <Immediate value="True" />
+                  <Interruptible value="True" />
+                 </Item>
+                 <Item key="to_priority_feed">
+                  <Target>^.^.^.priority_feed_any</Target>
+                 </Item>
+                 <Item key="quit_game">
+                  <Target>^.^.^.quit_game</Target>
+                 </Item>
+                 <Item key="to_settings_menu">
+                  <Target>open_settings_menu</Target>
+                 </Item>
+                </LinkMap>
+                <Children>
+                 <Item>
+                  <ID>account_picker</ID>
+                  <State type="StateAccountPicker">
+                   <UseNativeUIOnly value="True" />
+                  </State>
+                  <LinkMap>
+                   <Item key="profile_changed">
+                    <Target>^.^.^.^.^.^.^.^.input_context_switch.boot_flow_sign_out</Target>
+                   </Item>
+                   <Item key="profile_unchanged">
+                    <Target>^</Target>
+                    <Interruptible value="True" />
+                   </Item>
+                  </LinkMap>
+                  <Guid>a32aa293-41ee-4bf9-bc4f-fd4da63e7490</Guid>
+                 </Item>
+                 <Item>
+                  <ID>launch_sp</ID>
+                  <State type="StateDispatchScriptEvent">
+                   <Channel>LANDING_PAGE</Channel>
+                   <Event>
+                    <Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
+                    <HashParameter>LOAD_SP</HashParameter>
+                   </Event>
+                  </State>
+                  <LinkMap>
+                   <Item key="next">
+                    <Target>exit</Target>
+                    <LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+                   </Item>
+                  </LinkMap>
+                  <Guid>1eab7ba7-5230-4ea7-a1a4-c0c750f2d72c</Guid>
+                 </Item>
+                 <Item>
+                  <ID>open_social_club</ID>
+                  <State type="StateDispatchScriptEventDecorator">
+                   <InnerState type="StatePlayAnimation">
+                    <Animation>pausemenu_submenu_exit</Animation>
+                    <TargetPath>
+                     <Path>LandingScreen</Path>
+                    </TargetPath>
+                   </InnerState>
+                   <Channel>LANDING_PAGE</Channel>
+                   <Event>
+                    <Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
+                    <HashParameter>SOCIAL_CLUB_OPEN</HashParameter>
+                   </Event>
+                  </State>
+                  <LinkMap>
+                   <Item key="next">
+                    <Target>^.host_social_club</Target>
+                   </Item>
+                  </LinkMap>
+                  <Guid>202b494d-8c73-4d11-9f2d-8a343cf2a237</Guid>
+                 </Item>
+                 <Item>
+                  <ID>host_social_club</ID>
+                  <State type="rage__StateAppLauncher">
+                   <AppID>social_club_feed</AppID>
+                   <EntryPoint>launch_to_feed</EntryPoint>
+                  </State>
+                  <LinkMap>
+                   <Item key="exit">
+                    <Target>^.close_social_club</Target>
+                    <LinkType type="rage__fwuiLinkTypeForward" />
+                   </Item>
+                  </LinkMap>
+                  <Guid>33979283-6d15-4d82-97aa-19b3e464eed8</Guid>
+                 </Item>
+                 <Item>
+                  <ID>close_social_club</ID>
+                  <State type="StateDispatchScriptEventDecorator">
+                   <InnerState type="StatePlayAnimation">
+                    <Animation>pausemenu_submenu_enter</Animation>
+                    <TargetPath>
+                     <Path>LandingScreen</Path>
+                    </TargetPath>
+                    <WaitForAnimation value="False" />
+                   </InnerState>
+                   <Channel>LANDING_PAGE</Channel>
+                   <Event>
+                    <Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
+                    <HashParameter>SOCIAL_CLUB_CLOSED</HashParameter>
+                   </Event>
+                  </State>
+                  <LinkMap>
+                   <Item key="next">
+                    <Target>^</Target>
+                    <LinkType type="rage__fwuiLinkTypeBackward" />
+                   </Item>
+                  </LinkMap>
+                  <Guid>92736cbd-5754-4da5-bd9c-29432c58e1bf</Guid>
+                 </Item>
+                 <Item>
+                  <ID>open_settings_menu</ID>
+                  <State type="StateDispatchScriptEventDecorator">
+                   <InnerState type="StatePlayAnimation">
+                    <Animation>pausemenu_submenu_exit</Animation>
+                    <TargetPath>
+                     <Path>LandingScreen</Path>
+                    </TargetPath>
+                   </InnerState>
+                   <Channel>LANDING_PAGE</Channel>
+                   <Event>
+                    <Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
+                    <HashParameter>SETTINGS_MENU_OPEN</HashParameter>
+                   </Event>
+                  </State>
+                  <LinkMap>
+                   <Item key="next">
+                    <Target>^.host_settings_menu</Target>
+                   </Item>
+                  </LinkMap>
+                 </Item>
+                 <Item>
+                  <ID>host_settings_menu</ID>
+                  <State type="rage__StateAppLauncher">
+                   <AppID>settings_menu</AppID>
+                   <EntryPoint>index</EntryPoint>
+                  </State>
+                  <LinkMap>
+                   <Item key="exit">
+                    <Target>^.close_settings_menu</Target>
+                    <LinkType type="rage__fwuiLinkTypeForward" />
+                   </Item>
+                  </LinkMap>
+                 </Item>
+                 <Item>
+                  <ID>close_settings_menu</ID>
+                  <State type="StateDispatchScriptEventDecorator">
+                   <InnerState type="StatePlayAnimation">
+                    <Animation>pausemenu_submenu_enter</Animation>
+                    <TargetPath>
+                     <Path>LandingScreen</Path>
+                    </TargetPath>
+                    <WaitForAnimation value="False" />
+                   </InnerState>
+                   <Channel>LANDING_PAGE</Channel>
+                   <Event>
+                    <Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
+                    <HashParameter>SETTINGS_MENU_CLOSED</HashParameter>
+                   </Event>
+                  </State>
+                  <LinkMap>
+                   <Item key="next">
+                    <Target>^</Target>
+                    <LinkType type="rage__fwuiLinkTypeBackward" />
+                   </Item>
+                  </LinkMap>
+                 </Item>
+                </Children>
+                <Guid>36d75113-079a-43a4-95c5-b05fd71fd770</Guid>
+               </Item>
+              </Children>
+              <Guid>c1d42f44-c4c9-4c7a-aecc-1e0f7cec09d1</Guid>
+             </Item>
+            </Children>
+            <Guid>1558f0ab-c7f5-4e3a-83f8-35d080afba55</Guid>
+           </Item>
+           <Item>
+            <ID>priority_feed_decision_mp</ID>
+            <State type="StateShouldDisplayPriorityFeedAtBoot">
+             <area>Mp</area>
+            </State>
+            <LinkMap>
+             <Item key="yes">
+              <Target>^.priority_feed_mp</Target>
+              <Interruptible value="True" />
+             </Item>
+             <Item key="no">
+              <Target>mp_host</Target>
+              <Interruptible value="True" />
+             </Item>
+            </LinkMap>
+            <Children>
+             <Item>
+              <ID>mp_host</ID>
+              <State type="rage__StateFlowblockHost">
+               <Name>landing_page/flow/frontend_feed_flow</Name>
+              </State>
+              <LinkMap>
+               <Item key="to_story">
+                <Target>^.^.priority_feed_decision_sp</Target>
+                <Immediate value="True" />
+                <Interruptible value="True" />
+               </Item>
+               <Item key="to_sign_out">
+                <Target>^.^.^.^.^.^.input_context_switch.boot_flow_sign_out</Target>
+               </Item>
+               <Item key="exit">
+                <Target>exit</Target>
+                <LinkType type="rage__fwuiLinkTypeBackward" />
+                <LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+               </Item>
+               <Item key="exit_to_game">
+                <Target>exit_to_game</Target>
+                <LinkType type="rage__fwuiLinkTypeBackward" />
+                <LinkInfo>LINK_TO_EXTERNAL</LinkInfo>
+               </Item>
+              </LinkMap>
+              <Guid>6af940e3-17e2-4670-894c-af5b7d86f598</Guid>
+             </Item>
+            </Children>
+            <Guid>648ad7c0-96f1-4b91-8e14-4a091ba90853</Guid>
+           </Item>
+           <Item>
+            <ID>priority_feed_mp</ID>
+            <State type="rage__StateFlowblockHost">
+             <Name>landing_page/flow/priority_feed_flow</Name>
+             <EntryPoint>mp</EntryPoint>
+            </State>
+            <LinkMap>
+             <Item key="exit">
+              <Target>^.priority_feed_decision_mp</Target>
+              <Interruptible value="True" />
+             </Item>
+            </LinkMap>
+            <Guid>dd450019-5193-4437-907e-901c64868d71</Guid>
+           </Item>
+           <Item>
+            <ID>quit_game</ID>
+            <State type="StateQuitGame" />
+            <LinkMap>
+             <Item key="back">
+              <Target>^.priority_feed_decision_mp</Target>
+             </Item>
+            </LinkMap>
+           </Item>
+           <Item>
+            <ID>priority_feed_sp</ID>
+            <State type="rage__StateFlowblockHost">
+             <Name>landing_page/flow/priority_feed_flow</Name>
+             <EntryPoint>sp</EntryPoint>
+            </State>
+            <LinkMap>
+             <Item key="exit">
+              <Target>^.priority_feed_decision_sp</Target>
+              <Interruptible value="True" />
+             </Item>
+            </LinkMap>
+            <Guid>bdf047b7-d03b-4864-986e-859ae388b870</Guid>
+           </Item>
+           <Item>
+            <ID>priority_feed_any</ID>
+            <State type="rage__StateFlowblockHost">
+             <Name>landing_page/flow/priority_feed_flow</Name>
+             <EntryPoint>any</EntryPoint>
+            </State>
+            <LinkMap>
+             <Item key="exit">
+              <Target>^.priority_feed_decision_sp</Target>
+              <Interruptible value="True" />
+             </Item>
+            </LinkMap>
+            <Guid>0b2e2d40-8757-40ce-8e04-8fa93f988fa4</Guid>
+           </Item>
+          </Children>
+          <Guid>e26b98a0-d59f-4f5f-bd6e-22c3e62241d4</Guid>
+         </Item>
+        </Children>
+        <Guid>97d7bc1e-2174-4b91-b7fa-2b9dd1c791a8</Guid>
+       </Item>
+      </Children>
+      <Guid>3e59bcae-8e7f-442c-a9f2-2af41f52ce9b</Guid>
+     </Item>
+    </Children>
+    <Guid>1eff02a5-8e1a-4a66-b6f1-a2b2b9c80766</Guid>
+   </Item>
+  </Children>
+  <Guid>5ccb347d-128a-45eb-8f8f-4df727ce19f2</Guid>
+ </FlowRoot>
+</rage__fwuiFlowBlock>

@@ -10,6 +10,8 @@
 #include <CoreConsole.h>
 #include <ServerInstanceBase.h>
 
+#include <ResourceManager.h>
+
 #include <boost/algorithm/string/trim.hpp>
 
 #include <utf8.h>
@@ -83,6 +85,7 @@ static InitFunction initFunction([]()
 		instance->OnInitialConfiguration.Connect([=]()
 		{
 			static fwRefContainer<console::Context> con = instance->GetComponent<console::Context>();
+			static fwRefContainer<fx::ResourceManager> rm = instance->GetComponent<fx::ResourceManager>();
 
 			static auto disableTTYVariable = instance->AddVariable<bool>("con_disableNonTTYReads", ConVar_None, false);
 
@@ -111,21 +114,107 @@ static InitFunction initFunction([]()
 
 				contextLen = len;
 
+				// try to find a command start
+				auto trackStart = input.length() - inputCopy.length();
+
+				while (trackStart > 0)
+				{
+					if (input[trackStart] == ';')
+					{
+						break;
+					}
+
+					trackStart--;
+				}
+
+				auto track = input.substr(trackStart);
+
+				// get the context type
+				static std::regex curCmdRe{ "(?:^|;\\s*)([^\\s;]+)(\\s+(.+)?)?(?:$|;)" };
+				enum class ContextType
+				{
+					None,
+					Command,
+					Resource
+				};
+
+				ContextType cxt = ContextType::Command;
+				
+				std::smatch matches;
+
+				if (std::regex_search(track, matches, curCmdRe))
+				{
+					// has spacing for args?
+					if (matches[2].matched)
+					{
+						auto cmd = matches[1].str();
+						auto argStr = (matches[3].matched) ? matches[3].str() : "";
+
+						// do we need a resource completion list?
+						bool isResourceCommand = false;
+
+						for (auto test : { "ensure", "start", "stop", "restart" })
+						{
+							if (cmd == test)
+							{
+								isResourceCommand = true;
+							}
+						}
+
+						// gather resource completion
+						if (isResourceCommand)
+						{
+							cxt = ContextType::Resource;
+						}
+						else
+						{
+							cxt = ContextType::None;
+						}
+					}
+				}
+
 				// get commands
 				cmds.clear();
 
-				con->GetCommandManager()->ForAllCommands([&inputCopy](const std::string& cmd)
+				switch (cxt)
 				{
-					if (cmd == "_crash")
+				case ContextType::Command:
+					con->GetCommandManager()->ForAllCommands([&inputCopy](const std::string& cmd)
 					{
-						return;
-					}
+						if (cmd == "_crash")
+						{
+							return;
+						}
 
-					if (strncmp(cmd.c_str(), inputCopy.c_str(), inputCopy.length()) == 0)
+						if (strncmp(cmd.c_str(), inputCopy.c_str(), inputCopy.length()) == 0)
+						{
+							cmds.insert(cmd);
+						}
+					});
+					break;
+
+				case ContextType::Resource:
+					rm->ForAllResources([&inputCopy](const fwRefContainer<fx::Resource>& resource)
 					{
-						cmds.insert(cmd);
-					}
-				});
+						auto cmd = resource->GetName();
+
+						if (cmd == "_cfx_internal")
+						{
+							return;
+						}
+
+						if (strncmp(cmd.c_str(), inputCopy.c_str(), inputCopy.length()) == 0)
+						{
+							cmds.insert(cmd);
+						}
+					});
+
+					break;
+
+				case ContextType::None:
+				default:
+					break;
+				}
 
 				return std::vector<std::string>{cmds.begin(), cmds.end()};
 			};
@@ -176,7 +265,7 @@ static InitFunction initFunction([]()
 
 			rxx.set_highlighter_callback(std::bind(&hook_color, std::placeholders::_1, std::placeholders::_2, std::cref(regex_color)));
 
-			rxx.set_word_break_characters(";");
+			rxx.set_word_break_characters("; ");
 
 			rxx.set_double_tab_completion(false);
 			rxx.set_complete_on_empty(true);
@@ -192,12 +281,18 @@ static InitFunction initFunction([]()
 						continue;
 					}
 
+					// wait until console buffer was processed
+					while (!con->IsBufferEmpty() || con->GIsPrinting())
+					{
+						std::this_thread::sleep_for(25ms);
+					}
+
 					const char* result = rxx.input("cfx> ");
 
 					// null result?
 					if (result == nullptr)
 					{
-						std::exit(0);
+						con->AddToBuffer(fmt::sprintf("quit \"Ctrl-C pressed in server console.\"\n"));
 						break;
 					}
 
@@ -209,12 +304,6 @@ static InitFunction initFunction([]()
 					con->AddToBuffer("\n");
 
 					rxx.history_add(resultStr);
-
-					// wait until console buffer was processed
-					while (!con->IsBufferEmpty())
-					{
-						std::this_thread::sleep_for(25ms);
-					}
 				}
 			}).detach();
 		}, 9999);

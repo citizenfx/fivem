@@ -61,7 +61,7 @@ workspace "CitizenMP"
 		"client/shared/",
 		"../vendor/jitasm/",
 		"../vendor/rapidjson/include/",
-		"../vendor/fmtlib/",
+		"../vendor/fmtlib/include/",
 		"deplibs/include/",
 		os.getenv("BOOST_ROOT")
 	}
@@ -75,13 +75,13 @@ workspace "CitizenMP"
 	location ((_OPTIONS['builddir'] or "build/") .. _OPTIONS['game'])
 
 	if os.istarget('windows') then
-		buildoptions '/std:c++latest'
+		buildoptions '/std:c++17'
 		
 		if _OPTIONS['game'] ~= 'server' then
 			buildoptions '/await'
 		end
 
-		systemversion '10.0.17134.0'
+		systemversion '10.0.18362.0'
 	end
 
 	-- special build dirs for FXServer
@@ -133,6 +133,18 @@ workspace "CitizenMP"
 
 		filter 'language:C or language:C++'
 			architecture 'x64'
+			
+	configuration "game=rdr3"
+		defines "IS_RDR3"
+
+		filter 'language:C or language:C++'
+			architecture 'x64'
+			
+	configuration "game=launcher"
+		defines "IS_LAUNCHER"
+
+		filter 'language:C or language:C++'
+			architecture 'x64'
 
 	configuration "windows"
 		links { "winmm" }
@@ -140,7 +152,7 @@ workspace "CitizenMP"
 	filter { 'system:not windows', 'language:C or language:C++' }
 		architecture 'x64'
 		
-		links { 'c++' }
+		links { 'stdc++' }
 
 		buildoptions {
 			"-fPIC", -- required to link on AMD64
@@ -160,6 +172,8 @@ workspace "CitizenMP"
 	include 'client/citicore'
 
 if _OPTIONS['game'] ~= 'server' then
+	include 'client/ipfsdl'
+
 	project "CitiGame"
 		targetname "CitizenGame"
 		language "C++"
@@ -190,6 +204,27 @@ premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 	end
 	_p(2,'<DebugType>portable</DebugType>')
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
+end)
+
+premake.override(premake.vstudio.vc2010, 'importLanguageTargets', function(base, prj)
+	base(prj)
+
+	local hasPostBuild = false
+
+	for cfg in premake.project.eachconfig(prj) do
+		if cfg.postbuildcommands and #cfg.postbuildcommands > 0 then
+			hasPostBuild = true
+			break
+		end
+	end
+
+	if hasPostBuild then
+		_p(1, '<Target Name="DisablePostBuildEvent" AfterTargets="Link" BeforeTargets="PostBuildEvent">')
+		_p(2, '<PropertyGroup>')
+		_p(3, '<PostBuildEventUseInBuild Condition="\'$(LinkSkippedExecution)\' == \'True\'">false</PostBuildEventUseInBuild>')
+		_p(2, '</PropertyGroup>')
+		_p(1, '</Target>')
+	end
 end)
 
 local function WriteDocumentationFileXml(_premake, _cfg)
@@ -248,6 +283,7 @@ premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, p
 	return base(prj)
 end)
 
+if _OPTIONS['game'] ~= 'launcher' then
 	project "CitiMono"
 		targetname "CitizenFX.Core"
 		language "C#"
@@ -267,7 +303,11 @@ end)
 		files { "../vendor/ben-demystifier/src/Ben.Demystifier/**.cs" }
 		
 		if _OPTIONS['game'] ~= 'server' then
-			files { "client/clrcore/External/*.cs" }
+			defines { 'USE_HYPERDRIVE' }
+			
+			if _OPTIONS['game'] == 'five' then
+				files { "client/clrcore/External/*.cs" }
+			end
 		else
 			files { "client/clrcore/Server/*.cs" }
 		end
@@ -287,6 +327,13 @@ end)
 			"../data/client/citizen/clr2/lib/mono/4.5/System.Collections.Immutable.dll",
 			"../data/client/citizen/clr2/lib/mono/4.5/MsgPack.dll"
 		}
+
+		if os.istarget('linux') then
+			links {
+				"/usr/lib/mono/4.5/Facades/System.Runtime.dll",
+				"/usr/lib/mono/4.5/Facades/System.IO.dll"
+			}
+		end
 
 		buildoptions '/debug:portable /langversion:7.3'
 
@@ -357,7 +404,7 @@ end)
 			configuration "Release*"
 				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/ref/')
 	end
-
+end
 	group ""
 
 	-- TARGET: shared component

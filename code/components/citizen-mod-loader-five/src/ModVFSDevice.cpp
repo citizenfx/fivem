@@ -6,9 +6,13 @@
 #include <VFSManager.h>
 #include <VFSRagePackfile7.h>
 
+#include <CoreConsole.h>
 #include <Streaming.h>
 
 #include <tinyxml2.h>
+
+#include <FontRenderer.h>
+#include <DrawCommands.h>
 
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 
@@ -160,8 +164,10 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 			}
 
 			auto lastArchive = entry.archiveRoots.back();
+			auto srcFile = entry.targetFile;
 			auto tgtFile = entry.targetFile;
 
+			std::replace(srcFile.begin(), srcFile.end(), '\\', '/');
 			std::replace(tgtFile.begin(), tgtFile.end(), '\\', '/');
 
 			if (tgtFile[0] == '/')
@@ -186,15 +192,15 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 					continue;
 				}
 
-				m_entries[tgtFile] = entry.sourceFile;
+				m_entries[tgtFile] = srcFile;
 			}
 			else if (lastArchive.length() == 8 /* x64N.rpf */ && lastArchive.find("x64") == 0 && lastArchive.find(".rpf") == 3)
 			{
-				m_entries["platform/" + tgtFile] = entry.sourceFile;
+				m_entries["platform/" + tgtFile] = srcFile;
 			}
 			else if (lastArchive == "common.rpf")
 			{
-				m_entries["common/" + tgtFile] = entry.sourceFile;
+				m_entries["common/" + tgtFile] = srcFile;
 			}
 		}
 	}
@@ -222,12 +228,19 @@ std::string ModVFSDevice::MapFileName(const std::string& name)
 	return {};
 }
 
+bool ModsNeedEncryption()
+{
+	static ConVar<bool> modDevMode("modDevMode", ConVar_None, false);
+
+	return !modDevMode.GetValue();
+}
+
 static void MountFauxStreamingRpf(const std::string& fn)
 {
 	static int packIdx;
 
 	fwRefContainer<vfs::RagePackfile7> packfile = new vfs::RagePackfile7();
-	if (packfile->OpenArchive(fn))
+	if (packfile->OpenArchive(fn, ModsNeedEncryption()))
 	{
 		std::string devName;
 
@@ -248,12 +261,6 @@ static void MountFauxStreamingRpf(const std::string& fn)
 					GetRagePageFlagsExtension data;
 					data.fileName = tfn.c_str();
 					packfile->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &data, sizeof(data));
-
-					if (packfile->GetLength(tfn) > 0xFFFFFF)
-					{
-						// skip >16 MiB files since these can't easily be registered with the rawstreamer either
-						continue;
-					}
 
 					CfxCollection_AddStreamingFileByTag(mount, tfn, data.flags);
 				}
@@ -332,12 +339,6 @@ void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage)
 				data.fileName = fn.c_str();
 				parentDevice->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &data, sizeof(data));
 
-				if (parentDevice->GetLength(fn) > 0xFFFFFF)
-				{
-					// skip >16 MiB files since these can't easily be registered with the rawstreamer either
-					continue;
-				}
-
 				CfxCollection_AddStreamingFileByTag("mod_" + modPackage->GetGuidString(), fn, data.flags);
 			}
 		}
@@ -357,7 +358,7 @@ void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage)
 			std::replace(fn.begin(), fn.end(), '\\', '/');
 
 			fwRefContainer<vfs::RagePackfile7> packfile = new vfs::RagePackfile7();
-			if (packfile->OpenArchive(fn))
+			if (packfile->OpenArchive(fn, ModsNeedEncryption()))
 			{
 				std::string devName;
 
@@ -416,3 +417,14 @@ void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage)
 	}
 }
 }
+
+static InitFunction initFunction([]()
+{
+	OnPostFrontendRender.Connect([]()
+	{
+		if (!fx::ModsNeedEncryption())
+		{
+			TheFonts->DrawText(L"CFX MOD DEV MODE ENABLED", CRect(40.0f, 40.0f, 800.0f, 500.0f), CRGBA(255, 0, 0, 255), 40.0f, 1.0f, "Comic Sans MS");
+		}
+	}, -1000);
+});

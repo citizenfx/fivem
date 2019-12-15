@@ -8,6 +8,7 @@
 		"gta:game",
 		"gta:streaming",
 		"vfs:core",
+		"font-renderer",
 		"vendor:tinyxml2-dll"
 	],
 	"provides": []

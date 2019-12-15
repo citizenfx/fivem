@@ -28,6 +28,8 @@ namespace fx
 	public:
 		fwEvent<> OnInitialConfiguration;
 
+		fwEvent<const std::string&> OnRequestQuit;
+
 	public:
 		static fwEvent<ServerInstanceBase*> OnServerCreate;
 

@@ -47,6 +47,7 @@ import {EscapePipe} from './escape.pipe';
 import { LocalStorage } from './local-storage';
 
 import { Languages } from './languages';
+import { ServerTagsService } from './servers/server-tags.service';
 
 const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
 
@@ -116,6 +117,7 @@ export function metaFactory(): MetaLoader {
 	],
 	providers:    [
 		ServersService,
+		ServerTagsService,
 		TweetService,
 		{
 			provide:  GameService,

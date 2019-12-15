@@ -1,0 +1,553 @@
+{
+	"titles":
+	{
+		"1":
+		{
+			"titleId": "gta5",
+			"rosTitleId": 11,
+			"friendlyName": "Grand Theft Auto V",
+			"installFolderRegKey": "Rockstar Games\\Grand Theft Auto Vee",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "GTA5.exe",
+			"appdataFolderName": "GTA V",
+			"downloadAndSwap": false,
+			"cloudSaveFiles" : [
+				"SGTA50000",
+				"SGTA50001",
+				"SGTA50002",
+				"SGTA50003",
+				"SGTA50004",
+				"SGTA50005",
+				"SGTA50006",
+				"SGTA50007",
+				"SGTA50008",
+				"SGTA50009",
+				"SGTA50010",
+				"SGTA50011",
+				"SGTA50012",
+				"SGTA50013",
+				"SGTA50014",
+				"SGTA50015"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true,
+					"soundCardReq" : false
+				}
+			},
+			"preqs":
+			[
+			],
+			"safeMode": false,
+			"modScan": false,
+			"modWhitelist" : [ "GTAVLanguageSelect.exe", "GTAVLauncher.exe", "Rockstar-Games-Launcher.exe", "PlayGTAV.exe", "console_final.log", "commandline.txt"],
+			"installshieldGuid": "BEEFBEEF-6B87-43FC-9524-F9E967241741",
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"es-MX",
+				"fr-FR",
+				"it-IT",
+				"ru-RU",
+				"pl-PL",
+				"pt-BR",
+				"zh-CHT",
+				"zh-CHS",
+				"ja-JP",
+				"ko-KR"
+			]
+		},
+		"2":
+		{
+			"titleId": "launcher",
+			"rosTitleId": 21,
+			"friendlyName": "Rockstar Games Launcher",
+			"installFolderRegKey": "Rockstar Games\\Launcher",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "Launcher.exe",
+			"appdataFolderName": "Launcher",
+			"downloadAndSwap": true,
+			"cloudSaveFiles" : [ ],
+			"preqs":
+			[
+			],
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"es-MX",
+				"fr-FR",
+				"it-IT",
+				"ru-RU",
+				"pl-PL",
+				"pt-BR",
+				"zh-CHT",
+				"zh-CHS",
+				"ja-JP",
+				"ko-KR"
+			]
+		},
+		"3":
+		{
+			"titleId": "rdr2",
+			"rosTitleId": 13,
+			"friendlyName": "Red Dead Redemption 2",
+			"installFolderRegKey": "Rockstar Games\\Red Dead Redemption 2",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "RDR2.exe",
+			"appdataFolderName": "Red Dead Redemption 2",
+			"downloadAndSwap": false,
+			"cloudSaveFiles" : [
+				"SRDR30000",
+				"SRDR30001",
+				"SRDR30002",
+				"SRDR30003",
+				"SRDR30004",
+				"SRDR30005",
+				"SRDR30006",
+				"SRDR30007",
+				"SRDR30008",
+				"SRDR30009",
+				"SRDR30010",
+				"SRDR30011",
+				"SRDR30012",
+				"SRDR30013",
+				"SRDR30014",
+				"SRDR30015",
+				"ProfileSettings",
+				"Player",
+				"KeyMappings",
+				"KeyMappingsAutoSave"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true,
+					"soundCardReq" : false
+				}
+			},
+			"preqs":
+			[
+			],
+			"safeMode": true,
+			"modScan": false,
+			"modWhitelist" : [ ".log" ],
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"es-MX",
+				"fr-FR",
+				"it-IT",
+				"ru-RU",
+				"pl-PL",
+				"pt-BR",
+				"zh-CHT",
+				"zh-CHS",
+				"ja-JP",
+				"ko-KR"
+			]
+		},
+		"4":
+		{
+			"titleId": "lanoire",
+			"rosTitleId": 9,
+			"friendlyName": "L.A. Noire: Complete Edition",
+			"installFolderRegKey": "Rockstar Games\\LANoireMTL",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "LANoire.exe",
+			"appdataFolderName": "L.A. Noire",
+			"downloadAndSwap": false,
+			"cloudSaveFolder": "L.A. Noire",
+			"cloudSaveFiles" : [
+				"prefs.lanoire",
+				"SaveGame1.lanoire",
+				"SaveGame2.lanoire",
+				"SaveGame3.lanoire",
+				"SaveGame4.lanoire",
+				"SaveGame5.lanoire",
+				"SaveGame6.lanoire",
+				"SaveGame7.lanoire",
+				"SaveGame8.lanoire"
+			],
+			"platforms":
+			{
+				"steam" :
+				{
+					"cloud": false
+				},
+				"default":
+				{
+					"cloud": true
+				}
+			},
+			"preqs":
+			[
+				"vcredist2008",
+				"directx"
+			],
+			"installshieldGuid": "915726DF-7891-444A-AA03-0DF1D64F561A",
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT",
+				"ru-RU"
+			]
+		},
+		"5":
+		{
+			"titleId": "mp3",
+			"rosTitleId": 10,
+			"friendlyName": "Max Payne 3: Complete Edition",
+			"installFolderRegKey": "Rockstar Games\\MP3MTL",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "MaxPayne3.exe",
+			"appdataFolderName": "Max Payne 3",
+			"downloadAndSwap": false,
+			"cloudSaveFiles" : [
+				"MP3_PROGRESSION",
+				"MP3_STATS",
+				"MP3_LOADOUT",
+				"MP3_PLAYERCUSTOM",
+				"MP3_PROG_BACKUP"
+			],
+			"platforms":
+			{
+				"steam" :
+				{
+					"cloud": false
+				},
+				"default":
+				{
+					"cloud": true,
+					"cdKey":true
+				}
+			},
+			"preqs":
+			[
+				"vcredist2008",
+				"directx"
+			],
+			"modScan": true,
+			"modWhitelist" : [ "DLC4CompatPack.rpf", "DLC5CompatPack.rpf", "DLC6CompatPack.rpf", "MP3_Launcher.ico", "PlayMaxPayne3.resources.dll", "special_ed_pack.dat", "silent_killer_pack.dat", "rstar_pass.dat", "pill_bottle_pack.dat", "mode_compat_pack.dat", "max_payne_1_pack.dat", "gorilla_warfare.dat", "DLCMain.dat", "dlc5_compat_pack.dat", "dlc4_compat_pack.dat", "deadly_force_pack.dat", "cemetery_pack.dat" ],
+			"installshieldGuid": "1AA94747-3BF6-4237-9E1A-7B3067738FE1",
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT",
+				"ru-RU",
+				"pl-PL",
+				"pt-BR",
+				"ja-JP",
+				"ko-KR"
+			]
+		},
+		"6":
+		{
+			"titleId": "lanoirevr",
+			"rosTitleId": 24,
+			"friendlyName": "L.A. Noire: The VR Case Files",
+			"installFolderRegKey": "Rockstar Games\\LANoireVR",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "LANoireVR.exe",
+			"appdataFolderName": "L.A. Noire VR",
+			"downloadAndSwap": false,
+			"neverInstallable": true,
+			"cloudSaveFolder": "L.A. Noire",
+			"cloudSaveFiles" : [
+				"prefs.lanoire",
+				"SaveGame1.lanoire",
+				"SaveGame2.lanoire",
+				"SaveGame3.lanoire",
+				"SaveGame4.lanoire",
+				"SaveGame5.lanoire",
+				"SaveGame6.lanoire",
+				"SaveGame7.lanoire",
+				"SaveGame8.lanoire"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true
+				}
+			},
+			"preqs":
+			[
+				"vcredist2015"
+			],
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT"
+			]
+		},
+		"7":
+		{
+			"titleId": "gtasa",
+			"rosTitleId": 18,
+			"friendlyName": "Grand Theft Auto: San Andreas",
+			"installFolderRegKey": "Rockstar Games\\GTA: San Andreas",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "gta_sa.exe",
+			"appdataFolderName": "GTA San Andreas",
+			"downloadAndSwap": false,
+			"cloudSaveRoot" : "docs",
+			"cloudSaveFolder": "GTA San Andreas User Files",
+			"cloudSaveLocalMods" : true,
+			"cloudSaveFiles" : [
+				"gta_sa.set",
+				"GTASAsf1.b",
+				"GTASAsf2.b",
+				"GTASAsf3.b",
+				"GTASAsf4.b",
+				"GTASAsf5.b",
+				"GTASAsf6.b",
+				"GTASAsf7.b",
+				"GTASAsf8.b"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true
+				}
+			},
+			"preqs":
+			[
+			],
+			"checkExitCodes":false,
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT"
+			]
+		},
+		"8":
+		{
+			"titleId": "gta3",
+			"rosTitleId": 26,
+			"friendlyName": "Grand Theft Auto III",
+			"installFolderRegKey": "Rockstar Games\\Grand Theft Auto III",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "gta3.exe",
+			"appdataFolderName": "Grand Theft Auto III",
+			"downloadAndSwap": false,
+			"cloudSaveRoot" : "docs",
+			"cloudSaveFolder": "GTA3 User Files",
+			"cloudSaveLocalMods" : true,
+			"cloudSaveFiles" : [
+				"gta3.set",
+				"GTA3sf1.b",
+				"GTA3sf2.b",
+				"GTA3sf3.b",
+				"GTA3sf4.b",
+				"GTA3sf5.b",
+				"GTA3sf6.b",
+				"GTA3sf7.b",
+				"GTA3sf8.b"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true
+				}
+			},
+			"preqs":
+			[
+			],
+			"checkExitCodes":false,
+			"appCompatFlags":"DWM8And16BitMitigation",
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT"
+			]
+		},
+		"9":
+		{
+			"titleId": "gtavc",
+			"rosTitleId": 27,
+			"friendlyName": "Grand Theft Auto: Vice City",
+			"installFolderRegKey": "Rockstar Games\\Grand Theft Auto: Vice City",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "gta-vc.exe",
+			"appdataFolderName": "GTA Vice City",
+			"downloadAndSwap": false,
+			"cloudSaveRoot" : "docs",
+			"cloudSaveFolder": "GTA Vice City User Files",
+			"cloudSaveLocalMods" : true,
+			"cloudSaveFiles" : [
+				"gta_vc.set",
+				"GTAVCsf1.b",
+				"GTAVCsf2.b",
+				"GTAVCsf3.b",
+				"GTAVCsf4.b",
+				"GTAVCsf5.b",
+				"GTAVCsf6.b",
+				"GTAVCsf7.b",
+				"GTAVCsf8.b"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true
+				}
+			},
+			"preqs":
+			[
+			],
+			"checkExitCodes":false,
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT"
+			]
+		},
+		"10":
+		{
+			"titleId": "bully",
+			"rosTitleId": 23,
+			"friendlyName": "Bully: Scholarship Edition",
+			"installFolderRegKey": "Rockstar Games\\Bully",
+			"installFolderRegValueName": "InstallFolder",
+			"principalFileName": "Bully.exe",
+			"appdataFolderName": "Bully",
+			"downloadAndSwap": false,
+			"cloudSaveRoot" : "docs",
+			"cloudSaveFolder": "Bully Scholarship Edition",
+			"cloudSaveLocalMods" : true,
+			"cloudSaveFiles" : [
+				"BullyFile1",
+				"BullyFile2",
+				"BullyFile3",
+				"BullyFile4",
+				"BullyFile5",
+				"BullyFile6",
+				"ControllerSettings",
+				"FileTableBully"
+			],
+			"platforms":
+			{
+				"default":
+				{
+					"cloud": true
+				}
+			},
+			"preqs":
+			[
+				"directx",
+				"vcredist2005"
+			],
+			"languages" : [
+				"en-US",
+				"de-DE",
+				"es-ES",
+				"fr-FR",
+				"it-IT",
+				"ru-RU",
+				"pl-PL",
+				"ja-JP"
+			]
+		}
+	},
+	"preqs":
+	{
+		"directx":
+		{
+			"friendlyName": "Microsoft DirectX",
+			"locKey": "PREREQUISITE_DIRECTX",
+			"version": "2010",
+			"executableName": "Redistributables/DirectX/DXSETUP.exe",
+			"commandline": "/silent"
+		},
+		"vcredist2005":
+		{
+			"friendlyName": "Microsoft Visual C++ 2005 Redistributable (x86)",
+			"locKey": "PREREQUISITE_VS2005",
+			"version": "6.00.3790.0",
+			"executableName": "Redistributables/VCRed/vcredist_x86.exe",
+			"commandline": "/Q",
+			"ignoreExitCodes": [3010, 1638]
+		},
+		"vcredist2008":
+		{
+			"friendlyName": "Microsoft Visual C++ 2008 Redistributable (x86)",
+			"locKey": "PREREQUISITE_VS2008",
+			"version": "9.0.30729.17",
+			"executableName": "Redistributables/VCRed/vcredist_x86.exe",
+			"commandline": "/q",
+			"ignoreExitCodes": [3010, 1638]
+		},
+		"vcredist2015":
+		{
+			"friendlyName": "Microsoft Visual C++ 2015 Redistributable (x64)",
+			"locKey": "PREREQUISITE_VS2015",
+			"version": "2015",
+			"executableName": "Redistributables/VCRed/vc_redist.x64.exe",
+			"commandline": "/install /quiet /norestart",
+			"ignoreExitCodes": [3010, 1638]
+		},
+		"vcredist2017":
+		{
+			"friendlyName": "Microsoft Visual C++ 2017 Redistributable (x64)",
+			"locKey": "PREREQUISITE_VS2017",
+			"version": "2017",
+			"executableName": "Redistributables/VCRed/vc_redist.x64.exe",
+			"commandline": "/install /quiet /norestart",
+			"ignoreExitCodes": [3010, 1638]
+		},
+		"vcredist20152019x64":
+		{
+			"friendlyName": "Microsoft Visual C++ 2015-2019 Redistributable (x64)",
+			"locKey": "PREREQUISITE_VS2015_2019_64",
+			"version": "14.22.27821.0",
+			"executableName": "Redistributables/VCRed/vc_redist.x64.exe",
+			"commandline": "/install /quiet /norestart",
+			"ignoreExitCodes": [3010, 1638]
+		},
+		"vcredist20152019x86":
+		{
+			"friendlyName": "Microsoft Visual C++ 2015-2019 Redistributable (x86)",
+			"locKey": "PREREQUISITE_VS2015_2019_86",
+			"version": "14.22.27821.0",
+			"executableName": "Redistributables/VCRed/vc_redist.x86.exe",
+			"commandline": "/install /quiet /norestart",
+			"ignoreExitCodes": [3010, 1638]
+		},
+		"socialclub":
+		{
+			"friendlyName": "Rockstar Games Social Club",
+			"locKey": "PREREQUISITE_SOCIAL_CLUB",
+			"version": "2.0.3.7",
+			"executableName": "Redistributables/SocialClub/Social-Club-Setup.exe",
+			"commandline": "/silent"
+		},
+		"vulkan":
+		{
+			"friendlyName": "Vulkan Runtime",
+			"locKey": "PREREQUISITE_VULKAN_RUNTIME",
+			"version": "1.1.108.0",
+			"executableName": "Redistributables/VulkanRT-1.1.108.0-Installer.exe",
+			"commandline": "/S"
+		},
+	}
+}

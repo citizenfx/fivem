@@ -17,21 +17,6 @@
 
     <section class="filter">
         <div class="checkboxes">
-            <div class="checkbox max-ping" [ngClass]="{'enabled': isPingCap()}">
-                <input type="checkbox" id="max-ping" [(ngModel)]="filters.capPing" (ngModelChange)="updateFilters()">
-                <label for="max-ping" translate>#ServerList_MaxPing</label>
-				<div 
-					id="progress"
-					(mouseup)="mouseState=false" 
-					(mouseleave)="mouseState=false" 
-					(mousedown)="mouseState=true" 
-					(mousemove)="changeMaxPing($event, false)" 
-					(click)="changeMaxPing($event, true)" 
-				>
-					<a>{{ filters.maxPing }}</a>
-					<div class="bar" [ngStyle]="{'width': maxPingPercent + '%'}"></div>
-				</div>
-            </div>
             <div class="checkbox">
                 <input type="checkbox" id="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
                 <label for="hide-empty" translate>#ServerList_HideEmpty</label>

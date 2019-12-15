@@ -9,6 +9,8 @@
 #include <MsgpackJson.h>
 #include <rapidjson/writer.h>
 
+#include <MonoThreadAttachment.h>
+
 namespace fx
 {
 ClientDeferral::ClientDeferral(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client)
@@ -245,6 +247,9 @@ TCallbackMap ClientDeferral::GetCallbacks()
 								msgpack::object cardObject;
 								msgpack::zone zone;
 								ConvertToMsgPack(cardJSON, cardObject, zone);
+
+								// make sure the monkeys are happy
+								MonoEnsureThreadAttached();
 
 								self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(functionRef.GetRef(), cardObject, cardJson);
 							}

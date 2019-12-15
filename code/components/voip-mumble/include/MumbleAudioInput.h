@@ -83,6 +83,8 @@ private:
 	float m_positionY;
 	float m_positionZ;
 
+	float m_voiceDistance;
+
 	float m_audioLevel;
 
 	std::vector<uint8_t> m_audioBuffer;
@@ -134,6 +136,11 @@ public:
 		m_positionX = position[0];
 		m_positionY = position[1];
 		m_positionZ = position[2];
+	}
+
+	inline void SetDistance(float distance)
+	{
+		m_voiceDistance = distance;
 	}
 
 	inline void SetClient(MumbleClient* client) { m_client = client; }

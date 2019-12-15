@@ -38,8 +38,6 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	// start/stop handling events
 	object->OnBeforeStart.Connect([=] ()
 	{
-		OnTriggerEvent.Reset();
-
 		// pack the resource name
 		msgpack::sbuffer buf;
 		msgpack::packer<msgpack::sbuffer> packer(buf);
@@ -69,6 +67,11 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 	{
 		m_managerComponent->QueueEvent2(fmt::sprintf("on%sResourceStop", IsServer() ? "Server" : "Client"), {}, m_resource->GetName());
 	});
+
+	object->OnStop.Connect([=] ()
+	{
+		OnTriggerEvent.Reset();
+	}, INT32_MAX);
 
 	object->OnStop.Connect([=]()
 	{

@@ -6,10 +6,12 @@
  */
 
 #include "StdInc.h"
+
 #include <CefOverlay.h>
 #include <NetLibrary.h>
 #include <strsafe.h>
 #include <GlobalEvents.h>
+
 #include <nutsnbolts.h>
 #include <ConsoleHost.h>
 #include <CoreConsole.h>
@@ -22,18 +24,21 @@
 #include <ShlObj.h>
 #include <Shellapi.h>
 #include <HttpClient.h>
+#include <InputHook.h>
 
 #include <json.hpp>
 
 #include <CfxState.h>
 #include <HostSharedData.h>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include <se/Security.h>
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
+
+#include <LauncherIPC.h>
 
 #include <SteamComponentAPI.h>
 
@@ -172,6 +177,23 @@ static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
 
+	static ipc::Endpoint ep("launcherTalk", false);
+
+	OnCriticalGameFrame.Connect([]()
+	{
+		ep.RunFrame();
+	});
+
+	OnGameFrame.Connect([]()
+	{
+		ep.RunFrame();
+	});
+
+	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+	{
+		ep.Call("loading");
+	});
+
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* lib)
 	{
 		netLibrary = lib;
@@ -189,6 +211,8 @@ static InitFunction initFunction([] ()
 			document.Accept(writer);
 
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", sbuffer.GetString()));
+
+			ep.Call("connectionError", std::string(error));
 		});
 
 		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
@@ -208,6 +232,8 @@ static InitFunction initFunction([] ()
 			{
 				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectStatus", "data": %s })", sbuffer.GetString()));
 			}
+
+			ep.Call("connectionProgress", message, progress, totalProgress);
 		});
 
 		netLibrary->OnConnectionCardPresent.Connect([](const std::string& card, const std::string& token)
@@ -227,6 +253,8 @@ static InitFunction initFunction([] ()
 			{
 				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectCard", "data": %s })", sbuffer.GetString()));
 			}
+
+			ep.Call("connectionError", std::string("Cards don't exist here yet!"));
 		});
 
 		static std::function<void()> finishConnectCb;
@@ -342,6 +370,63 @@ static InitFunction initFunction([] ()
 		ConnectTo(server);
 	});
 
+	ep.Bind("connectTo", [](const std::string& url)
+	{
+		ConnectTo(url);
+	});
+
+	ep.Bind("charInput", [](uint32_t ch)
+	{
+		bool p = true;
+		LRESULT r;
+
+		InputHook::DeprecatedOnWndProc(NULL, WM_CHAR, ch, 0, p, r);
+	});
+
+	ep.Bind("imeCommitText", [](const std::string& u8str, int rS, int rE, int p)
+	{
+		auto b = nui::GetBrowser();
+
+		if (b)
+		{
+			b->GetHost()->ImeCommitText(ToWide(u8str), CefRange(rS, rE), p);
+		}
+	});
+
+	ep.Bind("imeSetComposition", [](const std::string& u8str, const std::vector<std::string>& underlines, int rS, int rE, int cS, int cE)
+	{
+		auto b = nui::GetBrowser();
+
+		if (b)
+		{
+			std::vector<CefCompositionUnderline> uls;
+
+			for (auto& ul : underlines)
+			{
+				uls.push_back(*reinterpret_cast<const CefCompositionUnderline*>(ul.c_str()));
+			}
+
+			b->GetHost()->ImeSetComposition(ToWide(u8str), uls, CefRange(rS, rE), CefRange(cS, cE));
+		}
+	});
+
+	ep.Bind("imeCancelComposition", []()
+	{
+		auto b = nui::GetBrowser();
+
+		if (b)
+		{
+			b->GetHost()->ImeCancelComposition();
+		}
+	});
+
+	ep.Bind("resizeWindow", [](int w, int h)
+	{
+		auto wnd = FindWindow(L"grcWindow", NULL);
+
+		SetWindowPos(wnd, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_ASYNCWINDOWPOS);
+	});
+
 	static ConsoleCommand disconnectCommand("disconnect", []()
 	{
 		if (netLibrary->GetConnectionState() != 0)
@@ -350,6 +435,8 @@ static InitFunction initFunction([] ()
 			OnMsgConfirm();
 		}
 	});
+
+	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
 	
 	ConHost::OnInvokeNative.Connect([](const char* type, const char* arg)
 	{
@@ -456,6 +543,7 @@ static InitFunction initFunction([] ()
 				TerminateProcess(GetCurrentProcess(), 0);
 			});
 		}
+#ifdef GTA_FIVE
 		else if (!_wcsicmp(type, L"setDiscourseIdentity"))
 		{
 			try
@@ -472,9 +560,40 @@ static InitFunction initFunction([] ()
 						{ "authToken", g_discourseUserToken },
 						{ "clientId", g_discourseClientId },
 					},
-					[](bool, const char*, size_t)
+					[](bool success, const char* data, size_t size)
 				{
+					if (success)
+					{
+						std::string response{ data, size };
 
+						bool hasEndUserPremium = false;
+
+						try
+						{
+							auto json = nlohmann::json::parse(response);
+
+							for (const auto& group : json["user"]["groups"])
+							{
+								auto name = group.value<std::string>("name", "");
+
+								if (name == "staff" || name == "patreon_enduser")
+								{
+									hasEndUserPremium = true;
+									break;
+								}
+							}
+						}
+						catch (const std::exception& e)
+						{
+
+						}
+
+						if (hasEndUserPremium)
+						{
+							uiPremium.GetHelper()->SetRawValue(true);
+							Instance<ICoreGameInit>::Get()->SetVariable("endUserPremium");
+						}
+					}
 				});
 			}
 			catch (const std::exception& e)
@@ -482,6 +601,7 @@ static InitFunction initFunction([] ()
 				trace("failed to set discourse identity: %s\n", e.what());
 			}
 		}
+#endif
 		else if (!_wcsicmp(type, L"submitCardResponse"))
 		{
 			try
@@ -502,12 +622,22 @@ static InitFunction initFunction([] ()
 
 	OnGameFrame.Connect([]()
 	{
+		static bool hi;
+
+		if (!hi)
+		{
+			ep.Call("hi");
+			hi = true;
+		}
+
 		se::ScopedPrincipal scope(se::Principal{ "system.console" });
 		Instance<console::Context>::Get()->ExecuteBuffer();
 	});
 
 	OnMsgConfirm.Connect([] ()
 	{
+		ep.Call("disconnected");
+
 		nui::SetMainUI(true);
 
 		nui::CreateFrame("mpMenu", console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_url")->GetValue());
@@ -517,12 +647,13 @@ static InitFunction initFunction([] ()
 #include <gameSkeleton.h>
 #include <shellapi.h>
 
-#include <nng.h>
-#include <protocol/pipeline0/pull.h>
-#include <protocol/pipeline0/push.h>
+#include <nng/nng.h>
+#include <nng/protocol/pipeline0/pull.h>
+#include <nng/protocol/pipeline0/push.h>
 
 static void ProtocolRegister()
 {
+#ifdef GTA_FIVE
 	LSTATUS result;
 
 #define CHECK_STATUS(x) \
@@ -567,6 +698,15 @@ static void ProtocolRegister()
 	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\FiveM.ProtocolHandler\\shell\\open\\command", &key));
 	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
 	CHECK_STATUS(RegCloseKey(key));
+
+	if (!IsWindows8Point1OrGreater())
+	{
+		// these are for compatibility on downlevel Windows systems
+		CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem\\shell\\open\\command", &key));
+		CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+		CHECK_STATUS(RegCloseKey(key));
+	}
+#endif
 }
 
 void Component_RunPreInit()
@@ -590,25 +730,24 @@ void Component_RunPreInit()
 
 		if (arg.find("fivem:") == 0)
 		{
-			std::error_code ec;
-			network::uri parsed = network::make_uri(arg, ec);
+			auto parsed = skyr::make_url(arg);
 
-			if (!static_cast<bool>(ec))
+			if (parsed)
 			{
-				if (!parsed.host().empty())
+				if (!parsed->host().empty())
 				{
-					if (parsed.host().to_string() == "connect")
+					if (parsed->host() == "connect")
 					{
-						if (!parsed.path().empty())
+						if (!parsed->pathname().empty())
 						{
-							connectHost = parsed.path().substr(1).to_string();
+							connectHost = parsed->pathname().substr(1);
 						}
 					}
-					else if (parsed.host().to_string() == "accept-auth")
+					else if (parsed->host() == "accept-auth")
 					{
-						if (!parsed.query().empty())
+						if (!parsed->search().empty())
 						{
-							authPayload = parsed.query().to_string();
+							authPayload = parsed->search().substr(1);
 						}
 					}
 				}
@@ -644,7 +783,7 @@ void Component_RunPreInit()
 
 			if (!hostData->gamePid)
 			{
-				AllowSetForegroundWindow(hostData->initialPid);
+				AllowSetForegroundWindow(hostData->GetInitialPid());
 			}
 			else
 			{
@@ -679,7 +818,7 @@ void Component_RunPreInit()
 
 			if (!hostData->gamePid)
 			{
-				AllowSetForegroundWindow(hostData->initialPid);
+				AllowSetForegroundWindow(hostData->GetInitialPid());
 			}
 			else
 			{

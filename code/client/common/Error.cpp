@@ -28,7 +28,15 @@ static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = FindWindow(L"grcWindow", nullptr);
+	HWND wnd = FindWindow(
+#ifdef GTA_FIVE
+		L"grcWindow"
+#elif defined(IS_RDR3)
+		L"sgaWindow"
+#else
+		L"UNKNOWN_WINDOW"
+#endif
+	, nullptr);
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
 	if (CoreIsDebuggerPresent())
@@ -142,26 +150,26 @@ struct ScopedError
 };
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
-int GlobalErrorReal(const char* file, int line, uint32_t stringHash, const char* string, const fmt::ArgList& formatList)
+int GlobalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
 {
 	ScopedError error(file, line, stringHash);
-	return GlobalErrorHandler(ERR_NORMAL, fmt::sprintf(string, formatList).c_str());
+	return GlobalErrorHandler(ERR_NORMAL, fmt::vsprintf(string, formatList).c_str());
 }
 
-int FatalErrorReal(const char* file, int line, uint32_t stringHash, const char* string, const fmt::ArgList& formatList)
+int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
 {
 	ScopedError error(file, line, stringHash);
-	return GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
+	return GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str());
 }
 #else
-void GlobalError(const char* string, const fmt::ArgList& formatList)
+void GlobalErrorV(const char* string, fmt::printf_args formatList)
 {
-	GlobalErrorHandler(ERR_NORMAL, fmt::sprintf(string, formatList).c_str());
+	GlobalErrorHandler(ERR_NORMAL, fmt::vsprintf(string, formatList).c_str());
 }
 
-void FatalError(const char* string, const fmt::ArgList& formatList)
+void FatalErrorV(const char* string, fmt::printf_args formatList)
 {
-	GlobalErrorHandler(ERR_FATAL, fmt::sprintf(string, formatList).c_str());
+	GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str());
 }
 #endif
 

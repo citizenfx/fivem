@@ -1,12 +1,6 @@
 import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
-import { ServerTags } from './server-filter.component';
-import { ServersService } from '../servers.service';
-import { Server } from '../server';
-
-class ServerTag {
-    public name: string;
-    public count: number;
-}
+import { ServerTags } from './server-filter-container';
+import { ServerTagsService, ServerTag, ServerLocale } from '../server-tags.service';
 
 @Component({
     moduleId: module.id,
@@ -25,73 +19,59 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
     @Output()
     public tagsChanged = new EventEmitter<ServerTags>();
 
-    tags: ServerTag[] = [];
-
-    serverTags: {[addr: string]: string[]} = {};
-
-    constructor(private serversService: ServersService) {
-        this.serversService
-            .getReplayedServers()
-            .filter(server => !!server)
-            .subscribe(server => {
-                this.addFilterIndex(server);
-            });
-
-        this.serversService
-            .getReplayedServers()
-            .bufferTime(500)
-            .subscribe(server => {
-                this.updateTagList();
-            });
+    get tags() {
+        return this.tagService.tags;
     }
 
-    private updateTagList() {
-        const tagList = Object.entries(
-            Object.values(this.serverTags)
-                 .reduce<{[k: string]: number}>((acc: {[k: string]: number}, val: string[]) => {
-                    for (const str of val) {
-                        if (!acc.hasOwnProperty(str)) {
-                            acc[str] = 0;
-                        }
+    get locales() {
+        return this.tagService.locales;
+    }
 
-                        acc[str]++;
+    constructor(private tagService: ServerTagsService) {
+        tagService.onUpdate.subscribe(() => {
+            if (this.filters && this.filters.tagList) {
+                for (const [ filterKey ] of Object.entries(this.filters.tagList)) {
+                    if (!this.tagService.tags.some(e => e.name === filterKey)) {
+                        this.tagService.tags.push({
+                            name: filterKey,
+                            count: 0
+                        });
                     }
-                    return acc;
-                 }, {})
-            )
-            .map(([name, count]) => {
-                return {
-                    name,
-                    count
                 }
-            });
-
-        tagList.sort((a, b) => {
-            if (a.count === b.count) {
-                return 0;
-            } else if (a.count > b.count) {
-                return -1;
-            } else {
-                return 1;
             }
+
+            if (this.filters && this.filters.localeList) {
+                for (const [ filterKey ] of Object.entries(this.filters.localeList)) {
+                    if (!this.locales.some(e => e.name === filterKey)) {
+                        const parts = filterKey.split('-');
+                        const t = parts[parts.length - 1];
+    
+                        this.locales.push({
+                            name: filterKey,
+                            displayName: this.tagService.getLocaleDisplayName(filterKey),
+                            countryName: t,
+                            count: 0
+                        });
+                    }
+                }
+            }    
         });
-
-        this.tags = tagList.slice(0, 50);
-    }
-
-    private addFilterIndex(server: Server) {
-        if (server && server.data && server.data.vars && server.data.vars.tags) {
-            const tags: string[] = (<string>server.data.vars.tags)
-                .split(',')
-                .map(a => a.trim().toLowerCase())
-                .filter(a => a);
-
-            this.serverTags[server.address] = tags;
-        }
     }
 
     tagName(tag: ServerTag) {
         return tag.name;
+    }
+
+    localeName(tag: ServerLocale) {
+        return tag.name;
+    }
+
+    isLocaleActive(locale: ServerLocale) {
+        return (locale.name in this.filters.localeList) && (this.filters.localeList[locale.name]);
+    }
+
+    isLocaleInactive(locale: ServerLocale) {
+        return (locale.name in this.filters.localeList) && (!this.filters.localeList[locale.name]);
     }
 
     isActive(tag: ServerTag) {
@@ -114,6 +94,18 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
         this.emitTagsChanged();
     }
 
+    toggleLocale(tag: ServerLocale) {
+        if (!(tag.name in this.filters.localeList)) {
+            this.filters.localeList[tag.name] = true;
+        } else if (this.filters.localeList[tag.name]) {
+            this.filters.localeList[tag.name] = false;
+        } else {
+            delete this.filters.localeList[tag.name];
+        }
+
+        this.emitTagsChanged();
+    }
+
     private emitTagsChanged() {
         this.tagsChanged.emit(this.filters);
         localStorage.setItem(`stags:${this.type}`, JSON.stringify(this.filters));
@@ -122,6 +114,10 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
     ngOnInit(): void {
         if (!this.filters.tagList) {
             this.filters.tagList = {};
+        }
+
+        if (!this.filters.localeList) {
+            this.filters.localeList = {};
         }
     }
 
@@ -141,6 +137,10 @@ export class ServerTagFilterComponent implements OnInit, OnChanges, OnDestroy {
 
             if (!this.filters.tagList) {
                 this.filters.tagList = {};
+            }
+
+            if (!this.filters.localeList) {
+                this.filters.localeList = {};
             }
 
             this.lastType = this.type;

@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
 #else

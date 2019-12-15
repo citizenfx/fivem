@@ -1,0 +1,12 @@
+{
+	"name": "citizen:playernames:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net",
+		"citizen:resources:core",
+		"vendor:msgpack-c",
+		"gta:net"
+	],
+	"provides": []
+}

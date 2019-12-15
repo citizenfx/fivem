@@ -19,13 +19,22 @@
 #include <botan/stream_cipher.h>
 #include <botan/base64.h>
 
+#include <boost/algorithm/string.hpp>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+
+extern bool IsSteamTicket();
 
 // XOR auto-vectorization is broken in VS15.7+, so don't optimize this file
 #pragma optimize("", off)
 
-#define ROS_PLATFORM_KEY "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc="
+// gta5
+//#define ROS_PLATFORM_KEY "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc="
+
+// we launcher now
+#define ROS_PLATFORM_KEY_LAUNCHER "C6fU6TQTPgUVmy3KIB5g8ElA7DrenVpGogSZjsh+lqJaQHqv4Azoctd/v4trfX6cBjbEitUKBG/hRINF4AhQqcg="
+#define ROS_PLATFORM_KEY_RDR2 "CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk="
 
 class ROSCryptoState
 {
@@ -61,6 +70,13 @@ public:
 		std::ifstream scuiFile(MakeRelativeCitPath(L"citizen/ros/scui.html"));
 
 		m_scuiData = std::string(std::istreambuf_iterator<char>(scuiFile), std::istreambuf_iterator<char>());
+		boost::algorithm::replace_all(m_scuiData, "{{ TITLE }}",
+#if defined(GTA_FIVE)
+			"gta5"
+#else
+			"rdr2"
+#endif
+		);
 	}
 
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
@@ -104,7 +120,7 @@ namespace
 
 const char* GetROSVersionString()
 {
-    const char* baseString = va("e=%d,t=%s,p=%s,v=%d", 1, "gta5", "pcros", 11);
+    const char* baseString = va("e=%d,t=%s,p=%s,v=%d", 1, (IsSteamTicket()) ? "rdr2" : "launcher", "pcros", 11);
 
     // create the XOR'd buffer
     std::vector<uint8_t> xorBuffer(strlen(baseString) + 4);
@@ -251,7 +267,7 @@ public:
                     cb("", returnedXml);
                 }
             }
-        }, cpr::Url{ "http://ros.citizenfx.internal/gta5/11/gameservices/auth.asmx/CreateTicketSc3" }, cpr::Body{ EncryptROSData(BuildPOSTString({
+        }, cpr::Url{ "http://ros.citizenfx.internal/launcher/11/launcherservices/auth.asmx/CreateTicketSc3" }, cpr::Body{ EncryptROSData(BuildPOSTString({
             {"ticket", ""},
             {"email", (username.find('@') != std::string::npos) ? username : "" },
             {"nickname", (username.find('@') == std::string::npos) ? username : "" },
@@ -265,10 +281,24 @@ public:
 
     void HandleValidateRequest(const rapidjson::Document& document, fwRefContainer<net::HttpResponse> response)
     {
+		trace(__FUNCTION__ ": ENTER\n");
+
         std::string ticket = document["ticket"].GetString();
         std::string sessionKey = document["sessionKey"].GetString();
         std::string sessionTicket = document["sessionTicket"].GetString();
-        std::string machineHash = document["machineHash"].GetString();
+		std::string machineHash;
+
+		bool isEntitlementsV3 = false;
+
+		if (document.HasMember("machineHash"))
+		{
+			machineHash = document["machineHash"].GetString();
+		}
+		else if (document.HasMember("payload"))
+		{
+			machineHash = document["payload"].GetString();
+			isEntitlementsV3 = true;
+		}
 
         auto cb = [=](const std::string& error, const std::string& data)
         {
@@ -280,22 +310,126 @@ public:
             }
             else
             {
-                std::istringstream stream(data);
-
-                boost::property_tree::ptree tree;
-                boost::property_tree::read_xml(stream, tree);
-
                 response->SetStatusCode(200);
                 response->SetHeader("Content-Type", "text/plain; charset=utf-8");
-                response->End(tree.get<std::string>("Response.Result.Data"));
+
+				if (isEntitlementsV3)
+				{
+					response->End(data);
+				}
+				else
+				{
+					std::istringstream stream(data);
+
+					boost::property_tree::ptree tree;
+					boost::property_tree::read_xml(stream, tree);
+
+					response->End(tree.get<std::string>("Response.Result.Data"));
+				}
             }
         };
 
         Botan::AutoSeeded_RNG rng;
         auto challenge = rng.random_vec(8);
 
+		std::string titleAccessToken;
+
+		if (!IsSteamTicket())
+		{
+			{
+				auto r = cpr::Post(cpr::Url{ "http://ros.citizenfx.internal/launcher/11/launcherservices/app.asmx/GetTitleAccessToken" }, cpr::Body{ EncryptROSData(BuildPOSTString({
+					{ "ticket", ticket },
+	#ifdef IS_RDR3
+					{ "titleId", "13" },
+	#else
+					{ "titleId", (isEntitlementsV3) ? "13" : "11" }, // gta5 is 11
+	#endif
+					}), sessionKey)
+					}, cpr::Header{
+						{ "User-Agent", GetROSVersionString() },
+						{ "Host", "prod.ros.rockstargames.com" },
+						{ "ros-SecurityFlags", "239" },
+						{ "ros-SessionTicket", sessionTicket },
+						{ "ros-Challenge", Botan::base64_encode(challenge) },
+						{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", "/launcher/11/launcherservices/app.asmx/GetTitleAccessToken", sessionKey, sessionTicket)) }
+					});
+
+				if (r.error || r.status_code != 200)
+				{
+					trace("ROS error: %s\n", r.error.message);
+					trace("ROS error text: %s\n", DecryptROSData(r.text.c_str(), r.text.size(), sessionKey));
+
+					cb("Error contacting Rockstar Online Services.", "");
+
+					return;
+				}
+				else
+				{
+					std::string returnedXml = DecryptROSData(r.text.data(), r.text.size(), sessionKey);
+					std::istringstream stream(returnedXml);
+
+					boost::property_tree::ptree tree;
+					boost::property_tree::read_xml(stream, tree);
+
+					if (tree.get("Response.Status", 0) == 0)
+					{
+						cb(va(
+							"Could not get title access token from the Social Club. Error code: %s/%s",
+							tree.get<std::string>("Response.Error.<xmlattr>.Code").c_str(),
+							tree.get<std::string>("Response.Error.<xmlattr>.CodeEx").c_str()
+						), "");
+
+						return;
+					}
+					else
+					{
+						titleAccessToken = tree.get<std::string>("Response.Result");
+					}
+				}
+			}
+		}
+
+		auto method = (isEntitlementsV3)
+			? (IsSteamTicket()) ? "GetEntitlementBlock2" : "GetTitleAccessTokenEntitlementBlock"
+			: "GetEntitlementBlock";
+
+		auto cprUrl = (IsSteamTicket())
+			? cpr::Url{ fmt::sprintf("http://ros.citizenfx.internal/rdr2/11/gameservices/entitlements.asmx/%s", method) }
+			: cpr::Url{ fmt::sprintf("http://ros.citizenfx.internal/launcher/11/launcherservices/entitlements.asmx/%s", method) };
+
+		auto map = std::map<std::string, std::string>{
+			{ "ticket", ticket },
+			{ "titleAccessToken", titleAccessToken },
+		};
+
+		if (!isEntitlementsV3)
+		{
+			map["locale"] = "en-US";
+			map["machineHash"] = machineHash;
+		}
+		else
+		{
+			map["requestedVersion"] = "1";
+			map["payload"] = machineHash;
+		}
+
+		trace(__FUNCTION__ ": Performing request.\n");
+
+		auto cprBody = cpr::Body{ EncryptROSData(BuildPOSTString(map), sessionKey) };
+		
+		auto cprHeaders = cpr::Header{
+			{ "User-Agent", GetROSVersionString() },
+			{ "Host", "prod.ros.rockstargames.com" },
+			{ "ros-SecurityFlags", "239" },
+			{ "ros-SessionTicket", sessionTicket },
+			{ "ros-Challenge", Botan::base64_encode(challenge) },
+			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", cprUrl.substr(29).c_str(), sessionKey, sessionTicket)) }
+		};
+
         m_future = cpr::PostCallback([=](cpr::Response r)
         {
+			trace(__FUNCTION__ ": Performed request.\n");
+
             if (r.error || r.status_code != 200)
             {
 				trace("ROS error: %s\n", r.error.message);
@@ -326,19 +460,7 @@ public:
                     cb("", returnedXml);
                 }
             }
-        }, cpr::Url{ "http://ros.citizenfx.internal/gta5/11/gameservices/entitlements.asmx/GetEntitlementBlock" }, cpr::Body{ EncryptROSData(BuildPOSTString({
-            { "ticket", ticket },
-            { "locale", "en-US" },
-            { "machineHash", machineHash }
-            }), sessionKey)
-        }, cpr::Header{
-            { "User-Agent", GetROSVersionString() },
-            { "Host", "prod.ros.rockstargames.com" },
-            { "ros-SecurityFlags", "239" },
-            { "ros-SessionTicket", sessionTicket },
-            { "ros-Challenge", Botan::base64_encode(challenge) },
-            { "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", "/gta5/11/gameservices/entitlements.asmx/GetEntitlementBlock", sessionKey, sessionTicket )) }
-        });
+        }, cprUrl, cprBody, cprHeaders);
     }
 
     bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
@@ -436,7 +558,12 @@ public:
                 appendChildElement(rockstarElement, "LanguageCode", "en");
                 appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
-                appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
+                appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27");
+
+				auto privsElement = appendElement("Privs", "");
+				auto privElement = appendChildElement(privsElement, "p", "");
+				privElement->SetAttribute("id", "27");
+				privElement->SetAttribute("g", "True");
 
                 // format as string
                 tinyxml2::XMLPrinter printer;
@@ -695,7 +822,16 @@ ROSCryptoState::ROSCryptoState()
 {
     // initialize the key inputs
     size_t outLength;
-    uint8_t* platformStr = base64_decode(ROS_PLATFORM_KEY, strlen(ROS_PLATFORM_KEY), &outLength);
+	uint8_t* platformStr;
+
+	if (IsSteamTicket())
+	{
+		platformStr = base64_decode(ROS_PLATFORM_KEY_RDR2, strlen(ROS_PLATFORM_KEY_RDR2), &outLength);
+	}
+	else
+	{
+		platformStr = base64_decode(ROS_PLATFORM_KEY_LAUNCHER, strlen(ROS_PLATFORM_KEY_LAUNCHER), &outLength);
+	}
 
     memcpy(m_rc4Key, &platformStr[1], sizeof(m_rc4Key));
     memcpy(m_xorKey, &platformStr[33], sizeof(m_xorKey));
@@ -776,7 +912,12 @@ std::string GetRockstarTicketXml()
 	appendChildElement(rockstarElement, "LanguageCode", "en");
 	appendChildElement(rockstarElement, "Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
 
-	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22");
+	appendElement("Privileges", "1,2,3,4,5,6,8,9,10,11,14,15,16,17,18,19,21,22,27");
+
+	auto privsElement = appendElement("Privs", "");
+	auto privElement = appendChildElement(privsElement, "p", "");
+	privElement->SetAttribute("id", "27");
+	privElement->SetAttribute("g", "True");
 
 	// format as string
 	tinyxml2::XMLPrinter printer;
@@ -853,4 +994,8 @@ static InitFunction initFunction([] ()
 
 	// somehow launcher likes using two slashes - this should be handled better tbh
 	endpointMapper->AddPrefix("//scui/v2/desktop", new SCUIHandler());
+
+	// MTL
+	endpointMapper->AddPrefix("/scui/mtl/launcher", new SCUIHandler());
+	endpointMapper->AddPrefix("//scui/mtl/launcher", new SCUIHandler());
 });

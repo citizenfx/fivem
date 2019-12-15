@@ -18,13 +18,24 @@ namespace fx
 			{
 				std::unique_lock<std::mutex> lock(m_handlersMutex);
 
-				for (auto& prefixEntry : m_handlers)
+				for (auto& [ prefix, handler ] : m_handlers)
 				{
-					if (_strnicmp(request->GetPath().c_str(), prefixEntry.first.c_str(), prefixEntry.first.length()) == 0)
+					bool matches = false;
+
+					if (prefix != "/")
+					{
+						matches = _strnicmp(request->GetPath().c_str(), prefix.c_str(), prefix.length()) == 0;
+					}
+					else
+					{
+						matches = request->GetPath() == prefix;
+					}
+
+					if (matches)
 					{
 						lock.unlock();
 
-						prefixEntry.second(request, response);
+						handler(request, response);
 						return true;
 					}
 				}

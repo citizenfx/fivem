@@ -159,6 +159,158 @@ int luaV_swizzle (const char *key, lua_Float4 *from, int from_sz, lua_Float4 *to
 }
 
 /*
+** Access the contents of a vector type through int-indexing, x = 1, y = 2,
+** z = 3, w = 4. This function does not treat numeric TValue's as an
+** implicit vector1, and will throw an error.
+**
+** Returning 1 if the TValue has been parsed & the StkId has been set.
+*/
+static int luaV_gritparsenumeric(lua_State *L, const TValue *t, const lua_Integer key, StkId val)
+{
+  int result = 1;
+  if (ttisvector4(t)) {
+    lua_Float4 f4 = v4value(t);
+    switch(key) {
+      case 1: setfltvalue(val, f4.x); break;
+      case 2: setfltvalue(val, f4.y); break;
+      case 3: setfltvalue(val, f4.z); break;
+      case 4: setfltvalue(val, f4.w); break;
+      default: result = 0; break;
+    }
+  }
+  else if (ttisvector3(t)) {
+    lua_Float4 f4 = v3value(t);
+    switch(key) {
+      case 1: setfltvalue(val, f4.x); break;
+      case 2: setfltvalue(val, f4.y); break;
+      case 3: setfltvalue(val, f4.z); break;
+      default: result = 0; break;
+    }
+  }
+  else if (ttisvector2(t)) {
+    lua_Float4 f4 = v3value(t);
+    switch(key) {
+      case 1: setfltvalue(val, f4.x); break;
+      case 2: setfltvalue(val, f4.y); break;
+      default: result = 0; break;
+    }
+  }
+  else if (ttisquat(t)) {
+    lua_Float4 f4 = qvalue(t);
+    switch(key) {
+      case 1: setfltvalue(val, f4.x); break;
+      case 2: setfltvalue(val, f4.y); break;
+      case 3: setfltvalue(val, f4.z); break;
+      case 4: setfltvalue(val, f4.w); break;
+      default: result = 0; break;
+    }
+  }
+  else if (ttisnumber(t))
+    luaG_typeerror(L, t, "index");
+  else
+    luaG_runerror(L, "Attempting to index unknown value");
+  return result;
+}
+
+/*
+** Access the contents of a vector type through string-indexing. Returning 1 if
+** the TValue has been parsed & the StkId has been set.
+*/
+static int luaV_gritparsestring(lua_State *L, const TValue* t, const char* key, StkId val, int parseFields) {
+  int result = 1;
+
+  lua_Float4 out;
+  if (ttisvector4(t)) {
+    lua_Float4 f4 = v4value(t);
+    switch (luaV_swizzle(key, &f4, 4, &out)) {
+      case 1: setfltvalue(val, out.x); break;
+      case 2: setv2value(val, out); break;
+      case 3: setv3value(val, out); break;
+      case 4: setv4value(val, out); break;
+      default:
+      result = 0;
+      if (parseFields && strcmp(key, "dim") == 0) {
+        setfltvalue(val, 4); result = 1;
+      }
+    }
+  }
+  else if (ttisvector3(t)) {
+    lua_Float4 f4 = v3value(t);
+    switch (luaV_swizzle(key, &f4, 3, &out)) {
+      case 1: setfltvalue(val, out.x); break;
+      case 2: setv2value(val, out); break;
+      case 3: setv3value(val, out); break;
+      case 4: setv4value(val, out); break;
+      default:
+      result = 0;
+      if (parseFields && strcmp(key, "dim") == 0) {
+        setfltvalue(val, 3); result = 1;
+      }
+      break;
+    }
+  }
+  else if (ttisvector2(t)) {
+    lua_Float4 f4 = v2value(t);
+    switch (luaV_swizzle(key, &f4, 2, &out)) {
+      case 1: setfltvalue(val, out.x); break;
+      case 2: setv2value(val, out); break;
+      case 3: setv3value(val, out); break;
+      case 4: setv4value(val, out); break;
+      default:
+      result = 0;
+      if (parseFields && strcmp(key, "dim") == 0) {
+        setfltvalue(val, 2); result = 1;
+      }
+      break;
+    }
+  }
+  else if (ttisnumber(t)) {
+    lua_Float4 f4 = { 0, nvalue(t), 0, 0 };
+    switch (luaV_swizzle(key, &f4, 1, &out)) {
+      case 1: setfltvalue(val, out.x); break;
+      case 2: setv2value(val, out); break;
+      case 3: setv3value(val, out); break;
+      case 4: setv4value(val, out); break;
+      default:
+      result = 0;
+      if (parseFields && strcmp(key, "dim") == 0) {
+        setfltvalue(val, 1); result = 1;
+      }
+      break;
+    }
+  }
+  else if (ttisquat(t)) {
+    lua_Float4 f4 = qvalue(t);
+    switch (luaV_swizzle(key, &f4, 4, &out)) {
+      case 1: setfltvalue(val, out.x); break;
+      case 2: setv2value(val, out); break;
+      case 3: setv3value(val, out); break;
+      case 4: setv4value(val, out); break;
+      default:
+      result = 0;
+	    if (parseFields && strcmp(key, "angle") == 0) { /* axis & angle can be overridden by a metatable. */
+        const float pi = 3.14159265358979323846f;
+        const float the_w = f4.w / sqrtf(f4.x * f4.x + f4.y * f4.y + f4.z * f4.z + f4.w * f4.w);
+        setfltvalue(val, acos(the_w) / pi * 180 * 2); result = 1;
+      }
+      else if (parseFields && strcmp(key, "axis") == 0) {
+        float l = sqrtf(f4.x * f4.x + f4.y * f4.y + f4.z * f4.z);
+        if (l == 0.0f) {
+          luaG_runerror(L, "Identity quaternion has no axis");
+          return 0;
+        }
+
+        float il = 1 / l;
+        lua_Float4 v = { 0.0, il * f4.x, il * f4.y, il * f4.z };
+        setv3value(val, v); result = 1;
+      }
+      break;
+    }
+  }
+  return result;
+}
+
+/*
 ** Try to convert a 'for' limit to an integer, preserving the
 ** semantics of the loop.
 ** (The following explanation assumes a non-negative step; it is valid
@@ -211,101 +363,30 @@ void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
       }
       /* else will try metamethod */
     }
-    else if (ttisnil(tm = luaT_gettmbyobj(L, t, TM_INDEX))) {
-      int stringkey = ttisstring(key);
-      if (stringkey && ttisvector4(t)) {  
-        lua_Float4 f4 = v4value(t);
-        const char *k = svalue(key);
-        lua_Float4 out;
-        switch (luaV_swizzle(k, &f4, 4, &out)) {
-          case 1: setfltvalue(val, out.x); break;
-          case 2: setv2value(val, out); break;
-          case 3: setv3value(val, out); break;
-          case 4: setv4value(val, out); break;
-          default:
-          if (strcmp(k,"dim")==0) {
-            setfltvalue(val, 4);
-          } else {
-            luaG_typeerror(L, t, "index");
-          }
+    else if (ttisgrit(t)) {
+      tm = luaT_gettmbyobj(L, t, TM_INDEX);
+      if (ttisstring(key)) {
+        if (luaV_gritparsestring(L, t, svalue(key), val, ttisnil(tm)))
+          return;
+        else if (ttisnil(tm)) {
+          luaG_runerror(L, "invalid vector field: %s", svalue(key));
+          return;
         }
-      } else if (stringkey && ttisvector3(t)) {  
-        lua_Float4 f4 = v3value(t);
-        const char *k = svalue(key);
-        lua_Float4 out;
-        switch (luaV_swizzle(k, &f4, 3, &out)) {
-          case 1: setfltvalue(val, out.x); break;
-          case 2: setv2value(val, out); break;
-          case 3: setv3value(val, out); break;
-          case 4: setv4value(val, out); break;
-          default:
-          if (strcmp(k,"dim")==0) {
-            setfltvalue(val, 3);
-          } else {
-            luaG_typeerror(L, t, "index");
-          }
-        }
-      } else if (stringkey && ttisvector2(t)) {  
-        lua_Float4 f4 = v2value(t);
-        const char *k = svalue(key);
-        lua_Float4 out;
-        switch (luaV_swizzle(k, &f4, 2, &out)) {
-          case 1: setfltvalue(val, out.x); break;
-          case 2: setv2value(val, out); break;
-          case 3: setv3value(val, out); break;
-          case 4: setv4value(val, out); break;
-          default:
-          if (strcmp(k,"dim")==0) {
-            setfltvalue(val, 2);
-          } else {
-       luaG_typeerror(L, t, "index");
-          }
-        }
-      } else if (stringkey && ttisquat(t)) {  
-        lua_Float4 f4 = qvalue(t);
-        const char *k = svalue(key);
-        if (strcmp(k,"w")==0) {
-          setfltvalue(val, f4.w);
-        } else if (strcmp(k,"x")==0) {
-          setfltvalue(val, f4.x);
-        } else if (strcmp(k,"y")==0) {
-          setfltvalue(val, f4.y);
-        } else if (strcmp(k,"z")==0) {
-          setfltvalue(val, f4.z);
-        } else if (strcmp(k,"angle")==0) {
-          const float pi = 3.14159265358979323846f;
-          const float the_w = f4.w / sqrtf(f4.x*f4.x + f4.y*f4.y + f4.z*f4.z + f4.w*f4.w);
-          setfltvalue(val, acos(the_w)/pi*180 * 2);
-        } else if (strcmp(k,"axis")==0) {
-          float l, il;
-		  lua_Float4 v;
-		  l = sqrtf(f4.x*f4.x + f4.y*f4.y + f4.z*f4.z);
-          if (l == 0.0f) luaG_runerror(L, "Identity quaternion has no axis");
-          il = 1/l;
-          v.w = 0; v.x = il*f4.x; v.y = il*f4.y; v.z = il*f4.z;
-          setv3value(val, v);
-        } else {
-          luaG_typeerror(L, t, "index");
-        }
-      } else if (stringkey && ttisnumber(t)) {
-        lua_Float4 f4 = { 0, nvalue(t), 0, 0 };
-        const char *k = svalue(key);
-        lua_Float4 out;
-        switch (luaV_swizzle(k, &f4, 1, &out)) {
-          case 1: setfltvalue(val, out.x); break;
-          case 2: setv2value(val, out); break;
-          case 3: setv3value(val, out); break;
-          case 4: setv4value(val, out); break;
-          default:
-          if (strcmp(k,"dim")==0) {
-            setfltvalue(val, 1);
-          } else {
-            luaG_typeerror(L, t, "index");
-          }
-        }
-      } else {
-        luaG_typeerror(L, t, "index");
+
+        /* else will try metamethod */
       }
+      else if (ttisinteger(key)) {
+        if (!luaV_gritparsenumeric(L, t, ivalue(key), val))
+          luaG_runerror(L, "invalid vector index: %d", ivalue(key));
+        return;
+      }
+      else {
+        luaG_runerror(L, "Attempting to index unknown value");
+        return;
+      }
+    }
+    else if (ttisnil(tm = luaT_gettmbyobj(L, t, TM_INDEX))) {
+      luaG_typeerror(L, t, "index");
       return;
     }
     if (ttisfunction(tm)) {  /* metamethod is a function */
@@ -937,7 +1018,7 @@ static TString *resolve_absolute_path (lua_State *L, const char *file, const cha
   // Even this is a tiny amount of memory though, so we're fine.
   pieces = malloc(sizeof(char*) * (file_len + rel_len));
   pieces2 = malloc(sizeof(char*) * (file_len + rel_len));
-  
+
   if (rel2[0] != '/') {
     unsigned last_slash = 0;
     lua_assert(file2[0] == '/');
@@ -1207,7 +1288,7 @@ void luaV_execute (lua_State *L) {
 		if (tonumber(rb, &nb) && tonumber(rc, &nc)) {
 			setfltvalue(ra, luai_numdiv(L, nb, nc));
 		}
-        else { 
+        else {
 			Protect(luaT_trybinTM(L, rb, rc, ra, TM_DIV));
 		}
         vmbreak;

@@ -66,8 +66,8 @@ void LimitCheckPatch(uint64_t addr)
 		++work_addr;
 	}
 
-	if (opcode != 0x83) // cmp short
-		trace("Fatal error");
+	/*if (opcode != 0x83) // cmp short
+		trace("Fatal error");*/
 
 	++work_addr;
 

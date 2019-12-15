@@ -22,9 +22,19 @@
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
 #define PRODUCT_NAME L"FiveM"
-#define CONTENT_URL "https://runtime.fivem.net/client"
-#define CONTENT_URL_WIDE L"https://runtime.fivem.net/client"
+#define CONTENT_URL "https://mirrors.fivem.net/client"
+#define CONTENT_URL_WIDE L"https://mirrors.fivem.net/client"
 #define GAME_EXECUTABLE L"GTA5.exe"
+#elif defined(IS_RDR3)
+#define PRODUCT_NAME L"RedM"
+#define CONTENT_URL "https://mirrors.fivem.net/redm"
+#define CONTENT_URL_WIDE L"https://mirrors.fivem.net/redm"
+#define GAME_EXECUTABLE L"RDR2.exe"
+#elif defined(IS_LAUNCHER)
+#define PRODUCT_NAME L"Cfx.re Launcher"
+#define CONTENT_URL "https://mirrors.fivem.net/citfx"
+#define CONTENT_URL_WIDE L"https://mirrors.fivem.net/citfx"
+#define GAME_EXECUTABLE L"DUMMY.exe"
 #else
 #define PRODUCT_NAME L"Unknown CitizenFX Game"
 #define CONTENT_URL "http://localhost/citfx/"
