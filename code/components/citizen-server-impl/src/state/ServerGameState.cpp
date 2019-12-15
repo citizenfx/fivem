@@ -303,7 +303,7 @@ uint32_t ServerGameState::MakeScriptHandle(const std::shared_ptr<sync::SyncEntit
 	}
 }
 
-inline glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
+glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
 	if (!entity->syncTree)
 	{
