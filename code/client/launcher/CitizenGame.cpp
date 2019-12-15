@@ -450,6 +450,8 @@ BOOL EnumProcessModulesHook(
 	return EnumProcessModules(hProcess, lphModule, cb, lpcbNeeded);
 }
 
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
@@ -531,7 +533,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	fclose(gameFile);
 
 	// load the executable into our module context
-	HMODULE exeModule = GetModuleHandle(NULL);
+	HMODULE exeModule = (HMODULE)&__ImageBase;
 
 	ExecutableLoader exeLoader(data);
 #if defined(GTA_NY)
