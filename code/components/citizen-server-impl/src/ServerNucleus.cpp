@@ -47,7 +47,8 @@ static InitFunction initFunction([]()
 
 						auto jsonData = nlohmann::json::object({
 							{ "token", nucleusToken },
-							{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) }
+							{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) },
+							{ "ipOverride", instance->GetComponent<fx::GameServer>()->GetIpOverrideVar()->GetValue() },
 						});
 
 						trace("^3%suthenticating with Nucleus...^7\n", setNucleus ? "Rea" : "A");

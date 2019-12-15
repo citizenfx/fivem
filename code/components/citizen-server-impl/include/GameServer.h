@@ -79,6 +79,11 @@ namespace fx
 			return m_net->GetClientVersion();
 		}
 
+		inline auto GetIpOverrideVar()
+		{
+			return m_listingIpOverride;
+		}
+
 	public:
 		struct CallbackListBase
 		{
