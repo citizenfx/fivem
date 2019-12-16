@@ -972,7 +972,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
-		files[L"upload_file_log"] = MakeRelativeCitPath(L"CitizenFX.log");
+
+		static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+		static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
+			initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
+
+		static fwPlatformString fp = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
+
+		files[L"upload_file_log"] = fp;
 
 		// avoid libcef.dll subprocess crashes terminating the entire job
 		bool shouldTerminate = true;
