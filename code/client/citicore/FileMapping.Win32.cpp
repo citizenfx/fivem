@@ -542,14 +542,15 @@ NTSTATUS NtQueryVirtualMemoryHook(
 FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* caller)
 {
 	static const DWORD bigOne = 1;
+	static auto ntdllRef = GetModuleHandleW(L"ntdll.dll");
 
 	if (!IS_INTRESOURCE(lpProcName))
 	{
-		if (!getenv("CitizenFX_ToolMode") || true)
+		if (true)
 		{
-			if (hModule == GetModuleHandleW(L"ntdll.dll") && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)
+			if (hModule == ntdllRef && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)
 			{
-				char* ntdll = (char*)GetModuleHandleW(L"ntdll.dll");
+				char* ntdll = (char*)ntdllRef;
 				auto ntdllImage = (PIMAGE_DOS_HEADER)ntdll;
 				auto ntdllPE = (PIMAGE_NT_HEADERS)(ntdll + ntdllImage->e_lfanew);
 
@@ -592,13 +593,13 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 				//return (FARPROC)NtQueryInformationProcess;
 			}
 
-			if (hModule == GetModuleHandleW(L"ntdll.dll") && _stricmp(lpProcName, "NtQueryVirtualMemory") == 0)
+			if (hModule == ntdllRef && _stricmp(lpProcName, "NtQueryVirtualMemory") == 0)
 			{
 				return (FARPROC)NtQueryVirtualMemoryHook;
 				//return (FARPROC)NtQueryInformationProcess;
 			}
 
-			if (hModule == GetModuleHandleW(L"ntdll.dll") && _stricmp(lpProcName, "NtClose") == 0)
+			if (hModule == ntdllRef && _stricmp(lpProcName, "NtClose") == 0)
 			{
 				//return (FARPROC)NtCloseHook;
 			}

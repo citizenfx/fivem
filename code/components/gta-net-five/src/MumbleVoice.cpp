@@ -143,7 +143,7 @@ void Policy_BindNetLibrary(NetLibrary* library)
 	});
 }
 
-static fwRefContainer<IMumbleClient> g_mumbleClient;
+static IMumbleClient* g_mumbleClient;
 
 static struct  
 {
@@ -424,9 +424,12 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 	return {};
 }
 
-static InitFunction initFunction([]()
+static HookFunction initFunction([]()
 {
-	g_mumbleClient = CreateMumbleClient();
+	auto mc = CreateMumbleClient();
+	mc->AddRef();
+	g_mumbleClient = mc.GetRef();
+
 	g_mumbleClient->Initialize();
 
 	g_mumbleClient->SetPositionHook(PositionHook);
