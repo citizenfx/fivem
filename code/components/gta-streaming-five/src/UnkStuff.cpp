@@ -525,6 +525,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 	uint32_t handle = *(uint32_t*)(requestData + 4);
 	uint8_t* nextIn = *(uint8_t**)(ioData + 8);
 	uint32_t availIn = *(uint32_t*)(ioData);
+	uint32_t totalIn = *(uint32_t*)(ioData + 16);
 
 	// get the entry name
 	uint16_t fileIndex = (handle & 0xFFFF);
@@ -573,7 +574,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 		metaData = "Null fiCollection.";
 	}
 
-	FatalError("Failed to call inflate() for streaming file %s.\n\nRead bytes: %s\n%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.", name, compBytes, metaData);
+	FatalError("Failed to call inflate() for streaming file %s.\n\nRead bytes: %s\nTotal in: %d\nAvailable in: %d\n%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.", name, compBytes, totalIn, availIn, metaData);
 }
 
 static void CompTrace()

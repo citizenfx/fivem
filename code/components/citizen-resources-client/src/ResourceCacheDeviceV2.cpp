@@ -513,12 +513,51 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 		{
 			auto extData = entry->get().extData;
 
-			data->outData = fmt::sprintf("RSC version: %d\nRSC page flags: virt %08x/phys %08x\nResource name: %s\nReference hash: %s\n",
+			std::string diskHash = "<unknown>";
+
+			auto cacheEntry = m_cache->GetEntryFor(*entry);
+
+			if (cacheEntry)
+			{
+				auto localStream = GetVerificationStream(*entry, *cacheEntry);
+
+				if (localStream.GetRef())
+				{
+					std::array<uint8_t, 8192> data;
+					sha1nfo sha1;
+					size_t numRead;
+
+					// initialize context
+					sha1_init(&sha1);
+
+					// read from the stream
+					while ((numRead = localStream->Read(data.data(), data.size())) > 0)
+					{
+						if (numRead == -1)
+						{
+							break;
+						}
+
+						sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+					}
+
+					// get the hash result and convert it to a string
+					uint8_t* hash = sha1_result(&sha1);
+
+					diskHash = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+						hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+						hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+				}
+			}
+
+			data->outData = fmt::sprintf("RSC version: %d\nRSC page flags: virt %08x/phys %08x\nResource name: %s\nReference hash: %s\nDisk hash: %s\nFile size: %d\n",
 				atoi(extData["rscVersion"].c_str()),
 				strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10),
 				strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10),
 				entry->get().resourceName,
-				entry->get().referenceHash);
+				entry->get().referenceHash,
+				diskHash,
+				entry->get().size);
 
 			data->outData += "Resources for hash:\n";
 
