@@ -528,6 +528,12 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	uint32_t totalIn = *(uint32_t*)(ioData + 16);
 	const char* msg = *(const char**)(zlibStream + 32);
 
+	if (zlibError == -5 /* Z_BUF_ERROR */ && availIn == 0)
+	{
+		trace("Ignoring Z_BUF_ERROR with avail_in == 0.\n");
+		return;
+	}
+
 	// get the entry name
 	uint16_t fileIndex = (handle & 0xFFFF);
 	uint16_t collectionIndex = (handle >> 16);
