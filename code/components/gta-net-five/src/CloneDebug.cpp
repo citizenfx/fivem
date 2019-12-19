@@ -123,6 +123,19 @@ namespace rage
 
 		netSyncNodeBase* firstChild;
 	};
+
+	class netSyncDataNodeBase : public netSyncNodeBase
+	{
+	public:
+		uint32_t flags;
+		uint32_t pad3;
+		uint64_t pad4;
+		netSyncDataNodeBase* parentData; //0x50
+		uint32_t childCount;
+		netSyncDataNodeBase* children[8];
+		uint8_t syncFrequencies[8];
+		void* nodeBuffer;
+	};
 }
 
 static rage::netObject* g_curNetObjectSelection;
@@ -307,6 +320,8 @@ static TSyncLog TraverseSyncTree(TSyncLog* old, int oldId, rage::netSyncTree* sy
 }
 
 #include <array>
+
+void DirtyNode(void* object, void* node);
 
 namespace rage
 {
@@ -515,6 +530,18 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			else
 			{
 				state.wroteAny = true;
+
+				if (node->IsDataNode())
+				{
+					auto dataNode = (rage::netSyncDataNodeBase*)node;
+
+					static_assert(offsetof(rage::netSyncDataNodeBase, parentData) == 0x50, "parentData off");
+
+					for (int child = 0; child < dataNode->childCount; child++)
+					{
+						DirtyNode(state.object, dataNode->children[child]);
+					}
+				}
 
 				if (state.object)
 				{
