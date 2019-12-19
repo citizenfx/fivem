@@ -538,31 +538,39 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 		collection = getRawStreamer();
 	}
 
-	std::string name = collection->GetEntryName(fileIndex);
+	std::string name = fmt::sprintf("unknown - handle %08x", handle);
+	std::string metaData;
 
 	// get the input bytes
 	auto compBytes = fmt::sprintf("%02x %02x %02x %02x %02x %02x %02x %02x", nextIn[0], nextIn[1], nextIn[2], nextIn[3], nextIn[4], nextIn[5], nextIn[6], nextIn[7]);
 
-	// get cache metadata
-	std::string metaData;
-
-	if (collectionIndex == 0)
+	// get collection metadata
+	if (collection)
 	{
-		// get the _raw_ file name
-		char fileNameBuffer[1024];
-		strcpy(fileNameBuffer, "CfxRequest");
+		std::string name = collection->GetEntryName(fileIndex);
 
-		collection->GetEntryNameToBuffer(fileIndex, fileNameBuffer, sizeof(fileNameBuffer));
+		if (collectionIndex == 0)
+		{
+			// get the _raw_ file name
+			char fileNameBuffer[1024];
+			strcpy(fileNameBuffer, "CfxRequest");
 
-		auto virtualDevice = vfs::GetDevice(fileNameBuffer);
+			collection->GetEntryNameToBuffer(fileIndex, fileNameBuffer, sizeof(fileNameBuffer));
 
-		// call into RCD
-		GetRcdDebugInfoExtension ext;
-		ext.fileName = fileNameBuffer;
+			auto virtualDevice = vfs::GetDevice(fileNameBuffer);
 
-		virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+			// call into RCD
+			GetRcdDebugInfoExtension ext;
+			ext.fileName = fileNameBuffer;
 
-		metaData = ext.outData;
+			virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+
+			metaData = ext.outData;
+		}
+	}
+	else
+	{
+		metaData = "Null fiCollection.";
 	}
 
 	FatalError("Failed to call inflate() for streaming file %s.\n\nRead bytes: %s\n%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.", name, compBytes, metaData);
