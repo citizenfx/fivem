@@ -599,7 +599,7 @@ static void CompTrace()
 		}
 	} errorBit;
 
-	hook::call(hook::get_pattern("B9 48 93 55 15 E8", 5), errorBit.GetCode());
+	hook::call_rcx(hook::get_pattern("B9 48 93 55 15 E8", 5), errorBit.GetCode());
 }
 
 static void* (*g_origSMPACreate)(void* a1, void* a2, size_t size, void* a4, bool a5);
