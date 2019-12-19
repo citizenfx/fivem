@@ -514,7 +514,7 @@ struct GetRcdDebugInfoExtension
 	std::string outData; // out
 };
 
-static void ErrorInflateFailure(char* ioData, char* requestData)
+static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, char* zlibStream)
 {
 	if (streaming::IsStreamerShuttingDown())
 	{
@@ -526,6 +526,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 	uint8_t* nextIn = *(uint8_t**)(ioData + 8);
 	uint32_t availIn = *(uint32_t*)(ioData);
 	uint32_t totalIn = *(uint32_t*)(ioData + 16);
+	const char* msg = *(const char**)(zlibStream + 32);
 
 	// get the entry name
 	uint16_t fileIndex = (handle & 0xFFFF);
@@ -548,7 +549,7 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 	// get collection metadata
 	if (collection)
 	{
-		std::string name = collection->GetEntryName(fileIndex);
+		name = collection->GetEntryName(fileIndex);
 
 		if (collectionIndex == 0)
 		{
@@ -574,7 +575,12 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 		metaData = "Null fiCollection.";
 	}
 
-	FatalError("Failed to call inflate() for streaming file %s.\n\nRead bytes: %s\nTotal in: %d\nAvailable in: %d\n%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.", name, compBytes, totalIn, availIn, metaData);
+	FatalError("Failed to call inflate() for streaming file %s.\n\n"
+		"Error: %d: %s\nRead bytes: %s\nTotal in: %d\nAvailable in: %d\n"
+		"%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.",
+		name,
+		zlibError, (msg) ? msg : "(null)", compBytes, totalIn, availIn,
+		metaData);
 }
 
 static void CompTrace()
@@ -585,6 +591,8 @@ static void CompTrace()
 		{
 			mov(rcx, rdi);
 			mov(rdx, r14);
+			mov(r8d, eax);
+			mov(r9, rbx);
 
 			mov(rax, (uintptr_t)ErrorInflateFailure);
 			jmp(rax);
