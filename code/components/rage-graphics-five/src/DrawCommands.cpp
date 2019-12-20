@@ -128,22 +128,25 @@ static hook::cdecl_stub<void(float, float, float, float, float, float, uint32_t,
 	return hook::pattern("F3 41 0F 11 01 F3 0F 10 44 24 28 F3 41").count(1).get(0).get<void>(-0x30);
 });
 
-void BeginImVertices(int type, int count)
+namespace rage
 {
-	beginImVertices(type, count);
-}
+	void grcBegin(int type, int count)
+	{
+		beginImVertices(type, count);
+	}
 
-void AddImVertex(float x, float y, float z, float nX, float nY, float nZ, uint32_t color, float u, float v)
-{
-	// colors are the other way around in Payne again, so RGBA-swap we go
-	color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+	void grcVertex(float x, float y, float z, float nX, float nY, float nZ, uint32_t color, float u, float v)
+	{
+		// colors are the other way around in Payne again, so RGBA-swap we go
+		color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
 
-	addImVertex(x, y, z, nX, nY, nZ, color, u, v);
-}
+		addImVertex(x, y, z, nX, nY, nZ, color, u, v);
+	}
 
-void DrawImVertices()
-{
-	drawImVertices();
+	void grcEnd()
+	{
+		drawImVertices();
+	}
 }
 
 static hook::cdecl_stub<void(void*, void*, bool)> setScreenSpaceMatrix([] ()
@@ -281,14 +284,14 @@ void DrawImSprite(float x1, float y1, float x2, float y2, float z, float u1, flo
 
 	CRect rect(x1, y1, x2, y2);
 
-	BeginImVertices(4, 4);
+	rage::grcBegin(4, 4);
 
-	AddImVertex(rect.fX1, rect.fY1, z, 0.0f, 0.0f, -1.0f, color, u1, v1);
-	AddImVertex(rect.fX2, rect.fY1, z, 0.0f, 0.0f, -1.0f, color, u2, v1);
-	AddImVertex(rect.fX1, rect.fY2, z, 0.0f, 0.0f, -1.0f, color, u1, v2);
-	AddImVertex(rect.fX2, rect.fY2, z, 0.0f, 0.0f, -1.0f, color, u2, v2);
+	rage::grcVertex(rect.fX1, rect.fY1, z, 0.0f, 0.0f, -1.0f, color, u1, v1);
+	rage::grcVertex(rect.fX2, rect.fY1, z, 0.0f, 0.0f, -1.0f, color, u2, v1);
+	rage::grcVertex(rect.fX1, rect.fY2, z, 0.0f, 0.0f, -1.0f, color, u1, v2);
+	rage::grcVertex(rect.fX2, rect.fY2, z, 0.0f, 0.0f, -1.0f, color, u2, v2);
 
-	DrawImVertices();
+	rage::grcEnd();
 
 	PopDrawBlitImShader();
 
@@ -316,6 +319,11 @@ void GetGameResolution(int& resX, int& resY)
 	}
 }
 
+static hook::cdecl_stub<uint32_t(const D3D11_RASTERIZER_DESC*)> createRasterizerState([]()
+{
+	return hook::get_pattern("48 8D  4D D7 F3 0F 11 7D FF F3 44 0F", -0x86);
+});
+
 hook::cdecl_stub<void(uint32_t)> setRasterizerState([] ()
 {
 	return hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<void>(-6);
@@ -326,6 +334,11 @@ static uint32_t* g_nextBlendState;
 static float** g_nextBlendFactor;
 static uint32_t* g_nextSampleMask;
 static uint32_t* g_nextDepthStencilState;
+
+uint32_t CreateRasterizerState(const D3D11_RASTERIZER_DESC* desc)
+{
+	return createRasterizerState(desc);
+}
 
 uint32_t GetRasterizerState()
 {
@@ -428,8 +441,163 @@ ID3D11DeviceContext* GetD3D11DeviceContext()
 	return *(ID3D11DeviceContext**)(*(uintptr_t*)(__readgsqword(88)) + g_d3d11DeviceContextOffset);
 }
 
+namespace rage
+{
+	static hook::cdecl_stub<bool(grmShaderFx*, const char*, void*, bool)> _grmShaderFx_LoadTechnique([]()
+	{
+		// 1604
+		return (void*)0x141330094;
+	});
+
+	static hook::cdecl_stub<int(grmShaderFx*, int, bool, int)> _grmShaderFx_PushTechnique([]()
+	{
+		// 1604
+		return (void*)0x14132E0F8;
+	});
+
+	grmShaderFactory* grmShaderFactory::GetInstance()
+	{
+		// 1604
+		return *(grmShaderFactory**)0x142B40F78;
+	}
+
+	static hook::cdecl_stub<void(grmShaderDef*, int, grmShaderFx*)> _grmShaderDef_PushPass([]()
+	{
+		// 1604
+		return (void*)0x1412ECD74;
+	});
+
+	static hook::cdecl_stub<void(grmShaderDef*)> _grmShaderDef_PopPass([]()
+	{
+		// 1604
+		return (void*)0x1412F630C;
+	});
+
+	static hook::cdecl_stub<int(grmShaderDef*, const char*)> _grmShaderDef_GetParameter([]()
+	{
+		// 1604
+		return (void*)0x141304028;
+	});
+
+	static hook::cdecl_stub<int(grmShaderDef*, const char*)> _grmShaderDef_GetTechnique([]()
+	{
+		// 1604
+		return (void*)0x141303EAC;
+	});
+
+	static hook::cdecl_stub<void(grmShaderDef*, grmShaderFx*, int, void*)> _grmShaderDef_SetSampler([]()
+	{
+		// 1604
+		return (void*)0x14130CE88;
+	});
+
+	static hook::cdecl_stub<void(grmShaderDef*, grmShaderFx*, int, const void*, int, int)> _grmShaderDef_SetParameter([]()
+	{
+		// 1604
+		return (void*)0x14130AB8C;
+	});
+
+	void grmShaderDef::PushPass(int pass, grmShaderFx* shader)
+	{
+		return _grmShaderDef_PushPass(this, pass, shader);
+	}
+
+	void grmShaderDef::PopPass()
+	{
+		return _grmShaderDef_PopPass(this);
+	}
+
+	int grmShaderDef::GetParameter(const char* name)
+	{
+		return _grmShaderDef_GetParameter(this, name);
+	}
+
+	int grmShaderDef::GetTechnique(const char* name)
+	{
+		return _grmShaderDef_GetTechnique(this, name);
+	}
+
+	void grmShaderDef::SetSampler(grmShaderFx* shader, int index, void* sampler)
+	{
+		return _grmShaderDef_SetSampler(this, shader, index, sampler);
+	}
+
+	void grmShaderDef::SetParameter(grmShaderFx* shader, int index, const void* data, int size, int count)
+	{
+		return _grmShaderDef_SetParameter(this, shader, index, data, size, count);
+	}
+
+	bool grmShaderFx::LoadTechnique(const char* name, void* templ, bool a4)
+	{
+		return _grmShaderFx_LoadTechnique(this, name, templ, a4);
+	}
+
+	int grmShaderFx::PushTechnique(int technique, bool unk1, int a4)
+	{
+		return _grmShaderFx_PushTechnique(this, technique, unk1, a4);
+	}
+
+	void grmShaderFx::PushPass(int index)
+	{
+		m_shader->PushPass(index, this);
+	}
+
+	void grmShaderFx::PopPass()
+	{
+		m_shader->PopPass();
+	}
+
+	void grmShaderFx::PopTechnique()
+	{
+		// 1604
+		*(void**)0x142B07F80 = nullptr;
+	}
+}
+
+static hook::cdecl_stub<void(const float*)> _setWorldMatrix([]()
+{
+	// 1604
+	return (void*)0x141309F58;
+});
+
+void SetWorldMatrix(const float* matrix)
+{
+	_setWorldMatrix(matrix);
+}
+
+#include <MinHook.h>
+
+static void(*g_origRenderEntityList)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7);
+
+fwEvent<> OnTempDrawEntityList;
+
+void RenderEntityList(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+{
+	OnTempDrawEntityList();
+
+	g_origRenderEntityList(a1, a2, a3, a4, a5, a6, a7);
+}
+
+static void(*g_origRunScannedEntityList)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7);
+
+void RunScannedEntityList(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
+{
+	OnTempDrawEntityList();
+
+	g_origRunScannedEntityList(a1, a2, a3, a4, a5, a6, a7);
+}
+
 static HookFunction hookFunction([] ()
 {
+	MH_Initialize();
+	// 1604, TEMP/TODO
+	//MH_CreateHook((void*)0x1404E9884, RenderEntityList, (void**)& g_origRenderEntityList);
+	MH_CreateHook((void*)0x1415955E0, RunScannedEntityList, (void**)&g_origRunScannedEntityList);
+	//hook::set_call(&g_origRunOnEntityList, )
+	//hook::set_call(&g_origRenderEntityList, 0x1404F3D8D);
+	//hook::call(0x1404F31C8, RenderEntityList);
+	MH_EnableHook(MH_ALL_HOOKS);
+
 	char* location = hook::pattern("44 8B CE 33 D2 48 89 0D").count(1).get(0).get<char>(8);
 
 	g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
@@ -505,4 +673,12 @@ static HookFunction hookFunction([] ()
 		g_realResolution[0] = g_resolution[0];
 		g_realResolution[1] = g_resolution[1];
 	}, -500);
+
+	// set immediate mode vertex limit to 8x what it was (so, 32 MB)
+	// 1604
+	hook::nop(0x1412FD99C, 6); // setter
+	hook::put<uint8_t>(0x1412FD99C, 0xB8); // write to eax for later
+	hook::put<uint32_t>(0x1412FD99C + 1, 0x4000000);
+	hook::put<uint32_t>(0x141D7D194, 0x4000000);
+	hook::put<uint32_t>(0x141D7D198, 0x7FFF8 * 4);
 });

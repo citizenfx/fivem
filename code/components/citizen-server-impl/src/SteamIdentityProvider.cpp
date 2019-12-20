@@ -8,7 +8,6 @@
 #include "StdInc.h"
 #include <ServerIdentityProvider.h>
 
-#define STEAM_API_KEY "04246554B51E8C14ED537C55A4BA4CD7"
 #define STEAM_APPID 218
 
 // this imports pplxtasks somewhere?
@@ -23,6 +22,8 @@
 #include <ServerInstanceBase.h>
 
 #include <HttpClient.h>
+
+static std::shared_ptr<ConVar<std::string>> g_steamApiKey;
 
 using json = nlohmann::json;
 
@@ -79,8 +80,25 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			if (g_steamApiKey->GetValue().empty())
+			{
+				trace("A client has tried to authenticate using Steam, but `steam_webApiKey` is unset. Please set steam_webApiKey to a Steam Web API key as registered on "
+					"Valve's ^4https://steamcommunity.com/dev/apikey^7 web page. Steam identifier information will be unavailable otherwise.\n");
+
+				trace("To suppress this message, `set steam_webApiKey \"none\"`.\n");
+
+				cb({});
+				return;
+			}
+
+			if (g_steamApiKey->GetValue() == "none")
+			{
+				cb({});
+				return;
+			}
+
 			httpClient->DoGetRequest(
-				fmt::format("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key={0}&appid={1}&ticket={2}", STEAM_API_KEY, STEAM_APPID, it->second),
+				fmt::format("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key={0}&appid={1}&ticket={2}", g_steamApiKey->GetValue(), STEAM_APPID, it->second),
 				[this, cb, clientPtr](bool result, const char* data, size_t size)
 				{
 					std::string response{ data, size };
@@ -89,15 +107,7 @@ static InitFunction initFunction([]()
 					{
 						try
 						{
-							if (!result)
-							{
-								cb({ "Steam authentication failed: " + response });
-							}
-							/*else if (r.status_code >= 400)
-							{
-								cb({ fmt::sprintf("Steam authentication failed: HTTP %d", r.status_code) });
-							}*/
-							else
+							if (result)
 							{
 								json object = json::parse(response)["response"];
 
@@ -109,9 +119,13 @@ static InitFunction initFunction([]()
 
 								uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
 								clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
-
-								cb({});
 							}
+							else
+							{
+								trace("Steam authentication for %s^7 failed: %s\n", clientPtr->GetName(), response);
+							}
+
+							cb({});
 						}
 						catch (std::exception& e)
 						{
@@ -140,6 +154,8 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		g_steamApiKey = instance->AddVariable<std::string>("steam_webApiKey", ConVar_None, "");
+
 		serverInstance = instance;
 	});
 

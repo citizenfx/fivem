@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#if defined(GTA_FIVE)
 #include <EntitySystem.h>
 
 #include <ResourceManager.h>
@@ -47,3 +49,4 @@ static InitFunction initFunction([]()
 		state->allowed = rec->TriggerEvent2("populationPedCreating", {}, state->position[0], state->position[1], state->position[2], state->model, overrideCalls) && state->allowed;
 	});
 });
+#endif

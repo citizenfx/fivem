@@ -30,6 +30,9 @@ public:
 
 private:
 	void SendResponse(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response, const std::string& outputData);
+
+private:
+	std::string m_securityKey;
 };
 
 class ROSCryptoState
@@ -126,7 +129,19 @@ void GameServicesBodyParser::ParseBody(const std::vector<uint8_t>& data)
 GameServicesHandler::GameServicesHandler(const std::string& gameName)
 	: m_gameName(gameName)
 {
-	assert(gameName == "gta5"); // as the platform key is hardcoded
+	if (gameName == "gta5")
+	{
+		m_securityKey = "C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc=";
+	}
+	else if (gameName == "rdr2")
+	{
+		m_securityKey = "CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk=";
+	}
+	else if (gameName == "launcher")
+	{
+
+	}
+	//assert(gameName == "gta5" || gameName == "launcher"); // as the platform key is hardcoded
 }
 
 bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
@@ -138,6 +153,15 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 	int serviceNameOffset = path.find_last_of('/', subserviceNameOffset - 1);
 
 	std::string serviceName = path.substr(serviceNameOffset + 1);
+
+	int queryStringOffset = serviceName.find_first_of('?');
+	std::string queryString;
+
+	if (queryStringOffset != std::string::npos)
+	{
+		queryString = serviceName.substr(queryStringOffset + 1);
+		serviceName = serviceName.substr(0, queryStringOffset);
+	}
 
 	// get the endpoint mapper and service handler
 	EndpointMapper* endpointMapper = Instance<EndpointMapper>::Get();
@@ -152,13 +176,17 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 		return true;
 	}
 
+	// is the UA ROS?
+	std::string ua = request->GetHeader("User-Agent");
+	bool isSecure = (ua.find("ros ") == 0);
+
 	// get the security flags from the request header
 	int securityFlags = atoi(request->GetHeader("ros-SecurityFlags", "0").c_str());
 
-	assert(securityFlags == 0 || securityFlags == 239);
+	assert(!isSecure || securityFlags == 0 || securityFlags == 239 || securityFlags == 8 /* launcher..? */);
 
 	// if security is requested, verify that the session ticket matches the session key
-	if (securityFlags != 0)
+	if (securityFlags != 0 && isSecure)
 	{
 		assert(request->GetHeader("ros-SessionTicket") == "vhASmPR0NnA7MZsdVCTCV/3XFABWGa9duCEscmAM0kcCDVEa7YR/rQ4kfHs2HIPIttq08TcxIzuwyPWbaEllvQ==");
 	}
@@ -169,27 +197,43 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 		// call the dispatch
 		std::string outputData = (*handlerContainer)(body);
 
-		// respond to the request as appropriate
-		SendResponse(request, response, outputData);
+		if (isSecure && securityFlags != 8)
+		{
+			// respond to the request as appropriate
+			SendResponse(request, response, outputData);
+		}
+		else
+		{
+			// raw response
+			response->SetStatusCode(200);
+			response->End(outputData);
+		}
 	};
 
 	if (request->GetRequestMethod() == "POST")
 	{
 		// set up a ROS body parser for the request
-		auto bodyParser = std::make_shared<GameServicesBodyParser>("C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc=", request);
+		auto bodyParser = std::make_shared<GameServicesBodyParser>(m_securityKey, request);
 
 		request->SetDataHandler([=] (const std::vector<uint8_t>& data)
 		{
-			// parse the input body
-			bodyParser->ParseBody(data);
+			if (securityFlags == 8 || serviceName.find(".svc") != std::string::npos)
+			{
+				handleDispatch(std::string{ data.begin(), data.end() });
+			}
+			else
+			{
+				// parse the input body
+				bodyParser->ParseBody(data);
 
-			// and dispatch the request
-			handleDispatch(bodyParser->GetBody());
+				// and dispatch the request
+				handleDispatch(bodyParser->GetBody());
+			}
 		});
 	}
 	else
 	{
-		handleDispatch("");
+		handleDispatch(queryString);
 	}
 
 	return true;
@@ -200,7 +244,7 @@ bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request
 void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response, const std::string& outputData)
 {
 	// output stream and other state
-	ROSCryptoState cryptoState("C4pWJwWIKGUxcHd69eGl2AOwH2zrmzZAoQeHfQFcMelybd32QFw9s10px6k0o75XZeB5YsI9Q9TdeuRgdbvKsxc=");
+	ROSCryptoState cryptoState(m_securityKey);
 	std::stringstream outStream;
 
 	// session key, again
@@ -406,4 +450,7 @@ static InitFunction initFunction([] ()
 	EndpointMapper* endpointMapper = Instance<EndpointMapper>::Get();
 
 	endpointMapper->AddPrefix("/gta5/11/gameservices/", new GameServicesHandler("gta5"));
+	endpointMapper->AddPrefix("/rdr2/11/gameservices/", new GameServicesHandler("rdr2"));
+	endpointMapper->AddPrefix("/rdr2/11/wcfgameservices/", new GameServicesHandler("rdr2"));
+	endpointMapper->AddPrefix("/launcher/11/launcherservices/", new GameServicesHandler("launcher"));
 });

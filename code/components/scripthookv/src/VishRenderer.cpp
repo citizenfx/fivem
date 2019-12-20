@@ -347,14 +347,14 @@ static InitFunction initFunction([] ()
 				POINTF p3 = scaleAndRotatePoint(0.0f, 1.0f);
 				POINTF p4 = scaleAndRotatePoint(1.0f, 1.0f);
 
-				BeginImVertices(4, 4);
+				rage::grcBegin(4, 4);
 
-				AddImVertex(p1.x, p1.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-				AddImVertex(p2.x, p2.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 0.0f);
-				AddImVertex(p3.x, p3.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 1.0f);
-				AddImVertex(p4.x, p4.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 1.0f);
+				rage::grcVertex(p1.x, p1.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
+				rage::grcVertex(p2.x, p2.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 0.0f);
+				rage::grcVertex(p3.x, p3.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 1.0f);
+				rage::grcVertex(p4.x, p4.y, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 1.0f);
 
-				DrawImVertices();
+				rage::grcEnd();
 
 				PopDrawBlitImShader();
 			}

@@ -1,0 +1,9 @@
+{
+	"name": "gta:game:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"gta:net:rdr3"
+	],
+	"provides": []
+}

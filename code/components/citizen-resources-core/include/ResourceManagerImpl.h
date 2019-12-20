@@ -11,6 +11,7 @@
 #include <ResourceManager.h>
 
 #include <mutex>
+#include <unordered_map>
 
 namespace fx
 {
@@ -20,6 +21,8 @@ private:
 	std::recursive_mutex m_resourcesMutex;
 
 	std::unordered_map<std::string, fwRefContainer<ResourceImpl>> m_resources;
+
+	std::unordered_multimap<std::string, fwRefContainer<Resource>> m_resourceProvides;
 
 	std::recursive_mutex m_mountersMutex;
 
@@ -36,7 +39,7 @@ public:
 
 	virtual pplx::task<fwRefContainer<Resource>> AddResource(const std::string& uri) override;
 
-	virtual fwRefContainer<Resource> GetResource(const std::string& identifier) override;
+	virtual fwRefContainer<Resource> GetResource(const std::string& identifier, bool withProvides) override;
 
 	virtual void ForAllResources(const std::function<void(const fwRefContainer<Resource>&)>& function) override;
 

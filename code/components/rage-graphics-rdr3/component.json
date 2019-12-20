@@ -1,0 +1,11 @@
+{
+	"name": "rage:graphics:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:allocator:rdr3",
+		"vendor:minhook",
+		"vendor:boost_filesystem"
+	],
+	"provides": []
+}

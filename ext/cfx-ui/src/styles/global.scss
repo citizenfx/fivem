@@ -1,6 +1,15 @@
 @import "variables";
 
 @import "~balloon-css/balloon.css";
+@import "~flag-icon-css/css/flag-icon.css";
+
+.flag-icon-001 {
+	background-image: url(../assets/images/001.svg);
+}
+
+.flag-icon-150 {
+	background-image: url(../assets/images/150.svg);
+}
 
 @font-face
 {
@@ -20,12 +29,16 @@
 	src: url(../assets/fonts/roboto_medium.woff);
 	font-weight: bold;
 }
+@font-face
+{
+	font-family: 'Inter';
+	src: url(../assets/fonts/inter.var.woff2);
+}
 
 * {
 	box-sizing: border-box;
 	padding: 0;
 	margin: 0;
-	font-family: $fonts;
 	user-select: none;
 }
 
@@ -39,6 +52,7 @@ body {
 
 	overflow: hidden;
 
+	font-family: $fonts;
 	font-size: $fontSize;
 }
 

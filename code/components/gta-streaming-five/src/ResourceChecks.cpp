@@ -112,21 +112,25 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 	return g_origInsertModule(moduleMgr, strModule);
 }
 
-static void PolyError(const std::string& str, fmt::ArgList args)
+static void PolyErrorv(const std::string& str, fmt::printf_args args)
 {
 	if (g_currentStreamingName.find(".yft") != std::string::npos)
 	{
 		FatalError("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
-			g_currentStreamingName, fmt::sprintf(str, args));
+			g_currentStreamingName, fmt::vsprintf(str, args));
 	}
 	else
 	{
 		trace("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
-			g_currentStreamingName, fmt::sprintf(str, args));
+			g_currentStreamingName, fmt::vsprintf(str, args));
 	}
 }
 
-FMT_VARIADIC(void, PolyError, const std::string&);
+template<typename... TArgs>
+static inline void PolyError(const std::string& str, const TArgs&... args)
+{
+	PolyErrorv(str, fmt::make_printf_args(args...));
+}
 
 static void ValidateGeometry(void* geomPtr)
 {

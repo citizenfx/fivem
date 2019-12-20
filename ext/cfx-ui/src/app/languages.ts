@@ -1,5 +1,3 @@
-import { Language } from 'angular-l10n';
-
 const languages = [
     {
         name: 'en',
@@ -25,11 +23,11 @@ const languages = [
         name: 'pl',
         displayName: 'Polski'
     },
-	{
+    {
         name: 'it',
         displayName: 'Italiano'
     },
-	{
+    {
         name: 'pt',
         displayName: 'Português'
     },
@@ -37,7 +35,7 @@ const languages = [
         name: 'ru',
         displayName: 'Русский'
     },
-	{
+    {
         name: 'es',
         displayName: 'Español'
     },

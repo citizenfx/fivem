@@ -40,63 +40,197 @@ static int math_abs (lua_State *L) {
   lua_Number v;
   float x, y, z, w;
   switch (lua_type(L,1)) {
-
     case LUA_TNUMBER:
-    if (lua_isinteger(L, 1)) {
-      lua_Integer n = lua_tointeger(L, 1);
-      if (n < 0) n = (lua_Integer)(0u - n);
-      lua_pushinteger(L, n);
-	} else {
-      v = lua_tonumber(L,1);
-      lua_pushnumber(L,l_mathop(fabs)(v));
-	}
-    return 1;
+      if (lua_isinteger(L, 1)) {
+        lua_Integer n = lua_tointeger(L, 1);
+        if (n < 0) n = (lua_Integer)(0u - n);
+        lua_pushinteger(L, n);
+      } else {
+        v = lua_tonumber(L,1);
+        lua_pushnumber(L, l_mathop(fabs)(v));
+      }
+      break;
     case LUA_TVECTOR2:
-    lua_checkvector2(L,1,&x,&y);
-    lua_pushvector2(L,fabsf(x),fabsf(y));
-    return 1;
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, fabsf(x), fabsf(y));
+      break;
     case LUA_TVECTOR3:
-    lua_checkvector3(L,1,&x,&y,&z);
-    lua_pushvector3(L,fabsf(x),fabsf(y),fabsf(z));
-    return 1;
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, fabsf(x), fabsf(y), fabsf(z));
+      break;
     case LUA_TVECTOR4:
-    lua_checkvector4(L,1,&x,&y,&z,&w);
-    lua_pushvector4(L,fabsf(x),fabsf(y),fabsf(z),fabsf(w));
-    return 1;
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, fabsf(x), fabsf(y), fabsf(z), fabsf(w));
+      break;
+    default:
+      return luaL_error(L, "abs takes a number, integer, vector2, vector3, or vector4");
   }
-  luaL_error(L, "abs takes a number, integer, vector2, vector3, or vector4.");
   return 1;
 }
 
 static int math_sin (lua_State *L) {
-  lua_pushnumber(L, l_mathop(sin)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(sin)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, sinf(x), sinf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, sinf(x), sinf(y), sinf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, sinf(x), sinf(y), sinf(z), sinf(w));
+      break;
+    default:
+      return luaL_error(L, "sin takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_cos (lua_State *L) {
-  lua_pushnumber(L, l_mathop(cos)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(cos)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, cosf(x), cosf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, cosf(x), cosf(y), cosf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, cosf(x), cosf(y), cosf(z), cosf(w));
+      break;
+    default:
+      return luaL_error(L, "cos takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_tan (lua_State *L) {
-  lua_pushnumber(L, l_mathop(tan)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(tan)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, tanf(x), tanf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, tanf(x), tanf(y), tanf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, tanf(x), tanf(y), tanf(z), tanf(w));
+      break;
+    default:
+      return luaL_error(L, "tan takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_asin (lua_State *L) {
-  lua_pushnumber(L, l_mathop(asin)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(asin)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, asinf(x), asinf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, asinf(x), asinf(y), asinf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, asinf(x), asinf(y), asinf(z), asinf(w));
+      break;
+    default:
+      return luaL_error(L, "asin takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_acos (lua_State *L) {
-  lua_pushnumber(L, l_mathop(acos)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(acos)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, acosf(x), acosf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, acosf(x), acosf(y), acosf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, acosf(x), acosf(y), acosf(z), acosf(w));
+      break;
+    default:
+      return luaL_error(L, "acos takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_atan (lua_State *L) {
-  lua_Number y = luaL_checknumber(L, 1);
-  lua_Number x = luaL_optnumber(L, 2, 1);
-  lua_pushnumber(L, l_mathop(atan2)(y, x));
+  float x, y, z, w;
+  float x2, y2, z2, w2;
+  switch (lua_type(L, 1)) {
+    case LUA_TNUMBER: {
+	    lua_Number y = luaL_checknumber(L, 1);
+	    lua_Number x = luaL_optnumber(L, 2, 1);
+	    lua_pushnumber(L, l_mathop(atan2)(y, x));
+	    break;
+    }
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      if (lua_type(L, 2) == LUA_TNONE)
+        x2 = y2 = 1.f;
+      else if (lua_type(L, 2) == LUA_TVECTOR2)
+	      lua_checkvector2(L, 2, &x2, &y2);
+      else /* Assume it's a LUA_TNUMBER, throw an error otherwise. */
+	      x2 = y2 = (float)luaL_checknumber(L, 2);
+      lua_pushvector2(L, atan2f(x, x2), atan2f(y, y2));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      if (lua_type(L, 2) == LUA_TNONE)
+        x2 = y2 = z2 = 1.f;
+      else if (lua_type(L, 2) == LUA_TVECTOR3)
+        lua_checkvector3(L, 2, &x2, &y2, &z2);
+      else
+        x2 = y2 = z2 = (float)luaL_checknumber(L, 2);
+      lua_pushvector3(L, atan2f(x, x2), atan2f(y, y2), atan2f(z, z2));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      if (lua_type(L, 2) == LUA_TNONE)
+        x2 = y2 = z2 = w2 = 1.f;
+      else if (lua_type(L, 2) == LUA_TVECTOR4)
+        lua_checkvector4(L, 2, &x2, &y2, &z2, &w2);
+      else
+        x2 = y2 = z2 = w2 = (float)luaL_checknumber(L, 2);
+      lua_pushvector4(L, atan2f(x, x2), atan2f(y, y2), atan2f(z, z2), atan2f(w, w2));
+      break;
+    default:
+      return luaL_error(L, "atan takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
@@ -124,78 +258,120 @@ static void pushnumint (lua_State *L, lua_Number d) {
 
 
 static int math_floor (lua_State *L) {
-  lua_Number v;
   float x, y, z, w;
   switch (lua_type(L,1)) {
     case LUA_TNUMBER:
-	if (lua_isinteger(L, 1)) {
-      lua_settop(L, 1); /* integer is its own floor */
-	} else {
-      v = lua_tonumber(L,1);
-      pushnumint(L,floor(v));
-	}
-    return 1;
+      if (lua_isinteger(L, 1)) {
+          lua_settop(L, 1); /* integer is its own floor */
+      } else {
+          pushnumint(L, floor(lua_tonumber(L,1)));
+      }
+      break;
     case LUA_TVECTOR2:
-    lua_checkvector2(L,1,&x,&y);
-    lua_pushvector2(L,floorf(x),floorf(y));
-    return 1;
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, floorf(x), floorf(y));
+      break;
     case LUA_TVECTOR3:
-    lua_checkvector3(L,1,&x,&y,&z);
-    lua_pushvector3(L,floorf(x),floorf(y),floorf(z));
-    return 1;
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, floorf(x), floorf(y), floorf(z));
+      break;
     case LUA_TVECTOR4:
-    lua_checkvector4(L,1,&x,&y,&z,&w);
-    lua_pushvector4(L,floorf(x),floorf(y),floorf(z),floorf(w));
-    return 1;
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, floorf(x), floorf(y), floorf(z), floorf(w));
+      break;
+    default:
+      return luaL_error(L, "floor takes a number, integer, vector2, vector3, or vector4");
   }
-  luaL_error(L, "floor takes a number, integer, vector2, vector3, or vector4.");
   return 1;
 }
 
 
 static int math_ceil (lua_State *L) {
-  lua_Number v;
   float x, y, z, w;
   switch (lua_type(L,1)) {
     case LUA_TNUMBER:
-    if (lua_isinteger(L, 1)) {
-      lua_settop(L, 1); /* integer is its own ceil */
-	} else {
-      v = lua_tonumber(L,1);
-      pushnumint(L,ceil(v));
-	}
-    return 1;
+      if (lua_isinteger(L, 1)) {
+        lua_settop(L, 1); /* integer is its own ceil */
+      } else {
+        pushnumint(L, ceil(lua_tonumber(L,1)));
+      }
+      break;
     case LUA_TVECTOR2:
-    lua_checkvector2(L,1,&x,&y);
-    lua_pushvector2(L,ceilf(x),ceilf(y));
-    return 1;
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, ceilf(x), ceilf(y));
+      break;
     case LUA_TVECTOR3:
-    lua_checkvector3(L,1,&x,&y,&z);
-    lua_pushvector3(L,ceilf(x),ceilf(y),ceilf(z));
-    return 1;
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, ceilf(x), ceilf(y), ceilf(z));
+      break;
     case LUA_TVECTOR4:
-    lua_checkvector4(L,1,&x,&y,&z,&w);
-    lua_pushvector4(L,ceilf(x),ceilf(y),ceilf(z),ceilf(w));
-    return 1;
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, ceilf(x), ceilf(y), ceilf(z), ceilf(w));
+      break;
+    default:
+      return luaL_error(L, "ceil takes a number, integer, vector2, vector3, or vector4");
   }
-  luaL_error(L, "ceil takes a number, integer, vector2, vector3, or vector4.");
   return 1;
 }
 
 
 static int math_fmod (lua_State *L) {
-  if (lua_isinteger(L, 1) && lua_isinteger(L, 2)) {
-    lua_Integer d = lua_tointeger(L, 2);
-    if ((lua_Unsigned)d + 1u <= 1u) {  /* special cases: -1 or 0 */
-      luaL_argcheck(L, d != 0, 2, "zero");
-      lua_pushinteger(L, 0);  /* avoid overflow with 0x80000... / -1 */
-    }
-    else
-      lua_pushinteger(L, lua_tointeger(L, 1) % d);
+  float x, y, z, w;
+  float x2, y2, z2, w2;
+  switch (lua_type(L, 1)) {
+    case LUA_TNUMBER:
+      if (lua_isinteger(L, 1) && lua_isinteger(L, 2)) {
+        lua_Integer d = lua_tointeger(L, 2);
+        if ((lua_Unsigned)d + 1u <= 1u) {  /* special cases: -1 or 0 */
+          luaL_argcheck(L, d != 0, 2, "zero");
+          lua_pushinteger(L, 0);  /* avoid overflow with 0x80000... / -1 */
+        }
+        else
+          lua_pushinteger(L, lua_tointeger(L, 1) % d);
+      }
+      else {
+        lua_pushnumber(L, l_mathop(fmod)(luaL_checknumber(L, 1), luaL_checknumber(L, 2)));
+      }
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      if (lua_type(L, 2) == LUA_TNUMBER) {
+        x2 = (float) luaL_checknumber(L, 2);
+        lua_pushvector2(L, fmodf(x, x2), fmodf(y, x2));
+      } else if (lua_type(L, 2) == LUA_TVECTOR2) {
+        lua_checkvector2(L, 2, &x2, &y2);
+        lua_pushvector2(L, fmodf(x, x2), fmodf(y, y2));
+      } else {
+        return luaL_error(L, "fmod second argument must be a number or vector2");
+      }
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      if (lua_type(L, 2) == LUA_TNUMBER) {
+        x2 = (float) luaL_checknumber(L, 2);
+        lua_pushvector3(L, fmodf(x, x2), fmodf(y, x2), fmodf(z, x2));
+      } else if (lua_type(L, 2) == LUA_TVECTOR3) {
+        lua_checkvector3(L, 2, &x2, &y2, &z2);
+        lua_pushvector3(L, fmodf(x, x2), fmodf(y, y2), fmodf(z, z2));
+      } else {
+        return luaL_error(L, "fmod second argument must be a number or vector3");
+      }
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      if (lua_type(L, 2) == LUA_TNUMBER) {
+        x2 = (float) luaL_checknumber(L, 2);
+        lua_pushvector4(L, fmodf(x, x2), fmodf(y, x2), fmodf(z, x2), fmodf(w, x2));
+      } else if (lua_type(L, 2) == LUA_TVECTOR4) {
+        lua_checkvector4(L, 2, &x2, &y2, &z2, &w2);
+        lua_pushvector4(L, fmodf(x, x2), fmodf(y, y2), fmodf(z, z2), fmodf(w, w2));
+      } else {
+        return luaL_error(L, "fmod second argument must be a number or vector4");
+      }
+      break;
+    default:
+      return luaL_error(L, "fmod takes a number, integer, vector2, vector3, or vector4");
   }
-  else
-    lua_pushnumber(L, l_mathop(fmod)(luaL_checknumber(L, 1),
-                                     luaL_checknumber(L, 2)));
   return 1;
 }
 
@@ -223,7 +399,26 @@ static int math_modf (lua_State *L) {
 
 
 static int math_sqrt (lua_State *L) {
-  lua_pushnumber(L, l_mathop(sqrt)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L, 1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(sqrt)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, sqrtf(x), sqrtf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, sqrtf(x), sqrtf(y), sqrtf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, sqrtf(x), sqrtf(y), sqrtf(z), sqrtf(w));
+      break;
+    default:
+      return luaL_error(L, "sqrt takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
@@ -235,8 +430,7 @@ static int math_ult (lua_State *L) {
   return 1;
 }
 
-static int math_log (lua_State *L) {
-  lua_Number x = luaL_checknumber(L, 1);
+lua_Number log_helper(lua_State* L, lua_Number x) {
   lua_Number res;
   if (lua_isnoneornil(L, 2))
     res = l_mathop(log)(x);
@@ -248,22 +442,105 @@ static int math_log (lua_State *L) {
     if (base == 10.0) res = l_mathop(log10)(x);
     else res = l_mathop(log)(x)/l_mathop(log)(base);
   }
-  lua_pushnumber(L, res);
+  return res;
+}
+
+static int math_log (lua_State *L) {
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, log_helper(L, luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, (float) log_helper(L, x), (float) log_helper(L, y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, (float) log_helper(L, x), (float) log_helper(L, y), (float) log_helper(L, z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, (float) log_helper(L, x), (float) log_helper(L, y), (float) log_helper(L, z), (float) log_helper(L, w));
+      break;
+    default:
+      return luaL_error(L, "exp takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_exp (lua_State *L) {
-  lua_pushnumber(L, l_mathop(exp)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(exp)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, expf(x), expf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, expf(x), expf(y), expf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, expf(x), expf(y), expf(z), expf(w));
+      break;
+    default:
+      return luaL_error(L, "exp takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
+float deg_helper(float x) { return x * (float)(l_mathop(180.0) / PI); }
+float rad_helper(float x) { return x * (float)(PI / l_mathop(180.0)); }
+
 static int math_deg (lua_State *L) {
-  lua_pushnumber(L, luaL_checknumber(L, 1) * (l_mathop(180.0) / PI));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, luaL_checknumber(L, 1) * (l_mathop(180.0) / PI));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, deg_helper(x), deg_helper(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, deg_helper(x), deg_helper(y), deg_helper(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, deg_helper(x), deg_helper(y), deg_helper(z), deg_helper(w));
+      break;
+    default:
+      return luaL_error(L, "deg takes a number, integer, vector2, vector3, or vector4");
+}
   return 1;
 }
 
 static int math_rad (lua_State *L) {
-  lua_pushnumber(L, luaL_checknumber(L, 1) * (PI / l_mathop(180.0)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, luaL_checknumber(L, 1) * (PI / l_mathop(180.0)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, rad_helper(x), rad_helper(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, rad_helper(x), rad_helper(y), rad_helper(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, rad_helper(x), rad_helper(y), rad_helper(z), rad_helper(w));
+      break;
+    default:
+      return luaL_error(L, "rad takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
@@ -273,11 +550,43 @@ static int math_min (lua_State *L) {
   int imin = 1;  /* index of current minimum value */
   int i;
   luaL_argcheck(L, n >= 1, 1, "value expected");
-  for (i = 2; i <= n; i++) {
-    if (lua_compare(L, i, imin, LUA_OPLT))
-      imin = i;
+
+  float x, y, z, w, mx, my, mz, mw;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      for (i = 2; i <= n; i++) {
+        if (lua_compare(L, i, imin, LUA_OPLT))
+          imin = i;
+      }
+      lua_pushvalue(L, imin);
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &mx, &my);
+      for (i = 2; i <= n; i++) {
+        lua_checkvector2(L, i, &x, &y);
+        mx = fminf(x, mx), my = fminf(y, my);
+      }
+      lua_pushvector2(L, mx, my);
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &mx, &my, &mz);
+      for (i = 2; i <= n; i++) {
+        lua_checkvector3(L, i, &x, &y, &z);
+        mx = fminf(x, mx), my = fminf(y, my), mz = fminf(z, mz);
+      }
+      lua_pushvector3(L, mx, my, mz);
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &mx, &my, &mz, &mw);
+      for (i = 2; i <= n; i++) {
+        lua_checkvector4(L, i, &x, &y, &z, &w);
+        mx = fminf(x, mx), my = fminf(y, my), mz = fminf(z, mz), mw = fminf(w, mw);
+      }
+      lua_pushvector4(L, mx, my, mz, mw);
+      break;
+    default:
+      return luaL_error(L, "min takes a number, integer, vector2, vector3, or vector4");
   }
-  lua_pushvalue(L, imin);
   return 1;
 }
 
@@ -287,11 +596,43 @@ static int math_max (lua_State *L) {
   int imax = 1;  /* index of current maximum value */
   int i;
   luaL_argcheck(L, n >= 1, 1, "value expected");
-  for (i = 2; i <= n; i++) {
-    if (lua_compare(L, imax, i, LUA_OPLT))
-      imax = i;
+
+  float x, y, z, w, mx, my, mz, mw;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      for (i = 2; i <= n; i++) {
+        if (lua_compare(L, imax, i, LUA_OPLT))
+          imax = i;
+      }
+      lua_pushvalue(L, imax);
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &mx, &my);
+      for (i = 2; i <= n; i++) {
+        lua_checkvector2(L, i, &x, &y);
+        mx = fmaxf(x, mx), my = fmaxf(y, my);
+      }
+      lua_pushvector2(L, mx, my);
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &mx, &my, &mz);
+      for (i = 2; i <= n; i++) {
+        lua_checkvector3(L, i, &x, &y, &z);
+        mx = fmaxf(x, mx), my = fmaxf(y, my), mz = fmaxf(z, mz);
+      }
+      lua_pushvector3(L, mx, my, mz);
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &mx, &my, &mz, &mw);
+      for (i = 2; i <= n; i++) {
+        lua_checkvector4(L, i, &x, &y, &z, &w);
+        mx = fmaxf(x, mx), my = fmaxf(y, my),  mz = fmaxf(z, mz), mw = fmaxf(w, mw);
+      }
+      lua_pushvector4(L, mx, my, mz, mw);
+      break;
+    default:
+      return luaL_error(L, "max takes a number, integer, vector2, vector3, or vector4");
   }
-  lua_pushvalue(L, imax);
   return 1;
 }
 
@@ -321,7 +662,7 @@ static int math_random (lua_State *L) {
     default: return luaL_error(L, "wrong number of arguments");
   }
   /* random integer in the interval [low, up] */
-  luaL_argcheck(L, low <= up, 1, "interval is empty"); 
+  luaL_argcheck(L, low <= up, 1, "interval is empty");
   luaL_argcheck(L, low >= 0 || up <= LUA_MAXINTEGER + low, 1,
                    "interval too large");
   r *= (double)(up - low) + 1.0;
@@ -340,9 +681,9 @@ static int math_randomseed (lua_State *L) {
 static int math_type (lua_State *L) {
   if (lua_type(L, 1) == LUA_TNUMBER) {
       if (lua_isinteger(L, 1))
-        lua_pushliteral(L, "integer"); 
+        lua_pushliteral(L, "integer");
       else
-        lua_pushliteral(L, "float"); 
+        lua_pushliteral(L, "float");
   }
   else {
     luaL_checkany(L, 1);
@@ -357,55 +698,140 @@ static int math_type (lua_State *L) {
 ** Deprecated functions (for compatibility only)
 ** ===================================================================
 */
-#if defined(LUA_COMPAT_MATHLIB)
 
 static int math_cosh (lua_State *L) {
-  lua_pushnumber(L, l_mathop(cosh)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(cosh)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, coshf(x), coshf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, coshf(x), coshf(y), coshf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, coshf(x), coshf(y), coshf(z), coshf(w));
+      break;
+    default:
+      return luaL_error(L, "cosh takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_sinh (lua_State *L) {
-  lua_pushnumber(L, l_mathop(sinh)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(sinh)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, sinhf(x), sinhf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, sinhf(x), sinhf(y), sinhf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, sinhf(x), sinhf(y), sinhf(z), sinhf(w));
+      break;
+    default:
+      return luaL_error(L, "sinh takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_tanh (lua_State *L) {
-  lua_pushnumber(L, l_mathop(tanh)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(tanh)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, tanhf(x), tanhf(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, tanhf(x), tanhf(y), tanhf(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, tanhf(x), tanhf(y), tanhf(z), tanhf(w));
+      break;
+    default:
+      return luaL_error(L, "tanh takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
 static int math_pow (lua_State *L) {
-  if (lua_gettop(L) != 2) {
-    luaL_error(L, "Wrong number of arguments: use math.pow(number, number) or math.pow(quat, number)");
-  }
-  if (lua_type(L, 1) != LUA_TNUMBER && lua_type(L, 1) != LUA_TQUAT) {
-    luaL_error(L, "Invalid type for 1st parameter, use math.pow(number, number) or math.pow(quat, number)");
-  }
-  if (lua_type(L, 2) != LUA_TNUMBER) {
-    luaL_error(L, "math.pow second argument must be a number");
-  }
-
-  if (lua_type(L, 1) == LUA_TNUMBER) {
+  float l;
+  float x, y, z, w;
+  float x2, y2, z2, w2;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      if (lua_type(L, 2) != LUA_TNUMBER)
+        return luaL_error(L, "math.pow second argument must be a number");
       lua_pushnumber(L, pow(lua_tonumber(L, 1), lua_tonumber(L, 2)));
-  } else {
-    float w, x, y, z,  l;
-    float index;
-    lua_checkquat(L, 1, &w, &x, &y, &z);
-    index = (float)lua_tonumber(L, 2);
-    l = sqrtf(x*x + y*y + z*z);
-    if (l==0) {
-      lua_pushquat(L, 1, 0, 0, 0);
-    } else {
-      float angle, sangle;
-      float w2, x2, y2, z2;
-      angle = index * acosf(w); /* without the factor of 2 */
-      sangle = sinf(angle);
-      w2 = cosf(angle);
-      x2 = sangle * x/l;
-      y2 = sangle * y/l;
-      z2 = sangle * z/l;
-      lua_pushquat(L, w2, x2, y2, z2);
-    }
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      if (lua_type(L, 2) == LUA_TNUMBER) {
+        x2 = (float) luaL_checknumber(L, 2);
+        lua_pushvector2(L, powf(x, x2), powf(y, x2));
+      } else if (lua_type(L, 2) == LUA_TVECTOR2) {
+        lua_checkvector2(L, 2, &x2, &y2);
+        lua_pushvector2(L, powf(x, x2), powf(y, y2));
+      } else {
+        return luaL_error(L, "math.pow second argument must be a number or vector2");
+      }
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      if (lua_type(L, 2) == LUA_TNUMBER) {
+        x2 = (float) luaL_checknumber(L, 2);
+        lua_pushvector3(L, powf(x, x2), powf(y, x2), powf(z, x2));
+      } else if (lua_type(L, 2) == LUA_TVECTOR3) {
+        lua_checkvector3(L, 2, &x2, &y2, &z2);
+        lua_pushvector3(L, powf(x, x2), powf(y, y2), powf(z, z2));
+      } else {
+        return luaL_error(L, "math.pow second argument must be a number or vector3");
+      }
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      if (lua_type(L, 2) == LUA_TNUMBER) {
+        x2 = (float) luaL_checknumber(L, 2);
+        lua_pushvector4(L, powf(x, x2), powf(y, x2), powf(z, x2), powf(w, x2));
+      } else if (lua_type(L, 2) == LUA_TVECTOR4) {
+        lua_checkvector4(L, 2, &x2, &y2, &z2, &w2);
+        lua_pushvector4(L, powf(x, x2), powf(y, y2), powf(z, z2), powf(w, w2));
+      } else {
+        return luaL_error(L, "math.pow second argument must be a number or vector4");
+      }
+      break;
+    case LUA_TQUAT:
+      if (lua_type(L, 2) != LUA_TNUMBER)
+        return luaL_error(L, "math.pow second argument must be a number");
+
+      lua_checkquat(L, 1, &w, &x, &y, &z);
+      if ((l = sqrtf(x*x + y*y + z*z)) == 0.f) {
+        lua_pushquat(L, 1, 0, 0, 0);
+      } else {
+        float angle = (float) (lua_tonumber(L, 2) * acos(w)); /* without the factor of 2 */
+        float sangle = sinf(angle);
+        lua_pushquat(L, cosf(angle), sangle * x/l, sangle * y/l, sangle * z/l);
+      }
+      break;
+    default:
+      return luaL_error(L, "use math.pow(number, number) or math.pow(quat, number) or math.pow(vec, vec) or math.pow(vec, number)");
   }
   return 1;
 }
@@ -425,11 +851,29 @@ static int math_ldexp (lua_State *L) {
 }
 
 static int math_log10 (lua_State *L) {
-  lua_pushnumber(L, l_mathop(log10)(luaL_checknumber(L, 1)));
+  float x, y, z, w;
+  switch (lua_type(L,1)) {
+    case LUA_TNUMBER:
+      lua_pushnumber(L, l_mathop(log10)(luaL_checknumber(L, 1)));
+      break;
+    case LUA_TVECTOR2:
+      lua_checkvector2(L, 1, &x, &y);
+      lua_pushvector2(L, log10f(x), log10f(y));
+      break;
+    case LUA_TVECTOR3:
+      lua_checkvector3(L, 1, &x, &y, &z);
+      lua_pushvector3(L, log10f(x), log10f(y), log10f(z));
+      break;
+    case LUA_TVECTOR4:
+      lua_checkvector4(L, 1, &x, &y, &z, &w);
+      lua_pushvector4(L, log10f(x), log10f(y), log10f(z), log10f(w));
+      break;
+    default:
+      return luaL_error(L, "log10 takes a number, integer, vector2, vector3, or vector4");
+  }
   return 1;
 }
 
-#endif
 /* }================================================================== */
 
 static float do_clamp (float a, float b, float c)
@@ -510,7 +954,6 @@ static const luaL_Reg mathlib[] = {
 
   { "clamp", math_clamp },
 
-#if defined(LUA_COMPAT_MATHLIB)
   {"atan2", math_atan},
   {"cosh",   math_cosh},
   {"sinh",   math_sinh},
@@ -519,7 +962,6 @@ static const luaL_Reg mathlib[] = {
   {"frexp", math_frexp},
   {"ldexp", math_ldexp},
   {"log10", math_log10},
-#endif
   /* placeholders */
   {"pi", NULL},
   {"huge", NULL},

@@ -8,15 +8,26 @@
 #include "StdInc.h"
 #include "fxScripting.h"
 
+#include <Resource.h>
 #include <ManifestVersion.h>
 
 #include <msgpack.hpp>
+#include <json.hpp>
 
-#ifndef IS_FXSERVER
+using json = nlohmann::json;
+
+#if defined(GTA_FIVE)
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_21e43a33.lua",  guid_t{0} },
 	{ "natives_0193d0af.lua",  "f15e72ec-3972-4fe4-9c7d-afc5394ae207" },
 	{ "natives_universal.lua", "44febabe-d386-4d18-afbe-5e627f4af937" }
+};
+
+// we fast-path non-FXS using direct RAGE calls
+#include <scrEngine.h>
+#elif defined(IS_RDR3)
+static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
+	{ "rdr3_universal.lua", guid_t{ 0 } }
 };
 
 // we fast-path non-FXS using direct RAGE calls
@@ -90,7 +101,7 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -112,6 +123,8 @@ private:
 
 	IScriptHostWithManifest* m_manifestHost;
 
+	OMPtr<IDebugEventListener> m_debugListener;
+
 	std::function<void()> m_tickRoutine;
 
 	TEventRoutine m_eventRoutine;
@@ -131,6 +144,8 @@ private:
 	int m_instanceId;
 
 	std::string m_nativesDir;
+
+	std::unordered_map<std::string, int> m_scriptIds;
 
 public:
 	inline LuaScriptRuntime()
@@ -233,6 +248,8 @@ public:
 	NS_DECL_ISCRIPTMEMINFORUNTIME;
 
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
+
+	NS_DECL_ISCRIPTDEBUGRUNTIME;
 };
 
 static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
@@ -286,14 +303,19 @@ const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
 	return g_currentLuaRuntime;
 }
 
-void ScriptTrace(const char* string, const fmt::ArgList& formatList)
+void ScriptTraceV(const char* string, fmt::printf_args formatList)
 {
-	trace(string, formatList);
+	auto t = fmt::vsprintf(string, formatList);
+	trace("%s", t);
 
-	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(fmt::sprintf(string, formatList).c_str()));
+	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
 
-FMT_VARIADIC(void, ScriptTrace, const char*);
+template<typename... TArgs>
+void ScriptTrace(const char* string, const TArgs&... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
 
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] =
@@ -814,6 +836,28 @@ private:
 
 int Lua_InvokeNative(lua_State* L)
 {
+	// get the hash
+	uint64_t hash = lua_tointeger(L, 1);
+
+#ifdef GTA_FIVE
+	// hacky super fast path for 323 GET_HASH_KEY in GTA
+	if (hash == 0xD24D37CC275948CC)
+	{
+		// if NULL or an integer, return 0
+		if (lua_isnil(L, 2) || lua_type(L, 2) == LUA_TNUMBER)
+		{
+			lua_pushinteger(L, 0);
+
+			return 1;
+		}
+
+		const char* str = luaL_checkstring(L, 2);
+		lua_pushinteger(L, static_cast<lua_Integer>(static_cast<int32_t>(HashString(str))));
+
+		return 1;
+	}
+#endif
+
 	// get required entries
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
@@ -836,9 +880,6 @@ int Lua_InvokeNative(lua_State* L)
 
 	// get argument count for the loop
 	int numArgs = lua_gettop(L);
-
-	// get the hash
-	uint64_t hash = lua_tointeger(L, 1);
 
 	context.nativeIdentifier = hash;
 
@@ -1163,6 +1204,12 @@ int Lua_LoadNative(lua_State* L)
 	int isCfxv2 = 0;
 	runtime->GetScriptHost2()->GetNumResourceMetaData("is_cfxv2", &isCfxv2);
 
+	// TODO/TEMPORARY: fxv2 oal is disabled by default for now
+	if (isCfxv2)
+	{
+		runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
+	}
+
 	if (isCfxv2)
 	{
 		auto nativeImpl = Lua_GetNative(L, fn);
@@ -1345,6 +1392,23 @@ result_t LuaScriptRuntime::Create(IScriptHost *scriptHost)
 		}
 	}
 
+	{
+		bool isGreater;
+
+		if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionV2Between("adamant", "", &isGreater)) && isGreater)
+		{
+			nativesBuild =
+#if defined(GTA_FIVE)
+				"natives_universal.lua"
+#elif defined(IS_RDR3)
+				"rdr3_universal.lua"
+#else
+				"natives_server.lua"
+#endif
+				;
+		}
+	}
+
 	safe_openlibs(m_state);
 
 	// register the 'Citizen' library
@@ -1486,6 +1550,47 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 
 		// TODO: change?
 		return FX_E_INVALIDARG;
+	}
+
+	{
+		auto idIt = m_scriptIds.find(scriptFile);
+
+		if (idIt != m_scriptIds.end())
+		{
+			std::vector<int> lineNums;
+
+			int numProtos = lua_toprotos(m_state, -1);
+
+			for (int i = 0; i < numProtos; i++)
+			{
+				lua_Debug debug;
+				lua_getinfo(m_state, ">L", &debug);
+
+				lua_pushnil(m_state);
+
+				while (lua_next(m_state, -2) != 0)
+				{
+					int lineNum = lua_tointeger(m_state, -2); // 'whose indices are the numbers of the lines that are valid on the function'
+					lineNums.push_back(lineNum - 1);
+
+					lua_pop(m_state, 1);
+				}
+
+				lua_pop(m_state, 1);
+			}
+
+			if (m_debugListener.GetRef())
+			{
+				auto j = json::array();
+
+				for (auto& line : lineNums)
+				{
+					j.push_back(line);
+				}
+
+				m_debugListener->OnBreakpointsDefined(idIt->second, const_cast<char*>(j.dump().c_str()));
+			}
+		}
 	}
 
 	return true;
@@ -1699,6 +1804,20 @@ result_t LuaScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
 {
 	LuaPushEnvironment pushed(this);
 	*memoryUsage = (lua_gc(m_state, LUA_GCCOUNT, 0) * 1024) + lua_gc(m_state, LUA_GCCOUNTB, 0);
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::SetScriptIdentifier(char* fileName, int32_t scriptId)
+{
+	m_scriptIds[fileName] = scriptId;
+
+	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::SetDebugEventListener(IDebugEventListener* listener)
+{
+	m_debugListener = listener;
 
 	return FX_S_OK;
 }

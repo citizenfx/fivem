@@ -29,6 +29,8 @@ static void Subprocess_HandleArguments(boost::program_options::wcommand_line_par
 
 std::wstring g_origProcess;
 
+void DoLauncherUiSkip();
+
 static void Subprocess_Run(const boost::program_options::variables_map& map)
 {
 	auto args = map["cake"].as<std::vector<std::string>>();
@@ -39,6 +41,11 @@ static void Subprocess_Run(const boost::program_options::variables_map& map)
 	SetCurrentDirectory(parentPath.wstring().c_str());
 
 	trace("sub! %s\n", GetCommandLineA());
+
+	ToolMode_SetPostLaunchRoutine([]()
+	{
+		DoLauncherUiSkip();
+	});
 
 	g_origProcess = programPath.wstring();
 	ToolMode_LaunchGame(programPath.wstring().c_str());

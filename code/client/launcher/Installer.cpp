@@ -19,7 +19,7 @@
 
 namespace WRL = Microsoft::WRL;
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
 static void SetAumid(const WRL::ComPtr<IShellLink>& link)
 {
@@ -28,7 +28,7 @@ static void SetAumid(const WRL::ComPtr<IShellLink>& link)
 	if (SUCCEEDED(link.As(&propertyStore)))
 	{
 		PROPVARIANT pv;
-		if (SUCCEEDED(InitPropVariantFromString(L"CitizenFX.FiveM.Client", &pv)))
+		if (SUCCEEDED(InitPropVariantFromString(L"CitizenFX." PRODUCT_NAME ".Client", &pv)))
 		{
 			propertyStore->SetValue(PKEY_AppUserModel_ID, pv);
 
@@ -59,7 +59,13 @@ static std::wstring GetRootPath()
 
 	if (!appDataPath.empty())
 	{
+#ifdef GTA_FIVE
 		appDataPath += L"\\FiveM";
+#elif defined(IS_RDR3)
+		appDataPath += L"\\RedM";
+#else
+		appDataPath += L"\\Cfx.re";
+#endif
 
 		CreateDirectory(appDataPath.c_str(), nullptr);
 	}
@@ -102,7 +108,7 @@ static void CreateUninstallEntryIfNeeded()
 void Install_Uninstall(const wchar_t* directory)
 {
 	// check if this is actually a FiveM directory we're trying to uninstall
-	if (GetFileAttributes(fmt::sprintf(L"%s\\%s", directory, L"FiveM.app").c_str()) == INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributes(fmt::sprintf(L"%s\\%s", directory, PRODUCT_NAME L".app").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		return;
 	}
@@ -113,9 +119,9 @@ void Install_Uninstall(const wchar_t* directory)
 	if (FAILED(TaskDialog(
 		NULL,
 		GetModuleHandle(NULL),
-		L"Uninstall FiveM",
-		L"Uninstall FiveM?",
-		fmt::sprintf(L"Are you sure you want to remove FiveM from the installation root at %s?", directory).c_str(),
+		L"Uninstall " PRODUCT_NAME,
+		L"Uninstall " PRODUCT_NAME  L"?",
+		fmt::sprintf(L"Are you sure you want to remove " PRODUCT_NAME L" from the installation root at %s?", directory).c_str(),
 		TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
 		NULL,
 		&button)))
@@ -154,16 +160,16 @@ void Install_Uninstall(const wchar_t* directory)
 	};
 
 	addDelete(directory);
-	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\FiveM.lnk");
-	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\FiveM.lnk");
-	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\FiveM Singleplayer.lnk");
-	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\FiveM Singleplayer.lnk");
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L".lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L".lnk");
+	addDelete(GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk");
+	addDelete(GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk");
 
 	hr = ifo->PerformOperations();
 
 	if (FAILED(hr))
 	{
-		MessageBox(NULL, fmt::sprintf(L"Failed to uninstall FiveM. HRESULT = 0x%08x", hr).c_str(), L"InsnailShield", MB_OK | MB_ICONSTOP);
+		MessageBox(NULL, fmt::sprintf(L"Failed to uninstall " PRODUCT_NAME L". HRESULT = 0x%08x", hr).c_str(), L"InsnailShield", MB_OK | MB_ICONSTOP);
 		return;
 	}
 
@@ -188,7 +194,7 @@ bool Install_PerformInstallation()
 	}
 
 	// the executable goes to the target
-	auto targetExePath = rootPath + L"\\FiveM.exe";
+	auto targetExePath = rootPath + L"\\" PRODUCT_NAME L".exe";
 
 	auto doHandoff = [targetExePath]()
 	{
@@ -200,7 +206,7 @@ bool Install_PerformInstallation()
 		{
 			static HostSharedData<CfxState> hostData("CfxInitState");
 			hostData->inJobObject = false;
-			hostData->initialPid = pi.dwProcessId;
+			hostData->SetInitialPid(pi.dwProcessId);
 
 			ResumeThread(pi.hThread);
 
@@ -218,12 +224,12 @@ bool Install_PerformInstallation()
 	{
 		// at least re-verify the game, if the user 'tried' to reinstall
 		DeleteFileW((rootPath + L"\\caches.xml").c_str());
-		DeleteFileW((rootPath + L"\\FiveM.app\\caches.xml").c_str());
+		DeleteFileW((rootPath + L"\\" PRODUCT_NAME L".app\\caches.xml").c_str());
 
 		// hand off to the actual game
 		if (!doHandoff())
 		{
-			MessageBox(nullptr, L"FiveM is already installed. You should launch it through the shortcut in the Start menu.\nIf you want to create a portable installation, put FiveM.exe into an empty folder instead.", L"FiveM", MB_OK | MB_ICONINFORMATION);
+			MessageBox(nullptr, PRODUCT_NAME L" is already installed. You should launch it through the shortcut in the Start menu.\nIf you want to create a portable installation, put " PRODUCT_NAME L".exe into an empty folder instead.", PRODUCT_NAME, MB_OK | MB_ICONINFORMATION);
 		}
 
 		return true;
@@ -248,7 +254,7 @@ bool Install_PerformInstallation()
 		if (SUCCEEDED(hr))
 		{
 			shellLink->SetPath(targetExePath.c_str());
-			shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
+			shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
 			shellLink->SetIconLocation(targetExePath.c_str(), 0);
 			
 			SetAumid(shellLink);
@@ -258,8 +264,8 @@ bool Install_PerformInstallation()
 
 			if (SUCCEEDED(hr))
 			{
-				persist->Save((GetFolderPath(FOLDERID_Programs) + L"\\FiveM.lnk").c_str(), TRUE);
-				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\FiveM.lnk").c_str(), TRUE);
+				persist->Save((GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L".lnk").c_str(), TRUE);
+				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L".lnk").c_str(), TRUE);
 			}
 		}
 
@@ -270,7 +276,7 @@ bool Install_PerformInstallation()
 		{
 			shellLink->SetPath(targetExePath.c_str());
 			shellLink->SetArguments(L"-sp");
-			shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
+			shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
 			shellLink->SetIconLocation(targetExePath.c_str(), -202);
 
 			SetAumid(shellLink);
@@ -280,8 +286,8 @@ bool Install_PerformInstallation()
 
 			if (SUCCEEDED(hr))
 			{
-				persist->Save((GetFolderPath(FOLDERID_Programs) + L"\\FiveM Singleplayer.lnk").c_str(), TRUE);
-				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\FiveM Singleplayer.lnk").c_str(), TRUE);
+				persist->Save((GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk").c_str(), TRUE);
+				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk").c_str(), TRUE);
 			}
 		}
 
@@ -290,10 +296,10 @@ bool Install_PerformInstallation()
 
 	// create installroot dirs
 	{
-		auto appPath = rootPath + L"\\FiveM.app";
+		auto appPath = rootPath + L"\\" PRODUCT_NAME L".app";
 		CreateDirectory(appPath.c_str(), nullptr);
 
-		FILE* f = _wfopen((appPath + L"\\FiveM.installroot").c_str(), L"w");
+		FILE* f = _wfopen((appPath + L"\\" PRODUCT_NAME L".installroot").c_str(), L"w");
 		if (f)
 		{
 			fclose(f);
@@ -315,7 +321,7 @@ bool Install_RunInstallMode()
 	if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(L"citizen-resources-client.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
 		GetFileAttributes(MakeRelativeCitPath(L"CitizenFX.ini").c_str()) != INVALID_FILE_ATTRIBUTES ||
-		GetFileAttributes(MakeRelativeCitPath(L"FiveM.installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
+		GetFileAttributes(MakeRelativeCitPath(PRODUCT_NAME L".installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
 	{
 		using namespace std::string_literals;
 
@@ -326,7 +332,7 @@ bool Install_RunInstallMode()
 
 		wcsrchr(exePath, L'\\')[0] = L'\0';
 
-		std::wstring linkPath = exePath + L"\\FiveM Singleplayer.lnk"s;
+		std::wstring linkPath = exePath + L"\\" PRODUCT_NAME L" Singleplayer.lnk"s;
 
 		if (GetFileAttributes(linkPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
@@ -339,7 +345,7 @@ bool Install_RunInstallMode()
 			{
 				shellLink->SetPath(exeName.c_str());
 				shellLink->SetArguments(L"-sp");
-				shellLink->SetDescription(L"FiveM is a modification framework for Grand Theft Auto V");
+				shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
 				shellLink->SetIconLocation(exeName.c_str(), -202);
 
 				SetAumid(shellLink);
@@ -366,8 +372,8 @@ bool Install_RunInstallMode()
 
 	bool isDownloadsFolder = false;
 
-	if (StrStrIW(hostData->initPath, L"downloads") != nullptr ||
-		StrStrIW(hostData->initPath, L"\\dls") != nullptr)
+	if (StrStrIW(hostData->GetInitPath().c_str(), L"downloads") != nullptr ||
+		StrStrIW(hostData->GetInitPath().c_str(), L"\\dls") != nullptr)
 	{
 		isDownloadsFolder = true;
 	}
@@ -375,12 +381,19 @@ bool Install_RunInstallMode()
 	size_t maxOtherFiles = (isDownloadsFolder) ? 3 : 5;
 
 	// count the amount of files 'together' with us in our folder
-	fs::directory_iterator it(hostData->initPath), end;
+	fs::directory_iterator it(hostData->GetInitPath()), end;
 	size_t numFiles = std::count_if(it, end, [](const fs::directory_entry& entry)
 	{
-		if (entry.path().filename().string()[0] == '.')
+		try
 		{
-			return false;
+			if (entry.path().filename().string()[0] == '.')
+			{
+				return false;
+			}
+		}
+		catch (std::exception& e)
+		{
+
 		}
 
 		return true;

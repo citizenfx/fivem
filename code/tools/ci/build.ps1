@@ -72,11 +72,19 @@ $inCI = $false
 $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
 $IsServer = $false
+$IsLauncher = $false
+$IsRDR = $false
 $UploadType = "client"
 
 if ($env:IS_FXSERVER -eq 1) {
     $IsServer = $true
     $UploadType = "server"
+} elseif ($env:IS_LAUNCHER -eq 1) {
+    $IsLauncher = $true
+    $UploadType = "launcher"
+} elseif ($env:IS_RDR3 -eq 1) {
+    $IsRDR = $true
+    $UploadType = "rdr3"
 }
 
 if ($env:CI) {
@@ -115,6 +123,10 @@ if ($env:CI) {
 
     if ($IsServer) {
         $UploadBranch += " SERVER"
+    } elseif ($IsLauncher) {
+        $UploadBranch += " COMPOSITOR"
+    } elseif ($IsRDR) {
+        $UploadBranch += " RDR3"
     }
 }
 
@@ -146,6 +158,13 @@ if (!($env:BOOST_ROOT)) {
     }
 }
 
+Push-Location $WorkDir
+$GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
+
+$LauncherCommit = (git rev-list -1 HEAD code/client/launcher/ code/shared/ code/client/shared/ code/tools/dbg/ vendor/breakpad/ vendor/tinyxml2/ vendor/xz/ vendor/curl/ vendor/cpr/ vendor/minizip/ code/premake5.lua)
+$LauncherVersion = ((git rev-list $LauncherCommit | measure-object).Count * 10) + 1100000
+Pop-Location
+
 if (!$DontBuild)
 {
     Invoke-WebHook "Bloop, building a new $env:CI_PROJECT_NAME $UploadBranch build, triggered by $Triggerer"
@@ -175,6 +194,11 @@ if (!$DontBuild)
 
     foreach ($submodule in $SubModules) {
         $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
+
+        if (Test-Path $SubmodulePath) {
+			continue;
+		}
+		
         $SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
 
         $Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash) -replace '^.*tags/([^^]+).*$','$1'
@@ -238,15 +262,23 @@ if (!$DontBuild)
     if ($IsServer) {
         $GameName = "server"
         $BuildPath = "$BuildRoot\server\windows"
+    } elseif ($IsLauncher) {
+        $GameName = "launcher"
+        $BuildPath = "$BuildRoot\launcher"
+    } elseif ($IsRDR) {
+        $GameName = "rdr3"
+        $BuildPath = "$BuildRoot\rdr3"
     }
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
 
-    $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
-    $LauncherVersion = $GameVersion
-
     "#pragma once
-    #define BASE_EXE_VERSION $GameVersion" | Out-File -Force shared\citversion.h
+    #define BASE_EXE_VERSION $LauncherVersion" | Out-File -Force shared\citversion.h.tmp
+
+    if ((!(Test-Path shared\citversion.h)) -or ($null -ne (Compare-Object (Get-Content shared\citversion.h.tmp) (Get-Content shared\citversion.h)))) {
+        Remove-Item -Force shared\citversion.h
+        Move-Item -Force shared\citversion.h.tmp shared\citversion.h
+    }
 
     "#pragma once
     #define GIT_DESCRIPTION ""$UploadBranch $GlobalTag win32""
@@ -266,16 +298,14 @@ if (!$DontBuild)
         throw "Failed to build the code."
     }
 
-    if ((($env:COMPUTERNAME -eq "BUILDVM") -or ($env:COMPUTERNAME -eq "AVALON")) -and (!$IsServer)) {
-        Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot"
+    if ((($env:COMPUTERNAME -eq "BUILDVM") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
+        Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot -GameName $GameName"
     } elseif ($IsServer -and (Test-Path C:\h\debuggers)) {
 		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols_server.ps1 -BinRoot $BinRoot"
     }
 }
 
 Set-Location $WorkRootDir
-$GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
-$LauncherVersion = $GameVersion
 
 if (!$DontBuild -and $IsServer) {
     Remove-Item -Recurse -Force $WorkDir\out
@@ -292,9 +322,12 @@ if (!$DontBuild -and $IsServer) {
 
     New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
     New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
+    New-Item -ItemType Directory -Force $WorkDir\out\server\citizen | Out-Null
 
     Copy-Item -Force $BinRoot\server\windows\release\*.exe $WorkDir\out\server\
     Copy-Item -Force $BinRoot\server\windows\release\*.dll $WorkDir\out\server\
+
+    Copy-Item -Force -Recurse $BinRoot\server\windows\release\citizen\* $WorkDir\out\server\citizen\
 
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\client\v8* $WorkDir\out\server\
@@ -302,8 +335,6 @@ if (!$DontBuild -and $IsServer) {
     Copy-Item -Force -Recurse $WorkDir\data\server\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
 
-    Copy-Item -Force -Recurse $BinRoot\server\windows\release\citizen\* $WorkDir\out\server\citizen\
-    
     Remove-Item -Force $WorkDir\out\server\citizen\.gitignore
 
     Copy-Item -Force "$WorkRootDir\tools\ci\7z.exe" 7z.exe
@@ -330,70 +361,129 @@ if (!$DontBuild -and $IsServer) {
     Invoke-WebHook "Bloop, building a SERVER/WINDOWS build completed!"
 }
 
+$CacheDir = "$SaveDir\caches"
+
+if ($IsLauncher) {
+    $CacheDir = "$SaveDir\lcaches"
+}
+
+if ($IsRDR) {
+    $CacheDir = "$SaveDir\rcaches"
+}
+
 if (!$DontBuild -and !$IsServer) {
     # prepare caches
-    New-Item -ItemType Directory -Force $WorkDir\caches | Out-Null
-    New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn | Out-Null
-    Set-Location $WorkDir\caches
+    New-Item -ItemType Directory -Force $CacheDir | Out-Null
+    New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
+    Set-Location $CacheDir
 
-    # create cache folders
+    if ($true) {
+        # build UI
+        Push-Location $WorkDir
+        $UICommit = (git rev-list -1 HEAD ext/ui-build/ ext/cfx-ui/)
+        Pop-Location
 
-    # copy output files
-    Push-Location $WorkDir\ext\ui-build
-    .\build.cmd
+        Push-Location $WorkDir\ext\ui-build
 
-    if ($?) {
-        New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn\citizen\ui\ | Out-Null
-        Copy-Item -Force -Recurse $WorkDir\ext\ui-build\data\* $WorkDir\caches\fivereborn\citizen\ui\
+        if ($UICommit -ne (Get-Content data\.commit)) {
+            .\build.cmd
+            
+            $UICommit | Out-File -Encoding ascii -NoNewline data\.commit
+        }
+
+        if ($?) {
+            Copy-Item -Force $WorkDir\ext\ui-build\data.zip $CacheDir\fivereborn\citizen\ui.zip
+            Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $CacheDir\fivereborn\citizen\ui-big.zip
+        }
+
+        Pop-Location
     }
 
-    Pop-Location
+    # copy output files
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $CacheDir\fivereborn\bin\
 
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $WorkDir\caches\fivereborn\bin\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $WorkDir\caches\fivereborn\bin\
+    New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin\cef
 
-    New-Item -ItemType Directory -Force $WorkDir\caches\fivereborn\bin\cef
-
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $WorkDir\caches\fivereborn\bin\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $WorkDir\caches\fivereborn\bin\cef\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $WorkDir\caches\fivereborn\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $CacheDir\fivereborn\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $CacheDir\fivereborn\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $CacheDir\fivereborn\bin\cef\
 
     # remove CEF as redownloading is broken and this slows down gitlab ci cache
     Remove-Item -Recurse $WorkDir\vendor\cef\*
 
-    Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\caches\fivereborn\
-    Copy-Item -Force -Recurse $WorkDir\data\client\* $WorkDir\caches\fivereborn\
-
-    Copy-Item -Force $BinRoot\five\release\*.dll $WorkDir\caches\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\*.com $WorkDir\caches\fivereborn\
-    Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $WorkDir\caches\fivereborn\
-
-    Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $WorkDir\caches\fivereborn\citizen\
-    
-    if (Test-Path $WorkDir\caches\fivereborn\adhesive.dll) {
-        Remove-Item -Force $WorkDir\caches\fivereborn\adhesive.dll
+    if (!$IsLauncher -and !$IsRDR) {
+        Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
+        
+        Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
+    } elseif ($IsLauncher) {
+        Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
+    } elseif ($IsRDR) {
+        Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2 $CacheDir\fivereborn\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $CacheDir\fivereborn\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources $CacheDir\fivereborn\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $CacheDir\fivereborn\
+        
+        Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
     }
 
-    # build compliance stuff
-    if ($env:COMPUTERNAME -eq "AVALON") {
-        Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $WorkDir\caches\fivereborn\adhesive.dll
+    if (!$IsLauncher -and !$IsRDR) {
+        Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
 
-        Push-Location C:\f\bci\
-        .\BuildComplianceInfo.exe $WorkDir\caches\fivereborn\ C:\f\bci-list.txt
-        Pop-Location
+        Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
+    } elseif ($IsLauncher) {
+        Copy-Item -Force $BinRoot\launcher\release\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\launcher\release\*.com $CacheDir\fivereborn\
+    } elseif ($IsRDR) {
+        Copy-Item -Force $BinRoot\rdr3\release\*.dll $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\rdr3\release\*.com $CacheDir\fivereborn\
+
+        Copy-Item -Force -Recurse $BinRoot\rdr3\release\citizen\* $CacheDir\fivereborn\citizen\
+    }
+    
+    "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
+
+    if (!$IsLauncher) {
+        if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
+            Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
+        }
+
+        # build compliance stuff
+        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) {
+            Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
+
+            Push-Location C:\f\bci\
+            .\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
+            Pop-Location
+        }
     }
 
     # build meta/xz variants
     "<Caches>
         <Cache ID=`"fivereborn`" Version=`"$GameVersion`" />
-    </Caches>" | Out-File -Encoding ascii $WorkDir\caches\caches.xml
+    </Caches>" | Out-File -Encoding ascii $CacheDir\caches.xml
 
     Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
 
     Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
 
     # build bootstrap executable
-    Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
+    if (!$IsLauncher -and !$IsRDR) {
+        Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
+    } elseif ($IsLauncher) {
+        Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe CitizenFX.exe
+    } elseif ($IsRDR) {
+        Copy-Item -Force $BinRoot\rdr3\release\CitiLaunch.exe CitizenFX.exe
+    }
 
     if (Test-Path CitizenFX.exe.xz) {
         Remove-Item CitizenFX.exe.xz
@@ -422,12 +512,18 @@ if (!$DontBuild -and !$IsServer) {
 
     $LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
     "$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
+
+    #if (!(Test-Path $WorkDir\caches)) {
+    #    New-Item -ItemType SymbolicLink -Force -Path $WorkDir -Name caches -Value $CacheDir
+    #}
+    Remove-Item -Recurse -Force $WorkDir\caches
+    Copy-Item -Recurse -Force $CacheDir $WorkDir\caches
 }
 
 if (!$DontUpload) {
     $UploadBranch = $env:CI_ENVIRONMENT_NAME
 
-    Set-Location $WorkDir\caches
+    Set-Location $CacheDir
 
     $Branch = $UploadBranch
 
@@ -444,8 +540,19 @@ if (!$DontUpload) {
     $BaseRoot = (Split-Path -Leaf $WorkDir)
     Set-Location (Split-Path -Parent $WorkDir)
 
-    rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
-    Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
+    if ($IsLauncher) {
+        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_LAUNCHER
+
+        Invoke-WebHook "Built and uploaded a new CfxGL version ($GameVersion) to $UploadBranch! Go and test it!"
+    } elseif ($IsRDR) {
+        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_RDR
+
+        Invoke-WebHook "Built and uploaded a new RedM version ($GameVersion) to $UploadBranch! Go and test it!"
+    } else {
+        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
+
+        Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
+    }
 
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -459,5 +566,5 @@ if (!$DontUpload) {
         purge_everything=$true
     } | ConvertTo-Json
 
-    Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -Body $json -ContentType 'application/json'
+    #Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -Body $json -ContentType 'application/json'
 }

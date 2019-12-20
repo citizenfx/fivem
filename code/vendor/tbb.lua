@@ -1,3 +1,5 @@
+local a = ...
+
 return {
 	include = function()
 		defines '__TBB_NO_IMPLICIT_LINKAGE=1'
@@ -8,6 +10,10 @@ return {
 	run = function()
 		language "C++"
 		kind "StaticLib"
+
+		if a then
+			staticruntime 'On'
+		end
 
 		includedirs { "../vendor/tbb/src/", "../vendor/tbb/src/rml/include/", "../vendor/tbb/build/vs2013/" }
 

@@ -366,6 +366,10 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 	{
 		retval = L"GTA5+" + retval.substr(10);
 	}
+	else if (_wcsnicmp(hash.c_str(), L"redm.exe+", 9) == 0)
+	{
+		retval = L"RDR2+" + retval.substr(9);
+	}
 
 	return retval;
 }
@@ -519,6 +523,18 @@ static HRESULT GetUIObjectOfFile(HWND hwnd, LPCWSTR pszPath, REFIID riid, void**
 	return hr;
 }
 
+struct TickCountData
+{
+	uint64_t tickCount;
+	SYSTEMTIME initTime;
+
+	TickCountData()
+	{
+		tickCount = GetTickCount64();
+		GetSystemTime(&initTime);
+	}
+};
+
 static void GatherCrashInformation()
 {
 	void* writer = nullptr;
@@ -533,13 +549,20 @@ static void GatherCrashInformation()
 	mz_zip_writer_set_compress_level(writer, 9);
 	mz_zip_writer_set_compress_method(writer, MZ_COMPRESS_METHOD_DEFLATE);
 
+	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+
 	bool success = false;
 	
 	int err = mz_zip_writer_open_file(writer, ToNarrow(tempDir).c_str(), 0, false);
 
 	if (err == MZ_OK)
 	{
-		err = mz_zip_writer_add_path(writer, ToNarrow(MakeRelativeCitPath(L"CitizenFX.log")).c_str(), nullptr, false, false);
+		static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
+			initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
+
+		static fwPlatformString fp = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
+
+		err = mz_zip_writer_add_path(writer, ToNarrow(fp).c_str(), nullptr, false, false);
 
 		if (err == MZ_OK)
 		{
@@ -659,10 +682,65 @@ bool LoadOwnershipTicket()
 	return false;
 }
 
+// copied here so that we don't have to rebuild Shared (and HostSharedData does not support custom names)
+struct MDSharedTickCount
+{
+	struct Data
+	{
+		uint64_t tickCount;
+
+		Data()
+		{
+			tickCount = GetTickCount64();
+		}
+	};
+
+	MDSharedTickCount()
+	{
+		m_data = &m_fakeData;
+
+		bool initTime = true;
+		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(Data), L"CFX_SharedTickCount");
+
+		if (m_fileMapping != nullptr)
+		{
+			if (GetLastError() == ERROR_ALREADY_EXISTS)
+			{
+				initTime = false;
+			}
+
+			m_data = (Data*)MapViewOfFile(m_fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Data));
+
+			if (initTime)
+			{
+				m_data = new(m_data) Data();
+			}
+		}
+	}
+
+	inline Data& operator*()
+	{
+		return *m_data;
+	}
+
+	inline Data* operator->()
+	{
+		return m_data;
+	}
+
+private:
+	HANDLE m_fileMapping;
+	Data* m_data;
+
+	Data m_fakeData;
+};
 
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
+
+	// needed to initialize logging(!)
+	trace("DumpServer is active and waiting.\n");
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
 	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, parentPid);
@@ -854,7 +932,23 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		parameters[L"ProductName"] = L"FiveM";
-		parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
+
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/version.txt").c_str(), L"r");
+
+		if (f)
+		{
+			char ver[128];
+
+			fgets(ver, sizeof(ver), f);
+			fclose(f);
+
+			parameters[L"Version"] = va(L"1.3.0.%d", atoi(ver));
+		}
+		else
+		{
+			parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
+		}
+
 		parameters[L"BuildID"] = L"20170101";
 		parameters[L"UserID"] = ToWide(g_entitlementSource);
 
@@ -868,11 +962,24 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		parameters[L"AdditionalData"] = GetAdditionalData();
 
+		{
+			static MDSharedTickCount tickCount;
+			parameters[L"StartTime"] = fmt::sprintf(L"%lld", _time64(nullptr) - ((GetTickCount64() - tickCount->tickCount) / 1000));
+		}
+
 		std::wstring responseBody;
 		int responseCode;
 
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
+
+		static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+		static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
+			initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
+
+		static fwPlatformString fp = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
+
+		files[L"upload_file_log"] = fp;
 
 		// avoid libcef.dll subprocess crashes terminating the entire job
 		bool shouldTerminate = true;
@@ -1118,6 +1225,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
 		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"http://updater.fivereborn.com:1127/post", parameters, files, nullptr, &responseBody, &responseCode))
+#else
+		if (false)
 #endif
 		{
 			trace("Crash report service returned %s\n", ToNarrow(responseBody));
@@ -1162,7 +1271,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		WaitForSingleObject(parentProcess, INFINITE);
 	}
 
+	// at this point we can safely perform some cleanup tasks, no matter whether the game exited cleanly or crashed
+
+	// revert NVSP disablement
 	NVSP_ShutdownSafely();
+
+	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
+	_wunlink(MakeRelativeGamePath(L"steam_appid.txt").c_str());
 }
 
 namespace google_breakpad

@@ -12,6 +12,29 @@
 
 static google_breakpad::ExceptionHandler* g_exceptionHandler;
 
+static DWORD BeforeTerminateHandler(LPVOID arg)
+{
+	__try
+	{
+		auto coreRt = GetModuleHandleW(L"CoreRT.dll");
+
+		if (coreRt)
+		{
+			auto func = (void(*)(void*))GetProcAddress(coreRt, "CoreOnProcessAbnormalTermination");
+
+			if (func)
+			{
+				func(arg);
+			}
+		}
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+	}
+
+	return 0;
+}
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	using namespace google_breakpad;
@@ -19,7 +42,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	static bool g_running = true;
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
-	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE, FALSE, parentPid);
+	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | SYNCHRONIZE, FALSE, parentPid);
 
 	static std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 
@@ -45,6 +68,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		MDRawAssertionInfo client_assert_info = { {0} };
+
+		std::wstring full_dump_path;
 
 		SIZE_T bytes_read = 0;
 		if (!ReadProcessMemory(client->process_handle(),
@@ -72,6 +97,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				return;
 			}
 
+			if (client->dump_type() & MiniDumpWithFullMemory)
+			{
+				if (!dump_generator.GenerateFullDumpFile(&full_dump_path))
+				{
+					return;
+				}
+			}
+
 			if (!dump_generator.WriteMinidump())
 			{
 				return;
@@ -87,9 +120,38 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = dumpPath;
 
+		{
+			std::string friendlyReason = "Server crashed.";
+
+			// try to send the clients a bit of a obituary notice
+			LPVOID memPtr = VirtualAllocEx(parentProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+			if (memPtr)
+			{
+				WriteProcessMemory(parentProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
+			}
+
+			// we assume that (since unlike the game, we enable ASLR), as both processes are usually created around the same time, that we'll be the same binary
+			// and have the same ASLR location. this might need some better logic in the future if this turns out to not be the case.
+			//
+			// however, if it isn't - the target will just crash again.
+			HANDLE hThread = CreateRemoteThread(parentProcess, NULL, 0, BeforeTerminateHandler, memPtr, 0, NULL);
+
+			if (hThread)
+			{
+				WaitForSingleObject(hThread, 15000);
+				CloseHandle(hThread);
+			}
+		}
+
 		DebugActiveProcess(GetProcessId(parentProcess));
 
-		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA minidump can be found at %s.\n", ToNarrow(dumpPath).c_str());
+		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA dump can be found at %s.\n", ToNarrow(dumpPath).c_str());
+
+		if (!full_dump_path.empty())
+		{
+			printf("In addition to this, a full dump file has been generated at %s.\n\n", ToNarrow(full_dump_path).c_str());
+		}
 
 		bool uploadCrashes = true;
 
@@ -99,7 +161,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 		else
 		{
-			printf("Failed to automatically report the crash. Please submit the minidump to the project developers.\n");
+			printf("Failed to automatically report the crash. Please submit the crash dump to the project developers.\n");
 		}
 
 		printf("=================================================================\n");
@@ -153,7 +215,7 @@ bool InitializeExceptionHandler()
 		return true;
 	}
 
-	CrashGenerationClient* client = new CrashGenerationClient(L"\\\\.\\pipe\\CitizenFX_Server_Dump", (MINIDUMP_TYPE)(MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo), new CustomClientInfo());
+	CrashGenerationClient* client = new CrashGenerationClient(L"\\\\.\\pipe\\CitizenFX_Server_Dump", (MINIDUMP_TYPE)(MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo | MiniDumpWithFullMemory), new CustomClientInfo());
 
 	if (!client->Register())
 	{

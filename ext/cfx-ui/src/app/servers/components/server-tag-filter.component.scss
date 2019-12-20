@@ -6,7 +6,7 @@
 
 .tags {
     overflow-y: scroll;
-    height: 100%;
+    height: 50%;
     will-change: transform;
 
     h4 {
@@ -31,9 +31,17 @@
         };
     }
 
+    span {
+        vertical-align: middle;
+
+        &.flag-icon {
+            margin-right: 0.5vh;
+        }
+    }
+
     .tag {
         position: relative;
-        font-size: $fontSize * 0.9;
+        font-size: $fontSize * 0.75;
         font-weight: 300;
         line-height: 1;
         cursor: default;

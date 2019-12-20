@@ -85,10 +85,16 @@
         animationFrames[animationFrames.length] = callback;
     }
 
-    function setInterval(callback, interval) {
+    function setInterval(callback, interval, ...argsForCallback) {
         const id = nextTimerId();
 
-        setTimer(id, callback, interval);
+        setTimer(
+            id,
+            function() {
+		callback(...argsForCallback);
+            },
+            interval
+        );
 
         return id;
     }

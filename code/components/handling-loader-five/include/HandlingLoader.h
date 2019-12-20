@@ -131,6 +131,8 @@ public:
 
 	inline void SetHandlingData(CHandlingData* ptr)
 	{
+		// Use an alignment byte within CHandlingDataMgr to represent the handling as hooked.
+		*((char*)ptr + 28) = 1;
 		m_handlingData = ptr;
 	}
 };

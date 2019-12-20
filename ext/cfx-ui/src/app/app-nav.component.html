@@ -1,9 +1,9 @@
 <div class="app-nav-container">
 	<div class="logo">
 		<svg>
-			<use xlink:href="#logo"></use>
+			<use [attr.xlink:href]="'#logo-' + gameName"></use>
 		</svg>
-		FiveM
+		<span>{{ brandingName }}</span>
 	</div>
 
 	<div class="nav-list" [class.has-sub-nav]="hasSubNav">
@@ -32,6 +32,7 @@
 			[routerLink]="['/servers/premium']"
 			class="nav-item subnav-item"
 			routerLinkActive="active"
+			*ngIf="gameName !== 'rdr3'"
 		>
 			<span translate>
 				#ServerList_Premium
@@ -41,6 +42,7 @@
 			[routerLink]="['/servers/history']"
 			class="nav-item subnav-item"
 			routerLinkActive="active"
+			*ngIf="gameName !== 'rdr3'"
 		>
 			<span translate>
 				#ServerList_History
@@ -50,6 +52,7 @@
 			[routerLink]="['/servers/favorites']"
 			class="nav-item subnav-item"
 			routerLinkActive="active"
+			*ngIf="gameName !== 'rdr3'"
 		>
 			<span translate>
 				#ServerList_Favorites

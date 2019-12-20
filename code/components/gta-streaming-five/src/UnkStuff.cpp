@@ -514,7 +514,7 @@ struct GetRcdDebugInfoExtension
 	std::string outData; // out
 };
 
-static void ErrorInflateFailure(char* ioData, char* requestData)
+static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, char* zlibStream)
 {
 	if (streaming::IsStreamerShuttingDown())
 	{
@@ -525,6 +525,14 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 	uint32_t handle = *(uint32_t*)(requestData + 4);
 	uint8_t* nextIn = *(uint8_t**)(ioData + 8);
 	uint32_t availIn = *(uint32_t*)(ioData);
+	uint32_t totalIn = *(uint32_t*)(ioData + 16);
+	const char* msg = *(const char**)(zlibStream + 32);
+
+	if (zlibError == -5 /* Z_BUF_ERROR */ && availIn == 0)
+	{
+		trace("Ignoring Z_BUF_ERROR with avail_in == 0.\n");
+		return;
+	}
 
 	// get the entry name
 	uint16_t fileIndex = (handle & 0xFFFF);
@@ -538,34 +546,47 @@ static void ErrorInflateFailure(char* ioData, char* requestData)
 		collection = getRawStreamer();
 	}
 
-	std::string name = collection->GetEntryName(fileIndex);
+	std::string name = fmt::sprintf("unknown - handle %08x", handle);
+	std::string metaData;
 
 	// get the input bytes
 	auto compBytes = fmt::sprintf("%02x %02x %02x %02x %02x %02x %02x %02x", nextIn[0], nextIn[1], nextIn[2], nextIn[3], nextIn[4], nextIn[5], nextIn[6], nextIn[7]);
 
-	// get cache metadata
-	std::string metaData;
-
-	if (collectionIndex == 0)
+	// get collection metadata
+	if (collection)
 	{
-		// get the _raw_ file name
-		char fileNameBuffer[1024];
-		strcpy(fileNameBuffer, "CfxRequest");
+		name = collection->GetEntryName(fileIndex);
 
-		collection->GetEntryNameToBuffer(fileIndex, fileNameBuffer, sizeof(fileNameBuffer));
+		if (collectionIndex == 0)
+		{
+			// get the _raw_ file name
+			char fileNameBuffer[1024];
+			strcpy(fileNameBuffer, "CfxRequest");
 
-		auto virtualDevice = vfs::GetDevice(fileNameBuffer);
+			collection->GetEntryNameToBuffer(fileIndex, fileNameBuffer, sizeof(fileNameBuffer));
 
-		// call into RCD
-		GetRcdDebugInfoExtension ext;
-		ext.fileName = fileNameBuffer;
+			auto virtualDevice = vfs::GetDevice(fileNameBuffer);
 
-		virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+			// call into RCD
+			GetRcdDebugInfoExtension ext;
+			ext.fileName = fileNameBuffer;
 
-		metaData = ext.outData;
+			virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
+
+			metaData = ext.outData;
+		}
+	}
+	else
+	{
+		metaData = "Null fiCollection.";
 	}
 
-	FatalError("Failed to call inflate() for streaming file %s.\n\nRead bytes: %s\n%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.", name, compBytes, metaData);
+	FatalError("Failed to call inflate() for streaming file %s.\n\n"
+		"Error: %d: %s\nRead bytes: %s\nTotal in: %d\nAvailable in: %d\n"
+		"%s\n\nPlease try restarting the game, or, if this occurs across servers, verifying your game files.",
+		name,
+		zlibError, (msg) ? msg : "(null)", compBytes, totalIn, availIn,
+		metaData);
 }
 
 static void CompTrace()
@@ -576,16 +597,69 @@ static void CompTrace()
 		{
 			mov(rcx, rdi);
 			mov(rdx, r14);
+			mov(r8d, eax);
+			mov(r9, rbx);
 
 			mov(rax, (uintptr_t)ErrorInflateFailure);
 			jmp(rax);
 		}
 	} errorBit;
 
-	hook::call(hook::get_pattern("B9 48 93 55 15 E8", 5), errorBit.GetCode());
+	hook::call_rcx(hook::get_pattern("B9 48 93 55 15 E8", 5), errorBit.GetCode());
 }
 
-static HookFunction hookFunction([]()
+static void* (*g_origSMPACreate)(void* a1, void* a2, size_t size, void* a4, bool a5);
+
+static void* SMPACreateStub(void* a1, void* a2, size_t size, void* a4, bool a5)
+{
+       if (size == 0xD00000)
+       {
+               size = 0x1200000;
+       }
+
+       return g_origSMPACreate(a1, a2, size, a4, a5);
+}
+
+static void* GetNvapi(uint32_t hash)
+{
+	auto patternString = fmt::sprintf("74 27 B9 %02X %02X %02X %02x FF 15", hash & 0xFF, (hash >> 8) & 0xFF, (hash >> 16) & 0xFF, (hash >> 24) & 0xFF);
+	auto p = hook::get_pattern(patternString, -0x97);
+
+	return p;
+}
+
+static int NvAPI_Stereo_IsEnabled(bool* enabled)
+{
+	*enabled = 1;
+	return 0;
+}
+
+static int NvAPI_Stereo_CreateHandleFromIUnknown(void* iunno, uintptr_t* hdl)
+{
+	*hdl = 1;
+	return 0;
+}
+
+static int NvAPI_Stereo_Activate(uintptr_t hdl)
+{
+	return 0;
+}
+
+static int NvAPI_Stereo_IsActivated(uintptr_t hdl, uint8_t* on)
+{
+	*on = 1;
+	return 0;
+}
+
+static void HookStereo()
+{
+	hook::jump(GetNvapi(0x348FF8E1), NvAPI_Stereo_IsEnabled);
+	hook::jump(GetNvapi(0xAC7E37F4), NvAPI_Stereo_CreateHandleFromIUnknown);
+	hook::jump(GetNvapi(0xF6A1AD68), NvAPI_Stereo_Activate);
+	hook::jump(GetNvapi(0x1FB0BC30), NvAPI_Stereo_IsActivated);
+}
+
+static HookFunction hookFunction([] ()
 {
 #if 0
 	hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);
@@ -617,6 +691,11 @@ static HookFunction hookFunction([]()
 
 	hook::put<uint8_t>(hook::pattern("F6 05 ? ? ? ? ? 74 08 84 C0 0F 84").count(1).get(0).get<void>(0x18), 0xEB);
 #endif
+
+	// 1604 (ported from 1737): increase rline allocator size using a hook (as Arxan)
+	MH_Initialize();
+	MH_CreateHook((void*)0x14127385C, SMPACreateStub, (void**)&g_origSMPACreate);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	if (!CfxIsSinglePlayer())
 	{
@@ -671,4 +750,6 @@ static HookFunction hookFunction([]()
 
 	// trace ERR_GEN_ZLIB_2 errors
 	CompTrace();
+
+	//HookStereo();
 });

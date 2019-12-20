@@ -6,6 +6,12 @@
 
 #include <fiDevice.h>
 
+#if defined(IS_RDR3)
+#define CONFIG_NAME "redm"
+#elif defined(GTA_FIVE)
+#define CONFIG_NAME "fivem"
+#endif
+
 struct ConsoleWriter : public console::IWriter
 {
 	virtual uint64_t Create(const std::string& path) override
@@ -38,7 +44,7 @@ static InitFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		console::GetDefaultContext()->SaveConfigurationIfNeeded("fxd:/fivem.cfg");
+		console::GetDefaultContext()->SaveConfigurationIfNeeded("fxd:/" CONFIG_NAME ".cfg");
 	});
 
 	rage::fiDevice::OnInitialMount.Connect([]()
@@ -63,6 +69,6 @@ static InitFunction initFunction([]()
 		});
 
 		se::ScopedPrincipal seContext(se::Principal{ "system.console" });
-		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", "fxd:/fivem.cfg" });
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", "fxd:/" CONFIG_NAME ".cfg" });
 	}, INT32_MAX);
 });

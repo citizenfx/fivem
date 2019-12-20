@@ -13,6 +13,8 @@
 
 #include <FontRenderer.h>
 
+#include <ICoreGameInit.h>
+
 enum NativeIdentifiers : uint64_t
 {
 	GET_PLAYER_PED = 0x43A66C31C68491C0,
@@ -76,6 +78,34 @@ public:
 
 	virtual void DoRun() override
 	{
+		// TEMP: force-disable population for 1s big using script
+		if (Instance<ICoreGameInit>::Get()->HasVariable("onesync_big"))
+		{
+			for (int i = 1; i <= 15; i++)
+			{
+				// ENABLE_DISPATCH_SERVICE
+				NativeInvoke::Invoke<0xDC0F817884CDD856, int>(i, false);
+			}
+
+			// SET_PED_DENSITY_MULTIPLIER_THIS_FRAME
+			NativeInvoke::Invoke<0x95E3D6257B166CF2, int>(0.0f);
+
+			// SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
+			NativeInvoke::Invoke<0x245A6883D966D537, int>(0.0f);
+
+			// SET_SCENARIO_PED_DENSITY_MULTIPLIER_THIS_FRAME
+			NativeInvoke::Invoke<0x7A556143A1C03898, int>(0.0f, 0.0f);
+
+			// SET_AMBIENT_VEHICLE_RANGE_MULTIPLIER_THIS_FRAME
+			NativeInvoke::Invoke<0x90B6DA738A9A25DA, int>(0.0f);
+
+			// SET_PARKED_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
+			NativeInvoke::Invoke<0xEAE6DCC7EEE3DB1D, int>(0.0f);
+
+			// SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
+			NativeInvoke::Invoke<0xB3B3359379FE77D3, int>(0.0f);
+		}
+
 		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
 
 		if (playerPedId != -1 && playerPedId != 0)

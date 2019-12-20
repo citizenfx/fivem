@@ -40,10 +40,16 @@ static constexpr const ManifestVersion g_manifestVersionOrder[] = {
 #include <ManifestVersions.h>
 };
 
-static size_t FindManifestVersionIndex(const guid_t& guid)
+static constexpr const std::string_view g_manifestVersionOrderV2[] = {
+	"",
+#include <ManifestVersionsV2.h>
+};
+
+template<typename TSearch, typename T, unsigned int N>
+static size_t FindManifestVersionIndex(const T(&list)[N], const TSearch& guid)
 {
-	auto begin = g_manifestVersionOrder;
-	auto end = g_manifestVersionOrder + _countof(g_manifestVersionOrder);
+	auto begin = list;
+	auto end = list + std::size(list);
 	auto found = std::find(begin, end, guid);
 
 	if (found == end)
@@ -51,9 +57,10 @@ static size_t FindManifestVersionIndex(const guid_t& guid)
 		return -1;
 	}
 
-	return (found - g_manifestVersionOrder);
+	return (found - list);
 }
 
+// TODO: clean up to be a templated func
 std::optional<bool> ResourceMetaDataComponent::IsManifestVersionBetween(const guid_t& lowerBound, const guid_t& upperBound)
 {
 	auto entries = this->GetEntries("resource_manifest_version");
@@ -68,7 +75,7 @@ std::optional<bool> ResourceMetaDataComponent::IsManifestVersionBetween(const gu
 	}
 
 	// find the manifest version in the manifest version stack
-	auto resourceVersion = FindManifestVersionIndex(manifestVersion);
+	auto resourceVersion = FindManifestVersionIndex(g_manifestVersionOrder, manifestVersion);
 
 	// if not found, return failure
 	if (resourceVersion == -1)
@@ -82,7 +89,7 @@ std::optional<bool> ResourceMetaDataComponent::IsManifestVersionBetween(const gu
 
 	if (lowerBound != nullGuid)
 	{
-		auto lowerVersion = FindManifestVersionIndex(lowerBound);
+		auto lowerVersion = FindManifestVersionIndex(g_manifestVersionOrder, lowerBound);
 
 		if (resourceVersion < lowerVersion)
 		{
@@ -92,7 +99,56 @@ std::optional<bool> ResourceMetaDataComponent::IsManifestVersionBetween(const gu
 
 	if (matches && upperBound != nullGuid)
 	{
-		auto upperVersion = FindManifestVersionIndex(upperBound);
+		auto upperVersion = FindManifestVersionIndex(g_manifestVersionOrder, upperBound);
+
+		if (resourceVersion >= upperVersion)
+		{
+			matches = false;
+		}
+	}
+
+	return matches;
+}
+
+std::optional<bool> ResourceMetaDataComponent::IsManifestVersionBetween(const std::string& lowerBound, const std::string& upperBound)
+{
+	auto entries = this->GetEntries("fx_version");
+
+	std::string manifestVersion;
+
+	// if there's a manifest version
+	if (entries.begin() != entries.end())
+	{
+		// parse it
+		manifestVersion = entries.begin()->second;
+	}
+
+	// find the manifest version in the manifest version stack
+	auto resourceVersion = FindManifestVersionIndex(g_manifestVersionOrderV2, manifestVersion);
+
+	// if not found, return failure
+	if (resourceVersion == -1)
+	{
+		return {};
+	}
+
+	// test lower/upper bound
+	static const std::string emptyString = "";
+	bool matches = true;
+
+	if (lowerBound != emptyString)
+	{
+		auto lowerVersion = FindManifestVersionIndex(g_manifestVersionOrderV2, lowerBound);
+
+		if (resourceVersion < lowerVersion)
+		{
+			matches = false;
+		}
+	}
+
+	if (matches && upperBound != emptyString)
+	{
+		auto upperVersion = FindManifestVersionIndex(g_manifestVersionOrderV2, upperBound);
 
 		if (resourceVersion >= upperVersion)
 		{
@@ -300,6 +356,21 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 
 void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::function<void(const std::string&)>& entryCallback)
 {
+	for (auto& entry : GetEntries(key))
+	{
+		GlobValue(entry.second, entryCallback);
+	}
+}
+
+void ResourceMetaDataComponent::GlobValue(const std::string& value, const std::function<void(const std::string&)>& entryCallback)
+{
+	// why... would anyone pass an empty value?!
+	// this makes the VFS all odd so let's ignore it
+	if (value.empty())
+	{
+		return;
+	}
+
 	const auto& rootPath = m_resource->GetPath() + "/";
 	fwRefContainer<vfs::Device> device = vfs::GetDevice(rootPath);
 
@@ -310,28 +381,25 @@ void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::f
 
 	auto relRoot = path_normalize(rootPath);
 
-	for (auto& entry : GetEntries(key))
-	{
-		std::string pattern = entry.second;
+	std::string pattern = value;
 
-		// @ prefixes for files are special and handled later on
-		if (pattern.length() >= 1 && pattern[0] == '@')
+	// @ prefixes for files are special and handled later on
+	if (pattern.length() >= 1 && pattern[0] == '@')
+	{
+		entryCallback(pattern);
+		return;
+	}
+
+	auto mf = MatchFiles(device, rootPath + pattern);
+
+	for (auto& file : mf)
+	{
+		if (file.length() < (relRoot.length() + 1))
 		{
-			entryCallback(pattern);
 			continue;
 		}
 
-		auto mf = MatchFiles(device, rootPath + pattern);
-
-		for (auto& file : mf)
-		{
-			if (file.length() < (relRoot.length() + 1))
-			{
-				continue;
-			}
-
-			entryCallback(file.substr(relRoot.length() + 1));
-		}
+		entryCallback(file.substr(relRoot.length() + 1));
 	}
 }
 }

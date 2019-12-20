@@ -32,6 +32,8 @@
 #include <ResourceManager.h>
 #include <json.hpp>
 
+#include <atPool.h>
+
 #include <concurrent_unordered_set.h>
 
 using Microsoft::WRL::ComPtr;
@@ -199,7 +201,7 @@ RuntimeTxd::RuntimeTxd(const char* name)
 	streaming::Manager* streaming = streaming::Manager::GetInstance();
 	auto txdStore = streaming->moduleMgr.GetStreamingModule("ytd");
 
-	txdStore->GetOrCreate(&m_txdIndex, name);
+	txdStore->FindSlotFromHashKey(&m_txdIndex, name);
 
 	if (m_txdIndex != 0xFFFFFFFF)
 	{
@@ -213,7 +215,7 @@ RuntimeTxd::RuntimeTxd(const char* name)
 			streaming::strAssetReference ref;
 			ref.asset = m_txd;
 
-			txdStore->SetAssetReference(m_txdIndex, ref);
+			txdStore->SetResource(m_txdIndex, ref);
 			entry.flags = (512 << 8) | 1;
 		}
 	}
@@ -252,7 +254,7 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 		return nullptr;
 	}
 
-	auto tex = std::make_shared<RuntimeTex>(nui::GetWindowTexture(duiHandle));
+	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)nui::GetWindowTexture(duiHandle)->GetHostTexture());
 	m_txd->Add(name, tex->GetTexture());
 
 	m_textures[name] = tex;
@@ -969,6 +971,16 @@ static InitFunction initFunction([]()
 					factoryObject.as<std::vector<std::map<std::string, msgpack::object>>>() :
 					std::vector<std::map<std::string, msgpack::object>>{ factoryObject.as<std::map<std::string, msgpack::object>>() };
 
+				static int idx;
+				std::string nameRef = fmt::sprintf("reg_ents_%d", idx++);
+
+				CMapData* mapData = new CMapData();
+
+				// 1604, temp
+				*(uintptr_t*)mapData = 0x1419343E0;
+				mapData->name = HashString(nameRef.c_str());
+				mapData->contentFlags = 73;
+
 				float aabbMin[3];
 				float aabbMax[3];
 
@@ -980,33 +992,35 @@ static InitFunction initFunction([]()
 				aabbMax[1] = 0.0f - FLT_MAX;
 				aabbMax[2] = 0.0f - FLT_MAX;
 
-				// TODO: replace this logic with 'proper' fwMapData
-
-				CMapDataContents* contents = makeMapDataContents();
-				contents->entities = new void*[entities.size()];
-				memset(contents->entities, 0, sizeof(void*) * entities.size());
+				mapData->entities.Expand(entities.size());
 
 				size_t i = 0;
 
 				for (const auto& entityData : entities)
 				{
 					fwEntityDef* entityDef = (fwEntityDef*)MakeStructFromMsgPack("CEntityDef", entityData);
+					mapData->entities.Set(i, entityDef);
 
 					uint64_t archetypeUnk = 0xFFFFFFF;
 					fwArchetype* archetype = GetArchetypeSafe(entityDef->archetypeName, &archetypeUnk);
 
 					if (archetype)
 					{
-						void* entity = fwEntityDef__instantiate(entityDef, 0, archetype, &archetypeUnk);
+						float radius = archetype->radius;
+
+						if (archetype->radius < 0.01f)
+						{
+							radius = 250.f;
+						}
 
 						// update AABB
-						float xMin = entityDef->position[0] - archetype->radius;
-						float yMin = entityDef->position[1] - archetype->radius;
-						float zMin = entityDef->position[2] - archetype->radius;
+						float xMin = entityDef->position[0] - radius;
+						float yMin = entityDef->position[1] - radius;
+						float zMin = entityDef->position[2] - radius;
 
-						float xMax = entityDef->position[0] + archetype->radius;
-						float yMax = entityDef->position[1] + archetype->radius;
-						float zMax = entityDef->position[2] + archetype->radius;
+						float xMax = entityDef->position[0] + radius;
+						float yMax = entityDef->position[1] + radius;
+						float zMax = entityDef->position[2] + radius;
 
 						aabbMin[0] = (xMin < aabbMin[0]) ? xMin : aabbMin[0];
 						aabbMin[1] = (yMin < aabbMin[1]) ? yMin : aabbMin[1];
@@ -1015,28 +1029,67 @@ static InitFunction initFunction([]()
 						aabbMax[0] = (xMax > aabbMax[0]) ? xMax : aabbMax[0];
 						aabbMax[1] = (yMax > aabbMax[1]) ? yMax : aabbMax[1];
 						aabbMax[2] = (zMax > aabbMax[2]) ? zMax : aabbMax[2];
-
-						contents->entities[i] = entity;
-						i++;
 					}
+
+					i++;
 				}
 
-				contents->numEntities = i;
+				mapData->entitiesExtentsMin[0] = aabbMin[0];
+				mapData->entitiesExtentsMin[1] = aabbMin[1];
+				mapData->entitiesExtentsMin[2] = aabbMin[2];
 
-				CMapData mapData = { 0 };
-				mapData.aabbMax[0] = aabbMax[0];
-				mapData.aabbMax[1] = aabbMax[1];
-				mapData.aabbMax[2] = aabbMax[2];
-				mapData.aabbMax[3] = FLT_MAX;
+				mapData->entitiesExtentsMax[0] = aabbMax[0];
+				mapData->entitiesExtentsMax[1] = aabbMax[1];
+				mapData->entitiesExtentsMax[2] = aabbMax[2];
 
-				mapData.aabbMin[0] = aabbMin[0];
-				mapData.aabbMin[1] = aabbMin[1];
-				mapData.aabbMin[2] = aabbMin[2];
-				mapData.aabbMin[3] = 0.0f - FLT_MAX;
+				mapData->streamingExtentsMin[0] = aabbMin[0];
+				mapData->streamingExtentsMin[1] = aabbMin[1];
+				mapData->streamingExtentsMin[2] = aabbMin[2];
 
-				mapData.unkBool = 2;
+				mapData->streamingExtentsMax[0] = aabbMax[0];
+				mapData->streamingExtentsMax[1] = aabbMax[1];
+				mapData->streamingExtentsMax[2] = aabbMax[2];
 
-				addToScene(contents, &mapData, false, false);
+				auto mapTypesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+				auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+				
+				uint32_t mehId;
+				mapTypesStore->FindSlot(&mehId, "v_int_1");
+
+				uint32_t mapId;
+				mapDataStore->FindSlotFromHashKey(&mapId, nameRef.c_str());
+
+				if (mapId != -1)
+				{
+					void* unkRef[4] = { 0 };
+					unkRef[0] = mapData;
+
+					// 1604, temp (pso store placement cookie)
+					((void(*)(void*, uint32_t, const void*))0x14158FCD4)((void*)0x142DC9678, mapId + mapDataStore->baseIdx, unkRef);
+
+					auto pool = (atPoolBase*)((char*)mapDataStore + 56);
+					*(int32_t*)(pool->GetAt<char>(mapId) + 32) |= 2048;
+					*(int16_t*)(pool->GetAt<char>(mapId) + 38) = 1;
+					*(int32_t*)(pool->GetAt<char>(mapId) + 24) = mehId; // TODO: FIGURE OUT
+
+					//auto contents = (CMapDataContents*)mapDataStore->GetPtr(mapId);
+					auto mapMeta = (void*)mapDataStore->GetDataPtr(mapId); // not sure?
+
+					// TODO: leak
+					mapData->CreateMapDataContents()->PrepareInteriors(mapMeta, mapData, mapId);
+					
+					// reference is ignored but we pass it for formality - it actually uses PSO store placement cookies
+					streaming::strAssetReference ref;
+					ref.asset = mapData;
+
+					mapDataStore->SetResource(mapId, ref);
+					streaming::Manager::GetInstance()->Entries[mapId + mapDataStore->baseIdx].flags |= (512 << 8) | 1;
+
+					// 1604
+					((void(*)(int))0x1408CF07C)(0);
+
+					((void(*)(void*))((*(void***)0x142DCA970)[2]))((void*)0x142DCA970);
+				}
 			}
 		}
 	});

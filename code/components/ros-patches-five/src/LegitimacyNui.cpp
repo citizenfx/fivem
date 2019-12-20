@@ -320,6 +320,8 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefP
 		}
 		else if (nativeType == "signin")
 		{
+			trace(__FUNCTION__ ": Processing NUI sign-in.\n");
+
 			auto json = nlohmann::json::parse(messageData.ToString());
 			auto response = json["XMLResponse"];
 
@@ -340,6 +342,8 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefP
 			});
 
 			g_rosData = obj.dump();
+
+			trace(__FUNCTION__ ": Processed NUI sign-in - closing all browsers.\n");
 
 			CloseAllBrowsers(false);
 		}
@@ -530,13 +534,21 @@ void RunLegitimacyNui()
 	// CEF has initialized.
 	CefRefPtr<SimpleApp> app(new SimpleApp);
 
+	trace(__FUNCTION__ ": Initializing CEF.\n");
+
 	// Initialize CEF.
 	CefInitialize(main_args, settings, app.get(), nullptr);
+
+	trace(__FUNCTION__ ": Initialized CEF.\n");
 
 	// Run the CEF message loop. This will block until CefQuitMessageLoop() is
 	// called.
 	CefRunMessageLoop();
 
+	trace(__FUNCTION__ ": Shutting down CEF.\n");
+
 	// Shut down CEF.
-	CefShutdown();
+	//CefShutdown();
+
+	trace(__FUNCTION__ ": Shut down CEF.\n");
 }

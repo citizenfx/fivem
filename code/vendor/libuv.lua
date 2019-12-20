@@ -18,11 +18,15 @@ return {
 			'include/uv-version.h',
 			'src/fs-poll.c',
 			'src/heap-inl.h',
+			'src/idna.c',
 			'src/inet.c',
 			'src/queue.h',
+			'src/strscpy.c',
 			'src/threadpool.c',
+			'src/timer.c',
 			'src/uv-common.c',
 			'src/uv-common.h',
+			'src/uv-data-getter-setters.c',
 			'src/version.c'
 		}
 
@@ -61,7 +65,6 @@ return {
 				'src/unix/stream.c',
 				'src/unix/tcp.c',
 				'src/unix/thread.c',
-				'src/unix/timer.c',
 				'src/unix/tty.c',
 				'src/unix/udp.c',
 
@@ -74,7 +77,6 @@ return {
 				'src/unix/no-proctitle.c',
 				'src/unix/procfs-exepath.c',
 				'src/unix/sysinfo-loadavg.c',
-				'src/unix/sysinfo-memory.c',
 				
 			}
 
@@ -104,14 +106,12 @@ return {
 				'src/win/poll.c',
 				'src/win/process.c',
 				'src/win/process-stdio.c',
-				'src/win/req.c',
 				'src/win/req-inl.h',
 				'src/win/signal.c',
 				'src/win/stream.c',
 				'src/win/stream-inl.h',
 				'src/win/tcp.c',
 				'src/win/tty.c',
-				'src/win/timer.c',
 				'src/win/udp.c',
 				'src/win/util.c',
 				'src/win/winapi.c',

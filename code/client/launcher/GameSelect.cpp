@@ -41,8 +41,12 @@ private:
 	HRESULT m_hr;
 };
 
-void EnsureGamePath()
+std::optional<int> EnsureGamePath()
 {
+#ifdef IS_LAUNCHER
+	return {};
+#endif
+
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	const wchar_t* pathKey = L"IVPath";
 
@@ -59,7 +63,7 @@ void EnsureGamePath()
 
 		if (path[0] != L'\0')
 		{
-			return;
+			return {};
 		}
 	}
 
@@ -69,7 +73,7 @@ void EnsureGamePath()
 	{
 		MessageBox(nullptr, va(L"CoInitializeEx failed. HRESULT = 0x%08x.", coInit.GetResult()), L"Error", MB_OK | MB_ICONERROR);
 
-		ExitProcess(coInit.GetResult());
+		return static_cast<int>(coInit.GetResult());
 	}
 
 	WRL::ComPtr<IFileDialog> fileDialog;
@@ -79,7 +83,7 @@ void EnsureGamePath()
 	{
 		MessageBox(nullptr, va(L"CoCreateInstance(IFileDialog) failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 
-		ExitProcess(hr);
+		return static_cast<int>(hr);
 	}
 
 	FILEOPENDIALOGOPTIONS opts;
@@ -134,7 +138,7 @@ void EnsureGamePath()
 					{
 						WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
 
-						return;
+						return {};
 					}
 				}
 			}
@@ -151,7 +155,7 @@ void EnsureGamePath()
 			MessageBox(nullptr, va(L"Could not show game folder selection window: IFileDialog::Show failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
 		}
 
-		ExitProcess(0);
+		return 0;
 	}
 
 	WRL::ComPtr<IShellItem> result;
@@ -160,7 +164,7 @@ void EnsureGamePath()
 	if (!result)
 	{
 		MessageBox(nullptr, va(L"You did not select a game folder: IFileDialog::GetResult failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
-		ExitProcess(0);
+		return 0;
 	}
 
 	PWSTR resultPath;
@@ -168,7 +172,7 @@ void EnsureGamePath()
 	if (FAILED(hr = result->GetDisplayName(SIGDN_FILESYSPATH, &resultPath)))
 	{
 		MessageBox(nullptr, va(L"Could not get game directory: IShellItem::GetDisplayName failed. HRESULT = 0x%08x.", hr), L"Error", MB_OK | MB_ICONERROR);
-		ExitProcess(0);
+		return 0;
 	}
 
 	// check if there's a game EXE in the path
@@ -189,10 +193,12 @@ void EnsureGamePath()
 			MessageBox(nullptr, L"The selected path does not contain a " GAME_EXECUTABLE L" file.", PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 		}
 
-		ExitProcess(0);
+		return 0;
 	}
 
 	WritePrivateProfileString(L"Game", pathKey, resultPath, fpath.c_str());
 
 	CoTaskMemFree(resultPath);
+
+	return {};
 }

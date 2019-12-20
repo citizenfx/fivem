@@ -28,10 +28,6 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
-							<PoolName>CNetworkRopeWorldStateData</PoolName>
-							<PoolSize value="256"/>
-						</Item>
-						<Item>
 							<PoolName>CNetObjPed</PoolName>
 							<PoolSize value="238"/> <!-- 110 + player count -->
 						</Item>
@@ -374,6 +370,10 @@
 						</Item>
 						<Item>
 							<PoolName>CWeapon</PoolName>
+							<PoolSize value="1024"/>
+						</Item>
+						<Item>
+							<PoolName>CWeaponComponentInfo</PoolName>
 							<PoolSize value="1024"/>
 						</Item>
 						<Item>

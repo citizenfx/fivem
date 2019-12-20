@@ -1,0 +1,10 @@
+{
+	"name": "gta:core:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:allocator",
+		"rage:nutsnbolts"
+	],
+	"provides": []
+}

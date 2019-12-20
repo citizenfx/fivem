@@ -515,7 +515,7 @@ static int luaB_vectorn (lua_State *L, int sz, float *input) {
       default: {
         char msg[1024];
         sprintf(msg, "vector%d(...) argument %d had type %s", sz, i, lua_typename(L, lua_type(L,i)));
-        luaL_error(L, msg);
+        return luaL_error(L, msg);
       }
     }
   }
@@ -536,7 +536,7 @@ static int luaB_vec (lua_State *L) {
     input[0] = luaL_checknumber(L, 1);
     break;
     default:
-    luaL_error(L, "vec(...) takes 1 to 4 number arguments only");
+    return luaL_error(L, "vec(...) takes 1 to 4 number arguments only");
   }
   switch (lua_gettop(L)) {
     case 4:
@@ -559,7 +559,7 @@ static int luaB_vec (lua_State *L) {
 
 static int luaB_vector2 (lua_State *L) {
   float input[2];
-  if (!luaB_vectorn(L, 2, input)) luaL_error(L, "vector2(...) requires exactly 2 numbers");
+  if (!luaB_vectorn(L, 2, input)) return luaL_error(L, "vector2(...) requires exactly 2 numbers");
   lua_pushvector2(L, input[0], input[1]);
   return 1;
 }
@@ -567,7 +567,7 @@ static int luaB_vector2 (lua_State *L) {
 
 static int luaB_vector3 (lua_State *L) {
   float input[3];
-  if (!luaB_vectorn(L, 3, input)) luaL_error(L, "vector3(...) requires exactly 3 numbers");
+  if (!luaB_vectorn(L, 3, input)) return luaL_error(L, "vector3(...) requires exactly 3 numbers");
   lua_pushvector3(L, input[0], input[1], input[2]);
   return 1;
 }
@@ -575,7 +575,7 @@ static int luaB_vector3 (lua_State *L) {
 
 static int luaB_vector4 (lua_State *L) {
   float input[4];
-  if (!luaB_vectorn(L, 4, input)) luaL_error(L, "vector4(...) requires exactly 4 numbers");
+  if (!luaB_vectorn(L, 4, input)) return luaL_error(L, "vector4(...) requires exactly 4 numbers");
   lua_pushvector4(L, input[0], input[1], input[2], input[3]);
   return 1;
 }
@@ -609,7 +609,7 @@ static void cross3 (float x1, float y1, float z1, float x2, float y2, float z2, 
 static int luaB_dot (lua_State *L) {
   float x1, y1, z1, w1;
   float x2, y2, z2, w2;
-  if (lua_gettop(L) != 2) luaL_error(L, "Invalid params, try dot(v,v)");
+  if (lua_gettop(L) != 2) return luaL_error(L, "Invalid params, try dot(v,v)");
   if (lua_isvector4(L,1)) {
     lua_checkvector4(L, 1, &x1, &y1, &z1, &w1);
     lua_checkvector4(L, 2, &x2, &y2, &z2, &w2);
@@ -622,6 +622,10 @@ static int luaB_dot (lua_State *L) {
     lua_checkvector2(L, 1, &x1, &y1);
     lua_checkvector2(L, 2, &x2, &y2);
     lua_pushnumber(L,dot2(x1,y1, x2,y2));
+  } else if (lua_isquat(L, 1)) {
+    lua_checkquat(L, 1, &w1, &x1, &y1, &z1);
+    lua_checkquat(L, 2, &w2, &x2, &y2, &z2);
+    lua_pushnumber(L, dot4(x1, y1, z1, w1, x2, y2, z2, w2));
   }
   return 1;
 }
@@ -631,7 +635,7 @@ static int luaB_cross (lua_State *L) {
   float x1, y1, z1;
   float x2, y2, z2;
   float ax, ay, az;
-  if (lua_gettop(L) != 2) luaL_error(L, "Invalid params, try cross(v,v)");
+  if (lua_gettop(L) != 2) return luaL_error(L, "Invalid params, try cross(v,v)");
   lua_checkvector3(L, 1, &x1, &y1, &z1);
   lua_checkvector3(L, 2, &x2, &y2, &z2);
   cross3(x1,y1,z1, x2,y2,z2, &ax, &ay, &az);
@@ -667,8 +671,8 @@ static int luaB_quat (lua_State *L) {
     /* Based on Stan Melax's article in Game Programming Gems */
     l1 = sqrtf(x1*x1 + y1*y1 + z1*z1);
     l2 = sqrtf(x2*x2 + y2*y2 + z2*z2);
-    x1/=l1; y1/=l1; z1/=l1; 
-    x2/=l2; y2/=l2; z2/=l2; 
+    x1/=l1; y1/=l1; z1/=l1;
+    x2/=l2; y2/=l2; z2/=l2;
 
     d = dot3(x1,y1,z1, x2,y2,z2);
 
@@ -690,7 +694,7 @@ static int luaB_quat (lua_State *L) {
         len2 = ax*ax + ay*ay + az*az;
       }
       len = sqrtf(len2);
-      ax/=len; ay/=len; az/=len; 
+      ax/=len; ay/=len; az/=len;
       lua_pushquat(L, 0,ax,ay,az);
       return 1;
 
@@ -701,7 +705,7 @@ static int luaB_quat (lua_State *L) {
       float qw, qlen;
 
       cross3(x1,y1,z1, x2,y2,z2, &ax, &ay, &az);
-      ax/=s; ay/=s; az/=s; 
+      ax/=s; ay/=s; az/=s;
       qw = s*0.5f;
       qlen = sqrtf(qw*qw + ax*ax + ay*ay + az*az);
       lua_pushquat(L, qw/qlen,ax/qlen,ay/qlen,az/qlen);
@@ -710,15 +714,14 @@ static int luaB_quat (lua_State *L) {
     }
 
   } else {
-    luaL_error(L, "Invalid params, try quat(n,n,n,n) quat(n,v3) quat(v3,v3)");
-    return 0;
+    return luaL_error(L, "Invalid params, try quat(n,n,n,n) quat(n,v3) quat(v3,v3)");
   }
 }
 
 
 static int luaB_inv (lua_State *L) {
   float w, x, y, z;
-  if (lua_gettop(L) != 1) luaL_error(L, "Invalid params, try inv(q)");
+  if (lua_gettop(L) != 1) return luaL_error(L, "Invalid params, try inv(q)");
   lua_checkquat(L, 1, &w, &x, &y, &z);
   /* don't invert w, as that would mean inv(Q_ID) would flip the polarity of w */
   lua_pushquat(L,w,-x,-y,-z);
@@ -730,7 +733,7 @@ static int luaB_slerp (lua_State *L) {
   float w1, x1, y1, z1;
   float w2, x2, y2, z2;
   float t, theta, dot;
-  if (lua_gettop(L) != 3) luaL_error(L, "Invalid params, try slerp(q1,q2,a)");
+  if (lua_gettop(L) != 3) return luaL_error(L, "Invalid params, try slerp(q1,q2,a)");
   lua_checkquat(L, 1, &w1, &x1, &y1, &z1);
   lua_checkquat(L, 2, &w2, &x2, &y2, &z2);
   t = (float)lua_tonumber(L, 3);
@@ -747,7 +750,7 @@ static int luaB_slerp (lua_State *L) {
   }
 
   /* dot > 0 now */
-    
+
   theta = acosf(dot);
   if (dot != 1) {
     float d = 1.0f / sinf(theta);
@@ -774,7 +777,7 @@ static int luaB_norm (lua_State *L) {
     lua_checkvector2(L, 1, &x, &y);
     len = sqrtf(x*x + y*y);
     if (len == 0)
-        luaL_error(L, "Cannot normalise vector2(0,0)");
+        return luaL_error(L, "Cannot normalise vector2(0,0)");
     lua_pushvector2(L,x/len,y/len);
     return 1;
   } else if (lua_gettop(L)==1 && lua_isvector3(L,1)) {
@@ -783,7 +786,7 @@ static int luaB_norm (lua_State *L) {
     lua_checkvector3(L, 1, &x, &y, &z);
     len = sqrtf(x*x + y*y + z*z);
     if (len == 0)
-        luaL_error(L, "Cannot normalise vector3(0,0,0)");
+        return luaL_error(L, "Cannot normalise vector3(0,0,0)");
     lua_pushvector3(L,x/len,y/len,z/len);
     return 1;
   } else if (lua_gettop(L)==1 && lua_isvector4(L,1)) {
@@ -792,7 +795,7 @@ static int luaB_norm (lua_State *L) {
     lua_checkvector4(L, 1, &x, &y, &z, &w);
     len = sqrtf(x*x + y*y + z*z + w*w);
     if (len == 0)
-        luaL_error(L, "Cannot normalise vector4(0,0,0,0)");
+        return luaL_error(L, "Cannot normalise vector4(0,0,0,0)");
     lua_pushvector4(L,x/len,y/len,z/len,w/len);
     return 1;
   } else if (lua_gettop(L)==1 && lua_isquat(L,1)) {
@@ -801,7 +804,7 @@ static int luaB_norm (lua_State *L) {
     lua_checkquat(L, 1, &w, &x, &y, &z);
     qlen = sqrtf(w*w + x*x + y*y + z*z);
     if (qlen == 0)
-        luaL_error(L, "Cannot normalise quat(0,0,0,0)");
+        return luaL_error(L, "Cannot normalise quat(0,0,0,0)");
     lua_pushquat(L,w/qlen,x/qlen,y/qlen,z/qlen);
     return 1;
   } else {
@@ -836,7 +839,7 @@ static const luaL_Reg base_funcs[] = {
   {"tostring", luaB_tostring},
   {"xpcall", luaB_xpcall},
   /* placeholders */
-  
+
   {"vec", luaB_vec},
   {"vec4", luaB_vector4},
   {"vec3", luaB_vector3},
@@ -850,7 +853,7 @@ static const luaL_Reg base_funcs[] = {
   {"inv", luaB_inv},
   {"slerp", luaB_slerp},
   {"norm", luaB_norm},
-  
+
   {"type", NULL},
   {"_G", NULL},
   {"_VERSION", NULL},

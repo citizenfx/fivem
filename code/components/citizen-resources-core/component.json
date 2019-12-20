@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"vendor:cpp-uri",
+		"vendor:cpp-url",
 		"vendor:msgpack-c",
 		"vendor:pplx",
 		"vendor:tbb",

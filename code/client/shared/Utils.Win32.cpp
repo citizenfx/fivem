@@ -25,13 +25,18 @@ fwPlatformString GetAbsoluteCitPath()
 #ifndef IS_FXSERVER
 		static HostSharedData<CfxState> initState("CfxInitState");
 
-		citizenPath = initState->initPath;
+		citizenPath = initState->GetInitPath();
 
 		// is this a new install, if so, migrate to subdirectory-based Citizen
+		if (initState->ranPastInstaller)
 		{
 			if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
+#ifdef IS_RDR3
+				if (!CreateDirectory((citizenPath + L"RedM.app").c_str(), nullptr))
+#else
 				if (!CreateDirectory((citizenPath + L"FiveM.app").c_str(), nullptr))
+#endif
 				{
 					DWORD error = GetLastError();
 
@@ -45,7 +50,12 @@ fwPlatformString GetAbsoluteCitPath()
 
 		// is this subdirectory-based Citizen? if so, append the subdirectory
 		{
-			std::wstring subPath = citizenPath + L"FiveM.app";
+			std::wstring subPath = citizenPath +
+#ifdef IS_RDR3
+				L"RedM.app";
+#else
+				L"FiveM.app";
+#endif
 
 			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 			{
@@ -195,9 +205,9 @@ void SetThreadName(int dwThreadID, const char* threadName)
 	}
 }
 
-void AddCrashometry(const std::string& key, const std::string& format, const fmt::ArgList& value)
+void AddCrashometryV(const std::string& key, const std::string& format, fmt::printf_args value)
 {
-	std::string formatted = fmt::sprintf(format, value);
+	std::string formatted = fmt::vsprintf(format, value);
 
 	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"ab");
 

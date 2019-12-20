@@ -28,7 +28,7 @@
 #include "ltm.h"
 #include "lundump.h"
 #include "lvm.h"
-
+#include "lauxlib.h"
 
 
 const char lua_ident[] =
@@ -245,7 +245,35 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
   lua_unlock(L);
 }
 
+/*
+** get function functions, recursively
+*/
+static int lua_toprotos_recursive(lua_State* L, Proto* p) {
+  int np = 1;
+  LClosure* ncl = luaF_newLclosure(L, 0);
+  setclLvalue(L, L->top, ncl);  /* anchor it */
+  incr_top(L);
 
+  ncl->p = p;
+
+  for (int i = 0; i < p->sizep; i++) {
+    np += lua_toprotos_recursive(L, p->p[i]);
+  }
+
+  return np;
+}
+
+LUA_API int lua_toprotos (lua_State* L, int idx) {
+  StkId o = index2addr(L, idx);
+
+  if (ttisLclosure(o)) {
+    Proto* p = clLvalue(o)->p;
+
+    return lua_toprotos_recursive(L, p);
+  }
+
+  return 0;
+}
 
 /*
 ** access functions (stack -> C)
@@ -467,6 +495,19 @@ LUA_API lua_Number lua_tonumberx (lua_State *L, int idx, int *pisnum) {
   return n;
 }
 
+static int lua_vectyperror (lua_State *L, int arg, const char *tname) {
+  const char *msg;
+  const char *typearg;  /* name for the type of the actual argument */
+  if (luaL_getmetafield(L, arg, "__name") == LUA_TSTRING)
+    typearg = lua_tostring(L, -1);  /* use the given type name */
+  else if (lua_type(L, arg) == LUA_TLIGHTUSERDATA)
+    typearg = "light userdata";  /* special name for messages */
+  else
+    typearg = luaL_typename(L, arg);  /* standard name */
+  msg = lua_pushfstring(L, "%s expected, got %s", tname, typearg);
+  return luaL_argerror(L, arg, msg);
+}
+
 LUA_API void lua_checkvector2 (lua_State *L, int idx, float *x, float *y) {
   const TValue *o = index2addr(L, idx);
   if (ttisvector2(o)) {
@@ -474,7 +515,7 @@ LUA_API void lua_checkvector2 (lua_State *L, int idx, float *x, float *y) {
     *x = f4.x;
     *y = f4.y;
   } else {
-    luaG_runerror(L, "Not a vector2");
+    lua_vectyperror(L, idx, "vector2");
   }
 }
 
@@ -487,7 +528,7 @@ LUA_API void lua_checkvector3 (lua_State *L, int idx, float *x, float *y, float 
     *y = f4.y;
     *z = f4.z;
   } else {
-    luaG_runerror(L, "Not a vector3");
+    lua_vectyperror(L, idx, "vector3");
   }
 }
 
@@ -501,7 +542,7 @@ LUA_API void lua_checkvector4 (lua_State *L, int idx, float *x, float *y, float 
     *z = f4.z;
     *w = f4.w;
   } else {
-    luaG_runerror(L, "Not a vector4");
+    lua_vectyperror(L, idx, "vector4");
   }
 }
 
@@ -515,7 +556,7 @@ LUA_API void lua_checkquat (lua_State *L, int idx, float *w, float *x, float *y,
     *y = f4.y;
     *z = f4.z;
   } else {
-    luaG_runerror(L, "Not a quat");
+    lua_vectyperror(L, idx, "quat");
   }
 }
 
@@ -678,7 +719,7 @@ LUA_API void lua_pushquat (lua_State *L, float w, float x, float y, float z) {
   lua_unlock(L);
 }
 
-   
+
 LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
   lua_lock(L);
   setivalue(L->top, n);

@@ -10,7 +10,7 @@
 		"scripting",
 		"vendor:websocketpp",
 		"vendor:boost_system",
-		"vendor:cpp-uri",
+		"vendor:cpp-url",
 		"http-client"
 	],
 	"provides": []

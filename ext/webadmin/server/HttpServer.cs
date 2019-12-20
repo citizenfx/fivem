@@ -55,6 +55,7 @@ namespace FxWebAdmin
         {
             var tcs = new TaskCompletionSource<int>();
             m_ticker.TickQueue.Enqueue(Tuple.Create(action, tcs));
+            ScheduleResourceTick("webadmin");
 
             return tcs.Task;
         }

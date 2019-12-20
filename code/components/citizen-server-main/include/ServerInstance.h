@@ -35,5 +35,7 @@ namespace fx
 
 	private:
 		std::shared_ptr<ConsoleCommand> m_execCommand;
+		std::shared_ptr<ConsoleCommand> m_quitCommand_0;
+		std::shared_ptr<ConsoleCommand> m_quitCommand_1;
 	};
 }

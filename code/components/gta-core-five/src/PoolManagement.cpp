@@ -207,10 +207,27 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 
 static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
 {
-	g_pools.insert({ hash, pool });
+	g_pools[hash] = pool;
 	g_inversePools.insert({ pool, hash });
 
 	return pool;
+}
+
+static void(*g_origPoolDtor)(atPoolBase*);
+
+static void PoolDtorWrap(atPoolBase* pool)
+{
+	auto hashIt = g_inversePools.find(pool);
+
+	if (hashIt != g_inversePools.end())
+	{
+		auto hash = hashIt->second;
+
+		g_pools.erase(hash);
+		g_inversePools.erase(pool);
+	}
+
+	return g_origPoolDtor(pool);
 }
 
 static void*(*g_origPoolAllocate)(atPoolBase*);
@@ -401,6 +418,9 @@ static HookFunction hookFunction([] ()
 
 	// min hook
 	MH_CreateHook(hook::get_pattern("18 83 F9 FF 75 03 33 C0 C3 41", -6), PoolAllocateWrap, (void**)&g_origPoolAllocate);
+
+	// pool dtor wrap
+	MH_CreateHook(hook::get_pattern("7E 38 F7 41 20 00 00 00 C0 74 1B", -0xD), PoolDtorWrap, (void**)&g_origPoolDtor);
 
 	// in a bit of a wrong place, but OK
 	MH_CreateHook(hook::get_call(hook::get_pattern("0D ? ? ? ? B2 01 E8 ? ? ? ? B0 01 48", 7)), LoadObjectsNowWrap, (void**)&g_origLoadObjectsNow);

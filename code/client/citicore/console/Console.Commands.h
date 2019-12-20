@@ -272,6 +272,22 @@ inline bool ParseArgument(const ConsoleExecutionContext& context, int argInput, 
 }
 
 template<>
+inline bool ParseArgument<ProgramArguments>(const ConsoleExecutionContext& context, int argInput, ProgramArguments* out)
+{
+	size_t numRemaining = context.arguments.Count() - argInput;
+	std::vector<std::string> argList(numRemaining);
+
+	for (int arg = 0; arg < numRemaining; arg++)
+	{
+		argList[arg] = context.arguments[arg + argInput];
+	}
+
+	*out = ProgramArguments{ argList };
+
+	return true;
+}
+
+template<>
 inline bool ParseArgument<ExternalContext>(const ConsoleExecutionContext& context, int argInput, ExternalContext* out)
 {
 	*out = ExternalContext{ context.contextRef };
@@ -305,15 +321,34 @@ struct ConsoleCommandFunction<std::function<void(Args...)>>
 	static bool Call(TFunc func, ConsoleExecutionContext& context)
 	{
 		// check if the argument count matches
-		if (sizeof...(Args) != context.arguments.Count())
+		if constexpr (NeedsArgumentCheck())
 		{
-			context.errorBuffer << "Argument count mismatch (passed " << std::to_string(context.arguments.Count()) << ", wanted " << std::to_string(sizeof...(Args)) << ")" << std::endl;
-			return false;
+			if (sizeof...(Args) != context.arguments.Count())
+			{
+				context.errorBuffer << "Argument count mismatch (passed " << std::to_string(context.arguments.Count()) << ", wanted " << std::to_string(sizeof...(Args)) << ")" << std::endl;
+				return false;
+			}
 		}
 
 		// invoke the recursive template argument tree for parsing our arguments
 		return CallInternal<0, 0, std::tuple<>>(func, context, std::tuple<>());
 	}
+
+private:
+	inline constexpr static bool NeedsArgumentCheck()
+	{
+		if constexpr (sizeof...(Args) > 0)
+		{
+			if constexpr (std::is_same_v<std::decay_t<std::tuple_element_t<sizeof...(Args) - 1, ArgTuple>>, ProgramArguments>)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+public:
 
 	// non-terminator iterator
 	template <size_t Iterator, size_t ArgIterator, typename TupleType>

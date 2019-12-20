@@ -97,6 +97,8 @@ public:
 
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 
+	virtual void SetPositionHook(const TPositionHook& hook) override;
+
 	virtual void SetAudioDistance(float distance) override;
 
 	virtual void SetActorPosition(float position[3]) override;
@@ -167,6 +169,8 @@ private:
 	std::chrono::milliseconds m_lastUdp;
 
 	SOCKET m_udpSocket;
+
+	TPositionHook m_positionHook;
 
 	fwRefContainer<MumbleCrypto> m_crypto;
 

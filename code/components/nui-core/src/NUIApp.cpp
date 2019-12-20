@@ -48,6 +48,17 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	window->SetValue("registerPushFunction", CefV8Value::CreateFunction("registerPushFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiSetAudioCategory", CefV8Value::CreateFunction("nuiSetAudioCategory", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("nuiTargetGame", CefV8Value::CreateString(
+#ifdef IS_LAUNCHER
+		"launcher"
+#elif defined(IS_RDR3)
+		"rdr3"
+#elif defined(GTA_FIVE)
+		"gta5"
+#else
+		"unknown"
+#endif
+	), V8_PROPERTY_ATTRIBUTE_READONLY);
 }
 
 void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)

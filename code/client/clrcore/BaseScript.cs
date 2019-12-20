@@ -26,7 +26,16 @@ namespace CitizenFX.Core
 
 		protected ExportDictionary Exports { get; private set; }
 
-#if !IS_FXSERVER
+		[ThreadStatic]
+		private static string ms_curName = null;
+
+		internal static string CurrentName
+		{
+			get => ms_curName;
+			set => ms_curName = value;
+		}
+
+#if !IS_FXSERVER && !IS_RDR3
 		private Player m_player;
 
 		protected Player LocalPlayer
@@ -45,15 +54,18 @@ namespace CitizenFX.Core
 		}
 #endif
 
+#if !IS_RDR3
 		protected PlayerList Players { get; private set; }
+#endif
 
 		protected BaseScript()
 		{
 			EventHandlers = new EventHandlerDictionary();
 			Exports = new ExportDictionary();
 			CurrentTaskList = new Dictionary<Delegate, Task>();
-
+#if !IS_RDR3
 			Players = new PlayerList();
+#endif
 		}
 
 		internal void ScheduleRun()
@@ -83,15 +95,46 @@ namespace CitizenFX.Core
 		{
 			if (!CurrentTaskList.ContainsKey(call))
 			{
-				CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew((Func<Task>)call).Unwrap().ContinueWith(a =>
-				{
-					if (a.IsFaulted)
-					{
-						Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
-					}
+				var curName = $"{GetType().Name} -> tick {call.GetMethodInfo().Name}";
 
-					CurrentTaskList.Remove(call);
-				}));
+				try
+				{
+					ms_curName = curName;
+
+					using (var scope = new ProfilerScope(() => curName))
+					{
+						CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew(() =>
+						{
+							ms_curName = curName;
+
+							try
+							{
+								using (var innerScope = new ProfilerScope(() => curName))
+								{
+									var t = ((Func<Task>)call)();
+
+									return t;
+								}
+							}
+							finally
+							{
+								ms_curName = null;
+							}
+						}).Unwrap().ContinueWith(a =>
+						{
+							if (a.IsFaulted)
+							{
+								Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
+							}
+
+							CurrentTaskList.Remove(call);
+						}));
+					}
+				}
+				finally
+				{
+					ms_curName = null;
+				}
 			}
 		}
 
@@ -124,6 +167,14 @@ namespace CitizenFX.Core
 
 			TriggerEventInternal(eventName, argsSerialized, true);
 		}
+
+		[SecuritySafeCritical]
+		public static void TriggerLatentServerEvent(string eventName, int bytesPerSecond, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			TriggerLatentServerEventInternal(eventName, argsSerialized, bytesPerSecond);
+		}
 #else
 		public static void TriggerClientEvent(Player player, string eventName, params object[] args)
 		{
@@ -144,6 +195,45 @@ namespace CitizenFX.Core
 				fixed (byte* serialized = &argsSerialized[0])
 				{
 					Function.Call(Hash.TRIGGER_CLIENT_EVENT_INTERNAL, eventName, "-1", serialized, argsSerialized.Length);
+				}
+			}
+		}
+
+		public static void TriggerLatentClientEvent(Player player, string eventName, int bytesPerSecond, params object[] args)
+		{
+			player.TriggerLatentEvent(eventName, bytesPerSecond, args);
+		}
+
+		/// <summary>
+		/// Broadcasts an event to all connected players.
+		/// </summary>
+		/// <param name="eventName">The name of the event.</param>
+		/// <param name="args">Arguments to pass to the event.</param>
+		public static void TriggerLatentClientEvent(string eventName, int bytesPerSecond, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(Hash.TRIGGER_LATENT_CLIENT_EVENT_INTERNAL, eventName, "-1", serialized, argsSerialized.Length, bytesPerSecond);
+				}
+			}
+		}
+#endif
+
+#if !IS_FXSERVER
+		[SecurityCritical]
+		private static void TriggerLatentServerEventInternal(string eventName, byte[] argsSerialized, int bytesPerSecond)
+		{
+			var nativeHash = Hash.TRIGGER_LATENT_SERVER_EVENT_INTERNAL;
+				
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(nativeHash, eventName, serialized, argsSerialized.Length, bytesPerSecond);
 				}
 			}
 		}
@@ -192,7 +282,7 @@ namespace CitizenFX.Core
 
 		private static IAsyncResult BeginDelay(int delay, AsyncCallback callback, object state)
 		{
-			InternalManager.AddDelay(delay, callback);
+			InternalManager.AddDelay(delay, callback, ms_curName);
 
 			return new DummyAsyncResult();
 		}
@@ -235,7 +325,9 @@ namespace CitizenFX.Core
 			{
 				foreach (var method in GetMethods(typeof(TickAttribute)))
 				{
+#if !IS_FXSERVER
 					Debug.WriteLine("Registering Tick for attributed method {0}", method.Name);
+#endif
 
 					if (method.IsStatic)
 						this.RegisterTick((Func<Task>)Delegate.CreateDelegate(typeof(Func<Task>), method));
@@ -257,7 +349,9 @@ namespace CitizenFX.Core
 					var actionType = Expression.GetDelegateType(parameters.Concat(new[] { typeof(void) }).ToArray());
 					var attribute = method.GetCustomAttribute<EventHandlerAttribute>();
 
+#if !IS_FXSERVER
 					Debug.WriteLine("Registering EventHandler {2} for attributed method {0}, with parameters {1}", method.Name, string.Join(", ", parameters.Select(p => p.GetType().ToString())), attribute.Name);
+#endif
 
 					if (method.IsStatic)
 						this.RegisterEventHandler(attribute.Name, Delegate.CreateDelegate(actionType, method));
@@ -278,7 +372,9 @@ namespace CitizenFX.Core
 					var attribute = method.GetCustomAttribute<CommandAttribute>();
 					var parameters = method.GetParameters();
 
+#if !IS_FXSERVER
 					Debug.WriteLine("Registering command {0}", attribute.Command);
+#endif
 
 					// no params, trigger only
 					if (parameters.Length == 0)
@@ -299,6 +395,7 @@ namespace CitizenFX.Core
 						}
 					}
 					// Player
+#if !IS_RDR3
 					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 1)
 					{
 #if IS_FXSERVER
@@ -320,6 +417,7 @@ namespace CitizenFX.Core
 						Debug.WriteLine("Client commands with parameter type Player not supported");
 #endif
 					}
+#endif
 					// string[]
 					else if (parameters.Length == 1)
 					{
@@ -339,6 +437,7 @@ namespace CitizenFX.Core
 						}
 					}
 					// Player, string[]
+#if !IS_RDR3
 					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 2)
 					{
 #if IS_FXSERVER
@@ -360,6 +459,7 @@ namespace CitizenFX.Core
 						Debug.WriteLine("Client commands with parameter type Player not supported");
 #endif
 					}
+#endif
 					// legacy --> int, List<object>, string
 					else
 					{

@@ -59,6 +59,7 @@ bool ResourceUI::Create()
 	auto resourceName = m_resource->GetName();
 	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
 	CefRegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	CefRegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
 	std::string path = "nui://" + m_resource->GetName() + "/" + pageName;
@@ -66,6 +67,7 @@ bool ResourceUI::Create()
 
 	// add a cross-origin entry to allow fetching the callback handler
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
+	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "https", m_resource->GetName(), true);
 
 	return true;
 }
@@ -134,6 +136,7 @@ static InitFunction initFunction([] ()
 			}
 		});
 
+#ifdef GTA_FIVE
 		// pre-disconnect handling
 		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([=]()
 		{
@@ -145,6 +148,7 @@ static InitFunction initFunction([] ()
 				g_resourceUIs.erase(resource->GetName());
 			}
 		});
+#endif
 
 		// add component
 		resource->SetComponent(resourceUI);

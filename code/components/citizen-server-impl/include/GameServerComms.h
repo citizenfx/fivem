@@ -9,7 +9,7 @@ namespace fx
 	class Client;
 }
 
-void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn);
+void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force = false);
 void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn);
 
 void gscomms_reset_peer(int peer);

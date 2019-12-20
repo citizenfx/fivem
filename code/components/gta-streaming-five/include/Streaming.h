@@ -69,48 +69,48 @@ namespace streaming
 		//
 		// Creates a new asset for `name`, or returns the existing index in this module for it.
 		//
-		virtual uint32_t* GetOrCreate(uint32_t* id, const char* name) = 0;
+		virtual uint32_t* FindSlotFromHashKey(uint32_t* id, const char* name) = 0;
 
 		//
 		// Returns the index in this streaming module for the asset specified by `name`.
 		//
-		virtual uint32_t* GetIndexByName(uint32_t* id, const char* name) = 0;
+		virtual uint32_t* FindSlot(uint32_t* id, const char* name) = 0;
 
 		//
 		// Unloads the specified asset from the streaming module.
 		// This won't update the asset state in CStreaming, use these functions instead.
 		//
-		virtual void UnloadEntry(uint32_t id) = 0;
+		virtual void Remove(uint32_t id) = 0;
 
 		//
 		// Removes the specified asset from the streaming module.
 		//
-		virtual void DeleteEntry(uint32_t object) = 0;
+		virtual void RemoveSlot(uint32_t object) = 0;
 
 		//
 		// Loads an asset from an in-memory RSC file.
 		//
-		virtual bool LoadFromMemory(uint32_t object, const void* buffer, uint32_t length) = 0;
+		virtual bool Load(uint32_t object, const void* buffer, uint32_t length) = 0;
 
 		//
 		// Loads an asset from a block map.
 		//
-		virtual void LoadFromBlockMap(uint32_t object, void* blockMap, const char* name) = 0;
+		virtual void PlaceResource(uint32_t object, void* blockMap, const char* name) = 0;
 
 		//
 		// Sets the asset pointer directly.
 		//
-		virtual void SetAssetReference(uint32_t object, strAssetReference& reference) = 0;
+		virtual void SetResource(uint32_t object, strAssetReference& reference) = 0;
 
 		//
 		// Gets the asset pointer for a loaded asset.
 		// Returns NULL if not loaded.
 		//
-		virtual void* GetAssetPointer(uint32_t object) = 0;
+		virtual void* GetPtr(uint32_t object) = 0;
 
-		virtual void* GetAssetPointer_2(uint32_t object) = 0;
+		virtual void* GetDataPtr(uint32_t object) = 0;
 
-		virtual void* Defrag(uint32_t object, void* blockMap, const char* name) = 0;
+		virtual void* Defragment(uint32_t object, void* blockMap, const char* name) = 0;
 
 		// nullsub
 		virtual void m_58() = 0;
@@ -119,7 +119,7 @@ namespace streaming
 		virtual void m_60() = 0;
 
 		// only overridden in specific modules
-		virtual void* GetAssetPointer_Module(uint32_t object) = 0;
+		virtual void* GetResource(uint32_t object) = 0;
 
 		// nullsub
 		virtual void m_70() = 0;
@@ -129,16 +129,16 @@ namespace streaming
 
 		virtual void AddRef(uint32_t id) = 0;
 
-		virtual void Release(uint32_t id) = 0;
+		virtual void RemoveRef(uint32_t id) = 0;
 
-		virtual void m_90() = 0; // resetrefcount
+		virtual void ResetAllRefs() = 0; // resetrefcount
 
-		virtual int GetRefCount(uint32_t id) = 0;
+		virtual int GetNumRefs(uint32_t id) = 0;
 
 		//
 		// Formats the reference count as a string.
 		//
-		virtual const char* FormatRefCount(uint32_t id, char* buffer, size_t length) = 0;
+		virtual const char* GetRefCountString(uint32_t id, char* buffer, size_t length) = 0;
 
 		virtual int GetDependencies(uint32_t object, uint32_t* outDependencies, size_t count) = 0;
 

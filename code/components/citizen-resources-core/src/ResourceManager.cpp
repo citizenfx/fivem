@@ -8,7 +8,9 @@
 #include <StdInc.h>
 #include <ResourceManagerImpl.h>
 
-#include <network/uri.hpp>
+#include <ResourceMetaDataComponent.h>
+
+#include <skyr/url.hpp>
 
 #include <ETWProviders/etwprof.h>
 
@@ -20,6 +22,16 @@ namespace fx
 ResourceManagerImpl::ResourceManagerImpl()
 {
 	OnInitializeInstance(this);
+
+	OnTick.Connect([this]()
+	{
+		// execute resource tick functions
+		ForAllResources([](fwRefContainer<Resource> resource)
+		{
+			CETWScope etwScope(va("%s tick", resource->GetName()));
+			resource->Tick();
+		});
+	});
 }
 
 fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std::string& uri)
@@ -27,16 +39,15 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 	// parse the URI
 	fwRefContainer<ResourceMounter> mounter;
 
-	std::error_code ec;
-	network::uri parsed = network::make_uri(uri, ec);
+	auto parsed = skyr::make_url(uri);
 
-	if (!static_cast<bool>(ec))
+	if (parsed)
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mountersMutex);
 
 		for (auto& mounterEntry : m_mounters)
 		{
-			if (mounterEntry->HandlesScheme(parsed.scheme().to_string()))
+			if (mounterEntry->HandlesScheme(parsed->protocol().substr(0, parsed->protocol().length() - 1)))
 			{
 				mounter = mounterEntry;
 				break;
@@ -45,7 +56,7 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 	}
 	else
 	{
-		trace("%s: %s\n", __func__, ec.message());
+		trace("%s: %s\n", __func__, parsed.error().message());
 	}
 
 	return mounter;
@@ -64,6 +75,18 @@ pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std:
 		// set a completion event, as well
 		mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
 		{
+			if (resource.GetRef())
+			{
+				// handle provides
+				auto md = resource->GetComponent<ResourceMetaDataComponent>();
+
+				for (const auto& entry : md->GetEntries("provide"))
+				{
+					std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
+					m_resourceProvides.emplace(entry.second, resource);
+				}
+			}
+
 			completionEvent.set(resource);
 		});
 
@@ -82,13 +105,31 @@ void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)
 	}
 }
 
-fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& identifier)
+fwRefContainer<Resource> ResourceManagerImpl::GetResource(const std::string& identifier, bool withProvides /* = true */)
 {
+	fwRefContainer<Resource> resource;
 	std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 
 	auto it = m_resources.find(identifier);
+	resource = (it == m_resources.end()) ? nullptr : it->second;
 
-	return (it == m_resources.end()) ? nullptr : it->second;
+	// if non-existent, or stopped
+	if (withProvides && (!resource.GetRef() || resource->GetState() == ResourceState::Stopped))
+	{
+		auto provides = m_resourceProvides.equal_range(identifier);
+
+		for (auto it = provides.first; it != provides.second; it++)
+		{
+			// if the provides is started (and the identifier is stopped), or if the identifier does not exist
+			if (it->second->GetState() == ResourceState::Started || !resource.GetRef())
+			{
+				resource = it->second;
+				break;
+			}
+		}
+	}
+
+	return resource;
 }
 
 void ResourceManagerImpl::ForAllResources(const std::function<void(const fwRefContainer<Resource>&)>& function)
@@ -146,6 +187,7 @@ void ResourceManagerImpl::ResetResources()
 		}
 	});
 
+	m_resourceProvides.clear();
 	m_resources.clear();
 
 	m_resources["_cfx_internal"] = cfxInternal;
@@ -189,13 +231,6 @@ void ResourceManagerImpl::Tick()
 {
 	auto lastManager = g_currentManager;
 	g_currentManager = this;
-
-	// execute resource tick functions
-	ForAllResources([] (fwRefContainer<Resource> resource)
-	{
-		CETWScope etwScope(va("%s tick", resource->GetName()));
-		resource->Tick();
-	});
 
 	// execute tick events
 	OnTick();

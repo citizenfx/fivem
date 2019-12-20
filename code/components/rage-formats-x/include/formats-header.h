@@ -9,9 +9,12 @@
 #ifdef _M_IX86
 #define RAGE_FORMATS_GAME ny
 #define RAGE_FORMATS_GAME_NY
-#else
+#elif defined(GTA_FIVE)
 #define RAGE_FORMATS_GAME five
 #define RAGE_FORMATS_GAME_FIVE
+#else
+#define RAGE_FORMATS_GAME rdr3
+#define RAGE_FORMATS_GAME_RDR3
 #endif
 #endif
 

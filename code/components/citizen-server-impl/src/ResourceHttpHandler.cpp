@@ -5,6 +5,8 @@
 #include <ServerInstanceBase.h>
 #include <ServerInstanceBaseRef.h>
 
+#include <KeyedRateLimiter.h>
+
 #include <ResourceCallbackComponent.h>
 
 #include <ResourceManager.h>
@@ -83,6 +85,17 @@ public:
 
 	void HandleRequest(const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
+		auto limiter = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_" + m_resource->GetName(), fx::RateLimiterDefaults{ 10.0, 25.0 });
+
+		if (!limiter->Consume(*net::PeerAddress::FromString(request->GetRemoteAddress())))
+		{
+			response->SetStatusCode(429);
+			response->SetHeader("Content-Type", "text/plain; charset=utf-8");
+			response->End("Rate limit exceeded.");
+
+			return;
+		}
+
 		// get the local path for the request
 		auto localPath = request->GetPath().substr(m_resource->GetName().length() + 2);
 

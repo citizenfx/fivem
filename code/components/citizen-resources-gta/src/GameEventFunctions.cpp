@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#if defined(GTA_FIVE)
 #include <EntitySystem.h>
 
 #include <ResourceManager.h>
@@ -23,3 +25,4 @@ static InitFunction initFunction([]
 		rec->QueueEvent2("gameEventTriggered", {}, std::string(data.name), argTable);
 	});
 });
+#endif

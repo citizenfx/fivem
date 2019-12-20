@@ -2,11 +2,8 @@ import {Injectable, EventEmitter, NgZone, Inject} from '@angular/core';
 import {DomSanitizer} from '@angular/platform-browser';
 
 import {Server} from './servers/server';
-import {ServersService} from './servers/servers.service';
 
 import { environment } from '../environments/environment';
-import { DiscourseService } from './discourse.service';
-import { LocaleStorage } from 'angular-l10n';
 import { LocalStorage } from './local-storage';
 import { Observable, BehaviorSubject } from 'rxjs';
 
@@ -62,10 +59,36 @@ export abstract class GameService {
 	languageChange = new BehaviorSubject<string>('en');
 
 	signinChange = new EventEmitter<Profile>();
+	ownershipTicketChange = new EventEmitter<string>();
+	computerNameChange = new EventEmitter<string>();
+	authPayloadSet = new EventEmitter<string>();
 
 	profile: Profile = null;
 
 	convars: { [name: string]: ConvarWrapper } = {};
+
+	get gameName(): string {
+		const targetGame = (window as any).nuiTargetGame;
+
+		if (!targetGame) {
+			return 'rdr3';
+		}
+
+		return targetGame;
+	}
+
+	get brandingName(): string {
+		switch (this.gameName) {
+			case 'rdr3':
+				return 'RedM';
+			case 'launcher':
+				return 'Cfx.re';
+			case 'gta5':
+				return 'FiveM';
+			default:
+				return 'CitizenFX';
+		}
+	}
 
 	get nickname(): string {
 		return 'UnknownPlayer';
@@ -263,7 +286,7 @@ export class CfxGameService extends GameService {
 	
 	private inConnecting = false;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private discourseService: DiscourseService) {
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
 		super();
 	}
 
@@ -272,19 +295,13 @@ export class CfxGameService extends GameService {
 		(<any>window).invokeNative('getConvars', '');
 
 		fetch('https://nui-internal/profiles/list').then(async response => {
-			const json = <Profiles>await response.json();
+			try {
+				const json = <Profiles>await response.json();
 
-			if (json.profiles && json.profiles.length > 0) {
-				this.handleSignin(json.profiles[0]);
-			}
-		});
-
-		this.discourseService.signinChange.subscribe(identity => {
-			this.setDiscourseIdentity(this.discourseService.getToken(), this.discourseService.getExtClientId());
-		});
-
-		this.discourseService.messageEvent.subscribe((msg) => {
-			this.invokeInformational(msg);
+				if (json.profiles && json.profiles.length > 0) {
+					this.handleSignin(json.profiles[0]);
+				}
+			} catch (e) {}
 		});
 
 		this.zone.runOutsideAngular(() => {
@@ -318,7 +335,7 @@ export class CfxGameService extends GameService {
 						}
 						break;
 					case 'setComputerName':
-						this.discourseService.setComputerName(event.data.data);
+						this.computerNameChange.emit(event.data.data);
 						break;
 					case 'getFavorites':
 						this.zone.run(() => this.favorites = event.data.list);
@@ -336,7 +353,7 @@ export class CfxGameService extends GameService {
 						this.zone.run(() => convar.next(event.data.value));
 
 						setTimeout(() => {
-							this.discourseService.setOwnershipTicket(this.getConvarValue('cl_ownershipTicket'));
+							this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
 						}, 500);
 						break;
 				}
@@ -414,9 +431,7 @@ export class CfxGameService extends GameService {
 	}
 
 	invokeAuthPayload(data: string) {
-		console.log(data);
-
-		this.discourseService.handleAuthPayload(data);
+		this.authPayloadSet.emit(data);
 	}
 
 	get nickname(): string {
@@ -561,7 +576,7 @@ export class CfxGameService extends GameService {
 	lastQuery: string;
 
 	queryAddress(address: [string, number]): Promise<Server> {
-		const addrString = address[0] + ':' + address[1];
+		const addrString = (address[0].indexOf('cfx.re') === -1) ? address[0] + ':' + address[1] : address[0];
 
 		const promise = new Promise<Server>((resolve, reject) => {
 			const to = window.setTimeout(() => {
@@ -625,16 +640,13 @@ export class DummyGameService extends GameService {
 	private _darkTheme = false;
 	private _localhostPort = '';
 	private _language = '';
-	private pinExample = '';
 
-	constructor(private serversService: ServersService, @Inject(LocalStorage) private localStorage: any) {
+	constructor(@Inject(LocalStorage) private localStorage: any) {
 		super();
 
 		if (this.localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
-
-		this.serversService.loadPinConfig().then(config => this.pinExample = config.pinnedServers[0]);
 	}
 
 	init() {

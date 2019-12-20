@@ -1,6 +1,6 @@
 #include <StdInc.h>
 
-#ifndef IS_FXSERVER
+#ifdef _WIN32
 #include <ComponentLoader.h>
 #include <ResumeComponent.h>
 

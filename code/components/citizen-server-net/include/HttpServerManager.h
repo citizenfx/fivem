@@ -4,9 +4,15 @@
 
 #include <HttpServer.h>
 
+#ifdef COMPILING_CITIZEN_SERVER_NET
+#define CSNET_EXPORT DLL_EXPORT
+#else
+#define CSNET_EXPORT DLL_IMPORT
+#endif
+
 namespace fx
 {
-	class HttpServerManager : public fwRefCountable, public IAttached<ServerInstanceBase>
+	class CSNET_EXPORT HttpServerManager : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
 	public:
 		HttpServerManager();

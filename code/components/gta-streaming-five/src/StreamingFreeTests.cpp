@@ -85,6 +85,7 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 
 static std::map<std::string, uint32_t> g_streamingNamesToIndices;
 static std::map<uint32_t, std::string> g_streamingIndexesToNames;
+extern std::set<std::string> g_streamingSuffixSet;
 
 template<bool IsRequest>
 rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleMgr, uint32_t index)
@@ -129,6 +130,18 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 
 		g_streamingNamesToIndices[g_lastStreamingName] = *indexRet;
 		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
+
+		auto splitIdx = g_lastStreamingName.find_first_of("_");
+
+		if (splitIdx != std::string::npos)
+		{
+			auto splitBit = g_lastStreamingName.substr(splitIdx + 1);
+
+			if (splitBit.find('_') != std::string::npos)
+			{
+				g_streamingSuffixSet.insert(splitBit);
+			}
+		}
 	}
 
 	return indexRet;

@@ -7,11 +7,6 @@
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 
-namespace fx
-{
-	uint32_t MakeScriptHandle(const std::shared_ptr<fx::sync::SyncEntityState>& ptr);
-}
-
 static InitFunction initFunction([]()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
@@ -119,7 +114,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		context.SetResult(fx::MakeScriptHandle(entity));
+		context.SetResult(gameState->MakeScriptHandle(entity));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
@@ -385,5 +380,219 @@ static InitFunction initFunction([]()
 		}
 
 		return lockedForPlayer;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ENGINE_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["engineHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_PETROL_TANK_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["petrolTankHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_TYRE_BURST", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		bool tyreBurst = false;
+		bool wheelsFine = entity->GetData("tyresFine", true);
+
+		if (!wheelsFine && context.GetArgumentCount() > 1)
+		{
+			int tyreID = context.GetArgument<int>(1);
+			bool completely = context.GetArgument<bool>(2);
+
+			int tyreStatus = entity->GetData("tyreStatus" + tyreID, 0);
+
+			if (completely && tyreStatus == 2 || !completely && tyreStatus == 1)
+			{
+				tyreBurst = true;
+			}
+		}
+
+		return tyreBurst;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_BODY_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["bodyHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["maxHealth"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_ARMOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["armour"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_CAUSE_OF_DEATH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["causeOfDeath"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		switch (entity->type)
+		{
+		case fx::sync::NetObjEntityType::Player:
+			return entity->GetData("maxHealth", 0);
+		case fx::sync::NetObjEntityType::Ped:
+			return entity->GetData("maxHealth", 0);
+		default:
+			return 0;
+		}
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		switch (entity->type)
+		{
+		case fx::sync::NetObjEntityType::Player:
+			return entity->GetData("health", 0);
+		case fx::sync::NetObjEntityType::Ped:
+			return entity->GetData("health", 0);
+		default:
+			return 0;
+		}
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_COLOURS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 2)
+		{
+			*context.GetArgument<int*>(1) = entity->GetData("primaryColour", 0);
+			*context.GetArgument<int*>(2) = entity->GetData("secondaryColour", 0);
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_EXTRA_COLOURS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 2)
+		{
+			*context.GetArgument<int*>(1) = entity->GetData("pearlColour", 0);
+			*context.GetArgument<int*>(2) = entity->GetData("wheelColour", 0);
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INTERIOR_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			*context.GetArgument<int*>(1) = entity->GetData("interiorColour", 0);
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			*context.GetArgument<int*>(1) = entity->GetData("dashboardColour", 0);
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CUSTOM_PRIMARY_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 3)
+		{
+			bool isPrimaryColour = entity->GetData("isPrimaryColour", 0);
+
+			*context.GetArgument<int*>(1) = isPrimaryColour ? entity->GetData("primaryRedColour", 0) : 0;
+			*context.GetArgument<int*>(2) = isPrimaryColour ? entity->GetData("primaryGreenColour", 0) : 0;
+			*context.GetArgument<int*>(3) = isPrimaryColour ? entity->GetData("primaryBlueColour", 0) : 0;
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CUSTOM_SECONDARY_COLOUR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 3)
+		{
+			bool isSecondaryColour = entity->GetData("isSecondaryColour", 0);
+
+			*context.GetArgument<int*>(1) = isSecondaryColour ? entity->GetData("secondaryRedColour", 0) : 0;
+			*context.GetArgument<int*>(2) = isSecondaryColour ? entity->GetData("secondaryGreenColour", 0) : 0;
+			*context.GetArgument<int*>(3) = isSecondaryColour ? entity->GetData("secondaryBlueColour", 0) : 0;
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_VEHICLE_PRIMARY_COLOUR_CUSTOM", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["isPrimaryColour"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_VEHICLE_SECONDARY_COLOUR_CUSTOM", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["isSecondaryColour"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LIVERY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["liveryIndex"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ROOF_LIVERY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["roofLiveryIndex"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DIRT_LEVEL", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["dirtLevel"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_TYPE", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["wheelType"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WINDOW_TINT", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		int windowTintIndex = entity->GetData("windowTintIndex", 0);
+		return windowTintIndex == 255 ? -1 : windowTintIndex;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TYRE_SMOKE_COLOR", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (context.GetArgumentCount() > 2)
+		{
+			*context.GetArgument<int*>(1) = entity->GetData("tyreSmokeRedColour", 0);
+			*context.GetArgument<int*>(2) = entity->GetData("tyreSmokeGreenColour", 0);
+			*context.GetArgument<int*>(3) = entity->GetData("tyreSmokeBlueColour", 0);
+		}
+
+		return 1;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NUMBER_PLATE_TEXT", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		static std::string numberPlateText;
+		numberPlateText.clear();
+
+		for (int i = 0; i < 8; i++)
+		{
+			char letter = entity->GetData(fmt::sprintf("plate%d", i), 32);
+			numberPlateText.push_back(letter);
+		}
+
+		return numberPlateText;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NUMBER_PLATE_TEXT_INDEX", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["numberPlateTextIndex"];
 	}));
 });

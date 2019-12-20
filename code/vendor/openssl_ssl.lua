@@ -6,7 +6,8 @@ local openssl_cfg = require('./vendor/openssl_cfg')
 return {
 	include = function()
 		if os.istarget('windows') then
-			includedirs { "vendor/openssl/include/" }
+			includedirs { "../vendor/openssl/include/" }
+			includedirs { "vendor/openssl/" }
 		else
 			links { 'ssl' }
 		end
@@ -31,14 +32,6 @@ return {
 			staticruntime 'On'
 		
 			add_dependencies 'vendor:openssl_crypto_crt'
-		end
-		
-		if not os.isdir('vendor/openssl/') or not os.isfile('vendor/openssl/update_2019-03-13') then
-			local f = io.open('vendor/openssl/update_2019-03-13', 'w')
-			f:close()
-			
-			openssl.copy_public_headers(openssl_cfg)
-			os.copyfile('vendor/opensslconf.h', 'vendor/openssl/include/openssl/opensslconf.h')
 		end
 		
 		openssl.ssl_project(openssl_cfg)

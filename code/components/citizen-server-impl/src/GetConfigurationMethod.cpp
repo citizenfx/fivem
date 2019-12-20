@@ -7,11 +7,61 @@
 
 #include <ServerInstanceBase.h>
 
+#include <regex>
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		fx::ResourceManager* resman = instance->GetComponent<fx::ResourceManager>().GetRef();
+
+		struct FileServerEntry
+		{
+			std::string reString;
+			std::regex re;
+			std::string url;
+		};
+
+		static std::shared_mutex fileServerLock;
+		static std::vector<FileServerEntry> fileServers;
+
+		static auto addFileServerCmd = instance->AddCommand("fileserver_add", [](const std::string& resourcePattern, const std::string& fileServer)
+		{
+			FileServerEntry entry;
+			entry.re = resourcePattern;
+			entry.reString = resourcePattern;
+			entry.url = fileServer;
+
+			std::unique_lock<std::shared_mutex> lock(fileServerLock);
+			fileServers.push_back(std::move(entry));
+		});
+
+		static auto removeFileServerCmd = instance->AddCommand("fileserver_remove", [](const std::string& resourcePattern)
+		{
+			std::unique_lock<std::shared_mutex> lock(fileServerLock);
+
+			for (auto it = fileServers.begin(); it != fileServers.end(); )
+			{
+				if (it->reString == resourcePattern)
+				{
+					it = fileServers.erase(it);
+				}
+				else
+				{
+					it++;
+				}
+			}
+		});
+
+		static auto listFileServerCmd = instance->AddCommand("fileserver_list", []()
+		{
+			std::shared_lock<std::shared_mutex> lock(fileServerLock);
+
+			for (auto& entry : fileServers)
+			{
+				console::Printf("fileserver", "%s -> %s\n", entry.reString, entry.url);
+			}
+		});
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
@@ -97,11 +147,26 @@ static InitFunction initFunction([]()
 					resourceStreamFiles[entry.first] = obj;
 				}
 
-				resources.push_back(json::object({
+				auto obj = json::object({
 					{ "name", resource->GetName() },
 					{ "files", resourceFiles },
 					{ "streamFiles", resourceStreamFiles }
-				}));
+				});
+
+				{
+					std::unique_lock<std::shared_mutex> lock(fileServerLock);
+
+					for (const auto& entry : fileServers)
+					{
+						if (std::regex_match(resource->GetName(), entry.re))
+						{
+							obj["fileServer"] = entry.url;
+							break;
+						}
+					}
+				}
+
+				resources.push_back(obj);
 			});
 
 			cb(json::object({

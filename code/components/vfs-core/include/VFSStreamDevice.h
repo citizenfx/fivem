@@ -15,12 +15,14 @@
 #define VFS_CORE_EXPORT DLL_IMPORT
 #endif
 
+#include <deque>
 #include <mutex>
 
 namespace vfs
 {
 struct SeekableStream {};
 struct WritableStream {};
+struct LengthableStream {};
 struct BulkWritableStream {};
 
 namespace detail
@@ -167,6 +169,40 @@ public:
 		return -1;
 	}
 
+protected:
+	template<bool value>
+	struct GetLengthImpl
+	{
+		template<typename TStream>
+		static size_t GetLength(TStream* stream)
+		{
+			return -1;
+		}
+	};
+
+	template<>
+	struct GetLengthImpl<true>
+	{
+		template<typename TStream>
+		static size_t GetLength(TStream* stream)
+		{
+			return stream->GetLength();
+		}
+	};
+
+public:
+	virtual size_t GetLength(THandle handle) override
+	{
+		auto data = GetHandle(handle);
+
+		if (data && data->stream)
+		{
+			return GetLengthImpl<std::is_base_of_v<LengthableStream, StreamType>>::GetLength(data->stream.get());
+		}
+
+		return -1;
+	}
+
 	virtual bool Close(THandle handle) override
 	{
 		auto data = GetHandle(handle);
@@ -243,7 +279,7 @@ protected:
 	}
 
 private:
-	std::vector<HandleDataType> m_handles;
+	std::deque<HandleDataType> m_handles;
 
 	std::mutex m_mutex;
 };
@@ -317,6 +353,18 @@ public:
 		}
 
 		return -1;
+	}
+
+	virtual size_t GetLength(Device::THandle handle) override
+	{
+		auto data = GetHandle(handle);
+
+		if (data && data->bulkStream)
+		{
+			return GetLengthImpl<std::is_base_of_v<LengthableStream, BulkType>>::GetLength(data->bulkStream.get());
+		}
+
+		return StreamDevice::GetLength(handle);
 	}
 	
 	virtual bool CloseBulk(Device::THandle handle) override

@@ -9,8 +9,42 @@
 #include <MumbleClient.h>
 
 #include <sstream>
+#include <regex>
 
 #include <json.hpp>
+
+#include <scrEngine.h>
+#include <MinHook.h>
+
+#include <mmsystem.h>
+#include <dsound.h>
+#include <ScriptEngine.h>
+
+class FxNativeInvoke
+{
+private:
+	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
+	{
+		(*handler)(cxt);
+	}
+
+public:
+
+	template<typename R, typename... Args>
+	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
+	{
+		fx::ScriptContextBuffer cxt;
+
+		pass{ ([&]()
+		{
+			cxt.Push(args);
+		}(), 1)... };
+
+		Invoke(cxt, handler);
+
+		return cxt.GetResult<R>();
+	}
+};
 
 using json = nlohmann::json;
 
@@ -109,7 +143,7 @@ void Policy_BindNetLibrary(NetLibrary* library)
 	});
 }
 
-static fwRefContainer<IMumbleClient> g_mumbleClient;
+static IMumbleClient* g_mumbleClient;
 
 static struct  
 {
@@ -172,10 +206,6 @@ static float* g_cameraFront;
 static float* g_cameraTop;
 static float* g_cameraPos;
 static float* g_actorPos;
-
-#include <mmsystem.h>
-#include <dsound.h>
-#include <ScriptEngine.h>
 
 #pragma comment(lib, "dsound.lib")
 
@@ -356,10 +386,53 @@ static void Mumble_RunFrame()
 static std::bitset<256> g_talkers;
 static std::bitset<256> o_talkers;
 
-static InitFunction initFunction([]()
+static std::unordered_map<std::string, int> g_userNamesToClientIds;
+static std::regex g_usernameRe("^\\[(0-9+)\\] ");
+
+static auto PositionHook(const std::string& userName) -> std::optional<std::array<float, 3>>
 {
-	g_mumbleClient = CreateMumbleClient();
+	auto it = g_userNamesToClientIds.find(userName);
+
+	if (it == g_userNamesToClientIds.end())
+	{
+		std::smatch matches;
+
+		if (std::regex_match(userName, matches, g_usernameRe))
+		{
+			int serverId = std::stoi(matches[1].str());
+
+			static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
+
+			it = g_userNamesToClientIds.insert({ userName, FxNativeInvoke::Invoke<int>(getByServerId, serverId) }).first;
+		}
+	}
+
+	if (it != g_userNamesToClientIds.end())
+	{
+		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_PED"));
+		static auto getEntityCoords = fx::ScriptEngine::GetNativeHandler(HashString("GET_ENTITY_COORDS"));
+
+		int ped = FxNativeInvoke::Invoke<int>(getPlayerPed, it->second);
+
+		if (ped > 0)
+		{
+			auto coords = FxNativeInvoke::Invoke<scrVector>(getEntityCoords, ped);
+			return { { coords.x, coords.y, coords.z } };
+		}
+	}
+
+	return {};
+}
+
+static HookFunction initFunction([]()
+{
+	auto mc = CreateMumbleClient();
+	mc->AddRef();
+	g_mumbleClient = mc.GetRef();
+
 	g_mumbleClient->Initialize();
+
+	g_mumbleClient->SetPositionHook(PositionHook);
 
 	OnMainGameFrame.Connect([=]()
 	{
@@ -452,35 +525,6 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 
 	g_origInitVoiceEngine(engine, config);
 }
-
-#include <scrEngine.h>
-#include <MinHook.h>
-
-class FxNativeInvoke
-{
-private:
-	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
-	{
-		(*handler)(cxt);
-	}
-
-public:
-
-	template<typename R, typename... Args>
-	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
-	{
-		fx::ScriptContextBuffer cxt;
-
-		pass{ ([&]()
-		{
-			cxt.Push(args);
-		}(), 1)... };
-
-		Invoke(cxt, handler);
-
-		return cxt.GetResult<R>();
-	}
-};
 
 static HookFunction hookFunction([]()
 {

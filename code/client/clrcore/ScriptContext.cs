@@ -273,34 +273,48 @@ namespace CitizenFX.Core
 		}
 
 #if USE_HYPERDRIVE
-		internal unsafe delegate void CallFunc(void* cxtRef);
+		internal unsafe delegate bool CallFunc(void* cxtRef);
 
 		[ThreadStatic]
 		private static Dictionary<ulong, CallFunc> ms_invokers = new Dictionary<ulong, CallFunc>();
 
+		private static long ms_nativeInvokeFn = GetProcAddress(LoadLibrary("scripting-gta.dll"), "WrapNativeInvoke").ToInt64();
+
 		[SecurityCritical]
 		internal unsafe static CallFunc DoGetNative(ulong native)
 		{
-			return BuildFunction(GetNative(native));
+			return BuildFunction(native, GetNative(native));
 		}
 
 		[SecurityCritical]
-		private unsafe static CallFunc BuildFunction(ulong ptr)
+		private unsafe static CallFunc BuildFunction(ulong native, ulong ptr)
 		{
 			var method = new DynamicMethod($"NativeCallFn_{ptr}",
-				typeof(void), new Type[1] { typeof(void*) }, typeof(ScriptContext).Module);
+				typeof(bool), new Type[1] { typeof(void*) }, typeof(ScriptContext).Module);
 
 			ILGenerator generator = method.GetILGenerator();
-			generator.Emit(OpCodes.Ldarg_0);
 			generator.Emit(OpCodes.Ldc_I8, (long)ptr);
-			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(void), new Type[1] { typeof(void*) }, null);
+			generator.Emit(OpCodes.Ldc_I8, (long)native);
+			generator.Emit(OpCodes.Ldarg_0);
+			generator.Emit(OpCodes.Ldc_I8, ms_nativeInvokeFn);
+			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(bool), new Type[3] { typeof(void*), typeof(ulong), typeof(void*) }, null);
 			generator.Emit(OpCodes.Ret);
 
 			return (CallFunc)method.CreateDelegate(typeof(CallFunc));
 		}
 
+#if IS_RDR3
+		[DllImport("rage-scripting-rdr3.dll", EntryPoint = "?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z")]
+#else
 		[DllImport("rage-scripting-five.dll", EntryPoint = "?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z")]
+#endif
 		private static extern ulong GetNative(ulong hash);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr LoadLibrary(string dllToLoad);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 #endif
 
 		[SecurityCritical]
@@ -314,10 +328,13 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private unsafe static void InvokeInternal(ulong nativeIdentifier, IScriptHost scriptHost)
 		{
-			fixed (ContextType* cxt = &m_extContext)
-			{
-				InvokeInternal(cxt, nativeIdentifier, scriptHost);
-			}
+			var context = m_extContext;
+			m_extContext = new ContextType();
+
+			ContextType* cxt = &context;
+			InvokeInternal(cxt, nativeIdentifier, scriptHost);
+
+			m_extContext = context;
 		}
 
 		[SecurityCritical]
@@ -332,14 +349,17 @@ namespace CitizenFX.Core
 #else
 				if (!ms_invokers.TryGetValue(nativeIdentifier, out CallFunc invoker))
 				{
-					invoker = BuildFunction(GetNative(nativeIdentifier));
+					invoker = BuildFunction(nativeIdentifier, GetNative(nativeIdentifier));
 					ms_invokers.Add(nativeIdentifier, invoker);
 				}
 
 				cxt->functionDataPtr = &cxt->functionData[0];
 				cxt->retDataPtr = &cxt->functionData[0];
 
-				invoker(cxt);
+				if (!invoker(cxt))
+				{
+					throw new Exception("Native invocation failed.");
+				}
 
 				CopyReferencedParametersOut(cxt);
 #endif

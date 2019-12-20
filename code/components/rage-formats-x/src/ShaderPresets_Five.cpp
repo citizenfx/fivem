@@ -37,7 +37,8 @@ void grmShaderFx::DoPreset(const char* shaderName, const char* spsName)
 	// override the draw bucket if needed
 	auto drawBucket = shaderFile->GetGlobalValue("__rage_drawbucket");
 
-	shader->SetDrawBucket(atoi(drawBucket.get_value_or("0").c_str()));
+	//shader->SetDrawBucket(atoi(std::get<std::string>(drawBucket.get_value_or("0")).c_str()));
+	shader->SetDrawBucket(std::get<int>(drawBucket.get_value_or(0)));
 	
 	// set parameters
 	auto& localParameters = shaderFile->GetLocalParameters();

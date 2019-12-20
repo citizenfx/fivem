@@ -220,8 +220,12 @@ public:
 	{
 		//return true;
 		bool ov = m_baseRgsc->isX();
-		//return ov;
+
+#if defined(IS_RDR3)
+		return ov;
+#else
 		return g_signedIn;
+#endif
 	}
 
 	virtual bool isOnline() override
@@ -299,7 +303,12 @@ static std::wstring GetCitizenSavePath()
 
 		// append our path components
 		AppendPathComponent(savePath, L"\\CitizenFX");
+
+#if !defined(IS_RDR3)
 		AppendPathComponent(savePath, L"\\GTA5");
+#else
+		AppendPathComponent(savePath, L"\\RDR2");
+#endif
 
 		// append a final separator
 		savePath += L"\\";
@@ -490,6 +499,9 @@ public:
 	virtual void* OnEvent(RgscEvent event, const void* data) = 0;
 };
 
+std::string GetRockstarTicketXml();
+IRgscDelegate* g_delegate;
+
 struct FriendStatus
 {
 	uint32_t status;
@@ -560,6 +572,29 @@ class RgscLogDelegate : public IRgscDelegate
 		else if (event == (RgscEvent)0xD)
 		{
 			SetEvent(g_uiEvent);
+
+			/*if (!g_signedIn)
+			{
+				int zero = 0;
+				g_delegate->OnEvent((RgscEvent)0xD, &zero);
+
+				FriendStatus fs = { 0 };
+				fs.status = 5;
+				fs.unk0x1 = 1;
+				fs.unk0x1000 = 0x1000;
+				fs.unk0x7FFA = 0x7FFA;
+				fs.jsonDataLength = 0x1D0;
+				fs.jsonDataString = R"({"SignedIn":true,"SignedOnline":true,"ScAuthToken":"AAAAArgQdyps/xBHKUumlIADBO75R0gAekcl3m2pCg3poDsXy9n7Vv4DmyEmHDEtv49b5BaUWBiRR/lVOYrhQpaf3FJCp4+22ETI8H0NhuTTijxjbkvDEViW9x6bOEAWApixmQue2CNN3r7X8vQ/wcXteChEHUHi","ScAuthTokenError":false,"ProfileSaved":true,"AchievementsSynced":false,"FriendsSynced":false,"Local":false,"NumFriendsOnline":0,"NumFriendsPlayingSameTitle":0,"NumBlocked":0,"NumFriends":0,"NumInvitesReceieved":0,"NumInvitesSent":0,"CallbackData":2})";
+
+				g_delegate->OnEvent(RgscEvent::FriendStatusChanged, &fs);
+
+				g_delegate->OnEvent(RgscEvent::RosTicketChanged, GetRockstarTicketXml().c_str());
+
+				//int yes = 1;
+				//delegate->OnEvent(RgscEvent::SigninStateChanged, &yes);
+
+				g_signedIn = true;
+			}*/
 		}
 
 		return nullptr;
@@ -592,8 +627,6 @@ public:
 	virtual void* m_16() = 0;
 	virtual void* m_17() = 0;
 };
-
-std::string GetRockstarTicketXml();
 
 class RgscStub : public IRgsc
 {
@@ -644,7 +677,10 @@ public:
 
 		static uint32_t lastAllowedScUpdate;
 
+#if defined(IS_RDR3)
+#else
 		if ((GetTickCount() - lastAllowedScUpdate > 250) || !Instance<ICoreGameInit>::Get()->GetGameLoaded())
+#endif
 		{
 			lastAllowedScUpdate = GetTickCount();
 
@@ -707,6 +743,8 @@ public:
 		LOG_CALL();
 
 		g_uiEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+
+		g_delegate = delegate;
 
 		std::thread([delegate]()
 		{
@@ -847,7 +885,15 @@ IRgsc* GetScSdkStub()
 	
 	if (!g_rgsc)
 	{
-		g_rgsc = new RgscStub(getFunc());
+		if (getenv("CitizenFX_ToolMode"))
+		{
+			g_rgsc = (RgscStub*)getFunc();
+		}
+		else
+		{
+			//g_rgsc = (RgscStub*)getFunc();
+			g_rgsc = new RgscStub(getFunc());
+		}
 	}
 
 	return g_rgsc;

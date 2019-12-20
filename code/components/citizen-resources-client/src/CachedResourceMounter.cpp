@@ -19,7 +19,7 @@
 
 #include <IteratorView.h>
 
-#include <network/uri.hpp>
+#include <skyr/url.hpp>
 
 #include <ppl.h>
 
@@ -67,27 +67,23 @@ bool CachedResourceMounter::HandlesScheme(const std::string& scheme)
 	return (scheme == "global");
 }
 
-fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::string& uri, network::uri* parsedUri)
+fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::string& uri, skyr::url* parsedUri)
 {
 	// parse the input URI
-	std::error_code ec;
-	auto uriParsed = network::make_uri(uri, ec);
+	auto uriParsed = skyr::make_url(uri);
 
-	if (parsedUri)
+	if (uriParsed)
 	{
-		*parsedUri = uriParsed;
-	}
-
-	if (!ec)
-	{
-		// get the host name
-		auto hostRef = uriParsed.host();
-
-		if (!hostRef.empty())
+		if (parsedUri)
 		{
-			// convert to a regular string
-			std::string host = hostRef.to_string();
+			*parsedUri = *uriParsed;
+		}
 
+		// get the host name
+		auto host = uriParsed->host();
+
+		if (!host.empty())
+		{
 			// find a resource entry in the entry list
 			if (m_resourceEntries.find(host) != m_resourceEntries.end())
 			{

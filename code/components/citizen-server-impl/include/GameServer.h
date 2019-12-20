@@ -9,7 +9,7 @@
 #include <MapComponent.h>
 #include <NetAddress.h>
 
-#include <nng.h>
+#include <nng/nng.h>
 
 #include <boost/bimap.hpp>
 
@@ -21,6 +21,8 @@
 
 #include <UvLoopHolder.h>
 #include <UvTcpServer.h>
+
+#include <GameNames.h>
 
 namespace fx
 {
@@ -41,9 +43,13 @@ namespace fx
 
 		std::string GetVariable(const std::string& key);
 
-		void DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const fmt::ArgList& args);
+		void DropClientv(const std::shared_ptr<Client>& client, const std::string& reason, fmt::printf_args args);
 
-		FMT_VARIADIC(void, DropClient, const std::shared_ptr<Client>&, const std::string&);
+		template<typename... TArgs>
+		inline void DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const TArgs&... args)
+		{
+			DropClientv(client, reason, fmt::make_printf_args(args...));
+		}
 
 		void ForceHeartbeat();
 
@@ -73,6 +79,11 @@ namespace fx
 			return m_net->GetClientVersion();
 		}
 
+		inline auto GetIpOverrideVar()
+		{
+			return m_listingIpOverride;
+		}
+
 	public:
 		struct CallbackListBase
 		{
@@ -89,7 +100,7 @@ namespace fx
 				threadId = std::this_thread::get_id();
 			}
 
-			void Add(const std::function<void()>& fn);
+			void Add(const std::function<void()>& fn, bool force = false);
 
 			void Run();
 
@@ -134,9 +145,9 @@ namespace fx
 			std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> m_async;
 		};
 
-		inline void InternalAddMainThreadCb(const std::function<void()>& fn)
+		inline void InternalAddMainThreadCb(const std::function<void()>& fn, bool force = false)
 		{
-			m_mainThreadCallbacks->Add(fn);
+			m_mainThreadCallbacks->Add(fn, force);
 		}
 
 		inline void InternalAddNetThreadCb(const std::function<void()>& fn)
@@ -164,6 +175,11 @@ namespace fx
 		inline void SetPacketHandler(const TPacketHandler& handler)
 		{
 			m_packetHandler = handler;
+		}
+
+		inline fx::GameName GetGameName()
+		{
+			return m_gamename->GetValue();
 		}
 
 	private:
@@ -195,11 +211,19 @@ namespace fx
 
 		std::shared_ptr<ConsoleCommand> m_heartbeatCommand;
 
+		std::shared_ptr<ConVar<std::string>> m_listingIpOverride;
+
+		std::shared_ptr<ConVar<bool>> m_useDirectListing;
+
 		std::shared_ptr<ConVar<std::string>> m_rconPassword;
 
 		std::shared_ptr<ConVar<std::string>> m_hostname;
 
+		std::shared_ptr<ConVar<GameName>> m_gamename;
+
 		std::shared_ptr<ConVar<std::string>> m_masters[3];
+
+		std::string m_lastGameName;
 
 		tbb::concurrent_unordered_map<std::string, net::PeerAddress> m_masterCache;
 
@@ -228,6 +252,8 @@ namespace fx
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
 	using HandlerMapComponent = MapComponent<uint32_t, TPacketTypeHandler>;
+
+	bool IsBigMode();
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);

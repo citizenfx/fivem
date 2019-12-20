@@ -3,6 +3,10 @@
 #include "InputHook.h"
 #include "Hooking.h"
 
+#include <nutsnbolts.h>
+
+#include <CfxState.h>
+
 static WNDPROC origWndProc;
 
 static bool g_isFocused = true;
@@ -67,13 +71,19 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	bool pass = true;
 	LRESULT lresult;
 
-	InputHook::OnWndProc(hwnd, uMsg, wParam, lParam, pass, lresult);
+	InputHook::DeprecatedOnWndProc(hwnd, uMsg, wParam, lParam, pass, lresult);
 
 	// prevent infinite looping of WM_IME_COMPOSITION caused by ImmSetCompositionStringW in game code
 	if (uMsg == WM_IME_COMPOSITION || uMsg == WM_IME_STARTCOMPOSITION || uMsg == WM_IME_ENDCOMPOSITION)
 	{
 		pass = false;
 		lresult = FALSE;
+	}
+
+	if (uMsg == WM_PARENTNOTIFY)
+	{
+		pass = false;
+		lresult = DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
 	if (!pass)
@@ -134,10 +144,207 @@ BOOL WINAPI SetCursorPosWrap(int X, int Y)
 	return TRUE;
 }
 
+#include <HostSharedData.h>
+#include <ReverseGameData.h>
 
+static void(*origSetInput)(int, void*, void*, void*);
+
+struct ReverseGameInputState
+{
+	uint8_t keyboardState[256];
+	int mouseX;
+	int mouseY;
+	int mouseWheel;
+	int mouseButtons;
+
+	ReverseGameInputState()
+	{
+		memset(keyboardState, 0, sizeof(keyboardState));
+		mouseX = 0;
+		mouseY = 0;
+		mouseWheel = 0;
+		mouseButtons = 0;
+	}
+
+	explicit ReverseGameInputState(const ReverseGameData& data)
+	{
+		memcpy(keyboardState, data.keyboardState, sizeof(keyboardState));
+		mouseX = data.mouseX;
+		mouseY = data.mouseY;
+		mouseWheel = data.mouseWheel;
+		mouseButtons = data.mouseButtons;
+	}
+};
+
+static ReverseGameInputState lastInput;
+static ReverseGameInputState curInput;
+
+static bool g_mainThreadId;
+
+#include <queue>
+
+static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
+{
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+	WaitForSingleObject(rgd->inputMutex, INFINITE);
+
+	std::vector<InputTarget*> inputTargets;
+	static bool lastCaught;
+	bool caught = !InputHook::QueryInputTarget(inputTargets);
+
+	if (caught)
+	{
+		if (rgd->mouseX < 0)
+		{
+			rgd->mouseX = 0;
+		}
+		else if (rgd->mouseX >= rgd->width)
+		{
+			rgd->mouseX = rgd->width;
+		}
+
+		if (rgd->mouseY < 0)
+		{
+			rgd->mouseY = 0;
+		}
+		else if (rgd->mouseY >= rgd->height)
+		{
+			rgd->mouseY = rgd->height;
+		}
+	}
+
+	curInput = ReverseGameInputState{ *rgd };
+
+	static POINT mousePos[2];
+
+	if (caught != lastCaught)
+	{
+		mousePos[caught ? 1 : 0] = { curInput.mouseX, curInput.mouseY };
+
+		curInput.mouseX = mousePos[lastCaught ? 1 : 0].x;
+		curInput.mouseY = mousePos[lastCaught ? 1 : 0].y;
+
+		rgd->mouseX = curInput.mouseX;
+		rgd->mouseY = curInput.mouseY;
+	}
+
+	lastCaught = caught;
+
+	auto loopTargets = [&inputTargets](const auto& fn)
+	{
+		for (InputTarget* t : inputTargets)
+		{
+			fn(t);
+		}
+	};
+
+	// attempt input synthesis for standard key up/down and mouse events
+	for (size_t i = 0; i < std::size(curInput.keyboardState); i++)
+	{
+		bool pass = true;
+		LRESULT lr;
+
+		// TODO: key repeat
+		if (curInput.keyboardState[i] && !lastInput.keyboardState[i])
+		{
+			loopTargets([i](InputTarget* target)
+			{
+				target->KeyDown(i, 0);
+			});
+		}
+		else if (!curInput.keyboardState[i] && lastInput.keyboardState[i])
+		{
+			loopTargets([i](InputTarget* target)
+			{
+				target->KeyUp(i, 0);
+			});
+		}
+	}
+
+	// mouse buttons
+	for (int i = 1; i <= 3; i++)
+	{
+		bool pass = true;
+		LRESULT lr;
+
+		int mx = curInput.mouseX;
+		int my = curInput.mouseY;
+
+		if ((curInput.mouseButtons & i) && !(lastInput.mouseButtons & i))
+		{
+			loopTargets([i, mx, my](InputTarget* target)
+			{
+				target->MouseDown(i - 1, mx, my);
+			});
+		}
+		else if (!(curInput.mouseButtons & i) && (lastInput.mouseButtons & i))
+		{
+			loopTargets([i, mx, my](InputTarget* target)
+			{
+				target->MouseUp(i - 1, mx, my);
+			});
+		}
+	}
+
+	// mouse wheel
+	if (curInput.mouseWheel != lastInput.mouseWheel)
+	{
+		int mw = curInput.mouseWheel;
+
+		loopTargets([mw](InputTarget* target)
+		{
+			target->MouseWheel(mw);
+		});
+	}
+
+	// mouse movement
+	if (curInput.mouseX != lastInput.mouseX || curInput.mouseY != lastInput.mouseY)
+	{
+		int mx = curInput.mouseX;
+		int my = curInput.mouseY;
+
+		loopTargets([mx, my](InputTarget* target)
+		{
+			target->MouseMove(mx, my);
+		});
+	}
+
+	lastInput = curInput;
+
+	if (!a1 && !caught)
+	{
+		int off = ((*(int*)(0x142B3FD18) - 1) & 1) ? 4 : 0;
+
+		// TODO: handle flush of keyboard
+		// 1604
+		memcpy((void*)0x142B3FAD0, rgd->keyboardState, 256);
+		*(uint32_t*)(0x142B3FD08 + off) = curInput.mouseX;
+		*(uint32_t*)(0x142B3FD10 + off) = curInput.mouseY;
+		*(uint32_t*)0x142B3FD8C = rgd->mouseButtons;
+		*(uint32_t*)0x142B3FCE4 = rgd->mouseWheel;
+
+		origSetInput(a1, a2, a3, a4);
+
+		off = 0;// ((*(int*)(0x142B3FD18) - 1) & 1) ? 4 : 0;
+
+		memcpy(rgd->keyboardState, (void*)0x142B3FAD0, 256);
+		rgd->mouseX = *(uint32_t*)(0x142B3FD08 + off);
+		rgd->mouseY = *(uint32_t*)(0x142B3FD10 + off);
+		rgd->mouseButtons = *(uint32_t*)0x142B3FD8C;
+		rgd->mouseWheel = *(uint32_t*)0x142B3FCE4;
+	}
+
+	ReleaseMutex(rgd->inputMutex);
+}
 
 static HookFunction hookFunction([] ()
 {
+	OnGameFrame.Connect([]()
+	{
+		SetInputWrap(-1, NULL, NULL, NULL);
+	});
+
 	// window procedure
 	char* location = hook::pattern("48 8D 05 ? ? ? ? 33 C9 44 89 75 20 4C 89 7D").count(1).get(0).get<char>(3);
 	
@@ -188,8 +395,20 @@ static HookFunction hookFunction([] ()
 
 	// don't allow SetCursorPos during focus
 	hook::iat("user32.dll", SetCursorPosWrap, "SetCursorPos");
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->isReverseGame)
+	{
+		// 1604
+		// rg
+		hook::set_call(&origSetInput, 0x1407D1840);
+		hook::call(0x1407D1840, SetInputWrap);
+	}
 });
 
-fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::OnWndProc;
+fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::DeprecatedOnWndProc;
+
+fwEvent<std::vector<InputTarget*>&> InputHook::QueryInputTarget;
 
 fwEvent<int&> InputHook::QueryMayLockCursor;

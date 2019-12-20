@@ -172,6 +172,11 @@ local function printInvocationArguments(native)
 	return table.concat(args, ', ')
 end
 
+local function formatCommentedLine(line, indent)
+	local indentStr = string.rep('\t', indent or 0)
+	return line:gsub('\r\n', '\n'):gsub('\n', '\n-- ' .. indentStr)
+end
+
 local function formatDocString(native)
 	local d = parseDocString(native)
 
@@ -198,7 +203,7 @@ local function formatDocString(native)
 	end
 
 	if d.returns then
-		l = l .. '-- @return ' .. d.returns .. '\n'
+		l = l .. '-- @return ' .. formatCommentedLine(d.returns, 2) .. '\n'
 	end
 
 	return l

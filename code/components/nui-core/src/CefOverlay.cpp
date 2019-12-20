@@ -22,6 +22,8 @@ bool g_mainUIFlag = true;
 fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 fwEvent<bool> nui::OnDrawBackground;
 
+extern bool g_shouldCreateRootWindow;
+
 namespace nui
 {
 	__declspec(dllexport) CefBrowser* GetBrowser()
@@ -165,7 +167,7 @@ namespace nui
 		}
 	}
 
-	OVERLAY_DECL rage::grcTexture* GetWindowTexture(fwString windowName)
+	OVERLAY_DECL nui::GITexture* GetWindowTexture(fwString windowName)
 	{
 		fwRefContainer<NUIWindow> window = FindNUIWindow(windowName);
 
@@ -195,8 +197,19 @@ namespace nui
 	static std::unordered_map<std::string, std::string> frameList;
 	static std::shared_mutex frameListMutex;
 
+	static bool rootWindowTerminated;
+
 	__declspec(dllexport) void CreateFrame(fwString frameName, fwString frameURL)
 	{
+#ifdef IS_LAUNCHER
+		if (rootWindowTerminated)
+		{
+			g_shouldCreateRootWindow = true;
+			rootWindowTerminated = false;
+			return;
+		}
+#endif
+
 		bool exists = false;
 
 		{
@@ -231,11 +244,26 @@ namespace nui
 		argumentList->SetString(0, frameName.c_str());
 
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
-		auto browser = rootWindow->GetBrowser();
-		browser->SendProcessMessage(PID_RENDERER, procMessage);
 
-		std::unique_lock<std::shared_mutex> lock(frameListMutex);
-		frameList.erase(frameName);
+		if (rootWindow.GetRef())
+		{
+			auto browser = rootWindow->GetBrowser();
+			browser->SendProcessMessage(PID_RENDERER, procMessage);
+
+			std::unique_lock<std::shared_mutex> lock(frameListMutex);
+			frameList.erase(frameName);
+
+#ifdef IS_LAUNCHER
+			if (frameList.empty())
+			{
+				rootWindowTerminated = true;
+
+				browser->GetHost()->CloseBrowser(true);
+				Instance<NUIWindowManager>::Get()->RemoveWindow(rootWindow.GetRef());
+				Instance<NUIWindowManager>::Get()->SetRootWindow({});
+			}
+#endif
+		}
 	}
 
 	bool HasFrame(const std::string& frameName)

@@ -1,0 +1,12 @@
+{
+	"name": "citizen:game:main",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"nui:core",
+		"vendor:bgfx",
+		"conhost:v2",
+		"citizen:game:ipc"
+	],
+	"provides": []
+}
