@@ -33,6 +33,10 @@ const languages = [
         name: 'pt',
         displayName: 'Português'
     },
+    {
+        name: 'ru',
+        displayName: 'Русский'
+    },
 	{
         name: 'es',
         displayName: 'Español'
