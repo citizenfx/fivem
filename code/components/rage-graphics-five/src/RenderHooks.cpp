@@ -261,9 +261,44 @@ public:
 	}
 };
 
+#include <dxgi1_6.h>
+
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
 
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	{
+		WRL::ComPtr<IDXGIFactory> dxgiFactory;
+		CreateDXGIFactory(IID_IDXGIFactory, &dxgiFactory);
+
+		WRL::ComPtr<IDXGIAdapter1> adapter;
+		WRL::ComPtr<IDXGIFactory6> factory6;
+		HRESULT hr = dxgiFactory.As(&factory6);
+		if (SUCCEEDED(hr))
+		{
+			for (UINT adapterIndex = 0;
+				DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
+					adapterIndex,
+					DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+					IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+				adapterIndex++)
+			{
+				DXGI_ADAPTER_DESC1 desc;
+				adapter->GetDesc1(&desc);
+
+				if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+				{
+					// Don't select the Basic Render Driver adapter.
+					continue;
+				}
+
+				adapter.CopyTo(&pAdapter);
+				break;
+			}
+		}
+	}
+
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	auto uiExitEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIExit");
@@ -290,10 +325,10 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 	if (!IsWindows10OrGreater())
 	{
-		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_UNKNOWN, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 	}
 
-	HRESULT hr = D3D11CreateDevice(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	HRESULT hr = D3D11CreateDevice(pAdapter, /*DriverType*/ D3D_DRIVER_TYPE_UNKNOWN, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	WRL::ComPtr<IDXGIFactory2> dxgiFactory;
 

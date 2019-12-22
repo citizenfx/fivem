@@ -365,10 +365,48 @@ static HRESULT CopyResourceHook(ID3D11DeviceContext* cxt, ID3D11Resource* dst, I
 	return g_origCopyResource(cxt, dst, src);
 }
 
+#include <dxgi1_6.h>
+
+#pragma comment(lib, "dxgi.lib")
+
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	if (!pAdapter)
+	{
+		WRL::ComPtr<IDXGIFactory> dxgiFactory;
+		CreateDXGIFactory(IID_IDXGIFactory, &dxgiFactory);
 
+		WRL::ComPtr<IDXGIAdapter1> adapter;
+		WRL::ComPtr<IDXGIFactory6> factory6;
+		HRESULT hr = dxgiFactory.As(&factory6);
+		if (SUCCEEDED(hr))
+		{
+			for (UINT adapterIndex = 0;
+				DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
+					adapterIndex,
+					DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+					IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+				adapterIndex++)
+			{
+				DXGI_ADAPTER_DESC1 desc;
+				adapter->GetDesc1(&desc);
+
+				if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+				{
+					// Don't select the Basic Render Driver adapter.
+					continue;
+				}
+
+				adapter.CopyTo(&pAdapter);
+
+				break;
+			}
+		}
+	}
+
+	auto hr = g_origD3D11CreateDevice(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+
+#if defined(IS_RDR3)
 	if (SUCCEEDED(hr) && ppDevice && ppImmediateContext)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
@@ -377,6 +415,7 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		MH_CreateHook((void*)vtblCxt[47], CopyResourceHook, (void**)&g_origCopyResource);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
+#endif
 
 	return hr;
 }
@@ -385,10 +424,7 @@ void HookLibGL(HMODULE libGL)
 {
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
-
-#if defined(IS_RDR3)
 	MH_CreateHook(GetProcAddress(LoadLibraryW(L"d3d11.dll"), "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
-#endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
