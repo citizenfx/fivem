@@ -325,10 +325,10 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 	if (!IsWindows10OrGreater())
 	{
-		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/nullptr, /*DriverType*/ D3D_DRIVER_TYPE_UNKNOWN, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 	}
 
-	HRESULT hr = D3D11CreateDevice(pAdapter, /*DriverType*/ D3D_DRIVER_TYPE_UNKNOWN, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	HRESULT hr = D3D11CreateDevice(pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	WRL::ComPtr<IDXGIFactory2> dxgiFactory;
 

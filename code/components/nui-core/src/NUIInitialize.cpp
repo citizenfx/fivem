@@ -404,7 +404,7 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		}
 	}
 
-	auto hr = g_origD3D11CreateDevice(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	auto hr = g_origD3D11CreateDevice(pAdapter, pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 #if defined(IS_RDR3)
 	if (SUCCEEDED(hr) && ppDevice && ppImmediateContext)
