@@ -5,7 +5,7 @@
 namespace vfs
 {
 class
-#if defined(COMPILING_VFS_IMPL_SERVER) || defined(COMPILING_CITIZEN_GAME_MAIN)
+#if defined(COMPILING_VFS_CORE)
 	DLL_EXPORT
 #else
 	DLL_IMPORT

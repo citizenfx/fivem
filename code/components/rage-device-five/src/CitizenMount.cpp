@@ -16,6 +16,7 @@
 
 #include <VFSManager.h>
 #include <VFSRagePackfile7.h>
+#include <RelativeDevice.h>
 
 #include <Error.h>
 
@@ -87,6 +88,34 @@ static HookFunction hookFunction([]()
 });
 
 #include <ShlObj.h>
+#include <boost/algorithm/string.hpp>
+
+class PathFilteringDevice : public vfs::RelativeDevice
+{
+public:
+	PathFilteringDevice(const std::string& path)
+		: vfs::RelativeDevice(path)
+	{
+
+	}
+
+	virtual THandle Open(const std::string& fileName, bool readOnly) override
+	{
+		std::string relPath = fileName.substr(strlen("commonFilter:/"));
+
+		boost::algorithm::replace_all(relPath, "\\", "/");
+		boost::algorithm::to_lower(relPath);
+
+		if (relPath == "data/levels/gta5/trains.xml" ||
+			relPath == "data/materials/materials.dat" ||
+			relPath == "data/relationships.dat")
+		{
+			return InvalidHandle;
+		}
+
+		return RelativeDevice::Open(fileName, readOnly);
+	}
+};
 
 static InitFunction initFunction([] ()
 {
@@ -124,11 +153,22 @@ static InitFunction initFunction([] ()
 		{
 			std::string narrowPath;
 
-			if (CfxIsSinglePlayer() || true)
+			if (!CfxIsSinglePlayer())
+			{
+				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s));
+
+				fwRefContainer<PathFilteringDevice> filterDevice = new PathFilteringDevice(narrowPath);
+				vfs::Mount(filterDevice, "commonFilter:/");
+
+				narrowPath = "commonFilter:/";
+			}
+			else if (CfxIsSinglePlayer())
 			{
 				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
 			}
+#if 0
 			else
 			{
 				static fwRefContainer<vfs::RagePackfile7> citizenCommon = new vfs::RagePackfile7();
@@ -140,6 +180,7 @@ static InitFunction initFunction([] ()
 				vfs::Mount(citizenCommon, "citizen_common:/");
 				narrowPath = "citizen_common:/";
 			}
+#endif
 
 			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
 			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
