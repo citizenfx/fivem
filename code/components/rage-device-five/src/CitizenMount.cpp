@@ -156,7 +156,7 @@ static InitFunction initFunction([] ()
 			if (!CfxIsSinglePlayer())
 			{
 				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s));
+				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common\\"s));
 
 				fwRefContainer<PathFilteringDevice> filterDevice = new PathFilteringDevice(narrowPath);
 				vfs::Mount(filterDevice, "commonFilter:/");
