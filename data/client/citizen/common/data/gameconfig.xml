@@ -866,10 +866,10 @@
 					<MaxMloModelInfos value="220"/>
 					<MaxPedModelInfos value="825"/>
 					<MaxTimeModelInfos value="1800"/>
-					<MaxVehicleModelInfos value="620"/>
+					<MaxVehicleModelInfos value="1024"/>
 					<MaxWeaponModelInfos value="115"/>
 					<MaxExtraPedModelInfos value="1024"/>
-					<MaxExtraVehicleModelInfos value="1024"/>
+					<MaxExtraVehicleModelInfos value="2048"/>
 					<MaxExtraWeaponModelInfos value="1024"/>
 				</ConfigModelInfo>
 
