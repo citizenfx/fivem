@@ -109,6 +109,8 @@ static HookFunction initFunction([]()
 										{ "authorize", true }
 									});
 
+									c.close(hdl, 0, "OK");
+
 									HttpRequestOptions options;
 									options.headers.insert({ "Content-Type", "application/json" });
 									options.headers.insert({ "Authorization", token });

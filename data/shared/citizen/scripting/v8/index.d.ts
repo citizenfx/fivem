@@ -10,6 +10,8 @@ interface ResultAsInteger {}
 interface ResultAsFloat {}
 interface ResultAsString {}
 interface ResultAsVector {}
+interface ResultAsLong {}
+interface ResultAsObject {}
 
 type InputArgument =
     string |
@@ -23,7 +25,9 @@ type InputArgument =
     ResultAsInteger |
     ResultAsFloat |
     ResultAsString |
-    ResultAsVector;
+    ResultAsVector |
+    ResultAsLong |
+    ResultAsObject;
 
 interface CitizenInterface {
     trace(...args: string[]): void
@@ -51,6 +55,8 @@ interface CitizenInterface {
     resultAsFloat(): ResultAsFloat
     resultAsString(): ResultAsString
     resultAsVector(): ResultAsVector
+    resultAsLong(): ResultAsLong
+    rsesultAsObject(): ResultAsObject
 
     makeRefFunction(refFunction: Function): string
 }
@@ -79,6 +85,9 @@ declare function TriggerLatentClientEvent(eventName: string, target: number|stri
 
 declare function removeEventListener(eventName: string, callback: Function): void
 
-declare function setTick(callback: Function): void
+declare function setTick(callback: Function): number
+declare function clearTick(callback: Function): void
 
 declare var exports: any;
+
+declare var source: string;
