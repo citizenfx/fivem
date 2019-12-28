@@ -36,6 +36,10 @@ const languages = [
         displayName: 'Русский'
     },
     {
+        name: 'es',
+        displayName: 'Español'
+    },
+    {
         name: 'cs',
         displayName: 'Čeština'
     },
