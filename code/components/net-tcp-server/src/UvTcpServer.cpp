@@ -10,24 +10,6 @@
 #include "TcpServerManager.h"
 #include "memdbgon.h"
 
-template<typename Handle, class Class, void(Class::*Callable)()>
-void UvCallback(Handle* handle)
-{
-	(reinterpret_cast<Class*>(handle->data)->*Callable)();
-}
-
-template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
-void UvCallback(Handle* handle, T1 a1)
-{
-	(reinterpret_cast<Class*>(handle->data)->*Callable)(a1);
-}
-
-template<typename Handle, class Class, typename T1, typename T2, void(Class::*Callable)(T1, T2)>
-void UvCallback(Handle* handle, T1 a1, T2 a2)
-{
-	(reinterpret_cast<Class*>(handle->data)->*Callable)(a1, a2);
-}
-
 namespace net
 {
 UvTcpServer::UvTcpServer(TcpServerManager* manager)
@@ -40,26 +22,34 @@ UvTcpServer::~UvTcpServer()
 {
 	m_clients.clear();
 
-	if (m_server.get())
+	auto server = m_server;
+
+	if (server)
 	{
-		UvClose(std::move(m_server));
+		server->close();
+		m_server = {};
 	}
 }
 
-bool UvTcpServer::Listen(std::unique_ptr<uv_tcp_t>&& server)
+bool UvTcpServer::Listen(std::shared_ptr<uvw::TCPHandle>&& server)
 {
 	m_server = std::move(server);
 
-	int result = uv_listen(reinterpret_cast<uv_stream_t*>(m_server.get()), 0, UvCallback<uv_stream_t, UvTcpServer, int, &UvTcpServer::OnConnection>);
-
-	bool retval = (result == 0);
-
-	if (!retval)
+	m_server->on<uvw::ListenEvent>([this](const uvw::ListenEvent& event, uvw::TCPHandle& handle)
 	{
-		trace("Listening on socket failed - libuv error %s.\n", uv_strerror(result));
-	}
+		OnConnection(0);
+	});
 
-	return retval;
+	m_server->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& event, uvw::TCPHandle& handle)
+	{
+		trace("Listening on socket failed - libuv error %s.\n", event.name());
+
+		OnConnection(event.code());
+	});
+
+	m_server->listen();
+
+	return true;
 }
 
 void UvTcpServer::OnConnection(int status)
@@ -72,12 +62,10 @@ void UvTcpServer::OnConnection(int status)
 	}
 
 	// initialize a handle for the client
-	std::unique_ptr<uv_tcp_t> clientHandle = std::make_unique<uv_tcp_t>();
-	uv_tcp_init(m_manager->GetLoop(), clientHandle.get());
+	auto clientHandle = m_manager->GetWrapLoop()->resource<uvw::TCPHandle>();
 
 	// create a stream instance and associate
 	fwRefContainer<UvTcpServerStream> stream(new UvTcpServerStream(this));
-	clientHandle->data = stream.GetRef();
 
 	// attempt accepting the connection
 	if (stream->Accept(std::move(clientHandle)))
@@ -114,8 +102,13 @@ UvTcpServerStream::~UvTcpServerStream()
 
 void UvTcpServerStream::CloseClient()
 {
-	if (m_client.get())
+	auto client = m_client;
+
+	if (client)
 	{
+		// before closing, drain the write list
+		HandlePendingWrites();
+
 		decltype(m_writeCallback) writeCallback;
 
 		{
@@ -123,63 +116,76 @@ void UvTcpServerStream::CloseClient()
 			writeCallback = std::move(m_writeCallback);
 		}
 
-		uv_read_stop(reinterpret_cast<uv_stream_t*>(m_client.get()));
+		if (writeCallback)
+		{
+			writeCallback->clear();
+			writeCallback->close();
+		}
 
-		UvClose(std::move(m_client));
-		UvClose(std::move(writeCallback));
+		client->clear();
+
+		client->stop();
+
+		client->close();
+
+		m_client = {};
 	}
 }
 
-bool UvTcpServerStream::Accept(std::unique_ptr<uv_tcp_t>&& client)
+bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 {
 	m_client = std::move(client);
 
-	uv_tcp_nodelay(m_client.get(), true);
+	m_client->noDelay(true);
 
 	// initialize a write callback handle
 	{
 		std::unique_lock<std::shared_mutex> lock(m_writeCallbackMutex);
-		m_writeCallback = std::make_unique<uv_async_t>();
 
-		m_writeCallback->data = this;
+		fwRefContainer<UvTcpServerStream> thisRef(this);
 
-		uv_async_init(m_server->GetManager()->GetLoop(), m_writeCallback.get(), UvCallback<uv_async_t, UvTcpServerStream, &UvTcpServerStream::HandlePendingWrites>);
-	}
-
-	// accept
-	int result = uv_accept(reinterpret_cast<uv_stream_t*>(m_server->GetServer()),
-						   reinterpret_cast<uv_stream_t*>(m_client.get()));
-
-	if (result == 0)
-	{
-		uv_read_start(reinterpret_cast<uv_stream_t*>(m_client.get()), [] (uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf)
+		m_writeCallback = m_client->loop().resource<uvw::AsyncHandle>();
+		m_writeCallback->on<uvw::AsyncEvent>([thisRef](const uvw::AsyncEvent& event, uvw::AsyncHandle& handle)
 		{
-			UvTcpServerStream* stream = reinterpret_cast<UvTcpServerStream*>(handle->data);
-
-			auto& readBuffer = stream->GetReadBuffer();
-			readBuffer.resize(suggestedSize);
-
-			buf->base = &readBuffer[0];
-			buf->len = suggestedSize;
-		}, UvCallback<uv_stream_t, UvTcpServerStream, ssize_t, const uv_buf_t*, &UvTcpServerStream::HandleRead>);
+			thisRef->HandlePendingWrites();
+		});
 	}
 
-	return (result == 0);
+	m_client->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle& handle)
+	{
+		HandleRead(event.length, event.data);
+	});
+
+	m_client->on<uvw::EndEvent>([this](const uvw::EndEvent& event, uvw::TCPHandle& handle)
+	{
+		HandleRead(0, nullptr);
+	});
+
+	m_client->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& event, uvw::TCPHandle& handle)
+	{
+		HandleRead(-1, nullptr);
+	});
+
+	// accept and read
+	m_server->GetServer()->accept(*m_client);
+	m_client->read();
+
+	return true;
 }
 
-void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
+void UvTcpServerStream::HandleRead(ssize_t nread, const std::unique_ptr<char[]>& buf)
 {
 	if (nread > 0)
 	{
 		std::vector<uint8_t> targetBuf(nread);
-		memcpy(&targetBuf[0], buf->base, targetBuf.size());
+		memcpy(&targetBuf[0], buf.get(), targetBuf.size());
 
 		if (GetReadCallback())
 		{
 			GetReadCallback()(targetBuf);
 		}
 	}
-	else if (nread < 0)
+	else if (nread <= 0)
 	{
 		// hold a reference to ourselves while in this scope
 		fwRefContainer<UvTcpServerStream> tempContainer = this;
@@ -190,7 +196,9 @@ void UvTcpServerStream::HandleRead(ssize_t nread, const uv_buf_t* buf)
 
 PeerAddress UvTcpServerStream::GetPeerAddress()
 {
-	if (!m_client)
+	auto client = m_client;
+
+	if (!client)
 	{
 		return PeerAddress{};
 	}
@@ -198,40 +206,109 @@ PeerAddress UvTcpServerStream::GetPeerAddress()
 	sockaddr_storage addr;
 	int len = sizeof(addr);
 
-	uv_tcp_getpeername(m_client.get(), reinterpret_cast<sockaddr*>(&addr), &len);
+	uv_tcp_getpeername(client->raw(), reinterpret_cast<sockaddr*>(&addr), &len);
 
 	return PeerAddress(reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len));
 }
 
 void UvTcpServerStream::Write(const std::string& data)
 {
-	PushWrite(MakeReq(data));
+	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
+	memcpy(dataRef.get(), data.data(), data.size());
+
+	WriteInternal(std::move(dataRef), data.size());
 }
 
 void UvTcpServerStream::Write(const std::vector<uint8_t>& data)
 {
-	PushWrite(MakeReq(data));
+	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
+	memcpy(dataRef.get(), data.data(), data.size());
+
+	WriteInternal(std::move(dataRef), data.size());
 }
 
 void UvTcpServerStream::Write(std::string&& data)
 {
-	PushWrite(MakeReq(std::move(data)));
+	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
+	memcpy(dataRef.get(), data.data(), data.size());
+
+	WriteInternal(std::move(dataRef), data.size());
 }
 
 void UvTcpServerStream::Write(std::vector<uint8_t>&& data)
 {
-	PushWrite(MakeReq(std::move(data)));
+	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
+	memcpy(dataRef.get(), data.data(), data.size());
+
+	WriteInternal(std::move(dataRef), data.size());
+}
+
+// blindly copypasted from StackOverflow (to allow std::function to store the funcref types with their move semantics)
+// TODO: we use this *three times* now, time for a shared header?
+template<class F>
+struct shared_function
+{
+	std::shared_ptr<F> f;
+	shared_function() = default;
+	shared_function(F&& f_) : f(std::make_shared<F>(std::move(f_))) {}
+	shared_function(shared_function const&) = default;
+	shared_function(shared_function&&) = default;
+	shared_function& operator=(shared_function const&) = default;
+	shared_function& operator=(shared_function&&) = default;
+
+	template<class...As>
+	auto operator()(As&&...as) const
+	{
+		return (*f)(std::forward<As>(as)...);
+	}
+};
+
+template<class F>
+shared_function<std::decay_t<F>> make_shared_function(F&& f)
+{
+	return { std::forward<F>(f) };
+}
+
+void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size)
+{
+	if (!m_client)
+	{
+		return;
+	}
+
+	std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
+
+	auto writeCallback = m_writeCallback;
+
+	if (writeCallback)
+	{
+		// submit the write request
+		m_pendingRequests.push(make_shared_function([this, data = std::move(data), size]() mutable
+		{
+			auto client = m_client;
+
+			if (client)
+			{
+				client->write(std::move(data), size);
+			}
+		}));
+
+		// wake the callback
+		writeCallback->send();
+	}
 }
 
 void UvTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
 {
 	std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
 
-	if (m_writeCallback)
+	auto writeCallback = m_writeCallback;
+
+	if (writeCallback)
 	{
 		m_pendingRequests.push(callback);
 
-		uv_async_send(m_writeCallback.get());
+		writeCallback->send();
 	}
 }
 
@@ -265,6 +342,19 @@ void UvTcpServerStream::Close()
 		return;
 	}
 
+	std::shared_ptr<uvw::AsyncHandle> wc;
+
+	{
+		std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
+
+		wc = m_writeCallback;
+	}
+
+	if (!wc)
+	{
+		return;
+	}
+
 	m_pendingRequests.push([=]()
 	{
 		// keep a reference in scope
@@ -288,15 +378,6 @@ void UvTcpServerStream::Close()
 	});
 
 	// wake the callback
-	{
-		std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
-
-		auto wc = m_writeCallback.get();
-
-		if (wc)
-		{
-			uv_async_send(wc);
-		}
-	}
+	wc->send();
 }
 }

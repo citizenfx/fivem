@@ -16,6 +16,8 @@
 
 #include <tbb/concurrent_queue.h>
 
+#include <uvw.hpp>
+
 namespace net
 {
 class UvTcpServer;
@@ -25,9 +27,9 @@ class UvTcpServerStream : public TcpServerStream
 private:
 	UvTcpServer* m_server;
 
-	std::unique_ptr<uv_tcp_t> m_client;
+	std::shared_ptr<uvw::TCPHandle> m_client;
 
-	std::unique_ptr<uv_async_t> m_writeCallback;
+	std::shared_ptr<uvw::AsyncHandle> m_writeCallback;
 
 	std::shared_mutex m_writeCallbackMutex;
 
@@ -36,7 +38,7 @@ private:
 	std::vector<char> m_readBuffer;
 
 private:
-	void HandleRead(ssize_t nread, const uv_buf_t* buf);
+	void HandleRead(ssize_t nread, const std::unique_ptr<char[]>& buf);
 
 	void HandlePendingWrites();
 
@@ -52,7 +54,7 @@ public:
 
 	virtual ~UvTcpServerStream();
 
-	bool Accept(std::unique_ptr<uv_tcp_t>&& client);
+	bool Accept(std::shared_ptr<uvw::TCPHandle>&& client);
 
 	virtual void AddRef() override
 	{
@@ -80,92 +82,7 @@ public:
 	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
 
 private:
-	template<typename TContainer>
-	struct UvWriteReq
-	{
-	private:
-		TContainer sendData;
-		uv_buf_t buffer;
-		uv_write_t write;
-
-		fwRefContainer<UvTcpServerStream> stream;
-
-	public:
-		UvWriteReq(const fwRefContainer<UvTcpServerStream>& stream)
-			: stream(stream)
-		{
-			write.data = this;
-		}
-
-		inline void SetData(const TContainer& container)
-		{
-			sendData = container;
-		}
-
-		inline void SetData(TContainer&& container)
-		{
-			sendData = std::move(container);
-		}
-
-		inline void operator()()
-		{
-			if (!stream->m_client)
-			{
-				return;
-			}
-
-			buffer = uv_buf_init(const_cast<char*>(reinterpret_cast<const char*>(sendData.data())), static_cast<uint32_t>(sendData.size()));
-
-			// send the write request
-			uv_write(&write, reinterpret_cast<uv_stream_t*>(stream->m_client.get()), &buffer, 1, [](uv_write_t* write, int status)
-			{
-				UvWriteReq* req = reinterpret_cast<UvWriteReq*>(write->data);
-
-				delete req;
-			});
-		}
-	};
-
-	template<typename TStuff>
-	inline auto MakeReq(const TStuff& in)
-	{
-		auto req = new UvWriteReq<std::remove_reference_t<TStuff>>(this);
-		req->SetData(in);
-
-		return req;
-	}
-
-	template<typename TStuff>
-	inline auto MakeReq(TStuff&& in)
-	{
-		auto req = new UvWriteReq<std::remove_reference_t<TStuff>>(this);
-		req->SetData(std::move(in));
-
-		return req;
-	}
-
-	template<typename TContainer>
-	inline void PushWrite(UvWriteReq<TContainer>* req)
-	{
-		if (!m_client)
-		{
-			return;
-		}
-
-		std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
-
-		if (m_writeCallback)
-		{
-			// submit the write request
-			m_pendingRequests.push([req]()
-			{
-				(*req)();
-			});
-
-			// wake the callback
-			uv_async_send(m_writeCallback.get());
-		}
-	}
+	void WriteInternal(std::unique_ptr<char[]> data, size_t size);
 };
 
 class TcpServerManager;
@@ -175,7 +92,7 @@ class UvTcpServer : public TcpServer
 private:
 	TcpServerManager* m_manager;
 
-	std::unique_ptr<uv_tcp_t> m_server;
+	std::shared_ptr<uvw::TCPHandle> m_server;
 
 	std::set<fwRefContainer<UvTcpServerStream>> m_clients;
 
@@ -187,11 +104,11 @@ public:
 
 	virtual ~UvTcpServer();
 
-	bool Listen(std::unique_ptr<uv_tcp_t>&& server);
+	bool Listen(std::shared_ptr<uvw::TCPHandle>&& server);
 
-	inline uv_tcp_t* GetServer()
+	inline std::shared_ptr<uvw::TCPHandle> GetServer()
 	{
-		return m_server.get();
+		return m_server;
 	}
 
 	inline TcpServerManager* GetManager()

@@ -198,6 +198,8 @@ void MultiplexTcpChildServerStream::CloseInternal()
 	SetReadCallback(TReadCallback());
 
 	m_server->CloseStream(this);
+
+	m_baseStream = nullptr;
 }
 
 void MultiplexTcpChildServerStream::Close()

@@ -25,17 +25,13 @@ TcpServerManager::~TcpServerManager()
 fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bindAddress)
 {
 	// allocate an owning pointer for the server handle
-	std::unique_ptr<uv_tcp_t> serverHandle = std::make_unique<uv_tcp_t>();
-
-	// clear and associate the server handle with our loop
-	uv_tcp_init(m_uvLoop->GetLoop(), serverHandle.get());
+	auto serverHandle = m_uvLoop->Get()->resource<uvw::TCPHandle>();
 
 	// set the socket binding to the peer address
-	uv_tcp_bind(serverHandle.get(), bindAddress.GetSocketAddress(), 0);
+	serverHandle->bind(*bindAddress.GetSocketAddress());
 
 	// create a server instance and associate it with the handle
 	fwRefContainer<UvTcpServer> tcpServer = new UvTcpServer(this);
-	serverHandle->data = tcpServer.GetRef();
 
 	// attempt listening on the socket
 	if (tcpServer->Listen(std::move(serverHandle)))
