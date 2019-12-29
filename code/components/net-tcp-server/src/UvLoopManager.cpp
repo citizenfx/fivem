@@ -10,6 +10,13 @@
 
 namespace net
 {
+fwRefContainer<UvLoopHolder> UvLoopManager::Get(const std::string& loopTag)
+{
+	auto it = m_uvLoops.find(loopTag);
+
+	return (it == m_uvLoops.end()) ? nullptr : it->second;
+}
+
 fwRefContainer<UvLoopHolder> UvLoopManager::GetOrCreate(const std::string& loopTag)
 {
 	auto it = m_uvLoops.find(loopTag);
