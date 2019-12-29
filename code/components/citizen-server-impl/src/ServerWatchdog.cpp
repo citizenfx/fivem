@@ -97,6 +97,7 @@ void PlatformBark(const std::string& loopName)
 
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
+		_PssFreeSnapshot(GetCurrentProcess(), SnapshotHandle);
 		return;
 	}
 

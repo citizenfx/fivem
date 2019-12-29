@@ -14,16 +14,16 @@
 
 namespace fx
 {
-	TcpListenManager::TcpListenManager()
+	TcpListenManager::TcpListenManager(const std::string& loopName)
 		: m_primaryPort(0)
 	{
-		Initialize();
+		Initialize(loopName);
 	}
 
-	void TcpListenManager::Initialize()
+	void TcpListenManager::Initialize(const std::string& loopName)
 	{
 		// initialize a TCP stack
-		m_tcpStack = new net::TcpServerManager();
+		m_tcpStack = new net::TcpServerManager(loopName);
 	}
 
 	void TcpListenManager::AddEndpoint(const std::string& endPoint)

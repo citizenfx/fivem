@@ -12,9 +12,9 @@
 
 namespace net
 {
-TcpServerManager::TcpServerManager()
+TcpServerManager::TcpServerManager(const std::string& loopName)
 {
-	m_uvLoop = Instance<UvLoopManager>::Get()->GetOrCreate(std::string("default"));
+	m_uvLoop = Instance<UvLoopManager>::Get()->GetOrCreate(loopName);
 }
 
 TcpServerManager::~TcpServerManager()

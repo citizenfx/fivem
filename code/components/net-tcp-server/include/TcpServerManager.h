@@ -31,7 +31,7 @@ private:
 	fwRefContainer<UvLoopHolder> m_uvLoop;
 
 public:
-	TcpServerManager();
+	TcpServerManager(const std::string& loopName = std::string("default"));
 
 	virtual ~TcpServerManager();
 

@@ -198,7 +198,7 @@ FXServerMonitor is watching over the servers
 	void MonitorInstance::Initialize()
 	{
 		// initialize early components
-		SetComponent(new fx::TcpListenManager());
+		SetComponent(new fx::TcpListenManager("svMain"));
 		SetComponent(new fx::HttpServerManager());
 		SetComponent(new fx::PeerAddressRateLimiterStore(GetComponent<console::Context>().GetRef()));
 

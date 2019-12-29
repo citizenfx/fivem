@@ -32,9 +32,9 @@ namespace fx
 		int m_primaryPort;
 
 	public:
-		TcpListenManager();
+		TcpListenManager(const std::string& loopName = "default");
 
-		void Initialize();
+		void Initialize(const std::string& loopName = "default");
 
 		void AddEndpoint(const std::string& endPoint);
 
