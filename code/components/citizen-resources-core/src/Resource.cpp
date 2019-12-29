@@ -9,6 +9,8 @@
 #include <ResourceImpl.h>
 #include <ResourceManagerImpl.h>
 
+#include <DebugAlias.h>
+
 #include <ResourceMetaDataComponent.h>
 
 #include <Error.h>
@@ -126,6 +128,12 @@ void ResourceImpl::Tick()
 		return;
 	}
 
+	// save data in case we need to trace this back from dumps
+	char resourceNameBit[128];
+	strncpy(resourceNameBit, GetName().c_str(), std::size(resourceNameBit));
+	debug::Alias(resourceNameBit);
+
+	// process tick
 	OnTick();
 }
 

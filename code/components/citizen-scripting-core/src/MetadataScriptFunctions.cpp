@@ -149,7 +149,7 @@ static InitFunction initFunction([] ()
 		fwRefContainer<vfs::Stream> stream(new vfs::Stream(device, handle));
 
 		// get data + length
-		const char* data = context.GetArgument<const char*>(2);
+		const char* data = context.CheckArgument<const char*>(2);
 		int length = context.GetArgument<int>(3);
 
 		if (length == 0 || length == -1)
