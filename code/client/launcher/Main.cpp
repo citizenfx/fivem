@@ -216,23 +216,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	InitLogging();
 
-	// load global dinput8.dll over any that might exist in the game directory
+	// load some popular DLLs over the system-wide variants
+	auto systemDlls = {
+		// common ASI loaders
+		L"\\dinput8.dll",
+		L"\\dsound.dll", // breaks DSound init in game code
+
+		// packed DLL commonly shipping with RDR mods
+		L"\\version.dll"
+	};
+
+	for (auto dll : systemDlls)
 	{
 		wchar_t systemPath[512];
 		GetSystemDirectory(systemPath, _countof(systemPath));
 
-		wcscat_s(systemPath, L"\\dinput8.dll");
-
-		LoadLibrary(systemPath);
-	}
-
-	// load global version.dll over any that might exist in the game directory
-	// really, RPH folks? a custom PE packer for a.. trainer?
-	{
-		wchar_t systemPath[512];
-		GetSystemDirectory(systemPath, _countof(systemPath));
-
-		wcscat_s(systemPath, L"\\version.dll");
+		wcscat_s(systemPath, dll);
 
 		LoadLibrary(systemPath);
 	}
