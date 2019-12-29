@@ -8,14 +8,13 @@
 #include <StdInc.h>
 
 #include <CoreConsole.h>
+#include <DebugAlias.h>
 
 #ifdef _WIN32
 #include <dbghelp.h>
 #include <common/windows/http_upload.h>
 
 #include <ProcessSnapshot.h>
-
-#include <DebugAlias.h>
 
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "wininet.lib")
