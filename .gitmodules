@@ -178,3 +178,9 @@
 [submodule "vendor/grpc"]
 	path = vendor/grpc
 	url = https://github.com/grpc/grpc.git
+[submodule "vendor/librw"]
+	path = vendor/librw
+	url = https://github.com/aap/librw.git
+[submodule "vendor/librwgta"]
+	path = vendor/librwgta
+	url = https://github.com/aap/librwgta.git
