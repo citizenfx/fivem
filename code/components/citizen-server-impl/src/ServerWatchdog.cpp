@@ -15,7 +15,16 @@
 #include <common/windows/http_upload.h>
 
 #include <ProcessSnapshot.h>
+#endif
 
+#include <UvLoopManager.h>
+#include <ServerInstanceBase.h>
+
+#include <GameServer.h>
+
+namespace watchdog
+{
+#ifdef _WIN32
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "wininet.lib")
 #pragma comment(lib, "winhttp.lib")
@@ -136,6 +145,12 @@ bool IsDesktopPlatform()
 {
 	return !IsWindowsServer();
 }
+
+// noinline so we can correctly attribute this in stack traces
+__declspec(noinline) void PlatformAbort()
+{
+	*(volatile int*)0 = 0;
+}
 #else
 void PlatformBark(const std::string& loopName)
 {
@@ -146,12 +161,13 @@ bool IsDesktopPlatform()
 {
 	return false;
 }
+
+void PlatformAbort()
+{
+	// Mono on Linux breaks SIGSEGV sometimes so we'll just raise SIGABRT
+	abort();
+}
 #endif
-
-#include <UvLoopManager.h>
-#include <ServerInstanceBase.h>
-
-#include <GameServer.h>
 
 static InitFunction initFunction([]()
 {
@@ -235,12 +251,7 @@ static InitFunction initFunction([]()
 
 							console::PrintError("server", "Loop %s is hung for over 5 minutes - terminating with a fatal exception.\n", pair.first);
 
-#ifdef _WIN32
-							*(volatile int*)0 = 0;
-#else
-							// Mono on Linux breaks SIGSEGV sometimes so instead we'll raise SIGABRT
-							abort();
-#endif
+							PlatformAbort();
 						}
 
 						if ((msec() - pair.second) > 90s)
@@ -257,3 +268,4 @@ static InitFunction initFunction([]()
 		}, INT32_MAX);
 	});
 });
+}
