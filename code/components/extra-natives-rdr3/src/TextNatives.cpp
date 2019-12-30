@@ -23,7 +23,7 @@ static text_info_t* g_TextInfo;
 
 static HookFunction textNativesFunc([]()
 {
-	g_TextInfoPtr = hook::get_address<text_info_t*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 44 24 ? 8B 05 ? ? ? ? 89 44 24 28 8B 05 ? ? ? ? 89 44 24 20", 3));
+	g_TextInfo = hook::get_address<text_info_t*>(hook::get_pattern("48 8D 05 ? ? ? ? 48 89 44 24 ? 8B 05 ? ? ? ? 89 44 24 28 8B 05 ? ? ? ? 89 44 24 20", 3));
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_TEXT_FONT_FOR_CURRENT_COMMAND", [](fx::ScriptContext& scriptContext)
 	{
