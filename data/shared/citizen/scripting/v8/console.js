@@ -1,6 +1,7 @@
 // Global console
 
 (function (global) {
+    const monitorMode = (GetConvar('monitormode', 'false') == 'true') && IsDuplicityVersion();
     const percent = '%'.charCodeAt(0);
 
     const stringSpecifier = 's'.charCodeAt(0);
@@ -216,7 +217,8 @@
             this._timers = new Map();
             this._counters = new Map();
 
-            this.log = this.log.bind(this);
+            // TODO: Improve the sync console output.
+            this.log = (monitorMode) ? this.logSync.bind(this) : this.log.bind(this);
             this.info = this.info.bind(this);
             this.warn = this.warn.bind(this);
             this.time = this.time.bind(this);
@@ -268,6 +270,10 @@
 
         log(message = undefined, ...optionalParams) {
             this._trace(format(message, ...optionalParams));
+        }
+
+        logSync(message = undefined, ...optionalParams) {
+            process.stdout.write(format(message, ...optionalParams) + "\n");
         }
 
         debug(message = undefined, ...optionalParams) {
