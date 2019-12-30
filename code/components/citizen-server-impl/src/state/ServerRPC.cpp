@@ -15,6 +15,8 @@
 
 #include <RpcConfiguration.h>
 
+#include <CoreConsole.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 // TODO: clang style defines/checking
@@ -53,6 +55,12 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* ref)
 	{
 		auto rpcConfiguration = RpcConfiguration::Load("citizen:/scripting/rpc_natives.json");
+
+		if (!rpcConfiguration)
+		{
+			console::PrintWarning("server", "Could not load rpc_natives.json. Is the server running from the correct directory, and is citizen_dir set?\n");
+			return;
+		}
 
 		auto clientRegistry = ref->GetComponent<fx::ClientRegistry>();
 		auto gameState = ref->GetComponent<fx::ServerGameState>();
