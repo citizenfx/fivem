@@ -1088,6 +1088,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
 							}
 
+							cmdState.cloneBuffer.Write(16, (uint16_t)entity->uniqifier);
+
 							cmdState.cloneBuffer.Write<uint32_t>(32, entity->timestamp);
 
 							cmdState.cloneBuffer.Write(12, len);
@@ -1771,7 +1773,8 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket)
 {
 	uint16_t objectId = 0;
-	ProcessClonePacket(client, inPacket, 1, &objectId);
+	uint16_t uniqifier = 0;
+	ProcessClonePacket(client, inPacket, 1, &objectId, &uniqifier);
 
 	{
 		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
@@ -1780,6 +1783,7 @@ void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& clie
 
 	ackPacket.Write(3, 1);
 	ackPacket.Write(13, objectId);
+	ackPacket.Write(16, uniqifier);
 	ackPacket.flush();
 
 	GS_LOG("%s: cl %d, id %d\n", __func__, client->GetNetId(), objectId);
@@ -1788,10 +1792,12 @@ void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& clie
 void ServerGameState::ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket)
 {
 	uint16_t objectId = 0;
-	ProcessClonePacket(client, inPacket, 2, &objectId);
+	uint16_t uniqifier = 0;
+	ProcessClonePacket(client, inPacket, 2, &objectId, &uniqifier);
 
 	ackPacket.Write(3, 2);
 	ackPacket.Write(13, objectId);
+	ackPacket.Write(16, uniqifier);
 	ackPacket.flush();
 
 	GS_LOG("%s: cl %d, id %d\n", __func__, client->GetNetId(), objectId);
@@ -1848,13 +1854,14 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	auto playerId = 0;
 	auto objectId = inPacket.Read<uint16_t>(13);
 
+	// TODO: verify ownership
+	auto entity = GetEntity(0, objectId);
+
 	// ack remove no matter if we accept it
 	ackPacket.Write(3, 3);
 	ackPacket.Write(13, objectId);
+	ackPacket.Write(16, (entity) ? entity->uniqifier : 0);
 	ackPacket.flush();
-
-	// TODO: verify ownership
-	auto entity = GetEntity(0, objectId);
 
 	if (entity)
 	{
@@ -1950,12 +1957,18 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 	}
 }
 
-void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId)
+void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier)
 {
 	auto playerId = 0;
+	auto uniqifier = inPacket.Read<uint16_t>(16);
 	auto objectId = inPacket.Read<uint16_t>(13);
 	//auto objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>();
 	//auto timestamp = inPacket.Read<int32_t>();
+
+	if (outUniqifier)
+	{
+		*outUniqifier = uniqifier;
+	}
 
 	auto objectType = sync::NetObjEntityType::Train;
 
@@ -2013,6 +2026,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			entity->frameIndex = m_frameIndex;
 			entity->lastFrameIndex = 0;
 			entity->handle = MakeEntityHandle(playerId, objectId);
+			entity->uniqifier = uniqifier;
 
 			entity->syncTree = MakeSyncTree(objectType);
 
@@ -2057,6 +2071,13 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	else if (!validEntity)
 	{
 		GS_LOG("%s: wrong entity (%d)!\n", __func__, objectId);
+
+		return;
+	}
+
+	if (entity->uniqifier != uniqifier)
+	{
+		GS_LOG("%s: wrong uniqifier (%d)!\n", __func__, objectId);
 
 		return;
 	}

@@ -154,11 +154,11 @@ private:
 
 	void AddRemoveAck(uint16_t objectId);
 
-	void ProcessCreateAck(uint16_t objectId);
+	void ProcessCreateAck(uint16_t objectId, uint16_t uniqifier = 0);
 
-	void ProcessSyncAck(uint16_t objectId);
+	void ProcessSyncAck(uint16_t objectId, uint16_t uniqifier = 0);
 
-	void ProcessRemoveAck(uint16_t objectId);
+	void ProcessRemoveAck(uint16_t objectId, uint16_t uniqifier = 0);
 
 	void ProcessTimestampAck(uint32_t timestamp);
 
@@ -180,6 +180,7 @@ private:
 		std::chrono::milliseconds lastSyncAck;
 		uint32_t lastChangeTime;
 		uint32_t lastResendTime;
+		uint16_t uniqifier;
 
 		ObjectData()
 		{
@@ -187,6 +188,7 @@ private:
 			lastSyncAck = 0ms;
 			lastChangeTime = 0;
 			lastResendTime = 0;
+			uniqifier = rand();
 		}
 	};
 
@@ -355,15 +357,27 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	icgi = Instance<ICoreGameInit>::Get();
 }
 
-void CloneManagerLocal::ProcessCreateAck(uint16_t objId)
+void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 {
+	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier)
+	{
+		Log("%s: invalid uniqifier for %d\n", __func__, objId);
+		return;
+	}
+
 	m_trackedObjects[objId].lastSyncAck = msec();
 
 	Log("%s: create ack %d\n", __func__, objId);
 }
 
-void CloneManagerLocal::ProcessSyncAck(uint16_t objId)
+void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 {
+	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier)
+	{
+		Log("%s: invalid uniqifier for %d\n", __func__, objId);
+		return;
+	}
+
 	auto netObjIt = m_savedEntities.find(objId);
 
 	Log("%s: sync ack %d\n", __func__, objId);
@@ -389,8 +403,14 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId)
 	}
 }
 
-void CloneManagerLocal::ProcessRemoveAck(uint16_t objId)
+void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 {
+	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier && uniqifier != 0)
+	{
+		Log("%s: invalid uniqifier for %d\n", __func__, objId);
+		return;
+	}
+
 	// #NETVER: resend removes and handle acks here
 	if (icgi->NetProtoVersion >= 0x201905190829)
 	{
@@ -483,7 +503,14 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 				case 1:
 				{
 					auto objId = msgBuf.Read<uint16_t>(13);
-					ProcessCreateAck(objId);
+					auto uniqifier = 0;
+
+					if (icgi->NetProtoVersion >= 0x201912301309)
+					{
+						uniqifier = msgBuf.Read<uint16_t>(16);
+					}
+
+					ProcessCreateAck(objId, uniqifier);
 
 					break;
 				}
@@ -491,7 +518,14 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 				case 2:
 				{
 					auto objId = msgBuf.Read<uint16_t>(13);
-					ProcessSyncAck(objId);
+					auto uniqifier = 0;
+
+					if (icgi->NetProtoVersion >= 0x201912301309)
+					{
+						uniqifier = msgBuf.Read<uint16_t>(16);
+					}
+
+					ProcessSyncAck(objId, uniqifier);
 
 					break;
 				}
@@ -499,7 +533,14 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 				case 3:
 				{
 					auto objId = msgBuf.Read<uint16_t>(13);
-					ProcessRemoveAck(objId);
+					auto uniqifier = 0;
+
+					if (icgi->NetProtoVersion >= 0x201912301309)
+					{
+						uniqifier = msgBuf.Read<uint16_t>(16);
+					}
+
+					ProcessRemoveAck(objId, uniqifier);
 
 					break;
 				}
@@ -541,8 +582,6 @@ class msgClone
 public:
 	msgClone();
 
-	void Read(net::Buffer& buffer);
-
 	void Read(int syncType, rl::MessageBuffer& buffer);
 
 	inline uint8_t GetSyncType() const
@@ -575,10 +614,16 @@ public:
 		return m_cloneData;
 	}
 
+	inline uint16_t GetUniqifier() const
+	{
+		return m_uniqifier;
+	}
+
 //private:
 	uint32_t m_handle;
 	uint16_t m_clientId;
 	uint16_t m_objectId;
+	uint16_t m_uniqifier;
 	NetObjEntityType m_entityType;
 	uint8_t m_syncType;
 	uint32_t m_timestamp;
@@ -587,22 +632,6 @@ public:
 
 msgClone::msgClone()
 {
-}
-
-void msgClone::Read(net::Buffer& netBuffer)
-{
-	m_handle = netBuffer.Read<uint32_t>();
-	m_clientId = netBuffer.Read<uint16_t>();
-	m_objectId = netBuffer.Read<uint16_t>();
-	m_entityType = (NetObjEntityType)netBuffer.Read<uint8_t>();
-	m_syncType = netBuffer.Read<uint8_t>();
-
-	m_timestamp = netBuffer.Read<uint32_t>();
-
-	auto length = netBuffer.Read<uint16_t>();
-
-	m_cloneData.resize(length);
-	netBuffer.Read(m_cloneData.data(), m_cloneData.size());
 }
 
 void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
@@ -614,6 +643,15 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 	if (syncType == 1)
 	{
 		m_entityType = (NetObjEntityType)buffer.Read<uint8_t>(4);
+	}
+
+	if (icgi->NetProtoVersion >= 0x201912301309)
+	{
+		m_uniqifier = buffer.Read<uint16_t>(16);
+	}
+	else
+	{
+		m_uniqifier = 0;
 	}
 
 	m_timestamp = buffer.Read<uint32_t>(32);
@@ -801,6 +839,9 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
 
+	auto& objectData = m_trackedObjects[msg.GetObjectId()];
+	objectData.uniqifier = msg.GetUniqifier();
+
 	// owner ID
 	auto isRemote = (msg.GetClientId() != m_netLibrary->GetServerNetID());
 	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex;
@@ -908,6 +949,18 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		Log("%s: unknown obj?\n", __func__);
 
 		// pretend it acked, we don't want the server to spam us with even more nodes we can't handle
+		return true;
+	}
+
+	// check uniqifier
+	auto& objectData = m_trackedObjects[msg.GetObjectId()];
+	
+	if (objectData.uniqifier != msg.GetUniqifier() && icgi->NetProtoVersion >= 0x201912301309)
+	{
+		ackPacket();
+
+		Log("%s: invalid object instance?\n", __func__);
+
 		return true;
 	}
 
@@ -1516,6 +1569,11 @@ void CloneManagerLocal::WriteUpdates()
 
 					// write header to send buffer
 					netBuffer.Write(3, syncType);
+
+					if (icgi->NetProtoVersion >= 0x201912301309)
+					{
+						netBuffer.Write(16, objectData.uniqifier);
+					}
 
 					// write data
 					//netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)

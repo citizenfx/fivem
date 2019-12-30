@@ -205,6 +205,7 @@ struct SyncEntityState
 	uint32_t timestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
+	uint16_t uniqifier;
 
 	std::chrono::milliseconds lastReceivedAt;
 
@@ -390,7 +391,7 @@ private:
 
 	void ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket);
 
-	void ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId);
+	void ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
 
 	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove);
 
