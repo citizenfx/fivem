@@ -19,7 +19,7 @@ struct text_info_t
 	WORD	justification;
 };
 
-static text_info* g_TextInfo;
+static text_info_t* g_TextInfo;
 
 static HookFunction textNativesFunc([]()
 {
