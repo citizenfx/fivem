@@ -32,7 +32,8 @@ struct ProfilerRecording {
 	MSGPACK_DEFINE_MAP(ticks, events)
 };
 
-auto ConvertToStorage(const std::vector<fx::ProfilerEvent>& evs) -> ProfilerRecording
+template<typename TContainer>
+auto ConvertToStorage(const TContainer& evs) -> ProfilerRecording
 {
 	std::vector<uint64_t> ticks;
 	std::vector<ProfilerRecordingEvent> events;
@@ -40,7 +41,7 @@ auto ConvertToStorage(const std::vector<fx::ProfilerEvent>& evs) -> ProfilerReco
 	auto start_of_tick = true;
 	for (auto i = 0; i < evs.size(); i++)
 	{
-		const auto& ev = evs[i];
+		const fx::ProfilerEvent& ev = evs[i];
 		events.push_back({ (uint64_t)ev.when.count(), (int)ev.what, ev.where, ev.why });
 
 
@@ -263,12 +264,13 @@ std::string LookupName(fx::ProfilerEventType ty) {
 	}
 }
 
-void PrintEvents(const std::vector<fx::ProfilerEvent>& evs) {
+template<typename TContainer>
+void PrintEvents(const TContainer& evs) {
 	using EvType = fx::ProfilerEventType;
 
 	auto indent = 0;
 
-	for (const auto& ev : evs) {
+	for (const fx::ProfilerEvent& ev : evs) {
 		if (ev.what == EvType::EXIT_RESOURCE || ev.what == EvType::EXIT_SCOPE)
 		{
 			indent -= 2;
@@ -491,6 +493,8 @@ namespace profilerCommand {
 }
 
 namespace fx {
+	DLL_EXPORT bool g_recordProfilerTime;
+
 	void ProfilerComponent::PushEvent(ProfilerEvent&& ev)
 	{
 		if (m_recording)
@@ -555,14 +559,16 @@ namespace fx {
 		m_offset = fx::usec();
 		m_frames = frames;
 		m_recording = true;
+		g_recordProfilerTime = true;
 		m_events = {};
 	}
 	void ProfilerComponent::StopRecording()
 	{
 		m_recording = false;
+		g_recordProfilerTime = false;
 	}
 
-	auto ProfilerComponent::Get() -> const std::vector<ProfilerEvent>&
+	auto ProfilerComponent::Get() -> const tbb::concurrent_vector<ProfilerEvent>&
 	{
 		return m_events;
 	}
