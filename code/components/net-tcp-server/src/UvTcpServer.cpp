@@ -106,15 +106,15 @@ void UvTcpServerStream::CloseClient()
 
 	if (client)
 	{
-		// before closing, drain the write list
-		HandlePendingWrites();
-
 		decltype(m_writeCallback) writeCallback;
 
 		{
 			std::unique_lock<std::shared_mutex> lock(m_writeCallbackMutex);
 			writeCallback = std::move(m_writeCallback);
 		}
+
+		// before closing (but after eating the write callback!), drain the write list
+		HandlePendingWrites();
 
 		if (writeCallback)
 		{
