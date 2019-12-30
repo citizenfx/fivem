@@ -57,7 +57,17 @@ namespace fx {
 #endif
 		ProfilerComponent : public fwRefCountable {
 	public:
-		void PushEvent(ProfilerEvent&& ev);
+		template<typename... TArgs>
+		inline void PushEvent(TArgs&&... args)
+		{
+			if (m_recording)
+			{
+				ProfilerEvent ev{ std::forward<TArgs>(args)... };
+
+				ev.when -= m_offset;
+				m_events.push_back(ev);
+			}
+		}
 		
 		void EnterResource(const std::string& resource, const std::string& cause);
 		void ExitResource();

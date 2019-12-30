@@ -495,15 +495,6 @@ namespace profilerCommand {
 namespace fx {
 	DLL_EXPORT bool g_recordProfilerTime;
 
-	void ProfilerComponent::PushEvent(ProfilerEvent&& ev)
-	{
-		if (m_recording)
-		{
-			ev.when -= m_offset;
-			m_events.push_back(ev);
-		}
-	}
-	
 	void ProfilerComponent::SubmitScreenshot(const void* imageRgb, size_t width, size_t height)
 	{
 		if (!IsRecording())
@@ -527,23 +518,23 @@ namespace fx {
 
 	void ProfilerComponent::EnterResource(const std::string& resource, const std::string& cause)
 	{
-		PushEvent({ ProfilerEventType::ENTER_RESOURCE, resource, cause });
+		PushEvent(ProfilerEventType::ENTER_RESOURCE, resource, cause);
 	}
 	void ProfilerComponent::ExitResource()
 	{
-		PushEvent({ ProfilerEventType::EXIT_RESOURCE });
+		PushEvent(ProfilerEventType::EXIT_RESOURCE);
 	}
 	void ProfilerComponent::EnterScope(const std::string& scope)
 	{
-		PushEvent({ ProfilerEventType::ENTER_SCOPE, scope, {} });
+		PushEvent(ProfilerEventType::ENTER_SCOPE, scope, std::string{});
 	}
 	void ProfilerComponent::ExitScope()
 	{
-		PushEvent({ ProfilerEventType::EXIT_SCOPE });
+		PushEvent(ProfilerEventType::EXIT_SCOPE);
 	}
 	void ProfilerComponent::BeginTick()
 	{
-		PushEvent({ fx::ProfilerEventType::BEGIN_TICK });
+		PushEvent(fx::ProfilerEventType::BEGIN_TICK);
 		EnterScope("Resource Tick");
 
 		if (--m_frames == 0) { ProfilerComponent::StopRecording(); }
@@ -551,7 +542,7 @@ namespace fx {
 	void ProfilerComponent::EndTick()
 	{
 		ExitScope();
-		PushEvent({ fx::ProfilerEventType::END_TICK, "", m_screenshot });
+		PushEvent(fx::ProfilerEventType::END_TICK, "", m_screenshot);
 	}
 	
 	void ProfilerComponent::StartRecording(const int frames)
