@@ -26,7 +26,7 @@ if exist %CacheRoot%\cfx-ui-modules (
 call npm i
 
 :: workaround for duplicate webpack versions
-rmdir /s node_modules\@angular-devkit\build-angular\node_modules\webpack
+rmdir /s /q node_modules\@angular-devkit\build-angular\node_modules\webpack
 
 :: build the worker
 :: unused now
