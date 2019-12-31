@@ -1,0 +1,59 @@
+@import "variables";
+
+:host {
+	@include theme() using ($theme) {
+		color: gtv($theme, textColour);
+	};
+
+	@include aspectLimited();
+
+	display: flex;
+	justify-items: center;
+	align-items: center;
+	height: $appContentHeight;
+
+	&>div {
+		@include appContentNoLimit();
+
+		width: 60%;
+		margin-left: auto;
+		margin-right: auto;
+		height: auto;
+
+		padding: 0;
+
+		position: relative;
+	}
+}
+
+
+.close-app {
+	position: absolute;
+	top: 1.5vh;
+	right: 1.5vh;
+
+	width: 2vh;
+	height: 2vh;
+	line-height: 2vh;
+
+	z-index: 99999;
+
+	cursor: pointer;
+
+	&:hover svg {
+		@include theme() using ($theme) {
+			fill: rgba(gtv($theme, secondaryColour), 1);
+		};
+	}
+
+	svg {
+		@include theme() using ($theme) {
+			fill: rgba(gtv($theme, secondaryColour), .8);
+		};
+
+		width: 2vh;
+		height: 2vh;
+
+		transition: all .2s ease;
+	}
+}

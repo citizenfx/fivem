@@ -6,6 +6,12 @@
 	};
 }
 
+div.theRoot {
+	@include themeIsHost() using ($theme) {
+		--my-background-image: #{gtv($theme, backgroundImage)};
+	}
+}
+
 .app-root {
 	display: flex;
 	position: relative;
@@ -70,7 +76,7 @@ $blurSize: 20px;
 * {
 	@include themeIsHost() using ($theme) {
 		#bg {
-			background-image: gtv($theme, backgroundImage);
+			background-image: var(--my-background-image);
 		}
 	}
 }

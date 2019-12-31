@@ -40,7 +40,7 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
     private unSpin: number;
 
-    @ViewChild('list', { static: false }) private list: ElementRef;
+    @ViewChild('list') private list: ElementRef;
 
     private interactingUntil = 0;
     private inInteraction: boolean;

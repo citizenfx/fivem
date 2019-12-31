@@ -6,6 +6,7 @@ import { GameService } from './game.service';
 import { TrackingService } from './tracking.service';
 
 import { environment } from '../environments/environment';
+import { Router } from '@angular/router';
 
 @Component({
 	selector: 'app-root',
@@ -14,11 +15,17 @@ import { environment } from '../environments/environment';
 })
 export class AppComponent extends Translation implements OnInit {
 	overlayActive = false;
+	minModeSetUp = false;
+
+	get minMode() {
+		return this.gameService.inMinMode;
+	}
 
 	constructor(public locale: LocaleService,
 		public translation: TranslationService,
-		private gameService: GameService,
-		private trackingService: TrackingService) {
+		public gameService: GameService,
+		private trackingService: TrackingService,
+		private router: Router) {
 		super();
 
 		this.locale.init();
@@ -30,6 +37,19 @@ export class AppComponent extends Translation implements OnInit {
 		this.gameService.languageChange.subscribe(value => {
 			this.locale.setCurrentLanguage(value);
 		})
+
+		this.gameService.minModeChanged.subscribe((value: boolean) => {
+			if (value) {
+				this.classes = [
+					...this.classes.filter(a => a !== 'theme-light'),
+					'minmode',
+					'theme-dark'
+				];
+				this.router.navigate(['/minmode']);
+			}
+
+			this.minModeSetUp = true;
+		});
 	}
 
 	ngOnInit() {
@@ -38,7 +58,8 @@ export class AppComponent extends Translation implements OnInit {
 			(this.gameService.gameName === 'rdr3') ?
 				'theme-rdr3' :
 				(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light',
-			'game-' + this.gameService.gameName
+			'game-' + this.gameService.gameName,
+			'theRoot',
 		];
 
 		this.gameService.darkThemeChange.subscribe(value => {

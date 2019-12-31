@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, Input, Output, EventEmitter } from '@angular/core';
 import { GameService } from '../game.service';
 import { Translation, TranslationService } from 'angular-l10n';
 import * as AdaptiveCards from 'adaptivecards';
@@ -17,9 +17,16 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 	overlayMessageData = {};
 	overlayBg = '';
 	closeLabel = "#Servers_CloseOverlay";
+	retryLabel = "#Servers_Retry";
 	submitting = false;
 
-	@ViewChild('card', { static: false }) cardElement: ElementRef;
+	@Input()
+	minMode = false;
+
+	@Output()
+	retry = new EventEmitter();
+
+	@ViewChild('card') cardElement: ElementRef;
 
 	constructor(
 		private gameService: GameService,
@@ -30,9 +37,11 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 
 	ngOnInit() {
 		this.gameService.connecting.subscribe(a => {
-			this.overlayTitle = '#Servers_Connecting';
+			this.overlayTitle = (!this.minMode) ? '#Servers_Connecting' : '#Servers_ConnectingTo';
 			this.overlayMessage = '#Servers_ConnectingTo';
-			this.overlayMessageData = {serverName: (a) ? a.address : 'unknown'};
+			this.overlayMessageData = {serverName: this.minMode
+				? this.gameService.minmodeBlob.productName
+				: ((a) ? a.address : 'unknown')};
 			this.showOverlay = true;
 			this.overlayClosable = false;
 
@@ -53,9 +62,9 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 		});
 
 		this.gameService.connectStatus.subscribe(a => {
-			this.overlayTitle = '#Servers_Connecting';
+			this.overlayTitle = (!this.minMode) ? '#Servers_Connecting' : '#Servers_ConnectingTo';
 			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = {message: a.message};
+			this.overlayMessageData = {message: a.message, serverName: this.gameService.minmodeBlob.productName};
 			this.showOverlay = true;
 			this.overlayClosable = (a.count == 133 && a.total == 133); // magic numbers, yeah :(
 
@@ -300,5 +309,9 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 
 			this.gameService.cancelNativeConnect();
 		}
+	}
+
+	doRetry() {
+		this.retry.emit();
 	}
 }

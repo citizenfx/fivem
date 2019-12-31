@@ -13,6 +13,8 @@ private:
 	static void InvokeEntryPoint(void(*)());
 
 public:
+	static void SetMinModeManifest(const std::string& manifest);
+
 	static void Launch(const std::wstring& gamePath, bool isMainGame = false);
 
     static void SetCoreMapping();

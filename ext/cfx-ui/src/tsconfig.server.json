@@ -6,12 +6,10 @@
     "baseUrl": "",
     "types": ["node"]
   },
-  "exclude": [
-    "test.ts",
-    "worker/*.ts",
-    "**/*.spec.ts"
-  ],
   "angularCompilerOptions": {
     "entryModule": "app/app.server.module#AppServerModule"
-  }
+  },
+  "files": [
+    "main.server.ts"
+  ]
 }

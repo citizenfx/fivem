@@ -63,6 +63,11 @@ export abstract class GameService {
 	computerNameChange = new EventEmitter<string>();
 	authPayloadSet = new EventEmitter<string>();
 
+	inMinMode = false;
+	minmodeBlob: any = {};
+
+	minModeChanged = new EventEmitter<boolean>();
+
 	profile: Profile = null;
 
 	convars: { [name: string]: ConvarWrapper } = {};
@@ -293,6 +298,7 @@ export class CfxGameService extends GameService {
 	init() {
 		(<any>window).invokeNative('getFavorites', '');
 		(<any>window).invokeNative('getConvars', '');
+		(<any>window).invokeNative('getMinModeInfo', '');
 
 		fetch('https://nui-internal/profiles/list').then(async response => {
 			try {
@@ -355,6 +361,18 @@ export class CfxGameService extends GameService {
 						setTimeout(() => {
 							this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
 						}, 500);
+						break;
+					case 'setMinModeInfo':
+						const enabled: boolean = event.data.enabled;
+						const data = event.data.data;
+
+						this.inMinMode = enabled;
+						this.minmodeBlob = data;
+
+						this.zone.run(() => {
+							this.minModeChanged.emit(enabled);
+						});
+
 						break;
 				}
 			});
@@ -660,6 +678,7 @@ export class DummyGameService extends GameService {
 		profile.parameters = {};
 
 		this.handleSignin(profile);
+		this.minModeChanged.emit(false);
 	}
 
 	connectTo(server: Server, enteredAddress?: string) {

@@ -452,6 +452,25 @@ BOOL EnumProcessModulesHook(
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
+static std::string g_minModeManifest;
+
+void CitizenGame::SetMinModeManifest(const std::string& manifest)
+{
+	g_minModeManifest = manifest;
+}
+
+inline void CoreSetMinModeManifest(const char* str)
+{
+	static void(*func)(const char*);
+
+	if (!func)
+	{
+		func = (void(*)(const char*))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetMinModeManifest");
+	}
+
+	(func) ? func(str) : (void)0;
+}
+
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
@@ -470,6 +489,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
 
 	CoreSetDebuggerPresent();
+	CoreSetMinModeManifest(g_minModeManifest.c_str());
 
 	if (!getenv("CitizenFX_ToolMode"))
 	{

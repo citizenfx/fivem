@@ -42,6 +42,8 @@
 
 #include <SteamComponentAPI.h>
 
+#include <MinMode.h>
+
 #include "GameInit.h"
 
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
@@ -448,7 +450,13 @@ static InitFunction initFunction([] ()
 
 	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
 	{
-		if (!_wcsicmp(type, L"connectTo"))
+		if (!_wcsicmp(type, L"getMinModeInfo"))
+		{
+			auto manifest = CoreGetMinModeManifest();
+
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setMinModeInfo", "enabled": %s, "data": %s })", manifest->IsEnabled() ? "true" : "false", manifest->GetRaw()));
+		}
+		else if (!_wcsicmp(type, L"connectTo"))
 		{
 			std::wstring hostnameStrW = arg;
 			std::string hostnameStr(hostnameStrW.begin(), hostnameStrW.end());

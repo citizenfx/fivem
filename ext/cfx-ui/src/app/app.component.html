@@ -1,9 +1,10 @@
-<div [ngClass]="classes">
-    <div id="bg"></div>
+<div [ngClass]="classes" *ngIf="minModeSetUp" [style.--myBackgroundImage]="gameService.inMinMode ? 'url(' + gameService.minmodeBlob['art:backgroundImage'] + ')' : null">
+    <div id="bg" *ngIf="!minMode || !gameService.minmodeBlob['art:backgroundImage']"></div>
+    <div id="bg" *ngIf="minMode && gameService.minmodeBlob['art:backgroundImage']"></div>
 
     <div class="app-root">
-        <app-nav></app-nav>
+        <app-nav *ngIf="!minMode"></app-nav>
         <router-outlet></router-outlet>
-        <connecting-popup></connecting-popup>
+        <connecting-popup *ngIf="!minMode"></connecting-popup>
     </div>
 </div>

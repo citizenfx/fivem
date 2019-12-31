@@ -21,6 +21,6 @@
       "es2017.object",
       "dom"
     ],
-    "module": "es2015"
+    "module": "esnext"
   }
 }

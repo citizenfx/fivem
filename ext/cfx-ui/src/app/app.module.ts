@@ -22,6 +22,7 @@ import {ConnectingPopupComponent} from './servers/connecting-popup.component';
 import {HomeComponent} from './home/home.component';
 import {HomeTweetComponent} from './home/home-tweet.component';
 import {SettingsComponent} from './settings/settings.component';
+import {MinModeComponent} from './minmode/minmode.component';
 
 import {ServersComponent} from './servers/components/servers.component';
 import {ServersContainerComponent} from './servers/components/servers-container.component';
@@ -96,6 +97,7 @@ export function metaFactory(): MetaLoader {
 		ServersDetailComponent,
 		DirectConnectComponent,
 		PlayerAvatarComponent,
+		MinModeComponent,
 		ColorizePipe,
 		EscapePipe
 	],

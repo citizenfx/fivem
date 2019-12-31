@@ -3,6 +3,7 @@ import {Routes, RouterModule} from '@angular/router';
 
 import {HomeComponent} from './home/home.component';
 import {SettingsComponent} from './settings/settings.component';
+import {MinModeComponent} from './minmode/minmode.component';
 import {ServersComponent} from './servers/components/servers.component';
 import {ServersDetailComponent} from './servers/components/servers-detail.component';
 import {ServersContainerComponent} from './servers/components/servers-container.component';
@@ -59,6 +60,10 @@ const routes: Routes = [
 	{
 		path:      'settings',
 		component: SettingsComponent
+	},
+	{
+		path:      'minmode',
+		component: MinModeComponent
 	}
 ];
 

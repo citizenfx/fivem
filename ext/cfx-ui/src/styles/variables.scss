@@ -135,7 +135,7 @@ $themes: $themeLight $themeDark $themeRdr;
     backdrop-filter: blur($amount);
 }
 
-@mixin appContent() {
+@mixin appContentNoLimit() {
     height: $appContentHeight;
 	margin-top: $appContentMargin;
     padding-left: #{$appContentPadding};
@@ -149,8 +149,7 @@ $themes: $themeLight $themeDark $themeRdr;
 
     overflow: hidden;
 
-    @include aspectLimited();
-    
+   
     &:after {
         content: '';
         width: 100%;
@@ -169,7 +168,20 @@ $themes: $themeLight $themeDark $themeRdr;
             /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
             /*backdrop-filter: gtv($theme, acrylicBlur);*/
             filter: gtv($theme, acrylicBlur);
-            background-image: gtv($theme, backgroundImage);
+            background-image: var(--my-background-image);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center; /* a well-trained eye will notice this is very much not seamless... */
+                                                /* go complain to Google, not us. */
+        }
+    };
+
+    @include themeNoHost() using ($theme) {
+        &:after {
+            /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
+            /*backdrop-filter: gtv($theme, acrylicBlur);*/
+            filter: gtv($theme, acrylicBlur);
+            background-image: var(--my-background-image);
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center center; /* a well-trained eye will notice this is very much not seamless... */
@@ -185,4 +197,9 @@ $themes: $themeLight $themeDark $themeRdr;
             filter: none !important;
         }
     }
+}
+
+@mixin appContent() {
+    @include aspectLimited();
+    @include appContentNoLimit();
 }

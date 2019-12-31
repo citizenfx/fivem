@@ -23,6 +23,7 @@
     "#Servers_Info": "Info",
     "#Servers_CloseOverlay": "Close",
     "#Servers_CancelOverlay": "Cancel",
+    "#Servers_Retry": "Retry",
     "#Servers_Message": "{{ message }}",
     "#ServerList_Connect": "Connect...",
     "#ServerList_AddFavorite": "Add Favorite",

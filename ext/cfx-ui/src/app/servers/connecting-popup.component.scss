@@ -33,7 +33,7 @@
 		pointer-events: inherit;
 	}
 
-	&>div {
+	& > div {
 		@include theme() using ($theme) {
 			background-color: rgba(gtv($theme, bgColour), .75);
 		};
@@ -44,79 +44,87 @@
 
 		&.withBg {
 			box-shadow: #000 0px 0px 75px;
-
+	
 			@include theme() using ($theme) {
 				background-color: rgba(gtv($theme, bgColour), 1);
 			};
 		}
+	}
+}
 
-		&>section {
-			position: relative;
+.minmode {
+	margin-left: auto;
+	margin-right: auto;
+}
 
-			height: 15vh;
+div.inner {
+	&>section {
+		position: relative;
 
-			.bg {
+		height: 15vh;
+
+		.bg {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+
+			overflow: hidden;
+
+			img {
 				position: absolute;
-				top: 0;
 				left: 0;
 				right: 0;
-				bottom: 0;
-
-				overflow: hidden;
-
-				img {
-					position: absolute;
-					left: 0;
-					right: 0;
-					top: -9999px;
-					bottom: -9999px;
-					margin: auto 0;
-					width: 100%;
-					transform: none;
-				}
-			}
-		}
-
-		&.withBg>div {
-			min-height: 200px;
-			display: flex;
-			align-items: center;
-		}
-
-		&>div>div {
-			padding: 2.5%;
-		}
-
-		&.withBg>div>div {
-			padding-top: 1%;
-		}
-
-		h1 {
-			font-size: 40px;
-			font-weight: 100;
-			line-height: 1;
-			margin: 0;
-			margin-bottom: $padding;
-		}
-
-		p {
-			@include theme() using ($theme) {
-				color: gtv($theme, textColour);
-			};
-
-			user-select: text;
-			white-space: pre-line;
-		}
-
-		button {
-			margin-top: $padding;
-
-			opacity: 0;
-			transition: none;
-
-			&.active {
-				opacity: 1;
+				top: -9999px;
+				bottom: -9999px;
+				margin: auto 0;
+				width: 100%;
+				transform: none;
 			}
 		}
 	}
+
+	&.withBg>div {
+		min-height: 200px;
+		display: flex;
+		align-items: center;
+	}
+
+	&>div>div {
+		padding: 2.5%;
+	}
+
+	&.withBg>div>div {
+		padding-top: 1%;
+	}
+
+	h1 {
+		font-size: 40px;
+		font-weight: 100;
+		line-height: 1;
+		margin: 0;
+		margin-bottom: $padding;
+	}
+
+	p {
+		@include theme() using ($theme) {
+			color: gtv($theme, textColour);
+		};
+
+		user-select: text;
+		white-space: pre-line;
+	}
+
+	button {
+		margin-top: $padding;
+
+		opacity: 0;
+		transition: none;
+
+		&.active {
+			opacity: 1;
+		}
+	}
 }
+

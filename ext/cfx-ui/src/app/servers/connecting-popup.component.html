@@ -1,4 +1,4 @@
-<div class="overlay" [class.active]="showOverlay">
+<div [class.overlay]="!minMode" [class.minmode]="minMode" [class.active]="showOverlay">
 	<div class="inner" [class.withBg]="overlayBg != ''">
 		<section class="header" *ngIf="overlayBg != ''">
 			<figure class="bg">
@@ -8,15 +8,23 @@
 		<div>
 			<div>
 				<h1>
-					{{overlayTitle|translate:lang}}
+					{{overlayTitle|translate:lang:overlayMessageData}}
 				</h1>
 				<p>{{overlayMessage|translate:lang:overlayMessageData }}</p>
 				<div #card></div>
 				<button
 					[class.active]="overlayClosable"
 					(click)="closeOverlay(); false"
+					*ngIf="!minMode"
 				>
 					{{closeLabel|translate:lang}}
+				</button>
+				<button
+					[class.active]="overlayClosable"
+					(click)="doRetry(); false"
+					*ngIf="minMode"
+				>
+					{{retryLabel|translate:lang}}
 				</button>
 			</div>
 		</div>

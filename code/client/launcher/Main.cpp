@@ -40,6 +40,43 @@ void NVSP_DisableOnStartup();
 bool ExecutablePreload_Init();
 void InitLogging();
 
+#include <MinMode.h>
+#include <fstream>
+
+std::shared_ptr<fx::MinModeManifest> InitMinMode()
+{
+	const wchar_t* cli = GetCommandLineW();
+
+	auto minmodePos = wcsstr(cli, L"+set minmodemanifest \"");
+
+	try
+	{
+		if (minmodePos != nullptr)
+		{
+			std::wstring fileName = &minmodePos[wcslen(L"+set minmodemanifest \"")];
+			auto fnEnd = fileName.find_first_of('"');
+
+			if (fnEnd != std::string::npos)
+			{
+				fileName = fileName.substr(0, fnEnd);
+
+				std::ifstream fs(fileName);
+
+				nlohmann::json j;
+				fs >> j;
+
+				return std::make_shared<fx::MinModeManifest>(j);
+			}
+		}
+	}
+	catch (std::exception& e)
+	{
+
+	}
+
+	return std::make_shared<fx::MinModeManifest>();
+}
+
 HANDLE g_uiDoneEvent;
 HANDLE g_uiExitEvent;
 
@@ -508,16 +545,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	tui = {};
 
+	auto minModeManifest = InitMinMode();
+
 	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIExit");
 	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIDone");
 
 	if (initState->IsMasterProcess() && !toolMode)
 	{
-		std::thread([/*tui = std::move(tui)*/]() mutable
+		std::thread([/*tui = std::move(tui)*/minModeManifest]() mutable
 		{
 			static HostSharedData<CfxState> initState("CfxInitState");
 
-#ifndef _DEBUG
+//#ifndef _DEBUG
 			if (!initState->isReverseGame)
 			{
 				//auto tuiTen = std::move(tui);
@@ -527,8 +566,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				UI_DoCreation(false);
 
 				auto st = GetTickCount64();
-				UI_UpdateText(0, L"Starting " PRODUCT_NAME L"...");
-				UI_UpdateText(1, L"We're getting there.");
+				UI_UpdateText(0, va(L"Starting %s...", 
+					ToWide(minModeManifest->Get("productName", ToNarrow(PRODUCT_NAME)))));
+
+				UI_UpdateText(1, ToWide(minModeManifest->Get("productSubtitle", "We're getting there.")).c_str());
 
 				while (GetTickCount64() < (st + 3500))
 				{
@@ -556,7 +597,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				UI_DoDestruction();
 			}
-#endif
+//#endif
 
 			SetEvent(g_uiDoneEvent);
 		}).detach();
@@ -564,6 +605,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	if (!toolMode)
 	{
+		CitizenGame::SetMinModeManifest(minModeManifest->GetRaw());
+
 		wchar_t fxApplicationName[MAX_PATH];
 		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
 
