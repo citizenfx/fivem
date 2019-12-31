@@ -46,7 +46,13 @@ static json load_json_file(const std::wstring& path)
 
 		fclose(f);
 
-		return json::parse(text);
+		try
+		{
+			return json::parse(text);
+		}
+		catch (std::exception& e)
+		{
+		}
 	}
 
 	return json(nullptr);
