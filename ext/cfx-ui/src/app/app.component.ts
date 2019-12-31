@@ -21,6 +21,10 @@ export class AppComponent extends Translation implements OnInit {
 		return this.gameService.inMinMode;
 	}
 
+	get bgImage(): string {
+		return this.minMode ? 'url(' + this.gameService.minmodeBlob['art:backgroundImage'] + ')' : null
+	}
+
 	constructor(public locale: LocaleService,
 		public translation: TranslationService,
 		public gameService: GameService,
