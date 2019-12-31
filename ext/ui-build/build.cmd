@@ -1,8 +1,8 @@
 @echo off
 
-:: check if NPM exists
+:: check if Yarn exists
 
-where /q npm
+where /q yarn
 
 if errorlevel 1 (
     exit /B 1
@@ -22,8 +22,8 @@ if exist %CacheRoot%\cfx-ui-modules (
 	move %CacheRoot%\cfx-ui-modules node_modules
 )
 
-:: install npm stuff
-call npm i
+:: install packages (using Yarn now)
+call yarn
 
 :: workaround for duplicate webpack versions
 rmdir /s /q node_modules\@angular-devkit\build-angular\node_modules\webpack
