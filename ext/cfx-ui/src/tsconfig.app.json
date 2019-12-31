@@ -10,5 +10,8 @@
     "test.ts",
     "**/*.spec.ts",
     "**/*.worker.ts"
-  ]
+  ],
+  "angularCompilerOptions": {
+    "enableIvy": false
+  }
 }
