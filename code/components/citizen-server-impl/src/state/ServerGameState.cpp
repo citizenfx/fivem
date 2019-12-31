@@ -1919,12 +1919,10 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 	{
 		std::weak_ptr<sync::SyncEntityState> entity;
 
-		{
-			auto& ref = m_entitiesById[objectId];
-			auto l = ref.enter();
+		auto& ref = m_entitiesById[objectId];
+		auto l = ref.enter();
 			
-			entity = ref.ptr;
-		}
+		entity = ref.ptr;
 
 		auto entityRef = entity.lock();
 
