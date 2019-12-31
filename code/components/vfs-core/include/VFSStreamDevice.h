@@ -239,6 +239,8 @@ public:
 protected:
 	HandleDataType* AllocateHandle(THandle* handle)
 	{
+		auto lock = AcquireMutex();
+
 		for (int i = 0; i < m_handles.size(); i++)
 		{
 			if (!m_handles[i].valid)
@@ -261,6 +263,8 @@ protected:
 
 	HandleDataType* GetHandle(THandle inHandle)
 	{
+		auto lock = AcquireMutex();
+
 		if (inHandle >= 0 && inHandle < m_handles.size())
 		{
 			if (m_handles[inHandle].valid)
@@ -275,13 +279,13 @@ protected:
 protected:
 	auto AcquireMutex()
 	{
-		return std::move(std::unique_lock<std::mutex>(m_mutex));
+		return std::move(std::unique_lock<std::recursive_mutex>(m_mutex));
 	}
 
 private:
 	std::deque<HandleDataType> m_handles;
 
-	std::mutex m_mutex;
+	std::recursive_mutex m_mutex;
 };
 
 template<class StreamType, class BulkType>

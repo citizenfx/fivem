@@ -165,12 +165,7 @@ public:
 	}
 
 protected:
-	struct EntryStorage
-	{
-		concurrency::task<RcdFetchResult> task;
-	};
-
-	std::mutex m_lock;
+	static std::mutex ms_lock;
 
 public:
 	std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> GetEntryForFileName(std::string_view fileName);
@@ -184,7 +179,7 @@ private:
 	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry);
 
 protected:
-	tbb::concurrent_unordered_map<std::string, EntryStorage> m_entries;
+	static tbb::concurrent_unordered_map<std::string, concurrency::task<RcdFetchResult>> ms_entries;
 
 	std::shared_ptr<ResourceCache> m_cache;
 	bool m_blocking;

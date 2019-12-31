@@ -260,21 +260,18 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 		return {};
 	}
 
-	std::unique_lock<std::mutex> lock(m_lock);
+	std::unique_lock<std::mutex> lock(ms_lock);
 
 	const auto& e = entry->get();
 	const auto& referenceHash = e.referenceHash;
-	auto it = m_entries.find(referenceHash);
+	auto it = ms_entries.find(referenceHash);
 
-	if (it == m_entries.end())
+	if (it == ms_entries.end())
 	{
-		it = m_entries.insert({ referenceHash, { concurrency::create_task([this, entry]() -> concurrency::task<RcdFetchResult>
-		{
-			return co_await DoFetch(*entry);
-		}) } }).first;
+		it = ms_entries.emplace(referenceHash, concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry))).first;
 	}
 
-	return it->second.task;
+	return it->second;
 }
 
 concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceCacheEntryList::Entry& entryRef)
@@ -590,6 +587,9 @@ ResourceCacheDeviceV2::ResourceCacheDeviceV2(const std::shared_ptr<ResourceCache
 {
 
 }
+
+std::mutex ResourceCacheDeviceV2::ms_lock;
+tbb::concurrent_unordered_map<std::string, concurrency::task<RcdFetchResult>> ResourceCacheDeviceV2::ms_entries;
 }
 
 void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache)

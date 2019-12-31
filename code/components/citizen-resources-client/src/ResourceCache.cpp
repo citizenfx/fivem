@@ -190,9 +190,9 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	{
 		// add an entry to the database
 		std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), 20);
-		m_entryCache[key] = {};
 
 		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+		m_entryCache[key] = {};
 	}
 
 	{
@@ -200,9 +200,9 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 		auto fromIt = metaData.find("from");
 
 		std::string key = "cache:v1:url:" + fromIt->second;
-		m_entryCache[key] = {};
 
 		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+		m_entryCache[key] = {};
 	}
 
 	trace("ResourceCache::AddEntry: Saved cache:v1:%s to the index cache.\n", hashString);
