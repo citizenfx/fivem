@@ -305,15 +305,17 @@ uint32_t ServerGameState::MakeScriptHandle(const std::shared_ptr<sync::SyncEntit
 
 glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
-	if (!entity->syncTree)
+	auto syncTree = entity->syncTree;
+
+	if (!syncTree)
 	{
 		return { 0, 0, 0 };
 	}
 
 	float playerPos[3];
-	entity->syncTree->GetPosition(playerPos);
+	syncTree->GetPosition(playerPos);
 
-	auto camData = entity->syncTree->GetPlayerCamera();
+	auto camData = syncTree->GetPlayerCamera();
 
 	if (!camData)
 	{
@@ -2118,16 +2120,18 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, entity, m_frameIndex };
 
-	if (entity->syncTree)
+	auto syncTree = entity->syncTree;
+
+	if (syncTree)
 	{
-		entity->syncTree->Parse(state);
+		syncTree->Parse(state);
 
 		// reset resends to 0
 		entity->lastResends = {};
 
 		if (parsingType == 1)
 		{
-			entity->syncTree->Visit([](sync::NodeBase& node)
+			syncTree->Visit([](sync::NodeBase& node)
 			{
 				node.ackedPlayers.reset();
 
@@ -2252,10 +2256,11 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 		{
 			auto objectId = msgBuf.Read<uint16_t>(13);
 			auto entity = GetEntity(0, objectId);
+			auto syncTree = entity->syncTree;
 
-			if (entity && entity->syncTree)
+			if (syncTree)
 			{
-				entity->syncTree->Visit([client](fx::sync::NodeBase & node)
+				syncTree->Visit([client](fx::sync::NodeBase & node)
 				{
 					node.ackedPlayers.set(client->GetSlotId());
 

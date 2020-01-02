@@ -212,7 +212,7 @@ struct SyncEntityState
 	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastResends{};
 	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs{};
 
-	std::unique_ptr<SyncTreeBase> syncTree;
+	std::shared_ptr<SyncTreeBase> syncTree;
 
 	template<typename T>
 	inline T GetData(std::string_view key, T defaultVal)
@@ -489,7 +489,7 @@ public:
 	std::shared_mutex m_entityListMutex;
 };
 
-std::unique_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
+std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
 }
 
 DECLARE_INSTANCE_TYPE(fx::ServerGameState);
