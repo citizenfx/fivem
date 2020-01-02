@@ -65,6 +65,9 @@ std::vector<uint8_t> Stream::ReadToEnd()
 	size_t fileLength = m_device->GetLength(m_handle);
 	size_t curSize = Seek(0, SEEK_CUR);
 	
+	if (fileLength - curSize == 0)
+		return std::vector<uint8_t>();
+
 	return Read(fileLength - curSize);
 }
 }
