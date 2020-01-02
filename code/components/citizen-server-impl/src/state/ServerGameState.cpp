@@ -1440,6 +1440,12 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		int minSectorY = std::max((pos.y - 149.0f) + 8192.0f, 0.0f) / 75;
 		int maxSectorY = std::max((pos.y + 149.0f) + 8192.0f, 0.0f) / 75;
 
+		if (minSectorX < 0 || minSectorX > std::size(m_worldGridAccel.slots) ||
+			minSectorY < 0 || minSectorY > std::size(m_worldGridAccel.slots[0]))
+		{
+			return;
+		}
+
 		auto slotID = client->GetSlotId();
 
 		WorldGridState* gridState = &m_worldGrid[slotID];
