@@ -219,20 +219,22 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 		case fx::ProfilerEventType::EXIT_RESOURCE:
 		case fx::ProfilerEventType::EXIT_SCOPE:
 		{
-			auto thisExit = eventStack.top();
-			eventStack.pop();
+			if (eventStack.size() != 0)
+			{
+				auto thisExit = eventStack.top();
+				eventStack.pop();
 
-			traceEvents.push_back(json::object({
-				{ "cat", "blink.user_timing" },
-				{ "name", (thisExit.what == (int)fx::ProfilerEventType::ENTER_RESOURCE)
-					? fmt::sprintf("%s (%s)", thisExit.why, thisExit.where)
-					: thisExit.where },
-				{ "ph", "E" },
-				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 2 },
-				}));
-
+				traceEvents.push_back(json::object({
+					{ "cat", "blink.user_timing" },
+					{ "name", (thisExit.what == (int)fx::ProfilerEventType::ENTER_RESOURCE)
+						? fmt::sprintf("%s (%s)", thisExit.why, thisExit.where)
+						: thisExit.where },
+					{ "ph", "E" },
+					{ "ts", event.when },
+					{ "pid", 1 },
+					{ "tid", 2 },
+					}));
+			}
 			break;
 		}
 		}
