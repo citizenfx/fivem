@@ -2256,19 +2256,23 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 		{
 			auto objectId = msgBuf.Read<uint16_t>(13);
 			auto entity = GetEntity(0, objectId);
-			auto syncTree = entity->syncTree;
 
-			if (syncTree)
+			if (entity)
 			{
-				syncTree->Visit([client](fx::sync::NodeBase & node)
+				auto syncTree = entity->syncTree;
+
+				if (syncTree)
 				{
-					node.ackedPlayers.set(client->GetSlotId());
+					syncTree->Visit([client](fx::sync::NodeBase& node)
+					{
+						node.ackedPlayers.set(client->GetSlotId());
 
-					return true;
-				});
+						return true;
+					});
 
-				entity->didDeletion.reset(client->GetSlotId());
-				entity->ackedCreation.set(client->GetSlotId());
+					entity->didDeletion.reset(client->GetSlotId());
+					entity->ackedCreation.set(client->GetSlotId());
+				}
 			}
 		}
 		case 3: // clone remove
