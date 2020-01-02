@@ -114,14 +114,18 @@ namespace fx
 
 		size_t numEntries = stream->GetLength() / sizeof(Entry);
 
-		std::vector<Entry> entries(numEntries);
-		stream->Read(&entries[0], entries.size() * sizeof(Entry));
-
-		for (auto& entry : entries)
+		if (numEntries > 0)
 		{
-			if (!vfs::OpenRead(entry.onDiskPath).GetRef())
+
+			std::vector<Entry> entries(numEntries);
+			stream->Read(&entries[0], entries.size() * sizeof(Entry));
+
+			for (auto& entry : entries)
 			{
-				return true;
+				if (!vfs::OpenRead(entry.onDiskPath).GetRef())
+				{
+					return true;
+				}
 			}
 		}
 
@@ -324,16 +328,19 @@ namespace fx
 				{
 					size_t numEntries = stream->GetLength() / sizeof(Entry);
 
-					std::vector<Entry> entries(numEntries);
-					stream->Read(&entries[0], entries.size() * sizeof(Entry));
-
-					for (auto& entry : entries)
+					if (numEntries)
 					{
-						auto file = AddStreamingFile(entry);
+						std::vector<Entry> entries(numEntries);
+						stream->Read(&entries[0], entries.size() * sizeof(Entry));
 
-						if (file)
+						for (auto& entry : entries)
 						{
-							file->isAutoScan = true;
+							auto file = AddStreamingFile(entry);
+
+							if (file)
+							{
+								file->isAutoScan = true;
+							}
 						}
 					}
 				}

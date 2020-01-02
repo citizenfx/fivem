@@ -311,7 +311,10 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				int minorVersion;
 				size_t numHeaders = 50;
 
-				int result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
+				int result = -2;
+				
+				if (requestData.size() > 0)
+					result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
 					&path, &pathLength, &minorVersion, localConnectionData->headers, &numHeaders, localConnectionData->lastLength);
 
 				if (result > 0)
