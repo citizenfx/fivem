@@ -201,6 +201,8 @@ void DrawConsole();
 
 static std::mutex g_conHostMutex;
 
+void DrawMiniConsole();
+
 DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 {
 	if (!g_conHostMutex.try_lock())
@@ -249,6 +251,8 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	{
 		DrawConsole();
 	}
+
+	DrawMiniConsole();
 
 	ConHost::OnDrawGui();
 
@@ -343,6 +347,9 @@ DLL_EXPORT void RunConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 	OnConsoleWndProc(hWnd, msg, wParam, lParam, pass, result);
 }
 
+ImFont* consoleFontSmall;
+ImFont* consoleFontTiny;
+
 static InitFunction initFunction([]()
 {
 	auto cxt = ImGui::CreateContext();
@@ -416,7 +423,10 @@ static InitFunction initFunction([]()
 			fread(&fontData[0], 1, fontSize, font);
 			fclose(font);
 
-			io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 20.0f);
+			io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 22.0f);
+
+			consoleFontSmall = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 18.0f);
+			consoleFontTiny = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 14.0f);
 		}
 	}
 
@@ -536,11 +546,11 @@ struct ConsoleKeyEvent
 	ConsoleModifiers modifiers;
 };
 
-void SendPrintMessage(const std::string& message);
+void SendPrintMessage(const std::string& channel, const std::string& message);
 
-void ConHost::Print(int channel, const std::string& message)
+void ConHost::Print(const std::string& channel, const std::string& message)
 {
-	SendPrintMessage(message);
+	SendPrintMessage(channel, message);
 }
 
 fwEvent<const char*, const char*> ConHost::OnInvokeNative;

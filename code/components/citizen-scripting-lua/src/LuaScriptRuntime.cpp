@@ -14,6 +14,8 @@
 #include <msgpack.hpp>
 #include <json.hpp>
 
+#include <CoreConsole.h>
+
 using json = nlohmann::json;
 
 #if defined(GTA_FIVE)
@@ -306,7 +308,7 @@ const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
 void ScriptTraceV(const char* string, fmt::printf_args formatList)
 {
 	auto t = fmt::vsprintf(string, formatList);
-	trace("%s", t);
+	console::Printf(fmt::sprintf("script:%s", LuaScriptRuntime::GetCurrent()->GetResourceName()), "%s", t);
 
 	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
@@ -775,16 +777,6 @@ static int Lua_SubmitBoundaryEnd(lua_State* L)
 
 int Lua_Trace(lua_State* L)
 {
-	// VERY TEMP DBG
-	/*if (strstr(luaL_checkstring(L, 1), "bye world."))
-	{
-		void* call = hook::pattern("48 8D 8D 18 01 00 00 BE 74 26 B5 9F").count(1).get(0).get<void>(-5);
-		void(*t)(uint32_t, uint32_t, uint32_t);
-		hook::set_call(&t, call);
-
-		t(145, 0, 0);
-	}*/
-
 	ScriptTrace("%s", luaL_checkstring(L, 1));
 
 	return 0;
@@ -1353,11 +1345,11 @@ static int Lua_Print(lua_State* L)
 		s = lua_tolstring(L, -1, &l);  /* get result */
 		if (s == NULL)
 			return luaL_error(L, "'tostring' must return a string to 'print'");
-		if (i > 1) trace("%s", std::string("\t", 1));
-		trace("%s", std::string(s, l));
+		if (i > 1) ScriptTrace("%s", std::string("\t", 1));
+		ScriptTrace("%s", std::string(s, l));
 		lua_pop(L, 1);  /* pop result */
 	}
-	trace("\n");
+	ScriptTrace("\n");
 	return 0;
 }
 

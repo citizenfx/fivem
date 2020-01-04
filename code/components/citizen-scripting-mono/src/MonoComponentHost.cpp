@@ -12,6 +12,8 @@
 
 #include <fxScripting.h>
 
+#include <CoreConsole.h>
+
 #include <Error.h>
 
 #include <mono/jit/jit.h>
@@ -149,9 +151,9 @@ static void OutputExceptionDetails(MonoObject* exc, bool fatal = true)
 	}
 }
 
-static void GI_PrintLogCall(MonoString* str)
+static void GI_PrintLogCall(MonoString* channel, MonoString* str)
 {
-	trace("%s", mono_string_to_utf8(str));
+	console::Printf(mono_string_to_utf8(channel), "%s", mono_string_to_utf8(str));
 }
 
 static void

@@ -72,7 +72,7 @@ static InitFunction initFunction([] ()
 {
 	console::CoreAddPrintListener([](ConsoleChannel channel, const char* msg)
 	{
-		ConHost::Print(0, msg);
+		ConHost::Print(channel, msg);
 	});
 
 	static ConsoleCommand quitCommand("quit", []()

@@ -13,7 +13,7 @@ namespace CitizenFX.Core
 
         [SecurityCritical]
         [MethodImpl(MethodImplOptions.InternalCall)]
-        public static extern void PrintLog(string text);
+        public static extern void PrintLog(string channel, string text);
 
 		[SecurityCritical]
 		[MethodImpl(MethodImplOptions.InternalCall)]

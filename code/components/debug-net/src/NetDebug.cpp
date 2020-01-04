@@ -22,7 +22,7 @@
 const int g_netOverlayOffsetX = -30;
 const int g_netOverlayOffsetY = -60;
 const int g_netOverlayWidth = 400;
-const int g_netOverlayHeight = 300;
+const int g_netOverlayHeight = 320;
 
 const int g_netOverlaySampleSize = 200; // milliseconds per sample frame
 const int g_netOverlaySampleCount = 150;

@@ -25,7 +25,9 @@ namespace CitizenFX.Core
 		public static IScriptHost ScriptHost { get; internal set; }
 
 		// actually, domain-global
-		private static InternalManager GlobalManager { get; set; }
+		internal static InternalManager GlobalManager { get; set; }
+
+		internal string ResourceName => m_resourceName;
 
 		[SecuritySafeCritical]
 		public InternalManager()

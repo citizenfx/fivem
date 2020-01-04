@@ -15,6 +15,8 @@
 #include <sstream>
 #include <stack>
 
+#include <CoreConsole.h>
+
 #ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 #if defined(IS_RDR3)
@@ -347,7 +349,7 @@ const OMPtr<V8ScriptRuntime>& V8ScriptRuntime::GetCurrent()
 void ScriptTraceV(const char* string, fmt::printf_args formatList)
 {
 	auto t = fmt::vsprintf(string, formatList);
-	trace("%s", t);
+	console::Printf(fmt::sprintf("script:%s", V8ScriptRuntime::GetCurrent()->GetResourceName()), "%s", t);
 
 	V8ScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
@@ -493,7 +495,7 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
 				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
 
-				trace("Error calling system call ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
+				ScriptTrace("Error calling system call ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
 			else
 			{
@@ -538,7 +540,7 @@ static void V8_SetDeleteRefFunction(const v8::FunctionCallbackInfo<v8::Value>& a
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
 				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
 
-				trace("Error calling system delete ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
+				ScriptTrace("Error calling system delete ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
 		}
 	}));
@@ -568,7 +570,7 @@ static void V8_SetDuplicateRefFunction(const v8::FunctionCallbackInfo<v8::Value>
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
 				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
 
-				trace("Error calling system duplicate ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
+				ScriptTrace("Error calling system duplicate ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
 			else
 			{
@@ -635,7 +637,7 @@ static void V8_SetStackTraceRoutine(const v8::FunctionCallbackInfo<v8::Value>& a
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
 				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
 
-				trace("Error calling system stack trace function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
+				ScriptTrace("Error calling system stack trace function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
 			else
 			{
@@ -1398,10 +1400,10 @@ static void V8_Trace(const v8::FunctionCallbackInfo<v8::Value>& args)
 		}
 
 		v8::String::Utf8Value str(GetV8Isolate(), args[i]);
-		trace("%s", *str);
+		ScriptTrace("%s", *str);
 	}
 
-	trace("\n");
+	ScriptTrace("\n");
 }
 
 static void V8_GetResourcePath(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -1765,7 +1767,7 @@ result_t V8ScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* script
 		{
 			String::Utf8Value str(GetV8Isolate(), eh.Exception());
 
-			trace("Error parsing script %s in resource %s: %s\n", scriptFile, GetResourceName(), *str);
+			ScriptTrace("Error parsing script %s in resource %s: %s\n", scriptFile, GetResourceName(), *str);
 
 			// TODO: change?
 			return FX_E_INVALIDARG;
@@ -1833,7 +1835,7 @@ result_t V8ScriptRuntime::RunFileInternal(char* scriptName, std::function<result
 			String::Utf8Value str(GetV8Isolate(), eh.Exception());
 			String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(GetContext()).ToLocalChecked());
 
-			trace("Error loading script %s in resource %s: %s\nstack:\n%s\n", scriptName, GetResourceName(), *str, *stack);
+			ScriptTrace("Error loading script %s in resource %s: %s\nstack:\n%s\n", scriptName, GetResourceName(), *str, *stack);
 
 			// TODO: change?
 			return FX_E_INVALIDARG;
@@ -2058,7 +2060,7 @@ static void OnMessage(Local<Message> message, Local<Value> error)
 		stack << *sourceStr << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
 	}
 
-	trace("%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
+	ScriptTrace("%s\n%s\n%s\n", *messageStr, stack.str(), *errorStr);
 }
 
 V8ScriptGlobals::V8ScriptGlobals()

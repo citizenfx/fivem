@@ -13,7 +13,9 @@ namespace CitizenFX.Core
         [SecuritySafeCritical]
         public static void Write(string data)
         {
-            GameInterface.PrintLog(data);
+			var channel = "script:" + ((InternalManager.GlobalManager?.ResourceName) ?? "mono");
+
+            GameInterface.PrintLog(channel, data);
         }
 
         public static void Write(string format, params object[] args)
