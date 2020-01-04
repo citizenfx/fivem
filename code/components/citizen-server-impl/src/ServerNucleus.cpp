@@ -53,13 +53,20 @@ static InitFunction initFunction([]()
 
 						trace("^3%suthenticating with Nucleus...^7\n", setNucleus ? "Rea" : "A");
 
-						setNucleusTimeout = msec() + 30s;
+						static auto authDelay = 15s;
+
+						setNucleusTimeout = msec() + authDelay;
 
 						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
 						{
 							if (!success)
 							{
-								setNucleusTimeout = msec() + 15s;
+								if (authDelay < 15min)
+								{
+									authDelay *= 2;
+								}
+
+								setNucleusTimeout = msec() + authDelay;
 
 								trace("^1Authenticating with Nucleus failed! That's possibly bad.^7\n");
 							}
@@ -71,7 +78,7 @@ static InitFunction initFunction([]()
 								trace("^2Authenticated with cfx.re Nucleus: ^7https://%s/\n", jsonData.value("host", ""));
 
 								fwRefContainer<net::ReverseTcpServer> rts = new net::ReverseTcpServer();
-								rts->Listen("cfx.re:30130", jsonData.value("rpToken", ""));
+								rts->Listen("users.cfx.re:30130", jsonData.value("rpToken", ""));
 
 								tlm->AddExternalServer(rts);
 
