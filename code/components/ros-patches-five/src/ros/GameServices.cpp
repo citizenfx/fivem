@@ -417,14 +417,22 @@ void GameServicesHandler::SendResponse(fwRefContainer<net::HttpRequest> request,
 ROSCryptoState::ROSCryptoState(const std::string& platformKey)
 {
 	// initialize the key inputs
-	size_t outLength;
+	size_t outLength = 0;
 	uint8_t* platformStr = base64_decode(platformKey.c_str(), platformKey.length(), &outLength);
 
-	memcpy(m_rc4Key, &platformStr[1], sizeof(m_rc4Key));
-	memcpy(m_xorKey, &platformStr[33], sizeof(m_xorKey));
-	memcpy(m_hashKey, &platformStr[49], sizeof(m_hashKey));
+	if (outLength > 0)
+	{
+		memcpy(m_rc4Key, &platformStr[1], sizeof(m_rc4Key));
+		memcpy(m_xorKey, &platformStr[33], sizeof(m_xorKey));
+		memcpy(m_hashKey, &platformStr[49], sizeof(m_hashKey));
+	}
 
 	free(platformStr);
+
+	if (outLength == 0)
+	{
+		return;
+	}
 
 	// create the RC4 cipher and decode the keys
 	m_rc4 = Botan::get_stream_cipher("RC4")->clone();
