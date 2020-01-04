@@ -536,14 +536,13 @@ struct MiniConsole : CfxBigConsole
 		ImGui::PushFont(consoleFontSmall);
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
-		ImGui::SetNextWindowPos(ImVec2(20, io.DisplaySize.y - 20), ImGuiCond_Once, ImVec2(1.0f, 1.0f));
+		ImGui::SetNextWindowPos(ImVec2(20, io.DisplaySize.y - 20), ImGuiCond_Once, ImVec2(0.0f, 1.0f));
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.4f, ImGui::GetItemsLineHeightWithSpacing() * 12.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing
 
 		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar))
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing
-
 			auto t = msec();
 
 			std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
@@ -558,6 +557,16 @@ struct MiniConsole : CfxBigConsole
 					Items.erase(Items.begin());
 					ItemKeys.erase(ItemKeys.begin());
 					ItemTimes.erase(ItemTimes.begin());
+				}
+
+				if (ItemTimes.size() == 1 && ((t - ItemTimes[0]) > std::chrono::seconds(10)))
+				{
+					free(Items[0]);
+					free(ItemKeys[0]);
+
+					Items[0] = Strdup("");
+					ItemKeys[0] = Strdup("");
+					ItemTimes[0] = t;
 				}
 			}
 
@@ -586,6 +595,7 @@ struct MiniConsole : CfxBigConsole
 			ImGui::SetScrollHere();
 		}
 
+		ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
 		ImGui::End();
 
