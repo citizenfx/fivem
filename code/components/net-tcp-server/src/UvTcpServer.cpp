@@ -90,7 +90,7 @@ void UvTcpServer::RemoveStream(UvTcpServerStream* stream)
 }
 
 UvTcpServerStream::UvTcpServerStream(UvTcpServer* server)
-	: m_server(server)
+	: m_server(server), m_closingClient(false)
 {
 
 }
@@ -104,8 +104,10 @@ void UvTcpServerStream::CloseClient()
 {
 	auto client = m_client;
 
-	if (client)
+	if (client && !m_closingClient)
 	{
+		m_closingClient = true;
+
 		decltype(m_writeCallback) writeCallback;
 
 		{

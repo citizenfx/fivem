@@ -37,6 +37,8 @@ private:
 
 	std::vector<char> m_readBuffer;
 
+	volatile bool m_closingClient;
+
 private:
 	void HandleRead(ssize_t nread, const std::unique_ptr<char[]>& buf);
 
