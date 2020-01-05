@@ -776,6 +776,16 @@ DLL_EXPORT void RunConsoleGameFrame()
 #ifndef IS_LAUNCHER
 static InitFunction initFunction([]()
 {
+	ConHost::OnShouldDrawGui.Connect([](bool* should)
+	{
+		if (g_consoles[1] && !*should)
+		{
+			std::unique_lock<std::recursive_mutex> lock(g_consoles[1]->ItemsMutex);
+
+			*should = *should || ((g_consoles[1]->Items.size() > 1) || (g_consoles[1]->Items[0] && *g_consoles[1]->Items[0]));
+		}
+	}, 999);
+
 	OnGameFrame.Connect([] { RunConsoleGameFrame(); });
 });
 #endif
