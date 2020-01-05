@@ -125,6 +125,16 @@ public:
 		return (it != m_users.end()) ? it->second : nullptr;
 	}
 
+	inline void ForAllUsers(const std::function<void(const std::shared_ptr<MumbleUser>&)>& cb)
+	{
+		std::shared_lock<std::shared_mutex> lock(m_usersMutex);
+
+		for (auto& user : m_users)
+		{
+			cb(user.second);
+		}
+	}
+
 	void ProcessChannelState(MumbleProto::ChannelState& channelState);
 
 	void ProcessUserState(MumbleProto::UserState& userState);

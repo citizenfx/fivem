@@ -20,6 +20,9 @@
 #include <dsound.h>
 #include <ScriptEngine.h>
 
+#include <NetworkPlayerMgr.h>
+#include <netObject.h>
+
 class FxNativeInvoke
 {
 private:
@@ -202,9 +205,27 @@ static void Mumble_Disconnect()
 	_initVoiceChatConfig();
 }
 
-static float* g_cameraFront;
-static float* g_cameraTop;
-static float* g_cameraPos;
+struct grcViewport
+{
+	float m_mat1[16];
+	float m_mat2[16];
+	float m_mat3[16];
+	float m_camMatrix[16];
+};
+
+struct CViewportGame
+{
+public:
+	virtual ~CViewportGame() = 0;
+
+private:
+	char m_pad[8];
+
+public:
+	grcViewport viewport;
+};
+
+static CViewportGame** g_viewportGame;
 static float* g_actorPos;
 
 #pragma comment(lib, "dsound.lib")
@@ -265,21 +286,31 @@ static void Mumble_RunFrame()
 	float cameraPos[3];
 	float actorPos[3];
 
-	cameraFront[0] = g_cameraFront[0];
-	cameraFront[1] = g_cameraFront[2];
-	cameraFront[2] = g_cameraFront[1];
+	cameraFront[0] = -(*g_viewportGame)->viewport.m_camMatrix[8];
+	cameraFront[1] = -(*g_viewportGame)->viewport.m_camMatrix[10];
+	cameraFront[2] = -(*g_viewportGame)->viewport.m_camMatrix[9];
 
-	cameraTop[0] = g_cameraTop[0];
-	cameraTop[1] = g_cameraTop[2];
-	cameraTop[2] = g_cameraTop[1];
+	cameraTop[0] = (*g_viewportGame)->viewport.m_camMatrix[4];
+	cameraTop[1] = (*g_viewportGame)->viewport.m_camMatrix[6];
+	cameraTop[2] = (*g_viewportGame)->viewport.m_camMatrix[5];
 
-	cameraPos[0] = g_cameraPos[0];
-	cameraPos[1] = g_cameraPos[2];
-	cameraPos[2] = g_cameraPos[1];
+	cameraPos[0] = (*g_viewportGame)->viewport.m_camMatrix[12];
+	cameraPos[1] = (*g_viewportGame)->viewport.m_camMatrix[14];
+	cameraPos[2] = (*g_viewportGame)->viewport.m_camMatrix[13];
 
 	actorPos[0] = g_actorPos[0];
 	actorPos[1] = g_actorPos[2];
 	actorPos[2] = g_actorPos[1];
+
+	static auto getCam1 = fx::ScriptEngine::GetNativeHandler(0x19CAFA3C87F7C2FF);
+	static auto getCam2 = fx::ScriptEngine::GetNativeHandler(0xEE778F8C7E1142E2);
+
+	if (FxNativeInvoke::Invoke<int>(getCam2, FxNativeInvoke::Invoke<int>(getCam1)) == 4)
+	{
+		actorPos[0] = cameraPos[0];
+		actorPos[1] = cameraPos[1];
+		actorPos[2] = cameraPos[2];
+	}
 
 	g_mumbleClient->SetListenerMatrix(actorPos, cameraFront, cameraTop);
 	g_mumbleClient->SetActorPosition(actorPos);
@@ -457,6 +488,8 @@ static bool _isAnyoneTalking(void* mgr)
 
 static bool(*g_origIsPlayerTalking)(void*, void*);
 
+extern CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object);
+
 static bool _isPlayerTalking(void* mgr, char* playerData)
 {
 	if (g_origIsPlayerTalking(mgr, playerData))
@@ -475,12 +508,12 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 	
 	if (ped)
 	{
-		auto netObj = *(uint8_t**)(ped + 208);
+		auto netObj = *(rage::netObject**)(ped + 208);
 
 		if (netObj)
 		{
 			// actually: netobj owner
-			auto index = netObj[73];
+			auto index = netObject__GetPlayerOwner(netObj)->physicalPlayerIndex;
 
 			if (g_talkers.test(index) || o_talkers.test(index))
 			{
@@ -529,18 +562,15 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 static HookFunction hookFunction([]()
 {
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
-
-	g_cameraFront = hook::get_address<float*>(hook::get_pattern("40 F6 C6 02 75 25 F3 41 0F 10 44 24 08 4C 8D 0D", 16));
-	g_cameraTop = hook::get_address<float*>(hook::get_pattern("48 69 C0 90 04 00 00 0F C6 C0 00 0F", -11)) - 4;
-	g_cameraPos = hook::get_address<float*>(hook::get_pattern("87 AA 00 00 00 66 0F 6E D0 F3 0F 5C 05", 13));
-
+	g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("33 C0 48 39 05 ? ? ? ? 74 2E 48 8B 0D ? ? ? ? 48 85 C9 74 22", 5));
 	g_actorPos = hook::get_address<float*>(hook::get_pattern("BB 00 00 40 00 48 89 7D F8 89 1D", -4)) + 12;
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
-		auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
-		auto getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
-		auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
+		static auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
+		static auto getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
+		static auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
+		static auto getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
 
 		OnMainGameFrame.Connect([=]()
 		{
@@ -555,8 +585,6 @@ static HookFunction hookFunction([]()
 			{
 				return;
 			}
-
-			static auto getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
 
 			std::vector<std::string> talkers;
 			g_mumbleClient->GetTalkers(&talkers);
@@ -578,6 +606,21 @@ static HookFunction hookFunction([]()
 						g_talkers.set(i);
 					}
 				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOLUME_OVERRIDE", [](fx::ScriptContext& context)
+		{
+			int playerId = context.GetArgument<int>(0);
+			float volume = context.GetArgument<float>(1);
+
+			if (g_mumble.connected)
+			{
+				std::string name = fmt::sprintf("[%d] %s",
+					FxNativeInvoke::Invoke<int>(getServerId, playerId),
+					FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId));
+
+				g_mumbleClient->SetClientVolumeOverride(name, volume);
 			}
 		});
 

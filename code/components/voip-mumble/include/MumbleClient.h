@@ -55,6 +55,8 @@ public:
 
 	virtual void SetChannel(const std::string& channelName) = 0;
 
+	virtual void SetClientVolumeOverride(const std::string& clientName, float volume) = 0;
+
 	virtual void GetTalkers(std::vector<std::string>* names) = 0;
 
 	virtual void SetPositionHook(const TPositionHook& hook) = 0;

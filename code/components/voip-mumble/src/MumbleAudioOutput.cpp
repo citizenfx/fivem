@@ -201,7 +201,7 @@ void MumbleAudioOutput::Initialize()
 }
 
 MumbleAudioOutput::ClientAudioState::ClientAudioState()
-	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false), isAudible(true)
+	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false), isAudible(true), overrideVolume(-1.0f)
 {
 	position[0] = 0.0f;
 	position[1] = 0.0f;
@@ -375,6 +375,16 @@ void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float dista
 	}
 }
 
+void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float volumeOverride)
+{
+	auto client = m_clients[user.GetSessionId()];
+
+	if (client)
+	{
+		client->overrideVolume = volumeOverride;
+	}
+}
+
 void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float position[3])
 {
 	using namespace DirectX;
@@ -417,7 +427,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				}
 			}
 
-			if (g_use3dAudio->GetValue() && m_x3daCalculate)
+			if (g_use3dAudio->GetValue() && m_x3daCalculate && client->overrideVolume < 0.f && distance > 0.0f)
 			{
 				X3DAUDIO_EMITTER emitter = { 0 };
 
@@ -504,7 +514,17 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				auto listenerPos = DirectX::XMVectorSet(m_listener.Position.x, m_listener.Position.y, m_listener.Position.z, 0.0f);
 
 				bool shouldHear = (abs(distance) < 0.01f) ? true : (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos)) < (distance * distance));
-				client->voice->SetVolume(shouldHear ? 1.0f : 0.0f);
+
+				if (client->overrideVolume >= 0.0f)
+				{
+					client->voice->SetVolume(client->overrideVolume);
+
+					shouldHear = client->overrideVolume >= 0.005f;
+				}
+				else
+				{
+					client->voice->SetVolume(shouldHear ? 1.0f : 0.0f);
+				}
 
 				// reset the output matrix in case we were in 3d mode
 				float monoAllSpeakers[] = {

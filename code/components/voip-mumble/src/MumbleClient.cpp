@@ -171,6 +171,17 @@ float MumbleClient::GetInputAudioLevel()
 	return m_audioInput.GetAudioLevel();
 }
 
+void MumbleClient::SetClientVolumeOverride(const std::string& clientName, float volume)
+{
+	m_state.ForAllUsers([this, &clientName, volume](const std::shared_ptr<MumbleUser>& user)
+	{
+		if (user->GetName() == ToWide(clientName))
+		{
+			GetOutput().HandleClientVolumeOverride(*user, volume);
+		}
+	});
+}
+
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
 {
 	referenceIds->clear();
