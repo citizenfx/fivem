@@ -526,7 +526,16 @@ struct MiniConsole : CfxBigConsole
 	{
 		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive, "minicon:*");
 		m_miniconLastValue = m_miniconChannels->GetValue();
-		m_miniconRegex = MakeRegex(m_miniconLastValue);
+
+		try
+		{
+			m_miniconRegex = MakeRegex(m_miniconLastValue);
+		}
+		catch (std::exception & e)
+		{
+			m_miniconLastValue = "minicon:*";
+			m_miniconChannels->GetHelper()->SetValue("minicon:*");
+		}
 	}
 
 	virtual void Draw(const char* title, bool* p_open) override
@@ -617,8 +626,15 @@ struct MiniConsole : CfxBigConsole
 
 		if (m_miniconLastValue != m_miniconChannels->GetValue())
 		{
-			m_miniconRegex = MakeRegex(m_miniconChannels->GetValue());
-			m_miniconLastValue = m_miniconChannels->GetValue();
+			try
+			{
+				m_miniconRegex = MakeRegex(m_miniconChannels->GetValue());
+				m_miniconLastValue = m_miniconChannels->GetValue();
+			}
+			catch (std::exception& e)
+			{
+				m_miniconChannels->GetHelper()->SetValue(m_miniconLastValue);
+			}
 		}
 
 		return std::regex_match(channel, m_miniconRegex);
@@ -627,7 +643,10 @@ struct MiniConsole : CfxBigConsole
 	std::regex MakeRegex(const std::string& pattern)
 	{
 		std::string re = pattern;
+		re = std::regex_replace(re, std::regex{"[.^$|()\\[\\]{}?\\\\]"}, "\\$&");
+
 		boost::algorithm::replace_all(re, " ", "|");
+		boost::algorithm::replace_all(re, "+", "|");
 		boost::algorithm::replace_all(re, "*", ".*");
 
 		return std::regex{ "(?:" + re + ")", std::regex::icase };
