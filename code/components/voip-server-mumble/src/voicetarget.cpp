@@ -96,8 +96,8 @@ void Voicetarget_add_id(client_t *client, int targetId)
 
 void Voicetarget_del_id(client_t *client, int targetId)
 {
-	struct dlist *itr;
-	list_iterate(itr, &client->voicetargets) {
+	struct dlist *itr, *save;
+	list_iterate_safe(itr, save, &client->voicetargets) {
 		if (targetId == list_get_entry(itr, voicetarget_t, node)->id) {
 			list_del(&list_get_entry(itr, voicetarget_t, node)->node);
 			free(list_get_entry(itr, voicetarget_t, node));

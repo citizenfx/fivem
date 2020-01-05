@@ -624,6 +624,72 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		static VoiceTargetConfig vtConfigs[31];
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_CLEAR_VOICE_TARGET", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+
+			if (id >= 0 && id < 31)
+			{
+				vtConfigs[id] = {};
+				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_ADD_VOICE_TARGET_CHANNEL", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+			auto channel = context.GetArgument<int>(1);
+
+			if (id >= 0 && id < 31)
+			{
+				if (g_mumble.connected)
+				{
+					VoiceTargetConfig::Target ch;
+					ch.channel = fmt::sprintf("Game Channel %d", channel);
+
+					vtConfigs[id].targets.push_back(ch);
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_ADD_VOICE_TARGET_PLAYER", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+			auto playerId = context.GetArgument<int>(1);
+
+			if (id >= 0 && id < 31)
+			{
+				if (g_mumble.connected)
+				{
+					VoiceTargetConfig::Target ch;
+					std::string name = fmt::sprintf("[%d] %s",
+						FxNativeInvoke::Invoke<int>(getServerId, playerId),
+						FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId));
+
+					ch.users.push_back(name);
+
+					vtConfigs[id].targets.push_back(ch);
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOICE_TARGET", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+
+			if (id >= 0 && id < 31)
+			{
+				if (g_mumble.connected)
+				{
+					g_mumbleClient->SetVoiceTarget(id);
+				}
+			}
+		});
+
 		fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_TALKING_OVERRIDE", [](fx::ScriptContext& context)
 		{
 			auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);

@@ -35,6 +35,26 @@ enum class MumbleVoiceLikelihood
 	HighLikelihood
 };
 
+struct VoiceTargetConfig
+{
+	struct Target
+	{
+		std::vector<std::string> users;
+		std::string channel;
+		// ACL is not supported in umurmur, so does not count
+		bool links;
+		bool children;
+
+		inline Target()
+			: links(false), children(false)
+		{
+
+		}
+	};
+
+	std::vector<Target> targets;
+};
+
 class IMumbleClient : public fwRefCountable
 {
 public:
@@ -66,6 +86,10 @@ public:
 	virtual void SetActorPosition(float position[3]) = 0;
 
 	virtual void SetListenerMatrix(float position[3], float front[3], float up[3]) = 0;
+
+	virtual void UpdateVoiceTarget(int idx, const VoiceTargetConfig& config) = 0;
+
+	virtual void SetVoiceTarget(int idx) = 0;
 
 	// settings
 	virtual void SetActivationMode(MumbleActivationMode mode) = 0;

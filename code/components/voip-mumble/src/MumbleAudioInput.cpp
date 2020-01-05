@@ -310,7 +310,7 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		char outBuf[16384];
 		PacketDataStream buffer(outBuf, sizeof(outBuf));
 
-		buffer.append((4 << 5));
+		buffer.append((4 << 5) | (m_client->GetVoiceTarget() & 31));
 
 		buffer << m_sequence;
 

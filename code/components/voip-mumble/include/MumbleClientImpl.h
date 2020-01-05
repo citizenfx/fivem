@@ -89,6 +89,10 @@ public:
 
 	virtual MumbleConnectionInfo* GetConnectionInfo() override;
 
+	virtual void UpdateVoiceTarget(int idx, const VoiceTargetConfig& config) override;
+
+	virtual void SetVoiceTarget(int idx) override;
+
 	virtual bool IsAnyoneTalking() override;
 
 	virtual float GetInputAudioLevel() override;
@@ -168,6 +172,8 @@ private:
 	uint32_t m_udpPingCount;
 	uint32_t m_udpPings[12];
 
+	int m_voiceTarget;
+
 	std::chrono::milliseconds m_lastUdp;
 
 	SOCKET m_udpSocket;
@@ -180,6 +186,8 @@ private:
 
 public:
 	static fwRefContainer<MumbleClient> GetCurrent();
+
+	inline int GetVoiceTarget() { return m_voiceTarget; }
 
 	inline MumbleClientState& GetState() { return m_state; }
 

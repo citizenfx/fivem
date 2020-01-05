@@ -27,6 +27,8 @@ void MumbleClient::Initialize()
 {
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
+	m_voiceTarget = 0;
+
 	m_lastUdp = {};
 
 	m_beginConnectEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -111,6 +113,49 @@ void MumbleClient::SetPTTButtonState(bool pressed)
 void MumbleClient::SetOutputVolume(float volume)
 {
 	return m_audioOutput.SetVolume(volume);
+}
+
+void MumbleClient::UpdateVoiceTarget(int idx, const VoiceTargetConfig& config)
+{
+	MumbleProto::VoiceTarget target;
+	target.set_id(idx);
+
+	for (auto& t : config.targets)
+	{
+		auto vt = target.add_targets();
+		
+		for (auto& userName : t.users)
+		{
+			m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
+			{
+				if (user->GetName() == ToWide(userName))
+				{
+					vt->add_session(user->GetSessionId());
+				}
+			});
+		}
+
+		if (!t.channel.empty())
+		{
+			for (auto& channelPair : m_state.GetChannels())
+			{
+				if (channelPair.second.GetName() == ToWide(t.channel))
+				{
+					vt->set_channel_id(channelPair.first);
+				}
+			}
+		}
+
+		vt->set_links(t.links);
+		vt->set_children(t.children);
+	}
+
+	Send(MumbleMessageType::VoiceTarget, target);
+}
+
+void MumbleClient::SetVoiceTarget(int idx)
+{
+	m_voiceTarget = idx;
 }
 
 void MumbleClient::SetChannel(const std::string& channelName)
