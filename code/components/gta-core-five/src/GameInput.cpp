@@ -703,10 +703,13 @@ static void ioMapper_UpdateStub(rage::ioMapper* mapper, uint32_t a2, uint32_t a3
 	bindingManager.UpdateButtons();
 }
 
+void ProfileSettingsInit();
+
 static void* (*origGetFunc)();
 static void* GetFunc()
 {
 	bindingManager.OnGameInit();
+	ProfileSettingsInit();
 
 	return origGetFunc();
 }
