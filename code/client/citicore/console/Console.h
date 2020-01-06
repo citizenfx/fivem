@@ -88,6 +88,9 @@ public:
 		return m_commandBuffer.empty() && !m_executing;
 	}
 
+public:
+	fwEvent<const std::function<void(const std::string&)>&> OnSaveConfiguration;
+
 private:
 	Context* m_fallbackContext;
 

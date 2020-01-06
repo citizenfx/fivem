@@ -60,6 +60,55 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 	m_setrCommand = std::make_unique<ConsoleCommand>(m_parentContext, "setr", [=](const std::string& variable, const std::string& value) {
 		setCommand(ConVar_Replicated, variable, value);
 	});
+
+	auto toggleCommand = [=](const std::string& name, const std::string& value1, const std::string& value2)
+	{
+		auto var = FindEntryRaw(name);
+
+		if (var)
+		{
+			auto v = var->GetValue();
+
+			// hackaround for bool vars
+			if (v == "true")
+			{
+				v = "1";
+			}
+			else if (v == "false")
+			{
+				v = "0";
+			}
+
+			if (v == value1)
+			{
+				var->SetValue(value2);
+			}
+			else
+			{
+				var->SetValue(value1);
+			}
+		}
+	};
+
+	m_toggleCommand = std::make_unique<ConsoleCommand>(m_parentContext, "toggle", [=](const std::string& name)
+	{
+		toggleCommand(name, "1", "0");
+	});
+
+	m_toggleCommand2 = std::make_unique<ConsoleCommand>(m_parentContext, "toggle", [=](const std::string& name, const std::string& value1, const std::string& value2)
+	{
+		toggleCommand(name, value1, value2);
+	});
+
+	m_vstrCommand = std::make_unique<ConsoleCommand>(m_parentContext, "vstr", [=](const std::string& name)
+	{
+		auto var = FindEntryRaw(name);
+
+		if (var)
+		{
+			m_parentContext->AddToBuffer(var->GetValue() + "\n");
+		}
+	});
 }
 
 ConsoleVariableManager::~ConsoleVariableManager()
