@@ -462,7 +462,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 
-	NVSP_DisableOnStartup();
+	if (initState->IsMasterProcess())
+	{
+		NVSP_DisableOnStartup();
+	}
 
 	// readd the game path into the PATH
 	newPath = MakeRelativeCitPath(L"bin\\crt") + L";" + MakeRelativeCitPath(L"bin") + L";" + MakeRelativeCitPath(L"") + L";" + MakeRelativeGamePath(L"") + L"; " + std::wstring(pathBuf);
