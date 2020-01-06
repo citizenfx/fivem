@@ -109,6 +109,26 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 			m_parentContext->AddToBuffer(var->GetValue() + "\n");
 		}
 	});
+
+	m_vstrHoldCommand = std::make_unique<ConsoleCommand>(m_parentContext, "+vstr", [=](const std::string& hold, const std::string& release)
+	{
+		auto var = FindEntryRaw(hold);
+
+		if (var)
+		{
+			m_parentContext->AddToBuffer(var->GetValue() + "\n");
+		}
+	});
+
+	m_vstrReleaseCommand = std::make_unique<ConsoleCommand>(m_parentContext, "-vstr", [=](const std::string& hold, const std::string& release)
+	{
+		auto var = FindEntryRaw(release);
+
+		if (var)
+		{
+			m_parentContext->AddToBuffer(var->GetValue() + "\n");
+		}
+	});
 }
 
 ConsoleVariableManager::~ConsoleVariableManager()
