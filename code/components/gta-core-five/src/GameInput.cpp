@@ -620,7 +620,6 @@ void BindingManager::OnGameInit()
 
 			if (thisName.find("KEY_") == 0)
 			{
-				trace("%s = %d,\n", std::string(thisName), field->index);
 				thisName = thisName.substr(thisName.find_first_of('_') + 1);
 			}
 
