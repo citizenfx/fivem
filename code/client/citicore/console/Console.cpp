@@ -490,9 +490,13 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 }
 }
 
+static thread_local bool inTracing;
+
 void CoreTrace(const char* channel, const char* func, const char* file, int line, const char* string)
 {
+	inTracing = true;
 	console::Printf(channel, "%s", string);
+	inTracing = false;
 }
 
 void SetConsoleWriter(console::IWriter* writer)
@@ -510,12 +514,22 @@ extern "C" DLL_EXPORT void AsyncTrace(const char* string)
 		g_asyncTrace(string);
 	}
 }
+
+extern "C" void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*));
 #endif
 
 static InitFunction initFunction([]()
 {
 #ifdef _WIN32
 	g_asyncTrace = (decltype(g_asyncTrace))GetProcAddress(GetModuleHandle(NULL), "AsyncTrace");
+
+	CoreAddPrintListener([](ConsoleChannel channel, const char* message)
+	{
+		if (!inTracing)
+		{
+			AsyncTrace(message);
+		}
+	});
 #endif
 
 	auto cxt = console::GetDefaultContext();
