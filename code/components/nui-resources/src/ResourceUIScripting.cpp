@@ -366,4 +366,14 @@ static InitFunction initFunction([] ()
 		*context.GetArgument<int*>(0) = cursorPos.x;
 		*context.GetArgument<int*>(1) = cursorPos.y;
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_NUI_FOCUS_KEEP_INPUT", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			nui::KeepInput(context.GetArgument<bool>(0));
+		}
+	});
 });
