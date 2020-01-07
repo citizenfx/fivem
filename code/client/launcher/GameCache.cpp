@@ -882,7 +882,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 						// process the section
 						std::wstring currentDirectory;
-						std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 						auto processFile = [&] (const ::entry& entry)
 						{
@@ -924,7 +923,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 							// find an entry (slow linear search, what'chagonnado'aboutit?)
 							for (auto& dlEntry : lastEntries)
 							{
-								if (_wcsicmp(converter.from_bytes(dlEntry.archivedFile).c_str(), fileName.c_str()) == 0)
+								if (_wcsicmp(ToWide(dlEntry.archivedFile).c_str(), fileName.c_str()) == 0)
 								{
 									if (foundHashes.find(dlEntry.checksums[0]) == foundHashes.end())
 									{
