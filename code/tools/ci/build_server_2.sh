@@ -58,7 +58,7 @@ cd ..
 rm -rf premake-*
 
 # download and extract boost
-curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2
+curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
 tar xf boost.tar.bz2
 rm boost.tar.bz2
 

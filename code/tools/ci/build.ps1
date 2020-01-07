@@ -151,10 +151,10 @@ if ((Get-Command "python.exe" -ErrorAction SilentlyContinue) -eq $null) {
 }
 
 if (!($env:BOOST_ROOT)) {
-	if (Test-Path C:\Libraries\boost_1_64_0) {
-		$env:BOOST_ROOT = "C:\Libraries\boost_1_64_0"
+	if (Test-Path C:\Libraries\boost_1_71_0) {
+		$env:BOOST_ROOT = "C:\Libraries\boost_1_71_0"
 	} else {
-    	$env:BOOST_ROOT = "C:\dev\boost_1_60_0"
+    	$env:BOOST_ROOT = "C:\dev\boost_1_71_0"
     }
 }
 
