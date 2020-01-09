@@ -2155,7 +2155,7 @@ void V8ScriptGlobals::Initialize()
 	m_platform = std::unique_ptr<v8::Platform>(v8::platform::NewDefaultPlatform(0, platform::IdleTaskSupport::kDisabled, platform::InProcessStackDumping::kDisabled));
 	V8::InitializePlatform(m_platform.get());
 #else
-	auto platform = node::InitializeV8Platform(0);
+	auto platform = node::InitializeV8Platform(4);
 	m_platform = std::unique_ptr<v8::Platform>(platform);
 #endif
 
