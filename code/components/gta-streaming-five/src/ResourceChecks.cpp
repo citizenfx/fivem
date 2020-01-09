@@ -114,16 +114,8 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 
 static void PolyErrorv(const std::string& str, fmt::printf_args args)
 {
-	if (g_currentStreamingName.find(".yft") != std::string::npos)
-	{
-		FatalError("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
-			g_currentStreamingName, fmt::vsprintf(str, args));
-	}
-	else
-	{
-		trace("Physics validation failed for asset %s.\nThis asset is **INVALID**. Please remove it, or fix the exporter used to export it.\nDetails: %s",
-			g_currentStreamingName, fmt::vsprintf(str, args));
-	}
+	trace("Physics validation failed for asset %s.\nThis asset is **INVALID**, but we've fixed it for this load. Please fix the exporter used to export it.\nDetails: %s\n",
+		g_currentStreamingName, fmt::vsprintf(str, args));
 }
 
 template<typename... TArgs>
@@ -132,6 +124,8 @@ static inline void PolyError(const std::string& str, const TArgs&... args)
 	PolyErrorv(str, fmt::make_printf_args(args...));
 }
 
+extern std::set<std::string> g_customStreamingFileRefs;
+
 static void ValidateGeometry(void* geomPtr)
 {
 	// only validate #ft files for the time being.
@@ -139,7 +133,10 @@ static void ValidateGeometry(void* geomPtr)
 	// (edges point to vertices, not polygons; this is *plain wrong*)
 
 	// also, slow PCs don't like validating collisions, that makes people fall through the ground
-	if (g_currentStreamingName.find(".yft") == std::string::npos)
+
+	// updated: check *any* file but only if it's a custom streaming asset
+	// and we'll try fixing it
+	if (g_currentStreamingName.find(".yft") == std::string::npos && g_customStreamingFileRefs.find(g_currentStreamingName) == g_customStreamingFileRefs.end())
 	{
 		return;
 	}
@@ -148,6 +145,8 @@ static void ValidateGeometry(void* geomPtr)
 	auto polys = geom->GetPolygons();
 	auto numPolys = geom->GetNumPolygons();
 	auto numVerts = geom->GetNumVertices();
+
+	bool error = false;
 
 	for (size_t i = 0; i < numPolys; i++)
 	{
@@ -160,7 +159,9 @@ static void ValidateGeometry(void* geomPtr)
 	{ \
 		if (poly->poly.e >= numPolys) \
 		{ \
-			PolyError("Poly %d has edge %d which is > %d", i, poly->poly.e, numPolys); \
+			if (!error) PolyError("Poly %d has edge %d which is > %d", i, poly->poly.e, numPolys); \
+			error = true; \
+			break; \
 		} \
 		\
 		{ \
@@ -171,7 +172,9 @@ static void ValidateGeometry(void* geomPtr)
 				\
 				if (v >= numVerts) \
 				{ \
-					PolyError("Poly %d edge reference is invalid. It leads to vertex %d, when there are only %d vertices.", i, v, numVerts); \
+					if (!error) PolyError("Poly %d edge reference is invalid. It leads to vertex %d, when there are only %d vertices.", i, v, numVerts); \
+					error = true; \
+					break; \
 				} \
 			} \
 		} \
@@ -182,6 +185,115 @@ static void ValidateGeometry(void* geomPtr)
 			CHECK_EDGE(e3, v1, v3);
 
 #undef CHECK_EDGE
+		}
+	}
+
+	if (error)
+	{
+		// recalculate poly neighbors
+		struct PolyEdge
+		{
+			uint32_t edges[3];
+		};
+
+		std::vector<PolyEdge> outPolyEdges;
+
+		auto makeEdge = [](uint16_t a, uint16_t b)
+		{
+			if (a < b)
+			{
+				return (a << 16) | b;
+			}
+			else
+			{
+				return (b << 16) | a;
+			}
+		};
+
+		struct PolyEdgeMap
+		{
+			uint32_t left;
+			uint32_t right;
+		};
+
+		std::map<uint32_t, PolyEdgeMap> edgeMapping;
+		auto outPolys = polys;
+
+		for (int i = 0; i < numPolys; i++)
+		{
+			auto& outPoly = outPolys[i];
+
+			// only type 0 has neighbors
+			if (outPoly.type != 0)
+			{
+				continue;
+			}
+
+			PolyEdge edge;
+			edge.edges[0] = makeEdge(outPoly.poly.v1, outPoly.poly.v2);
+			edge.edges[1] = makeEdge(outPoly.poly.v2, outPoly.poly.v3);
+			edge.edges[2] = makeEdge(outPoly.poly.v3, outPoly.poly.v1);
+			outPolyEdges.push_back(edge);
+
+			for (int j = 0; j < 3; j++)
+			{
+				auto it = edgeMapping.find(edge.edges[j]);
+
+				if (it == edgeMapping.end())
+				{
+					PolyEdgeMap map;
+					map.left = i;
+					map.right = -1;
+
+					edgeMapping[edge.edges[j]] = map;
+				}
+				else
+				{
+					auto& edgeMap = it->second;
+
+					if (edgeMap.right == -1)
+					{
+						edgeMap.right = i;
+					}
+				}
+			}
+		}
+
+		auto findEdge = [&](int i, int edgeIdx) -> int16_t
+		{
+			auto& edge = outPolyEdges[i].edges[edgeIdx];
+			auto& map = edgeMapping[edge];
+
+			if (map.right == -1)
+			{
+				return -1;
+			}
+			else
+			{
+				if (map.left == i)
+				{
+					return map.right;
+				}
+				else
+				{
+					return map.left;
+				}
+			}
+		};
+
+		for (int i = 0; i < numPolys; i++)
+		{
+			auto& outPoly = outPolys[i];
+
+			// only type 0 has neighbors
+			if (outPoly.type != 0)
+			{
+				continue;
+			}
+
+			outPoly.poly.e1 = findEdge(i, 0);
+			outPoly.poly.e2 = findEdge(i, 1);
+			outPoly.poly.e3 = findEdge(i, 2);
 		}
 	}
 }

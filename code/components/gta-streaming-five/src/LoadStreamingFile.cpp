@@ -538,7 +538,7 @@ static hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 #include <unordered_set>
 
 static std::set<std::tuple<std::string, std::string>> g_customStreamingFiles;
-static std::set<std::string> g_customStreamingFileRefs;
+std::set<std::string> g_customStreamingFileRefs;
 static std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
 static std::set<std::pair<streaming::strStreamingModule*, int>> g_pendingRemovals;
