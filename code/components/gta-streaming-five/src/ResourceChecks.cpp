@@ -196,7 +196,7 @@ static void ValidateGeometry(void* geomPtr)
 			uint32_t edges[3];
 		};
 
-		std::vector<PolyEdge> outPolyEdges;
+		std::vector<PolyEdge> outPolyEdges(numPolys);
 
 		auto makeEdge = [](uint16_t a, uint16_t b)
 		{
@@ -233,7 +233,7 @@ static void ValidateGeometry(void* geomPtr)
 			edge.edges[0] = makeEdge(outPoly.poly.v1, outPoly.poly.v2);
 			edge.edges[1] = makeEdge(outPoly.poly.v2, outPoly.poly.v3);
 			edge.edges[2] = makeEdge(outPoly.poly.v3, outPoly.poly.v1);
-			outPolyEdges.push_back(edge);
+			outPolyEdges[i] = edge;
 
 			for (int j = 0; j < 3; j++)
 			{
