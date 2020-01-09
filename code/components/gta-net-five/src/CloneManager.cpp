@@ -218,7 +218,7 @@ private:
 
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
-	std::unordered_set<int> m_pendingRemoveAcks;
+	std::unordered_map<int, std::chrono::milliseconds> m_pendingRemoveAcks;
 
 	tbb::concurrent_queue<std::string> m_logQueue;
 
@@ -257,7 +257,7 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 
 	if (!netObject->syncData.isRemote)
 	{
-		m_pendingRemoveAcks.insert(netObject->objectId);
+		m_pendingRemoveAcks.insert({ netObject->objectId, msec() });
 	}
 
 	m_trackedObjects.erase(netObject->objectId);
@@ -1296,7 +1296,7 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 	m_trackedObjects.erase(object->objectId);
 	m_extendedData.erase(object->objectId);
 
-	m_pendingRemoveAcks.insert(object->objectId);
+	m_pendingRemoveAcks.insert({ object->objectId, msec() });
 }
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
@@ -1636,14 +1636,25 @@ void CloneManagerLocal::WriteUpdates()
 		}
 	}
 
-	for (auto& objectId : m_pendingRemoveAcks)
+	auto t = msec();
+
+	for (auto& pair : m_pendingRemoveAcks)
 	{
+		auto [objectId, nextTime] = pair;
+
+		if (t < nextTime)
+		{
+			continue;
+		}
+
 		auto& netBuffer = m_sendBuffer;
 
 		netBuffer.Write(3, 3);
 		netBuffer.Write(13, objectId); // object ID (short)
 
 		AttemptFlushCloneBuffer();
+
+		pair.second = t + 150ms;
 	}
 
 	// #NETVER: older servers won't ack removes, so we don't try resending removals ever
