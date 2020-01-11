@@ -17,6 +17,7 @@ extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
 bool g_hasCursor = false;
+bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
@@ -60,6 +61,20 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+	}
+
+	void KeepInput(bool keepInput)
+	{
+		if (keepInput && HasFocus())
+		{
+			g_nuiGi->SetGameMouseFocus(true);
+		}
+		else if (!keepInput && HasFocus())
+		{
+			g_nuiGi->SetGameMouseFocus(false);
+		}
+
+		g_keepInput = keepInput;
 	}
 
 	void ProcessInput()
@@ -202,7 +217,7 @@ static HookFunction initFunction([] ()
 {
 	g_nuiGi->QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (HasFocus())
+		if (HasFocus() && !g_keepInput)
 		{
 			argPtr = 0;
 		}
@@ -449,8 +464,11 @@ static HookFunction initFunction([] ()
 				
 				inputTarget.MouseEvent(btnType, x, y, true);
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 			} break;
 
 			case WM_LBUTTONUP:
@@ -464,8 +482,11 @@ static HookFunction initFunction([] ()
 
 				inputTarget.MouseEvent(btnType, x, y, false);
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 
 				break;
 			}
@@ -485,8 +506,11 @@ static HookFunction initFunction([] ()
 
 				inputTarget.MouseEvent(-1, x, y, true);
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				break;
 			}
 
@@ -516,15 +540,21 @@ static HookFunction initFunction([] ()
 					browser->GetHost()->SendMouseMoveEvent(mouse_event, true);
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 			} break;
 
 			case WM_MOUSEWHEEL: {
 				inputTarget.MouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) / 120);
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				break;
 			}
 			}
@@ -533,8 +563,11 @@ static HookFunction initFunction([] ()
 			{
 				inputTarget.KeyEvent(wParam, lParam, (msg == WM_KEYDOWN));
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 			}
 			else if (msg == WM_CHAR)
 			{
@@ -564,7 +597,7 @@ static HookFunction initFunction([] ()
 				lresult = FALSE;
 				return;
 			}
-			else if (msg == WM_INPUT && g_hasCursor)
+			else if (msg == WM_INPUT && g_hasCursor && !g_keepInput)
 			{
 				pass = false;
 				lresult = TRUE;
@@ -579,8 +612,11 @@ static HookFunction initFunction([] ()
 					g_imeHandler->ResetComposition();
 				}
 
-				pass = false;
-				lresult = FALSE;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				return;
 			}
 			else if (msg == WM_IME_SETCONTEXT)
@@ -597,8 +633,11 @@ static HookFunction initFunction([] ()
 					g_imeHandler->MoveImeWindow();
 				}
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 				return;
 			}
 			else if (msg == WM_IME_COMPOSITION)
@@ -643,8 +682,11 @@ static HookFunction initFunction([] ()
 					}
 				}
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 
 				return;
 			}
@@ -654,12 +696,15 @@ static HookFunction initFunction([] ()
 				g_imeHandler->ResetComposition();
 				g_imeHandler->DestroyImeWindow();
 
-				pass = false;
-				lresult = false;
+				if (!g_keepInput)
+				{
+					pass = false;
+					lresult = FALSE;
+				}
 
 				return;
 			}
-			else if (msg == WM_IME_KEYLAST || msg == WM_IME_KEYDOWN || msg == WM_IME_KEYUP)
+			else if ((msg == WM_IME_KEYLAST || msg == WM_IME_KEYDOWN || msg == WM_IME_KEYUP) && !g_keepInput)
 			{
 				pass = false;
 				lresult = false;
