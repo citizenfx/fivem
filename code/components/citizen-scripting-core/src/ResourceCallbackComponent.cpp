@@ -166,5 +166,5 @@ static InitFunction initFunction([]()
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
 		manager->SetComponent(new fx::ResourceCallbackComponent(manager));
-	});
+	}, 5000);
 });
