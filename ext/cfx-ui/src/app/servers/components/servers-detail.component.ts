@@ -68,7 +68,7 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
                     return `cfx.re/join/${m[2]}`;
                 }
 
-                const m2 = address.match(/^[a-z]{6,}$/i);
+                const m2 = address.match(/^[a-z0-9]{6,}$/i);
 
                 if (m2) {
                     return `cfx.re/join/${m2[0]}`;

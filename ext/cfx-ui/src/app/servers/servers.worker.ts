@@ -406,6 +406,7 @@ onmessage = (e: MessageEvent) => {
             },
             sortSortable(filterRequest.sortOrder),
             sortSortable(['upvotePower', '-']),
+            sortSortable(['players', '-']),
             sortSortable(['name', '+'])
         ];
 
