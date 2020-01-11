@@ -297,7 +297,8 @@ namespace CitizenFX.Core
 			"SNOW",
 			"BLIZZARD",
 			"SNOWLIGHT",
-			"XMAS"
+			"XMAS",
+			"HALLOWEEN"
 		};
 
 		internal static readonly Dictionary<CloudHat, string> CloudHatDict = new Dictionary<CloudHat, string> {
