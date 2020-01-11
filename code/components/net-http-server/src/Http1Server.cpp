@@ -530,7 +530,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 	stream->SetCloseCallback([=]()
 	{
-		if (connectionData->request.GetRef())
+		if (connectionData && connectionData->request.GetRef())
 		{
 			auto cancelHandler = connectionData->request->GetCancelHandler();
 
