@@ -217,11 +217,6 @@ result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 		fileNameStr = resource->GetPath() + "/" + std::string(fn);
 	}
 
-	if (fn.length() > 2 && fn[1] == ':')
-	{
-		fileNameStr = fn;
-	}
-
 	m_resource->GetComponent<fx::ResourceScriptingComponent>()->OnOpenScript(fileNameStr, "@" + m_resource->GetName() + "/" + fileName);
 
 	fwRefContainer<vfs::Stream> nativeStream = vfs::OpenRead(fileNameStr);

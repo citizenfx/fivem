@@ -81,13 +81,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 					}
 				}
 
-				// #NATIVEHAX
-				// try to see if this is _cfx_internal, and if so, initialize Lua only
-				if (resource->GetName() == "_cfx_internal" && ptr->HandlesFile(const_cast<char*>("dummy.lua")))
-				{
-					environmentUsed = true;
-				}
-
 				if (!environmentUsed)
 				{
 					it = environments.erase(it);
