@@ -527,11 +527,21 @@ export class CfxGameService extends GameService {
 			token: (server && server.data && server.data.vars) ? server.data.vars.sv_licenseKeyToken : ''
 		});
 
-		(<any>window).invokeNative('connectTo', server.address);
+		(<any>window).invokeNative('connectTo', this.getConnectAddress(server));
 
 		// temporary, we hope
 		this.history.push(server.address);
 		this.saveHistory();
+	}
+
+	private getConnectAddress(server: Server): string {
+		let connectAddress = server.address;
+
+		if (server.connectEndPoints && server.connectEndPoints.length > 0) {
+			connectAddress = server.connectEndPoints[Math.floor(Math.random() * server.connectEndPoints.length)];
+		}
+
+		return connectAddress;
 	}
 
 	pingServers(servers: Server[]) {
@@ -540,7 +550,10 @@ export class CfxGameService extends GameService {
 		}
 
 		(<any>window).invokeNative('pingServers', JSON.stringify(
-			servers.map(a => [a.address.split(':')[0], parseInt(a.address.split(':')[1]), a.currentPlayers])
+			servers.map(a => {
+				const address = this.getConnectAddress(a);
+				return [address.split(':')[0], parseInt(address.split(':')[1]), a.currentPlayers]
+			})
 		));
 
 		return servers;
@@ -594,7 +607,11 @@ export class CfxGameService extends GameService {
 	lastQuery: string;
 
 	queryAddress(address: [string, number]): Promise<Server> {
-		const addrString = (address[0].indexOf('cfx.re') === -1) ? address[0] + ':' + address[1] : address[0];
+		const addrString = (address[0].match(/^[a-z]{6,}$/))
+			? `cfx.re/join/${address[0]}`
+			: (address[0].indexOf('cfx.re') === -1)
+				? address[0] + ':' + address[1]
+				: address[0];
 
 		const promise = new Promise<Server>((resolve, reject) => {
 			const to = window.setTimeout(() => {

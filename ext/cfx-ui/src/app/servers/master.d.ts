@@ -158,6 +158,9 @@ export namespace master {
 
         /** ServerData upvotePower */
         upvotePower?: number;
+
+        /** ServerData connectEndPoints */
+        connectEndPoints?: string[];
     }
 
     /** Represents a ServerData. */
@@ -207,6 +210,9 @@ export namespace master {
 
         /** ServerData upvotePower. */
         public upvotePower: number;
+
+        /** ServerData connectEndPoints. */
+        public connectEndPoints: string[];
 
         /**
          * Creates a new ServerData instance using the specified properties.
