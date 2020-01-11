@@ -548,6 +548,11 @@ struct ConsoleKeyEvent
 
 void SendPrintMessage(const std::string& channel, const std::string& message);
 
+bool ConHost::IsConsoleOpen()
+{
+	return g_consoleFlag;
+}
+
 void ConHost::Print(const std::string& channel, const std::string& message)
 {
 	SendPrintMessage(channel, message);

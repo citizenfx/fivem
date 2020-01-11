@@ -20,6 +20,8 @@ namespace ConHost
 	extern CONHOST_EXPORT fwEvent<> OnDrawGui;
 
 	extern CONHOST_EXPORT fwEvent<bool*> OnShouldDrawGui;
+
+	CONHOST_EXPORT bool IsConsoleOpen();
 	
 	CONHOST_EXPORT void Print(const std::string& channel, const std::string& message);
 }
