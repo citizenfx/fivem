@@ -302,7 +302,7 @@ static InitFunction initFunction2([]()
 	});
 });
 
-static std::string OpenFileBrowser(const std::string& extension, const std::string& fileType);
+std::string OpenFileBrowser(const std::string& extension, const std::string& fileType);
 
 static InitFunction initFunction([]()
 {
@@ -400,7 +400,7 @@ private:
 
 #include <ShlObj.h>
 
-static std::string OpenFileBrowser(const std::string& extension, const std::string& fileType)
+std::string OpenFileBrowser(const std::string& extension, const std::string& fileType)
 {
 	ScopedCoInitialize coInit(COINIT_APARTMENTTHREADED);
 
