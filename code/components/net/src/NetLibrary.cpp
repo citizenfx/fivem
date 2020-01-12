@@ -1141,7 +1141,16 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				std::uniform_int_distribution<> values(0, endpoints.size() - 1);
 
 				const auto& endpoint = endpoints[values(rng)];
-				auto address = *net::PeerAddress::FromString(endpoint);
+				auto addressStrRef = net::PeerAddress::FromString(endpoint);
+
+				if (!addressStrRef)
+				{
+					OnConnectionError(fmt::sprintf("Could not resolve returned endpoint: %s", endpoint).c_str());
+					m_connectionState = CS_IDLE;
+					return true;
+				}
+
+				auto address = *addressStrRef;
 				auto oldAddress = NetAddress(address.GetSocketAddress());
 
 				m_currentServer = oldAddress;
