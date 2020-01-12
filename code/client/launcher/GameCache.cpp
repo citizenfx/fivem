@@ -16,13 +16,16 @@
 #include <openssl/sha.h>
 #endif
 
+#include <KnownFolders.h>
+#include <shlobj.h>
+
 #undef interface
 #include "InstallerExtraction.h"
 #include <array>
 
 #include <Error.h>
 
-#if defined(GTA_FIVE) || defined(IS_RDR3)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 struct GameCacheEntry;
 
 struct DeltaEntry
@@ -100,7 +103,7 @@ struct GameCacheEntry
 	// methods
 	bool IsPrimitiveFile() const
 	{
-		return std::string(filename).find("ros_2075/") == 0 || std::string(filename).find("ros_1241/") == 0 || std::string(filename).find("launcher/") == 0;
+		return std::string(filename).find("ros_") == 0 || std::string(filename).find("launcher/") == 0;
 	}
 
 	std::wstring GetCacheFileName() const
@@ -144,6 +147,15 @@ struct GameCacheEntry
 
 		if (_strnicmp(filename, "ros_", 4) == 0)
 		{
+			LPWSTR rootPath;
+			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &rootPath)))
+			{
+				std::wstring pathRef = rootPath;
+				CoTaskMemFree(rootPath);
+
+				return pathRef + L"\\Rockstar Games\\Social Club\\"s + ToWide(strchr(filename, L'/') + 1);
+			}
+
 			wchar_t rootBuf[1024] = { 0 };
 			DWORD rootLength = sizeof(rootBuf);
 
@@ -160,7 +172,7 @@ struct GameCacheEntry
 
 GameCacheEntry DeltaEntry::MakeEntry() const
 {
-	return GameCacheEntry{ remoteFile.c_str(), "0000000000000000000000000000000000000000", remoteFile.c_str(), dlSize };
+	return GameCacheEntry{ remoteFile.c_str(), "0000000000000000000000000000000000000000", remoteFile.c_str(), size_t(dlSize) };
 }
 
 std::string DeltaEntry::GetFileName() const
@@ -269,6 +281,7 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "x64/dlcpacks/patchpack007/dlc.rpf", "1847fa67af881ae8f6b88149948db6a181b698ac", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 58027818 },
 #endif
 
+#if defined(_M_AMD64)
 	{ "launcher/api-ms-win-core-console-l1-1-0.dll", "724F4F91041AD595E365B724A0348C83ACF12BBB", "https://mirrors.fivem.net/emergency_mirror/launcher_1_0_33_319/launcher/api-ms-win-core-console-l1-1-0.dll", 19208 },
 	{ "launcher/api-ms-win-core-datetime-l1-1-0.dll", "4940D5B92B6B80A40371F8DF073BF3EB406F5658", "https://mirrors.fivem.net/emergency_mirror/launcher_1_0_33_319/launcher/api-ms-win-core-datetime-l1-1-0.dll", 18696 },
 	{ "launcher/api-ms-win-core-debug-l1-1-0.dll", "E7C8A6C29C3158F8B332EEA5C33C3B1E044B5F73", "https://mirrors.fivem.net/emergency_mirror/launcher_1_0_33_319/launcher/api-ms-win-core-debug-l1-1-0.dll", 18696 },
@@ -394,12 +407,83 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "ros_2075/swiftshader/libEGL.dll", "B4FDE410EB5D454A79A2737A719277B7FEF5BB4B", "https://mirrors.fivem.net/emergency_mirror/ros_2075/swiftshader/libEGL.dll", 155096 },
 	{ "ros_2075/swiftshader/libGLESv2.dll", "C6F248A3FB105F14F63459A3F3F8DF5E7AC2BD4B", "https://mirrors.fivem.net/emergency_mirror/ros_2075/swiftshader/libGLESv2.dll", 2686424 },
 
-
 	{ "launcher/LauncherPatcher.exe", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "", "", 0, 0 },
 	{ "launcher/index.bin", "85e2cc75d6d07518883ce5d377d3425b74636667", "", "", 0, 0 },
+#elif defined(_M_IX86)
+	{ "ros_2079_x86/cef_100_percent.pak", "5DF428B8B1D8584F2670A19224B0A3A11368B8F5", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/cef_100_percent.pak", 658266 },
+	{ "ros_2079_x86/cef_200_percent.pak", "5FA7D4173D0A43610378AC26E05701B0F9F9222D", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/cef_200_percent.pak", 812521 },
+	{ "ros_2079_x86/cef.pak", "743AAAFD06E48CE8006751016E3F9A1D20C528D7", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/cef.pak", 2206428 },
+	{ "ros_2079_x86/chrome_elf.dll", "A35C92343290AA283A57BF8FAA233BAACA2AF378", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/chrome_elf.dll", 816520 },
+	{ "ros_2079_x86/d3dcompiler_47.dll", "24B863C59A8725A2040070D6CD63B4F0B2501122", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/d3dcompiler_47.dll", 3648904 },
+	{ "ros_2079_x86/icudtl.dat", "C8930E95B78DEEF5B7730102ACD39F03965D479A", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/icudtl.dat", 10505952 },
+	{ "ros_2079_x86/libcef.dll", "EF40BDD5C7D1BA378F4BD6661E9D617F77F033BF", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/libcef.dll", 104726920 },
+	{ "ros_2079_x86/libEGL.dll", "271F1FB5B00882F6E5D30743CD7B43A91C4F4E31", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/libEGL.dll", 319368 },
+	{ "ros_2079_x86/libGLESv2.dll", "C601D45C0A4C7571A8252B7263455B84C7A6E80C", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/libGLESv2.dll", 6821768 },
+	{ "ros_2079_x86/scui.pak", "3A03DFA2CECF1E356EB8D080443069ED35A897F1", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/scui.pak", 3401985 },
+	{ "ros_2079_x86/snapshot_blob.bin", "FD1DF208437FB8A0E36F57F700C8FD412C300786", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/snapshot_blob.bin", 50522 },
+	{ "ros_2079_x86/socialclub.dll", "1E5702D3E75E1802D16132CC27942589F9301AA2", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/socialclub.dll", 1693064 },
+	{ "ros_2079_x86/socialclub.pak", "D70F269F7EBBA3A13AA2871BAFA58212B01E6280", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/socialclub.pak", 4996 },
+	{ "ros_2079_x86/SocialClubHelper.exe", "A6EE9FFFE5436180B341647E06C60FD26A2F32DC", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/SocialClubHelper.exe", 1052040 },
+	{ "ros_2079_x86/v8_context_snapshot.bin", "9C351FD39D4F64097B778BF920DB9CACB6884A71", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/v8_context_snapshot.bin", 170474 },
+	{ "ros_2079_x86/locales/am.pak", "1BA4F8D3A96D53E236F31315ED94CE7857BE676C", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/am.pak", 385976 },
+	{ "ros_2079_x86/locales/ar.pak", "D402FF17B3DEB25C729862367C6A66D4C71064C5", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ar.pak", 395800 },
+	{ "ros_2079_x86/locales/bg.pak", "789DEB5B067B64C336ED501A47EACF7AC28C165C", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/bg.pak", 438902 },
+	{ "ros_2079_x86/locales/bn.pak", "D6E4E916D3A5D6B06D7252F5A3EE3546C0D5FA81", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/bn.pak", 570862 },
+	{ "ros_2079_x86/locales/ca.pak", "B3A84377C6DFDCD2EC8B76DAE51EF174A3F32161", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ca.pak", 272754 },
+	{ "ros_2079_x86/locales/cs.pak", "42F2E55A50F980D8A7BC6ACA247FEA38187050C4", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/cs.pak", 278073 },
+	{ "ros_2079_x86/locales/da.pak", "4EFB233CF6F6D6FE7A30887CCDF2758481F7CEF9", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/da.pak", 249964 },
+	{ "ros_2079_x86/locales/de.pak", "E293C63938808FFE58CEF2E911C3E645099122C3", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/de.pak", 271680 },
+	{ "ros_2079_x86/locales/el.pak", "6FB999483B51B732797F46433571CD1F99C6C382", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/el.pak", 483371 },
+	{ "ros_2079_x86/locales/en-GB.pak", "337681F89B3CC5E069066BE31FE548A7FE1BDC3D", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/en-GB.pak", 222850 },
+	{ "ros_2079_x86/locales/en-US.pak", "55D6297A4E9BAC33E1975015592324CE32A426E5", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/en-US.pak", 224948 },
+	{ "ros_2079_x86/locales/es-419.pak", "D7CFB264CA28E4310060D4330D0F869F750296EA", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/es-419.pak", 267636 },
+	{ "ros_2079_x86/locales/es.pak", "AD9BCEBBC3DFB6B346E6DDA1B24410DAE844FAD0", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/es.pak", 272041 },
+	{ "ros_2079_x86/locales/et.pak", "2CC11D3FE483042FABDB0B568F70EC6D3AA89499", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/et.pak", 241972 },
+	{ "ros_2079_x86/locales/fa.pak", "5A83F5797DB4C5FD4EFE8E83CD32FCF30F7A579B", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/fa.pak", 387663 },
+	{ "ros_2079_x86/locales/fi.pak", "752D5AB53154F4F6CE671C11CDFFAD87E4B2098F", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/fi.pak", 250146 },
+	{ "ros_2079_x86/locales/fil.pak", "CB1FE897C559395F042E113162526A1A985F3C54", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/fil.pak", 276980 },
+	{ "ros_2079_x86/locales/fr.pak", "9BD0A49B7F93CECC843C4858FE02FC3233B95FB0", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/fr.pak", 293801 },
+	{ "ros_2079_x86/locales/gu.pak", "503499E4B8D7EDE7C2546546C708B62315B93534", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/gu.pak", 546805 },
+	{ "ros_2079_x86/locales/he.pak", "20DE3DE5EFE18A02E3722503812D1BE7F125BAC7", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/he.pak", 332944 },
+	{ "ros_2079_x86/locales/hi.pak", "261DF4775E2E7FF64BBA52D6CC2E3E7E6A744BA6", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/hi.pak", 563160 },
+	{ "ros_2079_x86/locales/hr.pak", "CC0EC12EE1A0182FD5095735BDAC50A7968E5941", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/hr.pak", 265276 },
+	{ "ros_2079_x86/locales/hu.pak", "3A06F37F8E0DCB4A2C4B9223F4EA630DEC598F30", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/hu.pak", 287478 },
+	{ "ros_2079_x86/locales/id.pak", "7648DD9102EC8D1A989F4CFEE5E77A50EEB2543A", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/id.pak", 240937 },
+	{ "ros_2079_x86/locales/it.pak", "AF12931047F550A700930292678ED68A2F3AE693", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/it.pak", 263141 },
+	{ "ros_2079_x86/locales/ja.pak", "3D69B821559E8B1B7BE61C5E0403013C6E34B472", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ja.pak", 326307 },
+	{ "ros_2079_x86/locales/kn.pak", "BB0B09183BFD4642EDFA4DCDFC6C589D51C91339", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/kn.pak", 637150 },
+	{ "ros_2079_x86/locales/ko.pak", "11E8387A32FA7E25669EA58288AAD02240D59115", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ko.pak", 274716 },
+	{ "ros_2079_x86/locales/lt.pak", "B08521D70C17BC493EDE917CF64483C73CC8CD2B", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/lt.pak", 284278 },
+	{ "ros_2079_x86/locales/lv.pak", "68E7175DF0FD0781434761C7AF533D44DFE94DD0", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/lv.pak", 283337 },
+	{ "ros_2079_x86/locales/ml.pak", "0D881D6C532AFD275DB69B4468742F64BDBCEB57", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ml.pak", 672973 },
+	{ "ros_2079_x86/locales/mr.pak", "578BDC9D3EC2A35CA5338DEC949AD6269A95CF81", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/mr.pak", 539342 },
+	{ "ros_2079_x86/locales/ms.pak", "6452CC250C4219EA0130D461942284ABB203105D", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ms.pak", 249855 },
+	{ "ros_2079_x86/locales/nb.pak", "B36849BBB46F448DA1A86C93A777E7600898143E", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/nb.pak", 245307 },
+	{ "ros_2079_x86/locales/nl.pak", "63C363F3A6D953D2F516926A60036CD45A2BBC73", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/nl.pak", 255846 },
+	{ "ros_2079_x86/locales/pl.pak", "6A9B10202C2A4EABE2DB370478A120303CCEA9E2", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/pl.pak", 276450 },
+	{ "ros_2079_x86/locales/pt-BR.pak", "CDDDA77FE5857E7095B0BEF9C95ADDC0E1BFE81E", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/pt-BR.pak", 263825 },
+	{ "ros_2079_x86/locales/pt-PT.pak", "B01F54FEAC5D8612FADBD1AA1E1A9AE48686765B", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/pt-PT.pak", 267667 },
+	{ "ros_2079_x86/locales/ro.pak", "C5F88F5AA8070D93D1A5AC2F6D5B716A405D6402", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ro.pak", 273510 },
+	{ "ros_2079_x86/locales/ru.pak", "3E87FCC49496F1A375022B18F29C5CA184AC94A1", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ru.pak", 435040 },
+	{ "ros_2079_x86/locales/sk.pak", "696DB99FE09F2B6F04F6755B562DA0698E67EE73", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/sk.pak", 281889 },
+	{ "ros_2079_x86/locales/sl.pak", "FC42DE011EB9EB97F76B90191A0AA6763524F257", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/sl.pak", 268266 },
+	{ "ros_2079_x86/locales/sr.pak", "A5F59A87CCAECE1EA27B679DC4CD43B226D44652", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/sr.pak", 414419 },
+	{ "ros_2079_x86/locales/sv.pak", "52B28217FA8CFB1BA78DA18FF8FABE96AA65C0CC", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/sv.pak", 247090 },
+	{ "ros_2079_x86/locales/sw.pak", "F06249989197891C214B827CB6ACA078A8AC52A9", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/sw.pak", 252916 },
+	{ "ros_2079_x86/locales/ta.pak", "7B2078915D759278F044DA16C331BC35A8EAE366", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/ta.pak", 644686 },
+	{ "ros_2079_x86/locales/te.pak", "81B147F70EFC789597013B862AC7C4C2E932D668", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/te.pak", 606991 },
+	{ "ros_2079_x86/locales/th.pak", "17BB58538907D534C950C830451FD09BE8B699ED", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/th.pak", 514784 },
+	{ "ros_2079_x86/locales/tr.pak", "5872240D9E0700DDBE160CE5FED55B64A8C58D4E", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/tr.pak", 262379 },
+	{ "ros_2079_x86/locales/uk.pak", "403A5AF73EAA7E31FA913B3E92989A3966E84F27", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/uk.pak", 433942 },
+	{ "ros_2079_x86/locales/vi.pak", "4CDA92C95B944456682F49F7542A7DF29AFA390D", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/vi.pak", 305558 },
+	{ "ros_2079_x86/locales/zh-CN.pak", "297C09A18520F9716D81D612540AC8ED7EBDC42B", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/zh-CN.pak", 227335 },
+	{ "ros_2079_x86/locales/zh-TW.pak", "7F67C3A955A99FD31C0A5D5D7B0CD6B404F09BB1", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/locales/zh-TW.pak", 227384 },
+	{ "ros_2079_x86/swiftshader/libEGL.dll", "315BE829397C2C65B4401DE0A9F634D2DF864CD4", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/swiftshader/libEGL.dll", 338312 },
+	{ "ros_2079_x86/swiftshader/libGLESv2.dll", "E62DA6B61D963AB9CD242C2811AC9D7ADA2613AB", "https://mirrors.fivem.net/emergency_mirror/ros_2079_x86/swiftshader/libGLESv2.dll", 3017608 },
+#endif
 
-#if defined(GTA_FIVE)
-	//{ "GTAVLauncher.exe", "0962fb5a39d9ec40d4fce2ac636ef11dcd0457cf", "http://patches.rockstargames.com/prod/gtav/Launcher_EFIGS/GTA_V_Launcher_1_0_1604_0.exe", "$/GTAVLauncher.exe", 21606840, 20081224 },
+#if defined(_M_IX86)
+	// #TODOLIBERTY: ROS 2.0.7.x for 32-bit
 #endif
 };
 
@@ -1426,9 +1510,9 @@ std::map<std::string, std::string> UpdateGameCache()
 	{
 		std::string origFileName = entry.filename;
 
-		if (origFileName.find("ros_2075/") == 0 || origFileName.find("ros_1241/") == 0)
+		if (origFileName.find("ros_") == 0)
 		{
-			origFileName = "Social Club/" + origFileName.substr(9);
+			origFileName = "Social Club/" + origFileName.substr(origFileName.find_first_of("/\\") + 1);
 		}
 
 		if (origFileName.find("launcher/") == 0)

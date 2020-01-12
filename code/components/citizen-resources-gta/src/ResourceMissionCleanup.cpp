@@ -9,6 +9,10 @@
 #include <Resource.h>
 #include <Error.h>
 
+#include <ResourceGameLifetimeEvents.h>
+
+// #TODOLIBERTY
+#ifndef GTA_NY
 #include <ScriptHandlerMgr.h>
 #include <scrThread.h>
 #include <scrEngine.h>
@@ -19,8 +23,6 @@
 #include <ICoreGameInit.h>
 
 #include <Pool.h>
-
-#include <ResourceGameLifetimeEvents.h>
 
 #include <sysAllocator.h>
 
@@ -112,9 +114,6 @@ static InitFunction initFunction([] ()
 {
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
-		// TODO: factor this out elsewhere
-		resource->SetComponent(new fx::ResourceGameLifetimeEvents());
-
 		// continue init
 		auto data = std::make_shared<MissionCleanupData>();
 
@@ -265,4 +264,15 @@ static InitFunction initFunction([] ()
 			cleanupResource();
 		}, 10000);
 	}, -50);
+});
+#endif
+
+static InitFunction initFunctionRglt([]()
+{
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		// TODO: factor this out elsewhere
+		resource->SetComponent(new fx::ResourceGameLifetimeEvents());
+	},
+	INT32_MIN);
 });

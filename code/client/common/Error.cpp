@@ -6,7 +6,6 @@
  */
 
 #include "StdInc.h"
-//#include "GameInit.h"
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 #include <ICoreGameInit.h>
@@ -15,6 +14,7 @@
 #include <fnv.h>
 
 #include <json.hpp>
+#include <CrossBuildRuntime.h>
 
 using json = nlohmann::json;
 
@@ -65,15 +65,7 @@ static bool IsUserConnected()
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = FindWindowW(
-#ifdef GTA_FIVE
-		L"grcWindow"
-#elif defined(IS_RDR3)
-		L"sgaWindow"
-#else
-		L"UNKNOWN_WINDOW"
-#endif
-	, nullptr);
+	HWND wnd = FindWindowW(xbr::GetGameWndClass(), nullptr);
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
 	if (CoreIsDebuggerPresent())

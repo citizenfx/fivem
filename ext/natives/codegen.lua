@@ -1,6 +1,6 @@
 -- setup environment for the codegen'd file to execute in
 local codeEnvironment = {
-	
+
 }
 
 types = {}
@@ -152,7 +152,7 @@ end
 local function getNative(nativeName)
 	-- get the native
 	local n
-	
+
 	for k, v in ipairs(natives) do
 		if v.name == nativeName and (#v.apiset == 0 or v.apiset[1] == 'client') then
 			n = v
@@ -250,7 +250,7 @@ function rpcEnvironment.context_rpc(nativeName)
 
 	rn.ctx = ctx
 	rn.args = args
-	
+
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
@@ -356,7 +356,7 @@ function rpcEnvironment.entity_rpc(nativeName)
 	end
 
 	rn.args = args
-	
+
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
@@ -462,7 +462,7 @@ function parseDocString(native)
 	if not summary then
 		return nil
 	end
-	
+
 	summary = trim(summary:gsub('^```(.+)```$', '%1'))
 
 	local paramsData = {}
@@ -508,14 +508,18 @@ if #arg > 0 then
 	if arg[1]:match('gta_universal') then
 		arg[1] = 'inp/natives_global.lua'
 	end
-	
+
 	if arg[1]:match('rdr3_universal') then
 		arg[1] = 'inp/natives_rdr3.lua'
 	end
-	
+
+	if arg[1]:match('ny_universal') then
+		arg[1] = 'inp/natives_ny.lua'
+	end
+
 	loadDefinition(arg[1])
-	
-	if arg[1]:match('natives_global') or arg[1]:match('natives_rdr3') then
+
+	if arg[1]:match('natives_global') or arg[1]:match('natives_rdr3') or arg[1]:match('natives_ny') then
 		globalNatives = true
 	end
 

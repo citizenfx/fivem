@@ -40,6 +40,13 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 
 // we fast-path non-FXS using direct RAGE calls
 #include <scrEngine.h>
+#elif defined(GTA_NY)
+static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
+	{ "ny_universal.lua", guid_t{ 0 } }
+};
+
+// we fast-path non-FXS using direct RAGE calls
+#include <scrEngine.h>
 #else
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_server.lua", guid_t{ 0 } }
@@ -1803,6 +1810,8 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 			"natives_universal.lua"
 #elif defined(IS_RDR3)
 			"rdr3_universal.lua"
+#elif defined(GTA_NY)
+			"ny_universal.lua"
 #else
 			"natives_server.lua"
 #endif
@@ -1867,18 +1876,8 @@ result_t LuaScriptRuntime::LoadNativesBuild(const std::string& nativesBuild)
 
 	bool useLazyNatives = false;
 
-#ifndef IS_FXSERVER
+#if !defined(IS_FXSERVER)
 	useLazyNatives = true;
-
-	int32_t numFields = 0;
-
-	if (FX_SUCCEEDED(hr = m_resourceHost->GetNumResourceMetaData("disable_lazy_natives", &numFields)))
-	{
-		if (numFields > 0)
-		{
-			useLazyNatives = false;
-		}
-	}
 #endif
 
 	if (!useLazyNatives)
@@ -2228,7 +2227,7 @@ void LuaScriptRuntime::SetParentObject(void* object)
 
 using Lua_NativeMap = std::map<std::string, lua_CFunction, std::less<>>;
 
-#ifdef IS_FXSERVER
+#if defined(IS_FXSERVER)
 struct LuaNativeWrapper
 {
 	LUA_INLINE LuaNativeWrapper(uint64_t)
@@ -2497,17 +2496,22 @@ LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
 }
 
 #if 0 && LUA_VERSION_NUM < 504
-#ifndef IS_FXSERVER
+#if !defined(IS_FXSERVER) && defined(GTA_FIVE)
 #include "Natives.h"
-#else
+#elif defined(IS_FXSERVER)
 #include "NativesServer.h"
+#else
 #endif
 
 lua_CFunction Lua_GetNative(lua_State* L, const char* name)
 {
+#if defined(GTA_FIVE) || defined(IS_FXSERVER)
 	auto it = natives.find(name);
 
 	return (it != natives.end()) ? it->second : nullptr;
+#else
+	return nullptr;
+#endif
 }
 #else
 lua_CFunction Lua_GetNative(lua_State* L, const char* name)

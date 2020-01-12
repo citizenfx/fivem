@@ -19,6 +19,9 @@ type 'Entity'
 type 'Player'
 	nativeType 'int'
 
+type 'DecisionMaker'
+	nativeType 'int'
+
 type 'FireId'
 	nativeType 'int'
 

@@ -1,0 +1,13 @@
+{
+	"name": "gta:game:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"gta:core:ny",
+		"rage:allocator:ny",
+		"rage:nutsnbolts:ny",
+		"net",
+		"vendor:minhook"
+	],
+	"provides": []
+}

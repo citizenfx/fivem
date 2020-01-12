@@ -14,6 +14,8 @@
 
 #include "memdbgon.h"
 
+#define USE_ARGB8 1
+
 FontRendererTexture::~FontRendererTexture()
 { }
 
@@ -54,20 +56,9 @@ void CachedFontPage::EnqueueCreateFontPage()
 {
 	m_enqueued = true;
 
-#if defined(GTA_NY)
-	concurrency::create_task([=] ()
-	{
-		CreateNow();
-	}).then([=] ()
-	{
-		// clear the queued flag
-		m_enqueued = false;
-	});
-#else
 	CreateNow();
 
 	m_enqueued = false;
-#endif
 }
 
 void CachedFontPage::CreateNow()

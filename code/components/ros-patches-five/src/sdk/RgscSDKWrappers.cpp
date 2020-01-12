@@ -13,7 +13,7 @@
 
 #include <CrossBuildRuntime.h>
 
-HRESULT(*g_origInitializeGraphics)(void*, void*, void*);
+HRESULT(__stdcall*g_origInitializeGraphics)(void*, void*, void*);
 
 static HANDLE g_uiEvent;
 
@@ -22,14 +22,38 @@ LONG_PTR DontSetWindowLongPtrW(HWND hWnd, int nIndex, LONG_PTR dwNewLong)
 	return GetWindowLongPtrW(hWnd, nIndex);
 }
 
-HRESULT NullInitializeGraphics(void* rgscUI, void* d3dDevice, void* hWndStruct)
+LONG(WINAPI* g_origSetWindowLongW)(HWND hWnd, int nIndex, LONG dwNewLong);
+
+LONG WINAPI DontSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	static thread_local bool in = false;
+
+	if (in)
+	{
+		return g_origSetWindowLongW(hWnd, nIndex, dwNewLong);
+	}
+
+	in = true;
+	auto v = GetWindowLongW(hWnd, nIndex);
+	in = false;
+
+	return v;
+}
+
+HRESULT __stdcall NullInitializeGraphics(void* rgscUI, void* d3dDevice, void* hWndStruct)
 {
 	DisableToolHelpScope ts;
 
 	trace("NullInitializeGraphics\n");
 
+#ifdef _M_AMD64
 	auto fn = GetProcAddress(GetModuleHandle(L"user32.dll"), "SetWindowLongPtrW");
 	MH_CreateHook(fn, DontSetWindowLongPtrW, nullptr);
+#else
+	auto fn = GetProcAddress(GetModuleHandle(L"user32.dll"), "SetWindowLongW");
+	MH_CreateHook(fn, DontSetWindowLongW, (void**)&g_origSetWindowLongW);
+#endif
+
 	MH_EnableHook(fn);
 
 	g_origInitializeGraphics(rgscUI, d3dDevice, hWndStruct);
@@ -39,12 +63,12 @@ HRESULT NullInitializeGraphics(void* rgscUI, void* d3dDevice, void* hWndStruct)
 	return S_OK;
 }
 
-HRESULT NullRender(void* rgscUI)
+HRESULT __stdcall NullRender(void* rgscUI)
 {
 	return S_OK;
 }
 
-HRESULT NullCopyBuffer(void* rgscUI, void* a1)
+HRESULT __stdcall NullCopyBuffer(void* rgscUI, void* a1)
 {
 	return S_OK;
 }
@@ -312,10 +336,12 @@ static std::wstring GetCitizenSavePath()
 		// append our path components
 		AppendPathComponent(savePath, L"\\CitizenFX");
 
-#if !defined(IS_RDR3)
+#if GTA_FIVE
 		AppendPathComponent(savePath, L"\\GTA5");
-#else
+#elif IS_RDR3
 		AppendPathComponent(savePath, L"\\RDR2");
+#elif GTA_NY
+		AppendPathComponent(savePath, L"\\NY");
 #endif
 
 		// append a final separator
@@ -497,14 +523,14 @@ enum class RgscEvent
 class IRgscDelegate
 {
 public:
-	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
-	virtual void* m_01(void* a1, void* a2) = 0;
-	virtual void* m_02(void* a1) = 0; // implemented in gta, return 0?
-	virtual void* m_03(void* a1) = 0;
-	virtual void* m_04(void* a1) = 0;
-	virtual void* m_05(void* a1) = 0;
-	virtual void* m_06(bool a1, void* a2, void* a3, bool a4, uint32_t a5) = 0; // implemented in gta
-	virtual void* OnEvent(RgscEvent event, const void* data) = 0;
+	virtual HRESULT __stdcall QueryInterface(GUID* iid, void** out) = 0;
+	virtual void* __stdcall m_01(void* a1, void* a2) = 0;
+	virtual void* __stdcall m_02(void* a1) = 0; // implemented in gta, return 0?
+	virtual void* __stdcall m_03(void* a1) = 0;
+	virtual void* __stdcall m_04(void* a1) = 0;
+	virtual void* __stdcall m_05(void* a1) = 0;
+	virtual void* __stdcall m_06(bool a1, void* a2, void* a3, bool a4, uint32_t a5) = 0; // implemented in gta
+	virtual void* __stdcall OnEvent(RgscEvent event, const void* data) = 0;
 };
 
 std::string GetRockstarTicketXml();
@@ -523,53 +549,53 @@ struct FriendStatus
 
 class RgscLogDelegate : public IRgscDelegate
 {
-	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	virtual HRESULT __stdcall QueryInterface(GUID* iid, void** out) override
 	{
 		*out = this;
 		return S_OK;
 	}
 
-	virtual void* m_01(void* a1, void* a2) override
+	virtual void* __stdcall m_01(void* a1, void* a2) override
 	{
 		LOG_CALL();
 
 		return nullptr;
 	}
 
-	virtual void* m_02(void* a1) override
+	virtual void* __stdcall m_02(void* a1) override
 	{
 		return nullptr;
 	}
 
-	virtual void* m_03(void* a1) override
-	{
-		LOG_CALL();
-
-		return nullptr;
-	}
-
-	virtual void* m_04(void* a1) override
+	virtual void* __stdcall m_03(void* a1) override
 	{
 		LOG_CALL();
 
 		return nullptr;
 	}
 
-	virtual void* m_05(void* a1) override
+	virtual void* __stdcall m_04(void* a1) override
 	{
 		LOG_CALL();
 
 		return nullptr;
 	}
 
-	virtual void* m_06(bool a1, void* a2, void* a3, bool a4, uint32_t a5) override
+	virtual void* __stdcall m_05(void* a1) override
 	{
 		LOG_CALL();
 
 		return nullptr;
 	}
 
-	virtual void* OnEvent(RgscEvent event, const void* data) override
+	virtual void* __stdcall m_06(bool a1, void* a2, void* a3, bool a4, uint32_t a5) override
+	{
+		LOG_CALL();
+
+		return nullptr;
+	}
+
+	virtual void* __stdcall OnEvent(RgscEvent event, const void* data) override
 	{
 		LOG_CALL();
 
@@ -639,28 +665,28 @@ class RgscLogDelegate : public IRgscDelegate
 class IRgsc
 {
 public:
-	virtual HRESULT QueryInterface(GUID* iid, void** out) = 0;
-	virtual HRESULT m_01(void* a1, void* a2, void* a3) = 0;
-	virtual HRESULT m_02() = 0;
-	virtual void* m_03() = 0;
-	virtual void* GetAchievementManager() = 0; // get
-	virtual void* GetProfileManager() = 0; // get
-	virtual void* GetFileSystem() = 0; // get
-	virtual IRgscUi* GetUI() = 0; // get
-	virtual HRESULT Initialize(void*, void*, void*, IRgscDelegate* a4, void* a5, void* a6) = 0;
-	virtual void* GetPlayerManager() = 0; // get
-	virtual void* GetTaskManager() = 0;
-	virtual void* GetPresenceManager() = 0;
-	virtual void* m_10() = 0;
-	virtual void SetSomething(void*) = 0;
-	virtual void* SetSomethingSteamTicket(void*) = 0;
-	virtual void* m_11() = 0;
-	virtual bool m_12(void*, void*) = 0;
-	virtual bool m_13() = 0;
-	virtual void* m_14() = 0;
-	virtual void* m_15() = 0;
-	virtual void* m_16() = 0;
-	virtual void* m_17() = 0;
+	virtual HRESULT __stdcall QueryInterface(GUID* iid, void** out) = 0;
+	virtual HRESULT __stdcall m_01(void* a1, void* a2, void* a3) = 0;
+	virtual HRESULT __stdcall m_02() = 0;
+	virtual void* __stdcall m_03() = 0;
+	virtual void* __stdcall GetAchievementManager() = 0; // get
+	virtual void* __stdcall GetProfileManager() = 0; // get
+	virtual void* __stdcall GetFileSystem() = 0; // get
+	virtual IRgscUi* __stdcall GetUI() = 0; // get
+	virtual HRESULT __stdcall Initialize(void*, void*, void*, IRgscDelegate* a4) = 0;
+	virtual void* __stdcall GetPlayerManager() = 0; // get
+	virtual void* __stdcall GetTaskManager() = 0;
+	virtual void* __stdcall GetPresenceManager() = 0;
+	virtual void* __stdcall m_10() = 0;
+	virtual void __stdcall SetSomething(void*) = 0;
+	virtual void* __stdcall SetSomethingSteamTicket(void*) = 0;
+	virtual void* __stdcall m_11() = 0;
+	virtual bool __stdcall m_12(void*, void*) = 0;
+	virtual bool __stdcall m_13() = 0;
+	virtual void* __stdcall m_14() = 0;
+	virtual void* __stdcall m_15() = 0;
+	virtual void* __stdcall m_16() = 0;
+	virtual void* __stdcall m_17() = 0;
 };
 
 class RgscStub : public IRgsc
@@ -673,7 +699,7 @@ public:
 	}
 
 
-	virtual HRESULT QueryInterface(GUID* iid, void** out) override
+	virtual HRESULT __stdcall QueryInterface(GUID* iid, void** out) override
 	{
 		LOG_CALL();
 
@@ -687,21 +713,21 @@ public:
 		return hr;
 	}
 
-	virtual HRESULT m_01(void* a1, void* a2, void* a3) override
+	virtual HRESULT __stdcall m_01(void* a1, void* a2, void* a3) override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_01(a1, a2, a3);
 	}
 
-	virtual HRESULT m_02() override
+	virtual HRESULT __stdcall m_02() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_02();
 	}
 
-	virtual void* m_03() override
+	virtual void* __stdcall m_03() override
 	{
 		//LOG_CALL();
 
@@ -712,8 +738,7 @@ public:
 
 		static uint32_t lastAllowedScUpdate;
 
-#if defined(IS_RDR3)
-#else
+#if defined(GTA_FIVE)
 		if ((GetTickCount() - lastAllowedScUpdate > 250) || !Instance<ICoreGameInit>::Get()->GetGameLoaded())
 #endif
 		{
@@ -725,28 +750,36 @@ public:
 		return nullptr;
 	}
 
-	virtual void* GetAchievementManager() override
+	virtual void* __stdcall GetAchievementManager() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->GetAchievementManager(); // 6 methods
 	}
 
-	virtual void* GetProfileManager() override
+	virtual void* __stdcall GetProfileManager() override
 	{
 		LOG_CALL();
 
+#ifndef GTA_NY
 		return new ProfileManagerStub(m_baseRgsc->GetProfileManager());
+#else
+		return m_baseRgsc->GetProfileManager();
+#endif
 	}
 
-	virtual void* GetFileSystem() override
+	virtual void* __stdcall GetFileSystem() override
 	{
 		LOG_CALL();
 
+#ifndef GTA_NY
 		return new FileSystemStub(m_baseRgsc->GetFileSystem());
+#else
+		return m_baseRgsc->GetFileSystem();
+#endif
 	}
 
-	virtual IRgscUi* GetUI() override
+	virtual IRgscUi* __stdcall GetUI() override
 	{
 		LOG_CALL();
 
@@ -773,10 +806,11 @@ public:
 		return ui;
 	}
 
-	virtual HRESULT Initialize(void* a1, void* a2, void* a3, IRgscDelegate* delegate, void* a5, void* a6) override
+	virtual HRESULT __stdcall Initialize(void* a1, void* a2, void* a3, IRgscDelegate* delegate) override
 	{
 		LOG_CALL();
 
+#ifndef GTA_NY
 		g_uiEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
 		g_delegate = delegate;
@@ -808,94 +842,105 @@ public:
 
 		static RgscLogDelegate fakeDelegate;
 
-		return m_baseRgsc->Initialize(a1, a2, a3, &fakeDelegate, a5, a6);
+		return m_baseRgsc->Initialize(a1, a2, a3, &fakeDelegate);
+#else
+		return m_baseRgsc->Initialize(a1, a2, a3, delegate);
+#endif
 	}
 
-	virtual void* GetPlayerManager() override
+	virtual void* __stdcall GetPlayerManager() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->GetPlayerManager(); // 12 functions
 	}
 
-	virtual void* GetTaskManager() override
+	virtual void* __stdcall GetTaskManager() override
 	{
 		LOG_CALL();
 
+#ifndef GTA_NY
 		return new TaskManagerStub(m_baseRgsc->GetTaskManager()); // 3 functions
+#else
+		return m_baseRgsc->GetTaskManager();
+#endif
 	}
 
-	virtual void* GetPresenceManager() override
+	virtual void* __stdcall GetPresenceManager() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->GetPresenceManager(); // 26 functions(!)
 	}
 
-	virtual void* m_10() override
+	virtual void* __stdcall m_10() override
 	{
 		LOG_CALL();
 
+#ifndef GTA_NY
 		return new CommerceManagerStub(m_baseRgsc->m_10()); // commerce manager, 41(?!) functions
+#else
+		return m_baseRgsc->m_10();
+#endif
 	}
 
-	virtual void SetSomething(void* a1) override
+	virtual void __stdcall SetSomething(void* a1) override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->SetSomething(a1);
 	}
 
-	virtual void* SetSomethingSteamTicket(void* a1) override
+	virtual void* __stdcall SetSomethingSteamTicket(void* a1) override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->SetSomethingSteamTicket(a1);
 	}
 
-	virtual void* m_11() override
+	virtual void* __stdcall m_11() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_11(); // telemetry manager
 	}
 
-	virtual bool m_12(void* a1, void* a2) override
+	virtual bool __stdcall m_12(void* a1, void* a2) override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_12(a1, a2);
 	}
 
-	virtual bool m_13() override
+	virtual bool __stdcall m_13() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_13();
 	}
 
-	virtual void* m_14() override
+	virtual void* __stdcall m_14() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_14(); // gamepad manager
 	}
 
-	virtual void* m_15() override
+	virtual void* __stdcall m_15() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_15();
 	}
 
-	virtual void* m_16() override
+	virtual void* __stdcall m_16() override
 	{
 		LOG_CALL();
 
 		return m_baseRgsc->m_16(); // cloud save manager
 	}
 
-	virtual void* m_17() override
+	virtual void* __stdcall m_17() override
 	{
 		LOG_CALL();
 
@@ -934,7 +979,7 @@ IRgsc* GetScSdkStub()
 	return g_rgsc;
 }
 
-FARPROC GetProcAddressStub(HMODULE hModule, LPCSTR name)
+FARPROC _stdcall GetProcAddressStub(HMODULE hModule, LPCSTR name)
 {
 	if (name == MAKEINTRESOURCEA(1) && hModule == GetModuleHandle(L"socialclub.dll"))
 	{

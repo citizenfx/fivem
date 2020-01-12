@@ -68,6 +68,16 @@ bool SteamLoader::IsSteamRunning(bool ignoreCreateFunc)
 {
 	static auto retval = ([this]()
 	{
+	// #TODOLIBERTY: un-x64ify steam
+#if defined GTA_NY
+	return false;
+#endif
+
+	bool retval = false;
+	uint32_t pid = GetSteamProcessId();
+
+	if (pid != 0)
+	{
 		bool retval = false;
 
 		uint32_t pid = GetSteamProcessId();
@@ -85,6 +95,7 @@ bool SteamLoader::IsSteamRunning(bool ignoreCreateFunc)
 		}
 
 		return retval;
+	}
 	})();
 
 	// safety check to see if CreateInterface is callable

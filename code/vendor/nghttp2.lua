@@ -1,3 +1,5 @@
+local a = ...
+
 return {
 	include = function()
 		includedirs { "../vendor/nghttp2/lib/includes/" }
@@ -19,6 +21,10 @@ return {
 	run = function()
 		language "C"
 		kind "StaticLib"
+
+		if a then
+			staticruntime 'On'
+		end
 
 		flags "NoRuntimeChecks"
 

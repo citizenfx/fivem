@@ -345,6 +345,13 @@ button {
 	));
 }
 
+.theme-ny {
+	@include angular-material-theme(mat-dark-theme(
+		mat-palette($mat-blue),
+		mat-palette($mat-blue)
+	));
+}
+
 .mat-tab-group, mat-tab-group {
 	font-family: inherit;
 }

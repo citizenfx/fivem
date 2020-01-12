@@ -6,7 +6,7 @@ inline bool Is2189()
 #ifdef GTA_FIVE
 	static bool retval = ([]()
 	{
-		if (wcsstr(GetCommandLine(), L"b2189") != nullptr)
+		if (wcsstr(GetCommandLineW(), L"b2189") != nullptr)
 		{
 			return true;
 		}
@@ -25,7 +25,7 @@ inline bool Is2060()
 #ifdef GTA_FIVE
 	static bool retval = ([]()
 	{
-		if (wcsstr(GetCommandLine(), L"b2060") != nullptr)
+		if (wcsstr(GetCommandLineW(), L"b2060") != nullptr)
 		{
 			return true;
 		}
@@ -44,7 +44,7 @@ inline bool Is372()
 #ifdef GTA_FIVE
 	static bool retval = ([]()
 	{
-		if (wcsstr(GetCommandLine(), L"b372") != nullptr)
+		if (wcsstr(GetCommandLineW(), L"b372") != nullptr)
 		{
 			return true;
 		}
@@ -65,7 +65,7 @@ inline bool Is1311()
 #ifdef IS_RDR3
 	static bool retval = ([]()
 	{
-		if (wcsstr(GetCommandLine(), L"b1311") != nullptr)
+		if (wcsstr(GetCommandLineW(), L"b1311") != nullptr)
 		{
 			return true;
 		}
@@ -84,7 +84,7 @@ inline bool Is1355()
 #ifdef IS_RDR3
 	static bool retval = ([]()
 	{
-		if (wcsstr(GetCommandLine(), L"b1355") != nullptr)
+		if (wcsstr(GetCommandLineW(), L"b1355") != nullptr)
 		{
 			return true;
 		}
@@ -133,6 +133,8 @@ inline int GetGameBuild()
 
 		return 1311;
 	})();
+#elif GTA_NY
+	static int build = 43;
 #else
 	static int build = 0;
 #endif
@@ -151,4 +153,19 @@ inline bool IsGameBuild()
 {
 	return GetGameBuild() == Build;
 }
+
+#ifdef _WIN32
+inline const wchar_t* GetGameWndClass()
+{
+	return
+#if defined(IS_RDR3)
+	L"sgaWindow"
+#elif defined(GTA_FIVE) || defined(GTA_NY)
+	L"grcWindow"
+#else
+	L"cfxUnkClass"
+#endif
+	;
+}
+#endif
 }

@@ -121,8 +121,11 @@ static InitFunction initFunction([] ()
 		nui::DestroyFrame("mpMenu");
 	});
 
+	// #TODOLIBERTY: ?
+#ifndef GTA_NY
 	OnFirstLoadCompleted.Connect([] ()
 	{
 		g_gameInit.SetGameLoaded();
 	});
+#endif
 });

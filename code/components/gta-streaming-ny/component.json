@@ -1,0 +1,15 @@
+{
+	"name": "gta:streaming:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"gta:core:ny",
+		"citizen:resources:core",
+		"citizen:resources:client",
+		"rage:device:ny",
+		"rage:allocator:ny",
+		"http-client",
+		"vendor:zlib"
+	],
+	"provides": []
+}

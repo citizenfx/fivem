@@ -1,8 +1,7 @@
 <div [class]="classes">
-	<div id="bg">
+	<div id="bg" class="acrylicBlur">
 		<canvas
-			*ngIf="!showSiteNavbar && gameName != 'rdr3'"
-			class="acrylicBlur"
+			*ngIf="!showSiteNavbar && gameName != 'rdr3' && gameName != 'ny'"
 			#gameCanvas
 		>
 		</canvas>

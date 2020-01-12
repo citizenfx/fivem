@@ -50,7 +50,11 @@ return {
 		end
 
 		-- nghttp2
-		add_dependencies 'vendor:nghttp2'
+		if a then
+			add_dependencies 'vendor:nghttp2'
+		else
+			add_dependencies 'vendor:nghttp2-crt'
+		end
 
 		-- all the disables except http/file
 		defines { 'BUILDING_LIBCURL', 'USE_IPV6', 'CURL_DISABLE_TFTP', 'CURL_DISABLE_FTP', 'CURL_DISABLE_LDAP', 'CURL_DISABLE_TELNET',

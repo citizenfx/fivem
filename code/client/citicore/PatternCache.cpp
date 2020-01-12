@@ -52,3 +52,36 @@ extern "C"
 	}
 }
 #endif
+
+#ifndef IS_FXSERVER
+#include <Hooking.Patterns.h>
+
+static std::multimap<uint64_t, uintptr_t> g_hints;
+
+extern "C" CORE_EXPORT auto CoreGetPatternHints()
+{
+	return &g_hints;
+}
+
+static InitFunction initFunction([]()
+{
+	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
+	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
+
+	if (hints)
+	{
+		while (!feof(hints))
+		{
+			uint64_t hash;
+			uintptr_t hint;
+
+			fread(&hash, 1, sizeof(hash), hints);
+			fread(&hint, 1, sizeof(hint), hints);
+
+			hook::pattern::hint(hash, hint);
+		}
+
+		fclose(hints);
+	}
+});
+#endif

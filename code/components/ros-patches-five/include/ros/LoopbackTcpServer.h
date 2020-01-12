@@ -108,7 +108,7 @@ private:
 
 	std::map<std::pair<SOCKET, DWORD>, LPOVERLAPPED> m_threadpoolIoCallbacks;
 
-	std::map<SOCKET, std::tuple<void*, size_t, size_t*>> m_threadpoolReadRequests;
+	std::map<SOCKET, std::tuple<void*, size_t, ULONG_PTR*>> m_threadpoolReadRequests;
 
 	std::map<HANDLE, std::tuple<PTP_WIN32_IO_CALLBACK, PVOID, PTP_IO>> m_threadpoolIoHandles;
 

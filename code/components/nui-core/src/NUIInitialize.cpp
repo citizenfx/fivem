@@ -356,7 +356,7 @@ public:
 	~Texture2DWrap();
 
 	// Inherited via RuntimeClass
-	virtual HRESULT AcquireSync(UINT64 Key, DWORD dwMilliseconds) override
+	virtual HRESULT STDMETHODCALLTYPE AcquireSync(UINT64 Key, DWORD dwMilliseconds) override
 	{
 		if (m_keyedMutex)
 		{
@@ -366,7 +366,7 @@ public:
 		return S_OK;
 	}
 
-	virtual HRESULT ReleaseSync(UINT64 Key) override
+	virtual HRESULT STDMETHODCALLTYPE ReleaseSync(UINT64 Key) override
 	{
 		if (m_keyedMutex)
 		{
@@ -814,6 +814,7 @@ static HRESULT D3D11CreateDeviceHookMain(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 void HookLibGL(HMODULE libGL)
 {
+#if !GTA_NY
 	wchar_t systemDir[MAX_PATH];
 	GetSystemDirectoryW(systemDir, std::size(systemDir));
 
@@ -870,6 +871,7 @@ void HookLibGL(HMODULE libGL)
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
+#endif
 }
 
 extern bool g_inited;
@@ -1028,13 +1030,15 @@ void Initialize(nui::GameInterface* gi)
     HookFunctionBase::RunAll();
 
 #if defined(GTA_NY)
-	OnGrcBeginScene.Connect([] ()
+
+	// #TODOLIBERTY:
+	/*OnGrcBeginScene.Connect([] ()
 	{
 		Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
 		{
 			window->UpdateFrame();
 		});
-	});
+	});*/
 #else
 
 #endif

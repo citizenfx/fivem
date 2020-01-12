@@ -15,6 +15,7 @@
 #include <StdInc.h>
 #include "imgui.h"
 #include "imgui_impl_win32.h"
+#include <CrossBuildRuntime.h>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -956,13 +957,7 @@ void ImGui_ImplWin32_InitPlatformInterface()
 #ifdef IS_FXSERVER
 	data->Hwnd = g_hWnd;
 #else
-	data->Hwnd = FindWindow(
-#ifdef IS_RDR3
-		L"sgaWindow", 
-#else
-		L"grcWindow", 
-#endif
-		NULL);
+	data->Hwnd = FindWindow(xbr::GetGameWndClass(), NULL);
 #endif
 	data->HwndOwned = false;
 	main_viewport->PlatformUserData = data;

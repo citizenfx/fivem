@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -10,12 +10,12 @@
 
 namespace vfs
 {
-uint64_t Device::OpenBulk(const std::string& fileName, uint64_t* ptr)
+auto Device::OpenBulk(const std::string& fileName, uint64_t* ptr) -> THandle
 {
 	return INVALID_DEVICE_HANDLE;
 }
 
-uint64_t Device::Create(const std::string& filename)
+auto Device::Create(const std::string& filename) -> THandle
 {
 	return INVALID_DEVICE_HANDLE;
 }

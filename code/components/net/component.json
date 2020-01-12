@@ -7,7 +7,7 @@
 		"profiles",
 		"vendor:yaml-cpp",
 		"vendor:cpp-url",
-		"ros-patches"
+		"net:base"
 	],
 	"provides": []
 }

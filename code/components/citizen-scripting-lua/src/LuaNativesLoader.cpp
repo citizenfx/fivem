@@ -45,6 +45,8 @@ static InitFunction initFunction([]()
 		{
 #if defined(IS_RDR3)
 			MountNatives("rdr3_universal");
+#elif defined(GTA_NY)
+			MountNatives("ny_universal");
 #else
 			MountNatives("natives_universal");
 			MountNatives("natives_21e43a33");

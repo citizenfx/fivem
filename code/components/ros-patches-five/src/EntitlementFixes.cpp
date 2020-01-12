@@ -12,6 +12,20 @@
 
 extern HANDLE g_rosClearedEvent;
 
+static InitFunction initfunction([]()
+{
+	HMODULE rosDll = LoadLibrary(L"ros.dll");
+	if (rosDll != nullptr)
+	{
+		auto runEarlier = ((void (*)(const wchar_t*))GetProcAddress(rosDll, "runEarlier"));
+		
+		if (runEarlier)
+		{
+			runEarlier(MakeRelativeCitPath(L"").c_str());
+		}
+	}
+});
+
 static HookFunction hookFunction([] ()
 {
 	g_rosClearedEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);

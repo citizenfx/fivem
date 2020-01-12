@@ -3,6 +3,8 @@
 #include <NetLibrary.h>
 #include <json.hpp>
 
+#include <CrossBuildRuntime.h>
+
 #include <CommCtrl.h>
 
 #include "../../client/launcher/InstallerExtraction.h"
@@ -128,13 +130,7 @@ bool XBR_InterceptCancelDefer()
 
 HWND UI_GetWindowHandle()
 {
-	return FindWindow(
-#if defined(IS_RDR3)
-		L"sgaWindow"
-#else
-		L"grcWindow"
-#endif
-	, NULL);
+	return FindWindow(xbr::GetGameWndClass(), NULL);
 }
 
 bool UI_IsCanceled()

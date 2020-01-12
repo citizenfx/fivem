@@ -28,7 +28,10 @@ ResourceManagerImpl::ResourceManagerImpl()
 		// execute resource tick functions
 		ForAllResources([](fwRefContainer<Resource> resource)
 		{
+			// #TODO: 32 bit
+#ifdef _M_AMD64
 			CETWScope etwScope(va("%s tick", resource->GetName()));
+#endif
 			resource->Tick();
 		});
 	});

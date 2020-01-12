@@ -6,8 +6,7 @@
 		"citizen:resources:client",
 		"nui:core",
 		"scrbind:base",
-		"citizen:scripting:core",
-		"gta:streaming"
+		"citizen:scripting:core"
 	],
 	"provides": []
 }

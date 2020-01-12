@@ -69,10 +69,12 @@ public:
 
 		m_scuiData = std::string(std::istreambuf_iterator<char>(scuiFile), std::istreambuf_iterator<char>());
 		boost::algorithm::replace_all(m_scuiData, "{{ TITLE }}",
-#if defined(GTA_FIVE)
+#if GTA_FIVE
 			"gta5"
-#else
+#elif IS_RDR3
 			"rdr2"
+#else
+			"gta4"
 #endif
 		);
 	}

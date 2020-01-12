@@ -18,6 +18,7 @@
 
 #include "StdInc.h"
 
+#if 0
 #include <metahost.h>
 #pragma comment(lib, "mscoree.lib")
 
@@ -47,12 +48,12 @@ using namespace mscorlib;
 //   and print the result too.
 //
 //   PARAMETERS:
-//   * pszVersion - The desired DOTNETFX version, in the format ¡°vX.X.XXXXX¡±. 
-//     The parameter must not be NULL. It¡¯s important to note that this 
+//   * pszVersion - The desired DOTNETFX version, in the format ï¿½ï¿½vX.X.XXXXXï¿½ï¿½. 
+//     The parameter must not be NULL. Itï¿½ï¿½s important to note that this 
 //     parameter should match exactly the directory names for each version of
 //     the framework, under C:\Windows\Microsoft.NET\Framework[64]. The 
 //     current possible values are "v1.0.3705", "v1.1.4322", "v2.0.50727" and 
-//     "v4.0.30319". Also, note that the ¡°v¡± prefix is mandatory.
+//     "v4.0.30319". Also, note that the ï¿½ï¿½vï¿½ï¿½ prefix is mandatory.
 //   * pszAssemblyName - The display name of the assembly to be loaded, such 
 //     as "CSClassLibrary". The ".DLL" file extension is not appended.
 //   * pszClassName - The name of the Type that defines the method to invoke.
@@ -287,3 +288,4 @@ Cleanup:
 
     return hr;
 }
+#endif

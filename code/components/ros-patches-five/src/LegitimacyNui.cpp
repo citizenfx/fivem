@@ -371,7 +371,7 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 	return true;
 }
 
-static const char* g_rgscInitCode = R"(
+static std::string g_rgscInitCode = fmt::sprintf(R"(
 function RGSC_GET_PROFILE_LIST()
 {
 	return JSON.stringify({
@@ -509,7 +509,7 @@ if (!localStorage.getItem('loadedOnce')) {
 	}, 500);
 }
 
-var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .Alert__content:after { content: \'A Rockstar Games Social Club account owning Grand Theft Auto V is required to play FiveM.\'; max-width: 600px; display: inline-block; }',
+var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .Alert__content:after { content: \'A Rockstar Games Social Club account owning %s is required to play %s.\'; max-width: 600px; display: inline-block; }',
     head = document.head || document.getElementsByTagName('head')[0],
     style = document.createElement('style');
 
@@ -517,7 +517,15 @@ head.appendChild(style);
 
 style.type = 'text/css';
 style.appendChild(document.createTextNode(css));
-)";
+)",
+#ifdef GTA_FIVE
+"Grand Theft Auto V",
+"FiveM"
+#else
+"Grand Theft Auto IV: Complete Edition",
+"LibertyM"
+#endif
+);
 
 void SimpleHandler::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type)
 {

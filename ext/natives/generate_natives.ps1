@@ -16,6 +16,19 @@ foreach ($file in (Get-Item natives_stash\*.lua)) {
 
 .\lua53 codegen.lua natives_stash\gta_universal.lua lua server | out-file -encoding ascii "out\natives_server.lua"
 
+# write NativesNy.cs
+"#if GTA_NY
+namespace CitizenFX.Core.Native
+{
+" | out-file -encoding ascii "..\..\code\client\clrcore\NativesNy.cs"
+
+.\lua53 codegen.lua natives_stash\ny_universal.lua enum | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesNy.cs"
+.\lua53 codegen.lua natives_stash\ny_universal.lua cs | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesNy.cs"
+
+"}
+#endif
+" | out-file -append -encoding ascii "..\..\code\client\clrcore\NativesNy.cs"
+
 # write NativesFive.cs
 "#if GTA_FIVE
 namespace CitizenFX.Core.Native

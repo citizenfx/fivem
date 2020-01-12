@@ -347,9 +347,9 @@ fwRefContainer<nui::GITexture> CitizenNUIBackground::InitializeTextureFromFile(c
 	return nullptr;
 }
 
-static CitizenNUIBackground g_nuiBackground;
+static CitizenNUIBackground* g_nuiBackground = new CitizenNUIBackground();
 
 static HookFunction initFunction([] ()
 {
-	g_nuiBackground.Initialize();
+	g_nuiBackground->Initialize();
 });

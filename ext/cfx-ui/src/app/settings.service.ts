@@ -50,7 +50,7 @@ export class SettingsService {
 			category: '#SettingsCat_Connection',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('darkTheme', {
 				name: '#Settings_DarkTheme',
 				description: '#Settings_DarkThemeDesc',
@@ -103,7 +103,7 @@ export class SettingsService {
 			category: '#SettingsCat_Interface',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('menuAudio', {
 				name: '#Settings_MenuAudio',
 				description: '#Settings_MenuAudioDesc',
@@ -171,7 +171,7 @@ export class SettingsService {
 			category: '#SettingsCat_Account',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('accountButton', {
 				name: '#Settings_Account',
 				type: 'button',
