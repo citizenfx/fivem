@@ -384,6 +384,11 @@ static InitFunction initFunction([]()
 					return;
 				}
 
+				if (data.empty())
+				{
+					return;
+				}
+
 				std::copy(data.begin(), data.end(), readQueue.begin() + origSize);
 
 				while (readQueue.size() > 6)
