@@ -127,11 +127,19 @@ static void WarnOSVersion()
 	TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
 }
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 bool LauncherInterface::PreInitializeGame()
 {
 	if (!IsWindows8OrGreater())
 	{
-		WarnOSVersion();
+		static HostSharedData<CfxState> initState("CfxInitState");
+
+		if (initState->IsMasterProcess())
+		{
+			WarnOSVersion();
+		}
 	}
 
 	// make the component loader initialize
