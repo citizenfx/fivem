@@ -238,11 +238,14 @@ void ProfileSettingsInit()
 		{
 			int val = pair.second->value.GetValue();
 
-			if (g_prefs[pair.first] != val)
+			// if the pref changed, but the convar didn't, update convar with pref value
+			if (g_prefs[pair.first] != val && pair.second->lastValue == val)
 			{
+				val = g_prefs[pair.first];
 				pair.second->value.GetHelper()->SetRawValue(val);
 			}
 
+			// if the convar changed, update pref with convar value
 			if (pair.second->lastValue != val)
 			{
 				if (val != -999)
