@@ -167,7 +167,7 @@ namespace nui
 		}
 	}
 
-	OVERLAY_DECL nui::GITexture* GetWindowTexture(fwString windowName)
+	OVERLAY_DECL fwRefContainer<nui::GITexture> GetWindowTexture(fwString windowName)
 	{
 		fwRefContainer<NUIWindow> window = FindNUIWindow(windowName);
 

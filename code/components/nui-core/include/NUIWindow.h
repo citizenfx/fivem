@@ -53,15 +53,15 @@ private:
 
 	std::set<std::string> m_pollQueue;
 
-	nui::GITexture* m_nuiTexture;
+	fwRefContainer<nui::GITexture> m_nuiTexture;
 
-	nui::GITexture* m_popupTexture;
+	fwRefContainer<nui::GITexture> m_popupTexture;
 
 	NUIPaintType m_paintType;
 
 	uint64_t m_syncKey;
 
-	std::map<CefRenderHandler::PaintElementType, nui::GITexture*> m_parentTextures;
+	std::map<CefRenderHandler::PaintElementType, fwRefContainer<nui::GITexture>> m_parentTextures;
 
 	ID3D11Texture2D* m_swapTexture;
 
@@ -118,18 +118,18 @@ public:
 		}
 	}
 
-	inline nui::GITexture* GetTexture() { return m_nuiTexture; }
+	inline fwRefContainer<nui::GITexture> GetTexture() { return m_nuiTexture; }
 
-	inline nui::GITexture* GetPopupTexture() { return m_popupTexture; }
+	inline fwRefContainer<nui::GITexture> GetPopupTexture() { return m_popupTexture; }
 
 	inline NUIPaintType GetPaintType() { return m_paintType; }
 
-	inline nui::GITexture* GetParentTexture(CefRenderHandler::PaintElementType type)
+	inline fwRefContainer<nui::GITexture> GetParentTexture(CefRenderHandler::PaintElementType type)
 	{
 		return m_parentTextures[type];
 	}
 
-	inline void SetParentTexture(CefRenderHandler::PaintElementType type, nui::GITexture* texture)
+	inline void SetParentTexture(CefRenderHandler::PaintElementType type, fwRefContainer<nui::GITexture> texture)
 	{
 		m_parentTextures[type] = texture;
 	}

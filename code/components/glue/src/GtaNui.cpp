@@ -30,20 +30,20 @@ private:
 public:
 	virtual void GetGameResolution(int* width, int* height) override;
 
-	virtual GITexture* CreateTexture(int width, int height, GITextureFormat format, void* pixelData) override;
+	virtual fwRefContainer<GITexture> CreateTexture(int width, int height, GITextureFormat format, void* pixelData) override;
 
-	virtual GITexture* CreateTextureBacking(int width, int height, GITextureFormat format) override;
+	virtual fwRefContainer<GITexture> CreateTextureBacking(int width, int height, GITextureFormat format) override;
 
-	virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle) override
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle) override
 	{
 		assert(!"don't do that on vulkan games");
 
 		return nullptr;
 	}
 
-	virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height) override;
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height) override;
 
-	virtual void SetTexture(GITexture* texture, bool pm) override;
+	virtual void SetTexture(fwRefContainer<GITexture> texture, bool pm) override;
 
 	virtual void DrawRectangles(int numRectangles, const ResultingRectangle* rectangles) override;
 
@@ -67,7 +67,7 @@ public:
 		, NULL);
 	}
 
-	virtual void BlitTexture(GITexture* dst, GITexture* src) override
+	virtual void BlitTexture(fwRefContainer<GITexture> dst, fwRefContainer<GITexture> src) override
 	{
 #ifdef GTA_FIVE
 		::GetD3D11DeviceContext()->CopyResource((ID3D11Resource*)dst->GetNativeTexture(), (ID3D11Resource*)src->GetNativeTexture());
@@ -92,7 +92,7 @@ public:
 		return NULL;
 	}
 
-	virtual GITexture* CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) override
+	virtual fwRefContainer<GITexture> CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) override
 	{
 		// unused
 		return NULL;
@@ -211,7 +211,7 @@ void GtaNuiInterface::GetGameResolution(int* width, int* height)
 	*height = h;
 }
 
-GITexture* GtaNuiInterface::CreateTexture(int width, int height, GITextureFormat format, void* pixelData)
+fwRefContainer<GITexture> GtaNuiInterface::CreateTexture(int width, int height, GITextureFormat format, void* pixelData)
 {
 #ifdef GTA_FIVE
 	rage::sysMemAllocator::UpdateAllocatorValue();
@@ -250,7 +250,7 @@ GITexture* GtaNuiInterface::CreateTexture(int width, int height, GITextureFormat
 #endif
 }
 
-GITexture* GtaNuiInterface::CreateTextureBacking(int width, int height, GITextureFormat format)
+fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int height, GITextureFormat format)
 {
 	rage::sysMemAllocator::UpdateAllocatorValue();
 
@@ -283,24 +283,22 @@ GITexture* GtaNuiInterface::CreateTextureBacking(int width, int height, GITextur
 }
 
 #include <d3d12.h>
+#include <wrl.h>
+
+namespace WRL = Microsoft::WRL;
 
 #pragma comment(lib, "vulkan-1.lib")
 
-GITexture* GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
+fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
 {
 	rage::sysMemAllocator::UpdateAllocatorValue();
 
 #ifdef GTA_FIVE
 	ID3D11Device* device = ::GetD3D11Device();
 
-	ID3D11Resource* resource = nullptr;
-	if (SUCCEEDED(device->OpenSharedResource(shareHandle, __uuidof(IDXGIResource), (void**)&resource)))
+	WRL::ComPtr<ID3D11Texture2D> texture;
+	if (SUCCEEDED(device->OpenSharedResource(shareHandle, IID_PPV_ARGS(&texture))))
 	{
-		ID3D11Texture2D* texture;
-		assert(SUCCEEDED(resource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&texture)));
-
-		ID3D11Texture2D* oldTexture = nullptr;
-
 		D3D11_TEXTURE2D_DESC desc;
 		texture->GetDesc(&desc);
 
@@ -324,15 +322,14 @@ GITexture* GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int
 				texRef->texture->Release();
 			}
 
-			texRef->texture = texture;
-			texture->AddRef();
+			texture.CopyTo(&texRef->texture);
 
 			if (texRef->srv)
 			{
 				texRef->srv->Release();
 			}
 
-			deviceStuff->rawDevice->CreateShaderResourceView(texture, nullptr, &texRef->srv);
+			deviceStuff->rawDevice->CreateShaderResourceView(texture.Get(), nullptr, &texRef->srv);
 		}
 
 		return new GtaNuiTexture(texRef);
@@ -483,13 +480,17 @@ GITexture* GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int
 	return new GtaNuiTexture(nullptr);
 }
 
-void GtaNuiInterface::SetTexture(GITexture* texture, bool pm)
+static thread_local fwRefContainer<nui::GITexture> g_currentTexture;
+
+void GtaNuiInterface::SetTexture(fwRefContainer<GITexture> texture, bool pm)
 {
 	rage::sysMemAllocator::UpdateAllocatorValue();
 
+	g_currentTexture = texture;
+
 	m_oldSamplerState = GetImDiffuseSamplerState();
 
-	SetTextureGtaIm(static_cast<GtaNuiTexture*>(texture)->GetTexture());
+	SetTextureGtaIm(static_cast<GtaNuiTexture*>(texture.GetRef())->GetTexture());
 
 	m_oldRasterizerState = GetRasterizerState();
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
@@ -542,6 +543,8 @@ void GtaNuiInterface::UnsetTexture()
 	SetBlendState(m_oldBlendState);
 	SetDepthStencilState(m_oldDepthStencilState);
 	SetImDiffuseSamplerState(m_oldSamplerState);
+
+	g_currentTexture = {};
 }
 
 static GtaNuiInterface nuiGi;

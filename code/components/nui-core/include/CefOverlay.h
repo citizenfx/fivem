@@ -69,7 +69,7 @@ namespace nui
 		NoOverwrite = 16
 	};
 
-	class OVERLAY_DECL GITexture
+	class OVERLAY_DECL GITexture : public fwRefCountable
 	{
 	public:
 		virtual ~GITexture() = default;
@@ -99,18 +99,18 @@ namespace nui
 	public:
 		virtual void GetGameResolution(int* width, int* height) = 0;
 
-		virtual GITexture* CreateTexture(int width, int height, GITextureFormat format, void* pixelData) = 0;
+		virtual fwRefContainer<GITexture> CreateTexture(int width, int height, GITextureFormat format, void* pixelData) = 0;
 
-		virtual GITexture* CreateTextureBacking(int width, int height, GITextureFormat format) = 0;
+		virtual fwRefContainer<GITexture> CreateTextureBacking(int width, int height, GITextureFormat format) = 0;
 
-		virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle) = 0;
+		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle) = 0;
 
-		virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
+		virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
 		{
 			return CreateTextureFromShareHandle(shareHandle);
 		}
 
-		virtual void SetTexture(GITexture* texture, bool pm = false) = 0;
+		virtual void SetTexture(fwRefContainer<GITexture> texture, bool pm = false) = 0;
 
 		virtual void DrawRectangles(int numRectangles, const ResultingRectangle* rectangles) = 0;
 
@@ -120,13 +120,13 @@ namespace nui
 
 		virtual HWND GetHWND() = 0;
 
-		virtual void BlitTexture(GITexture* dst, GITexture* src) = 0;
+		virtual void BlitTexture(fwRefContainer<GITexture> dst, fwRefContainer<GITexture> src) = 0;
 
 		virtual ID3D11Device* GetD3D11Device() = 0;
 
 		virtual ID3D11DeviceContext* GetD3D11DeviceContext() = 0;
 
-		virtual GITexture* CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) = 0;
+		virtual fwRefContainer<GITexture> CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) = 0;
 
 		fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> OnWndProc;
 
@@ -309,7 +309,7 @@ namespace nui
 	OVERLAY_DECL void ExecuteWindowScript(const std::string& windowName, const std::string& scriptBit);
 	OVERLAY_DECL void SetNUIWindowURL(fwString windowName, fwString url);
 
-	OVERLAY_DECL GITexture* GetWindowTexture(fwString windowName);
+	OVERLAY_DECL fwRefContainer<GITexture> GetWindowTexture(fwString windowName);
 
 	extern
 		OVERLAY_DECL

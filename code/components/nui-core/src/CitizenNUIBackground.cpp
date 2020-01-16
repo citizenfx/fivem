@@ -37,8 +37,8 @@ struct DWMP_GET_COLORIZATION_PARAMETERS_DATA
 class CitizenNUIBackground
 {
 private:
-	nui::GITexture* m_backdropTexture;
-	nui::GITexture* m_overlayTexture;
+	fwRefContainer<nui::GITexture> m_backdropTexture;
+	fwRefContainer<nui::GITexture> m_overlayTexture;
 
 	ComPtr<IWICImagingFactory> m_imagingFactory;
 
@@ -47,11 +47,11 @@ private:
 	DwmpGetColorizationParameters_t m_fDwmpGetColorizationParameters;
 
 private:
-	nui::GITexture* InitializeTextureFromFile(std::wstring filename);
+	fwRefContainer<nui::GITexture> InitializeTextureFromFile(std::wstring filename);
 
 	void EnsureTextures();
 
-	void DrawBackground(nui::GITexture* texture, CRGBA colorValue);
+	void DrawBackground(fwRefContainer<nui::GITexture> texture, CRGBA colorValue);
 
 	CRGBA GetCurrentDWMColor(bool usePulse);
 
@@ -237,7 +237,7 @@ void CitizenNUIBackground::Initialize()
 	});
 }
 
-void CitizenNUIBackground::DrawBackground(nui::GITexture* texture, CRGBA colorValue)
+void CitizenNUIBackground::DrawBackground(fwRefContainer<nui::GITexture> texture, CRGBA colorValue)
 {
 	int resX, resY;
 	g_nuiGi->GetGameResolution(&resX, &resY);
@@ -251,27 +251,27 @@ void CitizenNUIBackground::DrawBackground(nui::GITexture* texture, CRGBA colorVa
 	g_nuiGi->UnsetTexture();
 }
 
-nui::GITexture* g_cursorTexture;
+fwRefContainer<nui::GITexture> g_cursorTexture;
 
 void CitizenNUIBackground::EnsureTextures()
 {
-	if (!m_backdropTexture)
+	if (!m_backdropTexture.GetRef())
 	{
 		m_backdropTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\background_main.jpg"));
 	}
 
-	if (!m_overlayTexture)
+	if (!m_overlayTexture.GetRef())
 	{
 		m_overlayTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\base_color.png"));
 	}
 
-	if (!g_cursorTexture)
+	if (!g_cursorTexture.GetRef())
 	{
 		g_cursorTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\citizen_cursor.png"));
 	}
 }
 
-nui::GITexture* CitizenNUIBackground::InitializeTextureFromFile(std::wstring filename)
+fwRefContainer<nui::GITexture> CitizenNUIBackground::InitializeTextureFromFile(std::wstring filename)
 {
 	ComPtr<IWICBitmapDecoder> decoder;
 

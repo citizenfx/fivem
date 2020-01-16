@@ -11,7 +11,7 @@ extern POINT g_cursorPos;
 
 extern bool g_isDragging;
 
-extern nui::GITexture* g_cursorTexture;
+extern fwRefContainer<nui::GITexture> g_cursorTexture;
 
 static HookFunction initFunction([] ()
 {
@@ -36,7 +36,7 @@ static HookFunction initFunction([] ()
 				return;
 			}
 
-			if (window->GetTexture())
+			if (window->GetTexture().GetRef())
 			{
 				g_nuiGi->SetTexture(window->GetTexture(), true);
 
@@ -52,7 +52,7 @@ static HookFunction initFunction([] ()
 				g_nuiGi->UnsetTexture();
 			}
 
-			if (window->GetPopupTexture())
+			if (window->GetPopupTexture().GetRef())
 			{
 				g_nuiGi->SetTexture(window->GetPopupTexture(), true);
 
@@ -77,7 +77,7 @@ static HookFunction initFunction([] ()
 			GetCursorPos(&cursorPos);
 			ScreenToClient(g_nuiGi->GetHWND(), &cursorPos);
 
-			if (g_cursorTexture)
+			if (g_cursorTexture.GetRef())
 			{
 				g_nuiGi->SetTexture(g_cursorTexture);
 

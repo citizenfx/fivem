@@ -152,7 +152,7 @@ public:
 		*height = h;
 	}
 
-	virtual GITexture* CreateTexture(int width, int height, GITextureFormat format, void* pixelData) override
+	virtual fwRefContainer<GITexture> CreateTexture(int width, int height, GITextureFormat format, void* pixelData) override
 	{
 		auto pixelMem = std::make_shared<std::vector<uint8_t>>(width * height * 4);
 		memcpy(pixelMem->data(), pixelData, pixelMem->size());
@@ -166,7 +166,7 @@ public:
 		});
 	}
 
-	virtual GITexture* CreateTextureBacking(int width, int height, GITextureFormat format) override
+	virtual fwRefContainer<GITexture> CreateTextureBacking(int width, int height, GITextureFormat format) override
 	{
 		return new FrontendNuiTexture([width, height](FrontendNuiTexture*)
 		{
@@ -176,7 +176,7 @@ public:
 		});
 	}
 
-	virtual GITexture* CreateTextureFromShareHandle(HANDLE shareHandle) override
+	virtual fwRefContainer<GITexture> CreateTextureFromShareHandle(HANDLE shareHandle) override
 	{
 		m_lastShareHandle = shareHandle;
 
@@ -222,13 +222,13 @@ public:
 		return texture;
 	}
 
-	virtual void SetTexture(GITexture* texture, bool pm = false) override
+	virtual void SetTexture(fwRefContainer<GITexture> texture, bool pm = false) override
 	{
 		bgfx::setState(BGFX_STATE_WRITE_RGB | ((!pm) ? BGFX_STATE_BLEND_ALPHA : BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_ONE, BGFX_STATE_BLEND_INV_SRC_ALPHA)) | BGFX_STATE_PT_TRISTRIP);
 
-		if (bgfx::isValid(((FrontendNuiTexture*)texture)->GetTexture()))
+		if (bgfx::isValid(((FrontendNuiTexture*)texture.GetRef())->GetTexture()))
 		{
-			bgfx::setTexture(0, s_texColor, ((FrontendNuiTexture*)texture)->GetTexture());
+			bgfx::setTexture(0, s_texColor, ((FrontendNuiTexture*)texture.GetRef())->GetTexture());
 		}
 
 		float mtx[4][4] = { 0 };
@@ -312,9 +312,9 @@ public:
 		return (HWND)m_window->GetNativeHandle();
 	}
 
-	virtual void BlitTexture(GITexture* dst, GITexture* src) override
+	virtual void BlitTexture(fwRefContainer<GITexture> dst, fwRefContainer<GITexture> src) override
 	{
-		bgfx::blit(0, ((FrontendNuiTexture*)dst)->GetTexture(), 0, 0, ((FrontendNuiTexture*)src)->GetTexture());
+		bgfx::blit(0, ((FrontendNuiTexture*)dst.GetRef())->GetTexture(), 0, 0, ((FrontendNuiTexture*)src.GetRef())->GetTexture());
 	}
 
 	virtual ID3D11Device* GetD3D11Device() override
@@ -334,7 +334,7 @@ public:
 		return cxt;
 	}
 
-	virtual GITexture* CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) override
+	virtual fwRefContainer<GITexture> CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) override
 	{
 		return nullptr;
 	}

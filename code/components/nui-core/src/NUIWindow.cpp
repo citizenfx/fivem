@@ -65,26 +65,6 @@ NUIWindow::~NUIWindow()
 		mutex.unlock();
 	}
 
-	if (m_popupTexture != m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
-	{
-		delete m_popupTexture;
-	}
-
-	if (m_nuiTexture != m_parentTextures[CefRenderHandler::PaintElementType::PET_VIEW])
-	{
-		delete m_popupTexture;
-	}
-
-	for (auto& texPair : m_parentTextures)
-	{
-		auto tex = texPair.second;
-
-		if (tex)
-		{
-			delete tex;
-		}
-	}
-
 	if (m_swapTexture)
 	{
 		m_swapTexture->Release();
@@ -458,11 +438,6 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, fakeTexRef);
 
-				if (oldRef)
-				{
-					delete oldRef;
-				}
-
 				auto oldSrv = m_swapSrv;
 
 				struct
@@ -480,21 +455,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 			}
 			else
 			{
-				nui::GITexture* oldRef = nullptr;
-
-				if (texRef)
-				{
-					oldRef = texRef;
-				}
-
 				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, texRef);
-
-				if (oldRef)
-				{
-					delete oldRef;
-					oldRef = nullptr;
-				}
 			}
 		}
 	}
@@ -543,7 +505,7 @@ void NUIWindow::UpdateFrame()
 		}
 	}
 
-	if (!m_nuiTexture)
+	if (!m_nuiTexture.GetRef())
 	{
 		return;
 	}
@@ -559,9 +521,6 @@ void NUIWindow::UpdateFrame()
 			m_height = resY;
 
 			((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
-
-			// make a new texture
-			delete m_nuiTexture;
 
 			m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
 		}
@@ -586,7 +545,7 @@ void NUIWindow::UpdateFrame()
 	NUIWindowManager* wm = Instance<NUIWindowManager>::Get();
 	auto texture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW);
 
-	if (texture)
+	if (texture.GetRef())
 	{
 		//
 		// dirty flag checking and CopySubresourceRegion are disabled here due to some issue
@@ -837,15 +796,8 @@ void NUIWindow::HandlePopupShow(bool show)
 {
 	if (!show)
 	{
-		if (m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
+		if (m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP].GetRef())
 		{
-			delete m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP];
-
-			if (m_popupTexture != m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP])
-			{
-				delete m_popupTexture;
-			}
-
 			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP] = nullptr;
 			m_popupTexture = nullptr;
 		}
