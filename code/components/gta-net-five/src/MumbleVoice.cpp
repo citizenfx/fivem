@@ -156,6 +156,9 @@ static struct
 
 	volatile MumbleConnectionInfo* connectionInfo;
 
+	volatile int nextConnectDelay;
+	volatile uint64_t nextConnectAt;
+
 	concurrency::concurrent_queue<std::function<void()>> mainFrameExecQueue;
 } g_mumble;
 
@@ -175,6 +178,7 @@ static void Mumble_Connect()
 			g_mumble.connectionInfo = g_mumbleClient->GetConnectionInfo();
 
 			g_mumble.connected = true;
+			g_mumble.nextConnectDelay = 4 * 1000;
 
 			g_mumble.mainFrameExecQueue.push([]()
 			{
@@ -197,6 +201,7 @@ static void Mumble_Disconnect()
 	g_mumble.connected = false;
 	g_mumble.errored = false;
 	g_mumble.connecting = false;
+	g_mumble.nextConnectDelay = 4 * 1000;
 
 	g_mumbleClient->DisconnectAsync().then([=]()
 	{
@@ -248,7 +253,19 @@ static void Mumble_RunFrame()
 	{
 		if (shouldConnect && !g_mumble.connecting && !g_mumble.errored)
 		{
-			Mumble_Connect();
+			if (GetTickCount64() > g_mumble.nextConnectAt)
+			{
+				Mumble_Connect();
+
+				g_mumble.nextConnectDelay *= 2;
+
+				if (g_mumble.nextConnectDelay > 30 * 1000)
+				{
+					g_mumble.nextConnectDelay = 30 * 1000;
+				}
+
+				g_mumble.nextConnectAt = GetTickCount64() + g_mumble.nextConnectDelay;
+			}
 		}
 	}
 	else
@@ -457,6 +474,8 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 
 static HookFunction initFunction([]()
 {
+	g_mumble.nextConnectDelay = 4 * 1000;
+
 	auto mc = CreateMumbleClient();
 	mc->AddRef();
 	g_mumbleClient = mc.GetRef();
