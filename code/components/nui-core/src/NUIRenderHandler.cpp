@@ -44,6 +44,11 @@ void NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 		NUIWindow* window = m_owner->GetWindow();
 		rect.Set(0, 0, window->GetWidth(), window->GetHeight());
 	}
+	else
+	{
+		// this function *must* succeed, default to 1280x720
+		rect.Set(0, 0, 1280, 720);
+	}
 }
 
 void NUIRenderHandler::OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds)
