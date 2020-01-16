@@ -61,6 +61,11 @@ public:
 
 	void Commit();
 
+	inline void SetReferenceData(fwRefContainer<fwRefCountable> reference)
+	{
+		m_reference = reference;
+	}
+
 	inline rage::grcTexture* GetTexture()
 	{
 		return m_texture;
@@ -68,6 +73,8 @@ public:
 
 private:
 	rage::grcTexture* m_texture;
+
+	fwRefContainer<fwRefCountable> m_reference;
 
 	int m_pitch;
 
@@ -254,7 +261,10 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 		return nullptr;
 	}
 
-	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)nui::GetWindowTexture(duiHandle)->GetHostTexture());
+	auto texture = nui::GetWindowTexture(duiHandle);
+	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)texture->GetHostTexture());
+	tex->SetReferenceData(texture);
+
 	m_txd->Add(name, tex->GetTexture());
 
 	m_textures[name] = tex;
