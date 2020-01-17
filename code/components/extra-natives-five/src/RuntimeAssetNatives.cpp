@@ -45,7 +45,7 @@ public:
 
 	RuntimeTex(rage::grcTexture* texture, const void* data, size_t size);
 
-	RuntimeTex(rage::grcTexture* texture);
+	RuntimeTex(rage::grcTexture* texture, bool owned = true);
 
 	virtual ~RuntimeTex();
 
@@ -79,6 +79,8 @@ private:
 	int m_pitch;
 
 	std::vector<uint8_t> m_backingPixels;
+
+	bool m_owned;
 };
 
 class RuntimeTxd
@@ -102,6 +104,7 @@ private:
 };
 
 RuntimeTex::RuntimeTex(const char* name, int width, int height)
+	: m_owned(true)
 {
 	rage::grcManualTextureDef textureDef;
 	memset(&textureDef, 0, sizeof(textureDef));
@@ -124,21 +127,25 @@ RuntimeTex::RuntimeTex(const char* name, int width, int height)
 }
 
 RuntimeTex::RuntimeTex(rage::grcTexture* texture, const void* data, size_t size)
-	: m_texture(texture)
+	: m_texture(texture), m_owned(true)
 {
 	m_backingPixels.resize(size);
 	memcpy(&m_backingPixels[0], data, m_backingPixels.size());
 }
 
-RuntimeTex::RuntimeTex(rage::grcTexture* texture)
-	: m_texture(texture)
+RuntimeTex::RuntimeTex(rage::grcTexture* texture, bool owned)
+	: m_texture(texture), m_owned(owned)
 {
 	m_backingPixels.resize(0);
 }
 
 RuntimeTex::~RuntimeTex()
 {
-	delete m_texture;
+	if (m_owned)
+	{
+		delete m_texture;
+		m_texture = nullptr;
+	}
 }
 
 int RuntimeTex::GetWidth()
@@ -262,7 +269,7 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 	}
 
 	auto texture = nui::GetWindowTexture(duiHandle);
-	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)texture->GetHostTexture());
+	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)texture->GetHostTexture(), false);
 	tex->SetReferenceData(texture);
 
 	m_txd->Add(name, tex->GetTexture());
