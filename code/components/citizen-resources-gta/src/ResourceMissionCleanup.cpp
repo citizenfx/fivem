@@ -202,7 +202,7 @@ static InitFunction initFunction([] ()
 
 		auto cleanupResource = [=]()
 		{
-			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded() || Instance<ICoreGameInit>::Get()->HasVariable("gameKilled"))
 			{
 				return;
 			}
