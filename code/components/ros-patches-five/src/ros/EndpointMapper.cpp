@@ -111,6 +111,13 @@ static InitFunction initFunction([] ()
 			secureServer->AddRef();
 			secureServer->SetPort(443);
 
+			// test if TLS cert exists, verify game files if not
+			if (GetFileAttributesW(MakeRelativeCitPath("citizen/ros/ros.crt").c_str()) == INVALID_FILE_ATTRIBUTES ||
+				GetFileAttributesW(MakeRelativeCitPath("citizen/ros/ros.key").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				_wunlink(MakeRelativeCitPath("caches.xml").c_str());
+			}
+
 			// create the TLS wrapper for the TLS backend
 			net::TLSServer* tlsWrapper = new net::TLSServer(secureServer, "citizen/ros/ros.crt", "citizen/ros/ros.key");
 			tlsWrapper->AddRef();
