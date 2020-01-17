@@ -776,28 +776,33 @@ namespace fx
 					}
 					else
 					{
-						trace("Sending heartbeat to %s\n", masterName);
+						auto var = m_instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_licenseKeyToken");
 
-						auto json = nlohmann::json::object({
-							{ "port", m_instance->GetComponent<fx::TcpListenManager>()->GetPrimaryPort() },
-							{ "listingToken", m_instance->GetComponent<ServerLicensingComponent>()->GetListingToken() },
-							{ "ipOverride", m_listingIpOverride->GetValue() },
-							{ "useDirectListing", m_useDirectListing->GetValue() },
-						});
-
-						HttpRequestOptions ro;
-						ro.ipv4 = true;
-						ro.headers = std::map<std::string, std::string>{
-							{ "Content-Type", "application/json; charset=utf-8" }
-						};
-
-						Instance<HttpClient>::Get()->DoPostRequest(masterName, json.dump(), ro, [](bool success, const char* d, size_t s)
+						if (var && !var->GetValue().empty())
 						{
-							if (!success)
+							trace("Sending heartbeat to %s\n", masterName);
+
+							auto json = nlohmann::json::object({
+								{ "port", m_instance->GetComponent<fx::TcpListenManager>()->GetPrimaryPort() },
+								{ "listingToken", m_instance->GetComponent<ServerLicensingComponent>()->GetListingToken() },
+								{ "ipOverride", m_listingIpOverride->GetValue() },
+								{ "useDirectListing", m_useDirectListing->GetValue() },
+								});
+
+							HttpRequestOptions ro;
+							ro.ipv4 = true;
+							ro.headers = std::map<std::string, std::string>{
+								{ "Content-Type", "application/json; charset=utf-8" }
+							};
+
+							Instance<HttpClient>::Get()->DoPostRequest(masterName, json.dump(), ro, [](bool success, const char* d, size_t s)
 							{
-								trace("error submitting to ingress: %s\n", std::string{ d, s });
-							}
-						});
+								if (!success)
+								{
+									trace("error submitting to ingress: %s\n", std::string{ d, s });
+								}
+							});
+						}
 					}
 				}
 			}
