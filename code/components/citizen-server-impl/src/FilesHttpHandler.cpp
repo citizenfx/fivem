@@ -7,6 +7,9 @@
 #include <ResourceFilesComponent.h>
 #include <ResourceStreamComponent.h>
 
+#include <Client.h>
+#include <ClientRegistry.h>
+
 #include <array>
 
 /*template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
@@ -62,7 +65,9 @@ namespace fx
 
 	static auto GetFilesEndpointHandler(fx::ServerInstanceBase* instance)
 	{
-		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName)
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName, const std::shared_ptr<fx::Client>& client)
 		{
 			// get resource manager and resource
 			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
@@ -188,6 +193,12 @@ namespace fx
 						// write to response
 						response->Write(std::string(buffer->data(), fsReq->result));
 
+						// touch client
+						if (client)
+						{
+							client->Touch();
+						}
+
 						// increment read offset
 						*readOffset += req->result;
 
@@ -222,6 +233,21 @@ namespace fx
 				return;
 			}
 
+			auto ra = request->GetRemoteAddress();
+			auto token = request->GetHeader("X-CitizenFX-Token");
+
+			std::shared_ptr<fx::Client> client;
+
+			if (!token.empty())
+			{
+				client = clientRegistry->GetClientByConnectionToken(token);
+			}
+
+			if (!client)
+			{
+				client = clientRegistry->GetClientByTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
+			}
+
 			const auto& path = request->GetPath();
 
 			if (path.length() >= 8)
@@ -243,7 +269,12 @@ namespace fx
 					std::string filesPathDecoded;
 					UrlDecode(filesPath, filesPathDecoded);
 
-					sendFile(request, response, resourceName, filesPathDecoded);
+					if (client)
+					{
+						client->Touch();
+					}
+
+					sendFile(request, response, resourceName, filesPathDecoded, client);
 					return;
 				}
 			}
