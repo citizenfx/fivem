@@ -174,13 +174,6 @@ namespace fx
 				consoleCtx->ExecuteSingleCommandDirect(bit);
 			}
 
-			trace(R"(
-^3--------------------------------------------
-FXServerMonitor is watching over the servers
---------------------------------------------^7
-
-)");
-
 			// execute config
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "exec", "monitor_autoexec.cfg" });
 		}
