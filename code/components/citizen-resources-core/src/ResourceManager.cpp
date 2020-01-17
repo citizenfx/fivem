@@ -192,6 +192,8 @@ void ResourceManagerImpl::ResetResources()
 
 	m_resources["_cfx_internal"] = cfxInternal;
 
+	OnAfterReset();
+
 	g_currentManager = lastManager;
 }
 

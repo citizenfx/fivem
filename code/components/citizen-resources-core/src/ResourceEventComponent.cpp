@@ -224,6 +224,11 @@ void ResourceEventManagerComponent::AttachToObject(ResourceManager* object)
 	{
 		this->Tick();
 	});
+
+	m_manager->OnAfterReset.Connect([this]()
+	{
+		m_eventQueue.clear();
+	});
 }
 
 static InitFunction initFunction([] ()

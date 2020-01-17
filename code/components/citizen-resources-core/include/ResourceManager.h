@@ -160,6 +160,8 @@ public:
 public:
 	fwEvent<> OnTick;
 
+	fwEvent<> OnAfterReset;
+
 public:
 	//
 	// An event to add components to a newly-initializing resource manager's instance registry.
