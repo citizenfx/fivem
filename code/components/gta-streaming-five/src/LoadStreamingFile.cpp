@@ -504,6 +504,8 @@ namespace streaming
 	{
 		auto dataFilePair = std::make_pair(type, path);
 
+		std::remove(g_dataFiles.begin(), g_dataFiles.end(), dataFilePair);
+
 		if (std::find(g_loadedDataFiles.begin(), g_loadedDataFiles.end(), dataFilePair) == g_loadedDataFiles.end())
 		{
 			return;
