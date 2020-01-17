@@ -248,7 +248,11 @@ namespace nui
 		if (rootWindow.GetRef())
 		{
 			auto browser = rootWindow->GetBrowser();
-			browser->SendProcessMessage(PID_RENDERER, procMessage);
+
+			if (browser)
+			{
+				browser->SendProcessMessage(PID_RENDERER, procMessage);
+			}
 
 			std::unique_lock<std::shared_mutex> lock(frameListMutex);
 			frameList.erase(frameName);
