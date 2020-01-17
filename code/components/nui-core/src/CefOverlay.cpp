@@ -219,16 +219,20 @@ namespace nui
 
 		if (!exists)
 		{
-			auto procMessage = CefProcessMessage::Create("createFrame");
-			auto argumentList = procMessage->GetArgumentList();
-
-			argumentList->SetSize(2);
-			argumentList->SetString(0, frameName.c_str());
-			argumentList->SetString(1, frameURL.c_str());
-
 			auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 			auto browser = rootWindow->GetBrowser();
-			browser->SendProcessMessage(PID_RENDERER, procMessage);
+
+			if (browser)
+			{
+				auto procMessage = CefProcessMessage::Create("createFrame");
+				auto argumentList = procMessage->GetArgumentList();
+
+				argumentList->SetSize(2);
+				argumentList->SetString(0, frameName.c_str());
+				argumentList->SetString(1, frameURL.c_str());
+
+				browser->SendProcessMessage(PID_RENDERER, procMessage);
+			}
 
 			std::unique_lock<std::shared_mutex> lock(frameListMutex);
 			frameList.insert({ frameName, frameURL });
