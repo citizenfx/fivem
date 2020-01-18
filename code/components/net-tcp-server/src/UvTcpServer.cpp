@@ -489,6 +489,12 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size)
 
 void UvTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
 {
+	if (std::this_thread::get_id() == m_threadId)
+	{
+		callback();
+		return;
+	}
+
 	std::shared_lock<std::shared_mutex> lock(m_writeCallbackMutex);
 
 	auto writeCallback = m_writeCallback;
