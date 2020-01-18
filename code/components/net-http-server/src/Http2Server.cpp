@@ -13,6 +13,208 @@
 
 #include <deque>
 
+struct ZeroCopyByteBuffer
+{
+	struct Element
+	{
+		std::string string;
+		std::vector<uint8_t> vec;
+		std::unique_ptr<char[]> raw;
+		size_t rawLength;
+		size_t read;
+
+		int type;
+
+		Element(std::vector<uint8_t>&& vec)
+			: read(0), type(1), vec(std::move(vec))
+		{
+			
+		}
+
+		Element(std::string&& str)
+			: read(0), type(0), string(std::move(str))
+		{
+			
+		}
+
+		Element(std::unique_ptr<char[]> raw, size_t length)
+			: read(0), type(2), raw(std::move(raw)), rawLength(length)
+		{
+
+		}
+
+		// we lied! we copy anyway :(
+		Element(const std::vector<uint8_t>& vec)
+			: read(0), type(1), vec(vec)
+		{
+			this->vec = vec;
+		}
+
+		Element(const std::string& str)
+			: read(0), type(0), string(str)
+		{
+			
+		}
+
+		size_t Size() const
+		{
+			switch (type)
+			{
+			case 0:
+				return string.size();
+			case 1:
+				return vec.size();
+			case 2:
+				return rawLength;
+			}
+
+			return 0;
+		}
+	};
+
+	template<typename TContainer>
+	void Push(TContainer&& elem)
+	{
+		elements.emplace_back(std::move(elem));
+	}
+
+	void Push(std::unique_ptr<char[]> data, size_t size)
+	{
+		elements.emplace_back(std::move(data), size);
+	}
+
+	bool Pop(const std::string** str, const std::vector<uint8_t>** vec, size_t* size, size_t* off)
+	{
+		if (elements.empty())
+		{
+			return false;
+		}
+
+		const auto& elem = elements.front();
+		*off = elem.read;
+
+		switch (elem.type)
+		{
+		case 0:
+			*str = &elem.string;
+			*vec = nullptr;
+			break;
+		case 1:
+			*vec = &elem.vec;
+			*str = nullptr;
+			break;
+		case 2:
+			*vec = nullptr;
+			*str = nullptr;
+			*size = elem.rawLength;
+			break;
+		}
+
+		return true;
+	}
+
+	ssize_t PeekLength()
+	{
+		const std::string* s;
+		const std::vector<uint8_t>* v;
+		size_t size = 0;
+		size_t off = 0;
+
+		if (Pop(&s, &v, &size, &off))
+		{
+			if (s)
+			{
+				return s->size() - off;
+			}
+			else if (v)
+			{
+				return v->size() - off;
+			}
+			else if (size)
+			{
+				return size - off;
+			}
+		}
+
+		return -1;
+	}
+
+	bool Take(std::string* str, std::vector<uint8_t>* vec, std::unique_ptr<char[]>* raw, size_t* rawLength, size_t* off)
+	{
+		if (elements.empty())
+		{
+			return false;
+		}
+
+		{
+			auto& elem = elements.front();
+			*off = elem.read;
+
+			switch (elem.type)
+			{
+			case 0:
+				*str = std::move(elem.string);
+				break;
+			case 1:
+				*vec = std::move(elem.vec);
+				break;
+			case 2:
+				*raw = std::move(elem.raw);
+				*rawLength = std::move(elem.rawLength);
+				break;
+			}
+		}
+
+		elements.pop_front();
+
+		return true;
+	}
+
+	bool Has(size_t len)
+	{
+		size_t accounted = 0;
+
+		for (const auto& elem : elements)
+		{
+			auto thisLen = std::min(len - accounted, elem.Size() - elem.read);
+			accounted += thisLen;
+
+			if (accounted > len)
+			{
+				return true;
+			}
+		}
+
+		return (len <= accounted);
+	}
+
+	void Advance(size_t len)
+	{
+		while (len > 0)
+		{
+			auto& elem = elements.front();
+			size_t s = elem.Size();
+
+			auto thisLen = std::min(len, s - elem.read);
+			elem.read += thisLen;
+			len -= thisLen;
+
+			if (elem.read >= s)
+			{
+				elements.pop_front();
+			}
+		}
+	}
+
+	bool Empty()
+	{
+		return elements.empty();
+	}
+
+private:
+	std::deque<Element> elements;
+};
+
 namespace net
 {
 class Http2Response : public HttpResponse
@@ -63,17 +265,22 @@ public:
 				*data_flags = NGHTTP2_DATA_FLAG_EOF;
 			}
 
-			if (resp->m_outData.empty())
+			if (resp->m_buffer.Empty())
 			{
 				return (resp->m_ended) ? 0 : NGHTTP2_ERR_DEFERRED;
 			}
+
+			/*
 
 			size_t toRead = std::min(length, resp->m_outData.size());
 
 			std::copy(resp->m_outData.begin(), resp->m_outData.begin() + toRead, buf);
 			resp->m_outData.erase(resp->m_outData.begin(), resp->m_outData.begin() + toRead);
 
-			return toRead;
+			return toRead;*/
+
+			*data_flags |= NGHTTP2_DATA_FLAG_NO_COPY;
+			return resp->m_buffer.PeekLength();
 		};
 
 		std::vector<nghttp2_nv> nv(m_headers.size());
@@ -98,14 +305,43 @@ public:
 		m_sentHeaders = true;
 	}
 
-	virtual void WriteOut(const std::vector<uint8_t>& data) override
+	template<typename TContainer>
+	void WriteOutInternal(TContainer data)
 	{
 		if (m_session)
 		{
-			auto origSize = m_outData.size();
+			m_buffer.Push(std::forward<TContainer>(data));
 
-			m_outData.resize(m_outData.size() + data.size());
-			std::copy(data.begin(), data.end(), m_outData.begin() + origSize);
+			nghttp2_session_resume_data(m_session, m_stream);
+			nghttp2_session_send(m_session);
+		}
+	}
+
+	virtual void WriteOut(const std::vector<uint8_t>& data) override
+	{
+		WriteOutInternal<decltype(data)>(data);
+	}
+
+	virtual void WriteOut(std::vector<uint8_t>&& data) override
+	{
+		WriteOutInternal<decltype(data)>(std::move(data));
+	}
+
+	virtual void WriteOut(const std::string& data) override
+	{
+		WriteOutInternal<decltype(data)>(data);
+	}
+
+	virtual void WriteOut(std::string&& data) override
+	{
+		WriteOutInternal<decltype(data)>(std::move(data));
+	}
+
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t size) override
+	{
+		if (m_session)
+		{
+			m_buffer.Push(std::move(data), size);
 
 			nghttp2_session_resume_data(m_session, m_stream);
 			nghttp2_session_send(m_session);
@@ -140,6 +376,11 @@ public:
 		m_session = nullptr;
 	}
 
+	inline ZeroCopyByteBuffer& GetBuffer()
+	{
+		return m_buffer;
+	}
+
 private:
 	nghttp2_session* m_session;
 
@@ -147,7 +388,7 @@ private:
 
 	HeaderMap m_headers;
 
-	std::deque<uint8_t> m_outData;
+	ZeroCopyByteBuffer m_buffer;
 };
 
 Http2ServerImpl::Http2ServerImpl()
@@ -200,6 +441,50 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		reinterpret_cast<HttpConnectionData*>(user_data)->stream->Write(std::vector<uint8_t>{ data, data + length });
 
 		return length;
+	});
+
+	nghttp2_session_callbacks_set_send_data_callback(callbacks, [](nghttp2_session* session, nghttp2_frame* frame, const uint8_t* framehd, size_t length, nghttp2_data_source* source, void* user_data) -> int
+	{
+		auto data = reinterpret_cast<HttpConnectionData*>(user_data);
+		auto resp = reinterpret_cast<Http2Response*>(source->ptr);
+
+		auto& buf = resp->GetBuffer();
+
+		if (buf.Has(length))
+		{
+			static thread_local std::vector<uint8_t> fhd(9);
+			memcpy(&fhd[0], framehd, fhd.size());
+
+			data->stream->Write(fhd);
+
+			std::vector<uint8_t> v;
+			std::string s;
+			std::unique_ptr<char[]> raw;
+			size_t rawLength;
+			size_t off;
+
+			if (buf.Take(&s, &v, &raw, &rawLength, &off))
+			{
+				assert(off == 0);
+
+				if (!s.empty())
+				{
+					data->stream->Write(std::move(s));
+				}
+				else if (!v.empty())
+				{
+					data->stream->Write(std::move(v));
+				}
+				else if (raw)
+				{
+					data->stream->Write(std::move(raw), rawLength);
+				}
+			}
+
+			return 0;
+		}
+
+		return NGHTTP2_ERR_WOULDBLOCK;
 	});
 
 	nghttp2_session_callbacks_set_on_begin_headers_callback(callbacks, [](nghttp2_session *session,

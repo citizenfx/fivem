@@ -8,6 +8,7 @@
 #pragma once
 
 #include "NetAddress.h"
+#include <function2.hpp>
 
 #ifdef COMPILING_NET_TCP_SERVER
 #define TCP_SERVER_EXPORT DLL_EXPORT
@@ -24,7 +25,7 @@ public:
 
 	typedef std::function<void()> TCloseCallback;
 
-	typedef std::function<void()> TScheduledCallback;
+	typedef fu2::unique_function<void() const> TScheduledCallback;
 
 private:
 	TReadCallback m_readCallback;
@@ -55,13 +56,15 @@ public:
 
 	virtual void Write(std::vector<uint8_t>&& data);
 
+	virtual void Write(std::unique_ptr<char[]> data, size_t size);
+
 	virtual void Close() = 0;
 
 	void SetReadCallback(const TReadCallback& callback);
 
 	void SetCloseCallback(const TCloseCallback& callback);
 
-	virtual void ScheduleCallback(const TScheduledCallback& callback);
+	virtual void ScheduleCallback(TScheduledCallback&& callback);
 
 protected:
 	TcpServerStream() { }

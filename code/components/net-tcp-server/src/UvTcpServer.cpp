@@ -420,6 +420,11 @@ void UvTcpServerStream::Write(std::vector<uint8_t>&& data)
 	WriteInternal(std::move(dataRef), data.size());
 }
 
+void UvTcpServerStream::Write(std::unique_ptr<char[]> data, size_t size)
+{
+	WriteInternal(std::move(data), size);
+}
+
 // blindly copypasted from StackOverflow (to allow std::function to store the funcref types with their move semantics)
 // TODO: we use this *three times* now, time for a shared header?
 template<class F>
@@ -487,7 +492,7 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size)
 	}
 }
 
-void UvTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
+void UvTcpServerStream::ScheduleCallback(TScheduledCallback&& callback)
 {
 	if (std::this_thread::get_id() == m_threadId)
 	{
@@ -501,7 +506,7 @@ void UvTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
 
 	if (writeCallback)
 	{
-		m_pendingRequests.push(callback);
+		m_pendingRequests.push(std::move(callback));
 
 		writeCallback->send();
 	}
@@ -518,7 +523,7 @@ void UvTcpServerStream::HandlePendingWrites()
 	fwRefContainer<UvTcpServerStream> selfRef = this;
 
 	// dequeue pending writes
-	std::function<void()> request;
+	TScheduledCallback request;
 
 	while (m_pendingRequests.try_pop(request))
 	{

@@ -89,7 +89,7 @@ public:
 		m_sentHeaders = true;
 	}
 
-	virtual void BeforeWriteHead(const std::string& data) override
+	virtual void BeforeWriteHead(size_t length) override
 	{
 		// only execute WriteHead filtering once
 		if (m_sentWriteHead)
@@ -106,7 +106,7 @@ public:
 		{
 			if (m_headerList.find("content-length") == m_headerList.end())
 			{
-				SetHeader(std::string("Content-Length"), std::to_string(data.size()));
+				SetHeader(std::string("Content-Length"), std::to_string(length));
 			}
 
 			// unset transfer-encoding, if present
@@ -167,6 +167,24 @@ public:
 		WriteOutInternal<decltype(data)>(std::move(data));
 	}
 
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length) override
+	{
+		if (m_chunked)
+		{
+			// we _don't_ want to send a 0-sized chunk
+			if (length > 0)
+			{
+				// assume chunked
+				m_clientStream->Write(fmt::sprintf("%x\r\n", length));
+				m_clientStream->Write(std::move(data), length);
+				m_clientStream->Write("\r\n");
+			}
+		}
+		else
+		{
+			m_clientStream->Write(std::move(data), length);
+		}
+	}
 
 	virtual void End() override
 	{

@@ -33,7 +33,7 @@ public:
 
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
-	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
+	virtual void ScheduleCallback(TScheduledCallback&& callback) override;
 
 protected:
 	void ConsumeData(const void* data, size_t length);
@@ -46,7 +46,7 @@ private:
 
 	std::shared_ptr<uvw::AsyncHandle> m_writeCallback;
 
-	tbb::concurrent_queue<std::function<void()>> m_pendingRequests;
+	tbb::concurrent_queue<TScheduledCallback> m_pendingRequests;
 };
 
 class TcpServerManager;

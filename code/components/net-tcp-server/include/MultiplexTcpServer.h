@@ -54,9 +54,11 @@ public:
 
 	virtual void Write(std::string&& data) override;
 
+	virtual void Write(std::unique_ptr<char[]> data, size_t len) override;
+
 	virtual void Close() override;
 
-	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
+	virtual void ScheduleCallback(TScheduledCallback&& callback) override;
 };
 
 enum class MultiplexPatternMatchResult

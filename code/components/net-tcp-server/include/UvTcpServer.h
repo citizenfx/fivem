@@ -37,7 +37,7 @@ private:
 
 	std::shared_mutex m_writeCallbackMutex;
 
-	tbb::concurrent_queue<std::function<void()>> m_pendingRequests;
+	tbb::concurrent_queue<TScheduledCallback> m_pendingRequests;
 
 	std::vector<char> m_readBuffer;
 
@@ -85,9 +85,11 @@ public:
 
 	virtual void Write(std::string&&) override;
 
+	virtual void Write(std::unique_ptr<char[]> data, size_t size) override;
+
 	virtual void Close() override;
 
-	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
+	virtual void ScheduleCallback(TScheduledCallback&& callback) override;
 
 private:
 	void WriteInternal(std::unique_ptr<char[]> data, size_t size);

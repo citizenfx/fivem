@@ -91,13 +91,13 @@ void HttpResponse::WriteHead(int statusCode, const std::string& statusMessage)
 	return WriteHead(statusCode, statusMessage, HeaderMap());
 }
 
-void HttpResponse::BeforeWriteHead(const std::string& data)
+void HttpResponse::BeforeWriteHead(size_t length)
 {
 }
 
 void HttpResponse::Write(const std::string& data)
 {
-	BeforeWriteHead(data);
+	BeforeWriteHead(data.size());
 
 	if (!m_sentHeaders)
 	{
@@ -109,7 +109,7 @@ void HttpResponse::Write(const std::string& data)
 
 void HttpResponse::Write(std::string&& data)
 {
-	BeforeWriteHead(data);
+	BeforeWriteHead(data.size());
 
 	if (!m_sentHeaders)
 	{
@@ -117,6 +117,18 @@ void HttpResponse::Write(std::string&& data)
 	}
 
 	WriteOut(std::move(data));
+}
+
+void HttpResponse::Write(std::unique_ptr<char[]> data, size_t length)
+{
+	BeforeWriteHead(length);
+
+	if (!m_sentHeaders)
+	{
+		WriteHead(m_statusCode);
+	}
+
+	WriteOut(std::move(data), length);
 }
 
 void HttpResponse::WriteOut(const std::string& data)

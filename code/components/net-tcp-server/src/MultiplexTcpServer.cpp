@@ -248,6 +248,14 @@ void MultiplexTcpChildServerStream::Write(std::string&& data)
 	}
 }
 
+void MultiplexTcpChildServerStream::Write(std::unique_ptr<char[]> data, size_t len)
+{
+	if (m_baseStream.GetRef())
+	{
+		m_baseStream->Write(std::move(data), len);
+	}
+}
+
 PeerAddress MultiplexTcpChildServerStream::GetPeerAddress()
 {
 	if (m_baseStream.GetRef())
@@ -263,11 +271,11 @@ void MultiplexTcpChildServerStream::SetInitialData(const std::vector<uint8_t>& i
 	m_initialData = initialData;
 }
 
-void MultiplexTcpChildServerStream::ScheduleCallback(const TScheduledCallback& callback)
+void MultiplexTcpChildServerStream::ScheduleCallback(TScheduledCallback&& callback)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->ScheduleCallback(callback);
+		m_baseStream->ScheduleCallback(std::move(callback));
 	}
 }
 

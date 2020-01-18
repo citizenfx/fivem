@@ -87,6 +87,30 @@ public:
 
 	virtual void Write(const std::vector<uint8_t>& data) override;
 
+	virtual void Write(std::unique_ptr<char[]> data, size_t len) override
+	{
+		fwRefContainer<TLSServerStream> thisRef = this;
+
+		ScheduleCallback([thisRef, data = std::move(data), len]()
+		{
+			auto tlsServer = thisRef->m_tlsServer;
+
+			if (tlsServer && tlsServer->is_active())
+			{
+				try
+				{
+					tlsServer->send(reinterpret_cast<const uint8_t*>(data.get()), len);
+				}
+				catch (const std::exception & e)
+				{
+					trace("tls send: %s\n", e.what());
+
+					thisRef->Close();
+				}
+			}
+		});
+	}
+
 	virtual void Close() override;
 
 	void Initialize();
@@ -139,7 +163,7 @@ public:
 		}
 	}
 
-	virtual void ScheduleCallback(const TScheduledCallback& callback) override;
+	virtual void ScheduleCallback(TScheduledCallback&& callback) override;
 
 private:
 	void WriteToClient(const uint8_t buf[], size_t length);

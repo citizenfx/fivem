@@ -39,6 +39,14 @@ void TcpServerStream::Write(std::vector<uint8_t>&& data)
 	Write(static_cast<const std::vector<uint8_t>&>(data));
 }
 
+void TcpServerStream::Write(std::unique_ptr<char[]> data, size_t size)
+{
+	std::vector<uint8_t> dataVec(size);
+	memcpy(&dataVec[0], data.get(), size);
+
+	Write(std::move(dataVec));
+}
+
 void TcpServerStream::SetCloseCallback(const TCloseCallback& callback)
 {
 	m_closeCallback = callback;
@@ -56,7 +64,7 @@ void TcpServerStream::SetReadCallback(const TReadCallback& callback)
 	}
 }
 
-void TcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
+void TcpServerStream::ScheduleCallback(TScheduledCallback&& callback)
 {
 	callback();
 }

@@ -158,16 +158,17 @@ namespace fx
 					response->WriteHead(200);
 
 					// read buffer and file handle
-					auto buffer = std::make_shared<std::array<char, 16384>>();
+					auto buffer = std::make_shared<std::unique_ptr<char[]>>();
+					*buffer = std::unique_ptr<char[]>(new char[16384]);
 
-					auto uvBuf = uv_buf_init(buffer->data(), buffer->size());
+					auto uvBuf = uv_buf_init(buffer->get(), 16384);
 
 					// mutable read offset pointer
 					auto readOffset = std::make_shared<size_t>(0);
 
 					// to keep a reference to readCallback inside of itself
 					auto readCallback = std::make_shared<std::function<void(uv_fs_t*)>>();
-					*readCallback = [=](uv_fs_t* fsReq)
+					*readCallback = [=](uv_fs_t* fsReq) mutable
 					{
 						// read failed? report back
 						if (fsReq->result < 0)
@@ -187,11 +188,11 @@ namespace fx
 						// filter
 						if (filter)
 						{
-							filter->Filter(buffer->data(), fsReq->result);
+							filter->Filter(buffer->get(), fsReq->result);
 						}
 
 						// write to response
-						response->Write(std::string(buffer->data(), fsReq->result));
+						response->Write(std::move(*buffer), fsReq->result);
 
 						// touch client
 						if (client)
@@ -206,6 +207,9 @@ namespace fx
 						// if not, call another read
 						if (*readOffset != size)
 						{
+							*buffer = std::unique_ptr<char[]>(new char[16384]);
+							uvBuf = uv_buf_init(buffer->get(), 16384);
+
 							uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
 						}
 						else

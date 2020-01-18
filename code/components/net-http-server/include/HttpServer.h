@@ -177,11 +177,15 @@ public:
 
 	void Write(std::string&& data);
 
+	void Write(std::unique_ptr<char[]> data, size_t length);
+
 	virtual void End() = 0;
 
-	virtual void BeforeWriteHead(const std::string& data);
+	virtual void BeforeWriteHead(size_t length);
 
 	virtual void WriteOut(const std::vector<uint8_t>& data) = 0;
+
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length) = 0;
 
 	virtual void WriteOut(std::vector<uint8_t>&& data);
 

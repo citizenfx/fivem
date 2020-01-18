@@ -29,7 +29,7 @@ namespace net
 			fwRefContainer<ReverseTcpServerStream> selfRef = *refRef;
 
 			// dequeue pending writes
-			std::function<void()> request;
+			TScheduledCallback request;
 
 			while (selfRef->m_pendingRequests.try_pop(request))
 			{
@@ -66,9 +66,9 @@ namespace net
 		}
 	}
 
-	void ReverseTcpServerStream::ScheduleCallback(const TScheduledCallback& callback)
+	void ReverseTcpServerStream::ScheduleCallback(TScheduledCallback&& callback)
 	{
-		m_pendingRequests.push(callback);
+		m_pendingRequests.push(std::move(callback));
 		m_writeCallback->send();
 	}
 
