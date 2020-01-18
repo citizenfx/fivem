@@ -163,6 +163,8 @@ private:
 
 	std::set<fwRefContainer<TLSServerStream>> m_connections;
 
+	std::mutex m_connectionsMutex;
+
 	std::vector<std::string> m_protocols;
 
 	std::map<std::string, fwRefContainer<TcpServer>> m_protocolServers;
@@ -195,6 +197,7 @@ public:
 
 	inline void CloseStream(TLSServerStream* stream)
 	{
+		std::lock_guard<std::mutex> _(m_connectionsMutex);
 		m_connections.erase(stream);
 	}
 };

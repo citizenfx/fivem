@@ -49,6 +49,9 @@ static InitFunction initFunction([]()
 		{
 			json infoJson;
 			std::recursive_mutex infoJsonMutex;
+
+			std::string infoJsonStr;
+			std::shared_mutex infoJsonStrMutex;
 			int infoHash;
 
 			InfoData()
@@ -59,50 +62,58 @@ static InitFunction initFunction([]()
 
 			void Update()
 			{
-				std::unique_lock<std::recursive_mutex> lock(infoJsonMutex);
-
-				auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
-
-				infoJson["vars"] = json::object();
-
-				varman->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+				if (infoJsonMutex.try_lock())
 				{
-					// don't return more variable information
-					if (name == "sv_infoVersion" || name == "sv_hostname")
+					auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
+
+					infoJson["vars"] = json::object();
+
+					varman->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
 					{
-						return;
+						// don't return more variable information
+						if (name == "sv_infoVersion" || name == "sv_hostname")
+						{
+							return;
+						}
+
+						infoJson["vars"][name] = var->GetValue();
+					}, ConVar_ServerInfo);
+
+					infoJson["resources"] = json::array();
+					infoJson["resources"].push_back("hardcap");
+
+					auto resman = instanceRef->GetComponent<fx::ResourceManager>();
+					resman->ForAllResources([&](fwRefContainer<fx::Resource> resource)
+					{
+						// we've already listed hardcap, no need to actually return it again
+						if (resource->GetName() == "hardcap")
+						{
+							return;
+						}
+
+						// only output started resources
+						if (resource->GetState() != fx::ResourceState::Started)
+						{
+							return;
+						}
+
+						infoJson["resources"].push_back(resource->GetName());
+					});
+
+					infoJson["version"] = 0;
+
+					infoHash = static_cast<int>(HashRageString(infoJson.dump(-1, ' ', false, json::error_handler_t::replace).c_str()) & 0x7FFFFFFF);
+					infoJson["version"] = infoHash;
+
+					ivVar->GetHelper()->SetRawValue(infoHash);
+
+					{
+						std::lock_guard<std::shared_mutex> _(infoJsonStrMutex);
+						infoJsonStr = infoJson.dump(-1, ' ', false, json::error_handler_t::replace);
 					}
 
-					infoJson["vars"][name] = var->GetValue();
-				}, ConVar_ServerInfo);
-
-				infoJson["resources"] = json::array();
-				infoJson["resources"].push_back("hardcap");
-
-				auto resman = instanceRef->GetComponent<fx::ResourceManager>();
-				resman->ForAllResources([&](fwRefContainer<fx::Resource> resource)
-				{
-					// we've already listed hardcap, no need to actually return it again
-					if (resource->GetName() == "hardcap")
-					{
-						return;
-					}
-
-					// only output started resources
-					if (resource->GetState() != fx::ResourceState::Started)
-					{
-						return;
-					}
-
-					infoJson["resources"].push_back(resource->GetName());
-				});
-
-				infoJson["version"] = 0;
-
-				infoHash = static_cast<int>(HashRageString(infoJson.dump(-1, ' ', false, json::error_handler_t::replace).c_str()) & 0x7FFFFFFF);
-				infoJson["version"] = infoHash;
-
-				ivVar->GetHelper()->SetRawValue(infoHash);
+					infoJsonMutex.unlock();
+				}
 			}
 		};
 
@@ -189,8 +200,8 @@ static InitFunction initFunction([]()
 			infoData->Update();
 
 			{
-				std::unique_lock<std::recursive_mutex> lock(infoData->infoJsonMutex);
-				response->End(infoData->infoJson.dump(-1, ' ', false, json::error_handler_t::replace));
+				std::shared_lock<std::shared_mutex> lock(infoData->infoJsonStrMutex);
+				response->End(infoData->infoJsonStr);
 			}
 		});
 

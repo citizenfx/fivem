@@ -36,8 +36,7 @@ void UvCallback(Handle* handle)
 static InitFunction initFunction([]()
 {
 	static fx::ServerInstanceBase* serverInstance;
-	static std::unique_ptr<uv_async_t> async;
-
+	
 	static struct SteamIdProvider : public fx::ServerIdentityProviderBase
 	{
 		HttpClient* httpClient;
@@ -64,14 +63,6 @@ static InitFunction initFunction([]()
 
 		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
-			if (!async)
-			{
-				async = std::make_unique<uv_async_t>();
-				async->data = this;
-
-				uv_async_init(serverInstance->GetComponent<net::TcpServerManager>()->GetLoop(), async.get(), UvCallback<uv_async_t, SteamIdProvider, &SteamIdProvider::HandleCallbacks>);
-			}
-
 			auto it = postMap.find("authTicket");
 
 			if (it == postMap.end())
@@ -103,53 +94,35 @@ static InitFunction initFunction([]()
 				{
 					std::string response{ data, size };
 
-					m_pendingRequests.push([cb, result, response, clientPtr]()
+					try
 					{
-						try
+						if (result)
 						{
-							if (result)
-							{
-								json object = json::parse(response)["response"];
+							json object = json::parse(response)["response"];
 
-								if (object.find("error") != object.end())
-								{
-									cb({ "Steam rejected authentication: " + object["error"]["errordesc"].get<std::string>() });
-									return;
-								}
-
-								uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
-								clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
-							}
-							else
+							if (object.find("error") != object.end())
 							{
-								trace("Steam authentication for %s^7 failed: %s\n", clientPtr->GetName(), response);
+								cb({ "Steam rejected authentication: " + object["error"]["errordesc"].get<std::string>() });
+								return;
 							}
 
-							cb({});
+							uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
+							clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
 						}
-						catch (std::exception& e)
+						else
 						{
-							cb({ fmt::sprintf("SteamIdProvider failure: %s", e.what()) });
+							trace("Steam authentication for %s^7 failed: %s\n", clientPtr->GetName(), response);
 						}
-					});
 
-					uv_async_send(async.get());
+						cb({});
+					}
+					catch (std::exception & e)
+					{
+						cb({ fmt::sprintf("SteamIdProvider failure: %s", e.what()) });
+					}
 				}
 			);
 		}
-
-	private:
-		void HandleCallbacks()
-		{
-			std::function<void()> request;
-
-			while (m_pendingRequests.try_pop(request))
-			{
-				request();
-			}
-		}
-
-		tbb::concurrent_queue<std::function<void()>> m_pendingRequests;
 	} idp;
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)

@@ -97,7 +97,10 @@ public:
 		}
 
 		// get the local path for the request
-		auto localPath = request->GetPath().substr(m_resource->GetName().length() + 2);
+		auto rl = m_resource->GetName().length() + 2;
+		auto path = request->GetPath();
+
+		auto localPath = (path.length() >= rl) ? path.substr(rl) : "";
 
 		// pass to the registered handler for the resource
 		if (m_handlerRef)
@@ -261,7 +264,7 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 		// add an endpoint
 		httpManager->AddEndpoint(
-			fmt::sprintf("/%s/", m_resource->GetName()),
+			fmt::sprintf("/%s", m_resource->GetName()),
 			std::bind(&ResourceHttpComponent::HandleRequest, this, std::placeholders::_1, std::placeholders::_2));
 	}, 9999);
 
@@ -280,7 +283,7 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 		fwRefContainer<fx::HttpServerManager> httpManager = server->GetComponent<fx::HttpServerManager>();
 
 		// remove an endpoint
-		httpManager->RemoveEndpoint(fmt::sprintf("/%s/", m_resource->GetName()));
+		httpManager->RemoveEndpoint(fmt::sprintf("/%s", m_resource->GetName()));
 	}, -9999);
 }
 

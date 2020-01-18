@@ -13,6 +13,8 @@
 
 #include <uvw.hpp>
 
+#include <tbb/concurrent_queue.h>
+
 namespace net
 {
 class UvLoopHolder : public fwRefCountable
@@ -20,11 +22,15 @@ class UvLoopHolder : public fwRefCountable
 private:
 	std::shared_ptr<uvw::Loop> m_loop;
 
+	std::shared_ptr<uvw::AsyncHandle> m_async;
+
 	std::thread m_thread;
 
 	bool m_shouldExit;
 
 	std::string m_loopTag;
+
+	tbb::concurrent_queue<std::function<void()>> m_functionQueue;
 
 public:
 	UvLoopHolder(const std::string& loopTag);
@@ -46,6 +52,12 @@ public:
 	inline const std::string& GetLoopTag() const
 	{
 		return m_loopTag;
+	}
+
+	inline void EnqueueCallback(const std::function<void()>& fn)
+	{
+		m_functionQueue.push(fn);
+		m_async->send();
 	}
 };
 }

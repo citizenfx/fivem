@@ -8,19 +8,59 @@
 #include "StdInc.h"
 #include "UvTcpServer.h"
 #include "TcpServerManager.h"
+#include "UvLoopManager.h"
 #include "memdbgon.h"
+
+#include <botan/auto_rng.h>
+
+#ifdef _WIN32
+#pragma comment(lib, "ntdll")
+#include <winternl.h>
+
+EXTERN_C NTSTATUS NTSYSAPI NTAPI NtSetInformationFile(
+	_In_  HANDLE                 FileHandle,
+	_Out_ PIO_STATUS_BLOCK       IoStatusBlock,
+	_In_  PVOID                  FileInformation,
+	_In_  ULONG                  Length,
+	_In_  FILE_INFORMATION_CLASS FileInformationClass
+);
+
+struct FILE_COMPLETION_INFORMATION
+{
+	DWORD_PTR Port;
+	DWORD_PTR Key;
+};
+
+#define FileReplaceCompletionInformation (FILE_INFORMATION_CLASS)61
+
+#define STATUS_INVALID_INFO_CLASS 0xC0000003
+
+#endif
 
 namespace net
 {
 UvTcpServer::UvTcpServer(TcpServerManager* manager)
-	: m_manager(manager)
+	: m_manager(manager), m_dispatchIndex(0), m_tryDetachFromIOCP(true)
 {
-
+	m_pipeName = fmt::sprintf(
+#ifdef _WIN32
+		"\\\\.\\pipe\\fxserver_%d%d",
+#else
+		"/tmp/fxserver_%d%d",
+#endif
+		time(NULL), rand()
+	);
+	
+	Botan::AutoSeeded_RNG rng;
+	rng.randomize(m_helloMessage.data(), m_helloMessage.size());
 }
 
 UvTcpServer::~UvTcpServer()
 {
-	m_clients.clear();
+	m_dispatchPipes.clear();
+	m_createdPipes.clear();
+
+	m_listenPipe = {};
 
 	auto server = m_server;
 
@@ -49,7 +89,73 @@ bool UvTcpServer::Listen(std::shared_ptr<uvw::TCPHandle>&& server)
 
 	m_server->listen();
 
+	auto pipe = m_server->loop().resource<uvw::PipeHandle>();
+	pipe->bind(m_pipeName);
+	pipe->listen();
+
+	pipe->on<uvw::ListenEvent>([this](const uvw::ListenEvent& event, uvw::PipeHandle& handle)
+	{
+		OnListenPipe(handle);
+	});
+
+	m_listenPipe = pipe;
+
+	auto threadCount = std::min(std::max(int(std::thread::hardware_concurrency() / 2), 1), 8);
+
+	for (int i = 0; i < threadCount; i++)
+	{
+		auto cs = std::make_shared<UvTcpChildServer>(this, m_pipeName, m_helloMessage, i);
+		cs->Listen();
+
+		m_childServers.insert(cs);
+	}
+
 	return true;
+}
+
+void UvTcpServer::OnListenPipe(uvw::PipeHandle& handle)
+{
+	auto pipe = m_server->loop().resource<uvw::PipeHandle>(true);
+	std::weak_ptr<uvw::PipeHandle> pipeWeak(pipe);
+
+	pipe->on<uvw::DataEvent>([this, pipeWeak](const uvw::DataEvent& event, uvw::PipeHandle& handle)
+	{
+		if (event.length == 0)
+		{
+			m_createdPipes.erase(pipeWeak.lock());
+			return;
+		}
+
+		// #TODOTCP: handle partial reads
+		if (event.length != m_helloMessage.size())
+		{
+			m_createdPipes.erase(pipeWeak.lock());
+			return;
+		}
+
+		auto pipe = pipeWeak.lock();
+
+		if (pipe)
+		{
+			if (memcmp(event.data.get(), m_helloMessage.data(), m_helloMessage.size()) != 0)
+			{
+				m_createdPipes.erase(pipe);
+				return;
+			}
+
+			m_dispatchPipes.push_back(pipe);
+		}
+	});
+
+	pipe->on<uvw::EndEvent>([this, pipeWeak](const uvw::EndEvent& event, uvw::PipeHandle& handle)
+	{
+		m_createdPipes.erase(pipeWeak.lock());
+	});
+
+	handle.accept(*pipe);
+	pipe->read();
+
+	m_createdPipes.insert(pipe);
 }
 
 void UvTcpServer::OnConnection(int status)
@@ -61,8 +167,77 @@ void UvTcpServer::OnConnection(int status)
 		return;
 	}
 
+	// get a pipe
+	auto index = m_dispatchIndex++ % m_dispatchPipes.size();
+
+	if (index == m_dispatchPipes.size())
+	{
+		// TODO: log this? handle locally?
+		return;
+	}
+
+	auto clientHandle = m_server->loop().resource<uvw::TCPHandle>();
+	m_server->accept(*clientHandle);
+
+#ifdef _WIN32
+	if (m_tryDetachFromIOCP)
+	{
+		auto fd = clientHandle->fileno();
+
+		FILE_COMPLETION_INFORMATION info = { 0 };
+		IO_STATUS_BLOCK block;
+
+		if (NtSetInformationFile(fd, &block, &info, sizeof(info), FileReplaceCompletionInformation) == STATUS_INVALID_INFO_CLASS)
+		{
+			m_tryDetachFromIOCP = false;
+		}
+	}
+#endif
+
+	static char dummyMessage[] = { 1, 2, 3, 4 };
+	m_dispatchPipes[index]->write(*clientHandle, dummyMessage, sizeof(dummyMessage));
+}
+
+UvTcpChildServer::UvTcpChildServer(UvTcpServer* parent, const std::string& pipeName, const std::array<uint8_t, 16>& pipeMessage, int idx)
+	: m_parent(parent), m_pipeName(pipeName), m_pipeMessage(pipeMessage)
+{
+	m_uvLoopName = fmt::sprintf("tcp%d", idx);
+
+	m_uvLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate(m_uvLoopName);
+}
+
+void UvTcpChildServer::Listen()
+{
+	m_uvLoop->EnqueueCallback([this]()
+	{
+		auto loop = m_uvLoop->Get();
+
+		auto pipe = loop->resource<uvw::PipeHandle>(true);
+		pipe->connect(m_pipeName);
+
+		m_dispatchPipe = pipe;
+
+		pipe->on<uvw::DataEvent>([this](const uvw::DataEvent& ev, uvw::PipeHandle& handle)
+		{
+			OnConnection(0);
+		});
+
+		pipe->on<uvw::ConnectEvent>([this](const uvw::ConnectEvent& ev, uvw::PipeHandle& handle)
+		{
+			handle.read();
+
+			auto msg = std::unique_ptr<char[]>(new char[m_pipeMessage.size()]);
+			memcpy(msg.get(), m_pipeMessage.data(), m_pipeMessage.size());
+
+			handle.write(std::move(msg), m_pipeMessage.size());
+		});
+	});
+}
+
+void UvTcpChildServer::OnConnection(int status)
+{
 	// initialize a handle for the client
-	auto clientHandle = m_manager->GetWrapLoop()->resource<uvw::TCPHandle>();
+	auto clientHandle = m_dispatchPipe->loop().resource<uvw::TCPHandle>();
 
 	// create a stream instance and associate
 	fwRefContainer<UvTcpServerStream> stream(new UvTcpServerStream(this));
@@ -71,11 +246,11 @@ void UvTcpServer::OnConnection(int status)
 	if (stream->Accept(std::move(clientHandle)))
 	{
 		m_clients.insert(stream);
-		
+
 		// invoke the connection callback
-		if (GetConnectionCallback())
+		if (m_parent->GetConnectionCallback())
 		{
-			GetConnectionCallback()(stream);
+			m_parent->GetConnectionCallback()(stream);
 		}
 	}
 	else
@@ -84,13 +259,13 @@ void UvTcpServer::OnConnection(int status)
 	}
 }
 
-void UvTcpServer::RemoveStream(UvTcpServerStream* stream)
+void UvTcpChildServer::RemoveStream(UvTcpServerStream* stream)
 {
 	m_clients.erase(stream);
 }
 
-UvTcpServerStream::UvTcpServerStream(UvTcpServer* server)
-	: m_server(server), m_closingClient(false)
+UvTcpServerStream::UvTcpServerStream(UvTcpChildServer* server)
+	: m_server(server), m_closingClient(false), m_threadId(std::this_thread::get_id())
 {
 
 }
@@ -275,6 +450,18 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size)
 {
 	if (!m_client)
 	{
+		return;
+	}
+
+	if (std::this_thread::get_id() == m_threadId)
+	{
+		auto client = m_client;
+
+		if (client)
+		{
+			client->write(std::move(data), size);
+		}
+
 		return;
 	}
 

@@ -22,6 +22,16 @@ TcpServerManager::~TcpServerManager()
 	
 }
 
+std::shared_ptr<uvw::Loop> TcpServerManager::GetCurrentWrapLoop()
+{
+	return Instance<UvLoopManager>::Get()->GetCurrent()->Get();
+}
+
+uv_loop_t* TcpServerManager::GetCurrentLoop()
+{
+	return Instance<UvLoopManager>::Get()->GetCurrent()->GetLoop();
+}
+
 fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bindAddress)
 {
 	// allocate an owning pointer for the server handle

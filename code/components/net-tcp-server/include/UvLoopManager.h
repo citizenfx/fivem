@@ -29,6 +29,10 @@ public:
 
 	fwRefContainer<UvLoopHolder> GetOrCreate(const std::string& loopTag);
 
+	fwRefContainer<UvLoopHolder> GetCurrent();
+
+	void SetCurrent(UvLoopHolder* holder);
+
 	void Disown(const std::string& loopTag);
 };
 }

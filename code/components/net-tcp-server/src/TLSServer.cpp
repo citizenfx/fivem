@@ -405,6 +405,7 @@ void TLSServer::Initialize(fwRefContainer<TcpServer> baseServer, std::shared_ptr
 		fwRefContainer<TLSServerStream> childStream = new TLSServerStream(this, stream);
 		childStream->Initialize();
 
+		std::lock_guard<std::mutex> _(m_connectionsMutex);
 		m_connections.insert(childStream);
 	});
 }

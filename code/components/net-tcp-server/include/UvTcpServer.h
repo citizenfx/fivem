@@ -13,6 +13,9 @@
 #include <shared_mutex>
 
 #include "TcpServer.h"
+#include <UvLoopHolder.h>
+
+#include <array>
 
 #include <tbb/concurrent_queue.h>
 
@@ -21,11 +24,12 @@
 namespace net
 {
 class UvTcpServer;
+class UvTcpChildServer;
 
 class UvTcpServerStream : public TcpServerStream
 {
 private:
-	UvTcpServer* m_server;
+	UvTcpChildServer* m_server;
 
 	std::shared_ptr<uvw::TCPHandle> m_client;
 
@@ -36,6 +40,8 @@ private:
 	tbb::concurrent_queue<std::function<void()>> m_pendingRequests;
 
 	std::vector<char> m_readBuffer;
+
+	std::thread::id m_threadId;
 
 	volatile bool m_closingClient;
 
@@ -52,7 +58,7 @@ private:
 	}
 
 public:
-	UvTcpServerStream(UvTcpServer* server);
+	UvTcpServerStream(UvTcpChildServer* server);
 
 	virtual ~UvTcpServerStream();
 
@@ -89,6 +95,39 @@ private:
 
 class TcpServerManager;
 
+class UvTcpChildServer
+{
+public:
+	UvTcpChildServer(UvTcpServer* parent, const std::string& pipeName, const std::array<uint8_t, 16>& pipeMessage, int idx);
+
+	void Listen();
+
+	void RemoveStream(UvTcpServerStream* stream);
+
+	inline std::shared_ptr<uvw::PipeHandle> GetServer()
+	{
+		return m_dispatchPipe;
+	}
+
+private:
+	void OnConnection(int status);
+
+private:
+	std::shared_ptr<uvw::PipeHandle> m_dispatchPipe;
+
+	std::string m_pipeName;
+
+	std::array<uint8_t, 16> m_pipeMessage;
+
+	std::string m_uvLoopName;
+
+	fwRefContainer<net::UvLoopHolder> m_uvLoop;
+
+	std::set<fwRefContainer<UvTcpServerStream>> m_clients;
+
+	UvTcpServer* m_parent;
+};
+
 class UvTcpServer : public TcpServer
 {
 private:
@@ -96,10 +135,24 @@ private:
 
 	std::shared_ptr<uvw::TCPHandle> m_server;
 
-	std::set<fwRefContainer<UvTcpServerStream>> m_clients;
+	std::shared_ptr<uvw::PipeHandle> m_listenPipe;
+
+	std::set<std::shared_ptr<UvTcpChildServer>> m_childServers;
+
+	std::vector<std::shared_ptr<uvw::PipeHandle>> m_dispatchPipes;
+	std::set<std::shared_ptr<uvw::PipeHandle>> m_createdPipes;
+
+	int m_dispatchIndex;
+
+	std::string m_pipeName;
+	std::array<uint8_t, 16> m_helloMessage;
+
+	bool m_tryDetachFromIOCP;
 
 private:
 	void OnConnection(int status);
+
+	void OnListenPipe(uvw::PipeHandle& handle);
 
 public:
 	UvTcpServer(TcpServerManager* manager);
@@ -117,9 +170,6 @@ public:
 	{
 		return m_manager;
 	}
-
-public:
-	void RemoveStream(UvTcpServerStream* stream);
 };
 }
 

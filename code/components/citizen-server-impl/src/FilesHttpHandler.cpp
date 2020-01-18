@@ -106,7 +106,7 @@ namespace fx
 
 			// get the TCP manager for a libuv loop
 			fwRefContainer<net::TcpServerManager> tcpManager = instance->GetComponent<net::TcpServerManager>();
-			auto uvLoop = tcpManager->GetLoop();
+			auto uvLoop = tcpManager->GetCurrentLoop();
 
 			// make a global request we reuse
 			auto req = std::make_shared<uv_fs_t>();
