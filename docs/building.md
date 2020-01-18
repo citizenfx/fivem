@@ -1,3 +1,4 @@
+
 # Building FiveM
 To build FiveM's client components, you need the following dependencies:
 * A Windows machine with Visual Studio 2019 (Build Tools/Community is fine) installed with the C++ and UWP workloads.
@@ -21,3 +22,15 @@ cd code
 ```
 
 ... and now you can open `build/five/CitizenMP.sln` in Visual Studio, or compile it from the command line with MSBuild.
+
+## Setting up testing enviroment
+#### Clientside
+* To run modified client you need to run it in **dev mode**. To do this, create a new file in FiveM appdata folder (where FiveM.exe is located) and name it `FiveM.exe.formaldev`. If a file like this exists, launching FiveM will ensure dev mode and will skip updater *(that would otherwise overwrite your modified files with downloaded ones)*
+* In order to launch modified client *(without having it crash a few seconds after launch)* you need to disable adhesive.dll. To do this, open file named *components.json* and remove line containing `"adhesive",`.
+#### Serverside
+* To set up a server that will let you connect with a modified client, you need to disable serversided *svadhesive.dll*. Open server's *components.json* and remove line containing `"svadhesive",`.
+* You will also need to disable *sessionmanager* resource in your server.cfg as well as set the server to run in `sv_lan 1`.
+
+## Additional information
+* After compiling the project, it is necessary to copy/obtain additional files and folders to prepare the client. You can use/view [build.ps1](https://github.com/citizenfx/fivem/blob/master/code/tools/ci/build.ps1 "build.ps1") to see what is necessary for client to function properly and where to copy it from. You can also just download regular client and swap desired DLLs for the ones you changed.
+* For testing natives/custom functions you can use resource called `runcode`, it is one of the default resources that comes with the server. Start it in your server.cfg and enter `127.0.0.1:30120/runcode/` in your browser. You can then run lua code dynamically without having to change/restart resources manually. 
