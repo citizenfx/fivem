@@ -5,6 +5,10 @@ return {
 		defines '__TBB_NO_IMPLICIT_LINKAGE=1'
 
 		includedirs "../vendor/tbb/include/"
+
+		if os.istarget('linux') then
+			defines 'TBB_USE_GLIBCXX_VERSION=90200'
+		end
 	end,
 
 	run = function()
@@ -56,7 +60,7 @@ return {
 		}
 
 		filter { 'system:not windows' }
-			defines { 'USE_PTHREAD', 'TBB_USE_GLIBCXX_VERSION=90200' }
+			defines { 'USE_PTHREAD' }
 
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
