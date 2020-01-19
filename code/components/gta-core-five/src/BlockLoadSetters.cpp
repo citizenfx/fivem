@@ -1655,5 +1655,16 @@ static HookFunction hookFunction([] ()
 			}
 		}
 	});
+
+	// fix 32:9 being interpreted as 3 spanned monitors
+	// (change 3.5 aspect cap to 3.6, which is enough to contain 3x 5:4, but does not contain 2x16:9 anymore)
+	{
+		auto location = hook::get_pattern<char>("0F 2F 35 ? ? ? ? 76 54 48 8B CF", 3);
+		auto stubLoc = hook::AllocateStubMemory(4);
+
+		*(float*)stubLoc = 3.6f;
+
+		hook::put<int32_t>(location, int32_t(intptr_t(stubLoc) - intptr_t(location) - 4));
+	}
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9
