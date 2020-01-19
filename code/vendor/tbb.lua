@@ -56,7 +56,7 @@ return {
 		}
 
 		filter { 'system:not windows' }
-			defines { 'USE_PTHREAD' }
+			defines { 'USE_PTHREAD', 'TBB_USE_GLIBCXX_VERSION=90200' }
 
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
