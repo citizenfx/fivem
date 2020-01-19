@@ -1078,7 +1078,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							{
 								auto[clientData, lock] = GetClientData(this, cmdState.client);
-								clientData->idsForGameState.emplace(cmdState.frameIndex, entity->handle & 0xFFFF);
+								clientData->idsForGameState[cmdState.frameIndex].set(entity->handle & 0xFFFF);
 							}
 
 							cmdState.cloneBuffer.Write(3, syncType);
@@ -2736,9 +2736,10 @@ static InitFunction initFunction([]()
 			auto [clientData, lock] = GetClientData(sgs.GetRef(), client);
 
 			{
-				for (auto& entityIdPair : fx::GetIteratorView(clientData->idsForGameState.equal_range(frameIndex)))
+				const auto& ref = clientData->idsForGameState[frameIndex];
+
+				for (auto entityId = ref.find_first(); entityId != ref.size(); entityId = ref.find_next(entityId))
 				{
-					auto[_, entityId] = entityIdPair;
 					auto entityRef = sgs->GetEntity(0, entityId);
 
 					if (entityRef)

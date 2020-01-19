@@ -13,6 +13,7 @@
 #include <array>
 #include <optional>
 #include <EASTL/bitset.h>
+#include <EASTL/fixed_hash_map.h>
 #include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
@@ -330,7 +331,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	glm::mat4x4 viewMatrix;
 
-	std::unordered_multimap<uint64_t, uint16_t> idsForGameState;
+	eastl::fixed_hash_map<uint64_t, eastl::bitset<MaxObjectId>, 150> idsForGameState;
 
 	eastl::bitset<MaxObjectId> pendingRemovals;
 
