@@ -952,15 +952,23 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	static struct Stream
 		: public std::streambuf
 	{
+		Stream()
+			: read(0)
+		{
+			memset(buffer, 0, sizeof(buffer));
+		}
+
 		void Reset()
 		{
+			setg(egptr(), egptr(), egptr());
+
 			queue.clear();
 			read = 0;
 		}
 
 		size_t Tell()
 		{
-			return read;
+			return read - (egptr() - gptr());
 		}
 
 		void Seek(size_t pos)
@@ -968,6 +976,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			if (pos < queue.size())
 			{
 				read = pos;
+
+				// reset to ensure underflow gets called again
+				setg(egptr(), egptr(), egptr());
 			}
 		}
 
