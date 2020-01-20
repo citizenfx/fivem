@@ -2,7 +2,7 @@
     <div class="bg" [style.background-image]="server.sanitizedStyleUri"></div>
 
     <figure class="icon" (click)="attemptConnect($event)">
-        <img [src]="server.sanitizedUri">
+        <img [src]="server.sanitizedUri" (error)="server.setDefaultIcon()">
     </figure>
 
     <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>

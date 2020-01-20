@@ -17,12 +17,14 @@ export class AppComponent extends Translation implements OnInit {
 	overlayActive = false;
 	minModeSetUp = false;
 
+	classes: { [key: string]: boolean } = {};
+
 	get minMode() {
 		return this.gameService.inMinMode;
 	}
 
 	get bgImage(): string {
-		return this.minMode ? 'url(' + this.gameService.minmodeBlob['art:backgroundImage'] + ')' : null
+		return this.minMode ? 'url(' + this.gameService.minmodeBlob['art:backgroundImage'] + ')' : '';
 	}
 
 	constructor(public locale: LocaleService,
@@ -44,11 +46,10 @@ export class AppComponent extends Translation implements OnInit {
 
 		this.gameService.minModeChanged.subscribe((value: boolean) => {
 			if (value) {
-				this.classes = [
-					...this.classes.filter(a => a !== 'theme-light'),
-					'minmode',
-					'theme-dark'
-				];
+				delete this.classes['theme-light'];
+				this.classes['minmode'] = true;
+				this.classes['theme-dark'] = true;
+				this.classes = { ...this.classes };
 				this.router.navigate(['/minmode']);
 			}
 
@@ -57,18 +58,23 @@ export class AppComponent extends Translation implements OnInit {
 	}
 
 	ngOnInit() {
-		this.classes = [
-			environment.web ? 'webapp' : 'gameapp',
-			(this.gameService.gameName === 'rdr3') ?
-				'theme-rdr3' :
-				(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light',
-			'game-' + this.gameService.gameName,
-			'theRoot',
-		];
+		this.classes = {};
+		this.classes[environment.web ? 'webapp' : 'gameapp'] = true;
+		this.classes[(this.gameService.gameName === 'rdr3') ?
+			'theme-rdr3' :
+			(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light'] = true;
+		this.classes['game-' + this.gameService.gameName] = true;
+		this.classes['theRoot'] = true;
 
 		this.gameService.darkThemeChange.subscribe(value => {
 			if (this.gameService.gameName !== 'rdr3') {
-				this.classes[1] = (value) ? 'theme-dark' : 'theme-light';
+				delete this.classes['theme-light'];
+				delete this.classes['theme-dark'];
+
+				this.classes[(value) ? 'theme-dark' : 'theme-light'] = true;
+				this.classes = {
+					...this.classes
+				};
 			}
 		});
 
@@ -77,8 +83,4 @@ export class AppComponent extends Translation implements OnInit {
 			this.locale.setCurrentLanguage(lang);
 		}
 	}
-
-
-
-	classes: string[];
 }

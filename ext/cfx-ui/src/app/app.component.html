@@ -1,4 +1,4 @@
-<div [ngClass]="classes" *ngIf="minModeSetUp" [style.--myBackgroundImage]="bgImage">
+<div [class]="classes" *ngIf="minModeSetUp" [style.--myBackgroundImage]="bgImage">
     <div id="bg" *ngIf="!minMode || !gameService.minmodeBlob['art:backgroundImage']"></div>
     <div id="bg" *ngIf="minMode && gameService.minmodeBlob['art:backgroundImage']"></div>
 

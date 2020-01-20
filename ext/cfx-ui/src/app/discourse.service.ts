@@ -241,7 +241,7 @@ export class DiscourseService {
         const deviceName = `FiveM client on ${await this.getComputerName()}`;
 
         const params = {
-            scopes: 'session_info,read',
+            scopes: 'session_info,read,write',
             client_id: clientId,
             nonce: nonce,
             auth_redirect: 'fivem://accept-auth',

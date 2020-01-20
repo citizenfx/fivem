@@ -149,6 +149,14 @@ export abstract class GameService {
 		return this.profile;
 	}
 
+	hasProfiles() {
+		return false;
+	}
+
+	getProfileString() {
+		return '';
+	}
+
 	abstract getServerHistory(): ServerHistoryEntry[];
 
 	handleSignin(profile: Profile): void {
@@ -275,6 +283,8 @@ export class CfxGameService extends GameService {
 
 	private lastServer: Server;
 
+	private ownershipTicket = '';
+
 	private pingList: { [addr: string]: Server } = {};
 
 	private pingListEvents: [string, number][] = [];
@@ -291,6 +301,8 @@ export class CfxGameService extends GameService {
 	
 	private inConnecting = false;
 
+	private profileList: any[] = [];
+
 	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
 		super();
 	}
@@ -305,6 +317,11 @@ export class CfxGameService extends GameService {
 				const json = <Profiles>await response.json();
 
 				if (json.profiles && json.profiles.length > 0) {
+					this.profileList.push({
+						id: json.profiles[0].externalIdentifier,
+						username: json.profiles[0].name
+					});
+
 					this.handleSignin(json.profiles[0]);
 				}
 			} catch (e) {}
@@ -359,7 +376,12 @@ export class CfxGameService extends GameService {
 						this.zone.run(() => convar.next(event.data.value));
 
 						setTimeout(() => {
-							this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
+							if (this.ownershipTicket !== this.getConvarValue('cl_ownershipTicket')) {
+								this.ownershipTicket = this.getConvarValue('cl_ownershipTicket');
+								this.updateProfiles();
+
+								this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
+							}
 						}, 500);
 						break;
 					case 'setMinModeInfo':
@@ -606,50 +628,63 @@ export class CfxGameService extends GameService {
 
 	lastQuery: string;
 
-	queryAddress(address: [string, number]): Promise<Server> {
-		const addrString = (address[0].match(/^[a-z0-9]{6,}$/))
-			? `cfx.re/join/${address[0]}`
-			: (address[0].indexOf('cfx.re') === -1)
-				? address[0] + ':' + address[1]
-				: address[0];
+	async queryAddress(address: [string, number]): Promise<Server> {
+		const tries = [];
+		let lastError: Error = null;
 
-		const promise = new Promise<Server>((resolve, reject) => {
-			const to = window.setTimeout(() => {
-				if (addrString != this.lastQuery) {
-					return;
-				}
+		if (address[0].match(/^[a-z0-9]{6,}$/)) {
+			tries.push(`cfx.re/join/${address[0]}`);
+		}
 
-				reject(new Error('#DirectConnect_TimedOut'));
+		tries.push((address[0].indexOf('cfx.re') === -1)
+			? address[0] + ':' + address[1]
+			: address[0]);
 
-				window.removeEventListener('message', cb);
-			}, 2500);
+		for (const addrString of tries) {
+			const promise = new Promise<Server>((resolve, reject) => {
+				const to = window.setTimeout(() => {
+					if (addrString !== this.lastQuery) {
+						return;
+					}
 
-			const cb = (event) => {
-				if (addrString != this.lastQuery) {
+					reject(new Error('#DirectConnect_TimedOut'));
+
 					window.removeEventListener('message', cb);
-					return;
-				}
+				}, 2500);
 
-				if (event.data.type == 'queryingFailed') {
-					if (event.data.arg == addrString) {
-						reject(new Error('#DirectConnect_Failed'));
+				const cb = (event) => {
+					if (addrString !== this.lastQuery) {
+						window.removeEventListener('message', cb);
+						return;
+					}
+
+					if (event.data.type === 'queryingFailed') {
+						if (event.data.arg === addrString) {
+							reject(new Error('#DirectConnect_Failed'));
+							window.removeEventListener('message', cb);
+							window.clearTimeout(to);
+						}
+					} else if (event.data.type === 'serverQueried') {
+						resolve(Server.fromNative(this.sanitizer, event.data));
 						window.removeEventListener('message', cb);
 						window.clearTimeout(to);
 					}
-				} else if (event.data.type == 'serverQueried') {
-					resolve(Server.fromNative(this.sanitizer, event.data));
-					window.removeEventListener('message', cb);
-					window.clearTimeout(to);
-				}
-			};
+				};
 
-			window.addEventListener('message', cb);
-		});
+				window.addEventListener('message', cb);
+			});
 
-		(<any>window).invokeNative('queryServer', addrString);
-		this.lastQuery = addrString;
+			(<any>window).invokeNative('queryServer', addrString);
+			this.lastQuery = addrString;
 
-		return promise;
+			try {
+				return await promise;
+			} catch (e) {
+				lastError = e;
+			}
+		}
+
+		throw lastError;
 	}
 
 	exitGame(): void {
@@ -666,6 +701,55 @@ export class CfxGameService extends GameService {
 
 	public submitCardResponse(data: any) {
 		(<any>window).invokeNative('submitCardResponse', JSON.stringify({ data }));
+	}
+
+	async updateProfiles() {
+		const r = await fetch('https://lambda.fivem.net/api/ticket/identities', {
+			method: 'POST',
+			body: `token=${this.ownershipTicket}`,
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded'
+			}
+		});
+
+		if (!r.ok) {
+			return;
+		}
+
+		const j = await r.json();
+		this.profileList.push(...j.identities);
+	}
+
+	hasProfiles() {
+		return this.profileList.length > 0;
+	}
+
+	getProfileString() {
+		return this.profileList.map(p => getIcon(p.id.split(':')[0]) + ' ' + htmlEscape(p.username)).join(',&nbsp;&nbsp;');
+
+		function htmlEscape(unsafe: string) {
+			return unsafe
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#039;');
+		}
+
+		function getIcon(type: string) {
+			switch (type) {
+				case 'steam':
+					return '<i class="fab fa-steam"></i>';
+				case 'discord':
+					return '<i class="fab fa-discord"></i>';
+				case 'xbl':
+					return '<i class="fab fa-xbox"></i>';
+				case 'fivem':
+					return '<i class="fa fa-road"></i>';
+			}
+
+			return '';
+		}
 	}
 }
 

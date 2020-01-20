@@ -13,7 +13,7 @@ import * as emojiList from 'emoji.json/emoji-compact.json';
 export class Setting {
     name: string;
     description?: string;
-    type: 'checkbox' | 'text' | 'select' | 'label' | 'button';
+    type: 'checkbox' | 'text' | 'select' | 'label' | 'button' | 'html';
     options?: { [value: string]: string };
     showCb?: () => Observable<boolean>;
     labelCb?: () => Observable<string>;
@@ -136,6 +136,13 @@ export class SettingsService {
             }
         });
 
+        this.addSetting('connectedProfiles', {
+            name: '#Settings_ConnectedProfiles',
+            type: 'html',
+            showCb: () => of(this.gameService.hasProfiles()),
+            labelCb: () => of(this.gameService.getProfileString())
+        });
+
         if (this.gameService.gameName !== 'rdr3') {
             this.addSetting('accountButton', {
                 name: '#Settings_Account',
@@ -188,8 +195,8 @@ export class SettingsService {
                 showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
                     && !!this.discourseService.currentBoost.server)),
                 labelCb: () => of(
-                    this.discourseService.currentBoost.server && this.discourseService.currentBoost.server.hostname ?
-                        this.discourseService.currentBoost.server.hostname : 'test'
+                    this.discourseService.currentBoost && this.discourseService.currentBoost.server &&
+                    this.discourseService.currentBoost.server.hostname ? this.discourseService.currentBoost.server.hostname : 'test'
                 ),
                 colorizeValue: true
             });

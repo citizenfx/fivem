@@ -56,10 +56,20 @@ export class Server {
         const server = new Server(sanitizer, object.addr, { ...mappedData });
 
         if (object.infoBlob) {
-            server.iconUri = 'data:image/png;base64,' + object.infoBlob.icon;
+            if (object.infoBlob.icon) {
+                server.iconUri = 'data:image/png;base64,' + object.infoBlob.icon;
+            } else {
+                server.setDefaultIcon();
+            }
         }
 
         return server;
+    }
+
+    public setDefaultIcon() {
+        const svg = Avatar.getFor(this.address);
+
+        this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     }
 
     public updatePing(newValue: number): void {
@@ -109,9 +119,7 @@ export class Server {
         this.connectEndPoints = object.connectEndPoints;
 
         if (!object.iconVersion && sanitizer) {
-            const svg = Avatar.getFor(this.address);
-
-            this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+            this.setDefaultIcon();
         } else {
             this.iconUri = `https://servers-live.fivem.net/servers/icon/${address}/${object.iconVersion}.png`;
         }

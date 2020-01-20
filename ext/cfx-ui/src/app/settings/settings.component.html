@@ -37,6 +37,10 @@
 			[innerHTML]="setting.label | escape | colorize">
 		</span>
 
+		<span *ngIf="setting.setting.type === 'html'"
+			[innerHTML]="setting.label">
+		</span>
+
 		<span *ngIf="setting.setting.type === 'select'">
 			<select
 				[(ngModel)]="setting.value"
