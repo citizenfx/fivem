@@ -983,8 +983,8 @@
 				<!--<Item> <cTextId>PM_SCR_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MISSION_CREATOR</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_FRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_FRIENDS</MenuUniqueId> </Item>-->
 				<!--<Item> <cTextId>PM_SCR_SOC</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SOCIALCLUB</MenuUniqueId> </Item>-->
-				<!--<Item> <cTextId>PM_SCR_GAL</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GALLERY</MenuUniqueId> </Item>
-				<Item> <cTextId>CMRC_GOTOSTORE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STORE</MenuUniqueId> </Item>-->
+				<Item> <cTextId>PM_SCR_GAL</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GALLERY</MenuUniqueId> </Item>
+				<!--<Item> <cTextId>CMRC_GOTOSTORE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STORE</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_SCR_RPL</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_REPLAY_EDITOR</MenuUniqueId> <Contexts>*ALL*,ReplayEditor,*NONE*,Creator</Contexts> </Item>
 			</MenuItems>
 		</Item>
@@ -1015,8 +1015,8 @@
 				<Item> <cTextId>PM_SCR_WEA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_WEAPONS</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SCR_AWA</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_MEDALS</MenuUniqueId> </Item>
 				-->
-				<!--<Item> <cTextId>PM_SCR_GAL</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GALLERY</MenuUniqueId> </Item>
-				<Item> <cTextId>CMRC_GOTOSTORE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STORE</MenuUniqueId> </Item>-->
+				<Item> <cTextId>PM_SCR_GAL</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_GALLERY</MenuUniqueId> </Item>
+				<!--<Item> <cTextId>CMRC_GOTOSTORE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_STORE</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_SCR_RPL</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_REPLAY_EDITOR</MenuUniqueId> <Contexts>*ALL*, ReplayEditor</Contexts> </Item>
 			</MenuItems>
 		</Item>

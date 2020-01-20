@@ -1666,5 +1666,11 @@ static HookFunction hookFunction([] ()
 
 		hook::put<int32_t>(location, int32_t(intptr_t(stubLoc) - intptr_t(location) - 4));
 	}
+
+	// SC eula accepted
+	hook::put<uint32_t>(hook::get_pattern("84 C0 74 36 48 8B 0D ? ? ? ? 48 85 C9", -13), 0x90C301B0);
+
+	// don't downscale photos a lot
+	hook::put<uint8_t>(hook::get_pattern("41 3B D9 72 09", 3), 0xEB);
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9

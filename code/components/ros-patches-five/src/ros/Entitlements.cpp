@@ -18,6 +18,9 @@
 
 #include <json.hpp>
 
+#include <cpr/cpr.h>
+#include <ICoreGameInit.h>
+
 using json = nlohmann::json;
 
 int StoreDecryptedBlob(void* a1, void* a2, uint32_t a3, void* inOutBlob, uint32_t a5, void* a6);
@@ -189,6 +192,30 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
+
+class LambdaHttpHandler : public net::HttpHandler
+{
+public:
+	template<typename TFn>
+	LambdaHttpHandler(TFn&& fn)
+	{
+		m_function = fn;
+	}
+
+	virtual bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
+	{
+		if (m_function)
+		{
+			m_function(request, response);
+			return true;
+		}
+
+		return false;
+	}
+
+private:
+	std::function<void(const fwRefContainer<net::HttpRequest> & request, const fwRefContainer<net::HttpResponse> & response)> m_function;
+};
 
 #if defined(IS_RDR3)
 bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey);
@@ -408,6 +435,136 @@ static InitFunction initFunction([] ()
 	<Status>1</Status>
 	<Result Count="0" Total="0" Hash="0">
 	</Result>
+</Response>)";
+	});
+
+	static int photoIdx = 0;
+	static std::map<int, nlohmann::json> photoData;
+
+	mapper->AddPrefix("/uploadPhoto", new LambdaHttpHandler([](fwRefContainer<net::HttpRequest> req, fwRefContainer<net::HttpResponse> res)
+	{
+		req->SetDataHandler([req, res](const std::vector<uint8_t>& postData)
+		{
+			auto idx = req->GetHeader("X-Agile-Authorization", "-1");
+			auto dataIt = photoData.find(std::stoi(idx));
+
+			if (dataIt == photoData.end())
+			{
+				res->WriteHead(400);
+				res->End("Bad request.");
+
+				return;
+			}
+
+			auto& data = dataIt->second;
+
+			std::string token;
+			std::string clientId;
+
+			if (Instance<ICoreGameInit>::Get()->GetData("discourseUserToken", &token) &&
+				Instance<ICoreGameInit>::Get()->GetData("discourseClientId", &clientId))
+			{
+				// pass Multipart as lvalue to work around bug in cpr
+				// https://github.com/whoshuu/cpr/issues/216#issuecomment-450474117
+				auto mp = cpr::Multipart{
+						{ "type", "image" },
+						{ "files[]", cpr::Buffer{postData.begin(), postData.end(), "image.jpg"} }
+				};
+
+				auto h = cpr::Header{
+					{ "User-Agent", "CitizenFX/Five" },
+					{ "User-Api-Client-Id", clientId },
+					{ "User-Api-Key", token },
+				};
+
+				auto upload = cpr::Post(cpr::Url{ "https://forum.cfx.re/uploads.json" },
+					h,
+					mp);
+
+				if (!upload.error && upload.status_code < 400)
+				{
+					auto resp = upload.text;
+					auto dataRef = nlohmann::json::parse(data["DataJson"].get<std::string>());
+
+					auto json = nlohmann::json::parse(resp);
+
+					if (json.value("id", 0) != 0)
+					{
+						auto url = json.value("short_url", "");
+						auto tw = json.value("thumbnail_width", 0);
+						auto th = json.value("thumbnail_height", 0);
+
+						std::string name;
+						UrlDecode(data.value("ContentName", ""), name);
+
+						auto b = nlohmann::json::object({
+							{ "category", 68 },
+							{ "title", name },
+							{ "raw", fmt::sprintf("![image|%dx%d](%s) \n\n[details=\"Metadata\"]\n```json\n%s\n```\n[/details]", tw, th, url, dataRef.dump(4)) },
+							{ "tags", nlohmann::json::array({"gta5photo", dataRef.value("area", "somewhere")}) }
+						});
+
+						h["Content-Type"] = "application/json; charset=utf-8";
+
+						auto post = cpr::Post(cpr::Url{ "https://forum.cfx.re/posts.json" },
+							h,
+							cpr::Body{ b.dump() });
+
+						trace("posted: %s\n", post.text);
+					}
+				}
+			}
+
+			res->WriteHead(200);
+			res->End("OK!");
+		});
+	}));
+
+	mapper->AddGameService("ugc.asmx/CreateContent", [](const std::string& body)
+	{
+		auto postData = ParsePOSTString(body);
+		auto jsonData = nlohmann::json::parse(postData["paramsJson"]);
+
+		if (postData["contentType"] == "gta5photo")
+		{
+			std::string token;
+			std::string clientId;
+
+			if (Instance<ICoreGameInit>::Get()->GetData("discourseUserToken", &token) &&
+				Instance<ICoreGameInit>::Get()->GetData("discourseClientId", &clientId))
+			{
+				auto jsonDataNested = nlohmann::json::parse(jsonData["DataJson"].get<std::string>());
+				jsonDataNested["llat"] = fmt::sprintf("%d", photoIdx);
+				jsonDataNested["lldir"] = "ugc/gta5photo";
+				jsonDataNested["llfn"] = "1.jpg";
+				jsonDataNested["llurl"] = "http://localhost:32891/uploadPhoto";
+
+				photoData[photoIdx] = jsonData;
+				photoIdx++;
+
+				return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="640" xmlns="CreateContent">
+    <Status>1</Status>
+    <Result ci="1234567890123456789012" cd="1" n="hey that's me" rci="1234567890123456789012" ud="1" u="1" v="1">
+        <da>
+            <![CDATA[%s]]>
+        </da>
+    </Result>
+</Response>)", jsonDataNested.dump());
+			}
+		}
+
+		return std::string(R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="640" xmlns="CreateContent">
+<Status>0</Status>
+</Response>)");
+	});
+
+mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
+{
+		return R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="640" xmlns="Publish">
+    <Status>1</Status>
 </Response>)";
 	});
 

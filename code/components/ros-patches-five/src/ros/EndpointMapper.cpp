@@ -142,11 +142,7 @@ static InitFunction initFunction([] ()
 	// create the local socket server, if this is the master process
 	static HostSharedData<CfxState> initState("CfxInitState");
 
-#ifdef IS_RDR3
 	if (initState->IsMasterProcess())
-#else
-	if (wcsstr(GetCommandLine(), L"ros:legit") != nullptr)
-#endif
 	{
 		net::PeerAddress address = net::PeerAddress::FromString("localhost:32891").get();
 

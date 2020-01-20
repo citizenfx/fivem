@@ -561,6 +561,9 @@ static InitFunction initFunction([] ()
 				g_discourseUserToken = json.value<std::string>("token", "");
 				g_discourseClientId = json.value<std::string>("clientId", "");
 
+				Instance<ICoreGameInit>::Get()->SetData("discourseUserToken", g_discourseUserToken);
+				Instance<ICoreGameInit>::Get()->SetData("discourseClientId", g_discourseClientId);
+
 				Instance<::HttpClient>::Get()->DoPostRequest(
 					"https://lambda.fivem.net/api/validate/discourse",
 					{
