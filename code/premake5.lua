@@ -78,7 +78,7 @@ workspace "CitizenMP"
 		buildoptions '/std:c++17'
 		
 		if _OPTIONS['game'] ~= 'server' then
-			buildoptions '/await'
+			buildoptions { '/await', '/d2FH4-' }
 		end
 
 		systemversion '10.0.18362.0'
