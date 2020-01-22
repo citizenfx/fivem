@@ -378,6 +378,65 @@ static HookFunction initFunction([]()
 		*reinterpret_cast<float *>(wheelAddr + WheelInvYRotOffset) = -(context.GetArgument<float>(2));
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_SIZE", [](fx::ScriptContext& context)
+	{
+		fwEntity* vehicle = getAndCheckVehicle(context);
+		auto CVeh_0x48 = *reinterpret_cast<uint64_t*>((uint64_t)vehicle + 0x48);
+		auto CVeh_0x48_0x370 = *reinterpret_cast<uint64_t*>(CVeh_0x48 + 0x370);
+		if (CVeh_0x48_0x370 != 0) {
+			float size = *(float*)(CVeh_0x48_0x370 + 0x8);
+			context.SetResult<float>((float)size);
+		}else {
+			context.SetResult<float>(0);
+		}
+	});
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_SIZE", [](fx::ScriptContext& context)
+	{
+		bool success = false;
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			auto CVeh_0x48 = *reinterpret_cast<uint64_t*>((uint64_t)vehicle + 0x48);
+			auto CVeh_0x48_0x370 = *reinterpret_cast<uint64_t*>(CVeh_0x48 + 0x370);
+			if (CVeh_0x48_0x370 != 0) {		// Cannot set visual size for default wheels
+				auto size = context.GetArgument<float>(1);
+				if (size != 0) {
+					*reinterpret_cast<float*>(CVeh_0x48_0x370 + 0x8) = size;	// Set wheel visual size
+					success = true;		// Visual size was set properly
+				}
+			}
+		}
+		context.SetResult<bool>(success);	// Could not set visual size
+	});
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_WIDTH", [](fx::ScriptContext& context)
+	{
+		fwEntity* vehicle = getAndCheckVehicle(context);
+		auto CVeh_0x48 = *reinterpret_cast<uint64_t*>((uint64_t)vehicle + 0x48);
+		auto CVeh_0x48_0x370 = *reinterpret_cast<uint64_t*>(CVeh_0x48 + 0x370);
+		if (CVeh_0x48_0x370 != 0) {
+			float width = *(float*)(CVeh_0x48_0x370 + 0xBA0);
+			context.SetResult<float>((float)width);
+		}else {
+			context.SetResult<float>(0);
+		}
+	});
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_WIDTH", [](fx::ScriptContext& context)
+	{
+		bool success = false;
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			auto CVeh_0x48 = *reinterpret_cast<uint64_t*>((uint64_t)vehicle + 0x48);
+			auto CVeh_0x48_0x370 = *reinterpret_cast<uint64_t*>(CVeh_0x48 + 0x370);
+			if (CVeh_0x48_0x370 != 0) {		// Cannot set visual size for default wheels
+				auto width = context.GetArgument<float>(1);
+				if (width != 0) {
+					*reinterpret_cast<float*>(CVeh_0x48_0x370 + 0xBA0) = width;	// Set wheel visual width
+					success = true;		// Visual width was set properly
+				}
+			}
+		}
+		context.SetResult<bool>(success);	// Could not set visual size
+	});
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_STEERING_ANGLE", [](fx::ScriptContext& context)
 	{
 		if (fwEntity* vehicle = getAndCheckVehicle(context))
