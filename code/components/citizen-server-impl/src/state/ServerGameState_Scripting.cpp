@@ -7,6 +7,8 @@
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 
+#include <ScriptSerialization.h>
+
 static InitFunction initFunction([]()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
@@ -574,4 +576,36 @@ static InitFunction initFunction([]()
 	{
 		return entity->data["noLongerNeeded"];
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_VEHICLES", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		std::vector<int> entityList;
+		std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+
+		for (auto& entity : gameState->m_entityList)
+		{
+			if (entity && (entity->type == fx::sync::NetObjEntityType::Automobile ||
+				entity->type == fx::sync::NetObjEntityType::Bike ||
+				entity->type == fx::sync::NetObjEntityType::Boat ||
+				entity->type == fx::sync::NetObjEntityType::Heli ||
+				entity->type == fx::sync::NetObjEntityType::Plane ||
+				entity->type == fx::sync::NetObjEntityType::Submarine ||
+				entity->type == fx::sync::NetObjEntityType::Trailer ||
+				entity->type == fx::sync::NetObjEntityType::Train))
+			{
+				entityList.push_back(gameState->MakeScriptHandle(entity));
+			}
+		}
+
+		context.SetResult(fx::SerializeObject(entityList));
+	});
 });
