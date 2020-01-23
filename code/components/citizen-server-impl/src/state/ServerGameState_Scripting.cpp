@@ -564,4 +564,14 @@ static InitFunction initFunction([]()
 	{
 		return entity->data["numberPlateTextIndex"];
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("HAS_VEHICLE_BEEN_OWNED_BY_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["hasBeenOwnedByPlayer"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("HAS_ENTITY_BEEN_MARKED_AS_NO_LONGER_NEEDED", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["noLongerNeeded"];
+	}));
 });
