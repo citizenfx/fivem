@@ -302,7 +302,7 @@ static InitFunction initFunction([]()
 		int unk8 = entity->GetData("unk8", 0);
 		int defaultHeadlights = entity->GetData("defaultHeadlights", 0);
 		
-		if (unk8 == 0 && defaultHeadlights == 0)
+		if (defaultHeadlights)
 		{
 			headlightsColour = entity->GetData("headlightsColour", 0);
 		}
@@ -312,35 +312,17 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_SIREN_ON", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		int sirenOn = 0;
-		int unk8 = entity->GetData("unk8", 0);
-
-		if (unk8 == 0)
-		{
-			sirenOn = entity->GetData("sirenOn", 0);
-		}
-
-		return sirenOn;
+		return entity->data["sirenOn"];
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DOOR_STATUS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		int doorStatus = 0;
-		int unk8 = entity->GetData("unk8", 0);
+		int doorsOpen = entity->GetData("doorsOpen", 0);
 
-		if (unk8 == 0 && context.GetArgumentCount() > 1)
+		if (context.GetArgumentCount() > 1 && doorsOpen)
 		{
-			int unk15 = entity->GetData("unk15", 0);
-
-			if (unk15 != 0)
-			{
-				int doorsOpen = entity->GetData("doorsOpen", 0);
-
-				if (doorsOpen != 0)
-				{
-					doorStatus = entity->GetData("doorPosition" + context.GetArgument<int>(1), 0);
-				}
-			}
+			doorStatus = entity->GetData("doorPosition" + context.GetArgument<int>(1), 0);
 		}
 
 		return doorStatus;
@@ -348,20 +330,7 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DOOR_LOCK_STATUS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		uint8_t lockStatus = 0;
-		int unk8 = entity->GetData("unk8", 0);
-
-		if (unk8 == 0)
-		{
-			int unk15 = entity->GetData("unk15", 0);
-
-			if (unk15 != 0)
-			{
-				lockStatus = entity->GetData("lockStatus", 0);
-			}
-		}
-
-		return lockStatus;
+		return entity->data["lockStatus"];
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DOORS_LOCKED_FOR_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
@@ -369,7 +338,7 @@ static InitFunction initFunction([]()
 		int lockedForPlayer = 0;
 		int hasLock = entity->GetData("hasLock", 0);
 
-		if (hasLock != 0)
+		if (hasLock)
 		{
 			int lockedPlayers = entity->GetData("lockedPlayers", 0);
 
