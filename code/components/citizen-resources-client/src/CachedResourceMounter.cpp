@@ -90,8 +90,7 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 				// if there is one, start by creating a resource with a list component
 				fwRefContainer<fx::Resource> resource = m_manager->CreateResource(host);
 
-				fwRefContainer<ResourceCacheEntryList> entryList = new ResourceCacheEntryList();
-				resource->SetComponent(entryList);
+				fwRefContainer<ResourceCacheEntryList> entryList = resource->GetComponent<ResourceCacheEntryList>();
 
 				// and add the entries from the list to the resource
 				for (auto& entry : GetIteratorView(m_resourceEntries.equal_range(host)))
@@ -266,5 +265,10 @@ static InitFunction initFunction([]()
 				g_statusCallbacks.erase(fileName);
 			}
 		}
+	});
+
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		resource->SetComponent(new ResourceCacheEntryList());
 	});
 });

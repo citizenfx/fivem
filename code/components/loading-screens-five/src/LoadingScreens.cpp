@@ -34,6 +34,8 @@ static std::map<uint64_t, std::chrono::milliseconds> g_loadTiming;
 static std::chrono::milliseconds g_loadTimingBase;
 static std::set<uint64_t> g_visitedTimings;
 
+static bool ShouldSkipLoading();
+
 // 1365
 // 1493
 // 1604
@@ -159,7 +161,7 @@ static HookFunction hookFunction([]()
 
 				loadsThread.doSetup = true;
 
-				if (autoShutdownNui)
+				if (!ShouldSkipLoading())
 				{
 					endLoadingScreens();
 				}
@@ -309,9 +311,14 @@ static void UpdateLoadTiming(uint64_t loadTimingIdentity)
 	}
 }
 
+static bool ShouldSkipLoading()
+{
+	return !autoShutdownNui || Instance<ICoreGameInit>::Get()->HasVariable("localMode") || Instance<ICoreGameInit>::Get()->HasVariable("storyMode");
+}
+
 void LoadsThread::DoRun()
 {
-	if (!autoShutdownNui)
+	if (ShouldSkipLoading())
 	{
 		return;
 	}
@@ -682,7 +689,7 @@ static InitFunction initFunction([] ()
 
 		InvokeNUIScript("onLogLine", doc);
 
-		if (autoShutdownNui)
+		if (!ShouldSkipLoading())
 		{
 			// 1604
 			((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
