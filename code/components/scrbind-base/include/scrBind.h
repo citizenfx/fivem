@@ -525,7 +525,7 @@ public:
 
 	TSelf& AddDestructor(const char* destructorName)
 	{
-		fx::ScriptEngine::RegisterNativeHandler(constructorName, [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(destructorName, [](fx::ScriptContext& context)
 		{
 			if (context.GetArgumentCount() != 1)
 			{
