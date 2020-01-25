@@ -437,7 +437,7 @@ namespace
 
 		static void Call(TClass* obj, TFunc func, fx::ScriptContext& context)
 		{
-			scrBindCallResultSpec<TClass, TRet, Args...>::Call(obj, func, context);
+			scrBindCallResultSpec<TClass, TRet, Args...>::Call(obj, reinterpret_cast<TRet(TClass::*)(Args...)>(func), context);
 		}
 	};
 
@@ -520,7 +520,7 @@ public:
 			scrBindAddSafePointer(context.GetResult<void*>());
 		});
 
-		return *this;
+		return *static_cast<TSelf*>(this);
 	}
 
 	TSelf& AddDestructor(const char* destructorName)
@@ -542,7 +542,7 @@ public:
 			delete ptr;
 		});
 
-		return *this;
+		return *static_cast<TSelf*>(this);
 	}
 
 	template<class TFunc>
@@ -567,7 +567,7 @@ public:
 			scrBindCallResult<TClass, TFunc>::Call(obj, *udata, context);
 		}, new TFunc(method)));
 
-		return *this;
+		return *static_cast<TSelf*>(this);
 	}
 };
 
@@ -589,19 +589,19 @@ void scrBindGlobal(const char* methodName, TFunc method)
 
 template<class TClass>
 class scrBindClass
-	: public scrBindClassBase<TClass, scrBindClass>
+	: public scrBindClassBase<TClass, scrBindClass<TClass>>
 {
 
 };
 
 template<class TClass>
 class scrBindClass<std::shared_ptr<TClass>>
-	: public scrBindClassBase<TClass, scrBindClass<std::shared_ptr<TClass>>>
+	: public scrBindClassBase<std::shared_ptr<TClass>, scrBindClass<std::shared_ptr<TClass>>>
 {
 public:
 	scrBindClass& AddDestructor(const char* destructorName)
 	{
-		fx::ScriptEngine::RegisterNativeHandler(constructorName, [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(destructorName, [](fx::ScriptContext& context)
 		{
 			if (context.GetArgumentCount() != 1)
 			{
