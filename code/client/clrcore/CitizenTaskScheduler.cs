@@ -21,8 +21,11 @@ namespace CitizenFX.Core
 			}
 		}
 
+		[SecuritySafeCritical]
 		public static void Tick()
 		{
+			var flowBlock = ExecutionContext.SuppressFlow();
+
 			Action[] tasks;
 
 			lock (m_scheduledTasks)
@@ -42,6 +45,8 @@ namespace CitizenFX.Core
 					Debug.WriteLine($"Exception during executing Post callback: {e}");
 				}
 			}
+
+			flowBlock.Undo();
 		}
 
 		public override SynchronizationContext CreateCopy()
@@ -105,8 +110,11 @@ namespace CitizenFX.Core
 
         public override int MaximumConcurrencyLevel => 1;
 
+		[SecuritySafeCritical]
 	    public void Tick()
         {
+			var flowBlock = ExecutionContext.SuppressFlow();
+
 			Task[] tasks;
 
 			lock (m_runningTasks)
@@ -158,6 +166,8 @@ namespace CitizenFX.Core
 			{
 				m_inTickTasks = lastInTickTasks;
 			}
+
+			flowBlock.Undo();
         }
 
         [SecuritySafeCritical]

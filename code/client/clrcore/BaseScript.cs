@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using CitizenFX.Core.Native;
@@ -14,13 +15,60 @@ namespace CitizenFX.Core
 {
 	public abstract class BaseScript
 	{
-		private Dictionary<Delegate, Task> CurrentTaskList { get; set; }
+		// based on answer from
+		// https://stackoverflow.com/a/6624385
+		private class DelegateEqualityComparer : IEqualityComparer<Delegate>
+		{
+			public bool Equals(Delegate del1, Delegate del2)
+			{
+				return (del1 != null) && del1.Equals(del2);
+			}
+
+			public int GetHashCode(Delegate obj)
+			{
+				if (obj == null)
+					return 0;
+				int result = obj.Method.GetHashCode() ^ obj.GetType().GetHashCode();
+				if (obj.Target != null)
+					result ^= RuntimeHelpers.GetHashCode(obj);
+				return result;
+			}
+		}
+
+		private struct TickHandler
+		{
+			public Func<Task> tick;
+			public int hashCode;
+			public string name;
+		}
+
+		private Dictionary<int, Task> CurrentTaskList { get; set; }
+
+		private DelegateEqualityComparer m_dec = new DelegateEqualityComparer();
+
+		private List<TickHandler> m_tickList = new List<TickHandler>();
 
 		/// <summary>
 		/// An event containing callbacks to attempt to schedule on every game tick.
 		/// A callback will only be rescheduled once the associated task completes.
 		/// </summary>
-		protected event Func<Task> Tick;
+		protected event Func<Task> Tick
+		{
+			add
+			{
+				m_tickList.Add(new TickHandler()
+				{
+					tick = value,
+					hashCode = m_dec.GetHashCode(value),
+					name = value.GetMethodInfo().Name
+				});
+			}
+			remove
+			{
+				var hc = m_dec.GetHashCode(value);
+				m_tickList.RemoveAll(th => th.hashCode == hc);
+			}
+		}
 
 		protected internal EventHandlerDictionary EventHandlers { get; private set; }
 
@@ -62,23 +110,25 @@ namespace CitizenFX.Core
 		{
 			EventHandlers = new EventHandlerDictionary();
 			Exports = new ExportDictionary();
-			CurrentTaskList = new Dictionary<Delegate, Task>();
+			CurrentTaskList = new Dictionary<int, Task>();
 #if !IS_RDR3
 			Players = new PlayerList();
 #endif
 		}
 
+		[SecuritySafeCritical]
 		internal void ScheduleRun()
 		{
-			if (Tick != null)
-			{
-				var calls = Tick.GetInvocationList();
+			var flowBlock = ExecutionContext.SuppressFlow();
 
-				foreach (var call in calls)
-				{
-					ScheduleTick(call);
-				}
+			var calls = m_tickList;
+
+			foreach (var call in calls)
+			{
+				ScheduleTick(call);
 			}
+
+			flowBlock.Undo();
 		}
 
 		internal void RegisterTick(Func<Task> tick)
@@ -91,11 +141,13 @@ namespace CitizenFX.Core
 			EventHandlers[eventName] += callback;
 		}
 
-		internal void ScheduleTick(Delegate call)
+		private void ScheduleTick(TickHandler callWrap)
 		{
-			if (!CurrentTaskList.ContainsKey(call))
+			if (!CurrentTaskList.ContainsKey(callWrap.hashCode))
 			{
-				var curName = $"{GetType().Name} -> tick {call.GetMethodInfo().Name}";
+				var call = callWrap.tick;
+
+				var curName = $"{GetType().Name} -> tick {callWrap.name}";
 
 				try
 				{
@@ -103,7 +155,7 @@ namespace CitizenFX.Core
 
 					using (var scope = new ProfilerScope(() => curName))
 					{
-						CurrentTaskList.Add(call, CitizenTaskScheduler.Factory.StartNew(() =>
+						CurrentTaskList.Add(callWrap.hashCode, CitizenTaskScheduler.Factory.StartNew(() =>
 						{
 							ms_curName = curName;
 
@@ -127,7 +179,7 @@ namespace CitizenFX.Core
 								Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
 							}
 
-							CurrentTaskList.Remove(call);
+							CurrentTaskList.Remove(callWrap.hashCode);
 						}));
 					}
 				}

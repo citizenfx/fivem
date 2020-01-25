@@ -291,11 +291,13 @@ namespace CitizenFX.Core
 
 				using (var scope = new ProfilerScope(() => "c# deferredDelay"))
 				{
-					var delays = ms_delays.ToArray();
 					var now = DateTime.UtcNow;
+					var count = ms_delays.Count;
 
-					foreach (var delay in delays)
+					for (int delayIdx = 0; delayIdx < count; delayIdx++)
 					{
+						var delay = ms_delays[delayIdx];
+
 						if (now >= delay.Item1)
 						{
 							using (var inScope = new ProfilerScope(() => delay.Item3))
@@ -311,7 +313,9 @@ namespace CitizenFX.Core
 								}
 							}
 
-							ms_delays.Remove(delay);
+							ms_delays.RemoveAt(delayIdx);
+							delayIdx--;
+							count--;
 						}
 					}
 				}
