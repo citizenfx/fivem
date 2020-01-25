@@ -8,7 +8,9 @@
 		"vendor:protobuf_lite",
 		"vendor:opus",
 		"vendor:botan",
-		"vendor:webrtc-audio-processing"
+		"vendor:webrtc-audio-processing",
+		"vendor:labsound",
+		"scrbind:base"
 	],
 	"provides": []
 }

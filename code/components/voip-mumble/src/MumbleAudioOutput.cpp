@@ -6,6 +6,10 @@
  */
 
 #include "StdInc.h"
+
+#include "LabSound/extended/LabSound.h"
+#include <libnyquist/Common.h>
+
 #include "MumbleAudioOutput.h"
 #include <avrt.h>
 #include <sstream>
@@ -241,6 +245,91 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 	}
 }
 
+static std::map<lab::AudioContext*, std::weak_ptr<lab::AudioSourceNode>> g_audioToClients;
+
+struct XA2DestinationNode : public lab::AudioDestinationNode
+{
+	XA2DestinationNode(lab::AudioContext* context, std::weak_ptr<MumbleAudioOutput::ClientAudioState> state)
+		: AudioDestinationNode(context, 1, 48000.0f), m_state(state), m_outBuffer(1, 5760, false)
+	{
+		m_outBuffer.setSampleRate(48000.f);
+		m_outBuffer.setChannelMemory(0, m_floatBuffer, 5760);
+	}
+
+	virtual void startRendering() override { }
+
+	void Push(lab::AudioBus* inBuffer)
+	{
+		m_inBuffer = inBuffer;
+	}
+
+	void Poll(size_t numFrames)
+	{
+		for (int i = 0; i < numFrames; i += lab::AudioNode::ProcessingSizeInFrames)
+		{
+			lab::AudioBus inBuffer{ 1, lab::AudioNode::ProcessingSizeInFrames, false };
+			lab::AudioBus outBuffer{ 1, lab::AudioNode::ProcessingSizeInFrames, false };
+
+			float inFloats[lab::AudioNode::ProcessingSizeInFrames];
+			float outFloats[lab::AudioNode::ProcessingSizeInFrames];
+
+			memcpy(inFloats, m_inBuffer->channel(0)->data() + i, lab::AudioNode::ProcessingSizeInFrames * 4);
+
+			inBuffer.setChannelMemory(0, inFloats, lab::AudioNode::ProcessingSizeInFrames);
+			outBuffer.setChannelMemory(0, outFloats, lab::AudioNode::ProcessingSizeInFrames);
+
+			render(&inBuffer, &outBuffer, lab::AudioNode::ProcessingSizeInFrames);
+
+			memcpy(m_outBuffer.channel(0)->mutableData() + i, outFloats, lab::AudioNode::ProcessingSizeInFrames * 4);
+		}
+
+		auto state = m_state.lock();
+
+		if (!state)
+		{
+			return;
+		}
+
+		// work around XA2.7 issue (for Win7) where >64 buffers being enqueued are a fatal error (leading to __debugbreak)
+		// "SimpList: non-growable list ran out of room for new elements"
+
+		XAUDIO2_VOICE_STATE vs;
+		state->voice->GetState(&vs);
+
+		if (vs.BuffersQueued > 48)
+		{
+			// return, waiting for buffers to play back
+			// flushing buffers would be helpful, but would lead to memory leaks
+			// (and wouldn't be instant, either)
+
+			return;
+		}
+
+		uint16_t* voiceBuffer = (uint16_t*)_aligned_malloc(5760 * sizeof(uint16_t), 16);
+
+		nqr::ConvertFromFloat32((uint8_t*)voiceBuffer, m_floatBuffer, numFrames, nqr::PCM_16);
+
+		XAUDIO2_BUFFER bufferData;
+		bufferData.LoopBegin = 0;
+		bufferData.LoopCount = 0;
+		bufferData.LoopLength = 0;
+		bufferData.AudioBytes = numFrames * sizeof(int16_t);
+		bufferData.Flags = 0;
+		bufferData.pAudioData = reinterpret_cast<BYTE*>(voiceBuffer);
+		bufferData.pContext = voiceBuffer;
+		bufferData.PlayBegin = 0;
+		bufferData.PlayLength = numFrames;
+
+		state->voice->SubmitSourceBuffer(&bufferData);
+	}
+
+	std::weak_ptr<MumbleAudioOutput::ClientAudioState> m_state;
+	lab::AudioBus* m_inBuffer;
+	lab::AudioBus m_outBuffer;
+
+	float m_floatBuffer[5760];
+};
+
 void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 {
 	{
@@ -296,6 +385,28 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	int error;
 	state->opus = opus_decoder_create(48000, 1, &error);
 
+	auto context = std::make_shared<lab::AudioContext>(false, true);
+
+	{
+		lab::ContextRenderLock r(context.get(), "init");
+		state->outNode = std::make_shared<XA2DestinationNode>(context.get(), state);
+
+		context->setDestinationNode(state->outNode);
+
+		state->inNode = lab::Sound::MakeHardwareSourceNode(r);
+	}
+
+	g_audioToClients[context.get()] = state->inNode;
+
+	context->lazyInitialize();
+
+	static auto tNode = std::make_shared<lab::BiquadFilterNode>();
+	context->connect(state->outNode, state->inNode);
+
+	context->startRendering();
+
+	state->context = context;
+
 	m_clients[user.GetSessionId()] = state;
 }
 
@@ -320,34 +431,20 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 
 	if (len >= 0)
 	{
-		// work around XA2.7 issue (for Win7) where >64 buffers being enqueued are a fatal error (leading to __debugbreak)
-		// "SimpList: non-growable list ran out of room for new elements"
+		auto floatBuffer = (float*)_aligned_malloc(5760 * 1 * sizeof(float), 16);
+		nqr::ConvertToFloat32(floatBuffer, voiceBuffer, 5760, nqr::PCM_16);
 
-		XAUDIO2_VOICE_STATE vs;
-		client->voice->GetState(&vs);
-
-		if (vs.BuffersQueued > 48)
 		{
-			// return, waiting for buffers to play back
-			// flushing buffers would be helpful, but would lead to memory leaks
-			// (and wouldn't be instant, either)
-			_aligned_free(voiceBuffer);
+			lab::AudioBus inBuffer{ 1, 5760, false };
+			inBuffer.setSampleRate(48000.f);
+			inBuffer.setChannelMemory(0, floatBuffer, 5760);
 
-			return;
+			std::static_pointer_cast<XA2DestinationNode>(client->outNode)->Push(&inBuffer);
+			std::static_pointer_cast<XA2DestinationNode>(client->outNode)->Poll(len);
 		}
 
-		XAUDIO2_BUFFER bufferData;
-		bufferData.LoopBegin = 0;
-		bufferData.LoopCount = 0;
-		bufferData.LoopLength = 0;
-		bufferData.AudioBytes = len * sizeof(int16_t);
-		bufferData.Flags = 0;
-		bufferData.pAudioData = reinterpret_cast<BYTE*>(voiceBuffer);
-		bufferData.pContext = voiceBuffer;
-		bufferData.PlayBegin = 0;
-		bufferData.PlayLength = len;
-
-		client->voice->SubmitSourceBuffer(&bufferData);
+		_aligned_free(floatBuffer);
+		_aligned_free(voiceBuffer);
 
 		client->isTalking = client->isAudible;
 	}
@@ -724,6 +821,30 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
 void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
 
+std::shared_ptr<lab::AudioContext> MumbleAudioOutput::GetAudioContext(const std::string& name)
+{
+	auto wideName = ToWide(name);
+
+	for (auto& client : m_clients)
+	{
+		if (!client.second)
+		{
+			continue;
+		}
+
+		auto user = m_client->GetState().GetUser(client.first);
+
+		if (!user || user->GetName() != wideName)
+		{
+			continue;
+		}
+
+		return client.second->context;
+	}
+
+	return {};
+}
+
 void MumbleAudioOutput::InitializeAudioDevice()
 {
 	{
@@ -902,3 +1023,99 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		m_initializeVar.notify_all();
 	}
 }
+
+// temp scrbind
+#include <scrBind.h>
+
+template<>
+struct scrBindArgument<lab::FilterType>
+{
+	static lab::FilterType Get(fx::ScriptContext& cxt, int i)
+	{
+		std::string_view a = cxt.CheckArgument<const char*>(i);
+
+		if (a == "lowpass")
+		{
+			return lab::LOWPASS;
+		}
+		else if (a == "highpass")
+		{
+			return lab::HIGHPASS;
+		}
+		else if (a == "bandpass")
+		{
+			return lab::BANDPASS;
+		}
+		else if (a == "lowshelf")
+		{
+			return lab::LOWSHELF;
+		}
+		else if (a == "highshelf")
+		{
+			return lab::HIGHSHELF;
+		}
+		else if (a == "peaking")
+		{
+			return lab::PEAKING;
+		}
+		else if (a == "notch")
+		{
+			return lab::NOTCH;
+		}
+		else if (a == "allpass")
+		{
+			return lab::ALLPASS;
+		}
+
+		return lab::FILTER_NONE;
+	}
+};
+
+static std::shared_ptr<lab::BiquadFilterNode> createBiquadFilterNode(lab::AudioContext* self)
+{
+	return std::make_shared<lab::BiquadFilterNode>();
+}
+
+static std::shared_ptr<lab::WaveShaperNode> createWaveShaperNode(lab::AudioContext* self)
+{
+	return std::make_shared<lab::WaveShaperNode>();
+}
+
+static std::shared_ptr<lab::AudioSourceNode> getSource(lab::AudioContext* self)
+{
+	return g_audioToClients[self].lock();
+}
+
+static InitFunction initFunctionScript([]()
+{
+	scrBindClass<std::shared_ptr<lab::AudioContext>>()
+		.AddMethod("AUDIOCONTEXT_CONNECT", &lab::AudioContext::connect)
+		.AddMethod("AUDIOCONTEXT_DISCONNECT", &lab::AudioContext::disconnect)
+		.AddMethod("AUDIOCONTEXT_GET_CURRENT_TIME", &lab::AudioContext::currentTime)
+		.AddMethod("AUDIOCONTEXT_GET_SOURCE", &getSource)
+		.AddMethod("AUDIOCONTEXT_GET_DESTINATION", &lab::AudioContext::destination)
+		.AddMethod("AUDIOCONTEXT_CREATE_BIQUADFILTERNODE", &createBiquadFilterNode)
+		.AddMethod("AUDIOCONTEXT_CREATE_WAVESHAPERNODE", &createWaveShaperNode);
+	
+	scrBindClass<std::shared_ptr<lab::BiquadFilterNode>>()
+		.AddMethod("BIQUADFILTERNODE_SET_TYPE", &lab::BiquadFilterNode::setType)
+		.AddMethod("BIQUADFILTERNODE_Q", &lab::BiquadFilterNode::q)
+		// needs msgpack wrappers for in/out and a weird lock thing
+		//.AddMethod("BIQUAFTILERNODE_GET_FREQUENCY_RESPONSE", &lab::BiquadFilterNode::getFrequencyResponse)
+		.AddMethod("BIQUADFILTERNODE_GAIN", &lab::BiquadFilterNode::gain)
+		.AddMethod("BIQUADFILTERNODE_FREQUENCY", &lab::BiquadFilterNode::frequency)
+		.AddMethod("BIQUADFILTERNODE_DETUNE", &lab::BiquadFilterNode::detune)
+		.AddDestructor("BIQUADFILTERNODE_DESTROY");
+
+	scrBindClass<std::shared_ptr<lab::WaveShaperNode>>()
+		// this is if 0'd?
+		//.AddMethod("WAVESHAPERNODE_GET_CURVE", &lab::WaveShaperNode::curve)
+		.AddMethod("WAVESHAPERNODE_SET_CURVE", &lab::WaveShaperNode::setCurve)
+		.AddDestructor("WAVESHAPERNODE_DESTROY");
+
+	scrBindClass<std::shared_ptr<lab::AudioParam>>()
+		.AddMethod("AUDIOPARAM_SET_VALUE", &lab::AudioParam::setValue)
+		.AddMethod("AUDIOPARAM_SET_VALUE_AT_TIME", &lab::AudioParam::setValueAtTime)
+		.AddMethod("AUDIOPARAM_SET_VALUE_CURVE_AT_TIME", &lab::AudioParam::setValueCurveAtTime)
+		.AddDestructor("AUDIOPARAM_DESTROY");
+});

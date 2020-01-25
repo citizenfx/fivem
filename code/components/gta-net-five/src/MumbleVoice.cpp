@@ -578,6 +578,27 @@ static void _filterVoiceChatConfig(void* engine, char* config)
 	g_origInitVoiceEngine(engine, config);
 }
 
+#include <LabSound/extended/LabSound.h>
+
+static boost::optional<fx::TNativeHandler> getPlayerName;
+static boost::optional<fx::TNativeHandler> getServerId;
+
+static std::shared_ptr<lab::AudioContext> getAudioContext(int playerId)
+{
+	if (!g_mumble.connected)
+	{
+		return {};
+	}
+
+	std::string name = fmt::sprintf("[%d] %s",
+		FxNativeInvoke::Invoke<int>(getServerId, playerId),
+		FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId));
+
+	return g_mumbleClient->GetAudioContext(name);
+}
+
+#include <scrBind.h>
+
 static HookFunction hookFunction([]()
 {
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
@@ -587,9 +608,9 @@ static HookFunction hookFunction([]()
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		static auto origIsTalking = fx::ScriptEngine::GetNativeHandler(0x031E11F3D447647E);
-		static auto getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
+		getPlayerName = fx::ScriptEngine::GetNativeHandler(0x6D0DE6A7B5DA71F8);
 		static auto isPlayerActive = fx::ScriptEngine::GetNativeHandler(0xB8DFD30D6973E135);
-		static auto getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
+		getServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_SERVER_ID"));
 
 		OnMainGameFrame.Connect([=]()
 		{
@@ -708,6 +729,8 @@ static HookFunction hookFunction([]()
 				}
 			}
 		});
+
+		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
 
 		fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_TALKING_OVERRIDE", [](fx::ScriptContext& context)
 		{

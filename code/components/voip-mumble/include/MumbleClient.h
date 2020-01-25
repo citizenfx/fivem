@@ -13,6 +13,11 @@
 #include <NetAddress.h>
 #include <ppltasks.h>
 
+namespace lab
+{
+	class AudioContext;
+}
+
 struct MumbleConnectionInfo
 {
 	bool isConnected;
@@ -90,6 +95,8 @@ public:
 	virtual void UpdateVoiceTarget(int idx, const VoiceTargetConfig& config) = 0;
 
 	virtual void SetVoiceTarget(int idx) = 0;
+
+	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) = 0;
 
 	// settings
 	virtual void SetActivationMode(MumbleActivationMode mode) = 0;

@@ -158,6 +158,11 @@ void MumbleClient::SetVoiceTarget(int idx)
 	m_voiceTarget = idx;
 }
 
+std::shared_ptr<lab::AudioContext> MumbleClient::GetAudioContext(const std::string& name)
+{
+	return m_audioOutput.GetAudioContext(name);
+}
+
 void MumbleClient::SetChannel(const std::string& channelName)
 {
 	if (!m_connectionInfo.isConnected)

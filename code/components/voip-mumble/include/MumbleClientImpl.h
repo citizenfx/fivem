@@ -99,6 +99,8 @@ public:
 
 	virtual void SetChannel(const std::string& channelName) override;
 
+	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) override;
+
 	virtual void SetClientVolumeOverride(const std::string& clientName, float volume) override;
 
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;

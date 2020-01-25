@@ -22,6 +22,8 @@
 #include <mmdeviceapi.h>
 #include <opus.h>
 
+#include <LabSound/extended/LabSound.h>
+
 namespace WRL = Microsoft::WRL;
 
 class MumbleClient;
@@ -58,10 +60,14 @@ public:
 
 	void SetDistance(float distance);
 
+	std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name);
+
 	inline void SetClient(MumbleClient* client)
 	{
 		m_client = client;
 	}
+
+	friend struct XA2DestinationNode;
 
 private:
 	struct ClientAudioState : public IXAudio2VoiceCallback
@@ -76,6 +82,10 @@ private:
 		bool isAudible;
 		OpusDecoder* opus;
 		uint32_t lastTime;
+
+		std::shared_ptr<lab::AudioContext> context;
+		std::shared_ptr<lab::AudioSourceNode> inNode;
+		std::shared_ptr<lab::AudioDestinationNode> outNode;
 
 		ClientAudioState();
 

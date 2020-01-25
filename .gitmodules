@@ -184,3 +184,9 @@
 [submodule "vendor/librwgta"]
 	path = vendor/librwgta
 	url = https://github.com/aap/librwgta.git
+[submodule "vendor/labsound"]
+	path = vendor/labsound
+	url = https://github.com/LabSound/LabSound
+[submodule "vendor/libnyquist"]
+	path = vendor/libnyquist
+	url = https://github.com/ddiakopoulos/libnyquist.git
