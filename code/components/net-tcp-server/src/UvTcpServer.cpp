@@ -167,6 +167,16 @@ void UvTcpServer::OnConnection(int status)
 		return;
 	}
 
+	auto clientHandle = m_server->loop().resource<uvw::TCPHandle>();
+	m_server->accept(*clientHandle);
+
+	// if not set up yet, don't accept
+	if (m_dispatchPipes.empty())
+	{
+		clientHandle->close();
+		return;
+	}
+
 	// get a pipe
 	auto index = m_dispatchIndex++ % m_dispatchPipes.size();
 
@@ -175,9 +185,6 @@ void UvTcpServer::OnConnection(int status)
 		// TODO: log this? handle locally?
 		return;
 	}
-
-	auto clientHandle = m_server->loop().resource<uvw::TCPHandle>();
-	m_server->accept(*clientHandle);
 
 #ifdef _WIN32
 	if (m_tryDetachFromIOCP)
