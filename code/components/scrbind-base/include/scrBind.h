@@ -510,7 +510,7 @@ public:
 	{
 		fx::ScriptEngine::RegisterNativeHandler(constructorName, [] (fx::ScriptContext& context)
 		{
-			if (context.GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount())
+			if (context.GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount() + 1)
 			{
 				return;
 			}
