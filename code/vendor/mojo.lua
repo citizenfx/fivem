@@ -85,7 +85,7 @@ function files(x)
 						}, ' '),
 					}
 					
-					buildoutputs { '%{cfg.linktarget.directory .. "/gen/" .. path.getrelative("' .. prj_root .. '/../", file.abspath)}.p' }
+					buildoutputs { '%{cfg.linktarget.directory .. "/gen/" .. path.getrelative("' .. prj_root .. '/../", file.abspath):gsub(".mojom$", "")}.p' }
 					
 					filter 'files:**.p'
 					
