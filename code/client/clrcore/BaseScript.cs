@@ -119,7 +119,7 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		internal void ScheduleRun()
 		{
-			var flowBlock = ExecutionContext.SuppressFlow();
+			var flowBlock = CitizenTaskScheduler.SuppressFlow();
 
 			var calls = m_tickList;
 
@@ -128,7 +128,7 @@ namespace CitizenFX.Core
 				ScheduleTick(call);
 			}
 
-			flowBlock.Undo();
+			flowBlock?.Undo();
 		}
 
 		internal void RegisterTick(Func<Task> tick)

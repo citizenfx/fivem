@@ -24,7 +24,7 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public static void Tick()
 		{
-			var flowBlock = ExecutionContext.SuppressFlow();
+			var flowBlock = CitizenTaskScheduler.SuppressFlow();
 
 			Action[] tasks;
 
@@ -46,7 +46,7 @@ namespace CitizenFX.Core
 				}
 			}
 
-			flowBlock.Undo();
+			flowBlock?.Undo();
 		}
 
 		public override SynchronizationContext CreateCopy()
@@ -55,21 +55,21 @@ namespace CitizenFX.Core
 		}
 	}
 
-    class CitizenTaskScheduler : TaskScheduler
-    {
+	class CitizenTaskScheduler : TaskScheduler
+	{
 		private static readonly object m_inTickTasksLock = new object();
 		private Dictionary<int, Task> m_inTickTasks;
 
-        private readonly Dictionary<int, Task> m_runningTasks = new Dictionary<int, Task>();
+		private readonly Dictionary<int, Task> m_runningTasks = new Dictionary<int, Task>();
 
-        protected CitizenTaskScheduler()
-        {
-            
-        }
+		protected CitizenTaskScheduler()
+		{
 
-        [SecurityCritical]
-        protected override void QueueTask(Task task)
-        {
+		}
+
+		[SecurityCritical]
+		protected override void QueueTask(Task task)
+		{
 			if (m_inTickTasks != null)
 			{
 				lock (m_inTickTasksLock)
@@ -83,37 +83,37 @@ namespace CitizenFX.Core
 			{
 				m_runningTasks[task.Id] = task;
 			}
-        }
+		}
 
-        [SecurityCritical]
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
-        {
+		[SecurityCritical]
+		protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+		{
 			if (!taskWasPreviouslyQueued)
-            {
+			{
 				//using (var scope = new ProfilerScope(() => GetTaskName(task)))
 				{
 					return TryExecuteTask(task);
 				}
-            }
+			}
 
-            return false;
-        }
+			return false;
+		}
 
-        [SecurityCritical]
-        protected override IEnumerable<Task> GetScheduledTasks()
-        {
+		[SecurityCritical]
+		protected override IEnumerable<Task> GetScheduledTasks()
+		{
 			lock (m_runningTasks)
 			{
 				return m_runningTasks.Select(a => a.Value).ToArray();
 			}
-        }
+		}
 
-        public override int MaximumConcurrencyLevel => 1;
+		public override int MaximumConcurrencyLevel => 1;
 
 		[SecuritySafeCritical]
-	    public void Tick()
-        {
-			var flowBlock = ExecutionContext.SuppressFlow();
+		public void Tick()
+		{
+			var flowBlock = SuppressFlow();
 
 			Task[] tasks;
 
@@ -167,8 +167,20 @@ namespace CitizenFX.Core
 				m_inTickTasks = lastInTickTasks;
 			}
 
-			flowBlock.Undo();
-        }
+			flowBlock?.Undo();
+		}
+
+		internal static AsyncFlowControl? SuppressFlow()
+		{
+			AsyncFlowControl? flow = null;
+
+			if (!ExecutionContext.IsFlowSuppressed())
+			{
+				flow = ExecutionContext.SuppressFlow();
+			}
+
+			return flow;
+		}
 
         [SecuritySafeCritical]
         private bool InvokeTryExecuteTask(Task task)
