@@ -149,7 +149,14 @@ static void ConnectTo(const std::string& hostnameStr)
 
 	nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
 
-	netLibrary->ConnectToServer(hostnameStr);
+	if (!hostnameStr.empty() && hostnameStr[0] == '-')
+	{
+		netLibrary->ConnectToServer("cfx.re/join/" + hostnameStr.substr(1));
+	}
+	else
+	{
+		netLibrary->ConnectToServer(hostnameStr);
+	}
 }
 
 static std::string g_pendingAuthPayload;
@@ -174,6 +181,129 @@ static std::string g_discourseClientId;
 static std::string g_discourseUserToken;
 
 static std::string g_cardConnectionToken;
+
+struct ServerLink
+{
+	std::string rawIcon;
+	std::string hostname;
+	std::string url;
+};
+
+#include <wrl.h>
+#include <psapi.h>
+#include <propsys.h>
+#include <propkey.h>
+#include <propvarutil.h>
+#include <botan/base64.h>
+
+namespace WRL = Microsoft::WRL;
+
+static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
+{
+	WRL::ComPtr<IShellLink> psl;
+	HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&psl));
+
+	if (SUCCEEDED(hr))
+	{
+		static HostSharedData<CfxState> hostData("CfxInitState");
+
+		wchar_t imageFileName[1024];
+
+		auto hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, hostData->GetInitialPid());
+		GetModuleFileNameEx(hProcess, NULL, imageFileName, std::size(imageFileName));
+
+		psl->SetPath(imageFileName);
+		psl->SetArguments(fmt::sprintf(L"fivem://connect/%s", ToWide(link.url)).c_str());
+
+		WRL::ComPtr<IPropertyStore> pps;
+		psl.As(&pps);
+
+		PROPVARIANT propvar;
+		hr = InitPropVariantFromString(ToWide(link.hostname).c_str(), &propvar);
+		hr = pps->SetValue(PKEY_Title, propvar);
+		hr = pps->Commit();
+		PropVariantClear(&propvar);
+
+		psl->SetIconLocation(imageFileName, -201);
+
+		if (!link.rawIcon.empty())
+		{
+			auto iconPath = MakeRelativeCitPath(fmt::sprintf(L"cache/browser/%08x.ico", HashString(link.rawIcon.c_str())));
+			
+			FILE* f = _wfopen(iconPath.c_str(), L"wb");
+
+			if (f)
+			{
+				auto data = Botan::base64_decode(link.rawIcon.substr(strlen("data:image/png;base64,")));
+
+				uint8_t iconHeader[] = {
+					0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+					0xff, 0xff, 0x16, 0x00, 0x00, 0x00
+				};
+
+				*(uint32_t*)&iconHeader[14] = data.size();
+
+				fwrite(iconHeader, 1, sizeof(iconHeader), f);
+
+				fwrite(data.data(), 1, data.size(), f);
+				fclose(f);
+
+				psl->SetIconLocation(iconPath.c_str(), 0);
+			}
+		}
+	}
+
+	return psl;
+}
+
+static void UpdateJumpList(const std::vector<ServerLink>& links)
+{
+	PWSTR aumid;
+	GetCurrentProcessExplicitAppUserModelID(&aumid);
+
+	WRL::ComPtr<ICustomDestinationList> pcdl;
+	HRESULT hr = CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pcdl));
+
+	if (FAILED(hr))
+	{
+		CoTaskMemFree(aumid);
+		return;
+	}
+
+	pcdl->SetAppID(aumid);
+	CoTaskMemFree(aumid);
+
+	UINT cMinSlots;
+	WRL::ComPtr<IObjectArray> poaRemoved;
+
+	hr = pcdl->BeginList(&cMinSlots, IID_PPV_ARGS(&poaRemoved));
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	{
+		WRL::ComPtr<IObjectCollection> poc;
+		hr = CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&poc));
+
+		if (FAILED(hr))
+		{
+			return;
+		}
+
+		for (int i = 0; i < std::min(links.size(), size_t(cMinSlots)); i++)
+		{
+			auto shellLink = MakeShellLink(links[i]);
+
+			poc->AddObject(shellLink.Get());
+		}
+
+		pcdl->AppendCategory(L"History", poc.Get());
+	}
+
+	pcdl->CommitList();
+}
 
 static InitFunction initFunction([] ()
 {
@@ -627,6 +757,44 @@ static InitFunction initFunction([] ()
 			catch (const std::exception& e)
 			{
 				trace("failed to set card response: %s\n", e.what());
+			}
+		}
+		else if (!_wcsicmp(type, L"setLastServers"))
+		{
+			try
+			{
+				auto json = nlohmann::json::parse(ToNarrow(arg));
+
+				int start = json.size() > 15 ? json.size() - 15 : 0;
+				int end = json.size();
+
+				std::vector<ServerLink> links;
+
+				for (int i = end - 1; i >= start; i--)
+				{
+					ServerLink l;
+					json[i]["hostname"].get_to(l.hostname);
+
+					if (!json[i]["rawIcon"].is_null())
+					{
+						json[i]["rawIcon"].get_to(l.rawIcon);
+					}
+
+					json[i]["address"].get_to(l.url);
+
+					if (l.url.find("cfx.re/join/") == 0)
+					{
+						l.url = "-" + l.url.substr(12);
+					}
+
+					links.push_back(std::move(l));
+				}
+
+				UpdateJumpList(links);
+			}
+			catch (const std::exception & e)
+			{
+				trace("failed to set last servers: %s\n", e.what());
 			}
 		}
 	});

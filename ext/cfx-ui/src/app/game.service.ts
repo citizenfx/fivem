@@ -274,6 +274,7 @@ export class ServerHistoryEntry {
 	time: Date;
 	icon: string;
 	token: string;
+	rawIcon: string;
 }
 
 @Injectable()
@@ -452,18 +453,51 @@ export class CfxGameService extends GameService {
 					title: '',
 					hostname: localStorage.getItem('lastServer'),
 					icon: '',
-					token: ''
+					token: '',
+					rawIcon: ''
 				}
 			);
 		}
 	}
 
-	addServerHistory(entry: ServerHistoryEntry) {
-		localStorage.setItem('lastServers', JSON.stringify(
+	async addServerHistory(entry: ServerHistoryEntry) {
+		try {
+			const resp = await fetch(entry.icon);
+
+			if (resp.ok) {
+				const blob = await resp.blob();
+				const bitmap = (await (<any>createImageBitmap)(blob, {
+					resizeQuality: 'high',
+					resizeWidth: 16,
+					resizeHeight: 16
+				})) as ImageBitmap;
+
+				const canvas = Object.assign(document.createElement('canvas'), {
+					width: bitmap.width,
+					height: bitmap.height
+				});
+
+				const cxt = canvas.getContext('2d');
+				cxt.drawImage(bitmap, 0, 0);
+
+				const outBlob = await new Promise<Blob>(resolve => canvas.toBlob(resolve, 'image/png'));
+
+				entry.rawIcon = await new Promise(resolve => {
+					const r = new FileReader();
+					r.onload = () => resolve(r.result as string);
+					r.readAsDataURL(outBlob);
+				});
+			}
+		} catch (e) {
+		}
+
+		const lastServers = JSON.stringify(
 			this.getServerHistory()
 				.filter(a => a.address !== entry.address)
-				.concat([ entry ])
-		));
+				.concat([ entry ]));
+
+		localStorage.setItem('lastServers', lastServers);
+		(<any>window).invokeNative('setLastServers', lastServers);
 	}
 
 	getServerHistory() {
@@ -530,7 +564,7 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('history', JSON.stringify(this.history));
 	}
 
-	connectTo(server: Server, enteredAddress?: string) {
+	async connectTo(server: Server, enteredAddress?: string) {
 		if (this.inConnecting) {
 			return;
 		}
@@ -540,12 +574,13 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('lastServer', server.address);
 		this.lastServer = server;
 
-		this.addServerHistory({
+		await this.addServerHistory({
 			address: server.address,
-			hostname: server.hostname,
+			hostname: server.hostname.replace(/\^[0-9]/g, ''),
 			title: enteredAddress || '',
 			time: new Date(),
 			icon: server.iconUri || '',
+			rawIcon: '',
 			token: (server && server.data && server.data.vars) ? server.data.vars.sv_licenseKeyToken : ''
 		});
 
@@ -815,7 +850,8 @@ export class DummyGameService extends GameService {
 				time: new Date(2018, 8, 1),
 				hostname: 'Internal Test #1',
 				icon: '',
-				token: ''
+				token: '',
+				rawIcon: ''
 			},
 			{
 				title: 'cfx-dev.fivem-2.internal',
@@ -823,7 +859,8 @@ export class DummyGameService extends GameService {
 				time: new Date(2018, 9, 1),
 				hostname: 'Internal Test #2',
 				icon: '',
-				token: ''
+				token: '',
+				rawIcon: ''
 			},
 			{
 				title: null,
@@ -831,7 +868,8 @@ export class DummyGameService extends GameService {
 				hostname: 'Hello, world!',
 				time: new Date(),
 				icon: '',
-				token: 'ype00iiw33f7guwp_1:4a6aaf229eb26aa70d77f9d9e0039a6f28b3c9e3ad07cf307c1ce1ca6e071b42'
+				token: 'ype00iiw33f7guwp_1:4a6aaf229eb26aa70d77f9d9e0039a6f28b3c9e3ad07cf307c1ce1ca6e071b42',
+				rawIcon: ''
 			}
 		];
 	}
