@@ -247,7 +247,7 @@ def _Generate(args, remaining_args):
     args.variant = None
 
   for idx, import_dir in enumerate(args.import_directories):
-    tokens = import_dir.split(":")
+    tokens = import_dir.split(";")
     if len(tokens) >= 2:
       args.import_directories[idx] = RelativePath(tokens[0], tokens[1])
     else:
