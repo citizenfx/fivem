@@ -1130,6 +1130,8 @@ std::vector<int> g_subProcessHandles;
 
 #include <shlwapi.h>
 
+extern void SubprocessPipe(const std::wstring& s);
+
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
@@ -1154,6 +1156,17 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			boost::filesystem::path(applicationName).filename() == "SocialClubHelper.exe" ||
 			boost::filesystem::path(applicationName).filename() == "socialclubhelper.exe")
 		{
+			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, g_rosParentPid);
+
+			information->dwProcessId = g_rosParentPid;
+			information->dwThreadId = 0;
+			information->hProcess = hProcess;
+			information->hThread = INVALID_HANDLE_VALUE;
+
+			SubprocessPipe(commandLine);
+
+			return TRUE;
+
             // don't create any more subprocesses if this is the case :/
             if (g_subProcessHandles.size() == 42)
             {

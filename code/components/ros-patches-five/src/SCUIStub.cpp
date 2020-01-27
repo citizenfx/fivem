@@ -926,59 +926,66 @@ std::string GetRockstarTicketXml()
 	return printer.CStr();
 }
 
+std::string HandleCfxLogin()
+{
+	auto rockstarTicket = GetRockstarTicketXml();
+
+	// JSON document
+	rapidjson::Document json;
+
+	// this is an object
+	json.SetObject();
+
+	// append data
+	auto appendJson = [&](const char* key, auto value)
+	{
+		rapidjson::Value jsonKey(key, json.GetAllocator());
+
+		rapidjson::Value jsonValue;
+		GetJsonValue(value, json, jsonValue);
+
+		json.AddMember(jsonKey, jsonValue, json.GetAllocator());
+	};
+
+	appendJson("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg==");
+	appendJson("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh");
+	appendJson("Email", "onlineservices@fivem.net");
+	appendJson("SaveEmail", true);
+	appendJson("SavePassword", true);
+	appendJson("Password", "DetCon1");
+	appendJson("Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
+	appendJson("RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
+	appendJson("CallbackData", 2);
+	appendJson("Local", false);
+	appendJson("SignedIn", true);
+	appendJson("SignedOnline", true);
+	appendJson("AutoSignIn", false);
+	appendJson("Expiration", 86399);
+	appendJson("AccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
+	appendJson("Age", 18);
+	appendJson("AvatarUrl", "Bully/b20.png");
+	appendJson("XMLResponse", rockstarTicket.c_str());
+
+	// serialize json
+	rapidjson::StringBuffer buffer;
+
+	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+	json.Accept(writer);
+
+	return { buffer.GetString(), buffer.GetSize() };
+}
+
 class LoginHandler : public net::HttpHandler
 {
 public:
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
 	{
-		auto rockstarTicket = GetRockstarTicketXml();
-
-		// JSON document
-		rapidjson::Document json;
-
-		// this is an object
-		json.SetObject();
-
-		// append data
-		auto appendJson = [&] (const char* key, auto value)
-		{
-			rapidjson::Value jsonKey(key, json.GetAllocator());
-			
-			rapidjson::Value jsonValue;
-			GetJsonValue(value, json, jsonValue);
-
-			json.AddMember(jsonKey, jsonValue, json.GetAllocator());
-		};
-
-		appendJson("SessionKey", "MDEyMzQ1Njc4OWFiY2RlZg==");
-		appendJson("Ticket", "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFh");
-		appendJson("Email", "onlineservices@fivem.net");
-		appendJson("SaveEmail", true);
-		appendJson("SavePassword", true);
-		appendJson("Password", "DetCon1");
-		appendJson("Nickname", fmt::sprintf("R%08x", ROS_DUMMY_ACCOUNT_ID).c_str());
-		appendJson("RockstarId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
-		appendJson("CallbackData", 2);
-		appendJson("Local", false);
-		appendJson("SignedIn", true);
-		appendJson("SignedOnline", true);
-		appendJson("AutoSignIn", false);
-		appendJson("Expiration", 86399);
-		appendJson("AccountId", va("%lld", ROS_DUMMY_ACCOUNT_ID));
-		appendJson("Age", 18);
-		appendJson("AvatarUrl", "Bully/b20.png");
-		appendJson("XMLResponse", rockstarTicket.c_str());
-
-		// serialize json
-		rapidjson::StringBuffer buffer;
-
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		json.Accept(writer);
+		auto buffer = HandleCfxLogin();
 
 		// and write HTTP response
 		response->SetStatusCode(200);
 		response->SetHeader("Content-Type", "application/json; charset=utf-8");
-		response->End(std::string(buffer.GetString(), buffer.GetSize()));
+		response->End(std::move(buffer));
 
 		return true;
 	}

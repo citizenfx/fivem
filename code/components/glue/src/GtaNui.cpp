@@ -146,6 +146,7 @@ public:
 		// TODO: delete overridden SRV/...
 
 		delete m_texture;
+		m_texture = nullptr;
 	}
 
 	inline rage::grcTexture* GetTexture() { return m_texture; }

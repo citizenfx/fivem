@@ -278,7 +278,7 @@ public:
 
 	virtual ~RageAudioStream();
 
-	virtual void ProcessPacket(const float** data, int frames, int64 pts) override;
+	virtual void ProcessPacket(const float** data, int frames, int64_t pts) override;
 
 private:
 	bool TryEnsureInitialized();
@@ -335,7 +335,7 @@ RageAudioStream::~RageAudioStream()
 	swr_free(&m_avr);
 }
 
-void RageAudioStream::ProcessPacket(const float** data, int frames, int64 pts)
+void RageAudioStream::ProcessPacket(const float** data, int frames, int64_t pts)
 {
 	if (TryEnsureInitialized())
 	{

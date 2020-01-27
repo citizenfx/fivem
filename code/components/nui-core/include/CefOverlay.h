@@ -13,6 +13,10 @@
 #define OVERLAY_DECL __declspec(dllimport)
 #endif
 
+#if defined(COMPILING_NUI_CORE) || defined(COMPILING_NUI_RESOURCES) || defined(COMPILING_GLUE)
+#define WANT_CEF_INTERNALS
+#endif
+
 #include <d3d11.h>
 
 #include <memory>
@@ -20,14 +24,17 @@
 #include "RGBA.h"
 #include "Rect.h"
 
+#ifdef WANT_CEF_INTERNALS
 #include <include/cef_app.h>
 #include <include/cef_browser.h>
 #include <include/cef_client.h>
+#endif
 
 #include <SharedInput.h>
 
 #include <queue>
 
+#ifdef WANT_CEF_INTERNALS
 class NUIExtensionHandler : public CefV8Handler
 {
 public:
@@ -46,6 +53,7 @@ private:
 
 	IMPLEMENT_REFCOUNTING(NUIExtensionHandler);
 };
+#endif
 
 namespace nui
 {
@@ -266,7 +274,7 @@ namespace nui
 	public:
 		virtual ~IAudioStream() = default;
 
-		virtual void ProcessPacket(const float** data, int frames, int64 pts) = 0;
+		virtual void ProcessPacket(const float** data, int frames, int64_t pts) = 0;
 	};
 
 	class IAudioSink
@@ -299,10 +307,12 @@ namespace nui
 
 	void OVERLAY_DECL PostRootMessage(const std::string& jsonData);
 
+#ifdef WANT_CEF_INTERNALS
 	OVERLAY_DECL CefBrowser* GetBrowser();
 
 	// window API
 	OVERLAY_DECL CefBrowser* GetNUIWindowBrowser(fwString windowName);
+#endif
 
 	OVERLAY_DECL void CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL);
 	OVERLAY_DECL void DestroyNUIWindow(fwString windowName);
@@ -332,6 +342,8 @@ struct nui_s
 	DWORD nuiHeight;
 };
 
+#ifdef WANT_CEF_INTERNALS
 extern
 	OVERLAY_DECL
 	fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
+#endif

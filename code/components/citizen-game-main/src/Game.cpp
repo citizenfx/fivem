@@ -134,7 +134,9 @@ public:
 				// queue an ExitProcess on the next game frame
 				doNext = []()
 				{
+#ifdef WANT_CEF_INTERNALS
 					CefShutdown();
+#endif
 
 					TerminateProcess(GetCurrentProcess(), 0);
 				};

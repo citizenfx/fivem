@@ -15,3 +15,10 @@ filter 'architecture:x64'
 
 filter()
 	libdirs { "lib/" }
+
+return function()
+	filter {}
+	configuration {}
+	
+	add_dependencies { 'vendor:mojo' }
+end
