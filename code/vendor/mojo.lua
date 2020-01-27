@@ -122,7 +122,7 @@ function files(x)
 					
 					buildinputs { '%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}' }
 
-					buildoutputs { '%{cfg.linktarget.directory .. "/gen/" .. path.getrelative("' .. prj_root .. '/../", file.abspath):gsub(".p$", ".mojom")}.cc' }
+					buildoutputs { '%{path.getrelative(cfg.linktarget.directory .. "/gen/", path.getrelative("' .. prj_root .. '/../", file.abspath):gsub(".p$", ".mojom"))}.cc' }
 
 					filter {}
 					
