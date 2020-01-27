@@ -1,0 +1,215 @@
+// Copyright 2019 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+{%- if variant -%}
+{%-   set variant_path = "%s-%s"|format(module.path, variant) -%}
+{%- else -%}
+{%-   set variant_path = module.path -%}
+{%- endif -%}
+
+{%- set header_guard = "%s_FORWARD_H_"|format(
+        variant_path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
+
+{%- macro namespace_begin() %}
+{%-   for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%-   endfor %}
+{%-   if variant %}
+namespace {{variant}} {
+{%-   endif %}
+{%- endmacro %}
+
+{%- macro namespace_end() %}
+{%-   if variant %}
+}  // namespace {{variant}}
+{%-   endif %}
+{%-   for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%-   endfor %}
+{%- endmacro %}
+
+{%- macro kythe_annotation(name) %}
+{%- if enable_kythe_annotations %}
+// @generated_from: {{name}}
+{%- endif %}
+{%- endmacro %}
+
+#ifndef {{header_guard}}
+#define {{header_guard}}
+
+{% if all_enums|length -%}
+#include <stdint.h>
+{%- endif %}
+
+{% if structs|length -%}
+#include "mojo/public/cpp/bindings/struct_forward.h"
+{%- endif %}
+
+{% if not disallow_interfaces and interfaces|length -%}
+#include "mojo/public/cpp/bindings/deprecated_interface_types_forward.h"
+{%- endif %}
+
+{% if not disallow_native_types and structs|length %}
+#include "mojo/public/interfaces/bindings/native_struct.mojom-forward.h"
+{%- endif %}
+
+{%- if export_header and module.constants|length %}
+#include "{{export_header}}"
+{%- endif %}
+
+{% if enable_kythe_annotations -%}
+#ifdef KYTHE_IS_RUNNING
+#pragma kythe_inline_metadata "Metadata comment"
+#endif
+{%- endif %}
+
+{% if not disallow_native_types and uses_native_types and all_enums|length -%}
+namespace mojo {
+enum class NativeEnum;
+}  // namespace mojo
+{%- endif %}
+
+{%- if variant %}
+{%-   for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%-   endfor %}
+
+{%- from "enum_macros.tmpl" import enum_forward%}
+{%- for enum in all_enums %}
+{%-   if enum|is_native_only_kind %}
+using {{enum|get_name_for_kind(flatten_nested_kind=True)}} = mojo::NativeEnum;
+{%-   else %}
+{{enum_forward(enum)}}
+{%-   endif %}
+{%- endfor %}
+
+{%-   for namespace in namespaces_as_array %}
+}  // namespace {{namespace}}
+{%-   endfor %}
+{%- endif %}
+
+{#--- WTF enum hashing #}
+{%- from "enum_macros.tmpl" import enum_hash_blink_forward%}
+{%- if for_blink %}
+{%-   if all_enums %}
+
+namespace WTF {
+template <typename T>
+struct DefaultHash;
+}
+
+{%-   endif %}
+
+{%-   for enum in all_enums %}
+{%-     if not enum|is_native_only_kind %}
+{{enum_hash_blink_forward(enum)}}
+{%-     endif %}
+{%-   endfor %}
+{%- endif %}
+
+{{namespace_begin()}}
+
+{%- set module_prefix = "%s"|format(namespaces_as_array|join(".")) %}
+
+{#- These are non-variant header only. #}
+{%- if not variant %}
+
+{#--- Struct Forward Declarations -#}
+{%- for struct in structs %}
+{%-   if struct|is_native_only_kind %}
+using {{struct.name}}DataView = mojo::native::NativeStructDataView;
+{%-   else %}
+class {{struct.name}}DataView;
+{%-   endif %}
+{%  endfor %}
+
+{#--- Union Forward Declarations -#}
+{%- for union in unions %}
+class {{union.name}}DataView;
+{%- endfor %}
+
+{#--- Enums #}
+{%- from "enum_macros.tmpl" import enum_forward%}
+{%- for enum in all_enums %}
+{%-   if enum|is_native_only_kind %}
+using {{enum|get_name_for_kind(flatten_nested_kind=True)}} = mojo::NativeEnum;
+{%-   else %}
+{{enum_forward(enum)}}
+{%-   endif %}
+{%- endfor %}
+
+{%- endif %}
+
+{#--- Enums #}
+{%- if variant %}
+{%-   for enum in enums %}
+using {{enum.name}} = {{enum.name}};  // Alias for definition in the parent namespace.
+{%-   endfor %}
+{%- endif %}
+
+{#--- Constants #}
+{%- for constant in module.constants %}
+{{ kythe_annotation("%s.%s"|format(module_prefix, constant.name)) }}
+{{constant|format_constant_declaration}};
+{%- endfor %}
+
+{#--- Struct Forward Declarations -#}
+{%  for struct in structs %}
+{%-   if struct|is_native_only_kind %}
+using {{struct.name}} = mojo::native::NativeStruct;
+using {{struct.name}}Ptr = mojo::native::NativeStructPtr;
+{%-   else %}
+class {{struct.name}};
+{%-     if struct|should_inline %}
+using {{struct.name}}Ptr = mojo::InlinedStructPtr<{{struct.name}}>;
+{%-     else %}
+using {{struct.name}}Ptr = mojo::StructPtr<{{struct.name}}>;
+{%-     endif %}
+{%-   endif %}
+{%  endfor %}
+
+{#--- Union Forward Declarations -#}
+{%  for union in unions %}
+class {{union.name}};
+{%    if union|should_inline_union %}
+typedef mojo::InlinedStructPtr<{{union.name}}> {{union.name}}Ptr;
+{%    else %}
+typedef mojo::StructPtr<{{union.name}}> {{union.name}}Ptr;
+{%    endif %}
+{%- endfor %}
+
+
+{#--- Interface Forward Declarations -#}
+{%  for interface in interfaces %}
+class {{interface.name}};
+{{ kythe_annotation("%s.%s"|format(module_prefix, interface.name)) }}
+using {{interface.name}}Ptr = mojo::InterfacePtr<{{interface.name}}>;
+using {{interface.name}}PtrInfo = mojo::InterfacePtrInfo<{{interface.name}}>;
+using ThreadSafe{{interface.name}}Ptr =
+    mojo::ThreadSafeInterfacePtr<{{interface.name}}>;
+{{ kythe_annotation("%s.%s"|format(module_prefix, interface.name)) }}
+using {{interface.name}}Request = mojo::InterfaceRequest<{{interface.name}}>;
+{{ kythe_annotation("%s.%s"|format(module_prefix, interface.name)) }}
+using {{interface.name}}AssociatedPtr =
+    mojo::AssociatedInterfacePtr<{{interface.name}}>;
+using ThreadSafe{{interface.name}}AssociatedPtr =
+    mojo::ThreadSafeAssociatedInterfacePtr<{{interface.name}}>;
+using {{interface.name}}AssociatedPtrInfo =
+    mojo::AssociatedInterfacePtrInfo<{{interface.name}}>;
+{{ kythe_annotation("%s.%s"|format(module_prefix, interface.name)) }}
+using {{interface.name}}AssociatedRequest =
+    mojo::AssociatedInterfaceRequest<{{interface.name}}>;
+{%  endfor %}
+
+
+{{namespace_end()}}
+
+{#- TODO(tikuta): Use forward declaration of native enum/struct here. #}
+
+{%- for header in extra_public_headers %}
+#include "{{header}}"
+{%- endfor %}
+
+#endif  // {{header_guard}}

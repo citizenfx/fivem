@@ -1,0 +1,32 @@
+// Copyright 2018 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+module test.mojom;
+
+enum TestEnum {
+  FIRST,
+  SECOND,
+};
+
+struct Message {
+  string message;
+};
+
+struct TestStruct {
+  string id;
+  string? title;
+  array<TestEnum> enums;
+  map<uint32, string> numberToStringMap;
+  map<Message, array<Message>> messageToArrayMap;
+  map<TestEnum, map<TestEnum, TestEnum>> enumToMapMap;
+  map<uint32, TestPage> numberToInterfaceProxyMap;
+};
+
+interface TestPageHandler {
+  Method1(string p1, int32 p2) => (array<string> values, TestStruct ts);
+};
+
+interface TestPage {
+  OnEvent1(TestStruct s);
+};

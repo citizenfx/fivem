@@ -1,0 +1,5 @@
+include_rules = [
+  # Implementation of mojo/*public*/cpp/test_support/*lib* can depend on
+  # non-public parts of mojo.
+  "+mojo"
+]

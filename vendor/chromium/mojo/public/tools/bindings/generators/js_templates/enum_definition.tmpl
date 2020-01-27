@@ -1,0 +1,39 @@
+{%- macro enum_def(enum_name, enum) -%}
+  {{enum_name}} = {};
+{%-   set prev_enum = 0 %}
+{%-   for field in enum.fields %}
+{%-     if field.value %}
+  {{enum_name}}.{{field.name}} = {{field.value|expression_to_text}};
+{%-     elif loop.first %}
+  {{enum_name}}.{{field.name}} = 0;
+{%-     else %}
+  {{enum_name}}.{{field.name}} = {{enum_name}}.{{enum.fields[loop.index0 - 1].name}} + 1;
+{%-     endif %}
+{%-   endfor %}
+{%-   if enum.min_value is not none %}
+  {{enum_name}}.MIN_VALUE = {{enum.min_value}},
+{%-   endif %}
+{%-   if enum.max_value is not none %}
+  {{enum_name}}.MAX_VALUE = {{enum.max_value}},
+{%-   endif %}
+
+  {{enum_name}}.isKnownEnumValue = function(value) {
+{%-   if enum.fields %}
+    switch (value) {
+{%-       for enum_field in enum.fields|groupby('numeric_value') %}
+    case {{enum_field[0]}}:
+{%-     endfor %}
+      return true;
+    }
+{%-   endif %}
+    return false;
+  };
+
+  {{enum_name}}.validate = function(enumValue) {
+    var isExtensible = {% if enum.extensible %}true{% else %}false{% endif %};
+    if (isExtensible || this.isKnownEnumValue(enumValue))
+      return validator.validationError.NONE;
+
+    return validator.validationError.UNKNOWN_ENUM_VALUE;
+  };
+{%- endmacro %}
