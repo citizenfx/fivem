@@ -772,6 +772,11 @@ static InitFunction initFunction([] ()
 
 				for (int i = end - 1; i >= start; i--)
 				{
+					if (json[i].is_null() || json[i]["hostname"].is_null() || json[i]["address"].is_null())
+					{
+						continue;
+					}
+
 					ServerLink l;
 					json[i]["hostname"].get_to(l.hostname);
 
