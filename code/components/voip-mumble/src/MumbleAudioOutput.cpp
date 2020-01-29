@@ -294,7 +294,10 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 			{
 				render(&inBuffer, &outBuffer, lab::AudioNode::ProcessingSizeInFrames);
 
-				memcpy(m_outBuffer.channel(0)->mutableData() + i, outFloats, lab::AudioNode::ProcessingSizeInFrames * 4);
+				if ((i + lab::AudioNode::ProcessingSizeInFrames) < 5760)
+				{
+					memcpy(m_outBuffer.channel(0)->mutableData() + i, outFloats, lab::AudioNode::ProcessingSizeInFrames * 4);
+				}
 			}
 		}
 
