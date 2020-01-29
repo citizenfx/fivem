@@ -235,7 +235,7 @@ static std::map<lab::AudioContext*, std::weak_ptr<lab::AudioSourceNode>> g_audio
 struct XA2DestinationNode : public lab::AudioDestinationNode
 {
 	XA2DestinationNode(lab::AudioContext* context, std::weak_ptr<MumbleAudioOutput::ClientAudioState> state)
-		: AudioDestinationNode(context, 1, 48000.0f), m_state(state), m_outBuffer(1, 5760, false)
+		: AudioDestinationNode(context, 1, 48000.0f), m_state(state), m_outBuffer(1, 5760, false), m_shutDown(false)
 	{
 		m_outBuffer.setSampleRate(48000.f);
 		m_outBuffer.setChannelMemory(0, m_floatBuffer, 5760);
@@ -250,6 +250,11 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 	void Poll(size_t numFrames)
 	{
+		if (m_shutDown)
+		{
+			return;
+		}
+
 		for (int i = 0; i < numFrames; i += lab::AudioNode::ProcessingSizeInFrames)
 		{
 			lab::AudioBus inBuffer{ 1, lab::AudioNode::ProcessingSizeInFrames, false };
@@ -263,14 +268,17 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 			inBuffer.setChannelMemory(0, inFloats, lab::AudioNode::ProcessingSizeInFrames);
 			outBuffer.setChannelMemory(0, outFloats, lab::AudioNode::ProcessingSizeInFrames);
 
-			render(&inBuffer, &outBuffer, lab::AudioNode::ProcessingSizeInFrames);
+			if (!m_shutDown)
+			{
+				render(&inBuffer, &outBuffer, lab::AudioNode::ProcessingSizeInFrames);
 
-			memcpy(m_outBuffer.channel(0)->mutableData() + i, outFloats, lab::AudioNode::ProcessingSizeInFrames * 4);
+				memcpy(m_outBuffer.channel(0)->mutableData() + i, outFloats, lab::AudioNode::ProcessingSizeInFrames * 4);
+			}
 		}
 
 		auto state = m_state.lock();
 
-		if (!state)
+		if (!state || m_shutDown)
 		{
 			return;
 		}
@@ -308,11 +316,19 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 		state->voice->SubmitSourceBuffer(&bufferData);
 	}
 
+	virtual void uninitialize() override
+	{
+		lab::AudioDestinationNode::uninitialize();
+
+		m_shutDown = true;
+	}
+
 	std::weak_ptr<MumbleAudioOutput::ClientAudioState> m_state;
 	lab::AudioBus* m_inBuffer;
 	lab::AudioBus m_outBuffer;
 
 	float m_floatBuffer[5760];
+	bool m_shutDown;
 };
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
