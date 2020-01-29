@@ -261,8 +261,8 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 	void PutThread(std::thread&& thread, std::function<void()>&& onDtor)
 	{
-		exitThread = std::move(thread);
-		onDtor = std::move(onDtor);
+		this->exitThread = std::move(thread);
+		this->onDtor = std::move(onDtor);
 	}
 
 	void Push(lab::AudioBus* inBuffer)
@@ -361,7 +361,11 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 	lab::AudioContext* contextRef = context.get();
 	shuttingDown = true;
 
-	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef]()
+	// we shall not use a shared_ptr inside of the thread as it'll then try to join itself
+	// which is nonsense
+	auto cdg = context->destination().get();
+
+	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef, cdg]()
 	{
 		static float floatBuffer[24000] = { 0 };
 
@@ -375,7 +379,7 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 
 			if (context)
 			{
-				auto d = std::static_pointer_cast<XA2DestinationNode>(context->destination());
+				auto d = static_cast<XA2DestinationNode*>(cdg);
 
 				if (d)
 				{
