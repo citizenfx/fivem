@@ -360,9 +360,12 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 
 		while (shuttingDown)
 		{
-			auto d = std::static_pointer_cast<XA2DestinationNode>(context->destination());
-			d->Push(&inBuffer);
-			d->Poll(24000);
+			if (context)
+			{
+				auto d = std::static_pointer_cast<XA2DestinationNode>(context->destination());
+				d->Push(&inBuffer);
+				d->Poll(24000);
+			}
 		}
 	}), [this]()
 	{
