@@ -246,9 +246,13 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 	virtual ~XA2DestinationNode() override
 	{
-		if (exitThread.joinable())
+		if (onDtor)
 		{
 			onDtor();
+		}
+
+		if (exitThread.joinable())
+		{
 			exitThread.join();
 		}
 	}
@@ -258,6 +262,7 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 	void PutThread(std::thread&& thread, std::function<void()>&& onDtor)
 	{
 		exitThread = std::move(thread);
+		onDtor = std::move(onDtor);
 	}
 
 	void Push(lab::AudioBus* inBuffer)
@@ -350,7 +355,10 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
-	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this]()
+	auto contextRef = context;
+	shuttingDown = true;
+
+	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef]()
 	{
 		static float floatBuffer[24000] = { 0 };
 
@@ -360,9 +368,9 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 
 		while (shuttingDown)
 		{
-			if (context)
+			if (contextRef)
 			{
-				auto d = std::static_pointer_cast<XA2DestinationNode>(context->destination());
+				auto d = std::static_pointer_cast<XA2DestinationNode>(contextRef->destination());
 				d->Push(&inBuffer);
 				d->Poll(24000);
 			}
@@ -372,7 +380,6 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 		shuttingDown = false;
 	});
 
-	shuttingDown = true;
 	context = {};
 
 	if (voice)
