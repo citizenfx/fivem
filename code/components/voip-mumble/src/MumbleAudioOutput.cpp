@@ -358,7 +358,7 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
-	std::weak_ptr<lab::AudioContext> contextRef = context;
+	lab::AudioContext* contextRef = context.get();
 	shuttingDown = true;
 
 	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef]()
@@ -371,7 +371,7 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 
 		while (shuttingDown)
 		{
-			auto context = contextRef.lock();
+			auto context = contextRef;
 
 			if (context)
 			{
