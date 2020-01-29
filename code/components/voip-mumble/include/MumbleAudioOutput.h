@@ -82,6 +82,7 @@ private:
 		bool isAudible;
 		OpusDecoder* opus;
 		uint32_t lastTime;
+		volatile bool shuttingDown;
 
 		std::shared_ptr<lab::AudioContext> context;
 		std::shared_ptr<lab::AudioSourceNode> inNode;

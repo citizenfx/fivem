@@ -205,7 +205,7 @@ void MumbleAudioOutput::Initialize()
 }
 
 MumbleAudioOutput::ClientAudioState::ClientAudioState()
-	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false), isAudible(true), overrideVolume(-1.0f)
+	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false), isAudible(true), overrideVolume(-1.0f), shuttingDown(false)
 {
 	position[0] = 0.0f;
 	position[1] = 0.0f;
@@ -317,16 +317,27 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
-	static float floatBuffer[5760] = { 0 };
+	auto t = std::thread([this]()
+	{
+		static float floatBuffer[24000] = { 0 };
 
-	lab::AudioBus inBuffer{ 1, 5760, false };
-	inBuffer.setSampleRate(48000.f);
-	inBuffer.setChannelMemory(0, floatBuffer, 5760);
+		lab::AudioBus inBuffer{ 1, 24000, false };
+		inBuffer.setSampleRate(48000.f);
+		inBuffer.setChannelMemory(0, floatBuffer, 24000);
 
-	std::static_pointer_cast<XA2DestinationNode>(outNode)->Push(&inBuffer);
-	std::static_pointer_cast<XA2DestinationNode>(outNode)->Poll(5760);
+		while (shuttingDown)
+		{
+			std::static_pointer_cast<XA2DestinationNode>(outNode)->Push(&inBuffer);
+			std::static_pointer_cast<XA2DestinationNode>(outNode)->Poll(24000);
+		}
+	});
 
+	shuttingDown = true;
 	context = {};
+
+	shuttingDown = false;
+
+	t.join();
 
 	if (voice)
 	{
