@@ -215,21 +215,6 @@ MumbleAudioOutput::ClientAudioState::ClientAudioState()
 	lastTime = timeGetTime();
 }
 
-MumbleAudioOutput::ClientAudioState::~ClientAudioState()
-{
-	if (voice)
-	{
-		voice->DestroyVoice();
-		voice = nullptr;
-	}
-
-	if (opus)
-	{
-		opus_decoder_destroy(opus);
-		opus = nullptr;
-	}
-}
-
 void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 {
 	auto buffer = reinterpret_cast<int16_t*>(cxt);
@@ -329,6 +314,32 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 	float m_floatBuffer[5760];
 };
+
+MumbleAudioOutput::ClientAudioState::~ClientAudioState()
+{
+	static float floatBuffer[5760] = { 0 };
+
+	lab::AudioBus inBuffer{ 1, 5760, false };
+	inBuffer.setSampleRate(48000.f);
+	inBuffer.setChannelMemory(0, floatBuffer, 5760);
+
+	std::static_pointer_cast<XA2DestinationNode>(outNode)->Push(&inBuffer);
+	std::static_pointer_cast<XA2DestinationNode>(outNode)->Poll(5760);
+
+	context = {};
+
+	if (voice)
+	{
+		voice->DestroyVoice();
+		voice = nullptr;
+	}
+
+	if (opus)
+	{
+		opus_decoder_destroy(opus);
+		opus = nullptr;
+	}
+}
 
 void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 {
