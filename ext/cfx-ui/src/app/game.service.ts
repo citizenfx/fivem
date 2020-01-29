@@ -491,10 +491,16 @@ export class CfxGameService extends GameService {
 		} catch (e) {
 		}
 
+		function canonicalize(address: string) {
+			return address.replace(/^cfx.re\/join\//, '');
+		}
+
 		const lastServers = JSON.stringify(
 			this.getServerHistory()
-				.filter(a => a.address !== entry.address)
+				.filter(a => canonicalize(a.address) !== canonicalize(entry.address))
 				.concat([ entry ]));
+
+		entry.address = canonicalize(entry.address);
 
 		localStorage.setItem('lastServers', lastServers);
 		(<any>window).invokeNative('setLastServers', lastServers);
