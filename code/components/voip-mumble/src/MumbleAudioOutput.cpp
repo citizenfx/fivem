@@ -234,6 +234,9 @@ static std::map<lab::AudioContext*, std::weak_ptr<lab::AudioSourceNode>> g_audio
 
 struct XA2DestinationNode : public lab::AudioDestinationNode
 {
+	std::thread exitThread;
+	std::function<void()> onDtor;
+
 	XA2DestinationNode(lab::AudioContext* context, std::weak_ptr<MumbleAudioOutput::ClientAudioState> state)
 		: AudioDestinationNode(context, 1, 48000.0f), m_state(state), m_outBuffer(1, 5760, false), m_shutDown(false)
 	{
@@ -241,7 +244,21 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 		m_outBuffer.setChannelMemory(0, m_floatBuffer, 5760);
 	}
 
+	virtual ~XA2DestinationNode() override
+	{
+		if (exitThread.joinable())
+		{
+			onDtor();
+			exitThread.join();
+		}
+	}
+
 	virtual void startRendering() override { }
+
+	void PutThread(std::thread&& thread, std::function<void()>&& onDtor)
+	{
+		exitThread = std::move(thread);
+	}
 
 	void Push(lab::AudioBus* inBuffer)
 	{
@@ -333,7 +350,7 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
-	auto t = std::thread([this]()
+	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this]()
 	{
 		static float floatBuffer[24000] = { 0 };
 
@@ -343,17 +360,17 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 
 		while (shuttingDown)
 		{
-			std::static_pointer_cast<XA2DestinationNode>(outNode)->Push(&inBuffer);
-			std::static_pointer_cast<XA2DestinationNode>(outNode)->Poll(24000);
+			auto d = std::static_pointer_cast<XA2DestinationNode>(context->destination());
+			d->Push(&inBuffer);
+			d->Poll(24000);
 		}
+	}), [this]()
+	{
+		shuttingDown = false;
 	});
 
 	shuttingDown = true;
 	context = {};
-
-	shuttingDown = false;
-
-	t.join();
 
 	if (voice)
 	{
@@ -427,9 +444,8 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 	{
 		lab::ContextRenderLock r(context.get(), "init");
-		state->outNode = std::make_shared<XA2DestinationNode>(context.get(), state);
-
-		context->setDestinationNode(state->outNode);
+		auto outNode = std::make_shared<XA2DestinationNode>(context.get(), state);
+		context->setDestinationNode(outNode);
 
 		state->inNode = lab::Sound::MakeHardwareSourceNode(r);
 	}
@@ -439,7 +455,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	context->lazyInitialize();
 
 	static auto tNode = std::make_shared<lab::BiquadFilterNode>();
-	context->connect(state->outNode, state->inNode);
+	context->connect(context->destination(), state->inNode);
 
 	context->startRendering();
 
@@ -477,8 +493,8 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 			inBuffer.setSampleRate(48000.f);
 			inBuffer.setChannelMemory(0, floatBuffer, 5760);
 
-			std::static_pointer_cast<XA2DestinationNode>(client->outNode)->Push(&inBuffer);
-			std::static_pointer_cast<XA2DestinationNode>(client->outNode)->Poll(len);
+			std::static_pointer_cast<XA2DestinationNode>(client->context->destination())->Push(&inBuffer);
+			std::static_pointer_cast<XA2DestinationNode>(client->context->destination())->Poll(len);
 		}
 
 		_aligned_free(floatBuffer);

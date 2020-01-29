@@ -86,7 +86,6 @@ private:
 
 		std::shared_ptr<lab::AudioContext> context;
 		std::shared_ptr<lab::AudioSourceNode> inNode;
-		std::shared_ptr<lab::AudioDestinationNode> outNode;
 
 		ClientAudioState();
 
