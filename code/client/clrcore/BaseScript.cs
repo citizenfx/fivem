@@ -30,7 +30,7 @@ namespace CitizenFX.Core
 					return 0;
 				int result = obj.Method.GetHashCode() ^ obj.GetType().GetHashCode();
 				if (obj.Target != null)
-					result ^= RuntimeHelpers.GetHashCode(obj);
+					result ^= RuntimeHelpers.GetHashCode(obj.Target);
 				return result;
 			}
 		}
