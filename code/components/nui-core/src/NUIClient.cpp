@@ -34,9 +34,12 @@ namespace nui
 }
 
 NUIClient::NUIClient(NUIWindow* window)
-	: m_window(window)
+	: m_window(window), m_windowValid(false)
 {
-	m_windowValid = true;
+	if (m_window)
+	{
+		m_windowValid = true;
+	}
 
 	m_renderHandler = new NUIRenderHandler(this);
 
@@ -76,7 +79,12 @@ void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> f
 		browser->GetHost()->SetAudioMuted(true);
 	}
 
-	GetWindow()->OnClientContextCreated(browser, frame, nullptr);
+	auto window = GetWindow();
+
+	if (window)
+	{
+		window->OnClientContextCreated(browser, frame, nullptr);
+	}
 }
 
 void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)

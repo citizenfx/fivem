@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "NUIApp.h"
+#include "NUIClient.h"
 #include "NUISchemeHandlerFactory.h"
 #include "NUIWindowManager.h"
 
@@ -28,6 +29,8 @@
 #include <MinHook.h>
 
 #include "memdbgon.h"
+
+#include <CoreConsole.h>
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -570,6 +573,26 @@ void Initialize(nui::GameInterface* gi)
 #else
 
 #endif
+
+	static ConsoleCommand devtoolsCmd("nui_devtools", []()
+	{
+		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
+
+		if (rootWindow.GetRef())
+		{
+			auto browser = rootWindow->GetBrowser();
+
+			if (browser)
+			{
+				CefWindowInfo wi;
+				wi.SetAsPopup(NULL, "NUI DevTools");
+
+				CefBrowserSettings s;
+
+				browser->GetHost()->ShowDevTools(wi, new NUIClient(nullptr), s, {});
+			}
+		}
+	});
 
 	g_nuiGi->OnInitRenderer.Connect([]()
 	{
