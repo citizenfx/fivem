@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "NUIClient.h"
 #include "NUIRenderHandler.h"
+#include "NUISchemeHandlerFactory.h"
 #include "CefOverlay.h"
 #include "memdbgon.h"
 #include "HttpClient.h"
@@ -62,6 +63,8 @@ NUIClient::NUIClient(NUIWindow* window)
 					}
 				}
 			}
+
+			Instance<NUISchemeHandlerFactory>::Get()->SetRequestBlacklist(thisRef->m_requestBlacklist);
 		}
 	});
 }

@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
 #include "NUISchemeHandlerFactory.h"
+#include <NUIClient.h>
 
 #include <VFSManager.h>
 #include <include/cef_parser.h>
@@ -207,7 +208,39 @@ public:
 	IMPLEMENT_REFCOUNTING(NUIResourceHandler);
 };
 
-CefRefPtr<CefResourceHandler> CreateRPCResourceHandler();
+class ForbiddenResourceHandler : public CefResourceHandler
+{
+public:
+	IMPLEMENT_REFCOUNTING(ForbiddenResourceHandler);
+
+	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override
+	{
+		callback->Continue();
+		return true;
+	}
+
+	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override
+	{
+		response->SetStatus(403);
+		response_length = 0;
+	}
+
+	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback) override
+	{
+		bytes_read = 0;
+
+		return true;
+	}
+
+	virtual void Cancel() override
+	{
+	}
+};
+
+void NUISchemeHandlerFactory::SetRequestBlacklist(const std::vector<std::regex>& requestBlacklist)
+{
+	m_requestBlacklist = requestBlacklist;
+}
 
 CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request)
 {
@@ -230,6 +263,21 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 				return new NUIResourceHandler();
 			}
 		}
+	}
+	else if (scheme_name == "ws" || scheme_name == "wss")
+	{
+		for (auto& reg : m_requestBlacklist)
+		{
+			std::string url = request->GetURL().ToString();
+
+			if (std::regex_search(url, reg))
+			{
+				trace("Blocked a request for blacklisted URI %s\n", url);
+				return new ForbiddenResourceHandler();
+			}
+		}
+
+		return nullptr;
 	}
 
 	CefRefPtr<CefResourceHandler> outHandler;
