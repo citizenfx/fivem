@@ -1712,13 +1712,14 @@ result_t V8ScriptRuntime::Destroy()
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
+	fx::PushEnvironment pushed(this);
+
 #ifdef IS_FXSERVER
 	g_envRuntimes.erase(m_nodeEnvironment);
 
 	node::FreeEnvironment(m_nodeEnvironment);
 #endif
 
-	fx::PushEnvironment pushed(this);
 	m_context.Reset();
 
 	return FX_S_OK;
