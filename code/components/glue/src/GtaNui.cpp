@@ -267,18 +267,12 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 #else
 	return new GtaNuiTexture([width, height](GtaNuiTexture*)
 	{
-		std::vector<uint8_t> pixelData(size_t(width) * size_t(height) * 4);
+		rage::grcManualTextureDef textureDef;
+		memset(&textureDef, 0, sizeof(textureDef));
+		textureDef.isStaging = 0;
+		textureDef.arraySize = 1;
 
-		rage::grcTextureReference reference;
-		memset(&reference, 0, sizeof(reference));
-		reference.width = width;
-		reference.height = height;
-		reference.depth = 1;
-		reference.stride = width * 4;
-		reference.format = 11; // dxt5?
-		reference.pixelData = (uint8_t*)pixelData.data();
-
-		return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+		return rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
 	});
 #endif
 }
@@ -352,18 +346,12 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				auto width = desc.Width;
 				auto height = desc.Height;
 
-				std::vector<uint8_t> pixelData(size_t(width) * size_t(height) * 4);
+				rage::grcManualTextureDef textureDef;
+				memset(&textureDef, 0, sizeof(textureDef));
+				textureDef.isStaging = 0;
+				textureDef.arraySize = 1;
 
-				rage::grcTextureReference reference;
-				memset(&reference, 0, sizeof(reference));
-				reference.width = width;
-				reference.height = height;
-				reference.depth = 1;
-				reference.stride = width * 4;
-				reference.format = 11;
-				reference.pixelData = (uint8_t*)pixelData.data();
-
-				auto texRef = (rage::sga::TextureD3D12*)rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+				auto texRef = (rage::sga::TextureD3D12*)rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2, nullptr, true, &textureDef);
 
 				if (texRef)
 				{

@@ -19,9 +19,35 @@ static hook::cdecl_stub<grcTexture * (grcTextureFactory*, const char*, grcTextur
 	return hook::get_pattern("48 8B F8 48 85 C0 0F 84 ? ? ? ? 41 8D 49 03", -0x28);
 });
 
+namespace sga
+{
+static hook::cdecl_stub < Texture * (const char* name, const ImageParams & params, int bufferType, uint32_t flags1, void* memInfo, uint32_t flags2, int cpuAccessType, void* clearValue, const void* conversionInfo, Texture* other)> _createFactory([]()
+{
+	return hook::get_pattern("75 0F 44 8B 45 ? 41 8A D4 48 8B CE E8 ? ? ? ? 48 8B", -0x63);
+});
+
+Texture* Factory::CreateTexture(const char* name, const ImageParams& params, int bufferType, uint32_t flags1, void* memInfo, uint32_t flags2, int cpuAccessType, void* clearValue, const void* conversionInfo, Texture* other)
+{
+	return _createFactory(name, params, bufferType, flags1, memInfo, flags2, cpuAccessType, clearValue, conversionInfo, other);
+}
+}
+
 grcTexture* grcTextureFactory::createImage(const char* name, grcTextureReference* reference, void* createParams)
 {
 	return _create(this, name, reference, createParams);
+}
+
+grcTexture* grcTextureFactory::createManualTexture(short width, short height, int format, void* unknown, bool, const grcManualTextureDef* templ)
+{
+	sga::ImageParams ip;
+	ip.width = width;
+	ip.height = height;
+	ip.depth = 1;
+	ip.levels = 1;
+	ip.dimension = 1;
+	ip.bufferFormat = sga::BufferFormat::B8G8R8A8_UNORM;
+
+	return static_cast<grcTexture*>(sga::Factory::CreateTexture("grcTexture", ip, 0, 2, nullptr, 8, 0, nullptr, nullptr, nullptr));
 }
 
 grcTexture* grcTextureFactory::GetNoneTexture()
