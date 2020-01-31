@@ -831,7 +831,7 @@ export class DummyGameService extends GameService {
 			document.body.appendChild(ifr);
 
 			this.invokeConnectFailed(server, 'If it is installed, FiveM should have launched. ' +
-				'If it didn\'t, just join the following IP: ' + server.address);
+				'If it didn\'t, just join the following IP: ' + this.getConnectAddress(server));
 			return;
 		}
 
