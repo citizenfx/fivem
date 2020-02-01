@@ -457,6 +457,24 @@ inline void HandleDataFileList(const TList& list, const TFn& fn, const char* op 
 	}
 }
 
+template<typename TFn, typename TList>
+inline void HandleDataFileListWithTypes(TList& list, const TFn& fn, const std::set<int>& types, const char* op = "loading")
+{
+	for (auto it = list.begin(); it != list.end(); )
+	{
+		if (types.find(LookupDataFileType(it->first)) != types.end())
+		{
+			HandleDataFile(*it, fn, op);
+
+			it = list.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
 void LoadStreamingFiles(bool earlyLoad = false);
 
 static LONG FilterUnmountOperation(DataFileEntry& entry)
@@ -1062,6 +1080,14 @@ static void UnloadDataFiles()
 	}
 }
 
+static void UnloadDataFilesOfTypes(const std::set<int>& types)
+{
+	HandleDataFileListWithTypes(g_loadedDataFiles, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
+	{
+		return mounter->UnmountFile(&entry);
+	}, types, "pre-unloading");
+}
+
 static hook::cdecl_stub<void()> _unloadMultiplayerContent([]()
 {
 	return hook::get_pattern("01 E8 ? ? ? ? 48 8B 0D ? ? ? ? BA 79", -0x11);
@@ -1461,6 +1487,9 @@ static HookFunction hookFunction([] ()
 		SafelyDrainStreamer();
 
 		g_unloadingCfx = false;
+
+		// unload pre-unloaded data files
+		UnloadDataFilesOfTypes({ 0xB3 /* popgroups override */ });
 	}, 99900);
 
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
