@@ -585,6 +585,14 @@ static std::string GetBaseName(const std::string& name)
 	return retval;
 }
 
+namespace rage
+{
+	static hook::cdecl_stub<void(uint16_t)> pgRawStreamerInvalidateEntry([]()
+	{
+		return hook::get_pattern("44 0F B7 C3 41 8B C0 41 81 E0 FF 03 00 00 C1", -0x51);
+	});
+}
+
 static void LoadStreamingFiles(bool earlyLoad)
 {
 	// register any custom streaming assets
@@ -689,6 +697,8 @@ static void LoadStreamingFiles(bool earlyLoad)
 				{
 					auto& entry = cstreaming->Entries[fileId];
 					g_handleStack[fileId].push_front(entry.handle);
+
+					rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
 
 					g_handlesToTag[entry.handle] = tag;
 				}
