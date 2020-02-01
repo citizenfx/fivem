@@ -641,8 +641,13 @@ static void LoadStreamingFiles(bool earlyLoad)
 		{
 			// try to create/get an asset in the streaming module
 			// RegisterStreamingFile will still work if one exists as long as the handle remains 0
-			uint32_t strId;
-			strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
+			uint32_t strId = -1;
+			strModule->FindSlot(&strId, nameWithoutExt.c_str());
+
+			if (strId == -1)
+			{
+				strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
+			}
 
 			g_ourIndexes.insert(strId + strModule->baseIdx);
 			g_pendingRemovals.erase({ strModule, strId });
@@ -1515,6 +1520,7 @@ static HookFunction hookFunction([] ()
 		}
 
 		auto typesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+		auto navMeshStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ynv");
 
 		for (auto [ module, idx ] : g_pendingRemovals)
 		{
@@ -1535,7 +1541,11 @@ static HookFunction hookFunction([] ()
 				rage__fwArchetypeManager__FreeArchetypes(idx);
 			}
 
-			module->RemoveSlot(idx);
+			// navmeshstore won't remove from some internal 'name hash' and therefore re-registration crashes
+			if (module != navMeshStore)
+			{
+				module->RemoveSlot(idx);
+			}
 		}
 
 		g_pendingRemovals.clear();
