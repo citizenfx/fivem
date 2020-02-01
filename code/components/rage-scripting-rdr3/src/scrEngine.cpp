@@ -414,39 +414,8 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 
 	if (handler)
 	{
-		/*if (origHash == 0xD1110739EEADB592)
-		{
-			static scrEngine::NativeHandler hashHandler = handler;
-
-			return [] (rage::scrNativeCallContext* context)
-			{
-				hashHandler(context);
-
-				GtaThread* thread = static_cast<GtaThread*>(GetActiveThread());
-				void* handler = thread->GetScriptHandler();
-
-				if (handler)
-				{
-					for (auto& ownedThread : g_ownedThreads)
-					{
-						if (ownedThread != thread)
-						{
-							ownedThread->SetScriptHandler(handler);
-						}
-					}
-				}
-			};
-		}
-		// prop density lowering
-		else */if (origHash == 0x9BAE5AD2508DF078)
-		{
-			return [] (rage::scrNativeCallContext*)
-			{
-				// no-op
-			};
-		}
 		//StringToInt, ClearBit, SetBitsInRange, SetBit
-		else if (origHash == 0x5A5F40FE637EB584 || origHash == 0xE80492A9AC099A93 || origHash == 0x8EF07E15701D61ED || origHash == 0x933D6A9EEC1BACD0)
+		if (origHash == 0xF2DD2298B3AF23E2 || origHash == 0x7D1D4A3602B6AD4E || origHash == 0x324DC1CEF57F31E6 || origHash == 0xF73FBE4845C43B5B)
 		{
 			return [](rage::scrNativeCallContext*)
 			{
