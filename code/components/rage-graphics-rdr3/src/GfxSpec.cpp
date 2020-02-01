@@ -282,7 +282,7 @@ static uint32_t* diffSS;
 
 uint32_t GetImDiffuseSamplerState()
 {
-	return *diffSS;
+	return 0x01D57A7E;
 }
 
 static hook::cdecl_stub<void(intptr_t, int, uint8_t)> _setSamplerState([]
@@ -295,10 +295,20 @@ static hook::cdecl_stub<int(intptr_t, const char*, int, int)> _getSamplerIdx([]
 	return hook::get_call(hook::get_pattern("89 47 48 48 8B D6 45 33 C9 41 B0 03", 15));
 });
 
+static hook::cdecl_stub<void(intptr_t, int)> _popSamplerState([]()
+{
+	return hook::get_pattern("48 8B 41 20 80 3C 02 FF 74 53 44 0F B6 0C 02", -0x21);
+});
+
 void SetImDiffuseSamplerState(uint32_t samplerStateIdentifier)
 {
 	int sampler = _getSamplerIdx(*gtaImShader, "DiffuseSampler", 2, 1);
 	assert(sampler);
+
+	if (samplerStateIdentifier == 0x01D57A7E)
+	{
+		return _popSamplerState(*gtaImShader, sampler);
+	}
 
 	_setSamplerState(*gtaImShader, sampler, samplerStateIdentifier);
 }
