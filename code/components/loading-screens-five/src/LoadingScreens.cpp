@@ -161,7 +161,7 @@ static HookFunction hookFunction([]()
 
 				loadsThread.doSetup = true;
 
-				if (!ShouldSkipLoading())
+				if (autoShutdownNui)
 				{
 					endLoadingScreens();
 				}
@@ -793,7 +793,7 @@ static InitFunction initFunction([] ()
 
 	OnPostFrontendRender.Connect([]()
 	{
-		if (!g_doDrawBelowLoadingScreens)
+		//if (!g_doDrawBelowLoadingScreens)
 		{
 			return;
 		}
