@@ -7,6 +7,8 @@
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 
+#include <ScriptSerialization.h>
+
 static InitFunction initFunction([]()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
@@ -302,7 +304,7 @@ static InitFunction initFunction([]()
 		int unk8 = entity->GetData("unk8", 0);
 		int defaultHeadlights = entity->GetData("defaultHeadlights", 0);
 		
-		if (unk8 == 0 && defaultHeadlights == 0)
+		if (defaultHeadlights)
 		{
 			headlightsColour = entity->GetData("headlightsColour", 0);
 		}
@@ -312,35 +314,17 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_SIREN_ON", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		int sirenOn = 0;
-		int unk8 = entity->GetData("unk8", 0);
-
-		if (unk8 == 0)
-		{
-			sirenOn = entity->GetData("sirenOn", 0);
-		}
-
-		return sirenOn;
+		return entity->data["sirenOn"];
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DOOR_STATUS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		int doorStatus = 0;
-		int unk8 = entity->GetData("unk8", 0);
+		int doorsOpen = entity->GetData("doorsOpen", 0);
 
-		if (unk8 == 0 && context.GetArgumentCount() > 1)
+		if (context.GetArgumentCount() > 1 && doorsOpen)
 		{
-			int unk15 = entity->GetData("unk15", 0);
-
-			if (unk15 != 0)
-			{
-				int doorsOpen = entity->GetData("doorsOpen", 0);
-
-				if (doorsOpen != 0)
-				{
-					doorStatus = entity->GetData("doorPosition" + context.GetArgument<int>(1), 0);
-				}
-			}
+			doorStatus = entity->GetData("doorPosition" + context.GetArgument<int>(1), 0);
 		}
 
 		return doorStatus;
@@ -348,20 +332,7 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DOOR_LOCK_STATUS", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		uint8_t lockStatus = 0;
-		int unk8 = entity->GetData("unk8", 0);
-
-		if (unk8 == 0)
-		{
-			int unk15 = entity->GetData("unk15", 0);
-
-			if (unk15 != 0)
-			{
-				lockStatus = entity->GetData("lockStatus", 0);
-			}
-		}
-
-		return lockStatus;
+		return entity->data["lockStatus"];
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DOORS_LOCKED_FOR_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
@@ -369,7 +340,7 @@ static InitFunction initFunction([]()
 		int lockedForPlayer = 0;
 		int hasLock = entity->GetData("hasLock", 0);
 
-		if (hasLock != 0)
+		if (hasLock)
 		{
 			int lockedPlayers = entity->GetData("lockedPlayers", 0);
 
@@ -595,4 +566,46 @@ static InitFunction initFunction([]()
 	{
 		return entity->data["numberPlateTextIndex"];
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("HAS_VEHICLE_BEEN_OWNED_BY_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["hasBeenOwnedByPlayer"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("HAS_ENTITY_BEEN_MARKED_AS_NO_LONGER_NEEDED", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["noLongerNeeded"];
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_VEHICLES", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		std::vector<int> entityList;
+		std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+
+		for (auto& entity : gameState->m_entityList)
+		{
+			if (entity && (entity->type == fx::sync::NetObjEntityType::Automobile ||
+				entity->type == fx::sync::NetObjEntityType::Bike ||
+				entity->type == fx::sync::NetObjEntityType::Boat ||
+				entity->type == fx::sync::NetObjEntityType::Heli ||
+				entity->type == fx::sync::NetObjEntityType::Plane ||
+				entity->type == fx::sync::NetObjEntityType::Submarine ||
+				entity->type == fx::sync::NetObjEntityType::Trailer ||
+				entity->type == fx::sync::NetObjEntityType::Train))
+			{
+				entityList.push_back(gameState->MakeScriptHandle(entity));
+			}
+		}
+
+		context.SetResult(fx::SerializeObject(entityList));
+	});
 });

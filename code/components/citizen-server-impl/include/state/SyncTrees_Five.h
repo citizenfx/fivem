@@ -433,7 +433,6 @@ struct CVehicleGameStateDataNode
 		bool unk6 = state.buffer.ReadBit();
 		bool unk7 = state.buffer.ReadBit();
 		int unk8 = state.buffer.ReadBit();
-		state.entity->data["unk8"] = unk8;
 
 		if (!unk8)
 		{
@@ -445,6 +444,10 @@ struct CVehicleGameStateDataNode
 				// NOTE: Even if xenon lights are not enabled, this will still work.
 				int headlightsColour = state.buffer.Read<int>(8);
 				state.entity->data["headlightsColour"] = headlightsColour;
+			}
+			else
+			{
+				state.entity->data["headlightsColour"] = 0;
 			}
 
 			int sirenOn = state.buffer.ReadBit();
@@ -459,7 +462,6 @@ struct CVehicleGameStateDataNode
 
 			bool unk14 = state.buffer.ReadBit();
 			int unk15 = state.buffer.ReadBit();
-			state.entity->data["unk15"] = unk15;
 
 			if (unk15)
 			{
@@ -495,6 +497,11 @@ struct CVehicleGameStateDataNode
 					v22++;
 				} while (v22 < 7);
 			}
+			else
+			{
+				state.entity->data["lockStatus"] = 0;
+				state.entity->data["doorsOpen"] = 0;
+			}
 
 			bool anyWindowsOpen = state.buffer.ReadBit();
 
@@ -505,7 +512,8 @@ struct CVehicleGameStateDataNode
 
 			bool unk25 = state.buffer.ReadBit();
 			bool unk26 = state.buffer.ReadBit();
-			bool noLongerNeeded = state.buffer.ReadBit();
+			int noLongerNeeded = state.buffer.ReadBit();
+			state.entity->data["noLongerNeeded"] = noLongerNeeded;
 			bool unk28 = state.buffer.ReadBit();
 			bool unk29 = state.buffer.ReadBit();
 			bool unk30 = state.buffer.ReadBit();
@@ -515,6 +523,15 @@ struct CVehicleGameStateDataNode
 			{
 				float unk32 = state.buffer.ReadFloat(10, 3000);
 			}
+		}
+		else
+		{
+			state.entity->data["noLongerNeeded"] = 0;
+			state.entity->data["defaultHeadlights"] = 1;
+			state.entity->data["headlightsColour"] = 0;
+			state.entity->data["sirenOn"] = 0;
+			state.entity->data["lockStatus"] = 0;
+			state.entity->data["doorsOpen"] = 0;
 		}
 
 		bool unk33 = state.buffer.ReadBit();
@@ -563,7 +580,9 @@ struct CVehicleGameStateDataNode
 		auto unk49 = state.buffer.Read<int>(32);
 		auto unk50 = state.buffer.Read<int>(3);
 		bool unk51 = state.buffer.ReadBit();
-		bool unk52 = state.buffer.ReadBit();
+		int hasBeenOwnedByPlayer = state.buffer.ReadBit();
+		state.entity->data["hasBeenOwnedByPlayer"] = hasBeenOwnedByPlayer;
+
 		bool unk53 = state.buffer.ReadBit();
 		bool unk54 = state.buffer.ReadBit();
 		bool unk55 = state.buffer.ReadBit();
