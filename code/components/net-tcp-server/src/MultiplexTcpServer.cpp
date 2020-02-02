@@ -216,43 +216,43 @@ void MultiplexTcpChildServerStream::Close()
 	CloseInternal();
 }
 
-void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data)
+void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->Write(data);
+		m_baseStream->Write(data, std::move(onComplete));
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(const std::string& data)
+void MultiplexTcpChildServerStream::Write(const std::string& data, TScheduledCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->Write(data);
+		m_baseStream->Write(data, std::move(onComplete));
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(std::vector<uint8_t>&& data)
+void MultiplexTcpChildServerStream::Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->Write(std::move(data));
+		m_baseStream->Write(std::move(data), std::move(onComplete));
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(std::string&& data)
+void MultiplexTcpChildServerStream::Write(std::string&& data, TScheduledCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->Write(std::move(data));
+		m_baseStream->Write(std::move(data), std::move(onComplete));
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(std::unique_ptr<char[]> data, size_t len)
+void MultiplexTcpChildServerStream::Write(std::unique_ptr<char[]> data, size_t len, TScheduledCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->Write(std::move(data), len);
+		m_baseStream->Write(std::move(data), len, std::move(onComplete));
 	}
 }
 
@@ -271,11 +271,11 @@ void MultiplexTcpChildServerStream::SetInitialData(const std::vector<uint8_t>& i
 	m_initialData = initialData;
 }
 
-void MultiplexTcpChildServerStream::ScheduleCallback(TScheduledCallback&& callback)
+void MultiplexTcpChildServerStream::ScheduleCallback(TScheduledCallback&& callback, bool performInline)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->ScheduleCallback(std::move(callback));
+		m_baseStream->ScheduleCallback(std::move(callback), performInline);
 	}
 }
 

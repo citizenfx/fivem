@@ -25,7 +25,7 @@ public:
 
 	typedef std::function<void()> TCloseCallback;
 
-	typedef fu2::unique_function<void() const> TScheduledCallback;
+	typedef fu2::unique_function<void()> TScheduledCallback;
 
 private:
 	TReadCallback m_readCallback;
@@ -48,15 +48,15 @@ protected:
 public:
 	virtual PeerAddress GetPeerAddress() = 0;
 
-	virtual void Write(const std::string& data);
+	virtual void Write(const std::string& data, TScheduledCallback&& onComplete = {});
 
-	virtual void Write(std::string&& data);
+	virtual void Write(std::string&& data, TScheduledCallback&& onComplete = {});
 
-	virtual void Write(const std::vector<uint8_t>& data) = 0;
+	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete = {}) = 0;
 
-	virtual void Write(std::vector<uint8_t>&& data);
+	virtual void Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete = {});
 
-	virtual void Write(std::unique_ptr<char[]> data, size_t size);
+	virtual void Write(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete = {});
 
 	virtual void Close() = 0;
 
@@ -64,7 +64,7 @@ public:
 
 	void SetCloseCallback(const TCloseCallback& callback);
 
-	virtual void ScheduleCallback(TScheduledCallback&& callback);
+	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline = true);
 
 protected:
 	TcpServerStream() { }

@@ -251,24 +251,24 @@ PeerAddress TLSServerStream::GetPeerAddress()
 	return m_baseStream->GetPeerAddress();
 }
 
-void TLSServerStream::Write(const std::string& data)
+void TLSServerStream::Write(const std::string& data, TScheduledCallback&& onComplete)
 {
-	DoWrite<decltype(data)>(data);
+	DoWrite<decltype(data)>(data, std::move(onComplete));
 }
 
-void TLSServerStream::Write(const std::vector<uint8_t>& data)
+void TLSServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
 {
-	DoWrite<decltype(data)>(data);
+	DoWrite<decltype(data)>(data, std::move(onComplete));
 }
 
-void TLSServerStream::Write(std::string&& data)
+void TLSServerStream::Write(std::string&& data, TScheduledCallback&& onComplete)
 {
-	DoWrite<decltype(data)>(std::move(data));
+	DoWrite<decltype(data)>(std::move(data), std::move(onComplete));
 }
 
-void TLSServerStream::Write(std::vector<uint8_t>&& data)
+void TLSServerStream::Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete)
 {
-	DoWrite<decltype(data)>(std::move(data));
+	DoWrite<decltype(data)>(std::move(data), std::move(onComplete));
 }
 
 void TLSServerStream::Close()
@@ -292,7 +292,7 @@ void TLSServerStream::Close()
 #endif
 			}
 		}
-	});
+	}, true);
 }
 
 void TLSServerStream::WriteToClient(const uint8_t buf[], size_t length)
@@ -379,11 +379,11 @@ void TLSServerStream::CloseInternal()
 	m_parentServer->CloseStream(this);
 }
 
-void TLSServerStream::ScheduleCallback(TScheduledCallback&& callback)
+void TLSServerStream::ScheduleCallback(TScheduledCallback&& callback, bool performInline)
 {
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->ScheduleCallback(std::move(callback));
+		m_baseStream->ScheduleCallback(std::move(callback), performInline);
 	}
 }
 

@@ -207,7 +207,7 @@ public:
 
 			if (ping)
 			{
-				ping();
+				m_clientStream->ScheduleCallback(std::move(ping), false);
 			}
 		}
 

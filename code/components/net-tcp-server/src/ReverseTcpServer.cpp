@@ -48,16 +48,24 @@ namespace net
 		
 	}
 
-	void ReverseTcpServerStream::Write(const std::vector<uint8_t>& data)
+	void ReverseTcpServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
 	{
 		auto worker = m_tcp.lock();
 
 		if (worker)
 		{
-			m_pendingRequests.push([worker, data]()
+			m_pendingRequests.push([worker, data, onComplete = std::move(onComplete)]() mutable
 			{
 				std::unique_ptr<char[]> msg{ new char[data.size()] };
 				memcpy(msg.get(), data.data(), data.size());
+
+				if (onComplete)
+				{
+					worker->once<uvw::WriteEvent>(make_shared_function([onComplete = std::move(onComplete)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
+					{
+						onComplete();
+					}));
+				}
 
 				worker->write(std::move(msg), data.size());
 			});
@@ -66,7 +74,7 @@ namespace net
 		}
 	}
 
-	void ReverseTcpServerStream::ScheduleCallback(TScheduledCallback&& callback)
+	void ReverseTcpServerStream::ScheduleCallback(TScheduledCallback&& callback, bool performInline)
 	{
 		m_pendingRequests.push(std::move(callback));
 		m_writeCallback->send();

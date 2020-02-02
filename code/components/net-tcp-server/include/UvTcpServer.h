@@ -77,22 +77,22 @@ public:
 public:
 	virtual PeerAddress GetPeerAddress() override;
 
-	virtual void Write(const std::vector<uint8_t>& data) override;
+	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete) override;
 
-	virtual void Write(const std::string& data) override;
+	virtual void Write(const std::string& data, TScheduledCallback&& onComplete) override;
 
-	virtual void Write(std::vector<uint8_t>&&) override;
+	virtual void Write(std::vector<uint8_t>&&, TScheduledCallback&& onComplete) override;
 
-	virtual void Write(std::string&&) override;
+	virtual void Write(std::string&&, TScheduledCallback&& onComplete) override;
 
-	virtual void Write(std::unique_ptr<char[]> data, size_t size) override;
+	virtual void Write(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete) override;
 
 	virtual void Close() override;
 
-	virtual void ScheduleCallback(TScheduledCallback&& callback) override;
+	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 
 private:
-	void WriteInternal(std::unique_ptr<char[]> data, size_t size);
+	void WriteInternal(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete);
 };
 
 class TcpServerManager;
@@ -173,6 +173,32 @@ public:
 		return m_manager;
 	}
 };
+
+// blindly copypasted from StackOverflow (to allow std::function to store the funcref types with their move semantics)
+// TODO: we use this *three times* now, time for a shared header?
+template<class F>
+struct shared_function
+{
+	std::shared_ptr<F> f;
+	shared_function() = default;
+	shared_function(F&& f_) : f(std::make_shared<F>(std::move(f_))) {}
+	shared_function(shared_function const&) = default;
+	shared_function(shared_function&&) = default;
+	shared_function& operator=(shared_function const&) = default;
+	shared_function& operator=(shared_function&&) = default;
+
+	template<class...As>
+	auto operator()(As&&...as) const
+	{
+		return (*f)(std::forward<As>(as)...);
+	}
+};
+
+template<class F>
+shared_function<std::decay_t<F>> make_shared_function(F&& f)
+{
+	return { std::forward<F>(f) };
+}
 }
 
 // helpful wrappers

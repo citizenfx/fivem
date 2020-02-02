@@ -31,9 +31,9 @@ public:
 
 	virtual void Close() override;
 
-	virtual void Write(const std::vector<uint8_t>& data) override;
+	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete) override;
 
-	virtual void ScheduleCallback(TScheduledCallback&& callback) override;
+	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 
 protected:
 	void ConsumeData(const void* data, size_t length);
