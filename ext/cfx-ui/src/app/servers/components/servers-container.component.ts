@@ -94,10 +94,5 @@ export class ServersContainerComponent implements OnInit {
 
             this.cdr.markForCheck();
         });
-
-        // ping new servers after a while
-        typedServers
-            .bufferTime(100, null, 250)
-            .subscribe(servers => (servers.length > 0) ? this.gameService.pingServers(servers) : null);
     }
 }
