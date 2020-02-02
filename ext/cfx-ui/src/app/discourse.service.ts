@@ -235,7 +235,7 @@ export class DiscourseService {
 
     public async generateAuthURL() {
         const rsaKeys = await this.ensureRSAKeys();
-        const clientId = await this.getClientId();
+        const clientId = await this.getClientId(true);
         const nonce = await this.generateNonce();
 
         const deviceName = `FiveM client on ${await this.getComputerName()}`;
@@ -267,16 +267,18 @@ export class DiscourseService {
         return this.nonce;
     }
 
-    private async getClientId() {
-        if (this.clientId) {
-            return this.clientId;
-        }
+    private async getClientId(regenerate?: boolean) {
+        if (!regenerate) {
+            if (this.clientId) {
+                return this.clientId;
+            }
 
-        const clientId = window.localStorage.getItem('clientId');
+            const clientId = window.localStorage.getItem('clientId');
 
-        if (clientId && clientId.length > 0) {
-            this.clientId = clientId;
-            return clientId;
+            if (clientId && clientId.length > 0) {
+                this.clientId = clientId;
+                return clientId;
+            }
         }
 
         this.clientId = randomBytes(32);
