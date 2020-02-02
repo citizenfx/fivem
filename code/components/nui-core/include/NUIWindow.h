@@ -8,6 +8,7 @@
 #pragma once
 
 #include <queue>
+#include <shared_mutex>
 
 #include <include/cef_client.h>
 #include <include/cef_v8.h>
@@ -75,6 +76,8 @@ private:
 
 	CefRect m_popupRect;
 
+	std::shared_mutex m_textureMutex;
+
 public:
 	inline int		GetWidth() { return m_width; }
 	inline int		GetHeight() { return m_height; }
@@ -118,9 +121,17 @@ public:
 		}
 	}
 
-	inline fwRefContainer<nui::GITexture> GetTexture() { return m_nuiTexture; }
+	inline fwRefContainer<nui::GITexture> GetTexture() 
+	{
+		std::shared_lock<std::shared_mutex> _(m_textureMutex);
+		return m_nuiTexture;
+	}
 
-	inline fwRefContainer<nui::GITexture> GetPopupTexture() { return m_popupTexture; }
+	inline fwRefContainer<nui::GITexture> GetPopupTexture()
+	{
+		std::shared_lock<std::shared_mutex> _(m_textureMutex);
+		return m_popupTexture;
+	}
 
 	inline NUIPaintType GetPaintType() { return m_paintType; }
 

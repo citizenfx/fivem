@@ -345,7 +345,10 @@ void NUIWindow::Initialize(CefString url)
 	m_roundedWidth = roundUp(m_width, 16);
 
 	// create the backing texture
-	m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+	{
+		std::lock_guard<std::shared_mutex> _(m_textureMutex);
+		m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+	}
 	
 	if (!m_primary)
 	{
@@ -455,6 +458,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 			}
 			else
 			{
+				std::lock_guard<std::shared_mutex> _(m_textureMutex);
+
 				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, texRef);
 			}
@@ -505,7 +510,7 @@ void NUIWindow::UpdateFrame()
 		}
 	}
 
-	if (!m_nuiTexture.GetRef())
+	if (!GetTexture().GetRef())
 	{
 		return;
 	}
@@ -522,6 +527,7 @@ void NUIWindow::UpdateFrame()
 
 			((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
 
+			std::lock_guard<std::shared_mutex> _(m_textureMutex);
 			m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
 		}
 
@@ -577,8 +583,7 @@ void NUIWindow::UpdateFrame()
 
 					if (m_primary)
 					{
-						//deviceContext->CopyResource(m_nuiTexture->texture, texture);
-						g_nuiGi->BlitTexture(m_nuiTexture, texture);
+						g_nuiGi->BlitTexture(GetTexture(), texture);
 					}
 					else
 					{
@@ -654,7 +659,7 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->Draw(4, 0);
 
-						deviceContext->CopyResource((ID3D11Resource*)m_nuiTexture->GetNativeTexture(), m_swapTexture);
+						deviceContext->CopyResource((ID3D11Resource*)GetTexture()->GetNativeTexture(), m_swapTexture);
 
 						deviceContext->OMSetRenderTargets(1, &oldRtv, oldDsv);
 
@@ -732,12 +737,12 @@ void NUIWindow::UpdateFrame()
 
 			nui::GILockedTexture lockedTexture;
 
-			if (m_nuiTexture->Map(0, 0, &lockedTexture, nui::GILockFlags::Write))
+			if (GetTexture()->Map(0, 0, &lockedTexture, nui::GILockFlags::Write))
 			{
 				pBits = lockedTexture.pBits;
 				pitch = lockedTexture.pitch;
 			}
-			else if (m_nuiTexture->Map(0, 0, &lockedTexture, nui::GILockFlags::WriteDiscard))
+			else if (GetTexture()->Map(0, 0, &lockedTexture, nui::GILockFlags::WriteDiscard))
 			{
 				pBits = lockedTexture.pBits;
 				pitch = lockedTexture.pitch;
@@ -778,7 +783,7 @@ void NUIWindow::UpdateFrame()
 					memcpy(pBits, m_renderBuffer, m_height * pitch);
 				}
 
-				m_nuiTexture->Unmap(&lockedTexture);
+				GetTexture()->Unmap(&lockedTexture);
 			}
 		}
 	}
@@ -799,6 +804,8 @@ void NUIWindow::HandlePopupShow(bool show)
 		if (m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP].GetRef())
 		{
 			m_parentTextures[CefRenderHandler::PaintElementType::PET_POPUP] = nullptr;
+
+			std::lock_guard<std::shared_mutex> _(m_textureMutex);
 			m_popupTexture = nullptr;
 		}
 	}
@@ -808,6 +815,7 @@ void NUIWindow::SetPopupRect(const CefRect& rect)
 {
 	m_popupRect = rect;
 
+	std::lock_guard<std::shared_mutex> _(m_textureMutex);
 	m_popupTexture = g_nuiGi->CreateTextureBacking(rect.width, rect.height, nui::GITextureFormat::ARGB);
 }
 
