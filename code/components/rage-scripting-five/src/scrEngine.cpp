@@ -475,8 +475,8 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 				// no-op
 			};
 		}
-		//StringToInt, ClearBit, SetBitsInRange, SetBit
-		else if (origHash == 0x5A5F40FE637EB584 || origHash == 0xE80492A9AC099A93 || origHash == 0x8EF07E15701D61ED || origHash == 0x933D6A9EEC1BACD0)
+		//StringToInt, ClearBit, SetBitsInRange, SetBit, CopyMemory
+		else if (origHash == 0x5A5F40FE637EB584 || origHash == 0xE80492A9AC099A93 || origHash == 0x8EF07E15701D61ED || origHash == 0x933D6A9EEC1BACD0 || origHash == 0x213AEB2B90CBA7AC)
 		{
 			return [](rage::scrNativeCallContext*)
 			{
