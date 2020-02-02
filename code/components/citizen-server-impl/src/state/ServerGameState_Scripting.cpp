@@ -559,7 +559,7 @@ static InitFunction initFunction([]()
 			numberPlateText.push_back(letter);
 		}
 
-		return numberPlateText;
+		return numberPlateText.c_str();
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_NUMBER_PLATE_TEXT_INDEX", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
