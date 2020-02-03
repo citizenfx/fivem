@@ -34,26 +34,29 @@ uv_loop_t* TcpServerManager::GetCurrentLoop()
 
 fwRefContainer<TcpServer> TcpServerManager::CreateServer(const PeerAddress& bindAddress)
 {
-	// allocate an owning pointer for the server handle
-	auto serverHandle = m_uvLoop->Get()->resource<uvw::TCPHandle>();
-
-	// set the socket binding to the peer address
-	serverHandle->bind(*bindAddress.GetSocketAddress());
-
 	// create a server instance and associate it with the handle
 	fwRefContainer<UvTcpServer> tcpServer = new UvTcpServer(this);
 
-	// attempt listening on the socket
-	if (tcpServer->Listen(std::move(serverHandle)))
+	// do this on the loop thread or a particular penguin OS will complain
+	m_uvLoop->EnqueueCallback([this, tcpServer, bindAddress]()
 	{
-		// insert to the owned list
-		m_servers.insert(tcpServer);
-	}
-	else
-	{
-		tcpServer = nullptr;
-		trace("net-tcp-server failed to create server: couldn't listen");
-	}
+		// allocate an owning pointer for the server handle
+		auto serverHandle = m_uvLoop->Get()->resource<uvw::TCPHandle>();
+
+		// set the socket binding to the peer address
+		serverHandle->bind(*bindAddress.GetSocketAddress());
+
+		// attempt listening on the socket
+		if (tcpServer->Listen(std::move(serverHandle)))
+		{
+			// insert to the owned list
+			m_servers.insert(tcpServer);
+		}
+		else
+		{
+			trace("net-tcp-server failed to create server: couldn't listen\n");
+		}
+	});
 
 	return tcpServer;
 }
