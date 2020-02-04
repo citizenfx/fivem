@@ -1198,6 +1198,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 				Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
 				Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
+				Instance<ICoreGameInit>::Get()->OneSyncBigIdEnabled = (!node["onesync_lh"].is_null() && node["onesync_lh"].get<bool>());
 				Instance<ICoreGameInit>::Get()->NetProtoVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
 
 				bool big1s = (!node["onesync_big"].is_null() && node["onesync_big"].get<bool>());

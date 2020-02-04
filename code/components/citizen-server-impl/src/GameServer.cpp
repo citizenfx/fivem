@@ -1154,6 +1154,8 @@ namespace fx
 				{
 					if (targetNetId == 0xFFFF)
 					{
+						client->SetHasRouted();
+
 						instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
 
 						return;

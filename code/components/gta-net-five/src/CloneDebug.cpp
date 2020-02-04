@@ -430,7 +430,18 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	}
 
 	// #NETVER: 2018-12-27 17:41 -> increased maximum packet size to 768 from 256 to account for large CPlayerAppearanceDataNode
-	int sizeLength = (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201812271741) ? 13 : 11;
+	static auto icgi = Instance<ICoreGameInit>::Get();
+
+	int sizeLength = 13;
+	
+	if (icgi->OneSyncBigIdEnabled)
+	{
+		sizeLength = 16;
+	}
+	else if (icgi->NetProtoVersion < 0x201812271741)
+	{
+		sizeLength = 11;
+	}
 
 	TraverseTree<WriteTreeState>(this, state, [sizeLength](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{

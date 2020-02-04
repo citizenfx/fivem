@@ -42,6 +42,8 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 	g_serverProviders.push_front(provider);
 	g_providersByType.insert({ provider->GetIdentifierPrefix(), provider });
 }
+
+extern bool IsLengthHack();
 }
 
 static bool VerifyTicket(const std::string& guid, const std::string& ticket)
@@ -371,6 +373,7 @@ static InitFunction initFunction([]()
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
 			data["onesync_big"] = fx::IsBigMode();
+			data["onesync_lh"] = fx::IsLengthHack();
 			data["token"] = token;
 			data["gamename"] = gameName;
 

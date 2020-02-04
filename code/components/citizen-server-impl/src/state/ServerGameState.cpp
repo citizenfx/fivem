@@ -24,12 +24,26 @@
 #include <DebugAlias.h>
 
 static bool g_bigMode;
+static bool g_lengthHack;
 
 namespace fx
 {
 	bool IsBigMode()
 	{
 		return g_bigMode;
+	}
+
+	bool IsLengthHack()
+	{
+		return g_lengthHack;
+	}
+}
+
+namespace rl
+{
+	bool MessageBuffer::GetLengthHackState()
+	{
+		return g_lengthHack;
 	}
 }
 
@@ -44,6 +58,7 @@ std::shared_ptr<ConVar<bool>> g_oneSyncRadiusFrequency;
 std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
+std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
 
 static tbb::concurrent_queue<std::string> g_logQueue;
 
@@ -335,7 +350,7 @@ glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity
 }
 
 ServerGameState::ServerGameState()
-	: m_frameIndex(0), m_entitiesById(1 << 13)
+	: m_frameIndex(0), m_entitiesById(MaxObjectId)
 {
 	m_tg = std::make_unique<ThreadPool>();
 }
@@ -537,7 +552,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			sync::CVehicleGameStateNodeData*,
 			std::shared_ptr<fx::Client>
 		>
-	> relevantEntities(8192);
+	> relevantEntities(MaxObjectId);
 
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
@@ -575,7 +590,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				entityClient = entity->client.lock();
 			}
 
-			relevantEntities[entity->handle & 0x1FFF] = { entity, entityPosition, vehicleData, entityClient };
+			relevantEntities[entity->handle & 0xFFFF] = { entity, entityPosition, vehicleData, entityClient };
 		}
 	}
 
@@ -1146,15 +1161,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				// NOTE: this is a thread hazard, but generally it doesn't matter if the bitset is inconsistent here
 				// all that'll happen is we'll send a removal _later_, or send _duplicates_, both of which are typically fine.
 				auto clientData = GetClientDataUnlocked(this, cmdState.client);
+				auto& ref = clientData->pendingRemovals;
 
-				for (uint16_t i = 0; i < MaxObjectId; i++)
+				for (auto i = ref.find_first(); i != ref.size(); i = ref.find_next(i))
 				{
-					if (clientData->pendingRemovals.test(i))
-					{
-						cmdState.cloneBuffer.Write(3, 3);
-						cmdState.cloneBuffer.Write(13, i);
-						cmdState.maybeFlushBuffer();
-					}
+					cmdState.cloneBuffer.Write(3, 3);
+					cmdState.cloneBuffer.Write(13, int32_t(i));
+					cmdState.maybeFlushBuffer();
 				}
 			});
 		}
@@ -2394,7 +2407,7 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 		auto [data, lock] = GetClientData(this, client);
 		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
 
-		int id = 1;
+		int id = (g_lengthHack) ? 8193 : 1;
 
 		for (int i = 0; i < numIds; i++)
 		{
@@ -2634,9 +2647,15 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		// .. to infinity?
 		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_None, false);
 
 		g_bigMode = g_oneSyncBigMode->GetValue();
+
+		// or maybe, beyond?
+		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_None, false);
+
+		g_lengthHack = g_oneSyncLengthHack->GetValue();
 	}, INT32_MIN);
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)

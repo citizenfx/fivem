@@ -79,7 +79,7 @@ public:
 	virtual void DoRun() override
 	{
 		// TEMP: force-disable population for 1s big using script
-		if (Instance<ICoreGameInit>::Get()->HasVariable("onesync_big"))
+		if (Instance<ICoreGameInit>::Get()->HasVariable("onesync_big") && !Instance<ICoreGameInit>::Get()->OneSyncBigIdEnabled)
 		{
 			for (int i = 1; i <= 15; i++)
 			{

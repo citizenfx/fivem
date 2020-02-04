@@ -315,7 +315,7 @@ struct AckPacketWrapper
 	}
 };
 
-static constexpr const int MaxObjectId = 1 << 13;
+static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
@@ -414,9 +414,9 @@ private:
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
 
-	eastl::bitset<8192> m_objectIdsSent;
-	eastl::bitset<8192> m_objectIdsUsed;
-	eastl::bitset<8192> m_objectIdsStolen;
+	eastl::bitset<MaxObjectId> m_objectIdsSent;
+	eastl::bitset<MaxObjectId> m_objectIdsUsed;
+	eastl::bitset<MaxObjectId> m_objectIdsStolen;
 
 	uint64_t m_frameIndex;
 

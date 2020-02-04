@@ -33,6 +33,8 @@ public:
 
 	bool OneSyncEnabled = false;
 
+	bool OneSyncBigIdEnabled = false;
+
 	uint64_t NetProtoVersion = 0;
 
 private:

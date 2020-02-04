@@ -4,6 +4,9 @@ namespace rl
 {
 class MessageBuffer
 {
+private:
+	static bool GetLengthHackState();
+
 public:
 	inline MessageBuffer()
 		: m_curBit(0), m_maxBit(0)
@@ -31,6 +34,11 @@ public:
 
 	inline bool ReadBitsSingle(void* out, int length)
 	{
+		if (length == 13 && GetLengthHackState())
+		{
+			length = 16;
+		}
+
 		int startIdx = m_curBit / 8;
 		int shift = m_curBit % 8;
 		
@@ -77,6 +85,11 @@ public:
 
 	inline std::vector<uint8_t> ReadBits(int length)
 	{
+		if (length == 13 && GetLengthHackState())
+		{
+			length = 16;
+		}
+
 		std::vector<uint8_t> retVal((length / 8) + ((length % 8 != 0) ? 1 : 0));
 
 		ReadBits(retVal.data(), length);
@@ -86,6 +99,11 @@ public:
 
 	inline void ReadBits(void* data, int length)
 	{
+		if (length == 13 && GetLengthHackState())
+		{
+			length = 16;
+		}
+
 		auto byteData = (uint8_t*)data;
 
 		for (int i = 0; i < length; i++)
@@ -121,6 +139,11 @@ public:
 
 	inline void WriteBitsOld(const void* data, int length)
 	{
+		if (length == 13)
+		{
+			length = 16;
+		}
+
 		auto byteData = (const uint8_t*)data;
 
 		for (int i = 0; i < length; i++)
@@ -135,6 +158,8 @@ public:
 	// copied IDA code, please improve!
 	inline bool WriteBits(const void* data, int length)
 	{
+		// don't 16ify any 13 here, it might be real data
+
 		auto result = (long long)m_data.data();
 		auto a2 = data;
 		auto a3 = length;
@@ -319,6 +344,11 @@ public:
 	// copied IDA code, eh
 	inline bool WriteBitsSingle(const void* data, int length)
 	{
+		if (length == 13 && GetLengthHackState())
+		{
+			length = 16;
+		}
+
 		auto a1 = m_data.data();
 		auto a2 = *(uint32_t*)data;
 		auto a3 = length;

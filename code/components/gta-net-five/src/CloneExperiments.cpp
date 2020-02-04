@@ -27,7 +27,7 @@ extern NetLibrary* g_netLibrary;
 
 class CNetGamePlayer;
 
-static ICoreGameInit* icgi;
+ICoreGameInit* icgi;
 
 namespace rage
 {
