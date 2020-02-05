@@ -15,8 +15,8 @@ import { DomSanitizer } from '@angular/platform-browser';
 })
 
 export class HomeComponent implements OnInit {
-    officialTweets: Tweet[];
-    communityTweets: Tweet[];
+    officialTweets: Tweet[] = [];
+    communityTweets: Tweet[] = [];
 
     accountBeg: any;
 
@@ -122,7 +122,12 @@ export class HomeComponent implements OnInit {
             .getTweets('https://runtime.fivem.net/tweets.json')
             .then(tweets => {
                 this.officialTweets = tweets.filter(a => !a.rt_displayname);
-                this.communityTweets = tweets.filter(a => a.rt_displayname);
+                this.communityTweets = [
+                    ...tweets.filter(a => a.rt_displayname),
+                    ...this.communityTweets
+                ];
+
+                this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
             });
 
         this.tweetService

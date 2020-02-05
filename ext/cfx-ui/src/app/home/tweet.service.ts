@@ -166,7 +166,8 @@ export class TweetService {
                             user: {
                                 name: account.name || account.preferredUsername,
                                 screen_name: account._pub,
-                                profile_image_url_https: account.icon ? account.icon.url : ''
+                                profile_image_url_https: account.icon
+                                    ? account.icon.url : 'https://avatars.discourse.org/v4/letter/_/7993a0/96.png'
                             },
                             text: object.content.replace(/<[^>]>/g, ''),
                             created_at: object.published,
