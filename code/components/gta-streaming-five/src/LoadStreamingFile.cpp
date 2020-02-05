@@ -1504,7 +1504,7 @@ static HookFunction hookFunction([] ()
 		g_unloadingCfx = false;
 
 		// unload pre-unloaded data files
-		UnloadDataFilesOfTypes({ 0xB3 /* popgroups override */ });
+		UnloadDataFilesOfTypes({ 0xB3 /* popgroups override */, 166 /* DLC_WEAPON_PICKUPS */ });
 	}, 99900);
 
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
