@@ -18,13 +18,13 @@
 			</article>
 		</div>
 
-		<app-home-tweet class="message" *ngFor="let tweet of officialTweets" [tweet]="tweet">
+		<app-home-tweet class="message" *ngFor="let tweet of communityTweets" [tweet]="tweet">
 
 		</app-home-tweet>
 	</div>
 
 	<div class="feed">		
-		<app-home-tweet class="message" *ngFor="let tweet of communityTweets" [tweet]="tweet">
+		<app-home-tweet class="message" *ngFor="let tweet of officialTweets" [tweet]="tweet">
 
 		</app-home-tweet>
 	</div>

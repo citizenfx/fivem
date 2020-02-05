@@ -5,6 +5,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import * as unicodeSubstring from 'unicode-substring';
 
 import 'rxjs/add/operator/toPromise';
+import { Observable, Subject } from 'rxjs';
 
 export class Tweet {
     readonly user_displayname: string;
@@ -15,6 +16,7 @@ export class Tweet {
     readonly date: Date;
     readonly avatar: string;
     readonly id: string;
+    readonly url: string;
 
     image: string;
 
@@ -34,6 +36,7 @@ export class Tweet {
         this.date = new Date(json.created_at);
         this.avatar = json.user.profile_image_url_https;
         this.id = json.id_str;
+        this.url = json.url || ('https://twitter.com/_FiveM/status/' + this.id);
     }
 
     // based on https://gist.github.com/darul75/88fc42a21f6113708a0b
@@ -85,6 +88,8 @@ export class Tweet {
 
 @Injectable()
 export class TweetService {
+    private sentMap = new Set<string>();
+
     constructor(private http: HttpClient) { }
 
     public getTweets(uri: string): Promise<Tweet[]> {
@@ -93,5 +98,103 @@ export class TweetService {
             .then((result: any) => result
                 .filter(t => !t.in_reply_to_user_id)
                 .map(t => new Tweet(t)));
+    }
+
+    public getActivityTweets(pubs: string[]): Observable<Tweet> {
+        const subject = new Subject<Tweet>();
+        this.sentMap.clear();
+
+        for (const pub of pubs) {
+            this.fetchPub(pub, subject);
+        }
+
+        return subject;
+    }
+
+    private async fetchPub(pub: string, subject: Subject<Tweet>) {
+        const domainPart = pub.match(/@(.*?)$/);
+
+        if (!domainPart || !domainPart[1]) {
+            return;
+        }
+
+        const part = domainPart[1];
+
+        const response: any = await this.http.get(`https://${part}/.well-known/webfinger?resource=${pub}`, {
+            responseType: 'json'
+        }).toPromise();
+
+        const activityDesc = response.links.find((a: any) => a.rel === 'self' && a.type === 'application/activity+json');
+
+        if (!activityDesc) {
+            return;
+        }
+
+        const actResponse: any = await this.http.get(activityDesc.href, {
+            responseType: 'json',
+            headers: {
+                Accept: 'application/activity+json'
+            }
+        }).toPromise();
+
+        if (!actResponse.type || actResponse.type !== 'Person') {
+            return;
+        }
+
+        actResponse._pub = pub;
+
+        const outbox = actResponse.outbox;
+
+        await this.fetchOutbox(actResponse, outbox, subject);
+    }
+
+    private async fetchOutbox(account: any, url: string, subject: Subject<Tweet>) {
+        const actResponse: any = await this.http.get(url, {
+            responseType: 'json',
+            headers: {
+                Accept: 'application/activity+json'
+            }
+        }).toPromise();
+
+        if (actResponse.orderedItems) {
+            for (const item of actResponse.orderedItems) {
+                if (item.type === 'Create') {
+                    const object = item.object;
+
+                    if (object.type === 'Note') {
+                        const t = new Tweet({
+                            user: {
+                                name: account.name || account.preferredUsername,
+                                screen_name: account._pub,
+                                profile_image_url_https: account.icon ? account.icon.url : ''
+                            },
+                            text: object.content.replace(/<[^>]>/g, ''),
+                            created_at: object.published,
+                            entities: {
+                                urls: [],
+                                media: []
+                            },
+                            id_str: object.id,
+                            url: object.url
+                        });
+
+                        if (object.attachment && object.attachment[0] &&
+                            object.attachment[0].mediaType === 'image/png') {
+                            t.image = object.attachment[0].url;
+                        }
+
+                        if (!this.sentMap.has(t.id)) {
+                            subject.next(t);
+
+                            this.sentMap.add(t.id);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (actResponse.first) {
+            await this.fetchOutbox(account, actResponse.first, subject);
+        }
     }
 }

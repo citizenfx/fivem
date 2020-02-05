@@ -124,6 +124,20 @@ export class HomeComponent implements OnInit {
                 this.officialTweets = tweets.filter(a => !a.rt_displayname);
                 this.communityTweets = tweets.filter(a => a.rt_displayname);
             });
+
+        this.tweetService
+            .getActivityTweets(
+                this.gameService.getServerHistory()
+                    .filter(s => s.vars.activitypubFeed)
+                    .map(s => s.vars.activitypubFeed))
+            .subscribe(tweet => {
+                this.communityTweets = [
+                    tweet,
+                    ...this.communityTweets
+                ];
+
+                this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+            });
     }
 
     clickContent(event: MouseEvent) {

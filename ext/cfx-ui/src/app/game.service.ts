@@ -275,6 +275,7 @@ export class ServerHistoryEntry {
 	icon: string;
 	token: string;
 	rawIcon: string;
+	vars: {[key: string]: string};
 }
 
 @Injectable()
@@ -451,6 +452,7 @@ export class CfxGameService extends GameService {
 					address: localStorage.getItem('lastServer'),
 					time: new Date(),
 					title: '',
+					vars: {},
 					hostname: localStorage.getItem('lastServer'),
 					icon: '',
 					token: '',
@@ -587,6 +589,7 @@ export class CfxGameService extends GameService {
 			time: new Date(),
 			icon: server.iconUri || '',
 			rawIcon: '',
+			vars: (server && server.data) ? server.data.vars : {},
 			token: (server && server.data && server.data.vars) ? server.data.vars.sv_licenseKeyToken : ''
 		});
 
@@ -854,6 +857,7 @@ export class DummyGameService extends GameService {
 				title: 'cfx-dev.fivem.internal',
 				address: '127.0.0.1:30120',
 				time: new Date(2018, 8, 1),
+				vars: {},
 				hostname: 'Internal Test #1',
 				icon: '',
 				token: '',
@@ -863,6 +867,7 @@ export class DummyGameService extends GameService {
 				title: 'cfx-dev.fivem-2.internal',
 				address: '127.0.0.1:30121',
 				time: new Date(2018, 9, 1),
+				vars: {},
 				hostname: 'Internal Test #2',
 				icon: '',
 				token: '',
@@ -873,6 +878,7 @@ export class DummyGameService extends GameService {
 				address: '51.15.201.219:30122',
 				hostname: 'Hello, world!',
 				time: new Date(),
+				vars: {},
 				icon: '',
 				token: 'ype00iiw33f7guwp_1:4a6aaf229eb26aa70d77f9d9e0039a6f28b3c9e3ad07cf307c1ce1ca6e071b42',
 				rawIcon: ''

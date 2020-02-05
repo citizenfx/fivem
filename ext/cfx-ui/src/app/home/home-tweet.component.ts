@@ -18,7 +18,7 @@ export class HomeTweetComponent {
     }
 
     openTweet(id) {
-        this.gameService.openUrl('https://twitter.com/_FiveM/status/' + id);
+        this.gameService.openUrl(this.tweet.url);
     }
 
     clickContent(event: MouseEvent) {
