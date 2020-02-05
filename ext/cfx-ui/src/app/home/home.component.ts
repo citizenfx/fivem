@@ -128,7 +128,7 @@ export class HomeComponent implements OnInit {
         this.tweetService
             .getActivityTweets(
                 this.gameService.getServerHistory()
-                    .filter(s => s.vars.activitypubFeed)
+                    .filter(s => s.vars && s.vars.activitypubFeed)
                     .map(s => s.vars.activitypubFeed))
             .subscribe(tweet => {
                 this.communityTweets = [
