@@ -10,7 +10,7 @@
 #ifdef COMPILING_GTA_MISSION_CLEANUP_FIVE
 #define MISCLEAN_EXPORT DLL_EXPORT
 #else
-#define MISCLEAN_EXPORT
+#define MISCLEAN_EXPORT DLL_IMPORT
 #endif
 
 #include <scrEngine.h>
@@ -178,3 +178,6 @@ public:
 		m_handlers->Set(scriptId->GetIdentifier(&hashStorage), &handler);
 	}
 };
+
+extern MISCLEAN_EXPORT fwEvent<rage::scrThread*> OnCreateResourceThread;
+extern MISCLEAN_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;

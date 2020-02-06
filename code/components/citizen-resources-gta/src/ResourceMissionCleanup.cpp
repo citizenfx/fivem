@@ -81,6 +81,11 @@ static void DeleteDummyThread(DummyThread** dummyThread)
 {
 	__try
 	{
+		if (*dummyThread)
+		{
+			OnDeleteResourceThread(*dummyThread);
+		}
+
 		delete *dummyThread;
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -144,6 +149,7 @@ static InitFunction initFunction([] ()
 			{
 				data->dummyThread = new DummyThread(resource);
 
+				OnCreateResourceThread(data->dummyThread);
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
 
 				setScriptNow = true;

@@ -12,12 +12,33 @@
 
 #include "Pool.h"
 
+#include <MinHook.h>
+
 #include <Error.h>
 
 // pool functions, here temporarily we hope :)
 static atPoolBase** g_scriptHandlerNetworkPool;
 
 static CGameScriptHandlerMgr* g_scriptHandlerMgr;
+
+static rage::scrThread*(*g_origGetThreadById)(uint32_t hash);
+
+static std::map<uint32_t, rage::scrThread*> g_customThreads;
+
+static rage::scrThread* GetThreadById(uint32_t hash)
+{
+	auto it = g_customThreads.find(hash);
+
+	if (it != g_customThreads.end())
+	{
+		return it->second;
+	}
+
+	return g_origGetThreadById(hash);
+}
+
+DLL_EXPORT fwEvent<rage::scrThread*> OnCreateResourceThread;
+DLL_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;
 
 // find data fields and perform patches
 static HookFunction hookFunction([] ()
@@ -36,6 +57,21 @@ static HookFunction hookFunction([] ()
 	location = hook::pattern("48 8D 55 17 48 8D 0D ? ? ? ? FF").count(1).get(0).get<char>(7);
 
 	g_scriptHandlerMgr = (CGameScriptHandlerMgr*)(location + *(int32_t*)location + 4);
+
+	// script threads for dummies
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("33 D2 44 8B C1 85 C9 74 2B 0F"), GetThreadById, (void**)&g_origGetThreadById);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	OnCreateResourceThread.Connect([](rage::scrThread* thread)
+	{
+		g_customThreads.insert({ thread->GetContext()->ThreadId, thread });
+	});
+
+	OnDeleteResourceThread.Connect([](rage::scrThread* thread)
+	{
+		g_customThreads.erase(thread->GetContext()->ThreadId);
+	});
 });
 
 // functions
