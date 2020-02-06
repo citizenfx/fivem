@@ -11,6 +11,7 @@
 
 #define RAGE_FORMATS_IN_GAME
 #include <gtaDrawable.h>
+#include <fragType.h>
 
 rage::grcTexture* LookupTexture(const std::string& txd, const std::string& txn)
 {
@@ -18,7 +19,7 @@ rage::grcTexture* LookupTexture(const std::string& txd, const std::string& txn)
 	auto txdStore = streaming->moduleMgr.GetStreamingModule("ytd");
 
 	uint32_t id = -1;
-	txdStore->FindSlotFromHashKey(&id, txd.c_str());
+	txdStore->FindSlot(&id, txd.c_str());
 
 	if (id != 0xFFFFFFFF)
 	{
@@ -27,6 +28,36 @@ rage::grcTexture* LookupTexture(const std::string& txd, const std::string& txn)
 		if (txdRef)
 		{
 			return txdRef->Get(txn.c_str());
+		}
+	}
+
+	auto drbStore = streaming->moduleMgr.GetStreamingModule("ydr");
+
+	id = -1;
+	drbStore->FindSlot(&id, txd.c_str());
+
+	if (id != 0xFFFFFFFF)
+	{
+		auto txdRef = (rage::five::gtaDrawable*)drbStore->GetPtr(id);
+
+		if (txdRef && txdRef->GetShaderGroup() && txdRef->GetShaderGroup()->GetTextures())
+		{
+			return (rage::grcTexture*)txdRef->GetShaderGroup()->GetTextures()->Get(txn.c_str());
+		}
+	}
+
+	auto fragStore = streaming->moduleMgr.GetStreamingModule("yft");
+
+	id = -1;
+	fragStore->FindSlot(&id, txd.c_str());
+
+	if (id != 0xFFFFFFFF)
+	{
+		auto txdRef = (rage::five::fragType*)fragStore->GetPtr(id);
+
+		if (txdRef && txdRef->GetPrimaryDrawable() && txdRef->GetPrimaryDrawable()->GetShaderGroup() && txdRef->GetPrimaryDrawable()->GetShaderGroup()->GetTextures())
+		{
+			return (rage::grcTexture*)txdRef->GetPrimaryDrawable()->GetShaderGroup()->GetTextures()->Get(txn.c_str());
 		}
 	}
 
