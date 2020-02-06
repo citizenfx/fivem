@@ -1181,9 +1181,9 @@ void RagePresentWrap()
 static SRWLOCK g_textureOverridesLock = SRWLOCK_INIT;
 static std::unordered_map<rage::grcTexture*, rage::grcTexture*> g_textureOverrides;
 
-static void(*g_origSetTexture)(void* a1, void* a2, int index, rage::grcTexture* texture);
+static void(*g_origSetTexture)(int a1, int index, rage::grcTexture* texture);
 
-static void SetTextureHook(void* a1, void* a2, int index, rage::grcTexture* texture)
+static void SetTextureHook(int a1, int index, rage::grcTexture* texture)
 {
 	if (texture)
 	{
@@ -1202,7 +1202,7 @@ static void SetTextureHook(void* a1, void* a2, int index, rage::grcTexture* text
 		}
 	}
 
-	g_origSetTexture(a1, a2, index, texture);
+	g_origSetTexture(a1, index, texture);
 }
 
 static void(*g_origGrcTextureDtor)(void*);
@@ -1398,7 +1398,7 @@ static HookFunction hookFunction([] ()
 
 	// texture overrides
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("C8 08 74 05 4C 89 4C C8 08 65 48 8B 0C 25", -0x15), SetTextureHook, (void**)&g_origSetTexture);
+	MH_CreateHook(hook::get_pattern("48 8B CE 48 8B 74 24 38 48 6B C9 2A 48 03 CF", -0x45), SetTextureHook, (void**)&g_origSetTexture);
 	MH_CreateHook(hook::get_pattern("48 8B D9 48 89 01 48 8B 49 28 E8 ? ? ? ? 48 8D", -0xD), grcTextureDtorHook, (void**)&g_origGrcTextureDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
 
