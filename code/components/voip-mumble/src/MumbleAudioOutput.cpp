@@ -491,7 +491,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 {
 	auto client = m_clients[user.GetSessionId()];
 
-	if (!client)
+	if (!client || !client->opus)
 	{
 		return;
 	}
