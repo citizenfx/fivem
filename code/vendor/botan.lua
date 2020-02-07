@@ -22,6 +22,7 @@ return {
 			characterset 'MBCS'
 
 			buildoptions '/bigobj'
+			buildoptions { '/wd4251', '/wd4275', '/wd4067', '/wd4267', '/wd4996', '/MP' }
 			
 			if _OPTIONS['with-asan'] then
 				buildoptions '-mrdrnd -mrdseed'

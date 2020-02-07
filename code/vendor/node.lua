@@ -42,7 +42,7 @@ return {
 			
 			links { 'ws2_32', 'dbghelp', 'psapi' }
 			
-			buildoptions { '/MP' }
+			buildoptions { '/wd4251', '/wd4275', '/wd4067', '/wd4267', '/wd4996', '/MP' }
 		elseif os.istarget('linux') then
 			defines { 'NODE_PLATFORM="linux"', '__POSIX__' }
 		end
