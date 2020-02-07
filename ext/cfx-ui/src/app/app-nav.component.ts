@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
 import { GameService } from './game.service';
 import { Server } from './servers/server'
 import { Translation, TranslationService } from 'angular-l10n';
+import { ChangelogService } from './changelogs.service';
 
 @Component({
 	moduleId:    module.id,
@@ -20,11 +21,16 @@ export class AppNavComponent extends Translation {
 	isInSteam = false;
 	brandingName = 'CitizenFX';
 	gameName = 'gta5';
+	changelogCount = 0;
+
+	@Output()
+	openChangelog = new EventEmitter();
 
 	constructor(
 		private gameService: GameService,
 		public translation: TranslationService,
 		private domSanitizer: DomSanitizer,
+		private changelog: ChangelogService,
 		router: Router
 	) {
 		super();
@@ -36,6 +42,11 @@ export class AppNavComponent extends Translation {
 
 		this.brandingName = gameService.brandingName;
 		this.gameName = gameService.gameName;
+
+		this.changelog.getUnreadItems()
+			.then(a => this.changelogCount = a);
+
+		this.changelog.onRead.subscribe(() => this.changelogCount = 0);
 
 		router.events.subscribe(event => {
 			if ((<NavigationEnd>event).url) {

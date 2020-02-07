@@ -68,6 +68,7 @@
     "#ServerDetail_ScriptHook": "Client scripts allowed",
     "#ServerDetail_OneSync": "OneSync prototype",
     "#ServerDetail_Premium": "FiveM supporter tier",
+    "#Changelogs": "Change logs",
     "#Yes": "Yes",
     "#No": "No"
 }

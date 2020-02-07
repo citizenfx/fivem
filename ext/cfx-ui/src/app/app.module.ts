@@ -49,6 +49,9 @@ import { LocalStorage } from './local-storage';
 
 import { Languages } from './languages';
 import { ServerTagsService } from './servers/server-tags.service';
+import { ChangelogPopupComponent } from './home/app-changelog-popup.component';
+import { ChangelogEntryComponent } from './home/app-changelog-entry.component';
+import { ChangelogService } from './changelogs.service';
 
 const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
 
@@ -84,6 +87,8 @@ export function metaFactory(): MetaLoader {
 		AppComponent,
 		AppNavComponent,
 		ConnectingPopupComponent,
+		ChangelogPopupComponent,
+		ChangelogEntryComponent,
 		HomeComponent,
 		HomeTweetComponent,
 		SettingsComponent,
@@ -121,6 +126,7 @@ export function metaFactory(): MetaLoader {
 		ServersService,
 		ServerTagsService,
 		TweetService,
+		ChangelogService,
 		{
 			provide:  GameService,
 			useClass: ((environment.production && !environment.web) || environment.game)

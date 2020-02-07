@@ -16,6 +16,7 @@ import { Router } from '@angular/router';
 export class AppComponent extends Translation implements OnInit {
 	overlayActive = false;
 	minModeSetUp = false;
+	changelogShown = false;
 
 	classes: { [key: string]: boolean } = {};
 
@@ -82,5 +83,13 @@ export class AppComponent extends Translation implements OnInit {
 		if (lang && this.locale.getAvailableLanguages().includes(lang)) {
 			this.locale.setCurrentLanguage(lang);
 		}
+	}
+
+	openChangelog() {
+		this.changelogShown = true;
+	}
+
+	closeChangelog() {
+		this.changelogShown = false;
 	}
 }

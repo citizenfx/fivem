@@ -67,29 +67,67 @@ $itemHeight: $appNavHeight*.5;
 		}
 	}
 
-	.close-app {
+	.rightButtons {
 		display: flex;
 		align-items: flex-start;
 		justify-content: flex-end;
-
-		width: $appNavHeight;
-		height: $appNavHeight;
+		align-self: flex-end;
 
 		cursor: pointer;
 
-		&:hover svg {
-			@include theme() using ($theme) {
-				fill: rgba(gtv($theme, secondaryColour), .8);
-			};
-		}
+		@include theme() using ($theme) {
+			color: rgba(gtv($theme, secondaryColour), .5);
+		};
 
-		svg {
-			@include theme() using ($theme) {
-				fill: rgba(gtv($theme, secondaryColour), .5);
-			};
+		font-size: 2vh;
+		line-height: 2vh;
 
-			width: 20px;
-			height: 20px;
+		&>div {
+			padding: 1vh;
+			position: relative;
+
+			.new {
+				font-size: 1vh;
+				position: absolute;
+				bottom: 0.25vh;
+				right: 0.25vh;
+				min-width: 1.5vh;
+				height: 1.5vh;
+				line-height: 1.5vh;
+
+				display: inline-block;
+				text-align: center;
+
+				border-radius: 100%;
+
+				@include theme() using ($theme) {
+					color: rgba(gtv($theme, textColour), 1);
+					background-color: gtv($theme, redColour);
+				};
+			}
+
+			&:hover {
+				@include theme() using ($theme) {
+					color: rgba(gtv($theme, secondaryColour), .8);
+				};
+			}
+
+			&:hover svg {
+				@include theme() using ($theme) {
+					fill: rgba(gtv($theme, secondaryColour), .8);
+				};
+			}
+
+			svg {
+				@include theme() using ($theme) {
+					fill: rgba(gtv($theme, secondaryColour), .5);
+				};
+
+				width: 2vh;
+				height: 2vh;
+
+				transition: all .2s ease;
+			}
 
 			transition: all .2s ease;
 		}
