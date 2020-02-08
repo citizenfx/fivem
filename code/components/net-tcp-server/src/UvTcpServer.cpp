@@ -203,6 +203,8 @@ void UvTcpServer::OnConnection(int status)
 
 	static char dummyMessage[] = { 1, 2, 3, 4 };
 	m_dispatchPipes[index]->write(*clientHandle, dummyMessage, sizeof(dummyMessage));
+
+	clientHandle->close();
 }
 
 UvTcpChildServer::UvTcpChildServer(UvTcpServer* parent, const std::string& pipeName, const std::array<uint8_t, 16>& pipeMessage, int idx)
