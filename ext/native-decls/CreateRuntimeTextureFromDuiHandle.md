@@ -5,7 +5,7 @@ apiset: client
 ## CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE
 
 ```c
-long CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE(long txd, long txn, char* duiHandle);
+long CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE(long txd, char* txn, char* duiHandle);
 ```
 
 Creates a runtime texture from a DUI handle.
