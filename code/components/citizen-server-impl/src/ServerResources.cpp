@@ -645,7 +645,7 @@ static InitFunction initFunction2([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
-		std::string_view eventName = context.CheckArgument<const char*>(0);
+		std::string eventName = context.CheckArgument<const char*>(0);
 		auto targetSrcIdx = context.CheckArgument<const char*>(1);
 
 		const void* data = context.GetArgument<const void*>(2);
@@ -659,7 +659,7 @@ static InitFunction initFunction2([]()
 		// get the owning server instance
 		auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
 
-		rac->TriggerEvent(std::stoi(targetSrcIdx), eventName, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
+		rac->TriggerEvent(std::stoi(targetSrcIdx), std::string_view{ eventName.c_str(), eventName.size() + 1 }, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("START_RESOURCE", [](fx::ScriptContext& context)

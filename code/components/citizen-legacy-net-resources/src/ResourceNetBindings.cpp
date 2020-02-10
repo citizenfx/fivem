@@ -676,7 +676,7 @@ static InitFunction initFunction([] ()
 			int bps = context.GetArgument<int>(3);
 
 			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
-			reassembler->TriggerEvent(0, eventName, eventPayload, bps);
+			reassembler->TriggerEvent(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
 		});
 
 		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
