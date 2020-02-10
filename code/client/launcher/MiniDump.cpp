@@ -813,7 +813,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 											if (wcsstr(filename, L".exe") != nullptr)
 											{
+#ifdef GTA_FIVE
 												wcscpy(filename, L"\\FiveM.exe");
+#elif defined(IS_RDR3)
+												wcscpy(filename, L"\\RedM.exe");
+#else
+												wcscpy(filename, L"\\CitiLaunch.exe");
+#endif
 											}
 
 											// lowercase the filename
