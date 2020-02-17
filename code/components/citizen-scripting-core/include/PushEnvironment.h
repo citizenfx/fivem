@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <optional>
+
 FX_DEFINE_GUID(CLSID_ScriptRuntimeHandler,
 			   0xc41e7194, 0x7556, 0x4c02, 0xba, 0x45, 0xa9, 0xc8, 0x4d, 0x18, 0xad, 0x43);
 
@@ -20,6 +22,11 @@ namespace fx
 		OMPtr<IScriptRuntime> m_curRuntime;
 
 	public:
+		inline PushEnvironment()
+		{
+
+		}
+
 		template<typename TRuntime>
 		PushEnvironment(OMPtr<TRuntime> runtime)
 		{
@@ -37,9 +44,56 @@ namespace fx
 			
 		}
 
+		inline PushEnvironment(PushEnvironment&& right)
+			: m_handler(right.m_handler), m_curRuntime(right.m_curRuntime)
+		{
+			right.m_curRuntime = {};
+			right.m_handler = {};
+		}
+
+		inline PushEnvironment& operator=(PushEnvironment&& right)
+		{
+			m_handler = right.m_handler;
+			m_curRuntime = right.m_curRuntime;
+
+			right.m_curRuntime = {};
+			right.m_handler = {};
+
+			return *this;
+		}
+
+	private:
+		PushEnvironment(const OMPtr<IScriptRuntime>& curRuntime, const OMPtr<IScriptRuntimeHandler>& handler)
+			: m_handler(handler), m_curRuntime(curRuntime)
+		{
+
+		}
+
+	public:
 		inline ~PushEnvironment()
 		{
-			m_handler->PopRuntime(m_curRuntime.GetRef());
+			if (m_curRuntime.GetRef())
+			{
+				m_handler->PopRuntime(m_curRuntime.GetRef());
+			}
+		}
+
+		template<typename TRuntime>
+		static bool TryPush(OMPtr<TRuntime> runtime, PushEnvironment& out)
+		{
+			OMPtr<IScriptRuntimeHandler> handler;
+			fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+
+			OMPtr<IScriptRuntime> curRuntime;
+			assert(FX_SUCCEEDED(runtime.As(&curRuntime)));
+
+			if (FX_SUCCEEDED(handler->TryPushRuntime(curRuntime.GetRef())))
+			{
+				out = PushEnvironment{ curRuntime, handler };
+				return true;
+			}
+
+			return false;
 		}
 	};
 

@@ -369,12 +369,20 @@ class ScriptRuntimeHandler : public OMClass<ScriptRuntimeHandler, IScriptRuntime
 {
 public:
 	NS_DECL_ISCRIPTRUNTIMEHANDLER;
+
+private:
+	result_t PushRuntimeInternal(IScriptRuntime* runtime);
 };
 
 result_t ScriptRuntimeHandler::PushRuntime(IScriptRuntime* runtime)
 {
 	ms_runtimeMutex.lock();
 
+	return PushRuntimeInternal(runtime);
+}
+
+result_t ScriptRuntimeHandler::PushRuntimeInternal(IScriptRuntime* runtime)
+{
 	ms_runtimeStack.push_front(runtime);
 	ms_boundaryStack.push_front({});
 
@@ -386,6 +394,16 @@ result_t ScriptRuntimeHandler::PushRuntime(IScriptRuntime* runtime)
 	}
 	
 	return FX_S_OK;
+}
+
+result_t ScriptRuntimeHandler::TryPushRuntime(IScriptRuntime* runtime)
+{
+	if (!ms_runtimeMutex.try_lock())
+	{
+		return FX_E_INVALIDARG;
+	}
+
+	return PushRuntimeInternal(runtime);
 }
 
 result_t ScriptRuntimeHandler::PopRuntime(IScriptRuntime* runtime)

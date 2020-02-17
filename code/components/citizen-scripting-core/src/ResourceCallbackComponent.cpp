@@ -96,19 +96,25 @@ result_t ResourceCallbackScriptRuntime::DuplicateRef(int32_t refIdx, int32_t* ou
 
 result_t ResourceCallbackScriptRuntime::RemoveRef(int32_t refIdx)
 {
-	std::unique_lock<std::recursive_mutex> lock(m_refMutex);
+	// keep the ref destructor outside of the mutex to prevent deadlock
+	std::unique_ptr<RefData> deleteRef;
 
-	auto it = m_refs.find(refIdx);
-
-	if (it == m_refs.end())
 	{
-		return FX_E_INVALIDARG;
-	}
+		std::unique_lock<std::recursive_mutex> lock(m_refMutex);
 
-	auto& refData = it->second;
-	if (--refData->refCount <= 0)
-	{
-		m_refs.erase(refIdx);
+		auto it = m_refs.find(refIdx);
+
+		if (it == m_refs.end())
+		{
+			return FX_E_INVALIDARG;
+		}
+
+		auto& refData = it->second;
+		if (--refData->refCount <= 0)
+		{
+			deleteRef = std::move(refData);
+			m_refs.erase(refIdx);
+		}
 	}
 
 	return FX_S_OK;

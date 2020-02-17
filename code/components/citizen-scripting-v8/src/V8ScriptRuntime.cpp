@@ -303,6 +303,13 @@ public:
 		g_currentV8Runtime = runtime;
 	}
 
+	inline V8LitePushEnvironment(PushEnvironment&& pushEnv, V8ScriptRuntime* runtime, const node::Environment* env)
+		: m_pushEnvironment(std::move(pushEnv)), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env))
+	{
+		m_lastV8Runtime = g_currentV8Runtime;
+		g_currentV8Runtime = runtime;
+	}
+
 	inline ~V8LitePushEnvironment()
 	{
 		g_currentV8Runtime = m_lastV8Runtime;
@@ -1442,6 +1449,45 @@ static void V8_SubmitBoundaryEnd(const v8::FunctionCallbackInfo<v8::Value>& args
 	scriptHost->SubmitBoundaryEnd((char*)&b, sizeof(b));
 }
 
+class FileOutputStream : public v8::OutputStream {
+public:
+	FileOutputStream(FILE* stream) : stream_(stream) {}
+
+	virtual int GetChunkSize() {
+		return 65536;  // big chunks == faster
+	}
+
+	virtual void EndOfStream() {}
+
+	virtual WriteResult WriteAsciiChunk(char* data, int size) {
+		const size_t len = static_cast<size_t>(size);
+		size_t off = 0;
+
+		while (off < len && !feof(stream_) && !ferror(stream_))
+			off += fwrite(data + off, 1, len - off, stream_);
+
+		return off == len ? kContinue : kAbort;
+	}
+
+private:
+	FILE* stream_;
+};
+
+static void V8_Snap(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	FILE* fp = fopen("snap.heapsnapshot", "w");
+	if (fp == NULL) return;
+	const v8::HeapSnapshot* const snap = v8::Isolate::GetCurrent()->GetHeapProfiler()->TakeHeapSnapshot();
+	FileOutputStream stream(fp);
+	snap->Serialize(&stream, v8::HeapSnapshot::kJSON);
+	int err = 0;
+	fclose(fp);
+	// Work around a deficiency in the API.  The HeapSnapshot object is const
+	// but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
+	// invalidates _all_ snapshots, including those created by other tools.
+	const_cast<v8::HeapSnapshot*>(snap)->Delete();
+}
+
 static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 {
 	{ "trace", V8_Trace },
@@ -1457,6 +1503,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "getTickCount", V8_GetTickCount },
 	{ "invokeNative", V8_InvokeNative<StringHashGetter> },
 	{ "invokeNativeByHash", V8_InvokeNative<IntHashGetter> },
+	{ "snap", V8_Snap },
 	{ "startProfiling", V8_StartProfiling },
 	{ "stopProfiling", V8_StopProfiling },
 	// boundary
@@ -1527,18 +1574,16 @@ static void V8_Read(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 struct DataAndPersistent {
 	std::vector<char> data;
-	Persistent<ArrayBuffer> handle;
+	int byte_length;
+	Global<ArrayBuffer> handle;
 };
 
 static void ReadBufferWeakCallback(
-	const v8::WeakCallbackInfo<DataAndPersistent>& data)
-{
-	v8::HandleScope handleScope(data.GetIsolate());
-	v8::Local<ArrayBuffer> v = data.GetParameter()->handle.Get(data.GetIsolate());
-
-	size_t byte_length = v->ByteLength();
+	const v8::WeakCallbackInfo<DataAndPersistent>& data) {
+	int byte_length = data.GetParameter()->byte_length;
 	data.GetIsolate()->AdjustAmountOfExternalAllocatedMemory(
 		-static_cast<intptr_t>(byte_length));
+
 	data.GetParameter()->handle.Reset();
 	delete data.GetParameter();
 }
@@ -1557,13 +1602,13 @@ static void V8_ReadBuffer(const v8::FunctionCallbackInfo<v8::Value>& args)
 	DataAndPersistent* data = new DataAndPersistent;
 	data->data = std::move(fileData);
 
-	Handle<v8::ArrayBuffer> buffer =
-		ArrayBuffer::New(isolate, data->data.data(), data->data.size());
-
+	data->byte_length = data->data.size();
+	Local<v8::ArrayBuffer> buffer = ArrayBuffer::New(isolate, data->data.data(), data->data.size());
 	data->handle.Reset(isolate, buffer);
-	data->handle.SetWeak(data, ReadBufferWeakCallback, v8::WeakCallbackType::kParameter);
-
+	data->handle.SetWeak(data, ReadBufferWeakCallback,
+		v8::WeakCallbackType::kParameter);
 	isolate->AdjustAmountOfExternalAllocatedMemory(data->data.size());
+
 	args.GetReturnValue().Set(buffer);
 }
 
@@ -1967,19 +2012,6 @@ result_t V8ScriptRuntime::WalkStack(char* boundaryStart, uint32_t boundaryStartL
 	return FX_S_OK;
 }
 
-// from the V8 example
-class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator
-{
-public:
-	virtual void* Allocate(size_t length) override
-	{
-		void* data = AllocateUninitialized(length);
-		return data == NULL ? data : memset(data, 0, length);
-	}
-	virtual void* AllocateUninitialized(size_t length) override { return malloc(length); }
-	virtual void Free(void* data, size_t) override { free(data); }
-};
-
 class V8ScriptGlobals
 {
 private:
@@ -2190,7 +2222,11 @@ void V8ScriptGlobals::Initialize()
 	V8::Initialize();
 
 	// create an array buffer allocator
-	m_arrayBufferAllocator = std::make_unique<ArrayBufferAllocator>();
+#ifndef IS_FXSERVER
+	m_arrayBufferAllocator = std::unique_ptr<v8::ArrayBuffer::Allocator>(v8::ArrayBuffer::Allocator::NewDefaultAllocator());
+#else
+	m_arrayBufferAllocator = std::unique_ptr<v8::ArrayBuffer::Allocator>(node::ArrayBufferAllocator::Create());
+#endif
 
 	// create an isolate
 	Isolate::CreateParams params;
@@ -2230,6 +2266,26 @@ void V8ScriptGlobals::Initialize()
 
 		if (runtime)
 		{
+			// since the V8 locker might be held by our caller, lock order for V8LitePushEnvironment might not be correct
+			// instead, we will just dare to not push the runtime if we don't need to (and we're already locked)
+
+			// this does mean any callbacks node.js will run on closing are more limited (can't call framework natives)
+			if (v8::Locker::IsLocked(node::GetIsolate(env)))
+			{
+				PushEnvironment pe;
+
+				if (PushEnvironment::TryPush(OMPtr{ runtime }, pe))
+				{
+					envStack.push(std::make_unique<V8LitePushEnvironment>(std::move(pe), runtime, env));
+				}
+				else
+				{
+					envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
+				}
+
+				return;
+			}
+
 			envStack.push(std::make_unique<V8LitePushEnvironment>(runtime, env));
 		}
 		else
@@ -2246,7 +2302,7 @@ void V8ScriptGlobals::Initialize()
 
 	node::Init(&argc, argv, &eac, &eav);
 
-	m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop());
+	m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop(), platform, (node::ArrayBufferAllocator*)m_arrayBufferAllocator.get());
 #endif
 }
 
