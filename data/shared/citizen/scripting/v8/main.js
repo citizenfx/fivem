@@ -297,7 +297,7 @@ const EXT_LOCALFUNCREF = 11;
 		return frames;
 	}
 	
-	Error.prepareStackTrace = prepareStackTrace;
+	//Error.prepareStackTrace = prepareStackTrace;
 	
 	class StackDumpError {
 		constructor(bs, be) {
@@ -515,4 +515,4 @@ const EXT_LOCALFUNCREF = 11;
 	};
 
 	global.exports = createExports();
-})(this || window);
+})(this || globalThis);

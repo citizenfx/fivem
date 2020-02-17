@@ -96,7 +96,7 @@ print("const _fi = Citizen.pointerValueFloatInitialized;")
 
 print("function _ch(hash) {")
 print("\tif (typeof hash === 'string') {")
-print("\t\treturn window.GetHashKey(hash);")
+print("\t\treturn global.GetHashKey(hash);")
 print("\t}\n")
 print("\treturn hash;")
 print("}\n")
@@ -281,13 +281,13 @@ local function formatDocString(native)
 end
 
 local function printNative(native)
-	local str = string.format("%swindow.%s = function (%s) {\n", formatDocString(native), printFunctionName(native), printArgumentList(native))
+	local str = string.format("%sglobal.%s = function (%s) {\n", formatDocString(native), printFunctionName(native), printArgumentList(native))
 
 	local preCall = ''
 	local postCall = ''
 
 	if native.returns and native.returns.nativeType == 'object' then
-		preCall = 'window.msgpack_unpack('
+		preCall = 'global.msgpack_unpack('
 		postCall = ')'
 	end
 
@@ -296,7 +296,7 @@ local function printNative(native)
 	str = str .. "};\n"
 
 	for _, alias in ipairs(native.aliases) do
-		str = str .. ("window.%s = window.%s;\n"):format(printFunctionName({ name = alias }), printFunctionName(native))
+		str = str .. ("global.%s = global.%s;\n"):format(printFunctionName({ name = alias }), printFunctionName(native))
 	end
 
 	return str

@@ -771,6 +771,6 @@
   }
   else {
     // Browser global.
-    window.EventEmitter2 = EventEmitter;
+    globalThis.EventEmitter2 = EventEmitter;
   }
 }();

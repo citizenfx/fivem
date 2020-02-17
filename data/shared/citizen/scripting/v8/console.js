@@ -346,4 +346,4 @@
     }
 
     global.console = new Console();
-})(this || window);
+})(this || globalThis);
