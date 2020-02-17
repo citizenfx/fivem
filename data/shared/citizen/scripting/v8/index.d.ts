@@ -86,7 +86,7 @@ declare function TriggerLatentClientEvent(eventName: string, target: number|stri
 declare function removeEventListener(eventName: string, callback: Function): void
 
 declare function setTick(callback: Function): number
-declare function clearTick(callback: Function): void
+declare function clearTick(callback: number): void
 
 declare var exports: any;
 
