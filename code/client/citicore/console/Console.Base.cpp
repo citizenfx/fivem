@@ -74,27 +74,42 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 
 	std::call_once(g_vtOnceFlag, []()
 	{
-		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-		DWORD consoleMode;
-		if (GetConsoleMode(hConsole, &consoleMode))
 		{
-			consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+			HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-			if (SetConsoleMode(hConsole, consoleMode))
+			DWORD consoleMode;
+			if (GetConsoleMode(hConsole, &consoleMode))
+			{
+				consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+				if (SetConsoleMode(hConsole, consoleMode))
+				{
+					g_allowVt = true;
+				}
+
+				if (IsWindows10OrGreater())
+				{
+					SetConsoleCP(65001);
+					SetConsoleOutputCP(65001);
+				}
+			}
+			else
 			{
 				g_allowVt = true;
 			}
-
-			if (IsWindows10OrGreater())
-			{
-				SetConsoleCP(65001);
-				SetConsoleOutputCP(65001);
-			}
 		}
-		else
+
 		{
-			g_allowVt = true;
+			HANDLE hConsole = GetStdHandle(STD_INPUT_HANDLE);
+
+			DWORD consoleMode;
+			if (GetConsoleMode(hConsole, &consoleMode))
+			{
+				consoleMode |= ENABLE_EXTENDED_FLAGS;
+				consoleMode &= ~ENABLE_QUICK_EDIT_MODE;
+
+				SetConsoleMode(hConsole, consoleMode);
+			}
 		}
 	});
 #else
