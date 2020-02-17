@@ -6,6 +6,12 @@ if errorlevel 1 (
     exit /B 1
 )
 
+where /q node
+
+if errorlevel 1 (
+    exit /B 1
+)
+
 set SRRoot=%~dp0\data
 
 pushd ..\webadmin\server
@@ -19,13 +25,14 @@ copy /y ..\webadmin\fxmanifest.lua %SRRoot%\webadmin\
 xcopy /y /e ..\webadmin\wwwroot\. %SRRoot%\webadmin\wwwroot\
 xcopy /y /e ..\webadmin\server\bin\Release\netstandard2.0\publish\. %SRRoot%\webadmin\server\bin\Release\netstandard2.0\publish\
 
-pushd ..\monitor\server
-dotnet publish -c Release
+pushd ..\txAdmin
+call npm i
+call node_modules\.bin\webpack.cmd --config webpack.config.js --progress
 popd
 
-mkdir %SRRoot%\monitor\server\bin\Release\netstandard2.0\publish\
-copy /y ..\monitor\fxmanifest.lua %SRRoot%\monitor\
+rmdir /s /q %SRRoot%\monitor\
+mkdir %SRRoot%\monitor\
 
-xcopy /y /e ..\monitor\server\bin\Release\netstandard2.0\publish\. %SRRoot%\monitor\server\bin\Release\netstandard2.0\publish\
+xcopy /y /e ..\txAdmin\dist\ %SRRoot%\monitor
 
 exit /B 0
