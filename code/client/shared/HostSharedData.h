@@ -12,7 +12,14 @@ public:
 #ifdef IS_FXSERVER
 		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(TData), ToWide("CFX_SV_SharedData_" + name).c_str());
 #else
-		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(TData), ToWide("CFX_SharedData_" + name).c_str());
+		if (wcsstr(GetCommandLine(), L"cl2") != nullptr)
+		{
+			m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(TData), ToWide("CFX_CL2_SharedData_" + name).c_str());
+		}
+		else
+		{
+			m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(TData), ToWide("CFX_SharedData_" + name).c_str());
+		}
 #endif
 
 		if (m_fileMapping != nullptr)

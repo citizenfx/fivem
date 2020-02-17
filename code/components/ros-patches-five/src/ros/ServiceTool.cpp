@@ -9,6 +9,7 @@
 #include "ToolComponentHelpers.h"
 
 #include <Hooking.h>
+#include <CL2LaunchMode.h>
 
 #include <boost/filesystem/path.hpp>
 
@@ -112,11 +113,11 @@ LPCWSTR GetCommandLineWHook()
 	return L"\"C:\\Program Files\\Rockstar Games\\Launcher\\RockstarService.exe\"";
 }
 
-HANDLE CreateNamedPipeAHook(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+static HANDLE CreateNamedPipeAHook(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes)
 {
 	if (strstr(lpName, "MTLService"))
 	{
-		lpName = "\\\\.\\pipe\\MTLService_Pipe_CFX";
+		lpName = va("\\\\.\\pipe\\MTLService_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
 	return CreateNamedPipeA(lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);
@@ -126,7 +127,7 @@ HANDLE CreateFileMappingAHook(_In_ HANDLE hFile, _In_opt_ LPSECURITY_ATTRIBUTES 
 {
 	if (lpName && strstr(lpName, "MTLService_FileMapping"))
 	{
-		lpName = "MTLService_FileMapping_CFX";
+		lpName = va("MTLService_FileMapping_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
 	return CreateFileMappingA(hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName);

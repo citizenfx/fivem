@@ -19,17 +19,30 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType)
 	CreateDirectory(outPath.c_str(), nullptr);
 
 	// copy the executable to the out directory
+	std::wstring productName;
+
 #ifdef IS_LAUNCHER
-	outPath += L"CGL_" + processType;
+	productName = L"CGL_";
 #elif defined(GTA_FIVE)
-	outPath += L"FiveM_" + processType;
+	productName = L"FiveM_";
 #elif defined(IS_FXSERVER)
-	outPath += L"FXS_" + processType;
+	productName = L"FXS_";
 #elif defined(IS_RDR3)
-	outPath += L"RedM_" + processType;
+	productName = L"RedM_";
 #else
 #error No subprocess name!
 #endif
+
+#ifndef IS_FXSERVER
+	if (wcsstr(GetCommandLine(), L"cl2") != nullptr)
+	{
+		outPath += productName + L"cl2_" + processType;
+	}
+	else
+#endif
+	{
+		outPath += productName + processType;
+	}
 
 	DeleteFile(outPath.c_str());
 	CopyFile(fxApplicationName, outPath.c_str(), FALSE);

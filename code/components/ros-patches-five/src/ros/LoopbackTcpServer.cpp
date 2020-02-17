@@ -14,6 +14,8 @@
 #include <LaunchMode.h>
 #include <CfxSubProcess.h>
 
+#include <CL2LaunchMode.h>
+
 #ifdef GTA_FIVE
 #define PIPE_NAME L"\\\\.\\pipe\\GTAVLauncher_Pipe"
 #define PIPE_NAME_NARROW "\\\\.\\pipe\\GTAVLauncher_Pipe"
@@ -1297,7 +1299,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 	{
 		if (boost::filesystem::path(applicationName).filename() == L"GTA5.exe" || boost::filesystem::path(applicationName).filename() == L"RDR2.exe")
 		{
-			HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
+			HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
 
 			if (hEvent != INVALID_HANDLE_VALUE)
 			{
@@ -1363,9 +1365,9 @@ void WaitForLauncher()
 void RunLauncher(const wchar_t* toolName, bool instantWait)
 {
 	// early out if the launcher pipe already exists
-	if (WaitNamedPipe(PIPE_NAME, 15) != 0)
+	if (WaitNamedPipe(va(L"%s%s", PIPE_NAME, IsCL2() ? L"_CL2" : L""), 15) != 0)
 	{
-		trace("Already found a GTAVLauncher_Pipe, not starting child launcher.\n");
+		trace("Already found a " PIPE_NAME_NARROW ", not starting child launcher.\n");
 
 		return;
 	}
@@ -1400,7 +1402,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 	const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\"", fxApplicationName, toolName, GetCurrentProcessId(), L"C:\\program files\\rockstar games\\launcher\\launcher.exe");
 
 	// create a waiting event
-	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
+	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
 
 	// and go create the new fake process
 	PROCESS_INFORMATION pi;
@@ -1431,7 +1433,6 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
         if (instantWait)
         {
             g_waitForLauncherCB();
-			ResetEvent(hEvent);
         }
 	}
 }
@@ -1527,17 +1528,29 @@ static HANDLE __stdcall CreateFileAStub(
 	{
 		trace("Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
 
-		WaitNamedPipe(PIPE_NAME, INFINITE);
+		lpFileName = va("%s%s", lpFileName, IsCL2() ? "_CL2" : "");
+
+		WaitNamedPipeA(lpFileName, INFINITE);
 		WaitForLauncher();
 
 		trace("Launcher is fine, continuing!\n");
 	}
 	else if (strcmp(lpFileName, "\\\\.\\pipe\\MTLService_Pipe") == 0)
 	{
-		lpFileName = "\\\\.\\pipe\\MTLService_Pipe_CFX";
+		lpFileName = va("\\\\.\\pipe\\MTLService_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
 	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+HANDLE CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+{
+	if (strcmp(lpName, PIPE_NAME_NARROW) == 0)
+	{
+		lpName = va("%s%s", lpName, IsCL2() ? "_CL2" : "");
+	}
+
+	return CreateNamedPipeA(lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);
 }
 
 static HANDLE(*g_oldOpenFileMappingA)(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheritHandle, _In_ LPCSTR lpName);
@@ -1546,7 +1559,7 @@ static HANDLE OpenFileMappingAStub(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheri
 {
 	if (lpName && strstr(lpName, "MTLService_FileMapping"))
 	{
-		lpName = "MTLService_FileMapping_CFX";
+		lpName = va("MTLService_FileMapping_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
 	return g_oldOpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName);

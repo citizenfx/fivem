@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "CitizenGame.h"
 
+#include <CL2LaunchMode.h>
+
 #include <io.h>
 #include <fcntl.h>
 
@@ -550,8 +552,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	auto minModeManifest = InitMinMode();
 
-	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIExit");
-	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, L"CitizenFX_PreUIDone");
+	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
+	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
 
 	if (initState->IsMasterProcess() && !toolMode)
 	{
@@ -559,7 +561,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		{
 			static HostSharedData<CfxState> initState("CfxInitState");
 
-//#ifndef _DEBUG
+#ifndef _DEBUG
 			if (!initState->isReverseGame)
 			{
 				//auto tuiTen = std::move(tui);
@@ -600,7 +602,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				UI_DoDestruction();
 			}
-//#endif
+#endif
 
 			SetEvent(g_uiDoneEvent);
 		}).detach();

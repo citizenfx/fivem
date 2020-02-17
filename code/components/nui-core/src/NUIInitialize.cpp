@@ -11,6 +11,8 @@
 #include "NUISchemeHandlerFactory.h"
 #include "NUIWindowManager.h"
 
+#include <CL2LaunchMode.h>
+
 #include <CefOverlay.h>
 
 #include <delayimp.h>
@@ -513,7 +515,7 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = MakeRelativeCitPath(L"cache\\browser\\");
+	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s\\", IsCL2() ? L"-cl2" : L""));
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	// delete any old CEF logs

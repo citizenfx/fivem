@@ -27,6 +27,8 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <sstream>
 
+#include <CL2LaunchMode.h>
+
 #include <HostSharedData.h>
 
 struct ExternalROSBlob
@@ -361,7 +363,7 @@ uint64_t ROSGetDummyAccountID()
 
 		CreateDirectory(va(L"%s\\CitizenFX", appdataPath), nullptr);
 
-		FILE* f = _wfopen(va(L"%s\\CitizenFX\\ros_id.dat", appdataPath), L"rb");
+		FILE* f = _wfopen(va(L"%s\\CitizenFX\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""), L"rb");
 
 		auto generateNewId = [&] ()
 		{
@@ -391,7 +393,7 @@ uint64_t ROSGetDummyAccountID()
 			}
 
 			// write id
-			f = _wfopen(va(L"%s\\CitizenFX\\ros_id.dat", appdataPath), L"wb");
+			f = _wfopen(va(L"%s\\CitizenFX\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""), L"wb");
 
 			if (!f)
 			{
@@ -414,7 +416,7 @@ uint64_t ROSGetDummyAccountID()
 				fclose(f);
 				f = nullptr;
 
-				_wunlink(va(L"%s\\CitizenFX\\ros_id.dat", appdataPath));
+				_wunlink(va(L"%s\\CitizenFX\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""));
 
 				generateNewId();
 			}

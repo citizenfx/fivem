@@ -21,6 +21,7 @@
 
 #include <Error.h>
 
+#include <CL2LaunchMode.h>
 #include <LaunchMode.h>
 #include <MinHook.h>
 
@@ -361,7 +362,7 @@ static HANDLE CreateMutexWStub(_In_opt_ LPSECURITY_ATTRIBUTES lpMutexAttributes,
 {
 	if (lpName && wcscmp(lpName, L"{EADA79DC-1FAF-4354-AB3E-23F30CBB7B8F}") == 0)
 	{
-		lpName = L"{EADA79DC-1FAF-4354-AB3E-23F30CBB7B8F}_fakeMTL";
+		lpName = va(L"{EADA79DC-1FAF-4354-AB3E-23F30CBB7B8F}_fakeMTL%s", IsCL2() ? L"CL2" : L"");
 	}
 
 	return CreateMutexW(lpMutexAttributes, bInitialOwner, lpName);
@@ -376,6 +377,8 @@ static int ReturnFalse()
 {
 	return 0;
 }
+
+HANDLE CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
@@ -438,6 +441,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
         hook::iat("user32.dll", LoadIconStub, "LoadIconW");
 
 		hook::iat("kernel32.dll", CreateMutexWStub, "CreateMutexW");
+		hook::iat("kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA");
 
 		DoLauncherUiSkip();
 
@@ -502,10 +506,12 @@ static InitFunction initFunction([] ()
 {
 	if (getenv("CitizenFX_ToolMode") == nullptr || getenv("CitizenFX_ToolMode")[0] == 0)
 	{
-		if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LauncherMutex") == nullptr)
+		auto name = fmt::sprintf(L"CitizenFX_LauncherMutex%s", IsCL2() ? L"CL2" : L"");
+
+		if (OpenMutex(SYNCHRONIZE, FALSE, name.c_str()) == nullptr)
 		{
 			// create the mutex
-			CreateMutex(nullptr, TRUE, L"CitizenFX_LauncherMutex");
+			CreateMutex(nullptr, TRUE, name.c_str());
 
             if (!LoadOwnershipTicket())
             {
