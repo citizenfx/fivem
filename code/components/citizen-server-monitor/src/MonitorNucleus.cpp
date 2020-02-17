@@ -81,8 +81,6 @@ static InitFunction initFunction([]()
 								fmt::sprintf("https://%s/", jsonData.value("host", ""))
 							);
 
-						trace("url: %s\n", fmt::sprintf("https://%s/", jsonData.value("host", "")));
-
 						static auto webVar = instance->AddVariable<std::string>("web_baseUrl", ConVar_None, jsonData.value("host", ""));
 
 						setNucleusSuccess = true;
