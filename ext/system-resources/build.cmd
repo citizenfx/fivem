@@ -33,6 +33,6 @@ popd
 rmdir /s /q %SRRoot%\monitor\
 mkdir %SRRoot%\monitor\
 
-xcopy /y /e ..\txAdmin\dist\ %SRRoot%\monitor
+xcopy /y /e ..\txAdmin\dist %SRRoot%\monitor
 
 exit /B 0
