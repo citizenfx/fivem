@@ -6,3 +6,8 @@
 // (of an object) Very difficult to break, pierce, or cut.
 // - https://en.wiktionary.org/wiki/adamant#Adjective
 "adamant",
+
+// bodacious
+// "And now, for the delectable and bodacious Jill Tasker!"
+// - GTA2 radio, 'Lo-Fi FM'
+"bodacious",

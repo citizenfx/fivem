@@ -1712,8 +1712,16 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 			Function::New(context, routine.second, External::New(GetV8Isolate(), this)).ToLocalChecked());
 	}
 
+	bool isGreater;
+
 	// set the 'window' variable to the global itself
-	context->Global()->Set(context, String::NewFromUtf8(GetV8Isolate(), "window", NewStringType::kNormal).ToLocalChecked(), context->Global());
+	context->Global()->Set(context, String::NewFromUtf8(GetV8Isolate(), "global", NewStringType::kNormal).ToLocalChecked(), context->Global());
+
+	if (FX_SUCCEEDED(m_manifestHost->IsManifestVersionV2Between("bodacious", "", &isGreater)) && !isGreater)
+	{
+		// set the 'window' variable to the global itself
+		context->Global()->Set(context, String::NewFromUtf8(GetV8Isolate(), "window", NewStringType::kNormal).ToLocalChecked(), context->Global());
+	}
 
 	std::string nativesBuild = "natives_universal.js";
 

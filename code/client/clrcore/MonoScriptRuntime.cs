@@ -52,6 +52,14 @@ namespace CitizenFX.Core
 
 					basePath = Native.API.GetResourcePath(resourceName);
 					useTaskScheduler = Native.API.GetNumResourceMetadata(resourceName, "clr_disable_task_scheduler") == 0;
+
+					if (host is IScriptHostWithManifest manifestHost)
+					{
+						if (manifestHost.IsManifestVersionV2Between("bodacious", ""))
+						{
+							useTaskScheduler = false;
+						}
+					}
 				}
 #endif
 
