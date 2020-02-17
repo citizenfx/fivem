@@ -31,6 +31,8 @@
 #include <TcpListenManager.h>
 #include <HttpServerManager.h>
 
+#include <cfx_version.h>
+
 #include <skyr/url.hpp>
 #include <skyr/percent_encode.hpp>
 
@@ -140,6 +142,7 @@ namespace fx
 		std::shared_ptr<ConVar<std::string>> rootVar;
 
 		auto monitorVar = AddVariable<bool>("monitorMode", ConVar_None, true);
+		auto versionVar = AddVariable<std::string>("version", ConVar_None, "FXServer-" GIT_DESCRIPTION);
 
 		{
 			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
