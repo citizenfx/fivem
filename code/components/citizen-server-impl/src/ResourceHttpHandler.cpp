@@ -18,6 +18,8 @@
 #include <json.hpp>
 #include <cfx_version.h>
 
+#include <boost/algorithm/string.hpp>
+
 #include <MonoThreadAttachment.h>
 
 // HTTP handler
@@ -97,7 +99,13 @@ public:
 		}
 
 		// get the local path for the request
-		auto rl = m_resource->GetName().length() + 2;
+		auto rl = m_endpointPrefix.length();
+
+		if (!boost::algorithm::ends_with(m_endpointPrefix, "/"))
+		{
+			rl++;
+		}
+
 		auto path = request->GetPath();
 
 		auto localPath = (path.length() >= rl) ? path.substr(rl) : "";
@@ -241,6 +249,8 @@ public:
 private:
 	fx::Resource* m_resource;
 
+	std::string m_endpointPrefix;
+
 	std::optional<std::string> m_handlerRef;
 };
 
@@ -262,9 +272,18 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 		// get the server's HTTP manager
 		fwRefContainer<fx::HttpServerManager> httpManager = server->GetComponent<fx::HttpServerManager>();
 
+		// #TODOMONITOR: *really* make helper
+		auto monitorVar = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode");
+		m_endpointPrefix = fmt::sprintf("/%s", m_resource->GetName());
+
+		if (monitorVar && monitorVar->GetValue() != "0" && m_resource->GetName() == "monitor")
+		{
+			m_endpointPrefix = "";
+		}
+
 		// add an endpoint
 		httpManager->AddEndpoint(
-			fmt::sprintf("/%s", m_resource->GetName()),
+			m_endpointPrefix,
 			std::bind(&ResourceHttpComponent::HandleRequest, this, std::placeholders::_1, std::placeholders::_2));
 	}, 9999);
 
@@ -283,7 +302,10 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 		fwRefContainer<fx::HttpServerManager> httpManager = server->GetComponent<fx::HttpServerManager>();
 
 		// remove an endpoint
-		httpManager->RemoveEndpoint(fmt::sprintf("/%s", m_resource->GetName()));
+		if (!m_endpointPrefix.empty())
+		{
+			httpManager->RemoveEndpoint(m_endpointPrefix);
+		}
 	}, -9999);
 }
 

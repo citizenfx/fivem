@@ -84,6 +84,8 @@ inline std::string ToNarrow(const std::string& str)
 	return str;
 }
 
+fwEvent<fx::MonitorInstance*> OnMonitorTick;
+
 namespace fx
 {
 	MonitorInstance::MonitorInstance()
@@ -227,7 +229,8 @@ namespace fx
 			return resourceManager->AddResource(url.href()).get();
 		};
 
-		addResource("webadmin")->Start();
+		// monitor does not use webadmin currently
+		//addResource("webadmin")->Start();
 		addResource("monitor")->Start();
 
 		// setup ticks
@@ -236,8 +239,11 @@ namespace fx
 		auto loop = GetComponent<fx::TcpListenManager>()->GetTcpStack()->GetWrapLoop();
 		m_tickTimer = loop->resource<uvw::TimerHandle>();
 
-		m_tickTimer->on<uvw::TimerEvent>([resourceManager](const uvw::TimerEvent& ev, uvw::TimerHandle& timer)
+		m_tickTimer->on<uvw::TimerEvent>([this, resourceManager](const uvw::TimerEvent& ev, uvw::TimerHandle& timer)
 		{
+			OnMonitorTick(this);
+
+			resourceManager->MakeCurrent();
 			resourceManager->Tick();
 		});
 
