@@ -22,6 +22,8 @@
 #include <ResourceStreamComponent.h>
 #include <EventReassemblyComponent.h>
 
+#include <KeyedRateLimiter.h>
+
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -77,6 +79,25 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::share
 		return;
 	}
 
+	static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
+	static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEvent", fx::RateLimiterDefaults{ 50.f, 200.f });
+	static auto netFloodRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventFlood", fx::RateLimiterDefaults{ 75.f, 300.f });
+
+	uint32_t netId = client->GetNetId();
+
+	if (!netEventRateLimiter->Consume(netId))
+	{
+		if (!netFloodRateLimiter->Consume(netId))
+		{
+			gscomms_execute_callback_on_main_thread([client, instance]()
+			{
+				instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event overflow.");
+			});
+		}
+
+		return;
+	}
+
 	std::vector<char> eventNameBuffer(eventNameLength - 1);
 	buffer.Read(eventNameBuffer.data(), eventNameBuffer.size());
 	buffer.Read<uint8_t>();
@@ -92,7 +113,7 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::share
 	eventManager->QueueEvent(
 		std::string(eventNameBuffer.begin(), eventNameBuffer.end()),
 		std::string(data.begin(), data.end()),
-		fmt::sprintf("net:%d", client->GetNetId())
+		fmt::sprintf("net:%d", netId)
 	);
 }
 
