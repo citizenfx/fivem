@@ -30,9 +30,11 @@ private:
 
 	bool m_sentWriteHead;
 
+	bool m_disableKeepAlive;
+
 public:
-	inline Http1Response(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState)
-		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream), m_chunked(false), m_sentWriteHead(false)
+	inline Http1Response(fwRefContainer<TcpServerStream> clientStream, fwRefContainer<HttpRequest> request, const std::shared_ptr<HttpState>& reqState, bool disableKeepAlive)
+		: HttpResponse(request), m_requestState(reqState), m_clientStream(clientStream), m_chunked(false), m_sentWriteHead(false), m_disableKeepAlive(disableKeepAlive)
 	{
 		
 	}
@@ -64,7 +66,7 @@ public:
 
 		auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("keep-alive"));
 
-		if (_stricmp(requestConnection.c_str(), "keep-alive") != 0)
+		if (_stricmp(requestConnection.c_str(), "keep-alive") != 0 || m_disableKeepAlive)
 		{
 			outData << "Connection: close\r\n";
 
@@ -257,10 +259,12 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		int contentLength;
 
+		int pipelineLength;
+
 		bool invalid;
 
 		HttpConnectionData()
-			: readState(ReadStateRequest), lastLength(0), contentLength(0), invalid(false)
+			: readState(ReadStateRequest), lastLength(0), contentLength(0), pipelineLength(0), invalid(false)
 		{
 
 		}
@@ -316,6 +320,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					break;
 				}
 
+				// increment the pipeline length, so we can close every 10 requests
+				localConnectionData->pipelineLength++;
+
 				// copy the deque into a vector for data purposes
 				std::vector<uint8_t> requestData(readQueue.begin(), readQueue.end());
 
@@ -356,7 +363,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 					// store the request in a request instance
 					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList, stream->GetPeerAddress().ToString());
-					fwRefContainer<HttpResponse> response = new Http1Response(stream, request, reqState);
+					fwRefContainer<HttpResponse> response = new Http1Response(stream, request, reqState, localConnectionData->pipelineLength > 10);
 
 					reqState->blocked = true;
 
