@@ -15,6 +15,8 @@
 #include <ICoreGameInit.h>
 #endif
 
+#include <DebugAlias.h>
+
 #include <Error.h>
 
 namespace fx
@@ -213,17 +215,32 @@ void ResourceScriptingComponent::CreateEnvironments()
 		}
 
 		// add the event
-		eventComponent->OnTriggerEvent.Connect([=](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		eventComponent->OnTriggerEvent.Connect([this](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 		{
 			if (m_eventsHandled.find(eventName) == m_eventsHandled.end())
 			{
 				// '*' event is an override to accept all in this resource
 				if (m_eventsHandled.find("*") == m_eventsHandled.end())
 				{
-					// skip the HLL ScRT
-					return;
+					// skip any further processing of this per-resource event
+					return false;
 				}
 			}
+
+			return true;
+		}, INT32_MIN);
+
+		eventComponent->OnTriggerEvent.Connect([=](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			// save data in case we need to trace this back from dumps
+			char resourceNameBit[128];
+			char eventNameBit[128];
+
+			strncpy(resourceNameBit, m_resource->GetName().c_str(), std::size(resourceNameBit));
+			strncpy(eventNameBit, eventName.c_str(), std::size(eventNameBit));
+
+			debug::Alias(resourceNameBit);
+			debug::Alias(eventNameBit);
 
 			// invoke the event runtime
 			for (auto&& runtime : eventRuntimes)

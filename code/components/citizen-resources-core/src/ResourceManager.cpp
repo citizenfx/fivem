@@ -148,9 +148,15 @@ void ResourceManagerImpl::ForAllResources(const std::function<void(const fwRefCo
 			currentResources.resize(m_resources.size());
 		}
 
-		for (auto& resource : m_resources)
+		for (const auto& resource : m_resources)
 		{
-			currentResources[resCount] = resource.second;
+			// avoid having to do a ref count increment/decrement (lock add/sub) at the cost
+			// of a compare-branch (which might be predicted away)
+			if (currentResources[resCount].GetRef() != resource.second.GetRef())
+			{
+				currentResources[resCount] = resource.second;
+			}
+
 			++resCount;
 		}
 	}

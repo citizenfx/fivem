@@ -68,32 +68,25 @@ template<typename TContained>
 class InstanceRegistryBase : public fwRefCountable
 {
 private:
+	static constexpr size_t kMaxSize = 128;
+
 	std::vector<TContained> m_instances;
 
 public:
 	InstanceRegistryBase()
+		: m_instances(kMaxSize)
 	{
-		EnsureSize();
-	}
-
-private:
-	inline void EnsureSize()
-	{
-		m_instances.resize(CoreGetComponentRegistry()->GetSize());
+		assert(CoreGetComponentRegistry()->GetSize() < kMaxSize);
 	}
 
 public:
 	const TContained& GetInstance(size_t key)
 	{
-		EnsureSize();
-
 		return m_instances[key];
 	}
 
 	void SetInstance(size_t key, const TContained& instance)
 	{
-		EnsureSize();
-
 		m_instances[key] = instance;
 	}
 };

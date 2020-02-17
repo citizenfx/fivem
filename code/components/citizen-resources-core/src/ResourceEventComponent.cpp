@@ -101,16 +101,6 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 
 void ResourceEventComponent::HandleTriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 {
-	// save data in case we need to trace this back from dumps
-	char resourceNameBit[128];
-	char eventNameBit[128];
-
-	strncpy(resourceNameBit, m_resource->GetName().c_str(), std::size(resourceNameBit));
-	strncpy(eventNameBit, eventName.c_str(), std::size(eventNameBit));
-	
-	debug::Alias(resourceNameBit);
-	debug::Alias(eventNameBit);
-
 	// trigger event
 	OnTriggerEvent(eventName, eventPayload, eventSource, eventCanceled);
 }
