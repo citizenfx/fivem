@@ -138,6 +138,8 @@ const int HandbrakeOffset = 0x9A4;
 const int EngineTempOffset = 0xA4C;
 const int NumWheelsOffset = 0xBB8;
 const int WheelsPtrOffset = 0xBB0;
+const int ModelInfoPtrOffset = 0x020;
+const int DrawnWheelAngleMultOffset = 0x49c;
 
 const int SteeringAngleOffset = 0x994;
 const int SteeringScaleOffset = 0x99C;
@@ -167,6 +169,8 @@ const int WheelRotationSpeedOffset = 0x170;
 const int WheelHealthOffset = 0x1E8; // 75 24 F3 0F 10 81 ? ? ? ? F3 0F
 const int WheelYRotOffset = 0x008;
 const int WheelInvYRotOffset = 0x010;
+const int WheelBrakePressureOffset = 0x1D0;
+const int WheelSteeringAngleOffset = 0x1CC;
 
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
@@ -325,6 +329,15 @@ static HookFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DRAWN_WHEEL_ANGLE_MULT", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context))
+		{
+			auto infoAddress = readValue<uint64_t>(vehicle, ModelInfoPtrOffset);
+			float angle = *reinterpret_cast<float*>(infoAddress + DrawnWheelAngleMultOffset);
+			context.SetResult<float>(angle);
+		}
+	});
 
 	auto makeWheelFunction = [](auto cb)
 	{
@@ -351,6 +364,16 @@ static HookFunction initFunction([]()
 			}
 		};
 	};
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_BRAKE_PRESSURE", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelBrakePressureOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_STEERING_ANGLE", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelSteeringAngleOffset));
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_HEALTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
