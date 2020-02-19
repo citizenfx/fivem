@@ -1172,12 +1172,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			});
 		}
 
-		if (!m_tg->tryPost([this, scl]()
+		if (!m_tg->tryPost([this, scl]() mutable
 		{
 			scl->Execute();
 
-			auto [clientData, clientDataLock] = GetClientData(this, scl->client);
-			clientData->syncing = false;
+			{
+				auto [clientData, clientDataLock] = GetClientData(this, scl->client);
+				clientData->syncing = false;
+			}
+
+			scl = {};
 		}))
 		{
 #ifndef _MSC_VER
