@@ -421,6 +421,15 @@ struct SyncCommandState
 	{
 
 	}
+
+	inline void Reset()
+	{
+		cloneBuffer.SetCurrentBit(0);
+		flushBuffer = {};
+		maybeFlushBuffer = {};
+		frameIndex = 0;
+		client = {};
+	}
 };
 
 using SyncCommand = tp::FixedFunction<void(SyncCommandState&), 128>;
@@ -495,26 +504,31 @@ void GameStateClientData::MaybeFlushAcks()
 
 void SyncCommandList::Execute()
 {
-	SyncCommandState scs(16384);
+	static thread_local SyncCommandState scs(16384);
+
+	auto& scsSelf = scs;
+	scs.Reset();
 	scs.frameIndex = frameIndex;
 	scs.client = client;
 
-	scs.flushBuffer = [this, &scs]()
+	scs.flushBuffer = [this, &scsSelf]()
 	{
-		FlushBuffer(scs.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
+		FlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
 	};
 
-	scs.maybeFlushBuffer = [this, &scs]()
+	scs.maybeFlushBuffer = [this, &scsSelf]()
 	{
-		MaybeFlushBuffer(scs.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
+		MaybeFlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
 	};
 
 	for (auto& cmd : commands)
 	{
-		cmd(scs);
+		cmd(scsSelf);
 	}
 
 	scs.flushBuffer();
+
+	scs.Reset();
 }
 
 void ServerGameState::Tick(fx::ServerInstanceBase* instance)
@@ -2411,7 +2425,7 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 		auto [data, lock] = GetClientData(this, client);
 		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
 
-		int id = (g_lengthHack) ? 8193 : 1;
+		int id = 1;
 
 		for (int i = 0; i < numIds; i++)
 		{
