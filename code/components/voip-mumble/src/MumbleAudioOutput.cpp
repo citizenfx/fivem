@@ -189,6 +189,7 @@ void MumbleAudioOutput::Initialize()
 
 	m_initialized = false;
 	m_distance = FLT_MAX;
+	m_channelCount = 0;
 	m_volume = 1.0f;
 	m_masteringVoice = nullptr;
 	m_submixVoice = nullptr;
@@ -630,11 +631,11 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 
 				emitter.Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-				float coeffs[2] = { 0 };
+				float coeffs[16] = { 0 };
 
 				X3DAUDIO_DSP_SETTINGS dsp = { 0 };
 				dsp.SrcChannelCount = 1;
-				dsp.DstChannelCount = 2;
+				dsp.DstChannelCount = m_channelCount;
 				dsp.pMatrixCoefficients = coeffs;
 
 				static const X3DAUDIO_DISTANCE_CURVE_POINT _curvePoints[3] = { 0.0f, 1.0f, 0.25f, 1.0f, 1.0f, 0.0f };
@@ -668,7 +669,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				// reset the volume in case we were in 2d mode
 				client->voice->SetVolume(1.0f);
 
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, dsp.pMatrixCoefficients);
+				client->voice->SetOutputMatrix(m_masteringVoice, 1, dsp.DstChannelCount, dsp.pMatrixCoefficients);
 
 				if (m_submixVoice)
 				{
@@ -702,10 +703,11 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 
 				// reset the output matrix in case we were in 3d mode
 				float monoAllSpeakers[] = {
-					1.0f, 1.0f
+					1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 
+					1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 				};
 
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, monoAllSpeakers);
+				client->voice->SetOutputMatrix(m_masteringVoice, 1, m_channelCount, monoAllSpeakers);
 
 				client->isAudible = shouldHear;
 			}
@@ -715,8 +717,8 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 			if (g_use3dAudio->GetValue())
 			{
 				// reset matrix (to inaudible)
-				float matrix[2] = { 0.f, 0.f };
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, 2, matrix);
+				float matrix[] = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, };
+				client->voice->SetOutputMatrix(m_masteringVoice, 1, m_channelCount, matrix);
 
 				// disable submix voice
 				matrix[0] = 0.0f;
@@ -1006,7 +1008,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 	CoTaskMemFree(deviceId);
 
-	if (FAILED(m_xa2->CreateMasteringVoice(&m_masteringVoice, 2, 48000, 0, deviceIdStr.c_str())))
+	if (FAILED(m_xa2->CreateMasteringVoice(&m_masteringVoice, 0, 48000, 0, deviceIdStr.c_str())))
 	{
 		trace("%s: failed CreateMasteringVoice\n", __func__);
 		return;
@@ -1063,6 +1065,16 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		DWORD channelMask = 0;
 		m_masteringVoice->GetChannelMask(&channelMask);
 
+		m_channelCount = 0;
+
+		for (int i = 0; i < 32; i++)
+		{
+			if (channelMask & (1 << i))
+			{
+				m_channelCount++;
+			}
+		}
+
 		if (_X3DAudioInitialize)
 		{
 			if (SafeCallX3DA(_X3DAudioInitialize, channelMask, X3DAUDIO_SPEED_OF_SOUND, m_x3da))
@@ -1090,6 +1102,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 	}
 	else
 	{
+		m_channelCount = 2;
 		m_x3daCalculate = nullptr;
 	}
 

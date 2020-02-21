@@ -132,6 +132,8 @@ private:
 
 	uint32_t m_lastMatrixTime;
 
+	int m_channelCount;
+
 	float m_distance;
 
 	decltype(&X3DAudioCalculate) m_x3daCalculate;
