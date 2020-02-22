@@ -246,6 +246,61 @@ struct strStreamingInterface
 
 static strStreamingInterface** g_strStreamingInterface;
 
+#include <EntitySystem.h>
+#include <stack>
+#include <atHashMap.h>
+
+static void(*g_origArchetypeDtor)(fwArchetype* at);
+
+static std::map<uint32_t, std::deque<uint32_t>> g_archetypeDeletionStack;
+static atHashMapReal<uint32_t>* g_archetypeHash;
+static char** g_archetypeStart;
+static size_t* g_archetypeLength;
+
+static void ArchetypeDtorHook1(fwArchetype* at)
+{
+	auto& stack = g_archetypeDeletionStack[at->hash];
+
+	if (!stack.empty())
+	{
+		// get our index
+		auto atIdx = *g_archetypeHash->find(at->hash);
+
+		// delete ourselves from the stack
+		for (auto it = stack.begin(); it != stack.end();)
+		{
+			if (*it == atIdx)
+			{
+				it = stack.erase(it);
+			}
+			else
+			{
+				it++;
+			}
+		}
+
+		if (!stack.empty())
+		{
+			// update hash map with the front
+			auto oldArchetype = stack.front();
+
+			*g_archetypeHash->find(at->hash) = oldArchetype;
+		}
+	}
+
+	g_origArchetypeDtor(at);
+}
+
+static void(*g_origArchetypeInit)(void* at, void* a3, fwArchetypeDef* def, void* a4);
+
+static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
+{
+	g_origArchetypeInit(at, a3, def, a4);
+
+	auto atIdx = *g_archetypeHash->find(def->name);
+	g_archetypeDeletionStack[def->name].push_front(atIdx);
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConsoleCommand flushCommand("str_requestFlush", []()
@@ -349,5 +404,20 @@ static HookFunction hookFunction([] ()
 	// pgBase destructor, to free the relocated page map we created
 	MH_CreateHook(hook::get_pattern("48 81 EC 48 0C 00 00 48 8B"), pgBaseDtorHook, (void**)&g_origPgBaseDtor);
 
+	// archetype initfromdefinition
+	MH_CreateHook(hook::get_pattern("C0 E8 02 A8 01 75 0A 48", -0x66), ArchetypeInitHook, (void**)&g_origArchetypeInit);
+
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	// archetype dtor int dereg
+	{
+		auto location = hook::get_pattern("E8 ? ? ? ? 80 7B 60 01 74 39");
+		hook::set_call(&g_origArchetypeDtor, location);
+		hook::call(location, ArchetypeDtorHook1);
+	}
+
+	// 1604
+	g_archetypeHash = (atHashMapReal<uint32_t>*)0x141DC7A30;
+	g_archetypeStart = (char**)0x141DC79D0;
+	g_archetypeLength = (size_t*)0x141DC79E8;
 });
