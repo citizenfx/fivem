@@ -5,7 +5,7 @@ import sys
 noderoot = sys.argv[1]
 
 try:
-    os.makedirs(noderoot + 'gen/src/node/inspector/protocol/')
+    os.makedirs(os.path.join(noderoot, 'gen/src/node/inspector/protocol/'))
 except:
     pass
 
