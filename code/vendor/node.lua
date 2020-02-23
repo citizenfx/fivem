@@ -20,12 +20,16 @@ return {
 
 		links { 'v8', 'v8_libplatform', 'v8_libbase' }
 		includedirs { '../vendor/node/src/' }
+		includedirs { '../vendor/node/gen/' }
+		includedirs { '../vendor/node/gen/src/' }
+		includedirs { '../vendor/node/gen/src/node/inspector/protocol/' }
 
 		includedirs { '../vendor/node/deps/cares/include/' }
 		includedirs { '../vendor/node/deps/histogram/src/' }
 		includedirs { '../vendor/node/deps/llhttp/include/' }
 		includedirs { '../vendor/node/deps/brotli/c/include/' }
 		includedirs { '../vendor/node/deps/http_parser/' }
+		includedirs { '../vendor/node/deps/icu-small/source/common/' }
 
 		add_dependencies 'vendor:nghttp2'
 		add_dependencies 'vendor:libuv'
@@ -33,7 +37,7 @@ return {
 		add_dependencies 'vendor:openssl_crypto'
 		add_dependencies 'vendor:openssl_ssl'
 
-		defines { 'NODE_WANT_INTERNALS=1', 'NODE_ARCH="x64"', 'NODE_NO_BROWSER_GLOBALS', 'NODE_USE_V8_PLATFORM', 'HAVE_OPENSSL', 'OPENSSL_NO_ENGINE', 'NODE_OPENSSL_SYSTEM_CERT_PATH=""' }
+		defines { 'NODE_WANT_INTERNALS=1', 'NODE_ARCH="x64"', 'NODE_NO_BROWSER_GLOBALS', 'NODE_USE_V8_PLATFORM', 'HAVE_OPENSSL', 'OPENSSL_NO_ENGINE', 'NODE_OPENSSL_SYSTEM_CERT_PATH=""', 'HAVE_INSPECTOR' }
 		
 		if os.istarget('windows') then
 			defines { 'NODE_PLATFORM="win32"', 'NOMINMAX' }
@@ -42,10 +46,17 @@ return {
 			
 			links { 'ws2_32', 'dbghelp', 'psapi' }
 			
-			buildoptions { '/wd4251', '/wd4275', '/wd4067', '/wd4267', '/wd4996', '/MP' }
+			buildoptions { '/wd4251', '/wd4275', '/wd4067', '/wd4267', '/wd4996', '/MP', '/utf-8' }
 		elseif os.istarget('linux') then
 			defines { 'NODE_PLATFORM="linux"', '__POSIX__' }
 		end
+		
+		defines { 'U_STATIC_IMPLEMENTATION', 'U_COMMON_IMPLEMENTATION' }
+		
+		files_project '../vendor/node/deps/icu-small/' {
+			'source/common/*.cpp',
+			'source/stubdata/*.cpp',
+		}
 
 		if os.istarget('windows') then
 			defines { 'CARES_PULL_WS2TCPIP_H=1', 'WIN32' }
@@ -181,7 +192,8 @@ return {
 		}
 
 		files_project 'vendor/' {
-			'node_js2c.py'
+			'node_js2c.py',
+			'node_inspector.py'
 		}
 
 		filter 'files:vendor/node_js2c.py'
@@ -202,10 +214,73 @@ return {
 			buildoutputs { '../vendor/node/src/node_javascript.cc' }
 
 		filter {}
+		
+		filter 'files:vendor/node_inspector.py'
+			buildcommands {
+				('python %s %s'):format(
+					path.getabsolute('vendor/node_inspector.py'),
+					path.getabsolute('../vendor/node/')
+				)
+			}
+			
+			local nodeInputs = {
+				'../vendor/node/tools/inspector_protocol/lib/Allocator_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Array_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/base_string_adapter_cc.template',
+				'../vendor/node/tools/inspector_protocol/lib/base_string_adapter_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/DispatcherBase_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/DispatcherBase_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/encoding_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/encoding_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/ErrorSupport_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/ErrorSupport_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Forward_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/FrontendChannel_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Maybe_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Object_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/Object_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Parser_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/Parser_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Protocol_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/ValueConversions_h.template',
+				'../vendor/node/tools/inspector_protocol/lib/Values_cpp.template',
+				'../vendor/node/tools/inspector_protocol/lib/Values_h.template',
+				'../vendor/node/tools/inspector_protocol/templates/Exported_h.template',
+				'../vendor/node/tools/inspector_protocol/templates/Imported_h.template',
+				'../vendor/node/tools/inspector_protocol/templates/TypeBuilder_cpp.template',
+				'../vendor/node/tools/inspector_protocol/templates/TypeBuilder_h.template',
+				'../vendor/node/tools/inspector_protocol/code_generator.py',
+			}
+			
+			buildinputs(nodeInputs)
+			buildoutputs {
+				'../vendor/node/gen/src/node/inspector/protocol/Forward.h',
+				'../vendor/node/gen/src/node/inspector/protocol/Protocol.cpp',
+				'../vendor/node/gen/src/node/inspector/protocol/Protocol.h',
+				'../vendor/node/gen/src/node/inspector/protocol/NodeWorker.cpp',
+				'../vendor/node/gen/src/node/inspector/protocol/NodeWorker.h',
+				'../vendor/node/gen/src/node/inspector/protocol/NodeTracing.cpp',
+				'../vendor/node/gen/src/node/inspector/protocol/NodeTracing.h',
+				'../vendor/node/gen/src/node/inspector/protocol/NodeRuntime.cpp',
+				'../vendor/node/gen/src/node/inspector/protocol/NodeRuntime.h',
+				'../vendor/node/gen/src/node/inspector/protocol/v8_inspector_protocol_json.h'
+			}
+
+		filter {}
 
 		if os.istarget('windows') then
 			files_project '../vendor/node/' {
 				'src/node_javascript.cc', -- with msc, commands that output C/C++ source files are not fed into the build process yet
+				'gen/src/node/inspector/protocol/Forward.h',
+				'gen/src/node/inspector/protocol/Protocol.cpp',
+				'gen/src/node/inspector/protocol/Protocol.h',
+				'gen/src/node/inspector/protocol/NodeWorker.cpp',
+				'gen/src/node/inspector/protocol/NodeWorker.h',
+				'gen/src/node/inspector/protocol/NodeTracing.cpp',
+				'gen/src/node/inspector/protocol/NodeTracing.h',
+				'gen/src/node/inspector/protocol/NodeRuntime.cpp',
+				'gen/src/node/inspector/protocol/NodeRuntime.h',
+				'gen/src/node/inspector/protocol/v8_inspector_protocol_json.h'
 			}
 		else
 			files_project '../vendor/node/' {
@@ -401,6 +476,31 @@ return {
 			'src/node_crypto_groups.h',
 			'src/tls_wrap.cc',
 			'src/tls_wrap.h',
+			
+			-- have_inspector
+			'src/inspector_agent.cc',
+			'src/inspector_io.cc',
+			'src/inspector_agent.h',
+			'src/inspector_io.h',
+			'src/inspector_profiler.h',
+			'src/inspector_profiler.cc',
+			'src/inspector_js_api.cc',
+			'src/inspector_socket.cc',
+			'src/inspector_socket.h',
+			'src/inspector_socket_server.cc',
+			'src/inspector_socket_server.h',
+			'src/inspector/main_thread_interface.cc',
+			'src/inspector/main_thread_interface.h',
+			'src/inspector/node_string.cc',
+			'src/inspector/node_string.h',
+			'src/inspector/runtime_agent.cc',
+			'src/inspector/runtime_agent.h',
+			'src/inspector/tracing_agent.cc',
+			'src/inspector/tracing_agent.h',
+			'src/inspector/worker_agent.cc',
+			'src/inspector/worker_agent.h',
+			'src/inspector/worker_inspector.cc',
+			'src/inspector/worker_inspector.h',
 		}
 	end
 }

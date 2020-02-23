@@ -2305,10 +2305,22 @@ void V8ScriptGlobals::Initialize()
 		envStack.pop();
 	});
 
-	int argc = 2;
-	const char* argv[] = { "", "--expose-internals" };
+	std::vector<const char*> args{
+		"",
+		"--expose-internals"
+	};
 
-	node::Init(&argc, argv, &eac, &eav);
+	for (int i = 1; i < g_argc; i++)
+	{
+		if (g_argv[i] && g_argv[i][0] == '-')
+		{
+			args.push_back(g_argv[i]);
+		}
+	}
+
+	int argc = args.size();
+
+	node::Init(&argc, args.data(), &eac, &eav);
 
 	m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop(), platform, (node::ArrayBufferAllocator*)m_arrayBufferAllocator.get());
 #endif
