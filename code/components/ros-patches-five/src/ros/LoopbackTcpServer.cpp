@@ -1433,6 +1433,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
         if (instantWait)
         {
             g_waitForLauncherCB();
+			ResetEvent(hEvent);
         }
 	}
 }
