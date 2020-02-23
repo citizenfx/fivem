@@ -15,12 +15,28 @@
 
 #include <ComponentLoader.h>
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 IGameSpecToHooks* g_hooksDLL;
 
 __declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll);
 
 bool LauncherInterface::PreLoadGame(void* cefSandbox)
 {
+	// if we don't have adhesive, set our gamePid
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->IsMasterProcess())
+	{
+		const auto& map = ComponentLoader::GetInstance()->GetKnownComponents();
+
+		if (map.find("adhesive") == map.end())
+		{
+			initState->gamePid = initState->initialGamePid;
+		}
+	}
+	
 	bool continueRunning = true;
 
 	// HooksDLL only exists for GTA_NY
