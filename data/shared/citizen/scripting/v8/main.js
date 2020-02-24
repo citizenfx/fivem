@@ -161,6 +161,11 @@ const EXT_LOCALFUNCREF = 11;
 	const rawEmitter = new EventEmitter2();
 	const netSafeEventNames = new Set(['playerDropped', 'playerConnecting']);
 
+	//Process warnings
+	process.on('warning', (warning) => {
+		console.log(`Resource ${GetCurrentResourceName()} warning: ${warning.message}`);
+	});
+
 	// Raw events
 	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
 	global.addRawEventHandler = global.addRawEventListener;
@@ -297,6 +302,7 @@ const EXT_LOCALFUNCREF = 11;
 		return frames;
 	}
 	
+	Error.stackTraceLimit = 16;
 	Error.prepareStackTrace = prepareStackTrace;
 	
 	class StackDumpError {
