@@ -360,39 +360,43 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
 	lab::AudioContext* contextRef = context.get();
-	shuttingDown = true;
 
-	// we shall not use a shared_ptr inside of the thread as it'll then try to join itself
-	// which is nonsense
-	auto cdg = context->destination().get();
-
-	std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef, cdg]()
+	if (contextRef)
 	{
-		static float floatBuffer[24000] = { 0 };
+		shuttingDown = true;
 
-		lab::AudioBus inBuffer{ 1, 24000, false };
-		inBuffer.setSampleRate(48000.f);
-		inBuffer.setChannelMemory(0, floatBuffer, 24000);
+		// we shall not use a shared_ptr inside of the thread as it'll then try to join itself
+		// which is nonsense
+		auto cdg = contextRef->destination().get();
 
-		while (shuttingDown)
+		std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef, cdg]()
 		{
-			auto context = contextRef;
+			static float floatBuffer[24000] = { 0 };
 
-			if (context)
+			lab::AudioBus inBuffer{ 1, 24000, false };
+			inBuffer.setSampleRate(48000.f);
+			inBuffer.setChannelMemory(0, floatBuffer, 24000);
+
+			while (shuttingDown)
 			{
-				auto d = static_cast<XA2DestinationNode*>(cdg);
+				auto context = contextRef;
 
-				if (d)
+				if (context)
 				{
-					d->Push(&inBuffer);
-					d->Poll(24000);
+					auto d = static_cast<XA2DestinationNode*>(cdg);
+
+					if (d)
+					{
+						d->Push(&inBuffer);
+						d->Poll(24000);
+					}
 				}
 			}
-		}
-	}), [this]()
-	{
-		shuttingDown = false;
-	});
+		}), [this]()
+		{
+			shuttingDown = false;
+		});
+	}
 
 	context = {};
 
