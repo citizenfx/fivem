@@ -10,6 +10,9 @@
 #include <CoreConsole.h>
 #include <DebugAlias.h>
 
+#include <Resource.h>
+#include <ResourceEventComponent.h>
+
 #ifdef _WIN32
 #include <dbghelp.h>
 #include <common/windows/http_upload.h>
@@ -169,8 +172,134 @@ void PlatformAbort()
 }
 #endif
 
+constexpr int NumThreads = 3;
+
+using TThreadStack = std::deque<std::string>;
+using TThreadMap = std::array<TThreadStack, NumThreads>;
+
+static TThreadMap g_threadStacks;
+
+static int GetThreadIdx(uint32_t th)
+{
+	switch (th)
+	{
+	case HashString("default"):
+		return 0;
+	case HashString("svMain"):
+		return 1;
+	case HashString("svNetwork"):
+		return 2;
+	}
+
+	return -1;
+}
+
+static int GetThreadIdx()
+{
+	static auto uvmgr = Instance<net::UvLoopManager>::Get();
+
+	auto curLoop = uvmgr->GetCurrent();
+
+	if (!curLoop.GetRef())
+	{
+		return -1;
+	}
+
+	return GetThreadIdx(HashString(curLoop->GetLoopTag().c_str()));
+}
+
+static TThreadStack* GetThread()
+{
+	auto idx = GetThreadIdx();
+
+	if (idx >= 0)
+	{
+		return &g_threadStacks[idx];
+	}
+
+	return nullptr;
+}
+
+struct WatchdogWarningComponent : public fwRefCountable, public fx::IAttached<fx::Resource>
+{
+	WatchdogWarningComponent()
+		: initialized(false)
+	{
+
+	}
+
+	virtual void AttachToObject(fx::Resource* object) override
+	{
+		object->OnStart.Connect([this, object]()
+		{
+			InitializeOnce(object);
+		}, INT32_MAX);
+	}
+
+	void InitializeOnce(fx::Resource* resource)
+	{
+		if (initialized)
+		{
+			return;
+		}
+
+		auto resourceName = resource->GetName();
+
+		auto ev = resource->GetComponent<fx::ResourceEventComponent>();
+		ev->OnTriggerEvent.Connect([resourceName](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->push_front(fmt::sprintf("%s: event %s", resourceName, eventName));
+			}
+		}, -100);
+
+		ev->OnTriggerEvent.Connect([](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->pop_front();
+			}
+		}, 100);
+
+		resource->OnTick.Connect([resourceName]()
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->push_front(fmt::sprintf("%s: tick", resourceName));
+			}
+		}, INT32_MIN);
+
+		resource->OnTick.Connect([]()
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->pop_front();
+			}
+		}, INT32_MAX);
+
+		initialized = true;
+	}
+
+private:
+	bool initialized;
+};
+
 static InitFunction initFunction([]()
 {
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		resource->SetComponent(new WatchdogWarningComponent());
+	});
+
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		instance->OnInitialConfiguration.Connect([instance]()
@@ -198,6 +327,19 @@ static InitFunction initFunction([]()
 					name,
 					std::chrono::duration_cast<std::chrono::seconds>(msec() - bites[name]).count()
 				);
+
+				std::stringstream s;
+
+				auto& threadStack = g_threadStacks[GetThreadIdx(HashString(name.c_str()))];
+
+				for (auto& entry : threadStack)
+				{
+					s << entry << " <- ";
+				}
+
+				s << "root";
+
+				console::PrintWarning("server", "%s watchdog stack: %s\n", name, s.str());
 
 				PlatformBark(name);
 			};
@@ -269,3 +411,5 @@ static InitFunction initFunction([]()
 	});
 });
 }
+
+DECLARE_INSTANCE_TYPE(watchdog::WatchdogWarningComponent);
