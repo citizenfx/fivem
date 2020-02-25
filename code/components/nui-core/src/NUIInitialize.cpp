@@ -487,7 +487,7 @@ void Component_RunPreInit()
 	// and exit if we did
 	if (exitCode >= 0)
 	{
-		ExitProcess(0);
+		TerminateProcess(GetCurrentProcess(), exitCode);
 	}
 }
 
