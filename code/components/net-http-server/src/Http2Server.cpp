@@ -270,15 +270,6 @@ public:
 				return (resp->m_ended) ? 0 : NGHTTP2_ERR_DEFERRED;
 			}
 
-			/*
-
-			size_t toRead = std::min(length, resp->m_outData.size());
-
-			std::copy(resp->m_outData.begin(), resp->m_outData.begin() + toRead, buf);
-			resp->m_outData.erase(resp->m_outData.begin(), resp->m_outData.begin() + toRead);
-
-			return toRead;*/
-
 			*data_flags |= NGHTTP2_DATA_FLAG_NO_COPY;
 			return resp->m_buffer.PeekLength();
 		};
@@ -685,6 +676,13 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			data->responses.clear();
 		}
 
+		// free any leftover stream data
+		for (auto& stream : data->streams)
+		{
+			delete stream;
+		}
+
+		// delete the session, and bye data
 		nghttp2_session_del(data->session);
 		delete data;
 	});
