@@ -581,9 +581,22 @@ struct
 				}
 			}
 
+			static uint64_t mismatchStart = UINT64_MAX;
+
 			if (isNetworkHost() && playerCount == 1 && !cgi->OneSyncEnabled && g_netLibrary->GetHostNetID() != g_netLibrary->GetServerNetID())
 			{
-				state = HS_MISMATCH;
+				if (mismatchStart == UINT64_MAX)
+				{
+					mismatchStart = GetTickCount64();
+				}
+				else if ((GetTickCount64() - mismatchStart) > 7500)
+				{
+					state = HS_MISMATCH;
+				}
+			}
+			else
+			{
+				mismatchStart = UINT64_MAX;
 			}
 		}
 		else if (state == HS_MISMATCH)
