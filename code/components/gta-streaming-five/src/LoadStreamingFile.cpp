@@ -563,6 +563,7 @@ static std::map<std::string, std::vector<std::string>, std::less<>> g_customStre
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
 static std::set<std::pair<streaming::strStreamingModule*, int>> g_pendingRemovals;
 std::unordered_map<int, std::string> g_handlesToTag;
+static std::set<std::string> g_pedsToRegister;
 
 static std::unordered_set<int> g_ourIndexes;
 
@@ -711,6 +712,12 @@ static void LoadStreamingFiles(bool earlyLoad)
 		else
 		{
 			trace("can't register %s: no streaming module (does this file even belong in stream?)\n", file);
+		}
+
+		// register ped asset
+		if (baseName.find('/') != std::string::npos)
+		{
+			g_pedsToRegister.insert(baseName.substr(0, baseName.find('/')));
 		}
 	}
 }
@@ -924,6 +931,53 @@ void LoadManifest(const char* tagName)
 	}
 }
 
+#include <EntitySystem.h>
+
+struct CPedModelInfo
+{
+private:
+	uint64_t vtbl;
+	uint8_t pad[16];
+public:
+	uint32_t hash;
+
+private:
+	uint8_t pad2[428];
+
+public:
+	atArray<char> streamFolder;
+
+private:
+	uint8_t pad3[188];
+};
+
+static hook::cdecl_stub<void(fwFactoryBase<fwArchetype>*, atArray<CPedModelInfo*>&)> _getAllPedArchetypes([]()
+{
+	return hook::get_call(hook::get_pattern("44 8B E0 4C 89 6C 24 20 44 89 6C 24 28 E8", 13));
+});
+
+static void RegisterPeds()
+{
+	auto pedArchetypeFactory = (*g_archetypeFactories)[6];
+
+	atArray<CPedModelInfo*> mis;
+	_getAllPedArchetypes(pedArchetypeFactory, mis);
+
+	for (auto mi : mis)
+	{
+		for (const auto& ped : g_pedsToRegister)
+		{
+			if (mi->hash == HashString(ped.c_str()))
+			{
+				mi->streamFolder.Expand(ped.size() + 1);
+				
+				strcpy(&mi->streamFolder[0], ped.c_str());
+				mi->streamFolder.m_count = ped.size() + 1;
+			}
+		}
+	}
+}
+
 static void LoadDataFiles()
 {
 	trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
@@ -941,6 +995,13 @@ static void LoadDataFiles()
 		trace("Performing deferred RELOAD_MAP_STORE.\n");
 
 		ReloadMapStore();
+	}
+
+	if (!g_pedsToRegister.empty())
+	{
+		RegisterPeds();
+
+		g_pedsToRegister.clear();
 	}
 }
 
@@ -1494,6 +1555,8 @@ static HookFunction hookFunction([] ()
 			// unload GROUP_MAP and load GROUP_MAP_SP
 			_unloadMultiplayerContent();
 		}
+
+		g_pedsToRegister.clear();
 	}, 99925);
 
 	OnKillNetworkDone.Connect([]()
