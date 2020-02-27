@@ -201,7 +201,18 @@ static void DeleteVehicleWrap(fwEntity* vehicle)
 		g_deletionTraces2.erase(vehicle);
 	}
 
-	return g_origDeleteVehicle(vehicle);
+	// save handling data pointer
+	void* handling = readValue<void*>(vehicle, 0x918);
+
+	// call original destructor
+	g_origDeleteVehicle(vehicle);
+
+	// run cleanup after destructor
+	g_skipRepairVehicles.erase(vehicle);
+
+	// Delete the handling if it has been set to hooked.
+	if (*((char*)handling + 28) == 1)
+		delete handling;
 }
 
 static void(*g_origDeleteNetworkClone)(void* objectMgr, void* netObject, int reason, bool forceRemote1, bool forceRemote2);
@@ -637,45 +648,6 @@ static HookFunction initFunction([]()
 		hook::nop(repairFunc, 6);
 		hook::call_reg<2>(repairFunc, asmfunc.GetCode());
 	}
-
-	static struct : jitasm::Frontend
-	{
-		static void CleanupVehicle(fwEntity* VehPointer)
-		{
-			g_skipRepairVehicles.erase(VehPointer);
-
-			// Delete the handling if it has been set to hooked.
-			void* handling = readValue<void*>(VehPointer, 0x918);
-			if (*((char*)handling + 28) == 1)
-				delete handling;
-		}
-		virtual void InternalMain() override
-		{
-			//overwritten assembly code
-			mov(rbx, rcx);
-			mov(qword_ptr[rcx], rax);
-
-			//save registers
-			push(rax);
-			push(rcx);
-			sub(rsp, 0x8);
-
-			//actual cleanup function call
-			mov(rax, (uintptr_t)CleanupVehicle);
-			sub(rsp, 0x20);
-			call(rax);
-			add(rsp, 0x20);
-
-			//restore registers
-			add(rsp, 0x8);
-			pop(rcx);
-			pop(rax);
-			ret();
-		}
-	} vehicleDeconstructorHook;
-	auto vehicleDeconstructor = hook::get_pattern("48 8B 43 20 48 8B 88 B0 00 00 00 75 09 66 FF 89",-0x1D);
-	hook::nop(vehicleDeconstructor, 0x6);
-	hook::call_reg<2>(vehicleDeconstructor, vehicleDeconstructorHook.GetCode());
 
 	OnKillNetworkDone.Connect([]() {
 		g_skipRepairVehicles.clear();
