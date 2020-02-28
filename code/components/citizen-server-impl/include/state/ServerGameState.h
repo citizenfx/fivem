@@ -399,6 +399,8 @@ public:
 
 	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
 
+	void DeleteEntity(const std::shared_ptr<sync::SyncEntityState>& entity);
+
 	inline EntityLockdownMode GetEntityLockdownMode()
 	{
 		return m_entityLockdownMode;

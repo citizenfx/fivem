@@ -635,4 +635,15 @@ static InitFunction initFunction([]()
 
 		context.SetResult(fx::SerializeObject(entityList));
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DELETE_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		gameState->DeleteEntity(entity);
+
+		return 0;
+	}));
 });

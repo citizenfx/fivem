@@ -2559,6 +2559,14 @@ void ServerGameState::SendObjectIds(const std::shared_ptr<fx::Client>& client, i
 	client->SendPacket(1, outBuffer, NetPacketType_ReliableReplayed);
 }
 
+void ServerGameState::DeleteEntity(const std::shared_ptr<sync::SyncEntityState>& entity)
+{
+	if (entity->type != sync::NetObjEntityType::Player && entity->syncTree)
+	{
+		RemoveClone({}, entity->handle & 0xFFFF);
+	}
+}
+
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 {
 	m_instance = instance;
