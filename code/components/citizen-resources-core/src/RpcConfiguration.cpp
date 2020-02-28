@@ -57,7 +57,7 @@ inline RpcConfiguration::ArgumentType ParseContextType(std::string_view str)
 	{
 		return RpcConfiguration::ArgumentType::Int;
 	}
-	else if (str == "char*")
+	else if (str == "charPtr")
 	{
 		return RpcConfiguration::ArgumentType::String;
 	}
