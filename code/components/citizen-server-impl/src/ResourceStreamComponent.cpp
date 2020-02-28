@@ -231,6 +231,13 @@ namespace fx
 				entry.rscPagesVirtual = rsc7Header.virtPages;
 				entry.isResource = true;
 			}
+			else if (rsc7Header.magic == 0x05435352) // RSC\x05
+			{
+				entry.rscVersion = rsc7Header.version;
+				entry.rscPagesVirtual = rsc7Header.virtPages;
+				entry.rscPagesPhysical = rsc7Header.version;
+				entry.isResource = true;
+			}
 
 			rscStream->Seek(0, SEEK_SET);
 		}
