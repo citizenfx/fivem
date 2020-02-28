@@ -207,6 +207,7 @@ struct SyncEntityState
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
+	uint32_t creationToken;
 
 	std::chrono::milliseconds lastReceivedAt;
 
@@ -297,6 +298,20 @@ struct ScriptGuid
 	}
 };
 
+struct EntityCreationState
+{
+	// TODO: allow resending in case the target client disappears
+	uint32_t creationToken;
+	uint32_t clientIdx;
+	fx::ScriptGuid* scriptGuid;
+
+	EntityCreationState()
+		: creationToken(0), clientIdx(0), scriptGuid(0)
+	{
+
+	}
+};
+
 struct AckPacketWrapper
 {
 	rl::MessageBuffer& ackPacket;
@@ -353,6 +368,13 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	void MaybeFlushAcks();
 };
 
+enum class EntityLockdownMode
+{
+	Inactive,
+	Relaxed,
+	Strict
+};
+
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
 {
 private:
@@ -375,9 +397,17 @@ public:
 
 	void SendObjectIds(const std::shared_ptr<fx::Client>& client, int numIds);
 
-	void RemoveEntity(uint32_t entityHandle);
-
 	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
+
+	inline EntityLockdownMode GetEntityLockdownMode()
+	{
+		return m_entityLockdownMode;
+	}
+
+	inline void SetEntityLockdownMode(EntityLockdownMode mode)
+	{
+		m_entityLockdownMode = mode;
+	}
 
 	uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr);
 
@@ -392,7 +422,7 @@ private:
 
 	void ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket);
 
-	void ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
+	bool ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
 
 	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove);
 
@@ -402,9 +432,13 @@ private:
 
 	void ParseAckPacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
 
+	bool ValidateEntity(const std::shared_ptr<sync::SyncEntityState>& entity);
+
 public:
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
 	std::shared_ptr<sync::SyncEntityState> GetEntity(uint32_t handle);
+
+	fwEvent<std::shared_ptr<sync::SyncEntityState>> OnEntityCreate;
 
 private:
 	fx::ServerInstanceBase* m_instance;
@@ -488,6 +522,8 @@ public:
 
 	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
 	std::shared_mutex m_entityListMutex;
+
+	EntityLockdownMode m_entityLockdownMode;
 };
 
 std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);

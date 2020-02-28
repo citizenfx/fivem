@@ -368,7 +368,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x201912301309;
+			data["bitVersion"] = 0x202002271209;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();

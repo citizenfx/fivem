@@ -1060,6 +1060,7 @@ struct CSectorPositionDataNode
 struct CPedCreationDataNode
 {
 	uint32_t m_model;
+	ePopType m_popType;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -1069,6 +1070,8 @@ struct CPedCreationDataNode
 		auto popType = state.buffer.Read<int>(4);
 		uint32_t model = state.buffer.Read<uint32_t>(32);
 		m_model = model;
+
+		m_popType = (ePopType)popType;
 
 		auto randomSeed = state.buffer.Read<int>(16);
 		auto inVehicle = state.buffer.ReadBit();
@@ -1749,7 +1752,15 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		// TODO: non-vehicles
+		auto[hasPcn, pedCreationNode] = GetData<CPedCreationDataNode>();
+
+		if (hasPcn)
+		{
+			*popType = pedCreationNode->m_popType;
+			return true;
+		}
+
+		// TODO: objects(?)
 
 		return false;
 	}

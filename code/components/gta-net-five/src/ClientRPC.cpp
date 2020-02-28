@@ -15,6 +15,8 @@
 #include <netObject.h>
 #include <EntitySystem.h>
 
+#include <ICoreGameInit.h>
+
 #include <Hooking.h>
 
 static inline int GetServerId(const rlGamerInfo* platformData)
@@ -141,7 +143,10 @@ DECLARE_INSTANCE_TYPE(RpcNextTickQueue);
 
 int ObjectToEntity(int objectId);
 
-static std::map<int, int> g_creationTokenToObjectId;
+namespace sync
+{
+std::map<int, int> g_creationTokenToObjectId;
+std::map<int, uint32_t> g_objectIdToCreationToken;
 
 static hook::cdecl_stub<void*(int handle)> getScriptEntity([]()
 {
@@ -159,6 +164,8 @@ static InitFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
+		static auto icgi = Instance<ICoreGameInit>::Get();
+
 		if (g_netLibrary == nullptr)
 		{
 			return;
@@ -219,11 +226,34 @@ static InitFunction initFunction([]()
 						return;
 					}
 
-					uint16_t creationToken;
+					static std::map<uint32_t, uint32_t> objectsToIds;
+
+					auto getObject = [](uint32_t idx)
+					{
+						return objectsToIds[idx];
+					};
+
+					auto storeObject = [](uint32_t idx, uint32_t hdl)
+					{
+						objectsToIds[idx] = hdl;
+					};
+
+					uint32_t creationToken;
 
 					if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 					{
-						creationToken = buf->Read<uint16_t>();
+						if (icgi->NetProtoVersion < 0x202002271209)
+						{
+							creationToken = buf->Read<uint16_t>();
+						}
+						else
+						{
+							creationToken = buf->Read<uint32_t>();
+						}
+					}
+					else if (native->GetRpcType() == RpcConfiguration::RpcType::ObjectCreate)
+					{
+						creationToken = buf->Read<uint32_t>();
 					}
 
 					auto startPosition = buf->GetCurOffset();
@@ -245,6 +275,12 @@ static InitFunction initFunction([]()
 							case RpcConfiguration::ArgumentType::Player:
 							{
 								buf->Read<uint8_t>();
+								break;
+							}
+							case RpcConfiguration::ArgumentType::ObjRef:
+							case RpcConfiguration::ArgumentType::ObjDel:
+							{
+								buf->Read<uint32_t>();
 								break;
 							}
 							case RpcConfiguration::ArgumentType::Entity:
@@ -355,6 +391,7 @@ static InitFunction initFunction([]()
 							buf->Seek(startPosition);
 
 							auto executionCtx = std::make_shared<fx::ScriptContextBuffer>();
+							std::vector<std::string> strings;
 
 							int i = 0;
 
@@ -392,10 +429,22 @@ static InitFunction initFunction([]()
 								case RpcConfiguration::ArgumentType::Bool:
 									executionCtx->Push(buf->Read<uint8_t>());
 									break;
+								case RpcConfiguration::ArgumentType::ObjRef:
+									executionCtx->Push(getObject(buf->Read<uint32_t>()));
+									break;
+								case RpcConfiguration::ArgumentType::ObjDel:
+									static uint32_t toDel = getObject(buf->Read<uint32_t>());
+									executionCtx->Push(&toDel);
+									break;
 								case RpcConfiguration::ArgumentType::String:
 								{
-									// TODO: actually store a string
-									executionCtx->Push((const char*)"");
+									uint16_t slen = buf->Read<uint16_t>();
+									static char srbuf[UINT16_MAX + 1];
+									buf->Read(srbuf, slen);
+
+									strings.push_back(std::string{ srbuf, slen });
+									executionCtx->Push(strings.back().c_str());
+
 									break;
 								}
 								}
@@ -424,18 +473,29 @@ static InitFunction initFunction([]()
 
 										if (object)
 										{
-											net::Buffer netBuffer;
-
 											auto obj = object->objectId;
-
-											netBuffer.Write<uint16_t>(creationToken);
-											netBuffer.Write<uint16_t>(obj); // object ID (short)
 
 											g_creationTokenToObjectId[creationToken] = (1 << 16) | obj;
 
-											g_netLibrary->SendReliableCommand("msgEntityCreate", (const char*)netBuffer.GetData().data(), netBuffer.GetCurOffset());
+											if (icgi->NetProtoVersion < 0x202002271209)
+											{
+												net::Buffer netBuffer;
+
+												netBuffer.Write<uint16_t>(creationToken);
+												netBuffer.Write<uint16_t>(obj); // object ID (short)
+
+												g_netLibrary->SendReliableCommand("msgEntityCreate", (const char*)netBuffer.GetData().data(), netBuffer.GetCurOffset());
+											}
+											else
+											{
+												g_objectIdToCreationToken[obj] = creationToken;
+											}
 										}
 									}
+								}
+								else if (native->GetRpcType() == RpcConfiguration::RpcType::ObjectCreate)
+								{
+									storeObject(creationToken, executionCtx->GetResult<int>());
 								}
 
 								for (auto& cb : afterCallbacks)
@@ -452,3 +512,4 @@ static InitFunction initFunction([]()
 		}
 	});
 });
+}

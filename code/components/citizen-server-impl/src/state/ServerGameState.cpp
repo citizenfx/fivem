@@ -60,6 +60,8 @@ std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
 
+extern tbb::concurrent_unordered_map<uint32_t, fx::EntityCreationState> g_entityCreationList;
+
 static tbb::concurrent_queue<std::string> g_logQueue;
 
 static std::condition_variable g_consoleCondVar;
@@ -350,7 +352,7 @@ glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity
 }
 
 ServerGameState::ServerGameState()
-	: m_frameIndex(0), m_entitiesById(MaxObjectId)
+	: m_frameIndex(0), m_entitiesById(MaxObjectId), m_entityLockdownMode(EntityLockdownMode::Inactive)
 {
 	m_tg = std::make_unique<ThreadPool>();
 }
@@ -1117,6 +1119,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							if (syncType == 1)
 							{
 								cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
+
+								cmdState.cloneBuffer.Write(32, entity->creationToken);
 							}
 
 							cmdState.cloneBuffer.Write(16, (uint16_t)entity->uniqifier);
@@ -1813,8 +1817,7 @@ void ServerGameState::ProcessCloneCreate(const std::shared_ptr<fx::Client>& clie
 {
 	uint16_t objectId = 0;
 	uint16_t uniqifier = 0;
-	ProcessClonePacket(client, inPacket, 1, &objectId, &uniqifier);
-
+	if (ProcessClonePacket(client, inPacket, 1, &objectId, &uniqifier))
 	{
 		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
 		m_objectIdsUsed.set(objectId);
@@ -1994,7 +1997,7 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 	}
 }
 
-void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier)
+bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier)
 {
 	auto playerId = 0;
 	auto uniqifier = inPacket.Read<uint16_t>(16);
@@ -2007,10 +2010,18 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		*outUniqifier = uniqifier;
 	}
 
+	if (outObjectId)
+	{
+		*outObjectId = objectId;
+	}
+
 	auto objectType = sync::NetObjEntityType::Train;
+	uint32_t creationToken = 0;
 
 	if (parsingType == 1)
 	{
+		creationToken = inPacket.Read<uint32_t>(32);
+
 		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(4);
 	}
 
@@ -2064,6 +2075,7 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			entity->lastFrameIndex = 0;
 			entity->handle = MakeEntityHandle(playerId, objectId);
 			entity->uniqifier = uniqifier;
+			entity->creationToken = creationToken;
 
 			entity->syncTree = MakeSyncTree(objectType);
 
@@ -2102,26 +2114,26 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 					(int)entity->type);
 			}
 
-			return;
+			return false;
 		}
 	}
 	else if (!validEntity)
 	{
 		GS_LOG("%s: wrong entity (%d)!\n", __func__, objectId);
 
-		return;
+		return false;
 	}
 
 	if (entity->uniqifier != uniqifier)
 	{
 		GS_LOG("%s: wrong uniqifier (%d)!\n", __func__, objectId);
 
-		return;
+		return false;
 	}
 
 	if (client->GetSlotId() < 0 || client->GetSlotId() > MAX_CLIENTS)
 	{
-		return;
+		return false;
 	}
 
 	entity->didDeletion.reset(client->GetSlotId());
@@ -2136,14 +2148,14 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	if (!entityClient)
 	{
-		return;
+		return false;
 	}
 
 	if (entityClient->GetNetId() != client->GetNetId())
 	{
 		GS_LOG("%s: wrong owner (%d)!\n", __func__, objectId);
 
-		return;
+		return false;
 	}
 
 	entity->timestamp = timestamp;
@@ -2181,6 +2193,8 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			if (entityRef.expired())
 			{
 				SendWorldGrid(nullptr, client);
+
+				client->OnCreatePed();
 			}
 
 			data->playerEntity = entity;
@@ -2191,14 +2205,26 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		}
 	}
 
-	if (outObjectId)
-	{
-		*outObjectId = objectId;
-	}
-
 	// trigger a clone creation event
 	if (createdHere)
 	{
+		// if we're in entity lockdown, validate the entity first
+		if (m_entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
+		{
+			if (!ValidateEntity(entity))
+			{
+				// yeet
+				RemoveClone({}, entity->handle & 0xFFFF);
+				return false;
+			}
+		}
+
+		if (!OnEntityCreate(entity))
+		{
+			RemoveClone({}, entity->handle & 0xFFFF);
+			return false;
+		}
+
 		// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
 		// (otherwise embarrassing things happen like a new player's ped having the same object ID as a pending-removed entity, and the game trying to remove it)
 		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([this, objectId](const std::shared_ptr<fx::Client>& client)
@@ -2223,6 +2249,41 @@ void ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
 		});
 	}
+
+	return true;
+}
+
+bool ServerGameState::ValidateEntity(const std::shared_ptr<sync::SyncEntityState>& entity)
+{
+	bool allowed = false;
+
+	// allow auto-generated population in non-strict lockdown
+	if (m_entityLockdownMode != EntityLockdownMode::Strict)
+	{
+		sync::ePopType popType;
+
+		if (entity->syncTree->GetPopulationType(&popType))
+		{
+			if (popType == sync::POPTYPE_RANDOM_AMBIENT || popType == sync::POPTYPE_RANDOM_PARKED || popType == sync::POPTYPE_RANDOM_PATROL ||
+				popType == sync::POPTYPE_RANDOM_PERMANENT || popType == sync::POPTYPE_RANDOM_SCENARIO)
+			{
+				allowed = true;
+			}
+		}
+	}
+
+	// check the entity creation token
+	auto it = g_entityCreationList.find(entity->creationToken);
+
+	if (it != g_entityCreationList.end())
+	{
+		if (it->second.scriptGuid)
+		{
+			allowed = true;
+		}
+	}
+
+	return allowed;
 }
 
 static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(const std::vector<uint8_t>& packetData)
@@ -2309,6 +2370,7 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 		case 3: // clone remove
 		{
 			auto objectId = msgBuf.Read<uint16_t>(13);
+			auto uniqifier = msgBuf.Read<uint16_t>(16);
 
 			// if there's already an existing entity, unack creation here as well (so we know the client
 			// currently has *not* created the entity)
@@ -2323,8 +2385,17 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 				}
 			}
 
-			auto [clientData, lock] = GetClientData(this, client);
-			clientData->pendingRemovals.reset(objectId);
+
+			{
+				auto entity = GetEntity(0, objectId);
+
+				auto [clientData, lock] = GetClientData(this, client);
+
+				if (!entity || entity->uniqifier == uniqifier)
+				{
+					clientData->pendingRemovals.reset(objectId);
+				}
+			}
 
 			break;
 		}

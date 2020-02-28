@@ -110,7 +110,11 @@ function codeEnvironment.arguments(list)
 end
 
 function codeEnvironment.returns(typeName)
-	curNative.returns = types[typeName]
+	if type(typeName) == 'table' then
+		curNative.returns = typeName
+	else
+		curNative.returns = types[typeName]
+	end
 end
 
 function codeEnvironment.apiset(setName)
@@ -151,6 +155,20 @@ local function getNative(nativeName)
 	
 	for k, v in ipairs(natives) do
 		if v.name == nativeName and (#v.apiset == 0 or v.apiset[1] == 'client') then
+			n = v
+			break
+		end
+	end
+
+	return n
+end
+
+local function getServerNative(nativeName)
+	-- get the native
+	local n
+	
+	for k, v in ipairs(natives) do
+		if v.name == nativeName and #v.apiset > 0 and v.apiset[1] == 'server' then
 			n = v
 			break
 		end
@@ -200,7 +218,25 @@ function rpcEnvironment.context_rpc(nativeName)
 				type = 'Player'
 			})
 		elseif not isPrimitive(v.type) then
-			error(('Type %s is not supported for RPC natives.'):format(v.type.name))
+			if not ctx then
+				if v.pointer then
+					ctx = { idx = k - 1, type = 'ObjDel' }
+					
+					table.insert(args, {
+						translate = true,
+						type = 'ObjDel'
+					})
+				else
+					ctx = { idx = k - 1, type = 'ObjRef' }
+					
+					table.insert(args, {
+						translate = true,
+						type = 'ObjRef'
+					})
+				end
+			else
+				error(('Type %s is not supported for RPC natives.'):format(v.type.name))
+			end
 		else
 			table.insert(args, {
 				type = v.type.name
@@ -230,6 +266,52 @@ function rpcEnvironment.context_rpc(nativeName)
 	rn.type = 'ctx'
 
 	table.insert(rpcNatives, rn)
+	
+	return function(tbl)
+		-- single getter
+		if type(tbl) == 'table' and #tbl == 1 then
+			tbl = { getter = tbl[1] }
+		end
+		
+		-- if we need to define a getter
+		if tbl.getter then
+			local rvArg = n.arguments[2].type
+			
+			local function isFloat(arg)
+				return arg.type.nativeType == 'float'
+			end
+			
+			-- check if this is perhaps a vector3
+			if #n.arguments >= 4 and isFloat(n.arguments[2]) and isFloat(n.arguments[3]) and isFloat(n.arguments[4]) then
+				rvArg = types['Vector3']
+			end
+			
+			rn.getter = {
+				returnType = rvArg.name,
+				returnArgStart = 1,
+				name = tbl.getter
+			}
+			
+			local cxtRef
+			
+			if ctx.type == 'Player' then
+				cxtRef = codeEnvironment.Player
+			elseif ctx.type == 'Entity' then
+				cxtRef = codeEnvironment.Entity
+			elseif ctx.type == 'ObjRef' then
+				cxtRef = codeEnvironment.int
+			end
+			
+			if not getServerNative(tbl.getter) then
+				codeEnvironment.native(tbl.getter)
+					codeEnvironment.arguments {
+						cxtRef 'self'
+					}
+					codeEnvironment.apiset('server')
+					codeEnvironment.returns(rvArg)
+			end
+		end
+	end
 end
 
 function rpcEnvironment.entity_rpc(nativeName)
@@ -288,6 +370,66 @@ function rpcEnvironment.entity_rpc(nativeName)
 	rn.name = nativeName
 
 	rn.type = 'entity'
+
+	table.insert(rpcNatives, rn)
+end
+
+function rpcEnvironment.object_rpc(nativeName)
+	local n = getNative(nativeName)
+
+	if not n then
+		return
+	end
+
+	if not n.returns then
+		error('Object natives are required to return an object.')
+	end
+
+	if isType(n.returns, 'Entity') then
+		error('Object natives are not entity natives.')
+	end
+
+	local rn = {}
+
+	-- generate native arguments
+	local args = {}
+
+	for k, v in ipairs(n.arguments) do
+		-- is this an entity?
+		if isType(v.type, 'Entity') then
+			table.insert(args, {
+				translate = true,
+				type = 'Entity'
+			})
+		elseif v.type.name == 'Player' then
+			table.insert(args, {
+				translate = true,
+				type = 'Player'
+			})
+		elseif not isPrimitive(v.type) then
+			error(('Type %s is not supported for RPC natives.'):format(v.type.name))
+		else
+			table.insert(args, {
+				type = v.type.name
+			})
+		end
+	end
+
+	rn.args = args
+	
+	codeEnvironment.native(nativeName)
+		codeEnvironment.arguments(n.arguments)
+		codeEnvironment.apiset('server')
+		codeEnvironment.returns(n.returns)
+
+		if n.doc then
+			codeEnvironment.doc(n.doc)
+		end
+
+	rn.hash = n.hash
+	rn.name = nativeName
+
+	rn.type = 'object'
 
 	table.insert(rpcNatives, rn)
 end
@@ -393,7 +535,9 @@ if not globalNatives then
 	loadDefinition 'codegen_dlc_natives.lua'
 end
 
-loadRpcDefinition 'rpc_spec_natives.lua'
+if arg[1]:match('ves_glo') then
+	loadRpcDefinition 'rpc_spec_natives.lua'
+end
 
 _natives = {}
 

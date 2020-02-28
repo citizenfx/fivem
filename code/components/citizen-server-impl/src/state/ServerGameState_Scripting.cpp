@@ -256,6 +256,33 @@ static InitFunction initFunction([]()
 		}
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_SYNC_ENTITY_LOCKDOWN_MODE", [](fx::ScriptContext& context)
+	{
+		std::string_view sv = context.CheckArgument<const char*>(0);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		if (sv == "strict")
+		{
+			gameState->SetEntityLockdownMode(fx::EntityLockdownMode::Strict);
+		}
+		else if (sv == "relaxed")
+		{
+			gameState->SetEntityLockdownMode(fx::EntityLockdownMode::Relaxed);
+		}
+		else if (sv == "inactive")
+		{
+			gameState->SetEntityLockdownMode(fx::EntityLockdownMode::Inactive);
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_NETWORK_ID_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		return entity->handle & 0xFFFF;

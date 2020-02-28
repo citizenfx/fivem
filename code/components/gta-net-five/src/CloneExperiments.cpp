@@ -327,7 +327,11 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 
 		if (ped)
 		{
-			TheClones->DeleteObjectId(objectId, true);
+			// prevent stack overflow
+			if (!info.name.empty())
+			{
+				TheClones->DeleteObjectId(objectId, true);
+			}
 
 			trace("deleted object id\n");
 

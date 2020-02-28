@@ -32,6 +32,11 @@
 
 rage::netObject* g_curNetObject;
 
+// these are temp
+void HandleClientDrop(const NetLibraryClientInfo& info);
+CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object);
+extern std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
+
 void ObjectIds_AddObjectId(int objectId);
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
@@ -218,7 +223,7 @@ private:
 
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
-	std::unordered_map<int, std::chrono::milliseconds> m_pendingRemoveAcks;
+	std::map<std::tuple<int, int>, std::chrono::milliseconds> m_pendingRemoveAcks;
 
 	tbb::concurrent_queue<std::string> m_logQueue;
 
@@ -257,7 +262,7 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 
 	if (!netObject->syncData.isRemote)
 	{
-		m_pendingRemoveAcks.insert({ netObject->objectId, msec() });
+		m_pendingRemoveAcks.insert({ { netObject->objectId, m_trackedObjects[netObject->objectId].uniqifier }, msec() });
 	}
 
 	m_trackedObjects.erase(netObject->objectId);
@@ -405,6 +410,23 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 
 void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 {
+	if (icgi->NetProtoVersion >= 0x202002271209)
+	{
+		if (uniqifier == 0)
+		{
+			auto s = m_pendingRemoveAcks.lower_bound({ objId, 0 });
+			auto e = m_pendingRemoveAcks.upper_bound({ objId, INT32_MAX });
+
+			m_pendingRemoveAcks.erase(s, e);
+		}
+		else
+		{
+			m_pendingRemoveAcks.erase({ objId, uniqifier });
+		}
+
+		return;
+	}
+
 	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier && uniqifier != 0)
 	{
 		Log("%s: invalid uniqifier for %d\n", __func__, objId);
@@ -414,7 +436,10 @@ void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 	// #NETVER: resend removes and handle acks here
 	if (icgi->NetProtoVersion >= 0x201905190829)
 	{
-		m_pendingRemoveAcks.erase(objId);
+		auto s = m_pendingRemoveAcks.lower_bound({ objId, 0 });
+		auto e = m_pendingRemoveAcks.upper_bound({ objId, INT32_MAX });
+
+		m_pendingRemoveAcks.erase(s, e);
 	}
 }
 
@@ -627,6 +652,7 @@ public:
 	NetObjEntityType m_entityType;
 	uint8_t m_syncType;
 	uint32_t m_timestamp;
+	uint32_t m_creationToken;
 	std::vector<uint8_t> m_cloneData;
 };
 
@@ -643,6 +669,12 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 	if (syncType == 1)
 	{
 		m_entityType = (NetObjEntityType)buffer.Read<uint8_t>(4);
+		m_creationToken = 0;
+
+		if (icgi->NetProtoVersion >= 0x202002271209)
+		{
+			m_creationToken = buffer.Read<uint32_t>(32);
+		}
 	}
 
 	if (icgi->NetProtoVersion >= 0x201912301309)
@@ -750,6 +782,9 @@ void msgPackedClones::Read(net::Buffer& buffer)
 }
 
 void TempHackMakePhysicalPlayer(uint16_t clientId, int slotId = -1);
+
+extern std::map<int, int> g_creationTokenToObjectId;
+extern std::map<int, uint32_t> g_objectIdToCreationToken;
 
 rage::netObject* CloneManagerLocal::GetNetObject(uint16_t objectId)
 {
@@ -917,6 +952,11 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 		// give us the object ID
 		ObjectIds_AddObjectId(msg.GetObjectId());
+	}
+
+	if (msg.m_creationToken != 0)
+	{
+		g_creationTokenToObjectId[msg.m_creationToken] = msg.GetObjectId();
 	}
 
 	ackPacket();
@@ -1169,6 +1209,8 @@ void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
 	DeleteObjectId(objectId, false);
 }
 
+
+
 void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 {
 	// find object and remove
@@ -1182,6 +1224,17 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 		if (object == GetLocalPlayerPedNetObject())
 		{
 			return;
+		}
+
+		if (object->objectType == (int)NetObjEntityType::Player)
+		{
+			auto owner = netObject__GetPlayerOwner(object);
+
+			NetLibraryClientInfo i;
+			i.slotId = owner->physicalPlayerIndex;
+			i.netId = g_netIdsByPlayer[owner];
+
+			HandleClientDrop(i);
 		}
 
 		// set flags
@@ -1291,12 +1344,12 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 		m_netObjects[object->syncData.ownerId].erase(object->objectId);
 	}
 
+	m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier}, msec() });
+
 	m_savedEntities.erase(object->objectId);
 	m_savedEntitySet.erase(object);
 	m_trackedObjects.erase(object->objectId);
 	m_extendedData.erase(object->objectId);
-
-	m_pendingRemoveAcks.insert({ object->objectId, msec() });
 }
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
@@ -1582,6 +1635,11 @@ void CloneManagerLocal::WriteUpdates()
 
 					if (syncType == 1)
 					{
+						if (icgi->NetProtoVersion >= 0x202002271209)
+						{
+							netBuffer.Write(32, g_objectIdToCreationToken[objectId]);
+						}
+
 						netBuffer.Write(4, objectType);
 					}
 
@@ -1640,7 +1698,9 @@ void CloneManagerLocal::WriteUpdates()
 
 	for (auto& pair : m_pendingRemoveAcks)
 	{
-		auto [objectId, nextTime] = pair;
+		auto [objectIdRef, nextTime] = pair;
+
+		auto [objectId, uniqifier] = objectIdRef;
 
 		if (t < nextTime)
 		{
@@ -1651,6 +1711,11 @@ void CloneManagerLocal::WriteUpdates()
 
 		netBuffer.Write(3, 3);
 		netBuffer.Write(13, objectId); // object ID (short)
+
+		if (icgi->NetProtoVersion >= 0x202002271209)
+		{
+			netBuffer.Write(16, uniqifier);
+		}
 
 		AttemptFlushCloneBuffer();
 

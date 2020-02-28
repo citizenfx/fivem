@@ -218,6 +218,8 @@ namespace fx
 		fwEvent<> OnAssignTcpEndPoint;
 		fwEvent<> OnAssignConnectionToken;
 
+		fwEvent<> OnCreatePed;
+
 		fwEvent<> OnDrop;
 
 	private:

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <rapidjson/document.h>
 
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
@@ -19,13 +21,17 @@ public:
 		Bool,
 		String,
 		Player,
-		Hash
+		Hash,
+		ObjRef,
+		ObjDel,
+		Vector3
 	};
 
 	enum class RpcType
 	{
 		EntityContext,
-		EntityCreate
+		EntityCreate,
+		ObjectCreate
 	};
 
 	class Argument
@@ -48,6 +54,34 @@ public:
 	private:
 		ArgumentType m_type;
 		bool m_translate;
+	};
+
+	class Getter
+	{
+	public:
+		Getter();
+
+		void Initialize(rapidjson::Value& value);
+
+		inline const std::string& GetName() const
+		{
+			return m_name;
+		}
+
+		inline ArgumentType GetReturnType() const
+		{
+			return m_returnType;
+		}
+
+		inline int GetReturnArgStart() const
+		{
+			return m_returnArgStart;
+		}
+
+	private:
+		std::string m_name;
+		ArgumentType m_returnType;
+		int m_returnArgStart;
 	};
 
 	class Native
@@ -87,6 +121,11 @@ public:
 			return m_arguments;
 		}
 
+		inline const std::optional<Getter>& GetGetter() const
+		{
+			return m_getter;
+		}
+
 	private:
 		std::string m_name;
 		uint64_t m_gameHash;
@@ -97,6 +136,8 @@ public:
 		RpcType m_rpcType;
 
 		std::vector<Argument> m_arguments;
+
+		std::optional<Getter> m_getter;
 	};
 
 public:

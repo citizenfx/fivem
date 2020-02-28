@@ -25,6 +25,10 @@ inline RpcConfiguration::RpcType ParseRpcType(std::string_view str)
 	{
 		return RpcConfiguration::RpcType::EntityContext;
 	}
+	else if (str == "object")
+	{
+		return RpcConfiguration::RpcType::ObjectCreate;
+	}
 	else
 	{
 		FatalError("Unknown RPC type %s", std::string(str));
@@ -61,6 +65,18 @@ inline RpcConfiguration::ArgumentType ParseContextType(std::string_view str)
 	{
 		return RpcConfiguration::ArgumentType::Float;
 	}
+	else if (str == "ObjRef")
+	{
+		return RpcConfiguration::ArgumentType::ObjRef;
+	}
+	else if (str == "ObjDel")
+	{
+		return RpcConfiguration::ArgumentType::ObjDel;
+	}
+	else if (str == "Vector3")
+	{
+		return RpcConfiguration::ArgumentType::Vector3;
+	}
 	else
 	{
 		FatalError("Unknown RPC argument type %s", std::string(str));
@@ -81,6 +97,19 @@ void RpcConfiguration::Argument::Initialize(rapidjson::Value& value)
 	{
 		m_translate = value["translate"].GetBool();
 	}
+}
+
+RpcConfiguration::Getter::Getter()
+	: m_returnArgStart(0), m_returnType(ArgumentType::Int)
+{
+
+}
+
+void RpcConfiguration::Getter::Initialize(rapidjson::Value& value)
+{
+	m_name = value["name"].GetString();
+	m_returnType = ParseContextType(value["returnType"].GetString());
+	m_returnArgStart = value["returnArgStart"].GetInt();
 }
 
 RpcConfiguration::Native::Native()
@@ -109,6 +138,19 @@ void RpcConfiguration::Native::Initialize(rapidjson::Value& value)
 		arg.Initialize(*it);
 
 		m_arguments.push_back(arg);
+	}
+
+	if (value.HasMember("getter"))
+	{
+		auto& getter = value["getter"];
+
+		if (getter.IsObject())
+		{
+			Getter getterObj;
+			getterObj.Initialize(getter);
+
+			m_getter = std::move(getterObj);
+		}
 	}
 }
 

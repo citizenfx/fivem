@@ -731,8 +731,9 @@ namespace fx
 				if (peer)
 				{
 					net::Buffer outMsg;
-					outMsg.Write(0x53FFFA3F);
-					outMsg.Write(0);
+					outMsg.Write(HashRageString("msgFrame"));
+					outMsg.Write<uint32_t>(0);
+					outMsg.Write<uint8_t>(m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode() == fx::EntityLockdownMode::Strict);
 
 					client->SendPacket(0, outMsg, NetPacketType_Unreliable);
 				}
@@ -1210,6 +1211,7 @@ namespace fx
 					hostBroadcast.Write(client->GetNetBase());
 
 					gameServer->Broadcast(hostBroadcast);
+					//client->SendPacket(1, hostBroadcast, NetPacketType_ReliableReplayed);
 				}
 			}
 

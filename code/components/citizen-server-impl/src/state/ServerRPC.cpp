@@ -17,6 +17,8 @@
 
 #include <CoreConsole.h>
 
+#include <random>
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 // TODO: clang style defines/checking
@@ -29,16 +31,9 @@
 #include <glm/vec3.hpp>
 #include <glm/gtx/norm.hpp>
 
-struct EntityCreationState
-{
-	// TODO: allow resending in case the target client disappears
-	uint16_t creationToken;
-	uint32_t clientIdx;
-	fx::ScriptGuid* scriptGuid;
-};
-
-static tbb::concurrent_unordered_map<uint16_t, EntityCreationState> g_entityCreationList;
-static std::atomic<uint16_t> g_creationToken;
+tbb::concurrent_unordered_map<uint32_t, fx::EntityCreationState> g_entityCreationList;
+static std::minstd_rand g_creationToken;
+static std::linear_congruential_engine<uint32_t, 12820163, 0, (1 << 24) - 1> g_objectToken;
 
 inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
 {
@@ -49,6 +44,8 @@ namespace fx
 {
 	glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity);
 }
+
+static tbb::concurrent_unordered_map<uint32_t, std::list<std::tuple<uint64_t, net::Buffer>>> g_replayList;
 
 static InitFunction initFunction([]()
 {
@@ -66,10 +63,27 @@ static InitFunction initFunction([]()
 		auto gameState = ref->GetComponent<fx::ServerGameState>();
 		auto gameServer = ref->GetComponent<fx::GameServer>();
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgEntityCreate"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		clientRegistry->OnClientCreated.Connect([](fx::Client* client)
 		{
-			auto creationToken = buffer.Read<uint16_t>();
-			auto objectId = buffer.Read<uint16_t>();
+			client->OnCreatePed.Connect([client]()
+			{
+				for (auto& entry : g_replayList)
+				{
+					if (!entry.second.empty())
+					{
+						for (auto& [ native, buffer ] : entry.second)
+						{
+							client->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+						}
+					}
+				}
+			});
+		});
+
+		gameState->OnEntityCreate.Connect([](std::shared_ptr<fx::sync::SyncEntityState> entity)
+		{
+			auto creationToken = entity->creationToken;
+			auto objectId = entity->handle & 0xFFFF;
 
 			auto it = g_entityCreationList.find(creationToken);
 
@@ -77,33 +91,45 @@ static InitFunction initFunction([]()
 			{
 				auto guid = it->second.scriptGuid;
 
-				if (guid->type == fx::ScriptGuid::Type::TempEntity)
+				if (guid && guid->type == fx::ScriptGuid::Type::TempEntity)
 				{
 					guid->type = fx::ScriptGuid::Type::Entity;
 					guid->entity.handle = MakeEntityHandle(0, objectId);
-
-					// broadcast entity creation
-					net::Buffer outBuffer;
-					outBuffer.Write<uint32_t>(HashRageString("msgRpcEntityCreation"));
-					outBuffer.Write<uint16_t>(creationToken);
-					outBuffer.Write<uint16_t>(objectId);
-
-					clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& cl)
-					{
-						cl->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
-					});
 				}
 
 				g_entityCreationList[creationToken] = {};
-
 			}
 		});
 
+		struct scrVector
+		{
+			float x;
+		private:
+			int32_t pad;
+		public:
+			float y;
+
+		private:
+			int32_t pad2;
+		public:
+			float z;
+
+		private:
+			int32_t pad3;
+		};
+
+		static std::map<std::tuple<uint32_t, uint64_t>, std::optional<std::variant<uint32_t, scrVector>>> nativeResults;
+
 		for (auto& native : rpcConfiguration->GetNatives())
 		{
+			// RPC NATIVE
 			fx::ScriptEngine::RegisterNativeHandler(native->GetName(), [=](fx::ScriptContext& ctx)
 			{
+				bool replay = false;
+				bool delThis = false;
+				uint32_t delId = 0;
 				int clientIdx = -1;
+				uint32_t contextId = 0;
 
 				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityContext)
 				{
@@ -115,6 +141,12 @@ static InitFunction initFunction([]()
 					case RpcConfiguration::ArgumentType::Player:
 					{
 						clientIdx = ctx.GetArgument<int>(ctxIdx);
+						contextId = clientIdx;
+						break;
+					}
+					case RpcConfiguration::ArgumentType::ObjRef:
+					{
+						contextId = ctx.GetArgument<int>(ctxIdx);
 						break;
 					}
 					case RpcConfiguration::ArgumentType::Entity:
@@ -130,6 +162,8 @@ static InitFunction initFunction([]()
 								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
 							}
 						}
+
+						contextId = cxtEntity;
 
 						fx::ScriptGuid* scriptGuid = g_scriptHandlePool->AtHandle(cxtEntity - 0x20000);
 
@@ -159,6 +193,11 @@ static InitFunction initFunction([]()
 						break;
 					}
 					}
+				}
+				else if (native->GetRpcType() == RpcConfiguration::RpcType::ObjectCreate)
+				{
+					clientIdx = -1;
+					replay = true;
 				}
 				else if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 				{
@@ -254,6 +293,8 @@ static InitFunction initFunction([]()
 
 						if (candidates.size() == 0)
 						{
+							// TODO: add replaying when a player exists + gets in proximity
+							ctx.SetResult(0);
 							return;
 						}
 
@@ -281,13 +322,19 @@ static InitFunction initFunction([]()
 				buffer.Write<uint64_t>(native->GetGameHash());
 				buffer.Write<uint32_t>(resourceHash);
 
-				uint16_t creationToken = 0;
+				uint32_t creationToken = 0;
 
 				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 				{
-					creationToken = ++g_creationToken;
+					creationToken = g_creationToken();
 
-					buffer.Write<uint16_t>(creationToken);
+					buffer.Write<uint32_t>(creationToken);
+				}
+				else if (native->GetRpcType() == RpcConfiguration::RpcType::ObjectCreate)
+				{
+					creationToken = g_objectToken();
+
+					buffer.Write<uint32_t>(creationToken);
 				}
 
 				int i = 0;
@@ -352,6 +399,25 @@ static InitFunction initFunction([]()
 
 						break;
 					}
+					case RpcConfiguration::ArgumentType::ObjRef:
+					case RpcConfiguration::ArgumentType::ObjDel:
+					{
+						auto obj = ctx.GetArgument<uint32_t>(i) - 0x1000000;
+						buffer.Write<uint32_t>(obj);
+
+						if (argument.GetType() == RpcConfiguration::ArgumentType::ObjDel)
+						{
+							delThis = true;
+						}
+						else
+						{
+							replay = true;
+						}
+
+						delId = obj;
+
+						break;
+					}
 					case RpcConfiguration::ArgumentType::Player:
 					{
 						int player = ctx.GetArgument<int>(i);
@@ -404,7 +470,7 @@ static InitFunction initFunction([]()
 
 				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 				{
-					EntityCreationState state;
+					fx::EntityCreationState state;
 					state.creationToken = creationToken;
 
 					auto guid = new fx::ScriptGuid;
@@ -420,7 +486,153 @@ static InitFunction initFunction([]()
 
 					ctx.SetResult(scrHdl);
 				}
+				else if (native->GetRpcType() == RpcConfiguration::RpcType::ObjectCreate)
+				{
+					auto scrHdl = creationToken + 0x1000000;
+					ctx.SetResult(scrHdl);
+
+					if (replay)
+					{
+						auto nativeHash = native->GetGameHash();
+
+						gscomms_execute_callback_on_net_thread([creationToken, nativeHash, buffer]()
+						{
+							g_replayList[creationToken].push_back({ nativeHash, buffer });
+						});
+					}
+				}
+				else
+				{
+					const auto& getter = native->GetGetter();
+
+					if (getter)
+					{
+						std::variant<uint32_t, scrVector> refBit;
+
+						if (getter->GetReturnType() == RpcConfiguration::ArgumentType::Vector3)
+						{
+							refBit = ctx.GetArgument<scrVector>(getter->GetReturnArgStart());
+						}
+						else
+						{
+							refBit = ctx.GetArgument<uint32_t>(getter->GetReturnArgStart());
+						}
+
+						nativeResults[{
+							contextId,
+							native->GetGameHash()
+						}] = std::move(refBit);
+					}
+
+					if (replay)
+					{
+						auto nativeHash = native->GetGameHash();
+
+						gscomms_execute_callback_on_net_thread([delId, nativeHash, buffer]()
+						{
+							auto& rl = g_replayList[delId];
+
+							for (auto it = rl.begin(); it != rl.end(); )
+							{
+								if (std::get<uint64_t>(*it) == nativeHash)
+								{
+									it = rl.erase(it);
+								}
+								else
+								{
+									it++;
+								}
+							}
+
+							rl.push_back({ nativeHash, buffer });
+						});
+					}
+				}
+
+				if (delThis)
+				{
+					g_replayList[delId] = {};
+				}
 			});
+
+			// GETTER
+			const auto& getter = native->GetGetter();
+
+			if (getter)
+			{
+				auto origHandler = fx::ScriptEngine::GetNativeHandler(HashString(getter->GetName().c_str()));
+
+				fx::ScriptEngine::RegisterNativeHandler(getter->GetName(), [clientRegistry, gameState, native, origHandler](fx::ScriptContext& context)
+				{
+					auto contextRef = context.GetArgument<int>(0);
+
+					switch (native->GetContextType())
+					{
+					case RpcConfiguration::ArgumentType::Entity:
+					{
+						auto cxtEntity = contextRef;
+
+						if (cxtEntity < 0x20000)
+						{
+							auto client = clientRegistry->GetClientByNetID(cxtEntity);
+
+							if (client)
+							{
+								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+							}
+						}
+
+						contextRef = cxtEntity;
+
+						fx::ScriptGuid* scriptGuid = g_scriptHandlePool->AtHandle(cxtEntity - 0x20000);
+
+						if (scriptGuid)
+						{
+							if (scriptGuid->type == fx::ScriptGuid::Type::Entity)
+							{
+								// defer to original handler
+								if (origHandler)
+								{
+									return (*origHandler)(context);
+								}
+							}
+						}
+
+						break;
+					}
+					}
+
+					const auto& getter = native->GetGetter();
+					const auto& resultRef = nativeResults[{
+						contextRef,
+						native->GetGameHash()
+					}];
+
+					if (getter->GetReturnType() == RpcConfiguration::ArgumentType::Vector3)
+					{
+						if (resultRef)
+						{
+							context.SetResult(std::get<scrVector>(*resultRef));
+						}
+						else
+						{
+							scrVector v;
+							context.SetResult(v);
+						}
+					}
+					else
+					{
+						if (resultRef)
+						{
+							context.SetResult(std::get<uint32_t>(*resultRef));
+						}
+						else
+						{
+							context.SetResult(0);
+						}
+					}
+				});
+			}
 		}
 	}, 99999999);
 });
