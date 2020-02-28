@@ -53,7 +53,7 @@ inline RpcConfiguration::ArgumentType ParseContextType(std::string_view str)
 	{
 		return RpcConfiguration::ArgumentType::Player;
 	}
-	else if (str == "int")
+	else if (str == "int" || str == "Any")
 	{
 		return RpcConfiguration::ArgumentType::Int;
 	}
