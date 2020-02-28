@@ -646,4 +646,9 @@ static InitFunction initFunction([]()
 
 		return 0;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_SELECTED_PED_WEAPON", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->data["curWeapon"];
+	}));
 });
