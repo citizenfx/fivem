@@ -1131,6 +1131,8 @@ struct CPedGameStateDataNode
 			weapon = state.buffer.Read<int>(32);
 		}
 
+		state.entity->data["curWeapon"] = weapon;
+
 		auto weaponExists = state.buffer.ReadBit();
 		auto weaponVisible = state.buffer.ReadBit();
 		auto weaponHasAmmo = state.buffer.ReadBit();
