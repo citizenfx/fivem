@@ -1565,9 +1565,9 @@ struct CPlayerSectorPosNode
 			if (isStandingOn)
 			{
 				state.buffer.Read<int>(13); // Standing On
-				state.buffer.ReadFloat(12, 16.0f); // Standing On Local Offset X
-				state.buffer.ReadFloat(12, 16.0f); // Standing On Local Offset Y
-				state.buffer.ReadFloat(9, 4.0f); // Standing On Local Offset Z
+				state.buffer.ReadFloat(14, 16.0f); // Standing On Local Offset X
+				state.buffer.ReadFloat(14, 16.0f); // Standing On Local Offset Y
+				state.buffer.ReadFloat(10, 4.0f); // Standing On Local Offset Z
 			}
 
 			state.entity->data["isStandingOn"] = isStandingOn;
