@@ -162,6 +162,14 @@ private:
 
 	std::map<uint32_t, size_t> m_lastOutgoingMetrics;
 
+	std::vector<std::tuple<uint32_t, size_t>> m_lastIncomingData;
+
+	std::vector<std::tuple<uint32_t, size_t>> m_lastOutgoingData;
+
+	std::vector<std::tuple<uint32_t, size_t>> m_incomingData;
+
+	std::vector<std::tuple<uint32_t, size_t>> m_outgoingData;
+
 private:
 	inline int GetOverlayLeft()
 	{
@@ -270,6 +278,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 				static bool showIncoming = true;
 				static bool showOutgoing = true;
+				static bool showLog = true;
 
 				auto showList = [](const decltype(m_lastIncomingMetrics)& list, const decltype(m_incomingReliable)& reliable)
 				{
@@ -298,6 +307,38 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 				if (ImGui::CollapsingHeader("Outgoing", &showOutgoing))
 				{
 					showList(m_lastOutgoingMetrics, m_outgoingReliable);
+				}
+
+				if (ImGui::CollapsingHeader("Log", &showLog))
+				{
+					ImGui::Columns(2);
+
+					for (int i = 0; i < std::max(m_lastIncomingData.size(), m_lastOutgoingData.size()); i++)
+					{
+						if (i < m_lastIncomingData.size())
+						{
+							ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])), std::get<1>(m_lastIncomingData[i]));
+						}
+						else
+						{
+							ImGui::Text("");
+						}
+
+						ImGui::NextColumn();
+
+						if (i < m_lastOutgoingData.size())
+						{
+							ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])), std::get<1>(m_lastOutgoingData[i]));
+						}
+						else
+						{
+							ImGui::Text("");
+						}
+
+						ImGui::NextColumn();
+					}
+
+					ImGui::Columns(1);
 				}
 			}
 
@@ -368,6 +409,7 @@ void NetOverlayMetricSink::OnIncomingCommand(uint32_t type, size_t size, bool re
 	std::unique_lock<std::mutex> lock(m_metricMutex);
 	m_incomingMetrics[type] += size;
 	m_incomingReliable[type] = reliable;
+	m_incomingData.push_back({ type, size });
 }
 
 void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size, bool reliable)
@@ -375,6 +417,7 @@ void NetOverlayMetricSink::OnOutgoingCommand(uint32_t type, size_t size, bool re
 	std::unique_lock<std::mutex> lock(m_metricMutex);
 	m_outgoingMetrics[type] += size;
 	m_outgoingReliable[type] = reliable;
+	m_outgoingData.push_back({ type, size });
 }
 
 // log data if enabled
@@ -413,6 +456,9 @@ void NetOverlayMetricSink::UpdateMetrics()
 
 		m_lastInRoutePackets = m_inRoutePackets;
 		m_lastOutRoutePackets = m_outRoutePackets;
+
+		m_lastIncomingData = std::move(m_incomingData);
+		m_lastOutgoingData = std::move(m_outgoingData);
 
 		// reset 'current' values
 		m_inBytes = 0;

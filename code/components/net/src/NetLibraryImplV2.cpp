@@ -52,8 +52,6 @@ private:
 
 	bool m_timedOut;
 
-	std::shared_ptr<ConVar<int>> m_maxPackets;
-
 	uint32_t m_lastKeepaliveSent;
 };
 
@@ -63,9 +61,6 @@ static std::shared_ptr<ConVar<int>> g_maxMtuVar;
 NetLibraryImplV2::NetLibraryImplV2(INetLibraryInherit* base)
 	: m_base(base), m_host(nullptr), m_timedOut(false), m_serverPeer(nullptr), m_lastKeepaliveSent(0)
 {
-	m_maxPackets = std::make_shared<ConVar<int>>("net_maxPackets", ConVar_Archive, 50);
-	m_maxPackets->GetHelper()->SetConstraints(1, 200);
-
 	CreateResources();
 
 	Reset();
@@ -233,28 +228,16 @@ void NetLibraryImplV2::RunFrame()
 		while (m_base->GetOutgoingPacket(packet))
 		{
 			NetBuffer msg(1300);
-			msg.Write(0xE938445B); // msgRoute
+			msg.Write(HashRageString("msgRoute"));
 			msg.Write(packet.netID);
 			msg.Write<uint16_t>(packet.payload.size());
 
-			//trace("sending msgRoute to %d len %d\n", packet.netID, packet.payload.size());
-
 			msg.Write(packet.payload.c_str(), packet.payload.size());
 
-			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), (ENetPacketFlag)0));
 
-			m_base->GetMetricSink()->OnOutgoingCommand(0xE938445B, packet.payload.size() + 4, false);
+			m_base->GetMetricSink()->OnOutgoingCommand(HashRageString("msgRoute"), packet.payload.size() + 4, false);
 			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
-		}
-
-		if ((timeGetTime() - m_lastKeepaliveSent) > static_cast<uint32_t>(1000 / m_maxPackets->GetValue()))
-		{
-			NetBuffer msg(1300);
-			msg.Write(0xCA569E63); // msgEnd
-
-			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
-
-			m_lastKeepaliveSent = timeGetTime();
 		}
 
 		// update ping metrics

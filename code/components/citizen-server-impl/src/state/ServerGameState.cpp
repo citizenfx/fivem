@@ -417,6 +417,7 @@ struct SyncCommandState
 	std::function<void()> maybeFlushBuffer;
 	uint64_t frameIndex;
 	std::shared_ptr<fx::Client> client;
+	bool hadTime;
 
 	SyncCommandState(size_t size)
 		: cloneBuffer(size)
@@ -431,6 +432,7 @@ struct SyncCommandState
 		maybeFlushBuffer = {};
 		frameIndex = 0;
 		client = {};
+		hadTime = false;
 	}
 };
 
@@ -898,14 +900,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		uint64_t time = curTime.count();
 
-		scl->commands.emplace_back([time](SyncCommandState& state)
-		{
-			state.cloneBuffer.Write(3, 5);
-			state.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
-			state.cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
-			state.maybeFlushBuffer();
-		});
-
 		if (!client)
 		{
 			return;
@@ -1098,6 +1092,18 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						if (wroteData)
 						{
+							if (!cmdState.hadTime)
+							{
+								uint64_t time = curTime.count();
+
+								cmdState.cloneBuffer.Write(3, 5);
+								cmdState.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
+								cmdState.cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
+								cmdState.maybeFlushBuffer();
+
+								cmdState.hadTime = true;
+							}
+
 							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
 
 							if (len > 4096)
@@ -1591,13 +1597,18 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 	entity->lastResends = {};
 	entity->lastSyncs = {};
 
-	entity->syncTree->Visit([this](sync::NodeBase& node)
-	{
-		node.frameIndex = m_frameIndex + 1;
-		node.ackedPlayers.reset();
+	auto st = entity->syncTree;
 
-		return true;
-	});
+	if (st)
+	{
+		st->Visit([this](sync::NodeBase& node)
+		{
+			node.frameIndex = m_frameIndex + 1;
+			node.ackedPlayers.reset();
+
+			return true;
+		});
+	}
 }
 
 bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEntityState>& entity, const std::shared_ptr<fx::Client>& client)
@@ -2386,16 +2397,8 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 			}
 
 
-			{
-				auto entity = GetEntity(0, objectId);
-
-				auto [clientData, lock] = GetClientData(this, client);
-
-				if (!entity || entity->uniqifier == uniqifier)
-				{
-					clientData->pendingRemovals.reset(objectId);
-				}
-			}
+			auto [clientData, lock] = GetClientData(this, client);
+			clientData->pendingRemovals.reset(objectId);
 
 			break;
 		}

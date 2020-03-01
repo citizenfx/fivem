@@ -248,6 +248,9 @@ namespace fx
 		std::unique_ptr<CallbackListBase> m_mainThreadCallbacks;
 
 		std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
+
+		// only touched on network thread(!)
+		std::list<std::tuple<int, int, net::Buffer, NetPacketType>> m_netSendList;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;

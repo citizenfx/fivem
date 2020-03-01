@@ -1190,7 +1190,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			outBuffer.Write<uint16_t>(entry);
 		}
 
-		m_netLibrary->SendReliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 	}
 }
 
@@ -1738,7 +1738,7 @@ void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 {
 	auto lastSendVar = (msgType == HashString("netClones")) ? &m_lastSend : &m_lastAck;
 
-	if (buffer.GetDataLength() > 600 || (msec() - *lastSendVar) > 20ms)
+	if (buffer.GetDataLength() > 800 || ((msec() - *lastSendVar) > 20ms && buffer.GetDataLength() > 0))
 	{
 		buffer.Write(3, 7);
 

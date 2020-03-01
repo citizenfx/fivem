@@ -272,6 +272,7 @@ namespace fx
 			struct NetPersistentData
 			{
 				UvHandleContainer<uv_timer_t> tickTimer;
+				UvHandleContainer<uv_timer_t> sendTimer;
 
 				std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
 
@@ -285,6 +286,7 @@ namespace fx
 
 			// periodic timer for network ticks
 			auto frameTime = 1000 / 120;
+			auto sendTime = 1000 / 30;
 
 			auto mpd = netData.get();
 			
@@ -300,9 +302,22 @@ namespace fx
 					trace("network thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
 				}
 
-				m_net->Process();
 				OnNetworkTick();
+
+				m_net->Process();
 			}), frameTime, frameTime);
+
+			uv_timer_init(loop, &netData->sendTimer);
+			uv_timer_start(&netData->sendTimer, UvPersistentCallback(&netData->sendTimer, [this](uv_timer_t*)
+			{
+				while (!m_netSendList.empty())
+				{
+					const auto& [peer, channel, buffer, type] = m_netSendList.front();
+					m_net->SendPacket(peer, channel, buffer, type);
+
+					m_netSendList.pop_front();
+				}
+			}), sendTime, sendTime);
 
 			// event handle for callback list evaluation
 
@@ -450,7 +465,7 @@ namespace fx
 			return;
 		}
 
-		m_net->SendPacket(peer, channel, buffer, type);
+		m_netSendList.push_back({ peer, channel, buffer, type });
 	}
 
 	void GameServer::Run()
@@ -724,18 +739,27 @@ namespace fx
 		{
 			std::vector<std::shared_ptr<fx::Client>> toRemove;
 
+			bool lockdownMode = m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode() == fx::EntityLockdownMode::Strict;
+
 			m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 			{
 				auto peer = client->GetPeer();
 
 				if (peer)
 				{
-					net::Buffer outMsg;
-					outMsg.Write(HashRageString("msgFrame"));
-					outMsg.Write<uint32_t>(0);
-					outMsg.Write<uint8_t>(m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode() == fx::EntityLockdownMode::Strict);
+					const auto& lm = client->GetData("lockdownMode");
 
-					client->SendPacket(0, outMsg, NetPacketType_Unreliable);
+					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode)
+					{
+						net::Buffer outMsg;
+						outMsg.Write(HashRageString("msgFrame"));
+						outMsg.Write<uint32_t>(0);
+						outMsg.Write<uint8_t>(lockdownMode);
+
+						client->SendPacket(0, outMsg, NetPacketType_Reliable);
+
+						client->SetData("lockdownMode", lockdownMode);
+					}
 				}
 
 				// time out the client if needed
