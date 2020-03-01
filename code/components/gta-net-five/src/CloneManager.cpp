@@ -32,11 +32,6 @@
 
 rage::netObject* g_curNetObject;
 
-// these are temp
-void HandleClientDrop(const NetLibraryClientInfo& info);
-CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object);
-extern std::unordered_map<CNetGamePlayer*, uint16_t> g_netIdsByPlayer;
-
 void ObjectIds_AddObjectId(int objectId);
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
@@ -1224,17 +1219,6 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 		if (object == GetLocalPlayerPedNetObject())
 		{
 			return;
-		}
-
-		if (object->objectType == (int)NetObjEntityType::Player)
-		{
-			auto owner = netObject__GetPlayerOwner(object);
-
-			NetLibraryClientInfo i;
-			i.slotId = owner->physicalPlayerIndex;
-			i.netId = g_netIdsByPlayer[owner];
-
-			HandleClientDrop(i);
 		}
 
 		// set flags
