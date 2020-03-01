@@ -27,12 +27,15 @@ static void* getAndCheckPlayerInfo(fx::ScriptContext& context)
 }
 
 template<typename T, int* offset>
-static void readPlayerInfoMemory(fx::ScriptContext& context)
+static void readPlayerInfoMemory(fx::ScriptContext& context, T defaultValue)
 {
 	if (void* playerInfo = getAndCheckPlayerInfo(context))
 	{
 		context.SetResult<T>(*(T*)((char*)playerInfo + *offset));
+		return;
 	}
+
+	context.SetResult<T>(defaultValue);
 }
 
 static int WeaponDamageModifierOffset;
@@ -72,12 +75,14 @@ static HookFunction hookFunction([]()
 		context.SetResult(fx::SerializeObject(playerList));
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DAMAGE_MODIFIER", readPlayerInfoMemory<float, &WeaponDamageModifierOffset>);
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DEFENSE_MODIFIER", readPlayerInfoMemory<float, &WeaponDefenseModifierOffset>);
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DEFENSE_MODIFIER_2", readPlayerInfoMemory<float, &WeaponDefenseModifier2Offset>);
+	using namespace std::placeholders;
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_VEHICLE_DAMAGE_MODIFIER", readPlayerInfoMemory<float, &VehicleDamageModifierOffset>);
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_VEHICLE_DEFENSE_MODIFIER", readPlayerInfoMemory<float, &VehicleDefenseModifierOffset>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DAMAGE_MODIFIER", std::bind(readPlayerInfoMemory<float, &WeaponDamageModifierOffset>, _1, 0.0f));
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DEFENSE_MODIFIER", std::bind(readPlayerInfoMemory<float, &WeaponDefenseModifierOffset>, _1, 0.0f));
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DEFENSE_MODIFIER_2", std::bind(readPlayerInfoMemory<float, &WeaponDefenseModifier2Offset>, _1, 0.0f));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MELEE_WEAPON_DEFENSE_MODIFIER", readPlayerInfoMemory<float, &MeleeWeaponDefenseModifierOffset>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_VEHICLE_DAMAGE_MODIFIER", std::bind(readPlayerInfoMemory<float, &VehicleDamageModifierOffset>, _1, 0.0f));
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_VEHICLE_DEFENSE_MODIFIER", std::bind(readPlayerInfoMemory<float, &VehicleDefenseModifierOffset>, _1, 0.0f));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MELEE_WEAPON_DEFENSE_MODIFIER", std::bind(readPlayerInfoMemory<float, &MeleeWeaponDefenseModifierOffset>, _1, 0.0f));
 });
