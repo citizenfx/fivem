@@ -405,7 +405,7 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 
 void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 {
-	if (icgi->NetProtoVersion >= 0x202002271209)
+	/*if (icgi->NetProtoVersion >= 0x202002271209)
 	{
 		if (uniqifier == 0)
 		{
@@ -420,7 +420,7 @@ void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 		}
 
 		return;
-	}
+	}*/
 
 	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier && uniqifier != 0)
 	{
