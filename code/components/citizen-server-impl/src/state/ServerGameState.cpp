@@ -414,7 +414,7 @@ struct SyncCommandState
 {
 	rl::MessageBuffer cloneBuffer;
 	std::function<void()> flushBuffer;
-	std::function<void()> maybeFlushBuffer;
+	std::function<void(size_t)> maybeFlushBuffer;
 	uint64_t frameIndex;
 	std::shared_ptr<fx::Client> client;
 	bool hadTime;
@@ -478,9 +478,9 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 	}
 }
 
-static void MaybeFlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const std::shared_ptr<fx::Client>& client)
+static void MaybeFlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const std::shared_ptr<fx::Client>& client, size_t size = 0)
 {
-	if (LZ4_compressBound(buffer.GetDataLength()) > 1100)
+	if (LZ4_compressBound(buffer.GetDataLength() + (size / 8)) > 1100)
 	{
 		FlushBuffer(buffer, msgType, frameIndex, client);
 	}
@@ -520,9 +520,9 @@ void SyncCommandList::Execute()
 		FlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
 	};
 
-	scs.maybeFlushBuffer = [this, &scsSelf]()
+	scs.maybeFlushBuffer = [this, &scsSelf](size_t plannedBits)
 	{
-		MaybeFlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
+		MaybeFlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client, plannedBits);
 	};
 
 	for (auto& cmd : commands)
@@ -1096,10 +1096,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							{
 								uint64_t time = curTime.count();
 
+								cmdState.maybeFlushBuffer(3 + 32 + 32);
 								cmdState.cloneBuffer.Write(3, 5);
 								cmdState.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
 								cmdState.cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
-								cmdState.maybeFlushBuffer();
 
 								cmdState.hadTime = true;
 							}
@@ -1118,6 +1118,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								clientData->idsForGameState[cmdState.frameIndex].set(entity->handle & 0xFFFF);
 							}
 
+							cmdState.maybeFlushBuffer(3 + 13 + 16 + 4 + 32 + 16 + 32 + (len * 8));
 							cmdState.cloneBuffer.Write(3, syncType);
 							cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
 							cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
@@ -1153,8 +1154,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 								entity->lastSyncs[slotId] = entity->lastResends[slotId] = curTime;
 							}
-
-							cmdState.maybeFlushBuffer();
 						}
 					});
 				}
@@ -1189,9 +1188,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				for (auto i = ref.find_first(); i != ref.size(); i = ref.find_next(i))
 				{
+					cmdState.maybeFlushBuffer(16);
 					cmdState.cloneBuffer.Write(3, 3);
 					cmdState.cloneBuffer.Write(13, int32_t(i));
-					cmdState.maybeFlushBuffer();
 				}
 			});
 		}
