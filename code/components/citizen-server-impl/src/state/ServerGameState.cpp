@@ -480,7 +480,7 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 
 static void MaybeFlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const std::shared_ptr<fx::Client>& client, size_t size = 0)
 {
-	if (LZ4_compressBound(buffer.GetDataLength() + (size / 8)) > 1100)
+	if (LZ4_compressBound(buffer.GetDataLength() + (size / 8)) > (1100 - 12 - 12))
 	{
 		FlushBuffer(buffer, msgType, frameIndex, client);
 	}
@@ -1118,7 +1118,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								clientData->idsForGameState[cmdState.frameIndex].set(entity->handle & 0xFFFF);
 							}
 
-							cmdState.maybeFlushBuffer(3 + 13 + 16 + 4 + 32 + 16 + 32 + (len * 8));
+							cmdState.maybeFlushBuffer(3 + 13 + 16 + 4 + 32 + 16 + 32 + 12 + (len * 8));
 							cmdState.cloneBuffer.Write(3, syncType);
 							cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
 							cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
@@ -1905,6 +1905,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 {
 	auto playerId = 0;
 	auto objectId = inPacket.Read<uint16_t>(13);
+	auto uniqifier = inPacket.Read<uint16_t>(16);
 
 	// TODO: verify ownership
 	auto entity = GetEntity(0, objectId);
@@ -1912,7 +1913,7 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 	// ack remove no matter if we accept it
 	ackPacket.Write(3, 3);
 	ackPacket.Write(13, objectId);
-	ackPacket.Write(16, (entity) ? entity->uniqifier : 0);
+	ackPacket.Write(16, uniqifier);
 	ackPacket.flush();
 
 	if (entity)
@@ -1929,6 +1930,13 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 
 				return;
 			}
+		}
+
+		if (entity->uniqifier != uniqifier)
+		{
+			GS_LOG("%s: wrong uniqifier (%d - %d->%d)\n", __func__, objectId, uniqifier, entity->uniqifier);
+
+			return;
 		}
 	}
 
@@ -2380,7 +2388,6 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 		case 3: // clone remove
 		{
 			auto objectId = msgBuf.Read<uint16_t>(13);
-			auto uniqifier = msgBuf.Read<uint16_t>(16);
 
 			// if there's already an existing entity, unack creation here as well (so we know the client
 			// currently has *not* created the entity)
