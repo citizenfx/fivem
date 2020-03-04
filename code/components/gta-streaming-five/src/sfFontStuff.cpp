@@ -114,6 +114,7 @@ static void UpdateFontLoading()
 			else
 			{
 				cstreaming->RequestObject(strIdx, 0);
+				streaming::LoadObjectsNow(false);
 			}
 		}
 		else
