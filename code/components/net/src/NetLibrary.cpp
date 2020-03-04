@@ -428,7 +428,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 					errText += fmt::sprintf("\n%s", CollectTimeoutInfo());
 				}
 
-				GlobalError("%s", errText);
+				GlobalError("Disconnected by server: %s", errText);
 			}
 		}
 	}
