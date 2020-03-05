@@ -542,6 +542,7 @@ static HookFunction hookFunction([] ()
 	// also 1365
 	// and 1493
 	// 1604 changed 08 to 09
+	// 1868-fine
 	auto pMatch = hook::pattern("48 89 96 ? 09 00 00").count(1).get(0);
 
 	char* location = pMatch.get<char>(-11);

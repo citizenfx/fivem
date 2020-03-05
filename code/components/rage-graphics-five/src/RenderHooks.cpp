@@ -747,11 +747,11 @@ struct GameRenderData
 	}
 };
 
-// 1365
-// 1604
+static rage::grcRenderTargetDX11** g_backBuffer;
+
 static auto GetBackbuf()
 {
-	return *(rage::grcRenderTargetDX11 * *)hook::get_adjusted(0x142AD7A88);
+	return *g_backBuffer;
 }
 
 void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
@@ -1082,6 +1082,7 @@ void CaptureBufferOutput()
 		HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 		if FAILED(hr)
 		{
+			return;
 			// error handling code
 		}
 
@@ -1318,6 +1319,8 @@ static LONG_PTR SetWindowLongPtrAHook(HWND hWnd,
 static HookFunction hookFunction([] ()
 {
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
+
+	g_backBuffer = hook::get_address<decltype(g_backBuffer)>(hook::get_pattern("48 8B D0 48 89 05 ? ? ? ? EB 07 48 8B 15", 6));
 
 	// device creation
 	void* ptrFunc = hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(33);

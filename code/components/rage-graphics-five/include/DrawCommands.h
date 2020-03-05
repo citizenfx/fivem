@@ -75,6 +75,7 @@ namespace rage
 
 		void PopTechnique();
 
+#if 0
 		inline int GetParameter(const char* name)
 		{
 			return m_shader->GetParameter(name);
@@ -94,6 +95,7 @@ namespace rage
 		{
 			return m_shader->SetParameter(this, index, data, size, count);
 		}
+#endif
 	};
 
 	class GFXSPEC_EXPORT_VMT grmShaderFactory

@@ -693,7 +693,8 @@ static HookFunction hookFunction{[] ()
 	}
 
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
-	hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
+	// #TODO1737: around 0x140D376DD
+	//hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 
 	// vehicles.meta explosionInfo field invalidity
 	MH_Initialize();
