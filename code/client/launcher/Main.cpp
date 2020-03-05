@@ -203,14 +203,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// toggle wait for switch
 	if (wcsstr(GetCommandLineW(), L"-switchcl"))
 	{
-		static HostSharedData<CfxState> initStateOld("CfxInitState");
+		// if this isn't a subprocess
+		wchar_t fxApplicationName[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
 
-		HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
-
-		if (hProcess)
+		if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
 		{
-			WaitForSingleObject(hProcess, INFINITE);
-			CloseHandle(hProcess);
+			static HostSharedData<CfxState> initStateOld("CfxInitState");
+
+			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
+
+			if (hProcess)
+			{
+				WaitForSingleObject(hProcess, INFINITE);
+				CloseHandle(hProcess);
+			}
 		}
 	}
 
