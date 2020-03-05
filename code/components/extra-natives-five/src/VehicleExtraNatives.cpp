@@ -69,13 +69,13 @@ static fwEntity* getAndCheckVehicle(fx::ScriptContext& context, std::string_view
 
 	if (!vehicle)
 	{
-		traceFn("%s: No such entity\n");
+		traceFn("No such entity");
 		return nullptr;
 	}
 
 	if (!vehicle->IsOfType<CVehicle>())
 	{
-		traceFn("%s: Can not read from an entity that is not a vehicle\n");
+		traceFn("Can not read from an entity that is not a vehicle");
 		return nullptr;
 	}
 
