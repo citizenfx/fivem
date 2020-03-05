@@ -134,11 +134,12 @@ struct GameCacheStorageEntry
 };
 
 // global cache mapping of ROS files to disk files
-static GameCacheEntry g_requiredEntries[] =
+static std::vector<GameCacheEntry> g_requiredEntries =
 {
 #if defined(GTA_FIVE)
-	{ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/GTA5.exe", 72484280, 1031302600 },
-	{ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600 },
+	//{ "GTA5.exe", "79a272830be65afae4acd520bfbfe176e0b142f3", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1737_0.exe", "$/GTA5.exe", 77631632, 1189307336 },
+	//{ "update/update.rpf", "8a98e0879b91661dd2aa23f86abdf91ee741b237", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1737_0.exe", "$/update/update.rpf", 1171902464, 1189307336 },
+
 	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
 	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
@@ -1027,8 +1028,24 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	return true;
 }
 
+#include <CrossBuildRuntime.h>
+
 std::map<std::string, std::string> UpdateGameCache()
 {
+	// 1604/1868 toggle
+#ifdef GTA_FIVE
+	if (!Is1868())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/GTA5.exe", 72484280, 1031302600 });
+		g_requiredEntries.push_back({ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600 });
+	}
+	else
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "79a272830be65afae4acd520bfbfe176e0b142f3", "https://mirrors.fivem.net/patches/1868.0/GTA5.exe", 77631632 });
+		g_requiredEntries.push_back({ "update/update.rpf", "8a98e0879b91661dd2aa23f86abdf91ee741b237", "https://mirrors.fivem.net/patches/1868.0/update.rpf", 1171902464 });
+	}
+#endif
+
 	// delete bad migration on 2019-01-10 (incorrect update.rpf download URL caused Steam users to fetch 1493.1 instead of 1604.0)
 	{
 		auto dataPath = MakeRelativeCitPath(L"cache\\game\\cache.dat");

@@ -7,6 +7,7 @@
 #include <Streaming.h>
 #include <nutsnbolts.h>
 
+#include <StatusText.h>
 #include <StreamingEvents.h>
 
 #include <shared_mutex>
@@ -183,13 +184,11 @@ static void StreamingProgress_Update()
 
 		std::string str = fmt::sprintf("Downloading assets (%d of %d)... (%.2f/%.2f MB)", std::min(g_downloadDone.size(), g_downloadList.size()), g_downloadList.size(), std::min(downloadDone, downloadSize) / 1024.0 / 1024.0, downloadSize / 1024.0 / 1024.0);
 
-		// 1604
-		((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(str.c_str(), 5, 2);
+		ActivateStatusText(str.c_str(), 5, 2);
 	}
 	else
 	{
-		// 1604
-		((void(*)(int))hook::get_adjusted(0x1401C3438))(2);
+		DeactivateStatusText(2);
 
 		g_downloadList.clear();
 		g_downloadDone.clear();

@@ -270,12 +270,13 @@ static InitFunction initFunction([]
 	});
 });
 
+#if 0
 static HookFunction hookFunction([]
 {
-	// 1604
+	// 1604 unused
 	auto location = 0x1404F48C1;
-	hook::set_call(&g_origThing, location);
-	hook::call(location, WrapThing);
+	//hook::set_call(&g_origThing, location);
+	//hook::call(location, WrapThing);
 });
 
 static rage::grmShaderFx* g_default;
@@ -372,21 +373,25 @@ static const float g_uv_buffer_data[] = {
 
 static hook::cdecl_stub<void(void*)> _waitAsReader([]()
 {
+	// 1604 unused
 	return (void*)0x1403385E8;
 });
 
 static hook::cdecl_stub<void(void*)> _releaseAsReader([]()
 {
+	// 1604 unused
 	return (void*)0x140331664;
 });
 
 static hook::cdecl_stub<uint16_t(void*, void*)> _getFirstCulledInstance([]()
 {
+	// 1604 unused
 	return (void*)0x14145AC54;
 });
 
 static hook::cdecl_stub<uint16_t(void*, void*)> _getNextCulledInstance([]()
 {
+	// 1604 unused
 	return (void*)0x14145AF60;
 });
 
@@ -411,12 +416,12 @@ namespace rage
 		return _releaseAsReader(this);
 	}
 
-	// 1604
+	// 1604 unused
 	phMultiReaderLockToken* g_GlobalPhysicsLock = (phMultiReaderLockToken*)0x142CDD1E0;
 
 	class phLevel;
 
-	// 1604
+	// 1604 unused
 	phLevel** g_level = (phLevel**)0x14248F668;
 
 	class phIterator
@@ -609,7 +614,7 @@ static void RenderBound(const DirectX::XMFLOAT4X4& matrix, rage::five::phBound* 
 
 		int passes = g_emissive->PushTechnique(0, true, 0);
 
-		// 1604, none
+		// 1604, none (unused)
 		g_emissive->SetSampler(g_esampler, *(rage::grcTexture**)0x142B07FD8);
 
 		auto q = XMVectorSet(quantum.x, quantum.y, quantum.z, 1.0f);
@@ -860,7 +865,7 @@ static HookFunction shaderHookFunction([]()
 		g_normal_buffer_data[start + 6 + 2] = XMVectorGetZ(n);
 	}
 
-	// 1604
+	// 1604 unused
 	// fuck the world
 	hook::return_function(0x14050EC94);
 
@@ -3058,6 +3063,7 @@ static InitFunction initFunctionSceneExperiment([]()
 	// again it's fucked and won't ever work
 	return;
 
+	// 1604 unused
 	OnPostFrontendRender.Connect([]()
 	{
 		//GetD3D11DeviceContext()->ClearDepthStencilView(NULL, D3D11_CLEAR_DEPTH, 0.0f, 0);
@@ -3228,3 +3234,4 @@ static InitFunction initFunctionSceneExperiment([]()
 		((void(*)())0x14054CB58)();
 	}, 99999);
 });
+#endif

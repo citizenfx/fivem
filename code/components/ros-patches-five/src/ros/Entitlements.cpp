@@ -21,6 +21,8 @@
 #include <cpr/cpr.h>
 #include <ICoreGameInit.h>
 
+#include <CrossBuildRuntime.h>
+
 using json = nlohmann::json;
 
 int StoreDecryptedBlob(void* a1, void* a2, uint32_t a3, void* inOutBlob, uint32_t a5, void* a6);
@@ -711,7 +713,29 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 		}
 		else if (postData["branchAccessToken"].find("GTA5") != std::string::npos)
 		{
-			return fmt::sprintf(R"(
+			if (Is1868())
+			{
+				return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="81" VersionNumber="1.0.1868.0" BuildDateUtc="2019-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="77631632" TimestampUtc="2019-11-05T11:39:34.8800000">
+			<RelativePath>GTA5.exe</RelativePath>
+			<SHA256Hash>af4cfb1ff9b5eb0b0de09bc00c67826b214d8f57ea8078fee15f86beded3ef5a</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="af4cfb1ff9b5eb0b0de09bc00c67826b214d8f57ea8078fee15f86beded3ef5a" StartByteOffset="0" Size="77631632" />
+			</FileChunks>
+		</FileDetails>
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)");
+			}
+			else
+			{
+				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
   <Status>1</Status>
@@ -728,6 +752,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     <IsPreload>false</IsPreload>
   </Result>
 </Response>)");
+			}
 		}
 
 		return std::string{ R"(<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="RetrieveFileChunkNoAuth" ms="0">
@@ -782,7 +807,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 
 	mapper->AddGameService("app.asmx/GetApps", [](const std::string& body)
 	{
-		return R"(<?xml version="1.0" encoding="utf-8"?>
+		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetApps">
   <Status>1</Status>
   <Result>
@@ -794,7 +819,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </App>
     <App Id="3" Name="gta5" TitleId="11" IsReleased="true">
       <Branches>
-        <Branch Id="13" Name="default" BuildId="80" IsDefault="true" AppId="3">
+        <Branch Id="13" Name="default" BuildId="%d" IsDefault="true" AppId="3">
           <AccessToken>BRANCHACCESS token="GTA5",signature="GTA5"</AccessToken>
         </Branch>
       </Branches>
@@ -830,7 +855,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
       <Branches />
     </App>
   </Result>
-</Response>)";
+</Response>)", Is1868() ? 81 : 80);
 	});
 
 

@@ -305,6 +305,6 @@ static HookFunction hookFunction([]()
 	hook::set_call(&getHtmlTextExtent, hook::get_pattern("48 8B 55 60 45 33 E4 4C 89", -0x5B));
 	hook::jump(hook::get_pattern("0F 29 70 D8 4D 8B F0 48 8B F2 0F 28 F3", -0x1F), GetHtmlTextExtentWrap);
 
-	// 1604
+	// 1604 unused
 	//*(void**)0x1419F4858 = GfxLog;
 });

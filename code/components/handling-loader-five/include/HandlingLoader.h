@@ -117,9 +117,10 @@ class CVehicle
 {
 private:
 	//char m_pad[0x8C0]; // 1290, 1365, 1493
-	char m_pad[0x910]; // 1604
+	char m_pad[0x910]; // 1604, 1737, 1868
 	CHandlingData* m_handlingData;
-	// find ^ with `85 C0 74 49 48 8B 86 ? ? 00 00 48 8B CE` ??s
+	// find ^ with `85 C0 74 49 48 8B 86 ? ? 00 00 48 8B CE` ??s (before 1604)
+	// 1604+: `75 4D 48 8B 86 ? ? ? ? F6 80`
 
 public:
 	virtual ~CVehicle() = 0;

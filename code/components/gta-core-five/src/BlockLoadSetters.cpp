@@ -25,6 +25,7 @@
 #include <Error.h>
 
 #include <LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
 {
@@ -967,7 +968,14 @@ static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
 
 static void FreeEntry(void* allocator, void* ptr)
 {
-	if (!isMine(allocator, ptr))
+	if (*(void**)0x1424AC9B8 && ptr == **(void***)0x1424AC9B8)
+	{
+		__debugbreak();
+	}
+
+	g_origMemFree(allocator, ptr);
+
+	/*if (!isMine(allocator, ptr))
 	{
 		g_origMemFree(allocator, ptr);
 		return;
@@ -975,7 +983,7 @@ static void FreeEntry(void* allocator, void* ptr)
 
 	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
 
-	HeapFree(hHeap, 0, memReal);
+	HeapFree(hHeap, 0, memReal);*/
 	//free(memReal);
 }
 
@@ -1156,10 +1164,21 @@ void ShutdownSessionWrap()
 		OnMainGameFrame();
 
 		// 1604 (same as nethook)
-		((void(*)())hook::get_adjusted(0x1400067E8))();
-		((void(*)())hook::get_adjusted(0x1407D1960))();
-		((void(*)())hook::get_adjusted(0x140025F7C))();
-		((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
+		// 1868
+		if (!Is1868())
+		{
+			((void(*)())hook::get_adjusted(0x1400067E8))();
+			((void(*)())hook::get_adjusted(0x1407D1960))();
+			((void(*)())hook::get_adjusted(0x140025F7C))();
+			((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
+		}
+		else
+		{
+			((void(*)())hook::get_adjusted(0x1400067F8))();
+			((void(*)())hook::get_adjusted(0x1407DDC5C))();
+			((void(*)())hook::get_adjusted(0x1400263C0))();
+			((void(*)(void*))hook::get_adjusted(0x1415B924C))((void*)hook::get_adjusted(0x142E00A00));
+		}
 
 		g_runWarning();
 	}
@@ -1496,7 +1515,7 @@ static HookFunction hookFunction([] ()
 	//vt[2] = AllocEntry;
 	
 	g_origMemFree = (decltype(g_origMemFree))vt[4];
-	//vt[4] = FreeEntry;
+	vt[4] = FreeEntry;
 
 	g_origRealloc = (decltype(g_origRealloc))vt[6];
 	//vt[6] = ReallocEntry;
