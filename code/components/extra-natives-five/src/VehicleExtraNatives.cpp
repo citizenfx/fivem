@@ -198,6 +198,9 @@ const int WheelSteeringAngleOffset = 0x1CC;
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
 
+static char* VehicleTopSpeedModifierPtr;
+static int VehicleCheatPowerIncreaseOffset;
+
 static void(*g_origDeleteVehicle)(void* vehicle);
 
 static void DeleteVehicleWrap(fwEntity* vehicle)
@@ -270,6 +273,11 @@ static void DeleteNetworkCloneWrap(void* objectMgr, void* netObject, int reason,
 
 static HookFunction initFunction([]()
 {
+	{
+		VehicleTopSpeedModifierPtr = hook::get_pattern<char>("48 8B D9 48 81 C1 ? ? ? ? 48 89 5C 24 28 44 0F 29 40 C8");
+		VehicleCheatPowerIncreaseOffset = *hook::get_pattern<int>("E8 ? ? ? ? 8B 83 ? ? ? ? C7 83", 23);
+	}
+
 	// not a vehicle native
 	static uint32_t setAngVelocityOffset = *hook::get_pattern<uint32_t>("75 11 48 8B 06 48 8D 54 24 20 48 8B CE FF 90", 15) / 8;
 
@@ -626,6 +634,31 @@ static HookFunction initFunction([]()
 	{
 		*reinterpret_cast<float *>(wheelAddr + WheelXOffsetOffset) = context.GetArgument<float>(2);
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TOP_SPEED_MODIFIER", [](fx::ScriptContext& context)
+	{
+		float result = -1.0f;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_TOP_SPEED_MODIFIER"))
+		{
+			auto value = (uint64_t)vehicle + *(uint32_t*)(VehicleTopSpeedModifierPtr + 6) + *(uint32_t*)(VehicleTopSpeedModifierPtr + 32);
+			result = *(float*)value;
+		}
+
+		context.SetResult<float>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CHEAT_POWER_INCREASE", [](fx::ScriptContext& context)
+	{
+		float result = -1.0f;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_CHEAT_POWER_INCREASE"))
+		{
+			result = *(float*)((uint64_t)vehicle + VehicleCheatPowerIncreaseOffset);
+		}
+
+		context.SetResult<float>(result);
+	});
 
 	static struct : jitasm::Frontend
 	{
