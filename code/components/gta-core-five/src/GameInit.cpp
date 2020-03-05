@@ -101,10 +101,13 @@ static void(*g_origLoadMultiplayerTextChat)();
 static HookFunction hookFunction([]()
 {
 	// really bad pattern pointing to switch-to-netgame
-	auto location = hook::get_pattern("E8 ? ? ? ? B9 08 00 00 00 E8 ? ? ? ? E8", 15);
+	//auto location = hook::get_pattern("E8 ? ? ? ? B9 08 00 00 00 E8 ? ? ? ? E8", 15);
 
-	hook::set_call(&g_origLoadMultiplayerTextChat, location);
-	hook::nop(location, 5);
+	//hook::set_call(&g_origLoadMultiplayerTextChat, location);
+	//hook::nop(location, 5);
+
+	// 1737: screwed by Arxan
+	// #TODO1737
 
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
@@ -139,7 +142,10 @@ static InitFunction initFunction([] ()
 
 			// also early-load MULTIPLAYER_TEXT_CHAT gfx, this changed sometime between 323 and 505
 			// and also causes a blocking load.
-			g_origLoadMultiplayerTextChat();
+			//g_origLoadMultiplayerTextChat();
+
+			// 1737: screwed by Arxan
+			// #TODO1737
 
 			g_gameInit.SetGameLoaded();
 		}

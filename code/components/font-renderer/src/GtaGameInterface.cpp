@@ -12,6 +12,7 @@
 #include <ICoreGameInit.h>
 #include <CoreConsole.h>
 #include <LaunchMode.h>
+#include <CrossBuildRuntime.h>
 #include <utf8.h>
 
 #include "memdbgon.h"
@@ -379,7 +380,7 @@ static InitFunction initFunction([] ()
 					break;
 			}
 
-			std::wstring_view brandName = L"FiveM";
+			std::wstring brandName = L"FiveM";
 			std::wstring userName = L"";
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
@@ -413,6 +414,11 @@ static InitFunction initFunction([] ()
 				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 				{
 					brandName = L"FiveM/OneSync-ALPHA";
+				}
+
+				if (Is1868())
+				{
+					brandName += L" (b1868)";
 				}
 #endif
 

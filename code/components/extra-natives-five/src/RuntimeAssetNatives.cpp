@@ -7,6 +7,8 @@
 
 #include <scrBind.h>
 
+#include <CrossBuildRuntime.h>
+
 #define RAGE_FORMATS_GAME five
 #define RAGE_FORMATS_GAME_FIVE
 
@@ -994,6 +996,9 @@ static InitFunction initFunction([]()
 				CMapData* mapData = new CMapData();
 
 				// 1604, temp
+				// #TODOXBUILD: block 1868
+				assert(!Is1868());
+
 				*(uintptr_t*)mapData = 0x1419343E0;
 				mapData->name = HashString(nameRef.c_str());
 				mapData->contentFlags = 73;

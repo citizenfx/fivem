@@ -156,7 +156,7 @@ static HookFunction hookFunction([]()
 	// second arxan function
 	{
 		// 6 callers, many of which annoyingly patterned, so hardcoded
-		// 1604
+		// 1604 unused
 		auto location = hook::get_adjusted(0x140D57C62);
 		hook::set_call(&g_origQueueStrTask, location);
 		hook::call(location, CustomQueueStrTask);
