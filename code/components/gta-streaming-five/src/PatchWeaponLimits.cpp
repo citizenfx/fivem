@@ -3,6 +3,8 @@
 #include <Local.h>
 #include <Hooking.h>
 
+#include <CrossBuildRuntime.h>
+
 class CWeaponComponentInfo
 {
 public:
@@ -76,7 +78,6 @@ static HookFunction initFunction([]()
 		{ "43 8D 0C 08 48 8D 35 ? ? ? ? D1 F9", 1, 0, 7 },
 		{ "43 8D 14 1A 48 8D 0D ? ? ? ? D1 FA", 1, 0, 7 },
 		{ "42 8D 14 01 48 8D 1D ? ? ? ? D1 FA", 1, 0, 7 },
-		{ "47 8D 14 0B 4C 8D 05 ? ? ? ? 41 D1 FA", 1, 0, 7 },
 		{ "46 8D 04 0A 4C 8D 15 ? ? ? ? 41 D1 F8", 1, 0, 7 }, // 0x6CF598A2957C2BF8
 		{ "46 8D 04 11 48 8D 15 ? ? ? ? 41 D1 F8", 1, 0, 7 }, // 0x5CEE3DF569CECAB0
 		{ "47 8D 0C 10 48 8D 0D ? ? ? ? 41 D1 F9", 1, 0, 7 }, // 0xB3CAF387AE12E9F8
@@ -86,4 +87,17 @@ static HookFunction initFunction([]()
 		{ "46 8D 04 0A 48 8D 0D ? ? ? ? 41 D1 F8", 1, 0, 7 }, // 0x3133B907D8B32053
 		{ "33 DB 48 8D 3D ? ? ? ? 8B D3", 1, 0, 5 } // _loadWeaponComponentInfos
 	});
+
+	if (Is1868())
+	{
+		RelocateRelative({
+			{ "48 8D 1D ? ? ? ? 41 39 BE 54 01 00 00 76 7E", 1, 0, 3 }, // 1868+
+		});
+	}
+	else
+	{
+		RelocateRelative({
+			{ "47 8D 14 0B 4C 8D 05 ? ? ? ? 41 D1 FA", 1, 0, 7 },
+		});
+	}
 });

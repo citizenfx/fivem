@@ -2,6 +2,8 @@
 #include <Hooking.h>
 #include <MinHook.h>
 
+#include <CrossBuildRuntime.h>
+
 enum KeyboardKeys
 {
 	KEY_NULL = 0,
@@ -198,7 +200,7 @@ struct KeyLayoutMap
 	char pad[2];
 };
 
-struct ControlClass
+struct ControlClass1604
 {
 	// 1604
 	uint8_t pad[2544];
@@ -207,11 +209,21 @@ struct ControlClass
 	uint32_t numKeys;
 };
 
+struct ControlClass1868
+{
+	// 1868 (+8)
+	uint8_t pad[2544 + 8];
+
+	KeyLayoutMap keys[255];
+	uint32_t numKeys;
+};
+
 static void(*g_origLoadLayout)(void*);
 
-static ControlClass* g_controlData;
+static void* g_controlData;
 
-static void UpdateControlData(ControlClass* a1)
+template<typename TClass>
+static void UpdateControlData(TClass* a1)
 {
 	auto hkl = LoadKeyboardLayoutW(L"00000409", 0);
 
@@ -240,7 +252,8 @@ static void UpdateControlData(ControlClass* a1)
 	//UnloadKeyboardLayout(hkl);
 }
 
-static void LoadKeyboardLayoutWrap(ControlClass* a1)
+template<typename TClass>
+static void LoadKeyboardLayoutWrap(TClass* a1)
 {
 	g_origLoadLayout(a1);
 
@@ -257,7 +270,14 @@ static void OnInputLanguageChange()
 
 	if (g_controlData)
 	{
-		UpdateControlData(g_controlData);
+		if (Is1868())
+		{
+			UpdateControlData((ControlClass1868*)g_controlData);
+		}
+		else
+		{
+			UpdateControlData((ControlClass1604*)g_controlData);
+		}
 	}
 }
 
@@ -266,7 +286,7 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 45 88 48 3B D8 74 1E");
 		hook::set_call(&g_origLoadLayout, location);
-		hook::call(location, LoadKeyboardLayoutWrap);
+		hook::call(location, (Is1868() ? (void*)&LoadKeyboardLayoutWrap<ControlClass1868> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
 	}
 
 	{

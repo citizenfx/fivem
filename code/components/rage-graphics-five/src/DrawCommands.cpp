@@ -441,59 +441,60 @@ ID3D11DeviceContext* GetD3D11DeviceContext()
 	return *(ID3D11DeviceContext**)(*(uintptr_t*)(__readgsqword(88)) + g_d3d11DeviceContextOffset);
 }
 
+#if 0
 namespace rage
 {
 	static hook::cdecl_stub<bool(grmShaderFx*, const char*, void*, bool)> _grmShaderFx_LoadTechnique([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x141330094;
 	});
 
 	static hook::cdecl_stub<int(grmShaderFx*, int, bool, int)> _grmShaderFx_PushTechnique([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x14132E0F8;
 	});
 
 	grmShaderFactory* grmShaderFactory::GetInstance()
 	{
-		// 1604
+		// 1604-unused
 		return *(grmShaderFactory**)0x142B40F78;
 	}
 
 	static hook::cdecl_stub<void(grmShaderDef*, int, grmShaderFx*)> _grmShaderDef_PushPass([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x1412ECD74;
 	});
 
 	static hook::cdecl_stub<void(grmShaderDef*)> _grmShaderDef_PopPass([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x1412F630C;
 	});
 
 	static hook::cdecl_stub<int(grmShaderDef*, const char*)> _grmShaderDef_GetParameter([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x141304028;
 	});
 
 	static hook::cdecl_stub<int(grmShaderDef*, const char*)> _grmShaderDef_GetTechnique([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x141303EAC;
 	});
 
 	static hook::cdecl_stub<void(grmShaderDef*, grmShaderFx*, int, void*)> _grmShaderDef_SetSampler([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x14130CE88;
 	});
 
 	static hook::cdecl_stub<void(grmShaderDef*, grmShaderFx*, int, const void*, int, int)> _grmShaderDef_SetParameter([]()
 	{
-		// 1604
+		// 1604-unused
 		return (void*)0x14130AB8C;
 	});
 
@@ -549,14 +550,14 @@ namespace rage
 
 	void grmShaderFx::PopTechnique()
 	{
-		// 1604
+		// 1604-unused
 		*(void**)0x142B07F80 = nullptr;
 	}
 }
 
 static hook::cdecl_stub<void(const float*)> _setWorldMatrix([]()
 {
-	// 1604
+	// 1604-unused
 	return (void*)0x141309F58;
 });
 
@@ -586,17 +587,18 @@ void RunScannedEntityList(void* a1, void* a2, void* a3, void* a4, void* a5, void
 
 	g_origRunScannedEntityList(a1, a2, a3, a4, a5, a6, a7);
 }
+#endif
 
 static HookFunction hookFunction([] ()
 {
-	MH_Initialize();
-	// 1604, TEMP/TODO
+	//MH_Initialize();
+	// 1604, TEMP/TODO, unused
 	//MH_CreateHook((void*)0x1404E9884, RenderEntityList, (void**)& g_origRenderEntityList);
-	MH_CreateHook((void*)0x1415955E0, RunScannedEntityList, (void**)&g_origRunScannedEntityList);
+	// -> this MH_CreateHook((void*)0x1415955E0, RunScannedEntityList, (void**)&g_origRunScannedEntityList);
 	//hook::set_call(&g_origRunOnEntityList, )
 	//hook::set_call(&g_origRenderEntityList, 0x1404F3D8D);
 	//hook::call(0x1404F31C8, RenderEntityList);
-	MH_EnableHook(MH_ALL_HOOKS);
+	//MH_EnableHook(MH_ALL_HOOKS);
 
 	char* location = hook::pattern("44 8B CE 33 D2 48 89 0D").count(1).get(0).get<char>(8);
 
@@ -675,10 +677,15 @@ static HookFunction hookFunction([] ()
 	}, -500);
 
 	// set immediate mode vertex limit to 8x what it was (so, 32 MB)
-	// 1604
-	hook::nop(0x1412FD99C, 6); // setter
-	hook::put<uint8_t>(0x1412FD99C, 0xB8); // write to eax for later
-	hook::put<uint32_t>(0x1412FD99C + 1, 0x4000000);
-	hook::put<uint32_t>(0x141D7D194, 0x4000000);
-	hook::put<uint32_t>(0x141D7D198, 0x7FFF8 * 4);
+	{
+		auto location = hook::get_pattern<char>("44 89 74 24 74 89 05 ? ? ? ? 89 44", 5);
+
+		auto refloc = hook::get_address<char*>(location + 2);
+		hook::put<uint32_t>(refloc, 0x4000000);
+		hook::put<uint32_t>(refloc + 4, 0x7FFF8 * 4);
+
+		hook::nop(location, 6); // setter
+		hook::put<uint8_t>(location, 0xB8); // write to eax for later
+		hook::put<uint32_t>(location + 1, 0x4000000);
+	}
 });

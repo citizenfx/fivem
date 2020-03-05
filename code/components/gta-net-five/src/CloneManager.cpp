@@ -370,6 +370,11 @@ void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 	Log("%s: create ack %d\n", __func__, objId);
 }
 
+static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int)> _processAck([]()
+{
+	return hook::get_pattern("45 32 ED FF 50 20 8B CB 41", -0x34);
+});
+
 void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 {
 	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier)
@@ -393,11 +398,7 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 
 			if (netObj->m_20())
 			{
-				// 1290
-				// 1365
-				// 1493
-				// 1604
-				((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))hook::get_adjusted(0x141613EAC))(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
+				_processAck(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
 			}
 		}
 	}
@@ -1352,6 +1353,11 @@ static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDis
 	return hook::get_call(hook::get_pattern("0F 29 4C 24 30 0F 28 C8 E8", 8));
 });
 
+static hook::cdecl_stub<void(rage::netObjectMgr*, rage::netObject*)> _processRemoveAck([]()
+{
+	return hook::get_pattern("39 42 74 75 12 39 42 70 75 0D", -0x11);
+});
+
 void CloneManagerLocal::WriteUpdates()
 {
 	auto objectMgr = rage::netObjectMgr::GetInstance();
@@ -1445,12 +1451,7 @@ void CloneManagerLocal::WriteUpdates()
 				object->syncData.creationAckedPlayers &= ~(1 << 31);
 
 				// pretend to ack the remove to process removal
-				// 1103
-				// 1290
-				// 1365
-				// 1493
-				// 1604
-				((void(*)(rage::netObjectMgr*, rage::netObject*))hook::get_adjusted(0x1416038B0))(objectMgr, object);
+				_processRemoveAck(objectMgr, object);
 			}
 
 			// don't actually continue sync

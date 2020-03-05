@@ -416,8 +416,11 @@ static HookFunction hookFunction([] ()
 		hook::call(location, ArchetypeDtorHook1);
 	}
 
-	// 1604
-	g_archetypeHash = (atHashMapReal<uint32_t>*)0x141DC7A30;
-	g_archetypeStart = (char**)0x141DC79D0;
-	g_archetypeLength = (size_t*)0x141DC79E8;
+	{
+		auto getArchetypeFn = hook::get_pattern<char>("0F 84 AD 00 00 00 44 0F B7 C0 33 D2", 20);
+
+		g_archetypeHash = (atHashMapReal<uint32_t>*)hook::get_address<void*>(getArchetypeFn);
+		g_archetypeStart = (char**)hook::get_address<void*>(getArchetypeFn + 0x84);
+		g_archetypeLength = (size_t*)hook::get_address<void*>(getArchetypeFn + 0x7D);
+	}
 });

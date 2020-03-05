@@ -7,6 +7,8 @@
 
 #include <CfxState.h>
 
+#include <CrossBuildRuntime.h>
+
 static WNDPROC origWndProc;
 
 static bool g_isFocused = true;
@@ -312,12 +314,12 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 	lastInput = curInput;
 
-	if (!a1 && !caught)
+	if (!a1 && !caught && !Is1868())
 	{
 		int off = ((*(int*)(0x142B3FD18) - 1) & 1) ? 4 : 0;
 
 		// TODO: handle flush of keyboard
-		// 1604
+		// 1604-rg
 		memcpy((void*)0x142B3FAD0, rgd->keyboardState, 256);
 		*(uint32_t*)(0x142B3FD08 + off) = curInput.mouseX;
 		*(uint32_t*)(0x142B3FD10 + off) = curInput.mouseY;
@@ -398,9 +400,9 @@ static HookFunction hookFunction([] ()
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 
-	if (initState->isReverseGame)
+	if (initState->isReverseGame && !Is1868())
 	{
-		// 1604
+		// 1604-rg
 		// rg
 		hook::set_call(&origSetInput, 0x1407D1840);
 		hook::call(0x1407D1840, SetInputWrap);
