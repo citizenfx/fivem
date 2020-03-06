@@ -1891,7 +1891,11 @@ static HookFunction hookFunction([] ()
 	// disable unknown stuff
 	{
 		// 1032/1103!
-		hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
+		if (!Is1868())
+		{
+			// 1868 integrity checks this
+			hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
+		}
 	}
 
 	// network timeout
