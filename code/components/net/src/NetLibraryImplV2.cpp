@@ -240,6 +240,17 @@ void NetLibraryImplV2::RunFrame()
 			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
 		}
 
+		// send keepalive every 100ms (server requires an actual received packet in order to call fx::Client::Touch)
+		if ((timeGetTime() - m_lastKeepaliveSent) > 100)
+		{
+			NetBuffer msg(1300);
+			msg.Write(0xCA569E63); // msgEnd
+
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
+
+			m_lastKeepaliveSent = timeGetTime();
+		}
+
 		// update ping metrics
 		m_base->GetMetricSink()->OnPingResult(m_serverPeer->lastRoundTripTime);
 
