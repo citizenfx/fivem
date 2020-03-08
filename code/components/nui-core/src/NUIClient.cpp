@@ -141,18 +141,28 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 	std::wstring sourceStr = source.ToWString();
 	std::wstring messageStr = message.ToWString();
 
-	// skip websocket error messages
-	// these can't be blocked from script and users get very confused by them appearing in console
-	if (messageStr.find(L"WebSocket connection to") != std::string::npos)
+	// skip websocket error messages and mpMenu messages
+	// some of these can't be blocked from script and users get very confused by them appearing in console
+	if (messageStr.find(L"WebSocket connection to") != std::string::npos || sourceStr.find(L"nui-game-internal") != std::string::npos || sourceStr.find(L"chrome-devtools") != std::string::npos)
 	{
 		return false;
 	}
 
-	std::wstringstream msg;
-	msg << sourceStr << ":" << line << ", " << messageStr << std::endl;
+	std::string channel = "nui:console";
 
-	OutputDebugString(msg.str().c_str());
-	trace("%s", ToNarrow(msg.str()));
+	if (sourceStr.find(L"nui://") == 0)
+	{
+		static std::wregex re{ L"nui://(.*?)/(.*)" };
+		std::wsmatch match;
+
+		if (std::regex_search(sourceStr, match, re))
+		{
+			channel = fmt::sprintf("script:%s:nui", ToNarrow(match[1].str()));
+			sourceStr = fmt::sprintf(L"@%s/%s", match[1].str(), match[2].str());
+		}
+	}
+
+	console::Printf(channel, "%s\n", ToNarrow(fmt::sprintf(L"%s (%s:%d)", messageStr, sourceStr, line)));
 
 	return false;
 }
