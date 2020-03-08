@@ -84,23 +84,29 @@ static int SysError(const char* buffer)
 static int GlobalErrorHandler(int eType, const char* buffer)
 {
 	static thread_local bool inError = false;
+	static thread_local std::string lastError;
 
 	trace("GlobalError: %s\n", buffer);
 
 	if (inError)
 	{
 		static thread_local bool inRecursiveError = false;
+		static thread_local std::string lastRecursiveError;
 
 		if (inRecursiveError)
 		{
-			return SysError(va("Recursive-recursive error: %s", buffer));
+			return SysError(va("Recursive-recursive error: %s\n%s", buffer, lastRecursiveError));
 		}
 
+		auto e = va("Recursive error: %s\nOriginal error: %s", buffer, lastError);
+
 		inRecursiveError = true;
-		return SysError(va("Recursive error: %s", buffer));
+		lastRecursiveError = e;
+		return SysError(e);
 	}
 
 	inError = true;
+	lastError = buffer;
 
 	if (eType == ERR_NORMAL)
 	{
