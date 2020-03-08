@@ -121,13 +121,18 @@ static InitFunction initFunction([] ()
 
 				outerRefs[commandName] = commandRef;
 
+				if (consoleCxt->GetCommandManager()->HasCommand(commandName))
+				{
+					return;
+				}
+
 				// restricted? if not, add the command
 				if (!context.GetArgument<bool>(2))
 				{
 					seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "builtin.everyone" }, se::Object{ "command." + commandName }, se::AccessType::Allow);
 				}
 
-				consoleCxt->GetCommandManager()->Register(commandName, [=](ConsoleExecutionContext& context)
+				int commandToken = consoleCxt->GetCommandManager()->Register(commandName, [=](ConsoleExecutionContext& context)
 				{
 					try
 					{
@@ -143,6 +148,11 @@ static InitFunction initFunction([] ()
 
 					return true;
 				});
+
+				resource->OnStop.Connect([consoleCxt, commandToken]()
+				{
+					consoleCxt->GetCommandManager()->Unregister(commandToken);
+				}, INT32_MAX);
 			}
 		}
 	});

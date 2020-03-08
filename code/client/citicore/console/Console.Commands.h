@@ -58,6 +58,8 @@ public:
 
 	virtual void ForAllCommands(const std::function<void(const std::string&)>& callback);
 
+	virtual bool HasCommand(const std::string& name);
+
 	virtual const std::string& GetRawCommand();
 
 public:

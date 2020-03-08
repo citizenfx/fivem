@@ -149,3 +149,10 @@ void ConsoleCommandManager::ForAllCommands(const std::function<void(const std::s
 		}
 	}
 }
+
+bool ConsoleCommandManager::HasCommand(const std::string& name)
+{
+	std::shared_lock<std::shared_mutex> lock(m_mutex);
+
+	return (m_entries.find(name) != m_entries.end());
+}
