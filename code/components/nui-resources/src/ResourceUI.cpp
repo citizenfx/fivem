@@ -14,6 +14,8 @@
 #include <ResourceMetaDataComponent.h>
 #include <ResourceGameLifetimeEvents.h>
 
+#include <ResourceManager.h>
+
 #include <mutex>
 
 ResourceUI::ResourceUI(Resource* resource)
@@ -108,8 +110,32 @@ void ResourceUI::SignalPoll()
 static std::map<std::string, fwRefContainer<ResourceUI>> g_resourceUIs;
 static std::mutex g_resourceUIMutex;
 
+#include <boost/algorithm/string.hpp>
+
 static InitFunction initFunction([] ()
 {
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
+	{
+		nui::SetResourceLookupFunction([manager](const std::string& resourceName)
+		{
+			auto resource = manager->GetResource(resourceName);
+
+			if (resource.GetRef())
+			{
+				auto path = resource->GetPath();
+
+				if (!boost::algorithm::ends_with(path, "/"))
+				{
+					path += "/";
+				}
+
+				return path;
+			}
+
+			return fmt::sprintf("resources:/%s/", resourceName);
+		});
+	});
+
 	Resource::OnInitializeInstance.Connect([] (Resource* resource)
 	{
 		// create the UI instance

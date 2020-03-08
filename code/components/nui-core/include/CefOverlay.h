@@ -330,6 +330,10 @@ namespace nui
 		fwEvent<bool> OnDrawBackground;
 
 	OVERLAY_DECL void SetAudioSink(IAudioSink* sinkRef);
+
+	using TResourceLookupFn = std::function<std::string(const std::string&)>;
+
+	OVERLAY_DECL void SetResourceLookupFunction(const TResourceLookupFn& fn);
 }
 
 #define REQUIRE_IO_THREAD()   assert(CefCurrentlyOn(TID_IO));

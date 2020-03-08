@@ -18,6 +18,16 @@
 static std::atomic<int> g_fileHandleCount;
 static std::queue<std::function<void()>> g_deleteQueue;
 
+static nui::TResourceLookupFn g_resourceLookupFunc;
+
+namespace nui
+{
+	void SetResourceLookupFunction(const nui::TResourceLookupFn& fn)
+	{
+		g_resourceLookupFunc = fn;
+	}
+}
+
 class NUIResourceHandler : public CefResourceHandler
 {
 private:
@@ -79,8 +89,16 @@ public:
 		}
 		else
 		{
-			filename_ = "resources:/";
-			filename_ += converter.to_bytes(hostname) + "/";
+			if (g_resourceLookupFunc)
+			{
+				filename_ = g_resourceLookupFunc(ToNarrow(hostname));
+			}
+			else
+			{
+				filename_ = "resources:/";
+				filename_ += converter.to_bytes(hostname) + "/";
+			}
+
 			filename_ += converter.to_bytes(path);
 		}
 
