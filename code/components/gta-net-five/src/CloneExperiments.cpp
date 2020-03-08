@@ -1208,7 +1208,7 @@ static HookFunction hookFunction([]()
 		hook::call(location, m168Stub);
 	}
 
-	MH_CreateHook(hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? 00 00 74 4F", -0xF), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	MH_CreateHook(hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? 00 00 74 4F", -10), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
@@ -1608,7 +1608,9 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
 	rlBuffer.m_f1C = 1;
 
-	if (eventType > 0x5B) // 1868
+	static auto maxEvent = (Is1868() ? 0x5B : 0x5A);
+
+	if (eventType > maxEvent)
 	{
 		return;
 	}
