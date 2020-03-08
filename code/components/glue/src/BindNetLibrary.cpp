@@ -59,7 +59,7 @@ static InitFunction initFunction([] ()
 
 				if (!gameInit->GetGameLoaded())
 				{
-					trace("Triggering LoadGameFirstLaunch()\n");
+					trace("^2Network connected, triggering initial game load...\n");
 
 					gameInit->LoadGameFirstLaunch([]()
 					{
@@ -71,7 +71,7 @@ static InitFunction initFunction([] ()
 				}
 				else
 				{
-					trace("Triggering ReloadGame()\n");
+					trace("^2Network connected, triggering game reload...\n");
 
 					gameInit->ReloadGame();
 				}

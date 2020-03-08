@@ -303,6 +303,8 @@ static InitFunction initFunction([] ()
 					auto& resources = node["resources"];
 
 					std::string origBaseUrl = node["fileServer"].GetString();
+					std::stringstream formattedResources;
+					size_t formatCount = 0;
 
 					for (auto it = resources.Begin(); it != resources.End(); it++)
 					{
@@ -418,10 +420,18 @@ static InitFunction initFunction([] ()
 							}
 						}
 
-						trace("[%s]\n", resourceName.c_str());
+						formattedResources << resourceName << " ";
+
+						if (formatCount >= 10)
+						{
+							formattedResources << "\n";
+							formatCount = 0;
+						}
 
 						requiredResources.push_back(uri);
 					}
+
+					trace("Required resources: %s\n", formattedResources.str());
 				}
 
 				// failure should reset the requested resource, instead

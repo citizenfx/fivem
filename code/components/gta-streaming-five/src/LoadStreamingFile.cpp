@@ -19,6 +19,8 @@
 
 #include <Error.h>
 
+#include <CoreConsole.h>
+
 #include <IteratorView.h>
 #include <ICoreGameInit.h>
 
@@ -80,7 +82,7 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 	g_dataFileMgr = dataFileMgr;
 
 	// load before-level metas
-	trace("LoadDefDats: %s\n", name);
+	trace("Loading content XML: %s\n", name);
 
 	// load the level
 	dataFileMgr__loadDefDat(dataFileMgr, name, enabled);
@@ -672,7 +674,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 				{
 					auto& entry = cstreaming->Entries[strId + strModule->baseIdx];
 
-					trace("overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
+					console::DPrintf("gta:streaming:five", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
 
 					// if no old handle was saved, save the old handle
 					auto& hs = g_handleStack[strId + strModule->baseIdx];

@@ -127,8 +127,6 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				{
 					json j = json::parse(jd);
 
-					trace("is SC launcher: %s\n", j["IsLauncher"].dump());
-
 					child->SendJSCallback("RGSC_SIGN_IN", HandleCfxLogin());
 				});
 			}

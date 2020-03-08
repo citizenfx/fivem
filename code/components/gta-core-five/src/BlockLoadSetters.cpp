@@ -135,7 +135,7 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 		{
 			if (*g_initState == 0)
 			{
-				trace("Triggering OnGameFinalizeLoad\n");
+				trace("^2Game finished loading!\n");
 
 				ClearVariable("shutdownGame");
 

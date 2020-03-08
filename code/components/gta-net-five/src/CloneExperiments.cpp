@@ -112,7 +112,7 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 		return;
 	}
 
-	trace("Assigning physical player index for the local player.\n");
+	console::DPrintf("onesync", "Assigning physical player index for the local player.\n");
 
 	auto clientId = g_netLibrary->GetServerNetID();
 	auto idx = g_netLibrary->GetServerSlotID();
@@ -256,7 +256,7 @@ void HandleClientInfo(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID())
 	{
-		trace("Creating physical player %d (%s)\n", info.slotId, info.name);
+		console::DPrintf("onesync", "Creating physical player %d (%s)\n", info.slotId, info.name);
 
 		sync::TempHackMakePhysicalPlayer(info.netId, info.slotId);
 	}
@@ -285,11 +285,11 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 {
 	if (info.netId != g_netLibrary->GetServerNetID() && info.slotId != g_netLibrary->GetServerSlotID())
 	{
-		trace("Processing removal for player %d (%s)\n", info.slotId, info.name);
+		console::DPrintf("onesync", "Processing removal for player %d (%s)\n", info.slotId, info.name);
 
 		if (info.slotId < 0 || info.slotId >= _countof(g_players))
 		{
-			trace("That's not a valid slot! Aborting.\n");
+			console::DPrintf("onesync", "That's not a valid slot! Aborting.\n");
 			return;
 		}
 
@@ -297,7 +297,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 
 		if (!player)
 		{
-			trace("That slot has no player. Aborting.\n");
+			console::DPrintf("onesync", "That slot has no player. Aborting.\n");
 			return;
 		}
 
@@ -323,7 +323,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			}
 		}
 
-		trace("reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
+		console::DPrintf("onesync", "reassigning ped: %016llx %d\n", (uintptr_t)ped, objectId);
 
 		if (ped)
 		{
@@ -333,12 +333,12 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 				TheClones->DeleteObjectId(objectId, true);
 			}
 
-			trace("deleted object id\n");
+			console::DPrintf("onesync", "deleted object id\n");
 
 			// 1604
 			//((void(*)(void*, uint16_t, CNetGamePlayer*))hook::get_adjusted(0x141008D14))(ped, objectId, player);
 
-			trace("success! reassigned the ped!\n");
+			console::DPrintf("onesync", "success! reassigned the ped!\n");
 		}
 
 		// TEMP: properly handle order so that we don't have to fake out the game
@@ -464,7 +464,7 @@ struct ReturnedCallStub : public jitasm::Frontend
 
 	static void InstrumentedTarget(void* targetFn, void* callFn, int index)
 	{
-		trace("called %016llx (m_%x) from %016llx\n", (uintptr_t)targetFn, index, (uintptr_t)callFn);
+		console::DPrintf("onesync", "called %016llx (m_%x) from %016llx\n", (uintptr_t)targetFn, index, (uintptr_t)callFn);
 	}
 
 	virtual void InternalMain() override
@@ -510,7 +510,7 @@ static void NetLogStub_DoTrace(void*, const char* fmt, ...)
 	vsnprintf(buffer, sizeof(buffer), fmt, ap);
 	va_end(ap);
 
-	trace("[NET] %s\n", buffer);
+	console::DPrintf("onesync", "[NET] %s\n", buffer);
 }
 
 static void NetLogStub_DoLog(void*, const char* type, const char* fmt, ...)
@@ -521,7 +521,7 @@ static void NetLogStub_DoLog(void*, const char* type, const char* fmt, ...)
 	vsnprintf(buffer, sizeof(buffer), fmt, ap);
 	va_end(ap);
 
-	trace("[NET] %s %s\n", type, buffer);
+	console::DPrintf("onesync", "[NET] %s %s\n", type, buffer);
 }
 
 static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
@@ -561,7 +561,7 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 		return;
 	}
 
-	trace("passing object %016llx (%d) control from %d to %d\n", (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
+	console::DPrintf("onesync", "passing object %016llx (%d) control from %d to %d\n", (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 	TheClones->Log("%s: passing object %016llx (%d) control from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 
 	ObjectIds_RemoveObjectId(netObject->objectId);
@@ -587,7 +587,7 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 				{
 					if (!netOccupant->syncData.isRemote && netOccupant->objectType != 11)
 					{
-						trace("passing occupant %d control as well\n", netOccupant->objectId);
+						console::DPrintf("onesync", "passing occupant %d control as well\n", netOccupant->objectId);
 
 						PassObjectControlStub(player, netOccupant, a3);
 					}
@@ -654,7 +654,7 @@ static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, 
 
 	if (!rv)
 	{
-		trace("couldn't pass control for reason %d\n", reason);
+		console::DPrintf("onesync", "couldn't pass control for reason %d\n", reason);
 	}
 
 	return rv;
@@ -682,7 +682,7 @@ static void EjectPedFromVehicleStub(char* vehicle, char* ped, uint8_t a3, uint8_
 
 	if (vehObj && pedObj)
 	{
-		trace("removing ped %d from vehicle %d from %016llx\n", pedObj->objectId, vehObj->objectId, (uintptr_t)_ReturnAddress());
+		console::DPrintf("onesync", "removing ped %d from vehicle %d from %016llx\n", pedObj->objectId, vehObj->objectId, (uintptr_t)_ReturnAddress());
 	}
 
 	g_origEjectPedFromVehicle(vehicle, ped, a3, a4);
@@ -698,7 +698,7 @@ static void SetPedLastVehicleStub(char* ped, char* vehicle)
 
 		if (pedObj)
 		{
-			trace("removing ped %d from vehicle from %016llx\n", pedObj->objectId, (uintptr_t)_ReturnAddress());
+			console::DPrintf("onesync", "removing ped %d from vehicle from %016llx\n", pedObj->objectId, (uintptr_t)_ReturnAddress());
 		}
 	}
 
@@ -910,7 +910,7 @@ void PlayerManager_End(void* mgr)
 			{
 				if (p != g_playerMgr->localPlayer)
 				{
-					trace("player manager shutdown: resetting player %s\n", p->GetName());
+					console::DPrintf("onesync", "player manager shutdown: resetting player %s\n", p->GetName());
 					p->Reset();
 				}
 			}
@@ -1685,7 +1685,7 @@ static InitFunction initFunctionEv([]()
 
 			if (g_players[info.slotId])
 			{
-				trace("Dropping duplicate player for slotID %d.\n", info.slotId);
+				console::DPrintf("onesync", "Dropping duplicate player for slotID %d.\n", info.slotId);
 				HandleClientDrop(info);
 			}
 

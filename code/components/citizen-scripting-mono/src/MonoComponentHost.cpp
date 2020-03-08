@@ -101,7 +101,6 @@ static int CoreClrCallback(const char* imageName)
 
 		if (_wcsicmp(platformPath.c_str(), fullPath) != 0)
 		{
-			trace("%s %s is not a platform image.\n", ToNarrow(fullPath), ToNarrow(filePart));
 			return FALSE;
 		}
 	}
@@ -113,8 +112,6 @@ static int CoreClrCallback(const char* imageName)
 			return TRUE;
 		}
 	}
-
-	trace("%s %s is not a platform image (even though the dir matches).\n", ToNarrow(fullPath), ToNarrow(filePart));
 
 	return FALSE;
 }

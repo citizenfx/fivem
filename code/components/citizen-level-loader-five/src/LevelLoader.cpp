@@ -168,8 +168,6 @@ static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
 	// technically we should verify the hash, as with the above - but as nobody writes DLCs assuming custom levels
 	// we shouldn't care about this at all - non-custom is always MO_JIM_L11 (display label for 'gta5'), custom is never MO_JIM_L11
 
-	trace("level hash match - was custom: %d\n", g_wasLastLevelCustom);
-
 	return (!g_wasLastLevelCustom);
 }
 

@@ -23,6 +23,7 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
+#include <CoreConsole.h>
 #include <Error.h>
 
 #include <IteratorView.h>
@@ -349,7 +350,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 			// log the request starting
 			uint32_t initTime = timeGetTime();
 
-			trace(__FUNCTION__ " downloading %s (hash %s) from %s\n",
+			console::DPrintf("citizen:resources:client", __FUNCTION__ " downloading %s (hash %s) from %s\n",
 				entry.basename,
 				entry.referenceHash.empty() ? "[direct]" : entry.referenceHash.c_str(),
 				entry.remoteUrl);
@@ -401,13 +402,13 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 
 				AddEntryToCache(outFileName, metaData, entry);
 
-				trace("ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", entry.basename, (timeGetTime() - initTime), size);
+				console::DPrintf("citizen:resources:client", "ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", entry.basename, (timeGetTime() - initTime), size);
 			}
 			else
 			{
 				auto error = std::get<std::string>(std::get<1>(fetchResult));
 
-				trace("ResourceCacheDevice reporting failure: %s", error);
+				trace("^3ResourceCacheDevice reporting failure downloading %s: %s\n", entry.basename, error);
 			}
 		}
 	} while (!result);

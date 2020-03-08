@@ -16,6 +16,8 @@
 
 #include <CL2LaunchMode.h>
 
+#include <Error.h>
+
 #ifdef GTA_FIVE
 #define PIPE_NAME L"\\\\.\\pipe\\GTAVLauncher_Pipe"
 #define PIPE_NAME_NARROW "\\\\.\\pipe\\GTAVLauncher_Pipe"
@@ -1362,6 +1364,8 @@ void WaitForLauncher()
 	}
 }
 
+extern void SetCanSafelySkipLauncher(bool value);
+
 void RunLauncher(const wchar_t* toolName, bool instantWait)
 {
 	// early out if the launcher pipe already exists
@@ -1421,12 +1425,35 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 		g_waitForLauncherCB = [=] ()
 		{
-			HANDLE waitHandles[] = { hEvent, pi.hProcess };
-			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE);
+			bool done = false;
+			static uint64_t startTime = GetTickCount64();
 
-			if (waitResult == WAIT_OBJECT_0 + 1)
+			while (!done)
 			{
-                TerminateProcess(GetCurrentProcess(), 0);
+				HANDLE waitHandles[] = { hEvent, pi.hProcess };
+				DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 10000);
+
+				if (waitResult == WAIT_OBJECT_0 + 1)
+				{
+					TerminateProcess(GetCurrentProcess(), 0);
+				}
+				else if (waitResult != WAIT_TIMEOUT)
+				{
+					done = true;
+				}
+				else
+				{
+					auto waitedFor = (GetTickCount64() - startTime) / 1000;
+
+					if (waitedFor > 90)
+					{
+						SetCanSafelySkipLauncher(false);
+
+						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please attach the log file from the 'Save information' button.");
+					}
+
+					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
+				}
 			}
 		};
 
@@ -1527,14 +1554,14 @@ static HANDLE __stdcall CreateFileAStub(
 {
 	if (strcmp(lpFileName, PIPE_NAME_NARROW) == 0)
 	{
-		trace("Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
+		trace("^2Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
 
 		lpFileName = va("%s%s", lpFileName, IsCL2() ? "_CL2" : "");
 
-		WaitNamedPipeA(lpFileName, INFINITE);
 		WaitForLauncher();
+		WaitNamedPipeA(lpFileName, INFINITE);
 
-		trace("Launcher is fine, continuing!\n");
+		trace("^2Launcher is fine, continuing to initialize!\n");
 	}
 	else if (strcmp(lpFileName, "\\\\.\\pipe\\MTLService_Pipe") == 0)
 	{

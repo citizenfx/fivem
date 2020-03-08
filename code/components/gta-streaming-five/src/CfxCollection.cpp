@@ -319,8 +319,6 @@ public:
 
 	~CfxCollection()
 	{
-		trace("del cfxcollection %p\n", (void*)this);
-
 		g_cfxCollections.erase(this);
 
 		PseudoCallContext(this)->~fiCollection();
@@ -330,11 +328,6 @@ public:
 
 	void CleanCloseCollection()
 	{
-		if (m_isPseudoPack)
-		{
-			trace("close packfile %s\n", GetName());
-		}
-
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
 		m_entries.clear();
@@ -1306,7 +1299,7 @@ static void PtrError()
 {
 	if (CoreIsDebuggerPresent())
 	{
-		__debugbreak();
+ 		__debugbreak();
 	}
 
 	FatalError("Invalid fixup, address is neither virtual nor physical (in %s)", GetCurrentStreamingName());

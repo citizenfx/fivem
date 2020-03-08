@@ -117,8 +117,6 @@ int __stdcall CfxBind(SOCKET s, sockaddr * addr, int addrlen)
 {
 	sockaddr_in* addrIn = (sockaddr_in*)addr;
 
-	trace("binder on %i is %p\n", htons(addrIn->sin_port), (void*)s);
-
 	if (htons(addrIn->sin_port) == 6672)
 	{
 		if (wcsstr(GetCommandLine(), L"cl2"))
@@ -856,8 +854,6 @@ static HookFunction initFunction([]()
 		{
 			gameLoaded = false;
 
-			trace("dlc mounts: %d\n", *g_dlcMountCount);
-			
 			if (*g_dlcMountCount != 132)
 			{
 				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
@@ -1214,8 +1210,6 @@ void HandleJR(char* a1, char* a2, void* a3, void* a4)
 	auto clientId = *(uint64_t*)a2;
 	auto serverId = *(uint64_t*)(a1 + 3008 + 464);
 
-	trace("snMsgJoinRequest - client's opinion: %16llx - server's opinion: %16llx\n", clientId, serverId);
-
 	if (clientId != serverId)
 	{
 		SendMetric(va("nethook:err:joinrequest:id_mismatch:%16llx:%16llx", clientId, serverId));
@@ -1279,8 +1273,6 @@ bool GetOurSessionKeyWrap(char* sessionKey)
 	if (_ReturnAddress() == g_sessionKeyReturn)
 	{
 		*(uint64_t*)sessionKey = 2;
-
-		trace("wrap session key\n");
 
 		return true;
 	}

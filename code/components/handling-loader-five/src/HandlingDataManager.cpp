@@ -3,6 +3,7 @@
 #include <HandlingLoader.h>
 #include "Hooking.h"
 
+#include <CoreConsole.h>
 #include <IteratorView.h>
 
 #include <atHashMap.h>
@@ -181,7 +182,7 @@ static bool LoadHandlingFile(const char* handlingPath)
 
 	std::unordered_set<uint32_t> changedHandlings;
 
-	trace("Loading %d handling entries from %s\n", handlingDataList.GetCount(), handlingPath);
+	console::Printf("handling-loader:five", "Loading %d handling entries from %s\n", handlingDataList.GetCount(), handlingPath);
 
 	for (CHandlingData* handling : handlingDataList)
 	{

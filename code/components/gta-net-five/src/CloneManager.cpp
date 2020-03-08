@@ -906,7 +906,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// again, ensure it's not local
 	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
 	{
-		trace("Treason! Owner ID changed to %d.\n", obj->syncData.ownerId);
+		console::DPrintf("onesync", "Treason! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
 	}
 	
@@ -932,7 +932,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// for the last time, ensure it's not local
 	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
 	{
-		trace("Treason (2)! Owner ID changed to %d.\n", obj->syncData.ownerId);
+		console::DPrintf("onesync", "Treason (2)! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason (2)! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
 	}
 
@@ -1296,7 +1296,7 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 	{
 		// TODO: delete it somewhen?
 		Log("%s: duplicate object ID %s\n", __func__, object->ToString());
-		trace("%s: duplicate object ID %s\n", __func__, object->ToString());
+		console::DPrintf("onesync", "%s: duplicate object ID %s\n", __func__, object->ToString());
 
 		return false;
 	}
@@ -1391,7 +1391,7 @@ void CloneManagerLocal::WriteUpdates()
 		{
 			if (m_extendedData[object->objectId].clientId == m_netLibrary->GetServerNetID())
 			{
-				trace("%s: got a remote object (%s) that's meant to be ours. telling the server so again.\n", __func__, object->ToString());
+				console::DPrintf("onesync", "%s: got a remote object (%s) that's meant to be ours. telling the server so again.\n", __func__, object->ToString());
 				Log("%s: got a remote object (%s) that's meant to be ours. telling the server so again.\n", __func__, object->ToString());
 
 				GiveObjectToClient(object, m_netLibrary->GetServerNetID());

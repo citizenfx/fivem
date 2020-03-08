@@ -51,8 +51,6 @@ public:
 
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
 	{
-		trace("versioning: %s\n", request->GetPath().c_str());
-
 		if (request->GetPath().find(m_url) == 0)
 		{
 			response->SetStatusCode(200);

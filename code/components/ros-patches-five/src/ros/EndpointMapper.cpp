@@ -17,6 +17,8 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include <CoreConsole.h>
+
 void EndpointMapper::AddPrefix(const std::string& routeOrigin, fwRefContainer<net::HttpHandler> handler)
 {
 	m_prefixes.insert({ routeOrigin, handler });
@@ -29,7 +31,7 @@ void EndpointMapper::AddGameService(const std::string& serviceName, const TGameS
 
 bool EndpointMapper::HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
 {
-	trace(__FUNCTION__ ": %s %s\n", request->GetRequestMethod().c_str(), request->GetPath().c_str());
+	console::DPrintf(__FUNCTION__ ": %s %s\n", request->GetRequestMethod().c_str(), request->GetPath().c_str());
 
 	for (auto& prefixEntry : m_prefixes)
 	{

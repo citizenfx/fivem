@@ -7,6 +7,9 @@
 
 #include <MinHook.h>
 
+#include <CoreConsole.h>
+#include <Error.h>
+
 HRESULT(*g_origInitializeGraphics)(void*, void*, void*);
 
 static HANDLE g_uiEvent;
@@ -41,7 +44,7 @@ HRESULT NullCopyBuffer(void* rgscUI, void* a1)
 	return S_OK;
 }
 
-#define LOG_CALL() trace("%s\n", __FUNCTION__)
+#define LOG_CALL() console::DPrintf("ros-patches", "%s\n", __FUNCTION__)
 
 class IRgscUi
 {
@@ -564,6 +567,11 @@ class RgscLogDelegate : public IRgscDelegate
 	virtual void* OnEvent(RgscEvent event, const void* data) override
 	{
 		LOG_CALL();
+
+		if (event == RgscEvent::SdkInitError)
+		{
+			FatalError("R* SC SDK failed to initialize.");
+		}
 
 		if (event == RgscEvent::FriendStatusChanged)
 		{

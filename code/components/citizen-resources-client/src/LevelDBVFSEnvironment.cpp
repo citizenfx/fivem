@@ -244,7 +244,7 @@ namespace leveldb
 				buffer[len - 1] = '\n';
 			}
 
-			console::Printf("ldb", "%s", buffer.data());
+			console::DPrintf("ldb", "%s", buffer.data());
 		}
 	};
 

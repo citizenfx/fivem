@@ -41,7 +41,12 @@ struct LoadScreenFuncs
 	{
 		if (data.index != 67 && data.index != 68)
 		{
-			trace("instrumented function %p (%i) took %dmsec\n", data.func, data.index, (timeGetTime() - data.tickCount));
+			auto msec = (timeGetTime() - data.tickCount);
+
+			if (msec > 50)
+			{
+				trace(__FUNCTION__ ": Instrumented function %p (%i) took %dmsec\n", data.func, data.index, msec);
+			}
 		}
 	}
 };

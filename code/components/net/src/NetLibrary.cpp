@@ -134,7 +134,7 @@ void NetLibrary::HandleConnected(int serverNetID, int hostNetID, int hostBase, i
 	m_reconnectAttempts = 0;
 	m_lastReconnect = 0;
 
-	trace("connectOK, our id %d (slot %d), host id %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
+	trace("^2Received connectOK: ServerID %d, SlotID %d, HostID %d\n", m_serverNetID, m_serverSlotID, m_hostNetID);
 
 	OnConnectOKReceived(m_currentServer);
 

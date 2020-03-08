@@ -36,8 +36,6 @@ int DoAppState(void* fsm, int state, void* unk, int type)
 
 static void WaitThing(int i)
 {
-	trace("waiting from %p\n", _ReturnAddress());
-
 	Sleep(i);
 }
 

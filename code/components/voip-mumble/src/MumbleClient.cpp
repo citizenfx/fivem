@@ -12,6 +12,8 @@
 
 #include <json.hpp>
 
+#include <CoreConsole.h>
+
 using json = nlohmann::json;
 
 #include "PacketDataStream.h"
@@ -521,7 +523,7 @@ void MumbleClient::ThreadFuncImpl()
 					m_state.SetClient(this);
 					m_state.SetUsername(ToWide(m_connectionInfo.username));
 
-					trace("[mumble] connecting to %s...\n", address.ToString());
+					console::DPrintf("Mumble", "connecting to %s...\n", address.ToString());
 
 					break;
 				}
@@ -533,7 +535,7 @@ void MumbleClient::ThreadFuncImpl()
 
 					if (events.iErrorCode[FD_CONNECT_BIT])
 					{
-						trace("[mumble] connecting failed: %d\n", events.iErrorCode[FD_CONNECT_BIT]);
+						console::DPrintf("Mumble", "connecting failed: %d\n", events.iErrorCode[FD_CONNECT_BIT]);
 
 						//m_completionEvent.set_exception(std::runtime_error("Failed Mumble connection."));
 
@@ -607,7 +609,7 @@ void MumbleClient::ThreadFuncImpl()
 					}
 					else
 					{
-						trace("[mumble] reconnecting!\n");
+						console::DPrintf("Mumble", "Reconnecting.\n");
 
 						SetEvent(m_beginConnectEvent);
 					}
@@ -623,7 +625,7 @@ void MumbleClient::ThreadFuncImpl()
 					if (ne.lNetworkEvents & FD_CLOSE)
 					{
 						// TCP close, graceful?
-						trace("[mumble] socket close :(\n");
+						console::DPrintf("Mumble", "Socket closed.\n");
 
 						// try to reconnect
 						closesocket(m_socket);
@@ -646,7 +648,7 @@ void MumbleClient::ThreadFuncImpl()
 					else if (len == 0)
 					{
 						// TCP close, graceful?
-						trace("[mumble] tcp close :(\n");
+						console::DPrintf("Mumble", "TCP close.\n");
 
 						// try to reconnect
 						closesocket(m_socket);
@@ -660,7 +662,7 @@ void MumbleClient::ThreadFuncImpl()
 						if (WSAGetLastError() != WSAEWOULDBLOCK)
 						{
 							// TCP close, error state
-							trace("[mumble] tcp error :(\n");
+							console::DPrintf("Mumble", "TCP error.\n");
 
 							// try to reconnect
 							closesocket(m_socket);
@@ -700,7 +702,7 @@ void MumbleClient::ThreadFuncImpl()
 		}
 		catch (std::exception& e)
 		{
-			trace("lolexception %s", e.what());
+			trace("Mumble exception: %s", e.what());
 		}
 	}
 }
@@ -796,7 +798,7 @@ void MumbleClient::WriteToSocket(const uint8_t buf[], size_t length)
 
 void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 {
-	trace("[mumble] TLS alert: %s\n", alert.type_string().c_str());
+	console::DPrintf("Mumble", "TLS alert: %s\n", alert.type_string().c_str());
 
 	if (alert.is_fatal() || alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
 	{
@@ -817,7 +819,7 @@ void MumbleClient::OnReceive(const uint8_t buf[], size_t length)
 
 bool MumbleClient::OnHandshake(const Botan::TLS::Session& session)
 {
-	trace("[mumble] got session %s %s\n", session.version().to_string().c_str(), session.ciphersuite().to_string().c_str());
+	console::DPrintf("Mumble", "Got session %s %s\n", session.version().to_string().c_str(), session.ciphersuite().to_string().c_str());
 
 	return true;
 }
