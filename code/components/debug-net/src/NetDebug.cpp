@@ -457,9 +457,6 @@ void NetOverlayMetricSink::UpdateMetrics()
 		m_lastInRoutePackets = m_inRoutePackets;
 		m_lastOutRoutePackets = m_outRoutePackets;
 
-		m_lastIncomingData = std::move(m_incomingData);
-		m_lastOutgoingData = std::move(m_outgoingData);
-
 		// reset 'current' values
 		m_inBytes = 0;
 		m_inPackets = 0;
@@ -479,6 +476,9 @@ void NetOverlayMetricSink::UpdateMetrics()
 
 			m_lastIncomingMetrics = std::move(m_incomingMetrics);
 			m_lastOutgoingMetrics = std::move(m_outgoingMetrics);
+
+			m_lastIncomingData = std::move(m_incomingData);
+			m_lastOutgoingData = std::move(m_outgoingData);
 		}
 
 		// log output?
