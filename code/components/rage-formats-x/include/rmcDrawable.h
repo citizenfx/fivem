@@ -137,6 +137,32 @@ enum sgaBufferFormat : uint8_t
 	R4G4_UNORM = 127,
 };
 
+#ifdef RAGE_FORMATS_GAME_RDR3
+namespace sga
+{
+	class ShaderResourceView : public datBase
+	{
+	private:
+		void* m_texturePtr; // filled at runtime
+
+		uint8_t m_pad[56];
+
+	public:
+		ShaderResourceView()
+		{
+			unsigned char f[] = {
+				0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+			};
+
+			memcpy(m_pad, f, sizeof(m_pad));
+		}
+	};
+}
+#endif
+
 class grcTexture :
 #ifndef RAGE_FORMATS_GAME_RDR3
 	public pgBase
@@ -168,17 +194,31 @@ protected:
 	pgPtr<char> m_name;
 	uint8_t m_pad2[4];
 #elif defined(RAGE_FORMATS_GAME_RDR3)
-	// sgaTexture
-	uint8_t m_pad[16];
+	// sga::Texture
+	uint32_t m_blockSize;
+	uint16_t m_blockCount;
+	uint16_t m_blockPad;
+	union
+	{
+		uint32_t m_flags;
+	};
+	uint32_t m_unk0;
+	// sga::ImageParams begin
 	uint16_t m_width;
 	uint16_t m_height;
 	uint16_t m_depth;
-	uint8_t m_levels;
+	uint8_t m_dimension; // 1 = texture2d
 	sgaBufferFormat m_pixelFormat;
-	uint8_t m_pad2[4];
-	uint32_t m_dataLength;
+	uint8_t m_tileMode; // 0x0D?
+	uint8_t m_antiAliasType; // 0
+	uint8_t m_levels;
+	bool m_unkFlag; // format-related
+	uint8_t m_unk12;
+	uint8_t m_unk13;
+	// sga::imageParams end
+	uint16_t m_usageCount; // 1
 	pgPtr<char> m_name;
-	pgPtr<void> m_unk;
+	pgPtr<sga::ShaderResourceView> m_srv;
 	pgPtr<void> m_pixelData;
 #endif
 
@@ -209,6 +249,21 @@ public:
 
 		m_pad2[0] = 1;
 		m_pad2[2] = 0x80;
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+		m_depth = 1;
+		m_levels = 1;
+
+		// flags
+		m_flags = 0x18008002;
+		m_unk0 = 0;
+
+		m_tileMode = 0xD;
+		m_antiAliasType = 0;
+		m_unkFlag = false;
+		m_unk12 = 0;
+		m_unk13 = 0;
+		m_usageCount = 1;
+		m_blockPad = 0;
 #endif
 	}
 
@@ -263,6 +318,8 @@ private:
 	pgPtr<void, true> m_pixelData;
 
 	uint8_t m_pad5[24];
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+	uint8_t m_pad5[40];
 #endif
 
 public:
@@ -284,13 +341,14 @@ public:
 
 		memset(m_pad4, 0, sizeof(m_pad4));
 		memset(m_pad5, 0, sizeof(m_pad5));
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+		memset(m_pad5, 0, sizeof(m_pad5));
 #endif
 	}
 
 	inline size_t GetDataSize()
 	{
-#ifndef RAGE_FORMATS_GAME_RDR3
-		size_t levelSize = m_stride * m_height;
+		size_t levelSize = GetStride() * m_height;
 		size_t size = 0;
 
 		for (int i = 0; i < m_levels; i++)
@@ -300,9 +358,6 @@ public:
 		}
 
 		return size;
-#else
-		return m_dataLength;
-#endif
 	}
 
 	inline uint16_t GetWidth()
@@ -325,15 +380,15 @@ public:
 		switch (m_pixelFormat)
 		{
 		case BC1_UNORM_SRGB:
-			s = 1;
-			break;
+			return m_width / 2;
 		case BC2_UNORM_SRGB:
 		case BC3_UNORM_SRGB:
 		case BC3_UNORM:
 		case BC4_UNORM:
 		case BC5_UNORM:
+		case BC7_UNORM:
 		case BC7_UNORM_SRGB:
-			s = 2;
+			s = 1;
 			break;
 		case R8G8B8A8_UNORM_SRGB:
 			s = 4;
@@ -369,6 +424,13 @@ public:
 		m_stride = stride;
 
 		m_pixelFormat = pixelFormat;
+#else
+		m_pixelFormat = (sgaBufferFormat)pixelFormat;
+
+		m_srv = new(false) sga::ShaderResourceView();
+
+		m_blockSize = GetDataSize();
+		m_blockCount = 1;
 #endif
 
 		m_levels = levels;
@@ -386,6 +448,13 @@ public:
 		grcTexture::Resolve(blockMap);
 	}
 };
+
+#ifdef RAGE_FORMATS_GAME_RDR3
+namespace sga
+{
+	using Texture = grcTexturePC;
+}
+#endif
 
 class crSkeletonData
 {
@@ -1767,7 +1836,10 @@ public:
 			uint16_t shaderIdx = (*m_shaderMappings)[i];
 			grmShaderFx* shader = shaderGroup->GetShader(shaderIdx);
 
-			drawBucketMask |= (1 << shader->GetDrawBucket());
+			if (shader)
+			{
+				drawBucketMask |= (1 << shader->GetDrawBucket());
+			}
 		}
 
 		return drawBucketMask;

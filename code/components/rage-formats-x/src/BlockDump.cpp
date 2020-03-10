@@ -152,6 +152,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 	size_t virtualOut;
 	size_t physicalOut;
 
+#ifndef RAGE_FORMATS_GAME_RDR3
 	auto calcFlag = [&] (bool physical, size_t* outSize)
 	{
 		size_t base = this->baseAllocationSize[physical]; // TODO: pass this from another component
@@ -253,6 +254,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 
 		return flag;
 	};
+#endif
 
 #ifdef RAGE_FORMATS_GAME_NY
 	uint32_t baseFlags = (1 << 31) | (1 << 30) | calcFlag(false, &virtualOut) | (calcFlag(true, &physicalOut) << 15);
@@ -273,7 +275,7 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 	// initialize zlib
 	z_stream strm = { 0 };
 	deflateInit(&strm, Z_BEST_COMPRESSION);
-#else
+#elif defined(RAGE_FORMATS_GAME_FIVE)
 	uint32_t virtFlags;
 	uint32_t physFlags;
 
@@ -316,6 +318,31 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 
 	z_stream strm = { 0 };
 	deflateInit2(&strm, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+	uint8_t magic[] = { 'R', 'S', 'C', '8' };
+
+	writer(magic, sizeof(magic));
+
+	int compression = 1; // packed as zlib so we don't need oodles of oodle
+	int keyIdx = 0xFF; // decrypted, for obvious reasons
+	int flag = 0; // (thisEntry->flags >> 2) & 1, for decryption
+
+	uint32_t versionFlags = (version) | ((compression - 1) << 8) | (flag << 15) | ((keyIdx + 1) << 16);
+
+	writer(&versionFlags, sizeof(versionFlags));
+
+	uint32_t virtFlags = (virtualSize & ~0xF) | ((version & 0xF0) >> 4);
+	uint32_t physFlags = (physicalSize & ~0xF) | ((version & 0xF));
+
+	writer(&virtFlags, sizeof(virtFlags));
+
+	writer(&physFlags, sizeof(physFlags));
+
+	z_stream strm = { 0 };
+	deflateInit2(&strm, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+
+	virtualOut = virtualSize;
+	physicalOut = physicalSize;
 #endif
 
 	auto zwriter = [&] (const void* data, size_t size)

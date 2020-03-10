@@ -43,7 +43,7 @@ class BlockMap;
 #undef RAGE_NATIVE_ARCHITECTURE
 #endif
 
-#if (defined(GTA_FIVE) && defined(RAGE_FORMATS_GAME_FIVE)) || (defined(GTA_NY) && defined(RAGE_FORMATS_GAME_NY))
+#if (defined(GTA_FIVE) && defined(RAGE_FORMATS_GAME_FIVE)) || (defined(GTA_NY) && defined(RAGE_FORMATS_GAME_NY)) || (defined(IS_RDR3) && defined(RAGE_FORMATS_GAME_RDR3))
 #define RAGE_NATIVE_ARCHITECTURE 1
 #else
 #define RAGE_NATIVE_ARCHITECTURE 0

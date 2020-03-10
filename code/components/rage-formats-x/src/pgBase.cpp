@@ -373,7 +373,7 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 				// count the total in-memory size
 				size_t memorySize = 0;
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 				const int8_t maxMults[] = { 16, 8, 4, 2, 1 };
 				const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
 #else
@@ -556,7 +556,7 @@ void pgStreamManager::FinalizeAllocations(BlockMap* blockMap)
 
 void* pgStreamManager::Allocate(size_t size, bool isPhysical, BlockMap* blockMap)
 {
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 	const int8_t maxMults[] = { 16, 8, 4, 2, 1 };
 	const uint8_t maxCounts[] = { 1, 3, 15, 63, 127 };
 #else

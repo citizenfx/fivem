@@ -27,7 +27,7 @@
 
 struct pgPtrRepresentation
 {
-#ifndef RAGE_FORMATS_GAME_FIVE
+#if !defined(RAGE_FORMATS_GAME_FIVE) && !defined(RAGE_FORMATS_GAME_RDR3)
 	uint32_t pointer : 28;
 	uint32_t blockType : 4;
 #else
@@ -324,7 +324,7 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 
 		memset(blocks, 0, sizeof(blocks));
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 		*(uint16_t*)((char*)this + 8) = 0x407;
 #endif
 	}

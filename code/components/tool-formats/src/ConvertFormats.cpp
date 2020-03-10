@@ -12,6 +12,7 @@
 
 #include <boost/filesystem.hpp>
 
+#ifndef IS_RDR3
 #define RAGE_FORMATS_GAME payne
 #define RAGE_FORMATS_GAME_PAYNE
 #include <gtaDrawable.h>
@@ -481,3 +482,4 @@ static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 }
 
 static FxToolCommand formatsConvert("formats:convert", FormatsConvert_HandleArguments, FormatsConvert_Run);
+#endif

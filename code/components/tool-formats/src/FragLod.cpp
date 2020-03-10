@@ -17,6 +17,7 @@
 
 #include <fragType.h>
 
+#ifdef GTA_FIVE
 rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFlags* flags);
 
 static void RunFragment(const boost::filesystem::path& path)
@@ -137,3 +138,4 @@ static void Run(const boost::program_options::variables_map& map)
 }
 
 static FxToolCommand command("formats:fraglod", HandleArguments, Run);
+#endif
