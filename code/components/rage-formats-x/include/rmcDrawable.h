@@ -252,6 +252,7 @@ public:
 #elif defined(RAGE_FORMATS_GAME_RDR3)
 		m_depth = 1;
 		m_levels = 1;
+		m_dimension = 1;
 
 		// flags
 		m_flags = 0x18008002;
