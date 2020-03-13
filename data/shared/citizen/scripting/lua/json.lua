@@ -394,21 +394,25 @@ end
 
 local function scanwhite (str, pos)
   while true do
-    pos = strfind (str, "%S", pos)
-    if not pos then return nil end
-    local sub2 = strsub (str, pos, pos + 1)
-    if sub2 == "\239\187" and strsub (str, pos + 2, pos + 2) == "\191" then
-      -- UTF-8 Byte Order Mark
-      pos = pos + 3
-    elseif sub2 == "//" then
-      pos = strfind (str, "[\n\r]", pos + 2)
+    if str then
+      pos = strfind (str, "%S", pos)
       if not pos then return nil end
-    elseif sub2 == "/*" then
-      pos = strfind (str, "*/", pos + 2)
-      if not pos then return nil end
-      pos = pos + 2
+      local sub2 = strsub (str, pos, pos + 1)
+      if sub2 == "\239\187" and strsub (str, pos + 2, pos + 2) == "\191" then
+        -- UTF-8 Byte Order Mark
+        pos = pos + 3
+      elseif sub2 == "//" then
+        pos = strfind (str, "[\n\r]", pos + 2)
+        if not pos then return nil end
+      elseif sub2 == "/*" then
+        pos = strfind (str, "*/", pos + 2)
+        if not pos then return nil end
+        pos = pos + 2
+      else
+        return pos
+      end
     else
-      return pos
+      return nil
     end
   end
 end
@@ -551,7 +555,9 @@ end
 scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
   pos = pos or 1
   pos = scanwhite (str, pos)
-  if not pos then
+  if not str then
+    return
+  elseif not pos then
     return nil, strlen (str) + 1, "no valid JSON value (reached the end)"
   end
   local char = strsub (str, pos, pos)
