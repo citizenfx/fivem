@@ -18,3 +18,6 @@ dofile('idl.lua')
 
 -- private components
 dofile('privates.lua')
+
+-- versioning
+dofile('versioning.lua')
