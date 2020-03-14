@@ -1,7 +1,9 @@
-import os, sys
+import os, sys, subprocess
 
 outf = sys.argv[1]
-pn = sys.argv[2]
+resf = sys.argv[2]
+tool = sys.argv[3]
+pn = sys.argv[4]
 
 pid = os.getenv('CI_PIPELINE_ID', '1')
 
@@ -53,3 +55,12 @@ BEGIN
 END
 """.format(pid, pn))
 f.close()
+
+os.environ["PATH"] += os.pathsep + tool
+
+subprocess.check_call([
+	'rc.exe',
+	'/fo',
+	resf,
+	outf
+])

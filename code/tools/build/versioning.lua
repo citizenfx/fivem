@@ -11,12 +11,12 @@ if os.istarget('windows') then
 	local function check()
 		if lastLang == 'C' or lastLang == 'C++' then
 			if lastKind == 'SharedLib' then
-				prebuildcommands {
-					'python "' .. prj_root .. '/tools/gen_rc.py" "%{prj.location}/%{prj.name}.rc" "%{prj.name}"'
+				prelinkcommands {
+					'python "' .. prj_root .. '/tools/gen_rc.py" "%{prj.location}/%{prj.name}.rc" "%{prj.location}/%{prj.name}.res" "$(SDK_ExecutablePath_x64)" "%{prj.name}"'
 				}
 				
-				files {
-					'%{prj.location}/%{prj.name}.rc'
+				linkoptions {
+					'%{prj.location}/%{prj.name}.res'
 				}
 				
 				lastLang = nil
