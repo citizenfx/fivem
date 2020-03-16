@@ -1479,7 +1479,21 @@ struct CPedHealthDataNode
 struct CPedMovementGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedAIDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedOrientationDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPedOrientationDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		auto currentHeading = state.buffer.ReadSignedFloat(8, 6.28318548f);
+		auto desiredHeading = state.buffer.ReadSignedFloat(8, 6.28318548f);
+
+		state.entity->data["currentHeading"] = currentHeading;
+		state.entity->data["desiredHeading"] = desiredHeading;
+
+		return true;
+	}
+};
+
 struct CPedMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskTreeDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedTaskSpecificDataNode { bool Parse(SyncParseState& state) { return true; } };

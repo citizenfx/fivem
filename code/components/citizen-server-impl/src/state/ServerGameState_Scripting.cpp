@@ -167,16 +167,37 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		scrVector resultVec = { 0 };
-		resultVec.x = entity->GetData("rotX", 0.0f) * 180.0 / pi;
-		resultVec.y = entity->GetData("rotY", 0.0f) * 180.0 / pi;
-		resultVec.z = entity->GetData("rotZ", 0.0f) * 180.0 / pi;
+
+		if (entity->type == fx::sync::NetObjEntityType::Player || entity->type == fx::sync::NetObjEntityType::Ped)
+		{
+			resultVec.x = 0.0f;
+			resultVec.y = 0.0f;
+			resultVec.z = entity->GetData("currentHeading", 0.0f) * 180.0 / pi;
+		}
+		else
+		{
+			resultVec.x = entity->GetData("rotX", 0.0f) * 180.0 / pi;
+			resultVec.y = entity->GetData("rotY", 0.0f) * 180.0 / pi;
+			resultVec.z = entity->GetData("rotZ", 0.0f) * 180.0 / pi;
+		}
 
 		return resultVec;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEADING", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
-		return entity->GetData("angVelZ", 0.0f) * 180.0 / pi;
+		float heading;
+
+		if (entity->type == fx::sync::NetObjEntityType::Player || entity->type == fx::sync::NetObjEntityType::Ped)
+		{
+			heading = entity->GetData("currentHeading", 0.0f) * 180.0 / pi;
+		}
+		else
+		{
+			heading = entity->GetData("rotZ", 0.0f) * 180.0 / pi;
+		}
+
+		return (heading < 0) ? 360.0f + heading : heading;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_POPULATION_TYPE", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
@@ -429,6 +450,17 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_CAUSE_OF_DEATH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		return entity->GetData("causeOfDeath", 0);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DESIRED_HEADING", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		if (entity->type == fx::sync::NetObjEntityType::Player || entity->type == fx::sync::NetObjEntityType::Ped)
+		{
+			float heading = entity->GetData("desiredHeading", 0.0f) * 180.0 / pi;
+			return (heading < 0) ? 360.0f + heading : heading;
+		}
+
+		return 0.0f;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
