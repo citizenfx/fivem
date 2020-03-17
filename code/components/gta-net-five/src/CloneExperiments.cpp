@@ -1689,6 +1689,15 @@ static InitFunction initFunctionEv([]()
 				HandleClientDrop(info);
 			}
 
+			if (g_playersByNetId[info.netId])
+			{
+				auto tempInfo = info;
+				tempInfo.slotId = g_playersByNetId[info.netId]->physicalPlayerIndex;
+
+				console::Printf("onesync", "Dropping duplicate player for netID %d (slotID %d).\n", info.netId, tempInfo.slotId);
+				HandleClientDrop(tempInfo);
+			}
+
 			HandleClientInfo(info);
 		});
 
