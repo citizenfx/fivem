@@ -302,7 +302,11 @@ void TLSServerStream::WriteToClient(const uint8_t buf[], size_t length)
 	
 	if (m_baseStream.GetRef())
 	{
-		m_baseStream->Write(std::move(dataPtr), length);
+		m_baseStream->Write(std::move(dataPtr), length, std::move(m_nextOnComplete));
+	}
+	else
+	{
+		m_nextOnComplete = {};
 	}
 }
 

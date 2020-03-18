@@ -161,7 +161,8 @@ namespace fx
 					auto buffer = std::make_shared<std::unique_ptr<char[]>>();
 					*buffer = std::unique_ptr<char[]>(new char[16384]);
 
-					auto uvBuf = uv_buf_init(buffer->get(), 16384);
+					auto uvBufRef = std::make_shared<uv_buf_t>();
+					*uvBufRef = uv_buf_init(buffer->get(), 16384);
 
 					// mutable read offset pointer
 					auto readOffset = std::make_shared<size_t>(0);
@@ -192,38 +193,39 @@ namespace fx
 						}
 
 						// write to response
-						response->Write(std::move(*buffer), fsReq->result);
-
-						// touch client
-						if (client)
+						response->Write(std::move(*buffer), fsReq->result, [=]() mutable
 						{
-							client->Touch();
-						}
+							// touch client
+							if (client)
+							{
+								client->Touch();
+							}
 
-						// increment read offset
-						*readOffset += req->result;
+							// increment read offset
+							*readOffset += req->result;
 
-						// has the full file been read yet?
-						// if not, call another read
-						if (*readOffset != size)
-						{
-							*buffer = std::unique_ptr<char[]>(new char[16384]);
-							uvBuf = uv_buf_init(buffer->get(), 16384);
+							// has the full file been read yet?
+							// if not, call another read
+							if (*readOffset != size)
+							{
+								*buffer = std::unique_ptr<char[]>(new char[16384]);
+								*uvBufRef = uv_buf_init(buffer->get(), 16384);
 
-							uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
-						}
-						else
-						{
-							// if so, end response (closing should be done automatically)
-							response->End();
+								uv_fs_read(uvLoop, req.get(), file->get(), uvBufRef.get(), 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
+							}
+							else
+							{
+								// if so, end response (closing should be done automatically)
+								response->End();
 
-							// reset the function reference to break the reference cycle
-							*readCallback = nullptr;
-						}
+								// reset the function reference to break the reference cycle
+								*readCallback = nullptr;
+							}
+						});
 					};
 
 					// trigger the first read
-					uv_fs_read(uvLoop, req.get(), file->get(), &uvBuf, 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
+					uv_fs_read(uvLoop, req.get(), file->get(), uvBufRef.get(), 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
 				}));
 			}));
 		};

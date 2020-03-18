@@ -129,47 +129,49 @@ public:
 
 	private:
 	template<typename TContainer>
-	void WriteOutInternal(TContainer data)
+	void WriteOutInternal(TContainer data, fu2::unique_function<void()>&& cb = {})
 	{
+		size_t length = data.size();
+
 		if (m_chunked)
 		{
 			// we _don't_ want to send a 0-sized chunk
-			if (data.size() > 0)
+			if (length > 0)
 			{
 				// assume chunked
-				m_clientStream->Write(fmt::sprintf("%x\r\n", data.size()));
-				m_clientStream->Write(std::forward<TContainer>(data));
+				m_clientStream->Write(fmt::sprintf("%x\r\n", length));
+				m_clientStream->Write(std::forward<TContainer>(data), std::move(cb));
 				m_clientStream->Write("\r\n");
 			}
 		}
 		else
 		{
-			m_clientStream->Write(std::forward<TContainer>(data));
+			m_clientStream->Write(std::forward<TContainer>(data), std::move(cb));
 		}
 	}
 
 	public:
-	virtual void WriteOut(const std::vector<uint8_t>& data) override
+	virtual void WriteOut(const std::vector<uint8_t>& data, fu2::unique_function<void()>&& onComplete = {}) override
 	{
-		WriteOutInternal<decltype(data)>(data);
+		WriteOutInternal<decltype(data)>(data, std::move(onComplete));
 	}
 
-	virtual void WriteOut(std::vector<uint8_t>&& data) override
+	virtual void WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void()>&& onComplete = {}) override
 	{
-		WriteOutInternal<decltype(data)>(std::move(data));
+		WriteOutInternal<decltype(data)>(std::move(data), std::move(onComplete));
 	}
 
-	virtual void WriteOut(const std::string& data) override
+	virtual void WriteOut(const std::string& data, fu2::unique_function<void()>&& onComplete = {}) override
 	{
-		WriteOutInternal<decltype(data)>(data);
+		WriteOutInternal<decltype(data)>(data, std::move(onComplete));
 	}
 
-	virtual void WriteOut(std::string&& data) override
+	virtual void WriteOut(std::string&& data, fu2::unique_function<void()>&& onComplete = {}) override
 	{
-		WriteOutInternal<decltype(data)>(std::move(data));
+		WriteOutInternal<decltype(data)>(std::move(data), std::move(onComplete));
 	}
 
-	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length) override
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void()>&& cb = {}) override
 	{
 		if (m_chunked)
 		{
@@ -178,13 +180,13 @@ public:
 			{
 				// assume chunked
 				m_clientStream->Write(fmt::sprintf("%x\r\n", length));
-				m_clientStream->Write(std::move(data), length);
+				m_clientStream->Write(std::move(data), length, std::move(cb));
 				m_clientStream->Write("\r\n");
 			}
 		}
 		else
 		{
-			m_clientStream->Write(std::move(data), length);
+			m_clientStream->Write(std::move(data), length, std::move(cb));
 		}
 	}
 
