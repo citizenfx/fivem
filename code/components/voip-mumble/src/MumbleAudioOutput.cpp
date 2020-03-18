@@ -570,7 +570,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 
 	auto client = m_clients[user.GetSessionId()];
 
-	if (client)
+	if (client && client->voice)
 	{
 		auto lastPosition = DirectX::XMFLOAT3(client->position[0], client->position[1], client->position[2]);
 
