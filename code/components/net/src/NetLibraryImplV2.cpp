@@ -187,11 +187,14 @@ void NetLibraryImplV2::SendPacketQueue()
 {
 	std::lock_guard<std::mutex> _(m_packetQueueMutex);
 
-	for (auto& [msg, flag] : m_packetQueue)
+	if (m_serverPeer)
 	{
-		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
+		for (auto& [msg, flag] : m_packetQueue)
+		{
+			ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
 
-		enet_peer_send(m_serverPeer, 0, packet);
+			enet_peer_send(m_serverPeer, 0, packet);
+		}
 	}
 
 	m_packetQueue.clear();
