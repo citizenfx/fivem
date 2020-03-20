@@ -41,6 +41,8 @@ public:
 private:
 	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
 
+	void SendPacketQueue();
+
 private:
 	std::string m_connectData;
 
@@ -176,7 +178,23 @@ void NetLibraryImplV2::Reset()
 
 void NetLibraryImplV2::Flush()
 {
+	SendPacketQueue();
+
 	enet_host_flush(m_host);
+}
+
+void NetLibraryImplV2::SendPacketQueue()
+{
+	std::lock_guard<std::mutex> _(m_packetQueueMutex);
+
+	for (auto& [msg, flag] : m_packetQueue)
+	{
+		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
+
+		enet_peer_send(m_serverPeer, 0, packet);
+	}
+
+	m_packetQueue.clear();
 }
 
 void NetLibraryImplV2::RunFrame()
@@ -233,20 +251,9 @@ void NetLibraryImplV2::RunFrame()
 		// send packets at the target rate
 		if ((timeGetTime() - m_lastPacketSent) > (1000 / g_targetRate))
 		{
+			SendPacketQueue();
+
 			RoutingPacket packet;
-
-			{
-				std::lock_guard<std::mutex> _(m_packetQueueMutex);
-
-				for (auto& [msg, flag] : m_packetQueue)
-				{
-					ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
-
-					enet_peer_send(m_serverPeer, 0, packet);
-				}
-
-				m_packetQueue.clear();
-			}
 
 			while (m_base->GetOutgoingPacket(packet))
 			{
