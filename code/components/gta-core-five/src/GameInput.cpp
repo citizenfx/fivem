@@ -81,6 +81,8 @@ namespace rage
 	public:
 		uint32_t Map(uint32_t mapperSource, uint32_t key, ioValue& value, int a4);
 
+		void UpdateMap(int max_k, const ioInputSource& info, ioValue& value);
+
 		void RemoveDeviceMappings(ioValue& value, int a3);
 	};
 }
@@ -115,6 +117,16 @@ uint32_t rage::ioMapper::Map(uint32_t mapperSource, uint32_t key, ioValue& value
 	return _ioMapper_Map(this, mapperSource, key, value, a4);
 }
 
+static hook::cdecl_stub<void(rage::ioMapper*, int, const rage::ioInputSource&, rage::ioValue&)> _ioMapper_UpdateMap([]()
+{
+	return hook::get_pattern("33 C0 4D  8B D0 44 8B D8 8B D8 48", -0x0D);
+});
+
+void rage::ioMapper::UpdateMap(int max_k, const rage::ioInputSource& info, rage::ioValue& value)
+{
+	return _ioMapper_UpdateMap(this, max_k, info, value);
+}
+
 static hook::cdecl_stub<void(rage::ioMapper*, rage::ioValue&, int)> _ioMapper_RemoveDeviceMappings([]()
 {
 	return hook::get_pattern("45 33 E4 45 33 ED 89 94 24 80 00 00 00 39 11", -0x34);
@@ -145,89 +157,6 @@ uint32_t ControlSourceToMapperSource(uint32_t source)
 	return _controlSourceToMapperSource(source);
 }
 
-class Button
-{
-public:
-	Button(const std::string& name);
-
-	void UpdateIoValues(float value, rage::ioInputSource& source);
-
-	void UpdateOnControl();
-
-	void SetFromControl(void* control, int keyIndex);
-
-private:
-	std::string m_name;
-
-	std::unique_ptr<ConsoleCommand> m_downCommand;
-	std::unique_ptr<ConsoleCommand> m_upCommand;
-
-	rage::ioValue m_ioValue;
-
-	std::array<rage::ioValue*, 4> m_ioValueCopies;
-};
-
-Button::Button(const std::string& name)
-	: m_name(name)
-{
-	for (auto& copy : m_ioValueCopies)
-	{
-		copy = nullptr;
-	}
-
-	m_downCommand = std::make_unique<ConsoleCommand>("+" + name, [this]()
-	{
-		rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
-		UpdateIoValues(1.0f, source);
-	});
-
-	m_upCommand = std::make_unique<ConsoleCommand>("-" + name, [this]()
-	{
-		rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
-		UpdateIoValues(0.0f, source);
-	});
-}
-
-void Button::UpdateIoValues(float value, rage::ioInputSource& source)
-{
-	m_ioValue.SetCurrentValue(value, source);
-}
-
-void Button::UpdateOnControl()
-{
-	if (m_ioValue.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE))
-	{
-		for (auto copy : m_ioValueCopies)
-		{
-			if (copy)
-			{
-				rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
-
-				if (!copy->IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE))
-				{
-					copy->SetCurrentValue(1.0f, source);
-				}
-			}
-		}
-	}
-}
-
-void Button::SetFromControl(void* control, int keyIndex)
-{
-	auto controlPtr = (uint8_t*)control;
-
-	rage::ioValue* value = (rage::ioValue*)&controlPtr[33704 + (keyIndex * 72)];
-	
-	for (auto& copy : m_ioValueCopies)
-	{
-		if (copy == nullptr)
-		{
-			copy = value;
-			break;
-		}
-	}
-}
-
 class Binding
 {
 public:
@@ -237,20 +166,16 @@ public:
 
 	void Update(rage::ioMapper* mapper);
 
-	void Map(rage::ioMapper* mapper, int source, int type)
+	void UpdateMap(rage::ioMapper* mapper)
 	{
-		m_mapIndex = mapper->Map(source, type, m_value, -1);
-		m_mappers.insert(mapper);
-	}
+		rage::ioInputSource src;
+		GetBinding(src);
+		mapper->UpdateMap(0, src, m_value);
+	} 
 
 	rage::ioValue& GetValue()
 	{
 		return m_value;
-	}
-
-	inline void ResetMap()
-	{
-		m_mapIndex = -1;
 	}
 
 	inline void SetBinding(std::tuple<int, int> binding)
@@ -281,8 +206,6 @@ public:
 	}
 
 private:
-	std::set<rage::ioMapper*> m_mappers;
-
 	rage::ioValue m_value;
 
 	bool m_wasDown;
@@ -291,23 +214,18 @@ private:
 
 	std::string m_tag;
 
-	uint32_t m_mapIndex;
-
 	std::tuple<int, int> m_binding;
 };
 
 Binding::Binding(const std::string& command)
-	: m_command(command), m_wasDown(false), m_mapIndex(-1)
+	: m_command(command), m_wasDown(false)
 {
 
 }
 
 Binding::~Binding()
 {
-	for (auto& mapper : m_mappers)
-	{
-		mapper->RemoveDeviceMappings(m_value, -4);
-	}
+
 }
 
 static void* g_control;
@@ -327,10 +245,9 @@ void Binding::Update(rage::ioMapper* mapper)
 		return;
 	}
 
-	if (m_mapIndex == -1 && Instance<ICoreGameInit>::Get()->GetGameLoaded() && mapper == (rage::ioMapper*)((char*)g_control + g_mapperOffset) && !_isMenuActive(1))
+	if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && mapper == (rage::ioMapper*)((char*)g_control + g_mapperOffset) && !_isMenuActive(1))
 	{
-		Map(mapper, std::get<0>(m_binding), std::get<1>(m_binding));
-		m_mappers.insert(mapper);
+		UpdateMap(mapper);
 	}
 
 	bool down = m_value.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE);
@@ -403,10 +320,6 @@ public:
 
 	void OnGameInit();
 
-	void CreateButtons();
-
-	void UpdateButtons();
-
 	void Update(rage::ioMapper* mapper, uint32_t time);
 
 	std::shared_ptr<Binding> Bind(int source, int parameter, const std::string& command);
@@ -429,8 +342,6 @@ private:
 	std::unique_ptr<ConsoleCommand> m_listBindsCommand;
 
 	std::multimap<std::tuple<int, int>, std::shared_ptr<Binding>> m_bindings;
-
-	std::list<std::unique_ptr<Button>> m_buttons;
 
 	concurrency::concurrent_queue<std::function<void()>> m_queue;
 };
@@ -647,41 +558,6 @@ void BindingManager::OnGameInit()
 	}
 }
 
-void BindingManager::CreateButtons()
-{
-	{
-		auto structureField = rage::GetStructureDefinition("rage__ControlInput__Mapping");
-
-		auto enumeration = structureField->m_members[0]->m_definition->enumData;
-		auto name = enumeration->names;
-
-		for (auto field = enumeration->fields; field->index != -1 || field->hash != 0; field++)
-		{
-			std::string_view thisName = *name;
-			thisName = thisName.substr(thisName.find_first_of('_') + 1);
-
-			std::string thisNameStr(thisName);
-			std::transform(thisNameStr.begin(), thisNameStr.end(), thisNameStr.begin(), ToLower);
-
-			auto button = std::make_unique<Button>(thisNameStr);
-			button->SetFromControl(g_control, field->index);
-			button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
-
-			m_buttons.push_back(std::move(button));
-
-			name++;
-		}
-	}
-}
-
-void BindingManager::UpdateButtons()
-{
-	for (auto& button : m_buttons)
-	{
-		button->UpdateOnControl();
-	}
-}
-
 static BindingManager bindingManager;
 
 static std::unordered_set<std::string> g_activeTags;
@@ -691,15 +567,13 @@ bool IsTagActive(const std::string& tag)
 	return (tag.empty() || g_activeTags.find(tag) != g_activeTags.end());
 }
 
-static void(*ioMapper_Update)(void*, uint32_t, uint32_t, uint32_t);
+static void(*ioMapper_Update)(void*, uint32_t, bool);
 
-static void ioMapper_UpdateStub(rage::ioMapper* mapper, uint32_t a2, uint32_t a3, uint32_t a4)
+static void ioMapper_UpdateStub(rage::ioMapper* mapper, uint32_t time, bool a3)
 {
-	bindingManager.Update(mapper, a2);
+	bindingManager.Update(mapper, time);
 
-	ioMapper_Update(mapper, a2, a3, a4);
-
-	bindingManager.UpdateButtons();
+	ioMapper_Update(mapper, time, a3);
 }
 
 void ProfileSettingsInit();
@@ -790,7 +664,7 @@ namespace game
 
 static uint32_t HashBinding(const std::string& key)
 {
-	return ((HashString(key.c_str()) & 0x7FFFFFFF) | 0x80000000);
+	return HashString(key.c_str()) | 0x80000000;
 }
 
 static auto GetRegisteredBindingByHash(uint32_t hash)
@@ -830,9 +704,9 @@ static void GetMappingCategoryInputs(uint32_t* categoryId, atArray<uint32_t>& co
 	}
 }
 
-static void*(*g_origGetBindingForControl)(void* control, rage::ioInputSource* outBinding, uint32_t controlId, uint32_t source, uint8_t subIdx, bool unk);
+static void*(*g_origGetBindingForControl)(void* control, rage::ioInputSource* outBinding, uint32_t controlId, int source, uint8_t subIdx, bool unk);
 
-static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding, uint32_t controlId, uint32_t source, uint8_t subIdx, bool unk)
+static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding, uint32_t controlId, int source, uint8_t subIdx, bool unk)
 {
 	if (controlId & 0x80000000)
 	{
@@ -904,9 +778,9 @@ static uint32_t GetControlForName(const char* controlName)
 	return control;
 }
 
-static void(*g_origMapControlInternal)(void* control, uint32_t controlIdx, int sourceIdx, uint32_t* params, uint8_t* subIdx, bool persist);
+static void(*g_origMapControlInternal)(void* control, uint32_t controlIdx, int sourceIdx, rage::ioInputSource* input, uint32_t subIdx, bool persist);
 
-static void MapControlInternal(void* control, uint32_t controlId, int sourceIdx, uint32_t* params, uint8_t* subIdx, bool persist)
+static void MapControlInternal(void* control, uint32_t controlId, int sourceIdx, rage::ioInputSource* input, uint32_t subIdx, bool persist)
 {
 	if (controlId & 0x80000000)
 	{
@@ -914,12 +788,12 @@ static void MapControlInternal(void* control, uint32_t controlId, int sourceIdx,
 
 		if (!pair.first.empty())
 		{
-			auto p0 = params[0];
-			auto p1 = params[1];
+			auto ioSource = input->source;
+			auto ioParameter = input->parameter;
 
-			bindingManager.QueueOnFrame([p0, p1, pair]()
+			bindingManager.QueueOnFrame([ioSource, ioParameter, pair]()
 			{
-				auto binding = bindingManager.Bind(p0, p1, pair.first);
+				auto binding = bindingManager.Bind(ioSource, ioParameter, pair.first);
 
 				if (binding)
 				{
@@ -933,31 +807,19 @@ static void MapControlInternal(void* control, uint32_t controlId, int sourceIdx,
 		return;
 	}
 
-	return g_origMapControlInternal(control, controlId, sourceIdx, params, subIdx, persist);
+	return g_origMapControlInternal(control, controlId, sourceIdx, input, subIdx, persist);
 }
 
-static bool(*g_origHandleMappingConflicts)(void* control, uint32_t idx, void* a3, void* a4, void* a5);
+static bool(*g_origHandleMappingConflicts)(void* control, uint32_t idx, rage::ioInputSource* input, void* a4, void* a5);
 
-static bool HandleMappingConflicts(void* control, uint32_t idx, void* a3, void* a4, void* a5)
+static bool HandleMappingConflicts(void* control, uint32_t idx, rage::ioInputSource* input, void* a4, void* a5)
 {
 	if (idx & 0x80000000)
 	{
 		return false;
 	}
 
-	return g_origHandleMappingConflicts(control, idx, a3, a4, a5);
-}
-
-static void(*g_origKeyMappingMenuUninit)(void*);
-
-static void KeyMappingMenuUninit(void* menu)
-{
-	g_origKeyMappingMenuUninit(menu);
-
-	for (auto& binding : bindingManager.GetBindings())
-	{
-		binding.second->ResetMap();
-	}
+	return g_origHandleMappingConflicts(control, idx, input, a4, a5);
 }
 
 #include <boost/algorithm/string.hpp>
@@ -1013,14 +875,6 @@ static HookFunction hookFunction([]()
 
 	bindingManager.Initialize();
 
-	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
-	{
-		if (type == rage::INIT_CORE)
-		{
-			bindingManager.CreateButtons();
-		}
-	});
-
 	{
 		auto location = hook::get_pattern("45 33 C0 48 8B CF E8 ? ? ? ? 48 81 C7", 6);
 		hook::set_call(&ioMapper_Update, location);
@@ -1043,7 +897,6 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("4D 8B F9 45 8B E0 48 8B F9 83 FE FF 0F", -0x22), MapControlInternal, (void**)&g_origMapControlInternal);
 	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B DA E8 ? ? ? ? 83 F8 FF 74 27", 3)), GetControlForName, (void**)&g_origGetControlForName);
 	MH_CreateHook(hook::get_pattern("33 DB 4C 8B D1 48 89 5E 50", -0x27), HandleMappingConflicts, (void**)&g_origHandleMappingConflicts);
-	MH_CreateHook(hook::get_pattern("40 38 7B 59 74 28 44 8D 47 FC", -0x1B), KeyMappingMenuUninit, (void**)&g_origKeyMappingMenuUninit);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	g_mapperOffset = *hook::get_pattern<uint32_t>("48 63 04 B0 4C 8D 89 ? ? 00 00 B9 BF", 7);
