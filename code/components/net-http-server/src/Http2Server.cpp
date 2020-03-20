@@ -23,35 +23,37 @@ struct ZeroCopyByteBuffer
 		size_t rawLength;
 		size_t read;
 
+		fu2::unique_function<void()> cb;
+
 		int type;
 
-		Element(std::vector<uint8_t>&& vec)
-			: read(0), type(1), vec(std::move(vec))
+		Element(std::vector<uint8_t>&& vec, fu2::unique_function<void()>&& cb)
+			: read(0), type(1), vec(std::move(vec)), cb(std::move(cb))
 		{
 			
 		}
 
-		Element(std::string&& str)
-			: read(0), type(0), string(std::move(str))
+		Element(std::string&& str, fu2::unique_function<void()>&& cb)
+			: read(0), type(0), string(std::move(str)), cb(std::move(cb))
 		{
 			
 		}
 
-		Element(std::unique_ptr<char[]> raw, size_t length)
-			: read(0), type(2), raw(std::move(raw)), rawLength(length)
+		Element(std::unique_ptr<char[]> raw, size_t length, fu2::unique_function<void()>&& cb)
+			: read(0), type(2), raw(std::move(raw)), rawLength(length), cb(std::move(cb))
 		{
 
 		}
 
 		// we lied! we copy anyway :(
-		Element(const std::vector<uint8_t>& vec)
-			: read(0), type(1), vec(vec)
+		Element(const std::vector<uint8_t>& vec, fu2::unique_function<void()>&& cb)
+			: read(0), type(1), vec(vec), cb(std::move(cb))
 		{
 			this->vec = vec;
 		}
 
-		Element(const std::string& str)
-			: read(0), type(0), string(str)
+		Element(const std::string& str, fu2::unique_function<void()>&& cb)
+			: read(0), type(0), string(str), cb(std::move(cb))
 		{
 			
 		}
@@ -73,14 +75,14 @@ struct ZeroCopyByteBuffer
 	};
 
 	template<typename TContainer>
-	void Push(TContainer&& elem)
+	void Push(TContainer&& elem, fu2::unique_function<void()>&& cb)
 	{
-		elements.emplace_back(std::move(elem));
+		elements.emplace_back(std::move(elem), std::move(cb));
 	}
 
-	void Push(std::unique_ptr<char[]> data, size_t size)
+	void Push(std::unique_ptr<char[]> data, size_t size, fu2::unique_function<void()>&& cb)
 	{
-		elements.emplace_back(std::move(data), size);
+		elements.emplace_back(std::move(data), size, std::move(cb));
 	}
 
 	bool Pop(const std::string** str, const std::vector<uint8_t>** vec, size_t* size, size_t* off)
@@ -139,7 +141,7 @@ struct ZeroCopyByteBuffer
 		return -1;
 	}
 
-	bool Take(std::string* str, std::vector<uint8_t>* vec, std::unique_ptr<char[]>* raw, size_t* rawLength, size_t* off)
+	bool Take(std::string* str, std::vector<uint8_t>* vec, std::unique_ptr<char[]>* raw, size_t* rawLength, size_t* off, fu2::unique_function<void()>* cb)
 	{
 		if (elements.empty())
 		{
@@ -163,6 +165,8 @@ struct ZeroCopyByteBuffer
 				*rawLength = std::move(elem.rawLength);
 				break;
 			}
+
+			*cb = std::move(elem.cb);
 		}
 
 		elements.pop_front();
@@ -297,42 +301,42 @@ public:
 	}
 
 	template<typename TContainer>
-	void WriteOutInternal(TContainer data)
+	void WriteOutInternal(TContainer data, fu2::unique_function<void()>&& cb = {})
 	{
 		if (m_session)
 		{
-			m_buffer.Push(std::forward<TContainer>(data));
+			m_buffer.Push(std::forward<TContainer>(data), std::move(cb));
 
 			nghttp2_session_resume_data(m_session, m_stream);
 			nghttp2_session_send(m_session);
 		}
 	}
 
-	virtual void WriteOut(const std::vector<uint8_t>& data) override
+	virtual void WriteOut(const std::vector<uint8_t>& data, fu2::unique_function<void()>&& cb = {}) override
 	{
-		WriteOutInternal<decltype(data)>(data);
+		WriteOutInternal<decltype(data)>(data, std::move(cb));
 	}
 
-	virtual void WriteOut(std::vector<uint8_t>&& data) override
+	virtual void WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void()>&& cb = {}) override
 	{
-		WriteOutInternal<decltype(data)>(std::move(data));
+		WriteOutInternal<decltype(data)>(std::move(data), std::move(cb));
 	}
 
-	virtual void WriteOut(const std::string& data) override
+	virtual void WriteOut(const std::string& data, fu2::unique_function<void()>&& cb = {}) override
 	{
-		WriteOutInternal<decltype(data)>(data);
+		WriteOutInternal<decltype(data)>(data, std::move(cb));
 	}
 
-	virtual void WriteOut(std::string&& data) override
+	virtual void WriteOut(std::string&& data, fu2::unique_function<void()>&& cb = {}) override
 	{
-		WriteOutInternal<decltype(data)>(std::move(data));
+		WriteOutInternal<decltype(data)>(std::move(data), std::move(cb));
 	}
 
-	virtual void WriteOut(std::unique_ptr<char[]> data, size_t size) override
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t size, fu2::unique_function<void()>&& cb = {}) override
 	{
 		if (m_session)
 		{
-			m_buffer.Push(std::move(data), size);
+			m_buffer.Push(std::move(data), size, std::move(cb));
 
 			nghttp2_session_resume_data(m_session, m_stream);
 			nghttp2_session_send(m_session);
@@ -453,22 +457,23 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			std::unique_ptr<char[]> raw;
 			size_t rawLength;
 			size_t off;
+			fu2::unique_function<void()> cb;
 
-			if (buf.Take(&s, &v, &raw, &rawLength, &off))
+			if (buf.Take(&s, &v, &raw, &rawLength, &off, &cb))
 			{
 				assert(off == 0);
 
 				if (!s.empty())
 				{
-					data->stream->Write(std::move(s));
+					data->stream->Write(std::move(s), std::move(cb));
 				}
 				else if (!v.empty())
 				{
-					data->stream->Write(std::move(v));
+					data->stream->Write(std::move(v), std::move(cb));
 				}
 				else if (raw)
 				{
-					data->stream->Write(std::move(raw), rawLength);
+					data->stream->Write(std::move(raw), rawLength, std::move(cb));
 				}
 			}
 

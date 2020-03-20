@@ -1511,6 +1511,9 @@ void CloneManagerLocal::WriteUpdates()
 			}
 		}
 
+		// #TODO1S: make this dynamic based on net_targetRate
+		syncLatency = std::max(syncLatency, 20ms);
+
 		// determine sync type from sync data
 		int syncType = 0;
 
@@ -1518,10 +1521,6 @@ void CloneManagerLocal::WriteUpdates()
 		{
 			// clone create
 			syncType = 1;
-
-			// TEMP: SYNC ACK
-			// REMOVE THIS!!
-			//objectData.lastSyncAck = msec();
 		}
 		else if ((msec() - objectData.lastSyncTime) >= syncLatency)
 		{

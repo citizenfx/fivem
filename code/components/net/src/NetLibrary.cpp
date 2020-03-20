@@ -1212,6 +1212,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
 				}
 
+#ifndef _DEBUG
 				std::string onesyncType = "onesync";
 				auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
 
@@ -1232,6 +1233,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				{
 					onesyncType = "onesync_big";
 				}
+#else
+				std::string onesyncType = "";
+#endif
 
 				AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
 

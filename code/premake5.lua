@@ -225,6 +225,28 @@ premake.override(premake.vstudio.vc2010, 'importLanguageTargets', function(base,
 		_p(2, '</PropertyGroup>')
 		_p(1, '</Target>')
 	end
+	
+	local hasPreLink = false
+
+	for cfg in premake.project.eachconfig(prj) do
+		if cfg.prelinkcommands and #cfg.prelinkcommands > 0 then
+			hasPreLink = true
+			break
+		end
+	end
+
+	if hasPreLink then
+		_p(1, '<PropertyGroup>')
+		_p(2, '<PreLinkEventUseInBuild>false</PreLinkEventUseInBuild>')
+		_p(1, '</PropertyGroup>')
+		-- DoLinkOutputFilesMatch is right before PreLinkEvent; so it won't evaluate the condition yet
+		_p(1, '<Target Name="EnablePreLinkEvent" Inputs="@(Link)" Outputs="$(ProjectDir)/$(ProjectName).res" BeforeTargets="DoLinkOutputFilesMatch">')
+		-- use CreateProperty task to set property based on skipped state
+		_p(2, '<CreateProperty Value="true">')
+		_p(3, '<Output TaskParameter="ValueSetByTask" PropertyName="PreLinkEventUseInBuild" />')
+		_p(2, '</CreateProperty>')
+		_p(1, '</Target>')
+	end
 end)
 
 local function WriteDocumentationFileXml(_premake, _cfg)
