@@ -57,6 +57,8 @@ private:
 	uint32_t m_lastPacketSent;
 
 	std::list<std::tuple<net::Buffer, ENetPacketFlag>> m_packetQueue;
+
+	std::mutex m_packetQueueMutex;
 };
 
 static int g_maxMtu = 1300;
@@ -119,7 +121,10 @@ void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, si
 	msg.Write(type);
 	msg.Write(buffer, length);
 
-	m_packetQueue.push_back({msg, ENET_PACKET_FLAG_RELIABLE});
+	{
+		std::lock_guard<std::mutex> _(m_packetQueueMutex);
+		m_packetQueue.push_back({ msg, ENET_PACKET_FLAG_RELIABLE });
+	}
 
 	m_base->GetMetricSink()->OnOutgoingCommand(type, length, true);
 }
@@ -130,7 +135,10 @@ void NetLibraryImplV2::SendUnreliableCommand(uint32_t type, const char* buffer, 
 	msg.Write(type);
 	msg.Write(buffer, length);
 
-	m_packetQueue.push_back({ msg, (ENetPacketFlag)0 });
+	{
+		std::lock_guard<std::mutex> _(m_packetQueueMutex);
+		m_packetQueue.push_back({ msg, (ENetPacketFlag)0 });
+	}
 
 	m_base->GetMetricSink()->OnOutgoingCommand(type, length, false);
 }
@@ -227,14 +235,18 @@ void NetLibraryImplV2::RunFrame()
 		{
 			RoutingPacket packet;
 
-			for (auto& [msg, flag] : m_packetQueue)
 			{
-				ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
+				std::lock_guard<std::mutex> _(m_packetQueueMutex);
 
-				enet_peer_send(m_serverPeer, 0, packet);
+				for (auto& [msg, flag] : m_packetQueue)
+				{
+					ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
+
+					enet_peer_send(m_serverPeer, 0, packet);
+				}
+
+				m_packetQueue.clear();
 			}
-
-			m_packetQueue.clear();
 
 			while (m_base->GetOutgoingPacket(packet))
 			{
