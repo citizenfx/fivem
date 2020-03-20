@@ -396,7 +396,7 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 		return g_origGetOwnerNetPlayer(object);
 	}
 
-	if (object->syncData.ownerId == 31)
+	if (object && object->syncData.ownerId == 31)
 	{
 		auto player = g_playersByNetId[TheClones->GetClientId(object)];
 
