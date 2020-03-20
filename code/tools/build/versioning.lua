@@ -12,7 +12,7 @@ if os.istarget('windows') then
 		if lastLang == 'C' or lastLang == 'C++' then
 			if lastKind == 'SharedLib' then
 				prelinkcommands {
-					'python "' .. prj_root .. '/tools/gen_rc.py" "%{prj.location}/%{prj.name}.rc" "%{prj.location}/%{prj.name}.res" "$(SDK_ExecutablePath_x64)" "%{prj.name}"'
+					'python "' .. prj_root .. '/tools/gen_rc.py" "%{prj.location}/%{prj.name}.rc" "%{prj.location}/%{prj.name}.res" "$(SDK_ExecutablePath_x64)" "%{prj.name}" "' .. _OPTIONS['game'] .. '"'
 				}
 				
 				linkoptions {

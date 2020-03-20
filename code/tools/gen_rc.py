@@ -4,6 +4,7 @@ outf = sys.argv[1]
 resf = sys.argv[2]
 tool = sys.argv[3]
 pn = sys.argv[4]
+game = sys.argv[5]
 
 pid = os.getenv('CI_PIPELINE_ID', '1')
 
@@ -58,8 +59,20 @@ f.close()
 
 os.environ["PATH"] += os.pathsep + tool
 
+gameSymbol = 'UNK_GAME'
+
+if game == 'five':
+    gameSymbol = 'GTA_FIVE'
+elif game == 'rdr3':
+    gameSymbol = 'IS_RDR3'
+elif game == 'server':
+    gameSymbol = 'IS_FXSERVER'
+
 subprocess.check_call([
 	'rc.exe',
+	'/nologo',
+	'/d',
+	gameSymbol,
 	'/fo',
 	resf,
 	outf
