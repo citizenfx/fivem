@@ -450,14 +450,17 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					// remove the original bytes from the queue
 					readQueue.erase(readQueue.begin(), readQueue.begin() + contentLength);
 
-					// call the data handler
-					auto dataHandler = localConnectionData->request->GetDataHandler();
-
-					if (dataHandler)
+					if (localConnectionData->request.GetRef())
 					{
-						localConnectionData->request->SetDataHandler();
+						// call the data handler
+						auto dataHandler = localConnectionData->request->GetDataHandler();
 
-						(*dataHandler)(requestData);
+						if (dataHandler)
+						{
+							localConnectionData->request->SetDataHandler();
+
+							(*dataHandler)(requestData);
+						}
 					}
 
 					// clean up the req/res
