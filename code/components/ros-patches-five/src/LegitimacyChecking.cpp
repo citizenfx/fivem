@@ -680,6 +680,7 @@ bool VerifyRetailOwnership()
 
 	doc2.Accept(w);
 
+#ifndef IS_RDR3
 	trace(__FUNCTION__ ": Going to call /ros/validate.\n");
 
 	auto b = cpr::Post(cpr::Url{ "http://localhost:32891/ros/validate" },
@@ -798,6 +799,36 @@ bool VerifyRetailOwnership()
 			MessageBox(nullptr, ToWide(b.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
 		}).join();
 	}
+#elif defined(IS_RDR3)
+	auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros2" },
+		cpr::Payload{
+			{ "ticket", ticket },
+			{ "gameName", "rdr3" },
+			{ "sessionKey", sessionKey },
+			{ "sessionTicket", sessionTicket },
+			{ "rosId", fmt::sprintf("%d", ROS_DUMMY_ACCOUNT_ID) },
+		});
+
+	if (r.error)
+	{
+		FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.error.code, r.error.message);
+		return false;
+	}
+
+	if (r.status_code >= 500)
+	{
+		FatalError("Error generating ROS entitlement token: %d (%s)", (int)r.status_code, r.text);
+		return false;
+	}
+
+	if (r.status_code == 200)
+	{
+		trace(__FUNCTION__ ": Got a token and saved it.\n");
+
+		g_entitlementSource = r.text;
+		return true;
+	}
+#endif
 
 	return false;
 }
