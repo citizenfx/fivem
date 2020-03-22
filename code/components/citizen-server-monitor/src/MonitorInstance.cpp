@@ -36,6 +36,38 @@
 #include <skyr/url.hpp>
 #include <skyr/percent_encode.hpp>
 
+#ifdef _WIN32
+#include <MinHook.h>
+
+static void(WINAPI* g_origExitProcess)(DWORD exitCode);
+
+static void WINAPI ExitProcessHook(DWORD exitCode)
+{
+	auto consoleWindow = GetConsoleWindow();
+	DWORD pid;
+
+	GetWindowThreadProcessId(consoleWindow, &pid);
+	if (pid == GetCurrentProcessId())
+	{
+		printf("\n\nExited. Press any key to continue.\n");
+		auto _ = getc(stdin);
+		(void)_;
+	}
+
+	g_origExitProcess(exitCode);
+}
+
+void InitializeExitHook()
+{
+	MH_Initialize();
+	MH_CreateHookApi(L"kernelbase.dll", "ExitProcess", ExitProcessHook, (void**)&g_origExitProcess);
+	MH_CreateHookApi(L"kernel32.dll", "ExitProcess", ExitProcessHook, NULL);
+	MH_EnableHook(MH_ALL_HOOKS);
+}
+#else
+void InitializeExitHook() {}
+#endif
+
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -112,6 +144,8 @@ namespace fx
 
 	void MonitorInstance::Run()
 	{
+		InitializeExitHook();
+
 		auto execCommand = AddCommand("exec", [=](const std::string& path) {
 			fwRefContainer<vfs::Stream> stream = vfs::OpenRead(path);
 
