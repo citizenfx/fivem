@@ -10,7 +10,7 @@
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
-build/
+/code/build/
 bld/
 [Oo]bj/
 
@@ -188,3 +188,6 @@ privates_config.lua
 
 # caches
 /caches/
+
+# windows server output directory
+/out/
