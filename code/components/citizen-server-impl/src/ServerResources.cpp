@@ -220,6 +220,11 @@ public:
 	fx::ServerInstanceBase* instance;
 } g_reassemblySink;
 
+inline std::string ToNarrow(const std::string& str)
+{
+	return str;
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
