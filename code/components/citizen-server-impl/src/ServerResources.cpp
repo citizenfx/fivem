@@ -395,7 +395,7 @@ static InitFunction initFunction([]()
 		});
 
 		{
-			g_citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, "");
+			g_citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen")));
 
 			// create cache directory if needed
 			auto device = vfs::GetDevice(instance->GetRootPath());
