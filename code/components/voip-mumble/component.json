@@ -5,6 +5,7 @@
 		"fx[2]",
 		"platform:windows",
 		"net:base",
+		"net:tcp-server",
 		"vendor:protobuf_lite",
 		"vendor:opus",
 		"vendor:botan",

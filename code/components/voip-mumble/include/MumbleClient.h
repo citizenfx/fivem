@@ -21,8 +21,15 @@ namespace lab
 struct MumbleConnectionInfo
 {
 	bool isConnected;
+	bool isConnecting;
 	net::PeerAddress address;
 	std::string username;
+
+	inline MumbleConnectionInfo()
+		: isConnected(false), isConnecting(false)
+	{
+
+	}
 };
 
 enum class MumbleActivationMode

@@ -23,15 +23,12 @@
 
 #include <thread>
 
-enum class ClientTask
+#include <uvw.hpp>
+
+namespace net
 {
-	Idle,
-	BeginConnect,
-	EndConnect,
-	RecvData,
-	UDPRead,
-	Unknown
-};
+	class UvLoopHolder;
+}
 
 class MumbleCredentialsManager : public Botan::Credentials_Manager
 {
@@ -126,17 +123,15 @@ public:
 	virtual void SetOutputDevice(const std::string& dsoundDeviceId) override;
 
 private:
-	SOCKET m_socket;
+	fwRefContainer<net::UvLoopHolder> m_loop;
 
-	std::thread m_mumbleThread;
+	std::shared_ptr<uvw::TimerHandle> m_connectTimer;
 
-	HANDLE m_beginConnectEvent;
+	std::shared_ptr<uvw::TimerHandle> m_idleTimer;
 
-	HANDLE m_socketConnectEvent;
-	HANDLE m_socketReadEvent;
-	HANDLE m_udpReadEvent;
+	std::shared_ptr<uvw::TCPHandle> m_tcp;
 
-	HANDLE m_idleEvent;
+	std::shared_ptr<uvw::UDPHandle> m_udp;
 
 	MumbleConnectionInfo m_connectionInfo;
 
@@ -177,8 +172,6 @@ private:
 	int m_voiceTarget;
 
 	std::chrono::milliseconds m_lastUdp;
-
-	SOCKET m_udpSocket;
 
 	TPositionHook m_positionHook;
 
@@ -260,9 +253,6 @@ public:
 
 	}
 
-private:
-	static void ThreadFunc(MumbleClient* client);
-
 public:
 	void MarkConnected();
 
@@ -277,10 +267,6 @@ private:
 	bool OnHandshake(const Botan::TLS::Session& session);
 
 	void OnActivated();
-
-	ClientTask WaitForTask();
-
-	void ThreadFuncImpl();
 
 	void Send(const char* buf, size_t size);
 };

@@ -12,6 +12,8 @@
 
 #include <json.hpp>
 
+#include <UvLoopManager.h>
+
 #include <CoreConsole.h>
 
 using json = nlohmann::json;
@@ -19,6 +21,8 @@ using json = nlohmann::json;
 #include "PacketDataStream.h"
 
 static __declspec(thread) MumbleClient* g_currentMumbleClient;
+
+using namespace std::chrono_literals;
 
 inline std::chrono::milliseconds msec()
 {
@@ -33,22 +37,177 @@ void MumbleClient::Initialize()
 
 	m_lastUdp = {};
 
-	m_beginConnectEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	m_socketConnectEvent = nullptr;
-	m_socketReadEvent = nullptr;
-	m_idleEvent = CreateWaitableTimer(nullptr, FALSE, nullptr);
+	m_loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("mumble");
 
-	m_mumbleThread = std::thread(ThreadFunc, this);
+	m_loop->EnqueueCallback([this]()
+	{
+		m_connectTimer = m_loop->Get()->resource<uvw::TimerHandle>();
+		m_connectTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
+		{
+			if (m_connectionInfo.isConnecting)
+			{
+				return;
+			}
+
+			m_connectionInfo.isConnecting = true;
+
+			if (m_tcp)
+			{
+				m_tcp->shutdown();
+				m_tcp->close();
+			}
+
+			m_tcp = m_loop->Get()->resource<uvw::TCPHandle>();
+
+			m_tcp->on<uvw::ConnectEvent>([this](const uvw::ConnectEvent& ev, uvw::TCPHandle& tcp)
+			{
+				m_handler.Reset();
+
+				m_connectionInfo.isConnecting = false;
+
+				try
+				{
+					m_sessionManager = std::make_unique<Botan::TLS::Session_Manager_In_Memory>(m_rng);
+
+					m_credentials = std::make_unique<MumbleCredentialsManager>();
+
+					m_tcp->read();
+
+					m_tlsClient = std::make_shared<Botan::TLS::Client>(*this,
+						*(m_sessionManager.get()),
+						*(m_credentials.get()),
+						m_policy,
+						m_rng,
+						Botan::TLS::Server_Information()
+						);
+				}
+				catch (std::exception& e)
+				{
+					trace("Mumble exception: %s\n", e.what());
+				}
+
+				// don't start idle timer here - it should only start after TLS handshake is done!
+
+				m_connectionInfo.isConnected = true;
+			});
+
+			m_tcp->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& ev, uvw::TCPHandle& tcp)
+			{
+				console::DPrintf("Mumble", "connecting failed: %s\n", ev.what());
+
+				m_connectionInfo.isConnecting = false;
+				m_idleTimer->start(2s, {});
+
+				m_connectionInfo.isConnected = false;
+			});
+
+			m_tcp->on<uvw::EndEvent>([this](const uvw::EndEvent& ev, uvw::TCPHandle& tcp)
+			{
+				// TCP close, graceful?
+				console::DPrintf("Mumble", "TCP close.\n");
+
+				m_connectionInfo.isConnecting = false;
+				m_idleTimer->start(2s, {});
+
+				m_connectionInfo.isConnected = false;
+			});
+
+			m_tcp->on<uvw::DataEvent>([this](const uvw::DataEvent& ev, uvw::TCPHandle& tcp)
+			{
+				try
+				{
+					if (ev.length > 0)
+					{
+						std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+						m_tlsClient->received_data(reinterpret_cast<uint8_t*>(ev.data.get()), ev.length);
+					}
+				}
+				catch (std::exception& e)
+				{
+					trace("Mumble exception: %s\n", e.what());
+				}
+			});
+
+			if (!m_udp)
+			{
+				m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
+
+				m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
+				{
+					std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+
+					try
+					{
+						HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
+					}
+					catch (std::exception& e)
+					{
+						trace("Mumble exception: %s\n", e.what());
+					}
+				});
+
+				m_udp->recv();
+			}
+
+			const auto& address = m_connectionInfo.address;
+			m_tcp->connect(*address.GetSocketAddress());
+
+			sockaddr_in sn = { 0 };
+			sn.sin_family = AF_INET;
+			sn.sin_addr.s_addr = INADDR_ANY;
+			sn.sin_port = 0;
+
+			m_state.Reset();
+			m_state.SetClient(this);
+			m_state.SetUsername(ToWide(m_connectionInfo.username));
+		});
+
+		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
+		
+		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
+		{
+			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
+			{
+				{
+					MumbleProto::Ping ping;
+					ping.set_timestamp(msec().count());
+					ping.set_tcp_ping_avg(m_tcpPingAverage);
+					ping.set_tcp_ping_var(m_tcpPingVariance);
+					ping.set_tcp_packets(m_tcpPingCount);
+
+					ping.set_udp_ping_avg(m_udpPingAverage);
+					ping.set_udp_ping_var(m_udpPingVariance);
+					ping.set_udp_packets(m_udpPingCount);
+
+					Send(MumbleMessageType::Ping, ping);
+				}
+
+				{
+					char pingBuf[64] = { 0 };
+
+					PacketDataStream pds(pingBuf, sizeof(pingBuf));
+					pds.append((1 << 5));
+					pds << uint64_t(msec().count());
+
+					SendUDP(pingBuf, pds.size());
+				}
+
+				m_idleTimer->start(2500ms, 0s);
+			}
+			else
+			{
+				console::DPrintf("Mumble", "Reconnecting.\n");
+
+				m_connectTimer->start(2500ms, 0s);
+			}
+		});
+	});
 
 	m_audioInput.Initialize();
 	m_audioInput.SetClient(this);
 
 	m_audioOutput.Initialize();
 	m_audioOutput.SetClient(this);
-
-	WSADATA wsaData;
-
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
 }
 
 concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::PeerAddress& address, const std::string& userName)
@@ -68,7 +227,10 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 	m_state.SetClient(this);
 	m_state.SetUsername(ToWide(userName));
 
-	SetEvent(m_beginConnectEvent);
+	m_loop->EnqueueCallback([this]()
+	{
+		m_connectTimer->start(50ms, 0s);
+	});
 
 	m_completionEvent = concurrency::task_completion_event<MumbleConnectionInfo*>();
 
@@ -303,10 +465,13 @@ void MumbleClient::SendUDP(const char* buf, size_t size)
 		return;
 	}
 
-	uint8_t outBuf[8192];
-	m_crypto->Encrypt((const uint8_t*)buf, outBuf, size);
+	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[8192]);
+	m_crypto->Encrypt((const uint8_t*)buf, (uint8_t*)outBuf->get(), size);
 
-	sendto(m_udpSocket, (char*)outBuf, size + 4, 0, m_connectionInfo.address.GetSocketAddress(), m_connectionInfo.address.GetSocketAddressLength());
+	m_loop->EnqueueCallback([this, outBuf, size]()
+	{
+		m_udp->send(*m_connectionInfo.address.GetSocketAddress(), std::move(*outBuf), size + 4);
+	});
 }
 
 void MumbleClient::HandleUDP(const uint8_t* buf, size_t size)
@@ -477,236 +642,6 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 	printf("\n");
 }
 
-void MumbleClient::ThreadFuncImpl()
-{
-	SetThreadName(-1, "[Mumble] Network Thread");
-
-	while (true)
-	{
-		ClientTask task = WaitForTask();
-
-		try
-		{
-			switch (task)
-			{
-				case ClientTask::BeginConnect:
-				{
-					const auto& address = m_connectionInfo.address;
-
-					m_socket = socket(address.GetAddressFamily(), SOCK_STREAM, IPPROTO_TCP);
-
-					int on = 1;
-					setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&on, sizeof(on));
-
-					m_socketConnectEvent = WSACreateEvent();
-					m_socketReadEvent = WSACreateEvent();
-					m_udpReadEvent = WSACreateEvent();
-
-					WSAEventSelect(m_socket, m_socketConnectEvent, FD_CONNECT);
-
-					u_long nonBlocking = 1;
-					ioctlsocket(m_socket, FIONBIO, &nonBlocking);
-
-					connect(m_socket, address.GetSocketAddress(), address.GetSocketAddressLength());
-
-					m_udpSocket = socket(address.GetAddressFamily(), SOCK_DGRAM, IPPROTO_UDP);
-					ioctlsocket(m_udpSocket, FIONBIO, &nonBlocking);
-
-					sockaddr_in sn = { 0 };
-					sn.sin_family = AF_INET;
-					sn.sin_addr.s_addr = INADDR_ANY;
-					sn.sin_port = 0;
-
-					bind(m_udpSocket, (sockaddr*)&sn, sizeof(sn));
-
-					m_state.Reset();
-					m_state.SetClient(this);
-					m_state.SetUsername(ToWide(m_connectionInfo.username));
-
-					console::DPrintf("Mumble", "connecting to %s...\n", address.ToString());
-
-					break;
-				}
-
-				case ClientTask::EndConnect:
-				{
-					WSANETWORKEVENTS events = { 0 };
-					WSAEnumNetworkEvents(m_socket, m_socketConnectEvent, &events);
-
-					if (events.iErrorCode[FD_CONNECT_BIT])
-					{
-						console::DPrintf("Mumble", "connecting failed: %d\n", events.iErrorCode[FD_CONNECT_BIT]);
-
-						//m_completionEvent.set_exception(std::runtime_error("Failed Mumble connection."));
-
-						LARGE_INTEGER waitTime;
-						waitTime.QuadPart = -20000000LL; // 2s
-
-						SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
-
-						m_connectionInfo.isConnected = false;
-
-						break;
-					}
-
-					WSACloseEvent(m_socketConnectEvent);
-					m_socketConnectEvent = INVALID_HANDLE_VALUE;
-
-					m_handler.Reset();
-
-					WSAEventSelect(m_socket, m_socketReadEvent, FD_READ | FD_CLOSE);
-					WSAEventSelect(m_udpSocket, m_udpReadEvent, FD_READ);
-
-					m_sessionManager = std::make_unique<Botan::TLS::Session_Manager_In_Memory>(m_rng);
-
-					m_credentials = std::make_unique<MumbleCredentialsManager>();
-
-					m_tlsClient = std::make_shared<Botan::TLS::Client>(*this,
-																	   *(m_sessionManager.get()),
-																	   *(m_credentials.get()),
-																	   m_policy,
-																	   m_rng,
-																	   Botan::TLS::Server_Information()
-																	   );
-
-					m_connectionInfo.isConnected = true;
-
-					break;
-				}
-
-				case ClientTask::Idle:
-				{
-					if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
-					{
-						{
-							MumbleProto::Ping ping;
-							ping.set_timestamp(msec().count());
-							ping.set_tcp_ping_avg(m_tcpPingAverage);
-							ping.set_tcp_ping_var(m_tcpPingVariance);
-							ping.set_tcp_packets(m_tcpPingCount);
-
-							ping.set_udp_ping_avg(m_udpPingAverage);
-							ping.set_udp_ping_var(m_udpPingVariance);
-							ping.set_udp_packets(m_udpPingCount);
-
-							Send(MumbleMessageType::Ping, ping);
-						}
-
-						{
-							char pingBuf[64] = { 0 };
-
-							PacketDataStream pds(pingBuf, sizeof(pingBuf));
-							pds.append((1 << 5));
-							pds << uint64_t(msec().count());
-
-							SendUDP(pingBuf, pds.size());
-						}
-
-						LARGE_INTEGER waitTime;
-						waitTime.QuadPart = -25000000LL; // 2.5s
-
-						SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
-					}
-					else
-					{
-						console::DPrintf("Mumble", "Reconnecting.\n");
-
-						SetEvent(m_beginConnectEvent);
-					}
-
-					break;
-				}
-
-				case ClientTask::RecvData:
-				{
-					WSANETWORKEVENTS ne;
-					WSAEnumNetworkEvents(m_socket, m_socketReadEvent, &ne);
-
-					if (ne.lNetworkEvents & FD_CLOSE)
-					{
-						// TCP close, graceful?
-						console::DPrintf("Mumble", "Socket closed.\n");
-
-						// try to reconnect
-						closesocket(m_socket);
-
-						SetEvent(m_beginConnectEvent);
-
-						m_connectionInfo.isConnected = false;
-
-						break;
-					}
-
-					uint8_t buffer[16384];
-					int len = recv(m_socket, (char*)buffer, sizeof(buffer), 0);
-
-					if (len > 0)
-					{
-						std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
-						m_tlsClient->received_data(buffer, len);
-					}
-					else if (len == 0)
-					{
-						// TCP close, graceful?
-						console::DPrintf("Mumble", "TCP close.\n");
-
-						// try to reconnect
-						closesocket(m_socket);
-
-						SetEvent(m_beginConnectEvent);
-
-						m_connectionInfo.isConnected = false;
-					}
-					else
-					{
-						if (WSAGetLastError() != WSAEWOULDBLOCK)
-						{
-							// TCP close, error state
-							console::DPrintf("Mumble", "TCP error.\n");
-
-							// try to reconnect
-							closesocket(m_socket);
-
-							SetEvent(m_beginConnectEvent);
-
-							m_connectionInfo.isConnected = false;
-						}
-					}
-
-					break;
-				}
-
-				case ClientTask::UDPRead:
-				{
-					WSANETWORKEVENTS ne;
-					WSAEnumNetworkEvents(m_udpSocket, m_udpReadEvent, &ne);
-
-					sockaddr_storage from;
-					memset(&from, 0, sizeof(from));
-
-					int fromlen = sizeof(sockaddr_storage);
-
-					uint8_t buffer[16384];
-					int len = recvfrom(m_udpSocket, (char*)buffer, sizeof(buffer), 0, (sockaddr*)&from, &fromlen);
-
-					if (len > 0)
-					{
-						std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
-						HandleUDP(buffer, len);
-					}
-
-					break;
-				}
-
-			}
-		}
-		catch (std::exception& e)
-		{
-			trace("Mumble exception: %s", e.what());
-		}
-	}
-}
-
 void MumbleClient::MarkConnected()
 {
 	m_completionEvent.set(&m_connectionInfo);
@@ -793,7 +728,13 @@ void MumbleClient::Send(const char* buf, size_t size)
 
 void MumbleClient::WriteToSocket(const uint8_t buf[], size_t length)
 {
-	send(m_socket, (const char*)buf, length, 0);
+	auto outBuf = std::make_shared<std::unique_ptr<char[]>>(new char[length]);
+	memcpy(outBuf->get(), buf, length);
+
+	m_loop->EnqueueCallback([this, outBuf, length]()
+	{
+		m_tcp->write(std::move(*outBuf), length);
+	});
 }
 
 void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
@@ -802,11 +743,10 @@ void MumbleClient::OnAlert(Botan::TLS::Alert alert, const uint8_t[], size_t)
 
 	if (alert.is_fatal() || alert.type() == Botan::TLS::Alert::CLOSE_NOTIFY)
 	{
-		closesocket(m_socket);
-
+		m_connectionInfo.isConnecting = false;
 		m_connectionInfo.isConnected = false;
 
-		SetEvent(m_beginConnectEvent);
+		m_connectTimer->start(2500ms, 0s);
 	}
 }
 
@@ -829,10 +769,7 @@ void MumbleClient::OnActivated()
 	// initialize idle timer only *now* that the session is active
 	// (otherwise, if the idle timer ran after 500ms from connecting, but TLS connection wasn't set up within those 500ms,
 	// the idle event would immediately try to reconnect)
-	LARGE_INTEGER waitTime;
-	waitTime.QuadPart = -5000000LL; // 500ms
-
-	SetWaitableTimer(m_idleEvent, &waitTime, 0, nullptr, nullptr, 0);
+	m_idleTimer->start(500ms, 0s);
 
 	// send our own version
 	MumbleProto::Version ourVersion;
@@ -847,71 +784,6 @@ void MumbleClient::OnActivated()
 fwRefContainer<MumbleClient> MumbleClient::GetCurrent()
 {
 	return g_currentMumbleClient;
-}
-
-ClientTask MumbleClient::WaitForTask()
-{
-	HANDLE waitHandles[16];
-	int waitCount = 0;
-
-	waitHandles[waitCount] = m_beginConnectEvent;
-	waitCount++;
-
-	if (m_socketConnectEvent && m_socketConnectEvent != INVALID_HANDLE_VALUE)
-	{
-		waitHandles[waitCount] = m_socketConnectEvent;
-		waitCount++;
-	}
-
-	if (m_socketReadEvent && m_socketReadEvent != INVALID_HANDLE_VALUE)
-	{
-		waitHandles[waitCount] = m_socketReadEvent;
-		waitCount++;
-	}
-
-	if (m_udpReadEvent && m_udpReadEvent != INVALID_HANDLE_VALUE)
-	{
-		waitHandles[waitCount] = m_udpReadEvent;
-		waitCount++;
-	}
-
-	waitHandles[waitCount] = m_idleEvent;
-	waitCount++;
-
-	DWORD waitResult = WSAWaitForMultipleEvents(waitCount, waitHandles, FALSE, INFINITE, FALSE);
-
-	if (waitResult >= WAIT_OBJECT_0 && waitResult <= (WAIT_OBJECT_0 + waitCount))
-	{
-		HANDLE compareHandle = waitHandles[waitResult - WAIT_OBJECT_0];
-
-		if (compareHandle == m_beginConnectEvent)
-		{
-			return ClientTask::BeginConnect;
-		}
-		else if (compareHandle == m_socketConnectEvent)
-		{
-			return ClientTask::EndConnect;
-		}
-		else if (compareHandle == m_socketReadEvent)
-		{
-			return ClientTask::RecvData;
-		}
-		else if (compareHandle == m_idleEvent)
-		{
-			return ClientTask::Idle;
-		}
-		else if (compareHandle == m_udpReadEvent)
-		{
-			return ClientTask::UDPRead;
-		}
-	}
-
-	return ClientTask::Unknown;
-}
-
-void MumbleClient::ThreadFunc(MumbleClient* client)
-{
-	client->ThreadFuncImpl();
 }
 
 fwRefContainer<IMumbleClient> CreateMumbleClient()
