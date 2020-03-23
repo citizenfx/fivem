@@ -43,6 +43,14 @@ const languages = [
         name: 'cs',
         displayName: 'Čeština'
     },
+	{
+        name: 'sc',
+        displayName: '简体中文'
+    },
+	{
+        name: 'tc',
+        displayName: '繁體中文'
+    },
 ];
 
 export class Languages {
