@@ -2637,6 +2637,88 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 #include <ServerInstanceBaseRef.h>
 #include <ScriptEngine.h>
 
+struct CFireEvent
+{
+	void Parse(rl::MessageBuffer& buffer);
+
+	inline std::string GetName()
+	{
+		return "fireEvent";
+	}
+
+	struct fire
+	{
+		int v1;
+		bool v2;
+		uint16_t v3;
+		bool v4;
+		float v5X;
+		float v5Y;
+		float v5Z;
+		float posX;
+		float posY;
+		float posZ;
+		uint16_t v7;
+		bool v8;
+		uint8_t maxChildren;
+		float v10;
+		float v11;
+		bool v12;
+		int v13;
+		uint16_t fireId;
+
+		MSGPACK_DEFINE_MAP(v1,v2,v3,v4,v5X,v5Y,v5Z,posX,posY,posZ,v7,v8,maxChildren,v10,v11,v12,v13,fireId);
+	};
+
+	std::vector<fire> fires;
+
+	MSGPACK_DEFINE(fires);
+};
+
+void CFireEvent::Parse(rl::MessageBuffer& buffer)
+{
+	int count = buffer.Read<int>(3);
+	if (count > 5)
+		count = 5;
+
+	for (int i = 0; i < count; i++)
+	{
+		fire f;
+		f.v1 = buffer.Read<int>(4);
+		f.v2 = buffer.Read<uint8_t>(1);
+		if (f.v2)
+			f.v3 = buffer.Read<uint16_t>(13);
+		else
+			f.v3 = 0;
+		if (buffer.Read<uint8_t>(1))
+		{
+			f.v5X = buffer.ReadSignedFloat(19, 27648.0f);
+			f.v5Y = buffer.ReadSignedFloat(19, 27648.0f);
+			f.v5Z = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+		else
+		{
+			f.v5X = 0.0f;
+			f.v5Y = 0.0f;
+			f.v5Z = 0.0f;
+		}
+		f.posX = buffer.ReadSignedFloat(19, 27648.0f);
+		f.posY = buffer.ReadSignedFloat(19, 27648.0f);
+		f.posZ = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		f.v7 = buffer.Read<uint16_t>(13);
+		f.v8 = buffer.Read<uint8_t>(1);
+		f.maxChildren = buffer.Read<uint8_t>(5);
+		f.v10 = (buffer.Read<int>(16) / 65535.0f) * 90.0f;
+		f.v11 = (buffer.Read<int>(16) / 65535.0f) * 25.0f;
+		if (buffer.Read<uint8_t>(1))
+			f.v13 = buffer.Read<int>(32);
+		else
+			f.v13 = 0;
+		f.fireId = buffer.Read<uint16_t>(16);
+		fires.push_back(f);
+	}
+}
+
 struct CExplosionEvent
 {
 	void Parse(rl::MessageBuffer& buffer);
@@ -2646,25 +2728,56 @@ struct CExplosionEvent
 		return "explosionEvent";
 	}
 
+	uint16_t f186;
+	uint16_t f208;
 	int ownerNetId;
+	uint16_t f214;
 	int explosionType;
 	float damageScale;
-	float cameraShake;
+
 	float posX;
 	float posY;
 	float posZ;
-	bool isAudible;
-	bool isInvisible;
 
-	MSGPACK_DEFINE_MAP(ownerNetId, explosionType, damageScale, cameraShake, posX, posY, posZ, isAudible, isInvisible);
+	bool f242;
+	uint16_t f104;
+	float cameraShake;
+
+	bool isAudible;
+	bool f189;
+	bool isInvisible;
+	bool f126;
+	bool f241;
+	bool f243;
+
+	uint16_t f210;
+
+	float unkX;
+	float unkY;
+	float unkZ;
+
+	bool f190;
+	bool f191;
+
+	uint32_t f164;
+	
+	float posX224;
+	float posY224;
+	float posZ224;
+
+	bool f240;
+	uint16_t f218;
+	bool f216;
+
+	MSGPACK_DEFINE_MAP(f186,f208,ownerNetId,f214,explosionType,damageScale,posX,posY,posZ,f242,f104,cameraShake,isAudible,f189,isInvisible,f126,f241,f243,f210,unkX,unkY,unkZ,f190,f191,f164,posX224,posY224,posZ224,f240,f218,f216);
 };
 
 void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 {
-	auto f186 = buffer.Read<uint16_t>(16);
-	auto f208 = buffer.Read<uint16_t>(13);
+	f186 = buffer.Read<uint16_t>(16);
+	f208 = buffer.Read<uint16_t>(13);
 	ownerNetId = buffer.Read<uint16_t>(13);
-	auto f214 = buffer.Read<uint16_t>(13); // 1604+
+	f214 = buffer.Read<uint16_t>(13); // 1604+
 	explosionType = buffer.ReadSigned<int>(8); // 1604+ bit size
 	damageScale = buffer.Read<int>(8) / 255.0f;
 
@@ -2672,44 +2785,49 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 	posY = buffer.ReadSignedFloat(22, 27648.0f);
 	posZ = buffer.ReadFloat(22, 4416.0f) - 1700.0f;
 
-	bool f242 = buffer.Read<uint8_t>(1);
-	auto f104 = buffer.Read<uint16_t>(16);
+	f242 = buffer.Read<uint8_t>(1);
+	f104 = buffer.Read<uint16_t>(16);
 	cameraShake = buffer.Read<int>(8) / 127.0f;
 
 	isAudible = buffer.Read<uint8_t>(1);
-	bool f189 = buffer.Read<uint8_t>(1);
+	f189 = buffer.Read<uint8_t>(1);
 	isInvisible = buffer.Read<uint8_t>(1);
-	bool f126 = buffer.Read<uint8_t>(1);
-	bool f241 = buffer.Read<uint8_t>(1);
-	bool f243 = buffer.Read<uint8_t>(1); // 1604+
+	f126 = buffer.Read<uint8_t>(1);
+	f241 = buffer.Read<uint8_t>(1);
+	f243 = buffer.Read<uint8_t>(1); // 1604+
 
-	auto f210 = buffer.Read<uint16_t>(13);
+	f210 = buffer.Read<uint16_t>(13);
 
-	auto unkX = buffer.ReadSignedFloat(16, 1.1f);
-	auto unkY = buffer.ReadSignedFloat(16, 1.1f);
-	auto unkZ = buffer.ReadSignedFloat(16, 1.1f);
+	unkX = buffer.ReadSignedFloat(16, 1.1f);
+	unkY = buffer.ReadSignedFloat(16, 1.1f);
+	unkZ = buffer.ReadSignedFloat(16, 1.1f);
 
-	bool f190 = buffer.Read<uint8_t>(1);
-	bool f191 = buffer.Read<uint8_t>(1);
+	f190 = buffer.Read<uint8_t>(1);
+	f191 = buffer.Read<uint8_t>(1);
 
-	auto f164 = buffer.Read<uint32_t>(32);
+	f164 = buffer.Read<uint32_t>(32);
 	
 	if (f242)
 	{
-		float posX224 = buffer.ReadSignedFloat(31, 27648.0f);
-		float posY224 = buffer.ReadSignedFloat(31, 27648.0f);
-		float posZ224 = buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+		posX224 = buffer.ReadSignedFloat(31, 27648.0f);
+		posY224 = buffer.ReadSignedFloat(31, 27648.0f);
+		posZ224 = buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+	}
+	else
+	{
+		posX224 = 0;
+		posY224 = 0;
+		posZ224 = 0;
 	}
 
-	bool f240 = buffer.Read<uint8_t>(1);
-
+	f240 = buffer.Read<uint8_t>(1);
 	if (f240)
 	{
-		auto f218 = buffer.Read<uint16_t>(16);
+		f218 = buffer.Read<uint16_t>(16);
 
 		if (f191)
 		{
-			bool f216 = buffer.Read<uint8_t>(8);
+			f216 = buffer.Read<uint8_t>(8);
 		}
 	}
 }
@@ -2733,16 +2851,108 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<f
 	};
 }
 
+enum GTA_EVENT_IDS
+{
+	OBJECT_ID_FREED_EVENT,
+	OBJECT_ID_REQUEST_EVENT,
+	ARRAY_DATA_VERIFY_EVENT,
+	SCRIPT_ARRAY_DATA_VERIFY_EVENT,
+	REQUEST_CONTROL_EVENT,
+	GIVE_CONTROL_EVENT,
+	WEAPON_DAMAGE_EVENT,
+	REQUEST_PICKUP_EVENT,
+	REQUEST_MAP_PICKUP_EVENT,
+	GAME_CLOCK_EVENT,
+	GAME_WEATHER_EVENT,
+	RESPAWN_PLAYER_PED_EVENT,
+	GIVE_WEAPON_EVENT,
+	REMOVE_WEAPON_EVENT,
+	REMOVE_ALL_WEAPONS_EVENT,
+	VEHICLE_COMPONENT_CONTROL_EVENT,
+	FIRE_EVENT,
+	EXPLOSION_EVENT,
+	START_PROJECTILE_EVENT,
+	UPDATE_PROJECTILE_TARGET_EVENT,
+	REMOVE_PROJECTILE_ENTITY_EVENT,
+	BREAK_PROJECTILE_TARGET_LOCK_EVENT,
+	ALTER_WANTED_LEVEL_EVENT,
+	CHANGE_RADIO_STATION_EVENT,
+	RAGDOLL_REQUEST_EVENT,
+	PLAYER_TAUNT_EVENT,
+	PLAYER_CARD_STAT_EVENT,
+	DOOR_BREAK_EVENT,
+	SCRIPTED_GAME_EVENT,
+	REMOTE_SCRIPT_INFO_EVENT,
+	REMOTE_SCRIPT_LEAVE_EVENT,
+	MARK_AS_NO_LONGER_NEEDED_EVENT,
+	CONVERT_TO_SCRIPT_ENTITY_EVENT,
+	SCRIPT_WORLD_STATE_EVENT,
+	CLEAR_AREA_EVENT,
+	CLEAR_RECTANGLE_AREA_EVENT,
+	NETWORK_REQUEST_SYNCED_SCENE_EVENT,
+	NETWORK_START_SYNCED_SCENE_EVENT,
+	NETWORK_STOP_SYNCED_SCENE_EVENT,
+	NETWORK_UPDATE_SYNCED_SCENE_EVENT,
+	INCIDENT_ENTITY_EVENT,
+	GIVE_PED_SCRIPTED_TASK_EVENT,
+	GIVE_PED_SEQUENCE_TASK_EVENT,
+	NETWORK_CLEAR_PED_TASKS_EVENT,
+	NETWORK_START_PED_ARREST_EVENT,
+	NETWORK_START_PED_UNCUFF_EVENT,
+	NETWORK_SOUND_CAR_HORN_EVENT,
+	NETWORK_ENTITY_AREA_STATUS_EVENT,
+	NETWORK_GARAGE_OCCUPIED_STATUS_EVENT,
+	PED_CONVERSATION_LINE_EVENT,
+	SCRIPT_ENTITY_STATE_CHANGE_EVENT,
+	NETWORK_PLAY_SOUND_EVENT,
+	NETWORK_STOP_SOUND_EVENT,
+	NETWORK_PLAY_AIRDEFENSE_FIRE_EVENT,
+	NETWORK_BANK_REQUEST_EVENT,
+	REQUEST_DOOR_EVENT,
+	NETWORK_TRAIN_REPORT_EVENT,
+	NETWORK_TRAIN_REQUEST_EVENT,
+	NETWORK_INCREMENT_STAT_EVENT,
+	MODIFY_VEHICLE_LOCK_WORD_STATE_DATA,
+	MODIFY_PTFX_WORD_STATE_DATA_SCRIPTED_EVOLVE_EVENT,
+	REQUEST_PHONE_EXPLOSION_EVENT,
+	REQUEST_DETACHMENT_EVENT,
+	KICK_VOTES_EVENT,
+	GIVE_PICKUP_REWARDS_EVENT,
+	NETWORK_CRC_HASH_CHECK_EVENT,
+	BLOW_UP_VEHICLE_EVENT,
+	NETWORK_SPECIAL_FIRE_EQUIPPED_WEAPON,
+	NETWORK_RESPONDED_TO_THREAT_EVENT,
+	NETWORK_SHOUT_TARGET_POSITION,
+	VOICE_DRIVEN_MOUTH_MOVEMENT_FINISHED_EVENT,
+	PICKUP_DESTROYED_EVENT,
+	UPDATE_PLAYER_SCARS_EVENT,
+	NETWORK_CHECK_EXE_SIZE_EVENT,
+	NETWORK_PTFX_EVENT,
+	NETWORK_PED_SEEN_DEAD_PED_EVENT,
+	REMOVE_STICKY_BOMB_EVENT,
+	NETWORK_CHECK_CODE_CRCS_EVENT,
+	INFORM_SILENCED_GUNSHOT_EVENT,
+	PED_PLAY_PAIN_EVENT,
+	CACHE_PLAYER_HEAD_BLEND_DATA_EVENT,
+	REMOVE_PED_FROM_PEDGROUP_EVENT,
+	REPORT_MYSELF_EVENT,
+	REPORT_CASH_SPAWN_EVENT,
+	ACTIVATE_VEHICLE_SPECIAL_ABILITY_EVENT,
+	BLOCK_WEAPON_SELECTION,
+	NETWORK_CHECK_CATALOG_CRC,
+};
+
 static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
 {
 	buffer.Read<uint16_t>(); // eventHeader
 	bool isReply = buffer.Read<uint8_t>(); // is reply
 	uint16_t eventType = buffer.Read<uint16_t>(); // event ID
 
-	if (eventType == 17) // EXPLOSION_EVENT
+	switch(eventType)
 	{
-		return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
-	}
+		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
+		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
+	};
 
 	return {};
 }
