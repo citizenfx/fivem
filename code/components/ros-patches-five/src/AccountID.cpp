@@ -45,13 +45,6 @@ struct ExternalROSBlob
 	}
 };
 
-bool IsSteamTicket()
-{
-	static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
-
-	return blob->tried && blob->valid;
-}
-
 #if defined(IS_RDR3)
 static uint8_t* accountBlob;
 
@@ -157,7 +150,7 @@ void ValidateSteam(int parentPid)
 	});
 
 	auto r = cpr::Post(
-		cpr::Url{ "https://ros.citizenfx.internal/scui/v2/api/rdr2/autologinsteam" },
+		cpr::Url{ "https://ros.citizenfx.internal/scui/mtl/api/launcher/autologinsteam" },
 		cpr::Header{
 			{
 				{"Content-Type", "application/json; charset=utf-8"},
@@ -209,7 +202,7 @@ void ValidateSteam(int parentPid)
 	});
 
 	r = cpr::Post(
-		cpr::Url{ "https://ros.citizenfx.internal/scui/v2/api/rdr2/bindsteamaccount" },
+		cpr::Url{ "https://ros.citizenfx.internal/scui/mtl/api/launcher/bindsteamaccount" },
 		cpr::Header{
 			{
 				{"Content-Type", "application/json; charset=utf-8"},
