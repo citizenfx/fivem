@@ -168,6 +168,57 @@ void MumbleClient::Initialize()
 		{
 			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
 			{
+				std::lock_guard<std::recursive_mutex> l(m_clientMutex);
+
+				if (m_curManualChannel != m_lastManualChannel)
+				{
+					// check if the channel already exists
+					std::wstring wname = ToWide(m_curManualChannel);
+					m_lastManualChannel = m_curManualChannel;
+
+					for (const auto& channel : m_state.GetChannels())
+					{
+						if (channel.second.GetName() == wname)
+						{
+							// join the channel
+							MumbleProto::UserState state;
+							state.set_session(m_state.GetSession());
+							state.set_channel_id(channel.first);
+
+							Send(MumbleMessageType::UserState, state);
+							return;
+						}
+					}
+
+					// it does not, create the channel (server will verify name matches)
+					{
+						MumbleProto::ChannelState chan;
+						chan.set_parent(0);
+						chan.set_name(m_curManualChannel);
+						chan.set_temporary(true);
+
+						Send(MumbleMessageType::ChannelState, chan);
+					}
+				}
+
+				auto self = m_state.GetUser(m_state.GetSession());
+
+				if (self)
+				{
+					const auto& chList = m_state.GetChannels();
+					auto it = chList.find(self->GetChannelId());
+
+					if (it != chList.end())
+					{
+						const auto& name = it->second.GetName();
+
+						if (!name.empty())
+						{
+							m_lastManualChannel = ToNarrow(name);
+						}
+					}
+				}
+
 				{
 					MumbleProto::Ping ping;
 					ping.set_timestamp(msec().count());
@@ -214,6 +265,8 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 {
 	m_connectionInfo.address = address;
 	m_connectionInfo.username = userName;
+
+	m_curManualChannel = "Root";
 
 	m_tcpPingAverage = 0.0f;
 	m_tcpPingVariance = 0.0f;
@@ -334,39 +387,14 @@ void MumbleClient::SetChannel(const std::string& channelName)
 		return;
 	}
 
+	std::lock_guard<std::recursive_mutex> l(m_clientMutex);
+
 	if (channelName == m_curManualChannel)
 	{
 		return;
 	}
 
 	m_curManualChannel = channelName;
-
-	// check if the channel already exists
-	std::wstring wname = ToWide(channelName);
-
-	for (const auto& channel : m_state.GetChannels())
-	{
-		if (channel.second.GetName() == wname)
-		{
-			// join the channel
-			MumbleProto::UserState state;
-			state.set_session(m_state.GetSession());
-			state.set_channel_id(channel.first);
-
-			Send(MumbleMessageType::UserState, state);
-			return;
-		}
-	}
-
-	// it does not, create the channel
-	{
-		MumbleProto::ChannelState chan;
-		chan.set_parent(0);
-		chan.set_name(channelName);
-		chan.set_temporary(true);
-
-		Send(MumbleMessageType::ChannelState, chan);
-	}
 }
 
 void MumbleClient::SetAudioDistance(float distance)

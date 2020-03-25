@@ -179,6 +179,8 @@ private:
 
 	std::string m_curManualChannel;
 
+	std::string m_lastManualChannel;
+
 public:
 	static fwRefContainer<MumbleClient> GetCurrent();
 

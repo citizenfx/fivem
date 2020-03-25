@@ -76,6 +76,8 @@ public:
 
 	inline std::wstring GetName() const { return m_name; }
 
+	inline uint32_t GetChannelId() const { return m_currentChannelId; }
+
 	void UpdateUser(MumbleProto::UserState& state);
 };
 
