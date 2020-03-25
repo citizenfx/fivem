@@ -669,6 +669,19 @@ static HookFunction hookFunction([]()
 				g_mumbleClient->SetClientVolumeOverride(name, volume);
 			}
 		});
+		
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOLUME_OVERRIDE_MANUAL", [](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			const char* playerName = context.GetArgument<const char*>(1);
+			float volume = context.GetArgument<float>(2);
+
+			if (g_mumble.connected)
+			{
+				std::string name = fmt::sprintf("[%d] %s", serverId, playerName);
+				g_mumbleClient->SetClientVolumeOverride(name, volume);
+			}
+		});
 
 		static VoiceTargetConfig vtConfigs[31];
 
