@@ -171,6 +171,8 @@ public:
 		rage::ioInputSource src;
 		GetBinding(src);
 		mapper->UpdateMap(0, src, m_value);
+
+		m_mappers.insert(mapper);
 	} 
 
 	rage::ioValue& GetValue()
@@ -215,6 +217,8 @@ private:
 	std::string m_tag;
 
 	std::tuple<int, int> m_binding;
+
+	std::set<rage::ioMapper*> m_mappers;
 };
 
 Binding::Binding(const std::string& command)
@@ -225,7 +229,10 @@ Binding::Binding(const std::string& command)
 
 Binding::~Binding()
 {
-
+	for (rage::ioMapper* mapper : m_mappers)
+	{
+		mapper->RemoveDeviceMappings(m_value, -4);
+	}
 }
 
 static void* g_control;
