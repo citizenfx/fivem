@@ -181,6 +181,8 @@ private:
 
 	std::string m_lastManualChannel;
 
+	std::map<int, VoiceTargetConfig> m_pendingVoiceTargetUpdates;
+
 public:
 	static fwRefContainer<MumbleClient> GetCurrent();
 

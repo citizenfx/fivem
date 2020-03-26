@@ -201,6 +201,48 @@ void MumbleClient::Initialize()
 					}
 				}
 
+				{
+					for (auto& [idx, config] : m_pendingVoiceTargetUpdates)
+					{
+						MumbleProto::VoiceTarget target;
+						target.set_id(idx);
+
+						for (auto& t : config.targets)
+						{
+							auto vt = target.add_targets();
+
+							for (auto& userName : t.users)
+							{
+								m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
+								{
+									if (user->GetName() == ToWide(userName))
+									{
+										vt->add_session(user->GetSessionId());
+									}
+								});
+							}
+
+							if (!t.channel.empty())
+							{
+								for (auto& channelPair : m_state.GetChannels())
+								{
+									if (channelPair.second.GetName() == ToWide(t.channel))
+									{
+										vt->set_channel_id(channelPair.first);
+									}
+								}
+							}
+
+							vt->set_links(t.links);
+							vt->set_children(t.children);
+						}
+
+						Send(MumbleMessageType::VoiceTarget, target);
+					}
+
+					m_pendingVoiceTargetUpdates.clear();
+				}
+
 				auto self = m_state.GetUser(m_state.GetSession());
 
 				if (self)
@@ -334,40 +376,8 @@ void MumbleClient::SetOutputVolume(float volume)
 
 void MumbleClient::UpdateVoiceTarget(int idx, const VoiceTargetConfig& config)
 {
-	MumbleProto::VoiceTarget target;
-	target.set_id(idx);
-
-	for (auto& t : config.targets)
-	{
-		auto vt = target.add_targets();
-		
-		for (auto& userName : t.users)
-		{
-			m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
-			{
-				if (user->GetName() == ToWide(userName))
-				{
-					vt->add_session(user->GetSessionId());
-				}
-			});
-		}
-
-		if (!t.channel.empty())
-		{
-			for (auto& channelPair : m_state.GetChannels())
-			{
-				if (channelPair.second.GetName() == ToWide(t.channel))
-				{
-					vt->set_channel_id(channelPair.first);
-				}
-			}
-		}
-
-		vt->set_links(t.links);
-		vt->set_children(t.children);
-	}
-
-	Send(MumbleMessageType::VoiceTarget, target);
+	std::lock_guard<std::recursive_mutex> l(m_clientMutex);
+	m_pendingVoiceTargetUpdates[idx] = config;
 }
 
 void MumbleClient::SetVoiceTarget(int idx)
