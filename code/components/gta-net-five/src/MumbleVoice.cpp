@@ -670,16 +670,21 @@ static HookFunction hookFunction([]()
 			}
 		});
 		
-		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOLUME_OVERRIDE_MANUAL", [](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOLUME_OVERRIDE_BY_SERVER_ID", [](fx::ScriptContext& context)
 		{
 			int serverId = context.GetArgument<int>(0);
-			const char* playerName = context.GetArgument<const char*>(1);
-			float volume = context.GetArgument<float>(2);
+			float volume = context.GetArgument<float>(1);
 
 			if (g_mumble.connected)
 			{
-				std::string name = fmt::sprintf("[%d] %s", serverId, playerName);
-				g_mumbleClient->SetClientVolumeOverride(name, volume);
+				for (std::pair<std::string, int> client : g_userNamesToClientIds)
+    			{
+					if (client.second == serverId)
+					{
+						std::string name = fmt::sprintf("[%d] %s", serverId, client.first);
+						g_mumbleClient->SetClientVolumeOverride(name, volume);
+					}
+				}
 			}
 		});
 
