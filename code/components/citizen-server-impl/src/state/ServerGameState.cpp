@@ -609,6 +609,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			relevantEntities[entity->handle & 0xFFFF] = { entity, entityPosition, vehicleData, entityClient };
+
+			// poor entity, it's relevant to nobody :( disown it
+			if (entity->relevantTo.none() && entityClient)
+			{
+				ReassignEntity(entity->handle, {});
+			}
 		}
 	}
 
@@ -692,17 +698,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				break;
 			}
 
-			if (!entityClient)
-			{
-				continue;
-			}
-
 			bool hasCreated = entity->ackedCreation.test(slotId);
 
 			bool shouldBeCreated = (g_oneSyncCulling->GetValue()) ? false : true;
 
 			// players should always have their own entities
-			if (client->GetNetId() == entityClient->GetNetId())
+			if (entityClient && client->GetNetId() == entityClient->GetNetId())
 			{
 				shouldBeCreated = true;
 			}
@@ -825,7 +826,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// players that should be removed are relevant
-			if (!shouldBeCreated && entity->type == sync::NetObjEntityType::Player)
+			if (!shouldBeCreated && entity->type == sync::NetObjEntityType::Player && entityClient)
 			{
 				auto [clientData, clientDataLock] = GetClientData(this, client);
 
@@ -840,7 +841,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (isRelevant)
 			{
+				// assign it to the client, it's relevant!
+				if (!entityClient && entity->type != sync::NetObjEntityType::Player)
+				{
+					if (entity->client.expired())
+					{
+						ReassignEntity(entity->handle, client);
+					}
+				}
+
 				clientDataUnlocked->relevantEntities.push_back({ entity->handle & 0xFFFF, syncDelay, shouldBeCreated });
+				entity->relevantTo.set(client->GetSlotId());
 			}
 		}
 	}
@@ -1354,7 +1365,7 @@ void ServerGameState::UpdateEntities()
 		else
 		{
 			// workaround: force-migrate a stuck entity
-			if ((time - entity->lastReceivedAt) > 10s)
+			if ((time - entity->lastReceivedAt) > 5s)
 			{
 				if (g_oneSyncForceMigration->GetValue() || fx::IsBigMode())
 				{
@@ -1365,7 +1376,10 @@ void ServerGameState::UpdateEntities()
 						client = entity->client.lock();
 					}
 
-					MoveEntityToCandidate(entity, client);
+					if (client)
+					{
+						MoveEntityToCandidate(entity, client);
+					}
 
 					// store the current time so we'll only try again in 10 seconds, not *the next frame*
 					entity->lastReceivedAt = time;
@@ -1581,8 +1595,11 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 
 	// #TODO1S: reassignment should also send a create if the player was out of focus area
 	{
-		auto [ targetData, lock ] = GetClientData(this, targetClient);
-		targetData->objectIds.insert(entityHandle & 0xFFFF);
+		if (targetClient)
+		{
+			auto [targetData, lock] = GetClientData(this, targetClient);
+			targetData->objectIds.insert(entityHandle & 0xFFFF);
+		}
 	}
 
 	// when deleted, we want to make this object ID return to the global pool, not to the player who last owned it
@@ -1695,9 +1712,9 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 		if (candidates.empty() || // no candidate?
 			std::get<float>(candidates[0]) >= (300.0f * 300.0f)) // closest candidate beyond distance culling range?
 		{
-			GS_LOG("no candidates for entity %d, deleting\n", entity->handle);
+			GS_LOG("no candidates for entity %d, assigning as unowned\n", entity->handle);
 
-			return false;
+			ReassignEntity(entity->handle, {});
 		}
 		else
 		{

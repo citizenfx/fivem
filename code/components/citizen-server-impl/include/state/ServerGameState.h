@@ -36,6 +36,14 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+template<typename T>
+inline constexpr T roundToWord(T val)
+{
+	constexpr auto multiple = sizeof(size_t);
+
+	return ((val + multiple - 1) / multiple) * multiple;
+}
+
 namespace fx
 {
 struct ScriptGuid;
@@ -80,7 +88,7 @@ using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 struct NodeBase
 {
 public:
-	eastl::bitset<MAX_CLIENTS> ackedPlayers;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> ackedPlayers;
 
 	uint64_t frameIndex;
 
@@ -201,13 +209,14 @@ struct SyncEntityState
 	std::shared_mutex clientMutex;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
-	eastl::bitset<MAX_CLIENTS> ackedCreation;
-	eastl::bitset<MAX_CLIENTS> didDeletion;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> ackedCreation;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
 	uint32_t creationToken;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 
 	std::chrono::milliseconds lastReceivedAt;
 
@@ -348,7 +357,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	eastl::fixed_hash_map<uint64_t, eastl::bitset<MaxObjectId>, 150> idsForGameState;
 
-	eastl::bitset<MaxObjectId> pendingRemovals;
+	eastl::bitset<roundToWord(MaxObjectId)> pendingRemovals;
 
 	std::weak_ptr<fx::Client> client;
 
@@ -450,9 +459,9 @@ private:
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
 
-	eastl::bitset<MaxObjectId> m_objectIdsSent;
-	eastl::bitset<MaxObjectId> m_objectIdsUsed;
-	eastl::bitset<MaxObjectId> m_objectIdsStolen;
+	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
+	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
+	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
 
 	uint64_t m_frameIndex;
 
