@@ -335,8 +335,8 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("F6 83 ? ? ? ? 07 75 ? 44 0F");
 
-		AccelerationOffset = *(uint32_t*)(location - 42);
-		CurrentRPMOffset = *(uint32_t*)(location + 2);
+		CurrentRPMOffset = *(uint32_t*)(location - 42);
+		AccelerationOffset = CurrentRPMOffset + 16;
 	}
 
 	{
