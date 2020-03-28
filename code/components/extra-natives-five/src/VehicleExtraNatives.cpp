@@ -292,8 +292,8 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("8A 96 ? ? ? ? 0F B6 C8 84 D2 41");
 
-		IsWantedOffset = *(uint32_t*)(location + 31);
-		IsEngineStartingOffset = *(uint32_t*)(location + 40);
+		IsEngineStartingOffset = *(uint32_t*)(location + 31);
+		IsWantedOffset = *(uint32_t*)(location + 40);
 	}
 
 	{
