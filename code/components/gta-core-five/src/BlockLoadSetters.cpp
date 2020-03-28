@@ -968,14 +968,7 @@ static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
 
 static void FreeEntry(void* allocator, void* ptr)
 {
-	if (*(void**)0x1424AC9B8 && ptr == **(void***)0x1424AC9B8)
-	{
-		__debugbreak();
-	}
-
-	g_origMemFree(allocator, ptr);
-
-	/*if (!isMine(allocator, ptr))
+	if (!isMine(allocator, ptr))
 	{
 		g_origMemFree(allocator, ptr);
 		return;
@@ -983,7 +976,7 @@ static void FreeEntry(void* allocator, void* ptr)
 
 	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
 
-	HeapFree(hHeap, 0, memReal);*/
+	HeapFree(hHeap, 0, memReal);
 	//free(memReal);
 }
 
@@ -1515,7 +1508,7 @@ static HookFunction hookFunction([] ()
 	//vt[2] = AllocEntry;
 	
 	g_origMemFree = (decltype(g_origMemFree))vt[4];
-	vt[4] = FreeEntry;
+	//vt[4] = FreeEntry;
 
 	g_origRealloc = (decltype(g_origRealloc))vt[6];
 	//vt[6] = ReallocEntry;
