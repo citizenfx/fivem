@@ -135,51 +135,6 @@ int ReturnInt()
 	return Value;
 }
 
-static int CustomGameElementCall(char* element)
-{
-	static std::map<uint32_t, std::string> hashMap;
-
-	if (hashMap.size() == 0)
-	{
-		FILE* f = fopen("Y:\\dev\\v\\strings2.txt", "r");
-
-		if (f)
-		{
-			char stringBuf[4096];
-
-			while (!feof(f))
-			{
-				fgets(stringBuf, sizeof(stringBuf), f);
-				stringBuf[sizeof(stringBuf) - 1] = '\0';
-
-				stringBuf[strlen(stringBuf) - 2] = '\0';
-
-				hashMap[HashString(stringBuf)] = stringBuf;
-			}
-		}
-	}
-
-	uint32_t hash = *(uint32_t*)(element + 16);
-
-	std::string name;
-
-	auto it = hashMap.find(hash);
-
-	if (it != hashMap.end())
-	{
-		name = " - " + it->second;
-	}
-
-	trace("Entered game element %08x%s.\n", hash, name.c_str());
-
-	uintptr_t func = *(uintptr_t*)(element + 32);
-	int retval = ((int(*)())func)();
-
-	trace("Exited game element %08x%s.\n", hash, name.c_str());
-
-	return retval;
-}
-
 static void* DeleteVideo(void*, char* videoName)
 {
 	strcpy(videoName, "nah");
@@ -210,7 +165,9 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	}
 
 	// ignore launcher requirement
-	hook::call(hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(), ThisIsActuallyLaunchery);
+	// 1737 updated this for MTL
+	// and 1868 made it Arxan.
+	hook::call(hook::pattern("84 C0 75 0C B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(-5), ThisIsActuallyLaunchery);
 
 	// ignore steam requirement
 	/*auto pattern = hook::pattern("FF 15 ? ? ? ? 84 C0 74 0C B2 01 B9 91 32 25");// 31 E8");
@@ -225,12 +182,6 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	
 	// draw loading screen even if 'not' enabled
 	hook::nop(hook::get_pattern("0F 29 74 24 30 85 DB", 7), 6);
-
-	// game elements for crash handling purposes
-	char* vtablePtrLoc = hook::pattern("41 89 40 10 49 83 60 18 00 48 8D 05").count(1).get(0).get<char>(12);
-	void* vtablePtr = (void*)(*(int32_t*)vtablePtrLoc + vtablePtrLoc + 4);
-
-	//hook::put(&((uintptr_t*)vtablePtr)[1], CustomGameElementCall);
 
 	if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
 	{

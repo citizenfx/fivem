@@ -130,11 +130,11 @@
 						</Item>
 						<Item>
 							<PoolName>AnimStore</PoolName>
-							<PoolSize value="14700"/>
+							<PoolSize value="20000"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
-							<PoolSize value="3051"/>
+							<PoolSize value="3062"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
@@ -158,7 +158,7 @@
 						</Item>
 						<Item>
 							<PoolName>CombatMeleeManager_GroupsMP</PoolName>
-							<PoolSize value="10"/>
+							<PoolSize value="20"/>
 						</Item>
 						<Item>
 							<PoolName>CombatMountedManager_Attacks</PoolName>
@@ -314,7 +314,7 @@
 						</Item>
 						<Item>
 							<PoolName>LightEntity</PoolName>
-							<PoolSize value="4200"/>
+							<PoolSize value="4700"/>
 						</Item>
 						<Item>
 							<PoolName>MapDataLoadedNode</PoolName>
@@ -354,7 +354,7 @@
 						</Item>
 						<Item>
 							<PoolName>OcclusionPathNode</PoolName>
-							<PoolSize value="5200"/>
+							<PoolSize value="5250"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalEntity</PoolName>
@@ -362,7 +362,7 @@
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalInfo</PoolName>
-							<PoolSize value="500"/>
+							<PoolSize value="550"/>
 						</Item>
 						<Item>
 							<PoolName>Peds</PoolName>
@@ -394,7 +394,7 @@
 						</Item>
 						<Item>
 							<PoolName>CPickupPlacementCustomScriptData</PoolName>
-							<PoolSize value="70"/>
+							<PoolSize value="200"/>
 						</Item>
 						<Item>
 							<PoolName>CRegenerationInfo</PoolName>
@@ -426,7 +426,7 @@
 						</Item>
 						<Item>
 							<PoolName>ScaleformStore</PoolName>
-							<PoolSize value="742"/>
+							<PoolSize value="842"/>
 						</Item>
 						<Item>
 							<PoolName>ScaleformMgrArray</PoolName>
@@ -434,7 +434,7 @@
 						</Item>
 						<Item>
 							<PoolName>ScriptStore</PoolName>
-							<PoolSize value="900"/>
+							<PoolSize value="1000"/>
 						</Item>
 						<Item>
 							<PoolName>StaticBounds</PoolName>
@@ -881,7 +881,7 @@
 				</ConfigExtensions>
 
 				<ConfigStreamingEngine>
-					<ArchiveCount value="2904"/>
+					<ArchiveCount value="3160"/>
 					<PhysicalStreamingBuffer value="252"/>
 					<VirtualStreamingBuffer value="1000"/>
 				</ConfigStreamingEngine>

@@ -14,6 +14,8 @@
 
 #include <MinHook.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <Error.h>
 
 // pool functions, here temporarily we hope :)
@@ -72,6 +74,12 @@ static HookFunction hookFunction([] ()
 	{
 		g_customThreads.erase(thread->GetContext()->ThreadId);
 	});
+
+	// 1868+
+	if (Is1868())
+	{
+		hook::put<uint8_t>(hook::get_pattern("74 19 FF C1 48 83 C0 04"), 0xEB);
+	}
 });
 
 // functions

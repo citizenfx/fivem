@@ -20,6 +20,8 @@
 
 #include <shellscalingapi.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <shobjidl.h>
 
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
@@ -198,6 +200,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	SetCurrentProcessExplicitAppUserModelID(L"CitizenFX." PRODUCT_NAME L".Client");
 
+	// toggle wait for switch
+	if (wcsstr(GetCommandLineW(), L"-switchcl"))
+	{
+		// if this isn't a subprocess
+		wchar_t fxApplicationName[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+		if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
+		{
+			static HostSharedData<CfxState> initStateOld("CfxInitState");
+
+			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
+
+			if (hProcess)
+			{
+				WaitForSingleObject(hProcess, INFINITE);
+				CloseHandle(hProcess);
+			}
+		}
+	}
+
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 #ifdef IS_LAUNCHER
@@ -312,7 +335,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				if (AssignProcessToJobObject(hJob, GetCurrentProcess()))
 				{
 					JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
-					info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+					info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK;
 					if (SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &info, sizeof(info)))
 					{
 						initState->inJobObject = true;
@@ -467,6 +490,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	if (initState->IsMasterProcess())
 	{
 		NVSP_DisableOnStartup();
+
+		GetModuleFileNameW(NULL, initState->gameExePath, std::size(initState->gameExePath));
 	}
 
 	// readd the game path into the PATH
@@ -531,9 +556,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
 				
-				if ((fixedInfo->dwFileVersionLS >> 16) != 1604)
+				if ((fixedInfo->dwFileVersionLS >> 16) != ((Is1868()) ? 1868 : 1604))
 				{
-					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.1604.0 is currently supported. Please obtain this version, and try again.",
+					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.1604.0/1.0.1868.0 is currently supported. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),
 										   (fixedInfo->dwFileVersionMS >> 16),
 										   (fixedInfo->dwFileVersionMS & 0xFFFF),
@@ -574,7 +599,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				UI_UpdateText(0, va(L"Starting %s...", 
 					ToWide(minModeManifest->Get("productName", ToNarrow(PRODUCT_NAME)))));
 
-				UI_UpdateText(1, ToWide(minModeManifest->Get("productSubtitle", "We're getting there.")).c_str());
+				if (wcsstr(GetCommandLineW(), L"-switchcl"))
+				{
+					UI_UpdateText(1, L"Transitioning to another build...");
+				}
+				else
+				{
+					UI_UpdateText(1, ToWide(minModeManifest->Get("productSubtitle", "We're getting there.")).c_str());
+				}
 
 				while (GetTickCount64() < (st + 3500))
 				{

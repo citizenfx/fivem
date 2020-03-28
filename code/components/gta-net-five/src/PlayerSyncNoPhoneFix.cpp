@@ -8,8 +8,16 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <CrossBuildRuntime.h>
+
 static HookFunction hookFunction([] ()
 {
+	// 1737: no longer needed
+	if (Is1868())
+	{
+		return;
+	}
+
 	// CPlayerGameStateDataNode write/log functions tend to 'crash' when a player ped 'lost' its phone metadata (offset CPed + 4256 in 331)
 	// as tends to happen when changing to certain animal models. This is commonly 'worked around' by people 'willing to mod' by removing the
 	// call to CNetObjPlayer::`IPlayerNodeDataAccessor`'s 'update game state' function, which will *obviously* break various other state elements

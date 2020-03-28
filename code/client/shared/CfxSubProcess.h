@@ -36,13 +36,16 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType)
 #ifndef IS_FXSERVER
 	if (wcsstr(GetCommandLine(), L"cl2") != nullptr)
 	{
-		outPath += productName + L"cl2_" + processType;
+		productName += L"cl2_";
 	}
-	else
-#endif
+	
+	if (wcsstr(GetCommandLine(), L"b1868") != nullptr)
 	{
-		outPath += productName + processType;
+		productName += L"b1868_";
 	}
+#endif
+
+	outPath += productName + processType;
 
 	DeleteFile(outPath.c_str());
 	CopyFile(fxApplicationName, outPath.c_str(), FALSE);

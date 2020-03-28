@@ -40,11 +40,15 @@
 
 #include <LauncherIPC.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <SteamComponentAPI.h>
 
 #include <MinMode.h>
 
 #include "GameInit.h"
+
+std::string g_lastConn;
 
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 {
@@ -54,6 +58,29 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 	}
 
 	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+static void RestartGameToOtherBuild()
+{
+#ifdef GTA_FIVE
+	static HostSharedData<CfxState> hostData("CfxInitState");
+	auto cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
+		hostData->gameExePath,
+		Is1868() ? L"" : L"-b1868",
+		ToWide(g_lastConn));
+
+	STARTUPINFOW si = { 0 };
+	si.cb = sizeof(si);
+
+	PROCESS_INFORMATION pi;
+
+	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
+	{
+		trace("failed to exit: %d\n", GetLastError());
+	}
+
+	ExitProcess(0x69);
+#endif
 }
 
 void saveSettings(const wchar_t *json) {
@@ -148,6 +175,8 @@ static void ConnectTo(const std::string& hostnameStr)
 	g_connected = true;
 
 	nui::PostFrameMessage("mpMenu", R"({ "type": "connecting" })");
+
+	g_lastConn = hostnameStr;
 
 	if (!hostnameStr.empty() && hostnameStr[0] == '-')
 	{
@@ -332,6 +361,13 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([] (const char* error)
 		{
+#ifdef GTA_FIVE
+			if (strstr(error, "This server requires a different game build"))
+			{
+				RestartGameToOtherBuild();
+			}
+#endif
+
 			g_connected = false;
 
 			rapidjson::Document document;

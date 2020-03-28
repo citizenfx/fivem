@@ -130,13 +130,12 @@ static rage::netObject* netObjectMgrBase__GetNetworkObjectForPlayer(rage::netObj
 
 static HookFunction hookFunction([]()
 {
-	// 1604
 	MH_Initialize();
-	MH_CreateHook((void*)0x141615FC0, netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject);
-	MH_CreateHook((void*)0x141605054, netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject);
-	MH_CreateHook((void*)0x1416033D0, netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner);
-	MH_CreateHook((void*)0x141608454, netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject);
-	MH_CreateHook((void*)0x141608524, netObjectMgrBase__GetNetworkObjectForPlayer, (void**)& g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
+	MH_CreateHook(hook::get_pattern("48 8B F2 0F B7 52 0A 41 B0 01", -0x19), netObjectMgrBase__RegisterNetworkObject, (void**)&g_orig_netObjectMgrBase__RegisterNetworkObject); //
+	MH_CreateHook(hook::get_pattern("8A 42 4C 45 33 FF 48 8B DA C0 E8 02", -0x21), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject); //
+	MH_CreateHook(hook::get_pattern("44 8A 62 4B 33 DB 41 8B E9", -0x20), netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner); //
+	MH_CreateHook(hook::get_pattern("44 38 33 75 30 66 44", -0x40), netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject); //
+	MH_CreateHook(hook::get_pattern("41 80 78 2D FF 74 2D 41 0F B6 40 2D"), netObjectMgrBase__GetNetworkObjectForPlayer, (void**)& g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
