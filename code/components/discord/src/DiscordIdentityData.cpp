@@ -62,12 +62,14 @@ static HookFunction initFunction([]()
 
 		auto handleMsg = [&writePipe, &closeConnection](int opCode, const json& data)
 		{
+			static std::string userId;
+
 			switch (opCode)
 			{
 			case 1: // FRAME
 				if (data["evt"] == "READY")
 				{
-					auto userId = data["data"]["user"]["id"].get<std::string>();
+					userId = data["data"]["user"]["id"].get<std::string>();
 
 					// check with CnL if we have access
 					Instance<::HttpClient>::Get()->DoPostRequest(
@@ -109,16 +111,20 @@ static HookFunction initFunction([]()
 					{
 						auto code = data["data"]["code"].get<std::string>();
 
-						Instance<::HttpClient>::Get()->DoPostRequest(
-							CNL_ENDPOINT "/api/validate/discord",
-							{
-								{ "entitlementId", ros::GetEntitlementSource() },
-								{ "authCode", code }
-							},
-							[](bool, const char*, size_t)
+						if (!code.empty())
 						{
-							
-						});
+							Instance<::HttpClient>::Get()->DoPostRequest(
+								CNL_ENDPOINT "/api/validate/discord",
+								{
+									{ "entitlementId", ros::GetEntitlementSource() },
+									{ "authCode", code },
+									{ "userId", userId }
+								},
+								[](bool, const char*, size_t)
+							{
+
+							});
+						}
 
 						closeConnection();
 					}
