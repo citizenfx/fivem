@@ -25,6 +25,7 @@
 #include <Error.h>
 
 #include <LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
 {
@@ -1156,10 +1157,21 @@ void ShutdownSessionWrap()
 		OnMainGameFrame();
 
 		// 1604 (same as nethook)
-		((void(*)())hook::get_adjusted(0x1400067E8))();
-		((void(*)())hook::get_adjusted(0x1407D1960))();
-		((void(*)())hook::get_adjusted(0x140025F7C))();
-		((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
+		// 1868
+		if (!Is1868())
+		{
+			((void(*)())hook::get_adjusted(0x1400067E8))();
+			((void(*)())hook::get_adjusted(0x1407D1960))();
+			((void(*)())hook::get_adjusted(0x140025F7C))();
+			((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
+		}
+		else
+		{
+			((void(*)())hook::get_adjusted(0x1400067F8))();
+			((void(*)())hook::get_adjusted(0x1407DDC5C))();
+			((void(*)())hook::get_adjusted(0x1400263C0))();
+			((void(*)(void*))hook::get_adjusted(0x1415B924C))((void*)hook::get_adjusted(0x142E00A00));
+		}
 
 		g_runWarning();
 	}

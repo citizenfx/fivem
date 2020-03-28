@@ -5,6 +5,7 @@
 #include <rlNetBuffer.h>
 #include <state/RlMessageBuffer.h>
 
+#include <CrossBuildRuntime.h>
 #include <ICoreGameInit.h>
 
 extern ICoreGameInit* icgi;
@@ -123,6 +124,16 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("01 51 10 8B 41 10 3B 41 14 7E 03"), _netBuffer_BumpReadWriteCursor, (void**)&g_orig_netBuffer_BumpReadWriteCursor);
 	MH_CreateHook(hook::get_pattern("01 51 10 8B 41 10 3B 41 18 7E 03"), _netBuffer_BumpWriteCursor, (void**)&g_orig_netBuffer_BumpWriteCursor);
 	MH_CreateHook(hook::get_pattern("41 83 E1 07 45 8B D8 49 C1 FA 03 BB 08 00 00 00", -0x12), _netBuffer_ReadUnsigned, (void**)&g_orig_netBuffer_ReadUnsigned);
-	MH_CreateHook(hook::get_pattern("49 C1 FA 03 41 83 E1 07 4C 03 D1 B9 20 00 00 00", -0xE), _netBuffer_WriteUnsigned, (void**)&g_orig_netBuffer_WriteUnsigned);
+	
+	// 1868 arxan!
+	if (!Is1868())
+	{
+		MH_CreateHook(hook::get_pattern("49 C1 FA 03 41 83 E1 07 4C 03 D1 B9 20 00 00 00", -0xE), _netBuffer_WriteUnsigned, (void**)&g_orig_netBuffer_WriteUnsigned);
+	}
+	else if (Is1868())
+	{
+		g_orig_netBuffer_WriteUnsigned = (decltype(g_orig_netBuffer_WriteUnsigned))hook::get_pattern("49 C1 FA 03 41 83 E1 07 4C 03 D1 B9 20 00 00 00", -0xE);
+	}
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });

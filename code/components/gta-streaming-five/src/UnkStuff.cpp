@@ -3,6 +3,7 @@
 
 #include <sysAllocator.h>
 
+#include <CrossBuildRuntime.h>
 #include <LaunchMode.h>
 
 static int ReturnTrue()
@@ -612,12 +613,16 @@ static void* (*g_origSMPACreate)(void* a1, void* a2, size_t size, void* a4, bool
 
 static void* SMPACreateStub(void* a1, void* a2, size_t size, void* a4, bool a5)
 {
-       if (size == 0xD00000)
-       {
-               size = 0x1200000;
-       }
+	if (size == 0xD00000)
+	{
+		// free original allocation
+		rage::GetAllocator()->Free(a2);
 
-       return g_origSMPACreate(a1, a2, size, a4, a5);
+		size = 0x1200000;
+		a2 = rage::GetAllocator()->Allocate(size, 16, 0);
+	}
+
+	return g_origSMPACreate(a1, a2, size, a4, a5);
 }
 
 static void* GetNvapi(uint32_t hash)
@@ -659,7 +664,7 @@ static void HookStereo()
 	hook::jump(GetNvapi(0x1FB0BC30), NvAPI_Stereo_IsActivated);
 }
 
-static HookFunction hookFunction([] ()
+static HookFunction hookFunction([]()
 {
 #if 0
 	hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);
@@ -692,11 +697,6 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(hook::pattern("F6 05 ? ? ? ? ? 74 08 84 C0 0F 84").count(1).get(0).get<void>(0x18), 0xEB);
 #endif
 
-	// 1604 (ported from 1737): increase rline allocator size using a hook (as Arxan)
-	MH_Initialize();
-	MH_CreateHook((void*)0x14127385C, SMPACreateStub, (void**)&g_origSMPACreate);
-	MH_EnableHook(MH_ALL_HOOKS);
-
 	if (!CfxIsSinglePlayer())
 	{
 		// population zone selection for network games
@@ -710,7 +710,17 @@ static HookFunction hookFunction([] ()
 		hook::put<uint16_t>(hook::get_pattern("0F 84 8F 00 00 00 8B 44 24 40 8B C8"), 0xE990);
 
 		// additional netgame checks for scenarios
-		hook::nop(hook::get_pattern("B2 04 75 65 80 7B 39", 2), 2);
+
+		// 1737<
+		if (!Is1868())
+		{
+			hook::nop(hook::get_pattern("B2 04 75 65 80 7B 39", 2), 2);
+		}
+		else
+		{
+			hook::nop(hook::get_pattern("41 B9 FF 01 00 00 BA FF 00 00 00 75 6E", 11), 2);
+		}
+
 		hook::put<uint8_t>(hook::get_pattern("74 24 84 D2 74 20 8B 83", 4), 0xEB);
 		hook::put<uint8_t>(hook::get_pattern("84 D2 75 41 8B 83", 0x5F), 0xEB);
 		//hook::put<uint8_t>(hook::get_pattern("40 B6 01 74 52 F3 0F 10 01", 3), 0xEB); // this skips a world grid check, might be bad!
@@ -735,6 +745,11 @@ static HookFunction hookFunction([] ()
 
 	// increase the heap size for allocator 0
 	hook::put<uint32_t>(hook::get_pattern("83 C8 01 48 8D 0D ? ? ? ? 41 B1 01 45 33 C0", 17), 600 * 1024 * 1024); // 600 MiB, default in 323 was 412 MiB
+
+	// 1737+: increase rline allocator size using a hook (as Arxan)
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("49 63 F0 48 8B EA B9 07 00 00 00", -0x29), SMPACreateStub, (void**)&g_origSMPACreate);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// don't pass flag 4 for streaming requests of netobjs
 	hook::put<int>(hook::get_pattern("BA 06 00 00 00 41 23 CE 44 33 C1 44 23 C6 41 33", 1), 2);

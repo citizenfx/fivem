@@ -12,6 +12,7 @@
 
 #include <CloneManager.h>
 
+#include <CrossBuildRuntime.h>
 #include <ICoreGameInit.h>
 
 #include <base64.h>
@@ -54,11 +55,6 @@ public:
 };
 }
 
-// 1103
-// 1290
-// 1365
-// 1493
-// 1604
 static rage::netPlayerMgrBase* g_playerMgr;
 
 void* g_tempRemotePlayer;
@@ -181,6 +177,16 @@ static bool IsNetworkPlayerConnected(int index)
 //int g_physIdx = 1;
 int g_physIdx = 42;
 
+static hook::cdecl_stub<void(void*)> _npCtor([]()
+{
+	return hook::get_pattern("C7 41 08 0A 00 00 00 C7 41 0C 20 00 00 00", -0xA);
+});
+
+static hook::cdecl_stub<void(void*)> _pCtor([]()
+{
+	return hook::get_pattern("48 89 03 48 89 73 10 89 73 1C E8", -0x23);
+});
+
 namespace sync
 {
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
@@ -203,20 +209,12 @@ namespace sync
 		inAddr->peerAddress.rockstarAccountId = clientId;
 		inAddr->gamerId = clientId;
 
-		// 1290
-		// 1365
-		// 1493
-		// 1604
-		//void* nonphys = calloc(256, 1);
-
 		// this has to come from the pool directly as the game will expect to free it
 		void* nonPhys = rage::PoolAllocate(npPool);
-		((void(*)(void*))hook::get_adjusted(0x1410A4024))(nonPhys); // ctor
+		_npCtor(nonPhys); // ctor
 
-		// 1493
-		// 1604
 		void* phys = calloc(1024, 1);
-		((void(*)(void*))hook::get_adjusted(0x1410A2480))(phys);
+		_pCtor(phys);
 
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonPhys);
 		g_tempRemotePlayer = player;
@@ -304,11 +302,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		// reassign the player's ped
 		// TODO: only do this on a single client(!)
 
-		// 1103
-		// 1290
-		// 1365
-		// 1493
-		// 1604
+		// 1604 unused
 		uint16_t objectId = 0;
 		//auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))hook::get_adjusted(0x141022B20))(nullptr, &objectId, player);
 		auto ped = getPlayerPedForNetPlayer(player);
@@ -335,7 +329,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 
 			console::DPrintf("onesync", "deleted object id\n");
 
-			// 1604
+			// 1604 unused
 			//((void(*)(void*, uint16_t, CNetGamePlayer*))hook::get_adjusted(0x141008D14))(ped, objectId, player);
 
 			console::DPrintf("onesync", "success! reassigned the ped!\n");
@@ -526,6 +520,11 @@ static void NetLogStub_DoLog(void*, const char* type, const char* fmt, ...)
 
 static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 
+static hook::cdecl_stub<CNetGamePlayer* (void*)> _netPlayerCtor([]()
+{
+	return hook::get_pattern("83 8B B0 00 00 00 FF 33 F6", -0x17);
+});
+
 static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 {
 	if (!icgi->OneSyncEnabled)
@@ -535,12 +534,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 
 	void* plr = malloc(672);
 
-	// 1103
-	// 1290
-	// 1365
-	// 1493
-	// 1604
-	return ((CNetGamePlayer*(*)(void*))hook::get_adjusted(0x1410A2300))(plr);
+	return _netPlayerCtor(plr);
 }
 
 #include <minhook.h>
@@ -977,7 +971,15 @@ static float VectorDistance(const float* point1, const float* point2)
 
 static hook::cdecl_stub<float*(float*, CNetGamePlayer*, void*, bool)> getNetPlayerRelevancePosition([]()
 {
-	return hook::get_pattern("45 33 FF 48 85 C0 0F 84 5B 01 00 00", -0x34);
+	// 1737: Arxan.
+	if (Is1868())
+	{
+		return hook::get_call(hook::get_pattern("48 8D 4C 24 40 45 33 C9 45 33 C0 48 8B D0 E8", 0xE));
+	}
+	else
+	{
+		return hook::get_pattern("45 33 FF 48 85 C0 0F 84 5B 01 00 00", -0x34);
+	}
 });
 
 static int(*g_origGetPlayersNearPoint)(const float* point, float range, CNetGamePlayer* outArray[32], bool sorted, bool unkVal);
@@ -1058,7 +1060,7 @@ static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
 	// not needed right now
 	return;
 
-	// 1604
+	// 1604 unused
 
 	// if on mount/mount ID is set
 	if (*(uint16_t*)(dataNode + 310) && icgi->OneSyncEnabled)
@@ -1117,10 +1119,23 @@ static void UnkEventMgr(void* mgr, void* ply)
 	}
 }
 
+static void*(*g_origNetworkObjectMgrCtor)(void*, void*);
+
+static void* NetworkObjectMgrCtorStub(void* mgr, void* bw)
+{
+	auto alloc = rage::GetAllocator();
+	alloc->Free(mgr);
+
+	mgr = alloc->Allocate(32712 + 4096, 16, 0);
+
+	g_origNetworkObjectMgrCtor(mgr, bw);
+
+	return mgr;
+}
+
 static HookFunction hookFunction([]()
 {
-	// 1604
-	g_playerMgr = (rage::netPlayerMgrBase*)hook::get_adjusted(0x142875710);
+	g_playerMgr = *hook::get_address<rage::netPlayerMgrBase**>(hook::get_pattern("40 80 FF 20 72 B3 48 8B 0D", 9));
 
 	// net damage array, size 32*4
 	uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(256 * sizeof(uint32_t));
@@ -1155,17 +1170,19 @@ static HookFunction hookFunction([]()
 	// netobjmgr count, temp dbg
 	hook::put<uint8_t>(hook::get_pattern("48 8D 05 ? ? ? ? BE 1F 00 00 00 48 8B F9", 8), 128);
 
-	// 1604, netobjmgr alloc size, temp dbg
-	hook::put<uint32_t>(0x14101CF4F, 32712 + 8192);
+	// 1604 unused, netobjmgr alloc size, temp dbg
+	// 1737 made this arxan
+	//hook::put<uint32_t>(0x14101CF4F, 32712 + 4096);
 
 	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("48 89 03 33 C0 B1 0A 48 89", -0x15), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
 	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
 
 	// scriptHandlerMgr::ManageHostMigration, has fixed 32 player array and isn't needed* for 1s
 	MH_CreateHook(hook::get_pattern("01 4F 60 81 7F 60 D0 07 00 00 0F 8E", -0x47), ManageHostMigrationStub, (void**)&g_origManageHostMigration);
 
-	// 1604, some bubble stuff
+	// 1604 unused, some bubble stuff
 	//hook::return_function(0x14104D148);
 	MH_CreateHook(hook::get_pattern("33 F6 33 DB 33 ED 0F 28 80", -0x3A), UnkBubbleWrap, (void**)&g_origUnkBubbleWrap);
 
@@ -1191,11 +1208,7 @@ static HookFunction hookFunction([]()
 		hook::call(location, m168Stub);
 	}
 
-	// 1290
-	// 1365
-	// 1493
-	// 1604
-	MH_CreateHook((void*)hook::get_adjusted(0x1410AA870), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
+	MH_CreateHook(hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? 00 00 74 4F", -10), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
@@ -1221,9 +1234,20 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto match = hook::pattern("80 F9 20 73 13 48 8B").count(2);
-		MH_CreateHook(match.get(0).get<void>(0), GetPlayerByIndex, (void**)&g_origGetPlayerByIndex);
-		MH_CreateHook(match.get(1).get<void>(0), GetPlayerByIndex, nullptr);
+		if (!Is1868())
+		{
+			auto match = hook::pattern("80 F9 20 73 13 48 8B").count(2);
+			MH_CreateHook(match.get(0).get<void>(0), GetPlayerByIndex, (void**)&g_origGetPlayerByIndex);
+			MH_CreateHook(match.get(1).get<void>(0), GetPlayerByIndex, nullptr);
+		}
+		else
+		{
+			auto match = hook::pattern("80 F9 20 73 13 48 8B").count(1);
+			MH_CreateHook(match.get(0).get<void>(0), GetPlayerByIndex, (void**)&g_origGetPlayerByIndex);
+
+			// #2 is arxan in 1868
+			MH_CreateHook(hook::get_call(hook::get_pattern("40 0F 92 C7 40 84 FF 0F 85 ? ? ? ? 40 8A CE E8", 16)), GetPlayerByIndex, nullptr);
+		}
 	}
 
 	MH_CreateHook(hook::get_pattern("48 83 EC 28 33 C0 38 05 ? ? ? ? 74 0A"), GetPlayerByIndexNet, (void**)&g_origGetPlayerByIndexNet);
@@ -1584,7 +1608,9 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
 	rlBuffer.m_f1C = 1;
 
-	if (eventType > 0x5A)
+	static auto maxEvent = (Is1868() ? 0x5B : 0x5A);
+
+	if (eventType > maxEvent)
 	{
 		return;
 	}

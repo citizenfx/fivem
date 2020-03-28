@@ -4,6 +4,7 @@
 #include <ICoreGameInit.h>
 
 #include <Hooking.h>
+#include <StatusText.h>
 
 #include <Resource.h>
 
@@ -39,6 +40,7 @@ static bool ShouldSkipLoading();
 // 1365
 // 1493
 // 1604
+// #TODOXBUILD
 #define NUM_DLC_CALLS 32
 
 using fx::Resource;
@@ -334,8 +336,7 @@ void LoadsThread::DoRun()
 	{
 		if (doSetup)
 		{
-			// 1604
-			((void(*)(int))hook::get_adjusted(0x1401C3438))(1);
+			DeactivateStatusText(1);
 
 			doSetup = false;
 		}
@@ -416,8 +417,7 @@ void LoadsThread::DoRun()
 
 		cam = 0;
 
-		// 1604
-		((void(*)(int))hook::get_adjusted(0x1401C3438))(1);
+		DeactivateStatusText(1);
 
 		// done
 		isShutdown = false;
@@ -691,8 +691,7 @@ static InitFunction initFunction([] ()
 
 		if (!ShouldSkipLoading())
 		{
-			// 1604
-			((void(*)(const char*, int, int))hook::get_adjusted(0x1401C3578))(message.c_str(), 5, 1);
+			ActivateStatusText(message.c_str(), 5, 1);
 		}
 	};
 

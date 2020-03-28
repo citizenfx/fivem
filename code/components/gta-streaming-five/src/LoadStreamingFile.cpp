@@ -1357,8 +1357,7 @@ static void(*g_origUnloadWeaponInfos)();
 
 static hook::cdecl_stub<void(void*)> wib_ctor([]()
 {
-	// 1604
-	return (void*)0x140E78710;
+	return hook::get_pattern("41 8D 50 01 48 8D 41", -0x35);
 });
 
 struct CWeaponInfoBlob

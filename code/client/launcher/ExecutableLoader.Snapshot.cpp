@@ -3,9 +3,12 @@
 
 #include <Hooking.h>
 
-// 1604 now...!
+#include <CrossBuildRuntime.h>
+
 #ifdef GTA_FIVE
-#define TRIGGER_EP 0x14175DE00
+// 1604
+// 1868 now...!
+#define TRIGGER_EP ((Is1868()) ? 0x141780F74 : 0x14175DE00)
 #elif defined(IS_RDR3)
 // 1207.58
 //#define TRIGGER_EP 0x142D55C2C

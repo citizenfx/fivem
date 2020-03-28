@@ -565,6 +565,7 @@ void BindingManager::OnGameInit()
 	}
 }
 
+static size_t g_controlSize;
 static BindingManager bindingManager;
 
 static std::unordered_set<std::string> g_activeTags;
@@ -928,13 +929,13 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern("8A 9C 33 A0 1F 00 00 48 8D");
+		auto location = hook::get_pattern("8A 9C 33 ? 1F 00 00 48 8D");
 		hook::nop(location, 7);
 		hook::put<uint16_t>(location, 0x01B3);
 	}
 
 	{
-		auto location = hook::get_pattern<char>("80 BC 33 A0 1F 00 00 00 74 05");
+		auto location = hook::get_pattern<char>("80 BC 33 ? 1F 00 00 00 74 05");
 		hook::nop(location, 10);
 		//hook::put<uint8_t>(location + 8, 0xEB);
 	}
@@ -947,4 +948,5 @@ static HookFunction hookFunction([]()
 
 	// control
 	g_control = hook::get_address<void*>(hook::get_pattern("74 09 48 8D 05 ? ? ? ? EB 07 48 8D 05", 5));
+	g_controlSize = *hook::get_pattern<int>("E8 ? ? ? ? 48 81 C3 ? ? ? ? 48 FF CF 75 EA", 8);
 });

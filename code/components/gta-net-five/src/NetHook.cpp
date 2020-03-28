@@ -23,6 +23,8 @@
 
 #include <Error.h>
 
+#include <CrossBuildRuntime.h>
+
 NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
@@ -244,7 +246,7 @@ void MigrateSessionCopy(char* target, char* source)
 
 static hook::cdecl_stub<bool()> isNetworkHost([] ()
 {
-	return hook::get_call(hook::pattern("74 50 E8 ? ? ? ? 84 C0 75 10 48").count(1).get(0).get<void>(2));
+	return hook::get_call(hook::pattern("48 8B CF 48 8B 92 E8 00 00 00 E8 ? ? ? ? E8").count(1).get(0).get<void>(15));
 });
 
 static bool* didPresenceStuff;
@@ -267,14 +269,24 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 
 	// 505 has it be a xchg-type jump
 	// same for 1032
-	uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
-
-	if (*loc == 0xE9)
+	// 1737: changed
+	if (!Is1868())
 	{
-		loc = hook::get_call(loc);
+		uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
+
+		if (*loc == 0xE9)
+		{
+			loc = hook::get_call(loc);
+		}
+
+		return loc;
 	}
 
-	return loc + 2;
+	// 1737
+	//return (void*)0x141029A20;
+
+	// 1868
+	return (void*)0x141037BCC;
 });
 
 static void* getNetworkManager()
@@ -283,10 +295,13 @@ static void* getNetworkManager()
 
 	if (networkMgrPtr == nullptr)
 	{
-		char* func = (char*)hook::get_call(hook::pattern("74 50 E8 ? ? ? ? 84 C0 75 10 48").count(1).get(0).get<void>(2));
+		// safe up to 1604
+		/*char* func = (char*)hook::get_call(hook::pattern("74 50 E8 ? ? ? ? 84 C0 75 10 48").count(1).get(0).get<void>(2));
 		func += 9;
 
-		networkMgrPtr = (void**)(func + *(int32_t*)func + 4);
+		networkMgrPtr = (void**)(func + *(int32_t*)func + 4);*/
+
+		networkMgrPtr = hook::get_address<void**>(hook::get_pattern("84 C0 74 2E 48 8B 0D ? ? ? ? 48 8D 54 24 20", 7));
 	}
 
 	return *networkMgrPtr;
@@ -320,7 +335,8 @@ OnlineAddress* GetOurOnlineAddressRaw()
 
 static hook::cdecl_stub<bool()> isSessionStarted([] ()
 {
-	return hook::pattern("74 0E 83 B9 ? ? 00 00 ? 75 05 B8 01").count(1).get(0).get<void>(-12);
+	//return hook::pattern("74 0E 83 B9 ? ? 00 00 ? 75 05 B8 01").count(1).get(0).get<void>(-12);
+	return hook::get_call(hook::get_pattern("8B 86 D8 08 00 00 C1 E8 05", 13));
 });
 
 static hook::cdecl_stub<void(int reason, int, int, int, bool)> networkBail([]()
@@ -856,9 +872,13 @@ static HookFunction initFunction([]()
 
 			if (*g_dlcMountCount != 132)
 			{
-				GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
+				if (!Is1868())
+				{
+					// #TODO1737
+					GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
 
-				return;
+					return;
+				}
 			}
 
 			hostSystem.state = HS_LOADED;
@@ -1398,10 +1418,22 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 		// 1365
 		// 1493
 		// 1604
-		((void(*)())hook::get_adjusted(0x1400067E8))();
-		((void(*)())hook::get_adjusted(0x1407D1960))();
-		((void(*)())hook::get_adjusted(0x140025F7C))();
-		((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0)); // rly? renderthreadinterface stuff
+		// 1737
+		// 1868
+		if (!Is1868())
+		{
+			((void(*)())hook::get_adjusted(0x1400067E8))();
+			((void(*)())hook::get_adjusted(0x1407D1960))();
+			((void(*)())hook::get_adjusted(0x140025F7C))();
+			((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
+		}
+		else
+		{
+			((void(*)())hook::get_adjusted(0x1400067F8))();
+			((void(*)())hook::get_adjusted(0x1407DDC5C))();
+			((void(*)())hook::get_adjusted(0x1400263C0))();
+			((void(*)(void*))hook::get_adjusted(0x1415B924C))((void*)hook::get_adjusted(0x142E00A00));
+		}
 
 		Sleep(0);
 	}
@@ -1567,7 +1599,8 @@ static HookFunction hookFunction([] ()
 	hook::call(hook::pattern("48 83 EC 20 48 8B DA BE 01 00 00 00 32 D2 8B F9").count(1).get(0).get<void>(-0xB), itemHook.GetCode());
 
 	// network frame
-	location = hook::pattern("C7 45 10 8B 30 7A FE E8 ? ? ? ? 4C 8D 45 10 48 8D 15 ? ? ? ? F3 0F 11").count(1).get(0).get<char>(19);
+	// 1737: Rockstar, please, why are you obfuscating gameSkeleton init???
+	/*location = hook::pattern("C7 45 10 8B 30 7A FE E8 ? ? ? ? 4C 8D 45 10 48 8D 15 ? ? ? ? F3 0F 11").count(1).get(0).get<char>(19);
 
 	uintptr_t addr = (uintptr_t)(location + *(int32_t*)location + 4);
 
@@ -1578,7 +1611,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	hook::set_call(&origNetFrame, addr);
-	hook::jump(addr, CustomNetFrame);
+	hook::jump(addr, CustomNetFrame);*/
 
 	// network game unsetters
 	/*location = hook::pattern("88 1D ? ? ? ? 84 C0 75 33 E8").count(1).get(0).get<char>(2);
@@ -1807,7 +1840,8 @@ static HookFunction hookFunction([] ()
 
 	// don't switch clipset manager to network mode
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
-	hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
+	// #TODO1737: R*. Arxan. You know the deal.
+	//hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
 
 	// don't switch to SP mode either
 	hook::return_function(hook::get_pattern("48 8D 2D ? ? ? ? 8B F0 85 C0 0F", -0x15));
@@ -1860,7 +1894,11 @@ static HookFunction hookFunction([] ()
 	// disable unknown stuff
 	{
 		// 1032/1103!
-		hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
+		if (!Is1868())
+		{
+			// 1868 integrity checks this
+			hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
+		}
 	}
 
 	// network timeout
