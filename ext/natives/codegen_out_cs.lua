@@ -399,6 +399,8 @@ local function formatImpl(native, baseAppendix)
 			elseif type == 'string' then
 				body = body .. t .. '\tcxt->numArguments = ' .. tostring(argn - 1) .. ';\n'
 				body = body .. t .. '\tScriptContext.PushString(cxt, ' .. name .. ');\n'
+			elseif type == 'Vector3' then
+				body = body .. t .. '\t*(NativeVector3*)(&_fnPtr[' .. numArgs .. ']) = ' .. val .. ';\n'
 			else
 				-- assuming float is safe as only doing 32 bit reads?
 				if type ~= 'float' and type ~= 'System.IntPtr' then
