@@ -8,10 +8,16 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <CrossBuildRuntime.h>
+
 static HookFunction hookFunction([] ()
 {
 	// 1737: no longer needed
-#if 0
+	if (Is1868())
+	{
+		return;
+	}
+
 	// CPlayerGameStateDataNode write/log functions tend to 'crash' when a player ped 'lost' its phone metadata (offset CPed + 4256 in 331)
 	// as tends to happen when changing to certain animal models. This is commonly 'worked around' by people 'willing to mod' by removing the
 	// call to CNetObjPlayer::`IPlayerNodeDataAccessor`'s 'update game state' function, which will *obviously* break various other state elements
@@ -50,5 +56,4 @@ static HookFunction hookFunction([] ()
 	void* phoneHookPoint = hook::pattern("0F B6 41 2D 83 C0 FE 41 3B C5 76 0A").count(1).get(0).get<void>();
 	hook::nop(phoneHookPoint, 22);
 	hook::call(phoneHookPoint, phoneHookRoutine.GetCode());
-#endif
 });
