@@ -18,6 +18,7 @@
 
 #include <CoreConsole.h>
 
+#include <UvLoopManager.h>
 #include <VFSManager.h>
 
 #include <se/Security.h>
@@ -116,23 +117,28 @@ namespace fx
 			// invoke target events
 			OnServerCreate(this);
 
-			// start webadmin
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
+			Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain")->EnqueueCallback([this, consoleCtx, optionParser]()
+			{
+				se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
+				// start webadmin
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
 
 #ifdef _WIN32
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
 #endif
 
-			// add system console access
-			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
-			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command.quit" }, se::AccessType::Allow);
+				// add system console access
+				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
+				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command.quit" }, se::AccessType::Allow);
 
-			for (const auto& bit : optionParser->GetArguments())
-			{
-				consoleCtx->ExecuteSingleCommandDirect(bit);
-			}
+				for (const auto& bit : optionParser->GetArguments())
+				{
+					consoleCtx->ExecuteSingleCommandDirect(bit);
+				}
 
-			OnInitialConfiguration();
+				OnInitialConfiguration();
+			});
 		}
 
 		// tasks should be running in background threads; we'll just wait until someone wants to get rid of us
