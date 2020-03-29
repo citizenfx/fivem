@@ -432,10 +432,13 @@ static InitFunction initFunction([] ()
 		}
 
 		static CRect metrics;
+		static fwWString lastString;
 		
-		if (metrics.Width() <= 0.1f)
+		if (metrics.Width() <= 0.1f || lastString != brandingString)
 		{
 			g_fontRenderer.GetStringMetrics(brandingString, 22.0f, 1.0f, "Segoe UI", metrics);
+
+			lastString = brandingString;
 		}
 
 		CRect drawRect(x - metrics.Width() - 10.0f, 10.0f, x, y);
