@@ -173,6 +173,8 @@ private:
 
 	std::chrono::milliseconds m_lastUdp;
 
+	std::chrono::milliseconds m_nextPing;
+
 	TPositionHook m_positionHook;
 
 	fwRefContainer<MumbleCrypto> m_crypto;

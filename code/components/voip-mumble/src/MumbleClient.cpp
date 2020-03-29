@@ -36,6 +36,7 @@ void MumbleClient::Initialize()
 	m_voiceTarget = 0;
 
 	m_lastUdp = {};
+	m_nextPing = {};
 
 	m_loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("mumble");
 
@@ -96,7 +97,7 @@ void MumbleClient::Initialize()
 				console::DPrintf("Mumble", "connecting failed: %s\n", ev.what());
 
 				m_connectionInfo.isConnecting = false;
-				m_idleTimer->start(2s, {});
+				m_idleTimer->start(2s, 500ms);
 
 				m_connectionInfo.isConnected = false;
 			});
@@ -107,7 +108,7 @@ void MumbleClient::Initialize()
 				console::DPrintf("Mumble", "TCP close.\n");
 
 				m_connectionInfo.isConnecting = false;
-				m_idleTimer->start(2s, {});
+				m_idleTimer->start(2s, 500ms);
 
 				m_connectionInfo.isConnected = false;
 			});
@@ -261,31 +262,34 @@ void MumbleClient::Initialize()
 					}
 				}
 
+				if (msec() > m_nextPing)
 				{
-					MumbleProto::Ping ping;
-					ping.set_timestamp(msec().count());
-					ping.set_tcp_ping_avg(m_tcpPingAverage);
-					ping.set_tcp_ping_var(m_tcpPingVariance);
-					ping.set_tcp_packets(m_tcpPingCount);
+					{
+						MumbleProto::Ping ping;
+						ping.set_timestamp(msec().count());
+						ping.set_tcp_ping_avg(m_tcpPingAverage);
+						ping.set_tcp_ping_var(m_tcpPingVariance);
+						ping.set_tcp_packets(m_tcpPingCount);
 
-					ping.set_udp_ping_avg(m_udpPingAverage);
-					ping.set_udp_ping_var(m_udpPingVariance);
-					ping.set_udp_packets(m_udpPingCount);
+						ping.set_udp_ping_avg(m_udpPingAverage);
+						ping.set_udp_ping_var(m_udpPingVariance);
+						ping.set_udp_packets(m_udpPingCount);
 
-					Send(MumbleMessageType::Ping, ping);
+						Send(MumbleMessageType::Ping, ping);
+					}
+
+					{
+						char pingBuf[64] = { 0 };
+
+						PacketDataStream pds(pingBuf, sizeof(pingBuf));
+						pds.append((1 << 5));
+						pds << uint64_t(msec().count());
+
+						SendUDP(pingBuf, pds.size());
+					}
+
+					m_nextPing = msec() + 2500ms;
 				}
-
-				{
-					char pingBuf[64] = { 0 };
-
-					PacketDataStream pds(pingBuf, sizeof(pingBuf));
-					pds.append((1 << 5));
-					pds << uint64_t(msec().count());
-
-					SendUDP(pingBuf, pds.size());
-				}
-
-				m_idleTimer->start(2500ms, 0s);
 			}
 			else
 			{
@@ -338,6 +342,14 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 	{
 		m_tlsClient->close();
 	}
+
+	m_loop->EnqueueCallback([this]()
+	{
+		if (m_idleTimer)
+		{
+			m_idleTimer->stop();
+		}
+	});
 
 	m_connectionInfo = {};
 
@@ -807,7 +819,7 @@ void MumbleClient::OnActivated()
 	// initialize idle timer only *now* that the session is active
 	// (otherwise, if the idle timer ran after 500ms from connecting, but TLS connection wasn't set up within those 500ms,
 	// the idle event would immediately try to reconnect)
-	m_idleTimer->start(500ms, 0s);
+	m_idleTimer->start(500ms, 500ms);
 
 	// send our own version
 	MumbleProto::Version ourVersion;
