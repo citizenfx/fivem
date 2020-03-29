@@ -173,25 +173,25 @@ public:
 
 	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) = 0;
 
-	void Write(const std::string& data, fu2::unique_function<void()>&& onComplete = {});
+	void Write(const std::string& data, fu2::unique_function<void(bool)>&& onComplete = {});
 
-	void Write(std::string&& data, fu2::unique_function<void()>&& onComplete = {});
+	void Write(std::string&& data, fu2::unique_function<void(bool)>&& onComplete = {});
 
-	void Write(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void()>&& onComplete = {});
+	void Write(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void(bool)>&& onComplete = {});
 
 	virtual void End() = 0;
 
 	virtual void BeforeWriteHead(size_t length);
 
-	virtual void WriteOut(const std::vector<uint8_t>& data, fu2::unique_function<void()>&& onComplete = {}) = 0;
+	virtual void WriteOut(const std::vector<uint8_t>& data, fu2::unique_function<void(bool)>&& onComplete = {}) = 0;
 
-	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void()>&& onComplete = {}) = 0;
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void(bool)>&& onComplete = {}) = 0;
 
-	virtual void WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void()>&& onComplete = {});
+	virtual void WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void(bool)>&& onComplete = {});
 
-	virtual void WriteOut(const std::string& data, fu2::unique_function<void()>&& onComplete = {});
+	virtual void WriteOut(const std::string& data, fu2::unique_function<void(bool)>&& onComplete = {});
 
-	virtual void WriteOut(std::string&& data, fu2::unique_function<void()>&& onComplete = {});
+	virtual void WriteOut(std::string&& data, fu2::unique_function<void(bool)>&& onComplete = {});
 
 	void End(const std::string& data);
 

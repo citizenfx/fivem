@@ -193,8 +193,24 @@ namespace fx
 						}
 
 						// write to response
-						response->Write(std::move(*buffer), fsReq->result, [=]() mutable
+						response->Write(std::move(*buffer), fsReq->result, [=](bool result) mutable
 						{
+							if (!*readCallback)
+							{
+								return;
+							}
+
+							if (!result)
+							{
+								// if so, end response (closing should be done automatically)
+								response->End();
+
+								// reset the function reference to break the reference cycle
+								*readCallback = nullptr;
+
+								return;
+							}
+
 							// touch client
 							if (client)
 							{
@@ -223,6 +239,16 @@ namespace fx
 							}
 						});
 					};
+
+					// on-close handler
+					request->SetCancelHandler([=]() mutable
+					{
+						// if so, end response (closing should be done automatically)
+						response->End();
+
+						// reset the function reference to break the reference cycle
+						*readCallback = nullptr;
+					});
 
 					// trigger the first read
 					uv_fs_read(uvLoop, req.get(), file->get(), uvBufRef.get(), 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));

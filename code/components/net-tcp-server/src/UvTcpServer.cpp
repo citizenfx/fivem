@@ -397,7 +397,7 @@ PeerAddress UvTcpServerStream::GetPeerAddress()
 	return PeerAddress(reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len));
 }
 
-void UvTcpServerStream::Write(const std::string& data, TScheduledCallback&& onComplete)
+void UvTcpServerStream::Write(const std::string& data, TCompleteCallback&& onComplete)
 {
 	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
 	memcpy(dataRef.get(), data.data(), data.size());
@@ -405,7 +405,7 @@ void UvTcpServerStream::Write(const std::string& data, TScheduledCallback&& onCo
 	WriteInternal(std::move(dataRef), data.size(), std::move(onComplete));
 }
 
-void UvTcpServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
+void UvTcpServerStream::Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete)
 {
 	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
 	memcpy(dataRef.get(), data.data(), data.size());
@@ -413,7 +413,7 @@ void UvTcpServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallba
 	WriteInternal(std::move(dataRef), data.size(), std::move(onComplete));
 }
 
-void UvTcpServerStream::Write(std::string&& data, TScheduledCallback&& onComplete)
+void UvTcpServerStream::Write(std::string&& data, TCompleteCallback&& onComplete)
 {
 	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
 	memcpy(dataRef.get(), data.data(), data.size());
@@ -421,7 +421,7 @@ void UvTcpServerStream::Write(std::string&& data, TScheduledCallback&& onComplet
 	WriteInternal(std::move(dataRef), data.size(), std::move(onComplete));
 }
 
-void UvTcpServerStream::Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete)
+void UvTcpServerStream::Write(std::vector<uint8_t>&& data, TCompleteCallback&& onComplete)
 {
 	auto dataRef = std::unique_ptr<char[]>(new char[data.size()]);
 	memcpy(dataRef.get(), data.data(), data.size());
@@ -429,17 +429,73 @@ void UvTcpServerStream::Write(std::vector<uint8_t>&& data, TScheduledCallback&& 
 	WriteInternal(std::move(dataRef), data.size(), std::move(onComplete));
 }
 
-void UvTcpServerStream::Write(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete)
+void UvTcpServerStream::Write(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete)
 {
 	WriteInternal(std::move(data), size, std::move(onComplete));
 }
 
-void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete)
+void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete)
 {
 	if (!m_client)
 	{
 		return;
 	}
+
+	auto doWrite = [](const std::shared_ptr<uvw::TCPHandle>& client, TCompleteCallback&& onComplete, std::unique_ptr<char[]> data, size_t size)
+	{
+		if (onComplete)
+		{
+			auto cb = std::make_shared<std::function<void(bool)>>(make_shared_function([onComplete = std::move(onComplete)](bool success) mutable
+			{
+				onComplete(success);
+			}));
+
+			auto c1 = client->once<uvw::EndEvent>([cb](const uvw::EndEvent& e, uvw::TCPHandle& h) mutable
+			{
+				auto c = *cb;
+
+				if (c)
+				{
+					c(false);
+					*cb = {};
+				}
+			});
+
+			auto c2 = client->once<uvw::ErrorEvent>([cb](const uvw::ErrorEvent& e, uvw::TCPHandle& h) mutable
+			{
+				auto c = *cb;
+
+				if (c)
+				{
+					c(false);
+					*cb = {};
+				}
+			});
+
+			std::weak_ptr<uvw::TCPHandle> clientWeak(client);
+
+			client->once<uvw::WriteEvent>([clientWeak, cb, c1 = std::move(c1), c2 = std::move(c2)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
+			{
+				auto client = clientWeak.lock();
+
+				if (client)
+				{
+					client->erase<uvw::EndEvent>(c1);
+					client->erase<uvw::ErrorEvent>(c2);
+				}
+
+				auto c = *cb;
+
+				if (c)
+				{
+					c(true);
+					*cb = {};
+				}
+			});
+		}
+
+		client->write(std::move(data), size);
+	};
 
 	if (std::this_thread::get_id() == m_threadId)
 	{
@@ -447,15 +503,7 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 
 		if (client)
 		{
-			if (onComplete)
-			{
-				client->once<uvw::WriteEvent>(make_shared_function([onComplete = std::move(onComplete)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
-				{
-					onComplete();
-				}));
-			}
-
-			client->write(std::move(data), size);
+			doWrite(client, std::move(onComplete), std::move(data), size);
 		}
 
 		return;
@@ -468,21 +516,13 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 	if (writeCallback)
 	{
 		// submit the write request
-		m_pendingRequests.push(make_shared_function([this, data = std::move(data), onComplete = std::move(onComplete), size]() mutable
+		m_pendingRequests.push(make_shared_function([this, doWrite, data = std::move(data), onComplete = std::move(onComplete), size]() mutable
 		{
 			auto client = m_client;
 
 			if (client)
 			{
-				if (onComplete)
-				{
-					client->once<uvw::WriteEvent>(make_shared_function([onComplete = std::move(onComplete)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
-					{
-						onComplete();
-					}));
-				}
-
-				client->write(std::move(data), size);
+				doWrite(client, std::move(onComplete), std::move(data), size);
 			}
 		}));
 

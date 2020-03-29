@@ -21,7 +21,7 @@ void TcpServer::SetConnectionCallback(const TConnectionCallback& callback)
 	m_connectionCallback = callback;
 }
 
-void TcpServerStream::Write(const std::string& data, TScheduledCallback&& onComplete)
+void TcpServerStream::Write(const std::string& data, TCompleteCallback&& onComplete)
 {
 	std::vector<uint8_t> dataBuf(data.size());
 	memcpy(dataBuf.data(), data.data(), dataBuf.size());
@@ -29,17 +29,17 @@ void TcpServerStream::Write(const std::string& data, TScheduledCallback&& onComp
 	Write(std::move(dataBuf), std::move(onComplete));
 }
 
-void TcpServerStream::Write(std::string&& data, TScheduledCallback&& onComplete)
+void TcpServerStream::Write(std::string&& data, TCompleteCallback&& onComplete)
 {
 	Write(static_cast<const std::string&>(data), std::move(onComplete));
 }
 
-void TcpServerStream::Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete)
+void TcpServerStream::Write(std::vector<uint8_t>&& data, TCompleteCallback&& onComplete)
 {
 	Write(static_cast<const std::vector<uint8_t>&>(data), std::move(onComplete));
 }
 
-void TcpServerStream::Write(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete)
+void TcpServerStream::Write(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete)
 {
 	std::vector<uint8_t> dataVec(size);
 	memcpy(&dataVec[0], data.get(), size);

@@ -46,15 +46,15 @@ public:
 
 	virtual PeerAddress GetPeerAddress() override;
 
-	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(const std::string& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::string& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::vector<uint8_t>&& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::string&& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::string&& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::unique_ptr<char[]> data, size_t len, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::unique_ptr<char[]> data, size_t len, TCompleteCallback&& onComplete) override;
 
 	virtual void Close() override;
 

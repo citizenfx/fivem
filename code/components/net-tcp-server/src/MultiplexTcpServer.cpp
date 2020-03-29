@@ -216,7 +216,7 @@ void MultiplexTcpChildServerStream::Close()
 	CloseInternal();
 }
 
-void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
+void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
@@ -224,7 +224,7 @@ void MultiplexTcpChildServerStream::Write(const std::vector<uint8_t>& data, TSch
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(const std::string& data, TScheduledCallback&& onComplete)
+void MultiplexTcpChildServerStream::Write(const std::string& data, TCompleteCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
@@ -232,7 +232,7 @@ void MultiplexTcpChildServerStream::Write(const std::string& data, TScheduledCal
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete)
+void MultiplexTcpChildServerStream::Write(std::vector<uint8_t>&& data, TCompleteCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
@@ -240,7 +240,7 @@ void MultiplexTcpChildServerStream::Write(std::vector<uint8_t>&& data, TSchedule
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(std::string&& data, TScheduledCallback&& onComplete)
+void MultiplexTcpChildServerStream::Write(std::string&& data, TCompleteCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{
@@ -248,7 +248,7 @@ void MultiplexTcpChildServerStream::Write(std::string&& data, TScheduledCallback
 	}
 }
 
-void MultiplexTcpChildServerStream::Write(std::unique_ptr<char[]> data, size_t len, TScheduledCallback&& onComplete)
+void MultiplexTcpChildServerStream::Write(std::unique_ptr<char[]> data, size_t len, TCompleteCallback&& onComplete)
 {
 	if (m_baseStream.GetRef())
 	{

@@ -95,7 +95,7 @@ void HttpResponse::BeforeWriteHead(size_t length)
 {
 }
 
-void HttpResponse::Write(const std::string& data, fu2::unique_function<void()>&& onComplete)
+void HttpResponse::Write(const std::string& data, fu2::unique_function<void(bool)>&& onComplete)
 {
 	BeforeWriteHead(data.size());
 
@@ -107,7 +107,7 @@ void HttpResponse::Write(const std::string& data, fu2::unique_function<void()>&&
 	WriteOut(data, std::move(onComplete));
 }
 
-void HttpResponse::Write(std::string&& data, fu2::unique_function<void()>&& onComplete)
+void HttpResponse::Write(std::string&& data, fu2::unique_function<void(bool)>&& onComplete)
 {
 	BeforeWriteHead(data.size());
 
@@ -119,7 +119,7 @@ void HttpResponse::Write(std::string&& data, fu2::unique_function<void()>&& onCo
 	WriteOut(std::move(data), std::move(onComplete));
 }
 
-void HttpResponse::Write(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void()>&& onComplete)
+void HttpResponse::Write(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void(bool)>&& onComplete)
 {
 	BeforeWriteHead(length);
 
@@ -131,7 +131,7 @@ void HttpResponse::Write(std::unique_ptr<char[]> data, size_t length, fu2::uniqu
 	WriteOut(std::move(data), length, std::move(onComplete));
 }
 
-void HttpResponse::WriteOut(const std::string& data, fu2::unique_function<void()>&& onComplete)
+void HttpResponse::WriteOut(const std::string& data, fu2::unique_function<void(bool)>&& onComplete)
 {
 	std::vector<uint8_t> dataBuf(data.size());
 	memcpy(dataBuf.data(), data.data(), dataBuf.size());
@@ -139,12 +139,12 @@ void HttpResponse::WriteOut(const std::string& data, fu2::unique_function<void()
 	WriteOut(std::move(dataBuf), std::move(onComplete));
 }
 
-void HttpResponse::WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void()>&& onComplete)
+void HttpResponse::WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void(bool)>&& onComplete)
 {
 	WriteOut(static_cast<const std::vector<uint8_t>&>(data), std::move(onComplete));
 }
 
-void HttpResponse::WriteOut(std::string&& data, fu2::unique_function<void()>&& onComplete)
+void HttpResponse::WriteOut(std::string&& data, fu2::unique_function<void(bool)>&& onComplete)
 {
 	WriteOut(static_cast<const std::string&>(data), std::move(onComplete));
 }

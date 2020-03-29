@@ -31,7 +31,7 @@ public:
 
 	virtual void Close() override;
 
-	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete) override;
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 

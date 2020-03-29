@@ -75,7 +75,7 @@ net::PeerAddress LoopbackTcpServerStream::GetPeerAddress()
 	return net::PeerAddress::FromString("127.0.0.1:65535").get();
 }
 
-void LoopbackTcpServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
+void LoopbackTcpServerStream::Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
@@ -88,7 +88,7 @@ void LoopbackTcpServerStream::Write(const std::vector<uint8_t>& data, TScheduled
 
 	if (onComplete)
 	{
-		onComplete();
+		onComplete(true);
 	}
 }
 

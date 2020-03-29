@@ -50,7 +50,7 @@ private:
 
 private:
 	template<typename TContainer>
-	inline void DoWrite(TContainer data, TScheduledCallback&& onComplete)
+	inline void DoWrite(TContainer data, TCompleteCallback&& onComplete)
 	{
 		fwRefContainer<TLSServerStream> thisRef = this;
 
@@ -80,15 +80,15 @@ public:
 
 	virtual PeerAddress GetPeerAddress() override;
 
-	virtual void Write(std::string&& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::string&& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::vector<uint8_t>&& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(const std::string& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::string& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::unique_ptr<char[]> data, size_t len, TScheduledCallback&& onComplete) override
+	virtual void Write(std::unique_ptr<char[]> data, size_t len, TCompleteCallback&& onComplete) override
 	{
 		fwRefContainer<TLSServerStream> thisRef = this;
 
@@ -179,7 +179,7 @@ private:
 private:
 	void CloseInternal();
 
-	TScheduledCallback m_nextOnComplete;
+	TCompleteCallback m_nextOnComplete;
 };
 
 class TCP_SERVER_EXPORT TLSServer : public TcpServer

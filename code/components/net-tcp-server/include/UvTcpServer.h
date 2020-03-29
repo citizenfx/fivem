@@ -77,22 +77,22 @@ public:
 public:
 	virtual PeerAddress GetPeerAddress() override;
 
-	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(const std::string& data, TScheduledCallback&& onComplete) override;
+	virtual void Write(const std::string& data, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::vector<uint8_t>&&, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::vector<uint8_t>&&, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::string&&, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::string&&, TCompleteCallback&& onComplete) override;
 
-	virtual void Write(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete) override;
+	virtual void Write(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete) override;
 
 	virtual void Close() override;
 
 	virtual void ScheduleCallback(TScheduledCallback&& callback, bool performInline) override;
 
 private:
-	void WriteInternal(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete);
+	void WriteInternal(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete);
 };
 
 class TcpServerManager;

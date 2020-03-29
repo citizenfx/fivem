@@ -48,7 +48,7 @@ namespace net
 		
 	}
 
-	void ReverseTcpServerStream::Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete)
+	void ReverseTcpServerStream::Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete)
 	{
 		auto worker = m_tcp.lock();
 
@@ -63,7 +63,7 @@ namespace net
 				{
 					worker->once<uvw::WriteEvent>(make_shared_function([onComplete = std::move(onComplete)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
 					{
-						onComplete();
+						onComplete(true);
 					}));
 				}
 

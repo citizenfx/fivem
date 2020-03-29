@@ -27,6 +27,8 @@ public:
 
 	typedef fu2::unique_function<void()> TScheduledCallback;
 
+	typedef fu2::unique_function<void(bool)> TCompleteCallback;
+
 private:
 	TReadCallback m_readCallback;
 
@@ -48,15 +50,15 @@ protected:
 public:
 	virtual PeerAddress GetPeerAddress() = 0;
 
-	virtual void Write(const std::string& data, TScheduledCallback&& onComplete = {});
+	virtual void Write(const std::string& data, TCompleteCallback&& onComplete = {});
 
-	virtual void Write(std::string&& data, TScheduledCallback&& onComplete = {});
+	virtual void Write(std::string&& data, TCompleteCallback&& onComplete = {});
 
-	virtual void Write(const std::vector<uint8_t>& data, TScheduledCallback&& onComplete = {}) = 0;
+	virtual void Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete = {}) = 0;
 
-	virtual void Write(std::vector<uint8_t>&& data, TScheduledCallback&& onComplete = {});
+	virtual void Write(std::vector<uint8_t>&& data, TCompleteCallback&& onComplete = {});
 
-	virtual void Write(std::unique_ptr<char[]> data, size_t size, TScheduledCallback&& onComplete = {});
+	virtual void Write(std::unique_ptr<char[]> data, size_t size, TCompleteCallback&& onComplete = {});
 
 	virtual void Close() = 0;
 

@@ -129,7 +129,7 @@ public:
 
 	private:
 	template<typename TContainer>
-	void WriteOutInternal(TContainer data, fu2::unique_function<void()>&& cb = {})
+	void WriteOutInternal(TContainer data, fu2::unique_function<void(bool)>&& cb = {})
 	{
 		size_t length = data.size();
 
@@ -151,27 +151,27 @@ public:
 	}
 
 	public:
-	virtual void WriteOut(const std::vector<uint8_t>& data, fu2::unique_function<void()>&& onComplete = {}) override
+	virtual void WriteOut(const std::vector<uint8_t>& data, fu2::unique_function<void(bool)>&& onComplete = {}) override
 	{
 		WriteOutInternal<decltype(data)>(data, std::move(onComplete));
 	}
 
-	virtual void WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void()>&& onComplete = {}) override
+	virtual void WriteOut(std::vector<uint8_t>&& data, fu2::unique_function<void(bool)>&& onComplete = {}) override
 	{
 		WriteOutInternal<decltype(data)>(std::move(data), std::move(onComplete));
 	}
 
-	virtual void WriteOut(const std::string& data, fu2::unique_function<void()>&& onComplete = {}) override
+	virtual void WriteOut(const std::string& data, fu2::unique_function<void(bool)>&& onComplete = {}) override
 	{
 		WriteOutInternal<decltype(data)>(data, std::move(onComplete));
 	}
 
-	virtual void WriteOut(std::string&& data, fu2::unique_function<void()>&& onComplete = {}) override
+	virtual void WriteOut(std::string&& data, fu2::unique_function<void(bool)>&& onComplete = {}) override
 	{
 		WriteOutInternal<decltype(data)>(std::move(data), std::move(onComplete));
 	}
 
-	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void()>&& cb = {}) override
+	virtual void WriteOut(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void(bool)>&& cb = {}) override
 	{
 		if (m_chunked)
 		{
