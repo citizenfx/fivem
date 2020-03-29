@@ -191,3 +191,6 @@ privates_config.lua
 
 # windows server output directory
 /out/
+
+# python files
+*.pyc
