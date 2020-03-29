@@ -7,6 +7,17 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR", [](fx::ScriptContext& context)
 	{
+		// get variable name and validate it
+		std::string varName = context.CheckArgument<const char*>(0);
+
+		// this should not be exposed to script
+		// #TODO: 'not exposed to script' convar flags
+		if (HashString(varName.c_str()) == HashString("cl_ownershipTicket"))
+		{
+			context.SetResult(context.CheckArgument<const char*>(1));
+			return;
+		}
+
 		// get the console context
 		auto consoleContext = console::GetDefaultContext();
 
@@ -14,7 +25,7 @@ static InitFunction initFunction([]()
 		auto varMan = consoleContext->GetVariableManager();
 
 		// get the variable
-		auto var = varMan->FindEntryRaw(context.CheckArgument<const char*>(0));
+		auto var = varMan->FindEntryRaw(varName);
 
 		if (!var)
 		{
