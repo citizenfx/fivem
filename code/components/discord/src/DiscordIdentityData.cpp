@@ -52,12 +52,11 @@ static HookFunction initFunction([]()
 			{ "client_id", "382624125287399424"}
 		}));
 
-		bool close = false;
-
-		auto closeConnection = [&writePipe, &close, hPipe]()
+		auto closeConnection = [&writePipe, &hPipe]()
 		{
 			writePipe(2, {});
 			CloseHandle(hPipe);
+			hPipe = INVALID_HANDLE_VALUE;
 		};
 
 		auto handleMsg = [&writePipe, &closeConnection](int opCode, const json& data)
@@ -138,7 +137,7 @@ static HookFunction initFunction([]()
 
 		while (true)
 		{
-			if (close)
+			if (hPipe == NULL || hPipe == INVALID_HANDLE_VALUE)
 			{
 				break;
 			}
