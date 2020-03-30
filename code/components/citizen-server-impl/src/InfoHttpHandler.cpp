@@ -40,7 +40,7 @@ static InitFunction initFunction([]()
 		{
 			*(volatile int*)0 = 0;
 		});
-		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, false);
+		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, true);
 
 		// max clients cap
 		maxClientsVar->GetHelper()->SetConstraints(1, MAX_CLIENTS);
@@ -231,8 +231,28 @@ static InitFunction initFunction([]()
 			response->End(json.dump(-1, ' ', false, json::error_handler_t::replace));
 		});
 
-		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		static std::shared_mutex playerBlobMutex;
+		static std::string playerBlob;
+
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			std::shared_lock<std::shared_mutex> lock(playerBlobMutex);
+			response->End(playerBlob);
+		});
+
+		static std::chrono::milliseconds nextPlayerUpdate;
+
+		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, epPrivacy]()
+		{
+			auto now = msec();
+
+			if (now < nextPlayerUpdate)
+			{
+				return;
+			}
+
+			nextPlayerUpdate = now + 1s;
+
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 			json data = json::array();
@@ -269,7 +289,8 @@ static InitFunction initFunction([]()
 				});
 			});
 
-			response->End(data.dump(-1, ' ', false, json::error_handler_t::replace));
+			std::unique_lock<std::shared_mutex> lock(playerBlobMutex);
+			playerBlob = data.dump(-1, ' ', false, json::error_handler_t::replace);
 		});
 
 		static std::optional<json> lastProfile;
