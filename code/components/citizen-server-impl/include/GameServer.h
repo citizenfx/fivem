@@ -53,6 +53,8 @@ namespace fx
 
 		void ForceHeartbeat();
 
+		void ForceHeartbeatSoon();
+
 		void DeferCall(int inMsec, const std::function<void()>& fn);
 
 		void CreateUdpHost(const net::PeerAddress& address);
@@ -229,7 +231,7 @@ namespace fx
 
 		fwRefContainer<se::Context> m_seContext;
 
-		int64_t m_nextHeartbeatTime;
+		std::chrono::milliseconds m_nextHeartbeatTime;
 
 		tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
 

@@ -609,7 +609,7 @@ namespace fx
 							m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
 						}
 
-						ForceHeartbeat();
+						ForceHeartbeatSoon();
 					}
 				}
 			}
@@ -776,7 +776,7 @@ namespace fx
 		}
 
 		// if we should heartbeat
-		if (msec().count() >= m_nextHeartbeatTime)
+		if (msec() >= m_nextHeartbeatTime)
 		{
 			// loop through each master
 			for (auto& master : m_masters)
@@ -832,7 +832,7 @@ namespace fx
 				}
 			}
 
-			m_nextHeartbeatTime = msec().count() + (180 * 1000);
+			m_nextHeartbeatTime = msec() + 3min;
 		}
 
 		{
@@ -872,7 +872,7 @@ namespace fx
 		}
 
 		// force a hearbeat
-		ForceHeartbeat();
+		ForceHeartbeatSoon();
 
 		// ensure mono thread attachment (if this was a worker thread)
 		MonoEnsureThreadAttached();
@@ -921,7 +921,20 @@ namespace fx
 
 	void GameServer::ForceHeartbeat()
 	{
-		m_nextHeartbeatTime = -1;
+		m_nextHeartbeatTime = 0ms;
+	}
+
+	void GameServer::ForceHeartbeatSoon()
+	{
+		auto now = msec();
+		auto soon = (now + 10s);
+
+		// if the next heartbeat is close to the automatically-queued keepalive time (~3mins from last)
+		if (m_nextHeartbeatTime > soon)
+		{
+			// set it to execute soon
+			m_nextHeartbeatTime = soon;
+		}
 	}
 
 	void GameServer::SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix)
