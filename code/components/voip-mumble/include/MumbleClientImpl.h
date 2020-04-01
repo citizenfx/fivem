@@ -100,6 +100,8 @@ public:
 
 	virtual void SetClientVolumeOverride(const std::string& clientName, float volume) override;
 
+	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) override;
+
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 
 	virtual void SetPositionHook(const TPositionHook& hook) override;
@@ -173,6 +175,8 @@ private:
 
 	std::chrono::milliseconds m_lastUdp;
 
+	std::chrono::milliseconds m_nextPing;
+
 	TPositionHook m_positionHook;
 
 	fwRefContainer<MumbleCrypto> m_crypto;
@@ -180,6 +184,8 @@ private:
 	std::string m_curManualChannel;
 
 	std::string m_lastManualChannel;
+
+	std::map<int, VoiceTargetConfig> m_pendingVoiceTargetUpdates;
 
 public:
 	static fwRefContainer<MumbleClient> GetCurrent();
