@@ -446,6 +446,17 @@ void MumbleClient::SetClientVolumeOverride(const std::string& clientName, float 
 	});
 }
 
+void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float volume)
+{
+	m_state.ForAllUsers([this, serverId, volume](const std::shared_ptr<MumbleUser>& user)
+	{
+		if (user->GetServerId() == serverId)
+		{
+			GetOutput().HandleClientVolumeOverride(*user, volume);
+		}
+	});
+}
+
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
 {
 	referenceIds->clear();

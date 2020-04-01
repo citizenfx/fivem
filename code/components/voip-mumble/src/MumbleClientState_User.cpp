@@ -35,7 +35,10 @@ void MumbleUser::UpdateUser(MumbleProto::UserState& state)
 
 	if (state.has_name())
 	{
-		m_name = ConvertFromUTF8(state.name());
+		std::string name = state.name();
+		m_name = ConvertFromUTF8(name);
+		// Hackish way to pull the serverid from the name
+		m_serverId = atoi(name.substr(1, name.length() - 1).c_str());
 	}
 
 	if (state.has_mute())
