@@ -26,7 +26,7 @@ struct VehiclePoolTraits
 
 	static PoolType* GetPool()
 	{
-		return rage::GetPool<ObjectType>(0xF820AAA9);
+		return rage::GetPool<ObjectType>("CVehicle");
 	}
 };
 
