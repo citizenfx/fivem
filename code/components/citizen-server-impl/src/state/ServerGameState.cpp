@@ -1632,9 +1632,16 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 
 	if (!hasClient)
 	{
-		float posX = entity->GetData("posX", 0.0f);
-		float posY = entity->GetData("posY", 0.0f);
-		float posZ = entity->GetData("posZ", 0.0f);
+		float position[3] = { 0 };
+
+		if (entity->syncTree)
+		{
+			entity->syncTree->GetPosition(position);
+		}
+
+		float posX = position[0];
+		float posY = position[1];
+		float posZ = position[2];
 
 		std::vector<std::tuple<float, std::shared_ptr<fx::Client>>> candidates;
 
