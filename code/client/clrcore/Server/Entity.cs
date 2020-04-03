@@ -38,7 +38,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.GetEntityRotation(this.Handle);
+				return API.GetEntityRotation(this.Handle, 4);
 			}
 			set
 			{
