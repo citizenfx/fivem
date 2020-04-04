@@ -106,52 +106,18 @@ public:
 
 		auto byteData = (uint8_t*)data;
 
-		// alias m_data to not need this/operator[] in loop
-		const auto& mDataOff = m_data.data();
-		size_t startBit = m_curBit;
-
-		// this will break partial reads
-		if (((startBit + length) / 8) >= m_data.size())
+		for (int i = 0; i < length; i++)
 		{
-			return;
-		}
-
-		uint8_t cb = 0;
-		int i;
-
-		for (i = 0; i < length; i++)
-		{
-			uint8_t bit;
-
-			{
-				int startIdx = startBit / 8;
-				int shift = (7 - (startBit % 8));
-
-				// inline variant of ReadBit without check/mutation
-				bit = (uint8_t)(mDataOff[startIdx] >> shift) & 1;
-			}
+			int bit = ReadBit();
 
 			// write bit
 			{
+				int startIdx = i / 8;
 				int shift = (7 - (i % 8));
 
-				cb = (uint8_t)((cb & ~(1 << shift)) | (bit << shift));
+				byteData[startIdx] = (uint8_t)(((byteData[startIdx]) & ~(1 << shift)) | (bit << shift));
 			}
-
-			if ((i % 8) == 7)
-			{
-				int startIdx = i / 8;
-				byteData[startIdx] = cb;
-
-				cb = 0;
-			}
-
-			++startBit;
 		}
-
-		byteData[i / 8] = cb;
-
-		m_curBit = startBit;
 	}
 
 	inline uint8_t ReadBit()
