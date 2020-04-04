@@ -6,7 +6,7 @@ using CitizenFX.Core;
 using Lib.AspNetCore.ServerSentEvents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.Extensions.Caching.Memory;
 using static CitizenFX.Core.Native.API;
 
 namespace FxWebAdmin
@@ -14,17 +14,24 @@ namespace FxWebAdmin
     public class HomeController : Controller
     {
         private IServerSentEventsService eventsService;
+        private IMemoryCache cache;
 
-        public HomeController(IServerSentEventsService events)
+        public HomeController(IServerSentEventsService events, IMemoryCache cache)
         {
             this.eventsService = events;
+            this.cache = cache;
         }
 
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var viewData = await HttpServer.QueueTick(() =>
+            if (!User.Identity.IsAuthenticated && cache.TryGetValue<IndexData>("homeData", out var viewData))
+            {
+                return View(viewData);
+            }
+
+            viewData = await HttpServer.QueueTick(() =>
             {
                 var resCount = GetResources().Count(a => GetResourceState(a) == "started");
 
@@ -52,11 +59,13 @@ namespace FxWebAdmin
 
                 if (totalPingCount > 0)
                 {
-                    data.AverageLatency = (int)((double)totalPing / totalPingCount);
+                    data.AverageLatency = (int) ((double) totalPing / totalPingCount);
                 }
 
                 return data;
             });
+
+            cache.Set("homeData", viewData, TimeSpan.FromSeconds(30));
 
             return View(viewData);
         }

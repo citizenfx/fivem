@@ -100,6 +100,8 @@ namespace FxWebAdmin
                         }
                     });
 
+            services.AddMemoryCache();
+
             services.AddTransient<IClaimsTransformation, FxClaimsTransformer>();
             services.AddSingleton<IdentifierHelpers, IdentifierHelpers>();
 

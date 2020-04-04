@@ -6,6 +6,8 @@
 #include <HttpServerImpl.h>
 #include <TLSServer.h>
 
+#include <boost/algorithm/string.hpp>
+
 fwEvent<fwRefContainer<net::MultiplexTcpServer>> OnCreateTlsMultiplex;
 
 namespace fx
@@ -25,6 +27,15 @@ namespace fx
 					if (prefix != "/")
 					{
 						matches = _strnicmp(request->GetPath().c_str(), prefix.c_str(), prefix.length()) == 0;
+
+						if (!matches)
+						{
+							if (boost::algorithm::ends_with(prefix, "/"))
+							{
+								std::string_view prefixView = prefix;
+								matches = request->GetPath() == prefixView.substr(0, prefixView.length() - 1);
+							}
+						}
 					}
 					else
 					{

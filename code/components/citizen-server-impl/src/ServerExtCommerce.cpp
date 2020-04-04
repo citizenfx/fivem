@@ -124,7 +124,12 @@ void ExtCommerceComponent::ExecuteCommandList(const json& json, int netId /* = -
 						boost::algorithm::replace_all(cmd, fmt::sprintf("{%s}", token.first), token.second);
 					}
 
-					for (const auto& token : json["player"].get<json::object_t>())
+					const auto& player =
+						(command.find("player") != command.end())
+							? command["player"]
+							: json["player"];
+
+					for (const auto& token : player.get<json::object_t>())
 					{
 						if (token.second.is_object())
 						{
@@ -139,7 +144,7 @@ void ExtCommerceComponent::ExecuteCommandList(const json& json, int netId /* = -
 						}
 					}
 
-					boost::algorithm::replace_all(cmd, "{identifier}", ParseIdentifier(json["player"].value("id", "")));
+					boost::algorithm::replace_all(cmd, "{identifier}", ParseIdentifier(player.value("id", "")));
 				}
 				catch (json::exception & e)
 				{

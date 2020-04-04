@@ -33,6 +33,9 @@
 
 #include <KeyedRateLimiter.h>
 
+#include <prometheus/histogram.h>
+#include <ServerPerfComponent.h>
+
 #ifdef _WIN32
 #include <ResumeComponent.h>
 #endif
@@ -180,6 +183,14 @@ namespace fx
 
 					auto mpd = mainData.get();
 
+					static auto& collector = prometheus::BuildHistogram()
+						.Name("tickTime")
+						.Help("Time spent on server ticks")
+						.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
+						.Add({ {"name", "svMain"} }, prometheus::Histogram::BucketBoundaries{
+							.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
+						});
+
 					uv_timer_init(loop, &mainData->tickTimer);
 					uv_timer_start(&mainData->tickTimer, UvPersistentCallback(&mainData->tickTimer, [this, mpd](uv_timer_t*)
 					{
@@ -193,6 +204,9 @@ namespace fx
 						}
 
 						ProcessServerFrame(thisTime.count());
+
+						auto atEnd = msec();
+						collector.Observe((atEnd - now).count() / 1000.0);
 					}), frameTime, frameTime);
 
 					// event handle for callback list evaluation
@@ -289,6 +303,14 @@ namespace fx
 			auto sendTime = 1000 / 30;
 
 			auto mpd = netData.get();
+
+			static auto& collector = prometheus::BuildHistogram()
+				.Name("tickTime")
+				.Help("Time spent on server ticks")
+				.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
+				.Add({ {"name", "svNetwork"} }, prometheus::Histogram::BucketBoundaries{
+					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
+					});
 			
 			uv_timer_init(loop, &netData->tickTimer);
 			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
@@ -303,8 +325,10 @@ namespace fx
 				}
 
 				OnNetworkTick();
-
 				m_net->Process();
+
+				auto atEnd = msec();
+				collector.Observe((atEnd - now).count() / 1000.0);
 			}), frameTime, frameTime);
 
 			uv_timer_init(loop, &netData->sendTimer);

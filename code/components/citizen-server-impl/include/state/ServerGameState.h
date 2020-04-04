@@ -114,6 +114,8 @@ struct CPedGameStateNodeData
 	int lastVehicle;
 	int lastVehicleSeat;
 
+	int curWeapon;
+
 	inline CPedGameStateNodeData()
 		: lastVehicle(-1), lastVehicleSeat(-1)
 	{
@@ -121,15 +123,122 @@ struct CPedGameStateNodeData
 	}
 };
 
+struct CVehicleAppearanceNodeData
+{
+	int primaryColour;
+	int secondaryColour;
+	int pearlColour;
+	int wheelColour;
+	int interiorColour;
+	int dashboardColour;
+
+	bool isPrimaryColourRGB;
+	bool isSecondaryColourRGB;
+
+	int primaryRedColour;
+	int primaryGreenColour;
+	int primaryBlueColour;
+	
+	int secondaryRedColour;
+	int secondaryGreenColour;
+	int secondaryBlueColour;
+
+	int dirtLevel;
+	int liveryIndex;
+	int roofLiveryIndex;
+
+	int wheelChoice;
+	int wheelType;
+
+	bool hasCustomTires;
+
+	int windowTintIndex;
+
+	int tyreSmokeRedColour;
+	int tyreSmokeGreenColour;
+	int tyreSmokeBlueColour;
+
+	char plate[9];
+
+	int numberPlateTextIndex;
+
+	inline CVehicleAppearanceNodeData()
+	{
+		memset(plate, 0, sizeof(plate));
+	}
+};
+
+struct CVehicleHealthNodeData
+{
+	int engineHealth;
+	int petrolTankHealth;
+	bool tyresFine;
+	int tyreStatus[1 << 4];
+	int bodyHealth;
+
+};
+
 struct CVehicleGameStateNodeData
 {
 	uint16_t occupants[32];
 	eastl::bitset<32> playerOccupants;
+	int radioStation;
+	bool isEngineOn;
+	bool isEngineStarting;
+	bool handbrake;
+	int defaultHeadlights;
+	int headlightsColour;
+	bool sirenOn;
+	int lockStatus;
+	int doorsOpen;
+	int doorPositions[1 << 7];
+	bool noLongerNeeded;
+	bool lightsOn;
+	bool highbeamsOn;
+	bool hasBeenOwnedByPlayer;
+	bool hasLock;
+	int lockedPlayers;
 
 	inline CVehicleGameStateNodeData()
 	{
 		memset(occupants, 0, sizeof(occupants));
 	}
+};
+
+struct CEntityOrientationNodeData
+{
+	float rotX;
+	float rotY;
+	float rotZ;
+};
+
+struct CPhysicalVelocityNodeData
+{
+	float velX;
+	float velY;
+	float velZ;
+};
+
+struct CVehicleAngVelocityNodeData
+{
+	float angVelX;
+	float angVelY;
+	float angVelZ;
+};
+
+struct CPedHealthNodeData
+{
+	int maxHealth;
+	int health;
+	int armour;
+	uint32_t causeOfDeath;
+
+};
+
+struct CPedOrientationNodeData
+{
+	float currentHeading;
+	float desiredHeading;
 };
 
 enum ePopType
@@ -168,6 +277,22 @@ public:
 
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
+	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CPedHealthNodeData* GetPedHealth() = 0;
+
+	virtual CVehicleHealthNodeData* GetVehicleHealth() = 0;
+
+	virtual CPedOrientationNodeData* GetPedOrientation() = 0;
+
+	virtual CEntityOrientationNodeData* GetEntityOrientation() = 0;
+
+	virtual CVehicleAngVelocityNodeData* GetAngVelocity() = 0;
+
+	virtual CPhysicalVelocityNodeData* GetVelocity() = 0;
+
+	virtual void CalculatePosition() = 0;
+
 	virtual bool GetPopulationType(ePopType* popType) = 0;
 
 	virtual bool GetModelHash(uint32_t* modelHash) = 0;
@@ -197,7 +322,6 @@ struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
 
-	tbb::concurrent_unordered_map<std::string, TData> data;
 	std::shared_mutex clientMutex;
 	std::weak_ptr<fx::Client> client;
 	NetObjEntityType type;
@@ -215,36 +339,6 @@ struct SyncEntityState
 	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs{};
 
 	std::shared_ptr<SyncTreeBase> syncTree;
-
-	template<typename T>
-	inline T GetData(std::string_view key, T defaultVal)
-	{
-		auto it = data.find(std::string(key));
-
-		try
-		{
-			return (it != data.end()) ? std::get<T>(it->second) : defaultVal;
-		}
-		catch (std::bad_variant_access&)
-		{
-			return defaultVal;
-		}
-	}
-
-	inline void CalculatePosition()
-	{
-		auto sectorX = GetData<int>("sectorX", 512);
-		auto sectorY = GetData<int>("sectorY", 512);
-		auto sectorZ = GetData<int>("sectorZ", 24);
-
-		auto sectorPosX = GetData<float>("sectorPosX", 0.0f);
-		auto sectorPosY = GetData<float>("sectorPosY", 0.0f);
-		auto sectorPosZ = GetData<float>("sectorPosZ", 44.0f);
-
-		data["posX"] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
-		data["posY"] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
-		data["posZ"] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
-	}
 
 	std::shared_mutex guidMutex;
 	ScriptGuid* guid;

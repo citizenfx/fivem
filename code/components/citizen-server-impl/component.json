@@ -22,7 +22,8 @@
 		"vendor:slikenet",
 		"vendor:thread-pool-cpp",
 		"vendor:utfcpp",
-		"vendor:breakpad"
+		"vendor:breakpad",
+		"vendor:prometheus-cpp"
 	],
 	"provides": []
 }
