@@ -274,7 +274,7 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 		// #TODOMONITOR: *really* make helper
 		auto monitorVar = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("monitorMode");
-		m_endpointPrefix = fmt::sprintf("/%s", m_resource->GetName());
+		m_endpointPrefix = fmt::sprintf("/%s/", m_resource->GetName());
 
 		if (monitorVar && monitorVar->GetValue() != "0" && m_resource->GetName() == "monitor")
 		{
