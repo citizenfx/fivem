@@ -670,6 +670,17 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOLUME_OVERRIDE_BY_SERVER_ID", [](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			float volume = context.GetArgument<float>(1);
+
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->SetClientVolumeOverrideByServerId(serverId, volume);
+			}
+		});
+
 		static VoiceTargetConfig vtConfigs[31];
 
 		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_CLEAR_VOICE_TARGET", [](fx::ScriptContext& context)

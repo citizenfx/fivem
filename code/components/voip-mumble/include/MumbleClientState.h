@@ -50,6 +50,8 @@ private:
 
 	uint32_t m_session;
 
+	uint32_t m_serverId;
+
 	std::wstring m_name;
 
 	uint32_t m_currentChannelId;
@@ -73,6 +75,8 @@ public:
 	}
 
 	inline uint32_t GetSessionId() const { return m_session; }
+
+	inline uint32_t GetServerId() const { return m_serverId; }
 
 	inline std::wstring GetName() const { return m_name; }
 
