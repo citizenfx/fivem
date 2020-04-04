@@ -3,6 +3,9 @@
 class atPoolBase
 {
 protected:
+#if IS_RDR3
+	int8_t* m_unk;
+#endif
 	char* m_data;
 	int8_t* m_flags;
 	uint32_t m_count;
