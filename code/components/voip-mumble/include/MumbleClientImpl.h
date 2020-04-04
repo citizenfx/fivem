@@ -100,6 +100,8 @@ public:
 
 	virtual void SetClientVolumeOverride(const std::string& clientName, float volume) override;
 
+	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) override;
+
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 
 	virtual void SetPositionHook(const TPositionHook& hook) override;
