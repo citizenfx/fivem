@@ -16,8 +16,6 @@
 
 #include <CoreConsole.h>
 
-#include <Error.h>
-
 using json = nlohmann::json;
 
 #if defined(GTA_FIVE)
@@ -1530,28 +1528,6 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 	}
 
 	fileData[length] = '\0';
-
-	// check for blacklisted information
-	if (strcmp(scriptFile, "@es_extended/locales/en.lua") == 0)
-	{
-		if (strstr(fileData.data(), "['command_save'] = 'save a player to database',") != nullptr)
-		{
-			// first client-affecting es_extended commit (https://github.com/ESX-Org/es_extended/commit/0fc8c4d9c5028944e34ff72b73c4adb039be88d8)
-			// after adding a 'sponsorship URL' (https://github.com/ESX-Org/es_extended/commit/4cc964b9d5b71b83c4107fef2d72e4460d69c3a4~1) 
-			// for services violating point 8 of the FiveM/Cfx.re ToS (https://fivem.net/terms).
-			//
-			// this code will be removed when the 'sponsorship' commit is reverted and any and all advertising of illicit services by the maintainers
-			// of 'es_extended' is ceased.
-			FatalError("Blocked loading of resource (es_extended) containing illicit advertising of FiveM hosting services violating the "
-				"FiveM Terms of Service: https://fivem.net/terms \n\n"
-				"Recommended course of action:\n"
-				"Server owners: downgrade es_extended to a commit prior to https://github.com/ESX-Org/es_extended/commit/4cc964b9d5b71b83c4107fef2d72e4460d69c3a4~1 \n"
-				"Players: ask your server owner to do the above.\n"
-				"es_extended maintainers: remove illicit sponsorship link from any and all es_extended documentation, and contact CitizenFX staff once completed.\n"
-				"\n"
-				"We are sorry for any inconvenience this may cause, but are required by contract to enforce such violations.");
-		}
-	}
 
 	// create a chunk name prefixed with @ (suppresses '[string "..."]' formatting)
 	fwString chunkName("@");
