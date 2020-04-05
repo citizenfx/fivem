@@ -32,8 +32,6 @@ fwEvent<const std::string&> OnRichPresenceSetTemplate;
 fwEvent<int, const std::string&> OnRichPresenceSetValue;
 
 std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV2(INetLibraryInherit* base);
-std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV3(INetLibraryInherit* base);
-std::unique_ptr<NetLibraryImplBase> CreateNetLibraryImplV4(INetLibraryInherit* base);
 
 #define TIMEOUT_DATA_SIZE 16
 
@@ -1316,17 +1314,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				{
 					m_impl = CreateNetLibraryImplV2(this);
 				}
-				else if (node.value("netlibVersion", 1) == 3)
+				else if (node.value("netlibVersion", 1) == 3 || node.value("netlibVersion", 1) == 4)
 				{
-					m_impl = CreateNetLibraryImplV3(this);
-				}
-				else if (node.value("netlibVersion", 1) == 4)
-				{
-					m_impl = CreateNetLibraryImplV4(this);
+					OnConnectionError("NetLibraryImplV3/NetLibraryImplV4 are no longer supported. Please reset `netlib` to the default value.");
+					m_connectionState = CS_IDLE;
+					return true;
 				}
 				else
 				{
-					OnConnectionError("Legacy servers are incompatible with this version of FiveM. Please tell the server owner to the server to the latest FXServer build. See https://fivem.net/ for more info.");
+					OnConnectionError("Legacy servers are incompatible with this version of CitizenFX. Please tell the server owner to the server to the latest FXServer build. See https://fivem.net/ for more info.");
 					m_connectionState = CS_IDLE;
 					return true;
 				}

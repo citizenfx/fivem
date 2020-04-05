@@ -974,19 +974,9 @@ namespace fx
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server)
 	{
 		static auto cmd = server->GetInstance()->AddVariable<std::string>("netlib", ConVar_None, "enet");
-		
-		if (cmd->GetValue() == "yojimbo")
-		{
-			return CreateGSNet_Yojimbo(server);
-		}
-		else if (cmd->GetValue() == "raknet")
-		{
-			return CreateGSNet_RakNet(server);
-		}
-		else
-		{
-			return CreateGSNet_ENet(server);
-		}
+
+		// ignored: cmd value (we only support enet at this time)
+		return CreateGSNet_ENet(server);
 	}
 
 	FxPrintListener printListener;

@@ -61,6 +61,4 @@ namespace fx
 
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server);
 	fwRefContainer<GameServerNetBase> CreateGSNet_ENet(fx::GameServer* server);
-	fwRefContainer<GameServerNetBase> CreateGSNet_Yojimbo(fx::GameServer* server);
-	fwRefContainer<GameServerNetBase> CreateGSNet_RakNet(fx::GameServer* server);
 }
