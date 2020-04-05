@@ -106,7 +106,7 @@ build_server_windows:
 
 build_proot_linux:
   stage: build
-  image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.11
+  image: mcr.microsoft.com/dotnet/core/sdk:2.1-alpine3.11
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     # workaround gitlab-ci-multi-runner#2148
