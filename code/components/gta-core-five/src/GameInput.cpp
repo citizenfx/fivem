@@ -157,6 +157,32 @@ uint32_t ControlSourceToMapperSource(uint32_t source)
 	return _controlSourceToMapperSource(source);
 }
 
+static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _getParameterIndex([]()
+{
+	return hook::get_pattern("83 F9 01 74 2C 0F 8E E8 00 00 00", -0xF);
+});
+
+//
+// Given a source/parameter, gets the parameter to use when serializing a control.
+//
+uint32_t GetParameterIndex(uint32_t source, uint32_t parameter)
+{
+	return _getParameterIndex(source, parameter);
+}
+
+static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _ungetParameterIndex([]()
+{
+	return hook::get_pattern("74 28 7E 36 83 F9", -0x12);
+});
+
+//
+// Given a source/serialized parameter, gets the native parameter to use.
+//
+uint32_t UngetParameterIndex(uint32_t source, uint32_t parameter)
+{
+	return _ungetParameterIndex(source, parameter);
+}
+
 class Binding
 {
 public:
@@ -365,6 +391,8 @@ void BindingManager::Initialize()
 			rage::ioInputSource source;
 			binding.second->GetBinding(source);
 
+			auto parameterIndex = _getParameterIndex(source.source, source.parameter);
+
 			std::string ioSource = "";
 			std::string ioParameter = "";
 
@@ -378,7 +406,7 @@ void BindingManager::Initialize()
 
 			for (auto& entry : ioParameterMap)
 			{
-				if (entry.second == source.parameter)
+				if (entry.second == parameterIndex)
 				{
 					ioParameter = entry.first;
 				}
@@ -417,7 +445,7 @@ void BindingManager::Initialize()
 				return;
 			}
 
-			ioParameter = it->second;
+			ioParameter = _ungetParameterIndex(ioSource, it->second);
 		}
 
 		auto binding = std::make_shared<Binding>(commandString);
@@ -467,7 +495,7 @@ void BindingManager::Initialize()
 				return;
 			}
 
-			ioParameter = it->second;
+			ioParameter = _ungetParameterIndex(ioSource, it->second);
 		}
 
 		m_bindings.erase({ ioSource, ioParameter });
@@ -654,7 +682,7 @@ namespace game
 					return;
 				}
 
-				ioParameter = it->second;
+				ioParameter = _ungetParameterIndex(ioSource, it->second);
 			}
 
 			for (auto& binding : bindingManager.GetBindings())
@@ -847,6 +875,8 @@ static HookFunction hookFunction([]()
 			rage::ioInputSource source;
 			binding.second->GetBinding(source);
 
+			auto parameterIndex = _getParameterIndex(source.source, source.parameter);
+
 			std::string ioSource = "";
 			std::string ioParameter = "";
 
@@ -860,7 +890,7 @@ static HookFunction hookFunction([]()
 
 			for (auto& entry : ioParameterMap)
 			{
-				if (entry.second == source.parameter)
+				if (entry.second == parameterIndex)
 				{
 					ioParameter = entry.first;
 				}
