@@ -1228,8 +1228,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				{
 					onesyncType = "onesync_plus";
 				}
-
-				if (big1s)
+				else if (maxClients <= 1024)
 				{
 					onesyncType = "onesync_big";
 				}
@@ -1252,7 +1251,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				{
 					auto oneSyncFailure = [this, onesyncType]()
 					{
-						OnConnectionError(va("OneSync (policy type %s) is not whitelisted for this server, or requesting whitelist status failed. You'll have to wait a little while longer!", onesyncType));
+						OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
+							onesyncType,
+							(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
+								? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots." : ""));
 						m_connectionState = CS_IDLE;
 					};
 
