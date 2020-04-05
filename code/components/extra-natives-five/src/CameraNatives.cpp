@@ -5,6 +5,111 @@
 
 #include <DirectXMath.h>
 
+#include <Hooking.h>
+#include <CoreConsole.h>
+
+#include <nutsnbolts.h>
+
+#include <RageParser.h>
+
+static hook::cdecl_stub<void* (const uint32_t& hash, void* typeAssert)> _getCameraMetadata([]()
+{
+	return hook::get_call(hook::get_pattern("C7 44 24 48 63 1C 9E D7 E8", 8));
+});
+
+static std::shared_ptr<ConVar<bool>> g_handbrakeCamConvar;
+
+struct camFollowVehicleCameraMetadataHandBrakeSwingSettings
+{
+	void* vtbl;
+	uint32_t HandBrakeInputEnvelopeRef;
+	float SpringConstant;
+	float MinLateralSkidSpeed;
+	float MaxLateralSkidSpeed;
+	float SwingSpeedAtMaxSkidSpeed;
+};
+
+static void* g_currentCamMetadata;
+static camFollowVehicleCameraMetadataHandBrakeSwingSettings g_lastSettings;
+static bool g_lastMetadataState;
+
+static ptrdiff_t GetCamMetadataOffset()
+{
+	auto tcurts = rage::GetStructureDefinition("camFollowVehicleCameraMetadata");
+	for (auto& member : tcurts->m_members)
+	{
+		if (member->m_definition->hash == HashRageString("HandBrakeSwingSettings"))
+		{
+			return member->m_definition->offset;
+		}
+	}
+
+	return 0;
+}
+
+static auto GetRelativeMetadata(void* base)
+{
+	static ptrdiff_t offsetRef = GetCamMetadataOffset();
+
+	return (camFollowVehicleCameraMetadataHandBrakeSwingSettings*)((char*)base + offsetRef);
+}
+
+static void OverrideMetadata(void* metadata, bool overridden)
+{
+	if (g_lastMetadataState != overridden)
+	{
+		auto camhb = GetRelativeMetadata(metadata);
+
+		if (overridden)
+		{
+			g_lastSettings = *camhb;
+
+			camhb->SpringConstant = 0.f;
+			camhb->MaxLateralSkidSpeed = 0.f;
+			camhb->MinLateralSkidSpeed = 0.f;
+			camhb->SwingSpeedAtMaxSkidSpeed = 0.f;
+		}
+		else
+		{
+			*camhb = g_lastSettings;
+		}
+
+		g_lastMetadataState = overridden;
+	}
+}
+
+static void* GetCameraMetadataWrap(const uint32_t& hash, void* typeAssert)
+{
+	auto metadata = _getCameraMetadata(hash, typeAssert);
+
+	if (g_currentCamMetadata)
+	{
+		OverrideMetadata(g_currentCamMetadata, false);
+	}
+
+	g_currentCamMetadata = metadata;
+
+	if (!g_handbrakeCamConvar->GetValue())
+	{
+		OverrideMetadata(g_currentCamMetadata, true);
+	}
+
+	return metadata;
+}
+
+static void UpdateCameraMetadataRef()
+{
+	if (g_currentCamMetadata)
+	{
+		auto curValue = !(g_handbrakeCamConvar->GetValue());
+
+		if (curValue != g_lastMetadataState)
+		{
+			OverrideMetadata(g_currentCamMetadata, curValue);
+		}
+	}
+}
+
 using Matrix4x4 = DirectX::XMFLOAT4X4;
 
 struct CameraData
@@ -26,6 +131,11 @@ struct scrVector
 	float z;
 	int _pad3;
 };
+
+static HookFunction hookFunction([]()
+{
+	hook::call(hook::get_pattern("48 8D 4D 20 44 89 75 20 E8 ? ? ? ? 48 85 C0", 8), GetCameraMetadataWrap);
+});
 
 static InitFunction initFunction([]()
 {
@@ -68,5 +178,12 @@ static InitFunction initFunction([]()
 			copyVector(readMatrix->m[2], upVector);
 			copyVector(readMatrix->m[3], atVector);
 		}
+	});
+
+	g_handbrakeCamConvar = std::make_shared<ConVar<bool>>("cam_enableHandbrakeCamera", ConVar_Archive, true);
+
+	OnMainGameFrame.Connect([]()
+	{
+		UpdateCameraMetadataRef();
 	});
 });
