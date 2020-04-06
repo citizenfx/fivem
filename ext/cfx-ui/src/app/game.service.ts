@@ -53,7 +53,7 @@ export abstract class GameService {
 	infoMessage = new EventEmitter<string>();
 
 	devModeChange = new BehaviorSubject<boolean>(false);
-	darkThemeChange = new BehaviorSubject<boolean>(false);
+	darkThemeChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
 	localhostPortChange = new BehaviorSubject<string>('');
 	languageChange = new BehaviorSubject<string>('en');
@@ -112,7 +112,7 @@ export abstract class GameService {
 	}
 
 	get darkTheme(): boolean {
-		return false;
+		return true;
 	}
 
 	set darkTheme(value: boolean) {
@@ -281,7 +281,7 @@ export class ServerHistoryEntry {
 @Injectable()
 export class CfxGameService extends GameService {
 	private _devMode = false;
-	private _darkTheme = false;
+	private _darkTheme = true;
 
 	private lastServer: Server;
 
@@ -427,8 +427,8 @@ export class CfxGameService extends GameService {
 			this.devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
-		if (localStorage.getItem('darkTheme')) {
-			this.darkTheme = localStorage.getItem('darkTheme') === 'yes';
+		if (localStorage.getItem('darkThemeNew')) {
+			this.darkTheme = localStorage.getItem('darkThemeNew') !== 'no';
 		}
 
 		if (localStorage.getItem('localhostPort')) {
@@ -534,7 +534,7 @@ export class CfxGameService extends GameService {
 
 	set darkTheme(value: boolean) {
 		this._darkTheme = value;
-		localStorage.setItem('darkTheme', value ? 'yes' : 'no');
+		localStorage.setItem('darkThemeNew', value ? 'yes' : 'no');
 		this.invokeDarkThemeChanged(value);
 	}
 
@@ -800,7 +800,7 @@ export class CfxGameService extends GameService {
 @Injectable()
 export class DummyGameService extends GameService {
 	private _devMode = false;
-	private _darkTheme = false;
+	private _darkTheme = true;
 	private _localhostPort = '';
 	private _language = '';
 

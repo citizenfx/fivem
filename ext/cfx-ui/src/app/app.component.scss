@@ -60,10 +60,10 @@ $blurSize: 20px;
 	z-index: 1;
 
 	position: fixed;
-	top: -($blurSize*2);
-	left: -($blurSize*2);
-	bottom: -($blurSize*2);
-	right: -($blurSize*2);
+	top: 0px;
+	left: 0px;
+	bottom: 0px;
+	right: 0px;
 
 	transform: translate3d(0, 0, 0);
 
@@ -71,6 +71,10 @@ $blurSize: 20px;
 
 	background:
 		transparent center center/cover no-repeat;
+
+	.theme-dark & {
+		display: none;
+	}
 }
 
 * {

@@ -128,7 +128,9 @@ export class ServersService {
                 this.servers[server.address] = server;
                 this.serversEvent.next(server);
             });
+    }
 
+    public onInitialized() {
         if (isPlatformBrowser(this.platformId)) {
             this.refreshServers();
         }

@@ -10,7 +10,7 @@
 #include "ToolComponentHelpers.h"
 #include "ResumeComponent.h"
 
-class ComponentInstance : public LifeCycleComponentBase<ToolComponentBase<Component>>
+class ComponentInstance : public LifeCyclePreInitComponentBase<ToolComponentBase<Component>>
 {
 public:
 	virtual bool Initialize();

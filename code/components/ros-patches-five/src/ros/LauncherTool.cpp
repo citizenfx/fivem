@@ -498,12 +498,25 @@ static FxToolCommand rosSubprocess3("ros:steam", Launcher_HandleArguments, Steam
 void RunLauncher(const wchar_t* toolName, bool instantWait);
 
 #include "ResumeComponent.h"
+#include <HostSharedData.h>
+#include <CfxState.h>
 
 void WaitForLauncher();
 bool LoadOwnershipTicket();
 
-static InitFunction initFunction([] ()
+void OnPreInitHook();
+
+void Component_RunPreInit()
 {
+	OnPreInitHook();
+
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
+	if (!hostData->IsMasterProcess())
+	{
+		return;
+	}
+
 	if (getenv("CitizenFX_ToolMode") == nullptr || getenv("CitizenFX_ToolMode")[0] == 0)
 	{
 		auto name = fmt::sprintf(L"CitizenFX_LauncherMutex%s", IsCL2() ? L"CL2" : L"");
@@ -541,7 +554,7 @@ static InitFunction initFunction([] ()
 			}
 		});
 	}
-});
+}
 
 #include <winsock2.h>
 #include <iphlpapi.h>

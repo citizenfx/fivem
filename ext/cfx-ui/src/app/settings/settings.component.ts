@@ -80,7 +80,7 @@ export class SettingsComponent extends Translation implements OnInit, OnDestroy 
     localhostPort = '30120';
     devMode = false;
     currentAccount: any = null;
-    darkTheme = false;
+    darkTheme = true;
     language = 'en';
 
     public settings: DisplaySetting[] = [];

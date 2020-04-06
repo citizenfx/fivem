@@ -1600,16 +1600,22 @@ static BOOL __stdcall WriteFileStub(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNum
 	return g_oldWriteFile(hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped);
 }
 
-static InitFunction initFunction([] ()
-{
-	g_manager = new LoopbackTcpServerManager();
-	Instance<LoopbackTcpServerManager>::Set(g_manager);
-}, -1000);
-
 #include <MinHook.h>
 
-static InitFunction hookFunction([] ()
+void OnPreInitHook()
 {
+	static bool did = false;
+
+	if (did)
+	{
+		return;
+	}
+
+	did = true;
+
+	g_manager = new LoopbackTcpServerManager();
+	Instance<LoopbackTcpServerManager>::Set(g_manager);
+
     if (MH_Initialize() == MH_ERROR_ALREADY_INITIALIZED)
     {
         return;
@@ -1684,6 +1690,11 @@ static InitFunction hookFunction([] ()
 	trace("hello from %s\n", GetCommandLineA());
 
 	MH_EnableHook(MH_ALL_HOOKS);
+}
+
+static InitFunction lateInitFunction([]()
+{
+	OnPreInitHook();
 }, -1000);
 
 static void(*g_origRlineInit)(int);

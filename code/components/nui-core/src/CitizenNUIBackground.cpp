@@ -12,6 +12,9 @@ extern nui::GameInterface* g_nuiGi;
 
 #include <RGBA.h>
 
+#include <VFSManager.h>
+#include <VFSWin32.h>
+
 #include <DirectXColors.h>
 #include <wrl.h>
 #include <wincodec.h>
@@ -47,11 +50,11 @@ private:
 	DwmpGetColorizationParameters_t m_fDwmpGetColorizationParameters;
 
 private:
-	fwRefContainer<nui::GITexture> InitializeTextureFromFile(std::wstring filename);
+	fwRefContainer<nui::GITexture> InitializeTextureFromFile(const std::string& filename);
 
 	void EnsureTextures();
 
-	void DrawBackground(fwRefContainer<nui::GITexture> texture, CRGBA colorValue);
+	void DrawBackground(fwRefContainer<nui::GITexture> texture, CRGBA colorValue, bool cover = false);
 
 	CRGBA GetCurrentDWMColor(bool usePulse);
 
@@ -217,27 +220,12 @@ void CitizenNUIBackground::Initialize()
 
 		if (isMainUI)
 		{
-			CRGBA color = GetCurrentColor(true);
-
-			static uint32_t lastColorUpdate;
-
-			if ((GetTickCount() - lastColorUpdate) > 30000)
-			{
-				CRGBA baseColor = GetCurrentColor(false);
-
-				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setColor", "color": [ %d, %d, %d ] })", baseColor.red, baseColor.green, baseColor.blue));
-
-				lastColorUpdate = GetTickCount();
-			}
-
-			DrawBackground(m_backdropTexture, CRGBA(255, 255, 255, 255));
-
-			DrawBackground(m_overlayTexture, color);
+			DrawBackground(m_backdropTexture, CRGBA(255, 255, 255, 255), true);
 		}
 	});
 }
 
-void CitizenNUIBackground::DrawBackground(fwRefContainer<nui::GITexture> texture, CRGBA colorValue)
+void CitizenNUIBackground::DrawBackground(fwRefContainer<nui::GITexture> texture, CRGBA colorValue, bool cover /* = false */)
 {
 	int resX, resY;
 	g_nuiGi->GetGameResolution(&resX, &resY);
@@ -245,6 +233,32 @@ void CitizenNUIBackground::DrawBackground(fwRefContainer<nui::GITexture> texture
 	nui::ResultingRectangle rr;
 	rr.rectangle = CRect(0.0f, 0.0f, resX, resY);
 	rr.color = colorValue;
+
+	if (cover)
+	{
+		float oWidth = 2538.0f;
+		float oHeight = 1355.0f;
+
+		float originalRatios[2] = {
+			resX / oWidth,
+			resY / oHeight
+		};
+
+		float coverRatio = std::max(originalRatios[0], originalRatios[1]);
+
+		float newImageWidth = oWidth * coverRatio;
+		float newImageHeight = oHeight * coverRatio;
+
+		float nx = (resX - newImageWidth) / 2;
+		float ny = (resY - newImageHeight) / 2;
+
+		rr.rectangle = CRect{
+			nx,
+			ny,
+			nx + newImageWidth,
+			ny + newImageHeight
+		};
+	}
 
 	g_nuiGi->SetTexture(texture);
 	g_nuiGi->DrawRectangles(1, &rr);
@@ -257,25 +271,43 @@ void CitizenNUIBackground::EnsureTextures()
 {
 	if (!m_backdropTexture.GetRef())
 	{
-		m_backdropTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\background_main.jpg"));
+		m_backdropTexture = InitializeTextureFromFile("citizen:/ui/bg-night.bb1065920b7124650a88.jpg");
+
+		if (!m_backdropTexture.GetRef())
+		{
+			m_backdropTexture = InitializeTextureFromFile("citizen:/resources/background_main.jpg");
+		}
 	}
 
 	if (!m_overlayTexture.GetRef())
 	{
-		m_overlayTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\base_color.png"));
+		m_overlayTexture = InitializeTextureFromFile("citizen:/resources/base_color.png");
 	}
 
 	if (!g_cursorTexture.GetRef())
 	{
-		g_cursorTexture = InitializeTextureFromFile(MakeRelativeCitPath(L"citizen\\resources\\citizen_cursor.png"));
+		g_cursorTexture = InitializeTextureFromFile("citizen:/resources/citizen_cursor.png");
 	}
 }
 
-fwRefContainer<nui::GITexture> CitizenNUIBackground::InitializeTextureFromFile(std::wstring filename)
+fwRefContainer<nui::GITexture> CitizenNUIBackground::InitializeTextureFromFile(const std::string& filename)
 {
 	ComPtr<IWICBitmapDecoder> decoder;
+	std::vector<uint8_t> v;
 
-	HRESULT hr = m_imagingFactory->CreateDecoderFromFilename(filename.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
+	{
+		auto s = vfs::OpenRead(filename);
+
+		if (!s.GetRef())
+		{
+			return nullptr;
+		}
+
+		v = s->ReadToEnd();
+	}
+
+	auto stream = vfs::CreateComStream(vfs::OpenRead(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)v.data(), v.size(), filename)));
+	HRESULT hr = m_imagingFactory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
 
 	if (SUCCEEDED(hr))
 	{
@@ -295,7 +327,7 @@ fwRefContainer<nui::GITexture> CitizenNUIBackground::InitializeTextureFromFile(s
 			// try to convert to a pixel format we like
 			frame.As(&source);
 
-			hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, source.Get(), convertedSource.GetAddressOf());
+			hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppBGRA, source.Get(), convertedSource.GetAddressOf());
 
 			if (SUCCEEDED(hr))
 			{

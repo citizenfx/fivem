@@ -6,6 +6,7 @@ import { GameService } from '../game.service';
 import { DiscourseService } from '../discourse.service';
 
 import { DomSanitizer } from '@angular/platform-browser';
+import { ServersService } from 'app/servers/servers.service';
 
 @Component({
     moduleId: module.id,
@@ -70,7 +71,8 @@ export class HomeComponent implements OnInit {
     brandingName: string;
 
     constructor(private tweetService: TweetService, private gameService: GameService,
-        private discourseService: DiscourseService, private domSanitizer: DomSanitizer) {
+        private discourseService: DiscourseService, private domSanitizer: DomSanitizer,
+        private serversService: ServersService) {
         discourseService.signinChange.subscribe(user => this.currentAccount = user);
     }
 
@@ -128,6 +130,14 @@ export class HomeComponent implements OnInit {
                 ];
 
                 this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+
+                // on-settled code
+                setTimeout(() => {
+                    this.serversService.onInitialized();
+
+                    (<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
+                    (<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
+                }, 50);
             });
 
         this.tweetService
