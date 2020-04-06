@@ -6,6 +6,7 @@
 #include <ICoreGameInit.h>
 
 #include <MinHook.h>
+#include <Hooking.Aux.h>
 
 #include <CoreConsole.h>
 #include <Error.h>
@@ -21,6 +22,8 @@ LONG_PTR DontSetWindowLongPtrW(HWND hWnd, int nIndex, LONG_PTR dwNewLong)
 
 HRESULT NullInitializeGraphics(void* rgscUI, void* d3dDevice, void* hWndStruct)
 {
+	DisableToolHelpScope ts;
+
 	trace("NullInitializeGraphics\n");
 
 	auto fn = GetProcAddress(GetModuleHandle(L"user32.dll"), "SetWindowLongPtrW");

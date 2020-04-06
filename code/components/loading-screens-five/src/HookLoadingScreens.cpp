@@ -285,11 +285,6 @@ int CountRelevantDataFileEntries()
 	return g_instrumentedFuncs;
 }
 
-static int ReturnTrue()
-{
-	return 1;
-}
-
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
 int dlcIdx = -1;
@@ -388,9 +383,6 @@ static HookFunction hookFunction([] ()
 	// don't use it tends to break the profiler output
 	//InstrumentFunction<ProfilerFuncs>(hook::get_pattern("BF 01 00 00 00 84 C0 75 23 38 1D ? ? ? ? 75", -0x51), proFunctions);
 #endif
-
-	// 'should packfile meta cache be used'
-	//hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
 
 	auto hookPoint = hook::pattern("E8 ? ? ? ? 48 8B 1D ? ? ? ? 41 8B F7").count(1).get(0).get<void>(0);
 	hook::set_call(&dataFileMgr__loadDefDat, hookPoint);

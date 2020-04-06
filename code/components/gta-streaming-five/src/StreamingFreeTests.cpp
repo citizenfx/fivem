@@ -83,8 +83,8 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 	return fwAssetStoreBase__isResourceValid(this, idx);
 }
 
-static std::map<std::string, uint32_t> g_streamingNamesToIndices;
-static std::map<uint32_t, std::string> g_streamingIndexesToNames;
+static std::unordered_map<std::string, uint32_t> g_streamingNamesToIndices;
+static std::unordered_map<uint32_t, std::string> g_streamingIndexesToNames;
 extern std::set<std::string> g_streamingSuffixSet;
 
 template<bool IsRequest>
