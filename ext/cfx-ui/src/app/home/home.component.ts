@@ -120,6 +120,15 @@ export class HomeComponent implements OnInit {
     }
 
     fetchTweets() {
+        const settle = () => {
+            setTimeout(() => {
+                this.serversService.onInitialized();
+
+                (<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
+                (<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
+            }, 50);
+        };
+
         this.tweetService
             .getTweets('https://runtime.fivem.net/tweets.json')
             .then(tweets => {
@@ -132,12 +141,7 @@ export class HomeComponent implements OnInit {
                 this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
 
                 // on-settled code
-                setTimeout(() => {
-                    this.serversService.onInitialized();
-
-                    (<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
-                    (<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
-                }, 50);
+                settle();
             });
 
         this.tweetService
@@ -153,6 +157,8 @@ export class HomeComponent implements OnInit {
 
                 this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
             });
+
+        setTimeout(() => settle(), 2500);
     }
 
     clickContent(event: MouseEvent) {
