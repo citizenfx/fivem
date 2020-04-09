@@ -3,6 +3,8 @@
 
 #include <fmt/time.h>
 #include <filesystem>
+#include <memory>
+#include <type_traits>
 
 #include <HostSharedData.h>
 
@@ -156,7 +158,10 @@ struct LoggerInit
 			{
 				{
 					std::unique_lock<std::mutex> lock(g_logMutex);
-					g_logCondVar.wait(lock);
+					g_logCondVar.wait(
+						lock, 
+						[&]{return (g_logPrintQueue.empty() == false);} // ignoring spurious awakenings
+					);
 				}
 
 				std::tuple<std::string, std::string> str;
@@ -172,11 +177,11 @@ struct LoggerInit
 
 static LoggerInit logger;
 
-extern "C" DLL_EXPORT void AsyncTrace(const char* string)
+extern "C" DLL_EXPORT void AsyncTrace(const char* str)
 {
 	std::string threadName = GetThreadName();
 
-	g_logPrintQueue.push({ threadName, string });
+	g_logPrintQueue.push({ threadName, str });
 	g_logCondVar.notify_all();
 }
 
@@ -184,45 +189,73 @@ void InitLogging()
 {
 	SetThreadName(-1, "MainThrd");
 
-	if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex_Mod") == nullptr)
+	const auto handle_deleter = [](HANDLE handle){ if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle); };
+	using UniqueHandle = std::unique_ptr<std::remove_pointer<HANDLE>::type, decltype(handle_deleter)>;
+
+	UniqueHandle mutexHandle(
+		OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex_Mod"), 
+		handle_deleter
+	); // RAII exception safe wrapper of WinAPI HANDLE
+
+	if (NULL == mutexHandle)
 	{
 		// create the mutex
-		CreateMutex(nullptr, TRUE, L"CitizenFX_LogMutex_Mod");
+		mutexHandle.reset(CreateMutex(NULL, TRUE, L"CitizenFX_LogMutex_Mod"));
 
-		CreateDirectory(MakeRelativeCitPath(L"logs/").c_str(), NULL);
+		auto relativeCitPath = MakeRelativeCitPath(L"logs/");
 
-		SYSTEMTIME curTime;
-		GetSystemTime(&curTime);
-
-		for (auto& f : std::filesystem::directory_iterator{ MakeRelativeCitPath(L"logs/") })
+		if(0 == CreateDirectory(relativeCitPath.c_str(), NULL))
 		{
-			int year, month, day, hour, minute, second;
-			int fields = swscanf(f.path().filename().c_str(), L"CitizenFX_log_%04d-%02d-%02dT%02d%02d%02d.log", &year, &month, &day, &hour, &minute, &second);
+			if(GetLastError() == ERROR_ALREADY_EXISTS)
+			{	
+				// there is a directory with logs
+				
+				SYSTEMTIME curTime;
+				GetSystemTime(&curTime);
 
-			if (fields == 6)
-			{
-				SYSTEMTIME fakeTime = { 0 };
-				fakeTime.wSecond = second;
-				fakeTime.wMinute = minute;
-				fakeTime.wHour = hour;
-				fakeTime.wDay = day;
-				fakeTime.wMonth = month;
-				fakeTime.wYear = year;
-
-				FILETIME curStamp, fakeStamp;
-				SystemTimeToFileTime(&curTime, &curStamp);
-				SystemTimeToFileTime(&fakeTime, &fakeStamp);
-
-				uint64_t curT = ((ULARGE_INTEGER*)&curStamp)->QuadPart;
-				uint64_t fileT = ((ULARGE_INTEGER*)&fakeStamp)->QuadPart;
-
-				if ((curT - fileT) > (7 * 24 * 60 * 60 * uint64_t(10000000)))
+				std::filesystem::directory_iterator dir_it { relativeCitPath.c_str() };
+				for (auto& f : dir_it)
 				{
-					std::filesystem::remove(f.path());
+					int year, month, day, hour, minute, second;
+					int fields = swscanf(f.path().filename().c_str(), L"CitizenFX_log_%04d-%02d-%02dT%02d%02d%02d.log", &year, &month, &day, &hour, &minute, &second);
+
+					if (fields == 6)
+					{
+						SYSTEMTIME fakeTime = { 0 };
+						fakeTime.wSecond = second;
+						fakeTime.wMinute = minute;
+						fakeTime.wHour = hour;
+						fakeTime.wDay = day;
+						fakeTime.wMonth = month;
+						fakeTime.wYear = year;
+
+						FILETIME curStamp, fakeStamp;
+						SystemTimeToFileTime(&curTime, &curStamp);
+						SystemTimeToFileTime(&fakeTime, &fakeStamp);
+
+						uint64_t curT = ((ULARGE_INTEGER*)&curStamp)->QuadPart;
+						uint64_t fileT = ((ULARGE_INTEGER*)&fakeStamp)->QuadPart;
+
+						if ((curT - fileT) > (7 * 24 * 60 * 60 * uint64_t(10000000)))
+						{
+							std::error_code err_c;
+							std::filesystem::remove(f.path(), err_c); // noexcept overload
+							(void)(&err_c); // just ignoring error code for now
+						}
+					}
 				}
+			}
+			else //if(GetLastError() == ERROR_PATH_NOT_FOUND)
+			{
+				// One or more intermediate directories do not exist; 
+				// CreateDirectory() will only create the final directory in the path.
+				// So we will use modern C++17 to create the full path
+				
+				std::filesystem::create_directories(relativeCitPath.c_str());
 			}
 		}
 
+
 		AsyncTrace(fmt::format("--- BEGIN LOGGING AT {:%c} ---\n", fmt::gmtime(time(NULL))).c_str());
-	}
+	}	
 }
