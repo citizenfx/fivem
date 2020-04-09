@@ -216,7 +216,7 @@ void MumbleClient::Initialize()
 							{
 								m_state.ForAllUsers([this, &userName, &vt](const std::shared_ptr<MumbleUser>& user)
 								{
-									if (user->GetName() == ToWide(userName))
+									if (user->GetName() == userName)
 									{
 										vt->add_session(user->GetSessionId());
 									}
@@ -435,11 +435,11 @@ float MumbleClient::GetInputAudioLevel()
 	return m_audioInput.GetAudioLevel();
 }
 
-void MumbleClient::SetClientVolumeOverride(const std::string& clientName, float volume)
+void MumbleClient::SetClientVolumeOverride(const std::wstring& clientName, float volume)
 {
 	m_state.ForAllUsers([this, &clientName, volume](const std::shared_ptr<MumbleUser>& user)
 	{
-		if (user->GetName() == ToWide(clientName))
+		if (user->GetName() == clientName)
 		{
 			GetOutput().HandleClientVolumeOverride(*user, volume);
 		}
@@ -455,6 +455,17 @@ void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float vo
 			GetOutput().HandleClientVolumeOverride(*user, volume);
 		}
 	});
+}
+
+std::wstring MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
+{
+	for (auto& user : m_state.GetUsers())
+	{
+		if (user.second && user.second->GetServerId() == serverId)
+		{
+			return user.second->GetName();
+;		}
+	}
 }
 
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)

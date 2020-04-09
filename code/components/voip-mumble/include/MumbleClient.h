@@ -51,7 +51,7 @@ struct VoiceTargetConfig
 {
 	struct Target
 	{
-		std::vector<std::string> users;
+		std::vector<std::wstring> users;
 		std::string channel;
 		// ACL is not supported in umurmur, so does not count
 		bool links;
@@ -87,9 +87,11 @@ public:
 
 	virtual void SetChannel(const std::string& channelName) = 0;
 
-	virtual void SetClientVolumeOverride(const std::string& clientName, float volume) = 0;
+	virtual void SetClientVolumeOverride(const std::wstring& clientName, float volume) = 0;
 
 	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) = 0;
+
+	virtual std::wstring GetPlayerNameFromServerId(uint32_t serverId) = 0;
 
 	virtual void GetTalkers(std::vector<std::string>* names) = 0;
 
