@@ -39,26 +39,26 @@ struct GameCacheEntry
 	size_t remoteSize;
 
 	// constructor
-	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize)
-		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
+	GameCacheEntry(const char* filename_, const char* checksum_, const char* remotePath_, size_t localSize_)
+		: filename(filename_), checksums({ checksum_ }), remotePath(remotePath_), localSize(localSize_), remoteSize(localSize_), archivedFile(nullptr)
 	{
 
 	}
 
-	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize)
-		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
+	GameCacheEntry(const char* filename_, const char* checksum_, const char* remotePath_, const char* archivedFile_, size_t localSize_, size_t remoteSize_)
+		: filename(filename_), checksums({ checksum_ }), remotePath(remotePath_), localSize(localSize_), remoteSize(remoteSize_), archivedFile(archivedFile_)
 	{
 
 	}
 
-	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, size_t localSize)
-		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
+	GameCacheEntry(const char* filename_, std::initializer_list<const char*> checksums_, const char* remotePath_, size_t localSize_)
+		: filename(filename_), checksums(checksums_), remotePath(remotePath_), localSize(localSize_), remoteSize(localSize_), archivedFile(nullptr)
 	{
 
 	}
 
-	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize)
-		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
+	GameCacheEntry(const char* filename_, std::initializer_list<const char*> checksums_, const char* remotePath_, const char* archivedFile_, size_t localSize_, size_t remoteSize_)
+		: filename(filename_), checksums(checksums_), remotePath(remotePath_), localSize(localSize_), remoteSize(remoteSize_), archivedFile(archivedFile_)
 	{
 
 	}
