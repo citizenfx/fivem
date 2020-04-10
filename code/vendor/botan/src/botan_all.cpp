@@ -33210,9 +33210,9 @@ void GOST_34_11::add_data(const uint8_t input[], size_t length)
          m_position = 0;
          }
       }
-
-   const size_t full_blocks = length / hash_block_size();
-   const size_t remaining   = length % hash_block_size();
+   const auto hash_block_size_v = hash_block_size();
+   const size_t full_blocks = hash_block_size_v ? length / hash_block_size() : length;
+   const size_t remaining   = hash_block_size_v ? length % hash_block_size() : length;
 
    if(full_blocks)
       compress_n(input, full_blocks);
