@@ -17,6 +17,8 @@
 #include <HostSharedData.h>
 
 #include <array>
+#include <memory>
+#include <type_traits>
 
 #include <shellscalingapi.h>
 
@@ -295,16 +297,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 		wcscat_s(systemPath, dll);
 
-		LoadLibrary(systemPath);
+		if(!LoadLibrary(systemPath))
+		{
+			printf("Could not initialize ");
+			wprintf(dll);
+			printf(".\n");
+		}
 	}
 
-	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
+	if(!LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str()))
+		printf("Could not initialize dinput8.dll.\n");
+	if(!LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str()))
+		printf("Could not initialize steam_api64.dll.\n");
 
 	// laod V8 DLLs in case end users have these in a 'weird' directory
-	LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
+	if(!LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str()))
+		printf("Could not initialize v8_libplatform.dll.\n");
+	if(!LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str()))
+		printf("Could not initialize v8_libbase.dll.\n");
+	if(!LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str()))
+		printf("Could not initialize v8.dll.\n");
 
 	// assign us to a job object
 	if (initState->IsMasterProcess())
@@ -386,10 +398,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	if (!toolMode)
 	{
-		if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex") == nullptr)
+		const auto handle_deleter = [](HANDLE handle){ if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle); };
+		using UniqueHandle = std::unique_ptr<std::remove_pointer<HANDLE>::type, decltype(handle_deleter)>;
+
+		UniqueHandle mutexHandle(
+			OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex_Mod"), 
+			handle_deleter
+		); // RAII exception safe wrapper of WinAPI HANDLE
+
+		if (NULL == mutexHandle)
 		{
 			// create the mutex
-			CreateMutex(nullptr, TRUE, L"CitizenFX_LogMutex");
+			mutexHandle.reset(CreateMutex(NULL, TRUE, L"CitizenFX_LogMutex_Mod"));
 
 			// rotate any CitizenFX.log files cleanly
 			const int MaxLogs = 10;
