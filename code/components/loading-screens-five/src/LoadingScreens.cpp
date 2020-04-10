@@ -776,7 +776,7 @@ static InitFunction initFunction([] ()
 				}
 			}
 
-			uint64_t loadTimingIdentity = HashString(name) | (16 << 48);
+			uint64_t loadTimingIdentity = HashString(name) | (uint64_t(16) << 48);
 
 			UpdateLoadTiming(loadTimingIdentity);
 
