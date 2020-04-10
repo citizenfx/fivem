@@ -29,7 +29,7 @@ void PeerBase::ProcessPacket(const std::vector<uint8_t>& buffer)
 int PeerBase::ReadCompressedType(Buffer& buffer)
 {
 	uint8_t lead = buffer.Read<uint8_t>();
-	int result;
+	int result = -1;
 
 	if (lead == 0)
 	{
