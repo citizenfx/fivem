@@ -323,6 +323,14 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFl
 {
     FILE* f = _wfopen(fileName, L"rb");
 
+	struct FileRAII
+	{
+		typedef FILE *pointer;
+		pointer ptr;
+		FileRAII(pointer ptr_) : ptr(ptr_){}
+		~FileRAII() {if(ptr) fclose(ptr);}
+	} fileRAII(f);
+
     if (!f)
     {
         return nullptr;
@@ -339,7 +347,6 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFl
     {
         printf("that's not a RSC7, you silly goose...\n");
 
-        fclose(f);
         return nullptr;
     }
 
@@ -352,7 +359,6 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFl
     {
         printf("not actually a supported file...\n");
 
-        fclose(f);
         return nullptr;
     }*/
 
