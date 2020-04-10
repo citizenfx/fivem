@@ -31,8 +31,10 @@ void ScanForReshades() {
 				for (auto itt = reshadeFiles.begin(); itt != reshadeFiles.end(); ++itt) {
 					if (*itt != nullptr && *itt != L"") {
 						if (wcsicmp(it->path().filename().c_str(), *itt) == 0) {
-							LoadLibrary(it->path().filename().c_str()); //I would put a break here but what if they also have enbseries?
-							trace("Loaded %s!\n", it->path().filename().string());
+							if(LoadLibrary(it->path().filename().c_str())) //I would put a break here but what if they also have enbseries?
+								trace("Loaded %s!\n", it->path().filename().string());
+							else
+								trace("Not-Loaded %s!\n", it->path().filename().string());
 						}
 					}
 				}
