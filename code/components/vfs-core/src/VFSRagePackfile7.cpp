@@ -468,7 +468,7 @@ namespace vfs
 			}
 			else
 			{
-				size_t offsetTarget;
+				size_t offsetTarget = 0;
 
 				if (seekType == SEEK_CUR)
 				{
