@@ -149,8 +149,8 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 	}
 
 	// calculate stored sizes
-	size_t virtualOut;
-	size_t physicalOut;
+	size_t virtualOut = 0;
+	size_t physicalOut = 0;
 
 #ifndef RAGE_FORMATS_GAME_RDR3
 	auto calcFlag = [&] (bool physical, size_t* outSize)
