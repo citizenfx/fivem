@@ -437,7 +437,13 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	}
 
 	// force loading _this_ variant
-	LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
+	HMODULE scripthookvHandle = LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
+
+	if (!scripthookvHandle)
+	{
+		FatalError("Could not load scripthookv.dll.");
+		return;
+	}
 
 	CoreSetDebuggerPresent();
 	CoreSetMinModeManifest(g_minModeManifest.c_str());
@@ -571,7 +577,10 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 			if (getenv("CitizenFX_ToolMode"))
 			{
 				// pre-load the correct chrome_elf.dll
-				LoadLibraryW(MapRedirectedFilename(L"Social Club/chrome_elf.dll").c_str());
+				HMODULE chromeElfHandle = LoadLibraryW(MapRedirectedFilename(L"Social Club/chrome_elf.dll").c_str());
+
+				if(!chromeElfHandle)
+					return (HMODULE)INVALID_HANDLE_VALUE;
 
 				return LoadLibraryW(MapRedirectedFilename(L"Social Club/libcef.dll").c_str());
 			}
