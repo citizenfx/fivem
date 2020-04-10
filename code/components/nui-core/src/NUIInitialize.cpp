@@ -429,7 +429,13 @@ void HookLibGL(HMODULE libGL)
 {
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
-	MH_CreateHook(GetProcAddress(LoadLibraryW(L"d3d11.dll"), "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+
+	auto d3d11Handle = LoadLibraryW(L"d3d11.dll");
+	if (!d3d11Handle)
+	{
+		FatalError("CitizenFX: Cannot load 'd3d11.dll'. Please (re)install 'Direct X' for your OS.");
+	}
+	MH_CreateHook(GetProcAddress(d3d11Handle, "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
@@ -445,12 +451,22 @@ void Component_RunPreInit()
 #endif
 
 	// CEF keeps loading/unloading this - load it ourselves to make the refcount always 1
-	LoadLibrary(L"bluetoothapis.dll");
+	auto bluetoothapisHandle = LoadLibrary(L"bluetoothapis.dll");
+	(void)(bluetoothapisHandle); // it's ok if there is an error
 
 	// load Chrome dependencies ourselves so that the system won't try loading from other paths
-	LoadLibrary(MakeRelativeCitPath(L"bin/chrome_elf.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
+	auto chromeElfHandle = LoadLibrary(MakeRelativeCitPath(L"bin/chrome_elf.dll").c_str());
+	if(!chromeElfHandle)
+		MessageBoxW(NULL, L"Could not load bin/chrome_elf.dll.", L"CitizenFX", MB_ICONWARNING | MB_OK);
+
+	auto libEGLHandle = LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
+	if(!libEGLHandle)
+		MessageBoxW(NULL, L"Could not load bin/libEGL.dll.", L"CitizenFX", MB_ICONWARNING | MB_OK);
+
 	HMODULE libGL = LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
+
+	if (!libGL)
+		FatalError("Could not load 'bin/libGLESv2.dll'.");
 
 	// hook libGLESv2 for Cfx purposes
 	HookLibGL(libGL);
