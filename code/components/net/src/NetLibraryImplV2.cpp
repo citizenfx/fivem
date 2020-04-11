@@ -290,6 +290,8 @@ void NetLibraryImplV2::RunFrame()
 		// update ping metrics
 		m_base->GetMetricSink()->OnPingResult(m_serverPeer->lastRoundTripTime);
 
+		m_base->GetMetricSink()->OnPacketLossResult((m_serverPeer->packetLoss / (double)ENET_PEER_PACKET_LOSS_SCALE) * 100);
+
 		// update received metrics
 		if (m_host->totalReceivedData != 0)
 		{

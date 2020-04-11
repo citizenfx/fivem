@@ -19,6 +19,8 @@
 #include <imgui.h>
 #include <imguivariouscontrols.h>
 
+extern DLL_IMPORT fwEvent<int, int> OnPushNetMetrics;
+
 const int g_netOverlayOffsetX = -30;
 const int g_netOverlayOffsetY = -60;
 const int g_netOverlayWidth = 400;
@@ -102,6 +104,8 @@ public:
 
 	virtual void OnRouteDelayResult(int msec) override;
 
+	virtual void OnPacketLossResult(int plPercent) override;
+
 	virtual void OnIncomingCommand(uint32_t type, size_t size, bool reliable) override;
 
 	virtual void OnOutgoingCommand(uint32_t type, size_t size, bool reliable) override;
@@ -137,6 +141,8 @@ private:
 
 	int m_inRouteDelaySampleArchive;
 	int m_inRouteDelaySamplesArchive[2000];
+
+	int m_packetLoss;
 
 	bool m_enabled;
 
@@ -216,6 +222,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 	  m_inBytes(0), m_inPackets(0), m_outBytes(0), m_outPackets(0),
 	  m_inRoutePackets(0), m_lastInRoutePackets(0), m_outRoutePackets(0), m_lastOutRoutePackets(0),
 	  m_inRouteDelay(0), m_inRouteDelaySample(0), m_inRouteDelayMax(0), m_inRouteDelaySampleArchive(0),
+	  m_packetLoss(0),
 	  m_enabled(false), m_enabledCommands(false)
 {
 	memset(m_inRouteDelaySamples, 0, sizeof(m_inRouteDelaySamples));
@@ -380,6 +387,11 @@ void NetOverlayMetricSink::OnPingResult(int msec)
 	m_ping = msec;
 }
 
+void NetOverlayMetricSink::OnPacketLossResult(int plPercent)
+{
+	m_packetLoss = plPercent;
+}
+
 void NetOverlayMetricSink::OnRouteDelayResult(int msec)
 {
 	// quick samples
@@ -517,6 +529,8 @@ void NetOverlayMetricSink::UpdateMetrics()
 				timeGetTime() - netLogInitTime, m_ping, m_lastInBytes, m_lastInPackets, m_lastOutBytes, m_lastOutPackets, m_lastInRoutePackets, m_lastOutRoutePackets));
 		}
 	}
+
+	OnPushNetMetrics(m_ping, m_packetLoss);
 }
 
 void NetOverlayMetricSink::DrawGraph()

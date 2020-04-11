@@ -28,6 +28,8 @@ public:
 
 	virtual void OnRouteDelayResult(int msec) = 0;
 
+	virtual void OnPacketLossResult(int plPercent) = 0;
+
 	virtual void OnIncomingCommand(uint32_t type, size_t size, bool reliable = false) = 0;
 
 	virtual void OnOutgoingCommand(uint32_t type, size_t size, bool reliable = false) = 0;
