@@ -6,6 +6,7 @@
 		"net:tcp-server",
 		"citizen:server:instance",
 		"citizen:server:net",
+		"scripting",
 		"vendor:protobuf_lite",
 		"vendor:mbedtls"
 	],

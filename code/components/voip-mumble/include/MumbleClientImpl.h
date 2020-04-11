@@ -98,9 +98,11 @@ public:
 
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) override;
 
-	virtual void SetClientVolumeOverride(const std::string& clientName, float volume) override;
+	virtual void SetClientVolumeOverride(const std::wstring& clientName, float volume) override;
 
 	virtual void SetClientVolumeOverrideByServerId(uint32_t serverId, float volume) override;
+
+	virtual std::wstring GetPlayerNameFromServerId(uint32_t serverId) override;
 
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 
