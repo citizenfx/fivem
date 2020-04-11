@@ -44,4 +44,4 @@ foreach ($sym in $syms) {
 $env:Path = "C:\msys64\usr\bin;$env:Path"
 
 sentry-cli upload-dif --org citizenfx --project fxserver C:\f\work\sym-pack\
-rsync -r -a -v -e $env:RSH_COMMAND /c/f/work/sym-upload/ $env:SSH_SYMBOLS_TARGET
+rsync -r -a -v -e $env:RSH_SYMBOLS_COMMAND /c/f/work/sym-upload/ $env:SSH_SYMBOLS_TARGET
