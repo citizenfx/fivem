@@ -25,6 +25,11 @@
 
 #include <MinHook.h>
 
+#include <xinput.h>
+#include <winrt/Windows.Gaming.Input.h>
+
+using namespace winrt::Windows::Gaming::Input;
+
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 template<typename T>
@@ -181,6 +186,7 @@ static int WheelTyreRadiusOffset = 0x110;
 static int WheelRimRadiusOffset = 0x114;
 static int WheelTyreWidthOffset = 0x118;
 static int WheelRotationSpeedOffset = 0x170;
+static int WheelTractionVectorLengthOffset = 0x1B8;
 static int WheelSteeringAngleOffset = 0x1CC;
 static int WheelBrakePressureOffset = 0x1D0;
 static int WheelHealthOffset = 0x1E8; // 75 24 F3 0F 10 81 ? ? ? ? F3 0F
@@ -843,4 +849,195 @@ static HookFunction initFunction([]()
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
 	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
 	MH_EnableHook(MH_ALL_HOOKS);
+});
+
+#include <scrEngine.h>
+
+int GetWheelCount(CVehicle* vehicle)
+{
+	return readValue<int>(vehicle, NumWheelsOffset);
+}
+
+float CalculateWheelValue(CVehicle* vehicle, int wheelCount, bool drive)
+{
+	float val = 0.f;
+
+	auto isFront = [wheelCount](int idx)
+	{
+		return (wheelCount > 2) ? (idx < 2) : (idx == 0);
+	};
+
+	auto handling = vehicle->GetHandlingData();
+	auto handlingPtr = (char*)handling;
+
+	for (size_t wheelIndex = 0; wheelIndex < wheelCount; wheelIndex++)
+	{
+		auto wheelsAddress = readValue<uint64_t>(vehicle, WheelsPtrOffset);
+		auto wheelAddr = *reinterpret_cast<uint64_t*>(wheelsAddress + (8 * wheelIndex));
+
+		float frontBias = (drive) ? *(float*)(handlingPtr + 0x48) : *(float*)(handlingPtr + 0x74);
+		float rearBias = (drive) ? *(float*)(handlingPtr + 0x4C) : *(float*)(handlingPtr + 0x78);
+
+		val += *(float*)(wheelAddr + WheelTractionVectorLengthOffset) * (isFront(wheelIndex) ? frontBias : rearBias) * ((wheelCount == 2) ? 1.0f : 0.5f);
+	}
+
+	return val;
+}
+
+static DWORD(WINAPI* g_origXInputGetState)(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState);
+
+static bool g_useWGI = true;
+static ConVar<bool>* g_useWGIVar;
+
+static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState)
+{
+	auto gamepads = Gamepad::Gamepads();
+
+	if (gamepads.Size() == 0 || !g_useWGI)
+	{
+		// e.g. if using some sort of hook
+		return g_origXInputGetState(dwUserIndex, pState);
+	}
+
+	if (dwUserIndex < gamepads.Size())
+	{
+		auto gamepad = gamepads.GetAt(dwUserIndex);
+		auto reading = gamepad.GetCurrentReading();
+
+		auto mapShort = [](float val)
+		{
+			return (val > 0) ? (val * 32767.f) : (val * 32768.f);
+		};
+
+		pState->dwPacketNumber = reading.Timestamp;
+
+		pState->Gamepad.sThumbLX = mapShort(reading.LeftThumbstickX);
+		pState->Gamepad.sThumbLY = mapShort(reading.LeftThumbstickY);
+		pState->Gamepad.sThumbRX = mapShort(reading.RightThumbstickX);
+		pState->Gamepad.sThumbRY = mapShort(reading.RightThumbstickY);
+		pState->Gamepad.bLeftTrigger = reading.LeftTrigger * 255.f;
+		pState->Gamepad.bRightTrigger = reading.RightTrigger * 255.f;
+		pState->Gamepad.wButtons = 0;
+
+		auto mapButton = [&reading, pState](GamepadButtons button, DWORD value)
+		{
+			if ((int)(reading.Buttons & button) != 0)
+			{
+				pState->Gamepad.wButtons |= value;
+			}
+		};
+
+		mapButton(GamepadButtons::A, XINPUT_GAMEPAD_A);
+		mapButton(GamepadButtons::B, XINPUT_GAMEPAD_B);
+		mapButton(GamepadButtons::X, XINPUT_GAMEPAD_X);
+		mapButton(GamepadButtons::Y, XINPUT_GAMEPAD_Y);
+		mapButton(GamepadButtons::LeftThumbstick, XINPUT_GAMEPAD_LEFT_THUMB);
+		mapButton(GamepadButtons::LeftShoulder, XINPUT_GAMEPAD_LEFT_SHOULDER);
+		mapButton(GamepadButtons::RightThumbstick, XINPUT_GAMEPAD_RIGHT_THUMB);
+		mapButton(GamepadButtons::RightShoulder, XINPUT_GAMEPAD_RIGHT_SHOULDER);
+		mapButton(GamepadButtons::Menu, XINPUT_GAMEPAD_START);
+		mapButton(GamepadButtons::View, XINPUT_GAMEPAD_BACK);
+		mapButton(GamepadButtons::DPadUp, XINPUT_GAMEPAD_DPAD_UP);
+		mapButton(GamepadButtons::DPadDown, XINPUT_GAMEPAD_DPAD_DOWN);
+		mapButton(GamepadButtons::DPadLeft, XINPUT_GAMEPAD_DPAD_LEFT);
+		mapButton(GamepadButtons::DPadRight, XINPUT_GAMEPAD_DPAD_RIGHT);
+
+		auto vibration = gamepad.Vibration();
+
+		// add vehicle bits
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			static auto vibrationVar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("profile_vibration");
+
+			if (!vibrationVar || vibrationVar->GetValue() != "0")
+			{
+				// #TODO: gun recoil
+				// #TODO: take trigger swap into account
+				int veh = NativeInvoke::Invoke<0x6094AD011A2EA87D, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>());
+
+				CVehicle* currentPlayerVehicle = nullptr;
+
+				if (veh)
+				{
+					currentPlayerVehicle = (CVehicle*)rage::fwScriptGuid::GetBaseFromGuid(veh);
+				}
+
+				if (currentPlayerVehicle)
+				{
+					if (GetWheelCount(currentPlayerVehicle) == 2 || GetWheelCount(currentPlayerVehicle) == 4)
+					{
+						double leftTrigger = CalculateWheelValue(currentPlayerVehicle, GetWheelCount(currentPlayerVehicle), false) / 2.5f;
+						double rightTrigger = CalculateWheelValue(currentPlayerVehicle, GetWheelCount(currentPlayerVehicle), true) / 2.5f;
+
+						// #TODO: make these tunable as some sort of 3-point curve
+						leftTrigger = std::clamp(leftTrigger - 0.35f, 0.0, 8.0);
+						rightTrigger = std::clamp(rightTrigger - 0.35f, 0.0, 8.0);
+
+						vibration.LeftTrigger = std::clamp(reading.LeftTrigger * leftTrigger * 0.125f, 0.0, 1.0);
+						vibration.RightTrigger = std::clamp(reading.RightTrigger * rightTrigger * 0.125f, 0.0, 1.0);
+					}
+				}
+			}
+		}
+
+		gamepad.Vibration(vibration);
+
+	}
+
+	return ERROR_SUCCESS;
+}
+
+static DWORD(*WINAPI g_origXInputSetState)(_In_ DWORD dwUserIndex, _In_ XINPUT_VIBRATION* pVibration);
+
+static DWORD WINAPI XInputSetStateHook(_In_ DWORD dwUserIndex, _In_ XINPUT_VIBRATION* pVibration)
+{
+	auto gamepads = Gamepad::Gamepads();
+
+	if (gamepads.Size() == 0 || !g_useWGI)
+	{
+		// e.g. if using some sort of hook
+		return g_origXInputSetState(dwUserIndex, pVibration);
+	}
+
+	if (dwUserIndex < gamepads.Size())
+	{
+		auto gamepad = gamepads.GetAt(dwUserIndex);
+
+		GamepadVibration vibration = gamepad.Vibration();
+		vibration.LeftMotor = pVibration->wLeftMotorSpeed / 65535.f;
+		vibration.RightMotor = pVibration->wRightMotorSpeed / 65535.f;
+
+		gamepad.Vibration(vibration);
+	}
+
+	return ERROR_SUCCESS;
+}
+
+static HookFunction inputFunction([]()
+{
+	DWORDLONG viMask = 0;
+	OSVERSIONINFOEXW osvi = { 0 };
+	osvi.dwOSVersionInfoSize = sizeof(osvi);
+	osvi.dwBuildNumber = 15063; // RS2+
+
+	VER_SET_CONDITION(viMask, VER_BUILDNUMBER, VER_GREATER_EQUAL);
+
+	if (!VerifyVersionInfoW(&osvi, VER_BUILDNUMBER, viMask))
+	{
+		return;
+	}
+
+	{
+		auto getStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("75 13 48 8D 54 24 20 8B CF E8", 9)) + 2);
+		g_origXInputGetState = (decltype(g_origXInputGetState))*getStateRef;
+		*getStateRef = XInputGetStateHook;
+	}
+
+	{
+		auto setStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("8B CF 89 73 42 89 74 24 40 E8", 9)) + 2);
+		g_origXInputSetState = (decltype(g_origXInputSetState))*setStateRef;
+		*setStateRef = XInputSetStateHook;
+	}
+
+	g_useWGIVar = new ConVar<bool>("in_useWindowsGamingInput", ConVar_Archive, true, &g_useWGI);
 });

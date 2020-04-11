@@ -13,11 +13,6 @@
 
 #include <HandlingLoader.h>
 
-static hook::cdecl_stub<rage::fwEntity*(int handle)> getScriptEntity([] ()
-{
-	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
-});
-
 struct scrVector
 {
 	float x;
@@ -252,7 +247,6 @@ static void setFloatField(char* handlingChar, uint32_t offset, float value, cons
 	*(float*)(handlingChar + offset) = value;
 }
 
-static rage::parStructure* g_parserStructure;
 atArray<CHandlingData*>* g_handlingData;
 
 static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* handlingData, const char* fromFunction)
@@ -260,26 +254,29 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	const char* handlingClass = context.GetArgument<const char*>(1);
 	const char* handlingField = context.GetArgument<const char*>(2);
 
+	auto parserStructure = rage::GetStructureDefinition(handlingClass);
+
 	if (_stricmp(handlingClass, "CHandlingData") == 0)
 	{
 		uint32_t fieldHash = HashRageString(handlingField);
 
-		rage::parMember** member = g_parserStructure->members;
+		auto& members = parserStructure->m_members;
+		bool found = false;
 
-		while (*member)
+		for (rage::parMember* member : members)
 		{
-			if ((*member)->hash == fieldHash)
+			if (member->m_definition->hash == fieldHash)
 			{
 				char* handlingChar = (char*)handlingData;
-				uint32_t offset = g_parserStructure->offsets[member - g_parserStructure->members];
+				uint32_t offset = member->m_definition->offset;
 
-				switch ((*member)->type)
+				switch (member->m_definition->type)
 				{
 					case rage::parMemberType::Float:
 						setFloatField(handlingChar, offset, context.GetArgument<float>(3), handlingField);
 						break;
 
-					case rage::parMemberType::Int:
+					case rage::parMemberType::UInt32:
 						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
 						break;
 
@@ -300,19 +297,18 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 					}
 
 					default:
-						trace("Unsupported field type %d in %s during %s.\n", (*member)->type, handlingField, fromFunction);
+						trace("Unsupported field type %d in %s during %s.\n", member->m_definition->type, handlingField, fromFunction);
 						break;
 				}
 
+				found = true;
 				context.SetResult(true);
 
 				break;
 			}
-
-			++member;
 		}
 
-		if (!*member)
+		if (!found)
 		{
 			trace("No such field %s during %s.\n", handlingField, fromFunction);
 
@@ -332,7 +328,7 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 {
 	int veh = context.GetArgument<int>(0);
 
-	rage::fwEntity* entity = getScriptEntity(veh);
+	rage::fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(veh);
 
 	if (entity)
 	{
@@ -351,26 +347,29 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		const char* handlingClass = context.GetArgument<const char*>(1);
 		const char* handlingField = context.GetArgument<const char*>(2);
 
+		auto parserStructure = rage::GetStructureDefinition(handlingClass);
+
 		if (_stricmp(handlingClass, "CHandlingData") == 0)
 		{
 			uint32_t fieldHash = HashRageString(handlingField);
 
-			rage::parMember** member = g_parserStructure->members;
+			auto& members = parserStructure->m_members;
+			bool found = false;
 
-			while (*member)
+			for (rage::parMember* member : members)
 			{
-				if ((*member)->hash == fieldHash)
+				if (member->m_definition->hash == fieldHash)
 				{
 					char* handlingChar = (char*)handlingData;
-					uint32_t offset = g_parserStructure->offsets[member - g_parserStructure->members];
+					uint32_t offset = member->m_definition->offset;
 
-					switch ((*member)->type)
+					switch (member->m_definition->type)
 					{
 						case rage::parMemberType::Float:
 							context.SetResult<T>((T)(getFloatField(handlingChar, offset, handlingField)));
 							break;
 
-						case rage::parMemberType::Int:
+						case rage::parMemberType::UInt32:
 							context.SetResult<T>((T)(getIntField(handlingChar, offset, handlingField)));
 							break;
 
@@ -384,17 +383,15 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 						}
 
 						default:
-							trace("Unsupported field type %d in %s during %s.\n", (*member)->type, handlingField, fromFunction);
+							trace("Unsupported field type %d in %s during %s.\n", member->m_definition->type, handlingField, fromFunction);
 							break;
 					}
 
 					break;
 				}
-
-				++member;
 			}
 
-			if (!*member)
+			if (!found)
 			{
 				trace("No such field %s during %s.\n", handlingField, fromFunction);
 
@@ -463,7 +460,7 @@ static InitFunction initFunction([] ()
 	{
 		int veh = context.GetArgument<int>(0);
 
-		rage::fwEntity* entity = getScriptEntity(veh);
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(veh);
 
 		if (entity)
 		{
@@ -495,14 +492,12 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ADDRESS", [] (fx::ScriptContext& context)
 	{
-		context.SetResult(getScriptEntity(context.GetArgument<int>(0)));
+		context.SetResult(rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0)));
 	});
 });
 
 static HookFunction hookFunction([] ()
 {
-	g_parserStructure = hook::pattern("D1 64 94 0E").count(1).get(0).get<rage::parStructure>(0);
-
 	static struct : jitasm::Frontend
 	{
 		static void SetFieldOnVehicle(CVehicle* vehicle, CHandlingData* handling)

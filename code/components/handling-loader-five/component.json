@@ -3,7 +3,8 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"scripting"
+		"scripting",
+		"gta:streaming:five"
 	],
 	"provides": []
 }

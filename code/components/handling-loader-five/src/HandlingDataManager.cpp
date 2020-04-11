@@ -88,8 +88,6 @@ static int FindFreeHandlingData()
 	return g_handlingData->GetCount();
 }
 
-static atArray<void*>* g_archetypeFactories;
-
 class CVehicleModelInfo
 {
 public:
@@ -107,13 +105,6 @@ public:
 	int handlingDataIndex; // +1208
 
 	char pad2[228];
-};
-
-template<typename TSubClass>
-class fwFactoryBase
-{
-public:
-	virtual ~fwFactoryBase() = 0;
 };
 
 template<typename T>

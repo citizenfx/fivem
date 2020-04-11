@@ -13,6 +13,8 @@
 using Vector3 = DirectX::XMFLOAT3;
 using Matrix4x4 = DirectX::XMFLOAT4X4;
 
+class fwEntity;
+
 namespace rage
 {
 	class STREAMING_EXPORT fwRefAwareBase
@@ -25,6 +27,14 @@ namespace rage
 
 		void RemoveKnownRef(void** ref) const;
 	};
+
+	class STREAMING_EXPORT fwScriptGuid
+	{
+	public:
+		static fwEntity* GetBaseFromGuid(int handle);
+	};
+
+	using fwEntity = ::fwEntity;
 }
 
 template<typename TSubClass>
@@ -296,8 +306,91 @@ private:
 	fwEntity* m_occupants[16];
 };
 
+
+class CBaseSubHandlingData
+{
+public:
+	virtual ~CBaseSubHandlingData() = default;
+	virtual void* GetParser() = 0;
+	virtual int GetUnk() = 0;
+	virtual void ProcessOnLoad() = 0;
+};
+
+class CHandlingData
+{
+private:
+	uint32_t m_name;
+	char m_pad[332]; // 1290, 1365, 1493, 1604
+	atArray<CBaseSubHandlingData*> m_subHandlingData;
+	// ^ find offset using a variant of 48 85 C9 74 13 BA 04 00 00 00 E8 (and go to the call in there)
+	char m_pad2[1000];
+
+public:
+	CHandlingData(CHandlingData* orig)
+	{
+		memcpy(this, orig, sizeof(*this));
+
+		CBaseSubHandlingData* shds[6] = { 0 };
+
+		for (int i = 0; i < m_subHandlingData.GetCount(); i++)
+		{
+			if (m_subHandlingData.Get(i))
+			{
+				shds[i] = (CBaseSubHandlingData*)rage::GetAllocator()->allocate(1024, 16, 0);
+				memcpy(shds[i], m_subHandlingData.Get(i), 1024);
+			}
+		}
+
+		m_subHandlingData.m_offset = nullptr;
+		m_subHandlingData.Clear();
+
+		m_subHandlingData.Set(0, shds[0]);
+		m_subHandlingData.Set(1, shds[1]);
+		m_subHandlingData.Set(2, shds[2]);
+		m_subHandlingData.Set(3, shds[3]);
+		m_subHandlingData.Set(4, shds[4]);
+		m_subHandlingData.Set(5, shds[5]);
+	}
+
+	virtual ~CHandlingData() = default;
+
+	inline uint32_t GetName()
+	{
+		return m_name;
+	}
+
+	inline atArray<CBaseSubHandlingData*>& GetSubHandlingData()
+	{
+		return m_subHandlingData;
+	}
+
+	void ProcessEntry();
+};
+
 class STREAMING_EXPORT CVehicle : public fwEntity
 {
+private:
+	//char m_pad[0x8C0]; // 1290, 1365, 1493
+	char m_pad[0x918 - sizeof(fwEntity)]; // 1604, 1737, 1868
+	CHandlingData* m_handlingData;
+	// find ^ with `85 C0 74 49 48 8B 86 ? ? 00 00 48 8B CE` ??s (before 1604)
+	// 1604+: `75 4D 48 8B 86 ? ? ? ? F6 80`
+
+public:
+	virtual ~CVehicle() = default;
+
+	inline CHandlingData* GetHandlingData()
+	{
+		return m_handlingData;
+	}
+
+	inline void SetHandlingData(CHandlingData* ptr)
+	{
+		// Use an alignment byte within CHandlingDataMgr to represent the handling as hooked.
+		*((char*)ptr + 28) = 1;
+		m_handlingData = ptr;
+	}
+
 public:
 	VehicleSeatManager* GetSeatManager();
 };
