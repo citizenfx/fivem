@@ -284,7 +284,7 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 						*(const char**)(handlingChar + offset) = strdup(context.GetArgument<const char*>(3));
 						break;
 
-					case rage::parMemberType::Vector3:
+					case rage::parMemberType::Vector3_Padded:
 					{
 						float* vector = (float*)(handlingChar + offset);
 						auto source = context.GetArgument<scrVector>(3);
@@ -373,7 +373,7 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 							context.SetResult<T>((T)(getIntField(handlingChar, offset, handlingField)));
 							break;
 
-						case rage::parMemberType::Vector3:
+						case rage::parMemberType::Vector3_Padded:
 						{
 							float* vector = (float*)(handlingChar + offset);
 
@@ -386,6 +386,8 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 							trace("Unsupported field type %d in %s during %s.\n", member->m_definition->type, handlingField, fromFunction);
 							break;
 					}
+
+					found = true;
 
 					break;
 				}
