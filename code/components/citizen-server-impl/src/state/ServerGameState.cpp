@@ -2380,13 +2380,6 @@ void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, 
 
 				if (syncTree)
 				{
-					syncTree->Visit([client](fx::sync::NodeBase& node)
-					{
-						node.ackedPlayers.set(client->GetSlotId());
-
-						return true;
-					});
-
 					entity->didDeletion.reset(client->GetSlotId());
 					entity->ackedCreation.set(client->GetSlotId());
 				}
