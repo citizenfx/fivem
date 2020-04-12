@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## GET_VEHICLE_TOP_SPEED_MODIFIER
 
