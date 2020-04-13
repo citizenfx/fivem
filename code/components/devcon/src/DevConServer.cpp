@@ -17,6 +17,7 @@
 #include <MultiplexTcpServer.h>
 #include <HttpServerImpl.h>
 
+#include <CL2LaunchMode.h>
 #include <ResourceManager.h>
 #include <Profiler.h>
 
@@ -250,8 +251,9 @@ static InitFunction initFunction([]()
 		}
 	}).detach();
 
+	static int tcpServerPort = IsCL2() ? 29200 : 29100;
 	static fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
-	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString("0.0.0.0:29100", 29100, net::PeerAddress::LookupType::NoResolution).get());
+	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString(fmt::sprintf("0.0.0.0:%d", tcpServerPort), tcpServerPort, net::PeerAddress::LookupType::NoResolution).get());
 
 	if (!tcpServer.GetRef())
 	{
