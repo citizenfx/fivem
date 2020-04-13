@@ -19,3 +19,10 @@ elseif _OPTIONS['game'] == 'rdr3' then
 		"rage:nutsnbolts:rdr3",
 	}
 end
+
+return function()
+	filter {}
+	configuration {}
+	
+	linkoptions '/DELAYLOAD:gdi32.dll'
+end
