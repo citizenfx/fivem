@@ -24,5 +24,6 @@ return function()
 	filter {}
 	configuration {}
 	
+	links { 'delayimp' }
 	linkoptions '/DELAYLOAD:gdi32.dll'
 end
