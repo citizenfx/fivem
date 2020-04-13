@@ -2430,7 +2430,7 @@ static HookFunction hookFunction([] ()
 #endif
 
 	// 'should packfile meta cache (pfm.dat) be used'
-	hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
+	//hook::call(hook::get_pattern("E8 ? ? ? ? E8 ? ? ? ? 84 C0 0F 84 ? ? 00 00 44 39 35", 5), ReturnTrue);
 
 	// make the pfm.dat read-only
 	{
