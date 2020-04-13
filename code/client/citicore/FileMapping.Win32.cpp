@@ -76,6 +76,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
+	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Launcher") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_documents") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+	}
+
 	if (getenv("CitizenFX_ToolMode"))
 	{
 		if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
@@ -155,6 +160,11 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	// TODO: support redirected localappdata!!
 	if (fileName.find(L"Data\\Local\\Rockstar Games\\Launcher") != std::string::npos)
+	{
+		return true;
+	}
+
+	if (fileName.find(L"Documents\\Rockstar Games\\Launcher") != std::string::npos)
 	{
 		return true;
 	}
