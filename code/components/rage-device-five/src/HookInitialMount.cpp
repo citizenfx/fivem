@@ -3,6 +3,8 @@
 #include <fiDevice.h>
 #include <Hooking.h>
 
+#include <MinHook.h>
+
 #include <Error.h>
 
 static hook::cdecl_stub<void()> originalMount([] ()
@@ -18,15 +20,37 @@ static void CallInitialMount()
 	rage::fiDevice::OnInitialMount();
 }
 
-static std::string currentPack;
+static thread_local std::string currentPack;
 
-static bool OpenArchiveWrap(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
+static bool(*g_origOpenPackfile)(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5);
+
+static bool OpenArchiveWrapSeh(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
+{
+	__try
+	{
+		return g_origOpenPackfile(packfile, archive, a3, a4, a5);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		FatalError("Failed to read rage::fiPackfile %s - an exception occurred in game code.", archive);
+		return false;
+	}
+}
+
+static bool OpenArchiveWrapInner(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
 {
 	currentPack = archive;
 
-	bool retval = packfile->OpenPackfile(archive, a3, a4, a5);
+	bool retval = OpenArchiveWrapSeh(packfile, archive, a3, a4, a5);
 
 	currentPack = "";
+
+	return retval;
+}
+
+static bool OpenArchiveWrap(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
+{
+	bool retval = OpenArchiveWrapInner(packfile, archive, a3, a4, a5);
 
 	if (!retval)
 	{
@@ -77,7 +101,12 @@ static HookFunction hookFunction([] ()
 
 	// fail sanely on missing game packfiles
 	{
+		MH_Initialize();
+
 		auto matches = hook::pattern("E8 ? ? ? ? 84 C0 75 0A E8 ? ? ? ? 84 C0").count_hint(7);
+		MH_CreateHook(hook::get_call(matches.get(0).get<void>(0)), OpenArchiveWrapInner, (void**)&g_origOpenPackfile);
+
+		MH_EnableHook(MH_ALL_HOOKS);
 
 		for (int i = 0; i < matches.size(); i++)
 		{
