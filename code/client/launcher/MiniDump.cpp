@@ -590,6 +590,13 @@ static void GatherCrashInformation()
 					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
 				}
 
+				extraDumpPath = MakeRelativeCitPath(L"cache\\game\\ros_launcher_documents\\launcher.log");
+
+				if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+				{
+					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
+				}
+
 				success = true;
 			}
 		}
@@ -618,6 +625,8 @@ static void GatherCrashInformation()
 
 			OleSetClipboard(dataObject.Get());
 			OleFlushClipboard();
+
+			MessageBoxW(NULL, L"Saved the crash dump. Please upload the .zip file itself when you're asking for support.", L"CitizenFX", MB_OK | MB_ICONINFORMATION);
 		}
 	}
 
