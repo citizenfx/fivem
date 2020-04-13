@@ -573,7 +573,7 @@ class RgscLogDelegate : public IRgscDelegate
 
 		if (event == RgscEvent::SdkInitError)
 		{
-			FatalError("R* SC SDK failed to initialize.");
+			FatalError("R* SC SDK failed to initialize. Error code: %d", *(int*)data);
 		}
 
 		if (event == RgscEvent::FriendStatusChanged)

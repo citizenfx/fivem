@@ -164,7 +164,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						auto c = cmd.value("Command", "");
 						const json& p = cmd["Parameter"];
 
-						trace("SC JS message: %s\n", c);
+						trace("SC JS message: %s -> %s\n", c, p.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 
 						if (c == "SetGameLaunchState" && p.value("launchState", "") == "failed")
 						{
