@@ -144,7 +144,7 @@ static InitFunction initFunction([] ()
 	// create the local socket server, if this is the master process
 	static HostSharedData<CfxState> initState("CfxInitState");
 
-	if (initState->IsGameProcess())
+	if (initState->IsGameProcess() || wcsstr(GetCommandLineW(), L"ros:legit"))
 	{
 		net::PeerAddress address = net::PeerAddress::FromString("localhost:32891").get();
 
