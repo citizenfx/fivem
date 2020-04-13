@@ -188,7 +188,7 @@ export class ServersService {
     }
 
     private subscribeWebSocket() {
-        const ws = new ReconnectingWebSocket('wss://servers-live.fivem.net/api/servers/socket/v1/');
+        const ws = new ReconnectingWebSocket('wss://servers-frontend.fivem.net/api/servers/socket/v1/');
         ws.addEventListener('message', (ev) => {
             const data = JSON.parse(ev.data);
 
@@ -229,7 +229,7 @@ export class ServersService {
     }
 
     private refreshServers() {
-        this.requestEvent.next('https://servers-live.fivem.net/api/servers/');
+        this.requestEvent.next('https://servers-frontend.fivem.net/api/servers/');
     }
 
     public async getServer(address: string, force?: boolean): Promise<Server> {

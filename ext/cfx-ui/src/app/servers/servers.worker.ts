@@ -1,6 +1,6 @@
-import { Subject, from } from 'rxjs';
+import { Subject, from, timer } from 'rxjs';
 
-import { bufferTime, mergeMap, finalize } from 'rxjs/operators';
+import { bufferTime, mergeMap, finalize, retryWhen, tap, take, delayWhen } from 'rxjs/operators';
 
 import { master } from './master';
 import { FilterRequest } from './filter-request';
@@ -330,6 +330,12 @@ onmessage = (e: MessageEvent) => {
                         return subject;
                     }),
                     bufferTime(250, null, 50),
+                    retryWhen(errors =>
+                        errors.pipe(
+                            tap(err => console.log(`Fetching server list failed: ${err}`)),
+                            delayWhen(() => timer(2000)),
+                            take(10)
+                        )),
                     finalize(() => (<any>postMessage)({ type: 'serversDone' }))
                 )
                 .subscribe(servers => {
