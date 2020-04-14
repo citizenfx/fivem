@@ -102,6 +102,7 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 	{
 		in_addr addr;
 
+		// #TODO: IPv6 support
 		if (inet_pton(AF_INET, resolveName.c_str(), &addr) == 1)
 		{
 			sockaddr_in inAddr;
@@ -148,7 +149,7 @@ std::string PeerAddress::GetHost() const
 	EnsureNetInitialized();
 
 	// call inet_ntop on it
-	char stringBuf[256];
+	char stringBuf[256] = { 0 };
 	int family = m_addr.addr.ss_family;
 
 	switch (family)
@@ -159,6 +160,10 @@ std::string PeerAddress::GetHost() const
 
 	case AF_INET6:
 		inet_ntop(AF_INET6, const_cast<in6_addr*>(&m_addr.in6.sin6_addr), stringBuf, sizeof(stringBuf));
+		break;
+
+	default:
+		strcpy(stringBuf, "0.0.0.0");
 		break;
 	}
 

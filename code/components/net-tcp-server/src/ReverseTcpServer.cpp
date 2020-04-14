@@ -289,7 +289,13 @@ namespace net
 				if (worker)
 				{
 					fwRefContainer<ReverseTcpServerStream> stream{ new ReverseTcpServerStream(thisRef.GetRef(), worker) };
-					stream->m_remotePeerAddress = *net::PeerAddress::FromString(message[1].value("address", "127.0.0.1:65535"));
+
+					auto address = net::PeerAddress::FromString(message[1].value("address", "127.0.0.1:65535"), 30120, net::PeerAddress::LookupType::NoResolution);
+
+					if (address)
+					{
+						stream->m_remotePeerAddress = *address;
+					}
 
 					thisRef->m_streams[worker] = stream;
 
