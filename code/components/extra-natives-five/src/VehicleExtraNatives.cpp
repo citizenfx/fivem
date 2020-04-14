@@ -969,11 +969,11 @@ static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STAT
 						double rightTrigger = CalculateWheelValue(currentPlayerVehicle, GetWheelCount(currentPlayerVehicle), true) / 2.5f;
 
 						// #TODO: make these tunable as some sort of 3-point curve
-						leftTrigger = std::clamp(leftTrigger - 0.35f, 0.0, 10.0);
-						rightTrigger = std::clamp(rightTrigger - 0.35f, 0.0, 10.0);
+						leftTrigger = std::clamp(leftTrigger - 0.35f, 0.0, 25.0);
+						rightTrigger = std::clamp(rightTrigger - 0.35f, 0.0, 25.0);
 
-						vibration.LeftTrigger = std::clamp(reading.LeftTrigger * leftTrigger * 0.1f, 0.0, 1.0);
-						vibration.RightTrigger = std::clamp(reading.RightTrigger * rightTrigger * 0.1f, 0.0, 1.0);
+						vibration.LeftTrigger = std::clamp(reading.LeftTrigger * (leftTrigger / 25.0f), 0.0, 1.0);
+						vibration.RightTrigger = std::clamp(reading.RightTrigger * (rightTrigger / 25.0f), 0.0, 1.0);
 					}
 				}
 			}
