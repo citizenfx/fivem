@@ -887,7 +887,6 @@ float CalculateWheelValue(CVehicle* vehicle, int wheelCount, bool drive)
 static DWORD(WINAPI* g_origXInputGetState)(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState);
 
 static bool g_useWGI = true;
-static ConVar<bool>* g_useWGIVar;
 
 static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState)
 {
@@ -1038,6 +1037,4 @@ static HookFunction inputFunction([]()
 		g_origXInputSetState = (decltype(g_origXInputSetState))*setStateRef;
 		*setStateRef = XInputSetStateHook;
 	}
-
-	g_useWGIVar = new ConVar<bool>("in_useWindowsGamingInput", ConVar_Archive, true, &g_useWGI);
 });
