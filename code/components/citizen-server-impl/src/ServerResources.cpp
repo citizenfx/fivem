@@ -24,6 +24,17 @@
 
 #include <KeyedRateLimiter.h>
 
+// a set of resources that are system-managed and should not be stopped from script
+static std::set<std::string> g_managedResources = {
+	"spawnmanager",
+	"mapmanager",
+	"baseevents",
+	"chat",
+	"sessionmanager",
+	"webadmin",
+	"monitor"
+};
+
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -712,7 +723,14 @@ static InitFunction initFunction2([]()
 
 		if (resource.GetRef())
 		{
-			success = resource->Stop();
+			if (g_managedResources.find(resource->GetName()) != g_managedResources.end())
+			{
+				success = false;
+			}
+			else
+			{
+				success = resource->Stop();
+			}
 		}
 
 		context.SetResult(success);
