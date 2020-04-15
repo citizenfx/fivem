@@ -15,8 +15,19 @@
 #include <CfxSubProcess.h>
 
 #include <CL2LaunchMode.h>
+#include <HostSharedData.h>
 
 #include <Error.h>
+
+struct LauncherState
+{
+	volatile DWORD pid;
+
+	LauncherState()
+		: pid(0)
+	{
+	}
+};
 
 #ifdef GTA_FIVE
 #define PIPE_NAME L"\\\\.\\pipe\\GTAVLauncher_Pipe"
@@ -1366,6 +1377,72 @@ void WaitForLauncher()
 
 extern void SetCanSafelySkipLauncher(bool value);
 
+static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak)
+{
+	g_waitForLauncherCB = [=]()
+	{
+		bool done = false;
+		static uint64_t startTime = GetTickCount64();
+
+		while (!done)
+		{
+			HANDLE waitHandles[] = { hEvent, hProcess };
+			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 10000);
+
+			if (waitResult == WAIT_OBJECT_0 + 1)
+			{
+				TerminateProcess(GetCurrentProcess(), 0);
+			}
+			else if (waitResult != WAIT_TIMEOUT)
+			{
+				done = true;
+			}
+			else
+			{
+				if (doBreak)
+				{
+					auto waitedFor = (GetTickCount64() - startTime) / 1000;
+
+					if (waitedFor > 90)
+					{
+						SetCanSafelySkipLauncher(false);
+
+						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please attach the log file from the 'Save information' button.");
+					}
+
+					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
+				}
+			}
+		}
+	};
+}
+
+void RunLauncherAwait()
+{
+	if (g_waitForLauncherCB)
+	{
+		return;
+	}
+
+	static HostSharedData<LauncherState> launcherState("CfxLauncherState");
+
+	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
+
+	while (launcherState->pid == 0)
+	{
+		Sleep(1000);
+
+		if (launcherState->pid == 0)
+		{
+			trace("Haven't got launcher PID yet...\n");
+		}
+	}
+
+	HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, launcherState->pid);
+
+	SetLauncherWaitCB(hEvent, hProcess, TRUE);
+}
+
 void RunLauncher(const wchar_t* toolName, bool instantWait)
 {
 	// early out if the launcher pipe already exists
@@ -1375,6 +1452,8 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 		return;
 	}
+
+	static HostSharedData<LauncherState> launcherState("CfxLauncherState");
 
 	// parse the existing environment block
 	EnvironmentMap environmentMap;
@@ -1423,39 +1502,14 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 	{
 		trace("Got %s process - pid %d\n", ToNarrow(toolName), pi.dwProcessId);
 
-		g_waitForLauncherCB = [=] ()
+		auto doBreak = (wcsstr(toolName, L"ros:launcher") != nullptr);
+
+		if (doBreak)
 		{
-			bool done = false;
-			static uint64_t startTime = GetTickCount64();
+			launcherState->pid = pi.dwProcessId;
+		}
 
-			while (!done)
-			{
-				HANDLE waitHandles[] = { hEvent, pi.hProcess };
-				DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 10000);
-
-				if (waitResult == WAIT_OBJECT_0 + 1)
-				{
-					TerminateProcess(GetCurrentProcess(), 0);
-				}
-				else if (waitResult != WAIT_TIMEOUT)
-				{
-					done = true;
-				}
-				else
-				{
-					auto waitedFor = (GetTickCount64() - startTime) / 1000;
-
-					if (waitedFor > 90)
-					{
-						SetCanSafelySkipLauncher(false);
-
-						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please attach the log file from the 'Save information' button.");
-					}
-
-					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
-				}
-			}
-		};
+		SetLauncherWaitCB(hEvent, pi.hProcess, doBreak);
 
         if (instantWait)
         {
@@ -1559,6 +1613,9 @@ static HANDLE __stdcall CreateFileAStub(
 		lpFileName = va("%s%s", lpFileName, IsCL2() ? "_CL2" : "");
 
 		WaitForLauncher();
+
+		trace("^2Launcher gave all-clear - waiting for pipe.\n");
+
 		WaitNamedPipeA(lpFileName, INFINITE);
 
 		trace("^2Launcher is fine, continuing to initialize!\n");
@@ -1616,15 +1673,7 @@ void OnPreInitHook()
 	g_manager = new LoopbackTcpServerManager();
 	Instance<LoopbackTcpServerManager>::Set(g_manager);
 
-    if (MH_Initialize() == MH_ERROR_ALREADY_INITIALIZED)
-    {
-        return;
-    }
-
-	atexit([] ()
-	{
-		MH_Uninitialize();
-	});
+	MH_Initialize();
 
 	LoadLibrary(L"wininet.dll");
 

@@ -496,6 +496,7 @@ static FxToolCommand rosSubprocess2("ros:legit", Launcher_HandleArguments, Legit
 static FxToolCommand rosSubprocess3("ros:steam", Launcher_HandleArguments, Steam_Run);
 
 void RunLauncher(const wchar_t* toolName, bool instantWait);
+void RunLauncherAwait();
 
 #include "ResumeComponent.h"
 #include <HostSharedData.h>
@@ -510,10 +511,28 @@ void Component_RunPreInit()
 {
 	OnPreInitHook();
 
+	if (getenv("CitizenFX_ToolMode") == nullptr || getenv("CitizenFX_ToolMode")[0] == 0)
+	{
+		OnResumeGame.Connect([]()
+		{
+			if (!CanSafelySkipLauncher())
+			{
+				WaitForLauncher();
+
+				SetCanSafelySkipLauncher(true);
+			}
+		});
+	}
+
 	static HostSharedData<CfxState> hostData("CfxInitState");
 
 	if (!hostData->IsMasterProcess())
 	{
+		if (hostData->IsGameProcess())
+		{
+			RunLauncherAwait();
+		}
+
 		return;
 	}
 
@@ -543,16 +562,6 @@ void Component_RunPreInit()
 		{
 			TerminateProcess(GetCurrentProcess(), 0x8000DEAF);
 		}
-
-		OnResumeGame.Connect([] ()
-		{
-			if (!CanSafelySkipLauncher())
-			{
-				WaitForLauncher();
-
-				SetCanSafelySkipLauncher(true);
-			}
-		});
 	}
 }
 
