@@ -108,6 +108,7 @@ premake5 gmake2 --game=server --cc=clang --dotnet=msnet
 cd build/server/linux
 
 export CXXFLAGS="-std=c++17 -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof"
+export LDFLAGS="-Wl,--build-id"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
