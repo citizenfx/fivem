@@ -105,6 +105,12 @@ mkdir -p /tmp/symbols
 dotnet restore
 dotnet run -- -o/tmp/symbols $PWD/../../alpine/opt/cfx-server/*.so $PWD/../../alpine/opt/cfx-server/FXServer $PWD/../../alpine/opt/cfx-server/*.dbg
 
+eval $(ssh-agent -s)
+echo "$SSH_SYMBOLS_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
 rsync -rav -e "$RSH_SYMBOLS_COMMAND" /tmp/symbols/ $SSH_SYMBOLS_TARGET || true
 
 cd ../../
