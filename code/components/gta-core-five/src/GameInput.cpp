@@ -18,6 +18,8 @@
 #include <array>
 #include <unordered_set>
 
+#include <CrossBuildRuntime.h>
+
 #include <GameInput.h>
 
 namespace rage
@@ -181,6 +183,89 @@ static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _ungetParameterIndex([]()
 uint32_t UngetParameterIndex(uint32_t source, uint32_t parameter)
 {
 	return _ungetParameterIndex(source, parameter);
+}
+
+class Button
+{
+public:
+	Button(const std::string& name);
+
+	void UpdateIoValues(float value, rage::ioInputSource& source);
+
+	void UpdateOnControl();
+
+	void SetFromControl(void* control, int keyIndex);
+
+private:
+	std::string m_name;
+
+	std::unique_ptr<ConsoleCommand> m_downCommand;
+	std::unique_ptr<ConsoleCommand> m_upCommand;
+
+	rage::ioValue m_ioValue;
+
+	std::array<rage::ioValue*, 4> m_ioValueCopies;
+};
+
+Button::Button(const std::string& name)
+	: m_name(name)
+{
+	for (auto& copy : m_ioValueCopies)
+	{
+		copy = nullptr;
+	}
+
+	m_downCommand = std::make_unique<ConsoleCommand>("+" + name, [this]()
+	{
+		rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
+		UpdateIoValues(1.0f, source);
+	});
+
+	m_upCommand = std::make_unique<ConsoleCommand>("-" + name, [this]()
+	{
+		rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
+		UpdateIoValues(0.0f, source);
+	});
+}
+
+void Button::UpdateIoValues(float value, rage::ioInputSource& source)
+{
+	m_ioValue.SetCurrentValue(value, source);
+}
+
+void Button::UpdateOnControl()
+{
+	if (m_ioValue.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE))
+	{
+		for (auto copy : m_ioValueCopies)
+		{
+			if (copy)
+			{
+				rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
+
+				if (!copy->IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE))
+				{
+					copy->SetCurrentValue(1.0f, source);
+				}
+			}
+		}
+	}
+}
+
+void Button::SetFromControl(void* control, int keyIndex)
+{
+	auto controlPtr = (uint8_t*)control;
+
+	rage::ioValue* value = (rage::ioValue*) & controlPtr[33704 + (keyIndex * 72)];
+
+	for (auto& copy : m_ioValueCopies)
+	{
+		if (copy == nullptr)
+		{
+			copy = value;
+			break;
+		}
+	}
 }
 
 class Binding
@@ -353,6 +438,10 @@ public:
 
 	void OnGameInit();
 
+	void CreateButtons();
+
+	void UpdateButtons();
+
 	void Update(rage::ioMapper* mapper, uint32_t time);
 
 	std::shared_ptr<Binding> Bind(int source, int parameter, const std::string& command);
@@ -375,6 +464,8 @@ private:
 	std::unique_ptr<ConsoleCommand> m_listBindsCommand;
 
 	std::multimap<std::tuple<int, int>, std::shared_ptr<Binding>> m_bindings;
+
+	std::list<std::unique_ptr<Button>> m_buttons;
 
 	concurrency::concurrent_queue<std::function<void()>> m_queue;
 };
@@ -593,6 +684,45 @@ void BindingManager::OnGameInit()
 	}
 }
 
+void BindingManager::CreateButtons()
+{
+	{
+		auto structureField = rage::GetStructureDefinition("rage__ControlInput__Mapping");
+
+		auto enumeration = structureField->m_members[0]->m_definition->enumData;
+		auto name = enumeration->names;
+
+		for (auto field = enumeration->fields; field->index != -1 || field->hash != 0; field++)
+		{
+			std::string_view thisName = *name;
+			thisName = thisName.substr(thisName.find_first_of('_') + 1);
+
+			std::string thisNameStr(thisName);
+			std::transform(thisNameStr.begin(), thisNameStr.end(), thisNameStr.begin(), ToLower);
+
+			auto button = std::make_unique<Button>(thisNameStr);
+			button->SetFromControl(g_control, field->index);
+
+			if (!Is1868())
+			{
+				button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
+			}
+
+			m_buttons.push_back(std::move(button));
+
+			name++;
+		}
+	}
+}
+
+void BindingManager::UpdateButtons()
+{
+	for (auto& button : m_buttons)
+	{
+		button->UpdateOnControl();
+	}
+}
+
 static size_t g_controlSize;
 static BindingManager bindingManager;
 
@@ -610,6 +740,8 @@ static void ioMapper_UpdateStub(rage::ioMapper* mapper, uint32_t time, bool a3)
 	bindingManager.Update(mapper, time);
 
 	ioMapper_Update(mapper, time, a3);
+
+	bindingManager.UpdateButtons();
 }
 
 void ProfileSettingsInit();
@@ -858,6 +990,16 @@ static bool HandleMappingConflicts(void* control, uint32_t idx, rage::ioInputSou
 	return g_origHandleMappingConflicts(control, idx, input, a4, a5);
 }
 
+static void(*g_origMapFunc)(void*, uint32_t, void*, void*);
+
+static void MapFuncHook(void* a1, uint32_t controlIdx, void* a3, void* a4)
+{
+	if (controlIdx < 512)
+	{
+		g_origMapFunc(a1, controlIdx, a3, a4);
+	}
+}
+
 #include <boost/algorithm/string.hpp>
 
 static HookFunction hookFunction([]()
@@ -912,6 +1054,14 @@ static HookFunction hookFunction([]()
 	game::AddCustomText("PM_PANE_CFX", "FiveM");
 
 	bindingManager.Initialize();
+
+	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_CORE)
+		{
+			bindingManager.CreateButtons();
+		}
+	});
 
 	{
 		auto location = hook::get_pattern("45 33 C0 48 8B CF E8 ? ? ? ? 48 81 C7", 6);
@@ -974,6 +1124,13 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern("83 3C 81 06 77 25");
 		hook::nop(location, 10);
 		hook::put<uint16_t>(location, 0xC033);
+	}
+
+	// fix for ioValue pointer that will be out of bounds if a custom mapping exists
+	{
+		auto location = hook::get_pattern("48 C1 FA 02 48 8B C2 48 C1 E8 3F 48 03 D0 E8", 14);
+		hook::set_call(&g_origMapFunc, location);
+		hook::call(location, MapFuncHook);
 	}
 
 	// control
