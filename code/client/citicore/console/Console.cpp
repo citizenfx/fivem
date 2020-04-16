@@ -5,7 +5,10 @@
 
 #include <se/Security.h>
 
+#include <chrono>
 #include <sstream>
+
+#include <boost/algorithm/string.hpp>
 
 #include <console/ConsoleWriter.h>
 
@@ -21,6 +24,15 @@ struct ConsoleManagers : public ConsoleManagersBase
 	std::unique_ptr<ConsoleVariableManager> variableManager;
 
 	std::shared_ptr<ConsoleCommand> helpCommand;
+
+	std::chrono::milliseconds waitUntil;
+	std::shared_ptr<ConsoleCommand> waitCommand;
+
+	ConsoleManagers()
+		: waitUntil(0)
+	{
+
+	}
 };
 
 Context::Context()
@@ -36,6 +48,16 @@ Context::Context(Context* fallbackContext)
 	ConsoleManagers* managers = static_cast<ConsoleManagers*>(m_managers.get());
 	managers->commandManager  = std::make_unique<ConsoleCommandManager>(this);
 	managers->variableManager = std::make_unique<ConsoleVariableManager>(this);
+
+	managers->waitCommand = std::make_shared<ConsoleCommand>(managers->commandManager.get(), "wait", [managers](int msec)
+	{
+		if (managers->waitUntil.count() == 0)
+		{
+			managers->waitUntil = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		}
+
+		managers->waitUntil += std::chrono::milliseconds{ msec };
+	});
 
 	managers->helpCommand = std::make_shared<ConsoleCommand>(managers->commandManager.get(), "cmdlist", [=]()
 	{
@@ -142,6 +164,16 @@ private:
 
 void Context::ExecuteBuffer()
 {
+	ConsoleManagers* managers = static_cast<ConsoleManagers*>(m_managers.get());
+
+	// if we have executed a `wait`, do that
+	if (managers->waitUntil.count() != 0 && managers->waitUntil >= std::chrono::high_resolution_clock::now().time_since_epoch())
+	{
+		return;
+	}
+
+	managers->waitUntil = std::chrono::milliseconds{ 0 };
+
 	std::vector<std::string> toExecute;
 
 	{
@@ -188,6 +220,14 @@ void Context::ExecuteBuffer()
 
 			// and add the command for execution when the mutex is unlocked
 			toExecute.push_back(command);
+
+			// if the command is `wait`, break out of the execution loop
+			boost::algorithm::trim_left(command);
+
+			if (command.find("wait") == 0)
+			{
+				break;
+			}
 		}
 	}
 
