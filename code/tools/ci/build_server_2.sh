@@ -107,7 +107,8 @@ cd /src/code
 premake5 gmake2 --game=server --cc=clang --dotnet=msnet
 cd build/server/linux
 
-export CXXFLAGS="-std=c++17 -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof"
+export CFLAGS="-fvisibility=hidden"
+export CXXFLAGS="-fvisibility=hidden -std=c++17 -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
@@ -150,9 +151,12 @@ for dll in I18N.CJK.dll I18N.MidEast.dll I18N.Other.dll I18N.Rare.dll I18N.West.
 	cp /usr/lib/mono/4.5/$dll /opt/cfx-server/citizen/clr2/lib/mono/4.5/ || true
 done
 
-# strip output files
-strip --strip-unneeded /opt/cfx-server/*.so
-strip --strip-unneeded /opt/cfx-server/FXServer
+# copy debug info
+for i in /opt/cfx-server/*.so /opt/cfx-server/FXServer; do
+	objcopy --only-keep-debug $i $i.dbg
+	objcopy --strip-unneeded $i
+	objcopy --add-gnu-debuglink=$i.dbg $i
+done
 
 cd /opt/cfx-server
 

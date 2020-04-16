@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>CitizenFX.Buildtools.SymbolUpload</RootNamespace>
+    <RestoreAdditionalProjectSources>
+      https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json;
+      https://dotnet.myget.org/F/symreader-converter/api/v3/index.json;
+      https://dotnet.myget.org/F/symstore/api/v3/index.json;
+      https://dotnet.myget.org/F/symreader-converter/api/v3/index.json;
+      https://dotnet.myget.org/F/symreader-native/api/v3/index.json;
+      https://dotnetfeed.blob.core.windows.net/dotnet-core/index.json;
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- msft pls open source this -->
+    <PackageReference Include="Microsoft.SymbolUploader" Version="1.0.0-beta-65201-01" />
+  </ItemGroup>
+
+</Project>

@@ -5,7 +5,7 @@ set -e
 apk update
 
 # install build dependencies
-apk add curl git xz sudo
+apk add curl git xz sudo rsync openssh-client
 
 # announce building
 text="Woop, building a new $CI_PROJECT_NAME $CI_BUILD_REF_NAME SERVER/LINUX-PROOT build, triggered by $GITLAB_USER_EMAIL"
@@ -85,18 +85,32 @@ rm -r $PWD/alpine/src
 rm -r $PWD/alpine/fivem-private
 
 # patch elf interpreter
-cp -a alpine/lib/ld-musl-x86_64.so.1 alpine/opt/cfx-server/
+cp -a $PWD/alpine/lib/ld-musl-x86_64.so.1 $PWD/alpine/opt/cfx-server/
 
 # package system resources
-mkdir -p alpine/opt/cfx-server/citizen/system_resources/
-cp -a ext/system-resources/data/* alpine/opt/cfx-server/citizen/system_resources/
+mkdir -p $PWD/alpine/opt/cfx-server/citizen/system_resources/
+cp -a $PWD/ext/system-resources/data/* $PWD/alpine/opt/cfx-server/citizen/system_resources/
 
 # package artifacts
-cp -a data/server_proot/* .
-chmod +x run.sh
+cp -a $PWD/data/server_proot/* .
+chmod +x $PWD/run.sh
 
 # again change ownership
-chown -R build:build .
+chown -R build:build $PWD/.
+
+# upload debug info
+cd $PWD/ext/symbol-upload
+
+mkdir -p /tmp/symbols
+dotnet restore
+dotnet run -- -o/tmp/symbols $PWD/alpine/opt/cfx-server/*.so $PWD/alpine/opt/cfx-server/FXServer $PWD/alpine/opt/cfx-server/*.dbg
+
+rsync -rav -e $RSH_SYMBOLS_COMMAND /tmp/symbols/ $SSH_SYMBOLS_TARGET || true
+
+cd ../../
+
+# delete bundled debug info
+rm -f $PWD/alpine/opt/cfx-server/*.dbg
 
 XZ_OPT=-T0 tar cJf fx.tar.xz alpine/ run.sh
 
