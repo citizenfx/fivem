@@ -876,6 +876,11 @@ void MumbleAudioOutput::SetDistance(float distance)
 	m_distance = distance;
 }
 
+float MumbleAudioOutput::GetDistance()
+{
+	return m_distance;
+}
+
 void MumbleAudioOutput::SetVolume(float volume)
 {
 	m_volume = volume;

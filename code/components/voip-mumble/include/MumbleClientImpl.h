@@ -104,11 +104,15 @@ public:
 
 	virtual std::wstring GetPlayerNameFromServerId(uint32_t serverId) override;
 
+	virtual uint32_t GetVoiceChannelFromServerId(uint32_t serverId) override;
+
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 
 	virtual void SetPositionHook(const TPositionHook& hook) override;
 
 	virtual void SetAudioDistance(float distance) override;
+
+	virtual float GetAudioDistance() override;
 
 	virtual void SetActorPosition(float position[3]) override;
 
