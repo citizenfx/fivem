@@ -178,11 +178,13 @@ bool CheckGraphicsLibrary(const std::wstring& path)
 				{
 					if (wcscmp((wchar_t*)productNameBuffer, L"ReShade") == 0)
 					{
-						// ReShade <3.1 is invalid
-						if (fixedInfo->dwProductVersionMS < 0x30001)
+						// ReShade <4.0 is invalid (formally, 3.1, but we still see crashes occur)
+						if (fixedInfo->dwProductVersionMS < 0x40000)
 						{
 							return true;
 						}
+
+						return false;
 					}
 					else if (wcscmp((wchar_t*)productNameBuffer, L"ENBSeries") == 0)
 					{
@@ -208,16 +210,35 @@ bool CheckGraphicsLibrary(const std::wstring& path)
 								return true;
 							}
 						}
+
+						return false;
 					}
 				}
 			}
 		}
+
+		// if the file exists, but it's not one of our 'whitelisted' known-good variants, load it from system
+		// this will break any third-party graphics mods that _aren't_ mainline ReShade or ENBSeries *entirely*, but will hopefully
+		// fix initialization issues people have with the behavior instead. (2020-04-18)
+		return true;
 	}
 
 	return false;
 }
 
-bool IsUnsafeGraphicsLibrary()
+bool IsUnsafeGraphicsLibraryWrap()
 {
 	return CheckGraphicsLibrary(MakeRelativeGamePath(L"dxgi.dll")) || CheckGraphicsLibrary(MakeRelativeGamePath(L"d3d11.dll"));
+}
+
+bool IsUnsafeGraphicsLibrary()
+{
+	__try
+	{
+		return IsUnsafeGraphicsLibraryWrap();
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return true;
+	}
 }
