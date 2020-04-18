@@ -84,6 +84,8 @@ std::shared_ptr<fx::MinModeManifest> InitMinMode()
 HANDLE g_uiDoneEvent;
 HANDLE g_uiExitEvent;
 
+bool IsUnsafeGraphicsLibrary();
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
@@ -303,20 +305,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		loadSystemDll(dll);
 	}
 
-	// don't load d3d11.dll from game dir for subprocesses
-	if (!initState->IsMasterProcess() && !initState->IsGameProcess())
-	{
-		loadSystemDll(L"\\d3d11.dll");
-	}
-
-	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
-
-	// laod V8 DLLs in case end users have these in a 'weird' directory
-	LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
-
 	// assign us to a job object
 	if (initState->IsMasterProcess())
 	{
@@ -389,6 +377,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		return *gamePathExit;
 	}
+
+	// don't load d3d11.dll from game dir for subprocesses
+	if ((!initState->IsMasterProcess() && !initState->IsGameProcess()) || IsUnsafeGraphicsLibrary())
+	{
+		loadSystemDll(L"\\dxgi.dll");
+		loadSystemDll(L"\\d3d11.dll");
+	}
+
+	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
+
+	// laod V8 DLLs in case end users have these in a 'weird' directory
+	LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
+	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
 
 	if (addDllDirectory)
 	{

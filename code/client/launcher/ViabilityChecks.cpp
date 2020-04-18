@@ -132,3 +132,92 @@ void DoPreLaunchTasks()
 		SHSetLocalizedName(MakeRelativeCitPath(L"").c_str(), thisFileName, 101);
 	}
 }
+
+bool CheckGraphicsLibrary(const std::wstring& path)
+{
+	DWORD versionInfoSize = GetFileVersionInfoSize(path.c_str(), nullptr);
+
+	if (versionInfoSize)
+	{
+		std::vector<uint8_t> versionInfo(versionInfoSize);
+
+		if (GetFileVersionInfo(path.c_str(), 0, versionInfo.size(), &versionInfo[0]))
+		{
+			struct LANGANDCODEPAGE {
+				WORD wLanguage;
+				WORD wCodePage;
+			} *lpTranslate;
+
+			UINT cbTranslate = 0;
+
+			// Read the list of languages and code pages.
+
+			VerQueryValue(&versionInfo[0],
+				TEXT("\\VarFileInfo\\Translation"),
+				(LPVOID*)&lpTranslate,
+				&cbTranslate);
+
+			if (cbTranslate > 0)
+			{
+				void* productNameBuffer;
+				UINT productNameSize = 0;
+
+				VerQueryValue(&versionInfo[0],
+					va(L"\\StringFileInfo\\%04x%04x\\ProductName", lpTranslate[0].wLanguage, lpTranslate[0].wCodePage),
+					&productNameBuffer,
+					&productNameSize);
+
+				void* fixedInfoBuffer;
+				UINT fixedInfoSize = 0;
+
+				VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
+
+				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
+
+				if (productNameSize > 0 && fixedInfoSize > 0)
+				{
+					if (wcscmp((wchar_t*)productNameBuffer, L"ReShade") == 0)
+					{
+						// ReShade <3.1 is invalid
+						if (fixedInfo->dwProductVersionMS < 0x30001)
+						{
+							return true;
+						}
+					}
+					else if (wcscmp((wchar_t*)productNameBuffer, L"ENBSeries") == 0)
+					{
+						// ENBSeries <0.3.8.7 is invalid
+						if (fixedInfo->dwProductVersionMS < 0x3 || (fixedInfo->dwProductVersionMS == 3 && fixedInfo->dwProductVersionLS < 0x80007))
+						{
+							return true;
+						}
+
+						// so is ENBSeries from 2019
+						void* copyrightBuffer;
+						UINT copyrightSize = 0;
+
+						VerQueryValue(&versionInfo[0],
+							va(L"\\StringFileInfo\\%04x%04x\\LegalCopyright", lpTranslate[0].wLanguage, lpTranslate[0].wCodePage),
+							&copyrightBuffer,
+							&copyrightSize);
+
+						if (copyrightSize > 0)
+						{
+							if (wcsstr((wchar_t*)copyrightBuffer, L"2019, Boris"))
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+bool IsUnsafeGraphicsLibrary()
+{
+	return CheckGraphicsLibrary(MakeRelativeGamePath(L"dxgi.dll")) || CheckGraphicsLibrary(MakeRelativeGamePath(L"d3d11.dll"));
+}
