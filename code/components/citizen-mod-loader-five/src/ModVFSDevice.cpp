@@ -96,6 +96,16 @@ public:
 		return m_parentDevice->CloseBulk(handle);
 	}
 
+	virtual size_t GetLength(THandle handle) override
+	{
+		return m_parentDevice->GetLength(handle);
+	}
+
+	virtual size_t GetLength(const std::string& fileName)
+	{
+		return m_parentDevice->GetLength(MapFileName(fileName));
+	}
+
 	virtual THandle FindFirst(const std::string & folder, vfs::FindData* findData) override
 	{
 		return THandle();
@@ -164,7 +174,7 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 			}
 
 			auto lastArchive = entry.archiveRoots.back();
-			auto srcFile = entry.targetFile;
+			auto srcFile = entry.sourceFile;
 			auto tgtFile = entry.targetFile;
 
 			std::replace(srcFile.begin(), srcFile.end(), '\\', '/');

@@ -278,6 +278,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	InitLogging();
 
+	auto loadSystemDll = [](auto dll)
+	{
+		wchar_t systemPath[512];
+		GetSystemDirectory(systemPath, _countof(systemPath));
+
+		wcscat_s(systemPath, dll);
+
+		LoadLibrary(systemPath);
+	};
+
 	// load some popular DLLs over the system-wide variants
 	auto systemDlls = {
 		// common ASI loaders
@@ -290,12 +300,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	for (auto dll : systemDlls)
 	{
-		wchar_t systemPath[512];
-		GetSystemDirectory(systemPath, _countof(systemPath));
+		loadSystemDll(dll);
+	}
 
-		wcscat_s(systemPath, dll);
-
-		LoadLibrary(systemPath);
+	// don't load d3d11.dll from game dir for subprocesses
+	if (!initState->IsMasterProcess() && !initState->IsGameProcess())
+	{
+		loadSystemDll(L"\\d3d11.dll");
 	}
 
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
