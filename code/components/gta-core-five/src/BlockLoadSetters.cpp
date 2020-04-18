@@ -927,7 +927,7 @@ int ReturnFalse()
 
 int BlipAsIndex(int blip)
 {
-	assert(blip >= 0);
+	assert(blip != -1);
 
 	return (blip & 0xFFFF);
 }
