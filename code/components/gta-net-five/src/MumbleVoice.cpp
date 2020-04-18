@@ -811,6 +811,19 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_GET_VOICE_CHANNEL_FROM_SERVER_ID", [](fx::ScriptContext& context)
+		{
+			int serverId = context.GetArgument<int>(0);
+			int channelId = 0;
+
+			if (g_mumble.connected)
+			{
+				channelId = g_mumbleClient->GetVoiceChannelFromServerId(serverId);
+			}
+
+			context.SetResult<int>(channelId);
+		});
+
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
 
 		fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_TALKING_OVERRIDE", [](fx::ScriptContext& context)
@@ -879,6 +892,7 @@ static HookFunction hookFunction([]()
 		});
 
 		auto origSetProximity = fx::ScriptEngine::GetNativeHandler(0xCBF12D65F95AD686);
+		auto origGetProximity = fx::ScriptEngine::GetNativeHandler(0x84F0F13120B4E098);
 
 		fx::ScriptEngine::RegisterNativeHandler(0xCBF12D65F95AD686, [=](fx::ScriptContext& context)
 		{
@@ -887,6 +901,15 @@ static HookFunction hookFunction([]()
 			float dist = context.GetArgument<float>(0);
 
 			g_mumbleClient->SetAudioDistance(dist);
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler(0x84F0F13120B4E098, [=](fx::ScriptContext& context)
+		{
+			(*origSetProximity)(context);
+
+			float proximity = g_mumbleClient->GetAudioDistance();
+
+			context.SetResult<float>(proximity);
 		});
 	});
 

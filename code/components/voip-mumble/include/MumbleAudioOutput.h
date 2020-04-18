@@ -60,6 +60,8 @@ public:
 
 	void SetDistance(float distance);
 
+	float GetDistance();
+
 	std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name);
 
 	inline void SetClient(MumbleClient* client)

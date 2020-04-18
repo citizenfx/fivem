@@ -425,6 +425,11 @@ void MumbleClient::SetAudioDistance(float distance)
 	m_audioOutput.SetDistance(distance);
 }
 
+float MumbleClient::GetAudioDistance()
+{
+	return m_audioOutput.GetDistance();
+}
+
 void MumbleClient::SetPositionHook(const TPositionHook& hook)
 {
 	m_positionHook = hook;
@@ -464,6 +469,17 @@ std::wstring MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 		if (user.second && user.second->GetServerId() == serverId)
 		{
 			return user.second->GetName();
+;		}
+	}
+}
+
+uint32_t MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
+{
+	for (auto& user : m_state.GetUsers())
+	{
+		if (user.second && user.second->GetServerId() == serverId)
+		{
+			return user.second->GetChannelId();
 ;		}
 	}
 }
