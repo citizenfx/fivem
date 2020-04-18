@@ -103,14 +103,25 @@ void ModPackage::ParsePackage(const std::string& path)
 }
 
 void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage);
+void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage);
 bool ModsNeedEncryption();
 }
+
+struct IgnoreCaseLess
+{
+	inline bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
 
 static HookFunction hookFunction([]()
 {
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
 		auto cfxDevice = rage::fiDevice::GetDevice("cfx:/mods/", true);
+
+		std::set<std::string, IgnoreCaseLess> modList;
 
 		rage::fiFindData findData;
 		auto handle = cfxDevice->FindFirst("cfx:/mods/", &findData);
@@ -125,22 +136,36 @@ static HookFunction hookFunction([]()
 
 					if (boost::algorithm::ends_with(fn, ".rpf"))
 					{
-						std::string fullFn = "cfx:/mods/" + fn;
-						std::string addonRoot = "addons:/" + fn.substr(0, fn.find_last_of('.')) + "/";
-
-						fwRefContainer<vfs::RagePackfile7> addonPack = new vfs::RagePackfile7();
-						if (addonPack->OpenArchive(fullFn, fx::ModsNeedEncryption()))
-						{
-							vfs::Mount(addonPack, addonRoot);
-
-							auto modPackage = std::make_shared<fx::ModPackage>(addonRoot);
-							fx::MountModDevice(modPackage);
-						}
+						modList.insert(fn);
 					}
 				}
 			} while (cfxDevice->FindNext(handle, &findData));
 
 			cfxDevice->FindClose(handle);
+		}
+
+		std::list<std::shared_ptr<fx::ModPackage>> packages;
+
+		for (auto& fn : modList)
+		{
+			std::string fullFn = "cfx:/mods/" + fn;
+			std::string addonRoot = "addons:/" + fn.substr(0, fn.find_last_of('.')) + "/";
+
+			fwRefContainer<vfs::RagePackfile7> addonPack = new vfs::RagePackfile7();
+			if (addonPack->OpenArchive(fullFn, fx::ModsNeedEncryption()))
+			{
+				vfs::Mount(addonPack, addonRoot);
+
+				auto modPackage = std::make_shared<fx::ModPackage>(addonRoot);
+				fx::MountModDevice(modPackage);
+
+				packages.push_front(modPackage);
+			}
+		}
+
+		for (auto& package : packages)
+		{
+			fx::MountModStream(package);
 		}
 	}, 10);
 });

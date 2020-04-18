@@ -315,7 +315,10 @@ void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage)
 
 		g_devices.push_back(device);
 	}
+}
 
+void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
+{
 	// add streaming assets
 	auto parentDevice = vfs::GetDevice(modPackage->GetRootPath());
 
@@ -391,7 +394,7 @@ void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage)
 
 				{
 					auto contentFile = vfs::OpenRead(devName + ":/content.xml");
-					
+
 					auto text = contentFile->ReadToEnd();
 
 					tinyxml2::XMLDocument doc;
