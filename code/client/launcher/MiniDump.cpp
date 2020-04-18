@@ -576,25 +576,22 @@ static void GatherCrashInformation()
 
 			if (err == MZ_OK)
 			{
-				auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
+				auto extraDumpFiles = {
+					L"cache\\extra_dump_info.bin",
+					L"cache\\extra_dump_info2.bin",
+					L"cache\\game\\ros_launcher_documents\\launcher.log",
+					L"cache\\game\\ros_documents\\socialclub.log",
+					L"cache\\game\\ros_documents\\socialclub_launcher.log"
+				};
 
-				if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+				for (auto path : extraDumpFiles)
 				{
-					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
-				}
+					auto extraDumpPath = MakeRelativeCitPath(path);
 
-				extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info2.bin");
-
-				if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
-				{
-					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
-				}
-
-				extraDumpPath = MakeRelativeCitPath(L"cache\\game\\ros_launcher_documents\\launcher.log");
-
-				if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
-				{
-					mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
+					if (GetFileAttributesW(extraDumpPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+					{
+						mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
+					}
 				}
 
 				success = true;

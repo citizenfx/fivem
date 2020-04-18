@@ -16,6 +16,8 @@
 #ifdef _M_AMD64
 #pragma comment(lib, "ntdll.lib")
 
+#include <shlobj.h>
+
 #include <winternl.h>
 #include <commctrl.h>
 
@@ -26,6 +28,24 @@ static MappingFunctionType g_mappingFunction;
 static NTSTATUS(*g_origLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*, HANDLE*);
 
 static bool g_d3dx11;
+
+static std::wstring GetRoot(int folder)
+{
+	wchar_t pathRef[MAX_PATH];
+	if (FAILED(SHGetFolderPathW(NULL, folder, NULL, SHGFP_TYPE_CURRENT, pathRef)))
+	{
+		return L"C:\\dummy_path\\";
+	}
+
+	return pathRef;
+}
+
+static std::wstring g_documentsRoot = GetRoot(CSIDL_MYDOCUMENTS);
+static std::wstring g_localAppDataRoot = GetRoot(CSIDL_LOCAL_APPDATA);
+
+static std::wstring g_scDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Social Club";
+static std::wstring g_launcherDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Launcher";
+static std::wstring g_launcherAppDataRoot = g_localAppDataRoot + L"\\Rockstar Games\\Launcher";
 
 static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 {
@@ -71,12 +91,17 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_data2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
-	if (wcsstr(origFileName, L"Local\\Rockstar Games\\Launcher") != nullptr)
+	if (wcsstr(origFileName, L"Local\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherAppDataRoot.c_str()) != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
-	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Launcher") != nullptr)
+	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Social Club") != nullptr || wcsstr(origFileName, g_scDocumentsRoot.c_str()) != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\ros_documents") + &wcsstr(origFileName, L"Games\\Social Club")[17];
+	}
+
+	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherDocumentsRoot.c_str()) != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_documents") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
@@ -158,13 +183,20 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
-	// TODO: support redirected localappdata!!
-	if (fileName.find(L"Data\\Local\\Rockstar Games\\Launcher") != std::string::npos)
+	if (fileName.find(L"Data\\Local\\Rockstar Games\\Launcher") != std::string::npos ||
+		fileName.find(g_launcherAppDataRoot) != std::string::npos)
 	{
 		return true;
 	}
 
-	if (fileName.find(L"Documents\\Rockstar Games\\Launcher") != std::string::npos)
+	if (fileName.find(L"Documents\\Rockstar Games\\Social Club") != std::string::npos ||
+		fileName.find(g_scDocumentsRoot) != std::string::npos)
+	{
+		return true;
+	}
+
+	if (fileName.find(L"Documents\\Rockstar Games\\Launcher") != std::string::npos ||
+		fileName.find(g_launcherDocumentsRoot) != std::string::npos)
 	{
 		return true;
 	}
