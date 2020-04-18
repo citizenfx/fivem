@@ -573,7 +573,29 @@ class RgscLogDelegate : public IRgscDelegate
 
 		if (event == RgscEvent::SdkInitError)
 		{
-			FatalError("R* SC SDK failed to initialize. Error code: %d", *(int*)data);
+			auto errorCode = *(int*)data;
+			std::string errorHelp;
+
+			switch (errorCode)
+			{
+			case 1014:
+				errorHelp = "Failed to initialize renderer subprocess.\n";
+				break;
+			case 1024:
+				errorHelp = "Failed to validate DLL versions.\n";
+				break;
+			case 1002:
+				errorHelp = "Failed to initialize file system.\n";
+				break;
+			case 1008:
+				errorHelp = "Failed to initialize gamer pic manager.\n";
+				break;
+			case 1005:
+				errorHelp = "Failed to initialize metadata. Please verify your game files before trying anything else.\n";
+				break;
+			}
+
+			FatalError("R* SC SDK failed to initialize. Error code: %d\n%s\nPlease click 'Save information' below and upload the saved .zip file when asking for help!", errorCode, errorHelp);
 		}
 
 		if (event == RgscEvent::FriendStatusChanged)
