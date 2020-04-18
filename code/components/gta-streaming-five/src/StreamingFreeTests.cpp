@@ -100,7 +100,9 @@ rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleM
 	{
 		if (!assetStore->IsResourceValid(index - assetStore->baseIdx))
 		{
-			FatalError("Tried to %s non-existent streaming asset %s (%d) in module %s", (IsRequest) ? "request" : "release", g_streamingIndexesToNames[index].c_str(), index, typeName.c_str());
+			trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", g_streamingIndexesToNames[index].c_str(), index, typeName.c_str());
+
+			AddCrashometry("streaming_free_validation", "true");
 		}
 	}
 
