@@ -517,20 +517,24 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					// remove the original bytes from the queue
 					readQueue.erase(readQueue.begin(), readQueue.begin() + readQueue.size() - result);
 
-					// call the data handler
-					auto dataHandler = localConnectionData->request->GetDataHandler();
+					auto request = localConnectionData->request;
 
-					if (dataHandler)
+					if (request.GetRef())
 					{
-						localConnectionData->request->SetDataHandler();
+						// call the data handler
+						auto dataHandler = request->GetDataHandler();
 
-						requestData.resize(localConnectionData->lastLength);
+						if (dataHandler)
+						{
+							request->SetDataHandler();
 
-						(*dataHandler)(requestData);
+							requestData.resize(localConnectionData->lastLength);
+
+							(*dataHandler)(requestData);
+						}
 					}
 
-					// clean up the req/res
-					//localConnectionData->request = nullptr;
+					// clean up the response
 					localConnectionData->response = nullptr;
 
 					localConnectionData->requestData.clear();
