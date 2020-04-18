@@ -378,10 +378,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		return *gamePathExit;
 	}
 
-	// don't load d3d11.dll from game dir for subprocesses
+	// don't load anything resembling ReShade *at all* until the game is loading(!)
+	loadSystemDll(L"\\dxgi.dll");
+
+	// don't load d3d11.dll from game dir for subprocesses or invalid cases
 	if ((!initState->IsMasterProcess() && !initState->IsGameProcess()) || IsUnsafeGraphicsLibrary())
 	{
-		loadSystemDll(L"\\dxgi.dll");
 		loadSystemDll(L"\\d3d11.dll");
 	}
 

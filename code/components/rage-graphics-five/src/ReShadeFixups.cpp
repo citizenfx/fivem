@@ -9,10 +9,33 @@
 #include <boost/filesystem.hpp>
 #include "Hooking.h"
 #include "DrawCommands.h"
+
+static HMODULE LoadLibraryAHook(const char* libName)
+{
+	if (strcmp(libName, "dxgi.dll") == 0)
+	{
+		auto refPath = MakeRelativeGamePath(L"dxgi.dll");
+
+		if (GetFileAttributes(refPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			auto hMod = LoadLibraryW(refPath.c_str());
+
+			if (hMod)
+			{
+				return hMod;
+			}
+		}
+	}
+
+	return LoadLibraryA(libName);
+}
+
 /*
 	The solution to the LoopBackTCP error is to load this before the game is started...
 */
 void ScanForReshades() {
+	bool found = false;
+
 	try {
 		boost::filesystem::path game_path(MakeRelativeGamePath("").c_str());
 		boost::filesystem::directory_iterator it(game_path), end;
@@ -21,7 +44,6 @@ void ScanForReshades() {
 			L"d3d9.dll",
 			L"d3d10.dll",
 			L"d3d11.dll",
-			//L"ReShade64.dll",
 			L"dxgi.dll"
 		});
 
@@ -31,8 +53,10 @@ void ScanForReshades() {
 				for (auto itt = reshadeFiles.begin(); itt != reshadeFiles.end(); ++itt) {
 					if (*itt != nullptr && *itt != L"") {
 						if (wcsicmp(it->path().filename().c_str(), *itt) == 0) {
-							LoadLibrary(it->path().filename().c_str()); //I would put a break here but what if they also have enbseries?
+							LoadLibrary(it->path().c_str()); //I would put a break here but what if they also have enbseries?
 							trace("Loaded %s!\n", it->path().filename().string());
+
+							found = true;
 						}
 					}
 				}
@@ -41,13 +65,13 @@ void ScanForReshades() {
 		}
 	}
 	catch (...) {}
+
+	if (found)
+	{
+		hook::iat("kernel32.dll", LoadLibraryAHook, "LoadLibraryA");
+	}
 }
 
-static InitFunction initFunction([]() {
+static HookFunction initFunction([]() {
 	ScanForReshades();
-#if 0 //Enb Series has some weird injection method...
-	OnGrcCreateDevice.Connect([]() {
-		return;
-	});
-#endif
 });

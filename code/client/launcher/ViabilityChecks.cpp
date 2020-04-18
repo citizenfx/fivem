@@ -178,8 +178,8 @@ bool CheckGraphicsLibrary(const std::wstring& path)
 				{
 					if (wcscmp((wchar_t*)productNameBuffer, L"ReShade") == 0)
 					{
-						// ReShade <4.0 is invalid (formally, 3.1, but we still see crashes occur)
-						if (fixedInfo->dwProductVersionMS < 0x40000)
+						// ReShade <3.1 is invalid
+						if (fixedInfo->dwProductVersionMS < 0x30001)
 						{
 							return true;
 						}
