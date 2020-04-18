@@ -103,8 +103,7 @@ export class ServersService {
 
             this.requestEvent
                 .subscribe(url => {
-                    const ts = Math.floor((new Date().getTime() / 1000) / 30) * 30;
-                    this.worker.postMessage({ type: 'queryServers', url: url + `stream/${ts}/` });
+                    this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
                 });
 
             const canvas = new OffscreenCanvas(2560, 40);
