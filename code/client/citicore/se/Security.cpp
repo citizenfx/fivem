@@ -280,8 +280,17 @@ extern "C" se::Context* seGetCurrentContext()
 				}
 				else
 				{
-					console::Printf("security", "Access type needs to be 'allow' or 'deny'.");
+					console::Printf("security", "Access type needs to be 'allow' or 'deny'.\n");
 					return;
+				}
+
+				for (auto& principalRef : se::g_principalStack)
+				{
+					if (principalRef.get().GetIdentifier() == principal)
+					{
+						console::Printf("security", "Changing ones own access is not permitted.\n");
+						return;
+					}
 				}
 
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ principal }, se::Object{ object }, type);
@@ -306,8 +315,17 @@ extern "C" se::Context* seGetCurrentContext()
 				}
 				else
 				{
-					console::Printf("security", "Access type needs to be 'allow' or 'deny'.");
+					console::Printf("security", "Access type needs to be 'allow' or 'deny'.\n");
 					return;
+				}
+
+				for (auto& principalRef : se::g_principalStack)
+				{
+					if (principalRef.get().GetIdentifier() == principal)
+					{
+						console::Printf("security", "Changing ones own access is not permitted.\n");
+						return;
+					}
 				}
 
 				seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ principal }, se::Object{ object }, type);

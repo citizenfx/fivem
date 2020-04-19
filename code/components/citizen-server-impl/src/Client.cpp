@@ -28,6 +28,8 @@ namespace fx
 		m_netId = netId;
 
 		OnAssignNetId();
+
+		UpdateCachedPrincipalValues();
 	}
 
 	void Client::SetTcpEndPoint(const std::string& value)

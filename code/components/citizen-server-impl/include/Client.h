@@ -231,6 +231,8 @@ namespace fx
 			{
 				m_principals.emplace_back(se::Principal{ fmt::sprintf("identifier.%s", identifier) });
 			}
+
+			m_principals.emplace_back(se::Principal{ fmt::sprintf("player.%d", m_netId) });
 		}
 
 	private:

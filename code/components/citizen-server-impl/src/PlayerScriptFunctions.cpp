@@ -104,13 +104,7 @@ static void CreatePlayerCommands()
 		const char* object = context.CheckArgument<const char*>(1);
 
 		se::ScopedPrincipalReset reset;
-
-		std::vector<std::unique_ptr<se::ScopedPrincipal>> principals;
-
-		for (auto& identifier : client->GetIdentifiers())
-		{
-			principals.emplace_back(std::make_unique<se::ScopedPrincipal>(se::Principal{ fmt::sprintf("identifier.%s", identifier) }));
-		}
+		auto principalScope = client->EnterPrincipalScope();
 
 		return seCheckPrivilege(object);
 	}));
