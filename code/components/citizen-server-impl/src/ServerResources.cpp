@@ -4,6 +4,8 @@
 #include <ResourceEventComponent.h>
 #include <ResourceMetaDataComponent.h>
 
+#include <fxScripting.h>
+
 #include <ServerInstanceBase.h>
 #include <ServerInstanceBaseRef.h>
 
@@ -723,7 +725,15 @@ static InitFunction initFunction2([]()
 
 		if (resource.GetRef())
 		{
-			if (g_managedResources.find(resource->GetName()) != g_managedResources.end())
+			fx::OMPtr<IScriptRuntime> runtime;
+			std::string currentResourceName;
+
+			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+			{
+				currentResourceName = reinterpret_cast<fx::Resource*>(runtime->GetParentObject())->GetName();
+			}
+
+			if (g_managedResources.find(resource->GetName()) != g_managedResources.end() || resource->GetName() == currentResourceName)
 			{
 				success = false;
 			}
