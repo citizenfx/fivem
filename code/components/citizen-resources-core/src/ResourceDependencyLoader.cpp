@@ -10,6 +10,7 @@ static InitFunction initFunction([]()
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
 		static std::multimap<std::string, std::string> resourceDependencies;
+		static std::multimap<std::string, std::string> resourceDependants;
 
 		resource->OnBeforeStart.Connect([=] ()
 		{
@@ -30,6 +31,9 @@ static InitFunction initFunction([]()
 						return false;
 					}
 
+					// store in a list for use in OnStop
+					resourceDependants.insert({ other->GetName(), resource->GetName() });
+
 					if (other->GetState() == fx::ResourceState::Starting || other->GetState() == fx::ResourceState::Started)
 					{
 						continue;
@@ -41,6 +45,7 @@ static InitFunction initFunction([]()
 					{
 						trace("Could not start dependency %s for resource %s.\n", dependency.second, resource->GetName());
 
+						// store for deferred use (e.g. build systems)
 						resourceDependencies.insert({ other->GetName(), resource->GetName() });
 
 						return false;
@@ -75,5 +80,29 @@ static InitFunction initFunction([]()
 
 			resourceDependencies.erase(resource->GetName());
 		}, 9999999);
+
+		resource->OnStop.Connect([resource]()
+		{
+			// stop all resources depending on `resource` (potentially recursive, bad for cyclic dependencies)
+			auto resDeps = resourceDependants.equal_range(resource->GetName());
+
+			fx::ResourceManager* manager = resource->GetManager();
+			manager->MakeCurrent();
+
+			// copy in case the container gets mutated
+			std::set<std::pair<std::string, std::string>> deps(resDeps.first, resDeps.second);
+
+			for (auto dep : deps)
+			{
+				auto dependant = manager->GetResource(dep.second);
+
+				if (dependant.GetRef())
+				{
+					dependant->Stop();
+				}
+			}
+
+			resourceDependants.erase(resource->GetName());
+		}, INT32_MIN);
 	});
 });
