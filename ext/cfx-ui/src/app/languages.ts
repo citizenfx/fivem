@@ -1,3 +1,5 @@
+import { L10nSchema } from "angular-l10n";
+
 const languages = [
     {
         name: 'en',
@@ -46,10 +48,13 @@ const languages = [
 ];
 
 export class Languages {
-    static toList() {
-        return languages.map(({name}) => ({
-            code: name,
-            dir: 'ltr'
+    static toList(): L10nSchema[] {
+        return languages.map(({name, displayName}) => ({
+            locale: {
+                language: name
+            },
+            dir: 'ltr',
+            text: displayName
         }));
     }
 

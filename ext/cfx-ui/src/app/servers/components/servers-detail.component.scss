@@ -239,11 +239,46 @@
                 flex-direction: column;
 
                 &>p {
-                    overflow: scroll;
+                    overflow-y: scroll;
                     flex-grow: 1;
                 }
 
                 flex-shrink: 1;
+            }
+        }
+
+        @media only screen and (max-width: 640px) {
+            &.info {
+                padding-left: 0;
+
+                h1.title {
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                    -webkit-line-clamp: 3;
+
+                    display: -webkit-box;
+                    -webkit-box-orient: vertical;
+                    word-break: break-all;
+
+                    text-shadow: rgba(255, 255, 255, .3) 0px 0px 15px;
+                }
+
+                .icon {
+                    z-index: -5;
+                    left: auto;
+                    right: 0px;
+                    top: 0px;
+                    position: absolute;
+                    opacity: .5;
+                }
+
+                .desc .key {
+                    width: 40%;
+                }
+
+                .connect, &.player-list {
+                    display: none;
+                }
             }
         }
     }

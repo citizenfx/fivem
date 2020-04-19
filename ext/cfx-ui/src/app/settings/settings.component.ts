@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject } from '@angular/core';
 import { GameService } from '../game.service';
 import { DiscourseService } from '../discourse.service';
 import { ServersService } from '../servers/servers.service';
-import { Language, TranslationService, Translation } from 'angular-l10n';
+import { L10nTranslationService, L10nLocale, L10N_LOCALE } from 'angular-l10n';
 import { SettingsService, Setting } from '../settings.service';
 import { Subscription } from 'rxjs';
 
@@ -75,7 +75,7 @@ class DisplaySetting {
 	styleUrls:   ['settings.component.scss']
 })
 
-export class SettingsComponent extends Translation implements OnInit, OnDestroy {
+export class SettingsComponent implements OnInit, OnDestroy {
     nickname = '';
     localhostPort = '30120';
     devMode = false;
@@ -85,13 +85,9 @@ export class SettingsComponent extends Translation implements OnInit, OnDestroy 
 
     public settings: DisplaySetting[] = [];
 
-    @Language() lang: string;
-
     constructor(private gameService: GameService, private discourseService: DiscourseService,
-        private serversService: ServersService,
-        public translation: TranslationService, private settingsService: SettingsService) {
-        super();
-
+        private serversService: ServersService, @Inject(L10N_LOCALE) public locale: L10nLocale,
+        public translation: L10nTranslationService, private settingsService: SettingsService) {
         gameService.nicknameChange.subscribe(value => this.nickname = value);
         gameService.devModeChange.subscribe(value => this.devMode = value);
         gameService.localhostPortChange.subscribe(value => this.localhostPort = value);

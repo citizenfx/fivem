@@ -1,10 +1,10 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, Inject } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
 import { GameService } from './game.service';
 import { Server } from './servers/server'
-import { Translation, TranslationService } from 'angular-l10n';
 import { ChangelogService } from './changelogs.service';
+import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 
 @Component({
 	moduleId:    module.id,
@@ -12,7 +12,7 @@ import { ChangelogService } from './changelogs.service';
 	templateUrl: 'app-nav.component.html',
 	styleUrls:   ['app-nav.component.scss']
 })
-export class AppNavComponent extends Translation {
+export class AppNavComponent {
 	nickname = '';
 	devMode = false;
 	localhostPort = '';
@@ -28,13 +28,11 @@ export class AppNavComponent extends Translation {
 
 	constructor(
 		private gameService: GameService,
-		public translation: TranslationService,
+		@Inject(L10N_LOCALE) public locale: L10nLocale,
 		private domSanitizer: DomSanitizer,
 		private changelog: ChangelogService,
 		router: Router
 	) {
-		super();
-
 		this.nickname = gameService.nickname;
 		this.devMode = gameService.devMode;
 		this.localhostPort = gameService.localhostPort;

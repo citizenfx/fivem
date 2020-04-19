@@ -308,3 +308,9 @@ a {
 .refreshing {
 	animation: spin 1000ms infinite linear;
 }
+
+@media only screen and (max-width: 640px) {
+	.filter:not(.attract-next) {
+		display: none !important;
+	}
+}

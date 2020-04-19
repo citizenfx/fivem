@@ -1,5 +1,5 @@
 <div class="filters inline">
-    <section class="filter attract-next" style="width: 50%">
+    <section class="filter attract-next">
         <input class="name" id="searchBox" type="search" placeholder="Search" [(ngModel)]="filters.searchText"
             (ngModelChange)="updateFilters()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
 
@@ -19,11 +19,11 @@
         <div class="checkboxes">
             <div class="checkbox">
                 <input type="checkbox" id="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
-                <label for="hide-empty" translate>#ServerList_HideEmpty</label>
+                <label for="hide-empty" l10nTranslate>#ServerList_HideEmpty</label>
             </div>
             <div class="checkbox">
                 <input type="checkbox" id="hide-full" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()">
-                <label for="hide-full" translate>#ServerList_HideFull</label>
+                <label for="hide-full" l10nTranslate>#ServerList_HideFull</label>
             </div>
             <!-- ads! -->
             <div class="checkbox button">

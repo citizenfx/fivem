@@ -3,9 +3,9 @@
 	</div>
 
 	<div class="error" *ngIf="false">
-		<h1 class="title" translate>#ServerDetail_ServerInvalid</h1>
+		<h1 class="title" l10nTranslate>#ServerDetail_ServerInvalid</h1>
 		<p>
-			<span>{{error}}</span> <span translate>#ServerDetail_ServerInvalid_SubTitle</span>
+			<span>{{error}}</span> <span l10nTranslate>#ServerDetail_ServerInvalid_SubTitle</span>
 		</p>
 	</div>
 
@@ -36,25 +36,25 @@
 				<span>{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}</span>
 			</li>
 			<li *ngFor="let svVar of serverVariables">
-				<span class="key">{{svVar.key|translate:lang}}:</span>
-				<span>{{svVar.value|translate:lang}}</span>
+				<span class="key">{{svVar.key|translate:locale.language}}:</span>
+				<span>{{svVar.value|translate:locale.language}}</span>
 			</li>
 		</ul>
 
 		<div class="server-buttons">
-			<button class="connect" (click)="attemptConnect()" translate>
+			<button class="connect" (click)="attemptConnect()" l10nTranslate>
 				#DirectConnect_Connect
 			</button>
-			<button class="unimportant favorite" (click)="addFavorite()" *ngIf="!isFavorite()" translate>
+			<button class="unimportant favorite" (click)="addFavorite()" *ngIf="!isFavorite()" l10nTranslate>
 				#ServerDetail_AddFavorite
 			</button>
-			<button class="unimportant favorite" (click)="removeFavorite()" *ngIf="isFavorite()" translate>
+			<button class="unimportant favorite" (click)="removeFavorite()" *ngIf="isFavorite()" l10nTranslate>
 				#ServerDetail_DelFavorite
 			</button>
-			<button class="unimportant refresh" (click)="refreshServer()" [class.disabled]="!canRefresh" translate>
+			<button class="unimportant refresh" (click)="refreshServer()" [class.disabled]="!canRefresh" l10nTranslate>
 				#ServerDetail_Refresh
 			</button>
-			<button class="unimportant back" (click)="goBack()" translate>
+			<button class="unimportant back" (click)="goBack()" l10nTranslate>
 				#ServerDetail_Back
 			</button>
 		</div>
@@ -68,8 +68,8 @@
 
 
 	<div class="info player-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
-		<h1 translate>#ServerDetail_Players</h1>
-		<span *ngIf="server.data.players.length == 0" translate>#ServerDetail_PlayersEmpty</span>
+		<h1 l10nTranslate>#ServerDetail_Players</h1>
+		<span *ngIf="server.data.players.length == 0" l10nTranslate>#ServerDetail_PlayersEmpty</span>
 		<ul [class.huge]="server && server.data && server.data.players.length > 64">
 			<li *ngFor="let player of server.data.players"><app-player-avatar [player]="player"></app-player-avatar>
 				<span>

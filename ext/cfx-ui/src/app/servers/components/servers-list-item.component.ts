@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ChangeDetectionStrategy, OnDestroy, OnInit, ElementRef, OnChanges, AfterViewInit } from '@angular/core';
+import { Component, Input, ViewChild, ChangeDetectionStrategy, OnDestroy, OnInit, ElementRef, OnChanges, AfterViewInit, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Server } from '../server';
@@ -29,7 +29,8 @@ export class ServersListItemComponent implements OnInit, OnDestroy {
     private upvoting = false;
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
-        private serversService: ServersService, private router: Router, private elementRef: ElementRef) { }
+        private serversService: ServersService, private router: Router, private elementRef: ElementRef,
+        private zone: NgZone) { }
 
     public ngOnInit() {
         this.hoverIntent = hoverintent(this.elementRef.nativeElement, () => {
@@ -52,7 +53,9 @@ export class ServersListItemComponent implements OnInit, OnDestroy {
     }
 
     showServerDetail() {
-        this.router.navigate(['/', 'servers', 'detail', this.server.address]);
+        this.zone.run(() => {
+            this.router.navigate(['/', 'servers', 'detail', this.server.address]);
+        });
     }
 
     isFavorite() {

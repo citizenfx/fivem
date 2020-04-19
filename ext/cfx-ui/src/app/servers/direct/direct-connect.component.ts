@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ViewChildren } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ViewChildren, Inject } from '@angular/core';
 import { Subject } from 'rxjs/Subject';
 
 import 'rxjs/add/operator/debounceTime';
@@ -11,7 +11,7 @@ import { ServersService } from '../servers.service';
 import { GameService, ServerHistoryEntry } from '../../game.service';
 
 import { DomSanitizer } from '@angular/platform-browser';
-import { Language } from 'angular-l10n';
+import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 
 class ServerHistoryData {
     entry: ServerHistoryEntry;
@@ -33,9 +33,6 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     error = '';
     inputInvalid = false;
 
-    @Language()
-    lang: string;
-
     onFetchCB: () => void;
 
     addrEvent = new Subject<[string, number]>();
@@ -45,7 +42,8 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
 
     history: ServerHistoryData[];
 
-    constructor(private gameService: GameService, private serversService: ServersService, private sanitizer: DomSanitizer) {
+    constructor(private gameService: GameService, private serversService: ServersService, private sanitizer: DomSanitizer,
+        @Inject(L10N_LOCALE) public locale: L10nLocale) {
         this.addrEvent
             .asObservable()
             .debounceTime(750)

@@ -13,7 +13,7 @@
 			routerLinkActive="active"
 			[routerLinkActiveOptions]="{ exact: true }"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#BottomNav_Home
 			</span>
 		</a>
@@ -24,7 +24,7 @@
 			routerLinkActive="active"
 			[routerLinkActiveOptions]="{ exact: true }"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#BottomNav_Servers
 			</span>
 		</a>
@@ -34,7 +34,7 @@
 			routerLinkActive="active"
 			*ngIf="gameName !== 'rdr3'"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#ServerList_Premium
 			</span>
 		</a>
@@ -44,7 +44,7 @@
 			routerLinkActive="active"
 			*ngIf="gameName !== 'rdr3'"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#ServerList_History
 			</span>
 		</a>
@@ -54,7 +54,7 @@
 			routerLinkActive="active"
 			*ngIf="gameName !== 'rdr3'"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#ServerList_Favorites
 			</span>
 		</a>
@@ -63,7 +63,7 @@
 			class="nav-item subnav-item"
 			routerLinkActive="active"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#ServerList_DirectConnect
 			</span>
 		</a>
@@ -82,7 +82,7 @@
 			[routerLink]="['/settings']"
 			routerLinkActive="active"
 		>
-			<span translate>
+			<span l10nTranslate>
 				#BottomNav_Settings
 			</span>
 		</a>

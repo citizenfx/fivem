@@ -8,23 +8,23 @@
 		<div>
 			<div>
 				<h1>
-					{{overlayTitle|translate:lang:overlayMessageData}}
+					{{overlayTitle|translate:locale.language:overlayMessageData}}
 				</h1>
-				<p>{{overlayMessage|translate:lang:overlayMessageData }}</p>
+				<p>{{overlayMessage|translate:locale.language:overlayMessageData }}</p>
 				<div #card></div>
 				<button
 					[class.active]="overlayClosable"
 					(click)="closeOverlay(); false"
 					*ngIf="!minMode"
 				>
-					{{closeLabel|translate:lang}}
+					{{closeLabel|translate:locale.language}}
 				</button>
 				<button
 					[class.active]="overlayClosable"
 					(click)="doRetry(); false"
 					*ngIf="minMode"
 				>
-					{{retryLabel|translate:lang}}
+					{{retryLabel|translate:locale.language}}
 				</button>
 			</div>
 		</div>

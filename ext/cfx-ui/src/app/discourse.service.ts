@@ -6,6 +6,7 @@ import * as forge from 'node-forge';
 import * as query from 'query-string';
 import { BehaviorSubject } from 'rxjs';
 import { GameService } from './game.service';
+import { environment } from 'environments/environment';
 
 class RSAKeyCollection {
     public: string;
@@ -61,6 +62,10 @@ export class DiscourseService {
         }
 
         this.signinChange.subscribe(user => {
+            if (environment.web) {
+                return;
+            }
+
             this.externalCall('https://servers-frontend.fivem.net/api/upvote/', 'GET').then(result => {
                 if (result.status < 400) {
                     this.currentBoost = {

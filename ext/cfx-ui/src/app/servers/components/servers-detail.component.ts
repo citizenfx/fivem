@@ -3,8 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject } from 'rxjs/Subject';
 
-import { Language, Translation, TranslationService } from 'angular-l10n';
-
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/distinctUntilChanged';
 
@@ -17,6 +15,7 @@ import { ServersService } from '../servers.service';
 
 import { isPlatformBrowser } from '@angular/common';
 import { MetaService } from '@ngx-meta/core';
+import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 
 class VariablePair {
     public key: string;
@@ -30,7 +29,7 @@ class VariablePair {
     styleUrls: ['servers-detail.component.scss']
 })
 
-export class ServersDetailComponent extends Translation implements OnInit, OnDestroy {
+export class ServersDetailComponent implements OnInit, OnDestroy {
     addr = '';
     lastAddr = '';
     server: Server;
@@ -50,9 +49,6 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
     addrEvent = new Subject<[string, number]>();
 
     disallowedVars = ['sv_enhancedHostSupport', 'sv_licenseKeyToken', 'sv_lan', 'sv_maxClients'];
-
-    @Language()
-    lang: string;
 
     @ViewChildren('input')
     private inputBox;
@@ -83,9 +79,8 @@ export class ServersDetailComponent extends Translation implements OnInit, OnDes
 
     constructor(private gameService: GameService, private serversService: ServersService,
         private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
-        private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService) {
-        super();
-
+        private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService,
+        @Inject(L10N_LOCALE) public locale: L10nLocale) {
         this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
             return {
                 key: '#ServerDetail_ScriptHook',

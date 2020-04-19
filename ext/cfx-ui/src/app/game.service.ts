@@ -66,7 +66,7 @@ export abstract class GameService {
 	inMinMode = false;
 	minmodeBlob: any = {};
 
-	minModeChanged = new EventEmitter<boolean>();
+	minModeChanged = new BehaviorSubject<boolean>(false);
 
 	profile: Profile = null;
 
@@ -394,7 +394,7 @@ export class CfxGameService extends GameService {
 						this.minmodeBlob = data;
 
 						this.zone.run(() => {
-							this.minModeChanged.emit(enabled);
+							this.minModeChanged.next(enabled);
 						});
 
 						break;
@@ -823,7 +823,7 @@ export class DummyGameService extends GameService {
 		profile.parameters = {};
 
 		this.handleSignin(profile);
-		this.minModeChanged.emit(false);
+		this.minModeChanged.next(false);
 	}
 
 	connectTo(server: Server, enteredAddress?: string) {
@@ -906,6 +906,14 @@ export class DummyGameService extends GameService {
 		console.log('Exiting now');
 
 		this.invokeError('You can\'t exit in a browser!');
+	}
+
+	get gameName(): string {
+		if (environment.web) {
+			return location.hostname.indexOf('redm.gg') >= 0 ? 'rdr3' : 'gta5';
+		}
+
+		return 'gta5';
 	}
 
 	get nickname(): string {

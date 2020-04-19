@@ -4,6 +4,12 @@
     height: 100%;
 }
 
+@media only screen and (max-width: 640px) {
+    :host {
+        display: none;
+    }
+}
+
 .tags {
     overflow-y: scroll;
     height: 50%;

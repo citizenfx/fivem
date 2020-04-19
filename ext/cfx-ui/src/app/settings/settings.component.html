@@ -1,7 +1,7 @@
 <div *ngFor="let setting of settings">
 <section class="setting" *ngIf="setting.show">
 	<div class="key">
-		<div>{{ setting.setting.name | translate:lang }}</div>
+		<div>{{ setting.setting.name | translate:locale.language }}</div>
 	</div>
 	<div class="value">
 		<div class="checkbox" *ngIf="setting.setting.type === 'checkbox'">
@@ -12,7 +12,7 @@
 				[name]="setting.setting.id"
 			>
 			<label [for]="setting.setting.id">
-				{{ setting.setting.description | translate:lang }}
+				{{ setting.setting.description | translate:locale.language }}
 			</label>
 		</div>
 		<input
@@ -20,13 +20,13 @@
 			#input
 			class="text"
 			type="text"
-			[placeholder]="setting.setting.description | translate:lang"
+			[placeholder]="setting.setting.description | translate:locale.language"
 			spellcheck="false"
 			[name]="setting.setting.id"
 			[(ngModel)]="setting.value"
 		>
 		<span *ngIf="setting.setting.type === 'button'">
-			<button (click)="setting.setting.setCb('')">{{ setting.setting.description | translate:lang }}</button>
+			<button (click)="setting.setting.setCb('')">{{ setting.setting.description | translate:locale.language }}</button>
 		</span>
 
 		<span *ngIf="setting.setting.type === 'label' && !setting.setting.colorizeValue">

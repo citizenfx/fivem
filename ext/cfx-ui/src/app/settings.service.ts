@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, combineLatest, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { TranslationService } from 'angular-l10n';
+import { L10nTranslationService } from 'angular-l10n';
 import { GameService } from './game.service';
 
 import { Languages } from './languages';
@@ -37,7 +37,7 @@ export class SettingsService {
     private settings: { [key: string]: Setting } = {};
     private settingOrder: string[] = [];
 
-    constructor(private translation: TranslationService, private gameService: GameService,
+    constructor(private translation: L10nTranslationService, private gameService: GameService,
         private discourseService: DiscourseService) {
         this.addSetting('nickname', {
             name: '#Settings_Nickname',
@@ -116,7 +116,7 @@ export class SettingsService {
                 name: '#Settings_CustomEmoji',
                 type: 'label',
                 showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true')),
-                labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell'))
+                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell'))
             });
         }
 
@@ -159,7 +159,7 @@ export class SettingsService {
                 labelCb: () =>
                     combineLatest(
                         discourseService.signinChange,
-                        translation.translationChanged()
+                        translation.onChange()
                     ).pipe(map(
                         ([ user, _ ]) => translation.translate('#Settings_AccountLinked', { username: user ? user.username : '' })
                     ))
@@ -170,7 +170,7 @@ export class SettingsService {
                 type: 'label',
                 showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
                     && !this.discourseService.noCurrentBoost)),
-                labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_BoostLoading'))
+                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_BoostLoading'))
             });
 
             this.addSetting('boostNone', {
@@ -178,7 +178,7 @@ export class SettingsService {
                 type: 'label',
                 showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
                     && this.discourseService.noCurrentBoost)),
-                labelCb: () => translation.translationChanged().pipe().map(_ => translation.translate('#Settings_BoostNone'))
+                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_BoostNone'))
             });
 
             this.addSetting('boostUnknown', {

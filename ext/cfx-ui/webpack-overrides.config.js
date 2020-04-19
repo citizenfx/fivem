@@ -1,5 +1,5 @@
 const SvgStorePlugin = require('external-svg-sprite-loader');
-const AngularCompilerPlugin = require('@ngtools/webpack/src');
+//const AngularCompilerPlugin = require('@ngtools/webpack/src');
 
 module.exports = (config, options) => {
 /*    

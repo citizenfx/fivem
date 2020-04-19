@@ -1,7 +1,7 @@
-import { Component, OnInit, ElementRef, ViewChild, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, Input, Output, EventEmitter, Inject } from '@angular/core';
 import { GameService } from '../game.service';
-import { Translation, TranslationService } from 'angular-l10n';
 import * as AdaptiveCards from 'adaptivecards';
+import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 
 @Component({
 	moduleId:    module.id,
@@ -9,7 +9,7 @@ import * as AdaptiveCards from 'adaptivecards';
 	templateUrl: 'connecting-popup.component.html',
 	styleUrls:   ['connecting-popup.component.scss']
 })
-export class ConnectingPopupComponent extends Translation implements OnInit {
+export class ConnectingPopupComponent implements OnInit {
 	showOverlay = false;
 	overlayClosable = true;
 	overlayTitle: string;
@@ -30,9 +30,9 @@ export class ConnectingPopupComponent extends Translation implements OnInit {
 
 	constructor(
 		private gameService: GameService,
-		public translation: TranslationService
+		@Inject(L10N_LOCALE) public locale: L10nLocale
 	) {
-		super();
+
 	}
 
 	ngOnInit() {

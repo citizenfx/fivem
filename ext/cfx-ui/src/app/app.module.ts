@@ -1,13 +1,12 @@
 import {BrowserModule} from '@angular/platform-browser';
-import {NgModule, Inject} from '@angular/core';
+import {NgModule, Inject, Injectable, Optional, APP_INITIALIZER, Injector} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {HttpModule} from '@angular/http';
-import {HttpClientModule} from '@angular/common/http';
+import {HttpClientModule, HttpHeaders, HttpClient, HttpParams} from '@angular/common/http';
 
 import { environment } from '../environments/environment'
 
 import {VirtualScrollerModule} from 'ngx-virtual-scroller';
-import {TranslationModule, L10nConfig, L10nLoader, ProviderType, L10N_CONFIG, L10nConfigRef} from 'angular-l10n';
 import {MomentModule} from 'angular2-moment';
 import {Angulartics2Module} from 'angulartics2';
 import {Angulartics2Piwik} from 'angulartics2/piwik';
@@ -52,23 +51,83 @@ import { ServerTagsService } from './servers/server-tags.service';
 import { ChangelogPopupComponent } from './home/app-changelog-popup.component';
 import { ChangelogEntryComponent } from './home/app-changelog-entry.component';
 import { ChangelogService } from './changelogs.service';
+import { L10nConfig, L10nTranslationLoader, L10nProvider, L10nLoader, L10nTranslationModule,
+	L10nMissingTranslationHandler, L10nTranslationService } from 'angular-l10n';
+import { Observable } from 'rxjs';
+import { take } from 'rxjs/operators';
 
-const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
+const localePrefix = (environment.web) ? '/' : './';
+
+// from the docs
+@Injectable() export class HttpTranslationLoader implements L10nTranslationLoader {
+
+    private headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+	constructor(
+		@Optional() private http: HttpClient,
+		@Optional() private injector: Injector) { }
+
+    public get(language: string, provider: L10nProvider): Observable<{ [key: string]: any }> {
+		console.log(language);
+
+		const url = `${provider.asset}-${language}.json`;
+		const defTranslationUrl = `${provider.asset}-en.json`;
+		const options = {
+		  headers: this.headers
+		};
+
+		this.http
+		  .get(defTranslationUrl, options)
+		  .pipe(take(1))
+		  .subscribe(en => {
+			this.injector.get(L10nTranslationService).data = { en };
+		  });
+
+		return this.http.get(url, options);
+    }
+
+}
+
+@Injectable() export class MissingTranslationHandler implements L10nMissingTranslationHandler {
+
+	private translation: L10nTranslationService;
+	private inTranslation = false;
+
+    constructor(@Optional() private injector: Injector) { }
+
+    public handle(key: string): string | any {
+		if (!this.translation) {
+			this.translation = this.injector.get(L10nTranslationService);
+		}
+
+		if (this.inTranslation) {
+			return key;
+		}
+
+		this.inTranslation = true;
+
+		try {
+			return this.translation.translate(key, null, 'en');
+		} finally {
+			this.inTranslation = false;
+		}
+    }
+}
 
 const l10nConfig: L10nConfig = {
-	locale: {
-		languages: Languages.toList(),
-		language: 'en'
-	},
-	translation: {
-		//providers: [] // see AppModule constructor
-					  // broke on Angular 8, here again
-		providers: [
-			{ type: ProviderType.Fallback, prefix: localePrefix + 'assets/languages/locale-en', fallbackLanguage: [] },
-			{ type: ProviderType.Static, prefix: localePrefix + 'assets/languages/locale-' }
-		]
-	}
+	format: 'language',
+	providers: [
+		{ name: 'app', asset: localePrefix + 'assets/languages/locale' }
+	],
+	fallback: true,
+	defaultLocale: { language: 'en' },
+	schema: Languages.toList(),
+	keySeparator: '.',
 };
+
+function initL10n(l10nLoader: L10nLoader): () => Promise<void> {
+    return () => l10nLoader.init();
+}
 
 export function localStorageFactory() {
 	return (typeof window !== 'undefined') ? window.localStorage : null;
@@ -114,7 +173,10 @@ export function metaFactory(): MetaLoader {
 		VirtualScrollerModule,
 		MomentModule,
 		HttpClientModule,
-		TranslationModule.forRoot(l10nConfig),
+		L10nTranslationModule.forRoot(l10nConfig, {
+			translationLoader: HttpTranslationLoader,
+			missingTranslationHandler: MissingTranslationHandler,
+		}),
 		Angulartics2Module.forRoot(),
 		LinkyModule,
 		MetaModule.forRoot({
@@ -139,21 +201,17 @@ export function metaFactory(): MetaLoader {
 			provide: LocalStorage,
 			useFactory: (localStorageFactory)
 		},
-		SettingsService
+		SettingsService,
+		{
+			provide: APP_INITIALIZER,
+			useFactory: initL10n,
+			deps: [L10nLoader],
+			multi: true
+		},
 	],
 	bootstrap:    [
 		AppComponent
 	]
 })
 export class AppModule {
-	constructor(public l10nLoader: L10nLoader/*, @Inject(L10N_CONFIG) private configuration: L10nConfigRef*/) {
-		/*const localePrefix = (environment.web) ? 'https://servers.fivem.net/' : './';
-
-		this.configuration.translation.providers = [
-			{ type: ProviderType.Fallback, prefix: localePrefix + 'assets/languages/locale-en', fallbackLanguage: [] },
-			{ type: ProviderType.Static, prefix: localePrefix + 'assets/languages/locale-' }
-		];*/
-
-		this.l10nLoader.load();
-	}
 }

@@ -190,12 +190,13 @@ $themes: $themeLight $themeDark $themeRdr;
     };
 
     :host-context(.webapp) {
-        box-shadow: none;
+        /*box-shadow: none;
         padding-top: 0;
 
         &:after {
             filter: none !important;
-        }
+            background: transparent !important;
+        }*/
     }
 }
 

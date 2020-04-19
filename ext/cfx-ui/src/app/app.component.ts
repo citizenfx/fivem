@@ -1,6 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
-
-import { Translation, LocaleService, TranslationService } from 'angular-l10n';
+import { Component, OnInit, NgZone, Inject } from '@angular/core';
 
 import { GameService } from './game.service';
 import { TrackingService } from './tracking.service';
@@ -10,13 +8,14 @@ import { Router, NavigationStart } from '@angular/router';
 import { interval } from 'rxjs';
 import { startWith, map, distinctUntilChanged, filter, take, tap, takeUntil } from 'rxjs/operators';
 import { ServersService } from './servers/servers.service';
+import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 
 @Component({
 	selector: 'app-root',
 	templateUrl: 'app.component.html',
 	styleUrls: ['app.component.scss']
 })
-export class AppComponent extends Translation implements OnInit {
+export class AppComponent implements OnInit {
 	overlayActive = false;
 	minModeSetUp = false;
 	changelogShown = false;
@@ -31,23 +30,17 @@ export class AppComponent extends Translation implements OnInit {
 		return this.minMode ? 'url(' + this.gameService.minmodeBlob['art:backgroundImage'] + ')' : '';
 	}
 
-	constructor(public locale: LocaleService,
-		public translation: TranslationService,
+	constructor(@Inject(L10N_LOCALE) public locale: L10nLocale,
+		public l10nService: L10nTranslationService,
 		public gameService: GameService,
 		private trackingService: TrackingService,
 		private router: Router,
 		private zone: NgZone,
 		private serversService: ServersService) {
-		super();
-
-		this.locale.init();
-
-		this.translation.init();
-
 		this.gameService.init();
 
 		this.gameService.languageChange.subscribe(value => {
-			this.locale.setCurrentLanguage(value);
+			this.l10nService.setLocale({ language: value });
 		})
 
 		this.gameService.minModeChanged.subscribe((value: boolean) => {
@@ -61,6 +54,18 @@ export class AppComponent extends Translation implements OnInit {
 
 			this.minModeSetUp = true;
 		});
+
+		const settle = () => {
+			this.serversService.onInitialized();
+
+			(<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
+			(<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
+		};
+
+		if (environment.web) {
+			settle();
+			return;
+		}
 
 		// reused snippet from https://dev.to/herodevs/route-fully-rendered-detection-in-angular-2nh4
 		this.zone.runOutsideAngular(() => {
@@ -77,10 +82,7 @@ export class AppComponent extends Translation implements OnInit {
 					// Complete the observable after it emits the first result
 					take(1),
 					tap(stateStable => {
-						this.serversService.onInitialized();
-
-						(<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
-						(<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
+						settle();
 					})
 				).subscribe();
 		});
@@ -108,8 +110,8 @@ export class AppComponent extends Translation implements OnInit {
 		});
 
 		const lang = this.gameService.language;
-		if (lang && this.locale.getAvailableLanguages().includes(lang)) {
-			this.locale.setCurrentLanguage(lang);
+		if (lang && this.l10nService.getAvailableLanguages().includes(lang)) {
+			this.l10nService.setLocale({ language: lang });
 		}
 	}
 

@@ -35,11 +35,6 @@ div.theRoot {
 	display: none !important;
 }
 
-.webapp ::ng-deep servers-container, .webapp ::ng-deep app-servers-detail {
-	height: calc(100vh - 4vh);
-	margin-top: 2vh;
-}
-
 .webapp ::ng-deep app-servers-detail {
 	padding-bottom: 0px;
 }
@@ -50,7 +45,19 @@ div.theRoot {
 
 @media only screen and (min-width: 700px) {
 	.webapp ::ng-deep servers-container article {
-		height: calc(100vh - 4vh - 5.5vh - 200px) !important;
+		height: calc(96vh - 4vh - 4vh - 2.5vh - 5vh - 200px) !important;
+	}
+}
+
+@media only screen and (max-width: 700px) {
+	.webapp ::ng-deep .app-root {
+		width: 100vw;
+		height: 100vh;
+	}
+
+	.webapp ::ng-deep servers-container, .webapp ::ng-deep app-servers-detail {
+		height: calc(100vh) !important;
+		margin-top: 0vh !important;
 	}
 }
 
@@ -77,18 +84,14 @@ $blurSize: 20px;
 	}
 }
 
+.webapp ::ng-deep #bg {
+	display: block !important;
+}
+
 * {
 	@include themeIsHost() using ($theme) {
 		#bg {
 			background-image: var(--my-background-image);
-		}
-	}
-}
-
-.webapp {
-	@include themeIsHost() using ($theme) {
-		#bg {
-			filter: gtv($theme, acrylicBlur);
 		}
 	}
 }
