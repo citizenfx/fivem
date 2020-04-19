@@ -14,6 +14,8 @@
 #include <FontRenderer.h>
 #include <DrawCommands.h>
 
+#include <boost/algorithm/string.hpp>
+
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 
 namespace streaming
@@ -23,6 +25,8 @@ namespace streaming
 
 namespace fx
 {
+static void MountFauxStreamingRpf(const std::string& fn);
+
 static std::list<fwRefContainer<vfs::Device>> g_devices;
 
 struct IgnoreCaseLess
@@ -187,6 +191,12 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 
 			if (tgtFile == "common/data/gameconfig.xml")
 			{
+				continue;
+			}
+
+			if (boost::algorithm::ends_with(tgtFile, ".rpf"))
+			{
+				MountFauxStreamingRpf(m_modPackage->GetRootPath() + "content/" + srcFile);
 				continue;
 			}
 
