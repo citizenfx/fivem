@@ -16,10 +16,14 @@
 #include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 
+static volatile void* g_dummyState;
+
 static void* ProbePointer(char* pointer)
 {
 	__try
 	{
+		g_dummyState = **(volatile void***)pointer;
+
 		return *(void**)pointer;
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
