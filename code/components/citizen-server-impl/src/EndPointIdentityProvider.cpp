@@ -14,7 +14,12 @@
 #include <HttpServer.h>
 
 #define FOLLY_NO_CONFIG
+
+#ifdef _WIN32
 #undef ssize_t
+#else
+#include <sys/types.h>
+#endif
 
 #pragma comment(lib, "iphlpapi.lib")
 
