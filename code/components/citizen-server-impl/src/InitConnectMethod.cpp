@@ -456,16 +456,25 @@ static InitFunction initFunction([]()
 			auto done = [=]()
 			{
 				std::weak_ptr<fx::Client> clientWeak(client);
+				auto didSucceed = std::make_shared<bool>(false);
+				auto weakSuccess = std::weak_ptr<bool>(didSucceed);
 
 				auto allowClient = [=]()
 				{
-					if (!clientWeak.expired())
-					{
-						auto client = clientWeak.lock();
+					auto client = clientWeak.lock();
 
+					if (client)
+					{
 						client->SetData("deferralPtr", std::any());
 						client->SetData("passedValidation", true);
 						client->SetData("canBeDead", false);
+					}
+
+					auto success = weakSuccess.lock();
+
+					if (success)
+					{
+						*success = true;
 					}
 				};
 
@@ -576,9 +585,12 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				request->SetCancelHandler([cbRef, deferrals, client, clientRegistry]()
+				request->SetCancelHandler([cbRef, deferrals, client, clientRegistry, didSucceed]()
 				{
-					clientRegistry->RemoveClient(client);
+					if (!*didSucceed)
+					{
+						clientRegistry->RemoveClient(client);
+					}
 
 					*cbRef = nullptr;
 					*deferrals = nullptr;
@@ -672,6 +684,7 @@ static InitFunction initFunction([]()
 			if (dataIt == postMap.end() || tokenIt == postMap.end())
 			{
 				cb(json::object({ {"error", "fields missing"} }));
+				cb(json(nullptr));
 				return;
 			}
 
@@ -681,6 +694,7 @@ static InitFunction initFunction([]()
 			if (!client)
 			{
 				cb(json::object({ {"error", "no client"} }));
+				cb(json(nullptr));
 				return;
 			}
 
@@ -698,6 +712,7 @@ static InitFunction initFunction([]()
 			}
 
 			cb(json::object({ { "result", "ok" } }));
+			cb(json(nullptr));
 		});
 	}, 50);
 });
