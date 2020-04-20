@@ -13,8 +13,23 @@
 #include <HttpClient.h>
 #include <HttpServer.h>
 
+#define FOLLY_NO_CONFIG
+#undef ssize_t
+
+#pragma comment(lib, "iphlpapi.lib")
+
+#include <folly/IPAddress.h>
+#include <folly/String.h>
+
+#include <boost/algorithm/string.hpp>
+
+#include <CoreConsole.h>
+#include <IteratorView.h>
+
 static InitFunction initFunction([]()
 {
+	static ConVar<std::string> allowedIpCidr("sv_proxyIPRanges", ConVar_None, "10.0.0.0/8 127.0.0.0/8 192.168.0.0/16 172.16.0.0/12");
+
 	static struct EndPointIdProvider : public fx::ServerIdentityProviderBase
 	{
 		tbb::concurrent_unordered_map<std::string, bool> allowedByPolicyCache;
@@ -42,13 +57,71 @@ static InitFunction initFunction([]()
 			cb({});
 		}
 
+		void RunRealIPAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb, const std::string& realIP)
+		{
+			auto ipCidrList = allowedIpCidr.GetValue();
+			bool found = false;
+
+			const auto& ep = clientPtr->GetTcpEndPoint();
+
+			auto ipAddress = folly::IPAddress::tryFromString(ep);
+
+			if (ipAddress)
+			{
+				for (auto item :
+					fx::GetIteratorView(
+						std::make_pair(
+							boost::algorithm::make_split_iterator(
+								ipCidrList,
+								boost::algorithm::token_finder(
+									boost::algorithm::is_space(),
+									boost::algorithm::token_compress_on
+								)
+							),
+							boost::algorithm::split_iterator<std::string::iterator>()
+						)
+					)
+				)
+				{
+					auto network = folly::IPAddress::tryCreateNetwork(folly::range(&*item.begin(), &*item.end()));
+
+					if (network)
+					{
+						if (ipAddress->inSubnet(network->first, network->second))
+						{
+							found = true;
+							break;
+						}
+					}
+				}
+			}
+
+			if (!found)
+			{
+				clientPtr->AddIdentifier("ip:" + ep);
+			}
+			else
+			{
+				clientPtr->AddIdentifier("ip:" + realIP);
+				clientPtr->SetTcpEndPoint(realIP);
+			}
+
+			cb({});
+		}
+
 		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
 			auto sourceIP = request->GetHeader("X-Cfx-Source-Ip", "");
+			auto realIP = request->GetHeader("X-Real-Ip", "");
 
-			if (sourceIP.empty())
+			if (sourceIP.empty() && realIP.empty())
 			{
 				return RunAuthentication(clientPtr, postMap, cb);
+			}
+
+			if (!realIP.empty())
+			{
+				return RunRealIPAuthentication(clientPtr, request, postMap, cb, realIP);
 			}
 
 			auto doAccept = [sourceIP, clientPtr, cb]()

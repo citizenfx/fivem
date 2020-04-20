@@ -106,7 +106,13 @@ namespace fx
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
 		m_masters[2] = instance->AddVariable<std::string>("sv_master3", ConVar_None, "");
 		m_listingIpOverride = instance->AddVariable<std::string>("sv_listingIpOverride", ConVar_None, "");
-		m_useDirectListing = instance->AddVariable<bool>("sv_useDirectListing", ConVar_None, false);
+
+		// sv_forceIndirectListing will break listings if the proxy host can not be reached
+		m_forceIndirectListing = instance->AddVariable<bool>("sv_forceIndirectListing", ConVar_None, false);
+
+		// sv_listingHostOverride specifies a host to use as reverse proxy endpoint instead of the default
+		// reverse TCP server
+		m_listingHostOverride = instance->AddVariable<std::string>("sv_listingHostOverride", ConVar_None, "");
 
 		m_heartbeatCommand = instance->AddCommand("heartbeat", [=]()
 		{
@@ -835,8 +841,13 @@ namespace fx
 								{ "port", m_instance->GetComponent<fx::TcpListenManager>()->GetPrimaryPort() },
 								{ "listingToken", m_instance->GetComponent<ServerLicensingComponent>()->GetListingToken() },
 								{ "ipOverride", m_listingIpOverride->GetValue() },
-								{ "useDirectListing", m_useDirectListing->GetValue() },
+								{ "forceIndirectListing", m_forceIndirectListing->GetValue() },
 								});
+
+							if (!m_listingHostOverride->GetValue().empty())
+							{
+								json["hostOverride"] = m_listingHostOverride->GetValue();
+							}
 
 							HttpRequestOptions ro;
 							ro.ipv4 = true;

@@ -301,6 +301,12 @@ namespace fx
 					std::string filesPathDecoded;
 					UrlDecode(filesPath, filesPathDecoded);
 
+					auto queryOffset = filesPathDecoded.rfind('?');
+					if (queryOffset != std::string::npos)
+					{
+						filesPathDecoded = filesPathDecoded.substr(0, queryOffset);
+					}
+
 					if (client)
 					{
 						client->Touch();

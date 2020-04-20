@@ -24,6 +24,7 @@
 #include <ppl.h>
 
 #include <Error.h>
+#include <ICoreGameInit.h>
 
 using fx::CachedResourceMounter;
 
@@ -200,7 +201,15 @@ void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, co
 		g_referenceHashList.insert({ referenceHash, {resourceName, basename} });
 	}
 
-	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, remoteUrl, size, extData} });
+	auto refUrl = remoteUrl;
+
+	static auto icgi = Instance<ICoreGameInit>::Get();
+	if (icgi->NetProtoVersion >= 0x202004201223)
+	{
+		refUrl += "?hash=" + referenceHash;
+	}
+
+	m_resourceEntries.insert({ resourceName, ResourceFileEntry{basename, referenceHash, refUrl, size, extData} });
 }
 
 void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)

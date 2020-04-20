@@ -263,6 +263,37 @@ static InitFunction initFunction([]()
 			});
 		});
 
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getEndpoints", [instance](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		{
+			auto sendError = [=](const std::string& error)
+			{
+				cb(json::object({ { "error", error } }));
+				cb(json(nullptr));
+			};
+
+			auto tokenIt = postMap.find("token");
+
+			if (tokenIt == postMap.end())
+			{
+				sendError("fields missing");
+				return;
+			}
+
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
+
+			if (!client)
+			{
+				cb(json{ false });
+			}
+			else
+			{
+				cb(json::array());
+			}
+
+			cb(json(nullptr));
+		});
+
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
@@ -368,7 +399,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202002271209;
+			data["bitVersion"] = 0x202004201223;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();

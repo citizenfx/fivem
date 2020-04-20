@@ -1117,214 +1117,261 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				}
 #endif
 
-				// gather endpoints
-				std::vector<std::string> endpoints;
+				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
 
-				if (!node["endpoints"].is_null())
+				auto continueAfterEndpoints = [=](const nlohmann::json& endpointsJson)
 				{
-					for (const auto& endpoint : node["endpoints"])
+					try
 					{
-						endpoints.push_back(endpoint.get<std::string>());
-					}
-				}
-				else
-				{
-					auto uri = skyr::make_url(url);
-					std::string endpoint;
+						// gather endpoints
+						std::vector<std::string> endpoints;
 
-					if (!uri->port().empty())
-					{
-						endpoint = fmt::sprintf("%s:%d", uri->hostname(), uri->port<int>());
-					}
-					else
-					{
-						endpoint = uri->hostname();
-					}
-
-					endpoints.push_back(endpoint);
-				}
-
-				// select an endpoint
-				static std::random_device rand;
-				static std::mt19937 rng(rand());
-				std::uniform_int_distribution<> values(0, endpoints.size() - 1);
-
-				const auto& endpoint = endpoints[values(rng)];
-				auto addressStrRef = net::PeerAddress::FromString(endpoint);
-
-				if (!addressStrRef)
-				{
-					OnConnectionError(fmt::sprintf("Could not resolve returned endpoint: %s", endpoint).c_str());
-					m_connectionState = CS_IDLE;
-					return true;
-				}
-
-				auto address = *addressStrRef;
-				auto oldAddress = NetAddress(address.GetSocketAddress());
-
-				m_currentServer = oldAddress;
-				m_currentServerPeer = address;
-
-				AddCrashometry("last_server", "%s", address.ToString());
-
-				m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
-				{
-					if (success)
-					{
-						if (std::string(data, length).find("yes") != std::string::npos)
+						if (!endpointsJson.is_null() && !endpointsJson.is_boolean())
 						{
-							Instance<ICoreGameInit>::Get()->ShAllowed = false;
+							for (const auto& endpoint : endpointsJson)
+							{
+								endpoints.push_back(endpoint.get<std::string>());
+							}
 						}
-					}
-				});
+						else
+						{
+							auto uri = skyr::make_url(url);
+							std::string endpoint;
 
-				m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
-				{
-					if (success)
-					{
-						FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
-					}
-				});
+							if (!uri->port().empty())
+							{
+								endpoint = fmt::sprintf("%s:%d", uri->hostname(), uri->port<int>());
+							}
+							else
+							{
+								endpoint = uri->hostname();
+							}
 
-				m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), [=](bool success, const char* data, size_t length)
-				{
-					if (success)
-					{
-						FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
-					}
-				});
+							endpoints.push_back(endpoint);
+						}
 
-				Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
-				Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
-				Instance<ICoreGameInit>::Get()->OneSyncBigIdEnabled = (!node["onesync_lh"].is_null() && node["onesync_lh"].get<bool>());
-				Instance<ICoreGameInit>::Get()->NetProtoVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
+						// select an endpoint
+						static std::random_device rand;
+						static std::mt19937 rng(rand());
+						std::uniform_int_distribution<> values(0, endpoints.size() - 1);
 
-				bool big1s = (!node["onesync_big"].is_null() && node["onesync_big"].get<bool>());
+						const auto& endpoint = endpoints[values(rng)];
+						auto addressStrRef = net::PeerAddress::FromString(endpoint);
 
-				if (big1s)
-				{
-					Instance<ICoreGameInit>::Get()->SetVariable("onesync_big");
-				}
-				else
-				{
-					Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
-				}
+						if (!addressStrRef)
+						{
+							OnConnectionError(fmt::sprintf("Could not resolve returned endpoint: %s", endpoint).c_str());
+							m_connectionState = CS_IDLE;
+							return true;
+						}
+
+						auto address = *addressStrRef;
+						auto oldAddress = NetAddress(address.GetSocketAddress());
+
+						m_currentServer = oldAddress;
+						m_currentServerPeer = address;
+
+						AddCrashometry("last_server", "%s", address.ToString());
+
+						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/policy/shdisable?server=%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+						{
+							if (success)
+							{
+								if (std::string(data, length).find("yes") != std::string::npos)
+								{
+									Instance<ICoreGameInit>::Get()->ShAllowed = false;
+								}
+							}
+						});
+
+						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+						{
+							if (success)
+							{
+								FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
+							}
+						});
+
+						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), [=](bool success, const char* data, size_t length)
+						{
+							if (success)
+							{
+								FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
+							}
+						});
+
+						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
+						Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
+						Instance<ICoreGameInit>::Get()->OneSyncBigIdEnabled = (!node["onesync_lh"].is_null() && node["onesync_lh"].get<bool>());
+						Instance<ICoreGameInit>::Get()->NetProtoVersion = bitVersion;
+
+						bool big1s = (!node["onesync_big"].is_null() && node["onesync_big"].get<bool>());
+
+						if (big1s)
+						{
+							Instance<ICoreGameInit>::Get()->SetVariable("onesync_big");
+						}
+						else
+						{
+							Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
+						}
 
 #ifndef _DEBUG
-				std::string onesyncType = "onesync";
-				auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
+						std::string onesyncType = "onesync";
+						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
 
-				if (maxClients <= 32)
-				{
-					onesyncType = "";
-				}
-				else if (maxClients <= 64)
-				{
-					onesyncType = "onesync";
-				}
-				else if (maxClients <= 128)
-				{
-					onesyncType = "onesync_plus";
-				}
-				else if (maxClients <= 1024)
-				{
-					onesyncType = "onesync_big";
-				}
+						if (maxClients <= 32)
+						{
+							onesyncType = "";
+						}
+						else if (maxClients <= 64)
+						{
+							onesyncType = "onesync";
+						}
+						else if (maxClients <= 128)
+						{
+							onesyncType = "onesync_plus";
+						}
+						else if (maxClients <= 1024)
+						{
+							onesyncType = "onesync_big";
+						}
 #else
-				std::string onesyncType = "";
+						std::string onesyncType = "";
 #endif
 
-				AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
+						AddCrashometry("onesync_enabled", (Instance<ICoreGameInit>::Get()->OneSyncEnabled) ? "true" : "false");
 
-				m_serverProtocol = node["protocol"].get<uint32_t>();
+						m_serverProtocol = node["protocol"].get<uint32_t>();
 
-				auto steam = GetSteam();
+						auto steam = GetSteam();
 
-				if (steam)
-				{
-					steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
-				}
+						if (steam)
+						{
+							steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
+						}
 
-				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
-				{
-					auto oneSyncFailure = [this, onesyncType]()
+						if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+						{
+							auto oneSyncFailure = [this, onesyncType]()
+							{
+								OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
+									onesyncType,
+									(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
+									? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots." : ""));
+								m_connectionState = CS_IDLE;
+							};
+
+							auto oneSyncSuccess = [this]()
+							{
+								m_connectionState = CS_INITRECEIVED;
+							};
+
+							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+							{
+								using json = nlohmann::json;
+
+								if (success)
+								{
+									try
+									{
+										json info = json::parse(data, data + size);
+
+										if (info.is_object() && info["vars"].is_object())
+										{
+											auto val = info["vars"].value("sv_licenseKeyToken", "");
+
+											if (!val.empty())
+											{
+												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/%s", val, onesyncType), [=](bool success, const char* data, size_t size)
+												{
+													if (success)
+													{
+														if (std::string(data, size).find("yes") != std::string::npos)
+														{
+															oneSyncSuccess();
+
+															return;
+														}
+													}
+
+													oneSyncFailure();
+												});
+
+												return;
+											}
+										}
+									}
+									catch (std::exception& e)
+									{
+										trace("1s policy - get failed for %s\n", e.what());
+									}
+
+									oneSyncFailure();
+								}
+							});
+						}
+						else
+						{
+							m_connectionState = CS_INITRECEIVED;
+						}
+
+						if (node.value("netlibVersion", 1) == 2)
+						{
+							m_impl = CreateNetLibraryImplV2(this);
+						}
+						else if (node.value("netlibVersion", 1) == 3 || node.value("netlibVersion", 1) == 4)
+						{
+							OnConnectionError("NetLibraryImplV3/NetLibraryImplV4 are no longer supported. Please reset `netlib` to the default value.");
+							m_connectionState = CS_IDLE;
+							return true;
+						}
+						else
+						{
+							OnConnectionError("Legacy servers are incompatible with this version of CitizenFX. Please tell the server owner to the server to the latest FXServer build. See https://fivem.net/ for more info.");
+							m_connectionState = CS_IDLE;
+							return true;
+						}
+					}
+					catch (std::exception& e)
 					{
-						OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
-							onesyncType,
-							(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
-								? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots." : ""));
+						OnConnectionError(e.what());
 						m_connectionState = CS_IDLE;
-					};
+					}
+				};
 
-					auto oneSyncSuccess = [this]()
+				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : nlohmann::json{};
+
+				if (bitVersion >= 0x202004201223)
+				{
+					// to not complain about 'closed connection while deferring'
+					isLegacyDeferral = true;
+
+					fwMap<fwString, fwString> epMap;
+					epMap["method"] = "getEndpoints";
+					epMap["token"] = m_token;
+
+					m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
 					{
-						m_connectionState = CS_INITRECEIVED;
-					};
-
-					m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
-					{
-						using json = nlohmann::json;
-
 						if (success)
 						{
 							try
 							{
-								json info = json::parse(data, data + size);
-
-								if (info.is_object() && info["vars"].is_object())
-								{
-									auto val = info["vars"].value("sv_licenseKeyToken", "");
-
-									if (!val.empty())
-									{
-										m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/%s", val, onesyncType), [=](bool success, const char* data, size_t size)
-										{
-											if (success)
-											{
-												if (std::string(data, size).find("yes") != std::string::npos)
-												{
-													oneSyncSuccess();
-
-													return;
-												}
-											}
-
-											oneSyncFailure();
-										});
-
-										return;
-									}
-								}
+								continueAfterEndpoints(nlohmann::json::parse(data, data + size));
+								return;
 							}
-							catch (std::exception & e)
+							catch (std::exception& e)
 							{
-								trace("1s policy - get failed for %s\n", e.what());
-							}
 
-							oneSyncFailure();
+							}
 						}
+
+						continueAfterEndpoints(rawEndpoints);
 					});
 				}
 				else
 				{
-					m_connectionState = CS_INITRECEIVED;
-				}
-
-				if (node.value("netlibVersion", 1) == 2)
-				{
-					m_impl = CreateNetLibraryImplV2(this);
-				}
-				else if (node.value("netlibVersion", 1) == 3 || node.value("netlibVersion", 1) == 4)
-				{
-					OnConnectionError("NetLibraryImplV3/NetLibraryImplV4 are no longer supported. Please reset `netlib` to the default value.");
-					m_connectionState = CS_IDLE;
-					return true;
-				}
-				else
-				{
-					OnConnectionError("Legacy servers are incompatible with this version of CitizenFX. Please tell the server owner to the server to the latest FXServer build. See https://fivem.net/ for more info.");
-					m_connectionState = CS_IDLE;
-					return true;
+					continueAfterEndpoints(rawEndpoints);
 				}
 			}
 			catch (std::exception & e)

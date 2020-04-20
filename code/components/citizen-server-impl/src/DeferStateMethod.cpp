@@ -19,6 +19,7 @@ static InitFunction initFunction([]()
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getDeferState", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			cb(json::object({ { "error", "This server does not support legacy deferrals." } }));
+			cb(json(nullptr));
 			return;
 		});
 	}, 5000);

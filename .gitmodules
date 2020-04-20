@@ -196,3 +196,6 @@
 [submodule "vendor/prometheus-cpp"]
 	path = vendor/prometheus-cpp
 	url = https://github.com/jupp0r/prometheus-cpp.git
+[submodule "vendor/folly"]
+	path = vendor/folly
+	url = https://github.com/facebook/folly.git

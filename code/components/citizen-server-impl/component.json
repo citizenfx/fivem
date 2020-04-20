@@ -22,7 +22,8 @@
 		"vendor:thread-pool-cpp",
 		"vendor:utfcpp",
 		"vendor:breakpad",
-		"vendor:prometheus-cpp"
+		"vendor:prometheus-cpp",
+		"vendor:folly"
 	],
 	"provides": []
 }

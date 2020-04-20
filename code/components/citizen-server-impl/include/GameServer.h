@@ -215,7 +215,9 @@ namespace fx
 
 		std::shared_ptr<ConVar<std::string>> m_listingIpOverride;
 
-		std::shared_ptr<ConVar<bool>> m_useDirectListing;
+		std::shared_ptr<ConVar<std::string>> m_listingHostOverride;
+
+		std::shared_ptr<ConVar<bool>> m_forceIndirectListing;
 
 		std::shared_ptr<ConVar<std::string>> m_rconPassword;
 
