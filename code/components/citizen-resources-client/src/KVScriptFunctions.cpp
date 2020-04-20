@@ -96,7 +96,7 @@ static std::string FormatKey(const char* key, const std::string& resource = {})
 static void PutResourceKvp(fx::ScriptContext& context, const char* data, size_t size)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
 
 	leveldb::WriteOptions options;
 	options.sync = true;
@@ -109,7 +109,7 @@ static void SetResourceKvp(fx::ScriptContext& context)
 {
 	msgpack::sbuffer buffer;
 	msgpack::packer<msgpack::sbuffer> packer(buffer);
-	packer.pack(context.GetArgument<T>(1));
+	packer.pack(std::is_pointer_v<T> ? context.CheckArgument<T>(1) : context.GetArgument<T>(1));
 
 	PutResourceKvp(context, buffer.data(), buffer.size());
 }
