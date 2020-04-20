@@ -1039,6 +1039,13 @@ namespace fx
 		{
 			inline void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data) const
 			{
+				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getinfo", fx::RateLimiterDefaults{ 2.0, 10.0 });
+
+				if (!limiter->Consume(from))
+				{
+					return;
+				}
+
 				int numClients = 0;
 
 				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
@@ -1072,6 +1079,13 @@ namespace fx
 		{
 			inline void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data) const
 			{
+				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
+
+				if (!limiter->Consume(from))
+				{
+					return;
+				}
+
 				int numClients = 0;
 				std::stringstream clientList;
 
