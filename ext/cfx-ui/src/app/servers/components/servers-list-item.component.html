@@ -1,8 +1,8 @@
 <div class="server-list-item" (click)="showServerDetail()">
     <div class="bg" [style.background-image]="server.sanitizedStyleUri"></div>
 
-    <figure class="icon" (click)="attemptConnect($event)">
-        <img [src]="server.sanitizedUri" (error)="server.setDefaultIcon()">
+    <figure class="icon" (click)="attemptConnect($event)" #iconFigure>
+        <img [src]="server.sanitizedUri" (error)="server.setDefaultIcon()" *ngIf="premium == 'pt' || server.isDefaultIcon">
     </figure>
 
     <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>

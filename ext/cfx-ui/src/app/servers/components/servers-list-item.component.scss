@@ -24,21 +24,12 @@
 	}
 };
 
-@keyframes fadeIn { 
-	from { filter: saturate(100%) brightness(100%); }
-	to { filter: saturate(200%) brightness(125%); }
-}
-
 @include themeHostWorkaround() using ($theme) {
 	&.platinum {
 		.server-list-item {
 			margin-top: $padding/3;
 
 			box-shadow: 0 0 0 100px rgba(gtv($theme, redColour), .25) inset;
-
-			.icon {
-				animation: fadeIn 1s infinite alternate ease-in-out;
-			}
 		}
 	}
 };
@@ -196,7 +187,7 @@
 	figure {
 		position: relative;
 
-		img {
+		::ng-deep img, img {
 			width: $appServersItemHeight;
 			height: $appServersItemHeight;
 		}

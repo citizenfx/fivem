@@ -1,4 +1,5 @@
-import { Component, Input, ViewChild, ChangeDetectionStrategy, OnDestroy, OnInit, ElementRef, OnChanges, AfterViewInit, NgZone } from '@angular/core';
+import { Component, Input, ViewChild, ChangeDetectionStrategy,
+    OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Server } from '../server';
@@ -9,6 +10,8 @@ import { DiscourseService, BoostData } from 'app/discourse.service';
 import * as hoverintent from 'hoverintent';
 import { ServersService } from '../servers.service';
 
+import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
+
 @Component({
     moduleId: module.id,
     selector: 'servers-list-item',
@@ -17,12 +20,15 @@ import { ServersService } from '../servers.service';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 
-export class ServersListItemComponent implements OnInit, OnDestroy {
+export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewInit {
     @Input()
     server: Server;
 
     @Input()
     pinned = false;
+
+    @ViewChild('iconFigure')
+    iconFigure: ElementRef;
 
     private hoverIntent: any;
 
@@ -30,7 +36,15 @@ export class ServersListItemComponent implements OnInit, OnDestroy {
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
         private serversService: ServersService, private router: Router, private elementRef: ElementRef,
-        private zone: NgZone) { }
+        private zone: NgZone, private renderer: Renderer2) { }
+
+    get premium() {
+        if (!this.server.data.vars) {
+            return '';
+        }
+
+        return this.server.data.vars.premium;
+    }
 
     public ngOnInit() {
         this.hoverIntent = hoverintent(this.elementRef.nativeElement, () => {
@@ -44,6 +58,48 @@ export class ServersListItemComponent implements OnInit, OnDestroy {
 
     public ngOnDestroy() {
         this.hoverIntent.remove();
+    }
+
+    public ngAfterViewInit() {
+        if (this.premium !== 'pt') {
+            (async () => {
+                try {
+                    const response = await fetch(this.server.iconUri);
+
+                    if (!response.ok) {
+                        throw new Error();
+                    }
+
+                    const buffer = await response.arrayBuffer();
+                    const png = parseAPNG(buffer);
+
+                    const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
+
+                    if (isNotAPNG(png)) {
+                        const imageElement = document.createElement('img');
+                        imageElement.src = this.server.iconUri;
+
+                        await imageElement.decode();
+
+                        this.renderer.appendChild(figureElement, imageElement);
+                    } else {
+                        if (png instanceof Error) {
+                            throw png;
+                        }
+
+                        const frame = png.frames[0];
+                        await frame.createImage();
+
+                        const imageElement = frame.imageElement;
+                        await imageElement.decode();
+
+                        this.renderer.appendChild(figureElement, imageElement);
+                    }
+                } catch (e) {
+                    this.server.setDefaultIcon();
+                }
+            })();
+        }
     }
 
     attemptConnect(event: Event) {

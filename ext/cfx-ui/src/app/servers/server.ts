@@ -38,6 +38,7 @@ export class Server {
     currentPlayers: number;
     ping = 9999;
     upvotePower = 0;
+    isDefaultIcon = false;
 
     public static fromObject(sanitizer: DomSanitizer, address: string, object: master.IServerData): Server {
         return new Server(sanitizer, address, object);
@@ -70,6 +71,7 @@ export class Server {
         const svg = Avatar.getFor(this.address);
 
         this.iconUri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+        this.isDefaultIcon = true;
     }
 
     public updatePing(newValue: number): void {

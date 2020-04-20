@@ -33,11 +33,11 @@
     "@types/color": "^3.0.0",
     "@types/js-md5": "0.4.2",
     "@types/node-forge": "^0.8.4",
-    "@types/offscreencanvas": "^2019.6.0",
     "adaptivecards": "^1.2.0",
     "angular-l10n": "^9.2.0",
     "angular2-moment": "^1.9.0",
     "angulartics2": "^9.0.0",
+    "@citizenfx/apng-js": "1.1.1",
     "autolinker": "^3.1.0",
     "balloon-css": "^1.0.0",
     "bulma": "0.7.5",
@@ -62,7 +62,7 @@
     "postcss-import": "^12.0.1",
     "protobufjs": "^6.8.8",
     "query-string": "^6.8.1",
-    "reconnecting-websocket": "^4.1.10",
+    "reconnecting-websocket": "^4.4.0",
     "resolve-url-loader": "^3.1.0",
     "rxjs": "^6.5.5",
     "rxjs-compat": "^6.5.2",
@@ -84,7 +84,7 @@
     "codelyzer": "^5.1.2",
     "ts-node": "~8.3.0",
     "tslint": "~5.18.0",
-    "typescript": "3.6.4",
+    "typescript": "3.8.3",
     "webpack-cli": "^3.3.5"
   }
 }
