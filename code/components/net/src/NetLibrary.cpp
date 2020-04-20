@@ -1119,8 +1119,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
 
-				auto continueAfterEndpoints = [=](const nlohmann::json& endpointsJson)
+				auto continueAfterEndpoints = [=, capNode = node](const nlohmann::json& capEndpointsJson)
 				{
+					// copy to a non-const `json` so operator[] won't use the read-only version asserting on missing key
+					auto node = capNode;
+					auto endpointsJson = capEndpointsJson;
+
 					try
 					{
 						// gather endpoints
@@ -1133,7 +1137,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								endpoints.push_back(endpoint.get<std::string>());
 							}
 						}
-						else
+
+						if (endpoints.empty())
 						{
 							auto uri = skyr::make_url(url);
 							std::string endpoint;
