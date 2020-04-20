@@ -16,6 +16,7 @@ extern fwEvent<std::chrono::microseconds, std::chrono::microseconds> OnVSync;
 
 static HookFunction initFunction([] ()
 {
+#ifndef IS_RDR3
 	OnVSync.Connect([](std::chrono::microseconds, std::chrono::microseconds)
 	{
 		Instance<NUIWindowManager>::Get()->ForAllWindows([=](fwRefContainer<NUIWindow> window)
@@ -28,6 +29,7 @@ static HookFunction initFunction([] ()
 			window->SendBeginFrame();
 		});
 	});
+#endif
 
 	g_nuiGi->OnRender.Connect([]()
 	{
