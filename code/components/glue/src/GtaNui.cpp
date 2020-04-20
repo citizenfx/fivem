@@ -559,6 +559,7 @@ static InitFunction initFunction([]()
 			fn();
 		}
 
+#ifndef IS_RDR3
 		if (nui::HasMainUI() || nui::HasFrame("loadScreen"))
 		{
 			GfxForceVsync(true);
@@ -567,6 +568,7 @@ static InitFunction initFunction([]()
 		{
 			GfxForceVsync(false);
 		}
+#endif
 
 		nuiGi.OnRender();
 	}, -1000);
