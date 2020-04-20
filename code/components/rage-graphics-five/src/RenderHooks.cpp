@@ -31,6 +31,8 @@ fwEvent<> OnPostFrontendRender;
 fwEvent<bool*> OnRequestInternalScreenshot;
 fwEvent<const uint8_t*, int, int> OnInternalScreenshot;
 
+static bool g_useFlipModel = false;
+
 static bool g_overrideVsync;
 
 static void(*g_origCreateCB)(const char*);
@@ -359,17 +361,18 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		scDesc1.SampleDesc = pSwapChainDesc->SampleDesc;
 		scDesc1.SwapEffect = pSwapChainDesc->SwapEffect;
 
-		/*
-		// probe if DXGI 1.5 is available (Win10 RS1+)
-		WRL::ComPtr<IDXGIFactory5> factory5;
-
-		if (SUCCEEDED(dxgiFactory.As(&factory5)))
+		if (g_useFlipModel)
 		{
-			scDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-			scDesc1.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-			g_allowTearing = true;
+			// probe if DXGI 1.5 is available (Win10 RS1+)
+			WRL::ComPtr<IDXGIFactory5> factory5;
+
+			if (SUCCEEDED(dxgiFactory.As(&factory5)))
+			{
+				scDesc1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+				scDesc1.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+				g_allowTearing = true;
+			}
 		}
-		*/
 
 		g_swapChainFlags = scDesc1.Flags;
 
@@ -1316,6 +1319,35 @@ static LONG_PTR SetWindowLongPtrAHook(HWND hWnd,
 	return SetWindowLongPtrA(hWnd, nIndex, dwNewLong);
 }
 
+#include <concurrent_unordered_map.h>
+
+static concurrency::concurrent_unordered_map<void*, bool> g_queriesSetUp;
+static void(*g_origWaitForQuery)(void*);
+
+static void WaitForQueryHook(void* query)
+{
+	if (g_queriesSetUp[query])
+	{
+		g_origWaitForQuery(query);
+	}
+
+	g_queriesSetUp[query] = false;
+}
+
+static void(*g_origSetupQuery)(void*);
+
+static void SetupQueryHook(void* query)
+{
+	// vsync override means we want to live in real time
+	if (g_overrideVsync)
+	{
+		return;
+	}
+
+	g_origSetupQuery(query);
+	g_queriesSetUp[query] = true;
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
@@ -1423,4 +1455,15 @@ static HookFunction hookFunction([] ()
 		//hook::iat("user32.dll", HookAdjustWindowRect, "AdjustWindowRect");
 		hook::iat("user32.dll", SetWindowLongPtrAHook, "SetWindowLongPtrA");
 	}
+
+	// some changes for timing (remove OS yields)
+
+	// present sleeper
+	hook::return_function(hook::get_pattern("0F 2F F0 76 0B  0F 2F F8 76 06 F3 0F 5E F7", -0x8F));
+
+	// disable render queries if in load screen thread
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("84 C0 75 E8 48 83 C4 20 5B C3", -0x1F), WaitForQueryHook, (void**)&g_origWaitForQuery);
+	MH_CreateHook(hook::get_pattern("41 3B C3 74 30 4C 63 CB 44", -0x1F), SetupQueryHook, (void**)&g_origSetupQuery);
+	MH_EnableHook(MH_ALL_HOOKS);
 });

@@ -559,6 +559,15 @@ static InitFunction initFunction([]()
 			fn();
 		}
 
+		if (nui::HasMainUI() || nui::HasFrame("loadScreen"))
+		{
+			GfxForceVsync(true);
+		}
+		else
+		{
+			GfxForceVsync(false);
+		}
+
 		nuiGi.OnRender();
 	}, -1000);
 

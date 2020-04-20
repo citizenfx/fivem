@@ -491,14 +491,14 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 
 #include <d3d11_1.h>
 
-void NUIWindow::UpdateFrame()
+void NUIWindow::SendBeginFrame()
 {
 	if (m_client)
 	{
 		auto client = ((NUIClient*)m_client.get());
 
 		auto browser = client->GetBrowser();
-		
+
 		if (browser)
 		{
 			auto host = browser->GetHost();
@@ -508,6 +508,16 @@ void NUIWindow::UpdateFrame()
 				host->SendExternalBeginFrame();
 			}
 		}
+	}
+}
+
+void NUIWindow::UpdateFrame()
+{
+#ifndef IS_RDR3
+	if (GetPaintType() != NUIPaintTypePostRender)
+#endif
+	{
+		SendBeginFrame();
 	}
 
 	if (!GetTexture().GetRef())

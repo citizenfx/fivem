@@ -12,9 +12,23 @@ extern POINT g_cursorPos;
 extern bool g_isDragging;
 
 extern fwRefContainer<nui::GITexture> g_cursorTexture;
+extern fwEvent<std::chrono::microseconds, std::chrono::microseconds> OnVSync;
 
 static HookFunction initFunction([] ()
 {
+	OnVSync.Connect([](std::chrono::microseconds, std::chrono::microseconds)
+	{
+		Instance<NUIWindowManager>::Get()->ForAllWindows([=](fwRefContainer<NUIWindow> window)
+		{
+			if (window->GetPaintType() != NUIPaintTypePostRender)
+			{
+				return;
+			}
+
+			window->SendBeginFrame();
+		});
+	});
+
 	g_nuiGi->OnRender.Connect([]()
 	{
 		if (nui::HasMainUI())
