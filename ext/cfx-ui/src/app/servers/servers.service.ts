@@ -106,13 +106,6 @@ export class ServersService {
                     this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
                 });
 
-            const canvas = new OffscreenCanvas(2560, 40);
-
-            this.worker.postMessage({
-                type: 'setCanvas',
-                canvas
-            }, [ canvas ]);
-
             this.subscribeWebSocket();
         }
 

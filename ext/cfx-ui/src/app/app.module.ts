@@ -68,8 +68,6 @@ const localePrefix = (environment.web) ? '/' : './';
 		@Optional() private injector: Injector) { }
 
     public get(language: string, provider: L10nProvider): Observable<{ [key: string]: any }> {
-		console.log(language);
-
 		const url = `${provider.asset}-${language}.json`;
 		const defTranslationUrl = `${provider.asset}-en.json`;
 		const options = {
