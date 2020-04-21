@@ -112,5 +112,7 @@ namespace vfs
 
 	public:
 		bool OpenArchive(const std::string& archivePath);
+
+		bool OpenArchive(const std::string& archivePath, std::string* errorState);
 	};
 }

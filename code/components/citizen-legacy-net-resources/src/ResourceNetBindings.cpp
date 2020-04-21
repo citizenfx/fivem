@@ -54,6 +54,8 @@ static NetAddress g_netAddress;
 
 static std::set<std::string> g_resourceStartRequestSet;
 
+using ResultTuple = std::tuple<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>, std::string>;
+
 static std::string CrackResourceName(const std::string& uri)
 {
 	auto parsed = skyr::make_url(uri);
@@ -70,7 +72,7 @@ static std::string CrackResourceName(const std::string& uri)
 	return "MISSING";
 }
 
-static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::string>>> DownloadResources(std::vector<std::string> requiredResources, NetLibrary* netLibrary)
+static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::string> requiredResources, NetLibrary* netLibrary)
 {
 	struct ProgressData
 	{
@@ -80,7 +82,7 @@ static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::stri
 
 	fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
 
-	std::vector<std::tuple<fwRefContainer<fx::Resource>, std::string>> list;
+	std::vector<ResultTuple> list;
 
 	auto progressCounter = std::make_shared<ProgressData>();
 	progressCounter->current = 0;
@@ -118,7 +120,7 @@ static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::stri
 				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total);
 		});
 
-		auto resource = co_await manager->AddResource(resourceUri);
+		auto resource = co_await manager->AddResourceWithError(resourceUri);
 
 		// report progress
 		int currentCount = progressCounter->current.fetch_add(1) + 1;
@@ -128,7 +130,7 @@ static pplx::task<std::vector<std::tuple<fwRefContainer<fx::Resource>, std::stri
 		list.emplace_back(resource, resourceName);
 	}
 
-	return list;
+	co_return list;
 }
 
 static NetLibrary* g_netLibrary;
@@ -440,19 +442,17 @@ static InitFunction initFunction([] ()
 					g_resourceStartRequestSet.erase(updateList);
 				}
 
-				using ResultTuple = std::tuple<fwRefContainer<fx::Resource>, std::string>;
-
 				DownloadResources(requiredResources, netLibrary).then([=] (std::vector<ResultTuple> resources)
 				{
 					for (auto& resourceData : resources)
 					{
-						auto resource = std::get<fwRefContainer<fx::Resource>>(resourceData);
+						auto resource = std::get<0>(resourceData);
 
-						if (!resource.GetRef())
+						if (!resource)
 						{
 							if (updateList.empty())
 							{
-								GlobalError("Couldn't load resource %s. :(", std::get<std::string>(resourceData));
+								GlobalError("Couldn't load resource %s: %s", std::get<std::string>(resourceData), resource.error().Get());
 							}
 
 							executeNextGameFrame.push([]
@@ -466,7 +466,7 @@ static InitFunction initFunction([] ()
 
 					for (auto& resourceData : resources)
 					{
-						auto resource = std::get<fwRefContainer<fx::Resource>>(resourceData);
+						auto resource = std::get<0>(resourceData).value_or(nullptr);
 
 						if (resource.GetRef())
 						{
@@ -476,7 +476,7 @@ static InitFunction initFunction([] ()
 							{
 								if (!resource->Start())
 								{
-									GlobalError("Couldn't start resource %s. :(", resourceName.c_str());
+									GlobalError("Couldn't start resource %s.", resourceName.c_str());
 								}
 							});
 						}

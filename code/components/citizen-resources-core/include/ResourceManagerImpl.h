@@ -39,6 +39,8 @@ public:
 
 	virtual pplx::task<fwRefContainer<Resource>> AddResource(const std::string& uri) override;
 
+	virtual pplx::task<tl::expected<fwRefContainer<Resource>, ResourceManagerError>> AddResourceWithError(const std::string& uri) override;
+
 	virtual fwRefContainer<Resource> GetResource(const std::string& identifier, bool withProvides) override;
 
 	virtual void ForAllResources(const std::function<void(const fwRefContainer<Resource>&)>& function) override;

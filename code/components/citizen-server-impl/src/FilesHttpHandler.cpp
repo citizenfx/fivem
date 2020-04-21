@@ -11,6 +11,7 @@
 #include <ClientRegistry.h>
 
 #include <array>
+#include <filesystem>
 
 /*template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
 void UvCallback(Handle* handle, T1 a1)
@@ -111,6 +112,18 @@ namespace fx
 			// make a global request we reuse
 			auto req = std::make_shared<uv_fs_t>();
 
+			std::string fnRel = "<>";
+
+			try
+			{
+				std::filesystem::path filePath(fn);
+				fnRel = filePath.lexically_relative(instance->GetRootPath()).string();
+			}
+			catch (std::exception& e)
+			{
+
+			}
+
 			// stat() the file
 			uv_fs_stat(uvLoop, req.get(), fn.c_str(), UvCallbackWrap<uv_fs_t>(req.get(), [=](uv_fs_t* fsReq)
 			{
@@ -118,7 +131,7 @@ namespace fx
 				if (req->result < 0)
 				{
 					response->SetStatusCode(500);
-					response->End(fmt::sprintf("Stat of file failed. Error code from libuv: %d", int32_t(req->result)));
+					response->End(fmt::sprintf("Stat of file %s failed. Error code from libuv: %s (%d)", fnRel, uv_strerror(req->result), int32_t(req->result)));
 					return;
 				}
 
@@ -137,7 +150,7 @@ namespace fx
 					if (req->result < 0)
 					{
 						response->SetStatusCode(500);
-						response->End("Opening file failed.");
+						response->End(fmt::sprintf("Opening file %s failed. Error code from libuv: %s (%d)", fnRel, uv_strerror(req->result), int32_t(req->result)));
 						return;
 					}
 

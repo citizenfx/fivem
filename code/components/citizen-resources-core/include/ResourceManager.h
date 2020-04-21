@@ -16,6 +16,8 @@
 
 #include <ComponentHolder.h>
 
+#include <tl/expected.hpp>
+
 #include <msgpack.hpp>
 
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
@@ -71,6 +73,11 @@ public:
 	// Adds a resource to the resource manager from the passed resource URI.
 	//
 	virtual pplx::task<fwRefContainer<Resource>> AddResource(const std::string& uri) = 0;
+
+	//
+	// Adds a resource to the resource manager from the passed resource URI, returning a tl::expected.
+	//
+	virtual pplx::task<tl::expected<fwRefContainer<Resource>, ResourceManagerError>> AddResourceWithError(const std::string& uri) = 0;
 
 	//
 	// Gets the mounter that is responsible for handling a particular resource URI.

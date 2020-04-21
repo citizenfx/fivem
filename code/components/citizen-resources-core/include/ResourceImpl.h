@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -27,7 +27,7 @@ private:
 public:
 	ResourceImpl(const std::string& name, ResourceManagerImpl* manager);
 
-	virtual bool LoadFrom(const std::string& rootPath) override;
+	virtual bool LoadFrom(const std::string& rootPath, std::string* errorState) override;
 
 	virtual const std::string& GetName() override;
 

@@ -130,7 +130,7 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 			auto failure = fmt::sprintf("HTTP %d%s",
 				code,
 				addErrorBody
-					? fmt::sprintf(" / %s", this->errorBody.str())
+					? fmt::sprintf(": %s", this->errorBody.str())
 					: "");
 
 			callback(false, failure.c_str(), failure.size());

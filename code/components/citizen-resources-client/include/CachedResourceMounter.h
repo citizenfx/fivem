@@ -41,6 +41,8 @@ namespace fx
 
 		virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
 
+		virtual pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>> LoadResourceWithError(const std::string& uri) override;
+
 	protected:
 		struct ResourceFileEntry
 		{
@@ -60,7 +62,7 @@ namespace fx
 	protected:
 		virtual fwRefContainer<fx::Resource> InitializeLoad(const std::string& uri, skyr::url* parsedUri);
 
-		virtual fwRefContainer<vfs::Device> OpenResourcePackfile(const fwRefContainer<fx::Resource>& resource);
+		virtual tl::expected<fwRefContainer<vfs::Device>, ResourceManagerError> OpenResourcePackfile(const fwRefContainer<fx::Resource>& resource);
 
 	protected:
 		std::multimap<std::string, ResourceFileEntry> m_resourceEntries;

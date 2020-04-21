@@ -24,6 +24,24 @@ class Resource;
 
 class ResourceManager;
 
+class ResourceManagerError
+{
+public:
+	inline explicit ResourceManagerError(const std::string& error)
+		: m_error(error)
+	{
+
+	}
+
+	inline const std::string& Get() const
+	{
+		return m_error;
+	}
+
+private:
+	std::string m_error;
+};
+
 enum class ResourceState
 {
 	Uninitialized,
@@ -57,9 +75,17 @@ public:
 	virtual ResourceState GetState() = 0;
 
 	//
+	// Loads the resource from the specified root path - compatibility wrapper.
+	//
+	inline bool LoadFrom(const std::string& rootPath)
+	{
+		return LoadFrom(rootPath, nullptr);
+	}
+
+	//
 	// Loads the resource from the specified root path.
 	//
-	virtual bool LoadFrom(const std::string& rootPath) = 0;
+	virtual bool LoadFrom(const std::string& rootPath, std::string* errorResult) = 0;
 
 	//
 	// Starts the resource.

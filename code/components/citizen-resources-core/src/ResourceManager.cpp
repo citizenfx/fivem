@@ -64,19 +64,30 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 
 pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std::string& uri)
 {
+	return AddResourceWithError(uri)
+		.then([](tl::expected<fwRefContainer<Resource>, ResourceManagerError> result)
+	{
+		return result.value_or(nullptr);
+	});
+}
+
+pplx::task<tl::expected<fwRefContainer<Resource>, ResourceManagerError>> ResourceManagerImpl::AddResourceWithError(const std::string& uri)
+{
 	// find a valid mounter for this scheme
 	auto mounter = GetMounterForUri(uri);
 
 	// and forward to the mounter, if any.
 	if (mounter.GetRef())
 	{
-		pplx::task_completion_event<fwRefContainer<Resource>> completionEvent;
+		pplx::task_completion_event<tl::expected<fwRefContainer<Resource>, ResourceManagerError>> completionEvent;
 
 		// set a completion event, as well
-		mounter->LoadResource(uri).then([=] (fwRefContainer<Resource> resource)
+		mounter->LoadResourceWithError(uri).then([=] (tl::expected<fwRefContainer<Resource>, ResourceManagerError> resourceRef)
 		{
-			if (resource.GetRef())
+			if (resourceRef)
 			{
+				auto resource = resourceRef.value();
+
 				// handle provides
 				auto md = resource->GetComponent<ResourceMetaDataComponent>();
 
@@ -87,13 +98,13 @@ pplx::task<fwRefContainer<Resource>> ResourceManagerImpl::AddResource(const std:
 				}
 			}
 
-			completionEvent.set(resource);
+			completionEvent.set(resourceRef);
 		});
 
-		return pplx::task<fwRefContainer<Resource>>(completionEvent);
+		return pplx::task<tl::expected<fwRefContainer<Resource>, ResourceManagerError>>(completionEvent);
 	}
 
-	return pplx::task_from_result<fwRefContainer<Resource>>(nullptr);
+	return pplx::task_from_result<tl::expected<fwRefContainer<Resource>, ResourceManagerError>>(tl::make_unexpected(ResourceManagerError{ "No mounter for resource URI." }));
 }
 
 void ResourceManagerImpl::AddResourceInternal(fwRefContainer<Resource> resource)

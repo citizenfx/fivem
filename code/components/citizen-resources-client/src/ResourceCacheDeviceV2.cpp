@@ -20,6 +20,8 @@
 
 #include <SHA1.h>
 
+#include <VFSError.h>
+
 #include <pplawait.h>
 #include <experimental/resumable>
 
@@ -66,12 +68,20 @@ bool RcdBaseStream::EnsureRead()
 			m_parentHandle = OpenFile(localPath);
 			assert(m_parentHandle != INVALID_DEVICE_HANDLE);
 		}
+		catch (const RcdFetchFailedException& e)
+		{
+			m_fetcher->UnfetchEntry(m_fileName);
+
+			throw;
+		}
 		catch (const std::exception& e)
 		{
 			// propagate throw for nonblocking
 			if (!m_fetcher->IsBlocking())
 			{
-				throw e;
+				m_fetcher->UnfetchEntry(m_fileName);
+
+				throw;
 			}
 
 			FatalError("Unable to ensure read in RCD: %s\n\nPlease report this issue, together with the information from 'Save information' down below on https://forum.fivem.net/.", e.what());
@@ -105,6 +115,8 @@ size_t RcdStream::Read(void* outBuffer, size_t size)
 	}
 	catch (const std::exception& e)
 	{
+		m_fetcher->PropagateError(e.what());
+
 		trace(__FUNCTION__ ": failing read for %s\n", e.what());
 
 		return -1;
@@ -124,6 +136,8 @@ size_t RcdStream::Seek(intptr_t off, int at)
 	}
 	catch (const std::exception& e)
 	{
+		m_fetcher->PropagateError(e.what());
+
 		trace(__FUNCTION__ ": failing seek for %s\n", e.what());
 
 		return -1;
@@ -172,6 +186,8 @@ size_t RcdBulkStream::ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
 	}
 	catch (const std::exception& e)
 	{
+		m_fetcher->PropagateError(e.what());
+
 		trace(__FUNCTION__ ": failing read for %s\n", e.what());
 
 		return -1;
@@ -267,12 +283,31 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 	const auto& referenceHash = e.referenceHash;
 	auto it = ms_entries.find(referenceHash);
 
-	if (it == ms_entries.end())
+	if (it == ms_entries.end() || !it->second)
 	{
 		it = ms_entries.emplace(referenceHash, concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry))).first;
 	}
 
-	return it->second;
+	return *it->second;
+}
+
+void ResourceCacheDeviceV2::UnfetchEntry(const std::string& fileName)
+{
+	auto entry = GetEntryForFileName(fileName);
+
+	if (entry)
+	{
+		std::unique_lock<std::mutex> lock(ms_lock);
+
+		const auto& e = entry->get();
+		const auto& referenceHash = e.referenceHash;
+		auto it = ms_entries.find(referenceHash);
+
+		if (it != ms_entries.end())
+		{
+			it->second = {};
+		}
+	}
 }
 
 concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceCacheEntryList::Entry& entryRef)
@@ -288,6 +323,9 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 			entry.GetMetaData()
 		};
 	};
+
+	int tries = 0;
+	std::string lastError = "Unknown error.";
 
 	do
 	{
@@ -332,6 +370,11 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				else
 				{
 					trace(__FUNCTION__ ": %s hash %s does not match %s - redownloading\n",
+						entry.basename,
+						hashString,
+						entry.referenceHash);
+
+					lastError = fmt::sprintf("%s hash %s does not match %s",
 						entry.basename,
 						hashString,
 						entry.referenceHash);
@@ -410,12 +453,20 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 			{
 				auto error = std::get<std::string>(std::get<1>(fetchResult));
 
+				lastError = fmt::sprintf("Failure downloading %s: %s", entry.basename, error);
 				trace("^3ResourceCacheDevice reporting failure downloading %s: %s\n", entry.basename, error);
 			}
 		}
+
+		if (tries > 5)
+		{
+			throw RcdFetchFailedException(lastError);
+		}
+
+		tries++;
 	} while (!result);
 
-	return *result;
+	co_return *result;
 }
 
 fwRefContainer<vfs::Stream> ResourceCacheDeviceV2::GetVerificationStream(const ResourceCacheEntryList::Entry& entry, const ResourceCache::Entry& cacheEntry)
@@ -502,6 +553,14 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 			data->flags.flag2 = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
 			return true;
 		}
+	}
+	else if (controlIdx == VFS_GET_DEVICE_LAST_ERROR)
+	{
+		vfs::GetLastErrorExtension* data = (vfs::GetLastErrorExtension*)controlData;
+
+		data->outError = m_lastError;
+
+		return true;
 	}
 	else if (controlIdx == VFS_GET_RCD_DEBUG_INFO)
 	{
@@ -592,7 +651,7 @@ ResourceCacheDeviceV2::ResourceCacheDeviceV2(const std::shared_ptr<ResourceCache
 }
 
 std::mutex ResourceCacheDeviceV2::ms_lock;
-tbb::concurrent_unordered_map<std::string, concurrency::task<RcdFetchResult>> ResourceCacheDeviceV2::ms_entries;
+tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ResourceCacheDeviceV2::ms_entries;
 }
 
 void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache)

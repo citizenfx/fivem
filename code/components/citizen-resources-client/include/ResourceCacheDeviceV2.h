@@ -13,6 +13,15 @@ namespace resources
 {
 class RcdFetcher;
 
+class RcdFetchFailedException : public std::runtime_error
+{
+public:
+	RcdFetchFailedException(const std::string& reason)
+		: std::runtime_error(fmt::sprintf("Failed to fetch: %s", reason))
+	{
+	}
+};
+
 class
 #ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
 	DLL_EXPORT
@@ -122,11 +131,15 @@ public:
 
 	virtual concurrency::task<RcdFetchResult> FetchEntry(const std::string& fileName) = 0;
 
+	virtual void UnfetchEntry(const std::string& fileName) = 0;
+
 	virtual std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> GetEntryForFileName(std::string_view fileName) = 0;
 
 	virtual size_t GetLength(const std::string& fileName) = 0;
 
 	virtual bool ExistsOnDisk(const std::string& fileName) = 0;
+
+	virtual void PropagateError(const std::string& error) = 0;
 };
 
 class
@@ -152,6 +165,8 @@ public:
 
 	virtual concurrency::task<RcdFetchResult> FetchEntry(const std::string& fileName) override;
 
+	virtual void UnfetchEntry(const std::string& fileName) override;
+
 	virtual inline bool IsBlocking() override
 	{
 		return m_blocking;
@@ -162,6 +177,11 @@ public:
 	void SetPathPrefix(const std::string& pathPrefix) override
 	{
 		m_pathPrefix = pathPrefix;
+	}
+
+	void PropagateError(const std::string& error) override
+	{
+		m_lastError = error;
 	}
 
 protected:
@@ -179,11 +199,13 @@ private:
 	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry);
 
 protected:
-	static tbb::concurrent_unordered_map<std::string, concurrency::task<RcdFetchResult>> ms_entries;
+	static tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ms_entries;
 
 	std::shared_ptr<ResourceCache> m_cache;
 	bool m_blocking;
 
 	std::string m_pathPrefix;
+
+	std::string m_lastError;
 };
 }

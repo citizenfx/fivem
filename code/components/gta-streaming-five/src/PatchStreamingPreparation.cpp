@@ -14,6 +14,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <VFSError.h>
+#include <VFSManager.h>
+
 static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
 
 static std::unordered_map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>> g_handleMap;
@@ -200,17 +203,12 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 					{
 						shouldRemove = true;
 
-						g_failures[fileName]++;
+						std::string error;
+						ICoreGameInit* init = Instance<ICoreGameInit>::Get();
 
-						if (g_failures[fileName] > 3)
-						{
-							std::string error;
-							ICoreGameInit* init = Instance<ICoreGameInit>::Get();
+						init->GetData("gta-core-five:loadCaller", &error);
 
-							init->GetData("gta-core-five:loadCaller", &error);
-
-							FatalError("Failed to request %s. %s", error);
-						}
+						FatalError("Failed to request %s: %s. %s", fileName, vfs::GetLastError(vfs::GetDevice(fileName)), error);
 					}
 
 					if (killHandle)
