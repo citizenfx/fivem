@@ -85,10 +85,12 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 {
 	static thread_local bool inError = false;
 	static thread_local std::string lastError;
+	static bool inFatalError = false;
+	static std::string lastFatalError;
 
 	trace("GlobalError: %s\n", buffer);
 
-	if (inError)
+	if (inError || (eType == ERR_FATAL && inFatalError))
 	{
 		static thread_local bool inRecursiveError = false;
 		static thread_local std::string lastRecursiveError;
@@ -98,7 +100,11 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 			return SysError(va("Recursive-recursive error: %s\n%s", buffer, lastRecursiveError));
 		}
 
-		auto e = va("Recursive error: %s\nOriginal error: %s", buffer, lastError);
+		auto e = va("Recursive error: %s\nOriginal error: %s",
+			buffer,
+			lastFatalError.empty()
+				? lastError
+				: lastFatalError);
 
 		inRecursiveError = true;
 		lastRecursiveError = e;
@@ -134,6 +140,9 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 	}
 	else
 	{
+		inFatalError = true;
+		lastFatalError = buffer;
+
 		return SysError(buffer);
 	}
 
