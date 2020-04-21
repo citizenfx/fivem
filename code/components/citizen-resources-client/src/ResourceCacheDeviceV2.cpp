@@ -458,7 +458,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 			}
 		}
 
-		if (tries > 5)
+		if (tries >= 4)
 		{
 			throw RcdFetchFailedException(lastError);
 		}
