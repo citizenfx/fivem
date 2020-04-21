@@ -48,7 +48,7 @@ namespace gl {
 	}  // namespace
 
 	   
-	static InitFunction initFunction([]()
+	static HookFunction postInitFunction([]()
 	{
 		std::thread([]()
 		{
@@ -62,7 +62,7 @@ namespace gl {
 			{
 				if (!g_nuiGi || !g_nuiGi->GetD3D11Device())
 				{
-					Sleep(0);
+					Sleep(50);
 					continue;
 				}
 
