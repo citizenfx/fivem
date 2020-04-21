@@ -90,9 +90,14 @@ namespace gl {
 					}
 				}
 
+				// according to https://crbug.com/953970#c30:
+				// "there is a process wide lock in Win7 there prevents other DX from running in the process if you call WaitForVBlank."
+				// stick to the approximate sleep code path on Win7 therefore
+				static auto win8 = IsWindows8OrGreater();
+
 				std::chrono::steady_clock::duration wait_for_vblank_start_time = std::chrono::high_resolution_clock::now().time_since_epoch();
 				bool wait_for_vblank_succeeded =
-					primary_output_ && SUCCEEDED(primary_output_->WaitForVBlank());
+					primary_output_ && win8 && SUCCEEDED(primary_output_->WaitForVBlank());
 
 				// WaitForVBlank returns very early instead of waiting until vblank when the
 				// monitor goes to sleep.  We use 1ms as a threshold for the duration of
