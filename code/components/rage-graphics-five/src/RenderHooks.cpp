@@ -1127,7 +1127,12 @@ void D3DPresent(int syncInterval, int flags)
 {
 	if (g_overrideVsync)
 	{
-		syncInterval = 1;
+		static auto win10 = IsWindows10OrGreater();
+
+		if (win10)
+		{
+			syncInterval = 1;
+		}
 	}
 
 	if (syncInterval == 0)
