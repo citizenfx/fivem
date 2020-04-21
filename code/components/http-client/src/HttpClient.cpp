@@ -64,6 +64,8 @@ public:
 	std::shared_ptr<int> responseCode;
 	std::chrono::milliseconds timeoutNoResponse;
 	std::chrono::high_resolution_clock::duration reqStart;
+	std::stringstream errorBody;
+	bool addErrorBody;
 
 	CurlData();
 
@@ -86,6 +88,17 @@ CurlData::CurlData()
 
 size_t CurlData::HandleWrite(const void* data, size_t size, size_t nmemb)
 {
+	if (addErrorBody)
+	{
+		long code;
+		curl_easy_getinfo(curlHandle, CURLINFO_RESPONSE_CODE, &code);
+
+		if (code >= 400)
+		{
+			errorBody << std::string((const char*)data, size * nmemb);
+		}
+	}
+
 	return writeFunction(data, size * nmemb);
 }
 
@@ -114,7 +127,11 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 
 		if (code >= 400)
 		{
-			auto failure = fmt::sprintf("HTTP %d", code);
+			auto failure = fmt::sprintf("HTTP %d%s",
+				code,
+				addErrorBody
+					? fmt::sprintf(" / %s", this->errorBody.str())
+					: "");
 
 			callback(false, failure.c_str(), failure.size());
 		}
@@ -341,6 +358,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curlData->responseHeaders = options.responseHeaders;
 	curlData->responseCode = options.responseCode;
 	curlData->timeoutNoResponse = options.timeoutNoResponse;
+	curlData->addErrorBody = options.addErrorBody;
 
 	auto scb = options.streamingCallback;
 

@@ -372,6 +372,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				options.headers["X-CitizenFX-Token"] = connectionToken;
 			}
 
+			options.addErrorBody = true;
+
 			auto req = Instance<HttpClient>::Get()->DoFileGetRequest(entry.remoteUrl, vfs::GetDevice(outFileName), outFileName, options, [tce, outFileName](bool result, const char* errorData, size_t outSize)
 			{
 				if (result)
