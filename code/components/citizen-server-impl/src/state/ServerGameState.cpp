@@ -2832,6 +2832,166 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 	}
 }
 
+struct CWeaponDamageEvent
+{
+	void Parse(rl::MessageBuffer& buffer);
+
+	inline std::string GetName()
+	{
+		return "weaponDamageEvent";
+	}
+
+	uint8_t damageType;
+	uint32_t weaponType; // weaponHash
+
+	bool overrideDefaultDamage;
+	bool hitEntityWeapon;
+	bool hitWeaponAmmoAttachment;
+	bool silenced;
+
+	uint32_t damageFlags;
+	bool f80_1;
+
+	uint32_t f100;
+	uint16_t f116;
+	uint32_t f104;
+
+	uint16_t weaponDamage;
+	bool f135;
+
+	uint16_t f48;
+	uint16_t f52;
+	uint16_t f56;
+
+	bool f112;
+
+	uint32_t damageTime;
+	bool willKill;
+	uint32_t f120;
+	bool hasVehicleData;
+
+	uint16_t f112_1;
+
+	uint16_t parentGlobalId; // Source entity?
+	uint16_t hitGlobalId; // Target entity?
+
+	uint8_t tyreIndex;
+	uint8_t suspensionIndex;
+	uint8_t hitComponent;
+
+	bool f133;
+	bool f125;
+
+	uint16_t f64;
+	uint16_t f68;
+	uint16_t f72;
+
+	MSGPACK_DEFINE_MAP(damageType, weaponType, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, damageFlags, f80_1, f100, f116, f104, weaponDamage, f135, f48, f52, f56, f112, damageTime, willKill, f120, hasVehicleData, f112_1, parentGlobalId, hitGlobalId, tyreIndex, suspensionIndex, hitComponent, f133, f125, f64, f68, f72);
+};
+
+void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
+{
+	damageType = buffer.Read<uint8_t>(2);
+	weaponType = buffer.Read<uint32_t>(32);
+
+	overrideDefaultDamage = buffer.Read<uint8_t>(1);
+	hitEntityWeapon = buffer.Read<uint8_t>(1);
+	hitWeaponAmmoAttachment = buffer.Read<uint8_t>(1);
+	silenced = buffer.Read<uint8_t>(1);
+
+	damageFlags = buffer.Read<uint32_t>(21);
+	// (damageFlags >> 1) & 1
+	f80_1 = buffer.Read<uint8_t>(1);
+
+	if (f80_1)
+	{
+		f100 = buffer.Read<uint32_t>(32);
+		f116 = buffer.Read<uint16_t>(16);
+		f104 = buffer.Read<uint32_t>(32);
+	}
+
+	if (overrideDefaultDamage)
+	{
+		weaponDamage = buffer.Read<uint16_t>(14);
+	}
+	else
+	{
+		weaponDamage = 0;
+	}
+
+	f135 = buffer.Read<uint8_t>(1);
+
+	if (f135)
+	{
+		f48 = buffer.Read<uint16_t>(16);
+		f52 = buffer.Read<uint16_t>(16);
+		f56 = buffer.Read<uint16_t>(16);
+	}
+
+	if (damageType == 3)
+	{
+		damageTime = buffer.Read<uint32_t>(32);
+		willKill = buffer.Read<uint8_t>(1);
+
+		if (f80_1)
+		{
+			hitGlobalId = buffer.Read<uint16_t>(13);
+		}
+		else
+		{
+			hitGlobalId = 0;
+		}
+
+		f112 = buffer.Read<uint8_t>(1);
+
+		if (!f112)
+		{
+			f112_1 = buffer.Read<uint16_t>(11);
+		}
+		else
+		{
+			f112_1 = buffer.Read<uint16_t>(16);
+		}
+	}
+	else
+	{
+		parentGlobalId = buffer.Read<uint16_t>(13);
+		hitGlobalId = buffer.Read<uint16_t>(13);
+
+		if (damageType < 2)
+		{
+			f48 = buffer.Read<uint16_t>(16);
+			f52 = buffer.Read<uint16_t>(16);
+			f56 = buffer.Read<uint16_t>(16);
+
+			if (damageType == 1)
+			{
+				hasVehicleData = buffer.Read<uint8_t>(1);
+
+				if (hasVehicleData)
+				{
+					tyreIndex = buffer.Read<uint8_t>(4); // +122
+					suspensionIndex = buffer.Read<uint8_t>(4); // +123
+				}
+			}
+		}
+		else
+		{
+			hitComponent = buffer.Read<uint8_t>(5); // +108
+		}
+	}
+
+	f133 = buffer.Read<uint8_t>(1);
+	f125 = buffer.Read<uint8_t>(1);
+
+	if (f125)
+	{
+		f64 = buffer.Read<uint16_t>(16);
+		f68 = buffer.Read<uint16_t>(16);
+		f72 = buffer.Read<uint16_t>(16);
+	}
+}
+
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
 {
@@ -2950,6 +3110,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 
 	switch(eventType)
 	{
+		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
 	};
