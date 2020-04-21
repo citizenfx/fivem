@@ -560,7 +560,7 @@ static InitFunction initFunction([]()
 		}
 
 #ifndef IS_RDR3
-		if (nui::HasMainUI() || nui::HasFrame("loadScreen"))
+		if (nui::HasMainUI() || nui::HasFrame("loadingScreen"))
 		{
 			GfxForceVsync(true);
 		}
