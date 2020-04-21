@@ -764,7 +764,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 
 			if (uri->protocol() == "http:" || uri->protocol() == "https:")
 			{
-				return uri->href();
+				co_return uri->href();
 			}
 		}
 	}
@@ -808,7 +808,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 			tce.set({});
 		});
 
-		return co_await concurrency::task<std::optional<std::string>>{ tce };
+		co_return co_await concurrency::task<std::optional<std::string>>{ tce };
 	}
 
 	auto peerAddress = net::PeerAddress::FromString(rootUrl);
@@ -823,10 +823,10 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 		newUri.set_host(peerAddress->ToString());
 		newUri.set_pathname("/");
 
-		return newUri.href();
+		co_return newUri.href();
 	}
 
-	return {};
+	co_return {};
 }
 
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
@@ -836,7 +836,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	if (!urlRef)
 	{
 		OnConnectionError(va("Couldn't resolve URL %s.", rootUrl));
-		return;
+		co_return;
 	}
 
 	auto url = *urlRef;
@@ -1553,6 +1553,7 @@ void NetLibrary::FinalizeDisconnect()
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
 
 		m_impl->Flush();
+		m_impl->Reset();
 
 		OnFinalizeDisconnect(m_currentServer);
 
