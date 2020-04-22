@@ -2832,6 +2832,42 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 	}
 }
 
+struct CVehicleComponentControlEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		vehicleGlobalId = buffer.Read<uint16_t>(13);
+		pedGlobalId = buffer.Read<uint16_t>(13);
+		componentIndex = buffer.Read<uint16_t>(5);
+
+		request = buffer.Read<uint8_t>(1);
+		componentIsSeat = buffer.Read<uint8_t>(1);
+
+		if (componentIsSeat && request)
+		{
+			pedInSeat = buffer.Read<uint16_t>(13);
+		}
+		else
+		{
+			pedInSeat = 0;
+		}
+	}
+
+	inline std::string GetName()
+	{
+		return "vehicleComponentControlEvent";
+	}
+
+	int vehicleGlobalId;
+	int pedGlobalId;
+	int componentIndex;
+	bool request;
+	bool componentIsSeat;
+	int pedInSeat;
+
+	MSGPACK_DEFINE_MAP(vehicleGlobalId, pedGlobalId, componentIndex, request, componentIsSeat, pedInSeat);
+};
+
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
 {
@@ -2950,6 +2986,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 
 	switch(eventType)
 	{
+		case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
 	};
