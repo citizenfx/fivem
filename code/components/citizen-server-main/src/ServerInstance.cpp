@@ -123,10 +123,7 @@ namespace fx
 
 				// start webadmin
 				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
-
-#ifdef _WIN32
 				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
-#endif
 
 				// add system console access
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
