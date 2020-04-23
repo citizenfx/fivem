@@ -3088,9 +3088,16 @@ struct CRespawnPlayerPedEvent
 };
 
 template<typename TEvent>
-inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
+inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer) -> std::function<bool()>
 {
 	uint16_t length = buffer.Read<uint16_t>();
+
+	if (length == 0)
+	{
+		return []() {
+			return false;
+		};
+	}
 
 	std::vector<uint8_t> data(length);
 	buffer.Read(data.data(), data.size());
