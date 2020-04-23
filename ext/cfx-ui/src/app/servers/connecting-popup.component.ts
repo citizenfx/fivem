@@ -19,6 +19,7 @@ export class ConnectingPopupComponent implements OnInit {
 	closeLabel = "#Servers_CloseOverlay";
 	retryLabel = "#Servers_Retry";
 	submitting = false;
+	closeKeys = ["Escape", "Backspace", "Delete"];
 
 	@Input()
 	minMode = false;
@@ -313,5 +314,11 @@ export class ConnectingPopupComponent implements OnInit {
 
 	doRetry() {
 		this.retry.emit();
+	}
+
+    onKeyPress(event: KeyboardEvent) {
+		if (this.closeKeys.includes(event.code)) {
+			this.closeOverlay()
+		}
 	}
 }
