@@ -160,6 +160,13 @@ namespace streaming
 		strStreamingModule* GetStreamingModule(int index);
 
 		strStreamingModule* GetStreamingModule(const char* extension);
+
+		strStreamingModule* GetStreamingModuleFromId(int offset);
+
+	private:
+		char m_pad[16];
+
+		atArray<strStreamingModule*> m_modules;
 	};
 
 	// actually CStreaming
@@ -193,8 +200,6 @@ namespace streaming
 		char pad2[368 - 40];
 
 		strStreamingModuleMgr moduleMgr;
-
-		char pad4[32];
 
 		int NumPendingRequests;
 		int NumPendingRequests3;

@@ -62,6 +62,15 @@ static hook::cdecl_stub<rage::fiCollection* ()> getRawStreamer([]()
 	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
 });
 
+struct StreamingProgressData
+{
+	std::string name;
+	std::string fileName;
+	fwRefContainer<vfs::Device> device;
+};
+
+static std::unordered_map<int, StreamingProgressData> g_dataMap;
+
 static void StreamingProgress_Update()
 {
 	// process requests
@@ -74,70 +83,88 @@ static void StreamingProgress_Update()
 	{
 		auto data = &streaming->Entries[entry->Index];
 
-		// try getting streaming data
-		StreamingPackfileEntry* spf = streaming::GetStreamingPackfileForEntry(data);
+		auto it = g_dataMap.find(entry->Index);
 
-		if (spf)
+		if (it == g_dataMap.end())
 		{
-			char nameBuffer[256];
-
-			rage::fiCollection* collection = nullptr;
+			// try getting streaming data
+			StreamingPackfileEntry* spf = streaming::GetStreamingPackfileForEntry(data);
 
 			if (spf)
 			{
-				collection = reinterpret_cast<rage::fiCollection*>(spf->packfile);
-			}
+				char nameBuffer[256];
 
-			if (!collection && (data->handle >> 16) == 0)
-			{
-				collection = getRawStreamer();
-			}
+				rage::fiCollection* collection = nullptr;
 
-			if (collection)
-			{
-				// is this a networked packfile?
-				if (!spf->isHdd)
+				if (spf)
 				{
-					strcpy(nameBuffer, "CfxRequest");
+					collection = reinterpret_cast<rage::fiCollection*>(spf->packfile);
+				}
 
-					collection->GetEntryNameToBuffer(data->handle & 0xFFFF, nameBuffer, 255);
+				if (!collection && (data->handle >> 16) == 0)
+				{
+					collection = getRawStreamer();
+				}
 
-					bool isCache = false;
-					std::string fileName;
-					char readBuffer[2048];
-
-					if (strncmp(nameBuffer, "cache:/", 7) == 0)
+				if (collection)
+				{
+					// is this a networked packfile?
+					if (!spf->isHdd)
 					{
-						fileName = std::string("cache_nb:/") + &nameBuffer[7];
-						isCache = true;
-					}
+						strcpy(nameBuffer, "CfxRequest");
 
-					if (strncmp(nameBuffer, "compcache:/", 11) == 0)
-					{
-						fileName = std::string("compcache_nb:/") + &nameBuffer[11];
-						isCache = true;
-					}
+						collection->GetEntryNameToBuffer(data->handle & 0xFFFF, nameBuffer, 255);
 
-					if (isCache)
-					{
-						auto device = vfs::GetDevice(fileName);
-						fwRefContainer<resources::ResourceCacheDeviceV2> resDevice(device);
+						bool isCache = false;
+						std::string fileName;
+						char readBuffer[2048];
 
-						if (!resDevice->ExistsOnDisk(fileName))
+						if (strncmp(nameBuffer, "cache:/", 7) == 0)
 						{
-							std::unique_lock<std::shared_mutex> lock(g_mutex);
+							fileName = std::string("cache_nb:/") + &nameBuffer[7];
+							isCache = true;
+						}
 
-							if (g_downloadList.find(nameBuffer) == g_downloadList.end())
-							{
-								g_downloadList.insert({ nameBuffer, resDevice->GetLength(fileName) });
-							}
+						if (strncmp(nameBuffer, "compcache:/", 11) == 0)
+						{
+							fileName = std::string("compcache_nb:/") + &nameBuffer[11];
+							isCache = true;
+						}
 
-							foundNow.insert(nameBuffer);
+						if (isCache)
+						{
+							auto device = vfs::GetDevice(fileName);
 
-							thisRequests++;
+							StreamingProgressData dentry;
+							dentry.name = nameBuffer;
+							dentry.fileName = std::move(fileName);
+							dentry.device = device;
+
+							it = g_dataMap.emplace(entry->Index, std::move(dentry)).first;
 						}
 					}
 				}
+			}
+		}
+
+		if (it != g_dataMap.end())
+		{
+			auto& dentry = it->second;
+
+			fwRefContainer<resources::ResourceCacheDeviceV2> resDevice(dentry.device);
+
+			if (!resDevice->ExistsOnDisk(dentry.fileName))
+			{
+				std::unique_lock<std::shared_mutex> lock(g_mutex);
+
+				if (g_downloadList.find(dentry.name) == g_downloadList.end())
+				{
+					g_downloadList.insert({ dentry.name, resDevice->GetLength(dentry.fileName) });
+				}
+
+				foundNow.insert(dentry.name);
+
+				thisRequests++;
 			}
 		}
 	}
@@ -192,6 +219,7 @@ static void StreamingProgress_Update()
 
 		g_downloadList.clear();
 		g_downloadDone.clear();
+		g_dataMap.clear();
 	}
 }
 

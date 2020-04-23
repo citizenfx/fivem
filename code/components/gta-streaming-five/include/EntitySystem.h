@@ -129,6 +129,10 @@ public:
 	uint8_t pad4;
 
 	uint32_t assetIndex;
+
+	uint16_t pad5;
+
+	uint16_t streamingIndex;
 };
 
 class STREAMING_EXPORT fwEntityDef
@@ -275,10 +279,17 @@ public:
 		return m_netObject;
 	}
 
+	inline fwArchetype* GetArchetype() const
+	{
+		return archetype;
+	}
+
 private:
-	char m_pad[96 - 8];
+	char m_pad[32 - 8];
+	fwArchetype* archetype;
+	char m_pad2[56];
 	Matrix4x4 m_transform;
-	char m_pad2[48];
+	char m_pad3[48];
 	void* m_netObject;
 };
 

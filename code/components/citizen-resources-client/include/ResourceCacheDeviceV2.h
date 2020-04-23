@@ -195,11 +195,18 @@ protected:
 
 	virtual void AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, const ResourceCacheEntryList::Entry& entry);
 
+protected:
+	struct TaskEntry
+	{
+		concurrency::task<RcdFetchResult> task;
+		concurrency::cancellation_token_source cts;
+	};
+
 private:
-	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry);
+	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry, const std::shared_ptr<TaskEntry>& tentry);
 
 protected:
-	static tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ms_entries;
+	static tbb::concurrent_unordered_map<std::string, std::shared_ptr<TaskEntry>> ms_entries;
 
 	std::shared_ptr<ResourceCache> m_cache;
 	bool m_blocking;

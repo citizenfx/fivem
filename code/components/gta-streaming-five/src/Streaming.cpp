@@ -121,6 +121,11 @@ namespace streaming
 		return g_getStreamingModuleFromExt(this, extension);
 	}
 
+	strStreamingModule* strStreamingModuleMgr::GetStreamingModuleFromId(int offset)
+	{
+		return m_modules[offset];
+	}
+
 	Manager* Manager::GetInstance()
 	{
 		return (Manager*)g_storeMgr;
