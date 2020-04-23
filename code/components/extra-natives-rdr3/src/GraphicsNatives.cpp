@@ -3,6 +3,16 @@
 #include <Hooking.h>
 #include <MinHook.h>
 
+struct DrawOrigin
+{
+	float posX; // +0
+	float posY; // +4
+	float posZ; // +8
+	float posPad;  // +12
+	int unkIndex; // +16
+	char pad[12]; // +20
+}; // 32
+
 enum DrawType
 {
 	Line = 0,
@@ -80,11 +90,58 @@ static void ScriptImRenderPhase()
 	g_origScriptImRenderPhase();
 }
 
+static bool(*isGamePaused)();
+
+static int* g_frameDrawIndex1;
+static int* g_frameDrawIndex2;
+static void* g_drawOriginStore;
+
+static uint32_t* g_scriptDrawOrigin;
+
 static HookFunction hookFunction([]()
 {
-	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F", -0x28), ScriptImRenderPhase, (void**)&g_origScriptImRenderPhase);
-	MH_EnableHook(MH_ALL_HOOKS);
+	{
+		auto location = hook::get_pattern<char>("48 8B D9 F3 0F 10 79 0C 44 0F 29 40 A8");
+
+		g_frameDrawIndex1 = hook::get_address<int*>(location + 80);
+		g_frameDrawIndex2 = hook::get_address<int*>(location + 93);
+		g_drawOriginStore = hook::get_address<void*>(location + 110);
+
+		hook::set_call(&isGamePaused, location + 73);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("89 41 34 8B 05 ? ? ? ? 89 41 30 8A 05");
+		g_scriptDrawOrigin = hook::get_address<uint32_t*>(location + 5);
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_DRAW_ORIGIN", [](fx::ScriptContext& context)
+	{
+		auto drawIndex = *((isGamePaused()) ? g_frameDrawIndex2 : g_frameDrawIndex1);
+		auto store = ((uint64_t)g_drawOriginStore + 1040 * drawIndex);
+		auto usedIndexes = *(uint32_t*)(store + 1024);
+
+		if (usedIndexes >= 32)
+		{
+			return;
+		}
+
+		*(uint32_t*)(store + 1024) = usedIndexes + 1;
+
+		DrawOrigin data;
+		data.posX = context.GetArgument<float>(0);
+		data.posY = context.GetArgument<float>(1);
+		data.posZ = context.GetArgument<float>(2);
+		data.unkIndex = context.GetArgument<int>(3);
+
+		*(DrawOrigin*)(store + 32 * usedIndexes) = data;
+		*g_scriptDrawOrigin = usedIndexes;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("CLEAR_DRAW_ORIGIN", [](fx::ScriptContext& context)
+	{
+		*g_scriptDrawOrigin = -1;
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DRAW_LINE", [](fx::ScriptContext& context)
 	{
@@ -148,4 +205,8 @@ static HookFunction hookFunction([]()
 
 		drawRequests[drawRequestsCount++] = req;
 	});
+
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F", -0x28), ScriptImRenderPhase, (void**)&g_origScriptImRenderPhase);
+	MH_EnableHook(MH_ALL_HOOKS);
 });
