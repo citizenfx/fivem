@@ -941,6 +941,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 	} else if ((vt = Voicetarget_get_id(client, target)) != NULL) { /* Targeted whisper */
 		int i;
 		channel_t *ch;
+		std::map<int, bool> targeted_channels;
 		/* Channels */
 		for (i = 0; i < TARGET_MAX_CHANNELS && vt->channels[i].channel != -1; i++) {
 			buffer[0] = (uint8_t) (type | 1);
@@ -948,6 +949,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			ch = Chan_fromId(vt->channels[i].channel);
 			if (ch == NULL)
 				continue;
+			targeted_channels.emplace(ch->id, true);
 			list_iterate(itr, &ch->clients) {
 				client_t *c;
 				c = list_get_entry(itr, client_t, chan_node);
@@ -993,7 +995,8 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			buffer[0] = (uint8_t) (type | 2);
 			Log_debug("Whisper session %d", vt->sessions[i]);
 			while (Client_iterate(&c) != NULL) {
-				if (c->sessionId == vt->sessions[i]) {
+				channel_t* ch = (channel_t*)client->channel;
+				if (!targeted_channels[ch->id] && c->sessionId == vt->sessions[i]) {
 					Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
 					break;
 				}
