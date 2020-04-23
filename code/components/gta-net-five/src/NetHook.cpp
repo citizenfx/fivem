@@ -1840,8 +1840,10 @@ static HookFunction hookFunction([] ()
 
 	// don't switch clipset manager to network mode
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
-	// #TODO1737: R*. Arxan. You know the deal.
-	//hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
+	if (!Is1868()) // arxan
+	{
+		hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
+	}
 
 	// don't switch to SP mode either
 	hook::return_function(hook::get_pattern("48 8D 2D ? ? ? ? 8B F0 85 C0 0F", -0x15));
