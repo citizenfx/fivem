@@ -450,10 +450,7 @@ static InitFunction initFunction([] ()
 
 						if (!resource)
 						{
-							if (updateList.empty())
-							{
-								GlobalError("Couldn't load resource %s: %s", std::get<std::string>(resourceData), resource.error().Get());
-							}
+							GlobalError("Couldn't load resource %s: %s", std::get<std::string>(resourceData), resource.error().Get());
 
 							executeNextGameFrame.push([]
 							{
