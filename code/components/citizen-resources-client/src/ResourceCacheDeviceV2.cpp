@@ -331,6 +331,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 
 	int tries = 0;
 	std::string lastError = "Unknown error.";
+	bool downloaded = false;
 
 	do
 	{
@@ -387,6 +388,10 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 						entry.referenceHash);
 				}
 			}
+		}
+		else if (downloaded)
+		{
+			m_lastError = "Failed to add entry to cache";
 		}
 		
 		if (!result)
@@ -460,6 +465,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				metaData["reference"] = entry.referenceHash;
 
 				AddEntryToCache(outFileName, metaData, entry);
+
+				downloaded = true;
 
 				console::DPrintf("citizen:resources:client", "ResourceCacheDevice: downloaded %s in %d msec (size %d)\n", entry.basename, (timeGetTime() - initTime), size);
 			}
