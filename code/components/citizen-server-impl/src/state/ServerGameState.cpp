@@ -2992,6 +2992,101 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 	}
 }
 
+struct CVehicleComponentControlEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		vehicleGlobalId = buffer.Read<uint16_t>(13);
+		pedGlobalId = buffer.Read<uint16_t>(13);
+		componentIndex = buffer.Read<uint16_t>(5);
+
+		request = buffer.Read<uint8_t>(1);
+		componentIsSeat = buffer.Read<uint8_t>(1);
+
+		if (componentIsSeat && request)
+		{
+			pedInSeat = buffer.Read<uint16_t>(13);
+		}
+		else
+		{
+			pedInSeat = 0;
+		}
+	}
+
+	inline std::string GetName()
+	{
+		return "vehicleComponentControlEvent";
+	}
+
+	int vehicleGlobalId;
+	int pedGlobalId;
+	int componentIndex;
+	bool request;
+	bool componentIsSeat;
+	int pedInSeat;
+
+	MSGPACK_DEFINE_MAP(vehicleGlobalId, pedGlobalId, componentIndex, request, componentIsSeat, pedInSeat);
+};
+
+
+struct CRespawnPlayerPedEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		posX = buffer.ReadSignedFloat(19, 27648.0f);
+		posY = buffer.ReadSignedFloat(19, 27648.0f);
+		posZ = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+		f64 = buffer.Read<uint32_t>(32);
+		f70 = buffer.Read<uint16_t>(13);
+		f72 = buffer.Read<uint32_t>(32);
+		f92 = buffer.Read<uint32_t>(32);
+
+		f96 = buffer.Read<uint8_t>(1);
+		f97 = buffer.Read<uint8_t>(1);
+		f99 = buffer.Read<uint8_t>(1);
+		f100 = buffer.Read<uint8_t>(1);
+
+		if (f100)
+		{
+			f80 = buffer.Read<uint32_t>(32);
+			f84 = buffer.Read<uint32_t>(32);
+			f88 = buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			f80 = 0;
+			f84 = 0;
+			f88 = 0;
+		}
+	}
+
+	inline std::string GetName()
+	{
+		return "respawnPlayerPedEvent";
+	}
+
+	int posX;
+	int posY;
+	int posZ;
+
+	int f64;
+	int f70;
+	int f72;
+	int f92;
+
+	bool f96;
+	bool f97;
+	bool f99;
+	bool f100;
+
+	int f80;
+	int f84;
+	int f88;
+
+	MSGPACK_DEFINE_MAP(posX, posY, posZ, f64, f70, f72, f92, f96, f97, f99, f100, f80, f84, f88);
+};
+
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer&& buffer)
 {
@@ -3111,6 +3206,8 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 	switch(eventType)
 	{
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
+		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
+		case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
 	};
