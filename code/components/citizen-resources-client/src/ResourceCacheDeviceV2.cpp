@@ -446,9 +446,12 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				}
 			});
 
-			auto ctr = te->cts.get_token().register_callback([req]()
+			auto ctr = te->cts.get_token().register_callback([req, tce]()
 			{
 				req->Abort();
+
+				// we need to complete the task_completion_event to propagate cancellation
+				tce.set({ false, "Aborted." });
 			});
 
 			auto fetchResult = co_await concurrency::task<FetchResultT>{tce, te->cts.get_token()};
@@ -612,6 +615,7 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 		if (it != ms_entries.end() && it->second)
 		{
 			it->second->cts.cancel();
+			it->second = {};
 		}
 
 		return true;
