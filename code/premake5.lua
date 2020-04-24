@@ -33,9 +33,8 @@ root_cwd = os.getcwd()
 
 -- initialize components
 dofile('components/config.lua')
-dofile('vendor/config.lua')
-
 load_privates('privates_config.lua')
+dofile('vendor/config.lua')
 
 component
 {
