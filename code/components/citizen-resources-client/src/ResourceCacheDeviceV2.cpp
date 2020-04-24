@@ -289,7 +289,9 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 		auto tentry = std::make_shared<TaskEntry>();
 		tentry->task = concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry, tentry), tentry->cts.get_token());
 
-		it = ms_entries.emplace(referenceHash, std::move(tentry)).first;
+		// this *requires* the aforementioned mutex!!
+		ms_entries[referenceHash] = std::move(tentry);
+		it = ms_entries.find(referenceHash);
 	}
 
 	return it->second->task;
@@ -444,12 +446,12 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				}
 			});
 
-			auto ctr = taskEntry->cts.get_token().register_callback([req]()
+			auto ctr = te->cts.get_token().register_callback([req]()
 			{
 				req->Abort();
 			});
 
-			auto fetchResult = co_await concurrency::task<FetchResultT>{tce, taskEntry->cts.get_token()};
+			auto fetchResult = co_await concurrency::task<FetchResultT>{tce, te->cts.get_token()};
 
 			concurrency::interruption_point();
 			
