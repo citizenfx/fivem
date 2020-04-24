@@ -766,7 +766,9 @@ static InitFunction initFunction([]()
 
 			if (ImGui::Begin("Time", &timeOpen))
 			{
-				ImGui::Text("%u", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp());
+				auto inst = rage::netInterface_queryFunctions::GetInstance();
+
+				ImGui::Text("%u", inst ? inst->GetTimestamp() : 0);
 			}
 
 			ImGui::End();
