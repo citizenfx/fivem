@@ -17,14 +17,6 @@
 #include <boost/algorithm/string.hpp>
 #include <tbb/concurrent_unordered_map.h>
 
-struct IsIless
-{
-	inline auto operator()(char left, char right) const
-	{
-		return ToLower(left) < ToLower(right);
-	}
-};
-
 struct IgnoreCaseLess
 {
 	using is_transparent = int;
@@ -33,7 +25,7 @@ struct IgnoreCaseLess
 	inline auto operator()(T&& lhs, U&& rhs) const
 		-> decltype(std::forward<T>(lhs) < std::forward<U>(rhs))
 	{
-		return boost::lexicographical_compare(lhs, rhs, IsIless());
+		return boost::ilexicographical_compare(lhs, rhs);
 	}
 };
 

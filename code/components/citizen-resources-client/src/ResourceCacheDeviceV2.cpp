@@ -22,7 +22,6 @@
 
 #include <VFSError.h>
 
-#include <ppl.h>
 #include <pplawait.h>
 #include <experimental/resumable>
 
@@ -48,18 +47,6 @@ bool RcdBaseStream::EnsureRead()
 		{
 			auto task = m_fetcher->FetchEntry(m_fileName);
 
-			task.then([](decltype(task) t)
-			{
-				try
-				{
-					t.get();
-				}
-				catch (const std::exception& e)
-				{
-
-				}
-			});
-
 			if (m_fetcher->IsBlocking())
 			{
 				task.wait();
@@ -82,12 +69,6 @@ bool RcdBaseStream::EnsureRead()
 			assert(m_parentHandle != INVALID_DEVICE_HANDLE);
 		}
 		catch (const RcdFetchFailedException& e)
-		{
-			m_fetcher->UnfetchEntry(m_fileName);
-
-			throw;
-		}
-		catch (const concurrency::task_canceled& e)
 		{
 			m_fetcher->UnfetchEntry(m_fileName);
 
@@ -304,15 +285,10 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 
 	if (it == ms_entries.end() || !it->second)
 	{
-		auto tentry = std::make_shared<TaskEntry>();
-		tentry->task = concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry, tentry), tentry->cts.get_token());
-
-		// this *requires* the aforementioned mutex!!
-		ms_entries[referenceHash] = std::move(tentry);
-		it = ms_entries.find(referenceHash);
+		it = ms_entries.emplace(referenceHash, concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry))).first;
 	}
 
-	return it->second->task;
+	return *it->second;
 }
 
 void ResourceCacheDeviceV2::UnfetchEntry(const std::string& fileName)
@@ -334,12 +310,9 @@ void ResourceCacheDeviceV2::UnfetchEntry(const std::string& fileName)
 	}
 }
 
-concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceCacheEntryList::Entry& entryRef, const std::shared_ptr<TaskEntry>& taskEntry)
+concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceCacheEntryList::Entry& entryRef)
 {
 	auto entry = entryRef;
-	auto te = taskEntry;
-
-	auto tkn = te->cts.get_token();
 
 	std::optional<RcdFetchResult> result;
 
@@ -376,11 +349,6 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				// read from the stream
 				while ((numRead = localStream->Read(data.data(), data.size())) > 0)
 				{
-					if (tkn.is_canceled())
-					{
-						concurrency::cancel_current_task();
-					}
-
 					if (numRead == -1)
 					{
 						break;
@@ -469,20 +437,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				}
 			});
 
-			auto ctr = te->cts.get_token().register_callback([req, tce]()
-			{
-				req->Abort();
-
-				// we need to complete the task_completion_event to propagate cancellation
-				tce.set({ false, "Aborted." });
-			});
-
 			auto fetchResult = co_await concurrency::task<FetchResultT>{tce};
-
-			if (tkn.is_canceled())
-			{
-				concurrency::cancel_current_task();
-			}
 			
 			if (std::get<bool>(fetchResult))
 			{
@@ -588,13 +543,6 @@ struct GetRcdDebugInfoExtension
 	std::string outData; // out
 };
 
-#define VFS_CANCEL_REQUEST 0x30002
-
-struct CancelRequestExtension
-{
-	const char* fn; // in
-};
-
 bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
@@ -618,31 +566,6 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 		vfs::GetLastErrorExtension* data = (vfs::GetLastErrorExtension*)controlData;
 
 		data->outError = m_lastError;
-
-		return true;
-	}
-	else if (controlIdx == VFS_CANCEL_REQUEST)
-	{
-		CancelRequestExtension* data = (CancelRequestExtension*)controlData;
-
-		auto entry = GetEntryForFileName(data->fn);
-
-		if (!entry)
-		{
-			return {};
-		}
-
-		std::unique_lock<std::mutex> lock(ms_lock);
-
-		const auto& e = entry->get();
-		const auto& referenceHash = e.referenceHash;
-		auto it = ms_entries.find(referenceHash);
-
-		if (it != ms_entries.end() && it->second)
-		{
-			it->second->cts.cancel();
-			it->second = {};
-		}
 
 		return true;
 	}
@@ -735,7 +658,7 @@ ResourceCacheDeviceV2::ResourceCacheDeviceV2(const std::shared_ptr<ResourceCache
 }
 
 std::mutex ResourceCacheDeviceV2::ms_lock;
-tbb::concurrent_unordered_map<std::string, std::shared_ptr<ResourceCacheDeviceV2::TaskEntry>> ResourceCacheDeviceV2::ms_entries;
+tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ResourceCacheDeviceV2::ms_entries;
 }
 
 void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache)
