@@ -168,17 +168,14 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 {
 	OPTICK_EVENT();
 
-	int requests[2][256];
-	int remainingRequests[2];
-
-	remainingRequests[0] = g_origHandleObjectLoad(streaming, a2, a3, requests[0], std::size(requests[0]), 1, a7);
-	remainingRequests[1] = g_origHandleObjectLoad(streaming, a2, a3, requests[1], std::size(requests[1]), 2, a7);
+	int requests[1][256];
+	int remainingRequests[] = { g_origHandleObjectLoad(streaming, a2, a3, requests[0], numRequestsOut, a6, a7) };
 
 	int numCachePending = 0;
 
 	auto outReqs = 0;
 
-	for (int r = 0; r < 2; r++)
+	for (int r = 0; r < std::size(remainingRequests); r++)
 	{
 		for (int i = remainingRequests[r] - 1; i >= 0; i--)
 		{
@@ -189,11 +186,7 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 			auto [isCache, fileName, fileNameBuffer] = GetCacheEntry(index);
 
-			if ((a6 == 1 && isCache) || (a6 == 2 && !isCache))
-			{
-				shouldRemove = true;
-			}
-			else if (a6 == 2 && isCache)
+			if (isCache)
 			{
 				OPTICK_EVENT("isCache");
 
@@ -245,7 +238,7 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 							init->GetData("gta-core-five:loadCaller", &error);
 
-							trace("Failed to request %s: %s / %s\n", fileName, vfs::GetLastError(vfs::GetDevice(fileName)), error);
+							FatalError("Failed to request %s: %s / %s\n", fileName, vfs::GetLastError(vfs::GetDevice(fileName)), error);
 
 							// release object so we don't even try requesting it anymore
 							streaming->ReleaseObject(index);
