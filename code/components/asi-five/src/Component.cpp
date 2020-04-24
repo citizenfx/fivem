@@ -8,7 +8,7 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <wchar.h>
 
 #include <LaunchMode.h>
@@ -34,7 +34,7 @@ bool ComponentInstance::Initialize()
 	return true;
 }
 
-static bool IsCLRAssembly(const boost::filesystem::path& path)
+static bool IsCLRAssembly(const std::filesystem::path& path)
 {
 	FILE* f = _wfopen(path.c_str(), L"rb");
 
@@ -78,14 +78,16 @@ bool ComponentInstance::DoGameLoad(void* module)
 
 	try
 	{
-		boost::filesystem::path plugins_path(MakeRelativeCitPath(L"plugins"));
-		boost::filesystem::directory_iterator it(plugins_path), end;
+		std::filesystem::path plugins_path(MakeRelativeCitPath(L"plugins"));
 
 		// if the directory doesn't exist, we create it
-		if (!boost::filesystem::exists(plugins_path))
+		if (!std::filesystem::exists(plugins_path))
 		{
-			boost::filesystem::create_directory(plugins_path);
+			std::filesystem::create_directory(plugins_path);
 		}
+
+		std::filesystem::directory_iterator it(plugins_path), end;
+
 		std::vector<std::wstring> blacklistedAsis = std::vector<std::wstring>({
 			L"openiv.asi",
 			L"scripthookvdotnet.asi",
@@ -190,7 +192,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 			it++;
 		}
 	}
-	catch (...) {}
+	catch (const std::exception&) {}
 
 	return true;
 }
