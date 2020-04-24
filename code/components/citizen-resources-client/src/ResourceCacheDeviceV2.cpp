@@ -48,6 +48,18 @@ bool RcdBaseStream::EnsureRead()
 		{
 			auto task = m_fetcher->FetchEntry(m_fileName);
 
+			task.then([](decltype(task) t)
+			{
+				try
+				{
+					t.get();
+				}
+				catch (const std::exception& e)
+				{
+
+				}
+			});
+
 			if (m_fetcher->IsBlocking())
 			{
 				task.wait();
@@ -70,6 +82,12 @@ bool RcdBaseStream::EnsureRead()
 			assert(m_parentHandle != INVALID_DEVICE_HANDLE);
 		}
 		catch (const RcdFetchFailedException& e)
+		{
+			m_fetcher->UnfetchEntry(m_fileName);
+
+			throw;
+		}
+		catch (const concurrency::task_canceled& e)
 		{
 			m_fetcher->UnfetchEntry(m_fileName);
 
@@ -321,6 +339,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 	auto entry = entryRef;
 	auto te = taskEntry;
 
+	auto tkn = te->cts.get_token();
+
 	std::optional<RcdFetchResult> result;
 
 	auto fillResult = [&result](const ResourceCache::Entry& entry)
@@ -356,7 +376,10 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				// read from the stream
 				while ((numRead = localStream->Read(data.data(), data.size())) > 0)
 				{
-					concurrency::interruption_point();
+					if (tkn.is_canceled())
+					{
+						concurrency::cancel_current_task();
+					}
 
 					if (numRead == -1)
 					{
@@ -454,9 +477,12 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				tce.set({ false, "Aborted." });
 			});
 
-			auto fetchResult = co_await concurrency::task<FetchResultT>{tce, te->cts.get_token()};
+			auto fetchResult = co_await concurrency::task<FetchResultT>{tce};
 
-			concurrency::interruption_point();
+			if (tkn.is_canceled())
+			{
+				concurrency::cancel_current_task();
+			}
 			
 			if (std::get<bool>(fetchResult))
 			{
