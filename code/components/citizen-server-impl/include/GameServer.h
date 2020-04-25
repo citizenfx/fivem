@@ -157,6 +157,11 @@ namespace fx
 			m_netThreadCallbacks->Add(fn);
 		}
 
+		inline void InternalAddSyncThreadCb(const std::function<void()>& fn)
+		{
+			m_syncThreadCallbacks->Add(fn);
+		}
+
 		fwRefContainer<NetPeerBase> InternalGetPeer(int peerId);
 
 		void InternalResetPeer(int peerId);
@@ -185,6 +190,8 @@ namespace fx
 		}
 
 	private:
+		void InitializeSyncUv();
+
 		void InitializeNetUv();
 
 		void InitializeNetThread();
@@ -193,6 +200,8 @@ namespace fx
 		fwEvent<> OnTick;
 
 		fwEvent<> OnNetworkTick;
+
+		fwEvent<> OnSyncTick;
 
 		fwEvent<fx::ServerInstanceBase*> OnAttached;
 
@@ -239,9 +248,13 @@ namespace fx
 
 		fwRefContainer<GameServerNetBase> m_net;
 
+		fwRefContainer<net::UvLoopHolder> m_syncThreadLoop;
+
 		fwRefContainer<net::UvLoopHolder> m_netThreadLoop;
 
 		fwRefContainer<net::UvLoopHolder> m_mainThreadLoop;
+
+		std::any m_syncThreadData;
 
 		std::any m_netThreadData;
 
@@ -253,12 +266,44 @@ namespace fx
 
 		std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
 
+		std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
+
 		// only touched on network thread(!)
 		std::list<std::tuple<int, int, net::Buffer, NetPacketType>> m_netSendList;
 	};
 
 	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
-	using HandlerMapComponent = MapComponent<uint32_t, TPacketTypeHandler>;
+
+	enum class ThreadIdx
+	{
+		Main,
+		Net,
+		Sync
+	};
+
+	class HandlerMapComponent : public MapComponent<uint32_t, std::tuple<ThreadIdx, TPacketTypeHandler>>
+	{
+	public:
+		inline void Add(const uint32_t& key, const std::tuple<ThreadIdx, TPacketTypeHandler>& value)
+		{
+			MapComponent::Add(key, value);
+		}
+
+		inline void Add(const uint32_t& key, std::tuple<ThreadIdx, TPacketTypeHandler>&& value)
+		{
+			MapComponent::Add(key, std::move(value));
+		}
+
+		inline void Add(const uint32_t& key, const TPacketTypeHandler& value)
+		{
+			MapComponent::Add(key, std::make_tuple(ThreadIdx::Main, value));
+		}
+
+		inline void Add(const uint32_t& key, TPacketTypeHandler&& value)
+		{
+			MapComponent::Add(key, std::make_tuple(ThreadIdx::Main, std::move(value)));
+		}
+	};
 
 	bool IsBigMode();
 }

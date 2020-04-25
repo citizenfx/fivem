@@ -1240,7 +1240,7 @@ void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>
 		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 		evComponent->TriggerEvent2("entityRemoved", { }, MakeScriptHandle(entity));
 
-		gscomms_execute_callback_on_net_thread(doRemove);
+		gscomms_execute_callback_on_sync_thread(doRemove);
 	});
 
 	// remove vehicle occupants
@@ -2265,7 +2265,10 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 			{
 				if (entity->type != sync::NetObjEntityType::Player)
 				{
-					RemoveClone({}, entity->handle & 0xFFFF);
+					gscomms_execute_callback_on_sync_thread([this, entity]()
+					{
+						RemoveClone({}, entity->handle & 0xFFFF);
+					});
 				}
 
 				return;
@@ -3251,7 +3254,7 @@ static InitFunction initFunction([]()
 
 		instance->SetComponent(new fx::ServerGameState);
 
-		instance->GetComponent<fx::GameServer>()->OnNetworkTick.Connect([=]()
+		instance->GetComponent<fx::GameServer>()->OnSyncTick.Connect([=]()
 		{
 			if (!g_oneSyncVar->GetValue())
 			{
@@ -3263,7 +3266,7 @@ static InitFunction initFunction([]()
 
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			auto targetPlayerCount = buffer.Read<uint8_t>();
 			std::vector<uint16_t> targetPlayers(targetPlayerCount);
@@ -3312,14 +3315,14 @@ static InitFunction initFunction([]()
 			{
 				routeEvent();
 			}
-		});
+		} });
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), { fx::ThreadIdx::Sync, [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 6 : 32);
-		});
+		} });
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("gameStateAck"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("gameStateAck"), { fx::ThreadIdx::Sync, [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			uint64_t frameIndex = buffer.Read<uint64_t>();
 
@@ -3378,9 +3381,9 @@ static InitFunction initFunction([]()
 			}
 
 			client->SetData("syncFrameIndex", frameIndex);
-		});
+		} });
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgTimeSyncReq"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgTimeSyncReq"), { fx::ThreadIdx::Net, [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
 		{
 			auto reqTime = buffer.Read<uint32_t>();
 			auto reqSeq = buffer.Read<uint32_t>();
@@ -3392,7 +3395,7 @@ static InitFunction initFunction([]()
 			netBuffer.Write<uint32_t>((msec().count()) & 0xFFFFFFFF);
 
 			client->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
-		});
+		} });
 
 		// TODO: handle this based on specific nodes sent with a specific ack
 		/*gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("csack"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)

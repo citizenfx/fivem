@@ -277,6 +277,8 @@ namespace fx
 		{
 			InitializeNetThread();
 		}
+
+		InitializeSyncUv();
 	}
 
 	void GameServer::InitializeNetUv()
@@ -306,7 +308,7 @@ namespace fx
 
 			// periodic timer for network ticks
 			auto frameTime = 1000 / 120;
-			auto sendTime = 1000 / 30;
+			auto sendTime = 1000 / 40;
 
 			auto mpd = netData.get();
 
@@ -372,6 +374,84 @@ namespace fx
 
 			// store the pointer in the class for lifetime purposes
 			m_netThreadData = std::move(netData);
+		}));
+
+		uv_async_send((*asyncInitHandle)->get());
+	}
+
+	// #TODO: this is a weird copy of the same function above
+	void GameServer::InitializeSyncUv()
+	{
+		m_syncThreadLoop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svSync");
+
+		// #TODO: make these actually send to loop properly using the async set *in* the loop wrapper?
+		auto asyncInitHandle = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();
+		*asyncInitHandle = std::make_unique<UvHandleContainer<uv_async_t>>();
+
+		uv_async_init(m_syncThreadLoop->GetLoop(), (*asyncInitHandle)->get(), UvPersistentCallback((*asyncInitHandle)->get(), [this, asyncInitHandle](uv_async_t*)
+		{
+			// private data for the net thread
+			struct NetPersistentData
+			{
+				UvHandleContainer<uv_timer_t> tickTimer;
+
+				std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
+
+				std::chrono::milliseconds lastTime;
+			};
+
+			auto netData = std::make_shared<NetPersistentData>();
+			auto loop = m_netThreadLoop->GetLoop();
+
+			netData->lastTime = msec();
+
+			// periodic timer for sync ticks
+			auto frameTime = 1000 / 120;
+
+			auto mpd = netData.get();
+
+			static auto& collector = prometheus::BuildHistogram()
+				.Name("tickTime")
+				.Help("Time spent on server ticks")
+				.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
+				.Add({ {"name", "svSync"} }, prometheus::Histogram::BucketBoundaries{
+					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
+					});
+
+			uv_timer_init(loop, &netData->tickTimer);
+			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
+			{
+				auto now = msec();
+				auto thisTime = now - mpd->lastTime;
+				mpd->lastTime = now;
+
+				if (thisTime > 100ms)
+				{
+					trace("sync thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
+				}
+
+				OnSyncTick();
+
+				auto atEnd = msec();
+				collector.Observe((atEnd - now).count() / 1000.0);
+			}), frameTime, frameTime);
+
+			// event handle for callback list evaluation
+
+			// unique_ptr wrapper is a workaround for libc++ bug (fixed in LLVM r340823)
+			netData->callbackAsync = std::make_shared<std::unique_ptr<UvHandleContainer<uv_async_t>>>();
+			*netData->callbackAsync = std::make_unique<UvHandleContainer<uv_async_t>>();
+
+			uv_async_init(loop, (*netData->callbackAsync)->get(), UvPersistentCallback((*netData->callbackAsync)->get(), [this](uv_async_t*)
+			{
+				m_syncThreadCallbacks->Run();
+			}));
+
+			m_syncThreadCallbacks = std::make_unique<CallbackListUv>(netData->callbackAsync);
+			m_syncThreadCallbacks->AttachToThread();
+
+			// store the pointer in the class for lifetime purposes
+			m_syncThreadData = std::move(netData);
 		}));
 
 		uv_async_send((*asyncInitHandle)->get());
@@ -1233,7 +1313,10 @@ namespace fx
 					{
 						client->SetHasRouted();
 
-						instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
+						gscomms_execute_callback_on_sync_thread([instance, client, packetData]()
+						{
+							instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
+						});
 
 						return;
 					}
@@ -1433,6 +1516,11 @@ void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bo
 void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn)
 {
 	g_gameServer->InternalAddNetThreadCb(fn);
+}
+
+void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
+{
+	g_gameServer->InternalAddSyncThreadCb(fn);
 }
 
 void gscomms_reset_peer(int peer)

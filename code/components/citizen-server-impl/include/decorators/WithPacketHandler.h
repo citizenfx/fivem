@@ -35,17 +35,30 @@ namespace fx
 				// regular handler map
 				if (!handled)
 				{
-					gscomms_execute_callback_on_main_thread([=]() mutable
+					auto entry = map->Get(packetId);
+
+					if (entry)
 					{
-						auto scope = client->EnterPrincipalScope();
-
-						auto entry = map->Get(packetId);
-
-						if (entry)
+						auto cb = [client, entry, packet]() mutable
 						{
-							(*entry)(client, packet);
+							auto scope = client->EnterPrincipalScope();
+
+							std::get<1>(*entry)(client, packet);
+						};
+
+						switch (std::get<fx::ThreadIdx>(*entry))
+						{
+						case fx::ThreadIdx::Main:
+							gscomms_execute_callback_on_main_thread(cb);
+							break;
+						case fx::ThreadIdx::Net:
+							gscomms_execute_callback_on_net_thread(cb);
+							break;
+						case fx::ThreadIdx::Sync:
+							gscomms_execute_callback_on_sync_thread(cb);
+							break;
 						}
-					});
+					}
 				}
 			});
 

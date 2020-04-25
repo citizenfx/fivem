@@ -495,7 +495,7 @@ static InitFunction initFunction([]()
 					{
 						auto nativeHash = native->GetGameHash();
 
-						gscomms_execute_callback_on_net_thread([creationToken, nativeHash, buffer]()
+						gscomms_execute_callback_on_sync_thread([creationToken, nativeHash, buffer]()
 						{
 							g_replayList[creationToken].push_back({ nativeHash, buffer });
 						});
@@ -528,7 +528,7 @@ static InitFunction initFunction([]()
 					{
 						auto nativeHash = native->GetGameHash();
 
-						gscomms_execute_callback_on_net_thread([delId, nativeHash, buffer]()
+						gscomms_execute_callback_on_sync_thread([delId, nativeHash, buffer]()
 						{
 							auto& rl = g_replayList[delId];
 
