@@ -200,6 +200,18 @@ export class SettingsService {
                 ),
                 colorizeValue: true
             });
+
+            this.addSetting('updateChannel', {
+                name: '#Settings_UpdateChannel',
+                description: '#Settings_UpdateChannelDesc',
+                type: 'select',
+                getCb: () => this.gameService.getConvar('ui_updateChannel'),
+                setCb: (value) => this.gameService.setConvar('ui_updateChannel', value),
+                options: {
+                    'production': 'Release',
+                    'canary': 'Canary (Experimental/Unstable)',
+                },
+            });
         }
     }
 

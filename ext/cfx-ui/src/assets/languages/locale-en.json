@@ -51,6 +51,8 @@
     "#Settings_CustomEmojiDesc": "An emoji to show in the FiveM watermark.",
     "#Settings_CustomEmojiUpsell": "Unavailable! Pledge $5/month or more to the FiveM Patreon and link your FiveM account to set a custom emoji for the FiveM watermark.",
     "#Settings_ConnectedProfiles": "Linked identities",
+    "#Settings_UpdateChannel": "Update channel",
+    "#Settings_UpdateChannelDesc": "Try out new features and changes before they launch. Has a chance of breaking.",
     "#DirectConnect_TimedOut": "Server query timed out.",
     "#DirectConnect_Failed": "Failed to query server.",
     "#DirectConnect_Loading": "Loading",

@@ -604,7 +604,37 @@ static InitFunction initFunction([] ()
 		}
 	});
 
+	static std::string curChannel;
+
+	wchar_t resultPath[1024];
+
+	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+	curChannel = ToNarrow(resultPath);
+
 	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
+	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel);
+
+	OnGameFrame.Connect([]()
+	{
+		if (uiUpdateChannel.GetValue() != curChannel)
+		{
+			curChannel = uiUpdateChannel.GetValue();
+
+			WritePrivateProfileString(L"Game", L"UpdateChannel", ToWide(curChannel).c_str(), fpath.c_str());
+
+			rapidjson::Document document;
+			document.SetString("Restart the game to apply the update channel change.", document.GetAllocator());
+
+			rapidjson::StringBuffer sbuffer;
+			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
+
+			document.Accept(writer);
+
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setWarningMessage", "message": %s })", sbuffer.GetString()));
+		}
+	});
 	
 	ConHost::OnInvokeNative.Connect([](const char* type, const char* arg)
 	{
