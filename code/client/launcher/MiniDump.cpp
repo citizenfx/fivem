@@ -219,8 +219,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 			static std::wstring errTitle = fmt::sprintf(L"RAGE error: %s", ToWide(errData.errorName));
 			static std::wstring errDescription = fmt::sprintf(L"A game error (at %016llx) caused " PRODUCT_NAME L" to stop working. "
-				L"A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n"
-				L"If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.\n\n%s",
+				L"A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n\n%s",
 				retAddr,
 				ToWide(ParseLinks(errData.errorDescription)));
 
@@ -240,7 +239,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 			_wunlink(MakeRelativeCitPath(L"cache\\error-pickup").c_str());
 
 			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
-			static std::wstring errDescription = ToWide(fmt::sprintf("%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", ParseLinks(pickup["message"].get<std::string>())));
+			static std::wstring errDescription = ToWide(ParseLinks(pickup["message"].get<std::string>()));
 
 			config->pszMainInstruction = errTitle.c_str();
 			config->pszContent = errDescription.c_str();
@@ -605,14 +604,6 @@ static void GatherCrashInformation()
 	{
 		if (success)
 		{
-			// open Explorer with the file selected
-			STARTUPINFOW si = { 0 };
-			si.cb = sizeof(si);
-
-			PROCESS_INFORMATION pi;
-
-			CreateProcessW(nullptr, const_cast<wchar_t*>(va(L"explorer /select,\"%s\"", tempDir)), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
-
 			// initialize OLE
 			OleInitialize(nullptr);
 
@@ -623,7 +614,16 @@ static void GatherCrashInformation()
 			OleSetClipboard(dataObject.Get());
 			OleFlushClipboard();
 
-			MessageBoxW(NULL, L"Saved the crash dump. Please upload the .zip file itself when you're asking for support.", L"CitizenFX", MB_OK | MB_ICONINFORMATION);
+			// open message box
+			MessageBoxW(NULL, va(L"Saved the crash dump as %s. Please upload the .zip file when you're asking for support. (copy/paste to upload)", tempDir), L"CitizenFX", MB_OK | MB_ICONINFORMATION);
+
+			// open Explorer with the file selected
+			STARTUPINFOW si = { 0 };
+			si.cb = sizeof(si);
+
+			PROCESS_INFORMATION pi;
+
+			CreateProcessW(nullptr, const_cast<wchar_t*>(va(L"explorer /select,\"%s\"", tempDir)), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
 		}
 	}
 
@@ -1058,14 +1058,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			cuz = ToWide(fmt::sprintf("An unhandled exception (of type %s)", exType));
 		}
 
-		static std::wstring content = fmt::sprintf(L"%s caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers. If you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details below.", cuz);
+		static std::wstring content = fmt::sprintf(L"%s caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers.", cuz);
 
 		if (!exWhat.empty())
 		{
 			content += fmt::sprintf(L"\n\nException details: %s", ToWide(exWhat));
 		}
 
-		if (!crashHash.empty())
+		if (!crashHash.empty() && crashHash.find(L".exe") != std::string::npos)
 		{
 			content += fmt::sprintf(L"\n\nLegacy crash hash: %s", HashCrash(crashHash));
 		}
@@ -1114,19 +1114,20 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		static std::optional<std::wstring> crashId;
+		static std::optional<std::wstring> crashIdError;
 
 		static const TASKDIALOG_BUTTON buttons[] = {
-			{ 42, L"Save information\nGathers a file with crash information to copy and attach in a support request." }
+			{ 42, L"Save information\nStores a file with crash information that you should copy and upload when asking for help." }
 		};
 
-		static std::wstring tempSignature = fmt::sprintf(L"Crash signature: %s\nReport ID: ... [uploading?] (use Ctrl+C to copy)", crashHash);
+		static std::wstring tempSignature = fmt::sprintf(L"Crash signature: %s\nReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere.", crashHash);
 
 		if (crashometry.find("kill_network_msg") != crashometry.end() && crashometry.find("reload_game") == crashometry.end())
 		{
 			windowTitle = L"Disconnected";
 			mainInstruction = L"O\x448\x438\x431\x43A\x430 (Error)";
 
-			content = ToWide(crashometry["kill_network_msg"]);
+			content = ToWide(crashometry["kill_network_msg"]) + L"\n\nThis is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved.";
 		}
 
 		static std::thread saveThread;
@@ -1139,7 +1140,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		taskDialogConfig.cButtons = 1;
 		taskDialogConfig.pButtons = buttons;
 		taskDialogConfig.pszWindowTitle = windowTitle.c_str();
-		taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
+		taskDialogConfig.pszMainIcon = MAKEINTRESOURCEW(-7); // shield bar w/ error color
 		taskDialogConfig.pszMainInstruction = mainInstruction.c_str();
 		taskDialogConfig.pszContent = content.c_str();
 		taskDialogConfig.pszExpandedInformation = tempSignature.c_str();
@@ -1170,6 +1171,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				SendMessage(hWnd, TDM_ENABLE_BUTTON, IDCLOSE, 0);
 				SendMessage(hWnd, TDM_SET_MARQUEE_PROGRESS_BAR, 1, 0);
 				SendMessage(hWnd, TDM_SET_PROGRESS_BAR_MARQUEE, 1, 15);
+				SendMessage(hWnd, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)TD_ERROR_ICON);
 			}
 			else if (type == TDN_TIMER)
 			{
@@ -1177,17 +1179,22 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				{
 					if (!crashId->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash signature: %s\nReport ID: %s (use Ctrl+C to copy)", crashHash.c_str(), crashId->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash signature: %s\nReport ID: %s\nYou can press Ctrl-C to copy this message and paste it elsewhere.", crashHash.c_str(), crashId->c_str()));
 					}
-					else
+					else if (crashIdError && !crashIdError->empty())
 					{
-						SendMessage(hWnd, TDM_SET_PROGRESS_BAR_STATE, PBST_ERROR, 0);
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash signature: %s\n%s\nYou can press Ctrl-C to copy this message and paste it elsewhere.", crashHash.c_str(), crashIdError->c_str()));
 					}
 
 					SendMessage(hWnd, TDM_ENABLE_BUTTON, IDCLOSE, 1);
 					SendMessage(hWnd, TDM_SET_MARQUEE_PROGRESS_BAR, 0, 0);
 					SendMessage(hWnd, TDM_SET_PROGRESS_BAR_POS, 100, 0);
 					SendMessage(hWnd, TDM_SET_PROGRESS_BAR_STATE, PBST_NORMAL, 0);
+
+					if (crashId->empty())
+					{
+						SendMessage(hWnd, TDM_SET_PROGRESS_BAR_STATE, PBST_ERROR, 0);
+					}
 
 					crashId.reset();
 				}
@@ -1238,11 +1245,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			CloseHandle(pi.hThread);
 		}
 
+		int timeout = 20000;
+
 		// upload the actual minidump file as well
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
-		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"https://crash-ingress.fivem.net/post", parameters, files, nullptr, &responseBody, &responseCode))
+		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"https://crash-ingress.fivem.net/post", parameters, files, &timeout, &responseBody, &responseCode))
 #else
 		if (false)
 #endif
@@ -1252,6 +1261,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 		else
 		{
+			crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
 			crashId = L"";
 		}
 
