@@ -10,12 +10,14 @@ import { Server } from '../server';
 import { Avatar } from '../avatar';
 
 import { GameService } from '../../game.service';
+import { Tweet, TweetService } from '../../home/tweet.service';
 
 import { ServersService } from '../servers.service';
 
 import { isPlatformBrowser } from '@angular/common';
 import { MetaService } from '@ngx-meta/core';
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
+import { ServerTagsService } from '../server-tags.service';
 
 class VariablePair {
     public key: string;
@@ -45,10 +47,13 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
     currentAddr = '';
 
     onFetchCB: () => void;
+    selectedTab = 0;
 
     addrEvent = new Subject<[string, number]>();
 
-    disallowedVars = ['sv_enhancedHostSupport', 'sv_licenseKeyToken', 'sv_lan', 'sv_maxClients'];
+    disallowedVars = ['sv_enhancedHostSupport', 'sv_licenseKeyToken', 'sv_lan', 'sv_maxClients', 'gamename', 'activitypubFeed'];
+
+    communityTweets: Tweet[] = [];
 
     @ViewChildren('input')
     private inputBox;
@@ -80,6 +85,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
     constructor(private gameService: GameService, private serversService: ServersService,
         private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
         private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService,
+        private tagService: ServerTagsService, private tweetService: TweetService,
         @Inject(L10N_LOCALE) public locale: L10nLocale) {
         this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
             return {
@@ -105,6 +111,13 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
             return {
                 key: '#ServerDetail_Premium',
                 value: (pair.value in premiumTiers) ? premiumTiers[pair.value] : pair.value
+            }
+        };
+
+        this.filterFuncs['locale'] = (pair) => {
+            return {
+                key: '#ServerDetail_Locale',
+                value: this.tagService.getLocaleDisplayName(pair.value)
             }
         };
 
@@ -139,6 +152,11 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
                     .map(([key, value]) => ( { key, value }) )
                     .filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
                     .filter(({ key }) => key.indexOf('banner_') < 0)
+                    .filter(({ key }) => key.toLowerCase().indexOf('version') < 0)
+                    .filter(({ key }) => key.toLowerCase().indexOf('uuid') < 0)
+                    .filter(({ key, value }) => key !== 'sv_scriptHookAllowed' || value === 'true')
+                    .filter(({ key, value }) => key !== 'onesync_enabled' ||
+                        (this.server.maxPlayers <= 32 && value === 'true'))
                     .map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
 
                 this.meta.setTag('og:image', this.server.iconUri);
@@ -147,6 +165,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
                 this.meta.setTag('og:description', `${this.server.currentPlayers} players on ${this.server.data.mapname}`);
                 this.meta.setTag('og:site_name', 'FiveM');
             });
+    }
+
+    trackPlayer(index: number, player: any) {
+        return player.name + ' ' + player.identifiers[0];
     }
 
     refreshServer() {
@@ -183,6 +205,29 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
     ngOnInit() {
         if (isPlatformBrowser(this.platformId)) {
             this.interval = setInterval(() => this.updateServer(), 45000);
+        }
+
+        this.communityTweets = [];
+
+        if (this.server && this.server.data && this.server.data.vars) {
+            const apFeed = this.server.data.vars.activitypubFeed;
+
+            if (apFeed) {
+                this.tweetService
+                    .getActivityTweets([apFeed])
+                    .subscribe(tweet => {
+                        if (this.communityTweets.length === 0) {
+                            this.selectedTab = 1;
+                        }
+
+                        this.communityTweets = [
+                            tweet,
+                            ...this.communityTweets
+                        ];
+
+                        this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+                    });
+            }
         }
     }
 

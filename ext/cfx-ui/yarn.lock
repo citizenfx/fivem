@@ -134,10 +134,17 @@
     ora "4.0.3"
     rxjs "6.5.4"
 
-"@angular/animations@^9.1.2":
-  version "9.1.2"
-  resolved "https://registry.yarnpkg.com/@angular/animations/-/animations-9.1.2.tgz#01bb52d5a8813701bfacbba99338d88cfc0da9b4"
-  integrity sha512-5UJ8SzCtFj4vZChVsni4K9oa4qE9tQ67bwnP6DKxkLEJKQWWyasYp+2siAi/7zD2ro2XA0qRMYhgQz5Vj6eBoQ==
+"@angular/animations@^9.1.3":
+  version "9.1.3"
+  resolved "https://registry.yarnpkg.com/@angular/animations/-/animations-9.1.3.tgz#93c753ef2305496081df564ef47a4163c2c30e95"
+  integrity sha512-QTQZSnXxr9SCgrN2SZsTMzS/UldrZ65y6Kuqs9yyghNc694eMbabgiPdeegjvcKlDhVPCN2x9Bjfb1vXPOfdvQ==
+
+"@angular/cdk@^9.2.1":
+  version "9.2.1"
+  resolved "https://registry.yarnpkg.com/@angular/cdk/-/cdk-9.2.1.tgz#9a590b8d4671fe2fa47648297b5ea372267d238f"
+  integrity sha512-aSG1UNPszkSnpNuDCNd7ZgT29oQ8vqHPmoqjvJI0JkEv3i6uEs5tRuhWl3TK39wDNuwdlq0AY47XTa/0Ppb5RQ==
+  optionalDependencies:
+    parse5 "^5.0.0"
 
 "@angular/cli@9.1.1":
   version "9.1.1"
@@ -209,6 +216,11 @@
   integrity sha512-TR7PEdmLWNIre3Zn8lvyb4lSrvPUJhKLystLnp4hBMcWsJqq5iK8S3bnlR4viZ9HMlf7bW7+Hm4SI6aB3tdUtw==
   dependencies:
     tslib "^1.9.0"
+
+"@angular/material@^9.2.1":
+  version "9.2.1"
+  resolved "https://registry.yarnpkg.com/@angular/material/-/material-9.2.1.tgz#99264d2bd3279dfd631d797f592177d59a559e9f"
+  integrity sha512-nqn/0Eg04DxwnkRGSM1xnmGgtfHYOBcEPbFeTu8c1qAbjFEozd6tpw4y6dQrCCL/JLNIRQPsxsUsVnKeWDF/4Q==
 
 "@angular/platform-browser-dynamic@^9.1.2":
   version "9.1.2"
@@ -1961,7 +1973,7 @@ balanced-match@^1.0.0:
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
   integrity sha1-ibTRmasr7kneFk6gK4nORi1xt2c=
 
-balloon-css@^1.0.0:
+balloon-css@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/balloon-css/-/balloon-css-1.0.4.tgz#fbef7890bd89aa61c474df734c3923a97ebf43d8"
   integrity sha512-sq9vMyTN8dVYPvoS0rTSxlfYq2tPNM9E2t30CHJlRDUQibD6PtMVHjTbbpj3yRZvMPFev31lggAOLG2cxmwJ7w==
@@ -6514,6 +6526,11 @@ parse5@^1.5.1:
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/parse5/-/parse5-1.5.1.tgz#9b7f3b0de32be78dc2401b17573ccaf0f6f59d94"
   integrity sha1-m387DeMr543CQBsXVzzK8Pb1nZQ=
+
+parse5@^5.0.0:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/parse5/-/parse5-5.1.1.tgz#f68e4e5ba1852ac2cadc00f4555fff6c2abb6178"
+  integrity sha512-ugq4DFI0Ptb+WWjAdOK16+u/nHfiIrcE+sh8kZMaM0WllQKLI9rOUq6c2b7cwPkXdzfQESqvoqK6ug7U/Yyzug==
 
 parseurl@~1.3.2, parseurl@~1.3.3:
   version "1.3.3"

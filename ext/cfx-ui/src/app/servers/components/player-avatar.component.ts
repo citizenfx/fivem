@@ -6,7 +6,7 @@ import { Avatar } from '../avatar';
 
 import { Observable } from 'rxjs/Observable';
 import { of } from 'rxjs/observable/of';
-import { delay, share, map } from 'rxjs/operators';
+import { delay, share, map, flatMap } from 'rxjs/operators';
 
 import { Int64BE } from 'int64-buffer';
 import { xml2js, ElementCompact } from 'xml-js';
@@ -36,7 +36,13 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
         this.svgUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
 
         this.svgImage = this.sanitizer.bypassSecurityTrustStyle(`url('${this.svgUrl}')`);
-        this.playerUrl = this.getPlayerAvatar().pipe(share());
+
+        // delay fetching so that we get a chance to load any activity feed first
+        this.playerUrl = of(null).pipe(
+            delay(1500),
+            flatMap(() => this.getPlayerAvatar()),
+            share()
+        );
     }
 
     private getPlayerAvatar(): Observable<any> {

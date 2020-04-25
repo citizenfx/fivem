@@ -35,7 +35,7 @@
         }
     };
 
-    &>div {
+    div {
         margin-bottom: $padding;
         padding: $padding $padding*$multiplier;
 
@@ -49,7 +49,6 @@
             position: relative;
 
             min-height: 10vh;
-			height: 15vh;
 
 			&>div {
 				position: absolute;
@@ -171,6 +170,7 @@
             &.player-list {
                 overflow: auto;
                 flex-grow: 1;
+                height: 100%;
                 min-height: min-content;
                 overflow: hidden;
 
@@ -211,8 +211,31 @@
                     grid-template-columns: repeat(auto-fill, minmax(10%, 1fr));
 
                     &.huge {
+                        ::ng-deep figure, ::ng-deep span {
+                            line-height: $fontSize * 0.9;
+                        }
+
+                        ::ng-deep figure {
+                            height: $fontSize * 0.9;
+                            width: $fontSize * 0.9;
+
+                            img {
+                                height: $fontSize * 0.9;
+                                width: $fontSize * 0.9;
+                            }
+                        }
+
                         grid-template-columns: repeat(auto-fill, minmax(7.5%, 1fr));
+
                         font-size: 0.8 * $fontSize;
+
+                        @media only screen and (min-height: 1080px) {
+                            font-size: 0.7 * $fontSize;
+                        }
+
+                        li {
+                            margin-bottom: $padding * 0.125;
+                        }
                     }
 
                     list-style-type: none;
@@ -231,6 +254,7 @@
 
             &.resource-list {
                 overflow: hidden;
+                height: 100%;
 
                 min-height: $fontSize * 5;
                 font-size: $fontSize * 0.8;
@@ -250,6 +274,7 @@
         @media only screen and (max-width: 640px) {
             &.info {
                 padding-left: 0;
+                height: 100%;
 
                 h1.title {
                     text-overflow: ellipsis;
@@ -284,7 +309,7 @@
     }
 
     @include themeHostWorkaround() using($theme) {
-        &>div.info .count {
+        div.info .count {
             color: rgba(gtv($theme, fgColour), .2);
             font-size: $fontSize*5;
         }

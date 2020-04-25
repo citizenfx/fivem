@@ -1,4 +1,5 @@
 import {BrowserModule} from '@angular/platform-browser';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {NgModule, Inject, Injectable, Optional, APP_INITIALIZER, Injector} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {HttpModule} from '@angular/http';
@@ -55,6 +56,8 @@ import { L10nConfig, L10nTranslationLoader, L10nProvider, L10nLoader, L10nTransl
 	L10nMissingTranslationHandler, L10nTranslationService } from 'angular-l10n';
 import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
+
+import { MatTabsModule } from '@angular/material/tabs';
 
 const localePrefix = (environment.web) ? '/' : './';
 
@@ -181,6 +184,8 @@ export function metaFactory(): MetaLoader {
 			provide: MetaLoader,
 			useFactory: (metaFactory)
 		}),
+		BrowserAnimationsModule,
+		MatTabsModule,
 	],
 	providers:    [
 		ServersService,

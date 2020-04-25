@@ -114,6 +114,10 @@ div.inner {
 
 		user-select: text;
 		white-space: pre-line;
+
+		::ng-deep a {
+			color: inherit;
+		}
 	}
 
 	button {

@@ -6,6 +6,9 @@
 @import "~@fortawesome/fontawesome-free/css/brands.css";
 @import "~@fortawesome/fontawesome-free/css/solid.css";
 
+@import '~@angular/material/theming';
+
+@include mat-core();
 
 .flag-icon-001 {
 	background-image: url(../assets/images/001.svg);
@@ -256,4 +259,43 @@ button {
 
 .color-9 {
 	color: #9E9E9E;
+}
+
+.mat-tab-body-wrapper, mat-tab-body, mat-tab-group {
+	flex-grow: 1;
+}
+
+.mat-tab-label {
+	font-family: $fonts;
+	font-size: $fontSize;
+	font-weight: normal;
+}
+
+.theme-light {
+	@include angular-material-theme(mat-light-theme(
+		mat-palette($mat-orange),
+		mat-palette($mat-orange)
+	));
+}
+
+.theme-dark {
+	@include angular-material-theme(mat-dark-theme(
+		mat-palette($mat-orange),
+		mat-palette($mat-orange)
+	));
+}
+
+.theme-rdr3 {
+	@include angular-material-theme(mat-dark-theme(
+		mat-palette($mat-red),
+		mat-palette($mat-red)
+	));
+}
+
+.mat-tab-group, mat-tab-group {
+	font-family: inherit;
+}
+
+.mat-tab-body-content {
+	will-change: transform;
 }

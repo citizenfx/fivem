@@ -66,21 +66,44 @@
 			</div>
 	</div>
 
+	<mat-tab-group mat-align-tabs="center" headerPosition="below" animationDuration="400ms"
+		(selectedIndexChange)="selectedTab = $event;" [selectedIndex]="selectedTab">
+		<mat-tab>
+			<ng-template mat-tab-label>
+				{{'#ServerDetail_Players' | translate:locale.language}} ({{ server.data.players.length }})
+			</ng-template>
 
-	<div class="info player-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
-		<h1 l10nTranslate>#ServerDetail_Players</h1>
-		<span *ngIf="server.data.players.length == 0" l10nTranslate>#ServerDetail_PlayersEmpty</span>
-		<ul [class.huge]="server && server.data && server.data.players.length > 64">
-			<li *ngFor="let player of server.data.players"><app-player-avatar [player]="player"></app-player-avatar>
-				<span>
-					{{player.name}}
-				</span></li>
-		</ul>
-		<div class="count">{{server.data.players.length}}</div>
-	</div>
+			<div class="info player-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
+				<span *ngIf="server.data.players.length == 0" l10nTranslate>#ServerDetail_PlayersEmpty</span>
+				<ul [class.huge]="server && server.data && server.data.players.length > 64">
+					<li *ngFor="let player of server.data.players; trackBy: trackPlayer"><app-player-avatar [player]="player"></app-player-avatar>
+						<span>
+							{{player.name}}
+						</span></li>
+				</ul>
+				<div class="count">{{server.data.players.length}}</div>
+			</div>
+		</mat-tab>
 
-	<div class="info resource-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
-		<p>{{ resourceString }}</p>
+		<mat-tab *ngIf="communityTweets.length > 0">
+			<ng-template mat-tab-label>
+				{{'#ServerDetail_Updates' | translate:locale.language}} ({{ communityTweets.length }})
+			</ng-template>
 
-		<div class="count">{{ resourceCount }}</div>
-	</div>
+			<app-home-tweet class="message" *ngFor="let tweet of communityTweets" [tweet]="tweet">
+
+			</app-home-tweet>
+		</mat-tab>
+
+		<mat-tab>
+			<ng-template mat-tab-label>
+				{{'#ServerDetail_Resources' | translate:locale.language}} ({{ resourceCount }})
+			</ng-template>
+
+			<div class="info resource-list" *ngIf="this.server" [class.withBanner]="this.server && this.server.data.vars && this.server.data.vars.banner_detail">
+				<p>{{ resourceString }}</p>
+
+				<div class="count">{{ resourceCount }}</div>
+			</div>
+		</mat-tab>
+	</mat-tab-group>

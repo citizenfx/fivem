@@ -10,7 +10,7 @@
 				<h1>
 					{{overlayTitle|translate:locale.language:overlayMessageData}}
 				</h1>
-				<p>{{overlayMessage|translate:locale.language:overlayMessageData }}</p>
+				<p (click)="clickContent($event)" [innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter' }"></p>
 				<div #card></div>
 				<button
 					[class.active]="overlayClosable"

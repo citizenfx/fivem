@@ -7,7 +7,7 @@
         </small>
         <small>
             {{tweet.date | amTimeAgo}}
-            <span class="additional" data-balloon="Open tweet in browser." data-balloon-pos="down" (click)="openTweet(tweet.id)">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
+            <span class="additional" aria-label="Open tweet in browser." data-balloon-pos="down" (click)="openTweet(tweet.id)">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
         </small>	
         <small *ngIf="tweet.rt_displayname" class="rt">Retweeted by {{ tweet.rt_displayname }}</small>
     </div>

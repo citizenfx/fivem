@@ -304,6 +304,16 @@ export class ConnectingPopupComponent implements OnInit {
 		element.childNodes.forEach(c => element.removeChild(c));
 	}
 
+	clickContent(event: MouseEvent) {
+        const srcElement = event.srcElement as HTMLElement;
+
+        if (srcElement.localName === 'a') {
+            this.gameService.openUrl(srcElement.getAttribute('href'));
+
+            event.preventDefault();
+        }
+    }
+
 	closeOverlay() {
 		if (this.overlayClosable) {
 			this.showOverlay = false;
