@@ -1120,12 +1120,12 @@
 						</Item>
 						<Item>
 							<StackName>ACTIVITY_CREATOR_INT</StackName>
-							<SizeOfStack value="14900"/>
+							<SizeOfStack value="15400"/>
 							<NumberOfStacksOfThisSize value="3"/>
 						</Item>
 						<Item>
 							<StackName>SMPL_INTERIOR</StackName>
-							<SizeOfStack value="2000"/>
+							<SizeOfStack value="2512"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
@@ -1135,12 +1135,12 @@
 						</Item>
 						<Item>
 							<StackName>IE_DELIVERY</StackName>
-							<SizeOfStack value="2024"/>
+							<SizeOfStack value="2324"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>SHOP_CONTROLLER</StackName>
-							<SizeOfStack value="2200"/>
+							<SizeOfStack value="2456"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
@@ -1160,22 +1160,22 @@
 						</Item>
 						<Item>
 							<StackName>FMMC_LAUNCHER</StackName>
-							<SizeOfStack value="16000"/>
+							<SizeOfStack value="18000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MULTIPLAYER_FREEMODE</StackName>
-							<SizeOfStack value="55000"/>
+							<SizeOfStack value="64000"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MISSION</StackName>
-							<SizeOfStack value="25000"/>
+							<SizeOfStack value="29500"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 						<Item>
 							<StackName>MP_LAUNCH_SCRIPT</StackName>
-							<SizeOfStack value="22500"/>
+							<SizeOfStack value="23500"/>
 							<NumberOfStacksOfThisSize value="1"/>
 						</Item>
 					</StackSizeData>
