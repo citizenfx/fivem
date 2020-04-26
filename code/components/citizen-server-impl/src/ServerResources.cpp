@@ -504,6 +504,8 @@ static InitFunction initFunction([]()
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
 
+		static bool configured = false;
+
 		static auto ensureCommandRef = instance->AddCommand("ensure", [=](const std::string& resourceName)
 		{
 			auto resource = resman->GetResource(resourceName);
@@ -516,12 +518,24 @@ static InitFunction initFunction([]()
 
 			auto conCtx = instance->GetComponent<console::Context>();
 
-			if (resource->GetState() == fx::ResourceState::Started)
+			// don't allow `ensure` to restart a resource if we're still configuring (e.g. executing a startup script)
+			// this'll lead to issues when, say, the following script runs:
+			//     ensure res2
+			//     ensure res1
+			//
+			// if res2 depends on res1, res1 restarting will lead to res2 stopping but not being started again
+			// #TODO: restarting behavior of stopped dependencies at runtime
+			if (configured && resource->GetState() == fx::ResourceState::Started)
 			{
 				conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
 			}
 
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
+		});
+
+		instance->OnInitialConfiguration.Connect([]()
+		{
+			configured = true;
 		});
 
 		static auto refreshCommandRef = instance->AddCommand("refresh", [=]()
