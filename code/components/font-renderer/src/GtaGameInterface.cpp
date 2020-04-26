@@ -288,6 +288,16 @@ FontRendererGameInterface* CreateGameInterface()
 
 #include <random>
 
+static bool IsCanary()
+{
+	wchar_t resultPath[1024];
+
+	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+	return (_wcsicmp(resultPath, L"canary") == 0);
+}
+
 static InitFunction initFunction([] ()
 {
 	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive, "");
@@ -330,11 +340,15 @@ static InitFunction initFunction([] ()
 	});
 #endif
 
+	srand(GetTickCount());
+
 	OnPostFrontendRender.Connect([=] ()
 	{
 #if defined(GTA_FIVE) || defined(IS_RDR3)
-		int x, y;
-		GetGameResolution(x, y);
+		int gameWidth, gameHeight;
+		GetGameResolution(gameWidth, gameHeight);
+
+		static bool isCanary = IsCanary();
 
 		std::wstring brandingString = L"";
 
@@ -381,7 +395,6 @@ static InitFunction initFunction([] ()
 			}
 
 			std::wstring brandName = L"FiveM";
-			std::wstring userName = L"";
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 			{
@@ -413,7 +426,7 @@ static InitFunction initFunction([] ()
 
 				if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 				{
-					brandName = L"FiveM/OneSync-ALPHA";
+					brandName += L"*";
 				}
 
 				if (Is1868())
@@ -424,11 +437,15 @@ static InitFunction initFunction([] ()
 
 #if defined(IS_RDR3)
 				brandName = L"RedM MILESTONE 2";
-				userName = L"";
 #endif
+
+				if (isCanary)
+				{
+					brandName += L" (Canary)";
+				}
 			}
 
-			brandingString = fmt::sprintf(L"%s %s\n%s", brandName, brandingEmoji, userName);
+			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
 		}
 
 		static CRect metrics;
@@ -441,7 +458,39 @@ static InitFunction initFunction([] ()
 			lastString = brandingString;
 		}
 
-		CRect drawRect(x - metrics.Width() - 10.0f, 10.0f, x, y);
+		// anchorPos: TL, TR, BR, BL
+		static int anchorPos = 1;
+
+		float gameWidthF = static_cast<float>(gameWidth);
+		float gameHeightF = static_cast<float>(gameHeight);
+
+		CRect drawRect;
+
+		switch (anchorPos)
+		{
+		case 0: // TL
+			drawRect = { 10.0f, 10.0f, gameWidthF, gameHeightF };
+			break;
+		case 1: // TR
+			drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
+			break;
+		case 2: // BR
+			drawRect = { gameWidthF - metrics.Width() - 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
+			break;
+		case 3: // BL
+			drawRect = { 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
+			break;
+		}
+
+		static DWORD64 nextBrandingShuffle;
+
+		if (GetTickCount64() > nextBrandingShuffle)
+		{
+			anchorPos = rand() % 4;
+
+			nextBrandingShuffle = GetTickCount64() + 45000 + (rand() % 16384);
+		}
+
 		CRGBA color(180, 180, 180);
 
 		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f, 1.0f, "Segoe UI");

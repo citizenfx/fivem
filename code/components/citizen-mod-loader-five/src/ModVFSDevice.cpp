@@ -248,6 +248,8 @@ std::string ModVFSDevice::MapFileName(const std::string& name)
 	return {};
 }
 
+bool loadedUnencryptedMod;
+
 bool ModsNeedEncryption()
 {
 	static ConVar<bool> modDevMode("modDevMode", ConVar_None, false);
@@ -262,6 +264,11 @@ static void MountFauxStreamingRpf(const std::string& fn)
 	fwRefContainer<vfs::RagePackfile7> packfile = new vfs::RagePackfile7();
 	if (packfile->OpenArchive(fn, ModsNeedEncryption()))
 	{
+		if (!ModsNeedEncryption())
+		{
+			loadedUnencryptedMod = true;
+		}
+
 		std::string devName;
 
 		std::string mount = fmt::sprintf("faux_pack%d:/", packIdx++);
@@ -383,6 +390,11 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 			fwRefContainer<vfs::RagePackfile7> packfile = new vfs::RagePackfile7();
 			if (packfile->OpenArchive(fn, ModsNeedEncryption()))
 			{
+				if (!ModsNeedEncryption())
+				{
+					loadedUnencryptedMod = true;
+				}
+
 				std::string devName;
 
 				vfs::Mount(packfile, "tempModDlc:/");
@@ -445,7 +457,7 @@ static InitFunction initFunction([]()
 {
 	OnPostFrontendRender.Connect([]()
 	{
-		if (!fx::ModsNeedEncryption())
+		if (!fx::ModsNeedEncryption() || fx::loadedUnencryptedMod)
 		{
 			TheFonts->DrawText(L"CFX MOD DEV MODE ENABLED", CRect(40.0f, 40.0f, 800.0f, 500.0f), CRGBA(255, 0, 0, 255), 40.0f, 1.0f, "Comic Sans MS");
 		}

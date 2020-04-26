@@ -105,6 +105,7 @@ void ModPackage::ParsePackage(const std::string& path)
 void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage);
 void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage);
 bool ModsNeedEncryption();
+extern bool loadedUnencryptedMod;
 }
 
 struct IgnoreCaseLess
@@ -154,6 +155,11 @@ static HookFunction hookFunction([]()
 			fwRefContainer<vfs::RagePackfile7> addonPack = new vfs::RagePackfile7();
 			if (addonPack->OpenArchive(fullFn, fx::ModsNeedEncryption()))
 			{
+				if (!fx::ModsNeedEncryption())
+				{
+					fx::loadedUnencryptedMod = true;
+				}
+
 				vfs::Mount(addonPack, addonRoot);
 
 				auto modPackage = std::make_shared<fx::ModPackage>(addonRoot);
