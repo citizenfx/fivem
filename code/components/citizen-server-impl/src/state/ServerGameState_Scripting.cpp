@@ -820,4 +820,9 @@ static InitFunction initFunction([]()
 
 		return uint32_t(node ? node->curWeapon : 0);
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_A_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		return entity->type == fx::sync::NetObjEntityType::Player;
+	}));
 });
