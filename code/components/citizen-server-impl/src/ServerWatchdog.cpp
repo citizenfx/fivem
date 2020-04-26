@@ -172,7 +172,7 @@ void PlatformAbort()
 }
 #endif
 
-constexpr int NumThreads = 3;
+constexpr int NumThreads = 4;
 
 using TThreadStack = std::deque<std::string>;
 using TThreadMap = std::array<TThreadStack, NumThreads>;
@@ -189,6 +189,8 @@ static int GetThreadIdx(uint32_t th)
 		return 1;
 	case HashString("svNetwork"):
 		return 2;
+	case HashString("svSync"):
+		return 3;
 	}
 
 	return -1;
@@ -346,7 +348,7 @@ static InitFunction initFunction([]()
 
 			static std::vector<std::shared_ptr<uvw::TimerHandle>> timers;
 
-			for (auto loopName : { "svMain", "default", "svNetwork" })
+			for (auto loopName : { "svMain", "default", "svNetwork", "svSync" })
 			{
 				auto loop = Instance<net::UvLoopManager>::Get()->Get(loopName);
 
