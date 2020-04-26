@@ -10,7 +10,10 @@
 #include <lz4.h>
 
 #include <tbb/concurrent_queue.h>
+#include <tbb/parallel_for_each.h>
 #include <thread_pool.hpp>
+
+#include <EASTL/fixed_vector.h>
 
 #include <state/Pool.h>
 
@@ -767,7 +770,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			auto syncDelay = 50ms;
 
-			if (g_oneSyncRadiusFrequency->GetValue())
+			// only update sync delay if should-be-created
+			// shouldBeCreated should **not** be updated after this
+			if (shouldBeCreated && g_oneSyncRadiusFrequency->GetValue())
 			{
 				const auto& position = entityPos;
 
@@ -849,7 +854,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	auto curTime = msec();
 
-	creg->ForAllClients([&](const std::shared_ptr<fx::Client>& clientRef)
+	// gather client refs
+	eastl::fixed_vector<std::shared_ptr<fx::Client>, MAX_CLIENTS> clientRefs;
+
+	creg->ForAllClients([&clientRefs](const std::shared_ptr<fx::Client>& clientRef)
+	{
+		clientRefs.push_back(clientRef);
+	});
+
+	tbb::parallel_for_each(clientRefs.begin(), clientRefs.end(), [this, curTime](const std::shared_ptr<fx::Client>& clientRef)
 	{
 		// get our own pointer ownership
 		auto client = clientRef;
@@ -1416,6 +1429,12 @@ void ServerGameState::UpdateEntities()
 
 void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shared_ptr<fx::Client>& client /* = */ )
 {
+	// #TODO1SBIG: make this support >256 IDs
+	if (fx::IsBigMode())
+	{
+		return;
+	}
+
 	net::Buffer msg;
 	msg.Write<uint32_t>(HashRageString("msgWorldGrid"));
 	
