@@ -351,12 +351,11 @@ static InitFunction initFunction([] ()
 		static bool isCanary = IsCanary();
 
 		std::wstring brandingString = L"";
+		std::wstring brandingEmoji;
 
 		if (shouldDraw) {
 			SYSTEMTIME systemTime;
 			GetLocalTime(&systemTime);
-
-			std::wstring brandingEmoji;
 
 			switch (systemTime.wHour)
 			{
@@ -458,27 +457,33 @@ static InitFunction initFunction([] ()
 			lastString = brandingString;
 		}
 
-		// anchorPos: TL, TR, BR, BL
+		static CRect emetrics;
+		static fwWString lastEString;
+
+		if (emetrics.Width() <= 0.1f || lastEString != brandingEmoji)
+		{
+			g_fontRenderer.GetStringMetrics(brandingEmoji, 16.0f, 1.0f, "Segoe UI", emetrics);
+
+			lastEString = brandingEmoji;
+		}
+
 		static int anchorPos = 1;
 
 		float gameWidthF = static_cast<float>(gameWidth);
 		float gameHeightF = static_cast<float>(gameHeight);
 
-		CRect drawRect;
+		CRect drawRectE;
 
 		switch (anchorPos)
 		{
 		case 0: // TL
-			drawRect = { 10.0f, 10.0f, gameWidthF, gameHeightF };
+			drawRectE = { 10.0f, 10.0f, gameWidthF, gameHeightF };
 			break;
-		case 1: // TR
-			drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
+		case 1: // BR
+			drawRectE = { gameWidthF - emetrics.Width() - 10.0f, gameHeightF - emetrics.Height() - 10.0f, gameWidthF, gameHeightF };
 			break;
-		case 2: // BR
-			drawRect = { gameWidthF - metrics.Width() - 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
-			break;
-		case 3: // BL
-			drawRect = { 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
+		case 2: // BL
+			drawRectE = { 10.0f, gameHeightF - emetrics.Height() - 10.0f, gameWidthF, gameHeightF };
 			break;
 		}
 
@@ -486,14 +491,17 @@ static InitFunction initFunction([] ()
 
 		if (GetTickCount64() > nextBrandingShuffle)
 		{
-			anchorPos = rand() % 4;
+			anchorPos = rand() % 3;
 
 			nextBrandingShuffle = GetTickCount64() + 45000 + (rand() % 16384);
 		}
 
+		CRect drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
 		CRGBA color(180, 180, 180);
 
 		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f, 1.0f, "Segoe UI");
+
+		g_fontRenderer.DrawText(brandingEmoji, drawRectE, color, 16.0f, 1.0f, "Segoe UI");
 #endif
 
 		g_fontRenderer.DrawPerFrame();
