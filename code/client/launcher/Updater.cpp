@@ -236,7 +236,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	for (cache_t& cache : needsUpdate)
 	{
-		result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d", GetUpdateChannel(), cache.name.c_str(), cache.version), cachesFile, sizeof(cachesFile));
+		result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d&timeStamp=%lld", GetUpdateChannel(), cache.name.c_str(), cache.version, _time64(NULL)), cachesFile, sizeof(cachesFile));
 
 		manifest_t manifest(cache);
 		manifest.Parse(cachesFile);
