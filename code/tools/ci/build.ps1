@@ -556,6 +556,8 @@ if (!$DontUpload) {
 
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+	iwr -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | out-null
+
     # clear cloudflare cache
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
     $headers.Add("X-Auth-Email", $env:CLOUDFLARE_EMAIL)
