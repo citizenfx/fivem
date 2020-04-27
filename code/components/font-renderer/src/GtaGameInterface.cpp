@@ -449,59 +449,43 @@ static InitFunction initFunction([] ()
 
 		static CRect metrics;
 		static fwWString lastString;
-		
-		if (metrics.Width() <= 0.1f || lastString != brandingString)
-		{
-			g_fontRenderer.GetStringMetrics(brandingString, 22.0f, 1.0f, "Segoe UI", metrics);
-
-			lastString = brandingString;
-		}
-
-		static CRect emetrics;
-		static fwWString lastEString;
-
-		if (emetrics.Width() <= 0.1f || lastEString != brandingEmoji)
-		{
-			g_fontRenderer.GetStringMetrics(brandingEmoji, 16.0f, 1.0f, "Segoe UI", emetrics);
-
-			lastEString = brandingEmoji;
-		}
-
-		static int anchorPos = 1;
+		static float lastHeight;
 
 		float gameWidthF = static_cast<float>(gameWidth);
 		float gameHeightF = static_cast<float>(gameHeight);
+		
+		if (metrics.Width() <= 0.1f || lastString != brandingString || lastHeight != gameHeightF)
+		{
+			g_fontRenderer.GetStringMetrics(brandingString, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI", metrics);
 
-		CRect drawRectE;
+			lastString = brandingString;
+			lastHeight = gameHeightF;
+		}
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0, 2);
+
+		static int anchorPos = dis(gen);
+
+		CRect drawRect;
 
 		switch (anchorPos)
 		{
-		case 0: // TL
-			drawRectE = { 10.0f, 10.0f, gameWidthF, gameHeightF };
+		case 0: // TR
+			drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
 			break;
 		case 1: // BR
-			drawRectE = { gameWidthF - emetrics.Width() - 10.0f, gameHeightF - emetrics.Height() - 10.0f, gameWidthF, gameHeightF };
+			drawRect = { gameWidthF - metrics.Width() - 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
 			break;
-		case 2: // BL
-			drawRectE = { 10.0f, gameHeightF - emetrics.Height() - 10.0f, gameWidthF, gameHeightF };
+		case 2: // TL
+			drawRect = { 10.0f, 10.0f, gameWidthF, gameHeightF };
 			break;
 		}
 
-		static DWORD64 nextBrandingShuffle;
-
-		if (GetTickCount64() > nextBrandingShuffle)
-		{
-			anchorPos = rand() % 3;
-
-			nextBrandingShuffle = GetTickCount64() + 45000 + (rand() % 16384);
-		}
-
-		CRect drawRect = { gameWidthF - metrics.Width() - 10.0f, 10.0f, gameWidthF, gameHeightF };
 		CRGBA color(180, 180, 180);
 
-		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f, 1.0f, "Segoe UI");
-
-		g_fontRenderer.DrawText(brandingEmoji, drawRectE, color, 16.0f, 1.0f, "Segoe UI");
+		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI");
 #endif
 
 		g_fontRenderer.DrawPerFrame();
