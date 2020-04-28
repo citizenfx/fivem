@@ -114,10 +114,12 @@ struct CPedGameStateNodeData
 	int lastVehicle;
 	int lastVehicleSeat;
 
+	int lastVehiclePedWasIn;
+
 	int curWeapon;
 
 	inline CPedGameStateNodeData()
-		: lastVehicle(-1), lastVehicleSeat(-1)
+		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
 
 	}

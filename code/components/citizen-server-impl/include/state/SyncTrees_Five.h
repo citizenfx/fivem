@@ -1176,12 +1176,20 @@ struct CPedGameStateDataNode
 			}
 			else
 			{
+				if (data.curVehicle != NULL && data.curVehicle != -1) {
+					data.lastVehiclePedWasIn = data.curVehicle;
+				}
+
 				data.curVehicle = -1;
 				data.curVehicleSeat = -1;
 			}
 		}
 		else
 		{
+			if (data.curVehicle != NULL && data.curVehicle != -1) {
+				data.lastVehiclePedWasIn = data.curVehicle;
+			}
+
 			data.curVehicle = -1;
 			data.curVehicleSeat = -1;
 		}
