@@ -347,7 +347,7 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_HASH_KEY", [](fx::ScriptContext& context)
 	{
-		context.SetResult(HashString(context.GetArgument<const char*>(0)));
+		context.SetResult(HashString(context.CheckArgument<const char*>(0)));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_RADIO_STATION_INDEX", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
