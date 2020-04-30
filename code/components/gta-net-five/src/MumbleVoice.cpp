@@ -643,11 +643,19 @@ static HookFunction hookFunction([]()
 			{
 				if (FxNativeInvoke::Invoke<bool>(isPlayerActive, i))
 				{
-					std::string name = fmt::sprintf("[%d] %s",
-						FxNativeInvoke::Invoke<int>(getServerId, i),
-						FxNativeInvoke::Invoke<const char*>(getPlayerName, i));
+					static std::map<int, std::string> names;
 
-					if (talkerSet.find(name) != talkerSet.end())
+					int sid = FxNativeInvoke::Invoke<int>(getServerId, i);
+					auto nameIt = names.find(sid);
+
+					if (nameIt == names.end())
+					{
+						nameIt = names.emplace(sid, fmt::sprintf("[%d] %s",
+							sid,
+							FxNativeInvoke::Invoke<const char*>(getPlayerName, i))).first;
+					}
+
+					if (talkerSet.find(nameIt->second) != talkerSet.end())
 					{
 						g_talkers.set(i);
 					}
