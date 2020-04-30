@@ -863,6 +863,11 @@ static HookFunction initFunction([]()
 				gameLoaded = false;
 			});
 
+			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				gameLoaded = true;
+			}
+
 			eventConnected = true;
 		}
 

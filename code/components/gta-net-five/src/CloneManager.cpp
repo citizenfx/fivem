@@ -28,6 +28,8 @@
 
 #include <tbb/concurrent_queue.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <CoreConsole.h>
 
 rage::netObject* g_curNetObject;
@@ -93,7 +95,7 @@ public:
 
 	virtual void Logv(const char* format, fmt::printf_args argumentList) override;
 
-	virtual const std::unordered_set<rage::netObject*>& GetObjectList() override;
+	virtual const std::vector<rage::netObject*>& GetObjectList() override;
 
 	// netobjmgr abstraction
 	virtual bool RegisterNetworkObject(rage::netObject* object) override;
@@ -216,6 +218,8 @@ private:
 
 	std::unordered_set<rage::netObject*> m_savedEntitySet;
 
+	std::vector<rage::netObject*> m_savedEntityVec;
+
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
 	std::map<std::tuple<int, int>, std::chrono::milliseconds> m_pendingRemoveAcks;
@@ -264,6 +268,8 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_extendedData.erase(netObject->objectId);
 	m_savedEntities.erase(netObject->objectId);
 	m_savedEntitySet.erase(netObject);
+	
+	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
@@ -1263,10 +1269,20 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
 }
 
-const std::unordered_set<rage::netObject*>& CloneManagerLocal::GetObjectList()
+const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
 {
-	return m_savedEntitySet;
+	return m_savedEntityVec;
 }
+
+static void* origin;
+static float* (*getCoordsFromOrigin)(void*, float*);
+
+static HookFunction hookFunctionOrigin([]()
+{
+	auto loc = hook::get_call(hook::get_pattern<char>("C6 45 0B 80 89 5D 0F", 0x1B));
+	origin = hook::get_address<void*>(loc + 0xC);
+	hook::set_call(&getCoordsFromOrigin, loc + 0x10);
+});
 
 void CloneManagerLocal::Update()
 {
@@ -1275,6 +1291,12 @@ void CloneManagerLocal::Update()
 	SendUpdates(m_sendBuffer, HashString("netClones"));
 
 	SendUpdates(m_ackBuffer, HashString("netAcks"));
+
+	alignas(16) float centerOfWorld[4];
+	getCoordsFromOrigin(origin, centerOfWorld);
+
+	auto origin = DirectX::XMVectorSet(centerOfWorld[0], centerOfWorld[1], centerOfWorld[2], 1.0f);
+	static uint32_t frameCount = 0;
 
 	// run Update() on all clones
 	for (auto& clone : m_savedEntities)
@@ -1285,10 +1307,73 @@ void CloneManagerLocal::Update()
 
 			if (clone.second->GetGameObject())
 			{
+				if (clone.second->syncData.isRemote)
+				{
+					auto ent = (fwEntity*)(clone.second->GetGameObject());
+					auto vtbl = *(char**)ent;
+
+					if (!Is1868())
+					{
+						auto posData = ent->GetPosition();
+						auto pos = DirectX::XMLoadFloat3(&posData);
+
+						static std::map<fwEntity*, uint32_t> removedFlags;
+						auto it = removedFlags.find(ent);
+
+						if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (300.f * 300.f))
+						{
+							if (it != removedFlags.end())
+							{
+								// 1604
+								((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
+
+								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
+								((void(*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+
+								removedFlags.erase(it);
+							}
+						}
+						else
+						{
+							if (it == removedFlags.end())
+							{
+								uint32_t flags = 0;
+
+								if (auto ext = ent->GetExtension<fwSceneUpdateExtension>())
+								{
+									flags = ext->GetUpdateFlags();
+								}
+
+								it = removedFlags.emplace(ent, flags).first;
+
+								// 1604
+								((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
+
+								// 1604, rage::fwSceneUpdate::RemoveFromSceneUpdate
+								((void(*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
+							}
+
+							if ((frameCount % 50) < 2)
+							{
+								// 1604
+								((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
+
+								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
+								((void(*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+
+								removedFlags.erase(it);
+							}
+						}
+					}
+				}
+
+
 				clone.second->UpdatePendingVisibilityChanges();
 			}
 		}
 	}
+
+	frameCount++;
 }
 
 bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
@@ -1316,6 +1401,7 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 
 	m_savedEntities[object->objectId] = object;
 	m_savedEntitySet.insert(object);
+	m_savedEntityVec.push_back(object);
 
 	return true;
 }
