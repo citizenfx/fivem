@@ -181,11 +181,13 @@ public:
 
 static std::shared_ptr<ConVar<bool>> g_use3dAudio;
 static std::shared_ptr<ConVar<bool>> g_useSendingRangeOnly;
+static std::shared_ptr<ConVar<bool>> g_use2dAudio;
 
 void MumbleAudioOutput::Initialize()
 {
 	g_use3dAudio = std::make_shared<ConVar<bool>>("voice_use3dAudio", ConVar_None, false);
 	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
+	g_use2dAudio = std::make_shared<ConVar<bool>>("voice_use2dAudio", ConVar_None, false);
 
 	m_initialized = false;
 	m_distance = FLT_MAX;
@@ -686,6 +688,34 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				//client->voice->SetOutputFilterParameters(m_submixVoice, &FilterParametersReverb);
 
 				client->isAudible = (dsp.pMatrixCoefficients[0] > 0.1f || dsp.pMatrixCoefficients[1] > 0.1f);
+			}
+			else if (g_use2dAudio->GetValue() && client->overrideVolume < 0.f && distance > 0.0f)
+			{
+				auto emitterPos = DirectX::XMVectorSet(position[0], position[1], position[2], 0.0f);
+				auto listenerPos = DirectX::XMVectorSet(m_listener.Position.x, m_listener.Position.y, m_listener.Position.z, 0.0f);
+
+				float distanceFromListener = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos));
+				bool shouldHear = (abs(distance) < 0.01f) ? true : (distanceFromListener < (distance * distance));
+
+				if (shouldHear)
+				{
+					float volume = distanceFromListener / (distance * distance);
+					client->voice->SetVolume(std::max(0.0f, std::min(1.0f, 1.0f - volume)));
+				}
+				else
+				{
+					client->voice->SetVolume(0.0f);
+				}
+
+				// reset the output matrix in case we were in 3d mode
+				float monoAllSpeakers[] = {
+					1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+					1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+				};
+
+				client->voice->SetOutputMatrix(m_masteringVoice, 1, m_channelCount, monoAllSpeakers);
+
+				client->isAudible = shouldHear;
 			}
 			else
 			{

@@ -1008,7 +1008,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			buffer[0] = (uint8_t) (type | 2);
 			Log_debug("Whisper session %d", vt->sessions[i]);
 			while (Client_iterate(&c) != NULL) {
-				channel_t* ch = (channel_t*)client->channel;
+				channel_t* ch = (channel_t*)c->channel;
 				if (targeted_channels.find(ch->id) == targeted_channels.end() && c->sessionId == vt->sessions[i]) {
 					Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
 					break;
