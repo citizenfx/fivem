@@ -16,6 +16,8 @@
 #include <TcpListenManager.h>
 #include <ReverseTcpServer.h>
 
+#include <StructuredTrace.h>
+
 #include <json.hpp>
 
 static InitFunction initFunction([]()
@@ -89,6 +91,8 @@ static InitFunction initFunction([]()
 										{},
 										fmt::sprintf("https://%s/", jsonData.value("host", ""))
 									);
+
+								StructuredTrace({ "type", "nucleus_connected" }, { "url", fmt::sprintf("https://%s/", jsonData.value("host", "")) });
 
 								static auto webVar = instance->AddVariable<std::string>("web_baseUrl", ConVar_None, jsonData.value("host", ""));
 

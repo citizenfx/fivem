@@ -23,6 +23,8 @@
 #include <UvLoopManager.h>
 #include <ServerInstanceBase.h>
 
+#include <StructuredTrace.h>
+
 #include <GameServer.h>
 
 namespace watchdog
@@ -325,9 +327,11 @@ static InitFunction initFunction([]()
 
 				barks[name] = true;
 
+				auto dur = std::chrono::duration_cast<std::chrono::seconds>(msec() - bites[name]);
+
 				console::PrintError("server", "Loop %s seems hung! (last checkin %d seconds ago)\n",
 					name,
-					std::chrono::duration_cast<std::chrono::seconds>(msec() - bites[name]).count()
+					dur.count()
 				);
 
 				std::stringstream s;
@@ -342,6 +346,8 @@ static InitFunction initFunction([]()
 				s << "root";
 
 				console::PrintWarning("server", "%s watchdog stack: %s\n", name, s.str());
+
+				StructuredTrace({ "type", "watchdog_bark" }, { "thread", name }, { "time", dur.count() }, { "stack", s.str() });
 
 				PlatformBark(name);
 			};
@@ -392,6 +398,8 @@ static InitFunction initFunction([]()
 							strncpy(loopNameStr, pair.first.c_str(), std::size(loopNameStr));
 
 							debug::Alias(loopNameStr);
+
+							StructuredTrace({ "type", "watchdog_bite" }, { "thread", loopNameStr });
 
 							console::PrintError("server", "Loop %s is hung for over 5 minutes - terminating with a fatal exception.\n", pair.first);
 

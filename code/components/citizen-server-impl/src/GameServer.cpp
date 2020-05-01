@@ -10,6 +10,7 @@
 #include "ServerEventComponent.h"
 
 #include <NetBuffer.h>
+#include <StructuredTrace.h>
 
 #include <state/ServerGameState.h>
 
@@ -207,6 +208,7 @@ namespace fx
 						if (thisTime > 150ms)
 						{
 							trace("server thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
+							StructuredTrace({ "type", "hitch" }, { "thread", "svMain" }, { "time", thisTime.count() });
 						}
 
 						ProcessServerFrame(thisTime.count());
@@ -330,6 +332,7 @@ namespace fx
 				if (thisTime > 150ms)
 				{
 					trace("network thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
+					StructuredTrace({ "type", "hitch" }, { "thread", "svNetwork" }, { "time", thisTime.count() });
 				}
 
 				OnNetworkTick();
@@ -428,6 +431,7 @@ namespace fx
 				if (thisTime > 100ms)
 				{
 					trace("sync thread hitch warning: timer interval of %d milliseconds\n", thisTime.count());
+					StructuredTrace({ "type", "hitch" }, { "thread", "svSync" }, { "time", thisTime.count() });
 				}
 
 				OnSyncTick();

@@ -11,6 +11,8 @@
 #include <ClientRegistry.h>
 #include <ServerInstanceBase.h>
 
+#include <StructuredTrace.h>
+
 #include <enet/enet.h>
 
 namespace fx
@@ -317,6 +319,7 @@ namespace fx
 			if (!host)
 			{
 				trace("Could not bind on %s - is this address valid and not already in use?\n", address.ToString());
+				StructuredTrace({ "type", "bind_error" }, { "type", "enet" }, { "address", address.ToString() });
 				return;
 			}
 

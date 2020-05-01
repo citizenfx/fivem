@@ -10,6 +10,7 @@
 #include "om/OMComponent.h"
 
 #include <ScriptEngine.h>
+#include <StructuredTrace.h>
 
 #include <Resource.h>
 #include <ResourceManager.h>
@@ -184,6 +185,8 @@ result_t TestScriptHost::WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream,
 
 result_t TestScriptHost::ScriptTrace(char* string)
 {
+	StructuredTrace({ "type", "script_log" }, { "resource", m_resource->GetName() }, { "text", string });
+
 	return FX_S_OK;
 }
 

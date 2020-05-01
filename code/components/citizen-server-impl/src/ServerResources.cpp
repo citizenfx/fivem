@@ -26,6 +26,8 @@
 
 #include <KeyedRateLimiter.h>
 
+#include <StructuredTrace.h>
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -670,6 +672,22 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 
 static InitFunction initFunction2([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("PRINT_STRUCTURED_TRACE", [](fx::ScriptContext& context)
+	{
+		std::string_view jsonData = context.CheckArgument<const char*>(0);
+
+		try
+		{
+			auto j = nlohmann::json::parse(jsonData);
+
+			StructuredTrace({ "type", "script_structured_trace" }, { "payload", j });
+		}
+		catch (std::exception& e)
+		{
+
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_CLIENT_EVENT_INTERNAL", [](fx::ScriptContext& context)
 	{
 		std::string_view eventName = context.CheckArgument<const char*>(0);
