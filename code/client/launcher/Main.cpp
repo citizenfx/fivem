@@ -525,6 +525,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	InitializeDummies();
 #endif
 
+	// check stuff regarding the game executable
+	std::wstring gameExecutable = MakeRelativeGamePath(GAME_EXECUTABLE);
+
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	if (!ExecutablePreload_Init())
 	{
@@ -543,7 +546,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	g_redirectionData = redirectionData;
 
 #ifdef GTA_FIVE
-	auto gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
+	gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
 
 	{
 		DWORD versionInfoSize = GetFileVersionInfoSize(gameExecutable.c_str(), nullptr);
