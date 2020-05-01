@@ -29,6 +29,8 @@
 
 #include <imgui.h>
 
+#include <ShlObj.h>
+
 static bool g_conHostInitialized = false;
 extern bool g_consoleFlag;
 int g_scrollTop;
@@ -382,7 +384,33 @@ static InitFunction initFunction([]()
 
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 
-	static std::string imguiIni = ToNarrow(MakeRelativeCitPath(L"citizen/imgui.ini"));
+	static std::string imguiIni = ([]
+	{
+		std::wstring outPath = MakeRelativeCitPath(L"citizen/imgui.ini");
+
+		PWSTR appDataPath;
+		if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+		{
+			// create the directory if not existent
+			std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+			CreateDirectory(cfxPath.c_str(), nullptr);
+
+			std::wstring profilePath = cfxPath + L"\\imgui.ini";
+
+			if (GetFileAttributes(profilePath.c_str()) == INVALID_FILE_ATTRIBUTES &&
+				GetFileAttributes(outPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				CopyFile(outPath.c_str(), profilePath.c_str(), FALSE);
+			}
+
+			CoTaskMemFree(appDataPath);
+
+			outPath = profilePath;
+		}
+
+		return ToNarrow(outPath);
+	})();
+
 	io.IniFilename = const_cast<char*>(imguiIni.c_str());
 	io.RenderDrawListsFn = RenderDrawLists;  // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.
 	//io.ImeWindowHandle = g_hWnd;
