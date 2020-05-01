@@ -25,7 +25,7 @@ struct WritableStream {};
 struct LengthableStream {};
 struct BulkWritableStream {};
 
-namespace detail
+inline namespace detail
 {
 	template<typename StreamType>
 	struct HandleData
@@ -40,6 +40,26 @@ namespace detail
 		std::shared_ptr<StreamType> stream;
 		std::shared_ptr<BulkStreamType> bulkStream;
 		bool valid;
+	};
+
+	template<bool value>
+	struct GetLengthImpl
+	{
+		template<typename TStream>
+		static size_t GetLength(TStream* stream)
+		{
+			return -1;
+		}
+	};
+
+	template<>
+	struct GetLengthImpl<true>
+	{
+		template<typename TStream>
+		static size_t GetLength(TStream* stream)
+		{
+			return stream->GetLength();
+		}
 	};
 }
 
@@ -169,28 +189,6 @@ public:
 		return -1;
 	}
 
-protected:
-	template<bool value>
-	struct GetLengthImpl
-	{
-		template<typename TStream>
-		static size_t GetLength(TStream* stream)
-		{
-			return -1;
-		}
-	};
-
-	template<>
-	struct GetLengthImpl<true>
-	{
-		template<typename TStream>
-		static size_t GetLength(TStream* stream)
-		{
-			return stream->GetLength();
-		}
-	};
-
-public:
 	virtual size_t GetLength(THandle handle) override
 	{
 		auto data = GetHandle(handle);

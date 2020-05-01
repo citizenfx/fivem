@@ -93,7 +93,7 @@ namespace hook
 	{
 	public:
 		thiscall_stub(void*(*getter)())
-			: thiscall_stub_(getter)
+			: details::thiscall_stub_<TRet, Args...>(getter)
 		{
 
 		}
@@ -104,11 +104,11 @@ namespace hook
 
 	template<typename TRet, typename... Args>
 	class cdecl_stub<TRet(Args...)>
-		: public details::cdecl_stub_ < TRet, Args... >
+		: public details::cdecl_stub_<TRet, Args...>
 	{
 	public:
 		cdecl_stub(void*(*getter)())
-			: cdecl_stub_(getter)
+			: details::cdecl_stub_<TRet, Args...>(getter)
 		{
 
 		}

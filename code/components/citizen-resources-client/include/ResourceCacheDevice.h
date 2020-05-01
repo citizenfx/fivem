@@ -100,8 +100,6 @@ protected:
 
 	std::shared_ptr<ExtDownloader> m_extDownloader;
 
-	HandleData m_handles[512];
-
 	std::mutex m_handleLock;
 
 	std::string m_pathPrefix;
@@ -111,6 +109,8 @@ protected:
 	std::string m_physCachePath;
 
 public:
+	HandleData m_handles[512];
+
 	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking);
 
 	ResourceCacheDevice(std::shared_ptr<ResourceCache> cache, bool blocking, const std::string& cachePath, const std::string& physCachePath);

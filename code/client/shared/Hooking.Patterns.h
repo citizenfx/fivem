@@ -87,16 +87,16 @@ namespace hook
 
 	public:
 		template<size_t Len>
-		pattern(const char(&pattern)[Len])
+		pattern(const char(&p)[Len])
 			: pattern(getRVA<void>(0))
 		{
-			Initialize(pattern, Len);
+			Initialize(p, Len);
 		}
 
-		pattern(std::string_view pattern)
+		pattern(std::string_view p)
 			: pattern(getRVA<void>(0))
 		{
-			Initialize(pattern.data(), pattern.size());
+			Initialize(p.data(), p.size());
 		}
 
 		inline pattern& count(uint32_t expected) &

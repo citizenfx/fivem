@@ -251,6 +251,9 @@ using json = basic_json<>;
 
 // #include <nlohmann/detail/meta/cpp_future.hpp>
 
+#define and &&
+#define not !
+#define or ||
 
 #include <ciso646> // not
 #include <cstddef> // size_t
