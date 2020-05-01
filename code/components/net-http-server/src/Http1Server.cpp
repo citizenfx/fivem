@@ -581,8 +581,11 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			connectionData->request = nullptr;
 		}
 
-		std::unique_lock<std::mutex> lock(reqState->pingLock);
-		reqState->ping = {};
+		if (reqState)
+		{
+			std::unique_lock<std::mutex> lock(reqState->pingLock);
+			reqState->ping = {};
+		}
 	});
 }
 }
