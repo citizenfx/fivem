@@ -102,6 +102,23 @@ public:
 	}
 };
 
+class STREAMING_EXPORT fwSceneUpdateExtension
+{
+public:
+	virtual ~fwSceneUpdateExtension() = default;
+
+	static uint32_t GetClassId();
+
+	inline uint32_t GetUpdateFlags()
+	{
+		return m_updateFlags;
+	}
+
+private:
+	void* m_entity;
+	uint32_t m_updateFlags;
+};
+
 class fwEntity;
 
 class STREAMING_EXPORT fwArchetype
@@ -189,12 +206,32 @@ public:
 
 extern STREAMING_EXPORT atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
 
+class STREAMING_EXPORT fwExtensionList
+{
+public:
+	void* Get(uint32_t id);
+
+private:
+	uintptr_t dummyVal;
+};
+
 class STREAMING_EXPORT fwEntity : public rage::fwRefAwareBase
 {
 public:
 	virtual ~fwEntity() = default;
 
 	virtual bool IsOfType(uint32_t hash) = 0;
+
+	inline void* GetExtension(uint32_t id)
+	{
+		return m_extensionList.Get(id);
+	}
+
+	template<typename T>
+	inline T* GetExtension()
+	{
+		return reinterpret_cast<T*>(GetExtension(typename T::GetClassId()));
+	}
 
 	template<typename T>
 	bool IsOfType()
@@ -272,13 +309,16 @@ public:
 
 	inline void* GetNetObject() const
 	{
+		static_assert(offsetof(fwEntity, m_netObject) == 208, "wrong GetNetObject");
 		return m_netObject;
 	}
 
 private:
-	char m_pad[96 - 8];
+	char m_pad[8];
+	fwExtensionList m_extensionList;
+	char m_pad2[96 - 24];
 	Matrix4x4 m_transform;
-	char m_pad2[48];
+	char m_pad3[48];
 	void* m_netObject;
 };
 
