@@ -2,6 +2,10 @@
 #include <StructuredTrace.h>
 
 #ifdef IS_FXSERVER
+#include <condition_variable>
+#include <thread>
+#include <mutex>
+
 #include <tbb/concurrent_queue.h>
 
 #ifdef _WIN32
