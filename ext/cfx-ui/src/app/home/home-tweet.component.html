@@ -18,7 +18,7 @@
             </figure>
             <div class="media-content">
                 <div class="content" (click)="clickContent($event)">
-                    <p [innerHTML]="tweet.content | linky: { hashtag: 'twitter', mention: 'twitter' }"></p>
+                    <p [innerHTML]="tweet.content | linky: { hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }"></p>
                 </div>
                 <nav class="level is-mobile"></nav>
             </div>
