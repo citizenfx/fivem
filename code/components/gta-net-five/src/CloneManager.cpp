@@ -1325,7 +1325,7 @@ void CloneManagerLocal::Update()
 							if (it != removedFlags.end())
 							{
 								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
+								((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
 
 								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
 								((void(*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
@@ -1347,7 +1347,7 @@ void CloneManagerLocal::Update()
 								it = removedFlags.emplace(ent, flags).first;
 
 								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
+								((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
 
 								// 1604, rage::fwSceneUpdate::RemoveFromSceneUpdate
 								((void(*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
@@ -1356,7 +1356,7 @@ void CloneManagerLocal::Update()
 							if ((frameCount % 50) < 2)
 							{
 								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
+								((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
 
 								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
 								((void(*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
@@ -1421,8 +1421,6 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 	m_savedEntitySet.erase(object);
 	m_trackedObjects.erase(object->objectId);
 	m_extendedData.erase(object->objectId);
-
-	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), object), m_savedEntityVec.end());
 }
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
