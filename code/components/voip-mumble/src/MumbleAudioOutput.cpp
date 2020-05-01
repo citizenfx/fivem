@@ -491,12 +491,23 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 	state->context = context;
 
+	std::unique_lock<std::shared_mutex> _(m_clientsMutex);
 	m_clients[user.GetSessionId()] = state;
 }
 
 void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size)
 {
-	auto client = m_clients[user.GetSessionId()];
+	std::shared_ptr<ClientAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
 
 	if (!client || !client->opus || !client->context || !client->context->destination())
 	{
@@ -548,7 +559,17 @@ static const X3DAUDIO_CONE Listener_DirectionalCone = { X3DAUDIO_PI*5.0f / 6.0f,
 
 void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float distance)
 {
-	auto client = m_clients[user.GetSessionId()];
+	std::shared_ptr<ClientAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
 
 	if (client)
 	{
@@ -558,7 +579,17 @@ void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float dista
 
 void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float volumeOverride)
 {
-	auto client = m_clients[user.GetSessionId()];
+	std::shared_ptr<ClientAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
 
 	if (client)
 	{
@@ -570,7 +601,17 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 {
 	using namespace DirectX;
 
-	auto client = m_clients[user.GetSessionId()];
+	std::shared_ptr<ClientAudioState> client;
+
+	{
+		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
+		auto it = m_clients.find(user.GetSessionId());
+
+		if (it != m_clients.end())
+		{
+			client = it->second;
+		}
+	}
 
 	if (client && client->voice)
 	{
@@ -817,12 +858,15 @@ void MumbleAudioOutput::SetMatrix(float position[3], float front[3], float up[3]
 
 void MumbleAudioOutput::HandleClientDisconnect(const MumbleUser& user)
 {
+	std::unique_lock<std::shared_mutex> _(m_clientsMutex);
 	m_clients[user.GetSessionId()] = nullptr;
 }
 
 void MumbleAudioOutput::GetTalkers(std::vector<uint32_t>* talkers)
 {
 	talkers->clear();
+
+	std::shared_lock<std::shared_mutex> _(m_clientsMutex);
 
 	for (auto& client : m_clients)
 	{
@@ -879,16 +923,20 @@ void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId)
 	// save IDs
 	std::vector<uint32_t> m_ids;
 
-	for (auto& client : m_clients)
 	{
-		if (client.second)
-		{
-			m_ids.push_back(client.first);
-		}
-	}
+		std::unique_lock<std::shared_mutex> _(m_clientsMutex);
 
-	// delete all clients
-	m_clients.clear();
+		for (auto& client : m_clients)
+		{
+			if (client.second)
+			{
+				m_ids.push_back(client.first);
+			}
+		}
+
+		// delete all clients
+		m_clients.clear();
+	}
 
 	// reinitialize audio device
 	InitializeAudioDevice();
@@ -942,6 +990,8 @@ void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
 std::shared_ptr<lab::AudioContext> MumbleAudioOutput::GetAudioContext(const std::string& name)
 {
 	auto wideName = ToWide(name);
+
+	std::shared_lock<std::shared_mutex> _(m_clientsMutex);
 
 	for (auto& client : m_clients)
 	{

@@ -7,11 +7,12 @@
 
 #pragma once
 
-#include <concurrent_unordered_map.h>
-
 #include <map>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
+
+#include <unordered_map>
 
 #include <wrl.h>
 
@@ -110,7 +111,8 @@ private:
 
 	WRL::ComPtr<IMMDeviceEnumerator> m_mmDeviceEnumerator;
 
-	concurrency::concurrent_unordered_map<uint32_t, std::shared_ptr<ClientAudioState>> m_clients;
+	std::unordered_map<uint32_t, std::shared_ptr<ClientAudioState>> m_clients;
+	std::shared_mutex m_clientsMutex;
 
 	std::thread m_thread;
 
