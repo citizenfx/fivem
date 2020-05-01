@@ -63,7 +63,13 @@ std::optional<int> EnsureGamePath()
 
 		if (path[0] != L'\0')
 		{
-			return {};
+			// check stuff regarding the game executable
+			std::wstring gameExecutable = fmt::sprintf(L"%s\\%s", path, GAME_EXECUTABLE);
+
+			if (GetFileAttributes(gameExecutable.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				return {};
+			}
 		}
 	}
 
