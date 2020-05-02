@@ -268,7 +268,7 @@ static InitFunction initFunction([]()
 								std::weak_ptr<fx::sync::SyncEntityState> entityRef;
 
 								{
-									auto [data, lock] = gameState->ExternalGetClientData(tgtClient);
+									auto [lock, data] = gameState->ExternalGetClientData(tgtClient);
 									entityRef = data->playerEntity;
 								}
 

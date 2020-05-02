@@ -507,7 +507,7 @@ public:
 
 	uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr);
 
-	std::tuple<std::shared_ptr<GameStateClientData>, std::unique_lock<std::mutex>> ExternalGetClientData(const std::shared_ptr<fx::Client>& client);
+	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const std::shared_ptr<fx::Client>& client);
 
 private:
 	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
