@@ -21,6 +21,7 @@ build_client:
       - caches/caches.xml
       - caches/CitizenFX.exe.xz
       - caches/version.txt
+      - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
     key: client

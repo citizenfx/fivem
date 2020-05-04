@@ -199,3 +199,6 @@
 [submodule "vendor/folly"]
 	path = vendor/folly
 	url = https://github.com/facebook/folly.git
+[submodule "ext/native-doc-tooling"]
+	path = ext/native-doc-tooling
+	url = https://github.com/citizenfx/native-doc-tooling
