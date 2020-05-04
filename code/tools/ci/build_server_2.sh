@@ -35,38 +35,15 @@ apk del curl
 apk add --no-cache curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev
+apk add --no-cache --virtual .dev-deps curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs yarn clang-libs git
 
 # install ply
 python2 -m easy_install ply
 
-# download and build premake
-curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-src.zip
-
-cd /tmp
-unzip -q premake.zip
-rm premake.zip
-cd premake-*
-
-cd build/gmake.unix/
-make -j${JOB_SLOTS}
-cd ../../
-
-mv bin/release/premake5 /usr/local/bin
-cd ..
-
-rm -rf premake-*
-
-# download and extract boost
-curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
-tar xf boost.tar.bz2
-rm boost.tar.bz2
-
-mv boost_* boost
-
-export BOOST_ROOT=/tmp/boost/
-
 # build natives
+cd /src/ext/native-doc-gen
+sh build.sh
+
 cd /src/ext/natives
 
 mkdir -p out
@@ -100,6 +77,32 @@ cat >> /src/code/client/clrcore/NativesServer.cs << EOF
 EOF
 
 lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
+
+# download and extract boost
+curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
+tar xf boost.tar.bz2
+rm boost.tar.bz2
+
+mv boost_* boost
+
+export BOOST_ROOT=/tmp/boost/
+
+# download and build premake
+curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-src.zip
+
+cd /tmp
+unzip -q premake.zip
+rm premake.zip
+cd premake-*
+
+cd build/gmake.unix/
+make -j${JOB_SLOTS}
+cd ../../
+
+mv bin/release/premake5 /usr/local/bin
+cd ..
+
+rm -rf premake-*
 
 # build CitizenFX
 cd /src/code
