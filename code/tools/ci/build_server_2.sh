@@ -79,6 +79,8 @@ EOF
 lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 
 # download and extract boost
+cd /tmp
+
 curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
 tar xf boost.tar.bz2
 rm boost.tar.bz2
