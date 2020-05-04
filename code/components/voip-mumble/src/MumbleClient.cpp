@@ -152,19 +152,12 @@ void MumbleClient::Initialize()
 
 			const auto& address = m_connectionInfo.address;
 			m_tcp->connect(*address.GetSocketAddress());
-
-			sockaddr_in sn = { 0 };
-			sn.sin_family = AF_INET;
-			sn.sin_addr.s_addr = INADDR_ANY;
-			sn.sin_port = 0;
-
 			m_state.Reset();
 			m_state.SetClient(this);
 			m_state.SetUsername(ToWide(m_connectionInfo.username));
 		});
 
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
-		
 		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
 			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
@@ -296,6 +289,7 @@ void MumbleClient::Initialize()
 				console::DPrintf("Mumble", "Reconnecting.\n");
 
 				m_connectTimer->start(2500ms, 0s);
+				m_idleTimer->stop();
 			}
 		});
 	});
