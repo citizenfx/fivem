@@ -352,11 +352,13 @@ static InitFunction initFunction([] ()
 
 		std::wstring brandingString = L"";
 		std::wstring brandingEmoji = L"";
-		std::wstring brandName = L"FiveM";
+		std::wstring brandName = L"";
 
 		if (shouldDraw) {
 			SYSTEMTIME systemTime;
 			GetLocalTime(&systemTime);
+
+			brandName = L"FiveM";
 
 			switch (systemTime.wHour)
 			{
