@@ -530,8 +530,9 @@ if #arg > 2 then
 	gApiSet = arg[3]
 end
 
+loadDefinition 'inp/natives_cfx.lua'
+
 if not globalNatives then
-	loadDefinition 'inp/natives_cfx.lua'
 	loadDefinition 'codegen_dlc_natives.lua'
 end
 
