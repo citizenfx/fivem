@@ -351,11 +351,14 @@ static InitFunction initFunction([] ()
 		static bool isCanary = IsCanary();
 
 		std::wstring brandingString = L"";
-		std::wstring brandingEmoji;
+		std::wstring brandingEmoji = L"";
+		std::wstring brandName = L"";
 
 		if (shouldDraw) {
 			SYSTEMTIME systemTime;
 			GetLocalTime(&systemTime);
+
+			brandName = L"FiveM";
 
 			switch (systemTime.wHour)
 			{
@@ -392,8 +395,6 @@ static InitFunction initFunction([] ()
 					brandingEmoji = L"\xD83E\xDD59";
 					break;
 			}
-
-			std::wstring brandName = L"FiveM";
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 			{
@@ -443,10 +444,23 @@ static InitFunction initFunction([] ()
 					brandName += L" (Canary)";
 				}
 			}
-
-			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
 		}
 
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0, 2);
+
+		static int anchorPos = dis(gen);
+
+		// If anchor position is on left-side, make the emoji go on the left side.
+		if (anchorPos < 2) {
+			brandingString = fmt::sprintf(L"%s %s", brandName, brandingEmoji);
+		} else
+		{
+			brandingString = fmt::sprintf(L"%s %s", brandingEmoji, brandName);
+		}
+
+		
 		static CRect metrics;
 		static fwWString lastString;
 		static float lastHeight;
@@ -461,12 +475,6 @@ static InitFunction initFunction([] ()
 			lastString = brandingString;
 			lastHeight = gameHeightF;
 		}
-
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<> dis(0, 2);
-
-		static int anchorPos = dis(gen);
 
 		CRect drawRect;
 
@@ -483,7 +491,7 @@ static InitFunction initFunction([] ()
 			break;
 		}
 
-		CRGBA color(180, 180, 180);
+		CRGBA color(180, 180, 180, 120);
 
 		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI");
 #endif
