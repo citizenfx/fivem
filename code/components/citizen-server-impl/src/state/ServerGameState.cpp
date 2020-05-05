@@ -565,6 +565,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	UpdateEntities();
 
+	fwRefContainer<ServerEventComponent> sec = m_instance->GetComponent<ServerEventComponent>();
+	fwRefContainer<fx::ResourceManager> resMan = m_instance->GetComponent<fx::ResourceManager>();
+	fwRefContainer<fx::ResourceEventManagerComponent> evMan = resMan->GetComponent<fx::ResourceEventManagerComponent>();
+
 	// cache entities so we don't have to iterate the concurrent_map for each client
 	static std::vector<
 		std::tuple<
@@ -862,7 +866,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		clientRefs.push_back(clientRef);
 	});
 
-	tbb::parallel_for_each(clientRefs.begin(), clientRefs.end(), [this, curTime](const std::shared_ptr<fx::Client>& clientRef)
+	tbb::parallel_for_each(clientRefs.begin(), clientRefs.end(), [this, curTime, &sec, &evMan](const std::shared_ptr<fx::Client>& clientRef)
 	{
 		// get our own pointer ownership
 		auto client = clientRef;
@@ -1005,8 +1009,30 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								clientData->slotsToPlayers[slotId] = entityClient->GetNetId();
 								clientData->playersToSlots[entityClient->GetNetId()] = slotId;
 
-								fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
-								events->TriggerClientEventReplayed("onPlayerJoining", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
+								sec->TriggerClientEventReplayed("onPlayerJoining", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
+
+								/*NETEV playerEnteredScope SERVER
+								/#*
+								 * A server-side event that is triggered when a player enters another player's scope.
+								 *
+								 * @param data - Data containing the players entering each other's scope.
+								 #/
+								declare function playerEnteredScope(data: {
+									/#*
+									 * The player that is entering the scope.
+									 #/
+									player: string,
+
+									/#*
+									 * The player for which the scope is being entered.
+									 #/
+									for: string
+								}): void;
+								*/
+								evMan->QueueEvent2("playerEnteredScope", {}, std::map<std::string, std::string>{
+									{ "player", fmt::sprintf("%d", entityClient->GetNetId()) },
+									{ "for", fmt::sprintf("%d", client->GetNetId()) }
+								});
 							}
 							else
 							{
@@ -1018,8 +1044,30 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						{
 							int slotId = plit->second;
 
-							fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
-							events->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
+							sec->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
+
+							/*NETEV playerLeftScope SERVER
+							/#*
+							 * A server-side event that is triggered when a player leaves another player's scope.
+							 *
+							 * @param data - Data containing the players leaving each other's scope.
+							 #/
+							declare function playerLeftScope(data: {
+								/#*
+								 * The player that is leaving the scope.
+								 #/
+								player: string,
+
+								/#*
+								 * The player for which the scope is being left.
+								 #/
+								for: string
+							}): void;
+							*/
+							evMan->QueueEvent2("playerLeftScope", {}, std::map<std::string, std::string>{
+								{ "player", fmt::sprintf("%d", entityClient->GetNetId()) },
+								{ "for", fmt::sprintf("%d", client->GetNetId()) }
+							});
 
 							clientData->slotsToPlayers.erase(slotId);
 							clientData->playersToSlots.erase(entityClient->GetNetId());
