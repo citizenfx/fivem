@@ -207,7 +207,6 @@ private:
 		inline ExtendedCloneData(uint16_t clientId)
 			: clientId(clientId), pendingClientId(-1)
 		{
-
 		}
 	};
 
@@ -268,7 +267,7 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_extendedData.erase(netObject->objectId);
 	m_savedEntities.erase(netObject->objectId);
 	m_savedEntitySet.erase(netObject);
-	
+
 	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
 }
 
@@ -278,25 +277,33 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_netLibrary = netLibrary;
 
 	// add message handlers
-	m_netLibrary->AddReliableHandler("msgCloneAcks", [this](const char* data, size_t len)
+	m_netLibrary->AddReliableHandler(
+	"msgCloneAcks", [this](const char* data, size_t len)
 	{
 		HandleCloneAcks(data, len);
-	}, true);
+	},
+	true);
 
-	m_netLibrary->AddReliableHandler("msgPackedClones", [this](const char* data, size_t len)
+	m_netLibrary->AddReliableHandler(
+	"msgPackedClones", [this](const char* data, size_t len)
 	{
 		HandleCloneSync(data, len);
-	}, true);
+	},
+	true);
 
-	m_netLibrary->AddReliableHandler("msgPackedAcks", [this](const char* data, size_t len)
+	m_netLibrary->AddReliableHandler(
+	"msgPackedAcks", [this](const char* data, size_t len)
 	{
 		HandleCloneAcksNew(data, len);
-	}, true);
+	},
+	true);
 
-	m_netLibrary->AddReliableHandler("msgCloneRemove", [this](const char* data, size_t len)
+	m_netLibrary->AddReliableHandler(
+	"msgCloneRemove", [this](const char* data, size_t len)
 	{
 		HandleCloneRemove(data, len);
-	}, true);
+	},
+	true);
 
 	std::thread([this]()
 	{
@@ -336,7 +343,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 				}
 			}
 		}
-	}).detach();
+	})
+	.detach();
 
 	static ConVar<std::string> logFile("onesync_logFile", ConVar_None, "", &m_logFile);
 
@@ -346,7 +354,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 		if (it == m_savedEntities.end() || !it->second)
 		{
-			console::PrintError("CloneManager", "Couldn't find object by ID %d\n", objectId);;
+			console::PrintError("CloneManager", "Couldn't find object by ID %d\n", objectId);
+			;
 			return;
 		}
 
@@ -571,8 +580,8 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 
 					break;
 				}
-				case 5:
 				// timestamp ack?
+				case 5:
 				{
 					auto timestamp = msgBuf.Read<uint32_t>(32);
 					ProcessTimestampAck(timestamp);
@@ -646,7 +655,7 @@ public:
 		return m_uniqifier;
 	}
 
-//private:
+	//private:
 	uint32_t m_handle;
 	uint16_t m_clientId;
 	uint16_t m_objectId;
@@ -749,35 +758,35 @@ void msgPackedClones::Read(net::Buffer& buffer)
 
 			switch (dataType)
 			{
-			case 1:
-			case 2:
-			{
-				msgClone clone;
-				clone.Read(dataType, msgBuf);
+				case 1:
+				case 2:
+				{
+					msgClone clone;
+					clone.Read(dataType, msgBuf);
 
-				m_clones.push_back(std::move(clone));
-				break;
-			}
-			case 3: // clone remove
-			{
-				auto remove = msgBuf.Read<uint16_t>(13);
+					m_clones.push_back(std::move(clone));
+					break;
+				}
+				case 3: // clone remove
+				{
+					auto remove = msgBuf.Read<uint16_t>(13);
 
-				m_removes.push_back(remove);
-				break;
-			}
-			case 5:
-			{
-				uint32_t msecLow = msgBuf.Read<uint32_t>(32);
-				uint32_t msecHigh = msgBuf.Read<uint32_t>(32);
+					m_removes.push_back(remove);
+					break;
+				}
+				case 5:
+				{
+					uint32_t msecLow = msgBuf.Read<uint32_t>(32);
+					uint32_t msecHigh = msgBuf.Read<uint32_t>(32);
 
-				uint64_t serverTime = ((uint64_t(msecHigh) << 32) | msecLow);
-				//UpdateTime(serverTime);
+					uint64_t serverTime = ((uint64_t(msecHigh) << 32) | msecLow);
+					//UpdateTime(serverTime);
 
-				break;
-			}
-			case 7:
-				end = true;
-				break;
+					break;
+				}
+				case 7:
+					end = true;
+					break;
 			}
 		}
 	}
@@ -916,7 +925,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		console::DPrintf("onesync", "Treason! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
 	}
-	
+
 	obj->syncData.isRemote = isRemote;
 	obj->syncData.ownerId = owner;
 
@@ -972,11 +981,11 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	auto ackPacket = [&]()
 	{
-// 		// send ack
-// 		net::Buffer outBuffer;
-// 		outBuffer.Write<uint16_t>(msg.GetObjectId());
-// 
-// 		m_netLibrary->SendReliableCommand("csack", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		// 		// send ack
+		// 		net::Buffer outBuffer;
+		// 		outBuffer.Write<uint16_t>(msg.GetObjectId());
+		//
+		// 		m_netLibrary->SendReliableCommand("csack", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 	};
 
 	Log("%s: id %d obj [obj:%d] ts %d\n", __func__, msg.GetClientId(), msg.GetObjectId(), msg.GetTimestamp());
@@ -996,7 +1005,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	// check uniqifier
 	auto& objectData = m_trackedObjects[msg.GetObjectId()];
-	
+
 	if (objectData.uniqifier != msg.GetUniqifier() && icgi->NetProtoVersion >= 0x201912301309)
 	{
 		ackPacket();
@@ -1087,8 +1096,8 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 		}
 
 		Log("%s: Remote-migrating object %s (of type %s) from %s to %s.\n", __func__, obj->ToString(), GetType(obj),
-			(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
-			(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
+		(g_playersByNetId[extData.clientId]) ? g_playersByNetId[extData.clientId]->GetName() : "(null)",
+		(g_playersByNetId[msg.GetClientId()]) ? g_playersByNetId[msg.GetClientId()]->GetName() : "(null)");
 
 		// reset next-owner ID as we've just migrated it
 		obj->syncData.nextOwnerId = -1;
@@ -1137,7 +1146,6 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 		// this should happen AFTER AddObjectForPlayer, it verifies the object owner
 		extData.clientId = clientId;
 	}
-
 }
 
 net::Buffer g_cloneMsgPacket;
@@ -1165,20 +1173,20 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 		switch (clone.GetSyncType())
 		{
-		case 1:
-			HandleCloneCreate(clone);
-			break;
-		case 2:
-		{
-			bool acked = HandleCloneUpdate(clone);
-
-			if (!acked)
+			case 1:
+				HandleCloneCreate(clone);
+				break;
+			case 2:
 			{
-				ignoreList.push_back(clone.GetObjectId());
-			}
+				bool acked = HandleCloneUpdate(clone);
 
-			break;
-		}
+				if (!acked)
+				{
+					ignoreList.push_back(clone.GetObjectId());
+				}
+
+				break;
+			}
 		}
 	}
 
@@ -1210,8 +1218,6 @@ void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
 
 	DeleteObjectId(objectId, false);
 }
-
-
 
 void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 {
@@ -1265,8 +1271,8 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 	AttemptFlushCloneBuffer();
 
 	Log("%s: Migrating object %s (of type %s) from %s to %s (remote player).\n", __func__, object->ToString(), GetType(object),
-		!object->syncData.isRemote ? "us" : "a remote player",
-		(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
+	!object->syncData.isRemote ? "us" : "a remote player",
+	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
 }
 
 const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
@@ -1328,7 +1334,7 @@ void CloneManagerLocal::Update()
 								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
 
 								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void(*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
 
 								removedFlags.erase(it);
 							}
@@ -1350,7 +1356,7 @@ void CloneManagerLocal::Update()
 								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
 
 								// 1604, rage::fwSceneUpdate::RemoveFromSceneUpdate
-								((void(*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
+								((void (*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
 							}
 
 							if ((frameCount % 50) < 2)
@@ -1359,14 +1365,13 @@ void CloneManagerLocal::Update()
 								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
 
 								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void(*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
 
 								removedFlags.erase(it);
 							}
 						}
 					}
 				}
-
 
 				clone.second->UpdatePendingVisibilityChanges();
 			}
@@ -1415,7 +1420,7 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 		m_netObjects[object->syncData.ownerId].erase(object->objectId);
 	}
 
-	m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier}, msec() });
+	m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });
 
 	m_savedEntities.erase(object->objectId);
 	m_savedEntitySet.erase(object);
@@ -1731,7 +1736,7 @@ void CloneManagerLocal::WriteUpdates()
 			}
 		}
 
-/*		m_savedEntities[objectId] = object;
+		/*		m_savedEntities[objectId] = object;
 		m_savedEntitySet.insert(object);
 
 		if (m_extendedData[objectId].clientId != m_netLibrary->GetServerNetID())

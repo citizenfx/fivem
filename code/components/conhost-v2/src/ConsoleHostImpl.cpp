@@ -142,7 +142,7 @@ static void RenderDrawLists(ImDrawData* drawData)
 	for (int i = 0; i < drawData->CmdListsCount; i++)
 	{
 		ImDrawList* drawList = drawData->CmdLists[i];
-		
+
 		DrawList* grDrawList = new DrawList();
 		grDrawList->CmdBuffer.swap(drawList->CmdBuffer);
 		grDrawList->IdxBuffer.swap(drawList->IdxBuffer);
@@ -159,7 +159,8 @@ static void RenderDrawLists(ImDrawData* drawData)
 			EnqueueGenericDrawCommand([](uintptr_t a, uintptr_t b)
 			{
 				RenderDrawListInternal((DrawList*)a);
-			}, &argRef, &argRef);
+			},
+			&argRef, &argRef);
 		}
 	}
 }
@@ -183,7 +184,7 @@ static void CreateFontTexture()
 	rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
 	g_fontTexture = texture;
 
-	io.Fonts->TexID = (void *)g_fontTexture;
+	io.Fonts->TexID = (void*)g_fontTexture;
 }
 #else
 DLL_EXPORT fwEvent<ImDrawData*> OnRenderImDrawData;
@@ -281,58 +282,58 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 	ImGuiIO& io = ImGui::GetIO();
 	switch (msg)
 	{
-	case WM_LBUTTONDOWN:
-		io.MouseDown[0] = true;
-		pass = false;
-		break;
-	case WM_LBUTTONUP:
-		io.MouseDown[0] = false;
-		pass = false;
-		break;
-	case WM_RBUTTONDOWN:
-		io.MouseDown[1] = true;
-		pass = false;
-		break;
-	case WM_RBUTTONUP:
-		io.MouseDown[1] = false;
-		pass = false;
-		break;
-	case WM_MBUTTONDOWN:
-		io.MouseDown[2] = true;
-		pass = false;
-		break;
-	case WM_MBUTTONUP:
-		io.MouseDown[2] = false;
-		pass = false;
-		break;
-	case WM_MOUSEWHEEL:
-		io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
-		pass = false;
-		break;
-	case WM_MOUSEMOVE:
-		io.MousePos.x = (signed short)(lParam);
-		io.MousePos.y = (signed short)(lParam >> 16);
-		pass = false;
-		break;
-	case WM_KEYDOWN:
-		if (wParam < 256)
-			io.KeysDown[wParam] = 1;
-		pass = false;
-		break;
-	case WM_KEYUP:
-		if (wParam < 256)
-			io.KeysDown[wParam] = 0;
-		pass = false;
-		break;
-	case WM_CHAR:
-		// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
-		if (wParam > 0 && wParam < 0x10000)
-			io.AddInputCharacter((unsigned short)wParam);
-		pass = false;
-		break;
-	case WM_INPUT:
-		pass = false;
-		break;
+		case WM_LBUTTONDOWN:
+			io.MouseDown[0] = true;
+			pass = false;
+			break;
+		case WM_LBUTTONUP:
+			io.MouseDown[0] = false;
+			pass = false;
+			break;
+		case WM_RBUTTONDOWN:
+			io.MouseDown[1] = true;
+			pass = false;
+			break;
+		case WM_RBUTTONUP:
+			io.MouseDown[1] = false;
+			pass = false;
+			break;
+		case WM_MBUTTONDOWN:
+			io.MouseDown[2] = true;
+			pass = false;
+			break;
+		case WM_MBUTTONUP:
+			io.MouseDown[2] = false;
+			pass = false;
+			break;
+		case WM_MOUSEWHEEL:
+			io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
+			pass = false;
+			break;
+		case WM_MOUSEMOVE:
+			io.MousePos.x = (signed short)(lParam);
+			io.MousePos.y = (signed short)(lParam >> 16);
+			pass = false;
+			break;
+		case WM_KEYDOWN:
+			if (wParam < 256)
+				io.KeysDown[wParam] = 1;
+			pass = false;
+			break;
+		case WM_KEYUP:
+			if (wParam < 256)
+				io.KeysDown[wParam] = 0;
+			pass = false;
+			break;
+		case WM_CHAR:
+			// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
+			if (wParam > 0 && wParam < 0x10000)
+				io.AddInputCharacter((unsigned short)wParam);
+			pass = false;
+			break;
+		case WM_INPUT:
+			pass = false;
+			break;
 	}
 
 	if (!pass)
@@ -358,7 +359,7 @@ static InitFunction initFunction([]()
 	ImGui::SetCurrentContext(cxt);
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.KeyMap[ImGuiKey_Tab] = VK_TAB;                       // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array that we will update during the application lifetime.
+	io.KeyMap[ImGuiKey_Tab] = VK_TAB; // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array that we will update during the application lifetime.
 	io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
 	io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
 	io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
@@ -397,8 +398,7 @@ static InitFunction initFunction([]()
 
 			std::wstring profilePath = cfxPath + L"\\imgui.ini";
 
-			if (GetFileAttributes(profilePath.c_str()) == INVALID_FILE_ATTRIBUTES &&
-				GetFileAttributes(outPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			if (GetFileAttributes(profilePath.c_str()) == INVALID_FILE_ATTRIBUTES && GetFileAttributes(outPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 			{
 				CopyFile(outPath.c_str(), profilePath.c_str(), FALSE);
 			}
@@ -412,7 +412,7 @@ static InitFunction initFunction([]()
 	})();
 
 	io.IniFilename = const_cast<char*>(imguiIni.c_str());
-	io.RenderDrawListsFn = RenderDrawLists;  // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.
+	io.RenderDrawListsFn = RenderDrawLists; // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.
 	//io.ImeWindowHandle = g_hWnd;
 
 	ImGuiStyle& style = ImGui::GetStyle();
