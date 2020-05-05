@@ -208,6 +208,12 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 	pplx::when_all(tasks.begin(), tasks.end()).wait();
 
+	/*NETEV onResourceListRefresh SERVER
+	/#*
+	 * A server-side event triggered when the `refresh` command completes.
+	 #/
+	declare function onResourceListRefresh(): void;
+	*/
 	instance
 		->GetComponent<fx::ResourceManager>()
 		->GetComponent<fx::ResourceEventManagerComponent>()

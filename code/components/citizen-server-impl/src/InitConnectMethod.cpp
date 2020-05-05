@@ -629,6 +629,56 @@ static InitFunction initFunction([]()
 
 				MonoEnsureThreadAttached();
 
+				/*NETEV playerConnecting SERVER
+				/#*
+				 * A server-side event that is triggered when a player is trying to connect.
+				 *
+				 * This event can be canceled to reject the player *instantly*, assuming you haven't yielded.
+				 *
+				 * @param playerName - The display name of the player connecting.
+				 * @param setKickReason - A function used to set a reason message for when the event is canceled.
+				 * @param deferrals - An object to control deferrals.
+				 * @param source - The player's *temporary* NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
+				 #/
+				declare function playerConnecting(playerName: string, setKickReason: (reason: string) => void, deferrals: {
+					/#*
+					 * `deferrals.defer` will initialize deferrals for the current resource. It is required to wait for at least a tick after calling defer before calling `update`, `presentCard` or `done`.
+					 #/
+					defer(): void,
+
+					/#*
+					 * `deferrals.update` will send a progress message to the connecting client.
+					 *
+					 * @param message - The string to send to the client.
+					 #/
+					update(message: string): void,
+
+					/#*
+					 * `deferrals.presentCard` will send an [Adaptive Card](https://adaptivecards.io/) to the client.
+					 *
+					 * @param card - An object containing card data, or a serialized JSON string with the card information.
+					 * @param cb - If present, will be invoked on an `Action.Submit` event from the Adaptive Card.
+					 #/
+					presentCard(
+						card: object | string,
+						cb?:
+						/#*
+						 * A callback to be invoked for `Action.Submit`.
+						 *
+						 * @param data - A parsed version of the data sent from the card.
+						 * @param rawData - A JSON string containing the data sent from the card.
+						 #/
+						  (data: any, rawData: string) => void
+					): void,
+
+					/#*
+					 * `deferrals.done` finalizes a deferral. It is required to wait for at least a tick before calling `done` after calling a prior deferral method.
+					 *
+					 * @param failureReason - If specified, the connection will be refused, and the user will see the specified message as a result. If this is not specified, the user will be allowed to connect.
+					 #/
+					done(failureReason?: string): void,
+				}, source: string): void;
+				*/
 				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();

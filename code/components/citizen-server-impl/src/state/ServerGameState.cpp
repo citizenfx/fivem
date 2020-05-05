@@ -1251,6 +1251,15 @@ void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>
 	gscomms_execute_callback_on_main_thread([this, entity, doRemove]()
 	{
 		auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV entityRemoved SERVER
+		/#*
+		 * Triggered when an entity is removed on the server.
+		 *
+		 * @param entity - The handle of the entity that got removed.
+		 #/
+		declare function entityRemoved(entity: number): void;
+		*/
 		evComponent->TriggerEvent2("entityRemoved", { }, MakeScriptHandle(entity));
 
 		gscomms_execute_callback_on_sync_thread(doRemove);
@@ -2280,6 +2289,17 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		gscomms_execute_callback_on_main_thread([this, entity]()
 		{
 			auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+			/*NETEV entityCreating SERVER
+			/#*
+			 * A server-side event that is triggered when an entity is being created.
+			 * 
+			 * This event **can** be canceled to instantly delete the entity.
+			 *
+			 * @param entity - The created entity handle.
+			 #/
+			declare function entityCreating(handle: number): void;
+			*/
 			if (!evComponent->TriggerEvent2("entityCreating", { }, MakeScriptHandle(entity)))
 			{
 				if (entity->type != sync::NetObjEntityType::Player)
@@ -2293,6 +2313,14 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 				return;
 			}
 
+			/*NETEV entityCreated SERVER
+			/#*
+			 * A server-side event that is triggered when an entity has been created.
+			 *
+			 * @param entity - The created entity handle.
+			 #/
+			declare function entityCreated(handle: number): void;
+			*/
 			evComponent->QueueEvent2("entityCreated", { }, MakeScriptHandle(entity));
 		});
 	}

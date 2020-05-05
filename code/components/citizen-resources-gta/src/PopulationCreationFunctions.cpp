@@ -46,6 +46,34 @@ static InitFunction initFunction([]()
 			}
 		});
 
+		/*NETEV populationPedCreating CLIENT
+		/#*
+		 * An event that is triggered when a ped is being created by the game population system. The event can be canceled to stop creating the ped.
+		 *
+		 * @param x - The X position the ped is trying to spawn at.
+		 * @param y - The Y position.
+		 * @param z - The Z position.
+		 * @param model - The intended model.
+		 * @param overrideCalls - Functions to override position or model.
+		 #/
+		declare function populationPedCreating(x: number, y: number, z: number, model: number, overrideCalls: {
+			/#*
+			 * Sets the position of the created ped.
+			 *
+			 * @param x - The X position the ped will spawn at.
+			 * @param y - The Y position.
+			 * @param z - The Z position.
+			 #/
+			setPosition(x: number, y: number, z: number): void;
+
+			/#*
+			 * Sets the model of the created ped.
+			 *
+			 * @param model - The model hash or name of the target ped model.
+			 #/
+			setModel(model: number | string): void;
+		}): void;
+		*/
 		state->allowed = rec->TriggerEvent2("populationPedCreating", {}, state->position[0], state->position[1], state->position[2], state->model, overrideCalls) && state->allowed;
 	});
 });

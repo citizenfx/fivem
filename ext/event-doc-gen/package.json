@@ -1,0 +1,12 @@
+{
+  "name": "event-doc-gen",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "recursive-readdir": "^2.2.2",
+    "string.prototype.replaceall": "^1.0.3",
+    "typedoc": "^0.17.6",
+    "typescript": "^3.8.3"
+  }
+}

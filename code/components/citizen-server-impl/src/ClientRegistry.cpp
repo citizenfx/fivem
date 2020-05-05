@@ -108,6 +108,16 @@ namespace fx
 	void ClientRegistry::HandleConnectedClient(const std::shared_ptr<Client>& client)
 	{
 		auto eventManager = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+
+		/*NETEV playerJoining SERVER
+		/#*
+		 * A server-side event that is triggered when a player has a finally-assigned NetID.
+		 *
+		 * @param source - The player's NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
+		 #/
+		declare function playerJoining(source: string): void;
+		*/
 		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("net:%d", client->GetNetId()) });
 
 		if (!fx::IsBigMode())
