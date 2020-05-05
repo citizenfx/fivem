@@ -1,0 +1,48 @@
+BasedOnStyle: WebKit
+AlignOperands: true
+
+# until LLVM 11 this doesn't include `BeforeLambdaBody: true`, which is a bit nasty
+BraceWrapping:
+  BeforeLambdaBody: true
+  AfterControlStatement: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  BeforeCatch: true
+  BeforeElse: true
+  AfterClass: true
+  AfterCaseLabel: true
+  AfterEnum: true
+  AfterUnion: true
+  IndentBraces: false
+  
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 4
+NamespaceIndentation: All
+SortIncludes: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeCpp11BracedList: false
+# not supported in whatever MSVC bundles
+#SpaceInEmptyBlock: false
+TabWidth: 4
+UseTab: ForContinuationAndIndentation
+ContinuationIndentWidth: 0
+BinPackArguments: true
+BinPackParameters: true
+
+AlignAfterOpenBracket: DontAlign
+
+IndentCaseBlocks: false
+IndentCaseLabels: true
+NamespaceIndentation: Inner
+
+# different things that'll change code, we won't use this yet
+#AlignConsecutiveDeclarations: true
+#AlignConsecutiveAssignments: true
+#AlignTrailingComments: true
+
