@@ -50,7 +50,7 @@ void ResourceEventComponent::AttachToObject(Resource* object)
 		 #/
 		declare function onResourceStarting(resource: string): void;
 		*/
-		return m_managerComponent->TriggerEvent2("onResourceStarting", event, m_resource->GetName());
+		return m_managerComponent->TriggerEvent2("onResourceStarting", {}, m_resource->GetName());
 	}, -10000);
 
 	object->OnStart.Connect([=] ()
