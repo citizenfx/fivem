@@ -10,6 +10,7 @@ return {
 
 		files
 		{
+			"../vendor/msgpack-c/include/**.hpp",
 			"../vendor/msgpack-c/src/*.c" 
 		}
 	end

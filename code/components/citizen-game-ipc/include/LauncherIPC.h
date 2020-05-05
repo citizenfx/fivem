@@ -49,14 +49,20 @@ namespace ipc
 				// the type of the current argument
 				using ArgType = std::tuple_element_t<Iterator, ArgTuple>;
 
-				std::decay_t<ArgType> argument;
-				if (list[ArgIterator].convert(&argument))
+				try
 				{
+					std::decay_t<ArgType> argument;
+					list[ArgIterator].convert(argument);
+
 					return CallInternal<Iterator + 1, AddOneArg<ArgType, ArgIterator>>(
 						func,
 						list,
 						std::tuple_cat(std::move(tuple), std::forward_as_tuple(std::forward<ArgType>(argument))),
 						retBuf);
+				}
+				catch (msgpack::type_error&)
+				{
+
 				}
 
 				return false;

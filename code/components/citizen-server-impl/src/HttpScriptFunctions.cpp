@@ -75,7 +75,7 @@ static InitFunction initFunction([]()
 				{
 					if (!success)
 					{
-						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, *responseCode, msgpack::type::nil{}, std::map<std::string, std::string>());
+						evComponent->QueueEvent2("__cfx_internal:httpResponse", {}, token, *responseCode, msgpack::type::nil_t{}, std::map<std::string, std::string>());
 					}
 					else
 					{
