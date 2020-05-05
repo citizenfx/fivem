@@ -136,6 +136,7 @@ bool ListViewBase::render(float listViewHeight, const ImVector<int> *pOptionalCo
             if (hdType.headerType==HT_COLOR || hdType.headerType==HT_ICON)    {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered,transparentColor);
                 ImGui::PushStyleColor(ImGuiCol_ButtonActive,transparentColor);
+				ImGui::PushStyleColor(ImGuiCol_Button, transparentColor);
             }
             if (!hdEditable) {
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered,transparentColor);
@@ -387,6 +388,7 @@ bool ListViewBase::render(float listViewHeight, const ImVector<int> *pOptionalCo
                 ImGui::PopStyleColor();
             }
             if (hdType.headerType==HT_COLOR || hdType.headerType==HT_ICON)    {
+				ImGui::PopStyleColor();
                 ImGui::PopStyleColor();
                 ImGui::PopStyleColor();
             }

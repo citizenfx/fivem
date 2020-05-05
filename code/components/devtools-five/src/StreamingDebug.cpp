@@ -5,7 +5,16 @@
 
 #include <Streaming.h>
 
+#include <grcTexture.h>
 #include <CoreConsole.h>
+
+#include <VFSManager.h>
+#include <VFSWin32.h>
+
+#include <wrl.h>
+#include <wincodec.h>
+
+using Microsoft::WRL::ComPtr;
 
 #include <imguilistview.h>
 
@@ -15,19 +24,21 @@ public:
 	inline StreamingListView(streaming::Manager* streaming)
 		: m_streaming(streaming)
 	{
-
+		m_indexMap.resize(streaming->numEntries);
 	}
 
-	inline void updateCount()
+	inline void updateCount(const char* filterText)
 	{
-		size_t num = 0;
+		m_indexMap.clear();
 
 		for (int i = 0; i < m_streaming->numEntries; i++)
 		{
 			if (m_streaming->Entries[i].handle && m_streaming->Entries[i].flags & 3)
 			{
-				m_indexMap[num] = i;
-				num++;
+				if (!filterText[0] || strstr(streaming::GetStreamingNameForIndex(i).c_str(), filterText) != nullptr)
+				{
+					m_indexMap.push_back(i);
+				}
 			}
 		}
 	}
@@ -41,22 +52,144 @@ public:
 private:
 	streaming::Manager* m_streaming;
 
-	std::unordered_map<size_t, size_t> m_indexMap;
+	std::vector<size_t> m_indexMap;
 };
+
+// TODO: share this code somewhere
+#pragma comment(lib, "windowscodecs.lib")
+
+ComPtr<IWICImagingFactory> g_imagingFactory;
+
+static rage::grcTexture* MakeIcon(const std::string& filename)
+{
+	if (!g_imagingFactory)
+	{
+		HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory1, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory), (void**)g_imagingFactory.GetAddressOf());
+	}
+
+	ComPtr<IWICBitmapDecoder> decoder;
+
+	auto s = vfs::OpenRead(filename);
+
+	if (!s.GetRef())
+	{
+		return nullptr;
+	}
+
+	ComPtr<IStream> stream = vfs::CreateComStream(s);
+
+	HRESULT hr = g_imagingFactory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
+
+	if (SUCCEEDED(hr))
+	{
+		ComPtr<IWICBitmapFrameDecode> frame;
+
+		hr = decoder->GetFrame(0, frame.GetAddressOf());
+
+		if (SUCCEEDED(hr))
+		{
+			ComPtr<IWICBitmapSource> source;
+			ComPtr<IWICBitmapSource> convertedSource;
+
+			UINT width = 0, height = 0;
+
+			frame->GetSize(&width, &height);
+
+			// try to convert to a pixel format we like
+			frame.As(&source);
+
+			hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppBGRA, source.Get(), convertedSource.GetAddressOf());
+
+			if (SUCCEEDED(hr))
+			{
+				source = convertedSource;
+			}
+
+			// create a pixel data buffer
+			uint32_t* pixelData = new uint32_t[width * height];
+
+			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData));
+
+			if (SUCCEEDED(hr))
+			{
+				rage::grcTextureReference reference;
+				memset(&reference, 0, sizeof(reference));
+				reference.width = width;
+				reference.height = height;
+				reference.depth = 1;
+				reference.stride = width * 4;
+				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
+				reference.pixelData = (uint8_t*)pixelData;
+
+				return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+static std::map<uint32_t, rage::grcTexture*> MakeIcons()
+{
+	return {
+		{ HashString("rage::strPackfileStreamingModule"), MakeIcon("citizen:/resources/icons/rpf.png") },
+		{ HashString("CCutsceneStore"), MakeIcon("citizen:/resources/icons/cube.png") },
+		{ HashString("CScaleformStore"), MakeIcon("citizen:/resources/icons/gfx.png") },
+		{ HashString("CPathFind"), MakeIcon("citizen:/resources/icons/node.png") },
+		{ HashString("CWaypointRecordingStreamingInterface"), MakeIcon("citizen:/resources/icons/recording.png") },
+		{ HashString("CVehicleRecordingStreamingModule"), MakeIcon("citizen:/resources/icons/recording.png") },
+		{ HashString("rage::fwClipDictionaryStore"), MakeIcon("citizen:/resources/icons/animation.png") },
+		{ HashString("rage::fwNetworkDefStore"), MakeIcon("citizen:/resources/icons/move.png") },
+		{ HashString("rage::fwStaticBoundsStore"), MakeIcon("citizen:/resources/icons/bounds.png") },
+		{ HashString("CStreamedScripts"), MakeIcon("citizen:/resources/icons/script.png") },
+		{ HashString("rage::fwPoseMatcherStore"), MakeIcon("citizen:/resources/icons/pose.png") },
+		{ HashString("rage::fwMetaDataStore"), MakeIcon("citizen:/resources/icons/xmlfile.png") },
+		{ HashString("rage::fwMapDataStore"), MakeIcon("citizen:/resources/icons/instance.png") },
+		{ HashString("rage::fwMapTypesStore"), MakeIcon("citizen:/resources/icons/class.png") },
+		{ HashString("rage::fwTxdStore"), MakeIcon("citizen:/resources/icons/image.png") },
+		{ HashString("rage::ptfxAssetStore"), MakeIcon("citizen:/resources/icons/effect.png") },
+		{ HashString("rage::fwClothStore"), MakeIcon("citizen:/resources/icons/cloth.png") },
+		{ HashString("rage::aiNavMeshStore"), MakeIcon("citizen:/resources/icons/navigationpath.png") },
+		{ HashString("rage::fwDrawableStore"), MakeIcon("citizen:/resources/icons/cube.png") },
+		{ HashString("rage::fwDwdStore"), MakeIcon("citizen:/resources/icons/dict.png") },
+		{ HashString("rage::fwFragmentStore"), MakeIcon("citizen:/resources/icons/part.png") },
+		{ HashString("CModelInfoStreamingModule"), MakeIcon("citizen:/resources/icons/modelthreed.png") },
+	};
+}
+
+static std::map<uint32_t, ImGui::ListViewBase::CellData::IconData> MakeIconDatas(const std::map<uint32_t, rage::grcTexture*>& icons)
+{
+	std::map<uint32_t, ImGui::ListViewBase::CellData::IconData> ids;
+
+	for (auto& [ key, tex ] : icons)
+	{
+		ids.emplace(key, ImGui::ListViewBase::CellData::IconData{ ImTextureID{ tex }, ImVec2{ 0.0f, 0.0f }, ImVec2{ 1.0f, 1.0f }, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } });
+	}
+
+	return ids;
+}
 
 void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDataOut) const
 {
 	// ok, got i
-	auto it = m_indexMap.find(row);
-	auto num = it->second;
+	auto num = m_indexMap[row];
 
 	auto& entry = m_streaming->Entries[num];
 	auto strModule = m_streaming->moduleMgr.GetStreamingModule(num);
 	auto relativeIndex = (num - strModule->baseIdx);
 
+	static std::map<uint32_t, rage::grcTexture*> icons = MakeIcons();
+	static std::map<uint32_t, CellData::IconData> iconDatas = MakeIconDatas(icons);
+
 	switch (column)
 	{
 	case 0:
+	{
+		cellDataOut.fieldPtr = &iconDatas[HashString(&typeid(*strModule).name()[6])];
+
+		break;
+	}
+	case 1:
 	{
 		// icon
 		// ^ not yet
@@ -66,17 +199,17 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 		cellDataOut.customText = va("%s", type.substr(6));
 		break;
 	}
-	case 1:
+	case 2:
 	{
 		const auto& entryName = streaming::GetStreamingNameForIndex(num);
 
 		cellDataOut.customText = entryName.c_str();
 		break;
 	}
-	case 2:
+	case 3:
 		cellDataOut.fieldPtr = &entry.flags;
 		break;
-	case 3:
+	case 4:
 	{
 		static int refCount;
 		refCount = strModule->GetNumRefs(relativeIndex);
@@ -97,15 +230,21 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 	{
 	case 0:
 		headerDataOut.sorting.sortable = false;
+		headerDataOut.name = "";
+		headerDataOut.type.headerType = ImGui::ListViewBase::HT_ICON;
+		headerDataOut.formatting.columnWidth = 36;
+		break;
+	case 1:
+		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "Type";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_CUSTOM;
 		break;
-	case 1:
+	case 2:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "Name";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_CUSTOM;
 		break;
-	case 2:
+	case 3:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "State";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_ENUM;
@@ -129,18 +268,20 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 
 			return false;
 		};
+		headerDataOut.formatting.columnWidth = 200;
 		break;
-	case 3:
+	case 4:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "Refs";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_INT;
+		headerDataOut.formatting.columnWidth = 64;
 		break;
 	}
 }
 
 size_t StreamingListView::getNumColumns() const
 {
-	return 4;
+	return 5;
 }
 
 size_t StreamingListView::getNumRows() const
@@ -345,14 +486,22 @@ static InitFunction initFunction([]()
 
 			static uint32_t lastTime;
 
-			if ((GetTickCount() - lastTime) > 5000)
+			static char filterText[512];
+			static char lastFilterText[512];
+			ImGui::InputText("Filter", filterText, sizeof(filterText));
+
+			ImGui::BeginChild("InnerRegion");
+			if ((GetTickCount() - lastTime) > 5000 || strcmp(filterText, lastFilterText) != 0)
 			{
-				lv.updateCount();
+				lv.updateCount(filterText);
+				memcpy(lastFilterText, filterText, sizeof(filterText));
 
 				lastTime = GetTickCount();
 			}
 
 			lv.render();
+
+			ImGui::EndChild();
 		}
 
 		ImGui::End();
