@@ -1,0 +1,30 @@
+<div class="mod-item"
+    [class.enabled]="mod.enabled || mod.downloadState == 'available'"
+    [class.downloading]="mod.downloadState == 'downloading'"
+    [class.installed]="mod.downloadState == 'installed'">
+    <figure><img [src]="mod.iconUri"></figure>
+
+    <div>
+        <h1>{{mod.displayName}}</h1>
+        <h2>by {{mod.authorName}}</h2>
+    </div>
+
+    <span class="icons">
+        <span aria-label="Available" data-balloon-pos="left" *ngIf="mod.downloadState == 'available'">
+            <i class="fas fa-download"></i>
+        </span>
+        <span *ngIf="mod.downloadState == 'downloading'" aria-label="Downloading (42%)" data-balloon-pos="left">
+            <i class="fas fa-sync"></i>
+        </span>
+        <span *ngIf="mod.downloadState == 'installed' && mod.enabled" aria-label="Installed" data-balloon-pos="left">
+            <i class="fas fa-check"></i>
+        </span>
+        <span *ngIf="mod.downloadState == 'installed' && !mod.enabled" aria-label="Disabled" data-balloon-pos="left">
+            <i class="fas fa-times"></i>
+        </span>
+    </span>
+
+    <span class="size">{{ mod.sizeBytes | filesize }}</span>
+
+    <progress [value]="mod.progress"></progress>
+</div>

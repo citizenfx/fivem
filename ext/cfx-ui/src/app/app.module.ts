@@ -12,6 +12,7 @@ import {MomentModule} from 'angular2-moment';
 import {Angulartics2Module} from 'angulartics2';
 import {Angulartics2Piwik} from 'angulartics2/piwik';
 import {LinkyModule} from 'ngx-linky';
+import {NgxFilesizeModule} from 'ngx-filesize';
 import {MetaModule, MetaLoader, MetaStaticLoader, PageTitlePositioning} from '@ngx-meta/core';
 
 import {AppRoutingModule} from './app-routing.module';
@@ -58,6 +59,12 @@ import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
 
 import { MatTabsModule } from '@angular/material/tabs';
+import { ModsComponent } from './mods/mods/mods.component';
+import { ModListComponent } from './mods/mod-list/mod-list.component';
+import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
+import { ModsService } from './mods/mods.service';
+import { ModsListComponent } from './mods/mods-list/mods-list.component';
+import { ModItemComponent } from './mods/mod-item/mod-item.component';
 
 const localePrefix = (environment.web) ? '/' : './';
 
@@ -164,7 +171,12 @@ export function metaFactory(): MetaLoader {
 		PlayerAvatarComponent,
 		MinModeComponent,
 		ColorizePipe,
-		EscapePipe
+		EscapePipe,
+		ModsComponent,
+		ModListComponent,
+		ModDetailComponent,
+		ModsListComponent,
+		ModItemComponent
 	],
 	imports:      [
 		BrowserModule.withServerTransition({ appId: 'cfx-ui' }),
@@ -186,6 +198,7 @@ export function metaFactory(): MetaLoader {
 		}),
 		BrowserAnimationsModule,
 		MatTabsModule,
+		NgxFilesizeModule,
 	],
 	providers:    [
 		ServersService,
@@ -211,6 +224,7 @@ export function metaFactory(): MetaLoader {
 			deps: [L10nLoader],
 			multi: true
 		},
+		ModsService,
 	],
 	bootstrap:    [
 		AppComponent

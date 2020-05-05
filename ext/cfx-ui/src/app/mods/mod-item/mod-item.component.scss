@@ -1,0 +1,100 @@
+@import "variables";
+
+$modItemHeight: 9vh;
+
+.mod-item {
+    overflow: hidden;
+    height: $modItemHeight;
+    position: relative;
+
+    transition: background-color 0.2s;
+
+    @include theme() using ($theme) {
+		background-color: rgba(gtv($theme, bgColour), .5);
+    };
+    
+    &:hover {
+        @include theme() using ($theme) {
+            background-color: rgba(gtv($theme, bgColour), 1);
+        };  
+    }
+
+    margin-top: $padding / 3;
+    display: flex;
+
+    figure {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        img {
+            width: $modItemHeight;
+        }
+    }
+
+    &:not(.enabled) figure img {
+        opacity: .6;
+    }
+
+    &>div {
+        padding: $padding;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+        h1 {
+            font-weight: normal;
+            font-size: $fontSize * 1.4;
+        }
+
+        h2 {
+            font-weight: normal;
+            font-size: $fontSize * 1.1;
+        }
+    }
+
+    span.size {
+        position: absolute;
+        bottom: $padding;
+        right: $padding;
+
+        font-size: $fontSize * 0.6;
+    }
+
+    span.icons {
+        position: absolute;
+        top: $padding;
+        right: $padding;
+
+        font-size: $fontSize * 0.6;
+
+        span {
+            padding-left: $padding;
+        }
+    }
+
+    progress {
+        display: none;
+        appearance: none;
+
+        z-index: 999;
+
+        position: absolute;
+        bottom: 0px;
+        width: 100%;
+        height: 3px;
+
+        &::-webkit-progress-value {
+            @include theme() using ($theme) {
+                background-color: rgba(gtv($theme, greenyColour), 1);
+                box-shadow: rgba(gtv($theme, greenyColour), .8) 0px 0px 8px;
+            };
+        }
+    }
+
+    &.downloading {
+        progress {
+            display: block;
+        }
+    }
+}

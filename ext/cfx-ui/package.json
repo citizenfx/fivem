@@ -58,6 +58,7 @@
     "int64-buffer": "^0.99.1007",
     "js-md5": "0.7.3",
     "mini-css-extract-plugin": "^0.8.0",
+    "ngx-filesize": "^2.0.15",
     "ngx-linky": "^2.1.0",
     "ngx-virtual-scroller": "^4.0.3",
     "node-forge": "^0.8.5",

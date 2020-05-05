@@ -3932,6 +3932,11 @@ file-uri-to-path@1.0.0:
   resolved "https://registry.yarnpkg.com/file-uri-to-path/-/file-uri-to-path-1.0.0.tgz#553a7b8446ff6f684359c445f1e37a05dacc33dd"
   integrity sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==
 
+"filesize@>= 4.0.0":
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/filesize/-/filesize-6.1.0.tgz#e81bdaa780e2451d714d71c0d7a4f3238d37ad00"
+  integrity sha512-LpCHtPQ3sFx67z+uh2HnSyWSLLu5Jxo21795uRDuar/EOuYWXib5EmPaGIBuSnRqH2IODiKA2k5re/K9OnN/Yg==
+
 fill-range@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/fill-range/-/fill-range-4.0.0.tgz#d544811d428f98eb06a63dc402d2403c328c38f7"
@@ -5920,6 +5925,13 @@ next-tick@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/next-tick/-/next-tick-1.0.0.tgz#ca86d1fe8828169b0120208e3dc8424b9db8342c"
   integrity sha1-yobR/ogoFpsBICCOPchCS524NCw=
+
+ngx-filesize@^2.0.15:
+  version "2.0.15"
+  resolved "https://registry.yarnpkg.com/ngx-filesize/-/ngx-filesize-2.0.15.tgz#4194ec134c47e56926704c5039ab1f8c2965b8b4"
+  integrity sha512-ARWZC3YSueyBhSmxRk0tAMvjYsYCiUrluiM4LK1xiLSkTvHSo1m1XqbBp9/6SIWRo9/5JqUfThmBvAjCi4fVKw==
+  dependencies:
+    filesize ">= 4.0.0"
 
 ngx-linky@^2.1.0:
   version "2.2.0"

@@ -11,6 +11,9 @@ import {DirectConnectComponent} from './servers/direct/direct-connect.component'
 
 import { environment } from '../environments/environment';
 import { MetaGuard } from '@ngx-meta/core';
+import { ModsComponent } from './mods/mods/mods.component';
+import { ModListComponent } from './mods/mod-list/mod-list.component';
+import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
 
 const routes: Routes = [
 	{
@@ -54,6 +57,20 @@ const routes: Routes = [
 			{
 				path:	   'detail/:addr',
 				component: ServersDetailComponent
+			}
+		]
+	},
+	{
+		path: 'mods',
+		component: ModsComponent,
+		children: [
+			{
+				path: '',
+				component: ModListComponent
+			},
+			{
+				path: 'detail/:id',
+				component: ModDetailComponent
 			}
 		]
 	},

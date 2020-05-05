@@ -79,6 +79,17 @@
 
 		<a
 			class="nav-item"
+			[routerLink]="['/mods']"
+			routerLinkActive="active"
+			style="display: none"
+		>
+			<span l10nTranslate>
+				#BottomNav_Mods
+			</span>
+		</a>
+
+		<a
+			class="nav-item"
 			[routerLink]="['/settings']"
 			routerLinkActive="active"
 		>

@@ -62,8 +62,10 @@ export class AppComponent implements OnInit {
 			(<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
 		};
 
-		if (environment.web) {
-			settle();
+		if (environment.web || !environment.production) {
+			setTimeout(() => {
+				settle();
+			}, 100);
 			return;
 		}
 

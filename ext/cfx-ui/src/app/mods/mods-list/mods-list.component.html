@@ -1,0 +1,6 @@
+<input class="name" type="search" [placeholder]="searchPlaceholder" [(ngModel)]="searchText"
+    (ngModelChange)="updateFilters()">
+
+<div>
+    <app-mod-item *ngFor="let mod of source; trackBy: trackFn" [mod]="mod"></app-mod-item>
+</div>
