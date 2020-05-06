@@ -170,5 +170,9 @@ rm -rf /tmp/boost
 
 apk del .dev-deps
 
+# contains Yarn cache and premake5
+rm -rf /usr/local
+rm -rf /usr/lib/python2.7
+
 mv /tmp/libMonoPosixHelper.so /usr/lib/libMonoPosixHelper.so
 mv /tmp/libmono-btls-shared.so /usr/lib/libmono-btls-shared.so
