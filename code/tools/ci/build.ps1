@@ -336,10 +336,24 @@ if (!$DontBuild -and $IsServer) {
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
 
     Remove-Item -Force $WorkDir\out\server\citizen\.gitignore
-
+    
+    # old filename
+    Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\starter.js
+    
+    # useless client-related scripting stuff
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\*.zip
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\*_universal.lua
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_0*.lua
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_2*.lua
+    
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\v8\*_universal.d.ts
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\v8\*_universal.js
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\v8\natives_0*.*
+    Remove-Item -Force $WorkDir\out\server\citizen\scripting\v8\natives_2*.*
+    
     Copy-Item -Force "$WorkRootDir\tools\ci\7z.exe" 7z.exe
 
-    .\7z.exe a $WorkDir\out\server.zip $WorkDir\out\server\*
+    .\7z.exe a -mx=9 $WorkDir\out\server.zip $WorkDir\out\server\*
 
     $uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
     $json = @{
