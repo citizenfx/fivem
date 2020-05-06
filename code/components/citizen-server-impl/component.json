@@ -23,7 +23,8 @@
 		"vendor:utfcpp",
 		"vendor:breakpad",
 		"vendor:prometheus-cpp",
-		"vendor:folly"
+		"vendor:folly",
+		"vendor:concurrentqueue"
 	],
 	"provides": []
 }

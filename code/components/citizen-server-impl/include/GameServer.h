@@ -14,6 +14,7 @@
 #include <boost/bimap.hpp>
 
 #include <tbb/concurrent_queue.h>
+#include <concurrentqueue.h>
 
 #include <ServerTime.h>
 
@@ -110,7 +111,7 @@ namespace fx
 			virtual void SignalThread() = 0;
 
 		private:
-			tbb::concurrent_queue<std::function<void()>> callbacks;
+			moodycamel::ConcurrentQueue<std::function<void()>> callbacks;
 
 			std::thread::id threadId;
 		};

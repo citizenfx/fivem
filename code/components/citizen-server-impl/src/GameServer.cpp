@@ -781,7 +781,7 @@ namespace fx
 		}
 
 		// add to the queue
-		callbacks.push(fn);
+		callbacks.enqueue(fn);
 
 		// signal the waiting thread
 		SignalThread();
@@ -789,9 +789,10 @@ namespace fx
 
 	void GameServer::CallbackListBase::Run()
 	{
+		// TODO: might need memory barriers for single-consumer too?
 		std::function<void()> fn;
 
-		while (callbacks.try_pop(fn))
+		while (callbacks.try_dequeue(fn))
 		{
 			fn();
 		}
