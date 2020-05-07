@@ -7,7 +7,7 @@ environment:
   - IS_FXSERVER: 0
   - IS_FXSERVER: 1
 build_script:
-- ps: Install-Product node 12
+- ps: Install-Product node 12 x64
 - ps: .\code\tools\ci\build.ps1 -DontUpload $true -SaveDir C:\save
 artifacts:
 - path: caches/
