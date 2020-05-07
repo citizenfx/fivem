@@ -570,14 +570,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	fwRefContainer<fx::ResourceEventManagerComponent> evMan = resMan->GetComponent<fx::ResourceEventManagerComponent>();
 
 	// cache entities so we don't have to iterate the concurrent_map for each client
-	static std::vector<
-		std::tuple<
-			std::shared_ptr<sync::SyncEntityState>,
-			glm::vec3,
-			sync::CVehicleGameStateNodeData*,
-			std::shared_ptr<fx::Client>
-		>
-	> relevantEntities(MaxObjectId);
+	static std::tuple<
+		std::shared_ptr<sync::SyncEntityState>,
+		glm::vec3,
+		sync::CVehicleGameStateNodeData*,
+		std::shared_ptr<fx::Client>
+	> relevantEntities[MaxObjectId];
+
+	//map of handles to entity indices
+	static uint16_t entityHandleMap[MaxObjectId];
+
+	int maxValidEntity = 0;
 
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
@@ -608,14 +611,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				vehicleData = entity->syncTree->GetVehicleGameState();
 			}
 
-			std::shared_ptr<fx::Client> entityClient;
-
+			std::shared_ptr<fx::Client> entityClient = entity->client.lock();
+			if (!entityClient)
 			{
-				std::shared_lock<std::shared_mutex> lock(entity->clientMutex);
-				entityClient = entity->client.lock();
+				continue;
 			}
-
-			relevantEntities[entity->handle & 0xFFFF] = { entity, entityPosition, vehicleData, entityClient };
+			
+			relevantEntities[maxValidEntity] = { entity, entityPosition, vehicleData, entityClient };
+			entityHandleMap[entity->handle & 0xFFFF] = maxValidEntity;
+			maxValidEntity++;
 		}
 	}
 
@@ -685,24 +689,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		auto slotId = client->GetSlotId();
 
-		for (const auto& entityTuple : relevantEntities)
+		for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
 		{
-			const auto& [entity, entityPos, vehicleData, entityClient] = entityTuple;
-
-			if (!entity)
-			{
-				continue;
-			}
-
-			if (!client)
-			{
-				break;
-			}
-
-			if (!entityClient)
-			{
-				continue;
-			}
+			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityIndex];
 
 			bool hasCreated = entity->ackedCreation.test(slotId);
 
@@ -871,11 +860,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// get our own pointer ownership
 		auto client = clientRef;
 
-		if (!client)
-		{
-			return;
-		}
-
 		if (client->GetSlotId() == -1)
 		{
 			return;
@@ -955,22 +939,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		for (const auto& entityIdTuple : clientDataUnlocked->relevantEntities)
 		{
 			auto [ entityId, syncDelay, shouldBeCreated ] = entityIdTuple;
-			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityId];
-
-			if (!entity)
-			{
-				continue;
-			}
-
-			if (!client)
-			{
-				return;
-			}
-
-			if (!entityClient)
-			{
-				continue; 
-			}
+			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityHandleMap[entityId]];
 
 			bool hasCreated = entity->ackedCreation.test(slotId);
 
@@ -1285,9 +1254,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 	});
 
-	for (int i = 0; i < relevantEntities.size(); i++)
+	for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
 	{
-		relevantEntities[i] = { };
+		relevantEntities[maxValidEntity] = {};
 	}
 
 	++m_frameIndex;
