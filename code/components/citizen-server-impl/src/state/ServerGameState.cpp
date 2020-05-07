@@ -370,10 +370,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint8_t player
 	uint16_t objIdAlias = objectId;
 	debug::Alias(&objIdAlias);
 
-	auto& ref = m_entitiesById[objectId];
-	auto l = ref.enter();
-
-	return ref.lock();
+	return m_entitiesById[objectId].lock();
 }
 
 std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
@@ -389,10 +386,7 @@ std::shared_ptr<sync::SyncEntityState> ServerGameState::GetEntity(uint32_t guid)
 	{
 		if (guidData->type == ScriptGuid::Type::Entity)
 		{
-			auto& ptr = m_entitiesById[guidData->entity.handle & 0xFFFF];
-			auto l = ptr.enter();
-
-			return ptr.lock();
+			return m_entitiesById[guidData->entity.handle & 0xFFFF].lock();
 		}
 	}
 
@@ -2053,22 +2047,12 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 
 		// unset weak pointer, as well
 		{
-			auto& ref = m_entitiesById[objectId];
-			auto l = ref.enter_mut();
-			ref.ptr.reset();
+			m_entitiesById[objectId].reset();
 		}
 	};
 
 	{
-		std::weak_ptr<sync::SyncEntityState> entity;
-
-		auto& ref = m_entitiesById[objectId];
-		auto l = ref.enter();
-			
-		entity = ref.ptr;
-
-		auto entityRef = entity.lock();
-
+		auto entityRef = m_entitiesById[objectId].lock();
 		if (entityRef && !entityRef->deleting)
 		{
 			entityRef->deleting = true;
@@ -2190,10 +2174,7 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 			{
 				std::weak_ptr<sync::SyncEntityState> weakEntity(entity);
-
-				auto& ref = m_entitiesById[objectId];
-				auto l = ref.enter_mut();
-				ref.ptr = weakEntity;
+				m_entitiesById[objectId].update(weakEntity);
 			}
 		}
 		else // duplicate create? that's not supposed to happen
@@ -2713,9 +2694,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 			{
 				for (auto object : data->objectIds)
 				{
-					auto l = m_entitiesById[object].enter();
-
-					if (!m_entitiesById[object].ptr.expired())
+					if (m_entitiesById[object].lock())
 					{
 						used++;
 					}

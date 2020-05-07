@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Client.h>
+#include <LRWeakPtr.h>
 
 #include <ServerInstanceBase.h>
 
@@ -589,32 +590,7 @@ private:
 
 //private:
 public:
-	// TODO: this is *very* inefficient
-	// replace with std::atomic<std::weak_ptr> when it comes available immediately!
-	struct EntityByIdEntry
-	{
-		std::weak_ptr<sync::SyncEntityState> ptr;
-		std::shared_mutex mut;
-
-		inline auto enter()
-		{
-			std::shared_lock<std::shared_mutex> _(mut);
-			return std::move(_);
-		}
-
-		inline auto enter_mut()
-		{
-			std::unique_lock<std::shared_mutex> _(mut);
-			return std::move(_);
-		}
-
-		inline auto lock()
-		{
-			return ptr.lock();
-		}
-	};
-
-	std::vector<EntityByIdEntry> m_entitiesById;
+	std::vector<LRWeakPtr<sync::SyncEntityState>> m_entitiesById;
 
 	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
 	std::shared_mutex m_entityListMutex;
