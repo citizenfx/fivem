@@ -1,12 +1,13 @@
 version: 1.0.{build}
 build_cloud: OMNITRON
-image: Windows
+image: Windows20200507
 clone_depth: 1
 environment:
   matrix:
   - IS_FXSERVER: 0
   - IS_FXSERVER: 1
 build_script:
+- ps: Install-Product node 12
 - ps: .\code\tools\ci\build.ps1 -DontUpload $true -SaveDir C:\save
 artifacts:
 - path: caches/
