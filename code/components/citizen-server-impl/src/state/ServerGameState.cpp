@@ -1256,7 +1256,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
 	{
-		relevantEntities[maxValidEntity] = {};
+		relevantEntities[entityIndex] = {};
 	}
 
 	++m_frameIndex;
