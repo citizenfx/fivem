@@ -516,6 +516,11 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 				Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
 				*retvalLength = abv->ByteLength();
 
+				if (*retvalLength > retvalArray.size())
+				{
+					retvalArray.resize(*retvalLength);
+				}
+
 				abv->CopyContents(retvalArray.data(), fwMin(retvalArray.size(), *retvalLength));
 				*retval = retvalArray.data();
 			}
@@ -657,6 +662,11 @@ static void V8_SetStackTraceRoutine(const v8::FunctionCallbackInfo<v8::Value>& a
 
 				Local<ArrayBufferView> abv = value.As<ArrayBufferView>();
 				*size = abv->ByteLength();
+
+				if (*size > retvalArray.size())
+				{
+					retvalArray.resize(*size);
+				}
 
 				abv->CopyContents(retvalArray.data(), fwMin(retvalArray.size(), *size));
 				*blob = retvalArray.data();

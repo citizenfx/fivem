@@ -481,6 +481,12 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		else
 		{
 			const char* retvalString = lua_tolstring(L, -1, size);
+
+			if (*size > retvalArray.size())
+			{
+				retvalArray.resize(*size);
+			}
+
 			memcpy(&retvalArray[0], retvalString, fwMin(retvalArray.size(), *size));
 
 			*blob = &retvalArray[0];
@@ -587,6 +593,12 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 		else
 		{
 			const char* retvalString = lua_tolstring(L, -1, retvalLength);
+
+			if (*retvalLength > retvalArray.size())
+			{
+				retvalArray.resize(*retvalLength);
+			}
+
 			memcpy(&retvalArray[0], retvalString, fwMin(retvalArray.size(), *retvalLength));
 
 			*retval = &retvalArray[0];
