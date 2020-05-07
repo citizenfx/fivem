@@ -132,9 +132,11 @@ namespace fx
 								return;
 							}
 
+							sb.Put('\r');
+							sb.Put('\n');
+
 							// TODO: figure out a way to not copy this here
 							response->Write(std::string{ sb.GetString(), sb.GetLength() });
-							response->Write("\r\n");
 						});
 					}
 				};

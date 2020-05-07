@@ -157,7 +157,7 @@ static InitFunction initFunction([]()
 					}
 
 					auto key = rapidjson::Value{ entry.first.c_str(), static_cast<rapidjson::SizeType>(entry.first.length()), retval.GetAllocator() };
-					resourceFiles.AddMember(std::move(key), std::move(obj), retval.GetAllocator());
+					resourceStreamFiles.AddMember(std::move(key), std::move(obj), retval.GetAllocator());
 				}
 
 				rapidjson::Value obj;
