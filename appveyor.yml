@@ -28,7 +28,7 @@ build_script:
 - sh: cd code/
 
 # TODO: tags/docker upload/secure creds
-- sh: '../rocker build --build-arg JOB_SLOTS=$(nproc); fi'
+- sh: '../rocker build --build-arg JOB_SLOTS=$(nproc)'
 
 
 artifacts:
