@@ -711,7 +711,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 				}
 			}
 		}
-		else
+		else if (ext != "ymf")
 		{
 			trace("can't register %s: no streaming module (does this file even belong in stream?)\n", file);
 		}
@@ -1089,7 +1089,7 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 		if (strModule)
 		{
 			uint32_t strId;
-			strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
+			strModule->FindSlot(&strId, nameWithoutExt.c_str());
 
 			auto rawStreamer = getRawStreamer();
 			uint32_t idx = (rawStreamer->GetCollectionId() << 16) | rawStreamer->GetEntryByName(file.c_str());
