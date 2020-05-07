@@ -43,6 +43,7 @@ static int WeaponDefenseModifierOffset;
 static int VehicleDamageModifierOffset;
 static int VehicleDefenseModifierOffset;
 static int WeaponDefenseModifier2Offset;
+static int MeleeWeaponDamageModifierOffset;
 static int MeleeWeaponDefenseModifierOffset;
 
 static HookFunction hookFunction([]()
@@ -52,6 +53,7 @@ static HookFunction hookFunction([]()
 	VehicleDamageModifierOffset = *hook::get_pattern<int>("74 ? 48 8B 80 ? ? ? ? F3 44 0F 59 88", 0xE);
 	VehicleDefenseModifierOffset = *hook::get_pattern<int>("F6 C1 ? 75 ? 48 8B 83 ? ? ? ? 48 8B 4E", 0x13);
 	WeaponDefenseModifier2Offset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? 8A 87 ? ? ? ? C0 E0", 0x4);
+	MeleeWeaponDamageModifierOffset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? F3 0F 10 8F ? ? ? ? 48 8B 85", 0x4);
 	MeleeWeaponDefenseModifierOffset = *hook::get_pattern<int>("45 84 45 ? 74 ? 48 8B 83", 0x11);
 
 	{
@@ -84,5 +86,6 @@ static HookFunction hookFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_VEHICLE_DAMAGE_MODIFIER", std::bind(readPlayerInfoMemory<float, &VehicleDamageModifierOffset>, _1, 0.0f));
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_VEHICLE_DEFENSE_MODIFIER", std::bind(readPlayerInfoMemory<float, &VehicleDefenseModifierOffset>, _1, 0.0f));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MELEE_WEAPON_DAMAGE_MODIFIER", std::bind(readPlayerInfoMemory<float, &MeleeWeaponDamageModifierOffset>, _1, 0.0f));
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MELEE_WEAPON_DEFENSE_MODIFIER", std::bind(readPlayerInfoMemory<float, &MeleeWeaponDefenseModifierOffset>, _1, 0.0f));
 });
