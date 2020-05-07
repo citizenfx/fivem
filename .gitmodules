@@ -205,3 +205,6 @@
 [submodule "vendor/concurrentqueue"]
 	path = vendor/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "vendor/xenium"]
+	path = vendor/xenium
+	url = https://github.com/mpoeter/xenium
