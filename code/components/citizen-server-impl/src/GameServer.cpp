@@ -404,7 +404,7 @@ namespace fx
 			};
 
 			auto netData = std::make_shared<NetPersistentData>();
-			auto loop = m_netThreadLoop->GetLoop();
+			auto loop = m_syncThreadLoop->GetLoop();
 
 			netData->lastTime = msec();
 
