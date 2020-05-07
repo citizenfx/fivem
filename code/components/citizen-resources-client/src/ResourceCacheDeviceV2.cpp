@@ -285,7 +285,16 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 
 	if (it == ms_entries.end() || !it->second)
 	{
-		it = ms_entries.emplace(referenceHash, concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry))).first;
+		auto retTask = concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry));
+
+		if (it != ms_entries.end())
+		{
+			it->second = std::move(retTask);
+		}
+		else
+		{
+			it = ms_entries.emplace(referenceHash, std::move(retTask)).first;
+		}
 	}
 
 	return *it->second;
@@ -384,7 +393,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 		}
 		else if (downloaded)
 		{
-			m_lastError = "Failed to add entry to cache";
+			lastError = "Failed to add entry to local storage";
 		}
 		
 		if (!result)
