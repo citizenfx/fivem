@@ -24,7 +24,8 @@
 		"vendor:breakpad",
 		"vendor:prometheus-cpp",
 		"vendor:folly",
-		"vendor:concurrentqueue"
+		"vendor:concurrentqueue",
+		"vendor:xenium"
 	],
 	"provides": []
 }
