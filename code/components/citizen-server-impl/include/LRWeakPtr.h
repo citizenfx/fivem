@@ -16,7 +16,7 @@ struct LRWeakPtr
 
 	void update(const TWeakPtr& newPtr)
 	{
-		_ptr.update([](auto& weakPtr)
+		_ptr.update([&](auto& weakPtr)
 			{
 				weakPtr = newPtr;
 			});
