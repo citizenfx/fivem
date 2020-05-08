@@ -935,6 +935,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			auto [ entityId, syncDelay, shouldBeCreated ] = entityIdTuple;
 			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityHandleMap[entityId]];
 
+			if (!entity)
+			{
+				continue;
+			}
+
 			bool hasCreated = entity->ackedCreation.test(slotId);
 
 			// have a fun time creating the player
