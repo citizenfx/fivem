@@ -172,7 +172,7 @@ void NetLibraryImplV2::Reset()
 
 	if (m_serverPeer)
 	{
-		enet_peer_disconnect_now(m_serverPeer, 0);
+		enet_peer_disconnect(m_serverPeer, 0);
 	}
 }
 
