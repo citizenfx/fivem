@@ -12,6 +12,10 @@ environment:
     APPVEYOR_BUILD_WORKER_CLOUD: REMOTE2
     APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu20200507_Docker
     APPVEYOR_YML_DISABLE_PS_LINUX: true
+    
+services:
+- docker
+    
 build_script:
 #################
 # windows steps #
