@@ -325,7 +325,7 @@
                 return;
             }
 
-            const duration = Citizen.getTickCount() - this._timers.get(lable);
+            const duration = Citizen.getTickCount() - this._timers.get(label);
 
             this.log(`${label}: ${duration} ms`);
 
