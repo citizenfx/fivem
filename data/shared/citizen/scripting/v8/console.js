@@ -329,7 +329,7 @@
 
             this.log(`${label}: ${duration} ms`);
 
-            this._times.delete(label);
+            this._timers.delete(label);
         }
 
         assert(expression, ...args) {
