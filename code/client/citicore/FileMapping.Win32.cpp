@@ -893,8 +893,6 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 
 	static auto _LdrRegisterDllNotification = (decltype(&LdrRegisterDllNotification))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "LdrRegisterDllNotification");
 	_LdrRegisterDllNotification(0, LdrDllNotification, nullptr, &g_lastDllNotif);
-
-	trace("Initialized system mapping!\n");
 }
 
 #include <Hooking.Patterns.h>
