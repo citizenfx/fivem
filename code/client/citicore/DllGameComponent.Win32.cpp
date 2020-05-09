@@ -10,8 +10,108 @@
 
 #include <Error.h>
 
+#include <winternl.h>
+#include <ntstatus.h>
+
+#include <optional>
+#include <sstream>
+
+#include <MinHook.h>
+
+static NTSTATUS(NTAPI* g_origRtlRaiseException)(_In_ PEXCEPTION_RECORD ExceptionRecord);
+static BOOL(NTAPI* g_origZwQueryDebugFilterState)(_In_ ULONG ComponentId, _In_ ULONG Level);
+
+struct HardErrorScope
+{
+	HardErrorScope()
+		: m_target(GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlRaiseException")),
+		  m_target2(GetProcAddress(GetModuleHandle(L"ntdll.dll"), "ZwQueryDebugFilterState"))
+	{
+		ms_curErrScope = this;
+
+		// OSBuildNumber
+		auto osBuildNumber = *(WORD*)((char*)NtCurrentTeb()->ProcessEnvironmentBlock + 0x0120);
+
+		// 19H1, Vb and Mn seem to adhere to this memory layout.
+		// Not sure about Fe and above, so taking out 20000.
+		if (osBuildNumber >= 18362 && osBuildNumber < 20000)
+		{
+			auto fltUsed = (char*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "_fltused");
+			m_oldLdrFlags = *(int*)(fltUsed - 16);
+
+			*(int*)(fltUsed - 16) |= 2; // loader snaps for error
+		}
+
+		MH_Initialize();
+		MH_CreateHook(m_target, RtlRaiseExceptionStub, (void**)&g_origRtlRaiseException);
+		MH_EnableHook(m_target);
+
+		MH_CreateHook(m_target2, ZwQueryDebugFilterStateStub, (void**)&g_origZwQueryDebugFilterState);
+		MH_EnableHook(m_target2);
+	}
+
+	~HardErrorScope()
+	{
+		MH_DisableHook(m_target);
+		MH_RemoveHook(m_target);
+
+		MH_DisableHook(m_target2);
+		MH_RemoveHook(m_target2);
+
+		if (m_oldLdrFlags)
+		{
+			auto fltUsed = (char*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "_fltused");
+			*(int*)(fltUsed - 16) = *m_oldLdrFlags; // loader snaps for error
+		}
+	}
+	
+	std::wstring GetErrors()
+	{
+		return m_messageBuffer.str();
+	}
+
+private:
+	void* m_target;
+	void* m_target2;
+	std::optional<int> m_oldLdrFlags;
+
+	static BOOL NTAPI ZwQueryDebugFilterStateStub(_In_ ULONG ComponentId, _In_ ULONG Level)
+	{
+		if (ms_curErrScope && ComponentId == 0x55)
+		{
+			return true;
+		}
+
+		return g_origZwQueryDebugFilterState(ComponentId, Level);
+	}
+
+	static NTSTATUS NTAPI RtlRaiseExceptionStub(PEXCEPTION_RECORD rec)
+	{
+		if (ms_curErrScope && rec->ExceptionCode == DBG_PRINTEXCEPTION_C)
+		{
+			auto esv = std::string_view{ (const char*)rec->ExceptionInformation[1], rec->ExceptionInformation[0] - 1 };
+
+			if (esv.find("ERROR") != std::string::npos)
+			{
+				ms_curErrScope->m_messageBuffer << ToWide(std::string{ esv });
+			}
+
+			return STATUS_SUCCESS;
+		}
+
+		return g_origRtlRaiseException(rec);
+	}
+
+	std::wstringstream m_messageBuffer;
+	static HardErrorScope* ms_curErrScope;
+};
+
+HardErrorScope* HardErrorScope::ms_curErrScope;
+
 Component* DllGameComponent::CreateComponent()
 {
+	HardErrorScope scope;
+
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	HMODULE hModule = LoadLibrary(MakeRelativeCitPath(m_path).c_str());
 
@@ -37,7 +137,15 @@ Component* DllGameComponent::CreateComponent()
 			}
 		}
 
-		FatalError("Could not load component %s - Windows error code %d.", converter.to_bytes(m_path).c_str(), errorCode);
+		auto errors = ToNarrow(scope.GetErrors());
+		std::string addtlInfo;
+
+		if (!errors.empty())
+		{
+			addtlInfo = fmt::sprintf("\n\nAdditional information:\n%s", errors);
+		}
+
+		FatalError("Could not load component %s - Windows error code %d.%s", converter.to_bytes(m_path).c_str(), errorCode, addtlInfo);
 
 		return nullptr;
 	}
