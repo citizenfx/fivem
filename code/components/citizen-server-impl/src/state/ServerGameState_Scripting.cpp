@@ -802,6 +802,37 @@ static InitFunction initFunction([]()
 
 		context.SetResult(fx::SerializeObject(entityList));
 	});
+	
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_PED_IS_IN", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto node = entity->syncTree->GetPedGameState();
+		bool lastVehicleArg = context.GetArgument<bool>(1);
+
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		if (!node)
+			return (uint32_t)0;
+
+		// If ped is not in a vehicle, or was not in a previous vehicle (depending on the lastVehicleArg) return 0
+		if ((lastVehicleArg == true && node->lastVehiclePedWasIn == -1) || (lastVehicleArg == false && node->curVehicle == -1))
+			return (uint32_t)0;
+
+		auto returnEntity = lastVehicleArg == true ? gameState->GetEntity(0, node->lastVehiclePedWasIn) : gameState->GetEntity(0, node->curVehicle);
+
+		if (!returnEntity)
+			return (uint32_t)0;
+
+		// Return the entity
+		return gameState->MakeScriptHandle(returnEntity);
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("DELETE_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
