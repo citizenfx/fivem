@@ -66,7 +66,7 @@ If you don't know how to do that, here's how:
 1. Navigate to `/code/bin/five/debug`.
 2. Delete the `cache` folder if it already exists.
 3. Hold <kbd>Shift</kbd>, right click empty space in `/code/bin/five/debug`, and select "Open PowerShell window here".
-4. Type this: `New-Item -ItemType Junction -Path "cache" -Target "$env:localappdata/FiveM/FiveM.app/cache"`.
+4. Type this: `New-Item -ItemType SymbolicLink -Path "cache" -Target "$env:localappdata/FiveM/FiveM.app/cache"`.
 5. You should now see a `cache` folder inside `/code/bin/five/debug`.
 
 **Known issues**
