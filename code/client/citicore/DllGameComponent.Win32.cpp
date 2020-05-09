@@ -16,6 +16,8 @@
 #include <optional>
 #include <sstream>
 
+#include <Hooking.Aux.h>
+
 #include <MinHook.h>
 
 static NTSTATUS(NTAPI* g_origRtlRaiseException)(_In_ PEXCEPTION_RECORD ExceptionRecord);
@@ -42,6 +44,8 @@ struct HardErrorScope
 			*(int*)(fltUsed - 16) |= 2; // loader snaps for error
 		}
 
+		DisableToolHelpScope thScope;
+
 		MH_Initialize();
 		MH_CreateHook(m_target, RtlRaiseExceptionStub, (void**)&g_origRtlRaiseException);
 		MH_EnableHook(m_target);
@@ -52,6 +56,8 @@ struct HardErrorScope
 
 	~HardErrorScope()
 	{
+		DisableToolHelpScope thScope;
+
 		MH_DisableHook(m_target);
 		MH_RemoveHook(m_target);
 
