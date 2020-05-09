@@ -308,11 +308,28 @@
         }
 
         count(label) {
-            const counter = this._counters.get(label) || 1;
+            if (label === undefined) {
+                label = 'default'
+            }
+            const counter = this._counters.get(label) ? this._counters.get(label) + 1 : 1;
 
             this._counters.set(label, counter);
 
             this.log(`${label}: ${counter}`);
+        }
+
+        countReset(label) {
+            if (label === undefined) {
+                label = 'default'
+            }
+            if (this._counters.get(label) === undefined) {
+                this.warn(`Counter "${label}" doesn't exist.`);
+                return
+            }
+
+            this._counters.set(label, undefined);
+
+            this.log(`${label}: 0`);
         }
 
         time(label) {
@@ -325,11 +342,11 @@
                 return;
             }
 
-            const duration = Citizen.getTickCount() - this._timers.get(lable);
+            const duration = Citizen.getTickCount() - this._timers.get(label);
 
             this.log(`${label}: ${duration} ms`);
 
-            this._times.delete(label);
+            this._timers.delete(label);
         }
 
         assert(expression, ...args) {
