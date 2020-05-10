@@ -621,11 +621,26 @@ struct
 
 			state = HS_DISCONNECTING;
 		}
+		else if (state == HS_FORCE_DISCONNECT)
+		{
+			networkBail(7, -1, -1, -1, true);
+
+			state = HS_DISCONNECTING_FINAL;
+		}
 		else if (state == HS_DISCONNECTING)
 		{
 			if (!isSessionStarted())
 			{
 				state = HS_LOADED;
+			}
+		}
+		else if (state == HS_DISCONNECTING_FINAL)
+		{
+			if (!isSessionStarted())
+			{
+				cgi->OneSyncEnabled = false;
+
+				state = HS_IDLE;
 			}
 		}
 	}
@@ -1446,6 +1461,26 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 	return _origLoadMeta(fn, a2, a3);
 }
 
+static bool (*g_origBeforeReplayLoad)();
+
+static bool BeforeReplayLoadHook()
+{
+	if (hostSystem.state == HS_HOSTED || hostSystem.state == HS_JOINED)
+	{
+		hostSystem.state = HS_FORCE_DISCONNECT;
+	}
+
+	if (!(hostSystem.state == HS_IDLE))
+	{
+		return false;
+	}
+
+	g_netLibrary->Disconnect("Entering Rockstar Editor");
+	g_netLibrary->FinalizeDisconnect();
+
+	return g_origBeforeReplayLoad();
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -1997,6 +2032,13 @@ static HookFunction hookFunction([] ()
 
 		hook::set_call(&_origLoadMeta, location);
 		hook::call(location, WaitForScAndLoadMeta);
+	}
+
+	// replay editor unload wait
+	{
+		auto location = hook::get_pattern("0F 85 ? ? ? ? 33 DB 38 1D ? ? ? ? 75", -0x14);
+		MH_CreateHook(location, BeforeReplayLoadHook, (void**)&g_origBeforeReplayLoad);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	// default netnoupnp and netnopcp to true
