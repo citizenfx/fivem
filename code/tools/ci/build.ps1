@@ -241,12 +241,12 @@ if (!$DontBuild)
 
 	    # cloned, building
 	    if (!(Test-Path fivem-private)) {
-	        git clone $env:FIVEM_PRIVATE_URI
+	        git clone -b master-old $env:FIVEM_PRIVATE_URI
 	    } else {
 	        cd fivem-private
 
 	        git fetch origin | Out-Null
-	        git reset --hard origin/master | Out-Null
+	        git reset --hard origin/master-old | Out-Null
 
 	        cd ..
 	    }
