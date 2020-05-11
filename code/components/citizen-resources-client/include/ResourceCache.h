@@ -17,6 +17,8 @@
 #include <boost/algorithm/string.hpp>
 #include <tbb/concurrent_unordered_map.h>
 
+#include <msgpack.hpp>
+
 struct IgnoreCaseLess
 {
 	using is_transparent = int;
@@ -31,9 +33,10 @@ struct IgnoreCaseLess
 
 class
 #ifdef COMPILING_CITIZEN_RESOURCES_CLIENT
-	DLL_EXPORT
+DLL_EXPORT
 #endif
-ResourceCacheEntryList: public fwRefCountable, public fx::IAttached<fx::Resource>
+ResourceCacheEntryList : public fwRefCountable,
+						 public fx::IAttached<fx::Resource>
 {
 public:
 	struct Entry
@@ -47,20 +50,22 @@ public:
 
 		inline Entry()
 		{
-
 		}
 
 		inline Entry(const std::string& resourceName, const std::string& basename, const std::string& remoteUrl, const std::string& referenceHash, size_t size, const std::map<std::string, std::string>& extData = {})
 			: resourceName(resourceName), basename(basename), remoteUrl(remoteUrl), referenceHash(referenceHash), size(size), extData(extData)
 		{
-
 		}
+
+		MSGPACK_DEFINE_ARRAY(resourceName, basename, remoteUrl, referenceHash, size, extData);
 	};
 
 private:
 	fx::Resource* m_parentResource;
 
 	std::map<std::string, Entry, IgnoreCaseLess> m_entries;
+
+	std::string m_initUrl;
 
 public:
 	virtual void AttachToObject(fx::Resource* resource) override;
@@ -86,6 +91,16 @@ public:
 	{
 		m_entries[entry.basename] = entry;
 		m_entries[entry.basename].resourceName = m_parentResource->GetName();
+	}
+
+	inline const std::string& GetInitUrl()
+	{
+		return m_initUrl;
+	}
+
+	inline void SetInitUrl(const std::string& url)
+	{
+		m_initUrl = url;
 	}
 };
 

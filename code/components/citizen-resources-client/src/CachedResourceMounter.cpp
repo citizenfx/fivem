@@ -99,6 +99,8 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 					entryList->AddEntry(ResourceCacheEntryList::Entry{ entry.first, entry.second.basename, entry.second.remoteUrl, entry.second.referenceHash, entry.second.size, entry.second.extData });
 				}
 
+				entryList->SetInitUrl(uri);
+
 				return resource;
 			}
 		}

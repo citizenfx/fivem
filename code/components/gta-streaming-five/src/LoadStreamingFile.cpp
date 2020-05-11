@@ -1454,6 +1454,20 @@ static bool fwMapDataStore__ModifyHierarchyStatusRecursive(streaming::strStreami
 
 static bool g_lockReload;
 
+static void (*g_origLoadReplayDlc)(void* ecw);
+
+static void LoadReplayDlc(void* ecw)
+{
+	g_lockReload = false;
+
+	LoadStreamingFiles(true);
+
+	g_origLoadReplayDlc(ecw);
+
+	LoadStreamingFiles();
+	LoadDataFiles();
+}
+
 static HookFunction hookFunction([] ()
 {
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
@@ -1673,6 +1687,13 @@ static HookFunction hookFunction([] ()
 			LoadDataFiles();
 		}
 	});
+
+	// replay dlc loading
+	{
+		auto location = hook::get_pattern("0F 84 ? ? ? ? 48 8B 0D ? ? ? ? C6 05 ? ? ? ? 01 E8", 20);
+		hook::set_call(&g_origLoadReplayDlc, location);
+		hook::call(location, LoadReplayDlc);
+	}
 
 	// special point for CWeaponMgr streaming unload
 	// (game calls CExtraContentManager::ExecuteTitleUpdateDataPatchGroup with a specific group intended for weapon info here)
