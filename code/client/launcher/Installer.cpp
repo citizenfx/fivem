@@ -373,12 +373,13 @@ bool Install_RunInstallMode()
 	bool isDownloadsFolder = false;
 
 	if (StrStrIW(hostData->GetInitPath().c_str(), L"downloads") != nullptr ||
-		StrStrIW(hostData->GetInitPath().c_str(), L"\\dls") != nullptr)
+		StrStrIW(hostData->GetInitPath().c_str(), L"\\dls") != nullptr ||
+		StrStrIW(hostData->GetInitPath().c_str(), L"\\Desktop") != nullptr)
 	{
 		isDownloadsFolder = true;
 	}
 
-	size_t maxOtherFiles = (isDownloadsFolder) ? 3 : 5;
+	size_t maxOtherFiles = (isDownloadsFolder) ? 2 : 5;
 
 	// count the amount of files 'together' with us in our folder
 	fs::directory_iterator it(hostData->GetInitPath()), end;
