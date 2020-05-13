@@ -8,7 +8,7 @@ apiset: server
 int GET_ENTITY_POPULATION_TYPE(Entity entity);
 ```
 
-This native get an entity's population type.
+This native gets an entity's population type.
 
 ## Parameters
 * **entity**: the entity to obtain the population type from
