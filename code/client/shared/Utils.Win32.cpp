@@ -20,11 +20,24 @@ fwPlatformString GetAbsoluteCitPath()
 {
 	static fwPlatformString citizenPath;
 
-	if (!citizenPath.size())
+	bool installStateChanged = false;
+
+#ifndef IS_FXSERVER
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	static bool lastInstallState = initState->ranPastInstaller;
+
+	if (initState->ranPastInstaller != lastInstallState)
+	{
+		lastInstallState = initState->ranPastInstaller;
+
+		installStateChanged = true;
+	}
+#endif
+
+	if (!citizenPath.size() || installStateChanged)
 	{
 #ifndef IS_FXSERVER
-		static HostSharedData<CfxState> initState("CfxInitState");
-
 		citizenPath = initState->GetInitPath();
 
 		// is this a new install, if so, migrate to subdirectory-based Citizen
