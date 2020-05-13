@@ -453,13 +453,3 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 }
 }
 
-static InitFunction initFunction([]()
-{
-	OnPostFrontendRender.Connect([]()
-	{
-		if (!fx::ModsNeedEncryption() || fx::loadedUnencryptedMod)
-		{
-			TheFonts->DrawText(L"CFX MOD DEV MODE ENABLED", CRect(40.0f, 40.0f, 800.0f, 500.0f), CRGBA(255, 0, 0, 255), 40.0f, 1.0f, "Comic Sans MS");
-		}
-	}, -1000);
-});
