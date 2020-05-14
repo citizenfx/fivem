@@ -726,15 +726,38 @@ bool VerifyRetailOwnership()
 							{
 								try
 								{
-									std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
+									bool valid = false;
+									std::string match;
 
 #ifdef GTA_FIVE
-									if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
-#else
-									if (friendlyName.find("Red Dead Redemption 2") == 0)
-#endif
+									std::string entitlementCode = p.second.get<std::string>("<xmlattr>.EntitlementCode");
+
+									// epic
+									if (entitlementCode == "04541FB36991EF2C43B38659B204EC3B941649666404498FB2CAD04B29E64A33" || entitlementCode == "F17551269FFD860D9749C30B21BDD96BF2613D26FEB3CCAFDC1D5AC9A1DE65F4")
 									{
-										trace(__FUNCTION__ ": Found matching entitlement for %s - creating token.\n", friendlyName);
+										valid = true;
+										match = entitlementCode;
+									}
+#endif
+
+									if (!valid)
+									{
+										std::string friendlyName = p.second.get<std::string>("<xmlattr>.FriendlyName");
+
+#ifdef GTA_FIVE
+										if (friendlyName == "Access to Grand Theft Auto V for PC" || friendlyName == "Access to Grand Theft Auto V for PC Steam")
+#else
+										if (friendlyName.find("Red Dead Redemption 2") == 0)
+#endif
+										{
+											valid = true;
+											match = friendlyName;
+										}
+									}
+
+									if (valid)
+									{
+										trace(__FUNCTION__ ": Found matching entitlement for %s - creating token.\n", match);
 
 										auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros" },
 											cpr::Payload{
