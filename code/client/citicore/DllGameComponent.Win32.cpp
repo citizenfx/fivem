@@ -36,7 +36,7 @@ struct HardErrorScope
 
 		// 19H1, Vb and Mn seem to adhere to this memory layout.
 		// Not sure about Fe and above, so taking out 20000.
-		if (osBuildNumber >= 18362 && osBuildNumber < 20000)
+		if (osBuildNumber >= 18362 && osBuildNumber < 19628)
 		{
 			auto fltUsed = (char*)GetProcAddress(GetModuleHandle(L"ntdll.dll"), "_fltused");
 			m_oldLdrFlags = *(int*)(fltUsed - 16);
