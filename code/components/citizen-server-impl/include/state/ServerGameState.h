@@ -598,6 +598,8 @@ public:
 	std::shared_mutex m_entityListMutex;
 
 	EntityLockdownMode m_entityLockdownMode;
+
+	std::map<int, std::map<int, bool>> m_playerScopes;
 };
 
 std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
