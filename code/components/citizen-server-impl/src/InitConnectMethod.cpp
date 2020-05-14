@@ -1,13 +1,5 @@
 #include "StdInc.h"
 
-#define FOLLY_NO_CONFIG
-
-#ifdef _WIN32
-#undef ssize_t
-#else
-#include <sys/types.h>
-#endif
-
 #include <ClientHttpHandler.h>
 
 #include <ClientRegistry.h>
@@ -22,8 +14,7 @@
 #include <boost/random/random_device.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/algorithm/string.hpp>
-#include <folly/String.h>
+
 #include <IteratorView.h>
 
 #include <botan/base64.h>
@@ -41,6 +32,17 @@
 #include <MonoThreadAttachment.h>
 
 #include <json.hpp>
+
+#define FOLLY_NO_CONFIG
+
+#ifdef _WIN32
+#undef ssize_t
+#else
+#include <sys/types.h>
+#endif
+
+#include <folly/String.h>
+#include <boost/algorithm/string.hpp>
 
 using json = nlohmann::json;
 
