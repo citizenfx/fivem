@@ -16,6 +16,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 #include <folly/String.h>
+#include <IteratorView.h>
 
 #include <botan/base64.h>
 #include <botan/sha160.h>
@@ -231,9 +232,6 @@ extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 
 static InitFunction initFunction([]()
 {
-	// list of space-separated endpoints that can but don't have to include a port
-	// for example: sv_endpoints "123.123.123.123 124.124.124.124"
-	static ConVar<std::string> srvEndpoints("sv_endpoints", ConVar_None, "");
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		auto minTrustVar = instance->AddVariable<int>("sv_authMinTrust", ConVar_None, 1);
@@ -287,6 +285,9 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
+			// list of space-separated endpoints that can but don't have to include a port
+			// for example: sv_endpoints "123.123.123.123 124.124.124.124"
+			auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
 			auto endpointList = srvEndpoints->GetValue();
 
 			if (!client)
