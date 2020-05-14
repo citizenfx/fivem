@@ -1,4 +1,5 @@
 #include "StdInc.h"
+#define FOLLY_NO_CONFIG
 #include <ClientHttpHandler.h>
 
 #include <ClientRegistry.h>
@@ -13,6 +14,8 @@
 #include <boost/random/random_device.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/algorithm/string.hpp>
+#include <folly/String.h>
 
 #include <botan/base64.h>
 #include <botan/sha160.h>
@@ -228,6 +231,9 @@ extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 
 static InitFunction initFunction([]()
 {
+	// list of space-separated endpoints that can but don't have to include a port
+	// for example: sv_endpoints "123.123.123.123 124.124.124.124"
+	static ConVar<std::string> srvEndpoints("sv_endpoints", ConVar_None, "");
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		auto minTrustVar = instance->AddVariable<int>("sv_authMinTrust", ConVar_None, 1);
@@ -281,6 +287,7 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
+			auto endpointList = srvEndpoints->GetValue();
 
 			if (!client)
 			{
@@ -288,7 +295,33 @@ static InitFunction initFunction([]()
 			}
 			else
 			{
-				cb(json::array());
+				if (endpointList.empty()) 
+				{
+					cb(json::array());
+				}
+				else 
+				{
+					json endpoints;
+					for (auto item :
+						fx::GetIteratorView(
+							std::make_pair(
+								boost::algorithm::make_split_iterator(
+									endpointList,
+									boost::algorithm::token_finder(
+										boost::algorithm::is_space(),
+										boost::algorithm::token_compress_on
+									)
+								),
+								boost::algorithm::split_iterator<std::string::iterator>()
+							)
+						)
+					)
+					{
+						auto endpoint = folly::range(&*item.begin(), &*item.end());
+						endpoints += endpoint;
+					}
+					cb(endpoints);
+				}
 			}
 
 			cb(json(nullptr));
