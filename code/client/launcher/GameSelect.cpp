@@ -112,6 +112,7 @@ std::optional<int> EnsureGamePath()
 		// 5 is the amount of characters to strip off the end
 		const std::tuple<std::wstring, std::wstring, int> folderAttempts[] = {
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
+			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
 			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 }
 		};
 
