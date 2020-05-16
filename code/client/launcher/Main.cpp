@@ -165,12 +165,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		setDefaultDllDirectories = nullptr;
 	}
 
-	if (addDllDirectory && setDefaultDllDirectories)
+	auto addDllDirs = [&]()
 	{
-		setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
-		addDllDirectory(MakeRelativeCitPath(L"").c_str());
-		addDllDirectory(MakeRelativeCitPath(L"bin").c_str());
-	}
+		if (addDllDirectory && setDefaultDllDirectories)
+		{
+			setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
+			addDllDirectory(MakeRelativeCitPath(L"").c_str());
+			addDllDirectory(MakeRelativeCitPath(L"bin").c_str());
+		}
+	};
+
+	// add DLL directories pre-installer
+	addDllDirs();
 
 	// determine dev mode and do updating
 	wchar_t exeName[512];
@@ -272,6 +278,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			return 0;
 		}
 	}
+
+	// add DLL directories post-installer (in case we moved into a Product.app directory)
+	addDllDirs();
 
 	if (InitializeExceptionHandler())
 	{
