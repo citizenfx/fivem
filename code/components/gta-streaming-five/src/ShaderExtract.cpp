@@ -1,4 +1,7 @@
 #include <StdInc.h>
+
+// this randomly corrupts on weird systems and it's not failsafe enough
+#if 0
 #include <fiDevice.h>
 
 #include <Error.h>
@@ -82,3 +85,4 @@ static InitFunction initFunction([]()
 		relative->Mount("common:/shaders/");
 	}, -1000);
 });
+#endif
