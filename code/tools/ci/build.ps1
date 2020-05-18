@@ -189,7 +189,7 @@ if (!$DontBuild)
     Push-Location $WorkDir
 
     git submodule init
-    git submodule resync
+    git submodule sync
 
     $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
 
