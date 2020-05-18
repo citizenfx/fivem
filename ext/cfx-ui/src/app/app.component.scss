@@ -12,6 +12,12 @@ div.theRoot {
 	}
 }
 
+.acrylicBlur {
+	@include themeNoHost() using ($theme) {
+		filter: gtv($theme, acrylicBlur);
+	}
+}
+
 .app-root {
 	display: flex;
 	position: relative;
