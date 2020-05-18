@@ -230,6 +230,12 @@ static InitFunction initFunction([]()
 			D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_D24_UNORM_S8_UINT, w, h, 1, 1, D3D11_BIND_DEPTH_STENCIL);
 
 			auto d3d = GetRawD3D11Device();
+
+			if (!d3d)
+			{
+				d3d = GetD3D11Device();
+			}
+
 			d3d->CreateTexture2D(&tgtDesc, nullptr, &depthTexture);
 
 			D3D11_DEPTH_STENCIL_VIEW_DESC dsDesc = CD3D11_DEPTH_STENCIL_VIEW_DESC(depthTexture, D3D11_DSV_DIMENSION_TEXTURE2D);
@@ -239,12 +245,12 @@ static InitFunction initFunction([]()
 			auto bb = rt->views[0];
 			//auto ds = rt2->views[0];
 
-			std::thread([bb, ds]()
+			std::thread([bb, ds, d3d]()
 			{
 				Re3InitStruct data;
 				data.backBuffer = bb;
 				data.backBufferDS = ds;
-				data.context = GetRawD3D11Device();
+				data.context = d3d;
 				data.inited = &inited;
 
 				SetThreadName(-1, "zRE3");

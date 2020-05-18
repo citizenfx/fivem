@@ -382,9 +382,9 @@ DLL_EXPORT ID3D11Device* GetRawD3D11Device()
 	return g_origDevice;
 }
 
-static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
+static void PatchAdapter(IDXGIAdapter** pAdapter)
 {
-	if (!pAdapter)
+	if (!*pAdapter)
 	{
 		WRL::ComPtr<IDXGIFactory> dxgiFactory;
 		CreateDXGIFactory(IID_IDXGIFactory, &dxgiFactory);
@@ -395,11 +395,8 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		if (SUCCEEDED(hr))
 		{
 			for (UINT adapterIndex = 0;
-				DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
-					adapterIndex,
-					DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-					IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
-				adapterIndex++)
+				 DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+				 adapterIndex++)
 			{
 				DXGI_ADAPTER_DESC1 desc;
 				adapter->GetDesc1(&desc);
@@ -410,12 +407,17 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 					continue;
 				}
 
-				adapter.CopyTo(&pAdapter);
+				adapter.CopyTo(pAdapter);
 
 				break;
 			}
 		}
 	}
+}
+
+static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	PatchAdapter(&pAdapter);
 
 	auto hr = g_origD3D11CreateDevice(pAdapter, pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
