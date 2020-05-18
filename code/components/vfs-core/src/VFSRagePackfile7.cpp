@@ -105,6 +105,7 @@ namespace vfs
 		m_parentDevice->ReadBulk(m_parentHandle, m_parentPtr + sizeof(m_header) + (m_entries.size() * sizeof(Entry)), &m_nameTable[0], m_nameTable.size());
 
 		// copy out RSA signature hash if this is a CFXP file
+#if 0
 		if (m_header.encryption == 0x50584643)
 		{
 			Botan::secure_vector<uint8_t> headerSignature(256);
@@ -136,7 +137,9 @@ namespace vfs
 				return false;
 			}
 		}
-		else if (needsEncryption)
+		else
+#endif
+		if (needsEncryption)
 		{
 			trace("Opening packfile %s failed - it needs to be signed...\n", archivePath);
 			return false;
