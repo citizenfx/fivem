@@ -18,6 +18,7 @@
 #include "memdbgon.h"
 
 bool g_mainUIFlag = true;
+bool g_shouldHideCursor;
 
 fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 fwEvent<bool> nui::OnDrawBackground;
@@ -98,6 +99,11 @@ namespace nui
 	{
 		g_mainUIFlag = enable;
 		nui::GiveFocus(enable);
+	}
+
+	DLL_EXPORT void SetHideCursor(bool hide)
+	{
+		g_shouldHideCursor = hide;
 	}
 
 	static std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;

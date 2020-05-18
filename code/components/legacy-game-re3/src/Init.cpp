@@ -26,6 +26,8 @@
 #include "Clock.h"
 #include "Streaming.h"
 
+DLL_IMPORT ID3D11Device* GetRawD3D11Device();
+
 struct Re3InitStruct
 {
 	void* context;
@@ -74,6 +76,7 @@ static InitFunction initFunction([]()
 			inited = false;
 			bWantsGameplay = false;
 			initedGameplay = false;
+			nui::SetHideCursor(false);
 		}
 		else
 		{
@@ -133,6 +136,7 @@ static InitFunction initFunction([]()
 				if (initedGameplay)
 				{
 					nui::PostFrameMessage("mpMenu", R"({ "type": "exitGameplay" })");
+					nui::SetHideCursor(false);
 				}
 
 				inited = true;
@@ -180,6 +184,7 @@ static InitFunction initFunction([]()
 	{
 		if (wcscmp(type, L"enterGameplay") == 0)
 		{
+			nui::SetHideCursor(true);
 			bWantsGameplay = true;
 		}
 	});
@@ -224,7 +229,7 @@ static InitFunction initFunction([]()
 
 			D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_D24_UNORM_S8_UINT, w, h, 1, 1, D3D11_BIND_DEPTH_STENCIL);
 
-			auto d3d = GetD3D11Device();
+			auto d3d = GetRawD3D11Device();
 			d3d->CreateTexture2D(&tgtDesc, nullptr, &depthTexture);
 
 			D3D11_DEPTH_STENCIL_VIEW_DESC dsDesc = CD3D11_DEPTH_STENCIL_VIEW_DESC(depthTexture, D3D11_DSV_DIMENSION_TEXTURE2D);
@@ -239,7 +244,7 @@ static InitFunction initFunction([]()
 				Re3InitStruct data;
 				data.backBuffer = bb;
 				data.backBufferDS = ds;
-				data.context = GetD3D11Device();
+				data.context = GetRawD3D11Device();
 				data.inited = &inited;
 
 				SetThreadName(-1, "zRE3");

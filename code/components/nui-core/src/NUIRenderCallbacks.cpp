@@ -7,6 +7,7 @@ extern nui::GameInterface* g_nuiGi;
 #include "memdbgon.h"
 
 extern bool g_hasCursor;
+extern bool g_shouldHideCursor;
 extern POINT g_cursorPos;
 
 extern bool g_isDragging;
@@ -86,7 +87,7 @@ static HookFunction initFunction([] ()
 			}
 		});
 
-		if (nui::HasMainUI() || g_hasCursor)
+		if ((nui::HasMainUI() || g_hasCursor) && !g_shouldHideCursor)
 		{
 			POINT cursorPos = g_cursorPos;
 

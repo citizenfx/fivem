@@ -374,6 +374,14 @@ static HRESULT CopyResourceHook(ID3D11DeviceContext* cxt, ID3D11Resource* dst, I
 
 #pragma comment(lib, "dxgi.lib")
 
+static ID3D11DeviceContext* g_origImContext;
+static ID3D11Device* g_origDevice;
+
+DLL_EXPORT ID3D11Device* GetRawD3D11Device()
+{
+	return g_origDevice;
+}
+
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	if (!pAdapter)
@@ -422,14 +430,52 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 	}
 #endif
 
+	if (ppImmediateContext && *ppImmediateContext)
+	{
+		g_origImContext = *ppImmediateContext;
+		g_origImContext->AddRef();
+	}
+	else if (ppDevice && *ppDevice)
+	{
+		(*ppDevice)->GetImmediateContext(&g_origImContext);
+	}
+
+	if (ppDevice)
+	{
+		g_origDevice = *ppDevice;
+	}
+
+	return hr;
+}
+
+static HRESULT (*g_origD3D11CreateDeviceMain)(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
+
+static HRESULT D3D11CreateDeviceHookMain(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	auto hr = g_origD3D11CreateDeviceMain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+
+	// hook e.g. GetImmediateContext here if needed
+
 	return hr;
 }
 
 void HookLibGL(HMODULE libGL)
 {
+	wchar_t systemDir[MAX_PATH];
+	GetSystemDirectoryW(systemDir, std::size(systemDir));
+
+	auto sysDll = LoadLibraryW(va(L"%s\\d3d11.dll", systemDir));
+	auto mainDll = LoadLibraryW(L"d3d11.dll");
+
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
-	MH_CreateHook(GetProcAddress(LoadLibraryW(L"d3d11.dll"), "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+	MH_CreateHook(GetProcAddress(sysDll, "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+
+	// hook any wrapper dll too
+	if (mainDll != sysDll)
+	{
+		MH_CreateHook(GetProcAddress(mainDll, "D3D11CreateDevice"), D3D11CreateDeviceHookMain, (void**)&g_origD3D11CreateDeviceMain);
+	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }

@@ -586,12 +586,12 @@ static InitFunction initFunction([]()
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
 		return nuiGi.QueryInputTarget(targets);
-	});
+	}, 20);
 
 	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
 		nuiGi.OnWndProc(hWnd, msg, wParam, lParam, pass, lresult);
-	});
+	}, 20);
 
 	InputHook::QueryMayLockCursor.Connect([](int& a)
 	{
