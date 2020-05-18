@@ -58,5 +58,6 @@
 	"n19ui",
 	"citizen:mod-loader:five",
 	"adhesive",
-	"citizen:game:ipc"
+	"citizen:game:ipc",
+	"legacy-game:re3"
 ]

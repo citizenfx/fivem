@@ -27,6 +27,7 @@
 #include <wrl.h>
 #include <wincodec.h>
 
+#define WANT_CEF_INTERNALS
 #include <CefOverlay.h>
 
 #include <NetLibrary.h>

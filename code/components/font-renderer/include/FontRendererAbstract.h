@@ -8,7 +8,7 @@
 #pragma once
 #include <stdint.h>
 
-#include "RGBA.h"
+#include "CfxRGBA.h"
 #include "FontRendererAllocator.h"
 
 enum class FontRendererTextureFormat

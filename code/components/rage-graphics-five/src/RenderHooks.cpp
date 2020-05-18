@@ -56,15 +56,6 @@ static void InvokeRender()
 		OnGrcCreateDevice();
 	});
 
-	uintptr_t a1;
-	uintptr_t a2;
-
-	EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
-	{
-		CaptureBufferOutput();
-		CaptureInternalScreenshot();
-	}, &a1, &a2);
-
 	OnPostFrontendRender();
 }
 
@@ -1466,4 +1457,18 @@ static HookFunction hookFunction([] ()
 	MH_CreateHook(hook::get_pattern("84 C0 75 E8 48 83 C4 20 5B C3", -0x1F), WaitForQueryHook, (void**)&g_origWaitForQuery);
 	MH_CreateHook(hook::get_pattern("41 3B C3 74 30 4C 63 CB 44", -0x1F), SetupQueryHook, (void**)&g_origSetupQuery);
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	// allow 5 slots for pre-buffer drawing
+	OnPostFrontendRender.Connect([]()
+	{
+		uintptr_t a1;
+		uintptr_t a2;
+
+		EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
+		{
+			CaptureBufferOutput();
+			CaptureInternalScreenshot();
+		},
+		&a1, &a2);
+	}, INT32_MIN + 5);
 });

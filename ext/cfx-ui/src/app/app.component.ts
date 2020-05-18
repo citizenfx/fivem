@@ -30,6 +30,10 @@ export class AppComponent implements OnInit {
 		return this.minMode ? 'url(' + this.gameService.minmodeBlob['art:backgroundImage'] + ')' : '';
 	}
 
+	get splashScreen() {
+		return this.router.url === '/';
+	}
+
 	constructor(@Inject(L10N_LOCALE) public locale: L10nLocale,
 		public l10nService: L10nTranslationService,
 		public gameService: GameService,
@@ -123,5 +127,36 @@ export class AppComponent implements OnInit {
 
 	closeChangelog() {
 		this.changelogShown = false;
+	}
+
+	calcClipPath() {
+		let ref: string = null;
+
+		document.querySelector('.app-root').childNodes.forEach(el => {
+			if (ref) {
+				return;
+			}
+
+			if (el.nodeType !== Node.ELEMENT_NODE) {
+				return;
+			}
+
+			const htmlEl = el as HTMLElement;
+
+			for (const childEl of [ htmlEl, htmlEl.firstElementChild, htmlEl.firstElementChild?.nextElementSibling ]) {
+				if (!childEl) {
+					continue;
+				}
+
+				const zIndex = window.getComputedStyle(childEl, ':after')?.zIndex;
+
+				if (zIndex === '-999') {
+					const rect = childEl.getBoundingClientRect();
+					ref = `inset(${rect.top}px ${window.innerWidth - rect.right}px ${window.innerHeight - rect.bottom}px ${rect.left}px)`;
+				}
+			}
+		});
+
+		return ref ?? 'inset(100vw)';
 	}
 }

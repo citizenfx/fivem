@@ -1,7 +1,7 @@
 #include "StdInc.h"
 #include "DrawCommands.h"
 #include "Hooking.h"
-#include "Rect.h"
+#include "CfxRect.h"
 
 #define PURECALL() __asm { jmp _purecall }
 

@@ -28,7 +28,7 @@ static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = FindWindow(
+	HWND wnd = FindWindowW(
 #ifdef GTA_FIVE
 		L"grcWindow"
 #elif defined(IS_RDR3)

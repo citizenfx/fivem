@@ -282,7 +282,7 @@ local do_component = function(name, comp)
 	links { "Shared", "fmtlib" }
 
 	-- HACKHACK: premake doesn't allow unsetting these
-	if name ~= 'adhesive' then
+	if name ~= 'adhesive' and name ~= 'legacy-game-re3' then
 		pchsource "client/common/StdInc.cpp"
 		pchheader "StdInc.h"
 	end

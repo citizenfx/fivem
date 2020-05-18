@@ -1,0 +1,98 @@
+@import "variables";
+
+:host {
+    display: flex;
+
+    @include fullWidthPadded;
+
+    align-items: center;
+    justify-content: space-evenly;
+
+    flex-direction: column;
+
+    height: 100vh;
+}
+
+$logoHeight: $fontSize * 8.0;
+
+.logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .art {
+        position: relative;
+        text-align: left;
+        font-size: $logoHeight;
+        line-height: $logoHeight;
+        padding-bottom: $padding/2;
+        text-shadow: 0 0 2.5vh rgba(0, 0, 0, 0.56);
+
+        @include theme() using ($theme) {
+            color: gtv($theme, textColour);
+        };
+
+        b {
+            font-size: $fontSize * 2.5;
+            font-weight: normal;
+
+            line-height: 1;
+
+            position: absolute;
+            right: -($fontSize * 2.5);
+            top: -($fontSize * 0.5);
+
+            @include theme() using ($theme) {
+                color: saturate(gtv($theme, greenyColour), 20%);
+            };
+
+            transform: rotate(10deg);
+
+            i:not(.fa) {
+                font-family: Titillium;
+                font-style: normal;
+            }
+
+            i.fa {
+                padding-right: 0.125em;
+            }
+        }
+
+        svg {
+            width: $logoHeight;
+            height: $logoHeight;
+
+            @include theme() using ($theme) {
+                fill: gtv($theme, textColour);
+            };
+
+            vertical-align: middle;
+
+            :host-context(.game-rdr3) & {
+                fill: #d80d0d;
+            }
+
+            :host-context(.game-gta5) & {
+                padding-right: 0.5vh;
+            }
+
+            transform: scale(-1, 1);
+
+            filter: drop-shadow(0 0 2.5vh rgba(0, 0, 0, 0.56));
+        }
+
+        span {
+            vertical-align: middle;
+        }
+    }
+
+    & > span {
+        text-align: center;
+        font-size: $fontSize * 1.2;
+        font-style: italic;
+    }
+}
+
+button {
+    font-size: $logoHeight / 4;
+}

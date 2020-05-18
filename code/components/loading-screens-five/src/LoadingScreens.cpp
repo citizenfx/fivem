@@ -25,7 +25,7 @@
 
 #include <CoreConsole.h>
 
-#include <Rect.h>
+#include <CfxRect.h>
 #include <DrawCommands.h>
 
 #include <Error.h>

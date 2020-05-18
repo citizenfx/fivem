@@ -332,6 +332,9 @@ export class CfxGameService extends GameService {
 		this.zone.runOutsideAngular(() => {
 			window.addEventListener('message', (event) => {
 				switch (event.data.type) {
+					case 'exitGameplay':
+						document.body.style.display = 'block';
+					break;
 					case 'connectFailed':
 						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message));
 						break;

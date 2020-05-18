@@ -8,7 +8,7 @@
 #include "StdInc.h"
 #include <DrawCommands.h>
 #include <grcTexture.h>
-#include <RGBA.h>
+#include <CfxRGBA.h>
 
 #include <wrl.h>
 #include <wincodec.h>

@@ -78,20 +78,8 @@ $blurSize: 20px;
 
 	background:
 		transparent center center/cover no-repeat;
-
-	.theme-dark & {
-		display: none;
-	}
 }
 
 .webapp ::ng-deep #bg {
 	display: block !important;
-}
-
-* {
-	@include themeIsHost() using ($theme) {
-		#bg {
-			background-image: var(--my-background-image);
-		}
-	}
 }

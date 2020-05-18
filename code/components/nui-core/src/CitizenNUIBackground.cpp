@@ -10,7 +10,7 @@
 
 extern nui::GameInterface* g_nuiGi;
 
-#include <RGBA.h>
+#include <CfxRGBA.h>
 
 #include <VFSManager.h>
 #include <VFSWin32.h>
@@ -220,7 +220,9 @@ void CitizenNUIBackground::Initialize()
 
 		if (isMainUI)
 		{
+#ifndef GTA_FIVE
 			DrawBackground(m_backdropTexture, CRGBA(255, 255, 255, 255), true);
+#endif
 		}
 	});
 }

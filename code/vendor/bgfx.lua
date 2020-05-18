@@ -1,8 +1,8 @@
 return {
 	include = function()
-		defines { 'BGFX_CONFIG_MULTITHREADED=0' }
+		defines { 'BGFX_CONFIG_MULTITHREADED=1' }
 	
-		includedirs { '../vendor/bx/include/', '../vendor/bgfx/include/', '../vendor/bgfx/examples/common/' }
+		includedirs { '../vendor/bx/include/', '../vendor/bgfx/include/' }
 	end,
 	
 	run = function()

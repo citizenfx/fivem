@@ -303,7 +303,7 @@ inline bool CoreIsDebuggerPresent()
 
     if (!func)
     {
-        func = (bool(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreIsDebuggerPresent");
+        func = (bool(*)())GetProcAddress(GetModuleHandleW(L"CoreRT.dll"), "CoreIsDebuggerPresent");
     }
 
     return (!func) ? false : func();
@@ -315,7 +315,7 @@ inline void CoreSetDebuggerPresent()
 
     if (!func)
     {
-        func = (void(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetDebuggerPresent");
+        func = (void(*)())GetProcAddress(GetModuleHandleW(L"CoreRT.dll"), "CoreSetDebuggerPresent");
     }
 
     (func) ? func() : (void)0;
@@ -329,7 +329,7 @@ inline void CoreTrace(const char* channel, const char* funcName, const char* fil
 
 	if (!func)
 	{
-		func = (TCoreTraceFunc)GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreTrace");
+		func = (TCoreTraceFunc)GetProcAddress(GetModuleHandleW(L"CoreRT.dll"), "CoreTrace");
 	}
 
 	(func) ? func(channel, funcName, file, line, string) : (void)0;

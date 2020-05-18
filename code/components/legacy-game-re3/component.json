@@ -1,0 +1,13 @@
+{
+	"name": "legacy-game:re3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"rage:graphics:five",
+		"vfs:core",
+		"nui:core",
+		"rage:input",
+		"vendor:librw"
+	],
+	"provides": []
+}

@@ -15,7 +15,7 @@
 
 #include <ICoreGameInit.h>
 
-#include <RGBA.h>
+#include <CfxRGBA.h>
 
 #include <regex>
 

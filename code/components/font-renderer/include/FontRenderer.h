@@ -9,8 +9,8 @@
 
 #undef DrawText
 
-#include <Rect.h>
-#include <RGBA.h>
+#include <CfxRect.h>
+#include <CfxRGBA.h>
 
 class FontRenderer
 {

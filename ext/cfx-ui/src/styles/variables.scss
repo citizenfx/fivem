@@ -160,14 +160,14 @@ $themes: $themeLight $themeDark $themeRdr;
         position: absolute;
         z-index: -999;
 
-        transform: scale(1.1);
+        /*transform: scale(1.0);*/
     }
 
     @include themeHostWorkaround() using ($theme) {
         &:after {
             /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
             /*backdrop-filter: gtv($theme, acrylicBlur);*/
-            filter: gtv($theme, acrylicBlur);
+            /*filter: gtv($theme, acrylicBlur);
             background-image: var(--my-background-image);
             background-size: cover;
             background-repeat: no-repeat;
@@ -180,7 +180,7 @@ $themes: $themeLight $themeDark $themeRdr;
         &:after {
             /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
             /*backdrop-filter: gtv($theme, acrylicBlur);*/
-            filter: gtv($theme, acrylicBlur);
+            /*filter: gtv($theme, acrylicBlur);
             background-image: var(--my-background-image);
             background-size: cover;
             background-repeat: no-repeat;

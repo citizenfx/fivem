@@ -49,7 +49,7 @@ auto CoreGetComponentRegistry()
 		RefSource()
 		{
 #ifdef _WIN32
-			auto func = (ComponentRegistry*(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreGetComponentRegistry");
+			auto func = (ComponentRegistry*(*)())GetProcAddress(GetModuleHandleW(L"CoreRT.dll"), "CoreGetComponentRegistry");
 #else
 			auto func = (ComponentRegistry*(*)())dlsym(dlopen("./libCoreRT.so", RTLD_LAZY), "CoreGetComponentRegistry");
 #endif
@@ -112,7 +112,7 @@ static
         RefSource()
         {
 #ifdef _WIN32
-            auto func = (InstanceRegistry*(*)())GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreGetGlobalInstanceRegistry");
+            auto func = (InstanceRegistry*(*)())GetProcAddress(GetModuleHandleW(L"CoreRT.dll"), "CoreGetGlobalInstanceRegistry");
 #else
 			auto func = (InstanceRegistry*(*)())dlsym(dlopen("./libCoreRT.so", RTLD_LAZY), "CoreGetGlobalInstanceRegistry");
 #endif

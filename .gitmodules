@@ -180,7 +180,7 @@
 	url = https://github.com/grpc/grpc.git
 [submodule "vendor/librw"]
 	path = vendor/librw
-	url = https://github.com/aap/librw.git
+	url = https://github.com/blattersturm/librw.git
 [submodule "vendor/librwgta"]
 	path = vendor/librwgta
 	url = https://github.com/aap/librwgta.git
@@ -208,3 +208,6 @@
 [submodule "vendor/xenium"]
 	path = vendor/xenium
 	url = https://github.com/mpoeter/xenium
+[submodule "vendor/re3"]
+	path = vendor/re3
+	url = https://github.com/blattersturm/re3.git

@@ -9,7 +9,7 @@
 	<div class="nav-list" [class.has-sub-nav]="hasSubNav">
 		<a
 			class="nav-item"
-			[routerLink]="['/']"
+			[routerLink]="['/home']"
 			routerLinkActive="active"
 			[routerLinkActiveOptions]="{ exact: true }"
 		>
@@ -106,6 +106,13 @@
 	</div>
 
 	<div class="rightButtons">
+		<div
+			class="gameplay"
+			(click)="goThere()"
+		>
+			<i class="fas fa-dice-three"></i>
+		</div>
+
 		<div
 			class="changelog"
 			(click)="openChangelog.emit()"

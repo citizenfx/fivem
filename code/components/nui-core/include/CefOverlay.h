@@ -21,10 +21,10 @@
 
 #include <memory>
 
-#include "RGBA.h"
-#include "Rect.h"
-
 #ifdef WANT_CEF_INTERNALS
+#include "CfxRGBA.h"
+#include "CfxRect.h"
+
 #include <include/cef_app.h>
 #include <include/cef_browser.h>
 #include <include/cef_client.h>
@@ -57,6 +57,7 @@ private:
 
 namespace nui
 {
+#ifdef WANT_CEF_INTERNALS
 	struct GILockedTexture
 	{
 		int level;
@@ -150,6 +151,7 @@ namespace nui
 	};
 
 	void OVERLAY_DECL Initialize(nui::GameInterface* gi);
+#endif
 
 	enum class CefChannelLayout
 	{
@@ -319,7 +321,9 @@ namespace nui
 	OVERLAY_DECL void ExecuteWindowScript(const std::string& windowName, const std::string& scriptBit);
 	OVERLAY_DECL void SetNUIWindowURL(fwString windowName, fwString url);
 
+#ifdef WANT_CEF_INTERNALS
 	OVERLAY_DECL fwRefContainer<GITexture> GetWindowTexture(fwString windowName);
+#endif
 
 	extern
 		OVERLAY_DECL

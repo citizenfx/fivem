@@ -66,6 +66,11 @@ export class AppNavComponent {
 		(<any>window).invokeNative('connectTo', '127.0.0.1:' + (this.localhostPort || '30120') );
 	}
 
+	goThere() {
+		(<any>window).invokeNative('enterGameplay', '');
+		document.body.style.display = 'none';
+	}
+
 	exitGame() {
 		this.gameService.exitGame();
 	}

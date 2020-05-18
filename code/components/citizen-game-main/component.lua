@@ -1,9 +1,9 @@
 return function()
 	configuration {}
 	filter {}
-
+	
 	includedirs {
-		'components/vfs-impl-server/include/'
+		'components/vfs-impl-server/include/', '../vendor/bgfx/examples/common/'
 	}
 
 	files {

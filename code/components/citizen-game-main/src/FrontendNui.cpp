@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#define WANT_CEF_INTERNALS
 #include <CefOverlay.h>
 
 #include <bgfx/bgfx.h>

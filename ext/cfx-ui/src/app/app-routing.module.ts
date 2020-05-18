@@ -1,6 +1,7 @@
 import {NgModule} from '@angular/core';
 import {Routes, RouterModule} from '@angular/router';
 
+import {SplashComponent} from './home/splash.component';
 import {HomeComponent} from './home/home.component';
 import {SettingsComponent} from './settings/settings.component';
 import {MinModeComponent} from './minmode/minmode.component';
@@ -18,8 +19,13 @@ import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
 const routes: Routes = [
 	{
 		path:      '',
-		component: (environment.web) ? ServersContainerComponent : HomeComponent,
+		component: (environment.web) ? ServersContainerComponent : SplashComponent,
 		data: 	   { type: 'browse', meta: { title: 'FiveM' } },
+		canActivateChild: [MetaGuard],
+	},
+	{
+		path:      'home',
+		component: HomeComponent,
 		canActivateChild: [MetaGuard],
 	},
 	{

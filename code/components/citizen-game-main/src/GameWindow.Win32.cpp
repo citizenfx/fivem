@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <GameWindow.h>
 
+#define WANT_CEF_INTERNALS
 #include <CefOverlay.h>
 
 #include <CoreConsole.h>
@@ -44,7 +45,7 @@ namespace WRL = Microsoft::WRL;
 
 nui::GameInterface* InitializeNui(citizen::GameWindow* window);
 
-bgfx::VertexDecl DebugUvVertex::ms_decl;
+bgfx::VertexLayout DebugUvVertex::ms_decl;
 
 static std::vector<std::string> ConvertUnderlinesTo(const std::vector<CefCompositionUnderline>& underlines)
 {

@@ -189,6 +189,7 @@ if (!$DontBuild)
     Push-Location $WorkDir
 
     git submodule init
+    git submodule resync
 
     $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
 
@@ -229,6 +230,15 @@ if (!$DontBuild)
             Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
             Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
             Remove-Item -Recurse $WorkDir\vendor\cef\$CefName\
+        } catch {
+            return
+        }
+        
+        Write-Host "[downloading re3]" -ForegroundColor DarkMagenta
+        try {
+            if (!(Test-Path "$SaveDir\re3.rpf")) {
+                Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\re3.rpf" "https://runtime.fivem.net/client/re3.rpf"
+            }
         } catch {
             return
         }
@@ -294,7 +304,7 @@ if (!$DontBuild)
     msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m:4 $BuildPath\CitizenMP.sln
 
     if (!$?) {
-        Invoke-WebHook "Building FiveM failed :("
+        Invoke-WebHook "Building Cfx/$GameName failed :("
         throw "Failed to build the code."
     }
 
@@ -412,6 +422,8 @@ if (!$DontBuild -and !$IsServer) {
 
         Pop-Location
     }
+    
+    Copy-Item -Force $SaveDir\re3.rpf $CacheDir\fivereborn\citizen\re3.rpf
 
     # copy output files
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\

@@ -26,7 +26,7 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
 
 DLL_IMPORT extern fwEvent<ImDrawData*> OnRenderImDrawData;
 
-inline bool checkAvailTransientBuffers(uint32_t _numVertices, const bgfx::VertexDecl& _layout, uint32_t _numIndices)
+inline bool checkAvailTransientBuffers(uint32_t _numVertices, const bgfx::VertexLayout& _layout, uint32_t _numIndices)
 {
 	return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, _layout)
 		&& (0 == _numIndices || _numIndices == bgfx::getAvailTransientIndexBuffer(_numIndices))
@@ -35,7 +35,7 @@ inline bool checkAvailTransientBuffers(uint32_t _numVertices, const bgfx::Vertex
 
 static bool fontTextureCreated;
 
-bgfx::VertexDecl    m_decl;
+bgfx::VertexLayout    m_decl;
 bgfx::ProgramHandle m_program;
 bgfx::ProgramHandle m_imageProgram;
 bgfx::TextureHandle m_texture;
