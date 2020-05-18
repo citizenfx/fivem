@@ -415,14 +415,14 @@ static void PatchAdapter(IDXGIAdapter** pAdapter)
 	}
 }
 
-static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
+#include <d3d11_1.h>
+
+static bool g_reshit;
+
+static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext)
 {
-	PatchAdapter(&pAdapter);
-
-	auto hr = g_origD3D11CreateDevice(pAdapter, pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
-
 #if defined(IS_RDR3)
-	if (SUCCEEDED(hr) && ppDevice && ppImmediateContext)
+	if (ppDevice && ppImmediateContext)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
@@ -447,6 +447,50 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		g_origDevice = *ppDevice;
 	}
 
+	// horrible hack as 'reshade' doesn't give us our original device back
+	if (g_reshit && ppDevice && *ppDevice)
+	{
+		// get context
+		WRL::ComPtr<ID3D11DeviceContext> cxt;
+		(*ppDevice)->GetImmediateContext(&cxt);
+
+		{
+			// get annotation, which will return the original device
+			WRL::ComPtr<ID3DUserDefinedAnnotation> ann;
+			if (SUCCEEDED(cxt.As(&ann)))
+			{
+				// get real cxt
+				WRL::ComPtr<ID3D11DeviceContext> realCxt;
+				if (SUCCEEDED(ann.As(&realCxt)))
+				{
+					realCxt->GetDevice(&g_origDevice);
+				}
+			}
+		}
+	}
+}
+
+static HRESULT (*g_origD3D11CreateDeviceAndSwapChain)(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
+
+static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	PatchAdapter(&pAdapter);
+
+	auto hr = g_origD3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+
+	PatchCreateResults(ppDevice, ppImmediateContext);
+
+	return hr;
+}
+
+static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	PatchAdapter(&pAdapter);
+
+	auto hr = g_origD3D11CreateDevice(pAdapter, pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+
+	PatchCreateResults(ppDevice, ppImmediateContext);
+
 	return hr;
 }
 
@@ -458,23 +502,69 @@ static HRESULT D3D11CreateDeviceHookMain(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 	// hook e.g. GetImmediateContext here if needed
 
+	// if we didn't get g_origDevice set from the system DLL we will set it here anyway
+	// this for example happens with 'ReShade' which completely hides the system DLL from us like a thieving retard employed by NVIDIA of course would do
+	if (!g_origDevice && ppDevice && *ppDevice)
+	{
+		g_origDevice = *ppDevice;
+	}
+
 	return hr;
 }
+
+#include <psapi.h>
 
 void HookLibGL(HMODULE libGL)
 {
 	wchar_t systemDir[MAX_PATH];
 	GetSystemDirectoryW(systemDir, std::size(systemDir));
 
-	auto sysDll = LoadLibraryW(va(L"%s\\d3d11.dll", systemDir));
+	HMODULE realSysDll = NULL;
+	auto sysDllName = va(L"%s\\d3d11.dll", systemDir);
+	auto sysDll = LoadLibraryW(sysDllName);
 	auto mainDll = LoadLibraryW(L"d3d11.dll");
+
+    HMODULE hMods[1024];
+	DWORD cbNeeded;
+
+	if (EnumProcessModules(GetCurrentProcess(), hMods, sizeof(hMods), &cbNeeded))
+	{
+		for (size_t i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+		{
+			wchar_t szModName[MAX_PATH];
+
+			if (GetModuleFileNameExW(GetCurrentProcess(), hMods[i], szModName,
+				sizeof(szModName) / sizeof(wchar_t)))
+			{
+				if (_wcsicmp(szModName, sysDllName) == 0)
+				{
+					realSysDll = hMods[i];
+					break;
+				}
+			}
+		}
+	}
+
+	// maybe
+	g_reshit = true;
 
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
-	MH_CreateHook(GetProcAddress(sysDll, "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+	if (sysDll != realSysDll)
+	{
+		trace("You're using a broken 'graphics mod' that tries to hide D3D11.dll from us. Why?\n");
+		MH_CreateHook(GetProcAddress(realSysDll, "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+	}
+	else
+	{
+		MH_CreateHook(GetProcAddress(sysDll, "D3D11CreateDevice"), D3D11CreateDeviceHook, (void**)&g_origD3D11CreateDevice);
+	}
+
+	// as reshade suuuucks we have to duplicate logic as they pass D3D11CreateDevice on there
+	MH_CreateHook(GetProcAddress(sysDll, "D3D11CreateDeviceAndSwapChain"), D3D11CreateDeviceAndSwapChainHook, (void**)&g_origD3D11CreateDeviceAndSwapChain);
 
 	// hook any wrapper dll too
-	if (mainDll != sysDll)
+	if (mainDll != sysDll || mainDll != realSysDll)
 	{
 		MH_CreateHook(GetProcAddress(mainDll, "D3D11CreateDevice"), D3D11CreateDeviceHookMain, (void**)&g_origD3D11CreateDeviceMain);
 	}

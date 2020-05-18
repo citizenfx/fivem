@@ -234,6 +234,15 @@ static InitFunction initFunction([]()
 			if (!d3d)
 			{
 				d3d = GetD3D11Device();
+
+				// we want the real device, not some flawed RAGE device
+				struct
+				{
+					void* vtbl;
+					ID3D11Device* rawDevice;
+				}* deviceStuff = (decltype(deviceStuff))d3d;
+
+				d3d = deviceStuff->rawDevice;
 			}
 
 			d3d->CreateTexture2D(&tgtDesc, nullptr, &depthTexture);
