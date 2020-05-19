@@ -194,40 +194,62 @@ static InitFunction initFunction([]()
 		static rage::grcTexture* gTex = NULL;
 
 		static bool inited = false;
+		static bool preInited = false;
 
-		static auto initOnce = ([]()
+		if (!preInited)
 		{
-			fwRefContainer<vfs::RagePackfile7> pack = new vfs::RagePackfile7();
-			if (!pack->OpenArchive("citizen:/re3.rpf"))
+			static auto initOnce = ([]()
 			{
+				fwRefContainer<vfs::RagePackfile7> pack = new vfs::RagePackfile7();
+				if (!pack->OpenArchive("citizen:/re3.rpf"))
+				{
+					return 0;
+				}
+
+				vfs::Mount(pack, "re3:/");
+
+				bgfx::renderFrame();
+
 				return 0;
-			}
+			})();
 
-			vfs::Mount(pack, "re3:/");
-
-			bgfx::renderFrame();
-
-			rage::grcManualTextureDef textureDef;
-			memset(&textureDef, 0, sizeof(textureDef));
-			textureDef.isStaging = 0;
-			textureDef.arraySize = 1;
-			textureDef.isRenderTarget = 1;
+			static grcRenderTargetDX11* rt;
 
 			int w, h;
 			GetGameResolution(w, h);
 
 			hackSetVideoMode(w, h);
 
-			auto tf = rage::grcTextureFactory::getInstance();
-			auto tex = tf->createManualTexture(w, h, 2, NULL, true, &textureDef);
-			auto rt = (grcRenderTargetDX11*)tf->createFromNativeTexture("", tex->texture, NULL);
+			if (!rt)
+			{
+				rage::grcManualTextureDef textureDef;
+				memset(&textureDef, 0, sizeof(textureDef));
+				textureDef.isStaging = 0;
+				textureDef.arraySize = 1;
+				textureDef.isRenderTarget = 1;
 
-			gTex = tex;
+				auto tf = rage::grcTextureFactory::getInstance();
+				gTex = tf->createManualTexture(w, h, 2, NULL, true, &textureDef);
+			}
 
-			ID3D11Texture2D* depthTexture;
-			ID3D11DepthStencilView* ds;
+			if (!gTex)
+			{
+				return;
+			}
 
-			D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_D24_UNORM_S8_UINT, w, h, 1, 1, D3D11_BIND_DEPTH_STENCIL);
+			if (!rt)
+			{
+				auto tf = rage::grcTextureFactory::getInstance();
+				rt = (grcRenderTargetDX11*)tf->createFromNativeTexture("", gTex->texture, NULL);
+			}
+
+			if (!rt)
+			{
+				return;
+			}
+
+			static ID3D11Texture2D* depthTexture;
+			static ID3D11DepthStencilView* ds;
 
 			auto d3d = GetRawD3D11Device();
 
@@ -245,16 +267,37 @@ static InitFunction initFunction([]()
 				d3d = deviceStuff->rawDevice;
 			}
 
-			d3d->CreateTexture2D(&tgtDesc, nullptr, &depthTexture);
+			HRESULT hr = S_OK;
 
-			D3D11_DEPTH_STENCIL_VIEW_DESC dsDesc = CD3D11_DEPTH_STENCIL_VIEW_DESC(depthTexture, D3D11_DSV_DIMENSION_TEXTURE2D);
+			if (!depthTexture)
+			{
+				D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_D24_UNORM_S8_UINT, w, h, 1, 1, D3D11_BIND_DEPTH_STENCIL);
 
-			d3d->CreateDepthStencilView(depthTexture, &dsDesc, &ds);
+				hr = d3d->CreateTexture2D(&tgtDesc, nullptr, &depthTexture);
+			}
+
+			if (!depthTexture)
+			{
+				trace("Create LG depth texture failed: %08x\n", hr);
+				return;
+			}
+
+			if (!ds)
+			{
+				D3D11_DEPTH_STENCIL_VIEW_DESC dsDesc = CD3D11_DEPTH_STENCIL_VIEW_DESC(depthTexture, D3D11_DSV_DIMENSION_TEXTURE2D);
+
+				hr = d3d->CreateDepthStencilView(depthTexture, &dsDesc, &ds);
+			}
+
+			if (!ds)
+			{
+				trace("Create LG DSV failed: %08x\n", hr);
+				return;
+			}
 
 			auto bb = rt->views[0];
-			//auto ds = rt2->views[0];
 
-			std::thread([bb, ds, d3d]()
+			std::thread([bb, d3d]()
 			{
 				Re3InitStruct data;
 				data.backBuffer = bb;
@@ -267,8 +310,8 @@ static InitFunction initFunction([]()
 			})
 			.detach();
 
-			return 0;
-		})();
+			preInited = true;
+		}
 
 		if (inited && nui::HasMainUI())
 		{
