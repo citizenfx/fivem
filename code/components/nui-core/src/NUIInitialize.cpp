@@ -442,7 +442,7 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		(*ppDevice)->GetImmediateContext(&g_origImContext);
 	}
 
-	if (ppDevice)
+	if (ppDevice && ppImmediateContext)
 	{
 		g_origDevice = *ppDevice;
 	}
@@ -516,7 +516,7 @@ static HRESULT D3D11CreateDeviceHookMain(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 	// if we didn't get g_origDevice set from the system DLL we will set it here anyway
 	// this for example happens with 'ReShade' which completely hides the system DLL from us like a thieving retard employed by NVIDIA of course would do
-	if (!g_origDevice && ppDevice && *ppDevice)
+	if (!g_origDevice && ppDevice && *ppDevice && ppImmediateContext)
 	{
 		g_origDevice = *ppDevice;
 	}
