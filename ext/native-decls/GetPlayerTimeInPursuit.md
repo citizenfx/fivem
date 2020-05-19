@@ -5,7 +5,7 @@ apiset: server
 ## GET_PLAYER_TIME_IN_PURSUIT
 
 ```c
-int GET_PLAYER_TIME_IN_PURSUIT(char* playerSrc, bool lastPursuit);
+int GET_PLAYER_TIME_IN_PURSUIT(char* playerSrc, BOOL lastPursuit);
 ```
 
 ```

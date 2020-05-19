@@ -5,7 +5,7 @@ apiset: server
 ## IS_PLAYER_EVADING_WANTED_LEVEL
 
 ```c
-bool IS_PLAYER_EVADING_WANTED_LEVEL(char* playerSrc);
+BOOL IS_PLAYER_EVADING_WANTED_LEVEL(char* playerSrc);
 ```
 
 ```
