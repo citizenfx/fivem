@@ -253,7 +253,17 @@ static InitFunction initFunction([]()
 
 			auto d3d = GetRawD3D11Device();
 
-			if (!d3d)
+			bool modifiedD3D = false;
+
+			if (GetFileAttributesW(MakeRelativeGamePath(L"d3d11.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
+				GetFileAttributesW(MakeRelativeGamePath(L"dxgi.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
+				GetFileAttributesW(MakeRelativeGamePath(L"d3d10.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
+				GetFileAttributesW(MakeRelativeGamePath(L"reshade64.dll").c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				modifiedD3D = true;
+			}
+
+			if (!d3d || !modifiedD3D)
 			{
 				d3d = GetD3D11Device();
 
