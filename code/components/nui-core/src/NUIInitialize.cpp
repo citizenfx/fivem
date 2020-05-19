@@ -476,6 +476,12 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 {
 	PatchAdapter(&pAdapter);
 
+	if (pAdapter)
+	{
+		// if we ended up setting adapter, driver type should be unknown, or queries will fail
+		DriverType = D3D_DRIVER_TYPE_UNKNOWN;
+	}
+
 	auto hr = g_origD3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	PatchCreateResults(ppDevice, ppImmediateContext);
@@ -487,7 +493,13 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 {
 	PatchAdapter(&pAdapter);
 
-	auto hr = g_origD3D11CreateDevice(pAdapter, pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	if (pAdapter)
+	{
+		// if we ended up setting adapter, driver type should be unknown, or queries will fail
+		DriverType = D3D_DRIVER_TYPE_UNKNOWN;
+	}
+
+	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	PatchCreateResults(ppDevice, ppImmediateContext);
 
