@@ -1,0 +1,17 @@
+{
+	"name": "devtools:rdr3",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"vendor:imgui",
+		"conhost",
+		"gta:core:rdr3",
+		"gta:streaming:rdr3",
+		"gta:mission-cleanup:rdr3",
+		"citizen:resources:core",
+		"citizen:scripting:core",
+		"citizen:resources:client",
+		"net"
+	],
+	"provides": []
+}

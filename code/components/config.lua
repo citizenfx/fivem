@@ -106,3 +106,5 @@ component 'gta-net-rdr3'
 component 'extra-natives-rdr3'
 component 'citizen-playernames-rdr3'
 component 'legacy-game-re3'
+
+component 'devtools-rdr3'
