@@ -458,7 +458,7 @@
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRequest</PoolName>
-							<PoolSize value="60"/>
+							<PoolSize value="100"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRender</PoolName>
