@@ -371,7 +371,108 @@ public:
 
 static CfxCacheMounter g_staticCacheMounter;
 
+struct IgnoreCaseLess
+{
+	inline bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
+
 static CDataFileMountInterface** g_dataFileMounters;
+
+// TODO: this might need to be a ref counter instead?
+static std::set<std::string, IgnoreCaseLess> g_permanentItyps;
+
+class CfxProxyItypMounter : public CDataFileMountInterface
+{
+private:
+	std::string ParseBaseName(DataFileEntry* entry)
+	{
+		char baseName[256];
+		char* sp = strrchr(entry->name, '/');
+		strcpy_s(baseName, sp ? sp + 1 : entry->name);
+
+		auto dp = strrchr(baseName, '.');
+
+		if (dp)
+		{
+			dp[0] = '\0';
+		}
+
+		return baseName;
+	}
+
+public:
+	virtual bool MountFile(DataFileEntry* entry) override
+	{
+		// parse dir/dir/blah.ityp into blah
+		std::string baseName = ParseBaseName(entry);
+
+		uint32_t slotId;
+
+		auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+		if (*module->FindSlot(&slotId, baseName.c_str()) != -1)
+		{
+			auto refPool = (atPoolBase*)((char*)module + 56);
+			auto refPtr = refPool->GetAt<char>(slotId);
+
+			if (refPtr)
+			{
+				uint16_t* flags = (uint16_t*)(refPtr + 16);
+
+				if (*flags & 4)
+				{
+					*flags &= ~0x14;
+
+					trace("Removing existing #typ %s\n", baseName);
+
+					g_permanentItyps.insert(baseName);
+
+					streaming::Manager::GetInstance()->ReleaseObject(slotId + module->baseIdx);
+				}
+			}
+		}
+
+		g_dataFileMounters[174]->MountFile(entry);
+
+		return true;
+	}
+
+	virtual bool UnmountFile(DataFileEntry* entry) override
+	{
+		g_dataFileMounters[174]->UnmountFile(entry);
+
+		std::string baseName = ParseBaseName(entry);
+
+		uint32_t slotId;
+
+		auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+		if (*module->FindSlot(&slotId, baseName.c_str()) != -1)
+		{
+			if (g_permanentItyps.find(baseName) != g_permanentItyps.end())
+			{
+				trace("Loading old #typ %s\n", baseName);
+
+				g_permanentItyps.erase(baseName);
+
+				streaming::Manager::GetInstance()->RequestObject(slotId + module->baseIdx, 7);
+
+				auto refPool = (atPoolBase*)((char*)module + 56);
+				auto refPtr = refPool->GetAt<char>(slotId);
+
+				if (refPtr)
+				{
+					*(uint16_t*)(refPtr + 16) |= 4;
+				}
+			}
+		}
+
+		return true;
+	}
+};
+
+static CfxProxyItypMounter g_proxyDlcItypMounter;
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 {
@@ -401,6 +502,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	if (fileType == 160) // TEXTFILE_METAFILE 
 	{
 		return nullptr;
+	}
+
+	if (fileType == 174) // DLC_ITYP_REQUEST
+	{
+		return &g_proxyDlcItypMounter;
 	}
 
 	return g_dataFileMounters[fileType];
