@@ -1,5 +1,13 @@
+<ul class="tabs">
+	<ng-container *ngFor="let category of categories">
+		<li *ngIf="shouldShowCategory(category)" [class.active]="selectedCategory == category" (click)="setCategory(category)">
+			{{category|translate:locale.language}}
+		</li>
+	</ng-container>
+</ul>
+<main>
 <div *ngFor="let setting of settings">
-<section class="setting" *ngIf="setting.show">
+<section class="setting" *ngIf="selectedCategory == setting.category && setting.show">
 	<div class="key">
 		<div>{{ setting.setting.name | translate:locale.language }}</div>
 	</div>
@@ -25,7 +33,7 @@
 			[name]="setting.setting.id"
 			[(ngModel)]="setting.value"
 		>
-		<span *ngIf="setting.setting.type === 'button'">
+		<span *ngIf="setting.setting.type === 'button'" class="button">
 			<button (click)="setting.setting.setCb('')">{{ setting.setting.description | translate:locale.language }}</button>
 		</span>
 
@@ -41,7 +49,7 @@
 			[innerHTML]="setting.label">
 		</span>
 
-		<span *ngIf="setting.setting.type === 'select'">
+		<span *ngIf="setting.setting.type === 'select'" class="select">
 			<select
 				[(ngModel)]="setting.value"
 				[name]="setting.setting.id"
@@ -52,3 +60,4 @@
 	</div>
 </section>
 </div>
+</main>

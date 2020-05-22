@@ -69,6 +69,12 @@ public:
 
 			NativeInvoke::Invoke<SET_ENTITY_COORDS, int>(playerPedId, -426.858f, -957.54f, 3.621f);
 
+			if (Instance<ICoreGameInit>::Get()->HasVariable("editorMode"))
+			{
+				NativeInvoke::Invoke<0x49DA8145672B2725, int>();
+				Instance<ICoreGameInit>::Get()->ClearVariable("editorMode");
+			}
+
 			m_doInityThings = false;
 		}
 	}
@@ -205,7 +211,7 @@ static void LoadLevel(const char* levelName)
 
 	if (!gameInit->GetGameLoaded())
 	{
-		if (!gameInit->HasVariable("storyMode") && !gameInit->HasVariable("localMode"))
+		if ((!gameInit->HasVariable("storyMode") && !gameInit->HasVariable("localMode")) || gameInit->HasVariable("editorMode"))
 		{
 			rage::scrEngine::CreateThread(&spawnThread);
 		}
@@ -287,6 +293,13 @@ static InitFunction initFunction([] ()
 	static ConsoleCommand storyModeyCommand("storymode", []()
 	{
 		Instance<ICoreGameInit>::Get()->SetVariable("storyMode");
+		LoadLevel("gta5");
+	});
+
+	static ConsoleCommand editorModeCommand("replayEditor", []()
+	{
+		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
+		Instance<ICoreGameInit>::Get()->SetVariable("editorMode");
 		LoadLevel("gta5");
 	});
 

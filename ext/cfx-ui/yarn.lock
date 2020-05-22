@@ -1313,10 +1313,10 @@
   resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-3.0.3.tgz#3dca0e3f33b200fc7d1139c0cd96c1268cadfd9d"
   integrity sha512-tHq6qdbT9U1IRSGf14CL0pUlULksvY9OZ+5eEgl1N7t+OA3tGvNpxJCzuKQlsNgCVwbAs670L1vcVQi8j9HjnA==
 
-"@types/node-forge@^0.8.4":
-  version "0.8.7"
-  resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-0.8.7.tgz#5a32cbe05fecb0a34ac5550e7b54acaac0056b08"
-  integrity sha512-xDtriZLWYx21QvMeTUD7EYQ+kPUxsKzNK+3Wl037RsRotR57MwrzTv6jy2vOJtWQV7S7jMI/hqMxunEqdLHK8Q==
+"@types/node-forge@^0.9.1":
+  version "0.9.3"
+  resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-0.9.3.tgz#5f8299a3f2b069a7e165c807bef6b17464f8b8ad"
+  integrity sha512-2ARlg50tba1Ps3Jg/D416LEWo9TxVACfuZLNy8GvLiggndLxxfUBz8OyeZZsE9JIF6r8AOJrcaKS3O/5NVhQlA==
   dependencies:
     "@types/node" "*"
 
@@ -5967,10 +5967,10 @@ node-forge@0.9.0:
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.9.0.tgz#d624050edbb44874adca12bb9a52ec63cb782579"
   integrity sha512-7ASaDa3pD+lJ3WvXFsxekJQelBKRpne+GOVbLbtHYdd7pFspyeuJHnWfLplGf3SwKGbfs/aYl5V/JCIaHVUKKQ==
 
-node-forge@^0.8.5:
-  version "0.8.5"
-  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.8.5.tgz#57906f07614dc72762c84cef442f427c0e1b86ee"
-  integrity sha512-vFMQIWt+J/7FLNyKouZ9TazT74PRV3wgv9UT4cRjC8BffxFbKXkgIWR42URCPSnHm/QDz6BOlb2Q0U4+VQT67Q==
+node-forge@^0.9.1:
+  version "0.9.1"
+  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.9.1.tgz#775368e6846558ab6676858a4d8c6e8d16c677b5"
+  integrity sha512-G6RlQt5Sb4GMBzXvhfkeFmbqR6MzhtnT7VTHuLadjkii3rdYHNdw0m8zA4BTxVIh68FicCQ2NSUANpsqkr9jvQ==
 
 node-libs-browser@^2.2.1:
   version "2.2.1"

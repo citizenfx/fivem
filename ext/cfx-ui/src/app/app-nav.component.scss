@@ -88,9 +88,10 @@ $itemHeight: $appNavHeight*.5;
 		font-size: 2vh;
 		line-height: 2vh;
 
-		&>div {
+		&>div, &>a {
 			padding: 1vh;
 			position: relative;
+			color: inherit;
 
 			filter: drop-shadow(0 0 0.8vh rgba(0, 0, 0, .5));
 
@@ -115,13 +116,13 @@ $itemHeight: $appNavHeight*.5;
 				};
 			}
 
-			&:hover {
+			&:hover, &.active {
 				@include theme() using ($theme) {
 					color: rgba(gtv($theme, secondaryColour), .8);
 				};
 			}
 
-			&:hover svg {
+			&:hover svg, &.active svg {
 				@include theme() using ($theme) {
 					fill: rgba(gtv($theme, secondaryColour), .8);
 				};

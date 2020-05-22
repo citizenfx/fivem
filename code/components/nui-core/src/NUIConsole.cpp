@@ -11,7 +11,7 @@ static void SendConvar(const std::string& name, const std::string& value)
 		auto variableJson = nlohmann::json::object({
 			{ "type", "convarSet" },
 			{ "name", name },
-			{ "value", std::move(value) }
+			{ "value", value }
 			});
 
 		nui::PostFrameMessage("mpMenu", variableJson.dump());
@@ -20,10 +20,20 @@ static void SendConvar(const std::string& name, const std::string& value)
 
 void NuiConsole_SetConvars()
 {
-	console::GetDefaultContext()->GetVariableManager()->ForAllVariables([](const std::string& name, int flags, const ConsoleVariableManager::THandlerPtr& variable)
+	auto vars = nlohmann::json::array();
+
+	console::GetDefaultContext()->GetVariableManager()->ForAllVariables([&vars](const std::string& name, int flags, const ConsoleVariableManager::THandlerPtr& variable)
 	{
-		SendConvar(name, variable->GetValue());
+		vars.push_back(nlohmann::json::object(
+		{ { "key", name }, { "value", variable->GetValue() } }));
 	});
+
+	if (nui::HasMainUI())
+	{
+		nui::PostFrameMessage("mpMenu", nlohmann::json::object({ { "type", "convarsSet" },
+															   { "vars", std::move(vars) } })
+										.dump());
+	}
 }
 
 static InitFunction initFunction([]()

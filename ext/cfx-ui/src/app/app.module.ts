@@ -65,6 +65,9 @@ import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
 import { ModsService } from './mods/mods.service';
 import { ModsListComponent } from './mods/mods-list/mods-list.component';
 import { ModItemComponent } from './mods/mod-item/mod-item.component';
+import { CreateHomeComponent } from './create/create-home/create-home.component';
+import { StoryHomeComponent } from './story/story-home/story-home.component';
+import { CreateEditorComponent } from './create/create-editor/create-editor.component';
 
 const localePrefix = (environment.web) ? '/' : './';
 
@@ -176,7 +179,10 @@ export function metaFactory(): MetaLoader {
 		ModListComponent,
 		ModDetailComponent,
 		ModsListComponent,
-		ModItemComponent
+		ModItemComponent,
+		CreateHomeComponent,
+		StoryHomeComponent,
+		CreateEditorComponent
 	],
 	imports:      [
 		BrowserModule.withServerTransition({ appId: 'cfx-ui' }),

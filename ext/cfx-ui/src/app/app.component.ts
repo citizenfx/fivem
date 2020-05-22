@@ -121,14 +121,6 @@ export class AppComponent implements OnInit {
 		}
 	}
 
-	openChangelog() {
-		this.changelogShown = true;
-	}
-
-	closeChangelog() {
-		this.changelogShown = false;
-	}
-
 	calcClipPath() {
 		let ref: string = null;
 

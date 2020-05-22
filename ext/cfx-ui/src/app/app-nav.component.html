@@ -25,7 +25,7 @@
 			[routerLinkActiveOptions]="{ exact: true }"
 		>
 			<span l10nTranslate>
-				#BottomNav_Servers
+				#BottomNav_Play
 			</span>
 		</a>
 		<a
@@ -39,10 +39,9 @@
 			</span>
 		</a>
 		<a
-			[routerLink]="['/servers/history']"
+			[routerLink]="['/servers/direct-connect']"
 			class="nav-item subnav-item"
 			routerLinkActive="active"
-			*ngIf="gameName !== 'rdr3'"
 		>
 			<span l10nTranslate>
 				#ServerList_History
@@ -59,12 +58,13 @@
 			</span>
 		</a>
 		<a
-			[routerLink]="['/servers/direct-connect']"
+			[routerLink]="['/story']"
 			class="nav-item subnav-item"
 			routerLinkActive="active"
+			*ngIf="gameName !== 'rdr3'"
 		>
 			<span l10nTranslate>
-				#ServerList_DirectConnect
+				#BottomNav_Story
 			</span>
 		</a>
 		<a
@@ -79,22 +79,35 @@
 
 		<a
 			class="nav-item"
-			[routerLink]="['/mods']"
+			[routerLink]="['/create']"
 			routerLinkActive="active"
-			style="display: none"
+			*ngIf="gameName !== 'rdr3'"
 		>
 			<span l10nTranslate>
-				#BottomNav_Mods
+				#BottomNav_Create
 			</span>
 		</a>
 
 		<a
-			class="nav-item"
-			[routerLink]="['/settings']"
+			[routerLink]="['/editor']"
+			class="nav-item subnav-item"
 			routerLinkActive="active"
+			*ngIf="gameName !== 'rdr3'"
 		>
 			<span l10nTranslate>
-				#BottomNav_Settings
+				#BottomNav_ReplayEditor
+			</span>
+		</a>
+
+		<a
+			class="nav-item subnav-item"
+			[routerLink]="['/mods']"
+			routerLinkActive="active"
+			*ngIf="gameName !== 'rdr3'"
+			[style.display]="'none'"
+		>
+			<span l10nTranslate>
+				#BottomNav_Mods
 			</span>
 		</a>
 
@@ -114,14 +127,23 @@
 			<i class="fas fa-dice-three"></i>
 		</div>
 
-		<div
+		<a
 			class="changelog"
-			(click)="openChangelog.emit()"
+			[routerLink]="['/changelog']"
+			routerLinkActive="active"
 		>
 			<i class="fas fa-scroll"></i>
 
 			<span class="new" *ngIf="changelogCount > 0">{{changelogCount}}</span>
-		</div>
+		</a>
+
+		<a
+			class="settings"
+			[routerLink]="['/settings']"
+			routerLinkActive="active"
+		>
+			<i class="fas fa-cog"></i>
+		</a>
 
 		<div
 			class="close-app"

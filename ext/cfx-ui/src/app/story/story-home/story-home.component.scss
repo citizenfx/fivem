@@ -1,0 +1,21 @@
+@import "variables";
+
+:host {
+    @include appContent;
+
+    &>div {
+        display: flex; 
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-evenly;
+        height: 100%;
+
+        max-width: 70%;
+        margin-left: auto;
+        margin-right: auto;
+
+        p, p>* {
+            user-select: text;
+        }
+    }
+}

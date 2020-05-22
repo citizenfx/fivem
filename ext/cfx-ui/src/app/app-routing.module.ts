@@ -15,6 +15,10 @@ import { MetaGuard } from '@ngx-meta/core';
 import { ModsComponent } from './mods/mods/mods.component';
 import { ModListComponent } from './mods/mod-list/mod-list.component';
 import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
+import { ChangelogPopupComponent } from './home/app-changelog-popup.component';
+import { CreateHomeComponent } from './create/create-home/create-home.component';
+import { CreateEditorComponent } from './create/create-editor/create-editor.component';
+import { StoryHomeComponent } from './story/story-home/story-home.component';
 
 const routes: Routes = [
 	{
@@ -27,6 +31,10 @@ const routes: Routes = [
 		path:      'home',
 		component: HomeComponent,
 		canActivateChild: [MetaGuard],
+	},
+	{
+		path:	   'changelog',
+		component: ChangelogPopupComponent,
 	},
 	{
 		path:      'servers',
@@ -79,6 +87,18 @@ const routes: Routes = [
 				component: ModDetailComponent
 			}
 		]
+	},
+	{
+		path: 'create',
+		component: CreateHomeComponent,
+	},
+	{
+		path: 'editor',
+		component: CreateEditorComponent,
+	},
+	{
+		path: 'story',
+		component: StoryHomeComponent,
 	},
 	{
 		path:      'settings',

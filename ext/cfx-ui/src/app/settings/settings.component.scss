@@ -2,12 +2,18 @@
 
 :host {
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 
 	@include appContent;
 
-    overflow-y: hidden;
+	overflow-y: hidden;
 }
+
+main {
+	flex-grow: 1;
+}
+
+@import "tabs";
 
     .setting {
         display: flex;
@@ -31,7 +37,10 @@
         }
 
         .value {
-            flex-grow: 1;
+			flex-grow: 1;
+
+			display: flex;
+			align-items: center;
 
 			@include theme() using ($theme) {
 				background: rgba(gtv($theme, bgColour), .2);
@@ -52,6 +61,17 @@
                 }
 			}
 			
+			input[type="text"] {
+				font-size: 1.4rem;
+				font-family: $fonts;
+				vertical-align: middle;
+
+				height: 100%;
+
+				padding-top: 0;
+				padding-bottom: 0;
+			}
+
 			span {
 				position: relative;
 				flex-grow: 1;
@@ -68,6 +88,11 @@
 				@include theme() using ($theme) {
 					color: gtv($theme, secondaryColour);
 				};
+
+				&.select, &.button {
+					padding-top: 0;
+					padding-bottom: 0;
+				}
 			}
 
 			select {
@@ -75,12 +100,12 @@
 				width: auto;
 
 				padding: $padding/2 $padding*$multiplier;
+				border-collapse: separate;
+				line-height: 1;
 
 				border-radius: 2px;
 				border: none;
 				outline: none;
-				margin-top: 8px;
-				margin-left: 16px;
 
 				transition: all .2s ease;
 

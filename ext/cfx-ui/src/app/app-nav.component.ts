@@ -23,9 +23,6 @@ export class AppNavComponent {
 	gameName = 'gta5';
 	changelogCount = 0;
 
-	@Output()
-	openChangelog = new EventEmitter();
-
 	constructor(
 		private gameService: GameService,
 		@Inject(L10N_LOCALE) public locale: L10nLocale,

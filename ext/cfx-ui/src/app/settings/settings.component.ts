@@ -14,6 +14,7 @@ class SelectOption {
 class DisplaySetting {
     show: boolean;
     label: string;
+    category: string;
     optionsArray: SelectOption[] = [];
 
     private _value: string;
@@ -21,6 +22,7 @@ class DisplaySetting {
 
     constructor(public setting: Setting) {
         this.show = (setting.showCb) ? false : true;
+        this.category = setting.category;
         this.label = '';
         this._value = '';
 
@@ -83,6 +85,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     darkTheme = true;
     language = 'en';
 
+    public categories: string[] = [];
+    public selectedCategory: string;
+
     public settings: DisplaySetting[] = [];
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
@@ -112,6 +117,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
         for (const setting of this.settingsService.settingsList) {
             this.settings.push(new DisplaySetting(setting));
         }
+
+        this.categories = Array.from(new Set<string>(this.settings.map(a => a.category)).values());
+        this.selectedCategory = this.categories[0];
     }
 
     ngOnDestroy() {
@@ -142,5 +150,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     toggleConvar(name: string) {
         this.gameService.setConvar(name, this.gameService.getConvarValue(name) === 'true' ? 'false' : 'true');
+    }
+
+    setCategory(category: string) {
+        this.selectedCategory = category;
+    }
+
+    shouldShowCategory(category: string): boolean {
+        return !!this.settings.find(a => a.show && a.category === category);
     }
 }

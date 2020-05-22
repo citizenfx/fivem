@@ -665,6 +665,19 @@ static InitFunction initFunction([] ()
 
 			g_connected = false;
 		}
+		else if (_wcsicmp(type, L"executeCommand") == 0)
+		{
+			if (!nui::HasMainUI())
+			{
+				return;
+			}
+
+			se::ScopedPrincipal principal{
+				se::Principal{
+				"system.console" }
+			};
+			console::GetDefaultContext()->ExecuteSingleCommand(ToNarrow(arg));
+		}
 		else if (!_wcsicmp(type, L"changeName"))
 		{
 			std::string newusername = ToNarrow(arg);

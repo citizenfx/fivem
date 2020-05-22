@@ -226,7 +226,7 @@ void ConsoleVariableManager::ForAllVariables(const TVariableCB& callback, int fl
 		for (auto& entry : m_entries)
 		{
 			// if flags match the mask
-			if ((entry.second.flags & flagMask) != 0)
+			if ((entry.second.flags & flagMask) != 0 || (entry.second.flags == 0 && flagMask == -1))
 			{
 				iterationList.push_back(std::make_tuple(entry.second.name, entry.second.flags, entry.second.variable));
 			}

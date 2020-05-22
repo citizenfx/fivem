@@ -183,9 +183,15 @@ export class DiscourseService {
 
         const res = await window.fetch(req);
 
+        let json = null;
+
+        try {
+            json = await res.json();
+        } catch {}
+
         return {
             status: res.status,
-            data: await res.json()
+            data: json || null
         };
     }
 
@@ -307,7 +313,8 @@ export class DiscourseService {
         const promise = new Promise<RSAKeyCollection>((resolve, reject) => {
             forge.pki.rsa.generateKeyPair({
                 bits: 2048,
-                workers: -1
+                workers: -1,
+                workerScript: require('file-loader!node-forge/dist/prime.worker.min.js').default
             }, (err, keypair) => {
                 if (err) {
                     reject(err);

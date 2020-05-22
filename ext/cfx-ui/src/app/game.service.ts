@@ -329,6 +329,24 @@ export class CfxGameService extends GameService {
 			} catch (e) {}
 		});
 
+		const handleSetConvar = (name: string, value: string) => {
+			const convar = this.getConvarSubject(name);
+
+			const convarItem = this.convars[name];
+			convarItem.value = value;
+
+			this.zone.run(() => convar.next(value));
+
+			setTimeout(() => {
+				if (this.ownershipTicket !== this.getConvarValue('cl_ownershipTicket')) {
+					this.ownershipTicket = this.getConvarValue('cl_ownershipTicket');
+					this.updateProfiles();
+
+					this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
+				}
+			}, 500);
+		};
+
 		this.zone.runOutsideAngular(() => {
 			window.addEventListener('message', (event) => {
 				switch (event.data.type) {
@@ -373,21 +391,12 @@ export class CfxGameService extends GameService {
 						this.saveHistory();
 						break;
 					case 'convarSet':
-						const convar = this.getConvarSubject(event.data.name);
-
-						const convarItem = this.convars[event.data.name];
-						convarItem.value = event.data.value;
-
-						this.zone.run(() => convar.next(event.data.value));
-
-						setTimeout(() => {
-							if (this.ownershipTicket !== this.getConvarValue('cl_ownershipTicket')) {
-								this.ownershipTicket = this.getConvarValue('cl_ownershipTicket');
-								this.updateProfiles();
-
-								this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
-							}
-						}, 500);
+						handleSetConvar(event.data.name, event.data.value);
+						break;
+					case 'convarsSet':
+						for (const { key, value } of event.data.vars) {
+							handleSetConvar(key, value);
+						}
 						break;
 					case 'setMinModeInfo':
 						const enabled: boolean = event.data.enabled;

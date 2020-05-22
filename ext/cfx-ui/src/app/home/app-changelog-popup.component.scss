@@ -1,179 +1,81 @@
 @import "variables";
+@import "tabs";
 
-.overlay {
+:host {
+	@include theme() using ($theme) {
+		color: gtv($theme, textColour);
+	};
+
 	display: flex;
+	flex-direction: row;
 
-	position: fixed;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	right: 0;
+	@include appContent;
 
-	align-items: center;
-	justify-content: center;
-
-	z-index: 400;
-
-	transition: all .2s ease-out;
-	opacity: 0;
-	pointer-events: none;
-
-	will-change: backdrop-filter;
-	backdrop-filter: blur(0px);
-
-	&.active {
-		opacity: 1;
-		will-change: backdrop-filter;
-		backdrop-filter: blur(5px);
-
-		@include theme() using ($theme) {
-			background-color: rgba(gtv($theme, bgColour), .5);
-		};
-		
-		pointer-events: inherit;
-	}
-
-	& > div {
-		@include theme() using ($theme) {
-			background-color: rgba(gtv($theme, bgColour), .75);
-		};
-
-		border-radius: 1px;
-
-		width: 80%;
-		max-width: 1920px;
-
-		box-shadow: #000 0px 0px 75px;
-
-		@include theme() using ($theme) {
-			background-color: rgba(gtv($theme, bgColour), 1);
-		};
-	}
+	overflow-y: hidden;
 }
 
-.minmode {
-	margin-left: auto;
-	margin-right: auto;
-}
-
-div.inner {
-	&>div.head {
-		display: flex;
-		flex-direction: row;
-
-		align-self: flex-start;
-
-		width: 100%;
-
-		h1 {
-			flex-grow: 1;
-		}
-
-		.close-app {
-			svg {
-				@include theme() using ($theme) {
-					fill: rgba(gtv($theme, secondaryColour), .5);
-				};
-
-				width: 2vh;
-				height: 2vh;
-
-				transition: all .2s ease;
-			}
-
-			&:hover svg {
-				@include theme() using ($theme) {
-					fill: rgba(gtv($theme, secondaryColour), .8);
-				};
-			}
-		}
-	}
-
-	padding: 1vh;
-
+div.head {
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 
-	ul {
-		align-self: flex-start;
-		list-style-type: none;
-		white-space: nowrap;
-		overflow: hidden;
-		max-width: 100%;
+	align-self: flex-start;
 
-		min-height: 3.5vh;
+	width: 100%;
 
-		li {
-			display: inline-block;
-
-			font-size: 2vh;
-			line-height: 2vh;
-
-			margin: 1vh;
-			margin-top: 0;
-			padding-bottom: 0.5vh;
-
-			&:first-child {
-				margin-left: 0;
-			}
-
-			border-bottom: 1px solid rgba(0, 0, 0, 0);
-
-			@include theme() using ($theme) {
-				color: rgba(gtv($theme, textColour), .6);
-			}
-
-			&.active, &:hover {
-				@include theme() using ($theme) {
-					color: rgba(gtv($theme, textColour), 1);
-				}
-			}
-
-			&.active {
-				@include theme() using ($theme) {
-					border-bottom: 1px solid gtv($theme, greenyColour);
-				}
-			}
-
-			transition: all 0.2s ease;
-		}
-	}
-
-	min-height: 69vh;
-	max-height: 69vh;
-	display: flex;
-
-	&>div.content {
-		overflow-y: scroll;
+	h1 {
 		flex-grow: 1;
 	}
 
-	h1 {
-		font-size: 3.5vh;
-		font-weight: 100;
-		line-height: 1;
-		margin: 0;
-		margin-bottom: $padding;
-	}
+	.close-app {
+		svg {
+			@include theme() using ($theme) {
+				fill: rgba(gtv($theme, secondaryColour), .5);
+			};
 
-	p {
-		@include theme() using ($theme) {
-			color: gtv($theme, textColour);
-		};
+			width: 2vh;
+			height: 2vh;
 
-		user-select: text;
-		white-space: pre-line;
-	}
+			transition: all .2s ease;
+		}
 
-	button {
-		margin-top: $padding;
-
-		opacity: 0;
-		transition: none;
-
-		&.active {
-			opacity: 1;
+		&:hover svg {
+			@include theme() using ($theme) {
+				fill: rgba(gtv($theme, secondaryColour), .8);
+			};
 		}
 	}
 }
+div.content {
+	overflow-y: scroll;
+	flex-grow: 1;
+}
+
+h1 {
+	font-size: 3.5vh;
+	font-weight: 100;
+	line-height: 1;
+	margin: 0;
+	margin-bottom: $padding;
+}
+
+p {
+	@include theme() using ($theme) {
+		color: gtv($theme, textColour);
+	};
+
+	user-select: text;
+	white-space: pre-line;
+}
+
+button {
+	margin-top: $padding;
+
+	opacity: 0;
+	transition: none;
+
+	&.active {
+		opacity: 1;
+	}
+}
+
 

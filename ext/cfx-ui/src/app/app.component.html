@@ -10,9 +10,8 @@
     <div id="bg" *ngIf="minMode && gameService.minmodeBlob['art:backgroundImage']"></div>
 
     <div class="app-root">
-        <app-nav *ngIf="!minMode && !splashScreen" (openChangelog)="openChangelog()"></app-nav>
+        <app-nav *ngIf="!minMode && !splashScreen"></app-nav>
         <router-outlet></router-outlet>
-        <app-changelog-popup *ngIf="!minMode" [showOverlay]="changelogShown" (closeOverlay)="closeChangelog()"></app-changelog-popup>
         <connecting-popup *ngIf="!minMode"></connecting-popup>
     </div>
 </div>

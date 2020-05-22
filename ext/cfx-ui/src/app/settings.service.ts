@@ -18,6 +18,7 @@ export class Setting {
     showCb?: () => Observable<boolean>;
     labelCb?: () => Observable<string>;
     colorizeValue?: boolean;
+    category?: string;
 
     getCb?: () => Observable<string>;
     setCb?: (value: string) => void;
@@ -45,6 +46,7 @@ export class SettingsService {
             type: 'text',
             getCb: () => this.gameService.nicknameChange,
             setCb: (value) => this.gameService.nickname = value,
+            category: '#SettingsCat_Connection',
         });
 
         if (this.gameService.gameName !== 'rdr3') {
@@ -53,7 +55,8 @@ export class SettingsService {
                 description: '#Settings_DarkThemeDesc',
                 type: 'checkbox',
                 getCb: () => this.gameService.darkThemeChange.map(a => a ? 'true' : 'false'),
-                setCb: (value) => this.gameService.darkTheme = (value === 'true')
+                setCb: (value) => this.gameService.darkTheme = (value === 'true'),
+                category: '#SettingsCat_Interface',
             });
         }
 
@@ -62,7 +65,8 @@ export class SettingsService {
             description: '#Settings_DevModeDesc',
             type: 'checkbox',
             getCb: () => this.gameService.devModeChange.map(a => a ? 'true' : 'false'),
-            setCb: (value) => this.gameService.devMode = (value === 'true')
+            setCb: (value) => this.gameService.devMode = (value === 'true'),
+            category: '#SettingsCat_Interface',
         });
 
         this.addSetting('localhostPort', {
@@ -71,7 +75,8 @@ export class SettingsService {
             type: 'text',
             getCb: () => this.gameService.localhostPortChange,
             setCb: (value) => this.gameService.localhostPort = value,
-            showCb: () => this.gameService.devModeChange
+            showCb: () => this.gameService.devModeChange,
+            category: '#SettingsCat_Interface',
         });
 
         this.addSetting('language', {
@@ -79,7 +84,8 @@ export class SettingsService {
             type: 'select',
             getCb: () => this.gameService.languageChange,
             setCb: (value) => this.gameService.language = value,
-            options: Languages.toSettingsOptions()
+            options: Languages.toSettingsOptions(),
+            category: '#SettingsCat_Interface',
         });
 
         if (this.gameService.gameName !== 'rdr3') {
@@ -88,7 +94,8 @@ export class SettingsService {
                 description: '#Settings_MenuAudioDesc',
                 type: 'checkbox',
                 getCb: () => this.gameService.getConvar('ui_disableMusicTheme').pipe(map(a => a === 'true' ? 'false' : 'true')),
-                setCb: (value) => this.gameService.setConvar('ui_disableMusicTheme', value === 'true' ? 'false' : 'true')
+                setCb: (value) => this.gameService.setConvar('ui_disableMusicTheme', value === 'true' ? 'false' : 'true'),
+                category: '#SettingsCat_Interface',
             });
 
             this.addSetting('streamingProgress', {
@@ -96,7 +103,8 @@ export class SettingsService {
                 description: '#Settings_GameStreamProgressDesc',
                 type: 'checkbox',
                 getCb: () => this.gameService.getConvar('game_showStreamingProgress'),
-                setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value)
+                setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value),
+                category: '#SettingsCat_Game',
             });
 
             this.addSetting('customEmoji', {
@@ -109,14 +117,16 @@ export class SettingsService {
                 options: fromEntries([
                     [ '', 'Default' ],
                     ...emojiList.default.filter(emoji => emoji.length === 2).map(emoji => [ emoji, emoji ])
-                ])
+                ]),
+                category: '#SettingsCat_Game',
             });
 
             this.addSetting('customEmojiUpsell', {
                 name: '#Settings_CustomEmoji',
                 type: 'label',
                 showCb: () => this.gameService.getConvar('ui_premium').pipe(map(a => a !== 'true')),
-                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell'))
+                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_CustomEmojiUpsell')),
+                category: '#SettingsCat_Game',
             });
         }
 
@@ -133,14 +143,16 @@ export class SettingsService {
                 '1000': '1000',
                 '500': '500',
                 '250': '250',
-            }
+            },
+            category: '#SettingsCat_Connection',
         });
 
         this.addSetting('connectedProfiles', {
             name: '#Settings_ConnectedProfiles',
             type: 'html',
             showCb: () => of(this.gameService.hasProfiles()),
-            labelCb: () => of(this.gameService.getProfileString())
+            labelCb: () => of(this.gameService.getProfileString()),
+            category: '#SettingsCat_Account',
         });
 
         if (this.gameService.gameName !== 'rdr3') {
@@ -150,6 +162,7 @@ export class SettingsService {
                 description: '#Settings_AccountLink',
                 setCb: (value) => this.linkAccount(),
                 showCb: () => discourseService.signinChange.pipe(map(user => !user)),
+                category: '#SettingsCat_Account',
             });
 
             this.addSetting('accountLabel', {
@@ -162,7 +175,8 @@ export class SettingsService {
                         translation.onChange()
                     ).pipe(map(
                         ([ user, _ ]) => translation.translate('#Settings_AccountLinked', { username: user ? user.username : '' })
-                    ))
+                    )),
+                category: '#SettingsCat_Account',
             });
 
             this.addSetting('boostLoading', {
@@ -170,7 +184,8 @@ export class SettingsService {
                 type: 'label',
                 showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
                     && !this.discourseService.noCurrentBoost)),
-                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_BoostLoading'))
+                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_BoostLoading')),
+                category: '#SettingsCat_Account',
             });
 
             this.addSetting('boostNone', {
@@ -178,7 +193,8 @@ export class SettingsService {
                 type: 'label',
                 showCb: () => discourseService.signinChange.pipe(map(user => !!user && !this.discourseService.currentBoost
                     && this.discourseService.noCurrentBoost)),
-                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_BoostNone'))
+                labelCb: () => translation.onChange().pipe().map(_ => translation.translate('#Settings_BoostNone')),
+                category: '#SettingsCat_Account',
             });
 
             this.addSetting('boostUnknown', {
@@ -186,7 +202,8 @@ export class SettingsService {
                 type: 'label',
                 showCb: () => discourseService.signinChange.pipe(map(user => !!user && this.discourseService.currentBoost
                     && !this.discourseService.currentBoost.server)),
-                labelCb: () => of(this.discourseService.currentBoost ? this.discourseService.currentBoost.address : '')
+                labelCb: () => of(this.discourseService.currentBoost ? this.discourseService.currentBoost.address : ''),
+                category: '#SettingsCat_Account',
             });
 
             this.addSetting('boostServer', {
@@ -198,7 +215,8 @@ export class SettingsService {
                     this.discourseService.currentBoost && this.discourseService.currentBoost.server &&
                     this.discourseService.currentBoost.server.hostname ? this.discourseService.currentBoost.server.hostname : 'test'
                 ),
-                colorizeValue: true
+                colorizeValue: true,
+                category: '#SettingsCat_Account',
             });
 
             this.addSetting('updateChannel', {
@@ -211,6 +229,7 @@ export class SettingsService {
                     'production': 'Release',
                     'canary': 'Canary (Experimental/Unstable)',
                 },
+                category: '#SettingsCat_Game',
             });
         }
     }

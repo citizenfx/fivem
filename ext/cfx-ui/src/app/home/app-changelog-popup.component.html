@@ -1,24 +1,6 @@
-<div class="overlay" [class.active]="showOverlay">
-	<div class="inner">
-		<div class="head">
-			<h1 l10nTranslate>#Changelogs</h1>
-
-			<div
-				class="close-app"
-				(click)="closeOverlay.emit()"
-			>
-				<svg x="0px" y="0px" viewBox="0 0 10.2 10.2">
-					<polygon
-					points="10.2,0.7 9.5,0 5.1,4.4 0.7,0 0,0.7 4.4,5.1 0,9.5 0.7,10.2 5.1,5.8 9.5,10.2 10.2,9.5 5.8,5.1 "
-					/>
-				</svg>
-			</div>
-		</div>
-		<ul>
-			<li *ngFor="let version of versions" [class.active]="selectedVersion == version" (click)="loadVersion(version)">{{version}}</li>
-		</ul>
-		<div class="content">
-			<app-changelog-entry *ngIf="selectedVersion" [version]="selectedVersion"></app-changelog-entry>
-		</div>
-	</div>
+<ul class="tabs">
+	<li *ngFor="let version of versions" [class.active]="selectedVersion == version" (click)="loadVersion(version)">{{version}}</li>
+</ul>
+<div class="content">
+	<app-changelog-entry *ngIf="selectedVersion" [version]="selectedVersion"></app-changelog-entry>
 </div>
