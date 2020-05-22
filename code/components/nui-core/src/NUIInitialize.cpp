@@ -59,12 +59,27 @@ struct GameRenderData
 	}
 };
 
+static GLuint g_curGlTexture;
+
+static void (*g_origglBindTexture)(GLenum target, GLuint texture);
+
+static void glBindTextureHook(GLenum target, GLuint texture)
+{
+	if (target == GL_TEXTURE_2D)
+	{
+		g_curGlTexture = texture;
+	}
+
+	g_origglBindTexture(target, texture);
+}
+
 static void(*g_origglTexParameterf)(GLenum target, GLenum pname, GLfloat param);
 
 static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
 {
 	// 'secret' activation sequence
-	static int stage = 0;
+	static std::map<GLuint, int> stages;
+	int& stage = stages[g_curGlTexture];
 
 	if (target == GL_TEXTURE_2D && pname == GL_TEXTURE_WRAP_T)
 	{
@@ -82,7 +97,7 @@ static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
 			{
 				stage = 2;
 			}
-			else
+			else if (param != GL_CLAMP_TO_EDGE)
 			{
 				stage = 0;
 			}
@@ -562,6 +577,7 @@ void HookLibGL(HMODULE libGL)
 
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
+	MH_CreateHook(GetProcAddress(libGL, "glBindTexture"), glBindTextureHook, (void**)&g_origglBindTexture);
 	if (sysDll != realSysDll)
 	{
 		trace("You're using a broken 'graphics mod' that tries to hide D3D11.dll from us. Why?\n");
