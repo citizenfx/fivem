@@ -458,7 +458,11 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 
 	for (auto& res : g_resources)
 	{
-		(*res)->Release();
+		if (*res)
+		{
+			(*res)->Release();
+		}
+
 		*res = nullptr;
 	}
 
@@ -1040,6 +1044,7 @@ void CaptureBufferOutput()
 	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
 
 	static D3D11_TEXTURE2D_DESC resDesc;
+	static int lastWidth, lastHeight;
 
 	auto backBuf = GetBackbuf();
 
@@ -1054,10 +1059,31 @@ void CaptureBufferOutput()
 		}
 	}
 
+	bool change = false;
 	static ID3D11Texture2D* myTexture;
 	static ID3D11RenderTargetView* rtv;
 
-	if (!myTexture)
+	if (lastWidth != handleData->width || lastHeight != handleData->height)
+	{
+		lastWidth = handleData->width;
+		lastHeight = handleData->height;
+
+		if (rtv)
+		{
+			rtv->Release();
+			rtv = NULL;
+		}
+
+		if (myTexture)
+		{
+			myTexture->Release();
+			myTexture = NULL;
+		}
+
+		change = true;
+	}
+
+	if (change)
 	{
 		D3D11_TEXTURE2D_DESC texDesc = { 0 };
 		texDesc.Width = resDesc.Width;
@@ -1104,6 +1130,11 @@ void CaptureBufferOutput()
 
 		g_resources.push_back((ID3D11Resource**)&myTexture);
 		g_resources.push_back((ID3D11Resource**)&rtv);
+	}
+
+	if (!rtv || !myTexture)
+	{
+		return;
 	}
 
 	if (!handleData->requested)
