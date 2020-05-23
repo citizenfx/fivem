@@ -12,6 +12,7 @@ import { GameService, ServerHistoryEntry } from '../../game.service';
 
 import { DomSanitizer } from '@angular/platform-browser';
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
+import { DirectConnectBackendComponent } from './direct-connect-backend.component';
 
 class ServerHistoryData {
     entry: ServerHistoryEntry;
@@ -23,7 +24,7 @@ class ServerHistoryData {
     moduleId: module.id,
     selector: 'app-direct-connect',
     templateUrl: 'direct-connect.component.html',
-    styleUrls: ['direct-connect.components.scss']
+    styleUrls: ['direct-connect.component.scss']
 })
 
 export class DirectConnectComponent implements OnInit, AfterViewInit {
@@ -33,9 +34,10 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     error = '';
     inputInvalid = false;
 
-    onFetchCB: () => void;
+    @ViewChild('backend')
+    backend: DirectConnectBackendComponent;
 
-    addrEvent = new Subject<[string, number]>();
+    onFetchCB: () => void;
 
     @ViewChildren('input')
     private inputBox;
@@ -44,26 +46,6 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
 
     constructor(private gameService: GameService, private serversService: ServersService, private sanitizer: DomSanitizer,
         @Inject(L10N_LOCALE) public locale: L10nLocale) {
-        this.addrEvent
-            .asObservable()
-            .debounceTime(750)
-            .distinctUntilChanged()
-            .subscribe(addr => {
-                this.server = null;
-                this.error = null;
-
-                this.gameService.queryAddress(addr)
-                    .then(server => {
-                        this.server = server;
-
-                        if (this.onFetchCB) {
-                            this.onFetchCB();
-                        }
-                    }, (reason: Error) => this.error = reason.message)
-                    .then(() => this.lastAddr = this.addr)
-                    .then(() => this.onFetchCB = null);
-            });
-
         this.history = this.gameService.getServerHistory().slice(-6).map(entry => ({
             entry,
             server: null,
@@ -89,14 +71,14 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     }
 
     tryConnect() {
-        if (this.isValid()) {
-            this.attemptConnect();
+        if (this.backend.isValid()) {
+            this.backend.attemptConnect();
         } else {
-            const addr = this.addr;
+            const addr = this.backend.addr;
 
             this.onFetchCB = () => {
-                if (addr === this.addr) {
-                    this.attemptConnect()
+                if (addr === this.backend.addr) {
+                    this.backend.attemptConnect()
                 }
             };
         }
@@ -131,38 +113,12 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     }
 
     addrChanged(newValue: string) {
-        this.inputInvalid = false;
         this.addr = newValue;
-
-        const addrBits = this.parseAddress(newValue);
-
-        if (!addrBits) {
-            this.inputInvalid = true;
-            return;
-        }
-
-        this.addrEvent.next(addrBits);
-    }
-
-    attemptConnect() {
-        this.gameService.connectTo(this.server, this.addr);
     }
 
     ngOnInit() { }
 
     ngAfterViewInit() {
         this.inputBox.first.nativeElement.focus();
-    }
-
-    isWaiting() {
-        return (this.addr.trim() !== '' && ((!this.server && !this.error) || this.lastAddr !== this.addr));
-    }
-
-    isInvalid() {
-        return (this.error && this.lastAddr === this.addr);
-    }
-
-    isValid() {
-        return (this.server && !this.error && this.lastAddr === this.addr);
     }
 }

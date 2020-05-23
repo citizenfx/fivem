@@ -1,6 +1,6 @@
 <div class="filters inline">
-    <section class="filter attract-next">
-        <input class="name" id="searchBox" type="search" placeholder="Search" [(ngModel)]="filters.searchText"
+    <section class="filter attract-next" [class.noPaddingHack]="beValid">
+        <input class="name" id="searchBox" type="search" placeholder="Search or enter an address" [(ngModel)]="filters.searchText"
             (ngModelChange)="updateFilters()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
 
         <div *ngIf="searchFocused">
@@ -15,7 +15,7 @@
         </div>
     </section>
 
-    <section class="filter">
+    <section class="filter" [class.noPaddingHack]="beValid">
         <div class="checkboxes">
             <div class="checkbox">
                 <input type="checkbox" id="hide-empty" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()">
@@ -37,3 +37,10 @@
         </div>
     </section>
 </div>
+
+<app-direct-connect-backend
+    [addr]="filters.searchText"
+    silent="true"
+    #backend
+>
+</app-direct-connect-backend>

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
 
 import { Server } from '../server';
 
@@ -11,6 +11,7 @@ import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/throttleTime';
 
 import { ServerFilters } from './server-filter-container';
+import { DirectConnectBackendComponent } from '../direct/direct-connect-backend.component';
 
 class ServerAutocompleteEntry {
     public name = '';
@@ -36,6 +37,9 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
 
     @Output()
     public filtersChanged = new EventEmitter<ServerFilters>();
+
+    @ViewChild('backend')
+    private backend: DirectConnectBackendComponent;
 
     isRefreshing = false;
     wantsToBeRefreshing = false;
@@ -343,5 +347,9 @@ export class ServerFilterComponent implements OnInit, OnChanges, OnDestroy {
 
     rentServer() {
         this.gameService.openUrl('https://zap-hosting.com/fivemigcl');
+    }
+
+    get beValid() {
+        return this.backend?.isValid() ?? false;
     }
 }

@@ -7,16 +7,17 @@
 
 	.servers {
 		width: $width;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
 
 		aside {
 			position: relative;
 			width: 100%;
-			height: $filterHeight + $padding;
 		}
 
 		article {
 			width: 100%;
-			height: calc(#{$appContentHeight} - #{$filterHeight});
 			margin-left: 0;
 
 			display: flex;

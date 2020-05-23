@@ -46,8 +46,8 @@ a {
 		margin-bottom: $padding;
 		position: relative;
 
-		&.attract-next {
-			margin-bottom: $padding/4;
+		&.noPaddingHack {
+			margin-bottom: 0;
 		}
 
 		input.name {

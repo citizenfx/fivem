@@ -68,6 +68,7 @@ import { ModItemComponent } from './mods/mod-item/mod-item.component';
 import { CreateHomeComponent } from './create/create-home/create-home.component';
 import { StoryHomeComponent } from './story/story-home/story-home.component';
 import { CreateEditorComponent } from './create/create-editor/create-editor.component';
+import { DirectConnectBackendComponent } from './servers/direct/direct-connect-backend.component';
 
 const localePrefix = (environment.web) ? '/' : './';
 
@@ -171,6 +172,7 @@ export function metaFactory(): MetaLoader {
 		ServerTagFilterComponent,
 		ServersDetailComponent,
 		DirectConnectComponent,
+		DirectConnectBackendComponent,
 		PlayerAvatarComponent,
 		MinModeComponent,
 		ColorizePipe,
