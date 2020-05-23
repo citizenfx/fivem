@@ -238,12 +238,14 @@ namespace nui
 	__declspec(dllexport) void CreateFrame(fwString frameName, fwString frameURL)
 	{
 #ifdef IS_LAUNCHER
+#ifndef USE_NUI_ROOTLESS
 		if (rootWindowTerminated)
 		{
 			g_shouldCreateRootWindow = true;
 			rootWindowTerminated = false;
 			return;
 		}
+#endif
 #endif
 
 		bool exists = false;
