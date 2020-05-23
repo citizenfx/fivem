@@ -553,7 +553,7 @@ static InitFunction initFunction([] ()
 
 	ep.Bind("imeCommitText", [](const std::string& u8str, int rS, int rE, int p)
 	{
-		auto b = nui::GetBrowser();
+		auto b = nui::GetFocusBrowser();
 
 		if (b)
 		{
@@ -563,7 +563,7 @@ static InitFunction initFunction([] ()
 
 	ep.Bind("imeSetComposition", [](const std::string& u8str, const std::vector<std::string>& underlines, int rS, int rE, int cS, int cE)
 	{
-		auto b = nui::GetBrowser();
+		auto b = nui::GetFocusBrowser();
 
 		if (b)
 		{
@@ -580,7 +580,7 @@ static InitFunction initFunction([] ()
 
 	ep.Bind("imeCancelComposition", []()
 	{
-		auto b = nui::GetBrowser();
+		auto b = nui::GetFocusBrowser();
 
 		if (b)
 		{

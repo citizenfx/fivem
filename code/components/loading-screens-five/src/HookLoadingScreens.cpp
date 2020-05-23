@@ -7,6 +7,9 @@
 
 #include <LaunchMode.h>
 
+#include <nutsnbolts.h>
+#include <CefOverlay.h>
+
 #include <mmsystem.h>
 
 #pragma comment(lib, "winmm.lib")
@@ -314,6 +317,10 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 	}
 }
 
+static int* loadingScreenState;
+
+extern bool g_doDrawBelowLoadingScreens;
+
 static HookFunction hookFunction([] ()
 {
 	hook::jump(hook::get_pattern("44 8B D8 4D 63 C8 4C 3B C8 7D 33 8B", -0x16), &CDataFileMgr::FindNextEntry);
@@ -329,6 +336,20 @@ static HookFunction hookFunction([] ()
 	{
 		hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
 	}
+
+	// loading screen state 10 draws postFX every frame, which will make for a lot of unneeded GPU load below NUI
+	loadingScreenState = hook::get_address<int*>(hook::get_pattern("33 D2 48 8D 45 10 39 15", 8));
+
+	OnGameFrame.Connect([]()
+	{
+		if (*loadingScreenState == 10)
+		{
+			if (nui::HasMainUI() || g_doDrawBelowLoadingScreens)
+			{
+				*loadingScreenState = 6;
+			}
+		}
+	});
 
 #if USE_OPTICK
 	struct ProfilerMetaData

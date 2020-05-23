@@ -338,10 +338,12 @@ static InitFunction initFunction([] ()
 						{
 							bool hasFocus = context.GetArgument<bool>(0);
 
+#ifndef USE_NUI_ROOTLESS
 							const char* functionName = (hasFocus) ? "focusFrame" : "blurFrame";
 							nui::PostRootMessage(fmt::sprintf(R"({ "type": "%s", "frameName": "%s" } )", functionName, resource->GetName()));
+#endif
 
-							nui::GiveFocus(hasFocus, context.GetArgument<bool>(1));
+							nui::GiveFocus(resource->GetName(), hasFocus, context.GetArgument<bool>(1));
 						}
 					}
 				}

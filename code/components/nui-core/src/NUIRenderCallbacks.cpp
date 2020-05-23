@@ -15,6 +15,11 @@ extern bool g_isDragging;
 extern fwRefContainer<nui::GITexture> g_cursorTexture;
 extern fwEvent<std::chrono::microseconds, std::chrono::microseconds> OnVSync;
 
+#ifdef USE_NUI_ROOTLESS
+extern std::shared_mutex g_nuiFocusStackMutex;
+extern std::list<std::string> g_nuiFocusStack;
+#endif
+
 static HookFunction initFunction([] ()
 {
 #ifndef IS_RDR3
@@ -36,7 +41,7 @@ static HookFunction initFunction([] ()
 	{
 		if (nui::HasMainUI())
 		{
-			nui::GiveFocus(true);
+			nui::GiveFocus("mpMenu", true);
 		}
 
 		nui::OnDrawBackground(nui::HasMainUI());
@@ -46,11 +51,35 @@ static HookFunction initFunction([] ()
 			window->UpdateFrame();
 		});
 
-		Instance<NUIWindowManager>::Get()->ForAllWindows([=](fwRefContainer<NUIWindow> window)
+		std::map<std::string, fwRefContainer<NUIWindow>> renderWindows;
+
+		Instance<NUIWindowManager>::Get()->ForAllWindows([&renderWindows](fwRefContainer<NUIWindow> window)
 		{
 			if (window->GetPaintType() != NUIPaintTypePostRender)
 			{
 				return;
+			}
+
+			renderWindows.insert({ window->GetName(), window });
+		});
+
+		auto windowOrder =
+#ifndef USE_NUI_ROOTLESS
+		{
+			"root"
+		}
+#else
+		g_nuiFocusStack
+#endif
+		;
+
+		for (const auto& windowName : windowOrder)
+		{
+			auto& window = renderWindows[windowName];
+
+			if (!window.GetRef())
+			{
+				continue;
 			}
 
 			if (window->GetTexture().GetRef())
@@ -85,7 +114,7 @@ static HookFunction initFunction([] ()
 
 				g_nuiGi->UnsetTexture();
 			}
-		});
+		}
 
 		if ((nui::HasMainUI() || g_hasCursor) && !g_shouldHideCursor)
 		{

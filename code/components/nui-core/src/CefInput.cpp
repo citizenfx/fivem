@@ -32,9 +32,42 @@ static bool HasFocus()
 	return (g_hasFocus || g_hasOverriddenFocus);
 }
 
+#include <shared_mutex>
+
+#ifdef USE_NUI_ROOTLESS
+std::shared_mutex g_nuiFocusStackMutex;
+std::list<std::string> g_nuiFocusStack;
+#endif
+
+static CefRefPtr<CefBrowser> GetFocusBrowser()
+{
+#ifdef USE_NUI_ROOTLESS
+	std::shared_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
+
+	for (const auto& entry : g_nuiFocusStack)
+	{
+		auto browser = nui::GetNUIWindowBrowser(entry);
+
+		if (browser)
+		{
+			return browser;
+		}
+	}
+
+	return {};
+#else
+	return nui::GetBrowser();
+#endif
+}
+
 namespace nui
 {
-	void GiveFocus(bool hasFocus, bool hasCursor)
+	CefBrowser* GetFocusBrowser()
+	{
+		return ::GetFocusBrowser().get();
+	}
+
+	void GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor)
 	{
 		if (!HasFocus() && hasFocus)
 		{
@@ -47,6 +80,37 @@ namespace nui
 
 		g_hasFocus = hasFocus;
 		g_hasCursor = hasCursor;
+
+#ifdef USE_NUI_ROOTLESS
+		auto winName = fmt::sprintf("nui_%s", frameName);
+
+		if (hasFocus)
+		{
+			std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
+
+			// remove from focus stack so it can be moved on top
+			for (auto it = g_nuiFocusStack.begin(); it != g_nuiFocusStack.end();)
+			{
+				if (*it == winName)
+				{
+					it = g_nuiFocusStack.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+
+			g_nuiFocusStack.push_front(winName);
+		}
+
+		auto browser = nui::GetNUIWindowBrowser(winName);
+
+		if (browser)
+		{
+			browser->GetHost()->SetFocus(hasFocus);
+		}
+#endif
 	}
 
 	void OverrideFocus(bool hasFocus)
@@ -236,7 +300,7 @@ static HookFunction initFunction([] ()
 			keyEvent.modifiers = GetCefKeyboardModifiers(vKey, scanCode);
 			keyEvent.type = (down) ? KEYEVENT_RAWKEYDOWN : KEYEVENT_KEYUP;
 
-			auto browser = nui::GetBrowser();
+			auto browser = GetFocusBrowser();
 
 			if (browser)
 			{
@@ -277,7 +341,7 @@ static HookFunction initFunction([] ()
 
 			if (button == -1)
 			{
-				auto browser = nui::GetBrowser();
+				auto browser = GetFocusBrowser();
 
 				if (browser)
 				{
@@ -311,7 +375,7 @@ static HookFunction initFunction([] ()
 				mouse_event.y = y;
 				mouse_event.modifiers = GetCefMouseModifiers();
 
-				auto browser = nui::GetBrowser();
+				auto browser = GetFocusBrowser();
 
 				if (browser)
 				{
@@ -323,7 +387,7 @@ static HookFunction initFunction([] ()
 				CefBrowserHost::MouseButtonType btnType =
 					((button == 0) ? MBT_LEFT : ((button == 1) ? MBT_RIGHT : MBT_MIDDLE));
 
-				auto browser = nui::GetBrowser();
+				auto browser = GetFocusBrowser();
 
 				if (browser)
 				{
@@ -358,7 +422,7 @@ static HookFunction initFunction([] ()
 
 		virtual void MouseWheel(int deltaY) override
 		{
-			auto browser = nui::GetBrowser();
+			auto browser = GetFocusBrowser();
 
 			if (browser) {
 				int delta = deltaY * 120;
@@ -386,7 +450,7 @@ static HookFunction initFunction([] ()
 
 	g_nuiGi->QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		auto browser = nui::GetBrowser();
+		auto browser = GetFocusBrowser();
 
 		if (browser)
 		{
@@ -427,7 +491,7 @@ static HookFunction initFunction([] ()
 		}
 
 		// send a focus event to CEF if focus changed
-		auto browser = nui::GetBrowser();
+		auto browser = GetFocusBrowser();
 
 		if (browser)
 		{
@@ -525,7 +589,7 @@ static HookFunction initFunction([] ()
 					mouseTracking = false;
 				}
 
-				auto browser = nui::GetBrowser();
+				auto browser = GetFocusBrowser();
 
 				if (browser) {
 					// Determine the cursor position in screen coordinates.
@@ -586,7 +650,7 @@ static HookFunction initFunction([] ()
 					keyEvent.type = KEYEVENT_CHAR;
 				}
 
-				auto browser = nui::GetBrowser();
+				auto browser = GetFocusBrowser();
 
 				if (browser)
 				{
@@ -642,7 +706,7 @@ static HookFunction initFunction([] ()
 			}
 			else if (msg == WM_IME_COMPOSITION)
 			{
-				auto browser = nui::GetBrowser();
+				auto browser = GetFocusBrowser();
 
 				if (browser && g_imeHandler) {
 					CefString cTextStr;

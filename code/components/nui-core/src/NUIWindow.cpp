@@ -25,8 +25,8 @@ extern nui::GameInterface* g_nuiGi;
 
 #include "memdbgon.h"
 
-NUIWindow::NUIWindow(bool primary, int width, int height)
-	: m_primary(primary), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
+NUIWindow::NUIWindow(bool rawBlit, int width, int height)
+	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
 	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
@@ -350,7 +350,7 @@ void NUIWindow::Initialize(CefString url)
 		m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
 	}
 	
-	if (!m_primary)
+	if (!m_rawBlit)
 	{
 		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 
@@ -401,7 +401,7 @@ CefBrowser* NUIWindow::GetBrowser()
 
 void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type)
 {
-	if (!m_primary && type != CefRenderHandler::PaintElementType::PET_VIEW)
+	if (!m_rawBlit && type != CefRenderHandler::PaintElementType::PET_VIEW)
 	{
 		return;
 	}
@@ -434,7 +434,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				h = m_popupRect.height;
 			}
 
-			if (!m_primary)
+			if (!m_rawBlit)
 			{
 				auto oldRef = m_parentTextures[type];
 
@@ -525,7 +525,7 @@ void NUIWindow::UpdateFrame()
 		return;
 	}
 
-	if (m_primary)
+	if (m_rawBlit)
 	{
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
@@ -571,7 +571,7 @@ void NUIWindow::UpdateFrame()
 		// issue on any modern GPU.
 		//
 		//if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
-		if (!m_primary)
+		if (!m_rawBlit)
 		{
 			HRESULT hr = S_OK;
 
@@ -591,7 +591,7 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					if (m_primary)
+					if (m_rawBlit)
 					{
 						g_nuiGi->BlitTexture(GetTexture(), texture);
 					}

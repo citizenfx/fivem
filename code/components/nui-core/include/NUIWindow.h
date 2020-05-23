@@ -38,7 +38,7 @@ public:
 	NUIWindow(bool primary, int width, int height);
 
 private:
-	bool m_primary;
+	bool m_rawBlit;
 	int m_width;
 	int m_height;
 
@@ -84,6 +84,24 @@ public:
 
 	inline void*	GetRenderBuffer() { return m_renderBuffer; }
 	inline int		GetRoundedWidth() { return m_roundedWidth; }
+
+	inline const std::string& GetName()
+	{
+		return m_name;
+	}
+
+	inline void SetName(const std::string& name)
+	{
+		m_name = name;
+	}
+
+	inline bool IsPrimary()
+	{
+		return m_rawBlit;
+	}
+
+private:
+	std::string m_name;
 
 public:
 	void			AddDirtyRect(const CefRect& rect);

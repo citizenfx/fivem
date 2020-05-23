@@ -43,6 +43,11 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
+namespace nui
+{
+fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
+}
+
 nui::GameInterface* g_nuiGi;
 
 struct GameRenderData
@@ -683,6 +688,7 @@ void Component_RunPreInit()
 	}
 }
 
+#ifndef USE_NUI_ROOTLESS
 void CreateRootWindow()
 {
 	int resX, resY;
@@ -690,11 +696,16 @@ void CreateRootWindow()
 
 	auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
+	rootWindow->SetName("root");
 
 	Instance<NUIWindowManager>::Get()->SetRootWindow(rootWindow);
 }
 
 bool g_shouldCreateRootWindow;
+#else
+std::shared_mutex g_recreateBrowsersMutex;
+std::set<std::string> g_recreateBrowsers;
+#endif
 
 namespace nui
 {
@@ -768,6 +779,7 @@ void Initialize(nui::GameInterface* gi)
 
 #endif
 
+#ifndef USE_NUI_ROOTLESS
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -787,14 +799,40 @@ void Initialize(nui::GameInterface* gi)
 			}
 		}
 	});
+#endif
+
+	static ConsoleCommand devtoolsCmd("nui_devtools", [](const std::string& windowName)
+	{
+		auto browser = nui::GetNUIWindowBrowser(windowName);
+
+		if (browser)
+		{
+			CefWindowInfo wi;
+			wi.SetAsPopup(NULL, fmt::sprintf("NUI DevTools - %s", windowName));
+
+			CefBrowserSettings s;
+
+			browser->GetHost()->ShowDevTools(wi, new NUIClient(nullptr), s, {});
+		}
+	});
 
 	g_nuiGi->OnInitRenderer.Connect([]()
 	{
+#ifndef USE_NUI_ROOTLESS
 		CreateRootWindow();
+#else
+		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+
+		if (nui::HasMainUI())
+		{
+			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+		}
+#endif
 	});
 
 	g_nuiGi->OnRender.Connect([]()
 	{
+#ifndef USE_NUI_ROOTLESS
 		if (g_shouldCreateRootWindow)
 		{
 			{
@@ -811,6 +849,38 @@ void Initialize(nui::GameInterface* gi)
 
 			g_shouldCreateRootWindow = false;
 		}
+#else
+		std::shared_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
+
+		if (!g_recreateBrowsers.empty())
+		{
+			_.unlock();
+
+			std::unique_lock<std::shared_mutex> __(g_recreateBrowsersMutex);
+			for (auto& browser : g_recreateBrowsers)
+			{
+				auto window = nui::FindNUIWindow(browser);
+
+				if (window.GetRef() && window->GetBrowser() && window->GetBrowser()->GetMainFrame())
+				{
+					auto url = window->GetBrowser()->GetMainFrame()->GetURL();
+					auto width = window->GetWidth();
+					auto height = window->GetHeight();
+					auto renderType = window->GetPaintType();
+					auto name = window->GetName();
+					auto primary = window->IsPrimary();
+
+					nui::DestroyNUIWindow(browser);
+
+					auto win2 = nui::CreateNUIWindow(name, width, height, url, primary);
+					win2->SetPaintType(renderType);
+					win2->SetName(name);
+				}
+			}
+
+			g_recreateBrowsers.clear();
+		}
+#endif
 	});
 
 	g_nuiGi->OnInitVfs.Connect([]()

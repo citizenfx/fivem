@@ -24,9 +24,16 @@ fwEvent<const wchar_t*, const wchar_t*> nui::OnInvokeNative;
 fwEvent<bool> nui::OnDrawBackground;
 
 extern bool g_shouldCreateRootWindow;
+extern nui::GameInterface* g_nuiGi;
+
+#ifdef USE_NUI_ROOTLESS
+extern std::shared_mutex g_nuiFocusStackMutex;
+extern std::list<std::string> g_nuiFocusStack;
+#endif
 
 namespace nui
 {
+#ifndef USE_NUI_ROOTLESS
 	__declspec(dllexport) CefBrowser* GetBrowser()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -38,12 +45,32 @@ namespace nui
 
 		return rootWindow->GetBrowser();
 	}
+#endif
 
 	bool HasMainUI()
 	{
 		return g_mainUIFlag;
 	}
 
+	static std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
+	static std::shared_mutex windowListMutex;
+	
+	fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName)
+	{
+		{
+			std::unique_lock<std::shared_mutex> lock(windowListMutex);
+			auto windowIt = windowList.find(windowName);
+
+			if (windowIt == windowList.end())
+			{
+				return nullptr;
+			}
+
+			return windowIt->second;
+		}
+	}
+
+#ifndef USE_NUI_ROOTLESS
 	__declspec(dllexport) void ExecuteRootScript(const std::string& scriptBit)
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -87,18 +114,37 @@ namespace nui
 	{
 		PostJSEvent("frameCall", { frame, jsonData });
 	}
+#else
+	__declspec(dllexport) void PostFrameMessage(const std::string& frame, const std::string& jsonData)
+	{
+		auto rootWindow = FindNUIWindow(fmt::sprintf("nui_%s", frame));
 
+		if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+		{
+			auto processMessage = CefProcessMessage::Create("pushEvent");
+			auto argumentList = processMessage->GetArgumentList();
+
+			argumentList->SetString(0, "frameCall");
+			argumentList->SetString(1, jsonData);
+
+			rootWindow->GetBrowser()->SendProcessMessage(PID_RENDERER, processMessage);
+		}
+	}
+#endif
+
+#ifndef USE_NUI_ROOTLESS
 	__declspec(dllexport) void ReloadNUI()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 
 		rootWindow->GetBrowser()->ReloadIgnoreCache();
 	}
+#endif
 
 	__declspec(dllexport) void SetMainUI(bool enable)
 	{
 		g_mainUIFlag = enable;
-		nui::GiveFocus(enable);
+		nui::GiveFocus("mpMenu", enable);
 	}
 
 	DLL_EXPORT void SetHideCursor(bool hide)
@@ -106,15 +152,14 @@ namespace nui
 		g_shouldHideCursor = hide;
 	}
 
-	static std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
-	static std::shared_mutex windowListMutex;
-
-	__declspec(dllexport) void CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL)
+	__declspec(dllexport) fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit/* = false*/)
 	{
-		auto window = NUIWindow::Create(false, width, height, windowURL);
+		auto window = NUIWindow::Create(rawBlit, width, height, windowURL);
 
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 		windowList[windowName] = window;
+
+		return window;
 	}
 
 	__declspec(dllexport) void DestroyNUIWindow(fwString windowName)
@@ -128,21 +173,6 @@ namespace nui
 			Instance<NUIWindowManager>::Get()->RemoveWindow(windowIt->second.GetRef());
 
 			windowList.erase(windowName);
-		}
-	}
-
-	static fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName)
-	{
-		{
-			std::unique_lock<std::shared_mutex> lock(windowListMutex);
-			auto windowIt = windowList.find(windowName);
-
-			if (windowIt == windowList.end())
-			{
-				return nullptr;
-			}
-
-			return windowIt->second;
 		}
 	}
 
@@ -225,6 +255,7 @@ namespace nui
 
 		if (!exists)
 		{
+#ifndef USE_NUI_ROOTLESS
 			auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 			auto browser = rootWindow->GetBrowser();
 
@@ -239,6 +270,21 @@ namespace nui
 
 				browser->SendProcessMessage(PID_RENDERER, procMessage);
 			}
+#else
+			int resX, resY;
+			g_nuiGi->GetGameResolution(&resX, &resY);
+
+			auto winName = fmt::sprintf("nui_%s", frameName);
+
+			auto window = CreateNUIWindow(winName, resX, resY, frameURL, true);
+			window->SetPaintType(NUIPaintTypePostRender);
+			window->SetName(winName);
+
+			{
+				std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
+				g_nuiFocusStack.push_back(winName);
+			}
+#endif
 
 			std::unique_lock<std::shared_mutex> lock(frameListMutex);
 			frameList.insert({ frameName, frameURL });
@@ -247,6 +293,7 @@ namespace nui
 
 	__declspec(dllexport) void DestroyFrame(fwString frameName)
 	{
+#ifndef USE_NUI_ROOTLESS
 		auto procMessage = CefProcessMessage::Create("destroyFrame");
 		auto argumentList = procMessage->GetArgumentList();
 
@@ -278,6 +325,30 @@ namespace nui
 			}
 #endif
 		}
+#else
+		auto winName = fmt::sprintf("nui_%s", frameName);
+
+		{
+			std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
+
+			for (auto it = g_nuiFocusStack.begin(); it != g_nuiFocusStack.end(); )
+			{
+				if (*it == winName)
+				{
+					it = g_nuiFocusStack.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+
+		DestroyNUIWindow(winName);
+
+		std::unique_lock<std::shared_mutex> lock(frameListMutex);
+		frameList.erase(frameName);
+#endif
 	}
 
 	bool HasFrame(const std::string& frameName)
@@ -312,7 +383,12 @@ namespace nui
 
 	__declspec(dllexport) void SignalPoll(fwString frameName)
 	{
+#ifndef USE_NUI_ROOTLESS
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 		rootWindow->SignalPoll(std::string(frameName.c_str()));
+#else
+		auto frameWindow = FindNUIWindow(fmt::sprintf("nui_%s", frameName));
+		frameWindow->SignalPoll(std::string(frameName.c_str()));
+#endif
 	}
 }

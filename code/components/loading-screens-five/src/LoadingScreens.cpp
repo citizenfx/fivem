@@ -45,7 +45,7 @@ static bool ShouldSkipLoading();
 
 using fx::Resource;
 
-static bool g_doDrawBelowLoadingScreens;
+bool g_doDrawBelowLoadingScreens;
 static bool frameOn = false;
 static bool primedMapLoad = false;
 
@@ -504,7 +504,11 @@ static InitFunction initFunction([] ()
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 		nui::OverrideFocus(true);
 
+#ifndef USE_NUI_ROOTLESS
 		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");
+#else
+		// #TODONUIROOTLESS: order?
+#endif
 	}, 100);
 
 	static bool isGameReload = false;

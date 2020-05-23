@@ -91,6 +91,7 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 {
 	auto url = frame->GetURL();
 
+#ifndef USE_NUI_ROOTLESS
 	if (url == "nui://game/ui/root.html")
 	{
 		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
@@ -102,6 +103,21 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 		}
 	}
+#endif
+
+	// enter push function
+	frame->ExecuteJavaScript(R"(window.registerPushFunction(function(type, ...args) {
+	switch (type) {
+		case 'frameCall': {
+			const [ dataString ] = args;
+			const data = JSON.parse(dataString);
+
+			window.postMessage(data, '*');
+
+			break;
+		}
+	}
+});)", "nui://handler", 0);
 
 	// replace any segoe ui symbol font
 	frame->ExecuteJavaScript("[].concat.apply([], Array.from(document.styleSheets).map(a => Array.from(a.rules).filter(b => b.style && b.style.fontFamily))).forEach(a => a.style.fontFamily = a.style.fontFamily.replace(/Segoe UI Symbol/g, 'Segoe UI Emoji'));", "nui://patches", 0);
@@ -288,14 +304,25 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 extern bool g_shouldCreateRootWindow;
 
+#ifdef USE_NUI_ROOTLESS
+extern std::set<std::string> g_recreateBrowsers;
+extern std::shared_mutex g_recreateBrowsersMutex;
+#endif
+
 void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
 {
+#ifndef USE_NUI_ROOTLESS
 	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html")
 	{
 		browser->GetHost()->CloseBrowser(true);
 
 		g_shouldCreateRootWindow = true;
 	}
+#else
+	std::unique_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
+
+	g_recreateBrowsers.insert(m_window->GetName());
+#endif
 }
 
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)

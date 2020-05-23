@@ -7,6 +7,8 @@
 
 #pragma once
 
+#define USE_NUI_ROOTLESS
+
 #ifdef COMPILING_NUI_CORE
 #define OVERLAY_DECL __declspec(dllexport)
 #else
@@ -53,6 +55,15 @@ private:
 
 	IMPLEMENT_REFCOUNTING(NUIExtensionHandler);
 };
+#endif
+
+#ifndef COMPILING_NUI_CORE
+class NUIWindow : public fwRefCountable
+{
+
+};
+#else
+class NUIWindow;
 #endif
 
 namespace nui
@@ -288,14 +299,16 @@ namespace nui
 	//void EnterV8Context(const char* type);
 	//void LeaveV8Context(const char* type);
 	//void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
+#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL ReloadNUI();
+#endif
 
 	void OVERLAY_DECL CreateFrame(fwString frameName, fwString frameURL);
 	void OVERLAY_DECL DestroyFrame(fwString frameName);
 	bool OVERLAY_DECL HasFrame(const std::string& frameName);
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
-	void OVERLAY_DECL GiveFocus(bool hasFocus, bool hasCursor = false);
+	void OVERLAY_DECL GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor = false);
 	void OVERLAY_DECL OverrideFocus(bool hasFocus);
 	void OVERLAY_DECL KeepInput(bool keepInput);
 	bool OVERLAY_DECL HasMainUI();
@@ -304,20 +317,28 @@ namespace nui
 
 	void ProcessInput();
 
+#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL ExecuteRootScript(const std::string& scriptBit);
+#endif
 
 	void OVERLAY_DECL PostFrameMessage(const std::string& frameName, const std::string& jsonData);
 
+#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL PostRootMessage(const std::string& jsonData);
+#endif
 
 #ifdef WANT_CEF_INTERNALS
+#ifndef USE_NUI_ROOTLESS
 	OVERLAY_DECL CefBrowser* GetBrowser();
+#endif
+
+	OVERLAY_DECL CefBrowser* GetFocusBrowser();
 
 	// window API
 	OVERLAY_DECL CefBrowser* GetNUIWindowBrowser(fwString windowName);
 #endif
 
-	OVERLAY_DECL void CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL);
+	OVERLAY_DECL fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit = false);
 	OVERLAY_DECL void DestroyNUIWindow(fwString windowName);
 	OVERLAY_DECL void ExecuteWindowScript(const std::string& windowName, const std::string& scriptBit);
 	OVERLAY_DECL void SetNUIWindowURL(fwString windowName, fwString url);

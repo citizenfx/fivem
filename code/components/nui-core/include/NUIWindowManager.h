@@ -19,7 +19,9 @@ private:
 
 	std::mutex m_nuiWindowMutex;
 
+#ifndef USE_NUI_ROOTLESS
 	fwRefContainer<NUIWindow> m_rootWindow;
+#endif
 
 public:
 	void AddWindow(NUIWindow* window);
@@ -28,10 +30,12 @@ public:
 
 	void RemoveWindow(NUIWindow* window);
 
+#ifndef USE_NUI_ROOTLESS
 public:
 	inline fwRefContainer<NUIWindow> GetRootWindow() { return m_rootWindow; }
 
 	inline void SetRootWindow(fwRefContainer<NUIWindow> window) { m_rootWindow = window; }
+#endif
 };
 
 DECLARE_INSTANCE_TYPE(NUIWindowManager);
