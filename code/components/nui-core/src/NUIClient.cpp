@@ -103,8 +103,7 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 		}
 	}
-#endif
-
+#else
 	// enter push function
 	frame->ExecuteJavaScript(R"(window.registerPushFunction(function(type, ...args) {
 	switch (type) {
@@ -118,6 +117,7 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 		}
 	}
 });)", "nui://handler", 0);
+#endif
 
 	// replace any segoe ui symbol font
 	frame->ExecuteJavaScript("[].concat.apply([], Array.from(document.styleSheets).map(a => Array.from(a.rules).filter(b => b.style && b.style.fontFamily))).forEach(a => a.style.fontFamily = a.style.fontFamily.replace(/Segoe UI Symbol/g, 'Segoe UI Emoji'));", "nui://patches", 0);

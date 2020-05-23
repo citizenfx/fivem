@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "NUIApp.h"
+#include "CefOverlay.h"
 #include "memdbgon.h"
 
 void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
@@ -46,6 +47,11 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerPushFunction", CefV8Value::CreateFunction("registerPushFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+
+#ifdef USE_NUI_ROOTLESS
+	window->SetValue("GetParentResourceName", CefV8Value::CreateFunction("GetParentResourceName", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+#endif
+
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiSetAudioCategory", CefV8Value::CreateFunction("nuiSetAudioCategory", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiTargetGame", CefV8Value::CreateString(
