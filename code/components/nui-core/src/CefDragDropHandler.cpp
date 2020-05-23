@@ -448,6 +448,12 @@ int GetCefMouseModifiers(WPARAM wparam);
 		return S_OK;
 	}
 
+	HRESULT DropTargetWin::CancelCallback()
+	{
+		callback_ = NULL;
+		return S_OK;
+	}
+
 	CComPtr<DropSourceWin> DropSourceWin::Create() {
 		return CComPtr<DropSourceWin>(new DropSourceWin());
 	}

@@ -89,6 +89,8 @@ protected:
 			POINTL cursor_position,
 			DWORD* effect);
 
+		HRESULT __stdcall CancelCallback();
+
 		DEFAULT_QUERY_INTERFACE(IDropTarget)
 			IUNKNOWN_IMPLEMENTATION
 

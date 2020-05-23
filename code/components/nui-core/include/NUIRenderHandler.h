@@ -16,6 +16,8 @@ class NUIRenderHandler : public CefRenderHandler, public OsrDragEvents
 public:
 	NUIRenderHandler(NUIClient* client);
 
+	virtual ~NUIRenderHandler();
+
 private:
 	NUIClient* m_owner;
 
@@ -66,6 +68,12 @@ private:
 	CefBrowserHost::DragOperationsMask OnDrop(
 		CefMouseEvent ev,
 		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+
+public:
+	inline CComPtr<DropTargetWin> GetDropTarget()
+	{
+		return m_dropTarget;
+	}
 
 private:
 	CComPtr<DropTargetWin> m_dropTarget;

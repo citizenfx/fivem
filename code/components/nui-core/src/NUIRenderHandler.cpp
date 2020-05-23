@@ -29,12 +29,11 @@ NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	, nullptr);
 
 	m_dropTarget = DropTargetWin::Create(this, hWnd);
+}
 
-	HRESULT hr = RegisterDragDrop(hWnd, m_dropTarget);
-	if (FAILED(hr))
-	{
-		trace("registering drag/drop failed. hr: %08x\n", hr);
-	}
+NUIRenderHandler::~NUIRenderHandler()
+{
+	m_dropTarget->CancelCallback();
 }
 
 void NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)

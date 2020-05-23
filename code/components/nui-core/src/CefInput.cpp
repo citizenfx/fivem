@@ -10,6 +10,7 @@
 #include "CrossLibraryInterfaces.h"
 
 #include "CefImeHandler.h"
+#include "NUIRenderHandler.h"
 
 #include <windowsx.h>
 
@@ -84,8 +85,11 @@ namespace nui
 #ifdef USE_NUI_ROOTLESS
 		auto winName = fmt::sprintf("nui_%s", frameName);
 
+		auto browser = nui::GetNUIWindowBrowser(winName);
+
 		if (hasFocus)
 		{
+			static std::string oldDD;
 			std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
 
 			// remove from focus stack so it can be moved on top
@@ -102,9 +106,28 @@ namespace nui
 			}
 
 			g_nuiFocusStack.push_front(winName);
-		}
 
-		auto browser = nui::GetNUIWindowBrowser(winName);
+			if (oldDD != g_nuiFocusStack.front())
+			{
+				if (browser)
+				{
+					auto rh = browser->GetHost()->GetClient()->GetRenderHandler();
+					NUIRenderHandler* nrh = (NUIRenderHandler*)rh.get();
+
+					RevokeDragDrop(g_nuiGi->GetHWND());
+					
+					HRESULT hr = RegisterDragDrop(g_nuiGi->GetHWND(), nrh->GetDropTarget());
+					if (FAILED(hr))
+					{
+						trace("registering drag/drop failed. hr: %08x\n", hr);
+					}
+				}
+			}
+		}
+		else
+		{
+			RevokeDragDrop(g_nuiGi->GetHWND());
+		}
 
 		if (browser)
 		{
