@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild, Input, Output, EventEmitter, OnChanges } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, Input, Output, EventEmitter } from '@angular/core';
 import { ChangelogService } from 'app/changelogs.service';
 
 @Component({
@@ -7,12 +7,7 @@ import { ChangelogService } from 'app/changelogs.service';
 	templateUrl: 'app-changelog-popup.component.html',
 	styleUrls:   ['app-changelog-popup.component.scss']
 })
-export class ChangelogPopupComponent implements OnInit, OnChanges {
-	@Input()
-	showOverlay = false;
-
-	lastShown = false;
-
+export class ChangelogPopupComponent implements OnInit {
 	selectedVersion = '';
 
 	versions: string[] = [
@@ -34,14 +29,8 @@ export class ChangelogPopupComponent implements OnInit, OnChanges {
 			this.versions = versions;
 			this.selectedVersion = this.versions[0];
 		})
-	}
 
-	ngOnChanges() {
-		if (this.showOverlay && !this.lastShown) {
-			this.changelogs.readAll();
-		}
-
-		this.lastShown = this.showOverlay;
+		this.changelogs.readAll();
 	}
 
 	loadVersion(version: string) {
