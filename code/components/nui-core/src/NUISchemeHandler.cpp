@@ -89,6 +89,11 @@ public:
 		}
 		else
 		{
+			if (hostname.find(L"cfx-nui-") == 0)
+			{
+				hostname = hostname.substr(8);
+			}
+
 			if (g_resourceLookupFunc)
 			{
 				filename_ = g_resourceLookupFunc(ToNarrow(hostname));
@@ -156,6 +161,10 @@ public:
 			{
 				mimeType_ = "image/svg+xml";
 			}
+			else if (ext == "wasm")
+			{
+				mimeType_ = "application/wasm";
+			}
 
 			callback->Continue();
 		};
@@ -188,7 +197,12 @@ public:
 		CefResponse::HeaderMap map;
 		response->GetHeaderMap(map);
 
-		map.insert(std::make_pair("cache-control", "no-cache, must-revalidate"));
+		if (mimeType_ == "text/html" || mimeType_ == "text/css" || mimeType_ == "application/javascript")
+		{
+			map.insert({ "content-type", mimeType_ + "; charset=utf-8" });
+		}
+
+		map.insert({ "cache-control", "no-cache, must-revalidate" });
 		response->SetHeaderMap(map);
 
 		if (file_ != -1)
@@ -277,6 +291,10 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 			CefString hostString = &urlParts.host;
 
 			if (hostString == "nui-game-internal")
+			{
+				return new NUIResourceHandler();
+			}
+			else if (hostString.ToString().find("cfx-nui-") == 0)
 			{
 				return new NUIResourceHandler();
 			}

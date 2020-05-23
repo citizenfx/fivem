@@ -11,3 +11,7 @@
 // "And now, for the delectable and bodacious Jill Tasker!"
 // - GTA2 radio, 'Lo-Fi FM'
 "bodacious",
+
+// cerulean
+// Cerulean, also spelled caerulean, is a shade of blue ranging between azure and a darker sky blue.
+"cerulean",

@@ -62,14 +62,19 @@ bool ResourceUI::Create()
 	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
 	CefRegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
 	CefRegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	CefRegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
-	std::string path = "nui://" + m_resource->GetName() + "/" + pageName;
+	auto uiPrefix = (!metaData->IsManifestVersionBetween("cerulean", "")) ? "nui://" : "https://cfx-nui-";
+	std::string path = uiPrefix + m_resource->GetName() + "/" + pageName;
 	nui::CreateFrame(m_resource->GetName(), path);
 
 	// add a cross-origin entry to allow fetching the callback handler
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "https", m_resource->GetName(), true);
+	
+	CefAddCrossOriginWhitelistEntry(va("https://cfx-nui-%s", m_resource->GetName().c_str()), "https", m_resource->GetName(), true);
+	CefAddCrossOriginWhitelistEntry(va("https://cfx-nui-%s", m_resource->GetName().c_str()), "nui", m_resource->GetName(), true);
 
 	return true;
 }

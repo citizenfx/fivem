@@ -177,6 +177,17 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 			sourceStr = fmt::sprintf(L"@%s/%s", match[1].str(), match[2].str());
 		}
 	}
+	else if (sourceStr.find(L"https://cfx-nui-") == 0)
+	{
+		static std::wregex re{ L"https://cfx-nui-(.*?)/(.*)" };
+		std::wsmatch match;
+
+		if (std::regex_search(sourceStr, match, re))
+		{
+			channel = fmt::sprintf("script:%s:nui", ToNarrow(match[1].str()));
+			sourceStr = fmt::sprintf(L"@%s/%s", match[1].str(), match[2].str());
+		}
+	}
 
 	console::Printf(channel, "%s\n", ToNarrow(fmt::sprintf(L"%s (%s:%d)", messageStr, sourceStr, line)));
 
