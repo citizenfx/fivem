@@ -65,7 +65,9 @@ bool ResourceUI::Create()
 	CefRegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
-	auto uiPrefix = (!metaData->IsManifestVersionBetween("cerulean", "")) ? "nui://" : "https://cfx-nui-";
+	auto rmvRes = metaData->IsManifestVersionBetween("cerulean", "");
+	auto uiPrefix = (!rmvRes || !*rmvRes) ? "nui://" : "https://cfx-nui-";
+
 	std::string path = uiPrefix + m_resource->GetName() + "/" + pageName;
 	nui::CreateFrame(m_resource->GetName(), path);
 
