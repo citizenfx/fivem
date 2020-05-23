@@ -144,9 +144,13 @@ public:
 	virtual ~GtaNuiTexture()
 	{
 		// TODO: delete overridden SRV/...
-
-		delete m_texture;
+		auto texture = m_texture;
 		m_texture = nullptr;
+
+		g_onRenderQueue.push([texture]()
+		{
+			delete texture;
+		});
 	}
 
 	inline rage::grcTexture* GetTexture() { return m_texture; }
