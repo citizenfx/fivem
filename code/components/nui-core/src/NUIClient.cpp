@@ -105,7 +105,9 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	}
 #else
 	// enter push function
-	frame->ExecuteJavaScript(R"(window.registerPushFunction(function(type, ...args) {
+	if (frame->IsMain())
+	{
+		frame->ExecuteJavaScript(R"(window.registerPushFunction(function(type, ...args) {
 	switch (type) {
 		case 'frameCall': {
 			const [ dataString ] = args;
@@ -116,7 +118,9 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 			break;
 		}
 	}
-});)", "nui://handler", 0);
+});)",
+		"nui://handler", 0);
+	}
 #endif
 
 	// replace any segoe ui symbol font
