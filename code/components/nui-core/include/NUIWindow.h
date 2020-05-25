@@ -13,6 +13,8 @@
 #include <include/cef_client.h>
 #include <include/cef_v8.h>
 
+#include <concurrent_queue.h>
+
 enum NUIPaintType
 {
 	NUIPaintTypeDummy,
@@ -33,6 +35,8 @@ private:
 	void(__cdecl* m_onClientCreated)(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context);
 
 	void Initialize(CefString url);
+
+	concurrency::concurrent_queue<std::function<void()>> m_onLoadQueue;
 
 public:
 	NUIWindow(bool primary, int width, int height);
@@ -98,6 +102,21 @@ public:
 	inline bool IsPrimary()
 	{
 		return m_rawBlit;
+	}
+
+	inline void ProcessLoadQueue()
+	{
+		std::function<void()> fn;
+
+		while (m_onLoadQueue.try_pop(fn))
+		{
+			fn();
+		}
+	}
+
+	inline void PushLoadQueue(std::function<void()>&& fn)
+	{
+		m_onLoadQueue.push(std::move(fn));
 	}
 
 private:

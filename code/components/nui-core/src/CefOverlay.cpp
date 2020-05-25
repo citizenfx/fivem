@@ -119,15 +119,45 @@ namespace nui
 	{
 		auto rootWindow = FindNUIWindow(fmt::sprintf("nui_%s", frame));
 
-		if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+		if (rootWindow.GetRef())
 		{
-			auto processMessage = CefProcessMessage::Create("pushEvent");
-			auto argumentList = processMessage->GetArgumentList();
+			bool passed = false;
 
-			argumentList->SetString(0, "frameCall");
-			argumentList->SetString(1, jsonData);
+			auto sendMessage = [frame, jsonData]()
+			{
+				auto rootWindow = FindNUIWindow(fmt::sprintf("nui_%s", frame));
 
-			rootWindow->GetBrowser()->SendProcessMessage(PID_RENDERER, processMessage);
+				auto processMessage = CefProcessMessage::Create("pushEvent");
+				auto argumentList = processMessage->GetArgumentList();
+
+				argumentList->SetString(0, "frameCall");
+				argumentList->SetString(1, jsonData);
+
+				rootWindow->GetBrowser()->SendProcessMessage(PID_RENDERER, processMessage);
+			};
+
+			if (rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+			{
+				if (rootWindow->GetBrowser()->GetHost())
+				{
+					auto client = rootWindow->GetBrowser()->GetHost()->GetClient();
+
+					if (client)
+					{
+						auto nuiClient = (NUIClient*)client.get();
+
+						if (nuiClient->HasLoadedMainFrame())
+						{
+							sendMessage();
+							passed = true;
+						}
+					}
+				}
+			}
+			else
+			{
+				rootWindow->PushLoadQueue(std::move(sendMessage));
+			}
 		}
 	}
 #endif

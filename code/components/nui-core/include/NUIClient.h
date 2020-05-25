@@ -21,6 +21,7 @@ class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplay
 private:
 	NUIWindow* m_window;
 	bool m_windowValid;
+	bool m_loadedMainFrame;
 
 	std::recursive_mutex m_windowLock;
 
@@ -40,6 +41,11 @@ public:
 	inline std::recursive_mutex& GetWindowLock()
 	{
 		return m_windowLock;
+	}
+
+	inline bool HasLoadedMainFrame()
+	{
+		return m_loadedMainFrame;
 	}
 
 public:

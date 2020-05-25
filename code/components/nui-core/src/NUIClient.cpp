@@ -34,7 +34,7 @@ namespace nui
 }
 
 NUIClient::NUIClient(NUIWindow* window)
-	: m_window(window), m_windowValid(false)
+	: m_window(window), m_windowValid(false), m_loadedMainFrame(false)
 {
 	if (m_window)
 	{
@@ -120,6 +120,13 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	}
 });)",
 		"nui://handler", 0);
+
+		m_loadedMainFrame = true;
+
+		if (m_window)
+		{
+			m_window->ProcessLoadQueue();
+		}
 	}
 #endif
 
