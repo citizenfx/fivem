@@ -69,7 +69,7 @@
     "#DirectConnect_Connect": "Verbinden",
     "#DirectConnect_LastPlayed": "Zuletzt gespielt",
     "#ServerDetail_Players": "Spieler",
-    "#ServerDetail_PlayersEmpty": "Auf diesem Server sind keine Spieler",
+    "#ServerDetail_PlayersEmpty": "Auf diesem Server sind keine Spieler aktiv",
     "#ServerDetail_Locale": "Sprache",
     "#ServerDetail_Resources": "Ressourcen",
     "#ServerDetail_Back": "Zurück",
