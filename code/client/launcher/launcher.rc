@@ -56,6 +56,12 @@ END
 // Version
 //
 
+#if defined(LAUNCHER_PERSONALITY_CHROME)
+#define SUFFIX " Chromium subprocess"
+#else
+#define SUFFIX ""
+#endif
+
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0
  PRODUCTVERSION 1,0,0,0
@@ -75,11 +81,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "cfx-collective"
 #if defined(GTA_FIVE)
-			VALUE "FileDescription", "FiveM"
+			VALUE "FileDescription", "FiveM" SUFFIX
 #elif defined(IS_RDR3)
-			VALUE "FileDescription", "RedM"
+			VALUE "FileDescription", "RedM" SUFFIX
 #else
-			VALUE "FileDescription", "CitizenFX"
+			VALUE "FileDescription", "CitizenFX" SUFFIX
 #endif
             VALUE "FileVersion", "1.1.0.0"
             VALUE "InternalName", "Citizen"
