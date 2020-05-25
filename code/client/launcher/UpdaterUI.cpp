@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #include <CommCtrl.h>
 #include <shobjidl.h>
 
@@ -1002,3 +1003,36 @@ WrlCreatorMapIncludePragma(ColorSourceEffect);
 WrlCreatorMapIncludePragma(ColorMatrixEffect);
 WrlCreatorMapIncludePragma(Transform2DEffect);
 WrlCreatorMapIncludePragma(CompositeEffect);
+#else
+void UI_DoCreation(bool safeMode)
+{
+}
+void UI_DoDestruction()
+{
+}
+void UI_UpdateText(int textControl, const wchar_t* text)
+{
+}
+void UI_UpdateProgress(double percentage)
+{
+}
+bool UI_IsCanceled()
+{
+	return true;
+}
+HWND UI_GetWindowHandle()
+{
+	return NULL;
+}
+std::unique_ptr<TenUIBase> UI_InitTen()
+{
+	return {};
+}
+
+DLL_EXPORT HRESULT DllCanUnloadNow()
+{
+	return S_OK;
+}
+
+#pragma comment(lib, "delayimp.lib")
+#endif

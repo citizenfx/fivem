@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #include <cpr/cpr.h>
 #include <rapidjson/document.h>
 
@@ -181,3 +182,4 @@ void NVSP_ShutdownSafely()
 		_wunlink(MakeRelativeCitPath(L"cache\\enable_nvsp").c_str());
 	}
 }
+#endif

@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #include <tinyxml2.h>
 
 #include <stdint.h>
@@ -487,3 +488,4 @@ const char* GetUpdateChannel()
 
 	return updateChannel.c_str();
 }
+#endif

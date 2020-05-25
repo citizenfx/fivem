@@ -75,6 +75,9 @@ void ComponentLoader::Initialize()
 		FatalError("Error parsing components.json: %d", doc.GetParseError());
 	}
 
+	wchar_t moduleName[MAX_PATH];
+	GetModuleFileNameW(GetModuleHandleW(NULL), moduleName, std::size(moduleName));
+
 	// look through the list for components to load
 	for (auto it = doc.Begin(); it != doc.End(); ++it)
 	{
@@ -86,6 +89,15 @@ void ComponentLoader::Initialize()
 
 		// replace colons with dashes
 		std::replace(nameWide.begin(), nameWide.end(), ':', '-');
+
+		// don't load some useless stuff for ChromeBrowser
+		if (wcsstr(moduleName, L"ChromeBrowser"))
+		{
+			if (nameWide != L"nui-core" && nameWide != L"vfs-core" && nameWide != L"http-client")
+			{
+				continue;
+			}
+		}
 
 		AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, nameWide.c_str())));
 	}

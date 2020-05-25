@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 // the maximum number of concurrent downloads
 #define MAX_CONCURRENT_DOWNLOADS 6
 
@@ -917,3 +918,4 @@ void StartIPFS()
 {
 	GetIpfsLib();
 }
+#endif

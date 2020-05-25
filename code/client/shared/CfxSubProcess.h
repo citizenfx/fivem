@@ -5,11 +5,16 @@
 
 #include <Utils.h>
 
-inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType)
+inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const std::wstring& origin = L"")
 {
 	// get the current EXE name
 	wchar_t fxApplicationName[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+	if (!origin.empty())
+	{
+		wcscpy_s(fxApplicationName, MakeRelativeCitPath(fmt::sprintf(L"CitizenFX_SubProcess_%s.bin", origin)).c_str());
+	}
 
 	// make the out directory
 	std::wstring outPath = MakeRelativeCitPath(L"cache\\");

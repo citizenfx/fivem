@@ -17,6 +17,7 @@
 #include <HostSharedData.h>
 
 #include <array>
+#include <optional>
 
 #include <shellscalingapi.h>
 
@@ -99,11 +100,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	if (!toolMode)
 	{
+#ifdef LAUNCHER_PERSONALITY_MAIN
 		// bootstrap the game
 		if (Bootstrap_RunInit())
 		{
 			return 0;
 		}
+#endif
 	}
 
 #if 0
@@ -186,12 +189,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	exeBaseName[0] = L'\0';
 	exeBaseName++;
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 	bool devMode = toolMode;
 
 	if (GetFileAttributes(va(L"%s.formaldev", exeBaseName)) != INVALID_FILE_ATTRIBUTES)
 	{
 		devMode = true;
 	}
+#else
+	bool devMode = true;
+#endif
 
 	// don't allow running a subprocess executable directly
 	if (MakeRelativeCitPath(L"").find(L"cache\\subprocess") != std::string::npos)
@@ -257,6 +264,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 	// if not the master process, force devmode
 	if (!devMode)
 	{
@@ -278,6 +286,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			return 0;
 		}
 	}
+#endif
 
 	// add DLL directories post-installer (in case we moved into a Product.app directory)
 	addDllDirs();
@@ -399,12 +408,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
+#ifndef LAUNCHER_PERSONALITY_CHROME
 	// laod V8 DLLs in case end users have these in a 'weird' directory
 	LoadLibrary(MakeRelativeCitPath(L"bin/icuuc.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"bin/icui18n.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"v8_libplatform.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"v8_libbase.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
+#endif
 
 	if (addDllDirectory)
 	{
@@ -516,7 +527,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	if (initState->IsMasterProcess())
 	{
+#ifdef LAUNCHER_PERSONALITY_MAIN
 		NVSP_DisableOnStartup();
+#endif
 
 		GetModuleFileNameW(NULL, initState->gameExePath, std::size(initState->gameExePath));
 	}
@@ -545,6 +558,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		return 0;
 	}
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	auto redirectionData = UpdateGameCache();
@@ -591,8 +605,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 #endif
 #endif
+#endif
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 	tui = {};
+#endif
 
 	auto minModeManifest = InitMinMode();
 

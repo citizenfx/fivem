@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #include <CfxState.h>
 #include <HostSharedData.h>
 
@@ -1099,4 +1100,5 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	return retval;
 }
+#endif
 #endif

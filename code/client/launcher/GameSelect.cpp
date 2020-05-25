@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include <ShlObj.h>
+#include <optional>
 
 #include <wrl.h>
 

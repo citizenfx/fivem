@@ -459,19 +459,22 @@ if (!$DontBuild -and !$IsServer) {
         
         Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
     }
-
+    
     if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
         Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\five\release\CitizenFX_SubProcess_*.bin $CacheDir\fivereborn\
 
         Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
     } elseif ($IsLauncher) {
         Copy-Item -Force $BinRoot\launcher\release\*.dll $CacheDir\fivereborn\
         Copy-Item -Force $BinRoot\launcher\release\*.com $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\launcher\release\CitizenFX_SubProcess_*.bin $CacheDir\fivereborn\
     } elseif ($IsRDR) {
         Copy-Item -Force $BinRoot\rdr3\release\*.dll $CacheDir\fivereborn\
         Copy-Item -Force $BinRoot\rdr3\release\*.com $CacheDir\fivereborn\
+        Copy-Item -Force $BinRoot\rdr3\release\CitizenFX_SubProcess_*.bin $CacheDir\fivereborn\
 
         Copy-Item -Force -Recurse $BinRoot\rdr3\release\citizen\* $CacheDir\fivereborn\citizen\
     }

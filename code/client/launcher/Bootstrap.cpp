@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #include <shellapi.h>
 #include <wincrypt.h>
 #include <wintrust.h>
@@ -277,3 +278,4 @@ bool Bootstrap_RunInit()
 
 	return false;
 }
+#endif

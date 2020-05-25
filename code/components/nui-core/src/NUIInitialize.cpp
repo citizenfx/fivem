@@ -740,7 +740,7 @@ void Initialize(nui::GameInterface* gi)
 	
 	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 	
-	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser"));
+	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
 
 	CefString(&cSettings.locale).FromASCII("en-US");
 

@@ -44,6 +44,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 #include "LauncherConfig.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 // cppwinrt is slow, add it to pch
 #include <unknwn.h>
 
@@ -58,6 +59,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #include <winrt/Windows.UI.Xaml.Markup.h>
 #include <winrt/Windows.UI.Core.h>
 #include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
+#endif
 
 struct TenUIBase
 {

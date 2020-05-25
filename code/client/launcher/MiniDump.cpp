@@ -1302,7 +1302,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// at this point we can safely perform some cleanup tasks, no matter whether the game exited cleanly or crashed
 
 	// revert NVSP disablement
+#ifdef LAUNCHER_PERSONALITY_MAIN
 	NVSP_ShutdownSafely();
+#endif
 
 	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
 	_wunlink(MakeRelativeGamePath(L"steam_appid.txt").c_str());

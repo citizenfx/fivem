@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 // dummy TLS variables to allocate TLS for the game to use
 #pragma region tls
 __declspec(thread) int tls1;
@@ -7151,3 +7152,4 @@ char stub_seg[0x100000];
 
 #pragma data_seg(".zdata")
 char zdata[200] = { 1 };
+#endif
