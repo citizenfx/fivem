@@ -49,6 +49,9 @@ private:
 	int m_roundedWidth;
 	int m_roundedHeight;
 
+	uint32_t m_lastFrameTime;
+	uint32_t m_lastMessageTime;
+
 	unsigned long m_dirtyFlag;
 	RECT m_lastDirtyRect;
 	CRITICAL_SECTION m_renderBufferLock;
@@ -88,6 +91,8 @@ public:
 
 	inline void*	GetRenderBuffer() { return m_renderBuffer; }
 	inline int		GetRoundedWidth() { return m_roundedWidth; }
+
+	void TouchMessage();
 
 	inline const std::string& GetName()
 	{

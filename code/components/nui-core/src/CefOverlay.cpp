@@ -126,6 +126,7 @@ namespace nui
 			auto sendMessage = [frame, jsonData]()
 			{
 				auto rootWindow = FindNUIWindow(fmt::sprintf("nui_%s", frame));
+				rootWindow->TouchMessage();
 
 				auto processMessage = CefProcessMessage::Create("pushEvent");
 				auto argumentList = processMessage->GetArgumentList();

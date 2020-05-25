@@ -27,7 +27,7 @@ extern nui::GameInterface* g_nuiGi;
 
 NUIWindow::NUIWindow(bool rawBlit, int width, int height)
 	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
-	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false)
+	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 
@@ -490,9 +490,48 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 }
 
 #include <d3d11_1.h>
+#include <mmsystem.h>
+
+extern bool HasFocus();
 
 void NUIWindow::SendBeginFrame()
 {
+	bool isFocus = false;
+	auto curTime = timeGetTime();
+
+	if (m_client)
+	{
+		auto client = ((NUIClient*)m_client.get());
+
+		auto browser = client->GetBrowser();
+
+		if (browser)
+		{
+			if (nui::GetFocusBrowser() == browser)
+			{
+				isFocus = true;
+			}
+		}
+	}
+
+	// if no message was sent to us in ~15s
+	if ((curTime - m_lastMessageTime) > 15000)
+	{
+		// and we're not mpMenu or loadingScreen
+		if (m_name != "nui_mpMenu" && m_name != "nui_loadingScreen")
+		{
+			if (!HasFocus() || !isFocus)
+			{
+				// throttle to 1 frame per second
+				// #TODONUI: more intelligent logic for auto-detection of animation/video/... + override API?
+				if ((curTime - m_lastFrameTime) < 2500)
+				{
+					return;
+				}
+			}
+		}
+	}
+
 	if (m_client)
 	{
 		auto client = ((NUIClient*)m_client.get());
@@ -506,9 +545,15 @@ void NUIWindow::SendBeginFrame()
 			if (host)
 			{
 				host->SendExternalBeginFrame();
+				m_lastFrameTime = curTime;
 			}
 		}
 	}
+}
+
+void NUIWindow::TouchMessage()
+{
+	m_lastMessageTime = timeGetTime();
 }
 
 void NUIWindow::UpdateFrame()

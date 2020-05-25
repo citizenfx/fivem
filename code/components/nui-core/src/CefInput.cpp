@@ -28,7 +28,7 @@ bool isKeyDown(WPARAM wparam)
 	return (GetKeyState(wparam) & 0x8000) != 0;
 }
 
-static bool HasFocus()
+bool HasFocus()
 {
 	return (g_hasFocus || g_hasOverriddenFocus);
 }
