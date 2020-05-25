@@ -414,7 +414,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 		{
 			if (type == CefRenderHandler::PaintElementType::PET_VIEW)
 			{
-				trace("Changing NUI shared resource...\n");
+				trace("Changing NUI shared resource (for NUI window %s)...\n", m_name);
 			}
 
 			m_lastParentHandle[type] = parentHandle;
