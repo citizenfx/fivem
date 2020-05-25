@@ -709,6 +709,9 @@ std::set<std::string> g_recreateBrowsers;
 
 namespace nui
 {
+extern std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
+extern std::shared_mutex windowListMutex;
+
 void Initialize(nui::GameInterface* gi)
 {
 	g_nuiGi = gi;
@@ -799,11 +802,35 @@ void Initialize(nui::GameInterface* gi)
 			}
 		}
 	});
+#else
+	static ConsoleCommand devtoolsListCmd("nui_devtools", []()
+	{
+		trace("Active NUI windows:\n");
+
+		std::shared_lock<std::shared_mutex> _(windowListMutex);
+		
+		for (const auto& [ windowName, window ] : windowList)
+		{
+			std::string_view name = windowName;
+
+			if (name.find("nui_") == 0)
+			{
+				name = name.substr(4);
+			}
+
+			trace("  nui_devtools %s\n", name);
+		}
+	});
 #endif
 
 	static ConsoleCommand devtoolsCmd("nui_devtools", [](const std::string& windowName)
 	{
 		auto browser = nui::GetNUIWindowBrowser(windowName);
+
+		if (!browser)
+		{
+			browser = nui::GetNUIWindowBrowser(fmt::sprintf("nui_%s", windowName));
+		}
 
 		if (browser)
 		{
@@ -813,6 +840,10 @@ void Initialize(nui::GameInterface* gi)
 			CefBrowserSettings s;
 
 			browser->GetHost()->ShowDevTools(wi, new NUIClient(nullptr), s, {});
+		}
+		else
+		{
+			trace("No such NUI window: %s\n", windowName);
 		}
 	});
 

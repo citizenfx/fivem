@@ -94,7 +94,14 @@ public:
 
 		NUIClient::OnClientCreated.Connect([](NUIClient* client)
 		{
-			auto frameName = client->GetWindow()->GetName();
+			auto window = client->GetWindow();
+
+			if (!window)
+			{
+				return;
+			}
+
+			auto frameName = window->GetName();
 
 			if (frameName.find("nui_") == 0)
 			{

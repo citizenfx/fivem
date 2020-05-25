@@ -52,8 +52,8 @@ namespace nui
 		return g_mainUIFlag;
 	}
 
-	static std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
-	static std::shared_mutex windowListMutex;
+	std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
+	std::shared_mutex windowListMutex;
 	
 	fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName)
 	{
