@@ -318,7 +318,17 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 		{
 			if (texRef->texture)
 			{
+#ifdef GTA_FIVE
+				rage::grcResourceCache::GetInstance()->QueueDelete(texRef->texture);
+				
+				g_onRenderQueue.push([]()
+				{
+					rage::grcResourceCache::GetInstance()->FlushQueue();
+				});
+#else
 				texRef->texture->Release();
+#endif
+				texRef->texture = NULL;
 			}
 
 			texture.CopyTo(&texRef->texture);

@@ -53,3 +53,33 @@ bool __declspec(dllexport) rage::grcTexture::IsRenderSystemColorSwapped()
 	// Five is only D3D10+, and seemingly didn't adopt the new D3D11 color order
 	return true;
 }
+
+static hook::cdecl_stub<rage::grcResourceCache*()> _getResourceCache([]()
+{
+	return hook::get_call(hook::get_pattern("48 85 FF 74 0B 48 8B D7 48 8B C8 E8 ? ? ? ? 48 83 63 28 00", -5));
+});
+
+static hook::cdecl_stub<void(rage::grcResourceCache*, void*)> grcResourceCache_queueDelete([]()
+{
+	return hook::get_call(hook::get_pattern("48 85 FF 74 0B 48 8B D7 48 8B C8 E8 ? ? ? ? 48 83 63 28 00", 11));
+});
+
+static hook::cdecl_stub<void(rage::grcResourceCache*)> grcResourceCache_flushQueue([]()
+{
+	return hook::get_call(hook::get_pattern("8B 45 07 4C 8B 17 44 8B 4D FB", -5));
+});
+
+rage::grcResourceCache* rage::grcResourceCache::GetInstance()
+{
+	return _getResourceCache();
+}
+
+void rage::grcResourceCache::QueueDelete(void* graphicsResource)
+{
+	return grcResourceCache_queueDelete(this, graphicsResource);
+}
+
+void rage::grcResourceCache::FlushQueue()
+{
+	grcResourceCache_flushQueue(this);
+}
