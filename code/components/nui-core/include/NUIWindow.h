@@ -133,7 +133,12 @@ public:
 	inline void		MarkRenderBufferDirty() { InterlockedIncrement(&m_dirtyFlag); }
 
 public:
-	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url);
+	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url, bool instant);
+
+	void DeferredCreate();
+
+private:
+	CefString m_initUrl;
 
 public:
 	~NUIWindow();

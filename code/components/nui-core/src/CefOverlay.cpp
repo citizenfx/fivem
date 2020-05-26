@@ -155,7 +155,13 @@ namespace nui
 					}
 				}
 			}
-			else
+
+			if (!rootWindow->GetBrowser())
+			{
+				rootWindow->DeferredCreate();
+			}
+			
+			if (!passed)
 			{
 				rootWindow->PushLoadQueue(std::move(sendMessage));
 			}
@@ -183,14 +189,19 @@ namespace nui
 		g_shouldHideCursor = hide;
 	}
 
-	__declspec(dllexport) fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit/* = false*/)
+	fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit/* = false*/, bool instant)
 	{
-		auto window = NUIWindow::Create(rawBlit, width, height, windowURL);
+		auto window = NUIWindow::Create(rawBlit, width, height, windowURL, instant);
 
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 		windowList[windowName] = window;
 
 		return window;
+	}
+
+	DLL_EXPORT fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit)
+	{
+		return CreateNUIWindow(windowName, width, height, windowURL, rawBlit, true);
 	}
 
 	__declspec(dllexport) void DestroyNUIWindow(fwString windowName)
@@ -266,7 +277,7 @@ namespace nui
 
 	static bool rootWindowTerminated;
 
-	__declspec(dllexport) void CreateFrame(fwString frameName, fwString frameURL)
+	static void CreateFrame(fwString frameName, fwString frameURL, bool instant)
 	{
 #ifdef IS_LAUNCHER
 #ifndef USE_NUI_ROOTLESS
@@ -309,7 +320,7 @@ namespace nui
 
 			auto winName = fmt::sprintf("nui_%s", frameName);
 
-			auto window = CreateNUIWindow(winName, resX, resY, frameURL, true);
+			auto window = CreateNUIWindow(winName, resX, resY, frameURL, true, instant);
 			window->SetPaintType(NUIPaintTypePostRender);
 			window->SetName(winName);
 
@@ -322,6 +333,16 @@ namespace nui
 			std::unique_lock<std::shared_mutex> lock(frameListMutex);
 			frameList.insert({ frameName, frameURL });
 		}
+	}
+
+	DLL_EXPORT void CreateFrame(fwString frameName, fwString frameURL)
+	{
+		CreateFrame(frameName, frameURL, true);
+	}
+
+	DLL_EXPORT void PrepareFrame(fwString frameName, fwString frameURL)
+	{
+		CreateFrame(frameName, frameURL, false);
 	}
 
 	__declspec(dllexport) void DestroyFrame(fwString frameName)

@@ -88,12 +88,28 @@ NUIWindow::~NUIWindow()
 	Instance<NUIWindowManager>::Get()->RemoveWindow(this);
 }
 
-fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url)
+fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url, bool instant)
 {
 	auto window = new NUIWindow(primary, width, height);
-	window->Initialize(url);
+
+	if (instant)
+	{
+		window->Initialize(url);
+	}
+	else
+	{
+		window->m_initUrl = url;
+	}
 
 	return window;
+}
+
+void NUIWindow::DeferredCreate()
+{
+	if (!m_client)
+	{
+		Initialize(m_initUrl);
+	}
 }
 
 #pragma region shaders
@@ -396,6 +412,11 @@ void NUIWindow::AddDirtyRect(const CefRect& rect)
 
 CefBrowser* NUIWindow::GetBrowser()
 {
+	if (!m_client)
+	{
+		return nullptr;
+	}
+
 	return ((NUIClient*)m_client.get())->GetBrowser();
 }
 

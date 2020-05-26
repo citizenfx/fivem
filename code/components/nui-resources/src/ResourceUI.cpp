@@ -69,7 +69,18 @@ bool ResourceUI::Create()
 	auto uiPrefix = (!rmvRes || !*rmvRes) ? "nui://" : "https://cfx-nui-";
 
 	std::string path = uiPrefix + m_resource->GetName() + "/" + pageName;
-	nui::CreateFrame(m_resource->GetName(), path);
+
+	auto uiPagePreloadData = metaData->GetEntries("ui_page_preload");
+	bool uiPagePreload = std::distance(uiPagePreloadData.begin(), uiPagePreloadData.end()) > 0;
+
+	if (uiPagePreload)
+	{
+		nui::CreateFrame(m_resource->GetName(), path);
+	}
+	else
+	{
+		nui::PrepareFrame(m_resource->GetName(), path);
+	}
 
 	// add a cross-origin entry to allow fetching the callback handler
 	CefAddCrossOriginWhitelistEntry(va("nui://%s", m_resource->GetName().c_str()), "http", m_resource->GetName(), true);
