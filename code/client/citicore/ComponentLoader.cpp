@@ -75,8 +75,10 @@ void ComponentLoader::Initialize()
 		FatalError("Error parsing components.json: %d", doc.GetParseError());
 	}
 
+#ifdef _WIN32
 	wchar_t moduleName[MAX_PATH];
 	GetModuleFileNameW(GetModuleHandleW(NULL), moduleName, std::size(moduleName));
+#endif
 
 	// look through the list for components to load
 	for (auto it = doc.Begin(); it != doc.End(); ++it)
@@ -90,6 +92,7 @@ void ComponentLoader::Initialize()
 		// replace colons with dashes
 		std::replace(nameWide.begin(), nameWide.end(), ':', '-');
 
+#ifdef _WIN32
 		// don't load some useless stuff for ChromeBrowser
 		if (wcsstr(moduleName, L"ChromeBrowser"))
 		{
@@ -98,6 +101,7 @@ void ComponentLoader::Initialize()
 				continue;
 			}
 		}
+#endif
 
 		AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, nameWide.c_str())));
 	}
@@ -190,6 +194,8 @@ void ComponentLoader::DoGameLoad(void* hModule)
 	for (auto& component : m_loadedComponents)
 	{
 		auto& instances = component->GetInstances();
+
+		trace("pre-gameload component %s\n", component->GetName());
 
 		if (!instances.empty())
 		{
