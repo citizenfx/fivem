@@ -239,10 +239,15 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 					memcpy(dgram.data.get(), buf->base, nread);
 				}
 
-				dgram.read = nread;
-				dgram.from = *in6;
+				// we do *not* want to handle empty datagrams
+				// these are useless and confuse enet's packet processing loop
+				if (nread != 0)
+				{
+					dgram.read = nread;
+					dgram.from = *in6;
 
-				udpSocket->recvQueue.push_back(std::move(dgram));
+					udpSocket->recvQueue.push_back(std::move(dgram));
+				}
 			}
 
 			OnEnetReceive();
