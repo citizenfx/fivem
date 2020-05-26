@@ -188,48 +188,55 @@ static InitFunction initFunction([]()
 							DWORD bufferSize = 0;
 							PdhGetCounterInfoW(gpuTotal, FALSE, &bufferSize, NULL);
 
-							std::vector<uint8_t> gpuBuffer(bufferSize);
-							PdhGetCounterInfoW(gpuTotal, FALSE, &bufferSize, (PDH_COUNTER_INFO_W*)gpuBuffer.data());
-
-							auto e = (PDH_COUNTER_INFO_W*)&gpuBuffer[0];
-							counterType = e->dwType;
-						}
-
-						PDH_RAW_COUNTER_ITEM_W* items = (PDH_RAW_COUNTER_ITEM_W*)&gpuBuffer[0];
-						PDH_RAW_COUNTER_ITEM_W* lastItemsRef = (PDH_RAW_COUNTER_ITEM_W*)&lastBuffer[0];
-
-						auto ref = fmt::sprintf(L"luid_0x%08X_0x%08X", adapterLuid.HighPart, adapterLuid.LowPart);
-						auto pidRef = fmt::sprintf(L"pid_%d", GetCurrentProcessId());
-
-						PDH_FMT_COUNTERVALUE counterValGpu;
-						gpuValue = 0;
-
-						for (DWORD i = 0; i < numItems; i++)
-						{
-							if (wcsstr(items[i].szName, ref.c_str()) && wcsstr(items[i].szName, L"_engtype_3D"))// && wcsstr(items[i].szName, pidRef.c_str()))
+							if (bufferSize > 0)
 							{
-								int li = -1;
+								std::vector<uint8_t> gpuBuffer(bufferSize);
+								PdhGetCounterInfoW(gpuTotal, FALSE, &bufferSize, (PDH_COUNTER_INFO_W*)gpuBuffer.data());
 
-								for (DWORD j = 0; j < lastItems; j++)
-								{
-									if (wcscmp(lastItemsRef[j].szName, items[i].szName) == 0)
-									{
-										li = j;
-										break;
-									}
-								}
-
-								if (li >= 0)
-								{
-									PdhFormatFromRawValue(counterType, PDH_FMT_DOUBLE, NULL, &items[i].RawValue, &lastItemsRef[li].RawValue, &counterValGpu);
-
-									gpuValue += counterValGpu.doubleValue;
-								}
+								auto e = (PDH_COUNTER_INFO_W*)&gpuBuffer[0];
+								counterType = e->dwType;
 							}
 						}
 
-						lastBuffer = std::move(gpuBuffer);
-						lastItems = numItems;
+						if (counterType != -1)
+						{
+							PDH_RAW_COUNTER_ITEM_W* items = (PDH_RAW_COUNTER_ITEM_W*)&gpuBuffer[0];
+							PDH_RAW_COUNTER_ITEM_W* lastItemsRef = (PDH_RAW_COUNTER_ITEM_W*)&lastBuffer[0];
+
+							auto ref = fmt::sprintf(L"luid_0x%08X_0x%08X", adapterLuid.HighPart, adapterLuid.LowPart);
+							auto pidRef = fmt::sprintf(L"pid_%d", GetCurrentProcessId());
+
+							PDH_FMT_COUNTERVALUE counterValGpu;
+							gpuValue = 0;
+
+							for (DWORD i = 0; i < numItems; i++)
+							{
+								if (wcsstr(items[i].szName, ref.c_str()) && wcsstr(items[i].szName, L"_engtype_3D")) // && wcsstr(items[i].szName, pidRef.c_str()))
+								{
+									int li = -1;
+
+									for (DWORD j = 0; j < lastItems; j++)
+									{
+										if (wcscmp(lastItemsRef[j].szName, items[i].szName) == 0)
+										{
+											li = j;
+											break;
+										}
+									}
+
+									if (li >= 0)
+									{
+										PdhFormatFromRawValue(counterType, PDH_FMT_DOUBLE, NULL, &items[i].RawValue, &lastItemsRef[li].RawValue, &counterValGpu);
+
+										gpuValue += counterValGpu.doubleValue;
+									}
+								}
+							}
+
+							lastBuffer = std::move(gpuBuffer);
+							lastItems = numItems;
+						}
+
 						lastGpuQuery = timeGetTime();
 					}
 
