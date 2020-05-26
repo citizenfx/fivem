@@ -601,10 +601,13 @@ void NUIWindow::UpdateFrame()
 			m_width = resX;
 			m_height = resY;
 
-			((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+			if (m_client)
+			{
+				((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
 
-			std::lock_guard<std::shared_mutex> _(m_textureMutex);
-			m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+				std::lock_guard<std::shared_mutex> _(m_textureMutex);
+				m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+			}
 		}
 
 		for (auto& item : m_pollQueue)
