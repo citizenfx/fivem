@@ -68,6 +68,8 @@ namespace nui
 		return ::GetFocusBrowser().get();
 	}
 
+	extern fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
+
 	void GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor)
 	{
 		if (!HasFocus() && hasFocus)
@@ -89,6 +91,17 @@ namespace nui
 
 		if (hasFocus)
 		{
+			// deferred-create the window if it's given focus, too
+			auto window = FindNUIWindow(winName);
+
+			if (window.GetRef())
+			{
+				if (!window->GetBrowser())
+				{
+					window->DeferredCreate();
+				}
+			}
+
 			static std::string oldDD;
 			std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
 
