@@ -535,24 +535,6 @@ void NUIWindow::SendBeginFrame()
 		}
 	}
 
-	// if no message was sent to us in ~15s
-	if ((curTime - m_lastMessageTime) > 15000)
-	{
-		// and we're not mpMenu or loadingScreen, or not rawblit (rawblit should be full speed as it always was)
-		if (m_name != "nui_mpMenu" && m_name != "nui_loadingScreen" && m_rawBlit)
-		{
-			if (!HasFocus() || !isFocus)
-			{
-				// throttle to 1 frame per ~2s
-				// #TODONUI: more intelligent logic for auto-detection of animation/video/... + override API?
-				if ((curTime - m_lastFrameTime) < (2000 + (HashString(m_name.c_str()) % 750)))
-				{
-					return;
-				}
-			}
-		}
-	}
-
 	if (m_client)
 	{
 		auto client = ((NUIClient*)m_client.get());
