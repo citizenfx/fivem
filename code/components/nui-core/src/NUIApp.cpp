@@ -44,10 +44,20 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 {
 	CefRefPtr<CefV8Value> window = context->GetGlobal();
 
-	auto origEventListener = window->GetValue("addEventListener");
-	m_origEventListeners[frame->GetIdentifier()] = origEventListener;
+	auto et = window->GetValue("EventTarget");
 
-	window->SetValue("addEventListener", CefV8Value::CreateFunction("addEventListener", this), V8_PROPERTY_ATTRIBUTE_NONE);
+	if (et)
+	{
+		auto prototype = et->GetValue("prototype");
+
+		if (prototype)
+		{
+			auto origEventListener = prototype->GetValue("addEventListener");
+			m_origEventListeners[frame->GetIdentifier()] = origEventListener;
+
+			prototype->SetValue("addEventListener", CefV8Value::CreateFunction("addEventListener", this), V8_PROPERTY_ATTRIBUTE_NONE);
+		}
+	}
 
 	window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
