@@ -44,6 +44,11 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 {
 	CefRefPtr<CefV8Value> window = context->GetGlobal();
 
+	auto origEventListener = window->GetValue("addEventListener");
+	m_origEventListeners[frame->GetIdentifier()] = origEventListener;
+
+	window->SetValue("addEventListener", CefV8Value::CreateFunction("addEventListener", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+
 	window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerPushFunction", CefV8Value::CreateFunction("registerPushFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
@@ -69,6 +74,8 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
 {
+	m_origEventListeners.erase(frame->GetIdentifier());
+
 	for (auto& handler : m_v8ReleaseHandlers)
 	{
 		handler(context);
@@ -125,6 +132,35 @@ CefRefPtr<CefRenderProcessHandler> NUIApp::GetRenderProcessHandler()
 
 bool NUIApp::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception)
 {
+	if (name == "addEventListener")
+	{
+		auto cxt = CefV8Context::GetCurrentContext();
+		auto frame = cxt->GetFrame();
+
+		auto origHandler = m_origEventListeners.find(frame->GetIdentifier());
+
+		if (origHandler != m_origEventListeners.end())
+		{
+			retval = origHandler->second->ExecuteFunction(object, arguments);
+
+			if (arguments.size() > 0 && arguments[0]->IsString() && arguments[0]->GetStringValue() == "message")
+			{
+				auto global = cxt->GetGlobal();
+				auto fn = global->GetValue("nuiInternalCallMessages");
+
+				if (fn)
+				{
+					CefV8ValueList a;
+					fn->ExecuteFunction(global, a);
+				}
+
+				global->SetValue("nuiInternalHandledMessages", CefV8Value::CreateBool(true), V8_PROPERTY_ATTRIBUTE_READONLY);
+			}
+		}
+
+		return true;
+	}
+
 	auto handler = m_v8Handlers.find(name);
 	bool success = false;
 

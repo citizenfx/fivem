@@ -107,18 +107,39 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	// enter push function
 	if (frame->IsMain())
 	{
-		frame->ExecuteJavaScript(R"(window.registerPushFunction(function(type, ...args) {
-	switch (type) {
-		case 'frameCall': {
-			const [ dataString ] = args;
-			const data = JSON.parse(dataString);
+		frame->ExecuteJavaScript(R"(
+(() => {
+	let nuiMessageQueue = [];
 
-			window.postMessage(data, '*');
+	window.nuiInternalCallMessages = () => {
+		const mq = nuiMessageQueue;
+		nuiMessageQueue = [];
 
-			break;
+		setTimeout(() => {
+			for (const msg of mq) {
+				window.postMessage(msg, '*');
+			}
+		}, 50);
+	};
+
+	window.registerPushFunction(function(type, ...args) {
+		switch (type) {
+			case 'frameCall': {
+				const [ dataString ] = args;
+				const data = JSON.parse(dataString);
+
+				window.postMessage(data, '*');
+
+				if (!window.nuiInternalHandledMessages) {
+					nuiMessageQueue.push(data);
+				}
+
+				break;
+			}
 		}
-	}
-});)",
+	});
+})();
+)",
 		"nui://handler", 0);
 
 		m_loadedMainFrame = true;
