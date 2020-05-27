@@ -110,9 +110,13 @@ private:
 
 	std::shared_ptr<GtaNuiTexture*> m_canary;
 
+	bool m_overriddenTexture;
+
+	bool m_overriddenSRV;
+
 public:
 	explicit GtaNuiTexture(rage::grcTexture* texture)
-		: m_texture(texture)
+		: m_texture(texture), m_overriddenTexture(false), m_overriddenSRV(false)
 	{
 
 	}
@@ -143,14 +147,56 @@ public:
 
 	virtual ~GtaNuiTexture()
 	{
-		// TODO: delete overridden SRV/...
 		auto texture = m_texture;
 		m_texture = nullptr;
+
+#ifdef GTA_FIVE
+		// if overridden stuff i.e. not managed by grcResourceCache, manually release
+		if (m_overriddenTexture)
+		{
+			auto baseTexture = texture->texture;
+
+			if (baseTexture)
+			{
+				g_onRenderQueue.push([baseTexture]()
+				{
+					baseTexture->Release();
+				});
+
+				texture->texture = NULL;
+			}
+		}
+
+		if (m_overriddenSRV)
+		{
+			auto baseSRV = texture->srv;
+
+			if (baseSRV)
+			{
+				g_onRenderQueue.push([baseSRV]()
+				{
+					baseSRV->Release();
+				});
+
+				texture->srv = NULL;
+			}
+		}
+#endif
 
 		g_onRenderQueue.push([texture]()
 		{
 			delete texture;
 		});
+	}
+
+	inline bool MarkOverriddenTexture()
+	{
+		m_overriddenTexture = true;
+	}
+
+	inline bool MarkOverriddenSRV()
+	{
+		m_overriddenSRV = true;
 	}
 
 	inline rage::grcTexture* GetTexture() { return m_texture; }
@@ -341,7 +387,11 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 			deviceStuff->rawDevice->CreateShaderResourceView(texture.Get(), nullptr, &texRef->srv);
 		}
 
-		return new GtaNuiTexture(texRef);
+		auto texture = new GtaNuiTexture(texRef);
+		texture->MarkOverriddenSRV();
+		texture->MarkOverriddenTexture();
+
+		return texture;
 	}
 #else
 	if (GetCurrentGraphicsAPI() == GraphicsAPI::D3D12)
