@@ -74,7 +74,7 @@ static HookFunction initFunction([] ()
 		;
 
 		// show on top = render last
-		std::reverse(g_nuiFocusStack.begin(), g_nuiFocusStack.end());
+		std::reverse(windowOrder.begin(), windowOrder.end());
 
 		for (const auto& windowName : windowOrder)
 		{
