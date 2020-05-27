@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-aliases: ["GET_VEHICLE_WHEEL_WIDTH"]
 ---
 ## GET_VEHICLE_WHEEL_WIDTH
 

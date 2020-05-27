@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-aliases: ["GET_VEHICLE_WHEEL_TIRE_COLLIDER_SIZE"]
 ---
 ## GET_VEHICLE_WHEEL_TIRE_COLLIDER_SIZE
 
