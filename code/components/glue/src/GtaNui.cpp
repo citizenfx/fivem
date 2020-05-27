@@ -189,12 +189,12 @@ public:
 		});
 	}
 
-	inline bool MarkOverriddenTexture()
+	inline void MarkOverriddenTexture()
 	{
 		m_overriddenTexture = true;
 	}
 
-	inline bool MarkOverriddenSRV()
+	inline void MarkOverriddenSRV()
 	{
 		m_overriddenSRV = true;
 	}
