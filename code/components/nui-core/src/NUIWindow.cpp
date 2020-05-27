@@ -585,7 +585,19 @@ void NUIWindow::UpdateFrame()
 
 			if (m_client)
 			{
-				((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+				auto browser = ((NUIClient*)m_client.get())->GetBrowser();
+
+				if (browser)
+				{
+					((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+				}
+				else
+				{
+					m_onLoadQueue.push([this]()
+					{
+						((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+					});
+				}
 
 				std::lock_guard<std::shared_mutex> _(m_textureMutex);
 				m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
