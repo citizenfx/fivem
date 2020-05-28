@@ -2333,8 +2333,6 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 bool ServerGameState::ValidateEntity(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
-	bool allowed = false;
-
 	// allow auto-generated population in non-strict lockdown
 	if (m_entityLockdownMode != EntityLockdownMode::Strict)
 	{
@@ -2345,7 +2343,7 @@ bool ServerGameState::ValidateEntity(const std::shared_ptr<sync::SyncEntityState
 			if (popType == sync::POPTYPE_RANDOM_AMBIENT || popType == sync::POPTYPE_RANDOM_PARKED || popType == sync::POPTYPE_RANDOM_PATROL ||
 				popType == sync::POPTYPE_RANDOM_PERMANENT || popType == sync::POPTYPE_RANDOM_SCENARIO)
 			{
-				allowed = true;
+				return true;
 			}
 		}
 	}
@@ -2357,11 +2355,11 @@ bool ServerGameState::ValidateEntity(const std::shared_ptr<sync::SyncEntityState
 	{
 		if (it->second.scriptGuid)
 		{
-			allowed = true;
+			return true;
 		}
 	}
 
-	return allowed;
+	return false;
 }
 
 static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(const std::vector<uint8_t>& packetData)
