@@ -168,7 +168,7 @@ static int PreviouslyOwnedByPlayerOffset;
 static int NeedsToBeHotwiredOffset;
 static int IsInteriorLightOnOffset;
 static int BlinkerStateOffset;
-static int AccelerationOffset;
+static int ThrottleOffsetOffset;
 static int CurrentRPMOffset;
 static int StreamRenderWheelWidthOffset;
 static int StreamRenderWheelSizeOffset;
@@ -342,7 +342,7 @@ static HookFunction initFunction([]()
 		auto location = hook::get_pattern<char>("F6 83 ? ? ? ? 07 75 ? 44 0F");
 
 		CurrentRPMOffset = *(uint32_t*)(location - 42);
-		AccelerationOffset = CurrentRPMOffset + 16;
+		ThrottleOffsetOffset = CurrentRPMOffset + 16;
 	}
 
 	{
@@ -400,7 +400,7 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_SPEED", std::bind(readVehicleMemory<float, &DashSpeedOffset>, _1, "GET_VEHICLE_DASHBOARD_SPEED"));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CURRENT_ACCELERATION", std::bind(readVehicleMemory<float, &AccelerationOffset>, _1, "GET_VEHICLE_CURRENT_ACCELERATION"));
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_THROTTLE_OFFSET", std::bind(readVehicleMemory<float, &ThrottleOffsetOffset>, _1, "GET_VEHICLE_THROTTLE_OFFSET"));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_CURRENT_RPM", std::bind(readVehicleMemory<float, &CurrentRPMOffset>, _1, "GET_VEHICLE_CURRENT_RPM"));
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_CURRENT_RPM", std::bind(writeVehicleMemory<float, &CurrentRPMOffset>, _1, "SET_VEHICLE_CURRENT_RPM"));
