@@ -105,6 +105,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	//command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 	command_line->AppendSwitch("force-gpu-rasterization");
+	command_line->AppendSwitch("disable-gpu-process-crash-limit");
 
 	// some GPUs are in the GPU blacklist as 'forcing D3D9'
 	// this just forces D3D11 anyway.
