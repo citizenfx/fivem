@@ -19,7 +19,7 @@
     "#Servers_Connecting": "Verbindungsaufbau",
     "#Servers_ConnectingTo": "Verbinde mit {{ serverName }}...",
     "#Servers_ConnectFailed": "Verbindung fehlgeschlagen",
-    "#Servers_Error": "Ошибка (Error)",
+    "#Servers_Error": "Fehler!",
     "#Servers_Info": "Info",
     "#Servers_CloseOverlay": "Schließen",
     "#Servers_CancelOverlay": "Abbrechen",
