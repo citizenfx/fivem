@@ -173,6 +173,12 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
+	// hopefully this'll trap most `Program Files (x86)` directories
+	if (fileName.find(L"Files (x86)\\Rockstar Games\\Social Club") != std::string::npos)
+	{
+		return true;
+	}
+
 	if (fileName.find(L"Files\\Rockstar Games\\Launcher") != std::string::npos)
 	{
 		return true;
