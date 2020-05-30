@@ -31,6 +31,7 @@ fwEvent<> OnPostFrontendRender;
 fwEvent<bool*> OnRequestInternalScreenshot;
 fwEvent<const uint8_t*, int, int> OnInternalScreenshot;
 
+static void* g_lastBackbufTexture;
 static bool g_useFlipModel = false;
 
 static bool g_overrideVsync;
@@ -446,6 +447,8 @@ void(*g_origCreateBackbuffer)(void*);
 void WrapCreateBackbuffer(void* tf)
 {
 	trace("Creating backbuffer.\n");
+
+	g_lastBackbufTexture = NULL;
 
 	g_origCreateBackbuffer(tf);
 
@@ -1063,10 +1066,11 @@ void CaptureBufferOutput()
 	static ID3D11Texture2D* myTexture;
 	static ID3D11RenderTargetView* rtv;
 
-	if (lastWidth != handleData->width || lastHeight != handleData->height)
+	if (lastWidth != handleData->width || lastHeight != handleData->height || g_lastBackbufTexture != backBuf->texture)
 	{
 		lastWidth = handleData->width;
 		lastHeight = handleData->height;
+		g_lastBackbufTexture = backBuf->texture;
 
 		if (rtv)
 		{
