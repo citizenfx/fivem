@@ -88,12 +88,11 @@ namespace nui
 		auto winName = fmt::sprintf("nui_%s", frameName);
 
 		auto browser = nui::GetNUIWindowBrowser(winName);
+		auto window = FindNUIWindow(winName);
 
 		if (hasFocus)
 		{
 			// deferred-create the window if it's given focus, too
-			auto window = FindNUIWindow(winName);
-
 			if (window.GetRef())
 			{
 				if (!window->GetBrowser())
@@ -145,6 +144,19 @@ namespace nui
 		if (browser)
 		{
 			browser->GetHost()->SetFocus(hasFocus);
+		}
+		else
+		{
+			if (window.GetRef())
+			{
+				window->PushLoadQueue([window, hasFocus]()
+				{
+					if (window->GetBrowser())
+					{
+						window->GetBrowser()->GetHost()->SetFocus(hasFocus);
+					}
+				});
+			}
 		}
 #endif
 	}
