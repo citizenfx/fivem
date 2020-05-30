@@ -694,7 +694,7 @@ void CreateRootWindow()
 	int resX, resY;
 	g_nuiGi->GetGameResolution(&resX, &resY);
 
-	auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html");
+	auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html", true);
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
 	rootWindow->SetName("root");
 
@@ -823,7 +823,7 @@ void Initialize(nui::GameInterface* gi)
 	});
 #endif
 
-	static ConsoleCommand devtoolsCmd("nui_devtools", [](const std::string& windowName)
+	static ConsoleCommand devtoolsWindowCmd("nui_devtools", [](const std::string& windowName)
 	{
 		auto browser = nui::GetNUIWindowBrowser(windowName);
 

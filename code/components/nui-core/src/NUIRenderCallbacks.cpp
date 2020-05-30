@@ -63,7 +63,7 @@ static HookFunction initFunction([] ()
 			renderWindows.insert({ window->GetName(), window });
 		});
 
-		auto windowOrder =
+		std::list<std::string> windowOrder =
 #ifndef USE_NUI_ROOTLESS
 		{
 			"root"

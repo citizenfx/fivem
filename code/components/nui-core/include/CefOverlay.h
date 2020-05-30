@@ -7,7 +7,7 @@
 
 #pragma once
 
-#define USE_NUI_ROOTLESS
+//#define USE_NUI_ROOTLESS
 
 #ifdef COMPILING_NUI_CORE
 #define OVERLAY_DECL __declspec(dllexport)
