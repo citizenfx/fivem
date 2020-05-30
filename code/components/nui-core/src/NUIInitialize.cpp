@@ -58,7 +58,7 @@ struct GameRenderData
 	bool requested;
 
 	GameRenderData()
-		: requested(false)
+		: requested(false), handle(NULL), width(0), height(0)
 	{
 
 	}

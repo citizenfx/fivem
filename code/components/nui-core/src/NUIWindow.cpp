@@ -27,7 +27,8 @@ extern nui::GameInterface* g_nuiGi;
 
 NUIWindow::NUIWindow(bool rawBlit, int width, int height)
 	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
-	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0)
+	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0), m_roundedHeight(0), m_roundedWidth(0),
+	  m_syncKey(0), m_paintType(NUIPaintTypeDummy)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 

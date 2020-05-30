@@ -122,7 +122,7 @@ public:
 	}
 
 	explicit GtaNuiTexture(std::function<rage::grcTexture*(GtaNuiTexture*)> fn)
-		: m_texture(nullptr)
+		: m_texture(nullptr), m_overriddenTexture(false), m_overriddenSRV(false)
 	{
 		m_canary = std::make_shared<GtaNuiTexture*>(this);
 
