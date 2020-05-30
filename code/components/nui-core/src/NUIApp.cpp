@@ -148,24 +148,27 @@ bool NUIApp::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const 
 		auto cxt = CefV8Context::GetCurrentContext();
 		auto frame = cxt->GetFrame();
 
-		auto origHandler = m_origEventListeners.find(frame->GetIdentifier());
-
-		if (origHandler != m_origEventListeners.end())
+		if (frame)
 		{
-			retval = origHandler->second->ExecuteFunction(object, arguments);
+			auto origHandler = m_origEventListeners.find(frame->GetIdentifier());
 
-			if (arguments.size() > 0 && arguments[0]->IsString() && arguments[0]->GetStringValue() == "message")
+			if (origHandler != m_origEventListeners.end())
 			{
-				auto global = cxt->GetGlobal();
-				auto fn = global->GetValue("nuiInternalCallMessages");
+				retval = origHandler->second->ExecuteFunction(object, arguments);
 
-				if (fn)
+				if (arguments.size() > 0 && arguments[0]->IsString() && arguments[0]->GetStringValue() == "message")
 				{
-					CefV8ValueList a;
-					fn->ExecuteFunction(global, a);
-				}
+					auto global = cxt->GetGlobal();
+					auto fn = global->GetValue("nuiInternalCallMessages");
 
-				global->SetValue("nuiInternalHandledMessages", CefV8Value::CreateBool(true), V8_PROPERTY_ATTRIBUTE_READONLY);
+					if (fn)
+					{
+						CefV8ValueList a;
+						fn->ExecuteFunction(global, a);
+					}
+
+					global->SetValue("nuiInternalHandledMessages", CefV8Value::CreateBool(true), V8_PROPERTY_ATTRIBUTE_READONLY);
+				}
 			}
 		}
 
