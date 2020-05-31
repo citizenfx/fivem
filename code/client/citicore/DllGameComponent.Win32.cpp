@@ -180,6 +180,16 @@ void DllGameComponent::ReadManifest()
 
 	if (!hModule)
 	{
+		if (m_path == L"adhesive.dll")
+		{
+			m_path = L"sticky.dll";
+
+			hModule = LoadLibraryEx(MakeRelativeCitPath(m_path).c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
+		}
+	}
+
+	if (!hModule)
+	{
 		DWORD errorCode = GetLastError();
 
 		// delete caches.xml so the game will be verified

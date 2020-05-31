@@ -61,6 +61,19 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
 #endif
 
+#ifdef _DEBUG
+#define LAUNCHER_PERSONALITY_GAME
+#endif
+
+// game personality aliases
+#ifdef GTA_FIVE
+#ifdef LAUNCHER_PERSONALITY_GAME_1868
+#define LAUNCHER_PERSONALITY_GAME
+#else
+#define LAUNCHER_PERSONALITY_GAME_1604
+#endif
+#endif
+
 struct TenUIBase
 {
 	virtual ~TenUIBase() = default;

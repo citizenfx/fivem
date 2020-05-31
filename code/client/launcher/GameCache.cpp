@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#ifdef LAUNCHER_PERSONALITY_MAIN
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(LAUNCHER_PERSONALITY_GAME)
 #include <CfxState.h>
 #include <HostSharedData.h>
 
@@ -486,6 +486,7 @@ static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 	return cacheStorage;
 }
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 static std::vector<GameCacheEntry> CompareCacheDifferences()
 {
 	// load the cache storage from disk
@@ -1028,6 +1029,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 	return true;
 }
+#endif
 
 #include <CrossBuildRuntime.h>
 
@@ -1063,6 +1065,7 @@ std::map<std::string, std::string> UpdateGameCache()
 		}
 	}
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 	// perform a game update
 	auto differences = CompareCacheDifferences();
 
@@ -1073,6 +1076,7 @@ std::map<std::string, std::string> UpdateGameCache()
 			return {};
 		}
 	}
+#endif
 
 	// get a list of cache files that should be mapped given an updated cache
 	std::map<std::string, std::string> retval;

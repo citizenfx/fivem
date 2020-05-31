@@ -55,7 +55,6 @@ If you don't do this, FiveM will auto-update using the official binaries.
 
 1. Copy contents of `/data/shared` into `/code/bin/five/debug`.
 2. Copy contents of `/data/client` into `/code/bin/five/debug`.
-3. **VERY IMPORTANT**: there should now be a file at `/code/bin/five/debug/components.json`. Make sure you remove the line `"adhesive"` from that file. This is the anti-cheat module and you will be banned for attempted cheating if you don't delete this line.
 
 **Symlink `cache` directory** (optional)
 

@@ -5,7 +5,20 @@ end
 
 -- is game host?
 local function isGamePersonality(name)
-	return name == 'main'
+	if _OPTIONS['game'] ~= 'five' then
+		return isLauncherPersonality(name)
+	end
+
+	if name == 'game' or name == 'game_1868' then
+		return true
+	end
+	
+	if isLauncherPersonality(name) then
+		filter { "configurations:Debug" }
+		return true
+	end
+	
+	return false
 end
 
 local function launcherpersonality(name)
@@ -42,6 +55,8 @@ local function launcherpersonality(name)
 		
 		if isGamePersonality(name) then
 			if _OPTIONS['game'] == 'five' then
+				local gameBuild = (name == 'game') and '1604' or '1868'
+			
 				postbuildcommands {
 					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
 						path.getabsolute('../../tools/dbg/bin/msobj140.dll'):gsub('/', '\\')
@@ -49,9 +64,12 @@ local function launcherpersonality(name)
 					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
 						path.getabsolute('../../tools/dbg/bin/mspdbcore.dll'):gsub('/', '\\')
 					),
-					"if exist C:\\f\\GTA5_1604_dump.exe ( %{cfg.buildtarget.directory}\\retarget_pe \"%{cfg.buildtarget.abspath}\" C:\\f\\GTA5_1604_dump.exe )",
-					("%%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\""):format(
-						path.getabsolute('../../tools/dbg/dump_1604.txt')
+					("if exist C:\\f\\GTA5_%s_dump.exe ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" C:\\f\\GTA5_%s_dump.exe )"):format(
+						gameBuild, gameBuild
+					),
+					("if exist \"%s\" ( %%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\" )"):format(
+						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild)),
+						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild))
 					)
 				}
 			elseif _OPTIONS['game'] == 'rdr3' then
@@ -60,6 +78,8 @@ local function launcherpersonality(name)
 				}
 			end
 		end
+		
+		filter {}
 		
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
@@ -74,41 +94,45 @@ local function launcherpersonality(name)
 
 		staticruntime 'On'
 
-		configuration "game=ny"
+		filter { "options:game=ny" }
 			targetname "CitizenFX"
 
-		configuration "game=payne"
+		filter { "options:game=payne" }
 			targetname "CitizenPayne"
 
-		configuration "game=five"
+		filter { "options:game=five" }
 			targetname "FiveM"
 			
-		configuration "game=launcher"
+		filter { "options:game=launcher" }
 			targetname "CfxLauncher"
 			
 		if name ~= 'main' then
-			configuration {}
+			filter {}
 			targetname("CitizenFX_SubProcess_" .. name)
 		end
 		
-		configuration "windows"
-			linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
-			
-			if isGamePersonality(name) then
-				linkoptions "/SAFESEH:NO /DYNAMICBASE:NO"
+		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
+		
+		if isGamePersonality(name) then
+			linkoptions "/SAFESEH:NO /DYNAMICBASE:NO"
 
-				-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
-				-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
-				-- Microsoft Warbird-specific DRM functions... third-party vendors have to handle their own way of integrating
-				-- PE parsing and writing, yet Microsoft has their feature hidden in the exact linker those vendors use...)
-				linkoptions "/LAST:.zdata"
-			end
+			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
+			-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
+			-- Microsoft Warbird-specific DRM functions... third-party vendors have to handle their own way of integrating
+			-- PE parsing and writing, yet Microsoft has their feature hidden in the exact linker those vendors use...)
+			linkoptions "/LAST:.zdata"
+		end
 			
 			linkoptions "/DELAYLOAD:d3d11.dll /DELAYLOAD:d2d1.dll /DELAYLOAD:d3dcompiler_47.dll /DELAYLOAD:dwrite.dll /DELAYLOAD:ole32.dll /DELAYLOAD:shcore.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.dll /DELAYLOAD:api-ms-win-core-winrt-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-string-l1-1-0.dll /DELAYLOAD:api-ms-win-shcore-stream-winrt-l1-1-0.dll"
 end
 
 launcherpersonality 'main'
 launcherpersonality 'chrome'
+
+if _OPTIONS['game'] == 'five' then
+	launcherpersonality 'game'
+	launcherpersonality 'game_1868'
+end
 
 externalproject "Win2D"
 	if os.getenv('COMPUTERNAME') ~= 'AVALON' and not os.getenv('CI') then

@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#ifdef LAUNCHER_PERSONALITY_MAIN
+#ifdef LAUNCHER_PERSONALITY_GAME
 #pragma comment(linker, "/merge:.data=.cld")
 #pragma comment(linker, "/merge:.rdata=.clr")
 #pragma comment(linker, "/merge:.cl=.zdata")
