@@ -44,6 +44,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 {
 	CefRefPtr<CefV8Value> window = context->GetGlobal();
 
+#ifdef USE_NUI_ROOTLESS
 	auto et = window->GetValue("EventTarget");
 
 	if (et)
@@ -58,6 +59,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 			prototype->SetValue("addEventListener", CefV8Value::CreateFunction("addEventListener", this), V8_PROPERTY_ATTRIBUTE_NONE);
 		}
 	}
+#endif
 
 	window->SetValue("registerPollFunction", CefV8Value::CreateFunction("registerPollFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("registerFrameFunction", CefV8Value::CreateFunction("registerFrameFunction", this), V8_PROPERTY_ATTRIBUTE_READONLY);
@@ -84,7 +86,9 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
 {
+#ifdef USE_NUI_ROOTLESS
 	m_origEventListeners.erase(frame->GetIdentifier());
+#endif
 
 	for (auto& handler : m_v8ReleaseHandlers)
 	{
@@ -143,6 +147,7 @@ CefRefPtr<CefRenderProcessHandler> NUIApp::GetRenderProcessHandler()
 
 bool NUIApp::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception)
 {
+#ifdef USE_NUI_ROOTLESS
 	if (name == "addEventListener")
 	{
 		auto cxt = CefV8Context::GetCurrentContext();
@@ -174,6 +179,7 @@ bool NUIApp::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const 
 
 		return true;
 	}
+#endif
 
 	auto handler = m_v8Handlers.find(name);
 	bool success = false;
