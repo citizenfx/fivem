@@ -18,7 +18,7 @@ mkdir R:\sym-tmp
 
 foreach ($file in (Get-ChildItem -Recurse $BinRoot\$GameName\release)) {
     if ($file.LastWriteTime -ge $lastSymDate) {
-        if ($file.Extension -in @(".dll", ".pdb", ".exe")) {
+        if ($file.Extension -in @(".dll", ".pdb", ".exe", ".bin")) {
             Push-Location $BinRoot\$GameName\release
             $relPath = (Resolve-Path -Relative $file.FullName)
             Pop-Location
@@ -35,6 +35,7 @@ C:\h\debuggers\symstore.exe add /o /f R:\sym-tmp /s R:\sym-upload /t "Cfx" /r
 
 $pdbs  = @(Get-ChildItem -Recurse -Filter "*.dll" -File R:\sym-upload\)
 $pdbs += @(Get-ChildItem -Recurse -Filter "*.exe" -File R:\sym-upload\)
+$pdbs += @(Get-ChildItem -Recurse -Filter "*.bin" -File R:\sym-upload\)
 
 workflow dump_pdb {
     param ([Object[]]$files)
