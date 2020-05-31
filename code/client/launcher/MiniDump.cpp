@@ -1374,18 +1374,18 @@ bool InitializeExceptionHandler()
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 	CreateDirectory(crashDirectory.c_str(), nullptr);
 
-#if defined(LAUNCHER_PERSONALITY_MAIN)
 	wchar_t* dumpServerBit = wcsstr(GetCommandLine(), L"-dumpserver");
 
 	if (dumpServerBit)
 	{
 		wchar_t* parentPidBit = wcsstr(GetCommandLine(), L"-parentpid:");
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 		InitializeDumpServer(wcstol(&dumpServerBit[12], nullptr, 10), wcstol(&parentPidBit[11], nullptr, 10));
+#endif
 
 		return true;
 	}
-#endif
 
 	bool bigMemoryDump = false;
 
