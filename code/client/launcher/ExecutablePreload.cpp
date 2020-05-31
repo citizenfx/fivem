@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "ExecutableLoader.h"
 
+#ifdef LAUNCHER_PERSONALITY_GAME
 #include "Hooking.h"
 
 #include <shellapi.h>
@@ -148,3 +149,9 @@ bool ExecutablePreload_Init()
 
 	return true;
 }
+#else
+bool ExecutablePreload_Init()
+{
+	return true;
+}
+#endif

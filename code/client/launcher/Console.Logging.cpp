@@ -1,5 +1,5 @@
 #include <StdInc.h>
-#include <tbb/concurrent_queue.h>
+#include <concurrentqueue.h>
 
 #include <fmt/time.h>
 #include <filesystem>
@@ -89,13 +89,13 @@ static void PerformFileLog(const std::tuple<std::string, std::string>& pair)
 {
 	static std::vector<char> lineBuffer(8192);
 	static size_t lineIndex;
-	static std::mutex logMutex;
+	static SRWLOCK logMutex = SRWLOCK_INIT;
 
 	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
 	static std::string processName = GetProcessName();
 
 	{
-		std::unique_lock<std::mutex> lock(logMutex);
+		AcquireSRWLockExclusive(&logMutex);
 
 		for (const char* p = std::get<1>(pair).c_str(); *p; ++p)
 		{
@@ -135,38 +135,43 @@ static void PerformFileLog(const std::tuple<std::string, std::string>& pair)
 				lineBuffer.resize(lineBuffer.size() * 2);
 			}
 		}
+
+		ReleaseSRWLockExclusive(&logMutex);
 	}
 }
 
-static std::once_flag g_initLogFlag;
-static std::condition_variable g_logCondVar;
-static std::mutex g_logMutex;
+static INIT_ONCE g_initLogFlag = INIT_ONCE_STATIC_INIT;
+static CONDITION_VARIABLE g_logCondVar = CONDITION_VARIABLE_INIT;
+static SRWLOCK g_logMutex = SRWLOCK_INIT;
 
-static tbb::concurrent_queue<std::tuple<std::string, std::string>> g_logPrintQueue;
+static moodycamel::ConcurrentQueue<std::tuple<std::string, std::string>> g_logPrintQueue;
 
 struct LoggerInit
 {
 	LoggerInit()
 	{
-		std::thread([]()
+		CreateThread(
+		NULL, 0, [](LPVOID) -> DWORD
 		{
 			SetThreadName(-1, "[Cfx] File Log Thread");
 
 			while (true)
 			{
-				{
-					std::unique_lock<std::mutex> lock(g_logMutex);
-					g_logCondVar.wait(lock);
-				}
+				AcquireSRWLockExclusive(&g_logMutex);
+				SleepConditionVariableSRW(&g_logCondVar, &g_logMutex, INFINITE, 0);
+				ReleaseSRWLockExclusive(&g_logMutex);
 
 				std::tuple<std::string, std::string> str;
 
-				while (g_logPrintQueue.try_pop(str))
+				while (g_logPrintQueue.try_dequeue(str))
 				{
 					PerformFileLog(str);
 				}
 			}
-		}).detach();
+
+			return 0;
+		},
+		NULL, 0, NULL);
 	}
 };
 
@@ -176,8 +181,8 @@ extern "C" DLL_EXPORT void AsyncTrace(const char* string)
 {
 	std::string threadName = GetThreadName();
 
-	g_logPrintQueue.push({ threadName, string });
-	g_logCondVar.notify_all();
+	g_logPrintQueue.enqueue({ threadName, string });
+	WakeAllConditionVariable(&g_logCondVar);
 }
 
 void InitLogging()
@@ -218,7 +223,8 @@ void InitLogging()
 
 				if ((curT - fileT) > (7 * 24 * 60 * 60 * uint64_t(10000000)))
 				{
-					std::filesystem::remove(f.path());
+					std::error_code ec;
+					std::filesystem::remove(f.path(), ec);
 				}
 			}
 		}

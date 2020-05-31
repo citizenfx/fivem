@@ -6,13 +6,23 @@
  */
 
 #include "StdInc.h"
+
 #include <time.h>
 #include <dbghelp.h>
+
 #include <client/windows/handler/exception_handler.h>
 #include <client/windows/crash_generation/client_info.h>
+#include <client/windows/crash_generation/crash_generation_client.h>
 #include <client/windows/crash_generation/crash_generation_server.h>
 #include <common/windows/http_upload.h>
 
+#include <CfxState.h>
+#include <CfxSubProcess.h>
+#include <HostSharedData.h>
+
+using namespace google_breakpad;
+
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 #include <commctrl.h>
 #include <shellapi.h>
 
@@ -22,10 +32,6 @@
 #include <sstream>
 
 #include <optional>
-
-#include <CfxState.h>
-#include <CfxSubProcess.h>
-#include <HostSharedData.h>
 
 #include <citversion.h>
 
@@ -118,10 +124,6 @@ static void add_crashometry(json& data)
 		data["crash_hash_key"] = ToNarrow(HashCrash(crashHash));
 	}
 }
-
-using namespace google_breakpad;
-
-static ExceptionHandler* g_exceptionHandler;
 
 struct ErrorData
 {
@@ -380,6 +382,7 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 }
 
 void NVSP_ShutdownSafely();
+#endif
 
 // a safe exception buffer to be allocated in low (32-bit) memory to contain what() data
 struct ExceptionBuffer
@@ -409,7 +412,7 @@ static void AllocateExceptionBuffer()
 	}
 }
 
-static DWORD RemoteExceptionFunc(LPVOID objectPtr)
+extern "C" DLL_EXPORT DWORD RemoteExceptionFunc(LPVOID objectPtr)
 {
 	__try
 	{
@@ -431,7 +434,7 @@ static DWORD RemoteExceptionFunc(LPVOID objectPtr)
 	}
 }
 
-static DWORD BeforeTerminateHandler(LPVOID arg)
+extern "C" DLL_EXPORT DWORD BeforeTerminateHandler(LPVOID arg)
 {
 	__try
 	{
@@ -454,6 +457,7 @@ static DWORD BeforeTerminateHandler(LPVOID arg)
 	return 0;
 }
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 // c/p from ros-patches:five
 // #TODO: factor out sanely
 
@@ -747,6 +751,28 @@ private:
 	Data m_fakeData;
 };
 
+#include "UserLibrary.h"
+
+static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
+{
+	HMODULE modules[1] = { 0 };
+	DWORD cbNeeded;
+	EnumProcessModules(hProcess, modules, sizeof(modules), &cbNeeded);
+
+	wchar_t modPath[MAX_PATH];
+	GetModuleFileNameExW(hProcess, modules[0], modPath, std::size(modPath));
+
+	UserLibrary lib(modPath);
+	auto off = lib.GetExportCode(name);
+
+	if (off == 0)
+	{
+		return NULL;
+	}
+
+	return (LPTHREAD_START_ROUTINE)((char*)modules[0] + off);
+}
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
@@ -907,7 +933,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 											}
 
 											// try getting exception data as well
-											HANDLE hThread = CreateRemoteThread(process_handle, NULL, 0, RemoteExceptionFunc, (void*)(ex.ExceptionInformation[1] + type.thisDisplacement), 0, NULL);
+											HANDLE hThread = CreateRemoteThread(process_handle, NULL, 0, GetFunc(process_handle, "RemoteExceptionFunc"), (void*)(ex.ExceptionInformation[1] + type.thisDisplacement), 0, NULL);
 											WaitForSingleObject(hThread, 5000);
 
 											DWORD ret = 0;
@@ -1100,7 +1126,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 						WriteProcessMemory(gameProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
 					}
 
-					HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, BeforeTerminateHandler, memPtr, 0, NULL);
+					HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, GetFunc(gameProcess, "BeforeTerminateHandler"), memPtr, 0, NULL);
 
 					if (hThread)
 					{
@@ -1309,28 +1335,31 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
 	_wunlink(MakeRelativeGamePath(L"steam_appid.txt").c_str());
 }
+#endif
 
 namespace google_breakpad
 {
-	class AutoExceptionHandler
+class AutoExceptionHandler
+{
+public:
+	static LONG HandleException(EXCEPTION_POINTERS* exinfo)
 	{
-	public:
-		static LONG HandleException(EXCEPTION_POINTERS* exinfo)
-		{
-			return ExceptionHandler::HandleException(exinfo);
-		}
-	};
+		return ExceptionHandler::HandleException(exinfo);
+	}
+};
 }
 
 void InitializeMiniDumpOverride()
 {
-	auto CoreSetExceptionOverride = (void(*)(LONG(*)(EXCEPTION_POINTERS*)))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetExceptionOverride");
+	auto CoreSetExceptionOverride = (void (*)(LONG(*)(EXCEPTION_POINTERS*)))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetExceptionOverride");
 
 	if (CoreSetExceptionOverride)
 	{
 		CoreSetExceptionOverride(AutoExceptionHandler::HandleException);
 	}
 }
+
+static ExceptionHandler* g_exceptionHandler;
 
 bool InitializeExceptionHandler()
 {
@@ -1339,19 +1368,13 @@ bool InitializeExceptionHandler()
 	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
 	if (IsDebuggerPresent())
 	{
-		/*SetUnhandledExceptionFilter([] (LPEXCEPTION_POINTERS pointers) -> LONG
-		{
-			__debugbreak();
-
-			return 0;
-		});*/
-
 		return false;
 	}
 
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 	CreateDirectory(crashDirectory.c_str(), nullptr);
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 	wchar_t* dumpServerBit = wcsstr(GetCommandLine(), L"-dumpserver");
 
 	if (dumpServerBit)
@@ -1362,6 +1385,7 @@ bool InitializeExceptionHandler()
 
 		return true;
 	}
+#endif
 
 	bool bigMemoryDump = false;
 

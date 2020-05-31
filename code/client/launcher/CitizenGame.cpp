@@ -478,7 +478,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		return;
 	}
 
-#ifndef IS_LAUNCHER
+#ifdef LAUNCHER_PERSONALITY_GAME
 	// load the game executable data in temporary memory
 	FILE* gameFile = _wfopen(MapRedirectedFilename(gamePath.c_str()).c_str(), L"rb");
 	

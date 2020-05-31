@@ -29,15 +29,19 @@ IDI_ICON1               ICON                    "fivem.ico"
 IDI_ICON1               ICON                    "redm.ico"
 #endif
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 201						ICON					"snail.ico"
 202						ICON					"fivem_sp.ico"
+#endif
 
 1						RT_MANIFEST				"launcher.manifest"
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #if defined(GTA_FIVE)
 1010					MEOW					"backdrop.png"
 #else
 1010					MEOW					"backdrop_rdr.png"
+#endif
 #endif
 
 STRINGTABLE

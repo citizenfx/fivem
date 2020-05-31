@@ -84,7 +84,7 @@ local function launcherpersonality(name)
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
-		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt' }
+		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue' }
 		
 		if isLauncherPersonality(name) then
 			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt' }
@@ -121,6 +121,11 @@ local function launcherpersonality(name)
 			-- Microsoft Warbird-specific DRM functions... third-party vendors have to handle their own way of integrating
 			-- PE parsing and writing, yet Microsoft has their feature hidden in the exact linker those vendors use...)
 			linkoptions "/LAST:.zdata"
+		end
+		
+		if name == 'chrome' then
+			-- Chrome is built with an 8MB initial stack, and render processes' V8 stack limit assumes such as well
+			linkoptions "/STACK:0x800000"
 		end
 			
 			linkoptions "/DELAYLOAD:d3d11.dll /DELAYLOAD:d2d1.dll /DELAYLOAD:d3dcompiler_47.dll /DELAYLOAD:dwrite.dll /DELAYLOAD:ole32.dll /DELAYLOAD:shcore.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.dll /DELAYLOAD:api-ms-win-core-winrt-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-string-l1-1-0.dll /DELAYLOAD:api-ms-win-shcore-stream-winrt-l1-1-0.dll"

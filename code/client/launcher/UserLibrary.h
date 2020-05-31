@@ -15,7 +15,7 @@ private:
 public:
 	UserLibrary(const wchar_t* fileName);
 
-	const uint8_t* GetExportCode(const char* name) const;
+	uint32_t GetExportCode(const char* name) const;
 
 	const uint8_t* GetOffsetPointer(uint32_t offset) const;
 };

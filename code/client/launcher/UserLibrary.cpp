@@ -24,14 +24,14 @@ UserLibrary::UserLibrary(const wchar_t* fileName)
 	}
 }
 
-const uint8_t* UserLibrary::GetExportCode(const char* getName) const
+uint32_t UserLibrary::GetExportCode(const char* getName) const
 {
 	// get the DOS header
 	IMAGE_DOS_HEADER* header = (IMAGE_DOS_HEADER*)&m_libraryBuffer[0];
 
 	if (header->e_magic != IMAGE_DOS_SIGNATURE)
 	{
-		return nullptr;
+		return 0;
 	}
 
 	// get the NT header
@@ -53,11 +53,11 @@ const uint8_t* UserLibrary::GetExportCode(const char* getName) const
 
 		if (_stricmp(name, getName) == 0)
 		{
-			return GetOffsetPointer(functions[ordinals[i]]);
+			return functions[ordinals[i]];
 		}
 	}
 
-	return nullptr;
+	return 0;
 }
 
 const uint8_t* UserLibrary::GetOffsetPointer(uint32_t offset) const
