@@ -13,7 +13,12 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 
 	if (!origin.empty())
 	{
-		wcscpy_s(fxApplicationName, MakeRelativeCitPath(fmt::sprintf(L"CitizenFX_SubProcess_%s.bin", origin)).c_str());
+		auto sub = MakeRelativeCitPath(fmt::sprintf(L"CitizenFX_SubProcess_%s.bin", origin));
+
+		if (GetFileAttributesW(sub.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			wcscpy_s(fxApplicationName, sub.c_str());
+		}
 	}
 
 	// make the out directory

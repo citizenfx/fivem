@@ -81,6 +81,12 @@ local function launcherpersonality(name)
 		
 		filter {}
 		
+		if isLauncherPersonality(name) then
+			postbuildcommands {
+				"echo. > %{cfg.buildtarget.abspath}.formaldev",
+			}
+		end
+		
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
@@ -105,9 +111,10 @@ local function launcherpersonality(name)
 			
 		filter { "options:game=launcher" }
 			targetname "CfxLauncher"
+
+		filter {}
 			
 		if name ~= 'main' then
-			filter {}
 			targetname("CitizenFX_SubProcess_" .. name)
 		end
 		
