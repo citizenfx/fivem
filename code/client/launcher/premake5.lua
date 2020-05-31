@@ -123,6 +123,9 @@ local function launcherpersonality(name)
 			linkoptions "/LAST:.zdata"
 		end
 		
+		-- reset isGamePersonality bit
+		filter {}
+
 		if name == 'chrome' then
 			-- Chrome is built with an 8MB initial stack, and render processes' V8 stack limit assumes such as well
 			linkoptions "/STACK:0x800000"
