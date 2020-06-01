@@ -33,7 +33,7 @@ rmdir /s /q node_modules\@angular-devkit\build-angular\node_modules\webpack
 ::call node_modules\.bin\webpack.cmd --config=worker.config.js
 
 :: ng build
-call node_modules\.bin\ng.cmd build --prod
+call node_modules\.bin\ng.cmd build --prod 2>&1
 
 :: delete old app
 rmdir /s /q %UIRoot%\app\

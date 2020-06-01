@@ -27,7 +27,7 @@ xcopy /y /e ..\webadmin\server\bin\Release\netstandard2.0\publish\. %SRRoot%\web
 
 pushd ..\txAdmin
 call npm i
-call node_modules\.bin\webpack.cmd --config webpack.config.js --progress
+call node_modules\.bin\webpack.cmd --config webpack.config.js --progress 2>&1 | findstr /V "not found"
 popd
 
 rmdir /s /q %SRRoot%\monitor\

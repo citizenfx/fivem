@@ -88,6 +88,9 @@ workspace "CitizenMP"
 		location ((_OPTIONS['builddir'] or "build/") .. "server/" .. os.target())
 		architecture 'x64'
 		defines 'IS_FXSERVER'
+		startproject 'DuplicityMain'
+	else
+		startproject 'CitiLaunch'
 	end
 
 	local binroot = ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game']) .. '/'
