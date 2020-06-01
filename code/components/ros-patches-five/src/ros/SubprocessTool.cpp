@@ -158,6 +158,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 					static bool verified;
 					static bool launched;
 					static bool verifying;
+					static bool launchDone;
 
 					for (json& cmd : j["Commands"])
 					{
@@ -166,9 +167,14 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 						trace("SC JS message: %s -> %s\n", c, p.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 
-						if (c == "SetGameLaunchState" && p.value("launchState", "") == "failed")
+						if (c == "SetGameLaunchState")
 						{
-							FatalError("Failed to launch through MTL.");
+							if (p.value("launchState", "") == "failed")
+							{
+								FatalError("Failed to launch through MTL.");
+							}
+
+							launchDone = true;
 						}
 
 						if (c == "SetTitleInfo") {
@@ -211,22 +217,32 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 									{
 										launched = true;
 
-										child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({
-											{ "Enabled", false },
-											{ "RosTitleName", targetTitle }
-											}).dump());
+										for (int i = 0; i < 3; i++)
+										{
+											if (launchDone)
+											{
+												break;
+											}
 
-										child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-											{ "EventId", 2 }, // LauncherV3UiEvent
+											child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({
+												{ "Enabled", false },
+												{ "RosTitleName", targetTitle }
+												}).dump());
 
-											{"Data", json::object({
-												{"Action", "Launch"},
-												{"Parameter", json::object({
-													{"titleName", targetTitle},
-													{"args", ""}
+											child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
+												{ "EventId", 2 }, // LauncherV3UiEvent
+
+												{"Data", json::object({
+													{"Action", "Launch"},
+													{"Parameter", json::object({
+														{"titleName", targetTitle},
+														{"args", ""}
+													})}
 												})}
-											})}
-											}).dump());
+												}).dump());
+
+											Sleep(1500);
+										}
 									}
 									else if (!verified)
 									{
