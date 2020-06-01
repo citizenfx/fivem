@@ -32,7 +32,7 @@ local function launcherpersonality(name)
 		
 		defines("LAUNCHER_PERSONALITY_" .. name:upper())
 
-		flags "NoManifest"
+		flags { "NoManifest", "NoImportLib" }
 		
 		symbols "Full"
 		
