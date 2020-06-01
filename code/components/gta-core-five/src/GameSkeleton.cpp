@@ -503,6 +503,18 @@ static const char* const g_initFunctionKnown[] = {
 	"fwTxdStore",
 	"perfClearingHouse",
 	"strStreamingEngine::SubmitDeferredAsyncPlacementRequests",
+
+	"CAnimSceneManager",
+	"CTextInputBox",
+	"CMultiplayerChat",
+	"CCreditsText",
+	"CReplayMgr",
+	"CReplayCoordinator",
+	"CMousePointer",
+	"CVideoEditorUI",
+	"CVideoEditorInterface",
+	"VideoRecording",
+	"WatermarkRenderer",
 };
 
 static InitFunction initFunction([] ()
