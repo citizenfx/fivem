@@ -179,8 +179,10 @@ static InitFunction initFunction([] ()
 				std::wstring profilePath = cfxPath + L"\\";
 
 				rage::fiDeviceRelative* fxUserDevice = new rage::fiDeviceRelative();
-				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), true);
+				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), false);
 				fxUserDevice->Mount("fxd:/");
+
+				fxUserDevice->CreateDirectory("fxd:/rdr3_settings/");
 
 				CoTaskMemFree(appDataPath);
 			}
@@ -218,5 +220,9 @@ static InitFunction initFunction([] ()
 
 			device->FindClose(handle);
 		}
+
+		auto settingsDevice = new rage::fiDeviceRelative();
+		settingsDevice->SetPath("fxd:/rdr3_settings/", false);
+		settingsDevice->Mount("settings:/");
 	});
 });
