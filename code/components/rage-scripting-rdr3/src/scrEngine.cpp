@@ -523,6 +523,18 @@ static void CStreamedScriptHelper__LaunchScript_Hook(void* a1)
 	}
 }
 
+static int (*g_origscrThread__StartNewScriptWithNameHashAndArgs)(int hash, void* args, int numArgs, int flags);
+
+static int scrThread__StartNewScriptWithNameHashAndArgs_Hook(int hash, void* args, int numArgs, int flags)
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origscrThread__StartNewScriptWithNameHashAndArgs(hash, args, numArgs, flags);
+	}
+
+	return 0;
+}
+
 static void(*g_origUnkScriptShutdown)(void*);
 
 static void UnkScriptShutdown(void* a1)
@@ -583,6 +595,7 @@ static HookFunction hookFunction([] ()
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("48 8B D9 4C 8D 05 ? ? ? ? 4C 0F 45 C0", -0x14), StartupScriptWrap, (void**)&origStartupScript);
 		MH_CreateHook(hook::get_pattern("83 79 08 00 48 8B D9 74 38 48 83 79 18 00", -6), CStreamedScriptHelper__LaunchScript_Hook, (void**)&g_origCStreamedScriptHelper__LaunchScript);
+		MH_CreateHook(hook::get_pattern("41 B9 00 02 00 00 44  0F 45 C8 41 C1 E0 03", -0x1D), scrThread__StartNewScriptWithNameHashAndArgs_Hook, (void**)&g_origscrThread__StartNewScriptWithNameHashAndArgs);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 

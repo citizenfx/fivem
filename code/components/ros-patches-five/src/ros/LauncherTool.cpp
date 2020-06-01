@@ -506,10 +506,12 @@ void WaitForLauncher();
 bool LoadOwnershipTicket();
 
 void OnPreInitHook();
+void PreInitGameSpec();
 
 void Component_RunPreInit()
 {
 	OnPreInitHook();
+	PreInitGameSpec();
 
 	if (getenv("CitizenFX_ToolMode") == nullptr || getenv("CitizenFX_ToolMode")[0] == 0)
 	{
@@ -564,6 +566,12 @@ void Component_RunPreInit()
 		}
 	}
 }
+
+static InitFunction lateInitFunction([]()
+{
+	PreInitGameSpec();
+},
+-1000);
 
 #include <winsock2.h>
 #include <iphlpapi.h>

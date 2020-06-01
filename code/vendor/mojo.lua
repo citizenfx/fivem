@@ -38,34 +38,34 @@ function files(x)
 		for _, v in ipairs(x) do
 			if v:endswith('.mojom') or v:endswith('.typemap') then
 				if not added then
-					includedirs { '%{cfg and (cfg.linktarget.directory .. "/gen/") or ""}', '%{cfg and (cfg.linktarget.directory .. "/gen/vendor/chromium/") or ""}', '%{cfg and (cfg.linktarget.directory .. "/code/") or ""}' }
+					includedirs { '%{cfg and (cfg.buildtarget.directory .. "/gen/") or ""}', '%{cfg and (cfg.buildtarget.directory .. "/gen/vendor/chromium/") or ""}', '%{cfg and (cfg.buildtarget.directory .. "/code/") or ""}' }
 					
 					filter 'files:**.typemap'
 					
 					buildcommands {
 						table.concat({
-							'if exist %{path.getabsolute(cfg.linktarget.directory .. "/gen/typemap_" .. prj.name)} (',
+							'if exist %{path.getabsolute(cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name)} (',
 							'python',
 							'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/generate_type_mappings.py"',
 							'%{gen_typemap_args(file.abspath)}',
 							'--dependency',
-							'%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}',
+							'%{cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name}',
 							'--output',
-							'%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}',
+							'%{cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name}',
 							')'
 						}, ' '),
 						table.concat({
-							'if not exist %{path.getabsolute(cfg.linktarget.directory .. "/gen/typemap_" .. prj.name)} (',
+							'if not exist %{path.getabsolute(cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name)} (',
 							'python',
 							'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/generate_type_mappings.py"',
 							'%{gen_typemap_args(file.abspath)}',
 							'--output',
-							'%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}',
+							'%{cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name}',
 							')'
 						}, ' '),
 					}
 					
-					buildoutputs { '%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}' }
+					buildoutputs { '%{cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name}' }
 					
 					filter 'files:**.mojom'
 					
@@ -76,7 +76,7 @@ function files(x)
 							'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/mojom_bindings_generator.py"',
 							'parse',
 							'-o',
-							'%{path.getrelative(".", cfg.linktarget.directory .. "/gen/")}',
+							'%{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 							'--enable_feature',
 							'file_path_is_string16',
 							'-d',
@@ -85,7 +85,7 @@ function files(x)
 						}, ' '),
 					}
 					
-					buildoutputs { '%{cfg.linktarget.directory .. "/gen/" .. path.getrelative("' .. prj_root .. '/../", file.abspath):gsub(".mojom$", "")}.p' }
+					buildoutputs { '%{cfg.buildtarget.directory .. "/gen/" .. path.getrelative("' .. prj_root .. '/../", file.abspath):gsub(".mojom$", "")}.p' }
 					
 					filter 'files:**.p'
 					
@@ -97,19 +97,19 @@ function files(x)
 							'-g',
 							'c++',
 							'--bytecode_path',
-							'%{path.getrelative(".", cfg.linktarget.directory .. "/gen/")}',
+							'%{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 							'--gen_dir',
-							'%{path.getrelative(".", cfg.linktarget.directory .. "/gen/")}',
+							'%{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 							'-d',
 							'%{path.getrelative(".", "' .. prj_root .. '/../")}',
 							'--typemap',
-							'%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}',
+							'%{cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name}',
 							'-o',
-							'%{path.getrelative(".", cfg.linktarget.directory .. "/gen/")}',
+							'%{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 							arg or '',
 							'%{process_includedirs_mojo(prj.location, prj.includedirs):remove_null()}',
 							-- path reorder hell! we want to change from bin/five/debug/gen/* to ../../../*
-							'%{(file and (path.getrelative(prj.location, path.getabsolute(path.getrelative(cfg.linktarget.directory .. "/gen/", file.abspath:gsub(".p$", ".mojom")), "' .. prj_root .. '/../"))) or ""):remove_null()}'
+							'%{(file and (path.getrelative(prj.location, path.getabsolute(path.getrelative(cfg.buildtarget.directory .. "/gen/", file.abspath:gsub(".p$", ".mojom")), "' .. prj_root .. '/../"))) or ""):remove_null()}'
 						}, ' ')
 					end
 					
@@ -120,7 +120,7 @@ function files(x)
 						gen_cmd('--generate_non_variant_code --generate_message_ids')
 					}
 					
-					buildinputs { '%{cfg.linktarget.directory .. "/gen/typemap_" .. prj.name}' }
+					buildinputs { '%{cfg.buildtarget.directory .. "/gen/typemap_" .. prj.name}' }
 
 					buildoutputs { '%{file.abspath:gsub(".p$", ".mojom")}.cc' }
 
@@ -131,9 +131,9 @@ function files(x)
 				
 				if v:endswith('.mojom') then
 					old_files {
-						'%{cfg.linktarget.directory .. "/gen/"}' .. path.getrelative(prj_root .. '/../', path.getabsolute('.', v)):gsub('.mojom$', '') .. '.p',
-						'%{cfg.linktarget.directory .. "/gen/"}' .. path.getrelative(prj_root .. '/../', path.getabsolute('.', v)) .. '.cc',
-						'%{cfg.linktarget.directory .. "/gen/"}' .. path.getrelative(prj_root .. '/../', path.getabsolute('.', v)) .. '-shared.cc'
+						'%{cfg.buildtarget.directory .. "/gen/"}' .. path.getrelative(prj_root .. '/../', path.getabsolute('.', v)):gsub('.mojom$', '') .. '.p',
+						'%{cfg.buildtarget.directory .. "/gen/"}' .. path.getrelative(prj_root .. '/../', path.getabsolute('.', v)) .. '.cc',
+						'%{cfg.buildtarget.directory .. "/gen/"}' .. path.getrelative(prj_root .. '/../', path.getabsolute('.', v)) .. '-shared.cc'
 					}
 				end
 			end
@@ -157,13 +157,13 @@ return {
 		links { 'ws2_32', 'userenv', 'delayimp' }
 		
 		prebuildcommands {
-			'{MKDIR} %{path.getrelative(".", cfg.linktarget.directory .. "/gen/")}',
+			'{MKDIR} %{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 			table.concat({
 				'python',
 				'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/mojom_bindings_generator.py"',
 				'precompile',
 				'-o',
-				'%{path.getrelative(".", cfg.linktarget.directory .. "/gen/")}',
+				'%{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 			}, ' '),
 		}
 		

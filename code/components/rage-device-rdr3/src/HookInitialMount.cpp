@@ -67,6 +67,9 @@ static HookFunction hookFunction([] ()
 	// don't sort update:/ relative devices before ours
 	hook::nop(hook::pattern("C6 80 00 01 00 00 01 E8").count(1).get(0).get<void>(12), 5);
 
+	// disable `settings:/` mount
+	hook::nop(hook::get_pattern("4C 8B C3 48 8D 15 ? ? ? ? 48 8D 8D B0 00 00 00 E8 ? ? ? ? 45", 154), 5);
+
 	// fail sanely on missing game packfiles
 #if 0
 	{

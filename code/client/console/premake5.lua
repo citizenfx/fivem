@@ -6,7 +6,8 @@
 		
 		links { "SharedLibc" }
 
-		linkoptions "/ENTRY:wmainCRTStartup /PDB:CitiCon.pdb"
+		symbolspath "$(TargetDir)CitiCon.pdb"
+		linkoptions "/ENTRY:wmainCRTStartup"
 
 		files
 		{

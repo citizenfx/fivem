@@ -88,6 +88,9 @@ workspace "CitizenMP"
 		location ((_OPTIONS['builddir'] or "build/") .. "server/" .. os.target())
 		architecture 'x64'
 		defines 'IS_FXSERVER'
+		startproject 'DuplicityMain'
+	else
+		startproject 'CitiLaunch'
 	end
 
 	local binroot = ((_OPTIONS['bindir'] or "bin/") .. _OPTIONS['game']) .. '/'
@@ -107,6 +110,12 @@ workspace "CitizenMP"
 			buildoptions '-mpclmul -maes -mssse3 -mavx2 -mrtm'
 			buildoptions '-fsanitize=address -fsanitize-recover=address'
 	end
+	
+	filter { 'action:vs*' }
+		implibdir "$(IntDir)/lib/"
+		symbolspath "$(TargetDir)dbg/$(TargetName).pdb"
+		
+	filter {}
 
 	-- debug output
 	configuration "Debug*"
@@ -166,10 +175,14 @@ workspace "CitizenMP"
 	else
 		include 'server/launcher'
 	end
+	
+	if os.istarget('windows') then
+		include 'premake5_layout.lua'
+	end
 
 	-- TARGET: corert
 	include 'client/citicore'
-
+	
 if _OPTIONS['game'] ~= 'server' then
 	include 'client/ipfsdl'
 
@@ -203,6 +216,12 @@ premake.override(premake.vstudio.dotnetbase, 'debugProps', function(base, cfg)
 	end
 	_p(2,'<DebugType>portable</DebugType>')
 	_p(2,'<Optimize>%s</Optimize>', iif(premake.config.isOptimizedBuild(cfg), "true", "false"))
+end)
+
+premake.override(premake.vstudio.vc2010, 'ignoreImportLibrary', function(base, cfg)
+	if cfg.flags.NoImportLib then
+		premake.vstudio.vc2010.element("IgnoreImportLibrary", nil, "true")
+	end
 end)
 
 premake.override(premake.vstudio.vc2010, 'importLanguageTargets', function(base, prj)

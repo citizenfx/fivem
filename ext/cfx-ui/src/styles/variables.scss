@@ -28,7 +28,7 @@ $colorsLight: (
     blueColour: hsl(180, 100%, 40%),
     textColour: rgb(40, 40, 40),
     acrylicBlur: url(#acrylicBlur),
-    backgroundImage: url(assets/images/bg.jpg)
+    backgroundImage: none
 );
 
 $colorsDark: (
@@ -41,7 +41,7 @@ $colorsDark: (
     blueColour: hsl(180, 100%, 40%),
     textColour: rgb(240, 240, 240),
     acrylicBlur: url(#acrylicBlurDark),
-    backgroundImage: url(assets/images/bg-night.jpg)
+    backgroundImage: none
 );
 
 $colorsRdr: (
@@ -167,7 +167,7 @@ $themes: $themeLight $themeDark $themeRdr;
         &:after {
             /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
             /*backdrop-filter: gtv($theme, acrylicBlur);*/
-            /*filter: gtv($theme, acrylicBlur);
+            filter: gtv($theme, acrylicBlur);
             background-image: var(--my-background-image);
             background-size: cover;
             background-repeat: no-repeat;
@@ -180,7 +180,7 @@ $themes: $themeLight $themeDark $themeRdr;
         &:after {
             /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
             /*backdrop-filter: gtv($theme, acrylicBlur);*/
-            /*filter: gtv($theme, acrylicBlur);
+            filter: gtv($theme, acrylicBlur);
             background-image: var(--my-background-image);
             background-size: cover;
             background-repeat: no-repeat;

@@ -316,8 +316,17 @@ static bool InitAccountMTL()
 	return true;
 }
 
-static InitFunction initFunction([]()
+void PreInitGameSpec()
 {
+	static bool accountSetUp;
+
+	if (accountSetUp)
+	{
+		return;
+	}
+
+	accountSetUp = true;
+
 	if (wcsstr(GetCommandLineW(), L"ros:steam") != nullptr)
 	{
 		return;
@@ -327,7 +336,7 @@ static InitFunction initFunction([]()
 	{
 		TerminateProcess(GetCurrentProcess(), 0);
 	}
-});
+}
 
 #include <ICoreGameInit.h>
 
@@ -337,6 +346,10 @@ static HookFunction hookFunction([]()
 });
 #else
 void ValidateSteam(int)
+{
+}
+
+void PreInitGameSpec()
 {
 }
 #endif

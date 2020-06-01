@@ -21,6 +21,11 @@ if os.istarget('windows') then
 				
 				lastLang = nil
 				lastKind = nil
+			elseif lastKind == 'StaticLib' then
+				targetdir '$(IntDir)/out/'
+			
+				lastLang = nil
+				lastKind = nil
 			end
 		end
 	end

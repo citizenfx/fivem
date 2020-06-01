@@ -72,6 +72,10 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #else
 #define LAUNCHER_PERSONALITY_GAME_1604
 #endif
+#elif defined(IS_RDR3)
+#ifdef LAUNCHER_PERSONALITY_MAIN
+#define LAUNCHER_PERSONALITY_GAME
+#endif
 #endif
 
 struct TenUIBase

@@ -1,8 +1,8 @@
-# Building FiveM
+# Building Cfx.re
 
 ## Generate solution
 
-To build FiveM or RedM you need the following dependencies:
+To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 
 * A Windows machine with Visual Studio 2019 (Build Tools/Community is fine) installed with the following workloads:
   - .NET desktop environment
@@ -25,7 +25,6 @@ git clone https://github.com/citizenfx/fivem.git
 cd fivem
 git submodule init
 git submodule update --recursive
-prebuild
 cd code
 
 :: or --game=server/--game=rdr3
@@ -36,25 +35,7 @@ cd code
 
 ### Set up data files for `five`
 
-After building the FiveM client, you should create the following files in the `/code/bin/five/debug` directory:
-
-- `FiveM.exe.formaldev`
-- `nobootstrap.txt`
-
-If you don't do this, FiveM will auto-update using the official binaries.
-
-**CEF**
-
-1. Create `cef` folder inside `/code/bin/five/debug/bin`. This is our "CEF directory".
-2. Copy `*.pak` files from `/vendor/cef/Resources` into our CEF directory.
-3. Copy `/vendor/cef/Resources/locales/en-US.pak` into our CEF directory. (Don't create a nested `locales` directory.)
-5. Copy `/vendor/cef/Resources/icudtl.dat` to `/code/bin/five/debug/bin/icudtl.dat`
-6. Copy `.dll` and `.bin` that are _directly inside_ `/vendor/cef/Release` to `/code/bin/five/debug/bin`.
-
-**Additional data files**
-
-1. Copy contents of `/data/shared` into `/code/bin/five/debug`.
-2. Copy contents of `/data/client` into `/code/bin/five/debug`.
+After building the FiveM client, you should be having files such as `/code/bin/five/debug/v8.dll` exist automatically. Manual copying is no longer required.
 
 **Symlink `cache` directory** (optional)
 
@@ -74,7 +55,7 @@ If you don't know how to do that, here's how:
   
   This directory is probably missing: `/code/bin/five/debug/citizen/ui`.
   
-  We still need to add instructions on how to build the UI (`/ext/ui-build`), so for now, just copy this directory `%LocalAppData%/FiveM/FiveM.app/citizen/ui` from your main installation of FiveM.
+  UI building might have failed, but you can copy this directory `%LocalAppData%/FiveM/FiveM.app/citizen/ui` from your main installation of FiveM.
 - Windows error code 126, or some issues with other DLLs.
 
   It's possible that you accidentally missed a step or skipped a file that should have been copied. Start this section over from scratch; do not pass go, do not collect £200.

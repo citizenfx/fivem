@@ -1,9 +1,9 @@
-  CitizenFX/FiveM are (c) 2017 the CitizenFX Collective.
+  CitizenFX/FiveM are (c) 2017-2020 the CitizenFX Collective.
 
   Use of this source code is subject to the terms provided on the CitizenFX
-Collective web site, currently versioned (1) at the following web URL:
+Collective web site, currently versioned (4) at the following web URL:
 
-  https://runtime.fivem.net/fivem-service-agreement-1.pdf
+  https://fivem.net/terms
 
   The following files, as long as they are marked as licensed under the
 CitizenFX Project license, are optionally available under the LGPLv2, as in
@@ -27,6 +27,9 @@ PSA.
 
   This project is based on the original CitizenFX framework by NTAuthority,
 the original permission notice of which is reproduced below.
+
+  Please note that this permission notice does not apply to any changes made
+since 2016.
 
 Copyright (c) 2014 Bas Timmer/NTAuthority et al.
 
