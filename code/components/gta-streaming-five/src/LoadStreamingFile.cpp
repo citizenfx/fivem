@@ -1073,6 +1073,7 @@ void LoadManifest(const char* tagName)
 }
 
 #include <EntitySystem.h>
+#include <RageParser.h>
 
 struct CPedModelInfo
 {
@@ -1618,6 +1619,29 @@ static void fwMapTypes__ConstructArchetypesStub(void* mapTypes, int32_t idx)
 	g_origfwMapTypes__ConstructArchetypes(mapTypes, idx);
 }
 
+static void (*g_origfwMapDataStore__FinishLoading)(void* store, int32_t idx, CMapData** data);
+
+static void fwMapDataStore__FinishLoadingHook(streaming::strStreamingModule* store, int32_t idx, CMapData** data)
+{
+	CMapData* mapData = *data;
+
+	static_assert(offsetof(CMapData, name) == 8, "CMapData::name");
+
+	for (fwEntityDef* entity : mapData->entities)
+	{
+		if (entity->GetTypeIdentifier()->m_nameHash == HashRageString("CMloInstanceDef"))
+		{
+			if (!(mapData->contentFlags & 8))
+			{
+				trace("Fixed fwMapData contentFlags (missing 'interior' flag) in %s.\n", streaming::GetStreamingNameForIndex(idx + store->baseIdx));
+				mapData->contentFlags |= 8;
+			}
+		}
+	}
+
+	return g_origfwMapDataStore__FinishLoading(store, idx, data);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
@@ -1873,6 +1897,13 @@ static HookFunction hookFunction([] ()
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	// fwMapDataStore::FinishLoading map flag fixing
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("25 00 0C 00 00 3D 00 08 00 00 49 8B 06", -0x6F), fwMapDataStore__FinishLoadingHook, (void**)&g_origfwMapDataStore__FinishLoading);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 

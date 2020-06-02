@@ -148,12 +148,17 @@ public:
 	uint32_t assetIndex;
 };
 
+namespace rage
+{
+class parStructure;
+}
+
 class STREAMING_EXPORT fwEntityDef
 {
 public:
 	virtual ~fwEntityDef();
 
-	virtual int64_t GetTypeIdentifier();
+	virtual rage::parStructure* GetTypeIdentifier();
 
 public:
 	uint32_t archetypeName;
@@ -465,6 +470,16 @@ struct CMapDataContents
 	uint32_t numEntities;
 };
 
+struct MapDataVec4
+{
+	float values[4];
+
+	inline float& operator[](int i)
+	{
+		return values[i];
+	}
+};
+
 struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 {
 	CMapData();
@@ -476,10 +491,13 @@ struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 	uint32_t parent; // +12
 	int32_t flags; // +16
 	int32_t contentFlags; // +20
-	alignas(16) float streamingExtentsMin[4]; // +32
-	alignas(16) float streamingExtentsMax[4]; // +48
-	alignas(16) float entitiesExtentsMin[4]; // +64
-	alignas(16) float entitiesExtentsMax[4]; // +72
+
+	char padAlign[8]; // we can **not** use alignas here as it'll align `name` and such too
+
+	MapDataVec4 streamingExtentsMin; // +32
+	MapDataVec4 streamingExtentsMax; // +48
+	MapDataVec4 entitiesExtentsMin; // +64
+	MapDataVec4 entitiesExtentsMax; // +72
 	atArray<fwEntityDef*> entities;
 
 	char pad[512 - 104];

@@ -65,9 +65,9 @@ fwEntityDef::~fwEntityDef()
 
 }
 
-int64_t fwEntityDef::GetTypeIdentifier()
+rage::parStructure* fwEntityDef::GetTypeIdentifier()
 {
-	return 0;
+	return nullptr;
 }
 
 static hook::cdecl_stub<void(CMapData*)> _mapData_ctor([]()
