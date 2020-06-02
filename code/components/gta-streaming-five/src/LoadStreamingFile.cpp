@@ -1574,6 +1574,17 @@ static void LoadReplayDlc(void* ecw)
 	LoadDataFiles();
 }
 
+static void (*g_origfwMapTypes__ConstructArchetypes)(void* mapTypes, int32_t idx);
+
+static void fwMapTypes__ConstructArchetypesStub(void* mapTypes, int32_t idx)
+{
+	// free this archetype file since we're recreating it anyway
+	// this should be safe, as an asset won't get loaded without it having been unloaded before
+	rage__fwArchetypeManager__FreeArchetypes(idx);
+
+	g_origfwMapTypes__ConstructArchetypes(mapTypes, idx);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
@@ -1829,6 +1840,13 @@ static HookFunction hookFunction([] ()
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("4C 63 C2 33 ED 46 0F B6 0C 00 8B 41 4C", -18), fwMapTypesStore__Unload, (void**)&g_origUnloadMapTypes);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	// fwMapTypes::ConstructArchetypes hook (for #typ override issues with different sizes)
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("FF 50 28 0F B7 46 20 33 ED", -0x21), fwMapTypes__ConstructArchetypesStub, (void**)&g_origfwMapTypes__ConstructArchetypes);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
