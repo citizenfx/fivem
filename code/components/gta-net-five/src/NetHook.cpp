@@ -1478,6 +1478,9 @@ static bool BeforeReplayLoadHook()
 	g_netLibrary->Disconnect("Entering Rockstar Editor");
 	g_netLibrary->FinalizeDisconnect();
 
+	// stop scripts from this point
+	Instance<ICoreGameInit>::Get()->SetVariable("networkTimedOut");
+
 	return g_origBeforeReplayLoad();
 }
 

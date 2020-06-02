@@ -40,6 +40,7 @@ static void StartLoadResources(const std::vector<ResourceMetaData>& rmds)
 	// allow subdir entries to work
 	Instance<ICoreGameInit>::Get()->SetData("policy", "[subdir_file_mapping]");
 	Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
+	Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 
 	for (const auto& md : rmds)
 	{
