@@ -24,6 +24,8 @@
 
 #include <EntitySystem.h>
 
+#include <Error.h>
+
 extern NetLibrary* g_netLibrary;
 
 class CNetGamePlayer;

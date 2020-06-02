@@ -6,6 +6,7 @@
 #include <GameInit.h>
 
 #include <CoreNetworking.h>
+#include <Error.h>
 
 NetLibrary* g_netLibrary;
 
@@ -550,12 +551,12 @@ static void* (*g_orig_rlSessionEventMigrateEnd)(void* self, const rlGamerInfo& i
 
 static void* rlSessionEventMigrateEnd_stub(void* self, const rlGamerInfo& info, bool a3, int a4, int a5)
 {
-	std::unique_ptr<NetBuffer> msgBuffer(new NetBuffer(64));
+	std::unique_ptr<net::Buffer> msgBuffer(new net::Buffer(64));
 
 	msgBuffer->Write<uint32_t>((info.peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED);
 	msgBuffer->Write<uint32_t>(static_cast<uint32_t>(info.peerAddress.peerId.val));
 
-	g_netLibrary->SendReliableCommand("msgHeHost", msgBuffer->GetBuffer(), msgBuffer->GetCurLength());
+	g_netLibrary->SendReliableCommand("msgHeHost", reinterpret_cast<const char*>(msgBuffer->GetBuffer()), msgBuffer->GetCurOffset());
 
 	if (isNetworkHost())
 	{

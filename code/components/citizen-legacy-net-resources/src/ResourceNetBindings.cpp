@@ -570,7 +570,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
 		{
-			NetBuffer buffer(buf, len);
+			net::Buffer buffer(reinterpret_cast<const uint8_t*>(buf), len);
 
 			// get the source net ID
 			uint16_t sourceNetID = buffer.Read<uint16_t>();
@@ -664,13 +664,13 @@ static InitFunction initFunction([] ()
 
 			netLibrary->OnTriggerServerEvent(eventName, eventPayload);
 
-			NetBuffer buffer(131072);
+			net::Buffer buffer;
 			buffer.Write<uint16_t>(eventName.size() + 1);
 			buffer.Write(eventName.c_str(), eventName.size() + 1);
 
 			buffer.Write(eventPayload.c_str(), eventPayload.size());
 
-			netLibrary->SendReliableCommand("msgServerEvent", buffer.GetBuffer(), buffer.GetCurLength());
+			netLibrary->SendReliableCommand("msgServerEvent", reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
 		});
 
 		fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [=](fx::ScriptContext& context)
@@ -713,11 +713,11 @@ static InitFunction initFunction([] ()
 
 			std::string s = console::GetDefaultContext()->GetCommandManager()->GetRawCommand();
 
-			NetBuffer buffer(131072);
+			net::Buffer buffer;
 			buffer.Write<uint16_t>(s.size());
 			buffer.Write(s.c_str(), std::min(s.size(), static_cast<size_t>(INT16_MAX)));
 
-			netLibrary->SendReliableCommand("msgServerCommand", buffer.GetBuffer(), buffer.GetCurLength());
+			netLibrary->SendReliableCommand("msgServerCommand", reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
 
 			return false;
 		}, 99999);

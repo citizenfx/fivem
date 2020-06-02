@@ -1697,7 +1697,7 @@ void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& j
 
 	size_t eventNameLength = eventName.length();
 
-	NetBuffer buffer(100000);
+	net::Buffer buffer;
 
 	if (i >= 0)
 	{
@@ -1709,7 +1709,7 @@ void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& j
 
 	buffer.Write(jsonString.c_str(), jsonString.size());
 	
-	SendReliableCommand(cmdType, buffer.GetBuffer(), buffer.GetCurLength());
+	SendReliableCommand(cmdType, reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
 }
 
 /*void NetLibrary::AddReliableHandler(const char* type, ReliableHandlerType function)
@@ -1736,7 +1736,7 @@ NetLibrary* NetLibrary::Create()
 
 	lib->AddReliableHandler("msgIHost", [=] (const char* buf, size_t len)
 	{
-		NetBuffer buffer(buf, len);
+		net::Buffer buffer(reinterpret_cast<const uint8_t*>(buf), len);
 
 		uint16_t hostNetID = buffer.Read<uint16_t>();
 		uint32_t hostBase = buffer.Read<uint32_t>();

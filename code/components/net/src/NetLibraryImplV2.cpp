@@ -213,11 +213,11 @@ void NetLibraryImplV2::RunFrame()
 		{
 		case ENET_EVENT_TYPE_CONNECT:
 		{
-			NetBuffer buf(1300);
+			net::Buffer buf(1300);
 			buf.Write<int>(1);
 			buf.Write(m_connectData.c_str(), m_connectData.size());
 
-			ENetPacket* packet = enet_packet_create(buf.GetBuffer(), buf.GetCurLength(), ENET_PACKET_FLAG_RELIABLE);
+			ENetPacket* packet = enet_packet_create(buf.GetBuffer(), buf.GetCurOffset(), ENET_PACKET_FLAG_RELIABLE);
 			enet_peer_send(event.peer, 0, packet);
 			break;
 		}
@@ -260,14 +260,14 @@ void NetLibraryImplV2::RunFrame()
 
 			while (m_base->GetOutgoingPacket(packet))
 			{
-				NetBuffer msg(1300);
+				net::Buffer msg(1300);
 				msg.Write(HashRageString("msgRoute"));
 				msg.Write(packet.netID);
 				msg.Write<uint16_t>(packet.payload.size());
 
 				msg.Write(packet.payload.c_str(), packet.payload.size());
 
-				enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), (ENetPacketFlag)0));
+				enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), (ENetPacketFlag)0));
 
 				m_base->GetMetricSink()->OnOutgoingCommand(HashRageString("msgRoute"), packet.payload.size() + 4, false);
 				m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
@@ -279,10 +279,10 @@ void NetLibraryImplV2::RunFrame()
 		// send keepalive every 100ms (server requires an actual received packet in order to call fx::Client::Touch)
 		if ((timeGetTime() - m_lastKeepaliveSent) > 100)
 		{
-			NetBuffer msg(1300);
+			net::Buffer msg(8);
 			msg.Write(0xCA569E63); // msgEnd
 
-			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurLength(), ENET_PACKET_FLAG_UNSEQUENCED));
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), ENET_PACKET_FLAG_UNSEQUENCED));
 
 			m_lastKeepaliveSent = timeGetTime();
 		}
@@ -348,13 +348,13 @@ void NetLibraryImplV2::SendConnect(const std::string& connectData)
 
 void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags)
 {
-	NetBuffer msg((char*)data, size);
+	net::Buffer msg(data, size);
 	uint32_t msgType = msg.Read<uint32_t>();
 
 	if (msgType == 1)
 	{
 		char dataCopy[8192];
-		memcpy(dataCopy, data, fwMin(size, sizeof(dataCopy)));
+		memcpy(dataCopy, data, std::min(size, sizeof(dataCopy)));
 		dataCopy[size] = '\0';
 
 		char* clientNetIDStr = &dataCopy[5];
@@ -414,9 +414,7 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size, NetPacket
 		uint16_t netID = msg.Read<uint16_t>();
 		uint16_t rlength = msg.Read<uint16_t>();
 
-		//trace("msgRoute from %d len %d\n", netID, rlength);
-
-		char routeBuffer[65536];
+		static char routeBuffer[65536];
 		if (!msg.Read(routeBuffer, rlength))
 		{
 			return;
