@@ -20,7 +20,7 @@ foreach ($file in (Get-ChildItem -Recurse $BinRoot\$GameName\release)) {
     if ($file.LastWriteTime -ge $lastSymDate) {
         if ($file.Extension -in @(".dll", ".pdb", ".exe", ".bin")) {
             Push-Location $BinRoot\$GameName\release
-            $relPath = (Resolve-Path -Relative $file.FullName)
+            $relPath = (Resolve-Path -Relative $file.FullName) -replace "\dbg", ""
             Pop-Location
 
             $relDir = [IO.Path]::GetDirectoryName($relPath)
