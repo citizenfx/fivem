@@ -383,6 +383,7 @@ static CDataFileMountInterface** g_dataFileMounters;
 
 // TODO: this might need to be a ref counter instead?
 static std::set<std::string, IgnoreCaseLess> g_permanentItyps;
+static std::map<uint32_t, std::string> g_itypHashList;
 
 class CfxProxyItypMounter : public CDataFileMountInterface
 {
@@ -408,6 +409,8 @@ public:
 	{
 		// parse dir/dir/blah.ityp into blah
 		std::string baseName = ParseBaseName(entry);
+
+		g_itypHashList.insert({ HashString(baseName.c_str()), baseName });
 
 		uint32_t slotId;
 
@@ -1033,6 +1036,36 @@ void LoadManifest(const char* tagName)
 		loadManifest(manifestChunkPtr, (void*)1, tagName);
 
 		rage::fiDevice::Unmount("localPack:/");
+
+		struct CItypDependencies 
+		{
+			uint32_t itypName;
+			uint32_t manifestFlags;
+
+			atArray<uint32_t> itypDepArray;
+		};
+
+		struct manifestData
+		{
+			char pad[48];
+			atArray<CItypDependencies> itypDependencies;
+		}* manifestChunk = (manifestData*)manifestChunkPtr;
+
+		for (auto& dep : manifestChunk->itypDependencies)
+		{
+			if (auto it = g_itypHashList.find(dep.itypName); it != g_itypHashList.end())
+			{
+				auto name = fmt::sprintf("dummy/%s.ityp", it->second);
+				trace("Fixing manifest-required #typ dependency for %s\n", name);
+
+				auto mounter = LookupDataFileMounter("DLC_ITYP_REQUEST");
+
+				DataFileEntry entry = { 0 };
+				strcpy_s(entry.name, name.c_str());
+
+				mounter->UnmountFile(&entry);
+			}
+		}
 
 		_loadManifestChunk(manifestChunkPtr);
 		_clearManifestChunk(manifestChunkPtr);
