@@ -55,7 +55,7 @@ local function launcherpersonality(name)
 		
 		if isGamePersonality(name) then
 			if _OPTIONS['game'] == 'five' then
-				local gameBuild = (name == 'game') and '1604' or '1868'
+				local gameBuild = (name == 'game_1868') and '1868' or '1604'
 			
 				postbuildcommands {
 					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
