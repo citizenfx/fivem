@@ -232,10 +232,16 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	{
 		std::string url = request->GetURL().ToString();
 
-		if (std::regex_search(url, reg))
+		try
 		{
-			trace("Blocked a request for blacklisted URI %s\n", url);
-			return RV_CANCEL;
+			if (std::regex_search(url, reg))
+			{
+				trace("Blocked a request for blacklisted URI %s\n", url);
+				return RV_CANCEL;
+			}
+		}
+		catch (std::exception& e)
+		{
 		}
 	}
 
