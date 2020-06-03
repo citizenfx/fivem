@@ -30,11 +30,13 @@ void SteamLoader::Initialize()
 		// load steamclient*.dll
 		m_hSteamClient = LoadLibrary(steamDllPath.c_str());
 
+#if 0
 		// load the Steam overlay, if 'rtsshooks64.dll' is not present
 		if (GetModuleHandleW(L"rtsshooks64.dll") == nullptr)
 		{
 			LoadGameOverlayRenderer(steamDllPath);
 		}
+#endif
 	}
 }
 
