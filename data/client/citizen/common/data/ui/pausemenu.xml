@@ -418,7 +418,7 @@
 			<MenuOption>MENU_OPTION_GFX_SCALING</MenuOption>
 			
 			<MenuDisplayOptions>
-				<Item> <cTextId>MO_OFF</cTextId> </Item>
+				<Item> <cTextId>MO_GFX_1o1</cTextId> </Item>
 				<Item> <cTextId>MO_GFX_1o2</cTextId> </Item>
 				<Item> <cTextId>MO_GFX_2o3</cTextId> </Item>
 				<Item> <cTextId>MO_GFX_3o4</cTextId> </Item>
@@ -2162,11 +2162,8 @@
 				<Item> <cTextId>GFX_DXVERSION</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_DXVERSION</MenuPref>				<MenuOption>MENU_OPTION_GFX_DXVERSION</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				
 				<Item> <MenuAction>MENU_OPTION_ACTION_SEPARATOR</MenuAction> </Item>
-				
-				<Item> <cTextId>VID_SCR_TYPE</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_SCREEN_TYPE</MenuPref> 			<MenuOption>MENU_OPTION_SCREEN_TYPE</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-				<Item> <cTextId>VID_RESOLUTION</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_RESOLUTION</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-				<Item> <cTextId>VID_ASPECT</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_ASPECT</MenuPref> 				<MenuOption>MENU_OPTION_VID_ASPECT</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-				<Item> <cTextId>VID_REFRESH</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_REFRESH</MenuPref> 				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+
+				<Item> <cTextId>GFX_SCALING</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SCALING</MenuPref> 				<MenuOption>MENU_OPTION_GFX_SCALING</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>				
 				<!--<Item> <cTextId>VID_ADAPTER</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_ADAPTER</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>-->
 				<Item> <cTextId>VID_MONITOR</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_MONITOR</MenuPref> 				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>				
 								
@@ -2220,14 +2217,17 @@
 			<Flags>SF_NoClearRootColumns</Flags>
 			<ScrollBarFlags>Width_2 ManualUpdate InitiallyInvisible</ScrollBarFlags>
 			<MenuItems>
-        <Item> <cTextId>AGFX_WARNING</cTextId> <MenuAction>MENU_OPTION_ACTION_SEPARATOR</MenuAction> </Item>
-        
+		<Item> <cTextId>VID_SCR_TYPE</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_SCREEN_TYPE</MenuPref> 			<MenuOption>MENU_OPTION_SCREEN_TYPE</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+		<Item> <cTextId>VID_RESOLUTION</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_RESOLUTION</MenuPref> 			<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+		<Item> <cTextId>VID_REFRESH</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_REFRESH</MenuPref> 				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+		<Item> <cTextId>VID_ASPECT</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_ASPECT</MenuPref> 				<MenuOption>MENU_OPTION_VID_ASPECT</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+
+        <Item> <cTextId>AGFX_WARNING</cTextId> <MenuAction>MENU_OPTION_ACTION_SEPARATOR</MenuAction> </Item>        
 		<Item> <cTextId>AGFX_LSHADOW</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_ADV_GFX_LONG_SHADOWS</MenuPref>				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
         <Item> <cTextId>AGFX_USHADOW</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_ADV_GFX_ULTRA_SHADOWS</MenuPref>				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 		<Item> <cTextId>AGFX_HD_FLIGHT</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_ADV_GFX_HD_FLIGHT</MenuPref>				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
         <Item> <cTextId>AGFX_MAXLOD</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_ADV_GFX_MAX_LOD</MenuPref>				<MenuOption>MENU_OPTION_SLIDER</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
         <Item> <cTextId>AGFX_SHADOWS_DIST</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_ADV_GFX_SHADOWS_DIST_MULT</MenuPref>				<MenuOption>MENU_OPTION_SLIDER</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-		<Item> <cTextId>GFX_SCALING</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SCALING</MenuPref> 				<MenuOption>MENU_OPTION_GFX_SCALING</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				
 				<Item> <cTextId>MO_RDF</cTextId>			<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction>			<MenuUniqueIdHash>RESTORE_DEFAULTS_ADVANCED_GFX</MenuUniqueIdHash> </Item>
 			</MenuItems>

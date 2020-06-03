@@ -28,6 +28,8 @@ namespace WRL = Microsoft::WRL;
 fwEvent<> OnGrcCreateDevice;
 fwEvent<> OnPostFrontendRender;
 
+DLL_EXPORT fwEvent<bool*> OnFlipModelHook;
+
 fwEvent<bool*> OnRequestInternalScreenshot;
 fwEvent<const uint8_t*, int, int> OnInternalScreenshot;
 
@@ -323,6 +325,8 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 	{
 		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 	}
+
+	OnFlipModelHook(&g_useFlipModel);
 
 	HRESULT hr = D3D11CreateDevice(pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 

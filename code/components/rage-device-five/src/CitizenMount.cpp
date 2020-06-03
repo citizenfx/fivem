@@ -282,7 +282,7 @@ static InitFunction initFunction([] ()
 				std::wstring profilePath = cfxPath + L"\\";
 
 				rage::fiDeviceRelative* fxUserDevice = new rage::fiDeviceRelative();
-				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), true);
+				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), false);
 				fxUserDevice->Mount("fxd:/");
 
 				CoTaskMemFree(appDataPath);
