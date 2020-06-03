@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include <peframework.h>
+#include <filesystem>
 
 #include "mangle.h"
 
@@ -100,7 +101,8 @@ void tryGenerateSamplePDB( PEFile& peFile, const char* exeFile, const char* symF
 
 	std::wstring widePath(narrowPath.begin(), narrowPath.end());
 
-    std::wstring widePDBFileLocation = ( widePath + L".pdb" );
+	std::filesystem::path p(widePath);
+	std::wstring widePDBFileLocation = (p.parent_path() / L"dbg" / p.filename()).wstring() + L".pdb";
 
     wprintf( L"generating PDB file (%s)\n", widePDBFileLocation.c_str() );
 

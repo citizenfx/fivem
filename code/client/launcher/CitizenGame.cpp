@@ -641,7 +641,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	VirtualProtect((void*)0x401000, 0x94C000, PAGE_EXECUTE_READ, &oldProtect); // .text
 	VirtualProtect((void*)0xD4D000, 0x1BF000, PAGE_READONLY, &oldProtect); // .idata/.rdata
 #endif
-
+	//
 #if defined(PAYNE)
 	// hook GetModuleFileNameA/W (in a bit of an ugly way) - GameShield reads some verification from here
 	DWORD oldProtect;
