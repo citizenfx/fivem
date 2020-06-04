@@ -20,7 +20,7 @@
 			<!-- This Id value indicates the application supports Windows Threshold functionality-->
 			<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
 			<!-- and this seems to be the edgy new thing -->
-			<maxversiontested Id="10.0.19041.0"/>
+			<maxversiontested Id="10.0.18362.0"/>
 		</application>
     </compatibility>
 	<asmv3:application>
