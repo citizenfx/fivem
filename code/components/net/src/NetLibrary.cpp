@@ -1189,21 +1189,29 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							}
 						});
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s_%d", address.GetHost(), address.GetPort()), [=](bool success, const char* data, size_t length)
+						auto blacklistResultHandler = [this](bool success, const char* data, size_t length)
 						{
 							if (success)
 							{
-								FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
-							}
-						});
+								// poke if we aren't blocking *everyone* instead
+								std::default_random_engine generator;
+								std::uniform_int_distribution<int> distribution(1, 224);
+								std::uniform_int_distribution<int> distribution2(1, 254);
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), [=](bool success, const char* data, size_t length)
-						{
-							if (success)
-							{
-								FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", std::string(data, length));
+								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blacklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
+								auto dStr = std::string(data, length);
+
+								m_httpClient->DoGetRequest(rndQ, [dStr](bool success, const char* data, size_t length)
+								{
+									if (!success)
+									{
+										FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr);
+									}
+								});
 							}
-						});
+						};
+
+						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), blacklistResultHandler);
 
 						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
 						Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
