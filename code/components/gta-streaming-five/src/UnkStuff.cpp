@@ -664,22 +664,6 @@ static void HookStereo()
 	hook::jump(GetNvapi(0x1FB0BC30), NvAPI_Stereo_IsActivated);
 }
 
-static void** g_fwPortalSceneGraphNode_dataPtr;
-
-static void* (*g_origPoolCtor)(void* self, int count, void* data, void* flags, const char* name, int v, int size);
-
-static void* PortalSceneGraphPoolCtor(void* self, int count, void* data, void* flags, const char* name, int v, int size)
-{
-	count *= 3;
-
-	flags = rage::GetAllocator()->Allocate(count, 16, 0);
-	data = rage::GetAllocator()->Allocate(count * size, 16, 0);
-
-	*g_fwPortalSceneGraphNode_dataPtr = data;
-
-	return g_origPoolCtor(self, count, data, flags, name, v, size);
-}
-
 static HookFunction hookFunction([]()
 {
 #if 0
@@ -775,19 +759,6 @@ static HookFunction hookFunction([]()
 
 	// make GTA default rage::fwMapData::ms_entityLevelCap to PRI_OPTIONAL_LOW, not PRI_OPTIONAL_MEDIUM (RAGE suite defaults)
 	hook::put<uint32_t>(hook::get_pattern("BB 02 00 00 00 39 1D", 1), 3);
-
-	// increase fwPortalSceneGraphNode pool size (in the process, replacing all of it)
-	if (!Is1868())
-	{
-		auto location = hook::get_pattern<char>("4D 8B CD BA 90 01 00 00", -0x2D1);
-
-		// we can't just replace the size, for it leads to a single batched allocation and a base pointer
-		// instead, we'll ignore the existing allocation and make our own
-		g_fwPortalSceneGraphNode_dataPtr = hook::get_address<decltype(g_fwPortalSceneGraphNode_dataPtr)>(location + 0x2BE);
-
-		hook::set_call(&g_origPoolCtor, location + 0x2E5);
-		hook::call(location + 0x2E5, PortalSceneGraphPoolCtor);
-	}
 
 	// limit adjuster!
 	AdjustLimits();
