@@ -7,6 +7,8 @@
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
 
+#include <MakeClientFunction.h>
+
 #include <ScriptSerialization.h>
 
 static InitFunction initFunction([]()
@@ -855,5 +857,39 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_A_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		return entity->type == fx::sync::NetObjEntityType::Player;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_SCOPE_RADIUS", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	{
+		float scopeRadius = context.GetArgument<float>(1);
+
+		if (scopeRadius > 0.0f)
+		{
+			client->SetData("scopeRadius", scopeRadius);
+		}
+
+		return 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_SCOPE_RADIUS", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		// get the server's default scope radius
+		float scopeRadius = gameState->GetEntityScopeRadius();
+
+		if (auto clientScopeRadius = client->GetData("scopeRadius"); clientScopeRadius.has_value())
+		{
+			scopeRadius = std::any_cast<float>(clientScopeRadius);
+		}
+
+		return scopeRadius;
 	}));
 });

@@ -508,6 +508,16 @@ public:
 		m_entityLockdownMode = mode;
 	}
 
+	inline float GetEntityScopeRadius()
+	{
+		return m_entityScopeRadius;
+	}
+
+	inline void SetEntityScopeRadius(float scopeRadius)
+	{
+		m_entityScopeRadius = scopeRadius;
+	}
+
 	uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr);
 
 	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const std::shared_ptr<fx::Client>& client);
@@ -598,6 +608,8 @@ public:
 	std::shared_mutex m_entityListMutex;
 
 	EntityLockdownMode m_entityLockdownMode;
+
+	float m_entityScopeRadius;
 };
 
 std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);

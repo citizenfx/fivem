@@ -355,7 +355,7 @@ glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity
 }
 
 ServerGameState::ServerGameState()
-	: m_frameIndex(0), m_entitiesById(MaxObjectId), m_entityLockdownMode(EntityLockdownMode::Inactive)
+	: m_frameIndex(0), m_entitiesById(MaxObjectId), m_entityLockdownMode(EntityLockdownMode::Inactive), m_entityScopeRadius(350.0f)
 {
 	m_tg = std::make_unique<ThreadPool>();
 }
@@ -621,6 +621,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 	int initSlot = ((fx::IsBigMode()) ? MAX_CLIENTS : 129) - 1;
 
+	float serverScopeRadius = m_entityScopeRadius;
+
 	static int lastUpdateSlot = initSlot;
 	int iterations = 0;
 	int slot = lastUpdateSlot;
@@ -683,6 +685,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		auto slotId = client->GetSlotId();
 
+		float scopeRadius = serverScopeRadius;
+
+		if (auto clientScopeRadius = client->GetData("scopeRadius"); clientScopeRadius.has_value())
+		{
+			scopeRadius = std::any_cast<float>(clientScopeRadius);
+		}
+
 		for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
 		{
 			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityIndex];
@@ -707,7 +716,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float distSquared = (diffX * diffX) + (diffY * diffY);
 
 					// #TODO1S: figure out a good value for this
-					if (distSquared < (350.0f * 350.0f))
+					if (distSquared < (scopeRadius * scopeRadius))
 					{
 						shouldBeCreated = true;
 					}
