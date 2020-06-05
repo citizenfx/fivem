@@ -246,6 +246,9 @@ inline std::string ToNarrow(const std::string& str)
 	return str;
 }
 
+std::shared_mutex g_resourceStartOrderLock;
+std::list<std::string> g_resourceStartOrder;
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -383,6 +386,11 @@ static InitFunction initFunction([]()
 					return;
 				}
 
+				{
+					std::unique_lock<std::shared_mutex> _(g_resourceStartOrderLock);
+					g_resourceStartOrder.push_back(resource->GetName());
+				}
+
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 				net::Buffer outBuffer;
@@ -405,6 +413,15 @@ static InitFunction initFunction([]()
 				if (iv.begin() != iv.end())
 				{
 					return;
+				}
+
+				{
+					std::unique_lock<std::shared_mutex> _(g_resourceStartOrderLock);
+					g_resourceStartOrder.erase(std::remove_if(g_resourceStartOrder.begin(), g_resourceStartOrder.end(), [&resource](const std::string& name)
+											   {
+												   return name == resource->GetName();
+											   }),
+					g_resourceStartOrder.end());
 				}
 
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();

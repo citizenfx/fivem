@@ -9,6 +9,9 @@
 
 #include <regex>
 
+extern std::shared_mutex g_resourceStartOrderLock;
+extern std::list<std::string> g_resourceStartOrder;
+
 static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
@@ -92,8 +95,15 @@ static InitFunction initFunction([]()
 				} while (pos != std::string::npos);
 			}
 
-			resman->ForAllResources([&](fwRefContainer<fx::Resource> resource)
+			std::set<std::string_view> resourceNames;
+
+			auto appendResource = [&](const fwRefContainer<fx::Resource>& resource)
 			{
+				if (resourceNames.find(resource->GetName()) != resourceNames.end())
+				{
+					return;
+				}
+
 				if (resource->GetName() == "_cfx_internal")
 				{
 					return;
@@ -116,6 +126,8 @@ static InitFunction initFunction([]()
 				{
 					return;
 				}
+
+				resourceNames.insert(resource->GetName());
 
 				rapidjson::Value resourceFiles;
 				resourceFiles.SetObject();
@@ -181,7 +193,28 @@ static InitFunction initFunction([]()
 				}
 
 				resources.PushBack(std::move(obj), retval.GetAllocator());
-			});
+			};
+
+			// first append in start order
+			decltype(g_resourceStartOrder) resourceOrder;
+
+			{
+				std::shared_lock<std::shared_mutex> _(g_resourceStartOrderLock);
+				resourceOrder = g_resourceStartOrder;
+			}
+
+			for (auto& resourceName : resourceOrder)
+			{
+				auto resource = resman->GetResource(resourceName, false);
+
+				if (resource.GetRef())
+				{
+					appendResource(resource);
+				}
+			}
+
+			// then append any leftovers
+			resman->ForAllResources(appendResource);
 
 			retval.AddMember("fileServer", "https://%s/files", retval.GetAllocator());
 			retval.AddMember("resources", std::move(resources), retval.GetAllocator());
