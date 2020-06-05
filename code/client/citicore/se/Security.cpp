@@ -94,6 +94,11 @@ void Context::RemovePrincipalInheritance(const Principal& child, const Principal
 
 void Context::AddAccessControlEntry(const Principal& principal, const Object& object, AccessType type)
 {
+	if (DoesAccessControlEntryExists(principal, object))
+	{
+		console::Printf("security", "An access control already exist with this principal and this object.\n");
+		return;
+	}
 	m_impl->m_aces.insert({ object, { object, principal, type } });
 }
 
@@ -110,6 +115,19 @@ void Context::RemoveAccessControlEntry(const Principal& principal, const Object&
 			++it;
 		}
 	}
+}
+
+bool Context::DoesAccessControlEntryExists(const Principal& principal, const Object& object)
+{
+	for (auto it = m_impl->m_aces.find(object); it != m_impl->m_aces.end(); )
+	{
+		if (it->second.principal == principal)
+		{
+			return true;
+		}
+		++it;
+	}
+	return false;
 }
 
 void Context::ForAllPrincipalInheritances(const std::function<void(const Principal &, const Principal &)>& cb)
