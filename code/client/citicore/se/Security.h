@@ -86,6 +86,8 @@ public:
 
 	virtual void RemoveAccessControlEntry(const Principal& principal, const Object& object, AccessType type);
 
+	virtual void RemoveAccessControlEntriesForObject(const Object& object);
+
 	virtual bool DoesAccessControlEntryExists(const Principal& principal, const Object& object);
 
 	virtual void ForAllPrincipalInheritances(const std::function<void(const Principal&, const Principal&)>&);

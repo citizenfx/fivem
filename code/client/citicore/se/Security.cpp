@@ -117,6 +117,21 @@ void Context::RemoveAccessControlEntry(const Principal& principal, const Object&
 	}
 }
 
+void Context::RemoveAccessControlEntriesForObject(const Object& object)
+{
+	for (auto it = m_impl->m_aces.begin(); it != m_impl->m_aces.end(); )
+	{
+		if (it->first == object)
+		{
+			it = m_impl->m_aces.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
 bool Context::DoesAccessControlEntryExists(const Principal& principal, const Object& object)
 {
 	for (auto it = m_impl->m_aces.find(object); it != m_impl->m_aces.end(); )
@@ -352,6 +367,11 @@ extern "C" se::Context* seGetCurrentContext()
 			static ConsoleCommand removePrincipalCmd("remove_principal", [](const std::string& principal, const std::string& parent)
 			{
 				seGetCurrentContext()->RemovePrincipalInheritance(se::Principal{ principal }, se::Principal{ parent });
+			});
+
+			static ConsoleCommand removeAcesForObjectCmd("remove_aces_for_object", [](const std::string& object)
+			{
+				seGetCurrentContext()->RemoveAccessControlEntriesForObject(se::Object{ object });
 			});
 #endif
 
