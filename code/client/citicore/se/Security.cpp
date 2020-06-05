@@ -74,6 +74,11 @@ std::string Context::SaveSnapshot()
 
 void Context::AddPrincipalInheritance(const Principal& child, const Principal& parent)
 {
+	if (DoesPrincipalInheritanceExists(child, parent))
+	{
+		console::Printf("security", "A principal inheritance already exists with this parent and child.\n");
+		return;
+	}
 	m_impl->m_principalInheritance.insert({ child, parent });
 }
 
@@ -96,7 +101,7 @@ void Context::AddAccessControlEntry(const Principal& principal, const Object& ob
 {
 	if (DoesAccessControlEntryExists(principal, object))
 	{
-		console::Printf("security", "An access control already exist with this principal and this object.\n");
+		console::Printf("security", "An access control already exists with this principal and this object.\n");
 		return;
 	}
 	m_impl->m_aces.insert({ object, { object, principal, type } });
@@ -141,6 +146,20 @@ bool Context::DoesAccessControlEntryExists(const Principal& principal, const Obj
 			return true;
 		}
 		++it;
+	}
+	return false;
+}
+
+bool Context::DoesPrincipalInheritanceExists(const Principal& child, const Principal& parent)
+{
+	for (auto it = m_impl->m_principalInheritance.find(child); it != m_impl->m_principalInheritance.end(); )
+	{
+		if (it->second == parent)
+		{
+			return true;
+		}
+		++it;
+
 	}
 	return false;
 }

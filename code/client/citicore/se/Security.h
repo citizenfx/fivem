@@ -90,6 +90,8 @@ public:
 
 	virtual bool DoesAccessControlEntryExists(const Principal& principal, const Object& object);
 
+	virtual bool DoesPrincipalInheritanceExists(const Principal& child, const Principal& parent);
+
 	virtual void ForAllPrincipalInheritances(const std::function<void(const Principal&, const Principal&)>&);
 
 	virtual void ForAllAccessControlEntries(const std::function<void(const Principal&, const Object&, AccessType)>&);
