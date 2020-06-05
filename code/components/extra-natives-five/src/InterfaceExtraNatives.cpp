@@ -155,4 +155,73 @@ static HookFunction initFunction([]()
 		data->tilesX = defaultZoomLevels[index].tilesX;
 		data->tilesY = defaultZoomLevels[index].tilesY;
 	});
+
+	static auto minimapIsRect = hook::get_address<bool*>(hook::get_pattern("8A 15 ? ? ? ? F3 0F 10 15 ? ? ? ? 84 D2 74 08", 2));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_MINIMAP_CLIP_TYPE", [](fx::ScriptContext& context)
+	{
+		int type = context.GetArgument<int>(0);
+		
+		*minimapIsRect = type == 0;
+	});
+
+	struct MinimapData
+	{
+		char name[100];
+		float posX;
+		float posY;
+		float sizeX;
+		float sizeY;
+		char alignX;
+		char alignY;
+
+	private:
+		char pad[2];
+	};
+
+	static auto minimapArray = hook::get_address<MinimapData*>(hook::get_pattern("48 8D 54 24 38 41 B8 64 00 00 00 48 8B 48 08 48 8D 05", 18));
+	static constexpr int minimapEntries = 11;
+
+	static MinimapData oldEntries[minimapEntries];
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_MINIMAP_COMPONENT_POSITION", [](fx::ScriptContext& context)
+	{
+		const char* name = context.CheckArgument<const char*>(0);
+		const char* alignX = context.CheckArgument<const char*>(1);
+		const char* alignY = context.CheckArgument<const char*>(2);
+
+		float posX = context.GetArgument<float>(3);
+		float posY = context.GetArgument<float>(4);
+		float sizeX = context.GetArgument<float>(5);
+		float sizeY = context.GetArgument<float>(6);
+
+		for (int i = 0; i < minimapEntries; i++)
+		{
+			auto entry = &minimapArray[i];
+
+			if (stricmp(entry->name, name) == 0)
+			{
+				entry->alignX = *alignX;
+				entry->alignY = *alignY;
+				entry->posX = posX;
+				entry->posY = posY;
+				entry->sizeX = sizeX;
+				entry->sizeY = sizeY;
+
+				break;
+			}
+		}
+	});
+
+	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+	{
+		memcpy(oldEntries, minimapArray, sizeof(oldEntries));
+	});
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		memcpy(minimapArray, oldEntries, sizeof(oldEntries));
+
+		*minimapIsRect = true;
+	});
 });
