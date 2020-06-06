@@ -25,7 +25,8 @@
 		"vendor:prometheus-cpp",
 		"vendor:folly",
 		"vendor:concurrentqueue",
-		"vendor:xenium"
+		"vendor:xenium",
+		"vendor:rocksdb"
 	],
 	"provides": []
 }

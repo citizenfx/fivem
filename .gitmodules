@@ -211,3 +211,6 @@
 [submodule "vendor/re3"]
 	path = vendor/re3
 	url = https://github.com/blattersturm/re3.git
+[submodule "vendor/rocksdb"]
+	path = vendor/rocksdb
+	url = https://github.com/facebook/rocksdb.git

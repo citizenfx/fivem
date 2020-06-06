@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: shared
 ---
 ## SET_RESOURCE_KVP_FLOAT
 
