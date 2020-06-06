@@ -1,8 +1,9 @@
-using System.Collections.Generic;
+using CitizenFX.Core.Native;
+
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using static CitizenFX.Core.Native.API;
+
 
 namespace FxWebAdmin
 {
@@ -12,7 +13,7 @@ namespace FxWebAdmin
         public IActionResult Log()
         {
             return View(
-                (object)GetConsoleBuffer()
+                (object)API.GetConsoleBuffer()
             );
         }
         public async Task<IActionResult> Execute([FromForm] string command)
@@ -20,9 +21,8 @@ namespace FxWebAdmin
             await HttpServer.QueueTick(() =>
             {
                 // TODO: access control for this(!)
-                ExecuteCommand(command);
+                API.ExecuteCommand(command);
             });
-
             return RedirectToAction("Log");
         }
     }
