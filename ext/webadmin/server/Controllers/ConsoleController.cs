@@ -1,14 +1,16 @@
 using CitizenFX.Core.Native;
-
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 
 namespace FxWebAdmin
 {
     public class ConsoleController : Controller
     {
+        public ConsoleController(ConsoleLog log){
+
+        }
+    
         [Authorize(Roles = "webadmin.console.read")]
         public IActionResult Log()
         {
@@ -16,6 +18,7 @@ namespace FxWebAdmin
                 (object)API.GetConsoleBuffer()
             );
         }
+        
         public async Task<IActionResult> Execute([FromForm] string command)
         {
             await HttpServer.QueueTick(() =>

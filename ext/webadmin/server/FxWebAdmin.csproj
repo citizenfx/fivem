@@ -5,6 +5,7 @@
     <DebugType>portable</DebugType>
     <TargetName>$(AssemblyName).net</TargetName>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OpenId.Steam" Version="2.1.0" />
     <PackageReference Include="CitizenFX.Core.Server" Version="1.0.2323" />
