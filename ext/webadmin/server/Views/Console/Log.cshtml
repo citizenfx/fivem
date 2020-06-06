@@ -51,12 +51,19 @@
     <div class="row">
         <div class="col-md-12">
             <h1>Console</h1>
-
             <div class="card">
                 <div class="card-body">
                     <pre id="console">@Model</pre>
                 </div>
             </div>
+            <form asp-controller="Console" asp-action="Execute" method="post">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Command" name="command">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">Execute</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
