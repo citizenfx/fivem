@@ -13,8 +13,8 @@ text="Woop, building a new $CI_PROJECT_NAME $CI_BUILD_REF_NAME SERVER/LINUX-PROO
 escapedText=$(echo $text | sed 's/"/\"/g' | sed "s/'/\'/g" )
 json="{\"text\":\"$escapedText\"}"
 
-curl -s -d "$json" "$TG_WEBHOOK" || true
-curl -s -d "$json" "$DISCORD_WEBHOOK" || true
+curl -H "Content-Type: application/json" -s -d "$json" "$TG_WEBHOOK" || true
+curl -H "Content-Type: application/json" -s -d "$json" "$DISCORD_WEBHOOK" || true
 
 # get an alpine rootfs
 curl -sLo alpine-minirootfs-3.11.5-x86_64.tar.gz http://dl-cdn.alpinelinux.org/alpine/v3.11/releases/x86_64/alpine-minirootfs-3.11.5-x86_64.tar.gz
@@ -126,5 +126,5 @@ text="Woop, building a SERVER/LINUX-PROOT build completed!"
 escapedText=$(echo $text | sed 's/"/\"/g' | sed "s/'/\'/g" )
 json="{\"text\":\"$escapedText\"}"
 
-curl -s -d "$json" "$TG_WEBHOOK" || true
-curl -s -d "$json" "$DISCORD_WEBHOOK" || true
+curl -H "Content-Type: application/json" -s -d "$json" "$TG_WEBHOOK" || true
+curl -H "Content-Type: application/json" -s -d "$json" "$DISCORD_WEBHOOK" || true
