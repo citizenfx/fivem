@@ -174,8 +174,11 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 		self->SerialiseUnsigned(value, 32, "Interior Flags");
 
 		// is this a new-format location?
-		if ((value >> 29) == 0b010)
+		if ((value >> 29) == 0b010 && (value & 0xFFFF) == 0xF5F5)
 		{
+			value &= ~0xF0000000;
+			value >>= 8;
+
 			uint32_t interiorHash;
 			self->SerialiseUnsigned(interiorHash, 32, "Interior Hash");
 
@@ -250,7 +253,8 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 					value1 |= location->GetRoomIndex() << 1;
 				}
 
-				value1 |= 0x40000000;
+				value1 <<= 8;
+				value1 |= 0x4000F5F5;
 
 				if (interior)
 				{
@@ -259,7 +263,7 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 			}
 			else
 			{
-				value1 = 0xBFFFFFFF;
+				value1 = 0x4000F5F5;
 				value2 = 0xFFFFFFFF;
 			}
 
