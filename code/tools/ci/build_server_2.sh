@@ -81,7 +81,11 @@ lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/s
 # download and extract boost
 cd /tmp
 
-curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
+# keeping this here as a note that boost is really dumb for using "jfrog artifactory bintray" which gives constant persistent 'Forbidden!'
+# whenever some arbitrary quota runs out, and deletes their version history on sourceforge, and has no single canonical git repo
+#curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
+curl --http1.1 -sLo /tmp/boost.tar.bz2 https://runtime.fivem.net/client/deps/boost_1_71_0.tar.bz2
+
 tar xf boost.tar.bz2
 rm boost.tar.bz2
 
