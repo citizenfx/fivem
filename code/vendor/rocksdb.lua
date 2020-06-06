@@ -23,7 +23,7 @@ return {
 		add_dependencies { 'vendor:lz4', 'vendor:zlib' }
 		
 		if not os.istarget('windows') then
-			defines { 'ROCKSDB_PLATFORM_POSIX', 'ROCKSDB_LIB_IO_POSIX' }
+			defines { 'ROCKSDB_PLATFORM_POSIX', 'ROCKSDB_LIB_IO_POSIX', 'OS_LINUX' }
 		else
 			defines { 'OS_WIN' }
 			
