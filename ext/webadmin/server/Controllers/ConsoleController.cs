@@ -18,7 +18,7 @@ namespace FxWebAdmin
                 (object)API.GetConsoleBuffer()
             );
         }
-        
+        [Authorize(Roles = "webadmin.console.write")]
         public async Task<IActionResult> Execute([FromForm] string command)
         {
             await HttpServer.QueueTick(() =>
