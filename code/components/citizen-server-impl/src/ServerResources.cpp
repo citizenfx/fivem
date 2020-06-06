@@ -28,6 +28,8 @@
 
 #include <StructuredTrace.h>
 
+#include <filesystem>
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -133,6 +135,7 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::share
 }
 
 static std::shared_ptr<ConVar<std::string>> g_citizenDir;
+static std::map<std::string, std::set<std::string>> g_resourcesByComponent;
 
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
@@ -140,6 +143,9 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 	std::string resourceRoot(instance->GetRootPath() + "/resources/");
 	std::string systemResourceRoot(g_citizenDir->GetValue() + "/system_resources/");
+
+	auto resourceRootPath = std::filesystem::u8path(resourceRoot).lexically_normal();
+	auto systemResourceRootPath = std::filesystem::u8path(systemResourceRoot).lexically_normal();
 
 	std::queue<std::string> pathsToIterate;
 	pathsToIterate.push(resourceRoot);
@@ -189,6 +195,53 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						{
 							trace("Found new resource %s in %s\n", findData.name, resPath);
 
+							auto path = std::filesystem::u8path(resPath);
+
+							// determine which root we're relative to
+							std::error_code ec;
+							auto refPath = path.lexically_normal();
+
+							std::filesystem::path* rootRef = nullptr;
+
+							auto [relEnd, _] = std::mismatch(resourceRootPath.begin(), resourceRootPath.end(), refPath.begin());
+							auto rpEnd = --resourceRootPath.end();
+
+							if (relEnd != rpEnd)
+							{
+								auto [relEnd, _] = std::mismatch(systemResourceRootPath.begin(), systemResourceRootPath.end(), refPath.begin());	
+								auto rpEnd = --systemResourceRootPath.end();
+
+								if (relEnd == rpEnd)
+								{
+									rootRef = &systemResourceRootPath;
+								}
+							}
+							else
+							{
+								rootRef = &resourceRootPath;
+							}
+							
+							// get the relative path to the root
+							std::vector<std::string> components;
+
+							if (rootRef)
+							{
+								auto relPath = std::filesystem::relative(path, *rootRef, ec);
+
+								if (!ec)
+								{
+									for (const auto& component : relPath)
+									{
+										auto name = component.filename().string();
+
+										if (name[0] == '[' && name[name.size() - 1] == ']')
+										{
+											components.push_back(name);
+										}
+									}
+								}
+							}
+
 							skyr::url_record record;
 							record.scheme = "file";
 
@@ -196,7 +249,18 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 							url.set_pathname(*skyr::percent_encode(resPath, skyr::encode_set::path));
 							url.set_hash(*skyr::percent_encode(findData.name, skyr::encode_set::fragment));
 
-							tasks.push_back(resMan->AddResource(url.href()));
+							auto task = resMan->AddResource(url.href())
+										.then([components = std::move(components)](fwRefContainer<fx::Resource> resource)
+										{
+											for (const auto& component : components)
+											{
+												g_resourcesByComponent[component].insert(resource->GetName());
+											}
+
+											return resource;
+										});
+
+							tasks.push_back(task);
 						}
 					}
 				}
@@ -465,6 +529,17 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
+			{
+				for (const auto& resource : g_resourcesByComponent[resourceName])
+				{
+					auto conCtx = instance->GetComponent<console::Context>();
+					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resource });
+				}
+
+				return;
+			}
+
 			auto resource = resman->GetResource(resourceName);
 
 			if (!resource.GetRef())
@@ -487,6 +562,17 @@ static InitFunction initFunction([]()
 		{
 			if (resourceName.empty())
 			{
+				return;
+			}
+
+			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
+			{
+				for (const auto& resource : g_resourcesByComponent[resourceName])
+				{
+					auto conCtx = instance->GetComponent<console::Context>();
+					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resource });
+				}
+
 				return;
 			}
 
@@ -533,6 +619,17 @@ static InitFunction initFunction([]()
 
 		static auto ensureCommandRef = instance->AddCommand("ensure", [=](const std::string& resourceName)
 		{
+			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
+			{
+				for (const auto& resource : g_resourcesByComponent[resourceName])
+				{
+					auto conCtx = instance->GetComponent<console::Context>();
+					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "ensure", resource });
+				}
+
+				return;
+			}
+
 			auto resource = resman->GetResource(resourceName);
 
 			if (!resource.GetRef())
