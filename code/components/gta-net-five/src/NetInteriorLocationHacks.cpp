@@ -7,6 +7,8 @@
 #include <ICoreGameInit.h>
 #include <Streaming.h>
 
+#include <Error.h>
+
 //
 // fwInteriorLocation is somehow directly serialized over the network, which breaks if interior proxies are not equally
 // ordered across peers. This is a set of hacks to (compatibly!) change fwInteriorLocation network serialization to pass
@@ -167,6 +169,10 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 	{
 		isWriter = true;
 	}
+	else if (self->GetIsMaximumSizeSerialiser())
+	{
+		isWriter = true;
+	}
 
 	if (!isWriter)
 	{
@@ -181,6 +187,8 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 
 			uint32_t interiorHash;
 			self->SerialiseUnsigned(interiorHash, 32, "Interior Hash");
+
+			AddCrashometry("new_interior_location_format_seen", "true");
 
 			if (interiorHash != -1)
 			{
@@ -236,6 +244,8 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 		}
 		else
 		{
+			AddCrashometry("new_interior_location_format_sent", "true");
+
 			uint32_t value1 = 0;
 			uint32_t value2 = 0;
 
