@@ -188,8 +188,6 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 			uint32_t interiorHash;
 			self->SerialiseUnsigned(interiorHash, 32, "Interior Hash");
 
-			AddCrashometry("new_interior_location_format_seen", "true");
-
 			if (interiorHash != -1)
 			{
 				static auto interiorPool = rage::GetPoolBase("InteriorProxy");
@@ -244,8 +242,6 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 		}
 		else
 		{
-			AddCrashometry("new_interior_location_format_sent", "true");
-
 			uint32_t value1 = 0;
 			uint32_t value2 = 0;
 
