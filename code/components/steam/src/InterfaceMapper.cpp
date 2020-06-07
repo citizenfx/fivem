@@ -209,7 +209,8 @@ const char* InterfaceMapper::GetMethodName(void* methodPtr)
 						// work around AMD64 steamclient dll bug (passed VAC blob pointer is 8 bytes in CUtlBuffer::Put - this API is clearly meant for in-process usage; should be 4)
 						if (!_stricmp(name, "SpawnProcess"))
 						{
-							PatchSteamAMD64Bug(methodPtr);
+							// VAC blob is gone! woo!
+							//PatchSteamAMD64Bug(methodPtr);
 						}
 
 						break;

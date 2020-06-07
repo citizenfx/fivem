@@ -19,6 +19,18 @@
 #include <sstream>
 #include <thread>
 
+struct CfxPresenceState
+{
+	char gameName[512];
+	volatile bool needRefresh;
+
+	CfxPresenceState()
+		: needRefresh(0)
+	{
+		memset(gameName, 0, sizeof(gameName));
+	}
+};
+
 class KeyValuesBuilder
 {
 private:
@@ -279,6 +291,9 @@ void SteamComponent::RemoveSteamCallback(int registeredID)
 #elif defined(GTA_FIVE)
 #define PARENT_APP_ID 218
 #define PRODUCT_DISPLAY_NAME "FiveM \xF0\x9F\x90\x8C" // snail
+#elif defined(IS_RDR3)
+#define PARENT_APP_ID 218
+#define PRODUCT_DISPLAY_NAME "RedM"
 #else
 #define PARENT_APP_ID 218
 #define PRODUCT_DISPLAY_NAME "Unknown CitizenFX product"
@@ -370,6 +385,14 @@ void SteamComponent::InitializePresence()
 			productName = ToNarrow(nameStream.str());
 		}
 
+		static HostSharedData<CfxPresenceState> gameData("PresenceState");
+		gameData->needRefresh = false;
+
+		if (gameData->gameName[0])
+		{
+			productName += fmt::sprintf(": %s", gameData->gameName);
+		}
+
 		// set our pipe appid
 		InterfaceMapper steamUtils(m_clientEngine->GetIClientUtils(m_steamPipe, "CLIENTUTILS_INTERFACE_VERSION001"));
 
@@ -403,6 +426,16 @@ void SteamComponent::InitializePresence()
 				// removed: parent app ID explicit argument
 				// added: last argument (bitfield, related to SteamVR)
 				steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), 0, converter.to_bytes(ourDirectory).c_str(), gameID, productName.c_str(), 0, 0);
+				return true;
+			},
+
+			// some 2019/2020 update that wasn't caught at all beforehand
+			[&]()
+			{
+				// removed: VAC blob!
+				// added: another flag
+				// also CGameID is a pointer now
+				steamUserInterface.Invoke<bool>("SpawnProcess", converter.to_bytes(ourPath).c_str(), converter.to_bytes(commandLine).c_str(), converter.to_bytes(ourDirectory).c_str(), &gameID, productName.c_str(), 0, 0, 0);
 				return true;
 			}
 		};
@@ -460,7 +493,20 @@ bool SteamComponent::RunPresenceDummy()
 			trace("waiting for process to exit...\n");
 
 			// ... wait for it to exit and close the handle afterwards
-			WaitForSingleObject(processHandle, INFINITE);
+			while (true)
+			{
+				if (WaitForSingleObject(processHandle, 1000) != WAIT_TIMEOUT)
+				{
+					break;
+				}
+
+				static HostSharedData<CfxPresenceState> gameData("PresenceState");
+
+				if (gameData->needRefresh)
+				{
+					return true;
+				}
+			}
 
 			DWORD exitCode;
 			GetExitCodeProcess(processHandle, &exitCode);
@@ -585,6 +631,15 @@ void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
 	m_richPresenceValues[idx] = value;
 
 	m_richPresenceChanged = true;
+
+	if (idx == 0)
+	{
+		static HostSharedData<CfxPresenceState> gameData("PresenceState");
+		gameData->needRefresh = true;
+		strcpy_s(gameData->gameName, value.c_str());
+
+		RunChildLauncher();
+	}
 }
 
 static SteamComponent steamComponent;

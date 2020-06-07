@@ -1567,6 +1567,13 @@ void NetLibrary::FinalizeDisconnect()
 
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
+
+		auto steam = GetSteam();
+
+		if (steam)
+		{
+			steam->SetRichPresenceValue(0, "");
+		}
 	}
 }
 
