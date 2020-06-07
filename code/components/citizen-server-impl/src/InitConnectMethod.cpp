@@ -509,6 +509,18 @@ static InitFunction initFunction([]()
 					}
 				};
 
+				auto addData = [](json& data, const std::shared_ptr<fx::ClientDeferral>& deferrals)
+				{
+					json handoverData = json::object();
+
+					for (const auto& [ key, value ] : deferrals->GetHandoverData())
+					{
+						handoverData[key] = json::parse(value);
+					}
+
+					data["handover"] = std::move(handoverData);
+				};
+
 				int maxTrust = INT_MIN;
 				int minVariance = INT_MAX;
 
@@ -584,15 +596,18 @@ static InitFunction initFunction([]()
 					}
 				});
 
-				(*deferrals)->SetResolveCallback([data, deferrals, cbRef, allowClient]()
+				(*deferrals)->SetResolveCallback([addData, data, deferrals, cbRef, allowClient]()
 				{
 					allowClient();
+
+					json dataNew = data;
+					addData(dataNew, *deferrals);
 
 					auto ref1 = *cbRef;
 
 					if (ref1)
 					{
-						(**cbRef)(data);
+						(**cbRef)(dataNew);
 						(**cbRef)(json(nullptr));
 					}
 
@@ -677,6 +692,13 @@ static InitFunction initFunction([]()
 					 * @param failureReason - If specified, the connection will be refused, and the user will see the specified message as a result. If this is not specified, the user will be allowed to connect.
 					 #/
 					done(failureReason?: string): void,
+
+					/#*
+					 * `deferrals.handover` adds handover data for the client to be able to use at a later point.
+					 *
+					 * @param data - Data to pass to the connecting client.
+					 #/
+					handover(data: { [key: string]: any }): void,
 				}, source: string): void;
 				*/
 				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
@@ -709,10 +731,13 @@ static InitFunction initFunction([]()
 				{
 					allowClient();
 
+					json dataNew = data;
+					addData(dataNew, *deferrals);
+
 					*cbRef = nullptr;
 					*deferrals = nullptr;
 
-					cb(data);
+					cb(dataNew);
 					cb(json(nullptr));
 				}
 			};

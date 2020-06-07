@@ -50,6 +50,16 @@ public:
 		m_cardResponseCallback = callback;
 	}
 
+	inline const std::map<std::string, std::string>& GetHandoverData() const
+	{
+		return m_handoverData;
+	}
+
+	inline void SetHandoverData(const std::string& key, const std::string& jsonValue)
+	{
+		m_handoverData[key] = jsonValue;
+	}
+
 	void PresentCard(const std::string& cardJson);
 
 	void HandleCardResponse(const std::string& dataJson);
@@ -92,6 +102,7 @@ private:
 	std::weak_ptr<fx::Client> m_client;
 
 	std::map<std::string, DeferralState> m_deferralStates;
+	std::map<std::string, std::string> m_handoverData;
 
 	bool m_completed;
 

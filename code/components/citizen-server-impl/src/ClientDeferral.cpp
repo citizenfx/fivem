@@ -276,6 +276,38 @@ TCallbackMap ClientDeferral::GetCallbacks()
 		self->UpdateDeferrals();
 	}));
 
+	cbs["handover"] = cbComponent->CreateCallback(createDeferralCallback([](const std::shared_ptr<ClientDeferral>& self, const std::string& deferralKey, const msgpack::unpacked& unpacked)
+	{
+		auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+
+		if (obj.size() >= 1)
+		{
+			try
+			{
+				auto dict = obj[0].as<std::map<std::string, msgpack::object>>();
+				
+				for (const auto& [key, value] : dict)
+				{
+					rapidjson::Document document;
+					ConvertToJSON(value, document, document.GetAllocator());
+
+					// write as a json string
+					rapidjson::StringBuffer sb;
+					rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+					if (document.Accept(writer))
+					{
+						self->SetHandoverData(key, { sb.GetString(), sb.GetSize() });
+					}
+				}
+			}
+			catch (msgpack::type_error& error)
+			{
+			
+			}
+		}
+	}));
+
 	return cbs;
 }
 }

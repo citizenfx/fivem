@@ -28,6 +28,8 @@ iframe
 window.citFrames = {};
 window.focusStack = [];
 
+let handoverBlob = {};
+
 registerPushFunction(function(type, ...args) {
 	switch (type) {
 		case 'rootCall': {
@@ -38,6 +40,8 @@ registerPushFunction(function(type, ...args) {
 				focusFrame(data.frameName);
 			} else if (data.type == 'blurFrame') {
 				blurFrame(data.frameName);
+			} else if (data.type == 'setHandover') {
+				handoverBlob = data.data;
 			}
 			break;
 		}
@@ -80,6 +84,11 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		frame.contentWindow.GetParentResourceName = function()
 		{
 			return frameName;
+		}
+		
+		if (frameName === 'loadingScreen')
+		{
+			frame.contentWindow.nuiHandoverData = handoverBlob;
 		}
 	}
 	else if (msg == "destroyFrame")

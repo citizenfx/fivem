@@ -501,6 +501,16 @@ static InitFunction initFunction([] ()
 
 		g_doDrawBelowLoadingScreens = true;
 
+#ifndef USE_NUI_ROOTLESS
+		auto icgi = Instance<ICoreGameInit>::Get();
+		std::string handoverBlob;
+
+		if (icgi->GetData("handoverBlob", &handoverBlob))
+		{
+			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setHandover", "data": %s })", handoverBlob));
+		}
+#endif
+
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 		nui::OverrideFocus(true);
 
