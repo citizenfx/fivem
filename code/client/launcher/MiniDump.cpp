@@ -1421,9 +1421,11 @@ bool InitializeExceptionHandler()
 
 		HANDLE initEvent = CreateEvent(&securityAttributes, TRUE, FALSE, nullptr);
 
+		static HostSharedData<CfxState> hostData("CfxInitState");
+
 		// create the command line including argument
 		wchar_t commandLine[MAX_PATH * 8];
-		if (_snwprintf(commandLine, _countof(commandLine), L"\"%s\" -dumpserver:%i -parentpid:%i", applicationName, (int)initEvent, GetCurrentProcessId()) >= _countof(commandLine))
+		if (_snwprintf(commandLine, _countof(commandLine), L"\"%s\" -dumpserver:%i -parentpid:%i", applicationName, (int)initEvent, hostData->GetInitialPid()) >= _countof(commandLine))
 		{
 			return false;
 		}
