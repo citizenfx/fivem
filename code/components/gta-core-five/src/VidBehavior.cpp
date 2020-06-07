@@ -113,6 +113,12 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(hook::get_pattern("89 8D ? ? 00 00 74 0A 48 8B CB E8 ? ? ? ? EB", 11)), ResetSettings, (void**)&g_origResetSettings);
 		MH_EnableHook(MH_ALL_HOOKS);
 
+		// flip model is currently disabled as it breaks some cases of fullscreen resizing (open in borderless -> alt-enter -> alt-tab)
+		// due to it being non-trivial to get the game to call ResizeBuffers.
+		//
+		// this needs some remote debugging attempt in order to correctly breakpoint all the state changes involved as fullscreen/focus are global
+		// and therefore the debugger can't be used to investigate on a live system.
+#if 0
 		OnFlipModelHook.Connect([](bool* flip)
 		{
 			if (!*flip)
@@ -172,6 +178,7 @@ static HookFunction hookFunction([]()
 				}
 			}
 		});
+#endif
 
 		rage::fiDevice::OnInitialMount.Connect([]()
 		{
