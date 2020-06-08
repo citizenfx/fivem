@@ -29,6 +29,7 @@ window.citFrames = {};
 window.focusStack = [];
 
 let handoverBlob = {};
+let serverAddress = '';
 
 registerPushFunction(function(type, ...args) {
 	switch (type) {
@@ -42,6 +43,8 @@ registerPushFunction(function(type, ...args) {
 				blurFrame(data.frameName);
 			} else if (data.type == 'setHandover') {
 				handoverBlob = data.data;
+			} else if (data.type == 'setServerAddress') {
+				serverAddress = data.data;
 			}
 			break;
 		}
@@ -88,7 +91,8 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		
 		if (frameName === 'loadingScreen')
 		{
-			frame.contentWindow.nuiHandoverData = handoverBlob;
+			frame.contentWindow.nuiHandoverData = handoverBlob || {};
+			frame.contentWindow.nuiHandoverData.serverAddress = serverAddress;
 		}
 	}
 	else if (msg == "destroyFrame")

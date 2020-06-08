@@ -359,6 +359,13 @@ static InitFunction initFunction([] ()
 	{
 		netLibrary = lib;
 
+		netLibrary->OnConnectOKReceived.Connect([](NetAddress)
+		{
+			auto peerAddress = netLibrary->GetCurrentPeer().ToString();
+
+			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
+		});
+
 		netLibrary->OnConnectionError.Connect([] (const char* error)
 		{
 #ifdef GTA_FIVE
