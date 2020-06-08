@@ -105,7 +105,7 @@ namespace fx
 		client->SetNetId(m_curNetId.fetch_add(1));
 	}
 
-	void ClientRegistry::HandleConnectedClient(const std::shared_ptr<Client>& client)
+	void ClientRegistry::HandleConnectedClient(const std::shared_ptr<Client>& client, uint32_t oldNetID)
 	{
 		auto eventManager = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 
@@ -115,10 +115,11 @@ namespace fx
 		 * A server-side event that is triggered when a player has a finally-assigned NetID.
 		 *
 		 * @param source - The player's NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
+		 * @param oldID - The original TempID for the connecting player, as specified during playerConnecting.
 		 #/
-		declare function playerJoining(source: string): void;
+		declare function playerJoining(source: string, oldID: string): void;
 		*/
-		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("net:%d", client->GetNetId()) });
+		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID));
 
 		if (!fx::IsBigMode())
 		{

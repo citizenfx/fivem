@@ -677,6 +677,7 @@ namespace fx
 					}
 
 					bool wasNew = false;
+					auto oldNetID = client->GetNetId();
 
 					if (client->GetNetId() >= 0xFFFF)
 					{
@@ -715,7 +716,7 @@ namespace fx
 					{
 						gscomms_execute_callback_on_main_thread([=]()
 						{
-							m_clientRegistry->HandleConnectedClient(client);
+							m_clientRegistry->HandleConnectedClient(client, oldNetID);
 						});
 
 						if (g_oneSyncVar->GetValue())

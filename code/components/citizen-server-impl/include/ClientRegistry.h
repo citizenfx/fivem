@@ -32,7 +32,7 @@ namespace fx
 		void HandleConnectingClient(const std::shared_ptr<Client>& client);
 
 		// invoked upon receiving the `connect` ENet packet, after sending `connectOK`
-		void HandleConnectedClient(const std::shared_ptr<Client>& client);
+		void HandleConnectedClient(const std::shared_ptr<Client>& client, uint32_t oldNetID);
 
 		std::shared_ptr<Client> MakeClient(const std::string& guid);
 
