@@ -51,6 +51,8 @@ public:
 private:
 	fx::ServerInstanceBase* m_instance;
 
+	bool m_polled;
+
 	std::chrono::milliseconds m_nextCheck;
 
 	std::chrono::milliseconds m_nextEvents;
@@ -70,7 +72,7 @@ private:
 DECLARE_INSTANCE_TYPE(ExtCommerceComponent);
 
 ExtCommerceComponent::ExtCommerceComponent()
-	: m_nextCheck(0), m_nextEvents(0), m_instance(nullptr)
+	: m_nextCheck(0), m_nextEvents(0), m_instance(nullptr), m_polled(false)
 {
 	
 }
@@ -191,9 +193,23 @@ void ExtCommerceComponent::ProcessClientCommands(fx::Client* client)
 				{
 					json data = json::parse(resultData, resultData + resultLength);
 
-					ExecuteCommandList(data, netId, {
-						{ "sid", std::to_string(netId) }
-					});
+					std::string steamIdentifier = "";
+
+					auto client = m_instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(netId);
+
+					if (client)
+					{
+						for (const auto& identifier : client->GetIdentifiers())
+						{
+							if (identifier.find("steam:") == 0)
+							{
+								steamIdentifier = identifier;
+								break;
+							}
+						}
+					}
+
+					ExecuteCommandList(data, netId, { { "sid", std::to_string(netId) }, { "hexid", steamIdentifier } });
 				}
 				catch (std::exception & e)
 				{
@@ -211,6 +227,31 @@ void ExtCommerceComponent::Tick()
 	if (m_tebexKeyConvar->GetValue().empty())
 	{
 		return;
+	}
+
+	if (!m_polled)
+	{
+		HttpRequestOptions opts;
+		opts.headers["X-Tebex-Secret"] = m_tebexKeyConvar->GetValue();
+
+		httpClient->DoGetRequest(TEBEX_ENDPOINT + "/information", opts, [this](bool success, const char* resultData, size_t resultLength) 
+		{
+			if (success)
+			{
+				try
+				{
+					json data = json::parse(resultData, resultData + resultLength);
+
+					trace("^2Authenticated with Tebex: ^7%s\n", data["account"].value("name", ""));
+				}
+				catch (std::exception& e)
+				{
+					trace("exception while processing tebex.io information call: %s\n", e.what());
+				}
+			}
+		});
+
+		m_polled = true;
 	}
 
 	if (m_nextCheck < msec())
