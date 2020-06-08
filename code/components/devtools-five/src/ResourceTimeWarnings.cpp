@@ -4,6 +4,7 @@
 #include <ResourceManager.h>
 #include <ConsoleHost.h>
 #include <ResourceScriptingComponent.h>
+#include <ResourceGameLifetimeEvents.h>
 
 #include <CoreConsole.h>
 
@@ -125,31 +126,47 @@ static InitFunction initFunction([]()
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive, false, &taskMgrEnabled);
 
-	static std::unordered_map<std::string, ResourceMetrics> metrics;
+	static tbb::concurrent_unordered_map<std::string, std::optional<ResourceMetrics>> metrics;
+
+	OnDeleteResourceThread.Connect([](rage::scrThread* thread)
+	{
+		for (auto& metric : metrics)
+		{
+			if (metric.second)
+			{
+				if (metric.second->gtaThread == thread)
+				{
+					metric.second->gtaThread = nullptr;
+				}
+			}
+		}
+	});
 
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 	{
 		resource->OnStart.Connect([resource]()
 		{
-			for (auto& tt : metrics[resource->GetName()].tickTimes)
+			metrics[resource->GetName()] = ResourceMetrics{};
+
+			for (auto& tt : metrics[resource->GetName()]->tickTimes)
 			{
-				tt = { 0 };
+				tt = std::chrono::microseconds{ 0 };
 			}
 		});
 
 		resource->OnActivate.Connect([resource]()
 		{
-			metrics[resource->GetName()].gtaThread = (GtaThread*)rage::scrEngine::GetActiveThread();
+			metrics[resource->GetName()]->gtaThread = (GtaThread*)rage::scrEngine::GetActiveThread();
 		}, 9999);
 
 		resource->OnTick.Connect([resource]()
 		{
-			metrics[resource->GetName()].tickStart = usec();
+			metrics[resource->GetName()]->tickStart = usec();
 		}, -99999999);
 
 		resource->OnTick.Connect([resource]()
 		{
-			auto& metric = metrics[resource->GetName()];
+			auto& metric = *metrics[resource->GetName()];
 			metric.tickTimes[metric.curTickTime++] = usec() - metric.tickStart;
 
 			if (metric.curTickTime >= _countof(metric.tickTimes))
@@ -168,8 +185,28 @@ static InitFunction initFunction([]()
 
 		resource->OnStop.Connect([resource]()
 		{
-			metrics.erase(resource->GetName());
+			metrics[resource->GetName()] = {};
 		});
+
+		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([resource]()
+		{
+			auto m = metrics[resource->GetName()];
+
+			if (m)
+			{
+				m->gtaThread = nullptr;
+			}
+		}, -50);
+
+		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect.Connect([resource]()
+		{
+			auto m = metrics[resource->GetName()];
+
+			if (m)
+			{
+				m->gtaThread = nullptr;
+			}
+		}, -50);
 	});
 
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
@@ -179,29 +216,36 @@ static InitFunction initFunction([]()
 			bool showWarning = false;
 			std::string warningText;
 
-			for (const auto& metricPair : metrics)
+			for (const auto& [ key, metricRef ] : metrics)
 			{
+				if (!metricRef)
+				{
+					continue;
+				}
+
+				auto& metric = *metricRef;
+
 				std::chrono::microseconds avgTickTime(0);
 
-				for (auto tickTime : metricPair.second.tickTimes)
+				for (auto tickTime : metric.tickTimes)
 				{
 					avgTickTime += tickTime;
 				}
 
-				avgTickTime /= _countof(metricPair.second.tickTimes);
+				avgTickTime /= std::size(metric.tickTimes);
 
 				if (avgTickTime > 6ms)
 				{
 					float fpsCount = (60 - (1000.f / (16.67f + (avgTickTime.count() / 1000.0))));
 
 					showWarning = true;
-					warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", metricPair.first, avgTickTime.count() / 1000.0, fpsCount);
+					warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", key, avgTickTime.count() / 1000.0, fpsCount);
 				}
 
-				if (metricPair.second.memorySize > (50 * 1024 * 1024))
+				if (metric.memorySize > (50 * 1024 * 1024))
 				{
 					showWarning = true;
-					warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", metricPair.first, metricPair.second.memorySize / 1024.0 / 1024.0);
+					warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0 / 1024.0);
 				}
 			}
 
@@ -280,24 +324,25 @@ static InitFunction initFunction([]()
 
 					auto metric = metrics.find(resourceName);
 
-					if (metric != metrics.end())
+					if (metric != metrics.end() && metric->second)
 					{
-						const auto& metricPair = *metric;
+						const auto& [ key, valueRef ] = *metric;
+						auto value = *valueRef;
 
 						std::chrono::microseconds avgTickTime(0);
 
-						for (auto tickTime : metricPair.second.tickTimes)
+						for (auto tickTime : value.tickTimes)
 						{
 							avgTickTime += tickTime;
 						}
 
-						avgTickTime /= _countof(metricPair.second.tickTimes);
+						avgTickTime /= std::size(value.tickTimes);
 
 						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickTime.count() / 1000.0), "%.2f ms", avgTickTime.count() / 1000.0);
 
 						ImGui::NextColumn();
 
-						int64_t totalBytes = metricPair.second.memorySize;
+						int64_t totalBytes = value.memorySize;
 
 						if (totalBytes == 0)
 						{
@@ -325,7 +370,7 @@ static InitFunction initFunction([]()
 
 						ImGui::NextColumn();
 
-						auto streamingUsage = GetStreamingUsageForThread(metricPair.second.gtaThread);
+						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
 
 						if (streamingUsage > 0)
 						{
