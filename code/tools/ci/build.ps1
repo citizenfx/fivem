@@ -480,6 +480,7 @@ if (!$DontBuild -and !$IsServer) {
     }
     
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
+    "${env:CI_PIPELINE_ID}" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\release.txt
 
     if (!$IsLauncher) {
         if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
@@ -524,14 +525,14 @@ if (!$DontBuild -and !$IsServer) {
 
     $uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
     $json = @{
-    	version = "1.3.0.$GameVersion"
+    	version = "cfx-${env:CI_PIPELINE_ID}"
     	refs = @(
     		@{
     			repository = 'citizenfx/fivem'
     			commit = $env:CI_COMMIT_SHA
     		}
     	)
-    	projects = @("fivem-client-1365")
+    	projects = @("fivem-client-1604")
     } | ConvertTo-Json
 
     $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"

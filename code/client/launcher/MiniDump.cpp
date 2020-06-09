@@ -33,7 +33,10 @@ using namespace google_breakpad;
 
 #include <optional>
 
+#include <cpr/cpr.h>
 #include <citversion.h>
+
+#include <fmt/time.h>
 
 using json = nlohmann::json;
 
@@ -62,6 +65,119 @@ static json load_json_file(const std::wstring& path)
 	}
 
 	return json(nullptr);
+}
+
+static void send_sentry_session(const json& data)
+{
+	std::stringstream bodyData;
+	bodyData << "{}\n";
+	bodyData << R"({"type":"session"})" << "\n";
+	bodyData << data.dump() << "\n";
+
+	auto r = cpr::Post(
+	cpr::Url{ "https://sentry.fivem.net/api/2/envelope/" },
+	cpr::Body{bodyData.str()},
+	cpr::Header{
+		{
+			"X-Sentry-Auth",
+			fmt::sprintf("Sentry sentry_version=7, sentry_key=9902acf744d546e98ca357203f19278b")
+		}
+	},
+	cpr::Timeout{ 2500 });
+}
+
+std::string g_entitlementSource;
+
+bool LoadOwnershipTicket();
+
+static json g_session;
+
+static void UpdateSession(json& session)
+{
+	send_sentry_session(session);
+
+	session["init"] = false;
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\session").c_str(), L"wb");
+
+	if (f)
+	{
+		auto s = session.dump();
+		fwrite(s.data(), 1, s.size(), f);
+		fclose(f);
+	}
+
+	g_session = session;
+}
+
+static void OnStartSession()
+{
+	auto oldSession = load_json_file(L"cache\\session");
+
+	if (!oldSession.is_null())
+	{
+		oldSession["status"] = "abnormal";
+		send_sentry_session(oldSession);
+
+		_wunlink(MakeRelativeCitPath(L"cache\\session").c_str());
+	}
+
+	UUID uuid;
+	UuidCreate(&uuid);
+	char* str;
+	UuidToStringA(&uuid, (RPC_CSTR*)&str);
+	
+	std::string sid = str;
+
+	RpcStringFreeA((RPC_CSTR*)&str);
+
+	LoadOwnershipTicket();
+
+	if (g_entitlementSource.empty())
+	{
+		g_entitlementSource = "default";
+	}
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+	std::string version;
+
+	if (f)
+	{
+		char ver[128];
+
+		fgets(ver, sizeof(ver), f);
+		fclose(f);
+
+		version = fmt::sprintf("cfx-%d", atoi(ver));
+	}
+	else
+	{
+		version = fmt::sprintf("cfx-legacy-%d", BASE_EXE_VERSION);
+	}
+
+	std::time_t t = std::time(nullptr);
+
+	static std::string curChannel;
+
+	wchar_t resultPath[1024];
+
+	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+	curChannel = ToNarrow(resultPath);
+
+	auto session = json::object({ 
+		{ "sid", sid },
+		{ "did", g_entitlementSource },
+		{ "init", true },
+		{ "started", fmt::format("{:%Y-%m-%dT%H:%M:%S}Z", *std::gmtime(&t)) },
+		{ "attrs", json::object({
+			{ "release", version },
+			{ "environment", curChannel }
+		}) }
+	});
+
+	UpdateSession(session);
 }
 
 static json load_error_pickup()
@@ -637,8 +753,6 @@ static void GatherCrashInformation()
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
-std::string g_entitlementSource;
-
 bool LoadOwnershipTicket()
 {
 	std::string filePath = GetOwnershipPath();
@@ -977,7 +1091,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		parameters[L"ProductName"] = L"FiveM";
 
-		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/version.txt").c_str(), L"r");
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
 
 		if (f)
 		{
@@ -986,11 +1100,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			fgets(ver, sizeof(ver), f);
 			fclose(f);
 
-			parameters[L"Version"] = va(L"1.3.0.%d", atoi(ver));
+			parameters[L"Version"] = va(L"cfx-%d", atoi(ver));
 		}
 		else
 		{
-			parameters[L"Version"] = va(L"1.3.0.%d", BASE_EXE_VERSION);
+			parameters[L"Version"] = va(L"cfx-legacy-%d", BASE_EXE_VERSION);
 		}
 
 		parameters[L"BuildID"] = L"20170101";
@@ -1137,6 +1251,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				TerminateProcess(parentProcess, -2);
 			}).detach();
+
+			g_session["status"] = "crashed";
+
+			UpdateSession(g_session);
 		}
 
 		static std::optional<std::wstring> crashId;
@@ -1322,6 +1440,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	if (server.Start())
 	{
 		SetEvent(inheritedHandleBit);
+
+		OnStartSession();
+
 		WaitForSingleObject(parentProcess, INFINITE);
 	}
 
@@ -1330,6 +1451,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// revert NVSP disablement
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	NVSP_ShutdownSafely();
+
+	g_session["status"] = "exited";
+	UpdateSession(g_session);
+
+	_wunlink(MakeRelativeCitPath(L"cache\\session").c_str());
 #endif
 
 	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
@@ -1430,7 +1556,7 @@ bool InitializeExceptionHandler()
 			return false;
 		}
 
-		BOOL result = CreateProcess(applicationName, commandLine, nullptr, nullptr, TRUE, 0, nullptr, nullptr, &startupInfo, &processInfo);
+		BOOL result = CreateProcess(applicationName, commandLine, nullptr, nullptr, TRUE, CREATE_BREAKAWAY_FROM_JOB, nullptr, nullptr, &startupInfo, &processInfo);
 
 		if (result)
 		{
