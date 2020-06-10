@@ -293,6 +293,14 @@ static void CText__LoadSlotHook(void* text, void* name, int slot, int a4)
 	return g_origCText__LoadSlot(text, name, slot, a4);
 }
 
+static void (*g_origPoolInit)(void* pool, int count);
+
+template<int X>
+static void PoolInitX(void* pool, int count)
+{
+	return g_origPoolInit(pool, count * X);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -808,6 +816,13 @@ static HookFunction hookFunction{[] ()
 
 	// and to prevent unloading
 	MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+
+	// patch atPoolBase::Init call for dlDrawListMgr cloth entries
+	{
+		auto location = hook::get_pattern("48 8D 8F 18 06 00 00 8B D3 45 33 C9 E8", 12);
+		hook::set_call(&g_origPoolInit, location);
+		hook::call(location, PoolInitX<3>);
+	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
 } };
