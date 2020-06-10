@@ -477,6 +477,80 @@ public:
 
 static CfxProxyItypMounter g_proxyDlcItypMounter;
 
+struct CInteriorProxy
+{
+	virtual ~CInteriorProxy() = 0;
+
+	uint32_t mapData;
+};
+
+static hook::thiscall_stub<int(void* store, int* out, uint32_t* inHash)> _getIndexByKey([]()
+{
+	return hook::get_pattern("39 1C 91 74 4F 44 8B 4C 91 08 45 3B", -0x34);
+});
+
+#include <atPool.h>
+
+static atPool<CInteriorProxy>** g_interiorProxyPool;
+
+struct ProxyFile
+{
+	uint32_t startAt;
+	uint32_t hash;
+	atArray<uint32_t> proxyHashes;
+};
+
+static atArray<ProxyFile>* g_interiorProxyArray;
+// 1604: 0x142544440;
+
+class CfxProxyInteriorOrderMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool MountFile(DataFileEntry* entry) override
+	{
+		g_dataFileMounters[173]->MountFile(entry);
+
+		return true;
+	}
+
+	virtual bool UnmountFile(DataFileEntry* entry) override
+	{
+		uint32_t entryHash = HashString(entry->name);
+
+		auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+
+		for (auto& entry : *g_interiorProxyArray)
+		{
+			if (entry.hash == entryHash)
+			{
+				int i = entry.startAt;
+
+				for (auto& proxyHash : entry.proxyHashes)
+				{
+					auto proxy = (*g_interiorProxyPool)->GetAt(i);
+
+					if (proxy)
+					{
+						// goodbye, interior proxy
+						trace("deleted interior proxy %08x\n", proxyHash);
+						delete proxy;
+					}
+					else
+					{
+						trace(":( didn't find interior proxy %08x\n", proxyHash);
+					}
+
+					i++;
+				}
+			}
+		}
+		
+		return true;
+	}
+};
+
+static CfxProxyInteriorOrderMounter g_proxyInteriorOrderMounter;
+
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 {
 	if (type == "CFX_PSEUDO_ENTRY")
@@ -505,6 +579,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	if (fileType == 160) // TEXTFILE_METAFILE 
 	{
 		return nullptr;
+	}
+
+	if (fileType == 173) // INTERIOR_PROXY_ORDER_FILE
+	{
+		return &g_proxyInteriorOrderMounter;
 	}
 
 	if (fileType == 174) // DLC_ITYP_REQUEST
@@ -1644,6 +1723,13 @@ static void fwMapDataStore__FinishLoadingHook(streaming::strStreamingModule* sto
 
 static HookFunction hookFunction([] ()
 {
+	{
+		auto location = hook::pattern("BA A1 85 94 52 41 B8 01").count(1).get(0).get<char>(0x34);
+		g_interiorProxyPool = (decltype(g_interiorProxyPool))(location + *(int32_t*)location + 4);
+	}
+
+	g_interiorProxyArray = hook::get_address<decltype(g_interiorProxyArray)>(hook::get_pattern("83 FA FF 75 4D 48 8D 0D ? ? ? ? BA", 8));
+
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
 	*hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6) = 0x25;
 
