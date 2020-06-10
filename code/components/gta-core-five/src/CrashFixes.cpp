@@ -301,6 +301,65 @@ static void PoolInitX(void* pool, int count)
 	return g_origPoolInit(pool, count * X);
 }
 
+using DeclRef = void(*)(void* removeIn, void* toRemove);
+static DeclRef g_vehUnloaders[20];
+
+static void (*g_vehCtor)(void*);
+static void (*g_vehDtor)(void*);
+static void (*g_vehParser)(void* par, const char* fn, const char* ext, void* schema, void* out, bool b, void* a);
+
+static void VehUnloadParserHook(void* par, const char* fn, const char* ext, void* schema, char* out, bool b, void* a)
+{
+	// copy to orig parser
+	g_vehParser(par, fn, ext, schema, out, b, a);
+
+	// load original file
+	char buffers[21][16];
+
+	g_vehCtor(buffers);
+	g_vehParser(par, "commoncrc:/data/ai/vehiclelayouts", "meta", schema, buffers, b, a);
+
+	// remove everything in the original file from the custom file
+	for (int i = 0; i < 20; i++)
+	{
+		g_vehUnloaders[i](out + (i * 16), buffers[i]);
+	}
+
+	g_vehDtor(buffers);
+}
+
+static void VehicleMetadataUnloadMagic()
+{
+	auto funcStart = hook::get_pattern<char>("48 8B D9 48 8D 4C 24 40 E8 ? ? ? ? 48 83", -0x15);
+
+	auto ctorRef = funcStart + 0x1D;
+	auto parserRef = funcStart + 0x5B;
+	auto dtorRef = funcStart + 0x1B6;
+	
+	char* unloaders[20];
+
+	for (uint64_t i = 0; i < 4; i++)
+	{
+		unloaders[i] = funcStart + 0x74 + (0x11 * i);
+	}
+
+	for (uint64_t i = 0; i < 16; i++)
+	{
+		unloaders[i + 4] = funcStart + 0xB7 + (0x10 * i);
+	}
+
+	hook::set_call(&g_vehCtor, ctorRef);
+	hook::set_call(&g_vehDtor, dtorRef);
+	hook::set_call(&g_vehParser, parserRef);
+	
+	for (int i = 0; i < 20; i++)
+	{
+		hook::set_call(&g_vehUnloaders[i], unloaders[i]);
+	}
+
+	hook::call(parserRef, VehUnloadParserHook);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// corrupt TXD store reference crash (ped decal-related?)
@@ -823,6 +882,9 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origPoolInit, location);
 		hook::call(location, PoolInitX<3>);
 	}
+
+	// very hacky patch to not unload base game data from 'vehiclelayouts' CVehicleMetadataMgr
+	VehicleMetadataUnloadMagic();
 
 	MH_EnableHook(MH_ALL_HOOKS);
 } };
