@@ -1492,9 +1492,11 @@ bool InitializeExceptionHandler()
 	AllocateExceptionBuffer();
 
 	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
+	bool isDebugged = false;
+
 	if (IsDebuggerPresent())
 	{
-		return false;
+		isDebugged = true;
 	}
 
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
@@ -1565,10 +1567,19 @@ bool InitializeExceptionHandler()
 		}
 
 		DWORD waitResult = WaitForSingleObject(initEvent, 7500);
-		if (!client->Register())
+
+		if (!isDebugged)
 		{
-			trace("Could not register with breakpad server.\n");
+			if (!client->Register())
+			{
+				trace("Could not register with breakpad server.\n");
+			}
 		}
+	}
+
+	if (isDebugged)
+	{
+		return false;
 	}
 
 	g_exceptionHandler = new ExceptionHandler(
