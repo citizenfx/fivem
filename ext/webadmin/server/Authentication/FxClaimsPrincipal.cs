@@ -13,7 +13,6 @@ namespace FxWebAdmin
         {
 
         }
-
         public override bool HasClaim(string type, string value)
         {
             if (type == RoleClaimType)
@@ -29,11 +28,15 @@ namespace FxWebAdmin
                     }
                 }
             }
-
             return base.HasClaim(type, value);
         }
+        public static string GetIdentifier()
+        {
+            return ClaimTypes.NameIdentifier;
 
-        
+
+            /*return nameClaim;*/
+        }
         internal static string MapToIdentifier(string nameClaim)
         {
             if (nameClaim.StartsWith(SteamAuthenticationConstants.Namespaces.Identifier))
@@ -50,7 +53,6 @@ namespace FxWebAdmin
             {
                 return "system.console";
             }
-
             return null;
         }
     }

@@ -30,7 +30,7 @@ namespace FxWebAdmin
             {
                 return View(viewData);
             }
-
+            
             viewData = await HttpServer.QueueTick(() =>
             {
                 var resCount = GetResources().Count(a => GetResourceState(a) == "started");

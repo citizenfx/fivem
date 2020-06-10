@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.IdentityModel.Protocols;
 using static CitizenFX.Core.Native.API;
 
 namespace FxWebAdmin
@@ -31,7 +31,7 @@ namespace FxWebAdmin
                     RedirectUri = "/webadmin/"
                 }, source);
             }
-
+            
             return Forbid();
         }
 

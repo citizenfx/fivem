@@ -1,10 +1,13 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -46,7 +49,20 @@ namespace FxWebAdmin
             Exports.Add("registerPluginPage", new Action<string, CallbackDelegate>(this.RegisterPluginPage));
             Exports.Add("isInRole", new Func<string, bool>(this.IsInRole));
             Exports.Add("getPluginUrl", new Func<string, IDictionary<string, object>, string>(this.GetPluginUrl));
+            Exports.Add("getClaimIdentifier", new Func<string>(this.GetClaimIdentifier));
         }
+
+        private string GetClaimIdentifier()
+        {
+            string completedValue = "";
+            var e = CurrentContext.User.Claims as IEnumerable;
+            foreach (var i in e)
+            {
+                completedValue = completedValue + i.ToString() + ",";
+            }
+            completedValue = completedValue.Remove(completedValue.Length - 1);
+            return completedValue;
+        } 
 
         private string GetPluginUrl(string name, IDictionary<string, object> attributes = null)
         {
