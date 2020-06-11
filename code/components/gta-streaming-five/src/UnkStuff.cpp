@@ -664,8 +664,39 @@ static void HookStereo()
 	hook::jump(GetNvapi(0x1FB0BC30), NvAPI_Stereo_IsActivated);
 }
 
+
+static void (*g_origSceneLoaderScan)(char* loader, uint8_t flags1, uint8_t flags2, uint8_t flags3);
+
+static void SceneLoaderScan(char* loader, uint8_t flags1, uint8_t flags2, uint8_t flags3)
+{
+	g_origSceneLoaderScan(loader, flags1, flags2, flags3);
+
+	auto mds = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+	atPoolBase* pool = (atPoolBase*)((char*)mds + 56);
+
+	atArray<int>& indices = *(atArray<int>*)(loader + 80);
+	for (int i = 0; i < indices.GetCount(); i++)
+	{
+		if (!pool->GetAt<void>(indices[i]))
+		{
+			// move the last item to the current position
+			--indices.m_count;
+			indices[i] = indices[indices.m_count];
+
+			// iterate this one again
+			--i;
+		}
+	}
+}
+
 static HookFunction hookFunction([]()
 {
+	// crash fix: sceneloader doesn't check if mapdatas obtained from boxstreamer still exist
+	// we'll check for that, as removing anything from boxstreamer is weird
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("49 8B 0F 41 8A D9 40 8A F2 E8 ", -0x3A), SceneLoaderScan, (void**)&g_origSceneLoaderScan);
+	MH_EnableHook(MH_ALL_HOOKS);
+
 #if 0
 	hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);
 	hook::put<uint8_t>(hook::pattern("80 3D ? ? ? ? ? 48 8B F1 74 07 E8 ? ? ? ? EB 05").count(1).get(0).get<void>(0xA), 0xEB);
