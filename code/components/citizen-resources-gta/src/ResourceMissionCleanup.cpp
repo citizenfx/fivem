@@ -96,6 +96,13 @@ static void DeleteDummyThread(DummyThread** dummyThread)
 	*dummyThread = nullptr;
 }
 
+static struct : GtaThread
+{
+	virtual void DoRun() override
+	{
+	}
+} g_globalLeftoverThread;
+
 static constexpr ManifestVersion mfVer1 = "05cfa83c-a124-4cfa-a768-c24a5811d8f9";
 
 static InitFunction initFunction([] ()
@@ -135,6 +142,9 @@ static InitFunction initFunction([] ()
 
 			if (data->cleanedUp)
 			{
+				g_lastThreads.push(rage::scrEngine::GetActiveThread());
+
+				rage::scrEngine::SetActiveThread(&g_globalLeftoverThread);
 				return;
 			}
 
@@ -187,23 +197,16 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
-			if (data->cleanedUp)
+			rage::scrThread* lastThread = nullptr;
+
+			if (!g_lastThreads.empty())
 			{
-				return;
+				lastThread = g_lastThreads.top();
+				g_lastThreads.pop();
 			}
 
-			{
-				rage::scrThread* lastThread = nullptr;
-
-				if (!g_lastThreads.empty())
-				{
-					lastThread = g_lastThreads.top();
-					g_lastThreads.pop();
-				}
-
-				// restore the last thread
-				rage::scrEngine::SetActiveThread(lastThread);
-			}
+			// restore the last thread
+			rage::scrEngine::SetActiveThread(lastThread);
 		}, 10000);
 
 		auto cleanupResource = [=]()
