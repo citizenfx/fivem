@@ -28,6 +28,10 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
+							<PoolName>CPickupData</PoolName>
+							<PoolSize value="300"/>
+						</Item>
+						<Item>
 							<PoolName>CNetObjPed</PoolName>
 							<PoolSize value="238"/> <!-- 110 + player count -->
 						</Item>
