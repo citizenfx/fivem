@@ -456,6 +456,7 @@ static InitFunction initFunction([]()
 				}
 
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+				auto trl = instance->GetComponent<fx::TokenRateLimiter>();
 
 				net::Buffer outBuffer;
 				outBuffer.Write(HashRageString("msgResStart"));
@@ -464,6 +465,8 @@ static InitFunction initFunction([]()
 				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 				{
 					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
+
+					trl->Reset(client->GetConnectionToken());
 				});
 			}, 99999999);
 

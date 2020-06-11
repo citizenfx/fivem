@@ -214,6 +214,16 @@ private:
 };
 
 using PeerAddressRateLimiterStore = RateLimiterStore<net::PeerAddress, true>;
+
+class TokenRateLimiter : public fwRefCountable, public fx::KeyedRateLimiter<std::string, false>
+{
+public:
+	TokenRateLimiter(double a, double b)
+		: KeyedRateLimiter(a, b)
+	{
+	}
+};
 }
 
+DECLARE_INSTANCE_TYPE(fx::TokenRateLimiter);
 DECLARE_INSTANCE_TYPE(fx::PeerAddressRateLimiterStore);

@@ -5,7 +5,11 @@
 #include <ResourceStreamComponent.h>
 #include <ResourceMetaDataComponent.h>
 
+#include <Client.h>
+#include <ClientRegistry.h>
 #include <ServerInstanceBase.h>
+
+#include <KeyedRateLimiter.h>
 
 #include <regex>
 
@@ -66,8 +70,63 @@ static InitFunction initFunction([]()
 			}
 		});
 
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		instance->SetComponent(new fx::TokenRateLimiter(1.0f, 3.0f));
+
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const fx::ClientMethodRegistry::TCallbackFast& cb)
 		{
+			auto ra = request->GetRemoteAddress();
+			auto token = request->GetHeader("X-CitizenFX-Token");
+
+			std::shared_ptr<fx::Client> client;
+
+			if (!token.empty())
+			{
+				client = clientRegistry->GetClientByConnectionToken(token);
+			}
+
+			if (!client)
+			{
+				client = clientRegistry->GetClientByTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
+			}
+
+			auto sendError = [&cb](const char* e)
+			{
+				rapidjson::Document retval;
+				retval.SetObject();
+
+				retval.AddMember("error", rapidjson::Value{ e, retval.GetAllocator() }, retval.GetAllocator());
+
+				cb(retval);
+
+				rapidjson::Document nil;
+				nil.SetNull();
+
+				cb(nil);
+			};
+
+			if (!client)
+			{
+				sendError("Not a valid client.");
+				return;
+			}
+
+			client->Touch();
+
+			if (!client->GetData("passedValidation").has_value())
+			{
+				sendError("Client is still connecting.");
+				return;
+			}
+
+			auto rl = instance->GetComponent<fx::TokenRateLimiter>();
+			if (!rl->Consume(client->GetConnectionToken()))
+			{
+				sendError("Rate limit exceeded.");
+				return;
+			}
+
 			rapidjson::Document retval;
 			retval.SetObject();
 
