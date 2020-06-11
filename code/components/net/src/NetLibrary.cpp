@@ -1191,30 +1191,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							}
 						});
 
-						auto blacklistResultHandler = [this](bool success, const char* data, size_t length)
-						{
-							if (success)
-							{
-								// poke if we aren't blocking *everyone* instead
-								std::default_random_engine generator;
-								std::uniform_int_distribution<int> distribution(1, 224);
-								std::uniform_int_distribution<int> distribution2(1, 254);
-
-								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blacklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
-								auto dStr = std::string(data, length);
-
-								m_httpClient->DoGetRequest(rndQ, [dStr](bool success, const char* data, size_t length)
-								{
-									if (!success)
-									{
-										FatalError("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr);
-									}
-								});
-							}
-						};
-
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), blacklistResultHandler);
-
 						Instance<ICoreGameInit>::Get()->SetData("handoverBlob", (!node["handover"].is_null()) ? node["handover"].dump() : "{}");
 
 						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
@@ -1268,70 +1244,118 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							steam->SetConnectValue(fmt::sprintf("+connect %s:%d", m_currentServer.GetAddress(), m_currentServer.GetPort()));
 						}
 
-						if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+						auto continueAfterAllowance = [=]()
 						{
-							auto oneSyncFailure = [this, onesyncType]()
+							if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
 							{
-								OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
+								auto oneSyncFailure = [this, onesyncType]()
+								{
+									OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
 									onesyncType,
 									(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
-									? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots." : ""));
-								m_connectionState = CS_IDLE;
-							};
+									? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
+									: ""));
+									m_connectionState = CS_IDLE;
+								};
 
-							auto oneSyncSuccess = [this]()
-							{
-								m_connectionState = CS_INITRECEIVED;
-							};
-
-							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
-							{
-								using json = nlohmann::json;
-
-								if (success)
+								auto oneSyncSuccess = [this]()
 								{
-									try
+									m_connectionState = CS_INITRECEIVED;
+								};
+
+								OnConnectionProgress("Requesting server OneSync policy...", 0, 100);
+
+								m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+								{
+									using json = nlohmann::json;
+
+									if (success)
 									{
-										json info = json::parse(data, data + size);
-
-										if (info.is_object() && info["vars"].is_object())
+										try
 										{
-											auto val = info["vars"].value("sv_licenseKeyToken", "");
+											json info = json::parse(data, data + size);
 
-											if (!val.empty())
+											if (info.is_object() && info["vars"].is_object())
 											{
-												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/%s", val, onesyncType), [=](bool success, const char* data, size_t size)
+												auto val = info["vars"].value("sv_licenseKeyToken", "");
+
+												if (!val.empty())
 												{
-													if (success)
+													m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/%s", val, onesyncType), [=](bool success, const char* data, size_t size)
 													{
-														if (std::string(data, size).find("yes") != std::string::npos)
+														if (success)
 														{
-															oneSyncSuccess();
+															if (std::string(data, size).find("yes") != std::string::npos)
+															{
+																oneSyncSuccess();
 
-															return;
+																return;
+															}
 														}
-													}
 
-													oneSyncFailure();
-												});
+														oneSyncFailure();
+													});
 
-												return;
+													return;
+												}
 											}
 										}
+										catch (std::exception& e)
+										{
+											trace("1s policy - get failed for %s\n", e.what());
+										}
+
+										oneSyncFailure();
 									}
-									catch (std::exception& e)
+									else
 									{
-										trace("1s policy - get failed for %s\n", e.what());
+										OnConnectionError("Failed to fetch /info.json to obtain policy metadata.");
+
+										m_connectionState = CS_IDLE;
+									}
+								});
+							}
+							else
+							{
+								m_connectionState = CS_INITRECEIVED;
+							}
+						};
+
+						auto blacklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
+						{
+							if (success)
+							{
+								// poke if we aren't blocking *everyone* instead
+								std::default_random_engine generator;
+								std::uniform_int_distribution<int> distribution(1, 224);
+								std::uniform_int_distribution<int> distribution2(1, 254);
+
+								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blacklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
+								auto dStr = std::string(data, length);
+
+								m_httpClient->DoGetRequest(rndQ, [this, continueAfterAllowance, dStr](bool success, const char* data, size_t length)
+								{
+									if (!success)
+									{
+										OnConnectionError(va("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr));
+
+										m_connectionState = CS_IDLE;
+
+										return;
 									}
 
-									oneSyncFailure();
-								}
-							});
-						}
-						else
-						{
-							m_connectionState = CS_INITRECEIVED;
-						}
+									continueAfterAllowance();
+								});
+
+								return;
+							}
+
+							continueAfterAllowance();
+						};
+
+						OnConnectionProgress("Requesting server permissions...", 0, 100);
+
+						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), blacklistResultHandler);
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
@@ -1367,6 +1391,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					fwMap<fwString, fwString> epMap;
 					epMap["method"] = "getEndpoints";
 					epMap["token"] = m_token;
+
+					OnConnectionProgress("Requesting server endpoints...", 0, 100);
 
 					m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
 					{
