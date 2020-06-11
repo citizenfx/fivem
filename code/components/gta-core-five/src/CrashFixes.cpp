@@ -301,6 +301,28 @@ static void PoolInitX(void* pool, int count)
 	return g_origPoolInit(pool, count * X);
 }
 
+static void (*g_origDrawListMgr_ClothFlush)(void*);
+
+static void DrawListMgr_ClothFlush(char* mgr)
+{
+	atArray<void*>& refs = *(atArray<void*>*)(mgr + 1608);
+
+	for (int i = 0; i < refs.GetCount(); i++)
+	{
+		if (refs[i] == nullptr)
+		{
+			// move the last item to the current position
+			--refs.m_count;
+			refs[i] = refs[refs.m_count];
+
+			// iterate this one again
+			--i;
+		}
+	}
+
+	g_origDrawListMgr_ClothFlush(mgr);
+}
+
 using DeclRef = void(*)(void* removeIn, void* toRemove);
 static DeclRef g_vehUnloaders[20];
 
@@ -882,6 +904,9 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origPoolInit, location);
 		hook::call(location, PoolInitX<3>);
 	}
+
+	// validate dlDrawListMgr cloth entries on flush
+	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), DrawListMgr_ClothFlush, (void**)&g_origDrawListMgr_ClothFlush);
 
 	// very hacky patch to not unload base game data from 'vehiclelayouts' CVehicleMetadataMgr
 	VehicleMetadataUnloadMagic();
