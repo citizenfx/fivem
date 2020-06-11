@@ -231,37 +231,10 @@ static InitFunction initFunction([] ()
 				// handle failure
 				if (!result)
 				{
-					GlobalError("Obtaining configuration from server (%s) failed.", addressClone.GetAddress().c_str());
+					GlobalError("Obtaining configuration from server failed. Error state: %s", std::string{ data, size });
 
 					return;
 				}
-
-				std::string respData(data, size);
-
-				httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/config_upload/enable?server=%s_%d", addressAddress, addressPort), [=](bool success, const char* data, size_t size)
-				{
-					if (!success)
-					{
-						return;
-					}
-
-					if (data[0] != 'y')
-					{
-						return;
-					}
-
-					httpClient->DoPostRequest(fmt::sprintf("https://runtime.fivem.net/config_upload/upload?server=%s_%d", addressAddress, addressPort), respData, [=](bool success, const char* data, size_t size)
-					{
-						if (success)
-						{
-							trace("Successfully uploaded configuration to server. Thanks for helping!\n");
-						}
-						else
-						{
-							trace("Failed to upload configuration to server. This is not a problem.\n%s", std::string(data, size));
-						}
-					});
-				});
 
 				// 'get' the server host
 				std::string serverHost = addressClone.GetAddress() + va(":%d", addressClone.GetPort());
@@ -274,6 +247,20 @@ static InitFunction initFunction([] ()
 				{
 					auto err = node.GetParseError();
 					GlobalError("parse error %d", err);
+
+					return;
+				}
+
+				if (!node.IsObject())
+				{
+					GlobalError("Obtaining configuration from server failed. JSON data was not an object.");
+
+					return;
+				}
+
+				if (node.HasMember("error") && node["error"].IsString())
+				{
+					GlobalError("Obtaining configuration from server failed. Error text: %s", node["error"].GetString());
 
 					return;
 				}
