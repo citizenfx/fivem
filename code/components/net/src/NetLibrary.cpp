@@ -831,11 +831,13 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
-	auto urlRef = co_await ResolveUrl(rootUrl);
+	std::string ruRef = rootUrl;
+
+	auto urlRef = co_await ResolveUrl(ruRef);
 
 	if (!urlRef)
 	{
-		OnConnectionError(va("Couldn't resolve URL %s.", rootUrl));
+		OnConnectionError(va("Couldn't resolve URL %s.", ruRef));
 		co_return;
 	}
 
