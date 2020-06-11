@@ -54,7 +54,7 @@ void SetCanSafelySkipLauncher(bool value)
 	}
 	else
 	{
-		_wunlink(MakeRelativeCitPath(L"cache\\launcher_skip_mtl").c_str());
+		_wunlink(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str());
 	}
 }
 
