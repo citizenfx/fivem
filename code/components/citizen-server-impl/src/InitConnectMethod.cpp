@@ -513,9 +513,12 @@ static InitFunction initFunction([]()
 				{
 					json handoverData = json::object();
 
-					for (const auto& [ key, value ] : deferrals->GetHandoverData())
+					if (deferrals)
 					{
-						handoverData[key] = json::parse(value);
+						for (const auto& [ key, value ] : deferrals->GetHandoverData())
+						{
+							handoverData[key] = json::parse(value);
+						}
 					}
 
 					data["handover"] = std::move(handoverData);
@@ -809,11 +812,15 @@ static InitFunction initFunction([]()
 			if (deferralRef.has_value())
 			{
 				auto deferralPtr = std::any_cast<std::weak_ptr<fx::ClientDeferral>>(deferralRef);
-				auto deferrals = deferralPtr.lock();
 
-				if (deferrals)
+				if (!deferralPtr.expired())
 				{
-					deferrals->HandleCardResponse(dataIt->second);
+					auto deferrals = deferralPtr.lock();
+
+					if (deferrals)
+					{
+						deferrals->HandleCardResponse(dataIt->second);
+					}
 				}
 			}
 
