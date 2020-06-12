@@ -85,7 +85,7 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "cfx-collective"
+            VALUE "CompanyName", "Cfx.re"
 #if defined(GTA_FIVE)
 			VALUE "FileDescription", "FiveM" SUFFIX
 #elif defined(IS_RDR3)
@@ -95,9 +95,9 @@ BEGIN
 #endif
             VALUE "FileVersion", "1.1.0.0"
             VALUE "InternalName", "Citizen"
-            VALUE "LegalCopyright", "(C) 2015- CitizenFX Collective"
+            VALUE "LegalCopyright", "(C) 2015-2020 CitizenFX Collective"
             VALUE "OriginalFilename", "citizenmp.exe"
-            VALUE "ProductName", "Citizen"
+            VALUE "ProductName", "CitizenFX"
             VALUE "ProductVersion", "1.1.0.0"
         END
     END
