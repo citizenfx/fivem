@@ -55,22 +55,13 @@ private:
 	bool m_timedOut;
 
 	uint32_t m_lastKeepaliveSent;
-
-	uint32_t m_lastPacketSent;
-
-	std::list<std::tuple<net::Buffer, ENetPacketFlag>> m_packetQueue;
-
-	std::mutex m_packetQueueMutex;
 };
 
 static int g_maxMtu = 1300;
 static std::shared_ptr<ConVar<int>> g_maxMtuVar;
 
-static int g_targetRate = 25;
-static std::shared_ptr<ConVar<int>> g_targetRateVar;
-
 NetLibraryImplV2::NetLibraryImplV2(INetLibraryInherit* base)
-	: m_base(base), m_host(nullptr), m_timedOut(false), m_serverPeer(nullptr), m_lastKeepaliveSent(0), m_lastPacketSent(0)
+	: m_base(base), m_host(nullptr), m_timedOut(false), m_serverPeer(nullptr), m_lastKeepaliveSent(0)
 {
 	CreateResources();
 
@@ -119,13 +110,15 @@ void NetLibraryImplV2::CreateResources()
 
 void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, size_t length)
 {
-	net::Buffer msg(131072);
+	net::Buffer msg;
 	msg.Write(type);
 	msg.Write(buffer, length);
 
+	if (!m_timedOut && m_serverPeer)
 	{
-		std::lock_guard<std::mutex> _(m_packetQueueMutex);
-		m_packetQueue.push_back({ msg, ENET_PACKET_FLAG_RELIABLE });
+		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), ENET_PACKET_FLAG_RELIABLE);
+
+		enet_peer_send(m_serverPeer, 0, packet);
 	}
 
 	m_base->GetMetricSink()->OnOutgoingCommand(type, length, true);
@@ -133,13 +126,15 @@ void NetLibraryImplV2::SendReliableCommand(uint32_t type, const char* buffer, si
 
 void NetLibraryImplV2::SendUnreliableCommand(uint32_t type, const char* buffer, size_t length)
 {
-	net::Buffer msg(131072);
+	net::Buffer msg;
 	msg.Write(type);
 	msg.Write(buffer, length);
 
+	if (!m_timedOut && m_serverPeer)
 	{
-		std::lock_guard<std::mutex> _(m_packetQueueMutex);
-		m_packetQueue.push_back({ msg, (ENetPacketFlag)0 });
+		ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), (ENetPacketFlag)0);
+
+		enet_peer_send(m_serverPeer, 0, packet);
 	}
 
 	m_base->GetMetricSink()->OnOutgoingCommand(type, length, false);
@@ -178,26 +173,7 @@ void NetLibraryImplV2::Reset()
 
 void NetLibraryImplV2::Flush()
 {
-	SendPacketQueue();
-
 	enet_host_flush(m_host);
-}
-
-void NetLibraryImplV2::SendPacketQueue()
-{
-	std::lock_guard<std::mutex> _(m_packetQueueMutex);
-
-	if (m_serverPeer)
-	{
-		for (auto& [msg, flag] : m_packetQueue)
-		{
-			ENetPacket* packet = enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), flag);
-
-			enet_peer_send(m_serverPeer, 0, packet);
-		}
-	}
-
-	m_packetQueue.clear();
 }
 
 void NetLibraryImplV2::RunFrame()
@@ -249,31 +225,21 @@ void NetLibraryImplV2::RunFrame()
 
 	if (m_serverPeer && !m_timedOut)
 	{
-		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		RoutingPacket packet;
 
-		// send packets at the target rate
-		if ((timeGetTime() - m_lastPacketSent) > (1000 / g_targetRate))
+		while (m_base->GetOutgoingPacket(packet))
 		{
-			SendPacketQueue();
+			net::Buffer msg(1300);
+			msg.Write(HashRageString("msgRoute"));
+			msg.Write(packet.netID);
+			msg.Write<uint16_t>(packet.payload.size());
 
-			RoutingPacket packet;
+			msg.Write(packet.payload.c_str(), packet.payload.size());
 
-			while (m_base->GetOutgoingPacket(packet))
-			{
-				net::Buffer msg(1300);
-				msg.Write(HashRageString("msgRoute"));
-				msg.Write(packet.netID);
-				msg.Write<uint16_t>(packet.payload.size());
+			enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), (ENetPacketFlag)0));
 
-				msg.Write(packet.payload.c_str(), packet.payload.size());
-
-				enet_peer_send(m_serverPeer, 1, enet_packet_create(msg.GetBuffer(), msg.GetCurOffset(), (ENetPacketFlag)0));
-
-				m_base->GetMetricSink()->OnOutgoingCommand(HashRageString("msgRoute"), packet.payload.size() + 4, false);
-				m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
-			}
-
-			m_lastPacketSent = timeGetTime();
+			m_base->GetMetricSink()->OnOutgoingCommand(HashRageString("msgRoute"), packet.payload.size() + 4, false);
+			m_base->GetMetricSink()->OnOutgoingRoutePackets(1);
 		}
 
 		// send keepalive every 100ms (server requires an actual received packet in order to call fx::Client::Touch)
@@ -330,6 +296,8 @@ void NetLibraryImplV2::RunFrame()
 
 			m_base->AddSendTick();
 		}
+
+		NetLibrary::OnBuildMessage(std::bind(&NetLibraryImplV2::SendReliableCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 }
 
@@ -466,9 +434,6 @@ static InitFunction initFunction([]()
 	{
 		g_maxMtuVar = std::make_shared<ConVar<int>>("net_maxMtu", ConVar_Archive, 1300, &g_maxMtu);
 		g_maxMtuVar->GetHelper()->SetConstraints(ENET_PROTOCOL_MINIMUM_MTU, ENET_PROTOCOL_MAXIMUM_MTU);
-
-		g_targetRateVar = std::make_shared<ConVar<int>>("net_targetRate", ConVar_Archive, 25, &g_targetRate);
-		g_targetRateVar->GetHelper()->SetConstraints(10, 50);
 	});
 });
 
