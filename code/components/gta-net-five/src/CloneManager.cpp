@@ -1610,7 +1610,7 @@ void CloneManagerLocal::WriteUpdates()
 		}
 
 		// #TODO1S: make this dynamic based on net_targetRate
-		syncLatency = std::max(syncLatency, 20ms);
+		//syncLatency = std::max(syncLatency, 20ms);
 
 		// determine sync type from sync data
 		int syncType = 0;

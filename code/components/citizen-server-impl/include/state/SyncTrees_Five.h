@@ -228,6 +228,7 @@ struct ParentNode : public NodeBase
 	{
 		bool should = false;
 
+		// TODO: back out writes if we literally shouldn't have?
 		if (shouldWrite(state, TIds::GetIds()))
 		{
 			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
@@ -303,6 +304,9 @@ struct NodeWrapper : public NodeBase
 			this->length = leftoverLength;
 			state.buffer.ReadBits(data.data(), std::min(uint32_t(data.size() * 8), leftoverLength));
 
+			// hac
+			timestamp = state.timestamp;
+
 			state.buffer.SetCurrentBit(endBit);
 
 			// parse
@@ -343,7 +347,7 @@ struct NodeWrapper : public NodeBase
 				couldWrite = true;
 			}
 			// otherwise, we only want to write if the player hasn't acked
-			else if (!ackedPlayers.test(state.client->GetSlotId()))
+			else if (!ackedPlayers.test(state.targetSlotId))
 			{
 				couldWrite = true;
 			}
@@ -352,6 +356,11 @@ struct NodeWrapper : public NodeBase
 		// enable this for boundary checks
 		//state.buffer.Write(8, 0x5A);
 
+		if (state.timestamp && state.timestamp != timestamp)
+		{
+			couldWrite = false;
+		}
+		
 		if (shouldWrite(state, TIds::GetIds(), couldWrite))
 		{
 			state.buffer.WriteBits(data.data(), length);
@@ -1206,6 +1215,7 @@ struct CEntityOrientationDataNode
 
 	bool Parse(SyncParseState& state)
 	{
+#if 0
 		auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
 		auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
 		auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
@@ -1213,6 +1223,12 @@ struct CEntityOrientationDataNode
 		data.rotX = rotX;
 		data.rotY = rotY;
 		data.rotZ = rotZ;
+#else
+		data.quat.largest = state.buffer.Read<uint32_t>(2);
+		data.quat.integer_a = state.buffer.Read<uint32_t>(11);
+		data.quat.integer_b = state.buffer.Read<uint32_t>(11);
+		data.quat.integer_c = state.buffer.Read<uint32_t>(11);
+#endif
 
 		return true;
 	}

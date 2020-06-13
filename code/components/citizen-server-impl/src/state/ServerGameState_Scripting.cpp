@@ -201,9 +201,23 @@ static InitFunction initFunction([]()
 
 			if (en)
 			{
+#if 0
 				resultVec.x = en->rotX * 180.0 / pi;
 				resultVec.y = en->rotY * 180.0 / pi;
 				resultVec.z = en->rotZ * 180.0 / pi;
+#else
+				float qx, qy, qz, qw;
+				en->quat.Save(qx, qy, qz, qw);
+
+				auto m4 = glm::toMat4(glm::quat{qw, qx, qy, qz});
+
+				// common GTA rotation (2) is ZXY
+				glm::extractEulerAngleZXY(m4, resultVec.x, resultVec.y, resultVec.z);
+
+				resultVec.x = glm::degrees(resultVec.x);
+				resultVec.y = glm::degrees(resultVec.y);
+				resultVec.z = glm::degrees(resultVec.z);
+#endif
 			}
 		}
 
@@ -229,7 +243,19 @@ static InitFunction initFunction([]()
 
 			if (en)
 			{
+#if 0
 				heading = en->rotZ * 180.0 / pi;
+#else
+				float qx, qy, qz, qw;
+				en->quat.Save(qx, qy, qz, qw);
+
+				auto m4 = glm::toMat4(glm::quat{ qw, qx, qy, qz });
+
+				float _, z;
+				glm::extractEulerAngleZXY(m4, _, _, z);
+
+				heading = glm::degrees(z);
+#endif
 			}
 		}
 

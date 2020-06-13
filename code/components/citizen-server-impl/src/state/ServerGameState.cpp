@@ -13,6 +13,7 @@
 #include <tbb/parallel_for_each.h>
 #include <thread_pool.hpp>
 
+#include <EASTL/fixed_set.h>
 #include <EASTL/fixed_vector.h>
 
 #include <state/Pool.h>
@@ -538,7 +539,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	static uint32_t ticks = 0;
 	ticks++;
 
-	if ((ticks % 6) != 1)
+	if ((ticks % 3) != 1)
 	{
 		return;
 	}
@@ -625,7 +626,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	int iterations = 0;
 	int slot = lastUpdateSlot;
 	
-	while (iterations < (fx::IsBigMode() ? 16 : 32))
+	while (iterations < (fx::IsBigMode() ? 8 : 16))
 	{
 		iterations++;
 
@@ -797,6 +798,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						else if (dist > 250.0f * 250.0f)
 						{
 							syncDelay = 250ms;
+						}
+						else if (dist < 75.0f * 75.0f)
+						{
+							syncDelay /= 4;
 						}
 					}
 				}
@@ -1068,7 +1073,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				auto lastResend = entity->lastResends[slotId];
 				auto lastTime = (curTime - lastResend);
 
-				if (lastResend != 0ms && lastTime < resendDelay)
+				if (lastResend != 0ms && lastTime < resendDelay && entity->lastFrameIndices[slotId] == entity->frameIndex)
 				{
 					GS_LOG("%s: skipping resend for object %d (resend delay %dms, last resend %d)\n", __func__, entity->handle & 0xFFFF, resendDelay.count(), lastTime.count());
 					shouldSend = false;
@@ -1089,6 +1094,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (shouldSend)
 				{
+					((syncType == 1) ? numCreates : numSyncs)++;
+
 					scl->commands.emplace_back([
 						this,
 						entity = std::move(entity),
@@ -1104,87 +1111,116 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							return;
 						}
 
-						if (cmdState.client->GetSlotId() == -1)
+						auto slotId = cmdState.client->GetSlotId();
+
+						if (slotId == -1)
 						{
 							return;
 						}
 
 						// create a buffer once (per thread) to save allocations
 						static thread_local rl::MessageBuffer mb(1200);
-						mb.SetCurrentBit(0);
 
-						sync::SyncUnparseState state(mb);
-						state.syncType = syncType;
-						state.client = cmdState.client;
+						// gather entity timestamps
+						eastl::fixed_set<uint32_t, 10> timeSet;
 
-						bool wroteData = entity->syncTree->Unparse(state);
-
-						if (wroteData)
+						if (syncType == 1)
 						{
-							if (!cmdState.hadTime)
+							timeSet.insert(0);
+						}
+						else
+						{
+							entity->syncTree->Visit([&timeSet](sync::NodeBase& node)
 							{
-								uint64_t time = curTime.count();
+								if (node.timestamp)
+								{
+									timeSet.insert(node.timestamp);
+								}
 
-								cmdState.maybeFlushBuffer(3 + 32 + 32);
-								cmdState.cloneBuffer.Write(3, 5);
-								cmdState.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
-								cmdState.cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
+								return true;
+							});
+						}
 
-								cmdState.hadTime = true;
-							}
+						for (auto& ts : timeSet)
+						{
+							mb.SetCurrentBit(0);
 
-							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
+							sync::SyncUnparseState state(mb);
+							state.syncType = syncType;
+							state.targetSlotId = slotId;
+							state.timestamp = ts;
 
-							if (len > 4096)
+							bool wroteData = entity->syncTree->Unparse(state);
+
+							if (wroteData)
 							{
-								return;
-							}
+								if (!cmdState.hadTime)
+								{
+									uint64_t time = curTime.count();
 
-							auto startBit = cmdState.cloneBuffer.GetCurrentBit();
+									cmdState.maybeFlushBuffer(3 + 32 + 32);
+									cmdState.cloneBuffer.Write(3, 5);
+									cmdState.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
+									cmdState.cloneBuffer.Write(32, uint32_t((time >> 32) & 0xFFFFFFFF));
 
-							{
-								auto[lock, clientData] = GetClientData(this, cmdState.client);
-								clientData->idsForGameState[cmdState.frameIndex].set(entity->handle & 0xFFFF);
-							}
+									cmdState.hadTime = true;
+								}
 
-							cmdState.maybeFlushBuffer(3 + 13 + 16 + 4 + 32 + 16 + 32 + 12 + (len * 8));
-							cmdState.cloneBuffer.Write(3, syncType);
-							cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
-							cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
+								auto len = (state.buffer.GetCurrentBit() / 8) + 1;
 
-							if (syncType == 1)
-							{
-								cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
-
-								cmdState.cloneBuffer.Write(32, entity->creationToken);
-							}
-
-							cmdState.cloneBuffer.Write(16, (uint16_t)entity->uniqifier);
-
-							cmdState.cloneBuffer.Write<uint32_t>(32, entity->timestamp);
-
-							cmdState.cloneBuffer.Write(12, len);
-							
-							if (!cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8))
-							{
-								cmdState.cloneBuffer.SetCurrentBit(startBit);
-
-								// force a buffer flush, we're oversize
-								cmdState.flushBuffer();
-							}
-							else
-							{
-								auto slotId = cmdState.client->GetSlotId();
-
-								if (slotId == -1)
+								if (len > 4096)
 								{
 									return;
 								}
 
-								entity->lastSyncs[slotId] = entity->lastResends[slotId] = curTime;
+								auto startBit = cmdState.cloneBuffer.GetCurrentBit();
+
+								{
+									auto [lock, clientData] = GetClientData(this, cmdState.client);
+									clientData->idsForGameState[cmdState.frameIndex].set(entity->handle & 0xFFFF);
+								}
+
+								cmdState.maybeFlushBuffer(3 + 13 + 16 + 4 + 32 + 16 + 32 + 12 + (len * 8));
+								cmdState.cloneBuffer.Write(3, syncType);
+								cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
+								cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
+
+								if (syncType == 1)
+								{
+									cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
+
+									cmdState.cloneBuffer.Write(32, entity->creationToken);
+								}
+
+								cmdState.cloneBuffer.Write(16, (uint16_t)entity->uniqifier);
+
+								cmdState.cloneBuffer.Write<uint32_t>(32, ts == 0 ? entity->timestamp : ts);
+
+								cmdState.cloneBuffer.Write(12, len);
+
+								if (!cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8))
+								{
+									cmdState.cloneBuffer.SetCurrentBit(startBit);
+
+									// force a buffer flush, we're oversize
+									cmdState.flushBuffer();
+								}
+								else
+								{
+									entity->lastSyncs[slotId] = curTime;
+
+									if (entity->frameIndex == cmdState.frameIndex)
+									{
+										entity->lastResends[slotId] = curTime;
+									}
+								}
 							}
 						}
 					});
+				}
+				else
+				{
+					numSkips++;
 				}
 			}
 			else if (!shouldBeCreated)
@@ -2217,7 +2253,7 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	entity->timestamp = timestamp;
 	entity->lastReceivedAt = msec();
 
-	auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, entity, m_frameIndex };
+	auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
 
 	auto syncTree = entity->syncTree;
 

@@ -53,6 +53,7 @@ struct SyncParseState
 	rl::MessageBuffer buffer;
 	int syncType;
 	int objType;
+	uint32_t timestamp;
 
 	std::shared_ptr<SyncEntityState> entity;
 
@@ -64,8 +65,9 @@ struct SyncUnparseState
 	rl::MessageBuffer& buffer;
 	int syncType;
 	int objType;
+	uint32_t timestamp;
 
-	std::shared_ptr<Client> client;
+	uint32_t targetSlotId;
 
 	SyncUnparseState(rl::MessageBuffer& buffer)
 		: buffer(buffer)
@@ -84,6 +86,8 @@ public:
 	eastl::bitset<MAX_CLIENTS> ackedPlayers;
 
 	uint64_t frameIndex;
+
+	uint32_t timestamp;
 
 	virtual bool Parse(SyncParseState& state) = 0;
 
@@ -208,11 +212,11 @@ struct CVehicleGameStateNodeData
 	}
 };
 
+#include <state/kumquat.h>
+
 struct CEntityOrientationNodeData
 {
-	float rotX;
-	float rotY;
-	float rotZ;
+	compressed_quaternion<11> quat;
 };
 
 struct CPhysicalVelocityNodeData
@@ -338,6 +342,7 @@ struct SyncEntityState
 
 	std::chrono::milliseconds lastReceivedAt;
 
+	std::array<uint64_t, MAX_CLIENTS> lastFrameIndices{};
 	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastResends{};
 	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs{};
 

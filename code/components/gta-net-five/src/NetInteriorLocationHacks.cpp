@@ -154,6 +154,7 @@ struct CSyncDataBase
 };
 }
 
+static uintptr_t g_readerVtbl;
 static uintptr_t g_writerVtbl;
 static uintptr_t g_loggerVtbl;
 
@@ -279,8 +280,73 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 	}
 }
 
+#include <DirectXMath.h>
+#include <state/kumquat.h>
+
+extern ICoreGameInit* icgi;
+
+static void (*g_origReadOrient)(rage::CSyncDataBase* self, float* mat, const char* name);
+
+static void ReadOrient(rage::CSyncDataBase* self, float* mat, const char* name)
+{
+	if (icgi->NetProtoVersion < 0x202006131813 || !icgi->OneSyncEnabled)
+	{
+		return g_origReadOrient(self, mat, name);
+	}
+
+	compressed_quaternion<11> q;
+	q.Serialize(self);
+
+	float x, y, z, w;
+	q.Save(x, y, z, w);
+
+	auto quat = DirectX::XMVector4Normalize(DirectX::XMVectorSet(x, y, z, w));
+	auto m = DirectX::XMMatrixRotationQuaternion(quat);
+
+	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)mat, m);
+}
+
+static uint32_t lastOrientTime;
+static DirectX::XMFLOAT4X4 lm;
+
+#include <netInterface.h>
+
+static void(*g_origWriteOrient)(rage::CSyncDataBase* self, float* mat, const char* name);
+
+static void WriteOrient(rage::CSyncDataBase* self, float* mat, const char* name)
+{
+	if (icgi->NetProtoVersion < 0x202006131813 || !icgi->OneSyncEnabled)
+	{
+		return g_origWriteOrient(self, mat, name);
+	}
+
+	auto f = (DirectX::XMFLOAT4X4*)mat;
+	auto m = DirectX::XMLoadFloat4x4(f);
+
+	DirectX::XMVECTOR v_;
+	DirectX::XMVECTOR quat;
+
+	DirectX::XMMatrixDecompose(&v_, &quat, &v_, m);
+
+	compressed_quaternion<11> q;
+	q.Load(DirectX::XMVectorGetX(quat), DirectX::XMVectorGetY(quat), DirectX::XMVectorGetZ(quat), DirectX::XMVectorGetW(quat));
+	q.Serialize(self);
+}
+
+static void SizeOrient(char* self)
+{
+	if (icgi->NetProtoVersion < 0x202006131813 || !icgi->OneSyncEnabled)
+	{
+		*(uint32_t*)(self + 24) += 9 * 3;
+		return;
+	}
+
+	*(uint32_t*)(self + 24) += (11 * 3) + 2;
+}
+
 static HookFunction hookFunction([]()
 {
+	g_readerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("48 83 EC 48 48 8B 49 08 49 89 53 F0 48 8D 05", 0xF));
 	g_writerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("4C 8B 10 48 8B C8 41 FF 52 08 48 8B 4B 08", 0x11));
 	g_loggerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("48 8B 90 10 27 00 00 48 8D 05 ? ? ? ? 49 89 53 E8", 10));
 
@@ -288,4 +354,13 @@ static HookFunction hookFunction([]()
 	auto location = hook::get_pattern("45 8D 41 20 FF 50 68 48 8B 07 49 8D 97 C4");
 	hook::nop(location, 7);
 	hook::call(location, CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode);
+
+	g_origReadOrient = *(decltype(g_origReadOrient)*)(g_readerVtbl + (8 * 20));
+	g_origWriteOrient = *(decltype(g_origWriteOrient)*)(g_writerVtbl + (8 * 20));
+
+	hook::put(g_readerVtbl + (8 * 20), ReadOrient);
+	hook::put(g_writerVtbl + (8 * 20), WriteOrient);
+
+	// size calculator
+	hook::jump(hook::get_pattern("83 41 18 1B"), SizeOrient);
 });

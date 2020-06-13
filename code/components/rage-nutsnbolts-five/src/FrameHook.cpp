@@ -60,18 +60,18 @@ static void DoGameFrame()
 		g_gameFrameMutex.unlock();
 	}
 
-	if (g_criticalFrameMutex.try_lock())
-	{
-		OnCriticalGameFrame();
-
-		g_criticalFrameMutex.unlock();
-	}
-
 	if (GetCurrentThreadId() == g_mainThreadId)
 	{
 		OnMainGameFrame();
 
 		g_executedOnMainThread = true;
+	}
+
+	if (g_criticalFrameMutex.try_lock())
+	{
+		OnCriticalGameFrame();
+
+		g_criticalFrameMutex.unlock();
 	}
 
 	g_lastGameFrame = timeGetTime();

@@ -296,7 +296,6 @@ namespace fx
 			struct NetPersistentData
 			{
 				UvHandleContainer<uv_timer_t> tickTimer;
-				UvHandleContainer<uv_timer_t> sendTimer;
 
 				std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
 
@@ -310,7 +309,6 @@ namespace fx
 
 			// periodic timer for network ticks
 			auto frameTime = 1000 / 120;
-			auto sendTime = 1000 / 40;
 
 			auto mpd = netData.get();
 
@@ -322,8 +320,7 @@ namespace fx
 					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
 					});
 			
-			uv_timer_init(loop, &netData->tickTimer);
-			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
+			auto tcb = UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
 			{
 				auto now = msec();
 				auto thisTime = now - mpd->lastTime;
@@ -336,15 +333,8 @@ namespace fx
 				}
 
 				OnNetworkTick();
-				m_net->Process();
 
-				auto atEnd = msec();
-				collector.Observe((atEnd - now).count() / 1000.0);
-			}), frameTime, frameTime);
-
-			uv_timer_init(loop, &netData->sendTimer);
-			uv_timer_start(&netData->sendTimer, UvPersistentCallback(&netData->sendTimer, [this](uv_timer_t*)
-			{
+				// process send list in between
 				while (!m_netSendList.empty())
 				{
 					const auto& [peer, channel, buffer, type] = m_netSendList.front();
@@ -352,7 +342,21 @@ namespace fx
 
 					m_netSendList.pop_front();
 				}
-			}), sendTime, sendTime);
+
+				// process game push
+				m_net->Process();
+
+				auto atEnd = msec();
+				collector.Observe((atEnd - now).count() / 1000.0);
+			});
+
+			uv_timer_init(loop, &netData->tickTimer);
+			uv_timer_start(&netData->tickTimer, tcb, frameTime, frameTime);
+
+			OnEnetReceive.Connect([netData, tcb, frameTime]()
+			{
+				uv_timer_start(&netData->tickTimer, tcb, 0, frameTime);
+			});
 
 			// event handle for callback list evaluation
 
@@ -438,7 +442,7 @@ namespace fx
 
 				auto atEnd = msec();
 				collector.Observe((atEnd - now).count() / 1000.0);
-			}), frameTime, frameTime);
+			}), frameTime + (frameTime / 2), frameTime);
 
 			// event handle for callback list evaluation
 

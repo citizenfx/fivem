@@ -247,10 +247,10 @@ enet_socket_bind(ENetSocket socket, const ENetAddress* address)
 					dgram.from = *in6;
 
 					udpSocket->recvQueue.push_back(std::move(dgram));
+
+					OnEnetReceive();
 				}
 			}
-
-			OnEnetReceive();
 
 			if (buf->len > TPacketPool::kNodeSize)
 			{
