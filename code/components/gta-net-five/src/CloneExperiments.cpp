@@ -2685,3 +2685,28 @@ static InitFunction initFunction([]()
 	});
 #endif
 });
+
+uint32_t* rage__s_NetworkTimeLastFrameStart;
+uint32_t* rage__s_NetworkTimeThisFrameStart;
+
+static void (*g_origSendCloneSync)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6);
+
+static void SendCloneSync(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6)
+{
+	auto t = *rage__s_NetworkTimeThisFrameStart;
+	*rage__s_NetworkTimeThisFrameStart = *rage__s_NetworkTimeLastFrameStart;
+
+	g_origSendCloneSync(a1, a2, a3, a4, a5, a6);
+
+	*rage__s_NetworkTimeThisFrameStart = t;
+}
+
+static HookFunction hookFunctionNative([]()
+{
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("41 56 41 57 48 83 EC 40 0F B6 72 2C 4D 8B E1", -0x14), SendCloneSync, (void**)&g_origSendCloneSync);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("49 8B 0F 40 8A D6 41 2B C4 44 3B 25", 12));
+	rage__s_NetworkTimeLastFrameStart = rage__s_NetworkTimeThisFrameStart - 1;
+});

@@ -68,6 +68,8 @@ void UpdateTime(uint64_t serverTime, bool isInit = false);
 
 bool IsWaitingForTimeSync();
 
+extern uint32_t* rage__s_NetworkTimeLastFrameStart;
+
 namespace sync
 {
 class msgClone;
@@ -1464,14 +1466,16 @@ void CloneManagerLocal::WriteUpdates()
 
 	bool hitTimestamp = false;
 
-	auto touchTimestamp = [&hitTimestamp, this]()
+	auto ts = *rage__s_NetworkTimeLastFrameStart;
+
+	auto touchTimestamp = [&hitTimestamp, ts, this]()
 	{
 		if (hitTimestamp)
 		{
 			return;
 		}
 
-		uint32_t timestamp = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+		uint32_t timestamp = ts;
 
 		m_sendBuffer.Write(3, 5);
 		m_sendBuffer.Write(32, timestamp);
@@ -1670,12 +1674,12 @@ void CloneManagerLocal::WriteUpdates()
 
 			uint32_t lastChangeTime;
 
-			if (syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp(), nullptr, 31, nullptr, &lastChangeTime))
+			if (syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, ts, nullptr, 31, nullptr, &lastChangeTime))
 			{
 				// #TODO1S: dynamic resend time based on latency
 				bool shouldWrite = true;
 
-				if (lastChangeTime == objectData.lastChangeTime && rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() < (objectData.lastResendTime + 100))
+				if (lastChangeTime == objectData.lastChangeTime && ts < (objectData.lastResendTime + 100))
 				{
 					Log("%s: no early resend of object [obj:%d]\n", __func__, objectId);
 					shouldWrite = false;
@@ -1730,7 +1734,7 @@ void CloneManagerLocal::WriteUpdates()
 
 					AttemptFlushCloneBuffer();
 
-					objectData.lastResendTime = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+					objectData.lastResendTime = ts;
 					objectData.lastSyncTime = msec();
 				}
 			}
@@ -1831,7 +1835,7 @@ void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 {
 	auto lastSendVar = (msgType == HashString("netClones")) ? &m_lastSend : &m_lastAck;
 
-	if (buffer.GetDataLength() > 800 || ((msec() - *lastSendVar) > 20ms && buffer.GetDataLength() > 0))
+	if (buffer.GetDataLength() > 0)
 	{
 		buffer.Write(3, 7);
 
