@@ -15,6 +15,8 @@
 #include <optional>
 #include <EASTL/bitset.h>
 #include <EASTL/fixed_hash_map.h>
+#include <EASTL/fixed_hash_set.h>
+#include <EASTL/fixed_vector.h>
 #include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
@@ -329,8 +331,7 @@ struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
 
-	std::shared_mutex clientMutex;
-	std::weak_ptr<fx::Client> client;
+	LRWeakPtr<fx::Client> client;
 	NetObjEntityType type;
 	eastl::bitset<MAX_CLIENTS> ackedCreation;
 	eastl::bitset<MAX_CLIENTS> didDeletion;
@@ -441,14 +442,14 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	std::mutex selfMutex;
 
-	std::weak_ptr<sync::SyncEntityState> playerEntity;
+	LRWeakPtr<sync::SyncEntityState> playerEntity;
 	std::optional<int> playerId;
 
 	bool syncing;
 
 	glm::mat4x4 viewMatrix;
 
-	eastl::fixed_hash_map<uint64_t, eastl::bitset<MaxObjectId>, 150> idsForGameState;
+	eastl::fixed_hash_map<uint64_t, eastl::fixed_vector<uint16_t, 2048>, 150> idsForGameState;
 
 	eastl::bitset<MaxObjectId> pendingRemovals;
 
