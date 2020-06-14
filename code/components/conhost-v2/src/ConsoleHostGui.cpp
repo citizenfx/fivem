@@ -254,7 +254,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return;
 		}
 
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetItemsLineHeightWithSpacing() * 12.0f), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetFrameHeightWithSpacing() * 12.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -293,7 +293,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::PopStyleVar();
 		ImGui::Separator();*/
 
-		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, 0);
+		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false, 0);
 
 		// Display every line as a separate entry so we can change their color or add custom widgets. If you only want raw text you can use ImGui::TextUnformatted(log.begin(), log.end());
 		// NB- if you have thousands of entries this approach may be too inefficient and may require user-side clipping to only process visible items.
@@ -335,7 +335,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 
 		// Demonstrate keeping auto focus on the input box
-		if (ImGui::IsItemHovered() || (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
+		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
 
 		ImGui::End();
@@ -546,7 +546,7 @@ struct MiniConsole : CfxBigConsole
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
 		ImGui::SetNextWindowPos(ImVec2(20, io.DisplaySize.y - 20), ImGuiCond_Once, ImVec2(0.0f, 1.0f));
-		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.4f, ImGui::GetItemsLineHeightWithSpacing() * 12.0f));
+		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.4f, ImGui::GetFrameHeightWithSpacing() * 12.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing
 

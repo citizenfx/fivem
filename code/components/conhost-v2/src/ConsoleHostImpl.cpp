@@ -40,14 +40,7 @@ int g_bufferHeight;
 static uint32_t g_pointSamplerState;
 static rage::grcTexture* g_fontTexture;
 
-struct DrawList
-{
-	ImVector<ImDrawVert> VtxBuffer;
-	ImVector<ImDrawIdx> IdxBuffer;
-	ImVector<ImDrawCmd> CmdBuffer;
-};
-
-static void RenderDrawListInternal(DrawList* drawList)
+static void RenderDrawListInternal(ImDrawList* drawList)
 {
 	auto oldRasterizerState = GetRasterizerState();
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
@@ -142,11 +135,7 @@ static void RenderDrawLists(ImDrawData* drawData)
 	for (int i = 0; i < drawData->CmdListsCount; i++)
 	{
 		ImDrawList* drawList = drawData->CmdLists[i];
-
-		DrawList* grDrawList = new DrawList();
-		grDrawList->CmdBuffer.swap(drawList->CmdBuffer);
-		grDrawList->IdxBuffer.swap(drawList->IdxBuffer);
-		grDrawList->VtxBuffer.swap(drawList->VtxBuffer);
+		ImDrawList* grDrawList = drawList->CloneOutput();
 
 		if (IsOnRenderThread())
 		{
@@ -158,7 +147,7 @@ static void RenderDrawLists(ImDrawData* drawData)
 
 			EnqueueGenericDrawCommand([](uintptr_t a, uintptr_t b)
 			{
-				RenderDrawListInternal((DrawList*)a);
+				RenderDrawListInternal((ImDrawList*)a);
 			},
 			&argRef, &argRef);
 		}
