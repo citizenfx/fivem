@@ -308,7 +308,7 @@ namespace fx
 			netData->lastTime = msec();
 
 			// periodic timer for network ticks
-			auto frameTime = 1000 / 120;
+			auto frameTime = 1000 / 100;
 
 			auto mpd = netData.get();
 
@@ -352,11 +352,6 @@ namespace fx
 
 			uv_timer_init(loop, &netData->tickTimer);
 			uv_timer_start(&netData->tickTimer, tcb, frameTime, frameTime);
-
-			OnEnetReceive.Connect([netData, tcb, frameTime]()
-			{
-				uv_timer_start(&netData->tickTimer, tcb, 0, frameTime);
-			});
 
 			// event handle for callback list evaluation
 
