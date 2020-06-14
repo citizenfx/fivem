@@ -48,6 +48,11 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	{
 		productName += L"cl2_";
 	}
+
+	if (wcsstr(GetCommandLine(), L"fxdk") != nullptr)
+	{
+		productName += L"fxdk_";
+	}
 	
 	if (wcsstr(GetCommandLine(), L"b1868") != nullptr)
 	{

@@ -134,7 +134,7 @@ static InitFunction initFunction([] ()
 		cfxDevice->SetPath(fxRoot.c_str(), true);
 		cfxDevice->Mount("cfx:/");
 
-		std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache%s", IsCL2() ? L"\\cl2" : L""));
+		std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache%s", ToWide(launch::GetPrefixedLaunchModeKey("\\"))));
 
 		if (GetFileAttributes(cachePath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
