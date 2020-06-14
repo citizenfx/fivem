@@ -601,7 +601,11 @@ static InitFunction initFunction([]()
 					allowClient();
 
 					json dataNew = data;
-					addData(dataNew, *deferrals);
+
+					if (deferrals && *deferrals)
+					{
+						addData(dataNew, *deferrals);
+					}
 
 					auto ref1 = *cbRef;
 
