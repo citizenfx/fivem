@@ -1682,8 +1682,8 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 			position[2]
 		};
 
-		static eastl::fixed_set<std::tuple<float, std::shared_ptr<fx::Client>>, MAX_CLIENTS> candidates;
-		candidates.clear();
+		static thread_local auto* candidates = new eastl::fixed_set<std::tuple<float, std::shared_ptr<fx::Client>>, MAX_CLIENTS>();
+		candidates->clear();
 
 		clientRegistry->ForAllClients([this, &client, pos](const std::shared_ptr<fx::Client>& tgtClient)
 		{
@@ -1721,30 +1721,34 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 
 			if (distance < (300.0f * 300.0f))
 			{
-				candidates.emplace(distance, tgtClient);
+				candidates->emplace(distance, tgtClient);
 			}
 		});
 
 		if (entity->type == sync::NetObjEntityType::Player)
 		{
-			candidates.clear();
+			candidates->clear();
 		}
 
-		if (candidates.empty() || // no candidate?
-			std::get<float>(*candidates.begin()) >= (300.0f * 300.0f)) // closest candidate beyond distance culling range?
+		if (candidates->empty() || // no candidate?
+			std::get<float>(*candidates->begin()) >= (300.0f * 300.0f)) // closest candidate beyond distance culling range?
 		{
 			GS_LOG("no candidates for entity %d, deleting\n", entity->handle);
+
+			candidates->clear();
 
 			return false;
 		}
 		else
 		{
-			auto& candidate = *candidates.begin();
+			auto& candidate = *candidates->begin();
 
 			GS_LOG("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidate)->GetName());
 
 			ReassignEntity(entity->handle, std::get<1>(candidate));
 		}
+
+		candidates->clear();
 	}
 
 	return true;
