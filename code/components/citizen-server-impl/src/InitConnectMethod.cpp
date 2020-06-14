@@ -321,6 +321,12 @@ static InitFunction initFunction([]()
 			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
 
+			if (protocol < 6)
+			{
+				sendError("Client/server version mismatch.");
+				return;
+			}
+
 			// verify game name
 			bool validGameName = false;
 			std::string intendedGameName;
@@ -399,7 +405,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202006131813;
+			data["bitVersion"] = 0x202006140932;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
