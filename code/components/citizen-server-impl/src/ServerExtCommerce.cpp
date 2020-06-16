@@ -575,6 +575,13 @@ void ExtCommerceComponent::AttachToObject(fx::ServerInstanceBase* instance)
 
 	m_tebexKeyConvar = instance->AddVariable<std::string>("sv_tebexSecret", ConVar_None, "");
 
+	auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+	clientRegistry->OnClientCreated.Connect([this](fx::Client* client)
+	{
+		client->SetComponent(new ClientExtCommerceComponent(this, client));
+	});
+
 	instance->OnInitialConfiguration.Connect([this, instance]()
 	{
 		auto gameServer = instance->GetComponent<fx::GameServer>();
@@ -585,11 +592,6 @@ void ExtCommerceComponent::AttachToObject(fx::ServerInstanceBase* instance)
 		});
 
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-
-		clientRegistry->OnClientCreated.Connect([this](fx::Client* client)
-		{
-			client->SetComponent(new ClientExtCommerceComponent(this, client));
-		});
 
 		clientRegistry->OnConnectedClient.Connect([this](fx::Client* client)
 		{
