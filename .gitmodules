@@ -90,7 +90,7 @@
 	url = https://github.com/citizenfx/node.git
 [submodule "vendor/openssl"]
 	path = vendor/openssl
-	url = https://github.com/openssl/openssl.git
+	url = https://github.com/tatsuhiro-t/openssl.git
 [submodule "vendor/libopus"]
 	path = vendor/libopus
 	url = https://github.com/xiph/opus.git
@@ -214,3 +214,9 @@
 [submodule "vendor/rocksdb"]
 	path = vendor/rocksdb
 	url = https://github.com/facebook/rocksdb.git
+[submodule "vendor/ngtcp2"]
+	path = vendor/ngtcp2
+	url = https://github.com/ngtcp2/ngtcp2.git
+[submodule "vendor/nghttp3"]
+	path = vendor/nghttp3
+	url = https://github.com/ngtcp2/nghttp3.git
