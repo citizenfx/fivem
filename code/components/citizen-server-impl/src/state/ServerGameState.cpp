@@ -1110,23 +1110,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						// gather entity timestamps
 						eastl::fixed_set<uint32_t, 10> timeSet;
-
-						if (syncType == 1)
-						{
-							timeSet.insert(0);
-						}
-						else
-						{
-							entity->syncTree->Visit([&timeSet](sync::NodeBase& node)
-							{
-								if (node.timestamp)
-								{
-									timeSet.insert(node.timestamp);
-								}
-
-								return true;
-							});
-						}
+						timeSet.insert(0);
 
 						for (auto& ts : timeSet)
 						{
