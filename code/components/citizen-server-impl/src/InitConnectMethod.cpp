@@ -302,6 +302,14 @@ static InitFunction initFunction([]()
 				cb(json(nullptr));
 			};
 
+			auto gameServer = instance->GetComponent<fx::GameServer>();
+
+			if (!gameServer->HasSettled())
+			{
+				sendError("The server is starting up.");
+				return;
+			}
+
 			auto nameIt = postMap.find("name");
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
@@ -415,7 +423,6 @@ static InitFunction initFunction([]()
 			data["gamename"] = gameName;
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-			auto gameServer = instance->GetComponent<fx::GameServer>();
 
 			data["netlibVersion"] = gameServer->GetNetLibVersion();
 			data["maxClients"] = atoi(gameServer->GetVariable("sv_maxclients").c_str());

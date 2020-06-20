@@ -50,7 +50,7 @@ extern fwEvent<> OnEnetReceive;
 namespace fx
 {
 	GameServer::GameServer()
-		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0)
+		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0), m_hasSettled(false)
 	{
 		g_gameServer = this;
 
@@ -834,6 +834,7 @@ namespace fx
 		m_seContext->MakeCurrent();
 
 		m_serverTime += frameTime;
+		m_hasSettled = true;
 
 		// check callbacks
 		for (auto& cb : m_deferCallbacks)

@@ -190,6 +190,11 @@ namespace fx
 			return m_gamename->GetValue();
 		}
 
+		inline bool HasSettled() const
+		{
+			return m_hasSettled;
+		}
+
 	private:
 		void InitializeSyncUv();
 
@@ -210,6 +215,8 @@ namespace fx
 		std::thread m_thread;
 
 		TPacketHandler m_packetHandler;
+
+		bool m_hasSettled;
 
 		std::function<void()> m_runLoop;
 
