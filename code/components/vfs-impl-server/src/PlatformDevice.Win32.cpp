@@ -1,6 +1,9 @@
 #include <StdInc.h>
 #include <LocalDevice.h>
 
+#include <VFSLinkExtension.h>
+#include <VFSManager.h>
+
 #include <windows.h>
 
 #include <versionhelpers.h>
@@ -286,6 +289,48 @@ bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t control
 				return true;
 			}
 		}
+	}
+	else if (controlIdx == VFS_MAKE_HARDLINK && controlSize == sizeof(MakeHardLinkExtension))
+	{
+		auto data = reinterpret_cast<MakeHardLinkExtension*>(controlData);
+
+		auto deviceRef = vfs::GetDevice(data->existingPath);
+
+		if (!deviceRef.GetRef())
+		{
+			return false;
+		}
+
+		auto handle = deviceRef->Open(data->existingPath, true);
+
+		if (handle == INVALID_DEVICE_HANDLE)
+		{
+			return false;
+		}
+
+		wchar_t filePath[MAX_PATH] = { 0 };
+		auto plen = GetFinalPathNameByHandleW(reinterpret_cast<HANDLE>(handle), filePath, std::size(filePath) - 1, FILE_NAME_NORMALIZED);
+
+		deviceRef->Close(handle);
+
+		if (plen == 0)
+		{
+			return false;
+		}
+
+		bool success = CreateHardLinkW(ToWide(data->newPath).c_str(), filePath, NULL) != FALSE;
+
+		if (!success)
+		{
+			auto le = GetLastError();
+
+			if (le == ERROR_ALREADY_EXISTS)
+			{
+				success = true;
+			}
+		}
+
+		return success;
 	}
 
 	return false;

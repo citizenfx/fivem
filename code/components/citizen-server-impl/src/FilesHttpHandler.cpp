@@ -96,7 +96,14 @@ namespace fx
 					return;
 				}
 
-				fn = sit->second.onDiskPath;
+				if (!sit->second.loadDiskPath.empty())
+				{
+					fn = sit->second.loadDiskPath;
+				}
+				else
+				{
+					fn = sit->second.onDiskPath;
+				}
 			}
 
 			// get the TCP manager for a libuv loop

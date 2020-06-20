@@ -22,25 +22,26 @@ namespace fx
 			std::string GetCacheString();
 		};
 
-		struct StorageEntry : public Entry
+		struct RuntimeEntry : public Entry
 		{
-			inline StorageEntry(const Entry& entry)
+			inline RuntimeEntry(const Entry& entry)
 				: Entry(entry), isAutoScan(false)
 			{
 
 			}
 
 			bool isAutoScan;
+			std::string loadDiskPath;
 		};
 
 	public:
-		const std::map<std::string, StorageEntry>& GetStreamingList();
+		const std::map<std::string, RuntimeEntry>& GetStreamingList();
 
-		StorageEntry* AddStreamingFile(const Entry& entry);
+		RuntimeEntry* AddStreamingFile(const Entry& entry);
 
-		StorageEntry* AddStreamingFile(const std::string& entryName, const std::string& fullPath, const std::string& cacheString);
+		RuntimeEntry* AddStreamingFile(const std::string& entryName, const std::string& fullPath, const std::string& cacheString);
 
-		StorageEntry* AddStreamingFile(const std::string& fullPath);
+		RuntimeEntry* AddStreamingFile(const std::string& fullPath);
 
 		virtual void AttachToObject(fx::Resource* object) override;
 
@@ -52,7 +53,9 @@ namespace fx
 	private:
 		fx::Resource* m_resource;
 
-		std::map<std::string, StorageEntry> m_resourcePairs;
+		std::map<std::string, RuntimeEntry> m_resourcePairs;
+
+		std::map<std::string, RuntimeEntry*> m_hashPairs;
 	};
 }
 

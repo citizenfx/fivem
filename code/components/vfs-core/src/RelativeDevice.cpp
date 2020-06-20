@@ -3,6 +3,8 @@
 #include <VFSManager.h>
 #include <RelativeDevice.h>
 
+#include <VFSLinkExtension.h>
+
 namespace vfs
 {
 RelativeDevice::RelativeDevice(const std::string& otherPrefix)
@@ -113,6 +115,19 @@ bool RelativeDevice::FindNext(THandle handle, FindData* findData)
 void RelativeDevice::FindClose(THandle handle)
 {
 	return m_otherDevice->FindClose(handle);
+}
+
+bool RelativeDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
+{
+	if (controlIdx == VFS_MAKE_HARDLINK)
+	{
+		auto data = (vfs::MakeHardLinkExtension*)controlData;
+		data->newPath = TranslatePath(data->newPath);
+
+		return m_otherDevice->ExtensionCtl(controlIdx, data, controlSize);
+	}
+
+	return false;
 }
 
 void RelativeDevice::SetPathPrefix(const std::string& pathPrefix)

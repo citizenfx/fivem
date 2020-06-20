@@ -58,6 +58,8 @@ class
 
 	virtual void FindClose(THandle handle) override;
 
+	virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
+
 	// Sets the path prefix for the device, which implementations should strip for generating a local path portion.
 	virtual void SetPathPrefix(const std::string& pathPrefix) override;
 

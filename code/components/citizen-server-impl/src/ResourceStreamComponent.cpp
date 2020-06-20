@@ -2,6 +2,7 @@
 #include <ResourceStreamComponent.h>
 
 #include <VFSManager.h>
+#include <VFSLinkExtension.h>
 
 #include <ResourceFileDatabase.h>
 
@@ -116,7 +117,6 @@ namespace fx
 
 		if (numEntries > 0)
 		{
-
 			std::vector<Entry> entries(numEntries);
 			stream->Read(&entries[0], entries.size() * sizeof(Entry));
 
@@ -132,11 +132,56 @@ namespace fx
 		return false;
 	}
 
+	static void MakeSymLink(const std::string& cacheRoot, ResourceStreamComponent::RuntimeEntry* file)
+	{
+		auto device = vfs::GetDevice(cacheRoot);
+		device->CreateDirectory(cacheRoot);
+
+		auto h = device->Create(cacheRoot + "these files are hardlinks - they do not take up any disk space by themselves.txt");
+
+		if (h != vfs::Device::InvalidHandle)
+		{
+			device->Close(h);
+		}
+
+		vfs::MakeHardLinkExtension cd;
+		cd.existingPath = file->onDiskPath;
+		cd.newPath = cacheRoot + "z" + file->hashString;
+
+		bool madeLink = device->ExtensionCtl(VFS_MAKE_HARDLINK, &cd, sizeof(cd));
+
+		if (madeLink)
+		{
+			file->loadDiskPath = cd.newPath;
+		}
+		else
+		{
+			static bool warned = false;
+
+			if (!warned)
+			{
+				trace("^3Could not make hard link for %s <-> %s.^7\n", cd.existingPath, cd.newPath);
+
+				warned = true;
+			}
+		}
+	}
+
 	bool ResourceStreamComponent::UpdateSet()
 	{
+		// set up variables
+		std::string outFileName = fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName());
+		auto sflRoot = outFileName.substr(0, outFileName.find_last_of('/'));
+		auto cacheRoot = sflRoot + "/stream_cache/";
+
+		// create output directory
+		fwRefContainer<vfs::Device> device = vfs::GetDevice(outFileName);
+		device->CreateDirectory(sflRoot);
+
+		// look at files
 		std::vector<std::string> files;
 
-		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [&](const std::string& fullPath)
+		IterateRecursively(fmt::sprintf("%s/stream/", m_resource->GetPath()), [this, device, &cacheRoot, &files](const std::string& fullPath)
 		{
 			files.push_back(fullPath);
 
@@ -145,15 +190,39 @@ namespace fx
 			if (file)
 			{
 				file->isAutoScan = true;
+
+				MakeSymLink(cacheRoot, file);
 			}
 		});
 
-		std::string outFileName = fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName());
+		// remove hard links for missing files
+		{
+			vfs::FindData fd;
+			auto handle = device->FindFirst(cacheRoot, &fd);
 
-		fwRefContainer<vfs::Device> device = vfs::GetDevice(outFileName);
-		device->CreateDirectory(outFileName.substr(0, outFileName.find_last_of('/')));
+			if (handle != INVALID_DEVICE_HANDLE)
+			{
+				do 
+				{
+					if (!(fd.attributes & FILE_ATTRIBUTE_DIRECTORY))
+					{
+						if (fd.name.length() == 41 && fd.name[0] == 'z')
+						{
+							auto hash = fd.name.substr(1);
 
-		// first, save the resource database
+							if (m_hashPairs.find(hash) == m_hashPairs.end())
+							{
+								device->RemoveFile(cacheRoot + fd.name);
+							}
+						}
+					}
+				} while (device->FindNext(handle, &fd));
+
+				device->FindClose(handle);
+			}
+		}
+
+		// save the resource database
 		{
 			auto dbName = outFileName + ".db";
 			auto setDatabase = std::make_shared<ResourceFileDatabase>();
@@ -187,7 +256,7 @@ namespace fx
 		return true;
 	}
 
-	auto ResourceStreamComponent::AddStreamingFile(const std::string& fullPath) -> StorageEntry*
+	auto ResourceStreamComponent::AddStreamingFile(const std::string& fullPath) -> RuntimeEntry*
 	{
 		if (fullPath.find(".stream_raw") != std::string::npos)
 		{
@@ -270,7 +339,7 @@ namespace fx
 	{
 		auto json = nlohmann::json::object({
 			{ "hash", this->hashString },
-			{"isResource", this->isResource },
+			{ "isResource", this->isResource },
 			{ "rscPagesPhysical", this->rscPagesPhysical},
 			{ "rscPagesVirtual", this->rscPagesVirtual},
 			{ "rscVersion", this->rscVersion},
@@ -280,7 +349,7 @@ namespace fx
 		return json.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
 	}
 
-	auto ResourceStreamComponent::AddStreamingFile(const std::string& entryName, const std::string& diskPath, const std::string& cacheString) -> StorageEntry*
+	auto ResourceStreamComponent::AddStreamingFile(const std::string& entryName, const std::string& diskPath, const std::string& cacheString) -> RuntimeEntry*
 	{
 		try
 		{
@@ -308,12 +377,14 @@ namespace fx
 		return nullptr;
 	}
 
-	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> StorageEntry*
+	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> RuntimeEntry*
 	{
-		StorageEntry se(entry);
+		RuntimeEntry se(entry);
 		se.isAutoScan = false;
 
 		auto it = m_resourcePairs.insert({ entry.entryName, se }).first;
+		m_hashPairs[se.hashString] = &it->second;
+
 		return &it->second;
 	}
 
@@ -330,6 +401,7 @@ namespace fx
 			else
 			{
 				fwRefContainer<vfs::Stream> stream = vfs::OpenRead(fmt::sprintf("cache:/files/%s/resource.sfl", m_resource->GetName()));
+				auto cacheRoot = fmt::sprintf("cache:/files/%s/stream_cache/", m_resource->GetName());
 
 				if (stream.GetRef())
 				{
@@ -347,6 +419,8 @@ namespace fx
 							if (file)
 							{
 								file->isAutoScan = true;
+
+								MakeSymLink(cacheRoot, file);
 							}
 						}
 					}
