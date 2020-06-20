@@ -13,12 +13,6 @@
 #include <array>
 #include <filesystem>
 
-/*template<typename Handle, class Class, typename T1, void(Class::*Callable)(T1)>
-void UvCallback(Handle* handle, T1 a1)
-{
-	(reinterpret_cast<Class*>(handle->data)->*Callable)(a1);
-}*/
-
 namespace fx
 {
 	struct Request
@@ -77,7 +71,7 @@ namespace fx
 			if (!resource.GetRef())
 			{
 				response->SetStatusCode(404);
-				response->End("Not found.");
+				response->End(fmt::sprintf("Not found. (missing requested resource: %s)", resourceName));
 				return;
 			}
 
@@ -98,7 +92,7 @@ namespace fx
 				if (sit == streamPairs.end())
 				{
 					response->SetStatusCode(404);
-					response->End("Not found.");
+					response->End(fmt::sprintf("Not found. (missing requested file: %s/%s)", resourceName, fileName));
 					return;
 				}
 
@@ -137,8 +131,6 @@ namespace fx
 
 				// store the size and send content-length
 				auto size = fsReq->statbuf.st_size;
-				response->SetHeader("content-length", std::to_string(size));
-				response->SetHeader("transfer-encoding", "identity");
 
 				// free the request
 				uv_fs_req_cleanup(fsReq);
@@ -160,14 +152,19 @@ namespace fx
 
 					auto filter = filesComponent->CreateFilesFilter(fileName, request);
 
-					if (filter && filter->ShouldTerminate())
+					std::string reason;
+
+					if (filter && filter->ShouldTerminate(&reason))
 					{
 						response->SetStatusCode(403);
-						response->End("Filter says no.");
+						response->End(fmt::sprintf("Filter failed: %s.", reason));
 						return;
 					}
 
-					// write a 200 OK
+					// write header information and a 200 OK
+					response->SetHeader("content-length", std::to_string(size));
+					response->SetHeader("transfer-encoding", "identity");
+
 					response->WriteHead(200);
 
 					// read buffer and file handle
