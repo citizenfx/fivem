@@ -8,6 +8,7 @@
 #include <ScriptEngine.h>
 
 #include <ScriptSerialization.h>
+#include <MakePlayerEntityFunction.h>
 
 static InitFunction initFunction([]()
 {
@@ -881,5 +882,91 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_A_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
 	{
 		return entity->type == fx::sync::NetObjEntityType::Player;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TEAM", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->playerTeam : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_AIR_DRAG_MULTIPLIER_FOR_PLAYERS_VEHICLE", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->airDragMultiplier : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MAX_HEALTH", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->maxHealth : 100;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MAX_ARMOUR", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->maxArmour : 100;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_VOICE_PROXIMITY_OVERRIDE_FOR_PLAYER", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		float position[3];
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		scrVector resultVec = { 0 };
+
+		if (pn)
+		{
+			resultVec.x = pn->voiceProximityOverrideX;
+			resultVec.y = pn->voiceProximityOverrideY;
+			resultVec.z = pn->voiceProximityOverrideZ;
+		}
+		else
+		{
+			resultVec.x = 0.0f;
+			resultVec.y = 0.0f;
+			resultVec.z = 0.0f;
+		}
+
+		return resultVec;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DEFENSE_MODIFIER", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->weaponDefenseModifier : 1.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DEFENSE_MODIFIER_2", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->weaponDefenseModifier2 : 1.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WEAPON_DAMAGE_MODIFIER", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->weaponDamageModifier : 1.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MELEE_WEAPON_DAMAGE_MODIFIER", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->meleeWeaponDamageModifier : 1.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_USING_SUPER_JUMP", MakePlayerEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->isSuperJumpEnabled : false;
 	}));
 });

@@ -1564,7 +1564,317 @@ struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return 
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPlayerGameStateDataNode {
+	CPlayerGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		int playerState = state.buffer.Read<int>(3);
+		auto controlsDisabledByScript = state.buffer.ReadBit(); // SET_PLAYER_CONTROL
+		int playerTeam = state.buffer.Read<int>(6);
+		data.playerTeam = playerTeam;
+		int mobileRingState = state.buffer.Read<int>(8);
+
+		auto isAirDragMultiplierDefault = state.buffer.ReadBit();
+
+		if (!isAirDragMultiplierDefault)
+		{
+			float airDragMultiplier = state.buffer.ReadFloat(7, 1.0f);
+			data.airDragMultiplier = airDragMultiplier;
+		}
+		else
+		{
+			data.airDragMultiplier = 1.0f;
+		}
+
+		auto isMaxHealthAndMaxArmourDefault = state.buffer.ReadBit();
+
+		if (isMaxHealthAndMaxArmourDefault)
+		{
+			int maxHealth = state.buffer.Read<int>(13);
+			int maxArmour = state.buffer.Read<int>(12);
+
+			data.maxHealth = maxHealth;
+			data.maxArmour = maxArmour;
+		}
+		else
+		{
+			data.maxHealth = 100;
+			data.maxArmour = 100;
+		}
+
+		auto unk9 = state.buffer.ReadBit();
+		auto unk10 = state.buffer.ReadBit();
+		int unk11 = state.buffer.Read<int>(2);
+		auto unk12 = state.buffer.ReadBit();
+		auto unk13 = state.buffer.ReadBit();
+		auto unk14 = state.buffer.ReadBit();
+		auto unk15 = state.buffer.ReadBit();
+		auto unk16 = state.buffer.ReadBit();
+		auto unk17 = state.buffer.ReadBit();
+		auto unk18 = state.buffer.ReadBit();
+		auto unk19 = state.buffer.ReadBit();
+		auto unk20 = state.buffer.ReadBit();
+		auto unk21 = state.buffer.ReadBit();
+		auto unk22 = state.buffer.ReadBit();
+
+		if (unk12)
+		{
+			int unk23 = state.buffer.Read<int>(7);
+		}
+
+		auto neverTarget = state.buffer.ReadBit();
+		data.neverTarget = neverTarget;
+		auto useKinematicPhysics = state.buffer.ReadBit();
+		auto isOverridingReceiveChat = state.buffer.ReadBit();
+
+		if (isOverridingReceiveChat) // v45
+		{
+			int overrideReceiveChat = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingSendChat = state.buffer.ReadBit();
+
+		if (isOverridingSendChat) // v46
+		{
+			int overrideSendChat = state.buffer.Read<int>(32);
+		}
+
+		auto unk29 = state.buffer.ReadBit();
+		auto unk30 = state.buffer.ReadBit();
+		auto isSpectating = state.buffer.ReadBit();
+
+		if (isSpectating)
+		{
+			auto spectatorId = state.buffer.ReadBit();
+			data.spectatorId = spectatorId;
+		}
+		else
+		{
+			data.spectatorId = 0;
+		}
+
+		auto isAntagonisticToAnotherPlayer = state.buffer.ReadBit();
+
+		if (isAntagonisticToAnotherPlayer)
+		{
+			int antagonisticPlayerIndex = state.buffer.Read<int>(5);
+		}
+
+		auto unk35 = state.buffer.ReadBit();
+		auto pendingTutorialChange = state.buffer.ReadBit();
+
+		if (unk35)
+		{
+			int tutorialIndex = state.buffer.Read<int>(3);
+			int tutorialInstanceId = state.buffer.Read<int>(6);
+		}
+
+		auto unk39 = state.buffer.ReadBit();
+		auto unk40 = state.buffer.ReadBit();
+		auto unk41 = state.buffer.ReadBit();
+		auto unk42 = state.buffer.ReadBit();
+		auto unk43 = state.buffer.ReadBit();
+
+		auto randomPedsFlee = state.buffer.ReadBit();
+		data.randomPedsFlee = randomPedsFlee;
+		auto everybodyBackOff = state.buffer.ReadBit();
+		data.everybodyBackOff = everybodyBackOff;
+
+		auto unk46 = state.buffer.ReadBit();
+		auto unk47 = state.buffer.ReadBit();
+		auto unk48 = state.buffer.ReadBit();
+		auto unk49 = state.buffer.ReadBit();
+		auto unk50 = state.buffer.ReadBit();
+		auto unk51 = state.buffer.ReadBit();
+		auto unk52 = state.buffer.ReadBit();
+		auto unk53 = state.buffer.ReadBit();
+		auto unk54 = state.buffer.ReadBit();
+		auto unk55 = state.buffer.ReadBit();
+		auto unk56 = state.buffer.ReadBit();
+		auto unk57 = state.buffer.ReadBit();
+		auto unk58 = state.buffer.ReadBit();
+		auto unk59 = state.buffer.ReadBit();
+		auto unk60 = state.buffer.ReadBit();
+		auto unk61 = state.buffer.ReadBit();
+		auto unk62 = state.buffer.ReadBit();
+		auto unk63 = state.buffer.ReadBit();
+		auto unk64 = state.buffer.ReadBit();
+		auto unk65 = state.buffer.ReadBit();
+		auto unk66 = state.buffer.ReadBit();
+		auto unk67 = state.buffer.ReadBit();
+		auto unk68 = state.buffer.ReadBit();
+		auto unk69 = state.buffer.ReadBit();
+
+		auto unk70 = state.buffer.ReadBit();
+
+		if (unk70)
+		{
+			int unk71 = state.buffer.Read<int>(16);
+		}
+
+		auto unk72 = state.buffer.ReadBit();
+
+		if (unk72)
+		{
+			int unk73 = state.buffer.Read<int>(5);
+		}
+
+		auto unk74 = state.buffer.ReadBit();
+
+		if (unk74)
+		{
+			int unk75 = state.buffer.Read<int>(32);
+		}
+
+		auto isOverridingVoiceProximity = state.buffer.ReadBit();
+
+		if (isOverridingVoiceProximity)
+		{
+			float voiceProximityOverrideX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float voiceProximityOverrideZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+			data.voiceProximityOverrideX = voiceProximityOverrideX;
+			data.voiceProximityOverrideY = voiceProximityOverrideY;
+			data.voiceProximityOverrideZ = voiceProximityOverrideZ;
+		}
+		else
+		{
+			data.voiceProximityOverrideX = 0.0f;
+			data.voiceProximityOverrideY = 0.0f;
+			data.voiceProximityOverrideZ = 0.0f;
+		}
+
+		int unk78 = state.buffer.Read<int>(19);
+		auto unk79 = state.buffer.ReadBit();
+		auto unk80 = state.buffer.ReadBit();
+
+		if (unk80)
+		{
+			int unk81 = state.buffer.Read<int>(3);
+		}
+
+		auto hasDecor = state.buffer.ReadBit();
+
+		if (hasDecor)
+		{
+			uint8_t decoratorCount = state.buffer.Read<int>(2);
+
+			for (int i = 0; i < decoratorCount; i++)
+			{
+				uint8_t decorType = state.buffer.Read<int>(3);
+				int decorValue = state.buffer.Read<int>(32);
+				int decorName = state.buffer.Read<int>(32);
+			}
+		}
+
+		auto isFriendlyFireAllowed = state.buffer.ReadBit();
+		data.isFriendlyFireAllowed = isFriendlyFireAllowed;
+
+		auto unk88 = state.buffer.ReadBit();
+
+		auto isInGarage = state.buffer.ReadBit();
+
+		if (isInGarage)
+		{
+			int garageInstanceIndex = state.buffer.Read<int>(5);
+		}
+
+		auto isInProperty = state.buffer.ReadBit();
+
+		if (isInProperty)
+		{
+			int propertyId = state.buffer.Read<int>(8);
+		}
+
+		auto unk93 = state.buffer.Read<int>(3);
+		int unk94 = state.buffer.Read<int>(4);
+		auto unk95 = state.buffer.ReadBit();
+		auto unk96 = state.buffer.ReadBit();
+
+		float weaponDefenseModifier = state.buffer.ReadFloat(8, 4.04761615646f);
+		float weaponDefenseModifier2 = state.buffer.ReadFloat(8, 4.04761615646f);
+
+		data.weaponDefenseModifier = weaponDefenseModifier;
+		data.weaponDefenseModifier2 = weaponDefenseModifier2;
+
+		auto isOverridingPopulationControlSphere = state.buffer.ReadBit();
+
+		if (isOverridingPopulationControlSphere)
+		{
+			float populationSphereX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float populationSphereZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		int unk101 = state.buffer.Read<int>(13);
+		auto unk102 = state.buffer.ReadBit();
+		auto unk103 = state.buffer.ReadBit();
+		auto unk104 = state.buffer.ReadBit();
+		auto unk105 = state.buffer.ReadBit();
+		auto unk106 = state.buffer.ReadBit();
+
+		if (unk106)
+		{
+			auto unk107 = state.buffer.ReadBit();
+			int unk108 = state.buffer.Read<int>(2);
+		}
+
+		float unk109 = state.buffer.ReadFloat(8, 10.20002244f);
+		auto isWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isWeaponDamageModifierSet)
+		{
+			float weaponDamageModifier = state.buffer.ReadFloat(10, 25.5747934835f);
+			data.weaponDamageModifier = weaponDamageModifier;
+		}
+		else
+		{
+			data.weaponDamageModifier = 1.0f;
+		}
+
+		auto unk112 = state.buffer.ReadBit();
+
+		if (unk112)
+		{
+			float unk113 = state.buffer.ReadFloat(10, 25.5747934835f);
+		}
+		else
+		{
+			// 1.0
+		}
+
+		auto isMeleeWeaponDamageModifierSet = state.buffer.ReadBit();
+
+		if (isMeleeWeaponDamageModifierSet)
+		{
+			float meleeWeaponDamageModifier = state.buffer.ReadFloat(10, 25.5747934835f);
+			data.meleeWeaponDamageModifier = meleeWeaponDamageModifier;
+		}
+		else
+		{
+			data.meleeWeaponDamageModifier = 1.0f;
+		}
+
+		auto isSuperJumpEnabled = state.buffer.ReadBit();
+		data.isSuperJumpEnabled = isSuperJumpEnabled;
+
+		auto unk117 = state.buffer.ReadBit();
+		auto unk118 = state.buffer.ReadBit();
+		auto unk119 = state.buffer.ReadBit();
+
+		if (unk119)
+		{
+			float unk120X = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Y = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float unk120Z = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		return true;
+	}
+};
 
 struct CPlayerAppearanceDataNode
 {
@@ -1778,6 +2088,13 @@ struct SyncTree : public SyncTreeBase
 		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
+	}
+
+	virtual CPlayerGameStateNodeData* GetPlayerGameState() override
+	{
+		auto [hasNode, node] = GetData<CPlayerGameStateDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() override

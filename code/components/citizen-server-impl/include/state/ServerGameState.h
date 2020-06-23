@@ -250,6 +250,40 @@ struct CPedOrientationNodeData
 	float desiredHeading;
 };
 
+struct CDynamicEntityGameStateNodeData
+{
+	std::map<int, int> decors;
+};
+
+struct CPlayerGameStateNodeData
+{
+	int playerTeam;
+	float airDragMultiplier;
+
+	int maxHealth;
+	int maxArmour;
+
+	bool neverTarget;
+	int spectatorId;
+
+	bool randomPedsFlee;
+	bool everybodyBackOff;
+
+	float voiceProximityOverrideX;
+	float voiceProximityOverrideY;
+	float voiceProximityOverrideZ;
+
+	bool isFriendlyFireAllowed;
+
+	float weaponDefenseModifier;
+	float weaponDefenseModifier2;
+
+	float weaponDamageModifier;
+	float meleeWeaponDamageModifier;
+
+	bool isSuperJumpEnabled;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -287,6 +321,8 @@ public:
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CPlayerGameStateNodeData* GetPlayerGameState() = 0;
 
 	virtual CPedHealthNodeData* GetPedHealth() = 0;
 
