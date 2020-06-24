@@ -45,6 +45,10 @@ const languages = [
         name: 'cs',
         displayName: 'Čeština'
     },
+	{
+        name: 'sc',
+        displayName: '简体中文'
+    },
 ];
 
 export class Languages {
