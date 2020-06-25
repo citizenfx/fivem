@@ -113,6 +113,22 @@ struct CPlayerCameraNodeData
 	float camOffZ;
 };
 
+struct CPlayerWantedAndLOSNodeData
+{
+	int wantedLevel;
+	int isWanted;
+	int isEvading;
+
+	int timeInPursuit;
+	int timeInPrevPursuit;
+
+	inline CPlayerWantedAndLOSNodeData()
+		: timeInPursuit(-1), timeInPrevPursuit(-1)
+	{
+
+	}
+};
+
 struct CPedGameStateNodeData
 {
 	int curVehicle;
@@ -316,6 +332,8 @@ public:
 	virtual void GetPosition(float* posOut) = 0;
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
+
+	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
 
 	virtual CPedGameStateNodeData* GetPedGameState() = 0;
 

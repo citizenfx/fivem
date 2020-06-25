@@ -2018,7 +2018,50 @@ struct CPlayerCameraDataNode
 	}
 };
 
-struct CPlayerWantedAndLOSDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPlayerWantedAndLOSDataNode
+{
+	CPlayerWantedAndLOSNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto wantedLevel = state.buffer.Read<int>(3);
+		data.wantedLevel = wantedLevel;
+		auto unk0 = state.buffer.Read<int>(3);
+		auto unk1 = state.buffer.Read<int>(3);
+		auto unk2 = state.buffer.ReadBit();
+		auto unk3 = state.buffer.ReadBit();
+		auto isWanted = state.buffer.ReadBit();
+
+		if (isWanted) {
+			// These coordinates need more exploration.
+			// But I think these coordinates rely to where crime was started or last position seen of player by cops
+			auto posX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			auto posY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			auto posZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+			auto posX2 = state.buffer.ReadSignedFloat(19, 27648.0f);
+			auto posY2 = state.buffer.ReadSignedFloat(19, 27648.0f);
+			auto posZ2 = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+
+			auto currentTime = state.buffer.Read<int>(32);
+			auto pursuitStartTime = state.buffer.Read<int>(32);
+			if (pursuitStartTime != 0)
+				data.timeInPursuit = currentTime - pursuitStartTime;
+			else
+				data.timeInPursuit = 0;
+		}
+		else if (data.timeInPursuit != -1) {
+			data.timeInPrevPursuit = data.timeInPursuit;
+			data.timeInPursuit = -1;
+		}
+
+		auto unk4 = state.buffer.ReadBit();
+		auto copsCantSeePlayer = state.buffer.ReadBit();
+		auto isEvading = state.buffer.ReadBit();
+		data.isEvading = isEvading;
+		return true;
+	}
+};
 
 template<typename TNode>
 struct SyncTree : public SyncTreeBase
@@ -2090,6 +2133,13 @@ struct SyncTree : public SyncTreeBase
 		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
 
 		return (hasCdn) ? &cameraNode->data : nullptr;
+	}
+
+	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() override 
+	{
+		auto [hasNode, node] = GetData<CPlayerWantedAndLOSDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedGameStateNodeData* GetPedGameState() override
