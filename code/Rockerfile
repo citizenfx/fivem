@@ -1,10 +1,10 @@
 # build system resources
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2-alpine3.9
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1-alpine3.11
 MOUNT ..:/src
 RUN cd /src/ext/system-resources/ && /bin/sh build.sh
 
 # build server
-FROM alpine:3.8
+FROM alpine:3.11
 ARG CI_BRANCH
 ARG CI_BUILD_NUMBER
 ARG JOB_SLOTS
