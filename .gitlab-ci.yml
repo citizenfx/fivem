@@ -81,6 +81,7 @@ build_launcher:
       - code/shared/citversion.h
       - code/build/
   except:
+    - master
     - server-ci
     - tags
 
