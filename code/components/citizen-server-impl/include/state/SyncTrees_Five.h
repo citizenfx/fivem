@@ -705,7 +705,6 @@ struct CVehicleAppearanceDataNode {
 		int dashboardColour = state.buffer.Read<int>(8);
 		data.dashboardColour = dashboardColour;
 
-
 		int isPrimaryColourRGB = state.buffer.ReadBit();
 		data.isPrimaryColourRGB = isPrimaryColourRGB;
 
@@ -742,7 +741,8 @@ struct CVehicleAppearanceDataNode {
 			int dirtLevel = state.buffer.Read<int>(5);
 			data.dirtLevel = dirtLevel;
 
-			int unkExtra = state.buffer.Read<int>(16);
+			int extras = state.buffer.Read<int>(16);
+			data.extras = extras;
 			
 			bool hasCustomLivery = state.buffer.ReadBit();
 
@@ -773,6 +773,7 @@ struct CVehicleAppearanceDataNode {
 			data.dirtLevel = 1;
 			data.liveryIndex = -1;
 			data.roofLiveryIndex = -1;
+			data.extras = 0;
 		}
 
 		int hasCustom = state.buffer.Read<int>(2);
@@ -789,13 +790,13 @@ struct CVehicleAppearanceDataNode {
 					int modIndex = state.buffer.Read<int>(32);
 				}
 				++v5;
-			} while (v5 > 0xD);
+			} while (v5 < 0xD);
 
 			bool unk3 = state.buffer.ReadBit();
 
 			if (unk3)
 			{
-				int unk4 = state.buffer.Read<int>(6); // turbo?
+				int unk4 = state.buffer.Read<int>(6);
 			}
 
 			int wheelChoice = state.buffer.Read<int>(8);
@@ -873,34 +874,49 @@ struct CVehicleAppearanceDataNode {
 		data.numberPlateTextIndex = numberPlateTextIndex;
 
 		int unk20 = state.buffer.Read<int>(32);
-		bool unk21 = state.buffer.ReadBit();
+		bool hasEmblems = state.buffer.ReadBit();
 
-		if (unk21)
+		if (hasEmblems)
 		{
+			// Crew emblems stuff
 			bool unk22 = state.buffer.ReadBit();
 
-			if (unk22)
+			if (!unk22)
 			{
-				int unk23 = state.buffer.Read<int>(1);
-				int unk24 = state.buffer.Read<int>(32);
-
-				bool unk25 = state.buffer.ReadBit();
-
-				if (!unk25)
-				{
-					int unk26 = state.buffer.Read<int>(3);
-				}
+				// TODO
 			}
 			else
 			{
-				int unk27 = state.buffer.Read<int>(32);
-				int unk28 = state.buffer.Read<int>(32);
+				bool unk27 = state.buffer.ReadBit();
+				bool unk28 = state.buffer.ReadBit();
+				bool unk29 = state.buffer.ReadBit();
+
+				bool unk30 = state.buffer.ReadBit();
 			}
 
-			// TODO.
+			int v15 = 0;
+			do
+			{
+				// TODO
+				++v15;
+			} while(v15 < 4);
 		}
 
-		// TODO: neon lights/neon colours ...
+		/*
+		bool hasNeonLights = state.buffer.ReadBit();
+
+		if (hasNeonLights)
+		{
+			int neonRedColour = state.buffer.Read<int>(8);
+			int neonGreenColour = state.buffer.Read<int>(8);
+			int neonBlueColour = state.buffer.Read<int>(8);
+
+			bool leftNeonEnabled = state.buffer.ReadBit();
+			bool rightNeonEnabled = state.buffer.ReadBit();
+			bool frontNeonEnabled = state.buffer.ReadBit();
+			bool rearNeonEnabled = state.buffer.ReadBit();
+		}
+		*/
 
 		return true;
 	}

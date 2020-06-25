@@ -153,6 +153,7 @@ struct CVehicleAppearanceNodeData
 	int secondaryBlueColour;
 
 	int dirtLevel;
+	int extras;
 	int liveryIndex;
 	int roofLiveryIndex;
 

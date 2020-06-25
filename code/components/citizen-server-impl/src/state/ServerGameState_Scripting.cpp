@@ -969,4 +969,20 @@ static InitFunction initFunction([]()
 
 		return pn ? pn->isSuperJumpEnabled : false;
 	}));
+	
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_EXTRA_TURNED_ON", makeEntityFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::sync::SyncEntityState>& entity)
+	{
+		auto vn = entity->syncTree->GetVehicleAppearance();
+		bool isExtraTurnedOn = false;
+
+		if (context.GetArgumentCount() > 1 && vn)
+		{
+			// TODO: return false if the extra does not exist;
+
+			int extraId = context.GetArgument<int>(1);
+			isExtraTurnedOn = ((1 << (extraId + 1)) & vn->extras) == 0;
+		}
+
+		return isExtraTurnedOn;
+	}));
 });
