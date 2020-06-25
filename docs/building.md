@@ -15,6 +15,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 * [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_73.0.0-cef-patchset.1936+ga086e57+chromium-73.0.3683.75_windows64_minimal.zip), extracted to `vendor/cef` in the build tree.
 * [Python 2.7.x](https://python.org/) in your PATH as `python`. This is still Python 2 due to a dependency on Mozilla `xpidl`, which hasn't been ported to Python 3.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
+* [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `yarn`.
 
 Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
 
