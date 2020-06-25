@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: shared
 game: gta5
 ---
 ## GET_PLAYER_MELEE_WEAPON_DAMAGE_MODIFIER
