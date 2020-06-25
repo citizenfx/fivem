@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Zurück zum Desktop",
+    "#ExitToDesktop": "Zurück zum Desktop",
     "#ServerList_Name": "Name",
     "#ServerList_Players": "Spieler",
     "#ServerList_Ping": "Ping",
@@ -61,5 +61,21 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "FiveM Unterstützer-Tier",
     "#Yes": "Ja",
-    "#No": "Nein"
+    "#No": "Nein",
+    "#Changelogs": "Änderungsprotokoll",
+    "#ServerDetail_Resources": "Ressourcen",
+    "#ServerDetail_Locale": "Sprache",
+    "#DirectConnect_Loading": "Lade",
+    "#SettingsCat_Account": "Konto",
+    "#SettingsCat_Game": "Spiel",
+    "#SettingsCat_Connection": "Verbindung",
+    "#Settings_UpdateChannelDesc": "Probiere neue Features und Änderungen vor der Veröffentlichung aus. Könnte möglicherweise schiefgehen.",
+    "#Settings_ConnectedProfiles": "Verknüpfte Identitäten",
+    "#Settings_CustomEmojiUpsell": "Nicht verfügbar! Spende 5$/Monat oder mehr an FiveM Patreon und verbinde deinen FiveM-Account um ein benutzerdefiniertes Emoji für das FiveM Wasserzeichen zu setzen.",
+    "#Settings_CustomEmojiDesc": "Ein Emoji, das im FiveM Wasserzeichen angezeigt wird.",
+    "#Settings_CustomEmoji": "Benutzerdefiniertes FiveM Wasserzeichen-Emoji",
+    "#ServerList_Locales": "Sprachen",
+    "#Servers_Retry": "Erneut versuchen",
+    "#BottomNav_Create": "Erstellen",
+    "#BottomNav_Play": "Spielen"
 }
