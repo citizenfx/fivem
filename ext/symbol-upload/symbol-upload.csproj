@@ -12,7 +12,15 @@
       https://dotnet.myget.org/F/symreader-native/api/v3/index.json;
       https://dotnetfeed.blob.core.windows.net/dotnet-core/index.json;
     </RestoreAdditionalProjectSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
   
   <ItemGroup>
     <!-- msft pls open source this -->
