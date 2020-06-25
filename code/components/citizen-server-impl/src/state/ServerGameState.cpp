@@ -2297,7 +2297,6 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 bool ServerGameState::ValidateEntity(const std::shared_ptr<sync::SyncEntityState>& entity)
 {
 	bool allowed = false;
-
 	// allow auto-generated population in non-strict lockdown
 	if (m_entityLockdownMode != EntityLockdownMode::Strict)
 	{
@@ -2313,14 +2312,17 @@ bool ServerGameState::ValidateEntity(const std::shared_ptr<sync::SyncEntityState
 		}
 	}
 
-	// check the entity creation token
-	auto it = g_entityCreationList.find(entity->creationToken);
-
-	if (it != g_entityCreationList.end())
+	// check the entity creation token, only if the check above didn't pass
+	if (!allowed)
 	{
-		if (it->second.scriptGuid)
+		auto it = g_entityCreationList.find(entity->creationToken);
+
+		if (it != g_entityCreationList.end())
 		{
-			allowed = true;
+			if (it->second.scriptGuid)
+			{
+				allowed = true;
+			}
 		}
 	}
 
