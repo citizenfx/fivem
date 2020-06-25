@@ -1,4 +1,5 @@
 #include "StdInc.h"
+
 #include <ClientHttpHandler.h>
 
 #include <ClientRegistry.h>
@@ -13,6 +14,8 @@
 #include <boost/random/random_device.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+
+#include <IteratorView.h>
 
 #include <botan/base64.h>
 #include <botan/sha160.h>
@@ -29,6 +32,17 @@
 #include <MonoThreadAttachment.h>
 
 #include <json.hpp>
+
+#define FOLLY_NO_CONFIG
+
+#ifdef _WIN32
+#undef ssize_t
+#else
+#include <sys/types.h>
+#endif
+
+#include <folly/String.h>
+#include <boost/algorithm/string.hpp>
 
 using json = nlohmann::json;
 
@@ -281,6 +295,10 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
+			// list of space-separated endpoints that can but don't have to include a port
+			// for example: sv_endpoints "123.123.123.123 124.124.124.124"
+			auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
+			auto endpointList = srvEndpoints->GetValue();
 
 			if (!client)
 			{
@@ -288,7 +306,33 @@ static InitFunction initFunction([]()
 			}
 			else
 			{
-				cb(json::array());
+				if (endpointList.empty()) 
+				{
+					cb(json::array());
+				}
+				else 
+				{
+					json endpoints;
+					for (auto item :
+						fx::GetIteratorView(
+							std::make_pair(
+								boost::algorithm::make_split_iterator(
+									endpointList,
+									boost::algorithm::token_finder(
+										boost::algorithm::is_space(),
+										boost::algorithm::token_compress_on
+									)
+								),
+								boost::algorithm::split_iterator<std::string::iterator>()
+							)
+						)
+					)
+					{
+						auto endpoint = folly::range(&*item.begin(), &*item.end());
+						endpoints += endpoint;
+					}
+					cb(endpoints);
+				}
 			}
 
 			cb(json(nullptr));
