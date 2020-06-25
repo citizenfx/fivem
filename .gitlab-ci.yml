@@ -221,7 +221,7 @@ deploy_launcher:
     - vs2017
     - client
   only:
-    - master
+    - nah
 
 deploy_prod:
   stage: deploy
