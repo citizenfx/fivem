@@ -15,35 +15,35 @@
 }
 
 .color-1 {
-	color: #F44336;
+    color: #F44336;
 }
 
 .color-2 {
-	color: #4CAF50;
+    color: #4CAF50;
 }
 
 .color-3 {
-	color: #FFEB3B;
+    color: #FFEB3B;
 }
 
 .color-4 {
-	color: #42A5F5;
+    color: #42A5F5;
 }
 
 .color-5 {
-	color: #03A9F4;
+    color: #03A9F4;
 }
 
 .color-6 {
-	color: #9C27B0;
+    color: #9C27B0;
 }
 
 .color-8 {
-	color: #FF5722;
+    color: #FF5722;
 }
 
 .color-9 {
-	color: #9E9E9E;
+    color: #9E9E9E;
 }
 </style>
 
@@ -51,12 +51,19 @@
     <div class="row">
         <div class="col-md-12">
             <h1>Console</h1>
-
             <div class="card">
                 <div class="card-body">
                     <pre id="console">@Model</pre>
                 </div>
             </div>
+            <form asp-controller="Console" asp-action="Execute" method="post">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Command" name="command">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">Execute</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
