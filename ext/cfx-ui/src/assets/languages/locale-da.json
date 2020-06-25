@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Luk FiveM",
+    "#ExitToDesktop": "Luk FiveM",
     "#ServerList_Name": "Navn",
     "#ServerList_Players": "Spillere",
     "#ServerList_Ping": "Ping",
@@ -29,7 +29,7 @@
     "#ServerList_RemoveFavorite": "Fjern Favorit",
     "#Settings_Nickname": "Spillernavn",
     "#Settings_LocalhostPort": "Localhost port",
-	"#Settings_LocalhostPortDesc": "Vælg localhost port hvis ikke standard (30120)",
+    "#Settings_LocalhostPortDesc": "Vælg localhost port hvis ikke standard (30120)",
     "#Settings_DarkTheme": "Mørkt Tema",
     "#Settings_DarkThemeDesc": "Gør brugerfladen samt menuer mørke",
     "#Settings_DevMode": "Dev tilstand",
@@ -62,5 +62,9 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "FiveM supporter tier",
     "#Yes": "Ja",
-    "#No": "Nej"
+    "#No": "Nej",
+    "#BottomNav_Create": "Opret",
+    "#BottomNav_Mods": "Mods",
+    "#BottomNav_Story": "Historie",
+    "#BottomNav_Play": "Spil"
 }
