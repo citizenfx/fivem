@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "baseUrl": "src",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es5",
+    "typeRoots": [
+      "node_modules/@types",
+      "./src/typings"
+    ],
+    "types": [
+      "@types/offscreencanvas"
+    ],
+    "lib": [
+      "es2016",
+      "es2017.object",
+      "dom"
+    ],
+    "module": "esnext"
+  }
+}
