@@ -1,5 +1,4 @@
 import { Injectable, NgZone, Inject, PLATFORM_ID } from '@angular/core';
-import { Http, ResponseContentType } from '@angular/http';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
 

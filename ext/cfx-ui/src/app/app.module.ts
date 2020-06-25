@@ -2,7 +2,6 @@ import {BrowserModule} from '@angular/platform-browser';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {NgModule, Inject, Injectable, Optional, APP_INITIALIZER, Injector} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {HttpModule} from '@angular/http';
 import {HttpClientModule, HttpHeaders, HttpClient, HttpParams} from '@angular/common/http';
 
 import { environment } from '../environments/environment'
@@ -189,7 +188,6 @@ export function metaFactory(): MetaLoader {
 	imports:      [
 		BrowserModule.withServerTransition({ appId: 'cfx-ui' }),
 		FormsModule,
-		HttpModule,
 		AppRoutingModule,
 		VirtualScrollerModule,
 		MomentModule,
