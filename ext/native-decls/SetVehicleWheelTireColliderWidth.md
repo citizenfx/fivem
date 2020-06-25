@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-aliases: ["SET_VEHICLE_WHEEL_TIRE_COLLIDER_WIDTH"]
 ---
 ## SET_VEHICLE_WHEEL_TIRE_COLLIDER_WIDTH
 
