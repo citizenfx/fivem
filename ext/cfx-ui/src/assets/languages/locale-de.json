@@ -19,7 +19,7 @@
     "#Servers_Connecting": "Verbindungsaufbau",
     "#Servers_ConnectingTo": "Verbinde mit {{ serverName }}...",
     "#Servers_ConnectFailed": "Verbindung fehlgeschlagen",
-    "#Servers_Error": "Ошибка (Error)",
+    "#Servers_Error": "Ошибка (Fehler)",
     "#Servers_Info": "Info",
     "#Servers_CloseOverlay": "Schließen",
     "#Servers_CancelOverlay": "Abbrechen",
@@ -80,5 +80,9 @@
     "#BottomNav_Play": "Spielen",
     "#BottomNav_Mods": "Mods",
     "#BottomNav_Story": "Story",
-    "#SettingsCat_Interface": "Interface"
+    "#SettingsCat_Interface": "Interface",
+    "#ServerDetail_Updates": "Feed",
+    "#Settings_UpdateChannel": "Aktualisierungsmodus",
+    "#Settings_QueriesPerMinute": "Server-Browser: Maximalping / Minute",
+    "#BottomNav_ReplayEditor": "Replay-Bearbeitung"
 }
