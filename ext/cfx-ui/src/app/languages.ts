@@ -11,11 +11,12 @@ cldrjs.load(cldrLanguages, cldrSubTags);
 const c = new cldrjs('en');
 
 const languages = (languageRefs as any[]).map(lang => {
-    const name = (lang.fileName as string).replace(/.*locale-(.*?)\.json/g, '$1');
+    const name = (lang.fileName as string).replace(/.*locale-(.*?)\.json/g, '$1').replace(/_/g, '-');
+    const nameRef = name.split('-')[0];
 
     return {
         name,
-        displayName: (c.main('localeDisplayNames/languages/' + name) as string) + ` (${name})`
+        displayName: (c.main('localeDisplayNames/languages/' + nameRef) as string) + ` (${nameRef})`
     };
 });
 

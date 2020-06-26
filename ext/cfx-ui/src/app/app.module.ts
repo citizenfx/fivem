@@ -81,7 +81,13 @@ const localePrefix = (environment.web) ? '/' : './';
 		@Optional() private injector: Injector) { }
 
     public get(language: string, provider: L10nProvider): Observable<{ [key: string]: any }> {
-		const url = `${provider.asset}-${language}.json`;
+		const langs = Languages.toList().filter(a => a.locale.language.startsWith(language + '-'));
+
+		if (langs.length > 0) {
+			language = langs[0].locale.language;
+		}
+
+		const url = `${provider.asset}-${language.replace(/-/g, '_')}.json`;
 		const defTranslationUrl = `${provider.asset}-en.json`;
 		const options = {
 		  headers: this.headers
@@ -126,7 +132,7 @@ const localePrefix = (environment.web) ? '/' : './';
 }
 
 const l10nConfig: L10nConfig = {
-	format: 'language',
+	format: 'language-region',
 	providers: [
 		{ name: 'app', asset: localePrefix + 'assets/languages/locale' }
 	],
