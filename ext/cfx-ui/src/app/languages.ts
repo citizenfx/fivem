@@ -1,51 +1,23 @@
-import { L10nSchema } from "angular-l10n";
+// #TODO: move to Intl API upon Chromium update
+import cldrLanguages from 'cldr-data/main/en/languages.json';
+import cldrSubTags from 'cldr-data/supplemental/likelySubtags.json';
+import * as cldrjs from 'cldrjs';
 
-const languages = [
-    {
-        name: 'en',
-        displayName: 'English'
-    },
-    {
-        name: 'fr',
-        displayName: 'Français'
-    },
-    {
-        name: 'nl',
-        displayName: 'Nederlands'
-    },
-    {
-        name: 'da',
-        displayName: 'Dansk'
-    },
-    {
-        name: 'de',
-        displayName: 'Deutsch'
-    },
-    {
-        name: 'pl',
-        displayName: 'Polski'
-    },
-    {
-        name: 'it',
-        displayName: 'Italiano'
-    },
-    {
-        name: 'pt',
-        displayName: 'Português'
-    },
-    {
-        name: 'ru',
-        displayName: 'Русский'
-    },
-    {
-        name: 'es',
-        displayName: 'Español'
-    },
-    {
-        name: 'cs',
-        displayName: 'Čeština'
-    },
-];
+import { L10nSchema } from "angular-l10n";
+import languageRefs from 'webpack-extended-import-glob-loader!./languagerefs';
+
+cldrjs.load(cldrLanguages, cldrSubTags);
+
+const c = new cldrjs('en');
+
+const languages = (languageRefs as any[]).map(lang => {
+    const name = (lang.fileName as string).replace(/.*locale-(.*?)\.json/g, '$1');
+
+    return {
+        name,
+        displayName: (c.main('localeDisplayNames/languages/' + name) as string) + ` (${name})`
+    };
+});
 
 export class Languages {
     static toList(): L10nSchema[] {

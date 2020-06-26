@@ -5080,7 +5080,7 @@ glob-parent@^5.1.1:
   dependencies:
     is-glob "^4.0.1"
 
-glob@5.x.x:
+glob@5.x.x, glob@^5.0.15:
   version "5.0.15"
   resolved "https://registry.yarnpkg.com/glob/-/glob-5.0.15.tgz#1bc936b9e02f4a603fcc222ecf7633d30b8b93b1"
   integrity sha1-G8k2ueAvSmA/zCIuz3Yz0wuLk7E=
@@ -10442,6 +10442,13 @@ webpack-dev-server@3.11.0, webpack-dev-server@^3.11.0:
     webpack-log "^2.0.0"
     ws "^6.2.1"
     yargs "^13.3.2"
+
+webpack-extended-import-glob-loader@^1.6.6:
+  version "1.6.6"
+  resolved "https://registry.yarnpkg.com/webpack-extended-import-glob-loader/-/webpack-extended-import-glob-loader-1.6.6.tgz#03bd8425dceb1f721b4f88cb8d0fae09b837e64d"
+  integrity sha512-HcrdNmLr+6z154Xzomkou8mrZh7iZjyDAF6AcCxAbmF6jDwUm22eUHfZwAwFDa5cTrj+l1xZv7626YjadhSkpA==
+  dependencies:
+    glob "^5.0.15"
 
 webpack-log@^2.0.0:
   version "2.0.0"

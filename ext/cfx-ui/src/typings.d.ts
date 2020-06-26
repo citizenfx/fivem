@@ -8,3 +8,8 @@ declare module '*.json' {
     const value: any;
     export default value;
 }
+
+declare module 'webpack-extended-import-glob-loader!*' {
+    const value: any;
+    export default value;
+}

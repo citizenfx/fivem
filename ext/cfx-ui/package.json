@@ -73,6 +73,7 @@
     "unicode-substring": "^1.0.0",
     "webpack": "4.43.0",
     "webpack-dev-server": "^3.11.0",
+    "webpack-extended-import-glob-loader": "^1.6.6",
     "worker-loader": "^2.0.0",
     "xml-js": "^1.6.11",
     "zone.js": "~0.10.3"
