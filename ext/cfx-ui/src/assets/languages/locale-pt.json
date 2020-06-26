@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Sair para a Área de Trabalho",
+    "#ExitToDesktop": "Sair para a Área de Trabalho",
     "#ServerList_Name": "Nome",
     "#ServerList_Players": "Jogadores",
     "#ServerList_Ping": "Latência",
@@ -41,7 +41,7 @@
     "#Settings_BoostNone": "Nenhum! Dê um BOOST™ em um servidor clicando no botão de upvote na lista de servidores.",
     "#Settings_Language": "Idioma",
     "#Settings_MenuAudio": "Áudio do menu principal",
-    "#Settings_MenuAudioDesc": "Ative a música de fundo enquanto estiver no menu principal.",
+    "#Settings_MenuAudioDesc": "Ative a música de fundo enquanto estiver no menu principal",
     "#Settings_GameStreamProgress": "Progresso de streaming",
     "#Settings_GameStreamProgressDesc": "Exibir o progresso enquanto estiver baixando recursos dentro do jogo. (BETA™)",
     "#DirectConnect_TimedOut": "Tempo de consulta com o servidor esgotado.",
@@ -62,5 +62,20 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "Nível de apoiador FiveM",
     "#Yes": "Sim",
-    "#No": "Não"
+    "#No": "Não",
+    "#Settings_CustomEmojiUpsell": "Indisponível! Doe $5/mês ou mais para o Patreon do FiveM e conecte sua conta do FiveM para usar um emoji customizado na logomarca do FiveM.",
+    "#SettingsCat_Account": "Conta",
+    "#SettingsCat_Game": "Jogo",
+    "#SettingsCat_Interface": "Interface",
+    "#SettingsCat_Connection": "Conexão",
+    "#Settings_UpdateChannelDesc": "Teste novas funções e mudanças antes de serem lançadas. Tem uma chance de quebrar.",
+    "#Settings_UpdateChannel": "Canal de atualizações",
+    "#Settings_ConnectedProfiles": "Identificadores vinculados",
+    "#Settings_CustomEmojiDesc": "Um emoji a ser mostrado na logomarca do FiveM.",
+    "#Settings_CustomEmoji": "Emoji customizado na logomarca do FiveM",
+    "#ServerList_Locales": "Linguagens",
+    "#BottomNav_ReplayEditor": "Editor de Replays",
+    "#BottomNav_Create": "Criar",
+    "#BottomNav_Story": "História",
+    "#BottomNav_Play": "Jogar"
 }
