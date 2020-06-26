@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Torna al desktop",
+    "#ExitToDesktop": "Torna al desktop",
     "#ServerList_Name": "Nome",
     "#ServerList_Players": "Giocatori",
     "#ServerList_Ping": "Ping",
@@ -44,7 +44,7 @@
     "#Settings_MenuAudioDesc": "Attiva musica di sottofondo mentre inattivo nel menu principale",
     "#Settings_GameStreamProgress": "Progresso streaming",
     "#Settings_GameStreamProgressDesc": "Mostra i progressi mentre si stanno scaricando assets di gioco in streaming (BETA™)",
-	"#DirectConnect_TimedOut": "La richiesta al server è scaduta.",
+    "#DirectConnect_TimedOut": "La richiesta al server è scaduta.",
     "#DirectConnect_Failed": "Richiesta al server fallita.",
     "#DirectConnect_Loading": "Caricamento",
     "#DirectConnect_ServerInvalid": "Non è stato possibile trovare il server",
@@ -62,5 +62,8 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "Livello sostenitore FiveM",
     "#Yes": "Si",
-    "#No": "No"
+    "#No": "No",
+    "#BottomNav_Create": "Crea",
+    "#BottomNav_Story": "Storia",
+    "#BottomNav_Play": "Gioca"
 }
