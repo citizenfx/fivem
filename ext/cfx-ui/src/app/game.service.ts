@@ -431,7 +431,6 @@ export class CfxGameService extends GameService {
 		this.history = JSON.parse(localStorage.getItem('history')) || [];
 
 		if (localStorage.getItem('nickOverride')) {
-			//(<any>window).invokeNative('checkNickname', localStorage.getItem('nickOverride'));
 			this.nickname = localStorage.getItem('nickOverride');
 		}
 
@@ -448,7 +447,9 @@ export class CfxGameService extends GameService {
 		}
 
 		if (localStorage.getItem('language')) {
-			this.language = localStorage.getItem('language');
+			const lang = localStorage.getItem('language');
+			(<any>window).invokeNative('setLocale', lang);
+			this.language = lang;
 		}
 		
 		this.connecting.subscribe(server => {

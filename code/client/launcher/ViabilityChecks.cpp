@@ -7,6 +7,8 @@
 #include <shellapi.h>
 #include <shlobj.h>
 
+#include <CfxLocale.h>
+
 #pragma comment(lib, "d3d11.lib")
 
 using Microsoft::WRL::ComPtr;
@@ -37,18 +39,18 @@ bool DXGICheck()
 
     if (FAILED(hr))
     {
-        const wchar_t* suggestion = L"The game will exit now.";
+		std::wstring suggestion = gettext(L"The game will exit now.");
 
         if (!IsWindows7SP1OrGreater())
         {
-            suggestion = L"Please install Windows 7 SP1 or greater, and try again.";
+			suggestion = gettext(L"Please install Windows 7 SP1 or greater, and try again.");
         }
         else if (!IsWindows8OrGreater())
         {
-            suggestion = L"Please install the Platform Update for Windows 7, and try again.";
+            suggestion = gettext(L"Please install the Platform Update for Windows 7, and try again.");
         }
 
-        MessageBox(nullptr, va(L"DXGI 1.2 support is required to run " PRODUCT_NAME L". %s", suggestion), PRODUCT_NAME, MB_OK | MB_ICONSTOP);
+        MessageBox(nullptr, va(gettext(L"DXGI 1.2 support is required to run this product %s"), suggestion), PRODUCT_NAME, MB_OK | MB_ICONSTOP);
 
         if (IsWindows7SP1OrGreater() && !IsWindows8OrGreater())
         {
@@ -67,7 +69,7 @@ bool BaseLdrCheck()
 
 	if (addDllDirectory == nullptr)
 	{
-		MessageBox(nullptr, PRODUCT_NAME L" requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again.", PRODUCT_NAME, MB_OK | MB_ICONSTOP);
+		MessageBox(nullptr, gettext(L"This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again.").c_str(), PRODUCT_NAME, MB_OK | MB_ICONSTOP);
 
 		if (!IsWindows8OrGreater())
 		{

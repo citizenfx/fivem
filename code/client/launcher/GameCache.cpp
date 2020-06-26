@@ -10,6 +10,7 @@
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(LAUNCHER_PERSONALITY_GAME)
 #include <CfxState.h>
 #include <HostSharedData.h>
+#include <CfxLocale.h>
 
 #undef interface
 #include "InstallerExtraction.h"
@@ -631,7 +632,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 	if (shouldAllow)
 	{
-		taskDialogConfig.pszContent = va(L"The local " PRODUCT_NAME L" game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?", (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+		taskDialogConfig.pszContent = va(gettext(L"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?"), PRODUCT_NAME, (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
 	}
 	else
 	{
@@ -639,7 +640,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 			{ 42, L"Close" }
 		};
 
-		taskDialogConfig.pszContent = va(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info.");
+		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."));
 
 		taskDialogConfig.cButtons = 1;
 		taskDialogConfig.dwCommonButtons = 0;
@@ -710,7 +711,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		
 		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
 		{
-			UI_UpdateText(0, L"Verifying game content...");
+			UI_UpdateText(0, gettext(L"Verifying game content...").c_str());
 
 			fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &fileStart, fileTotal, &outHash);
 		}
@@ -841,7 +842,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		StartIPFS();
 	}
 
-	UI_UpdateText(0, L"Updating game cache...");
+	UI_UpdateText(0, gettext(L"Updating game cache...").c_str());
 
 	bool retval = DL_RunLoop();
 

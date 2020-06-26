@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#include <CfxLocale.h>
 #include <CefOverlay.h>
 #include <NetLibrary.h>
 #include <strsafe.h>
@@ -694,6 +695,13 @@ static InitFunction initFunction([] ()
 					trace(va("Changed player name to %s\n", newusername.c_str()));
 					nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setSettingsNick", "nickname": "%s" })", newusername));
 				}
+			}
+		}
+		else if (!_wcsicmp(type, L"setLocale"))
+		{
+			if (nui::HasMainUI())
+			{
+				CoreGetLocalization()->SetLocale(ToNarrow(arg));
 			}
 		}
 		else if (!_wcsicmp(type, L"loadSettings"))

@@ -8,6 +8,8 @@
 #include "StdInc.h"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+#include <CfxLocale.h>
+
 // the maximum number of concurrent downloads
 #define MAX_CONCURRENT_DOWNLOADS 6
 
@@ -217,7 +219,7 @@ void DL_UpdateGlobalProgress(size_t thisSize)
 
 	double percentage = ((double)(dls.doneTotalBytes / 1000) / (dls.totalBytes / 1000)) * 100.0;
 
-	UI_UpdateText(1, va(L"Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)", (dls.doneTotalBytes / 1000) / 1000.f, ((dls.totalBytes / 1000) / 1000.f), percentage, dls.bytesPerSecond / (double)1000000));
+	UI_UpdateText(1, va(gettext(L"Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"), (dls.doneTotalBytes / 1000) / 1000.f, ((dls.totalBytes / 1000) / 1000.f), percentage, dls.bytesPerSecond / (double)1000000));
 
 	UI_UpdateProgress(percentage);
 }
@@ -418,7 +420,7 @@ static bool StartIPFSDownload(download_t* download)
 	download->doneExternal = false;
 	download->successExternal = false;
 
-	UI_UpdateText(1, va(L"Starting IPFS discovery..."));
+	UI_UpdateText(1, gettext(L"Starting IPFS discovery...").c_str());
 
 	return ipfsLib.DownloadFile(download->url, [download](const void* data, size_t size)
 	{

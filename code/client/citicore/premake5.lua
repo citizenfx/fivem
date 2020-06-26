@@ -10,7 +10,8 @@ project "CitiCore"
 		"**.cpp",
 		"**.h",
 		"../common/Error.cpp",
-		"../common/StdInc.cpp"
+		"../common/StdInc.cpp",
+		"../common/CfxLocale.Win32.cpp",
 	}
 
 	files
@@ -21,7 +22,7 @@ project "CitiCore"
 	add_dependencies { 'vendor:boost_program_options', 'vendor:tbb' }
 
 	if os.istarget('windows') then
-		add_dependencies { 'vendor:minhook', 'vendor:udis86' }
+		add_dependencies { 'vendor:minhook', 'vendor:udis86', 'vendor:boost_locale' }
 	end
 
 	links { "Shared" }

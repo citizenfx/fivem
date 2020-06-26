@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #undef interface
 
+#include <CfxLocale.h>
+
 #include "InstallerExtraction.h"
 
 #define restrict
@@ -263,7 +265,7 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	std::wstring entryPathWide = installerFile;
 
-	UI_UpdateText(1, va(L"Extracting %s (scanning)", entryPathWide.c_str()));
+	UI_UpdateText(1, va(gettext(L"Extracting %s (scanning)"), entryPathWide.c_str()));
 	UI_UpdateProgress(0.0);
 
 	// try finding the position of the firstheader structure
@@ -527,7 +529,7 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 		auto nameStr = getString(data.first.offsets[1]);
 		int lastSlash = nameStr.find_last_of(L'/');
 
-		UI_UpdateText(1, va(L"Extracting %s", nameStr.substr(lastSlash + 1).c_str()));
+		UI_UpdateText(1, va(gettext(L"Extracting %s"), nameStr.substr(lastSlash + 1).c_str()));
 		UI_UpdateProgress(0.0);
 
 		// open the output file

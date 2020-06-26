@@ -8,6 +8,7 @@
 #include "StdInc.h"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+#include <CfxLocale.h>
 #include <shellapi.h>
 #include <wincrypt.h>
 #include <wintrust.h>
@@ -31,7 +32,7 @@ static bool Bootstrap_UpdateEXE(int exeSize, int version)
 
 	UI_DoCreation(true);
 
-	UI_UpdateText(0, L"Bootstrapping " PRODUCT_NAME L"...");
+	UI_UpdateText(0, fmt::sprintf(gettext(L"Bootstrapping %s..."), PRODUCT_NAME).c_str());
 
 	if (!DL_RunLoop())
 	{

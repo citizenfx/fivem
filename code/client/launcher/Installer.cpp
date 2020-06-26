@@ -15,6 +15,8 @@
 
 #include <filesystem>
 
+#include <CfxLocale.h>
+
 #pragma comment(lib, "shlwapi.lib")
 
 namespace WRL = Microsoft::WRL;
@@ -119,9 +121,9 @@ void Install_Uninstall(const wchar_t* directory)
 	if (FAILED(TaskDialog(
 		NULL,
 		GetModuleHandle(NULL),
-		L"Uninstall " PRODUCT_NAME,
-		L"Uninstall " PRODUCT_NAME  L"?",
-		fmt::sprintf(L"Are you sure you want to remove " PRODUCT_NAME L" from the installation root at %s?", directory).c_str(),
+		va(gettext(L"Uninstall %s"), PRODUCT_NAME),
+		va(gettext(L"Uninstall %s?"), PRODUCT_NAME),
+		fmt::sprintf(gettext(L"Are you sure you want to remove %s from the installation root at %s?"), PRODUCT_NAME, directory).c_str(),
 		TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
 		NULL,
 		&button)))

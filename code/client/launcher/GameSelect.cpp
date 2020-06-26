@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include <ShlObj.h>
 #include <optional>
+#include <CfxLocale.h>
 
 #include <wrl.h>
 
@@ -103,7 +104,7 @@ std::optional<int> EnsureGamePath()
 #ifndef GTA_FIVE
 	fileDialog->SetTitle(L"Select the folder containing " GAME_EXECUTABLE);
 #else
-	fileDialog->SetTitle(L"Select the folder containing Grand Theft Auto V");
+	fileDialog->SetTitle(gettext(L"Select the folder containing Grand Theft Auto V").c_str());
 
 	// set the default folder, if we can find one
 	{
@@ -198,7 +199,7 @@ std::optional<int> EnsureGamePath()
 		else
 #endif
 		{
-			MessageBox(nullptr, L"The selected path does not contain a " GAME_EXECUTABLE L" file.", PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+			MessageBox(nullptr, va(gettext(L"The selected path does not contain a %s file."), GAME_EXECUTABLE), PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 		}
 
 		return 0;

@@ -1,0 +1,1 @@
+return loadfile('boost_locale.lua')(true)
