@@ -61,3 +61,5 @@ jspm_packages/
 
 dist/
 src/worker/index.js
+
+#
