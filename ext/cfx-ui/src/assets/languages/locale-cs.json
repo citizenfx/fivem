@@ -78,5 +78,11 @@
     "#No": "Ne",
     "#BottomNav_Mods": "Módy",
     "#BottomNav_Story": "Příběh",
-    "#BottomNav_Play": "Hrát"
+    "#BottomNav_Play": "Hrát",
+    "#SettingsCat_Account": "Účet",
+    "#SettingsCat_Game": "Hra",
+    "#SettingsCat_Interface": "Rozhraní",
+    "#SettingsCat_Connection": "Připojení",
+    "#BottomNav_ReplayEditor": "Editor záznamů",
+    "#BottomNav_Create": "Vytvořit"
 }
