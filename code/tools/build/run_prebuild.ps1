@@ -8,6 +8,8 @@ Please set PATH for MSBuild/VS to contain Python 2.7 before Python 3.x." | Write
 
 $ErrorActionPreference = "Stop"
 
+Push-Location $InstRoot
+
 if (!(Test-Path $InstRoot\code\client\clrcore\NativesFive.cs)) {
     Invoke-Expression "$InstRoot\prebuild_natives.cmd"
 }
@@ -19,3 +21,5 @@ if (!(Test-Path $InstRoot\vendor\udis86\libudis86\itab.c)) {
 if (!(Test-Path $InstRoot\code\tools\idl\deps)) {
     Invoke-Expression "$InstRoot\code\prebuild_misc.cmd"
 }
+
+Pop-Location
