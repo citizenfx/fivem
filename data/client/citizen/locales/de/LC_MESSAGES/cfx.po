@@ -35,23 +35,30 @@ msgstr ""
 msgid ""
 "\n"
 "\n"
-"This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
+"This is a fatal error because game unloading failed. Please report this "
+"issue and how to cause it (what server you played on, any resources/scripts, "
+"etc.) so this can be solved."
 msgstr ""
 
 #: client/launcher/MiniDump.cpp:1204
 #, c-format
-msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
+msgid ""
+"%s caused %s to stop working. A crash report is being uploaded to the %s "
+"developers."
 msgstr ""
 
 #: client/launcher/Main.cpp:510
 #, c-format
-msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
+msgid ""
+"%s could not create a file in the folder it is placed in. Please move your "
+"installation out of Program Files or another protected folder."
 msgstr ""
 
 #: client/launcher/MiniDump.cpp:340
 #, c-format
 msgid ""
-"A game error (at %016llx) caused %s to stop working. A crash report has been uploaded to the %s developers.\n"
+"A game error (at %016llx) caused %s to stop working. A crash report has been "
+"uploaded to the %s developers.\n"
 "\n"
 "%s"
 msgstr ""
@@ -101,7 +108,10 @@ msgid ""
 msgstr ""
 
 #: client/launcher/GameCache.cpp:643
-msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
+msgid ""
+"DLC files are missing (or corrupted) in your game installation. Please "
+"update or verify the game using Steam or the Social Club launcher and try "
+"again. See http://rsg.ms/verify step 4 for more info."
 msgstr ""
 
 #: client/launcher/ViabilityChecks.cpp:53
@@ -135,7 +145,8 @@ msgstr ""
 
 #: client/launcher/Main.cpp:491
 msgid ""
-"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
+"FiveM does not support running under elevated privileges. Please change your "
+"Windows settings to not run FiveM as administrator.\n"
 "The game will exit now."
 msgstr ""
 
@@ -159,7 +170,8 @@ msgstr ""
 #: client/launcher/MiniDump.cpp:1267
 msgid ""
 "Save information\n"
-"Stores a file with crash information that you should copy and upload when asking for help."
+"Stores a file with crash information that you should copy and upload when "
+"asking for help."
 msgstr ""
 
 #: client/launcher/GameSelect.cpp:107
@@ -177,7 +189,9 @@ msgstr ""
 #: client/launcher/GameCache.cpp:635
 #, c-format
 msgid ""
-"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
+"The local %s game cache is outdated, and needs to be updated. This will copy "
+"%.2f MB of data from the local disk, and download %.2f MB of data from the "
+"internet.\n"
 "Do you wish to continue?"
 msgstr ""
 
@@ -187,7 +201,9 @@ msgid "The selected path does not contain a %s file."
 msgstr ""
 
 #: client/launcher/ViabilityChecks.cpp:72
-msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
+msgid ""
+"This product requires Security Update for Windows 7 for x64-based systems "
+"(KB2758857) to be installed to run. Please install it, and try again."
 msgstr ""
 
 #: client/launcher/Main.cpp:634
@@ -231,5 +247,9 @@ msgstr ""
 
 #: client/launcher/Main.cpp:471
 #, c-format
-msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
+msgid ""
+"You are currently using an outdated version of Windows. This may lead to "
+"issues using the %s client. Please update to Windows 10 version 1703 "
+"(\"Creators Update\") or higher in case you are experiencing any issues. The "
+"game will continue to start now."
 msgstr ""

@@ -83,6 +83,11 @@ msgstr ""
 msgid "Bootstrapping %s..."
 msgstr ""
 
+#: client/launcher/Updater.cpp:360
+#, c-format
+msgid "Checking %s"
+msgstr ""
+
 #: client/launcher/MiniDump.cpp:1333
 #, c-format
 msgid ""
@@ -117,6 +122,11 @@ msgstr ""
 #: client/launcher/ViabilityChecks.cpp:53
 #, c-format
 msgid "DXGI 1.2 support is required to run this product %s"
+msgstr ""
+
+#: client/launcher/Download.cpp:222
+#, c-format
+msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
 msgstr ""
 
 #: client/launcher/MiniDump.cpp:1175
