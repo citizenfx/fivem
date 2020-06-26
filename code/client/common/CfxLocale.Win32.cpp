@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <CfxLocale.h>
 
+#ifndef IS_FXSERVER
 #include <boost/locale.hpp>
 
 namespace fxlang
@@ -59,3 +60,4 @@ fxlang::LocalizationInstance* GetLocalizationInstance()
 {
 	return new fxlang::LocalizationInstanceImpl();
 }
+#endif
