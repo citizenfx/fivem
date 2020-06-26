@@ -488,7 +488,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 					{
 						if (elevationData == TokenElevationTypeFull)
 						{
-							const wchar_t* elevationComplaint = gettext(L"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\nThe game will exit now.");
+							const wchar_t* elevationComplaint = va(gettext(L"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\nThe game will exit now."));
 							MessageBox(nullptr, elevationComplaint, L"FiveM", MB_OK | MB_ICONERROR);
 
 							return 0;
@@ -631,7 +631,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				if (wcsstr(GetCommandLineW(), L"-switchcl"))
 				{
-					UI_UpdateText(1, gettext(L"Transitioning to another build..."));
+					UI_UpdateText(1, va(gettext(L"Transitioning to another build...")));
 				}
 				else
 				{
