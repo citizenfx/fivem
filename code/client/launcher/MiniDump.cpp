@@ -16,6 +16,7 @@
 #include <client/windows/crash_generation/crash_generation_server.h>
 #include <common/windows/http_upload.h>
 
+#include <CfxLocale.h>
 #include <CfxState.h>
 #include <CfxSubProcess.h>
 #include <HostSharedData.h>
@@ -335,10 +336,12 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 				errData.errorDescription = "";
 			}
 
-			static std::wstring errTitle = fmt::sprintf(L"RAGE error: %s", ToWide(errData.errorName));
-			static std::wstring errDescription = fmt::sprintf(L"A game error (at %016llx) caused " PRODUCT_NAME L" to stop working. "
-				L"A crash report has been uploaded to the " PRODUCT_NAME L" developers.\n\n%s",
+			static std::wstring errTitle = fmt::sprintf(gettext(L"RAGE error: %s"), ToWide(errData.errorName));
+			static std::wstring errDescription = fmt::sprintf(gettext(L"A game error (at %016llx) caused %s to stop working. "
+				L"A crash report has been uploaded to the %s developers.\n\n%s"),
 				retAddr,
+				PRODUCT_NAME,
+				PRODUCT_NAME,
 				ToWide(ParseLinks(errData.errorDescription)));
 
 			config->pszMainInstruction = errTitle.c_str();
@@ -1169,11 +1172,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 			if (crashHash.find(L".exe") != std::string::npos)
 			{
-				windowTitle = fmt::sprintf(L"Error %s", ch);
+				windowTitle = fmt::sprintf(gettext(L"Error %s"), ch);
 			}
 
 			mainInstruction = fmt::sprintf(L"%s", ch);
-			cuz = fmt::sprintf(L"An error at %s", ch);
+			cuz = fmt::sprintf(gettext(L"An error at %s"), ch);
 
 			json crashData = load_json_file(L"citizen/crash-data.json");
 
@@ -1183,7 +1186,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				if (!cd.empty())
 				{
-					mainInstruction = L"FiveM crashed... but we're on it!";
+					mainInstruction = gettext(L"FiveM crashed... but we're on it!");
 					cd += "\n\n";
 				}
 
@@ -1198,16 +1201,16 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			cuz = ToWide(fmt::sprintf("An unhandled exception (of type %s)", exType));
 		}
 
-		static std::wstring content = fmt::sprintf(L"%s caused " PRODUCT_NAME L" to stop working. A crash report is being uploaded to the " PRODUCT_NAME L" developers.", cuz);
+		static std::wstring content = fmt::sprintf(gettext(L"%s caused %s to stop working. A crash report is being uploaded to the %s developers."), cuz, PRODUCT_NAME, PRODUCT_NAME);
 
 		if (!exWhat.empty())
 		{
-			content += fmt::sprintf(L"\n\nException details: %s", ToWide(exWhat));
+			content += fmt::sprintf(gettext(L"\n\nException details: %s"), ToWide(exWhat));
 		}
 
 		if (!crashHash.empty() && crashHash.find(L".exe") != std::string::npos)
 		{
-			content += fmt::sprintf(L"\n\nLegacy crash hash: %s", HashCrash(crashHash));
+			content += fmt::sprintf(gettext(L"\n\nLegacy crash hash: %s"), HashCrash(crashHash));
 		}
 
 		if (shouldTerminate)
@@ -1228,10 +1231,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 					if (!exType.empty())
 					{
-						friendlyReason = "Unhandled exception: " + exType;
+						friendlyReason = gettext("Unhandled exception: ") + exType;
 					}
 
-					friendlyReason = "Game crashed: " + friendlyReason;
+					friendlyReason = gettext("Game crashed: ") + friendlyReason;
 
 					LPVOID memPtr = VirtualAllocEx(gameProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
@@ -1261,17 +1264,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		static std::optional<std::wstring> crashIdError;
 
 		static const TASKDIALOG_BUTTON buttons[] = {
-			{ 42, L"Save information\nStores a file with crash information that you should copy and upload when asking for help." }
+			{ 42, gettext(L"Save information\nStores a file with crash information that you should copy and upload when asking for help.").c_str() }
 		};
 
-		static std::wstring tempSignature = fmt::sprintf(L"Crash signature: %s\nReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere.", crashHash);
+		static std::wstring tempSignature = fmt::sprintf(gettext(L"Crash signature: %s\nReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash);
 
 		if (crashometry.find("kill_network_msg") != crashometry.end() && crashometry.find("reload_game") == crashometry.end())
 		{
 			windowTitle = L"Disconnected";
 			mainInstruction = L"O\x448\x438\x431\x43A\x430 (Error)";
 
-			content = ToWide(crashometry["kill_network_msg"]) + L"\n\nThis is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved.";
+			content = ToWide(crashometry["kill_network_msg"]) + gettext(L"\n\nThis is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved.");
 		}
 
 		static std::thread saveThread;
@@ -1323,11 +1326,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				{
 					if (!crashId->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash signature: %s\nReport ID: %s\nYou can press Ctrl-C to copy this message and paste it elsewhere.", crashHash.c_str(), crashId->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"Crash signature: %s\nReport ID: %s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash.c_str(), crashId->c_str()));
 					}
 					else if (crashIdError && !crashIdError->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(L"Crash signature: %s\n%s\nYou can press Ctrl-C to copy this message and paste it elsewhere.", crashHash.c_str(), crashIdError->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"Crash signature: %s\n%s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash.c_str(), crashIdError->c_str()));
 					}
 
 					SendMessage(hWnd, TDM_ENABLE_BUTTON, IDCLOSE, 1);

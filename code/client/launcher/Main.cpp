@@ -25,6 +25,8 @@
 
 #include <shobjidl.h>
 
+#include <CfxLocale.h>
+
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
 void InitializeDummies();
@@ -466,8 +468,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				if (showOSWarning)
 				{
-					MessageBox(nullptr, L"You are currently using an outdated version of Windows. This may lead to issues using the " PRODUCT_NAME L" client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing "
-						L"any issues. The game will continue to start now.", PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+					MessageBox(nullptr, fmt::sprintf(gettext(L"You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing "
+															 L"any issues. The game will continue to start now."),
+										PRODUCT_NAME).c_str(),
+					PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 				}
 			}
 
@@ -484,18 +488,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 					{
 						if (elevationData == TokenElevationTypeFull)
 						{
-							const wchar_t* elevationComplaint = L"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\nThat won't fix anything. The game will exit now.";
-
-							auto result = MessageBox(nullptr, elevationComplaint, L"FiveM", MB_ABORTRETRYIGNORE | MB_ICONERROR);
-
-							if (result == IDIGNORE)
-							{
-								MessageBox(nullptr, L"No, you can't ignore this. The game will exit now.", L"FiveM", MB_OK | MB_ICONINFORMATION);
-							}
-							else if (result == IDRETRY)
-							{
-								MessageBox(nullptr, elevationComplaint, L"FiveM", MB_OK | MB_ICONWARNING);
-							}
+							const wchar_t* elevationComplaint = gettext(L"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\nThe game will exit now.");
+							MessageBox(nullptr, elevationComplaint, L"FiveM", MB_OK | MB_ICONERROR);
 
 							return 0;
 						}
@@ -513,7 +507,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				{
 					if (GetLastError() == ERROR_ACCESS_DENIED)
 					{
-						MessageBox(nullptr, PRODUCT_NAME L" could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder.", L"Error", MB_OK | MB_ICONSTOP);
+						MessageBoxW(nullptr, va(gettext(L"%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."), PRODUCT_NAME), L"Error", MB_OK | MB_ICONSTOP);
 						return 0;
 					}
 				}
@@ -637,11 +631,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				if (wcsstr(GetCommandLineW(), L"-switchcl"))
 				{
-					UI_UpdateText(1, L"Transitioning to another build...");
+					UI_UpdateText(1, gettext(L"Transitioning to another build..."));
 				}
 				else
 				{
-					UI_UpdateText(1, ToWide(minModeManifest->Get("productSubtitle", "We're getting there.")).c_str());
+					UI_UpdateText(1, ToWide(minModeManifest->Get("productSubtitle", gettext("We're getting there."))).c_str());
 				}
 
 				while (GetTickCount64() < (st + 3500))

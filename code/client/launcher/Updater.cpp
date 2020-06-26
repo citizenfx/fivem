@@ -8,6 +8,7 @@
 #include "StdInc.h"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+#include <CfxLocale.h>
 #include <tinyxml2.h>
 
 #include <stdint.h>
@@ -264,7 +265,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 		}
 	}
 
-	UI_UpdateText(0, L"Verifying content...");
+	UI_UpdateText(0, gettext(L"Verifying content...").c_str());
 
 	for (auto& filePair : queuedFiles)
 	{
@@ -293,7 +294,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 		}
 	}
 
-	UI_UpdateText(0, L"Updating " PRODUCT_NAME L"...");
+	UI_UpdateText(0, va(gettext(L"Updating %s..."), PRODUCT_NAME));
 
 	bool retval = DL_RunLoop();
 
@@ -356,7 +357,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 			fileNameOffset = citizenRoot.size();
 		}
 
-		UI_UpdateText(1, va(L"Checking %s", &fileName[fileNameOffset]));
+		UI_UpdateText(1, va(gettext(L"Checking %s"), &fileName[fileNameOffset]));
 
 		LARGE_INTEGER fileSize;
 		GetFileSizeEx(hFile, &fileSize);

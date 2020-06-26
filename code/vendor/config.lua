@@ -37,6 +37,8 @@ vendor_component 'boost_program_options'
 vendor_component 'boost_filesystem'
 vendor_component 'boost_random'
 vendor_component 'boost_system'
+vendor_component 'boost_locale'
+vendor_component 'boost_locale-crt'
 
 if os.target() == 'windows' then
 	vendor_component 'discord-rpc'

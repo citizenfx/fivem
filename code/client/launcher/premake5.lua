@@ -28,7 +28,7 @@ local function launcherpersonality(name)
 		language "C++"
 		kind "WindowedApp"
 		
-		defines "COMPILING_LAUNCH"
+		defines { "COMPILING_LAUNCH", "COMPILING_LAUNCHER" }
 		
 		defines("LAUNCHER_PERSONALITY_" .. name:upper())
 
@@ -50,7 +50,8 @@ local function launcherpersonality(name)
 		{
 			"**.cpp", "**.h", 
 			"launcher.rc", "launcher.def",
-			"../common/Error.cpp"
+			"../common/Error.cpp",
+			"../common/CfxLocale.Win32.cpp",
 		}
 		
 		if isGamePersonality(name) then
@@ -90,7 +91,7 @@ local function launcherpersonality(name)
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
-		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue' }
+		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue', 'vendor:boost_locale-crt' }
 		
 		if isLauncherPersonality(name) then
 			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt' }
