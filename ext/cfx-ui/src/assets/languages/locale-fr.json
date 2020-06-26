@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Quitter vers le bureau",
+    "#ExitToDesktop": "Quitter vers le bureau",
     "#ServerList_Name": "Nom",
     "#ServerList_Players": "Joueurs",
     "#ServerList_Ping": "Ping",
@@ -62,5 +62,13 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "FiveM supporter tier",
     "#Yes": "Oui",
-    "#No": "Non"
+    "#No": "Non",
+    "#Settings_QueriesPerMinute": "Navigation serveur : Pings max / minute",
+    "#ServerList_Locales": "Langages",
+    "#Servers_Retry": "Réessayer",
+    "#BottomNav_ReplayEditor": "Éditeur de replay",
+    "#BottomNav_Create": "Créer",
+    "#BottomNav_Mods": "Mods",
+    "#BottomNav_Story": "Histoire",
+    "#BottomNav_Play": "Jouer"
 }
