@@ -1263,8 +1263,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		static std::optional<std::wstring> crashId;
 		static std::optional<std::wstring> crashIdError;
 
+		static auto saveStr = gettext(L"Save information\nStores a file with crash information that you should copy and upload when asking for help.");
+
 		static const TASKDIALOG_BUTTON buttons[] = {
-			{ 42, gettext(L"Save information\nStores a file with crash information that you should copy and upload when asking for help.").c_str() }
+			{ 42, saveStr.c_str() }
 		};
 
 		static std::wstring tempSignature = fmt::sprintf(gettext(L"Crash signature: %s\nReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash);
