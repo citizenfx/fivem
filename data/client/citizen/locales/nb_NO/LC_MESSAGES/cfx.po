@@ -1,0 +1,281 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Vegard Bendiktsen <glitchdetector@gmail.com>, 2020.
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-06-26 23:42+0200\n"
+"PO-Revision-Date: 2020-06-27 18:11+0000\n"
+"Last-Translator: Vegard Bendiktsen <glitchdetector@gmail.com>\n"
+"Language-Team: Norwegian Bokmål <http://translations.cfx.re/projects/"
+"citizenfx/client/nb_NO/>\n"
+"Language: nb_NO\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.1.1\n"
+
+#: client/launcher/MiniDump.cpp:1208
+#, c-format
+msgid ""
+"\n"
+"\n"
+"Exception details: %s"
+msgstr ""
+"\n"
+"\n"
+"Detaljer: %s"
+
+#: client/launcher/MiniDump.cpp:1213
+#, c-format
+msgid ""
+"\n"
+"\n"
+"Legacy crash hash: %s"
+msgstr ""
+"\n"
+"\n"
+"Feilkode: %s"
+
+#: client/launcher/MiniDump.cpp:1277
+msgid ""
+"\n"
+"\n"
+"This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
+msgstr ""
+"\n"
+"\n"
+"En feil oppstod når spillet lastet ut. Vennligst rapporter denne feilen og "
+"hvordan den oppstod (hvilken tjener du spilte på og hvilke ressurser som kan "
+"ha forårsaket dette)."
+
+#: client/launcher/MiniDump.cpp:1204
+#, c-format
+msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
+msgstr ""
+"%s er ansvarlig for at %s stoppet å virke. En feilrapport blir sendt til %s "
+"sine utviklere."
+
+#: client/launcher/Main.cpp:510
+#, c-format
+msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
+msgstr ""
+"%s kunne ikke opprette en fil i installasjons-mappen. Vennligst flytt "
+"installasjonen til en mappe uten begrensede rettigheter."
+
+#: client/launcher/MiniDump.cpp:340
+#, c-format
+msgid ""
+"A game error (at %016llx) caused %s to stop working. A crash report has been uploaded to the %s developers.\n"
+"\n"
+"%s"
+msgstr ""
+"En feil oppstod (ved %016llx) og gjorde at %s sluttet å virke. En "
+"feilrapport har blitt sendt til %s sine utviklere.\n"
+"\n"
+"%s"
+
+#: client/launcher/MiniDump.cpp:1179
+#, c-format
+msgid "An error at %s"
+msgstr "En feil oppstod ved %s"
+
+#: client/launcher/Installer.cpp:126
+#, c-format
+msgid "Are you sure you want to remove %s from the installation root at %s?"
+msgstr "Er du sikker på at du vil fjerne %s fra installasjonen i %s?"
+
+#: client/launcher/Bootstrap.cpp:35
+#, c-format
+msgid "Bootstrapping %s..."
+msgstr "Starter opp %s..."
+
+#: client/launcher/Updater.cpp:360
+#, c-format
+msgid "Checking %s"
+msgstr "Sjekker %s"
+
+#: client/launcher/MiniDump.cpp:1333
+#, c-format
+msgid ""
+"Crash signature: %s\n"
+"%s\n"
+"You can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"Krasj-signatur: %s\n"
+"%s\n"
+"Du kan bruke Ctrl + C for å kopiere denne meldingen."
+
+#: client/launcher/MiniDump.cpp:1329
+#, c-format
+msgid ""
+"Crash signature: %s\n"
+"Report ID: %s\n"
+"You can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"Krasj-signatur: %s\n"
+"Rapport ID: %s\n"
+"Du kan bruke Ctrl + C for å kopiere denne meldingen."
+
+#: client/launcher/MiniDump.cpp:1270
+#, c-format
+msgid ""
+"Crash signature: %s\n"
+"Report ID: ... [uploading]\n"
+"You can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"Krasj-signatur: %s\n"
+"Rapport ID: ... [sender]\n"
+"Du kan bruke Ctrl + C for å kopiere denne meldingen."
+
+#: client/launcher/GameCache.cpp:643
+msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
+msgstr ""
+"DLC filer mangler (eller er korrupte) fra spill-installasjonen din. "
+"Vennligst oppdater eller reparer installasjonen din. Se http://rsg.ms/verify "
+"steg 4 for mer informasjon."
+
+#: client/launcher/ViabilityChecks.cpp:53
+#, c-format
+msgid "DXGI 1.2 support is required to run this product %s"
+msgstr "Produktet %s krever at DXGI 1.2 støttes av systemet ditt"
+
+#: client/launcher/Download.cpp:222
+#, c-format
+msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
+msgstr "Laster ned %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
+
+#: client/launcher/MiniDump.cpp:1175
+#, c-format
+msgid "Error %s"
+msgstr "Feil %s"
+
+#: client/launcher/InstallerExtraction.cpp:532
+#, c-format
+msgid "Extracting %s"
+msgstr "Pakker ut %s"
+
+#: client/launcher/InstallerExtraction.cpp:268
+#, c-format
+msgid "Extracting %s (scanning)"
+msgstr "Pakker ut %s (søker igjennom)"
+
+#: client/launcher/MiniDump.cpp:1189
+msgid "FiveM crashed... but we're on it!"
+msgstr "FiveM har stoppet å virke!"
+
+#: client/launcher/Main.cpp:491
+msgid ""
+"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
+"The game will exit now."
+msgstr ""
+"FiveM kan ikke kjøre under administrator-modus.\n"
+"Spillet vil lukkes."
+
+#: client/launcher/MiniDump.cpp:1237
+msgid "Game crashed: "
+msgstr "Spillet krasjet: "
+
+#: client/launcher/ViabilityChecks.cpp:46
+msgid "Please install Windows 7 SP1 or greater, and try again."
+msgstr "Vennligst installer Windows 7 SP1 eller nyere."
+
+#: client/launcher/ViabilityChecks.cpp:50
+msgid "Please install the Platform Update for Windows 7, and try again."
+msgstr "Installer plattform-oppdateringen til Windows 7."
+
+#: client/launcher/MiniDump.cpp:339
+#, c-format
+msgid "RAGE error: %s"
+msgstr "RAGE feil: %s"
+
+#: client/launcher/MiniDump.cpp:1267
+msgid ""
+"Save information\n"
+"Stores a file with crash information that you should copy and upload when asking for help."
+msgstr ""
+"Lagre informasjon\n"
+"Lagrer en fil med informasjon om krasjen som kan vedlegges når du "
+"rapporterer feilen."
+
+#: client/launcher/GameSelect.cpp:107
+msgid "Select the folder containing Grand Theft Auto V"
+msgstr "Velg mappen som inneholder Grand Theft Auto V"
+
+#: client/launcher/Download.cpp:423
+msgid "Starting IPFS discovery..."
+msgstr "Starter IPFS søk..."
+
+#: client/launcher/ViabilityChecks.cpp:42
+msgid "The game will exit now."
+msgstr "Spillet vil lukkes."
+
+#: client/launcher/GameCache.cpp:635
+#, c-format
+msgid ""
+"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
+"Do you wish to continue?"
+msgstr ""
+"Lagret data for %s er utdatert og må oppdateres. Det blir kopiert %.2f MB "
+"med lokal data og %.2f MB med data vil bli lastet ned.\n"
+"Vil du fortsette?"
+
+#: client/launcher/GameSelect.cpp:202
+#, c-format
+msgid "The selected path does not contain a %s file."
+msgstr "Den valgte mappen inneholder ikke en %s fil."
+
+#: client/launcher/ViabilityChecks.cpp:72
+msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
+msgstr ""
+"Dette produktet krever at Sikkerhetsoppdatering for Windows 7 (KB2758857) er "
+"installert før det kan starte."
+
+#: client/launcher/Main.cpp:634
+msgid "Transitioning to another build..."
+msgstr "Bytter over til en annen versjon..."
+
+#: client/launcher/MiniDump.cpp:1234
+msgid "Unhandled exception: "
+msgstr "Ukjent feil: "
+
+#: client/launcher/Installer.cpp:124
+#, c-format
+msgid "Uninstall %s"
+msgstr "Avinstaller %s"
+
+#: client/launcher/Installer.cpp:125
+#, c-format
+msgid "Uninstall %s?"
+msgstr "Avinstaller %s?"
+
+#: client/launcher/Updater.cpp:297
+#, c-format
+msgid "Updating %s..."
+msgstr "Oppdaterer %s..."
+
+#: client/launcher/GameCache.cpp:845
+msgid "Updating game cache..."
+msgstr "Oppdaterer lagret data..."
+
+#: client/launcher/Updater.cpp:268
+msgid "Verifying content..."
+msgstr "Inspiserer innhold..."
+
+#: client/launcher/GameCache.cpp:714
+msgid "Verifying game content..."
+msgstr "Inspiserer spill-innhold..."
+
+#: client/launcher/Main.cpp:638
+msgid "We're getting there."
+msgstr "Snart framme."
+
+#: client/launcher/Main.cpp:471
+#, c-format
+msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
+msgstr ""
+"Du bruker en eldre versjon av Windows. Problemer kan oppstå i %s med mindre "
+"du oppdaterer til Windows 10 versjon 1703 (\"Creators Update\") eller nyere."
