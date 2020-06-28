@@ -10,8 +10,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-06-27 17:52+0000\n"
-"Last-Translator: Indra <wuppie55@gmail.com>\n"
+"PO-Revision-Date: 2020-06-27 18:11+0000\n"
+"Last-Translator: Weblate Admin <pr@fivem.net>\n"
 "Language-Team: Dutch <http://translations.cfx.re/projects/citizenfx/client/"
 "nl/>\n"
 "Language: nl\n"
@@ -28,6 +28,9 @@ msgid ""
 "\n"
 "Exception details: %s"
 msgstr ""
+"\n"
+"\n"
+"Uitzonderingdetails: %s"
 
 #: client/launcher/MiniDump.cpp:1213
 #, c-format
@@ -36,6 +39,9 @@ msgid ""
 "\n"
 "Legacy crash hash: %s"
 msgstr ""
+"\n"
+"\n"
+"Verouderde crash-hash: %s"
 
 #: client/launcher/MiniDump.cpp:1277
 msgid ""
@@ -45,6 +51,11 @@ msgid ""
 "issue and how to cause it (what server you played on, any resources/scripts, "
 "etc.) so this can be solved."
 msgstr ""
+"\n"
+"\n"
+"Dit is een fatale fout omdat het spel niet afgesloten kon worden. Maak "
+"indien mogelijk melding van dit probleem en hoe het te veroorzaken is (welke "
+"server je speelde, plug-ins/scripts, enz.) opdat dit opgelost kan worden."
 
 #: client/launcher/MiniDump.cpp:1204
 #, c-format
@@ -52,6 +63,8 @@ msgid ""
 "%s caused %s to stop working. A crash report is being uploaded to the %s "
 "developers."
 msgstr ""
+"%s zorgde ervoor dat %s niet meer werkt. Een foutrapport wordt momenteel "
+"geupload naar de ontwikkelaars van %s."
 
 #: client/launcher/Main.cpp:510
 #, c-format
@@ -59,6 +72,9 @@ msgid ""
 "%s could not create a file in the folder it is placed in. Please move your "
 "installation out of Program Files or another protected folder."
 msgstr ""
+"Het lukte %s niet om een bestand te maken in de map waarin het zich bevindt. "
+"Zorg ervoor dat je installatie niet in Program Files of een andere "
+"beschermde map staat."
 
 #: client/launcher/MiniDump.cpp:340
 #, c-format
@@ -68,21 +84,25 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
+"Een fout in het spel (adres %016llx) zorgde ervoor dat %s niet meer werkt. "
+"Een foutrapport wordt momenteel geupload naar de ontwikkelaars van %s.\n"
+"\n"
+"%s"
 
 #: client/launcher/MiniDump.cpp:1179
 #, c-format
 msgid "An error at %s"
-msgstr ""
+msgstr "Een fout op adres %s"
 
 #: client/launcher/Installer.cpp:126
 #, c-format
 msgid "Are you sure you want to remove %s from the installation root at %s?"
-msgstr ""
+msgstr "Weet je zeker dat je %s uit de installatiemap %s wilt verwijderen?"
 
 #: client/launcher/Bootstrap.cpp:35
 #, c-format
 msgid "Bootstrapping %s..."
-msgstr ""
+msgstr "%s voorbereiden om te starten..."
 
 #: client/launcher/Updater.cpp:360
 #, c-format
@@ -96,6 +116,9 @@ msgid ""
 "%s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Handtekening van fout: %s\n"
+"%s\n"
+"Je kunt Ctrl+C indrukken om dit bericht te kopiëren en later te plakken."
 
 #: client/launcher/MiniDump.cpp:1329
 #, c-format
@@ -104,6 +127,9 @@ msgid ""
 "Report ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Handtekening van fout: %s\n"
+"Meldingsnummer: %s\n"
+"Je kunt Ctrl+C indrukken om dit bericht te kopiëren en later te plakken."
 
 #: client/launcher/MiniDump.cpp:1270
 #, c-format
@@ -112,6 +138,9 @@ msgid ""
 "Report ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Handtekening van fout: %s\n"
+"Meldingsnummer: ... [wordt geupload]\n"
+"Je kunt Ctrl+C indrukken om dit bericht te kopiëren en later te plakken."
 
 #: client/launcher/GameCache.cpp:643
 msgid ""
@@ -119,11 +148,15 @@ msgid ""
 "update or verify the game using Steam or the Social Club launcher and try "
 "again. See http://rsg.ms/verify step 4 for more info."
 msgstr ""
+"Er ontbreken DLC-bestanden in je spelinstallatie, of deze zijn beschadigd. "
+"Update of verifieer het spel via Steam of de Social Club Launcher en probeer "
+"het opnieuw. Zie ook stap 4 op http://rsg.ms/verify (Engelstalig) voor meer "
+"informatie."
 
 #: client/launcher/ViabilityChecks.cpp:53
 #, c-format
 msgid "DXGI 1.2 support is required to run this product %s"
-msgstr ""
+msgstr "Ondersteuning voor DXGI 1.2 is benodigd om het product %s te starten"
 
 #: client/launcher/Download.cpp:222
 #, c-format
@@ -138,16 +171,16 @@ msgstr "Fout %s"
 #: client/launcher/InstallerExtraction.cpp:532
 #, c-format
 msgid "Extracting %s"
-msgstr ""
+msgstr "%s uitpakken"
 
 #: client/launcher/InstallerExtraction.cpp:268
 #, c-format
 msgid "Extracting %s (scanning)"
-msgstr ""
+msgstr "%s uitpakken (scannen)"
 
 #: client/launcher/MiniDump.cpp:1189
 msgid "FiveM crashed... but we're on it!"
-msgstr ""
+msgstr "FiveM werkt niet meer... maar we weten er van af!"
 
 #: client/launcher/Main.cpp:491
 msgid ""
@@ -155,23 +188,27 @@ msgid ""
 "Windows settings to not run FiveM as administrator.\n"
 "The game will exit now."
 msgstr ""
+"FiveM kan niet gestart worden met verhoogde bevoegdheden. Wijzig je "
+"instellingen in Windows zodat FiveM niet als beheerder gestart wordt.\n"
+"Het spel zal zichzelf nu afsluiten."
 
 #: client/launcher/MiniDump.cpp:1237
 msgid "Game crashed: "
-msgstr ""
+msgstr "Spel werkt niet meer: "
 
 #: client/launcher/ViabilityChecks.cpp:46
 msgid "Please install Windows 7 SP1 or greater, and try again."
-msgstr ""
+msgstr "Installeer Windows 7 SP1 of hoger, en probeer het opnieuw."
 
 #: client/launcher/ViabilityChecks.cpp:50
 msgid "Please install the Platform Update for Windows 7, and try again."
 msgstr ""
+"Installeer de update voor het Windows 7-platform, en probeer het opnieuw."
 
 #: client/launcher/MiniDump.cpp:339
 #, c-format
 msgid "RAGE error: %s"
-msgstr ""
+msgstr "RAGE-fout: %s"
 
 #: client/launcher/MiniDump.cpp:1267
 msgid ""
@@ -189,11 +226,11 @@ msgstr "Selecteer de map met Grand Theft Auto V"
 
 #: client/launcher/Download.cpp:423
 msgid "Starting IPFS discovery..."
-msgstr ""
+msgstr "IPFS-discoveryproces starten..."
 
 #: client/launcher/ViabilityChecks.cpp:42
 msgid "The game will exit now."
-msgstr ""
+msgstr "Het spel zal zichzelf nu afsluiten."
 
 #: client/launcher/GameCache.cpp:635
 #, c-format
@@ -203,17 +240,24 @@ msgid ""
 "internet.\n"
 "Do you wish to continue?"
 msgstr ""
+"De lokale cache voor %s is verouderd en moet worden bijgewerkt. Tijdens dit "
+"proces zal %.2f MB aan gegevens gekopieerd worden vanaf de lokale schijf, en "
+"%.2f MB aan gegevens gedownload worden vanaf het internet.\n"
+"Wil je doorgaan?"
 
 #: client/launcher/GameSelect.cpp:202
 #, c-format
 msgid "The selected path does not contain a %s file."
-msgstr ""
+msgstr "Het geselecteerde pad bevat geen bestand genaamd %s."
 
 #: client/launcher/ViabilityChecks.cpp:72
 msgid ""
 "This product requires Security Update for Windows 7 for x64-based systems "
 "(KB2758857) to be installed to run. Please install it, and try again."
 msgstr ""
+"Voor dit product is de Beveiligingsupdate voor Windows 7 voor op x64-"
+"gebaseerde computers (KB2758857) vereist. Installeer deze, en probeer het "
+"opnieuw."
 
 #: client/launcher/Main.cpp:634
 msgid "Transitioning to another build..."
@@ -221,7 +265,7 @@ msgstr "Overstappen naar een andere versie..."
 
 #: client/launcher/MiniDump.cpp:1234
 msgid "Unhandled exception: "
-msgstr ""
+msgstr "Onverwerkte uitzondering: "
 
 #: client/launcher/Installer.cpp:124
 #, c-format
@@ -263,6 +307,5 @@ msgid ""
 "game will continue to start now."
 msgstr ""
 "Je gebruikt momenteel een verouderde versie van Windows. Dit kan problemen "
-"veroorzaken met de %s client. Update naar Windows 10 versie 1703 (\"Creators "
-"Update\") of hoger wanneer je problemen ervaart. De game zal nu verder "
-"starten."
+"veroorzaken met de %s-client. Update naar Windows 10 versie 1703 (\"Creators "
+"Update\") of hoger wanneer je problemen ervaart. Het spel wordt nu opgestart."
