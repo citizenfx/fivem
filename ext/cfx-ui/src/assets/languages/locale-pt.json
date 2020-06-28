@@ -82,5 +82,7 @@
     "#ServerDetail_Locale": "Idioma",
     "#Settings_QueriesPerMinute": "Busca de servidores: Máximo de consultas por minuto",
     "#Servers_Retry": "Tentar novamente",
-    "#BottomNav_Mods": "Mods"
+    "#BottomNav_Mods": "Mods",
+    "#Changelogs": "Histórico de modificações",
+    "#ServerDetail_Updates": "Feed"
 }
