@@ -64,6 +64,7 @@ enum class AccessType
 };
 
 class ContextImpl;
+class PrincipalSource;
 
 class Context : public fwRefCountable
 {
@@ -95,6 +96,8 @@ public:
 	virtual bool CheckPrivilege(const Principal& principal, const Object& object);
 
 	virtual void PushPrincipal(Principal& principal);
+
+	virtual void PushPrincipal(PrincipalSource* principalSource);
 
 	virtual void PopPrincipal();
 
@@ -155,6 +158,12 @@ inline bool seCheckPrivilege(const std::string& object)
 
 namespace se
 {
+class PrincipalSource
+{
+public:
+	virtual void GetPrincipals(const std::function<bool(const Principal&)>& iterator) = 0;
+};
+
 class ScopedPrincipal
 {
 public:
@@ -168,6 +177,12 @@ public:
 		: m_principal(principal)
 	{
 		seGetCurrentContext()->PushPrincipal(m_principal);
+	}
+
+	inline explicit ScopedPrincipal(PrincipalSource* principalSource)
+		: m_principal(std::string{})
+	{
+		seGetCurrentContext()->PushPrincipal(principalSource);
 	}
 
 	inline ScopedPrincipal(const ScopedPrincipal&) = delete;
