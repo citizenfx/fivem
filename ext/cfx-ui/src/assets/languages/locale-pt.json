@@ -77,5 +77,12 @@
     "#BottomNav_ReplayEditor": "Editor de Replays",
     "#BottomNav_Create": "Criar",
     "#BottomNav_Story": "História",
-    "#BottomNav_Play": "Jogar"
+    "#BottomNav_Play": "Jogar",
+    "#ServerDetail_Resources": "Recursos",
+    "#ServerDetail_Locale": "Idioma",
+    "#Settings_QueriesPerMinute": "Busca de servidores: Máximo de consultas por minuto",
+    "#Servers_Retry": "Tentar novamente",
+    "#BottomNav_Mods": "Mods",
+    "#Changelogs": "Histórico de modificações",
+    "#ServerDetail_Updates": "Feed"
 }

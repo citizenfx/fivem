@@ -67,7 +67,7 @@
     "#ServerDetail_Resources": "Zasoby",
     "#ServerDetail_Back": "Powrót",
     "#ServerDetail_AddFavorite": "Ulubiony",
-    "#ServerDetail_DelFavorite": "Nielubiony",
+    "#ServerDetail_DelFavorite": "Usuń z ulubionych",
     "#ServerDetail_Refresh": "Odśwież",
     "#ServerDetail_ScriptHook": "Dozwolone skrypty klienta",
     "#ServerDetail_OneSync": "OneSync",
@@ -81,5 +81,8 @@
     "#SettingsCat_Interface": "Interfejs",
     "#SettingsCat_Connection": "Połączenie",
     "#BottomNav_ReplayEditor": "Edytor powtórek",
-    "#BottomNav_Create": "Utwórz"
+    "#BottomNav_Create": "Utwórz",
+    "#BottomNav_Mods": "Modyfikacje",
+    "#BottomNav_Story": "Fabuła",
+    "#BottomNav_Play": "Graj"
 }
