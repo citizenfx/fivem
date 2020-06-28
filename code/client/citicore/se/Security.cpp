@@ -76,7 +76,6 @@ void Context::AddPrincipalInheritance(const Principal& child, const Principal& p
 {
 	if (DoesPrincipalInheritanceExists(child, parent))
 	{
-		console::Printf("security", "A principal inheritance already exists with this parent and child.\n");
 		return;
 	}
 	m_impl->m_principalInheritance.insert({ child, parent });
@@ -101,7 +100,6 @@ void Context::AddAccessControlEntry(const Principal& principal, const Object& ob
 {
 	if (DoesAccessControlEntryExists(principal, object))
 	{
-		console::Printf("security", "An access control already exists with this principal and this object.\n");
 		return;
 	}
 	m_impl->m_aces.insert({ object, { object, principal, type } });
