@@ -4,13 +4,14 @@
 # Automatically generated, 2020.
 #
 # Weblate Admin <pr@fivem.net>, 2020.
+# Indra <wuppie55@gmail.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-06-26 22:01+0000\n"
-"Last-Translator: Weblate Admin <pr@fivem.net>\n"
+"PO-Revision-Date: 2020-06-27 17:51+0000\n"
+"Last-Translator: Indra <wuppie55@gmail.com>\n"
 "Language-Team: Dutch <http://translations.cfx.re/projects/citizenfx/client/"
 "nl/>\n"
 "Language: nl\n"
@@ -178,6 +179,9 @@ msgid ""
 "Stores a file with crash information that you should copy and upload when "
 "asking for help."
 msgstr ""
+"Informatie opslaan\n"
+"Slaat een bestand op met diagnostische informatie welke je kan uploaden "
+"wanneer je voor hulp vraagt."
 
 #: client/launcher/GameSelect.cpp:107
 msgid "Select the folder containing Grand Theft Auto V"
