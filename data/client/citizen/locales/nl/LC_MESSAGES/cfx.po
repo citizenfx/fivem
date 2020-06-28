@@ -11,7 +11,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
 "PO-Revision-Date: 2020-06-27 17:52+0000\n"
-"Last-Translator: Weblate Admin <pr@fivem.net>\n"
+"Last-Translator: Indra <wuppie55@gmail.com>\n"
 "Language-Team: Dutch <http://translations.cfx.re/projects/citizenfx/client/"
 "nl/>\n"
 "Language: nl\n"
@@ -185,7 +185,7 @@ msgstr ""
 
 #: client/launcher/GameSelect.cpp:107
 msgid "Select the folder containing Grand Theft Auto V"
-msgstr ""
+msgstr "Selecteer de map met Grand Theft Auto V"
 
 #: client/launcher/Download.cpp:423
 msgid "Starting IPFS discovery..."
@@ -226,12 +226,12 @@ msgstr ""
 #: client/launcher/Installer.cpp:124
 #, c-format
 msgid "Uninstall %s"
-msgstr ""
+msgstr "%s verwijderen"
 
 #: client/launcher/Installer.cpp:125
 #, c-format
 msgid "Uninstall %s?"
-msgstr ""
+msgstr "%s verwijderen?"
 
 #: client/launcher/Updater.cpp:297
 #, c-format
@@ -262,3 +262,7 @@ msgid ""
 "(\"Creators Update\") or higher in case you are experiencing any issues. The "
 "game will continue to start now."
 msgstr ""
+"Je gebruikt momenteel een verouderde versie van Windows. Dit kan problemen "
+"veroorzaken met de %s client. Update naar Windows 10 versie 1703 (\"Creators "
+"Update\") of hoger wanneer je problemen ervaart. De game zal nu verder "
+"starten."
