@@ -220,3 +220,7 @@
 [submodule "vendor/nghttp3"]
 	path = vendor/nghttp3
 	url = https://github.com/ngtcp2/nghttp3.git
+[submodule "vendor/lua-cmsgpack"]
+	path = vendor/lua-cmsgpack
+	url = https://github.com/gottfriedleibniz/lua-cmsgpack.git
+	branch = grit

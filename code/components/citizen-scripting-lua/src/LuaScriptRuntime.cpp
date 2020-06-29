@@ -44,6 +44,7 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 
 extern "C" {
 #include <lobject.h>
+#include <lua_cmsgpacklib.h>
 }
 
 #include <om/OMComponent.h>
@@ -333,6 +334,7 @@ static const luaL_Reg lualibs[] = {
 	{ LUA_IOLIBNAME, luaopen_io },
 	{ LUA_OSLIBNAME, luaopen_os },
 #endif
+	{ "msgpack", luaopen_cmsgpack },
 	{ NULL, NULL }
 };
 
@@ -1474,11 +1476,6 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 	result_t hr;
 
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/json.lua")))
-	{
-		return hr;
-	}
-
-	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/MessagePack.lua")))
 	{
 		return hr;
 	}
