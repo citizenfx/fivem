@@ -12,6 +12,8 @@ return {
 			flags { "LinkTimeOptimization" }
 		end
 
+		defines { 'GRIT_POWER_TTYPE' }
+
 		files
 		{
 			"vendor/lua/src/*.c" 

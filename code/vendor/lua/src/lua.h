@@ -82,6 +82,15 @@ typedef struct lua_State lua_State;
 #define LUA_NUMTAGS		13
 
 
+/*
+** table types
+*/
+#if defined(GRIT_POWER_TTYPE)
+  #define LUA_TTEMPTY 0
+  #define LUA_TTARRAY 1
+  #define LUA_TTHASH  2
+  #define LUA_TTMIXED 3
+#endif
 
 /* minimum Lua stack available to a C function */
 #define LUA_MINSTACK	20
@@ -177,6 +186,9 @@ LUA_API void  (lua_xmove) (lua_State *from, lua_State *to, int n);
 ** access functions (stack -> C)
 */
 
+#if defined(GRIT_POWER_TTYPE)
+LUA_API int             (lua_tabletype) (lua_State *L, int idx);
+#endif
 LUA_API int             (lua_isnumber) (lua_State *L, int idx);
 LUA_API int             (lua_isvector2) (lua_State *L, int idx);
 LUA_API int             (lua_isvector3) (lua_State *L, int idx);

@@ -385,6 +385,20 @@ LUA_API int lua_iscfunction (lua_State *L, int idx) {
   return (ttislcf(o) || (ttisCclosure(o)));
 }
 
+#if defined(GRIT_POWER_TTYPE)
+LUA_API int lua_tabletype (lua_State *L, int idx) {
+  StkId o;
+  int tt;
+
+  lua_lock(L);
+  o = index2addr(L, idx);
+  api_check(L, ttistable(o), "invalid table");
+  tt = luaH_type(hvalue(o));
+  lua_unlock(L);
+
+  return tt;
+}
+#endif
 
 LUA_API int lua_isinteger (lua_State *L, int idx) {
   StkId o = index2addr(L, idx);

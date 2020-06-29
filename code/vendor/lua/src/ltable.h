@@ -42,6 +42,9 @@ LUAI_FUNC void luaH_resizearray (lua_State *L, Table *t, unsigned int nasize);
 LUAI_FUNC void luaH_free (lua_State *L, Table *t);
 LUAI_FUNC int luaH_next (lua_State *L, Table *t, StkId key);
 LUAI_FUNC int luaH_getn (Table *t);
+#if defined(GRIT_POWER_TTYPE)
+LUAI_FUNC int luaH_type (const Table *t);
+#endif
 
 
 #if defined(LUA_DEBUG)
