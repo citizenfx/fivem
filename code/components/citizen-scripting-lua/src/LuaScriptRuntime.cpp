@@ -916,19 +916,42 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& conte
 		// table (high-level class with __data field)
 		case LUA_TTABLE:
 		{
+			auto validType = [](int t)
+			{
+				return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING ||
+					t == LUA_TVECTOR2 || t == LUA_TVECTOR3 || t == LUA_TVECTOR4 || t == LUA_TQUAT;
+			};
+
 			luaL_checkstack(L, 2, "table arguments");
 			lua_pushstring(L, "__data");
 
-			if (lua_rawget(L, lua_rel_index(idx, 1)) == LUA_TNUMBER) // Account for pushstring if idx < 0
+			if (validType(lua_rawget(L, lua_rel_index(idx, 1)))) // Account for pushstring if idx < 0
 			{
-				push(lua_tointeger(L, -1));
+				Lua_PushContextArgument(L, -1, context, result);
 				lua_pop(L, 1);
 			}
 			else
 			{
-				lua_pop(L, 1);
-				lua_pushstring(L, "Invalid Lua type in __data");
-				return lua_error(L);
+				lua_pop(L, 1); // [...]
+				if (luaL_getmetafield(L, idx, "__data") == LUA_TFUNCTION) // [..., metafield]
+				{
+					// The __data function can only allow one return value (no LUA_MULTRET)
+					// to avoid additional implicitly expanded types during native execution.
+					lua_pushvalue(L, lua_rel_index(idx, 1)); // [..., function, argument]
+					lua_call(L, 1, 1); // [..., value]
+				}
+
+				if (validType(lua_type(L, -1)))
+				{
+					Lua_PushContextArgument(L, -1, context, result);
+					lua_pop(L, 1); // [...]
+				}
+				else
+				{
+					lua_pop(L, 1);
+					lua_pushstring(L, "Invalid Lua type in __data");
+					return lua_error(L);
+				}
 			}
 
 			break;
