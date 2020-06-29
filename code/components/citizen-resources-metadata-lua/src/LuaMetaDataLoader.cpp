@@ -12,6 +12,9 @@
 #include "VFSManager.h"
 
 #include <lua.hpp>
+extern "C" {
+#include <lua_rapidjsonlib.h>
+}
 
 class LuaMetaDataLoader : public fx::ResourceMetaDataLoader
 {
@@ -135,6 +138,10 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	// openlibs as well
 	luaL_openlibs(m_luaState);
 
+	// open lua_rapidjson
+	luaL_requiref(m_luaState, "json", luaopen_rapidjson, 1);
+	lua_pop(m_luaState, 1);  /* remove lib */
+
 	// register a metadata adder for ourselves
 	lua_pushlightuserdata(m_luaState, this);
 
@@ -161,7 +168,7 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 
 	// run global initialization code
 	bool result = true;
-	result = result && DoFile("citizen:/scripting/lua/json.lua", 0);
+	//result = result && DoFile("citizen:/scripting/lua/json.lua", 0);
 
 	result = result && DoFile("citizen:/scripting/resource_init.lua", 1);
 

@@ -224,3 +224,7 @@
 	path = vendor/lua-cmsgpack
 	url = https://github.com/gottfriedleibniz/lua-cmsgpack.git
 	branch = grit
+[submodule "vendor/lua-rapidjson"]
+	path = vendor/lua-rapidjson
+	url = https://github.com/gottfriedleibniz/lua-rapidjson.git
+	branch = grit
