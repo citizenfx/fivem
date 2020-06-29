@@ -213,7 +213,7 @@ static InitFunction initFunction([]()
 				auto m4 = glm::toMat4(glm::quat{qw, qx, qy, qz});
 
 				// common GTA rotation (2) is ZXY
-				glm::extractEulerAngleZXY(m4, resultVec.x, resultVec.y, resultVec.z);
+				glm::extractEulerAngleZXY(m4, resultVec.z, resultVec.x, resultVec.y);
 
 				resultVec.x = glm::degrees(resultVec.x);
 				resultVec.y = glm::degrees(resultVec.y);
@@ -253,7 +253,7 @@ static InitFunction initFunction([]()
 				auto m4 = glm::toMat4(glm::quat{ qw, qx, qy, qz });
 
 				float _, z;
-				glm::extractEulerAngleZXY(m4, _, _, z);
+				glm::extractEulerAngleZXY(m4, z, _, _);
 
 				heading = glm::degrees(z);
 #endif
