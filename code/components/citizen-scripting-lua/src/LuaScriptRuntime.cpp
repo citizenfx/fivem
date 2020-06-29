@@ -48,6 +48,8 @@ extern "C" {
 
 #include <om/OMComponent.h>
 
+#define lua_rel_index(idx, n) (((idx) < 0) ? ((idx) - (n)) : (idx))
+
 namespace fx
 {
 class LuaStateHolder
@@ -836,6 +838,238 @@ private:
 	uint32_t pad2;
 };
 
+typedef struct fxLuaResult
+{
+	PointerField* pointerFields;
+
+	int numReturnValues; // return values and their types
+	uintptr_t retvals[16];
+	LuaMetaFields rettypes[16];
+	LuaMetaFields returnValueCoercion; // coercion for the result value
+	bool returnResultAnyway; // flag to return a result even if a pointer return value is passed
+
+	inline fxLuaResult(PointerField* _fields)
+		: pointerFields(_fields), numReturnValues(0), returnValueCoercion(LuaMetaFields::Max), returnResultAnyway(false)
+	{
+		for (int i = 0; i < _countof(retvals); ++i)
+		{
+			retvals[i] = 0;
+			rettypes[i] = LuaMetaFields::Max;
+		}
+	}
+} fxLuaResult;
+
+/// <summary>
+/// Consider the possibly converting SHRSTR's to VLNGSTR's to avoid the handler
+/// from invalidating internalized strings.
+/// </summary>
+/// <param name="L"></param>
+/// <param name="idx"></param>
+/// <param name="context"></param>
+/// <returns></returns>
+static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& context, fxLuaResult& result)
+{
+	// pushing function
+	auto push = [&](const auto& value)
+	{
+		using TVal = std::decay_t<decltype(value)>;
+
+		if constexpr (sizeof(TVal) < sizeof(uintptr_t))
+		{
+			*reinterpret_cast<uintptr_t*>(&context.arguments[context.numArguments]) = 0;
+		}
+
+		*reinterpret_cast<TVal*>(&context.arguments[context.numArguments]) = value;
+		context.numArguments++;
+	};
+
+	// get the type and decide what to do based on it
+	const auto value = lua_getvalue(L, idx);
+	int type = lua_valuetype(L, value);
+
+	// nil: add '0'
+	switch (type)
+	{
+		// nil
+		case LUA_TNIL:
+		{
+			push(0);
+			break;
+		}
+		// integer/float
+		case LUA_TNUMBER:
+		{
+			if (lua_valueisinteger(L, value))
+			{
+				push(lua_valuetointeger(L, value));
+			}
+			else if (lua_valueisfloat(L, value))
+			{
+				push(static_cast<float>(lua_valuetonumber(L, value)));
+			}
+			break;
+		}
+		// boolean
+		case LUA_TBOOLEAN:
+			push(lua_valuetoboolean(L, value));
+			break;
+		// table (high-level class with __data field)
+		case LUA_TTABLE:
+		{
+			luaL_checkstack(L, 2, "table arguments");
+			lua_pushstring(L, "__data");
+
+			if (lua_rawget(L, lua_rel_index(idx, 1)) == LUA_TNUMBER) // Account for pushstring if idx < 0
+			{
+				push(lua_tointeger(L, -1));
+				lua_pop(L, 1);
+			}
+			else
+			{
+				lua_pop(L, 1);
+				lua_pushstring(L, "Invalid Lua type in __data");
+				return lua_error(L);
+			}
+
+			break;
+		}
+		// string
+		case LUA_TSTRING:
+		{
+			push(lua_valuetostring(L, value));
+			break;
+		}
+		// vectors
+		case LUA_TVECTOR2:
+		{
+			auto f4 = lua_valuetofloat4(L, value);
+
+			push(f4.x);
+			push(f4.y);
+
+			break;
+		}
+		case LUA_TVECTOR3:
+		{
+			auto f4 = lua_valuetofloat4(L, value);
+
+			push(f4.x);
+			push(f4.y);
+			push(f4.z);
+
+			break;
+		}
+		case LUA_TVECTOR4:
+		case LUA_TQUAT:
+		{
+			auto f4 = lua_valuetofloat4(L, value);
+
+			push(f4.x);
+			push(f4.y);
+			push(f4.z);
+			push(f4.w);
+
+			break;
+		}
+		// metafield
+		case LUA_TLIGHTUSERDATA:
+		{
+			auto pushPtr = [&](LuaMetaFields metaField)
+			{
+				if (result.numReturnValues >= _countof(result.retvals))
+				{
+					lua_pushstring(L, "too many return value arguments");
+					return lua_error(L);
+				}
+
+				// push the offset and set the type
+				push(&result.retvals[result.numReturnValues]);
+				result.rettypes[result.numReturnValues] = metaField;
+
+				// increment the counter
+				if (metaField == LuaMetaFields::PointerValueVector)
+				{
+					result.numReturnValues += 3;
+				}
+				else
+				{
+					result.numReturnValues += 1;
+				}
+				return 1;
+			};
+
+			uint8_t* ptr = reinterpret_cast<uint8_t*>(lua_valuetouserdata(L, value));
+
+			// if the pointer is a metafield
+			if (ptr >= g_metaFields && ptr < &g_metaFields[(int)LuaMetaFields::Max])
+			{
+				LuaMetaFields metaField = static_cast<LuaMetaFields>(ptr - g_metaFields);
+
+				// switch on the metafield
+				switch (metaField)
+				{
+					case LuaMetaFields::PointerValueInt:
+					case LuaMetaFields::PointerValueFloat:
+					case LuaMetaFields::PointerValueVector:
+					{
+						result.retvals[result.numReturnValues] = 0;
+
+						if (metaField == LuaMetaFields::PointerValueVector)
+						{
+							result.retvals[result.numReturnValues + 1] = 0;
+							result.retvals[result.numReturnValues + 2] = 0;
+						}
+
+						pushPtr(metaField);
+
+						break;
+					}
+					case LuaMetaFields::ReturnResultAnyway:
+						result.returnResultAnyway = true;
+						break;
+					case LuaMetaFields::ResultAsInteger:
+					case LuaMetaFields::ResultAsLong:
+					case LuaMetaFields::ResultAsString:
+					case LuaMetaFields::ResultAsFloat:
+					case LuaMetaFields::ResultAsVector:
+					case LuaMetaFields::ResultAsObject:
+						result.returnValueCoercion = metaField;
+						break;
+				}
+			}
+			// or if the pointer is a runtime pointer field
+			else if (ptr >= reinterpret_cast<uint8_t*>(result.pointerFields) && ptr < (reinterpret_cast<uint8_t*>(result.pointerFields) + (sizeof(PointerField) * 2)))
+			{
+				// guess the type based on the pointer field type
+				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(result.pointerFields);
+				LuaMetaFields metaField = static_cast<LuaMetaFields>(ptrField / sizeof(PointerField));
+
+				if (metaField == LuaMetaFields::PointerValueInt || metaField == LuaMetaFields::PointerValueFloat)
+				{
+					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
+
+					result.retvals[result.numReturnValues] = ptrFieldEntry->value;
+					ptrFieldEntry->empty = true;
+
+					pushPtr(metaField);
+				}
+			}
+			else
+			{
+				push(ptr);
+			}
+
+			break;
+		}
+		default:
+		{
+			lua_pushstring(L, va("Invalid Lua type: %s", lua_typename(L, type)));
+			return lua_error(L);
+		}
+	}
+	return 1;
+}
+
 int Lua_InvokeNative(lua_State* L)
 {
 	// get the hash
@@ -864,227 +1098,21 @@ int Lua_InvokeNative(lua_State* L)
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
 
-	auto pointerFields = luaRuntime->GetPointerFields();
-
 	// variables to hold state
 	fxNativeContext context = { 0 };
+	fxLuaResult result(luaRuntime->GetPointerFields());
 
-	// return values and their types
-	int numReturnValues = 0;
-	uintptr_t retvals[16];
-	LuaMetaFields rettypes[16];
-
-	// coercion for the result value
-	LuaMetaFields returnValueCoercion = LuaMetaFields::Max;
-
-	// flag to return a result even if a pointer return value is passed
-	bool returnResultAnyway = false;
+	context.nativeIdentifier = hash;
 
 	// get argument count for the loop
 	int numArgs = lua_gettop(L);
 
-	context.nativeIdentifier = hash;
-
-	// pushing function
-	auto push = [&](const auto& value)
-	{
-		using TVal = std::decay_t<decltype(value)>;
-
-		if constexpr (sizeof(TVal) < sizeof(uintptr_t))
-		{
-			*reinterpret_cast<uintptr_t*>(&context.arguments[context.numArguments]) = 0;
-		}
-
-		*reinterpret_cast<TVal*>(&context.arguments[context.numArguments]) = value;
-		context.numArguments++;
-	};
-
 	// the big argument loop
 	for (int arg = 2; arg <= numArgs; arg++)
 	{
-		// get the type and decide what to do based on it
-		const auto value = lua_getvalue(L, arg);
-		int type = lua_valuetype(L, value);
-
-		// nil: add '0'
-		switch (type)
+		if (!Lua_PushContextArgument(L, arg, context, result))
 		{
-			// nil
-			case LUA_TNIL:
-			{
-				push(0);
-				break;
-			}
-			// integer/float
-			case LUA_TNUMBER:
-			{
-				if (lua_valueisinteger(L, value))
-				{
-					push(lua_valuetointeger(L, value));
-				}
-				else if (lua_valueisfloat(L, value))
-				{
-					push(static_cast<float>(lua_valuetonumber(L, value)));
-				}
-				break;
-			}
-			// boolean
-			case LUA_TBOOLEAN:
-				push(lua_valuetoboolean(L, value));
-				break;
-				// table (high-level class with __data field)
-			case LUA_TTABLE:
-			{
-				lua_pushstring(L, "__data");
-				lua_rawget(L, arg);
-
-				if (lua_type(L, -1) == LUA_TNUMBER)
-				{
-					push(lua_tointeger(L, -1));
-					lua_pop(L, 1);
-				}
-				else
-				{
-					lua_pushstring(L, "Invalid Lua type in __data");
-					lua_error(L);
-				}
-
-				break;
-			}
-			// string
-			case LUA_TSTRING:
-			{
-				push(lua_valuetostring(L, value));
-				break;
-			}
-			// vectors
-			case LUA_TVECTOR2:
-			{
-				auto f4 = lua_valuetofloat4(L, value);
-
-				push(f4.x);
-				push(f4.y);
-
-				break;
-			}
-			case LUA_TVECTOR3:
-			{
-				auto f4 = lua_valuetofloat4(L, value);
-
-				push(f4.x);
-				push(f4.y);
-				push(f4.z);
-
-				break;
-			}
-			case LUA_TVECTOR4:
-			case LUA_TQUAT:
-			{
-				auto f4 = lua_valuetofloat4(L, value);
-
-				push(f4.x);
-				push(f4.y);
-				push(f4.z);
-				push(f4.w);
-
-				break;
-			}
-			// metafield
-			case LUA_TLIGHTUSERDATA:
-			{
-				auto pushPtr = [&](LuaMetaFields metaField)
-				{
-					if (numReturnValues >= _countof(retvals))
-					{
-						lua_pushstring(L, "too many return value arguments");
-						lua_error(L);
-					}
-
-					// push the offset and set the type
-					push(&retvals[numReturnValues]);
-					rettypes[numReturnValues] = metaField;
-
-					// increment the counter
-					if (metaField == LuaMetaFields::PointerValueVector)
-					{
-						numReturnValues += 3;
-					}
-					else
-					{
-						numReturnValues += 1;
-					}
-				};
-
-				uint8_t* ptr = reinterpret_cast<uint8_t*>(lua_valuetouserdata(L, value));
-
-				// if the pointer is a metafield
-				if (ptr >= g_metaFields && ptr < &g_metaFields[(int)LuaMetaFields::Max])
-				{
-					LuaMetaFields metaField = static_cast<LuaMetaFields>(ptr - g_metaFields);
-
-					// switch on the metafield
-					switch (metaField)
-					{
-						case LuaMetaFields::PointerValueInt:
-						case LuaMetaFields::PointerValueFloat:
-						case LuaMetaFields::PointerValueVector:
-						{
-							retvals[numReturnValues] = 0;
-
-							if (metaField == LuaMetaFields::PointerValueVector)
-							{
-								retvals[numReturnValues + 1] = 0;
-								retvals[numReturnValues + 2] = 0;
-							}
-
-							pushPtr(metaField);
-
-							break;
-						}
-						case LuaMetaFields::ReturnResultAnyway:
-							returnResultAnyway = true;
-							break;
-						case LuaMetaFields::ResultAsInteger:
-						case LuaMetaFields::ResultAsLong:
-						case LuaMetaFields::ResultAsString:
-						case LuaMetaFields::ResultAsFloat:
-						case LuaMetaFields::ResultAsVector:
-						case LuaMetaFields::ResultAsObject:
-							returnValueCoercion = metaField;
-							break;
-					}
-				}
-				// or if the pointer is a runtime pointer field
-				else if (ptr >= reinterpret_cast<uint8_t*>(pointerFields) && ptr < (reinterpret_cast<uint8_t*>(pointerFields) + (sizeof(PointerField) * 2)))
-				{
-					// guess the type based on the pointer field type
-					intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(pointerFields);
-					LuaMetaFields metaField = static_cast<LuaMetaFields>(ptrField / sizeof(PointerField));
-
-					if (metaField == LuaMetaFields::PointerValueInt || metaField == LuaMetaFields::PointerValueFloat)
-					{
-						auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
-
-						retvals[numReturnValues] = ptrFieldEntry->value;
-						ptrFieldEntry->empty = true;
-
-						pushPtr(metaField);
-					}
-				}
-				else
-				{
-					push(ptr);
-				}
-
-				break;
-			}
-			default:
-			{
-				lua_pushstring(L, va("Invalid Lua type: %s", lua_typename(L, type)));
-				lua_error(L);
-
-				break;
-			}
+			return luaL_error(L, "Unexpected context result");
 		}
 	}
 
@@ -1099,13 +1127,13 @@ int Lua_InvokeNative(lua_State* L)
 	int numResults = 0;
 
 	// if no other result was requested, or we need to return the result anyway, push the result
-	if (numReturnValues == 0 || returnResultAnyway)
+	if (result.numReturnValues == 0 || result.returnResultAnyway)
 	{
 		// increment the result count
 		numResults++;
 
 		// handle the type coercion
-		switch (returnValueCoercion)
+		switch (result.returnValueCoercion)
 		{
 			case LuaMetaFields::ResultAsString:
 			{
@@ -1165,23 +1193,23 @@ int Lua_InvokeNative(lua_State* L)
 	{
 		int i = 0;
 
-		while (i < numReturnValues)
+		while (i < result.numReturnValues)
 		{
-			switch (rettypes[i])
+			switch (result.rettypes[i])
 			{
 				case LuaMetaFields::PointerValueInt:
-					lua_pushinteger(L, *reinterpret_cast<int32_t*>(&retvals[i]));
+					lua_pushinteger(L, *reinterpret_cast<int32_t*>(&result.retvals[i]));
 					i++;
 					break;
 
 				case LuaMetaFields::PointerValueFloat:
-					lua_pushnumber(L, *reinterpret_cast<float*>(&retvals[i]));
+					lua_pushnumber(L, *reinterpret_cast<float*>(&result.retvals[i]));
 					i++;
 					break;
 
 				case LuaMetaFields::PointerValueVector:
 				{
-					scrVector vector = *reinterpret_cast<scrVector*>(&retvals[i]);
+					scrVector vector = *reinterpret_cast<scrVector*>(&result.retvals[i]);
 					lua_pushvector3(L, vector.x, vector.y, vector.z);
 
 					i += 3;
