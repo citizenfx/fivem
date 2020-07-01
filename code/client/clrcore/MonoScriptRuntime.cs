@@ -127,7 +127,8 @@ namespace CitizenFX.Core
 			return m_instanceId;
 		}
 
-		public int HandlesFile(string filename)
+		[SecuritySafeCritical]
+		public int HandlesFile(string filename, IScriptHostWithResourceData metadata)
 		{
 			return (filename.EndsWith(".net.dll") ? 1 : 0);
 		}

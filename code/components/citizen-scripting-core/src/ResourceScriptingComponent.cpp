@@ -68,6 +68,8 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 			for (auto it = environments.begin(); it != environments.end(); )
 			{
+				auto metaComponent = MakeNew<ScriptMetaDataComponent>(resource);
+
 				OMPtr<IScriptFileHandlingRuntime> ptr = *it;
 				bool environmentUsed = false;
 
@@ -75,7 +77,7 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 				{
 					for (auto& script : list)
 					{
-						if (ptr->HandlesFile(const_cast<char*>(script.c_str())))
+						if (ptr->HandlesFile(const_cast<char*>(script.c_str()), metaComponent.GetRef()))
 						{
 							environmentUsed = true;
 							break;
@@ -286,11 +288,12 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 		if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 		{
+			auto metaComponent = MakeNew<ScriptMetaDataComponent>(m_resource);
 			for (auto& list : { sharedScripts, clientScripts })
 			{
 				for (auto& script : list)
 				{
-					if (ptr->HandlesFile(const_cast<char*>(script.c_str())))
+					if (ptr->HandlesFile(const_cast<char*>(script.c_str()), metaComponent.GetRef()))
 					{
 						result_t hr = ptr->LoadFile(const_cast<char*>(script.c_str()));
 

@@ -1741,7 +1741,7 @@ result_t LuaScriptRuntime::LoadSystemFile(char* scriptName)
 	return RunFileInternal(scriptName, std::bind(&LuaScriptRuntime::LoadSystemFileInternal, this, std::placeholders::_1));
 }
 
-int32_t LuaScriptRuntime::HandlesFile(char* fileName)
+int32_t LuaScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData* metadata)
 {
 	return strstr(fileName, ".lua") != 0;
 }
