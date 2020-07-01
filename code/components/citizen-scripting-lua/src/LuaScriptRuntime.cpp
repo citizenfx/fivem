@@ -46,11 +46,37 @@ extern "C" {
 #include <lobject.h>
 #include <lua_cmsgpacklib.h>
 #include <lua_rapidjsonlib.h>
+#if LUA_VERSION_NUM == 504
+#include <lauxlib.h>
+#include <lstate.h>
+#include <lgrit_lib.h>
+#endif
 }
 
 #include <om/OMComponent.h>
 
 #define lua_rel_index(idx, n) (((idx) < 0) ? ((idx) - (n)) : (idx))
+
+#undef LuaScriptRuntime
+#if LUA_VERSION_NUM == 504
+#define cast_float(v) static_cast<float>(v)
+#else
+#if !defined(LUA_INLINE)
+	#if defined(__GNUC__)
+		#define LUA_INLINE inline __attribute__((__always_inline__))
+	#elif defined(__CLANG__)
+		#if defined(__has_attribute(__always_inline__))
+			#define LUA_INLINE inline __attribute__((__always_inline__))
+		#else
+			#define LUA_INLINE inline
+		#endif
+	#elif defined(LUA_USE_WINDOWS)
+		#define LUA_INLINE __forceinline
+	#else
+		#define LUA_INLINE inline
+	#endif
+#endif
+#endif
 
 namespace fx
 {
@@ -85,7 +111,7 @@ public:
 		return m_state;
 	}
 
-	inline lua_State* Get()
+	LUA_INLINE lua_State* Get()
 	{
 		return m_state;
 	}
@@ -852,7 +878,7 @@ typedef struct fxLuaResult
 	LuaMetaFields returnValueCoercion; // coercion for the result value
 	bool returnResultAnyway; // flag to return a result even if a pointer return value is passed
 
-	inline fxLuaResult(PointerField* _fields)
+	LUA_INLINE fxLuaResult(PointerField* _fields)
 		: pointerFields(_fields), numReturnValues(0), returnValueCoercion(LuaMetaFields::Max), returnResultAnyway(false)
 	{
 		for (int i = 0; i < _countof(retvals); ++i)
@@ -887,6 +913,227 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& conte
 		context.numArguments++;
 	};
 
+	auto pushPtr = [&](LuaMetaFields metaField)
+	{
+		if (result.numReturnValues >= _countof(result.retvals))
+		{
+			lua_pushstring(L, "too many return value arguments");
+			return lua_error(L);
+		}
+
+		// push the offset and set the type
+		push(&result.retvals[result.numReturnValues]);
+		result.rettypes[result.numReturnValues] = metaField;
+
+		// increment the counter
+		if (metaField == LuaMetaFields::PointerValueVector)
+		{
+			result.numReturnValues += 3;
+		}
+		else
+		{
+			result.numReturnValues += 1;
+		}
+		return 1;
+	};
+
+	// table parsing implementation
+	auto pushTable = [&]()
+	{
+		luaL_checkstack(L, 2, "table arguments");
+		lua_pushstring(L, "__data");
+
+		// get the type and decide what to do based on it
+#if LUA_VERSION_NUM == 504
+		auto validType = [](int t)
+		{
+			return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR;
+		};
+#else
+		auto validType = [](int t)
+		{
+			return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR2 || t == LUA_TVECTOR3 || t == LUA_TVECTOR4 || t == LUA_TQUAT;
+		};
+#endif
+
+		if (validType(lua_rawget(L, lua_rel_index(idx, 1)))) // Account for pushstring if idx < 0
+		{
+			Lua_PushContextArgument(L, -1, context, result);
+			lua_pop(L, 1);
+		}
+		else
+		{
+			lua_pop(L, 1); // [...]
+			if (luaL_getmetafield(L, idx, "__data") == LUA_TFUNCTION) // [..., metafield]
+			{
+				// The __data function can only allow one return value (no LUA_MULTRET)
+				// to avoid additional implicitly expanded types during native execution.
+				lua_pushvalue(L, lua_rel_index(idx, 1)); // [..., function, argument]
+				lua_call(L, 1, 1); // [..., value]
+			}
+
+			if (validType(lua_type(L, -1)))
+			{
+				Lua_PushContextArgument(L, -1, context, result);
+				lua_pop(L, 1); // [...]
+			}
+			else
+			{
+				lua_pop(L, 1);
+				lua_pushstring(L, "Invalid Lua type in __data");
+				return lua_error(L);
+			}
+		}
+		return 1;
+	};
+
+	auto pushUserData = [&](uint8_t* ptr)
+	{
+		// if the pointer is a metafield
+		if (ptr >= g_metaFields && ptr < &g_metaFields[(int)LuaMetaFields::Max])
+		{
+			LuaMetaFields metaField = static_cast<LuaMetaFields>(ptr - g_metaFields);
+
+			// switch on the metafield
+			switch (metaField)
+			{
+				case LuaMetaFields::PointerValueInt:
+				case LuaMetaFields::PointerValueFloat:
+				case LuaMetaFields::PointerValueVector:
+				{
+					result.retvals[result.numReturnValues] = 0;
+
+					if (metaField == LuaMetaFields::PointerValueVector)
+					{
+						result.retvals[result.numReturnValues + 1] = 0;
+						result.retvals[result.numReturnValues + 2] = 0;
+					}
+
+					pushPtr(metaField);
+
+					break;
+				}
+				case LuaMetaFields::ReturnResultAnyway:
+					result.returnResultAnyway = true;
+					break;
+				case LuaMetaFields::ResultAsInteger:
+				case LuaMetaFields::ResultAsLong:
+				case LuaMetaFields::ResultAsString:
+				case LuaMetaFields::ResultAsFloat:
+				case LuaMetaFields::ResultAsVector:
+				case LuaMetaFields::ResultAsObject:
+					result.returnValueCoercion = metaField;
+					break;
+				default:
+					break;
+			}
+		}
+		// or if the pointer is a runtime pointer field
+		else if (ptr >= reinterpret_cast<uint8_t*>(result.pointerFields) && ptr < (reinterpret_cast<uint8_t*>(result.pointerFields) + (sizeof(PointerField) * 2)))
+		{
+			// guess the type based on the pointer field type
+			intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(result.pointerFields);
+			LuaMetaFields metaField = static_cast<LuaMetaFields>(ptrField / sizeof(PointerField));
+
+			if (metaField == LuaMetaFields::PointerValueInt || metaField == LuaMetaFields::PointerValueFloat)
+			{
+				auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
+
+				result.retvals[result.numReturnValues] = ptrFieldEntry->value;
+				ptrFieldEntry->empty = true;
+
+				pushPtr(metaField);
+			}
+		}
+		else
+		{
+			push(ptr);
+		}
+	};
+
+#if LUA_VERSION_NUM == 504
+	const TValue* value = lua_getvalue(L, idx);
+	switch (ttypetag(value))
+	{
+		case LUA_VNIL:
+		case LUA_VFALSE:
+			push(0);
+			break;
+		case LUA_VTRUE:
+			push(1);
+			break;
+		case LUA_VNUMINT:
+			push(ivalue(value));
+			break;
+		case LUA_VNUMFLT:
+			push(cast_float(fltvalue(value)));
+			break;
+		case LUA_VSHRSTR:
+		case LUA_VLNGSTR:
+			push(svalue(value));
+			break;
+		case LUA_VVECTOR2:
+		{
+			const lua_Float4* v2 = &(val_(value).f4);
+
+			push(cast_float(v2->x));
+			push(cast_float(v2->y));
+
+			break;
+		}
+		case LUA_VVECTOR3:
+		{
+			const lua_Float4* v2 = &(val_(value).f4);
+
+			push(cast_float(v2->x));
+			push(cast_float(v2->y));
+			push(cast_float(v2->z));
+
+			break;
+		}
+		case LUA_VVECTOR4:
+		case LUA_VQUAT:
+		{
+			const lua_Float4* v2 = &(val_(value).f4);
+
+			push(cast_float(v2->x));
+			push(cast_float(v2->y));
+			push(cast_float(v2->z));
+			push(cast_float(v2->w));
+
+			break;
+		}
+		case LUA_VTABLE: // table (high-level class with __data field)
+		{
+			pushTable();
+			break;
+		}
+		case LUA_TLIGHTUSERDATA:
+		{
+			// lapi.c: touserdata
+			uint8_t* ptr;
+			switch (ttype(value))
+			{
+				case LUA_TUSERDATA:
+					ptr = reinterpret_cast<uint8_t*>(getudatamem(uvalue(value)));
+					break;
+				case LUA_TLIGHTUSERDATA:
+					ptr = reinterpret_cast<uint8_t*>(pvalue(value));
+					break;
+				default:
+					return luaL_typeerror(L, idx, "invalid userdata type");
+			}
+
+			pushUserData(ptr);
+			break;
+		}
+		default:
+		{
+			lua_pushstring(L, va("Invalid Lua type: %s", lua_typename(L, ttype(value))));
+			return lua_error(L);
+		}
+	}
+#else
 	// get the type and decide what to do based on it
 	const auto value = lua_getvalue(L, idx);
 	int type = lua_valuetype(L, value);
@@ -920,43 +1167,7 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& conte
 		// table (high-level class with __data field)
 		case LUA_TTABLE:
 		{
-			auto validType = [](int t)
-			{
-				return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING ||
-					t == LUA_TVECTOR2 || t == LUA_TVECTOR3 || t == LUA_TVECTOR4 || t == LUA_TQUAT;
-			};
-
-			luaL_checkstack(L, 2, "table arguments");
-			lua_pushstring(L, "__data");
-
-			if (validType(lua_rawget(L, lua_rel_index(idx, 1)))) // Account for pushstring if idx < 0
-			{
-				Lua_PushContextArgument(L, -1, context, result);
-				lua_pop(L, 1);
-			}
-			else
-			{
-				lua_pop(L, 1); // [...]
-				if (luaL_getmetafield(L, idx, "__data") == LUA_TFUNCTION) // [..., metafield]
-				{
-					// The __data function can only allow one return value (no LUA_MULTRET)
-					// to avoid additional implicitly expanded types during native execution.
-					lua_pushvalue(L, lua_rel_index(idx, 1)); // [..., function, argument]
-					lua_call(L, 1, 1); // [..., value]
-				}
-
-				if (validType(lua_type(L, -1)))
-				{
-					Lua_PushContextArgument(L, -1, context, result);
-					lua_pop(L, 1); // [...]
-				}
-				else
-				{
-					lua_pop(L, 1);
-					lua_pushstring(L, "Invalid Lua type in __data");
-					return lua_error(L);
-				}
-			}
+			pushTable();
 
 			break;
 		}
@@ -1001,90 +1212,8 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& conte
 		// metafield
 		case LUA_TLIGHTUSERDATA:
 		{
-			auto pushPtr = [&](LuaMetaFields metaField)
-			{
-				if (result.numReturnValues >= _countof(result.retvals))
-				{
-					lua_pushstring(L, "too many return value arguments");
-					return lua_error(L);
-				}
-
-				// push the offset and set the type
-				push(&result.retvals[result.numReturnValues]);
-				result.rettypes[result.numReturnValues] = metaField;
-
-				// increment the counter
-				if (metaField == LuaMetaFields::PointerValueVector)
-				{
-					result.numReturnValues += 3;
-				}
-				else
-				{
-					result.numReturnValues += 1;
-				}
-				return 1;
-			};
-
 			uint8_t* ptr = reinterpret_cast<uint8_t*>(lua_valuetouserdata(L, value));
-
-			// if the pointer is a metafield
-			if (ptr >= g_metaFields && ptr < &g_metaFields[(int)LuaMetaFields::Max])
-			{
-				LuaMetaFields metaField = static_cast<LuaMetaFields>(ptr - g_metaFields);
-
-				// switch on the metafield
-				switch (metaField)
-				{
-					case LuaMetaFields::PointerValueInt:
-					case LuaMetaFields::PointerValueFloat:
-					case LuaMetaFields::PointerValueVector:
-					{
-						result.retvals[result.numReturnValues] = 0;
-
-						if (metaField == LuaMetaFields::PointerValueVector)
-						{
-							result.retvals[result.numReturnValues + 1] = 0;
-							result.retvals[result.numReturnValues + 2] = 0;
-						}
-
-						pushPtr(metaField);
-
-						break;
-					}
-					case LuaMetaFields::ReturnResultAnyway:
-						result.returnResultAnyway = true;
-						break;
-					case LuaMetaFields::ResultAsInteger:
-					case LuaMetaFields::ResultAsLong:
-					case LuaMetaFields::ResultAsString:
-					case LuaMetaFields::ResultAsFloat:
-					case LuaMetaFields::ResultAsVector:
-					case LuaMetaFields::ResultAsObject:
-						result.returnValueCoercion = metaField;
-						break;
-				}
-			}
-			// or if the pointer is a runtime pointer field
-			else if (ptr >= reinterpret_cast<uint8_t*>(result.pointerFields) && ptr < (reinterpret_cast<uint8_t*>(result.pointerFields) + (sizeof(PointerField) * 2)))
-			{
-				// guess the type based on the pointer field type
-				intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(result.pointerFields);
-				LuaMetaFields metaField = static_cast<LuaMetaFields>(ptrField / sizeof(PointerField));
-
-				if (metaField == LuaMetaFields::PointerValueInt || metaField == LuaMetaFields::PointerValueFloat)
-				{
-					auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
-
-					result.retvals[result.numReturnValues] = ptrFieldEntry->value;
-					ptrFieldEntry->empty = true;
-
-					pushPtr(metaField);
-				}
-			}
-			else
-			{
-				push(ptr);
-			}
+			pushUserData(ptr);
 
 			break;
 		}
@@ -1094,6 +1223,7 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& conte
 			return lua_error(L);
 		}
 	}
+#endif
 	return 1;
 }
 
@@ -1743,7 +1873,18 @@ result_t LuaScriptRuntime::LoadSystemFile(char* scriptName)
 
 int32_t LuaScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData* metadata)
 {
-	return strstr(fileName, ".lua") != 0;
+	if (strstr(fileName, ".lua") != 0)
+	{
+		int isLua54 = 0;
+		metadata->GetNumResourceMetaData("lua54", &isLua54);
+
+#if LUA_VERSION_NUM == 504
+		return isLua54 > 0;
+#else
+		return isLua54 == 0;
+#endif
+	}
+	return false;
 }
 
 result_t LuaScriptRuntime::Tick()
@@ -1885,20 +2026,20 @@ using Lua_NativeMap = std::map<std::string, lua_CFunction, std::less<>>;
 #ifdef IS_FXSERVER
 struct LuaNativeWrapper
 {
-	inline LuaNativeWrapper(uint64_t)
+	LUA_INLINE LuaNativeWrapper(uint64_t)
 	{
 	}
 };
 
 struct LuaNativeContext : public fxNativeContext
 {
-	inline LuaNativeContext(void*, int numArguments)
+	LUA_INLINE LuaNativeContext(void*, int numArguments)
 	{
 		numArguments = numArguments;
 		numResults = 0;
 	}
 
-	inline void Invoke(lua_State* L, uint64_t hash)
+	LUA_INLINE void Invoke(lua_State* L, uint64_t hash)
 	{
 		nativeIdentifier = hash;
 
@@ -1910,13 +2051,13 @@ struct LuaNativeContext : public fxNativeContext
 	}
 
 	template<typename TVal>
-	inline TVal GetResult()
+	LUA_INLINE TVal GetResult()
 	{
 		return *(TVal*)(&arguments[0]);
 	}
 
 	template<typename TVal>
-	inline void SetArgument(size_t offset, const TVal& val)
+	LUA_INLINE void SetArgument(size_t offset, const TVal& val)
 	{
 		if constexpr (sizeof(TVal) < 4)
 		{
@@ -1927,7 +2068,7 @@ struct LuaNativeContext : public fxNativeContext
 	}
 
 	template<typename TVal>
-	inline void Push(const TVal& val)
+	LUA_INLINE void Push(const TVal& val)
 	{
 		if constexpr (sizeof(TVal) < 4)
 		{
@@ -1974,24 +2115,24 @@ struct LuaNativeContext
 
 	LuaNativeWrapper* nw;
 
-	__forceinline inline LuaNativeContext(LuaNativeWrapper* nw, int numArguments)
+	LUA_INLINE LuaNativeContext(LuaNativeWrapper* nw, int numArguments)
 		: rawCxt(arguments, numArguments), numArguments(numArguments), nw(nw)
 	{
 	}
 
-	__forceinline inline void Invoke(lua_State* L, uint64_t hash)
+	LUA_INLINE void Invoke(lua_State* L, uint64_t hash)
 	{
 		nw->handler(&rawCxt);
 	}
 
 	template<typename TVal>
-	__forceinline inline TVal GetResult()
+	LUA_INLINE TVal GetResult()
 	{
 		return *(TVal*)(&arguments[0]);
 	}
 
 	template<typename TVal>
-	__forceinline inline void SetArgument(size_t offset, const TVal& val)
+	LUA_INLINE void SetArgument(size_t offset, const TVal& val)
 	{
 		if constexpr (sizeof(TVal) < 4)
 		{
@@ -2002,7 +2143,7 @@ struct LuaNativeContext
 	}
 
 	template<typename TVal>
-	inline void Push(const TVal& val)
+	LUA_INLINE void Push(const TVal& val)
 	{
 		if constexpr (sizeof(TVal) < 4)
 		{
@@ -2044,14 +2185,22 @@ struct LuaNativeContext
 		return 0;
 #endif
 
-inline const char* Lua_ToFuncRef(lua_State* L, int idx)
+LUA_INLINE const char* Lua_ToFuncRef(lua_State* L, int idx)
 {
 	// TODO: maybe?
 	return lua_tostring(L, idx);
 }
 
-inline uint32_t Lua_ToHash(lua_State* L, int idx)
+LUA_INLINE uint32_t Lua_ToHash(lua_State* L, int idx)
 {
+#if LUA_VERSION_NUM == 504
+	const TValue* o = lua_getvalue(L, idx);
+	if (ttisstring(o))
+		return HashString(svalue(o));
+	else if (ttisinteger(o))
+		return ivalue(o);
+	return 0;
+#else
 	const auto value = lua_getvalue(L, idx);
 
 	if (lua_valuetype(L, value) == LUA_TSTRING)
@@ -2060,6 +2209,7 @@ inline uint32_t Lua_ToHash(lua_State* L, int idx)
 	}
 
 	return lua_valuetointeger(L, value);
+#endif
 }
 
 struct scrVectorLua
@@ -2071,29 +2221,37 @@ struct scrVectorLua
 	float z;
 	uint32_t pad3;
 
-	inline scrVectorLua()
+	LUA_INLINE scrVectorLua()
 	{
 	}
 
-	inline scrVectorLua(float x, float y, float z)
+	LUA_INLINE scrVectorLua(float x, float y, float z)
 		: x(x), y(y), z(z)
 	{
 	}
 };
 
-inline scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
+LUA_INLINE scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
 {
+#if LUA_VERSION_NUM == 504
+	luaL_checktype(L, idx, LUA_TVECTOR);
+	const TValue* o = lua_getvalue(L, idx);
+	const lua_Float4 f4 = vvalue(o);
+
+	return scrVectorLua{ f4.x, f4.y, f4.z };
+#else
 	auto f4 = lua_valuetofloat4(L, lua_getvalue(L, idx));
 
 	return scrVectorLua{ f4.x, f4.y, f4.z };
+#endif
 }
 
-inline void Lua_PushScrVector(lua_State* L, const scrVectorLua& val)
+LUA_INLINE void Lua_PushScrVector(lua_State* L, const scrVectorLua& val)
 {
 	lua_pushvector3(L, val.x, val.y, val.z);
 }
 
-inline void Lua_PushScrObject(lua_State* L, const scrObject& val)
+LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
 {
 	lua_pushlstring(L, val.data, val.length);
 
@@ -2119,9 +2277,15 @@ lua_CFunction Lua_GetNative(lua_State* L, const char* name)
 	return (it != natives.end()) ? it->second : nullptr;
 }
 
+#if LUA_VERSION_NUM == 504
+// {91A81564-E5F1-4FD6-BC6A-9865A081011D}
+FX_DEFINE_GUID(CLSID_LuaScriptRuntime,
+0x91a81564, 0xe5f1, 0x4fd6, 0xbc, 0x6a, 0x98, 0x65, 0xa0, 0x81, 0x01, 0x1d);
+#else
 // {A7242855-0350-4CB5-A0FE-61021E7EAFAA}
 FX_DEFINE_GUID(CLSID_LuaScriptRuntime,
 0xa7242855, 0x350, 0x4cb5, 0xa0, 0xfe, 0x61, 0x2, 0x1e, 0x7e, 0xaf, 0xaa);
+#endif
 
 FX_NEW_FACTORY(LuaScriptRuntime);
 

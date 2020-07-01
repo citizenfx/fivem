@@ -5,6 +5,7 @@
   "citizen:server:net",
   "citizen:scripting:core",
   "citizen:scripting:lua",
+  "citizen:scripting:lua54",
   "conhost:server",
   "citizen:server:main",
   "citizen:server:instance",

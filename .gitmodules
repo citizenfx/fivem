@@ -228,3 +228,7 @@
 	path = vendor/lua-rapidjson
 	url = https://github.com/gottfriedleibniz/lua-rapidjson.git
 	branch = grit
+[submodule "vendor/lua"]
+	path = vendor/lua
+	url = https://github.com/gottfriedleibniz/lua.git
+	branch = grit

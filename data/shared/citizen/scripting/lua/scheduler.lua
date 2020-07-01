@@ -1,4 +1,5 @@
 local debug = debug
+local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibility
 
 -- setup msgpack compat
 msgpack.set_string('string_compat')
@@ -67,6 +68,7 @@ local runWithBoundaryEnd = getBoundaryFunc(Citizen.SubmitBoundaryEnd)
 local function resumeThread(coro) -- Internal utility
 	if coroutine.status(coro) == "dead" then
 		threads[coro] = nil
+		coroutine_close(coro)
 		return false
 	end
 

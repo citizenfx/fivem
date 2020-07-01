@@ -4,8 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"citizen:resources:core",
-		"vendor:lua",
-		"vendor:lua-rapidjson"
+		"vendor:lua"
 	],
 	"provides": []
 }
