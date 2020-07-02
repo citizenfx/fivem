@@ -279,7 +279,7 @@ inline T dynamic_component_cast(TOther value)
 	return T();
 }
 
-
+#ifndef IS_FXSERVER
 template<typename T>
 void RunLifeCycleCallback(const T& cb)
 {
@@ -300,3 +300,4 @@ void RunLifeCycleCallback(const T& cb)
 		}
 	});
 }
+#endif

@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#ifndef IS_FXSERVER
 #include "ComponentLoader.h"
 #include "ToolComponent.h"
 
@@ -118,3 +119,4 @@ extern "C" DLL_EXPORT void GameMode_RunSDK()
 
 	Instance<SDKMain>::Get()->Run(componentInstance);
 }
+#endif
