@@ -618,13 +618,13 @@ private:
 	{
 		uint8_t sectorX;
 		uint8_t sectorY;
-		uint8_t slotID;
+		uint16_t netID;
 
 		WorldGridEntry()
 		{
 			sectorX = 0;
 			sectorY = 0;
-			slotID = -1;
+			netID = -1;
 		}
 	};
 
@@ -637,11 +637,17 @@ private:
 
 	struct WorldGridOwnerIndexes
 	{
-		uint8_t slots[256][256];
+		uint16_t netIDs[256][256];
 
 		inline WorldGridOwnerIndexes()
 		{
-			memset(slots, 0xFF, sizeof(slots));
+			for (int x = 0; x < std::size(netIDs); x++)
+			{
+				for (int y = 0; y < std::size(netIDs[0]); y++)
+				{
+					netIDs[x][y] = -1;
+				}
+			}
 		}
 	};
 

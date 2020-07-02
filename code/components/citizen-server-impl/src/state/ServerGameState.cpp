@@ -1446,50 +1446,59 @@ void ServerGameState::UpdateEntities()
 
 void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shared_ptr<fx::Client>& client /* = */ )
 {
-	// #TODO1SBIG: make this support >256 IDs
-	if (fx::IsBigMode())
+	auto sendWorldGrid = [this, entry](const std::shared_ptr<fx::Client>& client)
 	{
-		return;
-	}
+		net::Buffer msg;
+		msg.Write<uint32_t>(HashRageString("msgWorldGrid2"));
 
-	net::Buffer msg;
-	msg.Write<uint32_t>(HashRageString("msgWorldGrid"));
-	
-	uint16_t base = 0;
-	uint16_t length = sizeof(m_worldGrid);
+		uint16_t base = 0;
+		uint16_t length = sizeof(m_worldGrid);
 
-	if (entry)
-	{ 
-		base = ((WorldGridEntry*)entry - &m_worldGrid[0].entries[0]) * sizeof(WorldGridEntry);
-		length = sizeof(WorldGridEntry);
-	}
+		if (entry)
+		{
+			base = ((WorldGridEntry*)entry - &m_worldGrid[0].entries[0]) * sizeof(WorldGridEntry);
+			length = sizeof(WorldGridEntry);
+		}
 
-	msg.Write<uint16_t>(base);
-	msg.Write<uint16_t>(length);
+		// really bad way to snap the world grid data to a client's own base
+		uint16_t baseRef = sizeof(m_worldGrid[0]) * client->GetSlotId();
+		uint16_t lengthRef = sizeof(m_worldGrid[0]);
 
-	msg.Write(reinterpret_cast<char*>(m_worldGrid) + base, length);
+		if (base < baseRef)
+		{
+			base = baseRef;
+		}
+		else if (base > baseRef + lengthRef)
+		{
+			return;
+		}
+
+		// everyone's state starts at their own
+		length = std::min(lengthRef, length);
+
+		msg.Write<uint16_t>(base - baseRef);
+		msg.Write<uint16_t>(length);
+
+		msg.Write(reinterpret_cast<char*>(m_worldGrid) + base, length);
+
+		client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
+	};
 
 	if (client)
 	{
-		client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
+		sendWorldGrid(client);		
 	}
 	else
 	{
-		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&msg](const std::shared_ptr<fx::Client>& client)
+		m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&sendWorldGrid](const std::shared_ptr<fx::Client>& client)
 		{
-			client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
+			sendWorldGrid(client);
 		});
 	}
 }
 
 void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 {
-	// #TODO1SBIG: make this support >256 IDs
-	if (fx::IsBigMode())
-	{
-		return;
-	}
-
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 	{
 		if (client->GetSlotId() == -1)
@@ -1513,32 +1522,33 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		int minSectorY = std::max((pos.y - 149.0f) + 8192.0f, 0.0f) / 75;
 		int maxSectorY = std::max((pos.y + 149.0f) + 8192.0f, 0.0f) / 75;
 
-		if (minSectorX < 0 || minSectorX > std::size(m_worldGridAccel.slots) ||
-			minSectorY < 0 || minSectorY > std::size(m_worldGridAccel.slots[0]))
+		if (minSectorX < 0 || minSectorX > std::size(m_worldGridAccel.netIDs) ||
+			minSectorY < 0 || minSectorY > std::size(m_worldGridAccel.netIDs[0]))
 		{
 			return;
 		}
 
 		auto slotID = client->GetSlotId();
+		auto netID = client->GetNetId();
 
 		WorldGridState* gridState = &m_worldGrid[slotID];
 
 		// disown any grid entries that aren't near us anymore
 		for (auto& entry : gridState->entries)
 		{
-			if (entry.slotID != 0xFF)
+			if (entry.netID != 0xFFFF)
 			{
 				if (entry.sectorX < (minSectorX - 1) || entry.sectorX >= (maxSectorX + 1) ||
 					entry.sectorY < (minSectorY - 1) || entry.sectorY >= (maxSectorY + 1))
 				{
-					if (m_worldGridAccel.slots[entry.sectorX][entry.sectorY] == slotID)
+					if (m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] == netID)
 					{
-						m_worldGridAccel.slots[entry.sectorX][entry.sectorY] = 0xFF;
+						m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] = -1;
 					}
 
 					entry.sectorX = 0;
 					entry.sectorY = 0;
-					entry.slotID = -1;
+					entry.netID = -1;
 
 					SendWorldGrid(&entry);
 				}
@@ -1550,7 +1560,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			for (int y = minSectorY; y <= maxSectorY; y++)
 			{
 				// find if this x/y is owned by someone already
-				bool found = (m_worldGridAccel.slots[x][y] != 0xFF);
+				bool found = (m_worldGridAccel.netIDs[x][y] != 0xFFFF);
 
 				// is it free?
 				if (!found)
@@ -1560,14 +1570,14 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 					// find a free entry slot
 					for (auto& entry : gridState->entries)
 					{
-						if (entry.slotID == 0xFF)
+						if (entry.netID == 0xFFFF)
 						{
 							// and take it
 							entry.sectorX = x;
 							entry.sectorY = y;
-							entry.slotID = slotID;
+							entry.netID = netID;
 
-							m_worldGridAccel.slots[x][y] = slotID;
+							m_worldGridAccel.netIDs[x][y] = netID;
 
 							SendWorldGrid(&entry);
 
@@ -1777,14 +1787,16 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 	{
 		WorldGridState* gridState = &m_worldGrid[slotId];
 
+		auto netId = client->GetNetId();
+
 		for (auto& entry : gridState->entries)
 		{
-			if (m_worldGridAccel.slots[entry.sectorX][entry.sectorY] == slotId)
+			if (m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] == netId)
 			{
-				m_worldGridAccel.slots[entry.sectorX][entry.sectorY] = 0xFF;
+				m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] = 0xFFFF;
 			}
 
-			entry.slotID = -1;
+			entry.netID = -1;
 			entry.sectorX = 0;
 			entry.sectorY = 0;
 
