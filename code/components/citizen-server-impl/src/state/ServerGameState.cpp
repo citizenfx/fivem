@@ -701,7 +701,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float distSquared = (diffX * diffX) + (diffY * diffY);
 
 					// #TODO1S: figure out a good value for this
-					if (distSquared < (350.0f * 350.0f))
+					if (distSquared < (424.0f * 424.0f))
 					{
 						shouldBeCreated = true;
 					}
@@ -1449,10 +1449,10 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shar
 	auto sendWorldGrid = [this, entry](const std::shared_ptr<fx::Client>& client)
 	{
 		net::Buffer msg;
-		msg.Write<uint32_t>(HashRageString("msgWorldGrid2"));
+		msg.Write<uint32_t>(HashRageString("msgWorldGrid3"));
 
-		uint16_t base = 0;
-		uint16_t length = sizeof(m_worldGrid);
+		uint32_t base = 0;
+		uint32_t length = sizeof(m_worldGrid);
 
 		if (entry)
 		{
@@ -1461,8 +1461,8 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shar
 		}
 
 		// really bad way to snap the world grid data to a client's own base
-		uint16_t baseRef = sizeof(m_worldGrid[0]) * client->GetSlotId();
-		uint16_t lengthRef = sizeof(m_worldGrid[0]);
+		uint32_t baseRef = sizeof(m_worldGrid[0]) * client->GetSlotId();
+		uint32_t lengthRef = sizeof(m_worldGrid[0]);
 
 		if (base < baseRef)
 		{
@@ -1476,8 +1476,8 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shar
 		// everyone's state starts at their own
 		length = std::min(lengthRef, length);
 
-		msg.Write<uint16_t>(base - baseRef);
-		msg.Write<uint16_t>(length);
+		msg.Write<uint32_t>(base - baseRef);
+		msg.Write<uint32_t>(length);
 
 		msg.Write(reinterpret_cast<char*>(m_worldGrid) + base, length);
 
@@ -1517,10 +1517,10 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 
 		auto pos = GetPlayerFocusPos(playerEntity);
 
-		int minSectorX = std::max((pos.x - 149.0f) + 8192.0f, 0.0f) / 75;
-		int maxSectorX = std::max((pos.x + 149.0f) + 8192.0f, 0.0f) / 75;
-		int minSectorY = std::max((pos.y - 149.0f) + 8192.0f, 0.0f) / 75;
-		int maxSectorY = std::max((pos.y + 149.0f) + 8192.0f, 0.0f) / 75;
+		int minSectorX = std::max((pos.x - 299.0f) + 8192.0f, 0.0f) / 150;
+		int maxSectorX = std::max((pos.x + 299.0f) + 8192.0f, 0.0f) / 150;
+		int minSectorY = std::max((pos.y - 299.0f) + 8192.0f, 0.0f) / 150;
+		int maxSectorY = std::max((pos.y + 299.0f) + 8192.0f, 0.0f) / 150;
 
 		if (minSectorX < 0 || minSectorX > std::size(m_worldGridAccel.netIDs) ||
 			minSectorY < 0 || minSectorY > std::size(m_worldGridAccel.netIDs[0]))
@@ -1713,7 +1713,7 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 
 			}
 
-			if (distance < (300.0f * 300.0f))
+			if (distance < (424.0f * 424.0f))
 			{
 				candidates->emplace(distance, tgtClient);
 			}
@@ -1725,7 +1725,7 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 		}
 
 		if (candidates->empty() || // no candidate?
-			std::get<float>(*candidates->begin()) >= (300.0f * 300.0f)) // closest candidate beyond distance culling range?
+			std::get<float>(*candidates->begin()) >= (424.0f * 424.0f)) // closest candidate beyond distance culling range?
 		{
 			GS_LOG("no candidates for entity %d, deleting\n", entity->handle);
 

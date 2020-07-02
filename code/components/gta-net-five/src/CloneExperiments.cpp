@@ -2243,14 +2243,14 @@ struct WorldGridEntry
 	TIndex slotID;
 };
 
-template<typename TIndex>
+template<typename TIndex, int TCount>
 struct WorldGridState
 {
-	WorldGridEntry<TIndex> entries[12];
+	WorldGridEntry<TIndex> entries[TCount];
 };
 
-static WorldGridState<uint8_t> g_worldGrid[256];
-static WorldGridState<uint16_t> g_worldGrid2[1];
+static WorldGridState<uint8_t, 12> g_worldGrid[256];
+static WorldGridState<uint16_t, 24> g_worldGrid2[1];
 
 static InitFunction initFunctionWorldGrid([]()
 {
@@ -2270,13 +2270,13 @@ static InitFunction initFunctionWorldGrid([]()
 			buf.Read(reinterpret_cast<char*>(g_worldGrid) + base, length);
 		});
 
-		lib->AddReliableHandler("msgWorldGrid2", [](const char* data, size_t len)
+		lib->AddReliableHandler("msgWorldGrid3", [](const char* data, size_t len)
 		{
 			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
-			auto base = buf.Read<uint16_t>();
-			auto length = buf.Read<uint16_t>();
+			auto base = buf.Read<uint32_t>();
+			auto length = buf.Read<uint32_t>();
 
-			if ((base + length) > sizeof(g_worldGrid2))
+			if ((size_t(base) + length) > sizeof(g_worldGrid2))
 			{
 				return;
 			}
@@ -2295,11 +2295,11 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 		return g_origDoesLocalPlayerOwnWorldGrid(pos);
 	}
 
-	int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 75;
-	int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 75;
-
 	if (icgi->NetProtoVersion < 0x202007021121)
 	{
+		int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 75;
+		int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 75;
+
 		auto playerIdx = g_playerMgr->localPlayer->physicalPlayerIndex;
 
 		bool does = false;
@@ -2317,6 +2317,9 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 	}
 	else
 	{
+		int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 150;
+		int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 150;
+
 		auto playerIdx = g_netIdsByPlayer[g_playerMgr->localPlayer];
 
 		bool does = false;
