@@ -13,6 +13,10 @@
 
 #include <LaunchMode.h>
 
+#ifndef IS_FXSERVER
+#include <CL2LaunchMode.h>
+#endif
+
 #ifdef _WIN32
 #define PLATFORM_LIBRARY_STRING L"%s.dll"
 #else
@@ -100,6 +104,13 @@ void ComponentLoader::Initialize()
 			{
 				continue;
 			}
+		}
+#endif
+
+#ifndef IS_FXSERVER
+		if (nameWide == L"adhesive" && (launch::IsSDK() || launch::IsSDKGuest()))
+		{
+			continue;
 		}
 #endif
 
