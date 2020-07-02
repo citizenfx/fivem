@@ -23,7 +23,7 @@ param (
     $Identity = "C:\guava_deploy.ppk"
 )
 
-$CefName = "cef_binary_73.0.0-cef-patchset.1936+ga086e57+chromium-73.0.3683.75_windows64_minimal"
+$CefName = "cef_binary_75.1.14+gc81164e+chromium-75.0.3770.100_windows64_minimal"
 
 # from http://stackoverflow.com/questions/2124753/how-i-can-use-powershell-with-the-visual-studio-command-prompt
 function Invoke-BatchFile
@@ -224,10 +224,10 @@ if (!$DontBuild)
         Write-Host "[downloading chrome]" -ForegroundColor DarkMagenta
         try {
             if (!(Test-Path "$SaveDir\$CefName.zip")) {
-                Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
+                curl.exe -Lo "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
             }
 
-            Expand-Archive -Force -Path "$SaveDir\$CefName.zip" -DestinationPath $WorkDir\vendor\cef
+			tar.exe -C $WorkDir\vendor\cef -xf "$SaveDir\$CefName.zip"
             Move-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
             Remove-Item -Recurse $WorkDir\vendor\cef\$CefName\
         } catch {

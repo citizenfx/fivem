@@ -560,11 +560,21 @@ struct MonoAttachment
 
 DLL_EXPORT void MonoEnsureThreadAttached()
 {
+	if (!g_rootDomain)
+	{
+		return;
+	}
+
 	static thread_local MonoAttachment attachment;
 }
 
 result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
+	if (!g_rootDomain)
+	{
+		return FX_E_NOINTERFACE;
+	}
+
 	MonoEnsureThreadAttached();
 
 	MonoObject* exc = nullptr;
@@ -595,6 +605,11 @@ result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** 
 
 std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 {
+	if (!g_rootDomain)
+	{
+		return {};
+	}
+
 	MonoEnsureThreadAttached();
 
 	void* args[1];

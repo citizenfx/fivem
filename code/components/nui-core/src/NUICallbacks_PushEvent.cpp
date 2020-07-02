@@ -111,7 +111,7 @@ public:
 			auto processMessage = CefProcessMessage::Create("setName");
 			processMessage->GetArgumentList()->SetString(0, frameName);
 
-			client->GetBrowser()->SendProcessMessage(PID_RENDERER, processMessage);
+			client->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, processMessage);
 		});
 	}
 };

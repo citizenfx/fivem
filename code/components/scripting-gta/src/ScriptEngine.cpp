@@ -16,6 +16,8 @@
 
 #include <NativeHandlerLogging.h>
 
+#include <CL2LaunchMode.h>
+
 template<typename THandler>
 static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
 {
@@ -26,18 +28,18 @@ static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdent
 	NativeHandlerLogging::CountNative(nativeIdentifier);
 #endif
 
-#ifndef _DEBUG
+//#ifndef _DEBUG
 	__try
 	{
-#endif
+//#endif
 		rageHandler(&rageContext);
-#ifndef _DEBUG
+//#ifndef _DEBUG
 	}
 	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
 	{
 		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 	}
-#endif
+//#endif
 }
 
 extern "C" bool DLL_EXPORT WrapNativeInvoke(rage::scrEngine::NativeHandler handler, uint64_t nativeIdentifier, rage::scrNativeCallContext* context)
@@ -67,6 +69,11 @@ namespace fx
 		if (it != g_registeredHandlers.end())
 		{
 			return it->second;
+		}
+
+		if (launch::IsSDK())
+		{
+			return {};
 		}
 
 		auto rageHandler = rage::scrEngine::GetNativeHandler(nativeIdentifier);
@@ -103,6 +110,20 @@ namespace fx
 
 	bool __declspec(safebuffers) ScriptEngine::CallNativeHandler(uint64_t nativeIdentifier, ScriptContext& context)
 	{
+		if (launch::IsSDK())
+		{
+			auto h = GetNativeHandler(nativeIdentifier);
+			
+			if (h)
+			{
+				(*h)(context);
+
+				return true;
+			}
+
+			return false;
+		}
+
 		auto rageHandler = rage::scrEngine::GetNativeHandler(nativeIdentifier);
 
 		if (rageHandler)
@@ -130,49 +151,51 @@ namespace fx
 	{
 		g_registeredHandlers[nativeIdentifier] = function;
 
+		if (!launch::IsSDK())
+		{
 #ifdef _M_AMD64
-		TNativeHandler* handler = new TNativeHandler(function);
+			TNativeHandler* handler = new TNativeHandler(function);
 
-		struct StubGenerator : public jitasm::Frontend
-		{
-			typedef void(*TFunction)(void*, rage::scrNativeCallContext*);
-
-		private:
-			void* m_handlerData;
-
-			TFunction m_function;
-
-		public:
-			StubGenerator(void* handlerData, TFunction function)
-				: m_handlerData(handlerData), m_function(function)
+			struct StubGenerator : public jitasm::Frontend
 			{
+				typedef void (*TFunction)(void*, rage::scrNativeCallContext*);
 
-			}
+			private:
+				void* m_handlerData;
 
-			virtual void InternalMain() override
+				TFunction m_function;
+
+			public:
+				StubGenerator(void* handlerData, TFunction function)
+					: m_handlerData(handlerData), m_function(function)
+				{
+				}
+
+				virtual void InternalMain() override
+				{
+					mov(rdx, rcx);
+					mov(rcx, reinterpret_cast<uintptr_t>(m_handlerData));
+
+					mov(rax, reinterpret_cast<uintptr_t>(m_function));
+
+					jmp(rax);
+				}
+			}* callStub = new StubGenerator(handler, [](void* handlerData, rage::scrNativeCallContext* context)
 			{
-				mov(rdx, rcx);
-				mov(rcx, reinterpret_cast<uintptr_t>(m_handlerData));
+				// get the handler
+				TNativeHandler* handler = reinterpret_cast<TNativeHandler*>(handlerData);
 
-				mov(rax, reinterpret_cast<uintptr_t>(m_function));
+				// turn into a native context
+				ScriptContextRaw cfxContext(context->GetArgumentBuffer(), context->GetArgumentCount());
 
-				jmp(rax);
-			}
-		}* callStub = new StubGenerator(handler, [] (void* handlerData, rage::scrNativeCallContext* context)
-		{
-			// get the handler
-			TNativeHandler* handler = reinterpret_cast<TNativeHandler*>(handlerData);
+				// call the native
+				(*handler)(cfxContext);
+			});
 
-			// turn into a native context
-			ScriptContextRaw cfxContext(context->GetArgumentBuffer(), context->GetArgumentCount());
-
-			// call the native
-			(*handler)(cfxContext);
-		});
-
-		rage::scrEngine::RegisterNativeHandler(nativeIdentifier, reinterpret_cast<rage::scrEngine::NativeHandler>(callStub->GetCode()));
+			rage::scrEngine::RegisterNativeHandler(nativeIdentifier, reinterpret_cast<rage::scrEngine::NativeHandler>(callStub->GetCode()));
 #else
 #error No stub generator for this architecture.
 #endif
+		}
 	}
 }

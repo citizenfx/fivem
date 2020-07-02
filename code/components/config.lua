@@ -40,6 +40,10 @@ else
 		component 'rage-formats-x'
 	end
 	
+	if _OPTIONS['game'] == 'five' then
+		component 'fxdk-main'
+	end
+	
 	component 'conhost-v2'
 	component 'voip-mumble'
 

@@ -93,7 +93,8 @@ class SimpleHandler : public CefClient,
 	public CefDisplayHandler,
 	public CefLifeSpanHandler,
 	public CefLoadHandler,
-	public CefRequestHandler {
+	public CefRequestHandler,
+	public CefResourceRequestHandler{
 public:
 	explicit SimpleHandler();
 	~SimpleHandler();
@@ -113,7 +114,12 @@ public:
 	}
 	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() OVERRIDE { return this; }
 
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) OVERRIDE;
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
+	{
+		return this;
+	}
+
+	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) OVERRIDE;
 
 	// CefDisplayHandler methods:
 	virtual void OnTitleChange(CefRefPtr<CefBrowser> browser,
@@ -168,7 +174,7 @@ void SimpleApp::OnContextInitialized()
 
 	// Create the BrowserView.
 	CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-		handler, url, browser_settings, NULL, NULL);
+	handler, url, browser_settings, {}, NULL, NULL);
 
 	// Create the Window. It will show itself after creation.
 	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
@@ -295,7 +301,7 @@ auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPt
 
 extern std::string g_rosData;;
 
-bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
+bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
 	if (message->GetName() == "invokeNative")
 	{

@@ -396,7 +396,7 @@ void NUIWindow::Initialize(CefString url)
 	CefString(&settings.default_encoding).FromString("utf-8");
 
 	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
-	CefBrowserHost::CreateBrowser(info, m_client, url, settings, rc);
+	CefBrowserHost::CreateBrowser(info, m_client, url, settings, {}, rc);
 
 	if (!info.shared_texture_enabled)
 	{
@@ -616,7 +616,7 @@ void NUIWindow::UpdateFrame()
 			argList->SetSize(1);
 			argList->SetString(0, item);
 
-			browser->SendProcessMessage(PID_RENDERER, message);
+			browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, message);
 		}
 	}
 

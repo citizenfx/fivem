@@ -16,7 +16,7 @@
 
 #include <regex>
 
-class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRequestHandler, public CefAudioHandler
+class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRequestHandler, public CefResourceRequestHandler
 {
 private:
 	NUIWindow* m_window;
@@ -61,7 +61,7 @@ protected:
 	virtual CefRefPtr<CefAudioHandler> GetAudioHandler() override;
 	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
 
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
+	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
 public:
 	typedef std::function<bool(CefRefPtr<CefBrowser>, CefRefPtr<CefProcessMessage>)> TProcessMessageHandler;
@@ -93,6 +93,7 @@ protected:
 protected:
 	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
 
+#if 0
 // CefAudioHandler
 protected:
 	virtual void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser,
@@ -113,9 +114,15 @@ protected:
 	virtual void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser,
 		CefRefPtr<CefFrame> frame,
 		int audio_stream_id) override;
+#endif
 
 public:
 	virtual void OnAudioCategoryConfigure(const std::string& frame, const std::string& category);
+
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
+	{
+		return this;
+	}
 
 private:
 	std::map<std::pair<int, int>, std::tuple<std::shared_ptr<nui::IAudioStream>, nui::AudioStreamParams>> m_audioStreams;

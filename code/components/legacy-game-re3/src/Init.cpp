@@ -15,6 +15,8 @@
 #include <VFSManager.h>
 #include <VFSRagePackfile7.h>
 
+#include <CL2LaunchMode.h>
+
 #include <CefOverlay.h>
 
 #include <bgfx/bgfx.h>
@@ -66,6 +68,11 @@ bool bWantsGameplay;
 
 static InitFunction initFunction([]()
 {
+	if (launch::IsSDKGuest())
+	{
+		return;
+	}
+
 	OnScript.Connect([]()
 	{
 		static bool inited;

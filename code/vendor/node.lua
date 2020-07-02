@@ -1,20 +1,9 @@
 return {
 	include = function()
-		if _OPTIONS['game'] == 'server' then
-			includedirs { '../vendor/node/src/' }
-		end
+		includedirs { '../vendor/node/src/' }
 	end,
 
 	run = function()
-		if _OPTIONS['game'] ~= 'server' then
-			language 'C'
-			kind 'StaticLib'
-			
-			files { 'vendor/node_dummy.c' }
-			
-			return
-		end
-	
 		language "C++"
 		kind "SharedLib"
 

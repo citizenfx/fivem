@@ -1148,6 +1148,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		if (GetProcessId(parentProcess) != GetProcessId(info->process_handle()))
 		{
+			wchar_t imageName[MAX_PATH];
+			GetProcessImageFileNameW(info->process_handle(), imageName, std::size(imageName));
+
+			if (wcsstr(imageName, L"GameRuntime") != nullptr)
+			{
+				shouldTerminate = false;
+			}
+
 			if (crashHash.find(L"libcef") != std::string::npos)
 			{
 				shouldTerminate = false;

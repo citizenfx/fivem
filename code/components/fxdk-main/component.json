@@ -1,0 +1,15 @@
+{
+	"name": "fxdk:main",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"citizen:resources:core",
+		"citizen:scripting:core",
+		"citizen:resources:metadata:lua",
+		"citizen:scripting:v8",
+		"net:tcp-server",
+		"vendor:bgfx",
+		"citizen:game:ipc"
+	],
+	"provides": []
+}

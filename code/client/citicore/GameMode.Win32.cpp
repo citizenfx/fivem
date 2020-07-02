@@ -51,3 +51,70 @@ extern "C" DLL_EXPORT void GameMode_Init()
 		FatalError("citizen:game:main component does not implement RunnableComponent. Exiting.\n");
 	}
 }
+
+class SDKMain
+{
+public:
+	virtual void Run(fwRefContainer<Component> component) = 0;
+};
+
+DECLARE_INSTANCE_TYPE(SDKMain);
+
+extern "C" DLL_EXPORT void GameMode_RunSDK()
+{
+	ComponentLoader* loader = ComponentLoader::GetInstance();
+	loader->Initialize();
+
+	// get the right component
+	auto compName = "fxdk:main";
+
+	fwRefContainer<ComponentData> mainComponent = loader->LoadComponent(compName);
+
+    RunLifeCycleCallback([](LifeCycleComponent* component)
+	{
+		component->PreInitGame();
+	});
+
+	if (!mainComponent.GetRef())
+	{
+		FatalError("Could not obtain fxdk:main component, which is required for the SDK to start.\n");
+		return;
+	}
+
+	std::set<std::string> depsLoaded;
+
+	std::function<void(fwRefContainer<ComponentData>)> loadDeps = [&depsLoaded, &loadDeps](fwRefContainer<ComponentData> compRef)
+	{
+		if (depsLoaded.find(compRef->GetName()) != depsLoaded.end())
+		{
+			return;
+		}
+
+		for (auto& dep : compRef->GetDependencyDataList())
+		{
+			loadDeps(dep);
+		}
+
+		depsLoaded.insert(compRef->GetName());
+
+		auto insts = compRef->GetInstances();
+
+		if (insts.size() > 0 && insts[0].GetRef())
+		{
+			insts[0]->Initialize();
+		}
+	};
+
+	loadDeps(mainComponent);
+
+	// create a component instance
+	fwRefContainer<Component> componentInstance = mainComponent->CreateInstance("");
+
+	// check if the server initialized properly
+	if (componentInstance.GetRef() == nullptr)
+	{
+		return;
+	}
+
+	Instance<SDKMain>::Get()->Run(componentInstance);
+}

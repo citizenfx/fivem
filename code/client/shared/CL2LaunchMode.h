@@ -3,7 +3,7 @@
 inline bool IsCL2()
 {
 #ifndef IS_FXSERVER
-	if (wcsstr(GetCommandLine(), L"cl2") != nullptr)
+	if (wcsstr(GetCommandLineW(), L"cl2") != nullptr)
 	{
 		return true;
 	}
@@ -14,10 +14,22 @@ inline bool IsCL2()
 
 namespace launch
 {
+inline bool IsSDKGuest()
+{
+#ifndef IS_FXSERVER
+	if (wcsstr(GetCommandLineW(), L"dkguest") != nullptr)
+	{
+		return true;
+	}
+#endif
+
+	return false;
+}
+	
 inline bool IsSDK()
 {
 #ifndef IS_FXSERVER
-	if (wcsstr(GetCommandLine(), L"fxdk") != nullptr)
+	if (wcsstr(GetCommandLineW(), L"fxdk") != nullptr && !IsSDKGuest())
 	{
 		return true;
 	}
@@ -30,7 +42,7 @@ inline const std::string& GetLaunchModeKey()
 {
 	static thread_local std::string launchKey = ([]()
 	{
-		if (IsSDK())
+		if (IsSDK() || IsSDKGuest())
 		{
 			return "fxdk";
 		}

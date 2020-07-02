@@ -69,6 +69,35 @@ static std::set<GLuint> g_backBufferTextures;
 
 static void BindGameRenderHandle();
 
+static std::map<GLuint, EGLSurface> g_pbuffers;
+
+static void (*g_origglDeleteTextures)(GLsizei n, const GLuint* textures);
+
+static void glDeleteTexturesHook(GLsizei n, const GLuint* textures)
+{
+	for (int i = 0; i < n; i++)
+	{
+		GLuint texture = textures[i];
+
+		if (g_backBufferTextures.find(texture) != g_backBufferTextures.end())
+		{
+			g_backBufferTextures.erase(texture);
+		}
+
+		if (g_pbuffers.find(texture) != g_pbuffers.end())
+		{
+			auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+			auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+
+			auto m_display = _eglGetCurrentDisplay();
+			_eglDestroySurface(m_display, g_pbuffers[texture]);
+			g_pbuffers.erase(texture);
+		}
+	}
+
+	g_origglDeleteTextures(n, textures);
+}
+
 static void (*g_origglBindTexture)(GLenum target, GLuint texture);
 
 static void glBindTextureHook(GLenum target, GLuint texture)
@@ -99,6 +128,7 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 static void BindGameRenderHandle()
 {
 	auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+	auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
 	auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
 	auto _eglGetConfigs = (decltype(&eglGetConfigs))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigs"));
 	auto _eglCreatePbufferFromClientBuffer = (decltype(&eglCreatePbufferFromClientBuffer))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglCreatePbufferFromClientBuffer"));
@@ -146,6 +176,14 @@ static void BindGameRenderHandle()
 	(EGLClientBuffer)handleData->handle,
 	configs,
 	pbuffer_attributes);
+
+	if (g_pbuffers.find(g_curGlTexture) != g_pbuffers.end())
+	{
+		_eglDestroySurface(m_display, g_pbuffers[g_curGlTexture]);
+		g_pbuffers.erase(g_curGlTexture);
+	}
+
+	g_pbuffers.insert({ g_curGlTexture, pbuffer });
 
 	handleData->requested = true;
 
@@ -609,6 +647,7 @@ void HookLibGL(HMODULE libGL)
 	MH_Initialize();
 	MH_CreateHook(GetProcAddress(libGL, "glTexParameterf"), glTexParameterfHook, (void**)&g_origglTexParameterf);
 	MH_CreateHook(GetProcAddress(libGL, "glBindTexture"), glBindTextureHook, (void**)&g_origglBindTexture);
+	MH_CreateHook(GetProcAddress(libGL, "glDeleteTextures"), glDeleteTexturesHook, (void**)&g_origglDeleteTextures);
 	if (sysDll != realSysDll)
 	{
 		trace("You're using a broken 'graphics mod' that tries to hide D3D11.dll from us. Why?\n");
@@ -630,6 +669,8 @@ void HookLibGL(HMODULE libGL)
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
+
+extern bool g_inited;
 
 void Component_RunPreInit()
 {
@@ -677,6 +718,7 @@ void Component_RunPreInit()
     Instance<NUISchemeHandlerFactory>::Set(schemeHandlerFactory);
 
     InitFunctionBase::RunAll();
+	g_inited = true;
 
 	// try to execute as a CEF process
 	int exitCode = CefExecuteProcess(args, app, nullptr);

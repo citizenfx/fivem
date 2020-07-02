@@ -34,7 +34,7 @@ static InitFunction initFunction([] ()
 			CefString str = arguments[1]->GetStringValue();
 			argList->SetString(1, str);
 
-			CefV8Context::GetCurrentContext()->GetBrowser()->SendProcessMessage(PID_BROWSER, msg);
+			CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, msg);
 		}
 
 		return CefV8Value::CreateUndefined();

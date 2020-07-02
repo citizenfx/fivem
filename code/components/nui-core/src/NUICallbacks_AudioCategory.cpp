@@ -50,7 +50,7 @@ public:
 				argumentList->SetString(0, frameName);
 				argumentList->SetString(1, arguments[0]->GetStringValue());
 
-				frame->GetBrowser()->SendProcessMessage(PID_BROWSER, message);
+				frame->SendProcessMessage(PID_BROWSER, message);
 			}
 
 			return CefV8Value::CreateUndefined();

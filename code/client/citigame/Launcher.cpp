@@ -93,27 +93,6 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 	return continueRunning;
 }
 
-template<typename T>
-void RunLifeCycleCallback(const T& cb)
-{
-	ComponentLoader::GetInstance()->ForAllComponents([&] (fwRefContainer<ComponentData> componentData)
-	{
-		auto& instances = componentData->GetInstances();
-
-		if (instances.size())
-		{
-			auto& component = instances[0];
-
-			auto lifeCycle = dynamic_component_cast<LifeCycleComponent*>(component.GetRef());
-
-			if (lifeCycle)
-			{
-				cb(lifeCycle);
-			}
-		}
-	});
-}
-
 bool LauncherInterface::PreResumeGame()
 {
 	RunLifeCycleCallback([] (LifeCycleComponent* component)

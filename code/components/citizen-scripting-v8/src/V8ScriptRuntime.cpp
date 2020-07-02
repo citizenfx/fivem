@@ -18,6 +18,19 @@
 #include <CoreConsole.h>
 
 #ifndef IS_FXSERVER
+#include <CL2LaunchMode.h>
+#endif
+
+inline bool UseNode()
+{
+#ifndef IS_FXSERVER
+	return launch::IsSDK();
+#else
+	return true;
+#endif
+}
+
+#ifndef IS_FXSERVER
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 #if defined(IS_RDR3)
 	{ "rdr3_universal.js", guid_t{ 0 } }
@@ -37,9 +50,7 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 
 #include <boost/algorithm/string.hpp>
 
-#ifdef IS_FXSERVER
 #include <node.h>
-#endif
 
 #include "UvLoopManager.h"
 
@@ -79,9 +90,7 @@ Isolate* GetV8Isolate();
 
 static Platform* GetV8Platform();
 
-#ifdef IS_FXSERVER
 static node::IsolateData* GetNodeIsolate();
-#endif
 
 struct PointerFieldEntry
 {
@@ -115,9 +124,7 @@ private:
 private:
 	UniquePersistent<Context> m_context;
 
-#ifdef IS_FXSERVER
 	node::Environment* m_nodeEnvironment;
-#endif
 
 	std::function<void()> m_tickRoutine;
 
@@ -270,7 +277,6 @@ public:
 	}
 };
 
-#ifdef IS_FXSERVER
 static std::unordered_map<const node::Environment*, V8ScriptRuntime*> g_envRuntimes;
 
 static V8ScriptRuntime* GetEnvRuntime(const node::Environment* env)
@@ -329,7 +335,6 @@ public:
 	{
 	}
 };
-#endif
 
 static V8ScriptRuntime* GetScriptRuntimeFromArgs(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -1425,10 +1430,13 @@ static void V8_Trace(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 static void V8_GetResourcePath(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
-	auto path = ((fx::Resource*)runtime->GetParentObject())->GetPath();
+	if (UseNode())
+	{
+		V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+		auto path = ((fx::Resource*)runtime->GetParentObject())->GetPath();
 
-	args.GetReturnValue().Set(String::NewFromUtf8(args.GetIsolate(), path.c_str(), NewStringType::kNormal, path.size()).ToLocalChecked());
+		args.GetReturnValue().Set(String::NewFromUtf8(args.GetIsolate(), path.c_str(), NewStringType::kNormal, path.size()).ToLocalChecked());
+	}
 }
 
 static void V8_SubmitBoundaryStart(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -1533,9 +1541,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "resultAsString", V8_GetMetaField<V8MetaFields::ResultAsString> },
 	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
 	{ "resultAsObject", V8_GetMetaField<V8MetaFields::ResultAsObject> },
-#ifdef IS_FXSERVER
 	{ "getResourcePath", V8_GetResourcePath },
-#endif
 };
 
 static v8::Handle<v8::Value> Throw(v8::Isolate* isolate, const char* message) {
@@ -1656,7 +1662,7 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	// add a 'print' function as alias for Citizen.trace for testing
 	global->Set(String::NewFromUtf8(GetV8Isolate(), "print", NewStringType::kNormal).ToLocalChecked(),
-				FunctionTemplate::New(GetV8Isolate(), V8_Trace));
+	FunctionTemplate::New(GetV8Isolate(), V8_Trace));
 
 	// create Citizen call routines
 	Local<ObjectTemplate> citizenObject = ObjectTemplate::New(GetV8Isolate());
@@ -1669,7 +1675,7 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	// set the Citizen object
 	global->Set(String::NewFromUtf8(GetV8Isolate(), "Citizen", NewStringType::kNormal).ToLocalChecked(),
-				citizenObject);
+	citizenObject);
 
 	// create a V8 context and store it
 	Local<Context> context = Context::New(GetV8Isolate(), nullptr, global);
@@ -1678,40 +1684,41 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	// run the following entries in the context scope
 	Context::Scope scope(context);
 
-#ifdef IS_FXSERVER
+	if (UseNode())
+	{
 #ifdef _WIN32
-	std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
+		std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
 #else
-	std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
+		std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
 #endif
 
-	std::string rootPath = selfPath;
-	boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
+		std::string rootPath = selfPath;
+		boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
 
-	auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
+		auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
 		rootPath,
 		rootPath,
 		rootPath);
 
-	const char* execArgv[] = {
+		const char* execArgv[] = {
 #ifndef _WIN32
-		"--library-path",
-		libPath.c_str(),
-		"--",
-		selfPath.c_str(),
+			"--library-path",
+			libPath.c_str(),
+			"--",
+			selfPath.c_str(),
 #endif
-		"--start-node",
-	};
+			"--start-node",
+		};
 
-	node::InitializeContext(context);
+		node::InitializeContext(context);
 
-	auto env = node::CreateEnvironment(GetNodeIsolate(), context, 0, nullptr, std::size(execArgv), execArgv);
-	node::LoadEnvironment(env);
+		auto env = node::CreateEnvironment(GetNodeIsolate(), context, 0, nullptr, std::size(execArgv), execArgv);
+		node::LoadEnvironment(env);
 
-	g_envRuntimes[env] = this;
+		g_envRuntimes[env] = this;
 
-	m_nodeEnvironment = env;
-#endif
+		m_nodeEnvironment = env;
+	}
 
 	// set global IO functions
 	for (auto& routine : g_globalFunctions)
@@ -1777,11 +1784,12 @@ result_t V8ScriptRuntime::Destroy()
 
 	fx::PushEnvironment pushed(this);
 
-#ifdef IS_FXSERVER
-	g_envRuntimes.erase(m_nodeEnvironment);
+	if (UseNode())
+	{
+		g_envRuntimes.erase(m_nodeEnvironment);
 
-	node::FreeEnvironment(m_nodeEnvironment);
-#endif
+		node::FreeEnvironment(m_nodeEnvironment);
+	}
 
 	m_context.Reset();
 
@@ -1934,9 +1942,10 @@ result_t V8ScriptRuntime::Tick()
 	if (m_tickRoutine)
 	{
 		V8PushEnvironment pushed(this);
-#ifndef IS_FXSERVER
-		v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
-#endif
+		if (!UseNode())
+		{
+			v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
+		}
 
 		m_tickRoutine();
 	}
@@ -2035,9 +2044,7 @@ class V8ScriptGlobals
 private:
 	Isolate* m_isolate;
 
-#ifdef IS_FXSERVER
 	node::IsolateData* m_nodeData;
-#endif
 
 	std::vector<char> m_nativesBlob;
 
@@ -2066,12 +2073,10 @@ public:
 		return m_isolate;
 	}
 
-#ifdef IS_FXSERVER
 	inline node::IsolateData* GetNodeIsolate()
 	{
 		return m_nodeData;
 	}
-#endif
 };
 
 static V8ScriptGlobals g_v8;
@@ -2086,12 +2091,10 @@ static Platform* GetV8Platform()
 	return g_v8.GetPlatform();
 }
 
-#ifdef IS_FXSERVER
 static node::IsolateData* GetNodeIsolate()
 {
 	return g_v8.GetNodeIsolate();
 }
-#endif
 
 static void OnMessage(Local<Message> message, Local<Value> error)
 {
@@ -2122,7 +2125,7 @@ void V8ScriptGlobals::Initialize()
 {
 #ifdef _WIN32
 	// initialize startup data
-	auto readBlob = [=] (const std::wstring& name, std::vector<char>& outBlob)
+	auto readBlob = [=](const std::wstring& name, std::vector<char>& outBlob)
 	{
 		FILE* f = _pfopen(MakeRelativeCitPath(_P("citizen/scripting/v8/" + name)).c_str(), _P("rb"));
 		assert(f);
@@ -2146,69 +2149,76 @@ void V8ScriptGlobals::Initialize()
 	static StartupData snapshotBlob;
 	snapshotBlob.data = &m_snapshotBlob[0];
 	snapshotBlob.raw_size = m_snapshotBlob.size();
-	
+
 	V8::SetNativesDataBlob(&nativesBlob);
 	V8::SetSnapshotDataBlob(&snapshotBlob);
 #endif
 
-#ifdef IS_FXSERVER
 	int eac;
 	const char** eav;
 
-	if (g_argc >= 2 && strcmp(g_argv[1], "--start-node") == 0)
+	if (UseNode())
 	{
-		int ec = 0;
-		
-		// run in a thread so that pthread attributes take effect on musl-based Linux
-		// (GNU stack size presets do not seem to work here)
-		std::thread([&ec]
+		if (g_argc >= 2 && strcmp(g_argv[1], "--start-node") == 0)
 		{
+			int ec = 0;
+
+			// run in a thread so that pthread attributes take effect on musl-based Linux
+			// (GNU stack size presets do not seem to work here)
+			std::thread([&ec]
+			{
 			// TODO: code duplication with above
 #ifdef _WIN32
-			std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
+				std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
 #else
-			std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
+				std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
 #endif
 
-			std::string rootPath = selfPath;
-			boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
+				std::string rootPath = selfPath;
+				boost::algorithm::replace_all(rootPath, "/opt/cfx-server/FXServer", "");
 
-			auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
+				auto libPath = fmt::sprintf("%s/usr/lib/v8/:%s/lib/:%s/usr/lib/",
 				rootPath,
 				rootPath,
 				rootPath);
 
 #ifndef _WIN32
-			const char* execArgv[] = {
-				"--library-path",
-				libPath.c_str(),
-				"--",
-				selfPath.c_str(),
-			};
+				const char* execArgv[] = {
+					"--library-path",
+					libPath.c_str(),
+					"--",
+					selfPath.c_str(),
+				};
 
-			ec = node::Start(g_argc, (char**)g_argv, std::size(execArgv), const_cast<char**>(execArgv));
+				ec = node::Start(g_argc, (char**)g_argv, std::size(execArgv), const_cast<char**>(execArgv));
 #else
-			ec = node::Start(g_argc, (char**)g_argv, 0, nullptr);
-#endif			
-		}).join();
+				ec = node::Start(g_argc, (char**)g_argv, 0, nullptr);
+#endif
+			})
+			.join();
 
 #ifdef _WIN32
-		// newer Node won't play nice
-		TerminateProcess(GetCurrentProcess(), ec);
+			// newer Node won't play nice
+			TerminateProcess(GetCurrentProcess(), ec);
 #else
-		exit(ec);
+			exit(ec);
 #endif
+		}
 	}
-#endif
+
+	node::MultiIsolatePlatform* platform = nullptr;
 
 	// initialize platform
-#ifndef IS_FXSERVER
-	m_platform = std::unique_ptr<v8::Platform>(v8::platform::NewDefaultPlatform(0, platform::IdleTaskSupport::kDisabled, platform::InProcessStackDumping::kDisabled));
-	V8::InitializePlatform(m_platform.get());
-#else
-	auto platform = node::InitializeV8Platform(4);
-	m_platform = std::unique_ptr<v8::Platform>(platform);
-#endif
+	if (!UseNode())
+	{
+		m_platform = std::unique_ptr<v8::Platform>(v8::platform::NewDefaultPlatform(0, platform::IdleTaskSupport::kDisabled, platform::InProcessStackDumping::kDisabled));
+		V8::InitializePlatform(m_platform.get());
+	}
+	else
+	{
+		platform = node::InitializeV8Platform(4);
+		m_platform = std::unique_ptr<v8::Platform>(platform);
+	}
 
 #if 0
 	// set profiling disabled, but timer event logging enabled
@@ -2232,7 +2242,7 @@ void V8ScriptGlobals::Initialize()
 	V8::InitializeICUDefaultLocation(ToNarrow(MakeRelativeCitPath(L"dummy")).c_str());
 #else
 	V8::InitializeICUDefaultLocation(ToNarrow(MakeRelativeCitPath(L"dummy")).c_str(),
-		ToNarrow(MakeRelativeCitPath(L"citizen/scripting/v8/icudtl.dat")).c_str());
+	ToNarrow(MakeRelativeCitPath(L"citizen/scripting/v8/icudtl.dat")).c_str());
 #endif
 #endif
 
@@ -2240,21 +2250,25 @@ void V8ScriptGlobals::Initialize()
 	V8::Initialize();
 
 	// create an array buffer allocator
-#ifndef IS_FXSERVER
-	m_arrayBufferAllocator = std::unique_ptr<v8::ArrayBuffer::Allocator>(v8::ArrayBuffer::Allocator::NewDefaultAllocator());
-#else
-	m_arrayBufferAllocator = std::unique_ptr<v8::ArrayBuffer::Allocator>(node::ArrayBufferAllocator::Create());
-#endif
+	if (!UseNode())
+	{
+		m_arrayBufferAllocator = std::unique_ptr<v8::ArrayBuffer::Allocator>(v8::ArrayBuffer::Allocator::NewDefaultAllocator());
+	}
+	else
+	{
+		m_arrayBufferAllocator = std::unique_ptr<v8::ArrayBuffer::Allocator>(node::ArrayBufferAllocator::Create());
+	}
 
 	// create an isolate
 	Isolate::CreateParams params;
 	params.array_buffer_allocator = m_arrayBufferAllocator.get();
 
 	m_isolate = Isolate::Allocate();
-	
-#ifdef IS_FXSERVER
-	platform->RegisterIsolate(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop());
-#endif
+
+	if (UseNode())
+	{
+		platform->RegisterIsolate(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop());
+	}
 
 	Isolate::Initialize(m_isolate, params);
 
@@ -2270,70 +2284,72 @@ void V8ScriptGlobals::Initialize()
 	// initialize the debugger
 	m_debugger = std::unique_ptr<V8Debugger>(CreateDebugger(m_isolate));
 
-#ifdef IS_FXSERVER
-	// initialize Node.js
-	Locker locker(m_isolate);
-	Isolate::Scope isolateScope(m_isolate);
-	v8::HandleScope handle_scope(m_isolate);
-
-	static std::stack<std::unique_ptr<BasePushEnvironment>> envStack;
-
-	node::SetScopeHandler([](const node::Environment* env)
+	if (UseNode())
 	{
-		auto runtime = GetEnvRuntime(env);
+		// initialize Node.js
+		Locker locker(m_isolate);
+		Isolate::Scope isolateScope(m_isolate);
+		v8::HandleScope handle_scope(m_isolate);
 
-		if (runtime)
+		static std::stack<std::unique_ptr<BasePushEnvironment>> envStack;
+
+		node::SetScopeHandler([](const node::Environment* env)
 		{
-			// since the V8 locker might be held by our caller, lock order for V8LitePushEnvironment might not be correct
-			// instead, we will just dare to not push the runtime if we don't need to (and we're already locked)
+			auto runtime = GetEnvRuntime(env);
 
-			// this does mean any callbacks node.js will run on closing are more limited (can't call framework natives)
-			if (v8::Locker::IsLocked(node::GetIsolate(env)))
+			if (runtime)
 			{
-				PushEnvironment pe;
+				// since the V8 locker might be held by our caller, lock order for V8LitePushEnvironment might not be correct
+				// instead, we will just dare to not push the runtime if we don't need to (and we're already locked)
 
-				if (PushEnvironment::TryPush(OMPtr{ runtime }, pe))
+				// this does mean any callbacks node.js will run on closing are more limited (can't call framework natives)
+				if (v8::Locker::IsLocked(node::GetIsolate(env)))
 				{
-					envStack.push(std::make_unique<V8LitePushEnvironment>(std::move(pe), runtime, env));
-				}
-				else
-				{
-					envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
+					PushEnvironment pe;
+
+					if (PushEnvironment::TryPush(OMPtr{ runtime }, pe))
+					{
+						envStack.push(std::make_unique<V8LitePushEnvironment>(std::move(pe), runtime, env));
+					}
+					else
+					{
+						envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
+					}
+
+					return;
 				}
 
-				return;
+				envStack.push(std::make_unique<V8LitePushEnvironment>(runtime, env));
 			}
-
-			envStack.push(std::make_unique<V8LitePushEnvironment>(runtime, env));
-		}
-		else
+			else
+			{
+				envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
+			}
+		},
+		[](const node::Environment* env)
 		{
-			envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
-		}
-	}, [](const node::Environment* env)
-	{
-		envStack.pop();
-	});
+			envStack.pop();
+		});
 
-	std::vector<const char*> args{
-		"",
-		"--expose-internals"
-	};
+		std::vector<const char*> args{
+			"",
+			"--expose-internals"
+		};
 
-	for (int i = 1; i < g_argc; i++)
-	{
-		if (g_argv[i] && g_argv[i][0] == '-')
+		for (int i = 1; i < g_argc; i++)
 		{
-			args.push_back(g_argv[i]);
+			if (g_argv[i] && g_argv[i][0] == '-')
+			{
+				args.push_back(g_argv[i]);
+			}
 		}
+
+		int argc = args.size();
+
+		node::Init(&argc, args.data(), &eac, &eav);
+
+		m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop(), platform, (node::ArrayBufferAllocator*)m_arrayBufferAllocator.get());
 	}
-
-	int argc = args.size();
-
-	node::Init(&argc, args.data(), &eac, &eav);
-
-	m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop(), platform, (node::ArrayBufferAllocator*)m_arrayBufferAllocator.get());
-#endif
 }
 
 static InitFunction initFunction([]()
@@ -2364,9 +2380,10 @@ V8ScriptGlobals::~V8ScriptGlobals()
 	V8::ShutdownPlatform();*/
 
 	// actually don't, this deadlocks from a global destructor
-#ifdef IS_FXSERVER
-	m_platform.release();
-#endif
+	if (UseNode())
+	{
+		m_platform.release();
+	}
 }
 
 // {9C268449-7AF4-4A3B-995A-3B1692E958AC}

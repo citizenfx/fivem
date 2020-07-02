@@ -610,7 +610,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
 	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
 
-	if (initState->IsMasterProcess() && !toolMode)
+	if (initState->IsMasterProcess() && !toolMode && !launch::IsSDK())
 	{
 		std::thread([/*tui = std::move(tui)*/minModeManifest]() mutable
 		{
@@ -670,6 +670,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}).detach();
 	}
 
+	if (launch::IsSDKGuest())
+	{
+		SetEvent(g_uiDoneEvent);
+	}
+
 	if (!toolMode)
 	{
 		CitizenGame::SetMinModeManifest(minModeManifest->GetRaw());
@@ -677,12 +682,30 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		wchar_t fxApplicationName[MAX_PATH];
 		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
 
+		if (launch::IsSDK() && initState->IsMasterProcess())
+		{
+			// run game mode
+			HMODULE coreRT = LoadLibrary(MakeRelativeCitPath(L"CoreRT.dll").c_str());
+
+			if (coreRT)
+			{
+				auto gameProc = (void (*)())GetProcAddress(coreRT, "GameMode_RunSDK");
+
+				if (gameProc)
+				{
+					gameProc();
+				}
+			}
+
+			return 0;
+		}
+
 #ifdef IS_LAUNCHER
 		// is this the game runtime subprocess?
 		if (wcsstr(fxApplicationName, L"GameRuntime") != nullptr)
 		{
 #else
-		if (initState->IsMasterProcess())
+		if (initState->IsMasterProcess() || wcsstr(fxApplicationName, L"GameRuntime") != nullptr)
 		{
 #endif
 #ifdef _DEBUG

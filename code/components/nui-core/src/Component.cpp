@@ -10,9 +10,14 @@ public:
 	virtual bool Shutdown();
 };
 
+bool g_inited = false;
+
 bool ComponentInstance::Initialize()
 {
-	//InitFunctionBase::RunAll();
+	if (!g_inited)
+	{
+		InitFunctionBase::RunAll();
+	}
 
 	return true;
 }

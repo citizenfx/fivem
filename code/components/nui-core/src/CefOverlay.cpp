@@ -12,6 +12,8 @@
 #include "NUIClient.h"
 #include "NUIWindowManager.h"
 
+#include <CL2LaunchMode.h>
+
 #include <shared_mutex>
 #include <unordered_set>
 
@@ -101,7 +103,7 @@ namespace nui
 				argIdx++;
 			}
 
-			rootWindow->GetBrowser()->SendProcessMessage(PID_RENDERER, processMessage);
+			rootWindow->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, processMessage);
 		}
 	}
 
@@ -279,6 +281,11 @@ namespace nui
 
 	static void CreateFrame(fwString frameName, fwString frameURL, bool instant)
 	{
+		if (frameName == "mpMenu" && launch::IsSDKGuest())
+		{
+			return;
+		}
+
 #ifdef IS_LAUNCHER
 #ifndef USE_NUI_ROOTLESS
 		if (rootWindowTerminated)
@@ -312,7 +319,7 @@ namespace nui
 				argumentList->SetString(0, frameName.c_str());
 				argumentList->SetString(1, frameURL.c_str());
 
-				browser->SendProcessMessage(PID_RENDERER, procMessage);
+				browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, procMessage);
 			}
 #else
 			int resX, resY;
@@ -362,7 +369,7 @@ namespace nui
 
 			if (browser)
 			{
-				browser->SendProcessMessage(PID_RENDERER, procMessage);
+				browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, procMessage);
 			}
 
 			std::unique_lock<std::shared_mutex> lock(frameListMutex);

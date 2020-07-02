@@ -37,7 +37,7 @@ bool NUIApp::GetLocalizedString(int messageID, CefString& string)
 void NUIApp::OnContextInitialized()
 {
 	auto manager = CefCookieManager::GetGlobalManager(nullptr);
-	manager->SetSupportedSchemes({ "nui" }, nullptr);
+	manager->SetSupportedSchemes({ "nui" }, true, nullptr);
 }
 
 void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
@@ -123,7 +123,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
 }
 
-bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
+bool NUIApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
 	auto handler = m_processMessageHandlers.find(message->GetName());
 	bool success = false;

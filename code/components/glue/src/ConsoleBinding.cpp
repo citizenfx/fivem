@@ -4,6 +4,8 @@
 #include <VFSManager.h>
 #include <nutsnbolts.h>
 
+#include <CL2LaunchMode.h>
+
 #include <fiDevice.h>
 
 #if defined(IS_RDR3)
@@ -44,7 +46,7 @@ static InitFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		console::GetDefaultContext()->SaveConfigurationIfNeeded("fxd:/" CONFIG_NAME ".cfg");
+		console::GetDefaultContext()->SaveConfigurationIfNeeded(fmt::sprintf("fxd:/%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : ""));
 	});
 
 	rage::fiDevice::OnInitialMount.Connect([]()
@@ -69,6 +71,6 @@ static InitFunction initFunction([]()
 		});
 
 		se::ScopedPrincipal seContext(se::Principal{ "system.console" });
-		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", "fxd:/" CONFIG_NAME ".cfg" });
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", fmt::sprintf("fxd:/%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : "") });
 	}, INT32_MAX);
 });
