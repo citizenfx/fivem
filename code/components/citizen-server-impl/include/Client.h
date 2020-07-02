@@ -59,7 +59,7 @@ namespace fx
 		}
 	};
 
-	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public std::enable_shared_from_this<Client>, public se::PrincipalSource
+	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public std::enable_shared_from_this<Client>
 	{
 	public:
 		Client(const std::string& guid);
@@ -168,20 +168,16 @@ namespace fx
 
 		inline auto EnterPrincipalScope()
 		{
-			auto principal = std::make_unique<se::ScopedPrincipal>(this);
+			// since fixed_list contains the buffer inside of itself, and we have to move something unmoveable (since reference_wrapper-holding
+			// Principal instances would be allocated on the stack), we'll take *one* allocation on the heap.
+			auto principals = std::make_unique<eastl::fixed_list<se::ScopedPrincipal, 10, false>>();
 
-			return std::move(principal);
-		}
-
-		inline void GetPrincipals(const std::function<bool(const se::Principal&)>& iterator)
-		{
 			for (auto& principal : m_principals)
 			{
-				if (iterator(principal))
-				{
-					break;
-				}
+				principals->emplace_back(principal);
 			}
+
+			return std::move(principals);
 		}
 
 		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()

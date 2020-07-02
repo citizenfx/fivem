@@ -347,7 +347,7 @@ struct NodeWrapper : public NodeBase
 				couldWrite = true;
 			}
 			// otherwise, we only want to write if the player hasn't acked
-			else if (frameIndex > state.lastFrameIndex)
+			else if (!ackedPlayers.test(state.targetSlotId))
 			{
 				couldWrite = true;
 			}
