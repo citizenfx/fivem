@@ -14,6 +14,7 @@
 #include <array>
 #include <optional>
 #include <EASTL/bitset.h>
+#include <EASTL/fixed_map.h>
 #include <EASTL/fixed_hash_map.h>
 #include <EASTL/fixed_hash_set.h>
 #include <EASTL/fixed_vector.h>
@@ -68,11 +69,12 @@ struct SyncUnparseState
 	int syncType;
 	int objType;
 	uint32_t timestamp;
+	uint64_t lastFrameIndex;
 
 	uint32_t targetSlotId;
 
 	SyncUnparseState(rl::MessageBuffer& buffer)
-		: buffer(buffer)
+		: buffer(buffer), lastFrameIndex(0)
 	{
 
 	}
@@ -388,8 +390,6 @@ struct SyncEntityState
 
 	LRWeakPtr<fx::Client> client;
 	NetObjEntityType type;
-	eastl::bitset<MAX_CLIENTS> ackedCreation;
-	eastl::bitset<MAX_CLIENTS> didDeletion;
 	uint32_t timestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
@@ -397,10 +397,6 @@ struct SyncEntityState
 	uint32_t creationToken;
 
 	std::chrono::milliseconds lastReceivedAt;
-
-	std::array<uint64_t, MAX_CLIENTS> lastFrameIndices{};
-	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastResends{};
-	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs{};
 
 	std::shared_ptr<SyncTreeBase> syncTree;
 
@@ -490,6 +486,21 @@ struct AckPacketWrapper
 
 static constexpr const int MaxObjectId = (1 << 16) - 1;
 
+struct ClientEntityState
+{
+	uint16_t uniqifier;
+	bool isPlayer;
+	bool overrideFrameIndex;
+	uint32_t netId;
+
+	uint64_t frameIndex;
+
+	std::chrono::milliseconds syncDelay;
+	std::chrono::milliseconds lastSend;
+};
+
+using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;
+
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
@@ -504,9 +515,10 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	glm::mat4x4 viewMatrix;
 
-	eastl::fixed_hash_map<uint64_t, eastl::fixed_vector<uint16_t, 2048>, 150> idsForGameState;
+	eastl::fixed_hash_map<uint64_t, std::unique_ptr<EntityStateObject>, 150> entityStates;
+	eastl::bitset<MaxObjectId> createdEntities;
 
-	eastl::bitset<MaxObjectId> pendingRemovals;
+	uint64_t lastAckIndex;
 
 	std::weak_ptr<fx::Client> client;
 
@@ -516,7 +528,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
 
 	GameStateClientData()
-		: syncing(false)
+		: syncing(false), lastAckIndex(0)
 	{
 
 	}

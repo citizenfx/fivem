@@ -7,6 +7,7 @@
 
 #include <shared_mutex>
 #include <stack>
+#include <variant>
 
 #include <CoreConsole.h>
 
@@ -45,7 +46,37 @@ public:
 	}
 };
 
-static thread_local std::deque<std::reference_wrapper<Principal>> g_principalStack;
+static thread_local std::deque<std::variant<std::reference_wrapper<Principal>, PrincipalSource*>> g_principalStack;
+
+template<typename TFn>
+static void LoopPrincipalStack(TFn&& func)
+{
+	for (auto& entry : g_principalStack)
+	{
+		auto type = entry.index();
+
+		// ref wrapper
+		if (type == 0)
+		{
+			auto ref = std::get<0>(entry);
+
+			if (func(ref))
+			{
+				break;
+			}
+		}
+		// source
+		else if (type == 1)
+		{
+			auto source = std::get<1>(entry);
+
+			source->GetPrincipals([func](const se::Principal& principal)
+			{
+				return func(principal);
+			});
+		}
+	}
+}
 
 Context::Context()
 {
@@ -135,15 +166,20 @@ bool Context::CheckPrivilege(const Object& object)
 		return CheckPrivilege(Principal{ "builtin.everyone" }, object);
 	}
 
-	for (auto& entry : g_principalStack)
+	bool privilege = false;
+
+	LoopPrincipalStack([this, &object, &privilege](const Principal& principal)
 	{
-		if (CheckPrivilege(entry, object))
+		if (CheckPrivilege(principal, object))
 		{
+			privilege = true;
 			return true;
 		}
-	}
 
-	return false;
+		return false;
+	});
+
+	return privilege;
 }
 
 bool Context::CheckPrivilege(const Principal& principal, const Object& object)
@@ -223,12 +259,17 @@ void Context::PushPrincipal(Principal& principal)
 	g_principalStack.push_front(principal);
 }
 
+void Context::PushPrincipal(PrincipalSource* principalSource)
+{
+	g_principalStack.push_front(principalSource);
+}
+
 void Context::PopPrincipal()
 {
 	g_principalStack.pop_front();
 }
 
-static std::stack<std::deque<std::reference_wrapper<Principal>>> g_principalStackStack;
+static std::stack<decltype(g_principalStack)> g_principalStackStack;
 
 void Context::PushPrincipalReset()
 {
@@ -258,10 +299,12 @@ Context::~Context()
 
 extern "C" se::Context* seGetCurrentContext()
 {
-	{
-		static std::once_flag initFlag;
+	// non-thread-safe init is slightly faster
+	static bool inited = false;
 
-		std::call_once(initFlag, []()
+	if (!inited)
+	{
+		([]()
 		{
 			static ConVar<bool> seDebugConvar(console::GetDefaultContext(), "se_debug", ConVar_None, false, &g_debugSecurity);
 
@@ -284,13 +327,23 @@ extern "C" se::Context* seGetCurrentContext()
 					return;
 				}
 
-				for (auto& principalRef : se::g_principalStack)
+				bool isSelf = false;
+
+				se::LoopPrincipalStack([&principal, &isSelf](const se::Principal& principalRef)
 				{
-					if (principalRef.get().GetIdentifier() == principal)
+					if (principal == principalRef.GetIdentifier())
 					{
-						console::Printf("security", "Changing ones own access is not permitted.\n");
-						return;
+						isSelf = true;
+						return true;
 					}
+
+					return false;
+				});
+
+				if (isSelf)
+				{
+					console::Printf("security", "Changing ones own access is not permitted.\n");
+					return;
 				}
 
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ principal }, se::Object{ object }, type);
@@ -319,13 +372,23 @@ extern "C" se::Context* seGetCurrentContext()
 					return;
 				}
 
-				for (auto& principalRef : se::g_principalStack)
+				bool isSelf = false;
+
+				se::LoopPrincipalStack([&principal, &isSelf](const se::Principal& principalRef)
 				{
-					if (principalRef.get().GetIdentifier() == principal)
+					if (principal == principalRef.GetIdentifier())
 					{
-						console::Printf("security", "Changing ones own access is not permitted.\n");
-						return;
+						isSelf = true;
+						return true;
 					}
+
+					return false;
+				});
+
+				if (isSelf)
+				{
+					console::Printf("security", "Changing ones own access is not permitted.\n");
+					return;
 				}
 
 				seGetCurrentContext()->RemoveAccessControlEntry(se::Principal{ principal }, se::Object{ object }, type);
@@ -360,7 +423,9 @@ extern "C" se::Context* seGetCurrentContext()
 					console::Printf("security", "%s -> %s = %s\n", principal.GetIdentifier(), object.GetIdentifier(), (accessType == se::AccessType::Allow) ? "ALLOW" : "DENY");
 				});
 			});
-		});
+		})();
+
+		inited = true;
 	}
 
 	if (!se::g_currentContext)
