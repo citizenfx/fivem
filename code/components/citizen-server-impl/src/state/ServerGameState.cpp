@@ -745,8 +745,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							if (!g_oneSyncVehicleCulling->GetValue() && !fx::IsBigMode())
 							{
 								shouldBeCreated = true;
-								isPlayerOrVehicle = true;
 							}
+
+							isPlayerOrVehicle = true;
 						}
 					}
 				}
@@ -2174,7 +2175,11 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	}
 
 	std::vector<uint8_t> bitBytes(length);
-	inPacket.ReadBits(&bitBytes[0], bitBytes.size() * 8);
+
+	if (length > 0)
+	{
+		inPacket.ReadBits(&bitBytes[0], bitBytes.size() * 8);
+	}
 
 	auto entity = GetEntity(playerId, objectId);
 
@@ -2272,28 +2277,32 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	}
 
 	entity->lastUpdater.update(entity->client.lock());
-	entity->timestamp = timestamp;
 	entity->lastReceivedAt = msec();
 
-	auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
-
-	auto syncTree = entity->syncTree;
-
-	if (syncTree)
+	if (length > 0)
 	{
-		syncTree->Parse(state);
+		entity->timestamp = timestamp;
 
-		// reset resends to 0
-		//entity->lastResends = {};
+		auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
 
-		if (parsingType == 1)
+		auto syncTree = entity->syncTree;
+
+		if (syncTree)
 		{
-			syncTree->Visit([](sync::NodeBase& node)
-			{
-				node.ackedPlayers.reset();
+			syncTree->Parse(state);
 
-				return true;
-			});
+			// reset resends to 0
+			//entity->lastResends = {};
+
+			if (parsingType == 1)
+			{
+				syncTree->Visit([](sync::NodeBase& node)
+				{
+					node.ackedPlayers.reset();
+
+					return true;
+				});
+			}
 		}
 	}
 

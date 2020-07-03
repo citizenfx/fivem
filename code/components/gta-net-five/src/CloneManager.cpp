@@ -191,12 +191,14 @@ private:
 		std::chrono::milliseconds lastSyncAck;
 		uint32_t lastChangeTime;
 		uint32_t lastResendTime;
+		uint32_t nextKeepaliveSync;
 		uint16_t uniqifier;
 
 		ObjectData()
 		{
 			lastSyncTime = 0ms;
 			lastSyncAck = 0ms;
+			nextKeepaliveSync = 0;
 			lastChangeTime = 0;
 			lastResendTime = 0;
 			uniqifier = rand();
@@ -1052,39 +1054,42 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	g_curNetObject = obj;
 
-	// get sync tree and read data
-	auto syncTree = obj->GetSyncTree();
-	syncTree->ReadFromBuffer(2, 0, &rlBuffer, nullptr);
-
-	// TODO: call m1E0
-
-	if (!syncTree->CanApplyToObject(obj))
+	if (msg.GetCloneData().size())
 	{
-		// couldn't apply, ignore ack
+		// get sync tree and read data
+		auto syncTree = obj->GetSyncTree();
+		syncTree->ReadFromBuffer(2, 0, &rlBuffer, nullptr);
 
-		Log("%s: couldn't apply object\n", __func__);
+		// TODO: call m1E0
 
-		return AckResult::ResendClone;
-	}
-
-	// apply pre-blend
-	if (obj->GetBlender())
-	{
-		obj->GetBlender()->SetTimestamp(msg.GetTimestamp());
-
-		if (!obj->syncData.isRemote)
+		if (!syncTree->CanApplyToObject(obj))
 		{
-			obj->GetBlender()->m_28();
+			// couldn't apply, ignore ack
+
+			Log("%s: couldn't apply object\n", __func__);
+
+			return AckResult::ResendClone;
 		}
+
+		// apply pre-blend
+		if (obj->GetBlender())
+		{
+			obj->GetBlender()->SetTimestamp(msg.GetTimestamp());
+
+			if (!obj->syncData.isRemote)
+			{
+				obj->GetBlender()->m_28();
+			}
+		}
+
+		AssociateSyncTree(obj->objectId, syncTree);
+
+		// apply to object
+		syncTree->ApplyToObject(obj, nullptr);
+
+		// call post-apply
+		obj->m_1D0();
 	}
-
-	AssociateSyncTree(obj->objectId, syncTree);
-
-	// apply to object
-	syncTree->ApplyToObject(obj, nullptr);
-
-	// call post-apply
-	obj->m_1D0();
 
 	// update client id if changed
 	// this has to be done AFTER apply since the sync update might contain critical state we didn't have yet!
@@ -1725,7 +1730,18 @@ void CloneManagerLocal::WriteUpdates()
 
 			uint32_t lastChangeTime;
 
-			if (syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, ts, nullptr, 31, nullptr, &lastChangeTime))
+			bool shouldTrySend = syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, ts, nullptr, 31, nullptr, &lastChangeTime);
+
+			if (!shouldTrySend && icgi->NetProtoVersion >= 0x202007022353)
+			{
+				if (ts >= objectData.nextKeepaliveSync)
+				{
+					rlBuffer = { packetStub, sizeof(packetStub) };
+					shouldTrySend = true;
+				}
+			}
+
+			if (shouldTrySend)
 			{
 				// #TODO1S: dynamic resend time based on latency
 				bool shouldWrite = true;
@@ -1738,6 +1754,7 @@ void CloneManagerLocal::WriteUpdates()
 
 				if (shouldWrite)
 				{
+					objectData.nextKeepaliveSync = ts + 1000;
 					objectData.lastChangeTime = lastChangeTime;
 
 					AssociateSyncTree(object->objectId, syncTree);
@@ -1779,7 +1796,11 @@ void CloneManagerLocal::WriteUpdates()
 
 					uint32_t len = rlBuffer.GetDataLength();
 					netBuffer.Write(12, len); // length (short)
-					netBuffer.WriteBits(rlBuffer.m_data, len * 8); // data
+
+					if (len > 0)
+					{
+						netBuffer.WriteBits(rlBuffer.m_data, len * 8); // data
+					}
 
 					Log("uncompressed clone sync for [obj:%d]: %d bytes\n", objectId, len);
 
