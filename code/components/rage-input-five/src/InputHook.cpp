@@ -109,6 +109,14 @@ BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
 	static RECT lastRect;
 	static RECT* lastRectPtr;
 
+	int may = 1;
+	InputHook::QueryMayLockCursor(may);
+
+	if (!may)
+	{
+		lpRekt = nullptr;
+	}
+
 	if ((lpRekt && !lastRectPtr) ||
 		(lastRectPtr && !lpRekt) ||
 		!EqualRect(&lastRect, lpRekt))
@@ -342,9 +350,20 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 static HookFunction hookFunction([] ()
 {
+	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
+
 	OnGameFrame.Connect([]()
 	{
 		SetInputWrap(-1, NULL, NULL, NULL);
+
+		int may = 1;
+		InputHook::QueryMayLockCursor(may);
+
+		if (!may)
+		{
+			ClipCursorWrap(nullptr);
+			*captureCount = 0;
+		}
 	});
 
 	// window procedure

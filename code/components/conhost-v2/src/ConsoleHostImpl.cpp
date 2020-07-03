@@ -546,6 +546,14 @@ static InitFunction initFunction([]()
 		OnConsoleWndProc(hWnd, msg, wParam, lParam, pass, lresult);
 	});
 
+	InputHook::QueryMayLockCursor.Connect([](int& may)
+	{
+		if (g_consoleFlag)
+		{
+			may = 0;
+		}
+	});
+
 	OnPostFrontendRender.Connect([]()
 	{
 		int width, height;
