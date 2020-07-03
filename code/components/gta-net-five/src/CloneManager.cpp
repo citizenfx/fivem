@@ -1255,6 +1255,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 
 		ignoreList.clear();
+		recreateList.clear();
 	}
 }
 

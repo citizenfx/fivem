@@ -1090,9 +1090,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// pending migration?
-			if (entity->lastUpdater.lock() != entity->client.lock())
 			{
-				lastFrameIndex = 0;
+				auto lu = entity->lastUpdater.lock();
+				auto cl = entity->client.lock();
+
+				if (lu && cl && lu->GetNetId() != cl->GetNetId())
+				{
+					lastFrameIndex = 0;
+				}
 			}
 
 			bool shouldBeCreated = true;
@@ -2266,7 +2271,7 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		return false;
 	}
 
-	entity->lastUpdater.update(client);
+	entity->lastUpdater.update(entity->client.lock());
 	entity->timestamp = timestamp;
 	entity->lastReceivedAt = msec();
 
