@@ -148,7 +148,7 @@ private:
 
 	void HandleCloneRemove(const char* data, size_t len);
 
-	void HandleCloneCreate(const msgClone& msg);
+	bool HandleCloneCreate(const msgClone& msg);
 
 	bool HandleCloneUpdate(const msgClone& msg);
 
@@ -601,6 +601,11 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 
 void CloneManagerLocal::AddCreateAck(uint16_t objectId)
 {
+	if (icgi->NetProtoVersion >= 0x202007022353)
+	{
+		return;
+	}
+
 	m_ackBuffer.Write(3, 1);
 	m_ackBuffer.Write(13, objectId);
 
@@ -609,6 +614,11 @@ void CloneManagerLocal::AddCreateAck(uint16_t objectId)
 
 void CloneManagerLocal::AddRemoveAck(uint16_t objectId)
 {
+	if (icgi->NetProtoVersion >= 0x202007022353)
+	{
+		return;
+	}
+
 	m_ackBuffer.Write(3, 3);
 	m_ackBuffer.Write(13, objectId);
 
@@ -811,7 +821,7 @@ rage::netObject* CloneManagerLocal::GetNetworkObject(uint16_t id)
 	return GetNetObject(id);
 }
 
-void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
+bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 {
 	auto ackPacket = [&]()
 	{
@@ -839,7 +849,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// skip if the player hasn't been created yet
 	if (GetPlayerByNetId(msg.GetClientId()) == nullptr)
 	{
-		return;
+		return false;
 	}
 
 	// get sync tree and read data
@@ -868,7 +878,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 		ackPacket();
 
-		return;
+		return true;
 	}
 
 	// check if the object already exists *locally*
@@ -882,7 +892,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 		ackPacket();
 
-		return;
+		return true;
 	}
 
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
@@ -901,7 +911,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	{
 		Log("%s: couldn't create object\n", __func__);
 
-		return;
+		return false;
 	}
 
 	obj->syncData.isRemote = isRemote;
@@ -913,7 +923,7 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 		// delete the unapplied object
 		delete obj;
-		return;
+		return false;
 	}
 
 	AssociateSyncTree(obj->objectId, syncTree);
@@ -973,6 +983,8 @@ void CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	}
 
 	ackPacket();
+
+	return true;
 }
 
 bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
@@ -1167,7 +1179,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	msgPackedClones msg;
 	msg.Read(netBuffer);
 
-	std::vector<uint16_t> ignoreList;
+	static std::vector<uint16_t> ignoreList;
 
 	for (auto& clone : msg.GetClones())
 	{
@@ -1176,8 +1188,16 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		switch (clone.GetSyncType())
 		{
 			case 1:
-				HandleCloneCreate(clone);
+			{
+				bool acked = HandleCloneCreate(clone);
+
+				if (!acked && icgi->NetProtoVersion >= 0x202007022353)
+				{
+					ignoreList.push_back(clone.GetObjectId());
+				}
+
 				break;
+			}
 			case 2:
 			{
 				bool acked = HandleCloneUpdate(clone);
@@ -1197,9 +1217,10 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		DeleteObjectId(remove, false);
 	}
 
+	if (msg.GetFrameIndex() & (uint64_t(1) << 63) || icgi->NetProtoVersion < 0x202007022353)
 	{
 		net::Buffer outBuffer;
-		outBuffer.Write<uint64_t>(msg.GetFrameIndex());
+		outBuffer.Write<uint64_t>(msg.GetFrameIndex() & ~(uint64_t(1) << 63));
 		outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
 
 		for (uint16_t entry : ignoreList)
@@ -1208,6 +1229,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		}
 
 		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+
+		ignoreList.clear();
 	}
 }
 
@@ -1298,7 +1321,10 @@ void CloneManagerLocal::Update()
 
 	SendUpdates(m_sendBuffer, HashString("netClones"));
 
-	SendUpdates(m_ackBuffer, HashString("netAcks"));
+	if (icgi->NetProtoVersion < 0x202007022353)
+	{
+		SendUpdates(m_ackBuffer, HashString("netAcks"));
+	}
 
 	alignas(16) float centerOfWorld[4];
 	getCoordsFromOrigin(origin, centerOfWorld);
@@ -1819,7 +1845,10 @@ void CloneManagerLocal::AttemptFlushCloneBuffer()
 
 void CloneManagerLocal::AttemptFlushAckBuffer()
 {
-	AttemptFlushNetBuffer(m_ackBuffer, HashString("netAcks"));
+	if (icgi->NetProtoVersion < 0x202007022353)
+	{
+		AttemptFlushNetBuffer(m_ackBuffer, HashString("netAcks"));
+	}
 }
 
 void CloneManagerLocal::AttemptFlushNetBuffer(rl::MessageBuffer& buffer, uint32_t msgType)

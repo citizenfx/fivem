@@ -71,7 +71,7 @@ namespace fx
 
 		if (it == m_userData.end())
 		{
-			static const std::any emptyAny;
+			static const std::any& emptyAny = *new std::any();
 			return emptyAny;
 		}
 

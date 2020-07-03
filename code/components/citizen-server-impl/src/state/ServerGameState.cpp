@@ -413,7 +413,7 @@ namespace sync
 struct SyncCommandState
 {
 	rl::MessageBuffer cloneBuffer;
-	std::function<void()> flushBuffer;
+	std::function<void(bool finalFlush)> flushBuffer;
 	std::function<void(size_t)> maybeFlushBuffer;
 	uint64_t frameIndex;
 	std::shared_ptr<fx::Client> client;
@@ -448,7 +448,7 @@ struct SyncCommandList
 	void Execute();
 };
 
-static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const std::shared_ptr<fx::Client>& client)
+static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const std::shared_ptr<fx::Client>& client, bool finalFlush = false)
 {
 	if (buffer.GetDataLength() > 0)
 	{
@@ -460,7 +460,7 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 		int len = LZ4_compress_default(reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4 + 8, buffer.GetDataLength(), outData.size() - 4 - 8);
 
 		*(uint32_t*)(outData.data()) = msgType;
-		*(uint64_t*)(outData.data() + 4) = frameIndex;
+		*(uint64_t*)(outData.data() + 4) = frameIndex | ((finalFlush) ? (uint64_t(1) << 63) : 0);
 
 		net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4 + 8);
 		netBuffer.Seek(len + 4 + 8); // since the buffer constructor doesn't actually set the offset
@@ -515,9 +515,9 @@ void SyncCommandList::Execute()
 	scs.frameIndex = frameIndex;
 	scs.client = client;
 
-	scs.flushBuffer = [this, &scsSelf]()
+	scs.flushBuffer = [this, &scsSelf](bool finalFlush)
 	{
-		FlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client);
+		FlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client, true);
 	};
 
 	scs.maybeFlushBuffer = [this, &scsSelf](size_t plannedBits)
@@ -530,7 +530,7 @@ void SyncCommandList::Execute()
 		cmd(scsSelf);
 	}
 
-	scs.flushBuffer();
+	scs.flushBuffer(true);
 
 	scs.Reset();
 }
@@ -1054,27 +1054,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			bool hasCreated = false;
 
-			// #TODO1SACK: this needs client-side changes! same for remove acks?
-			/*if (lastIt != lastEntityState->end())
+			if (lastIt != lastEntityState->end())
 			{
 				lastState = &lastIt->second;
 				hasCreated = true;
-
-				GS_LOG("%s has created %d due to entity state delta\n", client->GetName(), objectId);
 			}
-			else*/
+			else
 			{
 				auto data = GetClientDataUnlocked(this, client);
 				hasCreated = data->createdEntities.test(objectId);
-
-				if (hasCreated)
-				{
-					GS_LOG("%s has created %d due to bit field\n", client->GetName(), objectId);
-				}
-				else
-				{
-					GS_LOG("%s has not created %d\n", client->GetName(), objectId);
-				}
 			}
 
 			uint64_t lastFrameIndex = clientDataUnlocked->lastAckIndex;
@@ -1260,7 +1248,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							cmdState.maybeFlushBuffer(3 + 13 + 16 + 4 + 32 + 16 + 32 + 12 + (len * 8));
 							cmdState.cloneBuffer.Write(3, syncType);
 							cmdState.cloneBuffer.Write(13, entity->handle & 0xFFFF);
-							cmdState.cloneBuffer.Write(16, entityClient->GetNetId()); // TODO: replace with slotId
+							cmdState.cloneBuffer.Write(16, entityClient->GetNetId());
 
 							if (syncType == 1)
 							{
@@ -1280,7 +1268,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								cmdState.cloneBuffer.SetCurrentBit(startBit);
 
 								// force a buffer flush, we're oversize
-								cmdState.flushBuffer();
+								cmdState.flushBuffer(false);
 							}
 							else
 							{
@@ -1542,6 +1530,11 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const std::shar
 			length = sizeof(WorldGridEntry);
 		}
 
+		if (client->GetSlotId() == -1)
+		{
+			return;
+		}
+
 		// really bad way to snap the world grid data to a client's own base
 		uint32_t baseRef = sizeof(m_worldGrid[0]) * client->GetSlotId();
 		uint32_t lengthRef = sizeof(m_worldGrid[0]);
@@ -1681,8 +1674,9 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 		return;
 	}
 
+	auto oldClientRef = entity->client.lock();
+
 	{
-		auto oldClientRef = entity->client.lock();
 		entity->client.update(targetClient);
 
 		GS_LOG("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle & 0xFFFF, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), targetClient->GetNetId());
@@ -1707,18 +1701,23 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 		m_objectIdsStolen.set(entityHandle & 0xFFFF);
 	}
 
-	// allow this client to be synced instantly again so clients are aware of ownership changes as soon as possible
-	auto st = entity->syncTree;
-
-	if (st)
+	// allow this object to be synced instantly again so clients are aware of ownership changes as soon as possible
+	for (auto& client : { oldClientRef, targetClient })
 	{
-		st->Visit([this](sync::NodeBase& node)
+		if (client)
 		{
-			node.frameIndex = m_frameIndex + 1;
-			node.ackedPlayers.reset();
+			auto [lock, targetData] = GetClientData(this, client);
 
-			return true;
-		});
+			auto it = targetData->entityStates.find(targetData->lastAckIndex);
+
+			if (it != targetData->entityStates.end())
+			{
+				auto& e = (*it->second)[entityHandle & 0xFFFF];
+				e.frameIndex = 0;
+				e.lastSend = 0ms;
+				e.overrideFrameIndex = true;
+			}
+		}
 	}
 }
 
@@ -2230,11 +2229,6 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		return false;
 	}
 
-	{
-		auto [clientDataLock, clientData] = GetClientData(this, client);
-		clientData->createdEntities.set(objectId);
-	}
-
 	std::shared_ptr<fx::Client> entityClient = entity->client.lock();
 
 	if (!entityClient)
@@ -2434,56 +2428,6 @@ void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& cl
 	case HashString("netClones"):
 		ParseClonePacket(client, *packet);
 		break;
-	case HashString("netAcks"):
-		ParseAckPacket(client, *packet);
-		break;
-	}
-}
-
-void ServerGameState::ParseAckPacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
-{
-	rl::MessageBuffer msgBuf(buffer.GetData().data() + buffer.GetCurOffset(), buffer.GetRemainingBytes());
-
-	bool end = false;
-
-	while (!msgBuf.IsAtEnd() && !end)
-	{
-		auto dataType = msgBuf.Read<uint8_t>(3);
-
-		switch (dataType)
-		{
-		case 1: // clone create
-		{
-			auto objectId = msgBuf.Read<uint16_t>(13);
-			auto entity = GetEntity(0, objectId);
-
-			if (entity)
-			{
-				auto syncTree = entity->syncTree;
-
-				if (syncTree)
-				{
-					auto [ clientDataLock, clientData ] = GetClientData(this, client);
-					clientData->createdEntities.set(entity->handle & 0xFFFF);
-				}
-			}
-		}
-		case 3: // clone remove
-		{
-			auto objectId = msgBuf.Read<uint16_t>(13);
-
-			auto [clientDataLock, clientData] = GetClientData(this, client);
-			clientData->createdEntities.reset(objectId);
-
-			break;
-		}
-		case 7: // end
-			end = true;
-			break;
-		default:
-			end = true;
-			break;
-		}
 	}
 }
 
@@ -3416,12 +3360,12 @@ static InitFunction initFunction([]()
 		{
 			uint64_t frameIndex = buffer.Read<uint64_t>();
 
-			eastl::fixed_set<uint32_t, 100, false> ignoreHandles;
+			eastl::fixed_set<uint16_t, 100, false> ignoreEntities;
 			uint8_t ignoreCount = buffer.Read<uint8_t>();
 
 			for (int i = 0; i < std::min(ignoreCount, uint8_t(100)); i++)
 			{
-				ignoreHandles.insert(fx::MakeEntityHandle(0, buffer.Read<uint16_t>()));
+				ignoreEntities.insert(buffer.Read<uint16_t>());
 			}
 
 			auto sgs = instance->GetComponent<fx::ServerGameState>();
@@ -3430,21 +3374,25 @@ static InitFunction initFunction([]()
 			auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
 
 			auto es = clientData->entityStates.find(frameIndex);
+			auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
+
 			clientData->lastAckIndex = frameIndex;
 
 			GS_LOG("%s ack is now %lld\n", client->GetName(), frameIndex);
 
 			if (es != clientData->entityStates.end())
 			{
-				for (auto& entity : ignoreHandles)
+				for (auto& entity : ignoreEntities)
 				{
 					GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
 
-					if (clientData->createdEntities.test(entity))
+					if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
 					{
 						// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-						(*es->second)[entity].frameIndex = 0;
-						(*es->second)[entity].overrideFrameIndex = true;
+						auto& e = (*es->second)[entity];
+						e.frameIndex = 0;
+						e.lastSend = 0ms;
+						e.overrideFrameIndex = true;
 					}
 					else
 					{

@@ -379,6 +379,15 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			if (g_oneSyncVar->GetValue())
+			{
+				if (protocol < 7)
+				{
+					sendError("Client/server version mismatch.");
+					return;
+				}
+			}
+
 			// verify game name
 			bool validGameName = false;
 			std::string intendedGameName;
@@ -457,7 +466,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202007021121;
+			data["bitVersion"] = 0x202007022353;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();
