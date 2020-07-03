@@ -35,9 +35,9 @@ tbb::concurrent_unordered_map<uint32_t, fx::EntityCreationState> g_entityCreatio
 static std::minstd_rand g_creationToken;
 static std::linear_congruential_engine<uint32_t, 12820163, 0, (1 << 24) - 1> g_objectToken;
 
-inline uint32_t MakeEntityHandle(uint8_t playerId, uint16_t objectId)
+inline uint32_t MakeEntityHandle(uint16_t objectId)
 {
-	return ((playerId + 1) << 16) | objectId;
+	return objectId;
 }
 
 namespace fx
@@ -83,7 +83,7 @@ static InitFunction initFunction([]()
 		gameState->OnEntityCreate.Connect([](std::shared_ptr<fx::sync::SyncEntityState> entity)
 		{
 			auto creationToken = entity->creationToken;
-			auto objectId = entity->handle & 0xFFFF;
+			auto objectId = entity->handle;
 
 			auto it = g_entityCreationList.find(creationToken);
 
@@ -94,7 +94,7 @@ static InitFunction initFunction([]()
 				if (guid && guid->type == fx::ScriptGuid::Type::TempEntity)
 				{
 					guid->type = fx::ScriptGuid::Type::Entity;
-					guid->entity.handle = MakeEntityHandle(0, objectId);
+					guid->entity.handle = MakeEntityHandle(objectId);
 				}
 
 				g_entityCreationList[creationToken] = {};

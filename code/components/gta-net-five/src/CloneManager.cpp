@@ -74,6 +74,13 @@ namespace sync
 {
 class msgClone;
 
+enum class AckResult
+{
+	OK,
+	ResendClone,
+	ResendCreate
+};
+
 class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction
 {
 public:
@@ -150,7 +157,7 @@ private:
 
 	bool HandleCloneCreate(const msgClone& msg);
 
-	bool HandleCloneUpdate(const msgClone& msg);
+	AckResult HandleCloneUpdate(const msgClone& msg);
 
 	void CheckMigration(const msgClone& msg);
 
@@ -987,7 +994,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	return true;
 }
 
-bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
+AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 {
 	// create buffer
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
@@ -1013,8 +1020,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		Log("%s: unknown obj?\n", __func__);
 
-		// pretend it acked, we don't want the server to spam us with even more nodes we can't handle
-		return true;
+		return AckResult::ResendCreate;
 	}
 
 	// check uniqifier
@@ -1026,7 +1032,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		Log("%s: invalid object instance?\n", __func__);
 
-		return true;
+		return AckResult::ResendCreate;
 	}
 
 	auto& extData = m_extendedData[msg.GetObjectId()];
@@ -1041,7 +1047,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		ackPacket();
 
 		// our object, it's fine
-		return true;
+		return AckResult::OK;
 	}
 
 	g_curNetObject = obj;
@@ -1086,7 +1092,7 @@ bool CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	ackPacket();
 
-	return true;
+	return AckResult::OK;
 }
 
 void CloneManagerLocal::CheckMigration(const msgClone& msg)
@@ -1180,6 +1186,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	msg.Read(netBuffer);
 
 	static std::vector<uint16_t> ignoreList;
+	static std::vector<uint16_t> recreateList;
 
 	for (auto& clone : msg.GetClones())
 	{
@@ -1200,11 +1207,18 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			}
 			case 2:
 			{
-				bool acked = HandleCloneUpdate(clone);
+				AckResult acked = HandleCloneUpdate(clone);
 
-				if (!acked)
+				if (acked != AckResult::OK)
 				{
-					ignoreList.push_back(clone.GetObjectId());
+					if (acked == AckResult::ResendCreate && icgi->NetProtoVersion >= 0x202007022353)
+					{
+						recreateList.push_back(clone.GetObjectId());
+					}
+					else
+					{
+						ignoreList.push_back(clone.GetObjectId());
+					}
 				}
 
 				break;
@@ -1226,6 +1240,16 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		for (uint16_t entry : ignoreList)
 		{
 			outBuffer.Write<uint16_t>(entry);
+		}
+
+		if (icgi->NetProtoVersion >= 0x202007022353)
+		{
+			outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
+
+			for (uint16_t entry : recreateList)
+			{
+				outBuffer.Write<uint16_t>(entry);
+			}
 		}
 
 		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());

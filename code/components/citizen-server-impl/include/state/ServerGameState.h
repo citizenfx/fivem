@@ -389,6 +389,7 @@ struct SyncEntityState
 	using TData = std::variant<int, float, bool, std::string>;
 
 	LRWeakPtr<fx::Client> client;
+	LRWeakPtr<fx::Client> lastUpdater;
 	NetObjEntityType type;
 	uint32_t timestamp;
 	uint64_t frameIndex;
