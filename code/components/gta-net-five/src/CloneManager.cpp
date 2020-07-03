@@ -1064,7 +1064,7 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		Log("%s: couldn't apply object\n", __func__);
 
-		return false;
+		return AckResult::ResendClone;
 	}
 
 	// apply pre-blend
