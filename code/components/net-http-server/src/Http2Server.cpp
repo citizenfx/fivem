@@ -72,6 +72,16 @@ struct ZeroCopyByteBuffer
 
 			return 0;
 		}
+
+		void Advance(size_t len)
+		{
+			read += len;
+		}
+
+		size_t Leftover() const
+		{
+			return Size() - read;
+		}
 	};
 
 	template<typename TContainer>
@@ -141,7 +151,7 @@ struct ZeroCopyByteBuffer
 		return -1;
 	}
 
-	bool Take(std::string* str, std::vector<uint8_t>* vec, std::unique_ptr<char[]>* raw, size_t* rawLength, size_t* off, fu2::unique_function<void(bool)>* cb)
+	bool Take(uint32_t length, std::string* str, std::vector<uint8_t>* vec, std::unique_ptr<char[]>* raw, size_t* rawLength, size_t* off, fu2::unique_function<void(bool)>* cb)
 	{
 		if (elements.empty())
 		{
@@ -154,16 +164,58 @@ struct ZeroCopyByteBuffer
 
 			switch (elem.type)
 			{
-			case 0:
-				*str = std::move(elem.string);
-				break;
-			case 1:
-				*vec = std::move(elem.vec);
-				break;
-			case 2:
-				*raw = std::move(elem.raw);
-				*rawLength = std::move(elem.rawLength);
-				break;
+				case 0:
+				{
+					if (length < elem.Leftover())
+					{
+						*raw = std::unique_ptr<char[]>(new char[length]);
+						*rawLength = length;
+						*off = 0;
+
+						memcpy(raw->get(), elem.string.data() + elem.read, length);
+						elem.Advance(length);
+
+						return true;
+					}
+
+					*str = std::move(elem.string);
+					break;
+				}
+				case 1:
+				{
+					if (length < elem.Leftover())
+					{
+						*raw = std::unique_ptr<char[]>(new char[length]);
+						*rawLength = length;
+						*off = 0;
+
+						memcpy(raw->get(), elem.vec.data() + elem.read, length);
+						elem.Advance(length);
+
+						return true;
+					}
+
+					*vec = std::move(elem.vec);
+					break;
+				}
+				case 2:
+				{
+					if (length < elem.Leftover())
+					{
+						*raw = std::unique_ptr<char[]>(new char[length]);
+						*rawLength = length;
+						*off = 0;
+
+						memcpy(raw->get(), elem.raw.get() + elem.read, length);
+						elem.Advance(length);
+
+						return true;
+					}
+
+					*raw = std::move(elem.raw);
+					*rawLength = std::move(elem.rawLength);
+					break;
+				}
 			}
 
 			*cb = std::move(elem.cb);
@@ -275,7 +327,7 @@ public:
 			}
 
 			*data_flags |= NGHTTP2_DATA_FLAG_NO_COPY;
-			return resp->m_buffer.PeekLength();
+			return std::min(size_t(resp->m_buffer.PeekLength()), length);
 		};
 
 		std::vector<nghttp2_nv> nv(m_headers.size());
@@ -459,21 +511,46 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			size_t off;
 			fu2::unique_function<void(bool)> cb;
 
-			if (buf.Take(&s, &v, &raw, &rawLength, &off, &cb))
+			if (buf.Take(length, &s, &v, &raw, &rawLength, &off, &cb))
 			{
-				assert(off == 0);
+				if (off == 0)
+				{
+					if (!s.empty())
+					{
+						data->stream->Write(std::move(s), std::move(cb));
+					}
+					else if (!v.empty())
+					{
+						data->stream->Write(std::move(v), std::move(cb));
+					}
+					else if (raw)
+					{
+						data->stream->Write(std::move(raw), rawLength, std::move(cb));
+					}
+				}
+				else
+				{
+					if (!s.empty())
+					{
+						auto d = std::unique_ptr<char[]>(new char[length]);
+						memcpy(d.get(), s.data() + off, length);
 
-				if (!s.empty())
-				{
-					data->stream->Write(std::move(s), std::move(cb));
-				}
-				else if (!v.empty())
-				{
-					data->stream->Write(std::move(v), std::move(cb));
-				}
-				else if (raw)
-				{
-					data->stream->Write(std::move(raw), rawLength, std::move(cb));
+						data->stream->Write(std::move(d), length, std::move(cb));
+					}
+					else if (!v.empty())
+					{
+						auto d = std::unique_ptr<char[]>(new char[length]);
+						memcpy(d.get(), v.data() + off, length);
+
+						data->stream->Write(std::move(d), length, std::move(cb));
+					}
+					else if (raw)
+					{
+						auto d = std::unique_ptr<char[]>(new char[length]);
+						memcpy(d.get(), raw.get() + off, length);
+
+						data->stream->Write(std::move(d), length, std::move(cb));
+					}
 				}
 			}
 
