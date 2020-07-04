@@ -195,6 +195,11 @@ namespace fx
 			return m_hasSettled;
 		}
 
+		inline bool UseAccurateSends()
+		{
+			return m_useAccurateSendsVar->GetValue();
+		}
+
 	private:
 		void InitializeSyncUv();
 
@@ -235,6 +240,8 @@ namespace fx
 		std::shared_ptr<ConVar<std::string>> m_listingHostOverride;
 
 		std::shared_ptr<ConVar<bool>> m_forceIndirectListing;
+
+		std::shared_ptr<ConVar<bool>> m_useAccurateSendsVar;
 
 		std::shared_ptr<ConVar<std::string>> m_rconPassword;
 

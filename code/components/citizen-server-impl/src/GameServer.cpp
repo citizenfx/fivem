@@ -107,6 +107,7 @@ namespace fx
 		m_masters[1] = instance->AddVariable<std::string>("sv_master2", ConVar_None, "");
 		m_masters[2] = instance->AddVariable<std::string>("sv_master3", ConVar_None, "");
 		m_listingIpOverride = instance->AddVariable<std::string>("sv_listingIpOverride", ConVar_None, "");
+		m_useAccurateSendsVar = instance->AddVariable<bool>("sv_useAccurateSends", ConVar_None, true);
 
 		// sv_forceIndirectListing will break listings if the proxy host can not be reached
 		m_forceIndirectListing = instance->AddVariable<bool>("sv_forceIndirectListing", ConVar_None, false);
@@ -296,6 +297,7 @@ namespace fx
 			struct NetPersistentData
 			{
 				UvHandleContainer<uv_timer_t> tickTimer;
+				UvHandleContainer<uv_timer_t> sendTimer;
 
 				std::shared_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> callbackAsync;
 
@@ -309,6 +311,7 @@ namespace fx
 
 			// periodic timer for network ticks
 			auto frameTime = 1000 / 100;
+			auto sendTime = 1000 / 40;
 
 			auto mpd = netData.get();
 
@@ -319,8 +322,19 @@ namespace fx
 				.Add({ {"name", "svNetwork"} }, prometheus::Histogram::BucketBoundaries{
 					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
 					});
+
+			auto processSendList = [this]()
+			{
+				while (!m_netSendList.empty())
+				{
+					const auto& [peer, channel, buffer, type] = m_netSendList.front();
+					m_net->SendPacket(peer, channel, buffer, type);
+
+					m_netSendList.pop_front();
+				}
+			};
 			
-			auto tcb = UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
+			auto tcb = UvPersistentCallback(&netData->tickTimer, [this, mpd, processSendList](uv_timer_t*)
 			{
 				auto now = msec();
 				auto thisTime = now - mpd->lastTime;
@@ -334,13 +348,10 @@ namespace fx
 
 				OnNetworkTick();
 
-				// process send list in between
-				while (!m_netSendList.empty())
+				if (m_useAccurateSendsVar->GetValue())
 				{
-					const auto& [peer, channel, buffer, type] = m_netSendList.front();
-					m_net->SendPacket(peer, channel, buffer, type);
-
-					m_netSendList.pop_front();
+					// process send list in between
+					processSendList();
 				}
 
 				// process game push
@@ -352,6 +363,15 @@ namespace fx
 
 			uv_timer_init(loop, &netData->tickTimer);
 			uv_timer_start(&netData->tickTimer, tcb, frameTime, frameTime);
+
+			uv_timer_init(loop, &netData->sendTimer);
+			uv_timer_start(&netData->sendTimer, UvPersistentCallback(&netData->sendTimer, [this, processSendList](uv_timer_t*)
+			{
+				if (!m_useAccurateSendsVar->GetValue())
+				{
+					processSendList();
+				}
+			}), sendTime, sendTime);
 
 			// event handle for callback list evaluation
 

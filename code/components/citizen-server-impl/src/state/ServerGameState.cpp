@@ -541,7 +541,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	static uint32_t ticks = 0;
 	ticks++;
 
-	if ((ticks % 3) != 1)
+	int tickMul = 1;
+
+	if (!m_instance->GetComponent<fx::GameServer>()->UseAccurateSends())
+	{
+		tickMul = 2;
+	}
+
+	if ((ticks % (3 * tickMul)) != 1)
 	{
 		return;
 	}
@@ -628,7 +635,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	int iterations = 0;
 	int slot = lastUpdateSlot;
 	
-	while (iterations < (fx::IsBigMode() ? 8 : 16))
+	while (iterations < ((fx::IsBigMode() ? 8 : 16) * tickMul))
 	{
 		iterations++;
 
