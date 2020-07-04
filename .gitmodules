@@ -222,13 +222,13 @@
 	url = https://github.com/ngtcp2/nghttp3.git
 [submodule "vendor/lua-cmsgpack"]
 	path = vendor/lua-cmsgpack
-	url = https://github.com/gottfriedleibniz/lua-cmsgpack.git
+	url = https://github.com/citizenfx/lua-cmsgpack.git
 	branch = grit
 [submodule "vendor/lua-rapidjson"]
 	path = vendor/lua-rapidjson
-	url = https://github.com/gottfriedleibniz/lua-rapidjson.git
+	url = https://github.com/citizenfx/lua-rapidjson.git
 	branch = grit
 [submodule "vendor/lua"]
 	path = vendor/lua
-	url = https://github.com/gottfriedleibniz/lua.git
+	url = https://github.com/citizenfx/lua.git
 	branch = grit
