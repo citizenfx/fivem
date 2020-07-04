@@ -370,13 +370,30 @@ namespace CitizenFX.Core
 
 					return CreateFunctionReference(funcRefData, NetSource);
 				case 20: // vector2
-					return new Vector2(reader.ReadSingle(), reader.ReadSingle());
+					return new Vector2(
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader)
+					);
 				case 21: // vector3
-					return new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+					return new Vector3(
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader)
+					);
 				case 22: // vector4
-					return new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+					return new Vector4(
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader)
+					);
 				case 23: // quaternion
-					return new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+					return new Quaternion(
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader),
+						Float32Bits.ReadFloat(reader)
+					);
 				default: // shouldn't ever happen due to the check above
 					return new object();
 			}

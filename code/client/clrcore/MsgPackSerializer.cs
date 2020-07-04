@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 using MsgPack;
 using MsgPack.Serialization;
@@ -181,10 +182,9 @@ namespace CitizenFX.Core
 		protected override void PackToCore(Packer packer, Vector2 vec)
 		{
 			MemoryStream ms = new MemoryStream();
-			BinaryWriter writer = new BinaryWriter(ms);
 
-			writer.Write(vec.X);
-			writer.Write(vec.Y);
+			Float32Bits.WriteFloat(ms, vec.X);
+			Float32Bits.WriteFloat(ms, vec.Y);
 
 			packer.PackExtendedTypeValue(20, ms.ToArray());
 		}
@@ -212,11 +212,10 @@ namespace CitizenFX.Core
 		protected override void PackToCore(Packer packer, Vector3 vec)
 		{
 			MemoryStream ms = new MemoryStream();
-			BinaryWriter writer = new BinaryWriter(ms);
 
-			writer.Write(vec.X);
-			writer.Write(vec.Y);
-			writer.Write(vec.Z);
+			Float32Bits.WriteFloat(ms, vec.X);
+			Float32Bits.WriteFloat(ms, vec.Y);
+			Float32Bits.WriteFloat(ms, vec.Z);
 
 			packer.PackExtendedTypeValue(21, ms.ToArray());
 		}
@@ -245,12 +244,11 @@ namespace CitizenFX.Core
 		protected override void PackToCore(Packer packer, Vector4 vec)
 		{
 			MemoryStream ms = new MemoryStream();
-			BinaryWriter writer = new BinaryWriter(ms);
 
-			writer.Write(vec.X);
-			writer.Write(vec.Y);
-			writer.Write(vec.Z);
-			writer.Write(vec.W);
+			Float32Bits.WriteFloat(ms, vec.X);
+			Float32Bits.WriteFloat(ms, vec.Y);
+			Float32Bits.WriteFloat(ms, vec.Z);
+			Float32Bits.WriteFloat(ms, vec.W);
 
 			packer.PackExtendedTypeValue(22, ms.ToArray());
 		}
@@ -280,12 +278,11 @@ namespace CitizenFX.Core
 		protected override void PackToCore(Packer packer, Quaternion vec)
 		{
 			MemoryStream ms = new MemoryStream();
-			BinaryWriter writer = new BinaryWriter(ms);
 
-			writer.Write(vec.X);
-			writer.Write(vec.Y);
-			writer.Write(vec.Z);
-			writer.Write(vec.W);
+			Float32Bits.WriteFloat(ms, vec.X);
+			Float32Bits.WriteFloat(ms, vec.Y);
+			Float32Bits.WriteFloat(ms, vec.Z);
+			Float32Bits.WriteFloat(ms, vec.W);
 
 			packer.PackExtendedTypeValue(23, ms.ToArray());
 		}
@@ -344,4 +341,107 @@ namespace CitizenFX.Core
             throw new NotImplementedException();
         }
     }
+
+	/// <summary>
+	/// Source: Float32Bits.cs
+	/// </summary>
+	[StructLayout(LayoutKind.Explicit)]
+	internal struct Float32Bits
+	{
+		/// <summary>
+		///		Value as <see cref="Single"/>.
+		/// </summary>
+		[FieldOffset(0)]
+		public readonly float Value;
+
+		/// <summary>
+		///		Most significant byte of current endian.
+		/// </summary>
+		[FieldOffset(0)]
+		public readonly Byte Byte0;
+
+		/// <summary>
+		///		2nd bit from most significant byte of current endian.
+		/// </summary>
+		[FieldOffset(1)]
+		public readonly Byte Byte1;
+
+
+		/// <summary>
+		///		3rd byte from most significant byte of current endian.
+		/// </summary>
+		[FieldOffset(2)]
+		public readonly Byte Byte2;
+
+		/// <summary>
+		///		Least byte of current endian.
+		/// </summary>
+		[FieldOffset(3)]
+		public readonly Byte Byte3;
+
+		/// <summary>
+		///		Initializes a new instance of the <see cref="Float32Bits"/> type from specified <see cref="Single"/>.
+		/// </summary>
+		/// <param name="value">Value of <see cref="Single"/>.</param>
+		public Float32Bits(float value)
+		{
+			this = default(Float32Bits);
+			this.Value = value;
+		}
+
+		/// <summary>
+		///		Initializes a new instance of the <see cref="Float32Bits"/> type from specified <see cref="Byte"/>[] which is big endian.
+		/// </summary>
+		/// <param name="bigEndianBytes">Array of <see cref="Byte"/> which contains bytes in big endian.</param>
+		/// <param name="offset">Offset to read.</param>
+		public Float32Bits(byte[] bigEndianBytes, int offset)
+		{
+#if DEBUG
+			Contract.Assert( bigEndianBytes != null, "bigEndianBytes != null" );
+			Contract.Assert( bigEndianBytes.Length - offset >= 4, bigEndianBytes.Length + "-" + offset + ">= 4" );
+#endif // DEBUG
+
+			this = default(Float32Bits);
+
+			if (BitConverter.IsLittleEndian)
+			{
+				this.Byte0 = bigEndianBytes[offset + 3];
+				this.Byte1 = bigEndianBytes[offset + 2];
+				this.Byte2 = bigEndianBytes[offset + 1];
+				this.Byte3 = bigEndianBytes[offset];
+			}
+			else
+			{
+				this.Byte0 = bigEndianBytes[offset];
+				this.Byte1 = bigEndianBytes[offset + 1];
+				this.Byte2 = bigEndianBytes[offset + 2];
+				this.Byte3 = bigEndianBytes[offset + 3];
+			}
+		}
+
+		public static void WriteFloat(MemoryStream ms, float value)
+		{
+			Float32Bits bits = new Float32Bits(value);
+			if (BitConverter.IsLittleEndian)
+			{
+				ms.WriteByte(bits.Byte3);
+				ms.WriteByte(bits.Byte2);
+				ms.WriteByte(bits.Byte1);
+				ms.WriteByte(bits.Byte0);
+			}
+			else
+			{
+				ms.WriteByte(bits.Byte0);
+				ms.WriteByte(bits.Byte1);
+				ms.WriteByte(bits.Byte2);
+				ms.WriteByte(bits.Byte3);
+			}
+		}
+
+		public static float ReadFloat(BinaryReader reader)
+		{
+			Float32Bits bits = new Float32Bits(reader.ReadBytes(4), 0);
+			return bits.Value;
+		}
+	}
 }

@@ -42,6 +42,7 @@
 	"nui:profiles",
 	"citizen:scripting:core",
 	"citizen:scripting:lua",
+	"citizen:scripting:lua54",
 	"citizen:scripting:v8",
 	"scripting:gta",
 	"citizen:resources:client",

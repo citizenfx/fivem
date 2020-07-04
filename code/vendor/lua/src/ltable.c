@@ -643,6 +643,13 @@ int luaH_getn (Table *t) {
 }
 
 
+#if defined(GRIT_POWER_TTYPE)
+int luaH_type (const Table *t) {
+  if (t->sizearray == 0)
+    return t->node == dummynode ? LUA_TTEMPTY : LUA_TTHASH;
+  return t->node == dummynode ? LUA_TTARRAY : LUA_TTMIXED;
+}
+#endif
 
 #if defined(LUA_DEBUG)
 

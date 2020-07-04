@@ -102,13 +102,14 @@ public:
 
 private:
 	Resource* m_resource;
+	ScriptMetaDataComponent meta;
 
 private:
 	result_t WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream, fxIStream** result);
 
 public:
 	TestScriptHost(Resource* resource)
-		: m_resource(resource)
+		: m_resource(resource), meta(resource)
 	{
 
 	}
@@ -240,77 +241,27 @@ result_t TestScriptHost::CanonicalizeRef(int32_t refIdx, int32_t instanceId, cha
 
 result_t TestScriptHost::GetResourceName(char** outResourceName)
 {
-	*outResourceName = const_cast<char*>(m_resource->GetName().c_str());
-	return FX_S_OK;
+	return meta.GetResourceName(outResourceName);
 }
 
 result_t TestScriptHost::GetNumResourceMetaData(char* metaDataName, int32_t* entryCount)
 {
-	fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
-
-	auto entries = metaData->GetEntries(metaDataName);
-
-	*entryCount = static_cast<int32_t>(std::distance(entries.begin(), entries.end()));
-
-	return FX_S_OK;
+	return meta.GetNumResourceMetaData(metaDataName, entryCount);
 }
 
 result_t TestScriptHost::GetResourceMetaData(char* metaDataName, int32_t entryIndex, char** outMetaData)
 {
-	fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
-	
-	auto entries = metaData->GetEntries(metaDataName);
-
-	// and loop over the entries to see if we find anything
-	int i = 0;
-
-	for (auto& entry : entries)
-	{
-		if (entryIndex == i)
-		{
-			*outMetaData = const_cast<char*>(entry.second.c_str());
-			return FX_S_OK;
-		}
-
-		i++;
-	}
-
-	// return not-found
-	return 0x80070490;
+	return meta.GetResourceMetaData(metaDataName, entryIndex, outMetaData);
 }
 
 result_t TestScriptHost::IsManifestVersionBetween(const guid_t & lowerBound, const guid_t & upperBound, bool *_retval)
 {
-	// get the manifest version
-	auto metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
-
-	auto retval = metaData->IsManifestVersionBetween(lowerBound, upperBound);
-
-	if (retval)
-	{
-		*_retval = *retval;
-
-		return FX_S_OK;
-	}
-
-	return FX_E_INVALIDARG;
+	return meta.IsManifestVersionBetween(lowerBound, upperBound, _retval);
 }
 
 result_t TestScriptHost::IsManifestVersionV2Between(char* lowerBound, char* upperBound, bool* _retval)
 {
-	// get the manifest version
-	auto metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
-
-	auto retval = metaData->IsManifestVersionBetween(lowerBound, upperBound);
-
-	if (retval)
-	{
-		*_retval = *retval;
-
-		return FX_S_OK;
-	}
-
-	return FX_E_INVALIDARG;
+	return meta.IsManifestVersionV2Between(lowerBound, upperBound, _retval);
 }
 
 using Boundary = std::vector<uint8_t>;

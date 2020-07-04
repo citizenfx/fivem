@@ -1932,7 +1932,7 @@ int V8ScriptRuntime::GetInstanceId()
 	return m_instanceId;
 }
 
-int32_t V8ScriptRuntime::HandlesFile(char* fileName)
+int32_t V8ScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData* metadata)
 {
 	return strstr(fileName, ".js") != 0;
 }
