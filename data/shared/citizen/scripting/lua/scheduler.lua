@@ -7,6 +7,9 @@ msgpack.set_integer('unsigned')
 msgpack.set_array('without_hole')
 msgpack.setoption('empty_table_as_array', true)
 
+-- setup json compat
+json.setoption("empty_table_as_array", true)
+
 -- temp
 local function FormatStackTrace()
 	return Citizen.InvokeNative(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
