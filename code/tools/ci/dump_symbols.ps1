@@ -44,7 +44,7 @@ workflow dump_pdb {
         $basename = $pdb.BaseName
         $outname = [io.path]::ChangeExtension($pdb.FullName, "sym")
 
-        if (!($basename -eq "botan") -and !($basename -eq "citizen-scripting-lua")) {
+        if (!($basename -eq "botan") -and !($basename -eq "citizen-scripting-lua") -and !($basename -eq "citizen-scripting-lua54")) {
             Start-Process C:\f\dump_syms.exe -ArgumentList ($pdb.FullName) -RedirectStandardOutput $outname -Wait -WindowStyle Hidden
         }
     }
