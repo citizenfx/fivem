@@ -449,24 +449,21 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 
 	if (it == g_userNamesToClientIds.end())
 	{
-		std::smatch matches;
-
-		if (std::regex_match(userName, matches, g_usernameRe))
+		if (userName.length() >= 2)
 		{
-			int serverId = std::stoi(matches[1].str());
+			int serverId = atoi(userName.substr(1, userName.length() - 1).c_str());
 
-			static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
-
-			it = g_userNamesToClientIds.insert({ userName, FxNativeInvoke::Invoke<int>(getByServerId, serverId) }).first;
+			it = g_userNamesToClientIds.insert({ userName, serverId }).first;
 		}
 	}
 
 	if (it != g_userNamesToClientIds.end())
 	{
-		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_PED"));
-		static auto getEntityCoords = fx::ScriptEngine::GetNativeHandler(HashString("GET_ENTITY_COORDS"));
+		static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
+		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
+		static auto getEntityCoords = fx::ScriptEngine::GetNativeHandler(0x3FEF770D40960D5A);
 
-		int ped = FxNativeInvoke::Invoke<int>(getPlayerPed, it->second);
+		int ped = FxNativeInvoke::Invoke<int>(getPlayerPed, FxNativeInvoke::Invoke<int>(getByServerId, it->second));
 
 		if (ped > 0)
 		{

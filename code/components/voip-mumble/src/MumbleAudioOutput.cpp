@@ -182,12 +182,14 @@ public:
 static std::shared_ptr<ConVar<bool>> g_use3dAudio;
 static std::shared_ptr<ConVar<bool>> g_useSendingRangeOnly;
 static std::shared_ptr<ConVar<bool>> g_use2dAudio;
+static std::shared_ptr<ConVar<bool>> g_useNativeAudio;
 
 void MumbleAudioOutput::Initialize()
 {
 	g_use3dAudio = std::make_shared<ConVar<bool>>("voice_use3dAudio", ConVar_None, false);
 	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
 	g_use2dAudio = std::make_shared<ConVar<bool>>("voice_use2dAudio", ConVar_None, false);
+	g_useNativeAudio = std::make_shared<ConVar<bool>>("voice_useNativeAudio", ConVar_None, false);
 
 	m_initialized = false;
 	m_distance = FLT_MAX;
@@ -207,8 +209,8 @@ void MumbleAudioOutput::Initialize()
 	});
 }
 
-MumbleAudioOutput::ClientAudioState::ClientAudioState()
-	: volume(1.0f), sequence(0), voice(nullptr), opus(nullptr), isTalking(false), isAudible(true), overrideVolume(-1.0f), shuttingDown(false)
+MumbleAudioOutput::ClientAudioStateBase::ClientAudioStateBase()
+	: volume(1.0f), sequence(0), opus(nullptr), isTalking(false), isAudible(true), overrideVolume(-1.0f)
 {
 	position[0] = 0.0f;
 	position[1] = 0.0f;
@@ -216,6 +218,12 @@ MumbleAudioOutput::ClientAudioState::ClientAudioState()
 	distance = 0.0f;
 
 	lastTime = timeGetTime();
+}
+
+MumbleAudioOutput::ClientAudioState::ClientAudioState()
+	: ClientAudioStateBase(), shuttingDown(false), voice(nullptr)
+{
+
 }
 
 void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
@@ -415,6 +423,63 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 	}
 }
 
+DLL_EXPORT
+fwEvent<const std::wstring&, fwRefContainer<IMumbleAudioSink>*>
+OnGetMumbleAudioSink;
+
+MumbleAudioOutput::ExternalAudioState::ExternalAudioState(fwRefContainer<IMumbleAudioSink> sink)
+	: ClientAudioStateBase(), sink(sink)
+{
+
+}
+
+MumbleAudioOutput::ExternalAudioState::~ExternalAudioState()
+{
+	
+}
+
+void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* baseIo, float position[3])
+{
+	float distance = 0.0f;
+	auto client = this;
+
+	if (abs(baseIo->m_distance) >= 0.01f && abs(client->distance) >= 0.01f)
+	{
+		distance = std::min(baseIo->m_distance, client->distance);
+	}
+	else if (abs(baseIo->m_distance) >= 0.01f)
+	{
+		distance = baseIo->m_distance;
+	}
+	else if (abs(client->distance) >= 0.01f)
+	{
+		distance = client->distance;
+	}
+
+	// override with the transmitter's range if this is configured like that
+	if (g_useSendingRangeOnly->GetValue())
+	{
+		distance = 0.0f;
+
+		if (abs(client->distance) >= 0.01f)
+		{
+			distance = client->distance;
+		}
+	}
+
+	sink->SetPosition(position, distance, client->overrideVolume);
+}
+
+void MumbleAudioOutput::ExternalAudioState::PushSound(int16_t* voiceBuffer, int len)
+{
+	sink->PushAudio(voiceBuffer, len);
+}
+
+bool MumbleAudioOutput::ExternalAudioState::Valid()
+{
+	return sink.GetRef();
+}
+
 void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 {
 	{
@@ -423,6 +488,25 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 		if (!m_initialized)
 		{
 			m_initializeVar.wait(initLock);
+		}
+	}
+
+	if (g_useNativeAudio->GetValue())
+	{
+		fwRefContainer<IMumbleAudioSink> sinkRef;
+		OnGetMumbleAudioSink(user.GetName(), &sinkRef);
+
+		if (sinkRef.GetRef())
+		{
+			auto state = std::make_shared<ExternalAudioState>(sinkRef);
+
+			int error;
+			state->opus = opus_decoder_create(48000, 1, &error);
+
+			std::unique_lock<std::shared_mutex> _(m_clientsMutex);
+			m_clients[user.GetSessionId()] = state;
+
+			return;
 		}
 	}
 
@@ -497,7 +581,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t sequence, const uint8_t* data, size_t size)
 {
-	std::shared_ptr<ClientAudioState> client;
+	std::shared_ptr<ClientAudioStateBase> client;
 
 	{
 		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
@@ -509,7 +593,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 		}
 	}
 
-	if (!client || !client->opus || !client->context || !client->context->destination())
+	if (!client || !client->opus || !client->Valid())
 	{
 		return;
 	}
@@ -526,19 +610,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 
 	if (len >= 0)
 	{
-		auto floatBuffer = (float*)_aligned_malloc(5760 * 1 * sizeof(float), 16);
-		nqr::ConvertToFloat32(floatBuffer, voiceBuffer, 5760, nqr::PCM_16);
-
-		{
-			lab::AudioBus inBuffer{ 1, 5760, false };
-			inBuffer.setSampleRate(48000.f);
-			inBuffer.setChannelMemory(0, floatBuffer, 5760);
-
-			std::static_pointer_cast<XA2DestinationNode>(client->context->destination())->Push(&inBuffer);
-			std::static_pointer_cast<XA2DestinationNode>(client->context->destination())->Poll(len);
-		}
-
-		_aligned_free(floatBuffer);
+		client->PushSound(voiceBuffer, len);
 		_aligned_free(voiceBuffer);
 
 		client->isTalking = client->isAudible;
@@ -547,6 +619,23 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 	{
 		_aligned_free(voiceBuffer);
 	}
+}
+
+void MumbleAudioOutput::ClientAudioState::PushSound(int16_t* voiceBuffer, int len)
+{
+	auto floatBuffer = (float*)_aligned_malloc(5760 * 1 * sizeof(float), 16);
+	nqr::ConvertToFloat32(floatBuffer, voiceBuffer, 5760, nqr::PCM_16);
+
+	{
+		lab::AudioBus inBuffer{ 1, 5760, false };
+		inBuffer.setSampleRate(48000.f);
+		inBuffer.setChannelMemory(0, floatBuffer, 5760);
+
+		std::static_pointer_cast<XA2DestinationNode>(context->destination())->Push(&inBuffer);
+		std::static_pointer_cast<XA2DestinationNode>(context->destination())->Poll(len);
+	}
+
+	_aligned_free(floatBuffer);
 }
 
 static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_LFE_CurvePoints[3] = { 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f };
@@ -559,7 +648,7 @@ static const X3DAUDIO_CONE Listener_DirectionalCone = { X3DAUDIO_PI*5.0f / 6.0f,
 
 void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float distance)
 {
-	std::shared_ptr<ClientAudioState> client;
+	std::shared_ptr<ClientAudioStateBase> client;
 
 	{
 		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
@@ -579,7 +668,7 @@ void MumbleAudioOutput::HandleClientDistance(const MumbleUser& user, float dista
 
 void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float volumeOverride)
 {
-	std::shared_ptr<ClientAudioState> client;
+	std::shared_ptr<ClientAudioStateBase> client;
 
 	{
 		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
@@ -599,9 +688,7 @@ void MumbleAudioOutput::HandleClientVolumeOverride(const MumbleUser& user, float
 
 void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float position[3])
 {
-	using namespace DirectX;
-
-	std::shared_ptr<ClientAudioState> client;
+	std::shared_ptr<ClientAudioStateBase> client;
 
 	{
 		std::shared_lock<std::shared_mutex> _(m_clientsMutex);
@@ -613,7 +700,19 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 		}
 	}
 
-	if (client && client->voice)
+	if (client)
+	{
+		client->PushPosition(this, position);
+	}
+}
+
+void MumbleAudioOutput::ClientAudioState::PushPosition(MumbleAudioOutput* baseIo, float position[3])
+{
+	using namespace DirectX;
+
+	auto client = this;
+
+	if (voice)
 	{
 		auto lastPosition = DirectX::XMFLOAT3(client->position[0], client->position[1], client->position[2]);
 
@@ -625,13 +724,13 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 		{
 			float distance = 0.0f;
 
-			if (abs(m_distance) >= 0.01f && abs(client->distance) >= 0.01f)
+			if (abs(baseIo->m_distance) >= 0.01f && abs(client->distance) >= 0.01f)
 			{
-				distance = std::min(m_distance, client->distance);
+				distance = std::min(baseIo->m_distance, client->distance);
 			}
-			else if (abs(m_distance) >= 0.01f)
+			else if (abs(baseIo->m_distance) >= 0.01f)
 			{
-				distance = m_distance;
+				distance = baseIo->m_distance;
 			}
 			else if (abs(client->distance) >= 0.01f)
 			{
@@ -649,7 +748,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				}
 			}
 
-			if (g_use3dAudio->GetValue() && m_x3daCalculate && client->overrideVolume < 0.f && distance > 0.0f)
+			if (g_use3dAudio->GetValue() && baseIo->m_x3daCalculate && client->overrideVolume < 0.f && distance > 0.0f)
 			{
 				X3DAUDIO_EMITTER emitter = { 0 };
 
@@ -682,7 +781,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 
 				X3DAUDIO_DSP_SETTINGS dsp = { 0 };
 				dsp.SrcChannelCount = 1;
-				dsp.DstChannelCount = m_channelCount;
+				dsp.DstChannelCount = baseIo->m_channelCount;
 				dsp.pMatrixCoefficients = coeffs;
 
 				static const X3DAUDIO_DISTANCE_CURVE_POINT _curvePoints[3] = { 0.0f, 1.0f, 0.25f, 1.0f, 1.0f, 0.0f };
@@ -704,7 +803,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
 				emitter.DopplerScaler = 1.0f;
 
-				m_x3daCalculate(m_x3da, &m_listener, &emitter, X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER
+				baseIo->m_x3daCalculate(baseIo->m_x3da, &baseIo->m_listener, &emitter, X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER
 					| X3DAUDIO_CALCULATE_LPF_DIRECT | X3DAUDIO_CALCULATE_LPF_REVERB
 					| X3DAUDIO_CALCULATE_REVERB, &dsp);
 
@@ -716,11 +815,11 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 				// reset the volume in case we were in 2d mode
 				client->voice->SetVolume(1.0f);
 
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, dsp.DstChannelCount, dsp.pMatrixCoefficients);
+				client->voice->SetOutputMatrix(baseIo->m_masteringVoice, 1, dsp.DstChannelCount, dsp.pMatrixCoefficients);
 
-				if (m_submixVoice)
+				if (baseIo->m_submixVoice)
 				{
-					client->voice->SetOutputMatrix(m_submixVoice, 1, 1, &dsp.ReverbLevel);
+					client->voice->SetOutputMatrix(baseIo->m_submixVoice, 1, 1, &dsp.ReverbLevel);
 				}
 
 				//XAUDIO2_FILTER_PARAMETERS FilterParametersDirect = { LowPassFilter, 2.0f * sinf(X3DAUDIO_PI / 6.0f * dsp.LPFDirectCoefficient), 1.0f };
@@ -733,7 +832,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 			else if (g_use2dAudio->GetValue() && client->overrideVolume < 0.f && distance > 0.0f)
 			{
 				auto emitterPos = DirectX::XMVectorSet(position[0], position[1], position[2], 0.0f);
-				auto listenerPos = DirectX::XMVectorSet(m_listener.Position.x, m_listener.Position.y, m_listener.Position.z, 0.0f);
+				auto listenerPos = DirectX::XMVectorSet(baseIo->m_listener.Position.x, baseIo->m_listener.Position.y, baseIo->m_listener.Position.z, 0.0f);
 
 				float distanceFromListener = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos));
 				bool shouldHear = (abs(distance) < 0.01f) ? true : (distanceFromListener < (distance * distance));
@@ -754,14 +853,14 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 					1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 				};
 
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, m_channelCount, monoAllSpeakers);
+				client->voice->SetOutputMatrix(baseIo->m_masteringVoice, 1, baseIo->m_channelCount, monoAllSpeakers);
 
 				client->isAudible = shouldHear;
 			}
 			else
 			{
 				auto emitterPos = DirectX::XMVectorSet(position[0], position[1], position[2], 0.0f);
-				auto listenerPos = DirectX::XMVectorSet(m_listener.Position.x, m_listener.Position.y, m_listener.Position.z, 0.0f);
+				auto listenerPos = DirectX::XMVectorSet(baseIo->m_listener.Position.x, baseIo->m_listener.Position.y, baseIo->m_listener.Position.z, 0.0f);
 
 				bool shouldHear = (abs(distance) < 0.01f) ? true : (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(emitterPos - listenerPos)) < (distance * distance));
 
@@ -782,7 +881,7 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 					1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 				};
 
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, m_channelCount, monoAllSpeakers);
+				client->voice->SetOutputMatrix(baseIo->m_masteringVoice, 1, baseIo->m_channelCount, monoAllSpeakers);
 
 				client->isAudible = shouldHear;
 			}
@@ -793,14 +892,14 @@ void MumbleAudioOutput::HandleClientPosition(const MumbleUser& user, float posit
 			{
 				// reset matrix (to inaudible)
 				float matrix[] = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, };
-				client->voice->SetOutputMatrix(m_masteringVoice, 1, m_channelCount, matrix);
+				client->voice->SetOutputMatrix(baseIo->m_masteringVoice, 1, baseIo->m_channelCount, matrix);
 
 				// disable submix voice
 				matrix[0] = 0.0f;
 
-				if (m_submixVoice)
+				if (baseIo->m_submixVoice)
 				{
-					client->voice->SetOutputMatrix(m_submixVoice, 1, 1, matrix);
+					client->voice->SetOutputMatrix(baseIo->m_submixVoice, 1, 1, matrix);
 				}
 
 				// reset frequency ratio
@@ -1007,7 +1106,7 @@ std::shared_ptr<lab::AudioContext> MumbleAudioOutput::GetAudioContext(const std:
 			continue;
 		}
 
-		return client.second->context;
+		return std::static_pointer_cast<ClientAudioState>(client.second)->context;
 	}
 
 	return {};

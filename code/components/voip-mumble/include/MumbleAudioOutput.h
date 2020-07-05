@@ -16,6 +16,8 @@
 
 #include <wrl.h>
 
+#include <MumbleAudioSink.h>
+
 #define XAUDIO2_HELPER_FUNCTIONS
 #include <xaudio2.h>
 #include <x3daudio.h>
@@ -73,9 +75,25 @@ public:
 	friend struct XA2DestinationNode;
 
 private:
-	struct ClientAudioState : public IXAudio2VoiceCallback
+	struct ClientAudioStateBase
 	{
-		IXAudio2SourceVoice* voice;
+		ClientAudioStateBase();
+
+		virtual ~ClientAudioStateBase() = default;
+
+		virtual bool Valid()
+		{
+			return true;
+		}
+
+		virtual void PushSound(int16_t* voiceBuffer, int len)
+		{
+		}
+
+		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3])
+		{
+		}
+
 		uint64_t sequence;
 		float volume;
 		float position[3];
@@ -85,6 +103,26 @@ private:
 		bool isAudible;
 		OpusDecoder* opus;
 		uint32_t lastTime;
+	};
+
+	struct ExternalAudioState : public ClientAudioStateBase
+	{
+		ExternalAudioState(fwRefContainer<IMumbleAudioSink> sink);
+
+		virtual ~ExternalAudioState();
+
+		virtual bool Valid() override;
+
+		virtual void PushSound(int16_t* voiceBuffer, int len) override;
+
+		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
+
+		fwRefContainer<IMumbleAudioSink> sink;
+	};
+
+	struct ClientAudioState : public ClientAudioStateBase, public IXAudio2VoiceCallback
+	{
+		IXAudio2SourceVoice* voice;
 		volatile bool shuttingDown;
 
 		std::shared_ptr<lab::AudioContext> context;
@@ -93,6 +131,15 @@ private:
 		ClientAudioState();
 
 		virtual ~ClientAudioState();
+
+		virtual bool Valid() override
+		{
+			return !(context || !context->destination());
+		}
+
+		virtual void PushSound(int16_t* voiceBuffer, int len) override;
+
+		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
 
 		void __stdcall OnVoiceProcessingPassStart(UINT32 BytesRequired) override {}
 		void __stdcall OnVoiceProcessingPassEnd() override {}
@@ -111,7 +158,7 @@ private:
 
 	WRL::ComPtr<IMMDeviceEnumerator> m_mmDeviceEnumerator;
 
-	std::unordered_map<uint32_t, std::shared_ptr<ClientAudioState>> m_clients;
+	std::unordered_map<uint32_t, std::shared_ptr<ClientAudioStateBase>> m_clients;
 	std::shared_mutex m_clientsMutex;
 
 	std::thread m_thread;

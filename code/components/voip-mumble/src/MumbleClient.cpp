@@ -720,8 +720,6 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 
 		this->GetOutput().HandleClientPosition(*user, pos.data());
 	}
-
-	printf("\n");
 }
 
 void MumbleClient::MarkConnected()

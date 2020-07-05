@@ -14,6 +14,18 @@
 #include <CoreConsole.h>
 
 #include <NetLibrary.h>
+#include <EntitySystem.h>
+
+#include <CoreConsole.h>
+
+#include <regex>
+
+#include <MumbleAudioSink.h>
+#include <concurrent_queue.h>
+
+#include <ScriptEngine.h>
+
+static concurrency::concurrent_queue<std::function<void()>> g_mainQueue;
 
 namespace rage
 {
@@ -22,6 +34,8 @@ namespace rage
 	public:
 		static audWaveSlot* FindWaveSlot(uint32_t hash);
 	};
+
+	class audRequestedSettings;
 
 	class audSound
 	{
@@ -41,6 +55,12 @@ namespace rage
 		void PrepareAndPlay(audWaveSlot* waveSlot, bool a2, int a3, bool a4);
 
 		void StopAndForget(void* a1);
+
+		audRequestedSettings* GetRequestedSettings();
+
+	public:
+		char pad[141 - 8];
+		uint8_t unkBitFlag : 3;
 	};
 
 	static hook::cdecl_stub<void(audSound*, void*, bool, int, bool)> _audSound_PrepareAndPlay([]()
@@ -163,6 +183,41 @@ namespace rage
 		return _audCategoryManager_GetCategoryPtr(this, category);
 	}
 
+	struct Vec3V
+	{
+		float x;
+		float y;
+		float z;
+		float pad;
+	};
+
+	struct audOrientation
+	{
+		float x;
+		float y;
+	};
+
+	class audTracker
+	{
+	public:
+		virtual ~audTracker() = default;
+
+		virtual rage::Vec3V GetPosition()
+		{
+			return { 0.f, 0.f, 0.f, 0.f };
+		}
+
+		virtual rage::audOrientation GetOrientation()
+		{
+			return { 0.f, 0.f };
+		}
+	};
+
+	class audEnvironmentGroupInterface
+	{
+
+	};
+
 	class audSoundInitParams
 	{
 	public:
@@ -170,7 +225,19 @@ namespace rage
 
 		void SetCategory(rage::audCategory* category);
 
+		void SetEnvironmentGroup(rage::audEnvironmentGroupInterface* environmentGroup);
+
 		void SetVolume(float volume);
+
+		void SetPositional(bool positional);
+
+		void SetTracker(audTracker* parent);
+
+		void SetPosition(float x, float y, float z);
+
+		void SetSubmixIndex(uint8_t index);
+
+		void SetUnk();
 
 	private:
 		uint8_t m_pad[0xB0];
@@ -181,9 +248,51 @@ namespace rage
 		*(audCategory**)(&m_pad[88]) = category;
 	}
 
+	void audSoundInitParams::SetEnvironmentGroup(rage::audEnvironmentGroupInterface* environmentGroup)
+	{
+		*(audEnvironmentGroupInterface**)(&m_pad[96]) = environmentGroup;
+	}
+
+	void audSoundInitParams::SetPosition(float x, float y, float z)
+	{
+		auto f = (float*)m_pad;
+
+		f[0] = x;
+		f[1] = y;
+		f[2] = z;
+		f[3] = 0.f;
+	}
+
 	void audSoundInitParams::SetVolume(float volume)
 	{
 		*(float*)(&m_pad[48]) = volume;
+	}
+
+	void audSoundInitParams::SetTracker(audTracker* parent)
+	{
+		*(audTracker**)(&m_pad[72]) = parent;
+	}
+
+	void audSoundInitParams::SetPositional(bool positional)
+	{
+		if (positional)
+		{
+			m_pad[158] |= 1;
+		}
+		else
+		{
+			m_pad[158] &= ~1;
+		}
+	}
+
+	void audSoundInitParams::SetSubmixIndex(uint8_t submix)
+	{
+		*(uint8_t*)(&m_pad[152]) = submix;
+	}
+
+	void audSoundInitParams::SetUnk()
+	{
+		m_pad[155] = 27;
 	}
 
 	static hook::cdecl_stub<void(rage::audSoundInitParams*)> _audSoundInitParams_ctor([]()
@@ -200,15 +309,150 @@ namespace rage
 		m_pad[0x9A] = *initParamVal;
 	}
 
+	class audRequestedSettings
+	{
+	public:
+		void SetVolume(float vol);
+
+		void SetVolumeCurveScale(float sca);
+
+		void SetEnvironmentalLoudness(uint8_t val);
+
+		void SetSourceEffectMix(float wet, float dry);
+	};
+
+	static hook::thiscall_stub<void(audRequestedSettings*, float)> _audRequestedSettings_SetVolume([]()
+	{
+		return hook::get_pattern("F3 0F 11 8C D1 90 00 00 00", -0x11);
+	});
+
+	static hook::thiscall_stub<void(audRequestedSettings*, float)> _audRequestedSettings_SetVolumeCurveScale([]()
+	{
+		return hook::get_pattern("F3 0F 11 8C D1 A8 00 00 00", -0x11);
+	});
+
+	static hook::thiscall_stub<void(audRequestedSettings*, uint8_t)> _audRequestedSettings_SetEnvironmentalLoudness([]()
+	{
+		return hook::get_pattern("42 88 94 C1 B1 00 00 00", -0x11);
+	});
+
+	static hook::thiscall_stub<void(audRequestedSettings*, uint8_t)> _audRequestedSettings_SetSpeakerMask([]()
+	{
+		return hook::get_pattern("42 88 94 C1 B0 00 00 00", -0x11);
+	});
+
+	static hook::thiscall_stub<void(audRequestedSettings*, float, float)> _audRequestedSettings_SetSourceEffectMix([]()
+	{
+		return hook::get_pattern("F3 0F 11 8C D1 98 00 00 00", -0x11);
+	});
+
+	void audRequestedSettings::SetVolume(float vol)
+	{
+		_audRequestedSettings_SetVolume(this, vol);
+	}
+
+	void audRequestedSettings::SetVolumeCurveScale(float vol)
+	{
+		_audRequestedSettings_SetVolumeCurveScale(this, vol);
+	}
+
+	void audRequestedSettings::SetEnvironmentalLoudness(uint8_t vol)
+	{
+		_audRequestedSettings_SetEnvironmentalLoudness(this, vol);
+	}
+
+	void audRequestedSettings::SetSourceEffectMix(float wet, float dry)
+	{
+		_audRequestedSettings_SetSourceEffectMix(this, wet, dry);
+	}
+
 	class audEntity
 	{
 	public:
-		virtual ~audEntity() = 0;
+		audEntity();
+
+		virtual ~audEntity();
+
+		virtual void Init();
+
+		virtual void Shutdown();
+
+		virtual void StopAllSounds(bool);
+
+		virtual void PreUpdateService(uint32_t)
+		{
+		
+		}
+
+		virtual void PostUpdate()
+		{
+		
+		}
+
+		virtual void UpdateSound(rage::audSound*, rage::audRequestedSettings*, uint32_t)
+		{
+		
+		}
+
+		virtual bool IsUnpausable()
+		{
+			return false;
+		}
+
+		virtual uint32_t QuerySoundNameFromObjectAndField(const uint32_t*, uint32_t, const rage::audSound*)
+		{
+			return 0;
+		}
+
+		virtual void QuerySpeechVoiceAndContextFromField(uint32_t, uint32_t&, uint32_t&)
+		{
+		
+		}
+
+		virtual rage::Vec3V GetPosition()
+		{
+			return {0.f, 0.f, 0.f, 0.f};
+		}
+
+		virtual rage::audOrientation GetOrientation()
+		{
+			return { 0.f, 0.f };
+		}
+
+		virtual uint32_t InitializeEntityVariables()
+		{
+			m_0A = -1;
+			return -1;
+		}
+
+		virtual void* GetOwningEntity()
+		{
+			return nullptr;
+		}
 
 		void CreateSound_PersistentReference(const char* name, audSound** outSound, const audSoundInitParams& params);
 
 		void CreateSound_PersistentReference(uint32_t nameHash, audSound** outSound, const audSoundInitParams& params);
+
+	private:
+		uint16_t m_entityId{
+			0xffff
+		};
+
+		uint16_t m_0A{
+			0xffff
+		};
 	};
+
+	audEntity::audEntity()
+	{
+		
+	}
+
+	audEntity::~audEntity()
+	{
+		Shutdown();
+	}
 
 	static hook::cdecl_stub<void(audEntity*, const char*, audSound**, const audSoundInitParams&)> _audEntity_CreateSound_PersistentReference_char([]()
 	{
@@ -228,6 +472,36 @@ namespace rage
 	void audEntity::CreateSound_PersistentReference(uint32_t nameHash, audSound** outSound, const audSoundInitParams& params)
 	{
 		return _audEntity_CreateSound_PersistentReference_uint(this, nameHash, outSound, params);
+	}
+
+	static hook::thiscall_stub<void(audEntity*)> rage__audEntity__Init([]()
+	{
+		return hook::get_call(hook::get_pattern("48 81 EC C0 00 00 00 48 8B D9 E8 ? ? ? ? 45 33 ED", 10));
+	});
+
+	static hook::thiscall_stub<void(audEntity*)> rage__audEntity__Shutdown([]()
+	{
+		return hook::get_call(hook::get_pattern("48 83 EC 20 48 8B F9 E8 ? ? ? ? 33 ED", 7));
+	});
+
+	static hook::thiscall_stub<void(audEntity*, bool)> rage__audEntity__StopAllSounds([]()
+	{
+		return hook::get_call(hook::get_pattern("0F 82 67 FF FF FF E8 ? ? ? ? 84 C0", 24));
+	});
+
+	void audEntity::Init()
+	{
+		rage__audEntity__Init(this);
+	}
+
+	void audEntity::Shutdown()
+	{
+		rage__audEntity__Shutdown(this);
+	}
+
+	void audEntity::StopAllSounds(bool a)
+	{
+		rage__audEntity__StopAllSounds(this, a);
 	}
 
 	audEntity* g_frontendAudioEntity;
@@ -262,6 +536,81 @@ namespace rage
 	{
 		return _linearToDb(x);
 	}
+
+	static uint64_t* _settingsBase;
+	static uint32_t* _settingsIdx;
+
+	audRequestedSettings* audSound::GetRequestedSettings()
+	{
+		char* v4 = (char*)this;
+
+		audRequestedSettings* v5 = nullptr;
+		uint8_t v7 = *(unsigned __int8*)(v4 + 128);
+		if (v7 != 255)
+			v5 = (audRequestedSettings*)(*(uint64_t*)(13520i64 * *(unsigned __int8*)(v4 + 98) + *_settingsBase + 13504)
+				 + (unsigned int)(size_t(v7) * *_settingsIdx));
+
+		return v5;
+	}
+
+	static HookFunction hfRs([]()
+	{
+		auto location = hook::get_pattern<char>("74 23 0F B6 48 62 0F AF 15");
+		_settingsIdx = hook::get_address<uint32_t*>(location + 9);
+		_settingsBase = hook::get_address<uint64_t*>(location + 16);
+	});
+}
+
+class naEnvironmentGroup : public rage::audEnvironmentGroupInterface
+{
+public:
+	static naEnvironmentGroup* Create();
+
+	void Init(void* a2, float a3, int a4, int a5, float a6, int a7);
+
+	void SetPosition(const rage::Vec3V& position);
+
+	void SetInteriorLocation(rage::fwInteriorLocation location);
+};
+
+static hook::cdecl_stub<naEnvironmentGroup*()> _naEnvironmentGroup_create([]()
+{
+	return hook::get_pattern("F6 04 02 01 74 0A 8A 05", -0x24);
+});
+
+static hook::thiscall_stub<void(naEnvironmentGroup*, void* a2, float a3, int a4, int a5, float a6, int a7)> _naEnvironmentGroup_init([]()
+{
+	return hook::get_pattern("80 A7 10 01 00 00 FC", -0x22);
+});
+
+static hook::thiscall_stub<void(naEnvironmentGroup*, const rage::Vec3V& position)> _naEnvironmentGroup_setPosition([]()
+{
+	return hook::get_pattern("F3 0F 11 41 74 F3 0F 11 49 78 C3", -0x1F);
+});
+
+static hook::thiscall_stub<void(naEnvironmentGroup*, rage::fwInteriorLocation)> _naEnvironmentGroup_setInteriorLocation([]()
+{
+	return hook::get_pattern("3B 91 EC 00 00 00 74 07 80 89", -0x17);
+});
+
+naEnvironmentGroup* naEnvironmentGroup::Create()
+{
+	return _naEnvironmentGroup_create();
+}
+
+void naEnvironmentGroup::Init(void* a2, float a3, int a4, int a5, float a6, int a7)
+{
+	_naEnvironmentGroup_init(this, a2, a3, a4, a5, a6, a7);
+}
+
+void naEnvironmentGroup::SetPosition(const rage::Vec3V& position)
+{
+	_naEnvironmentGroup_setPosition(this, position);
+}
+
+void naEnvironmentGroup::SetInteriorLocation(rage::fwInteriorLocation location)
+{
+	_naEnvironmentGroup_setInteriorLocation(this, location);
 }
 
 static hook::cdecl_stub<void()> _updateAudioThread([]()
@@ -273,6 +622,326 @@ extern "C"
 {
 #include <libswresample/swresample.h>
 };
+
+class MumbleAudioEntity : public rage::audEntity
+{
+public:
+	MumbleAudioEntity()
+		: m_position(rage::Vec3V{ 0.f, 0.f, 0.f }),
+		  m_positionForce(rage::Vec3V{ 0.f, 0.f, 0.f }),
+		  m_buffer(nullptr),
+		  m_sound(nullptr), m_bufferData(nullptr), m_environmentGroup(nullptr), m_distance(5.0f), m_overrideVolume(-1.0f),
+		  m_ped(nullptr)
+	{
+	}
+
+	virtual void Init() override;
+
+	virtual rage::Vec3V GetPosition() override
+	{
+		if (m_positionForce.x != 0.0f || m_positionForce.y != 0.0f || m_positionForce.z != 0.0f)
+		{
+			return m_positionForce;
+		}
+
+		return m_position;
+	}
+
+	virtual void PreUpdateService(uint32_t) override;
+
+	virtual bool IsUnpausable() override
+	{
+		return true;
+	}
+
+	void SetPosition(float position[3], float distance, float overrideVolume)
+	{
+		m_position = { position[0],
+			position[1], position[2] };
+
+		m_distance = distance;
+		m_overrideVolume = overrideVolume;
+	}
+
+	void SetBackingEntity(CPed* ped)
+	{
+		m_ped = ped;
+	}
+
+	void PushAudio(int16_t* pcm, int len);
+
+private:
+	rage::audExternalStreamSound* m_sound;
+
+	alignas(16) rage::Vec3V m_position;
+	float m_distance;
+	float m_overrideVolume;
+
+	alignas(16) rage::Vec3V m_positionForce;
+
+	rage::audReferencedRingBuffer* m_buffer;
+
+	uint8_t* m_bufferData;
+
+	naEnvironmentGroup* m_environmentGroup;
+
+	CPed* m_ped;
+};
+
+void MumbleAudioEntity::Init()
+{
+	rage::audEntity::Init();
+
+	m_environmentGroup = naEnvironmentGroup::Create();
+	m_environmentGroup->Init(nullptr, 20.0f, 1000, 4000, 0.5f, 1000);
+	m_environmentGroup->SetPosition(m_position);
+
+	rage::audSoundInitParams initValues;
+
+	// set the audio category
+	auto category = rage::g_categoryMgr->GetCategoryPtr(HashString("GAME_WORLD"));
+
+	if (category)
+	{
+		initValues.SetCategory(category);
+	}
+
+	initValues.SetPositional(true);
+
+	initValues.SetEnvironmentGroup(m_environmentGroup);
+	//initValues.SetSubmixIndex(12);
+
+	//CreateSound_PersistentReference(0xD8CE9439, (rage::audSound**)&m_sound, initValues);
+	CreateSound_PersistentReference(0x8460F301, (rage::audSound**)&m_sound, initValues);
+
+	if (m_sound)
+	{
+		// have ~1 second of audio buffer room
+		auto size = 48000 * sizeof(int16_t) * 1;
+		m_bufferData = (uint8_t*)rage::GetAllocator()->Allocate(size, 16, 0);
+
+		m_buffer = new rage::audReferencedRingBuffer();
+		m_buffer->SetBuffer(m_bufferData, size);
+
+		m_sound->InitStreamPlayer(m_buffer, 1, 48000);
+		m_sound->PrepareAndPlay(nullptr, true, -1, false);
+
+		_updateAudioThread();
+	}
+}
+
+#include <scrEngine.h>
+
+static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_getInteriorLocation([]()
+{
+	return hook::get_pattern("EB 19 80 78 10 04 75 05", -0x1F);
+});
+
+void MumbleAudioEntity::PreUpdateService(uint32_t)
+{
+	if (m_sound)
+	{
+		auto settings = m_sound->GetRequestedSettings();
+
+		if (m_distance > 0.01f)
+		{
+			settings->SetVolumeCurveScale(m_distance / 5.0f);
+		}
+		else
+		{
+			settings->SetVolumeCurveScale(1.0f);
+		}
+		
+		if (m_overrideVolume >= 0.0f)
+		{
+			settings->SetVolume(rage::GetDbForLinear(m_overrideVolume));
+			*((char*)settings + 369) &= ~8;
+		}
+		else
+		{
+			settings->SetVolume(rage::GetDbForLinear(1.0f));
+			*((char*)settings + 369) |= 8;
+		}
+
+		settings->SetEnvironmentalLoudness(255);
+	}
+
+	// debugging position logic
+#if 0
+	float vec[8];
+	if (NativeInvoke::Invoke<0x6C4D0409BA1A2BC2, bool>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>(), &vec))
+	{
+		m_positionForce = {
+			vec[0], vec[2], vec[4]
+		};
+
+		// temp temp: use entity's interior location for now
+		rage::fwInteriorLocation loc;
+		((void (*)(void*, rage::fwInteriorLocation&))0x1408EA678)(*(void**)((*(uint64_t*)0x14247F840) + 8), loc);
+
+		m_environmentGroup->SetPosition(m_position);
+		m_environmentGroup->SetInteriorLocation(loc);
+	}
+#endif
+
+	if (m_environmentGroup)
+	{
+		m_environmentGroup->SetPosition(m_position);
+
+		if (m_ped)
+		{
+			rage::fwInteriorLocation interiorLocation;
+			_entity_getInteriorLocation(m_ped, interiorLocation);
+			m_environmentGroup->SetInteriorLocation(interiorLocation);
+		}
+	}
+}
+
+void MumbleAudioEntity::PushAudio(int16_t* pcm, int len)
+{
+	if (m_buffer)
+	{
+		// push audio to the buffer
+		m_buffer->PushAudio(pcm, len * sizeof(int16_t) * 1);
+	}
+}
+
+class MumbleAudioSink : public IMumbleAudioSink
+{
+public:
+	void Process();
+
+	MumbleAudioSink(const std::wstring& name);
+	virtual ~MumbleAudioSink() override;
+
+	virtual void SetPosition(float position[3], float distance, float overrideVolume) override;
+	virtual void PushAudio(int16_t* pcm, int len) override;
+
+private:
+	int m_serverId;
+	std::shared_ptr<MumbleAudioEntity> m_entity;
+
+	alignas(16) rage::Vec3V m_position;
+	float m_distance;
+	float m_overrideVolume;
+};
+
+static std::mutex g_sinksMutex;
+static std::set<MumbleAudioSink*> g_sinks;
+
+static std::regex g_usernameRe("^\\[(0-9+)\\] ");
+
+MumbleAudioSink::MumbleAudioSink(const std::wstring& name)
+	: m_serverId(-1), m_position(rage::Vec3V{ 0.f, 0.f, 0.f }), m_distance(5.0f), m_overrideVolume(-1.0f)
+{
+	auto userName = ToNarrow(name);
+
+	if (userName.length() >= 2)
+	{
+		int serverId = atoi(userName.substr(1, userName.length() - 1).c_str());
+
+		m_serverId = serverId;
+	}
+
+	std::lock_guard<std::mutex> _(g_sinksMutex);
+	g_sinks.insert(this);
+}
+
+MumbleAudioSink::~MumbleAudioSink()
+{
+	std::lock_guard<std::mutex> _(g_sinksMutex);
+	g_sinks.erase(this);
+}
+
+void MumbleAudioSink::SetPosition(float position[3], float distance, float overrideVolume)
+{
+	m_position = rage::Vec3V{
+		position[0], position[1], position[2]
+	};
+
+	m_distance = distance;
+	m_overrideVolume = overrideVolume;
+}
+
+void MumbleAudioSink::PushAudio(int16_t* pcm, int len)
+{
+	if (m_entity)
+	{
+		m_entity->PushAudio(pcm, len);
+	}
+}
+
+class FxNativeInvoke
+{
+private:
+	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
+	{
+		(*handler)(cxt);
+	}
+
+public:
+	template<typename R, typename... Args>
+	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
+	{
+		fx::ScriptContextBuffer cxt;
+
+		pass{ ([&]()
+		{
+			cxt.Push(args);
+		}(),
+		1)... };
+
+		Invoke(cxt, handler);
+
+		return cxt.GetResult<R>();
+	}
+};
+
+void MumbleAudioSink::Process()
+{
+	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
+	static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
+	static auto getEntityAddress = fx::ScriptEngine::GetNativeHandler(HashString("GET_ENTITY_ADDRESS"));
+
+	auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, m_serverId);
+
+	if (playerId > 256 || playerId == -1)
+	{
+		m_entity = {};
+	}
+	else
+	{
+		if (!m_entity)
+		{
+			m_entity = std::make_shared<MumbleAudioEntity>();
+			m_entity->Init();
+		}
+
+		m_entity->SetPosition((float*)&m_position, m_distance, m_overrideVolume);
+		
+		auto ped = FxNativeInvoke::Invoke<int>(getPlayerPed, playerId);
+
+		if (ped > 0)
+		{
+			auto address = FxNativeInvoke::Invoke<CPed*>(getEntityAddress, ped);
+
+			m_entity->SetBackingEntity(address);
+		}
+		else
+		{
+			m_entity->SetBackingEntity(nullptr);
+		}
+	}
+}
+
+void ProcessAudioSinks()
+{
+	std::lock_guard<std::mutex> _(g_sinksMutex);
+	for (auto sink : g_sinks)
+	{
+		sink->Process();
+	}
+}
 
 class RageAudioStream : public nui::IAudioStream
 {
@@ -523,6 +1192,14 @@ static InitFunction initFunction([]()
 				lastSong = musicThemeVariable.GetValue();
 			}
 		}
+
+		ProcessAudioSinks();
+	});
+
+	OnGetMumbleAudioSink.Connect([](const std::wstring& name, fwRefContainer<IMumbleAudioSink>* sink)
+	{
+		fwRefContainer<MumbleAudioSink> ref = new MumbleAudioSink(name);
+		*sink = ref;
 	});
 
 	//nui::SetAudioSink(&g_audioSink);

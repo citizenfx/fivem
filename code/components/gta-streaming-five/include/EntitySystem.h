@@ -145,7 +145,12 @@ public:
 	uint8_t assetType;
 	uint8_t pad4;
 
+	// +100
 	uint32_t assetIndex;
+
+	// +104
+	char m_pad[53];
+	uint8_t miType : 5;
 };
 
 namespace rage
@@ -504,3 +509,56 @@ struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 
 	// etc.
 };
+
+namespace rage
+{
+class fwInteriorLocation
+{
+public:
+	inline fwInteriorLocation()
+	{
+		m_interiorIndex = -1;
+		m_isPortal = false;
+		m_unk = false;
+		m_innerIndex = -1;
+	}
+
+	inline fwInteriorLocation(uint16_t interiorIndex, bool isPortal, uint16_t innerIndex)
+		: fwInteriorLocation()
+	{
+		m_interiorIndex = interiorIndex;
+		m_isPortal = isPortal;
+		m_innerIndex = innerIndex;
+	}
+
+	inline uint16_t GetInteriorIndex()
+	{
+		return m_interiorIndex;
+	}
+
+	inline uint16_t GetRoomIndex()
+	{
+		assert(!m_isPortal);
+
+		return m_innerIndex;
+	}
+
+	inline uint16_t GetPortalIndex()
+	{
+		assert(m_isPortal);
+
+		return m_innerIndex;
+	}
+
+	inline bool IsPortal()
+	{
+		return m_isPortal;
+	}
+
+private:
+	uint16_t m_interiorIndex;
+	uint16_t m_isPortal : 1;
+	uint16_t m_unk : 1;
+	uint16_t m_innerIndex : 14;
+};
+}
