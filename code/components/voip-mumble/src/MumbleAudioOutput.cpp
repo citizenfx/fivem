@@ -207,6 +207,8 @@ void MumbleAudioOutput::Initialize()
 			std::this_thread::sleep_for(std::chrono::seconds(60));
 		}
 	});
+
+	OnSetMumbleVolume(m_volume);
 }
 
 MumbleAudioOutput::ClientAudioStateBase::ClientAudioStateBase()
@@ -426,6 +428,10 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 DLL_EXPORT
 fwEvent<const std::wstring&, fwRefContainer<IMumbleAudioSink>*>
 OnGetMumbleAudioSink;
+
+DLL_EXPORT
+fwEvent<float>
+OnSetMumbleVolume;
 
 MumbleAudioOutput::ExternalAudioState::ExternalAudioState(fwRefContainer<IMumbleAudioSink> sink)
 	: ClientAudioStateBase(), sink(sink)
@@ -1061,6 +1067,7 @@ float MumbleAudioOutput::GetDistance()
 void MumbleAudioOutput::SetVolume(float volume)
 {
 	m_volume = volume;
+	OnSetMumbleVolume(volume);
 
 	if (m_masteringVoice && m_initialized)
 	{

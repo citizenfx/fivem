@@ -16,3 +16,12 @@ DLL_EXPORT
 #endif
 fwEvent<const std::wstring&, fwRefContainer<IMumbleAudioSink>*>
 OnGetMumbleAudioSink;
+
+extern
+#ifndef COMPILING_VOIP_MUMBLE
+DLL_IMPORT
+#else
+DLL_EXPORT
+#endif
+fwEvent<float>
+OnSetMumbleVolume;

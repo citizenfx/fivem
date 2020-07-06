@@ -508,6 +508,31 @@ namespace rage
 
 	audCategoryManager* g_categoryMgr;
 
+	class audCategoryControllerManager
+	{
+	public:
+		char* CreateController(uint32_t hash);
+
+		static audCategoryControllerManager* GetInstance();
+	};
+
+	audCategoryControllerManager* audCategoryControllerManager::GetInstance()
+	{
+		static auto patternRef = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("45 33 C0 BA 90 1C E2 44 E8", -4));
+
+		return *patternRef;
+	}
+
+	static hook::thiscall_stub<char*(audCategoryControllerManager*, uint32_t)> _audCategoryControllerManager_CreateController([]()
+	{
+		return hook::get_call(hook::get_pattern("45 33 C0 BA 90 1C E2 44 E8", 8));
+	});
+
+	char* audCategoryControllerManager::CreateController(uint32_t hash)
+	{
+		return _audCategoryControllerManager_CreateController(this, hash);
+	}
+
 	static HookFunction hookFunction([]()
 	{
 		g_frontendAudioEntity = hook::get_address<audEntity*>(hook::get_pattern("4C 8D 4C 24 50 4C 8D 43 08 48 8D 0D", 0xC));
@@ -699,7 +724,7 @@ void MumbleAudioEntity::Init()
 	rage::audSoundInitParams initValues;
 
 	// set the audio category
-	auto category = rage::g_categoryMgr->GetCategoryPtr(HashString("GAME_WORLD"));
+	auto category = rage::g_categoryMgr->GetCategoryPtr(HashString("MUMBLE"));
 
 	if (category)
 	{
@@ -779,9 +804,11 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 		rage::fwInteriorLocation loc;
 		((void (*)(void*, rage::fwInteriorLocation&))0x1408EA678)(*(void**)((*(uint64_t*)0x14247F840) + 8), loc);
 
-		m_environmentGroup->SetPosition(m_position);
+		m_environmentGroup->SetPosition(m_positionForce);
 		m_environmentGroup->SetInteriorLocation(loc);
 	}
+
+	return;
 #endif
 
 	if (m_environmentGroup)
@@ -828,8 +855,6 @@ private:
 
 static std::mutex g_sinksMutex;
 static std::set<MumbleAudioSink*> g_sinks;
-
-static std::regex g_usernameRe("^\\[(0-9+)\\] ");
 
 MumbleAudioSink::MumbleAudioSink(const std::wstring& name)
 	: m_serverId(-1), m_position(rage::Vec3V{ 0.f, 0.f, 0.f }), m_distance(5.0f), m_overrideVolume(-1.0f)
@@ -902,6 +927,19 @@ void MumbleAudioSink::Process()
 	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
 	static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
 	static auto getEntityAddress = fx::ScriptEngine::GetNativeHandler(HashString("GET_ENTITY_ADDRESS"));
+
+#if 0
+	if (m_serverId == 0)
+	{
+		if (!m_entity)
+		{
+			m_entity = std::make_shared<MumbleAudioEntity>();
+			m_entity->Init();
+		}
+
+		return;
+	}
+#endif
 
 	auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, m_serverId);
 
@@ -1114,9 +1152,22 @@ enum AudioPrefs
 	PREF_MUSIC_VOLUME_IN_MP = 0x25,
 };
 
+static bool (*g_origLoadCategories)(void* a1, const char* why, const char* filename, int a4, int version, bool, void*);
+
+bool LoadCategories(void* a1, const char* why, const char* filename, int a4, int version, bool a6, void* a7)
+{
+	return g_origLoadCategories(a1, why, "citizen:/platform/audio/config/categories.dat", a4, version, a6, a7);
+}
+
 static HookFunction hookFunction([]()
 {
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
+
+	{
+		auto location = hook::get_pattern("41 B9 04 00 00 00 C6 44 24 28 01 C7 44 24 20 16 00 00 00 E8", 19);
+		hook::set_call(&g_origLoadCategories, location);
+		hook::call(location, LoadCategories);
+	}
 });
 
 static InitFunction initFunction([]()
@@ -1200,6 +1251,23 @@ static InitFunction initFunction([]()
 	{
 		fwRefContainer<MumbleAudioSink> ref = new MumbleAudioSink(name);
 		*sink = ref;
+	});
+
+	OnSetMumbleVolume.Connect([](float volume) {
+		auto controllerMgr = rage::audCategoryControllerManager::GetInstance();
+
+		if (!controllerMgr)
+		{
+			return;
+		}
+
+		static auto controller = controllerMgr->CreateController(HashString("mumble"));
+
+		if (controller)
+		{
+			*(float*)(&controller[0]) = volume * 3.0f;
+			*(float*)(&controller[4]) = 0.0f;
+		}
 	});
 
 	//nui::SetAudioSink(&g_audioSink);
