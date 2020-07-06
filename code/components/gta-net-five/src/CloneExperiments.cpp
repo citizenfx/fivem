@@ -1449,26 +1449,7 @@ inline std::chrono::milliseconds msec()
 }
 
 // TODO: event expiration?
-struct netGameEventState
-{
-	rage::netGameEvent* ev;
-	std::chrono::milliseconds time;
-	bool sent;
-
-	netGameEventState()
-		: ev(nullptr), time(0), sent(false)
-	{
-
-	}
-
-	netGameEventState(rage::netGameEvent* ev, std::chrono::milliseconds time)
-		: ev(ev), time(time), sent(false)
-	{
-
-	}
-};
-
-static std::map<uint16_t, netGameEventState> g_events;
+static std::map<uint16_t, std::tuple<rage::netGameEvent*, std::chrono::milliseconds>> g_events;
 static uint16_t eventHeader;
 
 static void(*g_origAddEvent)(void*, rage::netGameEvent*);
@@ -1490,28 +1471,23 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	for (auto& eventPair : g_events)
 	{
 		auto [key, tup] = eventPair;
+		auto [event, time] = tup;
 
-		if (tup.ev && tup.ev->Equals(ev))
+		if (event && event->Equals(ev))
 		{
 			delete ev;
 			return;
 		}
 	}
 
-	// we don't need the event anymore
-	g_events[eventHeader] = { ev, msec() };
-
-	++eventHeader;
-}
-
-static void SendGameEventRaw(rage::netGameEvent* ev)
-{
 	// TODO: use a real player for some things
 	if (!g_player31)
 	{
 		g_player31 = AllocateNetPlayer(nullptr);
 		g_player31->physicalPlayerIndex = 31;
 	}
+
+	//trace("packing a %s\n", ev->GetName());
 
 	// allocate a RAGE buffer
 	uint8_t packetStub[1024];
@@ -1560,12 +1536,17 @@ static void SendGameEventRaw(rage::netGameEvent* ev)
 	outBuffer.Write<uint16_t>(eventHeader);
 	outBuffer.Write<uint8_t>(0);
 	outBuffer.Write<uint16_t>(ev->eventId);
-
+	
 	uint32_t len = rlBuffer.GetDataLength();
 	outBuffer.Write<uint16_t>(len); // length (short)
 	outBuffer.Write(rlBuffer.m_data, len); // data
 
 	g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+
+	// we don't need the event anymore
+	g_events[eventHeader] = { ev, msec() };
+
+	++eventHeader;
 }
 
 static atPoolBase** g_netGameEventPool;
@@ -1577,36 +1558,21 @@ static void EventManager_Update()
 		return;
 	}
 
-	std::set<uint16_t> toRemove;
-
 	for (auto& eventPair : g_events)
 	{
-		auto& evSet = eventPair.second;
-		auto ev = evSet.ev;
+		auto [ev, time] = eventPair.second;
 
 		if (ev)
 		{
-			if (!evSet.sent)
-			{
-				SendGameEventRaw(ev);
-
-				evSet.sent = true;
-			}
-
 			auto expiryDuration = 5s;
 
-			if (ev->HasTimedOut() || (msec() - evSet.time) > expiryDuration)
+			if (ev->HasTimedOut() || (msec() - time) > expiryDuration)
 			{
 				delete ev;
 
-				toRemove.insert(eventPair.first);
+				eventPair.second = { };
 			}
 		}
-	}
-
-	for (auto var : toRemove)
-	{
-		g_events.erase(var);
 	}
 }
 
@@ -1653,8 +1619,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 	if (isReply)
 	{
-		auto evSet = g_events[eventHeader];
-		auto ev = evSet.ev;
+		auto [ ev, time ] = g_events[eventHeader];
 
 		if (ev)
 		{
@@ -1662,7 +1627,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 			ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
 
 			delete ev;
-			g_events.erase(eventHeader);
+			g_events[eventHeader] = {};
 		}
 	}
 	else
