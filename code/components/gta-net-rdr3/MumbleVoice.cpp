@@ -375,7 +375,7 @@ static HookFunction hookFunction([]()
     rage::scrEngine::OnScriptInit.Connect([]()
     {
 
-        g_preference = hook::get_pattern<char>("D0 3E 7B 45 01 00 00 00 E0 4D 27 45", 0x2B4);
+        g_preference = hook::get_pattern<char>("40 01 00 00 80 02 00 00 A0 41 00 00 00 00 00 00", +0x9D4);
 
 		//g_device = hook::get_pattern<char>("CD CC 4C 3E 00 00 80 3F CD CC CC 3D 00 00 80 BE",  -0x16E);
 		
