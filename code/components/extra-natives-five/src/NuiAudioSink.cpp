@@ -881,7 +881,7 @@ MumbleAudioSink::~MumbleAudioSink()
 void MumbleAudioSink::SetPosition(float position[3], float distance, float overrideVolume)
 {
 	m_position = rage::Vec3V{
-		position[0], position[1], position[2]
+		position[0], position[2], position[1]
 	};
 
 	m_distance = distance;

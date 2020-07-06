@@ -473,6 +473,20 @@ void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* base
 		}
 	}
 
+	using namespace DirectX;
+
+	auto emitterPos = XMVectorSet(position[0], position[1], position[2], 0.0f);
+	auto listenerPos = XMVectorSet(baseIo->m_listener.Position.x, baseIo->m_listener.Position.y, baseIo->m_listener.Position.z, 0.0f);
+
+	bool shouldHear = (abs(distance) < 0.01f) ? true : (XMVectorGetX(XMVector3LengthSq(emitterPos - listenerPos)) < (distance * distance));
+
+	if (client->overrideVolume >= 0.0f)
+	{
+		shouldHear = client->overrideVolume >= 0.005f;
+	}
+
+	client->isAudible = shouldHear;
+
 	sink->SetPosition(position, distance, client->overrideVolume);
 }
 
