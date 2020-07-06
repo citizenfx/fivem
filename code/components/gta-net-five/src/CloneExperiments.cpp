@@ -1469,6 +1469,7 @@ struct netGameEventState
 };
 
 static std::map<uint16_t, netGameEventState> g_events;
+static uint16_t eventHeader;
 
 static void(*g_origAddEvent)(void*, rage::netGameEvent*);
 
@@ -1498,7 +1499,9 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	}
 
 	// we don't need the event anymore
-	g_events[ev->eventId] = { ev, msec() };
+	g_events[eventHeader] = { ev, msec() };
+
+	++eventHeader;
 }
 
 static void SendGameEventRaw(rage::netGameEvent* ev)
@@ -1554,7 +1557,7 @@ static void SendGameEventRaw(rage::netGameEvent* ev)
 		outBuffer.Write<uint16_t>(playerId);
 	}
 
-	outBuffer.Write<uint16_t>(ev->eventId);
+	outBuffer.Write<uint16_t>(eventHeader);
 	outBuffer.Write<uint8_t>(0);
 	outBuffer.Write<uint16_t>(ev->eventId);
 
