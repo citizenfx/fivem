@@ -134,7 +134,7 @@ private:
 
 		virtual bool Valid() override
 		{
-			return !(context || !context->destination());
+			return context && context->destination();
 		}
 
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;
