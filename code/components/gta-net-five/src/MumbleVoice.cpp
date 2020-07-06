@@ -441,7 +441,6 @@ static std::bitset<256> g_talkers;
 static std::bitset<256> o_talkers;
 
 static std::unordered_map<std::string, int> g_userNamesToClientIds;
-static std::regex g_usernameRe("^\\[(0-9+)\\] ");
 
 static auto PositionHook(const std::string& userName) -> std::optional<std::array<float, 3>>
 {
@@ -463,12 +462,17 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
 		static auto getEntityCoords = fx::ScriptEngine::GetNativeHandler(0x3FEF770D40960D5A);
 
-		int ped = FxNativeInvoke::Invoke<int>(getPlayerPed, FxNativeInvoke::Invoke<int>(getByServerId, it->second));
+		auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, it->second);
 
-		if (ped > 0)
+		if (playerId < 256 && playerId != -1)
 		{
-			auto coords = FxNativeInvoke::Invoke<scrVector>(getEntityCoords, ped);
-			return { { coords.x, coords.y, coords.z } };
+			int ped = FxNativeInvoke::Invoke<int>(getPlayerPed, playerId);
+
+			if (ped > 0)
+			{
+				auto coords = FxNativeInvoke::Invoke<scrVector>(getEntityCoords, ped);
+				return { { coords.x, coords.y, coords.z } };
+			}
 		}
 	}
 
