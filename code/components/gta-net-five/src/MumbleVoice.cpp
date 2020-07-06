@@ -19,6 +19,7 @@
 #include <mmsystem.h>
 #include <dsound.h>
 #include <ScriptEngine.h>
+#include <scrEngine.h>
 
 #include <CoreConsole.h>
 
@@ -460,7 +461,6 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 	{
 		static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
 		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
-		static auto getEntityCoords = fx::ScriptEngine::GetNativeHandler(0x3FEF770D40960D5A);
 
 		auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, it->second);
 
@@ -470,7 +470,7 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 
 			if (ped > 0)
 			{
-				auto coords = FxNativeInvoke::Invoke<scrVector>(getEntityCoords, ped);
+				auto coords = NativeInvoke::Invoke<0x3FEF770D40960D5A, scrVector>(ped);
 				return { { coords.x, coords.y, coords.z } };
 			}
 		}
