@@ -275,6 +275,35 @@ namespace rage
 	}
 }
 
+static int fuck(void* a, int b, int d)
+{
+	auto sh = ((char* (*)(void*, int))0x1425F83A8)(a, b);
+
+	if (b == 0xBE58AB55 && *(int*)(&sh[4]) == 10)
+	{
+		*(int*)(&sh[4]) = 3;
+	}
+
+	if (sh && (sh[0] & 3) == 0)
+	{
+		d = *(int*)(&sh[4]);
+	}
+
+	return d;
+}
+
+static bool ret0()
+{
+	return false;
+}
+
+void w(const char* r)
+{
+	((void (*)())0x140A5529C)();
+
+	((void (*)(const char*))0x140E102D0)(r);
+}
+
 static HookFunction hookFunction([]()
 {
 	auto registerPools = [](hook::pattern& patternMatch, int callOffset, int hashOffset)
@@ -332,4 +361,20 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("48 63 49 1C 48 3B D1 77 ? 49 63 52 20", -3), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	// r
+	//MH_CreateHook((void*)0x1425F8410, fuck, NULL);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	//*(uint32_t*)0x140A9B415 = 0xA;
+	//hook::nop(0x140A9B51D, 6);
+
+	hook::put(0x14352F688, ret0);
+	hook::put(0x14352F9D8, ret0);
+
+	hook::nop(0x142ABE2A7, 2);
+
+	// reg sfes
+	//140A5529C
+	hook::call(0x140ED927D, w);
 });
