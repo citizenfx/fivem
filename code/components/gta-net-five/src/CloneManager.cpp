@@ -1022,6 +1022,14 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		Log("%s: unknown obj?\n", __func__);
 
+		if (m_pendingRemoveAcks.find({
+			msg.GetObjectId(), msg.GetUniqifier()}) != m_pendingRemoveAcks.end())
+		{
+			// hey, we're deleting this object, you don't know it yet, so you're giving it back to us as 'new'
+			// we don't want it though, so we'll pretend it's all right :)
+			return AckResult::OK;
+		}
+
 		return AckResult::ResendCreate;
 	}
 

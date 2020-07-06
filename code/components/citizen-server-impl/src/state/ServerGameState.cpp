@@ -955,7 +955,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			auto [entityId, syncDelay, shouldBeCreated] = entityIdTuple;
 			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityHandleMap[entityId]];
 
-			if (!entity || !shouldBeCreated)
+			if (!entity || !shouldBeCreated || entity->deleting)
 			{
 				continue;
 			}
