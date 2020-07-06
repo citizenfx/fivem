@@ -362,7 +362,9 @@ static const luaL_Reg lualibs[] = {
 	{ LUA_OSLIBNAME, luaopen_os },
 #endif
 	{ "msgpack", luaopen_cmsgpack },
+#if LUA_VERSION_NUM == 504
 	{ "json", luaopen_rapidjson },
+#endif
 	{ NULL, NULL }
 };
 
@@ -1606,6 +1608,23 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 
 	// load the system scheduler script
 	result_t hr;
+
+#if LUA_VERSION_NUM == 503
+	int lua_rapidjson = 0;
+	m_resourceHost->GetNumResourceMetaData("lua_rapidjson", &lua_rapidjson);
+	if (lua_rapidjson)
+	{
+		luaL_requiref(m_state, "json", luaopen_rapidjson, 1);
+		lua_pop(m_state, 1);
+	}
+	else
+	{
+		if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/json.lua")))
+		{
+			return hr;
+		}
+	}
+#endif
 
 	if (FX_FAILED(hr = LoadNativesBuild(nativesBuild)))
 	{

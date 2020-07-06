@@ -8,7 +8,10 @@ msgpack.set_array('without_hole')
 msgpack.setoption('empty_table_as_array', true)
 
 -- setup json compat
-json.setoption("empty_table_as_array", true)
+if json.setoption then -- rapidjson
+	json.version = json._VERSION -- Version compatibility
+	json.setoption("empty_table_as_array", true)
+end
 
 -- temp
 local function FormatStackTrace()
