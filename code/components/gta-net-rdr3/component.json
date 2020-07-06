@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
+		"voip:mumble",
 		"gta:core",
 		"rage:nutsnbolts",
 		"rage:scripting",
