@@ -146,9 +146,7 @@ public:
 	{
 		return *m_name;
 	}
-#endif
 
-#ifdef RAGE_FORMATS_GAME_FIVE
 	inline void SetName(const char* name)
 	{
 		m_name = pgStreamManager::StringDup(name);

@@ -11,6 +11,201 @@
 #include <boost/filesystem.hpp>
 
 #ifdef IS_RDR3
+#undef RAGE_FORMATS_GAME_NY
+#undef RAGE_FORMATS_GAME
+#define RAGE_FORMATS_GAME five
+#define RAGE_FORMATS_GAME_FIVE
+#include <gtaDrawable.h>
+#include <phBound.h>
+#include <fragType.h>
+
+#undef RAGE_FORMATS_GAME_FIVE
+#undef RAGE_FORMATS_GAME
+#define RAGE_FORMATS_GAME rdr3
+#define RAGE_FORMATS_GAME_RDR3
+#include <gtaDrawable.h>
+#include <phBound.h>
+#include <fragType.h>
+
+#include <convert/gtaDrawable_five_rdr3.h>
+#include <convert/phBound_five_rdr3.h>
+
+#include <optional>
+
+rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFlags* flags);
+
+template<typename T>
+static bool OutputFile(const T&& callback, int fileVersion, const std::wstring& fileName)
+{
+	auto bm = rage::rdr3::pgStreamManager::BeginPacking();
+
+	callback();
+
+	rage::rdr3::pgStreamManager::EndPacking();
+
+	FILE* f = _wfopen(fileName.c_str(), L"wb");
+
+	if (!f)
+	{
+		printf("... couldn't open output file for writing.\n");
+		return false;
+	}
+
+	size_t outputSize = 0;
+
+	bm->Save(fileVersion, [&](const void* d, size_t s)
+	{
+		fwrite(d, 1, s, f);
+
+		outputSize += s;
+	});
+
+	wprintf(L"written %s successfully - compressed size %d\n", boost::filesystem::path(fileName).filename().c_str(), outputSize);
+
+	fclose(f);
+
+	return true;
+}
+
+template<typename TOutput, typename TInput, typename TBlockMap>
+static bool AutoConvert(TBlockMap blockMap, const std::wstring& fileName, int fileVersion, const wchar_t* fileExtOverride = nullptr, const std::function<void(TOutput*)>& postCb = {})
+{
+	std::wstring fileExt = std::wstring(wcsrchr(fileName.c_str(), L'.'));
+
+	if (fileExtOverride)
+	{
+		fileExt = fileExtOverride;
+	}
+
+	std::wstring outFileName(fileName);
+	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + L"_nya.y" + fileExt.substr(2);
+
+	return OutputFile([&]()
+	{
+		auto tgt = rage::convert<TOutput*>((TInput*)blockMap->blocks[0].data);
+
+		if (postCb)
+		{
+			postCb(tgt);
+		}
+	},
+	fileVersion, outFileName);
+}
+
+struct GameConfig_Five
+{
+	static auto UnwrapRSC(const wchar_t* fileName)
+	{
+		rage::five::ResourceFlags rf;
+		return UnwrapRSC7(fileName, &rf);
+	}
+
+	using StreamManager = rage::five::pgStreamManager;
+	using TBound = rage::five::phBound;
+	using TDrawable = rage::five::gtaDrawable;
+	using TFragment = rage::five::fragType;
+	using TTxd = rage::five::pgDictionary<rage::five::grcTexturePC>;
+	using TDwd = rage::five::pgDictionary<rage::five::gtaDrawable>;
+};
+
+template<typename TConfig>
+static void ConvertFile(const boost::filesystem::path& path)
+{
+	std::wstring fileNameStr = path.wstring();
+	const wchar_t* fileName = fileNameStr.c_str();
+
+	auto bm = TConfig::UnwrapRSC(fileName);
+
+	if (!bm)
+	{
+		wprintf(L"couldn't open input file %s...\n", path.filename().c_str());
+		return;
+	}
+
+	std::wstring fileExt = std::wstring(wcsrchr(fileName, L'.'));
+
+	TConfig::StreamManager::SetBlockInfo(bm);
+
+	int fileVersion = 0;
+
+	if (fileExt == L".ydr")
+	{
+		wprintf(L"converting drawable %s...\n", path.filename().c_str());
+
+		AutoConvert<rage::rdr3::gtaDrawable, typename TConfig::TDrawable>(bm, fileName, 162);
+	}
+	else if (fileExt == L".yft")
+	{
+		wprintf(L"converting fragtype %s...\n", path.filename().c_str());
+
+		AutoConvert<rage::rdr3::gtaDrawable, typename TConfig::TFragment>(bm, fileName, 162);
+	}
+	else if (fileExt == L".ybn")
+	{
+		wprintf(L"converting bound %s...\n", path.filename().c_str());
+
+		AutoConvert<rage::rdr3::phBound, typename TConfig::TBound>(bm, fileName, 47);
+	}
+	else if (fileExt == L".ydd")
+	{
+		wprintf(L"converting dwd %s...\n", path.filename().c_str());
+
+		AutoConvert<rage::rdr3::pgDictionary<rage::rdr3::gtaDrawable>, typename TConfig::TDwd>(bm, fileName, 162);
+	}
+	else if (fileExt == L".ytd")
+	{
+		wprintf(L"converting txd %s...\n", path.filename().c_str());
+
+		AutoConvert<rage::rdr3::pgDictionary<rage::rdr3::grcTexturePC>, typename TConfig::TTxd>(bm, fileName, 2);
+	}
+	else
+	{
+		printf("unknown file extension...\n");
+
+		return;
+	}
+
+	for (int i = 0; i < bm->physicalLen + bm->virtualLen; i++)
+	{
+		delete bm->blocks[i].data;
+	}
+
+	delete bm;
+}
+
+static void FormatsConvert_HandleArguments(boost::program_options::wcommand_line_parser& parser, std::function<void()> cb)
+{
+	boost::program_options::options_description desc;
+
+	desc.add_options()("filename", boost::program_options::wvalue<std::vector<boost::filesystem::path>>()->required(), "The path of the file to convert.");
+
+	boost::program_options::positional_options_description positional;
+	positional.add("filename", -1);
+
+	parser.options(desc).positional(positional);
+
+	cb();
+}
+
+static void FormatsConvert_Run(const boost::program_options::variables_map& map)
+{
+	if (map.count("filename") == 0)
+	{
+		printf("Usage:\n\n   redm formats:convert filename<1-n>...\n\nCurrently, GTA:Five .#bn files are supported.\nSee your vendor for details.\n");
+		return;
+	}
+
+	auto& entries = map["filename"].as<std::vector<boost::filesystem::path>>();
+
+	for (auto& filePath : entries)
+	{
+		ConvertFile<GameConfig_Five>(filePath);
+	}
+}
+
+static FxToolCommand formatsConvert("formats:convert", FormatsConvert_HandleArguments, FormatsConvert_Run);
+
+#ifdef TXD_TEST
 #undef RAGE_FORMATS_GAME_FIVE
 #undef RAGE_FORMATS_GAME
 #define RAGE_FORMATS_GAME rdr3
@@ -1027,4 +1222,5 @@ static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 }
 
 static FxToolCommand formatsConvert("formats:txd", FormatsConvert_HandleArguments, FormatsConvert_Run);
+#endif
 #endif

@@ -68,6 +68,7 @@ namespace rage
 
 		out->SetChildBounds(childCount, &children[0]);
 
+#if 0
 		// convert aux data
 		std::vector<five::phBoundAABB> childAABBs(childCount);
 		rdr3::phBoundAABB* inAABBs = bound->GetChildAABBs();
@@ -81,6 +82,7 @@ namespace rage
 		}
 
 		out->SetChildAABBs(childCount, &childAABBs[0]);
+#endif
 
 		// convert matrices
 		std::vector<five::Matrix3x4> childMatrices(childCount);

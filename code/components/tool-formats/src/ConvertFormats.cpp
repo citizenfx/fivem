@@ -12,7 +12,6 @@
 
 #include <boost/filesystem.hpp>
 
-#ifndef IS_RDR3
 #define RAGE_FORMATS_GAME payne
 #define RAGE_FORMATS_GAME_PAYNE
 #include <gtaDrawable.h>
@@ -42,6 +41,7 @@
 #include <phBound.h>
 #include <fragType.h>
 
+#ifndef IS_RDR3
 #include <convert/gtaDrawable_ny_five.h>
 #include <convert/phBound_ny_five.h>
 
@@ -316,6 +316,7 @@ static void FormatsConvert_HandleArguments(boost::program_options::wcommand_line
 
 	cb();
 }
+#endif
 
 #include <zlib.h>
 
@@ -356,17 +357,38 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFl
         return nullptr;
     }*/
 
+	auto fla = [](uint32_t flags)
+	{
+		auto s0 = ((flags >> 27) & 0x1) << 0; // 1 bit  - 27        (*1)
+		auto s1 = ((flags >> 26) & 0x1) << 1; // 1 bit  - 26        (*2)
+		auto s2 = ((flags >> 25) & 0x1) << 2; // 1 bit  - 25        (*4)
+		auto s3 = ((flags >> 24) & 0x1) << 3; // 1 bit  - 24        (*8)
+		auto s4 = ((flags >> 17) & 0x7F) << 4; // 7 bits - 17 - 23   (*16)   (max 127 * 16)
+		auto s5 = ((flags >> 11) & 0x3F) << 5; // 6 bits - 11 - 16   (*32)   (max 63  * 32)
+		auto s6 = ((flags >> 7) & 0xF) << 6; // 4 bits - 7  - 10   (*64)   (max 15  * 64)
+		auto s7 = ((flags >> 5) & 0x3) << 7; // 2 bits - 5  - 6    (*128)  (max 3   * 128)
+		auto s8 = ((flags >> 4) & 0x1) << 8; // 1 bit  - 4         (*256)
+		auto ss = ((flags >> 0) & 0xF); // 4 bits - 0  - 3
+		auto baseSize = 0x200 << (int)ss;
+		auto size = baseSize * (s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7 + s8);
+		return (int)size;
+
+	};
+
     uint32_t flag;
 
 	fread(&flag, 1, sizeof(flag), f);
 	flags->virtualFlag = flag;
 
-    uint32_t virtualSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
+    //uint32_t virtualSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
+	uint32_t virtualSize = fla(flag);
 
     fread(&flag, 1, sizeof(flag), f);
 	flags->physicalFlag = flag;
 
-    uint32_t physicalSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
+	uint32_t physicalSize = fla(flag);
+
+    //uint32_t physicalSize = ((((flag >> 17) & 0x7f) + (((flag >> 11) & 0x3f) << 1) + (((flag >> 7) & 0xf) << 2) + (((flag >> 5) & 0x3) << 3) + (((flag >> 4) & 0x1) << 4)) * (0x2000 << (flag & 0xF)));
 
     std::vector<uint8_t> tempBytes(virtualSize + physicalSize);
 
@@ -427,6 +449,7 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFl
     return bm;
 }
 
+#ifdef GTA_FIVE
 static void FormatsConvert_Run(const boost::program_options::variables_map& map)
 {
 	if (map.count("filename") == 0)

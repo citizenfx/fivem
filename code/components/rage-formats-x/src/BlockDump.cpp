@@ -319,6 +319,14 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 	z_stream strm = { 0 };
 	deflateInit2(&strm, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
 #elif defined(RAGE_FORMATS_GAME_RDR3)
+#define ROUND_DOWN(n, align) (((ULONG)n) & ~((align)-1l))
+
+#define ROUND_UP(n, align) ROUND_DOWN(((ULONG)n) + (align)-1, (align))
+
+	// #HACK: pad to 0x10000 until we rework allocation to work with the two-page policy
+	virtualOut = ROUND_UP(virtualSize, 0x10000);
+	physicalOut = ROUND_UP(physicalSize, 0x10000);
+
 	uint8_t magic[] = { 'R', 'S', 'C', '8' };
 
 	writer(magic, sizeof(magic));
@@ -331,8 +339,8 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 
 	writer(&versionFlags, sizeof(versionFlags));
 
-	uint32_t virtFlags = (virtualSize & ~0xF) | ((version & 0xF0) >> 4);
-	uint32_t physFlags = (physicalSize & ~0xF) | ((version & 0xF));
+	uint32_t virtFlags = (virtualOut & ~0xF) | ((version & 0xF0) >> 4);
+	uint32_t physFlags = (physicalOut & ~0xF) | ((version & 0xF));
 
 	writer(&virtFlags, sizeof(virtFlags));
 
@@ -341,8 +349,8 @@ bool BlockMap::Save(int version, fwAction<const void*, size_t> writer, ResourceF
 	z_stream strm = { 0 };
 	deflateInit2(&strm, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
 
-	virtualOut = virtualSize;
-	physicalOut = physicalSize;
+	//virtualOut = virtualSize;
+	//physicalOut = physicalSize;
 #endif
 
 	auto zwriter = [&] (const void* data, size_t size)

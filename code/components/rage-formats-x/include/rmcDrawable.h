@@ -380,8 +380,10 @@ public:
 
 		switch (m_pixelFormat)
 		{
+		case BC1_UNORM:
 		case BC1_UNORM_SRGB:
 			return m_width / 2;
+		case BC2_UNORM:
 		case BC2_UNORM_SRGB:
 		case BC3_UNORM_SRGB:
 		case BC3_UNORM:
@@ -391,8 +393,15 @@ public:
 		case BC7_UNORM_SRGB:
 			s = 1;
 			break;
+		case R8G8B8A8_UNORM:
 		case R8G8B8A8_UNORM_SRGB:
+		case B8G8R8A8_UNORM:
+		case B8G8R8A8_UNORM_SRGB:
 			s = 4;
+			break;
+		case R8_UNORM:
+		case A8_UNORM:
+			s = 1;
 			break;
 		}
 
@@ -421,6 +430,8 @@ public:
 		m_width = width;
 		m_height = height;
 
+		m_levels = levels;
+
 #ifndef RAGE_FORMATS_GAME_RDR3
 		m_stride = stride;
 
@@ -433,8 +444,6 @@ public:
 		m_blockSize = GetDataSize();
 		m_blockCount = 1;
 #endif
-
-		m_levels = levels;
 
 		size_t dataSize = GetDataSize();
 		
@@ -694,14 +703,47 @@ public:
 class sgaShaderParamName
 {
 	uint32_t hash;
-	uint32_t flags;
+	
+	union
+	{
+		struct  
+		{
+			uint32_t resourceClass : 2;
+		} base;
+
+		struct
+		{
+			// 0
+			uint32_t resourceClass : 2;
+			uint32_t index : 8;
+		} texture;
+
+		struct
+		{
+			// 2
+			uint32_t resourceClass : 2;
+			uint32_t index : 8;
+		} sampler;
+
+		struct
+		{
+			// 3
+			uint32_t resourceClass : 2;
+			uint32_t cbufferIndex : 6;
+			uint32_t offset : 12;
+			uint32_t length : 12;
+		} parameter;
+	};
 };
 
 class sgaShaderParamData : public pgStreamableBase
 {
 public:
-	uint8_t values[4];
-	uint8_t numParams;
+	uint8_t numCBuffers;
+	uint8_t numTextures;
+	uint8_t numUnk1;
+	uint8_t numSamplers;
+	uint32_t numParams;
 
 	sgaShaderParamName params[];
 };
@@ -836,14 +878,14 @@ public:
 #endif
 
 #ifdef RAGE_FORMATS_GAME_RDR3
-		for (int i = 0; i < m_parameterData->values[0]; i++)
+		/*for (int i = 0; i < m_parameterData->values[0]; i++)
 		{
 			(*m_parameters)[i].Resolve(blockMap);
-		}
+		}*/
 
 		m_textureRefs.Resolve(blockMap);
 
-		for (int i = 0; i < m_parameterData->values[1]; i++)
+		for (int i = 0; i < m_parameterData->numTextures; i++)
 		{
 			(*m_textureRefs)[i].Resolve(blockMap);
 		}
@@ -941,6 +983,11 @@ public:
 	{
 		// get the parameter name list and find the parameter
 		return GetParameter(HashString(parameterName));
+	}
+
+	inline auto GetParameterSize()
+	{
+		return m_parameterSize;
 	}
 
 	// assumes parameters have been set from a preset already
@@ -1194,7 +1241,7 @@ public:
 	}
 };
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 #define PHYSICAL_VERTICES 0
 #else
 #define PHYSICAL_VERTICES 1
@@ -1207,10 +1254,11 @@ private:
 	uint32_t m_indexCount;
 	pgPtr<uint16_t, PHYSICAL_VERTICES> m_indexData;
 #else
+public:
 	uint32_t m_indexCount;
 	uint16_t m_indexSize;
 	uint32_t m_bindFlags;
-	pgPtr<uint16_t, true> m_indexData;
+	pgPtr<uint16_t, PHYSICAL_VERTICES> m_indexData;
 	uintptr_t m_pad;
 	uintptr_t m_pad2;
 	pgPtr<void> m_unkBuffer;
@@ -1230,6 +1278,11 @@ public:
 			m_indexData = (uint16_t*)pgStreamManager::Allocate(indexCount * sizeof(uint16_t), PHYSICAL_VERTICES, nullptr);
 			memcpy(*m_indexData, indexData, indexCount * sizeof(uint16_t));
 		}
+
+#ifdef RAGE_FORMATS_GAME_RDR3
+		m_indexSize = 2;
+		m_bindFlags = 0x20a000;
+#endif
 	}
 
 	inline uint16_t* GetIndexData()
@@ -1391,12 +1444,17 @@ enum sgaInputSemantic
 	TEXCOORD23,
 };
 
-class sgaInputLayout : pgStreamableBase
+// actually just grcFvf! not actually sga::InputLayout
+class sgaInputLayout : public pgStreamableBase
 {
 public:
 	uint32_t offsets[52];
 	uint8_t sizes[52];
 	sgaBufferFormat types[52];
+	uint32_t hasSOA : 1;
+	uint32_t flag : 1;
+	uint32_t vertexSize : 8;
+	uint32_t vertexCount : 22;
 };
 
 class grcVertexBuffer : public datBase
@@ -1426,6 +1484,7 @@ private:
 #endif
 
 #if defined(RAGE_FORMATS_GAME_RDR3)
+public:
 	uint32_t m_vertexCount;
 	uint16_t m_vertexSize;
 	uint32_t m_bindFlags;
@@ -1501,6 +1560,26 @@ public:
 	{
 		return *m_vertexFormat;
 	}
+
+	inline void SetVertices(uint32_t vertexCount, uint32_t vertexStride, void* vertexData)
+	{
+		m_vertexCount = vertexCount;
+		m_vertexSize = vertexStride;
+
+		if (pgStreamManager::IsInBlockMap(vertexData, nullptr, PHYSICAL_VERTICES))
+		{
+			m_vertexData = vertexData;
+		}
+		else
+		{
+			void* vertexDataBit = pgStreamManager::Allocate(vertexCount * vertexStride, PHYSICAL_VERTICES, nullptr);
+
+			m_vertexData = vertexDataBit;
+
+			memcpy(*m_vertexData, vertexData, vertexCount * vertexStride);
+		}
+	}
+
 #endif
 
 	inline uint32_t GetStride()
@@ -1563,7 +1642,18 @@ private:
 	pgPtr<grcIndexBufferD3D> m_indexBuffer;
 	pgPtr<short> m_unk;
 
+	uintptr_t m_pad1;
+	uintptr_t m_pad2;
+	uint8_t m_b;
+
 public:
+	grmGeometry()
+	{
+		m_pad1 = 0;
+		m_pad2 = 0;
+		m_b = 0;
+	}
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 		m_vertexBuffer.Resolve(blockMap);
@@ -1591,6 +1681,15 @@ public:
 		return *(m_indexBuffer);
 	}
 
+	inline void SetVertexBuffer(grcVertexBufferD3D* vertexBuffer)
+	{
+		m_vertexBuffer = vertexBuffer;
+	}
+
+	inline void SetIndexBuffer(grcIndexBufferD3D* indexBuffer)
+	{
+		m_indexBuffer = indexBuffer;
+	}
 };
 
 class grmGeometryQB : public datBase
@@ -1716,10 +1815,14 @@ private:
 
 #if defined(RAGE_FORMATS_GAME_NY)
 	pgPtr<Vector4> m_geometryBounds;
-#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)|| defined(RAGE_FORMATS_GAME_RDR3)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE) || defined(RAGE_FORMATS_GAME_RDR3)
 	pgPtr<GeometryBound> m_geometryBounds;
 #endif
 	pgPtr<uint16_t> m_shaderMappings;
+
+#if defined(RAGE_FORMATS_GAME_RDR3)
+	pgPtr<void> m_ptr;
+#endif
 
 	uint8_t m_boneCount;
 	uint8_t m_skinned;
@@ -1737,7 +1840,7 @@ public:
 		m_zero = 0;
 #if defined(RAGE_FORMATS_GAME_NY)
 		m_zero2 = 0;
-#elif defined(RAGE_FORMATS_GAME_FIVE)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 		m_zero2 = 0xFF; // gets tested against the upper byte of the draw bucket mask
 #endif
 		m_hasBoneMapping = 0;
@@ -1765,6 +1868,18 @@ public:
 	inline pgObjectArray<grmGeometry>& GetGeometries()
 	{
 		return m_geometries;
+	}
+
+		inline void SetGeometries(int count, grmGeometry** geometries)
+	{
+		static pgPtr<grmGeometry> geometriesInd[512];
+
+		for (int i = 0; i < count; i++)
+		{
+			geometriesInd[i] = geometries[i];
+		}
+
+		m_geometries.SetFrom(geometriesInd, count);
 	}
 #endif
 
