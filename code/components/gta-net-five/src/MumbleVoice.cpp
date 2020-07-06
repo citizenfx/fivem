@@ -445,7 +445,6 @@ static std::unordered_map<std::string, int> g_userNamesToClientIds;
 
 static auto PositionHook(const std::string& userName) -> std::optional<std::array<float, 3>>
 {
-#if 0
 	auto it = g_userNamesToClientIds.find(userName);
 
 	if (it == g_userNamesToClientIds.end())
@@ -476,7 +475,6 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 			}
 		}
 	}
-#endif
 
 	return {};
 }
