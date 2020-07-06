@@ -51,7 +51,7 @@ bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&
 
 			if (cb)
 			{
-				task.then([cb](concurrency::task<RcdFetchResult> task)
+				task.then([this, cb](concurrency::task<RcdFetchResult> task)
 				{
 					try
 					{
@@ -61,6 +61,8 @@ bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&
 					}
 					catch (const std::exception& e)
 					{
+						m_fetcher->PropagateError(e.what());
+
 						cb(false, e.what());
 					}
 				});
