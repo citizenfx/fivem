@@ -471,7 +471,7 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 			if (ped > 0)
 			{
 				auto coords = NativeInvoke::Invoke<0x3FEF770D40960D5A, scrVector>(ped);
-				return { { coords.x, coords.y, coords.z } };
+				return { { coords.x, coords.z, coords.y } };
 			}
 		}
 	}
