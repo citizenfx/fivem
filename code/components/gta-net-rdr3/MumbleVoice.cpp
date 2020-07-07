@@ -55,7 +55,7 @@ public:
 
 static NetLibrary* g_netLibrary;
 
-static char* g_preference;
+static uint64_t* g_preference;
 static char* g_device;
 
 static IMumbleClient* g_mumbleClient;
@@ -210,11 +210,12 @@ static void Mumble_RunFrame()
     }
 
 
-    auto voiceEnabled = hook::get_address<uint8_t>(g_preference -4)- 180 ;
-    auto microEnabled = hook::get_address<uint8_t>(g_preference -2) - 182;
-    auto microActivationMode = hook::get_address<uint8_t>(g_preference + 0x14) -204;
+    auto voiceEnabled = hook::get_address<uint8_t>(*g_preference +0x2870)-180;
+    auto microEnabled = hook::get_address<uint8_t>(*g_preference +0x2872)-182;
+    auto microActivationMode = hook::get_address<uint8_t>(*g_preference +0x2888)-204;
 
-    MumbleActivationMode activationMode;
+
+   MumbleActivationMode activationMode;
 
     if (voiceEnabled && microEnabled)
     {
@@ -234,7 +235,7 @@ static void Mumble_RunFrame()
 
     g_mumbleClient->SetActivationMode(activationMode);
 
-    auto voicechatvolume = hook::get_address<uint8_t>(g_preference) -184;
+    auto voicechatvolume = hook::get_address<uint8_t>(*g_preference +0x2874)-184;
     g_mumbleClient->SetOutputVolume(voicechatvolume *0.1f);
 
     float cameraFront[3];
@@ -274,7 +275,7 @@ static void Mumble_RunFrame()
     g_mumbleClient->SetActorPosition(actorPos);
 
 
-    auto likelihoodValue = hook::get_address<uint8_t>(g_preference + 4)  -188;
+    auto likelihoodValue = hook::get_address<uint8_t>(*g_preference +0x2878)-188;
 
 
     if (likelihoodValue >= 0 && likelihoodValue < 3)
@@ -370,12 +371,11 @@ static bool _getPlayerHasHeadset(void* mgr, void* plr)
 
 static HookFunction hookFunction([]()
 {
-
+		 g_preference  = hook::get_pattern<uint64_t>("3E 51 8C E3 EE D0 EF E3 F9 72 B1 88 6B C3 C5 7A B6 E7 97 97 00 00 40 40 00 00 80 3F 00 00 00 00", +0x8C);
 
     rage::scrEngine::OnScriptInit.Connect([]()
     {
-
-        g_preference = hook::get_pattern<char>("40 01 00 00 80 02 00 00 A0 41 00 00 00 00 00 00", +0x9D4);
+       
 
 		//g_device = hook::get_pattern<char>("CD CC 4C 3E 00 00 80 3F CD CC CC 3D 00 00 80 BE",  -0x16E);
 		
