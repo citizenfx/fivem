@@ -2286,6 +2286,25 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	entity->lastUpdater.update(entity->client.lock());
 	entity->lastReceivedAt = msec();
 
+	// force the client to have the new entity so we don't send duplicate creations
+	{
+		auto [lock, clientData] = GetClientData(this, client);
+
+		for (auto& state : clientData->entityStates)
+		{
+			ClientEntityState ces;
+			ces.frameIndex = entity->frameIndex;
+			ces.lastSend = 0ms;
+			ces.uniqifier = entity->uniqifier;
+			ces.syncDelay = 0ms;
+			ces.isPlayer = (entity->type == sync::NetObjEntityType::Player);
+			ces.netId = (client) ? client->GetNetId() : -1;
+			ces.overrideFrameIndex = false;
+
+			(*state.second)[entity->handle] = ces;
+		}
+	}
+
 	if (length > 0)
 	{
 		entity->timestamp = timestamp;
