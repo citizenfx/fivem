@@ -436,7 +436,7 @@ const std::map<std::string, std::string, std::less<>> g_mimeTypeMap = {
 	{ "jpm", "image/jpm" },
 	{ "jpx", "image/jpx" },
 	{ "js", "application/javascript" },
-	{ "json", "application/json" },
+	//{ "json", "application/json" },
 	{ "json5", "application/json5" },
 	{ "jsonld", "application/ld+json" },
 	{ "jsonml", "application/jsonml+json" },
