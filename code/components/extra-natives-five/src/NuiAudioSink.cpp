@@ -770,7 +770,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 
 		if (m_distance > 0.01f)
 		{
-			settings->SetVolumeCurveScale(m_distance / 5.0f);
+			settings->SetVolumeCurveScale(m_distance / 10.0f);
 		}
 		else
 		{
