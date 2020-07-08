@@ -643,7 +643,7 @@ private:
 
 	struct WorldGridState
 	{
-		WorldGridEntry entries[24];
+		WorldGridEntry entries[32];
 	};
 
 	WorldGridState m_worldGrid[MAX_CLIENTS];

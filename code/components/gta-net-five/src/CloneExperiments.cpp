@@ -2250,7 +2250,7 @@ struct WorldGridState
 };
 
 static WorldGridState<uint8_t, 12> g_worldGrid[256];
-static WorldGridState<uint16_t, 24> g_worldGrid2[1];
+static WorldGridState<uint16_t, 32> g_worldGrid2[1];
 
 static InitFunction initFunctionWorldGrid([]()
 {
