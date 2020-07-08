@@ -432,6 +432,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 	m_syncKey = syncKey;
 	
 	{
+		if (sharedHandle != m_lastParentHandle[type])
 		{
 			m_lastParentHandle[type] = parentHandle;
 
