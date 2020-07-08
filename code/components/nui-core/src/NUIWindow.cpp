@@ -432,13 +432,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 	m_syncKey = syncKey;
 	
 	{
-		if (m_lastParentHandle[type] != parentHandle)
 		{
-			if (type == CefRenderHandler::PaintElementType::PET_VIEW)
-			{
-				trace("Changing NUI shared resource (for NUI window %s)...\n", m_name);
-			}
-
 			m_lastParentHandle[type] = parentHandle;
 
 			auto& texRef = (type == CefRenderHandler::PaintElementType::PET_VIEW) ? m_nuiTexture : m_popupTexture;

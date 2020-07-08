@@ -406,14 +406,6 @@ CefRefPtr<CefRequestHandler> NUIClient::GetRequestHandler()
 	return this;
 }
 
-CefRefPtr<CefAudioHandler> NUIClient::GetAudioHandler()
-{
-	// #TODONUI: render process termination does not work this way, needs an owning reference to the browser
-	// or otherwise tracking why the browser doesn't become null when playing audio and killing the render process
-	return nullptr;
-	//return this;
-}
-
 CefRefPtr<CefRenderHandler> NUIClient::GetRenderHandler()
 {
 	return m_renderHandler;

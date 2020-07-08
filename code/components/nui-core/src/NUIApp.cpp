@@ -105,11 +105,15 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("ignore-gpu-blacklist");
 	command_line->AppendSwitch("enable-usermedia-screen-capture");
 	command_line->AppendSwitch("disable-direct-composition");
+	command_line->AppendSwitch("disable-gpu-watchdog");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	//command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 	command_line->AppendSwitch("force-gpu-rasterization");
 	command_line->AppendSwitch("disable-gpu-process-crash-limit");
+
+	// important switch to prevent users from mentioning 'why are there 50 chromes again'
+	command_line->AppendSwitch("disable-site-isolation-trials");
 
 	// some GPUs are in the GPU blacklist as 'forcing D3D9'
 	// this just forces D3D11 anyway.
