@@ -788,7 +788,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 			*((char*)settings + 369) |= 8;
 		}
 
-		settings->SetEnvironmentalLoudness(127);
+		settings->SetEnvironmentalLoudness(60);
 	}
 
 	// debugging position logic
