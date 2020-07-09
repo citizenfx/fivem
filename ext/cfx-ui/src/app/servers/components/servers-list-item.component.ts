@@ -137,9 +137,7 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
     }
 
     enableBoost(event: Event) {
-        if (!this.isBoost()) {
-            this.addBoost();
-        }
+        this.addBoost();
 
         event.stopPropagation();
     }
@@ -154,10 +152,6 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
                 'You need to have a linked FiveM account in order to BOOST™ a server.'
             );
 
-            return;
-        }
-
-        if (this.isBoost()) {
             return;
         }
 
