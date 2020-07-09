@@ -204,6 +204,11 @@ public:
 	virtual void* GetNativeTexture() override
 	{
 #ifdef GTA_FIVE
+		if (!m_texture)
+		{
+			return nullptr;
+		}
+
 		return m_texture->texture;
 #else
 		return m_texture;

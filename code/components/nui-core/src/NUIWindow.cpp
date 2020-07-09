@@ -466,7 +466,16 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 					ID3D11Device* rawDevice;
 				}*deviceStuff = (decltype(deviceStuff))g_nuiGi->GetD3D11Device();
 
-				deviceStuff->rawDevice->CreateShaderResourceView((ID3D11Resource*)GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW)->GetNativeTexture(), nullptr, &m_swapSrv);
+				auto nativeTexture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW)->GetNativeTexture();
+
+				if (nativeTexture)
+				{
+					deviceStuff->rawDevice->CreateShaderResourceView((ID3D11Resource*)nativeTexture, nullptr, &m_swapSrv);
+				}
+				else
+				{
+					m_swapSrv = {};
+				}
 
 				if (oldSrv)
 				{
