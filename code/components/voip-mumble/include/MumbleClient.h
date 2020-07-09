@@ -79,6 +79,8 @@ public:
 
 	virtual concurrency::task<void> DisconnectAsync() = 0;
 
+	virtual void RunFrame() = 0;
+
 	virtual MumbleConnectionInfo* GetConnectionInfo() = 0;
 
 	virtual bool IsAnyoneTalking() = 0;

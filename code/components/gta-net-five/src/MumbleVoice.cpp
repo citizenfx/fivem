@@ -23,6 +23,8 @@
 
 #include <CoreConsole.h>
 
+#include <sysAllocator.h>
+
 #include <NetworkPlayerMgr.h>
 #include <netObject.h>
 
@@ -436,6 +438,8 @@ static void Mumble_RunFrame()
 
 		curOutDevice = outDevice;
 	}
+
+	g_mumbleClient->RunFrame();
 }
 
 static std::bitset<256> g_talkers;
@@ -459,6 +463,8 @@ static auto PositionHook(const std::string& userName) -> std::optional<std::arra
 
 	if (it != g_userNamesToClientIds.end())
 	{
+		rage::sysMemAllocator::UpdateAllocatorValue();
+
 		static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
 		static auto getPlayerPed = fx::ScriptEngine::GetNativeHandler(0x43A66C31C68491C0);
 

@@ -700,15 +700,7 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 		pds >> pos[1];
 		pds >> pos[2];
 
-		if (m_positionHook)
-		{
-			auto newPos = m_positionHook(ToNarrow(user->GetName()));
-
-			if (newPos)
-			{
-				pos = *newPos;
-			}
-		}
+		m_positionUpdates.push({ sessionId, pos });
 
 		if (pds.left() >= 4)
 		{
@@ -717,8 +709,33 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 
 			this->GetOutput().HandleClientDistance(*user, distance);
 		}
+	}
+}
 
-		this->GetOutput().HandleClientPosition(*user, pos.data());
+void MumbleClient::RunFrame()
+{
+	decltype(m_positionUpdates)::value_type update;
+
+	while (m_positionUpdates.try_pop(update))
+	{
+		auto [sessionId, pos] = update;
+
+		auto user = this->GetState().GetUser(uint32_t(sessionId));
+
+		if (user)
+		{
+			if (m_positionHook)
+			{
+				auto newPos = m_positionHook(ToNarrow(user->GetName()));
+
+				if (newPos)
+				{
+					pos = *newPos;
+				}
+			}
+
+			this->GetOutput().HandleClientPosition(*user, pos.data());
+		}
 	}
 }
 

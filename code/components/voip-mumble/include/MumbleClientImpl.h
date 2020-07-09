@@ -21,6 +21,8 @@
 #include <MumbleAudioInput.h>
 #include <MumbleAudioOutput.h>
 
+#include <concurrent_queue.h>
+
 #include <thread>
 
 #include <uvw.hpp>
@@ -83,6 +85,8 @@ public:
 	virtual concurrency::task<MumbleConnectionInfo*> ConnectAsync(const net::PeerAddress& address, const std::string& userName) override;
 
 	virtual concurrency::task<void> DisconnectAsync() override;
+
+	virtual void RunFrame() override;
 
 	virtual MumbleConnectionInfo* GetConnectionInfo() override;
 
@@ -150,6 +154,8 @@ private:
 	MumbleAudioOutput m_audioOutput;
 
 	concurrency::task_completion_event<MumbleConnectionInfo*> m_completionEvent;
+
+	concurrency::concurrent_queue<std::tuple<uint32_t, std::array<float, 3>>> m_positionUpdates;
 
 	Botan::AutoSeeded_RNG m_rng;
 
