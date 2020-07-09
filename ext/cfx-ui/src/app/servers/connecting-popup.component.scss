@@ -18,13 +18,8 @@
 	opacity: 0;
 	pointer-events: none;
 
-	will-change: backdrop-filter;
-	backdrop-filter: blur(0px);
-
 	&.active {
 		opacity: 1;
-		will-change: backdrop-filter;
-		backdrop-filter: blur(5px);
 
 		@include theme() using ($theme) {
 			background-color: rgba(gtv($theme, bgColour), .5);
