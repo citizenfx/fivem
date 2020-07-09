@@ -234,113 +234,28 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 	return remainingRequests;
 }
 
-struct datResourceChunk
-{
-
-};
-
-#define VFS_RCD_REQUEST_HANDLE 0x30003
-
-struct RequestHandleExtension
-{
-	vfs::Device::THandle handle;
-	std::function<void(bool success, const std::string& error)> onRead;
-};
-
-static void* (*g_origPgStreamerRead)(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void(*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10);
-
-static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void (*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10)
-{
-	rage::fiCollection* collection = nullptr;
-
-	if ((handle >> 16) == 0)
-	{
-		collection = getRawStreamer();
-	}
-
-	if (collection)
-	{
-		char fileNameBuffer[1024];
-		strcpy(fileNameBuffer, "CfxRequest");
-
-		collection->GetEntryNameToBuffer(handle & 0xFFFF, fileNameBuffer, sizeof(fileNameBuffer));
-
-		bool isCache = false;
-		std::string fileName;
-
-		if (strncmp(fileNameBuffer, "cache:/", 7) == 0)
-		{
-			fileName = std::string("cache_nb:/") + &fileNameBuffer[7];
-			isCache = true;
-		}
-
-		if (strncmp(fileNameBuffer, "compcache:/", 11) == 0)
-		{
-			fileName = std::string("compcache_nb:/") + &fileNameBuffer[11];
-			isCache = true;
-		}
-
-		if (isCache)
-		{
-			auto device = vfs::GetDevice(fileName);
-
-			uint64_t ptr;
-			auto deviceHandle = device->OpenBulk(fileName, &ptr);
-
-			if (deviceHandle != INVALID_DEVICE_HANDLE)
-			{
-				RequestHandleExtension ext;
-				ext.handle = deviceHandle;
-				ext.onRead = [fileName, handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10](bool success, const std::string& error)
-				{
-					if (success)
-					{
-						g_origPgStreamerRead(handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10);
-					}
-					else
-					{
-						std::string error;
-						ICoreGameInit* init = Instance<ICoreGameInit>::Get();
-
-						init->GetData("gta-core-five:loadCaller", &error);
-
-						FatalError("Failed to request %s: %s. %s", fileName, vfs::GetLastError(vfs::GetDevice(fileName)), error);
-					}
-				};
-
-				device->ExtensionCtl(VFS_RCD_REQUEST_HANDLE, &ext, sizeof(ext));
-			}
-
-			static int hi;
-			return &hi;
-		}
-	}
-
-	return g_origPgStreamerRead(handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10);
-}
-
 static HookFunction hookFunction([] ()
 {
 	// dequeue GTA streaming request function
-	//auto location = hook::get_pattern("89 7C 24 28 4C 8D 7C 24 40 89 44 24 20 E8", 13);
-	//hook::set_call(&g_origHandleObjectLoad, location);
-	//hook::call(location, HandleObjectLoadWrap);
+	auto location = hook::get_pattern("89 7C 24 28 4C 8D 7C 24 40 89 44 24 20 E8", 13);
+	hook::set_call(&g_origHandleObjectLoad, location);
+	hook::call(location, HandleObjectLoadWrap);
 
 	OnMainGameFrame.Connect([]()
 	{
-		//ProcessErasure();
+		ProcessErasure();
 	});
-
-	// redirect pgStreamer::Read for custom streaming reads
-	{
-		auto location = hook::get_pattern("45 8B CC 48 89 7C 24 28 48 89 44 24 20 E8", 13);
-		hook::set_call(&g_origPgStreamerRead, location);
-		hook::call(location, pgStreamerRead);
-	}
 
 	// parallelize streaming (force 'disable parallel streaming' flag off)
 	hook::put<uint8_t>(hook::get_pattern("C0 C6 05 ? ? ? ? 01 44 88 35", 7), 0);
 
 	// don't adhere to some (broken?) streaming time limit
 	hook::nop(hook::get_pattern("0F 2F C6 73 2D", 3), 2);
+
+	//MH_Initialize();
+
+	// queueing task on streamer
+	//MH_CreateHook(hook::get_pattern("4D 69 ED 70 41 00 00 4C 03 E8", -0x82), QueueStreamerTaskWrap, (void**)&g_origQueueStreamerTask);
+
+	//MH_EnableHook(MH_ALL_HOOKS);
 });

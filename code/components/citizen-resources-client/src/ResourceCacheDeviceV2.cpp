@@ -25,8 +25,6 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
-#include <concurrent_queue.h>
-
 #include <CoreConsole.h>
 #include <Error.h>
 
@@ -41,30 +39,13 @@ size_t RcdBaseStream::GetLength()
 	return m_fetcher->GetLength(m_fileName);
 }
 
-bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&)>& cb)
+bool RcdBaseStream::EnsureRead()
 {
 	if (!m_parentDevice.GetRef() || m_parentHandle == INVALID_DEVICE_HANDLE)
 	{
 		try
 		{
 			auto task = m_fetcher->FetchEntry(m_fileName);
-
-			if (cb)
-			{
-				task.then([cb](concurrency::task<RcdFetchResult> task)
-				{
-					try
-					{
-						task.get();
-
-						cb(true, {});
-					}
-					catch (const std::exception& e)
-					{
-						cb(false, e.what());
-					}
-				});
-			}
 
 			if (m_fetcher->IsBlocking())
 			{
@@ -571,14 +552,6 @@ struct GetRcdDebugInfoExtension
 	std::string outData; // out
 };
 
-#define VFS_RCD_REQUEST_HANDLE 0x30003
-
-struct RequestHandleExtension
-{
-	vfs::Device::THandle handle;
-	std::function<void(bool success, const std::string& error)> onRead;
-};
-
 bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
@@ -596,31 +569,6 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 			data->flags.flag2 = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
 			return true;
 		}
-	}
-	else if (controlIdx == VFS_RCD_REQUEST_HANDLE)
-	{
-		static concurrency::concurrent_queue<THandle> handleDeleteQueue;
-
-		{
-			THandle hdl;
-
-			while (handleDeleteQueue.try_pop(hdl))
-			{
-				CloseBulk(hdl);
-			}
-		}
-
-		RequestHandleExtension* data = (RequestHandleExtension*)controlData;
-
-		auto handle = data->handle;
-		auto hd = GetHandle(handle);
-		auto cb = data->onRead;
-		hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
-		{
-			cb(success, error);
-
-			handleDeleteQueue.push(handle);
-		});
 	}
 	else if (controlIdx == VFS_GET_DEVICE_LAST_ERROR)
 	{
