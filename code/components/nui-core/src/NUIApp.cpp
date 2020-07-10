@@ -103,9 +103,10 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("use-fake-ui-for-media-stream");
 	command_line->AppendSwitch("enable-speech-input");
 	command_line->AppendSwitch("ignore-gpu-blacklist");
+	command_line->AppendSwitch("ignore-gpu-blocklist"); // future proofing for when Google disables the above
 	command_line->AppendSwitch("enable-usermedia-screen-capture");
 	command_line->AppendSwitch("disable-direct-composition");
-	command_line->AppendSwitch("disable-gpu-watchdog");
+	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	//command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
