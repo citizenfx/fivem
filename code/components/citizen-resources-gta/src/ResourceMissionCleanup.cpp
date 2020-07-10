@@ -159,7 +159,7 @@ static InitFunction initFunction([] ()
 			{
 				data->dummyThread = new DummyThread(resource);
 
-				OnCreateResourceThread(data->dummyThread);
+				OnCreateResourceThread(data->dummyThread, resource->GetName());
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
 
 				setScriptNow = true;

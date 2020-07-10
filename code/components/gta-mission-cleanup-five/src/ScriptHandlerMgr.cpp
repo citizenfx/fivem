@@ -26,6 +26,7 @@ static CGameScriptHandlerMgr* g_scriptHandlerMgr;
 static rage::scrThread*(*g_origGetThreadById)(uint32_t hash);
 
 static std::map<uint32_t, rage::scrThread*> g_customThreads;
+static std::map<uint32_t, std::string> g_customThreadsToNames;
 
 static rage::scrThread* GetThreadById(uint32_t hash)
 {
@@ -39,7 +40,32 @@ static rage::scrThread* GetThreadById(uint32_t hash)
 	return g_origGetThreadById(hash);
 }
 
-DLL_EXPORT fwEvent<rage::scrThread*> OnCreateResourceThread;
+struct CGameScriptId
+{
+	void* vtbl;
+	uint32_t hash;
+	char scriptName[32];
+};
+
+static void (*g_origCGameScriptId__updateScriptName)(CGameScriptId* self);
+
+static void CGameScriptId__updateScriptName(CGameScriptId* self)
+{
+	self->scriptName[0] = '\0';
+	g_origCGameScriptId__updateScriptName(self);
+
+	if (self->scriptName[0] == '\0')
+	{
+		auto thread = g_customThreadsToNames.find(self->hash);
+
+		if (thread != g_customThreadsToNames.end())
+		{
+			strcpy_s(self->scriptName, thread->second.c_str());
+		}
+	}
+}
+
+DLL_EXPORT fwEvent<rage::scrThread*, const std::string&> OnCreateResourceThread;
 DLL_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;
 
 // find data fields and perform patches
@@ -63,16 +89,19 @@ static HookFunction hookFunction([] ()
 	// script threads for dummies
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("33 D2 44 8B C1 85 C9 74 2B 0F"), GetThreadById, (void**)&g_origGetThreadById);
+	MH_CreateHook(hook::get_pattern("48 8D 44 24 30 44 39 10 74 20 8B 10 48 8D 0D ? ? ? ? E8", -0xA6), CGameScriptId__updateScriptName, (void**)&g_origCGameScriptId__updateScriptName);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	OnCreateResourceThread.Connect([](rage::scrThread* thread)
+	OnCreateResourceThread.Connect([](rage::scrThread* thread, const std::string& name)
 	{
 		g_customThreads.insert({ thread->GetContext()->ThreadId, thread });
+		g_customThreadsToNames.insert({ thread->GetContext()->ThreadId, name });
 	});
 
 	OnDeleteResourceThread.Connect([](rage::scrThread* thread)
 	{
 		g_customThreads.erase(thread->GetContext()->ThreadId);
+		g_customThreadsToNames.erase(thread->GetContext()->ThreadId);
 	});
 
 	// 1868+

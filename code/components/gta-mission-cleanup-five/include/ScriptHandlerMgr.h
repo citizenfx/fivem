@@ -179,5 +179,5 @@ public:
 	}
 };
 
-extern MISCLEAN_EXPORT fwEvent<rage::scrThread*> OnCreateResourceThread;
+extern MISCLEAN_EXPORT fwEvent<rage::scrThread*, const std::string&> OnCreateResourceThread;
 extern MISCLEAN_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;
