@@ -381,7 +381,7 @@ static InitFunction initFunction([]()
 
 			if (g_oneSyncVar->GetValue())
 			{
-				if (protocol < 7)
+				if (protocol < 8)
 				{
 					sendError("Client/server version mismatch.");
 					return;
