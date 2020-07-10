@@ -16,7 +16,10 @@ return {
 			flags { "LinkTimeOptimization" }
 		end
 
-		defines { 'GRIT_POWER_TTYPE' }
+		defines { 
+			'LUA_RAPIDJSON_COMPAT',
+			'LUA_RAPIDJSON_SANITIZE_KEYS',			
+		}
 
 		files
 		{

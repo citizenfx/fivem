@@ -16,7 +16,8 @@ return {
 		end
 
 		defines { 
-			'GRIT_POWER_TTYPE',
+			'LUA_RAPIDJSON_COMPAT',
+			'LUA_RAPIDJSON_SANITIZE_KEYS',
 		}
 
 		files {

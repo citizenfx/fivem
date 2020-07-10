@@ -16,10 +16,6 @@ return {
 			staticruntime "On"
 		end		
 
-        defines { 
-			'GRIT_POWER_TTYPE',
-        }
-
 		files { 
 			"../vendor/lua-cmsgpack/*.c",
 			"../vendor/lua-cmsgpack/*.h",
