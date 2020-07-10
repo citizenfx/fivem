@@ -350,9 +350,7 @@ public:
 		m_texture.As(&m_keyedMutex);
 	}
 
-	~Texture2DWrap()
-	{
-	}
+	~Texture2DWrap();
 
 	// Inherited via RuntimeClass
 	virtual HRESULT AcquireSync(UINT64 Key, DWORD dwMilliseconds) override
@@ -400,26 +398,7 @@ public:
 		return m_resource->GetDevice(riid, ppDevice);
 	}
 
-	virtual HRESULT __stdcall GetSharedHandle(HANDLE* pSharedHandle) override
-	{
-#if !defined(GTA_FIVE)
-		HANDLE handle;
-		HRESULT hr = m_resource1->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ, NULL, &handle);
-
-		static HostSharedData<CfxState> initState("CfxInitState");
-
-		if (SUCCEEDED(hr))
-		{
-			auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, initState->GetInitialPid());
-			DuplicateHandle(GetCurrentProcess(), handle, proc, pSharedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
-			CloseHandle(proc);
-		}
-
-		return hr;
-#endif
-
-		return E_NOTIMPL;
-	}
+	virtual HRESULT __stdcall GetSharedHandle(HANDLE* pSharedHandle) override;
 
 	virtual HRESULT __stdcall GetUsage(DXGI_USAGE* pUsage) override
 	{
@@ -487,7 +466,84 @@ public:
 	{
 		return E_FAIL;
 	}
+
+	HANDLE m_handle = NULL;
 };
+
+static std::mutex g_textureLock;
+static std::map<HANDLE, WRL::ComPtr<Texture2DWrap>> g_textureHacks;
+
+Texture2DWrap::~Texture2DWrap()
+{
+	static concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> deletionQueue;
+
+	static std::thread* deletionThread = new std::thread([]()
+	{
+		SetThreadName(-1, "GPU Deletion Workaround");
+
+		while (true)
+		{
+			Sleep(2500);
+
+			decltype(deletionQueue)::value_type item;
+			std::vector<decltype(item)> toAdd;
+
+			while (deletionQueue.try_pop(item))
+			{
+				if (GetTickCount64() > (std::get<0>(item) + 7500))
+				{
+					std::lock_guard<std::mutex> _(g_textureLock);
+					g_textureHacks.erase(std::get<1>(item));
+				}
+				else
+				{
+					toAdd.push_back(item);
+				}
+			}
+
+			for (auto& entry : toAdd)
+			{
+				deletionQueue.push(entry);
+			}
+		}
+	});
+
+	if (m_handle)
+	{
+		deletionQueue.push({ GetTickCount64(), m_handle });
+	}
+}
+
+HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
+{
+#if !defined(GTA_FIVE)
+	HANDLE handle;
+	HRESULT hr = m_resource1->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ, NULL, &handle);
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (SUCCEEDED(hr))
+	{
+		auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, initState->GetInitialPid());
+		DuplicateHandle(GetCurrentProcess(), handle, proc, pSharedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
+		CloseHandle(proc);
+	}
+
+	return hr;
+#else
+	auto hr = m_resource->GetSharedHandle(&m_handle);
+
+	if (SUCCEEDED(hr))
+	{
+		*pSharedHandle = m_handle;
+		g_textureHacks.insert({ m_handle, this });
+	}
+
+	return hr;
+#endif
+
+	return E_NOTIMPL;
+}
 
 static HRESULT CreateTexture2DHook(
 	ID3D11Device* device,
@@ -508,6 +564,11 @@ static HRESULT CreateTexture2DHook(
 			desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
 			wrapped = true;
 		}
+	}
+#else
+	if ((desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED) || (desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX))
+	{
+		wrapped = true;
 	}
 #endif
 
@@ -544,6 +605,20 @@ static HRESULT (*g_origOpenSharedResourceHook)(ID3D11Device* device, HANDLE hRes
 
 static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID iid, void** ppRes)
 {
+#if defined(GTA_FIVE)
+	auto it = g_textureHacks.find(hRes);
+
+	if (it != g_textureHacks.end())
+	{
+		ID3D11Resource* orig;
+		it->second->GetOriginal(&orig);
+
+		return orig->QueryInterface(iid, ppRes);
+	}
+
+	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
+#endif
+
 	WRL::ComPtr<ID3D11Device1> device1;
 	if (SUCCEEDED(device->QueryInterface(device1.GetAddressOf())))
 	{
@@ -626,8 +701,13 @@ static bool g_reshit;
 
 static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext)
 {
-#if defined(IS_RDR3)
-	if (ppDevice && ppImmediateContext)
+	bool can = true;
+
+#if !defined(IS_RDR3)
+	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr;
+#endif
+
+	if (ppDevice && ppImmediateContext && can)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
@@ -636,7 +716,6 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		MH_CreateHook((void*)vtblCxt[47], CopyResourceHook, (void**)&g_origCopyResource);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
-#endif
 
 	if (ppImmediateContext && *ppImmediateContext)
 	{
