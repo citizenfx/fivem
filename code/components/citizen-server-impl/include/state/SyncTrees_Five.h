@@ -211,6 +211,33 @@ struct ParentNode : public NodeBase
 		return LoopChildren<TData, I + 1>();
 	}
 
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOfNode()
+	{
+		return LoopChildrenNode<TData>();
+	}
+
+	template<typename TData, size_t I = 0>
+	inline static constexpr std::enable_if_t<I == sizeof...(TChildren), size_t> LoopChildrenNode()
+	{
+		return 0;
+	}
+
+	template<typename TData, size_t I = 0>
+	inline static constexpr std::enable_if_t<I != sizeof...(TChildren), size_t> LoopChildrenNode()
+	{
+		size_t offset = ChildListElement<I, decltype(children)>::Type::template GetOffsetOfNode<TData>();
+
+		if (offset != 0)
+		{
+			constexpr size_t elemOff = ChildListGetter<I>::template GetOffset<decltype(children)>();
+
+			return offset + elemOff + offsetof(ParentNode, children);
+		}
+
+		return LoopChildrenNode<TData, I + 1>();
+	}
+
 	virtual bool Parse(SyncParseState& state) final override
 	{
 		if (shouldRead(state, TIds::GetIds()))
@@ -253,6 +280,11 @@ struct ParentNode : public NodeBase
 
 		return true;
 	}
+
+	virtual bool IsAdditional() override
+	{
+		return (std::get<2>(TIds::GetIds()) & 1);
+	}
 };
 
 template<typename TIds, typename TNode, typename = void>
@@ -275,6 +307,17 @@ struct NodeWrapper : public NodeBase
 		if constexpr (std::is_same_v<TNode, TData>)
 		{
 			return offsetof(NodeWrapper, node);
+		}
+
+		return 0;
+	}
+
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOfNode()
+	{
+		if constexpr (std::is_same_v<TNode, TData>)
+		{
+			return offsetof(NodeWrapper, ackedPlayers);
 		}
 
 		return 0;
@@ -377,12 +420,25 @@ struct NodeWrapper : public NodeBase
 
 		return true;
 	}
+
+	virtual bool IsAdditional() override
+	{
+		return (std::get<2>(TIds::GetIds()) & 1);
+	}
 };
 
 struct CVehicleCreationDataNode
 {
 	uint32_t m_model;
 	ePopType m_popType;
+	int m_randomSeed;
+	bool m_carBudget;
+	int m_maxHealth;
+	int m_vehicleStatus;
+	uint32_t m_creationToken;
+	bool m_needsToBeHotwired;
+	bool m_tyresDontBurst;
+	bool m_unk5;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -392,27 +448,97 @@ struct CVehicleCreationDataNode
 		uint8_t popType = state.buffer.Read<uint8_t>(4);
 		m_popType = (ePopType)popType;
 
-		auto randomSeed = state.buffer.Read<int>(16);
+		m_randomSeed = state.buffer.Read<int>(16);
 
 		if (m_popType - 6 <= 1)
 		{
-			bool carBudget = state.buffer.ReadBit();
+			// false
+			m_carBudget = state.buffer.ReadBit();
 		}
 
-		int maxHealth = state.buffer.Read<int>(19);
-		int vehicleStatus = state.buffer.Read<int>(3);
+		// 1000
+		m_maxHealth = state.buffer.Read<int>(19);
 
-		auto time = state.buffer.Read<uint32_t>(32);
+		// 0
+		m_vehicleStatus = state.buffer.Read<int>(3);
 
-		bool needsToBeHotwired = state.buffer.ReadBit();
-		bool tyresDontBurst = state.buffer.ReadBit();
-		bool unk5 = state.buffer.ReadBit();
+		// [timestamp]
+		m_creationToken = state.buffer.Read<uint32_t>(32);
+
+		// false, false, false
+		m_needsToBeHotwired = state.buffer.ReadBit();
+		m_tyresDontBurst = state.buffer.ReadBit();
+		m_unk5 = state.buffer.ReadBit();
+
+		return true;
+	}
+
+	bool Unparse(rl::MessageBuffer& buffer)
+	{
+		buffer.Write<uint32_t>(32, m_model);
+		buffer.Write<uint8_t>(4, (uint8_t)m_popType);
+
+		buffer.Write<int>(16, m_randomSeed);
+
+		if (m_popType - 6 <= 1)
+		{
+			buffer.WriteBit(m_carBudget);
+		}
+
+		// 1000
+		buffer.Write<int>(19, m_maxHealth);
+
+		// 0
+		buffer.Write<int>(3, m_vehicleStatus);
+
+		// [timestamp]
+		buffer.Write<uint32_t>(32, m_creationToken);
+
+		// false, false, false
+		buffer.WriteBit(m_needsToBeHotwired);
+		buffer.WriteBit(m_tyresDontBurst);
+		buffer.WriteBit(m_unk5);
 
 		return true;
 	}
 };
 
-struct CAutomobileCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CAutomobileCreationDataNode
+{
+	bool allDoorsClosed;
+	bool doorsClosed[10];
+
+	bool Parse(SyncParseState& state)
+	{
+		allDoorsClosed = state.buffer.ReadBit();
+
+		if (!allDoorsClosed)
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				doorsClosed[i] = state.buffer.ReadBit();
+			}
+		}
+
+		return true;
+	}
+
+	bool Unparse(rl::MessageBuffer& buffer)
+	{
+		buffer.WriteBit(allDoorsClosed);
+
+		if (!allDoorsClosed)
+		{
+			for (auto closed : doorsClosed)
+			{
+				buffer.WriteBit(closed);
+			}
+		}
+
+		return true;
+	}
+};
+
 struct CGlobalFlagsDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDynamicEntityGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -674,6 +800,10 @@ struct CEntityScriptInfoDataNode
 			auto hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
 
 			// end
+		}
+		else
+		{
+			m_scriptHash = 0;
 		}
 
 		return true;
@@ -1054,6 +1184,15 @@ struct CSectorDataNode
 
 		return true;
 	}
+
+	bool Unparse(rl::MessageBuffer& buffer)
+	{
+		buffer.Write<int>(10, m_sectorX);
+		buffer.Write<int>(10, m_sectorY);
+		buffer.Write<int>(6, m_sectorZ);
+
+		return true;
+	}
 };
 
 struct CSectorPositionDataNode
@@ -1073,6 +1212,15 @@ struct CSectorPositionDataNode
 		m_posZ = posZ;
 
 		state.entity->syncTree->CalculatePosition();
+
+		return true;
+	}
+
+	bool Unparse(rl::MessageBuffer& buffer)
+	{
+		buffer.WriteFloat(12, 54.0f, m_posX);
+		buffer.WriteFloat(12, 54.0f, m_posY);
+		buffer.WriteFloat(12, 69.0f, m_posZ);
 
 		return true;
 	}
@@ -2088,6 +2236,27 @@ struct SyncTree : public SyncTreeBase
 		}
 
 		return { false, nullptr };
+	}
+
+	template<typename TData>
+	inline static constexpr size_t GetOffsetOfNode()
+	{
+		auto doff = TNode::template GetOffsetOfNode<TData>();
+
+		return (doff) ? offsetof(SyncTree, root) + doff : 0;
+	}
+
+	template<typename TData>
+	inline NodeWrapper<NodeIds<0, 0, 0>, TData>* GetNode()
+	{
+		constexpr auto offset = GetOffsetOfNode<TData>();
+
+		if constexpr (offset != 0)
+		{
+			return (NodeWrapper<NodeIds<0, 0, 0>, TData>*)((uintptr_t)this + offset - 8);
+		}
+
+		return nullptr;
 	}
 
 	virtual void GetPosition(float* posOut) override

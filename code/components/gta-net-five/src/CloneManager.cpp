@@ -32,6 +32,7 @@
 
 #include <CoreConsole.h>
 
+extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
 void ObjectIds_AddObjectId(int objectId);
@@ -1036,7 +1037,7 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	// check uniqifier
 	auto& objectData = m_trackedObjects[msg.GetObjectId()];
 
-	if (objectData.uniqifier != msg.GetUniqifier() && icgi->NetProtoVersion >= 0x201912301309)
+	if ((objectData.uniqifier != msg.GetUniqifier() && uint16_t(~objectData.uniqifier) != msg.GetUniqifier()) && icgi->NetProtoVersion >= 0x201912301309)
 	{
 		ackPacket();
 
@@ -1050,7 +1051,8 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	// if owned locally
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID()
-		&& extData.clientId == msg.GetClientId() /* and this is not a migration */)
+		&& extData.clientId == msg.GetClientId() /* and this is not a migration */
+		&& uint16_t(~objectData.uniqifier) != msg.GetUniqifier() /* and also not the first update for mA0 nodes */)
 	{
 		Log("%s: our object, bailing out\n", __func__);
 
@@ -1480,6 +1482,11 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 {
 	Log("%s: unregistering %s\n", __func__, object->ToString());
+
+	if (g_curNetObjectSelection == object)
+	{
+		g_curNetObjectSelection = nullptr;
+	}
 
 	if (object->syncData.ownerId != 0xFF)
 	{

@@ -138,7 +138,7 @@ namespace rage
 	};
 }
 
-static rage::netObject* g_curNetObjectSelection;
+rage::netObject* g_curNetObjectSelection;
 static rage::netSyncNodeBase* g_curSyncNodeSelection;
 
 static void RenderSyncNode(rage::netObject* object, rage::netSyncNodeBase* node)
@@ -809,7 +809,7 @@ static InitFunction initFunction([]()
 					RenderNetObjectDetail(g_curNetObjectSelection);
 				}
 
-				if (g_curSyncNodeSelection)
+				if (g_curNetObjectSelection && g_curSyncNodeSelection)
 				{
 					ImGui::Separator();
 

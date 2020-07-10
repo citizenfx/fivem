@@ -40,6 +40,14 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+template<typename T>
+inline constexpr T roundToWord(T val)
+{
+	constexpr auto multiple = sizeof(size_t);
+
+	return ((val + multiple - 1) / multiple) * multiple;
+}
+
 namespace fx
 {
 struct ScriptGuid;
@@ -87,7 +95,7 @@ using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 struct NodeBase
 {
 public:
-	eastl::bitset<MAX_CLIENTS> ackedPlayers;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> ackedPlayers;
 
 	uint64_t frameIndex;
 
@@ -98,6 +106,8 @@ public:
 	virtual bool Unparse(SyncUnparseState& state) = 0;
 
 	virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
+
+	virtual bool IsAdditional() = 0;
 };
 
 struct CPlayerCameraNodeData
@@ -397,6 +407,8 @@ struct SyncEntityState
 	uint16_t uniqifier;
 	uint32_t creationToken;
 
+	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
+
 	std::chrono::milliseconds lastReceivedAt;
 
 	std::shared_ptr<SyncTreeBase> syncTree;
@@ -412,6 +424,18 @@ struct SyncEntityState
 	SyncEntityState(const SyncEntityState&) = delete;
 
 	virtual ~SyncEntityState();
+
+	inline bool IsOwnedByScript()
+	{
+		uint32_t scriptHash = 0;
+
+		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
+		{
+			return true;
+		}
+
+		return false;
+	}
 };
 }
 
@@ -517,7 +541,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	glm::mat4x4 viewMatrix;
 
 	eastl::fixed_hash_map<uint64_t, std::unique_ptr<EntityStateObject>, 150> entityStates;
-	eastl::bitset<MaxObjectId> createdEntities;
+	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 
 	uint64_t lastAckIndex;
 
@@ -572,6 +596,8 @@ public:
 
 	void DeleteEntity(const std::shared_ptr<sync::SyncEntityState>& entity);
 
+	std::shared_ptr<sync::SyncEntityState> CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree);
+
 	inline EntityLockdownMode GetEntityLockdownMode()
 	{
 		return m_entityLockdownMode;
@@ -621,9 +647,9 @@ private:
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
 
-	eastl::bitset<MaxObjectId> m_objectIdsSent;
-	eastl::bitset<MaxObjectId> m_objectIdsUsed;
-	eastl::bitset<MaxObjectId> m_objectIdsStolen;
+	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
+	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
+	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
 
 	uint64_t m_frameIndex;
 
