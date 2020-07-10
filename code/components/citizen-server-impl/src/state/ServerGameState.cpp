@@ -1832,10 +1832,14 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 
 			if (it != targetData->entityStates.end())
 			{
-				auto& e = (*it->second)[entityHandle];
-				e.frameIndex = 0;
-				e.lastSend = 0ms;
-				e.overrideFrameIndex = true;
+				auto eIt = it->second->find(entityHandle);
+
+				if (eIt != it->second->end())
+				{
+					eIt->second.frameIndex = 0;
+					eIt->second.lastSend = 0ms;
+					eIt->second.overrideFrameIndex = true;
+				}
 			}
 		}
 	});
@@ -2337,11 +2341,9 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	bool validEntity = false;
 
+	if (entity)
 	{
-		if (entity)
-		{
-			validEntity = !!entity->client.lock();
-		}
+		validEntity = true;
 	}
 
 	if (parsingType == 1)
@@ -3582,7 +3584,9 @@ static InitFunction initFunction([]()
 
 			for (int i = 0; i < std::min(recreateCount, uint8_t(100)); i++)
 			{
-				recreateEntities.insert(buffer.Read<uint16_t>());
+				auto objectId = buffer.Read<uint16_t>();
+				ignoreEntities.erase(objectId);
+				recreateEntities.insert(objectId);
 			}
 
 			auto sgs = instance->GetComponent<fx::ServerGameState>();
@@ -3606,10 +3610,14 @@ static InitFunction initFunction([]()
 					if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
 					{
 						// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-						auto& e = (*es->second)[entity];
-						e.frameIndex = 0;
-						e.lastSend = 0ms;
-						e.overrideFrameIndex = true;
+						auto eIt = es->second->find(entity);
+
+						if (eIt != es->second->end())
+						{
+							eIt->second.frameIndex = 0;
+							eIt->second.lastSend = 0ms;
+							eIt->second.overrideFrameIndex = true;
+						}
 					}
 					else
 					{
