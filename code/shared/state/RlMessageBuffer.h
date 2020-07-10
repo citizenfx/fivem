@@ -479,6 +479,14 @@ public:
 		return ((float)integer / max) * divisor;
 	}
 
+	inline void WriteFloat(int length, float divisor, float value)
+	{
+		float max = (1 << length) - 1;
+		int integer = (int)((value / divisor) * max);
+
+		Write<int>(length, integer);
+	}
+
 	inline float ReadSignedFloat(int length, float divisor)
 	{
 		auto integer = ReadSigned<int>(length);
