@@ -765,6 +765,7 @@ struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { ret
 struct CEntityScriptInfoDataNode
 {
 	uint32_t m_scriptHash;
+	uint32_t m_timestamp;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -775,12 +776,12 @@ struct CEntityScriptInfoDataNode
 			// deserialize CGameScriptObjInfo
 
 			// -> CGameScriptId
-			
+
 			// ---> rage::scriptId
 			m_scriptHash = state.buffer.Read<uint32_t>(32);
 			// ---> end
 
-			auto timestamp = state.buffer.Read<uint32_t>(32);
+			m_timestamp = state.buffer.Read<uint32_t>(32);
 
 			if (state.buffer.ReadBit())
 			{
@@ -804,6 +805,31 @@ struct CEntityScriptInfoDataNode
 		else
 		{
 			m_scriptHash = 0;
+		}
+
+		return true;
+	}
+
+	bool Unparse(rl::MessageBuffer& buffer)
+	{
+		if (m_scriptHash)
+		{
+			buffer.WriteBit(true);
+
+			buffer.Write<uint32_t>(32, m_scriptHash);
+			buffer.Write<uint32_t>(32, m_timestamp);
+
+			buffer.WriteBit(false);
+			buffer.WriteBit(false);
+
+			buffer.Write<uint32_t>(32, 12);
+
+			buffer.WriteBit(false);
+			buffer.Write<uint32_t>(3, 0);
+		}
+		else
+		{
+			buffer.WriteBit(false);
 		}
 
 		return true;

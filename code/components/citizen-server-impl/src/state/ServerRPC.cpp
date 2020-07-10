@@ -130,6 +130,7 @@ static InitFunction initFunction([]()
 				uint32_t delId = 0;
 				int clientIdx = -1;
 				uint32_t contextId = 0;
+				std::shared_ptr<fx::sync::SyncEntityState> entity;
 
 				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityContext)
 				{
@@ -172,11 +173,20 @@ static InitFunction initFunction([]()
 							if (scriptGuid->type == fx::ScriptGuid::Type::Entity)
 							{
 								// look up the entity owner
-								auto entity = gameState->GetEntity(cxtEntity);
+								entity = gameState->GetEntity(cxtEntity);
 
 								if (entity)
 								{
-									clientIdx = entity->client.lock()->GetNetId();
+									auto client = entity->client.lock();
+
+									if (client)
+									{
+										clientIdx = client->GetNetId();
+									}
+									else
+									{
+										clientIdx = -2;
+									}
 								}
 							}
 							else if (scriptGuid->type == fx::ScriptGuid::Type::TempEntity)
@@ -457,7 +467,18 @@ static InitFunction initFunction([]()
 					cl->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
 				};
 
-				if (clientIdx == -1)
+				if (clientIdx == -2)
+				{
+					if (entity && !entity->client.lock())
+					{
+						std::unique_lock<std::shared_mutex> _(entity->guidMutex);
+						entity->onCreationRPC.push_back([buffer](const std::shared_ptr<fx::Client>& client)
+						{
+							client->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+						});
+					}
+				}
+				else if (clientIdx == -1)
 				{
 					clientRegistry->ForAllClients(sendToClient);
 				}

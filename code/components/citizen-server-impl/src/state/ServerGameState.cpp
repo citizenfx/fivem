@@ -1239,6 +1239,21 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				// make it a create
 				syncType = 1;
 			}
+			else
+			{
+				// we know the entity has been created, so we can try sending some entity RPC to 'em
+				if (client == entityClient && !entity->onCreationRPC.empty())
+				{
+					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+
+					for (auto& entry : entity->onCreationRPC)
+					{
+						entry(client);
+					}
+
+					entity->onCreationRPC.clear();
+				}
+			}
 
 			bool shouldSend = true;
 
@@ -2227,18 +2242,11 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 
 auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree) -> std::shared_ptr<sync::SyncEntityState>
 {
-	std::shared_ptr<fx::Client> cl;
-
-	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](std::shared_ptr<fx::Client> client)
-	{
-		cl = client;
-	});
-
 	bool hadId = false;
 
-	int id = 1;
+	int id = fx::IsLengthHack() ? (MaxObjectId - 1) : 8191;
 
-	for (; id < m_objectIdsSent.size(); id++)
+	for (; id >= 1; id--)
 	{
 		if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
 		{
@@ -2250,7 +2258,6 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 	m_objectIdsUsed.set(id);
 
 	auto entity = std::make_shared<sync::SyncEntityState>();
-	entity->client.update(cl);
 	entity->type = type;
 	entity->guid = nullptr;
 	entity->frameIndex = m_frameIndex;
@@ -2261,7 +2268,6 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 
 	entity->syncTree = tree;
 
-	entity->lastUpdater.update(entity->client.lock());
 	entity->lastReceivedAt = msec();
 
 	entity->timestamp = msec().count();

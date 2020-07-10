@@ -419,6 +419,8 @@ struct SyncEntityState
 
 	bool deleting;
 
+	std::list<std::function<void(const std::shared_ptr<fx::Client>& ptr)>> onCreationRPC;
+
 	SyncEntityState();
 
 	SyncEntityState(const SyncEntityState&) = delete;
