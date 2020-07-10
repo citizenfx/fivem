@@ -640,6 +640,10 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 				{
 					pn = HashString("dirtTexture");
 				}
+				else if (pn == HashString("tintPaletteSampler"))
+				{
+					pn = HashString("tintPaletteTex");
+				}
 
 				auto texture = (five::grcTextureRef*)params[i].GetValue();
 
