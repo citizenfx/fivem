@@ -68,7 +68,9 @@ static int SysError(const char* buffer)
 	MessageBoxA(wnd, buffer, "Fatal Error", MB_OK | MB_ICONSTOP);
 
 #ifdef _DEBUG
+#ifndef IS_FXSERVER
 	assert(!"breakpoint time");
+#endif
 #endif
 
 	TerminateProcess(GetCurrentProcess(), 1);
