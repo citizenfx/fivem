@@ -1596,7 +1596,7 @@ void ServerGameState::UpdateEntities()
 					// #TODO: maybe non-client too?
 					if (client)
 					{
-						MoveEntityToCandidate(entity, client);
+						MoveEntityToCandidate(entity, {});
 					}
 
 					// store the current time so we'll only try again in 10 seconds, not *the next frame*
@@ -1868,7 +1868,7 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 	{
 		auto entityClient = entity->client.lock();
 
-		if (!entityClient)
+		if (!entityClient || !client)
 		{
 			hasClient = false;
 		}
@@ -1961,7 +1961,7 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 		{
 			auto& candidate = *candidates->begin();
 
-			GS_LOG("reassigning entity %d from %s to %s\n", entity->handle, client->GetName(), std::get<1>(candidate)->GetName());
+			GS_LOG("reassigning entity %d from %s to %s\n", entity->handle, client ? client->GetName() : "", std::get<1>(candidate)->GetName());
 
 			ReassignEntity(entity->handle, std::get<1>(candidate));
 		}
