@@ -585,6 +585,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	static uint16_t entityHandleMap[MaxObjectId];
 
 	int maxValidEntity = 0;
+	static bool passedRelevancyTest;
 
 	eastl::fixed_set<uint16_t, 32> toErase;
 
@@ -619,19 +620,23 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			std::shared_ptr<fx::Client> entityClient = entity->client.lock();
 
-			// poor entity, it's relevant to nobody :( disown/delete it
-			if (entity->relevantTo.none() && entityClient)
+			// if we have just completed a full player update cycle...
+			if (passedRelevancyTest)
 			{
-				if (entity->IsOwnedByScript())
+				// poor entity, it's relevant to nobody :( disown/delete it
+				if (entity->relevantTo.none() && entityClient && entity->type != sync::NetObjEntityType::Player)
 				{
-					ReassignEntity(entity->handle, {});
-				}
-				else
-				{
-					if (!MoveEntityToCandidate(entity, entityClient))
+					if (entity->IsOwnedByScript())
 					{
-						toErase.insert(entity->handle);
-						continue;
+						ReassignEntity(entity->handle, {});
+					}
+					else
+					{
+						if (!MoveEntityToCandidate(entity, entityClient))
+						{
+							toErase.insert(entity->handle);
+							continue;
+						}
 					}
 				}
 			}
@@ -641,6 +646,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			maxValidEntity++;
 		}
 	}
+
+	passedRelevancyTest = false;
 
 	for (auto& entity : toErase)
 	{
@@ -668,6 +675,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (slot < 0)
 			{
+				passedRelevancyTest = true;
 				slot = initSlot;
 			}
 
