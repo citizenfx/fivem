@@ -30,6 +30,8 @@ return {
 			'GRIT_COMPAT_IPAIRS',
 			'GRIT_POWER_TCREATE',
 			'GRIT_POWER_TTYPE',
+			-- 'LUA_RAPIDJSON_COMPAT', -- Lua54: strict JSON compliance required?
+			'LUA_RAPIDJSON_SANITIZE_KEYS',			
 		}
 
 		files
