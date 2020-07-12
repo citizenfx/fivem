@@ -117,6 +117,11 @@ void ObjectIds_AddObjectId(int objectId)
 	TheClones->Log("%s: id %d\n", __func__, objectId);
 }
 
+void ObjectIds_StealObjectId(int objectId)
+{
+	g_stolenObjectIds.insert(objectId);
+}
+
 void ObjectIds_RemoveObjectId(int objectId)
 {
 	// this is no longer ours

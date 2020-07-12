@@ -381,7 +381,7 @@ static InitFunction initFunction([]()
 
 			if (g_oneSyncVar->GetValue())
 			{
-				if (protocol < 8)
+				if (protocol < 9)
 				{
 					sendError("Client/server version mismatch.");
 					return;
@@ -466,7 +466,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202007022353;
+			data["bitVersion"] = 0x202007120951;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
 			data["onesync"] = g_oneSyncVar->GetValue();

@@ -36,6 +36,7 @@ extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
 void ObjectIds_AddObjectId(int objectId);
+void ObjectIds_StealObjectId(int objectId);
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
 
@@ -739,7 +740,7 @@ public:
 		return m_clones;
 	}
 
-	inline const std::vector<uint16_t>& GetRemoves() const
+	inline const std::vector<std::tuple<uint16_t, bool>>& GetRemoves() const
 	{
 		return m_removes;
 	}
@@ -754,7 +755,7 @@ private:
 
 	std::list<msgClone> m_clones;
 
-	std::vector<uint16_t> m_removes;
+	std::vector<std::tuple<uint16_t, bool>> m_removes;
 };
 
 msgPackedClones::msgPackedClones()
@@ -791,9 +792,16 @@ void msgPackedClones::Read(net::Buffer& buffer)
 				}
 				case 3: // clone remove
 				{
+					auto stillAlive = false;
+
+					if (icgi->NetProtoVersion >= 0x202007120951)
+					{
+						stillAlive = msgBuf.ReadBit();
+					}
+
 					auto remove = msgBuf.Read<uint16_t>(13);
 
-					m_removes.push_back(remove);
+					m_removes.push_back({ remove, stillAlive });
 					break;
 				}
 				case 5:
@@ -1241,8 +1249,13 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		}
 	}
 
-	for (uint16_t remove : msg.GetRemoves())
+	for (auto [ remove, stillAlive ] : msg.GetRemoves())
 	{
+		if (stillAlive)
+		{
+			ObjectIds_StealObjectId(remove);
+		}
+
 		DeleteObjectId(remove, false);
 	}
 

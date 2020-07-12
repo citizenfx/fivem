@@ -585,7 +585,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	static uint16_t entityHandleMap[MaxObjectId];
 
 	int maxValidEntity = 0;
-	static bool passedRelevancyTest;
 
 	eastl::fixed_set<uint16_t, 32> toErase;
 
@@ -619,35 +618,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			std::shared_ptr<fx::Client> entityClient = entity->client.lock();
-
-			// if we have just completed a full player update cycle...
-			if (passedRelevancyTest)
-			{
-				// poor entity, it's relevant to nobody :( disown/delete it
-				if (entity->relevantTo.none() && entityClient && entity->type != sync::NetObjEntityType::Player)
-				{
-					if (entity->IsOwnedByScript())
-					{
-						ReassignEntity(entity->handle, {});
-					}
-					else
-					{
-						if (!MoveEntityToCandidate(entity, entityClient))
-						{
-							toErase.insert(entity->handle);
-							continue;
-						}
-					}
-				}
-			}
 			
 			relevantEntities[maxValidEntity] = { entity, entityPosition, vehicleData, entityClient };
 			entityHandleMap[entity->handle] = maxValidEntity;
 			maxValidEntity++;
 		}
 	}
-
-	passedRelevancyTest = false;
 
 	for (auto& entity : toErase)
 	{
@@ -675,7 +651,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (slot < 0)
 			{
-				passedRelevancyTest = true;
 				slot = initSlot;
 			}
 
@@ -891,11 +866,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 
 				clientDataUnlocked->relevantEntities.push_back({ entity->handle, syncDelay, shouldBeCreated });
-				entity->relevantTo.set(client->GetSlotId());
-			}
-			else
-			{
-				entity->relevantTo.reset(client->GetSlotId());
+
+				{
+					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+					entity->relevantTo.set(client->GetSlotId());
+				}
 			}
 		}
 	}
@@ -1109,10 +1084,27 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// delete object
-			scl->commands.emplace_back([deletion](SyncCommandState& cmdState)
+			scl->commands.emplace_back([this, deletion](SyncCommandState& cmdState)
 			{
-				cmdState.maybeFlushBuffer(16);
+				cmdState.maybeFlushBuffer(17);
 				cmdState.cloneBuffer.Write(3, 3);
+
+				// if the entity still exists, and this is the *owner* we're deleting it for, we should tell them their object ID is stolen
+				// as ReassignEntity will mark the object ID as part of the steal pool
+				bool shouldSteal = false;
+				auto entity = GetEntity(0, deletion);
+
+				if (entity)
+				{
+					auto entityClient = entity->client.lock();
+
+					if (entityClient && entityClient->GetNetId() == cmdState.client->GetNetId())
+					{
+						shouldSteal = true;
+					}
+				}
+
+				cmdState.cloneBuffer.WriteBit(shouldSteal ? true : false);
 				cmdState.cloneBuffer.Write(13, int32_t(deletion));
 			});
 		}
@@ -1828,7 +1820,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 		}
 	}
 
-	// #TODO1S: reassignment should also send a create if the player was out of focus area
+	// #TODO1S: reassignment should also send a create if the player was out of scope
 	{
 		if (targetClient)
 		{
@@ -2063,7 +2055,7 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 
 	{
 		// remove object IDs from sent map
-		auto [ lock, data] = GetClientData(this, client);
+		auto [ lock, data ] = GetClientData(this, client);
 
 		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
 
@@ -2201,9 +2193,9 @@ void ServerGameState::ProcessCloneRemove(const std::shared_ptr<fx::Client>& clie
 
 			return;
 		}
-	}
 
-	RemoveClone(client, objectId);
+		RemoveClone(client, objectId);
+	}
 }
 
 void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId)
@@ -2264,6 +2256,7 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 
 	m_objectIdsSent.set(id);
 	m_objectIdsUsed.set(id);
+	m_objectIdsStolen.set(id);
 
 	auto entity = std::make_shared<sync::SyncEntityState>();
 	entity->type = type;
@@ -2428,7 +2421,10 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		return false;
 	}
 
-	entity->relevantTo.set(client->GetSlotId());
+	{
+		std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+		entity->relevantTo.set(client->GetSlotId());
+	}
 
 	std::shared_ptr<fx::Client> entityClient = entity->client.lock();
 
@@ -3614,6 +3610,52 @@ static InitFunction initFunction([]()
 			clientData->lastAckIndex = frameIndex;
 
 			GS_LOG("%s ack is now %lld\n", client->GetName(), frameIndex);
+
+			// diff current and last ack
+			if (lastAck != clientData->entityStates.end() && es != clientData->entityStates.end())
+			{
+				eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeys;
+				std::set_difference(lastAck->second->begin(), lastAck->second->end(), es->second->begin(), es->second->end(), std::back_inserter(deletedKeys), [](const auto& left, const auto& right)
+				{
+					return left.first < right.first;
+				});
+
+				for (auto& entityPair : deletedKeys)
+				{
+					auto entity = sgs->GetEntity(0, entityPair.first);
+
+					if (!entity)
+					{
+						continue;
+					}
+
+					auto entityClient = entity->client.lock();
+
+					{
+						std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+						entity->relevantTo.reset(client->GetSlotId());
+					}
+
+					std::shared_lock<std::shared_mutex> sharedLock(entity->guidMutex);
+					// poor entity, it's relevant to nobody :( disown/delete it
+					if (entity->relevantTo.none() && entityClient && entity->type != fx::sync::NetObjEntityType::Player)
+					{
+						sharedLock.unlock();
+
+						if (entity->IsOwnedByScript())
+						{
+							sgs->ReassignEntity(entity->handle, {});
+						}
+						else
+						{
+							if (!sgs->MoveEntityToCandidate(entity, entityClient))
+							{
+								sgs->DeleteEntity(entity);
+							}
+						}
+					}
+				}
+			}
 
 			if (es != clientData->entityStates.end())
 			{

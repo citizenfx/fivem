@@ -696,6 +696,7 @@ private:
 
 	void SendWorldGrid(void* entry = nullptr, const std::shared_ptr<fx::Client>& client = {});
 
+public:
 	bool MoveEntityToCandidate(const std::shared_ptr<sync::SyncEntityState>& entity, const std::shared_ptr<fx::Client>& client);
 
 //private:
