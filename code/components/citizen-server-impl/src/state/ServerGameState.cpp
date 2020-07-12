@@ -2040,6 +2040,11 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				continue;
 			}
 
+			{
+				std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+				entity->relevantTo.reset(client->GetSlotId());
+			}
+
 			if (!MoveEntityToCandidate(entity, client))
 			{
 				toErase.insert(entity->handle);
