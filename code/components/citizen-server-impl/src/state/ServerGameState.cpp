@@ -1070,19 +1070,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			// is this entity getting deleted owned by the client? disown it so the client won't parrot its deletion ack
-			auto entity = GetEntity(0, deletion);
-
-			if (entity)
-			{
-				auto entityClient = entity->client.lock();
-
-				if (entityClient && entityClient->GetNetId() == client->GetNetId())
-				{
-					ReassignEntity(deletion, {});
-				}
-			}
-
 			// delete object
 			scl->commands.emplace_back([this, deletion](SyncCommandState& cmdState)
 			{

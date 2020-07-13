@@ -35,6 +35,8 @@
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
+static std::set<uint16_t> g_dontParrotDeletionAcks;
+
 void ObjectIds_AddObjectId(int objectId);
 void ObjectIds_StealObjectId(int objectId);
 
@@ -1253,6 +1255,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	{
 		if (stillAlive)
 		{
+			g_dontParrotDeletionAcks.insert(remove);
 			ObjectIds_StealObjectId(remove);
 		}
 
@@ -1506,8 +1509,13 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 		m_netObjects[object->syncData.ownerId].erase(object->objectId);
 	}
 
-	m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });
+	// these are not actually to be deleted, don't ask the server to delete them
+	if (g_dontParrotDeletionAcks.find(object->objectId) == g_dontParrotDeletionAcks.end())
+	{
+		m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });	
+	}
 
+	g_dontParrotDeletionAcks.erase(object->objectId);
 	m_savedEntities.erase(object->objectId);
 	m_savedEntitySet.erase(object);
 	m_trackedObjects.erase(object->objectId);
