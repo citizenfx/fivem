@@ -59,5 +59,6 @@ module.exports = function(grunt)
 		grunt.log.ok('Component created.');
 	});
 
+	
 	grunt.registerTask('component:new', ['prompt:component-new', 'component-new']);
 };
