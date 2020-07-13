@@ -232,3 +232,6 @@
 	path = vendor/lua
 	url = https://github.com/citizenfx/lua.git
 	branch = grit
+[submodule "vendor/tinygltf"]
+	path = vendor/tinygltf
+	url = https://github.com/syoyo/tinygltf.git
