@@ -114,11 +114,13 @@ void ObjectIds_AddObjectId(int objectId)
 		g_stolenObjectIds.insert(objectId);
 	}
 
-	TheClones->Log("%s: id %d\n", __func__, objectId);
+	TheClones->Log("%s: id %d (wasOurs: %s)\n", __func__, objectId, wasOurs ? "true" : "false");
 }
 
 void ObjectIds_StealObjectId(int objectId)
 {
+	TheClones->Log("%s: id %d\n", __func__, objectId);
+
 	g_stolenObjectIds.insert(objectId);
 }
 

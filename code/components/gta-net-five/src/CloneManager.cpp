@@ -1255,8 +1255,15 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	{
 		if (stillAlive)
 		{
-			g_dontParrotDeletionAcks.insert(remove);
-			ObjectIds_StealObjectId(remove);
+			auto objectIt = m_savedEntities.find(remove);
+
+			if (objectIt != m_savedEntities.end())
+			{
+				auto object = objectIt->second;
+
+				g_dontParrotDeletionAcks.insert(remove);
+				ObjectIds_StealObjectId(remove);
+			}
 		}
 
 		DeleteObjectId(remove, false);
