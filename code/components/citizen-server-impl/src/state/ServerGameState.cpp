@@ -1007,11 +1007,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			lastEntityState = &blankEntityState;
 		}
 
-		// removals go first
+		// removals (and uniqifier changes) go first
 		eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeys;
 		std::set_difference(lastEntityState->begin(), lastEntityState->end(), newEntityState.begin(), newEntityState.end(), std::back_inserter(deletedKeys), [](const auto& left, const auto& right)
 		{
-			return left.first < right.first;
+			auto leftTup = std::make_tuple(left.first, left.second.uniqifier);
+			auto rightTup = std::make_tuple(right.first, right.second.uniqifier);
+
+			return leftTup < rightTup;
 		});
 
 		const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
@@ -1019,6 +1022,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		for (const auto& deletionPair : deletedKeys)
 		{
 			uint16_t deletion = deletionPair.first;
+			uint16_t uniqifier = deletionPair.second.uniqifier;
 
 			// delete player
 			if (fx::IsBigMode())
@@ -1071,7 +1075,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// delete object
-			scl->commands.emplace_back([this, deletion](SyncCommandState& cmdState)
+			scl->commands.emplace_back([this, deletion, uniqifier](SyncCommandState& cmdState)
 			{
 				cmdState.maybeFlushBuffer(17);
 				cmdState.cloneBuffer.Write(3, 3);
@@ -1081,7 +1085,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				bool shouldSteal = false;
 				auto entity = GetEntity(0, deletion);
 
-				if (entity)
+				if (entity && entity->uniqifier == uniqifier)
 				{
 					auto entityClient = entity->client.lock();
 
@@ -1140,6 +1144,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				{
 					lastFrameIndex = 0;
 				}
+			}
+
+			// is this a different entity in reality?
+			if (lastState->uniqifier != entity->uniqifier)
+			{
+				hasCreated = false;
+				lastFrameIndex = 0;
 			}
 
 			bool shouldBeCreated = true;
