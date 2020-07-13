@@ -83,6 +83,7 @@ workspace "CitizenMP"
 		systemversion '10.0.18362.0'
 	end
 
+		
 	-- special build dirs for FXServer
 	if _OPTIONS['game'] == 'server' then
 		location ((_OPTIONS['builddir'] or "build/") .. "server/" .. os.target())
