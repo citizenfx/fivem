@@ -542,7 +542,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	glm::mat4x4 viewMatrix;
 
-	eastl::fixed_hash_map<uint64_t, std::unique_ptr<EntityStateObject>, 150> entityStates;
+	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject>, 150> entityStates;
 	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 
 	uint64_t lastAckIndex;

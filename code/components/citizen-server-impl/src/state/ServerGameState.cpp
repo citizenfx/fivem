@@ -1431,18 +1431,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 
 		GS_LOG("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
-
-		{
-			auto[clientDataLock, clientData] = GetClientData(this, client);
-
-			// since this runs every frame, we can safely assume this will clean things up entirely
-			auto toErase = m_frameIndex - 150;
-
-			if (toErase != clientData->lastAckIndex)
-			{
-				clientData->entityStates.erase(m_frameIndex - 150);
-			}
-		}
 	});
 
 	for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
@@ -3599,8 +3587,15 @@ static InitFunction initFunction([]()
 				auto slotId = client->GetSlotId();
 				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
 
+				auto origAckIndex = clientData->lastAckIndex;
 				auto es = clientData->entityStates.find(frameIndex);
-				auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
+				auto lastAck = clientData->entityStates.find(origAckIndex);
+
+				// if duplicate/out-of-order, ignore
+				if (origAckIndex >= frameIndex)
+				{
+					return;
+				}
 
 				clientData->lastAckIndex = frameIndex;
 
@@ -3673,6 +3668,12 @@ static InitFunction initFunction([]()
 				}
 
 				client->SetData("syncFrameIndex", frameIndex);
+
+				// erase all states up to (and including) the one we just approved
+				if (lastAck != clientData->entityStates.end())
+				{
+					clientData->entityStates.erase(clientData->entityStates.begin(), ++lastAck);
+				}
 			}
 
 			for (auto& entity : relevantExits)
