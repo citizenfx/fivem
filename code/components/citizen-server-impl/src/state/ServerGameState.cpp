@@ -2299,20 +2299,11 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 
 	uint32_t timestamp = 0;
 
-	if (auto tsData = client->GetData("syncTs"); tsData.has_value())
-	{
-		timestamp = std::any_cast<uint32_t>(tsData);
-	}
-
-	if (!client->GetData("timestamp").has_value())
-	{
-		client->SetData("timestamp", int64_t(timestamp));
-	}
-
 	// move this back down under
 	{
 		auto [lock, data] = GetClientData(this, client);
 		data->playerId = playerId;
+		timestamp = data->syncTs;
 	}
 
 	std::vector<uint8_t> bitBytes(length);
@@ -2684,12 +2675,13 @@ void ServerGameState::ParseClonePacket(const std::shared_ptr<fx::Client>& client
 			ackPacket.Write(32, newTs);
 			ackPacketWrapper.flush();
 
-			auto oldTs = client->GetData("ackTs");
+			auto [lock, data] = GetClientData(this, client);
+			auto oldTs = data->ackTs;
 
-			if (!oldTs.has_value() || std::any_cast<uint32_t>(oldTs) < newTs)
+			if (!oldTs || oldTs < newTs)
 			{
-				client->SetData("ackTs", newTs);
-				client->SetData("syncTs", newTs);
+				data->ackTs = newTs;
+				data->syncTs = newTs;
 			}
 
 			break;

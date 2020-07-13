@@ -554,6 +554,9 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
 
+	uint32_t syncTs = 0;
+	uint32_t ackTs = 0;
+
 	GameStateClientData()
 		: syncing(false), lastAckIndex(0)
 	{
