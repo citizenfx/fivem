@@ -3605,96 +3605,103 @@ static InitFunction initFunction([]()
 			}
 
 			auto sgs = instance->GetComponent<fx::ServerGameState>();
+			
+			eastl::fixed_vector<std::shared_ptr<fx::sync::SyncEntityState>, 16> relevantExits;
 
-			auto slotId = client->GetSlotId();
-			auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-
-			auto es = clientData->entityStates.find(frameIndex);
-			auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
-
-			clientData->lastAckIndex = frameIndex;
-
-			GS_LOG("%s ack is now %lld\n", client->GetName(), frameIndex);
-
-			// diff current and last ack
-			if (lastAck != clientData->entityStates.end() && es != clientData->entityStates.end())
 			{
-				eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeys;
-				std::set_difference(lastAck->second->begin(), lastAck->second->end(), es->second->begin(), es->second->end(), std::back_inserter(deletedKeys), [](const auto& left, const auto& right)
+				auto slotId = client->GetSlotId();
+				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
+
+				auto es = clientData->entityStates.find(frameIndex);
+				auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
+
+				clientData->lastAckIndex = frameIndex;
+
+				GS_LOG("%s ack is now %lld\n", client->GetName(), frameIndex);
+
+				// diff current and last ack
+				if (lastAck != clientData->entityStates.end() && es != clientData->entityStates.end())
 				{
-					return left.first < right.first;
-				});
-
-				for (auto& entityPair : deletedKeys)
-				{
-					auto entity = sgs->GetEntity(0, entityPair.first);
-
-					if (!entity)
+					eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeys;
+					std::set_difference(lastAck->second->begin(), lastAck->second->end(), es->second->begin(), es->second->end(), std::back_inserter(deletedKeys), [](const auto& left, const auto& right)
 					{
-						continue;
-					}
+						return left.first < right.first;
+					});
 
-					auto entityClient = entity->client.lock();
-
+					for (auto& entityPair : deletedKeys)
 					{
-						std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-						entity->relevantTo.reset(client->GetSlotId());
-					}
+						auto entity = sgs->GetEntity(0, entityPair.first);
 
-					std::shared_lock<std::shared_mutex> sharedLock(entity->guidMutex);
-					// poor entity, it's relevant to nobody :( disown/delete it
-					if (entity->relevantTo.none() && entityClient && entity->type != fx::sync::NetObjEntityType::Player)
-					{
-						sharedLock.unlock();
-
-						if (entity->IsOwnedByScript())
+						if (!entity)
 						{
-							sgs->ReassignEntity(entity->handle, {});
+							continue;
 						}
-						else
+
+						auto entityClient = entity->client.lock();
+
 						{
-							if (!sgs->MoveEntityToCandidate(entity, entityClient))
-							{
-								sgs->DeleteEntity(entity);
-							}
+							std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+							entity->relevantTo.reset(client->GetSlotId());
+						}
+
+						std::shared_lock<std::shared_mutex> sharedLock(entity->guidMutex);
+						// poor entity, it's relevant to nobody :( disown/delete it
+						if (entity->relevantTo.none() && entityClient && entity->type != fx::sync::NetObjEntityType::Player)
+						{
+							relevantExits.push_back(entity);
 						}
 					}
 				}
-			}
 
-			if (es != clientData->entityStates.end())
-			{
-				for (auto& entity : ignoreEntities)
+				if (es != clientData->entityStates.end())
 				{
-					GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
-
-					if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
+					for (auto& entity : ignoreEntities)
 					{
-						// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-						auto eIt = es->second->find(entity);
+						GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
 
-						if (eIt != es->second->end())
+						if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
 						{
-							eIt->second.frameIndex = 0;
-							eIt->second.lastSend = 0ms;
-							eIt->second.overrideFrameIndex = true;
+							// #TODO1SACK: better frame index handling to allow ignoring on node granularity
+							auto eIt = es->second->find(entity);
+
+							if (eIt != es->second->end())
+							{
+								eIt->second.frameIndex = 0;
+								eIt->second.lastSend = 0ms;
+								eIt->second.overrideFrameIndex = true;
+							}
+						}
+						else
+						{
+							es->second->erase(entity);
 						}
 					}
-					else
+
+					for (auto& entity : recreateEntities)
 					{
+						GS_LOG("%s is requesting recreate of creating entity %d\n", client->GetName(), entity);
+
 						es->second->erase(entity);
 					}
 				}
 
-				for (auto& entity : recreateEntities)
-				{
-					GS_LOG("%s is requesting recreate of creating entity %d\n", client->GetName(), entity);
-
-					es->second->erase(entity);
-				}
+				client->SetData("syncFrameIndex", frameIndex);
 			}
 
-			client->SetData("syncFrameIndex", frameIndex);
+			for (auto& entity : relevantExits)
+			{
+				if (entity->IsOwnedByScript())
+				{
+					sgs->ReassignEntity(entity->handle, {});
+				}
+				else
+				{
+					if (!sgs->MoveEntityToCandidate(entity, entity->client.lock()))
+					{
+						sgs->DeleteEntity(entity);
+					}
+				}
+			}
 		} });
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgTimeSyncReq"), { fx::ThreadIdx::Net, [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
