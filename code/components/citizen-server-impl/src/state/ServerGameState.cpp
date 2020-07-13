@@ -1732,7 +1732,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 					entry.sectorY = 0;
 					entry.netID = -1;
 
-					SendWorldGrid(&entry);
+					SendWorldGrid(&entry, client);
 				}
 			}
 		}
@@ -1761,7 +1761,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 
 							m_worldGridAccel.netIDs[x][y] = netID;
 
-							SendWorldGrid(&entry);
+							SendWorldGrid(&entry, client);
 
 							break;
 						}
