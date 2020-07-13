@@ -1147,7 +1147,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// is this a different entity in reality?
-			if (lastState->uniqifier != entity->uniqifier)
+			if (lastState && lastState->uniqifier != entity->uniqifier)
 			{
 				hasCreated = false;
 				lastFrameIndex = 0;
