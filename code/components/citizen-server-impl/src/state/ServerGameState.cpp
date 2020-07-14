@@ -3249,7 +3249,7 @@ struct CClearPedTasksEvent
 	void Parse(rl::MessageBuffer& buffer)
 	{
 		pedId = buffer.Read<uint16_t>(13);
-		unk1 = buffer.Read<uint8_t>(1);
+		immediately = buffer.Read<uint8_t>(1);
 	}
 
 	inline std::string GetName()
@@ -3258,9 +3258,9 @@ struct CClearPedTasksEvent
 	}
 
 	int pedId;
-	bool unk1;
+	bool immediately;
 
-	MSGPACK_DEFINE_MAP(pedId, unk1);
+	MSGPACK_DEFINE_MAP(pedId, immediately);
 };
 
 struct CRespawnPlayerPedEvent
