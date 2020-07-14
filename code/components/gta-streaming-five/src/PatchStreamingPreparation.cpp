@@ -299,12 +299,12 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 					}
 					else
 					{
-						std::string error;
+						std::string errorRef;
 						ICoreGameInit* init = Instance<ICoreGameInit>::Get();
 
-						init->GetData("gta-core-five:loadCaller", &error);
+						init->GetData("gta-core-five:loadCaller", &errorRef);
 
-						FatalError("Failed to request %s: %s. %s", fileName, vfs::GetLastError(vfs::GetDevice(fileName)), error);
+						FatalError("Failed to request %s: %s. %s", fileName, error, errorRef);
 					}
 				};
 
