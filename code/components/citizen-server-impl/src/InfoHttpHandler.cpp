@@ -15,6 +15,8 @@
 
 #include <json.hpp>
 
+#include <KeyedRateLimiter.h>
+
 #include <cfx_version.h>
 #include <optional>
 
@@ -197,6 +199,16 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_info", fx::RateLimiterDefaults{ 4.0, 10.0 });
+			auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
+
+			if (address && !limiter->Consume(*address, 1.0))
+			{
+				response->SetStatusCode(429);
+				response->End("Rate limit exceeded.");
+				return;
+			}
+
 			infoData->Update();
 
 			{
@@ -234,8 +246,18 @@ static InitFunction initFunction([]()
 		static std::shared_mutex playerBlobMutex;
 		static std::string playerBlob;
 
-		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [instance](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_players", fx::RateLimiterDefaults{ 4.0, 10.0 });
+			auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
+
+			if (address && !limiter->Consume(*address, 1.0))
+			{
+				response->SetStatusCode(429);
+				response->End("Rate limit exceeded.");
+				return;
+			}
+
 			std::shared_lock<std::shared_mutex> lock(playerBlobMutex);
 			response->End(playerBlob);
 		});
