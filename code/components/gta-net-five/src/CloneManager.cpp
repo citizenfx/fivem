@@ -887,13 +887,13 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		}
 	});
 
-	auto& objectData = m_trackedObjects[msg.GetObjectId()];
-
 	// already exists! bail out
 	if (exists)
 	{
-		if (objectData.uniqifier != msg.GetUniqifier())
+		if (auto objectDataIt = m_trackedObjects.find(msg.GetObjectId()); objectDataIt == m_trackedObjects.end() || objectDataIt->second.uniqifier != msg.GetUniqifier())
 		{
+			Log("%s: duplicate remote object, undoing sync\n", __func__);
+
 			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
 			DeleteObjectId(msg.GetObjectId(), true);
 
@@ -914,8 +914,10 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// check if the object already exists *locally*
 	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
 	{
-		if (objectData.uniqifier != msg.GetUniqifier())
+		if (auto objectDataIt = m_trackedObjects.find(msg.GetObjectId()); objectDataIt == m_trackedObjects.end() || objectDataIt->second.uniqifier != msg.GetUniqifier())
 		{
+			Log("%s: duplicate local object, undoing sync\n", __func__);
+
 			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
 			DeleteObjectId(msg.GetObjectId(), true);
 
@@ -935,6 +937,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
 
+	auto& objectData = m_trackedObjects[msg.GetObjectId()];
 	objectData.uniqifier = msg.GetUniqifier();
 
 	// owner ID
@@ -1536,9 +1539,9 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 		g_curNetObjectSelection = nullptr;
 	}
 
-	if (object->syncData.ownerId != 0xFF)
+	for (auto& objectList : m_netObjects)
 	{
-		m_netObjects[object->syncData.ownerId].erase(object->objectId);
+		objectList.erase(object->objectId);
 	}
 
 	// these are not actually to be deleted, don't ask the server to delete them

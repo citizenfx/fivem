@@ -1151,6 +1151,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				hasCreated = false;
 				lastFrameIndex = 0;
+				lastState = nullptr;
 			}
 
 			bool shouldBeCreated = true;
