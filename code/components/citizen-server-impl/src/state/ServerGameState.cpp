@@ -1712,7 +1712,9 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 {
 	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
 	{
-		if (client->GetSlotId() == -1)
+		auto slotID = client->GetSlotId();
+
+		if (slotID == -1)
 		{
 			return;
 		}
@@ -1739,7 +1741,6 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		auto slotID = client->GetSlotId();
 		auto netID = client->GetNetId();
 
 		WorldGridState* gridState = &m_worldGrid[slotID];
