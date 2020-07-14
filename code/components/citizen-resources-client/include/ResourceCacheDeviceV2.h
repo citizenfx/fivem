@@ -51,7 +51,8 @@ protected:
 
 	virtual void CloseFile() = 0;
 
-	virtual bool EnsureRead();
+public:
+	virtual bool EnsureRead(const std::function<void(bool, const std::string&)>& cb = {});
 
 protected:
 	RcdFetcher* m_fetcher;
