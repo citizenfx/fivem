@@ -3261,6 +3261,24 @@ struct CVehicleComponentControlEvent
 	MSGPACK_DEFINE_MAP(vehicleGlobalId, pedGlobalId, componentIndex, request, componentIsSeat, pedInSeat);
 };
 
+struct CClearPedTasksEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		pedId = buffer.Read<uint16_t>(13);
+		immediately = buffer.Read<uint8_t>(1);
+	}
+
+	inline std::string GetName()
+	{
+		return "clearPedTasksEvent";
+	}
+
+	int pedId;
+	bool immediately;
+
+	MSGPACK_DEFINE_MAP(pedId, immediately);
+};
 
 struct CRespawnPlayerPedEvent
 {
@@ -3476,6 +3494,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
+		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
 	};
 
 	return {};
