@@ -60,7 +60,6 @@ std::shared_ptr<ConVar<bool>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncVehicleCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncForceMigration;
-std::shared_ptr<ConVar<bool>> g_oneSyncTempDontSync;
 std::shared_ptr<ConVar<bool>> g_oneSyncRadiusFrequency;
 std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
@@ -1396,7 +1395,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				runSync([](uint64_t&, bool&) {});
 
-				if (syncType == 1 && !g_oneSyncTempDontSync->GetValue())
+				if (syncType == 1)
 				{
 					syncType = 2;
 					runSync([](uint64_t& lfi, bool& isLfi)
@@ -3487,7 +3486,6 @@ static InitFunction initFunction([]()
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
 		g_oneSyncVehicleCulling = instance->AddVariable<bool>("onesync_distanceCullVehicles", ConVar_None, false);
 		g_oneSyncForceMigration = instance->AddVariable<bool>("onesync_forceMigration", ConVar_None, false);
-		g_oneSyncTempDontSync = instance->AddVariable<bool>("onesync_tempDontResendOnCreate", ConVar_None, false);
 		g_oneSyncRadiusFrequency = instance->AddVariable<bool>("onesync_radiusFrequency", ConVar_None, true);
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
 		g_oneSyncWorkaround763185 = instance->AddVariable<bool>("onesync_workaround763185", ConVar_None, false);
