@@ -310,6 +310,11 @@ public:
 	// copied IDA code, please improve!
 	inline bool ReadBits(void* data, int length)
 	{
+		if (length == 0)
+		{
+			return true;
+		}
+
 		if (length == 13 && GetLengthHackState())
 		{
 			length = 16;

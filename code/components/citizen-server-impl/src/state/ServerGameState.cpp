@@ -1229,10 +1229,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (entity->syncTree && (state = entity->syncTree->GetPedGameState()))
 				{
-					if (state->curVehicle >= 0)
+					if (state->curVehicle >= 0 && GetEntity(0, state->curVehicle))
 					{
 						if (!lastEntityState || lastEntityState->find(state->curVehicle) == lastEntityState->end())
 						{
+							GS_LOG("ped [obj:%d] not getting created for client [cl:%d] as vehicle [obj:%d] does not exist.\n", entity->handle, client->GetNetId(), state->curVehicle);
+
 							shouldBeCreated = false;
 						}
 					}
@@ -1392,19 +1394,33 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 								cmdState.cloneBuffer.Write<uint32_t>(32, ts == 0 ? entity->timestamp : ts);
 
-								cmdState.cloneBuffer.Write(12, len);
+								bool mayWrite = true;
 
-								if (!cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8))
+								if (syncType == 2 && entity->lastUpdater.lock() == cmdState.client)
 								{
-									cmdState.cloneBuffer.SetCurrentBit(startBit);
+									mayWrite = false;
+								}
 
-									// force a buffer flush, we're oversize
-									cmdState.flushBuffer(false);
+								if (mayWrite)
+								{
+									cmdState.cloneBuffer.Write(12, len);
+
+									if (!cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8))
+									{
+										cmdState.cloneBuffer.SetCurrentBit(startBit);
+
+										// force a buffer flush, we're oversize
+										cmdState.flushBuffer(false);
+									}
+									else
+									{
+										//entity->lastSyncs[slotId] = curTime;
+										//entity->lastResends[slotId] = curTime;
+									}
 								}
 								else
 								{
-									//entity->lastSyncs[slotId] = curTime;
-									//entity->lastResends[slotId] = curTime;
+									cmdState.cloneBuffer.Write(12, 0);
 								}
 							}
 						}
@@ -1901,7 +1917,9 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 		static thread_local auto* candidates = new eastl::fixed_set<std::tuple<float, std::shared_ptr<fx::Client>>, MAX_CLIENTS>();
 		candidates->clear();
 
-		clientRegistry->ForAllClients([this, &client, pos](const std::shared_ptr<fx::Client>& tgtClient)
+		uint32_t eh = entity->handle;
+
+		clientRegistry->ForAllClients([this, &client, eh, pos](const std::shared_ptr<fx::Client>& tgtClient)
 		{
 			if (tgtClient == client)
 			{
@@ -1937,7 +1955,13 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 
 			if (distance < (424.0f * 424.0f))
 			{
-				candidates->emplace(distance, tgtClient);
+				auto [_, clientData] = GetClientData(this, tgtClient);
+				auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
+
+				if (lastAck == clientData->entityStates.end() || lastAck->second->find(eh) != lastAck->second->end())
+				{
+					candidates->emplace(distance, tgtClient);
+				}
 			}
 		});
 
@@ -2028,8 +2052,6 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 			entry.netID = -1;
 			entry.sectorX = 0;
 			entry.sectorY = 0;
-
-			SendWorldGrid(&entry);
 		}
 	}
 

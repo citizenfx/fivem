@@ -887,9 +887,19 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		}
 	});
 
+	auto& objectData = m_trackedObjects[msg.GetObjectId()];
+
 	// already exists! bail out
 	if (exists)
 	{
+		if (objectData.uniqifier != msg.GetUniqifier())
+		{
+			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
+			DeleteObjectId(msg.GetObjectId(), true);
+
+			return false;
+		}
+
 		// update client id if changed
 		CheckMigration(msg);
 
@@ -904,6 +914,14 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// check if the object already exists *locally*
 	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
 	{
+		if (objectData.uniqifier != msg.GetUniqifier())
+		{
+			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
+			DeleteObjectId(msg.GetObjectId(), true);
+
+			return false;
+		}
+
 		// update client id if changed
 		CheckMigration(msg);
 
@@ -917,7 +935,6 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
 
-	auto& objectData = m_trackedObjects[msg.GetObjectId()];
 	objectData.uniqifier = msg.GetUniqifier();
 
 	// owner ID
