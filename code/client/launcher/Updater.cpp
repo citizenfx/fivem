@@ -439,7 +439,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 			{
 				double progress = ((*fileStart + fileOffset) / (double)fileTotal) * 100.0;
 
-				if (abs(progress - lastProgress) > 0.2)
+				if (abs(progress - lastProgress) > 0.5)
 				{
 					UI_UpdateProgress(progress);
 					lastProgress = progress;

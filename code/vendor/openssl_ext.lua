@@ -98,9 +98,15 @@
 				if not opensslimpl.library_excluded(cfg, libname, "crypto/") then
 					if string.sub(libname, 0, 6) == "crypto"  or libname == "" then
 						for _, filename in ipairs(desc.source) do
-							files {
-								cfg.src_dir .. libname .. "/" .. filename
-							}
+							if filename:match('%.s$') then
+								files {
+									'vendor/openssl/asm/' .. libname .. '/' .. filename:gsub('%.s$', '.asm')
+								}
+							else						
+								files {
+									cfg.src_dir .. libname .. "/" .. filename
+								}
+							end
 						end
 						for _, filename in ipairs(desc.private_headers) do
 							table.insert(ids,
@@ -135,9 +141,15 @@
 				if libname == "ssl" or libname == "crypto"  or libname == "" then
 					if libname == "ssl" then
 						for _, filename in ipairs(desc.source) do
-							files {
-								cfg.src_dir .. libname .. "/" .. filename
-							}
+							if filename:match('%.s$') then
+								files {
+									'vendor/openssl/asm/' .. libname .. '/' .. filename:gsub('%.s$', '.asm')
+								}
+							else	
+								files {
+									cfg.src_dir .. libname .. "/" .. filename
+								}
+							end
 						end
 					end
 					for _, filename in ipairs(desc.private_headers) do
@@ -189,6 +201,28 @@
 			keccak1600_asm_src	= "keccak1600.c",
 		}
 		
+		local other_templates = {	
+			-- from later on in the file
+			cpuid_asm_src   = "x86_64cpuid.s",
+			bn_asm_src      = "asm/x86_64-gcc.c x86_64-mont.s x86_64-mont5.s x86_64-gf2m.s rsaz_exp.c rsaz-x86_64.s rsaz-avx2.s",
+			ec_asm_src      = "ecp_nistz256.c ecp_nistz256-x86_64.s x25519-x86_64.s",
+			aes_asm_src     = "aes_core.c aes_cbc.c vpaes-x86_64.s aesni-x86_64.s aesni-sha1-x86_64.s aesni-sha256-x86_64.s aesni-mb-x86_64.s",
+			md5_asm_src     = "md5-x86_64.s",
+			sha1_asm_src    = "sha1-x86_64.s sha256-x86_64.s sha512-x86_64.s sha1-mb-x86_64.s sha256-mb-x86_64.s",
+			rc4_asm_src     = "rc4-x86_64.s rc4-md5-x86_64.s",
+			wp_asm_src      = "wp-x86_64.s",
+			cmll_asm_src    = "cmll-x86_64.s cmll_misc.c",
+			modes_asm_src   = "ghash-x86_64.s aesni-gcm-x86_64.s",
+			padlock_asm_src = "e_padlock-x86_64.s",
+			chacha_asm_src	= "chacha-x86_64.s",
+			poly1305_asm_src= "poly1305-x86_64.s",
+			keccak1600_asm_src	= "keccak1600-x86_64.s",
+		}
+		
+		for k, v in pairs(other_templates) do
+			opensslimpl.templates[k] = v
+		end
+		
 		opensslimpl.format_templates = function(line)
 			return line:gsub('%{%- %$target%{([^%}]*)%} %-%}', function(part)
 				return opensslimpl.templates[part]
@@ -205,9 +239,31 @@
 					"WIN32_LEAN_AND_MEAN",
 					"_CRT_SECURE_NO_DEPRECATE",
 					"OPENSSL_SYSNAME_WIN32",
-					"OPENSSL_NO_ASM",
 					"OPENSSL_NO_EC_NISTP_64_GCC_128",
-					"OPENSSLDIR=\"C:\\Program Files\\Common Files\\SSL\""
+					"OPENSSLDIR=\"C:\\Program Files\\Common Files\\SSL\"",
+					
+					--'AES_ASM',
+					'CPUID_ASM',
+					'OPENSSL_BN_ASM_MONT',
+					'OPENSSL_CPUID_OBJ',
+					'SHA1_ASM',
+					'SHA256_ASM',
+					'SHA512_ASM',
+					'GHASH_ASM',
+
+					'VPAES_ASM',
+					'BN_ASM',
+					'BF_ASM',
+					'BNCO_ASM',
+					'DES_ASM',
+					'LIB_BN_ASM',
+					'MD5_ASM',
+					'OPENSSL_BN_ASM',
+					'RIP_ASM',
+					'RMD160_ASM',
+					'WHIRLPOOL_ASM',
+					'WP_ASM',
+
 				}
 
 			filter {"architecture:x32 or architecture:x64"}
