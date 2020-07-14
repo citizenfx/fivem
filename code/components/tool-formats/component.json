@@ -5,7 +5,8 @@
 		"fx[2]",
 		"rage:formats:x",
 		"vendor:boost_filesystem",
-		"vendor:boost_program_options"
+		"vendor:boost_program_options",
+		"vendor:tinygltf"
 	],
 	"provides": []
 }

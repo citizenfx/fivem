@@ -13,6 +13,8 @@
 #include <pgContainers.h>
 //#include <grcTexture.h>
 
+#include <DirectXMath.h>
+
 #define RAGE_FORMATS_FILE rmcDrawable
 #include <formats-header.h>
 
@@ -466,9 +468,391 @@ namespace sga
 }
 #endif
 
-class crSkeletonData
+using crId = uint16_t;
+
+static uint32_t GetHashMapCount(int nHashes)
 {
+	if (nHashes < 11)
+		return 11;
+	else if (nHashes < 29)
+		return 29;
+	else if (nHashes < 59)
+		return 59;
+	else if (nHashes < 107)
+		return 107;
+	else if (nHashes < 191)
+		return 191;
+	else if (nHashes < 331)
+		return 331;
+	else if (nHashes < 563)
+		return 563;
+	else if (nHashes < 953)
+		return 953;
+	else if (nHashes < 1609)
+		return 1609;
+	else if (nHashes < 2729)
+		return 2729;
+	else if (nHashes < 4621)
+		return 4621;
+	else if (nHashes < 7841)
+		return 7841;
+	else if (nHashes < 13297)
+		return 13297;
+	else if (nHashes < 22571)
+		return 22571;
+	else if (nHashes < 38351)
+		return 38351;
+	else if (nHashes < 65167)
+		return 65167;
+	else /*if (nHashes < 65521)*/
+		return 65521;
+}
+
+template<typename TEntry>
+class pgHashMap
+{
+private:
+	struct HashEntry : pgStreamableBase
+	{
+		uint32_t hash;
+		TEntry data;
+		pgPtr<HashEntry> next;
+	};
+
+private:
+	pgObjectArray<HashEntry> m_data;
+
+	char m_pad[3];
+	bool m_initialized;
+
 public:
+	pgHashMap()
+	{
+		memset(m_pad, 0, sizeof(m_pad));
+		m_initialized = false;
+	}
+
+	/*inline TEntry* find(const uint32_t& idx)
+	{
+		for (auto i = *(m_data.m_offset + (idx % m_data.GetCount())); i; i = i->next)
+		{
+			if (i->hash == idx)
+			{
+				return &i->data;
+			}
+		}
+
+		return nullptr;
+	}*/
+
+	inline void SetFrom(const std::vector<std::pair<uint32_t, TEntry>>& entries)
+	{
+		auto bcount = GetHashMapCount(entries.size());
+		std::vector<pgPtr<HashEntry>> bucketList(bcount);
+
+		for (auto& entry : entries)
+		{
+			auto bucketIdx = entry.first % bcount;
+			
+			auto hentry = new (false) HashEntry();
+			hentry->hash = entry.first;
+			hentry->data = entry.second;
+			hentry->next = bucketList[bucketIdx];
+
+			bucketList[bucketIdx] = hentry;
+		}
+
+		m_data.SetFrom(&bucketList[0], bucketList.size());
+		m_initialized = true;
+	}
+};
+
+enum crBoneFlags : uint16_t
+{
+	None = 0,
+	RotX = 0x1,
+	RotY = 0x2,
+	RotZ = 0x4,
+	LimitRotation = 0x8,
+	TransX = 0x10,
+	TransY = 0x20,
+	TransZ = 0x40,
+	LimitTranslation = 0x80,
+	ScaleX = 0x100,
+	ScaleY = 0x200,
+	ScaleZ = 0x400,
+	LimitScale = 0x800,
+	Unk0 = 0x1000,
+	Unk1 = 0x2000,
+	Unk2 = 0x4000,
+	Unk3 = 0x8000,
+};
+
+static inline uint16_t atHash16(const char* str)
+{
+	uint32_t hash = 0;
+	uint32_t x = 0;
+
+	if (str)
+	{
+		while (*str)
+		{
+			char c = toupper(*str);
+			hash = (hash << 4) + c;
+
+			if ((x = hash & 0xF0000000) != 0)
+			{
+				hash ^= (x >> 24);
+			}
+
+			hash &= ~x;
+
+			str++;
+		}
+	}
+
+	return (hash % 0xFE8F) + 0x170;
+}
+
+class crBone
+{
+	Vector4 m_rotation;
+	Vector3 m_translation;
+	Vector3 m_scale;
+
+	int16_t m_nextSiblingIndex;
+	int16_t m_parentIndex;
+
+	pgPtr<char> m_name;
+	crBoneFlags m_flags;
+	int16_t m_index;
+	uint16_t m_tag;
+	int16_t m_index2;
+
+	uint64_t m_pad;
+
+public:
+	crBone()
+	{
+		m_pad = 0;
+	}
+
+	inline void Init(const char* name, int16_t index, crBoneFlags flags, Vector4 rotation, Vector3 scale, Vector3 translation, int16_t parentIndex = -1, int16_t siblingIndex = -1)
+	{
+		m_name = name ? strdup(name) : strdup("Root");
+		m_tag = name ? atHash16(name) : 0;
+		m_index = index;
+		m_index2 = index;
+		m_parentIndex = parentIndex;
+		m_nextSiblingIndex = siblingIndex;
+		m_translation = translation;
+		m_rotation = rotation;
+		m_scale = scale;
+		m_flags = flags;
+	}
+
+	inline void SetSiblingIndex(int16_t siblingIndex)
+	{
+		m_nextSiblingIndex = siblingIndex;
+	}
+
+	inline DirectX::XMVECTOR GetScale() const
+	{
+		return DirectX::XMVectorSet(m_scale.x, m_scale.y, m_scale.z, 1.0f);
+	}
+
+	inline DirectX::XMVECTOR GetTranslation() const
+	{
+		return DirectX::XMVectorSet(m_translation.x, m_translation.y, m_translation.z, 1.0f);
+	}
+
+	inline DirectX::XMVECTOR GetRotation() const
+	{
+		return DirectX::XMVectorSet(m_rotation.x, m_rotation.y, m_rotation.z, m_rotation.w);
+	}
+
+	inline uint16_t GetHash() const
+	{
+		return m_tag;
+	}
+
+	inline int16_t GetParentIndex() const
+	{
+		return m_parentIndex;
+	}
+
+	inline int16_t GetIndex() const
+	{
+		return m_index;
+	}
+};
+
+class crBoneData
+{
+	uint32_t boneCount;
+	uint32_t pad[3];
+
+	crBone m_bones[0];
+
+public:
+	static inline crBoneData* Create(uint32_t boneCount, const crBone* bones)
+	{
+		auto dataRef = (crBoneData*)pgStreamManager::Allocate(sizeof(crBoneData) + sizeof(crBone) * boneCount, false, nullptr);
+		dataRef->boneCount = boneCount;
+		memset(dataRef->pad, 0, sizeof(dataRef->pad));
+
+		auto outBone = (crBone*)(&dataRef->m_bones[0]);
+
+		for (int b = 0; b < boneCount; b++)
+		{
+			assert(bones[b].GetIndex() == b);
+
+			auto refBone = new (outBone) crBone;
+			*refBone = bones[b];
+
+			outBone++;
+		}
+
+		return dataRef;
+	}
+};
+
+struct dMatrix3x4 : public pgStreamableBase
+{
+	Vector3 _1;
+	Vector3 _2;
+	Vector3 _3;
+	Vector3 _4;
+};
+
+class crSkeletonData : public pgBase
+{
+#if defined(RAGE_FORMATS_GAME_FIVE)
+	pgHashMap<int> m_boneTags;
+	pgPtr<crBoneData> m_bones;
+	pgPtr<dMatrix3x4> m_inverseMats;
+	pgPtr<dMatrix3x4> m_mats;
+	pgPtr<uint16_t> m_parentIndices;
+	pgPtr<uint16_t> m_childIndices;
+	uint64_t m_pad; // properties?
+	uint32_t m_unk_50;
+	uint32_t m_unk_54;
+	uint32_t m_unk_58;
+	uint16_t m_usageCount;
+	uint16_t m_boneCount;
+	uint16_t m_childIndexCount;
+	uint16_t m_pad_62;
+	uint32_t m_pad_64;
+	uint64_t m_pad_68;
+#endif
+
+public:
+#if defined(RAGE_FORMATS_GAME_FIVE)
+	inline crSkeletonData()
+	{
+		m_unk_50 = 1022954965;
+		m_unk_54 = 1540813422;
+		m_unk_58 = 65978143;
+
+		m_pad = 0;
+		m_usageCount = 0;
+		m_pad_62 = 0;
+		m_pad_64 = 0;
+		m_pad_68 = 0;
+	}
+
+	inline void SetBones(uint32_t boneCount, const crBone* bones)
+	{
+		m_bones = crBoneData::Create(boneCount, bones);
+		m_boneCount = boneCount;
+
+		// create indices
+		{
+			std::vector<uint16_t> parentIndices;
+			std::vector<uint16_t> childIndices;
+
+			const crBone* lastbone = nullptr;
+			for (int i = 0; i < boneCount; i++)
+			{
+				auto bone = &bones[i];
+				auto pind = bone->GetParentIndex();
+				parentIndices.push_back(pind);
+				if (pind >= 0)
+				{
+					childIndices.push_back(bone->GetIndex());
+					childIndices.push_back(pind);
+					lastbone = bone;
+				}
+			}
+			if (lastbone != nullptr)
+			{
+				auto npad = 8 - (childIndices.size() % 8);
+				if (npad < 8)
+				{
+					for (int i = 0; i < npad; i += 2)
+					{
+						childIndices.push_back(lastbone->GetIndex());
+						childIndices.push_back(lastbone->GetParentIndex());
+					}
+				}
+			}
+
+			m_parentIndices = (uint16_t*)pgStreamManager::Allocate(parentIndices.size() * 2, false, nullptr);
+			m_childIndices = (uint16_t*)pgStreamManager::Allocate(childIndices.size() * 2, false, nullptr);
+			m_childIndexCount = childIndices.size();
+
+			std::copy(parentIndices.begin(), parentIndices.end(), *m_parentIndices);
+			std::copy(childIndices.begin(), childIndices.end(), *m_childIndices);
+		}
+
+		{
+			std::vector<std::pair<uint32_t, int>> boneMappings;
+
+			for (int i = 0; i < boneCount; i++)
+			{
+				boneMappings.push_back({ bones[i].GetHash(), i });
+			}
+
+			m_boneTags.SetFrom(boneMappings);
+		}
+
+		{
+			std::vector<dMatrix3x4> transforms(boneCount), transformsinv(boneCount);
+			using namespace DirectX;
+
+			for (int i = 0; i < boneCount; i++)
+			{
+				auto scale = bones[i].GetScale();
+				auto rotation = bones[i].GetRotation();
+				auto pos = bones[i].GetTranslation();
+
+				auto matrix = DirectX::XMMatrixAffineTransformation(scale, DirectX::XMVectorZero(), rotation, pos);
+
+				auto p = bones[i].GetParentIndex();
+
+				if (p >= 0)
+				{
+					pos = DirectX::XMVector3Rotate(pos, bones[p].GetRotation()) + bones[p].GetTranslation();
+					rotation = DirectX::XMQuaternionMultiply(bones[p].GetRotation(), rotation);
+
+					p = bones[p].GetParentIndex();
+				}
+
+				auto imatrix = DirectX::XMMatrixAffineTransformation(DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f), DirectX::XMVectorZero(), rotation, pos);
+
+				DirectX::XMStoreFloat3x4((XMFLOAT3X4*)&transforms[i], matrix);
+				DirectX::XMStoreFloat3x4((XMFLOAT3X4*)&transformsinv[i], imatrix);
+			}
+
+			m_mats = (dMatrix3x4*)pgStreamManager::Allocate(transforms.size() * sizeof(dMatrix3x4), false, nullptr);
+			m_inverseMats = (dMatrix3x4*)pgStreamManager::Allocate(transformsinv.size() * sizeof(dMatrix3x4), false, nullptr);
+
+			std::copy(transforms.begin(), transforms.end(), *m_mats);
+			std::copy(transformsinv.begin(), transformsinv.end(), *m_inverseMats);
+		}
+	}
+#endif
+
 	inline void Resolve(BlockMap* blockMap = nullptr)
 	{
 
@@ -996,8 +1380,11 @@ public:
 		// get the parameter index
 		grmShaderParameter* parameter = GetParameter(parameterName);
 
-		// set the value
-		parameter->SetValue(texture);
+		if (parameter)
+		{
+			// set the value
+			parameter->SetValue(texture);
+		}
 	}
 
 	inline void SetParameter(uint32_t parameterName, const char* extTextureName)
@@ -1005,11 +1392,14 @@ public:
 		// get the parameter index
 		grmShaderParameter* parameter = GetParameter(parameterName);
 
-		// set the value
-		grcTextureRef* textureRef = new(false) grcTextureRef();
-		textureRef->SetName(extTextureName);
+		if (parameter)
+		{
+			// set the value
+			grcTextureRef* textureRef = new (false) grcTextureRef();
+			textureRef->SetName(extTextureName);
 
-		parameter->SetValue(textureRef);
+			parameter->SetValue(textureRef);
+		}
 	}
 
 	inline void SetParameter(uint32_t parameterName, const void* data, size_t dataSize)
@@ -1017,8 +1407,11 @@ public:
 		// get the parameter index
 		grmShaderParameter* parameter = GetParameter(parameterName);
 
-		// set the value (note: unsafe)
-		memcpy(parameter->GetValue(), data, dataSize);
+		if (parameter)
+		{
+			// set the value (note: unsafe)
+			memcpy(parameter->GetValue(), data, dataSize);
+		}
 	}
 
 	inline void SetParameter(const char* parameterName, grcTexturePC* texture)
@@ -1026,8 +1419,11 @@ public:
 		// get the parameter index
 		grmShaderParameter* parameter = GetParameter(parameterName);
 
-		// set the value
-		parameter->SetValue(texture);
+		if (parameter)
+		{
+			// set the value
+			parameter->SetValue(texture);
+		}
 	}
 
 	inline void SetParameter(const char* parameterName, const char* extTextureName)
@@ -1035,11 +1431,14 @@ public:
 		// get the parameter index
 		grmShaderParameter* parameter = GetParameter(parameterName);
 
-		// set the value
-		grcTextureRef* textureRef = new(false) grcTextureRef();
-		textureRef->SetName(extTextureName);
+		if (parameter)
+		{
+			// set the value
+			grcTextureRef* textureRef = new (false) grcTextureRef();
+			textureRef->SetName(extTextureName);
 
-		parameter->SetValue(textureRef);
+			parameter->SetValue(textureRef);
+		}
 	}
 
 	inline void SetParameter(const char* parameterName, const void* data, size_t dataSize)
@@ -1047,8 +1446,11 @@ public:
 		// get the parameter index
 		grmShaderParameter* parameter = GetParameter(parameterName);
 
-		// set the value (note: unsafe)
-		memcpy(parameter->GetValue(), data, dataSize);
+		if (parameter)
+		{
+			// set the value (note: unsafe)
+			memcpy(parameter->GetValue(), data, dataSize);
+		}
 	}
 #endif
 #endif
@@ -2170,6 +2572,11 @@ public:
 	inline grmLodGroup& GetLodGroup()
 	{
 		return m_lodGroup;
+	}
+
+	inline void SetSkeleton(crSkeletonData* skeleton)
+	{
+		m_skeletonData = skeleton;
 	}
 
 #ifdef RAGE_FORMATS_GAME_FIVE
