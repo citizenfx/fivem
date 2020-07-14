@@ -1221,6 +1221,24 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			// if this is a ped and it is occupying a vehicle we want the vehicle acked first
+			// (players don't matter as they won't migrate so they will not get some broken state from this)
+			if (entity->type == sync::NetObjEntityType::Ped)
+			{
+				sync::CPedGameStateNodeData* state = nullptr;
+
+				if (entity->syncTree && (state = entity->syncTree->GetPedGameState()))
+				{
+					if (state->curVehicle >= 0)
+					{
+						if (!lastEntityState || lastEntityState->find(state->curVehicle) == lastEntityState->end())
+						{
+							shouldBeCreated = false;
+						}
+					}
+				}
+			}
+
 			if (!shouldBeCreated)
 			{
 				nah.insert(objectId);
@@ -3584,7 +3602,7 @@ static InitFunction initFunction([]()
 
 			auto sgs = instance->GetComponent<fx::ServerGameState>();
 			
-			eastl::fixed_vector<std::shared_ptr<fx::sync::SyncEntityState>, 16> relevantExits;
+			eastl::fixed_vector<std::tuple<std::shared_ptr<fx::sync::SyncEntityState>, bool>, 16> relevantExits;
 
 			{
 				auto slotId = client->GetSlotId();
@@ -3633,7 +3651,12 @@ static InitFunction initFunction([]()
 						// poor entity, it's relevant to nobody :( disown/delete it
 						if (entity->relevantTo.none() && entityClient && entity->type != fx::sync::NetObjEntityType::Player)
 						{
-							relevantExits.push_back(entity);
+							relevantExits.push_back({ entity, false });
+						}
+						// yeah, ofc I deleted my own entity, that's what we do right?
+						else if (entityClient == client)
+						{
+							relevantExits.push_back({ entity, true });
 						}
 					}
 				}
@@ -3679,8 +3702,16 @@ static InitFunction initFunction([]()
 				}
 			}
 
-			for (auto& entity : relevantExits)
+			for (auto& [ entity, relevantToSome ] : relevantExits)
 			{
+				if (relevantToSome)
+				{
+					if (sgs->MoveEntityToCandidate(entity, entity->client.lock()))
+					{
+						continue;
+					}
+				}
+
 				if (entity->IsOwnedByScript())
 				{
 					sgs->ReassignEntity(entity->handle, {});
