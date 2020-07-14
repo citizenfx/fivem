@@ -19,7 +19,7 @@
 
 #include <sstream>
 
-#include "sha1.h"
+#include <openssl/sha.h>
 
 struct cache_t
 {
@@ -364,11 +364,13 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 		OVERLAPPED overlapped;
 
-		SHA1Context ctx;
-		SHA1Reset(&ctx);
+		SHA_CTX ctx;
+		SHA1_Init(&ctx);
 
 		bool doneReading = false;
 		DWORD fileOffset = 0;
+
+		double lastProgress = 0.0;
 
 		while (!doneReading)
 		{
@@ -420,7 +422,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 			BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
 			DWORD err = GetLastError();
 
-			SHA1Input(&ctx, (uint8_t*)buffer, bytesRead);
+			SHA1_Update(&ctx, (uint8_t*)buffer, bytesRead);
 
 			if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
 			{
@@ -435,14 +437,20 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 			}
 			else
 			{
-				UI_UpdateProgress(((*fileStart + fileOffset) / (double)fileTotal) * 100.0);
+				double progress = ((*fileStart + fileOffset) / (double)fileTotal) * 100.0;
+
+				if (abs(progress - lastProgress) > 0.2)
+				{
+					UI_UpdateProgress(progress);
+					lastProgress = progress;
+				}
 			}
 		}
 
 		*fileStart += fileOffset;
 
 		uint8_t outHash[20];
-		SHA1Result(&ctx, outHash);
+		SHA1_Final(outHash, &ctx);
 
 		if (foundHash)
 		{
