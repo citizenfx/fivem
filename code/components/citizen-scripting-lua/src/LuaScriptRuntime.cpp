@@ -772,7 +772,14 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
 
 	// invoke
-	scriptHost->InvokeNative(context);
+	if (FX_FAILED(scriptHost->InvokeNative(context)))
+	{
+		char* error = "Unknown";
+		scriptHost->GetLastErrorText(&error);
+
+		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", 0xe3551879, error));
+		lua_error(L);
+	}
 
 	// get return values
 	lua_pushlstring(L, reinterpret_cast<const char*>(context.arguments[0]), retLength);
@@ -1276,7 +1283,10 @@ int Lua_InvokeNative(lua_State* L)
 	// invoke the native on the script host
 	if (!FX_SUCCEEDED(scriptHost->InvokeNative(context)))
 	{
-		lua_pushstring(L, va("Execution of native %016x in script host failed.", hash));
+		char* error = "Unknown";
+		scriptHost->GetLastErrorText(&error);
+
+		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", hash, error));
 		lua_error(L);
 	}
 

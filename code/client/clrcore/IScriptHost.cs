@@ -32,6 +32,9 @@ namespace CitizenFX.Core
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		void SubmitBoundaryEnd([In] [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] boundaryData, int boundarySize);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		IntPtr GetLastErrorText();
 	}
 
 	[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

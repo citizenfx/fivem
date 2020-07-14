@@ -272,4 +272,16 @@ static InitFunction initFunction([] ()
 
 		context.SetResult(seCheckPrivilege(context.CheckArgument<const char*>(1)));
 	});
+
+#ifdef _DEBUG
+	fx::ScriptEngine::RegisterNativeHandler("_TEST_ERROR_NATIVE", [](fx::ScriptContext& context) 
+	{
+		*(volatile int*)0 = 0xDEAD;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("_TEST_EXCEPTION_NATIVE", [](fx::ScriptContext& context)
+	{
+		throw std::exception("_TEST_EXCEPTION_NATIVE called!");
+	});
+#endif
 });

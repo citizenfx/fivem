@@ -549,6 +549,7 @@ namespace CitizenFX.Core
 			private FastMethod<Action<IntPtr, IntPtr>> scriptTraceMethod;
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryStartMethod;
 			private FastMethod<Action<IntPtr, IntPtr, int>> submitBoundaryEndMethod;
+			private FastMethod<Func<IntPtr, IntPtr, int>> getLastErrorTextMethod;
 
 			[SecuritySafeCritical]
 			public DirectScriptHost(IntPtr hostPtr)
@@ -562,6 +563,7 @@ namespace CitizenFX.Core
 				scriptTraceMethod = new FastMethod<Action<IntPtr, IntPtr>>(nameof(scriptTraceMethod), hostPtr, 4);
 				submitBoundaryStartMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryStartMethod), hostPtr, 5);
 				submitBoundaryEndMethod = new FastMethod<Action<IntPtr, IntPtr, int>>(nameof(submitBoundaryEndMethod), hostPtr, 6);
+				getLastErrorTextMethod = new FastMethod<Func<IntPtr, IntPtr, int>>(nameof(getLastErrorTextMethod), hostPtr, 7);
 			}
 
 			[SecuritySafeCritical]
@@ -692,6 +694,31 @@ namespace CitizenFX.Core
 				{
 					method.method(hostPtr, new IntPtr(p), boundarySize);
 				}
+			}
+
+			[SecuritySafeCritical]
+			public IntPtr GetLastErrorText()
+			{
+				return GetLastErrorTextInternal();
+			}
+
+			[SecurityCritical]
+			private unsafe IntPtr GetLastErrorTextInternal()
+			{
+				IntPtr retVal = IntPtr.Zero;
+
+				try
+				{
+					IntPtr* retValRef = &retVal;
+
+					Marshal.ThrowExceptionForHR(getLastErrorTextMethod.method(hostPtr, new IntPtr(retValRef)));
+				}
+				finally
+				{
+
+				}
+
+				return retVal;
 			}
 		}
 

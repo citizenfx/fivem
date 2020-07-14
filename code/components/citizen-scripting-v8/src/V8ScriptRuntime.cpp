@@ -732,7 +732,18 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
 
 	// invoke
-	scriptHost->InvokeNative(context);
+	if (FX_FAILED(scriptHost->InvokeNative(context)))
+	{
+		char* error = "Unknown";
+		scriptHost->GetLastErrorText(&error);
+
+		auto throwException = [&](const std::string& exceptionString)
+		{
+			args.GetIsolate()->ThrowException(Exception::Error(String::NewFromUtf8(args.GetIsolate(), exceptionString.c_str()).ToLocalChecked()));
+		};
+
+		return throwException(error);
+	}
 
 	// get return values
 	Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), retLength);
@@ -1132,7 +1143,10 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	// invoke the native on the script host
 	if (!FX_SUCCEEDED(scriptHost->InvokeNative(context)))
 	{
-		return throwException(va("Execution of native %016llx in script host failed.", hash));;
+		char* error = "Unknown";
+		scriptHost->GetLastErrorText(&error);
+
+		return throwException(fmt::sprintf("Execution of native %016x in script host failed: %s", hash, error));
 	}
 
 	// padded vector struct

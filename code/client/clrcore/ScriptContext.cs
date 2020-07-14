@@ -273,7 +273,7 @@ namespace CitizenFX.Core
 		}
 
 #if USE_HYPERDRIVE
-		internal unsafe delegate bool CallFunc(void* cxtRef);
+		internal unsafe delegate bool CallFunc(void* cxtRef, void** errorPtr);
 
 		[ThreadStatic]
 		private static Dictionary<ulong, CallFunc> ms_invokers = new Dictionary<ulong, CallFunc>();
@@ -290,14 +290,15 @@ namespace CitizenFX.Core
 		private unsafe static CallFunc BuildFunction(ulong native, ulong ptr)
 		{
 			var method = new DynamicMethod($"NativeCallFn_{ptr}",
-				typeof(bool), new Type[1] { typeof(void*) }, typeof(ScriptContext).Module);
+				typeof(bool), new Type[2] { typeof(void*), typeof(void**) }, typeof(ScriptContext).Module);
 
 			ILGenerator generator = method.GetILGenerator();
 			generator.Emit(OpCodes.Ldc_I8, (long)ptr);
 			generator.Emit(OpCodes.Ldc_I8, (long)native);
 			generator.Emit(OpCodes.Ldarg_0);
+			generator.Emit(OpCodes.Ldarg_1);
 			generator.Emit(OpCodes.Ldc_I8, ms_nativeInvokeFn);
-			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(bool), new Type[3] { typeof(void*), typeof(ulong), typeof(void*) }, null);
+			generator.EmitCalli(OpCodes.Calli, CallingConventions.Standard, typeof(bool), new Type[4] { typeof(void*), typeof(ulong), typeof(void*), typeof(void**) }, null);
 			generator.Emit(OpCodes.Ret);
 
 			return (CallFunc)method.CreateDelegate(typeof(CallFunc));
@@ -345,7 +346,17 @@ namespace CitizenFX.Core
 			unsafe
 			{
 #if !USE_HYPERDRIVE
-				scriptHost.InvokeNative(new IntPtr(cxt));
+				try
+				{
+					scriptHost.InvokeNative(new IntPtr(cxt));
+				}
+				catch (ArgumentException e)
+				{
+					IntPtr errorString = scriptHost.GetLastErrorText();
+					byte* error = (byte*)errorString.ToPointer();
+
+					throw new InvalidOperationException(ErrorHandler(error));
+				}
 #else
 				if (!ms_invokers.TryGetValue(nativeIdentifier, out CallFunc invoker))
 				{
@@ -356,14 +367,35 @@ namespace CitizenFX.Core
 				cxt->functionDataPtr = &cxt->functionData[0];
 				cxt->retDataPtr = &cxt->functionData[0];
 
-				if (!invoker(cxt))
+				byte* error = null;
+
+				if (!invoker(cxt, (void**)&error))
 				{
-					throw new Exception("Native invocation failed.");
+					throw new InvalidOperationException(ErrorHandler(error));
 				}
 
 				CopyReferencedParametersOut(cxt);
 #endif
 			}
+		}
+
+		[SecurityCritical]
+		internal unsafe static string ErrorHandler(byte* error)
+		{
+			if (error != null)
+			{
+				var errorStart = error;
+				int length = 0;
+
+				for (var p = errorStart; *p != 0; p++)
+				{
+					length++;
+				}
+
+				return Encoding.UTF8.GetString(errorStart, length);
+			}
+
+			return "Native invocation failed.";
 		}
 
 #if USE_HYPERDRIVE
