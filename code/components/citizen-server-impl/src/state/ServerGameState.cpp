@@ -1077,7 +1077,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// delete object
 			scl->commands.emplace_back([this, deletion, uniqifier](SyncCommandState& cmdState)
 			{
-				cmdState.maybeFlushBuffer(17);
+				cmdState.maybeFlushBuffer(17 + 16);
 				cmdState.cloneBuffer.Write(3, 3);
 
 				// if the entity still exists, and this is the *owner* we're deleting it for, we should tell them their object ID is stolen
@@ -1097,6 +1097,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				cmdState.cloneBuffer.WriteBit(shouldSteal ? true : false);
 				cmdState.cloneBuffer.Write(13, int32_t(deletion));
+				cmdState.cloneBuffer.Write(16, uniqifier);
 			});
 		}
 

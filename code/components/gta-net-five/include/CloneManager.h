@@ -52,6 +52,8 @@ public:
 
 	virtual const std::vector<rage::netObject*>& GetObjectList() = 0;
 
+	virtual bool IsRemovingObjectId(uint16_t objectId) = 0;
+
 	// TEMP: for temporary use during player deletion
 	virtual void DeleteObjectId(uint16_t objectId, bool force = false) = 0;
 

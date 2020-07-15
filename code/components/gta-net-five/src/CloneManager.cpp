@@ -39,6 +39,7 @@ static std::set<uint16_t> g_dontParrotDeletionAcks;
 
 void ObjectIds_AddObjectId(int objectId);
 void ObjectIds_StealObjectId(int objectId);
+void ObjectIds_ConfirmObjectId(int objectId);
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
 
@@ -109,6 +110,8 @@ public:
 	virtual void Logv(const char* format, fmt::printf_args argumentList) override;
 
 	virtual const std::vector<rage::netObject*>& GetObjectList() override;
+
+	virtual bool IsRemovingObjectId(uint16_t objectId) override;
 
 	// netobjmgr abstraction
 	virtual bool RegisterNetworkObject(rage::netObject* object) override;
@@ -237,6 +240,8 @@ private:
 	std::unordered_map<uint16_t, ExtendedCloneData> m_extendedData;
 
 	std::map<std::tuple<int, int>, std::chrono::milliseconds> m_pendingRemoveAcks;
+
+	std::set<int> m_pendingConfirmObjectIds;
 
 	tbb::concurrent_queue<std::string> m_logQueue;
 
@@ -436,6 +441,16 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 
 void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 {
+	auto sure = [this, objId]()
+	{
+		if (m_pendingConfirmObjectIds.find(objId) != m_pendingConfirmObjectIds.end())
+		{
+			ObjectIds_ConfirmObjectId(objId);
+
+			m_pendingConfirmObjectIds.erase(objId);
+		}
+	};
+
 	if (icgi->NetProtoVersion >= 0x202002271209)
 	{
 		if (uniqifier == 0)
@@ -444,10 +459,14 @@ void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 			auto e = m_pendingRemoveAcks.upper_bound({ objId, INT32_MAX });
 
 			m_pendingRemoveAcks.erase(s, e);
+
+			sure();
 		}
 		else
 		{
 			m_pendingRemoveAcks.erase({ objId, uniqifier });
+
+			sure();
 		}
 
 		return;
@@ -467,6 +486,23 @@ void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 
 		m_pendingRemoveAcks.erase(s, e);
 	}
+
+	sure();
+}
+
+bool CloneManagerLocal::IsRemovingObjectId(uint16_t objectId)
+{
+	auto first = m_pendingRemoveAcks.lower_bound({ objectId, 0 });
+	auto second = m_pendingRemoveAcks.lower_bound({ objectId, INT32_MAX });
+
+	bool indeed = first != second;
+
+	if (indeed)
+	{
+		m_pendingConfirmObjectIds.insert(objectId);
+	}
+
+	return indeed;
 }
 
 void CloneManagerLocal::ProcessTimestampAck(uint32_t timestamp)
@@ -742,7 +778,7 @@ public:
 		return m_clones;
 	}
 
-	inline const std::vector<std::tuple<uint16_t, bool>>& GetRemoves() const
+	inline const std::vector<std::tuple<uint16_t, uint16_t, bool>>& GetRemoves() const
 	{
 		return m_removes;
 	}
@@ -757,7 +793,7 @@ private:
 
 	std::list<msgClone> m_clones;
 
-	std::vector<std::tuple<uint16_t, bool>> m_removes;
+	std::vector<std::tuple<uint16_t, uint16_t, bool>> m_removes;
 };
 
 msgPackedClones::msgPackedClones()
@@ -795,6 +831,7 @@ void msgPackedClones::Read(net::Buffer& buffer)
 				case 3: // clone remove
 				{
 					auto stillAlive = false;
+					uint16_t uniqifier = 0;
 
 					if (icgi->NetProtoVersion >= 0x202007120951)
 					{
@@ -803,7 +840,12 @@ void msgPackedClones::Read(net::Buffer& buffer)
 
 					auto remove = msgBuf.Read<uint16_t>(13);
 
-					m_removes.push_back({ remove, stillAlive });
+					if (icgi->NetProtoVersion >= 0x202007151853)
+					{
+						uniqifier = msgBuf.Read<uint16_t>(16);
+					}
+
+					m_removes.push_back({ remove, uniqifier, stillAlive });
 					break;
 				}
 				case 5:
@@ -1287,8 +1329,23 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		}
 	}
 
-	for (auto [ remove, stillAlive ] : msg.GetRemoves())
+	for (auto [ remove, uniqifier, stillAlive ] : msg.GetRemoves())
 	{
+		Log("Trying to remove entity %d\n", remove);
+
+		{
+			auto objectIt = m_trackedObjects.find(remove);
+
+			if (objectIt != m_trackedObjects.end())
+			{
+				if (uniqifier && objectIt->second.uniqifier != uniqifier)
+				{
+					Log("Invalid uniqifier!\n");
+					continue;
+				}
+			}
+		}
+
 		if (stillAlive)
 		{
 			auto objectIt = m_savedEntities.find(remove);

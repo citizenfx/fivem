@@ -62,7 +62,10 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 		// (and only use this for network protocol version 0x201903031957 or above - otherwise server bookkeeping will go out of sync)
 		if (Instance<ICoreGameInit>::Get()->NetProtoVersion < 0x201903031957 || g_stolenObjectIds.find(objectId) == g_stolenObjectIds.end())
 		{
-			g_objectIds.push_back(objectId);
+			if (!TheClones->IsRemovingObjectId(objectId))
+			{
+				g_objectIds.push_back(objectId);
+			}
 		}
 
 		g_stolenObjectIds.erase(objectId);
@@ -116,6 +119,13 @@ void ObjectIds_AddObjectId(int objectId)
 	}
 
 	TheClones->Log("%s: id %d (wasOurs: %s)\n", __func__, objectId, wasOurs ? "true" : "false");
+}
+
+void ObjectIds_ConfirmObjectId(int objectId)
+{
+	TheClones->Log("%s: id %d\n", __func__, objectId);
+
+	g_objectIds.push_back(objectId);
 }
 
 void ObjectIds_StealObjectId(int objectId)
