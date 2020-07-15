@@ -73,6 +73,7 @@ void UpdateTime(uint64_t serverTime, bool isInit = false);
 
 bool IsWaitingForTimeSync();
 
+extern uint32_t* rage__s_NetworkTimeThisFrameStart;
 extern uint32_t* rage__s_NetworkTimeLastFrameStart;
 
 namespace sync
@@ -216,14 +217,15 @@ private:
 	{
 		uint16_t clientId;
 		uint16_t pendingClientId;
+		uint32_t dontSyncBefore;
 
 		inline ExtendedCloneData()
-			: clientId(0), pendingClientId(-1)
+			: clientId(0), pendingClientId(-1), dontSyncBefore(0)
 		{
 		}
 
 		inline ExtendedCloneData(uint16_t clientId)
-			: clientId(clientId), pendingClientId(-1)
+			: clientId(clientId), pendingClientId(-1), dontSyncBefore(0)
 		{
 		}
 	};
@@ -375,7 +377,6 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 		if (it == m_savedEntities.end() || !it->second)
 		{
 			console::PrintError("CloneManager", "Couldn't find object by ID %d\n", objectId);
-			;
 			return;
 		}
 
@@ -1585,6 +1586,9 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 		if (object->syncData.ownerId != 31)
 		{
 			m_extendedData[object->objectId].clientId = m_netLibrary->GetServerNetID();
+
+			// 250ms threshold for 'safety'
+			m_extendedData[object->objectId].dontSyncBefore = (*rage__s_NetworkTimeThisFrameStart) + 250;
 		}
 	}
 
@@ -1705,6 +1709,12 @@ void CloneManagerLocal::WriteUpdates()
 		if (object->syncData.nextOwnerId != 0xFF)
 		{
 			GiveObjectToClient(object, m_extendedData[object->objectId].pendingClientId);
+		}
+
+		// don't sync created entities for the initial part of their life
+		if (*rage__s_NetworkTimeThisFrameStart < m_extendedData[object->objectId].dontSyncBefore)
+		{
+			return;
 		}
 
 		// get basic object data
