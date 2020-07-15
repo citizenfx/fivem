@@ -1055,8 +1055,8 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		Log("%s: unknown obj?\n", __func__);
 
-		if (m_pendingRemoveAcks.find({
-			msg.GetObjectId(), msg.GetUniqifier()}) != m_pendingRemoveAcks.end())
+		if (m_pendingRemoveAcks.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_pendingRemoveAcks.end() || 
+			m_pendingRemoveAcks.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_pendingRemoveAcks.end())
 		{
 			// hey, we're deleting this object, you don't know it yet, so you're giving it back to us as 'new'
 			// we don't want it though, so we'll pretend it's all right :)
@@ -1074,6 +1074,12 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		ackPacket();
 
 		Log("%s: invalid object instance?\n", __func__);
+
+		if (m_pendingRemoveAcks.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_pendingRemoveAcks.end() || m_pendingRemoveAcks.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_pendingRemoveAcks.end())
+		{
+			// yeah, yeah, we recreated this object by now, but you're trying to give us the old one
+			return AckResult::OK;
+		}
 
 		return AckResult::ResendCreate;
 	}
