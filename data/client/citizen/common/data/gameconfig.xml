@@ -446,7 +446,7 @@
 						</Item>
 						<Item>
 							<PoolName>tcBox</PoolName>
-							<PoolSize value="3000"/>
+							<PoolSize value="6000"/>
 						</Item>
 						<Item>
 							<PoolName>TrafficLightInfos</PoolName>
