@@ -35,6 +35,7 @@ static uint32_t AssignObjectId(void* objectIds)
 	auto objectId = *it;
 
 	g_objectIds.erase(it);
+	g_stolenObjectIds.erase(objectId);
 	g_usedObjectIds.insert(objectId);
 
 	TheClones->Log("%s: id %d\n", __func__, objectId);

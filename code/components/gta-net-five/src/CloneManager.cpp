@@ -894,6 +894,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		{
 			Log("%s: duplicate remote object, undoing sync\n", __func__);
 
+			ObjectIds_StealObjectId(msg.GetObjectId());
 			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
 			DeleteObjectId(msg.GetObjectId(), true);
 
@@ -918,6 +919,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		{
 			Log("%s: duplicate local object, undoing sync\n", __func__);
 
+			ObjectIds_StealObjectId(msg.GetObjectId());
 			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
 			DeleteObjectId(msg.GetObjectId(), true);
 
