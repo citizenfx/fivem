@@ -39,9 +39,9 @@
     "#Settings_DarkTheme": "\"Koyu\" \"Tema\"",
     "#Settings_DarkThemeDesc": "Arayüzü \"koyu\" \"temaya\" çevir",
     "#Settings_DevMode": "Geliştirici modu",
-    "#Settings_DevModeDesc": "\"localhost\" menü seçeneğini aktifleştir
-    "#Settings_Account": "Bağlı FiveM Hsabı
-    "#Settings_AccountLink": "Bağla
+    "#Settings_DevModeDesc": "\"localhost\" menü seçeneğini aktifleştir",
+    "#Settings_Account": "Bağlı FiveM Hsabı",
+    "#Settings_AccountLink": "Bağla",
     "#Settings_AccountLinked": "Bağlı username }}",
     "#Settings_Boost": "Mevcut sunucu BOOST™'u",
     "#Settings_BoostLoading": "Yükleniyor...",
