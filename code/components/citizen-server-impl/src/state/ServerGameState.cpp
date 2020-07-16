@@ -2069,9 +2069,12 @@ void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client
 				continue;
 			}
 
+			auto slotId = client->GetSlotId();
+
+			if (slotId != -1)
 			{
 				std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-				entity->relevantTo.reset(client->GetSlotId());
+				entity->relevantTo.reset(slotId);
 			}
 
 			if (!MoveEntityToCandidate(entity, client))
@@ -2365,6 +2368,12 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 	if (length > 0)
 	{
 		inPacket.ReadBits(&bitBytes[0], bitBytes.size() * 8);
+	}
+
+	// that's not an object ID, that's a snail!
+	if (objectId == 0xFFFF)
+	{
+		return false;
 	}
 
 	auto entity = GetEntity(playerId, objectId);
