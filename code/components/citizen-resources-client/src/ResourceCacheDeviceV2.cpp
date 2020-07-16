@@ -18,7 +18,7 @@
 #include <ICoreGameInit.h>
 #include <StreamingEvents.h>
 
-#include <SHA1.h>
+#include <openssl/sha.h>
 
 #include <VFSError.h>
 
@@ -374,11 +374,11 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 			if (localStream.GetRef())
 			{
 				std::array<uint8_t, 8192> data;
-				sha1nfo sha1;
+				SHA_CTX sha1;
 				size_t numRead;
 
 				// initialize context
-				sha1_init(&sha1);
+				SHA1_Init(&sha1);
 
 				// read from the stream
 				while ((numRead = localStream->Read(data.data(), data.size())) > 0)
@@ -388,11 +388,12 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 						break;
 					}
 
-					sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+					SHA1_Update(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
 				}
 
 				// get the hash result and convert it to a string
-				uint8_t* hash = sha1_result(&sha1);
+				uint8_t hash[20];
+				SHA1_Final(hash, &sha1);
 
 				auto hashString = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 					hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
@@ -718,11 +719,11 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 				if (localStream.GetRef())
 				{
 					std::array<uint8_t, 8192> data;
-					sha1nfo sha1;
+					SHA_CTX sha1;
 					size_t numRead;
 
 					// initialize context
-					sha1_init(&sha1);
+					SHA1_Init(&sha1);
 
 					// read from the stream
 					while ((numRead = localStream->Read(data.data(), data.size())) > 0)
@@ -732,11 +733,12 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 							break;
 						}
 
-						sha1_write(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
+						SHA1_Update(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
 					}
 
 					// get the hash result and convert it to a string
-					uint8_t* hash = sha1_result(&sha1);
+					uint8_t hash[20];
+					SHA1_Final(hash, &sha1);
 
 					diskHash = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 						hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
