@@ -30,6 +30,72 @@ hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 static std::unordered_map<std::string, uint32_t> g_thisSeenRequests;
 static std::unordered_set<std::string> g_erasureQueue;
 
+static bool ProcessHandler(HANDLE sema, char* a1)
+{
+	bool isSignaled = WaitForSingleObject(sema, 0) == WAIT_OBJECT_0;
+
+	if (!isSignaled)
+	{
+		auto& ref = *(uint32_t*)&a1[199452];
+		--*(DWORD*)(a1 + 199456);
+
+		if (++ref == 32)
+		{
+			ref = 0;
+		}
+
+		auto v6 = *(DWORD64*)(a1 + 8i64 * ref + 199192);
+
+		auto v7 = *(DWORD*)(a1 + 199456);
+		if (v7 < 32)
+		{
+			auto v8 = *(DWORD*)(a1 + 199448) + 1;
+			if (*(DWORD*)(a1 + 199448) == 31)
+				v8 = 0;
+			*(DWORD64*)(a1 + 8i64 * v8 + 199192) = v6;
+			*(DWORD*)(a1 + 199448) = v8;
+			*(DWORD*)(a1 + 199456) = v7 + 1;
+		}
+	}
+
+	return isSignaled;
+}
+
+static void Hook_StreamingSema()
+{
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				mov(rdx, rbx);
+
+				mov(rax, (uint64_t)&ProcessHandler);
+				jmp(rax);
+			}
+		} weirdStub;
+
+		auto location = hook::get_pattern("48 8B 8C C3 18 0A 03 00 48", 12);
+		hook::call(location, weirdStub.GetCode());
+	}
+
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				mov(rdx, rsi);
+
+				mov(rax, (uint64_t)&ProcessHandler);
+				jmp(rax);
+			}
+		} weirdStub;
+
+		auto location = hook::get_pattern("48 8B 8C C6 18 0A 03 00 48", 12);
+		hook::call(location, weirdStub.GetCode());
+	}
+}
+
 #include <mmsystem.h>
 
 static void ProcessErasure()
@@ -321,6 +387,8 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 
 static HookFunction hookFunction([] ()
 {
+	Hook_StreamingSema();
+
 	// dequeue GTA streaming request function
 	//auto location = hook::get_pattern("89 7C 24 28 4C 8D 7C 24 40 89 44 24 20 E8", 13);
 	//hook::set_call(&g_origHandleObjectLoad, location);
