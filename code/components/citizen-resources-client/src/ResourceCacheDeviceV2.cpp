@@ -585,6 +585,48 @@ struct RequestHandleExtension
 	std::function<void(bool success, const std::string& error)> onRead;
 };
 
+struct tp_work
+{
+	explicit tp_work(std::function<void()>&& cb)
+	{
+		auto data = new work_data(std::move(cb));
+		work = CreateThreadpoolWork(handle_work, data, NULL);
+	}
+
+	tp_work(const tp_work&) = delete;
+
+	void post()
+	{
+		SubmitThreadpoolWork(work);
+	}
+
+private:
+	static VOID CALLBACK handle_work(
+	_Inout_ PTP_CALLBACK_INSTANCE Instance,
+	_Inout_opt_ PVOID Context,
+	_Inout_ PTP_WORK Work)
+	{
+		work_data* wd = (work_data*)Context;
+		wd->cb();
+
+		delete wd;
+		CloseThreadpoolWork(Work);
+	}
+
+	struct work_data
+	{
+		explicit work_data(std::function<void()>&& cb)
+			: cb(std::move(cb))
+		{
+			
+		}
+
+		std::function<void()> cb;
+	};
+
+	PTP_WORK work;
+};
+
 bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
@@ -605,12 +647,27 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 	}
 	else if (controlIdx == VFS_RCD_REQUEST_HANDLE)
 	{
-		static concurrency::concurrent_queue<THandle> handleDeleteQueue;
+		struct HandleContainer
+		{
+			explicit HandleContainer(ResourceCacheDeviceV2* self, vfs::Device::THandle hdl)
+				: self(self), hdl(hdl)
+			{
+				
+			}
+
+			~HandleContainer()
+			{
+				self->m_handleDeleteQueue.push(hdl);
+			}
+
+			ResourceCacheDeviceV2* self;
+			vfs::Device::THandle hdl;
+		};
 
 		{
 			THandle hdl;
 
-			while (handleDeleteQueue.try_pop(hdl))
+			while (m_handleDeleteQueue.try_pop(hdl))
 			{
 				CloseBulk(hdl);
 			}
@@ -618,15 +675,19 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		RequestHandleExtension* data = (RequestHandleExtension*)controlData;
 
-		auto handle = data->handle;
-		auto hd = GetHandle(handle);
+		auto handle = std::make_shared<HandleContainer>(this, data->handle);
+		auto hd = GetHandle(handle->hdl);
 		auto cb = data->onRead;
-		hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
-		{
-			cb(success, error);
 
-			handleDeleteQueue.push(handle);
-		});
+		tp_work work{ [this, handle, hd, cb]()
+			{
+				hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
+				{
+					cb(success, error);
+				});
+			} };
+
+		work.post();
 	}
 	else if (controlIdx == VFS_GET_DEVICE_LAST_ERROR)
 	{

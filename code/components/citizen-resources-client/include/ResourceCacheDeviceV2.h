@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tbb/concurrent_unordered_map.h>
+#include <concurrent_queue.h>
 
 #include <optional>
 
@@ -208,5 +209,7 @@ protected:
 	std::string m_pathPrefix;
 
 	std::string m_lastError;
+
+	concurrency::concurrent_queue<THandle> m_handleDeleteQueue;
 };
 }
