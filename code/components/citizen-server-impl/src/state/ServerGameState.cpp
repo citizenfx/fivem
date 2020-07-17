@@ -432,7 +432,7 @@ struct SyncCommandState
 		maybeFlushBuffer = {};
 		frameIndex = 0;
 		client = {};
-		hadTime = false;
+		hadTime = false
 	}
 };
 
@@ -2895,6 +2895,29 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 		});
 
 		console::Printf("net", "---------------- END OBJECT ID DUMP ----------------\n");
+	});
+	static auto clearPedsCommand = instance->AddCommand("onesync_clearPeds", [this](float x1, float y1, float x2, float y2)
+	{
+		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
+
+		for (auto& entity : m_entityList)
+		{
+			if (entity && (entity->type == fx::sync::NetObjEntityType::Ped))
+			{
+				float pos[3];
+				pos[0] = 9999.0f;
+				pos[1] = 9999.0f;
+				pos[2] = 9999.0f;
+
+				entity->syncTree->GetPosition(pos);
+
+				if (pos[0] >= x1 && pos[1] >= y1 && pos[0] < x2 && pos[1] < y2)
+				{
+					RemoveClone({}, entity->handle);
+				}
+
+			}
+		}
 	});
 }
 }
