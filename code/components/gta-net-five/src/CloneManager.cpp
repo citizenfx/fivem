@@ -1587,14 +1587,7 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 		{
 			m_extendedData[object->objectId].clientId = m_netLibrary->GetServerNetID();
 
-			// 250ms threshold for 'safety'
 			int delay = 0;
-
-			if (object->objectType != (int)NetObjEntityType::Ped)
-			{
-				delay = 250;
-			}
-
 			m_extendedData[object->objectId].dontSyncBefore = (*rage__s_NetworkTimeThisFrameStart) + delay;
 		}
 	}
@@ -1656,6 +1649,11 @@ static hook::cdecl_stub<void(rage::netObjectMgr*, rage::netObject*)> _processRem
 	return hook::get_pattern("39 42 74 75 12 39 42 70 75 0D", -0x11);
 });
 
+static hook::thiscall_stub<bool(void*)> fwEntity_IsInScene([]()
+{
+	return hook::get_pattern("74 12 F6 41 40 01 75 0A 48", -5);
+});
+
 void CloneManagerLocal::WriteUpdates()
 {
 	auto objectMgr = rage::netObjectMgr::GetInstance();
@@ -1685,9 +1683,6 @@ void CloneManagerLocal::WriteUpdates()
 
 		hitTimestamp = true;
 	};
-
-	// collect object IDs that we have seen this time
-	std::set<int> seenObjects;
 
 	// on each object...
 	auto objectCb = [&](rage::netObject* object)
@@ -1722,6 +1717,16 @@ void CloneManagerLocal::WriteUpdates()
 		if (*rage__s_NetworkTimeThisFrameStart < m_extendedData[object->objectId].dontSyncBefore)
 		{
 			return;
+		}
+
+		// don't sync netobjs that aren't in the scene
+		// #TODO1S: remove netobjs from the server if they're removed from the scene?
+		if (object->GetGameObject())
+		{
+			if (!fwEntity_IsInScene(object->GetGameObject()))
+			{
+				return;
+			}
 		}
 
 		// get basic object data
