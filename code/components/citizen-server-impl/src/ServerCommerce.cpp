@@ -20,6 +20,14 @@ inline std::string GetLicenseKey()
 {
 	auto resourceManager = fx::ResourceManager::GetCurrent();
 	auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+	auto var = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_licenseKeyToken");
+
+	if (!var || var->GetValue().empty())
+	{
+		return "";
+	}
+
 	auto licensing = instance->GetComponent<ServerLicensingComponent>();
 
 	return licensing->GetLicenseKey();
