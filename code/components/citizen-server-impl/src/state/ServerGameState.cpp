@@ -1092,6 +1092,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					if (entityClient && entityClient->GetNetId() == cmdState.client->GetNetId())
 					{
 						shouldSteal = true;
+
+						// mark the object as stolen already, in case we're not stealing it later
+						std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+						m_objectIdsStolen.set(deletion);
 					}
 				}
 
