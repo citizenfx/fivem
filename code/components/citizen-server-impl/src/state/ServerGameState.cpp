@@ -1086,12 +1086,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (entityClient && entityClient->GetNetId() == client->GetNetId())
 				{
+					std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+
 					if (m_objectIdsUsed.test(deletion))
 					{
 						shouldSteal = true;
 
 						// mark the object as stolen already, in case we're not stealing it later
-						std::unique_lock<std::mutex> lock(m_objectIdsMutex);
 						m_objectIdsStolen.set(deletion);
 					}
 				}
@@ -1839,7 +1840,11 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 	// therefore, mark it as stolen
 	{
 		std::unique_lock<std::mutex> lock(m_objectIdsMutex);
-		m_objectIdsStolen.set(entityHandle);
+
+		if (m_objectIdsUsed.test(entityHandle))
+		{
+			m_objectIdsStolen.set(entityHandle);
+		}
 	}
 
 	// allow this object to be synced instantly again so clients are aware of ownership changes as soon as possible
@@ -2225,15 +2230,12 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 	// defer deletion of the object so script has time to do things
 	auto continueCloneRemoval = [this, objectId]()
 	{
-		{
-			std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
-			m_objectIdsUsed.reset(objectId);
-		}
-
 		bool stolen = false;
 
 		{
-			std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+			std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+			m_objectIdsUsed.reset(objectId);
+
 			if (m_objectIdsStolen.test(objectId))
 			{
 				stolen = true;
