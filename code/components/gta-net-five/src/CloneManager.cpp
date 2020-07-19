@@ -282,7 +282,10 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 
 	if (!netObject->syncData.isRemote)
 	{
-		m_pendingRemoveAcks.insert({ { netObject->objectId, m_trackedObjects[netObject->objectId].uniqifier }, msec() });
+		if (m_trackedObjects[netObject->objectId].lastSyncTime != 0ms)
+		{
+			m_pendingRemoveAcks.insert({ { netObject->objectId, m_trackedObjects[netObject->objectId].uniqifier }, msec() });
+		}
 	}
 
 	m_trackedObjects.erase(netObject->objectId);
@@ -1624,7 +1627,10 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 	// these are not actually to be deleted, don't ask the server to delete them
 	if (g_dontParrotDeletionAcks.find(object->objectId) == g_dontParrotDeletionAcks.end())
 	{
-		m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });	
+		if (m_trackedObjects[object->objectId].lastSyncTime != 0ms)
+		{
+			m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });
+		}
 	}
 
 	g_dontParrotDeletionAcks.erase(object->objectId);
