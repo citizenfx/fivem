@@ -1332,7 +1332,15 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 	for (auto [ remove, uniqifier, stillAlive ] : msg.GetRemoves())
 	{
-		Log("Trying to remove entity %d\n", remove);
+		Log("Trying to remove entity %d (should steal: %s)\n", remove, stillAlive ? "yes" : "no");
+
+		// even if the server is referring to a different entity, they'll have stolen the object ID
+		// excessive steals are not really a big issue, it just means that upon next *deletion* the object will go back
+		// into the global pool
+		if (stillAlive)
+		{
+			ObjectIds_StealObjectId(remove);
+		}
 
 		{
 			auto objectIt = m_trackedObjects.find(remove);
@@ -1356,7 +1364,6 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 				auto object = objectIt->second;
 
 				g_dontParrotDeletionAcks.insert(remove);
-				ObjectIds_StealObjectId(remove);
 			}
 		}
 
