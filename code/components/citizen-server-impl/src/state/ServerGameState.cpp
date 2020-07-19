@@ -1074,22 +1074,19 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			// delete object
-			scl->commands.emplace_back([this, deletion, uniqifier](SyncCommandState& cmdState)
+			
+			// if the entity still exists, and this is the *owner* we're deleting it for, we should tell them their object ID is stolen
+			// as ReassignEntity will mark the object ID as part of the steal pool
+			bool shouldSteal = false;
+			auto entity = GetEntity(0, deletion);
+
+			if (entity && entity->uniqifier == uniqifier)
 			{
-				cmdState.maybeFlushBuffer(17 + 16);
-				cmdState.cloneBuffer.Write(3, 3);
+				auto entityClient = entity->client.lock();
 
-				// if the entity still exists, and this is the *owner* we're deleting it for, we should tell them their object ID is stolen
-				// as ReassignEntity will mark the object ID as part of the steal pool
-				bool shouldSteal = false;
-				auto entity = GetEntity(0, deletion);
-
-				if (entity && entity->uniqifier == uniqifier)
+				if (entityClient && entityClient->GetNetId() == client->GetNetId())
 				{
-					auto entityClient = entity->client.lock();
-
-					if (entityClient && entityClient->GetNetId() == cmdState.client->GetNetId())
+					if (m_objectIdsUsed.test(deletion))
 					{
 						shouldSteal = true;
 
@@ -1098,6 +1095,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						m_objectIdsStolen.set(deletion);
 					}
 				}
+			}
+
+			// delete object
+			scl->commands.emplace_back([this, deletion, uniqifier, shouldSteal](SyncCommandState& cmdState)
+			{
+				cmdState.maybeFlushBuffer(17 + 16);
+				cmdState.cloneBuffer.Write(3, 3);
 
 				cmdState.cloneBuffer.WriteBit(shouldSteal ? true : false);
 				cmdState.cloneBuffer.Write(13, int32_t(deletion));
@@ -1529,31 +1533,6 @@ void ServerGameState::OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>
 				curVehicleData->occupants[vehicleData->curVehicleSeat] = 0;
 				curVehicleData->playerOccupants.reset(vehicleData->curVehicleSeat);
 			}
-		}
-	}
-
-	auto objectId = entity->handle;
-	bool stolen = false;
-
-	{
-		std::unique_lock<std::mutex> lock(m_objectIdsMutex);
-		if (m_objectIdsStolen.test(objectId))
-		{
-			stolen = true;
-
-			m_objectIdsSent.reset(objectId);
-			m_objectIdsStolen.reset(objectId);
-		}
-	}
-
-	if (stolen)
-	{
-		std::shared_ptr<fx::Client> clientRef = entity->client.lock();
-
-		if (clientRef)
-		{
-			auto[lock, clientData] = GetClientData(this, clientRef);
-			clientData->objectIds.erase(objectId);
 		}
 	}
 }
@@ -2249,6 +2228,35 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 		{
 			std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
 			m_objectIdsUsed.reset(objectId);
+		}
+
+		bool stolen = false;
+
+		{
+			std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+			if (m_objectIdsStolen.test(objectId))
+			{
+				stolen = true;
+
+				m_objectIdsSent.reset(objectId);
+				m_objectIdsStolen.reset(objectId);
+			}
+		}
+
+		if (stolen)
+		{
+			auto entityRef = m_entitiesById[objectId].lock();
+
+			if (entityRef)
+			{
+				std::shared_ptr<fx::Client> clientRef = entityRef->client.lock();
+
+				if (clientRef)
+				{
+					auto [lock, clientData] = GetClientData(this, clientRef);
+					clientData->objectIds.erase(objectId);
+				}
+			}
 		}
 
 		{
