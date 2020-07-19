@@ -402,12 +402,24 @@ bool InitializeExceptionHandler(int argc, char* argv[])
 		return false;
 	}
 
-	std::vector<char*> args(argc + 3);
-	memcpy(args.data(), argv, argc * sizeof(char*));
-	args[argc] = strdup(va("-dumpserver:%d", server_fd));
-	args[argc + 1] = strdup(va("-parentppe:%d", fds[1]));
+	std::vector<char*> args;
 
-	posix_spawn(nullptr, argv[0], nullptr, nullptr, args.data(), nullptr);
+	if (access("/lib/ld-musl-x86_64.so.1", F_OK) != -1)
+	{
+		args.resize(argc + 3);
+		memcpy(args.data(), argv, argc * sizeof(char*));
+		args[argc] = strdup(va("-dumpserver:%d", server_fd));
+		args[argc + 1] = strdup(va("-parentppe:%d", fds[1]));
+	}
+	else
+	{
+		args.push_back(strdup(MakeRelativeCitPath("../../../run.sh").c_str()));
+		args.push_back(strdup(va("-dumpserver:%d", server_fd)));
+		args.push_back(strdup(va("-parentppe:%d", fds[1])));
+		args.push_back(nullptr);
+	}
+
+	posix_spawn(nullptr, args[0], nullptr, nullptr, args.data(), nullptr);
 
 	// wait for server init
 	struct pollfd pfd;
