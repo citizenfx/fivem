@@ -1238,19 +1238,6 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
-
-			// this isn't remote anymore
-			obj->syncData.isRemote = false;
-			obj->syncData.nextOwnerId = -1;
-
-			// give us the object ID
-			ObjectIds_AddObjectId(msg.GetObjectId());
-
-			// store object data as being synced (so we don't have to send creation to the server)
-			auto& objectData = m_trackedObjects[obj->objectId];
-
-			objectData.lastSyncTime = msec();
-			objectData.lastSyncAck = msec();
 		}
 		else
 		{
@@ -1454,6 +1441,24 @@ void CloneManagerLocal::SetTargetOwner(rage::netObject* object, uint16_t clientI
 
 void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t clientId)
 {
+	bool wasLocal = !object->syncData.isRemote;
+
+	if (clientId == m_netLibrary->GetServerNetID() && !wasLocal)
+	{
+		// give us the object ID
+		ObjectIds_AddObjectId(object->objectId);
+
+		// store object data as being synced (so we don't have to send creation to the server)
+		auto& objectData = m_trackedObjects[object->objectId];
+
+		objectData.lastSyncTime = msec();
+		objectData.lastSyncAck = msec();
+
+		// this isn't remote anymore
+		object->syncData.isRemote = false;
+		object->syncData.nextOwnerId = -1;
+	}
+
 	// TODO: rate-limit resends (in case pending ownership is taking really long)
 
 	m_sendBuffer.Write(3, 4);
@@ -1463,9 +1468,10 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 
 	AttemptFlushCloneBuffer();
 
-	Log("%s: Migrating object %s (of type %s) from %s to %s (remote player).\n", __func__, object->ToString(), GetType(object),
-	!object->syncData.isRemote ? "us" : "a remote player",
-	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
+	Log("%s: Migrating object %s (of type %s) from %s to %s (%s).\n", __func__, object->ToString(), GetType(object),
+	wasLocal ? "us" : "a remote player",
+	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)",
+	(clientId == m_netLibrary->GetServerNetID()) ? "us!" : "remote player");
 }
 
 const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
