@@ -132,7 +132,22 @@ void ObjectIds_StealObjectId(int objectId)
 {
 	TheClones->Log("%s: id %d\n", __func__, objectId);
 
-	g_stolenObjectIds.insert(objectId);
+	if (g_usedObjectIds.find(objectId) != g_usedObjectIds.end())
+	{
+		g_stolenObjectIds.insert(objectId);
+	}
+	else
+	{
+		// remove this object ID from our free list (it was already returned, but server doesn't want it to be ours anymore)
+		for (auto it = g_objectIds.begin(); it != g_objectIds.end(); it++)
+		{
+			if (*it == objectId)
+			{
+				g_objectIds.erase(it);
+				break;
+			}
+		}
+	}
 }
 
 void ObjectIds_RemoveObjectId(int objectId)

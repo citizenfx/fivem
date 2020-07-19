@@ -1339,6 +1339,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		// into the global pool
 		if (stillAlive)
 		{
+			m_pendingConfirmObjectIds.erase(remove);
 			ObjectIds_StealObjectId(remove);
 		}
 
