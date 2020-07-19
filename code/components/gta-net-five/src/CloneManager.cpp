@@ -1605,6 +1605,13 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 			m_extendedData[object->objectId].clientId = m_netLibrary->GetServerNetID();
 
 			int delay = 0;
+
+			// don't send peds unless they're staying
+			if (object->objectType == (int)NetObjEntityType::Ped)
+			{
+				delay = 75;
+			}
+
 			m_extendedData[object->objectId].dontSyncBefore = (*rage__s_NetworkTimeThisFrameStart) + delay;
 		}
 	}
