@@ -104,7 +104,7 @@ namespace CitizenFX.Core
 
 		}
 
-		public string LocalizedModTypeName
+public string LocalizedModTypeName
 		{
 			get
 			{
@@ -116,6 +116,42 @@ namespace CitizenFX.Core
 				string cur = "";
 				switch (ModType)
 				{
+					case VehicleModType.Spoiler
+						curr = Game.GetGXTEntry("CMOD_MOD_SPO")
+						break;
+					case VehicleModType.FrontBumper
+						curr = Game.GetGXTEntry("CMOD_MOD_BUMF")
+						break;
+					case VehicleModType.RearBumper
+						curr = Game.GetGXTEntry("CMOD_MOD_BUMR")
+						break;
+					case VehicleModType.SideSkirt
+						curr = Game.GetGXTEntry("CMOD_MOD_SKI")
+						break;
+					case VehicleModType.Exhaust
+						curr = Game.GetGXTEntry("CMOD_MOD_MUF")
+						break;
+					case VehicleModType.Grille
+						curr = Game.GetGXTEntry("CMOD_MOD_GRL")
+						break;
+					case VehicleModType.Roof
+						curr = Game.GetGXTEntry("CMOD_MOD_SPO")
+						break;
+					case VehicleModType.Livery
+						curr = Game.GetGXTEntry("CMOD_MOD_ROF")
+						break;
+					case VehicleModType.Transmission
+						curr = Game.GetGXTEntry("CMM_MOD_S23")
+						break;
+					case VehicleModType.Fender
+						curr = Game.GetGXTEntry("CMOD_MOD_TRN")
+						break;
+					case VehicleModType.Hood
+						curr = Game.GetGXTEntry("CMOD_MOD_HOD")
+						break;
+					case VehicleModType.Brakes
+						curr = Game.GetGXTEntry("CMOD_MOD_BRA")
+						break;
 					case VehicleModType.Armor:
 						cur = Game.GetGXTEntry("CMOD_MOD_ARM");
 						break;
@@ -309,7 +345,6 @@ namespace CitizenFX.Core
 					cur = ModType.ToString();  //would only happen if the text isnt loaded
 				}
 				return cur;
-
 			}
 		}
 		public string LocalizedModName
