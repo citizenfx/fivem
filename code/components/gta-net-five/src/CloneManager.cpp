@@ -201,6 +201,7 @@ private:
 		uint32_t lastResendTime;
 		uint32_t nextKeepaliveSync;
 		uint16_t uniqifier;
+		bool hi = false;
 
 		ObjectData()
 		{
@@ -1330,7 +1331,16 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 	for (auto [ remove, uniqifier, stillAlive ] : msg.GetRemoves())
 	{
-		Log("Trying to remove entity %d (should steal: %s)\n", remove, stillAlive ? "yes" : "no");
+		auto localUniq = -1;
+
+		auto objectIt = m_trackedObjects.find(remove);
+
+		if (objectIt != m_trackedObjects.end())
+		{
+			localUniq = objectIt->second.uniqifier;
+		}
+
+		Log("Trying to remove entity %d (sent uniq: %d, local uniq: %d, should steal: %s)\n", remove, uniqifier, localUniq, stillAlive ? "yes" : "no");
 
 		// even if the server is referring to a different entity, they'll have stolen the object ID
 		// excessive steals are not really a big issue, it just means that upon next *deletion* the object will go back
@@ -1602,7 +1612,8 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 		return false;
 	}
 
-	Log("%s: registering %s\n", __func__, object->ToString());
+	m_trackedObjects[object->objectId].hi = true;
+	Log("%s: registering %s (uniqifier: %d)\n", __func__, object->ToString(), m_trackedObjects[object->objectId].uniqifier);
 
 	if (object->syncData.ownerId != 0xFF)
 	{
