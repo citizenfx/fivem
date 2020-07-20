@@ -908,6 +908,14 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	Log("%s: id %d obj [obj:%d] ts %d\n", __func__, msg.GetClientId(), msg.GetObjectId(), msg.GetTimestamp());
 
+	if (m_pendingRemoveAcks.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_pendingRemoveAcks.end() || 
+		m_pendingRemoveAcks.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_pendingRemoveAcks.end())
+	{
+		ackPacket();
+
+		return true;
+	}
+
 	// create buffer
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
 	rlBuffer.m_f1C = 1;

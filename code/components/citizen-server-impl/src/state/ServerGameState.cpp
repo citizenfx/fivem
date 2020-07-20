@@ -2289,6 +2289,18 @@ void ServerGameState::RemoveClone(const std::shared_ptr<Client>& client, uint16_
 			OnCloneRemove(entityRef, continueCloneRemoval);
 		}
 	}
+
+	// since we know the owner won't have this ID anymore, make this the actual case
+	if (client)
+	{
+		auto [_, data] = GetClientData(this, client);
+		auto esIt = data->entityStates.find(data->lastAckIndex);
+
+		if (esIt != data->entityStates.end())
+		{
+			esIt->second->erase(objectId);
+		}
+	}
 }
 
 auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree) -> std::shared_ptr<sync::SyncEntityState>
