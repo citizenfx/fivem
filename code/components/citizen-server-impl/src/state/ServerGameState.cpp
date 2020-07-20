@@ -1234,6 +1234,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			// if this is a ped and it is occupying a vehicle we want the vehicle acked first
 			// (players don't matter as they won't migrate so they will not get some broken state from this)
+#if 0
 			if (entity->type == sync::NetObjEntityType::Ped)
 			{
 				sync::CPedGameStateNodeData* state = nullptr;
@@ -1251,6 +1252,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 				}
 			}
+#endif
 
 			if (!shouldBeCreated)
 			{
