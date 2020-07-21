@@ -102,6 +102,8 @@ public:
 
 	virtual void SetTargetOwner(rage::netObject* object, uint16_t clientId) override;
 
+	virtual bool ShouldSuppressMigrateTo(rage::netObject* netObject, uint16_t clientId) override;
+
 	virtual void OnObjectDeletion(rage::netObject* object) override;
 
 	virtual rage::netObject* GetNetObject(uint16_t objectId) override;
@@ -219,6 +221,8 @@ private:
 		uint16_t clientId;
 		uint16_t pendingClientId;
 		uint32_t dontSyncBefore;
+		uint32_t dontMigrateBefore = 0;
+		uint16_t lastClientId = -1;
 
 		inline ExtendedCloneData()
 			: clientId(0), pendingClientId(-1), dontSyncBefore(0)
@@ -1238,6 +1242,8 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 		// reset next-owner ID as we've just migrated it
 		obj->syncData.nextOwnerId = -1;
 		extData.pendingClientId = -1;
+		extData.dontMigrateBefore = *rage__s_NetworkTimeThisFrameStart + 500;
+		extData.lastClientId = extData.clientId;
 
 		auto clientId = msg.GetClientId();
 
@@ -1455,6 +1461,21 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 void CloneManagerLocal::SetTargetOwner(rage::netObject* object, uint16_t clientId)
 {
 	m_extendedData[object->objectId].pendingClientId = clientId;
+}
+
+bool CloneManagerLocal::ShouldSuppressMigrateTo(rage::netObject* netObject, uint16_t clientId)
+{
+	auto& exData = m_extendedData[netObject->objectId];
+
+	if (*rage__s_NetworkTimeThisFrameStart < exData.dontMigrateBefore)
+	{
+		if (clientId == exData.lastClientId)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t clientId)
