@@ -856,21 +856,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (isRelevant)
 			{
-				// assign it to the client, it's relevant!
-				if (!entityClient && entity->type != sync::NetObjEntityType::Player)
-				{
-					if (!entity->client.lock())
-					{
-						ReassignEntity(entity->handle, client);
-					}
-				}
-
 				clientDataUnlocked->relevantEntities.push_back({ entity->handle, syncDelay, shouldBeCreated });
-
-				{
-					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-					entity->relevantTo.set(client->GetSlotId());
-				}
 			}
 		}
 	}
@@ -975,6 +961,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			if (!entity || !shouldBeCreated || entity->deleting)
 			{
 				continue;
+			}
+
+			// assign it to the client, it's relevant!
+			if (!entityClient && entity->type != sync::NetObjEntityType::Player)
+			{
+				if (!entity->client.lock())
+				{
+					ReassignEntity(entity->handle, client);
+				}
 			}
 
 			ClientEntityState ces;
@@ -1096,6 +1091,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						m_objectIdsStolen.set(deletion);
 					}
 				}
+
+				auto [_, clientData] = GetClientData(this, client);
+				clientData->relevantEntities.erase(std::remove_if(clientData->relevantEntities.begin(), clientData->relevantEntities.end(), [deletion](const auto& tup)
+				{
+					return deletion == std::get<0>(tup);
+				}),
+				clientData->relevantEntities.end());
 			}
 
 			// delete object
@@ -1258,6 +1260,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				nah.insert(objectId);
 				continue;
+			}
+
+			
+			{
+				std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+				entity->relevantTo.set(client->GetSlotId());
 			}
 
 			// default to it being a sync
@@ -2595,6 +2603,14 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		{
 			RemoveClone({}, entity->handle);
 			return false;
+		}
+
+		// players love their entities.
+		// don't take them away.
+		// that's incredibly mean.
+		{
+			auto [lock, clientData] = GetClientData(this, client);
+			clientData->relevantEntities.push_back({ entity->handle, 0ms, true });
 		}
 
 		// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
