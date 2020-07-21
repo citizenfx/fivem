@@ -2536,6 +2536,11 @@ bool ServerGameState::ProcessClonePacket(const std::shared_ptr<fx::Client>& clie
 		{
 			syncTree->Parse(state);
 
+			if (parsingType == 2)
+			{
+				entity->hasSynced = true;
+			}
+
 			// reset resends to 0
 			//entity->lastResends = {};
 
@@ -3721,6 +3726,12 @@ static InitFunction initFunction([]()
 							continue;
 						}
 
+						// that's an entirely different entity
+						if (entity->uniqifier != entityPair.second.uniqifier)
+						{
+							continue;
+						}
+
 						auto entityClient = entity->client.lock();
 
 						{
@@ -3785,6 +3796,12 @@ static InitFunction initFunction([]()
 
 			for (auto& [ entity, relevantToSome ] : relevantExits)
 			{
+				// give the entity a chance
+				if (!entity->hasSynced)
+				{
+					continue;
+				}
+
 				if (relevantToSome)
 				{
 					if (sgs->MoveEntityToCandidate(entity, entity->client.lock()))

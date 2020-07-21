@@ -418,6 +418,7 @@ struct SyncEntityState
 	uint32_t handle;
 
 	bool deleting;
+	bool hasSynced = false;
 
 	std::list<std::function<void(const std::shared_ptr<fx::Client>& ptr)>> onCreationRPC;
 
@@ -430,6 +431,12 @@ struct SyncEntityState
 	inline bool IsOwnedByScript()
 	{
 		uint32_t scriptHash = 0;
+
+		// if we can't know yet (only a create was sent - no update), let's say we are, just for good measure
+		if (!hasSynced)
+		{
+			return true;
+		}
 
 		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
 		{
