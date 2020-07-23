@@ -557,12 +557,6 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 		return;
 	}
 
-	if (TheClones->ShouldSuppressMigrateTo(netObject, g_netIdsByPlayer[player]))
-	{
-		TheClones->Log("%s: **suppressing** passing object %016llx (%d) control from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
-		return;
-	}
-
 	console::DPrintf("onesync", "passing object %016llx (%d) control from %d to %d\n", (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 	TheClones->Log("%s: passing object %016llx (%d) control from %d to %d\n", __func__, (uintptr_t)netObject, netObject->objectId, netObject->syncData.ownerId, player->physicalPlayerIndex);
 
