@@ -72,6 +72,9 @@ static std::string CrackResourceName(const std::string& uri)
 	return "MISSING";
 }
 
+static std::mutex progressMutex;
+static std::optional<std::tuple<std::string, int, int>> nextProgress;
+
 static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::string> requiredResources, NetLibrary* netLibrary)
 {
 	struct ProgressData
@@ -101,16 +104,12 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 			}
 		}
 
-		static uint64_t lastDownloadTime = GetTickCount64();
-
 		auto throttledConnectionProgress = [netLibrary](const std::string& string, int count, int total)
 		{
-			if ((GetTickCount64() - lastDownloadTime) > 500)
-			{
-				netLibrary->OnConnectionProgress(string, count, total);
-
-				lastDownloadTime = GetTickCount64();
-			}
+			std::lock_guard<std::mutex> _(progressMutex);
+			nextProgress = { string,
+				count,
+				total };
 		};
 
 		auto mounterRef = manager->GetMounterForUri(resourceUri);
@@ -543,6 +542,23 @@ static InitFunction initFunction([] ()
 				{
 					func();
 				}
+			}
+
+			static uint64_t lastDownloadTime;
+
+			if ((GetTickCount64() - lastDownloadTime) > 200)
+			{
+				std::lock_guard<std::mutex> _(progressMutex);
+
+				if (nextProgress)
+				{
+					auto [string, count, total] = *nextProgress;
+					g_netLibrary->OnConnectionProgress(string, count, total);
+
+					nextProgress = {};
+				}
+
+				lastDownloadTime = GetTickCount64();
 			}
 
 			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
