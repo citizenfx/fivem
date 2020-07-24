@@ -307,6 +307,8 @@ local do_component = function(name, comp)
 		end
 	end
 
+	_G._ROOTPATH = path.getabsolute('.')
+
 	configuration {}
 	local postCb = dofile(comp.absPath .. '/component.lua')
 	local postCbs = {}

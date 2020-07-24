@@ -48,7 +48,10 @@ void UvLoopManager::Disown(const std::string& loopTag)
 }
 }
 
-static InitFunction initFunction([] ()
+struct Init
 {
-	Instance<net::UvLoopManager>::Set(new net::UvLoopManager());
-}, -5000);
+	Init()
+	{
+		Instance<net::UvLoopManager>::Set(new net::UvLoopManager());
+	}
+} init;
