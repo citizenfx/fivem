@@ -46,7 +46,7 @@ extern "C" void DLL_EXPORT StructuredTraceReal(const char* channel, const char* 
 		{ "file", file },
 		{ "line", line },
 		{ "data", j }
-	}).dump());
+	}).dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 
 	g_consoleCondVar.notify_all();
 }
