@@ -384,6 +384,10 @@ static void VehicleMetadataUnloadMagic()
 
 static HookFunction hookFunction{[] ()
 {
+	// block *any* CGameWeatherEvent
+	// (hotfix)
+	hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
+
 	// corrupt TXD store reference crash (ped decal-related?)
 	static struct : jitasm::Frontend
 	{
