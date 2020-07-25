@@ -830,13 +830,6 @@ static void ErrorDo(uint32_t error)
 		FatalError("Invalid rage::fiPackfile encryption type specified. If you have any modified game files, please remove or verify them. See http://rsg.ms/verify for more information.");
 	}
 
-	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
-	{
-		trace("OneSync enabled, sleeping for 2500ms to allow onesync log to flush...\n");
-
-		Sleep(2500);
-	}
-
 	trace("error function called from %p for code 0x%08x\n", _ReturnAddress(), error);
 
 	// provide pickup file for minidump handler to use
