@@ -1776,6 +1776,35 @@ static uint32_t GetFireApplicability(void* event, void* pos)
 	return (1 << 31);
 }
 
+static hook::thiscall_stub<bool(void* eventMgr, bool fatal)> rage__netEventMgr__CheckForSpaceInPool([]()
+{
+	return hook::get_pattern("41 C1 E0 02 41 C1 F8 02 41 2B C0 0F 85", -0x2A);
+});
+
+static void (*g_origSendAlterWantedLevelEvent1)(void*, void*, void*, void*);
+
+static void SendAlterWantedLevelEvent1Hook(void* a1, void* a2, void* a3, void* a4)
+{
+	if (!rage__netEventMgr__CheckForSpaceInPool(g_netEventMgr, false))
+	{
+		return;
+	}
+
+	g_origSendAlterWantedLevelEvent1(a1, a2, a3, a4);
+}
+
+static void (*g_origSendAlterWantedLevelEvent2)(void*, void*, void*, void*);
+
+static void SendAlterWantedLevelEvent2Hook(void* a1, void* a2, void* a3, void* a4)
+{
+	if (!rage__netEventMgr__CheckForSpaceInPool(g_netEventMgr, false))
+	{
+		return;
+	}
+
+	g_origSendAlterWantedLevelEvent2(a1, a2, a3, a4);
+}
+
 static HookFunction hookFunctionEv([]()
 {
 	MH_Initialize();
@@ -1793,6 +1822,10 @@ static HookFunction hookFunctionEv([]()
 
 	// fire applicability
 	MH_CreateHook(hook::get_pattern("85 DB 74 78 44 8B F3 48", -0x30), GetFireApplicability, (void**)&g_origGetFireApplicability);
+
+	// CAlterWantedLevelEvent pool check
+	MH_CreateHook(hook::get_call(hook::get_pattern("45 8A C6 48 8B C8 8B D5 E8 ? ? ? ? 45 32 E4", 8)), SendAlterWantedLevelEvent1Hook, (void**)&g_origSendAlterWantedLevelEvent1);
+	MH_CreateHook(hook::get_pattern("4C 8B 78 10 48 85 ED 74 74 66 39 55", -0x58), SendAlterWantedLevelEvent2Hook, (void**)&g_origSendAlterWantedLevelEvent2);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
