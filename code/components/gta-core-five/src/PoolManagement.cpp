@@ -248,6 +248,12 @@ static void* PoolAllocateWrap(atPoolBase* pool)
 			poolName = poolEntries.LookupHash(poolHash);
 		}
 
+		// non-fatal pools
+		if (poolName == "AircraftFlames")
+		{
+			return nullptr;
+		}
+
 		AddCrashometry("pool_error", "%s (%d)", poolName, pool->GetSize());
 
 		std::string extraWarning = (poolName.find("0x") == std::string::npos)
