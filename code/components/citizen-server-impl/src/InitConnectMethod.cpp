@@ -57,6 +57,7 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 	g_providersByType.insert({ provider->GetIdentifierPrefix(), provider });
 }
 
+extern bool IsOneSync();
 extern bool IsLengthHack();
 }
 
@@ -379,7 +380,7 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			if (g_oneSyncVar->GetValue())
+			if (fx::IsOneSync())
 			{
 				if (protocol < 9)
 				{
@@ -468,8 +469,8 @@ static InitFunction initFunction([]()
 			data["protocol"] = 5;
 			data["bitVersion"] = 0x202007151853;
 			data["sH"] = shVar->GetValue();
-			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
-			data["onesync"] = g_oneSyncVar->GetValue();
+			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
+			data["onesync"] = fx::IsOneSync();
 			data["onesync_big"] = fx::IsBigMode();
 			data["onesync_lh"] = fx::IsLengthHack();
 			data["token"] = token;

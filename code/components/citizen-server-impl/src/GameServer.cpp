@@ -43,12 +43,12 @@
 
 static fx::GameServer* g_gameServer;
 
-extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
-
 extern fwEvent<> OnEnetReceive;
 
 namespace fx
 {
+	extern bool IsOneSync();
+
 	GameServer::GameServer()
 		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0), m_hasSettled(false)
 	{
@@ -683,7 +683,7 @@ namespace fx
 
 					client->SetPeer(peerId, peer->GetAddress());
 
-					if (g_oneSyncVar->GetValue())
+					if (IsOneSync())
 					{
 						if (client->GetSlotId() == -1)
 						{
@@ -718,12 +718,12 @@ namespace fx
 						client->GetNetId(),
 						(host) ? host->GetNetId() : -1,
 						(host) ? host->GetNetBase() : -1,
-						(g_oneSyncVar->GetValue())
+						(IsOneSync())
 							? ((fx::IsBigMode())
 								? 128
 								: client->GetSlotId())
 							: -1,
-						(g_oneSyncVar->GetValue()) ? msec().count() : -1);
+						(IsOneSync()) ? msec().count() : -1);
 
 					outMsg.Write(outStr.c_str(), outStr.size());
 
@@ -738,7 +738,7 @@ namespace fx
 							m_clientRegistry->HandleConnectedClient(client, oldNetID);
 						});
 
-						if (g_oneSyncVar->GetValue())
+						if (IsOneSync())
 						{
 							m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
 						}
@@ -1374,7 +1374,7 @@ namespace fx
 		{
 			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
 			{
-				if (g_oneSyncVar->GetValue())
+				if (IsOneSync())
 				{
 					return;
 				}

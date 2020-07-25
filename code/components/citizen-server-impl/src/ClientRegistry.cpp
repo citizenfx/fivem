@@ -11,10 +11,10 @@
 #include <ResourceManagerImpl.h>
 #include <ResourceEventComponent.h>
 
-extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
-
 namespace fx
 {
+	extern bool IsOneSync();
+
 	ClientRegistry::ClientRegistry()
 		: m_hostNetId(-1), m_curNetId(1), m_instance(nullptr)
 	{
@@ -55,7 +55,7 @@ namespace fx
 
 			m_clientsByPeer[client->GetPeer()] = weakClient;
 
-			if (!g_oneSyncVar->GetValue())
+			if (!IsOneSync())
 			{
 				return;
 			}
@@ -168,7 +168,7 @@ namespace fx
 		}
 		else
 		{
-			if (!g_oneSyncVar->GetValue())
+			if (!IsOneSync())
 			{
 				m_hostNetId = client->GetNetId();
 			}

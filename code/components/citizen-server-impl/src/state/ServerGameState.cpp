@@ -27,6 +27,7 @@
 
 #include <boost/range/adaptors.hpp>
 
+#include <OneSyncVars.h>
 #include <DebugAlias.h>
 
 static bool g_bigMode;
@@ -56,7 +57,7 @@ namespace rl
 CPool<fx::ScriptGuid>* g_scriptHandlePool;
 std::shared_mutex g_scriptHandlePoolMutex;
 
-std::shared_ptr<ConVar<bool>> g_oneSyncVar;
+std::shared_ptr<ConVar<bool>> g_oneSyncEnabledVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncVehicleCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncForceMigration;
@@ -65,6 +66,16 @@ std::shared_ptr<ConVar<std::string>> g_oneSyncLogVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncWorkaround763185;
 std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
+std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
+std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
+
+namespace fx
+{
+bool IsOneSync()
+{
+	return g_oneSyncEnabledVar->GetValue() || g_oneSyncVar->GetValue() != fx::OneSyncState::Off;
+}
+}
 
 extern tbb::concurrent_unordered_map<uint32_t, fx::EntityCreationState> g_entityCreationList;
 
@@ -2003,7 +2014,7 @@ bool ServerGameState::MoveEntityToCandidate(const std::shared_ptr<sync::SyncEnti
 
 void ServerGameState::HandleClientDrop(const std::shared_ptr<fx::Client>& client)
 {
-	if (!g_oneSyncVar->GetValue())
+	if (!IsOneSync())
 	{
 		return;
 	}
@@ -2715,7 +2726,7 @@ static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(co
 
 void ServerGameState::ParseGameStatePacket(const std::shared_ptr<fx::Client>& client, const std::vector<uint8_t>& packetData)
 {
-	if (!g_oneSyncVar->GetValue())
+	if (!IsOneSync())
 	{
 		return;
 	}
@@ -3589,20 +3600,47 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_ReadOnly, fx::OneSyncState::Off);
+		g_oneSyncPopulation = instance->AddVariable<bool>("onesync_population", ConVar_ReadOnly, true);
+
 		// .. to infinity?
-		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_None, false);
+		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_ReadOnly, false);
 
 		g_bigMode = g_oneSyncBigMode->GetValue();
 
 		// or maybe, beyond?
-		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_None, false);
+		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
 		g_lengthHack = g_oneSyncLengthHack->GetValue();
+
+		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
+		{
+			g_bigMode = true;
+			g_lengthHack = g_oneSyncPopulation->GetValue();
+
+			g_oneSyncBigMode->GetHelper()->SetRawValue(true);
+			g_oneSyncLengthHack->GetHelper()->SetRawValue(g_lengthHack);
+		}
+
+		instance->OnInitialConfiguration.Connect([]()
+		{
+			if (g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
+			{
+				g_oneSyncVar->GetHelper()->SetRawValue(g_bigMode ? fx::OneSyncState::On : fx::OneSyncState::Legacy);
+
+				console::PrintWarning("server", "`onesync_enabled` is deprecated. Please use `onesync %s` instead.\n", 
+					g_bigMode ? "on" : "legacy");
+			}
+			else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() != fx::OneSyncState::Off)
+			{
+				g_oneSyncEnabledVar->GetHelper()->SetRawValue(true);
+			}
+		});
 	}, INT32_MIN);
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		g_oneSyncVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
+		g_oneSyncEnabledVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
 		g_oneSyncVehicleCulling = instance->AddVariable<bool>("onesync_distanceCullVehicles", ConVar_None, false);
 		g_oneSyncForceMigration = instance->AddVariable<bool>("onesync_forceMigration", ConVar_None, false);
@@ -3614,7 +3652,7 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::GameServer>()->OnSyncTick.Connect([=]()
 		{
-			if (!g_oneSyncVar->GetValue())
+			if (!fx::IsOneSync())
 			{
 				return;
 			}
