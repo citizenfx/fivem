@@ -23,11 +23,11 @@ cd ..
 
 # clone fivem-private
 if [ ! -d fivem-private ]; then
-	git clone $FIVEM_PRIVATE_URI
+	git clone $FIVEM_PRIVATE_URI -b master-old
 else
 	cd fivem-private
 	git fetch origin
-	git reset --hard origin/master
+	git reset --hard origin/master-old
 	cd ..
 fi
 
