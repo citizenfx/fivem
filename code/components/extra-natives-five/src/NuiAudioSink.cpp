@@ -762,6 +762,11 @@ static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_g
 	return hook::get_pattern("EB 19 80 78 10 04 75 05", -0x1F);
 });
 
+static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_getAudioInteriorLocation([]()
+{
+	return hook::get_pattern("66 89 02 8A 41 28 3C 04 75 09", -0xB);
+});
+
 void MumbleAudioEntity::PreUpdateService(uint32_t)
 {
 	if (m_sound)
@@ -818,7 +823,16 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 		if (m_ped)
 		{
 			rage::fwInteriorLocation interiorLocation;
-			_entity_getInteriorLocation(m_ped, interiorLocation);
+			_entity_getAudioInteriorLocation(m_ped, interiorLocation);
+
+			// if this isn't an interior, reset the interior pointer thing
+			if (interiorLocation.GetInteriorIndex() == 0xFFFF)
+			{
+				char* envGroup = (char*)m_environmentGroup;
+				*(void**)(envGroup + 240) = nullptr;
+				*(void**)(envGroup + 248) = nullptr;
+			}
+
 			m_environmentGroup->SetInteriorLocation(interiorLocation);
 		}
 	}
