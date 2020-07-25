@@ -178,6 +178,32 @@ int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char*
 	ScopedError error(file, line, stringHash);
 	return GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str());
 }
+
+int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
+{
+#ifndef IS_FXSERVER
+	auto msg = fmt::vsprintf(string, formatList);
+	trace("NoExcept: %s\n", msg);
+
+	json o = json::object();
+	o["message"] = msg;
+	o["file"] = file;
+	o["line"] = line;
+	o["sigHash"] = stringHash;
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+
+	if (f)
+	{
+		fprintf(f, "%s", o.dump().c_str());
+		fclose(f);
+	}
+
+	return -1;
+#endif
+
+	return FatalErrorRealV(file, line, stringHash, string, formatList);
+}
 #else
 void GlobalErrorV(const char* string, fmt::printf_args formatList)
 {
