@@ -58,7 +58,7 @@ static int SysError(const char* buffer)
 
 	if (f)
 	{
-		fprintf(f, "%s", o.dump().c_str());
+		fprintf(f, "%s", o.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
 		fclose(f);
 
 		return -1;
@@ -195,7 +195,7 @@ int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, con
 
 	if (f)
 	{
-		fprintf(f, "%s", o.dump().c_str());
+		fprintf(f, "%s", o.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
 		fclose(f);
 	}
 

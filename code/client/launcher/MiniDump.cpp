@@ -73,7 +73,7 @@ static void send_sentry_session(const json& data)
 	std::stringstream bodyData;
 	bodyData << "{}\n";
 	bodyData << R"({"type":"session"})" << "\n";
-	bodyData << data.dump() << "\n";
+	bodyData << data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) << "\n";
 
 	auto r = cpr::Post(
 	cpr::Url{ "https://sentry.fivem.net/api/2/envelope/" },
@@ -103,7 +103,7 @@ static void UpdateSession(json& session)
 
 	if (f)
 	{
-		auto s = session.dump();
+		auto s = session.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
 		fwrite(s.data(), 1, s.size(), f);
 		fclose(f);
 	}
@@ -401,7 +401,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 	if (blame)
 	{
 		static std::wstring errTitle = fmt::sprintf(L"%s encountered an error", blame);
-		static std::wstring errDescription = fmt::sprintf(L"FiveM crashed due to %s.\n%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", blame, blame_two);
+		static std::wstring errDescription = fmt::sprintf(L"FiveM crashed due to %s.\n%s", blame, blame_two);
 
 		config->pszMainInstruction = errTitle.c_str();
 		config->pszContent = errDescription.c_str();
@@ -429,7 +429,7 @@ static std::wstring GetAdditionalData()
 
 			add_crashometry(jsonData);
 
-			return ToWide(jsonData.dump());
+			return ToWide(jsonData.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 		}
 	}
 
@@ -445,7 +445,7 @@ static std::wstring GetAdditionalData()
 
 			add_crashometry(error_pickup);
 
-			return ToWide(error_pickup.dump());
+			return ToWide(error_pickup.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 		}
 	}
 
@@ -463,7 +463,7 @@ static std::wstring GetAdditionalData()
 			data["what"] = exWhat;
 		}
 
-		return ToWide(data.dump());;
+		return ToWide(data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 	}
 }
 
@@ -1579,7 +1579,13 @@ bool InitializeExceptionHandler()
 			CloseHandle(processInfo.hThread);
 		}
 
-		DWORD waitResult = WaitForSingleObject(initEvent, 7500);
+		DWORD waitResult = WaitForSingleObject(initEvent, 
+#ifdef _DEBUG
+			1500
+#else
+			7500
+#endif
+		);
 
 		if (!isDebugged)
 		{
