@@ -377,7 +377,7 @@ function RGSC_GET_TITLE_ID()
 		RosEnvironment: 'prod',
 		RosTitleVersion: 11,
 		RosPlatform: 'pcros',
-		Platform: 'pc',
+		Platform: 'viveport',
 		IsLauncher: true,
 		Language: 'en-US'
 	});
@@ -480,7 +480,7 @@ function RGSC_READY_TO_ACCEPT_COMMANDS()
 RGSC_JS_READY_TO_ACCEPT_COMMANDS();
 RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: "SIGNIN" }));
 
-var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText span { display: none; } .SignInForm__descriptionText:after { content: \'A Rockstar Games Social Club account owning Grand Theft Auto V is required to play FiveM.\'; max-width: 600px; display: inline-block; }',
+var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .Alert__content:after { content: \'A Rockstar Games Social Club account owning Grand Theft Auto V is required to play FiveM.\'; max-width: 600px; display: inline-block; }',
     head = document.head || document.getElementsByTagName('head')[0],
     style = document.createElement('style');
 
