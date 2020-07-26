@@ -378,6 +378,31 @@ static int ReturnFalse()
 	return 0;
 }
 
+static BOOL ShellExecuteExWStub(_Inout_ SHELLEXECUTEINFOW *pExecInfo)
+{
+	if (pExecInfo->lpFile && wcsstr(pExecInfo->lpFile, L"RockstarService"))
+	{
+		return ShellExecuteExW(pExecInfo);
+	}
+
+	if (pExecInfo->lpFile)
+	{
+		trace("Restricting MTL ShellExecuteExW: %s\n", ToNarrow(pExecInfo->lpFile));
+	}
+
+	return TRUE;
+}
+
+HINSTANCE ShellExecuteWStub(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _In_ LPCWSTR lpFile, _In_opt_ LPCWSTR lpParameters, _In_opt_ LPCWSTR lpDirectory, _In_ INT nShowCmd)
+{
+	if (lpFile)
+	{
+		trace("Restricting MTL ShellExecuteW: %s\n", ToNarrow(lpFile));
+	}
+
+	return NULL;
+}
+
 HANDLE CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 static void Launcher_Run(const boost::program_options::variables_map& map)
@@ -442,6 +467,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		hook::iat("kernel32.dll", CreateMutexWStub, "CreateMutexW");
 		hook::iat("kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA");
+
+		hook::iat("shell32.dll", ShellExecuteExWStub, "ShellExecuteExW");
+		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
 
 		DoLauncherUiSkip();
 
