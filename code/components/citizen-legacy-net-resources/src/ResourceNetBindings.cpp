@@ -221,7 +221,9 @@ static InitFunction initFunction([] ()
 			std::string addressAddress = address.GetAddress();
 			uint32_t addressPort = address.GetPort();
 
-			httpClient->DoPostRequest(fmt::sprintf("%sclient", netLibrary->GetCurrentServerUrl()), httpClient->BuildPostString(postMap), options, [=] (bool result, const char* data, size_t size)
+			auto curServerUrl = fmt::sprintf("https://%s/", netLibrary->GetCurrentPeer().ToString()); 
+
+			httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrl), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
 			{
 				// keep a reference to the HTTP client
 				auto httpClientRef = httpClient;
@@ -305,8 +307,8 @@ static InitFunction initFunction([] ()
 							baseUrl = (*it)["fileServer"].GetString();
 						}
 
-						boost::algorithm::replace_all(baseUrl, "http://%s/", netLibrary->GetCurrentServerUrl());
-						boost::algorithm::replace_all(baseUrl, "https://%s/", netLibrary->GetCurrentServerUrl());
+						boost::algorithm::replace_all(baseUrl, "http://%s/", curServerUrl);
+						boost::algorithm::replace_all(baseUrl, "https://%s/", curServerUrl);
 
 						// define the resource in the mounter
 						std::string resourceName = resource["name"].GetString();
