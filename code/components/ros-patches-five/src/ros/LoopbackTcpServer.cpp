@@ -1145,6 +1145,7 @@ static BOOL(*g_oldCreateProcessW)(const wchar_t* applicationName, wchar_t* comma
 								  PROCESS_INFORMATION* information);
 
 int g_rosParentPid;
+extern bool g_launchDone;
 
 std::vector<int> g_subProcessHandles;
 
@@ -1312,6 +1313,8 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 	{
 		if (boost::filesystem::path(applicationName).filename() == L"GTA5.exe" || boost::filesystem::path(applicationName).filename() == L"RDR2.exe")
 		{
+			g_launchDone = true;
+
 			HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
 
 			if (hEvent != INVALID_HANDLE_VALUE)
