@@ -527,6 +527,9 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 		auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, initState->GetInitialPid());
 		DuplicateHandle(GetCurrentProcess(), handle, proc, pSharedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
 		CloseHandle(proc);
+
+		m_handle = *pSharedHandle;
+		g_textureHacks.insert({ *pSharedHandle, this });
 	}
 
 	return hr;
@@ -561,6 +564,11 @@ static HRESULT CreateTexture2DHook(
 	{
 		if ((desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED) || (desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX))
 		{
+			if (desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
+			{
+				desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			}
+
 			desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
 			wrapped = true;
 		}
@@ -605,7 +613,6 @@ static HRESULT (*g_origOpenSharedResourceHook)(ID3D11Device* device, HANDLE hRes
 
 static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID iid, void** ppRes)
 {
-#if defined(GTA_FIVE)
 	auto it = g_textureHacks.find(hRes);
 
 	if (it != g_textureHacks.end())
@@ -617,15 +624,6 @@ static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID 
 	}
 
 	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
-#endif
-
-	WRL::ComPtr<ID3D11Device1> device1;
-	if (SUCCEEDED(device->QueryInterface(device1.GetAddressOf())))
-	{
-		return device1->OpenSharedResource1(hRes, iid, ppRes);
-	}
-
-	return E_NOINTERFACE;
 }
 
 static HRESULT(*g_origCopyResource)(ID3D11DeviceContext* cxt, ID3D11Resource* dst, ID3D11Resource* src);
