@@ -1740,6 +1740,7 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 		return FX_E_INVALIDARG;
 	}
 
+	if (m_debugListener.GetRef())
 	{
 		auto idIt = m_scriptIds.find(scriptFile);
 
