@@ -41,7 +41,10 @@ extern "C" void StructuredTraceReal(const char* channel, const char* func, const
 
 #define StructuredTrace(...) do { \
 	if (StructuredTraceEnabled()) { \
+		try { \
 		StructuredTraceReal(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), _CFX_TRACE_FUNC, _CFX_TRACE_FILE, __LINE__, nlohmann::json::object({ __VA_ARGS__ })); \
+		} catch (const std::exception& e) { \
+		} \
 	} \
 } while (false);
 
