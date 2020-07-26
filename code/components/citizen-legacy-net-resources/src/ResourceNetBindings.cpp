@@ -223,7 +223,10 @@ static InitFunction initFunction([] ()
 
 			auto curServerUrl = fmt::sprintf("https://%s/", netLibrary->GetCurrentPeer().ToString()); 
 
-			httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrl), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
+			// #TODO: remove this once server version with `18d5259f60dd203b5705130491ddda4e95665171` becomes mandatory
+			auto curServerUrlNonTls = fmt::sprintf("http://%s/", netLibrary->GetCurrentPeer().ToString()); 
+
+			httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrlNonTls), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
 			{
 				// keep a reference to the HTTP client
 				auto httpClientRef = httpClient;
