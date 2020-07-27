@@ -530,12 +530,17 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([](const char* error)
 		{
+			{
+				std::lock_guard<std::mutex> _(progressMutex);
+				nextProgress = {};
+			}
+
 			executeNextGameFrame.push([]()
 			{
 				fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 				resourceManager->ResetResources();
 			});
-		});
+		}, -500);
 
 		OnGameFrame.Connect([] ()
 		{
