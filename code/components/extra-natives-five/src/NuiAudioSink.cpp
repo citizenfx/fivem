@@ -300,7 +300,7 @@ namespace rage
 		return hook::get_pattern("0F 57 C0 48 8D 41 10 BA 03 00 00 00");
 	});
 
-	static uint32_t* initParamVal;
+	static uint8_t* initParamVal;
 
 	audSoundInitParams::audSoundInitParams()
 	{
@@ -539,7 +539,7 @@ namespace rage
 
 		g_categoryMgr = hook::get_address<audCategoryManager*>(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", -4));
 
-		initParamVal = hook::get_address<uint32_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16b));
+		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16));
 	});
 
 	static hook::cdecl_stub<audWaveSlot*(uint32_t)> _findWaveSlot([]()
