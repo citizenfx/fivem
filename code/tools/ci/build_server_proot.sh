@@ -103,7 +103,7 @@ cd $PWD/ext/symbol-upload
 
 mkdir -p /tmp/symbols
 dotnet restore
-dotnet run -- -o/tmp/symbols $PWD/../../alpine/opt/cfx-server/*.so $PWD/../../alpine/opt/cfx-server/FXServer $PWD/../../alpine/opt/cfx-server/*.dbg
+dotnet run -- -o/tmp/symbols $PWD/../../alpine/opt/cfx-server/*.so $PWD/../../alpine/opt/cfx-server/FXServer $PWD/../../alpine/opt/cfx-server/*.dbg $PWD/../../alpine/usr/lib/*.so* $PWD/../../alpine/usr/lib/debug/lib/*.debug
 
 eval $(ssh-agent -s)
 echo "$SSH_SYMBOLS_PRIVATE_KEY" | tr -d '\r' | ssh-add -

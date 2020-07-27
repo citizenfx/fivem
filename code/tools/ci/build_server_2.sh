@@ -32,7 +32,7 @@ apk --no-cache update
 apk del curl
 
 # install runtime dependencies
-apk add --no-cache curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
+apk add --no-cache curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8 musl-dbg
 
 # install compile-time dependencies
 apk add --no-cache --virtual .dev-deps curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs yarn clang-libs git
@@ -162,7 +162,7 @@ done
 
 # copy debug info
 for i in /opt/cfx-server/*.so /opt/cfx-server/FXServer; do
-	objcopy --only-keep-debug $i $i.dbg
+	objcopy --only-keep-debug --compress-debug-sections=zlib $i $i.dbg
 	objcopy --strip-unneeded $i
 	objcopy --add-gnu-debuglink=$i.dbg $i
 done
