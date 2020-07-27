@@ -890,6 +890,9 @@ static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 	return (LPTHREAD_START_ROUTINE)((char*)modules[0] + off);
 }
 
+extern nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx);
+extern void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::string* stackTrace);
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
@@ -909,6 +912,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	{
 		auto process_handle = info->process_handle();
 		DWORD exceptionCode = 0;
+
+		json symCrash;
 
 		{
 			EXCEPTION_POINTERS* ei;
@@ -939,6 +944,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 					if (valid)
 					{
+						DWORD thread;
+						if (info->GetClientThreadId(&thread))
+						{
+							auto th = OpenThread(THREAD_ALL_ACCESS, FALSE, thread);
+
+							if (th)
+							{
+								symCrash = SymbolicateCrash(process_handle, th, &ex, &cx);
+							}
+						}
+
 						DWORD processLen = 0;
 						if (EnumProcessModules(process_handle, nullptr, 0, &processLen))
 						{
@@ -1173,10 +1189,22 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
 		
 		std::wstring cuz = L"An error";
+		std::string stackTrace;
+		std::string csignature;
+
+		if (!symCrash.is_null())
+		{
+			ParseSymbolicCrash(symCrash, &csignature, &stackTrace);
+		}
 
 		if (!crashHash.empty())
 		{
 			auto ch = UnblameCrash(crashHash);
+
+			if (!csignature.empty())
+			{
+				ch = ToWide(csignature);
+			}
 
 			if (crashHash.find(L".exe") != std::string::npos)
 			{
@@ -1221,9 +1249,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			content += fmt::sprintf(gettext(L"\n\nLegacy crash hash: %s"), HashCrash(crashHash));
 		}
 
+		if (!stackTrace.empty())
+		{
+			content += fmt::sprintf(gettext(L"\nStack trace:\n%s"), ToWide(stackTrace));
+		}
+
 		if (shouldTerminate)
 		{
-			std::thread([]()
+			std::thread([csignature]()
 			{
 				static HostSharedData<CfxState> hostData("CfxInitState");
 				HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
@@ -1236,6 +1269,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				if (gameProcess)
 				{
 					std::string friendlyReason = ToNarrow(HashCrash(crashHash) + L" (" + UnblameCrash(crashHash) + L")");
+
+					if (!csignature.empty())
+					{
+						friendlyReason = csignature;
+					}
 
 					if (!exType.empty())
 					{

@@ -121,6 +121,11 @@ static HookFunction hookFunction([]()
 	hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
 });
 
+static void __declspec(noinline) CrashCommand()
+{
+	*(volatile int*)0 = 0;
+}
+
 static InitFunction initFunction([] ()
 {
 	OnGameFrame.Connect([] ()
@@ -166,7 +171,7 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand crashCmd("_crash", []()
 	{
-		*(volatile int*)0 = 0;
+		CrashCommand();
 	});
 
 	static int warningMessageActive = false;
