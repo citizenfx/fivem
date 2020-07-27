@@ -1120,6 +1120,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #endif
 
 				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
+				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : nlohmann::json{};
 
 				auto continueAfterEndpoints = [=, capNode = node](const nlohmann::json& capEndpointsJson)
 				{
@@ -1135,6 +1136,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						if (!endpointsJson.is_null() && !endpointsJson.is_boolean())
 						{
 							for (const auto& endpoint : endpointsJson)
+							{
+								endpoints.push_back(endpoint.get<std::string>());
+							}
+						}
+						else if (!rawEndpoints.is_null() && rawEndpoints.is_array() && !rawEndpoints.empty())
+						{
+							for (const auto& endpoint : rawEndpoints)
 							{
 								endpoints.push_back(endpoint.get<std::string>());
 							}
@@ -1380,8 +1388,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						m_connectionState = CS_IDLE;
 					}
 				};
-
-				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : nlohmann::json{};
 
 				if (bitVersion >= 0x202004201223)
 				{
