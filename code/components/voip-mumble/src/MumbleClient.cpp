@@ -164,7 +164,7 @@ void MumbleClient::Initialize()
 			{
 				std::lock_guard<std::recursive_mutex> l(m_clientMutex);
 
-				if (m_curManualChannel != m_lastManualChannel)
+				if (m_curManualChannel != m_lastManualChannel && !m_state.GetChannels().empty())
 				{
 					// check if the channel already exists
 					std::wstring wname = ToWide(m_curManualChannel);
