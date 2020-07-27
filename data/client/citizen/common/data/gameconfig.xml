@@ -154,7 +154,7 @@
 						</Item>
 						<Item>
 							<PoolName>ClothStore</PoolName>
-							<PoolSize value="60"/>
+							<PoolSize value="600"/>
 						</Item>
 						<Item>
 							<PoolName>CombatMeleeManager_Groups</PoolName>
