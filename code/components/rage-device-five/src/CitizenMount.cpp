@@ -105,7 +105,9 @@ public:
 		if (relPath == "data/levels/gta5/trains.xml" ||
 			relPath == "data/materials/materials.dat" ||
 			relPath == "data/relationships.dat" ||
-			relPath == "data/dlclist.xml")
+			relPath == "data/dlclist.xml" ||
+			relPath == "data/ai/scenarios.meta" ||
+			relPath == "data/ai/conditionalanims.meta")
 		{
 			return InvalidHandle;
 		}

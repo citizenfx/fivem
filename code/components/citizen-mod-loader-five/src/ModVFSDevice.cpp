@@ -189,7 +189,9 @@ ModVFSDevice::ModVFSDevice(const std::shared_ptr<ModPackage>& package)
 				tgtFile = tgtFile.substr(1);
 			}
 
-			if (tgtFile == "common/data/gameconfig.xml")
+			if (tgtFile == "common/data/gameconfig.xml" ||
+				tgtFile == "common/data/ai/scenarios.meta" ||
+				tgtFile == "common/data/ai/conditionalanims.meta")
 			{
 				continue;
 			}
