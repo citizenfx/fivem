@@ -1177,6 +1177,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				shouldTerminate = false;
 			}
 
+			// NVIDIA crashes in Chrome GPU process
+			if (crashHash.find(L"nvwgf2") != std::string::npos)
+			{
+				shouldTerminate = false;
+				shouldUpload = false;
+			}
+
 			// Chrome OOM situations (kOomExceptionCode)
 			if (exceptionCode == 0xE0000008)
 			{
