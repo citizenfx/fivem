@@ -416,7 +416,7 @@ public:
 			{ "ros-SecurityFlags", "239" },
 			{ "ros-SessionTicket", sessionTicket },
 			{ "ros-Challenge", Botan::base64_encode(challenge) },
-			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", cprUrl.substr(29).c_str(), sessionKey, sessionTicket)) }
+			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", static_cast<std::string>(cprUrl).substr(29).c_str(), sessionKey, sessionTicket)) }
 		};
 
         m_future = cpr::PostCallback([=](cpr::Response r)
