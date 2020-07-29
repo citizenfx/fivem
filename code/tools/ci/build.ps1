@@ -488,7 +488,7 @@ if (!$DontBuild -and !$IsServer) {
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
     "${env:CI_PIPELINE_ID}" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\release.txt
 
-    if (!$IsLauncher) {
+    if ($IsRDR) {
         if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
             Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
         }
@@ -501,7 +501,15 @@ if (!$DontBuild -and !$IsServer) {
             .\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
             Pop-Location
         }
-    }
+    } 
+    
+	if (!$IsLauncher) {
+		if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) {
+			Push-Location C:\f\bci\
+			.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
+			Pop-Location
+		}
+	}
 
     # build meta/xz variants
     "<Caches>
