@@ -2,7 +2,7 @@ return {
 	include = function()
 		includedirs {
 			"../vendor/eastl/include/",
-			"../vendor/eastl/test/packages/EABase/include/Common/",
+			"../vendor/eabase/include/Common/",
 		}
 		
 		defines { "EASTL_OPENSOURCE=1" }
@@ -15,8 +15,11 @@ return {
 		files_project "../vendor/eastl/" {
 			"include/EASTL/*.h",
 			"include/EASTL/bonus/*.h",
-			"source/*.cpp",
-			"test/packages/EABase/include/Common/EABase/**.h"
+			"source/*.cpp"
+		}
+
+		files_project "../vendor/eabase" {
+			"include/Common/EABase/**.h"
 		}
 	end
 }
