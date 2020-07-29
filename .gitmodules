@@ -24,9 +24,6 @@
 [submodule "vendor/tinyxml2"]
 	path = vendor/tinyxml2
 	url = https://github.com/leethomason/tinyxml2.git
-[submodule "vendor/cpp-uri"]
-	path = vendor/cpp-uri
-	url = https://github.com/cpp-netlib/uri.git
 [submodule "vendor/picohttpparser"]
 	path = vendor/picohttpparser
 	url = https://github.com/h2o/picohttpparser.git
