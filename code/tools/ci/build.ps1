@@ -248,15 +248,21 @@ if (!$DontBuild)
 
 	if (!($env:APPVEYOR)) {
 	    Push-Location $WorkDir\..\
+	    
+	    $CIBranch = "master-old"
+	    
+	    if (!$IsServer -and !$IsRDR) {
+			$CIBranch = "master"
+	    }
 
 	    # cloned, building
 	    if (!(Test-Path fivem-private)) {
-	        git clone -b master-old $env:FIVEM_PRIVATE_URI
+	        git clone -b $CIBranch $env:FIVEM_PRIVATE_URI
 	    } else {
 	        cd fivem-private
 
 	        git fetch origin | Out-Null
-	        git reset --hard origin/master-old | Out-Null
+	        git reset --hard origin/$CIBranch | Out-Null
 
 	        cd ..
 	    }
