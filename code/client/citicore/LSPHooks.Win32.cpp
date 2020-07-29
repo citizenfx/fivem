@@ -161,8 +161,11 @@ void LSP_InitializeHooks()
 	{
 		//MH_CreateHookApi(L"ntdll.dll", "NtQueryInformationProcess", NtQueryInformationProcessHook, (void**)&origQIP);
 		//MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
-		origQIP = (decltype(origQIP))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
-		origClose = (decltype(origClose))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtClose");
+		if (!origQIP)
+		{
+			origQIP = (decltype(origQIP))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
+			origClose = (decltype(origClose))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtClose");
+		}
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
