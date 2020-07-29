@@ -110,7 +110,7 @@ build_proot_linux:
   stage: build
   image: mcr.microsoft.com/dotnet/core/sdk:2.1-alpine3.11
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_STRATEGY: normal
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
     DOCKER_TLS_CERTDIR: ""
@@ -270,7 +270,7 @@ typings_server:
   only:
     - master
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_STRATEGY: normal
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
   script:
