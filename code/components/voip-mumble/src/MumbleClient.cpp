@@ -458,24 +458,42 @@ void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float vo
 
 std::wstring MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 {
-	for (auto& user : m_state.GetUsers())
+	std::wstring retName;
+
+	m_state.ForAllUsers([serverId, &retName](const std::shared_ptr<MumbleUser>& user)
 	{
-		if (user.second && user.second->GetServerId() == serverId)
+		if (!retName.empty())
 		{
-			return user.second->GetName();
-;		}
-	}
+			return;
+		}
+
+		if (user && user->GetServerId() == serverId)
+		{
+			retName = user->GetName();
+		}
+	});
+
+	return retName;
 }
 
 uint32_t MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 {
-	for (auto& user : m_state.GetUsers())
+	uint32_t retId = -1;
+
+	m_state.ForAllUsers([serverId, &retId](const std::shared_ptr<MumbleUser>& user)
 	{
-		if (user.second && user.second->GetServerId() == serverId)
+		if (retId != -1)
 		{
-			return user.second->GetChannelId();
-;		}
-	}
+			return;
+		}
+
+		if (user && user->GetServerId() == serverId)
+		{
+			retId = user->GetChannelId();
+		}
+	});
+
+	return retId;
 }
 
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
