@@ -235,3 +235,6 @@
 [submodule "vendor/lss"]
 	path = vendor/lss
 	url = https://chromium.googlesource.com/linux-syscall-support/
+[submodule "vendor/range-v3"]
+	path = vendor/range-v3
+	url = https://github.com/ericniebler/range-v3.git

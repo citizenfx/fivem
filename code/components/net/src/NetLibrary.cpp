@@ -1153,9 +1153,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							auto uri = skyr::make_url(url);
 							std::string endpoint;
 
-							if (!uri->port().empty())
+							if (uri->port<int>())
 							{
-								endpoint = fmt::sprintf("%s:%d", uri->hostname(), uri->port<int>());
+								endpoint = fmt::sprintf("%s:%d", uri->hostname(), *uri->port<int>());
 							}
 							else
 							{
