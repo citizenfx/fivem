@@ -23,7 +23,42 @@ using json = nlohmann::json;
 
 #define BUFFER_LENGTH 32768
 
+#ifdef _WIN32
+#include <wtsapi32.h>
+#endif
+
 static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
+
+static bool IsUserConnected()
+{
+#ifdef _WIN32
+	auto wtsapi = LoadLibraryW(L"wtsapi32.dll");
+
+	if (wtsapi)
+	{
+		auto _WTSQuerySessionInformationW = (decltype(&WTSQuerySessionInformationW))GetProcAddress(wtsapi, "WTSQuerySessionInformationW");
+		auto _WTSFreeMemory = (decltype(&WTSFreeMemory))GetProcAddress(wtsapi, "WTSFreeMemory");
+
+		if (_WTSQuerySessionInformationW)
+		{
+			LPWSTR data;
+			DWORD dataSize;
+			if (_WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION, WTSConnectState, &data, &dataSize))
+			{
+				auto connectState = *(WTS_CONNECTSTATE_CLASS*)data;
+				
+				bool rv = (connectState == WTSActive);
+
+				_WTSFreeMemory(data);
+
+				return rv;
+			}
+		}
+	}
+#endif
+
+	return true;
+}
 
 static int SysError(const char* buffer)
 {
@@ -65,7 +100,10 @@ static int SysError(const char* buffer)
 	}
 #endif
 
-	MessageBoxA(wnd, buffer, "Fatal Error", MB_OK | MB_ICONSTOP);
+	if (IsUserConnected())
+	{
+		MessageBoxW(wnd, ToWide(buffer).c_str(), L"Fatal Error", MB_OK | MB_ICONSTOP);
+	}
 
 #ifdef _DEBUG
 #ifndef IS_FXSERVER
