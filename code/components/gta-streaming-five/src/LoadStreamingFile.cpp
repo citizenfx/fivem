@@ -1203,6 +1203,27 @@ static void LoadDataFiles()
 {
 	trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
 
+	// sort data file array by type, a little
+	auto dfSort = [](const std::pair<std::string, std::string>& type)
+	{
+		auto h = HashString(type.first.c_str());
+
+		if (h == HashString("VEHICLE_LAYOUTS_FILE") || h == HashString("HANDLING_FILE"))
+		{
+			return 0;
+		}
+		else
+		{
+			return 100;
+		}
+	};
+
+	// we use stable_sort as equivalent entries need to retain equivalent order
+	std::stable_sort(g_dataFiles.begin(), g_dataFiles.end(), [dfSort](const auto& left, const auto& right)
+	{
+		return dfSort(left) < dfSort(right);
+	});
+
 	HandleDataFileList(g_dataFiles, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
 	{
 		return mounter->MountFile(&entry);
