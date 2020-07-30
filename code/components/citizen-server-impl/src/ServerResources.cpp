@@ -157,6 +157,9 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 	std::vector<pplx::task<fwRefContainer<fx::Resource>>> tasks;
 
+	// save scanned resource names so we don't scan them twice
+	std::set<std::string> scannedNow;
+
 	while (!pathsToIterate.empty())
 	{
 		std::string thisPath = pathsToIterate.front();
@@ -187,8 +190,10 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						pathsToIterate.push(resPath);
 					}
 					// it's a resource
-					else
+					else if (scannedNow.find(findData.name) == scannedNow.end())
 					{
+						scannedNow.insert(findData.name);
+
 						auto oldRes = resMan->GetResource(findData.name, false);
 
 						if (oldRes.GetRef())
