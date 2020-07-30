@@ -393,8 +393,31 @@ static void VehicleMetadataUnloadMagic()
 	hook::call(parserRef, VehUnloadParserHook);
 }
 
+static int GetGpuCount1()
+{
+	return 1;
+}
+
+static int GetGpuCount2(char* self)
+{
+	*(uint32_t*)(self + 56) = 1;
+	return 1;
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// mismatched NVIDIA drivers may lead to NVAPI calls (NvAPI_EnumPhysicalGPUs/NvAPI_EnumLogicalGPUs, NvAPI_D3D_GetCurrentSLIState) returning a
+	// preposterous amount of SLI GPUs. since SLI is not supported at all for Cfx (due to lack of SLI profile), just ignore GPU count provided by NVAPI/AGS.
+	{
+		auto location = hook::get_pattern("85 C0 75 22 84 DB 74 1E 40 38 3D", -0x49);
+		hook::jump(location, GetGpuCount1);
+	}
+
+	{
+		auto location = hook::get_pattern("75 32 83 A5 30 03 00 00 00 48 8D", -0x56);
+		hook::jump(location, GetGpuCount2);
+	}
+
 	// block *any* CGameWeatherEvent
 	// (hotfix)
 	hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
