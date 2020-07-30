@@ -102,7 +102,11 @@ public:
 #endif
 
 				resource = m_manager->CreateResource(fragRef);
-				resource->LoadFrom(*skyr::percent_decode(pr));
+				if (!resource->LoadFrom(*skyr::percent_decode(pr)))
+				{
+					m_manager->RemoveResource(resource);
+					resource = nullptr;
+				}
 			}
 		}
 

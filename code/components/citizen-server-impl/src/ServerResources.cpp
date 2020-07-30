@@ -75,7 +75,11 @@ public:
 #endif
 
 				resource = m_manager->CreateResource(fragRef);
-				resource->LoadFrom(*skyr::percent_decode(pr));
+				if (!resource->LoadFrom(*skyr::percent_decode(pr)))
+				{
+					m_manager->RemoveResource(resource);
+					resource = nullptr;
+				}
 			}
 		}
 
@@ -252,9 +256,12 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 							auto task = resMan->AddResource(url.href())
 										.then([components = std::move(components)](fwRefContainer<fx::Resource> resource)
 										{
-											for (const auto& component : components)
+											if (resource.GetRef())
 											{
-												g_resourcesByComponent[component].insert(resource->GetName());
+												for (const auto& component : components)
+												{
+													g_resourcesByComponent[component].insert(resource->GetName());
+												}
 											}
 
 											return resource;
