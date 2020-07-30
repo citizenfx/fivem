@@ -15,11 +15,7 @@ std::optional<std::string> percent_encode(std::string_view input, skyr::encode_s
 
 	auto encode = [set](auto byte)
 	{
-		if (byte == '\x20')
-		{
-			return percent_encoded_char('+', percent_encoded_char::no_encode());
-		}
-		else if ((byte == '\x2a') || (byte == '\x2d') || (byte == '\x2e') || ((byte >= '\x30') && (byte <= '\x39')) || ((byte >= '\x41') && (byte <= '\x5a')) || (byte == '\x5f') || ((byte >= '\x61') && (byte <= '\x7a')))
+		if ((byte == '\x2a') || (byte == '\x2d') || (byte == '\x2e') || ((byte >= '\x30') && (byte <= '\x39')) || ((byte >= '\x41') && (byte <= '\x5a')) || (byte == '\x5f') || ((byte >= '\x61') && (byte <= '\x7a')))
 		{
 			return percent_encoded_char(
 			byte, percent_encoded_char::no_encode());
