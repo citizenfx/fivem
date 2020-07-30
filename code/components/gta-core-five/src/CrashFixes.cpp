@@ -406,6 +406,10 @@ static int GetGpuCount2(char* self)
 
 static HookFunction hookFunction{[] ()
 {
+	// disable crashing on train validity check failing
+	// (this is, oddly, a cloud tunable?!)
+	hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
+
 	// mismatched NVIDIA drivers may lead to NVAPI calls (NvAPI_EnumPhysicalGPUs/NvAPI_EnumLogicalGPUs, NvAPI_D3D_GetCurrentSLIState) returning a
 	// preposterous amount of SLI GPUs. since SLI is not supported at all for Cfx (due to lack of SLI profile), just ignore GPU count provided by NVAPI/AGS.
 	{
