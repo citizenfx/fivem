@@ -68,6 +68,7 @@ function Invoke-WebHook
     iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 }
 
+$UseNewCI = $false
 $inCI = $false
 $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
@@ -251,7 +252,7 @@ if (!$DontBuild)
 	    
 	    $CIBranch = "master-old"
 	    
-	    if (!$IsServer -and !$IsRDR) {
+	    if (!$IsServer -and !$IsRDR -and $UseNewCI) {
 			$CIBranch = "master"
 	    }
 
@@ -488,7 +489,7 @@ if (!$DontBuild -and !$IsServer) {
     "$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
     "${env:CI_PIPELINE_ID}" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\release.txt
 
-    if ($IsRDR) {
+    if ($IsRDR -or !$UseNewCI) {
         if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
             Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
         }
