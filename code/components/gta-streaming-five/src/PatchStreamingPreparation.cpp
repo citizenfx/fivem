@@ -385,6 +385,11 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 	return g_origPgStreamerRead(handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10);
 }
 
+static uint32_t NoLSN(void* streamer, uint16_t idx)
+{
+	return idx;
+}
+
 static HookFunction hookFunction([] ()
 {
 	Hook_StreamingSema();
@@ -408,6 +413,23 @@ static HookFunction hookFunction([] ()
 
 	// parallelize streaming (force 'disable parallel streaming' flag off)
 	hook::put<uint8_t>(hook::get_pattern("C0 C6 05 ? ? ? ? 01 44 88 35", 7), 0);
+
+	// increase max streaming request threshold
+	{
+		auto location = hook::get_pattern<char>("74 13 C7 05 ? ? ? ? 01 00 00 00 C6 05", -0x3A);
+		//hook::put<uint32_t>(hook::get_address<int*>(location + 0x24), 127);
+		//hook::put<uint32_t>(location + 0x55, 100);
+
+		// rate limit
+		hook::put<uint32_t>(hook::get_address<int*>(location + 0x11F), 0x1FFFFF);
+
+		// LSN tolerance
+		//hook::put<uint32_t>(hook::get_address<int*>(location + 0x97), 0x00000000);
+		//hook::put<uint32_t>(hook::get_address<int*>(location + 0x97) + 1, 0x00000000);
+
+		// LSN for rawstreamer HDD<->DVD swap (no more 0x40000000 bit)
+		hook::jump(hook::get_pattern("0F B7 C2 0F BA E8 1E C3"), NoLSN);
+	}
 
 	// don't adhere to some (broken?) streaming time limit
 	hook::nop(hook::get_pattern("0F 2F C6 73 2D", 3), 2);
