@@ -91,12 +91,8 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	std::time_t timeVal;
 	std::time(&timeVal);
 
-	std::tm* tm = std::gmtime(&timeVal);
-
-	std::time_t utcTime = std::mktime(tm);
-
 	// verify
-	if (ticketExpiry < utcTime)
+	if (ticketExpiry < timeVal)
 	{
 		console::DPrintf("server", "Connecting player: ticket expired\n");
 		return false;
