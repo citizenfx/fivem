@@ -61,6 +61,10 @@ extern bool IsOneSync();
 extern bool IsLengthHack();
 }
 
+static std::mutex g_ticketMapMutex;
+static std::unordered_set<std::tuple<uint64_t, uint64_t>> g_ticketList;
+static std::chrono::milliseconds g_nextTicketGc;
+
 static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 {
 	auto ticketData = Botan::base64_decode(ticket);
@@ -94,7 +98,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	// verify
 	if (ticketExpiry < utcTime)
 	{
-		trace("Connecting player: ticket expired\n");
+		console::DPrintf("server", "Connecting player: ticket expired\n");
 		return false;
 	}
 
@@ -103,7 +107,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (realGuid != ticketGuid)
 	{
-		trace("Connecting player: ticket GUID not matching\n");
+		console::DPrintf("server", "Connecting player: ticket GUID not matching\n");
 		return false;
 	}
 
@@ -140,8 +144,25 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (!valid)
 	{
-		trace("Connecting player: ticket RSA signature not matching\n");
+		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
 		return false;
+	}
+
+	{
+		std::unique_lock<std::mutex> _(g_ticketMapMutex);
+
+		if (g_ticketList.find({ ticketExpiry, ticketGuid }) != g_ticketList.end())
+		{
+			return false;
+		}
+
+		if (msec() > g_nextTicketGc)
+		{
+			g_ticketList.clear();
+			g_nextTicketGc = msec() + std::chrono::minutes(30);
+		}
+
+		g_ticketList.insert({ ticketExpiry, ticketGuid });
 	}
 
 	return true;
@@ -212,7 +233,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 
 	if (!valid)
 	{
-		trace("Connecting player: ticket RSA signature not matching\n");
+		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
 		return {};
 	}
 
