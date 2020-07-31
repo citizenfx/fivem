@@ -1834,6 +1834,107 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const std::shared_pt
 		return;
 	}
 
+	// can we even force control at all? (occupant state check)
+	std::function<bool(const std::shared_ptr<sync::SyncEntityState>&)> checkCanReassign = [this, targetClient, &checkCanReassign](const std::shared_ptr<sync::SyncEntityState>& entity)
+	{
+		bool can = true;
+
+		// no client?
+		if (!targetClient)
+		{
+			// yes we can
+			return true;
+		}
+
+		if (entity->type == sync::NetObjEntityType::Ped)
+		{
+			auto vehicleData = entity->syncTree->GetPedGameState();
+
+			if (vehicleData)
+			{
+				auto cv = vehicleData->curVehicle;
+
+				if (cv >= 0)
+				{
+					auto vehicleEntity = GetEntity(0, cv);
+
+					if (vehicleEntity)
+					{
+						can = can && checkCanReassign(vehicleEntity);
+					}
+				}
+			}
+		}
+		else if (entity->type == sync::NetObjEntityType::Automobile ||
+				entity->type == sync::NetObjEntityType::Bike ||
+				entity->type == sync::NetObjEntityType::Boat ||
+				entity->type == sync::NetObjEntityType::Heli ||
+				entity->type == sync::NetObjEntityType::Plane ||
+				entity->type == sync::NetObjEntityType::Submarine ||
+				entity->type == sync::NetObjEntityType::Trailer ||
+				entity->type == sync::NetObjEntityType::Train)
+		{
+			auto curVehicleData = (entity && entity->syncTree) ? entity->syncTree->GetVehicleGameState() : nullptr;
+
+			if (curVehicleData)
+			{
+				auto [_, clientData] = GetClientData(this, targetClient);
+				auto ces = clientData->entityStates.find(clientData->lastAckIndex);
+
+				if (ces != clientData->entityStates.end())
+				{
+					for (auto occupant : curVehicleData->occupants)
+					{
+						if (occupant > 0)
+						{
+							auto occupantEntity = GetEntity(0, occupant);
+
+							if (occupantEntity)
+							{
+								auto es = ces->second->find(occupant);
+
+								if (es != ces->second->end())
+								{
+									if (es->second.uniqifier == occupantEntity->uniqifier)
+									{
+										auto fi = es->second.frameIndex;
+										auto ofi = occupantEntity->syncTree->GetPedGameStateFrameIndex();
+
+										if (ofi > fi)
+										{
+											can = false;
+										}
+									}
+									else
+									{
+										can = false;
+									}
+								}
+								else
+								{
+									can = false;
+								}
+							}
+						}
+					}
+				}
+				else
+				{
+					can = false;
+				}
+			}
+		}
+
+		return can;
+	};
+
+	bool canReassign = checkCanReassign(entity);
+
+	if (!canReassign)
+	{
+		return;
+	}
+
 	auto oldClientRef = entity->client.lock();
 
 	{

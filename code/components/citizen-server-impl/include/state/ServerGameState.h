@@ -349,6 +349,8 @@ public:
 
 	virtual CPedGameStateNodeData* GetPedGameState() = 0;
 
+	virtual uint64_t GetPedGameStateFrameIndex() = 0;
+
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;

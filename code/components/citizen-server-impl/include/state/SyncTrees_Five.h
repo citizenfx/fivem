@@ -2344,6 +2344,13 @@ struct SyncTree : public SyncTreeBase
 		return (hasPdn) ? &pedNode->data : nullptr;
 	}
 
+	virtual uint64_t GetPedGameStateFrameIndex() override
+	{
+		auto pedBase = GetNode<CPedGameStateDataNode>();
+
+		return (pedBase) ? pedBase->frameIndex : 0;
+	}
+
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() override
 	{
 		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
