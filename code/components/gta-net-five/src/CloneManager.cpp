@@ -1860,7 +1860,7 @@ void CloneManagerLocal::WriteUpdates()
 				{
 					auto netObject = reinterpret_cast<rage::netObject*>(occupant->GetNetObject());
 
-					if (netObject->objectType == (uint16_t)NetObjEntityType::Player)
+					if (netObject && netObject->objectType == (uint16_t)NetObjEntityType::Player)
 					{
 						syncLatency = 0ms;
 						break;
