@@ -241,3 +241,6 @@
 [submodule "vendor/eabase"]
 	path = vendor/eabase
 	url = https://github.com/electronicarts/EABase.git
+[submodule "vendor/directxtex"]
+	path = vendor/directxtex
+	url = https://github.com/microsoft/DirectXTex.git
