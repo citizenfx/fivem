@@ -313,6 +313,48 @@ struct RequestHandleExtension
 	std::function<void(bool success, const std::string& error)> onRead;
 };
 
+#include <tbb/concurrent_queue.h>
+
+static tbb::concurrent_queue<std::list<uint32_t>> g_removalQueue;
+static tbb::concurrent_queue<HANDLE> g_forceSemaQueue;
+
+static void ProcessRemoval()
+{
+	// we need to signal all semas first for rage::strStreamingLoader::CancelRequest to actually
+	// cancel the request. this would be bad if we were already in pgStreamer, but since our custom requests
+	// never hit the real pgStreamer and are canceled for all intents and purposes, we can signal the sema safely
+	HANDLE h;
+	std::list<HANDLE> semas;
+
+	while (g_forceSemaQueue.try_pop(h))
+	{
+		ReleaseSemaphore(h, 1, NULL);
+		semas.push_front(h);
+	}
+
+	std::list<uint32_t> r;
+
+	while (g_removalQueue.try_pop(r))
+	{
+		for (auto i : r)
+		{
+			// ClearRequiredFlag
+			streaming::Manager::GetInstance()->ReleaseObject(i, 0xF1);
+
+			// RemoveObject
+			streaming::Manager::GetInstance()->ReleaseObject(i);
+		}
+	}
+
+	// if any sema wasn't polled, unsignal so we won't accidentally trigger a load op
+	// (if a sema has >1 count, this'd be wrong, but they're used as an auto-reset event here since many platforms do not
+	// implement auto-reset events)
+	for (HANDLE h : semas)
+	{
+		WaitForSingleObject(h, 0);
+	}
+}
+
 static void* (*g_origPgStreamerRead)(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void(*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10);
 
 static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int numChunks, int flags, void (*callback)(void*), void* userData, int streamerIdx, int streamerFlags, void* unk9, float unk10)
@@ -370,7 +412,46 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 
 						init->GetData("gta-core-five:loadCaller", &errorRef);
 
-						FatalError("Failed to request %s: %s. %s", fileName, error, errorRef);
+						trace("Failed to request %s: %s. %s\n", fileName, error, errorRef);
+						rage::sysMemAllocator::UpdateAllocatorValue();
+
+						std::list<uint32_t> removeIndices;
+
+						// hunt down *requested* dependents on this failure
+						auto strMgr = streaming::Manager::GetInstance();
+						auto strIdx = *(uint32_t*)((char*)userData + 4);
+
+						std::function<void(uint32_t)> addDependents = [&addDependents, &removeIndices, strMgr](uint32_t strIdx)
+						{
+							atArray<uint32_t> dependents;
+							strMgr->FindAllDependentsCustomPred(dependents, strIdx, [](const StreamingDataEntry& entry)
+							{
+								auto flags = entry.flags & 3;
+
+								return (flags == 2 || flags == 3);
+							});
+
+							for (auto dep : dependents)
+							{
+								addDependents(dep);
+							}
+
+							auto flags = strMgr->Entries[strIdx].flags & 3;
+
+							if (flags == 2 || flags == 3)
+							{
+								removeIndices.push_back(strIdx);
+							}
+						};
+
+						addDependents(strIdx);
+
+						g_forceSemaQueue.push(*(HANDLE*)((char*)userData + 8));
+
+						if (!removeIndices.empty())
+						{
+							g_removalQueue.push(std::move(removeIndices));
+						}
 					}
 				};
 
@@ -401,6 +482,7 @@ static HookFunction hookFunction([] ()
 
 	OnMainGameFrame.Connect([]()
 	{
+		ProcessRemoval();
 		//ProcessErasure();
 	});
 

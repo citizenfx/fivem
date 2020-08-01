@@ -682,10 +682,17 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		tp_work work{ [this, handle, hd, cb]()
 			{
-				hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
+				try
 				{
-					cb(success, error);
-				});
+					hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
+					{
+						cb(success, error);
+					});
+				}
+				catch (const resources::RcdFetchFailedException& e)
+				{
+					cb(false, e.what());
+				}
 			} };
 
 		work.post();
