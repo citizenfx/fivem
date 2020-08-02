@@ -581,8 +581,6 @@ NTSTATUS NtQueryVirtualMemoryHook(
 	PSIZE_T                  ReturnLength
 )
 {
-	trace("qvm %016llx %d\n", (uintptr_t)BaseAddress, MemoryInformationClass);
-
 	return NtQueryVirtualMemory(ProcessHandle, BaseAddress, MemoryInformationClass, MemoryInformation, MemoryInformationLength, ReturnLength);
 }
 

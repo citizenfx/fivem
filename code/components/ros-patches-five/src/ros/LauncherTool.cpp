@@ -163,7 +163,7 @@ static void Steam_Run(const boost::program_options::variables_map& map)
 
 #include <wincrypt.h>
 
-static DWORD WINAPI CertGetNameStringStub(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags, _In_opt_ void *pvTypePara, _Out_writes_to_opt_(cchNameString, return) LPWSTR pszNameString, _In_ DWORD cchNameString)
+static DWORD WINAPI CertGetNameStringStubW(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags, _In_opt_ void *pvTypePara, _Out_writes_to_opt_(cchNameString, return) LPWSTR pszNameString, _In_ DWORD cchNameString)
 {
 	DWORD origSize = CertGetNameStringW(pCertContext, dwType, dwFlags, pvTypePara, nullptr, 0);
 	std::vector<wchar_t> data(origSize);
@@ -180,13 +180,43 @@ static DWORD WINAPI CertGetNameStringStub(_In_ PCCERT_CONTEXT pCertContext, _In_
 	{
 		return CertGetNameStringW(pCertContext, dwType, dwFlags, pvTypePara, pszNameString, cchNameString);
 	}
-	
+
 	if (pszNameString)
 	{
 		wcsncpy(pszNameString, newName, cchNameString);
 	}
 
 	return wcslen(newName) + 1;
+}
+
+static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags, _In_opt_ void* pvTypePara, _Out_writes_to_opt_(cchNameString, return) LPSTR pszNameString, _In_ DWORD cchNameString)
+{
+	DWORD origSize = CertGetNameStringA(pCertContext, dwType, dwFlags, pvTypePara, nullptr, 0);
+	std::vector<char> data(origSize);
+
+	CertGetNameStringA(pCertContext, dwType, dwFlags, pvTypePara, data.data(), origSize);
+
+	// get which name to replace
+	const char* newName = nullptr;
+
+	auto certString = std::string{ data.data() };
+	if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
+	{
+		newName = "Entrust Code Signing CA - OVCS1";
+	}
+
+	// return if no such name
+	if (newName == nullptr)
+	{
+		return CertGetNameStringA(pCertContext, dwType, dwFlags, pvTypePara, pszNameString, cchNameString);
+	}
+
+	if (pszNameString)
+	{
+		strncpy(pszNameString, newName, cchNameString);
+	}
+
+	return strlen(newName) + 1;
 }
 
 static HWND g_launcherWindow;
@@ -233,7 +263,7 @@ static HWND WINAPI CreateWindowExWStub(_In_     DWORD     dwExStyle,
 	}
 
 	auto hWnd = g_origCreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-	 
+
 	if (isThing)
 	{
 		// set up a lazy wait for closing the window
@@ -473,7 +503,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		DoLauncherUiSkip();
 
-		hook::iat("crypt32.dll", CertGetNameStringStub, "CertGetNameStringW");
+		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
+		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
 		hook::iat("wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust");
 
 		hook::iat("kernel32.dll", GetProcAddressStub, "GetProcAddress");
