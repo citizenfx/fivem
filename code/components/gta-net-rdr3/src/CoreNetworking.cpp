@@ -519,7 +519,7 @@ static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshSigninState([]()
 {
-	return hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", -0x35);
+	return hook::get_pattern("48 8D 54 24 20 48 69 ? 30 01 00 00 48 8D 05", -0x35);
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
@@ -694,7 +694,7 @@ static HookFunction hookFunction([]()
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
-	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", 0x44 - 0x35));
+	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? 30 01 00 00 48 8D 05", 0x44 - 0x35));
 
 	static int tryHostStage = 0;
 
@@ -881,4 +881,7 @@ static HookFunction hookFunction([]()
 
 	// pretend inventory net check (also some other subsystems but mainly inventory) is always SP
 	hook::jump(hook::get_pattern("74 03 B0 01 C3 48 8B 0D", -7), Return<int, 0>);
+
+	// ignore mandatory tunable from (0xE3AFC5BD/0x74B331C6) to make transition 0xB2AEE05F not fail
+	hook::nop(hook::get_pattern("48 83 EC 20 80 3D 12 ? ? ? ? B3 01", 13), 2);
 });

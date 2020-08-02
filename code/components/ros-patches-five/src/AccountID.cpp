@@ -117,7 +117,10 @@ static bool InitAccountSteam()
 
 	if (!blob->tried)
 	{
-		RunLauncher(L"ros:steam", true);
+		if (!getenv("CitizenFX_ToolMode"))
+		{
+			RunLauncher(L"ros:steam", true);
+		}
 	}
 
 	if (blob->valid)

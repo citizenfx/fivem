@@ -357,8 +357,7 @@ static HookFunction hookFunction([]()
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
 
 	MH_Initialize();
-	// for 1232: "4C 63 41 1C 4C 8B D1 49 3B D0 76" - 4
-	MH_CreateHook(hook::get_pattern("48 63 49 1C 48 3B D1 77 ? 49 63 52 20", -3), PoolAllocateWrap, (void**)&g_origPoolAllocate);
+	MH_CreateHook(hook::get_pattern("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
 

@@ -301,7 +301,5 @@ int fiCustomDevice::GetResourceVersion(const char* fileName, ResourceFlags* vers
 
 static HookFunction hookFunction([] ()
 {
-	char* location = hook::pattern("48 89 7B 68 0F B7 43 08 48 89").count(1).get(0).get<char>(15);
-
-	rage::g_vTable_fiDevice = (uintptr_t)(location + *(int32_t*)location + 4);
+	rage::g_vTable_fiDevice = hook::get_address<uintptr_t>(hook::get_pattern("48 89 7B 68 0F B7 ? 08 48 89", 25));
 });
