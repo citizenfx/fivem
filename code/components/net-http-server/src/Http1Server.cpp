@@ -220,6 +220,16 @@ public:
 			m_clientStream->Close();
 		}
 	}
+
+	virtual void CloseSocket() override
+	{
+		auto s = m_clientStream;
+
+		if (s.GetRef())
+		{
+			s->Close();
+		}
+	}
 };
 
 HttpServerImpl::HttpServerImpl()

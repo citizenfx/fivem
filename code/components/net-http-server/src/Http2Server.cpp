@@ -276,8 +276,8 @@ namespace net
 class Http2Response : public HttpResponse
 {
 public:
-	inline Http2Response(fwRefContainer<HttpRequest> request, nghttp2_session* session, int streamID)
-		: HttpResponse(request), m_session(session), m_stream(streamID)
+	inline Http2Response(fwRefContainer<HttpRequest> request, nghttp2_session* session, int streamID, const fwRefContainer<net::TcpServerStream>& tcpStream)
+		: HttpResponse(request), m_session(session), m_stream(streamID), m_tcpStream(tcpStream)
 	{
 
 	}
@@ -398,11 +398,25 @@ public:
 	virtual void End() override
 	{
 		m_ended = true;
+		m_tcpStream = nullptr;
 
 		if (m_session)
 		{
 			nghttp2_session_resume_data(m_session, m_stream);
 			nghttp2_session_send(m_session);
+		}
+	}
+
+	virtual void CloseSocket() override
+	{
+		m_ended = true;
+
+		auto s = m_tcpStream;
+
+		if (s.GetRef())
+		{
+			s->Close();
+			s = {};
 		}
 	}
 
@@ -420,6 +434,7 @@ public:
 			}
 		}
 
+		m_tcpStream = nullptr;
 		m_session = nullptr;
 	}
 
@@ -436,6 +451,8 @@ private:
 	HeaderMap m_headers;
 
 	ZeroCopyByteBuffer m_buffer;
+
+	fwRefContainer<net::TcpServerStream> m_tcpStream;
 };
 
 Http2ServerImpl::Http2ServerImpl()
@@ -652,7 +669,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, req->headers[":method"], req->headers[":path"], headerList, req->connection->stream->GetPeerAddress().ToString());
 					
-					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id);
+					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id, req->connection->stream);
 					req->connection->responses.push_back(response);
 
 					req->httpResp = response;

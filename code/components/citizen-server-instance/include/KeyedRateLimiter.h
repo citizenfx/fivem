@@ -73,7 +73,7 @@ public:
 		}
 	}
 
-	bool Consume(const TKey& key, double n = 1.0)
+	bool Consume(const TKey& key, double n = 1.0, bool* isCooldown = nullptr)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -87,6 +87,11 @@ public:
 			{
 				if (std::chrono::high_resolution_clock::now().time_since_epoch() <= cit->second)
 				{
+					if (isCooldown)
+					{
+						*isCooldown = true;
+					}
+
 					return false;
 				}
 
@@ -116,7 +121,7 @@ public:
 
 			if (!cooldownValid)
 			{
-				m_cooldowns[mangled] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(60));
+				m_cooldowns[mangled] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(15));
 			}
 		}
 

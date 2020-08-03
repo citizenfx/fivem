@@ -197,6 +197,8 @@ public:
 
 	void End(std::string&& data);
 
+	virtual void CloseSocket() = 0;
+
 	inline int GetStatusCode()
 	{
 		return m_statusCode;
