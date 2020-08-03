@@ -275,33 +275,23 @@ namespace rage
 	}
 }
 
-static int fuck(void* a, int b, int d)
-{
-	auto sh = ((char* (*)(void*, int))0x1425F83A8)(a, b);
-
-	if (b == 0xBE58AB55 && *(int*)(&sh[4]) == 10)
-	{
-		*(int*)(&sh[4]) = 3;
-	}
-
-	if (sh && (sh[0] & 3) == 0)
-	{
-		d = *(int*)(&sh[4]);
-	}
-
-	return d;
-}
-
 static bool ret0()
 {
 	return false;
 }
 
-void w(const char* r)
+static hook::cdecl_stub<void()> _loadStreamingFiles([]()
 {
-	((void (*)())0x140A5529C)();
+	return hook::get_pattern("C7 85 78 02 00 00 61 00 00 00 41 BE", -0x28);
+});
 
-	((void (*)(const char*))0x140E102D0)(r);
+void (*g_origLevelLoad)(const char* r);
+
+void WrapLevelLoad(const char* r)
+{
+	_loadStreamingFiles();
+
+	g_origLevelLoad(r);
 }
 
 static HookFunction hookFunction([]()
@@ -361,19 +351,25 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	// r
-	//MH_CreateHook((void*)0x1425F8410, fuck, NULL);
+	// mapdatastore/maptypesstore 'should async place'
+
+	// typesstore
+	{
+		auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 00 01 00 00 45 8D 41 49 E8", 19));
+		hook::put(&vtbl[34], ret0);
+	}
+
+	// datastore
+	{
+		auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 C7 01 00 00 44 8D 47 49 E8", 19));
+		hook::put(&vtbl[34], ret0);
+	}
+
+	// raw #map/#typ loading
+	hook::nop(hook::get_pattern("D1 E8 A8 01 74 7D 48 8B 84", 4), 2);
+
+	// raw sfe reg from non-startup
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("48 8B D8 48 85 C0 75 26 8D 50 5C", -0x38), WrapLevelLoad, (void**)&g_origLevelLoad);
 	MH_EnableHook(MH_ALL_HOOKS);
-
-	//*(uint32_t*)0x140A9B415 = 0xA;
-	//hook::nop(0x140A9B51D, 6);
-
-	hook::put(0x14352F688, ret0);
-	hook::put(0x14352F9D8, ret0);
-
-	hook::nop(0x142ABE2A7, 2);
-
-	// reg sfes
-	//140A5529C
-	hook::call(0x140ED927D, w);
 });

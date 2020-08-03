@@ -267,4 +267,7 @@ static HookFunction hookFunctionNet([]()
 		*hook::get_address<float*>(location + 3) = 1000 / 180.0;
 		hook::put<int32_t>(location + 10, 0);
 	}
+
+	// don't block ped loco for MP peds if not in MP mode (or SP peds if not in SP mode)
+	hook::jump(hook::get_pattern("75 05 83 FB 01 EB 03 83 FB 02", -0x1C), Return1);
 });
