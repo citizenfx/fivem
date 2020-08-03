@@ -107,6 +107,23 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 		return false;
 	}
 
+	{
+		std::unique_lock<std::mutex> _(g_ticketMapMutex);
+
+		if (g_ticketList.find({ ticketExpiry, ticketGuid }) != g_ticketList.end())
+		{
+			return false;
+		}
+
+		if (msec() > g_nextTicketGc)
+		{
+			g_ticketList.clear();
+			g_nextTicketGc = msec() + std::chrono::minutes(30);
+		}
+
+		g_ticketList.insert({ ticketExpiry, ticketGuid });
+	}
+
 	// check the RSA signature
 	uint32_t sigLength = *(uint32_t*)&ticketData[length + 4];
 
@@ -142,23 +159,6 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	{
 		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
 		return false;
-	}
-
-	{
-		std::unique_lock<std::mutex> _(g_ticketMapMutex);
-
-		if (g_ticketList.find({ ticketExpiry, ticketGuid }) != g_ticketList.end())
-		{
-			return false;
-		}
-
-		if (msec() > g_nextTicketGc)
-		{
-			g_ticketList.clear();
-			g_nextTicketGc = msec() + std::chrono::minutes(30);
-		}
-
-		g_ticketList.insert({ ticketExpiry, ticketGuid });
 	}
 
 	return true;
