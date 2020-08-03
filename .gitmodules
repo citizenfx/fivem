@@ -244,3 +244,9 @@
 [submodule "vendor/directxtex"]
 	path = vendor/directxtex
 	url = https://github.com/microsoft/DirectXTex.git
+[submodule "vendor/hoard"]
+	path = vendor/hoard
+	url = https://github.com/emeryberger/Hoard.git
+[submodule "vendor/heap-layers"]
+	path = vendor/heap-layers
+	url = https://github.com/emeryberger/Heap-Layers.git

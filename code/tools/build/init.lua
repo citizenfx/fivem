@@ -21,3 +21,6 @@ dofile('privates.lua')
 
 -- versioning
 dofile('versioning.lua')
+
+-- srv alloc
+dofile('allocator.lua')
