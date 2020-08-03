@@ -74,7 +74,7 @@
                 </Item>
                 <Item>
                     <PoolName>CAmbientMaskVolume</PoolName>
-                    <PoolSize value="4950"/>
+                    <PoolSize value="5150"/>
                 </Item>
 				<Item>
                     <PoolName>CAmbientMaskVolumeEntity</PoolName>
@@ -82,7 +82,7 @@
                 </Item>
 				<Item>
 				<PoolName>CAmbientMaskVolumeDoor</PoolName>
-                    <PoolSize value="900"/>
+                    <PoolSize value="925"/>
                 </Item>
                 <Item>
                     <PoolName>CArmSolver</PoolName>
@@ -250,7 +250,7 @@
                 </Item>
                 <Item>
                   <PoolName>CAnimalTuning</PoolName>
-                  <PoolSize value="32"/>
+                  <PoolSize value="48"/>
                 </Item>
                 <Item>
                   <PoolName>CAnimalUnalertedGroup</PoolName>
@@ -323,7 +323,7 @@
                 </Item>
 				<Item>
 				  <PoolName>CInventoryItem</PoolName>
-				  <PoolSize value="3500"/>
+				  <PoolSize value="6000"/>
 				</Item>
 				<Item>
 				  <PoolName>CWeaponComponentItem</PoolName>
@@ -335,15 +335,15 @@
                 </Item>
                 <Item>
                   <PoolName>CAmmoItem</PoolName>
-                  <PoolSize value="200"/>
+                  <PoolSize value="300"/>
                 </Item>
                 <Item>
                   <PoolName>CSatchelItem</PoolName>
-                  <PoolSize value="2100"/>
+                  <PoolSize value="4200"/>
                 </Item>
                 <Item>
                   <PoolName>CClothingItem</PoolName>
-                  <PoolSize value="8400"/>
+                  <PoolSize value="12000"/>
                 </Item>
                 <Item>
                   <PoolName>CHorseInventoryItem</PoolName>
@@ -387,7 +387,7 @@
                 </Item>
                 <Item>
                   <PoolName>CScenarioInfo</PoolName>
-                  <PoolSize value="2511"/>
+                  <PoolSize value="2590"/>
                 </Item>
                 <Item>
                     <PoolName>CTacticalAnalysis</PoolName>
@@ -419,12 +419,12 @@
                 </Item>
                 <Item>
                   <PoolName>ClothStore</PoolName>
-                  <PoolSize value="750"/>
+                  <PoolSize value="970"/>
                 </Item>
-				        <Item>
-					        <PoolName>CCombatMeleeGroup</PoolName>
-					        <PoolSize value="30"/>
-				        </Item>
+				<Item>
+					<PoolName>CCombatMeleeGroup</PoolName>
+					<PoolSize value="30"/>
+				</Item>
                 <Item>
                   <PoolName>CombatMountedManager_Attacks</PoolName>
                   <PoolSize value="25"/>
@@ -662,7 +662,7 @@
 				</Item>
 				<Item>
 					<PoolName>fwMtUpdateSchedulerOperation</PoolName>
-					<PoolSize value="32"/>
+					<PoolSize value="26"/>
 				</Item>
 				<Item>
 					<PoolName>CPedCreatureComponent</PoolName>
@@ -874,7 +874,7 @@
         </Item>
         <Item>
           <PoolName>MaxRiverPhysicsInsts</PoolName>
-          <PoolSize value="1024"/>
+          <PoolSize value="1152"/>
         </Item>
         <Item>
           <PoolName>CObjectVehicleParentDeletedComponent</PoolName>
@@ -1015,7 +1015,7 @@
                 </Item>
 				<Item>
                   <PoolName>CustomShaderEffectBatchType</PoolName>
-                  <PoolSize value="900"/>
+                  <PoolSize value="1000"/>
                 </Item>
 				<Item>
                   <PoolName>CustomShaderEffectBatchSlodType</PoolName>
@@ -1023,7 +1023,7 @@
                 </Item>
 				<Item>
                   <PoolName>CustomShaderEffectCommonType</PoolName>
-                  <PoolSize value="6500"/>
+                  <PoolSize value="6000"/>
                 </Item>
 				<Item>
                   <PoolName>CustomShaderEffectGrassType</PoolName>
@@ -1039,7 +1039,7 @@
                 </Item>
 				<Item>
                   <PoolName>Decorator</PoolName>
-                  <PoolSize value="600"/>
+                  <PoolSize value="650"/>
                 </Item>
 				<Item>
                   <PoolName>DecoratorExtension</PoolName>
@@ -1075,7 +1075,7 @@
                 </Item>
                 <Item>
                   <PoolName>EntityBatch</PoolName>
-                  <PoolSize value="5250"/>
+                  <PoolSize value="5650"/>
                 </Item>
                 <Item>
                   <PoolName>GrassBatch</PoolName>
@@ -1095,7 +1095,7 @@
                 </Item>
                 <Item>
                   <PoolName>ExprDictStore</PoolName>
-                  <PoolSize value="410"/>
+                  <PoolSize value="420"/>
                 </Item>
                 <Item>
                   <PoolName>FlocksPerPopulationZone</PoolName>
@@ -1107,7 +1107,7 @@
                 </Item>
                 <Item>
                   <PoolName>FragmentStore</PoolName>
-                  <PoolSize value="8550"/>
+                  <PoolSize value="8725"/>
                 </Item>
                 <Item>
                   <PoolName>fwScriptGuid</PoolName>
@@ -1135,7 +1135,7 @@
                 </Item>
                 <Item>
                   <PoolName>LayoutNode</PoolName>
-                  <PoolSize value="4850"/>
+                  <PoolSize value="5000"/>
                 </Item>
                 <Item>
                   <PoolName>fwuiVisualPromptData</PoolName>
@@ -1243,7 +1243,7 @@
                 </Item>
                 <Item>
                   <PoolName>volSphere</PoolName>
-                  <PoolSize value="1500"/>
+                  <PoolSize value="1550"/>
                 </Item>
                 <Item>
                   <PoolName>volAggregate</PoolName>
@@ -1388,11 +1388,11 @@
                 </Item>
 				<Item>
 					<PoolName>CPedEquippedWeapon</PoolName>
-					<PoolSize value="550"/>
+					<PoolSize value="880"/>
 				</Item>
                 <Item>
                   <PoolName>PedRoute</PoolName>
-                  <PoolSize value="120"/>
+                  <PoolSize value="150"/>
                 </Item>
 				<Item>
 					<PoolName>CWeapon</PoolName>
@@ -1404,7 +1404,7 @@
                 </Item>
                 <Item>
                   <PoolName>CWeaponComponentInfo</PoolName>
-                  <PoolSize value="520"/>
+                  <PoolSize value="710"/>
                 </Item>
                 <Item>
                   <PoolName>phInstGta</PoolName>
@@ -1570,7 +1570,7 @@
 				<Item>
                   <!-- Size of the CWaypointRecording streaming module. -->
                   <PoolName>wptrec</PoolName>
-                  <PoolSize value="3000"/>
+                  <PoolSize value="3050"/>
                 </Item>
                 <Item>
                   <PoolName>fwLodNode</PoolName>
@@ -1646,7 +1646,7 @@
 				</Item>
                 <Item>
                   <PoolName>MaxTrainScenarioPoints</PoolName>
-                  <PoolSize value="512"/>
+                  <PoolSize value="600"/>
                 </Item>
                 <Item>
                   <PoolName>MaxScenarioPrompts</PoolName>
@@ -1686,7 +1686,7 @@
 				</Item>
 				<Item>
 					<PoolName>fwArchetypePooledMap</PoolName>
-					<PoolSize value="33000"/>
+					<PoolSize value="33500"/>
 				</Item>
 				<Item>
 				  <PoolName>CTaskConversationHelper</PoolName>
@@ -1791,7 +1791,7 @@
                 </Item>
                 <Item>
                   <PoolName>CUnlock</PoolName>
-                  <PoolSize value="21000"/>
+                  <PoolSize value="25000"/>
                 </Item>
                 <!-- ExtensionComponents -->
                 <Item>
@@ -1820,11 +1820,11 @@
                 </Item>
                 <Item>
                   <PoolName>CFakeDoorGroupExtensionComponent</PoolName>
-                  <PoolSize value="500"/>
+                  <PoolSize value="400"/>
                 </Item>
                 <Item>
                   <PoolName>CFakeDoorExtension</PoolName>
-                  <PoolSize value="500"/>
+                  <PoolSize value="350"/>
                 </Item>
                 <Item>
                   <PoolName>CAudioCollisionExtensionComponent</PoolName>
@@ -1864,7 +1864,7 @@
                 </Item>
                 <Item>
                   <PoolName>CExpressionExtensionComponent</PoolName>
-                  <PoolSize value="360"/>
+                  <PoolSize value="370"/>
                 </Item>
                 <Item>
                   <PoolName>CWindDisturbanceExtensionComponent</PoolName>
@@ -1896,7 +1896,7 @@
                 </Item>
                 <Item>
                   <PoolName>CExplosionExtensionComponent</PoolName>
-                  <PoolSize value="90"/>
+                  <PoolSize value="95"/>
                 </Item>
                 <Item>
                   <PoolName>CObjectLinksExtensionComponent</PoolName>
@@ -2156,11 +2156,12 @@
               <MaxVehicleModelInfos value="200"/>
               <MaxWeaponModelInfos value="350"/>
               <MaxExtraPedModelInfos value="350"/>
+			  <MaxExtraWeaponModelInfos value = "109"/>
             </ConfigModelInfo>
 
 			<ConfigComponentSystem>
 				<MaxEntityComponentIdentityCount value="41000"/>
-				<MaxExtensionComponentIdentityCount value="9500"/>
+				<MaxExtensionComponentIdentityCount value="9700"/>
 			</ConfigComponentSystem>
 
             <ConfigExtensions>
@@ -2173,7 +2174,7 @@
             </ConfigExtensions>
 
             <ConfigStreamingEngine>
-			  <ArchiveCount value="4110"/>
+			  <ArchiveCount value="4550"/>
 			  <MinVideoMemory value="5120"/>
             </ConfigStreamingEngine>
 
@@ -2225,7 +2226,7 @@
 			<EntityDrawDataCacheBufferSizeKB value="3072"/>
 			<AdditionalBankEntityDrawDataCacheBufferSizeKB value="0"/>
 			<AdditionalTiledScreenCaptureEntityDrawDataCacheBufferSizeKB value="3072"/>
-			<EntityDrawDataCacheGPUBufferSizeKB value="24480"/>
+			<EntityDrawDataCacheGPUBufferSizeKB value="14592"/>
 			<AdditionalBankEntityDrawDataCacheGPUBufferSizeKB value="0"/>
 			<AdditionalTiledScreenCaptureEntityDrawDataCacheGPUBufferSizeKB value="2048"/>
 		    <DebugProjectName>rdr3</DebugProjectName>
@@ -2235,14 +2236,40 @@
 		    <DebugCarRecordingsPath>x:\rdr3\assets\recordings\car</DebugCarRecordingsPath>
 		    <DebugScriptsPath>X:\rdr3\script\dev\_build\debug\</DebugScriptsPath>
 
+			<Threads>
+	        	<Item key="Streamer">
+	        		<Priority>PRIO_NORMAL</Priority>
+	        	</Item>
+	        	<Item key="Update">
+	        		<Priority>PRIO_HIGHEST</Priority>
+	        	</Item>
+	        	<Item key="Render">
+	        		<Priority>PRIO_NORMAL</Priority>
+	        	</Item>
+	          	<Item key="PathServer">
+	        		<Priority>PRIO_LOWEST</Priority>
+	        	</Item>
+	        	<Item key="SysTask">
+	        		<Priority>PRIO_ABOVE_NORMAL</Priority>
+	        	</Item>
+            <Item key="ControlMgrUpdateThread">
+              <Priority>PRIO_ABOVE_NORMAL</Priority>
+            </Item>
+            <Item key="PersistenceSaver">
+              <Priority>PRIO_NORMAL</Priority>
+            </Item>
+          	<Item key="HaThread">
+              <Priority>PRIO_BELOW_NORMAL</Priority>
+           	</Item>
+	       	</Threads>
+
 			<ConfigOnlineServices>
 				<RosTitleName>rdr2</RosTitleName>
 				<RosTitleVersion value="11"/>
 				<RosScVersion value="11"/>
-				<RosGameServerVersionNumber value="1017"/>
-				<RosGameServerCatalogReleaseId>mp005.5</RosGameServerCatalogReleaseId>
+				<RosGameServerVersionNumber value="17"/>
+				<RosGameServerCatalogReleaseId>mp007</RosGameServerCatalogReleaseId>
 				<RosScId value="13"/>
-				<SteamAppId value="1174180"/>
 				<TitleDirectoryName>Red Dead Redemption 2</TitleDirectoryName>
 				<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>
 				<MultiplayerSessionImage>platform:/data/icon.jpg</MultiplayerSessionImage>
@@ -2264,7 +2291,7 @@
 			</ConfigUIDatabinding>
 
             <ConfigScaleformManager>
-                <PrimaryHeapSizeKB value="32768"/>
+                <PrimaryHeapSizeKB value="34816"/>
 			</ConfigScaleformManager>
 
             <ConfigUIScaleformComplexObjects>
@@ -2272,7 +2299,7 @@
                 <BufferSizeKB value="1152"/>
               </EventBuffer>
               <ActionBuffer>
-                <BufferSizeKB value="1"/>
+                <BufferSizeKB value="8"/>
               </ActionBuffer>
 			</ConfigUIScaleformComplexObjects>
 
@@ -2352,17 +2379,22 @@
                 <Item>
                   <SizeOfData value="2048"/>
                   <MaxParticipants value="32"/>
-	                <NumInstances value="8"/>
-	              </Item>
-	              <Item>
+	                <NumInstances value="6"/>
+	            </Item>
+	            <Item>
 	              <SizeOfData value="1024"/>
 	                <MaxParticipants value="32"/>
+                  <NumInstances value="6"/>
+                </Item>
+                <Item>
+                  <SizeOfData value="768"/>
+                  <MaxParticipants value="32"/>
                   <NumInstances value="8"/>
                 </Item>
                 <Item>
                   <SizeOfData value="512"/>
                   <MaxParticipants value="32"/>
-                  <NumInstances value="8"/>
+                  <NumInstances value="6"/>
                 </Item>
                 <Item>
                   <SizeOfData value="256"/>
@@ -2377,17 +2409,12 @@
                 <Item>
                   <SizeOfData value="64"/>
                   <MaxParticipants value="32"/>
-                  <NumInstances value="16"/>
+                  <NumInstances value="12"/>
                 </Item>
                 <Item>
                   <SizeOfData value="32"/>
                   <MaxParticipants value="32"/>
-                  <NumInstances value="8"/>
-                </Item>
-                <Item>
-                  <SizeOfData value="32"/>
-                  <MaxParticipants value="32"/>
-                  <NumInstances value="8"/>
+                  <NumInstances value="14"/>
                 </Item>
               </PlayerBroadcastData>
             </ConfigNetScriptBroadcastData>
@@ -2395,10 +2422,10 @@
 			<ConfigScriptStackSizes>
 			  <AliasMap>
 				<Item key="script_rel">script</Item>
-				<Item key="script_mp_rel">script_mp</Item>
-				<Item key="script_mp">script_mp</Item>
 				<Item key="script_rel_tty">script</Item>
+				<Item key="script_mp_rel">script_mp</Item>
 				<Item key="script_mp_rel_tty">script_mp</Item>
+				<Item key="script_mp">script_mp</Item>
 			  </AliasMap>
               <StackSizeData>
 				<!-- ******************************** -->
@@ -2439,6 +2466,11 @@
 					  <StackName>DEFAULT</StackName>
 					  <SizeOfStack value="1024"/>
 					  <NumberOfStacksOfThisSize value="70"/>
+					</Item>
+					<Item>
+					  <StackName>HUB_EVENTS</StackName>
+					  <SizeOfStack value="1026"/>
+					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
 					  <StackName>UPDATE</StackName>
@@ -2491,6 +2523,11 @@
 					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
+					  <StackName>BACKGROUND_SCRIPT</StackName>
+					  <SizeOfStack value="2047"/>
+					  <NumberOfStacksOfThisSize value="1"/>
+					</Item>
+					<Item>
 					  <StackName>ROLE_PROGRESSION_EVENTS</StackName>
 					  <SizeOfStack value="2048"/>
 					  <NumberOfStacksOfThisSize value="1"/>
@@ -2514,6 +2551,11 @@
 					  <StackName>NET_BEAT</StackName>
 					  <SizeOfStack value="2452"/>
 					  <NumberOfStacksOfThisSize value="10"/>
+					</Item>
+					<Item>
+					  <StackName>COUPONS_EVENTS</StackName>
+					  <SizeOfStack value="2053"/>
+					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
 					  <StackName>FME_PV_SMALL</StackName>
@@ -2544,6 +2586,11 @@
 					  <StackName>NET_GUN_FOR_HIRE_ONLINE</StackName>
 					  <SizeOfStack value="3090"/>
 					  <NumberOfStacksOfThisSize value="4"/>
+					</Item>
+					<Item>
+					  <StackName>NET_BEAT_MANAGER</StackName>
+					  <SizeOfStack value="3500"/>
+					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
 					  <StackName>SCRIPT_XML</StackName>
@@ -2631,14 +2678,14 @@
 					  <NumberOfStacksOfThisSize value="4"/>
 					</Item>
 					<Item>
-					  <StackName>CAMP_ITEM</StackName>
-					  <SizeOfStack value="6400"/>
-					  <NumberOfStacksOfThisSize value="3"/>
-					</Item>
-					<Item>
 					  <StackName>MINIGAME</StackName>
 					  <SizeOfStack value="6500"/>
 					  <NumberOfStacksOfThisSize value="1"/>
+					</Item>
+					<Item>
+					  <StackName>CAMP_ITEM</StackName>
+					  <SizeOfStack value="6700"/>
+					  <NumberOfStacksOfThisSize value="3"/>
 					</Item>
 					<Item>
 					  <StackName>FME_PV_LARGE</StackName>
@@ -2667,8 +2714,8 @@
 					</Item>
 					<Item>
 					  <StackName>STRANGER_MISSION_FETCH</StackName>
-					  <SizeOfStack value="8500"/>
-					  <NumberOfStacksOfThisSize value="5"/>
+					  <SizeOfStack value="10000"/>
+					  <NumberOfStacksOfThisSize value="4"/>
 					</Item>
 					<Item>
 					  <StackName>MP_MISSION_LOBBY</StackName>
@@ -2702,7 +2749,7 @@
 					</Item>
 					<Item>
 					  <StackName>INSTANCED_CONTENT</StackName>
-					  <SizeOfStack value="63000"/>
+					  <SizeOfStack value="68000"/>
 					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
@@ -2710,9 +2757,14 @@
 					  <SizeOfStack value="1631"/>
 					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
+					<Item>
+					  <StackName>NET_MOONSHINE_PROPERTY</StackName>
+					  <SizeOfStack value="3982"/>
+					  <NumberOfStacksOfThisSize value="1"/>
+					</Item>
 				</Item>
 
-				<!-- ******************************** -->
+			  	<!-- ******************************** -->
 				<!-- ********** SP SCRIPTS ********** -->
 				<!-- ******************************** -->
 				<Item key="script">
@@ -2818,7 +2870,7 @@
 					</Item>
 					<Item>
 					  <StackName>INSTANCED_CONTENT</StackName>
-					  <SizeOfStack value="63000"/>
+					  <SizeOfStack value="63250"/>
 					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
@@ -2933,7 +2985,7 @@
 					</Item>
 					<Item>
 					  <StackName>REPLAY_LAUNCHER</StackName>
-					  <SizeOfStack value="5002"/>
+					  <SizeOfStack value="6006"/>
 					  <NumberOfStacksOfThisSize value="1"/>
 					</Item>
 					<Item>
@@ -3047,6 +3099,646 @@
 			</Config>
 		</Item>
 
+		<!-- xboxone configuration overrides -->
+		<Item>
+			<Build>any</Build>
+			<Platforms>xboxone</Platforms>
+			<Config type="CGameConfig">
+        <Threads>
+          <Item key="DependencyThread0">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="DependencyThread1">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="1"/>
+            </CpuAffinity>
+			            </Item>
+          <Item key="DependencyThread2">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="2"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="DependencyThread3">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="3"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="Update">
+            <Priority>PRIO_TIME_CRITICAL</Priority>
+            <CpuAffinity>
+                <Core value="4"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="DependencyThread4">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="5"/>
+                <Core value="6"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="RageHddPriorityStreamer">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="5"/>
+                <Core value="6"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="RageHddStreamer">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="5"/>
+                <Core value="6"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="AsyncCommitThread">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+              <Core value="6"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="RageAudioMixThread">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+				<Core value="0"/>
+				<Core value="1"/>
+				<Core value="2"/>
+				<Core value="3"/>
+				<!--Don't run on Core5 to avoid contention with XAudio-->
+                <Core value="6"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="RecorderWorkerThread">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+						</Item>
+          <Item key="AsyncShapeTestMgr">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="Render">
+					<Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="RageHddPriorityReader">
+					<Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="ControlMgrUpdateThread">
+					<Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="NetLogSpooler">
+					<Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="NetRelay">
+					<Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="NorthAudioUpdate">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="RageAudioEngineThread">
+					<Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="RageHddReader">
+					<Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="RageLogfile">
+					<Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="RageNetRecv">
+					<Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="RageNetSend">
+					<Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="RageNetTcpWorker">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageVoiceChatWorker">
+					<Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+          <Item key="ResourcePlacementThread">
+					<Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="MediaEncoderThreadAudio">
+					<Priority>PRIO_LOWEST</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="MediaEncoderThreadVideo">
+					<Priority>PRIO_LOWEST</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="PathServer">
+					<Priority>PRIO_IDLE</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="CloudFile">
+					<Priority>PRIO_IDLE</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				  <Item key="NetworkTelemetryMgr">
+					<Priority>PRIO_IDLE</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="5"/>
+              <Core value="6"/>
+            </CpuAffinity>
+				  </Item>
+				</Threads>
+			</Config>
+		</Item>
+
+		<!-- ps4 configuration overrides -->
+		<Item>
+			<Build>any</Build>
+			<Platforms>ps4</Platforms>
+			<Config type="CGameConfig">
+        <Threads>
+          <Item key="DependencyThread4">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="4"/>
+                <!--<Core value="6"/>-->
+            </CpuAffinity>
+          </Item>
+          <Item key="DependencyThread3">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="DependencyThread2">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="1"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="DependencyThread1">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="2"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="DependencyThread0">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="3"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageHddPriorityStreamer">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="4"/>
+                <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageHddStreamer">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="4"/>
+                <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="Update">
+            <Priority>PRIO_TIME_CRITICAL</Priority>
+            <CpuAffinity>
+                <Core value="5"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="AsyncCommitThread">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageAudioMixThread">
+            <Priority>PRIO_TIME_CRITICAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageGpuFlipEvent">
+            <Priority>PRIO_TIME_CRITICAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageGpuSubmit">
+            <Priority>PRIO_TIME_CRITICAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RecorderWorkerThread">
+            <Priority>PRIO_HIGHEST</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="AsyncShapeTestMgr">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+              <Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="Render">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageHddPriorityReader">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="ControlMgrUpdateThread">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+              <Core value="0"/>
+              <Core value="1"/>
+              <Core value="2"/>
+              <Core value="3"/>
+              <Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="NetLogSpooler">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="NetRelay">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="NorthAudioUpdate">
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+				<Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageAudioEngineThread">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+				<Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageHddReader">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageLogfile">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageNetTcpWorker">
+            <Priority>PRIO_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageNetRecv">
+            <Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageNetSend">
+            <Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="RageVoiceChatWorker">
+            <Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="ResourcePlacementThread">
+            <Priority>PRIO_BELOW_NORMAL</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="MediaEncoderThreadAudio">
+            <Priority>PRIO_LOWEST</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="MediaEncoderThreadVideo">
+            <Priority>PRIO_LOWEST</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="PathServer">
+            <Priority>PRIO_IDLE</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="CloudFile">
+            <Priority>PRIO_IDLE</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+          <Item key="NetworkTelemetryMgr">
+            <Priority>PRIO_IDLE</Priority>
+            <CpuAffinity>
+                <Core value="0"/>
+                <Core value="1"/>
+				<Core value="2"/>
+              <Core value="3"/>
+				<Core value="4"/>
+              <Core value="6"/>
+            </CpuAffinity>
+          </Item>
+        </Threads>
+			</Config>
+		</Item>
+
 		<!-- pc configuration overrides -->
 		<Item>
 			<Build>Any</Build>
@@ -3058,10 +3750,18 @@
 							<PoolName>AudioHeap</PoolName>
 							<PoolSize value="1175"/>
 						</Item>
-			            <Item>
-			              <PoolName>Building</PoolName>
-			              <PoolSize value="22000"/>
-			            </Item>
+						<Item>
+							<PoolName>Building</PoolName>
+							<PoolSize value="22000"/>
+						</Item>
+						<Item>
+							<PoolName>CFakeDoorGroupExtensionComponent</PoolName>
+							<PoolSize value="500"/>
+						</Item>
+						<Item>
+							<PoolName>CFakeDoorExtension</PoolName>
+							<PoolSize value="500"/>
+						</Item>
 						<Item>
 							<PoolName>CPedEquippedWeapon</PoolName>
 							<PoolSize value="6000"/>
@@ -3071,12 +3771,20 @@
 							<PoolSize value="360"/>
 						</Item>
 						<Item>
+							<PoolName>CustomShaderEffectCommonType</PoolName>
+							<PoolSize value="6500"/>
+						</Item>
+						<Item>
 							<PoolName>DrawableStore</PoolName>
 							<PoolSize value="66700"/>
 						</Item>
 						<Item>
 							<PoolName>fwDynamicEntityComponent</PoolName>
 							<PoolSize value="3500"/>
+						</Item>
+						<Item>
+							<PoolName>fwMtUpdateSchedulerOperation</PoolName>
+							<PoolSize value="36"/>
 						</Item>
 						<Item>
 							<PoolName>Known Refs</PoolName>
@@ -3137,8 +3845,13 @@
 					<MaxParticleOverrideExtensions value="1000"/>
 				</ConfigExtensions>
 
+				<ConfigStreamingEngine>
+					<ArchiveCount value="4600"/>
+					<MinVideoMemory value="5120"/>
+				</ConfigStreamingEngine>
+
 				<EntityDrawDataCacheBufferSizeKB value="5120"/>
-				<EntityDrawDataCacheGPUBufferSizeKB value="24480"/>
+				<EntityDrawDataCacheGPUBufferSizeKB value="28480"/>
 				<AdditionalBankEntityDrawDataCacheBufferSizeKB value="0"/>
 				<AdditionalBankEntityDrawDataCacheGPUBufferSizeKB value="2048"/>
 
@@ -3237,6 +3950,19 @@
 					<Priority>PRIO_IDLE</Priority>
 				  </Item>
 				</Threads>
+
+				<ConfigOnlineServices>
+					<RosTitleName>rdr2</RosTitleName>
+					<RosTitleVersion value="11"/>
+					<RosScVersion value="11"/>
+					<RosGameServerVersionNumber value="1017"/>
+					<RosGameServerCatalogReleaseId>mp007</RosGameServerCatalogReleaseId>
+					<RosScId value="13"/>
+					<SteamAppId value="1174180"/>
+					<TitleDirectoryName>Red Dead Redemption 2</TitleDirectoryName>
+					<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>
+					<MultiplayerSessionImage>platform:/data/icon.jpg</MultiplayerSessionImage>
+				</ConfigOnlineServices>
 			</Config>
 		</Item>
 
@@ -3530,7 +4256,7 @@
 				<RosTitleVersion value="11"/>
 				<RosScVersion value="11"/>
 				<RosGameServerVersionNumber value="2017"/>
-				<RosGameServerCatalogReleaseId>mp005.5</RosGameServerCatalogReleaseId>
+				<RosGameServerCatalogReleaseId>mp007</RosGameServerCatalogReleaseId>
 				<RosScId value="13"/>
 				<TitleDirectoryName>Redemption 2</TitleDirectoryName>
 				<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>
@@ -3614,7 +4340,7 @@
 							</Item>
 							<Item>
 							  <StackName>TOOL_MEGA</StackName>
-							  <SizeOfStack value="65536"/>
+							  <SizeOfStack value="70000"/>
 							  <NumberOfStacksOfThisSize value="1"/>
 							</Item>
 							<Item>
@@ -3682,11 +4408,11 @@
 						</Item>
 						<Item>
 						  <ResourceTypeName>DRAWABLE_DICTIONARY</ResourceTypeName>
-						  <ExpectedMaximum value="300"/>
+						  <ExpectedMaximum value="330"/>
 						</Item>
 						<Item>
 						  <ResourceTypeName>CLOTH_DICTIONARY</ResourceTypeName>
-						  <ExpectedMaximum value="32"/>
+						  <ExpectedMaximum value="80"/>
 						</Item>
 						<Item>
 						  <ResourceTypeName>FRAG_DICTIONARY</ResourceTypeName>
@@ -3731,6 +4457,10 @@
 						<Item>
 						  <ResourceTypeName>CAMERA_REQUEST</ResourceTypeName>
 						  <ExpectedMaximum value="16"/>
+						</Item>
+						<Item>
+							<ResourceTypeName>EDITOR_CAMERA</ResourceTypeName>
+							<ExpectedMaximum value="1"/>
 						</Item>
 						<Item>
 						  <ResourceTypeName>PATROL_ROUTE</ResourceTypeName>
@@ -3862,7 +4592,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SCENARIO_ASSET</ResourceTypeName>
-							<ExpectedMaximum value="16"/>
+							<ExpectedMaximum value="48"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>SCENARIO_ANIM_SCENES</ResourceTypeName>
@@ -3915,7 +4645,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>DOOR</ResourceTypeName>
-							<ExpectedMaximum value="100"/>
+							<ExpectedMaximum value="250"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>NETWORK_SPAWN_EXCLUSION_VOLUME</ResourceTypeName>
