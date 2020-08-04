@@ -939,9 +939,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		auto resendDelay = 0ms;
 
-		if (enPeer.GetRef())
+		if (enPeer.GetRef() && enPeer->GetPing() != -1)
 		{
 			resendDelay = std::chrono::milliseconds(std::max(int(1), int(enPeer->GetPing() * 2) + int(enPeer->GetPingVariance())));
+		}
+		else
+		{
+			// no peer, no connection, no service
+			return;
 		}
 
 		int numCreates = 0, numSyncs = 0, numSkips = 0;
@@ -961,7 +966,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		// collect the intended entity state
 		static thread_local EntityStateObject blankEntityState;
-		std::unique_ptr<EntityStateObject> newEntityStateRef = std::make_unique<EntityStateObject>();
+
+		// we can't make a temporary unique_ptr with deleter within a normal scope,
+		// so we use a temp lambda instead.
+		auto newEntityStateRef = ([this, &client]()
+		{
+			auto [_, clientData] = GetClientData(this, client);
+			return std::move(clientData->MakeEntityState());
+		})();
+		
 		auto& newEntityState = *newEntityStateRef;
 
 		for (const auto& entityIdTuple : clientDataUnlocked->relevantEntities)

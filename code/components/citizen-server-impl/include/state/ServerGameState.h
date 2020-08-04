@@ -551,7 +551,35 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	glm::mat4x4 viewMatrix;
 
-	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject>, 200> entityStates;
+	std::unique_ptr<uint8_t[]> esaBuffer;
+	eastl::fixed_node_allocator<sizeof(EntityStateObject), 15, 16, 0, true> entityStateAlloc;
+
+	struct Deleter
+	{
+		GameStateClientData* self;
+
+		Deleter(GameStateClientData* self)
+			: self(self)
+		{
+		
+		}
+
+		void operator()(EntityStateObject* obj) const
+		{
+			self->entityStateAlloc.deallocate(obj, sizeof(*obj));
+		}
+	};
+
+	auto MakeEntityState()
+	{
+		return std::unique_ptr<EntityStateObject, Deleter>{
+			new (entityStateAlloc.allocate(sizeof(EntityStateObject))) EntityStateObject,
+			Deleter{
+			this }
+		};
+	}
+
+	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, Deleter>, 200> entityStates;
 	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 
 	uint64_t lastAckIndex;
@@ -567,7 +595,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	uint32_t ackTs = 0;
 
 	GameStateClientData()
-		: syncing(false), lastAckIndex(0)
+		: syncing(false), lastAckIndex(0), esaBuffer(new uint8_t[decltype(entityStateAlloc)::kBufferSize]), entityStateAlloc(esaBuffer.get())
 	{
 
 	}
