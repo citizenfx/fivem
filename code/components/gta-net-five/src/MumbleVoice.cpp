@@ -860,7 +860,7 @@ static HookFunction hookFunction([]()
 			}
 			else
 			{
-				trace("Exception: Couldn't resolve Mumble server address.\n");
+				throw std::exception("Couldn't resolve Mumble server address.");
 			}
 		});
 
