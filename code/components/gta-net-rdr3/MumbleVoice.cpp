@@ -624,15 +624,18 @@ static HookFunction hookFunction([]()
                 }
             }
         });
+			
+	   auto origSetProximity = fx::ScriptEngine::GetNativeHandler(0x08797A8C03868CB8);
+		
+       fx::ScriptEngine::RegisterNativeHandler(0x08797A8C03868CB8, [=](fx::ScriptContext& context)
+		{
+			(*origSetProximity)(context);
 
-        fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PROXIMITY", [](fx::ScriptContext& context)
-        {
+			float dist = context.GetArgument<float>(0);
 
-            float dist = context.GetArgument<float>(0);
-
-            g_mumbleClient->SetAudioDistance(dist);
-        });
-
+			g_mumbleClient->SetAudioDistance(dist);
+		});
+		
         fx::ScriptEngine::RegisterNativeHandler("MUMBLE_GET_PROXIMITY", [](fx::ScriptContext& context)
         {
 
