@@ -165,6 +165,9 @@ static struct
 	volatile int nextConnectDelay;
 	volatile uint64_t nextConnectAt;
 
+	std::string overrideAddress;
+	volatile int overridePort;
+
 	concurrency::concurrent_queue<std::function<void()>> mainFrameExecQueue;
 } g_mumble;
 
@@ -175,7 +178,7 @@ static void Mumble_Connect()
 
 	_initVoiceChatConfig();
 
-	g_mumbleClient->ConnectAsync(g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
+	g_mumbleClient->ConnectAsync(!g_mumble.overrideAddress.empty() ? net::PeerAddress::FromString(fmt::sprintf("%s:%d", g_mumble.overrideAddress, g_mumble.overridePort), g_mumble.overridePort, net::PeerAddress::LookupType::NoResolution).get() : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
 	{
 		try
 		{
@@ -202,7 +205,7 @@ static void Mumble_Connect()
 	});
 }
 
-static void Mumble_Disconnect()
+static void Mumble_Disconnect(bool reconnect = false)
 {
 	g_mumble.connected = false;
 	g_mumble.errored = false;
@@ -211,6 +214,10 @@ static void Mumble_Disconnect()
 
 	g_mumbleClient->DisconnectAsync().then([=]()
 	{
+		if (reconnect)
+		{
+			Mumble_Connect();
+		}
 	});
 
 	_initVoiceChatConfig();
@@ -498,6 +505,8 @@ static HookFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		g_mumbleClient->SetAudioDistance(0.0f);
+		g_mumble.overrideAddress.empty();
+		g_mumble.overridePort = NULL;
 
 		Mumble_Disconnect();
 		o_talkers.reset();
@@ -830,6 +839,23 @@ static HookFunction hookFunction([]()
 			}
 
 			context.SetResult<int>(channelId);
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_IS_CONNECTED", [](fx::ScriptContext& context)
+		{
+			context.SetResult<bool>(g_mumble.connected ? true : false);
+		});
+		
+		
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_SERVER_ADDRESS", [](fx::ScriptContext& context)
+		{
+			auto address = context.GetArgument<const char*>(0);
+			int port = context.GetArgument<int>(1);
+
+			g_mumble.overrideAddress = address;
+			g_mumble.overridePort = port;
+
+			Mumble_Disconnect(true);
 		});
 
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
