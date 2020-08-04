@@ -1351,7 +1351,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				{
 					scl->commands.emplace_back([this,
 											   entity = ent,
-											   entityClient = entCl,
+											   entityClientBit = entCl,
 											   resendDelay,
 											   syncDelay,
 											   syncType,
@@ -1359,9 +1359,21 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 											   preCb,
 											   curTime](SyncCommandState& cmdState)
 					{
-						if (!entity || !entityClient)
+						if (!entity)
 						{
 							return;
+						}
+
+						auto entityClient = entityClientBit;
+
+						if (!entityClient)
+						{
+							entityClient = entity->client.lock();
+
+							if (!entityClient)
+							{
+								return;
+							}
 						}
 
 						auto slotId = cmdState.client->GetSlotId();
@@ -1441,7 +1453,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 								bool mayWrite = true;
 
-								if (syncType == 2 && entity->lastUpdater.lock() == cmdState.client)
+								if (syncType == 2 && entity->lastUpdater.lock() == cmdState.client && !isFirstFrameUpdate)
 								{
 									mayWrite = false;
 								}
