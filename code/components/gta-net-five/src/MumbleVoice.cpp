@@ -165,8 +165,7 @@ static struct
 	volatile int nextConnectDelay;
 	volatile uint64_t nextConnectAt;
 
-	std::string overrideAddress;
-	volatile int overridePort;
+	boost::optional<net::PeerAddress> overridePeer;
 
 	concurrency::concurrent_queue<std::function<void()>> mainFrameExecQueue;
 } g_mumble;
@@ -178,7 +177,7 @@ static void Mumble_Connect()
 
 	_initVoiceChatConfig();
 
-	g_mumbleClient->ConnectAsync(!g_mumble.overrideAddress.empty() ? net::PeerAddress::FromString(fmt::sprintf("%s:%d", g_mumble.overrideAddress, g_mumble.overridePort), g_mumble.overridePort, net::PeerAddress::LookupType::NoResolution).get() : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
+	g_mumbleClient->ConnectAsync(g_mumble.overridePeer ? *g_mumble.overridePeer : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
 	{
 		try
 		{
@@ -505,8 +504,7 @@ static HookFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		g_mumbleClient->SetAudioDistance(0.0f);
-		g_mumble.overrideAddress.empty();
-		g_mumble.overridePort = NULL;
+		g_mumble.overridePeer = {};
 
 		Mumble_Disconnect();
 		o_talkers.reset();
@@ -852,10 +850,18 @@ static HookFunction hookFunction([]()
 			auto address = context.GetArgument<const char*>(0);
 			int port = context.GetArgument<int>(1);
 
-			g_mumble.overrideAddress = address;
-			g_mumble.overridePort = port;
+			boost::optional<net::PeerAddress> overridePeer = net::PeerAddress::FromString(fmt::sprintf("%s:%d", address, port), port);
 
-			Mumble_Disconnect(true);
+			if (overridePeer)
+			{
+				g_mumble.overridePeer = overridePeer;
+
+				Mumble_Disconnect(true);
+			}
+			else
+			{
+				trace("Exception: Couldn't resolve Mumble server address.\n");
+			}
 		});
 
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
