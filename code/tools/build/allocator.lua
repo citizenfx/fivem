@@ -52,6 +52,8 @@ if os.istarget('windows') and _OPTIONS['game'] == 'server' then
 			prj_root .. '/vendor/hoard/wintls.cpp',
 		}
 		
+		filter { 'configurations:Release' }
+		
 		files_project(prj_root .. '/../vendor/hoard/src/') {
 			'source/libhoard.cpp',
 		}
