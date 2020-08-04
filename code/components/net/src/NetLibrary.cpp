@@ -619,7 +619,7 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_CONNECTING:
-			if ((GetTickCount() - m_lastConnect) > 5000)
+			if ((GetTickCount() - m_lastConnect) > 5000 && m_impl->IsDisconnected())
 			{
 				m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 

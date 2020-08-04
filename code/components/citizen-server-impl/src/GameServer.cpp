@@ -884,8 +884,9 @@ namespace fx
 				if (peer)
 				{
 					const auto& lm = client->GetData("lockdownMode");
+					const auto& lf = client->GetData("lastFrame");
 
-					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode)
+					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode || !lf.has_value() || (m_serverTime - std::any_cast<uint64_t>(lf)) > 1000)
 					{
 						net::Buffer outMsg;
 						outMsg.Write(HashRageString("msgFrame"));
@@ -895,6 +896,7 @@ namespace fx
 						client->SendPacket(0, outMsg, NetPacketType_Reliable);
 
 						client->SetData("lockdownMode", lockdownMode);
+						client->SetData("lastFrame", m_serverTime);
 					}
 				}
 
