@@ -168,6 +168,8 @@ static struct
 	volatile int nextConnectDelay;
 	volatile uint64_t nextConnectAt;
 
+	boost::optional<net::PeerAddress> overridePeer;
+
 	concurrency::concurrent_queue<std::function<void()>> mainFrameExecQueue;
 } g_mumble;
 
@@ -178,7 +180,7 @@ static void Mumble_Connect()
 
 	_initVoiceChatConfig();
 
-	g_mumbleClient->ConnectAsync(g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
+	g_mumbleClient->ConnectAsync(g_mumble.overridePeer ? *g_mumble.overridePeer : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
 	{
 		try
 		{
@@ -205,7 +207,7 @@ static void Mumble_Connect()
 	});
 }
 
-static void Mumble_Disconnect()
+static void Mumble_Disconnect(bool reconnect = false)
 {
 	g_mumble.connected = false;
 	g_mumble.errored = false;
@@ -214,6 +216,10 @@ static void Mumble_Disconnect()
 
 	g_mumbleClient->DisconnectAsync().then([=]()
 	{
+		if (reconnect)
+		{
+			Mumble_Connect();
+		}
 	});
 
 	_initVoiceChatConfig();
@@ -505,6 +511,7 @@ static HookFunction initFunction([]()
 	OnKillNetworkDone.Connect([]()
 	{
 		g_mumbleClient->SetAudioDistance(0.0f);
+		g_mumble.overridePeer = {};
 
 		Mumble_Disconnect();
 		o_talkers.reset();
@@ -837,6 +844,31 @@ static HookFunction hookFunction([]()
 			}
 
 			context.SetResult<int>(channelId);
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_IS_CONNECTED", [](fx::ScriptContext& context)
+		{
+			context.SetResult<bool>(g_mumble.connected ? true : false);
+		});
+		
+		
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_SERVER_ADDRESS", [](fx::ScriptContext& context)
+		{
+			auto address = context.GetArgument<const char*>(0);
+			int port = context.GetArgument<int>(1);
+
+			boost::optional<net::PeerAddress> overridePeer = net::PeerAddress::FromString(fmt::sprintf("%s:%d", address, port), port);
+
+			if (overridePeer)
+			{
+				g_mumble.overridePeer = overridePeer;
+
+				Mumble_Disconnect(true);
+			}
+			else
+			{
+				throw std::exception("Couldn't resolve Mumble server address.");
+			}
 		});
 
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
