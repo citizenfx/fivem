@@ -1486,7 +1486,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				runSync([](uint64_t&, bool&) {});
 
-				if (syncType == 1)
+				if (syncType == 1 && entity->type != sync::NetObjEntityType::Player)
 				{
 					syncType = 2;
 					runSync([](uint64_t& lfi, bool& isLfi)
