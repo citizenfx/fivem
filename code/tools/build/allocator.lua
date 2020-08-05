@@ -3,7 +3,7 @@ local lastKind
 
 local prj_root = path.getabsolute('../../')
 
-if os.istarget('windows') and _OPTIONS['game'] == 'server' then
+if os.istarget('windows') and _OPTIONS['game'] == 'server' and false then
 	local oldLanguage = language
 	local oldProject = project
 	local oldKind = kind
