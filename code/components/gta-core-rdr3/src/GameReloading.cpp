@@ -32,7 +32,7 @@ static hook::cdecl_stub<void(bool)> _newGame([]()
 
 static hook::cdecl_stub<void(int)> setupLoadingScreens([]()
 {
-	return hook::get_pattern("83 EA 01 0F 84 99 01 00 00 83 EA 01 0F 84", -0x1E);
+	return hook::get_pattern("83 FA 01 75 ? 8B 05 ? ? ? ? 8A CA 89 05", -0x3A);
 });
 
 static hook::cdecl_stub<void()> loadingScreenUpdate([]()
