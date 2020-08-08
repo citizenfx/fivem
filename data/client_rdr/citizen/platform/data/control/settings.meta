@@ -172,6 +172,7 @@
 				<Item>INPUT_QUICK_SELECT_SECONDARY_NAV_PREV</Item>
 				<Item>INPUT_QUICK_SHORTCUT_ABILITIES_MENU</Item>
 				<Item>INPUT_QUICK_USE_ITEM</Item>
+				<Item>INPUT_WEAPON_INSPECT_ZOOM</Item>
 			</Inputs>
 		</Item>
 	
@@ -268,6 +269,7 @@
 				<Item>INPUT_CAMERA_POSE_PREV</Item>
 				<Item>INPUT_CAMERA_SELFIE</Item>
 				<Item>INPUT_CAMERA_TAKE_PHOTO</Item>
+				<Item>INPUT_CAMERA_ADVANCED_SWITCH_CONTROLS</Item>
 			</Inputs>
 		</Item>
 			
@@ -287,6 +289,7 @@
 				<Item>INPUT_EMOTE_GREET</Item>
 				<Item>INPUT_EMOTE_COMM</Item>
 				<Item>INPUT_EMOTE_TAUNT</Item>
+				<Item>INPUT_QUICK_SELECT_SET_FOR_SWAP</Item>
 			</Inputs>	
 		</Item>
 
@@ -439,6 +442,7 @@
 			<Item>INPUT_FRONTEND_NAV_LEFT</Item>
 			<Item>INPUT_FRONTEND_NAV_RIGHT</Item>
 			<Item>INPUT_FRONTEND_MAP_ZOOM</Item>
+			<Item>INPUT_FRONTEND_KEYMAPPING_CANCEL</Item>
 		</Item>
 		
 		<Item key="SC_FrontendRemappable">
@@ -479,15 +483,6 @@
 			<Item>INPUT_PREV_WEAPON</Item>
 			<Item>INPUT_AIM_IN_AIR</Item>
 			<Item>INPUT_SWITCH_FIRING_MODE</Item>
-
-			<Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_LEFT</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_DUALWIELD</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_RIGHT</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_UNARMED</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_MELEE_NO_UNARMED</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_SECONDARY_LONGARM</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_THROWN</Item>
-			<Item>INPUT_SELECT_QUICKSELECT_PRIMARY_LONGARM</Item>
 		</Item>
 		
 		<Item key="SC_OnFootMove">
@@ -498,7 +493,7 @@
 			<Item>INPUT_DUCK</Item>
 
 		</Item>
-		
+	
 		<Item key="SC_Melee">
 			<Item>INPUT_AIM</Item>
 			<Item>INPUT_ATTACK</Item>
@@ -604,6 +599,7 @@
 			<Item>INPUT_QUICK_SELECT_SECONDARY_NAV_NEXT</Item>
 			<Item>INPUT_QUICK_SELECT_SECONDARY_NAV_PREV</Item>
 			<Item>INPUT_QUICK_SHORTCUT_ABILITIES_MENU</Item>
+			<Item>INPUT_QUICK_SELECT_SET_FOR_SWAP</Item>
 		</Item>
 		
 		<Item key="SC_ILO">
@@ -621,6 +617,7 @@
 			<Item>INPUT_SHOP_BOUNTY</Item>
 			<Item>INPUT_SHOP_SPECIAL</Item>
 			<Item>INPUT_ATTACK</Item>
+			<Item>INPUT_CONTEXT_A</Item>
 		</Item>
 		
 		<Item key="SC_ILOExtended">
@@ -782,8 +779,9 @@
 			<Item>INPUT_CAMERA_POSE_PREV</Item>
 			<Item>INPUT_CAMERA_EXPRESSION_NEXT</Item>
 			<Item>INPUT_CAMERA_EXPRESSION_PREV</Item>
+			<Item>INPUT_CAMERA_ADVANCED_SWITCH_CONTROLS</Item>
 		</Item>
-
+		
 		<Item key="SC_MPSpectate">
 			<Item>INPUT_MULTIPLAYER_SPECTATE_HIDE_HUD</Item>
 			<Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_NEXT</Item>
@@ -797,6 +795,28 @@
 			<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
 		</Item>
 		
+			
+		<Item key="SC_WeaponSelect">
+			<Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_LEFT</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_DUALWIELD</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_RIGHT</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_UNARMED</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_MELEE_NO_UNARMED</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_SECONDARY_LONGARM</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_THROWN</Item>
+			<Item>INPUT_SELECT_QUICKSELECT_PRIMARY_LONGARM</Item>
+		</Item>
+		
+		<Item key="SC_WeaponInspect">
+			<Item>INPUT_WEAPON_INSPECT_ZOOM</Item>
+			<Item>INPUT_CONTEXT_A</Item>
+			<Item>INPUT_CONTEXT_B</Item>
+			<Item>INPUT_CONTEXT_X</Item>
+			<Item>INPUT_CONTEXT_Y</Item>
+			<Item>INPUT_NEXT_CAMERA</Item>
+			<Item>INPUT_AIM</Item>
+		</Item>
+
 	</Conflicts>
 	
 	<SectionConflicts>
@@ -812,6 +832,7 @@
 			<Item>SC_Common</Item>
 			<Item>SC_FrontendRemappable</Item>
 			<Item>SC_Combat</Item>
+			<Item>SC_WeaponSelect</Item>
 		</Item>
 		
 		<Item>
@@ -856,6 +877,7 @@
 			<Item>SC_OnFootMove</Item>
 			<Item>SC_Common</Item>
 			<Item>SC_FrontendRemappable</Item>
+			<Item>SC_WeaponSelect</Item>
 		</Item>
 		
 		<Item>
@@ -864,6 +886,7 @@
 			<Item>SC_Common</Item>
 			<Item>SC_FrontendRemappable</Item>
 			<Item>SC_Combat</Item>
+			<Item>SC_WeaponSelect</Item>
 		</Item>
 		
 		<Item>
@@ -872,6 +895,7 @@
 			<Item>SC_Common</Item>
 			<Item>SC_FrontendRemappable</Item>
 			<Item>SC_Combat</Item>
+			<Item>SC_WeaponSelect</Item>
 		</Item>
 		
 		<Item>
@@ -1011,7 +1035,7 @@
 			<Item>INPUT_CONTEXT_A</Item>
 			<Item>INPUT_MULTIPLAYER_DEAD_LEADER_FEUD</Item>
 			<Item>INPUT_RELOAD</Item>
-			<Item>INPUT_WEAPON_INSPECT_ZOOM</Item>
+			<Item>INPUT_SCRIPTED_FLY_ZUP</Item>		
 		</Item>
 		
 		<Item>
@@ -1020,14 +1044,14 @@
 			<Item>INPUT_COVER_TRANSITION</Item>
 			<Item>INPUT_HORSE_COVER_TRANSITION</Item>
 			<Item>INPUT_VEH_TRAVERSAL</Item>
-			<Item>INPUT_SCRIPTED_FLY_ZUP</Item>		
 			<Item>INPUT_MULTIPLAYER_DEAD_LEADER_FEUD</Item>
-			<Item>INPUT_WEAPON_INSPECT_ZOOM</Item>
+			<Item>INPUT_ANIMAL_PLAY_DEAD</Item>
 		</Item>
 		
 		<Item>
 			<Item>INPUT_MELEE_ATTACK</Item>
 			<Item>INPUT_CONTEXT_B</Item>
+            <Item>INPUT_ANIMAL_EMOTE</Item>
 			
 			<!-- Flagged up by identical mapping detection -->
 			<Item>INPUT_MINIGAME_FISHING_RELEASE_FISH</Item>
@@ -1060,7 +1084,6 @@
 			<!-- Flagged up by identical mapping detection -->
 			<Item>INPUT_COVER_TRANSITION</Item>
 			<Item>INPUT_VEH_TRAVERSAL</Item>
-			<Item>INPUT_SCRIPTED_FLY_ZUP</Item>
 			<Item>INPUT_HORSE_COVER_TRANSITION</Item>
 			<Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
 			<Item>INPUT_LOOT_ALIVE_COMPONENT</Item>
@@ -1083,6 +1106,7 @@
 			<Item>INPUT_INTERACT_LOCKON_POS</Item>
 			<Item>INPUT_INTERACT_POS</Item>
 			<Item>INPUT_INTERACT_HORSE_FEED</Item>
+			<Item>INPUT_ANIMAL_PLAY_DEAD</Item>
 		</Item>
 		
 		<Item>
@@ -1108,6 +1132,7 @@
 			<Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
 			<Item>INPUT_MULTIPLAYER_DEAD_INFORM_LAW</Item>
 			<Item>INPUT_MINIGAME_FISHING_LEAN_LEFT</Item>
+			<Item>INPUT_MINIGAME_DANCE_PREV</Item>
 		</Item>
 		
 		<Item>
@@ -1139,6 +1164,7 @@
 			<Item>INPUT_FRONTEND_RRIGHT</Item>
 			<Item>INPUT_FRONTEND_CANCEL</Item>
 			<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+			<Item>INPUT_FRONTEND_KEYMAPPING_CANCEL</Item>
 		</Item>
 		
 		<Item>
@@ -1286,6 +1312,7 @@
 			<Item>INPUT_ENTER</Item>
 			<Item>INPUT_HITCH_ANIMAL</Item>
 			<Item>INPUT_IGNITE</Item>
+			<Item>INPUT_MINIGAME_DANCE_NEXT</Item>
 		</Item>
 		
 		<Item>

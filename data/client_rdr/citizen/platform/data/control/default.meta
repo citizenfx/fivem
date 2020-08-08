@@ -269,19 +269,6 @@
 			</AdaptorMappings>
 		</Item>
 
-		<Item key="INPUT_CAMERA_CONTEXT_GALLERY">
-			<AdaptorMappings>
-				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
-				<Mappings>
-					<Item>
-						<Sources>
-							<Item>KEY_V</Item>
-						</Sources>
-					</Item>
-				</Mappings>
-			</AdaptorMappings>
-		</Item>
-
 		<Item key="INPUT_CAMERA_DOF">
 			<AdaptorMappings>
 				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
@@ -602,15 +589,10 @@
 			</AdaptorMappings>
 		</Item>
 
-		<Item key="INPUT_CREATOR_MENU_PLACE">
+		<Item key="INPUT_CREATOR_PLACE">
 			<AdaptorMappings>
 				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
 				<Mappings>
-					<Item>
-						<Sources>
-							<Item>KEY_RETURN</Item>
-						</Sources>
-					</Item>
 					<Item>
 						<Sources>
 							<Item>MOUSE_LEFT</Item>
@@ -633,7 +615,7 @@
 			</AdaptorMappings>
 		</Item>
 
-		<Item key="INPUT_CREATOR_MENU_ROTATE_LEFT">
+		<Item key="INPUT_CREATOR_ROTATE_LEFT">
 			<AdaptorMappings>
 				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
 				<Mappings>
@@ -646,13 +628,13 @@
 			</AdaptorMappings>
 		</Item>
 
-		<Item key="INPUT_CREATOR_MENU_ROTATE_RIGHT">
+		<Item key="INPUT_CREATOR_ROTATE_RIGHT">
 			<AdaptorMappings>
 				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
 				<Mappings>
 					<Item>
 						<Sources>
-							<Item>KEY_E</Item>
+							<Item>KEY_R</Item>
 						</Sources>
 					</Item>
 				</Mappings>
@@ -3816,7 +3798,29 @@
 			</AdaptorMappings>
 		</Item>
 
-		<Item key="INPUT_REGULAR_RADAR">
+    <Item key="INPUT_RADIAL_MENU_SLOT_NAV_NEXT_ALTERNATE">
+      <Mappings>
+        <Item type="Simple">
+          <State>
+            <Source>MOUSE_WHEEL_UP</Source>
+            <Trigger>NONZERO</Trigger>
+          </State>
+        </Item>
+      </Mappings>
+    </Item>
+
+    <Item key="INPUT_RADIAL_MENU_SLOT_NAV_PREV_ALTERNATE">
+      <Mappings>
+        <Item type="Simple">
+          <State>
+            <Source>MOUSE_WHEEL_DOWN</Source>
+            <Trigger>NONZERO</Trigger>
+          </State>
+        </Item>
+      </Mappings>
+    </Item>
+    
+    <Item key="INPUT_REGULAR_RADAR">
 			<AdaptorMappings>
 				<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
 				<Mappings>
@@ -5036,12 +5040,59 @@
 			</Item>
 		</Mappings>
 	</Item>
+
+	<Item key="INPUT_QUICK_SELECT_SET_FOR_SWAP">
+		<AdaptorMappings>
+			<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+			<Mappings>
+				<Item>
+					<Sources>
+						<Item>MOUSE_RIGHT</Item>
+					</Sources>
+				</Item>
+			</Mappings>
+		</AdaptorMappings>
+	</Item>
 	
+	<Item key="INPUT_FRONTEND_KEYMAPPING_CANCEL">
+		<Mappings>
+			<Item type="Simple">
+				<State>
+					<Source>KEY_ESCAPE</Source>
+					<Trigger>NONZERO</Trigger>
+				</State>
+			</Item>
+		</Mappings>
+	</Item>
+	
+	<Item key="INPUT_WEAPON_INSPECT_ZOOM">
+		<AdaptorMappings>
+			<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+			<Mappings>
+				<Item>
+					<Sources>
+						<Item>KEY_Z</Item>
+					</Sources>
+				</Item>
+			</Mappings>
+		</AdaptorMappings>
+	</Item>
+	
+	<Item key="INPUT_CAMERA_ADVANCED_SWITCH_CONTROLS">
+		<AdaptorMappings>
+			<SequenceName>SIMPLE_SINGLE_SOURCE_NONZERO</SequenceName>
+			<Mappings>
+				<Item>
+					<Sources>
+						<Item>KEY_F</Item>
+					</Sources>
+				</Item>
+			</Mappings>
+		</AdaptorMappings>
+	</Item>
 	
 	</Actions>
 	
-	
-
 	<!--	INDENTICAL MAPPINGS ************************************************************** -->
 
 	<IdenticalMappings>
@@ -5147,7 +5198,7 @@
 		<Item key="INPUT_SCRIPTED_FLY_LR">INPUT_MOVE_LR</Item>
 		<Item key="INPUT_SCRIPTED_FLY_UD">INPUT_MOVE_UD</Item>
 		<Item key="INPUT_SCRIPTED_FLY_ZDOWN">INPUT_DUCK</Item>
-		<Item key="INPUT_SCRIPTED_FLY_ZUP">INPUT_JUMP</Item>
+		<Item key="INPUT_SCRIPTED_FLY_ZUP">INPUT_SPRINT</Item>
 
 		<Item key="INPUT_SHOP_INSPECT">INPUT_CONTEXT_Y</Item>
 		
@@ -5324,8 +5375,16 @@
 		<Item key="INPUT_INTERACT_LOCKON">INPUT_AIM</Item>
 		
 		<Item key="INPUT_EMOTE_ACTION">INPUT_ATTACK</Item>
+	
+		<Item key="INPUT_MINIGAME_DANCE_NEXT">INPUT_CONTEXT_Y</Item>
+		<Item key="INPUT_MINIGAME_DANCE_PREV">INPUT_COVER</Item>
+		<Item key="INPUT_ANIMAL_PLAY_DEAD">INPUT_JUMP</Item>
+		<Item key="INPUT_ANIMAL_EMOTE">INPUT_MELEE_ATTACK</Item>
 		
-		<Item key="INPUT_WEAPON_INSPECT_ZOOM">INPUT_CONTEXT_A</Item>
+		<Item key="INPUT_CAMERA_ADVANCED_ZOOM_IN">INPUT_SNIPER_ZOOM_IN_ONLY</Item>
+		<Item key="INPUT_CAMERA_ADVANCED_ZOOM_OUT">INPUT_SNIPER_ZOOM_OUT_ONLY</Item>
+		<Item key="INPUT_CAMERA_ADVANCED_TAKE_PHOTO">INPUT_CAMERA_TAKE_PHOTO</Item>
+		<Item key="INPUT_CAMERA_CONTEXT_GALLERY">INPUT_PHOTO_MODE_VIEW_PHOTOS</Item>
 		
 	</IdenticalMappings>
 	
@@ -5524,7 +5583,7 @@
 				<Trigger>DOWN</Trigger>
 			</State>
 		</Item>
-
+		
 	</NamedSequences>
 	<RequiredNamedSequenceCount value="2"/>
 </MappingData>

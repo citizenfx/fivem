@@ -16,6 +16,9 @@
     <Item>INPUT_HORSE_AIM</Item>
     <Item>INPUT_HORSE_STOP</Item>
     <Item>INPUT_VEH_DRAFT_BRAKE</Item>
+	<Item>INPUT_VEH_DRAFT_MOVE_UD</Item>
+	<Item>INPUT_VEH_DRAFT_MOVE_UP_ONLY</Item>
+	<Item>INPUT_VEH_DRAFT_MOVE_DOWN_ONLY</Item>
     <Item>INPUT_MOVE_LR</Item>
     <Item>INPUT_MOVE_UD</Item>
     <Item>INPUT_LOOK_LR</Item>
@@ -31,6 +34,8 @@
     <Item>INPUT_DETONATE</Item>
     <Item>INPUT_VEH_FLY_SELECT_TARGET_LEFT</Item>
     <Item>INPUT_VEH_FLY_SELECT_TARGET_RIGHT</Item>
+    <Item>INPUT_REPLAY_ADVANCE</Item>
+    <Item>INPUT_REPLAY_BACK</Item>
     <Item>INPUT_DUCK</Item>
     <Item>INPUT_ENTER</Item>
     <Item>INPUT_DYNAMIC_SCENARIO</Item>
@@ -56,6 +61,7 @@
     <Item>INPUT_HORSE_ATTACK</Item>
     <Item>INPUT_JUMP</Item>
     <Item>INPUT_HORSE_JUMP</Item>
+    <Item>INPUT_HORSE_COVER_TRANSITION</Item>
     <Item>INPUT_HORSE_COLLECT</Item>
     <Item>INPUT_VEH_DRAFT_ACCELERATE</Item>
     <Item>INPUT_LOOK_BEHIND</Item>
@@ -68,6 +74,13 @@
     <Item>INPUT_EMOTE_COMM</Item>
     <Item>INPUT_EMOTE_DANCE</Item>
 	<Item>INPUT_VEH_BOAT_ACCELERATE</Item>
+	<Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+	<Item>INPUT_OPEN_EMOTE_WHEEL_HORSE</Item>
+	<Item>INPUT_INTERACT_LOCKON_NEG</Item>
+    <Item>INPUT_INTERACT_LOCKON_POS</Item>
+    <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+	<Item>INPUT_INTERACT_ANIMAL</Item>
+	<Item>INPUT_CONTEXT_X</Item>
   </HistorySupport>
   <Contexts>
     <Item>
@@ -125,6 +138,8 @@
         <Item>INPUT_TWIRL_PISTOL</Item>
         <Item>INPUT_TOGGLE_HOLSTER</Item>
         <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_NEXT_WEAPON</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
         <Item>INPUT_PICKUP</Item>
         <Item>INPUT_IGNITE</Item>
         <Item>INPUT_SNIPER_ZOOM</Item>
@@ -145,10 +160,10 @@
         <Item>INPUT_INTERACT_OPTION2</Item>
         <Item>INPUT_INTERACT_LOCKON_NEG</Item>
         <Item>INPUT_INTERACT_LOCKON_POS</Item>
-            <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+        <Item>INPUT_INTERACT_LOCKON_ROB</Item>
         <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
         <Item>INPUT_INTERACT_ANIMAL</Item>
-            <Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
+        <Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
         <Item>INPUT_INTERACT_LEAD_ANIMAL</Item>
         <Item>INPUT_INTERACT_HORSE_CARE</Item>
         <Item>INPUT_INTERACT_LOCKON_DETACH_HORSE</Item>
@@ -165,6 +180,7 @@
         <Item>INPUT_SWITCH_SHOULDER</Item>
         <Item>INPUT_IRON_SIGHT</Item>
         <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_SWITCH_FIRING_MODE</Item>
         <Item>INPUT_CONTEXT</Item>
         <Item>INPUT_CONTEXT_SECONDARY</Item>
         <Item>INPUT_WEAPON_SPECIAL</Item>
@@ -181,7 +197,7 @@
         <Item>INPUT_CONTEXT_Y</Item>
         <Item>INPUT_CONTEXT_LT</Item>
         <Item>INPUT_CONTEXT_RT</Item>
-		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_CONTEXT_ACTION</Item>
         <Item>INPUT_FOCUS_CAM</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
         <Item>INPUT_DYNAMIC_SCENARIO</Item>
@@ -223,6 +239,7 @@
         <Item>INPUT_SHOP_BUY</Item>
         <Item>INPUT_SHOP_SELL</Item>
         <Item>INPUT_SHOP_SPECIAL</Item>
+        <Item>INPUT_SHOP_BOUNTY</Item>
         <Item>INPUT_SHOP_INSPECT</Item>
         <Item>INPUT_QUIT</Item>
                 
@@ -230,6 +247,7 @@
         
         <!-- From melee mapper -->
         <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_MODIFIER</Item>
         <Item>INPUT_MELEE_BLOCK</Item>
         <Item>INPUT_MELEE_GRAPPLE</Item>
         <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
@@ -250,6 +268,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -280,14 +300,7 @@
         <Item>INPUT_MAP_POI</Item>
         
         <Item>INPUT_SKIP_CUTSCENE</Item>
-        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
-        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
-        <Item>INPUT_CURSOR_ACCEPT</Item>
-        <Item>INPUT_CURSOR_CANCEL</Item>
-        <Item>INPUT_CURSOR_X</Item>
-        <Item>INPUT_CURSOR_Y</Item>
-        <Item>INPUT_CURSOR_SCROLL_UP</Item>
-        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		
         <Item>INPUT_CREATOR_LS</Item>
         <Item>INPUT_CREATOR_RS</Item>
         <Item>INPUT_CREATOR_LT</Item>
@@ -296,34 +309,8 @@
         <Item>INPUT_CREATOR_ACCEPT</Item>
         <Item>INPUT_CREATOR_DELETE</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
-        <Item>INPUT_MP_TEXT_CHAT_TEAM</Item>
-        <Item>INPUT_MP_TEXT_CHAT_FRIENDS</Item>
-        <Item>INPUT_MP_TEXT_CHAT_CREW</Item>
         <Item>INPUT_PUSH_TO_TALK</Item>
-
         <Item>INPUT_MULTIPLAYER_PREDATOR_ABILITY</Item>
-        
-        
-        <!-- INPUT_SCRIPT_* INPUTS ARE DEPRECATED - DO NOT USE! -->
-        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
-        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
-        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
-        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
-        <Item>INPUT_SCRIPT_RUP</Item>
-        <Item>INPUT_SCRIPT_RDOWN</Item>
-        <Item>INPUT_SCRIPT_RLEFT</Item>
-        <Item>INPUT_SCRIPT_RRIGHT</Item>
-        <Item>INPUT_SCRIPT_LB</Item>
-        <Item>INPUT_SCRIPT_RB</Item>
-        <Item>INPUT_SCRIPT_LT</Item>
-        <Item>INPUT_SCRIPT_RT</Item>
-        <Item>INPUT_SCRIPT_LS</Item>
-        <Item>INPUT_SCRIPT_RS</Item>
-        <Item>INPUT_SCRIPT_PAD_UP</Item>
-        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
-        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
-        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
-        <Item>INPUT_SCRIPT_SELECT</Item>
 
         <Item>INPUT_ENTER_CHEAT_CODE</Item>
 
@@ -332,11 +319,11 @@
         <Item>INPUT_PICKUP_CARRIABLE</Item>
         <Item>INPUT_PICKUP_CARRIABLE2</Item>
         <Item>INPUT_MERCY_KILL</Item>
-		<Item>INPUT_REVIVE</Item>
+        <Item>INPUT_REVIVE</Item>
         <Item>INPUT_LOOT</Item>
         <Item>INPUT_LOOT2</Item>
         <Item>INPUT_LOOT3</Item>
-            <Item>INPUT_LOOT_AMMO</Item>
+        <Item>INPUT_LOOT_AMMO</Item>
         <Item>INPUT_CARRIABLE_SUICIDE</Item>
         <Item>INPUT_CARRIABLE_BREAK_FREE</Item>
         <Item>INPUT_LOOT_VEHICLE</Item>
@@ -349,6 +336,29 @@
         <Item>INPUT_MINIGAME_QUIT</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
         <Item>INPUT_MINIGAME_HELP</Item> <!-- This is in the on foot context currently because lots of minigames which haven't been converted to the new context system are using it. Once all the minigames have been converted we'll remove this from the on foot context -->
         <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+
+        <Item>INPUT_EMOTE_TWIRL_GUN_HOLD</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_A</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_B</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_C</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_D</Item>
+		<Item>INPUT_EMOTE_ACTION</Item>
+        <Item>INPUT_BREAK_DOOR_LOCK</Item>
+        <Item>INPUT_CAMP_BED_INSPECT</Item>
+        <Item>INPUT_PC_FREE_LOOK</Item>
+        <Item>INPUT_PHOTO_MODE</Item>
+        <Item>INPUT_PHOTO_MODE_PC</Item>
+        <Item>INPUT_CAMP_SETUP_TENT</Item>
+        <Item>INPUT_CRAFTING_EAT</Item>
+
+        <Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_LEFT</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_DUALWIELD</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_RIGHT</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_UNARMED</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_MELEE_NO_UNARMED</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_SECONDARY_LONGARM</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_THROWN</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_PRIMARY_LONGARM</Item>
       </Actions>
     </Item>
     <Item>
@@ -406,6 +416,8 @@
         <Item>INPUT_TWIRL_PISTOL</Item>
         <Item>INPUT_TOGGLE_HOLSTER</Item>
         <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_NEXT_WEAPON</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
         <Item>INPUT_PICKUP</Item>
         <Item>INPUT_SNIPER_ZOOM</Item>
         <Item>INPUT_SNIPER_ZOOM_IN_ONLY</Item>
@@ -423,7 +435,7 @@
         <Item>INPUT_INTERACT_POS</Item>
         <Item>INPUT_INTERACT_LOCKON_NEG</Item>
         <Item>INPUT_INTERACT_LOCKON_POS</Item>
-            <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+        <Item>INPUT_INTERACT_LOCKON_ROB</Item>
         <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
         <Item>INPUT_INTERACT_ANIMAL</Item>
         <Item>INPUT_INTERACT_LEAD_ANIMAL</Item>
@@ -440,6 +452,7 @@
         <Item>INPUT_SWITCH_SHOULDER</Item>
         <Item>INPUT_IRON_SIGHT</Item>
         <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_SWITCH_FIRING_MODE</Item>
         <Item>INPUT_CONTEXT</Item>
         <Item>INPUT_CONTEXT_SECONDARY</Item>
         <Item>INPUT_WEAPON_SPECIAL</Item>
@@ -454,7 +467,7 @@
         <Item>INPUT_CONTEXT_Y</Item>
         <Item>INPUT_CONTEXT_LT</Item>
         <Item>INPUT_CONTEXT_RT</Item>
-		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_CONTEXT_ACTION</Item>
         <Item>INPUT_FOCUS_CAM</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
         <Item>INPUT_DYNAMIC_SCENARIO</Item>
@@ -511,6 +524,7 @@
         <Item>INPUT_HORSE_EXIT</Item>
         <Item>INPUT_HORSE_LOOK_BEHIND</Item>
         <Item>INPUT_HORSE_JUMP</Item>
+        <Item>INPUT_HORSE_COVER_TRANSITION</Item>
         <Item>INPUT_HORSE_COLLECT</Item>
         <Item>INPUT_HORSE_AIM</Item>
         <Item>INPUT_HITCH_ANIMAL</Item>
@@ -528,6 +542,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -557,14 +573,7 @@
         <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
         <Item>INPUT_MAP_POI</Item>
         <Item>INPUT_SKIP_CUTSCENE</Item>
-        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
-        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
-        <Item>INPUT_CURSOR_ACCEPT</Item>
-        <Item>INPUT_CURSOR_CANCEL</Item>
-        <Item>INPUT_CURSOR_X</Item>
-        <Item>INPUT_CURSOR_Y</Item>
-        <Item>INPUT_CURSOR_SCROLL_UP</Item>
-        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+
         <Item>INPUT_CREATOR_LS</Item>
         <Item>INPUT_CREATOR_RS</Item>
         <Item>INPUT_CREATOR_LT</Item>
@@ -573,30 +582,7 @@
         <Item>INPUT_CREATOR_ACCEPT</Item>
         <Item>INPUT_CREATOR_DELETE</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
-        <Item>INPUT_MP_TEXT_CHAT_TEAM</Item>
-        <Item>INPUT_MP_TEXT_CHAT_FRIENDS</Item>
-        <Item>INPUT_MP_TEXT_CHAT_CREW</Item>
         <Item>INPUT_PUSH_TO_TALK</Item>
-
-        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
-        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
-        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
-        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
-        <Item>INPUT_SCRIPT_RUP</Item>
-        <Item>INPUT_SCRIPT_RDOWN</Item>
-        <Item>INPUT_SCRIPT_RLEFT</Item>
-        <Item>INPUT_SCRIPT_RRIGHT</Item>
-        <Item>INPUT_SCRIPT_LB</Item>
-        <Item>INPUT_SCRIPT_RB</Item>
-        <Item>INPUT_SCRIPT_LT</Item>
-        <Item>INPUT_SCRIPT_RT</Item>
-        <Item>INPUT_SCRIPT_LS</Item>
-        <Item>INPUT_SCRIPT_RS</Item>
-        <Item>INPUT_SCRIPT_PAD_UP</Item>
-        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
-        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
-        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
-        <Item>INPUT_SCRIPT_SELECT</Item>
 
         <Item>INPUT_ENTER_CHEAT_CODE</Item>
 
@@ -605,7 +591,7 @@
         <Item>INPUT_PICKUP_CARRIABLE</Item>
         <Item>INPUT_PICKUP_CARRIABLE2</Item>
         <Item>INPUT_MERCY_KILL</Item>
-		<Item>INPUT_REVIVE</Item>
+        <Item>INPUT_REVIVE</Item>
         <Item>INPUT_LOOT</Item>
         <Item>INPUT_LOOT2</Item>
         <Item>INPUT_LOOT3</Item>
@@ -624,6 +610,19 @@
         <Item>INPUT_MULTIPLAYER_RACE_RESPAWN</Item>
         <Item>INPUT_MULTIPLAYER_PREDATOR_ABILITY</Item>
         <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+        <Item>INPUT_PC_FREE_LOOK</Item>
+        <Item>INPUT_PHOTO_MODE</Item>
+        <Item>INPUT_PHOTO_MODE_PC</Item>
+        
+        <Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_LEFT</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_DUALWIELD</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_RIGHT</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_UNARMED</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_MELEE_NO_UNARMED</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_SECONDARY_LONGARM</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_THROWN</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_PRIMARY_LONGARM</Item>
+
       </Actions>
     </Item>
     <Item>
@@ -648,6 +647,8 @@
         <Item>INPUT_SELECT_ITEM_WHEEL</Item>
         <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
         <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_NEXT_WEAPON</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
         <Item>INPUT_SELECT_NEXT_WEAPON</Item>
         <Item>INPUT_SELECT_PREV_WEAPON</Item>
 
@@ -706,6 +707,7 @@
         <Item>INPUT_SWITCH_SHOULDER</Item>
         <Item>INPUT_IRON_SIGHT</Item>
         <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_SWITCH_FIRING_MODE</Item>
         <Item>INPUT_CONTEXT</Item>
         <Item>INPUT_CONTEXT_SECONDARY</Item>
         <Item>INPUT_WEAPON_SPECIAL</Item>
@@ -721,7 +723,7 @@
         <Item>INPUT_CONTEXT_Y</Item>
         <Item>INPUT_CONTEXT_LT</Item>
         <Item>INPUT_CONTEXT_RT</Item>
-		<Item>INPUT_CONTEXT_ACTION</Item>
+        <Item>INPUT_CONTEXT_ACTION</Item>
         <Item>INPUT_FOCUS_CAM</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
         <Item>INPUT_DYNAMIC_SCENARIO</Item>
@@ -825,6 +827,8 @@
         <Item>INPUT_VEH_PUSHBIKE_FRONT_BRAKE</Item>
         <Item>INPUT_VEH_PUSHBIKE_REAR_BRAKE</Item>
         <Item>INPUT_VEH_DRAFT_MOVE_UD</Item>
+        <Item>INPUT_VEH_DRAFT_MOVE_UP_ONLY</Item>
+        <Item>INPUT_VEH_DRAFT_MOVE_DOWN_ONLY</Item>
         <Item>INPUT_VEH_DRAFT_TURN_LR</Item>
         <Item>INPUT_VEH_DRAFT_TURN_LEFT_ONLY</Item>
         <Item>INPUT_VEH_DRAFT_TURN_RIGHT_ONLY</Item>
@@ -870,6 +874,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -914,14 +920,7 @@
         <Item>INPUT_CELLPHONE_CAMERA_DOF</Item>
         <Item>INPUT_CELLPHONE_CAMERA_EXPRESSION</Item>
         <Item>INPUT_SKIP_CUTSCENE</Item>
-        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
-        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
-        <Item>INPUT_CURSOR_ACCEPT</Item>
-        <Item>INPUT_CURSOR_CANCEL</Item>
-        <Item>INPUT_CURSOR_X</Item>
-        <Item>INPUT_CURSOR_Y</Item>
-        <Item>INPUT_CURSOR_SCROLL_UP</Item>
-        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+
         <Item>INPUT_CREATOR_LS</Item>
         <Item>INPUT_CREATOR_RS</Item>
         <Item>INPUT_CREATOR_LT</Item>
@@ -930,30 +929,7 @@
         <Item>INPUT_CREATOR_ACCEPT</Item>
         <Item>INPUT_CREATOR_DELETE</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
-        <Item>INPUT_MP_TEXT_CHAT_TEAM</Item>
-        <Item>INPUT_MP_TEXT_CHAT_FRIENDS</Item>
-        <Item>INPUT_MP_TEXT_CHAT_CREW</Item>
         <Item>INPUT_PUSH_TO_TALK</Item>
-
-        <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
-        <Item>INPUT_SCRIPT_LEFT_AXIS_Y</Item>
-        <Item>INPUT_SCRIPT_RIGHT_AXIS_X</Item>
-        <Item>INPUT_SCRIPT_RIGHT_AXIS_Y</Item>
-        <Item>INPUT_SCRIPT_RUP</Item>
-        <Item>INPUT_SCRIPT_RDOWN</Item>
-        <Item>INPUT_SCRIPT_RLEFT</Item>
-        <Item>INPUT_SCRIPT_RRIGHT</Item>
-        <Item>INPUT_SCRIPT_LB</Item>
-        <Item>INPUT_SCRIPT_RB</Item>
-        <Item>INPUT_SCRIPT_LT</Item>
-        <Item>INPUT_SCRIPT_RT</Item>
-        <Item>INPUT_SCRIPT_LS</Item>
-        <Item>INPUT_SCRIPT_RS</Item>
-        <Item>INPUT_SCRIPT_PAD_UP</Item>
-        <Item>INPUT_SCRIPT_PAD_DOWN</Item>
-        <Item>INPUT_SCRIPT_PAD_LEFT</Item>
-        <Item>INPUT_SCRIPT_PAD_RIGHT</Item>
-        <Item>INPUT_SCRIPT_SELECT</Item>
 
         <Item>INPUT_ENTER_CHEAT_CODE</Item>
 
@@ -962,7 +938,7 @@
         <Item>INPUT_PICKUP_CARRIABLE</Item>
         <Item>INPUT_PICKUP_CARRIABLE2</Item>
         <Item>INPUT_MERCY_KILL</Item>
-		<Item>INPUT_REVIVE</Item>
+        <Item>INPUT_REVIVE</Item>
         <Item>INPUT_LOOT</Item>
         <Item>INPUT_LOOT2</Item>
         <Item>INPUT_LOOT3</Item>
@@ -982,6 +958,19 @@
         <Item>INPUT_MULTIPLAYER_RACE_RESPAWN</Item>
         <Item>INPUT_MULTIPLAYER_PREDATOR_ABILITY</Item>
         <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+        <Item>INPUT_PC_FREE_LOOK</Item>
+        <Item>INPUT_PHOTO_MODE</Item>
+        <Item>INPUT_PHOTO_MODE_PC</Item>
+
+        <Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_LEFT</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_DUALWIELD</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_SIDEARMS_RIGHT</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_UNARMED</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_MELEE_NO_UNARMED</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_SECONDARY_LONGARM</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_THROWN</Item>
+        <Item>INPUT_SELECT_QUICKSELECT_PRIMARY_LONGARM</Item>
+        
       </Actions>
     </Item>
     <Item>
@@ -990,10 +979,15 @@
         <Item>INPUT_SELECT_NEXT_WHEEL</Item>
         <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
         <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
+        <Item>INPUT_NEXT_WEAPON</Item>
         <Item>INPUT_RADIAL_MENU_SLOT_NAV_NEXT</Item>
         <Item>INPUT_RADIAL_MENU_SLOT_NAV_PREV</Item>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_NEXT_ALTERNATE</Item>
+        <Item>INPUT_RADIAL_MENU_SLOT_NAV_PREV_ALTERNATE</Item>
         <Item>INPUT_QUICK_SELECT_INSPECT</Item>
         <Item>INPUT_DROP_WEAPON</Item>
+        <Item>INPUT_QUICK_SELECT_SET_FOR_SWAP</Item>
         <Item>INPUT_QUICK_SHORTCUT_ABILITIES_MENU</Item>
         <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_NEXT</Item>
         <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_PREV</Item>
@@ -1012,20 +1006,72 @@
         <Item>INPUT_VEH_CAR_AIM</Item>
         <Item>INPUT_HORSE_AIM</Item>
         <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_SWITCH_FIRING_MODE</Item>
         <Item>INPUT_ACCURATE_AIM</Item>
 		<Item>INPUT_INTERACT_LOCKON</Item>
       </AllowedActions>
+	   <DisallowedActions>
+		<Item>INPUT_TOGGLE_HOLSTER</Item>
+		<Item>INPUT_RELOAD</Item>
+		<Item>INPUT_TWIRL_PISTOL</Item>
+	  </DisallowedActions>
     </Item>
+    <Item>
+      <Name>UI_QUICK_SELECT_COMPACT_RADIAL_MENU</Name>
+      <Actions>
+        <Item>INPUT_SELECT_NEXT_WHEEL</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
+        <Item>INPUT_NEXT_WEAPON</Item>
+        <Item>INPUT_QUICK_SELECT_INSPECT</Item>
+        <Item>INPUT_DROP_WEAPON</Item>
+        <Item>INPUT_QUICK_SELECT_SET_FOR_SWAP</Item>
+        <Item>INPUT_QUICK_SHORTCUT_ABILITIES_MENU</Item>
+        <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_NEXT</Item>
+        <Item>INPUT_QUICK_SELECT_SECONDARY_NAV_PREV</Item>
+        <Item>INPUT_QUICK_SELECT_TOGGLE_SHORTCUT_ITEM</Item>
+        <Item>INPUT_QUICK_SELECT_PUT_AWAY_ROD</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_SELECT_ITEM_WHEEL</Item>
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_VEH_AIM</Item>
+        <Item>INPUT_VEH_PASSENGER_AIM</Item>
+        <Item>INPUT_VEH_DRAFT_AIM</Item>
+        <Item>INPUT_VEH_BOAT_AIM</Item>
+        <Item>INPUT_VEH_CAR_AIM</Item>
+        <Item>INPUT_HORSE_AIM</Item>
+        <Item>INPUT_AIM_IN_AIR</Item>
+        <Item>INPUT_SWITCH_FIRING_MODE</Item>
+        <Item>INPUT_ACCURATE_AIM</Item>
+        <Item>INPUT_INTERACT_LOCKON</Item>
+      </AllowedActions>
+    </Item>
+    
     <Item>
       <Name>UI_EMOTES_RADIAL_MENU</Name>
       <Actions>
-        <Item>INPUT_RADIAL_MENU_SLOT_NAV_NEXT</Item>
+        <Item>INPUT_EMOTES_SLOT_NAV_NEXT</Item>
         <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
         <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
         <Item>INPUT_EMOTES_FAVORITE</Item>
-        <Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+		<Item>INPUT_EMOTES_MANAGE</Item>
         <Item>INPUT_INTERACT_LOCKON</Item>
+		<Item>INPUT_EMOTE_TAUNT</Item>
+		<Item>INPUT_EMOTE_GREET</Item>
+		<Item>INPUT_EMOTE_COMM</Item>
+		<Item>INPUT_EMOTE_DANCE</Item>
+		<Item>INPUT_EMOTE_ACTION</Item>
+		<Item>INPUT_EMOTE_GROUP_LINK</Item>
+		<Item>INPUT_EMOTE_GROUP_LINK_HORSE</Item>
+		<Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+		<Item>INPUT_OPEN_EMOTE_WHEEL_HORSE</Item>
       </Actions>
+	  <DisallowedActions>
+		<Item>INPUT_MELEE_ATTACK</Item>
+		<Item>INPUT_OPEN_SATCHEL_MENU</Item>
+	  </DisallowedActions>
     </Item>
     <Item>
       <Name>UI_RADAR_EDIT_MODE</Name>
@@ -1066,6 +1112,8 @@
 		
         <Item>INPUT_MINIGAME_POKER_YOUR_CARDS</Item>
         <Item>INPUT_MINIGAME_POKER_COMMUNITY_CARDS</Item>
+		
+		 <Item>INPUT_MINIGAME_POKER_SHOW_POSSIBLE_HANDS</Item>
                        
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         
@@ -1076,6 +1124,12 @@
         <Item>INPUT_MULTIPLAYER_INFO</Item>
         <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
         <Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_PC_FREE_LOOK</Item>
       </Actions>
     </Item>
     
@@ -1093,6 +1147,11 @@
         <Item>INPUT_MINIGAME_FISHING_LEAN_LEFT</Item>
         <Item>INPUT_MINIGAME_FISHING_LEAN_RIGHT</Item>
         <Item>INPUT_MINIGAME_FISHING_QUICK_EQUIP</Item>
+        <Item>INPUT_MINIGAME_FISHING_REEL_SPEED_UP</Item>
+        <Item>INPUT_MINIGAME_FISHING_REEL_SPEED_DOWN</Item>
+        <Item>INPUT_MINIGAME_FISHING_REEL_SPEED_AXIS</Item>
+        <Item>INPUT_MINIGAME_FISHING_MANUAL_REEL_IN</Item>
+        <Item>INPUT_MINIGAME_FISHING_MANUAL_REEL_OUT_MODIFER</Item>
       
         <Item>INPUT_WHISTLE</Item>
         
@@ -1129,7 +1188,7 @@
         <Item>INPUT_RADIAL_MENU_NAV_UD</Item>
         <Item>INPUT_RADIAL_MENU_NAV_LR</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
-        <Item>INPUT_FRONTEND_ACCEPT</Item>
+         <Item>INPUT_FRONTEND_ACCEPT</Item>
         <Item>INPUT_INTERACT_NEG</Item>
         <Item>INPUT_INTERACT_POS</Item>
         <Item>INPUT_SCRIPT_LEFT_AXIS_X</Item>
@@ -1143,6 +1202,7 @@
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
         <Item>INPUT_MULTIPLAYER_INFO</Item>
         <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+		<Item>INPUT_MAP</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         <Item>INPUT_SWITCH_SHOULDER</Item>
@@ -1155,7 +1215,12 @@
 		<Item>INPUT_INTERACT_LOCKON_NEG</Item>
 		<Item>INPUT_INTERACT_LOCKON_POS</Item>
 		<Item>INPUT_INTERACT_LOCKON_ROB</Item>
-      </Actions>
+		<Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_SELECT_RADAR_MODE</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+	    </Actions>
     </Item>
     
     <Item>
@@ -1204,6 +1269,7 @@
         <Item>INPUT_NEXT_CAMERA</Item>
         <Item>INPUT_FOCUS_CAM</Item>
         <Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
   
@@ -1242,15 +1308,25 @@
         <Item>INPUT_GAME_MENU_ACCEPT</Item>
         <Item>INPUT_GAME_MENU_CANCEL</Item>
         
-
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         
         <Item>INPUT_PLAYER_MENU</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
         <Item>INPUT_MULTIPLAYER_INFO</Item>
-        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>			
-      </Actions>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_PC_FREE_LOOK</Item>
+	  </Actions>
     </Item>
     
     <Item>
@@ -1291,7 +1367,13 @@
         <Item>INPUT_PLAYER_MENU</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
         <Item>INPUT_MULTIPLAYER_INFO</Item>
-        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>				
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_PC_FREE_LOOK</Item>
       </Actions>
     </Item>
     
@@ -1340,9 +1422,13 @@
         <Item>INPUT_PLAYER_MENU</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
         <Item>INPUT_MULTIPLAYER_INFO</Item>
-        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>			
-      </Actions>
-    </Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+	   </Actions>
+      </Item>
     
     <Item>
       <Name>FrontendMenu</Name>
@@ -1357,6 +1443,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -1378,6 +1466,7 @@
         <Item>INPUT_FRONTEND_ENDSCREEN_ACCEPT</Item>
         <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
         <Item>INPUT_FRONTEND_SELECT</Item>
+		<Item>INPUT_FRONTEND_PHOTO_MODE</Item>
         <Item>INPUT_FRONTEND_NAV_UP</Item>
         <Item>INPUT_FRONTEND_NAV_DOWN</Item>
         <Item>INPUT_FRONTEND_NAV_LEFT</Item>
@@ -1388,14 +1477,35 @@
         <Item>INPUT_FRONTEND_MAP_NAV_RIGHT</Item>
         <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
 
-        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
-        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>			
-        <Item>INPUT_CURSOR_ACCEPT</Item>
-          <Item>INPUT_CURSOR_CANCEL</Item>
-          <Item>INPUT_CURSOR_X</Item>
-          <Item>INPUT_CURSOR_Y</Item>
-          <Item>INPUT_CURSOR_SCROLL_UP</Item>
-          <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_FRONTEND_KEYMAPPING_CANCEL</Item>
       </Actions>
     </Item>
 
@@ -1406,6 +1516,12 @@
         <Item>INPUT_STICKY_FEED_CANCEL</Item>
         <Item>INPUT_STICKY_FEED_X</Item>
         <Item>INPUT_STICKY_FEED_Y</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -1435,11 +1551,77 @@
         <Item>INPUT_GAME_MENU_RS</Item>
 		<Item>INPUT_GAME_MENU_LS</Item>
 		<Item>INPUT_INSPECT_ZOOM</Item>
+		<Item>INPUT_GAME_MENU_LEFT_AXIS_X</Item>
+		<Item>INPUT_GAME_MENU_LEFT_AXIS_Y</Item>
+		<Item>INPUT_SHOP_CHANGE_CURRENCY</Item>
+		
       </Actions>
       <AllowedActions>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </AllowedActions>
+    </Item>
+	
+	<Item>
+      <Name>GameMenuMouse</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_STICK_UP</Item>
+        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_GAME_MENU_RS</Item>
+		<Item>INPUT_GAME_MENU_LS</Item>
+		<Item>INPUT_INSPECT_ZOOM</Item>
+		<Item>INPUT_GAME_MENU_LEFT_AXIS_X</Item>
+		<Item>INPUT_GAME_MENU_LEFT_AXIS_Y</Item>
+		<Item>INPUT_SHOP_CHANGE_CURRENCY</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		
+      </Actions>
     </Item>
 	
 	<Item>
@@ -1466,10 +1648,12 @@
         <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_SHOP_CHANGE_CURRENCY</Item>
       </Actions>
       <AllowedActions>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </AllowedActions>
     </Item>
 	
@@ -1497,11 +1681,12 @@
         <Item>INPUT_GAME_MENU_LS</Item>
         <Item>INPUT_GAME_MENU_RS</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
-        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>		
       </Actions>
       <AllowedActions>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </AllowedActions>
     </Item>
 
@@ -1523,11 +1708,53 @@
                 <Item>INPUT_GAME_MENU_ACCEPT</Item>
                 <Item>INPUT_GAME_MENU_CANCEL</Item>
                 <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
-        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
+                <Item>INPUT_GAME_MENU_LEFT_AXIS_X</Item>
+                <Item>INPUT_GAME_MENU_LEFT_AXIS_Y</Item>
+				<Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
                 <Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
-        
-                <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
-                <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+				<Item>INPUT_GAME_MENU_RIGHT_STICK_UP</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_STICK_DOWN</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_STICK_LEFT</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_STICK_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_LS</Item>
+                <Item>INPUT_GAME_MENU_RS</Item>
+				<Item>INPUT_INSPECT_ZOOM</Item>
+            </Actions>
+        </Item>
+		
+		  <Item>
+            <Name>OnlineLeaderboardEndScreen</Name>
+            <Actions>
+                <Item>INPUT_GAME_MENU_STICK_UP</Item>
+                <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+                <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+                <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_UP</Item>
+                <Item>INPUT_GAME_MENU_DOWN</Item>
+                <Item>INPUT_GAME_MENU_LEFT</Item>
+                <Item>INPUT_GAME_MENU_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+                <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+                <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+                <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+                <Item>INPUT_GAME_MENU_ACCEPT</Item>
+                <Item>INPUT_GAME_MENU_CANCEL</Item>
+				<Item>INPUT_GAME_MENU_OPTION</Item>
+                <Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+				<Item>INPUT_GAME_MENU_LEFT_AXIS_X</Item>
+                <Item>INPUT_GAME_MENU_LEFT_AXIS_Y</Item>
+				<Item>INPUT_GAME_MENU_RIGHT_STICK_UP</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_STICK_DOWN</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_STICK_LEFT</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_STICK_RIGHT</Item>
+				<Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
+                <Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
+				<Item>INPUT_GAME_MENU_LS</Item>
+				<Item>INPUT_GAME_MENU_RS</Item>
+				<Item>INPUT_FRONTEND_PAUSE</Item>
+				<Item>INPUT_MULTIPLAYER_INFO</Item>
+				<Item>INPUT_PUSH_TO_TALK</Item>
+				<Item>INPUT_MULTIPLAYER_LEADERBOARD_SCROLL_UD</Item>
             </Actions>
         </Item>
 
@@ -1555,6 +1782,7 @@
                 <Item>INPUT_GAME_MENU_RS</Item>
                 <Item>INPUT_FRONTEND_PAUSE</Item>
                 <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+				<Item>INPUT_PUSH_TO_TALK</Item>
             </Actions>
         </Item>
 
@@ -1573,9 +1801,38 @@
         <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
         <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
         <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+		<Item>INPUT_GAME_MENU_RS</Item>
+
       </Actions>
 	  <DisallowedActions>
-		<Item>INPUT_INTERACT_LOCKON</Item>
+	  <Item>INPUT_INTERACT_LOCKON</Item>
+      <Item>INPUT_OPEN_JOURNAL</Item>
+      <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+	  <Item>INPUT_GAME_MENU_STICK_UP</Item>
+	  <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
+	  <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
+	  <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
+
+      <Item>INPUT_MINIGAME_POKER_SKIP</Item>
+      <Item>INPUT_MINIGAME_POKER_CALL</Item>
+      <Item>INPUT_MINIGAME_POKER_FOLD</Item>
+      <Item>INPUT_MINIGAME_POKER_CHECK</Item>
+      <Item>INPUT_MINIGAME_POKER_CHECK_FOLD</Item>
+      <Item>INPUT_MINIGAME_POKER_BET</Item>
+      <Item>INPUT_MINIGAME_POKER_HOLE_CARDS</Item>
+      <Item>INPUT_MINIGAME_POKER_BOARD_CARDS</Item>
+      <Item>INPUT_MINIGAME_POKER_SKIP_TUTORIAL</Item>
+      <Item>INPUT_MINIGAME_POKER_SHOW_POSSIBLE_HANDS</Item>
+      <Item>INPUT_MINIGAME_POKER_YOUR_CARDS</Item>
+      <Item>INPUT_MINIGAME_POKER_COMMUNITY_CARDS</Item>
+      <Item>INPUT_MINIGAME_POKER_CHEAT_LR</Item>
+                        
+      <Item>INPUT_MINIGAME_QUIT</Item>
+	  
+	  <Item>INPUT_CONTEXT_Y</Item>
+	  <Item>INPUT_CONTEXT_X</Item>
+	  <Item>INPUT_CONTEXT_A</Item>
+	  <Item>INPUT_CONTEXT_B</Item>
 	  </DisallowedActions>
     </Item>
     <Item>
@@ -1595,8 +1852,33 @@
         <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
   
         <Item>INPUT_GAME_MENU_RS</Item>
-        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
-		<Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
         
       </Actions>
     </Item>
@@ -1614,6 +1896,35 @@
 
         <Item>INPUT_FRONTEND_RS</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		
+		<Item>INPUT_PUSH_TO_TALK</Item>
+
       </Actions>
     </Item>
     <Item>
@@ -1623,6 +1934,7 @@
         <Item>INPUT_GAME_MENU_DOWN</Item>
         <Item>INPUT_GAME_MENU_LEFT</Item>
         <Item>INPUT_GAME_MENU_RIGHT</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
         <Item>
@@ -1641,6 +1953,8 @@
         <Item>INPUT_GAME_MENU_LEFT</Item>
         <Item>INPUT_GAME_MENU_RIGHT</Item>
         <Item>INPUT_GAME_MENU_RS</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+
       </Actions>
     </Item>
     <Item>
@@ -1721,7 +2035,10 @@
         <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
         <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
         <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
-        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>			
+        <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </AllowedActions>
     </Item>
     <Item>
@@ -1743,6 +2060,8 @@
         <Item>INPUT_GAME_MENU_RIGHT</Item>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_SHOP_CHANGE_CURRENCY</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     <Item>
@@ -1754,20 +2073,29 @@
         <Item>INPUT_MINIGAME_BUILDING_CAMERA_NEXT</Item>
         <Item>INPUT_MINIGAME_BUILDING_CAMERA_PREV</Item>
         <Item>INPUT_MINIGAME_QUIT</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
-
+	<Item>
+      <Name>MinigameDancing</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_DANCE_NEXT</Item>
+        <Item>INPUT_MINIGAME_DANCE_PREV</Item>
+      </Actions>
+    </Item>
     <Item>
       <Name>InteractionMultiInputRightTrigger</Name>
       <Actions>
         <Item>INPUT_CONTEXT_RT</Item>
         <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
       </Actions>
       <DisallowedActions>
 		<Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
 		<Item>INPUT_ENTER</Item>
         <Item>INPUT_OPEN_SATCHEL_MENU</Item>
         <Item>INPUT_OPEN_JOURNAL</Item>
+		<Item>INPUT_OPEN_WHEEL_MENU</Item>
         <Item>INPUT_MELEE_ATTACK</Item>
         <Item>INPUT_MELEE_BLOCK</Item>
         <Item>INPUT_MELEE_GRAPPLE</Item>
@@ -1779,6 +2107,8 @@
         <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
 		<Item>INPUT_HORSE_MELEE</Item>
 		<Item>INPUT_JUMP</Item>
+		<Item>INPUT_TOGGLE_HOLSTER</Item>
+		<Item>INPUT_ATTACK</Item>
       </DisallowedActions>
     </Item>
 
@@ -1795,6 +2125,7 @@
 		<Item>INPUT_ENTER</Item>
         <Item>INPUT_OPEN_SATCHEL_MENU</Item>
         <Item>INPUT_OPEN_JOURNAL</Item>
+		<Item>INPUT_OPEN_WHEEL_MENU</Item>
         <Item>INPUT_MELEE_ATTACK</Item>
         <Item>INPUT_MELEE_BLOCK</Item>
         <Item>INPUT_MELEE_GRAPPLE</Item>
@@ -1806,6 +2137,8 @@
         <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
 		<Item>INPUT_HORSE_MELEE</Item>
 		<Item>INPUT_JUMP</Item>
+		<Item>INPUT_TOGGLE_HOLSTER</Item>
+		<Item>INPUT_ATTACK</Item>
       </DisallowedActions>
     </Item>
 	
@@ -1828,6 +2161,16 @@
     <Item>
       <Name>AnimalControlSet</Name>
       <Actions>
+        <Item>INPUT_CINEMATIC_CAM</Item>
+        <Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+        <Item>INPUT_CINEMATIC_CAM_UD</Item>
+        <Item>INPUT_CINEMATIC_CAM_UP_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_DOWN_ONLY</Item>
+        <Item>INPUT_CINEMATIC_CAM_LR</Item>
+        <Item>INPUT_CINEMATIC_SLOWMO</Item>
+        <Item>INPUT_DYNAMIC_SCENARIO</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
         <Item>INPUT_HORSE_MOVE_LR</Item>
@@ -1836,6 +2179,15 @@
         <Item>INPUT_HORSE_JUMP</Item>
         <Item>INPUT_HORSE_STOP</Item>
         <Item>INPUT_HORSE_ATTACK</Item>
+        <Item>INPUT_ANIMAL_PLAY_DEAD</Item>
+		<Item>INPUT_ANIMAL_EMOTE</Item>
+		<Item>INPUT_WHISTLE_HORSEBACK</Item>
+		<Item>INPUT_HORSE_AIM</Item>
+		<Item>INPUT_CONTEXT_LT</Item>
+		
+
+        <Item>INPUT_MAP</Item>
+        
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_SKIP_CUTSCENE</Item>
         <Item>INPUT_PLAYER_MENU</Item>
@@ -1862,6 +2214,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -1895,6 +2249,7 @@
         <Item>INPUT_MULTIPLAYER_DEAD_PARLEY</Item>
         <Item>INPUT_MULTIPLAYER_DEAD_FEUD</Item>
         <Item>INPUT_MULTIPLAYER_DEAD_LEADER_FEUD</Item>
+		<Item>INPUT_MULTIPLAYER_DEAD_PRESS_CHARGES</Item>
         <Item>INPUT_PLAYER_MENU</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
         <Item>INPUT_MULTIPLAYER_INFO</Item>
@@ -1903,6 +2258,7 @@
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>			
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -1924,16 +2280,47 @@
         <Item>INPUT_NEXT_CAMERA</Item>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_SELECT_RADAR_MODE</Item>
+		<Item>INPUT_CINEMATIC_CAM</Item>
+		<Item>INPUT_CINEMATIC_CAM_CHANGE_SHOT</Item>
+		<Item>INPUT_CINEMATIC_CAM_UD</Item>
+		<Item>INPUT_CINEMATIC_CAM_LR</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_CONTEXT_B</Item>
       </Actions>
+    </Item>
+
+    <Item>
+      <Name>OnlineIncapacitation</Name>
+      <Actions>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_MULTIPLAYER_DEAD_FEUD</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
+        <Item>INPUT_MULTIPLAYER_INFO</Item>
+        <Item>INPUT_MULTIPLAYER_INFO_PLAYERS</Item>
+        <Item>INPUT_FRONTEND_PAUSE</Item>
+        <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+        <Item>INPUT_NEXT_CAMERA</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+
+        <Item>INPUT_NEXT_WEAPON</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
+        <Item>INPUT_SELECT_NEXT_WEAPON</Item>
+        <Item>INPUT_SELECT_PREV_WEAPON</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+      </Actions>
+      <DisallowedActions>
+        <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+      </DisallowedActions>
     </Item>
 
     <Item>
       <Name>ShopCatalogue</Name>
       <Actions>
-        <Item>INPUT_GAME_MENU_STICK_UP</Item>
-        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
-        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
-        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
         <Item>INPUT_GAME_MENU_ACCEPT</Item>
         <Item>INPUT_GAME_MENU_CANCEL</Item>
         <Item>INPUT_GAME_MENU_OPTION</Item>
@@ -1948,13 +2335,15 @@
         <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
         <Item>INPUT_GAME_MENU_SCROLL_FORWARD</Item>
         <Item>INPUT_GAME_MENU_SCROLL_BACKWARD</Item>
+        <Item>INPUT_GAME_MENU_LS</Item>
         <Item>INPUT_GAME_MENU_RS</Item>
-        <Item>INPUT_GAME_MENU_RIGHT_AXIS_X</Item>
-        <Item>INPUT_GAME_MENU_RIGHT_AXIS_Y</Item>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_SHOP_CHANGE_CURRENCY</Item>
+        <Item>INPUT_INSPECT_ZOOM</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -1970,6 +2359,7 @@
         <Item>INPUT_CONTEXT_LT</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -1990,10 +2380,37 @@
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
 	    <Item>INPUT_HORSE_GUN_LR</Item>
-        <Item>INPUT_HORSE_GUN_UD</Item>
+        <Item>INPUT_HORSE_GUN_UD</Item>	
+		<Item>INPUT_PUSH_TO_TALK</Item>
 	  </Actions>
     </Item>
     
+	<Item>
+      <Name>HandheldCatalogue</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+        <Item>INPUT_GAME_MENU_TAB_LEFT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
+        <Item>INPUT_GAME_MENU_OPTION</Item>
+		<Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+        <Item>INPUT_GAME_MENU_DOWN</Item>
+        <Item>INPUT_GAME_MENU_UP</Item>
+        <Item>INPUT_GAME_MENU_LEFT</Item>
+        <Item>INPUT_GAME_MENU_RIGHT</Item>
+        <Item>INPUT_GAME_MENU_ACCEPT</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
+        <Item>INPUT_GAME_MENU_LS</Item>
+		<Item>INPUT_INSPECT_ZOOM</Item>
+        <Item>INPUT_SHOP_CHANGE_CURRENCY</Item>
+		<Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_HORSE_GUN_LR</Item>
+        <Item>INPUT_HORSE_GUN_UD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+      </Actions>
+    </Item>
+	
     <Item>
       <Name>GenericViewable</Name>
       <Actions>
@@ -2012,6 +2429,7 @@
         <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         <Item>INPUT_NEXT_CAMERA</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -2039,6 +2457,7 @@
         <Item>INPUT_FRONTEND_CANCEL</Item>
         <Item>INPUT_PLAYER_MENU</Item>
         <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -2065,7 +2484,19 @@
         <Item>INPUT_DOCUMENT_PAGE_PREV</Item>
         <Item>INPUT_GAME_MENU_CANCEL</Item>
         <Item>INPUT_DOCUMENT_SCROLL</Item>
+		<Item>INPUT_DOCUMENT_SCROLL_UP_ONLY</Item>
+		<Item>INPUT_DOCUMENT_SCROLL_DOWN_ONLY</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
+    </Item>
+
+    <Item>
+      <Name>MinigameOverlay</Name>
+      <Actions>
+      </Actions>
+      <DisallowedActions>
+        <Item>INPUT_MINIGAME_CHANGE_BET_AXIS_Y</Item>
+      </DisallowedActions>
     </Item>
     
     <Item>
@@ -2081,6 +2512,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -2111,15 +2544,10 @@
         <Item>INPUT_FRONTEND_MAP_NAV_LEFT</Item>
         <Item>INPUT_FRONTEND_MAP_NAV_RIGHT</Item>
         <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
-
-        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
-        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>			
-        <Item>INPUT_CURSOR_ACCEPT</Item>
-          <Item>INPUT_CURSOR_CANCEL</Item>
-          <Item>INPUT_CURSOR_X</Item>
-          <Item>INPUT_CURSOR_Y</Item>
-          <Item>INPUT_CURSOR_SCROLL_UP</Item>
-          <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		
+		<Item>INPUT_FRONTEND_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_AXIS_Y</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     <Item>
@@ -2135,9 +2563,37 @@
         <Item>INPUT_FRONTEND_DOWN</Item>
         <Item>INPUT_FRONTEND_NAV_UP</Item>
         <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+		<Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		
       </Actions>
     </Item>
-      <Item>
+	 <Item>
         <Name>SocialClubFeedFilter</Name>
         <Actions>
           <Item>INPUT_FRONTEND_ACCEPT</Item>
@@ -2148,6 +2604,34 @@
           <Item>INPUT_FRONTEND_NAV_DOWN</Item>
           <Item>INPUT_FRONTEND_NAV_LEFT</Item>
           <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+		  
+		  <Item>INPUT_CURSOR_X</Item>
+		  <Item>INPUT_CURSOR_Y</Item>
+
+		  <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		  <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		  <Item>INPUT_CURSOR_ACCEPT</Item>
+
+		  <Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		  <Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		  <Item>INPUT_CURSOR_CANCEL</Item>
+
+		  <Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		  <Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		  <Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+
+		  <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		  <Item>INPUT_CURSOR_SCROLL_UP</Item>
+ 
+		  <Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		  <Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		  <Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		  <Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		  <Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		  <Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		  <Item>INPUT_PUSH_TO_TALK</Item>
+		  
         </Actions>
       </Item>
     <Item>
@@ -2163,6 +2647,8 @@
         <Item>INPUT_FRONTEND_RRIGHT</Item>
         <Item>INPUT_FRONTEND_AXIS_X</Item>
         <Item>INPUT_FRONTEND_AXIS_Y</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_X</Item>
+        <Item>INPUT_FRONTEND_SCROLL_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_X</Item>
         <Item>INPUT_FRONTEND_RIGHT_AXIS_Y</Item>
         <Item>INPUT_FRONTEND_PAUSE</Item>
@@ -2194,14 +2680,33 @@
         <Item>INPUT_FRONTEND_MAP_NAV_RIGHT</Item>
         <Item>INPUT_FRONTEND_MAP_ZOOM</Item>
 
-        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
-        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>			
-        <Item>INPUT_CURSOR_ACCEPT</Item>
-          <Item>INPUT_CURSOR_CANCEL</Item>
-          <Item>INPUT_CURSOR_X</Item>
-          <Item>INPUT_CURSOR_Y</Item>
-          <Item>INPUT_CURSOR_SCROLL_UP</Item>
-          <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+		 		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		
       </Actions>
     </Item>	
     <Item>
@@ -2216,6 +2721,34 @@
         <Item>INPUT_FRONTEND_X</Item>
         <Item>INPUT_FRONTEND_Y</Item>
         <Item>INPUT_FRONTEND_RS</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		
       </Actions>
     </Item>		
     <Item>
@@ -2227,6 +2760,35 @@
         <Item>INPUT_FRONTEND_DOWN</Item>
         <Item>INPUT_FRONTEND_NAV_UP</Item>
         <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+		
+		<Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+		
+		<Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+		<Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_ACCEPT</Item>
+
+		<Item>INPUT_CURSOR_CANCEL_HOLD</Item>
+		<Item>INPUT_CURSOR_CANCEL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_CANCEL</Item>
+
+		<Item>INPUT_CURSOR_SCROLL_HOLD</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_SCROLL_CLICK</Item>
+		
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		
+		<Item>INPUT_CURSOR_FORWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_FORWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_FORWARD_CLICK</Item>
+
+		<Item>INPUT_CURSOR_BACKWARD_HOLD</Item>
+		<Item>INPUT_CURSOR_BACKWARD_DOUBLE_CLICK</Item>
+		<Item>INPUT_CURSOR_BACKWARD_CLICK</Item>
+		
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		
       </Actions>
     </Item>		
     <Item>
@@ -2236,12 +2798,15 @@
         <Item>INPUT_INTERACT_LOCKON_NEG</Item>
         <Item>INPUT_INTERACT_LOCKON_POS</Item>
         <Item>INPUT_INTERACT_LOCKON_ROB</Item>
+		<Item>INPUT_INTERACT_LOCKON_Y</Item>
+		<Item>INPUT_INTERACT_LOCKON_A</Item>
         <Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
         <Item>INPUT_INTERACT_LOCKON_ANIMAL</Item>
         <Item>INPUT_INTERACT_LOCKON_DETACH_HORSE</Item>
         <Item>INPUT_SHOP_BUY</Item>
         <Item>INPUT_SHOP_SELL</Item>
         <Item>INPUT_SHOP_SPECIAL</Item>	
+		<Item>INPUT_SHOP_BOUNTY</Item>	
         <Item>INPUT_SHOP_INSPECT</Item>
         <Item>INPUT_INTERACT_LOCKON_CALL_ANIMAL</Item>
         <Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
@@ -2249,6 +2814,9 @@
         <Item>INPUT_INTERACT_OPTION1</Item>
         <Item>INPUT_INTERACT_OPTION2</Item>
         <Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+        <Item>INPUT_OPEN_EMOTE_WHEEL_HORSE</Item>
+        <Item>INPUT_EMOTE_GROUP_LINK</Item>
+        <Item>INPUT_EMOTE_GROUP_LINK_HORSE</Item>
         <Item>INPUT_HORSE_COMMAND_FLEE</Item>
         <Item>INPUT_HORSE_COMMAND_STAY</Item>
         <Item>INPUT_HORSE_COMMAND_FOLLOW</Item>
@@ -2263,8 +2831,9 @@
         <Item>INPUT_INTERACT_HORSE_BRUSH</Item>
       </Actions>
       <AllowedActions>
-		<Item>INPUT_HORSE_MELEE</Item>
+        <Item>INPUT_HORSE_MELEE</Item>
         <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_MODIFIER</Item>
         <Item>INPUT_MELEE_GRAPPLE</Item>
         <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
         <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
@@ -2296,14 +2865,15 @@
         <Item>INPUT_INTERACT_HORSE_CARE</Item>
         <Item>INPUT_LOOK_BEHIND</Item>
         <Item>INPUT_LOOT</Item>
-		<Item>INPUT_LOOT2</Item>
+        <Item>INPUT_LOOT2</Item>
         <Item>INPUT_WHISTLE_HORSEBACK</Item>
         <Item>INPUT_WHISTLE</Item>
         <Item>INPUT_DROP</Item>
-		<Item>INPUT_MERCY_KILL</Item>
-		<Item>INPUT_REVIVE</Item>
-		<Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
-		<Item>INPUT_PICKUP_CARRIABLE_FROM_PARENT</Item>
+        <Item>INPUT_MERCY_KILL</Item>
+        <Item>INPUT_REVIVE</Item>
+        <Item>INPUT_PLACE_CARRIABLE_ONTO_PARENT</Item>
+        <Item>INPUT_PICKUP_CARRIABLE_FROM_PARENT</Item>
+        <Item>INPUT_DUCK</Item>
         
         <!-- InVehicle & OnMount -->
         <Item>INPUT_HORSE_AIM</Item>
@@ -2311,6 +2881,7 @@
         <Item>INPUT_HORSE_ATTACK2</Item>
         <Item>INPUT_HORSE_SPRINT</Item>
         <Item>INPUT_HORSE_EXIT</Item>
+        <Item>INPUT_HORSE_COVER_TRANSITION</Item>
         <Item>INPUT_VEH_AIM</Item>
         <Item>INPUT_VEH_PASSENGER_AIM</Item>
         <Item>INPUT_VEH_ATTACK</Item>
@@ -2339,10 +2910,61 @@
         <Item>INPUT_VEH_HANDCART_BRAKE</Item>
         <Item>INPUT_VEH_FLY_ATTACK</Item>
         <Item>INPUT_VEH_FLY_ATTACK2</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+      </AllowedActions>
+    </Item>
+    <Item>
+      <Name>WeaponEmotes_Simple</Name>
+      <Actions>
+        <Item>INPUT_EMOTE_TWIRL_GUN_HOLD</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_MELEE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_CHOKE</Item>
+        <Item>INPUT_MELEE_GRAPPLE_ATTACK</Item>
+        <Item>INPUT_MELEE_GRAPPLE_BREAKOUT</Item>
+        <Item>INPUT_SPRINT</Item>
+        <Item>INPUT_SURRENDER</Item>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_ATTACK2</Item>
+        <Item>INPUT_CONTEXT_A</Item>
+        <Item>INPUT_CONTEXT_B</Item>
+        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_CONTEXT_Y</Item>
+        <Item>INPUT_CONTEXT_RT</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_WHISTLE</Item>
+        <Item>INPUT_DUCK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+      </AllowedActions>
+    </Item>
+    <Item>
+      <Name>WeaponEmotes_WithVariations</Name>
+      <Actions>
+        <Item>INPUT_EMOTE_TWIRL_GUN_HOLD</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_A</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_B</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_C</Item>
+        <Item>INPUT_EMOTE_TWIRL_GUN_VAR_D</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_AIM</Item>
+        <Item>INPUT_ATTACK</Item>
+        <Item>INPUT_ATTACK2</Item>
+        <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_OPEN_SATCHEL_MENU</Item>
+        <Item>INPUT_LOOK_BEHIND</Item>
+        <Item>INPUT_WHISTLE</Item>
+        <Item>INPUT_DUCK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </AllowedActions>
     </Item>
 
-    <Item>
+		<Item>
       <Name>InspectItem</Name>
       <Actions>
         <Item>INPUT_GAME_MENU_TAB_LEFT</Item>
@@ -2350,6 +2972,7 @@
         <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
         <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
         <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
         <Item>INPUT_CONTEXT_A</Item>
         <Item>INPUT_CONTEXT_B</Item>
         <Item>INPUT_CONTEXT_X</Item>
@@ -2357,10 +2980,12 @@
         <Item>INPUT_CONTEXT_LT</Item>
         <Item>INPUT_CONTEXT_RT</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
+		<Item>INPUT_WEAPON_INSPECT_ZOOM</Item>
         <Item>INPUT_INSPECT_LR</Item>
         <Item>INPUT_INSPECT_UD</Item>
         <Item>INPUT_INSPECT_OPEN_SATCHEL</Item>
         <Item>INPUT_NEXT_CAMERA</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
       <DisallowedActions>
         <Item>INPUT_ENTER</Item>
@@ -2370,7 +2995,10 @@
         <Item>INPUT_HORSE_MOVE_UD</Item>
         <Item>INPUT_OPEN_SATCHEL_MENU</Item>
         <Item>INPUT_OPEN_JOURNAL</Item>
+        <Item>INPUT_PLAYER_MENU</Item>
         <Item>INPUT_OPEN_WHEEL_MENU</Item>
+        <Item>INPUT_TOGGLE_HOLSTER</Item>
+        <Item>INPUT_TWIRL_PISTOL</Item>
         <Item>INPUT_MELEE_ATTACK</Item>
         <Item>INPUT_MELEE_BLOCK</Item>
         <Item>INPUT_MELEE_GRAPPLE</Item>
@@ -2381,6 +3009,10 @@
         <Item>INPUT_MELEE_GRAPPLE_STAND_SWITCH</Item>
         <Item>INPUT_MELEE_GRAPPLE_MOUNT_SWITCH</Item>
         <Item>INPUT_HORSE_MELEE</Item>
+        <Item>INPUT_SPECIAL_ABILITY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_SECONDARY</Item>
+        <Item>INPUT_SPECIAL_ABILITY_ACTION</Item>
+        <Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
       </DisallowedActions>
     </Item>
     
@@ -2392,6 +3024,7 @@
         <Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
         <Item>INPUT_GAME_MENU_TAB_RIGHT_SECONDARY</Item>
         <Item>INPUT_GAME_MENU_OPTION</Item>
+        <Item>INPUT_GAME_MENU_CANCEL</Item>
         <Item>INPUT_CONTEXT_A</Item>
         <Item>INPUT_CONTEXT_B</Item>
         <Item>INPUT_CONTEXT_X</Item>
@@ -2399,9 +3032,14 @@
         <Item>INPUT_CONTEXT_LT</Item>
         <Item>INPUT_CONTEXT_RT</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
+		<Item>INPUT_WEAPON_INSPECT_ZOOM</Item>
         <Item>INPUT_INSPECT_OPEN_SATCHEL</Item>
         <Item>INPUT_NEXT_CAMERA</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
+      <AllowedActions>
+        <Item>INPUT_WHISTLE</Item>
+      </AllowedActions>
       <DisallowedActions>
         <Item>INPUT_ENTER</Item>
         <Item>INPUT_OPEN_SATCHEL_MENU</Item>
@@ -2447,12 +3085,38 @@
         <Item>INPUT_MULTIPLAYER_LEADERBOARD_SCROLL_UD</Item>
         <Item>INPUT_SELECT_RADAR_MODE</Item>
         <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
       <DisallowedActions>
         <Item>INPUT_LOOK_LR</Item>
       </DisallowedActions>
+	  <AllowedActions>
+		<Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_NEXT</Item>
+		<Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_PREV</Item>
+	  </AllowedActions>
     </Item>
     
+    <Item>
+      <Name>MidGameOnlineLeaderboardOverride</Name>
+      <Actions>
+        <Item>INPUT_MULTIPLAYER_LEADERBOARD_SCROLL_UD</Item>
+        <Item>INPUT_SELECT_RADAR_MODE</Item>
+        <Item>INPUT_PROMPT_PAGE_NEXT</Item>
+      </Actions>
+      <AllowedActions>
+        <Item>INPUT_SPRINT</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_NEXT</Item>
+		<Item>INPUT_MULTIPLAYER_SPECTATE_PLAYER_PREV</Item>
+      </AllowedActions>
+      <DisallowedActions>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_NEXT_WEAPON</Item>
+        <Item>INPUT_PREV_WEAPON</Item>
+      </DisallowedActions>
+    </Item>
+
     <Item>
       <Name>UIFeedInteractOverride</Name>
       <Actions>
@@ -2475,6 +3139,7 @@
         <Item>INPUT_CONTEXT_A</Item>
         <Item>INPUT_CONTEXT_B</Item>
         <Item>INPUT_CONTEXT_X</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
     
@@ -2497,7 +3162,11 @@
         <Item>INPUT_MINIGAME_MILKING_RIGHT_ACTION</Item>
         <Item>INPUT_MINIGAME_QUIT</Item>
 		<Item>INPUT_PLAYER_MENU</Item>
-		<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+    <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
         
@@ -2611,13 +3280,10 @@
         <Item>INPUT_GAME_MENU_DOWN</Item>
         <Item>INPUT_GAME_MENU_LEFT</Item>
         <Item>INPUT_GAME_MENU_RIGHT</Item>
-        <Item>INPUT_GAME_MENU_STICK_UP</Item>
-        <Item>INPUT_GAME_MENU_STICK_DOWN</Item>
-        <Item>INPUT_GAME_MENU_STICK_LEFT</Item>
-        <Item>INPUT_GAME_MENU_STICK_RIGHT</Item>
         <Item>INPUT_INSPECT_ZOOM</Item>
         <Item>INPUT_LOOK_UD</Item>
-        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_LR</Item>	
+		<Item>INPUT_PUSH_TO_TALK</Item>		
       </Actions>
     </Item>
     
@@ -2625,14 +3291,19 @@
       <Name>MinigameCleaningStalls</Name>
       <Actions>
         <Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         <Item>INPUT_MOVE_UD</Item>
         <Item>INPUT_MOVE_LR</Item>
         <Item>INPUT_LOOK_UD</Item>
         <Item>INPUT_LOOK_LR</Item>
-        <Item>INPUT_CONTEXT_X</Item>
+        <Item>INPUT_MINIGAME_ACTION_X</Item>
         <Item>INPUT_MINIGAME_QUIT</Item>
         <Item>INPUT_REVEAL_HUD</Item>
 		<Item>INPUT_DYNAMIC_SCENARIO</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
 
@@ -2642,13 +3313,13 @@
         <Item>INPUT_CAMERA_HANDHELD_USE</Item>
         <Item>INPUT_CAMERA_SELFIE</Item>
         <Item>INPUT_CAMERA_PUT_AWAY</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
 
     <Item>
       <Name>PhotoCameraInUse</Name>
       <Actions>
-        <Item>INPUT_FRONTEND_PAUSE</Item>
         <Item>INPUT_LOOK_UD</Item>
         <Item>INPUT_LOOK_LR</Item>
         <Item>INPUT_LOOK_UP_ONLY</Item>
@@ -2669,14 +3340,94 @@
         <Item>INPUT_CAMERA_POSE_PREV</Item>
         <Item>INPUT_CAMERA_EXPRESSION_NEXT</Item>
         <Item>INPUT_CAMERA_EXPRESSION_PREV</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_SPRINT</Item>
+		<Item>INPUT_DUCK</Item>
+		<Item>INPUT_OPEN_WHEEL_MENU</Item>
+		<Item>INPUT_PLAYER_MENU</Item>
+		<Item>INPUT_WHISTLE</Item>
+		<Item>INPUT_NEXT_CAMERA</Item>
+		<Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
+		<Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
       </Actions>
     </Item>
 	
+	<Item>
+      <Name>AdvancedPhotoCamera</Name>
+      <Actions>
+        <Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+        <Item>INPUT_LOOK_UP_ONLY</Item>
+        <Item>INPUT_LOOK_DOWN_ONLY</Item>
+        <Item>INPUT_LOOK_LEFT_ONLY</Item>
+        <Item>INPUT_LOOK_RIGHT_ONLY</Item>
+        <Item>INPUT_MOVE_UD</Item>
+        <Item>INPUT_MOVE_LR</Item>
+        <Item>INPUT_CAMERA_PUT_AWAY</Item>
+        <Item>INPUT_CAMERA_BACK</Item>
+        <Item>INPUT_CAMERA_CONTEXT_GALLERY</Item>
+        <Item>INPUT_CAMERA_HANDHELD_USE</Item>
+        <Item>INPUT_CAMERA_DOF</Item>
+        <Item>INPUT_CAMERA_SELFIE</Item>
+        <Item>INPUT_CAMERA_POSE_NEXT</Item>
+        <Item>INPUT_CAMERA_POSE_PREV</Item>
+        <Item>INPUT_CAMERA_EXPRESSION_NEXT</Item>
+        <Item>INPUT_CAMERA_EXPRESSION_PREV</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_SELECT_RADAR_MODE</Item>
+		<Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_DUCK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+		<Item>INPUT_OPEN_WHEEL_MENU</Item>
+		<Item>INPUT_PLAYER_MENU</Item>
+		<Item>INPUT_INTERACT_LOCKON_STUDY_BINOCULARS</Item>
+		<Item>INPUT_CAMERA_ADVANCED_TAKE_PHOTO</Item>
+		<Item>INPUT_CAMERA_ADVANCED_ZOOM_IN</Item>
+		<Item>INPUT_CAMERA_ADVANCED_ZOOM_OUT</Item>
+		<Item>INPUT_CAMERA_ADVANCED_SWITCH_CONTROLS</Item>
+		<Item>INPUT_NEXT_CAMERA</Item>
+		<Item>INPUT_INTERACT_LOCKON_TRACK_ANIMAL</Item>
+		<Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
+		<Item>INPUT_SPRINT</Item>
+		<Item>INPUT_WHISTLE</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>BinocularsOnFoot</Name>
+      <Actions>
+		<Item>INPUT_CAMERA_PUT_AWAY</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>BinocularsInUse</Name>
+      <Actions>
+		<Item>INPUT_SNIPER_ZOOM</Item>
+        <Item>INPUT_CAMERA_PUT_AWAY</Item>
+      </Actions>
+	  <AllowedActions>
+		<Item>INPUT_LOOK_UD</Item>
+        <Item>INPUT_LOOK_LR</Item>
+		<Item>INPUT_HORSE_GUN_LR</Item>
+		<Item>INPUT_HORSE_GUN_UD</Item>
+		<Item>INPUT_VEH_GUN_LR</Item>
+		<Item>INPUT_VEH_GUN_UD</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+	  </AllowedActions>
+    </Item>
+
 	
 	 <Item>
       <Name>MinigameBuildingFences</Name>
       <Actions>
         <Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
         <Item>INPUT_MOVE_UD</Item>
         <Item>INPUT_LOOK_UD</Item>
         <Item>INPUT_LOOK_LR</Item>
@@ -2686,7 +3437,11 @@
         <Item>INPUT_MINIGAME_QUIT</Item>
         <Item>INPUT_REVEAL_HUD</Item>
 		<Item>INPUT_PLAYER_MENU</Item>
-		<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+    <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
 	
@@ -2709,6 +3464,8 @@
 		<Item>INPUT_LOOK_LR</Item>
 		<Item>INPUT_LOOK_UD</Item>
 		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
 	
@@ -2716,16 +3473,224 @@
       <Name>NoPlayerControl</Name>
 	  <Actions>
 		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
     </Item>
 	
 	<Item>
       <Name>Calderon1ForceDoor</Name>
       <Actions>
-		<Item>INPUT_CONTEXT_A</Item>
 		<Item>INPUT_CONTEXT_B</Item>
-		<Item>INPUT_MOVE_DOWN_ONLY</Item>
+		<Item>INPUT_MINIGAME_ACTION_DOWN</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
 		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_PHOTO_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_PC</Item>
+		<Item>INPUT_MAP</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+	  </Actions>
+    </Item>
+
+	<Item>
+      <Name>Saloon1Drown</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+	  </Actions>
+    </Item>
+		
+	<Item>
+      <Name>Mudtown1WheelFixing</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+		<Item>INPUT_MINIGAME_ACTION_LEFT</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>Utopia1Jailbreak</Name>
+      <Actions>
+		<Item>INPUT_CONTEXT_Y</Item>
+		<Item>INPUT_MINIGAME_ACTION_RIGHT</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+	  </Actions>
+	  <AllowedActions>
+		<Item>INPUT_ATTACK</Item>
+		<Item>INPUT_MOVE_LR</Item>
+		<Item>INPUT_MOVE_UD</Item>
+		<Item>INPUT_IGNITE</Item>
+	  </AllowedActions>
+    </Item>
+	
+	<Item>
+      <Name>Winter4TakingDynamite</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>Marston53BirthingFoal</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+		<Item>INPUT_MINIGAME_ACTION_DOWN</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+		<Item>INPUT_MOVE_LR</Item>
+		<Item>INPUT_MOVE_UD</Item>
+	  </Actions>
+    </Item>
+
+	<Item>
+      <Name>MinigameInterrogation</Name>
+      <Actions>
+		<Item>INPUT_INTERROGATE_BEAT</Item>
+		<Item>INPUT_INTERROGATE_KILL</Item>
+		<Item>INPUT_INTERROGATE_RELEASE</Item>
+		<Item>INPUT_INTERROGATE_QUESTION</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_MAP</Item>
+	  </Actions>
+	  <AllowedActions>
+		<Item>INPUT_CONTEXT_Y</Item>
+		<Item>INPUT_MELEE_ATTACK</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+	  </AllowedActions>
+    </Item>
+	
+	<Item>
+      <Name>ScriptedPunch</Name>
+      <Actions>
+		<Item>INPUT_INTERROGATE_BEAT</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>Gang2RopeClimb</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>ODriscolls3Surgery</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>Reverend1TrainTrackRescue</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_ACTION_UP</Item>
+		<Item>INPUT_CONTEXT_ACTION</Item>
+		<Item>INPUT_REVEAL_HUD</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_FRONTEND_PAUSE_ALTERNATE</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>MinigameBartender</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_BARTENDER_RAISE_GLASS</Item>
+		<Item>INPUT_MINIGAME_BARTENDER_RAISE_BOTTLE</Item>
+		<Item>INPUT_MINIGAME_BARTENDER_POUR</Item>
+		<Item>INPUT_MINIGAME_BARTENDER_SERVE</Item>
+	  </Actions>
+    </Item>
+
+	<Item>
+      <Name>Benchmark</Name>
+      <Actions>
+		<Item>INPUT_FRONTEND_ACCEPT</Item>
+		<Item>INPUT_FRONTEND_CANCEL</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>PhotoMode</Name>
+      <Actions>
+		<Item>INPUT_PHOTO_MODE_CHANGE_CAMERA</Item>
+		<Item>INPUT_PHOTO_MODE_MOVE_LR</Item>
+		<Item>INPUT_PHOTO_MODE_MOVE_LEFT_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_MOVE_RIGHT_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_MOVE_UD</Item>
+		<Item>INPUT_PHOTO_MODE_MOVE_UP_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_MOVE_DOWN_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_RESET</Item>
+		<Item>INPUT_PHOTO_MODE_LENSE_NEXT</Item>
+		<Item>INPUT_PHOTO_MODE_LENSE_PREV</Item>
+		<Item>INPUT_PHOTO_MODE_ROTATE_LEFT</Item>
+		<Item>INPUT_PHOTO_MODE_ROTATE_RIGHT</Item>
+		<Item>INPUT_PHOTO_MODE_TOGGLE_HUD</Item>
+		<Item>INPUT_PHOTO_MODE_VIEW_PHOTOS</Item>
+		<Item>INPUT_PHOTO_MODE_TAKE_PHOTO</Item>
+		<Item>INPUT_PHOTO_MODE_BACK</Item>
+		<Item>INPUT_PHOTO_MODE_SWITCH_MODE</Item>
+		<Item>INPUT_PHOTO_MODE_FILTER_INTENSITY</Item>
+		<Item>INPUT_PHOTO_MODE_FILTER_INTENSITY_UP</Item>
+		<Item>INPUT_PHOTO_MODE_FILTER_INTENSITY_DOWN</Item>
+		<Item>INPUT_PHOTO_MODE_FOCAL_LENGTH</Item>
+		<Item>INPUT_PHOTO_MODE_FOCAL_LENGTH_UP_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_FOCAL_LENGTH_DOWN_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_FILTER_NEXT</Item>
+		<Item>INPUT_PHOTO_MODE_FILTER_PREV</Item>
+		<Item>INPUT_PHOTO_MODE_ZOOM_IN</Item>
+		<Item>INPUT_PHOTO_MODE_ZOOM_OUT</Item>
+		<Item>INPUT_PHOTO_MODE_DOF</Item>
+		<Item>INPUT_PHOTO_MODE_DOF_UP_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_DOF_DOWN_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_EXPOSURE_UP</Item>
+		<Item>INPUT_PHOTO_MODE_EXPOSURE_DOWN</Item>
+		<Item>INPUT_PHOTO_MODE_EXPOSURE_LOCK</Item>
+		<Item>INPUT_PHOTO_MODE_CONTRAST</Item>
+		<Item>INPUT_PHOTO_MODE_CONTRAST_UP_ONLY</Item>
+		<Item>INPUT_PHOTO_MODE_CONTRAST_DOWN_ONLY</Item>
+		<Item>INPUT_LOOK_LR</Item>
+		<Item>INPUT_LOOK_UD</Item>
+		<Item>INPUT_CURSOR_SCROLL_UP</Item>
+		<Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>OnlinePhotoStudioShop</Name>
+      <Actions>
+		<Item>INPUT_CONTEXT_LT</Item>
+		<Item>INPUT_GAME_MENU_UP</Item>
+		<Item>INPUT_GAME_MENU_DOWN</Item>
+		<Item>INPUT_GAME_MENU_LEFT</Item>
+		<Item>INPUT_GAME_MENU_RIGHT</Item>
+		<Item>INPUT_GAME_MENU_TAB_LEFT</Item>
+		<Item>INPUT_GAME_MENU_TAB_RIGHT</Item>
+		<Item>INPUT_MOVE_UD</Item>
+		<Item>INPUT_MOVE_LR</Item>
+		<Item>INPUT_MOVE_LEFT_ONLY</Item>
+		<Item>INPUT_MOVE_RIGHT_ONLY</Item>
+		<Item>INPUT_MOVE_UD</Item>
+		<Item>INPUT_MOVE_UP_ONLY</Item>
+		<Item>INPUT_MOVE_DOWN_ONLY</Item>
+		<Item>INPUT_GAME_MENU_CANCEL</Item>
+		<Item>INPUT_GAME_MENU_EXTRA_OPTION</Item>
+		<Item>INPUT_INSPECT_ZOOM</Item>
+		<Item>INPUT_OPEN_EMOTE_WHEEL</Item>
+		<Item>INPUT_EMOTE_GREET</Item>
+		<Item>INPUT_EMOTE_DANCE</Item>
+		<Item>INPUT_EMOTE_TAUNT</Item>
+		<Item>INPUT_EMOTE_COMM</Item>
+		<Item>INPUT_EMOTE_ACTION</Item>
+		<Item>INPUT_FRONTEND_PAUSE</Item>
+		<Item>INPUT_PUSH_TO_TALK</Item>
 	  </Actions>
     </Item>
 		
@@ -2796,13 +3761,14 @@
 		
 		<!-- Dpad Left -->
 			<Item>INPUT_PLAYER_MENU</Item>
-			<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+      <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
 			<Item>INPUT_OPEN_JOURNAL</Item>
 			<Item>INPUT_SWITCH_SHOULDER</Item>
 		
 		<!-- Dpad Right -->
 			<Item>INPUT_OPEN_SATCHEL_MENU</Item>
 			<Item>INPUT_QUICK_USE_ITEM</Item>
+			<Item>INPUT_SWITCH_FIRING_MODE</Item>
 		
 		<!-- Select/Touchpad -->
 			<Item>INPUT_NEXT_CAMERA</Item>
@@ -2877,13 +3843,14 @@
 		
 		<!-- Dpad Left -->
 			<Item>INPUT_PLAYER_MENU</Item>
-			<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+      <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
 			<Item>INPUT_OPEN_JOURNAL</Item>
 			<Item>INPUT_SWITCH_SHOULDER</Item>
 		
 		<!-- Dpad Right -->
 			<Item>INPUT_OPEN_SATCHEL_MENU</Item>
 			<Item>INPUT_QUICK_USE_ITEM</Item>
+			<Item>INPUT_SWITCH_FIRING_MODE</Item>
 		
 		<!-- Select/Touchpad -->
 			<Item>INPUT_NEXT_CAMERA</Item>
@@ -2952,7 +3919,7 @@
 		
 		<!-- Dpad Left -->
 			<Item>INPUT_PLAYER_MENU</Item>
-			<Item>INPUT_MP_TEXT_CHAT_ALL</Item>
+      <Item>INPUT_MP_TEXT_CHAT_ALL</Item>
 			<Item>INPUT_OPEN_JOURNAL</Item>
 		
 		<!-- Dpad Right -->
@@ -3054,7 +4021,32 @@
         <Item>INPUT_FRONTEND_RIGHT</Item>
       </Actions>
     </Item>
+    
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_NAV_ALL</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+      </Actions>
+    </Item>
 
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_NAV_UD</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_NAV_UP</Item>
+        <Item>INPUT_FRONTEND_NAV_DOWN</Item>
+      </Actions>
+    </Item>
+
+    <Item>
+      <Name>INPUTGROUP_FRONTEND_NAV_LR</Name>
+      <Actions>
+        <Item>INPUT_FRONTEND_NAV_LEFT</Item>
+        <Item>INPUT_FRONTEND_NAV_RIGHT</Item>
+      </Actions>
+    </Item>
     <Item>
       <Name>INPUTGROUP_FRONTEND_LSTICK_ALL</Name>
       <Actions>
@@ -3337,6 +4329,39 @@
       </Actions>
     </Item>
 
+    <Item>
+      <Name>INPUTGROUP_GAME_MENU_LSTICK_ALL</Name>
+      <Actions>
+        <Item>INPUT_GAME_MENU_LEFT_AXIS_X</Item>
+        <Item>INPUT_GAME_MENU_LEFT_AXIS_Y</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>INPUTGROUP_MINIGAME_DOMINOES_MOVE_ALL</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_DOWN_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_RIGHT_ONLY</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>INPUTGROUP_MINIGAME_DOMINOES_MOVE_LR</Name>
+      <Actions>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_LEFT_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_RIGHT_ONLY</Item>
+      </Actions>
+    </Item>
+	
+	<Item>
+      <Name>INPUTGROUP_MINIGAME_DOMINOES_MOVE_UD</Name>
+      <Actions>
+		<Item>INPUT_MINIGAME_DOMINOES_MOVE_UP_ONLY</Item>
+        <Item>INPUT_MINIGAME_DOMINOES_MOVE_DOWN_ONLY</Item>
+      </Actions>
+    </Item>
 
   </ActionGroups>
 
