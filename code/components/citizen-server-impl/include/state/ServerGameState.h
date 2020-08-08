@@ -4,6 +4,7 @@
 #include <LRWeakPtr.h>
 
 #include <ServerInstanceBase.h>
+#include <ServerTime.h>
 
 #include <state/Pool.h>
 
@@ -437,7 +438,12 @@ struct SyncEntityState
 		// if we can't know yet (only a create was sent - no update), let's say we are, just for good measure
 		if (!hasSynced)
 		{
-			return true;
+			// and we were last updated pretty recently (<1.5 seconds)
+			// - if not, this might've been out of scope for a client instantly and it'll never get updated until someone owns it again, so we should invoke normal behavior
+			if ((msec() - lastReceivedAt) < 1500ms)
+			{
+				return true;
+			}
 		}
 
 		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
