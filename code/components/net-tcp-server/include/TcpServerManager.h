@@ -51,6 +51,14 @@ public:
 	{
 		return m_uvLoop->GetLoop();
 	}
+
+public:
+	// callback that can be invoked *from any thread*
+	// cancel callback to reject connection
+	fwEvent<const net::PeerAddress&> OnStartConnection;
+
+	// callback that can be invoked *from any thread*
+	fwEvent<const net::PeerAddress&> OnCloseConnection;
 };
 }
 

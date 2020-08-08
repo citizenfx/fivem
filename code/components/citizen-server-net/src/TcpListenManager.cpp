@@ -24,6 +24,36 @@ namespace fx
 	{
 		// initialize a TCP stack
 		m_tcpStack = new net::TcpServerManager(loopName);
+
+		m_tcpStack->OnStartConnection.Connect([this](const net::PeerAddress& peer)
+		{
+			auto host = peer.GetHost();
+			auto it = m_tcpLimitByHost.find(host);
+
+			if (it == m_tcpLimitByHost.end())
+			{
+				it = m_tcpLimitByHost.emplace(host, 0).first;
+			}
+
+			if (it->second.fetch_add(1) >= m_tcpLimit)
+			{
+				it->second--;
+				return false;
+			}
+
+			return true;
+		});
+
+		m_tcpStack->OnCloseConnection.Connect([this](const net::PeerAddress& peer)
+		{
+			auto host = peer.GetHost();
+			auto it = m_tcpLimitByHost.find(host);
+
+			if (it != m_tcpLimitByHost.end())
+			{
+				it->second--;
+			}
+		});
 	}
 
 	void TcpListenManager::AddEndpoint(const std::string& endPoint)
@@ -77,6 +107,8 @@ namespace fx
 		});
 
 		m_primaryPortVar = instance->AddVariable<int>("netPort", ConVar_None, m_primaryPort);
+
+		m_tcpLimitVar = instance->AddVariable<int>("net_tcpConnLimit", ConVar_None, m_tcpLimit, &m_tcpLimit);
 	}
 }
 

@@ -299,8 +299,10 @@ public:
 			return;
 		}
 
+		auto statusCodeStr = std::to_string(statusCode);
+
 		m_headers = headers;
-		m_headers.insert({ ":status", std::to_string(statusCode) });
+		m_headers.insert({ ":status", HeaderString{ statusCodeStr.c_str(), statusCodeStr.size() } });
 
 		for (auto& header : m_headerList)
 		{
@@ -487,7 +489,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		HttpConnectionData* connection;
 
-		std::map<std::string, std::string> headers;
+		HeaderMap headers;
 
 		std::vector<uint8_t> body;
 
@@ -654,6 +656,8 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				if (req)
 				{
 					HeaderMap headerList;
+					HeaderString method;
+					HeaderString path;
 
 					for (auto& header : req->headers)
 					{
@@ -665,9 +669,17 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 						{
 							headerList.emplace("host", header.second);
 						}
+						else if (header.first == ":method")
+						{
+							method = header.second;
+						}
+						else if (header.first == ":path")
+						{
+							path = header.second;
+						}
 					}
 
-					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, req->headers[":method"], req->headers[":path"], headerList, req->connection->stream->GetPeerAddress().ToString());
+					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, method, path, headerList, req->connection->stream->GetPeerAddress());
 					
 					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id, req->connection->stream);
 					req->connection->responses.push_back(response);

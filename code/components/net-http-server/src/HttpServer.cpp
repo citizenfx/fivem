@@ -32,7 +32,7 @@ void HttpServer::AttachToServer(fwRefContainer<TcpServer> server)
 	});
 }
 
-HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const std::string& requestMethod, const std::string& path, const HeaderMap& headerList, const std::string& remoteAddress)
+HttpRequest::HttpRequest(int httpVersionMajor, int httpVersionMinor, const HeaderString& requestMethod, const HeaderString& path, const HeaderMap& headerList, const net::PeerAddress& remoteAddress)
 	: m_httpVersionMajor(httpVersionMajor), m_httpVersionMinor(httpVersionMinor), m_requestMethod(requestMethod), m_path(path), m_headerList(headerList), m_remoteAddress(remoteAddress)
 {
 }
@@ -48,20 +48,13 @@ HttpResponse::HttpResponse(fwRefContainer<HttpRequest> request)
 
 }
 
-std::string HttpResponse::GetHeader(const std::string& name)
-{
-	auto it = m_headerList.find(name);
-
-	return (it == m_headerList.end()) ? std::string() : it->second;
-}
-
-void HttpResponse::SetHeader(const std::string& name, const std::string& value)
+void HttpResponse::SetHeader(const HeaderString& name, const HeaderString& value)
 {
 	m_headerList.erase(name);
 	m_headerList.insert({ name, value });
 }
 
-void HttpResponse::SetHeader(const std::string& name, const std::vector<std::string>& values)
+void HttpResponse::SetHeader(const HeaderString& name, const std::vector<HeaderString>& values)
 {
 	m_headerList.erase(name);
 
@@ -71,7 +64,7 @@ void HttpResponse::SetHeader(const std::string& name, const std::vector<std::str
 	}
 }
 
-void HttpResponse::RemoveHeader(const std::string& name)
+void HttpResponse::RemoveHeader(const HeaderString& name)
 {
 	m_headerList.erase(name);
 }
@@ -211,4 +204,14 @@ std::string_view HttpResponse::GetStatusMessage(int statusCode)
 {
 	return httpStatuses[statusCode];
 }
+}
+
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
 }

@@ -297,7 +297,7 @@ namespace fx
 				client = clientRegistry->GetClientByTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
 			}
 
-			const auto& path = request->GetPath();
+			auto path = std::string{ request->GetPath().c_str(), request->GetPath().size() };
 
 			if (path.length() >= 8)
 			{

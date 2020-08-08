@@ -170,6 +170,21 @@ void UvTcpServer::OnConnection(int status)
 	auto clientHandle = m_server->loop().resource<uvw::TCPHandle>();
 	m_server->accept(*clientHandle);
 
+	{
+		sockaddr_storage addr;
+		int len = sizeof(addr);
+
+		uv_tcp_getpeername(clientHandle->raw(), reinterpret_cast<sockaddr*>(&addr), &len);
+
+		auto peer = PeerAddress(reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len));
+
+		if (!m_manager->OnStartConnection(peer))
+		{
+			clientHandle->closeReset();
+			return;
+		}
+	}
+
 	// if not set up yet, don't accept
 	if (m_dispatchPipes.empty())
 	{
@@ -243,6 +258,11 @@ void UvTcpChildServer::Listen()
 	});
 }
 
+net::TcpServerManager* UvTcpChildServer::GetManager() const
+{
+	return m_parent->GetManager();
+}
+
 void UvTcpChildServer::OnConnection(int status)
 {
 	// initialize a handle for the client
@@ -308,18 +328,51 @@ void UvTcpServerStream::CloseClient()
 			writeCallback->close();
 		}
 
-		client->clear();
+		decltype(m_writeTimeout) writeTimeout;
+
+		{
+			writeTimeout = std::move(m_writeTimeout);
+		}
+
+		if (writeTimeout)
+		{
+			writeTimeout->clear();
+			writeTimeout->close();
+		}
+
+		auto peer = GetPeerAddress();
 
 		client->stop();
-
+		client->shutdown();
 		client->close();
 
 		m_client = {};
+
+		auto manager = m_server->GetManager();
+
+		if (manager)
+		{
+			manager->OnCloseConnection(peer);
+		}
 	}
+}
+
+void UvTcpServerStream::ResetWriteTimeout()
+{
+	m_writeTimeout->start(std::chrono::seconds{ 10 }, std::chrono::milliseconds{ 0 });
 }
 
 bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 {
+	m_writeTimeout = client->loop().resource<uvw::TimerHandle>();
+
+	fwRefContainer<UvTcpServerStream> thisRef(this);
+
+	m_writeTimeout->once<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& event, uvw::TimerHandle& handle)
+	{
+		thisRef->Close();
+	});
+
 	m_client = std::move(client);
 
 	m_client->noDelay(true);
@@ -328,8 +381,6 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 	{
 		std::unique_lock<std::shared_mutex> lock(m_writeCallbackMutex);
 
-		fwRefContainer<UvTcpServerStream> thisRef(this);
-
 		m_writeCallback = m_client->loop().resource<uvw::AsyncHandle>();
 		m_writeCallback->on<uvw::AsyncEvent>([thisRef](const uvw::AsyncEvent& event, uvw::AsyncHandle& handle)
 		{
@@ -337,19 +388,51 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 		});
 	}
 
-	m_client->on<uvw::DataEvent>([this](const uvw::DataEvent& event, uvw::TCPHandle& handle)
+	m_client->on<uvw::WriteEvent>([thisRef](const uvw::WriteEvent& event, uvw::TCPHandle& handle)
 	{
-		HandleRead(event.length, event.data);
+		if (thisRef->m_closingClient)
+		{
+			return;
+		}
+
+		if (thisRef->m_pendingWrites.fetch_sub(1) == 0)
+		{
+			thisRef->m_writeTimeout->stop();
+		}
+		else
+		{
+			thisRef->ResetWriteTimeout();
+		}
 	});
 
-	m_client->on<uvw::EndEvent>([this](const uvw::EndEvent& event, uvw::TCPHandle& handle)
+	m_client->on<uvw::DataEvent>([thisRef](const uvw::DataEvent& event, uvw::TCPHandle& handle)
 	{
-		HandleRead(0, nullptr);
+		if (thisRef->m_closingClient)
+		{
+			return;
+		}
+
+		thisRef->HandleRead(event.length, event.data);
 	});
 
-	m_client->on<uvw::ErrorEvent>([this](const uvw::ErrorEvent& event, uvw::TCPHandle& handle)
+	m_client->on<uvw::EndEvent>([thisRef](const uvw::EndEvent& event, uvw::TCPHandle& handle)
 	{
-		HandleRead(-1, nullptr);
+		if (thisRef->m_closingClient)
+		{
+			return;
+		}
+
+		thisRef->HandleRead(0, nullptr);
+	});
+
+	m_client->on<uvw::ErrorEvent>([thisRef](const uvw::ErrorEvent& event, uvw::TCPHandle& handle)
+	{
+		if (thisRef->m_closingClient)
+		{
+			return;
+		}
+
+		thisRef->HandleRead(-1, nullptr);
 	});
 
 	// accept and read
@@ -441,7 +524,7 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 		return;
 	}
 
-	auto doWrite = [](const std::shared_ptr<uvw::TCPHandle>& client, TCompleteCallback&& onComplete, std::unique_ptr<char[]> data, size_t size)
+	auto doWrite = [this](const std::shared_ptr<uvw::TCPHandle>& client, TCompleteCallback&& onComplete, std::unique_ptr<char[]> data, size_t size)
 	{
 		if (onComplete)
 		{
@@ -494,6 +577,9 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 			});
 		}
 
+		m_pendingWrites++;
+		ResetWriteTimeout();
+
 		client->write(std::move(data), size);
 	};
 
@@ -516,9 +602,11 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 	if (writeCallback)
 	{
 		// submit the write request
-		m_pendingRequests.push(make_shared_function([this, doWrite, data = std::move(data), onComplete = std::move(onComplete), size]() mutable
+		std::weak_ptr<uvw::TCPHandle> weakClient(m_client);
+
+		m_pendingRequests.push(make_shared_function([weakClient, doWrite, data = std::move(data), onComplete = std::move(onComplete), size]() mutable
 		{
-			auto client = m_client;
+			auto client = weakClient.lock();
 
 			if (client)
 			{
@@ -564,11 +652,14 @@ void UvTcpServerStream::HandlePendingWrites()
 	// dequeue pending writes
 	TScheduledCallback request;
 
-	while (m_pendingRequests.try_pop(request))
+	while (!m_pendingRequests.empty())
 	{
-		if (m_client)
+		while (m_pendingRequests.try_pop(request))
 		{
-			request();
+			if (m_client)
+			{
+				request();
+			}
 		}
 	}
 }
