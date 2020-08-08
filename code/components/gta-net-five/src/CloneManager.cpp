@@ -1918,101 +1918,114 @@ void CloneManagerLocal::WriteUpdates()
 		// if we should sync
 		if (syncType != 0)
 		{
-			auto& netBuffer = m_sendBuffer;
-
-			if (syncType == 1)
+			auto doSync = [&](int syncType)
 			{
-				++syncCount1;
-			}
-			else if (syncType == 2)
-			{
-				++syncCount2;
-			}
+				auto& netBuffer = m_sendBuffer;
 
-			// write tree
-			g_curNetObject = object;
-
-			uint32_t lastChangeTime;
-
-			bool shouldTrySend = syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, ts, nullptr, 31, nullptr, &lastChangeTime);
-
-			if (!shouldTrySend && icgi->NetProtoVersion >= 0x202007022353)
-			{
-				if (ts >= objectData.nextKeepaliveSync)
+				if (syncType == 1)
 				{
-					rlBuffer = { packetStub, sizeof(packetStub) };
-					shouldTrySend = true;
+					++syncCount1;
 				}
-			}
-
-			if (shouldTrySend)
-			{
-				// #TODO1S: dynamic resend time based on latency
-				bool shouldWrite = true;
-
-				if (lastChangeTime == objectData.lastChangeTime && ts < (objectData.lastResendTime + 100))
+				else if (syncType == 2)
 				{
-					Log("%s: no early resend of object [obj:%d]\n", __func__, objectId);
-					shouldWrite = false;
+					++syncCount2;
 				}
 
-				if (shouldWrite)
+				// write tree
+				g_curNetObject = object;
+
+				uint32_t lastChangeTime;
+
+				bool shouldTrySend = syncTree->WriteTreeCfx(syncType, (syncType == 2 || syncType == 4) ? 1 : 0, object, &rlBuffer, ts, nullptr, 31, nullptr, &lastChangeTime);
+
+				if (!shouldTrySend && icgi->NetProtoVersion >= 0x202007022353)
 				{
-					objectData.nextKeepaliveSync = ts + 1000;
-					objectData.lastChangeTime = lastChangeTime;
-
-					AssociateSyncTree(object->objectId, syncTree);
-
-					// instantly mark player 31 as acked
-					if (object->m_20())
+					if (ts >= objectData.nextKeepaliveSync)
 					{
-						// 1290
-						//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
+						rlBuffer = { packetStub, sizeof(packetStub) };
+						shouldTrySend = true;
+					}
+				}
+
+				if (shouldTrySend)
+				{
+					// #TODO1S: dynamic resend time based on latency
+					bool shouldWrite = true;
+
+					if (lastChangeTime == objectData.lastChangeTime && ts < (objectData.lastResendTime + 100))
+					{
+						Log("%s: no early resend of object [obj:%d]\n", __func__, objectId);
+						shouldWrite = false;
 					}
 
-					// touch the timestamp
-					touchTimestamp();
-
-					// write header to send buffer
-					netBuffer.Write(3, syncType);
-
-					if (icgi->NetProtoVersion >= 0x201912301309)
+					if (shouldWrite)
 					{
-						netBuffer.Write(16, objectData.uniqifier);
-					}
+						objectData.nextKeepaliveSync = ts + 1000;
+						objectData.lastChangeTime = lastChangeTime;
 
-					// write data
-					//netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
-					//netBuffer.Write<uint8_t>(0); // player ID (byte)
-					netBuffer.Write(13, objectId); // object ID (short)
+						AssociateSyncTree(object->objectId, syncTree);
 
-					if (syncType == 1)
-					{
-						if (icgi->NetProtoVersion >= 0x202002271209)
+						// instantly mark player 31 as acked
+						if (object->m_20())
 						{
-							netBuffer.Write(32, g_objectIdToCreationToken[objectId]);
+							// 1290
+							//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);
 						}
 
-						netBuffer.Write(4, objectType);
+						// touch the timestamp
+						touchTimestamp();
+
+						// write header to send buffer
+						netBuffer.Write(3, syncType);
+
+						if (icgi->NetProtoVersion >= 0x201912301309)
+						{
+							netBuffer.Write(16, objectData.uniqifier);
+						}
+
+						// write data
+						//netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
+						//netBuffer.Write<uint8_t>(0); // player ID (byte)
+						netBuffer.Write(13, objectId); // object ID (short)
+
+						if (syncType == 1)
+						{
+							if (icgi->NetProtoVersion >= 0x202002271209)
+							{
+								netBuffer.Write(32, g_objectIdToCreationToken[objectId]);
+							}
+
+							netBuffer.Write(4, objectType);
+						}
+
+						//netBuffer.Write<uint32_t>(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp()); // timestamp?
+
+						uint32_t len = rlBuffer.GetDataLength();
+						netBuffer.Write(12, len); // length (short)
+
+						if (len > 0)
+						{
+							netBuffer.WriteBits(rlBuffer.m_data, len * 8); // data
+						}
+
+						Log("uncompressed clone sync for [obj:%d]: %d bytes\n", objectId, len);
+
+						AttemptFlushCloneBuffer();
+
+						objectData.lastResendTime = ts;
+						objectData.lastSyncTime = msec();
 					}
-
-					//netBuffer.Write<uint32_t>(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp()); // timestamp?
-
-					uint32_t len = rlBuffer.GetDataLength();
-					netBuffer.Write(12, len); // length (short)
-
-					if (len > 0)
-					{
-						netBuffer.WriteBits(rlBuffer.m_data, len * 8); // data
-					}
-
-					Log("uncompressed clone sync for [obj:%d]: %d bytes\n", objectId, len);
-
-					AttemptFlushCloneBuffer();
-
-					objectData.lastResendTime = ts;
-					objectData.lastSyncTime = msec();
 				}
+			};
+
+			doSync(syncType);
+
+			// send an (incremental) update right after so we update mA0 bits instantly
+			if (syncType == 1)
+			{
+				objectData.nextKeepaliveSync = { 0 };
+				objectData.lastChangeTime = { 0 };
+				doSync(2);
 			}
 		}
 
