@@ -30,6 +30,7 @@ window.focusStack = [];
 
 let handoverBlob = {};
 let serverAddress = '';
+let frameEscapeFunctions = {};
 
 registerPushFunction(function(type, ...args) {
 	switch (type) {
@@ -73,6 +74,7 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		frame.style.visibility = 'hidden';
 		frame.allow = 'microphone *;';
 		frame.src = frameUrl;
+		frame.tabIndex = -1;
 
 		citFrames[frameName] = frame;
 		focusStack.push(frameName);
@@ -83,6 +85,12 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		{
 			frame.style.visibility = 'visible';
 		}, true);
+		
+		frameEscapeFunctions[frameName] = () => {
+			setTimeout(() => {
+				frame.contentWindow.focus();
+			});
+		}
 
 		frame.contentWindow.GetParentResourceName = function()
 		{
@@ -133,12 +141,16 @@ focusFrame = function(frameName)
 		thisFrame.style.zIndex = i.toString();
 	}
 
+	// register blur event for unintentional tab escapes
+	citFrames[frameName].contentWindow.addEventListener("blur", frameEscapeFunctions[frameName]);
 	// and focus the frame itself
 	citFrames[frameName].contentWindow.focus();
 };
 
 blurFrame = function(frameName)
 {
+	// intentional blur, remove blur listener
+	citFrames[frameName].contentWindow.removeEventListener("blur", frameEscapeFunctions[frameName]);
 	// remove focus
 	citFrames[frameName].contentWindow.blur();
 };
