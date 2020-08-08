@@ -653,7 +653,7 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 		for (size_t i = 0; i < thisPing; i++)
 		{
 			auto var = float(m_udpPings[i]) - m_udpPingAverage;
-			varianceCount += var;
+			varianceCount += (var * var);
 		}
 
 		m_udpPingVariance = varianceCount / (thisPing + 1);
@@ -809,7 +809,7 @@ void MumbleClient::HandlePing(const MumbleProto::Ping& ping)
 		for (size_t i = 0; i < thisPing; i++)
 		{
 			auto var = float(m_tcpPings[i]) - m_tcpPingAverage;
-			varianceCount += var;
+			varianceCount += (var * var);
 		}
 
 		m_tcpPingVariance = varianceCount / (thisPing + 1);
