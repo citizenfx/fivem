@@ -152,7 +152,7 @@ namespace fx
 
 	std::shared_ptr<fx::Client> ClientRegistry::GetHost()
 	{
-		if (m_hostNetId == -1)
+		if (m_hostNetId == 0xFFFF)
 		{
 			return nullptr;
 		}
