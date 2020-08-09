@@ -879,9 +879,19 @@ static HookFunction hookFunction([]()
 	// don't stop unsafe network scripts
 	hook::jump(hook::get_pattern("83 7B 10 02 74 21 48 8B CB E8", -0x35), Return<int, 0>); // 0x140E8A58C
 
+	// load MP item database even for SP item database manager
+	hook::put<uint32_t>(hook::get_address<uint32_t*>(hook::get_pattern("4C 8D 1D ? ? ? ? 48 89 93 60 3A", -0x20)), 0x0DDA1F78);
+
 	// pretend inventory net check (also some other subsystems but mainly inventory) is always SP
 	hook::jump(hook::get_pattern("74 03 B0 01 C3 48 8B 0D", -7), Return<int, 0>);
 
 	// ignore mandatory tunable from (0xE3AFC5BD/0x74B331C6) to make transition 0xB2AEE05F not fail
 	hook::nop(hook::get_pattern("48 83 EC 20 80 3D 12 ? ? ? ? B3 01", 13), 2);
+
+	// switch around SP and MP catalog files
+	{
+		auto location = hook::get_pattern<char>("77 0C BA 02 00 00 00 EB 05 BA 01");
+		hook::put<int>(location + 3, 1);
+		hook::put<int>(location + 10, 2);
+	}
 });
