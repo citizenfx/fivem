@@ -219,6 +219,8 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "appdata0_update.rpf", "c0cee39ce3b9e31f531cb3a629c16854580f9de2", "ipfs://bafybeieolawmxgw23dcljwpvuczcpppcbonvkp23y227m5dd6z34dawzwu", 3003087 },
 	{ "update.rpf", "631c46068ea94acff942a40d3d2480a90c239bba", "ipfs://bafybeibyfhbvrrsmvrh7xvqgc7ncgsqvwkteuhcmn6ammoiuqxtznvzi6q", 3515071040 },
 	{ "shaders_x64.rpf", "51ec2a527e5c86d44323890d154fdff5274d66dd", "ipfs://bafybeiawjcbj4s2mmmtmvxu2usbhh3qa5dmnqd2pywdpfg44edqk6erky4", 233487310 },
+
+	{ "x64/dlcpacks/mp007/dlc.rpf", "f9d085bc889fc89d205c43a63d784d131be3ae8f", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1425958473 },
 #endif
 
 	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "https://mirrors.fivem.net/emergency_mirror/launcher/Launcher.exe", 37970576 },
