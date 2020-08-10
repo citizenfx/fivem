@@ -62,7 +62,7 @@ static InitFunction initFunction([]()
 
 			if (!variableList.empty())
 			{
-				clientRegistry->ForAllClients([&variableList, sendVariableList](const std::shared_ptr<fx::Client>& client)
+				clientRegistry->ForAllClients([&variableList, sendVariableList](const fx::ClientSharedPtr& client)
 				{
 					sendVariableList(client.get(), variableList);
 				});

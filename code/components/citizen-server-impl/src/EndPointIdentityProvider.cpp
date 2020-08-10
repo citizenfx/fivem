@@ -17,11 +17,10 @@
 
 #ifdef _WIN32
 #undef ssize_t
+#pragma comment(lib, "iphlpapi.lib")
 #else
 #include <sys/types.h>
 #endif
-
-#pragma comment(lib, "iphlpapi.lib")
 
 #include <folly/IPAddress.h>
 #include <folly/String.h>
@@ -54,7 +53,7 @@ static InitFunction initFunction([]()
 			return 5;
 		}
 
-		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
+		virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
 			const auto& ep = clientPtr->GetTcpEndPoint();
 			clientPtr->AddIdentifier("ip:" + ep);
@@ -62,7 +61,7 @@ static InitFunction initFunction([]()
 			cb({});
 		}
 
-		void RunRealIPAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb, const std::string& realIP)
+		void RunRealIPAuthentication(const fx::ClientSharedPtr& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb, const std::string& realIP)
 		{
 			auto ipCidrList = allowedIpCidr.GetValue();
 			bool found = false;
@@ -114,7 +113,7 @@ static InitFunction initFunction([]()
 			cb({});
 		}
 
-		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
+		virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
 			auto sourceIP = request->GetHeader("X-Cfx-Source-Ip", "");
 			auto realIP = request->GetHeader("X-Real-Ip", "");

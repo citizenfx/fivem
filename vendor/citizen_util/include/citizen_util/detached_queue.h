@@ -1,4 +1,5 @@
 // Copyright (c) 2020 Can Boluk and contributors of the VTIL Project   
+// Modified by DefCon42.
 // All rights reserved.   
 //    
 // Redistribution and use in source and binary forms, with or without   
@@ -50,12 +51,50 @@ struct detached_queue_key
 	}
 };
 
-// Detached in-place queue for tracking already allocated objects
+// Extremely simple detached in-place SCSC queue. Slightly faster than a detached MPSC queue due to not needing as much logic for popping.
+//
+template<typename T>
+struct detached_scsc_queue
+{
+	// Detached key.
+	//
+	using key = detached_queue_key<T>;
+
+	key* head = nullptr;
+	key* tail = nullptr;
+
+	void push(key* node)
+	{
+		node->next = nullptr;
+		if (tail == nullptr)
+			tail = node;
+
+		if (head == nullptr)
+			head = node;
+		else
+		{
+			head->next = node;
+			head = node;
+		}
+	}
+
+	key* flush()
+	{
+		auto old_tail = tail;
+
+		head = nullptr;
+		tail = nullptr;
+
+		return old_tail;
+	}
+};
+
+// Detached in-place MPSC queue for tracking already allocated objects
 // in a different order with no allocations.
 // Based on (read: copied from) http://www.1024cores.net/home/lock-free-algorithms/queues/intrusive-mpsc-node-based-queue
 //
-template<typename T, bool Locked = false>
-struct detached_queue
+template<typename T>
+struct detached_mpsc_queue
 {
 	// Detached key.
 	//
@@ -64,7 +103,6 @@ struct detached_queue
 	key stub{};
 	std::atomic<key*> head = &stub;
 	std::atomic<key*> tail = &stub;
-	std::mutex popper_mutex;
 
 	void push(key* node)
 	{
@@ -73,7 +111,7 @@ struct detached_queue
 		prev->next.store(node, std::memory_order_release);
 	}
 
-	T* unsafe_pop(member_reference_t<T, key> ref)
+	T* pop(member_reference_t<T, key> ref)
 	{
 		auto* t = tail.load(std::memory_order_relaxed);
 		auto* next = t->next.load(std::memory_order_acquire);
@@ -92,7 +130,9 @@ struct detached_queue
 		}
 		auto* h = head.load(std::memory_order_relaxed);
 		if (t != h)
+		{
 			return nullptr;
+		}
 		push(&stub);
 		next = t->next;
 		if (next != nullptr)
@@ -101,19 +141,6 @@ struct detached_queue
 			return t->get(std::move(ref));
 		}
 		return nullptr;
-	}
-
-	T* pop(member_reference_t<T, key> ref)
-	{
-		if constexpr (Locked)
-		{
-			std::unique_lock lock(popper_mutex);
-			return unsafe_pop(std::move(ref));
-		}
-		else
-		{
-			return unsafe_pop(std::move(ref));
-		}
 	}
 };
 }

@@ -231,7 +231,7 @@ static InitFunction initFunction([]()
 
 			int numClients = 0;
 
-			instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
 			{
 				if (client->GetNetId() < 0xFFFF)
 				{
@@ -295,7 +295,7 @@ static InitFunction initFunction([]()
 
 			json data = json::array();
 
-			clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 			{
 				if (client->GetNetId() >= 0xFFFF)
 				{
@@ -316,14 +316,16 @@ static InitFunction initFunction([]()
 					identifiers.erase(newEnd, identifiers.end());
 				}
 
-				auto peer = gscomms_get_peer(client->GetPeer());
+				fx::NetPeerStackBuffer stackBuffer;
+				gscomms_get_peer(client->GetPeer(), stackBuffer);
+				auto peer = stackBuffer.GetBase();
 
 				data.push_back({
 					{ "endpoint", (showEP) ? client->GetAddress().ToString() : "127.0.0.1" },
 					{ "id", client->GetNetId() },
 					{ "identifiers", identifiers },
 					{ "name", client->GetName() },
-					{ "ping", peer.GetRef() ? peer->GetPing() : -1 }
+					{ "ping", peer ? peer->GetPing() : -1 }
 				});
 			});
 

@@ -90,7 +90,7 @@ private:
 	fx::ResourceManager* m_manager;
 };
 
-static void HandleServerEvent(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
 	uint16_t eventNameLength = buffer.Read<uint16_t>();
 
@@ -343,7 +343,7 @@ static InitFunction initFunction([]()
 		instance
 			->GetComponent<fx::GameServer>()
 			->GetComponent<fx::HandlerMapComponent>()
-			->Add(HashRageString("msgReassembledEvent"), [rac](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+			->Add(HashRageString("msgReassembledEvent"), [rac](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 			{
 				rac->HandlePacket(client->GetNetId(), std::string_view{ (char*)(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
 			});
@@ -351,17 +351,18 @@ static InitFunction initFunction([]()
 		g_reassemblySink.instance = instance;
 		rac->SetSink(&g_reassemblySink);
 
-		instance->GetComponent<fx::ClientRegistry>()->OnClientCreated.Connect([rac](fx::Client* client)
+		instance->GetComponent<fx::ClientRegistry>()->OnClientCreated.Connect([rac](const fx::ClientSharedPtr& client)
 		{
-			client->OnAssignNetId.Connect([rac, client]()
+			fx::Client* unsafeClient = client.get();
+			unsafeClient->OnAssignNetId.Connect([rac, unsafeClient]()
 			{
-				if (client->GetNetId() < 0xFFFF)
+				if (unsafeClient->GetNetId() < 0xFFFF)
 				{
-					rac->RegisterTarget(client->GetNetId());
-
-					client->OnDrop.Connect([rac, client]()
+					rac->RegisterTarget(unsafeClient->GetNetId());
+					
+					unsafeClient->OnDrop.Connect([rac, unsafeClient]()
 					{
-						rac->UnregisterTarget(client->GetNetId());
+						rac->UnregisterTarget(unsafeClient->GetNetId());
 					});
 				}
 			});
@@ -474,7 +475,7 @@ static InitFunction initFunction([]()
 				outBuffer.Write(HashRageString("msgResStart"));
 				outBuffer.Write(resource->GetName().c_str(), resource->GetName().length());
 
-				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 
@@ -509,7 +510,7 @@ static InitFunction initFunction([]()
 				outBuffer.Write(HashRageString("msgResStop"));
 				outBuffer.Write(resource->GetName().c_str(), resource->GetName().length());
 
-				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 				});
@@ -718,7 +719,7 @@ static InitFunction initFunction([]()
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerEvent"), std::bind(&HandleServerEvent, instance, std::placeholders::_1, std::placeholders::_2));
 
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerCommand"), [=](const std::shared_ptr<fx::Client>& client, net::Buffer& buffer)
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerCommand"), [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 		{
 			auto cmdLen = buffer.Read<uint16_t>();
 
@@ -798,7 +799,7 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 	}
 	else
 	{
-		clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+		clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
 			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		});
