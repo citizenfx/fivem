@@ -88,8 +88,10 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		
 		frameEscapeFunctions[frameName] = () => {
 			setTimeout(() => {
-				frame.contentWindow.focus();
-			});
+				if (document.activeElement == document.body) {
+					frame.contentWindow.focus();
+				}
+			}, 32);
 		}
 
 		frame.contentWindow.GetParentResourceName = function()
