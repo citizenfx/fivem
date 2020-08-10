@@ -184,7 +184,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 			{ "type", "pe" },
 			{ "code_id", fmt::sprintf("%x%x", moduleInfo.TimeDateStamp, moduleInfo.ImageSize) },
 			{ "code_file", ToNarrow(moduleInfo.ImageName) },
-			{ "debug_id", fmt::sprintf("%s-%d", ToNarrow(uuidS), moduleInfo.PdbAge) },
+			{ "debug_id", fmt::sprintf("%s-%x", ToNarrow(uuidS), moduleInfo.PdbAge) },
 			{ "debug_file", ToNarrow(moduleInfo.CVData) },
 			{ "image_addr", fmt::sprintf("0x%x", moduleInfo.BaseOfImage) },
 			{ "image_size", moduleInfo.ImageSize },
