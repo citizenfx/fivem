@@ -28,9 +28,9 @@ private:
 private:
 	void Initialize();
 
-protected:
 	void EnsureWritableSize(size_t length);
 
+public:
 	inline std::shared_ptr<std::vector<uint8_t>> GetBytes()
 	{
 		return m_bytes;
@@ -41,7 +41,6 @@ protected:
 		return m_bytes;
 	}
 
-public:
 	Buffer();
 	Buffer(const uint8_t* bytes, size_t length);
 	Buffer(const std::vector<uint8_t>& origBytes);

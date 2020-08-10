@@ -21,7 +21,7 @@ public:
 	using TRejectCallback = std::function<void(const std::string&)>;
 
 public:
-	ClientDeferral(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client);
+	ClientDeferral(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client);
 
 	virtual ~ClientDeferral();
 
@@ -99,7 +99,7 @@ private:
 	TCardCallback m_cardCallback;
 	TCardCallback m_cardResponseCallback;
 
-	std::weak_ptr<fx::Client> m_client;
+	fx::ClientWeakPtr m_client;
 
 	std::map<std::string, DeferralState> m_deferralStates;
 	std::map<std::string, std::string> m_handoverData;

@@ -42,7 +42,7 @@ inline uint32_t MakeEntityHandle(uint16_t objectId)
 
 namespace fx
 {
-	glm::vec3 GetPlayerFocusPos(const std::shared_ptr<sync::SyncEntityState>& entity);
+	glm::vec3 GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity);
 }
 
 static tbb::concurrent_unordered_map<uint32_t, std::list<std::tuple<uint64_t, net::Buffer>>> g_replayList;
@@ -63,9 +63,10 @@ static InitFunction initFunction([]()
 		auto gameState = ref->GetComponent<fx::ServerGameState>();
 		auto gameServer = ref->GetComponent<fx::GameServer>();
 
-		clientRegistry->OnClientCreated.Connect([](fx::Client* client)
+		clientRegistry->OnClientCreated.Connect([](const fx::ClientSharedPtr& client)
 		{
-			client->OnCreatePed.Connect([client]()
+			fx::Client* unsafeClient = client.get();
+			unsafeClient->OnCreatePed.Connect([unsafeClient]()
 			{
 				for (auto& entry : g_replayList)
 				{
@@ -73,14 +74,14 @@ static InitFunction initFunction([]()
 					{
 						for (auto& [ native, buffer ] : entry.second)
 						{
-							client->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+							unsafeClient->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
 						}
 					}
 				}
 			});
 		});
 
-		gameState->OnEntityCreate.Connect([](std::shared_ptr<fx::sync::SyncEntityState> entity)
+		gameState->OnEntityCreate.Connect([](fx::sync::SyncEntityPtr entity)
 		{
 			auto creationToken = entity->creationToken;
 			auto objectId = entity->handle;
@@ -130,7 +131,7 @@ static InitFunction initFunction([]()
 				uint32_t delId = 0;
 				int clientIdx = -1;
 				uint32_t contextId = 0;
-				std::shared_ptr<fx::sync::SyncEntityState> entity;
+				fx::sync::SyncEntityPtr entity;
 
 				if (native->GetRpcType() == RpcConfiguration::RpcType::EntityContext)
 				{
@@ -244,7 +245,7 @@ static InitFunction initFunction([]()
 					// if no pos-style argument, route to first client we find
 					if (!found)
 					{
-						clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+						clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 						{
 							if (clientIdx != -1)
 							{
@@ -260,11 +261,11 @@ static InitFunction initFunction([]()
 					else
 					{
 						// route to a nearby candidate
-						std::vector<std::tuple<float, std::shared_ptr<fx::Client>>> candidates;
+						std::vector<std::tuple<float, fx::ClientSharedPtr>> candidates;
 
 						glm::vec3 pos{ ctx.GetArgument<float>(startIdx), ctx.GetArgument<float>(startIdx + 1), ctx.GetArgument<float>(startIdx + 2) };
 
-						clientRegistry->ForAllClients([&candidates, gameState, pos](const std::shared_ptr<fx::Client>& tgtClient)
+						clientRegistry->ForAllClients([&candidates, gameState, pos](const fx::ClientSharedPtr& tgtClient)
 						{
 							if (tgtClient->GetSlotId() == 0xFFFFFFFF)
 							{
@@ -275,7 +276,7 @@ static InitFunction initFunction([]()
 
 							try
 							{
-								std::shared_ptr<fx::sync::SyncEntityState> playerEntity;
+								fx::sync::SyncEntityPtr playerEntity;
 
 								{
 									auto [lock, data] = gameState->ExternalGetClientData(tgtClient);
@@ -462,7 +463,7 @@ static InitFunction initFunction([]()
 					++i;
 				}
 
-				auto sendToClient = [&](const std::shared_ptr<fx::Client>& cl)
+				auto sendToClient = [&](const fx::ClientSharedPtr& cl)
 				{
 					cl->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
 				};
@@ -472,7 +473,7 @@ static InitFunction initFunction([]()
 					if (entity && !entity->client.lock())
 					{
 						std::unique_lock<std::shared_mutex> _(entity->guidMutex);
-						entity->onCreationRPC.push_back([buffer](const std::shared_ptr<fx::Client>& client)
+						entity->onCreationRPC.push_back([buffer](const fx::ClientSharedPtr& client)
 						{
 							client->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
 						});

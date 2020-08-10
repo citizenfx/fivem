@@ -279,7 +279,7 @@ static InitFunction initFunction([]()
 		{
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-			clientRegistry->ForAllClients([](const std::shared_ptr<fx::Client>& client)
+			clientRegistry->ForAllClients([](const fx::ClientSharedPtr& client)
 			{
 				auto deferralAny = client->GetData("deferralPtr");
 
@@ -570,7 +570,7 @@ static InitFunction initFunction([]()
 
 			auto done = [=]()
 			{
-				std::weak_ptr<fx::Client> clientWeak(client);
+				fx::ClientWeakPtr clientWeak(client);
 				auto didSucceed = std::make_shared<bool>(false);
 				auto weakSuccess = std::weak_ptr<bool>(didSucceed);
 
@@ -660,7 +660,7 @@ static InitFunction initFunction([]()
 				// *copy* the callback into a *shared* reference
 				auto cbRef = std::make_shared<std::shared_ptr<std::decay_t<decltype(cb)>>>(std::make_shared<std::decay_t<decltype(cb)>>(cb));
 
-				(*deferrals)->SetMessageCallback([deferrals, cbRef](const std::string& message)
+				(*deferrals)->SetMessageCallback([cbRef](const std::string& message)
 				{
 					auto ref1 = *cbRef;
 
@@ -670,7 +670,7 @@ static InitFunction initFunction([]()
 					}
 				});
 
-				(*deferrals)->SetCardCallback([deferrals, cbRef, token](const std::string& card)
+				(*deferrals)->SetCardCallback([cbRef, token](const std::string& card)
 				{
 					auto ref1 = *cbRef;
 

@@ -79,7 +79,7 @@ static InitFunction initFunction([]()
 			auto ra = request->GetRemoteAddress();
 			auto token = request->GetHeader("X-CitizenFX-Token");
 
-			std::shared_ptr<fx::Client> client;
+			fx::ClientSharedPtr client;
 
 			if (!token.empty())
 			{

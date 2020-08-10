@@ -16,6 +16,8 @@
 
 #include <enet/enet.h>
 
+#include <FixedBuffer.h>
+
 namespace fx
 {
 	struct enet_host_deleter
@@ -208,7 +210,8 @@ namespace fx
 				{
 					auto peerId = m_peerHandles.right.find(event.peer)->get_left();
 
-					m_server->ProcessPacket(new NetPeerImplENet(this, peerId), event.packet->data, event.packet->dataLength);
+					NetPeerImplENet netPeer(this, peerId);
+					m_server->ProcessPacket(&netPeer, event.packet->data, event.packet->dataLength);
 					enet_packet_destroy(event.packet);
 					break;
 				}
@@ -249,9 +252,9 @@ namespace fx
 			enet_socketset_select(nfds, &readfds, nullptr, timeout);
 		}
 
-		virtual fwRefContainer<NetPeerBase> GetPeer(int peerId) override
+		virtual void GetPeer(int peerId, NetPeerStackBuffer& stackBuffer) override
 		{
-			return new NetPeerImplENet(this, peerId);
+			stackBuffer.Construct<NetPeerImplENet>(this, peerId);
 		}
 
 		virtual void ResetPeer(int peerId) override
@@ -269,13 +272,19 @@ namespace fx
 		virtual void SendPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) override
 		{
 			auto peerPair = m_peerHandles.left.find(peer);
-
 			if (peerPair == m_peerHandles.left.end())
 			{
 				return;
 			}
 
-			auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetCurOffset(), (type == NetPacketType_Reliable || type == NetPacketType_ReliableReplayed) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0);
+			// fewer allocations!!
+			auto flags = ENET_PACKET_FLAG_NO_ALLOCATE | ((type == NetPacketType_Reliable || type == NetPacketType_ReliableReplayed) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0);
+			auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetCurOffset(), flags);
+			packet->userData = new std::shared_ptr<std::vector<uint8_t>>(buffer.GetBytes());
+			packet->freeCallback = [](ENetPacket* packet)
+			{
+				delete (std::shared_ptr<std::vector<uint8_t>>*)packet->userData;
+			};
 			enet_peer_send(peerPair->get_right(), channel, packet);
 		}
 

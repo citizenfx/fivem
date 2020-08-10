@@ -25,8 +25,28 @@
 
 #include <GameNames.h>
 
+#include <citizen_util/detached_queue.h>
+#include <citizen_util/object_pool.h>
+
 namespace fx
 {
+	struct GameServerPacket
+	{
+		int peer;
+		int channel;
+		net::Buffer buffer;
+		NetPacketType type;
+
+		detached_queue_key<GameServerPacket> queueKey;
+
+		GameServerPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) : peer(peer), channel(channel), buffer(buffer), type(type)
+		{
+
+		}
+	};
+
+	inline object_pool<GameServerPacket> m_packetPool;
+
 	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
 	{
 	public:
@@ -44,10 +64,10 @@ namespace fx
 
 		std::string GetVariable(const std::string& key);
 
-		void DropClientv(const std::shared_ptr<Client>& client, const std::string& reason, fmt::printf_args args);
+		void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
 
 		template<typename... TArgs>
-		inline void DropClient(const std::shared_ptr<Client>& client, const std::string& reason, const TArgs&... args)
+		inline void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
 		{
 			DropClientv(client, reason, fmt::make_printf_args(args...));
 		}
@@ -163,11 +183,11 @@ namespace fx
 			m_syncThreadCallbacks->Add(fn);
 		}
 
-		fwRefContainer<NetPeerBase> InternalGetPeer(int peerId);
+		void InternalGetPeer(int peerId, NetPeerStackBuffer& stackBuffer);
 
 		void InternalResetPeer(int peerId);
 
-		void InternalSendPacket(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
+		void InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
 
 		void InternalRunMainThreadCbs(nng_socket socket);
 
@@ -175,10 +195,10 @@ namespace fx
 		void Run();
 
 	public:
-		void ProcessPacket(const fwRefContainer<NetPeerBase>& peer, const uint8_t* data, size_t size);
+		void ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size);
 
 	public:
-		using TPacketHandler = std::function<void(uint32_t packetId, const std::shared_ptr<Client>& client, net::Buffer& packet)>;
+		using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::Buffer& packet)>;
 
 		inline void SetPacketHandler(const TPacketHandler& handler)
 		{
@@ -283,11 +303,10 @@ namespace fx
 
 		std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
 
-		// only touched on network thread(!)
-		std::list<std::tuple<int, int, net::Buffer, NetPacketType>> m_netSendList;
+		detached_queue<GameServerPacket> m_netSendList;
 	};
 
-	using TPacketTypeHandler = std::function<void(const std::shared_ptr<Client>& client, net::Buffer& packet)>;
+	using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::Buffer& packet)>;
 
 	enum class ThreadIdx
 	{

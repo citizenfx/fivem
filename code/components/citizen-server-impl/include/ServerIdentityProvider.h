@@ -28,13 +28,13 @@ public:
 	// Attempts authentication on the current identifier type for the specified client.
 	// Should call `cb` on completion.
 	//
-	virtual void RunAuthentication(const std::shared_ptr<Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) = 0;
+	virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) = 0;
 
 	//
 	// Attempts authentication on the current identifier type for the specified client, passing the original HTTP request.
 	// Should call `cb` on completion.
 	//
-	virtual void RunAuthentication(const std::shared_ptr<Client>& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb)
+	virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const fwRefContainer<net::HttpRequest>& request, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb)
 	{
 		RunAuthentication(clientPtr, postMap, cb);
 	}
