@@ -361,6 +361,34 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			auto webVar = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
+
+			if (webVar)
+			{
+				auto wvv = webVar->GetValue();
+				std::string_view wvvv{
+					wvv
+				};
+
+				auto endPos = wvvv.find(".users.cfx.re");
+
+				if (endPos != std::string::npos)
+				{
+					auto startPos = wvvv.rfind("-", endPos);
+
+					if (startPos != std::string::npos)
+					{
+						auto webUrl = fmt::sprintf("https://cfx.re/join/%s", wvvv.substr(startPos + 1, endPos - (startPos + 1)));
+
+						response->SetStatusCode(302);
+						response->SetHeader("Location", webUrl);
+
+						response->End("Redirecting...");
+						return;
+					}
+				}
+			}
+
 			auto data = nlohmann::json::object(
 				{
 					{ "version", "FXServer-" GIT_DESCRIPTION }
