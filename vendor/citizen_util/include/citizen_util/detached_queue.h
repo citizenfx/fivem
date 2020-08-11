@@ -66,9 +66,9 @@ struct detached_scsc_queue
 	void push(key* node)
 	{
 		node->next = nullptr;
-
 		if (tail == nullptr)
 			tail = node;
+
 		if (head == nullptr)
 			head = node;
 		else
@@ -78,18 +78,14 @@ struct detached_scsc_queue
 		}
 	}
 
-	T* pop_front(member_reference_t<T, key> ref)
+	key* flush()
 	{
-		auto val = tail;
-		if (val != nullptr)
-		{
-			tail = val->next;
-			return val->get(std::move(ref));
-		}
-		else
-		{
-			return nullptr;
-		}
+		auto old_tail = tail;
+
+		head = nullptr;
+		tail = nullptr;
+
+		return old_tail;
 	}
 };
 
