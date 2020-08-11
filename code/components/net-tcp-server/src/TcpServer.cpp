@@ -49,14 +49,22 @@ void TcpServerStream::Write(std::unique_ptr<char[]> data, size_t size, TComplete
 
 void TcpServerStream::SetCloseCallback(const TCloseCallback& callback)
 {
-	m_closeCallback = callback;
+	{
+		std::unique_lock<std::shared_mutex> _(m_cbMutex);
+		m_closeCallback = callback;
+	}
 }
 
 void TcpServerStream::SetReadCallback(const TReadCallback& callback)
 {
-	bool wasFirst = !static_cast<bool>(m_readCallback);
+	bool wasFirst = false;
 
-	m_readCallback = callback;
+	{
+		std::unique_lock<std::shared_mutex> _(m_cbMutex);
+
+		wasFirst = !static_cast<bool>(m_readCallback);
+		m_readCallback = callback;
+	}
 
 	if (wasFirst)
 	{
