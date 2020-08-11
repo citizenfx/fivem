@@ -30,316 +30,313 @@
 
 namespace fx
 {
-	struct GameServerPacket
+struct GameServerPacket
+{
+	int peer;
+	int channel;
+	net::Buffer buffer;
+	NetPacketType type;
+
+	detached_queue_key<GameServerPacket> queueKey;
+
+	GameServerPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type)
+		: peer(peer), channel(channel), buffer(buffer), type(type)
 	{
-		int peer;
-		int channel;
-		net::Buffer buffer;
-		NetPacketType type;
+	}
+};
 
-		detached_queue_key<GameServerPacket> queueKey;
+inline object_pool<GameServerPacket> m_packetPool;
 
-		GameServerPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) : peer(peer), channel(channel), buffer(buffer), type(type)
-		{
+class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
+{
+public:
+	GameServer();
 
-		}
-	};
+	virtual ~GameServer() override;
 
-	inline object_pool<GameServerPacket> m_packetPool;
+	virtual void AttachToObject(ServerInstanceBase* instance) override;
 
-	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
+	void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix = true);
+
+	void ProcessServerFrame(int frameTime);
+
+	void Broadcast(const net::Buffer& buffer);
+
+	std::string GetVariable(const std::string& key);
+
+	void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
+
+	template<typename... TArgs>
+	inline void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
 	{
-	public:
-		GameServer();
+		DropClientv(client, reason, fmt::make_printf_args(args...));
+	}
 
-		virtual ~GameServer() override;
+	void ForceHeartbeat();
 
-		virtual void AttachToObject(ServerInstanceBase* instance) override;
+	void ForceHeartbeatSoon();
 
-		void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix = true);
+	void DeferCall(int inMsec, const std::function<void()>& fn);
 
-		void ProcessServerFrame(int frameTime);
+	void CreateUdpHost(const net::PeerAddress& address);
 
-		void Broadcast(const net::Buffer& buffer);
+	void AddRawInterceptor(const std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)>& interceptor);
 
-		std::string GetVariable(const std::string& key);
+	inline void SetRunLoop(const std::function<void()>& runLoop)
+	{
+		m_runLoop = runLoop;
+	}
 
-		void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
+	inline ServerInstanceBase* GetInstance()
+	{
+		return m_instance;
+	}
 
-		template<typename... TArgs>
-		inline void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
+	inline std::string GetRconPassword()
+	{
+		return m_rconPassword->GetValue();
+	}
+
+	inline int GetNetLibVersion()
+	{
+		return m_net->GetClientVersion();
+	}
+
+	inline auto GetIpOverrideVar()
+	{
+		return m_listingIpOverride;
+	}
+
+public:
+	struct CallbackListBase
+	{
+		inline CallbackListBase()
+			: threadId(std::this_thread::get_id())
 		{
-			DropClientv(client, reason, fmt::make_printf_args(args...));
 		}
 
-		void ForceHeartbeat();
+		virtual ~CallbackListBase() = default;
 
-		void ForceHeartbeatSoon();
-
-		void DeferCall(int inMsec, const std::function<void()>& fn);
-
-		void CreateUdpHost(const net::PeerAddress& address);
-
-		void AddRawInterceptor(const std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)>& interceptor);
-
-		inline void SetRunLoop(const std::function<void()>& runLoop)
+		inline void AttachToThread()
 		{
-			m_runLoop = runLoop;
+			threadId = std::this_thread::get_id();
 		}
 
-		inline ServerInstanceBase* GetInstance()
-		{
-			return m_instance;
-		}
+		void Add(const std::function<void()>& fn, bool force = false);
 
-		inline std::string GetRconPassword()
-		{
-			return m_rconPassword->GetValue();
-		}
-
-		inline int GetNetLibVersion()
-		{
-			return m_net->GetClientVersion();
-		}
-
-		inline auto GetIpOverrideVar()
-		{
-			return m_listingIpOverride;
-		}
-
-	public:
-		struct CallbackListBase
-		{
-			inline CallbackListBase()
-				: threadId(std::this_thread::get_id())
-			{
-
-			}
-
-			virtual ~CallbackListBase() = default;
-
-			inline void AttachToThread()
-			{
-				threadId = std::this_thread::get_id();
-			}
-
-			void Add(const std::function<void()>& fn, bool force = false);
-
-			void Run();
-
-		protected:
-			virtual void SignalThread() = 0;
-
-		private:
-			moodycamel::ConcurrentQueue<std::function<void()>> callbacks;
-
-			std::thread::id threadId;
-		};
-
-		struct CallbackListNng : public CallbackListBase
-		{
-			inline CallbackListNng(const std::string& socketName, int socketIdx)
-				: m_socketName(socketName), m_socketIdx(socketIdx)
-			{
-
-			}
-
-		protected:
-			virtual void SignalThread() override;
-
-		private:
-			std::string m_socketName;
-
-			int m_socketIdx;
-		};
-
-		struct CallbackListUv : public CallbackListBase
-		{
-			inline CallbackListUv(std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> async)
-				: m_async(async)
-			{
-
-			}
-
-		protected:
-			virtual void SignalThread() override;
-
-		private:
-			std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> m_async;
-		};
-
-		inline void InternalAddMainThreadCb(const std::function<void()>& fn, bool force = false)
-		{
-			m_mainThreadCallbacks->Add(fn, force);
-		}
-
-		inline void InternalAddNetThreadCb(const std::function<void()>& fn)
-		{
-			m_netThreadCallbacks->Add(fn);
-		}
-
-		inline void InternalAddSyncThreadCb(const std::function<void()>& fn)
-		{
-			m_syncThreadCallbacks->Add(fn);
-		}
-
-		void InternalGetPeer(int peerId, NetPeerStackBuffer& stackBuffer);
-
-		void InternalResetPeer(int peerId);
-
-		void InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
-
-		void InternalRunMainThreadCbs(nng_socket socket);
-
-	private:
 		void Run();
 
-	public:
-		void ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size);
-
-	public:
-		using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::Buffer& packet)>;
-
-		inline void SetPacketHandler(const TPacketHandler& handler)
-		{
-			m_packetHandler = handler;
-		}
-
-		inline fx::GameName GetGameName()
-		{
-			return m_gamename->GetValue();
-		}
-
-		inline bool HasSettled() const
-		{
-			return m_hasSettled;
-		}
-
-		inline bool UseAccurateSends()
-		{
-			return m_useAccurateSendsVar->GetValue();
-		}
+	protected:
+		virtual void SignalThread() = 0;
 
 	private:
-		void InitializeSyncUv();
+		moodycamel::ConcurrentQueue<std::function<void()>> callbacks;
 
-		void InitializeNetUv();
+		std::thread::id threadId;
+	};
 
-		void InitializeNetThread();
+	struct CallbackListNng : public CallbackListBase
+	{
+		inline CallbackListNng(const std::string& socketName, int socketIdx)
+			: m_socketName(socketName), m_socketIdx(socketIdx)
+		{
+		}
 
-	public:
-		fwEvent<> OnTick;
-
-		fwEvent<> OnNetworkTick;
-
-		fwEvent<> OnSyncTick;
-
-		fwEvent<fx::ServerInstanceBase*> OnAttached;
+	protected:
+		virtual void SignalThread() override;
 
 	private:
-		std::thread m_thread;
+		std::string m_socketName;
 
-		TPacketHandler m_packetHandler;
-
-		bool m_hasSettled;
-
-		std::function<void()> m_runLoop;
-
-		uint64_t m_residualTime;
-
-		uint64_t m_serverTime;
-
-		ClientRegistry* m_clientRegistry;
-
-		ServerInstanceBase* m_instance;
-
-		std::shared_ptr<ConsoleCommand> m_heartbeatCommand;
-
-		std::shared_ptr<ConVar<std::string>> m_listingIpOverride;
-
-		std::shared_ptr<ConVar<std::string>> m_listingHostOverride;
-
-		std::shared_ptr<ConVar<bool>> m_forceIndirectListing;
-
-		std::shared_ptr<ConVar<bool>> m_useAccurateSendsVar;
-
-		std::shared_ptr<ConVar<std::string>> m_rconPassword;
-
-		std::shared_ptr<ConVar<std::string>> m_hostname;
-
-		std::shared_ptr<ConVar<GameName>> m_gamename;
-
-		std::shared_ptr<ConVar<std::string>> m_masters[3];
-
-		std::string m_lastGameName;
-
-		tbb::concurrent_unordered_map<std::string, net::PeerAddress> m_masterCache;
-
-		fwRefContainer<se::Context> m_seContext;
-
-		std::chrono::milliseconds m_nextHeartbeatTime;
-
-		tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
-
-		fwRefContainer<GameServerNetBase> m_net;
-
-		fwRefContainer<net::UvLoopHolder> m_syncThreadLoop;
-
-		fwRefContainer<net::UvLoopHolder> m_netThreadLoop;
-
-		fwRefContainer<net::UvLoopHolder> m_mainThreadLoop;
-
-		std::any m_syncThreadData;
-
-		std::any m_netThreadData;
-
-		std::any m_mainThreadData;
-
-		std::function<bool(const uint8_t *, size_t, const net::PeerAddress &)> m_interceptor;
-
-		std::unique_ptr<CallbackListBase> m_mainThreadCallbacks;
-
-		std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
-
-		std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
-
-		detached_queue<GameServerPacket> m_netSendList;
+		int m_socketIdx;
 	};
 
-	using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::Buffer& packet)>;
-
-	enum class ThreadIdx
+	struct CallbackListUv : public CallbackListBase
 	{
-		Main,
-		Net,
-		Sync
+		inline CallbackListUv(std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> async)
+			: m_async(async)
+		{
+		}
+
+	protected:
+		virtual void SignalThread() override;
+
+	private:
+		std::weak_ptr<std::unique_ptr<UvHandleContainer<uv_async_t>>> m_async;
 	};
 
-	class HandlerMapComponent : public MapComponent<uint32_t, std::tuple<ThreadIdx, TPacketTypeHandler>>
+	inline void InternalAddMainThreadCb(const std::function<void()>& fn, bool force = false)
 	{
-	public:
-		inline void Add(const uint32_t& key, const std::tuple<ThreadIdx, TPacketTypeHandler>& value)
-		{
-			MapComponent::Add(key, value);
-		}
+		m_mainThreadCallbacks->Add(fn, force);
+	}
 
-		inline void Add(const uint32_t& key, std::tuple<ThreadIdx, TPacketTypeHandler>&& value)
-		{
-			MapComponent::Add(key, std::move(value));
-		}
+	inline void InternalAddNetThreadCb(const std::function<void()>& fn)
+	{
+		m_netThreadCallbacks->Add(fn);
+	}
 
-		inline void Add(const uint32_t& key, const TPacketTypeHandler& value)
-		{
-			MapComponent::Add(key, std::make_tuple(ThreadIdx::Main, value));
-		}
+	inline void InternalAddSyncThreadCb(const std::function<void()>& fn)
+	{
+		m_syncThreadCallbacks->Add(fn);
+	}
 
-		inline void Add(const uint32_t& key, TPacketTypeHandler&& value)
-		{
-			MapComponent::Add(key, std::make_tuple(ThreadIdx::Main, std::move(value)));
-		}
-	};
+	void InternalGetPeer(int peerId, NetPeerStackBuffer& stackBuffer);
 
-	bool IsBigMode();
+	void InternalResetPeer(int peerId);
+
+	void InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type);
+
+	void InternalRunMainThreadCbs(nng_socket socket);
+
+private:
+	void Run();
+
+public:
+	void ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size);
+
+public:
+	using TPacketHandler = std::function<void(uint32_t packetId, const fx::ClientSharedPtr& client, net::Buffer& packet)>;
+
+	inline void SetPacketHandler(const TPacketHandler& handler)
+	{
+		m_packetHandler = handler;
+	}
+
+	inline fx::GameName GetGameName()
+	{
+		return m_gamename->GetValue();
+	}
+
+	inline bool HasSettled() const
+	{
+		return m_hasSettled;
+	}
+
+	inline bool UseAccurateSends()
+	{
+		return m_useAccurateSendsVar->GetValue();
+	}
+
+private:
+	void InitializeSyncUv();
+
+	void InitializeNetUv();
+
+	void InitializeNetThread();
+
+public:
+	fwEvent<> OnTick;
+
+	fwEvent<> OnNetworkTick;
+
+	fwEvent<> OnSyncTick;
+
+	fwEvent<fx::ServerInstanceBase*> OnAttached;
+
+private:
+	std::thread m_thread;
+
+	TPacketHandler m_packetHandler;
+
+	bool m_hasSettled;
+
+	std::function<void()> m_runLoop;
+
+	uint64_t m_residualTime;
+
+	uint64_t m_serverTime;
+
+	ClientRegistry* m_clientRegistry;
+
+	ServerInstanceBase* m_instance;
+
+	std::shared_ptr<ConsoleCommand> m_heartbeatCommand;
+
+	std::shared_ptr<ConVar<std::string>> m_listingIpOverride;
+
+	std::shared_ptr<ConVar<std::string>> m_listingHostOverride;
+
+	std::shared_ptr<ConVar<bool>> m_forceIndirectListing;
+
+	std::shared_ptr<ConVar<bool>> m_useAccurateSendsVar;
+
+	std::shared_ptr<ConVar<std::string>> m_rconPassword;
+
+	std::shared_ptr<ConVar<std::string>> m_hostname;
+
+	std::shared_ptr<ConVar<GameName>> m_gamename;
+
+	std::shared_ptr<ConVar<std::string>> m_masters[3];
+
+	std::string m_lastGameName;
+
+	tbb::concurrent_unordered_map<std::string, net::PeerAddress> m_masterCache;
+
+	fwRefContainer<se::Context> m_seContext;
+
+	std::chrono::milliseconds m_nextHeartbeatTime;
+
+	tbb::concurrent_unordered_map<int, std::tuple<int, std::function<void()>>> m_deferCallbacks;
+
+	fwRefContainer<GameServerNetBase> m_net;
+
+	fwRefContainer<net::UvLoopHolder> m_syncThreadLoop;
+
+	fwRefContainer<net::UvLoopHolder> m_netThreadLoop;
+
+	fwRefContainer<net::UvLoopHolder> m_mainThreadLoop;
+
+	std::any m_syncThreadData;
+
+	std::any m_netThreadData;
+
+	std::any m_mainThreadData;
+
+	std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)> m_interceptor;
+
+	std::unique_ptr<CallbackListBase> m_mainThreadCallbacks;
+
+	std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
+
+	std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
+
+	detached_queue<GameServerPacket> m_netSendList;
+};
+
+using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::Buffer& packet)>;
+
+enum class ThreadIdx
+{
+	Main,
+	Net,
+	Sync
+};
+
+class HandlerMapComponent : public MapComponent<uint32_t, std::tuple<ThreadIdx, TPacketTypeHandler>>
+{
+public:
+	inline void Add(const uint32_t& key, const std::tuple<ThreadIdx, TPacketTypeHandler>& value)
+	{
+		MapComponent::Add(key, value);
+	}
+
+	inline void Add(const uint32_t& key, std::tuple<ThreadIdx, TPacketTypeHandler>&& value)
+	{
+		MapComponent::Add(key, std::move(value));
+	}
+
+	inline void Add(const uint32_t& key, const TPacketTypeHandler& value)
+	{
+		MapComponent::Add(key, std::make_tuple(ThreadIdx::Main, value));
+	}
+
+	inline void Add(const uint32_t& key, TPacketTypeHandler&& value)
+	{
+		MapComponent::Add(key, std::make_tuple(ThreadIdx::Main, std::move(value)));
+	}
+};
+
+bool IsBigMode();
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);

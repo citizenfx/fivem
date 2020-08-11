@@ -24,165 +24,165 @@ namespace tbb
 
 namespace fx
 {
-	class ServerInstanceBase;
+class ServerInstanceBase;
 
-	class ClientRegistry : public fwRefCountable, public IAttached<ServerInstanceBase>
+class ClientRegistry : public fwRefCountable, public IAttached<ServerInstanceBase>
+{
+public:
+	ClientRegistry();
+
+	// invoked upon receiving the `connect` ENet packet
+	void HandleConnectingClient(const fx::ClientSharedPtr& client);
+
+	// invoked upon receiving the `connect` ENet packet, after sending `connectOK`
+	void HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID);
+
+	fx::ClientSharedPtr MakeClient(const std::string& guid);
+
+	inline void RemoveClient(const fx::ClientSharedPtr& client)
 	{
-	public:
-		ClientRegistry();
+		m_clientsByPeer[client->GetPeer()].reset();
+		m_clientsByNetId[client->GetNetId()].reset();
+		m_clientsByConnectionToken[client->GetConnectionToken()].reset();
 
-		// invoked upon receiving the `connect` ENet packet
-		void HandleConnectingClient(const fx::ClientSharedPtr& client);
-
-		// invoked upon receiving the `connect` ENet packet, after sending `connectOK`
-		void HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID);
-
-		fx::ClientSharedPtr MakeClient(const std::string& guid);
-
-		inline void RemoveClient(const fx::ClientSharedPtr& client)
+		if (client->GetSlotId() >= 0 && client->GetSlotId() < m_clientsBySlotId.size())
 		{
-			m_clientsByPeer[client->GetPeer()].reset();
-			m_clientsByNetId[client->GetNetId()].reset();
-			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
-
-			if (client->GetSlotId() >= 0 && client->GetSlotId() < m_clientsBySlotId.size())
-			{
-				std::lock_guard clientGuard(m_clientSlotMutex);
-				m_clientsBySlotId[client->GetSlotId()].reset();
-			}
-
-			m_clients.erase(client->GetGuid());
-
-			// unassign slot ID
-			client->SetSlotId(-1);
-		}
-
-		inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
-		{
-			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clients.find(guid);
-
-			if (it != m_clients.end())
-			{
-				ptr = it->second;
-			}
-
-			return ptr;
-		}
-
-		inline fx::ClientSharedPtr GetClientByPeer(int peer)
-		{
-			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clientsByPeer.find(peer);
-
-			if (it != m_clientsByPeer.end())
-			{
-				ptr = it->second.lock();
-			}
-
-			return ptr;
-		}
-
-		inline fx::ClientSharedPtr GetClientByEndPoint(const net::PeerAddress& address)
-		{
-			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clientsByEndPoint.find(address);
-
-			if (it != m_clientsByEndPoint.end())
-			{
-				ptr = it->second.lock();
-			}
-
-			return ptr;
-		}
-
-		inline fx::ClientSharedPtr GetClientByTcpEndPoint(const std::string& address)
-		{
-			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clientsByTcpEndPoint.find(address);
-
-			if (it != m_clientsByTcpEndPoint.end())
-			{
-				ptr = it->second.lock();
-			}
-
-			return ptr;
-		}
-
-		inline fx::ClientSharedPtr GetClientByNetID(uint32_t netId)
-		{
-			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clientsByNetId.find(netId);
-
-			if (it != m_clientsByNetId.end())
-			{
-				ptr = it->second.lock();
-			}
-
-			return ptr;
-		}
-
-		inline fx::ClientSharedPtr GetClientBySlotID(uint32_t slotId)
-		{
-			assert(slotId < m_clientsBySlotId.size());
-
 			std::lock_guard clientGuard(m_clientSlotMutex);
-			return m_clientsBySlotId[slotId].lock();
+			m_clientsBySlotId[client->GetSlotId()].reset();
 		}
 
-		inline fx::ClientSharedPtr GetClientByConnectionToken(const std::string& token)
+		m_clients.erase(client->GetGuid());
+
+		// unassign slot ID
+		client->SetSlotId(-1);
+	}
+
+	inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
+	{
+		auto ptr = fx::ClientSharedPtr();
+		auto it = m_clients.find(guid);
+
+		if (it != m_clients.end())
 		{
-			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clientsByConnectionToken.find(token);
-
-			if (it != m_clientsByConnectionToken.end())
-			{
-				ptr = it->second.lock();
-			}
-
-			return ptr;
+			ptr = it->second;
 		}
 
-		template<typename TFn>
-		inline void ForAllClients(TFn&& cb)
+		return ptr;
+	}
+
+	inline fx::ClientSharedPtr GetClientByPeer(int peer)
+	{
+		auto ptr = fx::ClientSharedPtr();
+		auto it = m_clientsByPeer.find(peer);
+
+		if (it != m_clientsByPeer.end())
 		{
-			for (auto& client : m_clients)
-			{
-				cb(client.second);
-			}
+			ptr = it->second.lock();
 		}
 
-		fx::ClientSharedPtr GetHost();
+		return ptr;
+	}
 
-		void SetHost(const fx::ClientSharedPtr& client);
+	inline fx::ClientSharedPtr GetClientByEndPoint(const net::PeerAddress& address)
+	{
+		auto ptr = fx::ClientSharedPtr();
+		auto it = m_clientsByEndPoint.find(address);
 
-		virtual void AttachToObject(ServerInstanceBase* instance) override;
+		if (it != m_clientsByEndPoint.end())
+		{
+			ptr = it->second.lock();
+		}
 
-		fwEvent<const fx::ClientSharedPtr&> OnClientCreated;
+		return ptr;
+	}
 
-		fwEvent<Client*> OnConnectedClient;
+	inline fx::ClientSharedPtr GetClientByTcpEndPoint(const std::string& address)
+	{
+		auto ptr = fx::ClientSharedPtr();
+		auto it = m_clientsByTcpEndPoint.find(address);
 
-	private:
-		uint16_t m_hostNetId;
+		if (it != m_clientsByTcpEndPoint.end())
+		{
+			ptr = it->second.lock();
+		}
 
-		using ClientHashMap = xenium::harris_michael_hash_map<std::string, fx::ClientSharedPtr, xenium::policy::reclaimer<xenium::reclamation::stamp_it>>;
+		return ptr;
+	}
 
-		ClientHashMap m_clients;
+	inline fx::ClientSharedPtr GetClientByNetID(uint32_t netId)
+	{
+		auto ptr = fx::ClientSharedPtr();
+		auto it = m_clientsByNetId.find(netId);
 
-		// aliases for fast lookup
-		tbb::concurrent_unordered_map<uint32_t, fx::ClientWeakPtr> m_clientsByNetId;
-		tbb::concurrent_unordered_map<net::PeerAddress, fx::ClientWeakPtr> m_clientsByEndPoint;
-		tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByTcpEndPoint;
-		tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByConnectionToken;
-		tbb::concurrent_unordered_map<int, fx::ClientWeakPtr> m_clientsByPeer;
+		if (it != m_clientsByNetId.end())
+		{
+			ptr = it->second.lock();
+		}
 
-		std::mutex m_clientSlotMutex;
-		std::vector<fx::ClientWeakPtr> m_clientsBySlotId;
+		return ptr;
+	}
 
-		std::atomic<uint16_t> m_curNetId;
+	inline fx::ClientSharedPtr GetClientBySlotID(uint32_t slotId)
+	{
+		assert(slotId < m_clientsBySlotId.size());
 
-		ServerInstanceBase* m_instance;
-	};
+		std::lock_guard clientGuard(m_clientSlotMutex);
+		return m_clientsBySlotId[slotId].lock();
+	}
+
+	inline fx::ClientSharedPtr GetClientByConnectionToken(const std::string& token)
+	{
+		auto ptr = fx::ClientSharedPtr();
+		auto it = m_clientsByConnectionToken.find(token);
+
+		if (it != m_clientsByConnectionToken.end())
+		{
+			ptr = it->second.lock();
+		}
+
+		return ptr;
+	}
+
+	template<typename TFn>
+	inline void ForAllClients(TFn&& cb)
+	{
+		for (auto& client : m_clients)
+		{
+			cb(client.second);
+		}
+	}
+
+	fx::ClientSharedPtr GetHost();
+
+	void SetHost(const fx::ClientSharedPtr& client);
+
+	virtual void AttachToObject(ServerInstanceBase* instance) override;
+
+	fwEvent<const fx::ClientSharedPtr&> OnClientCreated;
+
+	fwEvent<Client*> OnConnectedClient;
+
+private:
+	uint16_t m_hostNetId;
+
+	using ClientHashMap = xenium::harris_michael_hash_map<std::string, fx::ClientSharedPtr, xenium::policy::reclaimer<xenium::reclamation::stamp_it>>;
+
+	ClientHashMap m_clients;
+
+	// aliases for fast lookup
+	tbb::concurrent_unordered_map<uint32_t, fx::ClientWeakPtr> m_clientsByNetId;
+	tbb::concurrent_unordered_map<net::PeerAddress, fx::ClientWeakPtr> m_clientsByEndPoint;
+	tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByTcpEndPoint;
+	tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByConnectionToken;
+	tbb::concurrent_unordered_map<int, fx::ClientWeakPtr> m_clientsByPeer;
+
+	std::mutex m_clientSlotMutex;
+	std::vector<fx::ClientWeakPtr> m_clientsBySlotId;
+
+	std::atomic<uint16_t> m_curNetId;
+
+	ServerInstanceBase* m_instance;
+};
 }
 
 DECLARE_INSTANCE_TYPE(fx::ClientRegistry);
