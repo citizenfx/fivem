@@ -212,8 +212,8 @@ namespace fx
 			{
 				se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
 
-				// start webadmin
-				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
+				// start standard resources
+				//consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
 				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
 
 				// add system console access
