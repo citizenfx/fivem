@@ -300,7 +300,7 @@ private:
 
 	std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
 
-	detached_queue<GameServerPacket> m_netSendList;
+	detached_mpsc_queue<GameServerPacket> m_netSendList;
 };
 
 using TPacketTypeHandler = std::function<void(const fx::ClientSharedPtr& client, net::Buffer& packet)>;

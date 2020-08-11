@@ -95,7 +95,7 @@ struct object_pool
 	{
 		// Queue of free memory regions.
 		//
-		detached_queue<object_entry> free_queue;
+		detached_mpsc_queue<object_entry> free_queue;
 
 		// Current "growth stage" of the pool.
 		//

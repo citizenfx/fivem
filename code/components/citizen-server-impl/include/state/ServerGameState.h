@@ -498,7 +498,7 @@ namespace fx::sync
 
 	struct SyncCommand
 	{
-		using SyncCommandKey = typename detached_queue<SyncCommand>::key;
+		using SyncCommandKey = typename detached_scsc_queue<SyncCommand>::key;
 		using SyncCommandCallback = tp::FixedFunction<void(SyncCommandState&), 128>;
 
 		SyncCommandCallback callback;
@@ -510,7 +510,7 @@ namespace fx::sync
 	struct SyncCommandList
 	{
 		uint64_t frameIndex;
-		detached_queue<SyncCommand> commands;
+		detached_scsc_queue<SyncCommand> commands;
 
 		void Execute(const fx::ClientSharedPtr& client);
 
