@@ -1,4 +1,5 @@
 // Copyright (c) 2020 Can Boluk and contributors of the VTIL Project   
+// Modified by DefCon42.
 // All rights reserved.   
 //    
 // Redistribution and use in source and binary forms, with or without   
