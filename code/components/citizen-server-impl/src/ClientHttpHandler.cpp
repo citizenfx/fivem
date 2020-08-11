@@ -135,8 +135,13 @@ namespace fx
 							sb.Put('\r');
 							sb.Put('\n');
 
-							// TODO: figure out a way to not copy this here
-							response->Write(std::string{ sb.GetString(), sb.GetLength() });
+							// for TCP write timeout bits, write this in chunks
+							constexpr size_t kChunkSize = 16384;
+
+							for (size_t i = 0; i < sb.GetLength(); i += kChunkSize)
+							{
+								response->Write(std::string{ sb.GetString() + i, std::min(kChunkSize, sb.GetLength() - i) });
+							}
 						});
 					}
 				};
