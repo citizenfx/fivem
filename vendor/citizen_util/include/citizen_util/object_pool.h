@@ -258,9 +258,9 @@ struct object_pool
 	object_pool& operator=(const object_pool& other) = delete;
 	object_pool& operator=(object_pool&& other) = delete;
 
+	inline static thread_local bucket_proxy proxy;
 	T* allocate()
 	{
-		static thread_local bucket_proxy proxy;
 		return proxy.allocate();
 	}
 
@@ -274,6 +274,7 @@ struct object_pool
 	void destruct(T* pointer)
 	{
 		std::destroy_at<T>(pointer);
+
 		auto ptr = object_entry::resolve(pointer);
 		ptr->pool->bucket->deallocate(ptr);
 	}

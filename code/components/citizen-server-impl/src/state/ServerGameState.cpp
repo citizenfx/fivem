@@ -501,7 +501,7 @@ void sync::SyncCommandList::Execute(const fx::ClientSharedPtr& client)
 		MaybeFlushBuffer(scsSelf.cloneBuffer, HashRageString("msgPackedClones"), frameIndex, client, plannedBits);
 	};
 
-	while (auto to_run = commands.pop(&sync::SyncCommand::commandKey))
+	while (auto to_run = commands.pop_front(&sync::SyncCommand::commandKey))
 	{
 		to_run->callback(scs);
 		syncPool.destruct(to_run);
