@@ -1431,9 +1431,15 @@ namespace rage
 		virtual bool HasTimedOut() = 0;
 
 	public:
-		uint16_t eventId;
+		uint16_t eventType; // +0x8
 
-		uint8_t requiresReply : 1;
+		uint8_t requiresReply : 1; // +0xA
+
+		uint8_t pad_0Bh; // +0xB
+		
+		char pad_0Ch[24]; // +0xC
+
+		uint16_t eventId; // +0x24
 	};
 }
 
@@ -1468,8 +1474,7 @@ struct netGameEventState
 	}
 };
 
-static std::map<uint16_t, netGameEventState> g_events;
-static uint16_t eventHeader;
+static std::map<std::tuple<uint16_t, uint16_t>, netGameEventState> g_events;
 
 static void(*g_origAddEvent)(void*, rage::netGameEvent*);
 
@@ -1499,9 +1504,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	}
 
 	// we don't need the event anymore
-	g_events[eventHeader] = { ev, msec() };
-
-	++eventHeader;
+	g_events[{ ev->eventType, ev->eventId }] = { ev, msec() };
 }
 
 static void SendGameEventRaw(rage::netGameEvent* ev)
@@ -1557,9 +1560,9 @@ static void SendGameEventRaw(rage::netGameEvent* ev)
 		outBuffer.Write<uint16_t>(playerId);
 	}
 
-	outBuffer.Write<uint16_t>(eventHeader);
-	outBuffer.Write<uint8_t>(0);
 	outBuffer.Write<uint16_t>(ev->eventId);
+	outBuffer.Write<uint8_t>(0);
+	outBuffer.Write<uint16_t>(ev->eventType);
 
 	uint32_t len = rlBuffer.GetDataLength();
 	outBuffer.Write<uint16_t>(len); // length (short)
@@ -1577,7 +1580,7 @@ static void EventManager_Update()
 		return;
 	}
 
-	std::set<uint16_t> toRemove;
+	std::set<decltype(g_events)::key_type> toRemove;
 
 	for (auto& eventPair : g_events)
 	{
@@ -1653,16 +1656,20 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 	if (isReply)
 	{
-		auto evSet = g_events[eventHeader];
-		auto ev = evSet.ev;
+		auto evSetIt = g_events.find({ eventType, eventHeader });
 
-		if (ev)
+		if (evSetIt != g_events.end())
 		{
-			ev->HandleReply(&rlBuffer, player);
-			ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
+			auto ev = evSetIt->second.ev;
 
-			delete ev;
-			g_events.erase(eventHeader);
+			if (ev)
+			{
+				ev->HandleReply(&rlBuffer, player);
+				ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
+
+				delete ev;
+				g_events.erase({ eventType, eventHeader });
+			}
 		}
 	}
 	else
@@ -1722,7 +1729,7 @@ static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::da
 
 			outBuffer.Write<uint16_t>(evH);
 			outBuffer.Write<uint8_t>(1);
-			outBuffer.Write<uint16_t>(ev->eventId);
+			outBuffer.Write<uint16_t>(ev->eventType);
 
 			uint32_t len = rlBuffer.GetDataLength();
 			outBuffer.Write<uint16_t>(len); // length (short)
