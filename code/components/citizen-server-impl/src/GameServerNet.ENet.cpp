@@ -280,10 +280,14 @@ namespace fx
 			// fewer allocations!!
 			auto flags = ENET_PACKET_FLAG_NO_ALLOCATE | ((type == NetPacketType_Reliable || type == NetPacketType_ReliableReplayed) ? ENET_PACKET_FLAG_RELIABLE : (ENetPacketFlag)0);
 			auto packet = enet_packet_create(buffer.GetBuffer(), buffer.GetCurOffset(), flags);
-			packet->userData = new std::shared_ptr<std::vector<uint8_t>>(buffer.GetBytes());
+
+			using NetBufferSharedPtr = std::shared_ptr<std::vector<uint8_t>>;
+
+			static object_pool<NetBufferSharedPtr> sharedPtrPool;
+			packet->userData = sharedPtrPool.construct(buffer.GetBytes());
 			packet->freeCallback = [](ENetPacket* packet)
 			{
-				delete (std::shared_ptr<std::vector<uint8_t>>*)packet->userData;
+				sharedPtrPool.destruct((NetBufferSharedPtr*)packet->userData);
 			};
 			enet_peer_send(peerPair->get_right(), channel, packet);
 		}
