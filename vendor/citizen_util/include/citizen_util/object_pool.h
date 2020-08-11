@@ -219,6 +219,16 @@ struct object_pool
 		}
 	};
 
+	object_pool() = default;
+
+	// mmmm delet
+	//
+	object_pool(const object_pool& other) = delete;
+	object_pool(object_pool&& other) = delete;
+
+	object_pool& operator=(const object_pool& other) = delete;
+	object_pool& operator=(object_pool&& other) = delete;
+
 	T* allocate()
 	{
 		static thread_local bucket_proxy proxy;
