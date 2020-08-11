@@ -27,6 +27,18 @@ namespace fx
 
 		m_tcpStack->OnStartConnection.Connect([this](const net::PeerAddress& peer)
 		{
+			// allow unlimited connections from loopback
+			// #TODO: allow configuring safe ranges and use folly range stuff
+			if (peer.GetAddressFamily() == AF_INET)
+			{
+				auto sa = (const sockaddr_in*)peer.GetSocketAddress();
+
+				if ((ntohl(sa->sin_addr.s_addr) & 0xFF000000) == 0x7F000000)
+				{
+					return true;
+				}
+			}
+
 			auto host = peer.GetHost();
 			auto it = m_tcpLimitByHost.find(host);
 
