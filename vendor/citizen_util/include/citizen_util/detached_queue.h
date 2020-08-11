@@ -71,8 +71,14 @@ struct detached_scsc_queue
 	{
 		auto val = head;
 		if (val != nullptr)
+		{
 			head = val->next;
-		return val->get(std::move(ref));
+			return nullptr;
+		}
+		else
+		{
+			return val->get(std::move(ref));
+		}
 	}
 };
 
