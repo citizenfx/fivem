@@ -1927,7 +1927,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		return;
 	}
 
-	auto oldClientRef = entity->GetClientUnsafe();
+	auto oldClientRef = entity->GetClientUnsafe().lock();
 
 	{
 		entity->GetClientUnsafe() = targetClient;
