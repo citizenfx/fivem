@@ -41,12 +41,7 @@ rmdir /s /q %UIRoot%\app\
 :: copy new app
 mkdir %UIRoot%\app\
 copy /y dist\*.* %UIRoot%\app\
-
-mkdir %UIRoot%\app\assets\
-copy /y dist\assets\*.json %UIRoot%\app\assets\
-
-mkdir %UIRoot%\app\assets\languages\
-copy /y dist\assets\languages\*.json %UIRoot%\app\assets\languages\
+xcopy /y /e dist\assets\ %UIRoot%\app\assets\
 
 if exist %CacheRoot% (
 	rmdir /s /q %CacheRoot%\cfx-ui-modules
@@ -56,8 +51,8 @@ if exist %CacheRoot% (
 :: pop directory
 popd
 
-mkdir %~dp0\data_big\app
-move /y %UIRoot%\app\*.jpg %~dp0\data_big\app\
+mkdir %~dp0\data_big\app\assets\images
+move /y %UIRoot%\app\assets\images\bg*.* %~dp0\data_big\app\assets\images
 
 del %~dp0\data.zip
 %~dp0\..\..\code\tools\ci\7z a -mx=0 %~dp0\data.zip %UIRoot%\*
