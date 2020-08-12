@@ -178,7 +178,7 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 #endif
 
 		std::string policyVal;
-		if (icgi->GetData("policy", &policyVal))
+		if (icgi->GetData("policy", &policyVal) && icgi->OneSyncEnabled)
 		{
 			if (policyVal.find("[new_interior_hash]") != std::string::npos)
 			{
