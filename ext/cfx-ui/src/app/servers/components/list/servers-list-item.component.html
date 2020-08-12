@@ -1,0 +1,63 @@
+<div
+	class="server-list-item"
+	[class.pt]="premium === 'pt'"
+	[class.pinned]="pinned"
+	(click)="showServerDetail()"
+>
+	<div
+		*ngIf="premium"
+		class="premium"
+		[class.ag]="premium === 'ag'"
+		[class.au]="premium === 'au'"
+		[class.pt]="premium === 'pt'"
+	>
+	</div>
+
+    <figure class="icon" (click)="attemptConnect($event)" #iconFigure>
+        <img [src]="server.sanitizedUri" (error)="server.setDefaultIcon()" *ngIf="premium == 'pt' || server.isDefaultIcon">
+	</figure>
+
+	<div
+		*ngIf="premium"
+		class="badge"
+		[class.ag]="premium === 'ag'"
+		[class.au]="premium === 'au'"
+		[class.pt]="premium === 'pt'"
+	>
+		<span><div>{{ premium }}</div></span>
+	</div>
+
+    <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
+
+    <div class="actions">
+		<button
+			(click)="enableBoost($event)"
+			[class.active]="isBoost()"
+			aria-label="Give this server a BOOST™!"
+			data-balloon-pos="left"
+			class="boost"
+		>
+            <span class="material-icons-outlined">arrow_upward</span>
+			<span class="boosts-counter">
+				{{server.upvotePower}}
+			</span>
+
+			<div class="booster">
+				BOOST™!
+			</div>
+		</button>
+
+		<button
+			(click)="toggleFavorite($event)"
+			[class.active]="isFavorite()"
+			class="fav"
+		>
+			<span *ngIf="!isFavorite()" class="material-icons-outlined">star_bordered</span>
+			<span *ngIf="isFavorite()" class="material-icons-outlined">star</span>
+        </button>
+    </div>
+
+    <div class="players">
+		{{server.currentPlayers}}<span class="max">/{{server.maxPlayers}}</span>
+    </div>
+</div>

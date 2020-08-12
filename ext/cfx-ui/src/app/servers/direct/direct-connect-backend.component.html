@@ -4,38 +4,40 @@
 	</div>
 
 	<div class="error" *ngIf="isInvalid()">
-		<h1 class="title" translate>#DirectConnect_ServerInvalid</h1>
+		<h1 class="title">
+			<span translate>#DirectConnect_ServerInvalid</span>&nbsp;:(
+		</h1>
 		<p>
 			<span>{{error | translate:locale.language}} {{ '#DirectConnect_ServerInvalid_SubTitle' | translate:locale.language }}</span>
 		</p>
 	</div>
 
 	<div class="info" *ngIf="isValid()">
-		<div class="bg" [style.background-image]="'url(' + ((server && server.sanitizedUri)||'http://picsum.photos/128/128') + ')'"></div>
-
 		<figure class="icon">
 			<img [src]="(server && server.sanitizedUri)||'http://picsum.photos/128/128'">
 		</figure>
 
-		<h1 class="title" [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></h1>
+		<div class="content">
+			<h1 class="title" [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></h1>
 
-		<ul class="desc">
-			<li>
-				<span class="key">Game type:</span>
-				{{(server && server.data.gametype)||'Game type'}}
-			</li>
-			<li>
-				<span class="key">Map:</span>
-				{{(server && server.data.mapname)||'Map name'}}
-			</li>
-			<li>
-				<span class="key">Players:</span>
-				{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}
-			</li>
-		</ul>
+			<ul class="desc">
+				<li>
+					<span class="key">Game type:</span>
+					{{(server && server.data.gametype)||'Game type'}}
+				</li>
+				<li>
+					<span class="key">Map:</span>
+					{{(server && server.data.mapname)||'Map name'}}
+				</li>
+				<li>
+					<span class="key">Players:</span>
+					{{(server && server.currentPlayers)||0}}/{{(server && server.maxPlayers)||32}}
+				</li>
+			</ul>
 
-		<button class="connect" (click)="attemptConnect()" l10nTranslate>
-			#DirectConnect_Connect
-		</button>
+			<button class="cfx-button primary connect" (click)="attemptConnect()" l10nTranslate>
+				#DirectConnect_Connect
+			</button>
+		</div>
 	</div>
 </section>

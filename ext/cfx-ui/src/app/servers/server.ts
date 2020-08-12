@@ -13,7 +13,9 @@ export class Server {
     readonly maxPlayers: number;
     readonly data: any;
     readonly connectEndPoints: string[];
-    readonly int: master.IServerData;
+	readonly int: master.IServerData;
+
+	private _live: boolean;
 
     bitmap: ImageBitmap;
     onChanged = new EventEmitter<void>();
@@ -31,7 +33,11 @@ export class Server {
             this.sanitizedUri = this.sanitizer.bypassSecurityTrustUrl(value);
             this.sanitizedStyleUri = this.sanitizer.bypassSecurityTrustStyle('url(' + value + ')');
         }
-    }
+	}
+
+	get premium(): string {
+		return this.data?.vars?.premium || '';
+	}
 
     sanitizedUri: any;
     sanitizedStyleUri: any;
@@ -138,4 +144,15 @@ export class ServerIcon {
         this.icon = icon;
         this.iconVersion = iconVersion;
     }
+}
+
+export class ServerHistoryEntry {
+	address: string;
+	title: string;
+	hostname: string;
+	time: Date;
+	icon: string;
+	token: string;
+	rawIcon: string;
+	vars: { [key: string]: string };
 }

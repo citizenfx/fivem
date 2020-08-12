@@ -1,65 +1,96 @@
 import { Injectable, EventEmitter } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
+import { BehaviorSubject } from "rxjs";
 
 @Injectable()
 export class ChangelogService {
-    private targetEndpoint = 'https://changelogs-live.fivem.net/api/changelog/';
+	private targetEndpoint = 'https://changelogs-live.fivem.net/api/changelog/';
 
-    onRead = new EventEmitter();
+	private loadsInProgress = 0;
 
-    constructor(private http: HttpClient) {
+	onRead = new EventEmitter();
 
-    }
+	versionLoadInProgress = new BehaviorSubject<boolean>(false);
 
-    async getUnreadItems() {
-        const versions = await this.getVersions();
-        const savedVersions = await this.getSavedVersions();
+	constructor(private http: HttpClient) {
 
-        if (savedVersions.size === 0) {
-            return 1;
-        }
+	}
 
-        let count = 0;
+	async getUnreadItems() {
+		const versions = await this.getVersions();
+		const savedVersions = await this.getSavedVersions();
 
-        for (const version of versions) {
-            if (!savedVersions.has(version)) {
-                count++;
-            }
-        }
+		if (savedVersions.size === 0) {
+			return 1;
+		}
 
-        return count;
-    }
+		let count = 0;
 
-    async readAll() {
-        const versions = await this.getVersions();
-        this.addSavedVersions(versions);
+		for (const version of versions) {
+			if (!savedVersions.has(version)) {
+				count++;
+			}
+		}
 
-        this.onRead.emit();
-    }
+		return count;
+	}
 
-    getSavedVersions(): Set<string> {
-        return new Set<string>(JSON.parse(window.localStorage.getItem('changelogVersions') || '[]'));
-    }
+	async readAll() {
+		const versions = await this.getVersions();
+		this.addSavedVersions(versions);
 
-    addSavedVersions(versions: string[]) {
-        const savedVersions = this.getSavedVersions();
+		this.onRead.emit();
+	}
 
-        for (const v of versions) {
-            savedVersions.add(v);
-        }
+	getSavedVersions(): Set<string> {
+		return new Set<string>(JSON.parse(window.localStorage.getItem('changelogVersions') || '[]'));
+	}
 
-        window.localStorage.setItem('changelogVersions', JSON.stringify(Array.from(savedVersions)));
-    }
+	addSavedVersions(versions: string[]) {
+		const savedVersions = this.getSavedVersions();
 
-    async getVersions() {
-        return await this.http.get<string[]>(this.targetEndpoint + 'versions', {
-            responseType: 'json'
-        }).toPromise();
-    }
+		for (const v of versions) {
+			savedVersions.add(v);
+		}
 
-    async getVersion(version: string) {
-        return await this.http.get(this.targetEndpoint + 'versions/' + version, {
-            responseType: 'text'
-        }).toPromise();
-    }
+		window.localStorage.setItem('changelogVersions', JSON.stringify(Array.from(savedVersions)));
+	}
+
+	async getVersions() {
+		return await this.http.get<string[]>(this.targetEndpoint + 'versions', {
+			responseType: 'json'
+		}).toPromise();
+	}
+
+	private versionLoadingPromises = {};
+	private versionTexts = {};
+
+	async getVersion(version: string) {
+		if (this.versionTexts[version]) {
+			return this.versionTexts[version];
+		}
+
+		if (this.versionLoadingPromises[version]) {
+			return this.versionLoadingPromises[version];
+		}
+
+		this.versionLoadInProgress.next(true);
+		this.loadsInProgress++;
+
+		this.versionLoadingPromises[version] = this.http.get(this.targetEndpoint + 'versions/' + version, {
+			responseType: 'text'
+		}).toPromise();
+
+		const result = this.versionTexts[version] = await this.versionLoadingPromises[version];
+
+		this.versionLoadingPromises[version] = null;
+
+		this.loadsInProgress--;
+
+		if (this.loadsInProgress === 0) {
+			this.versionLoadInProgress.next(false);
+		}
+
+		return result;
+	}
 }

@@ -2,7 +2,7 @@
 
 * {
 	@include themeIsHost() using ($theme) {
-		color: gtv($theme, fgColour);
+		color: gtv($theme, fgColor);
 	};
 }
 
@@ -18,17 +18,33 @@ div.theRoot {
 	}
 }
 
+:host {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 100vw;
+	height: 100vh;
+}
+
+.no-header-safe-zone {
+	--header-safe-left: 0px;
+}
+
 .app-root {
 	display: flex;
 	position: relative;
 
+	flex-grow: 0;
+
 	flex-direction: column;
 
-	width: $width;
-	height: $height;
+	--app-offset: var(--q4);
+	--app-width: calc(var(--width) - var(--app-offset));
+	--app-height: calc(var(--height) - var(--app-offset));
 
-	//transform: scale(var(--zoom)) translate3d(0,0,0);
-	//transform-origin: center center;
+	width: var(--app-width);
+	height: var(--app-height);
 
 	z-index: 100;
 }
@@ -84,6 +100,20 @@ $blurSize: 20px;
 
 	background:
 		transparent center center/cover no-repeat;
+
+	&:after {
+		display: block;
+		position: fixed;
+		content: '';
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+
+		background-image: url(https://raw.githubusercontent.com/Microsoft/microsoft-ui-xaml/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png);
+
+		opacity: .025;
+	}
 }
 
 .webapp ::ng-deep #bg {

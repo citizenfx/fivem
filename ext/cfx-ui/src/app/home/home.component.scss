@@ -2,7 +2,7 @@
 
 :host {
 	@include theme() using ($theme) {
-		color: gtv($theme, textColour);
+		color: gtv($theme, textColor);
 	};
 
 	@include appContent;
@@ -10,117 +10,603 @@
 
 .home {
 	display: flex;
-	justify-content: flex-end;
+	flex-direction: column;
 
-	font-weight: 100;
+	height: 100%;
 
-	iframe {
-		width: 20%;
-		height: $appContentHeight;
-		padding-bottom: $appContentPadding;
-		margin-left: $padding*$multiplier;
-	}
+	.oi {
+		flex-shrink: 0;
 
-	::ng-deep a {
-        color: inherit;
-    }
+		display: flex;
+		justify-content: space-between;
 
-	&>div {
-		overflow-y: scroll;
-	}
+		height: var(--header-height);
 
-	.welcome {
-		flex-grow: 1;
-		height: $appContentHeight;
+		@include backdropPane;
 
-		font-weight: normal;
+		padding-right: var(--header-safe-right-raw);
 
-		&>div {
-			padding: $padding;
-			padding-right: $padding/4;
+		line-height: 1;
+		font-size: var(--fs-1);
 
-			margin-bottom: $padding/4;
+		.left,
+		.right {
+			display: flex;
+			align-items: center;
+		}
+
+		.left {
+			flex-grow: 1;
+		}
+
+		.right {
+			flex-shrink: 0;
+
+			&>* {
+				margin-left: var(--q1);
+			}
+		}
+
+		.links {
+			list-style: none;
+
+			display: flex;
+
+			height: 100%;
+
+			li {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				height: 100%;
+
+				padding: var(--q1);
+
+				text-transform: uppercase;
+
+				transition: all .2s ease;
+
+				&:hover {
+					transition: none;
+
+					@include theme() using ($theme) {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+					}
+				}
+			}
+		}
+
+		.service-message {
+			flex-grow: 1;
+
+			height: 100%;
+
+			::ng-deep {
+				&>div {
+					display: flex;
+					align-items: center;
+
+					height: 100%;
+
+					padding: var(--q1);
+				}
+
+				.danger {
+					@include theme() using ($theme) {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+					}
+				}
+
+				.warning {
+					@include theme() using ($theme) {
+						color: gtv($theme, fgColor);
+						background-color: rgba(gtv($theme, yellowColor), .2);
+					}
+				}
+			}
+		}
+
+		.player-stats {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			justify-content: space-evenly;
+
+			height: 100%;
+
+			font-size: var(--fs-075);
+			font-family: 'Montserrat';
 
 			@include theme() using ($theme) {
-				border-bottom: rgba(gtv($theme, bgColour), .3) 1px solid;
+				color: rgba(gtv($theme, fgColor), .5);
 			};
 
-			border-radius: 1px;
-			transition: all .2s ease;
-
-			h1 {
-				font-size: 1.6em;
-				font-weight: normal;
+			&>div {
+				display: flex;
+				align-items: center;
+				justify-content: center;
 			}
 
-			h2 {
-				font-style: italic;
-				font-weight: normal;
-
-				font-size: 0.9em;
+			.material-icons-outlined {
+				opacity: .5;
+				margin-right: 2px;
 			}
+		}
 
-			::ng-deep p {
-				margin-top: $padding;
-			}
+		.account-link {
+			margin-right: var(--qh);
+		}
 
-			&.oi {
-				@include theme() using ($theme) {
-					background-color: rgba(gtv($theme, yellowColour), .2);
-				};
+		.userpic {
+			width: var(--header-height);
+			height: var(--header-height);
 
-				border-bottom: none;
-			}
+			background-size: cover;
 		}
 	}
 
-	.feed {
-		position: relative;
-		width: 35%;
+	.layout {
+		height: calc(100% - var(--q1));
+		margin-top: var(--q1);
 
-		@include theme() using ($theme) {
-			border-left: rgba(gtv($theme, bgColour), .3) 1px solid;
-		};
+		display: grid;
 
-		height: $appContentHeight;
+		grid-template-columns: 2fr 2.5fr 1.1fr 1.4fr 2fr 2fr;
+		grid-template-rows: 3fr 3.5fr 2fr;
+		grid-template-areas:
+			"play   play   play   links  community official"
+			"story  story  replay replay community official"
+			"create create create create community official";
+
+		gap: var(--q1);
+
+		overflow: hidden;
+
+		&>* {
+			overflow: hidden;
+		}
+
+		.card {
+			display: block;
+
+			text-decoration: none;
+			@include backdropBlur;
+			@include backdropPane;
+
+			transition: all .2s ease;
+
+			.card_title {
+				@include theme() using ($theme) {
+					color: gtv($theme, fgColor);
+				}
+
+				text-transform: uppercase;
+
+				transition: all .2s ease;
+
+				.material-icons-outlined {
+					font-size: var(--fs-4);
+
+					margin-right: calc(var(--q1) / 2);
+				}
+			}
+
+			&:hover {
+				transition: none;
+
+				@include theme() using ($theme) {
+					background-color: rgba(gtv($theme, accentColor1), .05);
+					box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+
+					.card_title {
+						color: gtv($theme, accentColor1);
+
+						transition: none;
+					}
+				}
+			}
+		}
+
+		.play {
+			grid-area: play;
+
+			display: flex;
+			flex-direction: column;
+			align-items: stretch;
+			justify-content: stretch;
+
+			.card {
+				@include borderedPane;
+				@include patternBackground;
+
+				@keyframes bganim {
+					0% {
+						background-position: 0px 0px;
+					}
+					50% {
+						background-position: 500px -500px;
+					}
+					100% {
+						background-position: 1000px -1000px;
+					}
+				}
+				animation: bganim 40s linear 0s infinite;
+
+				&:hover {
+					transition: none;
+
+					@include theme() using ($theme) {
+						background-color: rgba(gtv($theme, accentColor1), .05);
+						box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+
+						.card_title {
+							color: gtv($theme, accentColor1);
+
+							transition: none;
+						}
+					}
+				}
+			}
+
+			.last-server {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+
+				@include backdropPane;
+
+				margin-top: var(--qh);
+
+				opacity: .5;
+
+				&:hover {
+					opacity: 1;
+
+					.content {
+						@include theme() using ($theme) {
+							box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+						}
+
+						.actions button {
+							opacity: 1;
+
+							transition: none;
+
+							&.fav {
+								@include theme() using ($theme) {
+									box-shadow: 2px 0 0 rgba(gtv($theme, accentColor1), .5) inset,
+												-2px 0 0 rgba(gtv($theme, accentColor1), .5) inset;
+								}
+							}
+						}
+					}
+				}
+
+				.content {
+					display: flex;
+					align-items: center;
+
+					width: 100%;
+					height: var(--q2);
+
+					padding: 2px;
+
+					.icon {
+						flex-shrink: 0;
+
+						width: calc(var(--q2) - 4px);
+						height: calc(var(--q2) - 4px);
+
+						z-index: 2;
+
+						::ng-deep img, img {
+							width: 100%;
+							height: 100%;
+						}
+					}
+
+					.title {
+						margin-left: var(--qh);
+
+						white-space: nowrap;
+						overflow: hidden;
+						text-overflow: ellipsis;
+						font-size: var(--fs-1);
+						line-height: 1.2;
+
+						flex-grow: 1;
+
+						text-align: left;
+						padding-right: var(--qh);
+
+						@include theme() using ($theme) {
+							color: gtv($theme, secondaryColor);
+						};
+
+						font-feature-settings: 'case', 'liga' 1;
+					}
+
+					.players {
+						flex-shrink: 0;
+						width: var(--q5);
+
+						padding-right: var(--qh);
+
+						text-align: right;
+
+						.max {
+							opacity: .5;
+						}
+					}
+				}
+
+				.info {
+					padding: 2px;
+					padding-right: 4px;
+
+					font-size: var(--fs-075);
+					font-weight: 100;
+					text-transform: lowercase;
+
+					@include theme() using ($theme) {
+						color: rgba(gtv($theme, fgColor), .75);
+					}
+
+					.status {
+						display: inline-block;
+
+						margin: 0 4px;
+
+						width: var(--qh);
+						height: var(--qh);
+						border-radius: var(--qh);
+
+						@include theme() using ($theme) {
+							&.loading {
+								background-color: gtv($theme, fgColor);
+
+								@keyframes loading {
+									0% {
+										opacity: .5;
+									}
+									50% {
+										opacity: 1;
+									}
+									100% {
+										opacity: .5;
+									}
+								}
+
+								animation: loading .5s ease 0s infinite;
+							}
+							&.online {
+								// background-color: gtv($theme, activeColor);
+								background-color: rgb(0, 255, 0);
+							}
+							&.offline {
+								background-color: red;
+							}
+						}
+					}
+				}
+			}
+
+			.servers_link {
+				flex-grow: 1;
+
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+
+				padding: var(--q1);
+
+				text-decoration: none;
+
+				svg {
+					width: var(--fs-3);
+					height: var(--fs-3);
+
+					margin-right: var(--q1);
+
+					// Make it point to the correct direction
+					transform: rotateY(180deg);
+
+					@include theme() using ($theme) {
+						fill: gtv($theme, accentColor1);
+					}
+				}
+
+				h1 {
+					text-transform: uppercase;
+					letter-spacing: 2px;
+
+					transition: all .2s ease;
+
+					.material-icons-outlined {
+						font-size: var(--fs-7);
+
+						transition: all .2s ease;
+					}
+				}
+
+				.nickname {
+					margin-top: var(--q1);
+					opacity: .75;
+				}
+
+				.memeing {
+					@include theme() using ($theme) {
+						color: rgba(gtv($theme, fgColor), .5);
+					}
+				}
+
+				@include theme() using ($theme) {
+					.material-icons-outlined {
+						color: gtv($theme, accentColor1);
+					}
+				}
+			}
+
+			.links {
+				display: flex;
+				justify-content: stretch;
+
+				a {
+					flex-grow: 1;
+					justify-self: stretch;
+
+					padding: var(--q1);
+
+					text-align: center;
+
+					font-family: 'Montserrat';
+					text-transform: uppercase;
+					text-decoration: none;
+
+					@include theme() using ($theme) {
+						background-color: rgba(gtv($theme, bgColor), .2);
+
+						&:hover {
+							background-color: gtv($theme, accentColor1);
+						}
+					}
+				}
+			}
+		}
+
+		.links {
+			grid-area: links;
+
+			display: flex;
+			flex-direction: column;
+			justify-content: stretch;
+
+			a {
+				display: flex;
+				align-items: center;
+
+				flex-grow: 1;
+				justify-self: stretch;
+
+				margin-top: calc(var(--q1) / 2);
+
+				padding: var(--q1);
+
+				font-family: 'Montserrat';
+				text-transform: uppercase;
+				text-decoration: none;
+
+				transition: all .2s ease;
+
+				@include backdropPane;
+
+				@include theme() using ($theme) {
+					&:hover {
+						background-color: gtv($theme, accentColor1);
+
+						transition: none;
+					}
+				}
+
+				.material-icons-outlined {
+					font-size: var(--fs-1);
+
+					margin-right: calc(var(--q1) / 2);
+
+					@include theme() using ($theme) {
+						&.supporters {
+							color: gtv($theme, yellowColor);
+						}
+						&.history {
+							color: gtv($theme, redColor);
+						}
+						&.favorites {
+							color: gtv($theme, blueColor);
+						}
+						&.localhost {
+							color: gtv($theme, accentColor2);
+						}
+					}
+				}
+			}
+
+			a:first-child {
+				margin-top: 0;
+			}
+		}
+
+		.story,
+		.replay {
+			@include backdropBlur;
+			@include backdropPane;
+			@include borderedPane;
+
+			padding: var(--q1);
+		}
+
+		.story {
+			grid-area: story;
+
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+
+			p {
+				margin-top: var(--q1);
+
+				font-size: var(--fs-1);
+
+				@include theme() using ($theme) {
+					color: rgba(gtv($theme, fgColor), .5);
+				}
+			}
+		}
+
+		.replay {
+			grid-area: replay;
+		}
+
+		.create {
+			grid-area: create;
+		}
+
+		.tweets {
+			@include backdropPane;
+			@include borderedPane;
+
+			padding: var(--q1);
+
+			overflow-y: scroll;
+
+			.title {
+				margin-bottom: var(--qh);
+
+				font-size: var(--fs-2);
+				font-weight: bold;
+				font-family: 'Montserrat';
+				line-height: 1;
+				letter-spacing: 2px;
+				text-transform: uppercase;
+
+				opacity: .25;
+
+				text-align: justify;
+			}
+		}
+
+		.community {
+			grid-area: community;
+		}
+
+		.official {
+			grid-area: official;
+		}
 	}
-}
 
-//:host > * {
-//	height: 100%;
-//}
-//
-//:host > * > * {
-//	height: 100%;
-//}
-
-.column {
-	display: flex;
-	flex-direction: column;
-}
-
-.panel {
-	right: 0px;
-	position: absolute;
-	height: 100%;
-	width: 25%;
-	border-left: 2px solid #51B3EC;
-	background-color: hsl(222, 23%, 11%);
-}
-
-.hero {
-	padding-left: 3em;
-	background-color: #51B3EC;
-
-	flex: none;
-}
-.hero .title,
-.hero .subtitle {
-	color: #fff;
-	font-family: $fonts;
-}
-
-.hero .subtitle strong {
-	color: #fff;
-	font-weight: 500;
+	::ng-deep a {
+		color: inherit;
+	}
 }

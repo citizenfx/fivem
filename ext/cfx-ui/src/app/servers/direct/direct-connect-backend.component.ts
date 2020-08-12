@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ViewChildren, Inject, Output, EventEmitter, Input, OnChanges, ChangeDetectorRef } from '@angular/core';
+import { Component, Inject, Output, EventEmitter, Input, OnChanges, ChangeDetectorRef } from '@angular/core';
 import { Subject } from 'rxjs/Subject';
 
 import 'rxjs/add/operator/debounceTime';
@@ -6,135 +6,120 @@ import 'rxjs/add/operator/distinctUntilChanged';
 
 import { Server } from '../server';
 
+import { GameService } from '../../game.service';
+
+import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 import { ServersService } from '../servers.service';
 
-import { GameService, ServerHistoryEntry } from '../../game.service';
-
-import { DomSanitizer } from '@angular/platform-browser';
-import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
-
 @Component({
-    moduleId: module.id,
-    selector: 'app-direct-connect-backend',
-    templateUrl: 'direct-connect-backend.component.html',
-    styleUrls: ['direct-connect-backend.component.scss']
+	moduleId: module.id,
+	selector: 'app-direct-connect-backend',
+	templateUrl: 'direct-connect-backend.component.html',
+	styleUrls: ['direct-connect-backend.component.scss']
 })
 
-export class DirectConnectBackendComponent implements OnInit, OnChanges {
-    @Input()
-    addr = '';
-    lastAddr = '';
-    server: Server;
-    error = '';
+export class DirectConnectBackendComponent implements OnChanges {
+	@Input()
+	addr = '';
+	lastAddr = '';
+	server: Server;
+	error = '';
 
-    @Input()
-    silent = false;
+	@Input()
+	silent = false;
 
-    @Output()
-    validate = new EventEmitter();
+	@Output()
+	validate = new EventEmitter();
 
-    @Output()
-    invalidate = new EventEmitter();
+	@Output()
+	invalidate = new EventEmitter();
 
-    @Output()
-    onChange = new EventEmitter<string>();
+	@Output()
+	onChange = new EventEmitter<string>();
 
-    onFetchCB: () => void;
+	onFetchCB: () => void;
 
-    addrEvent = new Subject<[string, number]>();
+	addrEvent = new Subject<[string, number]>();
 
-    constructor(private gameService: GameService, private cdr: ChangeDetectorRef,
-        @Inject(L10N_LOCALE) public locale: L10nLocale) {
-        this.addrEvent
-            .asObservable()
-            .debounceTime(250)
-            .distinctUntilChanged()
-            .subscribe(addr => {
-                this.server = null;
-                this.error = null;
+	constructor(
+		private gameService: GameService,
+		private cdr: ChangeDetectorRef,
+		@Inject(L10N_LOCALE) public locale: L10nLocale,
+		private serversService: ServersService,
+	) {
+		this.addrEvent
+			.asObservable()
+			.debounceTime(250)
+			.distinctUntilChanged()
+			.subscribe((addr) => this.handleAddrChange(addr));
+	}
 
-                this.gameService.queryAddress(addr)
-                    .then(server => {
-                        this.server = server;
-                        this.cdr.markForCheck();
+	handleAddrChange(addr: [string, number]) {
+		this.server = null;
+		this.error = null;
 
-                        if (this.onFetchCB) {
-                            this.onFetchCB();
-                        }
-                    }, (reason: Error) => this.error = reason.message)
-                    .then(() => this.lastAddr = this.addr)
-                    .then(() => this.onFetchCB = null);
-            });
-    }
+		this.gameService.queryAddress(addr)
+			.then(server => {
+				this.server = server;
+				this.cdr.markForCheck();
 
-    ngOnChanges() {
-        if (this.addr !== this.lastAddr) {
-            this.addrChanged(this.addr);
-            this.lastAddr = this.addr;
-        }
-    }
+				if (this.onFetchCB) {
+					this.onFetchCB();
+				}
+			}, (reason: Error) => this.error = reason.message)
+			.then(() => this.lastAddr = this.addr)
+			.then(() => this.onFetchCB = null);
+	}
 
-    tryConnect() {
-        if (this.isValid()) {
-            this.attemptConnect();
-        } else {
-            const addr = this.addr;
+	ngOnChanges() {
+		if (this.addr !== this.lastAddr) {
+			this.addrChanged(this.addr);
+			this.lastAddr = this.addr;
+		}
+	}
 
-            this.onFetchCB = () => {
-                if (addr === this.addr) {
-                    this.attemptConnect()
-                }
-            };
-        }
-    }
+	tryConnect() {
+		if (this.isValid()) {
+			this.attemptConnect();
+		} else {
+			const addr = this.addr;
 
-    parseAddress(addr: string): [string, number] {
-        const addrBits: [string, number] = [ '', 30120 ];
-        const match = addr.match(/^(?:((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)|cfx\.re\/join\/[0-9a-z]+)/i);
+			this.onFetchCB = () => {
+				if (addr === this.addr) {
+					this.attemptConnect()
+				}
+			};
+		}
+	}
 
-        if (!match) {
-            return null;
-        }
+	addrChanged(newValue: string) {
+		this.validate.emit();
+		this.addr = newValue;
 
-        addrBits[0] = match[1];
+		const addrBits = this.serversService.parseAddress(newValue);
 
-        if (match[2]) {
-            addrBits[1] = parseInt(match[2], 10);
-        }
+		if (!addrBits) {
+			this.invalidate.emit();
+			return;
+		}
 
-        return addrBits;
-    }
+		this.addrEvent.next(addrBits);
+		this.onChange.emit(this.addr);
+	}
 
-    addrChanged(newValue: string) {
-        this.validate.emit();
-        this.addr = newValue;
+	attemptConnect() {
+		this.gameService.connectTo(this.server, this.addr);
+	}
 
-        const addrBits = this.parseAddress(newValue);
+	isWaiting() {
+		return (!this.silent && this.addr.trim() !== '' && ((!this.server && !this.error) || this.lastAddr !== this.addr));
+	}
 
-        if (!addrBits) {
-            this.invalidate.emit();
-            return;
-        }
+	isInvalid() {
+		return (!this.silent && this.error && this.lastAddr === this.addr);
+	}
 
-        this.addrEvent.next(addrBits);
-        this.onChange.emit(this.addr);
-    }
-
-    attemptConnect() {
-        this.gameService.connectTo(this.server, this.addr);
-    }
-
-    ngOnInit() { }
-
-    isWaiting() {
-        return (!this.silent && this.addr.trim() !== '' && ((!this.server && !this.error) || this.lastAddr !== this.addr));
-    }
-
-    isInvalid() {
-        return (!this.silent && this.error && this.lastAddr === this.addr);
-    }
-
-    isValid() {
-        return (this.server && !this.error && this.lastAddr === this.addr);
-    }
+	isValid() {
+		return (this.server && !this.error && this.lastAddr === this.addr);
+	}
 }

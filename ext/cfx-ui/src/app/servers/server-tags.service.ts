@@ -10,159 +10,136 @@ import * as cldrjs from 'cldrjs';
 import { getCanonicalLocale } from './components/utils';
 
 export class ServerTag {
-    public name: string;
-    public count: number;
+	public name: string;
+	public count: number;
 }
 
 export class ServerLocale {
-    public name: string;
-    public displayName: string;
-    public count: number;
-    public countryName: string;
+	public name: string;
+	public displayName: string;
+	public count: number;
+	public countryName: string;
 }
 
 cldrjs.load(cldrLocales, cldrLanguages, cldrTerritories, cldrSubTags);
 
 @Injectable()
 export class ServerTagsService {
-    serverTags: {[addr: string]: string[]} = {};
-    serverLocale: {[addr: string]: string} = {};
+	serverTags: { [addr: string]: true } = {};
+	serverLocale: { [addr: string]: true } = {};
 
-    tags: ServerTag[] = [];
-    locales: ServerLocale[] = [];
+	tags: ServerTag[] = [];
+	locales: ServerLocale[] = [];
 
-    onUpdate = new EventEmitter<void>();
+	onUpdate = new EventEmitter<void>();
 
-    constructor(private serversService: ServersService) {
-        this.serversService
-            .getReplayedServers()
-            .filter(server => !!server)
-            .subscribe(server => {
-                this.addFilterIndex(server);
-                this.addLocaleIndex(server);
-            });
+	private tagsIndex: { [key: string]: number } = {};
+	private localesIndex: { [key: string]: number } = {};
 
-        this.serversService
-            .getReplayedServers()
-            .bufferTime(500)
-            .subscribe(server => {
-                this.updateTagList();
-                this.updateLocaleList();
+	constructor(private serversService: ServersService) {
+		this.serversService
+			.getReplayedServers()
+			.filter((server) => !!server)
+			.subscribe(server => {
+				this.addServerTags(server);
+				this.addLocaleIndex(server);
+			});
 
-                this.onUpdate.emit();
-            });
-    }
+		this.serversService
+			.getReplayedServers()
+			.bufferTime(1000)
+			.subscribe((servers) => {
+				if (servers.length === 0) {
+					return;
+				}
 
-    private updateTagList() {
-        const tagList = Object.entries(
-            Object.values(this.serverTags)
-                 .reduce<{[k: string]: number}>((acc: {[k: string]: number}, val: string[]) => {
-                    for (const str of val) {
-                        if (!acc.hasOwnProperty(str)) {
-                            acc[str] = 0;
-                        }
+				this.updateTagList();
+				this.updateLocaleList();
 
-                        acc[str]++;
-                    }
-                    return acc;
-                 }, {})
-            )
-            .map(([name, count]) => {
-                return {
-                    name,
-                    count
-                }
-            });
+				this.onUpdate.emit();
+			});
+	}
 
-        tagList.sort((a, b) => {
-            if (a.count === b.count) {
-                return 0;
-            } else if (a.count > b.count) {
-                return -1;
-            } else {
-                return 1;
-            }
-        });
+	private updateTagList() {
+		const tags = Object.entries(this.tagsIndex).sort((a, b) => b[1] - a[1]);
 
-        this.tags = tagList.slice(0, 50);
-    }
+		tags.length = Math.min(50, tags.length);
 
-    private addFilterIndex(server: Server) {
-        if (this.serverTags[server.address]) {
-            return;
-        }
+		this.tags = tags.map(([name, count]) => ({ name, count }));
+	}
 
-        if (server && server.data && server.data.vars && server.data.vars.tags) {
-            const tags: string[] = (<string>server.data.vars.tags)
-                .split(',')
-                .map(a => a.trim().toLowerCase())
-                .filter(a => a);
+	private addServerTags(server: Server) {
+		if (this.serverTags[server.address]) {
+			return;
+		}
 
-            this.serverTags[server.address] = tags;
-        }
-    }
+		if (server?.data?.vars?.tags) {
+			(<string>server.data.vars.tags)
+				.split(',')
+				.forEach((rawTag) => {
+					const tag = rawTag.trim().toLowerCase();
 
-    private updateLocaleList() {
-        const localeList = Object.entries(
-            Object.values(this.serverLocale)
-                 .reduce<{[k: string]: number}>((acc: {[k: string]: number}, val: string) => {
-                    if (!acc.hasOwnProperty(val)) {
-                        acc[val] = 0;
-                    }
+					if (!tag) {
+						return;
+					}
 
-                    acc[val]++;
+					this.tagsIndex[tag] = (this.tagsIndex[tag] || 0) + 1;
+				});
 
-                    return acc;
-                 }, {})
-            )
-            .filter(([name, count]) => name.indexOf('-') > 0 && name.indexOf('root') !== 0)
-            .map(([name, count]) => {
-                const parts = name.split('-');
-                const t = parts[parts.length - 1];
+			this.serverTags[server.address] = true;
+		}
+	}
 
-                return {
-                    name,
-                    displayName: this.getLocaleDisplayName(name),
-                    count,
-                    countryName: t
-                }
-            });
+	private updateLocaleList() {
+		const locales = Object.entries(this.localesIndex).sort((a, b) => b[1] - a[1]);
 
-        localeList.sort((a, b) => {
-            if (a.count === b.count) {
-                return 0;
-            } else if (a.count > b.count) {
-                return -1;
-            } else {
-                return 1;
-            }
-        });
+		this.locales = locales.map(([name, count]) => ({
+			name,
+			count,
+			displayName: this.getLocaleDisplayName(name),
+			countryName: name.split('-').reverse()[0],
+		}));
+	}
 
-        this.locales = localeList;
-    }
+	private cachedLocaleDisplayNames: { [key: string]: string } = {};
 
-    public getLocaleDisplayName(name: string): string {
-        const c = new cldrjs('en');
+	public getLocaleDisplayName(name: string): string {
+		let cached = this.cachedLocaleDisplayNames[name];
 
-        const parts = name.split('-');
-        const l = parts[0];
-        const t = parts[parts.length - 1];
+		if (!this.cachedLocaleDisplayNames[name]) {
+			const c = new cldrjs('en');
 
-        const lang = c.main('localeDisplayNames/languages/' + l);
-        const territory = c.main('localeDisplayNames/territories/' + t);
+			const parts = name.split('-');
+			const l = parts[0];
+			const t = parts[parts.length - 1];
 
-        return c.main('localeDisplayNames/localeDisplayPattern/localePattern')
-            .replace('{0}', lang)
-            .replace('{1}', territory);
-    }
+			const lang = c.main('localeDisplayNames/languages/' + l);
+			const territory = c.main('localeDisplayNames/territories/' + t);
 
-    private addLocaleIndex(server: Server) {
-        if (this.serverLocale[server.address]) {
-            return;
-        }
+			cached = this.cachedLocaleDisplayNames[name] = c.main('localeDisplayNames/localeDisplayPattern/localePattern')
+				.replace('{0}', lang)
+				.replace('{1}', territory);
+		}
 
-        if (server && server.data && server.data.vars && server.data.vars.locale) {
-            this.serverLocale[server.address] = getCanonicalLocale(server.data.vars.locale);
-        }
-    }
+		return cached;
+	}
+
+	private addLocaleIndex(server: Server) {
+		if (this.serverLocale[server.address]) {
+			return;
+		}
+
+		if (server?.data?.vars?.locale) {
+			this.serverLocale[server.address] = true;
+
+			const locale = getCanonicalLocale(server.data.vars.locale);
+
+			// We don't care about root, right
+			if (locale === 'root-AQ') {
+				return;
+			}
+
+			this.localesIndex[locale] = (this.localesIndex[locale] || 0) + 1;
+		}
+	}
 }

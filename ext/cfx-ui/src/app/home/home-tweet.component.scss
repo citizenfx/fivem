@@ -1,12 +1,13 @@
 @import "variables";
 
 :host {
-    border-radius: 1px;
     transition: all .2s ease;
 
     display: block;
 
-    white-space: pre-wrap;
+	white-space: pre-wrap;
+
+	margin-bottom: var(--q1);
 
     .rt {
         display: none;
@@ -19,7 +20,7 @@
     ::ng-deep a {
         color: inherit;
     }
-    
+
     .additional {
         opacity: 0;
         padding-left: 0;
@@ -27,9 +28,9 @@
 
         &:hover {
             color: #fff;
-        }				
+        }
     }
-    
+
     &:hover {
         .additional {
             opacity: 1;
@@ -37,53 +38,39 @@
         }
     }
 
-    @include themeHostWorkaround() using ($theme) {
-        border-top: rgba(gtv($theme, bgColour), .3) 1px solid;
-
-        &:first-of-type {
-            border-top: 0px !important;
-        }
-
-        &:hover + ::ng-deep * {
-            border-top: rgba(gtv($theme, bgColour), .5) 1px solid;
-        }
-
-        &:hover {
-            border-top: rgba(gtv($theme, bgColour), .5) 1px solid;
-        }
-    };
-    
-    .backdroppy {
-        padding: $padding $padding $padding $padding*2+4vh;
-
-        margin-bottom: $padding/4;
-    }
-
     .message-header {
-        position: relative;
-        margin-bottom: $padding;
+		display: flex;
 
-        font-size: $fontSize*.7;
-        
+        margin-bottom: var(--qh);
+
+        font-size: var(--fs-075);
+
         @include theme() using ($theme) {
-            color: gtv($theme, textColour);
+            color: gtv($theme, textColor);
         };
 
         .avatar {
-            position: absolute;
-            left: -4vh - $padding;
-            width: 4vh;
-            height: 4vh;
-            border-radius: 2px;
-        }
+			width: var(--q2);
+			height: var(--q2);
+
+			margin-right: var(--qh);
+		}
+
+		.info {
+			flex-grow: 1;
+		}
     }
 
     .message-body {
         img {
-            max-width: 80%;
+            max-width: 100%;
             height: auto;
-            border-radius: 2px;
-            margin-bottom: $padding/2;
-        }
+		}
+
+		font-size: var(--fs-075);
+
+		p {
+			word-wrap: break-word;
+		}
     }
 }
