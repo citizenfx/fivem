@@ -1,33 +1,21 @@
-<div [class.overlay]="!minMode" [class.minmode]="minMode" [class.active]="showOverlay" (keydown)="onKeyPress($event)" tabindex="1">
-	<div class="inner" [class.withBg]="overlayBg != ''">
-		<section class="header" *ngIf="overlayBg != ''">
-			<figure class="bg">
-				<img [src]="overlayBg" alt="">
-			</figure>
-		</section>
-		<div>
-			<div>
-				<h1>
-					{{overlayTitle|translate:locale.language:overlayMessageData}}
-				</h1>
-				<p (click)="clickContent($event)" [innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }"></p>
-				<div #card></div>
-				<button
-					[class.active]="overlayClosable"
-					(click)="closeOverlay(); false"
-					*ngIf="!minMode"
-				>
-					{{closeLabel|translate:locale.language}}
-				</button>
-				<button
-					[class.active]="overlayClosable"
-					(click)="doRetry(); false"
-					*ngIf="minMode"
-				>
-					{{retryLabel|translate:locale.language}}
-				</button>
-			</div>
-		</div>
+<div class="overlay" [class.active]="showOverlay" (keydown)="onKeyPress($event)" tabindex="1">
+	<div class="inner" style="--bg: url({{overlayBg}})">
+		<h1 class="title">
+			{{(overlayTitle)|translate:locale.language:overlayMessageData}}
+		</h1>
+		<p
+			class="content"
+			(click)="clickContent($event)"
+			[innerHTML]="overlayMessage|nl2br|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }"
+		></p>
+		<div class="card" #card></div>
+		<button
+			class="cfx-button primary"
+			[class.active]="overlayClosable"
+			(click)="closeOverlay(); false"
+		>
+			{{closeLabel|translate:locale.language}}
+		</button>
 	</div>
 </div>
 

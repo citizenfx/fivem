@@ -1,129 +1,86 @@
 @import "variables";
 
 .overlay {
-	display: flex;
-
 	position: fixed;
 	top: 0;
 	bottom: 0;
 	left: 0;
 	right: 0;
 
+	display: flex;
 	align-items: center;
 	justify-content: center;
 
 	z-index: 400;
 
-	transition: all .2s ease-out;
 	opacity: 0;
 	pointer-events: none;
+
+	will-change: opacity;
+
+	transition: all .2s ease;
 
 	&.active {
 		opacity: 1;
 
 		@include theme() using ($theme) {
-			background-color: rgba(gtv($theme, bgColour), .5);
-		};
-		
+			background-color: rgba(gtv($theme, bgColor), .8);
+		}
+
 		pointer-events: inherit;
-	}
-
-	& > div {
-		@include theme() using ($theme) {
-			background-color: rgba(gtv($theme, bgColour), .75);
-		};
-
-		border-radius: 1px;
-
-		width: 60%;
-
-		&.withBg {
-			box-shadow: #000 0px 0px 75px;
-	
-			@include theme() using ($theme) {
-				background-color: rgba(gtv($theme, bgColour), 1);
-			};
-		}
-	}
-}
-
-.minmode {
-	margin-left: auto;
-	margin-right: auto;
-}
-
-div.inner {
-	&>section {
-		position: relative;
-
-		height: 15vh;
-
-		.bg {
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-
-			overflow: hidden;
-
-			img {
-				position: absolute;
-				left: 0;
-				right: 0;
-				top: -9999px;
-				bottom: -9999px;
-				margin: auto 0;
-				width: 100%;
-				transform: none;
-			}
-		}
-	}
-
-	&.withBg>div {
-		min-height: 200px;
-		display: flex;
-		align-items: center;
-	}
-
-	&>div>div {
-		padding: 2.5%;
-	}
-
-	&.withBg>div>div {
-		padding-top: 1%;
-	}
-
-	h1 {
-		font-size: 40px;
-		font-weight: 100;
-		line-height: 1;
-		margin: 0;
-		margin-bottom: $padding;
-	}
-
-	p {
-		@include theme() using ($theme) {
-			color: gtv($theme, textColour);
-		};
-
-		user-select: text;
-		white-space: pre-line;
-
-		::ng-deep a {
-			color: inherit;
-		}
-	}
-
-	button {
-		margin-top: $padding;
-
-		opacity: 0;
 		transition: none;
 
-		&.active {
-			opacity: 1;
+		will-change: opacity;
+	}
+
+	.inner {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+
+		width: 40%;
+		max-height: 100vh;
+
+		padding: var(--q1);
+
+		@include theme() using ($theme) {
+			background: linear-gradient(45deg, rgba(gtv($theme, bgColor), .5), rgba(gtv($theme, bgColor), .75)), center center/cover var(--bg);
+			background-color: gtv($theme, bgColor);
+			box-shadow: 0 0 0 2px rgba(gtv($theme, fgColor), .5);
+		}
+
+		.content {
+			&:not(:empty) {
+				margin-top: var(--qh);
+			}
+		}
+
+		.card {
+			flex-grow: 1;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			overflow: auto;
+
+			&:not(:empty) {
+				margin-top: var(--q1);
+				margin-left: calc(var(--q1) * -1);
+				margin-right: calc(var(--q1) * -1);
+
+				width: calc(100% + var(--q2));
+
+				padding: var(--q1);
+			}
+
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, fgColor), .25);
+			}
+		}
+
+		.cfx-button {
+			margin-top: var(--q1);
 		}
 	}
 }
-

@@ -1,63 +1,78 @@
-<ul class="tabs">
-	<ng-container *ngFor="let category of categories">
-		<li *ngIf="shouldShowCategory(category)" [class.active]="selectedCategory == category" (click)="setCategory(category)">
-			{{category|translate:locale.language}}
-		</li>
-	</ng-container>
-</ul>
-<main>
-<div *ngFor="let setting of settings">
-<section class="setting" *ngIf="selectedCategory == setting.category && setting.show">
-	<div class="key">
-		<div>{{ setting.setting.name | translate:locale.language }}</div>
-	</div>
-	<div class="value">
-		<div class="checkbox" *ngIf="setting.setting.type === 'checkbox'">
-			<input
-				type="checkbox"
-				[id]="setting.setting.id"
-				[(ngModel)]="setting.boolValue"
-				[name]="setting.setting.id"
-			>
-			<label [for]="setting.setting.id">
-				{{ setting.setting.description | translate:locale.language }}
-			</label>
-		</div>
-		<input
-			*ngIf="setting.setting.type === 'text'"
-			#input
-			class="text"
-			type="text"
-			[placeholder]="setting.setting.description | translate:locale.language"
-			spellcheck="false"
-			[name]="setting.setting.id"
-			[(ngModel)]="setting.value"
-		>
-		<span *ngIf="setting.setting.type === 'button'" class="button">
-			<button (click)="setting.setting.setCb('')">{{ setting.setting.description | translate:locale.language }}</button>
-		</span>
+<h1 class="page-title" l10nTranslate>
+	#BottomNav_Settings
+</h1>
 
-		<span *ngIf="setting.setting.type === 'label' && !setting.setting.colorizeValue">
-			{{ setting.label }}
-		</span>
+<section class="settings">
+	<div class="category" *ngFor="let wtf of categorizedSettings | keyvalue">
+		<h1 class="title" l10nTranslate>{{wtf.key}}</h1>
 
-		<span *ngIf="setting.setting.type === 'label' && setting.setting.colorizeValue"
-			[innerHTML]="setting.label | escape | colorize">
-		</span>
+		<ng-container *ngFor="let setting of wtf.value">
+			<div *ngIf="setting.show" class="setting">
+				<div class="key" l10nTranslate>
+					{{setting.setting.name}}
+				</div>
+				<div class="value">
+					<label class="cfx-checkbox" *ngIf="setting.setting.type === 'checkbox'">
+						<input id="hide-empty" type="checkbox" [(ngModel)]="setting.boolValue"/>
+						<div class="cfx-checkbox-indicator"></div>
+						<span l10nTranslate>{{setting.setting.description}}</span>
+					</label>
 
-		<span *ngIf="setting.setting.type === 'html'"
-			[innerHTML]="setting.label">
-		</span>
+					<input
+						*ngIf="setting.setting.type === 'text'"
+						#input
+						class="text"
+						type="text"
+						[placeholder]="setting.setting.description | translate:locale.language"
+						spellcheck="false"
+						[name]="setting.setting.id"
+						[(ngModel)]="setting.value"
+					>
 
-		<span *ngIf="setting.setting.type === 'select'" class="select">
-			<select
-				[(ngModel)]="setting.value"
-				[name]="setting.setting.id"
-			>
-				<option *ngFor="let option of setting.optionsArray" [value]="option.value">{{ option.name }}</option>
-			</select>
-		</span>
+					<span *ngIf="setting.setting.type === 'button'" class="button">
+						<button class="cfx-button" (click)="setting.setting.setCb('')" l10nTranslate>
+							{{setting.setting.description}}
+						</button>
+					</span>
+
+					<span *ngIf="setting.setting.type === 'label' && !setting.setting.colorizeValue">
+						{{setting.label}}
+					</span>
+					<span *ngIf="setting.setting.type === 'label' && setting.setting.colorizeValue"
+						[innerHTML]="setting.label | escape | colorize">
+					</span>
+
+					<span class="html" *ngIf="setting.setting.type === 'html'"
+						[innerHTML]="setting.label">
+					</span>
+
+					<span *ngIf="setting.setting.type === 'select'">
+						<ng-select
+							[(ngModel)]="setting.value"
+							[searchable]="false"
+							[clearable]="false"
+							[dropdownPosition]="'top'"
+						>
+							<ng-option *ngFor="let option of setting.optionsArray" [value]="option.value">
+								{{option.name}}
+							</ng-option>
+						</ng-select>
+					</span>
+
+					<span *ngIf="setting.setting.type === 'switch'" class="switch">
+						<div class="cfx-switch">
+							<div
+								class="cfx-switch-option"
+								[class.active]="setting.value === option.value"
+								*ngFor="let option of setting.optionsArray"
+								(click)="setting.value = option.value"
+							>
+								{{option.name}}
+							</div>
+						</div>
+					</span>
+				</div>
+			</div>
+		</ng-container>
 	</div>
 </section>
-</div>
-</main>

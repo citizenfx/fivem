@@ -4,11 +4,13 @@ import { GameService } from './game.service';
 import { TrackingService } from './tracking.service';
 
 import { environment } from '../environments/environment';
-import { Router, NavigationStart } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { interval } from 'rxjs';
-import { startWith, map, distinctUntilChanged, filter, take, tap, takeUntil } from 'rxjs/operators';
+import { startWith, map, distinctUntilChanged, filter, take, tap } from 'rxjs/operators';
 import { ServersService } from './servers/servers.service';
 import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
+import { OverlayContainer } from '@angular/cdk/overlay';
+import { getNavConfigFromUrl } from './nav/helpers';
 
 @Component({
 	selector: 'app-root',
@@ -40,7 +42,8 @@ export class AppComponent implements OnInit {
 		private trackingService: TrackingService,
 		private router: Router,
 		private zone: NgZone,
-		private serversService: ServersService) {
+		private serversService: ServersService,
+		private overlayContainer: OverlayContainer) {
 		this.gameService.init();
 
 		this.gameService.languageChange.subscribe(value => {
@@ -53,16 +56,28 @@ export class AppComponent implements OnInit {
 				this.classes['minmode'] = true;
 				this.classes['theme-dark'] = true;
 				this.classes = { ...this.classes };
+				overlayContainer.getContainerElement().classList.add('theme-dark');
 				this.router.navigate(['/minmode']);
 			}
 
 			this.minModeSetUp = true;
 		});
 
+		router.events.subscribe(event => {
+			const url = (<NavigationEnd>event).url;
+
+			if (url) {
+				const { withHomeButton } = getNavConfigFromUrl(url);
+
+				this.classes['no-header-safe-zone'] = !withHomeButton;
+				this.classes = { ...this.classes };
+			}
+		});
+
 		const settle = () => {
 			this.serversService.onInitialized();
 
-			(<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
+			(<HTMLDivElement>document.querySelector('.booting')).style.opacity = '0';
 			(<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
 		};
 
@@ -95,20 +110,37 @@ export class AppComponent implements OnInit {
 	}
 
 	ngOnInit() {
+		const themeName = this.gameService.gameName === 'rdr3'
+			? 'theme-rdr3'
+			: (this.gameService.darkTheme ? 'theme-dark' : 'theme-light');
+
 		this.classes = {};
 		this.classes[environment.web ? 'webapp' : 'gameapp'] = true;
-		this.classes[(this.gameService.gameName === 'rdr3') ?
-			'theme-rdr3' :
-			(this.gameService.darkTheme) ? 'theme-dark' : 'theme-light'] = true;
+		this.classes[themeName] = true;
+
+		this.overlayContainer.getContainerElement().classList.add(themeName);
+
 		this.classes['game-' + this.gameService.gameName] = true;
 		this.classes['theRoot'] = true;
+		this.classes['no-header-safe-zone'] = !getNavConfigFromUrl(this.router.url).withHomeButton;
 
 		this.gameService.darkThemeChange.subscribe(value => {
 			if (this.gameService.gameName !== 'rdr3') {
+				const overlayElement = this.overlayContainer.getContainerElement();
+
+				overlayElement.classList.remove('theme-light');
+				overlayElement.classList.remove('theme-dark');
+
 				delete this.classes['theme-light'];
 				delete this.classes['theme-dark'];
 
-				this.classes[(value) ? 'theme-dark' : 'theme-light'] = true;
+				const themeName = value
+					? 'theme-dark'
+					: 'theme-light';
+
+				this.classes[themeName] = true;
+				overlayElement.classList.add(themeName);
+
 				this.classes = {
 					...this.classes
 				};
@@ -119,36 +151,5 @@ export class AppComponent implements OnInit {
 		if (lang && this.l10nService.getAvailableLanguages().includes(lang)) {
 			this.l10nService.setLocale({ language: lang });
 		}
-	}
-
-	calcClipPath() {
-		let ref: string = null;
-
-		document.querySelector('.app-root').childNodes.forEach(el => {
-			if (ref) {
-				return;
-			}
-
-			if (el.nodeType !== Node.ELEMENT_NODE) {
-				return;
-			}
-
-			const htmlEl = el as HTMLElement;
-
-			for (const childEl of [ htmlEl, htmlEl.firstElementChild, htmlEl.firstElementChild?.nextElementSibling ]) {
-				if (!childEl) {
-					continue;
-				}
-
-				const zIndex = window.getComputedStyle(childEl, ':after')?.zIndex;
-
-				if (zIndex === '-999') {
-					const rect = childEl.getBoundingClientRect();
-					ref = `inset(${rect.top}px ${window.innerWidth - rect.right}px ${window.innerHeight - rect.bottom}px ${rect.left}px)`;
-				}
-			}
-		});
-
-		return ref ?? 'inset(100vw)';
 	}
 }

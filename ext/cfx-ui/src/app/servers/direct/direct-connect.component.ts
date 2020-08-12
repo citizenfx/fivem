@@ -4,11 +4,11 @@ import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/distinctUntilChanged';
 
-import { Server } from '../server';
+import { Server, ServerHistoryEntry } from '../server';
 
 import { ServersService } from '../servers.service';
 
-import { GameService, ServerHistoryEntry } from '../../game.service';
+import { GameService } from '../../game.service';
 
 import { DomSanitizer } from '@angular/platform-browser';
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
@@ -96,6 +96,10 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
     }
 
     parseAddress(addr: string): [string, number] {
+		if (!addr) {
+			 return null;
+		}
+
         const addrBits: [string, number] = [ '', 30120 ];
         const match = addr.match(/^(?:((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)|cfx\.re\/join\/[0-9a-z]+)/i);
 

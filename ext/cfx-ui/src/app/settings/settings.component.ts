@@ -31,7 +31,9 @@ class DisplaySetting {
         }
 
         if (setting.showCb) {
-            this.subscriptions.push(setting.showCb().subscribe(value => this.show = value));
+            this.subscriptions.push(setting.showCb().subscribe(value => {
+				this.show = value;
+			}));
         }
 
         if (setting.labelCb) {
@@ -40,7 +42,7 @@ class DisplaySetting {
 
         if (setting.options) {
             this.optionsArray = Object.entries(setting.options).map(([ value, name ]) => ({ name, value }));
-        }
+		}
     }
 
     public get value(): string {
@@ -88,7 +90,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     public categories: string[] = [];
     public selectedCategory: string;
 
-    public settings: DisplaySetting[] = [];
+	public settings: DisplaySetting[] = [];
+
+	categorizedSettings: Map<string, DisplaySetting[]> = new Map();
 
     constructor(private gameService: GameService, private discourseService: DiscourseService,
         private serversService: ServersService, @Inject(L10N_LOCALE) public locale: L10nLocale,
@@ -115,7 +119,16 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.currentAccount = this.discourseService.currentUser;
 
         for (const setting of this.settingsService.settingsList) {
-            this.settings.push(new DisplaySetting(setting));
+			const displaySetting = new DisplaySetting(setting);
+			let settingCategory = [];
+
+			if (!this.categorizedSettings.has(displaySetting.category)) {
+				this.categorizedSettings.set(displaySetting.category, settingCategory);
+			} else {
+				settingCategory = this.categorizedSettings.get(displaySetting.category);
+			}
+
+            settingCategory.push(displaySetting);
         }
 
         this.categories = Array.from(new Set<string>(this.settings.map(a => a.category)).values());

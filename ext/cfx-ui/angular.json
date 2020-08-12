@@ -32,7 +32,7 @@
               "src/favicon.ico"
             ],
             "styles": [
-              "src/styles/global.scss"
+			  "src/styles/global.scss"
             ],
             "scripts": [],
             "baseHref": ".",

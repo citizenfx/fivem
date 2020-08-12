@@ -1,107 +1,75 @@
 @import 'variables';
 
-@keyframes loadingDots {
-    0% {
-        content: '';
-    }
-    33% {
-        content: '.';
-    }
-    66% {
-        content: '..';
-    }
-    100% {
-        content: '...';
-    }
+.page-title {
+	@include pageHeader;
 }
 
-:host {
-    display: flex;
-    
-    @include appContent;
+.control {
+	width: 100%;
 
-    @include themeHostWorkaround() using ($theme) {
-        color: gtv($theme, textColour);
-    };
+	input {
+		width: 100%;
 
-    flex-direction: column;
+		@include themeHostWorkaround() using ($theme) {
+			background-color: rgba(gtv($theme, bgColor), .4);
 
-    .control {
-        width: 100%;
+			&:hover,
+			&:focus {
+				background-color: rgba(gtv($theme, bgColor), .2);
+			}
 
-        input {
-            width: 100%;
+			&.invalid {
+				background-color: rgba(darken(red, 20%), .3);
+			}
+		};
+	}
+}
 
-            @include themeHostWorkaround() using ($theme) {
-                background-color: rgba(gtv($theme, bgColour), .4);
+@include themeHostWorkaround() using ($theme) {
+	.history>ul>li {
+		background-color: rgba(gtv($theme, bgColor), .2);
 
-                &:hover,
-                &:focus {
-                    background-color: rgba(gtv($theme, bgColour), .2);
-                }
+		span.time {
+			color: darken(gtv($theme, textColor), 10%);
+		}
 
-                &.invalid {
-                    background-color: rgba(darken(red, 20%), .3);
-                }
-            };
-        }
-    }
-    
-    @include themeHostWorkaround() using ($theme) {
-        .history>ul>li {
-            background-color: rgba(gtv($theme, bgColour), .2);
-            
-            span.time {
-                color: darken(gtv($theme, textColour), 10%);
-            }
-            
-            &:hover {
-                background-color: rgba(lighten(gtv($theme, bgColour), 10%), .3);
-            }
-        }
-    };
+		&:hover {
+			background-color: rgba(lighten(gtv($theme, bgColor), 10%), .3);
+		}
+	}
+};
 
-    .history {
-        &>ul {
-            list-style-type: none;
+.history {
+	margin-top: var(--q1);
 
-            &>li {
-                margin-bottom: $padding;
-                padding: $padding $padding*$multiplier;
+	.server {
+		display: flex;
+		flex-direction: row;
 
-                position: relative;
+		@include backdropPane;
 
-                min-height: 96px;
-                box-sizing: content-box;
+		padding: var(--q1);
 
-                display: flex;
-                align-items: center;
+		&:hover {
+			@include theme() using ($theme) {
+				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+			}
+		}
 
-                .icon {
-                    position: absolute;
-                    left: $padding*$multiplier;
+		.icon {
+			margin-right: var(--q1);
+		}
 
-                    img {
-                        border-radius: 1px;
-                    }
-                }
+		.content {
+			flex-grow: 1;
 
-                &>div {
-                    padding-left: calc(96px + #{$padding});
-                }
+			.title {
+				margin-bottom: var(--qh);
+			}
 
-                span {
-                    font-size: 90%;
-                    margin-right: 1vh;
-                }
-
-                span.players {
-                    &:after {
-                        content: '📶';
-                        padding-left: 0.5vh;
-                    }
-                }
-            }
-        }
-    }
+			span {
+				font-size: var(--fs-1);
+			}
+		}
+	}
 }

@@ -1,0 +1,111 @@
+@import "variables";
+
+:host {
+	height: 100%;
+
+	flex-grow: 1;
+	overflow: hidden;
+}
+
+.filters {
+	display: flex;
+	flex-direction: column;
+
+	height: 100%;
+}
+
+.tags {
+	height: 50%;
+
+	@include theme() using ($theme) {
+		border-top: solid 2px rgba(gtv($theme, accentColor1), .25);
+	}
+
+	overflow-y: scroll;
+
+    h4 {
+		margin-top: var(--qh);
+		margin-left: var(--q1);
+
+		font-size: var(--fs-2);
+		font-weight: bold;
+		font-family: 'Montserrat';
+		line-height: 1;
+		letter-spacing: 2px;
+		text-transform: uppercase;
+
+		opacity: .25;
+
+		text-align: justify;
+    }
+
+    span {
+        vertical-align: middle;
+
+        &.flag-icon {
+            margin-right: 0.5vh;
+        }
+    }
+
+    .tag {
+		display: flex;
+		align-items: center;
+
+		padding: var(--qh) var(--q1);
+
+		overflow: hidden;
+
+		font-size: var(--fs-075);
+
+        transition: all .2s ease;
+
+		.indicator {
+			display: none;
+
+			width: calc(var(--q1) - 4px);
+			height: calc(var(--q1) - 4px);
+
+			@include theme using ($theme) {
+                background-color: gtv($theme, bgColor);
+            };
+		}
+
+		&.active {
+			@include theme using ($theme) {
+				background-image: linear-gradient(45deg, transparent, gtv($theme, activeColor));
+			};
+
+			&:hover {
+				@include theme using ($theme) {
+					background-color: gtv($theme, inactiveColor);
+				};
+			}
+		}
+
+		&.inactive {
+			.name {
+				text-decoration: line-through;
+			}
+
+			@include theme using ($theme) {
+				background-image: linear-gradient(45deg, transparent, gtv($theme, inactiveColor));
+			};
+		}
+
+		.name {
+			flex-grow: 1;
+		}
+
+		.count {
+			opacity: .75;
+		}
+
+        &:hover {
+			transition: none;
+
+            @include theme using ($theme) {
+				background-color: gtv($theme, activeColor);
+            };
+        }
+    }
+}

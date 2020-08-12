@@ -1,41 +1,53 @@
 ul.tabs {
-	width: 25vh;
-	list-style-type: none;
-	white-space: nowrap;
-	overflow: scroll;
+	display: flex;
+	flex-shrink: 0;
 
-	min-height: 3.5vh;
-	margin-right: 0.5vh;
+	list-style-type: none;
+
+	@include backdropPane;
+
+	margin-bottom: var(--qh);
 
 	li {
 		display: block;
 
-		font-size: 2.25rem;
-		font-weight: 100;
-		line-height: 1;
+		padding: var(--qh) var(--q1);
 
-		margin: 0;
-		margin-bottom: $padding/2;
-		padding: calc(#{$padding} - 0.375rem) $padding*$multiplier;
+		font-size: var(--fs-3);
+		font-family: 'Montserrat';
+		letter-spacing: 1px;
+		text-transform: uppercase;
 
-		border-left: 1px solid rgba(0, 0, 0, 0);
+		transition: all .2s ease;
 
 		@include theme() using ($theme) {
-			color: rgba(gtv($theme, textColour), .6);
-		}
+			&.active {
+				color: rgba(gtv($theme, textColor), 1);
 
-		&.active, &:hover {
-			@include theme() using ($theme) {
-				color: rgba(gtv($theme, textColour), 1);
+				box-shadow: 0 2px 0 gtv($theme, accentColor1) inset;
+			}
+
+			&:hover {
+				color: rgba(gtv($theme, textColor), 1);
+				background-color: gtv($theme, accentColor1);
+
+				transition: none;
 			}
 		}
+	}
 
-		&.active {
-			@include theme() using ($theme) {
-				border-left: 1px solid gtv($theme, greenyColour);
+	&.vertical {
+		flex-direction: column;
+
+		margin-bottom: 0;
+		margin-right: var(--qh);
+
+		overflow-y: scroll;
+
+		@include theme() using ($theme) {
+			li.active {
+				box-shadow: 2px 0 0 gtv($theme, accentColor1) inset;
 			}
 		}
-
-		transition: all 0.2s ease;
 	}
 }

@@ -15,87 +15,70 @@
     }
 }
 
-:host {
-    display: flex;
-    
-    @include themeHostWorkaround() using ($theme) {
-        color: gtv($theme, textColour);
-    };
+.server-info {
+	@include backdropPane;
 
-    flex-direction: column;
-    
-    @include themeHostWorkaround() using ($theme) {
-        .server-info>div {
-            background-color: rgba(gtv($theme, bgColour), .2);
-        }
-    };
+	&:not(:empty) {
+		padding: var(--q1);
+		margin-top: var(--qh);
+	}
 
-    .server-info {
-        &>div {
-            margin-top: $padding;
-            margin-bottom: $padding;
-            padding: $padding $padding*$multiplier;
+	&>div {
+		&.loading::after {
+			display: inline;
+			content: '...';
 
-            &.loading::after {
-                display: inline;
-                content: '...';
+			animation-name: loadingDots;
+			animation-duration: 1s;
+			animation-iteration-count: infinite;
+		}
+	}
 
-                animation-name: loadingDots;
-                animation-duration: 1s;
-                animation-iteration-count: infinite;
-            }
+	.error {
+		.title {
+			margin-bottom: var(--qh);
+		}
+	}
 
-            &.info {
-                position: relative;
-                padding-left: calc(128px + #{$padding*$multiplier + $padding});
+	.info {
+		display: flex;
+		flex-direction: row;
 
-                .bg {
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    top: 0;
-                    bottom: 0;
-                    z-index: -1;
+		.icon {
+			margin-right: var(--q1);
 
-                    filter: grayscale(.5);
-                    opacity: .25;
+			img {
+				border-radius: 1px;
+			}
+		}
 
-                    background-size: 500%;
-                    background-repeat: no-repeat;
-                    background-position: center center;
-                }
+		.content {
+			flex-grow: 1;
 
-                .icon {
-                    position: absolute;
-                    left: $padding*$multiplier;
+			.title {
+				display: block;
 
-                    img {
-                        border-radius: 1px;
-                    }
-                }
+				font-size: var(--fs-4);
+				line-height: 1.1;
+			}
 
-                .title {
-                    font-size: 2.5rem;
-                    line-height: 1;
-                }
+			.desc {
+				list-style: none;
 
-                .desc {
-                    list-style: none;
-                    margin-top: $padding;
-                    font-size: 1.1rem;
+				margin-top: var(--q1);
+				font-size: var(--fs-1);
 
-                    .key {
-                        display: inline-block;
-                        font-weight: 100;
+				.key {
+					display: inline-block;
+					font-weight: 100;
 
-                        width: 15%;
-                    }
-                }
+					width: 15%;
+				}
+			}
 
-                .connect {
-                    margin-top: $padding;
-                }
-            }
-        }
-    }
+			.connect {
+				margin-top: var(--q1);
+			}
+		}
+	}
 }

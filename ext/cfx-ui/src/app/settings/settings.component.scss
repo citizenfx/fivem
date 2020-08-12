@@ -2,208 +2,76 @@
 
 :host {
 	display: flex;
-	flex-direction: row;
+	flex-direction: column;
 
 	@include appContent;
-
-	overflow-y: hidden;
 }
 
-main {
-	flex-grow: 1;
+.page-title {
+	@include pageHeader;
 }
 
 @import "tabs";
 
-    .setting {
-        display: flex;
-        width: 100%;
-        margin-bottom: $padding/2;
+.settings {
+	height: 100%;
+	overflow-y: auto;
 
-        font-size: 1.5rem;
-        line-height: 1;
+	.category {
+		@include backdropPane;
 
-        .key {
-			display: flex;
-			align-items: center;
+		padding: var(--q1);
 
-			width: 50%/$multiplier;
-			padding: $padding $padding*$multiplier;
-			margin-right: $padding/4;
+		margin-bottom: var(--qh);
+		&:last-child {
+			margin-bottom: 0;
+		}
 
-			@include theme() using ($theme) {
-				background-color: rgba(gtv($theme, bgColour), .2);
-			};
-        }
-
-        .value {
-			flex-grow: 1;
-
-			display: flex;
-			align-items: center;
+		.title {
+			font-size: var(--fs-2);
+			line-height: 1;
+			text-transform: uppercase;
 
 			@include theme() using ($theme) {
-				background: rgba(gtv($theme, bgColour), .2);
-			};
-
-            &>* {
-                width: 100%;
-            }
-
-            .text {
-                background-color: transparent;
-
-                &:hover,
-                &:focus {
-					@include theme() using ($theme) {
-						background: rgba(gtv($theme, bgColour), .2);
-					};
-                }
+				color: rgba(gtv($theme, fgColor), .5);
 			}
-			
-			input[type="text"] {
-				font-size: 1.4rem;
-				font-family: $fonts;
-				vertical-align: middle;
+		}
 
-				height: 100%;
+		.setting {
+			margin-top: var(--q1);
 
-				padding-top: 0;
-				padding-bottom: 0;
-			}
-
-			span {
-				position: relative;
-				flex-grow: 1;
-
-				display: block;
-
-				font-size: 1.4rem;
-				font-weight: 100;
-				line-height: 1;
-				padding: $padding $padding*$multiplier;
-
-				transition: all .2s ease;
-
+			.key {
+				font-size: var(--fs-075);
 				@include theme() using ($theme) {
-					color: gtv($theme, secondaryColour);
-				};
-
-				&.select, &.button {
-					padding-top: 0;
-					padding-bottom: 0;
+					color: rgba(gtv($theme, fgColor), .75);
 				}
 			}
 
-			select {
-				position: relative;
-				width: auto;
+			.value {
+				margin-top: var(--qh);
 
-				padding: $padding/2 $padding*$multiplier;
-				border-collapse: separate;
+				font-size: var(--fs-1);
+				font-family: 'Rubik';
 				line-height: 1;
 
-				border-radius: 2px;
-				border: none;
-				outline: none;
-
-				transition: all .2s ease;
-
 				@include theme() using ($theme) {
-					color: gtv($theme, fgColour);
-					text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .8);
-					background: darken(gtv($theme, greenyColour), 10%);
+					color: gtv($theme, fgColor);
 				};
 
-				&:hover,
-				&:focus {
-					@include theme() using ($theme) {
-						background: gtv($theme, greenyColour);
-						box-shadow: 0 5px 25px darken(gtv($theme, greenyColour), 10%);
-					};
-				}
-			}
-
-			option {
-				@include theme() using ($theme) {
-					box-shadow: 0 5px 25px darken(gtv($theme, greenyColour), 10%);
-				};
-			}
-
-            .checkbox {
-				position: relative;
-				flex-grow: 1;
-
-				@include theme() using ($theme) {
-					color: gtv($theme, secondaryColour);
-				};
-
-				&:last-child {
-					margin-right: 0;
+				.text {
+					font-size: var(--fs-1);
 				}
 
-				input {
-					position: absolute;
-					height: 0px;
-					width: 0px;
-					transform: translateX(-9999px);
-				}
-
-				label {
-					display: block;
-                    width: 100%;
-
-                    //color: rgba(gtv($theme, fgColour), .5);
-                    font-size: 1.4rem;
-					font-weight: 100;
-					line-height: 1;
-					padding: $padding $padding*$multiplier;
-
-					transition: all .2s ease;
-
-					&::before {
-						content: '';
-						display: inline-block;
-
-						width: 1.4vh;
-						height: 1.4vh;
-						margin-right: $padding/2;
-
-						border-radius: 1px;
-
-						vertical-align: -1px;
-						overflow: hidden;
-
-						font-size: 1.7vh;
-						line-height: 1;
-						text-align: center;
-
-						@include theme() using ($theme) {
-							background-color: rgba(gtv($theme, bgColour), .5);
-						};
-
-						color: white;
-						transition: all .2s ease;						
+				.html {
+					::ng-deep .fab {
+						margin-right: var(--qh);
 					}
 				}
 
-				&:hover label {
-					@include theme() using ($theme) {
-						background-color: rgba(gtv($theme, bgColour), .2);
-					};
-				}
-
-				input:checked + label {
-					&::before {
-						content: '✓';
-
-						@include theme() using ($theme) {
-							background: gtv($theme, greenyColour);
-							box-shadow: 0 0 25px darken(gtv($theme, greenyColour), 10%);
-							text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .5);
-						};
-					}
+				&>span {
+					display: flex;
 				}
 			}
-        }
-    }
+		}
+	}
+}

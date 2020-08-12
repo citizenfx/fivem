@@ -1,85 +1,111 @@
 @import "variables";
 
-:host {
-    @include appContent;
-}
+.container {
+	::ng-deep {
+		.root {
+			display: flex;
+			flex-direction: row;
+			align-items: stretch;
+			justify-content: space-evenly;
 
-div {
-    ::ng-deep {
-        div.root {
-            display: flex; 
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-evenly;
-            height: 100%;
+			height: 100%;
 
-            &>h1 {
-                font-weight: normal;
-                margin: 0;
-                line-height: 1;
-            }
+			&>h1 {
+				display: none;
+				font-weight: normal;
+				margin: 0;
+				line-height: 1;
+			}
 
-            &>div {
-                width: 100%;
+			// Items container
+			&>div {
+				width: 100%;
+				height: 100%;
 
-                display: flex;
-                align-items: center;
-                flex-direction: column;
-            }
+				display: flex;
+				align-items: stretch;
+				justify-content: stretch;
+			}
 
-            &>div>div {
-                width: 80%;
-                position: relative;
-                --pos: center center;
+			// Item
+			&>div>div {
+				width: 80%;
+				position: relative;
+				--pos: center center;
 
-                &>.bg {
-                    position: absolute;
-                    top: 0px;
-                    bottom: 0px;
-                    left: 0px;
-                    right: 0px;
+				@include backdropPane;
+				@include borderedPane;
 
-                    background-image: var(--bg);
-                    background-color: rgb(244, 180, 62);
-                    background-repeat: no-repeat;
-                    background-size: cover;
-                    background-position: var(--pos);
-                    color: #fff;
-                    z-index: -999;
+				margin-right: var(--q1);
+				&:last-child {
+					margin-right: 0;
+				}
 
-                    filter: saturate(70%) brightness(80%);
+				padding: var(--q1);
 
-                    transition: all 100ms ease-in;
-                }
+				overflow: hidden;
 
-                text-shadow: 0px 0px 0.75vh rgba(0, 0, 0, .5);
+				&>.bg {
+					display: none;
 
-                h1 {
-                    font-size: $fontSize * 1.5;
-                    font-weight: normal;
-                }
-                
-                h2 {
-                    font-size: $fontSize * 1.0;
-                    font-weight: normal;
+					position: absolute;
+					top: -10px;
+					bottom: -10px;
+					left: -10px;
+					right: -10px;
 
-                    font-style: italic;
-                }
+					background-image: var(--bg);
+					background-repeat: no-repeat;
+					background-size: cover;
+					background-position: var(--pos);
+					color: #fff;
+					z-index: -1;
 
-                box-shadow: 0px 0px 1.5vh rgba(0, 0, 0, .5);
-                padding: 4vh 2vh;
-                margin: 1vh;
+					opacity: .5;
 
-                &:hover {
-                    box-shadow: 0px 0px 3.5vh rgba(0, 0, 0, .8);
+					filter: saturate(50%) brightness(80%) blur(5px);
 
-                    &>.bg {
-                        filter: saturate(100%);
-                    }
-                }
+					will-change: filter;
+					transition: all .2s ease;
+				}
 
-                transition: all 100ms ease-in;
-            }
-        }
-    }
+				h1 {
+					text-transform: uppercase;
+					font-size: var(--fs-1);
+					font-weight: bold;
+					line-height: 1;
+					letter-spacing: 1px;
+				}
+
+				h2 {
+					margin-top: var(--q1);
+
+					@include theme() using ($theme) {
+						color: rgba(gtv($theme, fgColor), .5);
+					}
+
+					font-family: 'Rubik' !important;
+					font-size: var(--fs-1);
+					font-weight: 400;
+					letter-spacing: 0px;
+				}
+
+				&:hover {
+					@include theme() using ($theme) {
+						box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+						background-color: rgba(gtv($theme, accentColor1), .05);
+					}
+
+					transition: none;
+
+					&>.bg {
+						filter: saturate(100%);
+						transition: none;
+					}
+				}
+
+				transition: all .2s ease;
+			}
+		}
+	}
 }

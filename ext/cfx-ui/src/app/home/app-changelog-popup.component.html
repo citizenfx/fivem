@@ -1,6 +1,0 @@
-<ul class="tabs">
-	<li *ngFor="let version of versions" [class.active]="selectedVersion == version" (click)="loadVersion(version)">{{version}}</li>
-</ul>
-<div class="content">
-	<app-changelog-entry *ngIf="selectedVersion" [version]="selectedVersion"></app-changelog-entry>
-</div>
