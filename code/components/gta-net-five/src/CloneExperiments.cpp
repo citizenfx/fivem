@@ -1440,6 +1440,8 @@ namespace rage
 		char pad_0Ch[24]; // +0xC
 
 		uint16_t eventId; // +0x24
+
+		uint8_t hasEventId : 1; // +0x26
 	};
 }
 
@@ -1477,6 +1479,7 @@ struct netGameEventState
 static std::map<std::tuple<uint16_t, uint16_t>, netGameEventState> g_events;
 
 static void(*g_origAddEvent)(void*, rage::netGameEvent*);
+static uint16_t g_eventHeader;
 
 static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 {
@@ -1504,11 +1507,17 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		}
 	}
 
-	// we don't need the event anymore
-	g_events[{ ev->eventType, ev->eventId }] = { ev, msec() };
+	auto eventId = (ev->hasEventId) ? ev->eventId : g_eventHeader++;
+
+	auto [ it, inserted ] = g_events.insert({ { ev->eventType, eventId }, { ev, msec() } });
+
+	if (!inserted)
+	{
+		delete ev;
+	}
 }
 
-static void SendGameEventRaw(rage::netGameEvent* ev)
+static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 {
 	// TODO: use a real player for some things
 	if (!g_player31)
@@ -1561,7 +1570,7 @@ static void SendGameEventRaw(rage::netGameEvent* ev)
 		outBuffer.Write<uint16_t>(playerId);
 	}
 
-	outBuffer.Write<uint16_t>(ev->eventId);
+	outBuffer.Write<uint16_t>(eventId);
 	outBuffer.Write<uint8_t>(0);
 	outBuffer.Write<uint16_t>(ev->eventType);
 
@@ -1592,7 +1601,7 @@ static void EventManager_Update()
 		{
 			if (!evSet.sent)
 			{
-				SendGameEventRaw(ev);
+				SendGameEventRaw(std::get<1>(eventPair.first), ev);
 
 				evSet.sent = true;
 			}
