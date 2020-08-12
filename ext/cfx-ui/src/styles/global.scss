@@ -75,18 +75,18 @@ body {
 	background-color: transparent;
 }
 
-@media all and (orientation: portrait) {
+@media (max-aspect-ratio: 16/9) {
 	body {
 		--width: 100vw;
-		--height: calc(100vw * (16/9));
+		--height: calc(100vw / 1.77);
 
 		--quant: 1.8vw;
 	}
 }
 
-@media all and (orientation: landscape) {
+@media (min-aspect-ratio: 16/9) {
 	body {
-		--width: calc(100vh * (16/9));
+		--width: calc(100vh * 1.77);
 		--height: 100vh;
 
 		--quant: 1.8vh;
