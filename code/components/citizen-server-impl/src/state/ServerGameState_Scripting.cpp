@@ -128,7 +128,7 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		int retval = -1;
-		auto entry = entity->client.lock();
+		auto entry = entity->GetClient();
 
 		if (entry)
 		{
@@ -930,7 +930,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		if (entity->client.lock())
+		if (entity->GetClient())
 		{
 			// TODO: client-side set-as-no-longer-needed indicator
 		}

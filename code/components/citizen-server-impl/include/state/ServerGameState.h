@@ -59,6 +59,7 @@ struct ScriptGuid;
 }
 
 extern CPool<fx::ScriptGuid>* g_scriptHandlePool;
+extern int m_ackTimeoutThreshold;
 
 namespace fx::sync
 {
@@ -376,11 +377,8 @@ namespace fx::sync
 	struct SyncEntityState
 	{
 		using TData = std::variant<int, float, bool, std::string>;
-	
-		std::shared_mutex clientMutex;
-		fx::ClientWeakPtr client;
-		fx::ClientWeakPtr lastUpdater;
 
+		std::shared_mutex clientMutex;
 		NetObjEntityType type;
 		uint32_t timestamp;
 		uint64_t frameIndex;
@@ -431,6 +429,35 @@ namespace fx::sync
 
 			return false;
 		}
+
+		// MAKE SURE YOU HAVE A LOCK BEFORE CALLING THIS
+		fx::ClientWeakPtr& GetClientUnsafe()
+		{
+			return client;
+		}
+
+		//THIS ONE TOO
+		fx::ClientWeakPtr& GetLastUpdaterUnsafe()
+		{
+			return lastUpdater;
+		}
+
+		fx::ClientSharedPtr GetClient()
+		{
+			std::shared_lock _lock(clientMutex);
+			return client.lock();
+		}
+
+		fx::ClientSharedPtr GetLastUpdater()
+		{
+			std::shared_lock _lock(clientMutex);
+			return lastUpdater.lock();
+		}
+
+		// make absolutely sure we don't accidentally mess up and get this info without a lock
+		private:
+		fx::ClientWeakPtr client;
+		fx::ClientWeakPtr lastUpdater;
 	};
 }
 

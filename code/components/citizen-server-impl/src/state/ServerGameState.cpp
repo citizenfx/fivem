@@ -591,7 +591,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				vehicleData = entity->syncTree->GetVehicleGameState();
 			}
 			
-			relevantEntities[maxValidEntity] = { entity, entityPosition, vehicleData, entity->client.lock() };
+			relevantEntities[maxValidEntity] = { entity, entityPosition, vehicleData, entity->GetClient() };
 			entityHandleMap[entity->handle] = maxValidEntity;
 			maxValidEntity++;
 		}
@@ -951,7 +951,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// assign it to the client, it's relevant!
 			if (!entityClient && entity->type != sync::NetObjEntityType::Player)
 			{
-				if (!entity->client.lock())
+				std::unique_lock _entityLock(entity->clientMutex);
+				if (!entity->GetClientUnsafe())
 				{
 					ReassignEntity(entity->handle, client);
 				}
@@ -1062,8 +1063,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (entity && entity->uniqifier == uniqifier)
 			{
-				auto entityClient = entity->client.lock();
-
+				auto entityClient = entity->GetClient();
 				if (entityClient && entityClient->GetNetId() == client->GetNetId())
 				{
 					std::unique_lock<std::mutex> lock(m_objectIdsMutex);
@@ -1134,8 +1134,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			// pending migration?
 			{
-				auto lu = entity->lastUpdater.lock();
-				auto cl = entity->client.lock();
+				fx::ClientSharedPtr cl = entity->GetClient();
+				fx::ClientSharedPtr lu = entity->GetLastUpdater();
 
 				if (lu && cl && lu->GetNetId() != cl->GetNetId())
 				{
@@ -1329,7 +1329,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 						if (!entityClient)
 						{
-							entityClient = entity->client.lock();
+							entityClient = entity->GetClient();
 
 							if (!entityClient)
 							{
@@ -1414,7 +1414,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 								bool mayWrite = true;
 
-								if (syncType == 2 && entity->lastUpdater.lock() == cmdState.client && !isFirstFrameUpdate)
+								if (syncType == 2 && entity->GetLastUpdater() == cmdState.client && !isFirstFrameUpdate)
 								{
 									mayWrite = false;
 								}
@@ -1562,7 +1562,7 @@ void ServerGameState::UpdateEntities()
 		// update client camera
 		if (entity->type == sync::NetObjEntityType::Player)
 		{
-			fx::ClientSharedPtr client = entity->client.lock();
+			fx::ClientSharedPtr client = entity->GetClient();
 
 			if (client)
 			{
@@ -1605,7 +1605,7 @@ void ServerGameState::UpdateEntities()
 			{
 				if (g_oneSyncForceMigration->GetValue() || fx::IsBigMode())
 				{
-					fx::ClientSharedPtr client = entity->client.lock();
+					fx::ClientSharedPtr client = entity->GetClient();
 
 					// #TODO: maybe non-client too?
 					if (client)
@@ -1816,6 +1816,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 	});
 }
 
+// make sure you have a lock to the client mutex before calling this function!
 void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient)
 {
 	auto entity = GetEntity(0, entityHandle);
@@ -1926,10 +1927,10 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		return;
 	}
 
-	auto oldClientRef = entity->client.lock();
+	auto oldClientRef = entity->GetClient();
 
 	{
-		entity->client = targetClient;
+		entity->GetClientUnsafe() = targetClient;
 
 		GS_LOG("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), (targetClient) ? targetClient->GetNetId() : -1);
 
@@ -1990,7 +1991,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 	bool hasClient = true;
 
 	{
-		auto entityClient = entity->client.lock();
+		auto entityClient = entity->GetClient();
 
 		if (!entityClient || !client)
 		{
@@ -2083,6 +2084,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 			if (entity->IsOwnedByScript())
 			{
+				std::unique_lock _lock(entity->clientMutex);
 				ReassignEntity(entity->handle, {});
 			}
 			else
@@ -2096,6 +2098,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 			GS_LOG("reassigning entity %d from %s to %s\n", entity->handle, client ? client->GetName() : "", std::get<1>(candidate)->GetName());
 
+			std::unique_lock _lock(entity->clientMutex);
 			ReassignEntity(entity->handle, std::get<1>(candidate));
 		}
 	}
@@ -2273,7 +2276,7 @@ void ServerGameState::ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl
 
 		// don't do duplicate migrations
 		{
-			auto entityClient = entity->client.lock();
+			auto entityClient = entity->GetClient();
 
 			if (entityClient && entityClient->GetNetId() == tgtCl->GetNetId())
 			{
@@ -2294,6 +2297,7 @@ void ServerGameState::ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl
 			return;
 		}
 
+		std::unique_lock _lock(entity->clientMutex);
 		ReassignEntity(entity->handle, tgtCl);
 	}
 }
@@ -2315,7 +2319,7 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 
 	if (entity)
 	{
-		auto entityClient = entity->client.lock();
+		auto entityClient = entity->GetClient();
 
 		if (!entityClient || client->GetNetId() != entityClient->GetNetId())
 		{
@@ -2364,7 +2368,7 @@ void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t ob
 
 			if (entityRef)
 			{
-				fx::ClientSharedPtr clientRef = entityRef->client.lock();
+				fx::ClientSharedPtr clientRef = entityRef->GetClient();
 
 				if (clientRef)
 				{
@@ -2538,7 +2542,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		if (!validEntity)
 		{
 			entity = fx::sync::SyncEntityPtr::Construct();
-			entity->client = client;
+			entity->GetClientUnsafe() = client;
 			entity->type = objectType;
 			entity->guid = nullptr;
 			entity->frameIndex = m_frameIndex;
@@ -2564,7 +2568,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		}
 		else // duplicate create? that's not supposed to happen
 		{
-			auto lcl = entity->client.lock();
+			auto lcl = entity->GetClient();
 
 			if (objectType != entity->type)
 			{
@@ -2606,7 +2610,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		entity->relevantTo.set(client->GetSlotId());
 	}
 
-	fx::ClientSharedPtr entityClient = entity->client.lock();
+	fx::ClientSharedPtr entityClient = entity->GetClient();
 
 	if (!entityClient)
 	{
@@ -2620,7 +2624,10 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		return false;
 	}
 
-	entity->lastUpdater = entity->client.lock();
+	{
+		std::unique_lock _clientLock(entity->clientMutex);
+		entity->GetLastUpdaterUnsafe() = entityClient;
+	}
 	entity->lastReceivedAt = msec();
 
 	// force the client to have the new entity so we don't send duplicate creations
@@ -3896,7 +3903,7 @@ static InitFunction initFunction([]()
 							continue;
 						}
 
-						auto entityClient = entity->client.lock();
+						auto entityClient = entity->GetClient();
 
 						{
 							std::lock_guard<std::shared_mutex> _(entity->guidMutex);
@@ -3966,9 +3973,10 @@ static InitFunction initFunction([]()
 					continue;
 				}
 
+				auto client = entity->GetClient();
 				if (relevantToSome)
 				{
-					if (sgs->MoveEntityToCandidate(entity, entity->client.lock()))
+					if (sgs->MoveEntityToCandidate(entity, client))
 					{
 						continue;
 					}
@@ -3976,11 +3984,12 @@ static InitFunction initFunction([]()
 
 				if (entity->IsOwnedByScript())
 				{
+					std::unique_lock _lock(entity->clientMutex);
 					sgs->ReassignEntity(entity->handle, {});
 				}
 				else
 				{
-					if (!sgs->MoveEntityToCandidate(entity, entity->client.lock()))
+					if (!sgs->MoveEntityToCandidate(entity, client))
 					{
 						sgs->DeleteEntity(entity);
 					}

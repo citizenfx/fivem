@@ -178,7 +178,7 @@ static InitFunction initFunction([]()
 
 								if (entity)
 								{
-									auto client = entity->client.lock();
+									auto client = entity->GetClient();
 
 									if (client)
 									{
@@ -470,7 +470,7 @@ static InitFunction initFunction([]()
 
 				if (clientIdx == -2)
 				{
-					if (entity && !entity->client.lock())
+					if (entity && !entity->GetClient())
 					{
 						std::unique_lock<std::shared_mutex> _(entity->guidMutex);
 						entity->onCreationRPC.push_back([buffer](const fx::ClientSharedPtr& client)
