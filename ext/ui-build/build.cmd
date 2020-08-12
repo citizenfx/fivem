@@ -40,8 +40,7 @@ rmdir /s /q %UIRoot%\app\
 
 :: copy new app
 mkdir %UIRoot%\app\
-copy /y dist\*.* %UIRoot%\app\
-xcopy /y /e dist\assets\ %UIRoot%\app\assets\
+xcopy /y /e dist\*.* %UIRoot%\app\
 
 if exist %CacheRoot% (
 	rmdir /s /q %CacheRoot%\cfx-ui-modules
