@@ -2656,7 +2656,6 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
 
 		auto syncTree = entity->syncTree;
-
 		if (syncTree)
 		{
 			syncTree->Parse(state);
@@ -2686,25 +2685,17 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		case sync::NetObjEntityType::Player:
 		{
 			auto data = GetClientDataUnlocked(this, client);
-
-			sync::SyncEntityPtr playerEntity;
-
-			{
-				std::shared_lock _lock(data->playerEntityMutex);
-				playerEntity = data->playerEntity.lock();
-			}
+			
+			std::unique_lock _lock(data->playerEntityMutex);
+			sync::SyncEntityPtr playerEntity = data->playerEntity.lock();
 
 			if (!playerEntity)
 			{
 				SendWorldGrid(nullptr, client);
 				client->OnCreatePed();
 			}
-	
-			{
-				std::unique_lock _lock(data->playerEntityMutex);
-				data->playerEntity = entity;
-			}
 
+			data->playerEntity = entity;
 			client->SetData("playerEntity", MakeScriptHandle(entity));
 
 			break;
