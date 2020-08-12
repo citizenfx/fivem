@@ -1488,6 +1488,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	// don't give control using events!
 	if (strcmp(ev->GetName(), "GIVE_CONTROL_EVENT") == 0)
 	{
+		delete ev;
 		return;
 	}
 
