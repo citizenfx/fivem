@@ -63,503 +63,500 @@ extern int m_ackTimeoutThreshold;
 
 namespace fx::sync
 {
-	struct SyncParseState;
-	struct SyncUnparseState;
+struct SyncParseState;
+struct SyncUnparseState;
 
-	struct NodeBase;
+struct NodeBase;
 
-	using SyncTreeVisitor = std::function<bool(NodeBase&)>;
+using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 
-	struct NodeBase
+struct NodeBase
+{
+public:
+	eastl::bitset<roundToWord(MAX_CLIENTS)> ackedPlayers;
+
+	uint64_t frameIndex;
+
+	uint32_t timestamp;
+
+	virtual bool Parse(SyncParseState& state) = 0;
+
+	virtual bool Unparse(SyncUnparseState& state) = 0;
+
+	virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
+
+	virtual bool IsAdditional() = 0;
+};
+
+struct CPlayerCameraNodeData
+{
+	int camMode;
+	float freeCamPosX;
+	float freeCamPosY;
+	float freeCamPosZ;
+
+	float cameraX;
+	float cameraZ;
+
+	float camOffX;
+	float camOffY;
+	float camOffZ;
+};
+
+struct CPlayerWantedAndLOSNodeData
+{
+	int wantedLevel;
+	int isWanted;
+	int isEvading;
+
+	int timeInPursuit;
+	int timeInPrevPursuit;
+
+	inline CPlayerWantedAndLOSNodeData()
+		: timeInPursuit(-1), timeInPrevPursuit(-1)
 	{
-	public:
-		eastl::bitset<roundToWord(MAX_CLIENTS)> ackedPlayers;
+	}
+};
 
-		uint64_t frameIndex;
+struct CPedGameStateNodeData
+{
+	int curVehicle;
+	int curVehicleSeat;
 
-		uint32_t timestamp;
+	int lastVehicle;
+	int lastVehicleSeat;
 
-		virtual bool Parse(SyncParseState& state) = 0;
+	int lastVehiclePedWasIn;
 
-		virtual bool Unparse(SyncUnparseState& state) = 0;
+	int curWeapon;
 
-		virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
-
-		virtual bool IsAdditional() = 0;
-	};
-
-	struct CPlayerCameraNodeData
+	inline CPedGameStateNodeData()
+		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
-		int camMode;
-		float freeCamPosX;
-		float freeCamPosY;
-		float freeCamPosZ;
+	}
+};
 
-		float cameraX;
-		float cameraZ;
+struct CVehicleAppearanceNodeData
+{
+	int primaryColour;
+	int secondaryColour;
+	int pearlColour;
+	int wheelColour;
+	int interiorColour;
+	int dashboardColour;
 
-		float camOffX;
-		float camOffY;
-		float camOffZ;
-	};
+	bool isPrimaryColourRGB;
+	bool isSecondaryColourRGB;
 
-	struct CPlayerWantedAndLOSNodeData
+	int primaryRedColour;
+	int primaryGreenColour;
+	int primaryBlueColour;
+
+	int secondaryRedColour;
+	int secondaryGreenColour;
+	int secondaryBlueColour;
+
+	int dirtLevel;
+	int extras;
+	int liveryIndex;
+	int roofLiveryIndex;
+
+	int wheelChoice;
+	int wheelType;
+
+	bool hasCustomTires;
+
+	int windowTintIndex;
+
+	int tyreSmokeRedColour;
+	int tyreSmokeGreenColour;
+	int tyreSmokeBlueColour;
+
+	char plate[9];
+
+	int numberPlateTextIndex;
+
+	inline CVehicleAppearanceNodeData()
 	{
-		int wantedLevel;
-		int isWanted;
-		int isEvading;
+		memset(plate, 0, sizeof(plate));
+	}
+};
 
-		int timeInPursuit;
-		int timeInPrevPursuit;
+struct CVehicleHealthNodeData
+{
+	int engineHealth;
+	int petrolTankHealth;
+	bool tyresFine;
+	int tyreStatus[1 << 4];
+	int bodyHealth;
+};
 
-		inline CPlayerWantedAndLOSNodeData()
-			: timeInPursuit(-1), timeInPrevPursuit(-1)
-		{
+struct CVehicleGameStateNodeData
+{
+	uint16_t occupants[32];
+	eastl::bitset<32> playerOccupants;
+	int radioStation;
+	bool isEngineOn;
+	bool isEngineStarting;
+	bool handbrake;
+	int defaultHeadlights;
+	int headlightsColour;
+	bool sirenOn;
+	int lockStatus;
+	int doorsOpen;
+	int doorPositions[1 << 7];
+	bool noLongerNeeded;
+	bool lightsOn;
+	bool highbeamsOn;
+	bool hasBeenOwnedByPlayer;
+	bool hasLock;
+	int lockedPlayers;
 
-		}
-	};
-
-	struct CPedGameStateNodeData
+	inline CVehicleGameStateNodeData()
 	{
-		int curVehicle;
-		int curVehicleSeat;
-
-		int lastVehicle;
-		int lastVehicleSeat;
-
-		int lastVehiclePedWasIn;
-
-		int curWeapon;
-
-		inline CPedGameStateNodeData()
-			: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
-		{
-
-		}
-	};
-
-	struct CVehicleAppearanceNodeData
-	{
-		int primaryColour;
-		int secondaryColour;
-		int pearlColour;
-		int wheelColour;
-		int interiorColour;
-		int dashboardColour;
-
-		bool isPrimaryColourRGB;
-		bool isSecondaryColourRGB;
-
-		int primaryRedColour;
-		int primaryGreenColour;
-		int primaryBlueColour;
-
-		int secondaryRedColour;
-		int secondaryGreenColour;
-		int secondaryBlueColour;
-
-		int dirtLevel;
-		int extras;
-		int liveryIndex;
-		int roofLiveryIndex;
-
-		int wheelChoice;
-		int wheelType;
-
-		bool hasCustomTires;
-
-		int windowTintIndex;
-
-		int tyreSmokeRedColour;
-		int tyreSmokeGreenColour;
-		int tyreSmokeBlueColour;
-
-		char plate[9];
-
-		int numberPlateTextIndex;
-
-		inline CVehicleAppearanceNodeData()
-		{
-			memset(plate, 0, sizeof(plate));
-		}
-	};
-
-	struct CVehicleHealthNodeData
-	{
-		int engineHealth;
-		int petrolTankHealth;
-		bool tyresFine;
-		int tyreStatus[1 << 4];
-		int bodyHealth;
-
-	};
-
-	struct CVehicleGameStateNodeData
-	{
-		uint16_t occupants[32];
-		eastl::bitset<32> playerOccupants;
-		int radioStation;
-		bool isEngineOn;
-		bool isEngineStarting;
-		bool handbrake;
-		int defaultHeadlights;
-		int headlightsColour;
-		bool sirenOn;
-		int lockStatus;
-		int doorsOpen;
-		int doorPositions[1 << 7];
-		bool noLongerNeeded;
-		bool lightsOn;
-		bool highbeamsOn;
-		bool hasBeenOwnedByPlayer;
-		bool hasLock;
-		int lockedPlayers;
-
-		inline CVehicleGameStateNodeData()
-		{
-			memset(occupants, 0, sizeof(occupants));
-		}
-	};
+		memset(occupants, 0, sizeof(occupants));
+	}
+};
 
 #include <state/kumquat.h>
 
-	struct CEntityOrientationNodeData
+struct CEntityOrientationNodeData
+{
+	compressed_quaternion<11> quat;
+};
+
+struct CPhysicalVelocityNodeData
+{
+	float velX;
+	float velY;
+	float velZ;
+};
+
+struct CVehicleAngVelocityNodeData
+{
+	float angVelX;
+	float angVelY;
+	float angVelZ;
+};
+
+struct CPedHealthNodeData
+{
+	int maxHealth;
+	int health;
+	int armour;
+	uint32_t causeOfDeath;
+};
+
+struct CPedOrientationNodeData
+{
+	float currentHeading;
+	float desiredHeading;
+};
+
+struct CDynamicEntityGameStateNodeData
+{
+	std::map<int, int> decors;
+};
+
+struct CPlayerGameStateNodeData
+{
+	int playerTeam;
+	float airDragMultiplier;
+
+	int maxHealth;
+	int maxArmour;
+
+	bool neverTarget;
+	int spectatorId;
+
+	bool randomPedsFlee;
+	bool everybodyBackOff;
+
+	float voiceProximityOverrideX;
+	float voiceProximityOverrideY;
+	float voiceProximityOverrideZ;
+
+	bool isFriendlyFireAllowed;
+
+	float weaponDefenseModifier;
+	float weaponDefenseModifier2;
+
+	float weaponDamageModifier;
+	float meleeWeaponDamageModifier;
+
+	bool isSuperJumpEnabled;
+};
+
+enum ePopType
+{
+	POPTYPE_UNKNOWN = 0,
+	POPTYPE_RANDOM_PERMANENT,
+	POPTYPE_RANDOM_PARKED,
+	POPTYPE_RANDOM_PATROL,
+	POPTYPE_RANDOM_SCENARIO,
+	POPTYPE_RANDOM_AMBIENT,
+	POPTYPE_PERMANENT,
+	POPTYPE_MISSION,
+	POPTYPE_REPLAY,
+	POPTYPE_CACHE,
+	POPTYPE_TOOL
+};
+
+struct SyncTreeBase
+{
+public:
+	virtual ~SyncTreeBase() = default;
+
+	virtual void Parse(SyncParseState& state) = 0;
+
+	virtual bool Unparse(SyncUnparseState& state) = 0;
+
+	virtual void Visit(const SyncTreeVisitor& visitor) = 0;
+
+	// accessors
+public:
+	virtual void GetPosition(float* posOut) = 0;
+
+	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
+
+	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
+
+	virtual CPedGameStateNodeData* GetPedGameState() = 0;
+
+	virtual uint64_t GetPedGameStateFrameIndex() = 0;
+
+	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
+
+	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CPlayerGameStateNodeData* GetPlayerGameState() = 0;
+
+	virtual CPedHealthNodeData* GetPedHealth() = 0;
+
+	virtual CVehicleHealthNodeData* GetVehicleHealth() = 0;
+
+	virtual CPedOrientationNodeData* GetPedOrientation() = 0;
+
+	virtual CEntityOrientationNodeData* GetEntityOrientation() = 0;
+
+	virtual CVehicleAngVelocityNodeData* GetAngVelocity() = 0;
+
+	virtual CPhysicalVelocityNodeData* GetVelocity() = 0;
+
+	virtual void CalculatePosition() = 0;
+
+	virtual bool GetPopulationType(ePopType* popType) = 0;
+
+	virtual bool GetModelHash(uint32_t* modelHash) = 0;
+
+	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
+};
+
+enum class NetObjEntityType
+{
+	Automobile = 0,
+	Bike = 1,
+	Boat = 2,
+	Door = 3,
+	Heli = 4,
+	Object = 5,
+	Ped = 6,
+	Pickup = 7,
+	PickupPlacement = 8,
+	Plane = 9,
+	Submarine = 10,
+	Player = 11,
+	Trailer = 12,
+	Train = 13
+};
+
+struct SyncEntityState
+{
+	using TData = std::variant<int, float, bool, std::string>;
+
+	std::shared_mutex clientMutex;
+	NetObjEntityType type;
+	uint32_t timestamp;
+	uint64_t frameIndex;
+	uint64_t lastFrameIndex;
+	uint16_t uniqifier;
+	uint32_t creationToken;
+
+	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
+
+	std::chrono::milliseconds lastReceivedAt;
+
+	std::shared_ptr<SyncTreeBase> syncTree;
+
+	std::shared_mutex guidMutex;
+	ScriptGuid* guid;
+	uint32_t handle;
+
+	bool deleting;
+	bool hasSynced = false;
+
+	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
+
+	SyncEntityState();
+
+	SyncEntityState(const SyncEntityState&) = delete;
+
+	virtual ~SyncEntityState();
+
+	inline bool IsOwnedByScript()
 	{
-		compressed_quaternion<11> quat;
-	};
+		uint32_t scriptHash = 0;
 
-	struct CPhysicalVelocityNodeData
-	{
-		float velX;
-		float velY;
-		float velZ;
-	};
-
-	struct CVehicleAngVelocityNodeData
-	{
-		float angVelX;
-		float angVelY;
-		float angVelZ;
-	};
-
-	struct CPedHealthNodeData
-	{
-		int maxHealth;
-		int health;
-		int armour;
-		uint32_t causeOfDeath;
-
-	};
-
-	struct CPedOrientationNodeData
-	{
-		float currentHeading;
-		float desiredHeading;
-	};
-
-	struct CDynamicEntityGameStateNodeData
-	{
-		std::map<int, int> decors;
-	};
-
-	struct CPlayerGameStateNodeData
-	{
-		int playerTeam;
-		float airDragMultiplier;
-
-		int maxHealth;
-		int maxArmour;
-
-		bool neverTarget;
-		int spectatorId;
-
-		bool randomPedsFlee;
-		bool everybodyBackOff;
-
-		float voiceProximityOverrideX;
-		float voiceProximityOverrideY;
-		float voiceProximityOverrideZ;
-
-		bool isFriendlyFireAllowed;
-
-		float weaponDefenseModifier;
-		float weaponDefenseModifier2;
-
-		float weaponDamageModifier;
-		float meleeWeaponDamageModifier;
-
-		bool isSuperJumpEnabled;
-	};
-
-	enum ePopType
-	{
-		POPTYPE_UNKNOWN = 0,
-		POPTYPE_RANDOM_PERMANENT,
-		POPTYPE_RANDOM_PARKED,
-		POPTYPE_RANDOM_PATROL,
-		POPTYPE_RANDOM_SCENARIO,
-		POPTYPE_RANDOM_AMBIENT,
-		POPTYPE_PERMANENT,
-		POPTYPE_MISSION,
-		POPTYPE_REPLAY,
-		POPTYPE_CACHE,
-		POPTYPE_TOOL
-	};
-
-	struct SyncTreeBase
-	{
-	public:
-		virtual ~SyncTreeBase() = default;
-
-		virtual void Parse(SyncParseState& state) = 0;
-
-		virtual bool Unparse(SyncUnparseState& state) = 0;
-
-		virtual void Visit(const SyncTreeVisitor& visitor) = 0;
-
-		// accessors
-	public:
-		virtual void GetPosition(float* posOut) = 0;
-
-		virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
-
-		virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
-
-		virtual CPedGameStateNodeData* GetPedGameState() = 0;
-
-		virtual uint64_t GetPedGameStateFrameIndex() = 0;
-
-		virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
-
-		virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
-
-		virtual CPlayerGameStateNodeData* GetPlayerGameState() = 0;
-
-		virtual CPedHealthNodeData* GetPedHealth() = 0;
-
-		virtual CVehicleHealthNodeData* GetVehicleHealth() = 0;
-
-		virtual CPedOrientationNodeData* GetPedOrientation() = 0;
-
-		virtual CEntityOrientationNodeData* GetEntityOrientation() = 0;
-
-		virtual CVehicleAngVelocityNodeData* GetAngVelocity() = 0;
-
-		virtual CPhysicalVelocityNodeData* GetVelocity() = 0;
-
-		virtual void CalculatePosition() = 0;
-
-		virtual bool GetPopulationType(ePopType* popType) = 0;
-
-		virtual bool GetModelHash(uint32_t* modelHash) = 0;
-
-		virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
-	};
-
-	enum class NetObjEntityType
-	{
-		Automobile = 0,
-		Bike = 1,
-		Boat = 2,
-		Door = 3,
-		Heli = 4,
-		Object = 5,
-		Ped = 6,
-		Pickup = 7,
-		PickupPlacement = 8,
-		Plane = 9,
-		Submarine = 10,
-		Player = 11,
-		Trailer = 12,
-		Train = 13
-	};
-
-	struct SyncEntityState
-	{
-		using TData = std::variant<int, float, bool, std::string>;
-
-		std::shared_mutex clientMutex;
-		NetObjEntityType type;
-		uint32_t timestamp;
-		uint64_t frameIndex;
-		uint64_t lastFrameIndex;
-		uint16_t uniqifier;
-		uint32_t creationToken;
-
-		eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
-
-		std::chrono::milliseconds lastReceivedAt;
-
-		std::shared_ptr<SyncTreeBase> syncTree;
-
-		std::shared_mutex guidMutex;
-		ScriptGuid* guid;
-		uint32_t handle;
-
-		bool deleting;
-		bool hasSynced = false;
-
-		std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
-
-		SyncEntityState();
-
-		SyncEntityState(const SyncEntityState&) = delete;
-
-		virtual ~SyncEntityState();
-
-		inline bool IsOwnedByScript()
+		// if we can't know yet (only a create was sent - no update), let's say we are, just for good measure
+		if (!hasSynced)
 		{
-			uint32_t scriptHash = 0;
-
-			// if we can't know yet (only a create was sent - no update), let's say we are, just for good measure
-			if (!hasSynced)
-			{
-				// and we were last updated pretty recently (<1.5 seconds)
-				// - if not, this might've been out of scope for a client instantly and it'll never get updated until someone owns it again, so we should invoke normal behavior
-				if ((msec() - lastReceivedAt) < 1500ms)
-				{
-					return true;
-				}
-			}
-
-			if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
+			// and we were last updated pretty recently (<1.5 seconds)
+			// - if not, this might've been out of scope for a client instantly and it'll never get updated until someone owns it again, so we should invoke normal behavior
+			if ((msec() - lastReceivedAt) < 1500ms)
 			{
 				return true;
 			}
-
-			return false;
 		}
 
-		// MAKE SURE YOU HAVE A LOCK BEFORE CALLING THIS
-		fx::ClientWeakPtr& GetClientUnsafe()
+		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
 		{
-			return client;
+			return true;
 		}
 
-		//THIS ONE TOO
-		fx::ClientWeakPtr& GetLastUpdaterUnsafe()
-		{
-			return lastUpdater;
-		}
+		return false;
+	}
 
-		fx::ClientSharedPtr GetClient()
-		{
-			std::shared_lock _lock(clientMutex);
-			return client.lock();
-		}
+	// MAKE SURE YOU HAVE A LOCK BEFORE CALLING THIS
+	fx::ClientWeakPtr& GetClientUnsafe()
+	{
+		return client;
+	}
 
-		fx::ClientSharedPtr GetLastUpdater()
-		{
-			std::shared_lock _lock(clientMutex);
-			return lastUpdater.lock();
-		}
+	//THIS ONE TOO
+	fx::ClientWeakPtr& GetLastUpdaterUnsafe()
+	{
+		return lastUpdater;
+	}
 
-		// make absolutely sure we don't accidentally mess up and get this info without a lock
-		private:
-		fx::ClientWeakPtr client;
-		fx::ClientWeakPtr lastUpdater;
-	};
+	fx::ClientSharedPtr GetClient()
+	{
+		std::shared_lock _lock(clientMutex);
+		return client.lock();
+	}
+
+	fx::ClientSharedPtr GetLastUpdater()
+	{
+		std::shared_lock _lock(clientMutex);
+		return lastUpdater.lock();
+	}
+
+	// make absolutely sure we don't accidentally mess up and get this info without a lock
+private:
+	fx::ClientWeakPtr client;
+	fx::ClientWeakPtr lastUpdater;
+};
 }
 
 namespace fx::sync
 {
-	inline object_pool<fx::sync::SyncEntityState, 2 * 1024 * 1024> syncEntityPool;
-	using SyncEntityPtr = shared_reference<fx::sync::SyncEntityState, &syncEntityPool>;
-	using SyncEntityWeakPtr = weak_reference<SyncEntityPtr>;
+inline object_pool<fx::sync::SyncEntityState, 2 * 1024 * 1024> syncEntityPool;
+using SyncEntityPtr = shared_reference<fx::sync::SyncEntityState, &syncEntityPool>;
+using SyncEntityWeakPtr = weak_reference<SyncEntityPtr>;
 
-	struct SyncParseState
+struct SyncParseState
+{
+	rl::MessageBuffer buffer;
+	int syncType;
+	int objType;
+	uint32_t timestamp;
+
+	SyncEntityPtr entity;
+
+	uint64_t frameIndex;
+};
+
+struct SyncUnparseState
+{
+	rl::MessageBuffer& buffer;
+	int syncType;
+	int objType;
+	uint32_t timestamp;
+	uint64_t lastFrameIndex;
+
+	uint32_t targetSlotId;
+
+	SyncUnparseState(rl::MessageBuffer& buffer)
+		: buffer(buffer), lastFrameIndex(0)
 	{
-		rl::MessageBuffer buffer;
-		int syncType;
-		int objType;
-		uint32_t timestamp;
+	}
+};
 
-		SyncEntityPtr entity;
+struct SyncCommandState
+{
+	rl::MessageBuffer cloneBuffer;
+	std::function<void(bool finalFlush)> flushBuffer;
+	std::function<void(size_t)> maybeFlushBuffer;
+	uint64_t frameIndex;
+	fx::ClientSharedPtr client;
+	bool hadTime;
 
-		uint64_t frameIndex;
-	};
-
-	struct SyncUnparseState
+	SyncCommandState(size_t size)
+		: cloneBuffer(size)
 	{
-		rl::MessageBuffer& buffer;
-		int syncType;
-		int objType;
-		uint32_t timestamp;
-		uint64_t lastFrameIndex;
+	}
 
-		uint32_t targetSlotId;
-
-		SyncUnparseState(rl::MessageBuffer& buffer)
-			: buffer(buffer), lastFrameIndex(0)
-		{
-
-		}
-	};
-
-	struct SyncCommandState
+	inline void Reset()
 	{
-		rl::MessageBuffer cloneBuffer;
-		std::function<void(bool finalFlush)> flushBuffer;
-		std::function<void(size_t)> maybeFlushBuffer;
-		uint64_t frameIndex;
-		fx::ClientSharedPtr client;
-		bool hadTime;
+		cloneBuffer.SetCurrentBit(0);
+		flushBuffer = {};
+		maybeFlushBuffer = {};
+		frameIndex = 0;
+		client = {};
+		hadTime = false;
+	}
+};
 
-		SyncCommandState(size_t size)
-			: cloneBuffer(size)
-		{
+struct SyncCommand
+{
+	using SyncCommandKey = typename detached_scsc_queue<SyncCommand>::key;
+	using SyncCommandCallback = tp::FixedFunction<void(SyncCommandState&), 128>;
 
-		}
+	SyncCommandCallback callback;
+	SyncCommandKey commandKey = {};
 
-		inline void Reset()
-		{
-			cloneBuffer.SetCurrentBit(0);
-			flushBuffer = {};
-			maybeFlushBuffer = {};
-			frameIndex = 0;
-			client = {};
-			hadTime = false;
-		}
-	};
-
-
-	struct SyncCommand
+	SyncCommand(SyncCommandCallback&& callback)
+		: callback(std::move(callback))
 	{
-		using SyncCommandKey = typename detached_scsc_queue<SyncCommand>::key;
-		using SyncCommandCallback = tp::FixedFunction<void(SyncCommandState&), 128>;
+	}
+};
+struct SyncCommandList
+{
+	uint64_t frameIndex;
+	detached_scsc_queue<SyncCommand> commands;
 
-		SyncCommandCallback callback;
-		SyncCommandKey commandKey = {};
+	void Execute(const fx::ClientSharedPtr& client);
 
-		SyncCommand(SyncCommandCallback&& callback) : callback(std::move(callback))
-		{}
-	};
-	struct SyncCommandList
+	using SyncCommandPool = object_pool<SyncCommand, 4 * 1024 * 1024, 4, 2>;
+	inline static SyncCommandPool syncPool;
+
+	template<typename Fn>
+	void EnqueueCommand(Fn&& fn)
 	{
-		uint64_t frameIndex;
-		detached_scsc_queue<SyncCommand> commands;
+		auto* ptr = syncPool.construct(std::forward<Fn>(fn));
+		commands.push(&ptr->commandKey);
+	}
 
-		void Execute(const fx::ClientSharedPtr& client);
+	SyncCommandList(SyncCommandList&& other) = delete;
+	SyncCommandList(const SyncCommandList& other) = delete;
 
-		using SyncCommandPool = object_pool<SyncCommand, 4 * 1024 * 1024, 4, 2>;
-		inline static SyncCommandPool syncPool;
+	SyncCommandList& operator=(SyncCommandList&& other) = delete;
+	SyncCommandList& operator=(const SyncCommandList& other) = delete;
 
-		template<typename Fn>
-		void EnqueueCommand(Fn&& fn)
-		{
-			auto* ptr = syncPool.construct(std::forward<Fn>(fn));
-			commands.push(&ptr->commandKey);
-		}
-
-		SyncCommandList(SyncCommandList&& other) = delete;
-		SyncCommandList(const SyncCommandList& other) = delete;
-
-		SyncCommandList& operator=(SyncCommandList&& other) = delete;
-		SyncCommandList& operator=(const SyncCommandList& other) = delete;
-
-		SyncCommandList(uint64_t frameIndex) : frameIndex(frameIndex)
-		{}
-	};
+	SyncCommandList(uint64_t frameIndex)
+		: frameIndex(frameIndex)
+	{
+	}
+};
 }
 
 namespace fx
