@@ -276,6 +276,10 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 						setFloatField(handlingChar, offset, context.GetArgument<float>(3), handlingField);
 						break;
 
+					case rage::parMemberType::UInt8:
+						*(uint8_t*)(handlingChar + offset) = uint8_t(context.GetArgument<int>(3));
+						break;
+
 					case rage::parMemberType::UInt32:
 						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
 						break;
@@ -367,6 +371,10 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 					{
 						case rage::parMemberType::Float:
 							context.SetResult<T>((T)(getFloatField(handlingChar, offset, handlingField)));
+							break;
+
+						case rage::parMemberType::UInt8:
+							context.SetResult<T>((T)*(uint8_t*)(handlingChar + offset));
 							break;
 
 						case rage::parMemberType::UInt32:
