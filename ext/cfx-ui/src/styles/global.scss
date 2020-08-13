@@ -144,7 +144,7 @@ button {
 }
 
 .ac-container {
-	max-width: calc(var(--q1) * 20);
+	max-width: 100% !important;
 
 	&:focus {
 		outline: none;

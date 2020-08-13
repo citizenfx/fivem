@@ -79,7 +79,7 @@ export class ConnectingPopupComponent implements OnInit {
 
 		this.gameService.connectCard.subscribe(a => {
 			const getSize = (size: number) => {
-				return (size / 720) * window.innerHeight;
+				return (size / 720) * Math.min(window.innerHeight, window.innerWidth);
 			}
 
 			this.showOverlay = true;
@@ -97,20 +97,20 @@ export class ConnectingPopupComponent implements OnInit {
 					default: {
 						fontFamily: 'Rubik',
 						fontSizes: {
-							small: getSize(12),
-							default: getSize(14),
-							medium: getSize(17),
-							large: getSize(21),
-							extraLarge: getSize(26),
+							small: getSize(8),
+							default: getSize(10),
+							medium: getSize(13),
+							large: getSize(17),
+							extraLarge: getSize(22),
 						}
 					},
 					monospace: {
 						fontSizes: {
-							small: getSize(12),
-							default: getSize(14),
-							medium: getSize(17),
-							large: getSize(21),
-							extraLarge: getSize(26),
+							small: getSize(8),
+							default: getSize(10),
+							medium: getSize(13),
+							large: getSize(17),
+							extraLarge: getSize(22),
 						}
 					}
 				},

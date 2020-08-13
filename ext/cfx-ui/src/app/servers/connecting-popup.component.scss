@@ -39,7 +39,7 @@
 		align-items: flex-start;
 
 		width: 40%;
-		max-height: 100vh;
+		max-height: calc(100vh - 4px);
 
 		padding: var(--q1);
 
@@ -59,10 +59,6 @@
 
 		.card {
 			flex-grow: 1;
-
-			display: flex;
-			align-items: center;
-			justify-content: center;
 
 			overflow: auto;
 
