@@ -82,7 +82,7 @@ namespace fx
 	{
 		if (m_peer)
 		{
-			gscomms_send_packet(shared_from_this(), *m_peer, channel, buffer, type);
+			gscomms_send_packet(this, *m_peer, channel, buffer, type);
 		}
 	}
 }

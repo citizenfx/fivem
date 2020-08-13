@@ -137,7 +137,7 @@ auto GetNode(sync::NetObjEntityType objectType, const std::shared_ptr<sync::Sync
 	}
 }
 
-void DisownEntityScript(const std::shared_ptr<sync::SyncEntityState>& entity)
+void DisownEntityScript(const fx::sync::SyncEntityPtr& entity)
 {
 	auto tree = entity->syncTree;
 

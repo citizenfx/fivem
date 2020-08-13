@@ -16,6 +16,11 @@
 
 #include <se/Security.h>
 
+#include <citizen_util/object_pool.h>
+#include <citizen_util/shared_reference.h>
+
+#include <shared_mutex>
+
 #define MAX_CLIENTS (1024 + 1) // don't change this past 256 ever, also needs to be synced with client code
 
 namespace {
@@ -59,7 +64,8 @@ namespace fx
 		}
 	};
 
-	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public std::enable_shared_from_this<Client>, public se::PrincipalSource
+
+	class SERVER_IMPL_EXPORT Client : public ComponentHolderImpl<Client>, public se::PrincipalSource
 	{
 	public:
 		Client(const std::string& guid);
@@ -110,7 +116,7 @@ namespace fx
 			return (m_peer) ? *m_peer.get() : 0;
 		}
 
-		inline const std::string& GetName()
+		inline const std::string& GetName()	
 		{
 			return m_name;
 		}
@@ -288,4 +294,9 @@ namespace fx
 		// principal values
 		std::list<se::Principal> m_principals;
 	};
+
+	inline object_pool<Client, 512 * 1024> clientPool;
+
+	using ClientSharedPtr = shared_reference<Client, &clientPool>;
+	using ClientWeakPtr = weak_reference<ClientSharedPtr>;
 }

@@ -13,7 +13,7 @@
 
 namespace fx
 {
-ClientDeferral::ClientDeferral(fx::ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client)
+ClientDeferral::ClientDeferral(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client)
 	: m_client(client), m_instance(instance), m_completed(false)
 {
 

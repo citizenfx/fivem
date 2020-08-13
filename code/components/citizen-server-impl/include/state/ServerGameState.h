@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Client.h>
-#include <LRWeakPtr.h>
 
 #include <ServerInstanceBase.h>
 #include <ServerTime.h>
@@ -11,6 +10,7 @@
 #include <state/RlMessageBuffer.h>
 
 #include <variant>
+#include <shared_mutex>
 
 #include <array>
 #include <optional>
@@ -41,6 +41,10 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <citizen_util/detached_queue.h>
+#include <citizen_util/object_pool.h>
+#include <citizen_util/shared_reference.h>
+
 template<typename T>
 inline constexpr T roundToWord(T val)
 {
@@ -55,39 +59,12 @@ struct ScriptGuid;
 }
 
 extern CPool<fx::ScriptGuid>* g_scriptHandlePool;
+extern int m_ackTimeoutThreshold;
 
 namespace fx::sync
 {
-struct SyncEntityState;
-
-struct SyncParseState
-{
-	rl::MessageBuffer buffer;
-	int syncType;
-	int objType;
-	uint32_t timestamp;
-
-	std::shared_ptr<SyncEntityState> entity;
-
-	uint64_t frameIndex;
-};
-
-struct SyncUnparseState
-{
-	rl::MessageBuffer& buffer;
-	int syncType;
-	int objType;
-	uint32_t timestamp;
-	uint64_t lastFrameIndex;
-
-	uint32_t targetSlotId;
-
-	SyncUnparseState(rl::MessageBuffer& buffer)
-		: buffer(buffer), lastFrameIndex(0)
-	{
-
-	}
-};
+struct SyncParseState;
+struct SyncUnparseState;
 
 struct NodeBase;
 
@@ -138,7 +115,6 @@ struct CPlayerWantedAndLOSNodeData
 	inline CPlayerWantedAndLOSNodeData()
 		: timeInPursuit(-1), timeInPrevPursuit(-1)
 	{
-
 	}
 };
 
@@ -157,7 +133,6 @@ struct CPedGameStateNodeData
 	inline CPedGameStateNodeData()
 		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
-
 	}
 };
 
@@ -176,7 +151,7 @@ struct CVehicleAppearanceNodeData
 	int primaryRedColour;
 	int primaryGreenColour;
 	int primaryBlueColour;
-	
+
 	int secondaryRedColour;
 	int secondaryGreenColour;
 	int secondaryBlueColour;
@@ -214,7 +189,6 @@ struct CVehicleHealthNodeData
 	bool tyresFine;
 	int tyreStatus[1 << 4];
 	int bodyHealth;
-
 };
 
 struct CVehicleGameStateNodeData
@@ -271,7 +245,6 @@ struct CPedHealthNodeData
 	int health;
 	int armour;
 	uint32_t causeOfDeath;
-
 };
 
 struct CPedOrientationNodeData
@@ -401,8 +374,7 @@ struct SyncEntityState
 {
 	using TData = std::variant<int, float, bool, std::string>;
 
-	LRWeakPtr<fx::Client> client;
-	LRWeakPtr<fx::Client> lastUpdater;
+	std::shared_mutex clientMutex;
 	NetObjEntityType type;
 	uint32_t timestamp;
 	uint64_t frameIndex;
@@ -423,7 +395,7 @@ struct SyncEntityState
 	bool deleting;
 	bool hasSynced = false;
 
-	std::list<std::function<void(const std::shared_ptr<fx::Client>& ptr)>> onCreationRPC;
+	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
 	SyncEntityState();
 
@@ -452,6 +424,137 @@ struct SyncEntityState
 		}
 
 		return false;
+	}
+
+	// MAKE SURE YOU HAVE A LOCK BEFORE CALLING THIS
+	fx::ClientWeakPtr& GetClientUnsafe()
+	{
+		return client;
+	}
+
+	//THIS ONE TOO
+	fx::ClientWeakPtr& GetLastUpdaterUnsafe()
+	{
+		return lastUpdater;
+	}
+
+	fx::ClientSharedPtr GetClient()
+	{
+		std::shared_lock _lock(clientMutex);
+		return client.lock();
+	}
+
+	fx::ClientSharedPtr GetLastUpdater()
+	{
+		std::shared_lock _lock(clientMutex);
+		return lastUpdater.lock();
+	}
+
+	// make absolutely sure we don't accidentally mess up and get this info without a lock
+private:
+	fx::ClientWeakPtr client;
+	fx::ClientWeakPtr lastUpdater;
+};
+}
+
+namespace fx::sync
+{
+inline object_pool<fx::sync::SyncEntityState, 2 * 1024 * 1024> syncEntityPool;
+using SyncEntityPtr = shared_reference<fx::sync::SyncEntityState, &syncEntityPool>;
+using SyncEntityWeakPtr = weak_reference<SyncEntityPtr>;
+
+struct SyncParseState
+{
+	rl::MessageBuffer buffer;
+	int syncType;
+	int objType;
+	uint32_t timestamp;
+
+	SyncEntityPtr entity;
+
+	uint64_t frameIndex;
+};
+
+struct SyncUnparseState
+{
+	rl::MessageBuffer& buffer;
+	int syncType;
+	int objType;
+	uint32_t timestamp;
+	uint64_t lastFrameIndex;
+
+	uint32_t targetSlotId;
+
+	SyncUnparseState(rl::MessageBuffer& buffer)
+		: buffer(buffer), lastFrameIndex(0)
+	{
+	}
+};
+
+struct SyncCommandState
+{
+	rl::MessageBuffer cloneBuffer;
+	std::function<void(bool finalFlush)> flushBuffer;
+	std::function<void(size_t)> maybeFlushBuffer;
+	uint64_t frameIndex;
+	fx::ClientSharedPtr client;
+	bool hadTime;
+
+	SyncCommandState(size_t size)
+		: cloneBuffer(size)
+	{
+	}
+
+	inline void Reset()
+	{
+		cloneBuffer.SetCurrentBit(0);
+		flushBuffer = {};
+		maybeFlushBuffer = {};
+		frameIndex = 0;
+		client = {};
+		hadTime = false;
+	}
+};
+
+struct SyncCommand
+{
+	using SyncCommandKey = typename detached_scsc_queue<SyncCommand>::key;
+	using SyncCommandCallback = tp::FixedFunction<void(SyncCommandState&), 128>;
+
+	SyncCommandCallback callback;
+	SyncCommandKey commandKey = {};
+
+	SyncCommand(SyncCommandCallback&& callback)
+		: callback(std::move(callback))
+	{
+	}
+};
+struct SyncCommandList
+{
+	uint64_t frameIndex;
+	detached_scsc_queue<SyncCommand> commands;
+
+	void Execute(const fx::ClientSharedPtr& client);
+
+	using SyncCommandPool = object_pool<SyncCommand, 4 * 1024 * 1024, 4, 2>;
+	inline static SyncCommandPool syncPool;
+
+	template<typename Fn>
+	void EnqueueCommand(Fn&& fn)
+	{
+		auto* ptr = syncPool.construct(std::forward<Fn>(fn));
+		commands.push(&ptr->commandKey);
+	}
+
+	SyncCommandList(SyncCommandList&& other) = delete;
+	SyncCommandList(const SyncCommandList& other) = delete;
+
+	SyncCommandList& operator=(SyncCommandList&& other) = delete;
+	SyncCommandList& operator=(const SyncCommandList& other) = delete;
+
+	SyncCommandList(uint64_t frameIndex)
+		: frameIndex(frameIndex)
+	{
 	}
 };
 }
@@ -504,7 +607,6 @@ struct EntityCreationState
 	EntityCreationState()
 		: creationToken(0), clientIdx(0), scriptGuid(0)
 	{
-
 	}
 };
 
@@ -516,7 +618,6 @@ struct AckPacketWrapper
 	inline explicit AckPacketWrapper(rl::MessageBuffer& ackPacket)
 		: ackPacket(ackPacket)
 	{
-		
 	}
 
 	template<typename TData>
@@ -530,6 +631,7 @@ static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityState
 {
+
 	uint16_t uniqifier;
 	bool isPlayer;
 	bool overrideFrameIndex;
@@ -542,6 +644,7 @@ struct ClientEntityState
 };
 
 using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;
+inline object_pool<EntityStateObject, 2 * 1024 * 1024> gameStateClientPool;
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
@@ -550,47 +653,35 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	std::mutex selfMutex;
 
-	LRWeakPtr<sync::SyncEntityState> playerEntity;
+	// gets its own mutex due to frequent accessing
+	std::shared_mutex playerEntityMutex;
+	sync::SyncEntityWeakPtr playerEntity;
+
 	std::optional<int> playerId;
 
 	bool syncing;
 
 	glm::mat4x4 viewMatrix;
 
-	std::unique_ptr<uint8_t[]> esaBuffer;
-	eastl::fixed_node_allocator<sizeof(EntityStateObject), 15, 16, 0, true> entityStateAlloc;
-
-	struct Deleter
+	struct EntityStateDeleter
 	{
-		GameStateClientData* self;
-
-		Deleter(GameStateClientData* self)
-			: self(self)
+		void operator()(EntityStateObject* obj)
 		{
-		
-		}
-
-		void operator()(EntityStateObject* obj) const
-		{
-			self->entityStateAlloc.deallocate(obj, sizeof(*obj));
+			gameStateClientPool.destruct(obj);
 		}
 	};
 
-	auto MakeEntityState()
+	static auto MakeEntityState()
 	{
-		return std::unique_ptr<EntityStateObject, Deleter>{
-			new (entityStateAlloc.allocate(sizeof(EntityStateObject))) EntityStateObject,
-			Deleter{
-			this }
-		};
+		return std::unique_ptr<EntityStateObject, EntityStateDeleter>(gameStateClientPool.construct(), {});
 	}
 
-	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, Deleter>, 200> entityStates;
+	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, EntityStateDeleter>, 200> entityStates;
 	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 
 	uint64_t lastAckIndex;
 
-	std::weak_ptr<fx::Client> client;
+	fx::ClientWeakPtr client;
 
 	std::map<int, int> playersToSlots;
 	std::map<int, int> slotsToPlayers;
@@ -601,9 +692,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	uint32_t ackTs = 0;
 
 	GameStateClientData()
-		: syncing(false), lastAckIndex(0), esaBuffer(new uint8_t[decltype(entityStateAlloc)::kBufferSize]), entityStateAlloc(esaBuffer.get())
+		: syncing(false), lastAckIndex(0)
 	{
-
 	}
 
 	void FlushAcks();
@@ -632,19 +722,19 @@ public:
 
 	void UpdateEntities();
 
-	void ParseGameStatePacket(const std::shared_ptr<fx::Client>& client, const std::vector<uint8_t>& packetData);
+	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData);
 
 	virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
 
-	void HandleClientDrop(const std::shared_ptr<fx::Client>& client);
+	void HandleClientDrop(const fx::ClientSharedPtr& client);
 
-	void SendObjectIds(const std::shared_ptr<fx::Client>& client, int numIds);
+	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
 
-	void ReassignEntity(uint32_t entityHandle, const std::shared_ptr<fx::Client>& targetClient);
+	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
 
-	void DeleteEntity(const std::shared_ptr<sync::SyncEntityState>& entity);
+	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
 
-	std::shared_ptr<sync::SyncEntityState> CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree);
+	fx::sync::SyncEntityPtr CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree);
 
 	inline EntityLockdownMode GetEntityLockdownMode()
 	{
@@ -656,36 +746,36 @@ public:
 		m_entityLockdownMode = mode;
 	}
 
-	uint32_t MakeScriptHandle(const std::shared_ptr<sync::SyncEntityState>& ptr);
+	uint32_t MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr);
 
-	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const std::shared_ptr<fx::Client>& client);
+	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const fx::ClientSharedPtr& client);
 
 private:
-	void ProcessCloneCreate(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+	void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneRemove(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+	void ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneSync(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+	void ProcessCloneSync(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
-	void ProcessCloneTakeover(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket);
+	void ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket);
 
-	bool ProcessClonePacket(const std::shared_ptr<fx::Client>& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
+	bool ProcessClonePacket(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
 
-	void OnCloneRemove(const std::shared_ptr<sync::SyncEntityState>& entity, const std::function<void()>& doRemove);
+	void OnCloneRemove(const fx::sync::SyncEntityPtr& entity, const std::function<void()>& doRemove);
 
-	void RemoveClone(const std::shared_ptr<Client>& client, uint16_t objectId);
+	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId);
 
-	void ParseClonePacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
+	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
-	void ParseAckPacket(const std::shared_ptr<fx::Client>& client, net::Buffer& buffer);
+	void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
-	bool ValidateEntity(const std::shared_ptr<sync::SyncEntityState>& entity);
+	bool ValidateEntity(const fx::sync::SyncEntityPtr& entity);
 
 public:
-	std::shared_ptr<sync::SyncEntityState> GetEntity(uint8_t playerId, uint16_t objectId);
-	std::shared_ptr<sync::SyncEntityState> GetEntity(uint32_t handle);
+	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);
+	fx::sync::SyncEntityPtr GetEntity(uint32_t handle);
 
-	fwEvent<std::shared_ptr<sync::SyncEntityState>> OnEntityCreate;
+	fwEvent<fx::sync::SyncEntityPtr> OnEntityCreate;
 
 private:
 	fx::ServerInstanceBase* m_instance;
@@ -740,17 +830,18 @@ private:
 
 	WorldGridOwnerIndexes m_worldGridAccel;
 
-	void SendWorldGrid(void* entry = nullptr, const std::shared_ptr<fx::Client>& client = {});
+	void SendWorldGrid(void* entry = nullptr, const fx::ClientSharedPtr& client = {});
 
 public:
-	bool MoveEntityToCandidate(const std::shared_ptr<sync::SyncEntityState>& entity, const std::shared_ptr<fx::Client>& client);
+	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
 
-//private:
+	//private:
 public:
-	std::vector<LRWeakPtr<sync::SyncEntityState>> m_entitiesById;
+	std::shared_mutex m_entitiesByIdMutex;
+	std::vector<sync::SyncEntityWeakPtr> m_entitiesById;
 
-	std::list<std::shared_ptr<sync::SyncEntityState>> m_entityList;
 	std::shared_mutex m_entityListMutex;
+	std::list<fx::sync::SyncEntityPtr> m_entityList;
 
 	EntityLockdownMode m_entityLockdownMode;
 };

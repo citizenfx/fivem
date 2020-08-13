@@ -279,7 +279,7 @@ static InitFunction initFunction([]()
 		{
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-			clientRegistry->ForAllClients([](const std::shared_ptr<fx::Client>& client)
+			clientRegistry->ForAllClients([](const fx::ClientSharedPtr& client)
 			{
 				auto deferralAny = client->GetData("deferralPtr");
 
@@ -568,9 +568,15 @@ static InitFunction initFunction([]()
 
 			auto it = g_serverProviders.begin();
 
+			fx::ClientWeakPtr clientWeak{ client };
 			auto done = [=]()
 			{
-				std::weak_ptr<fx::Client> clientWeak(client);
+				auto lockedClient = clientWeak.lock();
+				if (!lockedClient)
+				{
+					return;
+				}
+
 				auto didSucceed = std::make_shared<bool>(false);
 				auto weakSuccess = std::weak_ptr<bool>(didSucceed);
 
@@ -608,7 +614,7 @@ static InitFunction initFunction([]()
 				int maxTrust = INT_MIN;
 				int minVariance = INT_MAX;
 
-				for (const auto& identifier : client->GetIdentifiers())
+				for (const auto& identifier : lockedClient->GetIdentifiers())
 				{
 					std::string idType = identifier.substr(0, identifier.find_first_of(':'));
 
@@ -623,7 +629,7 @@ static InitFunction initFunction([]()
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
 				{
-					clientRegistry->RemoveClient(client);
+					clientRegistry->RemoveClient(lockedClient);
 
 					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
 					return;
@@ -631,7 +637,7 @@ static InitFunction initFunction([]()
 
 				if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
 				{
-					clientRegistry->RemoveClient(client);
+					clientRegistry->RemoveClient(lockedClient);
 
 					sendError(
 						fmt::sprintf(
@@ -653,14 +659,14 @@ static InitFunction initFunction([]()
 				*noReason = std::make_shared<std::string>("Resource prevented connection.");
 				
 				auto deferrals = std::make_shared<std::shared_ptr<fx::ClientDeferral>>();
-				*deferrals = std::make_shared<fx::ClientDeferral>(instance, client);
+				*deferrals = std::make_shared<fx::ClientDeferral>(instance, lockedClient);
 
-				client->SetData("deferralPtr", std::weak_ptr<fx::ClientDeferral>(*deferrals));
+				lockedClient->SetData("deferralPtr", std::weak_ptr<fx::ClientDeferral>(*deferrals));
 
 				// *copy* the callback into a *shared* reference
 				auto cbRef = std::make_shared<std::shared_ptr<std::decay_t<decltype(cb)>>>(std::make_shared<std::decay_t<decltype(cb)>>(cb));
 
-				(*deferrals)->SetMessageCallback([deferrals, cbRef](const std::string& message)
+				(*deferrals)->SetMessageCallback([cbRef](const std::string& message)
 				{
 					auto ref1 = *cbRef;
 
@@ -670,7 +676,7 @@ static InitFunction initFunction([]()
 					}
 				});
 
-				(*deferrals)->SetCardCallback([deferrals, cbRef, token](const std::string& card)
+				(*deferrals)->SetCardCallback([cbRef, token](const std::string& card)
 				{
 					auto ref1 = *cbRef;
 
@@ -703,27 +709,32 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				(*deferrals)->SetRejectCallback([deferrals, cbRef, client, clientRegistry](const std::string& message)
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, clientRegistry](const std::string& message)
 				{
-					clientRegistry->RemoveClient(client);
-
-					auto ref1 = *cbRef;
-
-					if (ref1)
+					auto newLockedClient = clientWeak.lock();
+					if (newLockedClient)
 					{
-						(**cbRef)(json::object({ { "error", message} }));
-						(**cbRef)(json(nullptr));
+						clientRegistry->RemoveClient(newLockedClient);
+
+						auto ref1 = *cbRef;
+
+						if (ref1)
+						{
+							(**cbRef)(json::object({ { "error", message } }));
+							(**cbRef)(json(nullptr));
+						}
 					}
 
 					*cbRef = nullptr;
 					*deferrals = nullptr;
 				});
 
-				request->SetCancelHandler([cbRef, deferrals, client, clientRegistry, didSucceed]()
+				request->SetCancelHandler([cbRef, deferrals, clientWeak, clientRegistry, didSucceed]()
 				{
-					if (!*didSucceed)
+					auto newLockedClient = clientWeak.lock();
+					if (!*didSucceed && newLockedClient)
 					{
-						clientRegistry->RemoveClient(client);
+						clientRegistry->RemoveClient(newLockedClient);
 					}
 
 					*cbRef = nullptr;
@@ -789,7 +800,7 @@ static InitFunction initFunction([]()
 					handover(data: { [key: string]: any }): void,
 				}, source: string): void;
 				*/
-				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
+				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
@@ -801,7 +812,7 @@ static InitFunction initFunction([]()
 
 				if (!shouldAllow)
 				{
-					clientRegistry->RemoveClient(client);
+					clientRegistry->RemoveClient(lockedClient);
 
 					sendError(**noReason);
 					return;
@@ -832,7 +843,6 @@ static InitFunction initFunction([]()
 
 			// seriously C++?
 			auto runOneIdentifier = std::make_shared<std::unique_ptr<std::function<void(decltype(g_serverProviders.begin()))>>>();
-
 			*runOneIdentifier = std::make_unique<std::function<void(decltype(g_serverProviders.begin()))>>([=](auto it)
 			{
 				if (it == g_serverProviders.end())
@@ -845,24 +855,44 @@ static InitFunction initFunction([]()
 				else
 				{
 					auto auth = (*it);
-
 					auto thisIt = ++it;
 
-					auth->RunAuthentication(client, request, postMap, [=](boost::optional<std::string> err)
+					// if the client randomly disconnects, let's just bail
+					auto clientLocked = clientWeak.lock();
+					if (!clientLocked)
 					{
-						if (err)
+						// unset the callback
+						*runOneIdentifier = nullptr;
+
+						return;
+					}
+
+					auth->RunAuthentication(clientLocked, request, postMap, [=](boost::optional<std::string> err)
+					{
+						// if the client randomly disconnects, let's just bail (again)
+						auto newClientLocked = clientWeak.lock();
+						if (!newClientLocked)
 						{
-							clientRegistry->RemoveClient(client);
-
-							sendError(*err);
-
 							// unset the callback
 							*runOneIdentifier = nullptr;
 
 							return;
 						}
 
-						(**runOneIdentifier)(thisIt);
+						// if an auth method fails, bail
+						if (err)
+						{
+							clientRegistry->RemoveClient(newClientLocked);
+
+							sendError(*err);
+
+							// unset the callback
+							*runOneIdentifier = nullptr;
+						}
+						else
+						{
+							(**runOneIdentifier)(thisIt);
+						}
 					});
 				}
 			});

@@ -81,7 +81,7 @@ namespace fx
 		{
 			auto realReason = fmt::sprintf("Server shutting down: %s", (const char*)reason);
 
-			m_clientRegistry->ForAllClients([this, realReason](const std::shared_ptr<fx::Client>& client)
+			m_clientRegistry->ForAllClients([this, realReason](const fx::ClientSharedPtr& client)
 			{
 				if (client->GetPeer())
 				{
@@ -125,7 +125,7 @@ namespace fx
 
 		instance->OnRequestQuit.Connect([this](const std::string& reason)
 		{
-			m_clientRegistry->ForAllClients([this, &reason](const std::shared_ptr<fx::Client>& client)
+			m_clientRegistry->ForAllClients([this, &reason](const fx::ClientSharedPtr& client)
 			{
 				DropClient(client, "Server shutting down: %s", reason);
 			});
@@ -325,12 +325,10 @@ namespace fx
 
 			auto processSendList = [this]()
 			{
-				while (!m_netSendList.empty())
+				while (auto *packet = m_netSendList.pop(&fx::GameServerPacket::queueKey))
 				{
-					const auto& [peer, channel, buffer, type] = m_netSendList.front();
-					m_net->SendPacket(peer, channel, buffer, type);
-
-					m_netSendList.pop_front();
+					m_net->SendPacket(packet->peer, packet->channel, packet->buffer, packet->type);
+					m_packetPool.destruct(packet);
 				}
 			};
 			
@@ -575,9 +573,9 @@ namespace fx
 		}
 	}
 
-	fwRefContainer<NetPeerBase> GameServer::InternalGetPeer(int peerId)
+	void GameServer::InternalGetPeer(int peerId, fx::NetPeerStackBuffer& stackBuffer)
 	{
-		return m_net->GetPeer(peerId);
+		m_net->GetPeer(peerId, stackBuffer);
 	}
 
 	void GameServer::InternalResetPeer(int peerId)
@@ -585,10 +583,12 @@ namespace fx
 		m_net->ResetPeer(peerId);
 	}
 
-	void GameServer::InternalSendPacket(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType type)
+	void GameServer::InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type)
 	{
 		// TODO: think of a more uniform way to determine null peers
-		if (m_net->GetPeer(peer)->GetPing() == -1)
+		NetPeerStackBuffer stackBuffer;
+		m_net->GetPeer(peer, stackBuffer);
+		if (stackBuffer.GetBase()->GetPing() == -1)
 		{
 			if (type == NetPacketType_ReliableReplayed)
 			{
@@ -598,7 +598,9 @@ namespace fx
 			return;
 		}
 
-		m_netSendList.push_back({ peer, channel, buffer, type });
+
+		GameServerPacket* packet = m_packetPool.construct(peer, channel, buffer, type);
+		m_netSendList.push(&packet->queueKey);
 	}
 
 	void GameServer::Run()
@@ -634,7 +636,7 @@ namespace fx
 
 	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
 
-	void GameServer::ProcessPacket(const fwRefContainer<NetPeerBase>& peer, const uint8_t* data, size_t size)
+	void GameServer::ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size)
 	{
 		// create a netbuffer and read the message type
 		net::Buffer msg(data, size);
@@ -769,7 +771,7 @@ namespace fx
 
 	void GameServer::Broadcast(const net::Buffer& buffer)
 	{
-		m_clientRegistry->ForAllClients([&](const std::shared_ptr<Client>& client)
+		m_clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
 			client->SendPacket(0, buffer, NetPacketType_Reliable);
 		});
@@ -873,11 +875,11 @@ namespace fx
 		}
 
 		{
-			std::vector<std::shared_ptr<fx::Client>> toRemove;
+			std::vector<fx::ClientSharedPtr> toRemove;
 
 			bool lockdownMode = m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode() == fx::EntityLockdownMode::Strict;
 
-			m_clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			m_clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 			{
 				auto peer = client->GetPeer();
 
@@ -999,7 +1001,7 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClientv(const std::shared_ptr<Client>& client, const std::string& reason, fmt::printf_args args)
+	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args)
 	{
 		std::string realReason = fmt::vsprintf(reason, args);
 
@@ -1033,7 +1035,7 @@ namespace fx
 		// remove the host if this was the host
 		if (m_clientRegistry->GetHost() == client)
 		{
-			m_clientRegistry->SetHost(nullptr);
+			m_clientRegistry->SetHost({});
 
 			// broadcast the current host
 			net::Buffer hostBroadcast;
@@ -1167,7 +1169,7 @@ namespace fx
 
 				int numClients = 0;
 
-				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					if (client->GetNetId() < 0xFFFF)
 					{
@@ -1208,7 +1210,7 @@ namespace fx
 				int numClients = 0;
 				std::stringstream clientList;
 
-				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					if (client->GetNetId() < 0xFFFF)
 					{
@@ -1329,7 +1331,7 @@ namespace fx
 
 		struct RoutingPacketHandler
 		{
-			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				uint16_t targetNetId = packet.Read<uint16_t>();
 				uint16_t packetLength = packet.Read<uint16_t>();
@@ -1374,7 +1376,7 @@ namespace fx
 
 		struct IHostPacketHandler
 		{
-			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				if (IsOneSync())
 				{
@@ -1416,7 +1418,7 @@ namespace fx
 		// TODO: replace with system using dissectors
 		struct HeHostPacketHandler
 		{
-			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto gameServer = instance->GetComponent<fx::GameServer>();
@@ -1445,7 +1447,7 @@ namespace fx
 				// count the total amount of living (networked) clients
 				int numClients = 0;
 
-				clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					if (client->HasRouted())
 					{
@@ -1508,7 +1510,7 @@ namespace fx
 
 		struct IQuitPacketHandler
 		{
-			inline static void Handle(ServerInstanceBase* instance, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				gscomms_execute_callback_on_main_thread([=]() mutable
 				{
@@ -1559,17 +1561,14 @@ void gscomms_reset_peer(int peer)
 	});
 }
 
-void gscomms_send_packet(const std::shared_ptr<fx::Client>& client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
+void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
-	gscomms_execute_callback_on_net_thread([=]()
-	{
-		g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
-	});
+	g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 }
 
-fwRefContainer<fx::NetPeerBase> gscomms_get_peer(int peer)
+void gscomms_get_peer(int peer, fx::NetPeerStackBuffer& stacKBuffer)
 {
-	return g_gameServer->InternalGetPeer(peer);
+	g_gameServer->InternalGetPeer(peer, stacKBuffer);
 }
 
 static InitFunction initFunction([]()

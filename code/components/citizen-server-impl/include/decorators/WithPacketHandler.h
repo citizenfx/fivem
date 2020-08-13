@@ -18,7 +18,7 @@ namespace fx
 			// store the handler map
 			HandlerMapComponent* map = server->GetComponent<HandlerMapComponent>().GetRef();
 
-			server->SetPacketHandler([=](uint32_t packetId, const std::shared_ptr<fx::Client>& client, net::Buffer& packet)
+			server->SetPacketHandler([=](uint32_t packetId, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				bool handled = false;
 

@@ -359,7 +359,7 @@ void UvTcpServerStream::CloseClient()
 
 void UvTcpServerStream::ResetWriteTimeout()
 {
-	m_writeTimeout->start(std::chrono::seconds{ 10 }, std::chrono::milliseconds{ 0 });
+	m_writeTimeout->start(std::chrono::seconds{ 30 }, std::chrono::milliseconds{ 0 });
 }
 
 bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)

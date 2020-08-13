@@ -28,18 +28,13 @@ namespace fx
 		}
 	}
 
-	std::shared_ptr<Client> ClientRegistry::MakeClient(const std::string& guid)
+	fx::ClientSharedPtr ClientRegistry::MakeClient(const std::string& guid)
 	{
-		auto client = std::make_shared<Client>(guid);
+		fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
+		fx::ClientWeakPtr weakClient(client);
 
-		{
-			std::unique_lock<std::shared_mutex> lock(m_clientsMutex);
-			m_clients[guid] = client;
-		}
-
-		std::weak_ptr<Client> weakClient(client);
-
-		client->OnAssignNetId.Connect([=]()
+		m_clients.emplace(guid, client);
+		client->OnAssignNetId.Connect([this, weakClient]()
 		{
 			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
 		});
@@ -66,6 +61,7 @@ namespace fx
 				return;
 			}
 
+			std::lock_guard clientGuard(m_clientSlotMutex);
 			for (int slot = m_clientsBySlotId.size() - 1; slot >= 0; slot--)
 			{
 				// 31 is a special case
@@ -74,38 +70,36 @@ namespace fx
 					continue;
 				}
 
-				if (m_clientsBySlotId[slot].expired())
+				if (!m_clientsBySlotId[slot])
 				{
 					client->SetSlotId(slot);
-
 					m_clientsBySlotId[slot] = weakClient;
-
 					break;
 				}
 			}
 		});
 
-		client->OnAssignTcpEndPoint.Connect([=]()
+		client->OnAssignTcpEndPoint.Connect([this, weakClient]()
 		{
 			m_clientsByTcpEndPoint[weakClient.lock()->GetTcpEndPoint()] = weakClient;
 		});
 
-		client->OnAssignConnectionToken.Connect([=]()
+		client->OnAssignConnectionToken.Connect([this, weakClient]()
 		{
 			m_clientsByConnectionToken[weakClient.lock()->GetConnectionToken()] = weakClient;
 		});
 
-		OnClientCreated(client.get());
+		OnClientCreated(client);
 
 		return client;
 	}
 
-	void ClientRegistry::HandleConnectingClient(const std::shared_ptr<Client>& client)
+	void ClientRegistry::HandleConnectingClient(const fx::ClientSharedPtr& client)
 	{
 		client->SetNetId(m_curNetId.fetch_add(1));
 	}
 
-	void ClientRegistry::HandleConnectedClient(const std::shared_ptr<Client>& client, uint32_t oldNetID)
+	void ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID)
 	{
 		auto eventManager = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
 
@@ -132,7 +126,7 @@ namespace fx
 			// send the JOINING CLIENT information about EVERY OTHER CLIENT
 			std::string target = fmt::sprintf("%d", client->GetNetId());
 
-			ForAllClients([&](const std::shared_ptr<fx::Client>& otherClient)
+			ForAllClients([&](const fx::ClientSharedPtr& otherClient)
 			{
 				events->TriggerClientEventReplayed("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName(), otherClient->GetSlotId());
 			});
@@ -150,17 +144,17 @@ namespace fx
 		OnConnectedClient(client.get());
 	}
 
-	std::shared_ptr<fx::Client> ClientRegistry::GetHost()
+	fx::ClientSharedPtr ClientRegistry::GetHost()
 	{
-		if (m_hostNetId == -1)
+		if (m_hostNetId == 0xFFFF)
 		{
-			return nullptr;
+			return fx::ClientSharedPtr{};
 		}
 
 		return GetClientByNetID(m_hostNetId);
 	}
 
-	void ClientRegistry::SetHost(const std::shared_ptr<Client>& client)
+	void ClientRegistry::SetHost(const fx::ClientSharedPtr& client)
 	{
 		if (!client)
 		{
