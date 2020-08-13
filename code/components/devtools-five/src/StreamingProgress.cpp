@@ -70,9 +70,15 @@ static void StreamingProgress_Update()
 
 	std::set<std::string> foundNow;
 
-	for (const auto* entry = streaming->RequestListHead; entry; entry = entry->Next)
+	for (uint32_t idx = 0; idx < streaming->numEntries; idx++)
 	{
-		auto data = &streaming->Entries[entry->Index];
+		auto data = &streaming->Entries[idx];
+		auto flags = data->flags & 3;
+
+		if (flags != 2 && flags != 3)
+		{
+			continue;
+		}
 
 		// try getting streaming data
 		StreamingPackfileEntry* spf = streaming::GetStreamingPackfileForEntry(data);
