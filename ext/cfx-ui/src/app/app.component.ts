@@ -43,7 +43,8 @@ export class AppComponent implements OnInit {
 		private router: Router,
 		private zone: NgZone,
 		private serversService: ServersService,
-		private overlayContainer: OverlayContainer) {
+		private overlayContainer: OverlayContainer,
+	) {
 		this.gameService.init();
 
 		this.gameService.languageChange.subscribe(value => {

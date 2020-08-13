@@ -72,5 +72,61 @@
 		p {
 			word-wrap: break-word;
 		}
-    }
+	}
+}
+
+.image-zoom {
+	opacity: 0;
+	pointer-events: none;
+
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	padding: var(--q4);
+
+	transition: all .2s ease;
+
+	&::after {
+		display: 'block';
+		content: 'Press Esc or click anywhere to close';
+
+		position: fixed;
+		top: var(--q2);
+		left: 0;
+		right: 0;
+
+		text-align: center;
+
+		opacity: .5;
+	}
+
+	img, ::ng-deep img {
+		max-width: 100%;
+		max-height: 100%;
+
+		width: auto;
+		height: auto;
+
+		transform: scale(.9);
+
+		transition: all .2s ease;
+	}
+
+	&.active {
+		opacity: 1;
+		pointer-events: all;
+
+		z-index: 1000;
+
+		img, ::ng-deep img {
+			transform: scale(1);
+		}
+	}
 }
