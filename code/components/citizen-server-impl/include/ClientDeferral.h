@@ -88,7 +88,6 @@ private:
 		inline DeferralState()
 			: done(false), rejected(false)
 		{
-
 		}
 	};
 

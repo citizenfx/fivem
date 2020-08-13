@@ -564,292 +564,294 @@ namespace fx::sync
 
 namespace fx
 {
-struct ScriptGuid
-{
-	enum class Type
+	struct ScriptGuid
 	{
-		Undefined = 0,
-		Entity,
-		TempEntity
-	};
-
-	Type type;
-	union
-	{
-		struct
+		enum class Type
 		{
-			uint32_t handle;
-		} entity;
+			Undefined = 0,
+			Entity,
+			TempEntity
+		};
 
-		struct
+		Type type;
+		union
 		{
-			uint32_t creationToken;
-		} tempEntity;
-	};
-
-	void* reference;
-
-	inline void* operator new(size_t s)
-	{
-		return g_scriptHandlePool->New();
-	}
-
-	inline void operator delete(void* ptr)
-	{
-		g_scriptHandlePool->Delete((fx::ScriptGuid*)ptr);
-	}
-};
-
-struct EntityCreationState
-{
-	// TODO: allow resending in case the target client disappears
-	uint32_t creationToken;
-	uint32_t clientIdx;
-	fx::ScriptGuid* scriptGuid;
-
-	EntityCreationState()
-		: creationToken(0), clientIdx(0), scriptGuid(0)
-	{
-	}
-};
-
-struct AckPacketWrapper
-{
-	rl::MessageBuffer& ackPacket;
-	std::function<void()> flush;
-
-	inline explicit AckPacketWrapper(rl::MessageBuffer& ackPacket)
-		: ackPacket(ackPacket)
-	{
-	}
-
-	template<typename TData>
-	inline void Write(int length, TData data)
-	{
-		ackPacket.Write(length, data);
-	}
-};
-
-static constexpr const int MaxObjectId = (1 << 16) - 1;
-
-struct ClientEntityState
-{
-
-	uint16_t uniqifier;
-	bool isPlayer;
-	bool overrideFrameIndex;
-	uint32_t netId;
-
-	uint64_t frameIndex;
-
-	std::chrono::milliseconds syncDelay;
-	std::chrono::milliseconds lastSend;
-};
-
-using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;
-inline object_pool<EntityStateObject, 2 * 1024 * 1024> gameStateClientPool;
-
-struct GameStateClientData : public sync::ClientSyncDataBase
-{
-	rl::MessageBuffer ackBuffer{ 16384 };
-	std::set<int> objectIds;
-
-	std::mutex selfMutex;
-
-	// gets its own mutex due to frequent accessing
-	std::shared_mutex playerEntityMutex;
-	sync::SyncEntityWeakPtr playerEntity;
-
-	std::optional<int> playerId;
-
-	bool syncing;
-
-	glm::mat4x4 viewMatrix;
-
-	struct EntityStateDeleter
-	{
-		void operator()(EntityStateObject* obj)
-		{
-			gameStateClientPool.destruct(obj);
-		}
-	};
-
-	static auto MakeEntityState()
-	{
-		return std::unique_ptr<EntityStateObject, EntityStateDeleter>(gameStateClientPool.construct(), {});
-	}
-
-	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, EntityStateDeleter>, 200> entityStates;
-	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
-
-	uint64_t lastAckIndex;
-
-	fx::ClientWeakPtr client;
-
-	std::map<int, int> playersToSlots;
-	std::map<int, int> slotsToPlayers;
-
-	std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
-
-	uint32_t syncTs = 0;
-	uint32_t ackTs = 0;
-
-	GameStateClientData()
-		: syncing(false), lastAckIndex(0)
-	{
-	}
-
-	void FlushAcks();
-
-	void MaybeFlushAcks();
-};
-
-enum class EntityLockdownMode
-{
-	Inactive,
-	Relaxed,
-	Strict
-};
-
-class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
-{
-private:
-	using ThreadPool = tp::ThreadPool;
-
-public:
-	ServerGameState();
-
-	void Tick(fx::ServerInstanceBase* instance);
-
-	void UpdateWorldGrid(fx::ServerInstanceBase* instance);
-
-	void UpdateEntities();
-
-	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData);
-
-	virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
-
-	void HandleClientDrop(const fx::ClientSharedPtr& client);
-
-	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
-
-	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
-
-	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
-
-	fx::sync::SyncEntityPtr CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree);
-
-	inline EntityLockdownMode GetEntityLockdownMode()
-	{
-		return m_entityLockdownMode;
-	}
-
-	inline void SetEntityLockdownMode(EntityLockdownMode mode)
-	{
-		m_entityLockdownMode = mode;
-	}
-
-	uint32_t MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr);
-
-	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const fx::ClientSharedPtr& client);
-
-private:
-	void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
-
-	void ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
-
-	void ProcessCloneSync(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
-
-	void ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket);
-
-	bool ProcessClonePacket(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
-
-	void OnCloneRemove(const fx::sync::SyncEntityPtr& entity, const std::function<void()>& doRemove);
-
-	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId);
-
-	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
-
-	void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
-
-	bool ValidateEntity(const fx::sync::SyncEntityPtr& entity);
-
-public:
-	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);
-	fx::sync::SyncEntityPtr GetEntity(uint32_t handle);
-
-	fwEvent<fx::sync::SyncEntityPtr> OnEntityCreate;
-
-private:
-	fx::ServerInstanceBase* m_instance;
-
-	std::unique_ptr<ThreadPool> m_tg;
-
-	// as bitset is not thread-safe
-	std::mutex m_objectIdsMutex;
-
-	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
-	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
-	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
-
-	uint64_t m_frameIndex;
-
-	struct WorldGridEntry
-	{
-		uint8_t sectorX;
-		uint8_t sectorY;
-		uint16_t netID;
-
-		WorldGridEntry()
-		{
-			sectorX = 0;
-			sectorY = 0;
-			netID = -1;
-		}
-	};
-
-	struct WorldGridState
-	{
-		WorldGridEntry entries[32];
-	};
-
-	WorldGridState m_worldGrid[MAX_CLIENTS];
-
-	struct WorldGridOwnerIndexes
-	{
-		uint16_t netIDs[256][256];
-
-		inline WorldGridOwnerIndexes()
-		{
-			for (int x = 0; x < std::size(netIDs); x++)
+			struct
 			{
-				for (int y = 0; y < std::size(netIDs[0]); y++)
+				uint32_t handle;
+			} entity;
+
+			struct
+			{
+				uint32_t creationToken;
+			} tempEntity;
+		};
+
+		void* reference;
+
+		inline void* operator new(size_t s)
+		{
+			return g_scriptHandlePool->New();
+		}
+
+		inline void operator delete(void* ptr)
+		{
+			g_scriptHandlePool->Delete((fx::ScriptGuid*)ptr);
+		}
+	};
+
+	struct EntityCreationState
+	{
+		// TODO: allow resending in case the target client disappears
+		uint32_t creationToken;
+		uint32_t clientIdx;
+		fx::ScriptGuid* scriptGuid;
+
+		EntityCreationState()
+			: creationToken(0), clientIdx(0), scriptGuid(0)
+		{
+
+		}
+	};
+
+	struct AckPacketWrapper
+	{
+		rl::MessageBuffer& ackPacket;
+		std::function<void()> flush;
+
+		inline explicit AckPacketWrapper(rl::MessageBuffer& ackPacket)
+			: ackPacket(ackPacket)
+		{
+
+		}
+
+		template<typename TData>
+		inline void Write(int length, TData data)
+		{
+			ackPacket.Write(length, data);
+		}
+	};
+
+	static constexpr const int MaxObjectId = (1 << 16) - 1;
+
+	struct ClientEntityState
+	{
+
+		uint16_t uniqifier;
+		bool isPlayer;
+		bool overrideFrameIndex;
+		uint32_t netId;
+
+		uint64_t frameIndex;
+
+		std::chrono::milliseconds syncDelay;
+		std::chrono::milliseconds lastSend;
+	};
+
+	using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;
+	inline object_pool<EntityStateObject, 2 * 1024 * 1024> gameStateClientPool;
+
+	struct GameStateClientData : public sync::ClientSyncDataBase
+	{
+		rl::MessageBuffer ackBuffer{16384};
+		std::set<int> objectIds;
+
+		std::mutex selfMutex;
+
+		// gets its own mutex due to frequent accessing
+		std::shared_mutex playerEntityMutex;
+		sync::SyncEntityWeakPtr playerEntity;
+
+		std::optional<int> playerId;
+
+		bool syncing;
+
+		glm::mat4x4 viewMatrix;
+
+		struct EntityStateDeleter
+		{
+			void operator()(EntityStateObject* obj)
+			{
+				gameStateClientPool.destruct(obj);
+			}
+		};
+
+		static auto MakeEntityState()
+		{
+			return std::unique_ptr<EntityStateObject, EntityStateDeleter>(gameStateClientPool.construct(), {});
+		}
+
+		eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, EntityStateDeleter>, 200> entityStates;
+		eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
+
+		uint64_t lastAckIndex;
+
+		fx::ClientWeakPtr client;
+
+		std::map<int, int> playersToSlots;
+		std::map<int, int> slotsToPlayers;
+
+		std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
+
+		uint32_t syncTs = 0;
+		uint32_t ackTs = 0;
+
+		GameStateClientData() : syncing(false), lastAckIndex(0)
+		{
+
+		}
+
+		void FlushAcks();
+
+		void MaybeFlushAcks();
+	};
+
+	enum class EntityLockdownMode
+	{
+		Inactive,
+		Relaxed,
+		Strict
+	};
+
+	class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
+	{
+	private:
+		using ThreadPool = tp::ThreadPool;
+
+	public:
+		ServerGameState();
+
+		void Tick(fx::ServerInstanceBase* instance);
+
+		void UpdateWorldGrid(fx::ServerInstanceBase* instance);
+
+		void UpdateEntities();
+
+		void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData);
+
+		virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
+
+		void HandleClientDrop(const fx::ClientSharedPtr& client);
+
+		void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
+
+		void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+
+		void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
+
+		fx::sync::SyncEntityPtr CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree);
+
+		inline EntityLockdownMode GetEntityLockdownMode()
+		{
+			return m_entityLockdownMode;
+		}
+
+		inline void SetEntityLockdownMode(EntityLockdownMode mode)
+		{
+			m_entityLockdownMode = mode;
+		}
+
+		uint32_t MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr);
+
+		std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const fx::ClientSharedPtr& client);
+
+	private:
+		void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+
+		void ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+
+		void ProcessCloneSync(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
+
+		void ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket);
+
+		bool ProcessClonePacket(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, int parsingType, uint16_t* outObjectId, uint16_t* outUniqifier);
+
+		void OnCloneRemove(const fx::sync::SyncEntityPtr& entity, const std::function<void()>& doRemove);
+
+		void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId);
+
+		void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+
+		void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+
+		bool ValidateEntity(const fx::sync::SyncEntityPtr& entity);
+
+	public:
+		fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);
+		fx::sync::SyncEntityPtr GetEntity(uint32_t handle);
+
+		fwEvent<fx::sync::SyncEntityPtr> OnEntityCreate;
+
+	private:
+		fx::ServerInstanceBase* m_instance;
+
+		std::unique_ptr<ThreadPool> m_tg;
+
+		// as bitset is not thread-safe
+		std::mutex m_objectIdsMutex;
+
+		eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
+		eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
+		eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
+
+		uint64_t m_frameIndex;
+
+		struct WorldGridEntry
+		{
+			uint8_t sectorX;
+			uint8_t sectorY;
+			uint16_t netID;
+
+			WorldGridEntry()
+			{
+				sectorX = 0;
+				sectorY = 0;
+				netID = -1;
+			}
+		};
+
+		struct WorldGridState
+		{
+			WorldGridEntry entries[32];
+		};
+
+		WorldGridState m_worldGrid[MAX_CLIENTS];
+
+		struct WorldGridOwnerIndexes
+		{
+			uint16_t netIDs[256][256];
+
+			inline WorldGridOwnerIndexes()
+			{
+				for (int x = 0; x < std::size(netIDs); x++)
 				{
-					netIDs[x][y] = -1;
+					for (int y = 0; y < std::size(netIDs[0]); y++)
+					{
+						netIDs[x][y] = -1;
+					}
 				}
 			}
-		}
+		};
+
+		WorldGridOwnerIndexes m_worldGridAccel;
+
+		void SendWorldGrid(void* entry = nullptr, const fx::ClientSharedPtr& client = {});
+
+	public:
+		bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
+
+		//private:
+	public:
+		std::shared_mutex m_entitiesByIdMutex;
+		std::vector<sync::SyncEntityWeakPtr> m_entitiesById;
+
+		std::shared_mutex m_entityListMutex;
+		std::list<fx::sync::SyncEntityPtr> m_entityList;
+
+		EntityLockdownMode m_entityLockdownMode;
 	};
 
-	WorldGridOwnerIndexes m_worldGridAccel;
-
-	void SendWorldGrid(void* entry = nullptr, const fx::ClientSharedPtr& client = {});
-
-public:
-	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
-
-	//private:
-public:
-	std::shared_mutex m_entitiesByIdMutex;
-	std::vector<sync::SyncEntityWeakPtr> m_entitiesById;
-
-	std::shared_mutex m_entityListMutex;
-	std::list<fx::sync::SyncEntityPtr> m_entityList;
-
-	EntityLockdownMode m_entityLockdownMode;
-};
-
-std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
+	std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
 }
 
 DECLARE_INSTANCE_TYPE(fx::ServerGameState);
