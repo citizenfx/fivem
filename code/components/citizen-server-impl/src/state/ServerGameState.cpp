@@ -554,7 +554,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		fx::sync::SyncEntityPtr,
 		glm::vec3,
 		sync::CVehicleGameStateNodeData*,
-		fx::ClientSharedPtr
+		fx::ClientWeakPtr
 	> relevantEntities[MaxObjectId];
 
 	//map of handles to entity indices
@@ -654,7 +654,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
 		{
-			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityIndex];
+			const auto& [entity, entityPos, vehicleData, entityClientWeak] = relevantEntities[entityIndex];
 
 			bool hasCreated = false;
 
@@ -666,6 +666,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			bool shouldBeCreated = (g_oneSyncCulling->GetValue()) ? false : true;
 
 			// players should always have their own player entities
+			auto entityClient = entityClientWeak.lock();
 			if (entityClient && client->GetNetId() == entityClient->GetNetId() && entity->type == sync::NetObjEntityType::Player)
 			{
 				shouldBeCreated = true;
@@ -933,25 +934,30 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// collect the intended entity state
 		static thread_local EntityStateObject blankEntityState;
 
-		// we can't make a temporary unique_ptr with deleter within a normal scope,
-		// so we use a temp lambda instead.
 		auto newEntityStateRef = GameStateClientData::MakeEntityState();
 		auto& newEntityState = *newEntityStateRef;
 
 		for (const auto& entityIdTuple : clientDataUnlocked->relevantEntities)
 		{
 			auto [entityId, syncDelay, shouldBeCreated] = entityIdTuple;
-			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityHandleMap[entityId]];
-
-			if (!entity || !shouldBeCreated || entity->deleting)
+			if (!shouldBeCreated)
 			{
 				continue;
 			}
 
-			// assign it to the client, it's relevant!
+			const auto& [entity, entityPos, vehicleData, entityClientWeak] = relevantEntities[entityHandleMap[entityId]];
+
+			if (!entity || entity->deleting)
+			{
+				continue;
+			}
+
+			auto entityClient = entityClientWeak.lock();
 			if (!entityClient && entity->type != sync::NetObjEntityType::Player)
 			{
 				std::unique_lock _entityLock(entity->clientMutex);
+
+				// assign it to the client, it's relevant!
 				if (!entity->GetClientUnsafe())
 				{
 					ReassignEntity(entity->handle, client);
@@ -967,7 +973,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			ces.netId = (entityClient) ? entityClient->GetNetId() : -1;
 			ces.overrideFrameIndex = false;
 
-			newEntityState[entity->handle] = std::move(ces);
+			newEntityState[entity->handle] = ces;
 		}
 
 		// delta an op list
@@ -1102,12 +1108,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// after deletions, handle updates
 		for (auto& [objectId, objectState] : newEntityState)
 		{
-			const auto& [entity, entityPos, vehicleData, entityClient] = relevantEntities[entityHandleMap[objectId]];
+			const auto& [entity, entityPos, vehicleData, entityClientWeak] = relevantEntities[entityHandleMap[objectId]];
 
 			if (!entity)
 			{
 				continue;
 			}
+
+			auto entityClient = entityClientWeak.lock();
 
 			const ClientEntityState* lastState = nullptr;
 			auto lastIt = lastEntityState->find(objectId);
@@ -1152,7 +1160,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			bool shouldBeCreated = true;
-
 			if (fx::IsBigMode())
 			{
 				if (entity->type == sync::NetObjEntityType::Player)
@@ -1305,28 +1312,28 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				((syncType == 1) ? numCreates : numSyncs)++;
 
+				auto entClWeak = entityClientWeak; // structured bindings can't be captured, c++ is a good language i promise
 				auto ent = std::move(entity);
-				auto entCl = std::move(entityClient);
-
-				auto runSync = [this, ent, entCl, resendDelay, syncDelay, &syncType, lastFrameIndex, curTime, &scl](auto preCb)
+				auto runSync = [this, ent, entClWeak, resendDelay, syncDelay, &syncType, lastFrameIndex, curTime, &scl](auto preCb)
 				{
-					scl->EnqueueCommand([this,
-											   entity = ent,
-											   entityClientBit = entCl,
-											   resendDelay,
-											   syncDelay,
-											   syncType,
-											   origLastFrameIndex = lastFrameIndex,
-											   preCb,
-											   curTime](sync::SyncCommandState& cmdState)
+					scl->EnqueueCommand([
+							this,
+							entity = ent,
+							entClWeak,
+							resendDelay,
+							syncDelay,
+							syncType,
+							origLastFrameIndex = lastFrameIndex,
+							preCb,
+							curTime
+					](sync::SyncCommandState& cmdState)
 					{
 						if (!entity)
 						{
 							return;
 						}
 
-						auto entityClient = entityClientBit;
-
+						auto entityClient = entClWeak.lock();
 						if (!entityClient)
 						{
 							entityClient = entity->GetClient();
@@ -3964,10 +3971,10 @@ static InitFunction initFunction([]()
 					continue;
 				}
 
-				auto client = entity->GetClient();
+				auto cl = entity->GetClient();
 				if (relevantToSome)
 				{
-					if (sgs->MoveEntityToCandidate(entity, client))
+					if (sgs->MoveEntityToCandidate(entity, cl))
 					{
 						continue;
 					}
@@ -3980,7 +3987,7 @@ static InitFunction initFunction([]()
 				}
 				else
 				{
-					if (!sgs->MoveEntityToCandidate(entity, client))
+					if (!sgs->MoveEntityToCandidate(entity, cl))
 					{
 						sgs->DeleteEntity(entity);
 					}
