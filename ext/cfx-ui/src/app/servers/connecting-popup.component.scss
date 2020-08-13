@@ -50,6 +50,8 @@
 		}
 
 		.content {
+			user-select: text;
+
 			&:not(:empty) {
 				margin-top: var(--qh);
 			}
@@ -63,6 +65,10 @@
 			justify-content: center;
 
 			overflow: auto;
+
+			::ng-deep * {
+				user-select: text;
+			}
 
 			&:not(:empty) {
 				margin-top: var(--q1);
