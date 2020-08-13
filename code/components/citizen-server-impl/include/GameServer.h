@@ -301,6 +301,8 @@ namespace fx
 
 		std::unique_ptr<CallbackListBase> m_netThreadCallbacks;
 
+		std::unique_ptr<CallbackListBase> m_syncThreadCallbacks;
+
 		detached_mpsc_queue<GameServerPacket> m_netSendList;
 	};
 
