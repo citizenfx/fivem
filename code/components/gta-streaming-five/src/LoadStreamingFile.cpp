@@ -531,9 +531,25 @@ public:
 
 					if (proxy)
 					{
-						// goodbye, interior proxy
-						trace("deleted interior proxy %08x\n", proxyHash);
-						delete proxy;
+						bool can = true;
+
+						if (proxy->mapData)
+						{
+							auto pool = (atPoolBase*)((char*)mapDataStore + 56);
+							auto entry = pool->GetAt<char>(proxy->mapData);
+
+							if (entry && (*(uint32_t*)(entry + 32) & 0xC00) == 0x800)
+							{
+								can = false;
+							}
+						}
+
+						if (can || streaming::IsStreamerShuttingDown())
+						{
+							// goodbye, interior proxy
+							trace("deleted interior proxy %08x\n", proxyHash);
+							delete proxy;
+						}
 					}
 					else
 					{
