@@ -432,7 +432,7 @@ struct SyncCommandState
 		maybeFlushBuffer = {};
 		frameIndex = 0;
 		client = {};
-		hadTime = false
+		hadTime = false;
 	}
 };
 
