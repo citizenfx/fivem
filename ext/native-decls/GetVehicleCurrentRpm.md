@@ -13,3 +13,5 @@ float GET_VEHICLE_CURRENT_RPM(Vehicle vehicle);
 * **vehicle**: 
 
 ## Return value
+
+Return Vehicle Current Rpm Ranged From 0.0 To 1.0
