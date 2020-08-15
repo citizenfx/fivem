@@ -1497,8 +1497,8 @@ const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
 	return m_savedEntityVec;
 }
 
-static void* origin;
-static float* (*getCoordsFromOrigin)(void*, float*);
+void* origin;
+float* (*getCoordsFromOrigin)(void*, float*);
 
 static HookFunction hookFunctionOrigin([]()
 {

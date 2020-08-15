@@ -2373,12 +2373,27 @@ static InitFunction initFunctionWorldGrid([]()
 
 bool(*g_origDoesLocalPlayerOwnWorldGrid)(float* pos);
 
+namespace sync
+{
+extern void* origin;
+extern float* (*getCoordsFromOrigin)(void*, float*);
+}
+
 bool DoesLocalPlayerOwnWorldGrid(float* pos)
 {
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_origDoesLocalPlayerOwnWorldGrid(pos);
 	}
+
+	alignas(16) float centerOfWorld[4];
+	sync::getCoordsFromOrigin(sync::origin, centerOfWorld);
+
+	float dX = pos[0] - centerOfWorld[0];
+	float dY = pos[1] - centerOfWorld[1];
+
+	// #TODO1S: make server able to send current range for player (and a world grid granularity?)
+	constexpr float maxRange = (424.0f * 424.0f);
 
 	if (icgi->NetProtoVersion < 0x202007021121)
 	{
@@ -2415,6 +2430,15 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 			{
 				does = true;
 				break;
+			}
+		}
+
+		// if the entity would be created outside of culling range, suppress it
+		if (((dX * dX) + (dY * dY)) > maxRange)
+		{
+			if (does)
+			{
+				does = false;
 			}
 		}
 
