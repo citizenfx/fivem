@@ -856,6 +856,24 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			return;
 		}
 
+		uint64_t time = curTime.count();
+
+		NetPeerStackBuffer stackBuffer;
+		gscomms_get_peer(client->GetPeer(), stackBuffer);
+		auto enPeer = stackBuffer.GetBase();
+
+		auto resendDelay = 0ms;
+
+		if (enPeer && enPeer->GetPing() != -1)
+		{
+			resendDelay = std::chrono::milliseconds(std::max(int(1), int(enPeer->GetPing() * 2) + int(enPeer->GetPingVariance())));
+		}
+		else
+		{
+			// no peer, no connection, no service
+			return;
+		}
+
 		bool shouldSkip = false;
 
 		{
@@ -883,29 +901,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		if (shouldSkip)
 		{
-			return;
-		}
-
-		if (!client)
-		{
-			return;
-		}
-
-		uint64_t time = curTime.count();
-
-		NetPeerStackBuffer stackBuffer;
-		gscomms_get_peer(client->GetPeer(), stackBuffer);
-		auto enPeer = stackBuffer.GetBase();
-
-		auto resendDelay = 0ms;
-
-		if (enPeer && enPeer->GetPing() != -1)
-		{
-			resendDelay = std::chrono::milliseconds(std::max(int(1), int(enPeer->GetPing() * 2) + int(enPeer->GetPingVariance())));
-		}
-		else
-		{
-			// no peer, no connection, no service
 			return;
 		}
 
