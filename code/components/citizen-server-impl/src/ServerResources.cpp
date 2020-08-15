@@ -479,7 +479,7 @@ static InitFunction initFunction([]()
 				{
 					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
 
-					trl->Reset(client->GetConnectionToken());
+					trl->ReturnToken(client->GetConnectionToken());
 				});
 			}, 99999999);
 

@@ -73,6 +73,22 @@ public:
 		}
 	}
 
+	void ReturnToken(const TKey& key, double n = 1.0)
+	{
+		std::unique_lock<std::mutex> lock(m_mutex);
+
+		auto mangled = KeyMangler<TKey>()(key);
+
+		auto it = m_buckets.find(mangled);
+
+		if (it == m_buckets.end())
+		{
+			it = m_buckets.emplace(mangled, TBucket{ m_genRate, m_burstSize }).first;
+		}
+
+		it->second.returnTokens(n);
+	}
+
 	bool Consume(const TKey& key, double n = 1.0, bool* isCooldown = nullptr)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
