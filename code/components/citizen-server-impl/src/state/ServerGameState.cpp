@@ -30,6 +30,8 @@
 #include <OneSyncVars.h>
 #include <DebugAlias.h>
 
+#include <StateBagComponent.h>
+
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
@@ -1933,6 +1935,18 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 
 	{
 		entity->GetClientUnsafe() = targetClient;
+		
+		if (entity->stateBag)
+		{
+			if (targetClient)
+			{
+				entity->stateBag->SetOwningPeer(targetClient->GetSlotId());
+			}
+			else
+			{
+				entity->stateBag->SetOwningPeer(-1);
+			}
+		}
 
 		GS_LOG("%s: obj id %d, old client %d, new client %d\n", __func__, entityHandle, (!oldClientRef) ? -1 : oldClientRef->GetNetId(), (targetClient) ? targetClient->GetNetId() : -1);
 
@@ -2773,6 +2787,11 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		});
 	}
 
+	if (entity->stateBag)
+	{
+		entity->stateBag->AddRoutingTarget(client->GetSlotId());
+	}
+
 	return true;
 }
 
@@ -3013,9 +3032,59 @@ void ServerGameState::DeleteEntity(const fx::sync::SyncEntityPtr& entity)
 	}
 }
 
+void ServerGameState::SendPacket(int peer, std::string_view data)
+{
+	auto creg = m_instance->GetComponent<fx::ClientRegistry>();
+
+	if (peer < 0)
+	{
+		return;
+	}
+
+	auto client = creg->GetClientBySlotID(peer);
+
+	if (client)
+	{
+		net::Buffer buffer;
+		buffer.Write<uint32_t>(HashRageString("msgStateBag"));
+		buffer.Write(data.data(), data.size());
+
+		client->SendPacket(1, buffer, NetPacketType_ReliableReplayed);
+	}
+}
+
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 {
 	m_instance = instance;
+
+	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Server);
+	sbac->SetGameInterface(this);
+
+	instance->GetComponent<fx::GameServer>()->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgStateBag"), 
+		{ fx::ThreadIdx::Sync, [sbac](const fx::ClientSharedPtr& client, net::Buffer& buffer) {
+		if (client->GetSlotId() != -1)
+		{
+			sbac->HandlePacket(client->GetSlotId(), std::string_view{ reinterpret_cast<const char*>(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
+		}
+	} });
+
+	instance->GetComponent<fx::ResourceManager>()->SetComponent(sbac);
+
+	auto creg = instance->GetComponent<fx::ClientRegistry>();
+	m_globalBag = sbac->RegisterStateBag("global");
+	m_sbac = sbac;
+
+	creg->OnConnectedClient.Connect([this](fx::Client* client)
+	{
+		assert(client->GetSlotId() != -1);
+
+		m_sbac->RegisterTarget(client->GetSlotId());
+
+		client->OnDrop.Connect([this, client]()
+		{
+			m_sbac->UnregisterTarget(client->GetSlotId());
+		}, INT32_MIN);
+	});
 
 	static auto clearAreaCommand = instance->AddCommand("onesync_clearArea", [this](float x1, float y1, float x2, float y2)
 	{
@@ -3903,6 +3972,11 @@ static InitFunction initFunction([]()
 							entity->relevantTo.reset(client->GetSlotId());
 						}
 
+						if (entity->stateBag)
+						{
+							entity->stateBag->RemoveRoutingTarget(client->GetSlotId());
+						}
+
 						std::shared_lock<std::shared_mutex> sharedLock(entity->guidMutex);
 						// poor entity, it's relevant to nobody :( disown/delete it
 						if (entity->relevantTo.none() && entityClient && entity->type != fx::sync::NetObjEntityType::Player)
@@ -3913,6 +3987,21 @@ static InitFunction initFunction([]()
 						else if (entityClient == client)
 						{
 							relevantExits.push_back({ entity, true });
+						}
+					}
+
+					for (auto& entityPair : *es->second)
+					{
+						auto entity = sgs->GetEntity(0, entityPair.first);
+
+						if (!entity)
+						{
+							continue;
+						}
+
+						if (entity->stateBag)
+						{
+							entity->stateBag->AddRoutingTarget(client->GetSlotId());
 						}
 					}
 				}

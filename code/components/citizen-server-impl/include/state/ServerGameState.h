@@ -45,6 +45,8 @@
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
+#include <StateBagComponent.h>
+
 template<typename T>
 inline constexpr T roundToWord(T val)
 {
@@ -397,6 +399,8 @@ struct SyncEntityState
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
+	std::shared_ptr<fx::StateBag> stateBag;
+
 	SyncEntityState();
 
 	SyncEntityState(const SyncEntityState&) = delete;
@@ -708,7 +712,7 @@ enum class EntityLockdownMode
 	Strict
 };
 
-class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>
+class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>, public StateBagGameInterface
 {
 private:
 	using ThreadPool = tp::ThreadPool;
@@ -834,6 +838,18 @@ private:
 
 public:
 	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
+
+	void SendPacket(int peer, std::string_view data);
+
+	inline const fwRefContainer<fx::StateBagComponent>& GetStateBags()
+	{
+		return m_sbac;
+	}
+
+private:
+	fwRefContainer<fx::StateBagComponent> m_sbac;
+
+	std::shared_ptr<fx::StateBag> m_globalBag;
 
 	//private:
 public:

@@ -952,3 +952,76 @@ if not IsDuplicityVersion() then
 		_sendNuiMessage(json.encode(message))
 	end
 end
+
+-- entity helpers
+local EXT_ENTITY = 41
+
+local function NewStateBag(es)
+	local sv = IsDuplicityVersion()
+
+	return setmetatable({}, {
+		__index = function(_, s)
+			if s == 'set' then
+				return function(_, s, v, r)
+					local payload = msgpack.pack(v)
+					SetStateBagValue(es, s, payload, payload:len(), r)
+				end
+			end
+		
+			return GetStateBagValue(es, s)
+		end,
+		
+		__newindex = function(_, s, v)
+			local payload = msgpack.pack(v)
+			SetStateBagValue(es, s, payload, payload:len(), sv)
+		end
+	})
+end
+
+GlobalState = NewStateBag('global')
+
+local entityTM = {
+	__index = function(t, s)
+		if s == 'state' then
+			local es = ('entity:%d'):format(NetworkGetNetworkIdFromEntity(t.__data))
+			
+			if IsDuplicityVersion() then
+				EnsureEntityStateBag(t.__data)
+			end
+		
+			return NewStateBag(es)
+		end
+		
+		return nil
+	end,
+	
+	__newindex = function()
+		error('Not allowed at this time.')
+	end,
+	
+	__ext = EXT_ENTITY,
+	
+	__pack = function(self, t)
+		return tostring(NetworkGetNetworkIdFromEntity(self.__data))
+	end,
+	
+	__unpack = function(data, t)
+		local ref = NetworkGetEntityFromNetworkId(tonumber(data))
+		
+		return setmetatable({
+			__data = ref
+		}, entityTM)
+	end
+}
+
+msgpack.extend(entityTM)
+
+function Entity(ent)
+	if type(ent) == 'number' then
+		return setmetatable({
+			__data = ent
+		}, entityTM)
+	end
+	
+	return ent
+end

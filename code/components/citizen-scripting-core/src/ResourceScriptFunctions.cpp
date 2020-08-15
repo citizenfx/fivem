@@ -12,6 +12,8 @@
 #include <ResourceManager.h>
 #include <fxScripting.h>
 
+#include <StateBagComponent.h>
+
 #include <ScriptSerialization.h>
 
 #include <CoreConsole.h>
@@ -284,4 +286,51 @@ static InitFunction initFunction([] ()
 		throw std::exception("_TEST_EXCEPTION_NATIVE called!");
 	});
 #endif
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_STATE_BAG_VALUE", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+		auto keyName = context.CheckArgument<const char*>(1);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		if (auto bag = sbac->GetStateBag(bagName); bag)
+		{
+			auto entry = bag->GetKey(keyName);
+
+			if (entry)
+			{
+				static thread_local std::string tmp;
+				tmp = *entry;
+
+				context.SetResult(fx::scrObject{ tmp.c_str(), tmp.size() });
+				return;
+			}
+		}
+
+		context.SetResult(fx::SerializeObject(msgpack::type::nil_t{}));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_STATE_BAG_VALUE", [](fx::ScriptContext& context)
+	{
+		auto bagName = context.CheckArgument<const char*>(0);
+		auto keyName = context.CheckArgument<const char*>(1);
+		auto keyValue = context.CheckArgument<const char*>(2);
+		auto keySize = context.GetArgument<uint32_t>(3);
+		auto replicated = context.GetArgument<bool>(4);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		if (auto bag = sbac->GetStateBag(bagName); bag)
+		{
+			bag->SetKey(keyName, std::string_view{ keyValue, keySize }, replicated);
+			context.SetResult(true);
+
+			return;
+		}
+
+		context.SetResult(false);
+	});
 });

@@ -30,6 +30,9 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <ResourceManager.h>
+#include <StateBagComponent.h>
+
 #include <CoreConsole.h>
 
 extern rage::netObject* g_curNetObjectSelection;
@@ -87,7 +90,7 @@ enum class AckResult
 	ResendCreate
 };
 
-class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction
+class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction, public fx::StateBagGameInterface
 {
 public:
 	virtual void Update() override;
@@ -181,6 +184,8 @@ private:
 
 	void ProcessTimestampAck(uint32_t timestamp);
 
+	virtual void SendPacket(int peer, std::string_view data) override;
+
 private:
 	NetLibrary* m_netLibrary;
 
@@ -201,6 +206,7 @@ private:
 		uint32_t lastResendTime;
 		uint32_t nextKeepaliveSync;
 		uint16_t uniqifier;
+		std::shared_ptr<fx::StateBag> stateBag;
 		bool hi = false;
 
 		ObjectData()
@@ -254,6 +260,10 @@ private:
 	std::string m_logFile;
 
 	std::array<std::map<int, rage::netObject*>, 256> m_netObjects;
+
+	std::shared_ptr<fx::StateBag> m_globalBag;
+
+	fwRefContainer<fx::StateBagComponent> m_sbac;
 };
 
 uint16_t CloneManagerLocal::GetClientId(rage::netObject* netObject)
@@ -295,6 +305,11 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_savedEntitySet.erase(netObject);
 
 	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
+}
+
+void CloneManagerLocal::SendPacket(int peer, std::string_view data)
+{
+	m_netLibrary->SendReliableCommand("msgStateBag", data.data(), data.size());
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
@@ -395,6 +410,27 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	});
 
 	icgi = Instance<ICoreGameInit>::Get();
+
+	// #TODO: shutdown session logic!!
+	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
+	m_globalBag = sbac->RegisterStateBag("global");
+
+	sbac->RegisterTarget(0);
+	sbac->SetGameInterface(this);
+
+	m_netLibrary->AddReliableHandler(
+	"msgStateBag", [sbac](const char* data, size_t len)
+	{
+		sbac->HandlePacket(0, std::string_view{ data, len });
+	},
+	true);
+
+	m_sbac = sbac;
+
+	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
+	{
+		rm->SetComponent(sbac);
+	});
 }
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
@@ -995,6 +1031,12 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
 
 	auto& objectData = m_trackedObjects[msg.GetObjectId()];
+
+	if (!objectData.stateBag)
+	{
+		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()));
+	}
+
 	objectData.uniqifier = msg.GetUniqifier();
 
 	// owner ID
@@ -1613,6 +1655,12 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 	}
 
 	m_trackedObjects[object->objectId].hi = true;
+
+	if (!m_trackedObjects[object->objectId].stateBag)
+	{
+		m_trackedObjects[object->objectId].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->objectId));
+	}
+
 	Log("%s: registering %s (uniqifier: %d)\n", __func__, object->ToString(), m_trackedObjects[object->objectId].uniqifier);
 
 	if (object->syncData.ownerId != 0xFF)

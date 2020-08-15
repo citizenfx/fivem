@@ -1055,4 +1055,42 @@ static InitFunction initFunction([]()
 
 		return isExtraTurnedOn;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("ENSURE_ENTITY_STATE_BAG", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (!entity->stateBag)
+		{
+			// get the current resource manager
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+
+			// get the owning server instance
+			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+			// get the server's game state
+			auto gameState = instance->GetComponent<fx::ServerGameState>();
+			entity->stateBag = gameState->GetStateBags()->RegisterStateBag(fmt::sprintf("entity:%d", entity->handle & 0xFFFF));
+
+			std::set<int> rts{ -1 };
+
+			for (auto i = entity->relevantTo.find_first(); i != decltype(entity->relevantTo)::kSize; i = entity->relevantTo.find_next(i))
+			{
+				rts.insert(i);
+			}
+
+			entity->stateBag->SetRoutingTargets(rts);
+
+			auto client = entity->GetClient();
+
+			if (client)
+			{
+				entity->stateBag->SetOwningPeer(client->GetSlotId());
+			}
+			else
+			{
+				entity->stateBag->SetOwningPeer(-1);
+			}
+		}
+
+		return 0;
+	}));
 });
