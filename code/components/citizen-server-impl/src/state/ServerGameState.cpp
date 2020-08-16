@@ -3076,6 +3076,11 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 	creg->OnConnectedClient.Connect([this](fx::Client* client)
 	{
+		if (!fx::IsOneSync())
+		{
+			return;
+		}
+
 		assert(client->GetSlotId() != -1);
 
 		m_sbac->RegisterTarget(client->GetSlotId());
