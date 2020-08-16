@@ -159,6 +159,11 @@
 					}
 
 					@include theme using ($theme) {
+						&.streamer-mode-warning,
+						&.streamer-mode-warning:hover {
+							background-color: rgba(gtv($theme, accentColor2), 0.7);
+						}
+
 						h4 + span {
 							font-size: 0.7em;
 

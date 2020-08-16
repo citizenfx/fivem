@@ -52,6 +52,7 @@ export abstract class GameService {
 	errorMessage = new EventEmitter<string>();
 	infoMessage = new EventEmitter<string>();
 
+	streamerModeChange = new BehaviorSubject<boolean>(false);
 	devModeChange = new BehaviorSubject<boolean>(false);
 	darkThemeChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
@@ -100,6 +101,14 @@ export abstract class GameService {
 	}
 
 	set nickname(name: string) {
+
+	}
+
+	get streamerMode(): boolean {
+		return false;
+	}
+
+	set streamerMode(value: boolean) {
 
 	}
 
@@ -218,6 +227,10 @@ export abstract class GameService {
 		this.nicknameChange.next(name);
 	}
 
+	protected invokeStreamerModeChanged(value: boolean) {
+		this.streamerModeChange.next(value);
+	}
+
 	protected invokeDevModeChanged(value: boolean) {
 		this.devModeChange.next(value);
 	}
@@ -269,6 +282,7 @@ export abstract class GameService {
 
 @Injectable()
 export class CfxGameService extends GameService {
+	private _streamerMode = false;
 	private _devMode = false;
 	private _darkTheme = true;
 
@@ -423,6 +437,10 @@ export class CfxGameService extends GameService {
 			this.nickname = localStorage.getItem('nickOverride');
 		}
 
+		if (localStorage.getItem('streamerMode')) {
+			this.streamerMode = localStorage.getItem('streamerMode') === 'yes';
+		}
+
 		if (localStorage.getItem('devMode')) {
 			this.devMode = localStorage.getItem('devMode') === 'yes';
 		}
@@ -538,6 +556,16 @@ export class CfxGameService extends GameService {
 		this._darkTheme = value;
 		localStorage.setItem('darkThemeNew', value ? 'yes' : 'no');
 		this.invokeDarkThemeChanged(value);
+	}
+
+	get streamerMode(): boolean {
+		return this._streamerMode;
+	}
+
+	set streamerMode(value: boolean) {
+		this._streamerMode = value;
+		localStorage.setItem('streamerMode', value ? 'yes' : 'no');
+		this.invokeStreamerModeChanged(value);
 	}
 
 	get devMode(): boolean {
@@ -825,6 +853,7 @@ export class CfxGameService extends GameService {
 
 @Injectable()
 export class DummyGameService extends GameService {
+	private _streamerMode = false;
 	private _devMode = false;
 	private _darkTheme = true;
 	private _localhostPort = '';
@@ -832,6 +861,10 @@ export class DummyGameService extends GameService {
 
 	constructor(@Inject(LocalStorage) private localStorage: any) {
 		super();
+
+		if (this.localStorage.getItem('streamerMode')) {
+			this._streamerMode = localStorage.getItem('streamerMode') === 'yes';
+		}
 
 		if (this.localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
@@ -960,6 +993,17 @@ export class DummyGameService extends GameService {
 		this.localStorage.setItem('localhostPort', port);
 
 		this.invokeLocalhostPortChanged(port);
+	}
+
+	get streamerMode(): boolean {
+		return this._streamerMode;
+	}
+
+	set streamerMode(value: boolean) {
+		this._streamerMode = value;
+		this.localStorage.setItem('streamerMode', value ? 'yes' : 'no');
+
+		this.invokeStreamerModeChanged(value);
 	}
 
 	get devMode(): boolean {

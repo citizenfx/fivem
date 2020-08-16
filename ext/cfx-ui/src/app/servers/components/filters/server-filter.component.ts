@@ -47,6 +47,7 @@ export class ServerFilterComponent implements OnInit {
 
 	refreshEvent = new Subject<void>();
 
+	streamerMode = false;
 	devMode = false;
 	localhostPort = '';
 
@@ -96,12 +97,14 @@ export class ServerFilterComponent implements OnInit {
 		private filtersService: FiltersService,
 	) {
 		this.gameName = gameService.gameName;
+		this.streamerMode = gameService.streamerMode;
 		this.devMode = gameService.devMode;
 		this.localhostPort = gameService.localhostPort;
 
 		this.sortOrder = filtersService.sortOrder;
 		this.filters = filtersService.filters;
 
+		gameService.streamerModeChange.subscribe(value => this.streamerMode = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 
 		filtersService.sortOrderUpdates.subscribe((sortOrder) => {

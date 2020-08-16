@@ -60,6 +60,15 @@ export class SettingsService {
 			});
 		}
 
+		this.addSetting('streamerMode', {
+			name: '#Settings_StreamerMode',
+			description: '#Settings_StreamerModeDesc',
+			type: 'checkbox',
+			getCb: () => this.gameService.streamerModeChange.map(a => a ? 'true' : 'false'),
+			setCb: (value) => this.gameService.streamerMode = (value === 'true'),
+			category: '#SettingsCat_Interface',
+		});
+
 		this.addSetting('devMode', {
 			name: '#Settings_DevMode',
 			description: '#Settings_DevModeDesc',

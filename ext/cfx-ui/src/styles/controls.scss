@@ -1,5 +1,6 @@
 input[type="text"],
-input[type="search"] {
+input[type="search"],
+input[type="password"] {
 	@include backdropPane;
 
 	@include themeNoHost() using ($theme) {
