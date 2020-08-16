@@ -823,6 +823,12 @@ export class CfxGameService extends GameService {
 	}
 
 	getProfileString() {
+		if (this.streamerMode) {
+			return Array(this.profileList.length)
+				.fill('<i class="fas fa-user-secret"></i>&nbsp; &lt;HIDDEN&gt;')
+				.join(',&nbsp;&nbsp;');
+		}
+
 		return this.profileList.map(p => getIcon(p.id.split(':')[0]) + ' ' + htmlEscape(p.username)).join(',&nbsp;&nbsp;');
 
 		function htmlEscape(unsafe: string) {

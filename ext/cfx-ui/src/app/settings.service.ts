@@ -160,7 +160,7 @@ export class SettingsService {
 			name: '#Settings_ConnectedProfiles',
 			type: 'html',
 			showCb: () => of(this.gameService.hasProfiles()),
-			labelCb: () => of(this.gameService.getProfileString()),
+			labelCb: () => this.gameService.streamerModeChange.pipe(map(_ => this.gameService.getProfileString())),
 			category: '#SettingsCat_Account',
 		});
 
@@ -179,11 +179,15 @@ export class SettingsService {
 				type: 'label',
 				showCb: () => discourseService.signinChange.pipe(map(user => !!user)),
 				labelCb: () =>
-					combineLatest(
+					combineLatest([
+						gameService.streamerModeChange,
 						discourseService.signinChange,
 						translation.onChange()
-					).pipe(map(
-						([user, _]) => translation.translate('#Settings_AccountLinked', { username: user ? user.username : '' })
+					]).pipe(map(
+						([streamerMode, user, _]) =>
+							translation.translate('#Settings_AccountLinked', {
+								username: streamerMode ? '<HIDDEN>' : (user?.username ?? '')
+							})
 					)),
 				category: '#SettingsCat_Account',
 			});

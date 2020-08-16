@@ -37,7 +37,7 @@
 				Link account
 			</button>
 			<div
-				*ngIf="currentAccount"
+				*ngIf="currentAccount && !streamerMode"
 				[style.backgroundImage]="currentAccount.getAvatarUrlForCss()"
 				class="userpic"
 			></div>
