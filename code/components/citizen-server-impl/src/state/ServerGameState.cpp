@@ -229,6 +229,12 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 
 		data = std::make_shared<GameStateClientData>();
 		data->client = weakClient;
+		data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
+
+		if (fx::IsBigMode())
+		{
+			data->playerBag->AddRoutingTarget(client->GetSlotId());
+		}
 
 		client->SetSyncData(data);
 		client->OnDrop.Connect([weakClient, state]()
@@ -1050,6 +1056,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								*/
 								evMan->QueueEvent2("playerLeftScope", {}, std::map<std::string, std::string>{ { "player", fmt::sprintf("%d", oldEntity->second.netId) }, { "for", fmt::sprintf("%d", client->GetNetId()) } });
 
+								if (entityClient)
+								{
+									auto oldClientData = GetClientDataUnlocked(this, entityClient);
+									oldClientData->playerBag->RemoveRoutingTarget(client->GetSlotId());
+								}
+
 								clientData->slotsToPlayers.erase(slotId);
 								clientData->playersToSlots.erase(oldEntity->second.netId);
 							}
@@ -1192,6 +1204,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								clientData->playersToSlots[entityClient->GetNetId()] = slotId;
 
 								sec->TriggerClientEventReplayed("onPlayerJoining", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
+								
+								auto ecData = GetClientDataUnlocked(this, entityClient);
+								ecData->playerBag->AddRoutingTarget(client->GetSlotId());
 
 								/*NETEV playerEnteredScope SERVER
 								/#*

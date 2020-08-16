@@ -24,6 +24,9 @@
 
 #include <EntitySystem.h>
 
+#include <ResourceManager.h>
+#include <StateBagComponent.h>
+
 #include <Error.h>
 
 extern NetLibrary* g_netLibrary;
@@ -70,6 +73,8 @@ static int g_playerListCount;
 
 static CNetGamePlayer* g_playerListRemote[256];
 static int g_playerListCountRemote;
+
+static std::unordered_map<uint16_t, std::shared_ptr<fx::StateBag>> g_playerBags;
 
 static CNetGamePlayer*(*g_origGetPlayerByIndex)(uint8_t);
 
@@ -125,6 +130,10 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 	// add to sequential list
 	g_playerList[g_playerListCount] = player;
 	g_playerListCount++;
+
+	g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
+							 ->GetComponent<fx::StateBagComponent>()
+							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
 
 	// don't add to g_playerListRemote(!)
 }
@@ -249,6 +258,10 @@ namespace sync
 		{
 			return (left->physicalPlayerIndex < right->physicalPlayerIndex);
 		});
+
+		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
+			->GetComponent<fx::StateBagComponent>()
+			->RegisterStateBag(fmt::sprintf("player:%d", clientId));
 	}
 }
 
@@ -380,6 +393,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		player->Reset();
 
 		g_players[info.slotId] = nullptr;
+		g_playerBags.erase(info.netId);
 	}
 }
 

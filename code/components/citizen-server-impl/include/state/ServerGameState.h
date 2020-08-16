@@ -665,7 +665,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	bool syncing;
 
-	glm::mat4x4 viewMatrix;
+	glm::mat4x4 viewMatrix{};
 
 	struct EntityStateDeleter
 	{
@@ -694,6 +694,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	uint32_t syncTs = 0;
 	uint32_t ackTs = 0;
+
+	std::shared_ptr<fx::StateBag> playerBag;
 
 	GameStateClientData()
 		: syncing(false), lastAckIndex(0)
