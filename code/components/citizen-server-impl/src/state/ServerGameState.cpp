@@ -236,6 +236,8 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 			data->playerBag->AddRoutingTarget(client->GetSlotId());
 		}
 
+		data->playerBag->SetOwningPeer(client->GetSlotId());
+
 		client->SetSyncData(data);
 		client->OnDrop.Connect([weakClient, state]()
 		{
@@ -3087,6 +3089,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 
 	auto creg = instance->GetComponent<fx::ClientRegistry>();
 	m_globalBag = sbac->RegisterStateBag("global");
+	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
 
 	creg->OnConnectedClient.Connect([this](fx::Client* client)
