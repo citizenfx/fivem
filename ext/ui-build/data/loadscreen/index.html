@@ -1,19 +1,84 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title></title>
-<!-- I *dare* you to remove this. http://stackoverflow.com/questions/31225606/babel-with-browser-js-getting-uncaught-syntaxerror-invalid-regular-expression -->
-<meta charset="utf-8">
-<link rel="stylesheet" href="style.css">
-<!-- may God have mercy on their poor souls. -->
-<script type="text/javascript" src="babel.min.js"></script>
-<script type="text/javascript" src="preact.min.js"></script>
-<script type="text/javascript" src="color-scheme.min.js"></script>
-<script type="text/jsx" src="code.js"></script>
-</head>
-<body>
-<div id="root"></div>
+<html><head>
+	<meta charset="utf-8">
+	<title>FiveM Loading Screen</title>
+	<base href="/">
 
-<script type="text/javascript" src="https://runtime.fivem.net/loadscreen/spotlight.js?2"></script>
-</body>
-</html>
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+	<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&amp;family=Rubik:ital,wght@0,300;0,400;1,300;1,400" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+	
+<style>
+		.booting {
+			position: fixed;
+
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+
+			background-color: hsl(226, 23%, 11%);
+
+			transition: all .5s ease;
+			opacity: 1;
+
+			pointer-events: none;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			width: 100%;
+			height: 100%;
+		}
+
+		.lds-ripple {
+			display: inline-block;
+			position: relative;
+			width: 80px;
+			height: 80px;
+		}
+		.lds-ripple div {
+			position: absolute;
+			border: 4px solid #f40552;
+			opacity: 1;
+			border-radius: 50%;
+			animation: lds-ripple 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+		}
+		.lds-ripple div:nth-child(2) {
+			animation-delay: -0.5s;
+		}
+		@keyframes lds-ripple {
+			0% {
+				top: 36px;
+				left: 36px;
+				width: 0;
+				height: 0;
+				opacity: 1;
+			}
+			100% {
+				top: 0px;
+				left: 0px;
+				width: 72px;
+				height: 72px;
+				opacity: 0;
+			}
+		}
+	</style></head>
+<body data-gr-c-s-loaded="true">
+
+
+
+<div class="booting">
+	<div class="lds-ripple"><div></div><div></div></div>
+</div>
+
+
+
+
+
+</body></html>
