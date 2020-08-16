@@ -860,7 +860,33 @@ static InitFunction initFunction([]()
 
 		context.SetResult(fx::SerializeObject(entityList));
 	});
-	
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_PROPS", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		std::vector<int> entityList;
+		std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+
+		for (auto& entity : gameState->m_entityList)
+		{
+			if (entity && (entity->type == fx::sync::NetObjEntityType::Object ||
+				entity->type == fx::sync::NetObjEntityType::Door))
+			{
+				entityList.push_back(gameState->MakeScriptHandle(entity));
+			}
+		}
+
+		context.SetResult(fx::SerializeObject(entityList));
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_PED_IS_IN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto node = entity->syncTree->GetPedGameState();
