@@ -861,7 +861,7 @@ static InitFunction initFunction([]()
 		context.SetResult(fx::SerializeObject(entityList));
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_PROPS", [](fx::ScriptContext& context)
+	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_OBJECTS", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
