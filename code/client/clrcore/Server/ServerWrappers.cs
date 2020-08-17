@@ -33,6 +33,8 @@ namespace CitizenFX.Core
 
 		public IdentifierCollection Identifiers => new IdentifierCollection(this);
 
+		public StateBag State => new StateBag("player:" + m_handle);
+
 		public string EndPoint => GetPlayerEndpoint(m_handle);
 
 		public Ped Character => Ped.FromPlayerHandle(m_handle);

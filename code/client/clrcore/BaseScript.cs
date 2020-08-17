@@ -106,11 +106,14 @@ namespace CitizenFX.Core
 		protected PlayerList Players { get; private set; }
 #endif
 
+		protected StateBag GlobalState { get; private set; }
+
 		protected BaseScript()
 		{
 			EventHandlers = new EventHandlerDictionary();
 			Exports = new ExportDictionary();
 			CurrentTaskList = new Dictionary<int, Task>();
+			GlobalState = new StateBag("global");
 #if !IS_RDR3
 			Players = new PlayerList();
 #endif
