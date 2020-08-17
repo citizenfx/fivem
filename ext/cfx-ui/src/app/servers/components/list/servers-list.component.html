@@ -43,6 +43,7 @@
 					[class.online]="server.status === HistoryServerStatus.Online"
 					[class.offline]="server.status === HistoryServerStatus.Offline"
 				>
+					{{HistoryServerStatus[server.status]}}
 				</span>
 
 				<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.historyEntry.time | amTimeAgo }}</span>

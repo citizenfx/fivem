@@ -181,6 +181,9 @@ virtual-scroller {
 		}
 
 		.info {
+			display: flex;
+			align-items: center;
+
 			padding: 2px;
 			padding-right: 4px;
 
@@ -196,17 +199,41 @@ virtual-scroller {
 			}
 
 			.status {
-				display: inline-block;
+				position: relative;
 
-				margin: 0 4px;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
 
-				width: var(--qh);
-				height: var(--qh);
-				border-radius: var(--qh);
+				margin-right: var(--qh);
+
+				text-align: center;
+				line-height: 1;
+				font-size: var(--fs-075);
+
+				color: var(--color);
+
+				&::before {
+					content: '';
+					display: block;
+
+					flex-shrink: 0;
+
+					width: var(--fs-05);
+					height: var(--fs-05);
+					border-radius: var(--fs-05);
+
+					margin-left: 2px;
+					margin-right: 4px;
+
+					background-color: var(--color);
+				}
 
 				@include theme() using ($theme) {
+					border-color: rgba(gtv($theme, fgColor), .5);
+
 					&.loading {
-						background-color: gtv($theme, fgColor);
+						--color: #{gtv($theme, fgColor)};
 
 						@keyframes loading {
 							0% {
@@ -223,11 +250,10 @@ virtual-scroller {
 						animation: loading .5s ease 0s infinite;
 					}
 					&.online {
-						// background-color: gtv($theme, activeColor);
-						background-color: rgb(0, 255, 0);
+						--color: rgb(0, 255, 0);
 					}
 					&.offline {
-						background-color: red;
+						--color: red;
 					}
 				}
 			}
