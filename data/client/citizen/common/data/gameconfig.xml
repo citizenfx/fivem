@@ -474,7 +474,7 @@
 						</Item>
         					<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="6000"/>
+							<PoolSize value="8000"/>
 						</Item>
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->
