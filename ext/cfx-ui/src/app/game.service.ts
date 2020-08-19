@@ -271,6 +271,10 @@ export abstract class GameService {
 
 	}
 
+	public setArchivedConvar(name: string, value: string) {
+
+	}
+
 	public setDiscourseIdentity(token: string, clientId: string) {
 
 	}
@@ -437,10 +441,6 @@ export class CfxGameService extends GameService {
 			this.nickname = localStorage.getItem('nickOverride');
 		}
 
-		if (localStorage.getItem('streamerMode')) {
-			this.streamerMode = localStorage.getItem('streamerMode') === 'yes';
-		}
-
 		if (localStorage.getItem('devMode')) {
 			this.devMode = localStorage.getItem('devMode') === 'yes';
 		}
@@ -458,6 +458,11 @@ export class CfxGameService extends GameService {
 			(<any>window).invokeNative('setLocale', lang);
 			this.language = lang;
 		}
+
+		this.getConvar('ui_streamerMode').subscribe(value => {
+			this._streamerMode = value === 'true';
+			this.invokeStreamerModeChanged(value === 'true');
+		});
 
 		this.connecting.subscribe(server => {
 			this.inConnecting = false;
@@ -564,7 +569,7 @@ export class CfxGameService extends GameService {
 
 	set streamerMode(value: boolean) {
 		this._streamerMode = value;
-		localStorage.setItem('streamerMode', value ? 'yes' : 'no');
+		this.setArchivedConvar('ui_streamerMode', value ? 'true' : 'false');
 		this.invokeStreamerModeChanged(value);
 	}
 
@@ -698,6 +703,10 @@ export class CfxGameService extends GameService {
 
 	public setConvar(name: string, value: string) {
 		(<any>window).invokeNative('setConvar', JSON.stringify({ name, value }));
+	}
+
+	public setArchivedConvar(name: string, value: string) {
+		(<any>window).invokeNative('setArchivedConvar', JSON.stringify({ name, value }));
 	}
 
 	queryQueue: Set<{
