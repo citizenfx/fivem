@@ -4,6 +4,74 @@
 	position: relative;
 }
 
+.loaders {
+	div {
+		width: 100%;
+		height: var(--q2);
+
+		margin-bottom: 2px;
+
+		@include theme() using ($theme) {
+			background-image: linear-gradient(90deg,
+				transparent,
+				rgba(gtv($theme, fgColor), .1)
+			);
+			background-color: gtv($theme, bgColor);
+		}
+
+		@keyframes bganim {
+			0% {
+				background-position: 0px 0px;
+			}
+			100% {
+				background-position: 1000px 0;
+			}
+		}
+		animation: bganim 10s linear 0s infinite;
+	}
+}
+
+.hint {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	width: 100%;
+	height: 100%;
+
+	h3 {
+		margin-bottom: var(--q2);
+	}
+
+	.favhint {
+		position: relative;
+		margin-bottom: var(--q2);
+
+		.lol {
+			position: absolute;
+			top: calc((var(--q1) + var(--qh)) * -1);
+			right: 0;
+
+			opacity: 0;
+			transform: translateY(10px);
+
+			transition: all .2s ease;
+		}
+
+		&:hover {
+			.lol {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+	}
+}
+
+.hidden {
+	display: none;
+}
+
 .list {
 	height: 100%;
 	width: 100%;

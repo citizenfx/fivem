@@ -262,8 +262,12 @@
 
 				opacity: .5;
 
+				transition: all .2s ease;
+
 				&:hover {
 					opacity: 1;
+
+					transition: none;
 
 					.content {
 						@include theme() using ($theme) {

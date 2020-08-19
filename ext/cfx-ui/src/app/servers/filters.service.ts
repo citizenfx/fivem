@@ -1,10 +1,24 @@
 import { Injectable, Inject } from "@angular/core";
 import { Subject, BehaviorSubject } from "rxjs";
 import { ServerSorting, ServerFilters, ServerTags, ServerSortBy, ServerSortDirection } from "./components/filters/server-filter-container";
-import { PinConfig } from "./pins";
+import { PinConfig, PinConfigCached } from "./pins";
 import { ServersService } from "./servers.service";
 import { LocalStorage } from "app/local-storage";
 import { Server } from "./server";
+import { GameService } from "app/game.service";
+
+export class ServerAutocompleteEntry {
+	public name = '';
+	public description = '';
+	public example = '';
+	public completion = '';
+};
+
+export interface SearchAutocompleteIndex {
+	[type: string]: {
+		[entry: string]: number,
+	},
+};
 
 @Injectable()
 export class FiltersService {
@@ -15,7 +29,7 @@ export class FiltersService {
 
 	filters: ServerFilters;
 	tags: ServerTags;
-	pinConfig: PinConfig;
+	pinConfig: PinConfigCached;
 	sortOrder: ServerSorting;
 
 	sortOrderPerType: { [key: string]: ServerSorting } = {};
@@ -24,12 +38,97 @@ export class FiltersService {
 
 	sortedServersUpdate: Subject<Server[]> = new Subject();
 	sortedServers: Server[] = [];
-	servers: Server[] = [];
+
+	autocompleteIndex: SearchAutocompleteIndex = {};
+	autocompleteIndexUpdate: Subject<SearchAutocompleteIndex> = new BehaviorSubject(this.autocompleteIndex);
 
 	private type: string;
 	private _sortingsInProgress = 0;
+	private filtersDebouncer;
+	private sortingPending = false;
 
-	constructor(private serversService: ServersService, @Inject(LocalStorage) private localStorage: any) {
+	constructor(
+		private serversService: ServersService,
+		@Inject(LocalStorage) private localStorage: any,
+		private gameService: GameService,
+	) {
+		this.serversService.loadPinConfig()
+			.then(pinConfig => {
+				this.pinConfig = new PinConfigCached(pinConfig);
+			});
+
+		this.serversService
+			.getReplayedServers()
+			.subscribe(server => {
+				if (server) {
+					this.addAutocompleteIndex(server);
+				}
+			});
+
+		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
+			if (loaded && this.sortingPending) {
+				this.sortingPending = false;
+				this.sortAndFilterServers(false);
+			}
+		});
+	}
+
+	addAutocompleteIndex(server: Server) {
+		for (const list of [server.data, server.data.vars]) {
+			for (const entryName in list) {
+				if (list.hasOwnProperty(entryName)) {
+					const key = entryName;
+					const fields = list[entryName];
+
+					if (key.endsWith('s')) {
+						const bits: string[] = [];
+
+						const subKey = key.substr(0, key.length - 1);
+
+						if (Array.isArray(fields)) {
+							for (const item of fields) {
+								bits.push(item);
+							}
+						} else if (typeof fields === 'object') {
+							const values = Object.keys(fields);
+
+							for (const item of values) {
+								bits.push(item);
+							}
+						} else if (typeof fields === 'string') {
+							for (const item of fields.split(',')) {
+								bits.push(item.trim());
+							}
+						}
+
+						const uniqueBits = bits.filter((v, i, a) => a.indexOf(v) === i && typeof (v) === 'string');
+						this.addAutoCompleteEntries(subKey, uniqueBits);
+					}
+
+					if (typeof fields === 'string') {
+						this.addAutoCompleteEntries(key, [fields]);
+					}
+				}
+			}
+		}
+	}
+
+	addAutoCompleteEntries(key: string, list: string[]) {
+		if (!this.autocompleteIndex[key]) {
+			this.autocompleteIndex[key] = {};
+		}
+
+		for (const entry of list) {
+			const lowerEntry = entry.toLowerCase();
+
+			if (!this.autocompleteIndex[key][lowerEntry]) {
+				this.autocompleteIndex[key][lowerEntry] = 1;
+			} else {
+				++this.autocompleteIndex[key][lowerEntry];
+			}
+		}
+
+		this.autocompleteIndexUpdate.next(this.autocompleteIndex);
 	}
 
 	setType(type: string) {
@@ -65,10 +164,6 @@ export class FiltersService {
 		}
 	}
 
-	setPinConfig(pinConfig: PinConfig) {
-		this.pinConfig = pinConfig;
-	}
-
 	setSortOrder(ord: ServerSorting) {
 		this.sortOrderUpdates.next(ord);
 		this.sortOrder = ord;
@@ -79,8 +174,6 @@ export class FiltersService {
 	}
 
 	setFilters(filters: ServerFilters) {
-		console.log(filters);
-
 		this.filtersUpdates.next(filters);
 		this.filters = filters;
 
@@ -89,9 +182,23 @@ export class FiltersService {
 		this.sortAndFilterServers(true);
 	}
 
-	setTags(tags: ServerTags) {
-		console.log(tags);
+	setFiltersDebounced(filters: ServerFilters) {
+		this.filtersUpdates.next(filters);
+		this.filters = filters;
 
+		this.localStorage.setItem(`sfilters:${this.type}`, JSON.stringify(this.filters));
+
+		if (this.filtersDebouncer) {
+			clearTimeout(this.filtersDebouncer);
+		}
+
+		this.filtersDebouncer = setTimeout(() => {
+			this.filtersDebouncer = null;
+			this.sortAndFilterServers(true);
+		}, 150);
+	}
+
+	setTags(tags: ServerTags) {
 		this.tagsUpdates.next(tags);
 		this.tags = tags;
 
@@ -101,7 +208,8 @@ export class FiltersService {
 	}
 
 	sortAndFilterServers(fromInteraction?: boolean) {
-		if (this.servers.length === 0) {
+		if (Object.values(this.serversService.servers).length === 0) {
+			this.sortingPending = true;
 			return;
 		}
 
@@ -111,10 +219,20 @@ export class FiltersService {
 				tags: this.tags,
 			},
 			sortOrder: this.sortOrder,
-			pinConfig: this.pinConfig,
+			pinConfig: this.pinConfig.data,
 			fromInteraction: fromInteraction
 		}, (sortedServers: string[]) => {
-			this.sortedServers = sortedServers.map(a => this.serversService.rawServers[a]).filter(a => !!a);
+			this.sortedServers = sortedServers
+				.map(a => this.serversService.servers[a])
+				.filter((server) => {
+					if (!server) {
+						return false;
+					}
+
+					const matching = this.gameService.isMatchingServer(this.type, server);
+
+					return matching;
+				});
 			this.sortedServersUpdate.next(this.sortedServers);
 
 			this.finishSorting();

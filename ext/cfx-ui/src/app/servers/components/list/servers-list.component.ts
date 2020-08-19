@@ -1,10 +1,9 @@
 import {
-	Component, OnChanges, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef,
-	ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit, OnInit
+	Component, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef,
+	ChangeDetectionStrategy, ElementRef, ViewChild, OnInit, OnDestroy
 } from '@angular/core';
-import { Server, ServerHistoryEntry } from '../../server';
+import { Server } from '../../server';
 import { PinConfigCached } from '../../pins';
-import { Subject } from 'rxjs/Subject';
 
 import { isPlatformBrowser } from '@angular/common';
 
@@ -22,10 +21,7 @@ import { L10nLocale, L10N_LOCALE } from 'angular-l10n'
 	styleUrls: ['servers-list.component.scss'],
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
-	@Input()
-	private servers: Server[];
-
+export class ServersListComponent implements OnInit, OnDestroy {
 	@Input()
 	private pinConfig: PinConfigCached;
 
@@ -34,18 +30,20 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
 	private subscriptions: { [addr: string]: any } = {};
 
-	private lastLength: number;
-
 	@ViewChild('list')
 	private list: ElementRef;
 
-	private interactingUntil = 0;
-
 	HistoryServerStatus = HistoryServerStatus;
 
-	localServers: Server[];
+	serversLoaded = false;
+	sortingComplete = false;
+
 	sortedServers: Server[] = [];
 	historyServers: HistoryServer[] = [];
+
+	private sortedServersUpdaterTimer;
+
+	private serversBatchRenderingAmount = 10;
 
 	constructor(
 		private zone: NgZone,
@@ -57,36 +55,80 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 		private sanitizer: DomSanitizer,
 		@Inject(L10N_LOCALE) public locale: L10nLocale,
 	) {
-		this.servers = [];
+		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
+			this.serversLoaded = loaded;
+		});
 
-		let changed = false;
-
-		this.changeObservable.subscribe(() => {
-			changed = true;
+		this.filtersService.sortingInProgress.subscribe((inProgress) => {
+			this.sortingComplete = !inProgress;
 		});
 
 		this.filtersService.sortedServersUpdate.subscribe((servers) => {
-			this.sortedServers = servers;
-			this.changeDetectorRef.markForCheck();
-		});
+			if (this.sortedServersUpdaterTimer) {
+				cancelAnimationFrame(this.sortedServersUpdaterTimer);
+			}
 
-		zone.runOutsideAngular(() => {
-			setInterval(() => {
-				if (changed) {
-					if (this.interactingUntil >= new Date().getTime()) {
+			if (servers.length <= this.serversBatchRenderingAmount) {
+				this.sortedServers = servers;
+				this.changeDetectorRef.markForCheck();
+				return;
+			}
+
+			this.sortedServers = [];
+			let currentServerIndex = 0;
+
+			const renderServersBatch = () => {
+				// If we have a sorting started by filters change - cancel further incremental rendering
+				if (!this.sortingComplete) {
+					this.sortedServers = [];
+					this.sortedServersUpdaterTimer = null;
+					this.changeDetectorRef.markForCheck();
+					return;
+				}
+
+				// Rendering servers in batches to improme initial render time
+				for (let i = 0; i < this.serversBatchRenderingAmount; i++) {
+					this.sortedServers.push(servers[currentServerIndex]);
+
+					currentServerIndex++;
+
+					if (currentServerIndex === servers.length - 1)  {
+						this.sortedServersUpdaterTimer = null;
 						return;
 					}
-
-					changed = false;
-
-					for (const server of (this.servers || [])) {
-						if (!this.subscriptions[server.address]) {
-							this.subscriptions[server.address] = server.onChanged.subscribe(a => this.changeSubject.next());
-						}
-					}
 				}
-			}, 500);
+
+				this.sortedServersUpdaterTimer = requestAnimationFrame(renderServersBatch);
+			};
+
+			this.sortedServersUpdaterTimer = requestAnimationFrame(renderServersBatch);
+			this.changeDetectorRef.markForCheck();
 		});
+	}
+
+	get shouldShowHint() {
+		if (this.type !== 'history' && this.type !== 'favorites') {
+			return false;
+		}
+
+		if (!this.serversLoaded || !this.sortingComplete) {
+			return false;
+		}
+
+		return this.sortedServers.length === 0;
+	}
+
+	get hintText() {
+		switch (this.type) {
+			case 'history': return '#EmptyServers_History';
+			case 'favorites': return '#EmptyServers_Favorites';
+		}
+	}
+
+	ngOnDestroy() {
+		if (this.sortedServersUpdaterTimer) {
+			cancelAnimationFrame(this.sortedServersUpdaterTimer);
+		}
 	}
 
 	isBrowser() {
@@ -94,11 +136,7 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 	}
 
 	isPinned(server: Server) {
-		if (!this.pinConfig || !this.pinConfig.pinnedServers) {
-			return false;
-		}
-
-		return this.pinConfig.pinnedServers.has(server.address);
+		return this.filtersService.pinConfig.pinnedServers.has(server?.address);
 	}
 
 	isPremium(server: Server) {
@@ -107,11 +145,6 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
 	getPremium(server: Server) {
 		return server.premium;
-	}
-
-	// to prevent auto-filtering while scrolling (to make scrolling feel smoother)
-	updateInteraction() {
-		this.interactingUntil = new Date().getTime() + 500;
 	}
 
 	ngOnInit() {
@@ -151,6 +184,8 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
 				this.changeDetectorRef.markForCheck();
 			});
+		} else {
+			this.filtersService.sortAndFilterServers(false);
 		}
 	}
 
@@ -162,28 +197,8 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 		this.gameService.connectTo(entry.server, entry.historyEntry.address);
 	}
 
-	ngAfterViewInit() {
-		const element = this.list.nativeElement as HTMLElement;
-
-		this.zone.runOutsideAngular(() => {
-			element.addEventListener('wheel', (e) => {
-				this.updateInteraction();
-			});
-		});
-	}
-
-	changeSubject: Subject<void> = new Subject<void>();
-	changeObservable = this.changeSubject.asObservable();
-
-	ngOnChanges() {
-		if (this.servers.length !== this.lastLength) {
-			this.changeSubject.next();
-			this.lastLength = this.servers.length;
-		}
-	}
-
 	svTrack(index: number, serverRow: Server) {
-		return serverRow.address;
+		return index + serverRow.address;
 	}
 
 	isFavorite(server: Server) {

@@ -1,4 +1,35 @@
-<div class="list" *ngIf="isBrowser()" #list>
+<div class="loaders" [class.hidden]="serversLoaded && sortingComplete">
+	<div style="animation-delay: 0s"></div>
+	<div style="animation-delay: .5s"></div>
+	<div style="animation-delay: 1s"></div>
+	<div style="animation-delay: 1.5s"></div>
+	<div style="animation-delay: 2s"></div>
+</div>
+
+<div class="hint" *ngIf="shouldShowHint">
+	<h3 l10nTranslate>
+		{{hintText}}
+	</h3>
+
+	<div class="favhint">
+		<div class="lol">
+			not this one!
+		</div>
+		<img src="../../../../assets/images/favhint2.png"/>
+	</div>
+
+	<a
+		[routerLink]="['/servers']"
+		class="cfx-button primary"
+	>
+		<span class="material-icons-outlined">reorder</span>
+		<span class="label" l10nTranslate>
+			#BottomNav_Servers
+		</span>
+	</a>
+</div>
+
+<div class="list" *ngIf="isBrowser()" #list [class.hidden]="!serversLoaded || !sortingComplete">
 	<virtual-scroller
 		*ngIf="type !== 'history'"
 		#scroll
