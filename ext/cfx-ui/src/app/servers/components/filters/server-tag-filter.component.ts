@@ -23,6 +23,14 @@ export class ServerTagFilterComponent {
 		return this.tagService.locales;
 	}
 
+	get tagsCanReset() {
+		return Object.keys(this.filtersTags.tagList).length > 0;
+	}
+
+	get localesCanReset() {
+		return Object.keys(this.filtersTags.localeList).length > 0;
+	}
+
 	constructor(
 		private tagService: ServerTagsService,
 		private gameService: GameService,
@@ -115,6 +123,16 @@ export class ServerTagFilterComponent {
 			delete this.filtersTags.localeList[tag.name];
 		}
 
+		this.emitTagsChanged();
+	}
+
+	resetLocales() {
+		this.filtersTags.localeList = {};
+		this.emitTagsChanged();
+	}
+
+	resetTags() {
+		this.filtersTags.tagList = {};
 		this.emitTagsChanged();
 	}
 

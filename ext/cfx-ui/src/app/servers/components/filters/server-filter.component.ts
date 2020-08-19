@@ -396,6 +396,19 @@ export class ServerFilterComponent implements OnInit {
 		this.filtersService.setFilters(this.filters);
 	}
 
+	private debouncer;
+
+	updateFiltersDebounced() {
+		if (this.debouncer) {
+			clearTimeout(this.debouncer);
+		}
+
+		this.debouncer = setTimeout(() => {
+			this.debouncer = null;
+			this.filtersService.setFilters(this.filters);
+		}, 500);
+	}
+
 	isPingCap() {
 		return this.filters.capPing;
 	}

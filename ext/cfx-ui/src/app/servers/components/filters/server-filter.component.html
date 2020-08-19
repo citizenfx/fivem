@@ -43,8 +43,8 @@
 	</div>
 
     <section class="filter stretch" [class.disabled]="type === 'history'">
-		<input class="name" id="searchBox" type="search" placeholder="Search or enter an address" [(ngModel)]="filters.searchText"
-			(ngModelChange)="updateFilters()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
+		<input class="name" id="searchBox" type="search" placeholder="Search or enter an IP address" [(ngModel)]="filters.searchText"
+			(ngModelChange)="updateFiltersDebounced()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
 
 		<div class="search-dropdown" [class.active]="searchFocused">
 			<ul>
@@ -60,6 +60,10 @@
         <div class="extra-filters">
 			<div class="trigger">
 				<span class="material-icons-outlined">filter_alt</span>
+			</div>
+
+			<div class="label">
+				Filter
 			</div>
 
 			<div class="dropdown">
@@ -85,6 +89,10 @@
 		<div class="sorting">
 			<div class="trigger">
 				<span class="material-icons-outlined">sort</span>
+			</div>
+
+			<div class="label">
+				Sort
 			</div>
 
 			<div class="dropdown">

@@ -79,6 +79,8 @@ export class FiltersService {
 	}
 
 	setFilters(filters: ServerFilters) {
+		console.log(filters);
+
 		this.filtersUpdates.next(filters);
 		this.filters = filters;
 
@@ -88,6 +90,8 @@ export class FiltersService {
 	}
 
 	setTags(tags: ServerTags) {
+		console.log(tags);
+
 		this.tagsUpdates.next(tags);
 		this.tags = tags;
 

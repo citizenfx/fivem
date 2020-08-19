@@ -245,8 +245,7 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 		let matchesLocales = true;
 
 		if (localeListEntries.length > 0) {
-			const sl = (server && server.Data && server.Data.vars && server.Data.vars.locale
-				&& getCanonicalLocale(server.Data.vars.locale));
+			const sl = server?.Data?.vars?.locale && getCanonicalLocale(server.Data.vars.locale);
 
 			matchesLocales = false;
 
@@ -257,10 +256,17 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 					}
 				} else {
 					if (sl === locale) {
+						console.log('filtered out excluded by locale');
 						return true;
 					}
+
+					matchesLocales = true;
 				}
 			}
+		}
+
+		if (!matchesLocales) {
+			console.log(localeListEntries, 'hidden?', !matchesLocales);
 		}
 
 		return !matchesLocales;

@@ -71,7 +71,7 @@
 				.label {
 					position: absolute;
 					top: 0;
-					left: var(--q3);
+					left: var(--header-height);
 					bottom: 0;
 
 					padding: var(--q1) var(--q1) var(--q1) 0;
@@ -203,6 +203,31 @@
 				}
 			}
 
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				font-family: 'Montserrat';
+				letter-spacing: 1px;
+				text-transform: uppercase;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
+			}
+
 			.dropdown {
 				position: absolute;
 				top: var(--header-height);
@@ -259,6 +284,12 @@
 					}
 				}
 
+				.label {
+					opacity: 1;
+
+					transition: none;
+				}
+
 				.dropdown {
 					opacity: 1;
 					pointer-events: all;
@@ -291,6 +322,31 @@
 				.material-icons-outlined {
 					font-size: var(--fs-2);
 				}
+			}
+
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				font-family: 'Montserrat';
+				letter-spacing: 1px;
+				text-transform: uppercase;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
 			}
 
 			.dropdown {
@@ -345,6 +401,10 @@
 
 						transition: none;
 					}
+				}
+
+				.label {
+					opacity: 1;
 				}
 
 				.dropdown {
