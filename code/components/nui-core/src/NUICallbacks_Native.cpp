@@ -63,7 +63,7 @@ static InitFunction initFunction([] ()
 					ShellExecute(nullptr, L"open", ToWide(arg).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 				}
 			}
-			else if (nativeType == "setConvar")
+			else if (nativeType == "setConvar" || nativeType == "setArchivedConvar")
 			{
 				if (nui::HasMainUI())
 				{
@@ -71,11 +71,12 @@ static InitFunction initFunction([] ()
 
 					try
 					{
+						auto cmd = (nativeType == "setArchivedConvar") ? "seta" : "set";
 						auto name = json.value("name", "");
 						auto value = json.value("value", "");
 
 						se::ScopedPrincipal ps{ se::Principal{"system.console"} };
-						console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", name, value });
+						console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ cmd, name, value });
 					}
 					catch (std::exception&)
 					{
