@@ -59,6 +59,13 @@
 			transition: all .2s ease;
 		}
 
+		.pic {
+			width: 408px;
+			height: 76px;
+
+			background-image: url(../../../../assets/images/favhint2.png);
+		}
+
 		&:hover {
 			.lol {
 				opacity: 1;

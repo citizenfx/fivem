@@ -15,30 +15,36 @@
 			class="changelog"
 			[routerLink]="['/changelog']"
 			routerLinkActive="active"
-			aria-label="Changelog"
-			data-balloon-pos="left"
 		>
 			<span class="material-icons-outlined">history_edu</span>
 			<span class="new" *ngIf="changelogCount > 0">{{changelogCount}}</span>
+
+			<span class="label" l10nTranslate>
+				#Changelogs
+			</span>
 		</a>
 
 		<a
 			class="settings"
 			[routerLink]="['/settings']"
 			routerLinkActive="active"
-			aria-label="Settings"
-			data-balloon-pos="left"
 		>
 			<span class="material-icons-outlined">settings</span>
+
+			<span class="label" l10nTranslate>
+				#BottomNav_Settings
+			</span>
 		</a>
 
 		<div
 			class="close-app"
 			(click)="exitConfirmationActive = true"
-			aria-label="Exit"
-			data-balloon-pos="left"
 		>
 			<span class="material-icons-outlined">close</span>
+
+			<span class="label" l10nTranslate>
+				#ExitToDesktop
+			</span>
 		</div>
 	</div>
 </div>

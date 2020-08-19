@@ -133,6 +133,8 @@
 		}
 
 		&>* {
+			position: relative;
+
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -148,6 +150,32 @@
 				color: rgba(gtv($theme, fgColor), .75);
 			};
 
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				font-family: 'Montserrat';
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				white-space: nowrap;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
+			}
+
 			&:hover {
 				transition: none;
 
@@ -155,6 +183,11 @@
 					color: gtv($theme, accentContrastColor);
 					background-color: gtv($theme, accentColor1);
 				};
+
+				.label {
+					opacity: 1;
+					transition: none;
+				}
 			}
 		}
 

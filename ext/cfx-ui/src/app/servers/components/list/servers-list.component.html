@@ -11,11 +11,11 @@
 		{{hintText}}
 	</h3>
 
-	<div class="favhint">
+	<div *ngIf="type === 'favorites'" class="favhint">
 		<div class="lol">
-			not this one!
+			... but in the actual list!
 		</div>
-		<img src="../../../../assets/images/favhint2.png"/>
+		<div class="pic"></div>
 	</div>
 
 	<a
