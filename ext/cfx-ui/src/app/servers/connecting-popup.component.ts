@@ -39,7 +39,7 @@ export class ConnectingPopupComponent implements OnInit {
 			this.overlayTitle = '#Servers_Connecting';
 			this.overlayMessage = '#Servers_ConnectingTo';
 			this.overlayMessageData = {
-				serverName: a?.address || 'unkown',
+				serverName: a?.address || 'unknown',
 			};
 			this.showOverlay = true;
 			this.overlayClosable = false;
