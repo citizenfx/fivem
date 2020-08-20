@@ -23,7 +23,7 @@ static void* getAndCheckPlayerInfo(fx::ScriptContext& context)
 		return nullptr;
 	}
 
-	return player->playerInfo;
+	return player->playerInfo();
 }
 
 template<typename T, int* offset>
@@ -54,7 +54,8 @@ static HookFunction hookFunction([]()
 	VehicleDefenseModifierOffset = *hook::get_pattern<int>("F6 C1 ? 75 ? 48 8B 83 ? ? ? ? 48 8B 4E", 0x13);
 	WeaponDefenseModifier2Offset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? 8A 87 ? ? ? ? C0 E0", 0x4);
 	MeleeWeaponDamageModifierOffset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? F3 0F 10 8F ? ? ? ? 48 8B 85", 0x4);
-	MeleeWeaponDefenseModifierOffset = *hook::get_pattern<int>("45 84 45 ? 74 ? 48 8B 83", 0x11);
+	// #TODO2060
+	//MeleeWeaponDefenseModifierOffset = *hook::get_pattern<int>("45 84 45 ? 74 ? 48 8B 83", 0x11);
 
 	{
 		auto location = hook::get_pattern<char>("48 8B F8 E8 ? ? ? ? F3 0F 10 00 F3 0F 10 48 04", -0x5A);
@@ -71,7 +72,7 @@ static HookFunction hookFunction([]()
 
 		for (int i = 0; i < playerNum; i++)
 		{
-			playerList.push_back(players[i]->physicalPlayerIndex);
+			playerList.push_back(players[i]->physicalPlayerIndex());
 		}
 
 		context.SetResult(fx::SerializeObject(playerList));

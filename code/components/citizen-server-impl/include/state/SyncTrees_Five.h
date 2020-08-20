@@ -8,6 +8,18 @@
 
 #include <boost/type_index.hpp>
 
+extern std::string g_enforcedGameBuild;
+
+inline bool Is2060()
+{
+	static bool value = ([]()
+	{
+		return g_enforcedGameBuild == "2060";
+	})();
+
+	return value;
+}
+
 namespace fx::sync
 {
 template<int Id1, int Id2, int Id3>
@@ -1125,6 +1137,15 @@ struct CVehicleHealthDataNode
 			{
 				for (int i = 0; i < totalWheels; i++)
 				{
+					// open wheel heat?
+					if (Is2060())
+					{
+						if (state.buffer.ReadBit())
+						{
+							state.buffer.Read<int>(8);
+						}
+					}
+
 					bool bursted = state.buffer.ReadBit();
 					bool onRim = state.buffer.ReadBit();
 					auto unk11 = state.buffer.ReadBit();
@@ -1315,6 +1336,13 @@ struct CPedGameStateDataNode
 		auto bool4 = state.buffer.ReadBit();
 		auto bool5 = state.buffer.ReadBit();
 		auto bool6 = state.buffer.ReadBit();
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+			state.buffer.ReadBit();
+		}
+
 		auto arrestState = state.buffer.Read<int>(1);
 		auto deathState = state.buffer.Read<int>(2);
 
@@ -1327,6 +1355,11 @@ struct CPedGameStateDataNode
 		}
 
 		data.curWeapon = weapon;
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
 
 		auto weaponExists = state.buffer.ReadBit();
 		auto weaponVisible = state.buffer.ReadBit();
@@ -1669,10 +1702,28 @@ struct CPedHealthDataNode
 			data.armour = 0;
 		}
 
+		if (Is2060())
+		{
+			bool hasUnk1 = state.buffer.ReadBit();
+			bool hasUnk2 = state.buffer.ReadBit();
+
+			if (hasUnk1)
+			{
+				state.buffer.Read<int>(13);
+			}
+
+			if (!hasUnk2)
+			{
+				state.buffer.Read<int>(13);
+			}
+		}
+
+
 		auto unk8 = state.buffer.ReadBit();
 
 		if (unk8) // unk9 != 0
 		{
+			// object ID
 			auto unk9 = state.buffer.Read<short>(13);
 		}
 
@@ -1809,6 +1860,11 @@ struct CPlayerGameStateDataNode {
 		auto unk21 = state.buffer.ReadBit();
 		auto unk22 = state.buffer.ReadBit();
 
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
 		if (unk12)
 		{
 			int unk23 = state.buffer.Read<int>(7);
@@ -1845,6 +1901,11 @@ struct CPlayerGameStateDataNode {
 			data.spectatorId = 0;
 		}
 
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
 		auto isAntagonisticToAnotherPlayer = state.buffer.ReadBit();
 
 		if (isAntagonisticToAnotherPlayer)
@@ -1858,7 +1919,7 @@ struct CPlayerGameStateDataNode {
 		if (unk35)
 		{
 			int tutorialIndex = state.buffer.Read<int>(3);
-			int tutorialInstanceId = state.buffer.Read<int>(6);
+			int tutorialInstanceId = state.buffer.Read<int>(Is2060() ? 7 : 6);
 		}
 
 		auto unk39 = state.buffer.ReadBit();
@@ -1896,8 +1957,9 @@ struct CPlayerGameStateDataNode {
 		auto unk67 = state.buffer.ReadBit();
 		auto unk68 = state.buffer.ReadBit();
 		auto unk69 = state.buffer.ReadBit();
-
 		auto unk70 = state.buffer.ReadBit();
+
+		// #TODO2060: maybe extra read near here? list is weird
 
 		if (unk70)
 		{

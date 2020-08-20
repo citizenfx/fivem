@@ -830,7 +830,7 @@ static HookFunction hookFunction{[] ()
 
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	// #TODO1737: around 0x140D376DD
-	if (!Is1868())
+	if (!Is2060())
 	{
 		hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 	}

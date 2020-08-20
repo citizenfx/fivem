@@ -429,9 +429,9 @@ static InitFunction initFunction([] ()
 					brandName += L"*";
 				}
 
-				if (Is1868())
+				if (Is2060())
 				{
-					brandName += L" (b1868)";
+					brandName += L" (b2060)";
 				}
 #endif
 

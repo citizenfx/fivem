@@ -109,7 +109,7 @@ static HookFunction hookFunction([]()
 		hook::put(location, "fxd:/gta5_settings.xml");
 
 		MH_Initialize();
-		MH_CreateHook(hook::get_pattern("84 C0 74 16 8B 45 6F 85 C0", -0x3C), LoadSettingsFromParams, (void**)&g_origLoadSettingsFromParams);
+		MH_CreateHook(hook::get_pattern("84 C0 74 16 8B 45 ? 85 C0", -0x3C), LoadSettingsFromParams, (void**)&g_origLoadSettingsFromParams);
 		MH_CreateHook(hook::get_call(hook::get_pattern("89 8D ? ? 00 00 74 0A 48 8B CB E8 ? ? ? ? EB", 11)), ResetSettings, (void**)&g_origResetSettings);
 		MH_EnableHook(MH_ALL_HOOKS);
 

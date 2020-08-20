@@ -703,7 +703,7 @@ void BindingManager::CreateButtons()
 			auto button = std::make_unique<Button>(thisNameStr);
 			button->SetFromControl(g_control, field->index);
 
-			if (!Is1868())
+			if (!Is2060())
 			{
 				button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
 			}

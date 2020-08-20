@@ -4,6 +4,8 @@
 
 #include <directxmath.h>
 
+#include <CrossBuildRuntime.h>
+
 #ifdef COMPILING_GTA_STREAMING_FIVE
 #define STREAMING_EXPORT DLL_EXPORT
 #else
@@ -370,7 +372,7 @@ class CHandlingData
 {
 private:
 	uint32_t m_name;
-	char m_pad[332]; // 1290, 1365, 1493, 1604
+	char m_pad[332]; // 1290, 1365, 1493, 1604, 1868, 2060
 	atArray<CBaseSubHandlingData*> m_subHandlingData;
 	// ^ find offset using a variant of 48 85 C9 74 13 BA 04 00 00 00 E8 (and go to the call in there)
 	char m_pad2[1000];
@@ -420,25 +422,50 @@ public:
 class STREAMING_EXPORT CVehicle : public fwEntity
 {
 private:
-	//char m_pad[0x8C0]; // 1290, 1365, 1493
-	char m_pad[0x918 - sizeof(fwEntity)]; // 1604, 1737, 1868
-	CHandlingData* m_handlingData;
-	// find ^ with `85 C0 74 49 48 8B 86 ? ? 00 00 48 8B CE` ??s (before 1604)
-	// 1604+: `75 4D 48 8B 86 ? ? ? ? F6 80`
+	template<int HandlingStart>
+	struct Impl
+	{
+		//char m_pad[0x8C0]; // 1290, 1365, 1493
+		char m_pad[HandlingStart - sizeof(fwEntity)]; // 1604, 1737, 1868
+		CHandlingData* m_handlingData;
+		// find ^ with `85 C0 74 49 48 8B 86 ? ? 00 00 48 8B CE` ??s (before 1604)
+		// 1604+: `75 4D 48 8B 86 ? ? ? ? F6 80`
+	};
+
+	union
+	{
+		Impl<0x918> m1604;
+		Impl<0x938> m2060;
+	} impl;
 
 public:
 	virtual ~CVehicle() = default;
 
 	inline CHandlingData* GetHandlingData()
 	{
-		return m_handlingData;
+		if (Is2060())
+		{
+			return impl.m2060.m_handlingData;
+		}
+		else
+		{
+			return impl.m1604.m_handlingData;
+		}
 	}
 
 	inline void SetHandlingData(CHandlingData* ptr)
 	{
 		// Use an alignment byte within CHandlingDataMgr to represent the handling as hooked.
 		*((char*)ptr + 28) = 1;
-		m_handlingData = ptr;
+		
+		if (Is2060())
+		{
+			impl.m2060.m_handlingData = ptr;
+		}
+		else
+		{
+			impl.m1604.m_handlingData = ptr;
+		}
 	}
 
 public:

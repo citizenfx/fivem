@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <CrossBuildRuntime.h>
 #include <mutex>
 
 static std::unordered_map<void*, std::string> g_gamerInfoBuffer;
@@ -128,16 +129,22 @@ void LimitCheckPatch(uint64_t addr)
 static HookFunction hookFunction([]()
 {
 	// gamer tag creation
-	hook::call(hook::get_pattern("48 8D 8F ? ? 00 00 C6 87 B0 00 00 00 01 E8", 14), SprintfToBuffer);
+	hook::call(hook::get_pattern("48 8D 8F ? ? 00 00 C6 87 ? 00 00 00 01 E8 ? ? ? ? 48 8D", 14), SprintfToBuffer);
 
 	// gamer tag name setting
 	hook::call(hook::get_pattern("48 8D 8D ? 02 00 00 4C 8B CE", 15), SprintfToBuffer);
 
 	// gamer tag display call
 	{
-		auto location = hook::get_pattern("E8 ? ? ? ? 44 88 A4 3B F2 00 00 00 8B 84 3B ? 02 00 00 48", 0);
+		auto location = hook::get_pattern("E8 ? ? ? ? 44 88 A4 3B ? ? 00 00 8B 84 3B ? 02 00 00 48", 0);
 		hook::set_call(&g_origCallGfx, location);
 		hook::call(location, WrapGfxCall);
+	}
+
+	// #TODO2060
+	if (Is2060())
+	{
+		return;
 	}
 
 	auto matches = hook::pattern("75 ? ? 10 87 00 00").count(2);

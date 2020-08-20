@@ -713,19 +713,19 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 		}
 		else if (postData["branchAccessToken"].find("GTA5") != std::string::npos)
 		{
-			if (Is1868())
+			if (Is2060())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
   <Status>1</Status>
-  <Result BuildId="81" VersionNumber="1.0.1868.0" BuildDateUtc="2019-11-05T11:39:37.0266667">
+  <Result BuildId="83" VersionNumber="1.0.2060.0" BuildDateUtc="2019-11-05T11:39:37.0266667">
     <FileManifest>
-		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="77631632" TimestampUtc="2019-11-05T11:39:34.8800000">
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="60589184" TimestampUtc="2019-11-05T11:39:34.8800000">
 			<RelativePath>GTA5.exe</RelativePath>
-			<SHA256Hash>af4cfb1ff9b5eb0b0de09bc00c67826b214d8f57ea8078fee15f86beded3ef5a</SHA256Hash>
+			<SHA256Hash>b21d443583b432ee4333bcd1179f4336f63071d90d55b6177c7588b21dbf61f0</SHA256Hash>
 			<FileChunks>
-				<Chunk FileChunkId="13046" SHA256Hash="af4cfb1ff9b5eb0b0de09bc00c67826b214d8f57ea8078fee15f86beded3ef5a" StartByteOffset="0" Size="77631632" />
+				<Chunk FileChunkId="13046" SHA256Hash="b21d443583b432ee4333bcd1179f4336f63071d90d55b6177c7588b21dbf61f0" StartByteOffset="0" Size="60589184" />
 			</FileChunks>
 		</FileDetails>
     </FileManifest>
@@ -855,7 +855,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
       <Branches />
     </App>
   </Result>
-</Response>)", Is1868() ? 81 : 80);
+</Response>)", Is2060() ? 83 : 80);
 	});
 
 
