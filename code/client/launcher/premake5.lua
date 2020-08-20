@@ -9,7 +9,7 @@ local function isGamePersonality(name)
 		return isLauncherPersonality(name)
 	end
 
-	if name == 'game' or name == 'game_1868' then
+	if name == 'game' or name == 'game_2060' then
 		return true
 	end
 	
@@ -56,7 +56,7 @@ local function launcherpersonality(name)
 		
 		if isGamePersonality(name) then
 			if _OPTIONS['game'] == 'five' then
-				local gameBuild = (name == 'game_1868') and '1868' or '1604'
+				local gameBuild = (name == 'game_2060') and '2060_2' or '1604'
 			
 				postbuildcommands {
 					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
@@ -147,7 +147,7 @@ launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game'
-	launcherpersonality 'game_1868'
+	launcherpersonality 'game_2060'
 end
 
 externalproject "Win2D"

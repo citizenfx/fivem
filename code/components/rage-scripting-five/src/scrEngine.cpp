@@ -563,9 +563,11 @@ static HookFunction hookFunction([] ()
 
 	activeThreadTlsOffset = *hook::pattern("48 8B 04 D0 4A 8B 14 00 48 8B 01 F3 44 0F 2C 42 20").count(1).get(0).get<uint32_t>(-4);
 
-	location = hook::pattern("89 51 08 8B 05 ? ? ? ? E9").count(1).get(0).get<char>(5);
+	//location = hook::pattern("89 51 08 8B 05 ? ? ? ? E9").count(1).get(0).get<char>(5);
+	//scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
 
-	scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
+	// memory layout dependent
+	scrThreadId = hook::get_address<uint32_t*>(hook::get_pattern("33 FF 48 85 C0 74 08 48 8B C8 E8", -9)) - 2;
 
 	location = hook::get_pattern<char>("FF 0D ? ? ? ? 48 8B F9", 2);
 

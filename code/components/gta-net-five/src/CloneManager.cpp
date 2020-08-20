@@ -1041,7 +1041,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	// owner ID
 	auto isRemote = (msg.GetClientId() != m_netLibrary->GetServerNetID());
-	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex;
+	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex();
 
 	// create the object
 	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
@@ -1296,12 +1296,12 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 			if (player)
 			{
-				auto lastId = player->physicalPlayerIndex;
-				player->physicalPlayerIndex = 31;
+				auto lastId = player->physicalPlayerIndex();
+				player->physicalPlayerIndex() = 31;
 
 				rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
 
-				player->physicalPlayerIndex = lastId;
+				player->physicalPlayerIndex() = lastId;
 
 				obj->syncData.isRemote = true;
 				obj->syncData.nextOwnerId = -1;
@@ -1580,7 +1580,7 @@ void CloneManagerLocal::Update()
 					auto ent = (fwEntity*)(clone.second->GetGameObject());
 					auto vtbl = *(char**)ent;
 
-					if (!Is1868())
+					if (!Is2060())
 					{
 						auto posData = ent->GetPosition();
 						auto pos = DirectX::XMLoadFloat3(&posData);
@@ -1724,13 +1724,13 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
 {
-	if (object->syncData.ownerId != player->physicalPlayerIndex)
+	if (object->syncData.ownerId != player->physicalPlayerIndex())
 	{
 		GiveObjectToClient(object, g_netIdsByPlayer[player]);
 	}
 
 	m_netObjects[object->syncData.ownerId].erase(object->objectId);
-	m_netObjects[player->physicalPlayerIndex][object->objectId] = object;
+	m_netObjects[player->physicalPlayerIndex()][object->objectId] = object;
 }
 
 static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDistance, CNetGamePlayer** firstPlayer)> _isSphereVisibleForAnyPlayer([]()

@@ -180,7 +180,7 @@ static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
 
 static HookFunction hookFunction([] ()
 {
-	char* levelCaller = Is1868() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
+	char* levelCaller = Is2060() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
 	char* levelByIndex = hook::get_call(levelCaller);
 
 	hook::set_call(&g_origLoadLevelByIndex, levelCaller);

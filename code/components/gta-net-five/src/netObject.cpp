@@ -29,7 +29,7 @@ namespace rage
 
 static HookFunction hookFunction([]()
 {
-	auto location = hook::get_pattern<char>("0F 8E 12 03 00 00 41 8A 57 2D", 22);
+	auto location = hook::get_pattern<char>("0F 8E 12 03 00 00 41 8A 57", 22);
 
 	createCloneFuncs[(int)NetObjEntityType::Ped]				= (TCreateCloneObjFn)hook::get_call(location);
 	createCloneFuncs[(int)NetObjEntityType::Object]				= (TCreateCloneObjFn)hook::get_call(location + 0x39);
@@ -64,6 +64,6 @@ static HookFunction hookFunction([]()
 
 	static_assert(offsetof(rage::CNetworkSyncDataULBase, isRemote) == 59, "offset 75");
 	static_assert(offsetof(rage::CNetworkSyncDataULBase, creationAckedPlayers) == 96, "offset 112");
-	static_assert(offsetof(CNetGamePlayer, physicalPlayerIndex) == 45, "offset 45");
-	static_assert(offsetof(CNetGamePlayer, playerInfo) == 168, "offset 168");
+	//static_assert(offsetof(CNetGamePlayer, physicalPlayerIndex) == 45 + 8, "offset 45"); // #TODO2060: NOT ANYMORE! HAHA!
+	//static_assert(offsetof(CNetGamePlayer, playerInfo) == 168 + 8, "offset 168");
 });

@@ -404,11 +404,11 @@ static int ArchetypeGetDrawableF18(char* archetype)
 
 static void AdjustLimits()
 {
-	g_drawableStore = hook::get_address<char*>(hook::get_pattern("74 16 8B 17 48 8D 0D ? ? ? ? 41 B8 02 00 00 00", 7));
-	g_dwdStore = hook::get_address<char*>(hook::get_pattern("EB 7B 48 8D 54 24 40 48 8D 0D", 10));
-
 	// not needed on 1365 anymore
 	return;
+
+	g_drawableStore = hook::get_address<char*>(hook::get_pattern("74 16 8B 17 48 8D 0D ? ? ? ? 41 B8 02 00 00 00", 7));
+	g_dwdStore = hook::get_address<char*>(hook::get_pattern("EB 7B 48 8D 54 24 40 48 8D 0D", 10));
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("41 8B 18 44 0F B7 81 80 00 00 00", -5), GetIndexByKeyStub, (void**)&g_origGetIndexByKey);
@@ -746,7 +746,7 @@ static HookFunction hookFunction([]()
 		// additional netgame checks for scenarios
 
 		// 1737<
-		if (!Is1868())
+		if (!Is2060())
 		{
 			hook::nop(hook::get_pattern("B2 04 75 65 80 7B 39", 2), 2);
 		}

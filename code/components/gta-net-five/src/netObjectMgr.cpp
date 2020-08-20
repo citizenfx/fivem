@@ -26,5 +26,6 @@ netObject* netObjectMgr::GetNetworkObject(uint16_t id, bool a3)
 static HookFunction hookFunction([]()
 {
 	// 1737: arxan!!
-	g_objectMgr = hook::get_address<rage::netObjectMgr**>(hook::get_pattern("48 8B 15 ? ? ? ? 49 8B 06 48 8B 92 10 27", 3));
+	// 2060: arxan!!!!
+	g_objectMgr = hook::get_address<rage::netObjectMgr**>(hook::get_pattern("2B C3 3D 88 13 00 00 0F 82 ? ? ? ? 48 8B 05", 16));
 });

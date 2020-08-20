@@ -26,7 +26,7 @@ static void(*g_origInputCheck)();
 
 static void WrapInputCheck()
 {
-	if (*g_textChat)
+	if (g_textChat && *g_textChat)
 	{
 		g_origInputCheck();
 	}
@@ -36,7 +36,7 @@ namespace game
 {
 	void SetTextChatEnabled(bool enabled)
 	{
-		if (*g_textChat)
+		if (g_textChat && *g_textChat)
 		{
 			if (!enabled)
 			{
@@ -83,6 +83,7 @@ static HookFunction hookFunction([] ()
 		char* location = hook::pattern("48 8B ? C7 45 10 EB 8F 56 B8").count(1).get(0).get<char>(-4);
 		char* testFunc = (char*)(location + *(int32_t*)location + 4);
 
+		// #TODO2060
 		// proper function starts with 'mov rcx, ...'
 		if (testFunc[0] == 0x48)
 		{
