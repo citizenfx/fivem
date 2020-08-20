@@ -12,7 +12,7 @@ import { ServersService, HistoryServerStatus, HistoryServer } from '../../server
 import { FiltersService } from '../../filters.service';
 import { GameService } from 'app/game.service';
 import { DomSanitizer } from '@angular/platform-browser';
-import { L10nLocale, L10N_LOCALE } from 'angular-l10n'
+import { L10nLocale, L10N_LOCALE } from 'angular-l10n';
 
 @Component({
 	moduleId: module.id,
@@ -41,9 +41,11 @@ export class ServersListComponent implements OnInit, OnDestroy {
 	sortedServers: Server[] = [];
 	historyServers: HistoryServer[] = [];
 
-	private sortedServersUpdaterTimer;
+	screenHeight = 1080;
 
-	private serversBatchRenderingAmount = 10;
+	private updateScreenHeight = () => {
+		this.screenHeight = window.screen.availHeight;
+	}
 
 	constructor(
 		private zone: NgZone,
@@ -55,6 +57,8 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		private sanitizer: DomSanitizer,
 		@Inject(L10N_LOCALE) public locale: L10nLocale,
 	) {
+		this.updateScreenHeight();
+
 		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
 			this.serversLoaded = loaded;
 		});
@@ -64,44 +68,7 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		});
 
 		this.filtersService.sortedServersUpdate.subscribe((servers) => {
-			if (this.sortedServersUpdaterTimer) {
-				cancelAnimationFrame(this.sortedServersUpdaterTimer);
-			}
-
-			if (servers.length <= this.serversBatchRenderingAmount) {
-				this.sortedServers = servers;
-				this.changeDetectorRef.markForCheck();
-				return;
-			}
-
-			this.sortedServers = [];
-			let currentServerIndex = 0;
-
-			const renderServersBatch = () => {
-				// If we have a sorting started by filters change - cancel further incremental rendering
-				if (!this.sortingComplete) {
-					this.sortedServers = [];
-					this.sortedServersUpdaterTimer = null;
-					this.changeDetectorRef.markForCheck();
-					return;
-				}
-
-				// Rendering servers in batches to improme initial render time
-				for (let i = 0; i < this.serversBatchRenderingAmount; i++) {
-					this.sortedServers.push(servers[currentServerIndex]);
-
-					currentServerIndex++;
-
-					if (currentServerIndex === servers.length - 1)  {
-						this.sortedServersUpdaterTimer = null;
-						return;
-					}
-				}
-
-				this.sortedServersUpdaterTimer = requestAnimationFrame(renderServersBatch);
-			};
-
-			this.sortedServersUpdaterTimer = requestAnimationFrame(renderServersBatch);
+			this.sortedServers = servers;
 			this.changeDetectorRef.markForCheck();
 		});
 	}
@@ -125,12 +92,6 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	ngOnDestroy() {
-		if (this.sortedServersUpdaterTimer) {
-			cancelAnimationFrame(this.sortedServersUpdaterTimer);
-		}
-	}
-
 	isBrowser() {
 		return isPlatformBrowser(this.platformId);
 	}
@@ -148,6 +109,8 @@ export class ServersListComponent implements OnInit, OnDestroy {
 	}
 
 	ngOnInit() {
+		window.addEventListener('resize', this.updateScreenHeight);
+
 		if (this.type === 'history') {
 			this.historyServers = this.gameService
 				.getServerHistory()
@@ -187,6 +150,10 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		} else {
 			this.filtersService.sortAndFilterServers(false);
 		}
+	}
+
+	ngOnDestroy() {
+		window.removeEventListener('resize', this.updateScreenHeight);
 	}
 
 	attemptConnectTo(entry: HistoryServer) {

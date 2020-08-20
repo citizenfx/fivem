@@ -1,5 +1,11 @@
 @import "variables";
 
+:host {
+	display: block;
+	width: 100%;
+	margin-bottom: 2px;
+}
+
 .server-list-item {
 	position: relative;
 	display: flex;
@@ -9,7 +15,6 @@
 	height: var(--q2);
 
 	padding: 2px;
-	margin-bottom: 2px;
 
 	font-size: var(--fs-1);
 

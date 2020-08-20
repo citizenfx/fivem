@@ -63,44 +63,61 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
 	}
 
 	public ngAfterViewInit() {
+		// APNG icons only allowed for pt level
+		// So we have to check if other levels don't violate that
 		if (this.premium !== 'pt') {
-			(async () => {
-				try {
-					const response = await fetch(this.server.iconUri);
+			if (this.server.iconNeedsResolving) {
+				this.resolveIcon();
+				return;
+			}
 
-					if (!response.ok) {
-						throw new Error();
-					}
+			if (this.server.cachedResolvedIcon) {
+				const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
 
-					const buffer = await response.arrayBuffer();
-					const png = parseAPNG(buffer);
+				this.renderer.appendChild(figureElement, this.server.cachedResolvedIcon);
+			}
+		}
+	}
 
-					const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
+	private async resolveIcon() {
+		const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
 
-					if (isNotAPNG(png)) {
-						const imageElement = document.createElement('img');
-						imageElement.src = this.server.iconUri;
+		try {
+			const response = await fetch(this.server.iconUri);
 
-						await imageElement.decode();
+			if (!response.ok) {
+				throw new Error();
+			}
 
-						this.renderer.appendChild(figureElement, imageElement);
-					} else {
-						if (png instanceof Error) {
-							throw png;
-						}
+			const buffer = await response.arrayBuffer();
+			const png = parseAPNG(buffer);
 
-						const frame = png.frames[0];
-						await frame.createImage();
+			if (isNotAPNG(png)) {
+				const imageElement = document.createElement('img');
+				imageElement.src = this.server.iconUri;
 
-						const imageElement = frame.imageElement;
-						await imageElement.decode();
+				await imageElement.decode();
 
-						this.renderer.appendChild(figureElement, imageElement);
-					}
-				} catch (e) {
-					this.server.setDefaultIcon();
+				this.server.cachedResolvedIcon = imageElement;
+				this.renderer.appendChild(figureElement, imageElement);
+			} else {
+				if (png instanceof Error) {
+					throw png;
 				}
-			})();
+
+				const frame = png.frames[0];
+				await frame.createImage();
+
+				const imageElement = frame.imageElement;
+				await imageElement.decode();
+
+				this.server.cachedResolvedIcon = imageElement;
+				this.renderer.appendChild(figureElement, imageElement);
+			}
+		} catch (e) {
+			this.server.setDefaultIcon();
+		} finally {
+			this.server.iconNeedsResolving = false;
 		}
 	}
 
