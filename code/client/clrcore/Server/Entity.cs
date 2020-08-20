@@ -159,6 +159,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
+				API.EnsureEntityStateBag(this.Handle);
 				return new StateBag("entity:" + this.NetworkId);
 			}
 		}
