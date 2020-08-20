@@ -12,6 +12,7 @@
 
 #include <CrossBuildRuntime.h>
 
+#ifdef GTA_FIVE
 template<int Build>
 static inline int GetServerId(const rlGamerInfo<Build>& platformData)
 {
@@ -29,6 +30,12 @@ static inline int DoGetServerId(CNetGamePlayer* player)
 		return GetServerId(*player->GetGamerInfo<1604>());
 	}
 }
+#else
+static inline int DoGetServerId(CNetGamePlayer* player)
+{
+	return (player->GetGamerInfo()->peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+}
+#endif
 
 static InitFunction initFunction([] ()
 {
