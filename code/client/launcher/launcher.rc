@@ -62,7 +62,7 @@ END
 
 #if defined(LAUNCHER_PERSONALITY_CHROME)
 #define SUFFIX " Chromium subprocess"
-#elif defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_GAME_1868)
+#elif defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_GAME_2060)
 #define SUFFIX " Game subprocess"
 #else
 #define SUFFIX ""
