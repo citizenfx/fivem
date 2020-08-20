@@ -1,6 +1,6 @@
 import {
 	Component, Input, ViewChild, ChangeDetectionStrategy,
-	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2
+	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, OnChanges
 } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -22,7 +22,7 @@ import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 
-export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewInit {
+export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
 	@Input()
 	server: Server;
 
@@ -63,6 +63,18 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
 	}
 
 	public ngAfterViewInit() {
+		this.initIcon();
+	}
+
+	public ngOnChanges() {
+		this.initIcon();
+	}
+
+	private initIcon() {
+		if (!this.iconFigure?.nativeElement) {
+			return;
+		}
+
 		// APNG icons only allowed for pt level
 		// So we have to check if other levels don't violate that
 		if (this.premium !== 'pt') {
@@ -74,7 +86,9 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
 			if (this.server.cachedResolvedIcon) {
 				const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
 
-				this.renderer.appendChild(figureElement, this.server.cachedResolvedIcon);
+				requestAnimationFrame(() => {
+					this.renderer.appendChild(figureElement, this.server.cachedResolvedIcon);
+				});
 			}
 		}
 	}
@@ -99,7 +113,9 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
 				await imageElement.decode();
 
 				this.server.cachedResolvedIcon = imageElement;
-				this.renderer.appendChild(figureElement, imageElement);
+				requestAnimationFrame(() => {
+					this.renderer.appendChild(figureElement, imageElement);
+				});
 			} else {
 				if (png instanceof Error) {
 					throw png;
@@ -112,7 +128,10 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
 				await imageElement.decode();
 
 				this.server.cachedResolvedIcon = imageElement;
-				this.renderer.appendChild(figureElement, imageElement);
+
+				requestAnimationFrame(() => {
+					this.renderer.appendChild(figureElement, imageElement);
+				});
 			}
 		} catch (e) {
 			this.server.setDefaultIcon();
