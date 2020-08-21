@@ -70,7 +70,13 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		this.initIcon();
 	}
 
+	iconInsertionRAF;
+
 	private initIcon() {
+		if (this.iconInsertionRAF) {
+			cancelAnimationFrame(this.iconInsertionRAF);
+		}
+
 		if (!this.iconFigure?.nativeElement) {
 			return;
 		}
@@ -86,7 +92,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 			if (this.server.cachedResolvedIcon) {
 				const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
 
-				requestAnimationFrame(() => {
+				this.iconInsertionRAF = requestAnimationFrame(() => {
 					this.renderer.appendChild(figureElement, this.server.cachedResolvedIcon);
 				});
 			}
@@ -113,7 +119,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 				await imageElement.decode();
 
 				this.server.cachedResolvedIcon = imageElement;
-				requestAnimationFrame(() => {
+				this.iconInsertionRAF = requestAnimationFrame(() => {
 					this.renderer.appendChild(figureElement, imageElement);
 				});
 			} else {
@@ -129,7 +135,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 				this.server.cachedResolvedIcon = imageElement;
 
-				requestAnimationFrame(() => {
+				this.iconInsertionRAF = requestAnimationFrame(() => {
 					this.renderer.appendChild(figureElement, imageElement);
 				});
 			}
