@@ -66,11 +66,26 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		this.initIcon();
 	}
 
-	public ngOnChanges() {
+	public ngOnChanges(changes) {
 		this.initIcon();
 	}
 
 	iconInsertionRAF;
+	lastIconNode;
+
+	private placeIconNode(node: HTMLImageElement) {
+		this.iconInsertionRAF = requestAnimationFrame(() => {
+			const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
+
+			if (this.lastIconNode) {
+				this.renderer.removeChild(figureElement, this.lastIconNode);
+			}
+
+			this.renderer.appendChild(figureElement, node);
+
+			this.lastIconNode = node;
+		});
+	}
 
 	private initIcon() {
 		if (this.iconInsertionRAF) {
@@ -90,11 +105,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 			}
 
 			if (this.server.cachedResolvedIcon) {
-				const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
-
-				this.iconInsertionRAF = requestAnimationFrame(() => {
-					this.renderer.appendChild(figureElement, this.server.cachedResolvedIcon);
-				});
+				this.placeIconNode(this.server.cachedResolvedIcon);
 			}
 		}
 	}
@@ -119,9 +130,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 				await imageElement.decode();
 
 				this.server.cachedResolvedIcon = imageElement;
-				this.iconInsertionRAF = requestAnimationFrame(() => {
-					this.renderer.appendChild(figureElement, imageElement);
-				});
+				this.placeIconNode(imageElement);
 			} else {
 				if (png instanceof Error) {
 					throw png;
@@ -134,10 +143,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 				await imageElement.decode();
 
 				this.server.cachedResolvedIcon = imageElement;
-
-				this.iconInsertionRAF = requestAnimationFrame(() => {
-					this.renderer.appendChild(figureElement, imageElement);
-				});
+				this.placeIconNode(imageElement);
 			}
 		} catch (e) {
 			this.server.setDefaultIcon();

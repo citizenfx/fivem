@@ -227,6 +227,8 @@
 	opacity: 0;
 	pointer-events: none;
 
+	z-index: 100;
+
 	@include theme() using ($theme) {
 		background-color: rgba(gtv($theme, bgColor), .8);
 	}
