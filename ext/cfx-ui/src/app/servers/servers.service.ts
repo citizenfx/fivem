@@ -7,7 +7,7 @@ import { Subject } from 'rxjs/Subject';
 
 import { applyPatch } from 'fast-json-patch';
 
-import { concat, from } from 'rxjs';
+import { concat, from, BehaviorSubject } from 'rxjs';
 
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/bufferTime';
@@ -27,7 +27,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
 
-const myWorker = new Worker('./servers.worker', { type: 'module' });
+const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
 
 export enum HistoryServerStatus {
 	Loading,
@@ -67,15 +67,12 @@ export class ServersService {
 
 	private webSocket: ReconnectingWebSocket;
 
-	private servers: { [addr: string]: Server } = {};
+	public servers: { [addr: string]: Server } = {};
+	public serversLoadedUpdate: Subject<boolean> = new BehaviorSubject(false);
 
 	private serverCache: { [addr: string]: ServerCacheEntry } = {};
 
 	private onSortCB: ((servers: string[]) => void)[] = [];
-
-	// rawServers is a list of raw servers used for sharing between ServersContainer
-	// and ServersList
-	public rawServers: { [addr: string]: Server } = {};
 
 	constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
 		private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
@@ -86,7 +83,7 @@ export class ServersService {
 
 		// only enable the worker if streams are supported
 		if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
-			this.worker = myWorker;
+			this.worker = serversWorker;
 			zone.runOutsideAngular(() => {
 				this.worker.addEventListener('message', (event) => {
 					if (event.data.type === 'addServers') {
@@ -97,6 +94,7 @@ export class ServersService {
 						}
 					} else if (event.data.type === 'serversDone') {
 						this.internalServerEvent.next(null);
+						this.serversLoadedUpdate.next(true);
 					} else if (event.data.type === 'sortedServers') {
 						if (this.onSortCB.length) {
 							zone.run(() => {
@@ -108,7 +106,7 @@ export class ServersService {
 						const addr: string = event.data.server;
 						const bitmap: ImageBitmap = event.data.bitmap;
 
-						this.rawServers[addr].bitmap = bitmap;
+						this.servers[addr].bitmap = bitmap;
 					} else {
 						console.log('[servers] worker message rcv', event);
 					}
@@ -125,7 +123,13 @@ export class ServersService {
 
 		this.serversSource
 			.filter(a => !a || a.Data != null)
-			.map(value => value ? Server.fromObject(this.domSanitizer, value.EndPoint, value.Data) : null)
+			.map((server) => {
+				if (server?.Data) {
+					return Server.fromObject(this.domSanitizer, server.EndPoint, server.Data)
+				}
+
+				return null;
+			})
 			.subscribe(server => {
 				if (!server) {
 					this.serversEvent.next(null);
@@ -141,6 +145,10 @@ export class ServersService {
 		if (isPlatformBrowser(this.platformId)) {
 			this.refreshServers();
 		}
+	}
+
+	public get serversArray() {
+		return Object.values(this.servers);
 	}
 
 	private get serversSource(): Observable<master.IServer> {
@@ -159,9 +167,7 @@ export class ServersService {
 	}
 
 	private matchesGame(server: master.IServer) {
-		const serverGame = (server && server.Data && server.Data.vars && server.Data.vars.gamename) ?
-			server.Data.vars.gamename :
-			'';
+		const serverGame = server?.Data?.vars?.gamename || '';
 
 		const localGame = this.gameService.gameName;
 

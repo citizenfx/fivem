@@ -195,7 +195,7 @@ static std::map<int, std::shared_ptr<ProfileConVar>> _profileConVars;
 
 static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 {
-	return hook::get_pattern("83 F9 62 0F 8F ? ? 00 00 83 F9 61 0F", (Is1868()) ? -0x29 : -0x23);
+	return hook::get_pattern("83 F9 62 0F 8F ? ? 00 00 83 F9 61 0F", (Is2060()) ? -0x29 : -0x23);
 });
 
 void ProfileSettingsInit()

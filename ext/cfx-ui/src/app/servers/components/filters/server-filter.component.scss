@@ -64,10 +64,14 @@
 					}
 				}
 
+				.material-icons-outlined {
+					font-size: var(--fs-2);
+				}
+
 				.label {
 					position: absolute;
 					top: 0;
-					left: var(--q3);
+					left: var(--header-height);
 					bottom: 0;
 
 					padding: var(--q1) var(--q1) var(--q1) 0;
@@ -105,7 +109,17 @@
 
 			@include theme using ($theme) {
 				color: gtv($theme, secondaryColor);
+
+				&:focus {
+					box-shadow: 2px 2px 0 0 gtv($theme, accentColor1) inset, -2px 0 0 0 gtv($theme, accentColor1) inset;
+				}
 			};
+		}
+
+		input:focus + .search-dropdown {
+			transform: translateY(0);
+			opacity: 1;
+			pointer-events: all;
 		}
 
 		.search-dropdown {
@@ -123,16 +137,10 @@
 			opacity: 0;
 			pointer-events: none;
 
-			transition: all .2s ease;
-
-			&.active {
-				transform: translateY(0);
-				opacity: 1;
-				pointer-events: all;
-			}
-
 			@include theme() using ($theme) {
-				background-color: gtv($theme, bgColor);
+				background-color: rgba(gtv($theme, accentColor1), .1);
+				border: solid 2px gtv($theme, accentColor1);
+				border-top: none;
 			}
 
 			ul {
@@ -154,11 +162,16 @@
 						h4 + span {
 							font-size: 0.7em;
 
-							color: desaturate(darken(gtv($theme, fgColor), 10%), 20%);
+							color: gtv($theme, fgColor);
 						}
 
 						&:hover, &.active {
-							background-color: rgba(lighten(gtv($theme, bgColor), 15%), 1);
+							h4,
+							h4 + span {
+								color: gtv($theme, accentContrastColor);
+							}
+
+							background-color: gtv($theme, accentColor1);
 						}
 					};
 				}
@@ -188,6 +201,31 @@
 				.material-icons-outlined {
 					font-size: var(--fs-2);
 				}
+			}
+
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				font-family: 'Montserrat';
+				letter-spacing: 1px;
+				text-transform: uppercase;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
 			}
 
 			.dropdown {
@@ -246,6 +284,12 @@
 					}
 				}
 
+				.label {
+					opacity: 1;
+
+					transition: none;
+				}
+
 				.dropdown {
 					opacity: 1;
 					pointer-events: all;
@@ -278,6 +322,31 @@
 				.material-icons-outlined {
 					font-size: var(--fs-2);
 				}
+			}
+
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				font-family: 'Montserrat';
+				letter-spacing: 1px;
+				text-transform: uppercase;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
 			}
 
 			.dropdown {
@@ -332,6 +401,10 @@
 
 						transition: none;
 					}
+				}
+
+				.label {
+					opacity: 1;
 				}
 
 				.dropdown {

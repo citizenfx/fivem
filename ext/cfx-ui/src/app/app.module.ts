@@ -10,7 +10,9 @@ import { NgDompurifyModule } from '@tinkoff/ng-dompurify';
 
 import { environment } from '../environments/environment'
 
-import { VirtualScrollerModule } from 'ngx-virtual-scroller';
+import { ScrollingModule } from '@angular/cdk/scrolling';
+import { ScrollingModule as ExperimentalScrollingModule } from '@angular/cdk-experimental/scrolling';
+
 import { MomentModule } from 'angular2-moment';
 import { Angulartics2Module } from 'angulartics2';
 import { LinkyModule } from 'ngx-linky';
@@ -204,7 +206,10 @@ export function metaFactory(): MetaLoader {
 		FormsModule,
 		NgSelectModule,
 		AppRoutingModule,
-		VirtualScrollerModule,
+
+		ScrollingModule,
+		ExperimentalScrollingModule,
+
 		MomentModule,
 		HttpClientModule,
 		L10nTranslationModule.forRoot(l10nConfig, {

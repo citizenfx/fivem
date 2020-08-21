@@ -13,7 +13,7 @@
 static HookFunction hookFunction([] ()
 {
 	// 1737: no longer needed
-	if (Is1868())
+	if (Is2060())
 	{
 		return;
 	}

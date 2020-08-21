@@ -10,10 +10,32 @@
 #include <ScriptEngine.h>
 #include <NetworkPlayerMgr.h>
 
-static inline int GetServerId(const rlGamerInfo& platformData)
+#include <CrossBuildRuntime.h>
+
+#ifdef GTA_FIVE
+template<int Build>
+static inline int GetServerId(const rlGamerInfo<Build>& platformData)
 {
 	return (platformData.peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
 }
+
+static inline int DoGetServerId(CNetGamePlayer* player)
+{
+	if (Is2060())
+	{
+		return GetServerId(*player->GetGamerInfo<2060>());
+	}
+	else
+	{
+		return GetServerId(*player->GetGamerInfo<1604>());
+	}
+}
+#else
+static inline int DoGetServerId(CNetGamePlayer* player)
+{
+	return (player->GetGamerInfo()->peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+}
+#endif
 
 static InitFunction initFunction([] ()
 {
@@ -27,9 +49,7 @@ static InitFunction initFunction([] ()
 
 			if (player)
 			{
-				auto platformData = player->GetGamerInfo();
-				
-				if (GetServerId(*platformData) == serverId)
+				if (DoGetServerId(player) == serverId)
 				{
 					context.SetResult(i);
 					return;
@@ -48,7 +68,7 @@ static InitFunction initFunction([] ()
 
 		if (player)
 		{
-			context.SetResult(GetServerId(*player->GetGamerInfo()));
+			context.SetResult(DoGetServerId(player));
 		}
 		else
 		{

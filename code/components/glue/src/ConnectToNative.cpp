@@ -67,7 +67,7 @@ static void RestartGameToOtherBuild()
 	static HostSharedData<CfxState> hostData("CfxInitState");
 	auto cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
 		hostData->gameExePath,
-		Is1868() ? L"" : L"-b1868",
+		Is2060() ? L"" : L"-b2060",
 		ToWide(g_lastConn));
 
 	STARTUPINFOW si = { 0 };

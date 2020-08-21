@@ -454,7 +454,7 @@
 						</Item>
 						<Item>
 							<PoolName>TxdStore</PoolName>
-							<PoolSize value="65500"/>
+							<PoolSize value="75500"/>
 						</Item>
 						<Item>
 							<PoolName>Vehicles</PoolName>
@@ -612,11 +612,11 @@
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Definitions</PoolName>
-							<PoolSize value="306"/>
+							<PoolSize value="310"/>
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Results</PoolName>
-							<PoolSize value="474"/>
+							<PoolSize value="478"/>
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Impulses</PoolName>
@@ -624,7 +624,7 @@
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Interrelations</PoolName>
-							<PoolSize value="60"/>
+							<PoolSize value="61"/>
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Homings</PoolName>
@@ -636,7 +636,7 @@
 						</Item>
 						<Item>
 							<PoolName>ActionTable_StrikeBones</PoolName>
-							<PoolSize value="18"/>
+							<PoolSize value="19"/>
 						</Item>
 						<Item>
 							<PoolName>ActionTable_Rumbles</PoolName>
@@ -885,7 +885,7 @@
 				</ConfigExtensions>
 
 				<ConfigStreamingEngine>
-					<ArchiveCount value="3160"/>
+					<ArchiveCount value="3416"/>
 					<PhysicalStreamingBuffer value="252"/>
 					<VirtualStreamingBuffer value="1000"/>
 				</ConfigStreamingEngine>

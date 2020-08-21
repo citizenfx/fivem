@@ -1,6 +1,6 @@
 import {
 	Component, Input, ViewChild, ChangeDetectionStrategy,
-	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2
+	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, OnChanges
 } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -22,7 +22,7 @@ import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 
-export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewInit {
+export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
 	@Input()
 	server: Server;
 
@@ -63,44 +63,92 @@ export class ServersListItemComponent implements OnInit, OnDestroy, AfterViewIni
 	}
 
 	public ngAfterViewInit() {
+		this.initIcon();
+	}
+
+	public ngOnChanges(changes) {
+		this.initIcon();
+	}
+
+	iconInsertionRAF;
+	lastIconNode;
+
+	private placeIconNode(node: HTMLImageElement) {
+		this.iconInsertionRAF = requestAnimationFrame(() => {
+			const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
+
+			if (this.lastIconNode) {
+				this.renderer.removeChild(figureElement, this.lastIconNode);
+			}
+
+			this.renderer.appendChild(figureElement, node);
+
+			this.lastIconNode = node;
+		});
+	}
+
+	private initIcon() {
+		if (this.iconInsertionRAF) {
+			cancelAnimationFrame(this.iconInsertionRAF);
+		}
+
+		if (!this.iconFigure?.nativeElement) {
+			return;
+		}
+
+		// APNG icons only allowed for pt level
+		// So we have to check if other levels don't violate that
 		if (this.premium !== 'pt') {
-			(async () => {
-				try {
-					const response = await fetch(this.server.iconUri);
+			if (this.server.iconNeedsResolving) {
+				this.resolveIcon();
+				return;
+			}
 
-					if (!response.ok) {
-						throw new Error();
-					}
+			if (this.server.cachedResolvedIcon) {
+				this.placeIconNode(this.server.cachedResolvedIcon);
+			}
+		}
+	}
 
-					const buffer = await response.arrayBuffer();
-					const png = parseAPNG(buffer);
+	private async resolveIcon() {
+		const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
 
-					const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
+		try {
+			const response = await fetch(this.server.iconUri);
 
-					if (isNotAPNG(png)) {
-						const imageElement = document.createElement('img');
-						imageElement.src = this.server.iconUri;
+			if (!response.ok) {
+				throw new Error();
+			}
 
-						await imageElement.decode();
+			const buffer = await response.arrayBuffer();
+			const png = parseAPNG(buffer);
 
-						this.renderer.appendChild(figureElement, imageElement);
-					} else {
-						if (png instanceof Error) {
-							throw png;
-						}
+			if (isNotAPNG(png)) {
+				const imageElement = document.createElement('img');
+				imageElement.src = this.server.iconUri;
 
-						const frame = png.frames[0];
-						await frame.createImage();
+				await imageElement.decode();
 
-						const imageElement = frame.imageElement;
-						await imageElement.decode();
-
-						this.renderer.appendChild(figureElement, imageElement);
-					}
-				} catch (e) {
-					this.server.setDefaultIcon();
+				this.server.cachedResolvedIcon = imageElement;
+				this.placeIconNode(imageElement);
+			} else {
+				if (png instanceof Error) {
+					throw png;
 				}
-			})();
+
+				const frame = png.frames[0];
+				await frame.createImage();
+
+				const imageElement = frame.imageElement;
+				await imageElement.decode();
+
+				this.server.cachedResolvedIcon = imageElement;
+				this.placeIconNode(imageElement);
+			}
+		} catch (e) {
+			this.server.setDefaultIcon();
+		} finally {
+			this.server.iconNeedsResolving = false;
 		}
 	}
 

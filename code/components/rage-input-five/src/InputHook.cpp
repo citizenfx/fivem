@@ -322,7 +322,7 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 	lastInput = curInput;
 
-	if (!a1 && !caught && !Is1868())
+	if (!a1 && !caught && !Is2060())
 	{
 		int off = ((*(int*)(0x142B3FD18) - 1) & 1) ? 4 : 0;
 
@@ -419,7 +419,7 @@ static HookFunction hookFunction([] ()
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 
-	if (initState->isReverseGame && !Is1868())
+	if (initState->isReverseGame && !Is2060())
 	{
 		// 1604-rg
 		// rg

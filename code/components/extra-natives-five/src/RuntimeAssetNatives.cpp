@@ -921,7 +921,7 @@ static InitFunction initFunction([]()
 
 				// 1604, temp
 				// #TODOXBUILD: block 1868
-				assert(!Is1868());
+				assert(!Is2060());
 
 				*(uintptr_t*)mapData = 0x1419343E0;
 				mapData->name = HashString(nameRef.c_str());

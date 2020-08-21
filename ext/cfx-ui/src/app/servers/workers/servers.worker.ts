@@ -2,11 +2,11 @@ import { Subject, from, timer } from 'rxjs';
 
 import { bufferTime, mergeMap, finalize, retryWhen, tap, take, delayWhen } from 'rxjs/operators';
 
-import { master } from './master';
-import { FilterRequest } from './filter-request';
-import { PinConfigCached, PinConfig } from './pins';
-import { ServerFilterContainer } from './components/filters/server-filter-container';
-import { getCanonicalLocale } from './components/utils';
+import { master } from '../master';
+import { FilterRequest } from '../filter-request';
+import { PinConfigCached, PinConfig } from '../pins';
+import { ServerFilterContainer } from '../components/filters/server-filter-container';
+import { getCanonicalLocale } from '../components/utils';
 
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
@@ -245,8 +245,7 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 		let matchesLocales = true;
 
 		if (localeListEntries.length > 0) {
-			const sl = (server && server.Data && server.Data.vars && server.Data.vars.locale
-				&& getCanonicalLocale(server.Data.vars.locale));
+			const sl = server?.Data?.vars?.locale && getCanonicalLocale(server.Data.vars.locale);
 
 			matchesLocales = false;
 
@@ -259,6 +258,8 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 					if (sl === locale) {
 						return true;
 					}
+
+					matchesLocales = true;
 				}
 			}
 		}
@@ -314,127 +315,141 @@ function getSortable(server: master.IServer, name: string): any {
 
 let cachedServers = {};
 
-onmessage = (e: MessageEvent) => {
-	if (e.data.type === 'queryServers') {
-		cachedServers = {};
+function queryServers(e: MessageEvent) {
+	cachedServers = {};
 
-		from(fetch(new Request(e.data.url)))
-			.pipe(
-				mergeMap(response => {
-					const subject = new Subject<master.IServer>();
-					const frameReader = new FrameReader(response.body);
+	from(fetch(new Request(e.data.url)))
+		.pipe(
+			mergeMap(response => {
+				const subject = new Subject<master.IServer>();
+				const frameReader = new FrameReader(response.body);
 
-					frameReader.frame
-						.subscribe(message => subject.next(master.Server.decode(message)))
+				frameReader.frame
+					.subscribe(message => subject.next(master.Server.decode(message)))
 
-					frameReader.end.subscribe(() => subject.complete());
+				frameReader.end.subscribe(() => subject.complete());
 
-					frameReader.beginRead();
+				frameReader.beginRead();
 
-					return subject;
-				}),
-				bufferTime(250, null, 50),
-				retryWhen(errors =>
-					errors.pipe(
-						tap(err => console.log(`Fetching server list failed: ${err}`)),
-						delayWhen(() => timer(2000)),
-						take(10)
-					)),
-				finalize(() => (<any>postMessage)({ type: 'serversDone' }))
-			)
-			.subscribe((servers: master.IServer[]) => {
-				if (servers.length) {
-					servers.forEach(({ EndPoint, Data }) => {
-						cachedServers[EndPoint] = Data;
-					});
+				return subject;
+			}),
+			bufferTime(250, null, 50),
+			retryWhen(errors =>
+				errors.pipe(
+					tap(err => console.log(`Fetching server list failed: ${err}`)),
+					delayWhen(() => timer(2000)),
+					take(10)
+				)),
+			finalize(() => (<any>postMessage)({ type: 'serversDone' }))
+		)
+		.subscribe((servers: master.IServer[]) => {
+			if (servers.length) {
+				servers.forEach(({ EndPoint, Data }) => {
+					cachedServers[EndPoint] = Data;
+				});
 
-					(<any>postMessage)({ type: 'addServers', servers })
-				}
-			});
-	} else if (e.data.type === 'sort') {
-		const filterRequest: FilterRequest = e.data.data;
-		const pinConfig = new PinConfigCached(filterRequest.pinConfig as unknown as PinConfig);
+				(<any>postMessage)({ type: 'addServers', servers })
+			}
+		});
+}
 
-		for (const [addr, data] of Object.entries(cachedServers)) {
-			sortNames[addr] = sortName(data);
-			stripNames[addr] = stripName(data);
+function sortServers(e: MessageEvent) {
+	const filterRequest: FilterRequest = e.data.data;
+	const pinConfig = new PinConfigCached(filterRequest.pinConfig as unknown as PinConfig);
+
+	for (const [addr, data] of Object.entries(cachedServers)) {
+		sortNames[addr] = sortName(data);
+		stripNames[addr] = stripName(data);
+	}
+
+	const servers = (Object.entries(cachedServers)
+		.map(([EndPoint, Data]) => ({
+			EndPoint,
+			Data,
+		})) || [])
+		.filter(getFilter(pinConfig, filterRequest.filters));
+
+	const sortChain = (a: master.IServer, b: master.IServer, ...stack: ((a: master.IServer, b: master.IServer) => number)[]) => {
+		for (const entry of stack) {
+			const retval = entry(a, b);
+
+			if (retval !== 0) {
+				return retval;
+			}
 		}
 
-		const servers = (Object.entries(cachedServers)
-			.map(([EndPoint, Data]) => ({
-				EndPoint,
-				Data,
-			})) || [])
-			.filter(getFilter(pinConfig, filterRequest.filters));
+		return 0;
+	};
 
-		const sortChain = (a: master.IServer, b: master.IServer, ...stack: ((a: master.IServer, b: master.IServer) => number)[]) => {
-			for (const entry of stack) {
-				const retval = entry(a, b);
+	const sortSortable = (sortable: string[]) => {
+		const name = sortable[0];
+		const invert = (sortable[1] === '-');
 
-				if (retval !== 0) {
-					return retval;
-				}
+		const sort = (a: master.IServer, b: master.IServer) => {
+			const val1 = getSortable(a, name);
+			const val2 = getSortable(b, name);
+
+			if (val1 > val2) {
+				return 1;
+			}
+
+			if (val1 < val2) {
+				return -1;
 			}
 
 			return 0;
 		};
 
-		const sortSortable = (sortable: string[]) => {
-			const name = sortable[0];
-			const invert = (sortable[1] === '-');
+		if (invert) {
+			return (a: master.IServer, b: master.IServer) => -(sort(a, b));
+		} else {
+			return sort;
+		}
+	};
 
-			const sort = (a: master.IServer, b: master.IServer) => {
-				const val1 = getSortable(a, name);
-				const val2 = getSortable(b, name);
+	const sortList = [
+		(a: master.IServer, b: master.IServer) => {
+			const aPinned = isPinned(pinConfig, a);
+			const bPinned = isPinned(pinConfig, b);
 
-				if (val1 > val2) {
-					return 1;
-				}
-
-				if (val1 < val2) {
-					return -1;
-				}
-
+			if (aPinned === bPinned) {
 				return 0;
-			};
-
-			if (invert) {
-				return (a: master.IServer, b: master.IServer) => -(sort(a, b));
-			} else {
-				return sort;
+			} else if (aPinned && !bPinned) {
+				return -1;
+			} else if (!aPinned && bPinned) {
+				return 1;
 			}
-		};
+		},
+		sortSortable(filterRequest.sortOrder),
+		sortSortable(['upvotePower', '-']),
+		sortSortable(['players', '-']),
+		sortSortable(['name', '+'])
+	];
 
-		const sortList = [
-			(a: master.IServer, b: master.IServer) => {
-				const aPinned = isPinned(pinConfig, a);
-				const bPinned = isPinned(pinConfig, b);
+	servers.sort((a, b) => {
+		return sortChain(
+			a,
+			b,
+			...sortList
+		);
+	});
 
-				if (aPinned === bPinned) {
-					return 0;
-				} else if (aPinned && !bPinned) {
-					return -1;
-				} else if (!aPinned && bPinned) {
-					return 1;
-				}
-			},
-			sortSortable(filterRequest.sortOrder),
-			sortSortable(['upvotePower', '-']),
-			sortSortable(['players', '-']),
-			sortSortable(['name', '+'])
-		];
+	(<any>postMessage)({
+		type: 'sortedServers',
+		servers: servers.map((a: master.IServer) => a.EndPoint)
+	});
+}
 
-		servers.sort((a, b) => {
-			return sortChain(
-				a,
-				b,
-				...sortList
-			);
-		});
+onmessage = (e: MessageEvent) => {
+	switch (e.data.type) {
+		case 'queryServers':
+			queryServers(e);
+			break;
+		case 'sort':
+			sortServers(e);
+			break;
 
-		(<any>postMessage)({
-			type: 'sortedServers',
-			servers: servers.map((a: master.IServer) => a.EndPoint)
-		});
+		default:
+			console.error('Unknown server worker message', e);
 	}
 };

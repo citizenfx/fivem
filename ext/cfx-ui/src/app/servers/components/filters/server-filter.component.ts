@@ -13,14 +13,7 @@ import 'rxjs/add/operator/throttleTime';
 import { ServerFilters, ServerSorting, ServerSortBy, ServerSortDirection } from './server-filter-container';
 import { DirectConnectBackendComponent } from '../../direct/direct-connect-backend.component';
 import { LocalStorage } from '../../../local-storage';
-import { FiltersService } from '../../filters.service';
-
-class ServerAutocompleteEntry {
-	public name = '';
-	public description = '';
-	public example = '';
-	public completion = '';
-}
+import { FiltersService, ServerAutocompleteEntry, SearchAutocompleteIndex } from '../../filters.service';
 
 @Component({
 	moduleId: module.id,
@@ -50,7 +43,7 @@ export class ServerFilterComponent implements OnInit {
 
 	selectedCompletionIndex = -1;
 
-	autocompleteIndex: { [type: string]: { [entry: string]: number } } = {};
+	autocompleteIndex: SearchAutocompleteIndex = {};
 
 	refreshEvent = new Subject<void>();
 
@@ -136,6 +129,12 @@ export class ServerFilterComponent implements OnInit {
 
 			this.cdr.markForCheck();
 		});
+
+		filtersService.autocompleteIndexUpdate.subscribe((index) => {
+			this.autocompleteIndex = index;
+
+			this.cdr.markForCheck();
+		});
 	}
 
 	updateSort(sortBy: ServerSortBy) {
@@ -178,62 +177,6 @@ export class ServerFilterComponent implements OnInit {
 		}
 	}
 
-	addAutocompleteIndex(server: Server) {
-		for (const list of [server.data, server.data.vars]) {
-			for (const entryName in list) {
-				if (list.hasOwnProperty(entryName)) {
-					const key = entryName;
-					const fields = list[entryName];
-
-					if (key.endsWith('s')) {
-						const bits: string[] = [];
-
-						const subKey = key.substr(0, key.length - 1);
-
-						if (Array.isArray(fields)) {
-							for (const item of fields) {
-								bits.push(item);
-							}
-						} else if (typeof fields === 'object') {
-							const values = Object.keys(fields);
-
-							for (const item of values) {
-								bits.push(item);
-							}
-						} else if (typeof fields === 'string') {
-							for (const item of fields.split(',')) {
-								bits.push(item.trim());
-							}
-						}
-
-						const uniqueBits = bits.filter((v, i, a) => a.indexOf(v) === i && typeof (v) === 'string');
-						this.addAutoCompleteEntries(subKey, uniqueBits);
-					}
-
-					if (typeof fields === 'string') {
-						this.addAutoCompleteEntries(key, [fields]);
-					}
-				}
-			}
-		}
-	}
-
-	addAutoCompleteEntries(key: string, list: string[]) {
-		if (!this.autocompleteIndex[key]) {
-			this.autocompleteIndex[key] = {};
-		}
-
-		for (const entry of list) {
-			const lowerEntry = entry.toLowerCase();
-
-			if (!this.autocompleteIndex[key][lowerEntry]) {
-				this.autocompleteIndex[key][lowerEntry] = 1;
-			} else {
-				++this.autocompleteIndex[key][lowerEntry];
-			}
-		}
-	}
-
 	ngOnInit() {
 		this.setDefaultAutocompleteFilters();
 
@@ -242,20 +185,6 @@ export class ServerFilterComponent implements OnInit {
 				(<HTMLInputElement>document.querySelector('#searchBox')).focus();
 			}
 		};
-
-		setTimeout(() => {
-			this.serversService
-				.getReplayedServers()
-				.subscribe(server => {
-					return;
-
-					if (server) {
-						this.addAutocompleteIndex(server);
-					} else {
-						this.isRefreshing = false;
-					}
-				});
-		}, 0);
 	}
 
 	setDefaultAutocompleteFilters() {
@@ -394,6 +323,10 @@ export class ServerFilterComponent implements OnInit {
 
 	updateFilters() {
 		this.filtersService.setFilters(this.filters);
+	}
+
+	updateFiltersDebounced() {
+		this.filtersService.setFiltersDebounced(this.filters);
 	}
 
 	isPingCap() {

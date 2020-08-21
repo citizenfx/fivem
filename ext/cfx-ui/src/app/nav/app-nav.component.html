@@ -18,6 +18,10 @@
 		>
 			<span class="material-icons-outlined">history_edu</span>
 			<span class="new" *ngIf="changelogCount > 0">{{changelogCount}}</span>
+
+			<span class="label" l10nTranslate>
+				#Changelogs
+			</span>
 		</a>
 
 		<a
@@ -26,6 +30,10 @@
 			routerLinkActive="active"
 		>
 			<span class="material-icons-outlined">settings</span>
+
+			<span class="label" l10nTranslate>
+				#BottomNav_Settings
+			</span>
 		</a>
 
 		<div
@@ -33,6 +41,10 @@
 			(click)="exitConfirmationActive = true"
 		>
 			<span class="material-icons-outlined">close</span>
+
+			<span class="label" l10nTranslate>
+				#ExitToDesktop
+			</span>
 		</div>
 	</div>
 </div>

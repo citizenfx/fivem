@@ -83,6 +83,7 @@
 						[class.online]="lastServer.status === HistoryServerStatus.Online"
 						[class.offline]="lastServer.status === HistoryServerStatus.Offline"
 					>
+						{{HistoryServerStatus[lastServer.status]}}
 					</span>
 
 					<span class="time">

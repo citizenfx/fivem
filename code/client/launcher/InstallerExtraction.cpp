@@ -550,6 +550,8 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 		char buffer[8192];
 		uint32_t bytesWritten = 0;
 
+		uint32_t ticks = 0;
+
 		while (bytesWritten < fileLength)
 		{
 			// write to the output file
@@ -559,14 +561,19 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 			toRead = stream.Read(buffer, toRead);
 			bytesWritten += fwrite(buffer, 1, toRead, of);
 
-			UI_UpdateProgress((bytesWritten / (double)fileLength) * 100.0);
-
-			// poll message loop
-			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			if ((ticks % 100) == 0)
 			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				UI_UpdateProgress((bytesWritten / (double)fileLength) * 100.0);
+
+				// poll message loop
+				while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
 			}
+
+			ticks++;
 
 			if (UI_IsCanceled())
 			{

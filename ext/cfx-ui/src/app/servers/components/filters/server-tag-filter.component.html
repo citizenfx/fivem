@@ -2,7 +2,11 @@
 	<div class="tags">
 		<h4 l10nTranslate>#ServerList_Locales</h4>
 
-		<ul>
+		<button class="reset" *ngIf="localesCanReset" (click)="resetLocales()">
+			reset
+		</button>
+
+		<ul class="list">
 			<li
 				*ngFor="let locale of locales; trackBy:localeName"
 				class="tag"
@@ -24,7 +28,11 @@
 	<div class="tags">
 		<h4 l10nTranslate>#ServerList_Tags</h4>
 
-		<ul>
+		<button class="reset" *ngIf="tagsCanReset" (click)="resetTags()">
+			reset
+		</button>
+
+		<ul class="list">
 			<li
 				*ngFor="let tag of tags; trackBy:tagName"
 				class="tag"

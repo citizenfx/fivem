@@ -17,6 +17,9 @@ export class Server {
 
 	private _live: boolean;
 
+	iconNeedsResolving = true;
+	cachedResolvedIcon: HTMLImageElement;
+
     bitmap: ImageBitmap;
     onChanged = new EventEmitter<void>();
 

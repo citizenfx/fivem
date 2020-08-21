@@ -44,6 +44,10 @@ static inline int MapInitState(int initState)
 		{
 			initState += 1;
 		}
+		else if (Is2060())
+		{
+			initState += 1;
+		}
 	}
 
 	return initState;
@@ -1151,7 +1155,8 @@ void ShutdownSessionWrap()
 
 		// 1604 (same as nethook)
 		// 1868
-		if (!Is1868())
+		// 2060
+		if (!Is2060())
 		{
 			((void(*)())hook::get_adjusted(0x1400067E8))();
 			((void(*)())hook::get_adjusted(0x1407D1960))();
@@ -1160,10 +1165,10 @@ void ShutdownSessionWrap()
 		}
 		else
 		{
-			((void(*)())hook::get_adjusted(0x1400067F8))();
-			((void(*)())hook::get_adjusted(0x1407DDC5C))();
-			((void(*)())hook::get_adjusted(0x1400263C0))();
-			((void(*)(void*))hook::get_adjusted(0x1415B924C))((void*)hook::get_adjusted(0x142E00A00));
+			((void (*)())hook::get_adjusted(0x140006A80))();
+			((void (*)())hook::get_adjusted(0x1407EB39C))();
+			((void (*)())hook::get_adjusted(0x1400263A4))();
+			((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
 		}
 
 		g_runWarning();
@@ -1293,7 +1298,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
-	char* p = hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	char* p = (Is2060()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);

@@ -1,19 +1,48 @@
-<div class="list" *ngIf="isBrowser()" #list>
-	<virtual-scroller
+<div class="loaders" [class.hidden]="serversLoaded && sortingComplete">
+	<div style="animation-delay: 0s"></div>
+	<div style="animation-delay: .5s"></div>
+	<div style="animation-delay: 1s"></div>
+	<div style="animation-delay: 1.5s"></div>
+	<div style="animation-delay: 2s"></div>
+</div>
+
+<div class="hint" *ngIf="shouldShowHint">
+	<h3 l10nTranslate>
+		{{hintText}}
+	</h3>
+
+	<div *ngIf="type === 'favorites'" class="favhint">
+		<div class="lol">
+			... but in the actual list!
+		</div>
+		<div class="pic"></div>
+	</div>
+
+	<a
+		[routerLink]="['/servers']"
+		class="cfx-button primary"
+	>
+		<span class="material-icons-outlined">reorder</span>
+		<span class="label" l10nTranslate>
+			#BottomNav_Servers
+		</span>
+	</a>
+</div>
+
+<div class="list" *ngIf="isBrowser()" #list [class.hidden]="!serversLoaded || !sortingComplete">
+	<cdk-virtual-scroll-viewport
 		*ngIf="type !== 'history'"
-		#scroll
-		[items]="sortedServers"
-		[bufferAmount]="25"
-		[executeRefreshOutsideAngularZone]="true"
-		[scrollThrottlingTime]="100"
-		(vsUpdate)="changeDetectorRef.detectChanges()"
+		autosize
+		[minBufferPx]="screenHeight * 1.2"
+		[maxBufferPx]="screenHeight * 1.5"
+		class="scroll"
 	>
 		<servers-list-item
+			*cdkVirtualFor="let server of sortedServers"
 			[server]="server"
 			[pinned]="isPinned(server)"
-			*ngFor="let server of scroll.viewPortItems; trackBy: svTrack"
 		></servers-list-item>
-	</virtual-scroller>
+	</cdk-virtual-scroll-viewport>
 
 	<div class="history-list" *ngIf="type === 'history'">
 		<div class="server" *ngFor="let server of historyServers" (click)="attemptConnectTo(server)">
@@ -43,6 +72,7 @@
 					[class.online]="server.status === HistoryServerStatus.Online"
 					[class.offline]="server.status === HistoryServerStatus.Offline"
 				>
+					{{HistoryServerStatus[server.status]}}
 				</span>
 
 				<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.historyEntry.time | amTimeAgo }}</span>

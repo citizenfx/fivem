@@ -1,10 +1,9 @@
 import {
-	Component, OnChanges, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef,
-	ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit, OnInit
+	Component, Input, NgZone, Inject, PLATFORM_ID, ChangeDetectorRef,
+	ChangeDetectionStrategy, ElementRef, ViewChild, OnInit, OnDestroy
 } from '@angular/core';
-import { Server, ServerHistoryEntry } from '../../server';
+import { Server } from '../../server';
 import { PinConfigCached } from '../../pins';
-import { Subject } from 'rxjs/Subject';
 
 import { isPlatformBrowser } from '@angular/common';
 
@@ -13,7 +12,7 @@ import { ServersService, HistoryServerStatus, HistoryServer } from '../../server
 import { FiltersService } from '../../filters.service';
 import { GameService } from 'app/game.service';
 import { DomSanitizer } from '@angular/platform-browser';
-import { L10nLocale, L10N_LOCALE } from 'angular-l10n'
+import { L10nLocale, L10N_LOCALE } from 'angular-l10n';
 
 @Component({
 	moduleId: module.id,
@@ -22,10 +21,7 @@ import { L10nLocale, L10N_LOCALE } from 'angular-l10n'
 	styleUrls: ['servers-list.component.scss'],
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
-	@Input()
-	private servers: Server[];
-
+export class ServersListComponent implements OnInit, OnDestroy {
 	@Input()
 	private pinConfig: PinConfigCached;
 
@@ -34,18 +30,22 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
 	private subscriptions: { [addr: string]: any } = {};
 
-	private lastLength: number;
-
 	@ViewChild('list')
 	private list: ElementRef;
 
-	private interactingUntil = 0;
-
 	HistoryServerStatus = HistoryServerStatus;
 
-	localServers: Server[];
+	serversLoaded = false;
+	sortingComplete = false;
+
 	sortedServers: Server[] = [];
 	historyServers: HistoryServer[] = [];
+
+	screenHeight = 1080;
+
+	private updateScreenHeight = () => {
+		this.screenHeight = window.screen.availHeight;
+	}
 
 	constructor(
 		private zone: NgZone,
@@ -57,36 +57,39 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 		private sanitizer: DomSanitizer,
 		@Inject(L10N_LOCALE) public locale: L10nLocale,
 	) {
-		this.servers = [];
+		this.updateScreenHeight();
 
-		let changed = false;
+		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
+			this.serversLoaded = loaded;
+		});
 
-		this.changeObservable.subscribe(() => {
-			changed = true;
+		this.filtersService.sortingInProgress.subscribe((inProgress) => {
+			this.sortingComplete = !inProgress;
 		});
 
 		this.filtersService.sortedServersUpdate.subscribe((servers) => {
 			this.sortedServers = servers;
 			this.changeDetectorRef.markForCheck();
 		});
+	}
 
-		zone.runOutsideAngular(() => {
-			setInterval(() => {
-				if (changed) {
-					if (this.interactingUntil >= new Date().getTime()) {
-						return;
-					}
+	get shouldShowHint() {
+		if (this.type !== 'history' && this.type !== 'favorites') {
+			return false;
+		}
 
-					changed = false;
+		if (!this.serversLoaded || !this.sortingComplete) {
+			return false;
+		}
 
-					for (const server of (this.servers || [])) {
-						if (!this.subscriptions[server.address]) {
-							this.subscriptions[server.address] = server.onChanged.subscribe(a => this.changeSubject.next());
-						}
-					}
-				}
-			}, 500);
-		});
+		return this.sortedServers.length === 0;
+	}
+
+	get hintText() {
+		switch (this.type) {
+			case 'history': return '#EmptyServers_History';
+			case 'favorites': return '#EmptyServers_Favorites';
+		}
 	}
 
 	isBrowser() {
@@ -94,11 +97,7 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 	}
 
 	isPinned(server: Server) {
-		if (!this.pinConfig || !this.pinConfig.pinnedServers) {
-			return false;
-		}
-
-		return this.pinConfig.pinnedServers.has(server.address);
+		return this.filtersService.pinConfig.pinnedServers.has(server?.address);
 	}
 
 	isPremium(server: Server) {
@@ -109,12 +108,9 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 		return server.premium;
 	}
 
-	// to prevent auto-filtering while scrolling (to make scrolling feel smoother)
-	updateInteraction() {
-		this.interactingUntil = new Date().getTime() + 500;
-	}
-
 	ngOnInit() {
+		window.addEventListener('resize', this.updateScreenHeight);
+
 		if (this.type === 'history') {
 			this.historyServers = this.gameService
 				.getServerHistory()
@@ -151,7 +147,13 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 
 				this.changeDetectorRef.markForCheck();
 			});
+		} else {
+			this.filtersService.sortAndFilterServers(false);
 		}
+	}
+
+	ngOnDestroy() {
+		window.removeEventListener('resize', this.updateScreenHeight);
 	}
 
 	attemptConnectTo(entry: HistoryServer) {
@@ -162,28 +164,8 @@ export class ServersListComponent implements OnInit, OnChanges, AfterViewInit {
 		this.gameService.connectTo(entry.server, entry.historyEntry.address);
 	}
 
-	ngAfterViewInit() {
-		const element = this.list.nativeElement as HTMLElement;
-
-		this.zone.runOutsideAngular(() => {
-			element.addEventListener('wheel', (e) => {
-				this.updateInteraction();
-			});
-		});
-	}
-
-	changeSubject: Subject<void> = new Subject<void>();
-	changeObservable = this.changeSubject.asObservable();
-
-	ngOnChanges() {
-		if (this.servers.length !== this.lastLength) {
-			this.changeSubject.next();
-			this.lastLength = this.servers.length;
-		}
-	}
-
 	svTrack(index: number, serverRow: Server) {
-		return serverRow.address;
+		return index + serverRow.address;
 	}
 
 	isFavorite(server: Server) {

@@ -1,13 +1,101 @@
 @import "variables";
 
 :host {
+	width: 100%;
 	position: relative;
+}
+
+.scroll {
+	width: 100%;
+	height: 100%;
+
+	overflow-x: hidden;
+	overflow-y: auto;
+
+	::ng-deep .cdk-virtual-scroll-content-wrapper {
+		width: 100%;
+	}
+}
+
+.loaders {
+	div {
+		width: 100%;
+		height: var(--q2);
+
+		margin-bottom: 2px;
+
+		@include theme() using ($theme) {
+			background-image: linear-gradient(90deg,
+				transparent,
+				rgba(gtv($theme, fgColor), .1)
+			);
+			background-color: gtv($theme, bgColor);
+		}
+
+		@keyframes bganim {
+			0% {
+				background-position: 0px 0px;
+			}
+			100% {
+				background-position: 1000px 0;
+			}
+		}
+		animation: bganim 10s linear 0s infinite;
+	}
+}
+
+.hint {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	width: 100%;
+	height: 100%;
+
+	h3 {
+		margin-bottom: var(--q2);
+	}
+
+	.favhint {
+		position: relative;
+		margin-bottom: var(--q2);
+
+		.lol {
+			position: absolute;
+			top: calc((var(--q1) + var(--qh)) * -1);
+			right: 0;
+
+			opacity: 0;
+			transform: translateY(10px);
+
+			transition: all .2s ease;
+		}
+
+		.pic {
+			width: 408px;
+			height: 76px;
+
+			background-image: url(../../../../assets/images/favhint2.png);
+		}
+
+		&:hover {
+			.lol {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+	}
+}
+
+.hidden {
+	display: none;
 }
 
 .list {
 	height: 100%;
 	width: 100%;
-	overflow-y: hidden;
+	overflow-y: auto;
 }
 
 virtual-scroller {
@@ -181,6 +269,9 @@ virtual-scroller {
 		}
 
 		.info {
+			display: flex;
+			align-items: center;
+
 			padding: 2px;
 			padding-right: 4px;
 
@@ -196,17 +287,41 @@ virtual-scroller {
 			}
 
 			.status {
-				display: inline-block;
+				position: relative;
 
-				margin: 0 4px;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
 
-				width: var(--qh);
-				height: var(--qh);
-				border-radius: var(--qh);
+				margin-right: var(--qh);
+
+				text-align: center;
+				line-height: 1;
+				font-size: var(--fs-075);
+
+				color: var(--color);
+
+				&::before {
+					content: '';
+					display: block;
+
+					flex-shrink: 0;
+
+					width: var(--fs-05);
+					height: var(--fs-05);
+					border-radius: var(--fs-05);
+
+					margin-left: 2px;
+					margin-right: 4px;
+
+					background-color: var(--color);
+				}
 
 				@include theme() using ($theme) {
+					border-color: rgba(gtv($theme, fgColor), .5);
+
 					&.loading {
-						background-color: gtv($theme, fgColor);
+						--color: #{gtv($theme, fgColor)};
 
 						@keyframes loading {
 							0% {
@@ -223,11 +338,10 @@ virtual-scroller {
 						animation: loading .5s ease 0s infinite;
 					}
 					&.online {
-						// background-color: gtv($theme, activeColor);
-						background-color: rgb(0, 255, 0);
+						--color: rgb(0, 255, 0);
 					}
 					&.offline {
-						background-color: red;
+						--color: red;
 					}
 				}
 			}

@@ -15,15 +15,21 @@
 }
 
 .tags {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+
 	height: 50%;
 
 	@include theme() using ($theme) {
 		border-top: solid 2px rgba(gtv($theme, accentColor1), .25);
 	}
 
-	overflow-y: scroll;
+	overflow: hidden;
 
     h4 {
+		flex-shrink: 0;
+
 		margin-top: var(--qh);
 		margin-left: var(--q1);
 
@@ -34,10 +40,43 @@
 		letter-spacing: 2px;
 		text-transform: uppercase;
 
-		opacity: .25;
-
 		text-align: justify;
-    }
+
+		@include theme() using ($theme) {
+			color: rgba(gtv($theme, fgColor), .25);
+		}
+	}
+
+	.reset {
+		position: absolute;
+		top: 0;
+		right: 0;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		height: var(--fs-2);
+		padding: var(--qh);
+		padding-top: var(--q1);
+
+		border: none;
+		background-color: transparent;
+
+		font-size: var(--fs-075);
+		font-family: Montserrat;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+
+		@include theme() using ($theme) {
+			color: gtv($theme, fgColor);
+
+			&:hover {
+				color: gtv($theme, accentContrastColor);
+				background-color: gtv($theme, accentColor1);
+			}
+		}
+	}
 
     span {
         vertical-align: middle;
@@ -45,67 +84,72 @@
         &.flag-icon {
             margin-right: 0.5vh;
         }
-    }
+	}
 
-    .tag {
-		display: flex;
-		align-items: center;
+	.list {
+		flex-grow: 1;
+		overflow-y: auto;
 
-		padding: var(--qh) var(--q1);
+		.tag {
+			display: flex;
+			align-items: center;
 
-		overflow: hidden;
+			padding: var(--qh) var(--q1);
 
-		font-size: var(--fs-075);
+			overflow: hidden;
 
-        transition: all .2s ease;
+			font-size: var(--fs-075);
 
-		.indicator {
-			display: none;
+			transition: all .2s ease;
 
-			width: calc(var(--q1) - 4px);
-			height: calc(var(--q1) - 4px);
+			.indicator {
+				display: none;
 
-			@include theme using ($theme) {
-                background-color: gtv($theme, bgColor);
-            };
-		}
+				width: calc(var(--q1) - 4px);
+				height: calc(var(--q1) - 4px);
 
-		&.active {
-			@include theme using ($theme) {
-				background-image: linear-gradient(45deg, transparent, gtv($theme, activeColor));
-			};
+				@include theme using ($theme) {
+					background-color: gtv($theme, bgColor);
+				};
+			}
+
+			&.active {
+				@include theme using ($theme) {
+					background-image: linear-gradient(45deg, transparent, gtv($theme, activeColor));
+				};
+
+				&:hover {
+					@include theme using ($theme) {
+						background-color: gtv($theme, inactiveColor);
+					};
+				}
+			}
+
+			&.inactive {
+				.name {
+					text-decoration: line-through;
+				}
+
+				@include theme using ($theme) {
+					background-image: linear-gradient(45deg, transparent, gtv($theme, inactiveColor));
+				};
+			}
+
+			.name {
+				flex-grow: 1;
+			}
+
+			.count {
+				opacity: .75;
+			}
 
 			&:hover {
+				transition: none;
+
 				@include theme using ($theme) {
-					background-color: gtv($theme, inactiveColor);
+					background-color: gtv($theme, activeColor);
 				};
 			}
 		}
-
-		&.inactive {
-			.name {
-				text-decoration: line-through;
-			}
-
-			@include theme using ($theme) {
-				background-image: linear-gradient(45deg, transparent, gtv($theme, inactiveColor));
-			};
-		}
-
-		.name {
-			flex-grow: 1;
-		}
-
-		.count {
-			opacity: .75;
-		}
-
-        &:hover {
-			transition: none;
-
-            @include theme using ($theme) {
-				background-color: gtv($theme, activeColor);
-            };
-        }
-    }
+	}
 }

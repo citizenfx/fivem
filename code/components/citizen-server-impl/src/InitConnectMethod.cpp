@@ -257,6 +257,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 }
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
+std::string g_enforcedGameBuild;
 
 static InitFunction initFunction([]()
 {
@@ -273,7 +274,7 @@ static InitFunction initFunction([]()
 
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
-		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_None, "");
+		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly, "", &g_enforcedGameBuild);
 
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
 		{
