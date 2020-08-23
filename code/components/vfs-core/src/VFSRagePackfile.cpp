@@ -384,6 +384,11 @@ namespace vfs
 
 	size_t RagePackfile::GetLength(THandle handle)
 	{
+		return GetLengthForHandle(handle);
+	}
+
+	__declspec(noinline) size_t RagePackfile::GetLengthForHandle(THandle handle)
+	{
 		auto handleData = GetHandle(handle);
 
 		if (handleData)
