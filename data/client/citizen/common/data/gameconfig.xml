@@ -334,7 +334,7 @@
 						</Item>
 						<Item>
 							<PoolName>MetaDataStore</PoolName>
-							<PoolSize value="3000"/>
+							<PoolSize value="5000"/>
 						</Item>
 						<Item>
 							<PoolName>NavMeshes</PoolName>
