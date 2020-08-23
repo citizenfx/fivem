@@ -1304,11 +1304,22 @@ int Lua_InvokeNative(lua_State* L)
 		{
 			case LuaMetaFields::ResultAsString:
 			{
-				const char* str = *reinterpret_cast<const char**>(&context.arguments[0]);
-
-				if (str)
+				struct scrString
 				{
-					lua_pushstring(L, str);
+					const char* str;
+					size_t len;
+					uint32_t magic;
+				};
+
+				auto strString = reinterpret_cast<scrString*>(&context.arguments[0]);
+
+				if (strString->magic == 0xFEED1212)
+				{
+					lua_pushlstring(L, strString->str, strString->len);
+				}
+				else if (strString->str)
+				{
+					lua_pushstring(L, strString->str);
 				}
 				else
 				{
