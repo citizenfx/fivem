@@ -387,7 +387,10 @@ namespace vfs
 		return GetLengthForHandle(handle);
 	}
 
-	__declspec(noinline) size_t RagePackfile::GetLengthForHandle(THandle handle)
+#ifdef _MSC_VER
+	__declspec(noinline)
+#endif
+	size_t RagePackfile::GetLengthForHandle(THandle handle)
 	{
 		auto handleData = GetHandle(handle);
 
