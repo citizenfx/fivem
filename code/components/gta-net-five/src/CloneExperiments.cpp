@@ -1885,6 +1885,46 @@ static void SendAlterWantedLevelEvent2Hook(void* a1, void* a2, void* a3, void* a
 	g_origSendAlterWantedLevelEvent2(a1, a2, a3, a4);
 }
 
+std::string GetType(void* d);
+
+static void NetEventError()
+{
+	auto pool = rage::GetPoolBase("netGameEvent");
+
+	std::map<std::string, int> poolCount;
+	
+	for (int i = 0; i < pool->GetSize(); i++)
+	{
+		auto e = pool->GetAt<void>(i);
+
+		if (e)
+		{
+			poolCount[GetType(e)]++;
+		}
+	}
+
+	std::vector<std::pair<int, std::string>> entries;
+
+	for (const auto& [ type, count ] : poolCount)
+	{
+		entries.push_back({ count, type });
+	}
+
+	std::sort(entries.begin(), entries.end(), [](const auto& l, const auto& r)
+	{
+		return r.first < l.first;
+	});
+
+	std::string poolSummary;
+
+	for (const auto& [count, type] : entries)
+	{
+		poolSummary += fmt::sprintf("  %s: %d entries\n", type, count);
+	}
+
+	FatalError("Ran out of rage::netGameEvent pool space.\n\nPool usage:\n%s", poolSummary);
+}
+
 static HookFunction hookFunctionEv([]()
 {
 	MH_Initialize();
@@ -1913,6 +1953,9 @@ static HookFunction hookFunctionEv([]()
 		MH_CreateHook(hook::get_call(hook::get_pattern("45 8A C6 48 8B C8 8B D5 E8 ? ? ? ? 45 32 E4", 8)), SendAlterWantedLevelEvent1Hook, (void**)&g_origSendAlterWantedLevelEvent1);
 		MH_CreateHook(hook::get_pattern("4C 8B 78 10 48 85 ED 74 74 66 39 55", -0x58), SendAlterWantedLevelEvent2Hook, (void**)&g_origSendAlterWantedLevelEvent2);
 	}
+
+	// CheckForSpaceInPool error display
+	hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
