@@ -1722,7 +1722,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 		if (eventMgr)
 		{
-			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + 0x3AB80);
+			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (Is2060() ? 0x3ABD0 : 0x3AB80));
 			auto eh = eventHandlerList[eventType];
 			
 			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(0x146000000))
