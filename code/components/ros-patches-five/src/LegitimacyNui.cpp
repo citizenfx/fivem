@@ -170,7 +170,7 @@ void SimpleApp::OnContextInitialized()
 	// Specify CEF browser settings here.
 	CefBrowserSettings browser_settings;
 
-	std::string url = "https://prod.ros.rockstargames.com/scui/mtl/launcher";
+	std::string url = "https://rgl.rockstargames.com/launcher";
 
 	// Create the BrowserView.
 	CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
@@ -492,9 +492,9 @@ style.appendChild(document.createTextNode(css));
 
 void SimpleHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
 {
-	if (frame->GetURL().ToString().find("/mtl") != std::string::npos)
+	if (frame->GetURL().ToString().find("/launcher") != std::string::npos)
 	{
-		frame->ExecuteJavaScript(g_rgscInitCode, "https://prod.ros.rockstargames.com/temp.js", 0);
+		frame->ExecuteJavaScript(g_rgscInitCode, "https://rgl.rockstargames.com/temp.js", 0);
 	}
 }
 
