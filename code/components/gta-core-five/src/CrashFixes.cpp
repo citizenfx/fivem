@@ -404,8 +404,28 @@ static int GetGpuCount2(char* self)
 	return 1;
 }
 
+static int (*g_origDoReadSaveGame)();
+
+static int DoReadSaveGame()
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origDoReadSaveGame();
+	}
+
+	return 0;
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// don't load SP games in netmode sessions
+	if (!CfxIsSinglePlayer())
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("84 C0 75 07 BB 02 00 00 00 EB 0C", -0x22), DoReadSaveGame, (void**)&g_origDoReadSaveGame);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
 	// disable crashing on train validity check failing
 	// (this is, oddly, a cloud tunable?!)
 	hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
