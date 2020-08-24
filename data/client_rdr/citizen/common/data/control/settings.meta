@@ -301,6 +301,15 @@
         
         <Item>INPUT_SKIP_CUTSCENE</Item>
 		
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+        <Item>INPUT_CURSOR_CANCEL</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
+
         <Item>INPUT_CREATOR_LS</Item>
         <Item>INPUT_CREATOR_RS</Item>
         <Item>INPUT_CREATOR_LT</Item>
@@ -573,6 +582,15 @@
         <Item>INPUT_FRONTEND_ENDSCREEN_EXPAND</Item>
         <Item>INPUT_MAP_POI</Item>
         <Item>INPUT_SKIP_CUTSCENE</Item>
+
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+        <Item>INPUT_CURSOR_CANCEL</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
 
         <Item>INPUT_CREATOR_LS</Item>
         <Item>INPUT_CREATOR_RS</Item>
@@ -920,6 +938,15 @@
         <Item>INPUT_CELLPHONE_CAMERA_DOF</Item>
         <Item>INPUT_CELLPHONE_CAMERA_EXPRESSION</Item>
         <Item>INPUT_SKIP_CUTSCENE</Item>
+
+        <Item>INPUT_CURSOR_ACCEPT_HOLD</Item>
+        <Item>INPUT_CURSOR_ACCEPT_DOUBLE_CLICK</Item>
+        <Item>INPUT_CURSOR_ACCEPT</Item>
+        <Item>INPUT_CURSOR_CANCEL</Item>
+        <Item>INPUT_CURSOR_X</Item>
+        <Item>INPUT_CURSOR_Y</Item>
+        <Item>INPUT_CURSOR_SCROLL_UP</Item>
+        <Item>INPUT_CURSOR_SCROLL_DOWN</Item>
 
         <Item>INPUT_CREATOR_LS</Item>
         <Item>INPUT_CREATOR_RS</Item>
