@@ -62,6 +62,17 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
+		/// Gets the <see cref="StateBag"/> of this <see cref="Player"/>
+		/// </summary>
+		public StateBag State
+		{
+			get
+			{
+				return new StateBag("player:" + ServerId);
+			}
+		}
+
+		/// <summary>
 		/// Gets the name of this <see cref="Player"/>.
 		/// </summary>
 		public string Name
