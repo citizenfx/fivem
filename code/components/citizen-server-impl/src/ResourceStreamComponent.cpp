@@ -422,7 +422,7 @@ namespace fx
 			{
 				trace("^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n", warnColor, m_resource->GetName(), name, divSize, why,
 					(size > (48 * 1024 * 1024))
-						? " Oversized assets can and WILL lead to streaming issues (models not loading/rendering, commonly known as 'texture loss' or 'city bug')."
+						? " Oversized assets can and WILL lead to streaming issues (models not loading/rendering, commonly known as 'texture loss', 'city bug' or 'streaming isn't great')."
 						: "");
 			}
 		};
