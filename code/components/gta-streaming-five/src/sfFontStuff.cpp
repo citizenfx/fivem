@@ -733,7 +733,7 @@ static HookFunction hookFunction([]()
 	memoryHeapPt[15] = GetHeap;
 
 	// undo fonts if reloading
-	OnKillNetwork.Connect([]()
+	OnKillNetworkDone.Connect([]()
 	{
 		g_loadedFonts.clear();
 	});
