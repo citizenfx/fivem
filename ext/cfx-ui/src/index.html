@@ -35,6 +35,9 @@
 
 			width: 100%;
 			height: 100%;
+
+			/* top of the world! */
+			z-index: 9999;
 		}
 
 		.lds-ripple {
@@ -140,10 +143,10 @@
 	</defs>
 </svg>
 
+<app-root></app-root>
 <div class="booting">
 	<div class="lds-ripple"><div></div><div></div></div>
 </div>
-<app-root></app-root>
 
 <script type="text/javascript">
 const getGPU = function()

@@ -75,7 +75,13 @@ export class AppComponent implements OnInit {
 			}
 		});
 
+		let settled = false;
 		const settle = () => {
+			if (settled) {
+				return;
+			}
+
+			settled = true;
 			this.serversService.onInitialized();
 
 			(<HTMLDivElement>document.querySelector('.booting')).style.opacity = '0';
@@ -88,6 +94,10 @@ export class AppComponent implements OnInit {
 			}, 100);
 			return;
 		}
+
+		// We will either show ui in 1.5s or earlier when it is ready
+		// this way we can be sure we don't ever block ui with loader forever
+		setTimeout(settle, 1500);
 
 		// reused snippet from https://dev.to/herodevs/route-fully-rendered-detection-in-angular-2nh4
 		this.zone.runOutsideAngular(() => {
@@ -103,9 +113,7 @@ export class AppComponent implements OnInit {
 					filter(stateStable => stateStable === true),
 					// Complete the observable after it emits the first result
 					take(1),
-					tap(stateStable => {
-						settle();
-					})
+					tap(settle)
 				).subscribe();
 		});
 	}
