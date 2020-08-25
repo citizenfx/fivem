@@ -480,6 +480,13 @@ function RGSC_READY_TO_ACCEPT_COMMANDS()
 RGSC_JS_READY_TO_ACCEPT_COMMANDS();
 RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: "SIGNIN" }));
 
+if (!localStorage.getItem('loadedOnce')) {
+	localStorage.setItem('loadedOnce', true);
+	setTimeout(() => {
+		location.reload();
+	}, 500);
+}
+
 var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .Alert__content:after { content: \'A Rockstar Games Social Club account owning Grand Theft Auto V is required to play FiveM.\'; max-width: 600px; display: inline-block; }',
     head = document.head || document.getElementsByTagName('head')[0],
     style = document.createElement('style');
@@ -520,7 +527,7 @@ void RunLegitimacyNui()
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
 
-	std::wstring cachePath = MakeRelativeCitPath(L"cache\\browser\\");
+	std::wstring cachePath = MakeRelativeCitPath(L"cache\\authbrowser\\");
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	CefString(&settings.resources_dir_path).FromWString(resPath);
