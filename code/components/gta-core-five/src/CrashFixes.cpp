@@ -416,8 +416,29 @@ static int DoReadSaveGame()
 	return 0;
 }
 
+static int (*g_origGetHandlingByHash)(const uint32_t& hash, bool ye);
+
+static int GetHandlingByHashStub(const uint32_t& hash, bool ye)
+{
+	int a = g_origGetHandlingByHash(hash, ye);
+
+	if (a == -1)
+	{
+		trace("Couldn't find handling for hash %08x - returning ADDER instead!\n", hash);
+
+		a = g_origGetHandlingByHash(HashString("adder"), true);
+	}
+
+	return a;
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// set handling data for ADDER instead of -1 if wrong
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("83 C8 FF 84 D2 74 10", -4), GetHandlingByHashStub, (void**)&g_origGetHandlingByHash);
+	MH_EnableHook(MH_ALL_HOOKS);
+
 	// don't load SP games in netmode sessions
 	if (!CfxIsSinglePlayer())
 	{
