@@ -1523,6 +1523,28 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return;
 	}
 
+	if (strcmp(ev->GetName(), "ALTER_WANTED_LEVEL_EVENT") == 0)
+	{
+		// do we already have 5 ALTER_WANTED_LEVEL_EVENT instances?
+		int count = 0;
+
+		for (auto& eventPair : g_events)
+		{
+			auto [key, tup] = eventPair;
+
+			if (tup.ev && strcmp(tup.ev->GetName(), "ALTER_WANTED_LEVEL_EVENT") == 0)
+			{
+				count++;
+			}
+		}
+
+		if (count >= 5)
+		{
+			delete ev;
+			return;
+		}
+	}
+
 	// is this a duplicate event?
 	for (auto& eventPair : g_events)
 	{
