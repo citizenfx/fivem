@@ -438,7 +438,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnInterceptConnection.Connect([](const std::string& url, const std::function<void()>& cb)
 		{
-			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			if (Instance<ICoreGameInit>::Get()->GetGameLoaded() || Instance<ICoreGameInit>::Get()->HasVariable("killedGameEarly"))
 			{
 				if (!disconnected)
 				{

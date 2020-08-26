@@ -426,7 +426,17 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 					errText += fmt::sprintf("\n%s", CollectTimeoutInfo());
 				}
 
-				GlobalError("Disconnected by server: %s", errText);
+				if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+				{
+					GlobalError("Disconnected by server: %s", errText);
+				}
+				else
+				{
+					m_mainFrameQueue.push([errText]()
+					{
+						Instance<ICoreGameInit>::Get()->KillNetwork(ToWide(fmt::sprintf("Disconnected by server: %s", errText)).c_str());
+					});
+				}
 			}
 		}
 	}

@@ -143,6 +143,7 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 				trace("^2Game finished loading!\n");
 
 				ClearVariable("shutdownGame");
+				ClearVariable("killedGameEarly");
 
 				OnGameFinalizeLoad();
 				isLoading = false;
@@ -169,6 +170,17 @@ void FiveGameInit::LoadGameFirstLaunch(bool(*callBeforeLoad)())
 		Instance<ICoreGameInit>::Get()->ClearVariable("networkInited");
 
 		SetRenderThreadOverride();
+
+		if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			Instance<ICoreGameInit>::Get()->SetVariable("killedGameEarly");
+			Instance<ICoreGameInit>::Get()->SetVariable("gameKilled");
+			Instance<ICoreGameInit>::Get()->SetVariable("shutdownGame");
+
+			AddCrashometry("kill_network_game_early", "true");
+
+			OnKillNetworkDone();
+		}
 	}, 500);
 
 	/*OnGameRequestLoad.Connect([=] ()

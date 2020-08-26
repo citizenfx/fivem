@@ -2064,6 +2064,11 @@ static HookFunction hookFunction([] ()
 		OnLookAliveFrame.Connect([_processEntitlements]()
 		{
 			_processEntitlements();
+
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				g_netLibrary->RunMainFrame();
+			}
 		});
 	}
 
