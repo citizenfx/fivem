@@ -201,6 +201,10 @@ static HookFunction hookFunction([] ()
 
 static SpawnThread spawnThread;
 
+#include <concurrent_queue.h>
+
+static concurrency::concurrent_queue<std::function<void()>> g_onShutdownQueue;
+
 static void LoadLevel(const char* levelName)
 {
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
@@ -220,15 +224,40 @@ static void LoadLevel(const char* levelName)
 		{
 			return true;
 		});
+
+		gameInit->ShAllowed = true;
 	}
 	else
 	{
-		//gameInit->KillNetwork((wchar_t*)1);
+		bool sm = gameInit->HasVariable("storyMode");
+		bool lm = gameInit->HasVariable("localMode");
+		bool em = gameInit->HasVariable("editorMode");
 
-		gameInit->ReloadGame();
+		gameInit->KillNetwork((wchar_t*)1);
+
+		g_onShutdownQueue.push([gameInit, sm, lm, em]()
+		{
+			gameInit->ReloadGame();
+
+			if (sm)
+			{
+				gameInit->SetVariable("storyMode");
+			}
+
+			if (lm)
+			{
+				gameInit->SetVariable("localMode");
+			}
+
+			if (em)
+			{
+				gameInit->SetVariable("editorMode");
+			}
+
+			gameInit->SetVariable("networkInited");
+			gameInit->ShAllowed = true;
+		});
 	}
-
-	gameInit->ShAllowed = true;
 }
 
 class SPResourceMounter : public fx::ResourceMounter
@@ -341,4 +370,14 @@ static InitFunction initFunction([] ()
 	{
 		LoadLevel(level.c_str());
 	});
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		std::function<void()> fn;
+
+		while (g_onShutdownQueue.try_pop(fn))
+		{
+			fn();
+		}
+	}, INT32_MAX);
 });
