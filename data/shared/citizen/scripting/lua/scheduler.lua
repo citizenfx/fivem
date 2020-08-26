@@ -720,6 +720,8 @@ end
 local EXT_FUNCREF = 10
 local EXT_LOCALFUNCREF = 11
 
+msgpack.extend_clear(EXT_FUNCREF, EXT_LOCALFUNCREF)
+
 -- RPC INVOCATION
 InvokeRpcEvent = function(source, ref, args)
 	if not coroutine.running() then
@@ -956,6 +958,8 @@ end
 -- entity helpers
 local EXT_ENTITY = 41
 local EXT_PLAYER = 42
+
+msgpack.extend_clear(EXT_ENTITY, EXT_PLAYER)
 
 local function NewStateBag(es)
 	local sv = IsDuplicityVersion()
