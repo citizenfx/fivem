@@ -85,6 +85,7 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 
 static std::map<std::string, uint32_t, std::less<>> g_streamingNamesToIndices;
 static std::map<uint32_t, std::string> g_streamingIndexesToNames;
+static std::map<uint32_t, std::string> g_streamingHashesToNames;
 extern std::set<std::string> g_streamingSuffixSet;
 
 template<bool IsRequest>
@@ -133,6 +134,9 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 		g_streamingNamesToIndices[g_lastStreamingName] = *indexRet;
 		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
 
+		auto baseFn = g_lastStreamingName.substr(0, g_lastStreamingName.find_last_of('.'));
+		g_streamingHashesToNames[HashString(baseFn.c_str())] = baseFn;
+
 		auto splitIdx = g_lastStreamingName.find_first_of("_");
 
 		if (splitIdx != std::string::npos)
@@ -159,6 +163,11 @@ namespace streaming
 	const std::string& GetStreamingNameForIndex(uint32_t index)
 	{
 		return g_streamingIndexesToNames[index];
+	}
+
+	const std::string& GetStreamingBaseNameForHash(uint32_t hash)
+	{
+		return g_streamingHashesToNames[hash];
 	}
 }
 

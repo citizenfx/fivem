@@ -3011,3 +3011,94 @@ static HookFunction hookFunctionNative([]()
 	rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("49 8B 0F 40 8A D6 41 2B C4 44 3B 25", 12));
 	rage__s_NetworkTimeLastFrameStart = rage__s_NetworkTimeThisFrameStart - 1;
 });
+
+static hook::cdecl_stub<const char*(int, uint32_t)> rage__atHashStringNamespaceSupport__GetString([]
+{
+	return hook::get_pattern("85 D2 75 04 33 C0 EB 61", -0x18);
+});
+
+#include <Streaming.h>
+
+struct CGameScriptId
+{
+	void* vtbl;
+	uint32_t hash;
+	char scriptName[32];
+};
+
+static hook::cdecl_stub<CGameScriptId*(rage::fwEntity*)> _getEntityScript([]()
+{
+	return hook::get_pattern("74 2A 48 8D 58 08 48 8B CB 48 8B 03", -0x18);
+});
+
+static void PedPoolDiagError()
+{
+	auto pool = rage::GetPoolBase("Peds");
+
+	std::map<std::string, int> poolCount;
+
+	for (int i = 0; i < pool->GetSize(); i++)
+	{
+		auto e = pool->GetAt<rage::fwEntity>(i);
+
+		if (e)
+		{
+			std::string desc;
+			auto archetype = e->GetArchetype();
+			auto archetypeHash = archetype->hash;
+			auto archetypeName = streaming::GetStreamingBaseNameForHash(archetypeHash);
+
+			if (archetypeName.empty())
+			{
+				archetypeName = va("0x%08x", archetypeHash);
+			}
+
+			desc = fmt::sprintf("%s", archetypeName);
+
+			auto script = _getEntityScript(e);
+			if (script)
+			{
+				desc += fmt::sprintf(" (script %s)", script->scriptName);
+			}
+
+			poolCount[desc]++;
+		}
+	}
+
+	std::vector<std::pair<int, std::string>> entries;
+
+	for (const auto& [type, count] : poolCount)
+	{
+		entries.push_back({ count, type });
+	}
+
+	std::sort(entries.begin(), entries.end(), [](const auto& l, const auto& r)
+	{
+		return r.first < l.first;
+	});
+
+	std::string poolSummary;
+
+	for (const auto& [count, type] : entries)
+	{
+		poolSummary += fmt::sprintf("  %s: %d entries\n", type, count);
+	}
+
+	FatalError("Ran out of ped pool space while creating network object.\n\nPed pool dump:\n%s", poolSummary);
+}
+
+static HookFunction hookFunctionDiag([]
+{
+	// CreatePed
+	hook::call(hook::get_pattern("75 0E B1 01 E8 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 03", 11), PedPoolDiagError);
+
+	// CreatePlayer
+	hook::call(hook::get_pattern("75 0E B1 01 E8 ? ? ? ? 33 C9 E8 ? ? ? ? 4C 8B 03", 11), PedPoolDiagError);
+
+#if _DEBUG
+	static ConsoleCommand pedCrashCmd("ped_crash", []()
+	{
+		PedPoolDiagError();
+	});
+#endif
+});

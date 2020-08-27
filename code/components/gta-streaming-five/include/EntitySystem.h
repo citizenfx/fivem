@@ -234,6 +234,11 @@ public:
 
 	virtual bool IsOfType(uint32_t hash) = 0;
 
+	inline fwArchetype* GetArchetype()
+	{
+		return m_archetype;
+	}
+
 	inline void* GetExtension(uint32_t id)
 	{
 		return m_extensionList.Get(id);
@@ -328,9 +333,11 @@ public:
 private:
 	char m_pad[8];
 	fwExtensionList m_extensionList;
-	char m_pad2[96 - 24];
+	char m_pad2[8];
+	fwArchetype* m_archetype;
+	char m_pad3[96 - 40];
 	Matrix4x4 m_transform;
-	char m_pad3[48];
+	char m_pad4[48];
 	void* m_netObject;
 };
 
