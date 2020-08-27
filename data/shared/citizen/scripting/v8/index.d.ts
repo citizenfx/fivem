@@ -1,4 +1,4 @@
-/// <reference path="./natives_server.d.ts"/>
+/// <reference path="./natives_universal.d.ts"/>
 
 interface IntPtrInitialized {}
 interface FloatPtrInitialized {}
