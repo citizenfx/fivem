@@ -121,6 +121,8 @@ void SimpleApp::OnBeforeCommandLineProcessing(const CefString& process_type, Cef
 {
 	command_line->AppendSwitch("disable-extensions");
 	command_line->AppendSwitch("disable-pdf-extension");
+	command_line->AppendSwitch("enable-pointer-lock");
+	command_line->AppendSwitch("enable-shadow-dom");
 
 	command_line->AppendSwitchWithValue("use-angle", "d3d11");
 
@@ -590,6 +592,10 @@ public:
 
 		// Give keyboard focus to the browser view.
 		browser_view_->RequestFocus();
+
+		// Make wonders!
+		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+		rgd->mainWindowHandle = window->GetWindowHandle();
 	}
 
 	void OnWindowDestroyed(CefRefPtr<CefWindow> window) OVERRIDE
@@ -858,15 +864,27 @@ auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPt
 	return RV_CONTINUE;
 }
 
+fwEvent<std::string_view, std::string_view> OnInvokeSDKNative;
+
 bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
-	if (message->GetName() == "invokeNative")
+	auto messageName = message->GetName();
+
+	if (messageName == "invokeNative")
 	{
 		auto args = message->GetArgumentList();
 		auto nativeType = args->GetString(0);
 		auto messageData = args->GetString(1);
 
-		
+		OnInvokeSDKNative(ToNarrow(nativeType.ToWString()), ToNarrow(messageData.ToWString()));
+	}
+	else if (messageName == "resizeGame")
+	{
+		auto args = message->GetArgumentList();
+		auto width = args->GetInt(0);
+		auto height = args->GetInt(1);
+
+		fxdk::ResizeRender(width, height);
 	}
 
 	return true;
@@ -976,6 +994,11 @@ void SdkMain()
 		return ep;
 	};
 
+	OnInvokeSDKNative.Connect([&ep](std::string_view nativeType, std::string_view argumentData)
+	{
+		ep.Call("sdk:invokeNative", std::string{ nativeType }, std::string{ argumentData });
+	});
+
 	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 	{
 		// is this our event?
@@ -1027,16 +1050,6 @@ void SdkMain()
 				hostData->gamePid = processInfo.dwProcessId;
 				ResumeThread(processInfo.hThread);
 			}
-		}
-		else if (eventName == "sdk:resizeGame")
-		{
-			msgpack::unpacked msg;
-			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
-
-			msgpack::object obj = msg.get();
-			auto ws = obj.as<std::vector<int>>();
-
-			fxdk::ResizeRender(ws[0], ws[1]);
 		}
 	});
 

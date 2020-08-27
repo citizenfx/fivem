@@ -687,6 +687,15 @@ static InitFunction initFunction([] ()
 		SetWindowPos(wnd, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_ASYNCWINDOWPOS);
 	});
 
+	ep.Bind("sdk:invokeNative", [](const std::string& nativeType, const std::string& argumentData)
+	{
+		if (nativeType == "sendCommand")
+		{
+			se::ScopedPrincipal ps{ se::Principal{"system.console"} };
+			console::GetDefaultContext()->ExecuteSingleCommand(argumentData);
+		}
+	});
+
 	static ConsoleCommand disconnectCommand("disconnect", []()
 	{
 		if (netLibrary->GetConnectionState() != 0)
