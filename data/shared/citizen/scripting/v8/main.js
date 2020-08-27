@@ -1,5 +1,4 @@
 // CFX JS runtime
-/// <reference path="./natives_blank.d.ts" />
 /// <reference path="./natives_server.d.ts" />
 
 const EXT_FUNCREF = 10;
@@ -515,4 +514,104 @@ const EXT_LOCALFUNCREF = 11;
 	};
 
 	global.exports = createExports();
+
+	const isDuplicity = IsDuplicityVersion();
+	function getStateBag(name, entity = undefined) {
+		if (isDuplicity && entity != undefined)
+			EnsureEntityStateBag(entity);
+
+		return {
+			set: (key, data, replicated = false) => {
+				if (!key || typeof key !== 'string')
+					return null;
+
+				const packed = msgpack.encode(data);
+				SetStateBagValue(name, key, packed, packed.length, replicated);
+			},
+			get: (key) => {
+				if (!key || typeof key !== 'string')
+					return null;
+
+				return GetStateBagValue(name, key);
+			}
+		}
+	}
+
+	global.GlobalState = getStateBag('global');
+
+	class Entity {
+		// Make bag object private to prevent weird things from devs
+		#bag;
+
+		/**
+		 * Get the value of non replicated meta
+		 * @param {string} key The key of the meta
+		 */
+		getMeta(key) {
+			if (!key || typeof key !== 'string')
+				return;
+
+			key = `local:${key}`;
+			return this.#bag.get(key);
+		}
+
+		/**
+		 * Define a non replicated meta
+		 * @param {string} key The key of the meta
+		 * @param {*} data Data you want to set
+		 */
+		setMeta(key, data) {
+			if (!key || typeof key !== 'string')
+				return;
+
+			key = `local:${key}`;
+			this.#bag.set(key, data);
+		}
+
+		/**
+		 * Get the value of a replicated meta
+		 * @param {string} key The key of the meta
+		 */
+		getReplicatedMeta(key) {
+			if (!key || typeof key !== 'string')
+				return null;
+
+			key = `replicated:${key}`;
+			return this.#bag.get(key);
+		}
+
+		/**
+		 * Define a replicated meta
+		 * @param {string} key The key of the meta
+		 * @param {*} data Data you want to set
+		 */
+		setReplicatedMeta(key, data) {
+			if (!key || typeof key !== 'string')
+				return;
+
+			if (!isDuplicity) return;
+
+			key = `replicated:${key}`;
+			this.#bag.set(key, data, true);
+		}
+
+		constructor(handle) {
+			const isPlayer = this instanceof Player;
+			this.#bag = getStateBag(`${isPlayer ? 'player' : 'entity'}:${isPlayer ? handle : NetworkGetNetworkIdFromEntity(handle)}`, !isPlayer ? handle : null);
+		}
+	}
+
+	class Player extends Entity {
+		constructor(pid = undefined) {
+			if (isDuplicity && !pid)
+				throw new Error('you must specify a player id');
+			else if (!pid)
+				pid = GetPlayerServerId(PlayerId());
+			super(pid);
+		}
+	};
+
+	Citizen.Entity = Entity;
+	Citizen.Player = Player;
+
 })(this || globalThis);

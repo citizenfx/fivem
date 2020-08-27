@@ -1,4 +1,4 @@
-/// <reference path="./natives_universal.d.ts"/>
+/// <reference path="./natives_server.d.ts"/>
 
 interface IntPtrInitialized {}
 interface FloatPtrInitialized {}
@@ -29,39 +29,39 @@ type InputArgument =
     ResultAsLong |
     ResultAsObject;
 
-interface CitizenInterface {
-    trace(...args: string[]): void
-    setTickFunction(callback: Function): void
-    setEventFunction(callback: Function): void
+// interface CitizenInterface {
+//     trace(...args: string[]): void
+//     setTickFunction(callback: Function): void
+//     setEventFunction(callback: Function): void
 
-    setCallRefFunction(callback: Function): void
-    setDeleteRefFunction(callback: Function): void
-    setDuplicateRefFunction(callback: Function): void
-    canonicalizeRef(ref: number): string
-    invokeFunctionReference(ref: string, args: Uint8Array): Uint8Array
+//     setCallRefFunction(callback: Function): void
+//     setDeleteRefFunction(callback: Function): void
+//     setDuplicateRefFunction(callback: Function): void
+//     canonicalizeRef(ref: number): string
+//     invokeFunctionReference(ref: string, args: Uint8Array): Uint8Array
 
-    getTickCount(): number
-    invokeNative<T = void>(hash: string, ...args: InputArgument[]): T
-    startProfiling(name?: string): void
-    stopProfiling(name?: string): {}
+//     getTickCount(): number
+//     invokeNative<T = void>(hash: string, ...args: InputArgument[]): T
+//     startProfiling(name?: string): void
+//     stopProfiling(name?: string): {}
 
-    pointerValueIntInitialized(): IntPtrInitialized
-    pointerValueFloatInitialized(): FloatPtrInitialized
-    pointerValueInt(): IntPtr
-    pointerValueFloat(): FloatPtr
-    pointerValueVector(): VectorPtr
-    returnResultAnyway(): ReturnResultAnyway
-    resultAsInteger(): ResultAsInteger
-    resultAsFloat(): ResultAsFloat
-    resultAsString(): ResultAsString
-    resultAsVector(): ResultAsVector
-    resultAsLong(): ResultAsLong
-    rsesultAsObject(): ResultAsObject
+//     pointerValueIntInitialized(): IntPtrInitialized
+//     pointerValueFloatInitialized(): FloatPtrInitialized
+//     pointerValueInt(): IntPtr
+//     pointerValueFloat(): FloatPtr
+//     pointerValueVector(): VectorPtr
+//     returnResultAnyway(): ReturnResultAnyway
+//     resultAsInteger(): ResultAsInteger
+//     resultAsFloat(): ResultAsFloat
+//     resultAsString(): ResultAsString
+//     resultAsVector(): ResultAsVector
+//     resultAsLong(): ResultAsLong
+//     rsesultAsObject(): ResultAsObject
 
-    makeRefFunction(refFunction: Function): string
-}
+//     makeRefFunction(refFunction: Function): string
+// }
 
-declare var Citizen: CitizenInterface;
+// declare var Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
 
@@ -91,3 +91,46 @@ declare function clearTick(callback: number): void
 declare var exports: any;
 
 declare var source: string;
+
+declare namespace Citizen {
+    export class Entity {
+        constructor(handle: number);
+        getMeta(key: string): any;
+        setMeta(key: string, data: any): boolean;
+        getReplicatedMeta(key: string): any;
+        setReplicatedMeta(key: string, data: any): boolean;
+    }
+    export class Player extends Entity {
+        constructor(pid?: number)
+    }
+
+    export function trace(...args: string[]): void;
+    export function setTickFunction(callback: Function): void;
+    export function setEventFunction(callback: Function): void;
+
+    export function setCallRefFunction(callback: Function): void;
+    export function setDeleteRefFunction(callback: Function): void;
+    export function setDuplicateRefFunction(callback: Function): void;
+    export function canonicalizeRef(ref: number): string;
+    export function invokeFunctionReference(ref: string, args: Uint8Array): Uint8Array;
+
+    export function getTickCount(): number;
+    export function invokeNative<T = void>(hash: string, ...args: InputArgument[]): T;
+    export function startProfiling(name?: string): void;
+    export function stopProfiling(name?: string): {};
+
+    export function pointerValueIntInitialized(): IntPtrInitialized;
+    export function pointerValueFloatInitialized(): FloatPtrInitialized;
+    export function pointerValueInt(): IntPtr;
+    export function pointerValueFloat(): FloatPtr;
+    export function pointerValueVector(): VectorPtr;
+    export function returnResultAnyway(): ReturnResultAnyway;
+    export function resultAsInteger(): ResultAsInteger;
+    export function resultAsFloat(): ResultAsFloat;
+    export function resultAsString(): ResultAsString;
+    export function resultAsVector(): ResultAsVector;
+    export function resultAsLong(): ResultAsLong;
+    export function rsesultAsObject(): ResultAsObject;
+
+    export function makeRefFunction(refFunction: Function): string;
+}
