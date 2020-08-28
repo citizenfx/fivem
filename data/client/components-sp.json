@@ -33,5 +33,6 @@
 	"scrbind:base",
 	"citizen:scripting:core",
 	"profiles",
-	"net"
+	"net",
+	"fest"
 ]
