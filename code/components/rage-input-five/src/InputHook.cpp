@@ -397,18 +397,21 @@ static HookFunction hookFunction([] ()
 
 	// force input to be handled using WM_KEYUP/KEYDOWN, not DInput/RawInput
 
-	// disable DInput device creation
-	char* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<char>(0);
-	hook::nop(dinputCreate, 200); // that's a lot of nops!
-	hook::nop(dinputCreate + 212, 6);
-	hook::nop(dinputCreate + 222, 6);
+	if (!Is372())
+	{
+		// disable DInput device creation
+		char* dinputCreate = hook::pattern("45 33 C9 FF 50 18 BF 26").count(1).get(0).get<char>(0);
+		hook::nop(dinputCreate, 200); // that's a lot of nops!
+		hook::nop(dinputCreate + 212, 6);
+		hook::nop(dinputCreate + 222, 6);
 
-	// jump over raw input keyboard handling
-	hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
+		// jump over raw input keyboard handling
+		hook::put<uint8_t>(hook::pattern("44 39 2E 75 ? B8 FF 00 00 00").count(1).get(0).get<void>(3), 0xEB);
 
-	// default international keyboard mode to on
-	// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
-	hook::put<uint8_t>(hook::get_pattern("8D 48 EF 41 3B CE 76 0C", 6), 0xEB);
+		// default international keyboard mode to on
+		// (this will always use a US layout to map VKEY scan codes, instead of using the local layout)
+		hook::put<uint8_t>(hook::get_pattern("8D 48 EF 41 3B CE 76 0C", 6), 0xEB);
+	}
 
 	// fix repeated ClipCursor calls (causing DWM load)
 	hook::iat("user32.dll", ClipCursorWrap, "ClipCursor");

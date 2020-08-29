@@ -194,19 +194,26 @@ static void(*g_origCVehicleModelInfo__init)(void* mi, void* data);
 
 static hook::cdecl_stub<void*(uint32_t)> _getExplosionInfo([]()
 {
+	if (Is372())
+	{
+		return (void*)nullptr;
+	}
 	return hook::get_call(hook::get_pattern("BA 52 28 0C 03 85 D2 74 09 8B CA E8", 11));
 });
 
 void CVehicleModelInfo__init(char* mi, char* data)
 {
-	uint32_t explosionHash = *(uint32_t*)(data + 96);
-
-	if (!explosionHash || !_getExplosionInfo(explosionHash))
+	if (!Is372())
 	{
-		explosionHash = HashString("explosion_info_default");
-	}
+		uint32_t explosionHash = *(uint32_t*)(data + 96);
 
-	*(uint32_t*)(data + 96) = explosionHash;
+		if (!explosionHash || !_getExplosionInfo(explosionHash))
+		{
+			explosionHash = HashString("explosion_info_default");
+		}
+
+		*(uint32_t*)(data + 96) = explosionHash;
+	}
 
 	g_origCVehicleModelInfo__init(mi, data);
 }
@@ -363,6 +370,11 @@ static void VehUnloadParserHook(void* par, const char* fn, const char* ext, void
 
 static void VehicleMetadataUnloadMagic()
 {
+	if (Is372())
+	{
+		return;
+	}
+
 	auto funcStart = hook::get_pattern<char>("48 8B D9 48 8D 4C 24 40 E8 ? ? ? ? 48 83", -0x15);
 
 	auto ctorRef = funcStart + 0x1D;
@@ -449,7 +461,10 @@ static HookFunction hookFunction{[] ()
 
 	// disable crashing on train validity check failing
 	// (this is, oddly, a cloud tunable?!)
-	hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
+	if (!Is372())
+	{
+		hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
+	}
 
 	// mismatched NVIDIA drivers may lead to NVAPI calls (NvAPI_EnumPhysicalGPUs/NvAPI_EnumLogicalGPUs, NvAPI_D3D_GetCurrentSLIState) returning a
 	// preposterous amount of SLI GPUs. since SLI is not supported at all for Cfx (due to lack of SLI profile), just ignore GPU count provided by NVAPI/AGS.
@@ -465,7 +480,10 @@ static HookFunction hookFunction{[] ()
 
 	// block *any* CGameWeatherEvent
 	// (hotfix)
-	hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
+	if (!CfxIsSinglePlayer())
+	{
+		hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
+	}
 
 	// corrupt TXD store reference crash (ped decal-related?)
 	static struct : jitasm::Frontend
@@ -526,6 +544,7 @@ static HookFunction hookFunction{[] ()
 		}
 	} carFixStub;
 
+	if (!Is372())
 	{
 		auto location = hook::get_pattern("0F B7 99 ? ? 00 00 EB 38", 0);
 		hook::nop(location, 7);
@@ -888,7 +907,10 @@ static HookFunction hookFunction{[] ()
 	}
 
 	// always create OffscreenBuffer3 so that it can't not exist at CRenderer init time (FIVEM-CLIENT-1290-F)
-	hook::put<uint8_t>(hook::get_pattern("4C 89 25 ? ? ? ? 75 0E 8B", 7), 0xEB);
+	if (!Is372())
+	{
+		hook::put<uint8_t>(hook::get_pattern("4C 89 25 ? ? ? ? 75 0E 8B", 7), 0xEB);
+	}
 	
 	// test: disable 'classification' compute shader users by claiming it is unsupported
 	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
@@ -933,6 +955,7 @@ static HookFunction hookFunction{[] ()
 
 	// CScene_unk_callsBlenderM58: over 50 iterated objects (CEntity+40 == 5, CObject) will lead to a stack buffer overrun
 	// 1604 signature: happy-venus-purple (FIVEM-CLIENT-1604-NEW-18G4)
+	if (!Is372())
 	{
 		static struct : jitasm::Frontend
 		{
@@ -979,7 +1002,10 @@ static HookFunction hookFunction{[] ()
 	MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
 
 	// and to prevent unloading
-	MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+	if (!Is372())
+	{
+		MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+	}
 
 	// patch atPoolBase::Init call for dlDrawListMgr cloth entries
 	{

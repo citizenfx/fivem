@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <CrossBuildRuntime.h>
 #include <GlobalEvents.h>
 #include <GameInit.h>
 
@@ -47,6 +48,7 @@ static HookFunction hookFunction([] ()
 	hook::call(call, CustomTrigger);
 
 	// same for R* editor exit
+	if (!Is372())
 	{
 		auto location = hook::get_pattern<char>("E8 ? ? ? ? 83 3D ? ? ? ? 08 75 05 E8", 0x1A);
 		hook::call(location, ReplayEditorExit);

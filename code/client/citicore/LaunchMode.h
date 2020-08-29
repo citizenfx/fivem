@@ -10,7 +10,7 @@ inline bool CfxIsSinglePlayer()
 
 	if (!isSinglePlayerSet)
 	{
-		if (wcsstr(GetCommandLineW(), L" -sp") != nullptr)
+		if (wcsstr(GetCommandLineW(), L" -sp") != nullptr || wcsstr(GetCommandLineW(), L"b372") != nullptr)
 		{
 			isSinglePlayer = true;
 		}

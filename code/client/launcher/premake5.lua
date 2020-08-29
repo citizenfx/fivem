@@ -9,7 +9,7 @@ local function isGamePersonality(name)
 		return isLauncherPersonality(name)
 	end
 
-	if name == 'game' or name == 'game_2060' then
+	if name == 'game' or name == 'game_2060' or name == 'game_372' then
 		return true
 	end
 	
@@ -56,7 +56,10 @@ local function launcherpersonality(name)
 		
 		if isGamePersonality(name) then
 			if _OPTIONS['game'] == 'five' then
-				local gameBuild = (name == 'game_2060') and '2060_2' or '1604'
+				local gameBuild = '1604'
+				
+				if name == 'game_2060' then gameBuild = '2060_2' end
+				if name == 'game_372' then gameBuild = '372' end
 			
 				postbuildcommands {
 					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
@@ -147,6 +150,7 @@ launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game'
+	launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 end
 

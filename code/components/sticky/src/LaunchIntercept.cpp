@@ -28,7 +28,7 @@ void Component_RunPreInit()
 
 	if (hostData->IsMasterProcess() && !debugMode)
 	{
-		auto processName = MakeCfxSubProcess(L"GameProcess.exe", !Is2060() ? L"game" : L"game_2060");
+		auto processName = MakeCfxSubProcess(L"GameProcess.exe", Is372() ? L"game_372" : (!Is2060() ? L"game" : L"game_2060"));
 
 		STARTUPINFOW si = { 0 };
 		si.cb = sizeof(si);

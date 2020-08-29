@@ -1004,6 +1004,11 @@ static void MapFuncHook(void* a1, uint32_t controlIdx, void* a3, void* a4)
 
 static HookFunction hookFunction([]()
 {
+	if (Is372())
+	{
+		return;
+	}
+
 	console::GetDefaultContext()->OnSaveConfiguration.Connect([](const std::function<void(const std::string&)>& writeLine)
 	{
 		writeLine("unbindall");

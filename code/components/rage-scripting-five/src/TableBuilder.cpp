@@ -246,7 +246,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		versionIdx = 1290;
 	}
-	else if (strncmp(buildString, "Jun  9 2017", 6) == 0)
+	else if (strncmp(buildString, "Jun  9 2017", 11) == 0)
 	{
 		versionIdx = 1103;
 	}
@@ -262,8 +262,15 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		versionIdx = 393;
 	}
+	else if (strncmp(buildString, "Jun  9 2015", 11) == 0)
+	{
+		versionIdx = 372;
+	}
 
-	Instance<ICoreGameInit>::Get()->SetData("gameBuild", fmt::sprintf("%d", versionIdx));
+	if (!Is372())
+	{
+		Instance<ICoreGameInit>::Get()->SetData("gameBuild", fmt::sprintf("%d", versionIdx));
+	}
 
 	// early out if no version index matched
 	if (versionIdx < 0)
@@ -290,8 +297,12 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		}
 	}
 
+	if (Is372())
+	{
+		assert(maxVersion == 2);
+	}
 	// 2060
-	if (Is2060())
+	else if (Is2060())
 	{
 		assert(maxVersion == 22);
 	}

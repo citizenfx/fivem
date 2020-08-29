@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#include <LaunchMode.h>
 #include <Hooking.h>
 
 #include <regex>
@@ -310,6 +312,11 @@ static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, floa
 
 static HookFunction hookFunction([]()
 {
+	if (CfxIsSinglePlayer())
+	{
+		return;
+	}
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("40 88 6C 24 28 44 88 44 24 20 4C 8B C3 48 8B D6", 16)), ParseHtmlStub, (void**)&g_parseHtml);
 	MH_CreateHook(hook::get_pattern("48 8B F1 44 8D 6F 01 48", -48), GFxEditTextCharacterDef__SetTextValue, (void**)&g_origGFxEditTextCharacterDef__SetTextValue);

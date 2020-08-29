@@ -1040,7 +1040,12 @@ std::map<std::string, std::string> UpdateGameCache()
 {
 	// 1604/1868 toggle
 #ifdef GTA_FIVE
-	if (!Is2060())
+	if (Is372())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "ae6e9cc116e8435e4dcfb5b870deee00a8b0904c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/GTA5.exe", 55559560, 399999536 });
+		g_requiredEntries.push_back({ "update/update.rpf", "b72884c9af7170908f558ec5d629d805857b80f2", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/update/update.rpf", 352569344, 399999536 });
+	}
+	else if (!Is2060())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/GTA5.exe", 72484280, 1031302600 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600 });
