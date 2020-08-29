@@ -114,7 +114,11 @@ static HookFunction hookFunction([] ()
 // functions
 static hook::thiscall_stub<void(CGameScriptHandlerNetwork*, rage::scrThread*)> scriptHandlerNetwork__ctor([] ()
 {
-	//return hook::pattern("33 C0 48 89 83 A0 00 00 00 66 89 83 A8").count(1).get(0).get<void>(-0x18);
+	if (Is372())
+	{
+		return hook::pattern("33 C0 48 89 83 A0 00 00 00 66 89 83 A8").count(1).get(0).get<void>(-0x18);
+	}
+
 	return hook::pattern("33 C0 48 89 83 A0 00 00 00 89 83 A8 00 00 00 66 89 83 AC 00").count(1).get(0).get<void>(-0x18);
 });
 

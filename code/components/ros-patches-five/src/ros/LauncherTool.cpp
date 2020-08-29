@@ -25,6 +25,8 @@
 #include <LaunchMode.h>
 #include <MinHook.h>
 
+#include <CrossBuildRuntime.h>
+
 #include "Hooking.h"
 
 bool CanSafelySkipLauncher()
@@ -163,6 +165,16 @@ static void Steam_Run(const boost::program_options::variables_map& map)
 
 #include <wincrypt.h>
 
+static HLOCAL WINAPI LocalFreeStub(HLOCAL hMem)
+{
+	if (hMem && strstr((char*)hMem, "Entrust "))
+	{
+		return NULL;
+	}
+
+	return LocalFree(hMem);
+}
+
 static DWORD WINAPI CertGetNameStringStubW(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags, _In_opt_ void *pvTypePara, _Out_writes_to_opt_(cchNameString, return) LPWSTR pszNameString, _In_ DWORD cchNameString)
 {
 	DWORD origSize = CertGetNameStringW(pCertContext, dwType, dwFlags, pvTypePara, nullptr, 0);
@@ -203,6 +215,14 @@ static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In
 	if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
 	{
 		newName = "Entrust Code Signing CA - OVCS1";
+	}
+	else if (Is372() && certString == "Entrust Code Signing CA - OVCS1")
+	{
+		newName = "Entrust Code Signing Certification Authority - L1D";
+	}
+	else if (Is372() && certString == "Rockstar Games, Inc.")
+	{
+		newName = "Take-Two Interactive Software, Inc.";
 	}
 
 	// return if no such name
@@ -656,6 +676,14 @@ static HookFunction hookFunction([] ()
 	if (!IsWindows7SP1OrGreater())
 	{
 		FatalError("Windows 7 SP1 or higher is required to run the FiveM ros:five component.");
+	}
+
+	
+	if (Is372())
+	{
+		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
+		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
+		hook::iat("kernel32.dll", LocalFreeStub, "LocalFree");
 	}
 
     hook::iat("user32.dll", LoadIconStub, "LoadIconA");

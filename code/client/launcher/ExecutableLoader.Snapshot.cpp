@@ -9,7 +9,7 @@
 // 1604
 // 1868 now...!
 // 2060 realities
-#define TRIGGER_EP ((Is2060()) ? 0x141796A34 : 0x14175DE00)
+#define TRIGGER_EP (Is372() ? 0x141623FC8 : ((Is2060()) ? 0x141796A34 : 0x14175DE00))
 #elif defined(IS_RDR3)
 // 1207.58
 //#define TRIGGER_EP 0x142D55C2C

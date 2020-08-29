@@ -19,6 +19,7 @@
 #include <RelativeDevice.h>
 
 #include <CL2LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 #include <Error.h>
 
@@ -149,6 +150,7 @@ static InitFunction initFunction([] ()
 		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
 
+		if (!Is372())
 		{
 			std::string narrowPath;
 

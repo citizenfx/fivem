@@ -12,6 +12,7 @@
 #include <Error.h>
 
 #include <LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 #ifndef IS_FXSERVER
 #include <CL2LaunchMode.h>
@@ -49,6 +50,11 @@ void ComponentLoader::Initialize()
 	if (CfxIsSinglePlayer())
 	{
 		componentsName = _P("components-sp.json");
+	}
+
+	if (Is372())
+	{
+		componentsName = _P("components-sp372.json");
 	}
 
 	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));

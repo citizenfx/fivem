@@ -100,6 +100,11 @@ static volatile bool g_isNetworkKilled;
 static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 {
 	// trailing byte differs between 323 and 505
+	if (Is372())
+	{
+		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
+	}
+
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 });
 
@@ -1644,9 +1649,13 @@ static HookFunction hookFunction([] ()
 	// disable eventschedule.json refetching on failure
 	//hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
 	// 1493+:
-	hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
+	if (!Is372())
+	{
+		hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
+	}
 
 	// don't set pause on focus loss, force it to 0
+	if (!Is372())
 	{
 		auto location = hook::get_pattern<char>("0F 95 05 ? ? ? ? E8 ? ? ? ? 48 85 C0");
 		auto addy = hook::get_address<char*>(location + 3);
@@ -1681,7 +1690,7 @@ static HookFunction hookFunction([] ()
 	// fix 32:9 being interpreted as 3 spanned monitors
 	// (change 3.5 aspect cap to 3.6, which is enough to contain 3x 5:4, but does not contain 2x16:9 anymore)
 	{
-		auto location = hook::get_pattern<char>("0F 2F 35 ? ? ? ? 76 54 48 8B CF", 3);
+		auto location = hook::get_pattern<char>("EB ? 0F 2F 35 ? ? ? ? 76 ? 48 8B CF E8F", 5);
 		auto stubLoc = hook::AllocateStubMemory(4);
 
 		*(float*)stubLoc = 3.6f;

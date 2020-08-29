@@ -283,6 +283,11 @@ static void OnInputLanguageChange()
 
 static HookFunction hookFunction([]()
 {
+	if (Is372())
+	{
+		return;
+	}
+
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 45 88 48 3B D8 74 1E");
 		hook::set_call(&g_origLoadLayout, location);
