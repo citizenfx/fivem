@@ -3677,23 +3677,6 @@ struct CRemoveWeaponEvent
     MSGPACK_DEFINE_MAP(pedId, weaponType);
 };
 
-struct CRemoveAllWeaponsEvent
-{
-    void Parse(rl::MessageBuffer& buffer)
-    {
-        pedId = buffer.Read<uint16_t>(13);
-    }
-
-    inline std::string GetName()
-    {
-        return "removeAllWeaponEvent";
-    }
-
-    int pedId;
-
-    MSGPACK_DEFINE_MAP(pedId);
-};
-
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
 {
@@ -3823,7 +3806,6 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case GIVE_WEAPON_EVENT: return GetHandler<CGiveWeaponEvent>(instance, client, std::move(buffer));
 		case REMOVE_WEAPON_EVENT: return GetHandler<CRemoveWeaponEvent>(instance, client, std::move(buffer));
-		case REMOVE_ALL_WEAPONS_EVENT: return GetHandler<CRemoveAllWeaponsEvent>(instance, client, std::move(buffer));
 		case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
