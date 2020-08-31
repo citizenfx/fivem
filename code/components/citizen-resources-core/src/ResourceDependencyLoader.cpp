@@ -96,7 +96,7 @@ static InitFunction initFunction([]()
 			{
 				auto dependant = manager->GetResource(dep.second);
 
-				if (dependant.GetRef())
+				if (dependant.GetRef() && dependant->GetName() != resource->GetName())
 				{
 					dependant->Stop();
 				}
