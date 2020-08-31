@@ -20,13 +20,13 @@
 					#ServerList_Premium
 				</span>
 			</a>
-			<a [routerLink]="['/servers/history']" class="nav-item subnav-item" routerLinkActive="active">
+			<a [routerLink]="['/servers/history']" class="nav-item subnav-item webapp-hide" routerLinkActive="active">
 				<span class="material-icons-outlined history">history</span>
 				<span class="label" l10nTranslate>
 					#ServerList_History
 				</span>
 			</a>
-			<a [routerLink]="['/servers/favorites']" class="nav-item subnav-item" routerLinkActive="active"
+			<a [routerLink]="['/servers/favorites']" class="nav-item subnav-item webapp-hide" routerLinkActive="active"
 				*ngIf="gameName !== 'rdr3'">
 				<span class="material-icons-outlined favorites">grade</span>
 				<span class="label" l10nTranslate>

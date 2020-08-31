@@ -22,6 +22,8 @@ export class AppComponent implements OnInit {
 	minModeSetUp = false;
 	changelogShown = false;
 
+	showSiteNavbar = !!environment.web;
+
 	classes: { [key: string]: boolean } = {};
 
 	get minMode() {

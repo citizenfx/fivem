@@ -29,6 +29,10 @@
 
 	z-index: 1;
 
+	@include webapp() {
+		padding-left: 0;
+	}
+
 	@include theme() using ($theme) {
 		.cfx-header-item {
 			&.spin {

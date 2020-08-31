@@ -158,6 +158,22 @@ $themes: $themeLight $themeDark $themeRdr;
     );
 }
 
+@mixin webapp() {
+	:host-context(.webapp) & {
+		@content();
+	}
+}
+@mixin webappWorkaround() {
+	:host-context(.webapp) {
+		@content();
+	}
+}
+@mixin webappNoHost() {
+	.webapp & {
+		@content();
+	}
+}
+
 @mixin theme() {
     @each $theme in $themes {
         :host-context(.theme-#{map-get($theme, name)}) & {

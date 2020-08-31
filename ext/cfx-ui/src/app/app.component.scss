@@ -20,11 +20,16 @@ div.theRoot {
 
 :host {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 
 	width: 100vw;
 	height: 100vh;
+}
+
+.site-navbar {
+	z-index: 200;
 }
 
 .no-header-safe-zone {
@@ -39,7 +44,6 @@ div.theRoot {
 
 	flex-direction: column;
 
-	--app-offset: var(--q4);
 	--app-width: calc(var(--width) - var(--app-offset));
 	--app-height: calc(var(--height) - var(--app-offset));
 

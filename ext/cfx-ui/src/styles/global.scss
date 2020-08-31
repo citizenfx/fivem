@@ -1,5 +1,6 @@
 @import "variables";
 @import "controls";
+@import "site-header";
 
 @import "~balloon-css/balloon.css";
 @import "~flag-icon-css/css/flag-icon.css";
@@ -111,11 +112,57 @@ body {
 	--fs-6: calc(var(--fs-1) * 2.25);
 	--fs-7: calc(var(--fs-1) * 2.5);
 
+	--app-offset: var(--q4);
+
 	--header-height: var(--q3);
 	--header-safe-left-raw: var(--q3);
 	--header-safe-right-raw: var(--q9);
 	--header-safe-left: calc(var(--header-safe-left-raw) + var(--qh));
 	--header-safe-right: calc(var(--header-safe-right-raw) + var(--qh));
+}
+
+.ad {
+	display: none;
+}
+
+.webapp {
+	--header-save-left-raw: 0px;
+	--header-safe-right-raw: 0px;
+	--header-safe-left: 0px;
+	--header-safe-right: 0px;
+
+	#bg {
+		--my-background-image: url(https://fivem.net/73663161434ea35812a20da2e517f102.jpg);
+	}
+
+	.webapp-hide {
+		display: none !important;
+	}
+
+	@include themeIsHost() using ($theme) {
+		.ad {
+			@include backdropPane;
+
+			box-shadow: 0 2px 0 gtv($theme, shadeColor) inset, 0 -2px 0 gtv($theme, shadeColor) inset;
+			// border-top: solid 2px gtv($theme, accentColor1);
+			background-image: url(../assets/images/bgpat.png);
+			background-size: 200px;
+			background-color: rgba(gtv($theme, bgColor), .4);
+		}
+	}
+
+	.ad {
+		text-align: center;
+		margin-top: var(--qh);
+		padding-top: var(--qh);
+		padding-bottom: var(--qh);
+	}
+
+	@media only screen and (min-width: 700px) {
+		.ad {
+			display: block;
+		}
+	}
 }
 
 app-root {

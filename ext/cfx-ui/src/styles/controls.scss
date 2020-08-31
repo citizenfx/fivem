@@ -123,6 +123,10 @@ input[type="search"] {
 	input {
 		width: 0;
 		height: 0;
+
+		@-moz-document url-prefix() {
+			display: none;
+		}
 	}
 
 	input:checked + .cfx-checkbox-indicator {
