@@ -197,6 +197,14 @@ input[type="search"] {
 		transition: all .2s ease;
 	}
 
+	&.label-left {
+		.label {
+			left: auto;
+			right: var(--header-height);
+			padding: var(--q1) 0 var(--q1) var(--q1);
+		}
+	}
+
 	&.disabled {
 		pointer-events: none;
 	}

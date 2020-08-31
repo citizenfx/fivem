@@ -86,5 +86,6 @@
     "#Yes": "Yes",
 	"#No": "No",
 	"#EmptyServers_History": "Servers you have played on before will appear here. Check out the server list and join one now!",
-	"#EmptyServers_Favorites": "Your favorite servers will appear here, just click the star icon next to your favorite server!"
+	"#EmptyServers_Favorites": "Your favorite servers will appear here, just click the star icon next to your favorite server!",
+	"#RentServer": "Rent a server"
 }
