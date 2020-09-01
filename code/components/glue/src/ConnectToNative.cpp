@@ -18,6 +18,7 @@
 #include <CoreConsole.h>
 #include <ICoreGameInit.h>
 #include <GameInit.h>
+#include <ScriptEngine.h>
 //New libs needed for saveSettings
 #include <fstream>
 #include <sstream>
@@ -623,6 +624,11 @@ static InitFunction initFunction([] ()
 	OnKillNetwork.Connect([](const char*)
 	{
 		g_connected = false;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SEND_SDK_MESSAGE", [](fx::ScriptContext& context)
+	{
+		ep.Call("sdk:message", std::string(context.GetArgument<const char*>(0)));
 	});
 
 	static ConsoleCommand connectCommand("connect", [](const std::string& server)

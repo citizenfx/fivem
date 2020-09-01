@@ -42,7 +42,9 @@
 
 #include <LauncherIPC.h>
 
-static std::function<ipc::Endpoint&()> getEP;
+#include <SDK.h>
+
+static std::function<ipc::Endpoint&()> proxyLauncherTalk;
 
 namespace fxdk
 {
@@ -51,73 +53,17 @@ void Render();
 
 void ResizeRender(int w, int h);
 
-ipc::Endpoint& GetIPC()
+ipc::Endpoint& GetLauncherTalk()
 {
-	return getEP();
+	return proxyLauncherTalk();
 }
 }
 
-class SDKInit : public ICoreGameInit
-{
-public:
-	SDKInit()
-	{
-		SetVariable("networkInited");
-	}
-
-	virtual bool GetGameLoaded() override
-	{
-		return false;
-	}
-	virtual void KillNetwork(const wchar_t* errorString) override
-	{
-	}
-	virtual bool TryDisconnect() override
-	{
-		return false;
-	}
-	virtual void SetPreventSavePointer(bool* preventSaveValue) override
-	{
-	}
-	virtual void LoadGameFirstLaunch(bool (*callBeforeLoad)()) override
-	{
-	}
-	virtual void ReloadGame() override
-	{
-	}
-	virtual bool TriggerError(const char* errorString) override
-	{
-		return false;
-	}
-};
-
-class SimpleApp : public CefApp, public CefBrowserProcessHandler
-{
-public:
-	SimpleApp();
-
-	// CefApp methods:
-	virtual CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler()
-	OVERRIDE
-	{
-		return this;
-	}
-
-	// CefBrowserProcessHandler methods:
-	virtual void OnContextInitialized() OVERRIDE;
-
-	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) OVERRIDE;
-
-private:
-	// Include the default reference counting implementation.
-	IMPLEMENT_REFCOUNTING(SimpleApp);
-};
-
-SimpleApp::SimpleApp()
+SDKCefApp::SDKCefApp()
 {
 }
 
-void SimpleApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
+void SDKCefApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	command_line->AppendSwitch("disable-extensions");
 	command_line->AppendSwitch("disable-pdf-extension");
@@ -651,89 +597,7 @@ private:
 
 } // namespace
 
-class SimpleHandler : public CefClient,
-					  public CefDisplayHandler,
-					  public CefLifeSpanHandler,
-					  public CefLoadHandler,
-					  public CefRequestHandler,
-					  public CefResourceRequestHandler
-{
-public:
-	explicit SimpleHandler();
-	~SimpleHandler();
-
-	// Provide access to the single global instance of this object.
-	static SimpleHandler* GetInstance();
-
-	// CefClient methods:
-	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() OVERRIDE
-	{
-		return this;
-	}
-	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() OVERRIDE
-	{
-		return this;
-	}
-	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() OVERRIDE
-	{
-		return this;
-	}
-	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() OVERRIDE
-	{
-		return this;
-	}
-
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) OVERRIDE;
-
-	// CefDisplayHandler methods:
-	virtual void OnTitleChange(CefRefPtr<CefBrowser> browser,
-	const CefString& title) OVERRIDE;
-
-	// CefLifeSpanHandler methods:
-	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) OVERRIDE;
-	virtual bool DoClose(CefRefPtr<CefBrowser> browser) OVERRIDE;
-	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) OVERRIDE;
-
-	// CefLoadHandler methods:
-	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) OVERRIDE;
-
-	virtual void OnLoadError(CefRefPtr<CefBrowser> browser,
-	CefRefPtr<CefFrame> frame,
-	ErrorCode errorCode,
-	const CefString& errorText,
-	const CefString& failedUrl) OVERRIDE;
-
-	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) OVERRIDE;
-
-	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
-	{
-		return this;
-	}
-
-	// Request that all existing browser windows close.
-	void CloseAllBrowsers(bool force_close);
-
-	bool IsClosing() const
-	{
-		return is_closing_;
-	}
-
-private:
-	// Platform-specific implementation.
-	void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
-	const CefString& title);
-
-	// List of existing browser windows. Only accessed on the CEF UI thread.
-	typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
-	BrowserList browser_list_;
-
-	bool is_closing_;
-
-	// Include the default reference counting implementation.
-	IMPLEMENT_REFCOUNTING(SimpleHandler);
-};
-
-void SimpleApp::OnContextInitialized()
+void SDKCefApp::OnContextInitialized()
 {
 	CEF_REQUIRE_UI_THREAD();
 }
@@ -741,29 +605,29 @@ void SimpleApp::OnContextInitialized()
 namespace
 {
 
-SimpleHandler* g_instance = NULL;
+SDKCefClient* g_instance = NULL;
 
 } // namespace
 
-SimpleHandler::SimpleHandler()
+SDKCefClient::SDKCefClient()
 	: is_closing_(false)
 {
 	DCHECK(!g_instance);
 	g_instance = this;
 }
 
-SimpleHandler::~SimpleHandler()
+SDKCefClient::~SDKCefClient()
 {
 	g_instance = NULL;
 }
 
 // static
-SimpleHandler* SimpleHandler::GetInstance()
+SDKCefClient* SDKCefClient::GetInstance()
 {
 	return g_instance;
 }
 
-void SimpleHandler::OnTitleChange(CefRefPtr<CefBrowser> browser,
+void SDKCefClient::OnTitleChange(CefRefPtr<CefBrowser> browser,
 const CefString& title)
 {
 	CEF_REQUIRE_UI_THREAD();
@@ -778,15 +642,22 @@ const CefString& title)
 	}
 }
 
-void SimpleHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser)
+void SDKCefClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 {
 	CEF_REQUIRE_UI_THREAD();
 
 	// Add to the list of existing browsers.
 	browser_list_.push_back(browser);
+
+	browser_ = browser;
 }
 
-bool SimpleHandler::DoClose(CefRefPtr<CefBrowser> browser)
+CefRefPtr<CefBrowser> SDKCefClient::GetBrowser()
+{
+	return browser_;
+}
+
+bool SDKCefClient::DoClose(CefRefPtr<CefBrowser> browser)
 {
 	CEF_REQUIRE_UI_THREAD();
 
@@ -804,7 +675,7 @@ bool SimpleHandler::DoClose(CefRefPtr<CefBrowser> browser)
 	return false;
 }
 
-void SimpleHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
+void SDKCefClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
 	CEF_REQUIRE_UI_THREAD();
 
@@ -826,7 +697,7 @@ void SimpleHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 	}
 }
 
-void SimpleHandler::OnLoadError(CefRefPtr<CefBrowser> browser,
+void SDKCefClient::OnLoadError(CefRefPtr<CefBrowser> browser,
 CefRefPtr<CefFrame> frame,
 ErrorCode errorCode,
 const CefString& errorText,
@@ -839,12 +710,12 @@ const CefString& failedUrl)
 		return;
 }
 
-void SimpleHandler::CloseAllBrowsers(bool force_close)
+void SDKCefClient::CloseAllBrowsers(bool force_close)
 {
 	if (!CefCurrentlyOn(TID_UI))
 	{
 		// Execute on the UI thread.
-		CefPostTask(TID_UI, base::Bind(&SimpleHandler::CloseAllBrowsers, this,
+		CefPostTask(TID_UI, base::Bind(&SDKCefClient::CloseAllBrowsers, this,
 							force_close));
 		return;
 	}
@@ -859,14 +730,12 @@ void SimpleHandler::CloseAllBrowsers(bool force_close)
 	CefQuitMessageLoop();
 }
 
-auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+auto SDKCefClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
 {
 	return RV_CONTINUE;
 }
 
-fwEvent<std::string_view, std::string_view> OnInvokeSDKNative;
-
-bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
+bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
 	auto messageName = message->GetName();
 
@@ -876,7 +745,7 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 		auto nativeType = args->GetString(0);
 		auto messageData = args->GetString(1);
 
-		OnInvokeSDKNative(ToNarrow(nativeType.ToWString()), ToNarrow(messageData.ToWString()));
+		fxdk::GetLauncherTalk().Call("sdk:invokeNative", std::string{ nativeType }, std::string{ messageData });
 	}
 	else if (messageName == "resizeGame")
 	{
@@ -890,9 +759,8 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 	return true;
 }
 
-void SimpleHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
+void SDKCefClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
 {
-
 }
 
 namespace fx
@@ -939,7 +807,7 @@ private:
 
 void MakeBrowser(const std::string& url)
 {
-	CefRefPtr<SimpleHandler> handler(new SimpleHandler());
+	CefRefPtr<SDKCefClient> handler(new SDKCefClient());
 
 	// Specify CEF browser settings here.
 	CefBrowserSettings browser_settings;
@@ -971,7 +839,7 @@ void SdkMain()
 
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", nullptr);
 
-	ipc::Endpoint ep("launcherTalk", true);
+	ipc::Endpoint launcherTalk("launcherTalk", true);
 
 	Instance<ICoreGameInit>::Set(new SDKInit());
 
@@ -984,20 +852,21 @@ void SdkMain()
 
 	resman->MakeCurrent();
 
-	ep.Bind("hi", [resman]()
+	launcherTalk.Bind("hi", [resman]()
 	{
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameLaunched", {});
 	});
-
-	getEP = [&ep]() -> ipc::Endpoint&
+	launcherTalk.Bind("sdk:message", [](const std::string& message)
 	{
-		return ep;
-	};
+		auto jsc = fmt::sprintf("window.postMessage(%s, '*')", message);
 
-	OnInvokeSDKNative.Connect([&ep](std::string_view nativeType, std::string_view argumentData)
-	{
-		ep.Call("sdk:invokeNative", std::string{ nativeType }, std::string{ argumentData });
+		SDKCefClient::GetInstance()->GetBrowser()->GetMainFrame()->ExecuteJavaScript(jsc, "fxdk://sdk-message", 0);
 	});
+
+	proxyLauncherTalk = [&launcherTalk]() -> ipc::Endpoint&
+	{
+		return launcherTalk;
+	};
 
 	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 	{
@@ -1078,10 +947,10 @@ void SdkMain()
 	CefString(&settings.locales_dir_path).FromWString(resPath);
 	CefString(&settings.cache_path).FromWString(cachePath);
 
-	// SimpleApp implements application-level callbacks for the browser process.
+	// SDKCefApp implements application-level callbacks for the browser process.
 	// It will create the first browser instance in OnContextInitialized() after
 	// CEF has initialized.
-	CefRefPtr<SimpleApp> app(new SimpleApp);
+	CefRefPtr<SDKCefApp> app(new SDKCefApp);
 
 	trace(__FUNCTION__ ": Initializing CEF.\n");
 
@@ -1099,7 +968,7 @@ void SdkMain()
 	// setup uv loop
 	auto loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain");
 
-	loop->EnqueueCallback([resman, &ep, loop]()
+	loop->EnqueueCallback([resman, &launcherTalk, loop]()
 	{
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 
@@ -1124,11 +993,11 @@ void SdkMain()
 		static uv_timer_t tickTimer;
 
 		uv_timer_init(loop->GetLoop(), &tickTimer);
-		uv_timer_start(&tickTimer, UvPersistentCallback(&tickTimer, [resman, &ep](uv_timer_t*)
+		uv_timer_start(&tickTimer, UvPersistentCallback(&tickTimer, [resman, &launcherTalk](uv_timer_t*)
 								   {
 									   resman->Tick();
 
-									   ep.RunFrame();
+									   launcherTalk.RunFrame();
 								   }),
 		frameTime, frameTime);
 	});

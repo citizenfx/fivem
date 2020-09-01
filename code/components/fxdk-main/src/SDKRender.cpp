@@ -201,7 +201,7 @@ void InitRender()
 	rgd->produceIdx = 1;
 }
 
-extern ipc::Endpoint& GetIPC();
+extern ipc::Endpoint& GetLauncherTalk();
 static bool widthChanged = false;
 
 void ResizeRender(int w, int h)
@@ -215,7 +215,7 @@ void ResizeRender(int w, int h)
 
 		widthChanged = true;
 
-		GetIPC().Call("resizeWindow", w, h);
+		GetLauncherTalk().Call("resizeWindow", w, h);
 	}
 }
 
