@@ -61,10 +61,12 @@ export class ServersListComponent implements OnInit, OnDestroy {
 
 		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
 			this.serversLoaded = loaded;
+			this.changeDetectorRef.markForCheck();
 		});
 
 		this.filtersService.sortingInProgress.subscribe((inProgress) => {
 			this.sortingComplete = !inProgress;
+			this.changeDetectorRef.markForCheck();
 		});
 
 		this.filtersService.sortedServersUpdate.subscribe((servers) => {
