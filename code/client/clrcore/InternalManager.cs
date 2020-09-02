@@ -133,12 +133,6 @@ namespace CitizenFX.Core
 			{
 				try
 				{
-					if ((type.Name.Count(a => (uint)a > 256)) > (type.Name.Length / 4))
-					{
-						Debug.WriteLine($"Skipping unparsable script type {type.FullName}.");
-						continue;
-					}
-
 					var derivedScript = Activator.CreateInstance(type) as BaseScript;
 					
 					Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
