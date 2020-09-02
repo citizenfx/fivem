@@ -131,4 +131,13 @@ static InitFunction initFunction([]()
 
 		return CefV8Value::CreateUndefined();
 	});
+
+	nuiApp->AddV8Handler("openDevTools", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		auto msg = CefProcessMessage::Create("openDevTools");
+
+		CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, msg);
+
+		return CefV8Value::CreateUndefined();
+	});
 }, 1);

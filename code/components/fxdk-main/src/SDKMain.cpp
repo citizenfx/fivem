@@ -756,6 +756,15 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 
 		fxdk::ResizeRender(width, height);
 	}
+	else if (messageName == "openDevTools")
+	{
+		CefWindowInfo wi;
+		wi.SetAsPopup(NULL, "FxDK DevTools");
+
+		CefBrowserSettings s;
+
+		browser->GetHost()->ShowDevTools(wi, SDKCefClient::GetInstance(), s, {});
+	}
 
 	return true;
 }

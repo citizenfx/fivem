@@ -149,6 +149,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 	window->SetValue("sendMouseWheel", CefV8Value::CreateFunction("sendMouseWheel", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("setKeyState", CefV8Value::CreateFunction("setKeyState", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("setMouseButtonState", CefV8Value::CreateFunction("setMouseButtonState", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("openDevTools", CefV8Value::CreateFunction("openDevTools", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 }
 
 void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
