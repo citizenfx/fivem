@@ -444,8 +444,33 @@ static int GetHandlingByHashStub(const uint32_t& hash, bool ye)
 	return a;
 }
 
+static void (*g_origInitAnim)(void*);
+
+static void InitAnimWithCheck(char* obj)
+{
+	g_origInitAnim(obj);
+
+	auto ptr = *(char**)(obj + 80);
+
+	if (!ptr || !(*(char**)(ptr + 48)))
+	{
+		char* arch = *(char**)(obj + 32);
+		uint32_t objHash = *(uint32_t*)(arch + 24);
+
+		FatalError("Diagnostic error OCR1: Expression dictionary use on invalid object.\nObject ID: %08x\nPlease report this info.", objHash);
+	}
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// TEMP DBG for investigation: don't crash blindly (but error cleanly) on odd object spawn
+	if (!Is2060())
+	{
+		auto location = hook::get_pattern("48 85 C0 74 43 48 8B CE E8 ? ? ? ? 48 8B", 8);
+		hook::set_call(&g_origInitAnim, location);
+		hook::call(location, InitAnimWithCheck);
+	}
+
 	// set handling data for ADDER instead of -1 if wrong
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("83 C8 FF 84 D2 74 10", -4), GetHandlingByHashStub, (void**)&g_origGetHandlingByHash);
