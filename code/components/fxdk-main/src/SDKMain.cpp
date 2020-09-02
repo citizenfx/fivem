@@ -43,6 +43,7 @@
 #include <LauncherIPC.h>
 
 #include <SDK.h>
+#include <console\OptionTokenizer.h>
 
 static std::function<ipc::Endpoint&()> proxyLauncherTalk;
 
@@ -836,6 +837,7 @@ void SdkMain()
 #ifdef _WIN32
 	timeBeginPeriod(1);
 #endif
+	ConVar<std::string> sdkUrlVar("sdk_url", ConVar_None, "http://localhost:35419/");
 
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", nullptr);
 
@@ -1034,10 +1036,60 @@ class SDKMain
 };
 
 static SDKMain g_main;
+static std::vector<ProgramArguments> g_argumentList;
 
 DECLARE_INSTANCE_TYPE(SDKMain);
 
 static InitFunction initFunction([]()
 {
+	// initialize console arguments
+	std::vector<std::pair<std::string, std::string>> setList;
+
+	auto commandLine = GetCommandLineW();
+
+	{
+		wchar_t* s = commandLine;
+
+		if (*s == L'"')
+		{
+			++s;
+			while (*s)
+			{
+				if (*s++ == L'"')
+				{
+					break;
+				}
+			}
+		}
+		else
+		{
+			while (*s && *s != L' ' && *s != L'\t')
+			{
+				++s;
+			}
+		}
+
+		while (*s == L' ' || *s == L'\t')
+		{
+			s++;
+		}
+
+		try
+		{
+			std::tie(g_argumentList, setList) = TokenizeCommandLine(ToNarrow(s));
+		}
+		catch (std::runtime_error& e)
+		{
+			trace("couldn't parse command line: %s\n", e.what());
+		}
+	}
+
+	se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+
+	for (const auto& set : setList)
+	{
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
+	}
+
 	Instance<SDKMain>::Set(&g_main);
 });

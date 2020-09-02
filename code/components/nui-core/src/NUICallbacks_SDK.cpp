@@ -16,7 +16,6 @@
 #include <shellapi.h>
 #include <ReverseGameData.h>
 #include <HostSharedData.h>
-#include <NUIWindowManager.h>
 
 static InitFunction initFunction([]()
 {
