@@ -540,9 +540,15 @@ public:
 		// Give keyboard focus to the browser view.
 		browser_view_->RequestFocus();
 
+		static bool hwndAssigned = false;
+
 		// Make wonders!
-		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-		rgd->mainWindowHandle = window->GetWindowHandle();
+		if (!hwndAssigned) {
+			hwndAssigned = true;
+
+			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+			rgd->mainWindowHandle = window->GetWindowHandle();
+		}
 	}
 
 	void OnWindowDestroyed(CefRefPtr<CefWindow> window) OVERRIDE
@@ -649,13 +655,11 @@ void SDKCefClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
 	// Add to the list of existing browsers.
 	browser_list_.push_back(browser);
-
-	browser_ = browser;
 }
 
 CefRefPtr<CefBrowser> SDKCefClient::GetBrowser()
 {
-	return browser_;
+	return browser_list_.front();
 }
 
 bool SDKCefClient::DoClose(CefRefPtr<CefBrowser> browser)

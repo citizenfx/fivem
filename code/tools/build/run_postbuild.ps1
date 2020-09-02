@@ -39,7 +39,6 @@ if (!$IsServer) {
     Pop-Location
 
     Push-Location $WorkDir\ext\ui-build
-
     if (!(Test-Path data\.commit) -or $UICommit -ne (Get-Content data\.commit)) {
         .\build.cmd | Out-Null
         
@@ -50,7 +49,24 @@ if (!$IsServer) {
         Copy-Item -Force $WorkDir\ext\ui-build\data.zip $LayoutDir\citizen\ui.zip
         Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $LayoutDir\citizen\ui-big.zip
     }
+    Pop-Location
 
+	## build sdk
+    Push-Location $WorkDir
+    $SDKCommit = (git rev-list -1 HEAD ext/sdk-build/ ext/sdk/)
+    Pop-Location
+
+	Push-Location $WorkDir\ext\sdk-build
+	if (!(Test-Path sdk-root\.commit) -or $SDKCommit -ne (Get-Content sdk-root\.commit)) {
+        .\build.cmd | Out-Null
+        
+        $SDKCommit | Out-File -Encoding ascii -NoNewline sdk-root\.commit
+    }
+
+    if ($?) {
+		xcopy /y /e $WorkDir\ext\sdk-build\sdk-root\resource\*.* $LayoutDir\citizen\sdk\sdk-root\
+		xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\*.* $LayoutDir\usermaps\resources\sdk-game\
+    }
     Pop-Location
 
     ## setup layout

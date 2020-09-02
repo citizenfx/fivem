@@ -125,8 +125,6 @@ private:
 
 	bool is_closing_;
 
-	CefRefPtr<CefBrowser> browser_;
-
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(SDKCefClient);
 };
