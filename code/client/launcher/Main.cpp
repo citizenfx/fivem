@@ -89,7 +89,7 @@ HANDLE g_uiExitEvent;
 
 bool IsUnsafeGraphicsLibrary();
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+int RealMain()
 {
 	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
 
@@ -154,6 +154,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
+
+	wchar_t initCwd[1024];
+	GetCurrentDirectoryW(std::size(initCwd), initCwd);
 
 	if (!toolMode)
 	{
@@ -533,7 +536,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
-	if (!toolMode)
+	if (launch::IsSDK())
+	{
+		SetCurrentDirectory(initCwd);
+	}
+	else if (!toolMode)
 	{
 		SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 	}
@@ -791,6 +798,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	return 0;
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+{
+	return RealMain();
+}
+
+int main()
+{
+	return RealMain();
 }
 
 extern "C" __declspec(dllexport) DWORD NvOptimusEnablement = 1;
