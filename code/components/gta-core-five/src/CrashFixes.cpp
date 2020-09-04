@@ -461,6 +461,24 @@ static void InitAnimWithCheck(char* obj)
 	}
 }
 
+struct sysPerformanceTimer
+{
+	char name[16];
+	LARGE_INTEGER totalTime;
+	LARGE_INTEGER startTime;
+	bool isRunning;
+};
+
+static float* rage__sysTimerConsts__TicksToMilliseconds;
+
+static float sysPerformanceTimer__GetElapsedTimeMS(sysPerformanceTimer* self)
+{
+	LARGE_INTEGER curTime;
+	QueryPerformanceCounter(&curTime);
+
+	return (curTime.QuadPart - self->startTime.QuadPart) * *rage__sysTimerConsts__TicksToMilliseconds;
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// TEMP DBG for investigation: don't crash blindly (but error cleanly) on odd object spawn
@@ -469,6 +487,14 @@ static HookFunction hookFunction{[] ()
 		auto location = hook::get_pattern("48 85 C0 74 43 48 8B CE E8 ? ? ? ? 48 8B", 8);
 		hook::set_call(&g_origInitAnim, location);
 		hook::call(location, InitAnimWithCheck);
+	}
+
+	// sysPerformanceTimer deltaing using LowPart - leads to audio deadlocks after a while
+	// instead, use QuadPart as one should
+	{
+		auto location = hook::get_pattern<char>("48 8B 44 24 30 0F 57 C0", -0x19);
+		rage__sysTimerConsts__TicksToMilliseconds = hook::get_address<float*>(location + 0x29);
+		hook::jump(location, sysPerformanceTimer__GetElapsedTimeMS);
 	}
 
 	// set handling data for ADDER instead of -1 if wrong
