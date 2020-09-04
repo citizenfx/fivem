@@ -1220,10 +1220,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						if (big1s)
 						{
+							AddCrashometry("onesync_big", "true");
 							Instance<ICoreGameInit>::Get()->SetVariable("onesync_big");
 						}
 						else
 						{
+							AddCrashometry("onesync_big", "false");
 							Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
 						}
 
