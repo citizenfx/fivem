@@ -64,7 +64,7 @@ if (!$IsServer) {
     }
 
     if ($?) {
-		xcopy /y /e $WorkDir\ext\sdk-build\sdk-root\resource\*.* $LayoutDir\citizen\sdk\sdk-root\
+		robocopy $WorkDir\ext\sdk-build\sdk-root\resource\ $LayoutDir\citizen\sdk\sdk-root\ /mir /xo /fft /ndl /njh /njs /nc /ns /np
 		xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\*.* $LayoutDir\usermaps\resources\sdk-game\
     }
     Pop-Location

@@ -1,0 +1,28 @@
+{
+  "name": "personality-theia",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "resolutions": {
+    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz"
+  },
+  "scripts": {
+    "prepare": "lerna run prepare",
+    "watch": "lerna run watch",
+    "build": "lerna run build",
+    "rebuild:browser": "theia rebuild:browser",
+    "rebuild:fxdk": "theia rebuild:electron"
+  },
+  "devDependencies": {
+    "lerna": "2.4.0"
+  },
+  "workspaces": [
+    "fxdk-game-view",
+    "fxdk-app"
+  ],
+  "dependencies": {
+    "native-keymap": "2.2.0",
+    "nsfw": "1.2.9",
+    "find-git-repositories": "0.1.3"
+  }
+}

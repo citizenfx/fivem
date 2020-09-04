@@ -1,0 +1,4 @@
+node_modules
+.browser_modules
+lib
+*.log

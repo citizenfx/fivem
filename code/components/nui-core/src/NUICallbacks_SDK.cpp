@@ -122,6 +122,11 @@ static InitFunction initFunction([]()
 			int width = widthArg->IsInt() ? widthArg->GetIntValue() : widthArg->GetDoubleValue();
 			int height = heightArg->IsInt() ? heightArg->GetIntValue() : heightArg->GetDoubleValue();
 
+			if (width == 0 || height == 0)
+			{
+				return CefV8Value::CreateBool(false);
+			}
+
 			argList->SetSize(2);
 			argList->SetInt(0, width);
 			argList->SetInt(1, height);
