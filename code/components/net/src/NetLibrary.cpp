@@ -1102,7 +1102,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 				if (!node["error"].is_null())
 				{
-					OnConnectionError(node["error"].get<std::string>().c_str());
+					OnConnectionError(fmt::sprintf("Connection rejected by server: %s", node["error"].get<std::string>()).c_str());
 
 					m_connectionState = CS_IDLE;
 
