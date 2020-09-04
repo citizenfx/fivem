@@ -1233,7 +1233,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						std::string onesyncType = "onesync";
 						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
 
-						if (maxClients <= 32)
+						if (maxClients <= 48)
 						{
 							onesyncType = "";
 						}
@@ -1243,7 +1243,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						}
 						else if (maxClients <= 128)
 						{
-							onesyncType = "onesync_plus";
+							if (!big1s)
+							{
+								onesyncType = "onesync_plus";
+							}
+							else
+							{
+								onesyncType = "onesync_medium";
+							}
 						}
 						else if (maxClients <= 1024)
 						{
