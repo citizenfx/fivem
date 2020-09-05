@@ -500,6 +500,7 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 	return retval;
 }
 
+void SteamInput_Reset();
 void NVSP_ShutdownSafely();
 #endif
 
@@ -1509,6 +1510,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// revert NVSP disablement
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	NVSP_ShutdownSafely();
+	SteamInput_Reset();
 
 	g_session["status"] = "exited";
 	UpdateSession(g_session);

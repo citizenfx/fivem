@@ -44,6 +44,7 @@ extern "C" int wmainCRTStartup();
 
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
+void SteamInput_Initialize();
 bool ExecutablePreload_Init();
 void InitLogging();
 
@@ -526,6 +527,7 @@ int RealMain()
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
 		NVSP_DisableOnStartup();
+		SteamInput_Initialize();
 #endif
 
 		GetModuleFileNameW(NULL, initState->gameExePath, std::size(initState->gameExePath));
