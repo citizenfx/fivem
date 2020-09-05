@@ -30,6 +30,15 @@ void SteamLoader::Initialize()
 		// load steamclient*.dll
 		m_hSteamClient = LoadLibrary(steamDllPath.c_str());
 
+		// load and pin crashhandler64.dll (as it seems to be loaded at-will by Steam and then unloaded/breaks on a few systems)
+		HMODULE steamCH = LoadLibraryW(L"crashhandler64.dll");
+
+		if (steamCH)
+		{
+			HMODULE steamCH_pin;
+			GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_PIN, L"crashhandler64.dll", &steamCH_pin);
+		}
+
 		// load the Steam overlay, if 'rtsshooks64.dll' is not present
 		if (GetModuleHandleW(L"rtsshooks64.dll") == nullptr)
 		{
