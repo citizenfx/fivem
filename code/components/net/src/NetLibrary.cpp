@@ -20,6 +20,7 @@
 #include <ResumeComponent.h>
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
 #include <experimental/coroutine>
 #include <pplawait.h>
 #include <ppltasks.h>
@@ -1273,34 +1274,45 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						auto continueAfterAllowance = [=]()
 						{
-							if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
 							{
-								auto oneSyncFailure = [this, onesyncType]()
+								using json = nlohmann::json;
+
+								if (success)
 								{
-									OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
-									onesyncType,
-									(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
-									? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
-									: ""));
-									m_connectionState = CS_IDLE;
-								};
-
-								auto oneSyncSuccess = [this]()
-								{
-									m_connectionState = CS_INITRECEIVED;
-								};
-
-								OnConnectionProgress("Requesting server OneSync policy...", 0, 100);
-
-								m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
-								{
-									using json = nlohmann::json;
-
-									if (success)
+									try
 									{
-										try
+										json info = json::parse(data, data + size);
+
+										if (info.is_object() && info["server"].is_string())
 										{
-											json info = json::parse(data, data + size);
+											auto serverData = info["server"].get<std::string>();
+											boost::algorithm::replace_all(serverData, " win32", "");
+											boost::algorithm::replace_all(serverData, " linux", "");
+											boost::algorithm::replace_all(serverData, " SERVER", "");
+											boost::algorithm::replace_all(serverData, "FXServer-", "");
+
+											AddCrashometry("last_server_ver", serverData);
+										}
+
+										if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+										{
+											auto oneSyncFailure = [this, onesyncType]()
+											{
+												OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
+												onesyncType,
+												(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
+												? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
+												: ""));
+												m_connectionState = CS_IDLE;
+											};
+
+											auto oneSyncSuccess = [this]()
+											{
+												m_connectionState = CS_INITRECEIVED;
+											};
+
+											OnConnectionProgress("Requesting server OneSync policy...", 0, 100);
 
 											if (info.is_object() && info["vars"].is_object())
 											{
@@ -1327,25 +1339,25 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												}
 											}
 										}
-										catch (std::exception& e)
+										else
 										{
-											trace("1s policy - get failed for %s\n", e.what());
+											m_connectionState = CS_INITRECEIVED;
 										}
-
-										oneSyncFailure();
 									}
-									else
+									catch (std::exception& e)
 									{
-										OnConnectionError("Failed to fetch /info.json to obtain policy metadata.");
+										OnConnectionError(va("Info get failed for %s\n", e.what()));
 
 										m_connectionState = CS_IDLE;
 									}
-								});
-							}
-							else
-							{
-								m_connectionState = CS_INITRECEIVED;
-							}
+								}
+								else
+								{
+									OnConnectionError("Failed to fetch /info.json to obtain policy metadata.");
+
+									m_connectionState = CS_IDLE;
+								}
+							});
 						};
 
 						auto blacklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
