@@ -383,6 +383,7 @@ struct SyncEntityState
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
 	uint32_t creationToken;
+	float overrideCullingRadius = 0.0f;
 
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 
@@ -406,6 +407,12 @@ struct SyncEntityState
 	SyncEntityState(const SyncEntityState&) = delete;
 
 	virtual ~SyncEntityState();
+
+	inline float GetDistanceCullingRadius()
+	{
+		// #TODO1S: figure out a good value for this
+		return overrideCullingRadius != 0.0f ? overrideCullingRadius : (424.0f * 424.0f);
+	}
 
 	inline bool IsOwnedByScript()
 	{
