@@ -30,6 +30,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 	brandingName: string;
 	language = '';
 
+	streamerMode = false;
 	devMode = false;
 	localhostPort = '';
 	nickname = '';
@@ -60,6 +61,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 		this.nickname = gameService.nickname;
 		this.language = gameService.language;
 		this.gameName = gameService.gameName;
+		this.streamerMode = gameService.streamerMode;
 		this.devMode = gameService.devMode;
 		this.localhostPort = gameService.localhostPort;
 
@@ -68,6 +70,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 		});
 		gameService.nicknameChange.subscribe(value => this.nickname = value);
 		gameService.languageChange.subscribe(value => this.language = value);
+		gameService.streamerModeChange.subscribe(value => this.streamerMode = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
 	}

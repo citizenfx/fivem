@@ -4,6 +4,10 @@ import * as AdaptiveCards from 'adaptivecards';
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 import { ActionAlignment } from 'adaptivecards';
 
+// Matches `<ip>:<port>` and `<ip> port <port>`
+const ipRegex = Array(4).fill('(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)').join('\\.');
+const serverAddressRegex = new RegExp(String.raw`\b${ipRegex}(\s+port\s+|:)\d+\b`, 'g');
+
 @Component({
 	moduleId: module.id,
 	selector: 'connecting-popup',
@@ -15,7 +19,7 @@ export class ConnectingPopupComponent implements OnInit {
 	overlayClosable = true;
 	overlayTitle: string;
 	overlayMessage: string;
-	overlayMessageData = {};
+	overlayMessageData: { [key: string]: any } = {};
 	overlayBg = '';
 	closeLabel = "#Servers_CloseOverlay";
 	retryLabel = "#Servers_Retry";
@@ -37,7 +41,9 @@ export class ConnectingPopupComponent implements OnInit {
 	ngOnInit() {
 		this.gameService.connecting.subscribe(a => {
 			this.overlayTitle = '#Servers_Connecting';
-			this.overlayMessage = '#Servers_ConnectingTo';
+			this.overlayMessage = this.gameService.streamerMode
+				? '#Servers_ConnectingToServer'
+				: '#Servers_ConnectingTo';
 			this.overlayMessageData = {
 				serverName: a?.address || 'unknown',
 			};
@@ -57,6 +63,10 @@ export class ConnectingPopupComponent implements OnInit {
 			this.overlayClosable = true;
 			this.closeLabel = "#Servers_CloseOverlay";
 
+			if (this.gameService.streamerMode && message) {
+				this.overlayMessageData.message = message.replace(serverAddressRegex, '&lt;HIDDEN&gt;');
+			}
+
 			this.clearElements();
 		});
 
@@ -72,6 +82,10 @@ export class ConnectingPopupComponent implements OnInit {
 
 			if (this.overlayClosable) {
 				this.closeLabel = "#Servers_CancelOverlay";
+			}
+
+			if (this.gameService.streamerMode && a.message) {
+				this.overlayMessageData.message = a.message.replace(serverAddressRegex, '&lt;HIDDEN&gt;');
 			}
 
 			this.clearElements();

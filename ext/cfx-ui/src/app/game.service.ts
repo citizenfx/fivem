@@ -52,6 +52,7 @@ export abstract class GameService {
 	errorMessage = new EventEmitter<string>();
 	infoMessage = new EventEmitter<string>();
 
+	streamerModeChange = new BehaviorSubject<boolean>(false);
 	devModeChange = new BehaviorSubject<boolean>(false);
 	darkThemeChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
@@ -100,6 +101,14 @@ export abstract class GameService {
 	}
 
 	set nickname(name: string) {
+
+	}
+
+	get streamerMode(): boolean {
+		return false;
+	}
+
+	set streamerMode(value: boolean) {
 
 	}
 
@@ -218,6 +227,10 @@ export abstract class GameService {
 		this.nicknameChange.next(name);
 	}
 
+	protected invokeStreamerModeChanged(value: boolean) {
+		this.streamerModeChange.next(value);
+	}
+
 	protected invokeDevModeChanged(value: boolean) {
 		this.devModeChange.next(value);
 	}
@@ -258,6 +271,10 @@ export abstract class GameService {
 
 	}
 
+	public setArchivedConvar(name: string, value: string) {
+
+	}
+
 	public setDiscourseIdentity(token: string, clientId: string) {
 
 	}
@@ -269,6 +286,7 @@ export abstract class GameService {
 
 @Injectable()
 export class CfxGameService extends GameService {
+	private _streamerMode = false;
 	private _devMode = false;
 	private _darkTheme = true;
 
@@ -441,6 +459,11 @@ export class CfxGameService extends GameService {
 			this.language = lang;
 		}
 
+		this.getConvar('ui_streamerMode').subscribe(value => {
+			this._streamerMode = value === 'true';
+			this.invokeStreamerModeChanged(value === 'true');
+		});
+
 		this.connecting.subscribe(server => {
 			this.inConnecting = false;
 		});
@@ -538,6 +561,16 @@ export class CfxGameService extends GameService {
 		this._darkTheme = value;
 		localStorage.setItem('darkThemeNew', value ? 'yes' : 'no');
 		this.invokeDarkThemeChanged(value);
+	}
+
+	get streamerMode(): boolean {
+		return this._streamerMode;
+	}
+
+	set streamerMode(value: boolean) {
+		this._streamerMode = value;
+		this.setArchivedConvar('ui_streamerMode', value ? 'true' : 'false');
+		this.invokeStreamerModeChanged(value);
 	}
 
 	get devMode(): boolean {
@@ -672,6 +705,10 @@ export class CfxGameService extends GameService {
 		(<any>window).invokeNative('setConvar', JSON.stringify({ name, value }));
 	}
 
+	public setArchivedConvar(name: string, value: string) {
+		(<any>window).invokeNative('setArchivedConvar', JSON.stringify({ name, value }));
+	}
+
 	queryQueue: Set<{
 		tries: string[],
 		resolve: any,
@@ -795,6 +832,12 @@ export class CfxGameService extends GameService {
 	}
 
 	getProfileString() {
+		if (this.streamerMode) {
+			return Array(this.profileList.length)
+				.fill('<i class="fas fa-user-secret"></i>&nbsp; &lt;HIDDEN&gt;')
+				.join(',&nbsp;&nbsp;');
+		}
+
 		return this.profileList.map(p => getIcon(p.id.split(':')[0]) + ' ' + htmlEscape(p.username)).join(',&nbsp;&nbsp;');
 
 		function htmlEscape(unsafe: string) {
@@ -825,6 +868,7 @@ export class CfxGameService extends GameService {
 
 @Injectable()
 export class DummyGameService extends GameService {
+	private _streamerMode = false;
 	private _devMode = false;
 	private _darkTheme = true;
 	private _localhostPort = '';
@@ -832,6 +876,10 @@ export class DummyGameService extends GameService {
 
 	constructor(@Inject(LocalStorage) private localStorage: any) {
 		super();
+
+		if (this.localStorage.getItem('streamerMode')) {
+			this._streamerMode = localStorage.getItem('streamerMode') === 'yes';
+		}
 
 		if (this.localStorage.getItem('devMode')) {
 			this._devMode = localStorage.getItem('devMode') === 'yes';
@@ -960,6 +1008,17 @@ export class DummyGameService extends GameService {
 		this.localStorage.setItem('localhostPort', port);
 
 		this.invokeLocalhostPortChanged(port);
+	}
+
+	get streamerMode(): boolean {
+		return this._streamerMode;
+	}
+
+	set streamerMode(value: boolean) {
+		this._streamerMode = value;
+		this.localStorage.setItem('streamerMode', value ? 'yes' : 'no');
+
+		this.invokeStreamerModeChanged(value);
 	}
 
 	get devMode(): boolean {

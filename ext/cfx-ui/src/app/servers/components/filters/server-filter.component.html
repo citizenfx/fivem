@@ -43,11 +43,16 @@
 	</div>
 
     <section class="filter stretch" [class.disabled]="type === 'history'">
-		<input class="name" id="searchBox" type="search" placeholder="Search or enter an IP address" [(ngModel)]="filters.searchText"
+		<input class="name" id="searchBox" [type]="streamerMode ? 'password' : 'search'" placeholder="Search or enter an IP address" [(ngModel)]="filters.searchText"
 			(ngModelChange)="updateFiltersDebounced()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
 
 		<div class="search-dropdown" [class.active]="searchFocused">
 			<ul>
+				<li class="streamer-mode-warning" *ngIf="streamerMode">
+					<h4 l10nTranslate>
+						#ServerList_StreamerModeWarning
+					</h4>
+				</li>
 				<li *ngFor="let entry of searchAutocomplete; let i = index" (click)="acceptAutocomplete(entry)" [class.active]="selectedCompletionIndex == i">
 					<h4><b *ngIf="entry.name != ''">{{entry.name}} - </b><span>{{entry.description}}</span></h4>
 					<span *ngIf="entry.example != ''">{{entry.example}}</span>
