@@ -690,9 +690,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float diffY = entityPos.y - playerPos.y;
 
 					float distSquared = (diffX * diffX) + (diffY * diffY);
-
-					// #TODO1S: figure out a good value for this
-					if (distSquared < (424.0f * 424.0f))
+					if (distSquared < entity->GetDistanceCullingRadius())
 					{
 						shouldBeCreated = true;
 					}
@@ -2054,8 +2052,9 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 		eastl::fixed_set<std::tuple<float, fx::ClientSharedPtr>, MAX_CLIENTS> candidates;
 
 		uint32_t eh = entity->handle;
+		float cullingRadius = entity->GetDistanceCullingRadius();
 
-		clientRegistry->ForAllClients([this, &client, &candidates, eh, pos](const fx::ClientSharedPtr& tgtClient)
+		clientRegistry->ForAllClients([this, &client, &candidates, eh, pos, cullingRadius](const fx::ClientSharedPtr& tgtClient)
 		{
 			if (tgtClient == client)
 			{
@@ -2093,7 +2092,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 			}
 
-			if (distance < (424.0f * 424.0f))
+			if (distance < cullingRadius)
 			{
 				auto [_, clientData] = GetClientData(this, tgtClient);
 				auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
@@ -2111,7 +2110,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 		}
 
 		if (candidates.empty() || // no candidate?
-			std::get<float>(*candidates.begin()) >= (424.0f * 424.0f)) // closest candidate beyond distance culling range?
+			std::get<float>(*candidates.begin()) >= cullingRadius) // closest candidate beyond distance culling range?
 		{
 			GS_LOG("no candidates for entity %d, assigning as unowned\n", entity->handle);
 

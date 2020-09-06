@@ -1093,4 +1093,15 @@ static InitFunction initFunction([]()
 
 		return 0;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DISTANCE_CULLING_RADIUS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			float radius = context.GetArgument<float>(1);
+			entity->overrideCullingRadius = radius * radius;
+		}
+
+		return true;
+	}));
 });
