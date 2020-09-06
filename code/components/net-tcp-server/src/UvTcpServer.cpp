@@ -170,21 +170,6 @@ void UvTcpServer::OnConnection(int status)
 	auto clientHandle = m_server->loop().resource<uvw::TCPHandle>();
 	m_server->accept(*clientHandle);
 
-	{
-		sockaddr_storage addr;
-		int len = sizeof(addr);
-
-		uv_tcp_getpeername(clientHandle->raw(), reinterpret_cast<sockaddr*>(&addr), &len);
-
-		auto peer = PeerAddress(reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len));
-
-		if (!m_manager->OnStartConnection(peer))
-		{
-			clientHandle->closeReset();
-			return;
-		}
-	}
-
 	// if not set up yet, don't accept
 	if (m_dispatchPipes.empty())
 	{
@@ -340,20 +325,11 @@ void UvTcpServerStream::CloseClient()
 			writeTimeout->close();
 		}
 
-		auto peer = GetPeerAddress();
-
 		client->stop();
 		client->shutdown();
 		client->close();
 
 		m_client = {};
-
-		auto manager = m_server->GetManager();
-
-		if (manager)
-		{
-			manager->OnCloseConnection(peer);
-		}
 	}
 }
 
@@ -364,6 +340,23 @@ void UvTcpServerStream::ResetWriteTimeout()
 
 bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 {
+	// rate limiter start
+	auto manager = m_server->GetManager();
+
+	sockaddr_storage addr;
+	int len = sizeof(addr);
+
+	uv_tcp_getpeername(client->raw(), reinterpret_cast<sockaddr*>(&addr), &len);
+
+	PeerAddress peer{ reinterpret_cast<sockaddr*>(&addr), static_cast<socklen_t>(len) };
+
+	if (!manager->OnStartConnection(peer))
+	{
+		client->closeReset();
+		return false;
+	}
+
+	// continue connection
 	m_writeTimeout = client->loop().resource<uvw::TimerHandle>();
 
 	fwRefContainer<UvTcpServerStream> thisRef(this);
@@ -433,6 +426,12 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 		}
 
 		thisRef->HandleRead(-1, nullptr);
+	});
+
+	// rate limiter close event
+	m_client->on<uvw::CloseEvent>([manager, peer](const uvw::CloseEvent&, uvw::TCPHandle& handle)
+	{
+		manager->OnCloseConnection(peer);
 	});
 
 	// accept and read
