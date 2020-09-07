@@ -340,6 +340,9 @@ void UvTcpServerStream::ResetWriteTimeout()
 
 bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 {
+	// accept early
+	m_server->GetServer()->accept(*client);
+
 	// rate limiter start
 	auto manager = m_server->GetManager();
 
@@ -434,8 +437,7 @@ bool UvTcpServerStream::Accept(std::shared_ptr<uvw::TCPHandle>&& client)
 		manager->OnCloseConnection(peer);
 	});
 
-	// accept and read
-	m_server->GetServer()->accept(*m_client);
+	// read
 	m_client->read();
 
 	return true;
