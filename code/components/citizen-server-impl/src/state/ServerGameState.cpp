@@ -138,7 +138,11 @@ static void Logv(const char* format, fmt::printf_args argumentList)
 			}).detach();
 		});
 
-		g_logQueue.push(fmt::sprintf("[% 10d] ", msec().count()));
+		if (strchr(format, '\n'))
+		{
+			g_logQueue.push(fmt::sprintf("[% 10d] ", msec().count()));
+		}
+
 		g_logQueue.push(fmt::vsprintf(format, argumentList));
 
 		g_consoleCondVar.notify_all();
@@ -979,62 +983,95 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			newEntityState[entity->handle] = ces;
 		}
 
-		// delta an op list
-		const EntityStateObject* lastEntityState = nullptr;
+		// get a delta path for the op list
+		eastl::fixed_vector<const EntityStateObject*, 5> deltaPath;
 
 		{
 			auto [lock, data] = GetClientData(this, client);
-			auto lastIt = data->entityStates.find(data->lastAckIndex);
 
-			if (lastIt != data->entityStates.end())
+			for (auto lastIdx = data->lastAckIndex; lastIdx < m_frameIndex; lastIdx++)
 			{
-				lastEntityState = lastIt->second.get();
+				auto lastIt = data->entityStates.find(lastIdx);
+
+				if (lastIt != data->entityStates.end())
+				{
+					deltaPath.push_back(lastIt->second.get());
+				}
 			}
 		}
 
-		if (!lastEntityState)
+		if (!deltaPath.size())
 		{
-			lastEntityState = &blankEntityState;
+			deltaPath.push_back(&blankEntityState);
 		}
 
-		// removals (and uniqifier changes) go first
-		eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeys;
-		std::set_difference(lastEntityState->begin(), lastEntityState->end(), newEntityState.begin(), newEntityState.end(), std::back_inserter(deletedKeys), [](const auto& left, const auto& right)
+		// gather op list from delta path
+		eastl::fixed_map<uint16_t, std::tuple<fx::ClientEntityState, const fx::ClientEntityState*>, 128> deletedKeys;
+		eastl::fixed_map<uint16_t, std::tuple<fx::ClientEntityState, const fx::ClientEntityState*>, 128> liveKeys;
+
+		for (size_t deltaIdx = 0; deltaIdx < deltaPath.size(); deltaIdx++)
 		{
-			auto leftTup = std::make_tuple(left.first, left.second.uniqifier);
-			auto rightTup = std::make_tuple(right.first, right.second.uniqifier);
+			auto lastEntityState = deltaPath[deltaIdx];
+			auto nextEntityState = ((deltaIdx + 1) < deltaPath.size()) ? deltaPath[deltaIdx + 1] : &newEntityState;
 
-			return leftTup < rightTup;
-		});
+			// removals (and uniqifier changes) go first
+			eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeysLocal;
 
+			std::set_difference(lastEntityState->begin(), lastEntityState->end(), nextEntityState->begin(), nextEntityState->end(), std::back_inserter(deletedKeysLocal), [](const auto& left, const auto& right)
+			{
+				auto leftTup = std::make_tuple(left.first, left.second.uniqifier);
+				auto rightTup = std::make_tuple(right.first, right.second.uniqifier);
+
+				return leftTup < rightTup;
+			});
+
+			for (auto& pair : deletedKeysLocal)
+			{
+				auto oldEntity = lastEntityState->find(pair.first);
+
+				if (oldEntity != lastEntityState->end())
+				{
+					deletedKeys[pair.first] = { pair.second, &oldEntity->second };
+				}
+			}
+
+			for (auto& [objectId, objectState] : *nextEntityState)
+			{
+				auto oldEntity = lastEntityState->find(objectId);
+
+				liveKeys[objectId] = { objectState, (oldEntity != lastEntityState->end()) ? &oldEntity->second : nullptr };
+			}
+		}
+
+		// process live removals
 		const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
 		for (const auto& deletionPair : deletedKeys)
 		{
 			uint16_t deletion = deletionPair.first;
-			uint16_t uniqifier = deletionPair.second.uniqifier;
+			uint16_t uniqifier = std::get<0>(deletionPair.second).uniqifier;
 
 			// delete player
 			if (fx::IsBigMode())
 			{
-				auto oldEntity = lastEntityState->find(deletion);
+				auto oldEntity = std::get<1>(deletionPair.second);
 
-				if (oldEntity->second.isPlayer)
+				if (oldEntity->isPlayer)
 				{
-					if (oldEntity->second.netId != -1)
+					if (oldEntity->netId != -1)
 					{
 						auto [clientDataLock, clientData] = GetClientData(this, client);
 
-						auto plit = clientData->playersToSlots.find(oldEntity->second.netId);
+						auto plit = clientData->playersToSlots.find(oldEntity->netId);
 						bool hasCreatedPlayer = (plit != clientData->playersToSlots.end());
 
 						{
 							if (hasCreatedPlayer)
 							{
-								auto entityClient = clientRegistry->GetClientByNetID(oldEntity->second.netId);
+								auto entityClient = clientRegistry->GetClientByNetID(oldEntity->netId);
 								int slotId = plit->second;
 
-								sec->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), oldEntity->second.netId, entityClient ? entityClient->GetName() : "", slotId);
+								sec->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), oldEntity->netId, entityClient ? entityClient->GetName() : "", slotId);
 
 								/*NETEV playerLeftScope SERVER
 								/#*
@@ -1054,7 +1091,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									for: string
 								}): void;
 								*/
-								evMan->QueueEvent2("playerLeftScope", {}, std::map<std::string, std::string>{ { "player", fmt::sprintf("%d", oldEntity->second.netId) }, { "for", fmt::sprintf("%d", client->GetNetId()) } });
+								evMan->QueueEvent2("playerLeftScope", {}, std::map<std::string, std::string>{ { "player", fmt::sprintf("%d", oldEntity->netId) }, { "for", fmt::sprintf("%d", client->GetNetId()) } });
 
 								if (entityClient)
 								{
@@ -1063,7 +1100,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								}
 
 								clientData->slotsToPlayers.erase(slotId);
-								clientData->playersToSlots.erase(oldEntity->second.netId);
+								clientData->playersToSlots.erase(oldEntity->netId);
 							}
 						}
 					}
@@ -1100,6 +1137,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				clientData->relevantEntities.end());
 			}
 
+			GS_LOG("Tick: deleting object %d@%d for %d\n", deletion, uniqifier, client->GetNetId());
+
 			// delete object
 			scl->EnqueueCommand([this, deletion, uniqifier, shouldSteal](sync::SyncCommandState& cmdState)
 			{
@@ -1115,8 +1154,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		eastl::fixed_set<uint16_t, 64> nah;
 
 		// after deletions, handle updates
-		for (auto& [objectId, objectState] : newEntityState)
+		for (auto& [objectId, objectStatePair] : liveKeys)
 		{
+			auto& [objectState, lastState] = objectStatePair;
+
 			const auto& [entity, entityPos, vehicleData, entityClientWeak] = relevantEntities[entityHandleMap[objectId]];
 
 			if (!entity)
@@ -1126,14 +1167,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			auto entityClient = entityClientWeak.lock();
 
-			const ClientEntityState* lastState = nullptr;
-			auto lastIt = lastEntityState->find(objectId);
-
 			bool hasCreated = false;
 
-			if (lastIt != lastEntityState->end())
+			if (lastState)
 			{
-				lastState = &lastIt->second;
 				hasCreated = true;
 			}
 			else
@@ -1485,7 +1522,21 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// remove entities from the nah list
 		for (uint16_t objectId : nah)
 		{
+			GS_LOG("object %d is in nah list for client %d\n", objectId, client->GetNetId());
 			newEntityState.erase(objectId);
+		}
+
+		if (!g_oneSyncLogVar->GetValue().empty())
+		{
+			std::stringstream ss;
+			ss << "entStates: ";
+
+			for (auto& es : newEntityState)
+			{
+				ss << es.first << "@" << es.second.uniqifier << " ";
+			}
+
+			GS_LOG("%d %s\n", client->GetNetId(), ss.str());
 		}
 
 		{
@@ -1513,7 +1564,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 #endif
 		}
 
-		GS_LOG("Tick: cl %d: %d cr, %d sy, %d sk\n", client->GetNetId(), numCreates, numSyncs, numSkips);
+		GS_LOG("Tick: cl %d: frIdx %d; %d cr, %d sy, %d sk\n", client->GetNetId(), m_frameIndex, numCreates, numSyncs, numSkips);
 	});
 
 	for (int entityIndex = 0; entityIndex < maxValidEntity; entityIndex++)
