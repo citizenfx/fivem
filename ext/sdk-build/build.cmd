@@ -13,7 +13,16 @@ set CacheRoot=C:\f\save
 :: build sdk-root
 set SDKRoot=%~dp0\sdk-root
 
-:: push directory
+:: push sdk directory
+pushd ..\sdk\resources\sdk-root\sdk
+
+:: install packages
+call yarn
+
+:: pop sdk directory
+popd
+
+:: push host directory
 pushd ..\sdk\resources\sdk-root\host
 
 :: copy sdk-root node_modules from cache
@@ -49,17 +58,16 @@ xcopy /y /e personality-theia\fxdk-app\plugins\*.* %SDKRoot%\resource\host\perso
 xcopy /y personality-theia\fxdk-app\package.json %SDKRoot%\resource\host\personality-theia\
 xcopy /y personality-theia\fxdk-app\server.js %SDKRoot%\resource\host\personality-theia\
 
-:: copy resouce files
+:: copy resource files
 xcopy /y ..\fxmanifest.lua %SDKRoot%\resource\
-xcopy /y ..\sdk.js %SDKRoot%\resource\
-xcopy /y ..\mime-types.js %SDKRoot%\resource\
+xcopy /y /e ..\sdk\*.* %SDKRoot%\resource\sdk\
 
 if exist %CacheRoot% (
 	rmdir /s /q %CacheRoot%\sdk-root-modules
 	move node_modules %CacheRoot%\sdk-root-modules
 )
 
-:: pop directory
+:: pop host directory
 popd
 
 exit /B 0

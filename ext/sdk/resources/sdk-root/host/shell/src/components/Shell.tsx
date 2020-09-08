@@ -1,8 +1,12 @@
 import React from 'react';
 import classnames from 'classnames';
-import { sendCommand } from '../utils/sendCommand';
+
+import { Toolbar } from './Toolbar/Toolbar';
+import { StateContext, States } from './State';
+import { Preparing } from './Preparing/Preparing';
 
 import s from './Shell.module.scss';
+
 
 const personalities = {
   theia: {
@@ -11,22 +15,19 @@ const personalities = {
   },
 };
 
-const startSDKGame = () => sendCommand('localgame sdk-game');
-const restartSDKGame = () => sendCommand('localrestart');
-
-const giveRifle = () => sendCommand('weapon WEAPON_CARBINERIFLE');
+const boot = () => {
+  window.fetch('http://127.0.0.1:35419/ready');
+};
 
 export function Shell() {
-  const timer = React.useRef<any>(null);
-
-  const [toolbarOpen, setToolbarOpen] = React.useState(false);
-
-  const timerCallback = React.useRef<any>(null);
-  timerCallback.current = () => setToolbarOpen(false);
-
+  const [showPersonality, setShowPersonality] = React.useState(false);
+  const { state } = React.useContext(StateContext);
   const theiaRef = React.useRef<any>(null);
+  const unveilTimerRef = React.useRef<any>(null);
 
   React.useEffect(() => {
+    boot();
+
     const handleMessage = (e) => {
       if (theiaRef.current) {
         theiaRef.current.contentWindow.postMessage(e.data, '*');
@@ -38,73 +39,40 @@ export function Shell() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const toggleToolbar = React.useCallback(() => {
-    setToolbarOpen(!toolbarOpen);
-  }, [toolbarOpen]);
-
-  const handleOpenDevtools = React.useCallback(() => {
-    setToolbarOpen(false);
-    window.openDevTools();
-  }, [setToolbarOpen]);
-  const handleStartSDKGame = React.useCallback(() => {
-    setToolbarOpen(false);
-    startSDKGame();
-  }, [setToolbarOpen]);
-  const handleRestartSDKGame = React.useCallback(() => {
-    setToolbarOpen(false);
-    restartSDKGame();
-  }, [setToolbarOpen]);
-  const handleGiveRifle = React.useCallback(() => {
-    setToolbarOpen(false);
-    giveRifle();
-  }, [setToolbarOpen]);
-
-  const handleMouseLeave = React.useCallback(() => {
-    timer.current = setTimeout(timerCallback.current, 200);
-  }, []);
-  const handleMouseEnter = React.useCallback(() => {
-    if (timer.current) {
-      window.clearTimeout(timer.current);
+  React.useEffect(() => () => {
+    if (unveilTimerRef.current) {
+      clearTimeout(unveilTimerRef.current);
     }
   }, []);
 
   React.useEffect(() => {
-    return () => {
-      if (timer.current) {
-        window.clearTimeout(timer.current);
-      }
-    };
-  }, []);
+    if (state === States.ready) {
+      unveilTimerRef.current = setTimeout(() => {
+        setShowPersonality(true);
+      }, 500);
+    }
+  }, [state]);
 
-  const toolbarClasses = classnames(s.toolbar, {
-    [s.active]: toolbarOpen,
+  const theiaClassName = classnames(s.theia, {
+    [s.active]: showPersonality,
   });
 
   return (
     <div className={s.root}>
-      <div
-        className={toolbarClasses}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <button className={s.trigger} onClick={toggleToolbar}>FxDK</button>
+      <Toolbar />
 
-        <div className={s.dropdown}>
-          <button onClick={handleOpenDevtools}>Open DevTools</button>
-          <button onClick={handleStartSDKGame}>localgame sdk-game</button>
-          <button onClick={handleRestartSDKGame}>localrestart sdk-game</button>
-          <button onClick={handleGiveRifle}>give rifle</button>
-        </div>
-      </div>
+      {!showPersonality && (
+        <Preparing />
+      )}
 
       <iframe
-        ref={theiaRef}
-        title="Theia personality"
-        src={`http://${personalities.theia.hostname}:${personalities.theia.port}`}
-        className={s.theia}
-        frameBorder="0"
-        allowFullScreen={true}
-      ></iframe>
+          ref={theiaRef}
+          title="Theia personality"
+          src={`http://${personalities.theia.hostname}:${personalities.theia.port}`}
+          className={theiaClassName}
+          frameBorder="0"
+          allowFullScreen={true}
+        ></iframe>
     </div>
   );
 }

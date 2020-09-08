@@ -1,0 +1,100 @@
+@import 'variables';
+
+.toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  height: 32px;
+  width: 50px;
+
+  font-size: 13px;
+
+  z-index: 1000;
+
+  opacity: 0;
+  pointer-events: none;
+
+  &.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  &.active {
+    .trigger {
+      color: $fgColor;
+      background-color: $acColor;
+    }
+
+    .dropdown {
+      opacity: 1;
+      pointer-events: all;
+    }
+  }
+
+  .trigger {
+    height: 100%;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 16px;
+
+    font-size: 13px;
+    font-weight: bold;
+    color: $acColor;
+    background-color: rgba($acColor, .25);
+
+    border: none;
+    outline: none;
+
+    &:hover {
+      color: $fgColor;
+      background-color: $acColor;
+    }
+  }
+
+  .dropdown {
+    position: fixed;
+    top: 32px;
+    left: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+
+    font-size: 13px;
+    font-weight: bold;
+
+    backdrop-filter: blur(20px);
+    background-color: rgba($bgColor, .1);
+
+    border: solid 2px $acColor;
+
+    opacity: 0;
+    pointer-events: none;
+
+    button {
+      height: 44px;
+
+      display: flex;
+      align-items: center;
+
+      padding: 0 16px;
+
+      font-family: Mensch;
+      color: $fgColor;
+      background-color: transparent;
+
+      border: none;
+      outline: none;
+
+      &:hover {
+        color: $fgColor;
+        background-color: $acColor;
+      }
+    }
+  }
+}

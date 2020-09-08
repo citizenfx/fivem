@@ -11,9 +11,15 @@ const hostname = argv.hostname || os.hostname();
 const port = parseInt(argv.port || env.PORT || '3000', 10);
 
 function rebuild() {
-  return concurrently([
-    { name: 'theia:rebuild', command: `yarn --cwd ${paths.personalityTheia} rebuild:browser` },
-  ]);
+  console.log('Rebuilding theia native node modules');
+
+  // from https://github.com/eclipse-theia/theia/blob/master/dev-packages/application-manager/src/rebuild.ts#L23
+  const nativeModules = ['@theia/node-pty', 'nsfw', 'native-keymap', 'find-git-repositories', 'drivelist'];
+
+  return nativeModules.reduce((acc, nativeModule) => acc.then(() => concurrently([{
+    name: `personality-theia:rebuild(${nativeModule})`,
+    command: `yarn --cwd ${path.join(paths.personalityTheia, 'node_modules', nativeModule)} run install`,
+  }])), Promise.resolve());
 }
 
 function prebuild() {

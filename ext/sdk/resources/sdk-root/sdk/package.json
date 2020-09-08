@@ -1,0 +1,19 @@
+{
+  "name": "sdk",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "watch": "copy-and-watch --watch ./** C:\\dev\\fivem\\fivem\\code\\bin\\five\\debug\\citizen\\sdk\\sdk-root\\sdk\\"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "mkdirp": "^1.0.4",
+    "rimraf": "^3.0.2",
+    "yauzl": "^2.10.0"
+  },
+  "devDependencies": {
+    "copy-and-watch": "^0.1.5"
+  }
+}
