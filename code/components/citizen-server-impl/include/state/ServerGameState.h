@@ -397,6 +397,7 @@ struct SyncEntityState
 
 	bool deleting;
 	bool hasSynced = false;
+	bool passedFilter = false;
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 

@@ -748,6 +748,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			// don't route entities that haven't passed filter to others
+			if (!entity->passedFilter)
+			{
+				if (!entityClient || entityClient->GetNetId() != client->GetNetId())
+				{
+					shouldBeCreated = false;
+				}
+			}
+
 			auto syncDelay = 50ms;
 
 			// only update sync delay if should-be-created
@@ -2548,6 +2557,7 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 	entity->handle = MakeEntityHandle(id);
 	entity->uniqifier = rand();
 	entity->creationToken = msec().count();
+	entity->passedFilter = true;
 
 	entity->syncTree = tree;
 
@@ -2800,6 +2810,11 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	// trigger a clone creation event
 	if (createdHere)
 	{
+		if (entity->type == sync::NetObjEntityType::Player)
+		{
+			entity->passedFilter = true;
+		}
+
 		// if we're in entity lockdown, validate the entity first
 		if (m_entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
 		{
@@ -2853,6 +2868,8 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 				return;
 			}
+
+			entity->passedFilter = true;
 
 			/*NETEV entityCreated SERVER
 			/#*
