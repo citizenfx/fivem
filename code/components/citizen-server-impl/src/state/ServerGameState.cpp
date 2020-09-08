@@ -2815,6 +2815,15 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			entity->passedFilter = true;
 		}
 
+		// if this is not a real creation token, reset it
+		if (entity->creationToken != 0)
+		{
+			if (g_entityCreationList.find(entity->creationToken) == g_entityCreationList.end())
+			{
+				entity->creationToken = 0;
+			}
+		}
+
 		// if we're in entity lockdown, validate the entity first
 		if (m_entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
 		{

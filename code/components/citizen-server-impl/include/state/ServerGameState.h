@@ -419,20 +419,12 @@ struct SyncEntityState
 	{
 		uint32_t scriptHash = 0;
 
-		// if we can't know yet (only a create was sent - no update), let's say we are, just for good measure
-		if (!hasSynced)
+		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
 		{
-			// and we were last updated pretty recently (<1.5 seconds)
-			// - if not, this might've been out of scope for a client instantly and it'll never get updated until someone owns it again, so we should invoke normal behavior
-			if ((msec() - lastReceivedAt) < 1500ms)
+			if (creationToken != 0)
 			{
 				return true;
 			}
-		}
-
-		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
-		{
-			return true;
 		}
 
 		return false;
