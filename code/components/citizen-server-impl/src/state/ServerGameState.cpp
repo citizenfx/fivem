@@ -984,7 +984,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 
 		// get a delta path for the op list
-		eastl::fixed_vector<const EntityStateObject*, 5> deltaPath;
+		eastl::fixed_vector<std::tuple<uint64_t, const EntityStateObject*>, 5> deltaPath;
 
 		{
 			auto [lock, data] = GetClientData(this, client);
@@ -995,14 +995,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				if (lastIt != data->entityStates.end())
 				{
-					deltaPath.push_back(lastIt->second.get());
+					deltaPath.push_back({ lastIdx, lastIt->second.get() });
 				}
 			}
 		}
 
 		if (!deltaPath.size())
 		{
-			deltaPath.push_back(&blankEntityState);
+			deltaPath.push_back({ 0, &blankEntityState });
 		}
 
 		// gather op list from delta path
@@ -1011,8 +1011,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		for (size_t deltaIdx = 0; deltaIdx < deltaPath.size(); deltaIdx++)
 		{
-			auto lastEntityState = deltaPath[deltaIdx];
-			auto nextEntityState = ((deltaIdx + 1) < deltaPath.size()) ? deltaPath[deltaIdx + 1] : &newEntityState;
+			auto lastEntityState = std::get<1>(deltaPath[deltaIdx]);
+			auto nextEntityState = ((deltaIdx + 1) < deltaPath.size()) ? std::get<1>(deltaPath[deltaIdx + 1]) : &newEntityState;
 
 			// removals (and uniqifier changes) go first
 			eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeysLocal;
@@ -1037,9 +1037,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			for (auto& [objectId, objectState] : *nextEntityState)
 			{
-				auto oldEntity = lastEntityState->find(objectId);
+				auto& oneES = std::get<1>(deltaPath[0]);
+				auto oldEntity = oneES->find(objectId);
 
-				liveKeys[objectId] = { objectState, (oldEntity != lastEntityState->end()) ? &oldEntity->second : nullptr };
+				liveKeys[objectId] = { objectState, (oldEntity != oneES->end()) ? &oldEntity->second : nullptr };
 			}
 		}
 
@@ -1534,6 +1535,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			for (auto& es : newEntityState)
 			{
 				ss << es.first << "@" << es.second.uniqifier << " ";
+			}
+
+			GS_LOG("%d %s\n", client->GetNetId(), ss.str());
+
+			ss = {};
+
+			ss << "delta path: " << deltaPath.size() << " -> ";
+
+			for (auto& frame : deltaPath)
+			{
+				ss << std::get<0>(frame) << " ";
 			}
 
 			GS_LOG("%d %s\n", client->GetNetId(), ss.str());
@@ -4024,24 +4036,52 @@ static InitFunction initFunction([]()
 				// if duplicate/out-of-order, ignore
 				if (origAckIndex >= frameIndex)
 				{
+					GS_LOG("%s ack skipped - %d >= %d\n", client->GetName(), origAckIndex, frameIndex);
 					return;
 				}
 
-				auto es = clientData->entityStates.find(frameIndex);
+				// generate delta path for this ack (inclusive)
+				eastl::fixed_vector<std::tuple<uint64_t, fx::EntityStateObject*>, 5> deltaPath;
+
+				for (auto lastIdx = origAckIndex; lastIdx <= frameIndex; lastIdx++)
+				{
+					auto lastIt = clientData->entityStates.find(lastIdx);
+
+					if (lastIt != clientData->entityStates.end())
+					{
+						deltaPath.push_back({ lastIdx, lastIt->second.get() });
+					}
+				}
+
+				// use delta path
 				auto lastAck = clientData->entityStates.find(origAckIndex);
+				auto es = clientData->entityStates.find(frameIndex);
 
 				clientData->lastAckIndex = frameIndex;
 
 				GS_LOG("%s ack is now %lld\n", client->GetName(), frameIndex);
 
 				// diff current and last ack
-				if (lastAck != clientData->entityStates.end() && es != clientData->entityStates.end())
+				if (deltaPath.size() > 0)
 				{
-					eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeys;
-					std::set_difference(lastAck->second->begin(), lastAck->second->end(), es->second->begin(), es->second->end(), std::back_inserter(deletedKeys), [](const auto& left, const auto& right)
+					eastl::fixed_map<uint16_t, fx::ClientEntityState, 128> deletedKeys;
+
+					for (size_t deltaIdx = 0; deltaIdx < (deltaPath.size() - 1); deltaIdx++)
 					{
-						return left.first < right.first;
-					});
+						eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeysLocal;
+
+						std::set_difference(std::get<1>(deltaPath[deltaIdx])->begin(), std::get<1>(deltaPath[deltaIdx])->end(),
+							std::get<1>(deltaPath[deltaIdx + 1])->begin(), std::get<1>(deltaPath[deltaIdx + 1])->end(),
+							std::back_inserter(deletedKeysLocal), [](const auto& left, const auto& right)
+						{
+							return left.first < right.first;
+						});
+
+						for (auto& pair : deletedKeysLocal)
+						{
+							deletedKeys[pair.first] = pair.second;
+						}
+					}
 
 					for (auto& entityPair : deletedKeys)
 					{
@@ -4105,21 +4145,24 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
 
-						if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
+						for (auto& ackEntry : deltaPath)
 						{
-							// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-							auto eIt = es->second->find(entity);
-
-							if (eIt != es->second->end())
+							if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
 							{
-								eIt->second.frameIndex = 0;
-								eIt->second.lastSend = 0ms;
-								eIt->second.overrideFrameIndex = true;
+								// #TODO1SACK: better frame index handling to allow ignoring on node granularity
+								auto eIt = std::get<1>(ackEntry)->find(entity);
+
+								if (eIt != std::get<1>(ackEntry)->end())
+								{
+									eIt->second.frameIndex = 0;
+									eIt->second.lastSend = 0ms;
+									eIt->second.overrideFrameIndex = true;
+								}
 							}
-						}
-						else
-						{
-							es->second->erase(entity);
+							else
+							{
+								std::get<1>(ackEntry)->erase(entity);
+							}
 						}
 					}
 
@@ -4127,7 +4170,10 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is requesting recreate of creating entity %d\n", client->GetName(), entity);
 
-						es->second->erase(entity);
+						for (auto& ackEntry : deltaPath)
+						{
+							std::get<1>(ackEntry)->erase(entity);
+						}
 					}
 				}
 
