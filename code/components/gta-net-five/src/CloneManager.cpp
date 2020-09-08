@@ -1442,6 +1442,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			}
 		}
 
+		Log("GSAck for frame index %d w/ %d ignore and %d rec\n", msg.GetFrameIndex() & ~(uint64_t(1) << 63), ignoreList.size(), recreateList.size());
+
 		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 
 		ignoreList.clear();
