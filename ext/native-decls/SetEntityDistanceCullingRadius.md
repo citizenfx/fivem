@@ -5,7 +5,7 @@ apiset: server
 ## SET_ENTITY_DISTANCE_CULLING_RADIUS
 
 ```c
-void SET_ENTITY_DUSTANCE_CULLING_RADIUS(Entity entity, float radius);
+void SET_ENTITY_DISTANCE_CULLING_RADIUS(Entity entity, float radius);
 ```
 
 It overrides the default distance culling radius of an entity. Set to `0.0` to reset.
