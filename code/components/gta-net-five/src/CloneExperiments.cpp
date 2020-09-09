@@ -1968,7 +1968,8 @@ static HookFunction hookFunctionEv([]()
 	// CAlterWantedLevelEvent pool check
 	if (Is2060())
 	{
-		// #TODO2060
+		MH_CreateHook(hook::get_call(hook::get_pattern("45 8A C4 48 8B C8 41 8B D7", 8)), SendAlterWantedLevelEvent1Hook, (void**)&g_origSendAlterWantedLevelEvent1);
+		MH_CreateHook(hook::get_pattern("4C 8B 78 10 48 85 F6", -0x58), SendAlterWantedLevelEvent2Hook, (void**)&g_origSendAlterWantedLevelEvent2);
 	}
 	else
 	{
