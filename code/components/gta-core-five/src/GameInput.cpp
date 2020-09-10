@@ -354,6 +354,11 @@ static hook::cdecl_stub<bool(int)> _isMenuActive([]
 	return hook::get_call(hook::get_pattern("33 C9 E8 ? ? ? ? 84 C0 74 04 84 DB 75 21", 2));
 });
 
+static hook::cdecl_stub<bool()> _isTextInputBoxActive([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 40 84 FF 74 15 E8", 10));
+});
+
 bool IsTagActive(const std::string& tag);
 
 void Binding::Update(rage::ioMapper* mapper)
@@ -369,6 +374,12 @@ void Binding::Update(rage::ioMapper* mapper)
 	}
 
 	bool down = m_value.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE);
+
+	// text input should count as up
+	if (_isTextInputBoxActive())
+	{
+		down = false;
+	}
 
 	bool isDownEvent = (!m_wasDown && down);
 	bool isUpEvent = (m_wasDown && !down);
