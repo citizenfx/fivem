@@ -117,7 +117,7 @@ struct shared_reference
 		return value != nullptr;
 	}
 
-	bool operator==(const shared_reference& other)
+	bool operator==(const shared_reference& other) const
 	{
 		return value == other.value;
 	}
@@ -301,7 +301,12 @@ struct weak_reference
 		return *this;
 	}
 
-	bool operator==(const weak_reference& other)
+	bool operator==(const SharedT& other) const
+	{
+		return value == other.value;
+	}
+
+	bool operator==(const weak_reference& other) const
 	{
 		return value == other.value;
 	}
