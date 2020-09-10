@@ -685,6 +685,22 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				shouldBeCreated = true;
 			}
+			
+			// players should have their own entities, if nobody else cares about them
+			if (entityClient && client->GetNetId() == entityClient->GetNetId())
+			{
+				auto clientCount = entity->relevantTo.count();
+
+				// if there's *no* relevantTo, or if it's just the owning player
+				if (clientCount < 1 || (entity->relevantTo.test(client->GetSlotId()) && clientCount < 2))
+				{
+					// server script-owned entities get special disown behavior
+					if (!entity->IsOwnedByScript())
+					{
+						shouldBeCreated = true;
+					}
+				}
+			}
 
 			if (!shouldBeCreated)
 			{
