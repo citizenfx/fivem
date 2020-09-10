@@ -158,7 +158,14 @@ namespace fx
 		{
 			static ConsoleCommand cmd("force_enet_disconnect", [this](int peerIdx)
 			{
-				peerIdx = m_server->GetInstance()->GetComponent<fx::ClientRegistry>()->GetClientByNetID(peerIdx)->GetPeer();
+				auto client = m_server->GetInstance()->GetComponent<fx::ClientRegistry>()->GetClientByNetID(peerIdx);
+
+				if (!client)
+				{
+					return;
+				}
+
+				peerIdx = client->GetPeer();
 
 				auto peer = m_peerHandles.find(peerIdx);
 
