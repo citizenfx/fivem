@@ -492,7 +492,7 @@ static HookFunction hookFunction{[] ()
 	// sysPerformanceTimer deltaing using LowPart - leads to audio deadlocks after a while
 	// instead, use QuadPart as one should
 	{
-		auto location = hook::get_pattern<char>("48 8B 44 24 30 0F 57 C0", -0x19);
+		auto location = hook::get_pattern<char>("48 8B 44 24 30 0F 57 C0", -0x14);
 		rage__sysTimerConsts__TicksToMilliseconds = hook::get_address<float*>(location + 0x29);
 		hook::jump(location, sysPerformanceTimer__GetElapsedTimeMS);
 	}
