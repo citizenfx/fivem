@@ -11,8 +11,6 @@
 
 #include <nng/nng.h>
 
-#include <boost/bimap.hpp>
-
 #include <tbb/concurrent_queue.h>
 #include <concurrentqueue.h>
 

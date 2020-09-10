@@ -160,11 +160,11 @@ namespace fx
 			{
 				peerIdx = m_server->GetInstance()->GetComponent<fx::ClientRegistry>()->GetClientByNetID(peerIdx)->GetPeer();
 
-				auto peer = m_peerHandles.left.find(peerIdx);
+				auto peer = m_peerHandles.find(peerIdx);
 
-				if (peer != m_peerHandles.left.end())
+				if (peer != m_peerHandles.end())
 				{
-					enet_peer_disconnect(peer->get_right(), 0);
+					enet_peer_disconnect(peer->second, 0);
 				}
 			});
 		}
@@ -196,19 +196,21 @@ namespace fx
 				{
 					console::DPrintf("enet", "Peer %s connected to ENet (id %d).\n", GetPeerAddress(event.peer->address).ToString(), m_basePeerId + 1);
 
-					m_peerHandles.left.insert({ ++m_basePeerId, event.peer });
+					auto peerId = ++m_basePeerId;
+					event.peer->data = reinterpret_cast<void*>(peerId);
+					m_peerHandles.emplace(peerId, event.peer);
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
 				{
 					console::DPrintf("enet", "Peer %s disconnected from ENet.\n", GetPeerAddress(event.peer->address).ToString());
 
-					m_peerHandles.right.erase(event.peer);
+					m_peerHandles.erase(reinterpret_cast<int>(event.peer->data));
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
-					auto peerId = m_peerHandles.right.find(event.peer)->get_left();
+					auto peerId = reinterpret_cast<int>(event.peer->data);
 
 					NetPeerImplENet netPeer(this, peerId);
 					m_server->ProcessPacket(&netPeer, event.packet->data, event.packet->dataLength);
@@ -259,20 +261,20 @@ namespace fx
 
 		virtual void ResetPeer(int peerId) override
 		{
-			auto peerPair = m_peerHandles.left.find(peerId);
+			auto peerPair = m_peerHandles.find(peerId);
 
-			if (peerPair == m_peerHandles.left.end())
+			if (peerPair == m_peerHandles.end())
 			{
 				return;
 			}
 
-			enet_peer_reset(peerPair->get_right());
+			enet_peer_reset(peerPair->second);
 		}
 
 		virtual void SendPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) override
 		{
-			auto peerPair = m_peerHandles.left.find(peer);
-			if (peerPair == m_peerHandles.left.end())
+			auto peerPair = m_peerHandles.find(peer);
+			if (peerPair == m_peerHandles.end())
 			{
 				return;
 			}
@@ -289,7 +291,7 @@ namespace fx
 			{
 				sharedPtrPool.destruct((NetBufferSharedPtr*)packet->userData);
 			};
-			enet_peer_send(peerPair->get_right(), channel, packet);
+			enet_peer_send(peerPair->second, channel, packet);
 		}
 
 		virtual void SendOutOfBand(const net::PeerAddress & to, const std::string_view & oob, bool prefix) override
@@ -372,7 +374,7 @@ namespace fx
 
 		std::vector<THostPtr> hosts;
 
-		boost::bimap<int, ENetPeer*> m_peerHandles;
+		std::map<int, ENetPeer*> m_peerHandles;
 
 		fwEvent<ENetHost*> OnHostRegistered;
 
@@ -381,14 +383,14 @@ namespace fx
 
 	ENetPeer* NetPeerImplENet::GetPeer()
 	{
-		auto it = m_host->m_peerHandles.left.find(m_handle);
+		auto it = m_host->m_peerHandles.find(m_handle);
 
-		if (it == m_host->m_peerHandles.left.end())
+		if (it == m_host->m_peerHandles.end())
 		{
 			return nullptr;
 		}
 
-		return it->get_right();
+		return it->second;
 	}
 
 	fwRefContainer<GameServerNetBase> CreateGSNet_ENet(fx::GameServer* server)
