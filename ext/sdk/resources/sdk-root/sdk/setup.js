@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const shellServer = require('./shellServer');
-const serverManager = require('./serverManager');
+const serverInstaller = require('./serverInstaller');
 
 const localAppData = path.join(process.env.LOCALAPPDATA, 'citizenfx');
 const setupFilePath = path.join(localAppData, 'setup.json');
@@ -32,7 +32,7 @@ function run() {
         shellServer.sendClientEvent({ type: 'state:fxserverDownload', data: { total, downloaded } });
       };
 
-      return serverManager.downloadLatestServer(setContentLength, setDataLength);
+      return serverInstaller.downloadLatestServer(setContentLength, setDataLength);
     })
     .then(() => {
       let total = 0;
@@ -44,9 +44,9 @@ function run() {
         shellServer.sendClientEvent({ type: 'state:fxserverUnpack', data: { total, downloaded: unpacked } });
       };
 
-      return serverManager.unpackLatestServer(setContentLength, setDataLength);
+      return serverInstaller.unpackLatestServer(setContentLength, setDataLength);
     })
-    .then(serverManager.prepareLatestServer);
+    .then(serverInstaller.prepareLatestServer);
 }
 
 module.exports = {

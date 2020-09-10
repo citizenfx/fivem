@@ -5,11 +5,6 @@ import { injectable, postConstruct } from 'inversify';
 
 import './common/game-view.webcomponent.js';
 
-enum GameViewMode {
-  observing = 0,
-  controling = 1,
-};
-
 const GameView = React.memo(() => {
   const ref = React.useRef<any>(null);
 
@@ -64,24 +59,23 @@ export class FxdkGameView extends ReactWidget {
 
   protected render(): React.ReactNode {
     return (
-      <GameView/>
+      <GameView />
     );
   }
 }
 
 @injectable()
 export class FxdkGameViewContribution extends AbstractViewContribution<FxdkGameView> {
+  static readonly FXDK_GAME_VIEW_TOGGLE_COMMAND_ID = 'fxdkGameView:toggle';
 
-    static readonly FXDK_GAME_VIEW_TOGGLE_COMMAND_ID = 'fxdkGameView:toggle';
-
-    constructor() {
-        super({
-            widgetId: FxdkGameView.ID,
-            widgetName: 'Game View',
-            toggleCommandId: FxdkGameViewContribution.FXDK_GAME_VIEW_TOGGLE_COMMAND_ID,
-            defaultWidgetOptions: {
-                area: 'main',
-            }
-        });
-    }
+  constructor() {
+    super({
+      widgetId: FxdkGameView.ID,
+      widgetName: 'Game View',
+      toggleCommandId: FxdkGameViewContribution.FXDK_GAME_VIEW_TOGGLE_COMMAND_ID,
+      defaultWidgetOptions: {
+        area: 'main',
+      }
+    });
+  }
 }

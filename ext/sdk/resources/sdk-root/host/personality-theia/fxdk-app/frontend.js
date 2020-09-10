@@ -4,7 +4,7 @@ require('reflect-metadata');
 const { Container } = require('inversify');
 const { FrontendApplicationConfigProvider } = require('@theia/core/lib/browser/frontend-application-config-provider');
 FrontendApplicationConfigProvider.set({
-    "applicationName": "Eclipse Theia",
+    "applicationName": "FxDK",
     "defaultTheme": "dark",
     "defaultIconTheme": "none"
 });
@@ -13,6 +13,8 @@ const { frontendApplicationModule } = require('@theia/core/lib/browser/frontend-
 const { messagingFrontendModule } = require('@theia/core/lib/browser/messaging/messaging-frontend-module');
 const { loggerFrontendModule } = require('@theia/core/lib/browser/logger-frontend-module');
 const { ThemeService } = require('@theia/core/lib/browser/theming');
+
+console.log('MINE!!!');
 
 const container = new Container();
 container.load(frontendApplicationModule);
@@ -45,7 +47,9 @@ module.exports = Promise.resolve()
     .then(function () { return import('@theia/filesystem/lib/browser/download/file-download-frontend-module').then(load) })
     .then(function () { return import('@theia/filesystem/lib/browser/file-dialog/file-dialog-module').then(load) })
     .then(function () { return import('@theia/workspace/lib/browser/workspace-frontend-module').then(load) })
+    .then(function () { return import('fxdk-project/lib/browser/workspace-frontend-module').then(load) })
     .then(function () { return import('@theia/navigator/lib/browser/navigator-frontend-module').then(load) })
+
     .then(function () { return import('@theia/markers/lib/browser/problem/problem-frontend-module').then(load) })
     .then(function () { return import('@theia/outline-view/lib/browser/outline-view-frontend-module').then(load) })
     .then(function () { return import('@theia/monaco/lib/browser/monaco-browser-module').then(load) })
@@ -77,7 +81,6 @@ module.exports = Promise.resolve()
     .then(function () { return import('@theia/typehierarchy/lib/browser/typehierarchy-frontend-module').then(load) })
     .then(function () { return import('@theia/vsx-registry/lib/browser/vsx-registry-frontend-module').then(load) })
     .then(function () { return import('fxdk-game-view/lib/browser/fxdk-game-view-frontend-module').then(load) })
-    .then(function () { return import('fxdk-project/lib/browser/workspace-frontend-module').then(load) })
     .then(start).catch(reason => {
         console.error('Failed to start the frontend application.');
         if (reason) {

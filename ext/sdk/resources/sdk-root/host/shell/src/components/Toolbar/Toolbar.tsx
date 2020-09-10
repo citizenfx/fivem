@@ -12,7 +12,7 @@ const restartSDKGame = () => sendCommand('localrestart');
 
 const giveRifle = () => sendCommand('weapon WEAPON_CARBINERIFLE');
 
-export const Toolbar = React.memo(() => {
+export const Toolbar = React.memo(({ sendTheiaMessage }: any) => {
   const { state } = React.useContext(StateContext);
   const timer = React.useRef<any>(null);
   const timerCallback = React.useRef<any>(null);
@@ -41,6 +41,17 @@ export const Toolbar = React.memo(() => {
     setToolbarOpen(false);
     giveRifle();
   }, [setToolbarOpen]);
+
+
+  const handleAddFolder = React.useCallback(() => {
+    setToolbarOpen(false);
+    sendTheiaMessage({ type: 'fxdk:addFolder', data: 'file:///C:/dev/fivem/fivem.net' });
+  }, [setToolbarOpen]);
+  const handleRemoveFolder = React.useCallback(() => {
+    setToolbarOpen(false);
+    sendTheiaMessage({ type: 'fxdk:removeFolder', data: 'file:///C:/dev/fivem/fivem.net' });
+  }, [setToolbarOpen]);
+
 
   const handleMouseLeave = React.useCallback(() => {
     timer.current = setTimeout(timerCallback.current, 200);
@@ -77,6 +88,8 @@ export const Toolbar = React.memo(() => {
         <button onClick={handleStartSDKGame}>localgame sdk-game</button>
         <button onClick={handleRestartSDKGame}>localrestart sdk-game</button>
         <button onClick={handleGiveRifle}>give rifle</button>
+        <button onClick={handleAddFolder}>add folder</button>
+        <button onClick={handleRemoveFolder}>remove folder</button>
       </div>
     </div>
   );

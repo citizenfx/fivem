@@ -834,14 +834,18 @@ void MakeBrowser(const std::string& url)
 	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
 }
 
+static bool terminateRenderThread = false;
+
 static void RenderThread()
 {
 	fxdk::InitRender();
 
-	while (true)
+	while (!terminateRenderThread)
 	{
 		fxdk::Render();
 	}
+
+	trace(__FUNCTION__ ": Shutting down render thread.\n");
 }
 
 void SdkMain()
@@ -883,7 +887,9 @@ void SdkMain()
 		return launcherTalk;
 	};
 
-	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+	HANDLE gameProcessHandle;
+
+	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([&gameProcessHandle] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 	{
 		// is this our event?
 		if (eventName == "sdk:openBrowser")
@@ -930,6 +936,8 @@ void SdkMain()
 
 			if (result)
 			{
+				gameProcessHandle = processInfo.hProcess;
+
 				// set the PID and create the game thread
 				hostData->gamePid = processInfo.dwProcessId;
 				ResumeThread(processInfo.hThread);
@@ -974,9 +982,14 @@ void SdkMain()
 
 	trace(__FUNCTION__ ": Initialized CEF.\n");
 
-	std::thread([]()
+	std::mutex renderThreadMutex;
+
+	std::thread([&renderThreadMutex]()
 	{
+		renderThreadMutex.lock();
 		RenderThread();
+		renderThreadMutex.unlock();
+		std::terminate();
 	})
 	.detach();
 
@@ -1020,6 +1033,20 @@ void SdkMain()
 	// Run the CEF message loop. This will block until CefQuitMessageLoop() is
 	// called.
 	CefRunMessageLoop();
+
+	terminateRenderThread = true;
+	renderThreadMutex.lock();
+	renderThreadMutex.unlock();
+
+	trace(__FUNCTION__ ": Shutting down game.\n");
+
+	if (gameProcessHandle)
+	{
+		TerminateProcess(gameProcessHandle, 0);
+		WaitForSingleObject(gameProcessHandle, INFINITE);
+	}
+
+	trace(__FUNCTION__ ": Shut down game.\n");
 
 	trace(__FUNCTION__ ": Shutting down CEF.\n");
 

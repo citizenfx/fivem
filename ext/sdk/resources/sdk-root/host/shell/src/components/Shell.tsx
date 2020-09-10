@@ -39,6 +39,12 @@ export function Shell() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  const sendTheiaMessage = React.useCallback((msg) => {
+    if (theiaRef.current) {
+      theiaRef.current.contentWindow.postMessage(msg, '*');
+    }
+  }, []);
+
   React.useEffect(() => () => {
     if (unveilTimerRef.current) {
       clearTimeout(unveilTimerRef.current);
@@ -59,7 +65,7 @@ export function Shell() {
 
   return (
     <div className={s.root}>
-      <Toolbar />
+      <Toolbar sendTheiaMessage={sendTheiaMessage} />
 
       {!showPersonality && (
         <Preparing />

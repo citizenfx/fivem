@@ -7,5 +7,10 @@
     "run": {
       "stream": true
     }
-  }
+  },
+  "packages": [
+    "fxdk-game-view",
+    "fxdk-app",
+    "fxdk-project"
+  ]
 }

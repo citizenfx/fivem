@@ -26,13 +26,15 @@ const start = (shellPath) => new Promise((resolve) => {
   let resolved = false;
 
   shellApp.get('/ready', (req, res) => {
-    res.writeHead(200);
+    res.writeHead(200, shellEndpointHeaders);
     res.end();
 
     if (!resolved) {
       resolved = true;
 
       resolve();
+    } else {
+      sendClientEvent({ type: 'state:transition', data: 'ready' });
     }
   })
 

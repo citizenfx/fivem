@@ -1,6 +1,7 @@
 {
   "extends": "../common.tsconfig.json",
   "compilerOptions": {
+    "target": "ES5",
     "rootDir": "src",
     "outDir": "lib"
   },
