@@ -212,12 +212,12 @@ namespace fx
 				{
 					console::DPrintf("enet", "Peer %s disconnected from ENet.\n", GetPeerAddress(event.peer->address).ToString());
 
-					m_peerHandles.erase(reinterpret_cast<int>(event.peer->data));
+					m_peerHandles.erase(static_cast<int>(reinterpret_cast<uintptr_t>(event.peer->data)));
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
-					auto peerId = reinterpret_cast<int>(event.peer->data);
+					auto peerId = static_cast<int>(reinterpret_cast<uintptr_t>(event.peer->data));
 
 					NetPeerImplENet netPeer(this, peerId);
 					m_server->ProcessPacket(&netPeer, event.packet->data, event.packet->dataLength);
