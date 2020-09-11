@@ -13,6 +13,8 @@
 #include <Local.h>
 #include <Hooking.h>
 #include <GameInit.h>
+#include <nutsnbolts.h>
+#include <gameSkeleton.h>
 
 #include <limits>
 #include <bitset>
@@ -30,7 +32,21 @@
 
 using namespace winrt::Windows::Gaming::Input;
 
+struct PatternPair
+{
+	std::string_view pattern;
+	int offset;
+};
+
+struct FlyThroughWindscreenParam
+{
+	float* currentPtr;
+	float* defaultPtr;
+};
+
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
+
+static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
 
 template<typename T>
 inline static T readValue(fwEntity* ptr, int offset)
@@ -269,6 +285,14 @@ static void DeleteNetworkCloneWrap(void* objectMgr, void* netObject, int reason,
 	return g_origDeleteNetworkClone(objectMgr, netObject, reason, forceRemote1, forceRemote2);
 }
 
+static void ResetFlyThroughWindscreenParams()
+{
+	for (auto& entry : g_flyThroughWindscreenParams)
+	{
+		*entry.currentPtr = *entry.defaultPtr;
+	}
+}
+
 static HookFunction initFunction([]()
 {
 	{
@@ -357,6 +381,35 @@ static HookFunction initFunction([]()
 
 		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
 		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
+	}
+
+	{
+		std::initializer_list<PatternPair> list = {
+			{ "44 38 ? ? ? ? 02 74 ? F3 0F 10 1D", 13 },
+			{ "44 38 ? ? ? ? 02 74 ? F3 0F 10 3D", 13 },
+			{ "48 8B 10 FF 52 ? 0F 28 D8 F3 0F 59", -23 },
+			{ "F3 0F 10 0D ? ? ? ? 0F 2F 8B ? ? ? ? 0F", 4 }
+		};
+
+		auto index = 0;
+		auto stub = (uint64_t)hook::AllocateStubMemory(sizeof(float) * list.size());
+
+		for (auto& entry : list)
+		{
+			auto location = hook::pattern(entry.pattern).count(1).get(0).get<int32_t>(entry.offset);
+
+			auto defaultAddr = hook::get_address<float*>(location);
+			auto currentAddr = (float*)(stub + (sizeof(float) * index));
+
+			FlyThroughWindscreenParam data;
+			data.defaultPtr = defaultAddr;
+			data.currentPtr = currentAddr;
+
+			*location = (intptr_t)currentAddr - (intptr_t)location - 4;
+			++index;
+
+			g_flyThroughWindscreenParams.push_back(data);
+		}
 	}
 
 	// not a vehicle native
@@ -638,6 +691,7 @@ static HookFunction initFunction([]()
 				}
 			}
 		}
+
 		context.SetResult<bool>(success);
 	});
 
@@ -766,6 +820,30 @@ static HookFunction initFunction([]()
 		context.SetResult<float>(result);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_FLY_THROUGH_WINDSCREEN_PARAMS", [](fx::ScriptContext& context)
+	{
+		bool success = false;
+		auto paramsCount = g_flyThroughWindscreenParams.size();
+
+		if (context.GetArgumentCount() == paramsCount)
+		{
+			for (int i = 0; i < paramsCount; i++)
+			{
+				auto entry = g_flyThroughWindscreenParams.at(i);
+				*entry.currentPtr = context.GetArgument<float>(i);
+			}
+
+			success = true;
+		}
+
+		context.SetResult<bool>(success);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_FLY_THROUGH_WINDSCREEN_PARAMS", [](fx::ScriptContext& context)
+	{
+		ResetFlyThroughWindscreenParams();
+	});
+
 	static struct : jitasm::Frontend
 	{
 		static bool ShouldSkipRepairFunc(fwEntity* VehPointer)
@@ -813,15 +891,25 @@ static HookFunction initFunction([]()
 		hook::call_reg<2>(repairFunc, asmfunc.GetCode());
 	}
 
-	OnKillNetworkDone.Connect([]() {
+	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_CORE)
+		{
+			ResetFlyThroughWindscreenParams();
+		}
+	});
+
+	OnKillNetworkDone.Connect([]()
+	{
 		g_skipRepairVehicles.clear();
+		ResetFlyThroughWindscreenParams();
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context) {
 		auto vehHandle = context.GetArgument<int>(0);
 		auto shouldDisable = context.GetArgument<bool>(1);
 
-		fwEntity *entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
 
 		if (shouldDisable)
 		{
