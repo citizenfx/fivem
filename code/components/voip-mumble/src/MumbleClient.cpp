@@ -441,6 +441,7 @@ void MumbleClient::SetClientVolumeOverride(const std::wstring& clientName, float
 		if (user->GetName() == clientName)
 		{
 			GetOutput().HandleClientVolumeOverride(*user, volume);
+			return;
 		}
 	});
 }
@@ -452,6 +453,7 @@ void MumbleClient::SetClientVolumeOverrideByServerId(uint32_t serverId, float vo
 		if (user->GetServerId() == serverId)
 		{
 			GetOutput().HandleClientVolumeOverride(*user, volume);
+			return;
 		}
 	});
 }
