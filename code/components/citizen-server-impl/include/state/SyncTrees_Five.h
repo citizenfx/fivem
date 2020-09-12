@@ -2534,9 +2534,9 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		auto[hasPcn, playerCreationNode] = GetData<CPlayerCreationDataNode>();
+		auto[hasPlyCn, playerCreationNode] = GetData<CPlayerCreationDataNode>();
 
-		if (hasPcn)
+		if (hasPlyCn)
 		{
 			*modelHash = playerCreationNode->m_model;
 			return true;
