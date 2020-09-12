@@ -1804,7 +1804,18 @@ struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; 
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPlayerCreationDataNode {
+	uint32_t m_model;
+
+	bool Parse(SyncParseState& state)
+	{
+		uint32_t model = state.buffer.Read<uint32_t>(32);
+		m_model = model;
+
+		return true;
+	}
+};
 
 struct CPlayerGameStateDataNode {
 	CPlayerGameStateNodeData data;
@@ -2523,11 +2534,11 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
+		auto[hasPcn, playerCreationNode] = GetData<CPlayerCreationDataNode>();
 
-		if (hasPan)
+		if (hasPcn)
 		{
-			*modelHash = playerAppearanceNode->model;
+			*modelHash = playerCreationNode->m_model;
 			return true;
 		}
 
