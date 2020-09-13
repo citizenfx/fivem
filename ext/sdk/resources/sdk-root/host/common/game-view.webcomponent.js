@@ -1,3 +1,5 @@
+const { isThisSecond } = require("date-fns");
+
 class GameView extends HTMLElement {
   get isObservingMode() {
     return this.mode === this.modes.observing;
@@ -99,6 +101,8 @@ class GameView extends HTMLElement {
     document.removeEventListener('keyup', this._handleKeyup);
 
     document.removeEventListener('pointerlockchange', this._handlePointerLock);
+
+    document.removeEventListener('mousemove', this._handleDocumentMouseMove);
   }
 
   _mapMouseButton(button) {
@@ -180,7 +184,7 @@ class GameView extends HTMLElement {
         this._controlingModeMouseLock = false;
       }
     };
-  
+
     this._handleDocumentMouseMove = (e) => {
       // Handling cases when pointer was unlocked externally
       if (this._controlingModeMouseLock && e.target !== this) {
@@ -244,6 +248,10 @@ class GameView extends HTMLElement {
     };
 
     this._handleKeydown = (e) => {
+      if (!this._observingModeMouseLock && !this._controlingModeMouseLock) {
+        return;
+      }
+
       e.preventDefault();
 
       // Handling mouse unlock
@@ -277,6 +285,10 @@ class GameView extends HTMLElement {
       }
     };
     this._handleKeyup = (e) => {
+      if (!this._observingModeMouseLock && !this._controlingModeMouseLock) {
+        return;
+      }
+
       e.preventDefault();
 
       const vk = this._mapKey(e.which, e.location);

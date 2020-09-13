@@ -12,7 +12,8 @@
     "yargs": "^15.4.1"
   },
   "scripts": {
-    "start": "node start.js",
-    "build": "node build.js"
+    "postinstall": "yarn --cwd personality-theia install --pure-lockfile && yarn --cwd shell install --pure-lockfile",
+    "start": "node scripts/start.js",
+    "build": "node scripts/build.js"
   }
 }

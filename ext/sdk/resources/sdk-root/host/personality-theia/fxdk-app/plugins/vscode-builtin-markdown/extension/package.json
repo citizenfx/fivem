@@ -1,8 +1,8 @@
 {
   "name": "markdown",
-  "displayName": "%displayName%",
-  "description": "%description%",
-  "version": "1.39.1-prel",
+  "displayName": "Markdown Language Basics (built-in)",
+  "description": "Provides snippets and syntax highlighting for Markdown.",
+  "version": "1.44.2",
   "publisher": "vscode",
   "license": "MIT",
   "engines": {
@@ -90,6 +90,9 @@
     ]
   },
   "scripts": {},
+  "keywords": [
+    "Built-in"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/theia-ide/vscode-builtin-extensions"

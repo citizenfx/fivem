@@ -1,0 +1,67 @@
+@import "variables";
+
+.root {
+  display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	height: $q*10;
+	padding: $q*2 $q*4;
+
+	border: none;
+	outline: none;
+	user-select: none;
+
+  background-color: rgba($bgColor, .8);
+  backdrop-filter: blur($blurSize);
+
+	font-family: 'Rubik';
+	font-size: 1rem;
+	font-weight: 300;
+	line-height: 1;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	text-decoration: none;
+
+  cursor: pointer;
+
+	transition: all .2s ease;
+
+	color: $fgColor;
+  box-shadow: 0 0 0 2px rgba($fgColor, .75) inset;
+
+  &:hover {
+    color: $bgColor;
+    background-color: $fgColor;
+
+    transition: none;
+  }
+
+  &.disabled {
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  &.icon.text {
+    svg {
+      margin-right: $q;
+    }
+  }
+
+  &.primary {
+    box-shadow: 0 0 0 2px $acColor inset;
+
+    &:hover {
+      color: $fgColor;
+      background-color: $acColor;
+
+      transition: none;
+    }
+  }
+
+  &.transparent {
+    box-shadow: none;
+    backdrop-filter: none;
+    background-color: transparent;
+  }
+}

@@ -15,7 +15,11 @@
     "mobx-react": "^6.3.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-icons": "^3.11.0",
     "react-scripts": "3.4.3",
+    "reconnectingwebsocket": "^1.0.0",
+    "typeface-montserrat": "^0.0.75",
+    "typeface-rubik": "^0.0.72",
     "typescript": "^4.0.2"
   },
   "scripts": {
@@ -40,6 +44,8 @@
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.10.4",
     "@types/classnames": "^2.2.10",
+    "@typescript-eslint/eslint-plugin": "^4.1.1",
+    "@typescript-eslint/parser": "^4.1.1",
     "customize-cra": "^1.0.0",
     "node-sass": "^4.14.1",
     "react-app-rewired": "^2.1.6",

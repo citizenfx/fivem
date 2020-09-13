@@ -5,7 +5,7 @@ import URI from '@theia/core/lib/common/uri';
 import { WorkspaceServer } from '@theia/workspace/lib/common';
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
 import {
-  FrontendApplicationContribution, PreferenceServiceImpl, PreferenceScope, PreferenceSchemaProvider, LabelProvider
+  FrontendApplicationContribution, PreferenceServiceImpl, PreferenceSchemaProvider, LabelProvider
 } from '@theia/core/lib/browser';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { EnvVariablesServer } from '@theia/core/lib/common/env-variables';
@@ -17,22 +17,19 @@ import { FileStat, BaseStat } from '@theia/filesystem/lib/common/files';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { FileSystemPreferences } from '@theia/filesystem/lib/browser';
 
-import { THEIA_EXT, VSCODE_EXT } from './rebindWorkspaceFrontendContribution';
+// import { THEIA_EXT, VSCODE_EXT } from './rebindWorkspaceFrontendContribution';
 
-
-let instances = 0;
-
-/**
- * The workspace service.
- */
 @injectable()
 export class FxdkWorkspaceService implements FrontendApplicationContribution {
 
-  public GUID = ++instances;
+  // FxDK
+  private _folders: Set<string> = new Set();
+  private _projectName: string = 'none';
+  private _projectPath: string = 'none';
+  // /FxDK
 
   private _workspace: FileStat | undefined;
 
-  private _folders: Set<string> = new Set();
   private _roots: FileStat[] = [];
   private deferredRoots = new Deferred<FileStat[]>();
 
@@ -74,37 +71,14 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
   @postConstruct()
   protected async init(): Promise<void> {
     this.applicationName = FrontendApplicationConfigProvider.get().applicationName;
-    // const wsUriString = await this.getDefaultWorkspaceUri();
-    // const wsStat = await this.toFileStat(wsUriString);
-    // await this.setWorkspace(wsStat);
 
-    this._workspace = {
-      isDirectory: false,
-      resource: {
-        path: {
-          name: 'PROJECT',
-        },
-      },
-    };
-
-    this.fileService.onDidFilesChange(event => {
-      if (this._workspace && this._workspace.isFile && event.contains(this._workspace.resource)) {
-        this.updateWorkspace();
-      }
-    });
     this.fsPreferences.onPreferenceChanged(e => {
       if (e.preferenceName === 'files.watcherExclude') {
         this.refreshRootWatchers();
       }
     });
 
-    this.updateWorkspace();
-  }
-  /**
-   * Set the URL fragment to the given workspace path.
-   */
-  protected setURLFragment(workspacePath: string): void {
-    window.location.hash = workspacePath;
+    // this.updateWorkspace();
   }
 
   get roots(): Promise<FileStat[]> {
@@ -114,7 +88,19 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     return this._roots;
   }
   get workspace(): FileStat | undefined {
-    return this._workspace;
+    return {
+      isDirectory: false,
+      resource: {
+        path: {
+          isAbsolute: false,
+          isRoot: false,
+          name: this._projectName,
+        },
+        toString: () => {
+          return this._projectPath;
+        },
+      },
+    } as any;
   }
 
   protected readonly onWorkspaceChangeEmitter = new Emitter<FileStat[]>();
@@ -127,28 +113,40 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     return this.onWorkspaceLocationChangedEmitter.event;
   }
 
-  protected readonly toDisposeOnWorkspace = new DisposableCollection();
-  protected async setWorkspace(workspaceStat: FileStat | undefined): Promise<void> {
-    if (this._workspace && workspaceStat &&
-      this._workspace.resource === workspaceStat.resource &&
-      this._workspace.mtime === workspaceStat.mtime &&
-      this._workspace.etag === workspaceStat.etag &&
-      this._workspace.size === workspaceStat.size) {
-      return;
+  setProject({ name, path, folders }) {
+    this._projectName = name;
+    this._projectPath = path;
+    this._folders = new Set(folders);
+
+    console.log('Opened project in theia', name, path, folders);
+
+    this.onWorkspaceLocationChangedEmitter.fire(this.workspace);
+    this.updateWorkspace();
+  }
+
+  addFolder(dir: string): void {
+    if (!this._folders.has(dir)) {
+      this._folders.add(dir);
+      this.updateWorkspace();
     }
-    this.toDisposeOnWorkspace.dispose();
-    this._workspace = workspaceStat;
-    if (this._workspace) {
-      const uri = this._workspace.resource;
-      if (this._workspace.isFile) {
-        this.toDisposeOnWorkspace.push(this.fileService.watch(uri));
-      }
-      this.setURLFragment(uri.path.toString());
-    } else {
-      this.setURLFragment('');
-    }
-    this.updateTitle();
-    await this.updateWorkspace();
+  }
+
+  addFolders(dirs: string[]): void {
+    dirs
+      .filter((dir) => !this._folders.has(dir))
+      .forEach((dir) => this._folders.add(dir));
+
+    this.updateWorkspace();
+  }
+
+  removeFolder(dir: string): void {
+    this._folders.delete(dir);
+    this.updateWorkspace();
+  }
+
+  clearFolders(): void {
+    this._folders = new Set();
+    this.updateWorkspace();
   }
 
   protected async updateWorkspace(): Promise<void> {
@@ -187,6 +185,7 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
       if (valid) {
         roots.push(valid);
       } else {
+        debugger;
         roots.push(FileStat.dir(path));
       }
     }
@@ -200,34 +199,15 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     };
   }
 
-  protected formatTitle(title?: string): string {
-    const name = this.applicationName;
-    return title ? `${title} — ${name}` : name;
-  }
-
-  protected updateTitle(): void {
-    let title: string | undefined;
-    if (this._workspace) {
-      const displayName = this._workspace.name;
-      if (!this._workspace.isDirectory &&
-        (displayName.endsWith(`.${THEIA_EXT}`) || displayName.endsWith(`.${VSCODE_EXT}`))) {
-        title = displayName.slice(0, displayName.lastIndexOf('.'));
-      } else {
-        title = displayName;
-      }
-    }
-    document.title = this.formatTitle(title);
-  }
-
   /**
    * on unload, we set our workspace root as the last recently used on the backend.
    */
   onStop(): void {
-    this.server.setMostRecentlyUsedWorkspace(this._workspace ? this._workspace.resource.toString() : '');
+    return;
   }
 
   async recentWorkspaces(): Promise<string[]> {
-    return this.server.getRecentWorkspaces();
+    return [];
   }
 
   /**
@@ -235,7 +215,7 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
    * @returns {boolean}
    */
   get opened(): boolean {
-    return !!this._workspace;
+    return true;
   }
 
   /**
@@ -259,90 +239,13 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
    */
   open(uri: URI, options?: WorkspaceInput): void {
     return;
-    this.doOpen(uri, options);
-  }
-
-  protected async doOpen(uri: URI, options?: WorkspaceInput): Promise<void> {
-    const rootUri = uri.toString();
-    const stat = await this.toFileStat(rootUri);
-    if (stat) {
-      if (!stat.isDirectory && !this.isWorkspaceFile(stat)) {
-        const message = `Not a valid workspace file: ${uri}`;
-        this.messageService.error(message);
-        throw new Error(message);
-      }
-      // The same window has to be preserved too (instead of opening a new one), if the workspace root is not yet available and we are setting it for the first time.
-      // Option passed as parameter has the highest priority (for api developers), then the preference, then the default.
-      await this.roots;
-      const preserveWindow = true;
-      this._workspace = stat;
-      this.openWindow(stat, { preserveWindow });
-      return;
-    }
-    throw new Error('Invalid workspace root URI. Expected an existing directory location.');
-  }
-
-  /**
-   * Adds a root folder to the workspace
-   * @param uri URI of the root folder being added
-   */
-  async addRoot(uri: URI): Promise<void> {
-    if (!this.containsSome([uri.path.toString()])) {
-      await this.spliceRoots(this._roots.length, 0, uri);
-    }
-  }
-
-  addFolder(dir: string): void {
-    if (!this._folders.has(dir)) {
-      this._folders.add(dir);
-      this.updateWorkspace();
-    }
-  }
-
-  removeFolder(dir: string): void {
-    this._folders.delete(dir);
-    this.updateWorkspace();
-  }
-
-  /**
-   * Removes root folder(s) from workspace.
-   */
-  async removeRoots(uris: URI[]): Promise<void> {
-    if (!this.opened) {
-      throw new Error('Folder cannot be removed as there is no active folder in the current workspace.');
-    }
-  }
-
-  async spliceRoots(start: number, deleteCount?: number, ...rootsToAdd: URI[]): Promise<URI[]> {
-    if (!this._workspace) {
-      throw new Error('There is not active workspace');
-    }
-    const dedup = new Set<string>();
-    const roots = this._roots.map(root => (dedup.add(root.resource.toString()), root.resource.toString()));
-    const toAdd: string[] = [];
-    for (const root of rootsToAdd) {
-      const uri = root.toString();
-      if (!dedup.has(uri)) {
-        dedup.add(uri);
-        toAdd.push(uri);
-      }
-    }
-    const toRemove = roots.splice(start, deleteCount || 0, ...toAdd);
-    if (!toRemove.length && !toAdd.length) {
-      return [];
-    }
-
-    return toRemove.map(root => new URI(root));
   }
 
   /**
    * Clears current workspace root.
    */
   async close(): Promise<void> {
-    this._workspace = undefined;
     this._roots.length = 0;
-
-    this.reloadWindow();
   }
 
   /**
@@ -373,43 +276,6 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     } catch (error) {
       return undefined;
     }
-  }
-
-  protected openWindow(uri: FileStat, options?: WorkspaceInput): void {
-    const workspacePath = uri.resource.path.toString();
-
-    if (this.shouldPreserveWindow(options)) {
-      this.reloadWindow();
-    } else {
-      try {
-        this.openNewWindow(workspacePath);
-      } catch (error) {
-        // Fall back to reloading the current window in case the browser has blocked the new window
-        this._workspace = uri;
-        this.logger.error(error.toString()).then(() => this.reloadWindow());
-      }
-    }
-  }
-
-  protected reloadWindow(): void {
-    // Set the new workspace path as the URL fragment.
-    if (this._workspace !== undefined) {
-      this.setURLFragment(this._workspace.resource.path.toString());
-    } else {
-      this.setURLFragment('');
-    }
-
-    window.location.reload(true);
-  }
-
-  protected openNewWindow(workspacePath: string): void {
-    const url = new URL(window.location.href);
-    url.hash = workspacePath;
-    this.windowService.openNewWindow(url.toString());
-  }
-
-  protected shouldPreserveWindow(options?: WorkspaceInput): boolean {
-    return options !== undefined && !!options.preserveWindow;
   }
 
   /**
@@ -443,29 +309,6 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
    */
   async save(uri: URI | FileStat): Promise<void> {
     return;
-
-    const resource = uri instanceof URI ? uri : uri.resource;
-    if (!await this.fileService.exists(resource)) {
-      await this.fileService.create(resource);
-    }
-    const workspaceData: WorkspaceData = { folders: [], settings: {} };
-    if (!this.saved) {
-      for (const p of Object.keys(this.schemaProvider.getCombinedSchema().properties)) {
-        if (this.schemaProvider.isValidInScope(p, PreferenceScope.Folder)) {
-          continue;
-        }
-        const preferences = this.preferenceImpl.inspect(p);
-        if (preferences && preferences.workspaceValue) {
-          workspaceData.settings![p] = preferences.workspaceValue;
-        }
-      }
-    }
-    let stat = await this.toFileStat(resource);
-    Object.assign(workspaceData, await this.getWorkspaceDataFromFile());
-    stat = await this.writeWorkspaceFile(stat, WorkspaceData.buildWorkspaceData(this._roots, workspaceData ? workspaceData.settings : undefined));
-    await this.server.setMostRecentlyUsedWorkspace(resource.toString());
-    await this.setWorkspace(stat);
-    this.onWorkspaceLocationChangedEmitter.fire(stat);
   }
 
   protected readonly rootWatchers = new Map<string, Disposable>();
@@ -516,15 +359,6 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     }
     const rootUris = new Set(this.tryGetRoots().map(root => root.resource.toString()));
     return uris.every(uri => rootUris.has(uri.toString()));
-  }
-
-  /**
-   * Check if the file should be considered as a workspace file.
-   *
-   * Example: We should not try to read the contents of an .exe file.
-   */
-  protected isWorkspaceFile(fileStat: FileStat): boolean {
-    return fileStat.resource.path.ext === `.${THEIA_EXT}` || fileStat.resource.path.ext === `.${VSCODE_EXT}`;
   }
 
   // Filler
@@ -625,5 +459,5 @@ export namespace WorkspaceData {
 export function rebindWorkspaceService(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceService).toSelf().inSingletonScope();
 
-  rebind(WorkspaceService).to(FxdkWorkspaceService).inSingletonScope();
+  rebind(WorkspaceService).to((FxdkWorkspaceService as any)).inSingletonScope();
 }

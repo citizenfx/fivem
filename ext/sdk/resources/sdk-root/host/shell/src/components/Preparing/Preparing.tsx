@@ -1,8 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
-
-import { StateContext, States } from '../State';
-
+import { StateContext } from '../../contexts/StateContext';
+import { States } from '../../sdkApi/api.types';
 import s from './Preparing.module.scss';
 
 

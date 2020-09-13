@@ -131,14 +131,17 @@ export class FxdkFileMenuContribution implements MenuContribution {
       commandId: WorkspaceCommands.NEW_FOLDER.id
     });
     const downloadUploadMenu = [...CommonMenus.FILE, '4_downloadupload'];
-    registry.registerMenuAction(downloadUploadMenu, {
-      commandId: FileSystemCommands.UPLOAD.id,
-      order: 'a'
-    });
-    registry.registerMenuAction(downloadUploadMenu, {
-      commandId: FileDownloadCommands.DOWNLOAD.id,
-      order: 'b'
-    });
+    registry.unregisterMenuAction(FileSystemCommands.UPLOAD.id, downloadUploadMenu);
+    registry.unregisterMenuAction(FileDownloadCommands.DOWNLOAD.id, downloadUploadMenu);
+    // const downloadUploadMenu = [...CommonMenus.FILE, '4_downloadupload'];
+    // registry.registerMenuAction(downloadUploadMenu, {
+    //   commandId: FileSystemCommands.UPLOAD.id,
+    //   order: 'a'
+    // });
+    // registry.registerMenuAction(downloadUploadMenu, {
+    //   commandId: FileDownloadCommands.DOWNLOAD.id,
+    //   order: 'b'
+    // });
   }
 
 }
@@ -290,41 +293,6 @@ export class FxdkWorkspaceCommandContribution implements CommandContribution {
     registry.registerCommand(WorkspaceCommands.FILE_DUPLICATE, this.newMultiUriAwareCommandHandler(this.duplicateHandler));
     registry.registerCommand(WorkspaceCommands.FILE_DELETE, this.newMultiUriAwareCommandHandler(this.deleteHandler));
     registry.registerCommand(WorkspaceCommands.FILE_COMPARE, this.newMultiUriAwareCommandHandler(this.compareHandler));
-    this.preferences.ready.then(() => {
-      registry.unregisterCommand(WorkspaceCommands.ADD_FOLDER.id);
-      // registry.registerCommand(WorkspaceCommands.ADD_FOLDER, {
-      //   isEnabled: () => this.workspaceService.isMultiRootWorkspaceEnabled,
-      //   isVisible: () => this.workspaceService.isMultiRootWorkspaceEnabled,
-      //   execute: async () => {
-      //     const uri = await this.fileDialogService.showOpenDialog({
-      //       title: WorkspaceCommands.ADD_FOLDER.label!,
-      //       canSelectFiles: false,
-      //       canSelectFolders: true
-      //     });
-      //     if (!uri) {
-      //       return;
-      //     }
-      //     const workspaceSavedBeforeAdding = this.workspaceService.saved;
-      //     await this.addFolderToWorkspace(uri);
-      //     if (!workspaceSavedBeforeAdding) {
-      //       const saveCommand = registry.getCommand(WorkspaceCommands.SAVE_WORKSPACE_AS.id);
-      //       if (saveCommand && await new ConfirmDialog({
-      //         title: 'Folder added to Project',
-      //         msg: 'A workspace with multiple roots was created. Do you want to save your project configuration as a file?',
-      //         ok: 'Yes',
-      //         cancel: 'No'
-      //       }).open()) {
-      //         registry.executeCommand(saveCommand.id);
-      //       }
-      //     }
-      //   }
-      // });
-      // registry.registerCommand(WorkspaceCommands.REMOVE_FOLDER, this.newMultiUriAwareCommandHandler({
-      //   execute: uris => this.removeFolderFromWorkspace(uris),
-      //   isEnabled: () => this.workspaceService.isMultiRootWorkspaceEnabled,
-      //   isVisible: uris => this.areWorkspaceRoots(uris) && this.workspaceService.saved
-      // }));
-    });
   }
 
   protected newUriAwareCommandHandler(handler: UriCommandHandler<URI>): UriAwareCommandHandler<URI> {
@@ -512,7 +480,7 @@ export class WorkspaceRootUriAwareCommandHandler extends UriAwareCommandHandler<
 
 export function rebindWorkspaceCommands(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceCommandContribution).toSelf().inSingletonScope();
-  rebind(WorkspaceCommandContribution).to(FxdkWorkspaceCommandContribution).inSingletonScope();
+  rebind(WorkspaceCommandContribution).to(FxdkWorkspaceCommandContribution as any).inSingletonScope();
 
   bind(FxdkFileMenuContribution).toSelf().inSingletonScope();
   rebind(FileMenuContribution).to(FxdkFileMenuContribution).inSingletonScope();

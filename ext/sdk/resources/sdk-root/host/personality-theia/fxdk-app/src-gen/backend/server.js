@@ -59,7 +59,7 @@ module.exports = (port, host, argv) => Promise.resolve()
     .then(function () { return Promise.resolve(require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/plugin-metrics/lib/node/plugin-metrics-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/vsx-registry/lib/node/vsx-registry-backend-module')).then(load) })
-    .then(function () { return Promise.resolve(require('fxdk-project/lib/node/workspace-backend-module')).then(load) })
+    .then(function () { return Promise.resolve(require('fxdk-project/lib/backend/fxdk-project-backend-module')).then(load) })
     .then(() => start(port, host, argv)).catch(reason => {
         console.error('Failed to start the backend application.');
         if (reason) {

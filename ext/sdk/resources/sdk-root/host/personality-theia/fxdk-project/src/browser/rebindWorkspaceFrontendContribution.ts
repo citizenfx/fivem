@@ -5,7 +5,7 @@ import {
   open, OpenerService, CommonMenus, StorageService, LabelProvider,
   ConfirmDialog, KeybindingRegistry, KeybindingContribution, CommonCommands, FrontendApplicationContribution
 } from '@theia/core/lib/browser';
-import { FileDialogService, OpenFileDialogProps, FileDialogTreeFilters } from '@theia/filesystem/lib/browser';
+import { FileDialogService, OpenFileDialogProps } from '@theia/filesystem/lib/browser';
 import { ContextKeyService } from '@theia/core/lib/browser/context-key-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { QuickOpenWorkspace } from '@theia/workspace/lib/browser/quick-open-workspace';
@@ -450,74 +450,74 @@ export class FxdkWorkspaceFrontendContribution implements CommandContribution, K
 
 }
 
-export namespace WorkspaceFrontendContribution {
+// export namespace WorkspaceFrontendContribution {
 
-  /**
-   * File filter for all Theia and VS Code workspace file types.
-   */
-  export const DEFAULT_FILE_FILTER: FileDialogTreeFilters = {
-    'Theia Workspace (*.theia-workspace)': [THEIA_EXT],
-    'VS Code Workspace (*.code-workspace)': [VSCODE_EXT]
-  };
+//   /**
+//    * File filter for all Theia and VS Code workspace file types.
+//    */
+//   export const DEFAULT_FILE_FILTER: FileDialogTreeFilters = {
+//     'Theia Workspace (*.theia-workspace)': [THEIA_EXT],
+//     'VS Code Workspace (*.code-workspace)': [VSCODE_EXT]
+//   };
 
-  /**
-   * Returns with an `OpenFileDialogProps` for opening the `Open Workspace` dialog.
-   */
-  export function createOpenWorkspaceOpenFileDialogProps(options: Readonly<{ type: OS.Type, electron: boolean, supportMultiRootWorkspace: boolean }>): OpenFileDialogProps {
-    const { electron, type, supportMultiRootWorkspace } = options;
-    const title = WorkspaceCommands.OPEN_WORKSPACE.dialogLabel;
-    // If browser
-    if (!electron) {
-      // and multi-root workspace is supported, it is always folder + workspace files.
-      if (supportMultiRootWorkspace) {
-        return {
-          title,
-          canSelectFiles: true,
-          canSelectFolders: true,
-          filters: DEFAULT_FILE_FILTER
-        };
-      } else {
-        // otherwise, it is always folders. No files at all.
-        return {
-          title,
-          canSelectFiles: false,
-          canSelectFolders: true
-        };
-      }
-    }
+//   /**
+//    * Returns with an `OpenFileDialogProps` for opening the `Open Workspace` dialog.
+//    */
+//   export function createOpenWorkspaceOpenFileDialogProps(options: Readonly<{ type: OS.Type, electron: boolean, supportMultiRootWorkspace: boolean }>): OpenFileDialogProps {
+//     const { electron, type, supportMultiRootWorkspace } = options;
+//     const title = WorkspaceCommands.OPEN_WORKSPACE.dialogLabel;
+//     // If browser
+//     if (!electron) {
+//       // and multi-root workspace is supported, it is always folder + workspace files.
+//       if (supportMultiRootWorkspace) {
+//         return {
+//           title,
+//           canSelectFiles: true,
+//           canSelectFolders: true,
+//           filters: DEFAULT_FILE_FILTER
+//         };
+//       } else {
+//         // otherwise, it is always folders. No files at all.
+//         return {
+//           title,
+//           canSelectFiles: false,
+//           canSelectFolders: true
+//         };
+//       }
+//     }
 
-    // If electron
-    if (OS.Type.OSX === type) {
-      // `Finder` can select folders and files at the same time. We allow folders and workspace files.
-      return {
-        title,
-        canSelectFiles: true,
-        canSelectFolders: true,
-        filters: DEFAULT_FILE_FILTER
-      };
-    }
+//     // If electron
+//     if (OS.Type.OSX === type) {
+//       // `Finder` can select folders and files at the same time. We allow folders and workspace files.
+//       return {
+//         title,
+//         canSelectFiles: true,
+//         canSelectFolders: true,
+//         filters: DEFAULT_FILE_FILTER
+//       };
+//     }
 
-    // In electron, only workspace files can be selected when the multi-root workspace feature is enabled.
-    if (supportMultiRootWorkspace) {
-      return {
-        title,
-        canSelectFiles: true,
-        canSelectFolders: false,
-        filters: DEFAULT_FILE_FILTER
-      };
-    }
+//     // In electron, only workspace files can be selected when the multi-root workspace feature is enabled.
+//     if (supportMultiRootWorkspace) {
+//       return {
+//         title,
+//         canSelectFiles: true,
+//         canSelectFolders: false,
+//         filters: DEFAULT_FILE_FILTER
+//       };
+//     }
 
-    // Otherwise, it is always a folder.
-    return {
-      title,
-      canSelectFiles: false,
-      canSelectFolders: true
-    };
-  }
+//     // Otherwise, it is always a folder.
+//     return {
+//       title,
+//       canSelectFiles: false,
+//       canSelectFolders: true
+//     };
+//   }
 
-}
+// }
 
 export function rebindWorkspaceFrontendContribution(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceFrontendContribution).toSelf().inSingletonScope();
-  rebind(WorkspaceFrontendContribution).to(FxdkWorkspaceFrontendContribution).inSingletonScope();
+  rebind(WorkspaceFrontendContribution).to(FxdkWorkspaceFrontendContribution as any).inSingletonScope();
 }

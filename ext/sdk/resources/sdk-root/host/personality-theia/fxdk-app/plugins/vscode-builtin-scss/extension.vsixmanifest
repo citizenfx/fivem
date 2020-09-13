@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="scss" Version="1.39.1-prel" Publisher="vscode"/>
-    <DisplayName>SCSS Language Basics</DisplayName>
+    <Identity Language="en-US" Id="scss" Version="1.44.2" Publisher="vscode"/>
+    <DisplayName>SCSS Language Basics (built-in)</DisplayName>
     <Description xml:space="preserve">Provides syntax highlighting, bracket matching and folding in SCSS files.</Description>
-    <Tags>scss,SCSS,__ext_scss</Tags>
+    <Tags>Built-in,scss,SCSS,__ext_scss</Tags>
     <Categories></Categories>
     <GalleryFlags>Public</GalleryFlags>
     <Badges></Badges>
@@ -37,6 +37,6 @@
   <Dependencies/>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
-    
+    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
   </Assets>
 </PackageManifest>

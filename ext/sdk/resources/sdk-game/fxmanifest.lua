@@ -1,6 +1,11 @@
-fx_version 'bodacious'
+fx_version 'cerulean'
 
-client_script {
-	'sdk-game.js',
-	'sdk-spawner.lua'
+games { 'gta5' }
+
+client_scripts {
+	'sdk-client.js'
+}
+
+server_scripts {
+	'sdk-server.js'
 }

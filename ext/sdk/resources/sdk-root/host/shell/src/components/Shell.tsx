@@ -1,84 +1,39 @@
 import React from 'react';
-import classnames from 'classnames';
-
 import { Toolbar } from './Toolbar/Toolbar';
-import { StateContext, States } from './State';
+import { StateContext } from '../contexts/StateContext';
 import { Preparing } from './Preparing/Preparing';
-
+import { sendApiMessage } from '../utils/api';
+import { TheiaPersonality } from '../personalities/Theia';
+import { ProjectContext } from '../contexts/ProjectContext';
+import { Welcome } from './Welcome/Welcome';
+import { States } from '../sdkApi/api.types';
 import s from './Shell.module.scss';
 
 
-const personalities = {
-  theia: {
-    hostname: window.location.hostname,
-    port: parseInt(window.location.port, 10) + 1,
-  },
-};
-
-const boot = () => {
-  window.fetch('http://127.0.0.1:35419/ready');
-};
-
 export function Shell() {
-  const [showPersonality, setShowPersonality] = React.useState(false);
   const { state } = React.useContext(StateContext);
-  const theiaRef = React.useRef<any>(null);
-  const unveilTimerRef = React.useRef<any>(null);
+  const { project, recentProjects } = React.useContext(ProjectContext);
+
+  const showPreparing = state === States.preparing;
+  const showWelcome = state === States.ready && !project && recentProjects.length === 0;
 
   React.useEffect(() => {
-    boot();
-
-    const handleMessage = (e) => {
-      if (theiaRef.current) {
-        theiaRef.current.contentWindow.postMessage(e.data, '*');
-      }
-    }
-
-    window.addEventListener('message', handleMessage);
-
-    return () => window.removeEventListener('message', handleMessage);
+    sendApiMessage('ackState');
   }, []);
-
-  const sendTheiaMessage = React.useCallback((msg) => {
-    if (theiaRef.current) {
-      theiaRef.current.contentWindow.postMessage(msg, '*');
-    }
-  }, []);
-
-  React.useEffect(() => () => {
-    if (unveilTimerRef.current) {
-      clearTimeout(unveilTimerRef.current);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (state === States.ready) {
-      unveilTimerRef.current = setTimeout(() => {
-        setShowPersonality(true);
-      }, 500);
-    }
-  }, [state]);
-
-  const theiaClassName = classnames(s.theia, {
-    [s.active]: showPersonality,
-  });
 
   return (
     <div className={s.root}>
-      <Toolbar sendTheiaMessage={sendTheiaMessage} />
+      <Toolbar />
 
-      {!showPersonality && (
+      {showPreparing && (
         <Preparing />
       )}
 
-      <iframe
-          ref={theiaRef}
-          title="Theia personality"
-          src={`http://${personalities.theia.hostname}:${personalities.theia.port}`}
-          className={theiaClassName}
-          frameBorder="0"
-          allowFullScreen={true}
-        ></iframe>
+      {showWelcome && (
+        <Welcome />
+      )}
+
+      <TheiaPersonality />
     </div>
   );
 }

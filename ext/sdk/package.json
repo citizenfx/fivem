@@ -1,0 +1,17 @@
+{
+  "name": "sdk",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "nihonium",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "postinstall": "yarn --cwd resources/sdk-root/host install --pure-lockfile && yarn --cwd resources/sdk-root/sdk install --pure-lockfile",
+    "start": "concurrently \"yarn --cwd resources/sdk-root/sdk watch\" \"yarn --cwd resources/sdk-root/host run start\"",
+    "build": "yarn --cwd resources/sdk-root/sdk run build && yarn --cwd resources/sdk-root/host run build",
+    "download:theia-plugins": "yarn --cwd resources/sdk-root/host/personality-theia/fxdk-app download:plugins"
+  },
+  "devDependencies": {
+    "concurrently": "^5.3.0"
+  }
+}

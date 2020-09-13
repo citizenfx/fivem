@@ -21,6 +21,8 @@
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  line-height: 1;
+  outline: none;
 }
 
 html,
@@ -29,13 +31,11 @@ body,
   width: 100%;
   height: 100%;
 
-  font-family: Mensch;
-
   color: $fgColor;
-  font-size: 16px;
-  font-weight: 100;
-  font-family: Rubik;
   background-color: $bgColor;
+
+  @include fontPrimary;
+  font-size: 16px;
 }
 
 #root {
@@ -50,11 +50,63 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: Montserrat;
+  @include fontSecondary;
   letter-spacing: 2px;
   margin-bottom: $q * 4;
 }
 
 .dimmed {
   opacity: .75;
+}
+
+.modal-header {
+  padding: $q*3 $q*4;
+  text-transform: uppercase;
+  margin-bottom: 0;
+}
+.modal-label {
+  padding: $q*2 $q*4;
+
+  color: rgba($fgColor, .5);
+
+  @include fontPrimary;
+  font-size: $fs08;
+  font-weight: 300;
+}
+.modal-error {
+  padding: $q*4;
+
+  color: $fgColor;
+  background-color: $erColor;
+}
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: $q*4;
+}
+
+.rotating {
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  animation: rotate 1s linear 0s infinite;
+}
+
+::-webkit-scrollbar {
+  width: 2px;
+}
+::-webkit-scrollbar-thumb {
+  width: 2px;
+  background-color: rgba($acColor, .5);
+}
+::selection {
+  background-color: $acColor;
 }

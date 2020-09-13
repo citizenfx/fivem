@@ -1,6 +1,6 @@
 @import 'variables';
 
-.toolbar {
+.root {
   position: fixed;
   top: 0;
   left: 0;
@@ -22,18 +22,23 @@
 
   &.active {
     .trigger {
+      left: $toolbarWidth;
       color: $fgColor;
       background-color: $acColor;
     }
 
-    .dropdown {
-      opacity: 1;
+    .bar {
       pointer-events: all;
+      transform: translateX(0);
     }
   }
 
   .trigger {
-    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    height: 32px;
     width: 50px;
     display: flex;
     align-items: center;
@@ -42,12 +47,15 @@
     padding: 0 16px;
 
     font-size: 13px;
-    font-weight: bold;
     color: $acColor;
     background-color: rgba($acColor, .25);
 
     border: none;
     outline: none;
+
+    z-index: 2;
+
+    // transition: left .2s ease;
 
     &:hover {
       color: $fgColor;
@@ -55,45 +63,113 @@
     }
   }
 
-  .dropdown {
+  .backdrop {
     position: fixed;
-    top: 32px;
+    top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
+
+    background-color: rgba($bgColor, .75);
+
+    opacity: 0;
+    pointer-events: none;
+
+    transition: all .2s ease;
+
+    z-index: 1;
+  }
+
+  .bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    width: $toolbarWidth;
 
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: stretch;
 
+    overflow: hidden;
+
     font-size: 13px;
-    font-weight: bold;
 
-    backdrop-filter: blur(20px);
-    background-color: rgba($bgColor, .1);
+    background-color: $bgColor;
+    // box-shadow: 0 0 20px $bgColor;
 
-    border: solid 2px $acColor;
+    border-right: solid 2px $borderColor;
 
-    opacity: 0;
+    // transition: all .2s ease;
+
     pointer-events: none;
+    transform: translateX(-$toolbarWidth);
+
+    z-index: 2;
+
+    .controls {
+      flex-grow: 0;
+      flex-shrink: 0;
+
+      width: 100%;
+
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: stretch;
+
+      border-bottom: solid 2px $borderColor;
+
+      .group {
+        display: flex;
+        justify-content: space-evenly;
+
+        button {
+          flex-grow: 1;
+          width: 50%;
+        }
+      }
+    }
 
     button {
-      height: 44px;
-
       display: flex;
       align-items: center;
 
-      padding: 0 16px;
+      padding: $q*3 $q*4;
 
-      font-family: Mensch;
+      // font-family: Mensch;
+      font-family: Rubik;
+      font-size: .8rem;
+      font-weight: 100;
       color: $fgColor;
+      letter-spacing: 1px;
       background-color: transparent;
 
       border: none;
       outline: none;
 
+      transition: all .2s ease;
+
+      svg {
+        margin-right: $q*2;
+        color: rgba($fgColor, .5);
+      }
+
       &:hover {
         color: $fgColor;
         background-color: $acColor;
+        transition: none;
+
+        svg {
+          color: $fgColor;
+        }
+      }
+
+      &:disabled {
+        opacity: .5;
+        pointer-events: none;
       }
     }
   }

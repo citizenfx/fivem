@@ -1,1 +1,1 @@
-require('./sdk/sdk');
+require('./sdk/lib');

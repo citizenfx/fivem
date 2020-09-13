@@ -1,10 +1,10 @@
 {
   "name": "html",
-  "displayName": "%displayName%",
-  "description": "%description%",
-  "version": "1.39.1-prel",
+  "displayName": "HTML Language Basics (built-in)",
+  "description": "Provides syntax highlighting, bracket matching & snippets in HTML files.",
+  "version": "1.48.0-next.4a1bcdafe9",
   "publisher": "vscode",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {
     "vscode": "0.10.x"
   },
@@ -75,8 +75,12 @@
       }
     ]
   },
+  "keywords": [
+    "Built-in"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/theia-ide/vscode-builtin-extensions"
-  }
+  },
+  "preview": true
 }

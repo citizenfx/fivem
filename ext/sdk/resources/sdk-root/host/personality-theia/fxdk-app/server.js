@@ -30,8 +30,6 @@ function start(port, host, argv = process.argv) {
 module.exports = (port, host, argv) => Promise.resolve()
     .then(function () { return Promise.resolve(require('@theia/filesystem/lib/node/filesystem-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/filesystem/lib/node/download/file-download-backend-module')).then(load) })
-    .then(function () { return import('fxdk-project/lib/node/workspace-backend-module').then(load) })
-    // .then(function () { return Promise.resolve(require('@theia/workspace/lib/node/workspace-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/process/lib/common/process-common-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/process/lib/node/process-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/terminal/lib/node/terminal-backend-module')).then(load) })
@@ -48,6 +46,7 @@ module.exports = (port, host, argv) => Promise.resolve()
     .then(function () { return Promise.resolve(require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/plugin-metrics/lib/node/plugin-metrics-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/vsx-registry/lib/node/vsx-registry-backend-module')).then(load) })
+    .then(function () { return Promise.resolve(require('fxdk-project/lib/backend/fxdk-project-backend-module')).then(load) })
     .then(() => start(port, host, argv)).catch(reason => {
         console.error('personality-thiea has failed to start backend application');
         if (reason) {

@@ -19,8 +19,8 @@
   },
   "theiaExtensions": [
     {
-      "frontend": "lib/browser/workspace-frontend-module",
-      "backend": "lib/node/workspace-backend-module"
+      "frontend": "lib/browser/fxdk-project-frontend-module",
+      "backend": "lib/backend/fxdk-project-backend-module"
     }
   ],
   "keywords": [

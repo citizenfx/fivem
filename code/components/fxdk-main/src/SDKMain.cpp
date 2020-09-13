@@ -855,6 +855,7 @@ void SdkMain()
 	timeBeginPeriod(1);
 #endif
 	ConVar<std::string> sdkUrlVar("sdk_url", ConVar_None, "http://localhost:35419/");
+	ConVar<std::string> sdkRootPath("sdk_root_path", ConVar_None, "built-in");
 
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", nullptr);
 
@@ -996,7 +997,7 @@ void SdkMain()
 	// setup uv loop
 	auto loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain");
 
-	loop->EnqueueCallback([resman, &launcherTalk, loop]()
+	loop->EnqueueCallback([resman, &launcherTalk, loop, &sdkRootPath]()
 	{
 		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
 
@@ -1004,8 +1005,24 @@ void SdkMain()
 		record.scheme = "file";
 
 		skyr::url url{ std::move(record) };
-		url.set_pathname(*skyr::percent_encode(ToNarrow(MakeRelativeCitPath(L"citizen/sdk/sdk-root/")), skyr::encode_set::path));
+		auto sdkRootPathValue = sdkRootPath.GetValue();
+
+		if (sdkRootPathValue == "built-in")
+		{
+			url.set_pathname(*skyr::percent_encode(ToNarrow(MakeRelativeCitPath(L"citizen/sdk/sdk-root/")), skyr::encode_set::path));
+		}
+		else
+		{
+			WCHAR fullSdkRootPath[MAX_PATH];
+			GetFullPathName(ToWide(sdkRootPathValue).c_str(), MAX_PATH, fullSdkRootPath, NULL);
+
+			url.set_pathname(*skyr::percent_encode(ToNarrow(fullSdkRootPath), skyr::encode_set::path));
+		}
+
+		
 		url.set_hash(*skyr::percent_encode("sdk-root", skyr::encode_set::fragment));
+
+		trace("USING SDK_ROOT PATH: %s", url.href());
 
 		resman->AddResource(url.href())
 		.then([loop](fwRefContainer<fx::Resource> resource)

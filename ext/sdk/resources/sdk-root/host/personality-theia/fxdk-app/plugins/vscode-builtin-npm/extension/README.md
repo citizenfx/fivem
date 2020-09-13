@@ -1,38 +1,17 @@
-# Node npm
+# Built-in extension: npm
 
-**Notice:** This extension is bundled with Visual Studio Code. It can be disabled but not uninstalled.
+## Disclaimer
+    
+Microsoft does not endorse, build, test or publish this extension, nor are they involved with it in any other way. The only association is that they own the copyright of these extensions and the rest of vscode's [source code](https://github.com/microsoft/vscode/tree/master/extensions), which they released under the [MIT License](https://github.com/microsoft/vscode/blob/master/LICENSE.txt). A copy of the license is included in this extension. See LICENSE-vscode.txt
 
-## Features
+    "Original VS Code sources are Copyright (c) 2015 - present Microsoft Corporation."
 
-### Task Running
 
-This extension supports running npm scripts defined in the `package.json` as [tasks](https://code.visualstudio.com/docs/editor/tasks). Scripts with the name 'build', 'compile', or 'watch'
-are treated as build tasks.
+## What is this extension? Do I need it?
 
-To run scripts as tasks, use the **Tasks** menu.
+TL;DR: If you are running `VS Code`, `Code OSS` or derived product built from the VS Code repository, such as [VSCodium](https://github.com/VSCodium/vscodium), you do not need to install this extension since it's already present - "builtin".
 
-For more information about auto detection of Tasks, see the [documentation](https://code.visualstudio.com/Docs/editor/tasks#_task-autodetection).
+Built-in extensions are built-along and included in `VS Code` and `Code OSS`. In consequence they may be expected to be present and used by other extensions. They are part of the [vscode GitHub repository](https://github.com/microsoft/vscode/tree/master/) and generally contribute basic functionality such as textmate grammars, used for syntax-highlighting, for some of the most popular programming languages. In some cases, more substantial features are contributed through built-in extensions (e.g. Typescript, Markdown, git, ...). Please see the description above to learn what this specific extension does.
 
-### Script Explorer
-
-The Npm Script Explorer shows the npm scripts found in your workspace. The explorer view is enabled by the setting `npm.enableScriptExplorer`. A script can be opened, run, or debug from the explorer.
-
-### Run Scripts from the Editor
-
-The extension supports to run the selected script as a task when editing the `package.json`file. You can either run a script from
-the hover shown on a script or using the command `Run Selected Npm Script`.
-
-### Others
-
-The extension fetches data from https://registry.npmjs/org and https://registry.bower.io to provide auto-completion and information on hover features on npm dependencies.
-
-## Settings
-
-- `npm.autoDetect` - Enable detecting scripts as tasks, the default is `on`.
-- `npm.runSilent` - Run npm script with the `--silent` option, the default is `false`.
-- `npm.packageManager` - The package manager used to run the scripts: `npm` or `yarn`, the default is `npm`.
-- `npm.exclude` - Glob patterns for folders that should be excluded from automatic script detection. The pattern is matched against the **absolute path** of the package.json. For example, to exclude all test folders use '&ast;&ast;/test/&ast;&ast;'.
-- `npm.enableScriptExplorer` - Enable an explorer view for npm scripts.
-- `npm.scriptExplorerAction` - The default click action: `open` or `run`, the default is `open`.
-- `npm.scriptCodeLens.enable` - Enable/disable the code lenses to run a script, the default is `false`.
+To learn more about builtin extensions, including how they are built and packaged, please see [vscode-builtin-extensions](https://github.com/theia-ide/vscode-builtin-extensions)
 

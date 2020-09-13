@@ -1,8 +1,8 @@
 {
   "name": "css",
-  "displayName": "%displayName%",
-  "description": "%description%",
-  "version": "1.39.1-prel",
+  "displayName": "CSS Language Basics (built-in)",
+  "description": "Provides syntax highlighting and bracket matching for CSS, LESS and SCSS files.",
+  "version": "1.44.2",
   "publisher": "vscode",
   "license": "MIT",
   "engines": {
@@ -37,6 +37,9 @@
       }
     ]
   },
+  "keywords": [
+    "Built-in"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/theia-ide/vscode-builtin-extensions"

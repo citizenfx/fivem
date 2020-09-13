@@ -1,0 +1,49 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  user-select: none;
+
+  @include fontPrimary;
+  color: rgba($fgColor, .75);
+
+  input {
+    width: 0;
+    height: 0;
+  }
+
+  .indicator {
+    width: $q*4;
+    height: $q*4;
+
+    border: solid 2px $fgColor;
+    box-shadow: 0 0 0 0 $fgColor inset;
+
+    transition: box-shadow .2s ease, border .2s ease;
+  }
+
+  input:checked + .indicator {
+    box-shadow: 0 0 0 $q*4 $fgColor inset;
+  }
+
+  &:hover {
+    .indicator {
+      border-color: $acColor;
+      transition: box-shadow .2s ease;
+    }
+  }
+
+  &.with-label {
+    .indicator {
+      margin-right: $q*2;
+    }
+  }
+
+  &.disabled {
+    pointer-events: none;
+    opacity: .5;
+  }
+}

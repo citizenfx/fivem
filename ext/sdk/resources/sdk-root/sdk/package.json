@@ -3,17 +3,30 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "resolutions": {
+    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz"
+  },
   "scripts": {
-    "watch": "copy-and-watch --watch ./** C:\\dev\\fivem\\fivem\\code\\bin\\five\\debug\\citizen\\sdk\\sdk-root\\sdk\\"
+    "postinstall": "yarn rebuild",
+    "rebuild": "electron-rebuild --force",
+    "watch": "rimraf lib && tsc -w",
+    "build": "rimraf lib && tsc"
   },
   "dependencies": {
+    "byline": "^5.0.0",
+    "chokidar": "^3.4.2",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "express-ws": "^4.0.0",
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2",
+    "simple-git": "^2.20.1",
     "yauzl": "^2.10.0"
   },
   "devDependencies": {
-    "copy-and-watch": "^0.1.5"
+    "@types/cors": "^2.8.7",
+    "@types/express-ws": "^3.0.0",
+    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz",
+    "typescript": "^4.0.3"
   }
 }

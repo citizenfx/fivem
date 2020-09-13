@@ -1,76 +1,35 @@
 import React from 'react';
 import classnames from 'classnames';
-
-import { sendCommand } from '../../utils/sendCommand';
-import { States, StateContext } from '../State';
-
+import { StateContext } from '../../contexts/StateContext';
+import { Project } from '../Project/Project';
+import { ProjectCreator } from '../Project/ProjectCreator/ProjectCreator';
+import { ProjectContext } from '../../contexts/ProjectContext';
+import { ProjectOpener } from '../Project/ProjectOpener/ProjectOpener';
+import { devtoolsIcon, newProjectIcon, openProjectIcon } from '../../constants/icons';
+import { States } from '../../sdkApi/api.types';
 import s from './Toolbar.module.scss';
 
 
-const startSDKGame = () => sendCommand('localgame sdk-game');
-const restartSDKGame = () => sendCommand('localrestart');
-
-const giveRifle = () => sendCommand('weapon WEAPON_CARBINERIFLE');
-
-export const Toolbar = React.memo(({ sendTheiaMessage }: any) => {
-  const { state } = React.useContext(StateContext);
-  const timer = React.useRef<any>(null);
-  const timerCallback = React.useRef<any>(null);
-
-  const [toolbarOpen, setToolbarOpen] = React.useState(false);
-
-  timerCallback.current = () => setToolbarOpen(false);
-
-  const toggleToolbar = React.useCallback(() => {
-    setToolbarOpen(!toolbarOpen);
-  }, [toolbarOpen]);
+export const Toolbar = React.memo(() => {
+  const { state, toolbarOpen, openToolbar, closeToolbar } = React.useContext(StateContext);
+  const { openCreator, openOpener, creatorOpen, openerOpen } = React.useContext(ProjectContext);
 
   const handleOpenDevtools = React.useCallback(() => {
-    setToolbarOpen(false);
     window.openDevTools();
-  }, [setToolbarOpen]);
-  const handleStartSDKGame = React.useCallback(() => {
-    setToolbarOpen(false);
-    startSDKGame();
-  }, [setToolbarOpen]);
-  const handleRestartSDKGame = React.useCallback(() => {
-    setToolbarOpen(false);
-    restartSDKGame();
-  }, [setToolbarOpen]);
-  const handleGiveRifle = React.useCallback(() => {
-    setToolbarOpen(false);
-    giveRifle();
-  }, [setToolbarOpen]);
-
-
-  const handleAddFolder = React.useCallback(() => {
-    setToolbarOpen(false);
-    sendTheiaMessage({ type: 'fxdk:addFolder', data: 'file:///C:/dev/fivem/fivem.net' });
-  }, [setToolbarOpen]);
-  const handleRemoveFolder = React.useCallback(() => {
-    setToolbarOpen(false);
-    sendTheiaMessage({ type: 'fxdk:removeFolder', data: 'file:///C:/dev/fivem/fivem.net' });
-  }, [setToolbarOpen]);
-
-
-  const handleMouseLeave = React.useCallback(() => {
-    timer.current = setTimeout(timerCallback.current, 200);
-  }, []);
-  const handleMouseEnter = React.useCallback(() => {
-    if (timer.current) {
-      window.clearTimeout(timer.current);
-    }
   }, []);
 
-  React.useEffect(() => {
-    return () => {
-      if (timer.current) {
-        window.clearTimeout(timer.current);
-      }
-    };
-  }, []);
+  const handleOpenCreator = React.useCallback(() => {
+    openCreator();
+  }, [openCreator]);
+  const handleOpenOpener = React.useCallback(() => {
+    openOpener();
+  }, [openOpener]);
 
-  const toolbarClasses = classnames(s.toolbar, {
+  const toggleToolbar = toolbarOpen
+    ? closeToolbar
+    : openToolbar;
+
+  const toolbarClasses = classnames(s.root, {
     [s.visible]: state === States.ready,
     [s.active]: toolbarOpen,
   });
@@ -78,18 +37,33 @@ export const Toolbar = React.memo(({ sendTheiaMessage }: any) => {
   return (
     <div
       className={toolbarClasses}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
+      <div className={s.backdrop} onClick={closeToolbar} />
+
       <button className={s.trigger} onClick={toggleToolbar}>FxDK</button>
 
-      <div className={s.dropdown}>
-        <button onClick={handleOpenDevtools}>Open DevTools</button>
-        <button onClick={handleStartSDKGame}>localgame sdk-game</button>
-        <button onClick={handleRestartSDKGame}>localrestart sdk-game</button>
-        <button onClick={handleGiveRifle}>give rifle</button>
-        <button onClick={handleAddFolder}>add folder</button>
-        <button onClick={handleRemoveFolder}>remove folder</button>
+      <div className={s.bar}>
+        <div className={s.controls}>
+          <div className={s.group}>
+            <button onClick={handleOpenCreator}>
+              {newProjectIcon}
+              New Project
+            </button>
+            <button onClick={handleOpenOpener}>
+              {openProjectIcon}
+              Open Project
+            </button>
+            <button onClick={handleOpenDevtools}>
+              {devtoolsIcon}
+              DevTools
+            </button>
+          </div>
+        </div>
+
+        {creatorOpen && <ProjectCreator />}
+        {openerOpen && <ProjectOpener />}
+
+        <Project />
       </div>
     </div>
   );

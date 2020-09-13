@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="json" Version="1.39.1-prel" Publisher="vscode"/>
-    <DisplayName>JSON Language Basics</DisplayName>
+    <Identity Language="en-US" Id="json" Version="1.46.1" Publisher="vscode"/>
+    <DisplayName>JSON Language Basics (built-in)</DisplayName>
     <Description xml:space="preserve">Provides syntax highlighting &amp; bracket matching in JSON files.</Description>
-    <Tags>json,JSON,__ext_json,__ext_bowerrc,__ext_jshintrc,__ext_jscsrc,__ext_swcrc,__ext_webmanifest,__ext_jsmap,__ext_cssmap,jsonc,JSON with Comments,__ext_hintrc,__ext_babelrc,__ext_jsonc,__ext_eslintrc,__ext_eslintrcjson</Tags>
+    <Tags>Built-in,json,JSON,__ext_json,__ext_bowerrc,__ext_jscsrc,__ext_webmanifest,__ext_jsmap,__ext_cssmap,__ext_tsmap,__ext_har,__ext_jslintrc,__ext_jsonld,jsonc,JSON with Comments,__ext_hintrc,__ext_babelrc,__ext_jsonc,__ext_eslintrc,__ext_eslintrcjson,__ext_jsfmtrc,__ext_jshintrc,__ext_swcrc</Tags>
     <Categories></Categories>
     <GalleryFlags>Public</GalleryFlags>
     <Badges></Badges>
@@ -28,7 +28,7 @@
       
       
     </Properties>
-    
+    <License>extension/LICENSE-vscode.txt</License>
     
   </Metadata>
   <Installation>
@@ -37,6 +37,6 @@
   <Dependencies/>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
-    
+    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" /><Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE-vscode.txt" Addressable="true" />
   </Assets>
 </PackageManifest>
