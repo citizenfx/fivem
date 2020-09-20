@@ -1347,6 +1347,16 @@ namespace CitizenFX.Core
 			return GetEntityInFront<Prop>(distance);
 		}
 
+		/// <summary>
+		/// Get the first generic <see cref="Entity"/> in front of this <see cref="Entity"/> 
+		/// </summary>
+		/// <param name="distance">Max distance of the Raycast</param>
+		/// <returns>Returns the first <see cref="Entity"/> encountered in a distance specified</returns>
+		public Entity GetPropInFront(float distance = 5f)
+		{
+			return GetEntityInFront<Entity>(distance);
+		}
+
 		private T GetEntityInFront<T>(float distance) where T : Entity
 		{
 			RaycastResult raycast = World.Raycast(Position, Position + 5f * ForwardVector), IntersectOptions.Everything);
