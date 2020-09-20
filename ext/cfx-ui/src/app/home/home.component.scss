@@ -198,7 +198,7 @@
 				transition: none;
 
 				@include theme() using ($theme) {
-					background-color: rgba(gtv($theme, accentColor1), .05);
+					background-color: rgba(gtv($theme, accentColor1), css-max(var(--opacity-clamp), .05));
 					box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 
 					.card_title {
@@ -239,7 +239,7 @@
 					transition: none;
 
 					@include theme() using ($theme) {
-						background-color: rgba(gtv($theme, accentColor1), .05);
+						background-color: rgba(gtv($theme, accentColor1), css-max(var(--opacity-clamp), .05));
 						box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 
 						.card_title {

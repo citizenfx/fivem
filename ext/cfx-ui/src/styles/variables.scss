@@ -65,6 +65,12 @@ $colorsRdr: (
 
 @mixin backdropBlurred() {
 	backdrop-filter: blur(20px);
+	--opacity-clamp: 0.0;
+
+	:host-context(.blur-noBackdrop) & {
+		backdrop-filter: none;
+		--opacity-clamp: 0.6;
+	}
 }
 
 @mixin backdropPane($color: bgColor, $opacity: .4) {
@@ -72,13 +78,13 @@ $colorsRdr: (
 
 	@include theme() using ($theme) {
 		& {
-			background-color: rgba(gtv($theme, $color), $opacity);
+			background-color: rgba(gtv($theme, $color), max(var(--opacity-clamp), #{$opacity}));
 		}
 	}
 
 	@include themeNoHost() using ($theme) {
 		& {
-			background-color: rgba(gtv($theme, $color), $opacity);
+			background-color: rgba(gtv($theme, $color), max(var(--opacity-clamp), #{$opacity}));
 		}
 	}
 }
@@ -239,4 +245,27 @@ $themes: $themeLight $themeDark $themeRdr;
 	@include appContent;
 
 	margin-top: calc(var(--header-height) + var(--q1));
+}
+
+/* via https://github.com/sass/sass/issues/2849#issuecomment-621991522 */
+
+@function css-function( $function, $values... ) {
+	@return 
+		$function
+		+ unquote( '(' )
+		+ $values
+		+ unquote( ')' )
+	;
+}
+
+@function css-min( $values... ) {
+	@return css-function( min, $values );
+}
+
+@function css-max( $values... ) {
+	@return css-function( max, $values );
+}
+
+@function css-clamp( $values... ) {
+	@return css-function( clamp, $values );
 }

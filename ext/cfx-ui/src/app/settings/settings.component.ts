@@ -24,7 +24,7 @@ class DisplaySetting {
         this.show = (setting.showCb) ? false : true;
         this.category = setting.category;
         this.label = '';
-        this._value = '';
+        this._value = (setting.displayDefault) ? setting.displayDefault : '';
 
         if (setting.getCb) {
             this.subscriptions.push(setting.getCb().subscribe(value => this._value = value));

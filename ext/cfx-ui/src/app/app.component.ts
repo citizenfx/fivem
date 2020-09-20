@@ -66,6 +66,24 @@ export class AppComponent implements OnInit {
 			this.minModeSetUp = true;
 		});
 
+		this.gameService.getConvar('ui_blurPerfMode').subscribe((value: string) => {
+			delete this.classes['blur-noBackdrop'];
+			delete this.classes['blur-noBlur'];
+
+			if (value === 'none' || value === 'backdrop') {
+				this.classes['blur-noBackdrop'] = true;
+			}
+
+			if (value === 'none') {
+				this.classes['blur-noBlur'] = true;
+			}
+
+			// trigger change detection
+			this.classes = {
+				...this.classes
+			};
+		});
+
 		router.events.subscribe(event => {
 			const url = (<NavigationEnd>event).url;
 

@@ -19,6 +19,7 @@ export class Setting {
 	labelCb?: () => Observable<string>;
 	colorizeValue?: boolean;
 	category?: string;
+	displayDefault?: string;
 
 	getCb?: () => Observable<string>;
 	setCb?: (value: string) => void;
@@ -68,6 +69,21 @@ export class SettingsService {
 			setCb: (value) => this.gameService.streamerMode = (value === 'true'),
 			category: '#SettingsCat_Interface',
 		});
+
+		this.addSetting('uiPerformance', {
+			name: '#Settings_LowPerfMode',
+			description: '#Settings_LowPerfModeDesc',
+			type: 'switch',
+			getCb: () => this.gameService.getConvar('ui_blurPerfMode'),
+			setCb: (value) => this.gameService.setArchivedConvar('ui_blurPerfMode', value),
+			options: {
+				'off': '#Settings_LowPerf_Off',
+				'backdrop': '#Settings_LowPerf_ReduceBackdrop',
+				'none': '#Settings_LowPerf_ReduceFull',
+			},
+			displayDefault: 'off',
+			category: '#SettingsCat_Interface'
+		})
 
 		this.addSetting('devMode', {
 			name: '#Settings_DevMode',

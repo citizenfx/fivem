@@ -67,7 +67,7 @@
 								*ngFor="let option of setting.optionsArray"
 								(click)="setting.value = option.value"
 							>
-								{{option.name}}
+								{{option.name | translate:locale.language}}
 							</div>
 						</div>
 					</span>

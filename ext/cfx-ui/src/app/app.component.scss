@@ -16,6 +16,10 @@ div.theRoot {
 	@include themeNoHost() using ($theme) {
 		filter: gtv($theme, acrylicBlur);
 	}
+
+	.blur-noBlur & {
+		filter: none;
+	}
 }
 
 :host {

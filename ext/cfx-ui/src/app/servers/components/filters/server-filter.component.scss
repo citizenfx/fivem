@@ -138,7 +138,7 @@
 			pointer-events: none;
 
 			@include theme() using ($theme) {
-				background-color: rgba(gtv($theme, accentColor1), .1);
+				background-color: rgba(gtv($theme, accentColor1), css-max(var(--opacity-clamp), .1));
 				border: solid 2px gtv($theme, accentColor1);
 				border-top: none;
 			}
