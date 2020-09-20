@@ -1664,5 +1664,29 @@ namespace CitizenFX.Core
 		{
 			return !ReferenceEquals(vehicle, null) && vehicle.Exists();
 		}
+
+		/// <summary>
+		/// Get closest vehicle at the specified coords
+		/// </summary>
+		/// <param name="Coords"></param>
+		/// <returns></returns>
+		public static Tuple<float, Vehicle> GetClosestVehicle(Vector3 Coords)
+		{
+			Vehicle[] vehs = World.GetAllVehicles();
+			float closestDistance = -1f;
+			Vehicle closestVehicle = null;
+			foreach (Vehicle v in vehs)
+			{
+				Vector3 vehcoords = v.Position;
+				float distance = World.GetDistance(vehcoords, Coords);
+				if (closestDistance == -1 || closestDistance > distance)
+				{
+					closestVehicle = v;
+					closestDistance = distance;
+				}
+			}
+			return new Tuple<float, Vehicle>(closestDistance, closestVehicle);
+		}
+
 	}
 }
