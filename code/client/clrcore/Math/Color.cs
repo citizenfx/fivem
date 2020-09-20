@@ -34,6 +34,7 @@
 //
 
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace System.Drawing 
@@ -397,5 +398,20 @@ namespace System.Drawing
 		}
 
         public static Color Transparent => Color.FromArgb(0);
+
+		public static Color ToColor(this string color)
+		{
+			try
+			{
+				return Color.FromArgb(int.Parse(color.Replace("#", ""),
+							 System.Globalization.NumberStyles.AllowHexSpecifier));
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"ToColor exception: {ex.Data}");
+			}
+			return Color.FromArgb(255, 255, 255, 255);
+		}
+
 	}
 }

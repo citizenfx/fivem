@@ -1802,5 +1802,46 @@ namespace CitizenFX.Core
 		{
 			return (this - other).LengthSquared();
 		}
+
+
+		/// <summary>
+		/// Converts the first 3 values of an array to a <see cref="CitizenFX.Core.Vector3"/>
+		/// </summary>
+		/// <param name="xyArray">The array to be converted</param>
+		/// <returns>
+		/// A new Vector3
+		/// </returns>
+		public static Vector3 ToVector3(this float[] xyzArray)
+		{
+			try
+			{
+				return new Vector3(xyzArray[0], xyzArray[1], xyzArray[2]);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"ToVector3 exception: {ex.Data}");
+			}
+			return Vector3.Zero;
+		}
+
+		/// <summary>
+		/// Converts the specified <see cref="CitizenFX.Core.Vector3"/> to an Array float[3]
+		/// </summary>
+		/// <param name="vector"></param>
+		/// <returns>
+		/// A new float[3]
+		/// </returns>
+		public static float[] ToArray(this Vector3 vector)
+		{
+			try
+			{
+				return new float[] { vector.X, vector.Y, vector.Z };
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"ToArray exception: {ex.Data}");
+			}
+			return null;
+		}
 	}
 }
