@@ -1516,37 +1516,17 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Converts the first 2 values of an array to a <see cref="CitizenFX.Core.Vector2"/>
-		/// </summary>
-		/// <param name="xyArray">The array to be converted</param>
-		/// <returns>
-		/// A new Vector2
-		/// </returns>
-		public static Vector2 ToVector2(this float[] xyArray)
-		{
-			try
-			{
-				return new Vector2(xyArray[0], xyArray[1]);
-			}
-			catch (Exception ex)
-			{
-				Debug.WriteLine($"ToVector2 exception: {ex.Data}");
-			}
-			return Vector2.Zero;
-		}
-
-		/// <summary>
 		/// Converts the specified <see cref="CitizenFX.Core.Vector2"/> to an Array float[2]
 		/// </summary>
 		/// <param name="vector"></param>
 		/// <returns>
 		/// A new float[2]
 		/// </returns>
-		public static float[] ToArray(this Vector2 vector)
+		public float[] ToArray()
 		{
 			try
 			{
-				return new float[] { vector.X, vector.Y };
+				return new float[] { X, Y };
 			}
 			catch (Exception ex)
 			{
