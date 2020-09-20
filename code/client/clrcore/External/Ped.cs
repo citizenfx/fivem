@@ -1614,5 +1614,51 @@ namespace CitizenFX.Core
 			return null;
 		}
 
+		/// <summary>
+		/// Get closest Peds to the specified Ped
+		/// </summary>
+		/// <returns></returns>
+		public static Tuple<float, Ped> GetClosestPed(this Ped ped)
+		{
+			Ped[] Peds = World.GetAllPeds();
+			float closestDistance = -1f;
+			Ped closestPed = null;
+			foreach (Ped v in Peds)
+			{
+				Vector3 pedcoords = v.Position;
+				float distance = World.GetDistance(pedcoords, ped.Position);
+				if (closestDistance == -1 || closestDistance > distance)
+				{
+					closestPed = v;
+					closestDistance = distance;
+				}
+			}
+			return new Tuple<Ped, float>(closestDistance, closestPed);
+		}
+		
+		/// <summary>
+		/// Get the closest Ped to the specified coords
+		/// </summary>
+		/// <param name="Coords"></param>
+		/// <returns></returns>
+		public static Tuple<float, Ped> GetClosestPed(this Vector3 Coords)
+		{
+			Ped[] Peds = World.GetAllPeds();
+			float closestDistance = -1f;
+			Ped closestPed = null;
+			foreach (Ped v in Peds)
+			{
+				Vector3 pedcoords = v.Position;
+				float distance = World.GetDistance(pedcoords, Coords);
+				if (closestDistance == -1 || closestDistance > distance)
+				{
+					closestPed = v;
+					closestDistance = distance;
+				}
+			}
+			return new Tuple<float, Ped>(closestDistance, closestPed);
+		}
+
+
 	}
 }
