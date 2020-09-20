@@ -1316,5 +1316,80 @@ namespace CitizenFX.Core
 		{
 			return !(left == right);
 		}
+
+		/// <summary>
+		/// Get the first <see cref="Vehicle"/> in front of this <see cref="Entity"/> 
+		/// </summary>
+		/// <param name="distance">Max distance of the Raycast</param>
+		/// <returns>Returns the first <see cref="Vehicle"/> encountered in a distance specified</returns>
+		public Vehicle GetVehicleInFront(float distance = 5f)
+		{
+			return GetEntityInFront<Vehicle>(distance);
+		}
+
+		/// <summary>
+		/// Get the first <see cref="Ped"/> in front of this <see cref="Entity"/> 
+		/// </summary>
+		/// <param name="distance">Max distance of the Raycast</param>
+		/// <returns>Returns the first <see cref="Ped"/> encountered in a distance specified</returns>
+		public Ped GetPedInFront(float distance = 5f)
+		{
+			return GetEntityInFront<Ped>(distance);
+		}
+
+		/// <summary>
+		/// Get the first <see cref="Prop"/> in front of this <see cref="Entity"/> 
+		/// </summary>
+		/// <param name="distance">Max distance of the Raycast</param>
+		/// <returns>Returns the first <see cref="Prop"/> encountered in a distance specified</returns>
+		public Prop GetPropInFront(float distance = 5f)
+		{
+			return GetEntityInFront<Prop>(distance);
+		}
+
+		private T GetEntityInFront<T>(float distance)
+		{
+			RaycastResult raycast = World.Raycast(Position, GetOffsetPosition(new Vector3(0f, distance, 0f)), IntersectOptions.Everything);
+			if (raycast.DitHitEntity)
+				return (T)raycast.HitEntity;
+			return null;
+		}
+
+		/// <summary>
+		/// Looks for the closest <see cref="Vehicle"/> to this <see cref="Entity"/>
+		/// </summary>
+		/// <returns>The closest <see cref="Vehicle"/> to this <see cref="Entity"/> </returns>
+		public Vehicle GetClosestVehicle()
+		{
+			return World.GetClosest<Vehicle>(Position, World.GetAllVehicles());
+		}
+
+		/// <summary>
+		/// Looks for the closest <see cref="Ped"/> to this <see cref="Entity"/>
+		/// </summary>
+		/// <returns>The closest <see cref="Ped"/> to this <see cref="Entity"/> </returns>
+		public Ped GetClosestPed()
+		{
+			return World.GetClosest<Ped>(Position, World.GetAllPeds());
+		}
+
+		/// <summary>
+		/// Looks for the closest <see cref="Prop"/> to this <see cref="Entity"/>
+		/// </summary>
+		/// <returns>The closest <see cref="Prop"/> to this <see cref="Entity"/> </returns>
+
+		public Prop GetClosestProp()
+		{
+			return World.GetClosest<Prop>(Position, World.GetAllProps());
+		}
+
+		/// <summary>
+		/// Looks for the closest <see cref="Blip"/> to this <see cref="Entity"/>
+		/// </summary>
+		/// <returns>The closest <see cref="Blip"/> to this <see cref="Entity"/> </returns>
+		public Blip GetClosestBlip()
+		{
+			return World.GetClosest<Blip>(Position, World.GetAllBlips());
+		}
 	}
 }
