@@ -721,6 +721,25 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgServerCommand"), [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 		{
+			static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
+			static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netCommand", fx::RateLimiterDefaults{ 7.f, 14.f });
+			static auto netFloodRateLimiter = netEventRateLimiterStore.GetRateLimiter("netCommandFlood", fx::RateLimiterDefaults{ 25.f, 45.f });
+
+			uint32_t netId = client->GetNetId();
+
+			if (!netEventRateLimiter->Consume(netId))
+			{
+				if (!netFloodRateLimiter->Consume(netId))
+				{
+					gscomms_execute_callback_on_main_thread([client, instance]()
+					{
+						instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable server command overflow.");
+					});
+				}
+
+				return;
+			}
+
 			auto cmdLen = buffer.Read<uint16_t>();
 
 			std::vector<char> cmd(cmdLen);
