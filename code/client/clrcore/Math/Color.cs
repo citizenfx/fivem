@@ -399,7 +399,7 @@ namespace System.Drawing
 
         public static Color Transparent => Color.FromArgb(0);
 
-		public static Color ToColor(this string color)
+		public Color ToColor(string color)
 		{
 			try
 			{
