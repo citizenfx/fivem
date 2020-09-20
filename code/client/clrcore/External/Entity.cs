@@ -1347,10 +1347,10 @@ namespace CitizenFX.Core
 			return GetEntityInFront<Prop>(distance);
 		}
 
-		private T GetEntityInFront<T>(float distance)
+		private T GetEntityInFront<T>(float distance) where T : Entity
 		{
-			RaycastResult raycast = World.Raycast(Position, GetOffsetPosition(new Vector3(0f, distance, 0f)), IntersectOptions.Everything);
-			if (raycast.DitHitEntity)
+			RaycastResult raycast = World.Raycast(Position, Position + 5f * ForwardVector), IntersectOptions.Everything);
+			if (raycast.DitHitEntity && raycast.HitEntity.Handle != Handle)
 				return (T)raycast.HitEntity;
 			return null;
 		}
