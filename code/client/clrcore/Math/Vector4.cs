@@ -1442,26 +1442,5 @@ namespace CitizenFX.Core
 			var strongValue = (Vector4)value;
 			return Equals(ref strongValue);
 		}
-
-		/// <summary>
-		/// Converts the specified <see cref="CitizenFX.Core.Vector4"/> to an Array float[4]
-		/// </summary>
-		/// <param name="vector"></param>
-		/// <returns>
-		/// A new float[4]
-		/// </returns>
-		public static float[] ToArray()
-		{
-			try
-			{
-				return new float[] { X, Y, Z, W };
-			}
-			catch (Exception ex)
-			{
-				Debug.WriteLine($"ToArray exception: {ex.Data}");
-			}
-			return null;
-		}
-
 	}
 }
