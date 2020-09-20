@@ -1599,5 +1599,20 @@ namespace CitizenFX.Core
 		{
 			return !ReferenceEquals(ped, null) && ped.Exists();
 		}
+
+		/// <summary>
+		/// Get the first entity in front of the relative Ped 
+		/// </summary>
+		/// <param name="ped">The <see cref="Ped"/> the Raycast will start from</param>
+		/// <param name="distance">Max distance of the Raycast</param>
+		/// <returns>Returns the first Entity encountered in a distance specified</returns>
+		public static Entity GetEntityInFrontOfPed(this Ped ped, float distance = 5f)
+		{
+			RaycastResult raycast = World.Raycast(ped.Position, ped.GetOffsetPosition(new Vector3(0f, distance, 0f)), IntersectOptions.Everything);
+			if (raycast.DitHitEntity)
+				return (Entity)raycast.HitEntity;
+			return null;
+		}
+
 	}
 }
