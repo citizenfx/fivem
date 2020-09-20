@@ -1603,12 +1603,11 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Get the first entity in front of the relative Ped 
 		/// </summary>
-		/// <param name="ped">The <see cref="Ped"/> the Raycast will start from</param>
 		/// <param name="distance">Max distance of the Raycast</param>
 		/// <returns>Returns the first Entity encountered in a distance specified</returns>
-		public static Entity GetEntityInFrontOfPed(this Ped ped, float distance = 5f)
+		public Entity GetEntityInFront(float distance = 5f)
 		{
-			RaycastResult raycast = World.Raycast(ped.Position, ped.GetOffsetPosition(new Vector3(0f, distance, 0f)), IntersectOptions.Everything);
+			RaycastResult raycast = World.Raycast(Position, GetOffsetPosition(new Vector3(0f, distance, 0f)), IntersectOptions.Everything);
 			if (raycast.DitHitEntity)
 				return (Entity)raycast.HitEntity;
 			return null;
@@ -1618,7 +1617,7 @@ namespace CitizenFX.Core
 		/// Get closest Peds to the specified Ped
 		/// </summary>
 		/// <returns></returns>
-		public static Tuple<float, Ped> GetClosestPed(this Ped ped)
+		public static Tuple<float, Ped> GetClosestPed()
 		{
 			Ped[] Peds = World.GetAllPeds();
 			float closestDistance = -1f;
@@ -1626,7 +1625,7 @@ namespace CitizenFX.Core
 			foreach (Ped v in Peds)
 			{
 				Vector3 pedcoords = v.Position;
-				float distance = World.GetDistance(pedcoords, ped.Position);
+				float distance = World.GetDistance(pedcoords, Position);
 				if (closestDistance == -1 || closestDistance > distance)
 				{
 					closestPed = v;
@@ -1641,7 +1640,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="Coords"></param>
 		/// <returns></returns>
-		public static Tuple<float, Ped> GetClosestPed(this Vector3 Coords)
+		public static Tuple<float, Ped> GetClosestPed(Vector3 Coords)
 		{
 			Ped[] Peds = World.GetAllPeds();
 			float closestDistance = -1f;
