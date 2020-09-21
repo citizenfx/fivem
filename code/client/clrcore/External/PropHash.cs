@@ -1,6 +1,6 @@
 namespace CitizenFX.Core
 {
-	public enum ObjectHash : int
+	public enum PropHash : int
 	{
 		_02gate3_l = -1267889684,
 		ap1_lod_emi_a_slod3 = 2083865423,
