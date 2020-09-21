@@ -197,11 +197,12 @@ enum Reject_RejectType : int {
   Reject_RejectType_WrongServerPW = 4,
   Reject_RejectType_UsernameInUse = 5,
   Reject_RejectType_ServerFull = 6,
-  Reject_RejectType_NoCertificate = 7
+  Reject_RejectType_NoCertificate = 7,
+  Reject_RejectType_AuthenticatorFail = 8
 };
 bool Reject_RejectType_IsValid(int value);
 constexpr Reject_RejectType Reject_RejectType_RejectType_MIN = Reject_RejectType_None;
-constexpr Reject_RejectType Reject_RejectType_RejectType_MAX = Reject_RejectType_NoCertificate;
+constexpr Reject_RejectType Reject_RejectType_RejectType_MAX = Reject_RejectType_AuthenticatorFail;
 constexpr int Reject_RejectType_RejectType_ARRAYSIZE = Reject_RejectType_RejectType_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* Reject_RejectType_descriptor();
@@ -229,11 +230,14 @@ enum PermissionDenied_DenyType : int {
   PermissionDenied_DenyType_MissingCertificate = 7,
   PermissionDenied_DenyType_UserName = 8,
   PermissionDenied_DenyType_ChannelFull = 9,
-  PermissionDenied_DenyType_NestingLimit = 10
+  PermissionDenied_DenyType_NestingLimit = 10,
+  PermissionDenied_DenyType_ChannelCountLimit = 11,
+  PermissionDenied_DenyType_ChannelListenerLimit = 12,
+  PermissionDenied_DenyType_UserListenerLimit = 13
 };
 bool PermissionDenied_DenyType_IsValid(int value);
 constexpr PermissionDenied_DenyType PermissionDenied_DenyType_DenyType_MIN = PermissionDenied_DenyType_Text;
-constexpr PermissionDenied_DenyType PermissionDenied_DenyType_DenyType_MAX = PermissionDenied_DenyType_NestingLimit;
+constexpr PermissionDenied_DenyType PermissionDenied_DenyType_DenyType_MAX = PermissionDenied_DenyType_UserListenerLimit;
 constexpr int PermissionDenied_DenyType_DenyType_ARRAYSIZE = PermissionDenied_DenyType_DenyType_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* PermissionDenied_DenyType_descriptor();
@@ -1303,6 +1307,8 @@ class Reject :
     Reject_RejectType_ServerFull;
   static constexpr RejectType NoCertificate =
     Reject_RejectType_NoCertificate;
+  static constexpr RejectType AuthenticatorFail =
+    Reject_RejectType_AuthenticatorFail;
   static inline bool RejectType_IsValid(int value) {
     return Reject_RejectType_IsValid(value);
   }
@@ -1380,213 +1386,6 @@ class Reject :
 };
 // -------------------------------------------------------------------
 
-class ServerConfig :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:MumbleProto.ServerConfig) */ {
- public:
-  ServerConfig();
-  virtual ~ServerConfig();
-
-  ServerConfig(const ServerConfig& from);
-  ServerConfig(ServerConfig&& from) noexcept
-    : ServerConfig() {
-    *this = ::std::move(from);
-  }
-
-  inline ServerConfig& operator=(const ServerConfig& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline ServerConfig& operator=(ServerConfig&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet& unknown_fields() const {
-    return _internal_metadata_.unknown_fields();
-  }
-  inline ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet* mutable_unknown_fields() {
-    return _internal_metadata_.mutable_unknown_fields();
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return GetMetadataStatic().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return GetMetadataStatic().reflection;
-  }
-  static const ServerConfig& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const ServerConfig* internal_default_instance() {
-    return reinterpret_cast<const ServerConfig*>(
-               &_ServerConfig_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    5;
-
-  friend void swap(ServerConfig& a, ServerConfig& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(ServerConfig* other) {
-    if (other == this) return;
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline ServerConfig* New() const final {
-    return CreateMaybeMessage<ServerConfig>(nullptr);
-  }
-
-  ServerConfig* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<ServerConfig>(arena);
-  }
-  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
-  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
-  void CopyFrom(const ServerConfig& from);
-  void MergeFrom(const ServerConfig& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(ServerConfig* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "MumbleProto.ServerConfig";
-  }
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
-  }
-  inline void* MaybeArenaPtr() const {
-    return nullptr;
-  }
-  public:
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-  private:
-  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
-    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_Mumble_2eproto);
-    return ::descriptor_table_Mumble_2eproto.file_level_metadata[kIndexInFileMessages];
-  }
-
-  public:
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kWelcomeTextFieldNumber = 2,
-    kMaxBandwidthFieldNumber = 1,
-    kAllowHtmlFieldNumber = 3,
-    kMessageLengthFieldNumber = 4,
-    kImageMessageLengthFieldNumber = 5,
-  };
-  // optional string welcome_text = 2;
-  bool has_welcome_text() const;
-  private:
-  bool _internal_has_welcome_text() const;
-  public:
-  void clear_welcome_text();
-  const std::string& welcome_text() const;
-  void set_welcome_text(const std::string& value);
-  void set_welcome_text(std::string&& value);
-  void set_welcome_text(const char* value);
-  void set_welcome_text(const char* value, size_t size);
-  std::string* mutable_welcome_text();
-  std::string* release_welcome_text();
-  void set_allocated_welcome_text(std::string* welcome_text);
-  private:
-  const std::string& _internal_welcome_text() const;
-  void _internal_set_welcome_text(const std::string& value);
-  std::string* _internal_mutable_welcome_text();
-  public:
-
-  // optional uint32 max_bandwidth = 1;
-  bool has_max_bandwidth() const;
-  private:
-  bool _internal_has_max_bandwidth() const;
-  public:
-  void clear_max_bandwidth();
-  ::PROTOBUF_NAMESPACE_ID::uint32 max_bandwidth() const;
-  void set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_max_bandwidth() const;
-  void _internal_set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // optional bool allow_html = 3;
-  bool has_allow_html() const;
-  private:
-  bool _internal_has_allow_html() const;
-  public:
-  void clear_allow_html();
-  bool allow_html() const;
-  void set_allow_html(bool value);
-  private:
-  bool _internal_allow_html() const;
-  void _internal_set_allow_html(bool value);
-  public:
-
-  // optional uint32 message_length = 4;
-  bool has_message_length() const;
-  private:
-  bool _internal_has_message_length() const;
-  public:
-  void clear_message_length();
-  ::PROTOBUF_NAMESPACE_ID::uint32 message_length() const;
-  void set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_message_length() const;
-  void _internal_set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // optional uint32 image_message_length = 5;
-  bool has_image_message_length() const;
-  private:
-  bool _internal_has_image_message_length() const;
-  public:
-  void clear_image_message_length();
-  ::PROTOBUF_NAMESPACE_ID::uint32 image_message_length() const;
-  void set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_image_message_length() const;
-  void _internal_set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:MumbleProto.ServerConfig)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
-  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr welcome_text_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 max_bandwidth_;
-  bool allow_html_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 message_length_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 image_message_length_;
-  friend struct ::TableStruct_Mumble_2eproto;
-};
-// -------------------------------------------------------------------
-
 class ServerSync :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:MumbleProto.ServerSync) */ {
  public:
@@ -1636,7 +1435,7 @@ class ServerSync :
                &_ServerSync_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    5;
 
   friend void swap(ServerSync& a, ServerSync& b) {
     a.Swap(&b);
@@ -1828,7 +1627,7 @@ class ChannelRemove :
                &_ChannelRemove_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    6;
 
   friend void swap(ChannelRemove& a, ChannelRemove& b) {
     a.Swap(&b);
@@ -1968,7 +1767,7 @@ class ChannelState :
                &_ChannelState_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    7;
 
   friend void swap(ChannelState& a, ChannelState& b) {
     a.Swap(&b);
@@ -2040,8 +1839,11 @@ class ChannelState :
     kDescriptionHashFieldNumber = 10,
     kChannelIdFieldNumber = 1,
     kParentFieldNumber = 2,
-    kTemporaryFieldNumber = 8,
     kPositionFieldNumber = 9,
+    kMaxUsersFieldNumber = 11,
+    kTemporaryFieldNumber = 8,
+    kIsEnterRestrictedFieldNumber = 12,
+    kCanEnterFieldNumber = 13,
   };
   // repeated uint32 links = 4;
   int links_size() const;
@@ -2195,6 +1997,32 @@ class ChannelState :
   void _internal_set_parent(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
+  // optional int32 position = 9 [default = 0];
+  bool has_position() const;
+  private:
+  bool _internal_has_position() const;
+  public:
+  void clear_position();
+  ::PROTOBUF_NAMESPACE_ID::int32 position() const;
+  void set_position(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_position() const;
+  void _internal_set_position(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // optional uint32 max_users = 11;
+  bool has_max_users() const;
+  private:
+  bool _internal_has_max_users() const;
+  public:
+  void clear_max_users();
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_users() const;
+  void set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_max_users() const;
+  void _internal_set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
   // optional bool temporary = 8 [default = false];
   bool has_temporary() const;
   private:
@@ -2208,17 +2036,30 @@ class ChannelState :
   void _internal_set_temporary(bool value);
   public:
 
-  // optional int32 position = 9 [default = 0];
-  bool has_position() const;
+  // optional bool is_enter_restricted = 12;
+  bool has_is_enter_restricted() const;
   private:
-  bool _internal_has_position() const;
+  bool _internal_has_is_enter_restricted() const;
   public:
-  void clear_position();
-  ::PROTOBUF_NAMESPACE_ID::int32 position() const;
-  void set_position(::PROTOBUF_NAMESPACE_ID::int32 value);
+  void clear_is_enter_restricted();
+  bool is_enter_restricted() const;
+  void set_is_enter_restricted(bool value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_position() const;
-  void _internal_set_position(::PROTOBUF_NAMESPACE_ID::int32 value);
+  bool _internal_is_enter_restricted() const;
+  void _internal_set_is_enter_restricted(bool value);
+  public:
+
+  // optional bool can_enter = 13;
+  bool has_can_enter() const;
+  private:
+  bool _internal_has_can_enter() const;
+  public:
+  void clear_can_enter();
+  bool can_enter() const;
+  void set_can_enter(bool value);
+  private:
+  bool _internal_can_enter() const;
+  void _internal_set_can_enter(bool value);
   public:
 
   // @@protoc_insertion_point(class_scope:MumbleProto.ChannelState)
@@ -2236,8 +2077,11 @@ class ChannelState :
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr description_hash_;
   ::PROTOBUF_NAMESPACE_ID::uint32 channel_id_;
   ::PROTOBUF_NAMESPACE_ID::uint32 parent_;
-  bool temporary_;
   ::PROTOBUF_NAMESPACE_ID::int32 position_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_users_;
+  bool temporary_;
+  bool is_enter_restricted_;
+  bool can_enter_;
   friend struct ::TableStruct_Mumble_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2291,7 +2135,7 @@ class UserRemove :
                &_UserRemove_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    8;
 
   friend void swap(UserRemove& a, UserRemove& b) {
     a.Swap(&b);
@@ -2483,7 +2327,7 @@ class UserState :
                &_UserState_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    9;
 
   friend void swap(UserState& a, UserState& b) {
     a.Swap(&b);
@@ -2547,6 +2391,9 @@ class UserState :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kTemporaryAccessTokensFieldNumber = 20,
+    kListeningChannelAddFieldNumber = 21,
+    kListeningChannelRemoveFieldNumber = 22,
     kNameFieldNumber = 3,
     kTextureFieldNumber = 11,
     kPluginContextFieldNumber = 12,
@@ -2567,6 +2414,74 @@ class UserState :
     kPrioritySpeakerFieldNumber = 18,
     kRecordingFieldNumber = 19,
   };
+  // repeated string temporary_access_tokens = 20;
+  int temporary_access_tokens_size() const;
+  private:
+  int _internal_temporary_access_tokens_size() const;
+  public:
+  void clear_temporary_access_tokens();
+  const std::string& temporary_access_tokens(int index) const;
+  std::string* mutable_temporary_access_tokens(int index);
+  void set_temporary_access_tokens(int index, const std::string& value);
+  void set_temporary_access_tokens(int index, std::string&& value);
+  void set_temporary_access_tokens(int index, const char* value);
+  void set_temporary_access_tokens(int index, const char* value, size_t size);
+  std::string* add_temporary_access_tokens();
+  void add_temporary_access_tokens(const std::string& value);
+  void add_temporary_access_tokens(std::string&& value);
+  void add_temporary_access_tokens(const char* value);
+  void add_temporary_access_tokens(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& temporary_access_tokens() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_temporary_access_tokens();
+  private:
+  const std::string& _internal_temporary_access_tokens(int index) const;
+  std::string* _internal_add_temporary_access_tokens();
+  public:
+
+  // repeated uint32 listening_channel_add = 21;
+  int listening_channel_add_size() const;
+  private:
+  int _internal_listening_channel_add_size() const;
+  public:
+  void clear_listening_channel_add();
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_listening_channel_add(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+      _internal_listening_channel_add() const;
+  void _internal_add_listening_channel_add(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+      _internal_mutable_listening_channel_add();
+  public:
+  ::PROTOBUF_NAMESPACE_ID::uint32 listening_channel_add(int index) const;
+  void set_listening_channel_add(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value);
+  void add_listening_channel_add(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+      listening_channel_add() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+      mutable_listening_channel_add();
+
+  // repeated uint32 listening_channel_remove = 22;
+  int listening_channel_remove_size() const;
+  private:
+  int _internal_listening_channel_remove_size() const;
+  public:
+  void clear_listening_channel_remove();
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_listening_channel_remove(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+      _internal_listening_channel_remove() const;
+  void _internal_add_listening_channel_remove(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+      _internal_mutable_listening_channel_remove();
+  public:
+  ::PROTOBUF_NAMESPACE_ID::uint32 listening_channel_remove(int index) const;
+  void set_listening_channel_remove(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value);
+  void add_listening_channel_remove(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+      listening_channel_remove() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+      mutable_listening_channel_remove();
+
   // optional string name = 3;
   bool has_name() const;
   private:
@@ -2877,6 +2792,9 @@ class UserState :
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> temporary_access_tokens_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > listening_channel_add_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > listening_channel_remove_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr texture_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr plugin_context_;
@@ -2949,7 +2867,7 @@ class BanList_BanEntry :
                &_BanList_BanEntry_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    10;
 
   friend void swap(BanList_BanEntry& a, BanList_BanEntry& b) {
     a.Swap(&b);
@@ -3217,7 +3135,7 @@ class BanList :
                &_BanList_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    11;
 
   friend void swap(BanList& a, BanList& b) {
     a.Swap(&b);
@@ -3379,7 +3297,7 @@ class TextMessage :
                &_TextMessage_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    12;
 
   friend void swap(TextMessage& a, TextMessage& b) {
     a.Swap(&b);
@@ -3613,7 +3531,7 @@ class PermissionDenied :
                &_PermissionDenied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    13;
 
   friend void swap(PermissionDenied& a, PermissionDenied& b) {
     a.Swap(&b);
@@ -3697,6 +3615,12 @@ class PermissionDenied :
     PermissionDenied_DenyType_ChannelFull;
   static constexpr DenyType NestingLimit =
     PermissionDenied_DenyType_NestingLimit;
+  static constexpr DenyType ChannelCountLimit =
+    PermissionDenied_DenyType_ChannelCountLimit;
+  static constexpr DenyType ChannelListenerLimit =
+    PermissionDenied_DenyType_ChannelListenerLimit;
+  static constexpr DenyType UserListenerLimit =
+    PermissionDenied_DenyType_UserListenerLimit;
   static inline bool DenyType_IsValid(int value) {
     return PermissionDenied_DenyType_IsValid(value);
   }
@@ -3890,7 +3814,7 @@ class ACL_ChanGroup :
                &_ACL_ChanGroup_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    14;
 
   friend void swap(ACL_ChanGroup& a, ACL_ChanGroup& b) {
     a.Swap(&b);
@@ -4154,7 +4078,7 @@ class ACL_ChanACL :
                &_ACL_ChanACL_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    15;
 
   friend void swap(ACL_ChanACL& a, ACL_ChanACL& b) {
     a.Swap(&b);
@@ -4391,7 +4315,7 @@ class ACL :
                &_ACL_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    16;
 
   friend void swap(ACL& a, ACL& b) {
     a.Swap(&b);
@@ -4604,7 +4528,7 @@ class QueryUsers :
                &_QueryUsers_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    17;
 
   friend void swap(QueryUsers& a, QueryUsers& b) {
     a.Swap(&b);
@@ -4779,7 +4703,7 @@ class CryptSetup :
                &_CryptSetup_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    18;
 
   friend void swap(CryptSetup& a, CryptSetup& b) {
     a.Swap(&b);
@@ -4970,7 +4894,7 @@ class ContextActionModify :
                &_ContextActionModify_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    19;
 
   friend void swap(ContextActionModify& a, ContextActionModify& b) {
     a.Swap(&b);
@@ -5231,7 +5155,7 @@ class ContextAction :
                &_ContextAction_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    20;
 
   friend void swap(ContextAction& a, ContextAction& b) {
     a.Swap(&b);
@@ -5408,7 +5332,7 @@ class UserList_User :
                &_UserList_User_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    21;
 
   friend void swap(UserList_User& a, UserList_User& b) {
     a.Swap(&b);
@@ -5473,7 +5397,9 @@ class UserList_User :
 
   enum : int {
     kNameFieldNumber = 2,
+    kLastSeenFieldNumber = 3,
     kUserIdFieldNumber = 1,
+    kLastChannelFieldNumber = 4,
   };
   // optional string name = 2;
   bool has_name() const;
@@ -5495,6 +5421,26 @@ class UserList_User :
   std::string* _internal_mutable_name();
   public:
 
+  // optional string last_seen = 3;
+  bool has_last_seen() const;
+  private:
+  bool _internal_has_last_seen() const;
+  public:
+  void clear_last_seen();
+  const std::string& last_seen() const;
+  void set_last_seen(const std::string& value);
+  void set_last_seen(std::string&& value);
+  void set_last_seen(const char* value);
+  void set_last_seen(const char* value, size_t size);
+  std::string* mutable_last_seen();
+  std::string* release_last_seen();
+  void set_allocated_last_seen(std::string* last_seen);
+  private:
+  const std::string& _internal_last_seen() const;
+  void _internal_set_last_seen(const std::string& value);
+  std::string* _internal_mutable_last_seen();
+  public:
+
   // required uint32 user_id = 1;
   bool has_user_id() const;
   private:
@@ -5508,6 +5454,19 @@ class UserList_User :
   void _internal_set_user_id(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
+  // optional uint32 last_channel = 4;
+  bool has_last_channel() const;
+  private:
+  bool _internal_has_last_channel() const;
+  public:
+  void clear_last_channel();
+  ::PROTOBUF_NAMESPACE_ID::uint32 last_channel() const;
+  void set_last_channel(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_last_channel() const;
+  void _internal_set_last_channel(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
   // @@protoc_insertion_point(class_scope:MumbleProto.UserList.User)
  private:
   class _Internal;
@@ -5516,7 +5475,9 @@ class UserList_User :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr last_seen_;
   ::PROTOBUF_NAMESPACE_ID::uint32 user_id_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 last_channel_;
   friend struct ::TableStruct_Mumble_2eproto;
 };
 // -------------------------------------------------------------------
@@ -5570,7 +5531,7 @@ class UserList :
                &_UserList_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    22;
 
   friend void swap(UserList& a, UserList& b) {
     a.Swap(&b);
@@ -5717,7 +5678,7 @@ class VoiceTarget_Target :
                &_VoiceTarget_Target_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    24;
+    23;
 
   friend void swap(VoiceTarget_Target& a, VoiceTarget_Target& b) {
     a.Swap(&b);
@@ -5933,7 +5894,7 @@ class VoiceTarget :
                &_VoiceTarget_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    25;
+    24;
 
   friend void swap(VoiceTarget& a, VoiceTarget& b) {
     a.Swap(&b);
@@ -6095,7 +6056,7 @@ class PermissionQuery :
                &_PermissionQuery_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    26;
+    25;
 
   friend void swap(PermissionQuery& a, PermissionQuery& b) {
     a.Swap(&b);
@@ -6265,7 +6226,7 @@ class CodecVersion :
                &_CodecVersion_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    27;
+    26;
 
   friend void swap(CodecVersion& a, CodecVersion& b) {
     a.Swap(&b);
@@ -6453,7 +6414,7 @@ class UserStats_Stats :
                &_UserStats_Stats_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    28;
+    27;
 
   friend void swap(UserStats_Stats& a, UserStats_Stats& b) {
     a.Swap(&b);
@@ -6638,7 +6599,7 @@ class UserStats :
                &_UserStats_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    29;
+    28;
 
   friend void swap(UserStats& a, UserStats& b) {
     a.Swap(&b);
@@ -7034,176 +6995,6 @@ class UserStats :
 };
 // -------------------------------------------------------------------
 
-class SuggestConfig :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:MumbleProto.SuggestConfig) */ {
- public:
-  SuggestConfig();
-  virtual ~SuggestConfig();
-
-  SuggestConfig(const SuggestConfig& from);
-  SuggestConfig(SuggestConfig&& from) noexcept
-    : SuggestConfig() {
-    *this = ::std::move(from);
-  }
-
-  inline SuggestConfig& operator=(const SuggestConfig& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline SuggestConfig& operator=(SuggestConfig&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet& unknown_fields() const {
-    return _internal_metadata_.unknown_fields();
-  }
-  inline ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet* mutable_unknown_fields() {
-    return _internal_metadata_.mutable_unknown_fields();
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return GetMetadataStatic().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return GetMetadataStatic().reflection;
-  }
-  static const SuggestConfig& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const SuggestConfig* internal_default_instance() {
-    return reinterpret_cast<const SuggestConfig*>(
-               &_SuggestConfig_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    30;
-
-  friend void swap(SuggestConfig& a, SuggestConfig& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(SuggestConfig* other) {
-    if (other == this) return;
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline SuggestConfig* New() const final {
-    return CreateMaybeMessage<SuggestConfig>(nullptr);
-  }
-
-  SuggestConfig* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
-    return CreateMaybeMessage<SuggestConfig>(arena);
-  }
-  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
-  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
-  void CopyFrom(const SuggestConfig& from);
-  void MergeFrom(const SuggestConfig& from);
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
-      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  inline void SharedCtor();
-  inline void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(SuggestConfig* other);
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "MumbleProto.SuggestConfig";
-  }
-  private:
-  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
-    return nullptr;
-  }
-  inline void* MaybeArenaPtr() const {
-    return nullptr;
-  }
-  public:
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-  private:
-  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
-    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_Mumble_2eproto);
-    return ::descriptor_table_Mumble_2eproto.file_level_metadata[kIndexInFileMessages];
-  }
-
-  public:
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kVersionFieldNumber = 1,
-    kPositionalFieldNumber = 2,
-    kPushToTalkFieldNumber = 3,
-  };
-  // optional uint32 version = 1;
-  bool has_version() const;
-  private:
-  bool _internal_has_version() const;
-  public:
-  void clear_version();
-  ::PROTOBUF_NAMESPACE_ID::uint32 version() const;
-  void set_version(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_version() const;
-  void _internal_set_version(::PROTOBUF_NAMESPACE_ID::uint32 value);
-  public:
-
-  // optional bool positional = 2;
-  bool has_positional() const;
-  private:
-  bool _internal_has_positional() const;
-  public:
-  void clear_positional();
-  bool positional() const;
-  void set_positional(bool value);
-  private:
-  bool _internal_positional() const;
-  void _internal_set_positional(bool value);
-  public:
-
-  // optional bool push_to_talk = 3;
-  bool has_push_to_talk() const;
-  private:
-  bool _internal_has_push_to_talk() const;
-  public:
-  void clear_push_to_talk();
-  bool push_to_talk() const;
-  void set_push_to_talk(bool value);
-  private:
-  bool _internal_push_to_talk() const;
-  void _internal_set_push_to_talk(bool value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:MumbleProto.SuggestConfig)
- private:
-  class _Internal;
-
-  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
-  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 version_;
-  bool positional_;
-  bool push_to_talk_;
-  friend struct ::TableStruct_Mumble_2eproto;
-};
-// -------------------------------------------------------------------
-
 class RequestBlob :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:MumbleProto.RequestBlob) */ {
  public:
@@ -7253,7 +7044,7 @@ class RequestBlob :
                &_RequestBlob_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    31;
+    29;
 
   friend void swap(RequestBlob& a, RequestBlob& b) {
     a.Swap(&b);
@@ -7397,6 +7188,398 @@ class RequestBlob :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > session_texture_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > session_comment_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 > channel_description_;
+  friend struct ::TableStruct_Mumble_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ServerConfig :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:MumbleProto.ServerConfig) */ {
+ public:
+  ServerConfig();
+  virtual ~ServerConfig();
+
+  ServerConfig(const ServerConfig& from);
+  ServerConfig(ServerConfig&& from) noexcept
+    : ServerConfig() {
+    *this = ::std::move(from);
+  }
+
+  inline ServerConfig& operator=(const ServerConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ServerConfig& operator=(ServerConfig&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+  inline ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const ServerConfig& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const ServerConfig* internal_default_instance() {
+    return reinterpret_cast<const ServerConfig*>(
+               &_ServerConfig_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    30;
+
+  friend void swap(ServerConfig& a, ServerConfig& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ServerConfig* other) {
+    if (other == this) return;
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline ServerConfig* New() const final {
+    return CreateMaybeMessage<ServerConfig>(nullptr);
+  }
+
+  ServerConfig* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<ServerConfig>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const ServerConfig& from);
+  void MergeFrom(const ServerConfig& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(ServerConfig* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "MumbleProto.ServerConfig";
+  }
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return nullptr;
+  }
+  inline void* MaybeArenaPtr() const {
+    return nullptr;
+  }
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_Mumble_2eproto);
+    return ::descriptor_table_Mumble_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kWelcomeTextFieldNumber = 2,
+    kMaxBandwidthFieldNumber = 1,
+    kAllowHtmlFieldNumber = 3,
+    kMessageLengthFieldNumber = 4,
+    kImageMessageLengthFieldNumber = 5,
+    kMaxUsersFieldNumber = 6,
+  };
+  // optional string welcome_text = 2;
+  bool has_welcome_text() const;
+  private:
+  bool _internal_has_welcome_text() const;
+  public:
+  void clear_welcome_text();
+  const std::string& welcome_text() const;
+  void set_welcome_text(const std::string& value);
+  void set_welcome_text(std::string&& value);
+  void set_welcome_text(const char* value);
+  void set_welcome_text(const char* value, size_t size);
+  std::string* mutable_welcome_text();
+  std::string* release_welcome_text();
+  void set_allocated_welcome_text(std::string* welcome_text);
+  private:
+  const std::string& _internal_welcome_text() const;
+  void _internal_set_welcome_text(const std::string& value);
+  std::string* _internal_mutable_welcome_text();
+  public:
+
+  // optional uint32 max_bandwidth = 1;
+  bool has_max_bandwidth() const;
+  private:
+  bool _internal_has_max_bandwidth() const;
+  public:
+  void clear_max_bandwidth();
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_bandwidth() const;
+  void set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_max_bandwidth() const;
+  void _internal_set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // optional bool allow_html = 3;
+  bool has_allow_html() const;
+  private:
+  bool _internal_has_allow_html() const;
+  public:
+  void clear_allow_html();
+  bool allow_html() const;
+  void set_allow_html(bool value);
+  private:
+  bool _internal_allow_html() const;
+  void _internal_set_allow_html(bool value);
+  public:
+
+  // optional uint32 message_length = 4;
+  bool has_message_length() const;
+  private:
+  bool _internal_has_message_length() const;
+  public:
+  void clear_message_length();
+  ::PROTOBUF_NAMESPACE_ID::uint32 message_length() const;
+  void set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_message_length() const;
+  void _internal_set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // optional uint32 image_message_length = 5;
+  bool has_image_message_length() const;
+  private:
+  bool _internal_has_image_message_length() const;
+  public:
+  void clear_image_message_length();
+  ::PROTOBUF_NAMESPACE_ID::uint32 image_message_length() const;
+  void set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_image_message_length() const;
+  void _internal_set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // optional uint32 max_users = 6;
+  bool has_max_users() const;
+  private:
+  bool _internal_has_max_users() const;
+  public:
+  void clear_max_users();
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_users() const;
+  void set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_max_users() const;
+  void _internal_set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:MumbleProto.ServerConfig)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr welcome_text_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_bandwidth_;
+  bool allow_html_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 message_length_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 image_message_length_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 max_users_;
+  friend struct ::TableStruct_Mumble_2eproto;
+};
+// -------------------------------------------------------------------
+
+class SuggestConfig :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:MumbleProto.SuggestConfig) */ {
+ public:
+  SuggestConfig();
+  virtual ~SuggestConfig();
+
+  SuggestConfig(const SuggestConfig& from);
+  SuggestConfig(SuggestConfig&& from) noexcept
+    : SuggestConfig() {
+    *this = ::std::move(from);
+  }
+
+  inline SuggestConfig& operator=(const SuggestConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SuggestConfig& operator=(SuggestConfig&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet& unknown_fields() const {
+    return _internal_metadata_.unknown_fields();
+  }
+  inline ::PROTOBUF_NAMESPACE_ID::UnknownFieldSet* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields();
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const SuggestConfig& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const SuggestConfig* internal_default_instance() {
+    return reinterpret_cast<const SuggestConfig*>(
+               &_SuggestConfig_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    31;
+
+  friend void swap(SuggestConfig& a, SuggestConfig& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(SuggestConfig* other) {
+    if (other == this) return;
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline SuggestConfig* New() const final {
+    return CreateMaybeMessage<SuggestConfig>(nullptr);
+  }
+
+  SuggestConfig* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<SuggestConfig>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const SuggestConfig& from);
+  void MergeFrom(const SuggestConfig& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* InternalSerializeWithCachedSizesToArray(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(SuggestConfig* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "MumbleProto.SuggestConfig";
+  }
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return nullptr;
+  }
+  inline void* MaybeArenaPtr() const {
+    return nullptr;
+  }
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_Mumble_2eproto);
+    return ::descriptor_table_Mumble_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kVersionFieldNumber = 1,
+    kPositionalFieldNumber = 2,
+    kPushToTalkFieldNumber = 3,
+  };
+  // optional uint32 version = 1;
+  bool has_version() const;
+  private:
+  bool _internal_has_version() const;
+  public:
+  void clear_version();
+  ::PROTOBUF_NAMESPACE_ID::uint32 version() const;
+  void set_version(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_version() const;
+  void _internal_set_version(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  public:
+
+  // optional bool positional = 2;
+  bool has_positional() const;
+  private:
+  bool _internal_has_positional() const;
+  public:
+  void clear_positional();
+  bool positional() const;
+  void set_positional(bool value);
+  private:
+  bool _internal_positional() const;
+  void _internal_set_positional(bool value);
+  public:
+
+  // optional bool push_to_talk = 3;
+  bool has_push_to_talk() const;
+  private:
+  bool _internal_has_push_to_talk() const;
+  public:
+  void clear_push_to_talk();
+  bool push_to_talk() const;
+  void set_push_to_talk(bool value);
+  private:
+  bool _internal_push_to_talk() const;
+  void _internal_set_push_to_talk(bool value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:MumbleProto.SuggestConfig)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 version_;
+  bool positional_;
+  bool push_to_talk_;
   friend struct ::TableStruct_Mumble_2eproto;
 };
 // ===================================================================
@@ -8439,193 +8622,6 @@ inline void Reject::set_allocated_reason(std::string* reason) {
 
 // -------------------------------------------------------------------
 
-// ServerConfig
-
-// optional uint32 max_bandwidth = 1;
-inline bool ServerConfig::_internal_has_max_bandwidth() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
-  return value;
-}
-inline bool ServerConfig::has_max_bandwidth() const {
-  return _internal_has_max_bandwidth();
-}
-inline void ServerConfig::clear_max_bandwidth() {
-  max_bandwidth_ = 0u;
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_max_bandwidth() const {
-  return max_bandwidth_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::max_bandwidth() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.max_bandwidth)
-  return _internal_max_bandwidth();
-}
-inline void ServerConfig::_internal_set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _has_bits_[0] |= 0x00000002u;
-  max_bandwidth_ = value;
-}
-inline void ServerConfig::set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_max_bandwidth(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.max_bandwidth)
-}
-
-// optional string welcome_text = 2;
-inline bool ServerConfig::_internal_has_welcome_text() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
-  return value;
-}
-inline bool ServerConfig::has_welcome_text() const {
-  return _internal_has_welcome_text();
-}
-inline void ServerConfig::clear_welcome_text() {
-  welcome_text_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline const std::string& ServerConfig::welcome_text() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.welcome_text)
-  return _internal_welcome_text();
-}
-inline void ServerConfig::set_welcome_text(const std::string& value) {
-  _internal_set_welcome_text(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.welcome_text)
-}
-inline std::string* ServerConfig::mutable_welcome_text() {
-  // @@protoc_insertion_point(field_mutable:MumbleProto.ServerConfig.welcome_text)
-  return _internal_mutable_welcome_text();
-}
-inline const std::string& ServerConfig::_internal_welcome_text() const {
-  return welcome_text_.GetNoArena();
-}
-inline void ServerConfig::_internal_set_welcome_text(const std::string& value) {
-  _has_bits_[0] |= 0x00000001u;
-  welcome_text_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
-}
-inline void ServerConfig::set_welcome_text(std::string&& value) {
-  _has_bits_[0] |= 0x00000001u;
-  welcome_text_.SetNoArena(
-    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:MumbleProto.ServerConfig.welcome_text)
-}
-inline void ServerConfig::set_welcome_text(const char* value) {
-  GOOGLE_DCHECK(value != nullptr);
-  _has_bits_[0] |= 0x00000001u;
-  welcome_text_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:MumbleProto.ServerConfig.welcome_text)
-}
-inline void ServerConfig::set_welcome_text(const char* value, size_t size) {
-  _has_bits_[0] |= 0x00000001u;
-  welcome_text_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:MumbleProto.ServerConfig.welcome_text)
-}
-inline std::string* ServerConfig::_internal_mutable_welcome_text() {
-  _has_bits_[0] |= 0x00000001u;
-  return welcome_text_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-}
-inline std::string* ServerConfig::release_welcome_text() {
-  // @@protoc_insertion_point(field_release:MumbleProto.ServerConfig.welcome_text)
-  if (!has_welcome_text()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000001u;
-  return welcome_text_.ReleaseNonDefaultNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-}
-inline void ServerConfig::set_allocated_welcome_text(std::string* welcome_text) {
-  if (welcome_text != nullptr) {
-    _has_bits_[0] |= 0x00000001u;
-  } else {
-    _has_bits_[0] &= ~0x00000001u;
-  }
-  welcome_text_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), welcome_text);
-  // @@protoc_insertion_point(field_set_allocated:MumbleProto.ServerConfig.welcome_text)
-}
-
-// optional bool allow_html = 3;
-inline bool ServerConfig::_internal_has_allow_html() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
-  return value;
-}
-inline bool ServerConfig::has_allow_html() const {
-  return _internal_has_allow_html();
-}
-inline void ServerConfig::clear_allow_html() {
-  allow_html_ = false;
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline bool ServerConfig::_internal_allow_html() const {
-  return allow_html_;
-}
-inline bool ServerConfig::allow_html() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.allow_html)
-  return _internal_allow_html();
-}
-inline void ServerConfig::_internal_set_allow_html(bool value) {
-  _has_bits_[0] |= 0x00000004u;
-  allow_html_ = value;
-}
-inline void ServerConfig::set_allow_html(bool value) {
-  _internal_set_allow_html(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.allow_html)
-}
-
-// optional uint32 message_length = 4;
-inline bool ServerConfig::_internal_has_message_length() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
-  return value;
-}
-inline bool ServerConfig::has_message_length() const {
-  return _internal_has_message_length();
-}
-inline void ServerConfig::clear_message_length() {
-  message_length_ = 0u;
-  _has_bits_[0] &= ~0x00000008u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_message_length() const {
-  return message_length_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::message_length() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.message_length)
-  return _internal_message_length();
-}
-inline void ServerConfig::_internal_set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _has_bits_[0] |= 0x00000008u;
-  message_length_ = value;
-}
-inline void ServerConfig::set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_message_length(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.message_length)
-}
-
-// optional uint32 image_message_length = 5;
-inline bool ServerConfig::_internal_has_image_message_length() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
-  return value;
-}
-inline bool ServerConfig::has_image_message_length() const {
-  return _internal_has_image_message_length();
-}
-inline void ServerConfig::clear_image_message_length() {
-  image_message_length_ = 0u;
-  _has_bits_[0] &= ~0x00000010u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_image_message_length() const {
-  return image_message_length_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::image_message_length() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.image_message_length)
-  return _internal_image_message_length();
-}
-inline void ServerConfig::_internal_set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _has_bits_[0] |= 0x00000010u;
-  image_message_length_ = value;
-}
-inline void ServerConfig::set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_image_message_length(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.image_message_length)
-}
-
-// -------------------------------------------------------------------
-
 // ServerSync
 
 // optional uint32 session = 1;
@@ -9160,7 +9156,7 @@ ChannelState::mutable_links_remove() {
 
 // optional bool temporary = 8 [default = false];
 inline bool ChannelState::_internal_has_temporary() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ChannelState::has_temporary() const {
@@ -9168,7 +9164,7 @@ inline bool ChannelState::has_temporary() const {
 }
 inline void ChannelState::clear_temporary() {
   temporary_ = false;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline bool ChannelState::_internal_temporary() const {
   return temporary_;
@@ -9178,7 +9174,7 @@ inline bool ChannelState::temporary() const {
   return _internal_temporary();
 }
 inline void ChannelState::_internal_set_temporary(bool value) {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000080u;
   temporary_ = value;
 }
 inline void ChannelState::set_temporary(bool value) {
@@ -9188,7 +9184,7 @@ inline void ChannelState::set_temporary(bool value) {
 
 // optional int32 position = 9 [default = 0];
 inline bool ChannelState::_internal_has_position() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ChannelState::has_position() const {
@@ -9196,7 +9192,7 @@ inline bool ChannelState::has_position() const {
 }
 inline void ChannelState::clear_position() {
   position_ = 0;
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline ::PROTOBUF_NAMESPACE_ID::int32 ChannelState::_internal_position() const {
   return position_;
@@ -9206,7 +9202,7 @@ inline ::PROTOBUF_NAMESPACE_ID::int32 ChannelState::position() const {
   return _internal_position();
 }
 inline void ChannelState::_internal_set_position(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000020u;
   position_ = value;
 }
 inline void ChannelState::set_position(::PROTOBUF_NAMESPACE_ID::int32 value) {
@@ -9283,6 +9279,90 @@ inline void ChannelState::set_allocated_description_hash(std::string* descriptio
   }
   description_hash_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), description_hash);
   // @@protoc_insertion_point(field_set_allocated:MumbleProto.ChannelState.description_hash)
+}
+
+// optional uint32 max_users = 11;
+inline bool ChannelState::_internal_has_max_users() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool ChannelState::has_max_users() const {
+  return _internal_has_max_users();
+}
+inline void ChannelState::clear_max_users() {
+  max_users_ = 0u;
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ChannelState::_internal_max_users() const {
+  return max_users_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ChannelState::max_users() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ChannelState.max_users)
+  return _internal_max_users();
+}
+inline void ChannelState::_internal_set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000040u;
+  max_users_ = value;
+}
+inline void ChannelState::set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_max_users(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ChannelState.max_users)
+}
+
+// optional bool is_enter_restricted = 12;
+inline bool ChannelState::_internal_has_is_enter_restricted() const {
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  return value;
+}
+inline bool ChannelState::has_is_enter_restricted() const {
+  return _internal_has_is_enter_restricted();
+}
+inline void ChannelState::clear_is_enter_restricted() {
+  is_enter_restricted_ = false;
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline bool ChannelState::_internal_is_enter_restricted() const {
+  return is_enter_restricted_;
+}
+inline bool ChannelState::is_enter_restricted() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ChannelState.is_enter_restricted)
+  return _internal_is_enter_restricted();
+}
+inline void ChannelState::_internal_set_is_enter_restricted(bool value) {
+  _has_bits_[0] |= 0x00000100u;
+  is_enter_restricted_ = value;
+}
+inline void ChannelState::set_is_enter_restricted(bool value) {
+  _internal_set_is_enter_restricted(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ChannelState.is_enter_restricted)
+}
+
+// optional bool can_enter = 13;
+inline bool ChannelState::_internal_has_can_enter() const {
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
+  return value;
+}
+inline bool ChannelState::has_can_enter() const {
+  return _internal_has_can_enter();
+}
+inline void ChannelState::clear_can_enter() {
+  can_enter_ = false;
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline bool ChannelState::_internal_can_enter() const {
+  return can_enter_;
+}
+inline bool ChannelState::can_enter() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ChannelState.can_enter)
+  return _internal_can_enter();
+}
+inline void ChannelState::_internal_set_can_enter(bool value) {
+  _has_bits_[0] |= 0x00000200u;
+  can_enter_ = value;
+}
+inline void ChannelState::set_can_enter(bool value) {
+  _internal_set_can_enter(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ChannelState.can_enter)
 }
 
 // -------------------------------------------------------------------
@@ -10322,6 +10402,174 @@ inline void UserState::_internal_set_recording(bool value) {
 inline void UserState::set_recording(bool value) {
   _internal_set_recording(value);
   // @@protoc_insertion_point(field_set:MumbleProto.UserState.recording)
+}
+
+// repeated string temporary_access_tokens = 20;
+inline int UserState::_internal_temporary_access_tokens_size() const {
+  return temporary_access_tokens_.size();
+}
+inline int UserState::temporary_access_tokens_size() const {
+  return _internal_temporary_access_tokens_size();
+}
+inline void UserState::clear_temporary_access_tokens() {
+  temporary_access_tokens_.Clear();
+}
+inline std::string* UserState::add_temporary_access_tokens() {
+  // @@protoc_insertion_point(field_add_mutable:MumbleProto.UserState.temporary_access_tokens)
+  return _internal_add_temporary_access_tokens();
+}
+inline const std::string& UserState::_internal_temporary_access_tokens(int index) const {
+  return temporary_access_tokens_.Get(index);
+}
+inline const std::string& UserState::temporary_access_tokens(int index) const {
+  // @@protoc_insertion_point(field_get:MumbleProto.UserState.temporary_access_tokens)
+  return _internal_temporary_access_tokens(index);
+}
+inline std::string* UserState::mutable_temporary_access_tokens(int index) {
+  // @@protoc_insertion_point(field_mutable:MumbleProto.UserState.temporary_access_tokens)
+  return temporary_access_tokens_.Mutable(index);
+}
+inline void UserState::set_temporary_access_tokens(int index, const std::string& value) {
+  // @@protoc_insertion_point(field_set:MumbleProto.UserState.temporary_access_tokens)
+  temporary_access_tokens_.Mutable(index)->assign(value);
+}
+inline void UserState::set_temporary_access_tokens(int index, std::string&& value) {
+  // @@protoc_insertion_point(field_set:MumbleProto.UserState.temporary_access_tokens)
+  temporary_access_tokens_.Mutable(index)->assign(std::move(value));
+}
+inline void UserState::set_temporary_access_tokens(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  temporary_access_tokens_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:MumbleProto.UserState.temporary_access_tokens)
+}
+inline void UserState::set_temporary_access_tokens(int index, const char* value, size_t size) {
+  temporary_access_tokens_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:MumbleProto.UserState.temporary_access_tokens)
+}
+inline std::string* UserState::_internal_add_temporary_access_tokens() {
+  return temporary_access_tokens_.Add();
+}
+inline void UserState::add_temporary_access_tokens(const std::string& value) {
+  temporary_access_tokens_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:MumbleProto.UserState.temporary_access_tokens)
+}
+inline void UserState::add_temporary_access_tokens(std::string&& value) {
+  temporary_access_tokens_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:MumbleProto.UserState.temporary_access_tokens)
+}
+inline void UserState::add_temporary_access_tokens(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  temporary_access_tokens_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:MumbleProto.UserState.temporary_access_tokens)
+}
+inline void UserState::add_temporary_access_tokens(const char* value, size_t size) {
+  temporary_access_tokens_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:MumbleProto.UserState.temporary_access_tokens)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+UserState::temporary_access_tokens() const {
+  // @@protoc_insertion_point(field_list:MumbleProto.UserState.temporary_access_tokens)
+  return temporary_access_tokens_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+UserState::mutable_temporary_access_tokens() {
+  // @@protoc_insertion_point(field_mutable_list:MumbleProto.UserState.temporary_access_tokens)
+  return &temporary_access_tokens_;
+}
+
+// repeated uint32 listening_channel_add = 21;
+inline int UserState::_internal_listening_channel_add_size() const {
+  return listening_channel_add_.size();
+}
+inline int UserState::listening_channel_add_size() const {
+  return _internal_listening_channel_add_size();
+}
+inline void UserState::clear_listening_channel_add() {
+  listening_channel_add_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 UserState::_internal_listening_channel_add(int index) const {
+  return listening_channel_add_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 UserState::listening_channel_add(int index) const {
+  // @@protoc_insertion_point(field_get:MumbleProto.UserState.listening_channel_add)
+  return _internal_listening_channel_add(index);
+}
+inline void UserState::set_listening_channel_add(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  listening_channel_add_.Set(index, value);
+  // @@protoc_insertion_point(field_set:MumbleProto.UserState.listening_channel_add)
+}
+inline void UserState::_internal_add_listening_channel_add(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  listening_channel_add_.Add(value);
+}
+inline void UserState::add_listening_channel_add(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_add_listening_channel_add(value);
+  // @@protoc_insertion_point(field_add:MumbleProto.UserState.listening_channel_add)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+UserState::_internal_listening_channel_add() const {
+  return listening_channel_add_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+UserState::listening_channel_add() const {
+  // @@protoc_insertion_point(field_list:MumbleProto.UserState.listening_channel_add)
+  return _internal_listening_channel_add();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+UserState::_internal_mutable_listening_channel_add() {
+  return &listening_channel_add_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+UserState::mutable_listening_channel_add() {
+  // @@protoc_insertion_point(field_mutable_list:MumbleProto.UserState.listening_channel_add)
+  return _internal_mutable_listening_channel_add();
+}
+
+// repeated uint32 listening_channel_remove = 22;
+inline int UserState::_internal_listening_channel_remove_size() const {
+  return listening_channel_remove_.size();
+}
+inline int UserState::listening_channel_remove_size() const {
+  return _internal_listening_channel_remove_size();
+}
+inline void UserState::clear_listening_channel_remove() {
+  listening_channel_remove_.Clear();
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 UserState::_internal_listening_channel_remove(int index) const {
+  return listening_channel_remove_.Get(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 UserState::listening_channel_remove(int index) const {
+  // @@protoc_insertion_point(field_get:MumbleProto.UserState.listening_channel_remove)
+  return _internal_listening_channel_remove(index);
+}
+inline void UserState::set_listening_channel_remove(int index, ::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  listening_channel_remove_.Set(index, value);
+  // @@protoc_insertion_point(field_set:MumbleProto.UserState.listening_channel_remove)
+}
+inline void UserState::_internal_add_listening_channel_remove(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  listening_channel_remove_.Add(value);
+}
+inline void UserState::add_listening_channel_remove(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_add_listening_channel_remove(value);
+  // @@protoc_insertion_point(field_add:MumbleProto.UserState.listening_channel_remove)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+UserState::_internal_listening_channel_remove() const {
+  return listening_channel_remove_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >&
+UserState::listening_channel_remove() const {
+  // @@protoc_insertion_point(field_list:MumbleProto.UserState.listening_channel_remove)
+  return _internal_listening_channel_remove();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+UserState::_internal_mutable_listening_channel_remove() {
+  return &listening_channel_remove_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >*
+UserState::mutable_listening_channel_remove() {
+  // @@protoc_insertion_point(field_mutable_list:MumbleProto.UserState.listening_channel_remove)
+  return _internal_mutable_listening_channel_remove();
 }
 
 // -------------------------------------------------------------------
@@ -12704,7 +12952,7 @@ inline void ContextAction::set_allocated_action(std::string* action) {
 
 // required uint32 user_id = 1;
 inline bool UserList_User::_internal_has_user_id() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool UserList_User::has_user_id() const {
@@ -12712,7 +12960,7 @@ inline bool UserList_User::has_user_id() const {
 }
 inline void UserList_User::clear_user_id() {
   user_id_ = 0u;
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline ::PROTOBUF_NAMESPACE_ID::uint32 UserList_User::_internal_user_id() const {
   return user_id_;
@@ -12722,7 +12970,7 @@ inline ::PROTOBUF_NAMESPACE_ID::uint32 UserList_User::user_id() const {
   return _internal_user_id();
 }
 inline void UserList_User::_internal_set_user_id(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   user_id_ = value;
 }
 inline void UserList_User::set_user_id(::PROTOBUF_NAMESPACE_ID::uint32 value) {
@@ -12799,6 +13047,105 @@ inline void UserList_User::set_allocated_name(std::string* name) {
   }
   name_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), name);
   // @@protoc_insertion_point(field_set_allocated:MumbleProto.UserList.User.name)
+}
+
+// optional string last_seen = 3;
+inline bool UserList_User::_internal_has_last_seen() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool UserList_User::has_last_seen() const {
+  return _internal_has_last_seen();
+}
+inline void UserList_User::clear_last_seen() {
+  last_seen_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& UserList_User::last_seen() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.UserList.User.last_seen)
+  return _internal_last_seen();
+}
+inline void UserList_User::set_last_seen(const std::string& value) {
+  _internal_set_last_seen(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.UserList.User.last_seen)
+}
+inline std::string* UserList_User::mutable_last_seen() {
+  // @@protoc_insertion_point(field_mutable:MumbleProto.UserList.User.last_seen)
+  return _internal_mutable_last_seen();
+}
+inline const std::string& UserList_User::_internal_last_seen() const {
+  return last_seen_.GetNoArena();
+}
+inline void UserList_User::_internal_set_last_seen(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  last_seen_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
+}
+inline void UserList_User::set_last_seen(std::string&& value) {
+  _has_bits_[0] |= 0x00000002u;
+  last_seen_.SetNoArena(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:MumbleProto.UserList.User.last_seen)
+}
+inline void UserList_User::set_last_seen(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _has_bits_[0] |= 0x00000002u;
+  last_seen_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:MumbleProto.UserList.User.last_seen)
+}
+inline void UserList_User::set_last_seen(const char* value, size_t size) {
+  _has_bits_[0] |= 0x00000002u;
+  last_seen_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:MumbleProto.UserList.User.last_seen)
+}
+inline std::string* UserList_User::_internal_mutable_last_seen() {
+  _has_bits_[0] |= 0x00000002u;
+  return last_seen_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+inline std::string* UserList_User::release_last_seen() {
+  // @@protoc_insertion_point(field_release:MumbleProto.UserList.User.last_seen)
+  if (!has_last_seen()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  return last_seen_.ReleaseNonDefaultNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+inline void UserList_User::set_allocated_last_seen(std::string* last_seen) {
+  if (last_seen != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  last_seen_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), last_seen);
+  // @@protoc_insertion_point(field_set_allocated:MumbleProto.UserList.User.last_seen)
+}
+
+// optional uint32 last_channel = 4;
+inline bool UserList_User::_internal_has_last_channel() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool UserList_User::has_last_channel() const {
+  return _internal_has_last_channel();
+}
+inline void UserList_User::clear_last_channel() {
+  last_channel_ = 0u;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 UserList_User::_internal_last_channel() const {
+  return last_channel_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 UserList_User::last_channel() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.UserList.User.last_channel)
+  return _internal_last_channel();
+}
+inline void UserList_User::_internal_set_last_channel(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000008u;
+  last_channel_ = value;
+}
+inline void UserList_User::set_last_channel(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_last_channel(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.UserList.User.last_channel)
 }
 
 // -------------------------------------------------------------------
@@ -14183,94 +14530,6 @@ inline void UserStats::set_opus(bool value) {
 
 // -------------------------------------------------------------------
 
-// SuggestConfig
-
-// optional uint32 version = 1;
-inline bool SuggestConfig::_internal_has_version() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
-  return value;
-}
-inline bool SuggestConfig::has_version() const {
-  return _internal_has_version();
-}
-inline void SuggestConfig::clear_version() {
-  version_ = 0u;
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 SuggestConfig::_internal_version() const {
-  return version_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint32 SuggestConfig::version() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.SuggestConfig.version)
-  return _internal_version();
-}
-inline void SuggestConfig::_internal_set_version(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _has_bits_[0] |= 0x00000001u;
-  version_ = value;
-}
-inline void SuggestConfig::set_version(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_version(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.SuggestConfig.version)
-}
-
-// optional bool positional = 2;
-inline bool SuggestConfig::_internal_has_positional() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
-  return value;
-}
-inline bool SuggestConfig::has_positional() const {
-  return _internal_has_positional();
-}
-inline void SuggestConfig::clear_positional() {
-  positional_ = false;
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline bool SuggestConfig::_internal_positional() const {
-  return positional_;
-}
-inline bool SuggestConfig::positional() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.SuggestConfig.positional)
-  return _internal_positional();
-}
-inline void SuggestConfig::_internal_set_positional(bool value) {
-  _has_bits_[0] |= 0x00000002u;
-  positional_ = value;
-}
-inline void SuggestConfig::set_positional(bool value) {
-  _internal_set_positional(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.SuggestConfig.positional)
-}
-
-// optional bool push_to_talk = 3;
-inline bool SuggestConfig::_internal_has_push_to_talk() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
-  return value;
-}
-inline bool SuggestConfig::has_push_to_talk() const {
-  return _internal_has_push_to_talk();
-}
-inline void SuggestConfig::clear_push_to_talk() {
-  push_to_talk_ = false;
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline bool SuggestConfig::_internal_push_to_talk() const {
-  return push_to_talk_;
-}
-inline bool SuggestConfig::push_to_talk() const {
-  // @@protoc_insertion_point(field_get:MumbleProto.SuggestConfig.push_to_talk)
-  return _internal_push_to_talk();
-}
-inline void SuggestConfig::_internal_set_push_to_talk(bool value) {
-  _has_bits_[0] |= 0x00000004u;
-  push_to_talk_ = value;
-}
-inline void SuggestConfig::set_push_to_talk(bool value) {
-  _internal_set_push_to_talk(value);
-  // @@protoc_insertion_point(field_set:MumbleProto.SuggestConfig.push_to_talk)
-}
-
-// -------------------------------------------------------------------
-
 // RequestBlob
 
 // repeated uint32 session_texture = 1;
@@ -14412,6 +14671,309 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< ::PROTOBUF_NAMESPACE_ID::uint32 >
 RequestBlob::mutable_channel_description() {
   // @@protoc_insertion_point(field_mutable_list:MumbleProto.RequestBlob.channel_description)
   return _internal_mutable_channel_description();
+}
+
+// -------------------------------------------------------------------
+
+// ServerConfig
+
+// optional uint32 max_bandwidth = 1;
+inline bool ServerConfig::_internal_has_max_bandwidth() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool ServerConfig::has_max_bandwidth() const {
+  return _internal_has_max_bandwidth();
+}
+inline void ServerConfig::clear_max_bandwidth() {
+  max_bandwidth_ = 0u;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_max_bandwidth() const {
+  return max_bandwidth_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::max_bandwidth() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.max_bandwidth)
+  return _internal_max_bandwidth();
+}
+inline void ServerConfig::_internal_set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000002u;
+  max_bandwidth_ = value;
+}
+inline void ServerConfig::set_max_bandwidth(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_max_bandwidth(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.max_bandwidth)
+}
+
+// optional string welcome_text = 2;
+inline bool ServerConfig::_internal_has_welcome_text() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ServerConfig::has_welcome_text() const {
+  return _internal_has_welcome_text();
+}
+inline void ServerConfig::clear_welcome_text() {
+  welcome_text_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& ServerConfig::welcome_text() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.welcome_text)
+  return _internal_welcome_text();
+}
+inline void ServerConfig::set_welcome_text(const std::string& value) {
+  _internal_set_welcome_text(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.welcome_text)
+}
+inline std::string* ServerConfig::mutable_welcome_text() {
+  // @@protoc_insertion_point(field_mutable:MumbleProto.ServerConfig.welcome_text)
+  return _internal_mutable_welcome_text();
+}
+inline const std::string& ServerConfig::_internal_welcome_text() const {
+  return welcome_text_.GetNoArena();
+}
+inline void ServerConfig::_internal_set_welcome_text(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  welcome_text_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
+}
+inline void ServerConfig::set_welcome_text(std::string&& value) {
+  _has_bits_[0] |= 0x00000001u;
+  welcome_text_.SetNoArena(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:MumbleProto.ServerConfig.welcome_text)
+}
+inline void ServerConfig::set_welcome_text(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _has_bits_[0] |= 0x00000001u;
+  welcome_text_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:MumbleProto.ServerConfig.welcome_text)
+}
+inline void ServerConfig::set_welcome_text(const char* value, size_t size) {
+  _has_bits_[0] |= 0x00000001u;
+  welcome_text_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:MumbleProto.ServerConfig.welcome_text)
+}
+inline std::string* ServerConfig::_internal_mutable_welcome_text() {
+  _has_bits_[0] |= 0x00000001u;
+  return welcome_text_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+inline std::string* ServerConfig::release_welcome_text() {
+  // @@protoc_insertion_point(field_release:MumbleProto.ServerConfig.welcome_text)
+  if (!has_welcome_text()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  return welcome_text_.ReleaseNonDefaultNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+inline void ServerConfig::set_allocated_welcome_text(std::string* welcome_text) {
+  if (welcome_text != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  welcome_text_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), welcome_text);
+  // @@protoc_insertion_point(field_set_allocated:MumbleProto.ServerConfig.welcome_text)
+}
+
+// optional bool allow_html = 3;
+inline bool ServerConfig::_internal_has_allow_html() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ServerConfig::has_allow_html() const {
+  return _internal_has_allow_html();
+}
+inline void ServerConfig::clear_allow_html() {
+  allow_html_ = false;
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline bool ServerConfig::_internal_allow_html() const {
+  return allow_html_;
+}
+inline bool ServerConfig::allow_html() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.allow_html)
+  return _internal_allow_html();
+}
+inline void ServerConfig::_internal_set_allow_html(bool value) {
+  _has_bits_[0] |= 0x00000004u;
+  allow_html_ = value;
+}
+inline void ServerConfig::set_allow_html(bool value) {
+  _internal_set_allow_html(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.allow_html)
+}
+
+// optional uint32 message_length = 4;
+inline bool ServerConfig::_internal_has_message_length() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ServerConfig::has_message_length() const {
+  return _internal_has_message_length();
+}
+inline void ServerConfig::clear_message_length() {
+  message_length_ = 0u;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_message_length() const {
+  return message_length_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::message_length() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.message_length)
+  return _internal_message_length();
+}
+inline void ServerConfig::_internal_set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000008u;
+  message_length_ = value;
+}
+inline void ServerConfig::set_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_message_length(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.message_length)
+}
+
+// optional uint32 image_message_length = 5;
+inline bool ServerConfig::_internal_has_image_message_length() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ServerConfig::has_image_message_length() const {
+  return _internal_has_image_message_length();
+}
+inline void ServerConfig::clear_image_message_length() {
+  image_message_length_ = 0u;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_image_message_length() const {
+  return image_message_length_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::image_message_length() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.image_message_length)
+  return _internal_image_message_length();
+}
+inline void ServerConfig::_internal_set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000010u;
+  image_message_length_ = value;
+}
+inline void ServerConfig::set_image_message_length(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_image_message_length(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.image_message_length)
+}
+
+// optional uint32 max_users = 6;
+inline bool ServerConfig::_internal_has_max_users() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool ServerConfig::has_max_users() const {
+  return _internal_has_max_users();
+}
+inline void ServerConfig::clear_max_users() {
+  max_users_ = 0u;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::_internal_max_users() const {
+  return max_users_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 ServerConfig::max_users() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.ServerConfig.max_users)
+  return _internal_max_users();
+}
+inline void ServerConfig::_internal_set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000020u;
+  max_users_ = value;
+}
+inline void ServerConfig::set_max_users(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_max_users(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.ServerConfig.max_users)
+}
+
+// -------------------------------------------------------------------
+
+// SuggestConfig
+
+// optional uint32 version = 1;
+inline bool SuggestConfig::_internal_has_version() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool SuggestConfig::has_version() const {
+  return _internal_has_version();
+}
+inline void SuggestConfig::clear_version() {
+  version_ = 0u;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 SuggestConfig::_internal_version() const {
+  return version_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint32 SuggestConfig::version() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.SuggestConfig.version)
+  return _internal_version();
+}
+inline void SuggestConfig::_internal_set_version(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _has_bits_[0] |= 0x00000001u;
+  version_ = value;
+}
+inline void SuggestConfig::set_version(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_version(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.SuggestConfig.version)
+}
+
+// optional bool positional = 2;
+inline bool SuggestConfig::_internal_has_positional() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool SuggestConfig::has_positional() const {
+  return _internal_has_positional();
+}
+inline void SuggestConfig::clear_positional() {
+  positional_ = false;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline bool SuggestConfig::_internal_positional() const {
+  return positional_;
+}
+inline bool SuggestConfig::positional() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.SuggestConfig.positional)
+  return _internal_positional();
+}
+inline void SuggestConfig::_internal_set_positional(bool value) {
+  _has_bits_[0] |= 0x00000002u;
+  positional_ = value;
+}
+inline void SuggestConfig::set_positional(bool value) {
+  _internal_set_positional(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.SuggestConfig.positional)
+}
+
+// optional bool push_to_talk = 3;
+inline bool SuggestConfig::_internal_has_push_to_talk() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool SuggestConfig::has_push_to_talk() const {
+  return _internal_has_push_to_talk();
+}
+inline void SuggestConfig::clear_push_to_talk() {
+  push_to_talk_ = false;
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline bool SuggestConfig::_internal_push_to_talk() const {
+  return push_to_talk_;
+}
+inline bool SuggestConfig::push_to_talk() const {
+  // @@protoc_insertion_point(field_get:MumbleProto.SuggestConfig.push_to_talk)
+  return _internal_push_to_talk();
+}
+inline void SuggestConfig::_internal_set_push_to_talk(bool value) {
+  _has_bits_[0] |= 0x00000004u;
+  push_to_talk_ = value;
+}
+inline void SuggestConfig::set_push_to_talk(bool value) {
+  _internal_set_push_to_talk(value);
+  // @@protoc_insertion_point(field_set:MumbleProto.SuggestConfig.push_to_talk)
 }
 
 #ifdef __GNUC__
