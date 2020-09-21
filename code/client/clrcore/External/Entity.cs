@@ -1316,5 +1316,244 @@ namespace CitizenFX.Core
 		{
 			return !(left == right);
 		}
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no <see cref="Vehicle"/> is found nearby returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle()
+		{
+			return World.GetClosest(Position, World.GetAllVehicles());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="model">The model to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no filtered <see cref="Vehicle"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle(string model)
+		{
+			return GetClosestVehicle(entity, new Model(model));
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="model">The model to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no filtered <see cref="Vehicle"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle(Model model)
+		{
+			if (model.IsValid && model.IsVehicle)
+				return World.GetClosest(Position, World.GetAllVehicles().Where(x => x.Model.Hash == model.Hash).ToArray());
+			else
+				return null;
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="hash">The hash to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no filtered <see cref="Vehicle"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle(VehicleHash hash)
+		{
+			return World.GetClosest(Position, World.GetAllVehicles().Where(x => x.Model.Hash == (int)hash).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="hashes">A list of <see cref="VehicleHash"/> to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no filtered <see cref="Vehicle"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle(List<VehicleHash> hashes)
+		{
+			return World.GetClosest(Position, World.GetAllVehicles().Where(x => hashes.Contains((VehicleHash)x.Model.Hash)).ToArray());
+		}
+
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="models">A list of <see cref="Model"/>s to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no filtered <see cref="Vehicle"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle(List<string> models)
+		{
+			List<int> hashes = models.ConvertAll(x => GetHashKey(x));
+			return World.GetClosest(Position, World.GetAllVehicles().Where(x => hashes.Contains(x.Model.Hash)).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Vehicle"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="models">A list of <see cref="Model"/>s to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Vehicle"/> to the <see cref="Entity"/>, if no filtered <see cref="Vehicle"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Vehicle GetClosestVehicle(List<Model> models)
+		{
+			return World.GetClosest(Position, World.GetAllVehicles().Where(x => models.Contains(x.Model)).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no <see cref="Ped"/> is found nearby returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed()
+		{
+			return World.GetClosest(Position, World.GetAllPeds());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="model">The model to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no filtered <see cref="Ped"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed(string model)
+		{
+			return GetClosestPed(entity, new Model(model));
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="model">The model to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no filtered <see cref="Ped"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed(Model model)
+		{
+			if (model.IsValid && model.IsPed)
+				return World.GetClosest(Position, World.GetAllPeds().Where(x => x.Model.Hash == model.Hash).ToArray());
+			else
+				return null;
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="hash">The hash to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no filtered <see cref="Ped"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed(PedHash hash)
+		{
+			return World.GetClosest(Position, World.GetAllPeds().Where(x => (PedHash)x.Model.Hash == hash).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="hashes">A list of <see cref="PedHash"/> to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no filtered <see cref="Ped"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed(List<PedHash> hashes)
+		{
+			return World.GetClosest(Position, World.GetAllPeds().Where(x => hashes.Contains((PedHash)x.Model.Hash)).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="models">A list of <see cref="Model"/>s to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no filtered <see cref="Ped"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed(List<string> models)
+		{
+			List<int> hashes = models.ConvertAll(x => GetHashKey(x));
+			return World.GetClosest(Position, World.GetAllPeds().Where(x => hashes.Contains(x.Model.Hash)).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Ped"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="models">A list of <see cref="Model"/>s to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Ped"/> to the <see cref="Entity"/>, if no filtered <see cref="Ped"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Ped GetClosestPed(List<Model> models)
+		{
+			return World.GetClosest(Position, World.GetAllPeds().Where(x => models.Contains(x.Model)).ToArray());
+		}
+
+
+		/// <summary>
+		/// Checks all the <see cref="Prop"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <returns>
+		/// Returns the closest <see cref="Prop"/> to the <see cref="Entity"/>, if no <see cref="Prop"/> is found nearby returns <see cref="null"/>
+		/// </returns>
+		public Prop GetClosestProp()
+		{
+			return World.GetClosest(Position, World.GetAllProps());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Prop"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="model">The model to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Prop"/> to the <see cref="Entity"/>, if no filtered <see cref="Prop"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Prop GetClosestProp(string model)
+		{
+			return GetClosestProp(entity, new Model(model));
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Prop"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="model">The model to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Prop"/> to the <see cref="Entity"/>, if no filtered <see cref="Prop"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Prop GetClosestProp(Model model)
+		{
+			if (model.IsValid && model.IsProp)
+				return World.GetClosest(Position, World.GetAllProps().Where(x => x.Model.Hash == model.Hash).ToArray());
+			else
+				return null;
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Prop"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="models">A list of <see cref="Model"/>s to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Prop"/> to the <see cref="Entity"/>, if no filtered <see cref="Prop"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Prop GetClosestProp(List<string> models)
+		{
+			List<int> hashes = models.ConvertAll(x => GetHashKey(x));
+			return World.GetClosest(Position, World.GetAllProps().Where(x => hashes.Contains(x.Model.Hash)).ToArray());
+		}
+
+		/// <summary>
+		/// Checks all the <see cref="Prop"/>s around the <see cref="Entity"/> and returns the closest
+		/// </summary>
+		/// <param name="models">A list of <see cref="Model"/>s to filter the research with</param>
+		/// <returns>
+		/// Returns the closest <see cref="Prop"/> to the <see cref="Entity"/>, if no filtered <see cref="Prop"/>s are found near the entity then returns <see cref="null"/>
+		/// </returns>
+		public Prop GetClosestProp(List<Model> models)
+		{
+			return World.GetClosest(Position, World.GetAllProps().Where(x => models.Contains(x.Model)).ToArray());
+		}
 	}
 }
