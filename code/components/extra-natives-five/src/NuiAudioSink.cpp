@@ -956,8 +956,9 @@ void MumbleAudioSink::Process()
 #endif
 
 	auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, m_serverId);
+	bool isNoPlayer = (playerId > 256 || playerId == -1);
 
-	if (playerId > 256 || playerId == -1)
+	if (isNoPlayer && m_overrideVolume <= 0.0f)
 	{
 		m_entity = {};
 	}
@@ -971,7 +972,7 @@ void MumbleAudioSink::Process()
 
 		m_entity->SetPosition((float*)&m_position, m_distance, m_overrideVolume);
 		
-		auto ped = FxNativeInvoke::Invoke<int>(getPlayerPed, playerId);
+		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
 
 		if (ped > 0)
 		{
