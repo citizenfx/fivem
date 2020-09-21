@@ -1329,7 +1329,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				continue;
 			}
 
-			
+			if (client->GetSlotId() == -1)
+			{
+				continue;
+			}
+
 			{
 				std::lock_guard<std::shared_mutex> _lock(entity->guidMutex);
 				entity->relevantTo.set(client->GetSlotId());
@@ -2455,11 +2459,11 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 			return;
 		}
 
-		RemoveClone(client, objectId);
+		RemoveClone(client, objectId, uniqifier);
 	}
 }
 
-void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId)
+void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier)
 {
 	GS_LOG("%s: deleting object %d %d\n", __func__, (client) ? client->GetNetId() : 0, objectId);
 
@@ -2529,6 +2533,9 @@ void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t ob
 		if (entityRef && !entityRef->deleting)
 		{
 			entityRef->deleting = true;
+			
+			// in case uniqifier wasn't passed, set it
+			uniqifier = entityRef->uniqifier;
 
 			OnCloneRemove(entityRef, continueCloneRemoval);
 		}
@@ -2538,11 +2545,15 @@ void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t ob
 	if (client)
 	{
 		auto [_, data] = GetClientData(this, client);
-		auto esIt = data->entityStates.find(data->lastAckIndex);
 
-		if (esIt != data->entityStates.end())
+		for (auto& es : data->entityStates)
 		{
-			esIt->second->erase(objectId);
+			auto esIt = es.second->find(objectId);
+
+			if (esIt != es.second->end() && esIt->second.uniqifier == uniqifier)
+			{
+				es.second->erase(objectId);
+			}
 		}
 	}
 }

@@ -769,7 +769,7 @@ private:
 
 	void OnCloneRemove(const fx::sync::SyncEntityPtr& entity, const std::function<void()>& doRemove);
 
-	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId);
+	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
 
 	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 

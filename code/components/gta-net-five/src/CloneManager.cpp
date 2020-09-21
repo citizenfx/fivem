@@ -1289,6 +1289,9 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
+
+			// if the game wants to delete it right away, let it.
+			m_trackedObjects[obj->objectId].lastSyncTime = 1ms;
 		}
 		else
 		{
