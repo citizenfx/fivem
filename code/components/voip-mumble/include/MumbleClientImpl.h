@@ -100,6 +100,10 @@ public:
 
 	virtual void SetChannel(const std::string& channelName) override;
 
+	virtual void AddListenChannel(const std::string& channelName) override;
+
+	virtual void RemoveListenChannel(const std::string& channelName) override;
+
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) override;
 
 	virtual void SetClientVolumeOverride(const std::wstring& clientName, float volume) override;
@@ -196,6 +200,10 @@ private:
 	std::string m_curManualChannel;
 
 	std::string m_lastManualChannel;
+
+	std::set<std::string> m_curChannelListens;
+
+	std::set<std::string> m_lastChannelListens;
 
 	std::map<int, VoiceTargetConfig> m_pendingVoiceTargetUpdates;
 

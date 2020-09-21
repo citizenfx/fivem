@@ -170,6 +170,8 @@ void MumbleClient::Initialize()
 					std::wstring wname = ToWide(m_curManualChannel);
 					m_lastManualChannel = m_curManualChannel;
 
+					bool existed = false;
+
 					for (const auto& channel : m_state.GetChannels())
 					{
 						if (channel.second.GetName() == wname)
@@ -180,11 +182,14 @@ void MumbleClient::Initialize()
 							state.set_channel_id(channel.first);
 
 							Send(MumbleMessageType::UserState, state);
-							return;
+							existed = true;
+
+							break;
 						}
 					}
 
 					// it does not, create the channel (server will verify name matches)
+					if (!existed)
 					{
 						MumbleProto::ChannelState chan;
 						chan.set_parent(0);
@@ -192,6 +197,75 @@ void MumbleClient::Initialize()
 						chan.set_temporary(true);
 
 						Send(MumbleMessageType::ChannelState, chan);
+					}
+				}
+
+				{
+					std::vector<std::string> removeChannelListens;
+					std::vector<std::string> addChannelListens;
+
+					std::vector<int> removeChannelListenIds;
+					std::vector<int> addChannelListenIds;
+
+					std::set_difference(m_lastChannelListens.begin(), m_lastChannelListens.end(), m_curChannelListens.begin(), m_curChannelListens.end(), std::back_inserter(removeChannelListens));
+					std::set_difference(m_curChannelListens.begin(), m_curChannelListens.end(), m_lastChannelListens.begin(), m_lastChannelListens.end(), std::back_inserter(addChannelListens));
+
+					auto findCh = [&](const std::string& ch)
+					{
+						std::wstring wname = ToWide(ch);
+
+						for (const auto& channel : m_state.GetChannels())
+						{
+							if (channel.second.GetName() == wname)
+							{
+								return channel.first;
+							}
+						}
+
+						return uint32_t(-1);
+					};
+
+					for (const auto& remove : removeChannelListens)
+					{
+						auto ch = findCh(remove);
+
+						if (ch != -1)
+						{
+							removeChannelListenIds.push_back(ch);
+						}
+
+						// we can remove this here, as it doesn't exist anymore: we don't listen to it either then
+						m_lastChannelListens.erase(remove);
+					}
+
+					for (const auto& add : addChannelListens)
+					{
+						auto ch = findCh(add);
+
+						if (ch != -1)
+						{
+							addChannelListenIds.push_back(ch);
+							m_lastChannelListens.insert(add);
+						}
+					}
+
+					if (!addChannelListenIds.empty() || !removeChannelListenIds.empty())
+					{
+						// send updated listens
+						MumbleProto::UserState state;
+						state.set_session(m_state.GetSession());
+
+						for (auto id : addChannelListenIds)
+						{
+							state.add_listening_channel_add(id);
+						}
+
+						for (auto id : removeChannelListenIds)
+						{
+							state.add_listening_channel_remove(id);
+						}
+
+						Send(MumbleMessageType::UserState, state);
 					}
 				}
 
@@ -411,6 +485,18 @@ void MumbleClient::SetChannel(const std::string& channelName)
 	}
 
 	m_curManualChannel = channelName;
+}
+
+void MumbleClient::AddListenChannel(const std::string& channelName)
+{
+	std::lock_guard<std::recursive_mutex> l(m_clientMutex);
+	m_curChannelListens.insert(channelName);
+}
+
+void MumbleClient::RemoveListenChannel(const std::string& channelName)
+{
+	std::lock_guard<std::recursive_mutex> l(m_clientMutex);
+	m_curChannelListens.erase(channelName);
 }
 
 void MumbleClient::SetAudioDistance(float distance)

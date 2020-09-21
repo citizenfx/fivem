@@ -757,6 +757,26 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_ADD_VOICE_CHANNEL_LISTEN", [](fx::ScriptContext& context)
+		{
+			auto channel = context.GetArgument<int>(0);
+
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->AddListenChannel(fmt::sprintf("Game Channel %d", channel));
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_REMOVE_VOICE_CHANNEL_LISTEN", [](fx::ScriptContext& context)
+		{
+			auto channel = context.GetArgument<int>(0);
+
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->RemoveListenChannel(fmt::sprintf("Game Channel %d", channel));
+			}
+		});
+
 		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_ADD_VOICE_TARGET_CHANNEL", [](fx::ScriptContext& context)
 		{
 			auto id = context.GetArgument<int>(0);
