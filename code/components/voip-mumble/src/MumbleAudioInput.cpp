@@ -314,10 +314,12 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 		buffer << m_sequence;
 
-		buffer << (packet.size() | ((m_opusPackets.empty()) ? (1 << 13) : 0));
+		bool bTerminate = false;
+
+		buffer << (packet.size() | (bTerminate ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
-		m_sequence++;
+		m_sequence += 2;
 
 		//buffer << uint64_t(1 << 13);
 
