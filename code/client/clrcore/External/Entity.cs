@@ -1338,7 +1338,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public Vehicle GetClosestVehicle(string model)
 		{
-			return GetClosestVehicle(entity, new Model(model));
+			return GetClosestVehicle(new Model(model));
 		}
 
 		/// <summary>
@@ -1390,7 +1390,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public Vehicle GetClosestVehicle(List<string> models)
 		{
-			List<int> hashes = models.ConvertAll(x => GetHashKey(x));
+			List<int> hashes = models.ConvertAll(x => API.GetHashKey(x));
 			return World.GetClosest(Position, World.GetAllVehicles().Where(x => hashes.Contains(x.Model.Hash)).ToArray());
 		}
 
@@ -1426,7 +1426,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public Ped GetClosestPed(string model)
 		{
-			return GetClosestPed(entity, new Model(model));
+			return GetClosestPed(new Model(model));
 		}
 
 		/// <summary>
@@ -1477,7 +1477,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public Ped GetClosestPed(List<string> models)
 		{
-			List<int> hashes = models.ConvertAll(x => GetHashKey(x));
+			List<int> hashes = models.ConvertAll(x => API.GetHashKey(x));
 			return World.GetClosest(Position, World.GetAllPeds().Where(x => hashes.Contains(x.Model.Hash)).ToArray());
 		}
 
@@ -1514,7 +1514,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public Prop GetClosestProp(string model)
 		{
-			return GetClosestProp(entity, new Model(model));
+			return GetClosestProp(new Model(model));
 		}
 
 		/// <summary>
@@ -1541,7 +1541,7 @@ namespace CitizenFX.Core
 		/// </returns>
 		public Prop GetClosestProp(List<string> models)
 		{
-			List<int> hashes = models.ConvertAll(x => GetHashKey(x));
+			List<int> hashes = models.ConvertAll(x => API.GetHashKey(x));
 			return World.GetClosest(Position, World.GetAllProps().Where(x => hashes.Contains(x.Model.Hash)).ToArray());
 		}
 
