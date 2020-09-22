@@ -376,7 +376,7 @@ void Binding::Update(rage::ioMapper* mapper)
 	bool down = m_value.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE);
 
 	// text input should count as up
-	if (_isTextInputBoxActive())
+	if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && _isTextInputBoxActive())
 	{
 		down = false;
 	}
