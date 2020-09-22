@@ -565,7 +565,7 @@ const EXT_LOCALFUNCREF = 11;
 		__ext: EXT_ENTITY,
 
 		__pack: () => {
-			return toString(NetworkGetNetworkIdFromEntity(this.__data));
+			return String(NetworkGetNetworkIdFromEntity(this.__data));
 		},
 
 		__unpack: (data, t) => {
@@ -598,7 +598,7 @@ const EXT_LOCALFUNCREF = 11;
 		__ext: EXT_PLAYER,
 
 		__pack: () => {
-			return toString(this.__data);
+			return String(this.__data);
 		},
 
 		__unpack: (data, t) => {
