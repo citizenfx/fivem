@@ -83,7 +83,7 @@
 				transition: none;
 
 				.logo {
-					fill: gtv($theme, accentContrastColor);
+					fill: gtv($theme, accentContrastColor) !important;
 
 					transition: none;
 				}
