@@ -160,7 +160,7 @@
 				padding: calc(var(--qh) / 2);
 
 				font-size: calc(var(--fs-1) / 1.5);
-				font-weight: bold;
+				font-weight: 500;
 				line-height: 1;
 
 				overflow: hidden;
@@ -173,7 +173,7 @@
 				.boosts-counter {
 					padding-right: calc(var(--qh) / 2);
 
-					font-weight: 900;
+					font-weight: 500;
 				}
 
 				@include theme() using ($theme) {

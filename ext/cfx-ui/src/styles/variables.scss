@@ -127,8 +127,8 @@ $colorsRdr: (
 @mixin pageHeader() {
 	height: var(--header-height);
 
+	@include fontMontserrat;
 	font-size: var(--fs-4);
-	font-family: 'Montserrat';
 	font-weight: 300;
 	letter-spacing: 2px;
 	line-height: var(--header-height);
@@ -251,7 +251,7 @@ $themes: $themeLight $themeDark $themeRdr;
 /* via https://github.com/sass/sass/issues/2849#issuecomment-621991522 */
 
 @function css-function( $function, $values... ) {
-	@return 
+	@return
 		$function
 		+ unquote( '(' )
 		+ $values
@@ -269,4 +269,18 @@ $themes: $themeLight $themeDark $themeRdr;
 
 @function css-clamp( $values... ) {
 	@return css-function( clamp, $values );
+}
+
+@mixin fontMontserrat {
+	font-family: 'Montserrat', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-weight: 500;
+}
+
+@mixin fontRubik {
+	font-family: 'Rubik', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-weight: 300;
+}
+@mixin fontRubikImportant {
+	font-family: 'Rubik', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+	font-weight: 300;
 }

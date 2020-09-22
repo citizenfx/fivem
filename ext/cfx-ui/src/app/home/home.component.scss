@@ -118,7 +118,8 @@
 			height: 100%;
 
 			font-size: var(--fs-075);
-			font-family: 'Montserrat';
+
+			@include fontMontserrat;
 
 			@include theme() using ($theme) {
 				color: rgba(gtv($theme, fgColor), .5);
@@ -500,7 +501,7 @@
 
 					text-align: center;
 
-					font-family: 'Montserrat';
+					@include fontMontserrat;
 					text-transform: uppercase;
 					text-decoration: none;
 
@@ -533,7 +534,7 @@
 
 				padding: var(--q1);
 
-				font-family: 'Montserrat';
+				@include fontMontserrat;
 				text-transform: uppercase;
 				text-decoration: none;
 
@@ -623,8 +624,8 @@
 				margin-bottom: var(--qh);
 
 				font-size: var(--fs-2);
-				font-weight: bold;
-				font-family: 'Montserrat';
+				@include fontMontserrat;
+				font-weight: 500;
 				line-height: 1;
 				letter-spacing: 2px;
 				text-transform: uppercase;

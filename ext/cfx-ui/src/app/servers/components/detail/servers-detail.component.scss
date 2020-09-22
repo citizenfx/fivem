@@ -156,7 +156,7 @@
 						height: auto;
 						width: 100%;
 
-						font-family: 'Montserrat';
+						@include fontMontserrat;
 						font-size: var(--fs-4);
 						font-weight: bold;
 						line-height: 1.1;
@@ -310,9 +310,8 @@
 					.title {
 						margin-bottom: var(--qh);
 
+						@include fontMontserrat;
 						font-size: var(--fs-2);
-						font-weight: bold;
-						font-family: 'Montserrat';
 						line-height: 1;
 						letter-spacing: 2px;
 						text-transform: uppercase;

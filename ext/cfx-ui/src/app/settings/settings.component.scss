@@ -50,8 +50,8 @@
 			.value {
 				margin-top: var(--qh);
 
+				@include fontRubik;
 				font-size: var(--fs-1);
-				font-family: 'Rubik';
 				line-height: 1;
 
 				@include theme() using ($theme) {

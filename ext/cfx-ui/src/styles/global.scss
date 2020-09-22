@@ -2,6 +2,9 @@
 @import "controls";
 @import "site-header";
 
+@import "~typeface-montserrat/index.css";
+@import "~typeface-rubik/index.css";
+
 @import "~balloon-css/balloon.css";
 @import "~flag-icon-css/css/flag-icon.css";
 @import "~@fortawesome/fontawesome-free/css/fontawesome.css";
@@ -11,6 +14,32 @@
 @import '~@angular/material/theming';
 
 @include mat-core();
+
+@font-face {
+	font-family: 'Material Icons Outlined';
+	font-style: normal;
+	font-weight: 400;
+	src: url(../assets/fonts/material-icons-outlined.woff2) format('woff2');
+}
+
+@font-face
+{
+	font-family: 'Roboto';
+	src: url(../assets/fonts/roboto_light.woff);
+	font-weight: 100;
+}
+@font-face
+{
+	font-family: 'Roboto';
+	src: url(../assets/fonts/roboto_regular.woff);
+	font-weight: normal;
+}
+@font-face
+{
+	font-family: 'Roboto';
+	src: url(../assets/fonts/roboto_medium.woff);
+	font-weight: bold;
+}
 
 $md-cfx: (
     50 : #fee1ea,
@@ -71,7 +100,7 @@ body {
 
 	overflow: hidden;
 
-	font-family: 'Rubik';
+	@include fontRubik;
 
 	background-color: transparent;
 }
@@ -170,7 +199,7 @@ app-root {
 }
 
 button {
-	font-family: 'Rubik';
+	@include fontRubik;
 	font-size: var(--fs-1);
 }
 
@@ -282,7 +311,7 @@ button {
 }
 
 .mat-tab-label {
-	font-family: 'Rubik';
+	@include fontRubik;
 	font-size: var(--fs-1);
 	font-weight: normal;
 }
@@ -327,6 +356,18 @@ button {
 .material-icons-outlined {
 	font-size: var(--fs-1);
 	vertical-align: middle;
+	font-family: 'Material Icons Outlined';
+	font-weight: normal;
+	font-style: normal;
+	line-height: 1;
+	letter-spacing: normal;
+	text-transform: none;
+	display: inline-block;
+	white-space: nowrap;
+	word-wrap: normal;
+	direction: ltr;
+	-webkit-font-feature-settings: 'liga';
+	-webkit-font-smoothing: antialiased;
 
 	@include themeNoHost() using ($theme) {
 		&.accentColor1 {
@@ -339,7 +380,7 @@ h1, h2, h3, h4, h5, h6 {
 	display: flex;
 	align-items: center;
 
-	font-family: 'Montserrat';
+	@include fontMontserrat;
 	line-height: 1;
 }
 h1 { font-size: var(--fs-5); line-height: var(--fs-5); }

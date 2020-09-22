@@ -76,7 +76,7 @@
 
 					padding: var(--q1) var(--q1) var(--q1) 0;
 
-					font-family: 'Montserrat';
+					@include fontMontserrat;
 					letter-spacing: 1px;
 					text-transform: uppercase;
 
@@ -216,7 +216,7 @@
 
 				padding: var(--q1) 0 var(--q1) var(--q1);
 
-				font-family: 'Montserrat';
+				@include fontMontserrat;
 				letter-spacing: 1px;
 				text-transform: uppercase;
 
@@ -337,7 +337,7 @@
 
 				padding: var(--q1) 0 var(--q1) var(--q1);
 
-				font-family: 'Montserrat';
+				@include fontMontserrat;
 				letter-spacing: 1px;
 				text-transform: uppercase;
 

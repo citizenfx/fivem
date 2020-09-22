@@ -13,8 +13,8 @@ ul.tabs {
 
 		padding: var(--qh) var(--q1);
 
+		@include fontMontserrat;
 		font-size: var(--fs-3);
-		font-family: 'Montserrat';
 		letter-spacing: 1px;
 		text-transform: uppercase;
 

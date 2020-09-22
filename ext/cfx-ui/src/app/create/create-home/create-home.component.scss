@@ -84,7 +84,7 @@
 						color: rgba(gtv($theme, fgColor), .5);
 					}
 
-					font-family: 'Rubik' !important;
+					@include fontRubikImportant;
 					font-size: var(--fs-1);
 					font-weight: 400;
 					letter-spacing: 0px;

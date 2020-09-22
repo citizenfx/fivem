@@ -10,8 +10,8 @@ input[type="password"] {
 
 	border: none;
 
+	@include fontRubik;
 	font-size: var(--fs-2);
-	font-family: 'Rubik';
 	line-height: 1;
 
 	padding: var(--qh);
@@ -63,7 +63,7 @@ input[type="password"] {
 
 	@include backdropPane;
 
-	font-family: 'Rubik';
+	@include fontRubik;
 	font-size: var(--fs-1);
 	font-weight: 300;
 	line-height: 1;
@@ -103,8 +103,8 @@ input[type="password"] {
 	display: flex;
 	align-items: center;
 
+	@include fontRubik;
 	font-size: var(--fs-1);
-	font-family: 'Rubik';
 	line-height: 1;
 	text-transform: lowercase;
 
@@ -184,8 +184,8 @@ input[type="password"] {
 
 		padding: var(--q1) var(--q1) var(--q1) 0;
 
+		@include fontMontserrat;
 		font-size: var(--fs-1);
-		font-family: 'Montserrat';
 		line-height: 1;
 		letter-spacing: 1px;
 		white-space: nowrap;
