@@ -445,6 +445,13 @@
 					// Make it point to the correct direction
 					transform: rotateY(180deg);
 
+					:host-context(.game-rdr3) & {
+						transform: none;
+						width: var(--q2);
+						height: var(--q2);
+						margin-right: var(--fs-1);
+					}
+
 					@include theme() using ($theme) {
 						fill: gtv($theme, accentColor1);
 					}

@@ -24,6 +24,8 @@ export class AppComponent implements OnInit {
 
 	showSiteNavbar = !!environment.web;
 
+	gameName = 'gta5';
+
 	classes: { [key: string]: boolean } = {};
 
 	get minMode() {
@@ -83,6 +85,8 @@ export class AppComponent implements OnInit {
 				...this.classes
 			};
 		});
+
+		this.gameName = gameService.gameName;
 
 		router.events.subscribe(event => {
 			const url = (<NavigationEnd>event).url;
