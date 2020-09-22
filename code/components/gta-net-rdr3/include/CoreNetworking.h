@@ -45,6 +45,7 @@ struct netPeerAddress
 	uint8_t peerKey[32];
 	uint8_t hasPeerKey;
 	netSocketAddress relayAddr;
+	netSocketAddress unkAddr; // cognate to address added in GTA5 2060
 	netSocketAddress publicAddr;
 	netSocketAddress localAddr;
 	netPeerUnkStruct unk;
