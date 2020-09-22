@@ -259,7 +259,7 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 
 static hook::cdecl_stub<void(atPoolBase*)> poolRelease([]()
 {
-	return hook::get_call(hook::get_pattern("E8 ? ? ? ? BA 88 73 00 00 48 8B CB E8", 13));
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? BA 88 01 00 00 48 8B CB E8", 13));
 });
 
 namespace rage
@@ -342,7 +342,7 @@ static HookFunction hookFunction([]()
 	};
 
 	// find initial pools
-	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? 00 E8 ? ? ? ? 8B D8 E8"), 51, 1);
+	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 8B D8 E8"), 51, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
 

@@ -590,7 +590,7 @@ static HookFunction hookFunction([] ()
 	hook::jump(hook::get_pattern("44 8B 81 D8 06 00 00 85 D2 74", -0xE), ReturnScriptType);
 
 	// native hash obfuscation root for 1311
-	rage::nHashObf = hook::get_address<uint64_t*>(hook::get_pattern("C6 05 E4 ? ? ? ? 05 C3 9E 26 00", 20));
+	rage::nHashObf = hook::get_address<uint64_t*>(hook::get_pattern("41 B8 ? ? ? ? C6 05 ? ? ? ? 00 05 C3 9E", 26));
 
 	// remove our scripts pre-shutdown (since this is INIT_SESSION-time now)
 	{

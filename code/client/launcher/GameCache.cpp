@@ -215,10 +215,10 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "update/x64/dlcpacks/mpchristmas2018/dlc.rpf", "c4cda116420f14a28e5a999740cc53cf53a950ec", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3247781888 },
 	{ "update/x64/dlcpacks/patchday20ng/dlc.rpf", "fbba396a0ede622e08f76c5ced8ac1d6839c0227", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 457129984 },
 #elif defined(IS_RDR3)
-	{ "RDR2.exe", "0fe99f5bb369c2f726c03a1a85ea80777de951cc", "ipfs://bafybeicyxvu3zrlcvi26zilk57awu5bhjlo3jfwpfkwa7xnmw24665ne5u", 91302016 },
-	{ "appdata0_update.rpf", "c0cee39ce3b9e31f531cb3a629c16854580f9de2", "ipfs://bafybeieolawmxgw23dcljwpvuczcpppcbonvkp23y227m5dd6z34dawzwu", 3003087 },
-	{ "update.rpf", "631c46068ea94acff942a40d3d2480a90c239bba", "ipfs://bafybeibyfhbvrrsmvrh7xvqgc7ncgsqvwkteuhcmn6ammoiuqxtznvzi6q", 3515071040 },
-	{ "shaders_x64.rpf", "51ec2a527e5c86d44323890d154fdff5274d66dd", "ipfs://bafybeiawjcbj4s2mmmtmvxu2usbhh3qa5dmnqd2pywdpfg44edqk6erky4", 233487310 },
+	{ "RDR2.exe", "ac3c2abd80bfa949279d8e1d32105a3d9345c6c8", "ipfs://bafybeihtqz54b4or4xxqyvrih5wi4il7ni72e7qxg6mtt2c47s6bbkgy4q", 91439232 },
+	{ "appdata0_update.rpf", "1715741785ce3c28adf9a78633e57f478229bb84", "ipfs://bafybeiapjt7ifvkqrtscmbgghgq2jz7ptpdxvvyqwcrxzqqoqolh45ybwq", 3003087 },
+	{ "update.rpf", "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "ipfs://bafybeidgpk6as7ebr4sakax2cy5mulmjr6gbb32mj74i3apbfbjbeoi2ki", 3515071792 },
+	{ "shaders_x64.rpf", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "ipfs://bafybeia5ol2sjowvyfzyncn4wiyp5wtr6tdb6hlq3imbh4ed5v5hgll6jm", 233487310 },
 
 	{ "x64/dlcpacks/mp007/dlc.rpf", "f9d085bc889fc89d205c43a63d784d131be3ae8f", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1425958473 },
 #endif

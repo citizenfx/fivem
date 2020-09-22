@@ -514,17 +514,17 @@ static void* rlPresence__m_GamerPresences;
 
 static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
 {
-	return hook::get_call(hook::get_pattern("48 89 5D 38 48 89 5D 40 48 89 5D 48 E8", 12));
+	return hook::get_call(hook::get_pattern("48 69 CA ? ? ? ? FF C2 89", -12));
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshSigninState([]()
 {
-	return hook::get_pattern("48 8D 54 24 20 48 69 ? 30 01 00 00 48 8D 05", -0x35);
+	return hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", -0x35);
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
 {
-	return hook::get_pattern("45 33 FF 8B DE EB 0F 48 8D", -0x7D);
+	return hook::get_pattern("45 33 ? 8B DE EB 0F 48 8D", -0x7D);
 });
 
 // unused if we use sc sessions
@@ -668,13 +668,13 @@ static HookFunction hookFunction([]()
 	//hook::jump(0x1406B50E8, LogStubLog1);
 
 	{
-		auto getLocalPeerAddress = hook::get_pattern<char>("48 8B D0 80 78 18 02 75 1D", -0x32);
+		auto getLocalPeerAddress = hook::get_pattern<char>("48 8B D0 80 78 ? 02 75", -0x32);
 		hook::jump(getLocalPeerAddress, GetLocalPeerAddress);
 		hook::jump(hook::get_call(getLocalPeerAddress + 0x28), GetLocalPeerId);
 		//hook::jump(hook::get_call(getLocalPeerAddress + 0x2D), GetMyRelayAddress);
 		//hook::jump(hook::get_call(getLocalPeerAddress + 0x62), GetPublicIpAddress);
-		hook::jump(hook::get_call(getLocalPeerAddress + 0xE1), GetGamerHandle);
-		hook::jump(hook::get_call(getLocalPeerAddress + 0x102), InitP2PCryptKey);
+		hook::jump(hook::get_call(getLocalPeerAddress + 0xF5), GetGamerHandle);
+		hook::jump(hook::get_call(getLocalPeerAddress + 0x116), InitP2PCryptKey);
 		//hook::call(0x14266F66C, InitP2PCryptKey);
 		//hook::call(0x14267B5A0, InitP2PCryptKey);
 	}
@@ -694,7 +694,7 @@ static HookFunction hookFunction([]()
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
-	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? 30 01 00 00 48 8D 05", 0x44 - 0x35));
+	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
 
 	static int tryHostStage = 0;
 
@@ -886,7 +886,7 @@ static HookFunction hookFunction([]()
 	hook::jump(hook::get_pattern("74 03 B0 01 C3 48 8B 0D", -7), Return<int, 0>);
 
 	// ignore mandatory tunable from (0xE3AFC5BD/0x74B331C6) to make transition 0xB2AEE05F not fail
-	hook::nop(hook::get_pattern("48 83 EC 20 80 3D 12 ? ? ? ? B3 01", 13), 2);
+	hook::nop(hook::get_pattern("48 83 EC 20 80 3D ? ? ? ? 00 B3 01 74", 13), 2);
 
 	// switch around SP and MP catalog files
 	{
