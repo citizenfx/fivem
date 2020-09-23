@@ -7,23 +7,12 @@
 #include <ICoreGameInit.h>
 #include <gameSkeleton.h>
 
-#include <CrossBuildRuntime.h>
-
 static uint32_t* msPerMinute;
 static uint32_t msPerMinuteDefault = 2000;
 
 static HookFunction initFunction([]()
 {
-	if (Is2060())
-	{
-		// #TODO2060
-		return;
-	}
-
-	{
-		auto location = hook::get_pattern("8B 0D ? ? ? ? B8 D3 4D 62 10 69 C9 A0 05", 0);
-		msPerMinute = hook::get_address<uint32_t*>((char*)location + 2);
-	}
+	msPerMinute = hook::get_address<uint32_t*>(hook::get_pattern("66 0F 6E 05 ? ? ? ? 0F 57 F6", 4));
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
 	{
