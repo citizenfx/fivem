@@ -441,7 +441,9 @@ namespace sync
 
 static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const fx::ClientSharedPtr& client, bool finalFlush = false)
 {
-	if (buffer.GetDataLength() > 0)
+	// condition is commented out to indicate this *was* there before without having to dig through commit history
+	// not sending any blank frames to clients leads to them not ACKing any frames, which will lead to an infinite buildup of frame states on server
+	//if (buffer.GetDataLength() > 0)
 	{
 		// end
 		buffer.Write(3, 7);
@@ -536,8 +538,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	ticks++;
 
 	int tickMul = 1;
+	auto gs = m_instance->GetComponent<fx::GameServer>();
 
-	if (!m_instance->GetComponent<fx::GameServer>()->UseAccurateSends())
+	if (!gs->UseAccurateSends())
 	{
 		tickMul = 2;
 	}
@@ -546,6 +549,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	{
 		return;
 	}
+
+	// approximate amount of ticks per second, 120 is svSync from GameServer.cpp
+	int effectiveTicksPerSecond = (120 / (3 * tickMul));
 
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
@@ -883,7 +889,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		clientRefs.push_back(clientRef);
 	});
 
-	tbb::parallel_for_each(clientRefs.begin(), clientRefs.end(), [this, curTime, &sec, &evMan](const fx::ClientSharedPtr& clientRef)
+	tbb::parallel_for_each(clientRefs.begin(), clientRefs.end(), [this, curTime, effectiveTicksPerSecond, &sec, &evMan, &gs](const fx::ClientSharedPtr& clientRef)
 	{
 		// get our own pointer ownership
 		auto client = clientRef;
@@ -1013,6 +1019,24 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 		{
 			auto [lock, data] = GetClientData(this, client);
+
+			{
+				auto deltaAcks = m_frameIndex - data->lastAckIndex;
+
+				// is the user 60 seconds behind?
+				if (data->lastAckIndex > 0 && deltaAcks > (effectiveTicksPerSecond * 60))
+				{
+					// so we don't run more
+					data->lastAckIndex = 0;
+
+					gscomms_execute_callback_on_main_thread([client, gs, deltaAcks]()
+					{
+						gs->DropClient(client, "Didn't acknowledge %d sync packets.", deltaAcks);
+					});
+
+					return;
+				}
+			}
 
 			for (auto lastIdx = data->lastAckIndex; lastIdx < m_frameIndex; lastIdx++)
 			{
