@@ -828,7 +828,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 	{
 		// same as above, we need a record
 		skyr::url_record record;
-		record.scheme = "http";
+		record.scheme = "https"; // Enforcing HTTPS will prevent packet sniffing on the client side (Also auto generating cert the first time server starts will help too)
 
 		skyr::url newUri{ std::move(record) };
 		newUri.set_host(peerAddress->ToString());
