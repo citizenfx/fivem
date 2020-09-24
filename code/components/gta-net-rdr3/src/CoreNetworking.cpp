@@ -512,6 +512,10 @@ static T Return()
 
 static void* rlPresence__m_GamerPresences;
 
+static void* g_networkMgrPtr;
+
+static uint32_t networkStateOffset;
+
 static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
 {
 	return hook::get_call(hook::get_pattern("48 69 CA ? ? ? ? FF C2 89", -12));
@@ -691,6 +695,10 @@ static HookFunction hookFunction([]()
 
 	seamlessOff = hook::get_address<uint8_t*>(hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", 4));
 
+	g_networkMgrPtr = hook::get_address<uint8_t*>(hook::get_pattern("48 8B 10 48 85 D2 74 ? 83 BA ? ? ? ? 04", -14));
+
+	networkStateOffset = *hook::get_pattern<uint32_t>("83 BA ? ? ? ? 04 75 ? 39 8A ? ? ? ? 74", 2);
+
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
@@ -782,8 +790,22 @@ static HookFunction hookFunction([]()
 			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
 			joinOrHost(0, nullptr, sessionIdPtr);
 
-			Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
 			tryHostStage = 6;
+
+			break;
+
+		case 6:
+			if (*(BYTE*)((uint64_t)g_networkMgrPtr + 24))
+			{
+				uint64_t networkMgr = *(uint64_t*)((uint64_t)g_networkMgrPtr);
+				auto networkState = *(BYTE*)(*(uint64_t*)networkMgr + networkStateOffset);
+
+				if (networkState == 4)
+				{
+					tryHostStage = 7;
+					Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
+				}
+			}
 
 			break;
 		}
