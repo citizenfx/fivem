@@ -28,6 +28,8 @@
 #include <NetworkPlayerMgr.h>
 #include <netObject.h>
 
+#include <CrossBuildRuntime.h>
+
 class FxNativeInvoke
 {
 private:
@@ -540,7 +542,7 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 	// #TODO1365
 	// #TODO1493
 	// #TODO1604
-	auto playerInfo = playerData - 32 - 48 - 16;
+	auto playerInfo = playerData - 32 - 48 - 16 - (Is2060() ? 8 : 0);
 
 	// get the ped
 	auto ped = *(char**)(playerInfo + 456);
