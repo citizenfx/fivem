@@ -357,6 +357,8 @@ static InitFunction initFunction([]()
 			cb(json(nullptr));
 		});
 
+		instance->SetComponent(new fx::TokenRateLimiter(1.0f, 3.0f));
+		
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
@@ -456,6 +458,14 @@ static InitFunction initFunction([]()
 					return;
 				}
 
+				auto rl = instance->GetComponent<fx::TokenRateLimiter>();
+				
+				if (!rl->Consume(ticketIt))
+				{
+					sendError("You did try to connect to this server more than allowed. Wait a while and try again");
+					return;
+				}
+				
 				try
 				{
 					if (!VerifyTicket(guid, ticketIt->second))
