@@ -2168,9 +2168,8 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 		eastl::fixed_set<std::tuple<float, fx::ClientSharedPtr>, MAX_CLIENTS> candidates;
 
 		uint32_t eh = entity->handle;
-		float cullingRadius = entity->GetDistanceCullingRadius();
 
-		clientRegistry->ForAllClients([this, &client, &candidates, eh, pos, cullingRadius](const fx::ClientSharedPtr& tgtClient)
+		clientRegistry->ForAllClients([this, &client, &candidates, &entity, eh, pos](const fx::ClientSharedPtr& tgtClient)
 		{
 			if (tgtClient == client)
 			{
@@ -2208,7 +2207,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 			}
 
-			if (distance < cullingRadius)
+			if (entity->relevantTo.test(tgtClient->GetSlotId()))
 			{
 				auto [_, clientData] = GetClientData(this, tgtClient);
 				auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
@@ -2225,8 +2224,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 			candidates.clear();
 		}
 
-		if (candidates.empty() || // no candidate?
-			std::get<float>(*candidates.begin()) >= cullingRadius) // closest candidate beyond distance culling range?
+		if (candidates.empty()) // no candidate?
 		{
 			GS_LOG("no candidates for entity %d, assigning as unowned\n", entity->handle);
 
