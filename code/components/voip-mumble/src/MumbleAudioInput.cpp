@@ -435,22 +435,25 @@ void MumbleAudioInput::InitializeAudioDevice()
 	HRESULT hr = 0;
 	ComPtr<IMMDevice> device;
 
-	if (m_deviceId.empty())
+	while (!device.Get())
 	{
-		if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+		if (m_deviceId.empty())
 		{
-			trace(__FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
-			return;
+			if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+			{
+				trace(__FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
+				return;
+			}
 		}
-	}
-	else
-	{
-		device = GetMMDeviceFromGUID(true, m_deviceId);
-
-		if (!device)
+		else
 		{
-			trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
-			return;
+			device = GetMMDeviceFromGUID(true, m_deviceId);
+
+			if (!device)
+			{
+				trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
+				m_deviceId = "";
+			}
 		}
 	}
 
