@@ -830,7 +830,7 @@ namespace game
 
 			for (auto& binding : bindingManager.GetBindings())
 			{
-				if (binding.second->GetCommand() == command)
+				if (binding.second->GetCommand() == command && IsTagActive(binding.second->GetTag()))
 				{
 					return;
 				}
@@ -899,7 +899,7 @@ static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding
 
 			for (auto& bindingSet : bindingManager.GetBindings())
 			{
-				if (bindingSet.second->GetCommand() == controlRef.first)
+				if (bindingSet.second->GetCommand() == controlRef.first && IsTagActive(bindingSet.second->GetTag()))
 				{
 					bindingSet.second->GetBinding(*outBinding);
 					outBinding->unk = source;
