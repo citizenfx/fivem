@@ -1130,4 +1130,11 @@ static InitFunction initFunction([]()
 
 		return true;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_INVINCIBLE", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerGameState();
+
+		return pn ? pn->isInvincible : false;
+	}));
 });

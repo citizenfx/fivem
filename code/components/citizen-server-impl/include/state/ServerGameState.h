@@ -278,6 +278,7 @@ struct CPlayerGameStateNodeData
 	float voiceProximityOverrideY;
 	float voiceProximityOverrideZ;
 
+	bool isInvincible;
 	bool isFriendlyFireAllowed;
 
 	float weaponDefenseModifier;

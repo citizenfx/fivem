@@ -2000,7 +2000,9 @@ struct CPlayerGameStateDataNode {
 		}
 
 		int unk78 = state.buffer.Read<int>(19);
-		auto unk79 = state.buffer.ReadBit();
+		auto isInvincible = state.buffer.ReadBit();
+		data.isInvincible = isInvincible;
+
 		auto unk80 = state.buffer.ReadBit();
 
 		if (unk80)
