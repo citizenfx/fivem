@@ -241,6 +241,13 @@ void ProfileSettingsInit()
 
 				name = "profile_" + name;
 
+				// profile_vidMonitor pointing to an invalid index will crash the game when opening settings, and
+				// the game doesn't use the profile setting as authoritative anyway
+				if (name == "profile_vidMonitor")
+				{
+					continue;
+				}
+
 				auto setting = g_prefs[field->index];
 				_profileConVars[field->index] = std::make_shared<ProfileConVar>(name, setting);
 			}
