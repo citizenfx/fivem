@@ -151,11 +151,14 @@ inline bool HasDefaultName()
 	{
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
-		InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-		if (steamFriends.IsValid())
+		if (steamClient)
 		{
-			return true;
+			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+			if (steamFriends.IsValid())
+			{
+				return true;
+			}
 		}
 	}
 
