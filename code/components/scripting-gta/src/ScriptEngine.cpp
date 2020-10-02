@@ -190,6 +190,13 @@ namespace fx
 
 	void ScriptEngine::RegisterNativeHandler(uint64_t nativeIdentifier, TNativeHandler function)
 	{
+		auto it = g_registeredHandlers.find(nativeIdentifier);
+
+		if (it != g_registeredHandlers.end())
+		{
+			return;
+		}
+
 		g_registeredHandlers[nativeIdentifier] = function;
 
 		if (!launch::IsSDK())
