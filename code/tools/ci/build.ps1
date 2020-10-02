@@ -68,7 +68,7 @@ function Invoke-WebHook
     iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 }
 
-$UseNewCI = $false
+$UseNewCI = $true
 $inCI = $false
 $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
