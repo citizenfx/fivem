@@ -638,6 +638,111 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 }
 }
 
+static bool g_recordingDrilldown;
+static bool g_recordedDrilldown;
+static uint64_t g_drilldownEnd;
+static uint32_t g_drilldownIdx;
+
+struct ClonePacketMsg
+{
+	std::string_view what;
+	std::string why;
+};
+
+struct ClonePacketData
+{
+	uint64_t frameIdx;
+	uint32_t ts;
+	
+	std::vector<ClonePacketMsg> messages;
+};
+
+#include <nutsnbolts.h>
+
+static InitFunction initFunctionDrilldown([]() 
+{
+	OnGameFrame.Connect([]()
+	{
+		if (g_recordingDrilldown && GetTickCount64() >= g_drilldownEnd)
+		{
+			g_recordingDrilldown = false;
+			g_recordedDrilldown = true;
+		}
+	});
+});
+
+static std::map<uint32_t, ClonePacketData> g_drilldownData;
+
+namespace sync
+{
+bool IsDrilldown()
+{
+	return g_recordingDrilldown;
+}
+
+void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data)
+{
+	ClonePacketData bit;
+	bit.frameIdx = frameIdx;
+
+	for (auto& d : data)
+	{
+		ClonePacketMsg msg;
+		msg.what = std::move(std::get<0>(d));
+		msg.why = std::move(std::get<1>(d));
+
+		bit.messages.push_back(std::move(msg));
+	}
+
+	bit.ts = 1000 - (g_drilldownEnd - GetTickCount64());
+
+	g_drilldownData[g_drilldownIdx++] = std::move(bit);
+}
+}
+
+void RenderNetDrilldownWindow()
+{
+	static bool open = true;
+
+	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
+
+	if (ImGui::Begin("Network Drilldown", &open))
+	{
+		if (!g_recordingDrilldown && ImGui::Button("Record"))
+		{
+			g_drilldownData.clear();
+			g_drilldownIdx = 0;
+			g_recordedDrilldown = false;
+
+			g_recordingDrilldown = true;
+			g_drilldownEnd = GetTickCount64() + 1000;
+		}
+		
+		if (g_recordingDrilldown)
+		{
+			ImGui::ButtonEx("Recording", {}, ImGuiButtonFlags_Disabled);
+		}
+
+		if (g_recordedDrilldown)
+		{
+			for (auto& [id, node] : g_drilldownData)
+			{
+				if (ImGui::TreeNode(va("Packet %d @+%d (%d)", id, node.ts, node.frameIdx)))
+				{
+					for (auto& message : node.messages)
+					{
+						ImGui::TreeNodeEx(va("%s: %s", message.what, message.why), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+					}
+
+					ImGui::TreePop();
+				}
+			}
+		}
+	}
+
+	ImGui::End();
+}
+
 void DirtyNode(void* object, void* node)
 {
 	rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node].lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
@@ -748,18 +853,25 @@ static InitFunction initFunction([]()
 {
 	static bool netViewerEnabled;
 	static bool timeWindowEnabled;
+	static bool drilldownWindowEnabled;
 
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
 	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
+	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive, false, &drilldownWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || timeWindowEnabled;
+		*should = *should || netViewerEnabled || timeWindowEnabled || drilldownWindowEnabled;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
+		if (drilldownWindowEnabled)
+		{
+			RenderNetDrilldownWindow();
+		}
+
 		if (timeWindowEnabled)
 		{
 			static bool timeOpen = true;

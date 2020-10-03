@@ -1319,6 +1319,9 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 net::Buffer g_cloneMsgPacket;
 std::vector<uint8_t> g_cloneMsgData;
 
+extern void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data);
+extern bool IsDrilldown();
+
 void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 {
 	if (!rage::netObjectMgr::GetInstance())
@@ -1332,6 +1335,50 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	// read the packet
 	msgPackedClones msg;
 	msg.Read(netBuffer);
+
+	// do drilldown logging
+	static uint32_t drillTs;
+
+	if (IsDrilldown())
+	{
+		std::vector<std::tuple<std::string_view, std::string>> list;
+
+		for (auto& m : msg.GetClones())
+		{
+			if (!drillTs)
+			{
+				drillTs = m.GetTimestamp();
+			}
+
+			std::string objDesc;
+
+			if (auto it = m_savedEntities.find(m.GetObjectId()); it != m_savedEntities.end())
+			{
+				objDesc = it->second->ToString();
+			}
+			else
+			{
+				objDesc = fmt::sprintf("obj:%d", m.GetObjectId());
+			}
+
+			list.push_back({ m.GetSyncType() == 1 ? "create" : "sync", fmt::sprintf("%s@%d ts %d sz %db", 
+				objDesc,
+				m.GetUniqifier(),
+				int32_t(m.GetTimestamp()) - int32_t(drillTs),
+				m.GetCloneData().size()) });
+		}
+
+		for (auto& m : msg.GetRemoves())
+		{
+			list.push_back({ "remove", fmt::sprintf("obj:%d@%d", std::get<0>(m), std::get<1>(m)) });
+		}
+
+		AddDrilldown(msg.GetFrameIndex() & ~(uint64_t(1) << 63), std::move(list));
+	}
+	else
+	{
+		drillTs = 0;
+	}
 
 	static std::vector<uint16_t> ignoreList;
 	static std::vector<uint16_t> recreateList;
