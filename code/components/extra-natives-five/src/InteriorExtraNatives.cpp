@@ -202,7 +202,10 @@ static CMloModelInfo* GetInteriorArchetype(int interiorId)
 	else
 	{
 		CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
-		instance = proxy->instance;
+		if (proxy)
+		{
+			instance = proxy->instance;
+		}
 	}
 
 	if (instance && instance->mloModel)
