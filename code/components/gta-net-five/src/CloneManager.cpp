@@ -1781,6 +1781,7 @@ void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* pla
 		GiveObjectToClient(object, g_netIdsByPlayer[player]);
 	}
 
+	m_netObjects[31].erase(object->objectId);
 	m_netObjects[object->syncData.ownerId].erase(object->objectId);
 	m_netObjects[player->physicalPlayerIndex()][object->objectId] = object;
 }
@@ -2050,16 +2051,19 @@ void CloneManagerLocal::WriteUpdates()
 				// #TODO1S: dynamic resend time based on latency
 				bool shouldWrite = true;
 
-				if (lastChangeTime == objectData.lastChangeTime && ts < (objectData.lastResendTime + 100))
+				if ((lastChangeTime == objectData.lastChangeTime || syncType == 1) && ts < (objectData.lastResendTime + std::max(100, m_netLibrary->GetPing())))
 				{
 					Log("%s: no early resend of object [obj:%d]\n", __func__, objectId);
 					shouldWrite = false;
 				}
 
+				// in case of syncType == 1, we want to write change time too
+				// (as otherwise first syncType = 2 will do spammy resending anyway)
+				objectData.lastChangeTime = lastChangeTime;
+
 				if (shouldWrite)
 				{
 					objectData.nextKeepaliveSync = ts + 1000;
-					objectData.lastChangeTime = lastChangeTime;
 
 					AssociateSyncTree(object->objectId, syncTree);
 

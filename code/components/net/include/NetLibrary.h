@@ -294,6 +294,8 @@ public:
 		return m_serverTime;
 	}
 
+	int32_t GetPing();
+
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 
 	virtual void AddReceiveTick() override;

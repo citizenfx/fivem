@@ -38,6 +38,8 @@ public:
 
 	virtual bool IsDisconnected() override;
 
+	virtual int32_t GetPing() override;
+
 private:
 	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
 
@@ -424,6 +426,16 @@ void NetLibraryImplV2::ProcessPacket(const uint8_t* data, size_t size, NetPacket
 		// check to prevent double execution
 		m_base->HandleReliableCommand(msgType, reliableBuf.data(), reliableBuf.size());
 	}
+}
+
+int32_t NetLibraryImplV2::GetPing()
+{
+	if (m_serverPeer)
+	{
+		return int32_t(m_serverPeer->roundTripTime);
+	}
+
+	return -1;
 }
 
 static InitFunction initFunction([]()

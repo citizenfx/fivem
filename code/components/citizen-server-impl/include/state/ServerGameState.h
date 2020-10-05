@@ -387,6 +387,16 @@ struct SyncEntityState
 
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 
+	// list of delta *source* frames sent (but unacked) at a time per player
+	std::array<std::shared_mutex, MAX_CLIENTS> newSendsMutex;
+	std::array<eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10>, MAX_CLIENTS> newSends;
+
+	// last frame sent per player
+	std::array<uint64_t, MAX_CLIENTS> lastClientFrames;
+
+	// last time a packet was *queued to send* for a particular peer
+	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs;
+
 	std::chrono::milliseconds lastReceivedAt;
 
 	std::shared_ptr<SyncTreeBase> syncTree;
@@ -644,7 +654,6 @@ struct ClientEntityState
 	uint64_t frameIndex;
 
 	std::chrono::milliseconds syncDelay;
-	std::chrono::milliseconds lastSend;
 };
 
 using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;

@@ -1839,3 +1839,13 @@ NetLibrary* NetLibrary::Create()
 
 	return lib;
 }
+
+int32_t NetLibrary::GetPing()
+{
+	if (m_impl)
+	{
+		return m_impl->GetPing();
+	}
+
+	return -1;
+}

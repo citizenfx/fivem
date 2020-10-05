@@ -342,12 +342,14 @@ struct NetObjectNodeData
 	std::array<uint8_t, 1024> lastData;
 	uint32_t lastChange;
 	uint32_t lastAck;
+	uint32_t lastResend;
 
 	NetObjectNodeData()
 	{
 		memset(lastData.data(), 0, lastData.size());
 		lastChange = 0;
 		lastAck = 0;
+		lastResend = 0;
 	}
 };
 
@@ -491,18 +493,22 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 					if (lastChangeDelta > nodeSyncDelay)
 					{
+						nodeData->lastResend = 0;
 						nodeData->lastChange = state.time;
 						nodeData->lastData = tempData;
 					}
 				}
 
+				bool isResendSkipped = ((state.time - nodeData->lastResend) < 150);
+
 				if (state.lastChangeTimePtr)
 				{
 					auto oldVal = *state.lastChangeTimePtr;
 
-					if (nodeData->lastChange > oldVal)
+					if (nodeData->lastChange > oldVal && !isResendSkipped)
 					{
 						*state.lastChangeTimePtr = nodeData->lastChange;
+						nodeData->lastResend = state.time;
 					}
 				}
 
@@ -516,6 +522,11 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				if (nodeData->lastAck < nodeData->lastChange)
 				{
 					shouldWriteNode = true;
+				}
+
+				if (isResendSkipped)
+				{
+					shouldWriteNode = false;
 				}
 
 				if (shouldWriteNode)
