@@ -286,6 +286,10 @@ if (!$DontBuild)
         $GameName = "rdr3"
         $BuildPath = "$BuildRoot\rdr3"
     }
+    
+    if ($IsServer) {
+		Invoke-Expression "& $WorkRootDir\tools\ci\build_rs.cmd"
+    }
 
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
 

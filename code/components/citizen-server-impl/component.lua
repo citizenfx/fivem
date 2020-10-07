@@ -8,3 +8,17 @@ if os.istarget('windows') then
 	filter {}
 		buildoptions '/fp:fast'
 end
+
+return function()
+	filter {}
+	configuration {}
+	
+	local jexlEvalDir = path.getabsolute(_ROOTPATH .. '/../ext/jexl-eval/target/release/')
+	
+	if os.isdir(jexlEvalDir) then
+		libdirs { jexlEvalDir }
+		links { 'cfx_jexl_eval' }
+		
+		includedirs { path.getabsolute(jexlEvalDir .. '/../../') }
+	end
+end

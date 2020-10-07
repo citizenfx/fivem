@@ -250,3 +250,6 @@
 [submodule "vendor/heap-layers"]
 	path = vendor/heap-layers
 	url = https://github.com/emeryberger/Heap-Layers.git
+[submodule "ext/jexl-eval/deps/jexl-rs"]
+	path = ext/jexl-eval/deps/jexl-rs
+	url = https://github.com/blattersturm/jexl-rs
