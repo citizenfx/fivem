@@ -69,7 +69,7 @@
 						</Item>
 						<Item>
 							<PoolName>StreamPed req data</PoolName>
-							<PoolSize value="180"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>StreamPed render data</PoolName>
@@ -457,16 +457,20 @@
 							<PoolSize value="75500"/>
 						</Item>
 						<Item>
+							<PoolName>CNetObjVehicle</PoolName>
+							<PoolSize value="250"/>
+						</Item>
+						<Item>
 							<PoolName>Vehicles</PoolName>
 							<PoolSize value="300"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRequest</PoolName>
-							<PoolSize value="100"/>
+							<PoolSize value="256"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRender</PoolName>
-							<PoolSize value="100"/>
+							<PoolSize value="256"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStruct</PoolName>
@@ -474,7 +478,7 @@
 						</Item>
         					<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="6000"/>
+							<PoolSize value="8000"/>
 						</Item>
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->
