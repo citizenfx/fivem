@@ -1594,6 +1594,16 @@ const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
 void* origin;
 float* (*getCoordsFromOrigin)(void*, float*);
 
+static hook::cdecl_stub<void(void*, uint32_t)> fwSceneUpdate__AddToSceneUpdate([]()
+{
+	return hook::get_pattern("4F 8D 04 49 41 FF", -0x42);
+});
+
+static hook::cdecl_stub<void(void*, uint32_t, bool)> fwSceneUpdate__RemoveFromSceneUpdate([]()
+{
+	return hook::get_pattern("F7 D3 21 58 10 0F", -0x3F);
+});
+
 static HookFunction hookFunctionOrigin([]()
 {
 	auto loc = hook::get_call(hook::get_pattern<char>("C6 45 0B 80 89 5D 0F", 0x1B));
@@ -1630,59 +1640,43 @@ void CloneManagerLocal::Update()
 				if (clone.second->syncData.isRemote)
 				{
 					auto ent = (fwEntity*)(clone.second->GetGameObject());
-					auto vtbl = *(char**)ent;
 
-					if (!Is2060())
+					auto posData = ent->GetPosition();
+					auto pos = DirectX::XMLoadFloat3(&posData);
+
+					static std::map<fwEntity*, uint32_t> removedFlags;
+					auto it = removedFlags.find(ent);
+
+					if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (300.f * 300.f))
 					{
-						auto posData = ent->GetPosition();
-						auto pos = DirectX::XMLoadFloat3(&posData);
-
-						static std::map<fwEntity*, uint32_t> removedFlags;
-						auto it = removedFlags.find(ent);
-
-						if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (300.f * 300.f))
+						if (it != removedFlags.end())
 						{
-							if (it != removedFlags.end())
-							{
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
+							fwSceneUpdate__AddToSceneUpdate(ent, it->second);
 
-								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
-
-								removedFlags.erase(it);
-							}
+							removedFlags.erase(it);
 						}
-						else
+					}
+					else
+					{
+						if (it == removedFlags.end())
 						{
-							if (it == removedFlags.end())
+							uint32_t flags = 0;
+
+							if (auto ext = ent->GetExtension<fwSceneUpdateExtension>())
 							{
-								uint32_t flags = 0;
-
-								if (auto ext = ent->GetExtension<fwSceneUpdateExtension>())
-								{
-									flags = ext->GetUpdateFlags();
-								}
-
-								it = removedFlags.emplace(ent, flags).first;
-
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
-
-								// 1604, rage::fwSceneUpdate::RemoveFromSceneUpdate
-								((void (*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
+								flags = ext->GetUpdateFlags();
 							}
 
-							if ((frameCount % 50) < 2)
-							{
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
+							it = removedFlags.emplace(ent, flags).first;
 
-								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+							fwSceneUpdate__RemoveFromSceneUpdate(ent, -1, true);
+						}
 
-								removedFlags.erase(it);
-							}
+						if ((frameCount % 50) < 2)
+						{
+							fwSceneUpdate__AddToSceneUpdate(ent, it->second);
+
+							removedFlags.erase(it);
 						}
 					}
 				}
