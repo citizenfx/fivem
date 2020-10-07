@@ -388,7 +388,7 @@ struct SyncEntityState
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 
 	// list of delta *source* frames sent (but unacked) at a time per player
-	std::array<std::shared_mutex, MAX_CLIENTS> newSendsMutex;
+	std::shared_mutex newSendsMutex;
 	std::array<eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10>, MAX_CLIENTS> newSends;
 
 	// last frame sent per player

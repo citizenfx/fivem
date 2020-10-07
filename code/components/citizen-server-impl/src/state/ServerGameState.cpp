@@ -1399,7 +1399,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// override the frame we're trying to send
 			if (syncType == 1 || lastFrameIndex != 0) // if external code requested full resend (lastFrameIndex == 0), don't skip (unless it's a create)
 			{
-				std::shared_lock _(entity->newSendsMutex[client->GetSlotId()]);
+				std::shared_lock _(entity->newSendsMutex);
 
 				// try to hunt down the oldest frame we should start at
 				eastl::fixed_set<uint64_t, 10> candidateFrames;
@@ -1460,7 +1460,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					shouldSend = false;
 
 					// idk
-					std::unique_lock _(entity->newSendsMutex[client->GetSlotId()]);
+					std::unique_lock _(entity->newSendsMutex);
 					entity->newSends[client->GetSlotId()][lastFrameIndex] = curTime;
 				}
 				else
@@ -1472,7 +1472,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			if (shouldSend)
 			{
 				{
-					std::unique_lock _(entity->newSendsMutex[client->GetSlotId()]);
+					std::unique_lock _(entity->newSendsMutex);
 					entity->newSends[client->GetSlotId()][lastFrameIndex] = curTime;
 				}
 
@@ -2194,9 +2194,9 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		}
 	});
 
+	std::unique_lock _(entity->newSendsMutex);
 	for (size_t i = 0; i < entity->newSends.size(); i++)
 	{
-		std::unique_lock _(entity->newSendsMutex[i]);
 		entity->newSends[i].clear();
 	}
 }
@@ -2877,10 +2877,13 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		entity->timestamp = timestamp;
 
 		// reset everyone's last sync
-		for (size_t i = 0; i < entity->newSends.size(); i++)
 		{
-			std::unique_lock _(entity->newSendsMutex[i]);
-			entity->newSends[i].clear();
+			std::unique_lock _(entity->newSendsMutex);
+
+			for (size_t i = 0; i < entity->newSends.size(); i++)
+			{
+				entity->newSends[i].clear();
+			}
 		}
 
 		auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
@@ -4289,7 +4292,7 @@ static InitFunction initFunction([]()
 						}
 
 						{
-							std::unique_lock _(entity->newSendsMutex[slotId]);
+							std::unique_lock _(entity->newSendsMutex);
 							auto& newSends = entity->newSends[slotId];
 
 							if (wasDropped)
@@ -4336,7 +4339,7 @@ static InitFunction initFunction([]()
 
 								if (ent)
 								{
-									std::unique_lock _(ent->newSendsMutex[slotId]);
+									std::unique_lock _(ent->newSendsMutex);
 									ent->newSends[slotId] = {};
 									ent->lastClientFrames[slotId] = 0;
 								}
