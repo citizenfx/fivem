@@ -516,8 +516,12 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 					if (nodeData->lastChange > oldVal && !isResendSkipped)
 					{
-						*state.lastChangeTimePtr = nodeData->lastChange;
-						nodeData->lastResend = state.time;
+						if (state.pass == 2)
+						{
+							*state.lastChangeTimePtr = nodeData->lastChange;
+
+							nodeData->lastResend = state.time;
+						}
 					}
 				}
 
