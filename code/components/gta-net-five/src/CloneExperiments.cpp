@@ -1395,6 +1395,46 @@ static HookFunction hookFunction([]()
 		hook::put<uint32_t>(location + 0x269, 0xA0 + (256 * 8));
 	}
 
+	// 32 array size for network object limiting
+	// #TODO: unwind info for these??
+	if (!Is372() && !Is2060()) // only validated for 1604 so far
+	{
+		auto location = hook::get_pattern<char>("48 85 C0 0F 84 C3 06 00 00 E8", -0x4A);
+
+		// stack frame ENTER
+		hook::put<uint32_t>(location + 0x19, 0xE58);
+
+		// stack frame LEAVE
+		hook::put<uint32_t>(location + 0x71A, 0xE58);
+
+		// var: rsp+1A0
+		hook::put<uint32_t>(location + 0x3A8, 0xDA0);
+		hook::put<uint32_t>(location + 0x3C4, 0xDA0);
+		hook::put<uint32_t>(location + 0x40E, 0xDA0);
+		hook::put<uint32_t>(location + 0x41D, 0xDA0);
+
+		// var: rsp+1A8
+		hook::put<uint32_t>(location + 0x3B6, 0xDA8);
+		hook::put<uint32_t>(location + 0x3CB, 0xDA8);
+		hook::put<uint32_t>(location + 0x427, 0xDA8);
+		hook::put<uint32_t>(location + 0x431, 0xDA8);
+
+		// var: rsp+1B0
+		hook::put<uint32_t>(location + 0x3AF, 0xDB0);
+		hook::put<uint32_t>(location + 0x3D2, 0xDB0);
+		hook::put<uint32_t>(location + 0x440, 0xDB0);
+		hook::put<uint32_t>(location + 0x453, 0xDB0);
+
+		// var: rsp+1B8
+		hook::put<uint32_t>(location + 0xA9, 0xDB8);
+		hook::put<uint32_t>(location + 0x366, 0xDB8);
+		hook::put<uint32_t>(location + 0x555, 0xDB8);
+
+		// player indices
+		hook::put<uint8_t>(location + 0x467, 0x7F); // 127.
+		hook::put<uint8_t>(location + 0x39E, 0x7F);
+	}
+
 	// CNetworkDamageTracker float[32] array
 	// (would overflow into pool data and be.. quite bad)
 	{
@@ -3032,9 +3072,9 @@ static hook::cdecl_stub<CGameScriptId*(rage::fwEntity*)> _getEntityScript([]()
 	return hook::get_pattern("74 2A 48 8D 58 08 48 8B CB 48 8B 03", -0x18);
 });
 
-static void PedPoolDiagError()
+static auto PoolDiagDump(const char* poolName)
 {
-	auto pool = rage::GetPoolBase("Peds");
+	auto pool = rage::GetPoolBase(poolName);
 
 	std::map<std::string, int> poolCount;
 
@@ -3062,6 +3102,11 @@ static void PedPoolDiagError()
 				desc += fmt::sprintf(" (script %s)", script->scriptName);
 			}
 
+			if (!e->GetNetObject())
+			{
+				desc += " (no netobj)";
+			}
+
 			poolCount[desc]++;
 		}
 	}
@@ -3085,7 +3130,12 @@ static void PedPoolDiagError()
 		poolSummary += fmt::sprintf("  %s: %d entries\n", type, count);
 	}
 
-	FatalError("Ran out of ped pool space while creating network object.\n\nPed pool dump:\n%s", poolSummary);
+	return poolSummary;
+}
+
+static void PedPoolDiagError()
+{
+	FatalError("Ran out of ped pool space while creating network object.\n\nPed pool dump:\n%s", PoolDiagDump("Peds"));
 }
 
 static HookFunction hookFunctionDiag([]
