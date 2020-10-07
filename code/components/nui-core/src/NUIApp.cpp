@@ -10,6 +10,14 @@
 #include "CefOverlay.h"
 #include "memdbgon.h"
 
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.System.UserProfile.h>
+#pragma comment(lib, "runtimeobject")
+
+using namespace winrt;
+using namespace Windows::Foundation;
+using namespace Windows::System::UserProfile;
+
 void NUIApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar)
 {
 	// add the 'nui://' internal scheme
@@ -68,6 +76,57 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 #ifdef USE_NUI_ROOTLESS
 	window->SetValue("GetParentResourceName", CefV8Value::CreateFunction("GetParentResourceName", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 #endif
+
+	if (!IsWindows10OrGreater())
+	{
+		ULONG langs = 0;
+		ULONG langSize = 0;
+		GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &langs, NULL, &langSize);
+
+		std::vector<wchar_t> uiLangs(langSize);
+		if (GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &langs, uiLangs.data(), &langSize))
+		{
+			std::vector<std::wstring_view> langList;
+			wchar_t* ptr = &uiLangs[0];
+
+			for (ULONG i = 0; i < langs; i++)
+			{
+				auto len = wcslen(ptr);
+				langList.emplace_back(ptr, len);
+
+				ptr += len + 1;
+			}
+
+			auto languages = CefV8Value::CreateArray(langList.size());
+
+			for (size_t i = 0; i < langList.size(); i++)
+			{
+				languages->SetValue(i, CefV8Value::CreateString(CefString{ langList[i].data(), langList[i].length(), true }));
+			}
+
+			window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
+		}
+	}
+	else
+	{
+		winrt::init_apartment();
+
+		std::vector<std::wstring> langList;
+
+		for (const auto& lang : GlobalizationPreferences::Languages())
+		{
+			langList.push_back(std::wstring{ lang });
+		}
+
+		auto languages = CefV8Value::CreateArray(langList.size());
+
+		for (size_t i = 0; i < langList.size(); i++)
+		{
+			languages->SetValue(i, CefV8Value::CreateString(CefString{ langList[i].data(), langList[i].length(), true }));
+		}
+
+		window->SetValue("nuiSystemLanguages", languages, V8_PROPERTY_ATTRIBUTE_READONLY);
+	}
 
 	window->SetValue("invokeNative", CefV8Value::CreateFunction("invokeNative", this), V8_PROPERTY_ATTRIBUTE_READONLY);
 	window->SetValue("nuiSetAudioCategory", CefV8Value::CreateFunction("nuiSetAudioCategory", this), V8_PROPERTY_ATTRIBUTE_READONLY);

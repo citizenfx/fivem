@@ -156,9 +156,10 @@
 		display: grid;
 
 		grid-template-columns: 2fr 2.5fr 1.1fr 1.4fr 2fr 2fr;
-		grid-template-rows: 3fr 3.5fr 2fr;
+		grid-template-rows: 3fr 1.25fr 2.25fr 2fr;
 		grid-template-areas:
 			"play   play   play   links  community official"
+			"ad     ad     ad     ad     community official"
 			"story  story  replay replay community official"
 			"create create create create community official";
 
@@ -578,7 +579,8 @@
 		}
 
 		.story,
-		.replay {
+		.replay,
+		.ad {
 			@include backdropBlur;
 			@include backdropPane;
 			@include borderedPane;
@@ -586,14 +588,12 @@
 			padding: var(--q1);
 		}
 
-		.story {
-			grid-area: story;
-
+		.story, .ad > div {
 			display: flex;
 			flex-direction: column;
 			justify-content: space-between;
 
-			p {
+			p, section {
 				margin-top: var(--q1);
 
 				font-size: var(--fs-1);
@@ -602,6 +602,73 @@
 					color: rgba(gtv($theme, fgColor), .5);
 				}
 			}
+		}
+
+		.ad {
+			grid-area: ad;
+
+			&:before {
+				@include theme() using ($theme) {
+					background-color: rgba(gtv($theme, bgColor), .7);
+				}
+
+				content: ' ';
+				
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				right: 0px;
+				bottom: 0px;
+
+				z-index: -98;
+
+				transition: all .2s ease;
+			}
+
+			&:after {
+				background: center / cover var(--banner-image), center / 250px url(../../assets/images/bgpat.png);
+				content: ' ';
+
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				right: 0px;
+				bottom: 0px;
+
+				z-index: -99;
+			}
+
+			&:hover:before {
+				@include theme() using ($theme) {
+					box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+				}
+
+				transition: none;
+			}
+
+			position: relative;
+
+			& > div {
+				height: 100%;
+			}
+
+			section > div {
+				display: inline-block;
+				margin-right: var(--q1);
+			}
+
+			.card_title {
+				display: block;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+
+				overflow-x: hidden;
+				overflow-y: hidden;
+			}
+		}
+
+		.story {
+			grid-area: story;
 		}
 
 		.replay {

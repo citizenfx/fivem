@@ -73,6 +73,10 @@ export abstract class GameService {
 
 	convars: { [name: string]: ConvarWrapper } = {};
 
+	get systemLanguages(): string[] {
+		return ['en-us'];
+	}
+
 	get gameName(): string {
 		const targetGame = (window as any).nuiTargetGame;
 
@@ -485,6 +489,10 @@ export class CfxGameService extends GameService {
 				}
 			);
 		}
+	}
+
+	get systemLanguages(): string[] {
+		return (window as any).nuiSystemLanguages || ['en-us'];
 	}
 
 	async addServerHistory(entry: ServerHistoryEntry) {

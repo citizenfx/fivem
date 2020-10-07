@@ -74,6 +74,8 @@ export class ServersService {
 
 	private onSortCB: ((servers: string[]) => void)[] = [];
 
+	private topServer: Server = undefined;
+
 	constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
 		private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
 		this.requestEvent = new Subject<string>();
@@ -251,6 +253,30 @@ export class ServersService {
 			.then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
 
 		this.serverCache[address] = new ServerCacheEntry(server);
+
+		return server;
+	}
+
+	public async getTopServer() {
+		if (this.topServer !== undefined) {
+			return this.topServer;
+		}
+
+		const server = await (async () => {
+			const languages = this.gameService.systemLanguages;
+
+			for (const language of languages) {
+				try {
+					return await this.httpClient.get(`https://servers-frontend.fivem.net/api/servers/top/${language}/`)
+						.toPromise()
+						.then((data: { Data: master.IServer }) => Server.fromObject(this.domSanitizer, data.Data.EndPoint, data.Data.Data));
+				} catch {}
+			}
+
+			return null;
+		})();
+
+		this.topServer = server;
 
 		return server;
 	}

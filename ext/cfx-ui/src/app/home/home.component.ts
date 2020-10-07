@@ -8,6 +8,7 @@ import { DiscourseService, DiscourseUser } from '../discourse.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ServersService, HistoryServer, HistoryServerStatus } from 'app/servers/servers.service';
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
+import { Server } from 'app/servers/server';
 
 let cachedWelcomeMessage: SafeHtml;
 let cachedServiceMessage: SafeHtml;
@@ -41,6 +42,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	lastServer: HistoryServer;
 	HistoryServerStatus = HistoryServerStatus;
+
+	topServer: Server;
 
 	constructor(
 		private tweetService: TweetService,
@@ -85,9 +88,16 @@ export class HomeComponent implements OnInit, OnDestroy {
 		this.fetchServiceMessage();
 
 		this.loadLastServer();
+		this.loadTopServer();
 	}
 
 	ngOnDestroy() {}
+
+	async loadTopServer() {
+		this.topServer = await this.serversService.getTopServer();
+
+		this.changeDetectorRef.markForCheck();
+	}
 
 	async loadLastServer() {
 		const serverHistory = this.gameService.getServerHistory();

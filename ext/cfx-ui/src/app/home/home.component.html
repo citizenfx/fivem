@@ -123,6 +123,31 @@
 			</a>
 		</div>
 
+		<a class="card ad" [routerLink]="[(this.topServer) ? '/servers/detail/' + this.topServer.address : '']" style="--banner-image: url({{this.topServer?.data?.vars?.banner_detail || 'nah'}})">
+			<div *ngIf="this.topServer">
+				<h3 class="card_title">
+					<span class="material-icons-outlined">trending_up</span>
+					<span [innerHTML]="(this.topServer && this.topServer.hostname)||'test' | escape | colorize"></span>
+				</h3>
+
+				<section>
+					<div>
+						<span [class]="'flag-icon flag-icon-' + this.topServer.data.vars.locale.split('-')[1].toLowerCase()"></span>
+					</div>
+
+					<div>
+						<span class="material-icons-outlined">group</span>
+						{{(this.topServer && this.topServer.currentPlayers)||0}}<span class="capacity">/{{(this.topServer && this.topServer.maxPlayers)||32}}</span>
+					</div>
+
+					<div>
+						<span class="material-icons-outlined">arrow_upward</span>
+						{{(this.topServer && this.topServer.upvotePower)||0}}
+					</div>
+				</section>
+			</div>
+		</a>
+
 		<a class="card story" [routerLink]="['/story']" *ngIf="gameName !== 'rdr3'">
 			<h3 class="card_title">
 				<span class="material-icons-outlined">play_arrow</span>
