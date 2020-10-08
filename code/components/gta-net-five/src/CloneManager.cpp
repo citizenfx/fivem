@@ -35,6 +35,8 @@
 
 #include <CoreConsole.h>
 
+#include <MinHook.h>
+
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
@@ -1601,6 +1603,39 @@ static HookFunction hookFunctionOrigin([]()
 	hook::set_call(&getCoordsFromOrigin, loc + 0x10);
 });
 
+static void (*fwSceneUpdate__AddToSceneUpdate)(void*, uint32_t);
+static void (*fwSceneUpdate__RemoveFromSceneUpdate)(void*, uint32_t, bool);
+
+static std::map<fwEntity*, uint32_t> removedFlags;
+
+static void fwSceneUpdate__AddToSceneUpdate_Track(fwEntity* entity, uint32_t what)
+{
+	if (auto it = removedFlags.find(entity); it != removedFlags.end())
+	{
+		it->second |= what;
+	}
+
+	fwSceneUpdate__AddToSceneUpdate(entity, what);
+}
+
+static void fwSceneUpdate__RemoveFromSceneUpdate_Track(fwEntity* entity, uint32_t what, bool ok)
+{
+	fwSceneUpdate__RemoveFromSceneUpdate(entity, what, ok);
+
+	if (auto it = removedFlags.find(entity); it != removedFlags.end())
+	{
+		it->second &= ~what;
+	}
+}
+
+static HookFunction hookFunctionSceneUpdateWorkaround([]()
+{
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4F 8D 04 49 41 FF", -0x42), fwSceneUpdate__AddToSceneUpdate_Track, (void**)&fwSceneUpdate__AddToSceneUpdate);
+	MH_CreateHook(hook::get_pattern("F7 D3 21 58 10 0F", -0x3F), fwSceneUpdate__RemoveFromSceneUpdate_Track, (void**)&fwSceneUpdate__RemoveFromSceneUpdate);
+	MH_EnableHook(MH_ALL_HOOKS);
+});
+
 void CloneManagerLocal::Update()
 {
 	WriteUpdates();
@@ -1632,23 +1667,17 @@ void CloneManagerLocal::Update()
 					auto ent = (fwEntity*)(clone.second->GetGameObject());
 					auto vtbl = *(char**)ent;
 
-					if (!Is2060())
 					{
 						auto posData = ent->GetPosition();
 						auto pos = DirectX::XMLoadFloat3(&posData);
 
-						static std::map<fwEntity*, uint32_t> removedFlags;
 						auto it = removedFlags.find(ent);
 
 						if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (300.f * 300.f))
 						{
 							if (it != removedFlags.end())
 							{
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
-
-								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+								fwSceneUpdate__AddToSceneUpdate(ent, it->second);
 
 								removedFlags.erase(it);
 							}
@@ -1666,20 +1695,12 @@ void CloneManagerLocal::Update()
 
 								it = removedFlags.emplace(ent, flags).first;
 
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
-
-								// 1604, rage::fwSceneUpdate::RemoveFromSceneUpdate
-								((void (*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
+								fwSceneUpdate__RemoveFromSceneUpdate(ent, -1, true);
 							}
 
 							if ((frameCount % 50) < 2)
 							{
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
-
-								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+								fwSceneUpdate__AddToSceneUpdate(ent, it->second);
 
 								removedFlags.erase(it);
 							}
