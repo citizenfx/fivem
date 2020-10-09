@@ -1919,7 +1919,30 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 
 void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 {
-	instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
+	auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+	// clean any non-existent clients from world grid accel periodically
+	static std::chrono::milliseconds nextWorldCheck;
+	auto now = msec();
+
+	if (now >= nextWorldCheck)
+	{
+		for (size_t x = 0; x < std::size(m_worldGridAccel.netIDs); x++)
+		{
+			for (size_t y = 0; y < std::size(m_worldGridAccel.netIDs[x]); y++)
+			{
+				if (m_worldGridAccel.netIDs[x][y] != 0xFFFF && !clientRegistry->GetClientByNetID(m_worldGridAccel.netIDs[x][y]))
+				{
+					m_worldGridAccel.netIDs[x][y] = 0xFFFF;
+				}
+			}
+		}
+
+		nextWorldCheck = now + 10s;
+	}
+
+	// update world grid
+	clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 	{
 		auto slotID = client->GetSlotId();
 
