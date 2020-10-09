@@ -2356,22 +2356,30 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 	}
 
 	// clear the player's world grid ownership
+	auto netId = client->GetNetId();
+
 	if (auto slotId = client->GetSlotId(); slotId != -1)
 	{
 		WorldGridState* gridState = &m_worldGrid[slotId];
 
-		auto netId = client->GetNetId();
-
 		for (auto& entry : gridState->entries)
 		{
-			if (m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] == netId)
-			{
-				m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] = 0xFFFF;
-			}
-
 			entry.netID = -1;
 			entry.sectorX = 0;
 			entry.sectorY = 0;
+		}
+	}
+
+	{
+		for (size_t x = 0; x < std::size(m_worldGridAccel.netIDs); x++)
+		{
+			for (size_t y = 0; y < std::size(m_worldGridAccel.netIDs[x]); y++)
+			{
+				if (m_worldGridAccel.netIDs[x][y] == netId)
+				{
+					m_worldGridAccel.netIDs[x][y] = 0xFFFF;
+				}
+			}
 		}
 	}
 
