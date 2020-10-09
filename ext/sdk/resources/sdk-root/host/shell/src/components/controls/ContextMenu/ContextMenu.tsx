@@ -6,6 +6,9 @@ import s from './ContextMenu.module.scss';
 
 const noop = () => {};
 
+
+export const ContextMenuItemSeparator = Symbol('context-menu-separator');
+
 export interface ContextMenuItem {
   id: string,
   text: string,
@@ -14,9 +17,11 @@ export interface ContextMenuItem {
   disabled?: boolean,
 }
 
+export type ContextMenuItemsCollection = (ContextMenuItem | typeof ContextMenuItemSeparator)[];
+
 export interface ContextMenuProps {
   children: React.ReactNode,
-  items: ContextMenuItem[],
+  items: ContextMenuItemsCollection,
   disabled?: boolean,
   className?: string,
   activeClassName?: string,
@@ -40,9 +45,27 @@ export const ContextMenu = React.memo((props: ContextMenuProps) => {
   const [coords, setCoords] = React.useState<Coords | null>(null);
   const [outlet, setOutlet] = React.useState<HTMLElement | null>(null);
 
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+
   React.useLayoutEffect(() => {
     setOutlet(document.getElementById('context-menu-outlet'));
   }, []);
+
+  React.useLayoutEffect(() => {
+    if (coords && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const viewportHeight = window.visualViewport.height;
+
+      const viewportOverlap = viewportHeight - rect.bottom;
+
+      if (viewportOverlap < 0) {
+        setCoords({
+          top: coords.top + viewportOverlap,
+          left: coords.left,
+        });
+      }
+    }
+  }, [coords, setCoords, menuRef]);
 
   const handleOpenMenu = React.useCallback((event: MouseEvent) => {
     event.preventDefault();
@@ -67,20 +90,28 @@ export const ContextMenu = React.memo((props: ContextMenuProps) => {
 
   let menu: React.ReactPortal | null = null;
   if (coords && outlet) {
-    const itemsNodes = items.map((item) => (
-      <div
-        key={item.id}
-        className={classnames(s.item, { [s.disabled]: item.disabled })}
-        onClick={item.onClick}
-      >
-        {item.icon}
-        {item.text}
-      </div>
-    ));
+    const itemsNodes = items.map((item, index) => {
+      if (item === ContextMenuItemSeparator) {
+        return (
+          <div key={index} className={s.separator}/>
+        );
+      } else {
+        return (
+          <div
+            key={item.id}
+            className={classnames(s.item, { [s.disabled]: item.disabled })}
+            onClick={item.onClick}
+          >
+            {item.icon}
+            {item.text}
+          </div>
+        );
+      }
+    });
 
     menu = ReactDOM.createPortal(
       <div className={s.backdrop} onClick={handleCloseMenu}>
-        <div className={s.menu} style={{ top: coords.top + 'px', left: coords.left + 'px' }}>
+        <div ref={menuRef} className={s.menu} style={{ top: coords.top + 'px', left: coords.left + 'px' }}>
           {itemsNodes}
         </div>
       </div>,

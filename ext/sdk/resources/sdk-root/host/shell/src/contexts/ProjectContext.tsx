@@ -92,8 +92,6 @@ export const ProjectContextProvider = React.memo(({ children }) => {
   // Handling project change so we open that in theia correctly
   React.useEffect(() => {
     if (project && theiaIsReady) {
-      console.log('Opening project in theia');
-
       openProjectInTheia({
         name: project.manifest.name,
         path: project.path,
@@ -104,7 +102,6 @@ export const ProjectContextProvider = React.memo(({ children }) => {
 
   useApiMessage(projectApi.open, (project) => {
     setProject(project);
-    console.log('PROJECT', project);
   }, [setProject]);
 
   useApiMessage(projectApi.update, (updatedProject) => {

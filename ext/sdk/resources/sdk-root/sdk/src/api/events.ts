@@ -14,13 +14,19 @@ export const projectApi = {
   resourceAdded: 'project:addResource',
   renameResource: 'project:renameResource',
   deleteResource: 'project:deleteResource',
-  setResourceEnabled: 'project:setResourceEnabled',
   updateResources: 'project:updateResources',
+  setResourceEnabled: 'project:setResourceEnabled',
+  setResourceConfig: 'project:setResourceConfig',
+
   fsTreeUpdate: 'project:fsTreeUpdate',
 
   createDirectory: 'project:createDirectory',
   renameDirectory: 'project:renameDirectory',
   deleteDirectory: 'project:deleteDirectory',
+
+  createFile: 'project:createFile',
+  renameFile: 'project:renameFile',
+  deleteFile: 'project:deleteFile',
 };
 
 export const assetApi = {
@@ -73,6 +79,7 @@ export const serverApi = {
   refreshResources: 'server:refreshResources',
   restartResource: 'server:restartResource',
   stopResource: 'server:stopResource',
+  startResource: 'server:startResource',
 };
 
 export const errorsApi = {

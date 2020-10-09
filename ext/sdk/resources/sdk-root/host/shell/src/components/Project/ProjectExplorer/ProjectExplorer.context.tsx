@@ -6,21 +6,21 @@ import { sendApiMessage } from '../../../utils/api';
 import { useApiMessage } from '../../../utils/hooks';
 
 
-export interface ResourceExplorerContext {
+export interface ProjectExplorerContext {
   pathsState: ProjectPathsState,
 
   setPathState: (path: string, expanded: boolean) => void;
 }
 
-const defaultValues: ResourceExplorerContext = {
+const defaultValues: ProjectExplorerContext = {
   pathsState: {},
 
   setPathState: () => {},
 };
 
-export const ResourceExplorerContext = React.createContext<ResourceExplorerContext>(defaultValues);
+export const ProjectExplorerContext = React.createContext<ProjectExplorerContext>(defaultValues);
 
-export const ResourceExplorerContextProvider = React.memo(({ children }) => {
+export const ProjectExplorerContextProvider = React.memo(({ children }) => {
   const { project } = React.useContext(ProjectContext);
   const [pathsState, setPathsState] = React.useState<ProjectPathsState>(defaultValues.pathsState);
 
@@ -51,8 +51,8 @@ export const ResourceExplorerContextProvider = React.memo(({ children }) => {
   };
 
   return (
-    <ResourceExplorerContext.Provider value={value}>
+    <ProjectExplorerContext.Provider value={value}>
       {children}
-    </ResourceExplorerContext.Provider>
+    </ProjectExplorerContext.Provider>
   );
 });

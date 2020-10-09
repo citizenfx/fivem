@@ -65,7 +65,7 @@ export function notNull<T>(e: T | null): e is T {
   return !!e;
 }
 
-export function getProjectManifestResource(manifest: ProjectManifest | void, resourceName: string): ProjectManifestResource {
+export function getResourceConfig(manifest: ProjectManifest | void, resourceName: string): ProjectManifestResource {
   const defaults = {
     ...resourceDefault,
     name: resourceName,
@@ -92,7 +92,7 @@ export const getProjectResources = (project: Project): ProjectResources => {
 
     if (entry.meta.isResource) {
       resources[entry.path] = {
-        ...getProjectManifestResource(project.manifest, entry.name),
+        ...getResourceConfig(project.manifest, entry.name),
         path: entry.path,
         running: false,
       };
@@ -114,6 +114,6 @@ export const getProjectResources = (project: Project): ProjectResources => {
 
 export const getEnabledResourcesPaths = (project: Project, projectResources: ProjectResources) => {
   return Object.values(projectResources)
-    .filter((resource) => getProjectManifestResource(project.manifest, resource.name).enabled)
+    .filter((resource) => getResourceConfig(project.manifest, resource.name).enabled)
     .map((resource) => resource.path);
 };

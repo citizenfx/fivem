@@ -9,9 +9,11 @@ import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
 import { Resource } from './Resource/Resource';
-import { ProjectItemProps, ProjectItemRenderer } from './ResourceExplorer.item';
-import s from './ResourceExplorer.module.scss';
-import { ResourceExplorerContextProvider } from './ResourceExplorer.context';
+import { ProjectItemProps, ProjectItemRenderer } from './ProjectExplorer.item';
+import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
+import { ContextMenu, ContextMenuItem } from '../../controls/ContextMenu/ContextMenu';
+import { newDirectoryIcon, newResourceIcon } from '../../../constants/icons';
+import s from './ProjectExplorer.module.scss';
 
 
 const assetTypeRenderers = {
@@ -60,9 +62,17 @@ const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
   }
 };
 
-export const ResourceExplorer = React.memo(() => {
-  const { project, projectResources, directoryCreatorOpen, closeDirectoryCreator } = React.useContext(ProjectContext);
-  invariant(project, `ResourceExplorer was rendered without project set`);
+export const ProjectExplorer = React.memo(() => {
+  const {
+    project,
+    projectResources,
+    directoryCreatorOpen,
+    closeDirectoryCreator,
+    setAssetCreatorDir,
+    openAssetCreator,
+    openDirectoryCreator,
+  } = React.useContext(ProjectContext);
+  invariant(project, `ProjectExplorer was rendered without project set`);
 
   const handleDirectoryCreate = React.useCallback((directoryName: string) => {
     closeDirectoryCreator();
@@ -75,6 +85,13 @@ export const ResourceExplorer = React.memo(() => {
       });
     }
   }, [project, closeDirectoryCreator]);
+
+  const handleOpenAssetCreator = React.useCallback(() => {
+    if (project) {
+      setAssetCreatorDir(project.path);
+      openAssetCreator();
+    }
+  }, [project, setAssetCreatorDir, openAssetCreator]);
 
   const nodes = project.fsTree.entries
     .filter((entry) => {
@@ -101,9 +118,27 @@ export const ResourceExplorer = React.memo(() => {
       creatorClassName: s.creator,
     }));
 
+  const contextItems: ContextMenuItem[] = [
+    {
+      id: 'new-asset',
+      icon: newResourceIcon,
+      text: 'New asset',
+      onClick: handleOpenAssetCreator,
+    },
+    {
+      id: 'new-directory',
+      icon: newDirectoryIcon,
+      text: 'New directory',
+      onClick: openDirectoryCreator,
+    },
+  ];
+
   return (
-    <ResourceExplorerContextProvider>
-      <div className={s.root}>
+    <ProjectExplorerContextProvider>
+      <ContextMenu
+        className={s.root}
+        items={contextItems}
+      >
         {directoryCreatorOpen && (
           <DirectoryCreator
             className={s.creator}
@@ -111,7 +146,7 @@ export const ResourceExplorer = React.memo(() => {
           />
         )}
         {nodes}
-      </div>
-    </ResourceExplorerContextProvider>
+      </ContextMenu>
+    </ProjectExplorerContextProvider>
   );
 });

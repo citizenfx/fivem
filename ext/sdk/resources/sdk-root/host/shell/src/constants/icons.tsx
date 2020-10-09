@@ -1,5 +1,24 @@
 import React from 'react';
-import { BsDiamond, BsFolderFill, BsFolder, BsLayersFill, BsPlusSquare, BsFolderPlus, BsFileEarmark, BsPuzzle, BsTrash, BsGear, BsTerminal, BsLayersHalf, BsArrowRepeat, BsPencil, BsDiamondFill } from 'react-icons/bs';
+import {
+  BsDiamond,
+  BsFolderFill,
+  BsFolder,
+  BsLayersFill,
+  BsPlusSquare,
+  BsFolderPlus,
+  BsFileEarmark,
+  BsPuzzle,
+  BsTrash,
+  BsGear,
+  BsTerminal,
+  BsLayersHalf,
+  BsArrowRepeat,
+  BsPencil,
+  BsDiamondFill,
+  BsFileEarmarkPlus,
+  BsStopFill,
+  BsPlayFill
+} from 'react-icons/bs';
 
 export const devtoolsIcon = <BsTerminal />;
 
@@ -17,6 +36,7 @@ export const fileIcon = <BsFileEarmark />;
 export const openDirectoryIcon = <BsFolder />;
 export const closedDirectoryIcon = <BsFolderFill />;
 
+export const newFileIcon = <BsFileEarmarkPlus />;
 export const newResourceIcon = <BsPlusSquare />;
 export const newDirectoryIcon = <BsFolderPlus />;
 
@@ -26,3 +46,6 @@ export const renameIcon = <BsPencil />;
 export const RefreshIconComponent = BsArrowRepeat;
 export const refreshIcon = <RefreshIconComponent />;
 export const rotatingRefreshIcon = <RefreshIconComponent className="rotating" />;
+
+export const stopIcon = <BsStopFill />;
+export const startIcon = <BsPlayFill />;

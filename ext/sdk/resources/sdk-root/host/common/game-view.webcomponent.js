@@ -96,7 +96,14 @@ function createProgram(gl) {
 
 function createGameView() {
   const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl', { antialiasing: false });
+  const gl = canvas.getContext('webgl', {
+    antialias: false,
+    depth: false,
+    alpha: false,
+    stencil: false,
+    desynchronized: true,
+    powerPreference: 'high-performance',
+  });
 
   const gameView = {
     canvas,

@@ -93,6 +93,8 @@ export const ServerContextProvider = React.memo(({ children }) => {
   // Handling game events
   React.useEffect(() => {
     const handleMessage = (e) => {
+      console.log('MESSAGE', e.data);
+
       if (e.data.type === 'connected') {
         console.log('CLIENT IS CONNECTED');
         setClientConnected(true);

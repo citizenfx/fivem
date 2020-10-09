@@ -1,28 +1,31 @@
 import React from 'react';
 import classnames from 'classnames';
 import { combineVisibilityFilters, visibilityFilters } from '../../../Explorer/Explorer';
-import { ProjectItemProps } from '../../ResourceExplorer/ResourceExplorer.item';
-import { useOpenFlag } from '../../../../utils/hooks';
+import { ProjectItemProps } from '../../ProjectExplorer/ProjectExplorer.item';
 import { assetStatus } from '../../../../sdkApi/api.types';
 import { invariant } from '../../../../utils/invariant';
 import { assetIcon, rotatingRefreshIcon } from '../../../../constants/icons';
-import { DirectoryContextProdiver } from '../../ResourceExplorer/Directory/Directory.context';
-import { ResourceContextProvider } from '../../ResourceExplorer/Resource/Resource.context';
+import { useExpandablePath, useItem } from '../../ProjectExplorer/ProjectExplorer.hooks';
 import s from './PackAsset.module.scss';
-import { useExpandablePath } from '../../ResourceExplorer/ResourceExplorer.hooks';
+import {
+  ProjectExplorerItemContext,
+  ProjectExplorerItemContextProvider,
+  ProjectExplorerVisibilityFilter,
+} from '../../ProjectExplorer/ProjectExplorer.itemContext';
 
 
 const visibilityFilter = combineVisibilityFilters(
-  visibilityFilters.hideDotFilesAndDirs,
+  ProjectExplorerVisibilityFilter,
   visibilityFilters.hideFiles,
 );
 
 export const PackAsset = React.memo((props: ProjectItemProps) => {
-  const { entry, pathsMap, itemRenderer } = props;
+  const { entry } = props;
   const { assetMeta } = entry.meta;
 
   invariant(assetMeta, 'No asset meta');
 
+  const { renderItemChildren } = useItem(props);
   const { expanded, toggleExpanded } = useExpandablePath(entry.path, false);
 
   const [updating, setUpdating] = React.useState(entry.meta.assetMeta?.manager?.data?.status === assetStatus.updating);
@@ -30,12 +33,7 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
     setUpdating(entry.meta.assetMeta?.manager?.data?.status === assetStatus.updating);
   }, [entry.meta.assetMeta?.manager?.data?.status]);
 
-  const children = (pathsMap[entry.path] || [])
-    .filter(visibilityFilter)
-    .map((child) => itemRenderer({
-      ...props,
-      entry: child,
-    }));
+  const children = renderItemChildren(visibilityFilter);
 
   const rootClassName = classnames(s.root, {
     [s.open]: expanded,
@@ -44,6 +42,20 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
   const icon = updating
     ? rotatingRefreshIcon
     : assetIcon;
+
+  const contextOptions: Partial<ProjectExplorerItemContext> = {
+    disableAssetCreate: true,
+    disableAssetDelete: true,
+    disableAssetRename: true,
+    disableDirectoryCreate: true,
+    disableDirectoryDelete: true,
+    disableDirectoryRename: true,
+    disableFileCreate: true,
+    disableFileDelete: true,
+    disableFileOpen: true,
+    disableFileRename: true,
+    visibilityFilter,
+  };
 
   return (
     <div className={rootClassName}>
@@ -64,19 +76,11 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
 
       {expanded && (
         <div className={s.children}>
-          <DirectoryContextProdiver
-            forbidCreateDirectory
-            forbidCreateResource
-            forbidDeleteDirectory
-            visibilityFilter={visibilityFilter}
+          <ProjectExplorerItemContextProvider
+            options={contextOptions}
           >
-            <ResourceContextProvider
-              forbidDeletion
-              forbidRenaming
-            >
-              {children}
-            </ResourceContextProvider>
-          </DirectoryContextProdiver>
+            {children}
+          </ProjectExplorerItemContextProvider>
         </div>
       )}
     </div>

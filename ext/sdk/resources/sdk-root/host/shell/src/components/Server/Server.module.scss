@@ -10,16 +10,21 @@
 
   background-color: rgba($fgColor, .1);
 
-  cursor: default;
+  cursor: pointer;
   user-select: none;
 
   &.up {
-    cursor: pointer;
-    background-color: rgba($scColor, 1);
+    background-color: $scColor;
+
+    &:hover {
+      background-color: $erColor;
+    }
   }
 
   &.down {
-    cursor: pointer;
+    &:hover {
+      background-color: $scColor;
+    }
   }
 
   svg {

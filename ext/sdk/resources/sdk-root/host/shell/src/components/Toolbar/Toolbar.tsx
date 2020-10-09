@@ -44,20 +44,17 @@ export const Toolbar = React.memo(() => {
 
       <div className={s.bar}>
         <div className={s.controls}>
-          <div className={s.group}>
-            <button onClick={handleOpenCreator}>
-              {newProjectIcon}
+          <button onClick={handleOpenCreator} style={{ flexGrow: 1 }}>
+            {newProjectIcon}
               New Project
             </button>
-            <button onClick={handleOpenOpener}>
-              {openProjectIcon}
+          <button onClick={handleOpenOpener} style={{ flexGrow: 1 }}>
+            {openProjectIcon}
               Open Project
             </button>
-            <button onClick={handleOpenDevtools}>
-              {devtoolsIcon}
-              DevTools
-            </button>
-          </div>
+          <button onClick={handleOpenDevtools} style={{ flexGrow: 0 }} title="Open DevTools">
+            {devtoolsIcon}
+          </button>
         </div>
 
         {creatorOpen && <ProjectCreator />}

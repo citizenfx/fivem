@@ -4,9 +4,21 @@ import * as mkdirp from 'mkdirp';
 import * as chokidar from 'chokidar';
 import * as rimrafSync from 'rimraf';
 import { promisify } from 'util';
-import { ApiClient, AssetDeleteRequest, AssetMeta, AssetRenameRequest, Project, ProjectFsTree, ProjectManifest, ProjectPathsState, ProjectResources, RelinkResourcesRequest } from "./api.types";
+import {
+  ApiClient,
+  AssetDeleteRequest,
+  AssetMeta,
+  AssetRenameRequest,
+  Project,
+  ProjectFsTree,
+  ProjectManifest,
+  ProjectManifestResource,
+  ProjectPathsState,
+  ProjectResources,
+  RelinkResourcesRequest,
+} from "./api.types";
 import { projectApi } from './events';
-import { createLock, debounce, getEnabledResourcesPaths, getProjectManifestResource, getProjectResources } from './utils';
+import { createLock, debounce, getEnabledResourcesPaths, getResourceConfig, getProjectResources } from './utils';
 import { fxdkAssetFilename, fxdkProjectFilename } from './constants';
 import { EntryMetaExtras, ExplorerApi } from './ExplorerApi';
 import { SystemEvent, systemEvents } from './api.events';
@@ -125,10 +137,16 @@ export class ProjectInstance {
       this.client.on(projectApi.setPathsState, (pathsState: ProjectPathsState) => this.setPathsState(pathsState)),
 
       this.client.on(projectApi.setResourceEnabled, ({ resourceName, enabled }) => this.setResourceEnabled(resourceName, enabled)),
+      this.client.on(projectApi.setResourceConfig, ({ resourceName, config }) => this.setResourceConfig(resourceName, config)),
       this.client.on(projectApi.updateResources, () => this.readAndNotifyFsTree()),
 
       this.client.on(projectApi.createDirectory, ({ directoryPath, directoryName }) => this.createDirectory(directoryPath, directoryName)),
-      this.client.on(projectApi.deleteDirectory, ({ categoryPath }) => this.deleteDirectory(categoryPath)),
+      this.client.on(projectApi.deleteDirectory, ({ directoryPath }) => this.deleteDirectory(directoryPath)),
+      this.client.on(projectApi.renameDirectory, ({ directoryPath, newDirectoryName }) => this.renameDirectory(directoryPath, newDirectoryName)),
+
+      this.client.on(projectApi.createFile, ({ filePath, fileName }) => this.createFile(filePath, fileName)),
+      this.client.on(projectApi.deleteFile, ({ filePath }) => this.deleteFile(filePath)),
+      this.client.on(projectApi.renameFile, ({ filePath, newFileName }) => this.renameFile(filePath, newFileName)),
     );
   }
 
@@ -169,7 +187,7 @@ export class ProjectInstance {
 
   async setResourceEnabled(resourceName: string, enabled: boolean) {
     this.manifest.resources[resourceName] = {
-      ...getProjectManifestResource(this.manifest, resourceName),
+      ...getResourceConfig(this.manifest, resourceName),
       enabled,
     };
 
@@ -180,6 +198,16 @@ export class ProjectInstance {
     resourceNames.forEach((resourceName) => {
       this.setResourceEnabled(resourceName, enabled);
     });
+  }
+
+  async setResourceConfig(resourceName: string, config: Partial<ProjectManifestResource>) {
+    this.manifest.resources[resourceName] = {
+      ...getResourceConfig(this.manifest, resourceName),
+      ...config,
+    };
+
+    this.writeManifest();
+    this.notifyProjectUpdated();
   }
 
   setPathsState(pathsState: ProjectPathsState) {
@@ -279,6 +307,31 @@ export class ProjectInstance {
   async deleteDirectory(directoryPath: string) {
     await rimraf(directoryPath);
   }
+
+  async renameDirectory(directoryPath: string, newName: string) {
+    const newDirectoryPath = path.join(path.dirname(directoryPath), newName);
+
+    await fs.promises.rename(directoryPath, newDirectoryPath);
+  }
+  // /Directory methods
+
+  // Files methods
+  async createFile(filePath: string, name: string) {
+    const fileFullPath = path.join(filePath, name);
+
+    await fs.promises.writeFile(fileFullPath, '');
+  }
+
+  async deleteFile(filePath: string) {
+    await fs.promises.unlink(filePath);
+  }
+
+  async renameFile(filePath: string, newName: string) {
+    const newFilePath = path.join(path.dirname(filePath), newName);
+
+    await fs.promises.rename(filePath, newFilePath);
+  }
+  // /Files methods
 
   readAndNotifyFsTree = debounce(async () => {
     this.client.log('reading fs tree, reconciling resources and sending update');
@@ -402,7 +455,7 @@ export class ProjectInstance {
 
         if (updatedResourcePath) {
           const resourceName = path.basename(updatedResourcePath);
-          const resourceConfig = getProjectManifestResource(this.manifest, resourceName);
+          const resourceConfig = getResourceConfig(this.manifest, resourceName);
 
           this.client.log('Probably restarting resource', {
             resourceName,

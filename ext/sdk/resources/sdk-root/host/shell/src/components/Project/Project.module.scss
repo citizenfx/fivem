@@ -8,81 +8,60 @@
   display: flex;
   flex-direction: column;
 
-  .row {
-    height: $q*10;
+  .header {
+    height: $q*12;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
-  }
 
-  .title {
-    padding-left: $q * 4;
+    .title {
+      padding-left: $q * 4;
 
-    @include fontSecondary;
-    letter-spacing: 1px;
+      @include fontSecondary;
+      letter-spacing: 1px;
 
-    .name {
-      color: $fgColor;
-      font-size: $fs2;
-      font-weight: 500;
+      .name {
+        color: $fgColor;
+        font-size: $fs2;
+        font-weight: 500;
+      }
     }
-  }
 
-  .extra {
-    display: flex;
+    .extra {
+      display: flex;
+      margin-right: $q*2;
 
-    .stats {
-      padding: 0 $q*4;
+      .stats {
+        padding: 0 $q*4;
 
-      span {
-        height: 100%;
-        display: flex;
-        align-items: center;
+        span {
+          height: 100%;
+          display: flex;
+          align-items: center;
 
-        color: rgba($fgColor, .5);
+          color: rgba($fgColor, .5);
 
-        svg {
-          margin-right: $q;
+          svg {
+            margin-right: $q;
+          }
         }
       }
-    }
 
-    .server {
-      display: flex;
-      align-items: center;
-    }
-
-    .config {
-      height: 100%;
-
-      font-size: $fs1;
-
-      svg {
-        margin: 0;
-        color: $fgColor;
+      .server {
+        display: flex;
+        align-items: center;
       }
-    }
-  }
 
-  .controls {
-    flex-grow: 0;
-    flex-shrink: 0;
+      .config {
+        height: 100%;
 
-    width: 100%;
+        font-size: $fs1;
 
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: stretch;
-
-    .group {
-      display: flex;
-      justify-content: space-evenly;
-
-      button {
-        flex-grow: 1;
-        width: 50%
+        svg {
+          margin: 0;
+          color: $fgColor;
+        }
       }
     }
   }

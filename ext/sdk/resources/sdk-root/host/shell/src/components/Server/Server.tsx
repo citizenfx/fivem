@@ -1,6 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsPlayFill } from 'react-icons/bs';
+import { BsPlayFill, BsStopFill } from 'react-icons/bs';
 import { ServerContext } from '../../contexts/ServerContext';
 import { rotatingRefreshIcon } from '../../constants/icons';
 import { ServerStates } from '../../sdkApi/api.types';
@@ -20,8 +20,8 @@ export const Server = React.memo(() => {
 
   switch (serverState) {
     case ServerStates.up: {
-      icon = <BsPlayFill />;
-      title = 'Server is up';
+      icon = <BsStopFill />;
+      title = 'Stop server';
       break;
     }
 
@@ -33,7 +33,7 @@ export const Server = React.memo(() => {
 
     case ServerStates.booting: {
       icon = rotatingRefreshIcon;
-      title = 'Server is starting';
+      title = 'Stop server';
       break;
     }
   }
@@ -49,8 +49,12 @@ export const Server = React.memo(() => {
 
   return (
     <div className={rootClassName} onClick={handleClick}>
-      {icon}
-      {title}
+      <div className={s.icon}>
+        {icon}
+      </div>
+      <div className={s.title}>
+        {title}
+      </div>
     </div>
   );
 });

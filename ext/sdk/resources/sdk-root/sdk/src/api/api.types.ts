@@ -53,10 +53,8 @@ export const assetStatus = {
   error: 'error',
 };
 
-export interface ProjectResource {
+export interface ProjectResource extends ProjectManifestResource {
   path: string,
-  name: string,
-  enabled: boolean,
   running: boolean,
 }
 

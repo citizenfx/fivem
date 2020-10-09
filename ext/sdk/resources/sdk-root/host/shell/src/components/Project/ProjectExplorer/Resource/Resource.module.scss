@@ -1,0 +1,61 @@
+@import "variables";
+
+.root {
+
+  .resource {
+    position: relative;
+    padding: $q*2 $q*4;
+
+    color: rgba($fgColor, .5);
+    cursor: pointer;
+
+    &:hover,
+    &.active {
+      color: $fgColor;
+
+      .controls {
+        opacity: 1;
+      }
+    }
+
+    .name {
+      display: flex;
+      align-items: center;
+
+      .icon {
+        color: rgba($fgColor, .5);
+
+        transition: all .2s ease;
+
+        &.active {
+          color: $scColor;
+        }
+
+        svg {
+          font-size: $fs08;
+
+          margin-right: $q*2;
+        }
+      }
+    }
+
+    .controls {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+
+      display: flex;
+
+      opacity: 0;
+
+      button {
+        height: 100%;
+      }
+    }
+  }
+
+  .children {
+    margin-left: $q*4;
+  }
+}

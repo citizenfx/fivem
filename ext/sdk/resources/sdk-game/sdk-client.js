@@ -14,24 +14,13 @@ on('onClientResourceStart', (resourceName) => {
 });
 
 setTick(() => {
-	//DrawRect(0, 0, .5, .5, 255, 255, 255, 255);
 	sendSdkData({
 		type: 'pos',
-		payload: GetEntityCoords(GetPlayerPed()),
+		payload: GetEntityCoords(PlayerPedId()),
 	});
 });
 
-RegisterCommand('test', (...args) => {
-	console.log('test', ...args);
-});
-
-RegisterCommand('weapon', (_, [weapon]) => {
-	console.log('giving weapon', weapon);
-
-	GiveWeaponToPed(PlayerPedId(), weapon, 1000, false, true);
-});
-
-RegisterCommand('sdk:data_request', (_, [cmd]) => {
+RegisterCommand('sdk:dataRequest', (_, [cmd]) => {
 	switch (cmd) {
 		case 'pos': {
 			return sendSdkData({

@@ -40,14 +40,18 @@ lineStream.on('data', (msg) => {
             case 'restart': {
                 if (resourcesState[data]) {
                     ExecuteCommand(`restart ${data}`);
-                } else {
-                    ExecuteCommand(`start ${data}`);
                 }
                 return;
             }
             case 'stop': {
                 if (resourcesState[data]) {
                     ExecuteCommand(`stop ${data}`);
+                }
+                return;
+            }
+            case 'start': {
+                if (!resourcesState[data]) {
+                    ExecuteCommand(`start ${data}`);
                 }
                 return;
             }

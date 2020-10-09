@@ -27,6 +27,14 @@
 
     z-index: 1001;
 
+    .separator {
+      height: 1px;
+
+      margin: $q $q*2;
+
+      background-color: $borderColor;
+    }
+
     .item {
       display: flex;
       align-items: center;

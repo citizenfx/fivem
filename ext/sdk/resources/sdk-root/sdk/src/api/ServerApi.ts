@@ -230,6 +230,9 @@ export class ServerApi {
         this.client.on(serverApi.stopResource, (resourceName) => {
           this.sendIpcEvent('stop', resourceName);
         }),
+        this.client.on(serverApi.startResource, (resourceName) => {
+          this.sendIpcEvent('start', resourceName);
+        }),
       );
 
       const lineStream = byline.createStream();
