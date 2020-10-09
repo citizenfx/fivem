@@ -68,12 +68,8 @@ void SDKCefApp::OnBeforeCommandLineProcessing(const CefString& process_type, Cef
 {
 	command_line->AppendSwitch("disable-extensions");
 	command_line->AppendSwitch("disable-pdf-extension");
-	command_line->AppendSwitch("enable-pointer-lock");
-	command_line->AppendSwitch("enable-shadow-dom");
 
 	command_line->AppendSwitchWithValue("use-angle", "d3d11");
-
-	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-sdk-view", ToNarrow(MakeRelativeCitPath(L"bin\\sdk_rendering.dll"))));
 }
 
 namespace

@@ -9,6 +9,7 @@ import { ProjectItemProps, renderChildren } from '../ResourceExplorer.item';
 import { DirectoryContext } from './Directory.context';
 import { FilesystemEntry, Project } from '../../../../sdkApi/api.types';
 import s from './Directory.module.scss';
+import { useExpandablePath } from '../ResourceExplorer.hooks';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean, project: Project) => {
@@ -31,13 +32,14 @@ export interface DirectoryProps extends ProjectItemProps {
 }
 
 export const Directory = React.memo((props: DirectoryProps) => {
-  const { entry, project, pathsMap, itemRenderer, creatorClassName } = props;
+  const { entry, project, pathsMap, creatorClassName } = props;
   const { icon } = props;
   const { visibilityFilter } = React.useContext(DirectoryContext);
 
+  const { expanded, toggleExpanded, forceExpanded } = useExpandablePath(entry.path);
+
   const directoryChildren = pathsMap[entry.path] || [];
 
-  const [open, setOpen, _, toggleOpen] = useOpenFlag(true); // eslint-disable-line @typescript-eslint/no-unused-vars
   const {
     ctxItems,
     creatorOpen,
@@ -45,25 +47,25 @@ export const Directory = React.memo((props: DirectoryProps) => {
     deleteConfirmationOpen,
     closeDeleteConfirmation,
     deleteDirectory,
-  } = useDirectoryContextMenu(entry.path, project, setOpen, directoryChildren.length);
+  } = useDirectoryContextMenu(entry.path, project, forceExpanded, directoryChildren.length);
 
   const nodes = renderChildren(entry, props, visibilityFilter);
 
-  const iconNode = icon || getDirectoryIcon(entry, open, project);
+  const iconNode = icon || getDirectoryIcon(entry, expanded, project);
 
   return (
     <div className={s.root}>
       <ContextMenu
         className={s.name}
         items={ctxItems}
-        onClick={toggleOpen}
+        onClick={toggleExpanded}
         activeClassName={s.active}
       >
         {iconNode}
         {entry.name}
       </ContextMenu>
 
-      {open && (
+      {expanded && (
         <div className={s.children}>
           {creatorOpen && (
             <DirectoryCreator

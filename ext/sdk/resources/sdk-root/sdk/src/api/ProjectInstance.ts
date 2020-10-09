@@ -4,7 +4,7 @@ import * as mkdirp from 'mkdirp';
 import * as chokidar from 'chokidar';
 import * as rimrafSync from 'rimraf';
 import { promisify } from 'util';
-import { ApiClient, AssetDeleteRequest, AssetMeta, AssetRenameRequest, Project, ProjectFsTree, ProjectManifest, ProjectResources, RelinkResourcesRequest } from "./api.types";
+import { ApiClient, AssetDeleteRequest, AssetMeta, AssetRenameRequest, Project, ProjectFsTree, ProjectManifest, ProjectPathsState, ProjectResources, RelinkResourcesRequest } from "./api.types";
 import { projectApi } from './events';
 import { createLock, debounce, getEnabledResourcesPaths, getProjectManifestResource, getProjectResources } from './utils';
 import { fxdkAssetFilename, fxdkProjectFilename } from './constants';
@@ -66,6 +66,7 @@ export class ProjectInstance {
       name: request.name,
       createdAt: new Date().toISOString(),
       resources: {},
+      pathsState: {},
     };
 
     client.log('Projects shadow root path', projectShadowRootPath);
@@ -121,6 +122,8 @@ export class ProjectInstance {
     private readonly explorerApi: ExplorerApi,
   ) {
     this.disposers.push(
+      this.client.on(projectApi.setPathsState, (pathsState: ProjectPathsState) => this.setPathsState(pathsState)),
+
       this.client.on(projectApi.setResourceEnabled, ({ resourceName, enabled }) => this.setResourceEnabled(resourceName, enabled)),
       this.client.on(projectApi.updateResources, () => this.readAndNotifyFsTree()),
 
@@ -177,6 +180,12 @@ export class ProjectInstance {
     resourceNames.forEach((resourceName) => {
       this.setResourceEnabled(resourceName, enabled);
     });
+  }
+
+  setPathsState(pathsState: ProjectPathsState) {
+    this.manifest.pathsState = pathsState;
+
+    this.setManifestDebounced();
   }
 
   /**
@@ -349,7 +358,11 @@ export class ProjectInstance {
   private async readManifest(): Promise<ProjectManifest> {
     const manifestContent = await fs.promises.readFile(this.manifestPath);
 
-    return this.manifest = JSON.parse(manifestContent.toString('utf8'));
+    return this.manifest = {
+      pathsState: {},
+      resources: {},
+      ...JSON.parse(manifestContent.toString('utf8')),
+    };
   }
 
   private async writeManifest() {

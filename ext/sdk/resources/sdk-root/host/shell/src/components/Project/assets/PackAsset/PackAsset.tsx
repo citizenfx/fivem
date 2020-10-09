@@ -9,6 +9,7 @@ import { assetIcon, rotatingRefreshIcon } from '../../../../constants/icons';
 import { DirectoryContextProdiver } from '../../ResourceExplorer/Directory/Directory.context';
 import { ResourceContextProvider } from '../../ResourceExplorer/Resource/Resource.context';
 import s from './PackAsset.module.scss';
+import { useExpandablePath } from '../../ResourceExplorer/ResourceExplorer.hooks';
 
 
 const visibilityFilter = combineVisibilityFilters(
@@ -22,7 +23,7 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
 
   invariant(assetMeta, 'No asset meta');
 
-  const [open, _setOpen, _setClose, toggleOpen] = useOpenFlag(false); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { expanded, toggleExpanded } = useExpandablePath(entry.path, false);
 
   const [updating, setUpdating] = React.useState(entry.meta.assetMeta?.manager?.data?.status === assetStatus.updating);
   React.useEffect(() => {
@@ -37,7 +38,7 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
     }));
 
   const rootClassName = classnames(s.root, {
-    [s.open]: open,
+    [s.open]: expanded,
   });
 
   const icon = updating
@@ -46,7 +47,11 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
 
   return (
     <div className={rootClassName}>
-      <div className={s.name} onClick={toggleOpen} title={`Imported from: ${entry.meta.assetMeta?.manager?.data?.repoUrl || 'unknown'}`}>
+      <div
+        className={s.name}
+        onClick={toggleExpanded}
+        title={`Imported from: ${entry.meta.assetMeta?.manager?.data?.repoUrl || 'unknown'}`}
+      >
         {icon}
         {entry.name}
 
@@ -57,7 +62,7 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
         )}
       </div>
 
-      {open && (
+      {expanded && (
         <div className={s.children}>
           <DirectoryContextProdiver
             forbidCreateDirectory

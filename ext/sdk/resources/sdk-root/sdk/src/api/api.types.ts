@@ -70,12 +70,17 @@ export interface ProjectManifestResource {
   restartOnChange: boolean,
 }
 
+export type ProjectPathsState = {
+  [path: string]: boolean,
+};
+
 export interface ProjectManifest {
   name: string,
   createdAt: string,
   resources: {
     [name: string]: ProjectManifestResource,
   },
+  pathsState: ProjectPathsState,
 }
 
 export type FilesystemEntryMap = {

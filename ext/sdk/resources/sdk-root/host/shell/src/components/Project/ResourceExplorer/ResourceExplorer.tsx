@@ -11,6 +11,7 @@ import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator'
 import { Resource } from './Resource/Resource';
 import { ProjectItemProps, ProjectItemRenderer } from './ResourceExplorer.item';
 import s from './ResourceExplorer.module.scss';
+import { ResourceExplorerContextProvider } from './ResourceExplorer.context';
 
 
 const assetTypeRenderers = {
@@ -101,14 +102,16 @@ export const ResourceExplorer = React.memo(() => {
     }));
 
   return (
-    <div className={s.root}>
-      {directoryCreatorOpen && (
-        <DirectoryCreator
-          className={s.creator}
-          onCreate={handleDirectoryCreate}
-        />
-      )}
-      {nodes}
-    </div>
+    <ResourceExplorerContextProvider>
+      <div className={s.root}>
+        {directoryCreatorOpen && (
+          <DirectoryCreator
+            className={s.creator}
+            onCreate={handleDirectoryCreate}
+          />
+        )}
+        {nodes}
+      </div>
+    </ResourceExplorerContextProvider>
   );
 });

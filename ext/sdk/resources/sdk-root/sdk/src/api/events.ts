@@ -7,6 +7,9 @@ export const projectApi = {
   recents: 'project:recents',
   removeRecent: 'project:removeRecent',
 
+  setPathsState: 'project:setPathsState',
+  pathsState: 'project:pathsState',
+
   createResource: 'project:createResource',
   resourceAdded: 'project:addResource',
   renameResource: 'project:renameResource',

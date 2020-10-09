@@ -12,6 +12,17 @@ import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, ren
 import { ServerContext } from '../../../../contexts/ServerContext';
 import s from './Resource.module.scss';
 import { projectApi, serverApi } from '../../../../sdkApi/events';
+import { FilesystemEntry } from '../../../../sdkApi/api.types';
+import { useExpandablePath } from '../ResourceExplorer.hooks';
+
+
+const resourceChildrenFilter = (entry: FilesystemEntry) => {
+  if (entry.name === 'fxasset.json') {
+    return false;
+  }
+
+  return true;
+};
 
 export interface ResourceProps {
   name: string,
@@ -23,6 +34,7 @@ export const Resource = React.memo((props: ProjectItemProps) => {
   const projectResource = projectResources[entry.path];
 
   const { resourcesState } = React.useContext(ServerContext);
+  const { expanded, toggleExpanded } = useExpandablePath(entry.path);
 
   const isEnabled = !!projectResource?.enabled;
 
@@ -82,7 +94,7 @@ export const Resource = React.memo((props: ProjectItemProps) => {
     ? enabledResourceIcon
     : resourceIcon;
 
-  const children = renderChildren(entry, props);
+  const children = renderChildren(entry, props, resourceChildrenFilter);
 
   return (
     <div className={s.root}>
@@ -90,6 +102,7 @@ export const Resource = React.memo((props: ProjectItemProps) => {
         className={s.resource}
         activeClassName={s.active}
         items={contextMenuItems}
+        onClick={toggleExpanded}
       >
         <div className={s.name}>
           <span className={iconsClassName} title={iconTitle}>
@@ -108,9 +121,11 @@ export const Resource = React.memo((props: ProjectItemProps) => {
         </div>
       </ContextMenu>
 
-      <div className={s.children}>
-        {children}
-      </div>
+      {expanded && (
+        <div className={s.children}>
+          {children}
+        </div>
+      )}
 
       {deleterOpen && (
         <ResourceDeleter path={entry.path} name={entry.name} onClose={closeDeleter} />

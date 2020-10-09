@@ -2,6 +2,7 @@
 
 declare var openDevTools: () => void;
 declare var invokeNative: (native: string, ...arg: string[]) => void;
+declare var renderGame: () => void;
 
 declare namespace JSX {
   interface IntrinsicElements {
