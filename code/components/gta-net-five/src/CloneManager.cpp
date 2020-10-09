@@ -1673,7 +1673,7 @@ void CloneManagerLocal::Update()
 
 						auto it = removedFlags.find(ent);
 
-						if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (300.f * 300.f))
+						if (DirectX::XMVectorGetX(DirectX::XMVector2LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (424.f * 4240.f))
 						{
 							if (it != removedFlags.end())
 							{
