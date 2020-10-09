@@ -1047,6 +1047,8 @@ namespace fx
 		}
 
 		// signal a drop
+		client->SetDropping();
+
 		client->OnDrop();
 
 		{

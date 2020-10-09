@@ -148,6 +148,11 @@ namespace fx
 		{
 			for (auto& client : m_clients)
 			{
+				if (client.second->IsDropping())
+				{
+					continue;
+				}
+
 				cb(client.second);
 			}
 		}

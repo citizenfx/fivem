@@ -217,6 +217,16 @@ namespace fx
 			}
 		}
 
+		inline bool IsDropping() const
+		{
+			return m_dropping;
+		}
+
+		inline void SetDropping()
+		{
+			m_dropping = true;
+		}
+
 		const std::any& GetData(const std::string& key);
 
 		void SetData(const std::string& key, const std::any& data);
@@ -293,6 +303,9 @@ namespace fx
 
 		// principal values
 		std::list<se::Principal> m_principals;
+
+		// whether the client is currently being dropped
+		volatile bool m_dropping;
 	};
 
 	inline object_pool<Client, 512 * 1024> clientPool;
