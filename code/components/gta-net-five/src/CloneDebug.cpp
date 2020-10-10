@@ -205,7 +205,14 @@ static void RenderNetObjectTree()
 						{
 							if (ImGui::IsItemClicked())
 							{
+								bool isDifferent = !g_curNetObjectSelection || g_curNetObjectSelection->objectType != object->objectType;
+
 								g_curNetObjectSelection = object;
+
+								if (isDifferent)
+								{
+									g_curSyncNodeSelection = nullptr; // in case the current sync node doesn't exist e.g. for a different sync tree
+								}
 							}
 
 							RenderSyncTree(object, object->GetSyncTree());
