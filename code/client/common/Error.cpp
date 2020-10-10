@@ -128,7 +128,7 @@ static int GlobalErrorHandler(int eType, const char* buffer)
 	static bool inFatalError = false;
 	static std::string lastFatalError;
 
-	trace("GlobalError: %s\n", buffer);
+	trace("Error: %s\n", buffer);
 
 	if (inError || (eType == ERR_FATAL && inFatalError))
 	{
