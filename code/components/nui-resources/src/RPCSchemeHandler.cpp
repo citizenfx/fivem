@@ -49,7 +49,15 @@ public:
 		fwString host(hostname.begin(), hostname.end());
 
 		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
-		auto resource = resourceManager->GetResource(host);
+		fwRefContainer<fx::Resource> resource;
+
+		resourceManager->ForAllResources([&host, &resource](const fwRefContainer<fx::Resource>& resourceRef)
+		{
+			if (_stricmp(resourceRef->GetName().c_str(), host.c_str()) == 0)
+			{
+				resource = resourceRef;
+			}
+		});
 
 		if (!resource.GetRef())
 		{

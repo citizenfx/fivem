@@ -259,7 +259,7 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 
 static hook::cdecl_stub<void(atPoolBase*)> poolRelease([]()
 {
-	return hook::get_call(hook::get_pattern("E8 ? ? ? ? BA 88 73 00 00 48 8B CB E8", 13));
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? BA 88 01 00 00 48 8B CB E8", 13));
 });
 
 namespace rage
@@ -273,6 +273,25 @@ namespace rage
 	{
 		return poolRelease(pool);
 	}
+}
+
+static bool ret0()
+{
+	return false;
+}
+
+static hook::cdecl_stub<void()> _loadStreamingFiles([]()
+{
+	return hook::get_pattern("C7 85 78 02 00 00 61 00 00 00 41 BE", -0x28);
+});
+
+void (*g_origLevelLoad)(const char* r);
+
+void WrapLevelLoad(const char* r)
+{
+	_loadStreamingFiles();
+
+	g_origLevelLoad(r);
 }
 
 static HookFunction hookFunction([]()
@@ -323,13 +342,34 @@ static HookFunction hookFunction([]()
 	};
 
 	// find initial pools
-	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? 00 E8 ? ? ? ? 8B D8 E8"), 51, 1);
+	registerPools(hook::pattern("BA ? ? ? ? 41 B8 ? ? ? ? E8 ? ? ? ? 8B D8 E8"), 51, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
 
 	MH_Initialize();
-	// for 1232: "4C 63 41 1C 4C 8B D1 49 3B D0 76" - 4
-	MH_CreateHook(hook::get_pattern("48 63 49 1C 48 3B D1 77 ? 49 63 52 20", -3), PoolAllocateWrap, (void**)&g_origPoolAllocate);
+	MH_CreateHook(hook::get_pattern("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	// mapdatastore/maptypesstore 'should async place'
+
+	// typesstore
+	{
+		auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 00 01 00 00 45 8D 41 49 E8", 19));
+		hook::put(&vtbl[34], ret0);
+	}
+
+	// datastore
+	{
+		auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 C7 01 00 00 44 8D 47 49 E8", 19));
+		hook::put(&vtbl[34], ret0);
+	}
+
+	// raw #map/#typ loading
+	hook::nop(hook::get_pattern("D1 E8 A8 01 74 7D 48 8B 84", 4), 2);
+
+	// raw sfe reg from non-startup
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("48 8B D8 48 85 C0 75 26 8D 50 5C", -0x38), WrapLevelLoad, (void**)&g_origLevelLoad);
 	MH_EnableHook(MH_ALL_HOOKS);
 });

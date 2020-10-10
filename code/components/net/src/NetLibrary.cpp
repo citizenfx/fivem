@@ -20,6 +20,7 @@
 #include <ResumeComponent.h>
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
 #include <experimental/coroutine>
 #include <pplawait.h>
 #include <ppltasks.h>
@@ -426,7 +427,17 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 					errText += fmt::sprintf("\n%s", CollectTimeoutInfo());
 				}
 
-				GlobalError("Disconnected by server: %s", errText);
+				if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+				{
+					GlobalError("Disconnected by server: %s", errText);
+				}
+				else
+				{
+					m_mainFrameQueue.push([errText]()
+					{
+						Instance<ICoreGameInit>::Get()->KillNetwork(ToWide(fmt::sprintf("Disconnected by server: %s", errText)).c_str());
+					});
+				}
 			}
 		}
 	}
@@ -619,7 +630,7 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_CONNECTING:
-			if ((GetTickCount() - m_lastConnect) > 5000)
+			if ((GetTickCount() - m_lastConnect) > 5000 && m_impl->IsDisconnected())
 			{
 				m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 
@@ -1092,7 +1103,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 				if (!node["error"].is_null())
 				{
-					OnConnectionError(node["error"].get<std::string>().c_str());
+					OnConnectionError(fmt::sprintf("Connection rejected by server: %s", node["error"].get<std::string>()).c_str());
 
 					m_connectionState = CS_IDLE;
 
@@ -1120,6 +1131,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #endif
 
 				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
+				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : nlohmann::json{};
 
 				auto continueAfterEndpoints = [=, capNode = node](const nlohmann::json& capEndpointsJson)
 				{
@@ -1139,15 +1151,22 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								endpoints.push_back(endpoint.get<std::string>());
 							}
 						}
+						else if (!rawEndpoints.is_null() && rawEndpoints.is_array() && !rawEndpoints.empty())
+						{
+							for (const auto& endpoint : rawEndpoints)
+							{
+								endpoints.push_back(endpoint.get<std::string>());
+							}
+						}
 
 						if (endpoints.empty())
 						{
 							auto uri = skyr::make_url(url);
 							std::string endpoint;
 
-							if (!uri->port().empty())
+							if (uri->port<int>())
 							{
-								endpoint = fmt::sprintf("%s:%d", uri->hostname(), uri->port<int>());
+								endpoint = fmt::sprintf("%s:%d", uri->hostname(), *uri->port<int>());
 							}
 							else
 							{
@@ -1191,7 +1210,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							}
 						});
 
-						Instance<ICoreGameInit>::Get()->SetData("handoverBlob", (!node["handover"].is_null()) ? node["handover"].dump() : "{}");
+						Instance<ICoreGameInit>::Get()->SetData("handoverBlob", (!node["handover"].is_null()) ? node["handover"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) : "{}");
 
 						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
 						Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
@@ -1202,10 +1221,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						if (big1s)
 						{
+							AddCrashometry("onesync_big", "true");
 							Instance<ICoreGameInit>::Get()->SetVariable("onesync_big");
 						}
 						else
 						{
+							AddCrashometry("onesync_big", "false");
 							Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
 						}
 
@@ -1213,7 +1234,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						std::string onesyncType = "onesync";
 						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
 
-						if (maxClients <= 32)
+						if (maxClients <= 48)
 						{
 							onesyncType = "";
 						}
@@ -1223,7 +1244,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						}
 						else if (maxClients <= 128)
 						{
-							onesyncType = "onesync_plus";
+							if (!big1s)
+							{
+								onesyncType = "onesync_plus";
+							}
+							else
+							{
+								onesyncType = "onesync_medium";
+							}
 						}
 						else if (maxClients <= 1024)
 						{
@@ -1246,34 +1274,45 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						auto continueAfterAllowance = [=]()
 						{
-							if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
 							{
-								auto oneSyncFailure = [this, onesyncType]()
+								using json = nlohmann::json;
+
+								if (success)
 								{
-									OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
-									onesyncType,
-									(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
-									? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
-									: ""));
-									m_connectionState = CS_IDLE;
-								};
-
-								auto oneSyncSuccess = [this]()
-								{
-									m_connectionState = CS_INITRECEIVED;
-								};
-
-								OnConnectionProgress("Requesting server OneSync policy...", 0, 100);
-
-								m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
-								{
-									using json = nlohmann::json;
-
-									if (success)
+									try
 									{
-										try
+										json info = json::parse(data, data + size);
+
+										if (info.is_object() && info["server"].is_string())
 										{
-											json info = json::parse(data, data + size);
+											auto serverData = info["server"].get<std::string>();
+											boost::algorithm::replace_all(serverData, " win32", "");
+											boost::algorithm::replace_all(serverData, " linux", "");
+											boost::algorithm::replace_all(serverData, " SERVER", "");
+											boost::algorithm::replace_all(serverData, "FXServer-", "");
+
+											AddCrashometry("last_server_ver", serverData);
+										}
+
+										if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+										{
+											auto oneSyncFailure = [this, onesyncType]()
+											{
+												OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
+												onesyncType,
+												(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
+												? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
+												: ""));
+												m_connectionState = CS_IDLE;
+											};
+
+											auto oneSyncSuccess = [this]()
+											{
+												m_connectionState = CS_INITRECEIVED;
+											};
+
+											OnConnectionProgress("Requesting server OneSync policy...", 0, 100);
 
 											if (info.is_object() && info["vars"].is_object())
 											{
@@ -1300,25 +1339,25 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												}
 											}
 										}
-										catch (std::exception& e)
+										else
 										{
-											trace("1s policy - get failed for %s\n", e.what());
+											m_connectionState = CS_INITRECEIVED;
 										}
-
-										oneSyncFailure();
 									}
-									else
+									catch (std::exception& e)
 									{
-										OnConnectionError("Failed to fetch /info.json to obtain policy metadata.");
+										OnConnectionError(va("Info get failed for %s\n", e.what()));
 
 										m_connectionState = CS_IDLE;
 									}
-								});
-							}
-							else
-							{
-								m_connectionState = CS_INITRECEIVED;
-							}
+								}
+								else
+								{
+									OnConnectionError("Failed to fetch /info.json to obtain policy metadata.");
+
+									m_connectionState = CS_IDLE;
+								}
+							});
 						};
 
 						auto blacklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
@@ -1380,8 +1419,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						m_connectionState = CS_IDLE;
 					}
 				};
-
-				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : nlohmann::json{};
 
 				if (bitVersion >= 0x202004201223)
 				{
@@ -1801,4 +1838,14 @@ NetLibrary* NetLibrary::Create()
 	});
 
 	return lib;
+}
+
+int32_t NetLibrary::GetPing()
+{
+	if (m_impl)
+	{
+		return m_impl->GetPing();
+	}
+
+	return -1;
 }

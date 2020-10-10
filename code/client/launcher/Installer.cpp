@@ -334,34 +334,44 @@ bool Install_RunInstallMode()
 
 		wcsrchr(exePath, L'\\')[0] = L'\0';
 
-		std::wstring linkPath = exePath + L"\\" PRODUCT_NAME L" Singleplayer.lnk"s;
+		std::vector<std::tuple<std::wstring, std::wstring>> links;
 
-		if (GetFileAttributes(linkPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+#ifdef GTA_FIVE
+		links.push_back({ L" Singleplayer", L"-sp" });
+		links.push_back({ L" Singleplayer (patch 1.27)", L"-b372" });
+#endif
+
+		for (auto& link : links)
 		{
-			CoInitialize(NULL);
+			std::wstring linkPath = fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, std::get<0>(link));
 
-			WRL::ComPtr<IShellLink> shellLink;
-			HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
-
-			if (SUCCEEDED(hr))
+			if (GetFileAttributes(linkPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				shellLink->SetPath(exeName.c_str());
-				shellLink->SetArguments(L"-sp");
-				shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
-				shellLink->SetIconLocation(exeName.c_str(), -202);
+				CoInitialize(NULL);
 
-				SetAumid(shellLink);
-
-				WRL::ComPtr<IPersistFile> persist;
-				hr = shellLink.As(&persist);
+				WRL::ComPtr<IShellLink> shellLink;
+				HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
 
 				if (SUCCEEDED(hr))
 				{
-					persist->Save(linkPath.c_str(), TRUE);
-				}
-			}
+					shellLink->SetPath(exeName.c_str());
+					shellLink->SetArguments(std::get<1>(link).c_str());
+					shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
+					shellLink->SetIconLocation(exeName.c_str(), -202);
 
-			CoUninitialize();
+					SetAumid(shellLink);
+
+					WRL::ComPtr<IPersistFile> persist;
+					hr = shellLink.As(&persist);
+
+					if (SUCCEEDED(hr))
+					{
+						persist->Save(linkPath.c_str(), TRUE);
+					}
+				}
+
+				CoUninitialize();
+			}
 		}
 
 		CreateUninstallEntryIfNeeded();

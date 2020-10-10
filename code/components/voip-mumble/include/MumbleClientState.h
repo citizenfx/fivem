@@ -122,13 +122,6 @@ public:
 
 	inline std::map<uint32_t, MumbleChannel>& GetChannels() { return m_channels; }
 
-	inline std::map<uint32_t, std::shared_ptr<MumbleUser>> GetUsers()
-	{
-		std::shared_lock<std::shared_mutex> lock(m_usersMutex);
-
-		return m_users;
-	}
-
 	inline std::shared_ptr<MumbleUser> GetUser(uint32_t id)
 	{
 		std::shared_lock<std::shared_mutex> lock(m_usersMutex);

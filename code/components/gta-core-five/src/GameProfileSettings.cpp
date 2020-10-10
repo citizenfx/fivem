@@ -195,13 +195,23 @@ static std::map<int, std::shared_ptr<ProfileConVar>> _profileConVars;
 
 static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 {
-	return hook::get_pattern("83 F9 62 0F 8F ? ? 00 00 83 F9 61 0F", (Is1868()) ? -0x29 : -0x23);
+	if (Is372())
+	{
+		return (void*)nullptr;
+	}
+
+	return hook::get_pattern("83 F9 62 0F 8F ? ? 00 00 83 F9 61 0F", (Is2060()) ? -0x29 : -0x23);
 });
 
 void ProfileSettingsInit()
 {
 	OnGameFrame.Connect([]()
 	{
+		if (Is372())
+		{
+			return;
+		}
+
 		if (!*g_profileSettings || !**(void***)g_profileSettings)
 		{
 			return;
@@ -230,6 +240,13 @@ void ProfileSettingsInit()
 				}
 
 				name = "profile_" + name;
+
+				// profile_vidMonitor pointing to an invalid index will crash the game when opening settings, and
+				// the game doesn't use the profile setting as authoritative anyway
+				if (name == "profile_vidMonitor")
+				{
+					continue;
+				}
 
 				auto setting = g_prefs[field->index];
 				_profileConVars[field->index] = std::make_shared<ProfileConVar>(name, setting);

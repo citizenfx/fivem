@@ -21,7 +21,7 @@ return {
 			"../vendor/xz/src/liblzma/lzma/",
 			"../vendor/xz/src/liblzma/rangecoder/",
 			"../vendor/xz/src/liblzma/simple/",
-			"vendor/xz/windows/",
+			"../vendor/xz/windows/vs2019/",
 		}
 		
 		files_project '../vendor/xz/src/liblzma/'

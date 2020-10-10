@@ -192,26 +192,29 @@ bool GetOurSystemKey(char* systemKey);
 #include <strsafe.h>
 #include <NetworkPlayerMgr.h>
 
+template<int Build>
 struct ScSessionAddr
 {
 	uint8_t sessionId[16];
-	netPeerAddress addr;
+	PeerAddress<Build> addr;
 };
 
+template<int Build>
 struct ScUnkAddr
 {
-	netPeerAddress lanAddr; // ???
+	PeerAddress<Build> lanAddr; // ???
 	uint64_t pad;
-	ScSessionAddr addr;
+	ScSessionAddr<Build> addr;
 	uint32_t unkVal;
 	char pad2[284]; // seriously this struct is weird - even in 1032
 	char systemKey[16];
 };
 
-static_assert(sizeof(netPeerAddress) == (40 + 8 + 8), "ScInAddr size seems bad...");
-static_assert(sizeof(ScSessionAddr) == (56 + 8 + 8), "ScSessionAddr size seems bad...");
+static_assert(sizeof(netPeerAddress::Impl2060) == (40 + 8 + 8 + 8), "ScInAddr size seems bad...");
+static_assert(sizeof(ScSessionAddr<2060>) == (56 + 8 + 8 + 8), "ScSessionAddr size seems bad...");
 
-bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr* in, void*, ScUnkAddr* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
+template<int Build>
+bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr<Build>* in, void*, ScUnkAddr<Build>* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
 {
 	uint64_t sysKey = in->addr.unkKey1 ^ 0xFEAFEDE;
 
@@ -230,11 +233,12 @@ bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int*
 
 static void(*g_origMigrateCopy)(void*, void*);
 
+template<int Build>
 void MigrateSessionCopy(char* target, char* source)
 {
 	g_origMigrateCopy(target, source);
 
-	ScSessionAddr* sessionAddress = reinterpret_cast<ScSessionAddr*>(target - 16);
+	auto sessionAddress = reinterpret_cast<ScSessionAddr<Build>*>(target - 16);
 	
 	std::unique_ptr<net::Buffer> msgBuffer(new net::Buffer(64));
 
@@ -256,7 +260,7 @@ static hook::cdecl_stub<void()> doPresenceStuff([] ()
 	return hook::pattern("32 DB 38 1D ? ? ? ? 75 24 E8").count(1).get(0).get<void>(-6);
 });
 
-static hook::cdecl_stub<void(void*, ScSessionAddr*, int64_t, int)> joinGame([] ()
+static hook::cdecl_stub<void(void*, /*ScSessionAddr**/ void*, int64_t, int)> joinGame([] ()
 {
 	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F1 45 8B E0 4C 8B").count(1).get(0).get<void>(-0x24);
 });
@@ -270,7 +274,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	// 505 has it be a xchg-type jump
 	// same for 1032
 	// 1737: changed
-	if (!Is1868())
+	if (!Is2060())
 	{
 		uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
 
@@ -286,7 +290,10 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	//return (void*)0x141029A20;
 
 	// 1868
-	return (void*)0x141037BCC;
+	//return (void*)0x141037BCC;
+
+	// 2060
+	return (void*)0x1410494F8;
 });
 
 static void* getNetworkManager()
@@ -391,6 +398,7 @@ struct
 		hostResult = str;
 	}
 
+	template<int Build>
 	void process()
 	{
 		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
@@ -422,7 +430,7 @@ struct
 		}
 		else if (state == HS_START_JOINING)
 		{
-			static ScSessionAddr netAddr;
+			static ScSessionAddr<Build> netAddr;
 			memset(&netAddr, 0, sizeof(netAddr));
 
 			netAddr.addr.secKeyTime = g_netLibrary->GetHostBase() ^ 0xABCD;
@@ -688,12 +696,45 @@ void ObjectIds_BindNetLibrary(NetLibrary*);
 
 #include <CloneManager.h>
 
-static hook::cdecl_stub<void(rlGamerInfo*)> _setGameGamerInfo([]()
+static hook::cdecl_stub<void(void* /* rlGamerInfo */)> _setGameGamerInfo([]()
 {
 	return hook::get_pattern("3A D8 0F 95 C3 40 0A DE 40", -0x53);
 });
 
-static rlGamerInfo** g_gamerInfo;
+template<int Build>
+static rlGamerInfo<Build>** g_gamerInfo;
+
+template<int Build>
+static void RunGameFrame()
+{
+	GetOurOnlineAddressRaw();
+
+	auto gi = *g_gamerInfo<Build>;
+
+	if (!gi)
+	{
+		return;
+	}
+
+	static auto origNonce = gi->gamerId;
+	uint64_t tgtNonce;
+
+	if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
+	{
+		tgtNonce = g_netLibrary->GetServerNetID();
+	}
+	else
+	{
+		tgtNonce = origNonce;
+	}
+
+	if (gi->gamerId != tgtNonce)
+	{
+		gi->gamerId = tgtNonce;
+
+		_setGameGamerInfo(gi);
+	}
+}
 
 static HookFunction initFunction([]()
 {
@@ -789,36 +830,30 @@ static HookFunction initFunction([]()
 
 	g_netLibrary->SetBase(GetTickCount());
 
-	g_gamerInfo = hook::get_address<decltype(g_gamerInfo)>(hook::get_pattern("FF C8 0F 85 AC 00 00 00 48 39 35", 11));
+	{
+		auto location = hook::get_pattern("FF C8 0F 85 AC 00 00 00 48 39 35", 11);
+
+		if (Is2060())
+		{
+			g_gamerInfo<2060> = hook::get_address<decltype(g_gamerInfo<2060>)>(location);
+		}
+		else
+		{
+			g_gamerInfo<1604> = hook::get_address<decltype(g_gamerInfo<1604>)>(location);
+		}
+	}
 
 	static bool doTickThisFrame = false;
 
 	OnGameFrame.Connect([]()
 	{
-		GetOurOnlineAddressRaw();
-
-		if (!*g_gamerInfo)
+		if (Is2060())
 		{
-			return;
-		}
-
-		static auto origNonce = (*g_gamerInfo)->gamerId;
-		uint64_t tgtNonce;
-
-		if (Instance<ICoreGameInit>::Get()->OneSyncEnabled)
-		{
-			tgtNonce = g_netLibrary->GetServerNetID();
+			RunGameFrame<2060>();
 		}
 		else
 		{
-			tgtNonce = origNonce;
-		}
-
-		if ((*g_gamerInfo)->gamerId != tgtNonce)
-		{
-			(*g_gamerInfo)->gamerId = tgtNonce;
-
-			_setGameGamerInfo(*g_gamerInfo);
+			RunGameFrame<1604>();
 		}
 	});
 
@@ -892,7 +927,7 @@ static HookFunction initFunction([]()
 
 			if (*g_dlcMountCount != 132)
 			{
-				if (!Is1868())
+				if (!Is2060())
 				{
 					// #TODO1737
 					GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
@@ -961,7 +996,14 @@ static HookFunction initFunction([]()
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
-			hostSystem.process();
+			if (Is2060())
+			{
+				hostSystem.process<2060>();			
+			}
+			else
+			{
+				hostSystem.process<1604>();
+			}
 		}
 
 		if (gameLoaded && doTickNextFrame)
@@ -1001,15 +1043,15 @@ static void GetOurSecurityKey(uint64_t* key)
 bool GetOurOnlineAddress(netPeerAddress* address)
 {
 	memset(address, 0, sizeof(*address));
-	address->secKeyTime = g_netLibrary->GetServerBase() ^ 0xABCD;
-	address->unkKey1 = g_netLibrary->GetServerBase();
-	address->unkKey2 = g_netLibrary->GetServerBase();
-	address->localAddr.ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
-	address->localAddr.port = 6672;
-	address->relayAddr.ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
-	address->relayAddr.port = 6672;
-	address->publicAddr.ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
-	address->publicAddr.port = 6672;
+	address->secKeyTime() = g_netLibrary->GetServerBase() ^ 0xABCD;
+	address->unkKey1() = g_netLibrary->GetServerBase();
+	address->unkKey2() = g_netLibrary->GetServerBase();
+	address->localAddr().ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->localAddr().port = 6672;
+	address->relayAddr().ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->relayAddr().port = 6672;
+	address->publicAddr().ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->publicAddr().port = 6672;
 	//address->pad5 = 0x19;
 
 	g_globalNetSecurityKey[0] = g_netLibrary->GetServerBase();
@@ -1440,7 +1482,8 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 		// 1604
 		// 1737
 		// 1868
-		if (!Is1868())
+		// 2060
+		if (!Is2060())
 		{
 			((void(*)())hook::get_adjusted(0x1400067E8))();
 			((void(*)())hook::get_adjusted(0x1407D1960))();
@@ -1449,10 +1492,10 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 		}
 		else
 		{
-			((void(*)())hook::get_adjusted(0x1400067F8))();
-			((void(*)())hook::get_adjusted(0x1407DDC5C))();
-			((void(*)())hook::get_adjusted(0x1400263C0))();
-			((void(*)(void*))hook::get_adjusted(0x1415B924C))((void*)hook::get_adjusted(0x142E00A00));
+			((void (*)())hook::get_adjusted(0x140006A80))();
+			((void (*)())hook::get_adjusted(0x1407EB39C))();
+			((void (*)())hook::get_adjusted(0x1400263A4))();
+			((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
 		}
 
 		Sleep(0);
@@ -1512,7 +1555,7 @@ static HookFunction hookFunction([] ()
 	hook::jump(getNewNewVal, GetNetNewVal);
 
 	// was void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 E0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14); before 372
-	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 E0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
+	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 ? ? 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
 	hook::set_call(&g_origJR, handleJoinRequestPtr);
 	hook::call(handleJoinRequestPtr, HandleJR);
 
@@ -1546,9 +1589,9 @@ static HookFunction hookFunction([] ()
 	// 463/505 change
 	//void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	// 1032 change
-	void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
+	void* migrateCmd = hook::get_pattern((Is2060()) ? "48 8B 87 80 00 00 00 48 81 C1 A0 00 00 00" : "48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8", (Is2060()) ? 0x12 : 15);
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
-	hook::call(migrateCmd, MigrateSessionCopy);
+	hook::call(migrateCmd, (Is2060()) ? (void*)&MigrateSessionCopy<2060> : &MigrateSessionCopy<1604>);
 
 	// session key getting system key; replace with something static for migration purposes
 	//hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
@@ -1594,32 +1637,52 @@ static HookFunction hookFunction([] ()
 
 	// we also need some pointers from this function
 	//char* netAddressFunc = hook::pattern("48 89 39 48 89 79 08 89 71 10 66 89 79 14 89 71").count(1).get(0).get<char>(-0x1E);
-	char* netAddressFunc = hook::pattern("89 79 10 48 89 39 48 89 79 08 89 69 14 66 89 79").count(1).get(0).get<char>(-0x23);
-	hook::jump(netAddressFunc, GetOurOnlineAddress);
 
-	// added in 393
-	//hook::jump(hook::get_call(netAddressFunc + 0x5D), HashSecKeyAddress);
-	//hook::jump(hook::get_call(netAddressFunc + 0x61), HashSecKeyAddress); // 505-1032
-	hook::jump(hook::get_call(netAddressFunc + 0x66), HashSecKeyAddress); // 1103
+	char* onlineAddressFunc;
 
-	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x75); // 350-
-	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x78); // 372
-	//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x88); // 393
-	char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x6B); // 505
-	// ^ 372 change, 393 change, 505 change
+	if (!Is2060())
+	{
+		char* netAddressFunc = hook::pattern("89 79 10 48 89 39 48 89 79 08 89 69 14 66 89 79").count(1).get(0).get<char>(-0x23);
+		hook::jump(netAddressFunc, GetOurOnlineAddress);
 
-	netAddressFunc += 0x1F;
+		// added in 393
+		//hook::jump(hook::get_call(netAddressFunc + 0x5D), HashSecKeyAddress);
+		//hook::jump(hook::get_call(netAddressFunc + 0x61), HashSecKeyAddress); // 505-1032
+		hook::jump(hook::get_call(netAddressFunc + 0x66), HashSecKeyAddress); // 1103
 
-	bool* didNetAddressBool = (bool*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
+		//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x75); // 350-
+		//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x78); // 372
+		//char* onlineAddressFunc = hook::get_call(netAddressFunc + 0x88); // 393
+		onlineAddressFunc = hook::get_call(netAddressFunc + 0x6B); // 505
+		// ^ 372 change, 393 change, 505 change
 
-	*didNetAddressBool = true;
+		netAddressFunc += 0x1F;
 
-	//netAddressFunc += 0x25;
-	//netAddressFunc += 0x28; // <- 372
-	//netAddressFunc += 0x37; // <- 393
-	netAddressFunc += 0x3B; // <- 505
+		bool* didNetAddressBool = (bool*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
 
-	g_globalNetSecurityKey = (uint64_t*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
+		*didNetAddressBool = true;
+
+		//netAddressFunc += 0x25;
+		//netAddressFunc += 0x28; // <- 372
+		//netAddressFunc += 0x37; // <- 393
+		netAddressFunc += 0x3B; // <- 505
+
+		g_globalNetSecurityKey = (uint64_t*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
+	}
+	else
+	{
+		char* netAddressFunc = hook::get_pattern<char>("89 79 10 48 89 39 48 89 79 08 89 69 14 66 89 79", -0x22);
+		hook::jump(netAddressFunc, GetOurOnlineAddress);
+
+		hook::jump(hook::get_call(netAddressFunc + 0x6F), HashSecKeyAddress);
+
+		onlineAddressFunc = hook::get_call(netAddressFunc + 0x74);
+
+		bool* didNetAddressBool = hook::get_address<bool*>(netAddressFunc + 0x1E);
+		*didNetAddressBool = true;
+
+		g_globalNetSecurityKey = hook::get_address<uint64_t*>(netAddressFunc + 0x63);
+	}
 
 	hook::jump(onlineAddressFunc, GetOurOnlineAddressRaw);
 
@@ -1687,7 +1750,8 @@ static HookFunction hookFunction([] ()
 	// locate address thingy
 	//hook::call(hook::pattern("89 44 24 28 41 8B 87 80 01 00 00 48 8B CB 89 44").count(1).get(0).get<void>(18), StartLookUpInAddr);
 	//hook::jump(hook::get_call(hook::pattern("48 8B D0 C7 44 24 28 04 00 00 00 44 89 7C 24 20").count(1).get(0).get<void>(16)), StartLookUpInAddr);
-	hook::jump(hook::get_call(hook::pattern("45 33 C0 C6 44 24 28 01 44 89 7C 24 20").count(1).get(0).get<void>(13)), StartLookUpInAddr);
+	hook::jump(hook::get_call(hook::pattern("45 33 C0 C6 44 24 28 01 44 89 7C 24 20").count(1).get(0).get<void>(13)), 
+		(Is2060()) ? (void*)StartLookUpInAddr<2060> : StartLookUpInAddr<1604>);
 
 	// temp dbg: always clone a player (to see why this CTaskMove flag is being a twat)
 	//hook::jump(hook::pattern("74 06 F6 40 2F 01 75 0E 48 8B D7").count(1).get(0).get<void>(-0x27), ReturnTrue);
@@ -1831,8 +1895,8 @@ static HookFunction hookFunction([] ()
 	// MARK!
 
 	// objectmgr bandwidth stuff?
-	hook::put<uint8_t>(hook::pattern("F6 82 98 00 00 00 01 74 2C 48").count(1).get(0).get<void>(7), 0xEB);
-	hook::put<uint8_t>(hook::pattern("74 21 80 7F 2D FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
+	hook::put<uint8_t>(hook::pattern("F6 82 ? 00 00 00 01 74 2C 48").count(1).get(0).get<void>(7), 0xEB);
+	hook::put<uint8_t>(hook::pattern("74 21 80 7F ? FF B3 01 74 19 0F").count(1).get(0).get<void>(8), 0xEB);
 
 	// even more stuff in the above function?!
 	hook::nop(hook::pattern("85 ED 78 52 84 C0 74 4E 48").count(1).get(0).get<void>(), 8);
@@ -1883,7 +1947,7 @@ static HookFunction hookFunction([] ()
 
 	// don't switch clipset manager to network mode
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
-	if (!Is1868()) // arxan
+	if (!Is2060()) // arxan
 	{
 		hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
 	}
@@ -1939,7 +2003,7 @@ static HookFunction hookFunction([] ()
 	// disable unknown stuff
 	{
 		// 1032/1103!
-		if (!Is1868())
+		if (!Is2060())
 		{
 			// 1868 integrity checks this
 			hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));
@@ -2000,6 +2064,11 @@ static HookFunction hookFunction([] ()
 		OnLookAliveFrame.Connect([_processEntitlements]()
 		{
 			_processEntitlements();
+
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				g_netLibrary->RunMainFrame();
+			}
 		});
 	}
 

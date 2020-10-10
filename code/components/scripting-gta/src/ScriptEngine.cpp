@@ -18,6 +18,24 @@
 
 #include <CL2LaunchMode.h>
 
+static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier)
+{
+	// C++ exceptions?
+	if (exceptionCode == 0xE06D7363)
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	// INVOKE_FUNCTION_REFERENCE crashing as top-level is usually related to native state corruption,
+	// we'll likely want to crash on this instead rather than on an assertion down the chain
+	if (identifier == HashString("INVOKE_FUNCTION_REFERENCE"))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
 template<typename THandler>
 static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
 {
@@ -35,25 +53,48 @@ static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdent
 		rageHandler(&rageContext);
 //#ifndef _DEBUG
 	}
-	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
+	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
 	{
 		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 	}
 //#endif
 }
 
-extern "C" bool DLL_EXPORT WrapNativeInvoke(rage::scrEngine::NativeHandler handler, uint64_t nativeIdentifier, rage::scrNativeCallContext* context)
-{
-	static void* exceptionAddress;
+static std::string g_lastError;
+static void* g_exceptionAddress;
 
-	__try
+static void SetLastErrorException(uint64_t nativeIdentifier)
+{
+	g_lastError = fmt::sprintf("Error executing native %016llx at address %p.", nativeIdentifier, g_exceptionAddress);
+}
+
+static bool CallNativeWrapperCppEh(rage::scrEngine::NativeHandler handler, uint64_t nativeIdentifier, rage::scrNativeCallContext* context, char** errorMessage)
+{
+	try
 	{
 		handler(context);
 		return true;
 	}
-	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
+	catch (const std::exception& e)
 	{
-		trace("Error executing native %016llx at address %p.\n", nativeIdentifier, exceptionAddress);
+		g_lastError = fmt::sprintf("Error executing native %016llx: %s", nativeIdentifier, e.what());
+		*errorMessage = const_cast<char*>(g_lastError.c_str());
+
+		return false;
+	}
+}
+
+extern "C" bool DLL_EXPORT WrapNativeInvoke(rage::scrEngine::NativeHandler handler, uint64_t nativeIdentifier, rage::scrNativeCallContext* context, char** errorMessage)
+{
+	__try
+	{
+		return CallNativeWrapperCppEh(handler, nativeIdentifier, context, errorMessage);
+	}
+	__except (g_exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, EXCEPTION_EXECUTE_HANDLER)
+	{
+		SetLastErrorException(nativeIdentifier);
+		*errorMessage = const_cast<char*>(g_lastError.c_str());
+
 		return false;
 	}
 }

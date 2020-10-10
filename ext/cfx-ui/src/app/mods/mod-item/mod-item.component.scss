@@ -10,16 +10,16 @@ $modItemHeight: 9vh;
     transition: background-color 0.2s;
 
     @include theme() using ($theme) {
-		background-color: rgba(gtv($theme, bgColour), .5);
+		background-color: rgba(gtv($theme, bgColor), .5);
     };
-    
+
     &:hover {
         @include theme() using ($theme) {
-            background-color: rgba(gtv($theme, bgColour), 1);
-        };  
+            background-color: rgba(gtv($theme, bgColor), 1);
+        };
     }
 
-    margin-top: $padding / 3;
+    margin-top: var(--qh);
     display: flex;
 
     figure {
@@ -37,39 +37,39 @@ $modItemHeight: 9vh;
     }
 
     &>div {
-        padding: $padding;
+        padding: var(--q1);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
 
         h1 {
             font-weight: normal;
-            font-size: $fontSize * 1.4;
+            font-size: var(--fs-2);
         }
 
         h2 {
             font-weight: normal;
-            font-size: $fontSize * 1.1;
+            font-size: var(--fs-1);
         }
     }
 
     span.size {
         position: absolute;
-        bottom: $padding;
-        right: $padding;
+        bottom: var(--q1);
+        right: var(--q1);
 
-        font-size: $fontSize * 0.6;
+        font-size: var(--fs-075);
     }
 
     span.icons {
         position: absolute;
-        top: $padding;
-        right: $padding;
+        top: var(--q1);
+        right: var(--q1);
 
-        font-size: $fontSize * 0.6;
+        font-size: var(--fs-075);
 
         span {
-            padding-left: $padding;
+            padding-left: var(--q1);
         }
     }
 
@@ -86,8 +86,8 @@ $modItemHeight: 9vh;
 
         &::-webkit-progress-value {
             @include theme() using ($theme) {
-                background-color: rgba(gtv($theme, greenyColour), 1);
-                box-shadow: rgba(gtv($theme, greenyColour), .8) 0px 0px 8px;
+                background-color: rgba(gtv($theme, accentColor1), 1);
+                box-shadow: rgba(gtv($theme, accentColor1), .8) 0px 0px 8px;
             };
         }
     }

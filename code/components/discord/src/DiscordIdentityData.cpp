@@ -36,7 +36,7 @@ static HookFunction initFunction([]()
 
 		auto writePipe = [hPipe](int opCode, const json& data)
 		{
-			auto dataStr = data.dump();
+			auto dataStr = data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
 
 			std::vector<uint8_t> dataBuffer(dataStr.length() + 4 + 4);
 			*(uint32_t*)&dataBuffer[0] = opCode;

@@ -1,0 +1,437 @@
+@import "variables";
+
+.filters {
+	display: flex;
+
+	height: var(--header-height);
+
+	@include headerSafeZoneMargin;
+
+	.filter {
+		position: relative;
+
+		z-index: 1;
+
+		&.stretch {
+			flex-grow: 1;
+		}
+
+		&.on-top {
+			z-index: 2;
+		}
+
+		&.disabled {
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.links {
+			@include backdropPane;
+
+			display: flex;
+
+			height: 100%;
+
+			margin-right: var(--qh);
+
+			a {
+				position: relative;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				height: 100%;
+
+				padding: var(--q1);
+
+				font-size: var(--fs-1);
+				line-height: 1;
+				text-decoration: none;
+
+				transition: all .2s ease;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, fgColor);
+
+					&:hover {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+					}
+
+					&.active {
+						box-shadow: 0 -2px 0 gtv($theme, accentColor1) inset;
+					}
+				}
+
+				.material-icons-outlined {
+					font-size: var(--fs-2);
+				}
+
+				.label {
+					position: absolute;
+					top: 0;
+					left: var(--header-height);
+					bottom: 0;
+
+					padding: var(--q1) var(--q1) var(--q1) 0;
+
+					@include fontMontserrat;
+					letter-spacing: 1px;
+					text-transform: uppercase;
+
+					@include theme() using ($theme) {
+						background-color: gtv($theme, accentColor1);
+					}
+
+					pointer-events: none;
+
+					opacity: 0;
+
+					z-index: 10;
+				}
+
+				&:hover {
+					transition: none;
+
+					.label {
+						opacity: 1;
+					}
+				}
+			}
+		}
+
+		.name {
+			width: 100%;
+			height: 100%;
+
+			padding: var(--q1);
+
+			@include theme using ($theme) {
+				color: gtv($theme, secondaryColor);
+
+				&:focus {
+					box-shadow: 2px 2px 0 0 gtv($theme, accentColor1) inset, -2px 0 0 0 gtv($theme, accentColor1) inset;
+				}
+			};
+		}
+
+		input:focus + .search-dropdown {
+			transform: translateY(0);
+			opacity: 1;
+			pointer-events: all;
+		}
+
+		.search-dropdown {
+			position: absolute;
+			top: var(--header-height);
+			left: 0;
+			right: 0;
+
+			@include backdropPane;
+
+			z-index: 100;
+			overflow: hidden;
+
+			transform: translateY(calc(var(--q1) * -1));
+			opacity: 0;
+			pointer-events: none;
+
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, accentColor1), css-max(var(--opacity-clamp), .1));
+				border: solid 2px gtv($theme, accentColor1);
+				border-top: none;
+			}
+
+			ul {
+				list-style: none;
+
+				li {
+					position: relative;
+					padding: var(--qh) var(--q1);
+
+					h4 {
+						font-size: 0.9em;
+
+						span {
+							font-weight: normal;
+						}
+					}
+
+					@include theme using ($theme) {
+						&.streamer-mode-warning,
+						&.streamer-mode-warning:hover {
+							background-color: rgba(gtv($theme, accentColor2), 0.7);
+						}
+
+						h4 + span {
+							font-size: 0.7em;
+
+							color: gtv($theme, fgColor);
+						}
+
+						&:hover, &.active {
+							h4,
+							h4 + span {
+								color: gtv($theme, accentContrastColor);
+							}
+
+							background-color: gtv($theme, accentColor1);
+						}
+					};
+				}
+			}
+		}
+
+		.extra-filters {
+			position: relative;
+
+			width: var(--header-height);
+			height: var(--header-height);
+
+			margin-left: var(--qh);
+
+			.trigger {
+				@include backdropPane;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				width: 100%;
+				height: 100%;
+
+				transition: all .2s ease;
+
+				.material-icons-outlined {
+					font-size: var(--fs-2);
+				}
+			}
+
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				@include fontMontserrat;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
+			}
+
+			.dropdown {
+				position: absolute;
+				top: var(--header-height);
+				right: 0;
+
+				display: flex;
+				flex-direction: column;
+
+				overflow: hidden;
+
+				width: calc(var(--q1) * 20);
+				height: calc(var(--app-height) - var(--header-height));
+
+				@include backdropPane;
+
+				@include theme() using($theme) {
+					border: solid 2px gtv($theme, accentColor1);
+				}
+
+				opacity: 0;
+				pointer-events: none;
+
+
+				transition: all .2s ease;
+
+				.checkboxes {
+					display: flex;
+					flex-direction: row;
+					align-items: stretch;
+					justify-content: stretch;
+
+					width: 100%;
+
+					.cfx-checkbox {
+						height: 100%;
+
+						padding: var(--q1);
+
+						span {
+							text-transform: uppercase;
+							letter-spacing: 1px;
+						}
+					}
+				}
+			}
+
+			&:hover {
+				@include theme() using($theme) {
+					.trigger {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+
+						transition: none;
+					}
+				}
+
+				.label {
+					opacity: 1;
+
+					transition: none;
+				}
+
+				.dropdown {
+					opacity: 1;
+					pointer-events: all;
+
+					transition: none;
+				}
+			}
+		}
+
+		.sorting {
+			position: relative;
+
+			width: var(--header-height);
+			height: var(--header-height);
+
+			margin-left: var(--qh);
+
+			.trigger {
+				@include backdropPane;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				width: 100%;
+				height: 100%;
+
+				transition: all .2s ease;
+
+				.material-icons-outlined {
+					font-size: var(--fs-2);
+				}
+			}
+
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				@include fontMontserrat;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
+			}
+
+			.dropdown {
+				position: absolute;
+				top: var(--header-height);
+				right: 0;
+
+				width: calc(var(--q1) * 13);
+
+				@include backdropPane;
+
+				@include theme() using($theme) {
+					border: solid 2px gtv($theme, accentColor1);
+				}
+
+				opacity: 0;
+				pointer-events: none;
+
+				transition: all .2s ease;
+
+				.sort-by {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+
+					padding: var(--q1);
+
+					font-size: var(--fs-1);
+					text-transform: uppercase;
+					letter-spacing: 1px;
+
+					&:hover {
+						@include theme() using ($theme) {
+							background-color: rgba(gtv($theme, accentColor1), .25);
+						}
+					}
+
+					&.active {
+						@include theme() using ($theme) {
+							background-color: gtv($theme, accentColor1);
+							color: gtv($theme, accentContrastColor);
+						}
+					}
+				}
+			}
+
+			&:hover {
+				@include theme() using($theme) {
+					.trigger {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+
+						transition: none;
+					}
+				}
+
+				.label {
+					opacity: 1;
+				}
+
+				.dropdown {
+					opacity: 1;
+					pointer-events: all;
+
+					transition: none;
+				}
+			}
+		}
+	}
+
+	.rent-a-server {
+		margin-left: var(--qh);
+	}
+}
+
+@keyframes spin {
+    from {transform:rotate(0deg);}
+    to {transform:rotate(360deg);}
+}
+
+.refreshing {
+	animation: spin 1000ms infinite linear;
+}

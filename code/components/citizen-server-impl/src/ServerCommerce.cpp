@@ -20,6 +20,14 @@ inline std::string GetLicenseKey()
 {
 	auto resourceManager = fx::ResourceManager::GetCurrent();
 	auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+	auto var = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("sv_licenseKeyToken");
+
+	if (!var || var->GetValue().empty())
+	{
+		return "";
+	}
+
 	auto licensing = instance->GetComponent<ServerLicensingComponent>();
 
 	return licensing->GetLicenseKey();
@@ -28,7 +36,7 @@ inline std::string GetLicenseKey()
 class CommerceComponent : public fwRefCountable
 {
 public:
-	CommerceComponent(fx::Client* client)
+	CommerceComponent(fx::ClientWeakPtr client)
 		: m_commerceDataLoaded(false), m_client(client)
 	{
 		
@@ -50,7 +58,7 @@ public:
 	void RequestSkuPurchase(int sku);
 
 private:
-	fx::Client* m_client;
+	fx::ClientWeakPtr m_client;
 
 	bool m_commerceDataLoaded;
 
@@ -115,7 +123,7 @@ void CommerceComponent::RequestSkuPurchase(int sku)
 	}
 
 	fwRefContainer<CommerceComponent> thisRef(this);
-	auto clientRef = m_client->shared_from_this();
+	auto clientRef = m_client.lock();
 
 	httpClient->DoGetRequest(fmt::sprintf(LICENSING_EP "api/paymentRequest/%d/%d/%s", *userId, sku, GetLicenseKey()), [thisRef, clientRef](bool success, const char* data, size_t length)
 	{
@@ -136,7 +144,8 @@ void CommerceComponent::RequestSkuPurchase(int sku)
 
 std::optional<int> CommerceComponent::GetUserId()
 {
-	const auto& identifiers = m_client->GetIdentifiers();
+	auto clientRef = m_client.lock();
+	const auto& identifiers = clientRef->GetIdentifiers();
 
 	for (const auto& identifier : identifiers)
 	{
@@ -160,7 +169,7 @@ static InitFunction initFunction([]()
 {
 	httpClient = new HttpClient(L"FXServer/Licensing");
 
-	fx::ScriptEngine::RegisterNativeHandler("CAN_PLAYER_START_COMMERCE_SESSION", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("CAN_PLAYER_START_COMMERCE_SESSION", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		return client->GetComponent<CommerceComponent>()->GetUserId() ? true : false;
 	}));
@@ -169,13 +178,13 @@ static InitFunction initFunction([]()
 	{
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-		clientRegistry->OnClientCreated.Connect([=](fx::Client* client)
+		clientRegistry->OnClientCreated.Connect([=](const fx::ClientSharedPtr& client)
 		{
 			client->SetComponent(new CommerceComponent(client));
 		});
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("LOAD_PLAYER_COMMERCE_DATA", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("LOAD_PLAYER_COMMERCE_DATA", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		auto commerceData = client->GetComponent<CommerceComponent>();
 
@@ -184,21 +193,21 @@ static InitFunction initFunction([]()
 		return commerceData->HasCommerceDataLoaded();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_COMMERCE_INFO_LOADED", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_COMMERCE_INFO_LOADED", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		auto commerceData = client->GetComponent<CommerceComponent>();
 
 		return commerceData->HasCommerceDataLoaded();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_OWN_SKU", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_OWN_SKU", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		auto commerceData = client->GetComponent<CommerceComponent>();
 
 		return commerceData->OwnsSku(context.GetArgument<int>(1));
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("REQUEST_PLAYER_COMMERCE_SESSION", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> bool
+	fx::ScriptEngine::RegisterNativeHandler("REQUEST_PLAYER_COMMERCE_SESSION", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> bool
 	{
 		auto commerceData = client->GetComponent<CommerceComponent>();
 		commerceData->RequestSkuPurchase(context.GetArgument<int>(1));

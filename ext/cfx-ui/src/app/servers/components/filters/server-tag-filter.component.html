@@ -1,0 +1,53 @@
+<div class="filters">
+	<div class="tags">
+		<h4 l10nTranslate>#ServerList_Locales</h4>
+
+		<button class="reset" *ngIf="localesCanReset" (click)="resetLocales()">
+			reset
+		</button>
+
+		<ul class="list">
+			<li
+				*ngFor="let locale of locales; trackBy:localeName"
+				class="tag"
+				(click)="toggleLocale(locale)"
+				[class.active]="isLocaleActive(locale)"
+				[class.inactive]="isLocaleInactive(locale)"
+			>
+				<div class="indicator"></div>
+				<div class="name">
+					<span [class]="'flag-icon flag-icon-' + locale.countryName.toLowerCase()"></span><span>{{ locale.displayName }}</span>
+				</div>
+				<div class="count">
+					{{ locale.count }}
+				</div>
+			</li>
+		</ul>
+	</div>
+
+	<div class="tags">
+		<h4 l10nTranslate>#ServerList_Tags</h4>
+
+		<button class="reset" *ngIf="tagsCanReset" (click)="resetTags()">
+			reset
+		</button>
+
+		<ul class="list">
+			<li
+				*ngFor="let tag of tags; trackBy:tagName"
+				class="tag"
+				(click)="toggleTag(tag)"
+				[class.active]="isActive(tag)"
+				[class.inactive]="isInactive(tag)"
+			>
+				<div class="indicator"></div>
+				<div class="name">
+					{{ tag.name }}
+				</div>
+				<div class="count">
+					{{ tag.count }}
+				</div>
+			</li>
+		</ul>
+	</div>
+</div>

@@ -59,7 +59,7 @@ Device::THandle MemoryDevice::Open(const std::string& fileName, bool readOnly)
 	char* basePointer;
 	uint32_t size;
 
-	if (sscanf(fileName.c_str(), "memory:%p;%d", &basePointer, &size) != 2)
+	if (sscanf(fileName.c_str(), "memory:$%p,%d", &basePointer, &size) != 2)
 	{
 		return InvalidHandle;
 	}
@@ -153,7 +153,7 @@ size_t MemoryDevice::GetLength(const std::string& fileName)
 	char* basePointer;
 	uint32_t size;
 
-	if (sscanf(fileName.c_str(), "memory:%p;%d", &basePointer, &size) != 2)
+	if (sscanf(fileName.c_str(), "memory:$%p,%d", &basePointer, &size) != 2)
 	{
 		return -1;
 	}
@@ -184,7 +184,7 @@ void MemoryDevice::SetPathPrefix(const std::string& pathPrefix)
 std::string MakeMemoryFilename(const void* buffer, size_t size)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "memory:%p;%d", buffer, static_cast<uint32_t>(size));
+	snprintf(buf, sizeof(buf), "memory:$%p,%d", buffer, static_cast<uint32_t>(size));
 
 	return buf;
 }

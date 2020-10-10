@@ -23,7 +23,42 @@ using json = nlohmann::json;
 
 #define BUFFER_LENGTH 32768
 
+#ifdef _WIN32
+#include <wtsapi32.h>
+#endif
+
 static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
+
+static bool IsUserConnected()
+{
+#ifdef _WIN32
+	auto wtsapi = LoadLibraryW(L"wtsapi32.dll");
+
+	if (wtsapi)
+	{
+		auto _WTSQuerySessionInformationW = (decltype(&WTSQuerySessionInformationW))GetProcAddress(wtsapi, "WTSQuerySessionInformationW");
+		auto _WTSFreeMemory = (decltype(&WTSFreeMemory))GetProcAddress(wtsapi, "WTSFreeMemory");
+
+		if (_WTSQuerySessionInformationW)
+		{
+			LPWSTR data;
+			DWORD dataSize;
+			if (_WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION, WTSConnectState, &data, &dataSize))
+			{
+				auto connectState = *(WTS_CONNECTSTATE_CLASS*)data;
+				
+				bool rv = (connectState == WTSActive);
+
+				_WTSFreeMemory(data);
+
+				return rv;
+			}
+		}
+	}
+#endif
+
+	return true;
+}
 
 static int SysError(const char* buffer)
 {
@@ -58,17 +93,22 @@ static int SysError(const char* buffer)
 
 	if (f)
 	{
-		fprintf(f, "%s", o.dump().c_str());
+		fprintf(f, "%s", o.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
 		fclose(f);
 
 		return -1;
 	}
 #endif
 
-	MessageBoxA(wnd, buffer, "Fatal Error", MB_OK | MB_ICONSTOP);
+	if (IsUserConnected())
+	{
+		MessageBoxW(wnd, ToWide(buffer).c_str(), L"Fatal Error", MB_OK | MB_ICONSTOP);
+	}
 
 #ifdef _DEBUG
+#ifndef IS_FXSERVER
 	assert(!"breakpoint time");
+#endif
 #endif
 
 	TerminateProcess(GetCurrentProcess(), 1);
@@ -175,6 +215,32 @@ int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char*
 {
 	ScopedError error(file, line, stringHash);
 	return GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str());
+}
+
+int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
+{
+#ifndef IS_FXSERVER
+	auto msg = fmt::vsprintf(string, formatList);
+	trace("NoExcept: %s\n", msg);
+
+	json o = json::object();
+	o["message"] = msg;
+	o["file"] = file;
+	o["line"] = line;
+	o["sigHash"] = stringHash;
+
+	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+
+	if (f)
+	{
+		fprintf(f, "%s", o.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
+		fclose(f);
+	}
+
+	return -1;
+#endif
+
+	return FatalErrorRealV(file, line, stringHash, string, formatList);
 }
 #else
 void GlobalErrorV(const char* string, fmt::printf_args formatList)

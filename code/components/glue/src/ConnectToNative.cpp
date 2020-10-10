@@ -67,7 +67,7 @@ static void RestartGameToOtherBuild()
 	static HostSharedData<CfxState> hostData("CfxInitState");
 	auto cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
 		hostData->gameExePath,
-		Is1868() ? L"" : L"-b1868",
+		Is2060() ? L"" : L"-b2060",
 		ToWide(g_lastConn));
 
 	STARTUPINFOW si = { 0 };
@@ -151,11 +151,14 @@ inline bool HasDefaultName()
 	{
 		IClientEngine* steamClient = steamComponent->GetPrivateClient();
 
-		InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-		if (steamFriends.IsValid())
+		if (steamClient)
 		{
-			return true;
+			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+			if (steamFriends.IsValid())
+			{
+				return true;
+			}
 		}
 	}
 
@@ -195,7 +198,7 @@ static void HandleAuthPayload(const std::string& payloadStr)
 {
 	if (nui::HasMainUI())
 	{
-		auto payloadJson = nlohmann::json(payloadStr).dump();
+		auto payloadJson = nlohmann::json(payloadStr).dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
 
 		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "authPayload", "data": %s })", payloadJson));
 	}
@@ -438,7 +441,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnInterceptConnection.Connect([](const std::string& url, const std::function<void()>& cb)
 		{
-			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			if (Instance<ICoreGameInit>::Get()->GetGameLoaded() || Instance<ICoreGameInit>::Get()->HasVariable("killedGameEarly"))
 			{
 				if (!disconnected)
 				{
@@ -845,7 +848,7 @@ static InitFunction initFunction([] ()
 
 				if (!g_cardConnectionToken.empty())
 				{
-					netLibrary->SubmitCardResponse(json["data"].dump(), g_cardConnectionToken);
+					netLibrary->SubmitCardResponse(json["data"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace), g_cardConnectionToken);
 				}
 			}
 			catch (const std::exception& e)

@@ -204,6 +204,11 @@ public:
 	virtual void* GetNativeTexture() override
 	{
 #ifdef GTA_FIVE
+		if (!m_texture)
+		{
+			return nullptr;
+		}
+
 		return m_texture->texture;
 #else
 		return m_texture;
@@ -401,7 +406,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 		ID3D12Resource* resource = nullptr;
 		if (SUCCEEDED(device->OpenSharedHandle(shareHandle, __uuidof(ID3D12Resource), (void**)&resource)))
 		{
-			return new GtaNuiTexture([resource](GtaNuiTexture* texture)
+			return new GtaNuiTexture([resource, shareHandle](GtaNuiTexture* texture)
 			{
 				ID3D12Resource* oldTexture = nullptr;
 
@@ -430,6 +435,8 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 					srvDesc.arraySize = 1;
 
 					rage::sga::Driver_Create_ShaderResourceView(texRef, srvDesc);
+
+					CloseHandle(shareHandle);
 				}
 
 				return (rage::grcTexture*)texRef;
@@ -523,6 +530,8 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				srvDesc.arraySize = 1;
 
 				rage::sga::Driver_Create_ShaderResourceView(texRef, srvDesc);
+
+				CloseHandle(shareHandle);
 			}
 
 			return (rage::grcTexture*)texRef;

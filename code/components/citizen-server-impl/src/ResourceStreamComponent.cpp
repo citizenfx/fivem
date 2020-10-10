@@ -256,6 +256,8 @@ namespace fx
 		return true;
 	}
 
+	uint32_t ConvertRSC7Size(uint32_t flags);
+
 	auto ResourceStreamComponent::AddStreamingFile(const std::string& fullPath) -> RuntimeEntry*
 	{
 		if (fullPath.find(".stream_raw") != std::string::npos)
@@ -299,6 +301,8 @@ namespace fx
 				entry.rscPagesPhysical = rsc7Header.physPages;
 				entry.rscPagesVirtual = rsc7Header.virtPages;
 				entry.isResource = true;
+
+				ValidateSize(entry.entryName, ConvertRSC7Size(rsc7Header.physPages), ConvertRSC7Size(rsc7Header.virtPages));
 			}
 			else if (rsc7Header.magic == 0x05435352) // RSC\x05
 			{
@@ -377,10 +381,65 @@ namespace fx
 		return nullptr;
 	}
 
+	uint32_t ConvertRSC7Size(uint32_t flags)
+	{
+		auto s0 = ((flags >> 27) & 0x1) << 0; // 1 bit  - 27        (*1)
+		auto s1 = ((flags >> 26) & 0x1) << 1; // 1 bit  - 26        (*2)
+		auto s2 = ((flags >> 25) & 0x1) << 2; // 1 bit  - 25        (*4)
+		auto s3 = ((flags >> 24) & 0x1) << 3; // 1 bit  - 24        (*8)
+		auto s4 = ((flags >> 17) & 0x7F) << 4; // 7 bits - 17 - 23   (*16)   (max 127 * 16)
+		auto s5 = ((flags >> 11) & 0x3F) << 5; // 6 bits - 11 - 16   (*32)   (max 63  * 32)
+		auto s6 = ((flags >> 7) & 0xF) << 6; // 4 bits - 7  - 10   (*64)   (max 15  * 64)
+		auto s7 = ((flags >> 5) & 0x3) << 7; // 2 bits - 5  - 6    (*128)  (max 3   * 128)
+		auto s8 = ((flags >> 4) & 0x1) << 8; // 1 bit  - 4         (*256)
+		auto ss = ((flags >> 0) & 0xF); // 4 bits - 0  - 3
+		auto baseSize = 0x200 << (uint32_t)ss;
+		auto size = baseSize * (s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7 + s8);
+		return (uint32_t)size;
+	}
+
+	void ResourceStreamComponent::ValidateSize(std::string_view name, uint32_t physSize, uint32_t virtSize)
+	{
+		auto checkSize = [&name, this](uint32_t size, std::string_view why)
+		{
+			auto divSize = fmt::sprintf("%.1f", size / 1024.0 / 1024.0);
+			int warnColor = 0;
+
+			if (size > (64 * 1024 * 1024))
+			{
+				warnColor = 1;
+			}
+			else if (size > (32 * 1024 * 1024))
+			{
+				warnColor = 3;
+			}
+			else if (size > (16 * 1024 * 1024))
+			{
+				warnColor = 4;
+			}
+
+			if (warnColor != 0)
+			{
+				trace("^%dAsset %s/%s uses %s MiB of %s memory.%s^7\n", warnColor, m_resource->GetName(), name, divSize, why,
+					(size > (48 * 1024 * 1024))
+						? " Oversized assets can and WILL lead to streaming issues (models not loading/rendering, commonly known as 'texture loss', 'city bug' or 'streaming isn't great')."
+						: "");
+			}
+		};
+
+		checkSize(physSize, "physical");
+		checkSize(virtSize, "virtual");
+	}
+
 	auto ResourceStreamComponent::AddStreamingFile(const Entry& entry) -> RuntimeEntry*
 	{
 		RuntimeEntry se(entry);
 		se.isAutoScan = false;
+
+		if (entry.isResource /* && gamename == gta5? */)
+		{
+			ValidateSize(entry.entryName, ConvertRSC7Size(entry.rscPagesPhysical), ConvertRSC7Size(entry.rscPagesVirtual));
+		}
 
 		auto it = m_resourcePairs.insert({ entry.entryName, se }).first;
 		m_hashPairs[se.hashString] = &it->second;

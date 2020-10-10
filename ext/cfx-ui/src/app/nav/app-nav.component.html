@@ -1,0 +1,64 @@
+<div
+	class="app-nav-container"
+	[class.with-background]="hasBackground"
+	[class.with-home-button]="hasHomeButton"
+	[class.pulsating]="homeButtonPulsating"
+>
+	<div class="nav-button" [routerLink]="['/home']">
+		<svg class="logo">
+			<use [attr.xlink:href]="'#logo-' + gameName"></use>
+		</svg>
+	</div>
+
+	<div class="rightButtons">
+		<a
+			class="changelog"
+			[routerLink]="['/changelog']"
+			routerLinkActive="active"
+		>
+			<span class="material-icons-outlined">history_edu</span>
+			<span class="new" *ngIf="changelogCount > 0">{{changelogCount}}</span>
+
+			<span class="label" l10nTranslate>
+				#Changelogs
+			</span>
+		</a>
+
+		<a
+			class="settings"
+			[routerLink]="['/settings']"
+			routerLinkActive="active"
+		>
+			<span class="material-icons-outlined">settings</span>
+
+			<span class="label" l10nTranslate>
+				#BottomNav_Settings
+			</span>
+		</a>
+
+		<div
+			class="close-app"
+			(click)="exitConfirmationActive = true"
+		>
+			<span class="material-icons-outlined">close</span>
+
+			<span class="label" l10nTranslate>
+				#ExitToDesktop
+			</span>
+		</div>
+	</div>
+</div>
+
+<div class="exit-confirmation" [class.active]="exitConfirmationActive" (click)="exitConfirmationActive = false">
+	<div class="content">
+		<h1>Are you sure?</h1>
+		<div class="actions">
+			<button class="cfx-button" (click)="exitGame()">
+				Exit
+			</button>
+			<button class="cfx-button primary" (click)="exitConfirmationActive = false">
+				Cancel
+			</button>
+		</div>
+	</div>
+</div>

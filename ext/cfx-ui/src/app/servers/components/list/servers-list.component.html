@@ -1,0 +1,82 @@
+<div class="loaders" [class.hidden]="serversLoaded && sortingComplete">
+	<div style="animation-delay: 0s"></div>
+	<div style="animation-delay: .5s"></div>
+	<div style="animation-delay: 1s"></div>
+	<div style="animation-delay: 1.5s"></div>
+	<div style="animation-delay: 2s"></div>
+</div>
+
+<div class="hint" *ngIf="shouldShowHint">
+	<h3 l10nTranslate>
+		{{hintText}}
+	</h3>
+
+	<div *ngIf="type === 'favorites'" class="favhint">
+		<div class="lol">
+			... but in the actual list!
+		</div>
+		<div class="pic"></div>
+	</div>
+
+	<a
+		[routerLink]="['/servers']"
+		class="cfx-button primary"
+	>
+		<span class="material-icons-outlined">reorder</span>
+		<span class="label" l10nTranslate>
+			#BottomNav_Servers
+		</span>
+	</a>
+</div>
+
+<div class="list" *ngIf="isBrowser()" #list [class.hidden]="!serversLoaded || !sortingComplete">
+	<cdk-virtual-scroll-viewport
+		*ngIf="type !== 'history'"
+		autosize
+		[minBufferPx]="screenHeight * 1.2"
+		[maxBufferPx]="screenHeight * 1.5"
+		class="scroll"
+	>
+		<servers-list-item
+			*cdkVirtualFor="let server of sortedServers"
+			[server]="server"
+			[pinned]="isPinned(server)"
+		></servers-list-item>
+	</cdk-virtual-scroll-viewport>
+
+	<div class="history-list" *ngIf="type === 'history'">
+		<div class="server" *ngFor="let server of historyServers" (click)="attemptConnectTo(server)">
+			<div class="content">
+				<figure class="icon">
+					<img [src]="server.sanitizedIcon || 'http://picsum.photos/96/96'">
+				</figure>
+				<div class="title" [innerHTML]="(server && server.historyEntry.hostname)||'test' | escape | colorize"></div>
+				<div class="actions" *ngIf="server.server">
+					<button
+						(click)="toggleFavorite($event, server.server)"
+						[class.active]="isFavorite(server.server)"
+						class="fav"
+					>
+						<span *ngIf="!isFavorite(server.server)" class="material-icons-outlined">star_bordered</span>
+						<span *ngIf="isFavorite(server.server)" class="material-icons-outlined">star</span>
+					</button>
+				</div>
+				<span class="players" *ngIf="server.server">
+					{{server.server.currentPlayers}}<span class="max">/{{server.server.maxPlayers}}</span>
+				</span>
+			</div>
+			<div class="info">
+				<span
+					class="status"
+					[class.loading]="server.status === HistoryServerStatus.Loading"
+					[class.online]="server.status === HistoryServerStatus.Online"
+					[class.offline]="server.status === HistoryServerStatus.Offline"
+				>
+					{{HistoryServerStatus[server.status]}}
+				</span>
+
+				<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.historyEntry.time | amTimeAgo }}</span>
+			</div>
+		</div>
+	</div>
+</div>

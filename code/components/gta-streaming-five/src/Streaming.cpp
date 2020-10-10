@@ -59,6 +59,11 @@ static hook::cdecl_stub<void(streaming::Manager*, atArray<uint32_t>&, uint32_t)>
 	return hook::get_pattern("8B F8 48 8B EA 4C 8B F1 85 F6 74 2B 8B D3", -32);
 });
 
+static hook::cdecl_stub<void(uint32_t, atArray<uint32_t>&, uint32_t)> _getDependentsInner([]()
+{
+	return (void*)hook::get_call(hook::get_pattern<char>("8B F8 48 8B EA 4C 8B F1 85 F6 74 2B 8B D3", -32) + 0x42);
+});
+
 size_t StreamingDataEntry::ComputePhysicalSize(uint32_t strIndex)
 {
 	return _computePhysicalSize(this, strIndex);
@@ -89,6 +94,30 @@ namespace streaming
 	void Manager::FindAllDependents(atArray<uint32_t>& outIndices, uint32_t objectId)
 	{
 		return _getDependents(this, outIndices, objectId);
+	}
+
+	void Manager::FindDependentsInner(uint32_t selfId, atArray<uint32_t>& outIndices, uint32_t objectId)
+	{
+		// this would call the original, except it will return a physical in-image index and not necessarily the real object
+		//_getDependentsInner(selfId, outIndices, objectId);
+
+		if (selfId != -1)
+		{
+			uint32_t outDeps[50];
+			std::uninitialized_fill(outDeps, &outDeps[50], -1);
+
+			auto module = moduleMgr.GetStreamingModule(selfId);
+			int numDeps = module->GetDependencies(selfId - module->baseIdx, outDeps, std::size(outDeps));
+
+			for (int i = 0; i < numDeps; i++)
+			{
+				if (outDeps[i] == objectId)
+				{
+					outIndices.Set(outIndices.GetCount(), selfId);
+					break;
+				}
+			}
+		}
 	}
 
 	void LoadObjectsNow(bool a1)

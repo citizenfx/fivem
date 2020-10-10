@@ -180,7 +180,7 @@ static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
 
 static HookFunction hookFunction([] ()
 {
-	char* levelCaller = Is1868() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
+	char* levelCaller = Is2060() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
 	char* levelByIndex = hook::get_call(levelCaller);
 
 	hook::set_call(&g_origLoadLevelByIndex, levelCaller);
@@ -201,6 +201,10 @@ static HookFunction hookFunction([] ()
 
 static SpawnThread spawnThread;
 
+#include <concurrent_queue.h>
+
+static concurrency::concurrent_queue<std::function<void()>> g_onShutdownQueue;
+
 static void LoadLevel(const char* levelName)
 {
 	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
@@ -220,15 +224,40 @@ static void LoadLevel(const char* levelName)
 		{
 			return true;
 		});
+
+		gameInit->ShAllowed = true;
 	}
 	else
 	{
-		//gameInit->KillNetwork((wchar_t*)1);
+		bool sm = gameInit->HasVariable("storyMode");
+		bool lm = gameInit->HasVariable("localMode");
+		bool em = gameInit->HasVariable("editorMode");
 
-		gameInit->ReloadGame();
+		gameInit->KillNetwork((wchar_t*)1);
+
+		g_onShutdownQueue.push([gameInit, sm, lm, em]()
+		{
+			gameInit->ReloadGame();
+
+			if (sm)
+			{
+				gameInit->SetVariable("storyMode");
+			}
+
+			if (lm)
+			{
+				gameInit->SetVariable("localMode");
+			}
+
+			if (em)
+			{
+				gameInit->SetVariable("editorMode");
+			}
+
+			gameInit->SetVariable("networkInited");
+			gameInit->ShAllowed = true;
+		});
 	}
-
-	gameInit->ShAllowed = true;
 }
 
 class SPResourceMounter : public fx::ResourceMounter
@@ -341,4 +370,14 @@ static InitFunction initFunction([] ()
 	{
 		LoadLevel(level.c_str());
 	});
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		std::function<void()> fn;
+
+		while (g_onShutdownQueue.try_pop(fn))
+		{
+			fn();
+		}
+	}, INT32_MAX);
 });

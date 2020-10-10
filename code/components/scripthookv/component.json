@@ -6,7 +6,6 @@
 		"rage:scripting:five",
 		"rage:input:five",
 		"rage:graphics:five",
-		"citizen:resources:core",
 		"gta:mission-cleanup:five"
 	],
 	"provides": []

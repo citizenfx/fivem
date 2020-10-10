@@ -25,6 +25,8 @@
 
 #include <CoreConsole.h>
 
+#include <GameInit.h>
+
 #if __has_include(<GlobalEvents.h>)
 #include <GlobalEvents.h>
 #endif
@@ -276,4 +278,14 @@ static InitFunction initFunction([] ()
 		// prevent this from getting destructed on exit - that might try doing really weird things to the game
 		g_resourceManager->AddRef();
 	}, 9000);
+
+	OnKillNetworkDone.Connect([=]()
+	{
+		if (Instance<ICoreGameInit>::Get()->HasVariable("killedGameEarly"))
+		{
+			AddCrashometry("reset_resources_knd", "true");
+
+			Instance<fx::ResourceManager>::Get()->ResetResources();
+		}
+	});
 });

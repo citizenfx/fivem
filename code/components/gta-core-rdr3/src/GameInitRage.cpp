@@ -249,7 +249,8 @@ static void LogStubLog1(void* stub, const char* type, const char* format, ...)
 static HookFunction hookFunctionNet([]()
 {
 	// tunable privilege check
-	hook::jump(hook::get_pattern("BA 0C 7C 4B B5 B9 BD C5 AF E3", -0x20), Return1);
+	// arxan
+	hook::jump(hook::get_call(hook::get_pattern("74 07 B8 80 9C D1 EB EB 0E", -0xC)), Return1);
 
 	// player can-clone SP model skip
 	hook::jump(hook::get_pattern("84 C0 74 04 32 C0 EB 0E 4C 8B C7 48 8B D6", -0x1D), ReturnTrueAndForcePedMPFlag);
@@ -266,4 +267,7 @@ static HookFunction hookFunctionNet([]()
 		*hook::get_address<float*>(location + 3) = 1000 / 180.0;
 		hook::put<int32_t>(location + 10, 0);
 	}
+
+	// don't block ped loco for MP peds if not in MP mode (or SP peds if not in SP mode)
+	hook::jump(hook::get_pattern("75 05 83 FB 01 EB 03 83 FB 02", -0x1C), Return1);
 });

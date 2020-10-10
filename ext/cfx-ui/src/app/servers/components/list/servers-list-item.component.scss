@@ -1,0 +1,256 @@
+@import "variables";
+
+:host {
+	display: block;
+	width: 100%;
+	margin-bottom: 2px;
+}
+
+.server-list-item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
+
+	height: var(--q2);
+
+	padding: 2px;
+
+	font-size: var(--fs-1);
+
+	cursor: default;
+	user-select: none;
+
+	will-change: background, box-shadow;
+
+	@include theme() using ($theme) {
+		background-color: gtv($theme, bgColor);
+
+		&.pinned {
+			background-color: mix(gtv($theme, bgColor), gtv($theme, accentColor2), 85%);
+		}
+	};
+
+	.premium {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		bottom: 2px;
+
+		width: var(--q4);
+
+		z-index: 1;
+
+		@include theme() using ($theme) {
+			--color: #{rgba(gtv($theme, fgColor), .15)};
+			--color2: #{rgba(gtv($theme, bgColor), 0)};
+
+			background: linear-gradient(
+				110deg,
+				var(--color) 0%,
+				var(--color2) 70%,
+			);
+
+			&.au {
+				--color: #{rgba(gtv($theme, auColor), .25)};
+			}
+
+			&.pt {
+				--color: #{rgba(gtv($theme, accentColor1), .35)};
+			}
+		}
+	}
+
+	.icon {
+		flex-shrink: 0;
+
+		width: calc(var(--q2) - 4px);
+		height: calc(var(--q2) - 4px);
+
+		z-index: 2;
+
+		::ng-deep img, img {
+			width: 100%;
+			height: 100%;
+		}
+	}
+
+	.badge {
+		margin-left: var(--qh);
+	}
+
+	.name {
+		margin-left: var(--qh);
+
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+
+		flex-grow: 1;
+
+		text-align: left;
+		padding-right: var(--qh);
+
+		@include theme() using ($theme) {
+			color: gtv($theme, secondaryColor);
+		};
+
+		font-feature-settings: 'case', 'liga' 1;
+	}
+
+	.actions {
+		flex-shrink: 0;
+
+		width: var(--q6);
+		height: 100%;
+
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+
+		padding-right: var(--qh);
+
+		button {
+			opacity: 0;
+
+			flex-grow: 1;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			height: calc(100% - 0px);
+
+			background: transparent;
+			border: none;
+			outline: none;
+
+			@include theme() using ($theme) {
+				color: gtv($theme, textColor);
+			};
+
+			svg {
+				width: var(--q1);
+				height: var(--q1);
+			}
+
+			& > .material-icons-outlined {
+				width: var(--fs-1);
+			}
+
+			&.fav {
+				justify-content: center;
+
+				border-right: solid 2px transparent;
+
+				&:hover {
+					@include theme() using ($theme) {
+						color: gtv($theme, accentColor1);
+					}
+				}
+			}
+
+			&.boost {
+				position: relative;
+
+				width: var(--q3);
+
+				justify-content: space-between;
+
+				padding: calc(var(--qh) / 2);
+
+				font-size: calc(var(--fs-1) / 1.5);
+				font-weight: 500;
+				line-height: 1;
+
+				overflow: hidden;
+
+				.material-icons-outlined {
+					font-size: calc(var(--fs-1) / 1.5);
+					margin-right: calc(var(--qh) / 2);
+				}
+
+				.boosts-counter {
+					padding-right: calc(var(--qh) / 2);
+
+					font-weight: 500;
+				}
+
+				@include theme() using ($theme) {
+					color: gtv($theme, fgColor);
+					border: solid 2px rgba(gtv($theme, accentColor1), .5);
+					border-top: none;
+					border-bottom: none;
+				};
+
+				.booster {
+					position: absolute;
+					top: 0;
+					left: 0;
+					right: 0;
+					bottom: 0;
+
+					display: flex;
+					align-items: center;
+					justify-content: center;
+
+					opacity: 0;
+					transform: scale(1.3);
+
+					@include theme() using ($theme) {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+					};
+
+					transition: all .2s ease;
+				}
+
+				&:hover {
+					.booster {
+						opacity: 1;
+						transform: scale(1);
+					}
+				}
+			}
+
+			&.active {
+				opacity: 1;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, accentColor1);
+				};
+			}
+		}
+	}
+
+	.players {
+		flex-shrink: 0;
+		width: var(--q5);
+
+		padding-right: var(--qh);
+
+		text-align: right;
+
+		.max {
+			opacity: .5;
+		}
+	}
+
+	&:hover {
+		@include theme() using ($theme) {
+			box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+		};
+
+		.actions button {
+			opacity: 1;
+
+			transition: none;
+
+			&.fav {
+				@include theme() using ($theme) {
+					border-right: solid 2px rgba(gtv($theme, accentColor1), .5);
+				}
+			}
+		}
+	}
+}

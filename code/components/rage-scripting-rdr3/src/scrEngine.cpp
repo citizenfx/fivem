@@ -239,7 +239,13 @@ void scrEngine::CreateThread(GtaThread* thread)
 	}
 }
 
-uint64_t MapNative(uint64_t inNative);
+static uint64_t* nHashObf;
+
+static uint64_t MapNative(uint64_t hash)
+{
+	auto tmp = _rotl64(_rotr64(*nHashObf, 5), 32);
+	return tmp ^ _rotr64(_rotl64(~hash, 32), ((uint8_t)tmp & 0x1Fu) + 1);
+}
 
 bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 {
@@ -249,8 +255,6 @@ bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 
 	// remove cached fastpath native
 	g_fastPathMap.erase(NativeHash{ origHash });
-
-	//hash = MapNative(hash);
 
 	NativeRegistration* table = registrationTable[hash & 0xFF];
 
@@ -277,6 +281,8 @@ bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 
 void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 {
+	hash = MapNative(hash);
+
 	// re-implemented here as the game's own function is obfuscated
 	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
 
@@ -391,7 +397,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 
 	if (!handler)
 	{
-		//hash = MapNative(hash);
+		hash = MapNative(hash);
 
 		NativeRegistration* table = registrationTable[hash & 0xFF];
 
@@ -561,9 +567,9 @@ static HookFunction hookFunction([] ()
 	//char* location = hook::pattern("48 8B C8 EB 03 48 8B CB 48 8B 05").count(1).get(0).get<char>(11);
 
 	// 1207.58
-	scrThreadCollection = hook::get_address<decltype(scrThreadCollection)>(hook::get_pattern("48 8B CF 48 8B 05 ? ? ? ? 49 89 0C 07", 6));
+	scrThreadCollection = hook::get_address<decltype(scrThreadCollection)>(hook::get_pattern("48 8B 05 ? ? ? ? 49 89 0C", 3));
 
-	rage::g_activeThread = hook::get_address<decltype(rage::g_activeThread)>(hook::get_pattern("EB 59 48 8B 05 ? ? ? ? 48 85 C0 74 05", 5));
+	rage::g_activeThread = hook::get_address<decltype(rage::g_activeThread)>(hook::get_pattern("41 C6 04 06 01 48 8D 45 08 48 89 44 24 20 E8", 34));
 
 	scrThreadId = hook::get_address<decltype(scrThreadId)>(hook::get_pattern("8B 0D ? ? ? ? 3B CA 7D 28 4C 8B 0D", 2));
 
@@ -571,17 +577,20 @@ static HookFunction hookFunction([] ()
 
 	//location = hook::pattern("76 32 48 8B 53 40").count(1).get(0).get<char>(9);
 
-	registrationTable = hook::get_address<decltype(registrationTable)>(hook::get_pattern("48 8D 0D ? ? ? ? 33 D2 C6 05 ? ? ? ? 00 41", 3));
+	registrationTable = hook::get_address<decltype(registrationTable)>(hook::get_pattern("33 D2 83 25 ? ? ? ? 00 41 B8 ? ? ? ? C6 05 ? ? ? ? 00 05", 60));
 
 	//location = hook::pattern("74 17 48 8B C8 E8 ? ? ? ? 48 8D 0D").count(1).get(0).get<char>(13);
 
 	g_scriptHandlerMgr = hook::get_address<decltype(g_scriptHandlerMgr)>(hook::get_pattern("48 8D 96 ? ? 00 00 48 C1 E0 07 48 8D 0D", 14));
 
 	// disable nested script behavior on tick
-	hook::put<uint8_t>(hook::get_pattern("C6 05 ? ? ? ? 01 74 19 E8", 7), 0xEB);
+	hook::put<uint8_t>(hook::get_pattern("74 ? E8 ? ? ? ? 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? E8"), 0xEB);
 
-	// always pretend root script is SP (leads to HUD loading and some other stuff lighting up
+	// always pretend root script is SP (leads to HUD loading and some other stuff lighting up)
 	hook::jump(hook::get_pattern("44 8B 81 D8 06 00 00 85 D2 74", -0xE), ReturnScriptType);
+
+	// native hash obfuscation root for 1311
+	rage::nHashObf = hook::get_address<uint64_t*>(hook::get_pattern("41 B8 ? ? ? ? C6 05 ? ? ? ? 00 05 C3 9E", 26));
 
 	// remove our scripts pre-shutdown (since this is INIT_SESSION-time now)
 	{

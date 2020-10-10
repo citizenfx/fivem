@@ -204,7 +204,7 @@ static struct
 
 struct CrossMappingEntry
 {
-	uint64_t entries[22];
+	uint64_t entries[23];
 };
 
 static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTables)
@@ -218,7 +218,11 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Dec 11 2019", 11) == 0)
+	if (strncmp(buildString, "Aug  5 2020", 11) == 0)
+	{
+		versionIdx = 2060;
+	}
+	else if (strncmp(buildString, "Dec 11 2019", 11) == 0)
 	{
 		versionIdx = 1868;
 	}
@@ -242,7 +246,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		versionIdx = 1290;
 	}
-	else if (strncmp(buildString, "Jun  9 2017", 6) == 0)
+	else if (strncmp(buildString, "Jun  9 2017", 11) == 0)
 	{
 		versionIdx = 1103;
 	}
@@ -258,8 +262,15 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		versionIdx = 393;
 	}
+	else if (strncmp(buildString, "Jun  9 2015", 11) == 0)
+	{
+		versionIdx = 372;
+	}
 
-	Instance<ICoreGameInit>::Get()->SetData("gameBuild", fmt::sprintf("%d", versionIdx));
+	if (!Is372())
+	{
+		Instance<ICoreGameInit>::Get()->SetData("gameBuild", fmt::sprintf("%d", versionIdx));
+	}
 
 	// early out if no version index matched
 	if (versionIdx < 0)
@@ -276,7 +287,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	};
 
 	int maxVersion = 0;
-	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290, 1365, 1493, 1604, 1737, 1868 };
+	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290, 1365, 1493, 1604, 1737, 1868, 2060 };
 
 	for (auto version : newVersions)
 	{
@@ -286,10 +297,14 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 		}
 	}
 
-	// 1868
-	if (Is1868())
+	if (Is372())
 	{
-		assert(maxVersion == 21);
+		assert(maxVersion == 2);
+	}
+	// 2060
+	else if (Is2060())
+	{
+		assert(maxVersion == 22);
 	}
 	else
 	{

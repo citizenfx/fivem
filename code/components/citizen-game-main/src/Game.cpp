@@ -60,7 +60,7 @@ public:
 		{
 			json j = error;
 
-			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", j.dump()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace)));
 		});
 
 		auto cmp = [this](const std::string& message, int progress, int totalProgress)
@@ -73,7 +73,7 @@ public:
 
 			if (nui::HasMainUI())
 			{
-				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectStatus", "data": %s })", j.dump()));
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectStatus", "data": %s })", j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace)));
 			}
 		};
 

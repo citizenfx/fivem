@@ -1,24 +1,37 @@
-<div class="backdroppy">
+<div>
     <div class="message-header">
-        <img class="avatar" src="{{tweet.avatar}}">
-        <strong>{{tweet.user_displayname}}</strong>
-        <small>
-            @{{tweet.user_screenname}}
-        </small>
-        <small>
-            {{tweet.date | amTimeAgo}}
-            <span class="additional" aria-label="Open tweet in browser." data-balloon-pos="down" (click)="openTweet(tweet.id)">{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}</span>
-        </small>	
-        <small *ngIf="tweet.rt_displayname" class="rt">Retweeted by {{ tweet.rt_displayname }}</small>
+		<img class="avatar" src="{{tweet.avatar}}">
+		<div class="info">
+			<div class="top">
+				<strong>{{tweet.user_displayname}}</strong>
+				<small>
+					@{{tweet.user_screenname}}
+				</small>
+			</div>
+			<div class="bottom">
+				<small>{{tweet.date | amTimeAgo}}
+					<span
+						class="additional"
+						aria-label="Open tweet in browser."
+						data-balloon-pos="down"
+						(click)="openTweet(tweet.id)"
+					>
+						{{tweet.date | date:'MM/dd/yyyy @ h:mma'}}
+					</span>
+				</small>
+				<small *ngIf="tweet.rt_displayname" class="rt">Retweeted by {{ tweet.rt_displayname }}</small>
+			</div>
+		</div>
     </div>
     <div class="message-body">
         <article class="media">
             <figure class="media-left" *ngIf="tweet.image">
-                <img src="{{tweet.image}}">
+                <img src="{{tweet.image}}" (click)="zoomImage($event)">
             </figure>
             <div class="media-content">
-                <div class="content" (click)="clickContent($event)">
-                    <p [innerHTML]="tweet.content | linky: { hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }"></p>
+                <div class="content __cfx_ap_content" (click)="clickContent($event)">
+                    <p *ngIf="!actuallyTweet" [innerHTML]="tweet.content | dompurify"></p>
+                    <p *ngIf="actuallyTweet" [innerHTML]="tweet.content | linky"></p>
                 </div>
                 <nav class="level is-mobile"></nav>
             </div>
@@ -27,3 +40,9 @@
         </article>
     </div>
 </div>
+
+<ng-template #cdkPortal>
+	<div class="image-zoom" [class.active]="zoomedImageUrl" (click)="zoomedImageUrl = undefined">
+		<img [src]="zoomedImageUrl">
+	</div>
+</ng-template>

@@ -13,7 +13,8 @@
 		"nui:core",
 		"citizen:resources:client",
 		"net",
-		"voip:mumble"
+		"voip:mumble",
+		"vendor:directxtex"
 	],
 	"provides": []
 }

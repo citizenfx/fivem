@@ -7,6 +7,17 @@
 #include <nutsnbolts.h>
 #include <atPool.h>
 #include <DirectXMath.h>
+#include <CrossBuildRuntime.h>
+
+#define DECLARE_ACCESSOR(x) \
+	decltype(impl.m2060.x)& x()        \
+	{                       \
+		return (Is2060() ? impl.m2060.x : impl.m1604.x);   \
+	} \
+	const decltype(impl.m2060.x)& x() const                         \
+	{                                                    \
+		return (Is2060() ? impl.m2060.x : impl.m1604.x);  \
+	}
 
 using Matrix3x4 = DirectX::XMFLOAT3X4;
 
@@ -21,21 +32,21 @@ struct Vector
 struct CEntityDef
 {
 	void* vtable; // +0
-	int32_t archetypeName; // +8
-	int32_t flags; // +12
+	uint32_t archetypeName; // +8
+	uint32_t flags; // +12
 	char pad1[16]; // +16
 	Vector position; // +32
 	Vector rotation; // +48
 	float scaleXY; // +64
 	float scaleZ; // +68
 	int16_t parentIndex; // +72
-	int16_t lodDist; // +74
-	int16_t childLodDist; // +74
+	uint16_t lodDist; // +74
+	uint16_t childLodDist; // +74
 	char pad2[36]; // +76 (todo: extensions)
 	float ambientOcclusionMultiplier; // +112
 	float artificialAmbientOcclusion; // +116
 	int16_t tintValue; // +120
-	char pad3[5]; // +122
+	char pad3[6]; // +122
 };
 
 struct CMloRoomDef
@@ -47,12 +58,12 @@ struct CMloRoomDef
 	Vector bbMin; // +32
 	Vector bbMax; // +48
 	float blend; // +64
-	int32_t timecycleName; // +68
-	int32_t secondaryTimecycleName;
+	uint32_t timecycleName; // +68
+	uint32_t secondaryTimecycleName;
 	uint32_t flags; // +76
 	uint32_t portalsCount; // +80
 	int32_t floorId; // +84
-	int16_t exteriorVisibiltyDepth; // +88
+	int16_t exteriorVisibilityDepth; // +88
 	atArray<uint32_t> attachedObjects; // +90
 };
 
@@ -72,7 +83,7 @@ struct CMloPortalDef
 struct CMloEntitySet
 {
 	void* vtable; // +0
-	int64_t name; // +8
+	uint64_t name; // +8
 	atArray<int32_t> locations; // +12
 	atArray<CEntityDef> entities; // +28
 };
@@ -80,7 +91,7 @@ struct CMloEntitySet
 struct CMloTimeCycleModifier
 {
 	void* vtable; // +0
-	int64_t name; // +8
+	uint64_t name; // +8
 	Vector sphere; // +16
 	float percentage; // +32
 	float range; // +36
@@ -88,25 +99,20 @@ struct CMloTimeCycleModifier
 	uint32_t endHour; // +44
 };
 
-// not real CMloArchetypeDef, but +168 from it
-struct CMloArchetypeDef
+struct CMloModelInfo
 {
-	atArray<CMloRoomDef> rooms; // +0
-	atArray<CMloPortalDef> portals; // +16
-	atArray<CMloEntitySet> entitySets; // +32
-	atArray<CMloTimeCycleModifier> timecycleModifiers; // +48
-};
-
-struct CMloModel
-{
-	char pad1[208]; // +0
-	CMloArchetypeDef* mloArchetypeDef; // +208
+	char pad1[200]; // +0
+	atArray<CEntityDef*>* entities; // +200
+	atArray<CMloRoomDef>* rooms; // +208
+	atArray<CMloPortalDef>* portals; // +216
+	atArray<CMloEntitySet>* entitySets; // +224
+	atArray<CMloTimeCycleModifier>* timecycleModifiers; // +232
 };
 
 struct CInteriorInst
 {
 	char pad1[32]; // +0
-	CMloModel* mloModel; // +32
+	CMloModelInfo* mloModel; // +32
 	char pad2[56]; // +40
 	Matrix3x4 matrix; // +96
 	Vector position; // +144
@@ -114,88 +120,157 @@ struct CInteriorInst
 	// CInteriorProxy* proxy; // +392
 };
 
-struct CInteriorProxy
+struct InteriorProxy
 {
-	char pad1[64]; // +0
-	CInteriorInst* instance; // +64
-	char pad2[24]; // +72
-	Vector rotation; // +96
-	Vector position; // +112
-	Vector entitiesExtentsMin; // +128
-	Vector entitiesExtentsMax; // +144
-	char pad3[68]; // +160
-	int32_t minimapHash; // +228
-	char pad4[8]; // +232
+public:
+	struct Impl1604
+	{
+		void* vtbl;
+		uint32_t mapIndex; // +8
+		char pad1[4]; // +12
+		uint32_t occlusionIndex; // +16
+		char pad2[44]; // +20
+		CInteriorInst* instance; // +64
+		char pad3[24]; // +72
+		Vector rotation; // +96
+		Vector position; // +112
+		Vector entitiesExtentsMin; // +128
+		Vector entitiesExtentsMax; // +144
+		char pad4[68]; // +160
+		uint32_t archetypeHash; // +228
+		char pad5[8]; // +232
+	};
+
+	struct Impl2060
+	{
+		void* vtbl;
+		uint32_t mapIndex; // +8
+		char pad1[4]; // +12
+		uint32_t occlusionIndex; // +16
+		char pad2[44]; // +20
+		uint32_t unkFlag; // +64, some flag added in 1868, hardcoded for ch_dlc_arcade
+		char pad3[4]; // +68
+		CInteriorInst* instance; // +72
+		char pad4[16]; // +80
+		Vector rotation; // +96
+		Vector position; // +112
+		Vector entitiesExtentsMin; // +128
+		Vector entitiesExtentsMax; // +144
+		char pad5[68]; // +160
+		uint32_t archetypeHash; // +228
+		char pad6[8]; // +232
+	};
+
+	union
+	{
+		Impl1604 m1604;
+		Impl2060 m2060;
+	} impl;
+
+public:
+	DECLARE_ACCESSOR(instance);
+	DECLARE_ACCESSOR(rotation);
+	DECLARE_ACCESSOR(position);
+	DECLARE_ACCESSOR(entitiesExtentsMin);
+	DECLARE_ACCESSOR(entitiesExtentsMax);
 };
 
-static atPool<CInteriorProxy>** g_interiorProxyPool;
+template<int Build>
+using CInteriorProxy = std::conditional_t<(Build >= 2060), InteriorProxy::Impl2060, InteriorProxy::Impl1604>;
 
-static CInteriorProxy* GetInteriorProxy(int handle)
+template<int Build>
+static atPool<CInteriorProxy<Build>>** g_interiorProxyPool;
+
+template<int Build>
+static CInteriorProxy<Build>* GetInteriorProxy(int handle)
 {
-	return (*g_interiorProxyPool)->GetAtHandle<CInteriorProxy>(handle);
+	return (*g_interiorProxyPool<Build>)->GetAtHandle<CInteriorProxy<Build>>(handle);
 }
 
-static CMloArchetypeDef* GetInteriorArchetype(int interiorId)
+static CMloModelInfo* GetInteriorArchetype(int interiorId)
 {
-	CInteriorProxy* interiorProxy = GetInteriorProxy(interiorId);
-	return interiorProxy->instance->mloModel->mloArchetypeDef;
+	CInteriorInst* instance;
+
+	if (Is2060())
+	{
+		CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
+		if (proxy)
+		{
+			instance = proxy->instance;
+		}
+	}
+	else
+	{
+		CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
+		if (proxy)
+		{
+			instance = proxy->instance;
+		}
+	}
+
+	if (instance && instance->mloModel)
+	{
+		return instance->mloModel;
+	}
+
+	return nullptr;
 }
 
 static CMloRoomDef* GetInteriorRoomDef(int interiorId, int roomId)
 {
-	CMloArchetypeDef* arch = GetInteriorArchetype(interiorId);
+	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || roomId < 0 || roomId > arch->rooms.GetCount())
+	if (arch == nullptr || roomId < 0 || roomId > arch->rooms->GetCount())
 	{
 		return nullptr;
 	}
 
-	return &(arch->rooms[roomId]);
+	return &(arch->rooms->Get(roomId));
 }
 
 static CMloPortalDef* GetInteriorPortalDef(int interiorId, int portalId)
 {
-	CMloArchetypeDef* arch = GetInteriorArchetype(interiorId);
+	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || portalId < 0 || portalId > arch->portals.GetCount())
+	if (arch == nullptr || portalId < 0 || portalId > arch->portals->GetCount())
 	{
 		return nullptr;
 	}
 
-	return &(arch->portals[portalId]);
+	return &(arch->portals->Get(portalId));
 }
 
 static CMloEntitySet* GetInteriorEntitySet(int interiorId, int setId)
 {
-	CMloArchetypeDef* arch = GetInteriorArchetype(interiorId);
+	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || setId < 0 || setId > arch->entitySets.GetCount())
+	if (arch == nullptr || setId < 0 || setId > arch->entitySets->GetCount())
 	{
 		return nullptr;
 	}
 
-	return &(arch->entitySets[setId]);
+	return &(arch->entitySets->Get(setId));
 }
 
 static CMloTimeCycleModifier* GetInteriorTimecycleModifier(int interiorId, int modId)
 {
-	CMloArchetypeDef* arch = GetInteriorArchetype(interiorId);
+	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 
-	if (arch == nullptr || modId < 0 || modId > arch->timecycleModifiers.GetCount())
+	if (arch == nullptr || modId < 0 || modId > arch->timecycleModifiers->GetCount())
 	{
 		return nullptr;
 	}
 
-	return &(arch->timecycleModifiers[modId]);
+	return &(arch->timecycleModifiers->Get(modId));
 }
 
-static int GetInteriorRoomIdByHash(CMloArchetypeDef* arch, int searchHash)
+static int GetInteriorRoomIdByHash(CMloModelInfo* arch, int searchHash)
 {
-	auto count = arch->rooms.GetCount();
+	auto count = arch->rooms->GetCount();
 
 	for (int i = 0; i < count; ++i)
 	{
-		CMloRoomDef* room = &(arch->rooms[i]);
+		CMloRoomDef* room = &(arch->rooms->Get(i));
 
 		if (HashString(room->name) == searchHash)
 		{
@@ -209,8 +284,16 @@ static int GetInteriorRoomIdByHash(CMloArchetypeDef* arch, int searchHash)
 static HookFunction initFunction([]()
 {
 	{
-		auto location = hook::pattern("BA A1 85 94 52 41 B8 01").count(1).get(0).get<char>(0x34);
-		g_interiorProxyPool = (decltype(g_interiorProxyPool))(location + *(int32_t*)location + 4);
+		auto location = hook::get_pattern<char>("BA A1 85 94 52 41 B8 01", 0x34);
+
+		if (Is2060())
+		{
+			g_interiorProxyPool<2060> = hook::get_address<decltype(g_interiorProxyPool<2060>)>(location);
+		}
+		else
+		{
+			g_interiorProxyPool<1604> = hook::get_address<decltype(g_interiorProxyPool<1604>)>(location);
+		}
 	}
 
 #ifdef _DEBUG
@@ -218,35 +301,35 @@ static HookFunction initFunction([]()
 	{
 		auto interiorId = context.GetArgument<int>(0);
 
-		CMloArchetypeDef* arch = GetInteriorArchetype(interiorId);
+		CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 		if (arch == nullptr)
 		{
 			return;
 		}
 
-		auto roomCount = arch->rooms.GetCount();
-		auto portalCount = arch->portals.GetCount();
-		auto entitySetCount = arch->entitySets.GetCount();
-		auto timecycleModifierCount = arch->timecycleModifiers.GetCount();
+		auto roomCount = arch->rooms->GetCount();
+		auto portalCount = arch->portals->GetCount();
+		auto entitySetCount = arch->entitySets->GetCount();
+		auto timecycleModifierCount = arch->timecycleModifiers->GetCount();
 
 		for (int roomId = 0; roomId < roomCount; ++roomId)
 		{
 			auto room = GetInteriorRoomDef(interiorId, roomId);
-			trace("\nSearching for CMloRoomDef %d/%d at %08x\n", roomId + 1, roomCount, (int64_t)room);
+			trace("\nSearching for CMloRoomDef %d/%d at %08x\n", roomId + 1, roomCount, (uint64_t)room);
 
 			trace(" - Found room %s with index %d\n", std::string(room->name), roomId);
 			trace(" - BbMin: %f %f %f\n", room->bbMin.x, room->bbMin.y, room->bbMin.z);
 			trace(" - BbMax: %f %f %f\n", room->bbMax.x, room->bbMax.y, room->bbMax.z);
 			trace(" - Blend: %f | Flags: %d | Portals: %d\n", room->blend, room->flags, room->portalsCount);
 			trace(" - TimecycleName Hash: %d / %d\n", room->timecycleName, room->secondaryTimecycleName);
-			trace(" - FloorId: %d | ExteriorVisibiltyDepth: %d\n", room->floorId, room->exteriorVisibiltyDepth);
+			trace(" - FloorId: %d | ExteriorVisibilityDepth: %d\n", room->floorId, room->exteriorVisibilityDepth);
 			trace(" - AttachedObjects: %d\n", room->attachedObjects.GetCount());
 		}
 
 		for (int portalId = 0; portalId < portalCount; ++portalId)
 		{
 			auto portal = GetInteriorPortalDef(interiorId, portalId);
-			trace("\nSearching for CMloPortalDef %d/%d at %08x\n", portalId + 1, portalCount, (int64_t)portal);
+			trace("\nSearching for CMloPortalDef %d/%d at %08x\n", portalId + 1, portalCount, (uint64_t)portal);
 
 
 			trace(" - Found portal with index %d\n", portalId);
@@ -265,7 +348,7 @@ static HookFunction initFunction([]()
 		for (int setId = 0; setId < entitySetCount; ++setId)
 		{
 			auto entitySet = GetInteriorEntitySet(interiorId, setId);
-			trace("\nSearching for CMloEntitySet %d/%d at %08x\n", setId + 1, entitySetCount, (int64_t)entitySet);
+			trace("\nSearching for CMloEntitySet %d/%d at %08x\n", setId + 1, entitySetCount, (uint64_t)entitySet);
 
 			trace(" - Found entitySet with hash %08x\n", entitySet->name);
 			trace(" - Locations: %d | Entities: %d\n", entitySet->locations.GetCount(), entitySet->entities.GetCount());
@@ -274,7 +357,7 @@ static HookFunction initFunction([]()
 		for (int modId = 0; modId < timecycleModifierCount; ++modId)
 		{
 			auto modifier = GetInteriorTimecycleModifier(interiorId, modId);
-			trace("\nSearching for CMloTimeCycleModifier %d/%d at %08x\n", modId + 1, timecycleModifierCount, (int64_t)modifier);
+			trace("\nSearching for CMloTimeCycleModifier %d/%d at %08x\n", modId + 1, timecycleModifierCount, (uint64_t)modifier);
 
 			trace(" - Found timecycleModifier with hash %08x\n", modifier->name);
 			trace(" - Sphere: %f %f %f %f\n", modifier->sphere.x, modifier->sphere.y, modifier->sphere.z, modifier->sphere.w);
@@ -290,7 +373,7 @@ static HookFunction initFunction([]()
 		auto searchHash = context.GetArgument<int>(1);
 		auto result = -1;
 
-		CMloArchetypeDef* arch = GetInteriorArchetype(interiorId);
+		CMloModelInfo* arch = GetInteriorArchetype(interiorId);
 		if (arch != nullptr)
 		{
 			result = GetInteriorRoomIdByHash(arch, searchHash);
@@ -559,8 +642,19 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_POSITION", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);
-		auto intProxy = GetInteriorProxy(interiorId);
-		Vector* position = &intProxy->position;
+
+		Vector* position;
+
+		if (Is2060())
+		{
+			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
+			position = &proxy->position;
+		}
+		else
+		{
+			CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
+			position = &proxy->position;
+		}
 
 		*context.GetArgument<float*>(1) = position->x;
 		*context.GetArgument<float*>(2) = position->y;
@@ -570,8 +664,19 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ROTATION", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);
-		auto intProxy = GetInteriorProxy(interiorId);
-		Vector* rotation = &intProxy->rotation;
+
+		Vector* rotation;
+
+		if (Is2060())
+		{
+			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
+			rotation = &proxy->rotation;
+		}
+		else
+		{
+			CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
+			rotation = &proxy->rotation;
+		}
 
 		*context.GetArgument<float*>(1) = rotation->x;
 		*context.GetArgument<float*>(2) = rotation->y;
@@ -582,9 +687,22 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_ENTITIES_EXTENTS", [=](fx::ScriptContext& context)
 	{
 		auto interiorId = context.GetArgument<int>(0);
-		auto proxy = GetInteriorProxy(interiorId);
-		Vector* bbMin = &proxy->entitiesExtentsMin;
-		Vector* bbMax = &proxy->entitiesExtentsMax;
+
+		Vector* bbMin;
+		Vector* bbMax;
+
+		if (Is2060())
+		{
+			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
+			bbMin = &proxy->entitiesExtentsMin;
+			bbMax = &proxy->entitiesExtentsMax;
+		}
+		else
+		{
+			CInteriorProxy<1604>* proxy = GetInteriorProxy<1604>(interiorId);
+			bbMin = &proxy->entitiesExtentsMin;
+			bbMax = &proxy->entitiesExtentsMax;
+		}
 
 		*context.GetArgument<float*>(1) = bbMin->x;
 		*context.GetArgument<float*>(2) = bbMin->y;
@@ -603,7 +721,7 @@ static HookFunction initFunction([]()
 		auto arch = GetInteriorArchetype(interiorId);
 		if (arch != nullptr)
 		{
-			result = arch->portals.GetCount();
+			result = arch->portals->GetCount();
 		}
 
 		context.SetResult<int>(result);
@@ -617,7 +735,7 @@ static HookFunction initFunction([]()
 		auto arch = GetInteriorArchetype(interiorId);
 		if (arch != nullptr)
 		{
-			result = arch->rooms.GetCount();
+			result = arch->rooms->GetCount();
 		}
 
 		context.SetResult<int>(result);

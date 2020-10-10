@@ -147,7 +147,7 @@ GameServicesHandler::GameServicesHandler(const std::string& gameName)
 bool GameServicesHandler::HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response)
 {
 	// get the service name from the last two path components
-	std::string path = request->GetPath();
+	std::string path = std::string{ request->GetPath().c_str() };
 
 	int subserviceNameOffset = path.find_last_of('/');
 	int serviceNameOffset = path.find_last_of('/', subserviceNameOffset - 1);

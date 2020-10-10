@@ -324,8 +324,10 @@ struct FORMATS_EXPORT BlockMap : public pgStreamableBase
 
 		memset(blocks, 0, sizeof(blocks));
 
-#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
+#if defined(RAGE_FORMATS_GAME_FIVE)
 		*(uint16_t*)((char*)this + 8) = 0x407;
+#elif defined(RAGE_FORMATS_GAME_RDR3)
+		*(uint16_t*)((char*)this + 8) = 0x202;
 #endif
 	}
 
@@ -355,7 +357,7 @@ public:
 
 	inline pgBase()
 	{
-#ifndef RAGE_FORMATS_GAME_FIVE
+#ifdef RAGE_FORMATS_GAME_NY
 		SetBlockMap();
 #endif
 	}

@@ -1,17 +1,40 @@
-<div [class]="classes" *ngIf="minModeSetUp" [style.--myBackgroundImage]="bgImage">
-    <div id="bg" *ngIf="!minMode || !gameService.minmodeBlob['art:backgroundImage']">
-        <object id="plugin"
-        type="application/x-cfx-game-view"
-        width="100%"
-        height="100%"
-        class="acrylicBlur"
-        [ngStyle]="{ 'clip-path': calcClipPath() }"></object>        
-    </div>
-    <div id="bg" *ngIf="minMode && gameService.minmodeBlob['art:backgroundImage']"></div>
+<div [class]="classes">
+	<div id="bg">
+		<object
+			*ngIf="!showSiteNavbar && gameName != 'rdr3'"
+			id="plugin"
+			type="application/x-cfx-game-view"
+			width="100%"
+			height="100%"
+			class="acrylicBlur"
+		>
+		</object>
+	</div>
 
-    <div class="app-root">
-        <app-nav *ngIf="!minMode && !splashScreen"></app-nav>
-        <router-outlet></router-outlet>
-        <connecting-popup *ngIf="!minMode"></connecting-popup>
-    </div>
+	<header class="site-navbar" *ngIf="showSiteNavbar">
+		<a class="logo" href="https://fivem.net">
+			<svg class="logo-img">
+				<use xlink:href="#logo-gta5"></use>
+			</svg>
+			<div class="logo-title">FiveM</div>
+		</a>
+
+		<ul class="site-links">
+			<li><a href="https://forum.cfx.re/"> <span class="text"> Forum </span> </a></li>
+			<li><a href="https://discord.gg/fivem"> <span class="text"> Discord </span> </a></li>
+			<li><a href="https://docs.fivem.net/"> <span class="text"> Docs </span> </a></li>
+			<li><a class="active" href="https://servers.fivem.net/"> <span class="text"> Servers </span> </a></li>
+			<li><a href="https://cookbook.fivem.net/"> <span class="text"> Cookbook </span> </a></li>
+			<li><a href="https://github.com/citizenfx/fivem"> <span class="text"> GitHub </span> </a></li>
+			<li><a href="/terms"> <span class="text"> Terms </span> </a></li>
+			<li><a href="https://patreon.com/fivem" title="Patreon"> <span class="text"> Patreon</span> </a></li>
+		</ul>
+	</header>
+
+	<div class="app-root">
+		<app-nav></app-nav>
+		<router-outlet></router-outlet>
+		<connecting-popup></connecting-popup>
+		<div id="overlays" [class]="classes"></div>
+	</div>
 </div>

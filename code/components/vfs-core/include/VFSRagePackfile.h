@@ -79,6 +79,8 @@ namespace vfs
 
 		void FillFindData(FindData* data, const Entry* entry);
 
+		size_t GetLengthForHandle(THandle handle);
+
 	public:
 		RagePackfile();
 

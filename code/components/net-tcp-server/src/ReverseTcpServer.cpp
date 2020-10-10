@@ -140,7 +140,7 @@ namespace net
 
 	void MessageHandler::WriteMessage(uvw::TCPHandle& tcp, const json& json)
 	{
-		auto jsonDump = json.dump();
+		auto jsonDump = json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
 
 		size_t len = jsonDump.length() + sizeof(uint32_t);
 		std::unique_ptr<char[]> msg{ new char[len] };

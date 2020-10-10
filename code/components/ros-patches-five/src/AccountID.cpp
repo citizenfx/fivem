@@ -117,7 +117,10 @@ static bool InitAccountSteam()
 
 	if (!blob->tried)
 	{
-		RunLauncher(L"ros:steam", true);
+		if (!getenv("CitizenFX_ToolMode"))
+		{
+			RunLauncher(L"ros:steam", true);
+		}
 	}
 
 	if (blob->valid)
@@ -150,12 +153,11 @@ void ValidateSteam(int parentPid)
 	});
 
 	auto r = cpr::Post(
-		cpr::Url{ "https://ros.citizenfx.internal/scui/mtl/api/launcher/autologinsteam" },
+		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
 		cpr::Header{
 			{
 				{"Content-Type", "application/json; charset=utf-8"},
 				{"Accept", "application/json"},
-				{"Host", "prod.ros.rockstargames.com"},
 				{"X-Requested-With", "XMLHttpRequest"}
 			}
 		},
@@ -202,12 +204,11 @@ void ValidateSteam(int parentPid)
 	});
 
 	r = cpr::Post(
-		cpr::Url{ "https://ros.citizenfx.internal/scui/mtl/api/launcher/bindsteamaccount" },
+		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindsteamaccount" },
 		cpr::Header{
 			{
 				{"Content-Type", "application/json; charset=utf-8"},
 				{"Accept", "application/json"},
-				{"Host", "prod.ros.rockstargames.com"},
 				{"X-Requested-With", "XMLHttpRequest"},
 				{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 			}

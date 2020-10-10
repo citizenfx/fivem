@@ -1,0 +1,1 @@
+extern "C" __declspec(dllexport) int hoard_dummy = 0;

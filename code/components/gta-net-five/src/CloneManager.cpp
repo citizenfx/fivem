@@ -30,11 +30,21 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <ResourceManager.h>
+#include <StateBagComponent.h>
+
 #include <CoreConsole.h>
 
+#include <MinHook.h>
+
+extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
+static std::set<uint16_t> g_dontParrotDeletionAcks;
+
 void ObjectIds_AddObjectId(int objectId);
+void ObjectIds_StealObjectId(int objectId);
+void ObjectIds_ConfirmObjectId(int objectId);
 
 void AssociateSyncTree(int objectId, rage::netSyncTree* syncTree);
 
@@ -68,6 +78,7 @@ void UpdateTime(uint64_t serverTime, bool isInit = false);
 
 bool IsWaitingForTimeSync();
 
+extern uint32_t* rage__s_NetworkTimeThisFrameStart;
 extern uint32_t* rage__s_NetworkTimeLastFrameStart;
 
 namespace sync
@@ -81,7 +92,7 @@ enum class AckResult
 	ResendCreate
 };
 
-class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction
+class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction, public fx::StateBagGameInterface
 {
 public:
 	virtual void Update() override;
@@ -105,6 +116,8 @@ public:
 	virtual void Logv(const char* format, fmt::printf_args argumentList) override;
 
 	virtual const std::vector<rage::netObject*>& GetObjectList() override;
+
+	virtual bool IsRemovingObjectId(uint16_t objectId) override;
 
 	// netobjmgr abstraction
 	virtual bool RegisterNetworkObject(rage::netObject* object) override;
@@ -173,6 +186,8 @@ private:
 
 	void ProcessTimestampAck(uint32_t timestamp);
 
+	virtual void SendPacket(int peer, std::string_view data) override;
+
 private:
 	NetLibrary* m_netLibrary;
 
@@ -193,6 +208,8 @@ private:
 		uint32_t lastResendTime;
 		uint32_t nextKeepaliveSync;
 		uint16_t uniqifier;
+		std::shared_ptr<fx::StateBag> stateBag;
+		bool hi = false;
 
 		ObjectData()
 		{
@@ -209,14 +226,15 @@ private:
 	{
 		uint16_t clientId;
 		uint16_t pendingClientId;
+		uint32_t dontSyncBefore;
 
 		inline ExtendedCloneData()
-			: clientId(0), pendingClientId(-1)
+			: clientId(0), pendingClientId(-1), dontSyncBefore(0)
 		{
 		}
 
 		inline ExtendedCloneData(uint16_t clientId)
-			: clientId(clientId), pendingClientId(-1)
+			: clientId(clientId), pendingClientId(-1), dontSyncBefore(0)
 		{
 		}
 	};
@@ -234,6 +252,8 @@ private:
 
 	std::map<std::tuple<int, int>, std::chrono::milliseconds> m_pendingRemoveAcks;
 
+	std::set<int> m_pendingConfirmObjectIds;
+
 	tbb::concurrent_queue<std::string> m_logQueue;
 
 	std::condition_variable m_consoleCondVar;
@@ -242,6 +262,10 @@ private:
 	std::string m_logFile;
 
 	std::array<std::map<int, rage::netObject*>, 256> m_netObjects;
+
+	std::shared_ptr<fx::StateBag> m_globalBag;
+
+	fwRefContainer<fx::StateBagComponent> m_sbac;
 };
 
 uint16_t CloneManagerLocal::GetClientId(rage::netObject* netObject)
@@ -271,7 +295,10 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 
 	if (!netObject->syncData.isRemote)
 	{
-		m_pendingRemoveAcks.insert({ { netObject->objectId, m_trackedObjects[netObject->objectId].uniqifier }, msec() });
+		if (m_trackedObjects[netObject->objectId].lastSyncTime != 0ms)
+		{
+			m_pendingRemoveAcks.insert({ { netObject->objectId, m_trackedObjects[netObject->objectId].uniqifier }, msec() });
+		}
 	}
 
 	m_trackedObjects.erase(netObject->objectId);
@@ -280,6 +307,11 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 	m_savedEntitySet.erase(netObject);
 
 	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), netObject), m_savedEntityVec.end());
+}
+
+void CloneManagerLocal::SendPacket(int peer, std::string_view data)
+{
+	m_netLibrary->SendReliableCommand("msgStateBag", data.data(), data.size());
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
@@ -366,7 +398,6 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 		if (it == m_savedEntities.end() || !it->second)
 		{
 			console::PrintError("CloneManager", "Couldn't find object by ID %d\n", objectId);
-			;
 			return;
 		}
 
@@ -381,6 +412,27 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	});
 
 	icgi = Instance<ICoreGameInit>::Get();
+
+	// #TODO: shutdown session logic!!
+	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
+	m_globalBag = sbac->RegisterStateBag("global");
+
+	sbac->RegisterTarget(0);
+	sbac->SetGameInterface(this);
+
+	m_netLibrary->AddReliableHandler(
+	"msgStateBag", [sbac](const char* data, size_t len)
+	{
+		sbac->HandlePacket(0, std::string_view{ data, len });
+	},
+	true);
+
+	m_sbac = sbac;
+
+	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
+	{
+		rm->SetComponent(sbac);
+	});
 }
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
@@ -432,6 +484,16 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 
 void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 {
+	auto sure = [this, objId]()
+	{
+		if (m_pendingConfirmObjectIds.find(objId) != m_pendingConfirmObjectIds.end())
+		{
+			ObjectIds_ConfirmObjectId(objId);
+
+			m_pendingConfirmObjectIds.erase(objId);
+		}
+	};
+
 	if (icgi->NetProtoVersion >= 0x202002271209)
 	{
 		if (uniqifier == 0)
@@ -440,10 +502,14 @@ void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 			auto e = m_pendingRemoveAcks.upper_bound({ objId, INT32_MAX });
 
 			m_pendingRemoveAcks.erase(s, e);
+
+			sure();
 		}
 		else
 		{
 			m_pendingRemoveAcks.erase({ objId, uniqifier });
+
+			sure();
 		}
 
 		return;
@@ -463,6 +529,23 @@ void CloneManagerLocal::ProcessRemoveAck(uint16_t objId, uint16_t uniqifier)
 
 		m_pendingRemoveAcks.erase(s, e);
 	}
+
+	sure();
+}
+
+bool CloneManagerLocal::IsRemovingObjectId(uint16_t objectId)
+{
+	auto first = m_pendingRemoveAcks.lower_bound({ objectId, 0 });
+	auto second = m_pendingRemoveAcks.lower_bound({ objectId, INT32_MAX });
+
+	bool indeed = first != second;
+
+	if (indeed)
+	{
+		m_pendingConfirmObjectIds.insert(objectId);
+	}
+
+	return indeed;
 }
 
 void CloneManagerLocal::ProcessTimestampAck(uint32_t timestamp)
@@ -738,7 +821,7 @@ public:
 		return m_clones;
 	}
 
-	inline const std::vector<uint16_t>& GetRemoves() const
+	inline const std::vector<std::tuple<uint16_t, uint16_t, bool>>& GetRemoves() const
 	{
 		return m_removes;
 	}
@@ -753,7 +836,7 @@ private:
 
 	std::list<msgClone> m_clones;
 
-	std::vector<uint16_t> m_removes;
+	std::vector<std::tuple<uint16_t, uint16_t, bool>> m_removes;
 };
 
 msgPackedClones::msgPackedClones()
@@ -790,9 +873,22 @@ void msgPackedClones::Read(net::Buffer& buffer)
 				}
 				case 3: // clone remove
 				{
+					auto stillAlive = false;
+					uint16_t uniqifier = 0;
+
+					if (icgi->NetProtoVersion >= 0x202007120951)
+					{
+						stillAlive = msgBuf.ReadBit();
+					}
+
 					auto remove = msgBuf.Read<uint16_t>(13);
 
-					m_removes.push_back(remove);
+					if (icgi->NetProtoVersion >= 0x202007151853)
+					{
+						uniqifier = msgBuf.Read<uint16_t>(16);
+					}
+
+					m_removes.push_back({ remove, uniqifier, stillAlive });
 					break;
 				}
 				case 5:
@@ -851,6 +947,14 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	Log("%s: id %d obj [obj:%d] ts %d\n", __func__, msg.GetClientId(), msg.GetObjectId(), msg.GetTimestamp());
 
+	if (m_pendingRemoveAcks.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_pendingRemoveAcks.end() || 
+		m_pendingRemoveAcks.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_pendingRemoveAcks.end())
+	{
+		ackPacket();
+
+		return true;
+	}
+
 	// create buffer
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
 	rlBuffer.m_f1C = 1;
@@ -879,6 +983,17 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// already exists! bail out
 	if (exists)
 	{
+		if (auto objectDataIt = m_trackedObjects.find(msg.GetObjectId()); objectDataIt == m_trackedObjects.end() || objectDataIt->second.uniqifier != msg.GetUniqifier())
+		{
+			Log("%s: duplicate remote object, undoing sync\n", __func__);
+
+			ObjectIds_StealObjectId(msg.GetObjectId());
+			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
+			DeleteObjectId(msg.GetObjectId(), true);
+
+			return false;
+		}
+
 		// update client id if changed
 		CheckMigration(msg);
 
@@ -893,6 +1008,17 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	// check if the object already exists *locally*
 	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
 	{
+		if (auto objectDataIt = m_trackedObjects.find(msg.GetObjectId()); objectDataIt == m_trackedObjects.end() || objectDataIt->second.uniqifier != msg.GetUniqifier())
+		{
+			Log("%s: duplicate local object, undoing sync\n", __func__);
+
+			ObjectIds_StealObjectId(msg.GetObjectId());
+			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
+			DeleteObjectId(msg.GetObjectId(), true);
+
+			return false;
+		}
+
 		// update client id if changed
 		CheckMigration(msg);
 
@@ -907,11 +1033,17 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	m_extendedData[msg.GetObjectId()] = { msg.GetClientId() };
 
 	auto& objectData = m_trackedObjects[msg.GetObjectId()];
+
+	if (!objectData.stateBag)
+	{
+		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()));
+	}
+
 	objectData.uniqifier = msg.GetUniqifier();
 
 	// owner ID
 	auto isRemote = (msg.GetClientId() != m_netLibrary->GetServerNetID());
-	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex;
+	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex();
 
 	// create the object
 	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
@@ -1022,17 +1154,31 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 		Log("%s: unknown obj?\n", __func__);
 
+		if (m_pendingRemoveAcks.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_pendingRemoveAcks.end() || 
+			m_pendingRemoveAcks.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_pendingRemoveAcks.end())
+		{
+			// hey, we're deleting this object, you don't know it yet, so you're giving it back to us as 'new'
+			// we don't want it though, so we'll pretend it's all right :)
+			return AckResult::OK;
+		}
+
 		return AckResult::ResendCreate;
 	}
 
 	// check uniqifier
 	auto& objectData = m_trackedObjects[msg.GetObjectId()];
 
-	if (objectData.uniqifier != msg.GetUniqifier() && icgi->NetProtoVersion >= 0x201912301309)
+	if ((objectData.uniqifier != msg.GetUniqifier() && uint16_t(~objectData.uniqifier) != msg.GetUniqifier()) && icgi->NetProtoVersion >= 0x201912301309)
 	{
 		ackPacket();
 
 		Log("%s: invalid object instance?\n", __func__);
+
+		if (m_pendingRemoveAcks.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_pendingRemoveAcks.end() || m_pendingRemoveAcks.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_pendingRemoveAcks.end())
+		{
+			// yeah, yeah, we recreated this object by now, but you're trying to give us the old one
+			return AckResult::OK;
+		}
 
 		return AckResult::ResendCreate;
 	}
@@ -1042,7 +1188,8 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	// if owned locally
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID()
-		&& extData.clientId == msg.GetClientId() /* and this is not a migration */)
+		&& extData.clientId == msg.GetClientId() /* and this is not a migration */
+		&& uint16_t(~objectData.uniqifier) != msg.GetUniqifier() /* and also not the first update for mA0 nodes */)
 	{
 		Log("%s: our object, bailing out\n", __func__);
 
@@ -1052,9 +1199,17 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		return AckResult::OK;
 	}
 
+	bool canApply = true;
+
+	// is this a migration? if so, don't apply, aaaa!
+	if (extData.clientId != msg.GetClientId())
+	{
+		canApply = false;
+	}
+
 	g_curNetObject = obj;
 
-	if (msg.GetCloneData().size())
+	if (msg.GetCloneData().size() && canApply)
 	{
 		// get sync tree and read data
 		auto syncTree = obj->GetSyncTree();
@@ -1137,18 +1292,8 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 			// add the object
 			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
 
-			// this isn't remote anymore
-			obj->syncData.isRemote = false;
-			obj->syncData.nextOwnerId = -1;
-
-			// give us the object ID
-			ObjectIds_AddObjectId(msg.GetObjectId());
-
-			// store object data as being synced (so we don't have to send creation to the server)
-			auto& objectData = m_trackedObjects[obj->objectId];
-
-			objectData.lastSyncTime = msec();
-			objectData.lastSyncAck = msec();
+			// if the game wants to delete it right away, let it.
+			m_trackedObjects[obj->objectId].lastSyncTime = 1ms;
 		}
 		else
 		{
@@ -1156,12 +1301,12 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 
 			if (player)
 			{
-				auto lastId = player->physicalPlayerIndex;
-				player->physicalPlayerIndex = 31;
+				auto lastId = player->physicalPlayerIndex();
+				player->physicalPlayerIndex() = 31;
 
 				rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
 
-				player->physicalPlayerIndex = lastId;
+				player->physicalPlayerIndex() = lastId;
 
 				obj->syncData.isRemote = true;
 				obj->syncData.nextOwnerId = -1;
@@ -1176,6 +1321,9 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 net::Buffer g_cloneMsgPacket;
 std::vector<uint8_t> g_cloneMsgData;
 
+extern void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data);
+extern bool IsDrilldown();
+
 void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 {
 	if (!rage::netObjectMgr::GetInstance())
@@ -1189,6 +1337,50 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	// read the packet
 	msgPackedClones msg;
 	msg.Read(netBuffer);
+
+	// do drilldown logging
+	static uint32_t drillTs;
+
+	if (IsDrilldown())
+	{
+		std::vector<std::tuple<std::string_view, std::string>> list;
+
+		for (auto& m : msg.GetClones())
+		{
+			if (!drillTs)
+			{
+				drillTs = m.GetTimestamp();
+			}
+
+			std::string objDesc;
+
+			if (auto it = m_savedEntities.find(m.GetObjectId()); it != m_savedEntities.end())
+			{
+				objDesc = it->second->ToString();
+			}
+			else
+			{
+				objDesc = fmt::sprintf("obj:%d", m.GetObjectId());
+			}
+
+			list.push_back({ m.GetSyncType() == 1 ? "create" : "sync", fmt::sprintf("%s@%d ts %d sz %db", 
+				objDesc,
+				m.GetUniqifier(),
+				int32_t(m.GetTimestamp()) - int32_t(drillTs),
+				m.GetCloneData().size()) });
+		}
+
+		for (auto& m : msg.GetRemoves())
+		{
+			list.push_back({ "remove", fmt::sprintf("obj:%d@%d", std::get<0>(m), std::get<1>(m)) });
+		}
+
+		AddDrilldown(msg.GetFrameIndex() & ~(uint64_t(1) << 63), std::move(list));
+	}
+	else
+	{
+		drillTs = 0;
+	}
 
 	static std::vector<uint16_t> ignoreList;
 	static std::vector<uint16_t> recreateList;
@@ -1231,8 +1423,53 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		}
 	}
 
-	for (uint16_t remove : msg.GetRemoves())
+	for (auto [ remove, uniqifier, stillAlive ] : msg.GetRemoves())
 	{
+		auto localUniq = -1;
+
+		auto objectIt = m_trackedObjects.find(remove);
+
+		if (objectIt != m_trackedObjects.end())
+		{
+			localUniq = objectIt->second.uniqifier;
+		}
+
+		Log("Trying to remove entity %d (sent uniq: %d, local uniq: %d, should steal: %s)\n", remove, uniqifier, localUniq, stillAlive ? "yes" : "no");
+
+		// even if the server is referring to a different entity, they'll have stolen the object ID
+		// excessive steals are not really a big issue, it just means that upon next *deletion* the object will go back
+		// into the global pool
+		if (stillAlive)
+		{
+			m_pendingConfirmObjectIds.erase(remove);
+			ObjectIds_StealObjectId(remove);
+		}
+
+		{
+			auto objectIt = m_trackedObjects.find(remove);
+
+			if (objectIt != m_trackedObjects.end())
+			{
+				if (uniqifier && objectIt->second.uniqifier != uniqifier)
+				{
+					Log("Invalid uniqifier!\n");
+					continue;
+				}
+			}
+		}
+
+		if (stillAlive)
+		{
+			auto objectIt = m_savedEntities.find(remove);
+
+			if (objectIt != m_savedEntities.end())
+			{
+				auto object = objectIt->second;
+
+				g_dontParrotDeletionAcks.insert(remove);
+			}
+		}
+
 		DeleteObjectId(remove, false);
 	}
 
@@ -1256,6 +1493,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 				outBuffer.Write<uint16_t>(entry);
 			}
 		}
+
+		Log("GSAck for frame index %d w/ %d ignore and %d rec\n", msg.GetFrameIndex() & ~(uint64_t(1) << 63), ignoreList.size(), recreateList.size());
 
 		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 
@@ -1316,6 +1555,24 @@ void CloneManagerLocal::SetTargetOwner(rage::netObject* object, uint16_t clientI
 
 void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t clientId)
 {
+	bool wasLocal = !object->syncData.isRemote;
+
+	if (clientId == m_netLibrary->GetServerNetID() && !wasLocal)
+	{
+		// give us the object ID
+		ObjectIds_AddObjectId(object->objectId);
+
+		// store object data as being synced (so we don't have to send creation to the server)
+		auto& objectData = m_trackedObjects[object->objectId];
+
+		objectData.lastSyncTime = msec();
+		objectData.lastSyncAck = msec();
+
+		// this isn't remote anymore
+		object->syncData.isRemote = false;
+		object->syncData.nextOwnerId = -1;
+	}
+
 	// TODO: rate-limit resends (in case pending ownership is taking really long)
 
 	m_sendBuffer.Write(3, 4);
@@ -1325,9 +1582,10 @@ void CloneManagerLocal::GiveObjectToClient(rage::netObject* object, uint16_t cli
 
 	AttemptFlushCloneBuffer();
 
-	Log("%s: Migrating object %s (of type %s) from %s to %s (remote player).\n", __func__, object->ToString(), GetType(object),
-	!object->syncData.isRemote ? "us" : "a remote player",
-	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)");
+	Log("%s: Migrating object %s (of type %s) from %s to %s (%s).\n", __func__, object->ToString(), GetType(object),
+	wasLocal ? "us" : "a remote player",
+	(g_playersByNetId[clientId]) ? g_playersByNetId[clientId]->GetName() : "(null)",
+	(clientId == m_netLibrary->GetServerNetID()) ? "us!" : "remote player");
 }
 
 const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
@@ -1335,14 +1593,47 @@ const std::vector<rage::netObject*>& CloneManagerLocal::GetObjectList()
 	return m_savedEntityVec;
 }
 
-static void* origin;
-static float* (*getCoordsFromOrigin)(void*, float*);
+void* origin;
+float* (*getCoordsFromOrigin)(void*, float*);
 
 static HookFunction hookFunctionOrigin([]()
 {
 	auto loc = hook::get_call(hook::get_pattern<char>("C6 45 0B 80 89 5D 0F", 0x1B));
 	origin = hook::get_address<void*>(loc + 0xC);
 	hook::set_call(&getCoordsFromOrigin, loc + 0x10);
+});
+
+static void (*fwSceneUpdate__AddToSceneUpdate)(void*, uint32_t);
+static void (*fwSceneUpdate__RemoveFromSceneUpdate)(void*, uint32_t, bool);
+
+static std::map<fwEntity*, uint32_t> removedFlags;
+
+static void fwSceneUpdate__AddToSceneUpdate_Track(fwEntity* entity, uint32_t what)
+{
+	if (auto it = removedFlags.find(entity); it != removedFlags.end())
+	{
+		it->second |= what;
+	}
+
+	fwSceneUpdate__AddToSceneUpdate(entity, what);
+}
+
+static void fwSceneUpdate__RemoveFromSceneUpdate_Track(fwEntity* entity, uint32_t what, bool ok)
+{
+	fwSceneUpdate__RemoveFromSceneUpdate(entity, what, ok);
+
+	if (auto it = removedFlags.find(entity); it != removedFlags.end())
+	{
+		it->second &= ~what;
+	}
+}
+
+static HookFunction hookFunctionSceneUpdateWorkaround([]()
+{
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("4F 8D 04 49 41 FF", -0x42), fwSceneUpdate__AddToSceneUpdate_Track, (void**)&fwSceneUpdate__AddToSceneUpdate);
+	MH_CreateHook(hook::get_pattern("F7 D3 21 58 10 0F", -0x3F), fwSceneUpdate__RemoveFromSceneUpdate_Track, (void**)&fwSceneUpdate__RemoveFromSceneUpdate);
+	MH_EnableHook(MH_ALL_HOOKS);
 });
 
 void CloneManagerLocal::Update()
@@ -1376,23 +1667,17 @@ void CloneManagerLocal::Update()
 					auto ent = (fwEntity*)(clone.second->GetGameObject());
 					auto vtbl = *(char**)ent;
 
-					if (!Is1868())
 					{
 						auto posData = ent->GetPosition();
 						auto pos = DirectX::XMLoadFloat3(&posData);
 
-						static std::map<fwEntity*, uint32_t> removedFlags;
 						auto it = removedFlags.find(ent);
 
-						if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (300.f * 300.f))
+						if (DirectX::XMVectorGetX(DirectX::XMVector2LengthSq(DirectX::XMVectorSubtract(pos, origin))) < (424.f * 4240.f))
 						{
 							if (it != removedFlags.end())
 							{
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
-
-								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+								fwSceneUpdate__AddToSceneUpdate(ent, it->second);
 
 								removedFlags.erase(it);
 							}
@@ -1410,20 +1695,12 @@ void CloneManagerLocal::Update()
 
 								it = removedFlags.emplace(ent, flags).first;
 
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x268)))(ent);
-
-								// 1604, rage::fwSceneUpdate::RemoveFromSceneUpdate
-								((void (*)(void*, uint32_t, bool))0x1415F64EC)(ent, -1, true);
+								fwSceneUpdate__RemoveFromSceneUpdate(ent, -1, true);
 							}
 
 							if ((frameCount % 50) < 2)
 							{
-								// 1604
-								//((void(*)(void*))(*(uintptr_t*)(vtbl + 0x260)))(ent);
-
-								// 1604, rage::fwSceneUpdate::AddToSceneUpdate
-								((void (*)(void*, uint32_t))0x1415F2EDC)(ent, it->second);
+								fwSceneUpdate__AddToSceneUpdate(ent, it->second);
 
 								removedFlags.erase(it);
 							}
@@ -1450,7 +1727,14 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 		return false;
 	}
 
-	Log("%s: registering %s\n", __func__, object->ToString());
+	m_trackedObjects[object->objectId].hi = true;
+
+	if (!m_trackedObjects[object->objectId].stateBag)
+	{
+		m_trackedObjects[object->objectId].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->objectId));
+	}
+
+	Log("%s: registering %s (uniqifier: %d)\n", __func__, object->ToString(), m_trackedObjects[object->objectId].uniqifier);
 
 	if (object->syncData.ownerId != 0xFF)
 	{
@@ -1459,6 +1743,16 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 		if (object->syncData.ownerId != 31)
 		{
 			m_extendedData[object->objectId].clientId = m_netLibrary->GetServerNetID();
+
+			int delay = 0;
+
+			// don't send peds unless they're staying
+			if (object->objectType == (int)NetObjEntityType::Ped)
+			{
+				delay = 75;
+			}
+
+			m_extendedData[object->objectId].dontSyncBefore = (*rage__s_NetworkTimeThisFrameStart) + delay;
 		}
 	}
 
@@ -1473,13 +1767,26 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 {
 	Log("%s: unregistering %s\n", __func__, object->ToString());
 
-	if (object->syncData.ownerId != 0xFF)
+	if (g_curNetObjectSelection == object)
 	{
-		m_netObjects[object->syncData.ownerId].erase(object->objectId);
+		g_curNetObjectSelection = nullptr;
 	}
 
-	m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });
+	for (auto& objectList : m_netObjects)
+	{
+		objectList.erase(object->objectId);
+	}
 
+	// these are not actually to be deleted, don't ask the server to delete them
+	if (g_dontParrotDeletionAcks.find(object->objectId) == g_dontParrotDeletionAcks.end())
+	{
+		if (m_trackedObjects[object->objectId].lastSyncTime != 0ms)
+		{
+			m_pendingRemoveAcks.insert({ { object->objectId, m_trackedObjects[object->objectId].uniqifier }, msec() });
+		}
+	}
+
+	g_dontParrotDeletionAcks.erase(object->objectId);
 	m_savedEntities.erase(object->objectId);
 	m_savedEntitySet.erase(object);
 	m_trackedObjects.erase(object->objectId);
@@ -1490,13 +1797,14 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 
 void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
 {
-	if (object->syncData.ownerId != player->physicalPlayerIndex)
+	if (object->syncData.ownerId != player->physicalPlayerIndex())
 	{
 		GiveObjectToClient(object, g_netIdsByPlayer[player]);
 	}
 
+	m_netObjects[31].erase(object->objectId);
 	m_netObjects[object->syncData.ownerId].erase(object->objectId);
-	m_netObjects[player->physicalPlayerIndex][object->objectId] = object;
+	m_netObjects[player->physicalPlayerIndex()][object->objectId] = object;
 }
 
 static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDistance, CNetGamePlayer** firstPlayer)> _isSphereVisibleForAnyPlayer([]()
@@ -1507,6 +1815,11 @@ static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDis
 static hook::cdecl_stub<void(rage::netObjectMgr*, rage::netObject*)> _processRemoveAck([]()
 {
 	return hook::get_pattern("39 42 74 75 12 39 42 70 75 0D", -0x11);
+});
+
+static hook::thiscall_stub<bool(void*)> fwEntity_IsInScene([]()
+{
+	return hook::get_pattern("74 12 F6 41 40 01 75 0A 48", -5);
 });
 
 void CloneManagerLocal::WriteUpdates()
@@ -1539,9 +1852,6 @@ void CloneManagerLocal::WriteUpdates()
 		hitTimestamp = true;
 	};
 
-	// collect object IDs that we have seen this time
-	std::set<int> seenObjects;
-
 	// on each object...
 	auto objectCb = [&](rage::netObject* object)
 	{
@@ -1569,6 +1879,22 @@ void CloneManagerLocal::WriteUpdates()
 		if (object->syncData.nextOwnerId != 0xFF)
 		{
 			GiveObjectToClient(object, m_extendedData[object->objectId].pendingClientId);
+		}
+
+		// don't sync created entities for the initial part of their life
+		if (*rage__s_NetworkTimeThisFrameStart < m_extendedData[object->objectId].dontSyncBefore)
+		{
+			return;
+		}
+
+		// don't sync netobjs that aren't in the scene
+		// #TODO1S: remove netobjs from the server if they're removed from the scene?
+		if (object->GetGameObject())
+		{
+			if (!fwEntity_IsInScene(object->GetGameObject()))
+			{
+				return;
+			}
 		}
 
 		// get basic object data
@@ -1656,7 +1982,7 @@ void CloneManagerLocal::WriteUpdates()
 				{
 					auto netObject = reinterpret_cast<rage::netObject*>(occupant->GetNetObject());
 
-					if (netObject->objectType == (uint16_t)NetObjEntityType::Player)
+					if (netObject && netObject->objectType == (uint16_t)NetObjEntityType::Player)
 					{
 						syncLatency = 0ms;
 						break;
@@ -1746,16 +2072,19 @@ void CloneManagerLocal::WriteUpdates()
 				// #TODO1S: dynamic resend time based on latency
 				bool shouldWrite = true;
 
-				if (lastChangeTime == objectData.lastChangeTime && ts < (objectData.lastResendTime + 100))
+				if ((lastChangeTime == objectData.lastChangeTime || syncType == 1) && ts < (objectData.lastResendTime + std::max(100, m_netLibrary->GetPing())))
 				{
 					Log("%s: no early resend of object [obj:%d]\n", __func__, objectId);
 					shouldWrite = false;
 				}
 
+				// in case of syncType == 1, we want to write change time too
+				// (as otherwise first syncType = 2 will do spammy resending anyway)
+				objectData.lastChangeTime = lastChangeTime;
+
 				if (shouldWrite)
 				{
 					objectData.nextKeepaliveSync = ts + 1000;
-					objectData.lastChangeTime = lastChangeTime;
 
 					AssociateSyncTree(object->objectId, syncTree);
 

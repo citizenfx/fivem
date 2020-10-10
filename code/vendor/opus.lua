@@ -18,6 +18,10 @@ return {
 
 		defines { 'USE_ALLOCA', 'inline=__inline', 'OPUS_BUILD' }
 
+		if os.istarget('windows') then
+			defines { 'WIN32' }
+		end
+
 		files_project '../vendor/libopus/' {
 			'src/analysis.c',
 			'src/mlp.c',

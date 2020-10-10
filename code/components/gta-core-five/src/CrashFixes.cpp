@@ -194,19 +194,26 @@ static void(*g_origCVehicleModelInfo__init)(void* mi, void* data);
 
 static hook::cdecl_stub<void*(uint32_t)> _getExplosionInfo([]()
 {
+	if (Is372())
+	{
+		return (void*)nullptr;
+	}
 	return hook::get_call(hook::get_pattern("BA 52 28 0C 03 85 D2 74 09 8B CA E8", 11));
 });
 
 void CVehicleModelInfo__init(char* mi, char* data)
 {
-	uint32_t explosionHash = *(uint32_t*)(data + 96);
-
-	if (!explosionHash || !_getExplosionInfo(explosionHash))
+	if (!Is372())
 	{
-		explosionHash = HashString("explosion_info_default");
-	}
+		uint32_t explosionHash = *(uint32_t*)(data + 96);
 
-	*(uint32_t*)(data + 96) = explosionHash;
+		if (!explosionHash || !_getExplosionInfo(explosionHash))
+		{
+			explosionHash = HashString("explosion_info_default");
+		}
+
+		*(uint32_t*)(data + 96) = explosionHash;
+	}
 
 	g_origCVehicleModelInfo__init(mi, data);
 }
@@ -302,9 +309,15 @@ static void PoolInitX(void* pool, int count)
 }
 
 static void (*g_origDrawListMgr_ClothFlush)(void*);
+static LPCRITICAL_SECTION g_clothCritSec;
 
-static void DrawListMgr_ClothFlush(char* mgr)
+static void CDrawListMgr_ClothCleanup(char* mgr)
 {
+	if (g_clothCritSec->DebugInfo)
+	{
+		EnterCriticalSection(g_clothCritSec);
+	}
+
 	atArray<void*>& refs = *(atArray<void*>*)(mgr + 1608);
 
 	for (int i = 0; i < refs.GetCount(); i++)
@@ -321,6 +334,11 @@ static void DrawListMgr_ClothFlush(char* mgr)
 	}
 
 	g_origDrawListMgr_ClothFlush(mgr);
+
+	if (g_clothCritSec->DebugInfo)
+	{
+		LeaveCriticalSection(g_clothCritSec);
+	}
 }
 
 using DeclRef = void(*)(void* removeIn, void* toRemove);
@@ -352,6 +370,11 @@ static void VehUnloadParserHook(void* par, const char* fn, const char* ext, void
 
 static void VehicleMetadataUnloadMagic()
 {
+	if (Is372())
+	{
+		return;
+	}
+
 	auto funcStart = hook::get_pattern<char>("48 8B D9 48 8D 4C 24 40 E8 ? ? ? ? 48 83", -0x15);
 
 	auto ctorRef = funcStart + 0x1D;
@@ -382,8 +405,137 @@ static void VehicleMetadataUnloadMagic()
 	hook::call(parserRef, VehUnloadParserHook);
 }
 
+static int GetGpuCount1()
+{
+	return 1;
+}
+
+static int GetGpuCount2(char* self)
+{
+	*(uint32_t*)(self + 56) = 1;
+	return 1;
+}
+
+static int (*g_origDoReadSaveGame)();
+
+static int DoReadSaveGame()
+{
+	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		return g_origDoReadSaveGame();
+	}
+
+	return 0;
+}
+
+static int (*g_origGetHandlingByHash)(const uint32_t& hash, bool ye);
+
+static int GetHandlingByHashStub(const uint32_t& hash, bool ye)
+{
+	int a = g_origGetHandlingByHash(hash, ye);
+
+	if (a == -1)
+	{
+		trace("Couldn't find handling for hash %08x - returning ADDER instead!\n", hash);
+
+		a = g_origGetHandlingByHash(HashString("adder"), true);
+	}
+
+	return a;
+}
+
+static void (*g_origInitAnim)(void*);
+
+static void InitAnimWithCheck(char* obj)
+{
+	g_origInitAnim(obj);
+
+	auto ptr = *(char**)(obj + 80);
+
+	if (!ptr || !(*(char**)(ptr + 48)))
+	{
+		char* arch = *(char**)(obj + 32);
+		uint32_t objHash = *(uint32_t*)(arch + 24);
+
+		FatalError("Diagnostic error OCR1: Expression dictionary use on invalid object.\nObject ID: %08x\nPlease report this info.", objHash);
+	}
+}
+
+struct sysPerformanceTimer
+{
+	char name[16];
+	LARGE_INTEGER totalTime;
+	LARGE_INTEGER startTime;
+	bool isRunning;
+};
+
+static float* rage__sysTimerConsts__TicksToMilliseconds;
+
+static float sysPerformanceTimer__GetElapsedTimeMS(sysPerformanceTimer* self)
+{
+	LARGE_INTEGER curTime;
+	QueryPerformanceCounter(&curTime);
+
+	return (curTime.QuadPart - self->startTime.QuadPart) * *rage__sysTimerConsts__TicksToMilliseconds;
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// TEMP DBG for investigation: don't crash blindly (but error cleanly) on odd object spawn
+	if (!Is2060())
+	{
+		auto location = hook::get_pattern("48 85 C0 74 43 48 8B CE E8 ? ? ? ? 48 8B", 8);
+		hook::set_call(&g_origInitAnim, location);
+		hook::call(location, InitAnimWithCheck);
+	}
+
+	// sysPerformanceTimer deltaing using LowPart - leads to audio deadlocks after a while
+	// instead, use QuadPart as one should
+	{
+		auto location = hook::get_pattern<char>("48 8B 44 24 30 0F 57 C0", -0x14);
+		rage__sysTimerConsts__TicksToMilliseconds = hook::get_address<float*>(location + 0x29);
+		hook::jump(location, sysPerformanceTimer__GetElapsedTimeMS);
+	}
+
+	// set handling data for ADDER instead of -1 if wrong
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("83 C8 FF 84 D2 74 10", -4), GetHandlingByHashStub, (void**)&g_origGetHandlingByHash);
+	MH_EnableHook(MH_ALL_HOOKS);
+
+	// don't load SP games in netmode sessions
+	if (!CfxIsSinglePlayer())
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("84 C0 75 07 BB 02 00 00 00 EB 0C", -0x22), DoReadSaveGame, (void**)&g_origDoReadSaveGame);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	// disable crashing on train validity check failing
+	// (this is, oddly, a cloud tunable?!)
+	if (!Is372())
+	{
+		hook::put<uint8_t>(hook::get_address<uint8_t*>(hook::get_pattern("44 38 3D ? ? ? ? 74 0E B1 01 E8", 3)), 0);
+	}
+
+	// mismatched NVIDIA drivers may lead to NVAPI calls (NvAPI_EnumPhysicalGPUs/NvAPI_EnumLogicalGPUs, NvAPI_D3D_GetCurrentSLIState) returning a
+	// preposterous amount of SLI GPUs. since SLI is not supported at all for Cfx (due to lack of SLI profile), just ignore GPU count provided by NVAPI/AGS.
+	{
+		auto location = hook::get_pattern("85 C0 75 22 84 DB 74 1E 40 38 3D", -0x49);
+		hook::jump(location, GetGpuCount1);
+	}
+
+	{
+		auto location = hook::get_pattern("75 32 83 A5 30 03 00 00 00 48 8D", -0x56);
+		hook::jump(location, GetGpuCount2);
+	}
+
+	// block *any* CGameWeatherEvent
+	// (hotfix)
+	if (!CfxIsSinglePlayer())
+	{
+		hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
+	}
+
 	// corrupt TXD store reference crash (ped decal-related?)
 	static struct : jitasm::Frontend
 	{
@@ -443,6 +595,7 @@ static HookFunction hookFunction{[] ()
 		}
 	} carFixStub;
 
+	if (!Is372())
 	{
 		auto location = hook::get_pattern("0F B7 99 ? ? 00 00 EB 38", 0);
 		hook::nop(location, 7);
@@ -788,7 +941,7 @@ static HookFunction hookFunction{[] ()
 
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	// #TODO1737: around 0x140D376DD
-	if (!Is1868())
+	if (!Is2060())
 	{
 		hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 	}
@@ -805,7 +958,10 @@ static HookFunction hookFunction{[] ()
 	}
 
 	// always create OffscreenBuffer3 so that it can't not exist at CRenderer init time (FIVEM-CLIENT-1290-F)
-	hook::put<uint8_t>(hook::get_pattern("4C 89 25 ? ? ? ? 75 0E 8B", 7), 0xEB);
+	if (!Is372())
+	{
+		hook::put<uint8_t>(hook::get_pattern("4C 89 25 ? ? ? ? 75 0E 8B", 7), 0xEB);
+	}
 	
 	// test: disable 'classification' compute shader users by claiming it is unsupported
 	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
@@ -850,6 +1006,7 @@ static HookFunction hookFunction{[] ()
 
 	// CScene_unk_callsBlenderM58: over 50 iterated objects (CEntity+40 == 5, CObject) will lead to a stack buffer overrun
 	// 1604 signature: happy-venus-purple (FIVEM-CLIENT-1604-NEW-18G4)
+	if (!Is372())
 	{
 		static struct : jitasm::Frontend
 		{
@@ -896,7 +1053,10 @@ static HookFunction hookFunction{[] ()
 	MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
 
 	// and to prevent unloading
-	MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+	if (!Is372())
+	{
+		MH_CreateHook(hook::get_pattern("41 BD D8 00 00 00 39 6B 60 74", -0x30), CText__UnloadSlotHook, (void**)&g_origCText__UnloadSlot);
+	}
 
 	// patch atPoolBase::Init call for dlDrawListMgr cloth entries
 	{
@@ -906,7 +1066,9 @@ static HookFunction hookFunction{[] ()
 	}
 
 	// validate dlDrawListMgr cloth entries on flush
-	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), DrawListMgr_ClothFlush, (void**)&g_origDrawListMgr_ClothFlush);
+	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), CDrawListMgr_ClothCleanup, (void**)&g_origDrawListMgr_ClothFlush);
+
+	g_clothCritSec = hook::get_address<LPCRITICAL_SECTION>(hook::get_pattern("48 8B F8 48 89 58 10 33 C0 8D 50 10", -0x21));
 
 	// very hacky patch to not unload base game data from 'vehiclelayouts' CVehicleMetadataMgr
 	VehicleMetadataUnloadMagic();

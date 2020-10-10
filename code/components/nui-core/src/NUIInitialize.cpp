@@ -291,18 +291,55 @@ public:
 
 };
 
+MIDL_INTERFACE("30961379-4609-4a41-998e-54fe567ee0c1")
+IDXGIResource1Hack : public IDXGIResourceHack
+{
+public:
+	virtual HRESULT STDMETHODCALLTYPE CreateSubresourceSurface(
+	UINT index,
+	/* [annotation][out] */
+	_COM_Outptr_ IDXGISurface2 * *ppSurface)
+	= 0;
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSharedHandle(
+	/* [annotation][in] */
+	_In_opt_ const SECURITY_ATTRIBUTES* pAttributes,
+	/* [annotation][in] */
+	_In_ DWORD dwAccess,
+	/* [annotation][in] */
+	_In_opt_ LPCWSTR lpName,
+	/* [annotation][out] */
+	_Out_ HANDLE* pHandle)
+	= 0;
+};
+
+MIDL_INTERFACE("9d8e1289-d7b3-465f-8126-250e349af85d")
+IDXGIKeyedMutexHack : public IDXGIDeviceSubObject
+{
+public:
+	virtual HRESULT STDMETHODCALLTYPE AcquireSync(
+	/* [in] */ UINT64 Key,
+	/* [in] */ DWORD dwMilliseconds)
+	= 0;
+
+	virtual HRESULT STDMETHODCALLTYPE ReleaseSync(
+	/* [in] */ UINT64 Key)
+	= 0;
+};
+
 MIDL_INTERFACE("EF93CE51-2C32-488A-ADC1-3453BC0D1664")
 IMyTexture : public IUnknown
 {
 	virtual void GetOriginal(ID3D11Resource** dst) = 0;
 };
 
-class Texture2DWrap : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGIResourceHack, ID3D11Texture2D, IMyTexture>
+class Texture2DWrap : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGIResourceHack, IDXGIResource1Hack, IDXGIKeyedMutexHack, ID3D11Texture2D, IMyTexture>
 {
 private:
 	WRL::ComPtr<ID3D11Texture2D> m_texture;
 	WRL::ComPtr<IDXGIResource> m_resource;
 	WRL::ComPtr<IDXGIResource1> m_resource1;
+	WRL::ComPtr<IDXGIKeyedMutex> m_keyedMutex;
 
 public:
 	Texture2DWrap(ID3D11Texture2D* res)
@@ -310,9 +347,32 @@ public:
 		m_texture.Attach(res);
 		m_texture.As(&m_resource);
 		m_texture.As(&m_resource1);
+		m_texture.As(&m_keyedMutex);
 	}
 
+	~Texture2DWrap();
+
 	// Inherited via RuntimeClass
+	virtual HRESULT AcquireSync(UINT64 Key, DWORD dwMilliseconds) override
+	{
+		if (m_keyedMutex)
+		{
+			return m_keyedMutex->AcquireSync(Key, dwMilliseconds);
+		}
+
+		return S_OK;
+	}
+
+	virtual HRESULT ReleaseSync(UINT64 Key) override
+	{
+		if (m_keyedMutex)
+		{
+			return m_keyedMutex->ReleaseSync(Key);
+		}
+
+		return S_OK;
+	}
+
 	virtual HRESULT __stdcall SetPrivateData(REFGUID Name, UINT DataSize, const void* pData) override
 	{
 		return m_texture->SetPrivateData(Name, DataSize, pData);
@@ -338,22 +398,7 @@ public:
 		return m_resource->GetDevice(riid, ppDevice);
 	}
 
-	virtual HRESULT __stdcall GetSharedHandle(HANDLE* pSharedHandle) override
-	{
-		HANDLE handle;
-		HRESULT hr = m_resource1->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ, NULL, &handle);
-
-		static HostSharedData<CfxState> initState("CfxInitState");
-
-		if (SUCCEEDED(hr))
-		{
-			auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, initState->GetInitialPid());
-			DuplicateHandle(GetCurrentProcess(), handle, proc, pSharedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
-			CloseHandle(proc);
-		}
-
-		return hr;
-	}
+	virtual HRESULT __stdcall GetSharedHandle(HANDLE* pSharedHandle) override;
 
 	virtual HRESULT __stdcall GetUsage(DXGI_USAGE* pUsage) override
 	{
@@ -399,7 +444,109 @@ public:
 	{
 		*dst = m_texture.Get();
 	}
+
+	// IDXGIResource1
+	virtual HRESULT STDMETHODCALLTYPE CreateSubresourceSurface(
+	UINT index,
+	/* [annotation][out] */
+	_COM_Outptr_ IDXGISurface2** ppSurface)
+	{
+		return m_resource1->CreateSubresourceSurface(index, ppSurface);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSharedHandle(
+	/* [annotation][in] */
+	_In_opt_ const SECURITY_ATTRIBUTES* pAttributes,
+	/* [annotation][in] */
+	_In_ DWORD dwAccess,
+	/* [annotation][in] */
+	_In_opt_ LPCWSTR lpName,
+	/* [annotation][out] */
+	_Out_ HANDLE* pHandle)
+	{
+		return E_FAIL;
+	}
+
+	HANDLE m_handle = NULL;
 };
+
+static std::mutex g_textureLock;
+static std::map<HANDLE, WRL::ComPtr<Texture2DWrap>> g_textureHacks;
+
+Texture2DWrap::~Texture2DWrap()
+{
+	static concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> deletionQueue;
+
+	static std::thread* deletionThread = new std::thread([]()
+	{
+		SetThreadName(-1, "GPU Deletion Workaround");
+
+		while (true)
+		{
+			Sleep(2500);
+
+			decltype(deletionQueue)::value_type item;
+			std::vector<decltype(item)> toAdd;
+
+			while (deletionQueue.try_pop(item))
+			{
+				if (GetTickCount64() > (std::get<0>(item) + 7500))
+				{
+					std::lock_guard<std::mutex> _(g_textureLock);
+					g_textureHacks.erase(std::get<1>(item));
+				}
+				else
+				{
+					toAdd.push_back(item);
+				}
+			}
+
+			for (auto& entry : toAdd)
+			{
+				deletionQueue.push(entry);
+			}
+		}
+	});
+
+	if (m_handle)
+	{
+		deletionQueue.push({ GetTickCount64(), m_handle });
+	}
+}
+
+HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
+{
+#if !defined(GTA_FIVE)
+	HANDLE handle;
+	HRESULT hr = m_resource1->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ, NULL, &handle);
+
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (SUCCEEDED(hr))
+	{
+		auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, initState->GetInitialPid());
+		DuplicateHandle(GetCurrentProcess(), handle, proc, pSharedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
+		CloseHandle(proc);
+
+		m_handle = *pSharedHandle;
+		g_textureHacks.insert({ *pSharedHandle, this });
+	}
+
+	return hr;
+#else
+	auto hr = m_resource->GetSharedHandle(&m_handle);
+
+	if (SUCCEEDED(hr))
+	{
+		*pSharedHandle = m_handle;
+		g_textureHacks.insert({ m_handle, this });
+	}
+
+	return hr;
+#endif
+
+	return E_NOTIMPL;
+}
 
 static HRESULT CreateTexture2DHook(
 	ID3D11Device* device,
@@ -412,14 +559,26 @@ static HRESULT CreateTexture2DHook(
 
 	bool wrapped = false;
 
+#if !defined(GTA_FIVE)
 	if (IsWindows8OrGreater())
 	{
 		if ((desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED) || (desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX))
 		{
+			if (desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
+			{
+				desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			}
+
 			desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
 			wrapped = true;
 		}
 	}
+#else
+	if ((desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED) || (desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX))
+	{
+		wrapped = true;
+	}
+#endif
 
 	auto rv = g_origCreateTexture2D(device, &desc, pInitialData, ppTexture2D);
 
@@ -430,6 +589,41 @@ static HRESULT CreateTexture2DHook(
 	}
 
 	return rv;
+}
+
+#include <d3d11_1.h>
+
+static HRESULT OpenSharedResource1Hook(ID3D11Device1* device, HANDLE hRes, REFIID iid, void** ppRes)
+{
+	auto data = (HANDLE*)MapViewOfFile(hRes, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(HANDLE));
+	HRESULT hr = device->OpenSharedResource(*data, iid, ppRes);
+	// we don't release here as the resource will still get read by a target process
+	UnmapViewOfFile(data);
+
+	if (iid == __uuidof(ID3D11Texture2D))
+	{
+		auto retVal = WRL::Make<Texture2DWrap>((ID3D11Texture2D*)*ppRes);
+		retVal.CopyTo(iid, ppRes);
+	}
+
+	return hr;
+}
+
+static HRESULT (*g_origOpenSharedResourceHook)(ID3D11Device* device, HANDLE hRes, REFIID iid, void** ppRes);
+
+static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID iid, void** ppRes)
+{
+	auto it = g_textureHacks.find(hRes);
+
+	if (it != g_textureHacks.end())
+	{
+		ID3D11Resource* orig;
+		it->second->GetOriginal(&orig);
+
+		return orig->QueryInterface(iid, ppRes);
+	}
+
+	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
 }
 
 static HRESULT(*g_origCopyResource)(ID3D11DeviceContext* cxt, ID3D11Resource* dst, ID3D11Resource* src);
@@ -470,8 +664,8 @@ static void PatchAdapter(IDXGIAdapter** pAdapter)
 {
 	if (!*pAdapter)
 	{
-		WRL::ComPtr<IDXGIFactory> dxgiFactory;
-		CreateDXGIFactory(IID_IDXGIFactory, &dxgiFactory);
+		WRL::ComPtr<IDXGIFactory1> dxgiFactory;
+		CreateDXGIFactory1(IID_IDXGIFactory1, &dxgiFactory);
 
 		WRL::ComPtr<IDXGIAdapter1> adapter;
 		WRL::ComPtr<IDXGIFactory6> factory6;
@@ -505,16 +699,21 @@ static bool g_reshit;
 
 static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext)
 {
-#if defined(IS_RDR3)
-	if (ppDevice && ppImmediateContext)
+	bool can = true;
+
+#if !defined(IS_RDR3)
+	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr;
+#endif
+
+	if (ppDevice && ppImmediateContext && can)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
 		MH_CreateHook((void*)vtbl[5], CreateTexture2DHook, (void**)&g_origCreateTexture2D);
+		MH_CreateHook((void*)vtbl[28], OpenSharedResourceHook, (void**)&g_origOpenSharedResourceHook);
 		MH_CreateHook((void*)vtblCxt[47], CopyResourceHook, (void**)&g_origCopyResource);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
-#endif
 
 	if (ppImmediateContext && *ppImmediateContext)
 	{
@@ -566,7 +765,7 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 		DriverType = D3D_DRIVER_TYPE_UNKNOWN;
 	}
 
-	auto hr = g_origD3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+	auto hr = g_origD3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	PatchCreateResults(ppDevice, ppImmediateContext);
 
@@ -583,7 +782,7 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		DriverType = D3D_DRIVER_TYPE_UNKNOWN;
 	}
 
-	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	PatchCreateResults(ppDevice, ppImmediateContext);
 
@@ -594,7 +793,7 @@ static HRESULT (*g_origD3D11CreateDeviceMain)(_In_opt_ IDXGIAdapter* pAdapter, D
 
 static HRESULT D3D11CreateDeviceHookMain(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	auto hr = g_origD3D11CreateDeviceMain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	auto hr = g_origD3D11CreateDeviceMain(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	// hook e.g. GetImmediateContext here if needed
 
@@ -763,7 +962,7 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s\\", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
+	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	// delete any old CEF logs
@@ -778,7 +977,6 @@ void Initialize(nui::GameInterface* gi)
 		
 	cSettings.multi_threaded_message_loop = true;
 	cSettings.remote_debugging_port = 13172;
-	cSettings.pack_loading_disabled = false; // true;
 	cSettings.windowless_rendering_enabled = true;
 	cSettings.log_severity = LOGSEVERITY_DEFAULT;
 	cSettings.background_color = 0;

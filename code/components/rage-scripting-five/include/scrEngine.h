@@ -224,6 +224,8 @@ public:
 
 		Invoke(&cxt, Hash);
 
+		cxt.SetVectorResults();
+
 		return cxt.GetResult<R>();
 	}
 };

@@ -35,6 +35,10 @@ private:
 
 	std::shared_ptr<uvw::AsyncHandle> m_writeCallback;
 
+	std::shared_ptr<uvw::TimerHandle> m_writeTimeout;
+
+	std::atomic<uint64_t> m_pendingWrites;
+
 	std::shared_mutex m_writeCallbackMutex;
 
 	tbb::concurrent_queue<TScheduledCallback> m_pendingRequests;
@@ -51,6 +55,8 @@ private:
 	void HandlePendingWrites();
 
 	void CloseClient();
+
+	void ResetWriteTimeout();
 
 	inline std::vector<char>& GetReadBuffer()
 	{
@@ -110,6 +116,8 @@ public:
 	{
 		return m_dispatchPipe;
 	}
+
+	TcpServerManager* GetManager() const;
 
 private:
 	void OnConnection(int status);

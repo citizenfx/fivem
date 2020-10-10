@@ -16,13 +16,13 @@ return {
 			staticruntime "On"
 		end		
 
-        defines { 
-			'GRIT_POWER_TTYPE',
-        }
+		defines {
+			'LUACMSGPACK_COMPAT',
+		}
 
 		files { 
-			"../vendor/lua-cmsgpack/*.c",
-			"../vendor/lua-cmsgpack/*.h",
+			"../vendor/lua-cmsgpack/src/*.c",
+			"../vendor/lua-cmsgpack/src/*.h",
 		}
 	end
 }

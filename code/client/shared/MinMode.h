@@ -33,7 +33,7 @@ public:
 
 	inline std::string GetRaw()
 	{
-		return m_json.dump();
+		return m_json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
 	}
 
 private:

@@ -138,7 +138,7 @@ namespace rage
 	};
 }
 
-static rage::netObject* g_curNetObjectSelection;
+rage::netObject* g_curNetObjectSelection;
 static rage::netSyncNodeBase* g_curSyncNodeSelection;
 
 static void RenderSyncNode(rage::netObject* object, rage::netSyncNodeBase* node)
@@ -335,6 +335,7 @@ struct WriteTreeState
 	uint32_t time;
 	bool wroteAny;
 	uint32_t* lastChangeTimePtr;
+	int pass = 0;
 };
 
 struct NetObjectNodeData
@@ -342,12 +343,16 @@ struct NetObjectNodeData
 	std::array<uint8_t, 1024> lastData;
 	uint32_t lastChange;
 	uint32_t lastAck;
+	uint32_t lastResend;
+	bool forcedDirty;
 
 	NetObjectNodeData()
 	{
 		memset(lastData.data(), 0, lastData.size());
 		lastChange = 0;
 		lastAck = 0;
+		lastResend = 0;
+		forcedDirty = false;
 	}
 };
 
@@ -443,7 +448,8 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 		sizeLength = 11;
 	}
 
-	TraverseTree<WriteTreeState>(this, state, [sizeLength](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	// callback
+	auto nodeWriter = [sizeLength](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		auto buffer = state.buffer;
 		bool didWrite = false;
@@ -453,16 +459,19 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			// save position to allow rewinding
 			auto startPos = buffer->GetPosition();
 
-			// write presence header placeholder
-			if (node->flags2 & state.flags)
+			if (state.pass == 2)
 			{
-				buffer->WriteBit(0);
-			}
+				// write presence header placeholder
+				if (node->flags2 & state.flags)
+				{
+					buffer->WriteBit(0);
+				}
 
-			// write Cfx length placeholder
-			if (node->IsDataNode())
-			{
-				buffer->WriteUns(0, sizeLength);
+				// write Cfx length placeholder
+				if (node->IsDataNode())
+				{
+					buffer->WriteUns(0, sizeLength);
+				}
 			}
 
 			if (node->IsParentNode())
@@ -489,20 +498,30 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					// throttle sends by waiting for the requested node delay
 					uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
 
-					if (lastChangeDelta > nodeSyncDelay)
+					if (lastChangeDelta > nodeSyncDelay || nodeData->forcedDirty)
 					{
+						nodeData->lastResend = 0;
 						nodeData->lastChange = state.time;
 						nodeData->lastData = tempData;
+
+						nodeData->forcedDirty = false;
 					}
 				}
+
+				bool isResendSkipped = ((state.time - nodeData->lastResend) < 150);
 
 				if (state.lastChangeTimePtr)
 				{
 					auto oldVal = *state.lastChangeTimePtr;
 
-					if (nodeData->lastChange > oldVal)
+					if (nodeData->lastChange > oldVal && !isResendSkipped)
 					{
-						*state.lastChangeTimePtr = nodeData->lastChange;
+						if (state.pass == 2)
+						{
+							*state.lastChangeTimePtr = nodeData->lastChange;
+
+							nodeData->lastResend = state.time;
+						}
 					}
 				}
 
@@ -518,9 +537,17 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					shouldWriteNode = true;
 				}
 
+				if (isResendSkipped)
+				{
+					shouldWriteNode = false;
+				}
+
 				if (shouldWriteNode)
 				{
-					node->WriteObject(state.object, buffer, state.logger, false);
+					if (state.pass == 2)
+					{
+						node->WriteObject(state.object, buffer, state.logger, false);
+					}
 
 					didWrite = true;
 				}
@@ -528,14 +555,17 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 			if (!didWrite)
 			{
-				// set position to just past the 0
-				if (node->flags2 & state.flags)
+				if (state.pass == 2)
 				{
-					buffer->Seek(startPos + 1);
-				}
-				else
-				{
-					buffer->Seek(startPos);
+					// set position to just past the 0
+					if (node->flags2 & state.flags)
+					{
+						buffer->Seek(startPos + 1);
+					}
+					else
+					{
+						buffer->Seek(startPos);
+					}
 				}
 			}
 			else
@@ -560,11 +590,15 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				}
 
 				uint32_t endPos = buffer->GetPosition();
-				buffer->Seek(startPos);
 
-				if (node->flags2 & state.flags)
+				if (state.pass == 2)
 				{
-					buffer->WriteBit(true);
+					buffer->Seek(startPos);
+
+					if (node->flags2 & state.flags)
+					{
+						buffer->WriteBit(true);
+					}
 				}
 
 				if (node->IsDataNode())
@@ -576,6 +610,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 						length -= 1;
 					}
 
+#if 0
 					if (length >= (1 << 13))
 					{
 						auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
@@ -593,16 +628,32 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 						FatalError("Tried to write a bad node length of %d bits in a '%s'. There should only ever be 8192 bits. Please report this on https://forum.fivem.net/t/318260 together with the .zip file from 'save information' below.", length, typeid(*node).name());
 					}
+#endif
 
-					buffer->WriteUns(length, sizeLength);
+					if (state.pass == 2)
+					{
+						buffer->WriteUns(length, sizeLength);
+					}
 				}
 
-				buffer->Seek(endPos);
+				if (state.pass == 2)
+				{
+					buffer->Seek(endPos);
+				}
 			}
 		}
 
 		return didWrite;
-	});
+	};
+
+	// traverse state and dirty nodes first
+	state.pass = 1;
+	TraverseTree<WriteTreeState>(this, state, nodeWriter);
+
+	// then traverse again, writing nodes
+	state.pass = 2;
+	state.wroteAny = false;
+	TraverseTree<WriteTreeState>(this, state, nodeWriter);
 
 	return state.wroteAny;
 }
@@ -638,9 +689,117 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 }
 }
 
+static bool g_recordingDrilldown;
+static bool g_recordedDrilldown;
+static uint64_t g_drilldownEnd;
+static uint32_t g_drilldownIdx;
+
+struct ClonePacketMsg
+{
+	std::string_view what;
+	std::string why;
+};
+
+struct ClonePacketData
+{
+	uint64_t frameIdx;
+	uint32_t ts;
+	
+	std::vector<ClonePacketMsg> messages;
+};
+
+#include <nutsnbolts.h>
+
+static InitFunction initFunctionDrilldown([]() 
+{
+	OnGameFrame.Connect([]()
+	{
+		if (g_recordingDrilldown && GetTickCount64() >= g_drilldownEnd)
+		{
+			g_recordingDrilldown = false;
+			g_recordedDrilldown = true;
+		}
+	});
+});
+
+static std::map<uint32_t, ClonePacketData> g_drilldownData;
+
+namespace sync
+{
+bool IsDrilldown()
+{
+	return g_recordingDrilldown;
+}
+
+void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data)
+{
+	ClonePacketData bit;
+	bit.frameIdx = frameIdx;
+
+	for (auto& d : data)
+	{
+		ClonePacketMsg msg;
+		msg.what = std::move(std::get<0>(d));
+		msg.why = std::move(std::get<1>(d));
+
+		bit.messages.push_back(std::move(msg));
+	}
+
+	bit.ts = 1000 - (g_drilldownEnd - GetTickCount64());
+
+	g_drilldownData[g_drilldownIdx++] = std::move(bit);
+}
+}
+
+void RenderNetDrilldownWindow()
+{
+	static bool open = true;
+
+	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
+
+	if (ImGui::Begin("Network Drilldown", &open))
+	{
+		if (!g_recordingDrilldown && ImGui::Button("Record"))
+		{
+			g_drilldownData.clear();
+			g_drilldownIdx = 0;
+			g_recordedDrilldown = false;
+
+			g_recordingDrilldown = true;
+			g_drilldownEnd = GetTickCount64() + 1000;
+		}
+		
+		if (g_recordingDrilldown)
+		{
+			ImGui::ButtonEx("Recording", {}, ImGuiButtonFlags_Disabled);
+		}
+
+		if (g_recordedDrilldown)
+		{
+			for (auto& [id, node] : g_drilldownData)
+			{
+				if (ImGui::TreeNode(va("Packet %d @+%d (%d)", id, node.ts, node.frameIdx)))
+				{
+					for (auto& message : node.messages)
+					{
+						ImGui::TreeNodeEx(va("%s: %s", message.what, message.why), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+					}
+
+					ImGui::TreePop();
+				}
+			}
+		}
+	}
+
+	ImGui::End();
+}
+
 void DirtyNode(void* object, void* node)
 {
-	rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node].lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+	auto& nodeData = rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node];
+	nodeData.lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+	nodeData.lastResend = 0;
+	nodeData.forcedDirty = true;
 }
 
 static bool g_captureSyncLog;
@@ -748,18 +907,25 @@ static InitFunction initFunction([]()
 {
 	static bool netViewerEnabled;
 	static bool timeWindowEnabled;
+	static bool drilldownWindowEnabled;
 
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
 	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
+	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive, false, &drilldownWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || timeWindowEnabled;
+		*should = *should || netViewerEnabled || timeWindowEnabled || drilldownWindowEnabled;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
+		if (drilldownWindowEnabled)
+		{
+			RenderNetDrilldownWindow();
+		}
+
 		if (timeWindowEnabled)
 		{
 			static bool timeOpen = true;
@@ -809,7 +975,7 @@ static InitFunction initFunction([]()
 					RenderNetObjectDetail(g_curNetObjectSelection);
 				}
 
-				if (g_curSyncNodeSelection)
+				if (g_curNetObjectSelection && g_curSyncNodeSelection)
 				{
 					ImGui::Separator();
 

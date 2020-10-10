@@ -1,9 +1,13 @@
 #include "StdInc.h"
+
+#include <LaunchMode.h>
 #include <Hooking.h>
 
 #include <regex>
 
 #include <sstream>
+
+#include <nutsnbolts.h>
 
 #include <MinHook.h>
 
@@ -179,6 +183,8 @@ std::string regex_replace(const std::string& s,
 	return regex_replace(s.cbegin(), s.cend(), re, f);
 }
 
+static uint32_t curTime;
+
 static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, void* pImgInfoArr, bool multiline, bool condenseWhite, void* styleMgr, void* txtFmt, void* paraFmt)
 {
 	if (!txtFmt)
@@ -188,41 +194,60 @@ static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, 
 
 	int sz = ceil(*(uint16_t*)((char*)txtFmt + 62) / 20.0f * 1.2f);
 
-	auto emojifiedText = regex_replace(str, str + length, emojiRegEx, [sz](const auto& m)
+	static thread_local std::map<std::wstring, std::wstring, std::less<>> replacedText;
+	static thread_local uint32_t nextClear;
+
+	if (curTime > nextClear)
 	{
-		auto s = m.str();
+		replacedText.clear();
+		nextClear = curTime + 5000;
+	}
 
-		if (s.find(L"\x200D") == std::string::npos)
+	auto it = replacedText.find(std::wstring_view{ str, size_t(length) });
+
+	if (it == replacedText.end())
+	{
+		auto emojifiedText = regex_replace(str, str + length, emojiRegEx, [sz](const auto& m)
 		{
-			s = std::regex_replace(s, feofRegEx, L"");
-		}
+			auto s = m.str();
 
-		std::wstringstream codePointString;
-
-		int i = 0;
-		int p = 0;
-
-		while (i < s.length())
-		{
-			auto c = s[i++];
-			if (p) {
-				codePointString << std::hex << (0x10000 + ((p - 0xD800) << 10) + (c - 0xDC00)) << L"_";
-				p = 0;
+			if (s.find(L"\x200D") == std::string::npos)
+			{
+				s = std::regex_replace(s, feofRegEx, L"");
 			}
-			else if (0xD800 <= c && c <= 0xDBFF) {
-				p = c;
+
+			std::wstringstream codePointString;
+
+			int i = 0;
+			int p = 0;
+
+			while (i < s.length())
+			{
+				auto c = s[i++];
+				if (p)
+				{
+					codePointString << std::hex << (0x10000 + ((p - 0xD800) << 10) + (c - 0xDC00)) << L"_";
+					p = 0;
+				}
+				else if (0xD800 <= c && c <= 0xDBFF)
+				{
+					p = c;
+				}
+				else
+				{
+					codePointString << std::hex << uint32_t(c) << L"_";
+				}
 			}
-			else {
-				codePointString << std::hex << uint32_t(c) << L"_";
-			}
-		}
 
-		auto cps = codePointString.str();
+			auto cps = codePointString.str();
 
-		return fmt::sprintf(L"<img src='flex_img_%s' width='%d' height='%d'/>", cps.substr(0, cps.length() - 1), sz, sz);
-	});
+			return fmt::sprintf(L"<img src='flex_img_%s' width='%d' height='%d'/>", cps.substr(0, cps.length() - 1), sz, sz);
+		});
 
-	g_parseHtml(styledText, emojifiedText.c_str(), emojifiedText.size(), pImgInfoArr, multiline, condenseWhite, styleMgr, txtFmt, paraFmt);
+		it = replacedText.emplace(str, std::move(emojifiedText)).first;
+	}
+
+	g_parseHtml(styledText, it->second.c_str(), it->second.size(), pImgInfoArr, multiline, condenseWhite, styleMgr, txtFmt, paraFmt);
 }
 
 static void ParseHtmlUtf8(void* styledText, const char* str, uint64_t length, void* pImgInfoArr, bool multiline, bool condenseWhite, void* styleMgr, void* txtFmt, void* paraFmt)
@@ -287,6 +312,11 @@ static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, floa
 
 static HookFunction hookFunction([]()
 {
+	if (CfxIsSinglePlayer())
+	{
+		return;
+	}
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_call(hook::get_pattern("40 88 6C 24 28 44 88 44 24 20 4C 8B C3 48 8B D6", 16)), ParseHtmlStub, (void**)&g_parseHtml);
 	MH_CreateHook(hook::get_pattern("48 8B F1 44 8D 6F 01 48", -48), GFxEditTextCharacterDef__SetTextValue, (void**)&g_origGFxEditTextCharacterDef__SetTextValue);
@@ -304,6 +334,11 @@ static HookFunction hookFunction([]()
 	// GetTextExtent
 	hook::set_call(&getHtmlTextExtent, hook::get_pattern("48 8B 55 60 45 33 E4 4C 89", -0x5B));
 	hook::jump(hook::get_pattern("0F 29 70 D8 4D 8B F0 48 8B F2 0F 28 F3", -0x1F), GetHtmlTextExtentWrap);
+
+	OnGameFrame.Connect([]()
+	{
+		curTime = GetTickCount();
+	});
 
 	// 1604 unused
 	//*(void**)0x1419F4858 = GfxLog;

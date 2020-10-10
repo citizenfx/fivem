@@ -133,6 +133,8 @@ HANDLE CreateFileMappingAHook(_In_ HANDLE hFile, _In_opt_ LPSECURITY_ATTRIBUTES 
 	return CreateFileMappingA(hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
 }
 
+extern HINSTANCE ShellExecuteWStub(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _In_ LPCWSTR lpFile, _In_opt_ LPCWSTR lpParameters, _In_opt_ LPCWSTR lpDirectory, _In_ INT nShowCmd);
+
 static void Service_Run(const boost::program_options::variables_map& map)
 {
 	boost::filesystem::path programPath(L"C:\\Program Files\\Rockstar Games\\Launcher\\RockstarService.exe");
@@ -153,6 +155,7 @@ static void Service_Run(const boost::program_options::variables_map& map)
 		hook::iat("advapi32.dll", QueryServiceStatusExHook, "QueryServiceStatusEx");
 		hook::iat("advapi32.dll", OpenServiceWHook, "OpenServiceW");
 		hook::iat("advapi32.dll", QueryServiceConfigWHook, "QueryServiceConfigW");
+		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
 	});
 
 	g_origProcess = programPath.wstring();

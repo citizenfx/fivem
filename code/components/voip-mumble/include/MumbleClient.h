@@ -79,6 +79,8 @@ public:
 
 	virtual concurrency::task<void> DisconnectAsync() = 0;
 
+	virtual void RunFrame() = 0;
+
 	virtual MumbleConnectionInfo* GetConnectionInfo() = 0;
 
 	virtual bool IsAnyoneTalking() = 0;
@@ -110,6 +112,10 @@ public:
 	virtual void UpdateVoiceTarget(int idx, const VoiceTargetConfig& config) = 0;
 
 	virtual void SetVoiceTarget(int idx) = 0;
+
+	virtual void AddListenChannel(const std::string& channelName) = 0;
+
+	virtual void RemoveListenChannel(const std::string& channelName) = 0;
 
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) = 0;
 

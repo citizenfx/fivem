@@ -23,11 +23,11 @@ cd ..
 
 # clone fivem-private
 if [ ! -d fivem-private ]; then
-	git clone $FIVEM_PRIVATE_URI
+	git clone $FIVEM_PRIVATE_URI -b master-old
 else
 	cd fivem-private
 	git fetch origin
-	git reset --hard origin/master
+	git reset --hard origin/master-old
 	cd ..
 fi
 
@@ -103,7 +103,7 @@ cd $PWD/ext/symbol-upload
 
 mkdir -p /tmp/symbols
 dotnet restore
-dotnet run -- -o/tmp/symbols $PWD/../../alpine/opt/cfx-server/*.so $PWD/../../alpine/opt/cfx-server/FXServer $PWD/../../alpine/opt/cfx-server/*.dbg
+dotnet run -- -o/tmp/symbols $PWD/../../alpine/opt/cfx-server/*.so $PWD/../../alpine/opt/cfx-server/FXServer $PWD/../../alpine/opt/cfx-server/*.dbg $PWD/../../alpine/lib/*.so* $PWD/../../alpine/usr/lib/*.so* $PWD/../../alpine/usr/lib/debug/lib/*.debug
 
 eval $(ssh-agent -s)
 echo "$SSH_SYMBOLS_PRIVATE_KEY" | tr -d '\r' | ssh-add -

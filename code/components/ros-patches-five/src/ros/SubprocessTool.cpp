@@ -77,6 +77,8 @@ static MyListener* RunListener(const std::wstring& a);
 
 std::string HandleCfxLogin();
 
+bool g_launchDone;
+
 struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 {
 	HANDLE hPipe;
@@ -198,18 +200,21 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 										verifying = true;
 									}
 
-									Sleep(500);
+									if (p["status"].value("updateState", "") == "starting")
+									{
+										Sleep(500);
 
-									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-										{ "EventId", 2 }, // LauncherV3UiEvent
+										child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
+											{ "EventId", 2 }, // LauncherV3UiEvent
 
-										{"Data", json::object({
-											{"Action", "Verify"},
-											{"Parameter", json::object({
-												{"titleName", targetTitle},
+											{"Data", json::object({
+												{"Action", "Verify"},
+												{"Parameter", json::object({
+													{"titleName", targetTitle},
+												})}
 											})}
-										})}
-										}).dump());
+											}).dump());
+									}
 								}
 								else if (p["status"].value("install", false) && (p["status"].value("updateState", "") == "notUpdating" || p["status"].value("updateState", "") == "updateQueued"))
 								{
@@ -219,7 +224,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 										for (int i = 0; i < 3; i++)
 										{
-											if (launchDone)
+											if (launchDone || g_launchDone)
 											{
 												break;
 											}
@@ -241,7 +246,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 												})}
 												}).dump());
 
-											Sleep(1500);
+											Sleep(5000);
 										}
 									}
 									else if (!verified)
@@ -259,7 +264,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 											}).dump());
 									}
 								}
-								else if (p["status"].value("updateState", "") == "verifying")
+								
+								if (p["status"].value("updateState", "") == "verifying")
 								{
 									verified = true;
 								}

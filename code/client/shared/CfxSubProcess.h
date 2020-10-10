@@ -3,13 +3,25 @@
 #include <windows.h>
 #include <string>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 #include <Utils.h>
 
 inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const std::wstring& origin = L"")
 {
 	// get the current EXE name
 	wchar_t fxApplicationName[MAX_PATH];
-	GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->gameExePath[0])
+	{
+		wcscpy_s(fxApplicationName, initState->gameExePath);
+	}
+	else
+	{
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+	}
 
 	if (!origin.empty())
 	{
@@ -54,9 +66,14 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 		productName += L"fxdk_";
 	}
 	
-	if (wcsstr(GetCommandLine(), L"b1868") != nullptr)
+	if (wcsstr(GetCommandLine(), L"b2060") != nullptr)
 	{
-		productName += L"b1868_";
+		productName += L"b2060_";
+	}
+
+	if (wcsstr(GetCommandLine(), L"b372") != nullptr)
+	{
+		productName += L"b372_";
 	}
 #endif
 

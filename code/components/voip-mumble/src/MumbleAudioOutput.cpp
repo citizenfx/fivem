@@ -473,6 +473,20 @@ void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* base
 		}
 	}
 
+	using namespace DirectX;
+
+	auto emitterPos = XMVectorSet(position[0], position[1], position[2], 0.0f);
+	auto listenerPos = XMVectorSet(baseIo->m_listener.Position.x, baseIo->m_listener.Position.y, baseIo->m_listener.Position.z, 0.0f);
+
+	bool shouldHear = (abs(distance) < 0.01f) ? true : (XMVectorGetX(XMVector3LengthSq(emitterPos - listenerPos)) < (distance * distance));
+
+	if (client->overrideVolume >= 0.0f)
+	{
+		shouldHear = client->overrideVolume >= 0.005f;
+	}
+
+	client->isAudible = shouldHear;
+
 	sink->SetPosition(position, distance, client->overrideVolume);
 }
 
@@ -495,6 +509,12 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 		{
 			m_initializeVar.wait(initLock);
 		}
+	}
+
+	// if still not initialized, exit out
+	if (!m_initialized)
+	{
+		return;
 	}
 
 	if (g_useNativeAudio->GetValue())
@@ -1128,27 +1148,48 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 	ComPtr<IMMDevice> device;
 
-	if (m_deviceGuid.empty())
+	// ensure the initialize variable is signaled no matter what
+	struct Unlocker
 	{
-		if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eCommunications, device.ReleaseAndGetAddressOf())))
+		Unlocker(MumbleAudioOutput* self)
+			: self(self)
 		{
-			trace("%s: failed GetDefaultAudioEndpoint\n", __func__);
-			return;
+		
 		}
 
-		// opt out of ducking
-		DuckingOptOut(device);
-	}
-	else
-	{
-		device = GetMMDeviceFromGUID(false, m_deviceGuid);
-
-		if (!device.Get())
+		~Unlocker()
 		{
-			trace("%s: failed GetMMDeviceFromGUID\n", __func__);
-			return;
+			std::unique_lock<std::mutex> lock(self->m_initializeMutex);
+			self->m_initializeVar.notify_all();
+		}
+
+		MumbleAudioOutput* self;
+	} unlocker(this);
+
+	while (!device.Get())
+	{
+		if (m_deviceGuid.empty())
+		{
+			if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eCommunications, device.ReleaseAndGetAddressOf())))
+			{
+				trace("%s: failed GetDefaultAudioEndpoint\n", __func__);
+				return;
+			}
+		}
+		else
+		{
+			device = GetMMDeviceFromGUID(false, m_deviceGuid);
+
+			if (!device.Get())
+			{
+				trace("%s: failed GetMMDeviceFromGUID\n", __func__);
+				m_deviceGuid = "";
+			}
 		}
 	}
+
+	// opt out of ducking
+	DuckingOptOut(device);
 
 	auto xa2Dll = LoadLibraryExW(L"XAudio2_8.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 	decltype(&CreateAudioReverb) _CreateAudioReverb;
@@ -1304,8 +1345,6 @@ void MumbleAudioOutput::InitializeAudioDevice()
 	{
 		std::unique_lock<std::mutex> lock(m_initializeMutex);
 		m_initialized = true;
-
-		m_initializeVar.notify_all();
 	}
 }
 

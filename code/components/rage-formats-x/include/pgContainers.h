@@ -154,6 +154,11 @@ public:
 		{
 			auto object = *(objects[i]);
 
+			if (!object)
+			{
+				continue;
+			}
+
 			if (pgStreamManager::IsInBlockMap(object, nullptr, false))
 			{
 				(*m_objects)[i] = object;

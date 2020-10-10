@@ -1,63 +1,72 @@
-import {BrowserModule} from '@angular/platform-browser';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {NgModule, Inject, Injectable, Optional, APP_INITIALIZER, Injector} from '@angular/core';
-import {FormsModule} from '@angular/forms';
-import {HttpClientModule, HttpHeaders, HttpClient, HttpParams} from '@angular/common/http';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule, HttpHeaders, HttpClient } from '@angular/common/http';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { Nl2BrPipeModule } from 'nl2br-pipe';
+
+import { NgDompurifyModule } from '@tinkoff/ng-dompurify';
 
 import { environment } from '../environments/environment'
 
-import {VirtualScrollerModule} from 'ngx-virtual-scroller';
-import {MomentModule} from 'angular2-moment';
-import {Angulartics2Module} from 'angulartics2';
-import {Angulartics2Piwik} from 'angulartics2/piwik';
-import {LinkyModule} from 'ngx-linky';
-import {NgxFilesizeModule} from 'ngx-filesize';
-import {MetaModule, MetaLoader, MetaStaticLoader, PageTitlePositioning} from '@ngx-meta/core';
+import { ScrollingModule } from '@angular/cdk/scrolling';
+import { ScrollingModule as ExperimentalScrollingModule } from '@angular/cdk-experimental/scrolling';
 
-import {AppRoutingModule} from './app-routing.module';
-import {AppComponent} from './app.component';
+import { MomentModule } from 'angular2-moment';
+import { Angulartics2Module } from 'angulartics2';
+import { LinkyModule } from 'ngx-linky';
+import { NgxFilesizeModule } from 'ngx-filesize';
+import { MetaModule, MetaLoader, MetaStaticLoader, PageTitlePositioning } from '@ngx-meta/core';
 
-import {AppNavComponent} from './app-nav.component';
-import {ConnectingPopupComponent} from './servers/connecting-popup.component';
-import {HomeComponent} from './home/home.component';
-import {HomeTweetComponent} from './home/home-tweet.component';
-import {SettingsComponent} from './settings/settings.component';
-import {MinModeComponent} from './minmode/minmode.component';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
 
-import {ServersComponent} from './servers/components/servers.component';
-import {ServersContainerComponent} from './servers/components/servers-container.component';
-import {ServersListComponent} from './servers/components/servers-list.component';
-import {ServersListItemComponent} from './servers/components/servers-list-item.component';
-import {ServersListHeaderComponent} from './servers/components/servers-list-header.component';
-import {ServerFilterComponent} from './servers/components/server-filter.component';
-import {ServerTagFilterComponent} from './servers/components/server-tag-filter.component';
-import {ServersDetailComponent} from './servers/components/servers-detail.component';
-import {PlayerAvatarComponent} from './servers/components/player-avatar.component';
-import {DirectConnectComponent} from './servers/direct/direct-connect.component';
+import { AppNavComponent } from './nav/app-nav.component';
+import { ConnectingPopupComponent } from './servers/connecting-popup.component';
+import { HomeComponent } from './home/home.component';
+import { HomeTweetComponent } from './home/home-tweet.component';
+import { SettingsComponent } from './settings/settings.component';
 
-import {ServersService} from './servers/servers.service';
-import {TweetService} from './home/tweet.service';
-import {TrackingService} from './tracking.service';
-import {SettingsService} from './settings.service';
+import { ServersComponent } from './servers/components/servers.component';
+import { ServersContainerComponent } from './servers/components/servers-container.component';
+import { ServersListComponent } from './servers/components/list/servers-list.component';
+import { ServersListItemComponent } from './servers/components/list/servers-list-item.component';
+import { ServerFilterComponent } from './servers/components/filters/server-filter.component';
+import { ServerTagFilterComponent } from './servers/components/filters/server-tag-filter.component';
+import { ServersDetailComponent } from './servers/components/detail/servers-detail.component';
+import { PlayerAvatarComponent } from './servers/components/player-avatar.component';
+import { DirectConnectComponent } from './servers/direct/direct-connect.component';
+import { SpinnerComponent } from './spinner/spinner.component';
 
-import {GameService, CfxGameService, DummyGameService} from './game.service';
-import {DiscourseService} from './discourse.service';
+import { ServersService } from './servers/servers.service';
+import { TweetService } from './home/tweet.service';
+import { TrackingService } from './tracking.service';
+import { SettingsService } from './settings.service';
 
-import {ColorizePipe} from './colorize.pipe';
-import {EscapePipe} from './escape.pipe';
+import { GameService, CfxGameService, DummyGameService } from './game.service';
+import { DiscourseService } from './discourse.service';
+
+import { ColorizePipe } from './colorize.pipe';
+import { EscapePipe } from './escape.pipe';
 import { LocalStorage } from './local-storage';
 
 import { Languages } from './languages';
 import { ServerTagsService } from './servers/server-tags.service';
-import { ChangelogPopupComponent } from './home/app-changelog-popup.component';
-import { ChangelogEntryComponent } from './home/app-changelog-entry.component';
+import { ChangelogPopupComponent } from './changelog/app-changelog-popup.component';
+import { ChangelogEntryComponent } from './changelog/app-changelog-entry.component';
 import { ChangelogService } from './changelogs.service';
-import { L10nConfig, L10nTranslationLoader, L10nProvider, L10nLoader, L10nTranslationModule,
-	L10nMissingTranslationHandler, L10nTranslationService } from 'angular-l10n';
+import {
+	L10nConfig, L10nTranslationLoader, L10nProvider, L10nLoader, L10nTranslationModule,
+	L10nMissingTranslationHandler, L10nTranslationService
+} from 'angular-l10n';
 import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
 
+import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+
 import { ModsComponent } from './mods/mods/mods.component';
 import { ModListComponent } from './mods/mod-list/mod-list.component';
 import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
@@ -68,13 +77,14 @@ import { CreateHomeComponent } from './create/create-home/create-home.component'
 import { StoryHomeComponent } from './story/story-home/story-home.component';
 import { CreateEditorComponent } from './create/create-editor/create-editor.component';
 import { DirectConnectBackendComponent } from './servers/direct/direct-connect-backend.component';
+import { FiltersService } from './servers/filters.service';
 
 const localePrefix = (environment.web) ? '/' : './';
 
 // from the docs
 @Injectable() export class HttpTranslationLoader implements L10nTranslationLoader {
 
-    private headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+	private headers = new HttpHeaders({ 'Content-Type': 'application/json' });
 
 	constructor(
 		@Optional() private http: HttpClient,
@@ -90,18 +100,18 @@ const localePrefix = (environment.web) ? '/' : './';
 		const url = `${provider.asset}-${language.replace(/-/g, '_')}.json`;
 		const defTranslationUrl = `${provider.asset}-en.json`;
 		const options = {
-		  headers: this.headers
+			headers: this.headers
 		};
 
 		this.http
-		  .get(defTranslationUrl, options)
-		  .pipe(take(1))
-		  .subscribe(en => {
-			this.injector.get(L10nTranslationService).data = { en };
-		  });
+			.get(defTranslationUrl, options)
+			.pipe(take(1))
+			.subscribe(en => {
+				this.injector.get(L10nTranslationService).data = { en };
+			});
 
 		return this.http.get(url, options);
-    }
+	}
 
 }
 
@@ -110,9 +120,9 @@ const localePrefix = (environment.web) ? '/' : './';
 	private translation: L10nTranslationService;
 	private inTranslation = false;
 
-    constructor(@Optional() private injector: Injector) { }
+	constructor(@Optional() private injector: Injector) { }
 
-    public handle(key: string): string | any {
+	public handle(key: string): string | any {
 		if (!this.translation) {
 			this.translation = this.injector.get(L10nTranslationService);
 		}
@@ -128,7 +138,7 @@ const localePrefix = (environment.web) ? '/' : './';
 		} finally {
 			this.inTranslation = false;
 		}
-    }
+	}
 }
 
 const l10nConfig: L10nConfig = {
@@ -143,7 +153,7 @@ const l10nConfig: L10nConfig = {
 };
 
 function initL10n(l10nLoader: L10nLoader): () => Promise<void> {
-    return () => l10nLoader.init();
+	return () => l10nLoader.init();
 }
 
 export function localStorageFactory() {
@@ -160,6 +170,7 @@ export function metaFactory(): MetaLoader {
 
 @NgModule({
 	declarations: [
+		SpinnerComponent,
 		AppComponent,
 		AppNavComponent,
 		ConnectingPopupComponent,
@@ -172,14 +183,12 @@ export function metaFactory(): MetaLoader {
 		ServersContainerComponent,
 		ServersListComponent,
 		ServersListItemComponent,
-		ServersListHeaderComponent,
 		ServerFilterComponent,
 		ServerTagFilterComponent,
 		ServersDetailComponent,
 		DirectConnectComponent,
 		DirectConnectBackendComponent,
 		PlayerAvatarComponent,
-		MinModeComponent,
 		ColorizePipe,
 		EscapePipe,
 		ModsComponent,
@@ -189,13 +198,18 @@ export function metaFactory(): MetaLoader {
 		ModItemComponent,
 		CreateHomeComponent,
 		StoryHomeComponent,
-		CreateEditorComponent
+		CreateEditorComponent,
 	],
-	imports:      [
+	imports: [
+		NgDompurifyModule,
 		BrowserModule.withServerTransition({ appId: 'cfx-ui' }),
 		FormsModule,
+		NgSelectModule,
 		AppRoutingModule,
-		VirtualScrollerModule,
+
+		ScrollingModule,
+		ExperimentalScrollingModule,
+
 		MomentModule,
 		HttpClientModule,
 		L10nTranslationModule.forRoot(l10nConfig, {
@@ -210,15 +224,19 @@ export function metaFactory(): MetaLoader {
 		}),
 		BrowserAnimationsModule,
 		MatTabsModule,
+		MatSelectModule,
+		MatCheckboxModule,
 		NgxFilesizeModule,
+		Nl2BrPipeModule,
 	],
-	providers:    [
+	providers: [
+		FiltersService,
 		ServersService,
 		ServerTagsService,
 		TweetService,
 		ChangelogService,
 		{
-			provide:  GameService,
+			provide: GameService,
 			useClass: ((environment.production && !environment.web) || environment.game)
 				? CfxGameService
 				: DummyGameService
@@ -238,7 +256,7 @@ export function metaFactory(): MetaLoader {
 		},
 		ModsService,
 	],
-	bootstrap:    [
+	bootstrap: [
 		AppComponent
 	]
 })

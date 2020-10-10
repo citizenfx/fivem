@@ -162,6 +162,7 @@ static HookFunction hookFunction([]()
 				(*handler)(ctx);
 
 				loadsThread.doSetup = true;
+				g_doDrawBelowLoadingScreens = false;
 
 				if (autoShutdownNui)
 				{

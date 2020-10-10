@@ -1,13 +1,13 @@
 import { Injectable, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { DomSanitizer } from '@angular/platform-browser';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 
 import { applyPatch } from 'fast-json-patch';
 
-import { concat, from } from 'rxjs';
+import { concat, from, BehaviorSubject } from 'rxjs';
 
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/bufferTime';
@@ -19,7 +19,7 @@ import 'rxjs/add/operator/map';
 
 import ReconnectingWebSocket from 'reconnecting-websocket';
 
-import { Server } from './server';
+import { Server, ServerHistoryEntry } from './server';
 import { PinConfig } from './pins';
 
 import { master } from './master';
@@ -27,235 +27,299 @@ import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
 
-const myWorker = new Worker('./servers.worker', { type: 'module' });
+const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
+
+export enum HistoryServerStatus {
+	Loading,
+	Online,
+	Offline,
+};
+
+export interface HistoryServer {
+	historyEntry: ServerHistoryEntry,
+	server?: Server,
+	sanitizedIcon: SafeUrl,
+	status: HistoryServerStatus
+};
 
 class ServerCacheEntry {
-    public server: Server;
-    public lastTime: Date;
+	public server: Server;
+	public lastTime: Date;
 
-    public constructor(server: Server) {
-        this.lastTime = new Date();
-        this.server = server;
-    }
+	public constructor(server: Server) {
+		this.lastTime = new Date();
+		this.server = server;
+	}
 
-    public isValid() {
-        return (new Date().getTime() - this.lastTime.getTime()) < 15000;
-    }
+	public isValid() {
+		return (new Date().getTime() - this.lastTime.getTime()) < 15000;
+	}
 }
 
 @Injectable()
 export class ServersService {
-    private requestEvent: Subject<string>;
-    private serversEvent: Subject<Server>;
+	private requestEvent: Subject<string>;
+	private serversEvent: Subject<Server>;
 
-    private internalServerEvent: Subject<master.IServer>;
+	private internalServerEvent: Subject<master.IServer>;
 
-    private worker: Worker;
+	private worker: Worker;
 
-    private webSocket: ReconnectingWebSocket;
+	private webSocket: ReconnectingWebSocket;
 
-    private servers: {[ addr: string ]: Server} = {};
+	public servers: { [addr: string]: Server } = {};
+	public serversLoadedUpdate: Subject<boolean> = new BehaviorSubject(false);
 
-    private serverCache: { [addr: string]: ServerCacheEntry } = {};
+	private serverCache: { [addr: string]: ServerCacheEntry } = {};
 
-    private onSortCB: ((servers: string[]) => void)[] = [];
+	private onSortCB: ((servers: string[]) => void)[] = [];
 
-    // rawServers is a list of raw servers used for sharing between ServersContainer
-    // and ServersList
-    public rawServers: { [addr: string]: Server } = {};
+	private topServer: Server = undefined;
 
-    constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
-        private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
-        this.requestEvent = new Subject<string>();
+	constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
+		private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
+		this.requestEvent = new Subject<string>();
 
-        this.serversEvent = new Subject<Server>();
-        this.internalServerEvent = new Subject<master.IServer>();
+		this.serversEvent = new Subject<Server>();
+		this.internalServerEvent = new Subject<master.IServer>();
 
-        // only enable the worker if streams are supported
-        if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
-            this.worker = myWorker;
-            zone.runOutsideAngular(() => {
-                this.worker.addEventListener('message', (event) => {
-                    if (event.data.type === 'addServers') {
-                        for (const server of event.data.servers) {
-                            if (this.matchesGame(server)) {
-                                this.internalServerEvent.next(server);
-                            }
-                        }
-                    } else if (event.data.type === 'serversDone') {
-                        this.internalServerEvent.next(null);
-                    } else if (event.data.type === 'sortedServers') {
-                        if (this.onSortCB.length) {
-                            zone.run(() => {
-                                this.onSortCB[0](event.data.servers);
-                                this.onSortCB.shift();
-                            });
-                        }
-                    } else if (event.data.type === 'pushBitmap') {
-                        const addr: string = event.data.server;
-                        const bitmap: ImageBitmap = event.data.bitmap;
+		// only enable the worker if streams are supported
+		if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
+			this.worker = serversWorker;
+			zone.runOutsideAngular(() => {
+				this.worker.addEventListener('message', (event) => {
+					if (event.data.type === 'addServers') {
+						for (const server of event.data.servers) {
+							if (this.matchesGame(server)) {
+								this.internalServerEvent.next(server);
+							}
+						}
+					} else if (event.data.type === 'serversDone') {
+						this.internalServerEvent.next(null);
+						this.serversLoadedUpdate.next(true);
+					} else if (event.data.type === 'sortedServers') {
+						if (this.onSortCB.length) {
+							zone.run(() => {
+								this.onSortCB[0](event.data.servers);
+								this.onSortCB.shift();
+							});
+						}
+					} else if (event.data.type === 'pushBitmap') {
+						const addr: string = event.data.server;
+						const bitmap: ImageBitmap = event.data.bitmap;
 
-                        this.rawServers[addr].bitmap = bitmap;
-                    }
-                });
-            });
+						this.servers[addr].bitmap = bitmap;
+					} else {
+						console.log('[servers] worker message rcv', event);
+					}
+				});
+			});
 
-            this.requestEvent
-                .subscribe(url => {
-                    this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
-                });
+			this.requestEvent
+				.subscribe(url => {
+					this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
+				});
 
-            this.subscribeWebSocket();
-        }
+			this.subscribeWebSocket();
+		}
 
-        this.serversSource
-            .filter(a => !a || a.Data != null)
-            .map(value => value ? Server.fromObject(this.domSanitizer, value.EndPoint, value.Data) : null)
-            .subscribe(server => {
-                if (!server) {
-                    this.serversEvent.next(null);
-                    return;
-                }
+		this.serversSource
+			.filter(a => !a || a.Data != null)
+			.map((server) => {
+				if (server?.Data) {
+					return Server.fromObject(this.domSanitizer, server.EndPoint, server.Data)
+				}
 
-                this.servers[server.address] = server;
-                this.serversEvent.next(server);
-            });
-    }
+				return null;
+			})
+			.subscribe(server => {
+				if (!server) {
+					this.serversEvent.next(null);
+					return;
+				}
 
-    public onInitialized() {
-        if (isPlatformBrowser(this.platformId)) {
-            this.refreshServers();
-        }
-    }
+				this.servers[server.address] = server;
+				this.serversEvent.next(server);
+			});
+	}
 
-    private get serversSource(): Observable<master.IServer> {
-        if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
-            return this.fetchSource;
-        } else {
-            return this.httpSource;
-        }
-    }
+	public onInitialized() {
+		if (isPlatformBrowser(this.platformId)) {
+			this.refreshServers();
+		}
+	}
 
-    private get fetchSource() {
-        return this.internalServerEvent;
-    }
+	public get serversArray() {
+		return Object.values(this.servers);
+	}
 
-    private get httpSource() {
-        return this.requestEvent
-            .asObservable()
-            .mergeMap(url => this.httpClient.get(url + 'proto/', { responseType: 'arraybuffer' }))
-            .mergeMap(result => master.Servers.decode(new Uint8Array(result)).servers);
-    }
+	private get serversSource(): Observable<master.IServer> {
+		if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
+			return this.internalServerEvent;
+		} else {
+			return this.httpSource;
+		}
+	}
 
-    private matchesGame(server: master.IServer) {
-        const serverGame = (server && server.Data && server.Data.vars && server.Data.vars.gamename) ?
-            server.Data.vars.gamename :
-            '';
+	private get httpSource() {
+		return this.requestEvent
+			.asObservable()
+			.mergeMap(url => this.httpClient.get(url + 'proto/', { responseType: 'arraybuffer' }))
+			.mergeMap(result => master.Servers.decode(new Uint8Array(result)).servers);
+	}
 
-        const localGame = this.gameService.gameName;
+	private matchesGame(server: master.IServer) {
+		const serverGame = server?.Data?.vars?.gamename || '';
 
-        if (serverGame === localGame) {
-            return true;
-        } else if (serverGame === '' && localGame === 'gta5') {
-            return true;
-        }
+		const localGame = this.gameService.gameName;
 
-        return false;
-    }
+		if (serverGame === localGame) {
+			return true;
+		} else if (serverGame === '' && localGame === 'gta5') {
+			return true;
+		}
 
-    public sortAndFilter(filterRequest: FilterRequest, cb: (servers: string[]) => void) {
-        // don't try to sort when we're already trying
-        if (this.onSortCB.length > 0 && !filterRequest.fromInteraction) {
-            return false;
-        }
+		return false;
+	}
 
-        this.onSortCB.push(cb);
+	public sortAndFilter(filterRequest: FilterRequest, cb: (servers: string[]) => void) {
+		// don't try to sort when we're already trying
+		if (this.onSortCB.length > 0 && !filterRequest.fromInteraction) {
+			return false;
+		}
 
-        this.worker.postMessage({
-            type: 'sort',
-            data: filterRequest
-        });
+		this.onSortCB.push(cb);
 
-        return true;
-    }
+		this.worker.postMessage({
+			type: 'sort',
+			data: filterRequest
+		});
 
-    private subscribeWebSocket() {
-        const ws = new ReconnectingWebSocket('wss://servers-frontend.fivem.net/api/servers/socket/v1/');
-        ws.addEventListener('message', (ev) => {
-            const data = JSON.parse(ev.data);
+		return true;
+	}
 
-            switch (data.op) {
-                case 'ADD_SERVER':
-                    const server = {
-                        Data: data.data.data,
-                        EndPoint: data.id
-                    };
+	private subscribeWebSocket() {
+		const ws = new ReconnectingWebSocket('wss://servers-frontend.fivem.net/api/servers/socket/v1/');
+		ws.addEventListener('message', (ev) => {
+			const data = JSON.parse(ev.data);
 
-                    if (this.matchesGame(server)) {
-                        this.internalServerEvent.next(server);
-                    }
-                break;
-                case 'UPDATE_SERVER':
-                    const old = this.servers[data.id];
+			switch (data.op) {
+				case 'ADD_SERVER':
+					const server = {
+						Data: data.data.data,
+						EndPoint: data.id
+					};
 
-                    if (old) {
-                        const patch = data.data;
-                        const result = applyPatch({ data: old.data }, patch).newDocument;
+					if (this.matchesGame(server)) {
+						this.internalServerEvent.next(server);
+					}
+					break;
+				case 'UPDATE_SERVER':
+					const old = this.servers[data.id];
 
-                        const ping = old.ping;
-                        result.data.vars.ping = ping;
+					if (old) {
+						const patch = data.data;
+						const result = applyPatch({ data: old.data }, patch).newDocument;
 
-                        this.internalServerEvent.next({
-                            Data: result.data,
-                            EndPoint: data.id
-                        });
-                    }
-                break;
-                case 'REMOVE_SERVER':
-                    // not impl'd
-                break;
-            }
-        });
+						const ping = old.ping;
+						result.data.vars.ping = ping;
 
-        this.webSocket = ws;
-    }
+						this.internalServerEvent.next({
+							Data: result.data,
+							EndPoint: data.id
+						});
+					}
+					break;
+				case 'REMOVE_SERVER':
+					// not impl'd
+					break;
+			}
+		});
 
-    private refreshServers() {
-        this.requestEvent.next('https://servers-frontend.fivem.net/api/servers/');
-    }
+		this.webSocket = ws;
+	}
 
-    public async getServer(address: string, force?: boolean): Promise<Server> {
-        if (this.serverCache[address] && this.serverCache[address].isValid() && !force) {
-            return this.serverCache[address].server;
-        }
+	private refreshServers() {
+		this.requestEvent.next('https://servers-frontend.fivem.net/api/servers/');
+	}
 
-        const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
-            .toPromise()
-            .then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
+	public async getServer(address: string, force?: boolean): Promise<Server> {
+		if (this.serverCache[address] && this.serverCache[address].isValid() && !force) {
+			return this.serverCache[address].server;
+		}
 
-        this.serverCache[address] = new ServerCacheEntry(server);
+		const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
+			.toPromise()
+			.then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
 
-        return server;
-    }
+		this.serverCache[address] = new ServerCacheEntry(server);
 
-    public getServers(): Observable<Server> {
-        return this.serversEvent;
-    }
+		return server;
+	}
 
-    public getCachedServers(): Iterable<Server> {
-        return Object.values(this.servers);
-    }
+	public async getTopServer() {
+		if (this.topServer !== undefined) {
+			return this.topServer;
+		}
 
-    public getReplayedServers(): Observable<Server> {
-        return concat(
-            from(this.getCachedServers()),
-            this.getServers()
-        );
-    }
+		const server = await (async () => {
+			const languages = this.gameService.systemLanguages;
 
-    public loadPinConfig(): Promise<PinConfig> {
-        return this.httpClient.get('https://runtime.fivem.net/pins.json')
-            .toPromise()
-            .then((result: PinConfig) => result);
-    }
+			for (const language of languages) {
+				try {
+					return await this.httpClient.get(`https://servers-frontend.fivem.net/api/servers/top/${language}/`)
+						.toPromise()
+						.then((data: { Data: master.IServer }) => Server.fromObject(this.domSanitizer, data.Data.EndPoint, data.Data.Data));
+				} catch {}
+			}
+
+			return null;
+		})();
+
+		this.topServer = server;
+
+		return server;
+	}
+
+	public getServers(): Observable<Server> {
+		return this.serversEvent;
+	}
+
+	public getCachedServers(): Iterable<Server> {
+		return Object.values(this.servers);
+	}
+
+	public getReplayedServers(): Observable<Server> {
+		return concat(
+			from(this.getCachedServers()),
+			this.getServers()
+		);
+	}
+
+	public loadPinConfig(): Promise<PinConfig> {
+		return this.httpClient.get('https://runtime.fivem.net/pins.json')
+			.toPromise()
+			.then((result: PinConfig) => result);
+	}
+
+	parseAddress(addr: string): [string, number] {
+		if (!addr) {
+			return null;
+		}
+
+		const addrBits: [string, number] = ['', 30120];
+		const match = addr.match(/^(?:((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)|cfx\.re\/join\/[0-9a-z]+)/i);
+
+		if (!match) {
+			return null;
+		}
+
+		addrBits[0] = match[1];
+
+		if (match[2]) {
+			addrBits[1] = parseInt(match[2], 10);
+		}
+
+		return addrBits;
+	}
 }

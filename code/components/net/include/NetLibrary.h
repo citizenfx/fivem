@@ -28,7 +28,7 @@
 
 #include <concurrent_queue.h>
 
-#define NETWORK_PROTOCOL 7
+#define NETWORK_PROTOCOL 9
 
 enum NetAddressType
 {
@@ -293,6 +293,8 @@ public:
 	{
 		return m_serverTime;
 	}
+
+	int32_t GetPing();
 
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 

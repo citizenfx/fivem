@@ -56,7 +56,7 @@ fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std:
 	}
 	else
 	{
-		trace("%s: %s\n", __func__, parsed.error().message());
+		trace("%s: %s\n", __func__, skyr::make_error_code(parsed.error()).message());
 	}
 
 	return mounter;

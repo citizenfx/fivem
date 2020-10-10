@@ -72,6 +72,9 @@ static std::string CrackResourceName(const std::string& uri)
 	return "MISSING";
 }
 
+static std::mutex progressMutex;
+static std::optional<std::tuple<std::string, int, int>> nextProgress;
+
 static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::string> requiredResources, NetLibrary* netLibrary)
 {
 	struct ProgressData
@@ -101,16 +104,12 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 			}
 		}
 
-		static uint64_t lastDownloadTime = GetTickCount64();
-
 		auto throttledConnectionProgress = [netLibrary](const std::string& string, int count, int total)
 		{
-			if ((GetTickCount64() - lastDownloadTime) > 500)
-			{
-				netLibrary->OnConnectionProgress(string, count, total);
-
-				lastDownloadTime = GetTickCount64();
-			}
+			std::lock_guard<std::mutex> _(progressMutex);
+			nextProgress = { string,
+				count,
+				total };
 		};
 
 		auto mounterRef = manager->GetMounterForUri(resourceUri);
@@ -222,7 +221,12 @@ static InitFunction initFunction([] ()
 			std::string addressAddress = address.GetAddress();
 			uint32_t addressPort = address.GetPort();
 
-			httpClient->DoPostRequest(fmt::sprintf("%sclient", netLibrary->GetCurrentServerUrl()), httpClient->BuildPostString(postMap), options, [=] (bool result, const char* data, size_t size)
+			auto curServerUrl = fmt::sprintf("https://%s/", netLibrary->GetCurrentPeer().ToString()); 
+
+			// #TODO: remove this once server version with `18d5259f60dd203b5705130491ddda4e95665171` becomes mandatory
+			auto curServerUrlNonTls = fmt::sprintf("http://%s/", netLibrary->GetCurrentPeer().ToString()); 
+
+			httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrlNonTls), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
 			{
 				// keep a reference to the HTTP client
 				auto httpClientRef = httpClient;
@@ -306,8 +310,8 @@ static InitFunction initFunction([] ()
 							baseUrl = (*it)["fileServer"].GetString();
 						}
 
-						boost::algorithm::replace_all(baseUrl, "http://%s/", netLibrary->GetCurrentServerUrl());
-						boost::algorithm::replace_all(baseUrl, "https://%s/", netLibrary->GetCurrentServerUrl());
+						boost::algorithm::replace_all(baseUrl, "http://%s/", curServerUrl);
+						boost::algorithm::replace_all(baseUrl, "https://%s/", curServerUrl);
 
 						// define the resource in the mounter
 						std::string resourceName = resource["name"].GetString();
@@ -526,12 +530,17 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionError.Connect([](const char* error)
 		{
+			{
+				std::lock_guard<std::mutex> _(progressMutex);
+				nextProgress = {};
+			}
+
 			executeNextGameFrame.push([]()
 			{
 				fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 				resourceManager->ResetResources();
 			});
-		});
+		}, -500);
 
 		OnGameFrame.Connect([] ()
 		{
@@ -543,6 +552,23 @@ static InitFunction initFunction([] ()
 				{
 					func();
 				}
+			}
+
+			static uint64_t lastDownloadTime;
+
+			if ((GetTickCount64() - lastDownloadTime) > 200)
+			{
+				std::lock_guard<std::mutex> _(progressMutex);
+
+				if (nextProgress)
+				{
+					auto [string, count, total] = *nextProgress;
+					g_netLibrary->OnConnectionProgress(string, count, total);
+
+					nextProgress = {};
+				}
+
+				lastDownloadTime = GetTickCount64();
 			}
 
 			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();

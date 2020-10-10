@@ -15,6 +15,8 @@
 
 #include <json.hpp>
 
+#include <KeyedRateLimiter.h>
+
 #include <cfx_version.h>
 #include <optional>
 
@@ -197,6 +199,24 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_info", fx::RateLimiterDefaults{ 4.0, 10.0 });
+			auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
+
+			bool cooldown = false;
+
+			if (address && !limiter->Consume(*address, 1.0, &cooldown))
+			{
+				if (cooldown)
+				{
+					response->CloseSocket();
+					return;
+				}
+
+				response->SetStatusCode(429);
+				response->End("Rate limit exceeded.");
+				return;
+			}
+
 			infoData->Update();
 
 			{
@@ -211,7 +231,7 @@ static InitFunction initFunction([]()
 
 			int numClients = 0;
 
-			instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
 			{
 				if (client->GetNetId() < 0xFFFF)
 				{
@@ -234,8 +254,26 @@ static InitFunction initFunction([]()
 		static std::shared_mutex playerBlobMutex;
 		static std::string playerBlob;
 
-		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [instance](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_players", fx::RateLimiterDefaults{ 4.0, 10.0 });
+			auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
+
+			bool cooldown = false;
+
+			if (address && !limiter->Consume(*address, 1.0, &cooldown))
+			{
+				if (cooldown)
+				{
+					response->CloseSocket();
+					return;
+				}
+
+				response->SetStatusCode(429);
+				response->End("Rate limit exceeded.");
+				return;
+			}
+
 			std::shared_lock<std::shared_mutex> lock(playerBlobMutex);
 			response->End(playerBlob);
 		});
@@ -257,7 +295,7 @@ static InitFunction initFunction([]()
 
 			json data = json::array();
 
-			clientRegistry->ForAllClients([&](const std::shared_ptr<fx::Client>& client)
+			clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 			{
 				if (client->GetNetId() >= 0xFFFF)
 				{
@@ -278,14 +316,16 @@ static InitFunction initFunction([]()
 					identifiers.erase(newEnd, identifiers.end());
 				}
 
-				auto peer = gscomms_get_peer(client->GetPeer());
+				fx::NetPeerStackBuffer stackBuffer;
+				gscomms_get_peer(client->GetPeer(), stackBuffer);
+				auto peer = stackBuffer.GetBase();
 
 				data.push_back({
 					{ "endpoint", (showEP) ? client->GetAddress().ToString() : "127.0.0.1" },
 					{ "id", client->GetNetId() },
 					{ "identifiers", identifiers },
 					{ "name", client->GetName() },
-					{ "ping", peer.GetRef() ? peer->GetPing() : -1 }
+					{ "ping", peer ? peer->GetPing() : -1 }
 				});
 			});
 

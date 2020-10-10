@@ -531,9 +531,25 @@ public:
 
 					if (proxy)
 					{
-						// goodbye, interior proxy
-						trace("deleted interior proxy %08x\n", proxyHash);
-						delete proxy;
+						bool can = true;
+
+						if (proxy->mapData)
+						{
+							auto pool = (atPoolBase*)((char*)mapDataStore + 56);
+							auto entry = pool->GetAt<char>(proxy->mapData);
+
+							if (entry && (*(uint32_t*)(entry + 32) & 0xC00) == 0x800)
+							{
+								can = false;
+							}
+						}
+
+						if (can || streaming::IsStreamerShuttingDown())
+						{
+							// goodbye, interior proxy
+							trace("deleted interior proxy %08x\n", proxyHash);
+							delete proxy;
+						}
 					}
 					else
 					{
@@ -1202,6 +1218,27 @@ static void RegisterPeds()
 static void LoadDataFiles()
 {
 	trace("Loading mounted data files (total: %d)\n", g_dataFiles.size());
+
+	// sort data file array by type, a little
+	auto dfSort = [](const std::pair<std::string, std::string>& type)
+	{
+		auto h = HashString(type.first.c_str());
+
+		if (h == HashString("VEHICLE_LAYOUTS_FILE") || h == HashString("HANDLING_FILE"))
+		{
+			return 0;
+		}
+		else
+		{
+			return 100;
+		}
+	};
+
+	// we use stable_sort as equivalent entries need to retain equivalent order
+	std::stable_sort(g_dataFiles.begin(), g_dataFiles.end(), [dfSort](const auto& left, const auto& right)
+	{
+		return dfSort(left) < dfSort(right);
+	});
 
 	HandleDataFileList(g_dataFiles, [] (CDataFileMountInterface* mounter, DataFileEntry& entry)
 	{

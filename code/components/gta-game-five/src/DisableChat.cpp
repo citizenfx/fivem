@@ -8,6 +8,8 @@
 #include <StdInc.h>
 #include <DisableChat.h>
 
+#include <MinHook.h>
+
 #include <Hooking.h>
 
 static void(*g_origTextChatShutdown)(void*);
@@ -26,7 +28,7 @@ static void(*g_origInputCheck)();
 
 static void WrapInputCheck()
 {
-	if (*g_textChat)
+	if (g_textChat && *g_textChat)
 	{
 		g_origInputCheck();
 	}
@@ -36,7 +38,7 @@ namespace game
 {
 	void SetTextChatEnabled(bool enabled)
 	{
-		if (*g_textChat)
+		if (g_textChat && *g_textChat)
 		{
 			if (!enabled)
 			{
@@ -80,21 +82,11 @@ static HookFunction hookFunction([] ()
 	}
 #else
 	{
-		char* location = hook::pattern("48 8B ? C7 45 10 EB 8F 56 B8").count(1).get(0).get<char>(-4);
-		char* testFunc = (char*)(location + *(int32_t*)location + 4);
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("32 DB 84 C0 74 2D 48 8B", -0x22), TextChatShutdownWrap, (void**)&g_origTextChatShutdown);
+		MH_EnableHook(MH_ALL_HOOKS);
 
-		// proper function starts with 'mov rcx, ...'
-		if (testFunc[0] == 0x48)
-		{
-			// patch the caller
-			hook::set_call(&g_origTextChatShutdown, testFunc + 7);
-			hook::jump(testFunc + 7, TextChatShutdownWrap);
-
-			// and get the global text chat pointer
-			location = testFunc + 3;
-
-			g_textChat = (void**)(location + *(int32_t*)location + 4);
-		}
+		g_textChat = hook::get_address<void**>(hook::get_pattern("75 5D 48 8B 05 ? ? ? ? 44 38 60 14", 5));
 	}
 #endif
 

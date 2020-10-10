@@ -153,6 +153,18 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
+		/// Gets the <see cref="StateBag"/> of this <see cref="Entity"/>
+		/// </summary>
+		public StateBag State
+		{
+			get
+			{
+				API.EnsureEntityStateBag(this.Handle);
+				return new StateBag("entity:" + this.NetworkId);
+			}
+		}
+
+		/// <summary>
 		/// Creates a new instance of an <see cref="Entity"/> from the given handle.
 		/// </summary>
 		/// <param name="handle">The entity handle.</param>

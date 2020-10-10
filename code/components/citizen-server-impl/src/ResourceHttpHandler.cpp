@@ -117,7 +117,7 @@ public:
 			rl++;
 		}
 
-		auto path = request->GetPath();
+		auto path = std::string{ request->GetPath().c_str() };
 
 		auto localPath = (path.length() >= rl) ? path.substr(rl) : "";
 
@@ -134,11 +134,11 @@ public:
 
 			for (auto& pair : request->GetHeaders())
 			{
-				headers.insert(pair);
+				headers.insert({ std::string{ pair.first.c_str() }, std::string{ pair.second.c_str() } });
 			}
 
 			requestWrap.headers = headers;
-			requestWrap.method = request->GetRequestMethod();
+			requestWrap.method = std::string{ request->GetRequestMethod().c_str() };
 			requestWrap.address = request->GetRemoteAddress();
 			requestWrap.path = "/" + localPath;
 
@@ -216,11 +216,11 @@ public:
 					{
 						if (pair.second.type == msgpack::type::ARRAY)
 						{
-							response->SetHeader(pair.first, pair.second.as<std::vector<std::string>>());
+							response->SetHeader(net::HeaderString{ pair.first.c_str() }, pair.second.as<std::vector<std::string>>());
 						}
 						else
 						{
-							response->SetHeader(pair.first, pair.second.as<std::string>());
+							response->SetHeader(net::HeaderString{ pair.first.c_str() }, pair.second.as<std::string>());
 						}
 					}
 
@@ -359,6 +359,34 @@ static InitFunction initFunction([]()
 
 				response->End("Redirecting...");
 				return;
+			}
+
+			auto webVar = instance->GetComponent<console::Context>()->GetVariableManager()->FindEntryRaw("web_baseUrl");
+
+			if (webVar)
+			{
+				auto wvv = webVar->GetValue();
+				std::string_view wvvv{
+					wvv
+				};
+
+				auto endPos = wvvv.find(".users.cfx.re");
+
+				if (endPos != std::string::npos)
+				{
+					auto startPos = wvvv.rfind("-", endPos);
+
+					if (startPos != std::string::npos)
+					{
+						auto webUrl = fmt::sprintf("https://cfx.re/join/%s", wvvv.substr(startPos + 1, endPos - (startPos + 1)));
+
+						response->SetStatusCode(302);
+						response->SetHeader("Location", webUrl);
+
+						response->End("Redirecting...");
+						return;
+					}
+				}
 			}
 
 			auto data = nlohmann::json::object(

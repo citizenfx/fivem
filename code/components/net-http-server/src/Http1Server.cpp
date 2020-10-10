@@ -64,9 +64,9 @@ public:
 			outData << "Date: " << std::put_time(&time, "%a, %d %b %Y %H:%M:%S GMT") << "\r\n";
 		}
 
-		auto requestConnection = m_request->GetHeader(std::string("connection"), std::string("keep-alive"));
+		auto requestConnection = m_request->GetHeader("connection", "keep-alive");
 
-		if (_stricmp(requestConnection.c_str(), "keep-alive") != 0 || m_disableKeepAlive)
+		if (_strnicmp(requestConnection.data(), "keep-alive", requestConnection.size()) != 0 || m_disableKeepAlive)
 		{
 			outData << "Connection: close\r\n";
 
@@ -79,7 +79,8 @@ public:
 
 		for (auto& header : usedHeaders)
 		{
-			outData << header.first << ": " << header.second << "\r\n";
+			outData << std::string_view{ header.first.data(), header.first.size() } << ": "
+					<< std::string_view{ header.second.data(), header.second.size() } << "\r\n";
 		}
 
 		outData << "\r\n";
@@ -108,7 +109,7 @@ public:
 		{
 			if (m_headerList.find("content-length") == m_headerList.end())
 			{
-				SetHeader(std::string("Content-Length"), std::to_string(length));
+				SetHeader("Content-Length", HeaderString{ std::to_string(length).c_str() });
 			}
 
 			// unset transfer-encoding, if present
@@ -220,6 +221,16 @@ public:
 			m_clientStream->Close();
 		}
 	}
+
+	virtual void CloseSocket() override
+	{
+		auto s = m_clientStream;
+
+		if (s.GetRef())
+		{
+			s->Close();
+		}
+	}
 };
 
 HttpServerImpl::HttpServerImpl()
@@ -251,9 +262,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		size_t lastLength;
 
-		phr_header headers[50];
+		phr_header headers[50]{ 0 };
 
-		phr_chunked_decoder decoder;
+		phr_chunked_decoder decoder{ 0 };
 
 		fwRefContainer<HttpRequest> request;
 
@@ -276,7 +287,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	std::shared_ptr<HttpState> reqState = std::make_shared<HttpState>();
 
 	std::function<void(const std::vector<uint8_t>&)> readCallback;
-	readCallback = [=](const std::vector<uint8_t>& data)
+	readCallback = [this, stream, connectionData, reqState](const std::vector<uint8_t>& data)
 	{
 		// keep a reference to the connection data locally
 		std::shared_ptr<HttpConnectionData> localConnectionData = connectionData;
@@ -341,14 +352,16 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				int result = -2;
 				
 				if (requestData.size() > 0)
+				{
 					result = phr_parse_request(reinterpret_cast<const char*>(&requestData[0]), requestData.size(), &requestMethod, &requestMethodLength,
 					&path, &pathLength, &minorVersion, localConnectionData->headers, &numHeaders, localConnectionData->lastLength);
+				}
 
 				if (result > 0)
 				{
 					// prepare data for a request instance
-					std::string requestMethodStr(requestMethod, requestMethodLength);
-					std::string pathStr(path, pathLength);
+					HeaderString requestMethodStr(requestMethod, requestMethodLength);
+					HeaderString pathStr(path, pathLength);
 
 					HeaderMap headerList;
 
@@ -356,7 +369,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					{
 						auto& header = localConnectionData->headers[i];
 
-						headerList.insert(std::make_pair(std::string(header.name, header.name_len), std::string(header.value, header.value_len)));
+						headerList.insert({ { header.name, header.name_len }, { header.value, header.value_len } });
 					}
 
 					// remove the original bytes from the queue
@@ -364,7 +377,7 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					localConnectionData->lastLength = 0;
 
 					// store the request in a request instance
-					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList, stream->GetPeerAddress().ToString());
+					fwRefContainer<HttpRequest> request = new HttpRequest(1, minorVersion, requestMethodStr, pathStr, headerList, stream->GetPeerAddress());
 					fwRefContainer<HttpResponse> response = new Http1Response(stream, request, reqState, localConnectionData->pipelineLength > 10);
 
 					reqState->blocked = true;
@@ -385,11 +398,11 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					if (!response->HasEnded())
 					{
 						// check to see if we'll have to read user data
-						static std::string contentLengthKey = "content-length";
+						static HeaderString contentLengthKey = "content-length";
 						static std::string contentLengthDefault = "0";
 
-						auto& contentLengthStr = request->GetHeader(contentLengthKey, contentLengthDefault);
-						int contentLength = atoi(contentLengthStr.c_str());
+						auto contentLengthStr = request->GetHeader(contentLengthKey, contentLengthDefault);
+						int contentLength = atoi(contentLengthStr.data());
 
 						if (contentLength > 0)
 						{
@@ -399,9 +412,9 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 						}
 						else
 						{
-							static std::string transferEncodingKey = "transfer-encoding";
+							static HeaderString transferEncodingKey = "transfer-encoding";
 							static std::string transferEncodingDefault = "";
-							static std::string transferEncodingComparison = "chunked";
+							static std::string_view transferEncodingComparison = "chunked";
 
 							if (request->GetHeader(transferEncodingKey, transferEncodingDefault) == transferEncodingComparison)
 							{

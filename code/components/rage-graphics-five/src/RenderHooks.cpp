@@ -267,8 +267,8 @@ public:
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	{
-		WRL::ComPtr<IDXGIFactory> dxgiFactory;
-		CreateDXGIFactory(IID_IDXGIFactory, &dxgiFactory);
+		WRL::ComPtr<IDXGIFactory1> dxgiFactory;
+		CreateDXGIFactory1(IID_IDXGIFactory1, &dxgiFactory);
 
 		WRL::ComPtr<IDXGIAdapter1> adapter;
 		WRL::ComPtr<IDXGIFactory6> factory6;
@@ -800,10 +800,13 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 			GetD3D11Device()->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 		});
 
-		ID3DUserDefinedAnnotation* pPerf;
+		ID3DUserDefinedAnnotation* pPerf = NULL;
 		GetD3D11DeviceContext()->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
 
-		pPerf->BeginEvent(L"DrawRenderTexture");
+		if (pPerf)
+		{
+			pPerf->BeginEvent(L"DrawRenderTexture");
+		}
 
 		auto deviceContext = GetD3D11DeviceContext();
 
@@ -908,9 +911,12 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 			oldLayout->Release();
 		}
 
-		pPerf->EndEvent();
+		if (pPerf)
+		{
+			pPerf->EndEvent();
 
-		pPerf->Release();
+			pPerf->Release();
+		}
 	}
 }
 

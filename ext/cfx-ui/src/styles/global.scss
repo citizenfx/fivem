@@ -1,4 +1,9 @@
 @import "variables";
+@import "controls";
+@import "site-header";
+
+@import "~typeface-montserrat/index.css";
+@import "~typeface-rubik/index.css";
 
 @import "~balloon-css/balloon.css";
 @import "~flag-icon-css/css/flag-icon.css";
@@ -10,12 +15,11 @@
 
 @include mat-core();
 
-.flag-icon-001 {
-	background-image: url(../assets/images/001.svg);
-}
-
-.flag-icon-150 {
-	background-image: url(../assets/images/150.svg);
+@font-face {
+	font-family: 'Material Icons Outlined';
+	font-style: normal;
+	font-weight: 400;
+	src: url(../assets/fonts/material-icons-outlined.woff2) format('woff2');
 }
 
 @font-face
@@ -36,15 +40,46 @@
 	src: url(../assets/fonts/roboto_medium.woff);
 	font-weight: bold;
 }
-@font-face
-{
-	font-family: 'Inter';
-	src: url(../assets/fonts/inter.var.woff2);
+
+$md-cfx: (
+    50 : #fee1ea,
+    100 : #fcb4cb,
+    200 : #fa82a9,
+    300 : #f75086,
+    400 : #f62b6c,
+    500 : #f40552,
+    600 : #f3044b,
+    700 : #f10441,
+    800 : #ef0338,
+    900 : #ec0128,
+    A100 : #ffffff,
+    A200 : #ffe0e3,
+    A400 : #ffadb6,
+    A700 : #ff939f,
+    contrast: (
+        50 : #000000,
+        100 : #000000,
+        200 : #000000,
+        300 : #000000,
+        400 : hsl(60, 100%, 97%),
+        500 : hsl(60, 100%, 97%),
+        600 : hsl(60, 100%, 97%),
+        700 : hsl(60, 100%, 97%),
+        800 : hsl(60, 100%, 97%),
+        900 : hsl(60, 100%, 97%),
+        A100 : #000000,
+        A200 : #000000,
+        A400 : #000000,
+        A700 : #000000,
+    )
+);
+
+.flag-icon-001 {
+	background-image: url(../assets/images/001.svg);
 }
-@font-face
-{
-	font-family: 'Titillium';
-	src: url(../assets/fonts/titillium.woff2);
+
+.flag-icon-150 {
+	background-image: url(../assets/images/150.svg);
 }
 
 * {
@@ -52,6 +87,7 @@
 	padding: 0;
 	margin: 0;
 	user-select: none;
+	outline: none;
 }
 
 body {
@@ -64,206 +100,210 @@ body {
 
 	overflow: hidden;
 
-	font-family: $fonts;
-	font-size: $fontSize;
+	@include fontRubik;
 
 	background-color: transparent;
 }
 
-app-root {
-	opacity: 0.01;
-}
-
-/* taken from https://loading.io/css/ */
-.spinny {
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	width: 100%;
-	height: 100%;
-	z-index: 999;
-
-	display: flex;
-	align-items: center;
-	justify-content: center;
-
-	&>div {
-		display: inline-block;
-		position: relative;
-		width: 11vh;
-		height: 11vh;
-		&:after {
-			content: " ";
-			display: block;
-			border-radius: 50%;
-			width: 0;
-			height: 0;
-			margin: 1.1vh;
-			box-sizing: border-box;
-			border: 4.4vh solid #fff;
-			border-color: #fff transparent #fff transparent;
-			animation: lds-hourglass 1.2s infinite;
-		}
-		@keyframes lds-hourglass {
-			0% {
-				transform: rotate(0);
-				animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
-			}
-			50% {
-				transform: rotate(900deg);
-				animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
-			}
-			100% {
-				transform: rotate(1800deg);
-			}
-		}
+@media (max-aspect-ratio: 16/9) {
+	body {
+		--width: 100vw;
+		--height: calc(100vw / 1.77);
 	}
 }
 
-$blurSize: 20px;
-
-/* disable chromeme scrollbar */
-.gameapp ::-webkit-scrollbar { width: 0 }
-
-input[type="text"],
-input[type="search"] {
-	@include themeNoHost() using ($theme) {	
-		background-color: rgba(gtv($theme, bgColour), .2);
-	};
-
-	border: none;
-	border-radius: 1px;
-
-	@include themeNoHost() using ($theme) {
-		color: gtv($theme, fgColour);
-	};
-
-	font-size: 1.2*$fontSize;
-	font-weight: 100;
-	padding: $padding $padding*$multiplier;
-
-	transition: all .2s ease;
-
-	&:focus {
-		outline: none;
-		@include themeNoHost() using ($theme) {
-			box-shadow: 0 0 0 3px gtv($theme, greenyColour) inset;
-		};
-	}
-	&:hover,
-	&:focus {
-		@include themeNoHost() using ($theme) {
-			background: rgba(gtv($theme, bgColour), .2);
-		};
-	}
-
-	&::-webkit-input-placeholder {
-		@include themeNoHost() using ($theme) {
-			color: rgba(gtv($theme, textColour), .6);
-		};
+@media (min-aspect-ratio: 16/9) {
+	body {
+		--width: calc(100vh * 1.77);
+		--height: 100vh;
 	}
 }
 
-button {
-	padding: $padding/2 $padding*$multiplier;
+body {
+	// On 720p quant will be 4px
+	--quant: calc(var(--height) * .018);
+	--font-size: var(--quant);
 
-	border-radius: 2px;
-	border: none;
-
-	@include themeNoHost() using ($theme) {
-		color: gtv($theme, fgColour);
-		text-shadow: 0 0 2px rgba(gtv($theme, bgColour), .8);
-		background: darken(gtv($theme, greenyColour), 10%);
-	};
-
-	font-size: 1.03rem;
-	font-weight: 100;
-
-	transition: all .2s ease-out;
-
-	outline: none;
-
-	&:hover {
-		@include themeNoHost() using ($theme) {
-			background: gtv($theme, greenyColour);
-			box-shadow: 0 5px 25px darken(gtv($theme, greenyColour), 10%);
-		};
+	--qh: calc(var(--quant) / 2);
+	@for $i from 1 to 15 {
+		--q#{$i}: calc(var(--quant) * #{$i});
 	}
 
-	&.unimportant {
-		@include themeNoHost() using ($theme) {
-			background: lighten(gtv($theme, bgColour), 15%);
+	font-size: var(--font-size);
 
-			&:hover {
-				background: lighten(gtv($theme, bgColour), 25%);
-				box-shadow: 0 5px 25px lighten(gtv($theme, bgColour), 25%);
-			}
-		};
-	}
+	--fs-05: calc(var(--font-size) * .5);
+	--fs-075: calc(var(--font-size) * .75);
+	--fs-1: var(--font-size);
+	--fs-2: calc(var(--fs-1) * 1.25);
+	--fs-3: calc(var(--fs-1) * 1.5);
+	--fs-4: calc(var(--fs-1) * 1.75);
+	--fs-5: calc(var(--fs-1) * 2);
+	--fs-6: calc(var(--fs-1) * 2.25);
+	--fs-7: calc(var(--fs-1) * 2.5);
+
+	--app-offset: var(--q4);
+
+	--header-height: var(--q3);
+	--header-safe-left-raw: var(--q3);
+	--header-safe-right-raw: var(--q9);
+	--header-safe-left: calc(var(--header-safe-left-raw) + var(--qh));
+	--header-safe-right: calc(var(--header-safe-right-raw) + var(--qh));
 }
 
 .ad {
 	display: none;
 }
 
-@media only screen and (min-width: 700px) {
-	.webapp .ad {
-		display: block;
+.webapp {
+	--header-save-left-raw: 0px;
+	--header-safe-right-raw: 0px;
+	--header-safe-left: 0px;
+	--header-safe-right: 0px;
 
-		font-size: 14px;
-		color: white;
+	#bg {
+		--my-background-image: url(https://fivem.net/73663161434ea35812a20da2e517f102.jpg);
+	}
 
-		a {
-			color: white;
+	.webapp-hide {
+		display: none !important;
+	}
+
+	@include themeIsHost() using ($theme) {
+		.ad {
+			@include backdropPane;
+
+			box-shadow: 0 2px 0 gtv($theme, shadeColor) inset, 0 -2px 0 gtv($theme, shadeColor) inset;
+			// border-top: solid 2px gtv($theme, accentColor1);
+			background-image: url(../assets/images/bgpat.png);
+			background-size: 200px;
+			background-color: rgba(gtv($theme, bgColor), .4);
 		}
+	}
 
-		margin-top: 3px;
+	.ad {
+		text-align: center;
+		margin-top: var(--qh);
+		padding-top: var(--qh);
+		padding-bottom: var(--qh);
+	}
+
+	@media only screen and (min-width: 700px) {
+		.ad {
+			display: block;
+		}
 	}
 }
 
-.ac-adaptiveCard {
-	padding: 0px !important;
+app-root {
+	opacity: 0.01;
+}
+
+button {
+	@include fontRubik;
+	font-size: var(--fs-1);
+}
+
+::-webkit-scrollbar {
+	width: 2px;
+}
+::-webkit-scrollbar-thumb {
+	width: 2px;
+	@include themeNoHost() using ($theme) {
+		background-color: rgba(gtv($theme, fgColor), .5);
+	}
+}
+::selection {
+	@include themeNoHost() using ($theme) {
+		color: gtv($theme, accentContrastColor);
+		background-color: gtv($theme, accentColor1);
+	}
+}
+
+.ac-container {
+	max-width: 100% !important;
 
 	&:focus {
 		outline: none;
 	}
 
 	.ac-image {
-		max-width: 10vw !important;
-		max-height: initial !important;
+		max-width: 100% !important;
+		height: auto !important;
+	}
+
+	input[type="text"],
+	input[type="search"],
+	input[type="date"] {
+		padding: var(--qh);
+		font-size: var(--fs-1);
 	}
 }
 
-.color-1 {
-	color: #F44336;
-}
+.theme-dark {
+	.color-1 {
+		color: lighten(#F44336, 20%);
+	}
 
-.color-2 {
-	color: #4CAF50;
-}
+	.color-2 {
+		color: lighten(#4CAF50, 20%);
+	}
 
-.color-3 {
-	color: #FFEB3B;
-}
+	.color-3 {
+		color: lighten(#FFEB3B, 20%);
+	}
 
-.color-4 {
-	color: #42A5F5;
-}
+	.color-4 {
+		color: lighten(#42A5F5, 20%);
+	}
 
-.color-5 {
-	color: #03A9F4;
-}
+	.color-5 {
+		color: lighten(#03A9F4, 20%);
+	}
 
-.color-6 {
-	color: #9C27B0;
-}
+	.color-6 {
+		color: lighten(#9C27B0, 20%);
+	}
 
-.color-8 {
-	color: #FF5722;
-}
+	.color-8 {
+		color: lighten(#FF5722, 20%);
+	}
 
-.color-9 {
-	color: #9E9E9E;
+	.color-9 {
+		color: lighten(#9E9E9E, 20%);
+	}
+}
+.theme-light {
+	.color-1 {
+		color: darken(#F44336, 20%);
+	}
+
+	.color-2 {
+		color: darken(#4CAF50, 20%);
+	}
+
+	.color-3 {
+		color: darken(#FFEB3B, 20%);
+	}
+
+	.color-4 {
+		color: darken(#42A5F5, 20%);
+	}
+
+	.color-5 {
+		color: darken(#03A9F4, 20%);
+	}
+
+	.color-6 {
+		color: darken(#9C27B0, 20%);
+	}
+
+	.color-8 {
+		color: darken(#FF5722, 20%);
+	}
+
+	.color-9 {
+		color: darken(#9E9E9E, 20%);
+	}
 }
 
 .mat-tab-body-wrapper, mat-tab-body, mat-tab-group {
@@ -271,23 +311,31 @@ button {
 }
 
 .mat-tab-label {
-	font-family: $fonts;
-	font-size: $fontSize;
+	@include fontRubik;
+	font-size: var(--fs-1);
 	font-weight: normal;
 }
 
 .theme-light {
 	@include angular-material-theme(mat-light-theme(
-		mat-palette($mat-orange),
-		mat-palette($mat-orange)
+		mat-palette($md-cfx),
+		mat-palette($md-cfx)
 	));
+
+	input[type="search"]::-webkit-search-cancel-button {
+		background-image: url(../assets/images/cross-light.svg);
+	}
 }
 
 .theme-dark {
 	@include angular-material-theme(mat-dark-theme(
-		mat-palette($mat-orange),
-		mat-palette($mat-orange)
+		mat-palette($md-cfx),
+		mat-palette($md-cfx)
 	));
+
+	input[type="search"]::-webkit-search-cancel-button {
+		background-image: url(../assets/images/cross-dark.svg);
+	}
 }
 
 .theme-rdr3 {
@@ -303,4 +351,131 @@ button {
 
 .mat-tab-body-content {
 	will-change: transform;
+}
+
+.material-icons-outlined {
+	font-size: var(--fs-1);
+	vertical-align: middle;
+	font-family: 'Material Icons Outlined';
+	font-weight: normal;
+	font-style: normal;
+	line-height: 1;
+	letter-spacing: normal;
+	text-transform: none;
+	display: inline-block;
+	white-space: nowrap;
+	word-wrap: normal;
+	direction: ltr;
+	-webkit-font-feature-settings: 'liga';
+	-webkit-font-smoothing: antialiased;
+
+	@include themeNoHost() using ($theme) {
+		&.accentColor1 {
+			color: gtv($theme, accentColor1);
+		}
+	}
+}
+
+h1, h2, h3, h4, h5, h6 {
+	display: flex;
+	align-items: center;
+
+	@include fontMontserrat;
+	line-height: 1;
+}
+h1 { font-size: var(--fs-5); line-height: var(--fs-5); }
+h2 { font-size: var(--fs-4); }
+h3 { font-size: var(--fs-3); }
+h4 { font-size: var(--fs-2); }
+h5 { font-size: var(--fs-1); }
+h6 { font-size: var(--fs-05); }
+
+.badge {
+	flex-shrink: 0;
+
+	height: 100%;
+
+	display: flex;
+	align-items: stretch;
+	justify-content: center;
+
+	@include themeNoHost() using ($theme) {
+		span {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			height: 100%;
+
+			opacity: 0;
+
+			padding: 2px 4px;
+
+			color: gtv($theme, fgColor);
+			border: solid 1px currentColor;
+
+			line-height: 1;
+			font-size: calc(var(--fs-1) / 1.8);
+			font-family: monospace;
+			font-weight: 100;
+			text-transform: capitalize;
+
+			box-shadow: 0 0 5px currentColor;
+		}
+		&.ag {
+			span {
+				opacity: .5;
+
+				box-shadow: 0 0 5px rgba(gtv($theme, fgColor), .5);
+			}
+		}
+
+		&.au {
+			span {
+				opacity: .75;
+
+				color: gtv($theme, auColor);
+				box-shadow: 0 0 5px rgba(gtv($theme, auColor), .25);
+			}
+		}
+
+		&.pt {
+			span {
+				opacity: 1;
+
+				box-shadow: 0 0 5px gtv($theme, accentColor1);
+				color: gtv($theme, accentContrastColor);
+				border-color: gtv($theme, accentColor1);
+				background-image: linear-gradient(
+					225deg,
+					gtv($theme, accentColor1),
+					darken(gtv($theme, accentColor1), 20%),
+					gtv($theme, accentColor1)
+				);
+			}
+		}
+	};
+}
+
+// This is for server's activitypub feed
+p a,
+.with-links a {
+	@include themeNoHost() using ($theme) {
+		color :gtv($theme, fgColor);
+	}
+
+	transition: all .15s ease;
+}
+p a:hover,
+.with-links a:hover {
+	@include themeNoHost() using ($theme) {
+		color :gtv($theme, accentContrastColor);
+		background-color: gtv($theme, accentColor1);
+		box-shadow: 0 0 0 4px gtv($theme, accentColor1);
+	}
+
+	transition: none;
+}
+p .invisible {
+	display: none;
 }

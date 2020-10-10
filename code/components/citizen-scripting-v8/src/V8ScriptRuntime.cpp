@@ -19,6 +19,7 @@
 
 #ifndef IS_FXSERVER
 #include <CL2LaunchMode.h>
+#include <CfxSubProcess.h>
 #endif
 
 inline bool UseNode()
@@ -732,7 +733,18 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	context.arguments[3] = reinterpret_cast<uintptr_t>(&retLength);
 
 	// invoke
-	scriptHost->InvokeNative(context);
+	if (FX_FAILED(scriptHost->InvokeNative(context)))
+	{
+		char* error = "Unknown";
+		scriptHost->GetLastErrorText(&error);
+
+		auto throwException = [&](const std::string& exceptionString)
+		{
+			args.GetIsolate()->ThrowException(Exception::Error(String::NewFromUtf8(args.GetIsolate(), exceptionString.c_str()).ToLocalChecked()));
+		};
+
+		return throwException(error);
+	}
 
 	// get return values
 	Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), retLength);
@@ -1132,7 +1144,10 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	// invoke the native on the script host
 	if (!FX_SUCCEEDED(scriptHost->InvokeNative(context)))
 	{
-		return throwException(va("Execution of native %016llx in script host failed.", hash));;
+		char* error = "Unknown";
+		scriptHost->GetLastErrorText(&error);
+
+		return throwException(fmt::sprintf("Execution of native %016x in script host failed: %s", hash, error));
 	}
 
 	// padded vector struct
@@ -1687,7 +1702,11 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	if (UseNode())
 	{
 #ifdef _WIN32
+#ifdef IS_FXSERVER
 		std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
+#else
+		std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe"));
+#endif
 #else
 		std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
 #endif
@@ -1710,9 +1729,13 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 			"--start-node",
 		};
 
+		const char* argv[] = {
+			selfPath.c_str()
+		};
+
 		node::InitializeContext(context);
 
-		auto env = node::CreateEnvironment(GetNodeIsolate(), context, 0, nullptr, std::size(execArgv), execArgv);
+		auto env = node::CreateEnvironment(GetNodeIsolate(), context, std::size(argv), argv, std::size(execArgv), execArgv);
 		node::LoadEnvironment(env);
 
 		g_envRuntimes[env] = this;
@@ -2056,6 +2079,8 @@ private:
 
 	std::unique_ptr<V8Debugger> m_debugger;
 
+	bool m_inited;
+
 public:
 	V8ScriptGlobals();
 
@@ -2123,6 +2148,13 @@ V8ScriptGlobals::V8ScriptGlobals()
 
 void V8ScriptGlobals::Initialize()
 {
+	if (m_inited)
+	{
+		return;
+	}
+
+	m_inited = true;
+
 #ifdef _WIN32
 	// initialize startup data
 	auto readBlob = [=](const std::wstring& name, std::vector<char>& outBlob)
@@ -2159,17 +2191,24 @@ void V8ScriptGlobals::Initialize()
 
 	if (UseNode())
 	{
-		if (g_argc >= 2 && strcmp(g_argv[1], "--start-node") == 0)
+		bool isStartNode = (g_argc >= 2 && strcmp(g_argv[1], "--start-node") == 0);
+		bool isFxNode = (g_argc >= 1 && strstr(g_argv[0], "FXNode.exe") != nullptr);
+
+		if (isStartNode || isFxNode)
 		{
 			int ec = 0;
 
 			// run in a thread so that pthread attributes take effect on musl-based Linux
 			// (GNU stack size presets do not seem to work here)
-			std::thread([&ec]
+			std::thread([&ec, isStartNode]
 			{
 			// TODO: code duplication with above
 #ifdef _WIN32
+#ifdef IS_FXSERVER
 				std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
+#else
+				std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe"));
+#endif
 #else
 				std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
 #endif
@@ -2182,18 +2221,36 @@ void V8ScriptGlobals::Initialize()
 				rootPath,
 				rootPath);
 
-#ifndef _WIN32
+#ifdef _WIN32
+				g_argv[0] = const_cast<char*>(selfPath.c_str());
+#endif
+
 				const char* execArgv[] = {
+#ifndef _WIN32
 					"--library-path",
 					libPath.c_str(),
 					"--",
 					selfPath.c_str(),
+#endif
+					"--start-node",
 				};
 
-				ec = node::Start(g_argc, (char**)g_argv, std::size(execArgv), const_cast<char**>(execArgv));
-#else
-				ec = node::Start(g_argc, (char**)g_argv, 0, nullptr);
-#endif
+				int nextArgc = g_argc;
+
+				std::vector<char*> nextArgv(g_argc);
+				memcpy(nextArgv.data(), g_argv, g_argc * sizeof(*g_argv));
+
+				if (!isStartNode)
+				{
+					nextArgc++;
+					nextArgv.resize(nextArgc);
+
+					// make space for --start-node arg
+					memmove(nextArgv.data() + 2, nextArgv.data() + 1, (g_argc - 1) * sizeof(*g_argv));
+					nextArgv[1] = const_cast<char*>("--start-node");
+				}
+
+				ec = node::Start(nextArgc, nextArgv.data(), std::size(execArgv), const_cast<char**>(execArgv));
 			})
 			.join();
 
@@ -2331,14 +2388,22 @@ void V8ScriptGlobals::Initialize()
 			envStack.pop();
 		});
 
+#ifndef IS_FXSERVER
+		std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe"));
+#endif
+
 		std::vector<const char*> args{
+#ifndef IS_FXSERVER
+			selfPath.c_str(),
+#else
 			"",
+#endif
 			"--expose-internals"
 		};
 
 		for (int i = 1; i < g_argc; i++)
 		{
-			if (g_argv[i] && g_argv[i][0] == '-')
+			if (g_argv[i] && g_argv[i][0] == '-' && strcmp(g_argv[i], "-fxdk") != 0)
 			{
 				args.push_back(g_argv[i]);
 			}
@@ -2351,6 +2416,31 @@ void V8ScriptGlobals::Initialize()
 		m_nodeData = node::CreateIsolateData(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop(), platform, (node::ArrayBufferAllocator*)m_arrayBufferAllocator.get());
 	}
 }
+
+#ifndef IS_FXSERVER
+}
+#include <MinHook.h>
+
+static int uv_exepath_custom(char*, int)
+{
+	return -1;
+}
+
+void Component_RunPreInit()
+{
+	// since otherwise we'll invoke the game again and again and again
+	auto ep = GetProcAddress(GetModuleHandleW(L"libuv.dll"), "uv_exepath");
+
+	MH_Initialize();
+	MH_CreateHook(ep, uv_exepath_custom, NULL);
+	MH_EnableHook(ep);
+
+	fx::g_v8.Initialize();
+}
+
+namespace fx
+{
+#endif
 
 static InitFunction initFunction([]()
 {

@@ -7,6 +7,67 @@
 
 	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 	<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+	<style>
+		.booting {
+			position: fixed;
+
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+
+			background-color: hsl(226, 23%, 11%);
+
+			transition: all .5s ease;
+			opacity: 1;
+
+			pointer-events: none;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			width: 100%;
+			height: 100%;
+
+			/* top of the world! */
+			z-index: 9999;
+		}
+
+		.lds-ripple {
+			display: inline-block;
+			position: relative;
+			width: 80px;
+			height: 80px;
+		}
+		.lds-ripple div {
+			position: absolute;
+			border: 4px solid #f40552;
+			opacity: 1;
+			border-radius: 50%;
+			animation: lds-ripple 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+		}
+		.lds-ripple div:nth-child(2) {
+			animation-delay: -0.5s;
+		}
+		@keyframes lds-ripple {
+			0% {
+				top: 36px;
+				left: 36px;
+				width: 0;
+				height: 0;
+				opacity: 1;
+			}
+			100% {
+				top: 0px;
+				left: 0px;
+				width: 72px;
+				height: 72px;
+				opacity: 0;
+			}
+		}
+	</style>
 </head>
 <body>
 
@@ -26,50 +87,50 @@
 
 	<defs>
 		<filter id="acrylicBlur">
-			<feGaussianBlur in="SourceImage" result="blurImage" stdDeviation="30" />
+			<feGaussianBlur in="SourceImage" result="blurImage" stdDeviation="2" />
 			<feColorMatrix  in="blurImage" type="saturate" values="1.5" result="satImage" />
 			<feFlood
 				flood-color="white" flood-opacity="0.1" result="exclusionColor"/>
-			
+
 			<feFlood
 				flood-color="#ffffff" flood-opacity="0.7" result="tintColor"/>
-			
+
 			<feBlend in="satImage" in2="exclusionColor" result="excluded" mode="exclusion" />
-			
+
 			<feComposite in="tintColor" in2="excluded" operator="over" result="composite" />
-			
+
 			<!--<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
 			<feTile in="noise" result="noiseTile" />
 			<feComponentTransfer result="noiseOpacity" in="noise">
 				<feFuncA type="linear" slope="0.02" />
 			</feComponentTransfer>
 
-		
+
 			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />-->
 			<!---->
 			<!-- feTile doesn't work yet in Chrome for backdrop-filter -->
 		</filter>
 
 		<filter id="acrylicBlurDark">
-			<feGaussianBlur in="SourceImage" result="blurImage" stdDeviation="30" />
+			<feGaussianBlur in="SourceImage" result="blurImage" stdDeviation="2" />
 			<feColorMatrix  in="blurImage" type="saturate" values="1.5" result="satImage" />
 			<feFlood
 				flood-color="white" flood-opacity="0.1" result="exclusionColor"/>
-			
+
 			<feFlood
-				flood-color="#000000" flood-opacity="0.7" result="tintColor"/>
-			
+				flood-color="black" flood-opacity="0.7" result="tintColor"/>
+
 			<feBlend in="satImage" in2="exclusionColor" result="excluded" mode="exclusion" />
-			
+
 			<feComposite in="tintColor" in2="excluded" operator="over" result="composite" />
-			
+
 			<!--<feImage xlink:href="https://github.com/Microsoft/microsoft-ui-xaml/blob/d883cf3593912ded1a1fcc73f38768fda8ee3a45/dev/Materials/Acrylic/Assets/NoiseAsset_256X256_PNG.png?raw=true" result="noise" x="0%" y="0%" width="256" height="256"  />
 			<feTile in="noise" result="noiseTile" />
 			<feComponentTransfer result="noiseOpacity" in="noise">
 				<feFuncA type="linear" slope="0.02" />
 			</feComponentTransfer>
 
-		
+
 			<feComposite in="noiseOpacity" in2="composite" operator="over" result="noiseOutput" />-->
 			<!---->
 			<!-- feTile doesn't work yet in Chrome for backdrop-filter -->
@@ -77,8 +138,10 @@
 	</defs>
 </svg>
 
-<div class="spinny"><div></div></div>
-<app-root>Loading...</app-root>
+<app-root></app-root>
+<div class="booting">
+	<div class="lds-ripple"><div></div><div></div></div>
+</div>
 
 <script type="text/javascript">
 const getGPU = function()
@@ -95,6 +158,7 @@ const getGPU = function()
 		return "";
 	}
 };
+
 
 var _paq = _paq || [];
 _paq.push(['enableLinkTracking']);

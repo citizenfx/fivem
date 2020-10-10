@@ -1,0 +1,20 @@
+div {
+    ::ng-deep h2 {
+        margin-bottom: var(--q1);
+    }
+
+    ::ng-deep img {
+        max-width: 50vh;
+        max-height: auto;
+        height: auto;
+    }
+
+    ::ng-deep ul {
+        list-style-type: disc;
+		margin-left: var(--q1);
+    }
+
+    ::ng-deep a {
+        color: inherit;
+    }
+}

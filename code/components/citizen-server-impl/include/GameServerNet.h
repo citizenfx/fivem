@@ -1,5 +1,7 @@
 #pragma once
 
+#include <FixedBuffer.h>
+
 namespace net
 {
 	class Buffer;
@@ -16,7 +18,20 @@ enum NetPacketType
 namespace fx
 {
 	class GameServer;
-	class NetPeerBase;
+	class NetPeerBase : public fwRefCountable
+	{
+	public:
+		virtual int GetId() = 0;
+
+		virtual int GetPing() = 0;
+
+		virtual int GetPingVariance() = 0;
+
+		virtual net::PeerAddress GetAddress() = 0;
+
+		virtual void OnSendConnectOK() = 0;
+	};
+	using NetPeerStackBuffer = FixedBuffer<NetPeerBase, 32>;
 
 	class GameServerNetBase : public fwRefCountable
 	{
@@ -25,7 +40,7 @@ namespace fx
 
 		virtual void Select(const std::vector<uintptr_t>& fds, int timeout) = 0;
 
-		virtual fwRefContainer<NetPeerBase> GetPeer(int id) = 0;
+		virtual void GetPeer(int id, NetPeerStackBuffer& buffer) = 0;
 
 		virtual void ResetPeer(int id) = 0;
 
@@ -43,20 +58,6 @@ namespace fx
 		{
 			return false;
 		}
-	};
-
-	class NetPeerBase : public fwRefCountable
-	{
-	public:
-		virtual int GetId() = 0;
-
-		virtual int GetPing() = 0;
-
-		virtual int GetPingVariance() = 0;
-
-		virtual net::PeerAddress GetAddress() = 0;
-
-		virtual void OnSendConnectOK() = 0;
 	};
 
 	fwRefContainer<GameServerNetBase> CreateGSNet(fx::GameServer* server);

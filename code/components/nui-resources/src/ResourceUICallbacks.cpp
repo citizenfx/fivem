@@ -162,7 +162,14 @@ result_t ResourceUIScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, 
 
 		if (document.Accept(writer))
 		{
-			cb(std::string(sb.GetString(), sb.GetSize()));
+			if (sb.GetString() && sb.GetSize())
+			{
+				cb(std::string{ sb.GetString(), sb.GetSize() });
+			}
+			else
+			{
+				cb("null");
+			}
 		}
 	}
 

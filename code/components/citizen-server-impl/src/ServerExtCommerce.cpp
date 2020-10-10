@@ -131,7 +131,14 @@ void ExtCommerceComponent::ExecuteCommandList(const json& json, int netId /* = -
 							? command["player"]
 							: json["player"];
 
-					for (const auto& token : player.get<json::object_t>())
+					const auto& oplayer = player.get<json::object_t>();
+
+					if (oplayer.find("uuid") != oplayer.end())
+					{
+						boost::algorithm::replace_all(cmd, "{id}", player.value<std::string>("uuid", "0"));
+					}
+
+					for (const auto& token : oplayer)
 					{
 						if (token.second.is_object())
 						{
@@ -146,7 +153,7 @@ void ExtCommerceComponent::ExecuteCommandList(const json& json, int netId /* = -
 						}
 					}
 
-					boost::algorithm::replace_all(cmd, "{identifier}", ParseIdentifier(player.value("id", "")));
+					boost::algorithm::replace_all(cmd, "{identifier}", ParseIdentifier(player.value("uuid", "")));
 				}
 				catch (json::exception & e)
 				{
@@ -331,7 +338,7 @@ void ExtCommerceComponent::Tick()
 
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
-	auto processQueue = [](auto& queue, const std::shared_ptr<fx::Client>& client)
+	auto processQueue = [](auto& queue, const fx::ClientSharedPtr& client)
 	{
 		std::function<bool(fx::Client*)> fn;
 		std::list<std::function<bool(fx::Client*)>> toInsert;
@@ -350,7 +357,7 @@ void ExtCommerceComponent::Tick()
 		}
 	};
 
-	clientRegistry->ForAllClients([this, processQueue](const std::shared_ptr<fx::Client>& client)
+	clientRegistry->ForAllClients([this, processQueue](const fx::ClientSharedPtr& client)
 	{
 		ProcessClientCommands(client.get());
 
@@ -362,7 +369,7 @@ void ExtCommerceComponent::Tick()
 	{
 		auto& queue = m_commandQueue[-1];
 
-		processQueue(queue, nullptr);
+		processQueue(queue, {});
 	}
 
 	if (!m_removalQueue.empty())
@@ -577,9 +584,9 @@ void ExtCommerceComponent::AttachToObject(fx::ServerInstanceBase* instance)
 
 	auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-	clientRegistry->OnClientCreated.Connect([this](fx::Client* client)
+	clientRegistry->OnClientCreated.Connect([this](const fx::ClientSharedPtr& client)
 	{
-		client->SetComponent(new ClientExtCommerceComponent(this, client));
+		client->SetComponent(new ClientExtCommerceComponent(this, client.get()));
 	});
 
 	instance->OnInitialConfiguration.Connect([this, instance]()
@@ -609,7 +616,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new ExtCommerceComponent());
 	}, INT32_MAX);
 
-	fx::ScriptEngine::RegisterNativeHandler("LOAD_PLAYER_COMMERCE_DATA_EXT", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("LOAD_PLAYER_COMMERCE_DATA_EXT", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		auto commerceData = client->GetComponent<ClientExtCommerceComponent>();
 
@@ -618,14 +625,14 @@ static InitFunction initFunction([]()
 		return commerceData->HasCommerceDataLoaded();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_COMMERCE_INFO_LOADED_EXT", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("IS_PLAYER_COMMERCE_INFO_LOADED_EXT", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		auto commerceData = client->GetComponent<ClientExtCommerceComponent>();
 
 		return commerceData->HasCommerceDataLoaded();
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_OWN_SKU_EXT", MakeClientFunction([](fx::ScriptContext& context, const std::shared_ptr<fx::Client>& client) -> uint32_t
+	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_OWN_SKU_EXT", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client) -> uint32_t
 	{
 		auto commerceData = client->GetComponent<ClientExtCommerceComponent>();
 

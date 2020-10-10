@@ -30,7 +30,8 @@ struct StreamingPackfileEntry
 	uint8_t pad5[15];                // +73
 	uint32_t parentIdentifier;       // +88
 	uint32_t pad6;                   // +92
-	uint16_t isHdd;                  // +96
+	uint8_t isHdd;                   // +96
+	uint8_t isHdd_2;				 // +97
 	uint16_t pad7;                   // +98
 	uint32_t pad8;                   // +100
 };
@@ -179,7 +180,22 @@ namespace streaming
 
 		void FindAllDependents(atArray<uint32_t>& outIndices, uint32_t objectId);
 
+		template<typename TPred>
+		void FindAllDependentsCustomPred(atArray<uint32_t>& outIndices, uint32_t objectId, TPred&& pred)
+		{
+			for (size_t i = 0; i < numEntries; i++)
+			{
+				if (pred(Entries[i]))
+				{
+					FindDependentsInner(i, outIndices, objectId);
+				}
+			}
+		}
+
 		static Manager* GetInstance();
+
+	private:
+		void FindDependentsInner(uint32_t selfId, atArray<uint32_t>& outIndices, uint32_t objectId);
 
 	public:
 		StreamingDataEntry* Entries;
@@ -206,6 +222,8 @@ namespace streaming
 	uint32_t STREAMING_EXPORT GetStreamingIndexForName(const std::string& name);
 
 	STREAMING_EXPORT const std::string& GetStreamingNameForIndex(uint32_t index);
+
+	STREAMING_EXPORT const std::string& GetStreamingBaseNameForHash(uint32_t hash);
 
 	STREAMING_EXPORT StreamingPackfileEntry* GetStreamingPackfileByIndex(int index);
 

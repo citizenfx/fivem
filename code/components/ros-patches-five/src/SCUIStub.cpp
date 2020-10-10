@@ -416,7 +416,7 @@ public:
 			{ "ros-SecurityFlags", "239" },
 			{ "ros-SessionTicket", sessionTicket },
 			{ "ros-Challenge", Botan::base64_encode(challenge) },
-			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", cprUrl.substr(29).c_str(), sessionKey, sessionTicket)) }
+			{ "ros-HeadersHmac", Botan::base64_encode(HeadersHmac(challenge, "POST", static_cast<std::string>(cprUrl).substr(29).c_str(), sessionKey, sessionTicket)) }
 		};
 
         m_future = cpr::PostCallback([=](cpr::Response r)
@@ -440,11 +440,25 @@ public:
 
                 if (tree.get("Response.Status", 0) == 0)
                 {
-                    cb(va(
-                        "Could not get entitlement block from the Social Club. Error code: %s/%s",
-                        tree.get<std::string>("Response.Error.<xmlattr>.Code").c_str(),
-                        tree.get<std::string>("Response.Error.<xmlattr>.CodeEx").c_str()
-                    ), "");
+					auto code = tree.get<std::string>("Response.Error.<xmlattr>.Code");
+					auto codeEx = tree.get<std::string>("Response.Error.<xmlattr>.CodeEx");
+
+					if (code == "NotAllowed" && codeEx == "TitleAccessToken")
+					{
+#ifdef GTA_FIVE
+						cb(va("The Social Club account specified does not own a valid license to Grand Theft Auto V."), "");
+#else
+						cb(va("The Social Club account specified does not own a valid license to Red Dead Redemption 2."), "");
+#endif
+					}
+					else
+					{
+						cb(va(
+						   "Could not get entitlement block from the Social Club. Error code: %s/%s",
+						   code,
+						   codeEx),
+						"");
+					}
 
                     return;
                 }

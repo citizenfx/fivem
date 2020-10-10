@@ -48,6 +48,8 @@
 #include "ban.h"
 #include "util.h"
 
+#include "ChannelListener.h"
+
 #include <EASTL/fixed_set.h>
 
 // needed for eastl
@@ -909,6 +911,8 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 	channel_t *ch = (channel_t *)client->channel;
 	struct dlist *itr;
 
+	eastl::fixed_set<client_t*, 10> listeningUsers;
+
 	if (!client->authenticated || client->mute || client->self_mute || !ch || ch->silent)
 		goto out;
 
@@ -951,10 +955,27 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			c = list_get_entry(itr, client_t, chan_node);
 			Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
 		}
+
+		for (unsigned int currentSession : ChannelListener::getListenersForChannel(ch))
+		{
+			client_t* pDst = NULL;
+
+			while (Client_iterate(&pDst) != NULL)
+			{
+				if (pDst->sessionId == currentSession)
+					break;
+			}
+
+			if (pDst)
+			{
+				listeningUsers.insert(pDst);
+			}
+		}
 	} else if ((vt = Voicetarget_get_id(client, target)) != NULL) { /* Targeted whisper */
 		int i;
 		channel_t *ch;
 		eastl::fixed_set<int, 512> targeted_channels;
+
 		/* Channels */
 		for (i = 0; i < TARGET_MAX_CHANNELS && vt->channels[i].channel != -1; i++) {
 			buffer[0] = (uint8_t) (type | 1);
@@ -968,6 +989,24 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 				c = list_get_entry(itr, client_t, chan_node);
 				Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
 			}
+
+			// Send audio to all users that are listening to the channel
+			for (unsigned int currentSession : ChannelListener::getListenersForChannel(ch))
+			{
+				client_t* pDst = NULL;
+
+				while (Client_iterate(&pDst) != NULL)
+				{
+					if (pDst->sessionId == currentSession)
+						break;
+				}
+
+				if (pDst)
+				{
+					listeningUsers.insert(pDst);
+				}
+			}
+
 			/* Channel links */
 			if (vt->channels[i].linked && !list_empty(&ch->channel_links)) {
 				struct dlist *ch_itr;
@@ -976,11 +1015,33 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 					channel_t *ch_link;
 					chl = list_get_entry(ch_itr, channellist_t, node);
 					ch_link = chl->chan;
+
+					// channel listener iteration
+					for (unsigned int currentSession : ChannelListener::getListenersForChannel(ch_link))
+					{
+						client_t* pDst = NULL;
+
+						while (Client_iterate(&pDst) != NULL)
+						{
+							if (pDst->sessionId == currentSession)
+								break;
+						}
+
+						if (pDst && pDst->channel != ch && !ChannelListener::isListening(pDst, ch))
+						{
+							listeningUsers.insert(pDst);
+						}
+					}
+
 					list_iterate(itr, &ch_link->clients) {
 						client_t *c;
 						c = list_get_entry(itr, client_t, chan_node);
-						Log_debug("Linked voice from %s -> %s", ch->name, ch_link->name);
-						Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+
+						if (!ChannelListener::isListening(c, ch_link))
+						{
+							Log_debug("Linked voice from %s -> %s", ch->name, ch_link->name);
+							Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+						}
 					}
 				}
 			}
@@ -1016,6 +1077,14 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			}
 		}
 	}
+
+	// Send the audio to all listening users
+	for (client_t* c : listeningUsers)
+	{
+		buffer[0] = (uint8_t)(type | 3); // SpeechFlags::Listen
+		Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+	}
+
 out:
 	Pds_free(pds);
 	Pds_free(pdi);

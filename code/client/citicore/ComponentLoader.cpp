@@ -12,6 +12,7 @@
 #include <Error.h>
 
 #include <LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 #ifndef IS_FXSERVER
 #include <CL2LaunchMode.h>
@@ -49,6 +50,11 @@ void ComponentLoader::Initialize()
 	if (CfxIsSinglePlayer())
 	{
 		componentsName = _P("components-sp.json");
+	}
+
+	if (Is372())
+	{
+		componentsName = _P("components-sp372.json");
 	}
 
 	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));
@@ -264,9 +270,40 @@ fwRefContainer<Component> ComponentData::CreateInstance(const std::string& userD
 	return instance;
 }
 
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
+
 fwRefContainer<Component> ComponentData::CreateManualInstance()
 {
 	fwRefContainer<Component> instance = CreateComponent();
+
+#ifdef _WIN32
+	static std::vector<std::string> argvStrs;
+	static std::vector<char*> argvRefs;
+
+	static auto _ = ([]()
+	{
+		int argc;
+		LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+		argvStrs.resize(argc);
+		argvRefs.resize(argc);
+
+		for (int i = 0; i < argc; i++)
+		{
+			argvStrs[i] = ToNarrow(argv[i]);
+			argvRefs[i] = &argvStrs[i][0];
+		}
+
+		LocalFree(argv);
+
+		return 0;
+	})();
+
+	instance->SetCommandLine(argvRefs.size(), &argvRefs[0]);
+#endif
+
 	m_instances.push_back(instance);
 
 	return instance;

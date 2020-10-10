@@ -1,0 +1,259 @@
+@import 'variables';
+
+:host {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+
+	height: var(--header-height);
+
+	pointer-events: none;
+
+	z-index: 100;
+}
+
+.app-nav-container {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+
+	height: 100%;
+
+	pointer-events: none;
+
+	&.with-background {
+		.nav-button {
+			@include backdropPane;
+		}
+
+		.rightButtons {
+			@include backdropPane;
+		}
+	}
+
+	&.with-home-button {
+		justify-content: space-between;
+
+		.nav-button {
+			display: flex;
+		}
+	}
+
+	&.pulsating {
+		.nav-button {
+			.logo {
+				@include theme() using ($theme) {
+					@keyframes pulser {
+						0% {
+							fill: gtv($theme, textColor);
+						}
+						50% {
+							fill: gtv($theme, accentColor1);
+						}
+						100% {
+							fill: gtv($theme, textColor);
+						}
+					}
+
+					animation: pulser .5s ease 0s infinite;
+				};
+			}
+		}
+	}
+
+	.nav-button {
+		display: none;
+		align-items: center;
+		justify-content: center;
+
+		width: calc(var(--header-safe-left) - var(--qh));
+		height: 100%;
+
+		pointer-events: all;
+
+		transition: all .2s ease;
+
+		@include theme() using ($theme) {
+			&:hover {
+				color: gtv($theme, accentContrastColor);
+				background-color: gtv($theme, accentColor1);
+
+				transition: none;
+
+				.logo {
+					fill: gtv($theme, accentContrastColor) !important;
+
+					transition: none;
+				}
+			}
+		};
+
+		.logo {
+			@include theme() using ($theme) {
+				fill: gtv($theme, fgColor);
+			};
+
+			transition: all .2s ease;
+
+			:host-context(.game-rdr3) & {
+				width: var(--q2);
+				height: var(--q2);
+
+				fill: #d80d0d;
+			}
+
+			:host-context(.game-gta5) & {
+				width: var(--fs-3);
+				height: var(--fs-3);
+
+				transform: rotateY(180deg);
+			}
+		}
+	}
+
+	.rightButtons {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+
+		height: 100%;
+
+		cursor: pointer;
+
+		pointer-events: all;
+
+		@include theme() using ($theme) {
+			color: gtv($theme, fgColor);
+		};
+
+		.material-icons-outlined {
+			font-size: var(--fs-2);
+		}
+
+		&>* {
+			position: relative;
+
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			width: var(--q3);
+			height: 100%;
+
+			text-decoration: none;
+
+			transition: all .2s ease;
+
+			@include theme() using ($theme) {
+				color: rgba(gtv($theme, fgColor), .75);
+			};
+
+			.label {
+				position: absolute;
+				top: 0;
+				right: var(--header-height);
+				bottom: 0;
+
+				padding: var(--q1) 0 var(--q1) var(--q1);
+
+				@include fontMontserrat;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				white-space: nowrap;
+
+				@include theme() using ($theme) {
+					background-color: gtv($theme, accentColor1);
+				}
+
+				pointer-events: none;
+
+				opacity: 0;
+
+				z-index: 10;
+
+				transition: all .2s ease;
+			}
+
+			&:hover {
+				transition: none;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, accentContrastColor);
+					background-color: gtv($theme, accentColor1);
+				};
+
+				.label {
+					opacity: 1;
+					transition: none;
+				}
+			}
+		}
+
+		.changelog {
+			position: relative;
+
+			.new {
+				position: absolute;
+
+				bottom: 0;
+				right: 0;
+
+				padding: 2px 4px;
+
+				font-size: var(--fs-075);
+				line-height: 1;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, accentContrastColor);
+					background-color: gtv($theme, accentColor1);
+				};
+			}
+		}
+	}
+}
+
+.exit-confirmation {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	padding-top: calc((100vh - var(--app-height)) / 2);
+	padding-left: calc((100vw - var(--app-width)) / 2);
+
+	opacity: 0;
+	pointer-events: none;
+
+	z-index: 100;
+
+	@include theme() using ($theme) {
+		background-color: rgba(gtv($theme, bgColor), .8);
+	}
+
+	transition: all .2s ease;
+
+	&.active {
+		opacity: 1;
+		pointer-events: all;
+	}
+
+	.content {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+
+		width: var(--app-width);
+		height: var(--header-height);
+
+		.actions {
+			margin-left: var(--q1);
+
+			.cfx-button {
+				margin-left: var(--q1);
+			}
+		}
+	}
+}

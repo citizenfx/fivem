@@ -57,8 +57,13 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 	g_providersByType.insert({ provider->GetIdentifierPrefix(), provider });
 }
 
+extern bool IsOneSync();
 extern bool IsLengthHack();
 }
+
+static std::mutex g_ticketMapMutex;
+static std::unordered_set<std::tuple<uint64_t, uint64_t>> g_ticketList;
+static std::chrono::milliseconds g_nextTicketGc;
 
 static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 {
@@ -86,14 +91,10 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	std::time_t timeVal;
 	std::time(&timeVal);
 
-	std::tm* tm = std::gmtime(&timeVal);
-
-	std::time_t utcTime = std::mktime(tm);
-
 	// verify
-	if (ticketExpiry < utcTime)
+	if (ticketExpiry < timeVal)
 	{
-		trace("Connecting player: ticket expired\n");
+		console::DPrintf("server", "Connecting player: ticket expired\n");
 		return false;
 	}
 
@@ -102,8 +103,25 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (realGuid != ticketGuid)
 	{
-		trace("Connecting player: ticket GUID not matching\n");
+		console::DPrintf("server", "Connecting player: ticket GUID not matching\n");
 		return false;
+	}
+
+	{
+		std::unique_lock<std::mutex> _(g_ticketMapMutex);
+
+		if (g_ticketList.find({ ticketExpiry, ticketGuid }) != g_ticketList.end())
+		{
+			return false;
+		}
+
+		if (msec() > g_nextTicketGc)
+		{
+			g_ticketList.clear();
+			g_nextTicketGc = msec() + std::chrono::minutes(30);
+		}
+
+		g_ticketList.insert({ ticketExpiry, ticketGuid });
 	}
 
 	// check the RSA signature
@@ -139,7 +157,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (!valid)
 	{
-		trace("Connecting player: ticket RSA signature not matching\n");
+		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
 		return false;
 	}
 
@@ -211,7 +229,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 
 	if (!valid)
 	{
-		trace("Connecting player: ticket RSA signature not matching\n");
+		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
 		return {};
 	}
 
@@ -239,6 +257,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 }
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
+std::string g_enforcedGameBuild;
 
 static InitFunction initFunction([]()
 {
@@ -255,13 +274,13 @@ static InitFunction initFunction([]()
 
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
-		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_None, "");
+		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly, "", &g_enforcedGameBuild);
 
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
 		{
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-			clientRegistry->ForAllClients([](const std::shared_ptr<fx::Client>& client)
+			clientRegistry->ForAllClients([](const fx::ClientSharedPtr& client)
 			{
 				auto deferralAny = client->GetData("deferralPtr");
 
@@ -379,9 +398,9 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			if (g_oneSyncVar->GetValue())
+			if (fx::IsOneSync())
 			{
-				if (protocol < 7)
+				if (protocol < 9)
 				{
 					sendError("Client/server version mismatch.");
 					return;
@@ -466,10 +485,10 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202007022353;
+			data["bitVersion"] = 0x202007151853;
 			data["sH"] = shVar->GetValue();
-			data["enhancedHostSupport"] = ehVar->GetValue() && !g_oneSyncVar->GetValue();
-			data["onesync"] = g_oneSyncVar->GetValue();
+			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
+			data["onesync"] = fx::IsOneSync();
 			data["onesync_big"] = fx::IsBigMode();
 			data["onesync_lh"] = fx::IsLengthHack();
 			data["token"] = token;
@@ -550,9 +569,15 @@ static InitFunction initFunction([]()
 
 			auto it = g_serverProviders.begin();
 
+			fx::ClientWeakPtr clientWeak{ client };
 			auto done = [=]()
 			{
-				std::weak_ptr<fx::Client> clientWeak(client);
+				auto lockedClient = clientWeak.lock();
+				if (!lockedClient)
+				{
+					return;
+				}
+
 				auto didSucceed = std::make_shared<bool>(false);
 				auto weakSuccess = std::weak_ptr<bool>(didSucceed);
 
@@ -590,7 +615,7 @@ static InitFunction initFunction([]()
 				int maxTrust = INT_MIN;
 				int minVariance = INT_MAX;
 
-				for (const auto& identifier : client->GetIdentifiers())
+				for (const auto& identifier : lockedClient->GetIdentifiers())
 				{
 					std::string idType = identifier.substr(0, identifier.find_first_of(':'));
 
@@ -605,7 +630,7 @@ static InitFunction initFunction([]()
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
 				{
-					clientRegistry->RemoveClient(client);
+					clientRegistry->RemoveClient(lockedClient);
 
 					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
 					return;
@@ -613,7 +638,7 @@ static InitFunction initFunction([]()
 
 				if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
 				{
-					clientRegistry->RemoveClient(client);
+					clientRegistry->RemoveClient(lockedClient);
 
 					sendError(
 						fmt::sprintf(
@@ -635,14 +660,14 @@ static InitFunction initFunction([]()
 				*noReason = std::make_shared<std::string>("Resource prevented connection.");
 				
 				auto deferrals = std::make_shared<std::shared_ptr<fx::ClientDeferral>>();
-				*deferrals = std::make_shared<fx::ClientDeferral>(instance, client);
+				*deferrals = std::make_shared<fx::ClientDeferral>(instance, lockedClient);
 
-				client->SetData("deferralPtr", std::weak_ptr<fx::ClientDeferral>(*deferrals));
+				lockedClient->SetData("deferralPtr", std::weak_ptr<fx::ClientDeferral>(*deferrals));
 
 				// *copy* the callback into a *shared* reference
 				auto cbRef = std::make_shared<std::shared_ptr<std::decay_t<decltype(cb)>>>(std::make_shared<std::decay_t<decltype(cb)>>(cb));
 
-				(*deferrals)->SetMessageCallback([deferrals, cbRef](const std::string& message)
+				(*deferrals)->SetMessageCallback([cbRef](const std::string& message)
 				{
 					auto ref1 = *cbRef;
 
@@ -652,7 +677,7 @@ static InitFunction initFunction([]()
 					}
 				});
 
-				(*deferrals)->SetCardCallback([deferrals, cbRef, token](const std::string& card)
+				(*deferrals)->SetCardCallback([cbRef, token](const std::string& card)
 				{
 					auto ref1 = *cbRef;
 
@@ -685,27 +710,32 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				(*deferrals)->SetRejectCallback([deferrals, cbRef, client, clientRegistry](const std::string& message)
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, clientRegistry](const std::string& message)
 				{
-					clientRegistry->RemoveClient(client);
-
-					auto ref1 = *cbRef;
-
-					if (ref1)
+					auto newLockedClient = clientWeak.lock();
+					if (newLockedClient)
 					{
-						(**cbRef)(json::object({ { "error", message} }));
-						(**cbRef)(json(nullptr));
+						clientRegistry->RemoveClient(newLockedClient);
+
+						auto ref1 = *cbRef;
+
+						if (ref1)
+						{
+							(**cbRef)(json::object({ { "error", message } }));
+							(**cbRef)(json(nullptr));
+						}
 					}
 
 					*cbRef = nullptr;
 					*deferrals = nullptr;
 				});
 
-				request->SetCancelHandler([cbRef, deferrals, client, clientRegistry, didSucceed]()
+				request->SetCancelHandler([cbRef, deferrals, clientWeak, clientRegistry, didSucceed]()
 				{
-					if (!*didSucceed)
+					auto newLockedClient = clientWeak.lock();
+					if (!*didSucceed && newLockedClient)
 					{
-						clientRegistry->RemoveClient(client);
+						clientRegistry->RemoveClient(newLockedClient);
 					}
 
 					*cbRef = nullptr;
@@ -771,7 +801,7 @@ static InitFunction initFunction([]()
 					handover(data: { [key: string]: any }): void,
 				}, source: string): void;
 				*/
-				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", client->GetNetId()) }, client->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
+				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
@@ -783,7 +813,7 @@ static InitFunction initFunction([]()
 
 				if (!shouldAllow)
 				{
-					clientRegistry->RemoveClient(client);
+					clientRegistry->RemoveClient(lockedClient);
 
 					sendError(**noReason);
 					return;
@@ -814,7 +844,6 @@ static InitFunction initFunction([]()
 
 			// seriously C++?
 			auto runOneIdentifier = std::make_shared<std::unique_ptr<std::function<void(decltype(g_serverProviders.begin()))>>>();
-
 			*runOneIdentifier = std::make_unique<std::function<void(decltype(g_serverProviders.begin()))>>([=](auto it)
 			{
 				if (it == g_serverProviders.end())
@@ -827,24 +856,44 @@ static InitFunction initFunction([]()
 				else
 				{
 					auto auth = (*it);
-
 					auto thisIt = ++it;
 
-					auth->RunAuthentication(client, request, postMap, [=](boost::optional<std::string> err)
+					// if the client randomly disconnects, let's just bail
+					auto clientLocked = clientWeak.lock();
+					if (!clientLocked)
 					{
-						if (err)
+						// unset the callback
+						*runOneIdentifier = nullptr;
+
+						return;
+					}
+
+					auth->RunAuthentication(clientLocked, request, postMap, [=](boost::optional<std::string> err)
+					{
+						// if the client randomly disconnects, let's just bail (again)
+						auto newClientLocked = clientWeak.lock();
+						if (!newClientLocked)
 						{
-							clientRegistry->RemoveClient(client);
-
-							sendError(*err);
-
 							// unset the callback
 							*runOneIdentifier = nullptr;
 
 							return;
 						}
 
-						(**runOneIdentifier)(thisIt);
+						// if an auth method fails, bail
+						if (err)
+						{
+							clientRegistry->RemoveClient(newClientLocked);
+
+							sendError(*err);
+
+							// unset the callback
+							*runOneIdentifier = nullptr;
+						}
+						else
+						{
+							(**runOneIdentifier)(thisIt);
+						}
 					});
 				}
 			});

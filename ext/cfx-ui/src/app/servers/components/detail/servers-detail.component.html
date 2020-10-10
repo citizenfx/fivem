@@ -1,0 +1,141 @@
+<div class="page-header">
+	<button class="cfx-header-item" (click)="goBack()">
+		<span class="material-icons-outlined">keyboard_backspace</span>
+		<span class="label" l10nTranslate>#ServerDetail_Back</span>
+	</button>
+	<button class="cfx-header-item"  (click)="addFavorite()" *ngIf="!isFavorite()">
+		<span class="material-icons-outlined">star_border</span>
+		<span class="label" l10nTranslate>#ServerDetail_AddFavorite</span>
+	</button>
+	<button class="cfx-header-item" (click)="removeFavorite()" *ngIf="isFavorite()">
+		<span class="material-icons-outlined accentColor1">star</span>
+		<span class="label" l10nTranslate>#ServerDetail_DelFavorite</span>
+	</button>
+	<button class="cfx-header-item" (click)="refreshServer()" [class.disabled]="!canRefresh" [class.spin]="!server || !canRefresh">
+		<span class="material-icons-outlined">refresh</span>
+		<span class="label" l10nTranslate>#ServerDetail_Refresh</span>
+	</button>
+</div>
+
+<!-- <div class="loading" *ngIf="!server">
+	<cfx-spinner></cfx-spinner>
+</div> -->
+
+<div class="page" *ngIf="server">
+	<div class="content-wrapper">
+		<div class="banner" *ngIf="server.data.vars.banner_detail" style="--banner-image: url({{server.data.vars.banner_detail}})"></div>
+
+		<div class="content">
+			<div class="header">
+				<figure class="icon">
+					<img [src]="(server && server.sanitizedUri)||'http://picsum.photos/128/128'">
+				</figure>
+
+				<div class="info">
+					<div class="title">
+						<span [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></span>
+					</div>
+
+					<div class="connect-bar">
+						<div class="left">
+							<div
+								*ngIf="server.premium"
+								class="badge"
+								[class.ag]="server.premium === 'ag'"
+								[class.au]="server.premium === 'au'"
+								[class.pt]="server.premium === 'pt'"
+							>
+								<span>{{ server.premium }}</span>
+							</div>
+							<div class="buttons">
+								<button class="cfx-button primary connect" (click)="attemptConnect()" l10nTranslate>
+									#DirectConnect_Connect
+								</button>
+							</div>
+							<div class="address">
+								<span class="material-icons-outlined">link</span>
+								<span class="select">{{(serverAddress)||'undefined'}}</span>
+							</div>
+						</div>
+
+						<div class="right">
+							<div class="players-count">
+								<span class="material-icons-outlined">group</span>
+								{{(server && server.currentPlayers)||0}}<span class="capacity">/{{(server && server.maxPlayers)||32}}</span>
+							</div>
+						</div>
+					</div>
+
+					<ul class="tags">
+						<li *ngIf="server && server.data.gametype">
+							<span class="key">Game type</span>
+							<span class="value">{{(server && server.data.gametype)||'Game type'}}</span>
+						</li>
+						<li *ngIf="server && server.data.mapname">
+							<span class="key">Map</span>
+							<span class="value">{{(server && server.data.mapname)||'Map name'}}</span>
+						</li>
+						<li *ngIf="onesyncEnabled">
+							<span class="key">OneSync</span>
+							<span class="value">enabled</span>
+						</li>
+						<li class="address">
+							<span class="key" l10nTranslate>#ServerDetail_Locale</span>
+							<span class="value select">{{language}}</span>
+						</li>
+						<li>
+							<span class="key" l10nTranslate>#ServerList_Tags</span>
+							<span class="value">{{tags}}</span>
+						</li>
+						<li *ngFor="let svVar of serverVariables">
+							<ng-container *ngIf="svVar.key && svVar.value">
+								<span class="key">{{svVar.key|translate:locale.language}}</span>
+								<span
+									class="value with-links"
+									[innerHTML]="svVar.value|translate:locale.language|linky"
+									(click)="openLink($event)"
+								></span>
+							</ng-container>
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="details">
+				<div class="details-panel feed" *ngIf="communityTweets.length > 0">
+					<div class="title">
+						{{'#ServerDetail_Updates' | translate:locale.language}} ({{ communityTweets.length }})
+					</div>
+
+					<app-home-tweet class="message" *ngFor="let tweet of communityTweets" [tweet]="tweet">
+					</app-home-tweet>
+				</div>
+
+				<div class="details-panel resources">
+					<div class="title">
+						{{'#ServerDetail_Resources' | translate:locale.language}} ({{ resourceCount }})
+					</div>
+
+					<ul>
+						<li *ngFor="let resource of resources; trackBy: resource">{{resource}}</li>
+					</ul>
+				</div>
+
+				<div class="details-panel players">
+					<div class="title">
+						{{'#ServerDetail_Players' | translate:locale.language}} ({{ server.data.players.length }})
+					</div>
+
+					<ul>
+						<li *ngFor="let player of playersSorted; trackBy: trackPlayer">
+							<app-player-avatar [player]="player"></app-player-avatar>
+							<span>
+								{{player.name}}
+							</span>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

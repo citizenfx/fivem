@@ -10,6 +10,8 @@
 #include <Streaming.h>
 #include <nutsnbolts.h>
 
+#include <GameInit.h>
+
 #include <queue>
 
 static std::vector<std::string> g_fontIds = {
@@ -30,6 +32,7 @@ static std::vector<std::string> g_fontIds = {
 };
 
 static std::set<std::string> g_fontLoadQueue;
+static std::set<std::string> g_loadedFonts;
 
 namespace sf
 {
@@ -50,7 +53,13 @@ namespace sf
 
 	void RegisterFontLib(const std::string& swfName)
 	{
+		if (g_loadedFonts.find(swfName) != g_loadedFonts.end())
+		{
+			return;
+		}
+
 		g_fontLoadQueue.insert(swfName);
+		g_loadedFonts.insert(swfName);
 	}
 }
 
@@ -722,6 +731,12 @@ static HookFunction hookFunction([]()
 	memoryHeapPt[13] = AllocAuto_Align;
 	memoryHeapPt[14] = AllocAuto;
 	memoryHeapPt[15] = GetHeap;
+
+	// undo fonts if reloading
+	OnKillNetworkDone.Connect([]()
+	{
+		g_loadedFonts.clear();
+	});
 
 	// always enable locking for GFx heap
 	// doesn't fix it, oddly - probably singlethreaded non-atomic reference counts?

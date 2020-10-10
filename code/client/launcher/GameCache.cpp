@@ -215,10 +215,12 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "update/x64/dlcpacks/mpchristmas2018/dlc.rpf", "c4cda116420f14a28e5a999740cc53cf53a950ec", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3247781888 },
 	{ "update/x64/dlcpacks/patchday20ng/dlc.rpf", "fbba396a0ede622e08f76c5ced8ac1d6839c0227", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 457129984 },
 #elif defined(IS_RDR3)
-	{ "RDR2.exe", "d871791c58b8be77cd795e87bd54579a8a675478", "ipfs://bafybeiaebqmvwp4jrn67pnxwn7xlhdmu5zhhttznjyy6dyh5hwytzvvp7a", 89394320 },
-	{ "appdata0_update.rpf", "a13b353f014795ee9b124f48b604d3bd574c84a1", "ipfs://bafybeib67jvkayqfwxefk3hl5n7bqkfywzblpl5tilvmg5d76svljfedna", 2860767 },
-	{ "update.rpf", "9c8e93403cc7373c8cff08f546d77e2b605af2ff", "ipfs://bafybeig54htb3obdxulky3iaftwypas27vrosiqlmaomvfuvnxgs7b5lrm", 2801194246 },
-	{ "shaders_x64.rpf", "616783553892ae59df12945a29814226d9f90f5a", "ipfs://bafybeiggp4ugvb232v3fwtadswaxoiafo4uyyhpvp2k5v745zpcsxt6vmy", 233006494 },
+	{ "RDR2.exe", "ac3c2abd80bfa949279d8e1d32105a3d9345c6c8", "ipfs://bafybeihtqz54b4or4xxqyvrih5wi4il7ni72e7qxg6mtt2c47s6bbkgy4q", 91439232 },
+	{ "appdata0_update.rpf", "1715741785ce3c28adf9a78633e57f478229bb84", "ipfs://bafybeiapjt7ifvkqrtscmbgghgq2jz7ptpdxvvyqwcrxzqqoqolh45ybwq", 3003087 },
+	{ "update.rpf", "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "ipfs://bafybeidgpk6as7ebr4sakax2cy5mulmjr6gbb32mj74i3apbfbjbeoi2ki", 3515071792 },
+	{ "shaders_x64.rpf", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "ipfs://bafybeia5ol2sjowvyfzyncn4wiyp5wtr6tdb6hlq3imbh4ed5v5hgll6jm", 233487310 },
+
+	{ "x64/dlcpacks/mp007/dlc.rpf", "f9d085bc889fc89d205c43a63d784d131be3ae8f", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1425958473 },
 #endif
 
 	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "https://mirrors.fivem.net/emergency_mirror/launcher/Launcher.exe", 37970576 },
@@ -1038,15 +1040,20 @@ std::map<std::string, std::string> UpdateGameCache()
 {
 	// 1604/1868 toggle
 #ifdef GTA_FIVE
-	if (!Is1868())
+	if (Is372())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "ae6e9cc116e8435e4dcfb5b870deee00a8b0904c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/GTA5.exe", 55559560, 399999536 });
+		g_requiredEntries.push_back({ "update/update.rpf", "b72884c9af7170908f558ec5d629d805857b80f2", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/update/update.rpf", 352569344, 399999536 });
+	}
+	else if (!Is2060())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/GTA5.exe", 72484280, 1031302600 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600 });
 	}
 	else
 	{
-		g_requiredEntries.push_back({ "GTA5.exe", "79a272830be65afae4acd520bfbfe176e0b142f3", "https://mirrors.fivem.net/patches/1868.0/GTA5.exe", 77631632 });
-		g_requiredEntries.push_back({ "update/update.rpf", "8a98e0879b91661dd2aa23f86abdf91ee741b237", "https://mirrors.fivem.net/patches/1868.0/update.rpf", 1171902464 });
+		g_requiredEntries.push_back({ "GTA5.exe", "741c8b91ef57140c023d8d29e38aab599759de76", "https://mirrors.fivem.net/patches/2060.2/GTA5.exe", 60589184 });
+		g_requiredEntries.push_back({ "update/update.rpf", "736f1cb26e59167f302c22385463d231cce302d3", "https://mirrors.fivem.net/patches/2060.2/update.rpf", 1229002752 });
 	}
 #endif
 

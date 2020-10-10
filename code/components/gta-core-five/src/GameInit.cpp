@@ -29,6 +29,11 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
+	if (Is372())
+	{
+		return hook::get_call<void*>(hook::get_call(hook::pattern("57 41 56 41 57 48 83 EC 50 4C 63 F2").count(1).get(0).get<char>(0xAC)) + 0x6D);
+	}
+
 	return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C2 02 00 00 E8", -0x3A);
 });
 
@@ -100,10 +105,12 @@ static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu__shutdown([]
 
 static void(*g_origLoadMultiplayerTextChat)();
 
+static void** g_textInputBox;
+
 static HookFunction hookFunction([]()
 {
 	// really bad pattern pointing to switch-to-netgame
-	if (!Is1868())
+	if (!Is2060() && !Is372())
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? B9 08 00 00 00 E8 ? ? ? ? E8", 15);
 
@@ -114,11 +121,29 @@ static HookFunction hookFunction([]()
 		// #TODO1737
 	}
 
+	if (!Is372())
+	{
+		g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48 8B 0D", 10));
+
+		// disable text input box gfx unload
+		hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
+	}
+
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
 
 	// force SET_GAME_PAUSES_FOR_STREAMING (which makes collision loading, uh, blocking) to be off
 	hook::put<uint8_t>(hook::get_pattern("74 20 84 C9 74 1C 84 DB 74 18", 0), 0xEB);
+});
+
+static void __declspec(noinline) CrashCommand()
+{
+	*(volatile int*)0 = 0;
+}
+
+static hook::cdecl_stub<void(void*)> _textInputBox_loadGfx([]()
+{
+	return hook::get_call(hook::get_pattern("38 59 59 75 05 E8", 5));
 });
 
 static InitFunction initFunction([] ()
@@ -147,13 +172,30 @@ static InitFunction initFunction([] ()
 
 			// also early-load MULTIPLAYER_TEXT_CHAT gfx, this changed sometime between 323 and 505
 			// and also causes a blocking load.
-			if (!Is1868())
+			if (!Is2060() && g_origLoadMultiplayerTextChat)
 			{
 				g_origLoadMultiplayerTextChat();
 			}
 
 			// 1737: screwed by Arxan
 			// #TODO1737
+
+			if (!Is372())
+			{
+				// temp hook bits to prevent *opening* the gfx
+				auto func = hook::get_call(hook::get_pattern<char>("38 59 59 75 05 E8", 5));
+
+				uint8_t oldCode[128];
+				memcpy(oldCode, func + 0x6E, sizeof(oldCode));
+
+				hook::nop(func + 0x6E, 40);
+
+				// early-load CTextInputBox gfx as this blocking-loads too
+				_textInputBox_loadGfx(*g_textInputBox);
+
+				// unhook
+				memcpy(func + 0x6E, oldCode, sizeof(oldCode));
+			}
 
 			g_gameInit.SetGameLoaded();
 		}
@@ -166,7 +208,7 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand crashCmd("_crash", []()
 	{
-		*(volatile int*)0 = 0;
+		CrashCommand();
 	});
 
 	static int warningMessageActive = false;

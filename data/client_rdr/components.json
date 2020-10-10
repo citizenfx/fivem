@@ -45,6 +45,8 @@
 	"citizen:playernames:rdr3",
 	"rage:formats:x",
 	"devcon",
-	"voip:mumble",
-	"adhesive"
+	"adhesive",
+	"tool:formats",
+  "voip:mumble",
 ]
+

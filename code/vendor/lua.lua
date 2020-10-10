@@ -1,10 +1,10 @@
 return {
 	include = function()
 		includedirs { "vendor/lua/src" }
-		includedirs { "../vendor/lua-cmsgpack" }
+		includedirs { "../vendor/lua-cmsgpack/src" }
 		includedirs { "../vendor/lua-rapidjson/src" }
-		
-		add_dependencies 'vendor:msgpack-c'		
+
+		add_dependencies 'vendor:msgpack-c'
 	end,
 
 	run = function()
@@ -16,16 +16,20 @@ return {
 			flags { "LinkTimeOptimization" }
 		end
 
-		defines { 'GRIT_POWER_TTYPE' }
+		defines {
+			'LUACMSGPACK_COMPAT',
+			'LUA_RAPIDJSON_COMPAT',
+			'LUA_RAPIDJSON_SANITIZE_KEYS',
+		}
 
 		files
 		{
 			"vendor/lua/src/*.c",
-			"../vendor/lua-cmsgpack/*.c",
-			"../vendor/lua-cmsgpack/*.h",
+			"../vendor/lua-cmsgpack/src/*.c",
+			"../vendor/lua-cmsgpack/src/*.h",
 			"../vendor/lua-rapidjson/src/*.h",
 			"../vendor/lua-rapidjson/src/*.hpp",
-			"../vendor/lua-rapidjson/src/*.cpp"			
+			"../vendor/lua-rapidjson/src/*.cpp"
 		}
 
 		removefiles {

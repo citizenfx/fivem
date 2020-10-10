@@ -1,0 +1,387 @@
+@import 'variables';
+
+@keyframes loadingDots {
+    0% {
+        content: '';
+    }
+    33% {
+        content: '.';
+    }
+    66% {
+        content: '..';
+    }
+    100% {
+        content: '...';
+    }
+}
+
+:host {
+	display: flex;
+	flex-direction: column;
+
+	height: 100%;
+
+	overflow-y: hidden;
+}
+
+.page-header {
+	@include pageHeader;
+
+	z-index: 1;
+
+	@include webapp() {
+		padding-left: 0;
+	}
+
+	@include theme() using ($theme) {
+		.cfx-header-item {
+			&.spin {
+				.material-icons-outlined {
+					color: gtv($theme, accentColor1);
+
+
+					@keyframes spin {
+						0% {
+							transform: rotate(0deg);
+							opacity: 1;
+
+						}
+						50% {
+							transform: rotate(180deg);
+							opacity: .75;
+						}
+						100% {
+							transform: rotate(360deg);
+							color: 1;
+						}
+					}
+
+					animation: spin 2s linear 0s infinite;
+				}
+			}
+		}
+	}
+}
+
+.loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 100%;
+	height: 100%;
+
+	cfx-spinner {
+		width: var(--q5);
+		height: var(--q5);
+	}
+}
+
+.page {
+	display: flex;
+	flex-direction: row;
+
+	height: 100%;
+
+	overflow: hidden;
+
+	--overlap: calc(var(--q1) * 2);
+	--icon-size: calc(var(--overlap) * 3);
+
+	.content-wrapper {
+		flex-grow: 1;
+		height: 100%;
+		width: 100%;
+
+		display: flex;
+		flex-direction: column;
+
+		.banner {
+			flex-shrink: 0;
+
+			position: relative;
+
+			width: 100%;
+
+			height: calc(var(--app-width) / 17.268);
+
+			@include theme() using ($theme) {
+				background-color: gtv($theme, bgColor);
+			}
+
+			background: center / cover var(--banner-image), center / 250px url(../../../../assets/images/bgpat.png);
+
+			z-index: 0;
+
+			@include backdropBlurred;
+		}
+
+		.content {
+			flex-grow: 1;
+
+			display: flex;
+			flex-direction: column;
+
+			width: 100%;
+
+			overflow: hidden;
+
+			transform: translateZ(0px);
+
+			.header {
+				display: flex;
+
+				@include backdropPane;
+
+				padding: var(--q1);
+
+				.icon {
+					flex-shrink: 0;
+
+					width: var(--icon-size);
+					height: var(--icon-size);
+
+					margin-right: var(--q1);
+
+					::ng-deep img, img {
+						width: 100%;
+						height: 100%;
+					}
+				}
+
+				.info {
+					flex-grow: 1;
+
+					.title {
+						height: auto;
+						width: 100%;
+
+						@include fontMontserrat;
+						font-size: var(--fs-4);
+						font-weight: bold;
+						line-height: 1.1;
+					}
+
+					.tags {
+						list-style: none;
+
+						display: flex;
+						flex-wrap: wrap;
+						align-items: center;
+
+						margin-top: calc(var(--q1) + var(--qh));
+
+						li {
+							display: flex;
+
+							margin-top: var(--qh);
+							margin-right: var(--qh);
+
+							font-size: var(--fs-075);
+							line-height: 1;
+
+							opacity: 1;
+
+							overflow: hidden;
+
+							--inner-padding: calc(var(--qh) / 2);
+
+							transition: all .2s ease;
+
+							&:hover {
+								opacity: 1;
+
+								transition: none;
+							}
+
+							.key,
+							.value {
+								display: block;
+							}
+
+							.key {
+								padding: var(--inner-padding);
+
+								@include theme() using ($theme) {
+									color: gtv($theme, fgColor);
+									background-color: rgba(gtv($theme, accentColor2), .5);
+								}
+							}
+
+							.value {
+								padding: var(--inner-padding);
+
+								@include theme() using ($theme) {
+									color: gtv($theme, fgColor);
+									background-color: rgba(gtv($theme, accentColor2), .25);
+								}
+							}
+						}
+					}
+
+					.connect-bar {
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+
+						margin-top: var(--q2);
+
+						.left,
+						.right {
+							display: flex;
+							align-items: center;
+							justify-content: center;
+						}
+
+						.badge {
+							display: inline-flex;
+
+							width: auto;
+							vertical-align: top;
+
+							margin-right: var(--q1);
+
+							span {
+								height: var(--q2);
+								width: var(--q2);
+							}
+						}
+
+						.buttons {
+							margin-right: var(--q1);
+							// .cfx-button {
+							// 	margin-right: var(--qh);
+							// }
+						}
+
+						.address {
+							padding: var(--qh);
+
+							line-height: 1;
+
+							@include theme() using ($theme) {
+								background-color: rgba(gtv($theme, fgColor), .1);
+							}
+
+							.material-icons-outlined {
+								margin-right: var(--qh);
+							}
+
+							.select {
+								user-select: all;
+							}
+						}
+
+						.players-count .capacity {
+							opacity: .75;
+						}
+					}
+				}
+			}
+
+			.details {
+				flex-grow: 1;
+
+				display: flex;
+				flex-direction: row;
+				align-items: stretch;
+				justify-content: stretch;
+
+				margin-top: var(--qh);
+
+				overflow: hidden;
+
+				.details-panel {
+					width: 50%;
+					height: 100%;
+
+					padding: var(--q1);
+					margin-right: var(--qh);
+
+					&:last-child {
+						margin-right: 0;
+					}
+
+					overflow-x: hidden;
+					overflow-y: scroll;
+
+					@include backdropPane;
+
+					.title {
+						margin-bottom: var(--qh);
+
+						@include fontMontserrat;
+						font-size: var(--fs-2);
+						line-height: 1;
+						letter-spacing: 2px;
+						text-transform: uppercase;
+
+						opacity: .25;
+
+						text-align: justify;
+					}
+
+					&.players {
+						ul {
+							list-style: none;
+
+							display: flex;
+							flex-direction: column;
+
+							li {
+								display: flex;
+								align-items: center;
+
+								margin-bottom: var(--qh);
+								padding-right: var(--qh);
+
+								font-size: var(--fs-1);
+
+								@include theme() using ($theme) {
+									background-color: rgba(gtv($theme, fgColor), .1);
+								}
+
+								app-player-avatar {
+									width: calc(var(--q1) * 1.5);
+									height: calc(var(--q1) * 1.5);
+
+									overflow: hidden;
+
+									margin-right: var(--qh);
+								}
+							}
+						}
+					}
+
+					&.resources {
+						flex-grow: 1;
+
+						ul {
+							list-style: none;
+
+							display: flex;
+							flex-wrap: wrap;
+
+							li {
+								display: flex;
+								align-items: center;
+
+								height: calc(var(--q1) * 1.5);
+
+								margin-bottom: var(--qh);
+								margin-right: var(--qh);
+								padding: 0 var(--qh);
+
+								font-size: var(--fs-1);
+
+								@include theme() using ($theme) {
+									background-color: rgba(gtv($theme, fgColor), .1);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

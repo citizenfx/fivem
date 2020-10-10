@@ -104,6 +104,8 @@ private:
 	Resource* m_resource;
 	ScriptMetaDataComponent meta;
 
+	std::string m_lastError;
+
 private:
 	result_t WrapVFSStreamResult(fwRefContainer<vfs::Stream> stream, fxIStream** result);
 
@@ -114,6 +116,13 @@ public:
 
 	}
 };
+
+result_t TestScriptHost::GetLastErrorText(char** text)
+{
+	*text = const_cast<char*>(m_lastError.c_str());
+
+	return FX_S_OK;
+}
 
 result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 {
@@ -129,6 +138,7 @@ result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 	catch (std::exception& e)
 	{
 		trace("%s: execution failed: %s\n", __func__, e.what());
+		m_lastError = e.what();
 
 		return FX_E_INVALIDARG;
 	}
@@ -151,6 +161,7 @@ result_t TestScriptHost::InvokeNative(fxNativeContext & context)
 // https://github.com/google/sanitizers/issues/749
 #if !HAS_FEATURE(address_sanitizer)
 			trace("%s: execution failed: %s\n", __func__, e.what());
+			m_lastError = e.what();
 #endif
 
 			return FX_E_INVALIDARG;

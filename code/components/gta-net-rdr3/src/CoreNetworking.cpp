@@ -512,19 +512,23 @@ static T Return()
 
 static void* rlPresence__m_GamerPresences;
 
+static void* g_networkMgrPtr;
+
+static uint32_t networkStateOffset;
+
 static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
 {
-	return hook::get_call(hook::get_pattern("48 89 5D 38 48 89 5D 40 48 89 5D 48 E8", 12));
+	return hook::get_call(hook::get_pattern("48 69 CA ? ? ? ? FF C2 89", -12));
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshSigninState([]()
 {
-	return hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", -0x35);
+	return hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", -0x35);
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
 {
-	return hook::get_pattern("45 33 FF 8B DE EB 0F 48 8D", -0x7D);
+	return hook::get_pattern("45 33 ? 8B DE EB 0F 48 8D", -0x7D);
 });
 
 // unused if we use sc sessions
@@ -668,13 +672,13 @@ static HookFunction hookFunction([]()
 	//hook::jump(0x1406B50E8, LogStubLog1);
 
 	{
-		auto getLocalPeerAddress = hook::get_pattern<char>("48 8B D0 80 78 18 02 75 1D", -0x32);
+		auto getLocalPeerAddress = hook::get_pattern<char>("48 8B D0 80 78 ? 02 75", -0x32);
 		hook::jump(getLocalPeerAddress, GetLocalPeerAddress);
 		hook::jump(hook::get_call(getLocalPeerAddress + 0x28), GetLocalPeerId);
 		//hook::jump(hook::get_call(getLocalPeerAddress + 0x2D), GetMyRelayAddress);
 		//hook::jump(hook::get_call(getLocalPeerAddress + 0x62), GetPublicIpAddress);
-		hook::jump(hook::get_call(getLocalPeerAddress + 0xE1), GetGamerHandle);
-		hook::jump(hook::get_call(getLocalPeerAddress + 0x102), InitP2PCryptKey);
+		hook::jump(hook::get_call(getLocalPeerAddress + 0xF5), GetGamerHandle);
+		hook::jump(hook::get_call(getLocalPeerAddress + 0x116), InitP2PCryptKey);
 		//hook::call(0x14266F66C, InitP2PCryptKey);
 		//hook::call(0x14267B5A0, InitP2PCryptKey);
 	}
@@ -691,10 +695,14 @@ static HookFunction hookFunction([]()
 
 	seamlessOff = hook::get_address<uint8_t*>(hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", 4));
 
+	g_networkMgrPtr = hook::get_address<uint8_t*>(hook::get_pattern("48 8B 10 48 85 D2 74 ? 83 BA ? ? ? ? 04", -14));
+
+	networkStateOffset = *hook::get_pattern<uint32_t>("83 BA ? ? ? ? 04 75 ? 39 8A ? ? ? ? 74", 2);
+
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
-	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 F8 30 01 00 00 48 8D 05", 0x44 - 0x35));
+	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
 
 	static int tryHostStage = 0;
 
@@ -782,8 +790,22 @@ static HookFunction hookFunction([]()
 			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
 			joinOrHost(0, nullptr, sessionIdPtr);
 
-			Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
 			tryHostStage = 6;
+
+			break;
+
+		case 6:
+			if (*(BYTE*)((uint64_t)g_networkMgrPtr + 24))
+			{
+				uint64_t networkMgr = *(uint64_t*)((uint64_t)g_networkMgrPtr);
+				auto networkState = *(BYTE*)(*(uint64_t*)networkMgr + networkStateOffset);
+
+				if (networkState == 4)
+				{
+					tryHostStage = 7;
+					Instance<ICoreGameInit>::Get()->SetVariable("networkInited");
+				}
+			}
 
 			break;
 		}
@@ -879,6 +901,19 @@ static HookFunction hookFunction([]()
 	// don't stop unsafe network scripts
 	hook::jump(hook::get_pattern("83 7B 10 02 74 21 48 8B CB E8", -0x35), Return<int, 0>); // 0x140E8A58C
 
+	// load MP item database even for SP item database manager
+	hook::put<uint32_t>(hook::get_address<uint32_t*>(hook::get_pattern("4C 8D 1D ? ? ? ? 48 89 93 60 3A", -0x20)), 0x0DDA1F78);
+
 	// pretend inventory net check (also some other subsystems but mainly inventory) is always SP
 	hook::jump(hook::get_pattern("74 03 B0 01 C3 48 8B 0D", -7), Return<int, 0>);
+
+	// ignore mandatory tunable from (0xE3AFC5BD/0x74B331C6) to make transition 0xB2AEE05F not fail
+	hook::nop(hook::get_pattern("48 83 EC 20 80 3D ? ? ? ? 00 B3 01 74", 13), 2);
+
+	// switch around SP and MP catalog files
+	{
+		auto location = hook::get_pattern<char>("77 0C BA 02 00 00 00 EB 05 BA 01");
+		hook::put<int>(location + 3, 1);
+		hook::put<int>(location + 10, 2);
+	}
 });

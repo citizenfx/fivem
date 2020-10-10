@@ -831,14 +831,6 @@ const CefString& failedUrl)
 	// Don't display an error for downloaded files.
 	if (errorCode == ERR_ABORTED)
 		return;
-
-	// Display a load error message.
-	std::stringstream ss;
-	ss << "<html><body bgcolor=\"white\">"
-		  "<h2>Failed to load URL "
-	   << std::string(failedUrl) << " with error " << std::string(errorText)
-	   << " (" << errorCode << ").</h2></body></html>";
-	frame->LoadString(ss.str(), failedUrl);
 }
 
 void SimpleHandler::CloseAllBrowsers(bool force_close)

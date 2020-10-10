@@ -394,6 +394,11 @@ namespace CitizenFX.Core
 				m_realHost.SubmitBoundaryEnd(d, l);
 			}
 
+			public IntPtr GetLastErrorText()
+			{
+				return m_realHost.GetLastErrorText();
+			}
+
 			[SecurityCritical]
 			public override object InitializeLifetimeService()
 			{

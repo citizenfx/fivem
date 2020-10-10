@@ -2058,6 +2058,14 @@ extern fwEvent<> OnReloadMapStore;
 
 static const char* RegisterStreamingFileStrchrWrap(const char* str, const int ch)
 {
+	// do this here, as it's early
+	static bool inited = ([]()
+	{
+		g_streamingPackfiles->Get(0).isHdd = false;
+
+		return true;
+	})();
+
 	// set the name for the later hook to use
 	g_lastStreamingName = str;
 

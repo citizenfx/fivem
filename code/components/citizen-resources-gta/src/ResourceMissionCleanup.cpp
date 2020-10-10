@@ -9,7 +9,6 @@
 #include <Resource.h>
 #include <Error.h>
 
-#ifdef GTA_FIVE
 #include <ScriptHandlerMgr.h>
 #include <scrThread.h>
 #include <scrEngine.h>
@@ -159,7 +158,7 @@ static InitFunction initFunction([] ()
 			{
 				data->dummyThread = new DummyThread(resource);
 
-				OnCreateResourceThread(data->dummyThread);
+				OnCreateResourceThread(data->dummyThread, resource->GetName());
 				CGameScriptHandlerMgr::GetInstance()->AttachScript(data->dummyThread);
 
 				setScriptNow = true;
@@ -251,18 +250,3 @@ static InitFunction initFunction([] ()
 		}, 10000);
 	}, -50);
 });
-#else
-#include <scrThread.h>
-#include <ResourceGameLifetimeEvents.h>
-
-GtaThread* g_resourceThread;
-
-static InitFunction initFunction([]()
-{
-	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
-	{
-		resource->SetComponent(new fx::ResourceGameLifetimeEvents());
-	});
-});
-
-#endif

@@ -30,6 +30,7 @@
 */
 
 #include "StdInc.h"
+#include <CoreConsole.h>
 #include <Error.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -55,8 +56,23 @@ void Log_reset()
 {
 }
 
+static std::shared_ptr<ConVar<int>> mumble_logLevel;
+
+enum LogLevel
+{
+	MLL_FATAL = 0,
+	MLL_WARN,
+	MLL_INFO,
+	MLL_DEBUG
+};
+
 void logthis(const char *logstring, ...)
 {
+	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_INFO)
+	{
+		return;
+	}
+
 	va_list argp;
 	char buf[STRSIZE + 1];
 
@@ -69,6 +85,11 @@ void logthis(const char *logstring, ...)
 
 void Log_warn(const char *logstring, ...)
 {
+	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_WARN)
+	{
+		return;
+	}
+
 	va_list argp;
 	char buf[STRSIZE + 1];
 	int offset = 0;
@@ -84,6 +105,11 @@ void Log_warn(const char *logstring, ...)
 
 void Log_info(const char *logstring, ...)
 {
+	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_INFO)
+	{
+		return;
+	}
+
 	va_list argp;
 	char buf[STRSIZE + 1];
 	int offset = 0;
@@ -99,6 +125,11 @@ void Log_info(const char *logstring, ...)
 
 void Log_info_client(client_t *client, const char *logstring, ...)
 {
+	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_INFO)
+	{
+		return;
+	}
+
 	va_list argp;
 	char buf[STRSIZE + 1];
 	int offset = 0;
@@ -122,7 +153,10 @@ void Log_info_client(client_t *client, const char *logstring, ...)
 
 void Log_debug(const char *logstring, ...)
 {
-	return;
+	if (!mumble_logLevel || mumble_logLevel->GetValue() < MLL_DEBUG)
+	{
+		return;
+	}
 
 	va_list argp;
 	char buf[STRSIZE + 1];
@@ -151,3 +185,8 @@ void Log_fatal(const char *logstring, ...)
 
 	exit(1);
 }
+
+static InitFunction initFunction([]()
+{
+	mumble_logLevel = std::make_shared<ConVar<int>>("mumble_logLevel", ConVar_None, 0);
+});

@@ -50,6 +50,8 @@ namespace fx
 
 		bool UpdateSet();
 
+		void ValidateSize(std::string_view name, uint32_t physSize, uint32_t virtSize);
+
 	private:
 		fx::Resource* m_resource;
 

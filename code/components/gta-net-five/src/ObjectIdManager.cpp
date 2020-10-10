@@ -35,6 +35,7 @@ static uint32_t AssignObjectId(void* objectIds)
 	auto objectId = *it;
 
 	g_objectIds.erase(it);
+	g_stolenObjectIds.erase(objectId);
 	g_usedObjectIds.insert(objectId);
 
 	TheClones->Log("%s: id %d\n", __func__, objectId);
@@ -61,7 +62,10 @@ static bool ReturnObjectId(void* objectIds, uint16_t objectId)
 		// (and only use this for network protocol version 0x201903031957 or above - otherwise server bookkeeping will go out of sync)
 		if (Instance<ICoreGameInit>::Get()->NetProtoVersion < 0x201903031957 || g_stolenObjectIds.find(objectId) == g_stolenObjectIds.end())
 		{
-			g_objectIds.push_back(objectId);
+			if (!TheClones->IsRemovingObjectId(objectId))
+			{
+				g_objectIds.push_back(objectId);
+			}
 		}
 
 		g_stolenObjectIds.erase(objectId);
@@ -114,7 +118,36 @@ void ObjectIds_AddObjectId(int objectId)
 		g_stolenObjectIds.insert(objectId);
 	}
 
+	TheClones->Log("%s: id %d (wasOurs: %s)\n", __func__, objectId, wasOurs ? "true" : "false");
+}
+
+void ObjectIds_ConfirmObjectId(int objectId)
+{
 	TheClones->Log("%s: id %d\n", __func__, objectId);
+
+	g_objectIds.push_back(objectId);
+}
+
+void ObjectIds_StealObjectId(int objectId)
+{
+	TheClones->Log("%s: id %d\n", __func__, objectId);
+
+	if (g_usedObjectIds.find(objectId) != g_usedObjectIds.end())
+	{
+		g_stolenObjectIds.insert(objectId);
+	}
+	else
+	{
+		// remove this object ID from our free list (it was already returned, but server doesn't want it to be ours anymore)
+		for (auto it = g_objectIds.begin(); it != g_objectIds.end(); it++)
+		{
+			if (*it == objectId)
+			{
+				g_objectIds.erase(it);
+				break;
+			}
+		}
+	}
 }
 
 void ObjectIds_RemoveObjectId(int objectId)

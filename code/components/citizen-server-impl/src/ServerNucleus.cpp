@@ -20,9 +20,130 @@
 
 #include <json.hpp>
 
+#if __has_include(<jexl_eval.h>)
+#include <jexl_eval.h>
+
+#ifdef _WIN32
+#pragma comment(lib, "userenv")
+#endif
+
+using json = nlohmann::json;
+
+static json EvaluateJexl(const std::string& in, const json& context)
+{
+	char* out = jexl_eval(in.c_str(), context.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
+	json rv;
+
+	if (out)
+	{
+		std::string outStr = out;
+		jexl_free(out);
+
+		rv = json::parse(outStr);
+	}
+
+	return rv;
+}
+
+static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
+{
+	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", [server](bool success, const char* data, size_t length)
+	{
+		if (success)
+		{
+			json convarList = json::object();
+			json resourceList = json::array();
+
+			auto conCtx = server->GetComponent<console::Context>();
+			conCtx->GetVariableManager()->ForAllVariables([&convarList](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& variable)
+			{
+				convarList[name] = variable->GetValue();
+			});
+
+			auto resman = server->GetComponent<fx::ResourceManager>();
+			resman->ForAllResources([&resourceList](const fwRefContainer<fx::Resource>& resource)
+			{
+				if (resource->GetState() == fx::ResourceState::Started)
+				{
+					resourceList.push_back(json::object({ { "name", resource->GetName() } }));
+				}
+			});
+
+			json contextBlob = json::object();
+			contextBlob["convar"] = convarList;
+			contextBlob["resource"] = resourceList;
+
+			try
+			{
+				json noticeBlob = json::parse(data, data + length);
+
+				for (auto& [ noticeType, data ] : noticeBlob.get<json::object_t>())
+				{
+					auto& conditions = data["conditions"];
+					auto& actions = data["actions"];
+
+					if (conditions.is_array())
+					{
+						for (auto& condition : conditions)
+						{
+							auto cond = condition.get<std::string>();
+							auto rv = EvaluateJexl(cond, contextBlob);
+
+							if (rv.is_boolean() && rv.get<bool>())
+							{
+								// evaluate actions
+								if (actions.is_array())
+								{
+									auto noticeTypeStr = noticeType;
+
+									gscomms_execute_callback_on_main_thread([actions, conCtx, noticeTypeStr]()
+									{
+										trace("^1-- [server notice: %s]^7\n", noticeTypeStr);
+
+										se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
+										
+										try
+										{
+											for (auto& action : actions)
+											{
+												conCtx->ExecuteSingleCommand(action.get<std::string>());
+											}
+										}
+										catch (std::exception& e)
+										{
+										
+										}
+
+										trace("\n");
+									});
+								}
+							}
+						}
+					}
+				}
+			}
+			catch (std::exception& e)
+			{
+				trace("Notice error: %s\n", e.what());
+			}
+		}
+	});
+}
+#else
+static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
+{
+
+}
+#endif
+
 static InitFunction initFunction([]()
 {
 	static auto httpClient = new HttpClient();
+
+	static ConsoleCommand printCmd("print", [](const std::string& str)
+	{
+		trace("%s\n", str);
+	});
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
@@ -59,7 +180,7 @@ static InitFunction initFunction([]()
 
 						setNucleusTimeout = msec() + authDelay;
 
-						httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
+						httpClient->DoPostRequest("https://users.cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
 						{
 							if (!success)
 							{
@@ -98,6 +219,8 @@ static InitFunction initFunction([]()
 
 								setNucleusSuccess = true;
 							}
+
+							DisplayNotices(instance, httpClient);
 						});
 					}
 

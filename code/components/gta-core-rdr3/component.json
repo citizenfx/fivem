@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:allocator",
-		"rage:nutsnbolts"
+		"rage:nutsnbolts",
+		"rage:scripting"
 	],
 	"provides": []
 }

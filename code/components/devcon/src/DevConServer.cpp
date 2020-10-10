@@ -328,7 +328,7 @@ static InitFunction initFunction([]()
 		}
 
 		response->SetStatusCode(404);
-		response->End(fmt::sprintf("Route %s not found.", request->GetPath()));
+		response->End(fmt::sprintf("Route %s not found.", std::string_view{ request->GetPath().c_str() }));
 
 		return true;
 	};
@@ -420,4 +420,14 @@ static InitFunction initFunction([]()
 		});
 	});
 });
+
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
 #endif

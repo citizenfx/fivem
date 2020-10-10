@@ -1,0 +1,350 @@
+@import "variables";
+
+:host {
+	width: 100%;
+	position: relative;
+}
+
+.scroll {
+	width: 100%;
+	height: 100%;
+
+	overflow-x: hidden;
+	overflow-y: auto;
+
+	::ng-deep .cdk-virtual-scroll-content-wrapper {
+		width: 100%;
+	}
+}
+
+.loaders {
+	div {
+		width: 100%;
+		height: var(--q2);
+
+		margin-bottom: 2px;
+
+		@include theme() using ($theme) {
+			background-image: linear-gradient(90deg,
+				transparent,
+				rgba(gtv($theme, fgColor), .1)
+			);
+			background-color: gtv($theme, bgColor);
+		}
+
+		@keyframes bganim {
+			0% {
+				background-position: 0px 0px;
+			}
+			100% {
+				background-position: 1000px 0;
+			}
+		}
+		animation: bganim 10s linear 0s infinite;
+	}
+}
+
+.hint {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	width: 100%;
+	height: 100%;
+
+	h3 {
+		margin-bottom: var(--q2);
+	}
+
+	.favhint {
+		position: relative;
+		margin-bottom: var(--q2);
+
+		.lol {
+			position: absolute;
+			top: calc((var(--q1) + var(--qh)) * -1);
+			right: 0;
+
+			opacity: 0;
+			transform: translateY(10px);
+
+			transition: all .2s ease;
+		}
+
+		.pic {
+			width: 408px;
+			height: 76px;
+
+			background-image: url(../../../../assets/images/favhint2.png);
+		}
+
+		&:hover {
+			.lol {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+	}
+}
+
+.hidden {
+	display: none;
+}
+
+.list {
+	height: 100%;
+	width: 100%;
+	overflow-y: auto;
+}
+
+virtual-scroller {
+	display: block;
+	height: 100%;
+	will-change: transform; /* Chrome calls this a 'slow scroll rect' */
+}
+
+::ng-deep .scrollable-content {
+	will-change: transform;
+}
+
+.history-list {
+	height: 100%;
+	width: 100%;
+	overflow-y: auto;
+
+	.server {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+
+		margin-bottom: var(--qh);
+
+		&:hover {
+			.content {
+				@include theme() using ($theme) {
+					box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+				}
+
+				.actions button {
+					opacity: 1;
+
+					transition: none;
+
+					&.fav {
+						@include theme() using ($theme) {
+							box-shadow: 2px 0 0 rgba(gtv($theme, accentColor1), .5) inset,
+										-2px 0 0 rgba(gtv($theme, accentColor1), .5) inset;
+						}
+					}
+				}
+			}
+		}
+
+		.content {
+			display: flex;
+			align-items: center;
+
+			width: 100%;
+			height: var(--q2);
+
+			padding: 2px;
+
+			@include theme() using ($theme) {
+				background-color: gtv($theme, bgColor);
+			}
+
+			.icon {
+				flex-shrink: 0;
+
+				width: calc(var(--q2) - 4px);
+				height: calc(var(--q2) - 4px);
+
+				z-index: 2;
+
+				::ng-deep img, img {
+					width: 100%;
+					height: 100%;
+				}
+			}
+
+			.title {
+				margin-left: var(--qh);
+
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				font-size: var(--fs-1);
+				line-height: 1;
+
+				flex-grow: 1;
+
+				text-align: left;
+				padding-right: var(--qh);
+
+				@include theme() using ($theme) {
+					color: gtv($theme, secondaryColor);
+				};
+
+				font-feature-settings: 'case', 'liga' 1;
+			}
+
+			.actions {
+				flex-shrink: 0;
+
+				height: 100%;
+
+				display: flex;
+				align-items: center;
+				justify-content: flex-end;
+
+				padding-right: var(--qh);
+
+				button {
+					opacity: 0;
+
+					width: var(--q2);
+
+					flex-grow: 1;
+
+					display: flex;
+					align-items: center;
+					justify-content: center;
+
+					height: calc(100% - 0px);
+
+					background: transparent;
+					border: none;
+					outline: none;
+
+					@include theme() using ($theme) {
+						color: gtv($theme, textColor);
+					};
+
+					transition: all .2s ease;
+
+					svg {
+						width: var(--q1);
+						height: var(--q1);
+					}
+
+					& > .material-icons-outlined {
+						width: var(--fs-1);
+					}
+
+					&.fav {
+						justify-content: center;
+
+						border-right: solid 2px transparent;
+
+						&:hover {
+							@include theme() using ($theme) {
+								color: gtv($theme, accentColor1);
+							}
+						}
+					}
+
+					&.active {
+						opacity: 1;
+
+						@include theme() using ($theme) {
+							color: gtv($theme, accentColor1);
+						};
+					}
+				}
+			}
+
+			.players {
+				flex-shrink: 0;
+				width: var(--q5);
+
+				padding-right: var(--qh);
+
+				text-align: right;
+
+				.max {
+					opacity: .5;
+				}
+			}
+		}
+
+		.info {
+			display: flex;
+			align-items: center;
+
+			padding: 2px;
+			padding-right: 4px;
+
+			font-size: var(--fs-075);
+			font-weight: 100;
+			text-transform: lowercase;
+
+
+			@include backdropPane;
+
+			@include theme() using ($theme) {
+				color: rgba(gtv($theme, fgColor), .75);
+			}
+
+			.status {
+				position: relative;
+
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+
+				margin-right: var(--qh);
+
+				text-align: center;
+				line-height: 1;
+				font-size: var(--fs-075);
+
+				color: var(--color);
+
+				&::before {
+					content: '';
+					display: block;
+
+					flex-shrink: 0;
+
+					width: var(--fs-05);
+					height: var(--fs-05);
+					border-radius: var(--fs-05);
+
+					margin-left: 2px;
+					margin-right: 4px;
+
+					background-color: var(--color);
+				}
+
+				@include theme() using ($theme) {
+					border-color: rgba(gtv($theme, fgColor), .5);
+
+					&.loading {
+						--color: #{gtv($theme, fgColor)};
+
+						@keyframes loading {
+							0% {
+								opacity: .5;
+							}
+							50% {
+								opacity: 1;
+							}
+							100% {
+								opacity: .5;
+							}
+						}
+
+						animation: loading .5s ease 0s infinite;
+					}
+					&.online {
+						--color: rgb(0, 255, 0);
+					}
+					&.offline {
+						--color: red;
+					}
+				}
+			}
+		}
+	}
+}

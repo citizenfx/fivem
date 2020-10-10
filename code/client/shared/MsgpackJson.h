@@ -104,6 +104,7 @@ inline void ConvertToJSON(const msgpack::object& object, rapidjson::Value& value
 			break;
 
 		case msgpack::type::STR:
+		case msgpack::type::BIN:
 		{
 			std::string string = object.as<std::string>();
 			value.SetString(string.c_str(), string.size(), allocator);

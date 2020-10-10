@@ -51,7 +51,7 @@ public:
 
 	bool HandleRequest(fwRefContainer<net::HttpRequest> request, fwRefContainer<net::HttpResponse> response) override
 	{
-		if (request->GetPath().find(m_url) == 0)
+		if (request->GetPath().find(m_url.c_str()) == 0)
 		{
 			response->SetStatusCode(200);
 
@@ -64,7 +64,7 @@ public:
 				response->SetHeader("Content-Type", "text/xml; charset=utf-8");
 			}
 
-			response->End(m_data[request->GetPath().substr(m_url.length())]);
+			response->End(m_data[std::string{ request->GetPath().c_str() }.substr(m_url.length())]);
 		}
 		else
 		{
@@ -122,3 +122,13 @@ static InitFunction initFunction([] ()
 	endpointMapper->AddPrefix("/prod/gtav/", handler);
 	endpointMapper->AddPrefix("/public/", publicHandler);
 });
+
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}

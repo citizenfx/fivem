@@ -276,8 +276,8 @@ namespace net
 class Http2Response : public HttpResponse
 {
 public:
-	inline Http2Response(fwRefContainer<HttpRequest> request, nghttp2_session* session, int streamID)
-		: HttpResponse(request), m_session(session), m_stream(streamID)
+	inline Http2Response(fwRefContainer<HttpRequest> request, nghttp2_session* session, int streamID, const fwRefContainer<net::TcpServerStream>& tcpStream)
+		: HttpResponse(request), m_session(session), m_stream(streamID), m_tcpStream(tcpStream)
 	{
 
 	}
@@ -299,8 +299,10 @@ public:
 			return;
 		}
 
+		auto statusCodeStr = std::to_string(statusCode);
+
 		m_headers = headers;
-		m_headers.insert({ ":status", std::to_string(statusCode) });
+		m_headers.insert({ ":status", HeaderString{ statusCodeStr.c_str(), statusCodeStr.size() } });
 
 		for (auto& header : m_headerList)
 		{
@@ -398,11 +400,25 @@ public:
 	virtual void End() override
 	{
 		m_ended = true;
+		m_tcpStream = nullptr;
 
 		if (m_session)
 		{
 			nghttp2_session_resume_data(m_session, m_stream);
 			nghttp2_session_send(m_session);
+		}
+	}
+
+	virtual void CloseSocket() override
+	{
+		m_ended = true;
+
+		auto s = m_tcpStream;
+
+		if (s.GetRef())
+		{
+			s->Close();
+			s = {};
 		}
 	}
 
@@ -420,6 +436,7 @@ public:
 			}
 		}
 
+		m_tcpStream = nullptr;
 		m_session = nullptr;
 	}
 
@@ -436,6 +453,8 @@ private:
 	HeaderMap m_headers;
 
 	ZeroCopyByteBuffer m_buffer;
+
+	fwRefContainer<net::TcpServerStream> m_tcpStream;
 };
 
 Http2ServerImpl::Http2ServerImpl()
@@ -470,7 +489,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	{
 		HttpConnectionData* connection;
 
-		std::map<std::string, std::string> headers;
+		HeaderMap headers;
 
 		std::vector<uint8_t> body;
 
@@ -637,6 +656,8 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 				if (req)
 				{
 					HeaderMap headerList;
+					HeaderString method;
+					HeaderString path;
 
 					for (auto& header : req->headers)
 					{
@@ -648,11 +669,19 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 						{
 							headerList.emplace("host", header.second);
 						}
+						else if (header.first == ":method")
+						{
+							method = header.second;
+						}
+						else if (header.first == ":path")
+						{
+							path = header.second;
+						}
 					}
 
-					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, req->headers[":method"], req->headers[":path"], headerList, req->connection->stream->GetPeerAddress().ToString());
+					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, method, path, headerList, req->connection->stream->GetPeerAddress());
 					
-					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id);
+					fwRefContainer<HttpResponse> response = new Http2Response(request, session, frame->hd.stream_id, req->connection->stream);
 					req->connection->responses.push_back(response);
 
 					req->httpResp = response;

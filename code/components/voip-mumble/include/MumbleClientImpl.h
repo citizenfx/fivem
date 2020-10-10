@@ -21,6 +21,8 @@
 #include <MumbleAudioInput.h>
 #include <MumbleAudioOutput.h>
 
+#include <concurrent_queue.h>
+
 #include <thread>
 
 #include <uvw.hpp>
@@ -84,6 +86,8 @@ public:
 
 	virtual concurrency::task<void> DisconnectAsync() override;
 
+	virtual void RunFrame() override;
+
 	virtual MumbleConnectionInfo* GetConnectionInfo() override;
 
 	virtual void UpdateVoiceTarget(int idx, const VoiceTargetConfig& config) override;
@@ -95,6 +99,10 @@ public:
 	virtual float GetInputAudioLevel() override;
 
 	virtual void SetChannel(const std::string& channelName) override;
+
+	virtual void AddListenChannel(const std::string& channelName) override;
+
+	virtual void RemoveListenChannel(const std::string& channelName) override;
 
 	virtual std::shared_ptr<lab::AudioContext> GetAudioContext(const std::string& name) override;
 
@@ -151,6 +159,8 @@ private:
 
 	concurrency::task_completion_event<MumbleConnectionInfo*> m_completionEvent;
 
+	concurrency::concurrent_queue<std::tuple<uint32_t, std::array<float, 3>>> m_positionUpdates;
+
 	Botan::AutoSeeded_RNG m_rng;
 
 	MumbleTLSPolicy m_policy;
@@ -190,6 +200,10 @@ private:
 	std::string m_curManualChannel;
 
 	std::string m_lastManualChannel;
+
+	std::set<std::string> m_curChannelListens;
+
+	std::set<std::string> m_lastChannelListens;
 
 	std::map<int, VoiceTargetConfig> m_pendingVoiceTargetUpdates;
 

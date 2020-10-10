@@ -310,6 +310,11 @@ public:
 	// copied IDA code, please improve!
 	inline bool ReadBits(void* data, int length)
 	{
+		if (length == 0)
+		{
+			return true;
+		}
+
 		if (length == 13 && GetLengthHackState())
 		{
 			length = 16;
@@ -477,6 +482,14 @@ public:
 
 		float max = (1 << length) - 1;
 		return ((float)integer / max) * divisor;
+	}
+
+	inline void WriteFloat(int length, float divisor, float value)
+	{
+		float max = (1 << length) - 1;
+		int integer = (int)((value / divisor) * max);
+
+		Write<int>(length, integer);
 	}
 
 	inline float ReadSignedFloat(int length, float divisor)

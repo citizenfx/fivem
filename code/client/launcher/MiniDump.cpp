@@ -73,7 +73,7 @@ static void send_sentry_session(const json& data)
 	std::stringstream bodyData;
 	bodyData << "{}\n";
 	bodyData << R"({"type":"session"})" << "\n";
-	bodyData << data.dump() << "\n";
+	bodyData << data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) << "\n";
 
 	auto r = cpr::Post(
 	cpr::Url{ "https://sentry.fivem.net/api/2/envelope/" },
@@ -103,7 +103,7 @@ static void UpdateSession(json& session)
 
 	if (f)
 	{
-		auto s = session.dump();
+		auto s = session.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
 		fwrite(s.data(), 1, s.size(), f);
 		fclose(f);
 	}
@@ -401,7 +401,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 	if (blame)
 	{
 		static std::wstring errTitle = fmt::sprintf(L"%s encountered an error", blame);
-		static std::wstring errDescription = fmt::sprintf(L"FiveM crashed due to %s.\n%s\n\nIf you require immediate support, please visit <A HREF=\"https://forum.fivem.net/\">FiveM.net</A> and mention the details in this window.", blame, blame_two);
+		static std::wstring errDescription = fmt::sprintf(L"FiveM crashed due to %s.\n%s", blame, blame_two);
 
 		config->pszMainInstruction = errTitle.c_str();
 		config->pszContent = errDescription.c_str();
@@ -429,7 +429,7 @@ static std::wstring GetAdditionalData()
 
 			add_crashometry(jsonData);
 
-			return ToWide(jsonData.dump());
+			return ToWide(jsonData.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 		}
 	}
 
@@ -445,7 +445,7 @@ static std::wstring GetAdditionalData()
 
 			add_crashometry(error_pickup);
 
-			return ToWide(error_pickup.dump());
+			return ToWide(error_pickup.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 		}
 	}
 
@@ -463,7 +463,7 @@ static std::wstring GetAdditionalData()
 			data["what"] = exWhat;
 		}
 
-		return ToWide(data.dump());;
+		return ToWide(data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 	}
 }
 
@@ -500,6 +500,7 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 	return retval;
 }
 
+void SteamInput_Reset();
 void NVSP_ShutdownSafely();
 #endif
 
@@ -890,6 +891,9 @@ static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 	return (LPTHREAD_START_ROUTINE)((char*)modules[0] + off);
 }
 
+extern nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx);
+extern void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::string* stackTrace);
+
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
@@ -909,6 +913,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	{
 		auto process_handle = info->process_handle();
 		DWORD exceptionCode = 0;
+
+		json symCrash;
 
 		{
 			EXCEPTION_POINTERS* ei;
@@ -939,6 +945,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 					if (valid)
 					{
+						DWORD thread;
+						if (info->GetClientThreadId(&thread))
+						{
+							auto th = OpenThread(THREAD_ALL_ACCESS, FALSE, thread);
+
+							if (th)
+							{
+								symCrash = SymbolicateCrash(process_handle, th, &ex, &cx);
+							}
+						}
+
 						DWORD processLen = 0;
 						if (EnumProcessModules(process_handle, nullptr, 0, &processLen))
 						{
@@ -1161,6 +1178,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				shouldTerminate = false;
 			}
 
+			// NVIDIA crashes in Chrome GPU process
+			if (crashHash.find(L"nvwgf2") != std::string::npos)
+			{
+				shouldTerminate = false;
+				shouldUpload = false;
+			}
+
 			// Chrome OOM situations (kOomExceptionCode)
 			if (exceptionCode == 0xE0000008)
 			{
@@ -1173,10 +1197,22 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
 		
 		std::wstring cuz = L"An error";
+		std::string stackTrace;
+		std::string csignature;
+
+		if (!symCrash.is_null())
+		{
+			ParseSymbolicCrash(symCrash, &csignature, &stackTrace);
+		}
 
 		if (!crashHash.empty())
 		{
 			auto ch = UnblameCrash(crashHash);
+
+			if (!csignature.empty())
+			{
+				ch = ToWide(csignature);
+			}
 
 			if (crashHash.find(L".exe") != std::string::npos)
 			{
@@ -1221,9 +1257,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			content += fmt::sprintf(gettext(L"\n\nLegacy crash hash: %s"), HashCrash(crashHash));
 		}
 
+		if (!stackTrace.empty())
+		{
+			content += fmt::sprintf(gettext(L"\nStack trace:\n%s"), ToWide(stackTrace));
+		}
+
 		if (shouldTerminate)
 		{
-			std::thread([]()
+			std::thread([csignature]()
 			{
 				static HostSharedData<CfxState> hostData("CfxInitState");
 				HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
@@ -1236,6 +1277,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				if (gameProcess)
 				{
 					std::string friendlyReason = ToNarrow(HashCrash(crashHash) + L" (" + UnblameCrash(crashHash) + L")");
+
+					if (!csignature.empty())
+					{
+						friendlyReason = csignature;
+					}
 
 					if (!exType.empty())
 					{
@@ -1408,7 +1454,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 #ifdef GTA_NY
 		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
 #elif defined(GTA_FIVE)
-		if (uploadCrashes && shouldUpload && HTTPUpload::SendRequest(L"https://crash-ingress.fivem.net/post", parameters, files, &timeout, &responseBody, &responseCode))
+		if (uploadCrashes && shouldUpload && HTTPUpload::SendMultipartPostRequest(L"https://crash-ingress.fivem.net/post", parameters, files, &timeout, &responseBody, &responseCode))
 #else
 		if (false)
 #endif
@@ -1464,6 +1510,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// revert NVSP disablement
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	NVSP_ShutdownSafely();
+	SteamInput_Reset();
 
 	g_session["status"] = "exited";
 	UpdateSession(g_session);
@@ -1579,7 +1626,13 @@ bool InitializeExceptionHandler()
 			CloseHandle(processInfo.hThread);
 		}
 
-		DWORD waitResult = WaitForSingleObject(initEvent, 7500);
+		DWORD waitResult = WaitForSingleObject(initEvent, 
+#ifdef _DEBUG
+			1500
+#else
+			7500
+#endif
+		);
 
 		if (!isDebugged)
 		{

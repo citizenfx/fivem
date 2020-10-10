@@ -9,10 +9,19 @@
 #include "ComponentLoader.h"
 #include <om/OMComponent.h>
 
+#ifndef IS_FXSERVER
+#include <ResumeComponent.h>
+#endif
+
 int g_argc;
 char** g_argv;
 
-class ComponentInstance : public OMComponentBase<Component>
+class ComponentInstance :
+#ifndef IS_FXSERVER
+	public LifeCyclePreInitComponentBase<OMComponentBase<Component>>
+#else
+	public OMComponentBase<Component>
+#endif
 {
 public:
 	virtual bool Initialize();

@@ -2,7 +2,7 @@
 
 :host {
     display: flex;
-    
+
     justify-content: space-between;
 
     @include appContent;
@@ -10,5 +10,5 @@
 
 app-mods-list {
     width: 50%;
-    padding: $padding;
+    padding: var(--q1);
 }

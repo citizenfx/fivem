@@ -1,0 +1,134 @@
+<div class="filters">
+	<div class="filter on-top">
+		<div class="links">
+			<a
+				[routerLink]="['/servers']"
+				class="nav-item subnav-item"
+				routerLinkActive="active"
+				[routerLinkActiveOptions]="{exact: true}"
+				*ngIf="gameName !== 'rdr3'"
+			>
+				<span class="material-icons-outlined">reorder</span>
+				<span class="label" l10nTranslate>
+					#BottomNav_Servers
+				</span>
+			</a>
+			<a [routerLink]="['/servers/premium']" class="nav-item subnav-item" routerLinkActive="active"
+				*ngIf="gameName !== 'rdr3'">
+				<span class="material-icons-outlined supporters">monetization_on</span>
+				<span class="label" l10nTranslate>
+					#ServerList_Premium
+				</span>
+			</a>
+			<a [routerLink]="['/servers/history']" class="nav-item subnav-item webapp-hide" routerLinkActive="active">
+				<span class="material-icons-outlined history">history</span>
+				<span class="label" l10nTranslate>
+					#ServerList_History
+				</span>
+			</a>
+			<a [routerLink]="['/servers/favorites']" class="nav-item subnav-item webapp-hide" routerLinkActive="active"
+				*ngIf="gameName !== 'rdr3'">
+				<span class="material-icons-outlined favorites">grade</span>
+				<span class="label" l10nTranslate>
+					#ServerList_Favorites
+				</span>
+			</a>
+			<a class="nav-item subnav-item" (click)="connectToLocal()" *ngIf="devMode">
+				<span class="material-icons-outlined localhost">computer</span>
+				<span class="label">
+					Localhost
+				</span>
+			</a>
+		</div>
+	</div>
+
+    <section class="filter stretch" [class.disabled]="type === 'history'">
+		<input class="name" id="searchBox" [type]="streamerMode ? 'password' : 'search'" placeholder="Search or enter an IP address" [(ngModel)]="filters.searchText"
+			(ngModelChange)="updateFiltersDebounced()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
+
+		<div class="search-dropdown" [class.active]="searchFocused">
+			<ul>
+				<li class="streamer-mode-warning" *ngIf="streamerMode">
+					<h4 l10nTranslate>
+						#ServerList_StreamerModeWarning
+					</h4>
+				</li>
+				<li *ngFor="let entry of searchAutocomplete; let i = index" (click)="acceptAutocomplete(entry)" [class.active]="selectedCompletionIndex == i">
+					<h4><b *ngIf="entry.name != ''">{{entry.name}} - </b><span>{{entry.description}}</span></h4>
+					<span *ngIf="entry.example != ''">{{entry.example}}</span>
+				</li>
+			</ul>
+		</div>
+	</section>
+
+    <section class="filter" [class.disabled]="type === 'history'">
+        <div class="extra-filters">
+			<div class="trigger">
+				<span class="material-icons-outlined">filter_alt</span>
+			</div>
+
+			<div class="label">
+				Filter
+			</div>
+
+			<div class="dropdown">
+				<div class="checkboxes">
+					<label class="cfx-checkbox">
+						<input id="hide-empty" type="checkbox" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()"/>
+						<div class="cfx-checkbox-indicator"></div>
+						<span l10nTranslate>#ServerList_HideEmpty</span>
+					</label>
+					<label class="cfx-checkbox">
+						<input id="hide-full" type="checkbox" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()"/>
+						<div class="cfx-checkbox-indicator"></div>
+						<span l10nTranslate>#ServerList_HideFull</span>
+					</label>
+				</div>
+
+				<app-server-tag-filter></app-server-tag-filter>
+			</div>
+		</div>
+	</section>
+
+	<section class="filter" [class.disabled]="type === 'history'">
+		<div class="sorting">
+			<div class="trigger">
+				<span class="material-icons-outlined">sort</span>
+			</div>
+
+			<div class="label">
+				Sort
+			</div>
+
+			<div class="dropdown">
+				<div class="sort-by" (click)="updateSort(sortBy.Boosts)" [class.active]="sortByBoosts">
+					BOOST Power
+				</div>
+				<div class="sort-by" (click)="updateSort(sortBy.Name)" [class.active]="sortByName">
+					Server name:
+					<span *ngIf="sortByNameDesc">A-Z</span>
+					<span *ngIf="sortByNameAsc">Z-A</span>
+				</div>
+				<div class="sort-by" (click)="updateSort(sortBy.Players)" [class.active]="sortByPlayers">
+					Players:
+					<span *ngIf="sortByPlayersDesc && filters.hideEmpty">∞ to 1</span>
+					<span *ngIf="sortByPlayersDesc && !filters.hideEmpty">∞ to 0</span>
+					<span *ngIf="sortByPlayersAsc && filters.hideEmpty">1 to ∞</span>
+					<span *ngIf="sortByPlayersAsc && !filters.hideEmpty">0 to ∞</span>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<div class="rent-a-server cfx-header-item label-left" (click)="rentServer()">
+		<span class="material-icons-outlined">add</span>
+		<div class="label" l10nTranslate>#RentServer</div>
+	</div>
+</div>
+
+<app-direct-connect-backend
+    [addr]="filters.searchText"
+    silent="true"
+    #backend
+>
+</app-direct-connect-backend>

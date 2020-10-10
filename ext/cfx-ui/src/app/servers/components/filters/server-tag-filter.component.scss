@@ -1,0 +1,155 @@
+@import "variables";
+
+:host {
+	height: 100%;
+
+	flex-grow: 1;
+	overflow: hidden;
+}
+
+.filters {
+	display: flex;
+	flex-direction: column;
+
+	height: 100%;
+}
+
+.tags {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+
+	height: 50%;
+
+	@include theme() using ($theme) {
+		border-top: solid 2px rgba(gtv($theme, accentColor1), .25);
+	}
+
+	overflow: hidden;
+
+    h4 {
+		flex-shrink: 0;
+
+		margin-top: var(--qh);
+		margin-left: var(--q1);
+
+		@include fontMontserrat;
+		font-size: var(--fs-2);
+		font-weight: bold;
+		line-height: 1;
+		letter-spacing: 2px;
+		text-transform: uppercase;
+
+		text-align: justify;
+
+		@include theme() using ($theme) {
+			color: rgba(gtv($theme, fgColor), .25);
+		}
+	}
+
+	.reset {
+		position: absolute;
+		top: 0;
+		right: 0;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		height: var(--fs-2);
+		padding: var(--qh);
+		padding-top: var(--q1);
+
+		border: none;
+		background-color: transparent;
+
+		@include fontMontserrat;
+		font-size: var(--fs-075);
+		letter-spacing: 1px;
+		text-transform: uppercase;
+
+		@include theme() using ($theme) {
+			color: gtv($theme, fgColor);
+
+			&:hover {
+				color: gtv($theme, accentContrastColor);
+				background-color: gtv($theme, accentColor1);
+			}
+		}
+	}
+
+    span {
+        vertical-align: middle;
+
+        &.flag-icon {
+            margin-right: 0.5vh;
+        }
+	}
+
+	.list {
+		flex-grow: 1;
+		overflow-y: auto;
+
+		.tag {
+			display: flex;
+			align-items: center;
+
+			padding: var(--qh) var(--q1);
+
+			overflow: hidden;
+
+			font-size: var(--fs-075);
+
+			transition: all .2s ease;
+
+			.indicator {
+				display: none;
+
+				width: calc(var(--q1) - 4px);
+				height: calc(var(--q1) - 4px);
+
+				@include theme using ($theme) {
+					background-color: gtv($theme, bgColor);
+				};
+			}
+
+			&.active {
+				@include theme using ($theme) {
+					background-image: linear-gradient(45deg, transparent, gtv($theme, activeColor));
+				};
+
+				&:hover {
+					@include theme using ($theme) {
+						background-color: gtv($theme, inactiveColor);
+					};
+				}
+			}
+
+			&.inactive {
+				.name {
+					text-decoration: line-through;
+				}
+
+				@include theme using ($theme) {
+					background-image: linear-gradient(45deg, transparent, gtv($theme, inactiveColor));
+				};
+			}
+
+			.name {
+				flex-grow: 1;
+			}
+
+			.count {
+				opacity: .75;
+			}
+
+			&:hover {
+				transition: none;
+
+				@include theme using ($theme) {
+					background-color: gtv($theme, activeColor);
+				};
+			}
+		}
+	}
+}

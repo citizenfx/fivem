@@ -16,6 +16,7 @@
 
 #include <CL2LaunchMode.h>
 #include <HostSharedData.h>
+#include <CrossBuildRuntime.h>
 
 #include <Error.h>
 
@@ -1145,6 +1146,7 @@ static BOOL(*g_oldCreateProcessW)(const wchar_t* applicationName, wchar_t* comma
 								  PROCESS_INFORMATION* information);
 
 int g_rosParentPid;
+extern bool g_launchDone;
 
 std::vector<int> g_subProcessHandles;
 
@@ -1312,6 +1314,8 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 	{
 		if (boost::filesystem::path(applicationName).filename() == L"GTA5.exe" || boost::filesystem::path(applicationName).filename() == L"RDR2.exe")
 		{
+			g_launchDone = true;
+
 			HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
 
 			if (hEvent != INVALID_HANDLE_VALUE)
@@ -1591,6 +1595,11 @@ static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 {
 #if defined(GTA_FIVE)
 	// trailing byte differs between 323 and 505
+	if (Is372())
+	{
+		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
+	}
+
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 #else
 	return (void*)0;

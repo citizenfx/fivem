@@ -27,14 +27,24 @@ public:
 		m_indexMap.resize(streaming->numEntries);
 	}
 
-	inline void updateCount(const char* filterText)
+	inline void updateCount(const char* filterText, bool requested, bool loading, bool loaded)
 	{
 		m_indexMap.clear();
 
 		for (int i = 0; i < m_streaming->numEntries; i++)
 		{
-			if (m_streaming->Entries[i].handle && m_streaming->Entries[i].flags & 3)
+			if (m_streaming->Entries[i].handle)
 			{
+				int state = m_streaming->Entries[i].flags & 3;
+
+				if (!state ||
+					(state == 1 && !loaded) ||
+					(state == 2 && !requested) ||
+					(state == 3 && !loading))
+				{
+					continue;
+				}
+
 				if (!filterText[0] || strstr(streaming::GetStreamingNameForIndex(i).c_str(), filterText) != nullptr)
 				{
 					m_indexMap.push_back(i);
@@ -488,13 +498,30 @@ static InitFunction initFunction([]()
 
 			static char filterText[512];
 			static char lastFilterText[512];
+			static bool loading = true;
+			static bool lastLoading;
+			static bool loaded = true;
+			static bool lastLoaded;
+			static bool requested = true;
+			static bool lastRequested;
+
 			ImGui::InputText("Filter", filterText, sizeof(filterText));
+			ImGui::SameLine();
+			ImGui::Checkbox("Req'd", &requested);
+			ImGui::SameLine();
+			ImGui::Checkbox("Loading", &loading);
+			ImGui::SameLine();
+			ImGui::Checkbox("Loaded", &loaded);
 
 			ImGui::BeginChild("InnerRegion");
-			if ((GetTickCount() - lastTime) > 5000 || strcmp(filterText, lastFilterText) != 0)
+			if ((GetTickCount() - lastTime) > 1500 || strcmp(filterText, lastFilterText) != 0 ||
+				requested != lastRequested || loaded != lastLoaded || loading != lastLoading)
 			{
-				lv.updateCount(filterText);
+				lv.updateCount(filterText, requested, loading, loaded);
 				memcpy(lastFilterText, filterText, sizeof(filterText));
+				lastRequested = requested;
+				lastLoaded = loaded;
+				lastLoading = loading;
 
 				lastTime = GetTickCount();
 			}
@@ -526,67 +553,101 @@ static InitFunction initFunction([]()
 
 			ImGui::Text("Pending resource requests: %d", streaming->NumPendingRequests3);
 
-			if (ImGui::CollapsingHeader("Request list"))
+			std::vector<uint32_t> ifrs;
+			int ifr = 0;
+
+			auto es = streaming->Entries;
+
+			if (es)
 			{
-				for (const auto* entry = streaming->RequestListHead; entry; entry = entry->Next)
+				for (int i = 0; i < streaming->numEntries; i++)
 				{
-					auto entryName = streaming::GetStreamingNameForIndex(entry->Index);
-					auto data = &streaming->Entries[entry->Index];
+					auto& entry = es[i];
 
-					// try getting streaming data
-					StreamingPackfileEntry* spf = streaming::GetStreamingPackfileForEntry(data);
-
-					if (spf)
+					if ((entry.flags & 3) == 3) // loading
 					{
-						if (entryName.empty() && spf->packfile)
-						{
-							rage::fiCollection* collection = (rage::fiCollection*)spf->packfile;
+						ifrs.push_back(i);
+						ifr++;
+					}
+				}
+			}
 
-							char nameBuffer[256] = { 0 };
-							collection->GetEntryNameToBuffer(data->handle & 0xFFFF, nameBuffer, 255);
+			ImGui::Text("In-Flight Requests: %d", ifr);
 
-							entryName = nameBuffer;
-						}
+			auto push = [streaming](uint32_t idx)
+			{
+				auto entryName = streaming::GetStreamingNameForIndex(idx);
+				auto data = &streaming->Entries[idx];
 
-						if (!entryName.empty())
-						{
-							// is this a networked packfile?
-							if (!spf->isHdd)
-							{
-								entryName += " [NET]";
-							}
+				// try getting streaming data
+				StreamingPackfileEntry* spf = streaming::GetStreamingPackfileForEntry(data);
 
-							// is this a known packfile?
-							if (spf->packfile)
-							{
-								const char* name = spf->packfile->GetName();
+				if (spf)
+				{
+					if (entryName.empty() && spf->packfile)
+					{
+						rage::fiCollection* collection = (rage::fiCollection*)spf->packfile;
 
-								// strip from any / at the end
-								const char* lastChar = strrchr(name, '/');
+						char nameBuffer[256] = { 0 };
+						collection->GetEntryNameToBuffer(data->handle & 0xFFFF, nameBuffer, 255);
 
-								if (lastChar)
-								{
-									name = lastChar + 1;
-								}
-
-								entryName += std::string(" (") + name + ")";
-							}
-						}
+						entryName = nameBuffer;
 					}
 
 					if (!entryName.empty())
 					{
-						// replace .y* with .#*
-						auto yPos = entryName.find(".y");
-
-						if (yPos != std::string::npos)
+						// is this a networked packfile?
+						if (!spf->isHdd)
 						{
-							entryName = entryName.substr(0, yPos) + ".#" + entryName.substr(yPos + 2);
+							entryName += " [NET]";
 						}
 
-						// add to imgui
-						ImGui::Selectable(entryName.c_str());
+						// is this a known packfile?
+						if (spf->packfile)
+						{
+							const char* name = spf->packfile->GetName();
+
+							// strip from any / at the end
+							const char* lastChar = strrchr(name, '/');
+
+							if (lastChar)
+							{
+								name = lastChar + 1;
+							}
+
+							entryName += std::string(" (") + name + ")";
+						}
 					}
+				}
+
+				if (!entryName.empty())
+				{
+					// replace .y* with .#*
+					auto yPos = entryName.find(".y");
+
+					if (yPos != std::string::npos)
+					{
+						entryName = entryName.substr(0, yPos) + ".#" + entryName.substr(yPos + 2);
+					}
+
+					// add to imgui
+					ImGui::Selectable(entryName.c_str());
+				}
+			};
+
+			if (ImGui::CollapsingHeader("IFRs"))
+			{
+				for (uint32_t entry : ifrs)
+				{
+					push(entry);
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Request list"))
+			{
+				for (const auto* entry = streaming->RequestListHead; entry; entry = entry->Next)
+				{
+					push(entry->Index);
 				}
 			}
 		}

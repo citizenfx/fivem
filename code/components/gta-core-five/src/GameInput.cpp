@@ -354,6 +354,11 @@ static hook::cdecl_stub<bool(int)> _isMenuActive([]
 	return hook::get_call(hook::get_pattern("33 C9 E8 ? ? ? ? 84 C0 74 04 84 DB 75 21", 2));
 });
 
+static hook::cdecl_stub<bool()> _isTextInputBoxActive([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 40 84 FF 74 15 E8", 10));
+});
+
 bool IsTagActive(const std::string& tag);
 
 void Binding::Update(rage::ioMapper* mapper)
@@ -369,6 +374,12 @@ void Binding::Update(rage::ioMapper* mapper)
 	}
 
 	bool down = m_value.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE);
+
+	// text input should count as up
+	if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && _isTextInputBoxActive())
+	{
+		down = false;
+	}
 
 	bool isDownEvent = (!m_wasDown && down);
 	bool isUpEvent = (m_wasDown && !down);
@@ -703,7 +714,7 @@ void BindingManager::CreateButtons()
 			auto button = std::make_unique<Button>(thisNameStr);
 			button->SetFromControl(g_control, field->index);
 
-			if (!Is1868())
+			if (!Is2060())
 			{
 				button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
 			}
@@ -819,7 +830,7 @@ namespace game
 
 			for (auto& binding : bindingManager.GetBindings())
 			{
-				if (binding.second->GetCommand() == command)
+				if (binding.second->GetCommand() == command && IsTagActive(binding.second->GetTag()))
 				{
 					return;
 				}
@@ -888,7 +899,7 @@ static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding
 
 			for (auto& bindingSet : bindingManager.GetBindings())
 			{
-				if (bindingSet.second->GetCommand() == controlRef.first)
+				if (bindingSet.second->GetCommand() == controlRef.first && IsTagActive(bindingSet.second->GetTag()))
 				{
 					bindingSet.second->GetBinding(*outBinding);
 					outBinding->unk = source;
@@ -1004,6 +1015,11 @@ static void MapFuncHook(void* a1, uint32_t controlIdx, void* a3, void* a4)
 
 static HookFunction hookFunction([]()
 {
+	if (Is372())
+	{
+		return;
+	}
+
 	console::GetDefaultContext()->OnSaveConfiguration.Connect([](const std::function<void(const std::string&)>& writeLine)
 	{
 		writeLine("unbindall");

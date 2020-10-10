@@ -12,6 +12,14 @@
 
 #include <console/ConsoleWriter.h>
 
+#if __has_include(<json.hpp>)
+#define CONSOLE_JSON_PARSE
+
+#include <json.hpp>
+
+using json = nlohmann::json;
+#endif
+
 static console::IWriter* g_writer;
 extern bool GIsPrinting();
 
@@ -182,13 +190,35 @@ void Context::ExecuteBuffer()
 		while (m_commandBuffer.length() > 0)
 		{
 			// parse the command up to the first occurrence of a newline/semicolon
-			int i        = 0;
+			size_t i     = 0;
 			bool inQuote = false;
 
 			size_t cbufLength = m_commandBuffer.length();
 
 			for (i = 0; i < cbufLength; i++)
 			{
+#ifdef CONSOLE_JSON_PARSE
+				if (!inQuote && (m_commandBuffer[i] == '{' || m_commandBuffer[i] == '['))
+				{
+					std::stringstream oss;
+					oss << m_commandBuffer.substr(i);
+					oss.seekg(0);
+
+					try
+					{
+						json j;
+						oss >> j;
+
+						i += oss.tellg();
+						i -= 1;
+						continue;
+					}
+					catch (json::exception&)
+					{
+					}
+				}
+#endif
+
 				if (m_commandBuffer[i] == '"')
 				{
 					inQuote = !inQuote;
@@ -435,6 +465,31 @@ ProgramArguments Tokenize(const std::string& lineUtf8)
 
 		// there's a new argument on the block
 		std::basic_stringstream<typename ProgramArguments::TCharType> arg;
+
+#ifdef CONSOLE_JSON_PARSE
+		if ((line[i] == '{' || line[i] == '['))
+		{
+			std::basic_stringstream<typename ProgramArguments::TCharType> oss;
+			oss << line.substr(i);
+			oss.seekg(0);
+
+			try
+			{
+				json j;
+				oss >> j;
+
+				int start = i;
+				i += oss.tellg();
+
+				args.push_back(line.substr(start, i - start));
+
+				continue;
+			}
+			catch (json::exception&)
+			{
+			}
+		}
+#endif
 
 		// quoted strings
 		if (line[i] == U'"')

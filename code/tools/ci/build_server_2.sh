@@ -32,10 +32,10 @@ apk --no-cache update
 apk del curl
 
 # install runtime dependencies
-apk add --no-cache curl=7.63.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8
+apk add --no-cache curl=7.72.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8 musl-dbg
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps curl-dev=7.63.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs yarn clang-libs git
+apk add --no-cache --virtual .dev-deps curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs yarn clang-libs git cargo
 
 # install ply
 python2 -m easy_install ply
@@ -77,6 +77,10 @@ cat >> /src/code/client/clrcore/NativesServer.cs << EOF
 EOF
 
 lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
+
+# build rusty bits
+cd /src/ext/jexl-eval
+cargo build --release
 
 # download and extract boost
 cd /tmp
@@ -162,7 +166,7 @@ done
 
 # copy debug info
 for i in /opt/cfx-server/*.so /opt/cfx-server/FXServer; do
-	objcopy --only-keep-debug $i $i.dbg
+	objcopy --only-keep-debug --compress-debug-sections=zlib $i $i.dbg
 	objcopy --strip-unneeded $i
 	objcopy --add-gnu-debuglink=$i.dbg $i
 done
@@ -171,6 +175,44 @@ cd /opt/cfx-server
 
 # clean up
 rm -rf /tmp/boost
+
+add_build_id()
+{
+	local sha1="$1"
+	local exename="$2"
+
+	[ -L $exename ] && return || true
+
+	local tmp=`mktemp /tmp/build-id.XXXXXX`
+
+	if readelf --file-header $exename | grep "big endian" > /dev/null; then
+		echo -en "\x00\x00\x00\x04" >> $tmp # name_size
+		echo -en "\x00\x00\x00\x14" >> $tmp # hash_size
+		echo -en "\x00\x00\x00\x03" >> $tmp # NT_GNU_BUILD_ID
+	elif readelf --file-header $exename | grep "little endian" > /dev/null; then
+		echo -en "\x04\x00\x00\x00" >> $tmp # name_size
+		echo -en "\x14\x00\x00\x00" >> $tmp # hash_size
+		echo -en "\x03\x00\x00\x00" >> $tmp # NT_GNU_BUILD_ID
+	else
+		echo >&2 "Could not determine endianness for: $exename"
+		return 1
+	fi
+
+	echo -en "GNU\x00" >> $tmp # GNU\0
+	printf "$(echo $sha1 | sed -e 's/../\\x&/g')" >> $tmp
+
+	objcopy --remove-section .note.gnu.build-id $exename || true
+	objcopy --add-section .note.gnu.build-id=$tmp $exename
+	rm $tmp
+}
+
+for i in /lib/*.so.* /usr/lib/*.so.*; do
+	sha1=`sha1sum $i | sed -e 's/ .*//g'`
+	add_build_id $sha1 $i
+	if [ -f "/usr/lib/debug$i.debug" ]; then
+		add_build_id $sha1 "/usr/lib/debug$i.debug"
+	fi
+done
 
 apk del .dev-deps
 

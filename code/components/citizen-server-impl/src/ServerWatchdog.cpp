@@ -136,7 +136,7 @@ void PlatformBark(const std::string& loopName)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = dumpPath;
 
-		if (google_breakpad::HTTPUpload::SendRequest(L"https://sentry.fivem.net/api/4/minidump/?sentry_key=8bc0468f1732468ab52d15b77c5fb2fb", parameters, files, nullptr, &responseBody, &responseCode))
+		if (google_breakpad::HTTPUpload::SendMultipartPostRequest(L"https://sentry.fivem.net/api/4/minidump/?sentry_key=8bc0468f1732468ab52d15b77c5fb2fb", parameters, files, nullptr, &responseBody, &responseCode))
 		{
 			if (responseCode >= 200 && responseCode < 399)
 			{

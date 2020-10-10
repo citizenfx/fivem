@@ -73,7 +73,23 @@ public:
 		}
 	}
 
-	bool Consume(const TKey& key, double n = 1.0)
+	void ReturnToken(const TKey& key, double n = 1.0)
+	{
+		std::unique_lock<std::mutex> lock(m_mutex);
+
+		auto mangled = KeyMangler<TKey>()(key);
+
+		auto it = m_buckets.find(mangled);
+
+		if (it == m_buckets.end())
+		{
+			it = m_buckets.emplace(mangled, TBucket{ m_genRate, m_burstSize }).first;
+		}
+
+		it->second.returnTokens(n);
+	}
+
+	bool Consume(const TKey& key, double n = 1.0, bool* isCooldown = nullptr)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -87,6 +103,11 @@ public:
 			{
 				if (std::chrono::high_resolution_clock::now().time_since_epoch() <= cit->second)
 				{
+					if (isCooldown)
+					{
+						*isCooldown = true;
+					}
+
 					return false;
 				}
 
@@ -116,7 +137,7 @@ public:
 
 			if (!cooldownValid)
 			{
-				m_cooldowns[mangled] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(60));
+				m_cooldowns[mangled] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() + std::chrono::seconds(15));
 			}
 		}
 

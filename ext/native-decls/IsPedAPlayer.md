@@ -1,5 +1,5 @@
 ---
-ns: PED
+ns: CFX
 apiset: server
 ---
 ## IS_PED_A_PLAYER

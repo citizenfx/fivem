@@ -1,75 +1,73 @@
-import {NgModule} from '@angular/core';
-import {Routes, RouterModule} from '@angular/router';
+import { NgModule } from '@angular/core';
+import { Routes, RouterModule } from '@angular/router';
 
-import {SplashComponent} from './home/splash.component';
-import {HomeComponent} from './home/home.component';
-import {SettingsComponent} from './settings/settings.component';
-import {MinModeComponent} from './minmode/minmode.component';
-import {ServersComponent} from './servers/components/servers.component';
-import {ServersDetailComponent} from './servers/components/servers-detail.component';
-import {ServersContainerComponent} from './servers/components/servers-container.component';
-import {DirectConnectComponent} from './servers/direct/direct-connect.component';
+import { HomeComponent } from './home/home.component';
+import { SettingsComponent } from './settings/settings.component';
+import { ServersComponent } from './servers/components/servers.component';
+import { ServersDetailComponent } from './servers/components/detail/servers-detail.component';
+import { ServersContainerComponent } from './servers/components/servers-container.component';
+import { DirectConnectComponent } from './servers/direct/direct-connect.component';
 
 import { environment } from '../environments/environment';
 import { MetaGuard } from '@ngx-meta/core';
 import { ModsComponent } from './mods/mods/mods.component';
 import { ModListComponent } from './mods/mod-list/mod-list.component';
 import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
-import { ChangelogPopupComponent } from './home/app-changelog-popup.component';
+import { ChangelogPopupComponent } from './changelog/app-changelog-popup.component';
 import { CreateHomeComponent } from './create/create-home/create-home.component';
 import { CreateEditorComponent } from './create/create-editor/create-editor.component';
 import { StoryHomeComponent } from './story/story-home/story-home.component';
 
 const routes: Routes = [
 	{
-		path:      '',
-		component: (environment.web) ? ServersContainerComponent : SplashComponent,
-		data: 	   { type: 'browse', meta: { title: 'FiveM' } },
+		path: '',
+		component: (environment.web) ? ServersContainerComponent : HomeComponent,
+		data: { type: 'browse', meta: { title: 'FiveM' } },
 		canActivateChild: [MetaGuard],
 	},
 	{
-		path:      'home',
+		path: 'home',
 		component: HomeComponent,
 		canActivateChild: [MetaGuard],
 	},
 	{
-		path:	   'changelog',
+		path: 'changelog',
 		component: ChangelogPopupComponent,
 	},
 	{
-		path:      'servers',
+		path: 'servers',
 		component: ServersComponent,
 		data: {
 			meta: { title: 'Servers' }
 		},
 		canActivateChild: [MetaGuard],
-		children:  [
+		children: [
 			{
-				path:      '',
+				path: '',
 				component: ServersContainerComponent,
-				data:      {type: 'browse', meta: { title: 'Servers' }}
+				data: { type: 'browse', meta: { title: 'Servers' } }
 			},
 			{
-				path:      'favorites',
+				path: 'favorites',
 				component: ServersContainerComponent,
-				data:      {type: 'favorites', meta: { title: 'Favorites' }}
+				data: { type: 'favorites', meta: { title: 'Favorites' } }
 			},
 			{
-				path:      'history',
+				path: 'history',
 				component: ServersContainerComponent,
-				data:      {type: 'history', meta: { title: 'History' }}
+				data: { type: 'history', meta: { title: 'History' } }
 			},
 			{
-				path:      'premium',
+				path: 'premium',
 				component: ServersContainerComponent,
-				data:      {type: 'premium', meta: { title: 'Premium' }}
+				data: { type: 'premium', meta: { title: 'Premium' } }
 			},
 			{
-				path:      'direct-connect',
+				path: 'direct-connect',
 				component: DirectConnectComponent
 			},
 			{
-				path:	   'detail/:addr',
+				path: 'detail/:addr',
 				component: ServersDetailComponent
 			}
 		]
@@ -101,12 +99,8 @@ const routes: Routes = [
 		component: StoryHomeComponent,
 	},
 	{
-		path:      'settings',
+		path: 'settings',
 		component: SettingsComponent
-	},
-	{
-		path:      'minmode',
-		component: MinModeComponent
 	}
 ];
 

@@ -9,7 +9,7 @@ local function isGamePersonality(name)
 		return isLauncherPersonality(name)
 	end
 
-	if name == 'game' or name == 'game_1868' then
+	if name == 'game' or name == 'game_2060' or name == 'game_372' then
 		return true
 	end
 	
@@ -56,7 +56,10 @@ local function launcherpersonality(name)
 		
 		if isGamePersonality(name) then
 			if _OPTIONS['game'] == 'five' then
-				local gameBuild = (name == 'game_1868') and '1868' or '1604'
+				local gameBuild = '1604'
+				
+				if name == 'game_2060' then gameBuild = '2060_2' end
+				if name == 'game_372' then gameBuild = '372' end
 			
 				postbuildcommands {
 					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
@@ -94,7 +97,7 @@ local function launcherpersonality(name)
 		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue', 'vendor:boost_locale-crt' }
 		
 		if isLauncherPersonality(name) then
-			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt' }
+			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:openssl_crypto_crt' }
 		end
 		
 		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
@@ -147,7 +150,8 @@ launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game'
-	launcherpersonality 'game_1868'
+	launcherpersonality 'game_372'
+	launcherpersonality 'game_2060'
 end
 
 externalproject "Win2D"

@@ -77,10 +77,10 @@ static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::net
 		return g_orig_netObjectMgrBase__ChangeOwner(manager, object, targetPlayer, migrationType);
 	}
 
-	CloneObjectMgr->ChangeOwner(object, targetPlayer, migrationType);
-
 	object->ChangeOwner(targetPlayer, migrationType);
 	object->PostMigrate(migrationType);
+
+	CloneObjectMgr->ChangeOwner(object, targetPlayer, migrationType);
 }
 
 static rage::netObject* (*g_orig_netObjectMgrBase__GetNetworkObject)(rage::netObjectMgr* manager, uint16_t id, bool evenIfDeleting);
@@ -135,7 +135,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("8A 42 4C 45 33 FF 48 8B DA C0 E8 02", -0x21), netObjectMgrBase__DestroyNetworkObject, (void**)&g_orig_netObjectMgrBase__DestroyNetworkObject); //
 	MH_CreateHook(hook::get_pattern("44 8A 62 4B 33 DB 41 8B E9", -0x20), netObjectMgrBase__ChangeOwner, (void**)&g_orig_netObjectMgrBase__ChangeOwner); //
 	MH_CreateHook(hook::get_pattern("44 38 33 75 30 66 44", -0x40), netObjectMgrBase__GetNetworkObject, (void**)&g_orig_netObjectMgrBase__GetNetworkObject); //
-	MH_CreateHook(hook::get_pattern("41 80 78 2D FF 74 2D 41 0F B6 40 2D"), netObjectMgrBase__GetNetworkObjectForPlayer, (void**)& g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
+	MH_CreateHook(hook::get_pattern("41 80 78 ? FF 74 2D 41 0F B6 40"), netObjectMgrBase__GetNetworkObjectForPlayer, (void**)& g_orig_netObjectMgrBase__GetNetworkObjectForPlayer);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 

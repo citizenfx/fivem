@@ -14,7 +14,7 @@ static void SendConvar(const std::string& name, const std::string& value)
 			{ "value", value }
 			});
 
-		nui::PostFrameMessage("mpMenu", variableJson.dump());
+		nui::PostFrameMessage("mpMenu", variableJson.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 	}
 }
 
@@ -32,7 +32,7 @@ void NuiConsole_SetConvars()
 	{
 		nui::PostFrameMessage("mpMenu", nlohmann::json::object({ { "type", "convarsSet" },
 															   { "vars", std::move(vars) } })
-										.dump());
+										.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 	}
 }
 

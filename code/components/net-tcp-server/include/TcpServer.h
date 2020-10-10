@@ -10,6 +10,8 @@
 #include "NetAddress.h"
 #include <function2.hpp>
 
+#include <shared_mutex>
+
 #ifdef COMPILING_NET_TCP_SERVER
 #define TCP_SERVER_EXPORT DLL_EXPORT
 #else
@@ -34,14 +36,18 @@ private:
 
 	TCloseCallback m_closeCallback;
 
+	std::shared_mutex m_cbMutex;
+
 protected:
-	inline const TReadCallback& GetReadCallback()
+	inline TReadCallback GetReadCallback()
 	{
+		std::shared_lock<std::shared_mutex> _(m_cbMutex);
 		return m_readCallback;
 	}
 
-	inline const TCloseCallback& GetCloseCallback()
+	inline TCloseCallback GetCloseCallback()
 	{
+		std::shared_lock<std::shared_mutex> _(m_cbMutex);
 		return m_closeCallback;
 	}
 

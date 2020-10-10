@@ -300,7 +300,7 @@ namespace rage
 		return hook::get_pattern("0F 57 C0 48 8D 41 10 BA 03 00 00 00");
 	});
 
-	static uint32_t* initParamVal;
+	static uint8_t* initParamVal;
 
 	audSoundInitParams::audSoundInitParams()
 	{
@@ -539,7 +539,7 @@ namespace rage
 
 		g_categoryMgr = hook::get_address<audCategoryManager*>(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", -4));
 
-		initParamVal = hook::get_address<uint32_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16b));
+		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16));
 	});
 
 	static hook::cdecl_stub<audWaveSlot*(uint32_t)> _findWaveSlot([]()
@@ -762,6 +762,11 @@ static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_g
 	return hook::get_pattern("EB 19 80 78 10 04 75 05", -0x1F);
 });
 
+static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_getAudioInteriorLocation([]()
+{
+	return hook::get_pattern("66 89 02 8A 41 28 3C 04 75 09", -0xB);
+});
+
 void MumbleAudioEntity::PreUpdateService(uint32_t)
 {
 	if (m_sound)
@@ -770,7 +775,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 
 		if (m_distance > 0.01f)
 		{
-			settings->SetVolumeCurveScale(m_distance / 5.0f);
+			settings->SetVolumeCurveScale(m_distance / 10.0f);
 		}
 		else
 		{
@@ -788,7 +793,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 			*((char*)settings + 369) |= 8;
 		}
 
-		settings->SetEnvironmentalLoudness(255);
+		settings->SetEnvironmentalLoudness(60);
 	}
 
 	// debugging position logic
@@ -818,7 +823,16 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 		if (m_ped)
 		{
 			rage::fwInteriorLocation interiorLocation;
-			_entity_getInteriorLocation(m_ped, interiorLocation);
+			_entity_getAudioInteriorLocation(m_ped, interiorLocation);
+
+			// if this isn't an interior, reset the interior pointer thing
+			if (interiorLocation.GetInteriorIndex() == 0xFFFF)
+			{
+				char* envGroup = (char*)m_environmentGroup;
+				*(void**)(envGroup + 240) = nullptr;
+				*(void**)(envGroup + 248) = nullptr;
+			}
+
 			m_environmentGroup->SetInteriorLocation(interiorLocation);
 		}
 	}
@@ -881,7 +895,7 @@ MumbleAudioSink::~MumbleAudioSink()
 void MumbleAudioSink::SetPosition(float position[3], float distance, float overrideVolume)
 {
 	m_position = rage::Vec3V{
-		position[0], position[1], position[2]
+		position[0], position[2], position[1]
 	};
 
 	m_distance = distance;
@@ -942,8 +956,9 @@ void MumbleAudioSink::Process()
 #endif
 
 	auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, m_serverId);
+	bool isNoPlayer = (playerId > 256 || playerId == -1);
 
-	if (playerId > 256 || playerId == -1)
+	if (isNoPlayer && m_overrideVolume <= 0.0f)
 	{
 		m_entity = {};
 	}
@@ -957,7 +972,7 @@ void MumbleAudioSink::Process()
 
 		m_entity->SetPosition((float*)&m_position, m_distance, m_overrideVolume);
 		
-		auto ped = FxNativeInvoke::Invoke<int>(getPlayerPed, playerId);
+		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
 
 		if (ped > 0)
 		{
@@ -1265,7 +1280,7 @@ static InitFunction initFunction([]()
 
 		if (controller)
 		{
-			*(float*)(&controller[0]) = volume * 3.0f;
+			*(float*)(&controller[0]) = volume * 10.0f;
 			*(float*)(&controller[4]) = 0.0f;
 		}
 	});

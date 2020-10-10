@@ -1,61 +1,145 @@
-$fonts: 'Segoe UI', 'Roboto';
-
-$width: 93vw;
-$height: 96vh;
-
-$fontSize: 2vh;
-$padding: 1vh;
-$multiplier: 1.6813; 
-
-$appNavHeight: 5vh;
-$appContentPadding: $padding*2;
-$appContentMargin: 4vh;
-$appContentHeight: calc(#{$height} - #{$appNavHeight} - #{$appContentMargin});
-$appContentWidth: calc(#{$width} - #{$appContentPadding});
-
-$appServersItemHeight: 2.5vh;
-$appServersHeaderHeight: $appServersItemHeight;
-
-$filterHeight: 5.5vh;
-
 $colorsLight: (
-    bgColour: #93a1a1,
-    fgColour: rgb(40, 40, 40),
-    secondaryColour: rgb(60, 60, 60),
-    greenyColour: rgb(244, 180, 62),
-    yellowColour: hsl(53, 100%, 50%),
-    redColour: hsl(30, 100%, 40%),
-    blueColour: hsl(180, 100%, 40%),
-    textColour: rgb(40, 40, 40),
+    bgColor: hsl(60, 100%, 97%),
+    fgColor: hsl(226, 23%, 11%),
+	secondaryColor: rgb(60, 60, 60),
+	accentContrastColor: hsl(60, 100%, 97%),
+    accentColor1: #f40552,
+	accentColor2: #007892,
+	shadeColor: hsla(226, 23%, 11%, .1),
+
+	auColor: rgb(146, 124, 0),
+
+	activeColor: rgb(0, 155, 103),
+	inactiveColor: rgb(128, 0, 21),
+
+    yellowColor: hsl(53, 100%, 50%),
+    redColor: hsl(30, 100%, 40%),
+	blueColor: hsl(180, 100%, 40%),
+    textColor: hsl(226, 23%, 11%),
     acrylicBlur: url(#acrylicBlur),
     backgroundImage: none
 );
 
 $colorsDark: (
-    bgColour: rgb(40, 40, 40),
-    fgColour: rgb(240, 240, 240),
-    secondaryColour: rgb(240, 240, 240),
-    greenyColour: rgb(244, 180, 62),
-    yellowColour: hsl(53, 100%, 50%),
-    redColour: hsl(10, 100%, 40%),
-    blueColour: hsl(180, 100%, 40%),
-    textColour: rgb(240, 240, 240),
+    bgColor: hsl(226, 23%, 11%),
+	fgColor: hsl(60, 100%, 97%),
+	accentContrastColor: hsl(60, 100%, 97%),
+	accentColor1: #f40552,
+	accentColor2: #007892,
+	shadeColor: hsla(226, 23%, 11%, .1),
+
+	auColor: rgb(255, 217, 0),
+
+	activeColor: rgb(0, 155, 103),
+	inactiveColor: rgb(128, 0, 21),
+
+    secondaryColor: rgb(240, 240, 240),
+    yellowColor: hsl(53, 100%, 50%),
+	redColor: hsl(10, 100%, 40%),
+	blueColor: hsl(180, 100%, 40%),
+    textColor: hsl(60, 100%, 97%),
     acrylicBlur: url(#acrylicBlurDark),
     backgroundImage: none
 );
 
 $colorsRdr: (
-    bgColour: rgb(40, 40, 40),
-    fgColour: rgb(240, 240, 240),
-    secondaryColour: rgb(240, 240, 240),
-    greenyColour: rgb(216, 13, 13),
-    yellowColour: hsl(53, 100%, 50%),
-    redColour: hsl(10, 100%, 40%),
-    blueColour: hsl(180, 100%, 40%),
-    textColour: rgb(240, 240, 240),
+    bgColor: rgb(40, 40, 40),
+    fgColor: rgb(240, 240, 240),
+	secondaryColor: rgb(240, 240, 240),
+	accentContrastColor: hsl(60, 100%, 97%),
+	accentColor1: rgb(216, 13, 13),
+	accentColor2: rgb(216, 13, 13),
+
+	auColor: rgb(255, 217, 0),
+
+	activeColor: rgb(0, 155, 103),
+	inactiveColor: rgb(128, 0, 21),
+
+    yellowColor: hsl(53, 100%, 50%),
+    redColor: hsl(10, 100%, 40%),
+	blueColor: hsl(180, 100%, 40%),
+    textColor: rgb(240, 240, 240),
     acrylicBlur: url(#acrylicBlurDark),
     backgroundImage: url(https://cdn.discordapp.com/attachments/644430138276184066/645339402847125504/Red_Dead_Redemption_2_Screenshot_2019.11.16_-_20.07.53.92.png) /* temp placeholder */
 );
+
+
+@mixin backdropBlurred() {
+	backdrop-filter: blur(20px);
+	--opacity-clamp: 0.0;
+
+	:host-context(.blur-noBackdrop) & {
+		backdrop-filter: none;
+		--opacity-clamp: 0.6;
+	}
+}
+
+@mixin backdropPane($color: bgColor, $opacity: .4) {
+	@include backdropBlurred();
+
+	@include theme() using ($theme) {
+		& {
+			background-color: rgba(gtv($theme, $color), max(var(--opacity-clamp), #{$opacity}));
+		}
+	}
+
+	@include themeNoHost() using ($theme) {
+		& {
+			background-color: rgba(gtv($theme, $color), max(var(--opacity-clamp), #{$opacity}));
+		}
+	}
+}
+
+@mixin borderedPane() {
+	@include theme() using ($theme) {
+		& {
+			box-shadow: 0 2px 0 gtv($theme, shadeColor) inset, 0 -2px 0 gtv($theme, shadeColor) inset;
+		}
+	}
+}
+
+@mixin borderedPaneTopOnly() {
+	@include theme() using ($theme) {
+		& {
+			box-shadow: 0 2px 0 gtv($theme, shadeColor) inset;
+		}
+	}
+}
+
+@mixin patternBackground() {
+	background-image: url(../../assets/images/bgpat.png);
+	background-size: 200px;
+}
+
+@mixin headerSafeZonePadding($extra: 0) {
+	padding: #{$extra} calc(var(--header-safe-right) + #{$extra}) #{$extra} calc(var(--header-safe-left) + #{$extra});
+}
+
+@mixin headerSafeZoneMargin() {
+	margin: 0 var(--header-safe-right) 0 var(--header-safe-left);
+}
+
+@mixin headerSafeZoneWidth() {
+	width: calc(100% - var(--header-safe-left) - var(--header-safe-right));
+}
+
+
+@mixin pageHeader() {
+	height: var(--header-height);
+
+	@include fontMontserrat;
+	font-size: var(--fs-4);
+	font-weight: 300;
+	letter-spacing: 2px;
+	line-height: var(--header-height);
+	text-transform: uppercase;
+
+	padding-left: calc(var(--header-safe-left) + var(--qh));
+	padding-right: var(--header-safe-right);
+
+	margin-bottom: var(--q1);
+}
+
 
 $themeLight: (
     name: light,
@@ -79,6 +163,22 @@ $themes: $themeLight $themeDark $themeRdr;
         map-get($theme, data),
         $name
     );
+}
+
+@mixin webapp() {
+	:host-context(.webapp) & {
+		@content();
+	}
+}
+@mixin webappWorkaround() {
+	:host-context(.webapp) {
+		@content();
+	}
+}
+@mixin webappNoHost() {
+	.webapp & {
+		@content();
+	}
 }
 
 @mixin theme() {
@@ -116,8 +216,10 @@ $themes: $themeLight $themeDark $themeRdr;
 @mixin aspectLimited() {
     @for $w from 17 to 33 {
         @media only screen and (min-aspect-ratio: #{$w}/9) {
+			$heightRelativeWidthOffset: calc(100vw * ((#{$w} - 16) / #{$w}));
+
             & {
-                width: calc(100% - (100vw * ((#{$w} - 16) / #{$w})) + 4vw);
+                width: calc(100% - #{$heightRelativeWidthOffset} - 5vw);
                 margin-left: auto;
                 margin-right: auto;
             }
@@ -132,75 +234,53 @@ $themes: $themeLight $themeDark $themeRdr;
 }
 
 @mixin backdropBlur($amount: 5px) {
-    backdrop-filter: blur($amount);
-}
-
-@mixin appContentNoLimit() {
-    height: $appContentHeight;
-	margin-top: $appContentMargin;
-    padding-left: #{$appContentPadding};
-    padding-right: #{$appContentPadding};
-    padding-top: $padding*2;
-
-    position: relative;
-    
-    /*box-shadow: rgba(30, 30, 30, .2) 0vw -0.4vh 8.5vh;*/
-    box-shadow: 0 2.03vh 6.5vh 0.005vh rgba(0, 0, 0, 0.56);
-
-    overflow: hidden;
-
-   
-    &:after {
-        content: '';
-        width: 100%;
-        height: 100%;
-        top: 0px;
-        left: 0px;
-
-        position: absolute;
-        z-index: -999;
-
-        /*transform: scale(1.0);*/
-    }
-
-    @include themeHostWorkaround() using ($theme) {
-        &:after {
-            /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
-            /*backdrop-filter: gtv($theme, acrylicBlur);*/
-            filter: gtv($theme, acrylicBlur);
-            background-image: var(--my-background-image);
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center center; /* a well-trained eye will notice this is very much not seamless... */
-                                                /* go complain to Google, not us. */
-        }
-    };
-
-    @include themeNoHost() using ($theme) {
-        &:after {
-            /* tricky! Chrome broke this in M73, so we will have to do old-fashioned hacks... */
-            /*backdrop-filter: gtv($theme, acrylicBlur);*/
-            filter: gtv($theme, acrylicBlur);
-            background-image: var(--my-background-image);
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center center; /* a well-trained eye will notice this is very much not seamless... */
-                                                /* go complain to Google, not us. */
-        }
-    };
-
-    :host-context(.webapp) {
-        /*box-shadow: none;
-        padding-top: 0;
-
-        &:after {
-            filter: none !important;
-            background: transparent !important;
-        }*/
-    }
+	backdrop-filter: blur($amount);
 }
 
 @mixin appContent() {
-    @include aspectLimited();
-    @include appContentNoLimit();
+	overflow: hidden;
+	height: 100%;
+}
+
+@mixin appContentRespectingHeader() {
+	@include appContent;
+
+	margin-top: calc(var(--header-height) + var(--q1));
+}
+
+/* via https://github.com/sass/sass/issues/2849#issuecomment-621991522 */
+
+@function css-function( $function, $values... ) {
+	@return
+		$function
+		+ unquote( '(' )
+		+ $values
+		+ unquote( ')' )
+	;
+}
+
+@function css-min( $values... ) {
+	@return css-function( min, $values );
+}
+
+@function css-max( $values... ) {
+	@return css-function( max, $values );
+}
+
+@function css-clamp( $values... ) {
+	@return css-function( clamp, $values );
+}
+
+@mixin fontMontserrat {
+	font-family: 'Montserrat', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-weight: 500;
+}
+
+@mixin fontRubik {
+	font-family: 'Rubik', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-weight: 300;
+}
+@mixin fontRubikImportant {
+	font-family: 'Rubik', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+	font-weight: 300;
 }

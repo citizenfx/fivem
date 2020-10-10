@@ -49,6 +49,8 @@ public:
 	virtual bool IsDisconnected() { return false; }
 
 	virtual void Flush() = 0;
+
+	virtual int32_t GetPing() = 0;
 };
 
 class INetLibraryInherit

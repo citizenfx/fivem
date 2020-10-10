@@ -8,7 +8,9 @@ msgpack.set_array('without_hole')
 msgpack.setoption('empty_table_as_array', true)
 
 -- setup json compat
+json.version = json._VERSION -- Version compatibility
 json.setoption("empty_table_as_array", true)
+json.setoption('with_hole', true)
 
 -- temp
 local function FormatStackTrace()
@@ -718,6 +720,8 @@ end
 local EXT_FUNCREF = 10
 local EXT_LOCALFUNCREF = 11
 
+msgpack.extend_clear(EXT_FUNCREF, EXT_LOCALFUNCREF)
+
 -- RPC INVOCATION
 InvokeRpcEvent = function(source, ref, args)
 	if not coroutine.running() then
@@ -949,4 +953,132 @@ if not IsDuplicityVersion() then
 	function SendNUIMessage(message)
 		_sendNuiMessage(json.encode(message))
 	end
+end
+
+-- entity helpers
+local EXT_ENTITY = 41
+local EXT_PLAYER = 42
+
+msgpack.extend_clear(EXT_ENTITY, EXT_PLAYER)
+
+local function NewStateBag(es)
+	local sv = IsDuplicityVersion()
+
+	return setmetatable({}, {
+		__index = function(_, s)
+			if s == 'set' then
+				return function(_, s, v, r)
+					local payload = msgpack.pack(v)
+					SetStateBagValue(es, s, payload, payload:len(), r)
+				end
+			end
+		
+			return GetStateBagValue(es, s)
+		end,
+		
+		__newindex = function(_, s, v)
+			local payload = msgpack.pack(v)
+			SetStateBagValue(es, s, payload, payload:len(), sv)
+		end
+	})
+end
+
+GlobalState = NewStateBag('global')
+
+local entityTM = {
+	__index = function(t, s)
+		if s == 'state' then
+			local es = ('entity:%d'):format(NetworkGetNetworkIdFromEntity(t.__data))
+			
+			if IsDuplicityVersion() then
+				EnsureEntityStateBag(t.__data)
+			end
+		
+			return NewStateBag(es)
+		end
+		
+		return nil
+	end,
+	
+	__newindex = function()
+		error('Not allowed at this time.')
+	end,
+	
+	__ext = EXT_ENTITY,
+	
+	__pack = function(self, t)
+		return tostring(NetworkGetNetworkIdFromEntity(self.__data))
+	end,
+	
+	__unpack = function(data, t)
+		local ref = NetworkGetEntityFromNetworkId(tonumber(data))
+		
+		return setmetatable({
+			__data = ref
+		}, entityTM)
+	end
+}
+
+msgpack.extend(entityTM)
+
+local playerTM = {
+	__index = function(t, s)
+		if s == 'state' then
+			local pid = t.__data
+			
+			if pid == -1 then
+				pid = GetPlayerServerId(PlayerId())
+			end
+			
+			local es = ('player:%d'):format(pid)
+		
+			return NewStateBag(es)
+		end
+		
+		return nil
+	end,
+	
+	__newindex = function()
+		error('Not allowed at this time.')
+	end,
+	
+	__ext = EXT_PLAYER,
+	
+	__pack = function(self, t)
+		return tostring(self.__data)
+	end,
+	
+	__unpack = function(data, t)
+		local ref = tonumber(data)
+		
+		return setmetatable({
+			__data = ref
+		}, playerTM)
+	end
+}
+
+msgpack.extend(playerTM)
+
+function Entity(ent)
+	if type(ent) == 'number' then
+		return setmetatable({
+			__data = ent
+		}, entityTM)
+	end
+	
+	return ent
+end
+
+function Player(ent)
+	if type(ent) == 'number' or type(ent) == 'string' then
+		return setmetatable({
+			__data = tonumber(ent)
+		}, playerTM)
+	end
+	
+	return ent
+end
+
+if not IsDuplicityVersion() then
+	LocalPlayer = Player(-1)
 end

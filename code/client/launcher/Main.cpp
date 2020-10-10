@@ -44,6 +44,7 @@ extern "C" int wmainCRTStartup();
 
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
+void SteamInput_Initialize();
 bool ExecutablePreload_Init();
 void InitLogging();
 
@@ -89,7 +90,7 @@ HANDLE g_uiExitEvent;
 
 bool IsUnsafeGraphicsLibrary();
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+int RealMain()
 {
 	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
 
@@ -154,6 +155,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
+
+	wchar_t initCwd[1024];
+	GetCurrentDirectoryW(std::size(initCwd), initCwd);
 
 	if (!toolMode)
 	{
@@ -523,6 +527,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
 		NVSP_DisableOnStartup();
+		SteamInput_Initialize();
 #endif
 
 		GetModuleFileNameW(NULL, initState->gameExePath, std::size(initState->gameExePath));
@@ -533,7 +538,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
-	if (!toolMode)
+	if (launch::IsSDK())
+	{
+		SetCurrentDirectory(initCwd);
+	}
+	else if (!toolMode)
 	{
 		SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 	}
@@ -583,9 +592,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
 				
-				if ((fixedInfo->dwFileVersionLS >> 16) != ((Is1868()) ? 1868 : 1604))
+				if ((fixedInfo->dwFileVersionLS >> 16) != (Is372() ? 372 : ((Is2060()) ? 2060 : 1604)))
 				{
-					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.1604.0/1.0.1868.0 is currently supported. Please obtain this version, and try again.",
+					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.372.2/1.0.1604.0/1.0.2060.0 is currently supported. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),
 										   (fixedInfo->dwFileVersionMS >> 16),
 										   (fixedInfo->dwFileVersionMS & 0xFFFF),
@@ -791,6 +800,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	return 0;
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+{
+	return RealMain();
+}
+
+int main()
+{
+	return RealMain();
 }
 
 extern "C" __declspec(dllexport) DWORD NvOptimusEnablement = 1;

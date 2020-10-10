@@ -30,6 +30,15 @@ void SteamLoader::Initialize()
 		// load steamclient*.dll
 		m_hSteamClient = LoadLibrary(steamDllPath.c_str());
 
+		// load and pin crashhandler64.dll (as it seems to be loaded at-will by Steam and then unloaded/breaks on a few systems)
+		HMODULE steamCH = LoadLibraryW(L"crashhandler64.dll");
+
+		if (steamCH)
+		{
+			HMODULE steamCH_pin;
+			GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_PIN, L"crashhandler64.dll", &steamCH_pin);
+		}
+
 		// load the Steam overlay, if 'rtsshooks64.dll' is not present
 		if (GetModuleHandleW(L"rtsshooks64.dll") == nullptr)
 		{
@@ -57,25 +66,31 @@ void* SteamLoader::GetProcAddressInternal(const char* name)
 
 bool SteamLoader::IsSteamRunning(bool ignoreCreateFunc)
 {
-	bool retval = false;
-	uint32_t pid = GetSteamProcessId();
-
-	if (pid != 0)
+	static auto retval = ([this]()
 	{
-		HANDLE steamProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+		bool retval = false;
 
-		if (steamProcess != INVALID_HANDLE_VALUE)
+		uint32_t pid = GetSteamProcessId();
+
+		if (pid != 0)
 		{
-			CloseHandle(steamProcess);
+			HANDLE steamProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 
-			retval = true;
+			if (steamProcess != INVALID_HANDLE_VALUE)
+			{
+				CloseHandle(steamProcess);
+
+				retval = true;
+			}
 		}
-	}
+
+		return retval;
+	})();
 
 	// safety check to see if CreateInterface is callable
 	if (!GetCreateInterfaceFunc() && !ignoreCreateFunc)
 	{
-		retval = false;
+		return false;
 	}
 
 	return retval;

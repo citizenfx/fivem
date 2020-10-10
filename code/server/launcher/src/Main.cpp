@@ -14,7 +14,7 @@
 #include <pthread.h>
 #endif
 
-bool InitializeExceptionHandler();
+bool InitializeExceptionHandler(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	if (InitializeExceptionHandler())
+	if (InitializeExceptionHandler(argc, argv))
 	{
 		return 0;
 	}

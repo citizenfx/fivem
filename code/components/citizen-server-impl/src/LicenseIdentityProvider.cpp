@@ -31,7 +31,7 @@ static InitFunction initFunction([]()
 			return 5;
 		}
 
-		virtual void RunAuthentication(const std::shared_ptr<fx::Client>& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
+		virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
 			auto& any = clientPtr->GetData("entitlementHash");
 

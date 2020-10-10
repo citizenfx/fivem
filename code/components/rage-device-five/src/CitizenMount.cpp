@@ -19,6 +19,7 @@
 #include <RelativeDevice.h>
 
 #include <CL2LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 #include <Error.h>
 
@@ -105,7 +106,9 @@ public:
 		if (relPath == "data/levels/gta5/trains.xml" ||
 			relPath == "data/materials/materials.dat" ||
 			relPath == "data/relationships.dat" ||
-			relPath == "data/dlclist.xml")
+			relPath == "data/dlclist.xml" ||
+			relPath == "data/ai/scenarios.meta" ||
+			relPath == "data/ai/conditionalanims.meta")
 		{
 			return InvalidHandle;
 		}
@@ -147,6 +150,7 @@ static InitFunction initFunction([] ()
 		cacheDevice->SetPath(cacheRoot.c_str(), true);
 		cacheDevice->Mount("rescache:/");
 
+		if (!Is372())
 		{
 			std::string narrowPath;
 

@@ -7,6 +7,9 @@
 
 #include <tbb/concurrent_unordered_map.h>
 
+#include <xenium/harris_michael_hash_map.hpp>
+#include <xenium/reclamation/stamp_it.hpp>
+
 namespace tbb
 {
 	namespace interface5
@@ -29,14 +32,14 @@ namespace fx
 		ClientRegistry();
 
 		// invoked upon receiving the `connect` ENet packet
-		void HandleConnectingClient(const std::shared_ptr<Client>& client);
+		void HandleConnectingClient(const fx::ClientSharedPtr& client);
 
 		// invoked upon receiving the `connect` ENet packet, after sending `connectOK`
-		void HandleConnectedClient(const std::shared_ptr<Client>& client, uint32_t oldNetID);
+		void HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID);
 
-		std::shared_ptr<Client> MakeClient(const std::string& guid);
+		fx::ClientSharedPtr MakeClient(const std::string& guid);
 
-		inline void RemoveClient(const std::shared_ptr<Client>& client)
+		inline void RemoveClient(const fx::ClientSharedPtr& client)
 		{
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
@@ -44,23 +47,19 @@ namespace fx
 
 			if (client->GetSlotId() >= 0 && client->GetSlotId() < m_clientsBySlotId.size())
 			{
+				std::lock_guard clientGuard(m_clientSlotMutex);
 				m_clientsBySlotId[client->GetSlotId()].reset();
 			}
 
-			{
-				std::unique_lock<std::shared_mutex> lock(m_clientsMutex);
-				m_clients[client->GetGuid()] = nullptr;
-			}
+			m_clients.erase(client->GetGuid());
 
 			// unassign slot ID
 			client->SetSlotId(-1);
 		}
 
-		inline std::shared_ptr<Client> GetClientByGuid(const std::string& guid)
+		inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
 		{
-			std::shared_lock<std::shared_mutex> lock(m_clientsMutex);
-
-			auto ptr = std::shared_ptr<Client>();
+			auto ptr = fx::ClientSharedPtr();
 			auto it = m_clients.find(guid);
 
 			if (it != m_clients.end())
@@ -71,89 +70,74 @@ namespace fx
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientByPeer(int peer)
+		inline fx::ClientSharedPtr GetClientByPeer(int peer)
 		{
-			auto ptr = std::shared_ptr<Client>();
+			auto ptr = fx::ClientSharedPtr();
 			auto it = m_clientsByPeer.find(peer);
 
 			if (it != m_clientsByPeer.end())
 			{
-				if (!it->second.expired())
-				{
-					ptr = it->second.lock();
-				}
+				ptr = it->second.lock();
 			}
 
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientByEndPoint(const net::PeerAddress& address)
+		inline fx::ClientSharedPtr GetClientByEndPoint(const net::PeerAddress& address)
 		{
-			auto ptr = std::shared_ptr<Client>();
+			auto ptr = fx::ClientSharedPtr();
 			auto it = m_clientsByEndPoint.find(address);
 
 			if (it != m_clientsByEndPoint.end())
 			{
-				if (!it->second.expired())
-				{
-					ptr = it->second.lock();
-				}
+				ptr = it->second.lock();
 			}
 
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientByTcpEndPoint(const std::string& address)
+		inline fx::ClientSharedPtr GetClientByTcpEndPoint(const std::string& address)
 		{
-			auto ptr = std::shared_ptr<Client>();
+			auto ptr = fx::ClientSharedPtr();
 			auto it = m_clientsByTcpEndPoint.find(address);
 
 			if (it != m_clientsByTcpEndPoint.end())
 			{
-				if (!it->second.expired())
-				{
-					ptr = it->second.lock();
-				}
+				ptr = it->second.lock();
 			}
 
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientByNetID(uint32_t netId)
+		inline fx::ClientSharedPtr GetClientByNetID(uint32_t netId)
 		{
-			auto ptr = std::shared_ptr<Client>();
+			auto ptr = fx::ClientSharedPtr();
 			auto it = m_clientsByNetId.find(netId);
 
 			if (it != m_clientsByNetId.end())
 			{
-				if (!it->second.expired())
-				{
-					ptr = it->second.lock();
-				}
+				ptr = it->second.lock();
 			}
 
 			return ptr;
 		}
 
-		inline std::shared_ptr<Client> GetClientBySlotID(uint32_t slotId)
+		inline fx::ClientSharedPtr GetClientBySlotID(uint32_t slotId)
 		{
 			assert(slotId < m_clientsBySlotId.size());
 
-			auto weakPtr = m_clientsBySlotId[slotId];
-			return weakPtr.lock();
+			std::lock_guard clientGuard(m_clientSlotMutex);
+			return m_clientsBySlotId[slotId].lock();
 		}
 
-		inline std::shared_ptr<Client> GetClientByConnectionToken(const std::string& token)
+		inline fx::ClientSharedPtr GetClientByConnectionToken(const std::string& token)
 		{
-			auto ptr = std::shared_ptr<Client>();
+			auto ptr = fx::ClientSharedPtr();
 			auto it = m_clientsByConnectionToken.find(token);
 
 			if (it != m_clientsByConnectionToken.end())
 			{
-				if (!it->second.expired())
-				{
-					ptr = it->second.lock();
-				}
+				ptr = it->second.lock();
 			}
 
 			return ptr;
@@ -162,51 +146,43 @@ namespace fx
 		template<typename TFn>
 		inline void ForAllClients(TFn&& cb)
 		{
-			m_clientsMutex.lock_shared();
-
 			for (auto& client : m_clients)
 			{
-				auto cl = client.second;
-
-				m_clientsMutex.unlock_shared();
-
-				if (cl)
+				if (client.second->IsDropping())
 				{
-					cb(cl);
+					continue;
 				}
 
-				m_clientsMutex.lock_shared();
+				cb(client.second);
 			}
-
-			m_clientsMutex.unlock_shared();
 		}
 
-		std::shared_ptr<Client> GetHost();
+		fx::ClientSharedPtr GetHost();
 
-		void SetHost(const std::shared_ptr<Client>& client);
+		void SetHost(const fx::ClientSharedPtr& client);
 
 		virtual void AttachToObject(ServerInstanceBase* instance) override;
 
-		fwEvent<Client*> OnClientCreated;
+		fwEvent<const fx::ClientSharedPtr&> OnClientCreated;
 
 		fwEvent<Client*> OnConnectedClient;
 
 	private:
 		uint16_t m_hostNetId;
 
-		tbb::concurrent_unordered_map<std::string, std::shared_ptr<Client>> m_clients;
+		using ClientHashMap = xenium::harris_michael_hash_map<std::string, fx::ClientSharedPtr, xenium::policy::reclaimer<xenium::reclamation::stamp_it>>;
+
+		ClientHashMap m_clients;
 
 		// aliases for fast lookup
-		tbb::concurrent_unordered_map<uint32_t, std::weak_ptr<Client>> m_clientsByNetId;
-		tbb::concurrent_unordered_map<net::PeerAddress, std::weak_ptr<Client>> m_clientsByEndPoint;
-		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByTcpEndPoint;
-		tbb::concurrent_unordered_map<std::string, std::weak_ptr<Client>> m_clientsByConnectionToken;
-		tbb::concurrent_unordered_map<int, std::weak_ptr<Client>> m_clientsByPeer;
+		tbb::concurrent_unordered_map<uint32_t, fx::ClientWeakPtr> m_clientsByNetId;
+		tbb::concurrent_unordered_map<net::PeerAddress, fx::ClientWeakPtr> m_clientsByEndPoint;
+		tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByTcpEndPoint;
+		tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByConnectionToken;
+		tbb::concurrent_unordered_map<int, fx::ClientWeakPtr> m_clientsByPeer;
 
-		// pending C++20 std::atomic overloads, again
-		std::shared_mutex m_clientsMutex;
-
-		std::vector<std::weak_ptr<Client>> m_clientsBySlotId;
+		std::mutex m_clientSlotMutex;
+		std::vector<fx::ClientWeakPtr> m_clientsBySlotId;
 
 		std::atomic<uint16_t> m_curNetId;
 

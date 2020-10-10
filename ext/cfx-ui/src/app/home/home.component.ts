@@ -1,173 +1,239 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject, OnDestroy, ChangeDetectorRef, ɵSafeHtml } from '@angular/core';
 
 import { Tweet, TweetService } from './tweet.service';
 
 import { GameService } from '../game.service';
-import { DiscourseService } from '../discourse.service';
+import { DiscourseService, DiscourseUser } from '../discourse.service';
 
-import { DomSanitizer } from '@angular/platform-browser';
-import { ServersService } from 'app/servers/servers.service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { ServersService, HistoryServer, HistoryServerStatus } from 'app/servers/servers.service';
+import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
+import { Server } from 'app/servers/server';
+
+let cachedWelcomeMessage: SafeHtml;
+let cachedServiceMessage: SafeHtml;
 
 @Component({
-    moduleId: module.id,
-    selector: 'app-home',
-    templateUrl: 'home.component.html',
-    styleUrls: ['./home.component.scss']
+	moduleId: module.id,
+	selector: 'app-home',
+	templateUrl: 'home.component.html',
+	styleUrls: ['./home.component.scss']
 })
+export class HomeComponent implements OnInit, OnDestroy {
+	officialTweets: Tweet[] = [];
+	communityTweets: Tweet[] = [];
 
-export class HomeComponent implements OnInit {
-    officialTweets: Tweet[] = [];
-    communityTweets: Tweet[] = [];
+	currentAccount: DiscourseUser;
 
-    accountBeg: any;
+	serviceMessage: SafeHtml;
+	welcomeMessage: SafeHtml;
 
-    currentAccount: any;
+	brandingName: string;
+	language = '';
 
-    randomGreeting = '';
+	streamerMode = false;
+	devMode = false;
+	localhostPort = '';
+	nickname = '';
 
-    randomGreetings = [
-        'It is like the Five Eyes, but mmm...',
-        'The "M" stands for "Memes".',
-        'Play your role moderately.',
-        'What is a crash?',
-        'Warning: may contain traces of snails.',
-        'Broken since 2015.',
-        'Open source? More like "open meme".',
-        'Don\'t dare to click "Servers".',
-        'Idot! What were you thinking?',
-        'RIP :thinkingsnail:',
-        'Still getting there, still worth the wait.',
-        'Hint: it wasn\'t worth the wait.',
-        'Red, dead, but not redeemed. We have cars.',
-        'Did the "M" mean "Multiplayer" in the end?',
-        '63 slots in the game, fill one up, 62 slots in the game...',
-        'Q4 2017? H1 2018? 2018? More like _2020_.',
-        'Proudly made of stolen code and hijacked helicopters.',
-        '32 slots ought to be enough for anyone.',
-        'Any signs of low FPS should be reported to the Performance Optimization Department.',
-        'What is that mumbling in the background?',
-        'Recommended dessert: session split.',
-        'Our stones come pre-decrypted for your convenience.',
-        'Sudo removed. VME disengaged. Wait, what does that mean?',
-        'The fact is, we are right. And if you think we are wrong, *you* are wrong!',
-        'Whose idea was it to put bad jokes in here, anyway?',
-        'Anger, city names, alternatives and fruits do not stand a chance.',
-        'Undocumented. Practically, a puzzle you have to solve by yourself.',
-        'Actually open. You know, as in *open*. Not "open".',
-        'We do not do big-O notation around here.',
-        'Where are the hiests?',
-        'Do not be like this. Be like that.',
-        'One sync, two sync, three sync, four sync.',
-        'Forced memes, yes.',
-        'Three things are certain in life: death, taxes, and FiveM breaking your game.',
-        '3 years and still no point at button.',
-        'But.. I thought FiveM had an office?',
-        'Eww!',
-        'Five meters. That is a distance.'
-    ];
+	playerStats: [number, number];
 
-    welcomeMessage: any;
+	gameName = 'gta5';
 
-    brandingName: string;
+	lastServer: HistoryServer;
+	HistoryServerStatus = HistoryServerStatus;
 
-    constructor(private tweetService: TweetService, private gameService: GameService,
-        private discourseService: DiscourseService, private domSanitizer: DomSanitizer,
-        private serversService: ServersService) {
-        discourseService.signinChange.subscribe(user => this.currentAccount = user);
-    }
+	topServer: Server;
 
-    ngOnInit() {
-        this.brandingName = this.gameService.brandingName;
+	constructor(
+		private tweetService: TweetService,
+		private gameService: GameService,
+		private discourseService: DiscourseService,
+		private domSanitizer: DomSanitizer,
+		private serversService: ServersService,
+		public changeDetectorRef: ChangeDetectorRef,
+		@Inject(L10N_LOCALE) public locale: L10nLocale,
+	) {
+		discourseService.signinChange.subscribe((user) => {
+			this.currentAccount = user;
+		});
 
-        if (this.gameService.gameName === 'rdr3') {
-            // references from RDR2 (that is, Redemption 1) executable
-            this.randomGreetings = [
-                'You\'re running a PRE-RELEASE build, pilgrim!',
-                'Howdy partner. You\'re playing with an executable built *someday*.',
-            ];
-        }
+		this.serviceMessage = cachedServiceMessage;
+		this.welcomeMessage = cachedWelcomeMessage;
 
-        this.randomGreeting = this.randomGreetings[Math.floor(Math.random() * this.randomGreetings.length)];
+		this.nickname = gameService.nickname;
+		this.language = gameService.language;
+		this.gameName = gameService.gameName;
+		this.streamerMode = gameService.streamerMode;
+		this.devMode = gameService.devMode;
+		this.localhostPort = gameService.localhostPort;
 
-        this.fetchTweets();
-        this.fetchWelcome();
+		gameService.signinChange.subscribe((value) => {
+			this.nickname = value.name;
+		});
+		gameService.nicknameChange.subscribe(value => this.nickname = value);
+		gameService.languageChange.subscribe(value => this.language = value);
+		gameService.streamerModeChange.subscribe(value => this.streamerMode = value);
+		gameService.devModeChange.subscribe(value => this.devMode = value);
+		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
+	}
 
-        if (this.gameService.gameName !== 'rdr3') {
-            this.fetchBeg();
-        }
+	ngOnInit() {
+		this.brandingName = this.gameService.brandingName;
+		this.currentAccount = this.discourseService.currentUser;
 
-        this.currentAccount = this.discourseService.currentUser;
-    }
+		this.fetchTweets();
+		this.fetchWelcome();
+		this.fetchPlayerStats();
+		this.fetchServiceMessage();
 
-    fetchWelcome() {
-        window.fetch((this.gameService.gameName === 'gta5') ?
-            'https://runtime.fivem.net/welcome.html' :
-            `https://runtime.fivem.net/welcome_${this.gameService.gameName}.html`)
-              .then(async res => {
-                  if (res.ok) {
-                      this.welcomeMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
-                  }
-              });
-    }
+		this.loadLastServer();
+		this.loadTopServer();
+	}
 
-    fetchBeg() {
-        window.fetch('https://runtime.fivem.net/account_beg.html')
-              .then(async res => {
-                  if (res.ok) {
-                      this.accountBeg = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
-                  }
-              });
-    }
+	ngOnDestroy() {}
 
-    fetchTweets() {
-        const settle = () => {
-            setTimeout(() => {
-                this.serversService.onInitialized();
+	async loadTopServer() {
+		this.topServer = await this.serversService.getTopServer();
 
-                (<HTMLDivElement>document.querySelector('.spinny')).style.display = 'none';
-                (<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
-            }, 50);
-        };
+		this.changeDetectorRef.markForCheck();
+	}
 
-        this.tweetService
-            .getTweets('https://runtime.fivem.net/tweets.json')
-            .then(tweets => {
-                this.officialTweets = tweets.filter(a => !a.rt_displayname);
-                this.communityTweets = [
-                    ...tweets.filter(a => a.rt_displayname),
-                    ...this.communityTweets
-                ];
+	async loadLastServer() {
+		const serverHistory = this.gameService.getServerHistory();
 
-                this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+		const lastServer = serverHistory[serverHistory.length - 1];
 
-                // on-settled code
-                settle();
-            });
+		if (lastServer) {
+			this.lastServer = {
+				historyEntry: lastServer,
+				server: null,
+				sanitizedIcon: (lastServer.icon ? this.domSanitizer.bypassSecurityTrustUrl(lastServer.icon) : null),
+				status: HistoryServerStatus.Loading,
+			};
 
-        this.tweetService
-            .getActivityTweets(
-                this.gameService.getServerHistory()
-                    .filter(s => s.vars && s.vars.activitypubFeed)
-                    .map(s => s.vars.activitypubFeed))
-            .subscribe(tweet => {
-                this.communityTweets = [
-                    tweet,
-                    ...this.communityTweets
-                ];
+			const isAddressServer = this.lastServer.historyEntry.address.includes(':');
 
-                this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
-            });
+			if (!isAddressServer) {
+				try {
+					this.lastServer.server = await this.serversService.getServer(this.lastServer.historyEntry.address);
+					this.lastServer.status = HistoryServerStatus.Online;
+				} catch (e) {
+					this.lastServer.status = HistoryServerStatus.Offline;
+				}
+			} else {
+				try {
+					this.lastServer.server = await this.gameService.queryAddress(
+						this.serversService.parseAddress(this.lastServer.historyEntry.address),
+					);
 
-        setTimeout(() => settle(), 2500);
-    }
+					this.lastServer.status = HistoryServerStatus.Online;
+				} catch (e) {
+					this.lastServer.status = HistoryServerStatus.Offline;
+				}
+			}
 
-    clickContent(event: MouseEvent) {
-        const srcElement = event.srcElement as HTMLElement;
+			this.changeDetectorRef.markForCheck();
+		}
+	}
 
-        if (srcElement.localName === 'a') {
-            this.gameService.openUrl(srcElement.getAttribute('href'));
+	fetchServiceMessage() {
+		window.fetch(`https://runtime.fivem.net/notice_${this.gameService.gameName}.html`)
+			.then(async (res) => {
+				if (res.ok) {
+					this.serviceMessage = cachedServiceMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
+				}
+			});
+	}
 
-            event.preventDefault();
-        }
-    }
+	fetchWelcome() {
+		window.fetch((this.gameService.gameName === 'gta5') ?
+			'https://runtime.fivem.net/welcome.html' :
+			`https://runtime.fivem.net/welcome_${this.gameService.gameName}.html`)
+			.then(async res => {
+				if (res.ok) {
+					this.welcomeMessage = cachedWelcomeMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
+				}
+			});
+	}
+
+	fetchPlayerStats() {
+		window.fetch('https://runtime.fivem.net/counts.json')
+			.then(async (res) => {
+				this.playerStats = (await res.json()).map((c) => (Math.floor(c) / 1000).toFixed(1));
+			});
+	}
+
+	fetchTweets() {
+		this.tweetService
+			.getTweets('https://runtime.fivem.net/tweets.json')
+			.then(tweets => {
+				this.officialTweets = tweets.filter(a => !a.rt_displayname);
+				this.communityTweets = [
+					...tweets.filter(a => a.rt_displayname),
+					...this.communityTweets
+				];
+
+				this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+			});
+
+		this.tweetService
+			.getActivityTweets(
+				this.gameService.getServerHistory()
+					.filter(s => s.vars && s.vars.activitypubFeed)
+					.map(s => s.vars.activitypubFeed))
+			.subscribe(tweet => {
+				this.communityTweets = [
+					tweet,
+					...this.communityTweets
+				];
+
+				this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+			});
+	}
+
+	clickContent(event: MouseEvent) {
+		const srcElement = event.srcElement as HTMLElement;
+
+		if (srcElement.localName === 'a') {
+			this.gameService.openUrl(srcElement.getAttribute('href'));
+
+			event.preventDefault();
+			event.stopPropagation();
+		}
+	}
+
+	openLink(link: string) {
+		this.gameService.openUrl(link);
+	}
+
+	serviceMessageClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		if (event.target.localName === 'a') {
+			const link = event.target.getAttribute('href');
+
+			this.openLink(link);
+		}
+
+		return false;
+	}
+
+	connectToLocal() {
+		(<any>window).invokeNative('connectTo', '127.0.0.1:' + (this.localhostPort || '30120'));
+	}
+
+	attemptConnectTo(entry: HistoryServer) {
+		if (!entry.server) {
+			return;
+		}
+
+		this.gameService.connectTo(entry.server, entry.historyEntry.address);
+	}
+
+	async linkAccount() {
+		const url = await this.discourseService.generateAuthURL();
+		this.gameService.openUrl(url);
+	}
 }

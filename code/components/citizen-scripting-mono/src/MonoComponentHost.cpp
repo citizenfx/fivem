@@ -432,6 +432,9 @@ static void InitMono()
 	std::string citizenClrLibPath = MakeRelativeNarrowPath("citizen/clr2/lib/mono/4.5/");
 
 	putenv(const_cast<char*>(va("MONO_PATH=%s", citizenClrLibPath)));
+
+	mono_set_crash_chaining(true);
+	mono_set_signal_chaining(true);
 #endif
 
 	mono_assembly_setrootdir(citizenClrPath.c_str());

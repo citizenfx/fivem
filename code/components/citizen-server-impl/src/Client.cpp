@@ -5,7 +5,7 @@
 namespace fx
 {
 	Client::Client(const std::string& guid)
-		: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1)
+		: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false)
 	{
 
 	}
@@ -82,7 +82,7 @@ namespace fx
 	{
 		if (m_peer)
 		{
-			gscomms_send_packet(shared_from_this(), *m_peer, channel, buffer, type);
+			gscomms_send_packet(this, *m_peer, channel, buffer, type);
 		}
 	}
 }

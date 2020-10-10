@@ -62,7 +62,7 @@ namespace fx
 	{
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName, const std::shared_ptr<fx::Client>& client)
+		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName, const fx::ClientSharedPtr& client)
 		{
 			// get resource manager and resource
 			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
@@ -285,7 +285,7 @@ namespace fx
 			auto ra = request->GetRemoteAddress();
 			auto token = request->GetHeader("X-CitizenFX-Token");
 
-			std::shared_ptr<fx::Client> client;
+			fx::ClientSharedPtr client;
 
 			if (!token.empty())
 			{
@@ -297,7 +297,7 @@ namespace fx
 				client = clientRegistry->GetClientByTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
 			}
 
-			const auto& path = request->GetPath();
+			auto path = std::string{ request->GetPath().c_str(), request->GetPath().size() };
 
 			if (path.length() >= 8)
 			{

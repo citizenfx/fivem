@@ -1,0 +1,374 @@
+input[type="text"],
+input[type="search"],
+input[type="password"] {
+	@include backdropPane;
+
+	@include themeNoHost() using ($theme) {
+		color: gtv($theme, fgColor);
+		box-shadow: 0 -2px 0 rgba(gtv($theme, fgColor), .5) inset, 0 0 0 2px transparent inset;
+	};
+
+	border: none;
+
+	@include fontRubik;
+	font-size: var(--fs-2);
+	line-height: 1;
+
+	padding: var(--qh);
+	height: var(--q2);
+
+	transition: all .2s ease;
+
+	&:hover {
+		transition: none;
+
+		@include themeNoHost() using ($theme) {
+			box-shadow: 0 -2px 0 transparent inset, 0 0 0 2px rgba(gtv($theme, fgColor), .5) inset;
+		};
+	}
+
+	&:focus,
+	&:focus:hover {
+		@include themeNoHost() using ($theme) {
+			box-shadow: 0 -2px 0 transparent inset, 0 0 0 2px gtv($theme, accentColor1) inset;
+		};
+	}
+
+	&::-webkit-input-placeholder {
+		@include themeNoHost() using ($theme) {
+			color: rgba(gtv($theme, textColor), .6);
+		};
+	}
+
+	&::-webkit-search-cancel-button {
+		-webkit-appearance: none;
+
+		width: var(--qh);
+		height: var(--qh);
+	}
+}
+
+.cfx-button,
+.ac-container button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	height: var(--q2);
+	padding: var(--qh) var(--q1);
+
+	border: none;
+	outline: none;
+	user-select: none;
+
+	@include backdropPane;
+
+	@include fontRubik;
+	font-size: var(--fs-1);
+	font-weight: 300;
+	line-height: 1;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	text-decoration: none;
+
+	transition: all .2s ease;
+
+	@include themeNoHost() using ($theme) {
+		color: gtv($theme, fgColor);
+		box-shadow: 0 0 0 2px gtv($theme, fgColor) inset;
+
+		&:hover {
+			color: gtv($theme, bgColor);
+			background-color: gtv($theme, fgColor);
+
+			transition: none;
+		}
+
+		&.primary {
+			box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+
+			&:hover {
+				color: gtv($theme, accentContrastColor);
+				background-color: gtv($theme, accentColor1);
+			}
+		}
+	}
+
+	.material-icons-outlined {
+		margin-right: var(--qh);
+	}
+}
+
+.cfx-checkbox {
+	display: flex;
+	align-items: center;
+
+	@include fontRubik;
+	font-size: var(--fs-1);
+	line-height: 1;
+	text-transform: lowercase;
+
+	&:hover {
+		.cfx-checkbox-indicator {
+			@include themeNoHost() using ($theme) {
+				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset, 0 0 0 0 gtv($theme, fgColor) inset;
+			}
+		}
+		input:checked + .cfx-checkbox-indicator {
+			@include themeNoHost() using ($theme) {
+				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset, 0 0 0 var(--qh) gtv($theme, fgColor) inset;
+			}
+		}
+	}
+
+	input {
+		width: 0;
+		height: 0;
+
+		@-moz-document url-prefix() {
+			display: none;
+		}
+	}
+
+	input:checked + .cfx-checkbox-indicator {
+		@include themeNoHost() using ($theme) {
+			box-shadow: 0 0 0 2px transparent inset, 0 0 0 var(--qh) gtv($theme, fgColor) inset;
+		}
+	}
+
+	.cfx-checkbox-indicator {
+		flex-shrink: 0;
+
+		width: var(--q1);
+		height: var(--q1);
+
+		margin-right: var(--qh);
+
+		transition: box-shadow .2s ease;
+
+		@include themeNoHost() using ($theme) {
+			box-shadow: 0 0 0 2px gtv($theme, fgColor) inset;
+		}
+	}
+}
+
+
+.cfx-header-item {
+	position: relative;
+
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	border: none;
+	text-transform: none;
+
+	transition: all .2s ease;
+
+	@include backdropPane;
+
+	height: var(--header-height);
+	width: var(--header-height);
+
+	z-index: 1;
+
+	.material-icons-outlined {
+		font-size: var(--fs-3);
+	}
+
+	.label {
+		position: absolute;
+		top: 0;
+		left: var(--header-height);
+		bottom: 0;
+
+		padding: var(--q1) var(--q1) var(--q1) 0;
+
+		@include fontMontserrat;
+		font-size: var(--fs-1);
+		line-height: 1;
+		letter-spacing: 1px;
+		white-space: nowrap;
+		text-transform: uppercase;
+
+		@include themeNoHost() using ($theme) {
+			background-color: gtv($theme, accentColor1);
+		}
+
+		pointer-events: none;
+
+		opacity: 0;
+
+		transition: all .2s ease;
+	}
+
+	&.label-left {
+		.label {
+			left: auto;
+			right: var(--header-height);
+			padding: var(--q1) 0 var(--q1) var(--q1);
+		}
+	}
+
+	&.disabled {
+		pointer-events: none;
+	}
+
+	@include themeNoHost() using ($theme) {
+		color: gtv($theme, fgColor);
+
+		&:hover {
+			background-color: gtv($theme, accentColor1);
+
+			transition: none;
+
+			z-index: 10;
+
+			.label {
+				opacity: 1;
+
+				transition: none;
+			}
+
+			.material-icons-outlined {
+				color: gtv($theme, accentContrastColor);
+			}
+		}
+	}
+}
+
+.cfx-switch {
+	display: flex;
+	flex-wrap: wrap;
+
+	@include themeNoHost() using ($theme) {
+		box-shadow: 0 0 0 2px gtv($theme, fgColor) inset;
+	}
+
+	.cfx-switch-option {
+		padding: var(--qh);
+
+		height: var(--q2);
+
+		transition: all .2s ease;
+
+		&.active,
+		&.active:hover {
+			@include themeNoHost() using ($theme) {
+				color: gtv($theme, bgColor);
+				background-color: gtv($theme, fgColor);
+			}
+		}
+
+		&:hover {
+			transition: none;
+
+			@include themeNoHost() using ($theme) {
+				background-color: rgba(gtv($theme, fgColor), .1);
+			}
+		}
+	}
+}
+
+.ng-select {
+	@include backdropPane;
+
+	@include themeNoHost() using ($theme) {
+		box-shadow: 0 2px 0 rgba(gtv($theme, fgColor), .5) inset, 0 -2px 0 rgba(gtv($theme, fgColor), .5) inset;
+
+		&:hover {
+			background-color: rgba(gtv($theme, fgColor), .1);
+		}
+	}
+
+	.ng-select-container {
+		.ng-value {
+			height: var(--q2);
+			line-height: var(--q2);
+
+			padding: 0 var(--qh);
+		}
+	}
+
+	.ng-dropdown-panel {
+		width: auto;
+
+		@include themeNoHost() using ($theme) {
+			color: gtv($theme, fgColor);
+			background-color: gtv($theme, bgColor);
+		}
+
+		&.ng-select-top {
+			bottom: var(--q2);
+		}
+
+		.ng-option {
+			height: var(--q2);
+			line-height: var(--q2);
+
+			padding: 0 var(--qh);
+
+			&:hover {
+				@include themeNoHost() using ($theme) {
+					background-color: rgba(gtv($theme, fgColor), .2);
+				}
+			}
+
+			&.ng-option-selected {
+				@include themeNoHost() using ($theme) {
+					color: gtv($theme, accentContrastColor);
+					background-color: gtv($theme, accentColor1);
+				}
+			}
+		}
+	}
+
+	.ng-arrow-wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		margin-right: var(--qh);
+
+		.ng-arrow {
+			width: auto !important;
+			height: auto !important;
+
+			transform: rotate(180deg);
+
+			transition: all .2s ease;
+
+			&::after {
+				display: inline;
+				content: 'arrow_drop_down';
+				font-family: 'Material Icons Outlined';
+			}
+		}
+	}
+
+	&.ng-select-opened {
+		@include themeNoHost() using ($theme) {
+			color: gtv($theme, accentContrastColor);
+			background-color: gtv($theme, accentColor1);
+			box-shadow: none;
+		}
+
+		.ng-arrow-wrapper {
+			.ng-arrow {
+				transform: rotate(0deg);
+			}
+		}
+
+		.ng-dropdown-panel {
+			@include themeNoHost() using ($theme) {
+				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+			}
+		}
+	}
+}
+
+.image-zoom {
+	@include themeNoHost() using ($theme) {
+		background-color: rgba(gtv($theme, bgColor), .8);
+	}
+}
