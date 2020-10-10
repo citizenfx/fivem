@@ -304,9 +304,9 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// apparently crashes NUI
 		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
 		// lots of crashes occur in the DiscordApp overlay
-		moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
+		//moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
 		// new DiscordApp overlay name :/
-		moduleNameStr.find(L"DiscordHook64.dll") != std::string::npos ||
+		//moduleNameStr.find(L"DiscordHook64.dll") != std::string::npos ||
 		// HideMyIP, causes LoopbackTcpServer and libuv to crash
 		moduleNameStr.find(L"hmipcore64.dll") != std::string::npos ||
 		// NVIDIA SHARE/ShadowPlay capture DLL, high correlation with ERR_GFX_D3D_INIT failures
@@ -314,6 +314,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// Proxifier, causes LoopbackTcpServer crashes
 		moduleNameStr.find(L"PrxerNsp.dll") != std::string::npos ||
 		moduleNameStr.find(L"PrxerDrv.dll") != std::string::npos ||
+		// Steam 'crashhandler64.dll', optional library that has a broken GetProcessHeap call
+		moduleNameStr.find(L"crashhandler64.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
 		moduleNameStr.find(L"am64-34121.dll") != std::string::npos ||
 #if !defined(IS_RDR3)
