@@ -1233,7 +1233,7 @@ static void OverrideArguments()
 #endif
 }
 
-static InitFunction initFunction([]()
+void Component_RunPreInit()
 {
 	// initialize console arguments
 	std::vector<std::pair<std::string, std::string>> setList;
@@ -1273,7 +1273,7 @@ static InitFunction initFunction([]()
 		}
 		catch (std::runtime_error& e)
 		{
-			trace("couldn't parse command line: %s\n", e.what());
+			//trace("couldn't parse command line: %s\n", e.what());
 		}
 	}
 
@@ -1283,7 +1283,7 @@ static InitFunction initFunction([]()
 	{
 		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 	}
-});
+}
 
 static HookFunction hookFunction([] ()
 {

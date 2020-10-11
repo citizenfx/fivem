@@ -432,6 +432,9 @@ static BOOL ShellExecuteExWStub(_Inout_ SHELLEXECUTEINFOW *pExecInfo)
 {
 	if (pExecInfo->lpFile && wcsstr(pExecInfo->lpFile, L"RockstarService"))
 	{
+		// setting SEE_MASK_FLAG_NO_UI bypasses some slow stuff
+		pExecInfo->fMask |= SEE_MASK_FLAG_NO_UI;
+
 		return ShellExecuteExW(pExecInfo);
 	}
 
@@ -586,9 +589,11 @@ bool LoadOwnershipTicket();
 
 void OnPreInitHook();
 void PreInitGameSpec();
+void LoadOwnershipEarly();
 
 void Component_RunPreInit()
 {
+	LoadOwnershipEarly();
 	OnPreInitHook();
 	PreInitGameSpec();
 

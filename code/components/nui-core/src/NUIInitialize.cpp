@@ -935,7 +935,9 @@ void CreateRootWindow()
 	int resX, resY;
 	g_nuiGi->GetGameResolution(&resX, &resY);
 
-	auto rootWindow = NUIWindow::Create(true, resX, resY, "nui://game/ui/root.html", true);
+	static ConVar<std::string> rootUrl("ui_rootUrl", ConVar_None, "nui://game/ui/root.html");
+
+	auto rootWindow = NUIWindow::Create(true, resX, resY, rootUrl.GetValue(), true);
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
 	rootWindow->SetName("root");
 

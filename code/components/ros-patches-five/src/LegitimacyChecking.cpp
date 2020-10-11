@@ -883,7 +883,7 @@ namespace ros
 	}
 }
 
-static InitFunction initFunction([]()
+void LoadOwnershipEarly()
 {
 	tokenVar = new ConVar<std::string>("cl_ownershipTicket", ConVar_None, "");
 
@@ -891,7 +891,7 @@ static InitFunction initFunction([]()
 	{
 		SaveOwnershipTicket(tokenVar->GetValue());
 	}
-});
+}
 
 static HookFunction hookFunction([]()
 {

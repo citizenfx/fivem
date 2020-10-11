@@ -1258,6 +1258,30 @@ public:
 
 class StubDXGISwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGISwapChain>
 {
+	StubDXGISwapChain()
+	{
+		desc = { 0 };
+		hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+
+		if (hTimer)
+		{
+			LARGE_INTEGER relTimer;
+			relTimer.QuadPart = -100;
+			SetWaitableTimer(hTimer, &relTimer, 20, NULL, NULL, FALSE);
+		}
+	}
+
+	~StubDXGISwapChain()
+	{
+		if (hTimer)
+		{
+			CloseHandle(hTimer);
+		}
+	}
+
+	HANDLE hTimer;
+
+public:
 	// Inherited via RuntimeClass
 	virtual HRESULT SetPrivateData(REFGUID Name, UINT DataSize, const void * pData) override
 	{
@@ -1281,6 +1305,11 @@ class StubDXGISwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::C
 	}
 	virtual HRESULT Present(UINT SyncInterval, UINT Flags) override
 	{
+		if (hTimer)
+		{
+			WaitForSingleObject(hTimer, INFINITE);
+		}
+
 		return S_OK;
 	}
 	virtual HRESULT GetBuffer(UINT Buffer, REFIID riid, void ** ppSurface) override

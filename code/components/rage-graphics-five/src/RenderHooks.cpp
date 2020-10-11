@@ -307,7 +307,7 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 		SetEvent(uiExitEvent);
 	}
 
-	if (uiDoneEvent)
+	if (uiDoneEvent && !g_disableRendering)
 	{
 		WaitForSingleObject(uiDoneEvent, INFINITE);
 	}
@@ -1389,6 +1389,95 @@ static void SetupQueryHook(void* query)
 	g_queriesSetUp[query] = true;
 }
 
+class FakeDXGIOutput : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGIOutput>
+{
+	// Inherited via RuntimeClass
+	virtual HRESULT __stdcall SetPrivateData(REFGUID Name, UINT DataSize, const void* pData) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall SetPrivateDataInterface(REFGUID Name, const IUnknown* pUnknown) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetPrivateData(REFGUID Name, UINT* pDataSize, void* pData) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetParent(REFIID riid, void** ppParent) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetDesc(DXGI_OUTPUT_DESC* pDesc) override
+	{
+		pDesc->AttachedToDesktop = TRUE;
+		pDesc->DesktopCoordinates = { 0, 0, 1280, 720 };
+		wcscpy(pDesc->DeviceName, L"DummyDevice");
+		pDesc->Monitor = MonitorFromPoint({ 0, 0 }, 0);
+		pDesc->Rotation = DXGI_MODE_ROTATION_IDENTITY;
+
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetDisplayModeList(DXGI_FORMAT EnumFormat, UINT Flags, UINT* pNumModes, DXGI_MODE_DESC* pDesc) override
+	{
+		*pNumModes = 1;
+
+		return S_OK;
+	}
+	virtual HRESULT __stdcall FindClosestMatchingMode(const DXGI_MODE_DESC* pModeToMatch, DXGI_MODE_DESC* pClosestMatch, IUnknown* pConcernedDevice) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall WaitForVBlank(void) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall TakeOwnership(IUnknown* pDevice, BOOL Exclusive) override
+	{
+		return S_OK;
+	}
+	virtual void __stdcall ReleaseOwnership(void) override
+	{
+	}
+	virtual HRESULT __stdcall GetGammaControlCapabilities(DXGI_GAMMA_CONTROL_CAPABILITIES* pGammaCaps) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall SetGammaControl(const DXGI_GAMMA_CONTROL* pArray) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetGammaControl(DXGI_GAMMA_CONTROL* pArray) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall SetDisplaySurface(IDXGISurface* pScanoutSurface) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetDisplaySurfaceData(IDXGISurface* pDestination) override
+	{
+		return S_OK;
+	}
+	virtual HRESULT __stdcall GetFrameStatistics(DXGI_FRAME_STATISTICS* pStats) override
+	{
+		return S_OK;
+	}
+};
+
+static HRESULT FakeOutput(IDXGIAdapter* adap, UINT idx, IDXGIOutput** out)
+{
+	if (idx >= 1)
+	{
+		return DXGI_ERROR_NOT_FOUND;
+	}
+
+	auto output = WRL::Make<FakeDXGIOutput>();
+	output.CopyTo(out);
+
+	return S_OK;
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConVar<bool> disableRenderingCvar("r_disableRendering", ConVar_None, false, &g_disableRendering);
@@ -1441,6 +1530,17 @@ static HookFunction hookFunction([] ()
 	if (g_disableRendering)
 	{
 		hook::jump(hook::get_pattern("84 D2 0F 45 C7 8A D9 89 05", -0x1F), Return1);
+	}
+
+	// force at least one DXGI output when disabled rendering
+	if (g_disableRendering)
+	{
+		uint8_t mov[] = { 0x4C, 0x8D, 0x44, 0x24, 0x40 };
+		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 40 FF 50", 2);
+
+		hook::nop(location, 11);
+		memcpy(location, mov, 5);
+		hook::call(location + 5, FakeOutput);
 	}
 
 	// ignore frozen render device (for PIX and such)

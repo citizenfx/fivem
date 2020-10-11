@@ -8,7 +8,9 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
 
-class ComponentInstance : public Component
+#include <ResumeComponent.h>
+
+class ComponentInstance : public LifeCyclePreInitComponentBase<Component>
 {
 public:
 	virtual bool Initialize();
