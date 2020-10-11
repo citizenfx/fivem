@@ -47,5 +47,6 @@
 	"devcon",
 	"adhesive",
 	"tool:formats",
-	"devtools:rdr3"
+	"devtools:rdr3",
+	"voip:mumble"
 ]
