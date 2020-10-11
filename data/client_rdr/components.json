@@ -46,5 +46,6 @@
 	"rage:formats:x",
 	"devcon",
 	"adhesive",
-	"tool:formats"
+	"tool:formats",
+	"devtools:rdr3"
 ]
