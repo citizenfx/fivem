@@ -16,8 +16,9 @@
 #include <ScriptHandlerMgr.h>
 #include <scrThread.h>
 #include <scrEngine.h>
-
+#ifdef GTA_FIVE
 #include <Streaming.h>
+#endif
 
 using namespace std::chrono_literals;
 
@@ -89,6 +90,8 @@ static int64_t GetTotalBytes(const fwRefContainer<fx::Resource>& resource)
 	return totalBytes;
 }
 
+#ifdef GTA_FIVE
+
 size_t CountDependencyMemory(streaming::Manager* streaming, uint32_t strIdx);
 
 static size_t GetStreamingUsageForThread(GtaThread* thread)
@@ -114,6 +117,7 @@ static size_t GetStreamingUsageForThread(GtaThread* thread)
 
 	return memory;
 }
+#endif
 
 static InitFunction initFunction([]()
 {
@@ -321,6 +325,7 @@ static InitFunction initFunction([]()
 
 					ImGui::Text("%s", resource->GetName().c_str());
 					ImGui::NextColumn();
+		
 
 					auto metric = metrics.find(resourceName);
 
@@ -369,7 +374,7 @@ static InitFunction initFunction([]()
 						}
 
 						ImGui::NextColumn();
-
+						#ifdef GTA_FIVE
 						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
 
 						if (streamingUsage > 0)
@@ -395,6 +400,11 @@ static InitFunction initFunction([]()
 						{
 							ImGui::Text("-");
 						}
+						#else
+
+							ImGui::Text("-");
+
+						#endif
 
 						ImGui::NextColumn();
 					}
