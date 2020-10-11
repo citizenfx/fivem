@@ -1,10 +1,9 @@
-
 #include <StdInc.h>
 
 #include <CoreConsole.h>
 
 #include <Hooking.h>
-#ifdef GTA_FIVE
+
 #include <Streaming.h>
 #include <nutsnbolts.h>
 
@@ -220,4 +219,3 @@ static InitFunction initFunction([]()
 		}
 	});
 });
-#endif

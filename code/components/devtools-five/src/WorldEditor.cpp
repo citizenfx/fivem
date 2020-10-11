@@ -5,10 +5,9 @@
 * regarding licensing.
 */
 
-
 #include <StdInc.h>
 #include <Hooking.h>
-#ifdef GTA_FIVE
+
 #include <EntitySystem.h>
 
 #include <CoreConsole.h>
@@ -463,4 +462,3 @@ std::string OpenFileBrowser(const std::string& extension, const std::string& fil
 
 	return retval;
 }
-#endif
