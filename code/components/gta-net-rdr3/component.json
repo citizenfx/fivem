@@ -5,6 +5,7 @@
 		"fx[2]",
 		"net",
 		"gta:core",
+		"voip:mumble",
 		"rage:nutsnbolts",
 		"rage:scripting",
 		"vendor:websocketpp",
