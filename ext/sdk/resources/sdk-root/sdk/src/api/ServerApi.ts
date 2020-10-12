@@ -19,7 +19,7 @@ const rimraf = promisify(rimrafSync);
 const latestVersion = '2972';
 
 function getProjectServerPath(projectPath: string): string {
-  return path.join(projectPath, '.fxserver');
+  return path.join(projectPath, '.fxdk/fxserver');
 }
 
 export class ServerApi {

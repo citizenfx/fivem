@@ -81,12 +81,22 @@ export class ProjectInstance {
       pathsState: {},
     };
 
-    client.log('Projects shadow root path', projectShadowRootPath);
+    const theiaSettingsPath = path.join(projectPath, '.fxdk/theia-settings.json');
+    const theiaSettings = {
+      folders: [],
+      settings: {},
+    };
 
     // It will create projectPath as well
-    await mkdirp(projectShadowRootPath);
+    await mkdirp(projectShadowRootPath)
 
-    await fs.promises.writeFile(projectManifestPath, JSON.stringify(projectManifest, null, 2));
+    await Promise.all([
+      // Write project manifest
+      fs.promises.writeFile(projectManifestPath, JSON.stringify(projectManifest, null, 2)),
+
+      // Write theia-personality settings
+      fs.promises.writeFile(theiaSettingsPath, JSON.stringify(theiaSettings, null, 2)),
+    ]);
 
     const projectInstance = new ProjectInstance(projectPath, client, explorer);
     await projectInstance.init();

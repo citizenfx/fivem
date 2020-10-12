@@ -45,6 +45,7 @@ export const ResourceDeleter = React.memo(({ name, path, onClose }: ResourceDele
             theme="primary"
             text="Cancel"
             onClick={onClose}
+            autofocus
           />
         </div>
       </div>

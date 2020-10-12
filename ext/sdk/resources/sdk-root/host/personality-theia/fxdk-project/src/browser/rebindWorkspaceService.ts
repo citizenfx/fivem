@@ -17,8 +17,6 @@ import { FileStat, BaseStat } from '@theia/filesystem/lib/common/files';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { FileSystemPreferences } from '@theia/filesystem/lib/browser';
 
-// import { THEIA_EXT, VSCODE_EXT } from './rebindWorkspaceFrontendContribution';
-
 @injectable()
 export class FxdkWorkspaceService implements FrontendApplicationContribution {
 
@@ -26,6 +24,7 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
   private _folders: Set<string> = new Set();
   private _projectName: string = 'none';
   private _projectPath: string = 'none';
+  private _projectUri: URI;
   // /FxDK
 
   private _workspace: FileStat | undefined;
@@ -88,9 +87,13 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     return this._roots;
   }
   get workspace(): FileStat | undefined {
+    if (!this._projectUri) {
+      return;
+    }
+
     return {
       isDirectory: false,
-      resource: {
+      resource: this._projectUri || {
         path: {
           isAbsolute: false,
           isRoot: false,
@@ -116,6 +119,7 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
   setProject({ name, path, folders }) {
     this._projectName = name;
     this._projectPath = path;
+    this._projectUri = new URI('file:///' + this._projectPath + '/.fxdk/theia-settings.json');
     this._folders = new Set(folders);
 
     console.log('Opened project in theia', name, path, folders);

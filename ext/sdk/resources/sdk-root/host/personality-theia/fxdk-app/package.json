@@ -73,6 +73,7 @@
     "vscode-builtin-csharp": "https://open-vsx.org/api/vscode/csharp/1.44.2/file/vscode.csharp-1.44.2.vsix",
     "vscode-builtin-scss": "https://open-vsx.org/api/vscode/scss/1.44.2/file/vscode.scss-1.44.2.vsix",
     "vscode-builtin-typescript": "https://open-vsx.org/api/vscode/typescript/1.44.2/file/vscode.typescript-1.44.2.vsix",
-    "vscode-builtin-typescript-language-features": "https://open-vsx.org/api/vscode/typescript-language-features/1.44.2/file/vscode.typescript-language-features-1.44.2.vsix"
+    "vscode-builtin-typescript-language-features": "https://open-vsx.org/api/vscode/typescript-language-features/1.44.2/file/vscode.typescript-language-features-1.44.2.vsix",
+    "vscode-builtin-theme-monokai": "https://open-vsx.org/api/vscode/theme-monokai/1.44.2/file/vscode.theme-monokai-1.44.2.vsix"
   }
 }

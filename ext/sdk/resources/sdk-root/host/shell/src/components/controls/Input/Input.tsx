@@ -4,7 +4,9 @@ import s from './Input.module.scss';
 
 
 export interface InputProps {
+  tabIndex?: number,
   disabled?: boolean,
+  autofocus?: boolean,
   pattern?: RegExp,
   className?: string,
   inputClassName?: string,
@@ -22,6 +24,8 @@ export const Input = React.memo((props: InputProps) => {
     onChange,
     onSubmit,
     pattern,
+    tabIndex,
+    autofocus = false,
     disabled = false,
     className = '',
     placeholder = '',
@@ -48,6 +52,8 @@ export const Input = React.memo((props: InputProps) => {
 
   const input = (
     <input
+      tabIndex={tabIndex}
+      autoFocus={autofocus}
       className={inputClassName}
       value={value}
       placeholder={placeholder}

@@ -1,9 +1,9 @@
 import { injectable, inject, interfaces } from 'inversify';
-import { CommandContribution, CommandRegistry, MenuContribution, MenuModelRegistry, SelectionService } from '@theia/core/lib/common';
+import { CommandContribution, CommandRegistry, MenuContribution, SelectionService } from '@theia/core/lib/common';
 import { isOSX, environment, OS } from '@theia/core';
 import {
-  open, OpenerService, CommonMenus, StorageService, LabelProvider,
-  ConfirmDialog, KeybindingRegistry, KeybindingContribution, CommonCommands, FrontendApplicationContribution
+  open, OpenerService, StorageService, LabelProvider,
+  ConfirmDialog, KeybindingContribution, CommonCommands, FrontendApplicationContribution
 } from '@theia/core/lib/browser';
 import { FileDialogService, OpenFileDialogProps } from '@theia/filesystem/lib/browser';
 import { ContextKeyService } from '@theia/core/lib/browser/context-key-service';
@@ -11,7 +11,6 @@ import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service
 import { QuickOpenWorkspace } from '@theia/workspace/lib/browser/quick-open-workspace';
 import { WorkspacePreferences } from '@theia/workspace/lib/browser/workspace-preferences';
 import URI from '@theia/core/lib/common/uri';
-import { UriAwareCommandHandler } from '@theia/core/lib/common/uri-command-handler';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { EncodingRegistry } from '@theia/core/lib/browser/encoding-registry';
 import { UTF8 } from '@theia/core/lib/common/encodings';
@@ -106,112 +105,13 @@ export class FxdkWorkspaceFrontendContribution implements CommandContribution, K
     }
   }
 
-  registerCommands(commands: CommandRegistry): void {
-    // Not visible/enabled on Windows/Linux in electron.
-    commands.registerCommand(WorkspaceCommands.OPEN, {
-      isEnabled: () => isOSX || !this.isElectron(),
-      isVisible: () => isOSX || !this.isElectron(),
-      execute: () => this.doOpen()
-    });
-    // Visible/enabled only on Windows/Linux in electron.
-    commands.registerCommand(WorkspaceCommands.OPEN_FILE, {
-      isEnabled: () => true,
-      execute: () => this.doOpenFile()
-    });
-    // Visible/enabled only on Windows/Linux in electron.
-    commands.registerCommand(WorkspaceCommands.OPEN_FOLDER, {
-      isEnabled: () => true,
-      execute: () => this.doOpenFolder()
-    });
-    commands.registerCommand(WorkspaceCommands.OPEN_WORKSPACE, {
-      isEnabled: () => true,
-      execute: () => this.doOpenWorkspace()
-    });
-    commands.registerCommand(WorkspaceCommands.CLOSE, {
-      isEnabled: () => this.workspaceService.opened,
-      execute: () => this.closeWorkspace()
-    });
-    commands.registerCommand(WorkspaceCommands.OPEN_RECENT_WORKSPACE, {
-      execute: () => this.quickOpenWorkspace.select()
-    });
-    commands.registerCommand(WorkspaceCommands.SAVE_WORKSPACE_AS, {
-      isEnabled: () => this.workspaceService.isMultiRootWorkspaceEnabled,
-      execute: () => this.saveWorkspaceAs()
-    });
-    commands.registerCommand(WorkspaceCommands.SAVE_AS,
-      new UriAwareCommandHandler(this.selectionService, {
-        execute: (uri: URI) => this.saveAs(uri),
-      }));
+  registerCommands(): void {
   }
 
-  registerMenus(menus: MenuModelRegistry): void {
-    if (isOSX || !this.isElectron()) {
-      menus.registerMenuAction(CommonMenus.FILE_OPEN, {
-        commandId: WorkspaceCommands.OPEN.id,
-        order: 'a00'
-      });
-    }
-    if (!isOSX && this.isElectron()) {
-      menus.registerMenuAction(CommonMenus.FILE_OPEN, {
-        commandId: WorkspaceCommands.OPEN_FILE.id,
-        label: `${WorkspaceCommands.OPEN_FILE.dialogLabel}...`,
-        order: 'a01'
-      });
-      menus.registerMenuAction(CommonMenus.FILE_OPEN, {
-        commandId: WorkspaceCommands.OPEN_FOLDER.id,
-        label: `${WorkspaceCommands.OPEN_FOLDER.dialogLabel}...`,
-        order: 'a02'
-      });
-    }
-    menus.registerMenuAction(CommonMenus.FILE_OPEN, {
-      commandId: WorkspaceCommands.OPEN_WORKSPACE.id,
-      order: 'a10'
-    });
-    menus.registerMenuAction(CommonMenus.FILE_OPEN, {
-      commandId: WorkspaceCommands.OPEN_RECENT_WORKSPACE.id,
-      order: 'a20'
-    });
-    menus.registerMenuAction(CommonMenus.FILE_OPEN, {
-      commandId: WorkspaceCommands.SAVE_WORKSPACE_AS.id,
-      order: 'a30'
-    });
-
-    menus.registerMenuAction(CommonMenus.FILE_CLOSE, {
-      commandId: WorkspaceCommands.CLOSE.id
-    });
-
-    menus.registerMenuAction(CommonMenus.FILE_SAVE, {
-      commandId: WorkspaceCommands.SAVE_AS.id,
-    });
+  registerMenus(): void {
   }
 
-  registerKeybindings(keybindings: KeybindingRegistry): void {
-    keybindings.registerKeybinding({
-      command: WorkspaceCommands.NEW_FILE.id,
-      keybinding: this.isElectron() ? 'ctrlcmd+n' : 'alt+n',
-    });
-    keybindings.registerKeybinding({
-      command: isOSX || !this.isElectron() ? WorkspaceCommands.OPEN.id : WorkspaceCommands.OPEN_FILE.id,
-      keybinding: this.isElectron() ? 'ctrlcmd+o' : 'ctrlcmd+alt+o',
-    });
-    if (!isOSX && this.isElectron()) {
-      keybindings.registerKeybinding({
-        command: WorkspaceCommands.OPEN_FOLDER.id,
-        keybinding: 'ctrl+k ctrl+o',
-      });
-    }
-    keybindings.registerKeybinding({
-      command: WorkspaceCommands.OPEN_WORKSPACE.id,
-      keybinding: 'ctrlcmd+alt+w',
-    });
-    keybindings.registerKeybinding({
-      command: WorkspaceCommands.OPEN_RECENT_WORKSPACE.id,
-      keybinding: 'ctrlcmd+alt+r',
-    });
-    keybindings.registerKeybinding({
-      command: WorkspaceCommands.SAVE_AS.id,
-      keybinding: 'ctrlcmd+shift+s',
-    });
+  registerKeybindings(): void {
   }
 
   /**
@@ -449,73 +349,6 @@ export class FxdkWorkspaceFrontendContribution implements CommandContribution, K
   }
 
 }
-
-// export namespace WorkspaceFrontendContribution {
-
-//   /**
-//    * File filter for all Theia and VS Code workspace file types.
-//    */
-//   export const DEFAULT_FILE_FILTER: FileDialogTreeFilters = {
-//     'Theia Workspace (*.theia-workspace)': [THEIA_EXT],
-//     'VS Code Workspace (*.code-workspace)': [VSCODE_EXT]
-//   };
-
-//   /**
-//    * Returns with an `OpenFileDialogProps` for opening the `Open Workspace` dialog.
-//    */
-//   export function createOpenWorkspaceOpenFileDialogProps(options: Readonly<{ type: OS.Type, electron: boolean, supportMultiRootWorkspace: boolean }>): OpenFileDialogProps {
-//     const { electron, type, supportMultiRootWorkspace } = options;
-//     const title = WorkspaceCommands.OPEN_WORKSPACE.dialogLabel;
-//     // If browser
-//     if (!electron) {
-//       // and multi-root workspace is supported, it is always folder + workspace files.
-//       if (supportMultiRootWorkspace) {
-//         return {
-//           title,
-//           canSelectFiles: true,
-//           canSelectFolders: true,
-//           filters: DEFAULT_FILE_FILTER
-//         };
-//       } else {
-//         // otherwise, it is always folders. No files at all.
-//         return {
-//           title,
-//           canSelectFiles: false,
-//           canSelectFolders: true
-//         };
-//       }
-//     }
-
-//     // If electron
-//     if (OS.Type.OSX === type) {
-//       // `Finder` can select folders and files at the same time. We allow folders and workspace files.
-//       return {
-//         title,
-//         canSelectFiles: true,
-//         canSelectFolders: true,
-//         filters: DEFAULT_FILE_FILTER
-//       };
-//     }
-
-//     // In electron, only workspace files can be selected when the multi-root workspace feature is enabled.
-//     if (supportMultiRootWorkspace) {
-//       return {
-//         title,
-//         canSelectFiles: true,
-//         canSelectFolders: false,
-//         filters: DEFAULT_FILE_FILTER
-//       };
-//     }
-
-//     // Otherwise, it is always a folder.
-//     return {
-//       title,
-//       canSelectFiles: false,
-//       canSelectFolders: true
-//     };
-//   }
-
-// }
 
 export function rebindWorkspaceFrontendContribution(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceFrontendContribution).toSelf().inSingletonScope();

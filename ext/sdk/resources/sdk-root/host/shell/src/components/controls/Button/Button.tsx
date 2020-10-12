@@ -16,6 +16,8 @@ export interface ButtonProps {
   theme?: ButtonTheme,
   disabled?: boolean,
   onClick?: () => void,
+  autofocus?: boolean,
+  tabIndex?: number,
 }
 
 export const Button = React.memo((props: ButtonProps) => {
@@ -25,18 +27,23 @@ export const Button = React.memo((props: ButtonProps) => {
     theme = 'default',
     disabled = false,
     onClick = noop,
+    autofocus = false,
+    tabIndex,
   } = props;
 
   const className = classnames(s.root, s[theme], {
     [s.disabled]: disabled,
     [s.icon]: !!icon,
     [s.text]: !!text,
+    [s.autofocus]: autofocus || (typeof tabIndex !== 'undefined'),
   });
 
   return (
     <button
       className={className}
       onClick={onClick}
+      autoFocus={autofocus}
+      tabIndex={tabIndex}
     >
       {icon}
       {text}

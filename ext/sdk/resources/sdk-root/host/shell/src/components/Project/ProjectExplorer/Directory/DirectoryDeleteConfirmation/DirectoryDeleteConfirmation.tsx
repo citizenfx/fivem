@@ -25,19 +25,22 @@ export const DirectoryDeleteConfirmation = React.memo(({ path, onClose, onDelete
       </div>
 
       <Explorer
-        loadAllRecursively
         basePath={path}
+        pathsMap={project?.fsTree.pathsMap}
       />
 
       <div className="modal-actions">
         <Button
           text="Delete directory"
           onClick={onDelete}
+          tabIndex={1}
         />
         <Button
           theme="primary"
           text="Cancel"
           onClick={onClose}
+          autofocus
+          tabIndex={0}
         />
       </div>
     </Modal>

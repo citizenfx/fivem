@@ -3,21 +3,16 @@ import URI from '@theia/core/lib/common/uri';
 import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
-import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
 import { FileDialogService } from '@theia/filesystem/lib/browser';
-import { SingleTextInputDialog, ConfirmDialog } from '@theia/core/lib/browser/dialogs';
-import { OpenerService, OpenHandler, open, FrontendApplication, LabelProvider } from '@theia/core/lib/browser';
+import { ConfirmDialog } from '@theia/core/lib/browser/dialogs';
+import { OpenerService, OpenHandler, FrontendApplication, LabelProvider } from '@theia/core/lib/browser';
 import { UriCommandHandler, UriAwareCommandHandler } from '@theia/core/lib/common/uri-command-handler';
 import { WorkspaceService, WorkspaceCommandContribution, FileMenuContribution, EditMenuContribution } from '@theia/workspace/lib/browser';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import { WorkspacePreferences } from '@theia/workspace/lib/browser';
 import { WorkspaceDeleteHandler } from '@theia/workspace/lib/browser/workspace-delete-handler';
 import { WorkspaceDuplicateHandler } from '@theia/workspace/lib/browser/workspace-duplicate-handler';
-import { FileSystemUtils } from '@theia/filesystem/lib/common';
 import { WorkspaceCompareHandler } from '@theia/workspace/lib/browser/workspace-compare-handler';
-import { FileDownloadCommands } from '@theia/filesystem/lib/browser/download/file-download-command-contribution';
-import { FileSystemCommands } from '@theia/filesystem/lib/browser/filesystem-frontend-contribution';
-import { WorkspaceInputDialog } from '@theia/workspace/lib/browser/workspace-input-dialog';
 import { Emitter, Event } from '@theia/core/lib/common';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { FileStat } from '@theia/filesystem/lib/common/files';
@@ -122,38 +117,18 @@ export namespace WorkspaceCommands {
 
 @injectable()
 export class FxdkFileMenuContribution implements MenuContribution {
-
   registerMenus(registry: MenuModelRegistry): void {
-    registry.registerMenuAction(CommonMenus.FILE_NEW, {
-      commandId: WorkspaceCommands.NEW_FILE.id
-    });
-    registry.registerMenuAction(CommonMenus.FILE_NEW, {
-      commandId: WorkspaceCommands.NEW_FOLDER.id
-    });
-    const downloadUploadMenu = [...CommonMenus.FILE, '4_downloadupload'];
-    registry.unregisterMenuAction(FileSystemCommands.UPLOAD.id, downloadUploadMenu);
-    registry.unregisterMenuAction(FileDownloadCommands.DOWNLOAD.id, downloadUploadMenu);
-    // const downloadUploadMenu = [...CommonMenus.FILE, '4_downloadupload'];
-    // registry.registerMenuAction(downloadUploadMenu, {
-    //   commandId: FileSystemCommands.UPLOAD.id,
-    //   order: 'a'
-    // });
-    // registry.registerMenuAction(downloadUploadMenu, {
-    //   commandId: FileDownloadCommands.DOWNLOAD.id,
-    //   order: 'b'
-    // });
   }
-
 }
 
 @injectable()
 export class FxdkEditMenuContribution implements MenuContribution {
 
   registerMenus(registry: MenuModelRegistry): void {
-    registry.registerMenuAction(CommonMenus.EDIT_CLIPBOARD, {
-      commandId: FileDownloadCommands.COPY_DOWNLOAD_LINK.id,
-      order: '9999'
-    });
+    // registry.registerMenuAction(CommonMenus.EDIT_CLIPBOARD, {
+    //   commandId: FileDownloadCommands.COPY_DOWNLOAD_LINK.id,
+    //   order: '9999'
+    // });
   }
 
 }
@@ -199,100 +174,100 @@ export class FxdkWorkspaceCommandContribution implements CommandContribution {
   }
 
   registerCommands(registry: CommandRegistry): void {
-    this.openerService.getOpeners().then(openers => {
-      for (const opener of openers) {
-        const openWithCommand = WorkspaceCommands.FILE_OPEN_WITH(opener);
-        registry.registerCommand(openWithCommand, this.newUriAwareCommandHandler({
-          execute: uri => opener.open(uri),
-          isEnabled: uri => opener.canHandle(uri) > 0,
-          isVisible: uri => opener.canHandle(uri) > 0 && this.areMultipleOpenHandlersPresent(openers, uri)
-        }));
-      }
-    });
-    registry.registerCommand(WorkspaceCommands.NEW_FILE, this.newWorkspaceRootUriAwareCommandHandler({
-      execute: uri => this.getDirectory(uri).then(parent => {
-        if (parent) {
-          const parentUri = parent.resource;
-          const { fileName, fileExtension } = this.getDefaultFileConfig();
-          const vacantChildUri = FileSystemUtils.generateUniqueResourceURI(parentUri, parent, fileName, fileExtension);
+    // this.openerService.getOpeners().then(openers => {
+    //   for (const opener of openers) {
+    //     const openWithCommand = WorkspaceCommands.FILE_OPEN_WITH(opener);
+    //     registry.registerCommand(openWithCommand, this.newUriAwareCommandHandler({
+    //       execute: uri => opener.open(uri),
+    //       isEnabled: uri => opener.canHandle(uri) > 0,
+    //       isVisible: uri => opener.canHandle(uri) > 0 && this.areMultipleOpenHandlersPresent(openers, uri)
+    //     }));
+    //   }
+    // });
+    // registry.registerCommand(WorkspaceCommands.NEW_FILE, this.newWorkspaceRootUriAwareCommandHandler({
+    //   execute: uri => this.getDirectory(uri).then(parent => {
+    //     if (parent) {
+    //       const parentUri = parent.resource;
+    //       const { fileName, fileExtension } = this.getDefaultFileConfig();
+    //       const vacantChildUri = FileSystemUtils.generateUniqueResourceURI(parentUri, parent, fileName, fileExtension);
 
-          const dialog = new WorkspaceInputDialog({
-            title: 'New File',
-            parentUri: parentUri,
-            initialValue: vacantChildUri.path.base,
-            validate: name => this.validateFileName(name, parent, true)
-          }, this.labelProvider);
+    //       const dialog = new WorkspaceInputDialog({
+    //         title: 'New File',
+    //         parentUri: parentUri,
+    //         initialValue: vacantChildUri.path.base,
+    //         validate: name => this.validateFileName(name, parent, true)
+    //       }, this.labelProvider);
 
-          dialog.open().then(async name => {
-            if (name) {
-              const fileUri = parentUri.resolve(name);
-              await this.fileService.create(fileUri);
-              this.fireCreateNewFile({ parent: parentUri, uri: fileUri });
-              open(this.openerService, fileUri);
-            }
-          });
-        }
-      })
-    }));
-    registry.registerCommand(WorkspaceCommands.NEW_FOLDER, this.newWorkspaceRootUriAwareCommandHandler({
-      execute: uri => this.getDirectory(uri).then(parent => {
-        if (parent) {
-          const parentUri = parent.resource;
-          const vacantChildUri = FileSystemUtils.generateUniqueResourceURI(parentUri, parent, 'Untitled');
-          const dialog = new WorkspaceInputDialog({
-            title: 'New Folder',
-            parentUri: parentUri,
-            initialValue: vacantChildUri.path.base,
-            validate: name => this.validateFileName(name, parent, true)
-          }, this.labelProvider);
-          dialog.open().then(async name => {
-            if (name) {
-              const folderUri = parentUri.resolve(name);
-              await this.fileService.createFolder(folderUri);
-              this.fireCreateNewFile({ parent: parentUri, uri: folderUri });
-            }
-          });
-        }
-      })
-    }));
-    registry.registerCommand(WorkspaceCommands.FILE_RENAME, this.newMultiUriAwareCommandHandler({
-      isEnabled: uris => uris.some(uri => !this.isWorkspaceRoot(uri)) && uris.length === 1,
-      isVisible: uris => uris.some(uri => !this.isWorkspaceRoot(uri)) && uris.length === 1,
-      execute: (uris): void => {
-        uris.forEach(async uri => {
-          const parent = await this.getParent(uri);
-          if (parent) {
-            const initialValue = uri.path.base;
-            const stat = await this.fileService.resolve(uri);
-            const fileType = stat.isDirectory ? 'Directory' : 'File';
-            const titleStr = `Rename ${fileType}`;
-            const dialog = new SingleTextInputDialog({
-              title: titleStr,
-              initialValue,
-              initialSelectionRange: {
-                start: 0,
-                end: uri.path.name.length
-              },
-              validate: (name, mode) => {
-                if (initialValue === name && mode === 'preview') {
-                  return false;
-                }
-                return this.validateFileName(name, parent, false);
-              }
-            });
-            const fileName = await dialog.open();
-            if (fileName) {
-              const oldUri = uri;
-              const newUri = uri.parent.resolve(fileName);
-              this.fileService.move(oldUri, newUri);
-            }
-          }
-        });
-      }
-    }));
-    registry.registerCommand(WorkspaceCommands.FILE_DUPLICATE, this.newMultiUriAwareCommandHandler(this.duplicateHandler));
-    registry.registerCommand(WorkspaceCommands.FILE_DELETE, this.newMultiUriAwareCommandHandler(this.deleteHandler));
-    registry.registerCommand(WorkspaceCommands.FILE_COMPARE, this.newMultiUriAwareCommandHandler(this.compareHandler));
+    //       dialog.open().then(async name => {
+    //         if (name) {
+    //           const fileUri = parentUri.resolve(name);
+    //           await this.fileService.create(fileUri);
+    //           this.fireCreateNewFile({ parent: parentUri, uri: fileUri });
+    //           open(this.openerService, fileUri);
+    //         }
+    //       });
+    //     }
+    //   })
+    // }));
+    // registry.registerCommand(WorkspaceCommands.NEW_FOLDER, this.newWorkspaceRootUriAwareCommandHandler({
+    //   execute: uri => this.getDirectory(uri).then(parent => {
+    //     if (parent) {
+    //       const parentUri = parent.resource;
+    //       const vacantChildUri = FileSystemUtils.generateUniqueResourceURI(parentUri, parent, 'Untitled');
+    //       const dialog = new WorkspaceInputDialog({
+    //         title: 'New Folder',
+    //         parentUri: parentUri,
+    //         initialValue: vacantChildUri.path.base,
+    //         validate: name => this.validateFileName(name, parent, true)
+    //       }, this.labelProvider);
+    //       dialog.open().then(async name => {
+    //         if (name) {
+    //           const folderUri = parentUri.resolve(name);
+    //           await this.fileService.createFolder(folderUri);
+    //           this.fireCreateNewFile({ parent: parentUri, uri: folderUri });
+    //         }
+    //       });
+    //     }
+    //   })
+    // }));
+    // registry.registerCommand(WorkspaceCommands.FILE_RENAME, this.newMultiUriAwareCommandHandler({
+    //   isEnabled: uris => uris.some(uri => !this.isWorkspaceRoot(uri)) && uris.length === 1,
+    //   isVisible: uris => uris.some(uri => !this.isWorkspaceRoot(uri)) && uris.length === 1,
+    //   execute: (uris): void => {
+    //     uris.forEach(async uri => {
+    //       const parent = await this.getParent(uri);
+    //       if (parent) {
+    //         const initialValue = uri.path.base;
+    //         const stat = await this.fileService.resolve(uri);
+    //         const fileType = stat.isDirectory ? 'Directory' : 'File';
+    //         const titleStr = `Rename ${fileType}`;
+    //         const dialog = new SingleTextInputDialog({
+    //           title: titleStr,
+    //           initialValue,
+    //           initialSelectionRange: {
+    //             start: 0,
+    //             end: uri.path.name.length
+    //           },
+    //           validate: (name, mode) => {
+    //             if (initialValue === name && mode === 'preview') {
+    //               return false;
+    //             }
+    //             return this.validateFileName(name, parent, false);
+    //           }
+    //         });
+    //         const fileName = await dialog.open();
+    //         if (fileName) {
+    //           const oldUri = uri;
+    //           const newUri = uri.parent.resolve(fileName);
+    //           this.fileService.move(oldUri, newUri);
+    //         }
+    //       }
+    //     });
+    //   }
+    // }));
+    // registry.registerCommand(WorkspaceCommands.FILE_DUPLICATE, this.newMultiUriAwareCommandHandler(this.duplicateHandler));
+    // registry.registerCommand(WorkspaceCommands.FILE_DELETE, this.newMultiUriAwareCommandHandler(this.deleteHandler));
+    // registry.registerCommand(WorkspaceCommands.FILE_COMPARE, this.newMultiUriAwareCommandHandler(this.compareHandler));
   }
 
   protected newUriAwareCommandHandler(handler: UriCommandHandler<URI>): UriAwareCommandHandler<URI> {

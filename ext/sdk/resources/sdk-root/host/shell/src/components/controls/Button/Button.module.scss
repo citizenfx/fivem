@@ -28,7 +28,7 @@
 	transition: all .2s ease;
 
 	color: $fgColor;
-  box-shadow: 0 0 0 2px rgba($fgColor, .75) inset;
+  border: solid 2px rgba($fgColor, .75);
 
   &:hover {
     color: $bgColor;
@@ -42,6 +42,10 @@
     pointer-events: none;
   }
 
+  &.autofocus:focus {
+    box-shadow: 0 0 $q*4 rgba($acColor, .75);
+  }
+
   &.icon.text {
     svg {
       margin-right: $q;
@@ -49,7 +53,7 @@
   }
 
   &.primary {
-    box-shadow: 0 0 0 2px $acColor inset;
+    border-color: $acColor;
 
     &:hover {
       color: $fgColor;
@@ -60,7 +64,7 @@
   }
 
   &.transparent {
-    box-shadow: none;
+    border-color: transparent;
     backdrop-filter: none;
     background-color: transparent;
   }
