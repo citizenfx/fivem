@@ -30,7 +30,7 @@ namespace fx
 		template<typename TRuntime>
 		PushEnvironment(OMPtr<TRuntime> runtime)
 		{
-			fx::MakeInterface(&m_handler, CLSID_ScriptRuntimeHandler);
+			m_handler = EnsureHandler();
 
 			assert(FX_SUCCEEDED(runtime.As(&m_curRuntime)));
 
@@ -69,6 +69,19 @@ namespace fx
 
 		}
 
+		static inline auto EnsureHandler()
+		{
+			static auto rv = ([]()
+			{
+				OMPtr<IScriptRuntimeHandler> handler;
+				fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+
+				return handler;
+			})();
+
+			return rv;
+		}
+
 	public:
 		inline ~PushEnvironment()
 		{
@@ -81,8 +94,7 @@ namespace fx
 		template<typename TRuntime>
 		static bool TryPush(OMPtr<TRuntime> runtime, PushEnvironment& out)
 		{
-			OMPtr<IScriptRuntimeHandler> handler;
-			fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+			auto handler = EnsureHandler();
 
 			OMPtr<IScriptRuntime> curRuntime;
 			assert(FX_SUCCEEDED(runtime.As(&curRuntime)));
