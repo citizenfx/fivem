@@ -23,7 +23,7 @@ extern NetLibrary* g_netLibrary;
 
 #include <nutsnbolts.h>
 
-#include <concurrent_queue.h>
+#include <concurrentqueue.h>
 
 static std::shared_ptr<RpcConfiguration> g_rpcConfiguration;
 
@@ -62,40 +62,48 @@ public:
 		resource->OnTick.Connect([=]()
 		{
 			QueuedEvent entry;
-			std::queue<QueuedEvent> pushQueue;
+			std::unique_ptr<std::queue<QueuedEvent>> pushQueue;
 
-			while (m_queue.try_pop(entry))
+			while (m_queue.try_dequeue(entry))
 			{
 				ResourceActivationScope activationScope(resource);
 
 				if (entry.cond && !entry.cond())
 				{
-					pushQueue.push(std::move(entry));
+					if (!pushQueue)
+					{
+						pushQueue = std::make_unique<std::queue<QueuedEvent>>();
+					}
+
+					pushQueue->push(std::move(entry));
 					continue;
 				}
 
 				entry.fn();
 			}
 
-			while (!pushQueue.empty())
+			if (pushQueue)
 			{
-				ResourceActivationScope activationScope(resource);
+				while (!pushQueue->empty())
+				{
+					ResourceActivationScope activationScope(resource);
 
-				auto& entry = pushQueue.front();
-				m_queue.push(std::move(entry));
+					auto& entry = pushQueue->front();
+					m_queue.enqueue(std::move(entry));
 
-				pushQueue.pop();
+					pushQueue->pop();
+				}
 			}
 		});
 	}
 
 	void Enqueue(const std::function<void()>& fn, const std::function<bool()>& condition = {})
 	{
-		m_queue.push({ fn, condition });
+		m_queue.enqueue({ fn, condition });
 	}
 
 private:
-	concurrency::concurrent_queue<QueuedEvent> m_queue;
+	moodycamel::ConcurrentQueue<QueuedEvent> m_queue;
 };
 
 class DummyScriptEnvironment : public fx::OMClass<DummyScriptEnvironment, IScriptRuntime>
