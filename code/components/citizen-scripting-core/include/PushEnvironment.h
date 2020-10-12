@@ -17,6 +17,19 @@ namespace fx
 	class PushEnvironment
 	{
 	private:
+		static inline auto EnsureHandler()
+		{
+			static auto rv = ([]()
+			{
+				OMPtr<IScriptRuntimeHandler> handler;
+				fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
+
+				return handler;
+			})();
+
+			return rv;
+		}
+
 		OMPtr<IScriptRuntimeHandler> m_handler;
 
 		OMPtr<IScriptRuntime> m_curRuntime;
@@ -67,19 +80,6 @@ namespace fx
 			: m_handler(handler), m_curRuntime(curRuntime)
 		{
 
-		}
-
-		static inline auto EnsureHandler()
-		{
-			static auto rv = ([]()
-			{
-				OMPtr<IScriptRuntimeHandler> handler;
-				fx::MakeInterface(&handler, CLSID_ScriptRuntimeHandler);
-
-				return handler;
-			})();
-
-			return rv;
 		}
 
 	public:
