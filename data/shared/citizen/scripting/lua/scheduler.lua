@@ -1,5 +1,9 @@
+local GetGameTimer = GetGameTimer
+local _sbs = Citizen.SubmitBoundaryStart
+local coresume, costatus = coroutine.resume, coroutine.status
 local debug = debug
 local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibility
+local hadThread = false
 
 -- setup msgpack compat
 msgpack.set_string('string_compat')
@@ -13,16 +17,18 @@ json.setoption("empty_table_as_array", true)
 json.setoption('with_hole', true)
 
 -- temp
+local _in = Citizen.InvokeNative
+
 local function FormatStackTrace()
-	return Citizen.InvokeNative(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
+	return _in(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
 end
 
 local function ProfilerEnterScope(scopeName)
-	return Citizen.InvokeNative(`PROFILER_ENTER_SCOPE` & 0xFFFFFFFF, scopeName)
+	return _in(`PROFILER_ENTER_SCOPE` & 0xFFFFFFFF, scopeName)
 end
 
 local function ProfilerExitScope()
-	return Citizen.InvokeNative(`PROFILER_EXIT_SCOPE` & 0xFFFFFFFF)
+	return _in(`PROFILER_EXIT_SCOPE` & 0xFFFFFFFF)
 end
 
 local newThreads = {}
@@ -88,15 +94,16 @@ local function resumeThread(coro) -- Internal utility
 			ProfilerEnterScope('thread')
 		end
 
-		Citizen.SubmitBoundaryStart(thread.boundary, coro)
+		_sbs(thread.boundary, coro)
 	end
 	
-	local ok, wakeTimeOrErr = coroutine.resume(coro)
+	local ok, wakeTimeOrErr = coresume(coro)
 	
 	if ok then
 		thread = threads[coro]
 		if thread then
 			thread.wakeTime = wakeTimeOrErr or 0
+			hadThread = true
 		end
 	else
 		--Citizen.Trace("Error resuming coroutine: " .. debug.traceback(coro, wakeTimeOrErr) .. "\n")
@@ -113,7 +120,7 @@ local function resumeThread(coro) -- Internal utility
 	ProfilerExitScope()
 	
 	-- Return not finished
-	return coroutine.status(coro) ~= "dead"
+	return costatus(coro) ~= "dead"
 end
 
 function Citizen.CreateThread(threadFunction)
@@ -131,6 +138,8 @@ function Citizen.CreateThread(threadFunction)
 		boundary = bid,
 		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
 	}
+
+	hadThread = true
 end
 
 function Citizen.Wait(msec)
@@ -158,6 +167,7 @@ function Citizen.CreateThreadNow(threadFunction, name)
 		boundary = bid,
 		name = name
 	}
+
 	return resumeThread(coro)
 end
 
@@ -212,22 +222,38 @@ function Citizen.SetTimeout(msec, callback)
 		wakeTime = GetGameTimer() + msec,
 		boundary = bid
 	}
+
+	hadThread = true
 end
 
 SetTimeout = Citizen.SetTimeout
 
 Citizen.SetTickRoutine(function()
+	if not hadThread then
+		return
+	end
+
+	-- flag to skip thread exec if we don't have any
+	local thisHadThread = false
 	local curTime = GetGameTimer()
 
 	for coro, thread in pairs(newThreads) do
 		rawset(threads, coro, thread)
 		newThreads[coro] = nil
+
+		thisHadThread = true
 	end
 
 	for coro, thread in pairs(threads) do
 		if curTime >= thread.wakeTime then
 			resumeThread(coro)
 		end
+
+		thisHadThread = true
+	end
+
+	if not thisHadThread then
+		hadThread = false
 	end
 end)
 
@@ -859,27 +885,31 @@ local exportsCallbackCache = {}
 
 local exportKey = (IsDuplicityVersion() and 'server_export' or 'export')
 
-AddEventHandler(('on%sResourceStart'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
-	if resource == GetCurrentResourceName() then
-		local numMetaData = GetNumResourceMetadata(resource, exportKey) or 0
+do
+	local resource = GetCurrentResourceName()
 
-		for i = 0, numMetaData-1 do
-			local exportName = GetResourceMetadata(resource, exportKey, i)
+	local numMetaData = GetNumResourceMetadata(resource, exportKey) or 0
 
-			AddEventHandler(getExportEventName(resource, exportName), function(setCB)
-				-- get the entry from *our* global table and invoke the set callback
-				if _G[exportName] then
-					setCB(_G[exportName])
-				end
-			end)
-		end
+	for i = 0, numMetaData-1 do
+		local exportName = GetResourceMetadata(resource, exportKey, i)
+
+		AddEventHandler(getExportEventName(resource, exportName), function(setCB)
+			-- get the entry from *our* global table and invoke the set callback
+			if _G[exportName] then
+				setCB(_G[exportName])
+			end
+		end)
 	end
-end)
+end
 
 -- Remove cache when resource stop to avoid calling unexisting exports
-AddEventHandler(('on%sResourceStop'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
-	exportsCallbackCache[resource] = {}
-end)
+local function lazyEventHandler() -- lazy initializer so we don't add an event we don't need
+	AddEventHandler(('on%sResourceStop'):format(IsDuplicityVersion() and 'Server' or 'Client'), function(resource)
+		exportsCallbackCache[resource] = {}
+	end)
+
+	lazyEventHandler = function() end
+end
 
 -- invocation bit
 exports = {}
@@ -890,6 +920,8 @@ setmetatable(exports, {
 
 		return setmetatable({}, {
 			__index = function(t, k)
+				lazyEventHandler()
+
 				if not exportsCallbackCache[resource] then
 					exportsCallbackCache[resource] = {}
 				end
