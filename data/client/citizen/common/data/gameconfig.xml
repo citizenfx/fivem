@@ -142,15 +142,15 @@
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
-							<PoolSize value="250"/>
+							<PoolSize value="750"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetComponent</PoolName>
-							<PoolSize value="350"/>
+							<PoolSize value="850"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandler</PoolName>
-							<PoolSize value="250"/>
+							<PoolSize value="750"/>
 						</Item>
 						<Item>
 							<PoolName>ClothStore</PoolName>
