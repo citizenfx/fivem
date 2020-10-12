@@ -149,6 +149,8 @@ private:
 private:
 	LuaStateHolder m_state;
 
+	lua_CFunction m_dbTraceback;
+
 	IScriptHost* m_scriptHost;
 
 	IScriptHostWithResourceData* m_resourceHost;
@@ -253,6 +255,11 @@ public:
 		return m_nativesDir;
 	}
 
+	inline lua_CFunction GetDbTraceback()
+	{
+		return m_dbTraceback;
+	}
+
 private:
 	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);
 
@@ -314,8 +321,6 @@ public:
 LuaScriptRuntime::~LuaScriptRuntime()
 {
 }
-
-static int lua_error_handler(lua_State* L);
 
 lua_CFunction Lua_GetNative(lua_State* L, const char* name);
 
@@ -389,11 +394,7 @@ static int Lua_SetTickRoutine(lua_State* L)
 	luaRuntime->SetTickRoutine([=]()
 	{
 		// set the error handler
-		//lua_pushcfunction(L, lua_error_handler);
-
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
-		lua_replace(L, -2);
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
 		int eh = lua_gettop(L);
 
@@ -445,9 +446,7 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		static std::vector<char> retvalArray(32768);
 
 		// set the error handler
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
-		lua_replace(L, -2);
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
 		int eh = lua_gettop(L);
 
@@ -543,9 +542,7 @@ static int Lua_SetEventRoutine(lua_State* L)
 	luaRuntime->SetEventRoutine([=](const char* eventName, const char* eventPayload, size_t payloadSize, const char* eventSource)
 	{
 		// set the error handler
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
-		lua_replace(L, -2);
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
 		int eh = lua_gettop(L);
 
@@ -596,9 +593,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 		static std::vector<char> retvalArray(32768);
 
 		// set the error handler
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
-		lua_replace(L, -2);
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
 		int eh = lua_gettop(L);
 
@@ -655,9 +650,7 @@ static int Lua_SetDeleteRefRoutine(lua_State* L)
 	luaRuntime->SetDeleteRefRoutine([=](int32_t refId)
 	{
 		// set the error handler
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
-		lua_replace(L, -2);
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
 		int eh = lua_gettop(L);
 
@@ -695,9 +688,7 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 	luaRuntime->SetDuplicateRefRoutine([=](int32_t refId)
 	{
 		// set the error handler
-		lua_getglobal(L, "debug");
-		lua_getfield(L, -1, "traceback");
-		lua_replace(L, -2);
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
 		int eh = lua_gettop(L);
 
@@ -1620,6 +1611,20 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 
 	safe_openlibs(m_state);
 
+	{
+		// 0
+		lua_getglobal(m_state, "debug");
+
+		// 1
+		lua_getfield(m_state, -1, "traceback");
+
+		// 2
+		m_dbTraceback = lua_tocfunction(m_state, -1);
+		lua_pop(m_state, 2);
+
+		// 0
+	}
+
 	// register the 'Citizen' library
 	lua_newtable(m_state);
 	luaL_setfuncs(m_state, g_citizenLib, 0);
@@ -1831,33 +1836,10 @@ result_t LuaScriptRuntime::LoadSystemFileInternal(char* scriptFile)
 	return LoadFileInternal(stream, scriptFile);
 }
 
-static int lua_error_handler(lua_State* L)
-{
-	lua_getglobal(L, "debug");
-	lua_getfield(L, -1, "traceback");
-
-	lua_pop(L, -2);
-
-	lua_pushvalue(L, 1);
-	lua_pushinteger(L, 2);
-
-	lua_call(L, 2, 1);
-
-	// TODO: proper log channels for this purpose
-	ScriptTrace("Lua error: %s\n", lua_tostring(L, -1));
-
-	return 1;
-}
-
 result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<result_t(char*)> loadFunction)
 {
 	LuaPushEnvironment pushed(this);
-
-	//lua_pushcfunction(m_state, lua_error_handler);
-
-	lua_getglobal(m_state, "debug");
-	lua_getfield(m_state, -1, "traceback");
-	lua_replace(m_state, -2);
+	lua_pushcfunction(m_state, GetDbTraceback());
 
 	int eh = lua_gettop(m_state);
 
