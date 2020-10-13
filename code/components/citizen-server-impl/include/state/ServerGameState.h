@@ -509,6 +509,8 @@ struct SyncUnparseState
 
 	uint32_t targetSlotId;
 
+	bool isFirstUpdate = false;
+
 	SyncUnparseState(rl::MessageBuffer& buffer)
 		: buffer(buffer), lastFrameIndex(0)
 	{

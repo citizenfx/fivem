@@ -1077,6 +1077,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				if (oldEntity != lastEntityState->end())
 				{
 					deletedKeys[pair.first] = { pair.second, &oldEntity->second };
+
+					// very much not live
+					if (auto lit = liveKeys.find(pair.first); lit != liveKeys.end())
+					{
+						if (std::get<0>(lit->second)->uniqifier == oldEntity->second.uniqifier)
+						{
+							liveKeys.erase(pair.first);
+						}
+					}
 				}
 			}
 
@@ -1215,6 +1224,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			auto entityClient = entityClientWeak.lock();
 
 			bool hasCreated = false;
+			uint64_t lastFrameIndex = clientDataUnlocked->lastAckIndex;
 
 			if (lastState)
 			{
@@ -1224,9 +1234,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				auto data = GetClientDataUnlocked(this, client);
 				hasCreated = data->createdEntities.test(objectId);
-			}
 
-			uint64_t lastFrameIndex = clientDataUnlocked->lastAckIndex;
+				// if we're creating, it'd be stupid to delta from a past state
+				lastFrameIndex = 0;
+			}
 
 			if (lastState && lastState->overrideFrameIndex)
 			{
@@ -1474,16 +1485,22 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			// if not sending this, use the last ack's state to base current state on
+			// if not sending this, propagate the wholeeeee delta path into current entity state
 			if (!shouldSend)
 			{
-				if (lastState)
+				for (auto& [_, state] : deltaPath)
 				{
-					newEntityState[objectId] = *lastState;
-				}
-				else
-				{
-					newEntityState.erase(objectId);
+					if (state)
+					{
+						if (auto it = state->find(objectId); it != state->end())
+						{
+							newEntityState[objectId] = it->second;
+						}
+						else
+						{
+							newEntityState.erase(objectId);
+						}
+					}
 				}
 			}
 
@@ -1567,6 +1584,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							state.targetSlotId = slotId;
 							state.timestamp = ts;
 							state.lastFrameIndex = lastFrameIndex;
+							state.isFirstUpdate = isFirstFrameUpdate;
 
 							bool wroteData = entity->syncTree->Unparse(state);
 
@@ -1645,7 +1663,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				runSync([](uint64_t&, bool&) {});
 
-				if (syncType == 1 && entity->type != sync::NetObjEntityType::Player)
+				if (syncType == 1)
 				{
 					syncType = 2;
 					runSync([](uint64_t& lfi, bool& isLfi)
