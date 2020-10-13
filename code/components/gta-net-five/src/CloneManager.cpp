@@ -1397,7 +1397,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 				if (!acked && icgi->NetProtoVersion >= 0x202007022353)
 				{
-					ignoreList.push_back(clone.GetObjectId());
+					recreateList.push_back(clone.GetObjectId());
 				}
 
 				break;
