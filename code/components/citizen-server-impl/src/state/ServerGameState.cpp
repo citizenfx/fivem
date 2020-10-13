@@ -1469,6 +1469,19 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			// if not sending this, use the last ack's state to base current state on
+			if (!shouldSend)
+			{
+				if (lastState)
+				{
+					newEntityState[objectId] = *lastState;
+				}
+				else
+				{
+					newEntityState.erase(objectId);
+				}
+			}
+
 			if (shouldSend)
 			{
 				{
