@@ -498,7 +498,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
 
-				node->WriteObject(state.object, &tempBuf, nullptr, true);
+				node->WriteObject(state.object, &tempBuf, nullptr, state.pass == 1);
 
 				if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
 				{
