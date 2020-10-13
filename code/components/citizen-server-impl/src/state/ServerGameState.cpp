@@ -1461,7 +1461,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					// idk
 					std::unique_lock _(entity->newSendsMutex);
-					entity->newSends[client->GetSlotId()][lastFrameIndex] = curTime;
+					auto& newSends = entity->newSends[client->GetSlotId()];
+					
+					if (newSends.size() < newSends.max_size() || newSends.find(lastFrameIndex) != newSends.end())
+					{
+						newSends[lastFrameIndex] = curTime;
+					}
 				}
 				else
 				{
@@ -1486,7 +1491,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				{
 					std::unique_lock _(entity->newSendsMutex);
-					entity->newSends[client->GetSlotId()][lastFrameIndex] = curTime;
+					
+					auto& newSends = entity->newSends[client->GetSlotId()];
+
+					if (newSends.size() < newSends.max_size() || newSends.find(lastFrameIndex) != newSends.end())
+					{
+						newSends[lastFrameIndex] = curTime;
+					}
 				}
 
 				//GS_LOG("%s: %d %d -> candidate frame %d sent\n", __func__, client->GetNetId(), entity->handle, lastFrameIndex);
@@ -2233,7 +2244,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 	std::unique_lock _(entity->newSendsMutex);
 	for (size_t i = 0; i < entity->newSends.size(); i++)
 	{
-		entity->newSends[i].clear();
+		entity->ReinitNewSends(i);
 	}
 }
 
@@ -2926,7 +2937,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 			for (size_t i = 0; i < entity->newSends.size(); i++)
 			{
-				entity->newSends[i].clear();
+				entity->ReinitNewSends(i);
 			}
 		}
 
@@ -4384,7 +4395,7 @@ static InitFunction initFunction([]()
 								if (ent)
 								{
 									std::unique_lock _(ent->newSendsMutex);
-									ent->newSends[slotId] = {};
+									ent->ReinitNewSends(slotId);
 									ent->lastClientFrames[slotId] = 0;
 								}
 							}

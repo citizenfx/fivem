@@ -389,8 +389,10 @@ struct SyncEntityState
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 
 	// list of delta *source* frames sent (but unacked) at a time per player
+	using TNewSendsMap = eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10, false>;
+
 	std::shared_mutex newSendsMutex;
-	std::array<eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10>, MAX_CLIENTS> newSends;
+	std::array<TNewSendsMap, MAX_CLIENTS> newSends;
 
 	// last frame sent per player
 	std::array<uint64_t, MAX_CLIENTS> lastClientFrames;
@@ -419,6 +421,13 @@ struct SyncEntityState
 	SyncEntityState(const SyncEntityState&) = delete;
 
 	virtual ~SyncEntityState();
+
+	inline void ReinitNewSends(size_t id)
+	{
+		// manually call the constructor to clean out - nothing should be allocated externally in there and
+		// constructors are expected to understand clobbered memory, so this should be fine.
+		new (&newSends[id]) TNewSendsMap;
+	}
 
 	inline float GetDistanceCullingRadius()
 	{
