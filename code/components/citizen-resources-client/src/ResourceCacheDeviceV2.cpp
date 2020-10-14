@@ -557,11 +557,23 @@ std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> Resou
 
 #define VFS_GET_RAGE_PAGE_FLAGS 0x20001
 
+#ifndef IS_RDR3
 struct ResourceFlags
 {
 	uint32_t flag1;
 	uint32_t flag2;
 };
+#else
+struct ResourceFlags
+{
+	uint32_t magic; // 'RSC8'
+	uint32_t version;
+	uint32_t virtPages;
+	uint32_t physPages;
+	uint64_t fileSize;
+	uint64_t fileTime;
+};
+#endif
 
 struct GetRagePageFlagsExtension
 {
@@ -640,9 +652,25 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 		{
 			auto extData = entry->get().extData;
 
+#ifdef IS_RDR3
+			SYSTEMTIME st;
+			GetSystemTime(&st);
+
+			FILETIME ft;
+			SystemTimeToFileTime(&st, &ft);
+
+			data->version = atoi(extData["rscVersion"].c_str());
+			data->flags.magic = 0x38435352;
+			data->flags.fileSize = entry->get().size;
+			data->flags.fileTime = ((uint64_t(ft.dwHighDateTime) << 32) | ft.dwLowDateTime);
+			data->flags.version = atoi(extData["rscVersion"].c_str());
+			data->flags.virtPages = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
+			data->flags.physPages = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
+#else
 			data->version = atoi(extData["rscVersion"].c_str());
 			data->flags.flag1 = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
 			data->flags.flag2 = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
+#endif
 			return true;
 		}
 	}
