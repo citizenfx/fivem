@@ -1230,9 +1230,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							Instance<ICoreGameInit>::Get()->ClearVariable("onesync_big");
 						}
 
+						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
+
 #ifndef _DEBUG
 						std::string onesyncType = "onesync";
-						auto maxClients = (!node["maxClients"].is_null()) ? node["maxClients"].get<int>() : 64;
 
 						if (maxClients <= 48)
 						{
@@ -1295,54 +1296,98 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											AddCrashometry("last_server_ver", serverData);
 										}
 
-										if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+										auto oneSyncPolicyFailure = [this, onesyncType]()
 										{
-											auto oneSyncFailure = [this, onesyncType]()
-											{
-												OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
-												onesyncType,
-												(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
-												? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
-												: ""));
-												m_connectionState = CS_IDLE;
-											};
+											OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
+											onesyncType,
+											(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
+											? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
+											: ""));
+											m_connectionState = CS_IDLE;
+										};
 
-											auto oneSyncSuccess = [this]()
-											{
-												m_connectionState = CS_INITRECEIVED;
-											};
-
-											OnConnectionProgress("Requesting server OneSync policy...", 0, 100);
-
-											if (info.is_object() && info["vars"].is_object())
-											{
-												auto val = info["vars"].value("sv_licenseKeyToken", "");
-
-												if (!val.empty())
-												{
-													m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s/%s", val, onesyncType), [=](bool success, const char* data, size_t size)
-													{
-														if (success)
-														{
-															if (std::string(data, size).find("yes") != std::string::npos)
-															{
-																oneSyncSuccess();
-
-																return;
-															}
-														}
-
-														oneSyncFailure();
-													});
-
-													return;
-												}
-											}
-										}
-										else
+										auto policySuccess = [this]()
 										{
 											m_connectionState = CS_INITRECEIVED;
+										};
+
+										OnConnectionProgress("Requesting server feature policy...", 0, 100);
+
+										if (info.is_object() && info["vars"].is_object())
+										{
+											auto val = info["vars"].value("sv_licenseKeyToken", "");
+
+											if (!val.empty())
+											{
+												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s", val), [=](bool success, const char* data, size_t size)
+												{
+													std::set<std::string> policies;
+
+													// process policy response
+													if (success)
+													{
+														try
+														{
+															json doc = json::parse(data, data + size);
+
+															if (doc.is_array())
+															{
+																for (auto& entry : doc)
+																{
+																	if (entry.is_string())
+																	{
+																		policies.insert(entry.get<std::string>());
+																	}
+																}
+															}
+														}
+														catch (const std::exception&)
+														{
+														}
+													}
+
+													// add forced policies
+													if (maxClients <= 8)
+													{
+														// development/testing servers (<= 8 clients max) get subdir_file_mapping granted
+														policies.insert("subdir_file_mapping");
+													}
+
+													// format policy string and store it
+													std::stringstream policyStr;
+
+													for (const auto& line : policies)
+													{
+														policyStr << "[" << line << "]";
+													}
+
+													std::string policy = policyStr.str();
+
+													if (!policy.empty())
+													{
+														trace("Server feature policy is %s\n", policy);
+													}
+
+													Instance<ICoreGameInit>::Get()->SetData("policy", policy);
+
+													// check 1s policy
+													if (Instance<ICoreGameInit>::Get()->OneSyncEnabled && !onesyncType.empty())
+													{
+														if (policies.find(onesyncType) == policies.end())
+														{
+															oneSyncPolicyFailure();
+															return;
+														}
+													}
+
+													policySuccess();
+												});
+
+												return;
+											}
 										}
+
+										policySuccess();
 									}
 									catch (std::exception& e)
 									{
