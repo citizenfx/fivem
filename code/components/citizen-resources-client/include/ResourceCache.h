@@ -166,12 +166,6 @@ public:
 
 	std::optional<Entry> GetEntryFor(const std::array<uint8_t, 20>& hash);
 
-	// custom entry support
-	std::optional<std::string> GetCustomEntry(const std::string& key);
-
-	void AddCustomEntry(const std::string& key, const std::string& value);
-
-	// cache path getters
 	inline const std::string& GetCachePath()
 	{
 		return m_cachePath;
@@ -186,6 +180,4 @@ private:
 	void OpenDatabase();
 
 	tbb::concurrent_unordered_map<std::string, std::optional<std::optional<Entry>>> m_entryCache;
-
-	tbb::concurrent_unordered_map<std::string, std::optional<std::optional<std::string>>> m_customEntryCache;
 };
