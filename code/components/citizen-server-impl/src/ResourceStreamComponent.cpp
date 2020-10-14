@@ -448,7 +448,7 @@ namespace fx
 		RuntimeEntry se(entry);
 		se.isAutoScan = false;
 
-		static auto instance = m_resource->GetComponent<fx::ResourceManager>()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		static auto instance = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
 		if (entry.isResource && instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5)
 		{
