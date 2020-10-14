@@ -291,7 +291,7 @@ public:
 				std::string pr = pathRef.substr(1);
 				//network::uri::decode(pr.begin(), pr.end(), std::back_inserter(path));
 
-				resource = m_manager->CreateResource(fragRef);
+				resource = m_manager->CreateResource(fragRef, this);
 				resource->LoadFrom(pr);
 			}
 		}

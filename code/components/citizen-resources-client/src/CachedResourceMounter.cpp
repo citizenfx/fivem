@@ -89,7 +89,7 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 			if (m_resourceEntries.find(host) != m_resourceEntries.end())
 			{
 				// if there is one, start by creating a resource with a list component
-				fwRefContainer<fx::Resource> resource = m_manager->CreateResource(host);
+				fwRefContainer<fx::Resource> resource = m_manager->CreateResource(host, this);
 
 				fwRefContainer<ResourceCacheEntryList> entryList = resource->GetComponent<ResourceCacheEntryList>();
 

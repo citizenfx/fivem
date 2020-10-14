@@ -145,7 +145,7 @@ std::string ResourceCallbackScriptRuntime::AddCallbackRef(const std::function<vo
 ResourceCallbackComponent::ResourceCallbackComponent(fx::ResourceManager* manager)
 	: m_manager(manager)
 {
-	m_resource = manager->CreateResource("_cfx_internal");
+	m_resource = manager->CreateResource("_cfx_internal", {});
 	assert(m_resource->Start());
 
 	fwRefContainer<fx::ResourceScriptingComponent> scriptingComponent = m_resource->GetComponent<fx::ResourceScriptingComponent>();
