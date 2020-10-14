@@ -1,10 +1,10 @@
+includedirs {
+	'../gta-streaming-five/include/',
+}
+
 return function()
 	configuration {}
 	filter {}
-
-	includedirs {
-		'components/gta-streaming-five/include/',
-	}
 
 	files {
 		'components/gta-streaming-five/include/Streaming.h',
