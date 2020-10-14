@@ -11,6 +11,8 @@
 
 #include <tl/expected.hpp>
 
+class ResourceCache;
+
 namespace fx
 {
 class ResourceMounter : public fwRefCountable
@@ -41,6 +43,14 @@ public:
 
 			return resource;
 		});
+	}
+
+	//
+	// When overridden, gets the resource cache instance used by this mounter.
+	//
+	inline virtual ResourceCache* GetResourceCache()
+	{
+		return nullptr;
 	}
 
 protected:

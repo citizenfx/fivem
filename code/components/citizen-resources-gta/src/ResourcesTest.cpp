@@ -237,7 +237,10 @@ static InitFunction initFunction([] ()
 
 				for (const auto& entry : cacheList->GetEntries())
 				{
-					if (boost::algorithm::ends_with(entry.first, ".ymf"))
+					if (boost::algorithm::ends_with(entry.first, ".ymf") ||
+						boost::algorithm::ends_with(entry.first, ".ybn") ||
+						boost::algorithm::ends_with(entry.first, ".ytyp") ||
+						boost::algorithm::ends_with(entry.first, ".ymap"))
 					{
 						shouldCache = true;
 						break;

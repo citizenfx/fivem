@@ -11,6 +11,14 @@
 
 #include <VFSManager.h>
 
+#include <gameSkeleton.h>
+
+#include <ResourceCache.h>
+
+#include <Resource.h>
+#include <ResourceManager.h>
+#include <ResourceMounter.h>
+
 static hook::cdecl_stub<void(atHashMap<bool>*, const uint32_t&, const bool&)> atHashMap_bool_insert([]()
 {
 	return hook::get_call(hook::get_pattern("49 8B CF C6 45 60 01 E8 ? ? ? ? 0F B7", 7));
@@ -52,7 +60,7 @@ struct
 {
 	struct
 	{
-		void(*loadCache)();
+		void(*loadCache)(const void* cacheEntry);
 		void(*saveCache)();
 		char name[48];
 		int size;
@@ -73,43 +81,85 @@ static void AppendToCacheWrap(const void* data, int length)
 
 static int*(*g_origGetCacheIndex)(int*, int);
 
-extern std::unordered_map<int, std::string> g_handlesToTag;
+extern std::unordered_map<int, std::tuple<std::string, std::string>> g_handlesToTag;
 
+namespace std
+{
+template<>
+struct hash<tuple<string, string>>
+{
+	size_t operator()(tuple<string, string> const& arg) const noexcept
+	{
+		return (hash<string>()(std::get<0>(arg)) * 472349) + hash<string>()(std::get<1>(arg));
+	}
+};
+}
+
+static bool g_tagMode;
 static std::mutex g_dummyPackfileMutex;
 static std::unordered_map<std::string, std::shared_ptr<StreamingPackfileEntry>> g_dummyPackfiles;
+static std::unordered_map<std::tuple<std::string, std::string>, std::shared_ptr<StreamingPackfileEntry>> g_dummyPackfilesForTagMode;
 
-static StreamingPackfileEntry* GetDummyStreamingPackfileByTag(const std::string& tag)
+static StreamingPackfileEntry* GetDummyStreamingPackfileByTag(const std::tuple<std::string, std::string>& tag)
 {
 	std::unique_lock<std::mutex> lock(g_dummyPackfileMutex);
-	auto it = g_dummyPackfiles.find(tag);
+
+	if (g_tagMode)
+	{
+		auto it = g_dummyPackfilesForTagMode.find(tag);
+
+		if (it == g_dummyPackfilesForTagMode.end())
+		{
+			auto entry = std::make_shared<StreamingPackfileEntry>();
+			memset(&*entry, 0, sizeof(StreamingPackfileEntry));
+			entry->cacheFlags = 1;
+			entry->nameHash = HashString(fmt::sprintf("resource_surrogate:/%s/%s", std::get<0>(tag), std::get<1>(tag)).c_str());
+
+			it = g_dummyPackfilesForTagMode.emplace(tag, entry).first;
+		}
+
+		return &*it->second;
+	}
+
+	// try getting data from tagmode at least
+	{
+		auto it = g_dummyPackfilesForTagMode.find(tag);
+
+		if (it != g_dummyPackfilesForTagMode.end())
+		{
+			return &*it->second;
+		}
+	}
+
+	auto it = g_dummyPackfiles.find(std::get<0>(tag));
 
 	if (it == g_dummyPackfiles.end())
 	{
 		auto entry = std::make_shared<StreamingPackfileEntry>();
 		memset(&*entry, 0, sizeof(StreamingPackfileEntry));
 		entry->cacheFlags = 1;
-		entry->nameHash = HashString(fmt::sprintf("resource_surrogate:/%s.rpf", tag).c_str());
+		entry->nameHash = HashString(fmt::sprintf("resource_surrogate:/%s.rpf", std::get<0>(tag)).c_str());
 
-		it = g_dummyPackfiles.insert({ tag, entry }).first;
+		it = g_dummyPackfiles.insert({ std::get<0>(tag), entry }).first;
 	}
 
 	return &*it->second;
 }
 
-int GetDummyCollectionIndexByTag(const std::string& tag)
+int GetDummyCollectionIndexByTag(const std::tuple<std::string, std::string>& tag)
 {
 	auto pf = GetDummyStreamingPackfileByTag(tag);
 
 	return (pf->nameHash & 0x7FFFFFFF) | 0x40000000;
 }
 
-static void InvalidateDummyCacheByTag(const std::string& tag)
+static void InvalidateDummyCacheByTag(const std::tuple<std::string, std::string>& tag)
 {
 	auto pf = GetDummyStreamingPackfileByTag(tag);
 	pf->cacheFlags |= 1;
 }
 
-static void ValidateDummyCacheByTag(const std::string& tag)
+static void ValidateDummyCacheByTag(const std::tuple<std::string, std::string>& tag)
 {
 	auto pf = GetDummyStreamingPackfileByTag(tag);
 	pf->cacheFlags &= ~1;
@@ -193,13 +243,129 @@ static HookFunction hookFunction([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
+extern std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
+
+static void SetupCache(const std::tuple<std::string, std::string>& tagple)
+{
+	auto pf = GetDummyStreamingPackfileByTag(tagple);
+	pf->cacheFlags = 0;
+
+	// prepare the cache data set
+	int index = GetDummyCollectionIndexByTag(tagple);
+
+	atHashMap<bool> packfileMap;
+	atHashMap_bool_insert(&packfileMap, index, true);
+
+	_loadCacheFile(std::get<0>(tagple).c_str(), "dummy_device:/", true, packfileMap);
+}
+
+static void LoadSingleCache(const std::string& tagName, const std::string& assetName, const std::string& cacheData, const char* moduleName)
+{
+	// set up cacheloader
+	g_tagMode = true;
+
+	auto tagple = std::make_tuple(tagName, assetName);
+	SetupCache(tagple);
+
+	for (int mi = 0; mi < g_cacheMgr->numModules; mi++)
+	{
+		auto module = &g_cacheMgr->fields[mi];
+
+		if (_stricmp(module->name, moduleName) == 0)
+		{
+			module->loadCache(cacheData.data());
+			break;
+		}
+	}
+
+	ValidateDummyCacheByTag(tagple);
+
+	g_tagMode = false;
+}
+
+static std::string SaveSingleCache(const std::string& tagName, const std::string& assetName, const char* moduleName)
+{
+	g_tagMode = true;
+
+	std::stringstream cacheData;
+
+	g_appendToCache = [&](const void* data, int length)
+	{
+		cacheData << std::string((const char*)data, length);
+	};
+
+	auto tagple = std::make_tuple(tagName, assetName);
+	SetupCache(tagple);
+
+	for (int mi = 0; mi < g_cacheMgr->numModules; mi++)
+	{
+		auto module = &g_cacheMgr->fields[mi];
+
+		if (_stricmp(module->name, moduleName) == 0)
+		{
+			module->saveCache();
+			break;
+		}
+	}
+
+	g_appendToCache = {};
+
+	g_tagMode = false;
+
+	return cacheData.str();
+}
+
+static std::set<std::string> g_cacheTags;
+
 void LoadCache(const char* tagName)
 {
-	int index = GetDummyCollectionIndexByTag(tagName);
+	int index = GetDummyCollectionIndexByTag({ tagName, "" });
 
 	if (index < 0)
 	{
 		return;
+	}
+
+	// load autocache
+	static auto resman = Instance<fx::ResourceManager>::Get();
+
+	if (auto resource = resman->GetResource(tagName, false); resource.GetRef())
+	{
+		auto mounter = resource->GetComponent<fx::ResourceMounter>();
+
+		if (auto rescache = mounter->GetResourceCache(); rescache)
+		{
+			auto resList = resource->GetComponent<ResourceCacheEntryList>();
+
+			for (const auto& [ name, data ] : resList->GetEntries())
+			{
+				if (!boost::algorithm::ends_with(name, ".ybn") &&
+					!boost::algorithm::ends_with(name, ".ymap"))
+				{
+					continue;
+				}
+
+				const auto& hash = data.referenceHash;
+
+				auto cacheData = rescache->GetCustomEntry(fmt::sprintf("gta_cache:%s", hash));
+				
+				const char* moduleName = nullptr;
+
+				if (boost::algorithm::ends_with(name, ".ybn"))
+				{
+					moduleName = "BoundsStore";
+				}
+				else if (boost::algorithm::ends_with(name, ".ymap"))
+				{
+					moduleName = "fwMapDataStore";
+				}
+				
+				if (cacheData)
+				{
+					LoadSingleCache(tagName, data.basename, *cacheData, moduleName);
+				}
+			}
+		}
 	}
 
 	// prepare the cache data set
@@ -210,25 +376,86 @@ void LoadCache(const char* tagName)
 
 	if (!_parseCache())
 	{
-		InvalidateDummyCacheByTag(tagName);
+		InvalidateDummyCacheByTag({ tagName, "" });
 	}
 	else
 	{
-		ValidateDummyCacheByTag(tagName);
+		ValidateDummyCacheByTag({ tagName, "" });
 	}
+
+	g_cacheTags.insert(tagName);
+}
+
+static void SaveAllCaches()
+{
+	for (const auto& tagName : g_cacheTags)
+	{
+		static auto resman = Instance<fx::ResourceManager>::Get();
+
+		if (auto resource = resman->GetResource(tagName, false); resource.GetRef())
+		{
+			auto mounter = resource->GetComponent<fx::ResourceMounter>();
+
+			if (auto rescache = mounter->GetResourceCache(); rescache)
+			{
+				auto resList = resource->GetComponent<ResourceCacheEntryList>();
+
+				for (const auto& [name, data] : resList->GetEntries())
+				{
+					if (!boost::algorithm::ends_with(name, ".ybn") && !boost::algorithm::ends_with(name, ".ymap"))
+					{
+						continue;
+					}
+
+					const auto& hash = data.referenceHash;
+
+					auto ckey = fmt::sprintf("gta_cache:%s", hash);
+					auto cacheData = rescache->GetCustomEntry(ckey);
+
+					const char* moduleName = nullptr;
+
+					if (boost::algorithm::ends_with(name, ".ybn"))
+					{
+						moduleName = "BoundsStore";
+					}
+					else if (boost::algorithm::ends_with(name, ".ymap"))
+					{
+						moduleName = "fwMapDataStore";
+					}
+
+					if (!cacheData)
+					{
+						auto cacheData = SaveSingleCache(tagName, data.basename, moduleName);
+
+						rescache->AddCustomEntry(ckey, cacheData);
+					}
+				}
+			}
+		}
+	}
+
+	g_cacheTags.clear();
 }
 
 uint32_t GetPackHashByTag(const std::string& tag);
 
 static InitFunction initFunction([]()
 {
+	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_SESSION)
+		{
+			SaveAllCaches();
+		}
+	}, INT32_MAX);
+
 	static ConsoleCommand saveCacheCmd("save_gta_cache", [](const std::string& resourceName)
 	{
 		atHashMap<bool> packfileMap;
 
 		if (resourceName != "gta5")
 		{
-			int index = GetDummyCollectionIndexByTag(resourceName);
+			int index = GetDummyCollectionIndexByTag({ resourceName, "" });
 
 			if (index < 0)
 			{
@@ -236,7 +463,7 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			auto pf = GetDummyStreamingPackfileByTag(resourceName);
+			auto pf = GetDummyStreamingPackfileByTag({ resourceName, "" });
 			pf->cacheFlags = 0;
 
 			// prepare the cache data set
@@ -314,7 +541,7 @@ static InitFunction initFunction([]()
 			fileData << "</module>\n";
 		}
 
-		g_appendToCache = decltype(g_appendToCache)();
+		g_appendToCache = {};
 
 		std::string outData = fileData.str();
 

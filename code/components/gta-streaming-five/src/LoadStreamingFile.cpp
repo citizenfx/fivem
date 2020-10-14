@@ -238,8 +238,8 @@ static bool g_reloadMapStore = false;
 
 static std::set<std::string> loadedCollisions;
 
-int GetDummyCollectionIndexByTag(const std::string& tag);
-extern std::unordered_map<int, std::string> g_handlesToTag;
+int GetDummyCollectionIndexByTag(const std::tuple<std::string, std::string>& tag);
+extern std::unordered_map<int, std::tuple<std::string, std::string>> g_handlesToTag;
 
 fwEvent<> OnReloadMapStore;
 
@@ -768,7 +768,7 @@ std::set<std::string> g_customStreamingFileRefs;
 static std::map<std::string, std::vector<std::string>, std::less<>> g_customStreamingFilesByTag;
 static std::unordered_map<int, std::list<uint32_t>> g_handleStack;
 static std::set<std::pair<streaming::strStreamingModule*, int>> g_pendingRemovals;
-std::unordered_map<int, std::string> g_handlesToTag;
+std::unordered_map<int, std::tuple<std::string, std::string>> g_handlesToTag;
 static std::set<std::string> g_pedsToRegister;
 
 static std::unordered_set<int> g_ourIndexes;
@@ -889,7 +889,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 					}
 
 					entry.handle = (rawStreamer->GetCollectionId() << 16) | idx;
-					g_handlesToTag[entry.handle] = tag;
+					g_handlesToTag[entry.handle] = { tag, baseName };
 
 					// save the new handle
 					hs.push_front(entry.handle);
@@ -907,7 +907,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 
 					rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
 
-					g_handlesToTag[entry.handle] = tag;
+					g_handlesToTag[entry.handle] = { tag, baseName };
 				}
 				else
 				{
@@ -1485,7 +1485,7 @@ static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint1
 
 		if (entry.handle == attemptIndex)
 		{
-			std::string tag = g_handlesToTag[entry.handle];
+			auto [ tag, name ] = g_handlesToTag[entry.handle];
 
 			extraData += fmt::sprintf("Streaming tag: %s\n", tag);
 			extraData += fmt::sprintf("File name: %s\n", streaming::GetStreamingNameForIndex(i));

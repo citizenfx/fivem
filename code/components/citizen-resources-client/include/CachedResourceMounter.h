@@ -43,6 +43,11 @@ namespace fx
 
 		virtual pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>> LoadResourceWithError(const std::string& uri) override;
 
+		virtual inline ResourceCache* GetResourceCache() override
+		{
+			return m_resourceCache.get();
+		}
+
 	protected:
 		struct ResourceFileEntry
 		{
