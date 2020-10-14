@@ -55,5 +55,9 @@ public:
 	virtual void a15() = 0;
 	virtual uint32_t GetEntryNameHash(uint32_t id) = 0;
 	virtual int GetEntryFileExtId(uint32_t id) = 0;
+	virtual void GetEntryName() = 0;
+	virtual void GetEntryFullName() = 0;
+	virtual uint32_t GetEntryIndex(const char* name) = 0;
+	virtual uint32_t GetEntryIndex(uint32_t nameHash) = 0;
 };
 }

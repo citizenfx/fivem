@@ -94,13 +94,13 @@ public:
 
 	virtual void RenameWithProgress(void*) override;
 
-	virtual uint64_t GetAvailableDiskSpace(const char*) override;
-
 	// MakeDirectory
 	virtual int CreateDirectory(const char* dir) override;
 
 	// UnmakeDirectory
 	virtual int RemoveDirectory(const char* dir) override;
+	
+	virtual uint64_t GetAvailableDiskSpace(const char*) override;
 
 	virtual void Sanitize() override;
 
@@ -170,9 +170,9 @@ public:
 	virtual int GetRpfVersion() override;
 
 	// GetRpfDevice
-	virtual fiDevice* GetCollection() override; // return this
+	virtual fiDevice* GetCollection() override; // GetRpfDevice (return this)
 
-	virtual bool IsCloud() override;
+	// virtual bool IsCloud() override;
 
 	virtual bool IsZip() override;
 

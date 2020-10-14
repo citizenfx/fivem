@@ -218,8 +218,12 @@ int RageVFSDeviceAdapter::GetResourceVersion(const char* file, rage::ResourceFla
 		return ext.version;
 	}
 
+#ifndef IS_RDR3
 	version->flag1 = 0;
 	version->flag2 = 0;
+#else
+	memset(version, 0, sizeof(*version));
+#endif
 
 	trace(__FUNCTION__ " not implemented");
 
