@@ -281,4 +281,9 @@ static void CreatePlayerCommands()
 			return -1;
 		}
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_UPDATE_CHANNEL", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		return client->GetUpdateChannel().c_str();
+	}));
 }
