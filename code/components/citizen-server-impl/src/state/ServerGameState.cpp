@@ -4406,37 +4406,10 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
 
-						auto forEs = [&](const auto& ackEntry)
+						std::function<void(fx::EntityStateObject*)> forEs;
+						forEs = [&](fx::EntityStateObject* ackEntry)
 						{
-							if (ackEntry->find(entity) != ackEntry->end())
-							{
-								// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-								auto eIt = ackEntry->find(entity);
-
-								if (eIt != ackEntry->end())
-								{
-									eIt->second.frameIndex = 0;
-									eIt->second.overrideFrameIndex = true;
-								}
-
-								auto ent = sgs->GetEntity(0, entity);
-
-								if (ent)
-								{
-									std::unique_lock _(ent->newSendsMutex);
-									ent->ReinitNewSends(slotId);
-									ent->lastClientFrames[slotId] = 0;
-								}
-							}
-							else
-							{
-								ackEntry->erase(entity);
-							}
-						};
-
-						for (auto& ackEntry : deltaPath)
-						{
-							if (auto it = std::get<1>(ackEntry)->find(entity); it != std::get<1>(ackEntry)->end())
+							if (auto it = ackEntry->find(entity); it != ackEntry->end())
 							{
 								for (auto& frame : it->second.linkedTo)
 								{
@@ -4444,12 +4417,42 @@ static InitFunction initFunction([]()
 
 									if (dpes != clientData->entityStates.end())
 									{
-										forEs(dpes->second);
+										forEs(dpes->second.get());
 									}
 								}
 							}
 
+							// if was created before?
+							if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
+							{
+								// resend the current one
+								if (auto eIt = ackEntry->find(entity); eIt != ackEntry->end())
+								{
+									// #TODO1SACK: better frame index handling to allow ignoring on node granularity
+									eIt->second.frameIndex = 0;
+									eIt->second.overrideFrameIndex = true;
+								}
+							}
+							else
+							{
+								// treat it as not existent now as well
+								ackEntry->erase(entity);
+							}
+						};
+
+						for (auto& ackEntry : deltaPath)
+						{
 							forEs(std::get<1>(ackEntry));
+						}
+
+						
+						auto ent = sgs->GetEntity(0, entity);
+
+						if (ent)
+						{
+							std::unique_lock _(ent->newSendsMutex);
+							ent->ReinitNewSends(slotId);
+							ent->lastClientFrames[slotId] = 0;
 						}
 					}
 
@@ -4457,9 +4460,10 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is requesting recreate of creating entity %d\n", client->GetName(), entity);
 
-						for (auto& ackEntry : deltaPath)
+						std::function<void(fx::EntityStateObject*)> forEs;
+						forEs = [&](fx::EntityStateObject* ackEntry)
 						{
-							if (auto it = std::get<1>(ackEntry)->find(entity); it != std::get<1>(ackEntry)->end())
+							if (auto it = ackEntry->find(entity); it != ackEntry->end())
 							{
 								for (auto& frame : it->second.linkedTo)
 								{
@@ -4467,12 +4471,17 @@ static InitFunction initFunction([]()
 
 									if (dpes != clientData->entityStates.end())
 									{
-										dpes->second->erase(entity);
+										forEs(dpes->second.get());
 									}
 								}
 							}
 
-							std::get<1>(ackEntry)->erase(entity);
+							ackEntry->erase(entity);
+						};
+
+						for (auto& ackEntry : deltaPath)
+						{
+							forEs(std::get<1>(ackEntry));
 						}
 					}
 				}
