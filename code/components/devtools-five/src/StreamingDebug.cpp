@@ -1,7 +1,7 @@
 
 #include "StdInc.h"
 #include <ConsoleHost.h>
-#ifdef GTA_FIVE
+
 #include <imgui.h>
 
 #include <Streaming.h>
@@ -656,4 +656,4 @@ static InitFunction initFunction([]()
 		ImGui::End();
 	});
 });
-#endif
+
