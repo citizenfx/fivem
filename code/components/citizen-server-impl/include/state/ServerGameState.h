@@ -657,7 +657,6 @@ static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityState
 {
-
 	uint16_t uniqifier;
 	bool isPlayer;
 	bool overrideFrameIndex;
@@ -666,6 +665,8 @@ struct ClientEntityState
 	uint64_t frameIndex;
 
 	std::chrono::milliseconds syncDelay;
+
+	eastl::fixed_vector<uint64_t, 10> linkedTo;
 };
 
 using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;

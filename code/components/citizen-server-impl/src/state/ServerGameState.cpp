@@ -1488,19 +1488,29 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// if not sending this, propagate the wholeeeee delta path into current entity state
 			if (!shouldSend)
 			{
-				for (auto& [_, state] : deltaPath)
+				fx::EntityStateObject* origFrom = nullptr;
+
+				for (auto& [frame, state] : deltaPath)
 				{
 					if (state)
 					{
 						if (auto it = state->find(objectId); it != state->end())
 						{
 							newEntityState[objectId] = it->second;
+							origFrom = state;
 						}
 						else
 						{
 							newEntityState.erase(objectId);
+							origFrom = nullptr;
 						}
 					}
+				}
+
+				// save in case we ignore-create anything in here
+				if (origFrom)
+				{
+					(*origFrom)[objectId].linkedTo.push_back(scl->frameIndex);
 				}
 			}
 
@@ -4259,7 +4269,8 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
+				auto [lock, clientData_] = GetClientData(sgs.GetRef(), client);
+				auto& clientData = clientData_;
 
 				auto origAckIndex = clientData->lastAckIndex;
 
@@ -4395,14 +4406,14 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
 
-						for (auto& ackEntry : deltaPath)
+						auto forEs = [&](const auto& ackEntry)
 						{
-							if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
+							if (ackEntry->find(entity) != ackEntry->end())
 							{
 								// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-								auto eIt = std::get<1>(ackEntry)->find(entity);
+								auto eIt = ackEntry->find(entity);
 
-								if (eIt != std::get<1>(ackEntry)->end())
+								if (eIt != ackEntry->end())
 								{
 									eIt->second.frameIndex = 0;
 									eIt->second.overrideFrameIndex = true;
@@ -4419,8 +4430,26 @@ static InitFunction initFunction([]()
 							}
 							else
 							{
-								std::get<1>(ackEntry)->erase(entity);
+								ackEntry->erase(entity);
 							}
+						};
+
+						for (auto& ackEntry : deltaPath)
+						{
+							if (auto it = std::get<1>(ackEntry)->find(entity); it != std::get<1>(ackEntry)->end())
+							{
+								for (auto& frame : it->second.linkedTo)
+								{
+									auto dpes = clientData->entityStates.find(frame);
+
+									if (dpes != clientData->entityStates.end())
+									{
+										forEs(dpes->second);
+									}
+								}
+							}
+
+							forEs(std::get<1>(ackEntry));
 						}
 					}
 
@@ -4430,6 +4459,19 @@ static InitFunction initFunction([]()
 
 						for (auto& ackEntry : deltaPath)
 						{
+							if (auto it = std::get<1>(ackEntry)->find(entity); it != std::get<1>(ackEntry)->end())
+							{
+								for (auto& frame : it->second.linkedTo)
+								{
+									auto dpes = clientData->entityStates.find(frame);
+
+									if (dpes != clientData->entityStates.end())
+									{
+										dpes->second->erase(entity);
+									}
+								}
+							}
+
 							std::get<1>(ackEntry)->erase(entity);
 						}
 					}
@@ -4437,7 +4479,7 @@ static InitFunction initFunction([]()
 
 				client->SetData("syncFrameIndex", frameIndex);
 
-				// erase all states up to (and including) the one we just approved
+				// erase all states up to (and including) the one we have last approved
 				if (lastAck != clientData->entityStates.end())
 				{
 					clientData->entityStates.erase(clientData->entityStates.begin(), ++lastAck);
