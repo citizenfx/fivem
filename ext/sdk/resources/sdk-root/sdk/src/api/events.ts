@@ -2,6 +2,7 @@ export const projectApi = {
   create: 'project:create',
   open: 'project:open',
   update: 'project:update',
+  setServerUpdateChannel: 'project:setServerUpdateChannel',
 
   getRecents: 'project:getRecents',
   recents: 'project:recents',
@@ -80,6 +81,13 @@ export const serverApi = {
   restartResource: 'server:restartResource',
   stopResource: 'server:stopResource',
   startResource: 'server:startResource',
+
+  ackInstallationState: 'server:ackInstallationState',
+  installationState: 'server:installationState',
+  updateChannelsState: 'server:updateChannelsState',
+  ackUpdateChannelsState: 'server:ackUpdateChannelsState',
+  checkForUpdates: 'server:checkForUpdates',
+  installUpdate: 'server:installUpdate',
 };
 
 export const errorsApi = {

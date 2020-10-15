@@ -6,18 +6,32 @@ import { assetStatus } from '../../../../sdkApi/api.types';
 import { invariant } from '../../../../utils/invariant';
 import { assetIcon, rotatingRefreshIcon } from '../../../../constants/icons';
 import { useExpandablePath, useItem } from '../../ProjectExplorer/ProjectExplorer.hooks';
-import s from './PackAsset.module.scss';
 import {
   ProjectExplorerItemContext,
   ProjectExplorerItemContextProvider,
   ProjectExplorerVisibilityFilter,
 } from '../../ProjectExplorer/ProjectExplorer.itemContext';
+import s from './PackAsset.module.scss';
 
 
 const visibilityFilter = combineVisibilityFilters(
   ProjectExplorerVisibilityFilter,
   visibilityFilters.hideFiles,
 );
+
+const contextOptions: Partial<ProjectExplorerItemContext> = {
+  disableAssetCreate: true,
+  disableAssetDelete: true,
+  disableAssetRename: true,
+  disableDirectoryCreate: true,
+  disableDirectoryDelete: true,
+  disableDirectoryRename: true,
+  disableFileCreate: true,
+  disableFileDelete: true,
+  disableFileOpen: true,
+  disableFileRename: true,
+  visibilityFilter,
+};
 
 export const PackAsset = React.memo((props: ProjectItemProps) => {
   const { entry } = props;
@@ -28,10 +42,10 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
   const { renderItemChildren } = useItem(props);
   const { expanded, toggleExpanded } = useExpandablePath(entry.path, false);
 
-  const [updating, setUpdating] = React.useState(entry.meta.assetMeta?.manager?.data?.status === assetStatus.updating);
+  const [updating, setUpdating] = React.useState(assetMeta.manager?.data?.status === assetStatus.updating);
   React.useEffect(() => {
-    setUpdating(entry.meta.assetMeta?.manager?.data?.status === assetStatus.updating);
-  }, [entry.meta.assetMeta?.manager?.data?.status]);
+    setUpdating(assetMeta.manager?.data?.status === assetStatus.updating);
+  }, [assetMeta.manager?.data?.status]);
 
   const children = renderItemChildren(visibilityFilter);
 
@@ -43,31 +57,17 @@ export const PackAsset = React.memo((props: ProjectItemProps) => {
     ? rotatingRefreshIcon
     : assetIcon;
 
-  const contextOptions: Partial<ProjectExplorerItemContext> = {
-    disableAssetCreate: true,
-    disableAssetDelete: true,
-    disableAssetRename: true,
-    disableDirectoryCreate: true,
-    disableDirectoryDelete: true,
-    disableDirectoryRename: true,
-    disableFileCreate: true,
-    disableFileDelete: true,
-    disableFileOpen: true,
-    disableFileRename: true,
-    visibilityFilter,
-  };
-
   return (
     <div className={rootClassName}>
       <div
         className={s.name}
         onClick={toggleExpanded}
-        title={`Imported from: ${entry.meta.assetMeta?.manager?.data?.repoUrl || 'unknown'}`}
+        title={`Imported from: ${assetMeta.manager?.data?.repoUrl || 'unknown'}`}
       >
         {icon}
         {entry.name}
 
-        {entry.meta.assetMeta?.flags.readOnly && (
+        {assetMeta.flags.readOnly && (
           <div className={s.readonly}>
             <span>readonly</span>
           </div>

@@ -1,7 +1,6 @@
 import './bootstrap';
 import * as paths from './paths';
 import { startShellApp } from './shell/shell';
-import * as setup from './setup';
 import { state } from './api/api';
 import { States } from './api/api.types';
 
@@ -23,7 +22,6 @@ if (selfHosted) {
 
 Promise.resolve()
   .then(() => startShellApp(paths.sdkRootShell))
-  .then(() => setup.run())
   .then(() => state.toState(States.ready))
   .catch((e) => console.error(e));
 

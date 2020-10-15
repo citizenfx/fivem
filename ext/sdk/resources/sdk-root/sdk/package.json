@@ -19,6 +19,7 @@
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "mkdirp": "^1.0.4",
+    "node-fetch": "^2.6.1",
     "rimraf": "^3.0.2",
     "simple-git": "^2.20.1",
     "yauzl": "^2.10.0"
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.7",
     "@types/express-ws": "^3.0.0",
+    "@types/node-fetch": "^2.5.7",
     "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz",
     "typescript": "^4.0.3"
   }

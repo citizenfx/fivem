@@ -1,4 +1,5 @@
 import React from 'react';
+import classnames from 'classnames';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { Button } from '../controls/Button/Button';
 
@@ -9,7 +10,7 @@ export const Welcome = React.memo(() => {
   const { openCreator, openOpener } = React.useContext(ProjectContext);
 
   return (
-    <div className={s.root}>
+    <div className={classnames(s.root, 'animated-background')}>
       <div className={s.header}>
         <h1>
           Welcome to FxDK

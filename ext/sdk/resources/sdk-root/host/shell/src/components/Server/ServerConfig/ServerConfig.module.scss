@@ -1,0 +1,38 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  height: $modalContentHeight;
+
+  overflow: hidden;
+
+  .update-channel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    padding: $q*4;
+
+    .label {
+      margin-bottom: $q;
+    }
+  }
+
+  .output {
+    flex-grow: 1;
+
+    margin-top: $q*4;
+    padding: $q*4;
+
+    overflow: auto;
+
+    background-color: rgba($fgColor, .1);
+
+    pre {
+      white-space: pre-line;
+      line-height: 1.1;
+    }
+  }
+}

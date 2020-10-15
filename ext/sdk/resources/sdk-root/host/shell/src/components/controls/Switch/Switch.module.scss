@@ -1,0 +1,43 @@
+@import "variables";
+
+.root {
+  position: relative;
+
+  display: flex;
+
+  border: solid 2px $fgColor;
+
+  user-select: none;
+
+  &.disabled {
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  .description {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+
+    padding-top: $q*2;
+
+    transform: translateY(100%);
+
+    color: rgba($fgColor, .5);
+    font-size: $fs08;
+    white-space: nowrap;
+  }
+
+  .option {
+    padding: $q*2 $q*3;
+
+    &:hover {
+      background-color: rgba($fgColor, .25);
+    }
+
+    &.active {
+      color: $bgColor;
+      background-color: $fgColor;
+    }
+  }
+}

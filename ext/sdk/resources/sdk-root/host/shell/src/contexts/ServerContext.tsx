@@ -1,5 +1,5 @@
 import React from 'react';
-import { ServerStates } from '../sdkApi/api.types';
+import { ServerInstallationState, ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from '../sdkApi/api.types';
 import { serverApi } from '../sdkApi/events';
 import { getEnabledResourcesPaths } from '../sdkApi/utils';
 import { sendApiMessage } from '../utils/api';
@@ -10,8 +10,11 @@ import { StateContext } from './StateContext';
 
 
 export interface ServerContext {
-  serverState: ServerStates,
+  serverState: ServerStates | null,
   serverOutput: string,
+
+  updateChannelsState: ServerUpdateChannelsState,
+  installationState: ServerInstallationState,
 
   clientConnected: boolean,
 
@@ -21,10 +24,16 @@ export interface ServerContext {
 
   startServer: () => void,
   stopServer: () => void,
+
+  checkForUpdates: (updateChannel: ServerUpdateChannel) => void,
+  installUpdate: (updateChannel: ServerUpdateChannel) => void,
 }
 export const ServerContext = React.createContext<ServerContext>({
   serverState: ServerStates.down,
   serverOutput: '',
+
+  updateChannelsState: {},
+  installationState: {},
 
   clientConnected: false,
 
@@ -32,14 +41,23 @@ export const ServerContext = React.createContext<ServerContext>({
 
   startServer: () => {},
   stopServer: () => {},
+
+  checkForUpdates: () => {},
+  installUpdate: () => {},
 });
 
 export const ServerContextProvider = React.memo(({ children }) => {
   const { project, projectResources } = React.useContext(ProjectContext);
   const { gameLaunched } = React.useContext(StateContext);
 
-  const [serverState, setServerState] = React.useState<ServerStates>(ServerStates.down);
+  const projectPathRef = React.useRef(project?.path);
+  const projectUpdateChannelRef = React.useRef(project?.manifest.serverUpdateChannel);
+
+  const [serverState, setServerState] = React.useState<ServerStates | null>(null);
   const [serverOutput, setServerOutput] = React.useState<string>('');
+
+  const [updateChannelsState, setUpdateChannelsState] = React.useState<ServerUpdateChannelsState>({});
+  const [installationState, setInstallationState] = React.useState<ServerInstallationState>({});
 
   const [clientConnected, setClientConnected] = React.useState(false);
   const connectPending = React.useRef(false);
@@ -52,6 +70,7 @@ export const ServerContextProvider = React.memo(({ children }) => {
 
       sendApiMessage(serverApi.start, {
         projectPath: project.path,
+        updateChannel: project.manifest.serverUpdateChannel,
         enabledResourcesPaths,
       });
 
@@ -63,9 +82,21 @@ export const ServerContextProvider = React.memo(({ children }) => {
     sendApiMessage(serverApi.stop);
   }, []);
 
+  const checkForUpdates = React.useCallback((updateChannel: ServerUpdateChannel) => {
+    sendApiMessage(serverApi.checkForUpdates, updateChannel);
+  }, []);
+
+  const installUpdate = React.useCallback((updateChannel: ServerUpdateChannel) => {
+    sendApiMessage(serverApi.installUpdate, updateChannel);
+  }, []);
+
   // Handling boot
   React.useEffect(() => {
     sendApiMessage(serverApi.ackState);
+    sendApiMessage(serverApi.ackUpdateChannelsState);
+    sendApiMessage(serverApi.ackInstallationState);
+
+    // Ack sdk-game state
     sendCommand('sdk:ackConnected');
   }, []);
 
@@ -82,21 +113,15 @@ export const ServerContextProvider = React.memo(({ children }) => {
     }
     if (serverState === ServerStates.down) {
       setResourcesState({});
-
-      if (clientConnected) {
-        sendCommand('disconnect');
-        setClientConnected(false);
-      }
+      sendCommand('disconnect');
+      setClientConnected(false);
     }
   }, [serverState, gameLaunched, clientConnected, setResourcesState, setClientConnected]);
 
   // Handling game events
   React.useEffect(() => {
     const handleMessage = (e) => {
-      console.log('MESSAGE', e.data);
-
       if (e.data.type === 'connected') {
-        console.log('CLIENT IS CONNECTED');
         setClientConnected(true);
       }
     };
@@ -106,9 +131,37 @@ export const ServerContextProvider = React.memo(({ children }) => {
     return () => window.removeEventListener('message', handleMessage);
   }, [setClientConnected]);
 
-  // Handling resources changes
+  // Handling project changes
   React.useEffect(() => {
-    if (project && serverState === ServerStates.up) {
+    let projectChanged = false;
+
+    if (project) {
+      if (!projectPathRef.current) {
+        projectPathRef.current = project.path;
+      } else if (project.path !== projectPathRef.current) {
+        projectPathRef.current = project.path;
+        projectChanged = true;
+      }
+
+      if (!projectUpdateChannelRef.current) {
+        projectUpdateChannelRef.current = project.manifest.serverUpdateChannel;
+      } else if (project.manifest.serverUpdateChannel !== projectUpdateChannelRef.current) {
+        projectUpdateChannelRef.current = project.manifest.serverUpdateChannel;
+        projectChanged = true;
+      }
+    }
+
+    if (serverState === ServerStates.up || serverState === ServerStates.booting) {
+      if (projectChanged) {
+        sendApiMessage(serverApi.stop);
+      }
+    }
+
+    if (!project) {
+      return;
+    }
+
+    if (serverState === ServerStates.up) {
       const enabledResourcesPaths = getEnabledResourcesPaths(project, projectResources);
 
       sendApiMessage(serverApi.refreshResources, {
@@ -126,6 +179,14 @@ export const ServerContextProvider = React.memo(({ children }) => {
     setServerOutput(serverOutput + chunks);
   }, [setServerOutput, serverOutput]);
 
+  useApiMessage(serverApi.updateChannelsState, (newUpdateChannelsState) => {
+    setUpdateChannelsState(newUpdateChannelsState);
+  });
+
+  useApiMessage(serverApi.installationState, (newInstallationState) => {
+    setInstallationState(newInstallationState);
+  });
+
   useApiMessage(serverApi.clearOutput, () => {
     setServerOutput('');
   }, [setServerOutput]);
@@ -139,12 +200,18 @@ export const ServerContextProvider = React.memo(({ children }) => {
     serverState,
     serverOutput,
 
+    updateChannelsState,
+    installationState,
+
     clientConnected,
 
     resourcesState,
 
     startServer,
     stopServer,
+
+    checkForUpdates,
+    installUpdate,
   };
 
   return (

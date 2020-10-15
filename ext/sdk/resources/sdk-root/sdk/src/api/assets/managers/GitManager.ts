@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as simpleGitPromised from 'simple-git/promise';
 import { invariant } from '../../../invariant';
-import { AssetCreateRequest, assetKinds, assetManagerTypes, AssetMeta } from "../../api.types";
+import { AssetCreateRequest, assetKinds, assetManagerTypes, assetStatus } from "../../api.types";
 import { BaseAssetManager } from "../types";
 
 export class GitManager extends BaseAssetManager {
@@ -21,11 +21,14 @@ export class GitManager extends BaseAssetManager {
     this.client.log('Creating asset managed by git', request);
 
     const assetPath = path.join(request.assetPath, assetName);
-    const assetMeta: AssetMeta = {
+    const assetMeta = {
       kind: assetKinds.pack,
       manager: {
         type: assetManagerTypes.git,
-        data: managerData,
+        data: {
+          ...managerData,
+          status: assetStatus.updating,
+        },
       },
       flags: {
         readOnly,
@@ -47,10 +50,16 @@ export class GitManager extends BaseAssetManager {
         request.callback();
       }
 
+      assetMeta.manager.data.status = assetStatus.ready;
+      await this.project.projectInstance.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
+
       this.project.projectInstance.readAndNotifyFsTree();
 
       return true;
     } catch (e) {
+      assetMeta.manager.data.status = assetStatus.error;
+      await this.project.projectInstance.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
+
       this.client.log('Importing git asset ERROR', e, request);
 
       return false;

@@ -4,7 +4,7 @@ import { ExplorerApi } from './ExplorerApi';
 import * as paths from '../paths';
 import { errorsApi, projectApi } from './events';
 import { ProjectCreateRequest, ProjectInstance } from './ProjectInstance';
-import { notNull } from './utils';
+import { createLock, notNull } from './utils';
 import { SystemEvent, systemEvents } from './api.events';
 
 
@@ -22,6 +22,7 @@ const cfxServerDataEnabledResources = [
 
 export class ProjectApi {
   projectInstance: ProjectInstance | null = null;
+  projectLock = createLock();
 
   constructor(
     private readonly client: ApiClient,
@@ -92,6 +93,10 @@ export class ProjectApi {
   async openProject(projectPath: string): Promise<ProjectInstance> {
     this.client.log('Opening project', projectPath);
 
+    await this.projectLock.waitForUnlock();
+
+    this.projectLock.lock();
+
     if (this.projectInstance) {
       await this.projectInstance.close();
     }
@@ -101,10 +106,26 @@ export class ProjectApi {
     this.emitProjectOpen();
     this.setCurrentProjectInstanceAsMostRecent();
 
+    this.projectLock.unlock();
+
     return this.projectInstance;
   }
 
   async createProject(projectBasePath: string, name: string, withServerData: boolean = false) {
+    this.client.log('Creating project', {
+      projectBasePath,
+      name,
+      withServerData,
+    });
+
+    await this.projectLock.waitForUnlock();
+    this.projectLock.lock();
+
+    if (this.projectInstance) {
+      await this.projectInstance.close();
+      this.projectInstance = null;
+    }
+
     const projectCreateRequest: ProjectCreateRequest = {
       path: projectBasePath,
       name,
@@ -131,6 +152,8 @@ export class ProjectApi {
 
     this.emitProjectOpen();
     this.setCurrentProjectInstanceAsMostRecent();
+
+    this.projectLock.unlock();
   }
 
   private async updateRecentProjects() {

@@ -83,6 +83,21 @@ export const ProjectContextProvider = React.memo(({ children }) => {
   const projectRef = React.useRef<Project | null>(null);
   projectRef.current = project;
 
+  const projectOpenPendingRef = React.useRef(false);
+
+  const openProject = React.useCallback((path: string) => {
+    if (!projectOpenPendingRef.current) {
+      projectOpenPendingRef.current = true;
+      sendApiMessage(projectApi.open, path);
+    }
+  }, []);
+
+  const openFile = React.useCallback((entry: FilesystemEntry) => {
+    if (project) {
+      openFileInTheia(entry.path);
+    }
+  }, [project, openFileInTheia]);
+
   React.useEffect(() => {
     if (state === States.ready) {
       sendApiMessage(projectApi.getRecents);
@@ -101,6 +116,7 @@ export const ProjectContextProvider = React.memo(({ children }) => {
   }, [project, theiaIsReady, openProjectInTheia]);
 
   useApiMessage(projectApi.open, (project) => {
+    projectOpenPendingRef.current = false;
     setProject(project);
   }, [setProject]);
 
@@ -116,20 +132,10 @@ export const ProjectContextProvider = React.memo(({ children }) => {
       const [lastProject] = recentProjects;
 
       if (lastProject) {
-        sendApiMessage(projectApi.open, lastProject.path);
+        openProject(lastProject.path);
       }
     }
-  }, [project]);
-
-  const openProject = React.useCallback((path: string) => {
-    sendApiMessage(projectApi.open, path);
-  }, []);
-
-  const openFile = React.useCallback((entry: FilesystemEntry) => {
-    if (project) {
-      openFileInTheia(entry.path);
-    }
-  }, [project, openFileInTheia]);
+  }, [project, openProject]);
 
   const projectResources = React.useMemo(() => {
     if (!project) {

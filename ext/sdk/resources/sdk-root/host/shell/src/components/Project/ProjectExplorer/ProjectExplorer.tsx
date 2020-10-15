@@ -79,7 +79,6 @@ export const ProjectExplorer = React.memo(() => {
 
     if (directoryName) {
       sendApiMessage(projectApi.createDirectory, {
-        projectPath: project.path,
         directoryPath: project.path,
         directoryName,
       });

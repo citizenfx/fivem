@@ -16,6 +16,8 @@ import {
   ProjectPathsState,
   ProjectResources,
   RelinkResourcesRequest,
+  ServerUpdateChannel,
+  serverUpdateChannels,
 } from "./api.types";
 import { projectApi } from './events';
 import { createLock, debounce, getEnabledResourcesPaths, getResourceConfig, getProjectResources } from './utils';
@@ -76,6 +78,7 @@ export class ProjectInstance {
     const projectManifestPath = path.join(projectPath, fxdkProjectFilename);
     const projectManifest: ProjectManifest = {
       name: request.name,
+      serverUpdateChannel: serverUpdateChannels.recommended,
       createdAt: new Date().toISOString(),
       resources: {},
       pathsState: {},
@@ -143,8 +146,11 @@ export class ProjectInstance {
     private readonly client: ApiClient,
     private readonly explorerApi: ExplorerApi,
   ) {
+    this.log('opening');
+
     this.disposers.push(
       this.client.on(projectApi.setPathsState, (pathsState: ProjectPathsState) => this.setPathsState(pathsState)),
+      this.client.on(projectApi.setServerUpdateChannel, (updateChannel: ServerUpdateChannel) => this.setServerUpdateChannel(updateChannel)),
 
       this.client.on(projectApi.setResourceEnabled, ({ resourceName, enabled }) => this.setResourceEnabled(resourceName, enabled)),
       this.client.on(projectApi.setResourceConfig, ({ resourceName, config }) => this.setResourceConfig(resourceName, config)),
@@ -160,21 +166,32 @@ export class ProjectInstance {
     );
   }
 
+  log(msg: string, ...args) {
+    this.client.log(`[ProjectInstance: ${this.path}]`, msg, ...args);
+  }
+
   async init() {
+    this.log('initializing...');
+
     await Promise.all([
       this.readManifest(),
       this.readFsTree(),
     ]);
 
     this.watchProject();
+
+    this.log('initialized');
   }
 
   async close() {
+    this.log('closing...');
     this.disposers.forEach((disposer) => disposer());
 
     if (this.watcher) {
       await this.watcher.close();
     }
+
+    this.log('closed');
   }
 
   getProjectResources(): ProjectResources {
@@ -221,6 +238,8 @@ export class ProjectInstance {
   }
 
   setPathsState(pathsState: ProjectPathsState) {
+    this.log('saving paths state', pathsState);
+
     this.manifest.pathsState = pathsState;
 
     this.setManifestDebounced();
@@ -239,6 +258,12 @@ export class ProjectInstance {
     }
 
     return path.join(this.shadowPath, relativePath);
+  }
+
+  setServerUpdateChannel(updateChannel: ServerUpdateChannel) {
+    this.manifest.serverUpdateChannel = updateChannel;
+
+    this.setManifestDebounced();
   }
 
   /**
@@ -292,7 +317,7 @@ export class ProjectInstance {
   }
 
   async setAssetMeta(assetPath: string, assetMeta: AssetMeta, options?: SetAssetMetaOptions) {
-    this.client.log('Saving asset meta to file', {
+    this.log('Saving asset meta to file', {
       projectPath: this.path,
       assetPath,
       assetMeta,
@@ -344,7 +369,7 @@ export class ProjectInstance {
   // /Files methods
 
   readAndNotifyFsTree = debounce(async () => {
-    this.client.log('reading fs tree, reconciling resources and sending update');
+    this.log('reading fs tree, reconciling resources and sending update');
 
     await this.readFsTree();
     await this.reconcileResourcesInManifest();
@@ -424,6 +449,7 @@ export class ProjectInstance {
     return this.manifest = {
       pathsState: {},
       resources: {},
+      serverUpdateChannel: serverUpdateChannels.recommended,
       ...JSON.parse(manifestContent.toString('utf8')),
     };
   }

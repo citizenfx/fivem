@@ -1,10 +1,10 @@
 @import "variables";
 
 .root {
+  position: relative;
+
   display: flex;
   align-items: center;
-
-  padding: $q*2 $q*2;
 
   border-radius: $q/2;
 
@@ -13,21 +13,58 @@
   cursor: pointer;
   user-select: none;
 
-  &.up {
-    background-color: $scColor;
+  overflow: hidden;
 
-    &:hover {
-      background-color: $erColor;
+  &.up {
+    .button {
+      background-color: $scColor;
+
+      &:hover {
+        background-color: $erColor;
+      }
     }
   }
 
   &.down {
-    &:hover {
-      background-color: $scColor;
+    .button {
+      &:hover {
+        background-color: $scColor;
+      }
     }
   }
 
-  svg {
-    margin-right: $q;
+  .button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: $q*2 $q*2;
+
+    z-index: 2;
+
+    svg {
+      margin-right: $q;
+    }
+  }
+
+  .config {
+    padding: $q*2 $q*3;
+    border-left: solid 1px $bgColor;
+
+    &:hover {
+      background-color: $acColor;
+    }
+  }
+
+  .progress {
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    background-color: $acColor;
+
+    z-index: 1;
   }
 }

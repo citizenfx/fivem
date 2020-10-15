@@ -5,38 +5,15 @@ import * as http from 'https';
 import * as yauzl from 'yauzl';
 import * as rimrafSync from 'rimraf';
 import { promisify } from 'util';
-import * as paths from './paths';
 
 const rimraf = promisify(rimrafSync);
 
-const serversPath = paths.serverContainer;
-const artifactsPath = paths.serverArtifacts;
 
-try {
-  fs.statSync(artifactsPath);
-} catch (e) {
-  mkdirp.sync(artifactsPath);
-}
-
-const artifacts = {
-  '2972': 'https://runtime.fivem.net/artifacts/fivem/build_server_windows/master/2972-45c63bcfd6e87b0326131c5a266ac3c0c4623f16/server.zip',
-};
-
-function getArtifactPath(version: string): string {
-  return path.join(artifactsPath, `${version}.zip`);
-}
-
-function getArtifactExtractionPath(version: string): string {
-  return path.join(serversPath, version);
-}
+export const versionFilename = '.fxserver-version';
 
 export type Setter = (size: number) => void;
 
-export async function downloadServer(version: string, setContentLength: Setter, setDataLength: Setter) {
-  const url = artifacts[version];
-
-  const artifactPath = getArtifactPath(version);
-
+export async function downloadArtifact(url: string, artifactPath: string, setContentLength: Setter, setDataLength: Setter) {
   try {
     await fs.promises.stat(artifactPath);
     await fs.promises.unlink(artifactPath);
@@ -65,10 +42,7 @@ export async function downloadServer(version: string, setContentLength: Setter, 
   });
 }
 
-export async function unpackServer(version: string, setContentLength: Setter, setDataLength: Setter) {
-  const artifactPath = getArtifactPath(version);
-  const artifactExtractionPath = getArtifactExtractionPath(version);
-
+export async function unpackArtifact(artifactPath: string, artifactExtractionPath: string, setContentLength: Setter, setDataLength: Setter) {
   try {
     await fs.promises.stat(artifactExtractionPath);
     await rimraf(artifactExtractionPath);
@@ -132,49 +106,17 @@ export async function unpackServer(version: string, setContentLength: Setter, se
   });
 }
 
-export async function downloadLatestServer(setContentLength: Setter, setDataLength: Setter) {
-  const latestVersion = Object.keys(artifacts)[0];
-
-  try {
-    const artifactPath = getArtifactPath(latestVersion);
-
-    await fs.promises.stat(artifactPath);
-
-    return;
-  } catch (e) {
-    // That means we need to download artifact, but before we need to clear extraction site
-    const serverPath = getArtifactExtractionPath(latestVersion);
-
-    await rimraf(serverPath);
-  }
-
-  await downloadServer(latestVersion, setContentLength, setDataLength);
-}
-
-export async function prepareServer(version: string) {
-  const serverPath = getArtifactExtractionPath(version);
-  const componentsPath = path.join(serverPath, 'components.json');
+export async function prepareServer(artifactExtractionPath: string, version: string) {
+  const componentsPath = path.join(artifactExtractionPath, 'components.json');
   const componentsContent = await fs.promises.readFile(componentsPath);
 
   const components = JSON.parse(componentsContent.toString('utf8'));
   const newComponents = components.filter((component) => component !== 'svadhesive');
 
   await fs.promises.writeFile(componentsPath, JSON.stringify(newComponents, null, 2));
+
+  // Separate to make sure it will be added in the very end
+  // because installer relies on this file
+  await fs.promises.writeFile(path.join(artifactExtractionPath, versionFilename), version);
 }
 
-export async function unpackLatestServer(setContentLength: Setter, setDataLength: Setter) {
-  const latestVersion = Object.keys(artifacts)[0];
-
-  try {
-    const serverPath = getArtifactExtractionPath(latestVersion);
-
-    await fs.promises.stat(serverPath);
-
-    return;
-  } catch (e) {
-    // This means we need to unpack and prepare :)
-  }
-
-  await unpackServer(latestVersion, setContentLength, setDataLength);
-  await prepareServer(latestVersion);
-}

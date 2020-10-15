@@ -35,6 +35,8 @@ ws.addEventListener('message', (event: MessageEvent) => {
       return console.log('[sdk]', ...(data || []));
     }
 
+    console.log('[api] received message, type:', type, 'data:', data);
+
     const typeListeners = new Set(messageListeners[type]);
     const anyListeners = new Set(messageListeners[ANY_MESSAGE as any]);
 
@@ -56,7 +58,7 @@ export interface ApiMessage {
 };
 
 export const sendApiMessage = (type: string, data?: any) => {
-  console.log('[Sending API Message]', type, data);
+  console.log('[api] sending message, type:', type, 'data:', data);
 
   const message= JSON.stringify([type, data]);
 

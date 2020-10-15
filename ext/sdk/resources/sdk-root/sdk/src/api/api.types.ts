@@ -27,6 +27,32 @@ export enum ServerDataStates {
   ready,
 }
 
+export enum ServerUpdateStates {
+  ready,
+  checking,
+  updateRequired,
+  updating,
+}
+
+export const serverUpdateChannels = {
+  recommended: 'recommended',
+  optional: 'optional',
+  latest: 'latest',
+};
+
+export type ServerUpdateChannel = (typeof serverUpdateChannels)[keyof typeof serverUpdateChannels];
+
+export interface ServerUpdateChannelsState {
+  [updateChannel: string]: ServerUpdateStates,
+}
+
+export interface ServerInstallationState {
+  [updateChannel: string]: null | {
+    downloadedPercentage: number,
+    unpackedPercentage: number,
+  },
+}
+
 export interface FilesystemEntryMeta {
   isFxdkProject?: boolean,
   isResource?: boolean,
@@ -75,6 +101,7 @@ export type ProjectPathsState = {
 export interface ProjectManifest {
   name: string,
   createdAt: string,
+  serverUpdateChannel: ServerUpdateChannel,
   resources: {
     [name: string]: ProjectManifestResource,
   },
@@ -170,6 +197,7 @@ export interface RelinkResourcesRequest {
 
 export interface ServerStartRequest {
   projectPath: string,
+  updateChannel: ServerUpdateChannel,
   enabledResourcesPaths: string[],
 }
 

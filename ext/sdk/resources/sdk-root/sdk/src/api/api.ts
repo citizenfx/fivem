@@ -5,6 +5,7 @@ import { AssetApi } from "./AssetApi";
 import { ExplorerApi } from "./ExplorerApi";
 import { ProjectApi } from "./ProjectApi";
 import { ServerApi } from "./ServerApi";
+import { ServerManagerApi } from "./ServerManagerApi";
 import { StateApi } from "./StateApi";
 
 
@@ -29,9 +30,14 @@ export const apiClient: ApiClient = {
   on<T>(eventType: string, cb: ApiEventCallback<T>): ApiEventCallbackDisposer {
     const listeners = messageTypeListeners[eventType] || (messageTypeListeners[eventType] = new Set());
 
+    this.log('listening to event', eventType);
+
     listeners.add(cb);
 
-    return () => listeners.delete(cb);
+    return () => {
+      this.log('stopped listening to event', eventType);
+      messageTypeListeners[eventType].delete(cb);
+    };
   },
   onAny<T>(cb: ApiEventCallback<T>): ApiEventCallbackDisposer {
     messageListeners.add(cb);
@@ -59,6 +65,9 @@ export const mountApi = (app: expressWs.Application) => {
         messageListeners.forEach((listener) => listener(type, data));
 
         const typedListeners = messageTypeListeners[type];
+
+        apiClient.log('num of listeners of message type', type, 'is', typedListeners?.size);
+
         if (typedListeners) {
           typedListeners.forEach((listener) => listener(data));
         }
@@ -69,8 +78,9 @@ export const mountApi = (app: expressWs.Application) => {
   });
 };
 
+export const serverManager = new ServerManagerApi(apiClient);
 export const state = new StateApi(apiClient);
-export const server = new ServerApi(apiClient);
+export const server = new ServerApi(apiClient, serverManager);
 export const explorer = new ExplorerApi(apiClient);
 export const project = new ProjectApi(apiClient, explorer);
 export const asset = new AssetApi(apiClient, project);

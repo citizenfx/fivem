@@ -11,12 +11,10 @@ import { ApiClient, RelinkResourcesRequest, ServerRefreshResourcesRequest, Serve
 import { serverApi } from './events';
 import { sdkGamePipeName } from './constants';
 import { SystemEvent, systemEvents } from './api.events';
+import { ServerManagerApi } from './ServerManagerApi';
 
 const rimraf = promisify(rimrafSync);
 
-
-// FIXME: proper latest version fetching
-const latestVersion = '2972';
 
 function getProjectServerPath(projectPath: string): string {
   return path.join(projectPath, '.fxdk/fxserver');
@@ -33,6 +31,7 @@ export class ServerApi {
 
   constructor(
     private readonly client: ApiClient,
+    private readonly serverManager: ServerManagerApi,
   ) {
     systemEvents.on(SystemEvent.relinkResources, (request: RelinkResourcesRequest) => this.handleRelinkResources(request));
     systemEvents.on(SystemEvent.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
@@ -86,7 +85,7 @@ export class ServerApi {
   async start(request: ServerStartRequest) {
     const { projectPath, enabledResourcesPaths } = request;
 
-    this.client.log('Starting server in', projectPath, 'with resources', enabledResourcesPaths);
+    this.client.log('Starting server', request);
 
     this.client.emit('server:clearOutput');
 
@@ -94,10 +93,18 @@ export class ServerApi {
 
     const fxserverCwd = getProjectServerPath(projectPath);
 
+    this.client.log('FXServer cwd', fxserverCwd);
+
     await mkdirp(fxserverCwd);
+
+    this.client.log('Ensured FXServer cwd exist');
+
     await this.linkResources(fxserverCwd, enabledResourcesPaths);
 
-    const fxserverPath = path.join(paths.serverContainer, latestVersion, 'FXServer.exe');
+    this.client.log('Linked resources');
+
+    const fxserverPath = this.serverManager.getServerBinaryPath(request.updateChannel);
+    this.client.log('FXServer path', fxserverPath, request);
     const fxserverArgs = [
       '+exec', 'blank',
       '+endpoint_add_tcp', '127.0.0.1:30120',

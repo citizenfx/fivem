@@ -803,7 +803,7 @@ public:
 			{
 				std::string pr = pathRef.substr(1);
 
-				resource = m_manager->CreateResource(fragRef, this);
+				resource = m_manager->CreateResource(fragRef);
 				resource->LoadFrom(*skyr::percent_decode(pr));
 			}
 		}
