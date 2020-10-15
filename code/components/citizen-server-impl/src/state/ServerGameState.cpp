@@ -1488,8 +1488,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// if not sending this, propagate the wholeeeee delta path into current entity state
 			if (!shouldSend)
 			{
-				fx::EntityStateObject* origFrom = nullptr;
-
 				for (auto& [frame, state] : deltaPath)
 				{
 					if (state)
@@ -1497,20 +1495,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						if (auto it = state->find(objectId); it != state->end())
 						{
 							newEntityState[objectId] = it->second;
-							origFrom = state;
+
+							(*state)[objectId].linkedTo.push_back(scl->frameIndex);
 						}
 						else
 						{
 							newEntityState.erase(objectId);
-							origFrom = nullptr;
 						}
 					}
-				}
-
-				// save in case we ignore-create anything in here
-				if (origFrom)
-				{
-					(*origFrom)[objectId].linkedTo.push_back(scl->frameIndex);
 				}
 			}
 
