@@ -670,6 +670,15 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 	}
 }
 
+DWORD WINAPI GSClient_QueryOneServerWrap(LPVOID ctx)
+{
+	auto str = (std::wstring*)ctx;
+	GSClient_QueryOneServer(*str);
+	delete str;
+
+	return 0;
+}
+
 void GSClient_Ping(const std::wstring& arg)
 {
 	g_cls.isOneQuery = false;
@@ -779,7 +788,7 @@ static InitFunction initFunction([] ()
 		{
 			trace("Pinging specified server...\n");
 
-			GSClient_QueryOneServer(arg);
+			QueueUserWorkItem(GSClient_QueryOneServerWrap, new std::wstring(arg), 0);
 		}
 
 		if (!_wcsicmp(type, L"getFavorites"))
