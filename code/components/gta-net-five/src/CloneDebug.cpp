@@ -351,7 +351,6 @@ struct NetObjectNodeData
 	uint32_t lastChange;
 	uint32_t lastAck;
 	uint32_t lastResend;
-	bool forcedDirty;
 
 	NetObjectNodeData()
 	{
@@ -359,7 +358,6 @@ struct NetObjectNodeData
 		lastChange = 0;
 		lastAck = 0;
 		lastResend = 0;
-		forcedDirty = false;
 	}
 };
 
@@ -492,38 +490,39 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
-				// calculate node change state
-				std::array<uint8_t, 1024> tempData;
-				memset(tempData.data(), 0, tempData.size());
-
-				rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
-
-				node->WriteObject(state.object, &tempBuf, nullptr, state.pass == 1);
-
-				if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
+				if (state.pass == 1)
 				{
-					// throttle sends by waiting for the requested node delay
-					uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
+					// calculate node change state
+					std::array<uint8_t, 1024> tempData;
+					memset(tempData.data(), 0, tempData.size());
 
-					if (lastChangeDelta > nodeSyncDelay || nodeData->forcedDirty)
+					rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
+
+					node->WriteObject(state.object, &tempBuf, nullptr, true);
+
+					if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
 					{
-						nodeData->lastResend = 0;
-						nodeData->lastChange = state.time;
-						nodeData->lastData = tempData;
+						// throttle sends by waiting for the requested node delay
+						uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
 
-						nodeData->forcedDirty = false;
+						if (lastChangeDelta > nodeSyncDelay)
+						{
+							nodeData->lastResend = 0;
+							nodeData->lastChange = state.time;
+							nodeData->lastData = tempData;
+						}
 					}
 				}
 
 				bool isResendSkipped = ((state.time - nodeData->lastResend) < 150);
 
-				if (state.lastChangeTimePtr)
+				if (state.pass == 2)
 				{
-					auto oldVal = *state.lastChangeTimePtr;
-
-					if (nodeData->lastChange > oldVal && !isResendSkipped)
+					if (state.lastChangeTimePtr)
 					{
-						if (state.pass == 2)
+						auto oldVal = *state.lastChangeTimePtr;
+
+						if (nodeData->lastChange > oldVal && !isResendSkipped)
 						{
 							*state.lastChangeTimePtr = nodeData->lastChange;
 
@@ -806,7 +805,6 @@ void DirtyNode(void* object, void* node)
 	auto& nodeData = rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node];
 	nodeData.lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
 	nodeData.lastResend = 0;
-	nodeData.forcedDirty = true;
 }
 
 static bool g_captureSyncLog;
@@ -907,8 +905,6 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 
 	ImGui::Columns(1);
 }
-
-uint32_t GetRemoteTime();
 
 static InitFunction initFunction([]()
 {
