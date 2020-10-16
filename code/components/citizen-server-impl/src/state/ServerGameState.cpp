@@ -4377,9 +4377,18 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
 
+						eastl::fixed_set<fx::EntityStateObject*, 20> did;
+
 						std::function<void(fx::EntityStateObject*)> forEs;
 						forEs = [&](fx::EntityStateObject* ackEntry)
 						{
+							if (did.find(ackEntry) != did.end())
+							{
+								return;
+							}
+
+							did.insert(ackEntry);
+
 							if (auto it = ackEntry->find(entity); it != ackEntry->end())
 							{
 								for (auto& frame : it->second.linkedTo)
@@ -4433,9 +4442,18 @@ static InitFunction initFunction([]()
 					{
 						GS_LOG("%s is requesting recreate of creating entity %d\n", client->GetName(), entity);
 
+						eastl::fixed_set<fx::EntityStateObject*, 20> did;
+
 						std::function<void(fx::EntityStateObject*)> forEs;
 						forEs = [&](fx::EntityStateObject* ackEntry)
 						{
+							if (did.find(ackEntry) != did.end())
+							{
+								return;
+							}
+
+							did.insert(ackEntry);
+
 							if (auto it = ackEntry->find(entity); it != ackEntry->end())
 							{
 								for (auto& frame : it->second.linkedTo)
