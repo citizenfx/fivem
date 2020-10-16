@@ -56,6 +56,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 	) {
 		discourseService.signinChange.subscribe((user) => {
 			this.currentAccount = user;
+
+			this.loadTopServer();
 		});
 
 		this.serviceMessage = cachedServiceMessage;
@@ -94,7 +96,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 	ngOnDestroy() {}
 
 	async loadTopServer() {
-		this.topServer = await this.serversService.getTopServer();
+		if (this.currentAccount) {
+			const pinConfig = await this.serversService.loadPinConfig();
+
+			this.topServer = await this.serversService.getServer(pinConfig.noAdServerId);
+		} else {
+			this.topServer = await this.serversService.getTopServer();
+		}
 
 		this.changeDetectorRef.markForCheck();
 	}

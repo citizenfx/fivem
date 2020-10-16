@@ -280,9 +280,9 @@ export class AppComponent implements OnInit, AfterViewInit {
 			return;
 		}
 
-		// We will either show ui in 1.5s or earlier when it is ready
+		// We will either show ui in 0.5s or earlier when it is ready
 		// this way we can be sure we don't ever block ui with loader forever
-		setTimeout(settle, 1500);
+		setTimeout(settle, 500);
 
 		// reused snippet from https://dev.to/herodevs/route-fully-rendered-detection-in-angular-2nh4
 		this.zone.runOutsideAngular(() => {

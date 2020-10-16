@@ -588,6 +588,10 @@
 			padding: var(--q1);
 		}
 
+		.ad {
+			position: relative;
+		}
+
 		.story, .ad > div {
 			display: flex;
 			flex-direction: column;
@@ -600,6 +604,18 @@
 
 				@include theme() using ($theme) {
 					color: rgba(gtv($theme, fgColor), .5);
+				}
+
+				& > span {
+					position: absolute;
+					right: var(--q1);
+					bottom: var(--q1);
+
+					@include theme() using ($theme) {
+						color: rgba(gtv($theme, fgColor), .8);
+					}
+
+					font-size: 80%;
 				}
 			}
 		}

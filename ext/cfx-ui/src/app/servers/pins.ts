@@ -2,6 +2,8 @@ export class PinConfig {
     pinIfEmpty = false;
 
     pinnedServers: string[] = [];
+
+    noAdServerId = '';
 }
 
 export class PinConfigCached {
