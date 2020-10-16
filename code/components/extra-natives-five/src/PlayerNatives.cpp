@@ -3,11 +3,17 @@
 
 #include <ScriptSerialization.h>
 #include <NetworkPlayerMgr.h>
+#include <scrEngine.h>
 
 #include <Hooking.h>
 
 static int(*netInterface_GetNumPhysicalPlayers)();
 static CNetGamePlayer** (*netInterface_GetAllPhysicalPlayers)();
+
+enum NativeIdentifiers : uint64_t
+{
+	GET_PLAYER_PED = 0x43A66C31C68491C0
+};
 
 static void* getAndCheckPlayerInfo(fx::ScriptContext& context)
 {
@@ -75,6 +81,23 @@ static HookFunction hookFunction([]()
 		}
 
 		context.SetResult(fx::SerializeObject(playerList));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_INVINCIBLE_2", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+		
+		int playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, int>(context.GetArgument<int>(0));
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(playerPedId);
+
+		if (entity && entity->IsOfType<CPed>())
+		{
+			auto address = (char*)entity;
+			DWORD flag = *(DWORD *)(address + 0x188);  
+			result = ((flag & (1 << 8)) != 0) || ((flag & (1 << 9)) != 0);
+		}
+
+		context.SetResult<bool>(result);
 	});
 
 	using namespace std::placeholders;
