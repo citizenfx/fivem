@@ -2964,6 +2964,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		entity->timestamp = timestamp;
 
 		// reset everyone's last sync
+		// #TODO1S: THIS IS SLOW.
 		{
 			std::unique_lock _(entity->newSendsMutex);
 

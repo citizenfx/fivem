@@ -424,9 +424,12 @@ struct SyncEntityState
 
 	inline void ReinitNewSends(size_t id)
 	{
-		// manually call the constructor to clean out - nothing should be allocated externally in there and
-		// constructors are expected to understand clobbered memory, so this should be fine.
-		new (&newSends[id]) TNewSendsMap;
+		if (!newSends[id].empty())
+		{
+			// manually call the constructor to clean out - nothing should be allocated externally in there and
+			// constructors are expected to understand clobbered memory, so this should be fine.
+			new (&newSends[id]) TNewSendsMap;
+		}
 	}
 
 	inline float GetDistanceCullingRadius()
