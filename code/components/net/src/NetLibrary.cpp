@@ -840,6 +840,16 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 	co_return {};
 }
 
+static std::string GetUpdateChannel()
+{
+	wchar_t resultPath[1024];
+
+	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+	return ToNarrow(resultPath);
+}
+
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
 	std::string ruRef = rootUrl;
@@ -914,6 +924,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
+	postMap["updateChannel"] = GetUpdateChannel();
 
 	std::string gameBuild;
 
