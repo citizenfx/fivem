@@ -2348,7 +2348,19 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 				auto [_, clientData] = GetClientData(this, tgtClient);
 				auto lastAck = clientData->entityStates.find(clientData->lastAckIndex);
 
-				if (lastAck == clientData->entityStates.end() || lastAck->second->find(eh) != lastAck->second->end())
+				bool hadEntity = false;
+
+				if (lastAck != clientData->entityStates.end() && lastAck->second->find(eh) != lastAck->second->end())
+				{
+					hadEntity = true;
+				}
+
+				if (!hadEntity && clientData->pendingEntities.find(eh) != clientData->pendingEntities.end())
+				{
+					hadEntity = true;
+				}
+
+				if (hadEntity)
 				{
 					candidates.emplace(distance, tgtClient);
 				}
@@ -4357,39 +4369,6 @@ static InitFunction initFunction([]()
 							relevantExits.push_back({ entity, true });
 						}
 					}
-
-					for (auto& entityPair : *es->second)
-					{
-						auto entity = sgs->GetEntity(0, entityPair.first);
-
-						if (!entity)
-						{
-							continue;
-						}
-
-						{
-							std::unique_lock _(entity->newSendsMutex);
-							auto& newSends = entity->newSends[slotId];
-
-							if (wasDropped)
-							{
-								for (const auto& pair : deltaPath)
-								{
-									if (newSends.find(std::get<0>(pair)) != newSends.end())
-									{
-										entity->lastClientFrames[slotId] = std::get<0>(pair);
-									}
-								}
-							}
-
-							newSends.erase(newSends.begin(), newSends.find(frameIndex));
-						}
-
-						if (entity->stateBag)
-						{
-							entity->stateBag->AddRoutingTarget(slotId);
-						}
-					}
 				}
 
 				if (es != clientData->entityStates.end())
@@ -4446,6 +4425,8 @@ static InitFunction initFunction([]()
 							ent->ReinitNewSends(slotId);
 							ent->lastClientFrames[slotId] = 0;
 						}
+
+						clientData->pendingEntities.insert(entity);
 					}
 
 					for (auto& entity : recreateEntities)
@@ -4474,6 +4455,43 @@ static InitFunction initFunction([]()
 						for (auto& ackEntry : deltaPath)
 						{
 							forEs(std::get<1>(ackEntry));
+						}
+
+						clientData->pendingEntities.insert(entity);
+					}
+
+					// run this on the ES after we process ignores
+					for (auto& entityPair : *es->second)
+					{
+						auto entity = sgs->GetEntity(0, entityPair.first);
+						clientData->pendingEntities.erase(entityPair.first);
+
+						if (!entity)
+						{
+							continue;
+						}
+
+						{
+							std::unique_lock _(entity->newSendsMutex);
+							auto& newSends = entity->newSends[slotId];
+
+							if (wasDropped)
+							{
+								for (const auto& pair : deltaPath)
+								{
+									if (newSends.find(std::get<0>(pair)) != newSends.end())
+									{
+										entity->lastClientFrames[slotId] = std::get<0>(pair);
+									}
+								}
+							}
+
+							newSends.erase(newSends.begin(), newSends.find(frameIndex));
+						}
+
+						if (entity->stateBag)
+						{
+							entity->stateBag->AddRoutingTarget(slotId);
 						}
 					}
 				}

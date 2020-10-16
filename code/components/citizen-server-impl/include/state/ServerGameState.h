@@ -703,6 +703,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	}
 
 	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, EntityStateDeleter>, 200> entityStates;
+	eastl::fixed_set<uint32_t, 20> pendingEntities;
 	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 
 	uint64_t lastAckIndex;
