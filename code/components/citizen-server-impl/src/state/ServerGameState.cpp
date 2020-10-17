@@ -1184,6 +1184,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 				}
 
+				{
+					std::unique_lock _(entity->newSendsMutex);
+					entity->ReinitNewSends(slotId);
+					entity->lastClientFrames[slotId] = 0;
+					entity->lastSyncs[slotId] = 0ms;
+				}
+
 				auto [_, clientData] = GetClientData(this, client);
 				clientData->relevantEntities.erase(std::remove_if(clientData->relevantEntities.begin(), clientData->relevantEntities.end(), [deletion](const auto& tup)
 				{
@@ -2415,6 +2422,8 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 	GS_LOG("client drop - reassigning\n");
 #endif
 
+	auto slotId = client->GetSlotId();
+
 	if (fx::IsBigMode())
 	{
 		clientRegistry->ForAllClients([this, &client](const fx::ClientSharedPtr& tgtClient)
@@ -2437,7 +2446,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 	// clear the player's world grid ownership
 	auto netId = client->GetNetId();
 
-	if (auto slotId = client->GetSlotId(); slotId != -1)
+	if (slotId != -1)
 	{
 		WorldGridState* gridState = &m_worldGrid[slotId];
 
@@ -2474,12 +2483,20 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 				continue;
 			}
 
-			auto slotId = client->GetSlotId();
-
 			if (slotId != -1)
 			{
-				std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-				entity->relevantTo.reset(slotId);
+				{
+					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+					entity->relevantTo.reset(slotId);
+				}
+
+				{
+					std::unique_lock _(entity->newSendsMutex);
+					entity->ReinitNewSends(slotId);
+					entity->lastClientFrames[slotId] = 0;
+				}
+
+				entity->lastSyncs[slotId] = 0ms;
 			}
 
 			if (!MoveEntityToCandidate(entity, client))
