@@ -155,6 +155,11 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 			}
 #endif
 		}
+		else {
+			CreateEmptyEnvironments();
+
+			m_resource->OnCreate();
+		}
 	});
 
 	resource->OnTick.Connect([=] ()
@@ -305,6 +310,19 @@ void ResourceScriptingComponent::CreateEnvironments()
 				}
 			}
 		}
+	}
+}
+
+void ResourceScriptingComponent::CreateEmptyEnvironments()
+{
+	// Setup handlers that preempt OnTriggerEvent for no ScRT resources
+	fwRefContainer<ResourceEventComponent> eventComponent = m_resource->GetComponent<ResourceEventComponent>();
+	if (eventComponent.GetRef())
+	{
+		eventComponent->OnTriggerEvent.Connect([this](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			return false;
+		}, INT32_MIN);
 	}
 }
 }
