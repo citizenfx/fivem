@@ -315,6 +315,9 @@ static InitFunction initFunction([]()
 					resourceList.insert({ resource->GetName(), resource });
 				});
 
+				std::chrono::microseconds sumTickTime(0);
+				int64_t sumBytes = 0;
+				size_t sumStreamingUsage = 0;
 				for (const auto& resourcePair : resourceList)
 				{
 					auto[resourceName, resource] = resourcePair;
@@ -338,11 +341,15 @@ static InitFunction initFunction([]()
 
 						avgTickTime /= std::size(value.tickTimes);
 
+						sumTickTime += avgTickTime;
+
 						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickTime.count() / 1000.0), "%.2f ms", avgTickTime.count() / 1000.0);
 
 						ImGui::NextColumn();
 
 						int64_t totalBytes = value.memorySize;
+
+						sumBytes += totalBytes;
 
 						if (totalBytes == 0)
 						{
@@ -371,6 +378,7 @@ static InitFunction initFunction([]()
 						ImGui::NextColumn();
 
 						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
+						sumStreamingUsage += streamingUsage;
 
 						if (streamingUsage > 0)
 						{
@@ -410,6 +418,52 @@ static InitFunction initFunction([]()
 						ImGui::NextColumn();
 					}
 				}
+
+				// final row is for the cumulative summary
+				ImGui::Text("Total");
+				ImGui::NextColumn();
+
+				// total tick time
+				ImGui::TextColored(GetColorForRange(1.0f, 8.0f, sumTickTime.count() / 1000.0), "%.2f ms", sumTickTime.count() / 1000.0);
+				ImGui::NextColumn();
+
+				// total memory used in bytes
+				std::string humanSize = fmt::sprintf("%d B", sumBytes);
+
+				if (sumBytes > (1024 * 1024 * 1024))
+				{
+					humanSize = fmt::sprintf("%.2f GiB", sumBytes / 1024.0 / 1024.0 / 1024.0);
+				}
+				else if (sumBytes > (1024 * 1024))
+				{
+					humanSize = fmt::sprintf("%.2f MiB", sumBytes / 1024.0 / 1024.0);
+				}
+				else if (sumBytes > 1024)
+				{
+					humanSize = fmt::sprintf("%.2f KiB", sumBytes / 1024.0);
+				}
+
+				//total streaming usage in bytes
+				ImGui::Text("%s+", humanSize.c_str());
+				ImGui::NextColumn();
+
+				humanSize = fmt::sprintf("%d B", sumStreamingUsage);
+
+				if (sumStreamingUsage > (1024 * 1024 * 1024))
+				{
+					humanSize = fmt::sprintf("%.2f GiB", sumStreamingUsage / 1024.0 / 1024.0 / 1024.0);
+				}
+				else if (sumStreamingUsage > (1024 * 1024))
+				{
+					humanSize = fmt::sprintf("%.2f MiB", sumStreamingUsage / 1024.0 / 1024.0);
+				}
+				else if (sumStreamingUsage > 1024)
+				{
+					humanSize = fmt::sprintf("%.2f KiB", sumStreamingUsage / 1024.0);
+				}
+
+				ImGui::Text("%s", humanSize.c_str());
+				ImGui::NextColumn();
 			}
 
 			ImGui::End();
