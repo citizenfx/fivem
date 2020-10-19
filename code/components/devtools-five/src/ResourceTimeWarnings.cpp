@@ -374,7 +374,8 @@ static InitFunction initFunction([]()
 						}
 
 						ImGui::NextColumn();
-						#ifdef GTA_FIVE
+					
+#ifdef GTA_FIVE
 						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
 
 						if (streamingUsage > 0)
