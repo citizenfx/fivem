@@ -25,9 +25,12 @@ struct fiFindData
 
 struct ResourceFlags
 {
-	// TODO: figure out which is physical and which is virtual
-	uint32_t flag1;
-	uint32_t flag2;
+	uint32_t magic; // 'RSC8'
+	uint32_t version;
+	uint32_t virtPages;
+	uint32_t physPages;
+	uint64_t fileSize;
+	uint64_t fileTime;
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiDevice : public sysUseAllocator
@@ -162,9 +165,9 @@ public:
 	// SafeWrite
 	virtual bool WriteFull(uint64_t handle, void* buffer, uint32_t length) = 0;
 
-	virtual int32_t GetResourceVersion(const atArray<const char*>& files, atArray<ResourceFlags>& flags) = 0;
-
 	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* flags) = 0;
+
+	virtual int32_t GetResourceVersion(const atArray<const char*>& files, atArray<ResourceFlags>& flags) = 0;
 
 	virtual int32_t GetEncryptionKey() = 0;
 
@@ -182,7 +185,7 @@ public:
 	// GetRpfDevice
 	virtual fiDevice* GetCollection() = 0; // return this
 
-	virtual bool IsCloud() = 0;
+	// virtual bool IsCloud() = 0;
 
 	virtual bool IsZip() = 0;
 
@@ -199,23 +202,6 @@ public:
 	virtual uint64_t GetFinalOffset(uint64_t) = 0;
 
 	virtual bool IsOverlappedRequestFinished(uint64_t, int) = 0;
-
-	/*virtual uint64_t m_84(int a1) = 0;
-
-	virtual uint32_t m_88(int a1) = 0;
-
-	virtual bool m_8C() = 0;
-
-	virtual int m_90() = 0;
-
-	virtual const char* getName() = 0;
-
-	virtual rage::fiDevice* getUnkDevice() = 0;
-
-	virtual int m_9C(int, int, int) = 0;
-
-	virtual void acquireLock() = 0;
-	virtual void releaseLock() = 0;*/
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiDeviceImplemented : public fiDevice
@@ -364,7 +350,7 @@ public:
 	// GetRpfDevice
 	virtual fiDevice* GetCollection() override; // return this
 
-	virtual bool IsCloud() override;
+	// virtual bool IsCloud() override;
 
 	virtual bool IsZip() override;
 

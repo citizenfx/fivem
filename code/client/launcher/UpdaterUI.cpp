@@ -789,6 +789,11 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 		forceOff = true;
 	}
 
+	if (getenv("CitizenFX_NoTenUI"))
+	{
+		forceOff = true;
+	}
+
 #ifdef IS_LAUNCHER
 	forceOff = true;
 #endif

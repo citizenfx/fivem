@@ -301,10 +301,12 @@ rage::fiDevice* fiDeviceImplemented::GetCollection()
 	PURECALL();
 }
 
+#if 0
 bool fiDeviceImplemented::IsCloud()
 {
 	PURECALL();
 }
+#endif
 
 bool fiDeviceImplemented::IsZip()
 {

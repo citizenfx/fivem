@@ -243,10 +243,12 @@ int fiCustomDevice::GetRpfVersion()
 	return m_parentDeviceRef->GetRpfVersion();
 }
 
+#if 0
 bool fiCustomDevice::IsCloud()
 {
 	return false;
 }
+#endif
 
 bool fiCustomDevice::IsZip()
 {

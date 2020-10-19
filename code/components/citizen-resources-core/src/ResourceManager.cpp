@@ -237,9 +237,14 @@ void ResourceManagerImpl::AddMounter(fwRefContainer<ResourceMounter> mounter)
 	m_mounters.push_back(mounter);
 }
 
-fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& resourceName)
+fwRefContainer<Resource> ResourceManagerImpl::CreateResource(const std::string& resourceName, const fwRefContainer<ResourceMounter>& mounter)
 {
 	fwRefContainer<ResourceImpl> resource = new ResourceImpl(resourceName, this);
+
+	if (mounter.GetRef())
+	{
+		resource->SetComponent(mounter);
+	}
 
 	AddResourceInternal(resource);
 

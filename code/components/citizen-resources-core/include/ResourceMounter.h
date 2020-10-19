@@ -57,3 +57,5 @@ protected:
 	}
 };
 }
+
+DECLARE_INSTANCE_TYPE(fx::ResourceMounter);

@@ -6,6 +6,11 @@
 
 #include <ResourceFileDatabase.h>
 
+#include <GameServer.h>
+#include <Resource.h>
+#include <ResourceManager.h>
+#include <ServerInstanceBaseRef.h>
+
 #include <botan/sha160.h>
 
 #include <json.hpp>
@@ -311,6 +316,13 @@ namespace fx
 				entry.rscPagesPhysical = rsc7Header.version;
 				entry.isResource = true;
 			}
+			else if (rsc7Header.magic == 0x38435352) // RSC8
+			{
+				entry.rscVersion = rsc7Header.version;
+				entry.rscPagesVirtual = rsc7Header.virtPages;
+				entry.rscPagesPhysical = rsc7Header.physPages;
+				entry.isResource = true;
+			}
 
 			rscStream->Seek(0, SEEK_SET);
 		}
@@ -436,7 +448,9 @@ namespace fx
 		RuntimeEntry se(entry);
 		se.isAutoScan = false;
 
-		if (entry.isResource /* && gamename == gta5? */)
+		static auto instance = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		if (entry.isResource && instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5)
 		{
 			ValidateSize(entry.entryName, ConvertRSC7Size(entry.rscPagesPhysical), ConvertRSC7Size(entry.rscPagesVirtual));
 		}

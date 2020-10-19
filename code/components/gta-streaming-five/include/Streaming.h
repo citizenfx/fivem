@@ -18,7 +18,11 @@ struct StreamingPackfileEntry
 	uint8_t pad[20];                 // +20
 	uint64_t packfileParentHandle;   // +40
 	uint64_t pad1;                   // +48
+#ifdef GTA_FIVE
 	rage::fiPackfile* packfile;      // +56
+#elif IS_RDR3
+	void* packfile;					 // +56
+#endif
 	uint8_t pad2[2];                 // +64
 	uint8_t loadedFlag;              // +66
 	uint8_t pad3;                    // +67
@@ -34,6 +38,9 @@ struct StreamingPackfileEntry
 	uint8_t isHdd_2;				 // +97
 	uint16_t pad7;                   // +98
 	uint32_t pad8;                   // +100
+#ifdef IS_RDR3
+	char pad9[40];
+#endif
 };
 
 struct StreamingDataEntry
@@ -67,10 +74,21 @@ namespace streaming
 	public:
 		virtual ~strStreamingModule() = 0;
 
+#ifdef IS_RDR3
+		virtual void m_8() = 0;
+
+		virtual void m_10() = 0;
+
+		//
+		// Creates a new asset for `name`, or returns the existing index in this module for it.
+		//
+		virtual uint32_t* FindSlotFromHashKey(uint32_t* id, uint32_t name) = 0;
+#elif GTA_FIVE
 		//
 		// Creates a new asset for `name`, or returns the existing index in this module for it.
 		//
 		virtual uint32_t* FindSlotFromHashKey(uint32_t* id, const char* name) = 0;
+#endif
 
 		//
 		// Returns the index in this streaming module for the asset specified by `name`.
@@ -206,7 +224,9 @@ namespace streaming
 		StreamingListEntry* RequestListHead;
 		StreamingListEntry* RequestListTail;
 
+#ifndef IS_RDR3
 		char pad2[368 - 40];
+#endif
 
 		strStreamingModuleMgr moduleMgr;
 

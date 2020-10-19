@@ -6,6 +6,7 @@
  */
 
 #include "StdInc.h"
+#ifdef GTA_FIVE
 #include "Hooking.h"
 #include <atPool.h>
 
@@ -82,12 +83,14 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 {
 	return fwAssetStoreBase__isResourceValid(this, idx);
 }
+#endif
 
 static std::map<std::string, uint32_t, std::less<>> g_streamingNamesToIndices;
 static std::map<uint32_t, std::string> g_streamingIndexesToNames;
 static std::map<uint32_t, std::string> g_streamingHashesToNames;
 extern std::set<std::string> g_streamingSuffixSet;
 
+#ifdef GTA_FIVE
 template<bool IsRequest>
 rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleMgr, uint32_t index)
 {
@@ -152,6 +155,7 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 
 	return indexRet;
 }
+#endif
 
 namespace streaming
 {
@@ -171,6 +175,7 @@ namespace streaming
 	}
 }
 
+#ifdef GTA_FIVE
 void(*g_origAssetRelease)(void*, uint32_t);
 
 struct AssetStore
@@ -435,3 +440,4 @@ static HookFunction hookFunction([] ()
 		g_archetypeLength = (size_t*)hook::get_address<void*>(getArchetypeFn + 0x7D);
 	}
 });
+#endif

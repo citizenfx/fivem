@@ -389,8 +389,10 @@ struct SyncEntityState
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 
 	// list of delta *source* frames sent (but unacked) at a time per player
+	using TNewSendsMap = eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10, false>;
+
 	std::shared_mutex newSendsMutex;
-	std::array<eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10>, MAX_CLIENTS> newSends;
+	std::array<TNewSendsMap, MAX_CLIENTS> newSends;
 
 	// last frame sent per player
 	std::array<uint64_t, MAX_CLIENTS> lastClientFrames;
@@ -419,6 +421,16 @@ struct SyncEntityState
 	SyncEntityState(const SyncEntityState&) = delete;
 
 	virtual ~SyncEntityState();
+
+	inline void ReinitNewSends(size_t id)
+	{
+		if (!newSends[id].empty())
+		{
+			// manually call the constructor to clean out - nothing should be allocated externally in there and
+			// constructors are expected to understand clobbered memory, so this should be fine.
+			new (&newSends[id]) TNewSendsMap;
+		}
+	}
 
 	inline float GetDistanceCullingRadius()
 	{
@@ -499,6 +511,8 @@ struct SyncUnparseState
 	uint64_t lastFrameIndex;
 
 	uint32_t targetSlotId;
+
+	bool isFirstUpdate = false;
 
 	SyncUnparseState(rl::MessageBuffer& buffer)
 		: buffer(buffer), lastFrameIndex(0)
@@ -646,7 +660,6 @@ static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityState
 {
-
 	uint16_t uniqifier;
 	bool isPlayer;
 	bool overrideFrameIndex;
@@ -655,6 +668,8 @@ struct ClientEntityState
 	uint64_t frameIndex;
 
 	std::chrono::milliseconds syncDelay;
+
+	eastl::fixed_vector<uint64_t, 10> linkedTo;
 };
 
 using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;
@@ -691,6 +706,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	}
 
 	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, EntityStateDeleter>, 200> entityStates;
+	eastl::fixed_set<uint32_t, 20> pendingEntities;
 	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 
 	uint64_t lastAckIndex;

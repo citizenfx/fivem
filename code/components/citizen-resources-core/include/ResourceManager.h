@@ -112,7 +112,7 @@ public:
 	//
 	// For use in resource mounters, creates a resource with the passed identity.
 	//
-	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName) = 0;
+	virtual fwRefContainer<Resource> CreateResource(const std::string& resourceName, const fwRefContainer<ResourceMounter>& mounter) = 0;
 
 	//
 	// Executes a single tick for the resource manager.

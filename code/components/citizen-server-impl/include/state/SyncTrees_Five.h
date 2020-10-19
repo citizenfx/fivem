@@ -22,12 +22,17 @@ inline bool Is2060()
 
 namespace fx::sync
 {
-template<int Id1, int Id2, int Id3>
+template<int Id1, int Id2, int Id3, bool CanSendOnFirst = true>
 struct NodeIds
 {
 	inline static std::tuple<int, int, int> GetIds()
 	{
 		return { Id1, Id2, Id3 };
+	}
+
+	inline static bool CanSendOnFirstUpdate()
+	{
+		return CanSendOnFirst;
 	}
 };
 
@@ -267,7 +272,7 @@ struct ParentNode : public NodeBase
 	{
 		bool should = false;
 
-		// TODO: back out writes if we literally shouldn't have?
+		// TODO: back out writes if we didn't write any child
 		if (shouldWrite(state, TIds::GetIds()))
 		{
 			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
@@ -412,6 +417,11 @@ struct NodeWrapper : public NodeBase
 		//state.buffer.Write(8, 0x5A);
 
 		if (state.timestamp && state.timestamp != timestamp)
+		{
+			couldWrite = false;
+		}
+
+		if (state.isFirstUpdate && !TIds::CanSendOnFirstUpdate())
 		{
 			couldWrite = false;
 		}
@@ -3153,7 +3163,7 @@ using CPlayerSyncTree = SyncTree<
 				ParentNode<
 					NodeIds<127, 87, 0>, 
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>, 
-					NodeWrapper<NodeIds<87, 87, 0>, CPlayerGameStateDataNode>
+					NodeWrapper<NodeIds<87, 87, 0, false>, CPlayerGameStateDataNode>
 				>
 			>, 
 			NodeWrapper<NodeIds<127, 127, 1>, CPedAttachDataNode>, 
