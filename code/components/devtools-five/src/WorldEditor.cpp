@@ -5,7 +5,6 @@
 * regarding licensing.
 */
 
-
 #include <StdInc.h>
 #include <Hooking.h>
 #include <EntitySystem.h>
