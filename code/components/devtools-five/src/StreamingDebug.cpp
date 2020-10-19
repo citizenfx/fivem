@@ -655,4 +655,3 @@ static InitFunction initFunction([]()
 		ImGui::End();
 	});
 });
-
