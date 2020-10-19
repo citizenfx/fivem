@@ -325,7 +325,7 @@ static InitFunction initFunction([]()
 
 					ImGui::Text("%s", resource->GetName().c_str());
 					ImGui::NextColumn();
-		
+
 					auto metric = metrics.find(resourceName);
 
 					if (metric != metrics.end() && metric->second)
