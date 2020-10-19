@@ -7,6 +7,7 @@
 
 #include <StdInc.h>
 #include <Hooking.h>
+
 #include <EntitySystem.h>
 
 #include <CoreConsole.h>
