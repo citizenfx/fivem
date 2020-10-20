@@ -1,17 +1,17 @@
 <div class="page-header">
-	<button class="cfx-header-item" (click)="goBack()">
+	<button class="cfx-header-item goback" (click)="goBack()">
 		<span class="material-icons-outlined">keyboard_backspace</span>
 		<span class="label" l10nTranslate>#ServerDetail_Back</span>
 	</button>
-	<button class="cfx-header-item"  (click)="addFavorite()" *ngIf="!isFavorite()">
+	<button class="cfx-header-item favorite"  (click)="addFavorite()" *ngIf="!isFavorite()">
 		<span class="material-icons-outlined">star_border</span>
 		<span class="label" l10nTranslate>#ServerDetail_AddFavorite</span>
 	</button>
-	<button class="cfx-header-item" (click)="removeFavorite()" *ngIf="isFavorite()">
+	<button class="cfx-header-item favorite" (click)="removeFavorite()" *ngIf="isFavorite()">
 		<span class="material-icons-outlined accentColor1">star</span>
 		<span class="label" l10nTranslate>#ServerDetail_DelFavorite</span>
 	</button>
-	<button class="cfx-header-item" (click)="refreshServer()" [class.disabled]="!canRefresh" [class.spin]="!server || !canRefresh">
+	<button class="cfx-header-item refresh" (click)="refreshServer()" [class.disabled]="!canRefresh" [class.spin]="!server || !canRefresh">
 		<span class="material-icons-outlined">refresh</span>
 		<span class="label" l10nTranslate>#ServerDetail_Refresh</span>
 	</button>
