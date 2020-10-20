@@ -92,6 +92,31 @@ enum class AckResult
 	ResendCreate
 };
 
+struct FrameIndex
+{
+	union
+	{
+		struct
+		{
+			uint64_t lastFragment : 1;
+			uint64_t currentFragment : 7;
+			uint64_t frameIndex : 56;
+		};
+
+		uint64_t full;
+	};
+
+	FrameIndex()
+		: full(0)
+	{
+	}
+
+	FrameIndex(uint64_t idx)
+		: full(idx)
+	{
+	}
+};
+
 class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction, public fx::StateBagGameInterface
 {
 public:
@@ -209,6 +234,7 @@ private:
 		uint32_t nextKeepaliveSync;
 		uint16_t uniqifier;
 		std::shared_ptr<fx::StateBag> stateBag;
+		uint64_t lastFrameUpdated;
 		bool hi = false;
 
 		ObjectData()
@@ -253,7 +279,7 @@ private:
 	std::map<std::tuple<int, int>, std::chrono::milliseconds> m_pendingRemoveAcks;
 
 	std::set<int> m_pendingConfirmObjectIds;
-
+	
 	tbb::concurrent_queue<std::string> m_logQueue;
 
 	std::condition_variable m_consoleCondVar;
@@ -266,6 +292,8 @@ private:
 	std::shared_ptr<fx::StateBag> m_globalBag;
 
 	fwRefContainer<fx::StateBagComponent> m_sbac;
+
+	FrameIndex m_lastReceivedFrame;
 };
 
 uint16_t CloneManagerLocal::GetClientId(rage::netObject* netObject)
@@ -768,6 +796,7 @@ public:
 	uint8_t m_syncType;
 	uint32_t m_timestamp;
 	uint32_t m_creationToken;
+	uint64_t m_dependentFrameIndex;
 	std::vector<uint8_t> m_cloneData;
 };
 
@@ -799,6 +828,11 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 	else
 	{
 		m_uniqifier = 0;
+	}
+
+	if (icgi->NetProtoVersion >= 0x202010191044)
+	{
+		m_dependentFrameIndex = uint64_t(buffer.Read<uint32_t>(32) << 32) | buffer.Read<uint32_t>(32);
 	}
 
 	m_timestamp = buffer.Read<uint32_t>(32);
@@ -1183,6 +1217,22 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		return AckResult::ResendCreate;
 	}
 
+	// check dependent frame index
+	if (icgi->NetProtoVersion >= 0x202010191044)
+	{
+		Log("dependent frame is %d (our last frame %d) for object %d\n", msg.m_dependentFrameIndex, objectData.lastFrameUpdated, msg.GetObjectId());
+
+		if (objectData.lastFrameUpdated < msg.m_dependentFrameIndex)
+		{
+			// we're missing a frame! we know this already (and will resend soon enough) but for now just send OK.
+			return AckResult::OK;
+		}
+		else
+		{
+			objectData.lastFrameUpdated = m_lastReceivedFrame.frameIndex;
+		}
+	}
+
 	auto& extData = m_extendedData[msg.GetObjectId()];
 	auto obj = objIt->second;
 
@@ -1338,6 +1388,58 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 	msgPackedClones msg;
 	msg.Read(netBuffer);
 
+	bool isMissingFrames = false;
+	uint64_t firstMissingFrame;
+	uint64_t lastMissingFrame;
+	
+	if (icgi->NetProtoVersion >= 0x202010191044)
+	{
+		// check for whether we're missing a frame or fragment. 
+		FrameIndex newIndex(msg.GetFrameIndex());
+		
+		Log("received frame %d:%d\n", newIndex.frameIndex, newIndex.currentFragment);
+
+		// blah
+		if (m_lastReceivedFrame.frameIndex != 0)
+		{
+			// check for missing fragment
+			if (m_lastReceivedFrame.frameIndex == newIndex.frameIndex)
+			{
+				// ??????
+				if (m_lastReceivedFrame.lastFragment && newIndex.lastFragment)
+				{
+					// server is on crack lol
+					Log("server is cooked :/");
+					return;
+				}
+
+				else if (m_lastReceivedFrame.currentFragment != newIndex.currentFragment - 1)
+				{
+					// we're missing a fragment! make sure to resent this frame
+					isMissingFrames = true;
+					firstMissingFrame = lastMissingFrame = newIndex.frameIndex;
+				}
+			}
+
+			// check for missing frame
+			else if (m_lastReceivedFrame.frameIndex != newIndex.frameIndex - 1)
+			{
+				isMissingFrames = true;
+				firstMissingFrame = m_lastReceivedFrame.frameIndex + 1;
+				lastMissingFrame = newIndex.frameIndex - 1;
+			}
+
+			// check for missing last fragment
+			else if (!m_lastReceivedFrame.lastFragment)
+			{
+				isMissingFrames = true;
+				firstMissingFrame = lastMissingFrame = m_lastReceivedFrame.frameIndex;
+			}
+		}
+
+		m_lastReceivedFrame = newIndex;
+	}
+
 	// do drilldown logging
 	static uint32_t drillTs;
 
@@ -1395,9 +1497,17 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			{
 				bool acked = HandleCloneCreate(clone);
 
-				if (!acked && icgi->NetProtoVersion >= 0x202007022353)
+				if (!acked)
 				{
-					ignoreList.push_back(clone.GetObjectId());
+					// new behavior is to add to recreate list because it (might) work now
+					if (icgi->NetProtoVersion >= 0x202010191044)
+					{
+						recreateList.push_back(clone.GetObjectId());
+					} 
+					else if (icgi->NetProtoVersion >= 0x202007022353)
+					{
+						ignoreList.push_back(clone.GetObjectId());
+					}
 				}
 
 				break;
@@ -1473,30 +1583,90 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		DeleteObjectId(remove, false);
 	}
 
-	if (msg.GetFrameIndex() & (uint64_t(1) << 63) || icgi->NetProtoVersion < 0x202007022353)
+	if (icgi->NetProtoVersion < 0x202010191044)
 	{
-		net::Buffer outBuffer;
-		outBuffer.Write<uint64_t>(msg.GetFrameIndex() & ~(uint64_t(1) << 63));
-		outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
-
-		for (uint16_t entry : ignoreList)
+		if (msg.GetFrameIndex() & (uint64_t(1) << 63) || icgi->NetProtoVersion < 0x202007022353)
 		{
-			outBuffer.Write<uint16_t>(entry);
+			net::Buffer outBuffer;
+			outBuffer.Write<uint64_t>(msg.GetFrameIndex() & ~(uint64_t(1) << 63));
+			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
+
+			for (uint16_t entry : ignoreList)
+			{
+				outBuffer.Write<uint16_t>(entry);
+			}
+
+			if (icgi->NetProtoVersion >= 0x202007022353)
+			{
+				outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
+
+				for (uint16_t entry : recreateList)
+				{
+					outBuffer.Write<uint16_t>(entry);
+				}
+			}
+
+			Log("GSAck for frame index %d w/ %d ignore and %d rec\n", msg.GetFrameIndex() & ~(uint64_t(1) << 63), ignoreList.size(), recreateList.size());
+
+			m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+
+			ignoreList.clear();
+			recreateList.clear();
+		}
+	}
+	else
+	{
+		if (!isMissingFrames && ignoreList.empty() && recreateList.empty())
+		{
+			return;
 		}
 
-		if (icgi->NetProtoVersion >= 0x202007022353)
+		uint8_t flags = 0;
+		if (isMissingFrames)
+		{
+			flags |= 1;
+		}
+		if (!ignoreList.empty())
+		{
+			flags |= 2;
+		}
+		if (!recreateList.empty())
+		{
+			flags |= 4;
+		}
+
+		net::Buffer outBuffer;
+		outBuffer.Write<uint8_t>(flags);
+
+		FrameIndex newIndex(msg.GetFrameIndex());
+
+		outBuffer.Write<uint64_t>(newIndex.frameIndex);
+
+		if (isMissingFrames)
+		{
+			outBuffer.Write<uint64_t>(firstMissingFrame);
+			outBuffer.Write<uint64_t>(lastMissingFrame);
+		}
+
+		if (!ignoreList.empty())
+		{
+			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
+			for (uint16_t entry : ignoreList)
+			{
+				outBuffer.Write<uint16_t>(entry);
+			}
+		}
+
+		if (!recreateList.empty())
 		{
 			outBuffer.Write<uint8_t>(uint8_t(recreateList.size()));
-
 			for (uint16_t entry : recreateList)
 			{
 				outBuffer.Write<uint16_t>(entry);
 			}
 		}
 
-		Log("GSAck for frame index %d w/ %d ignore and %d rec\n", msg.GetFrameIndex() & ~(uint64_t(1) << 63), ignoreList.size(), recreateList.size());
-
-		m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
+		m_netLibrary->SendReliableCommand("gameStateNAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 
 		ignoreList.clear();
 		recreateList.clear();
