@@ -185,6 +185,8 @@ export class ProjectInstance {
 
   async close() {
     this.log('closing...');
+    systemEvents.emit(SystemEvent.forceStopServer);
+
     this.disposers.forEach((disposer) => disposer());
 
     if (this.watcher) {
@@ -261,9 +263,13 @@ export class ProjectInstance {
   }
 
   setServerUpdateChannel(updateChannel: ServerUpdateChannel) {
-    this.manifest.serverUpdateChannel = updateChannel;
+    if (this.manifest.serverUpdateChannel !== updateChannel) {
+      systemEvents.emit(SystemEvent.forceStopServer);
 
-    this.setManifestDebounced();
+      this.manifest.serverUpdateChannel = updateChannel;
+
+      this.setManifestDebounced();
+    }
   }
 
   /**
@@ -420,6 +426,9 @@ export class ProjectInstance {
     });
   }
 
+  /**
+   * Send partial project update
+   */
   private notifyProjectUpdated() {
     this.client.emit(projectApi.update, this.project);
   }
@@ -493,12 +502,6 @@ export class ProjectInstance {
           const resourceName = path.basename(updatedResourcePath);
           const resourceConfig = getResourceConfig(this.manifest, resourceName);
 
-          this.client.log('Probably restarting resource', {
-            resourceName,
-            updatedResourcePath,
-            resourceConfig,
-          });
-
           if (resourceConfig.restartOnChange) {
             systemEvents.emit(SystemEvent.restartResource, resourceName);
           }
@@ -529,7 +532,7 @@ export class ProjectInstance {
   private emitResourcesRelinkRequest() {
     const relinkRequest: RelinkResourcesRequest = {
       projectPath: this.path,
-      resourcesPaths: this.enabledResourcesPaths,
+      enabledResourcesPaths: this.enabledResourcesPaths,
     };
 
     systemEvents.emit(SystemEvent.relinkResources, relinkRequest);

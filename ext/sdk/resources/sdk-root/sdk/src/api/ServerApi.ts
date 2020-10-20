@@ -12,12 +12,23 @@ import { serverApi } from './events';
 import { sdkGamePipeName } from './constants';
 import { SystemEvent, systemEvents } from './api.events';
 import { ServerManagerApi } from './ServerManagerApi';
+import { createLock } from './utils';
 
 const rimraf = promisify(rimrafSync);
 
 
 function getProjectServerPath(projectPath: string): string {
   return path.join(projectPath, '.fxdk/fxserver');
+}
+
+async function doesPathExist(entryPath: string): Promise<boolean> {
+  try {
+    await fs.promises.stat(entryPath);
+
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 export class ServerApi {
@@ -27,7 +38,9 @@ export class ServerApi {
   ipcSocket: net.Socket | null;
 
   server: cp.ChildProcess | null;
-  currentEnabledResourcesPaths: string[] = [];
+  currentEnabledResourcesPaths = new Set<string>();
+
+  serverLock = createLock();
 
   constructor(
     private readonly client: ApiClient,
@@ -35,6 +48,7 @@ export class ServerApi {
   ) {
     systemEvents.on(SystemEvent.relinkResources, (request: RelinkResourcesRequest) => this.handleRelinkResources(request));
     systemEvents.on(SystemEvent.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
+    systemEvents.on(SystemEvent.forceStopServer, () => this.stop());
 
     process.on('exit', () => {
       if (this.server) {
@@ -54,21 +68,12 @@ export class ServerApi {
       return;
     }
 
-    const { projectPath, resourcesPaths, restartResourcesWithPath } = request;
+    await this.serverLock.withLock(async () => {
+      const { projectPath, enabledResourcesPaths } = request;
 
-    const fxserverCwd = getProjectServerPath(projectPath);
-    let resourcesToRestart: string[] = [];
+      await this.linkResources(getProjectServerPath(projectPath), enabledResourcesPaths);
 
-    if (restartResourcesWithPath) {
-      resourcesToRestart = this.currentEnabledResourcesPaths
-        .filter((resourcePath) => resourcePath.startsWith(restartResourcesWithPath))
-        .map((resourcePath) => path.basename(resourcePath));
-    }
-
-    await this.linkResources(fxserverCwd, resourcesPaths);
-
-    resourcesToRestart.forEach((resourceName) => {
-      this.sendIpcEvent('restart', resourceName);
+      this.reconcileEnabledResources(enabledResourcesPaths);
     });
   }
 
@@ -87,7 +92,9 @@ export class ServerApi {
 
     this.client.log('Starting server', request);
 
-    this.client.emit('server:clearOutput');
+    await this.serverLock.waitForUnlock();
+
+    this.client.emit(serverApi.clearOutput);
 
     this.toState(ServerStates.booting);
 
@@ -131,14 +138,14 @@ export class ServerApi {
 
     if (!server || !server.stdout) {
       this.client.log('Server has failed to start');
+      this.toState(ServerStates.down);
       return;
     }
 
     await this.setupIpc();
 
     server.stdout.on('data', (data) => {
-      this.client.log('server output:', data.toString());
-      this.client.emit(serverApi.output, data.toString('utf8'));
+      this.client.emit(serverApi.output, data.toString());
     });
 
     server.on('exit', () => {
@@ -154,7 +161,7 @@ export class ServerApi {
     server.unref();
 
     this.server = server;
-    this.currentEnabledResourcesPaths = enabledResourcesPaths;
+    this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
   async refreshResources(request: ServerRefreshResourcesRequest) {
@@ -165,36 +172,48 @@ export class ServerApi {
     await mkdirp(fxserverCwd);
     await this.linkResources(fxserverCwd, enabledResourcesPaths);
 
+    this.reconcileEnabledResources(enabledResourcesPaths);
+
     this.sendIpcEvent('refresh');
   }
 
   async linkResources(fxserverCwd: string, resourcesPaths: string[]) {
-    const resourcesDirectoryPath = path.join(fxserverCwd, 'resources');
+    await this.serverLock.withLock(async () => {
+      const resourcesDirectoryPath = path.join(fxserverCwd, 'resources');
 
-    await rimraf(resourcesDirectoryPath);
-    await mkdirp(resourcesDirectoryPath);
+      await rimraf(resourcesDirectoryPath);
+      await mkdirp(resourcesDirectoryPath);
 
-    const links = resourcesPaths.map((resourcePath) => ({
-      source: resourcePath,
-      dest: path.join(resourcesDirectoryPath, path.basename(resourcePath)),
-    }));
+      const links = resourcesPaths.map((resourcePath) => ({
+        source: resourcePath,
+        dest: path.join(resourcesDirectoryPath, path.basename(resourcePath)),
+      }));
 
-    links.unshift({
-      source: paths.sdkGame,
-      dest: path.join(resourcesDirectoryPath, 'sdk-game'),
+      links.unshift({
+        source: paths.sdkGame,
+        dest: path.join(resourcesDirectoryPath, 'sdk-game'),
+      });
+
+      await Promise.all(
+        links.map(async ({ source, dest }) => {
+          if (await doesPathExist(dest)) {
+            const destRealpath = await fs.promises.realpath(dest);
+
+            if (destRealpath !== source) {
+              await fs.promises.unlink(dest);
+            }
+          }
+
+          try {
+            await fs.promises.symlink(source, dest, 'dir');
+          } catch (e) {
+            this.client.log('Failed to link resource', e.toString());
+          }
+        }),
+      );
+
+      this.sendIpcEvent('refresh');
     });
-
-    await Promise.all(
-      links.map(async ({ source, dest }) => {
-        try {
-          await fs.promises.symlink(source, dest, 'dir');
-        } catch (e) {
-          this.client.log('Failed to link resource', e.toString());
-        }
-      }),
-    );
-
-    this.sendIpcEvent('refresh');
   }
 
   handleResourceRestart(resourceName: string) {
@@ -278,8 +297,51 @@ export class ServerApi {
     this.ipcServer.listen(sdkGamePipeName);
   }
 
+  private reconcileEnabledResources(enabledResourcesPaths: string[]) {
+    if (this.state !== ServerStates.up) {
+      return;
+    }
+
+    const resourcesStates = {};
+
+    enabledResourcesPaths.forEach((resourcePath) => {
+      const resourceName = path.basename(resourcePath);
+
+      resourcesStates[resourceName] = this.currentEnabledResourcesPaths.has(resourcePath)
+        ? ResourceReconcilationState.idle
+        : ResourceReconcilationState.start;
+    });
+
+    this.currentEnabledResourcesPaths.forEach((resourcePath) => {
+      const resourceName = path.basename(resourcePath);
+
+      if (!resourcesStates[resourceName]) {
+        resourcesStates[resourceName] = ResourceReconcilationState.stop;
+      }
+    });
+
+    Object.entries(resourcesStates).forEach(([resourceName, state]) => {
+      if (state === ResourceReconcilationState.start) {
+        return this.sendIpcEvent('start', resourceName);
+      }
+
+      if (state === ResourceReconcilationState.stop) {
+        return this.sendIpcEvent('stop', resourceName);
+      }
+    });
+
+    this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
+  }
+
   toState(newState: ServerStates) {
     this.state = newState;
     this.ackState();
   }
+}
+
+
+enum ResourceReconcilationState {
+  start = 1,
+  stop,
+  idle,
 }

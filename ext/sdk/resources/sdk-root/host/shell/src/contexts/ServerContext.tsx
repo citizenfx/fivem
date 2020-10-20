@@ -50,9 +50,6 @@ export const ServerContextProvider = React.memo(({ children }) => {
   const { project, projectResources } = React.useContext(ProjectContext);
   const { gameLaunched } = React.useContext(StateContext);
 
-  const projectPathRef = React.useRef(project?.path);
-  const projectUpdateChannelRef = React.useRef(project?.manifest.serverUpdateChannel);
-
   const [serverState, setServerState] = React.useState<ServerStates | null>(null);
   const [serverOutput, setServerOutput] = React.useState<string>('');
 
@@ -133,30 +130,6 @@ export const ServerContextProvider = React.memo(({ children }) => {
 
   // Handling project changes
   React.useEffect(() => {
-    let projectChanged = false;
-
-    if (project) {
-      if (!projectPathRef.current) {
-        projectPathRef.current = project.path;
-      } else if (project.path !== projectPathRef.current) {
-        projectPathRef.current = project.path;
-        projectChanged = true;
-      }
-
-      if (!projectUpdateChannelRef.current) {
-        projectUpdateChannelRef.current = project.manifest.serverUpdateChannel;
-      } else if (project.manifest.serverUpdateChannel !== projectUpdateChannelRef.current) {
-        projectUpdateChannelRef.current = project.manifest.serverUpdateChannel;
-        projectChanged = true;
-      }
-    }
-
-    if (serverState === ServerStates.up || serverState === ServerStates.booting) {
-      if (projectChanged) {
-        sendApiMessage(serverApi.stop);
-      }
-    }
-
     if (!project) {
       return;
     }

@@ -191,8 +191,7 @@ export interface AssetRenameRequest {
 
 export interface RelinkResourcesRequest {
   projectPath: string,
-  resourcesPaths: string[],
-  restartResourcesWithPath?: string,
+  enabledResourcesPaths: string[],
 }
 
 export interface ServerStartRequest {

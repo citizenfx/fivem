@@ -45,9 +45,13 @@ export const createLock = () => {
     async withLock(cb: Function) {
       this.lock();
 
-      await cb();
-
-      this.unlock();
+      try {
+        await cb();
+      } catch (e) {
+        throw e;
+      } finally {
+        this.unlock();
+      }
     },
     waitForUnlock() {
       if (locks === 0) {

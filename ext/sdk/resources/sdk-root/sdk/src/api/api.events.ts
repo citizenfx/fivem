@@ -12,6 +12,8 @@ export enum SystemEvent {
 
   relinkResources,
   restartResource,
+
+  forceStopServer,
 }
 
 export const systemEvents = {
