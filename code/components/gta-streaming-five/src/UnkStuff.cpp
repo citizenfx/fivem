@@ -775,9 +775,6 @@ static HookFunction hookFunction([]()
 		// netgame checks for vehicle fuel tank leaking
 		hook::nop(hook::get_pattern("48 83 65 7F 00 0F 29 45 27 48 8D 45 77", -0xE3), 7);
 		hook::nop(hook::get_call(hook::get_pattern<char>("40 53 48 83 EC 20 48 8B D9 E8 ? ? ? ? 84 C0 74 32 8A 83 D8", 9)) + 0x19, 2);
-
-		// netgame check for fly through windscreen
-		hook::nop(hook::get_pattern("45 33 ED 44 38 ? ? ? ? 02 4D 8B E1", 3), 7);
 	}
 
 	// increase the heap size for allocator 0

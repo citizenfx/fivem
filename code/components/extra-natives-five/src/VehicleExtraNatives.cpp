@@ -48,6 +48,9 @@ static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
 
+static bool* g_flyThroughWindscreenDisabled;
+static bool isFlyThroughWindscreenEnabledConVar = false;
+
 template<typename T>
 inline static T readValue(fwEntity* ptr, int offset)
 {
@@ -381,6 +384,15 @@ static HookFunction initFunction([]()
 
 		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
 		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
+	}
+
+	{
+		// replace netgame check for fly through windscreen with our variable
+		g_flyThroughWindscreenDisabled = (bool*)hook::AllocateStubMemory(1);
+		static ConVar<bool> enableFlyThroughWindscreen("game_enableFlyThroughWindscreen", ConVar_Replicated, false, &isFlyThroughWindscreenEnabledConVar);
+
+		auto location = hook::get_pattern<uint32_t>("45 33 ED 44 38 2D ? ? ? ? 4D", 6);
+		*location = (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4;
 	}
 
 	{
@@ -897,6 +909,11 @@ static HookFunction initFunction([]()
 		{
 			ResetFlyThroughWindscreenParams();
 		}
+	});
+
+	OnMainGameFrame.Connect([]()
+	{
+		*g_flyThroughWindscreenDisabled = !isFlyThroughWindscreenEnabledConVar;
 	});
 
 	OnKillNetworkDone.Connect([]()
