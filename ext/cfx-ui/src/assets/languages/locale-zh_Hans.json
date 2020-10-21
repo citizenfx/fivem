@@ -4,5 +4,8 @@
     "#ServerList_Favorites": "我的收藏",
     "#ExitToDesktop": "退出至桌面",
     "#ServerList_DirectConnect": "直接连接",
-    "#ServerList_Filter": "筛选"
+    "#ServerList_Filter": "筛选",
+    "#ServerList_History": "历史记录",
+    "#ServerList_Ping": "Ping",
+    "#ServerList_Name": "名称"
 }
