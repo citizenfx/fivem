@@ -89,5 +89,11 @@
     "#EmptyServers_History": "Les serveurs sur lesquels vous avez joué auparavant apparaîtront ici. Consultez la liste des serveurs et rejoignez-en un maintenant !",
     "#Settings_StreamerMode": "Mode Streamer",
     "#ServerList_StreamerModeWarning": "Le mode Streamer est activé - le champ est masquée",
-    "#EmptyServers_Favorites": "Vos serveurs favoris apparaîtront ici, cliquez simplement sur l'icône en forme d'étoile à côté de votre serveur préféré !"
+    "#EmptyServers_Favorites": "Vos serveurs favoris apparaîtront ici, cliquez simplement sur l'icône en forme d'étoile à côté de votre serveur préféré !",
+    "#Settings_LowPerf_ReduceFull": "Aucun flou",
+    "#Settings_LowPerf_ReduceBackdrop": "Arrière-plan seulement",
+    "#Settings_LowPerf_Off": "Désactivé",
+    "#Settings_LowPerfMode": "Réduire le flou (pour les ordinateurs peu puissant)",
+    "#Settings_StreamerModeDesc": "Cacher les informations sensibles (ex. adresse IP) de l'écran",
+    "#Servers_ConnectingToServer": "Connexion au serveur..."
 }
