@@ -748,8 +748,10 @@ struct GetAuthSessionTicketResponse_t
 	int m_eResult;
 };
 
-static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
+static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrlRef)
 {
+	auto rootUrl = rootUrlRef;
+
 	try
 	{
 		auto uri = skyr::make_url(rootUrl);
@@ -786,14 +788,23 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 
 	if (rootUrl.find(".cfx.re") != std::string::npos && rootUrl.find("https:") == std::string::npos)
 	{
-		return co_await ResolveUrl(fmt::sprintf("https://%s/", rootUrl));
+		co_return co_await ResolveUrl(fmt::sprintf("https://%s/", rootUrl));
 	}
-	else if (rootUrl.find("cfx.re/join") != std::string::npos)
+	
+	// if it doesn't contain a . or a : it might be a join URL
+	// (or if it is a join URL, it is a join URL)
+	if (rootUrl.find_first_of(".:") == std::string::npos || rootUrl.find("cfx.re/join") != std::string::npos)
 	{
 		concurrency::task_completion_event<std::optional<std::string>> tce;
 
 		HttpRequestOptions ro;
 		ro.responseHeaders = std::make_shared<HttpHeaderList>();
+
+		// prefix cfx.re/join if we can
+		if (rootUrl.find("cfx.re/join") == std::string::npos)
+		{
+			rootUrl = "cfx.re/join/" + rootUrl;
+		}
 
 		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", rootUrl), ro, [ro, tce](bool success, const char* data, size_t callback)
 		{
@@ -819,7 +830,12 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 			tce.set({});
 		});
 
-		co_return co_await concurrency::task<std::optional<std::string>>{ tce };
+		auto joinUrlBit = co_await concurrency::task<std::optional<std::string>>{ tce };
+
+		if (joinUrlBit)
+		{
+			co_return joinUrlBit;
+		}
 	}
 
 	auto peerAddress = net::PeerAddress::FromString(rootUrl);
