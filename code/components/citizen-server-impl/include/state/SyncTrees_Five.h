@@ -2087,6 +2087,17 @@ struct CPlayerGameStateDataNode {
 		}
 
 		float unk109 = state.buffer.ReadFloat(8, 10.20002244f);
+		auto isSomethingModifierSet = state.buffer.ReadBit();
+
+		if (isSomethingModifierSet)
+		{
+			float unk111 = state.buffer.ReadFloat(10, 25.5747934835f);
+		}
+		else
+		{
+			// 1.0
+		}
+
 		auto isWeaponDamageModifierSet = state.buffer.ReadBit();
 
 		if (isWeaponDamageModifierSet)
@@ -2097,17 +2108,6 @@ struct CPlayerGameStateDataNode {
 		else
 		{
 			data.weaponDamageModifier = 1.0f;
-		}
-
-		auto unk112 = state.buffer.ReadBit();
-
-		if (unk112)
-		{
-			float unk113 = state.buffer.ReadFloat(10, 25.5747934835f);
-		}
-		else
-		{
-			// 1.0
 		}
 
 		auto isMeleeWeaponDamageModifierSet = state.buffer.ReadBit();
