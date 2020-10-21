@@ -31,5 +31,6 @@
     "#BottomNav_Play": "开始游戏",
     "#Settings_CustomEmoji": "自定义FiveM水印表情符号",
     "#Settings_StreamerMode": "流光模式",
-    "#BottomNav_Story": "故事模式"
+    "#BottomNav_Story": "故事模式",
+    "#ServerList_StreamerModeWarning": "旁听者模式已启用-麦克风已停用"
 }
