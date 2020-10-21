@@ -1,0 +1,269 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Nian <tim885885@hotmail.com>, 2020.
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-06-26 23:42+0200\n"
+"PO-Revision-Date: 2020-07-03 09:59+0000\n"
+"Last-Translator: Nian <tim885885@hotmail.com>\n"
+"Language-Team: Chinese (Traditional) <http://translations.cfx.re/projects/"
+"citizenfx/client/zh_Hant/>\n"
+"Language: zh_Hant\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 4.1.1\n"
+
+#: client/launcher/MiniDump.cpp:1208
+#, c-format
+msgid ""
+"\n"
+"\n"
+"Exception details: %s"
+msgstr ""
+"\n"
+"\n"
+"例外詳情: %s"
+
+#: client/launcher/MiniDump.cpp:1213
+#, c-format
+msgid ""
+"\n"
+"\n"
+"Legacy crash hash: %s"
+msgstr ""
+"\n"
+"\n"
+"舊版崩潰哈希: %s"
+
+#: client/launcher/MiniDump.cpp:1277
+msgid ""
+"\n"
+"\n"
+"This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
+msgstr ""
+"\n"
+"\n"
+"這是個致命錯誤，因為遊戲卸載失敗。 請報告此問題及其原因（您玩過哪個伺服器，用了什麼資源或腳本等），以便可以解決此問題。"
+
+#: client/launcher/MiniDump.cpp:1204
+#, c-format
+msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
+msgstr "%s 導致 %s 停止工作。 崩潰報告正在上傳到 %s 的開發人員。"
+
+#: client/launcher/Main.cpp:510
+#, c-format
+msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
+msgstr "%s 無法在其所在的資料夾中建立檔案。請將安裝移出“程式集”或其他受保護的資料夾。"
+
+#: client/launcher/MiniDump.cpp:340
+#, c-format
+msgid ""
+"A game error (at %016llx) caused %s to stop working. A crash report has been uploaded to the %s developers.\n"
+"\n"
+"%s"
+msgstr ""
+"有個遊戲錯誤 (於 %016llx) 導致 %s 停止運作。 崩潰報告已上傳到 %s 的開發人員。\n"
+"\n"
+"%s"
+
+#: client/launcher/MiniDump.cpp:1179
+#, c-format
+msgid "An error at %s"
+msgstr "%s 發生錯誤"
+
+#: client/launcher/Installer.cpp:126
+#, c-format
+msgid "Are you sure you want to remove %s from the installation root at %s?"
+msgstr "您確定要從 %s 的安裝根目錄中刪除 %s 嗎？"
+
+#: client/launcher/Bootstrap.cpp:35
+#, c-format
+msgid "Bootstrapping %s..."
+msgstr "正在引導中 %s..."
+
+#: client/launcher/Updater.cpp:360
+#, c-format
+msgid "Checking %s"
+msgstr "正在檢查中 %s"
+
+#: client/launcher/MiniDump.cpp:1333
+#, c-format
+msgid ""
+"Crash signature: %s\n"
+"%s\n"
+"You can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"崩潰簽名: %s\n"
+"%s\n"
+"你可以按 Ctrl-C 複製此訊息並將其貼上到其他位置。"
+
+#: client/launcher/MiniDump.cpp:1329
+#, c-format
+msgid ""
+"Crash signature: %s\n"
+"Report ID: %s\n"
+"You can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"崩潰簽名: %s\n"
+"回報ID: %s\n"
+"你可以按 Ctrl-C 複製此訊息並將其貼上到其他位置。"
+
+#: client/launcher/MiniDump.cpp:1270
+#, c-format
+msgid ""
+"Crash signature: %s\n"
+"Report ID: ... [uploading]\n"
+"You can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"崩潰簽名: %s\n"
+"回報ID: ... [正在上傳中]\n"
+"你可以按 Ctrl-C 複製此訊息並將其貼上到其他位置。"
+
+#: client/launcher/GameCache.cpp:643
+msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
+msgstr ""
+"遊戲安裝中的資料片DLC檔案遺失（或損壞）。 請使用Steam或Social Club啟動器更新或驗證遊戲，然後重試。 有關更多資訊，請參見 "
+"http://rsg.ms/verify 的第四個步驟。"
+
+#: client/launcher/ViabilityChecks.cpp:53
+#, c-format
+msgid "DXGI 1.2 support is required to run this product %s"
+msgstr "要運行此 %s 產品 ，需要DXGI 1.2支持"
+
+#: client/launcher/Download.cpp:222
+#, c-format
+msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
+msgstr "已下載 %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
+
+#: client/launcher/MiniDump.cpp:1175
+#, c-format
+msgid "Error %s"
+msgstr "錯誤 %s"
+
+#: client/launcher/InstallerExtraction.cpp:532
+#, c-format
+msgid "Extracting %s"
+msgstr "匯出中 %s"
+
+#: client/launcher/InstallerExtraction.cpp:268
+#, c-format
+msgid "Extracting %s (scanning)"
+msgstr "正在匯出 %s (搜尋中)"
+
+#: client/launcher/MiniDump.cpp:1189
+msgid "FiveM crashed... but we're on it!"
+msgstr "FiveM崩潰了...但是我們在繼續！"
+
+#: client/launcher/Main.cpp:491
+msgid ""
+"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
+"The game will exit now."
+msgstr ""
+"FiveM不支持在以管理員身分下執行。 請更改您的Windows設定為不以管理員身分運行FiveM。\n"
+"現在遊戲將會關閉。"
+
+#: client/launcher/MiniDump.cpp:1237
+msgid "Game crashed: "
+msgstr "遊戲已崩潰: "
+
+#: client/launcher/ViabilityChecks.cpp:46
+msgid "Please install Windows 7 SP1 or greater, and try again."
+msgstr "請安裝Windows 7 SP1或更高版本，然後重試。"
+
+#: client/launcher/ViabilityChecks.cpp:50
+msgid "Please install the Platform Update for Windows 7, and try again."
+msgstr "請安裝Windows 7平台更新，然後重試。"
+
+#: client/launcher/MiniDump.cpp:339
+#, c-format
+msgid "RAGE error: %s"
+msgstr "RAGE 錯誤: %s"
+
+#: client/launcher/MiniDump.cpp:1267
+msgid ""
+"Save information\n"
+"Stores a file with crash information that you should copy and upload when asking for help."
+msgstr ""
+"儲存資訊\n"
+"儲存包含崩潰訊息的檔案，在您尋求幫助時應將其複制並上傳。"
+
+#: client/launcher/GameSelect.cpp:107
+msgid "Select the folder containing Grand Theft Auto V"
+msgstr "選擇包含俠盜獵車手5的資料夾"
+
+#: client/launcher/Download.cpp:423
+msgid "Starting IPFS discovery..."
+msgstr "正在啟動IPFS發現..."
+
+#: client/launcher/ViabilityChecks.cpp:42
+msgid "The game will exit now."
+msgstr "遊戲將立即退出。"
+
+#: client/launcher/GameCache.cpp:635
+#, c-format
+msgid ""
+"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
+"Do you wish to continue?"
+msgstr ""
+"本機 %s 遊戲快取已過時，需要更新。 這將從本機硬碟複製 %.2f MB 的資料，並從網路下載 %.2f MB 的資料。\n"
+"你想繼續嗎？"
+
+#: client/launcher/GameSelect.cpp:202
+#, c-format
+msgid "The selected path does not contain a %s file."
+msgstr "所選的路徑不包含 %s 檔案。"
+
+#: client/launcher/ViabilityChecks.cpp:72
+msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
+msgstr "此產品需要安裝Windows 7（用於基於x64的系統）的安全更新（KB2758857）才能運行。 請安裝它，然後重試。"
+
+#: client/launcher/Main.cpp:634
+msgid "Transitioning to another build..."
+msgstr "過渡到另一個版本..."
+
+#: client/launcher/MiniDump.cpp:1234
+msgid "Unhandled exception: "
+msgstr "未處理的異常： "
+
+#: client/launcher/Installer.cpp:124
+#, c-format
+msgid "Uninstall %s"
+msgstr "解除安裝 %s"
+
+#: client/launcher/Installer.cpp:125
+#, c-format
+msgid "Uninstall %s?"
+msgstr "解除安裝 %s ？"
+
+#: client/launcher/Updater.cpp:297
+#, c-format
+msgid "Updating %s..."
+msgstr "正在更新 %s..."
+
+#: client/launcher/GameCache.cpp:845
+msgid "Updating game cache..."
+msgstr "正在更新遊戲快取..."
+
+#: client/launcher/Updater.cpp:268
+msgid "Verifying content..."
+msgstr "正在檢驗檔案內容..."
+
+#: client/launcher/GameCache.cpp:714
+msgid "Verifying game content..."
+msgstr "正在檢驗遊戲內容..."
+
+#: client/launcher/Main.cpp:638
+msgid "We're getting there."
+msgstr "我們到了那裡。"
+
+#: client/launcher/Main.cpp:471
+#, c-format
+msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
+msgstr ""
+"您當前正在使用Windows的過時版本。 使用 %s 客戶端可能會導致問題。 如果遇到任何問題，請更新到Windows "
+"10版本1703（“創建者更新”）或更高版本。 現在將繼續開始遊戲。"
