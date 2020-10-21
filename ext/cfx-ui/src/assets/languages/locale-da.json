@@ -83,5 +83,7 @@
     "#Settings_CustomEmoji": "Brugerdefineret FiveM watermark emoji",
     "#Settings_QueriesPerMinute": "Server katalog: Max ping / minut",
     "#ServerList_Locales": "Sprog",
-    "#Servers_Retry": "Prøv igen"
+    "#Servers_Retry": "Prøv igen",
+    "#ServerDetail_Updates": "Feed",
+    "#BottomNav_ReplayEditor": "Gentag Redigering"
 }
