@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Salir al escritorio",
+    "#ExitToDesktop": "Salir al escritorio",
     "#ServerList_Name": "Nombre",
     "#ServerList_Players": "Jugadores",
     "#ServerList_Ping": "Ping",
@@ -7,7 +7,7 @@
     "#ServerList_Browse": "Buscar",
     "#ServerList_Favorites": "Favoritos",
     "#ServerList_History": "Historial",
-    "#ServerList_Premium": "Supporters",
+    "#ServerList_Premium": "Donadores",
     "#ServerList_DirectConnect": "Conexión directa",
     "#ServerList_Tags": "Etiquetas",
     "#BottomNav_Home": "Inicio",
@@ -16,7 +16,7 @@
     "#ServerList_HideFull": "Ocultar llenos",
     "#ServerList_HideEmpty": "Ocultar vacios",
     "#ServerList_MaxPing": "Ping Máximo",
-    "#Servers_Connecting": "Conectando...",
+    "#Servers_Connecting": "Conectando al servidor...",
     "#Servers_ConnectingTo": "Conectando a {{ serverName }}...",
     "#Servers_ConnectFailed": "Conexión fallida",
     "#Servers_Error": "Ha ocurrido un error",
@@ -63,5 +63,13 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "Nivel de apoyo a Fivem",
     "#Yes": "Sí",
-    "#No": "No"
+    "#No": "No",
+    "#Settings_CustomEmoji": "Emoticono personalizado de FiveM",
+    "#ServerList_Locales": "Lenguajes",
+    "#Servers_Retry": "Probar de nuevo",
+    "#BottomNav_ReplayEditor": "Editor de replay",
+    "#BottomNav_Create": "Crear",
+    "#BottomNav_Mods": "Moderador",
+    "#BottomNav_Story": "Historia",
+    "#BottomNav_Play": "Jugar"
 }

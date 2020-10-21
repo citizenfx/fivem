@@ -84,5 +84,6 @@
     "#ServerDetail_Updates": "Feed",
     "#Settings_UpdateChannel": "Aktualisierungsmodus",
     "#Settings_QueriesPerMinute": "Server-Browser: Maximalping / Minute",
-    "#BottomNav_ReplayEditor": "Replay-Bearbeitung"
+    "#BottomNav_ReplayEditor": "Replay-Bearbeitung",
+    "#ServerList_StreamerModeWarning": "Streamer Mode ist aktiv - Eingabe versteckt"
 }
