@@ -1,6 +1,6 @@
 {
-	  "#ExitToDesktop": "Ieși către Desktop",
-    "#ServerList_Name": "Denumire",
+    "#ExitToDesktop": "Ieși către Desktop",
+    "#ServerList_Name": "Nume",
     "#ServerList_Players": "Jucători",
     "#ServerList_Ping": "Ping",
     "#ServerList_Filter": "Filtru",
@@ -44,8 +44,8 @@
     "#Settings_AccountLink": "Conectează",
     "#Settings_AccountLinked": "Conectat: {{ username }}",
     "#Settings_Boost": "Current Server BOOST™",
-    "#Settings_BoostLoading": "Loading...",
-    "#Settings_BoostNone": "None! BOOST™ a server by clicking the upvote button in the server list.",
+    "#Settings_BoostLoading": "Se încarcă...",
+    "#Settings_BoostNone": "Nici unul! BOOST™-ează un server apăsând butonul de săgeată în sus în lista serverlor.",
     "#Settings_Language": "Limbă",
     "#Settings_MenuAudio": "Sunet în meniul principal",
     "#Settings_MenuAudioDesc": "Activează muzica în meniul principal",
@@ -68,7 +68,7 @@
     "#DirectConnect_ServerInvalid": "Serverul nu a fost găsit",
     "#DirectConnect_ServerInvalid_SubTitle": "Asigură-te că ai introdus o adresă corectă.",
     "#DirectConnect_IPPort": "IP:Port",
-    "#DirectConnect_Connect": "Connect",
+    "#DirectConnect_Connect": "Conectare",
     "#DirectConnect_LastPlayed": "Jucat ultima dată",
     "#ServerDetail_Players": "Jucători",
     "#ServerDetail_PlayersEmpty": "Nu există jucători conectați.",
@@ -80,9 +80,10 @@
     "#ServerDetail_Refresh": "Reîmprospătează",
     "#ServerDetail_ScriptHook": "Client scripts allowed",
     "#ServerDetail_OneSync": "OneSync",
-    "#ServerDetail_Updates": "Feed",
+    "#ServerDetail_Updates": "Noutăți",
     "#ServerDetail_Premium": "FiveM supporter tier",
     "#Changelogs": "Listă schimbări",
     "#Yes": "Da",
-    "#No": "Nu"
+    "#No": "Nu",
+    "#RentServer": "Închiriază un server"
 }
