@@ -85,5 +85,6 @@
     "#Changelogs": "Listă schimbări",
     "#Yes": "Da",
     "#No": "Nu",
-    "#RentServer": "Închiriază un server"
+    "#RentServer": "Închiriază un server",
+    "#EmptyServers_History": "Serverele pe care ai mai jucat vor apărea aici. Verifică lista de servere și intră pe unul dintre ele acum!"
 }

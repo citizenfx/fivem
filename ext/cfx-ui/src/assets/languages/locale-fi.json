@@ -32,8 +32,8 @@
     "#ServerList_Locales": "Kielet",
     "#Settings_Nickname": "Pelaajanimi",
     "#Settings_LocalhostPort": "Oma portti",
-    "#Settings_DarkTheme": "\"dark\" \"teema\"",
-    "#Settings_DarkThemeDesc": "Käytä \"dark\" \"teema\"",
+    "#Settings_DarkTheme": "\"Tumma\" \"teema\"",
+    "#Settings_DarkThemeDesc": "Käytä \"tummaa\" \"teemaa\"",
     "#Settings_DevMode": "Dev tila",
     "#Settings_DevModeDesc": "Kytke \"localhost\" valikkoon",
     "#Settings_Account": "Yhdistetty FiveM Käyttäjä",
@@ -84,5 +84,13 @@
     "#SettingsCat_Account": "Käyttäjät",
     "#SettingsCat_Game": "Peli",
     "#SettingsCat_Interface": "Käyttöliittymä",
-    "#SettingsCat_Connection": "Yhteydet"
+    "#SettingsCat_Connection": "Yhteydet",
+    "#RentServer": "Vuokraa palvelin",
+    "#EmptyServers_Favorites": "Suosikkipalvelimesi tulevat näkymään tässä, paina vain tähteä palvelimen vieressä!",
+    "#Settings_LowPerf_ReduceFull": "Ei sumennusta",
+    "#Settings_LowPerf_Off": "Pois",
+    "#Settings_LowPerfMode": "Vähennä sumennusta (huonoille tietokoneille)",
+    "#Settings_StreamerModeDesc": "Piilota arkaluonteinen sisältö (esim. IP-osoitteet) näkyvistä",
+    "#Settings_StreamerMode": "Striimaajatila",
+    "#Servers_ConnectingToServer": "Yhdistetään palvelimelle..."
 }

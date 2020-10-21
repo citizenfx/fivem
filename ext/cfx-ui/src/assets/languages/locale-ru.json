@@ -84,5 +84,17 @@
     "#BottomNav_ReplayEditor": "Редактор повторов",
     "#BottomNav_Story": "Сюжет",
     "#Home_AdDetail": "самый популярный сервер в вашем регионе",
-    "#ServerList_StreamerModeWarning": "Режим стримера включен - поле для ввода скрыто"
+    "#ServerList_StreamerModeWarning": "Режим стримера включен - поле для ввода скрыто",
+    "#SettingsCat_Account": "Аккаунт",
+    "#SettingsCat_Game": "Игра",
+    "#SettingsCat_Interface": "Интерфейс",
+    "#Settings_LowPerf_ReduceFull": "Без размытия",
+    "#Settings_LowPerf_ReduceBackdrop": "Только фон",
+    "#Settings_LowPerf_Off": "Выкл",
+    "#Settings_UpdateChannel": "Канал обновлений",
+    "#Settings_StreamerModeDesc": "Скрыть конфиденциальную информацию (напр. IP адреса) с экрана",
+    "#Settings_StreamerMode": "Режим стримера",
+    "#ServerList_Locales": "Языки",
+    "#Servers_ConnectingToServer": "Подключение к серверу...",
+    "#BottomNav_Mods": "Моды"
 }

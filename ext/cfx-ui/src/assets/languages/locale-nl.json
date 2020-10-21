@@ -84,5 +84,16 @@
     "#BottomNav_Create": "Maken",
     "#BottomNav_Mods": "Mods",
     "#BottomNav_Play": "Spelen",
-    "#BottomNav_Story": "Verhaal"
+    "#BottomNav_Story": "Verhaal",
+    "#RentServer": "Bestel een server",
+    "#Settings_LowPerf_ReduceFull": "Geen vervaging",
+    "#Settings_LowPerf_ReduceBackdrop": "Enkel achtergrond",
+    "#Settings_LowPerf_Off": "Uit",
+    "#Settings_LowPerfMode": "Verminder vervaging (voor langzame PCs)",
+    "#Settings_StreamerModeDesc": "Verberg gevoelige informatie (zoals IP-adressen)",
+    "#Settings_StreamerMode": "Streamermodus",
+    "#Servers_ConnectingToServer": "Verbinden met server...",
+    "#Home_AdDetail": "meest omhooggeplaatste server in jouw taal",
+    "#EmptyServers_Favorites": "Je favoriete servers verschijnen hier, klik op de ster naast een server om deze hier toe te voegen!",
+    "#ServerList_StreamerModeWarning": "Streamermodus is ingeschakeld - Invoerveld verborgen"
 }

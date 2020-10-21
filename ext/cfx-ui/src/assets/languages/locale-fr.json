@@ -84,5 +84,9 @@
     "#Settings_ConnectedProfiles": "Identités liées",
     "#Settings_CustomEmojiUpsell": "Indisponible ! Faites une contribution de 5$/mois ou plus sur le Patreon FiveM et associez votre compte FiveM pour définir un emoji personnalisé dans le filigrane FiveM.",
     "#Settings_CustomEmojiDesc": "Un émoji à afficher dans le filigrane FiveM.",
-    "#Settings_CustomEmoji": "Émoji personnalisé dans le filigrane FiveM"
+    "#Settings_CustomEmoji": "Émoji personnalisé dans le filigrane FiveM",
+    "#RentServer": "Louer un serveur",
+    "#EmptyServers_History": "Les serveurs sur lesquels vous avez joué auparavant apparaîtront ici. Consultez la liste des serveurs et rejoignez-en un maintenant !",
+    "#Settings_StreamerMode": "Mode Streamer",
+    "#ServerList_StreamerModeWarning": "Le mode Streamer est activé - le champ est masquée"
 }
