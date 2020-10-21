@@ -28,5 +28,8 @@
     "#BottomNav_Settings": "设置",
     "#BottomNav_Servers": "服务器",
     "#ServerList_Premium": "支持者",
-    "#BottomNav_Play": "开始游戏"
+    "#BottomNav_Play": "开始游戏",
+    "#Settings_CustomEmoji": "自定义FiveM水印表情符号",
+    "#Settings_StreamerMode": "流光模式",
+    "#BottomNav_Story": "故事模式"
 }
