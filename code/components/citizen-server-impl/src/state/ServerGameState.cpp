@@ -1354,7 +1354,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								// }
 
 								auto startBit = cmdState.cloneBuffer.GetCurrentBit();
-								cmdState.maybeFlushBuffer(3 + /* 13 */ 16 + 16 + 4 + 32 + 16 + 32 + 12 + (len * 8));
+								cmdState.maybeFlushBuffer(3 + /* 13 */ 16 + 16 + 4 + 32 + 16 + 64 + 32 + 12 + (len * 8));
 								cmdState.cloneBuffer.Write(3, syncType);
 								cmdState.cloneBuffer.Write(13, entity->handle);
 								cmdState.cloneBuffer.Write(16, entityClient->GetNetId());
@@ -1446,8 +1446,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// emplace new frame
 		clientDataUnlocked->frameStates.emplace(m_frameIndex, std::move(ces));
 
-		scl->Execute(client);
+		m_tg->tryPost([scl, client]() mutable 
+		{
+			scl->Execute(client);
 
+			scl = {};
+			client = {};
+		});
+	
 		GS_LOG("Tick completed for cl %d.\n", client->GetNetId());
 	});
 
