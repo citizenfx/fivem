@@ -742,13 +742,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		{
 			const auto& [entity, entityPos, vehicleData, entityClientWeak] = relevantEntities[entityIndex];
 
-			bool hasCreated = false;
-
-			{
-				auto clientData = GetClientDataUnlocked(this, client);
-				hasCreated = clientData->createdEntities.test(entity->handle);
-			}
-
 			bool isRelevant = (g_oneSyncCulling->GetValue()) ? false : true;
 
 			// players should always have their own entities *if* created on their end.
@@ -892,46 +885,33 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
-			if (isRelevant)
+			auto entIdentifier = MakeHandleUniqifierPair(entity->handle, entity->uniqifier);
+
+			// already syncing
+			if (auto syncIt = currentSyncedEntities.find(entIdentifier); syncIt != currentSyncedEntities.end())
+			{
+				auto& entityData = syncIt->second;
+				if (isRelevant)
+				{
+					const auto deltaTime = syncDelay - entityData.syncDelta;
+					newSyncedEntities[entIdentifier] = { entityData.nextSync + deltaTime, syncDelay, entity, entityData.forceUpdate, true };
+				}
+				else if (entityData.hasCreated)
+				{
+					GS_LOG("destroying entity %d:%d for client %d due to scope exit\n", entity->handle, entity->uniqifier, client->GetNetId());
+					clientDataUnlocked->entitiesToDestroy.emplace(entIdentifier, entity);
+				}
+			}
+			
+			// create entity here
+			else if (isRelevant)
 			{
 				{
 					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
 					entity->relevantTo.set(client->GetSlotId());
 				}
 
-				// GS_LOG("assigning entity %d as relevant to client %d\n", entity->handle, client->GetNetId());
-
-				auto entIdentifier = MakeHandleUniqifierPair(entity->handle, entity->uniqifier);
-				if (hasCreated)
-				{
-					const auto [oldNextSync, oldDelay, oldEntity, nextForceUpdate] = currentSyncedEntities[entIdentifier];
-
-					// this entity was deleted between ticks and we somehow didn't catch it. this is bad.
-					if (entity != oldEntity)
-					{
-						GS_LOG("ERROR: entity %d for client %d is mismatched!\n", entity->handle, client->GetNetId());
-					
-						// last-ditch effort to recover
-						// clientDataUnlocked->entitiesToDestroy.emplace(entity->handle, entity);
-						newSyncedEntities[entIdentifier] = { 0ms, syncDelay, entity, 0 };
-					}
-
-					// same entity, no problem here
-					else
-					{
-						const auto deltaTime = syncDelay - oldDelay;
-						newSyncedEntities[entIdentifier] = { oldNextSync + deltaTime, syncDelay, entity, nextForceUpdate };
-					}
-				}
-				else
-				{
-					newSyncedEntities[entIdentifier] = { 0ms, syncDelay, entity, false };
-				}
-			}
-			else if (hasCreated)
-			{
-				GS_LOG("destroying entity %d for client %d due to scope exit\n", entity->handle, client->GetNetId());
-				clientDataUnlocked->entitiesToDestroy.emplace(entity->handle, entity);
+				newSyncedEntities[entIdentifier] = { 0ms, syncDelay, entity, true, false };
 			}
 		}
 
@@ -1001,12 +981,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		auto& entitiesToDestroy = clientDataUnlocked->entitiesToDestroy;
 		for (auto entityIt = syncedEntities.begin(), entityEnd = syncedEntities.end(); entityIt != entityEnd;)
 		{
-			auto [identPair, syncPair] = *entityIt;
+			auto [identPair, syncData] = *entityIt;
 			auto oldIt = entityIt;
 
 			++entityIt;
 
-			auto& entity = std::get<2>(syncPair);
+			auto& entity = syncData.entity;
 
 			std::shared_lock _(entity->deletionMutex);
 			if (entity->deleting)
@@ -1106,8 +1086,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 				}
 
-				clientDataUnlocked->createdEntities.reset(objectId);
-
 				{
 					std::lock_guard<std::shared_mutex> _lock(entity->guidMutex);
 					entity->relevantTo.reset(slotId);
@@ -1137,14 +1115,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		{
 			for (auto syncIt = syncedEntities.begin(), syncItEnd = syncedEntities.end(); syncIt != syncItEnd;)
 			{
-				auto& [identPair, syncPair] = *syncIt;
+				auto& [identPair, syncData] = *syncIt;
 				auto& [objectId, uniqifier] = DeconstructHandleUniqifierPair(identPair);
-				auto& [nextSync, syncDelta, entity, forceUpdate] = syncPair;
+				auto& entity = syncData.entity;
+				auto& forceUpdate = syncData.forceUpdate;
 
-				// TODO: we'll need to change this eventually, this doesn't handle uniqifier changes properly
-				bool hasCreated = clientDataUnlocked->createdEntities.test(objectId);
-
-				if (!hasCreated)
+				if (!syncData.hasCreated)
 				{
 					bool canCreate = true;
 					if (fx::IsBigMode())
@@ -1228,8 +1204,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					else
 					{
 						GS_LOG("creating entity %d for client %d\n", objectId, client->GetNetId());
+
 						//yay
-						clientDataUnlocked->createdEntities.set(objectId);
+						syncData.hasCreated = true;
 						clientDataUnlocked->pendingCreates[identPair] = m_frameIndex;
 						forceUpdate = true;
 					}
@@ -1275,12 +1252,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				ces.syncedEntities.emplace(entity->handle, ClientEntityData{ entity, baseFrameIndex });
 
 				// should we sync?
-				if (forceUpdate || nextSync - curTime <= 0ms)
+				if (forceUpdate || syncData.nextSync - curTime <= 0ms)
 				{
 					forceUpdate = false;
-					nextSync = curTime + syncDelta;
+					syncData.nextSync = curTime + syncData.syncDelta;
 
-					auto syncType = hasCreated ? 2 : 1;
+					auto syncType = syncData.hasCreated ? 2 : 1;
 
 					auto _ent = entity;
 
@@ -1864,7 +1841,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		auto [lock, data] = GetClientData(this, crClient);
 		if (auto entIt = data->syncedEntities.find(uniqPair); entIt != data->syncedEntities.end())
 		{
-			std::get<3>(entIt->second) = true;
+			entIt->second.forceUpdate = true;
 		}
 	});
 
@@ -2604,11 +2581,9 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		// well, yeah, it's their entity, they have it
 		{
 			auto [lock, data] = GetClientData(this, client);
-			data->createdEntities.set(objectId);
-
 			auto identPair = MakeHandleUniqifierPair(objectId, uniqifier);
 
-			data->syncedEntities[identPair] = { 0ms, 10ms, entity, false };
+			data->syncedEntities[identPair] = { 0ms, 10ms, entity, false, true };
 			data->pendingCreates.erase(identPair);
 		}
 
@@ -3860,30 +3835,31 @@ static InitFunction initFunction([]()
 						}
 						else
 						{
-							gscomms_execute_callback_on_main_thread([=]() {
-								instance->GetComponent<fx::GameServer>()->DropClient(client, "Nonexistent game state for missing frame!");
+							gscomms_execute_callback_on_main_thread([=]() 
+							{
+								instance->GetComponent<fx::GameServer>()->DropClient(client, "Missing nack frame!");
 							});
 							return;
 						}
 					}
 				}
 
-				// ignore list
-				if (flags & 2)
+				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
+				auto& states = clientData->frameStates;
+
+				if (auto frameIt = states.find(thisFrame); frameIt != states.end())
 				{
-					eastl::fixed_vector<uint16_t, 100> ignoredUpdates;
-					uint8_t ignoreCount = buffer.Read<uint8_t>();
-					for (int i = 0; i < ignoreCount; i++)
+					// ignore list
+					if (flags & 2)
 					{
-						ignoredUpdates.push_back(buffer.Read<uint16_t>());
-					}
+						eastl::fixed_vector<uint16_t, 100> ignoredUpdates;
+						uint8_t ignoreCount = buffer.Read<uint8_t>();
+						for (int i = 0; i < ignoreCount; i++)
+						{
+							ignoredUpdates.push_back(buffer.Read<uint16_t>());
+						}
 
-					for (auto objectId : ignoredUpdates)
-					{
-						auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-						auto& states = clientData->frameStates;
-
-						if (auto frameIt = states.find(thisFrame); frameIt != states.end())
+						for (auto objectId : ignoredUpdates)
 						{
 							auto& [synced, deletions] = frameIt->second;
 							if (auto entIter = synced.find(objectId); entIter != synced.end())
@@ -3895,31 +3871,42 @@ static InitFunction initFunction([]()
 								}
 							}
 						}
-						else
+					}
+
+					// recreate list
+					if (flags & 4)
+					{
+						eastl::fixed_vector<uint16_t, 100> recreates;
+						uint8_t recreateCount = buffer.Read<uint8_t>();
+						for (int i = 0; i < recreateCount; i++)
 						{
-							gscomms_execute_callback_on_main_thread([=]() {
-								instance->GetComponent<fx::GameServer>()->DropClient(client, "Nonexistent game state for ignore list!");
-							});
-							return;
+							recreates.push_back(buffer.Read<uint16_t>());
 						}
-					}							   
+
+						for (auto objectId : recreates)
+						{
+							auto& [synced, deletions] = frameIt->second;
+							if (auto entIter = synced.find(objectId); entIter != synced.end())
+							{
+								if (auto ent = entIter->second.entityWeak.lock())
+								{
+									const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
+									if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
+									{
+										syncedIt->second.hasCreated = false;
+									}
+								}
+							}
+						}
+					}
 				}
-
-				// recreate list
-				if (flags & 4)
+				else
 				{
-					eastl::fixed_vector<uint16_t, 100> recreates;
-					uint8_t recreateCount = buffer.Read<uint8_t>();
-					for (int i = 0; i < recreateCount; i++)
+					gscomms_execute_callback_on_main_thread([=]() 
 					{
-						recreates.push_back(buffer.Read<uint16_t>());
-					}
-
-					for (auto objectId : recreates)
-					{
-						auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-						clientData->createdEntities.reset(objectId);
-					}
+						instance->GetComponent<fx::GameServer>()->DropClient(client, "Missing ignore/recreate frame!");
+					});
+					return;
 				}
 			}
 		});

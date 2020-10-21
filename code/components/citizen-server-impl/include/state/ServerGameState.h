@@ -655,6 +655,15 @@ struct ClientEntityState
 	eastl::fixed_vector<EntityUniqifierPair, 16> deletions;
 };
 
+struct SyncedEntityData
+{
+	std::chrono::milliseconds nextSync;
+	std::chrono::milliseconds syncDelta;
+	sync::SyncEntityPtr entity;
+	bool forceUpdate;
+	bool hasCreated;
+};
+
 constexpr auto maxSavedClientFrames = 256;
 
 struct GameStateClientData : public sync::ClientSyncDataBase
@@ -674,7 +683,6 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	glm::mat4x4 viewMatrix{};
 
-	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
 	eastl::fixed_hash_map<uint32_t, uint64_t, 100> pendingCreates;
 	eastl::fixed_hash_map<uint64_t, ClientEntityState, maxSavedClientFrames, maxSavedClientFrames, false> frameStates;
 	uint64_t firstSavedFrameState = 0;
@@ -684,7 +692,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	eastl::fixed_hash_map<int, int, 128> playersToSlots;
 	eastl::bitset<128> playersInScope;
 	
-	eastl::fixed_hash_map<uint32_t, std::tuple<std::chrono::milliseconds /* nextSync */, std::chrono::milliseconds /* syncDelta */, sync::SyncEntityPtr /* entity */, bool /* forceUpdate */>, 128> syncedEntities;
+	eastl::fixed_hash_map<uint32_t, SyncedEntityData, 128> syncedEntities;
 	eastl::fixed_hash_map<uint32_t, sync::SyncEntityPtr, 16> entitiesToDestroy;
 
 	uint32_t syncTs = 0;
