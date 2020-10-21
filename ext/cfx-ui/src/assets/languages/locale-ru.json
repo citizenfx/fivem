@@ -68,5 +68,21 @@
     "#ServerDetail_Resources": "Ресурсы",
     "#ServerDetail_Locale": "Язык",
     "#BottomNav_Create": "Создать",
-    "#BottomNav_Play": "Играть"
+    "#BottomNav_Play": "Играть",
+    "#RentServer": "Арендовать сервер",
+    "#EmptyServers_Favorites": "Здесь появятся ваши любимые сервера, просто нажмите на значок звездочки рядом с вашим любимым сервером!",
+    "#EmptyServers_History": "Здесь появятся сервера, на которых вы играли раньше. Ознакомьтесь со списком серверов и присоединяйтесь к одному из них сейчас!",
+    "#SettingsCat_Connection": "Подключение",
+    "#Settings_LowPerfMode": "Уменьшить размытие (для слабых систем)",
+    "#Settings_UpdateChannelDesc": "Попробуйте новые функции и изменения до их релиза. Есть шанс нестабильной работы.",
+    "#Settings_ConnectedProfiles": "Привязанные идентификаторы",
+    "#Settings_CustomEmojiUpsell": "Недоступно! Внесите $5/месяц или больше на FiveM Patreon и привяжите свой FiveM аккаунт чтобы установить собственное эмодзи для водяного знака FiveM.",
+    "#Settings_CustomEmojiDesc": "Эмодзи который отображается окло водяного знака FiveM.",
+    "#Settings_CustomEmoji": "Пользовательский эмодзи водяного знака FiveM",
+    "#Settings_QueriesPerMinute": "Список серверов: Макс. пинг / минута",
+    "#Servers_Retry": "Повторить",
+    "#BottomNav_ReplayEditor": "Редактор повторов",
+    "#BottomNav_Story": "Сюжет",
+    "#Home_AdDetail": "самый популярный сервер в вашем регионе",
+    "#ServerList_StreamerModeWarning": "Режим стримера включен - поле для ввода скрыто"
 }
