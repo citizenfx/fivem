@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Выйти на рабочий стол",
+    "#ExitToDesktop": "Выйти на рабочий стол",
     "#ServerList_Name": "Имя",
     "#ServerList_Players": "Игроки",
     "#ServerList_Ping": "Пинг",
@@ -55,12 +55,18 @@
     "#ServerDetail_Players": "Игроки",
     "#ServerDetail_PlayersEmpty": "На этом сервере нет игроков.",
     "#ServerDetail_Back": "Назад",
-    "#ServerDetail_AddFavorite": "В избранное",
+    "#ServerDetail_AddFavorite": "Добавить в избранные",
     "#ServerDetail_DelFavorite": "Из избранного",
     "#ServerDetail_Refresh": "Обновить",
     "#ServerDetail_ScriptHook": "Клиентские скрипты разрешены",
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "Уровень поддержки FiveM",
     "#Yes": "Да",
-    "#No": "Нет"
+    "#No": "Нет",
+    "#Changelogs": "Список изменений",
+    "#ServerDetail_Updates": "Новости",
+    "#ServerDetail_Resources": "Ресурсы",
+    "#ServerDetail_Locale": "Язык",
+    "#BottomNav_Create": "Создать",
+    "#BottomNav_Play": "Играть"
 }

@@ -1,5 +1,5 @@
 {
-	"#ExitToDesktop": "Salir al escritorio",
+    "#ExitToDesktop": "Salir al escritorio",
     "#ServerList_Name": "Nombre",
     "#ServerList_Players": "Jugadores",
     "#ServerList_Ping": "Ping",
@@ -63,5 +63,13 @@
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Premium": "Nivel de apoyo a Fivem",
     "#Yes": "Sí",
-    "#No": "No"
+    "#No": "No",
+    "#Settings_CustomEmoji": "Emoticono personalizado de FiveM",
+    "#ServerList_Locales": "Lenguajes",
+    "#Servers_Retry": "Probar de nuevo",
+    "#BottomNav_ReplayEditor": "Editor de replay",
+    "#BottomNav_Create": "Crear",
+    "#BottomNav_Mods": "Moderador",
+    "#BottomNav_Story": "Historia",
+    "#BottomNav_Play": "Jugar"
 }
