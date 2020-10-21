@@ -2607,13 +2607,13 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		}
 
 		{
-			std::unique_lock _(m_entityListMutex);
-			m_entityList.push_back(entity);
+			std::unique_lock _(m_entitiesByIdMutex);
+			m_entitiesById[objectId] = { entity };
 		}
 
 		{
-			std::unique_lock _(m_entitiesByIdMutex);
-			m_entitiesById[objectId] = { entity };
+			std::unique_lock _(m_entityListMutex);
+			m_entityList.push_back(entity);
 		}
 
 		// update all clients' lists so the system knows that this entity is valid and should not be deleted anymore
