@@ -1,4 +1,6 @@
 {
     "#ServerList_Browse": "浏览",
-    "#ServerList_Tags": "标签"
+    "#ServerList_Tags": "标签",
+    "#ServerList_Favorites": "我的收藏",
+    "#ExitToDesktop": "退出至桌面"
 }
