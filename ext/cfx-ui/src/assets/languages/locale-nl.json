@@ -95,5 +95,6 @@
     "#Servers_ConnectingToServer": "Verbinden met server...",
     "#Home_AdDetail": "meest omhooggeplaatste server in jouw taal",
     "#EmptyServers_Favorites": "Je favoriete servers verschijnen hier, klik op de ster naast een server om deze hier toe te voegen!",
-    "#ServerList_StreamerModeWarning": "Streamermodus is ingeschakeld - Invoerveld verborgen"
+    "#ServerList_StreamerModeWarning": "Streamermodus is ingeschakeld - Invoerveld verborgen",
+    "#EmptyServers_History": "Eerder gespeelde servers verschijnen hier. Bekijk de serverlijst en vind een server!"
 }
