@@ -2,13 +2,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # Nian <tim885885@hotmail.com>, 2020.
+# aaa <3362885642@qq.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-07-03 09:59+0000\n"
-"Last-Translator: Nian <tim885885@hotmail.com>\n"
+"PO-Revision-Date: 2020-10-04 08:14+0000\n"
+"Last-Translator: aaa <3362885642@qq.com>\n"
 "Language-Team: Chinese (Simplified) <http://translations.cfx.re/projects/"
 "citizenfx/client/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -27,7 +28,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"例外详情: %s"
+"细节异常: %s"
 
 #: client/launcher/MiniDump.cpp:1213
 #, c-format
@@ -38,7 +39,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"旧版崩溃哈希: %s"
+"旧版错乱崩溃: %s"
 
 #: client/launcher/MiniDump.cpp:1277
 msgid ""
