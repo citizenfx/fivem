@@ -458,8 +458,8 @@ export function rebindWorkspaceCommands(bind: interfaces.Bind, rebind: interface
   rebind(WorkspaceCommandContribution).to(FxdkWorkspaceCommandContribution as any).inSingletonScope();
 
   bind(FxdkFileMenuContribution).toSelf().inSingletonScope();
-  rebind(FileMenuContribution).to(FxdkFileMenuContribution).inSingletonScope();
+  rebind(FileMenuContribution).to(FxdkFileMenuContribution as any).inSingletonScope();
 
   bind(FxdkEditMenuContribution).toSelf().inSingletonScope();
-  rebind(EditMenuContribution).to(FxdkEditMenuContribution).inSingletonScope();
+  rebind(EditMenuContribution).to(FxdkEditMenuContribution as any).inSingletonScope();
 }

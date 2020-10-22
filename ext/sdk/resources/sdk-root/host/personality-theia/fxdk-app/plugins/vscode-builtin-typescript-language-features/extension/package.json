@@ -2,11 +2,11 @@
   "name": "typescript-language-features",
   "description": "Provides rich language support for JavaScript and TypeScript.",
   "displayName": "TypeScript and JavaScript Language Features (built-in)",
-  "version": "1.44.2",
+  "version": "1.50.1",
   "icon": "icon.png",
   "author": "vscode",
   "publisher": "vscode",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
   "enableProposedApi": true,
   "engines": {
@@ -15,21 +15,6 @@
   "categories": [
     "Programming Languages"
   ],
-  "dependencies": {
-    "jsonc-parser": "^2.2.1",
-    "rimraf": "^2.6.3",
-    "semver": "5.5.1",
-    "typescript-vscode-sh-plugin": "^0.6.11",
-    "vscode-extension-telemetry": "0.1.1",
-    "vscode-nls": "^4.1.1"
-  },
-  "devDependencies": {
-    "@types/node": "^12.11.7",
-    "@types/rimraf": "2.0.2",
-    "@types/semver": "^5.5.0",
-    "vscode": "^1.1.36"
-  },
-  "scripts": {},
   "activationEvents": [
     "onLanguage:javascript",
     "onLanguage:javascriptreact",
@@ -48,6 +33,7 @@
     "onLanguage:jsonc"
   ],
   "main": "./dist/extension",
+  "browser": "./dist/browser/extension",
   "contributes": {
     "jsonValidation": [
       {
@@ -56,7 +42,7 @@
       },
       {
         "fileMatch": "tsconfig.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/tsconfig.json"
+        "url": "https://json.schemastore.org/tsconfig"
       },
       {
         "fileMatch": "tsconfig.json",
@@ -64,7 +50,7 @@
       },
       {
         "fileMatch": "tsconfig.*.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/tsconfig.json"
+        "url": "https://json.schemastore.org/tsconfig"
       },
       {
         "fileMatch": "tsconfig-*.json",
@@ -72,7 +58,7 @@
       },
       {
         "fileMatch": "tsconfig-*.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/tsconfig.json"
+        "url": "https://json.schemastore.org/tsconfig"
       },
       {
         "fileMatch": "tsconfig.*.json",
@@ -80,27 +66,27 @@
       },
       {
         "fileMatch": "typings.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/typings.json"
+        "url": "https://json.schemastore.org/typings"
       },
       {
         "fileMatch": ".bowerrc",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/bowerrc.json"
+        "url": "https://json.schemastore.org/bowerrc"
       },
       {
         "fileMatch": ".babelrc",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/babelrc.json"
+        "url": "https://json.schemastore.org/babelrc"
       },
       {
         "fileMatch": ".babelrc.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/babelrc.json"
+        "url": "https://json.schemastore.org/babelrc"
       },
       {
         "fileMatch": "babel.config.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/babelrc.json"
+        "url": "https://json.schemastore.org/babelrc"
       },
       {
         "fileMatch": "jsconfig.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/jsconfig.json"
+        "url": "https://json.schemastore.org/jsconfig"
       },
       {
         "fileMatch": "jsconfig.json",
@@ -108,7 +94,7 @@
       },
       {
         "fileMatch": "jsconfig.*.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/jsconfig.json"
+        "url": "https://json.schemastore.org/jsconfig"
       },
       {
         "fileMatch": "jsconfig.*.json",
@@ -137,6 +123,12 @@
           "tags": [
             "usesOnlineServices"
           ]
+        },
+        "typescript.enablePromptUseWorkspaceTsdk": {
+          "type": "boolean",
+          "default": false,
+          "description": "%typescript.enablePromptUseWorkspaceTsdk%",
+          "scope": "window"
         },
         "typescript.npm": {
           "type": [
@@ -672,16 +664,46 @@
           "description": "%typescript.preferences.importModuleSpecifierEnding%",
           "scope": "resource"
         },
+        "typescript.preferences.includePackageJsonAutoImports": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
+          "enumDescriptions": [
+            "%typescript.preferences.includePackageJsonAutoImports.auto%",
+            "%typescript.preferences.includePackageJsonAutoImports.on%",
+            "%typescript.preferences.includePackageJsonAutoImports.off%"
+          ],
+          "default": "auto",
+          "markdownDescription": "%typescript.preferences.includePackageJsonAutoImports%",
+          "scope": "window"
+        },
         "javascript.preferences.renameShorthandProperties": {
           "type": "boolean",
           "default": true,
-          "description": "%typescript.preferences.renameShorthandProperties%",
+          "description": "%typescript.preferences.useAliasesForRenames%",
+          "deprecationMessage": "%typescript.preferences.renameShorthandProperties.deprecationMessage%",
           "scope": "resource"
         },
         "typescript.preferences.renameShorthandProperties": {
           "type": "boolean",
           "default": true,
-          "description": "%typescript.preferences.renameShorthandProperties%",
+          "description": "%typescript.preferences.useAliasesForRenames%",
+          "deprecationMessage": "%typescript.preferences.renameShorthandProperties.deprecationMessage%",
+          "scope": "resource"
+        },
+        "javascript.preferences.useAliasesForRenames": {
+          "type": "boolean",
+          "default": true,
+          "description": "%typescript.preferences.useAliasesForRenames%",
+          "scope": "resource"
+        },
+        "typescript.preferences.useAliasesForRenames": {
+          "type": "boolean",
+          "default": true,
+          "description": "%typescript.preferences.useAliasesForRenames%",
           "scope": "resource"
         },
         "typescript.updateImportsOnFileMove.enabled": {
@@ -820,6 +842,20 @@
               "description": "%configuration.tsserver.watchOptions.synchronousWatchDirectory%"
             }
           }
+        },
+        "typescript.workspaceSymbols.scope": {
+          "type": "string",
+          "enum": [
+            "allOpenProjects",
+            "currentProject"
+          ],
+          "enumDescriptions": [
+            "%typescript.workspaceSymbols.scope.allOpenProjects%",
+            "%typescript.workspaceSymbols.scope.currentProject%"
+          ],
+          "default": "allOpenProjects",
+          "markdownDescription": "%typescript.workspaceSymbols.scope%",
+          "scope": "window"
         }
       }
     },
@@ -972,10 +1008,10 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": {
-            "regexp": "^\\s*(?:message TS6032:|\\[?\\D*\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}\\D*(?:\\]| -)) File change detected\\. Starting incremental compilation\\.\\.\\."
+            "regexp": "^\\s*(?:message TS6032:|\\[?\\D*\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}\\D*(├\\D*\\d{1,2}\\D+┤)?(?:\\]| -)) File change detected\\. Starting incremental compilation\\.\\.\\."
           },
           "endsPattern": {
-            "regexp": "^\\s*(?:message TS6042:|\\[?\\D*\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}\\D*(?:\\]| -)) (?:Compilation complete\\.|Found \\d+ errors?\\.) Watching for file changes\\."
+            "regexp": "^\\s*(?:message TS6042:|\\[?\\D*\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}\\D*(├\\D*\\d{1,2}\\D+┤)?(?:\\]| -)) (?:Compilation complete\\.|Found \\d+ errors?\\.) Watching for file changes\\."
           }
         }
       }
@@ -1058,5 +1094,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/theia-ide/vscode-builtin-extensions"
-  }
+  },
+  "scripts": {}
 }

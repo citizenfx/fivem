@@ -2,10 +2,10 @@
   "name": "typescript",
   "description": "Provides snippets, syntax highlighting, bracket matching and folding in TypeScript files.",
   "displayName": "TypeScript Language Basics (built-in)",
-  "version": "1.44.2",
+  "version": "1.50.1",
   "author": "vscode",
   "publisher": "vscode",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {
     "vscode": "*"
   },
@@ -43,7 +43,9 @@
         ],
         "filenamePatterns": [
           "tsconfig.*.json",
-          "tsconfig-*.json"
+          "jsconfig.*.json",
+          "tsconfig-*.json",
+          "jsconfig-*.json"
         ]
       }
     ],
@@ -140,11 +142,11 @@
     "snippets": [
       {
         "language": "typescript",
-        "path": "./snippets/typescript.json"
+        "path": "./snippets/typescript.code-snippets"
       },
       {
         "language": "typescriptreact",
-        "path": "./snippets/typescript.json"
+        "path": "./snippets/typescript.code-snippets"
       }
     ]
   },

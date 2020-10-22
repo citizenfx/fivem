@@ -1866,7 +1866,7 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 #ifdef IS_FXSERVER
 		std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
 #else
-		std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe"));
+		std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe", L"chrome"));
 #endif
 #else
 		std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
@@ -2399,7 +2399,7 @@ void V8ScriptGlobals::Initialize()
 #ifdef IS_FXSERVER
 				std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));
 #else
-				std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe"));
+				std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe", L"chrome"));
 #endif
 #else
 				std::string selfPath = MakeRelativeCitPath(_P("FXServer"));
@@ -2611,7 +2611,7 @@ void V8ScriptGlobals::Initialize()
 		});
 
 #ifndef IS_FXSERVER
-		std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe"));
+		std::string selfPath = ToNarrow(MakeCfxSubProcess(L"FXNode.exe", L"chrome"));
 #endif
 
 		std::vector<const char*> args{
@@ -2642,6 +2642,7 @@ void V8ScriptGlobals::Initialize()
 #ifndef IS_FXSERVER
 }
 #include <MinHook.h>
+#include <uv.h>
 
 static int uv_exepath_custom(char*, int)
 {
@@ -2662,14 +2663,29 @@ static FILE* fopen_wrap(const char* name, const char* mode)
 	return g_origFopen(name, mode);
 }
 
+static decltype(&uv_spawn) uv_spawn_orig;
+
+static int uv_spawn_custom(uv_loop_t* loop, uv_process_t* handle, const uv_process_options_t* options)
+{
+	uv_process_options_t options2 = *options;
+	options2.flags |= UV_PROCESS_WINDOWS_HIDE_CONSOLE;
+
+	return uv_spawn_orig(loop, handle, &options2);
+}
+
 void Component_RunPreInit()
 {
 	// since otherwise we'll invoke the game again and again and again
 	auto ep = GetProcAddress(GetModuleHandleW(L"libuv.dll"), "uv_exepath");
+	auto sp = GetProcAddress(GetModuleHandleW(L"libuv.dll"), "uv_spawn");
 
 	MH_Initialize();
+
 	MH_CreateHook(ep, uv_exepath_custom, NULL);
 	MH_EnableHook(ep);
+		
+	MH_CreateHook(sp, uv_spawn_custom, (void**)&uv_spawn_orig);
+	MH_EnableHook(sp);
 
 	// fopen utf-8 bugfix (for icudt?.dat)
 	auto fopen_ep = GetProcAddress(GetModuleHandleW(L"ucrtbase.dll"), "fopen");

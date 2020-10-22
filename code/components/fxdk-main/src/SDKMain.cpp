@@ -875,8 +875,12 @@ void SdkMain()
 	launcherTalk.Bind("sdk:message", [](const std::string& message)
 	{
 		auto jsc = fmt::sprintf("window.postMessage(%s, '*')", message);
+		auto instance = SDKCefClient::GetInstance();
 
-		SDKCefClient::GetInstance()->GetBrowser()->GetMainFrame()->ExecuteJavaScript(jsc, "fxdk://sdk-message", 0);
+		if (instance == nullptr)
+		{
+			instance->GetBrowser()->GetMainFrame()->ExecuteJavaScript(jsc, "fxdk://sdk-message", 0);
+		}
 	});
 
 	proxyLauncherTalk = [&launcherTalk]() -> ipc::Endpoint&
@@ -986,7 +990,6 @@ void SdkMain()
 		renderThreadMutex.lock();
 		RenderThread();
 		renderThreadMutex.unlock();
-		std::terminate();
 	})
 	.detach();
 

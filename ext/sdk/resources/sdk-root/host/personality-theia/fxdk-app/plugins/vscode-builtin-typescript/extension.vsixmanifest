@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="typescript" Version="1.44.2" Publisher="vscode"/>
+    <Identity Language="en-US" Id="typescript" Version="1.50.1" Publisher="vscode"/>
     <DisplayName>TypeScript Language Basics (built-in)</DisplayName>
     <Description xml:space="preserve">Provides snippets, syntax highlighting, bracket matching and folding in TypeScript files.</Description>
     <Tags>Built-in,snippet,typescript,TypeScript,ts,__ext_ts,typescriptreact,TypeScript React,tsx,__ext_tsx,jsonc</Tags>
@@ -28,7 +28,7 @@
       
       
     </Properties>
-    
+    <License>extension/LICENSE-vscode.txt</License>
     
   </Metadata>
   <Installation>
@@ -37,6 +37,6 @@
   <Dependencies/>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
-    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" /><Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE-vscode.txt" Addressable="true" />
   </Assets>
 </PackageManifest>
