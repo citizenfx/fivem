@@ -400,6 +400,7 @@ struct SyncEntityState
 
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> deletedFor;
 
 	std::mutex frameMutex;
 	std::array<uint64_t, MAX_CLIENTS> lastFramesSent;
@@ -411,10 +412,11 @@ struct SyncEntityState
 	ScriptGuid* guid;
 	uint32_t handle;
 
-	std::shared_mutex deletionMutex;
 	bool deleting = false;
 	bool hasSynced = false;
 	bool passedFilter = false;
+	bool wantsReassign = false;
+	bool firstOwnerDropped = false;
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
@@ -432,19 +434,29 @@ struct SyncEntityState
 		return overrideCullingRadius != 0.0f ? overrideCullingRadius : (424.0f * 424.0f);
 	}
 
-	inline bool IsOwnedByScript()
+	inline uint32_t GetScriptHash()
 	{
 		uint32_t scriptHash = 0;
-
-		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
+		if (syncTree)
 		{
-			if (creationToken != 0)
-			{
-				return true;
-			}
+			syncTree->GetScriptHash(&scriptHash);
 		}
+		return scriptHash;
+	}
 
-		return false;
+	inline bool IsOwnedByScript()
+	{
+		return GetScriptHash() != 0;
+	}
+
+	inline bool IsOwnedByClientScript()
+	{
+		return GetScriptHash() != 0 && creationToken == 0;
+	}
+
+	inline bool IsOwnedByServerScript()
+	{
+		return GetScriptHash() != 0 && creationToken != 0;
 	}
 
 	// MAKE SURE YOU HAVE A LOCK BEFORE CALLING THIS
@@ -453,15 +465,28 @@ struct SyncEntityState
 		return client;
 	}
 
+	fx::ClientWeakPtr& GetFirstOwnerUnsafe()
+	{
+		return firstOwner;
+	}
+
+
 	fx::ClientSharedPtr GetClient()
 	{
 		std::shared_lock _lock(clientMutex);
 		return client.lock();
 	}
 
+	fx::ClientSharedPtr GetFirstOwner()
+	{
+		std::shared_lock _lock(clientMutex);
+		return firstOwner.lock();
+	}
+
 	// make absolutely sure we don't accidentally mess up and get this info without a lock
 private:
 	fx::ClientWeakPtr client;
+	fx::ClientWeakPtr firstOwner;
 };
 }
 
@@ -637,22 +662,23 @@ struct AckPacketWrapper
 
 static constexpr const int MaxObjectId = (1 << 16) - 1;
 
-struct EntityUniqifierPair
-{
-	uint16_t objectId;
-	uint16_t uniqifier;
-};
-
 struct ClientEntityData
 {
 	sync::SyncEntityWeakPtr entityWeak;
 	uint64_t lastSent;
+	bool isCreated;
+};
+
+struct EntityDeletionData
+{
+	bool outOfScope; // is this a deletion due to being out-of-scope?
+	bool forceSteal; // should we force a steal from the client?
 };
 
 struct ClientEntityState
 {
 	eastl::fixed_hash_map<uint16_t, ClientEntityData, 64> syncedEntities;
-	eastl::fixed_vector<EntityUniqifierPair, 16> deletions;
+	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 16> deletions;
 };
 
 struct SyncedEntityData
@@ -693,7 +719,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	eastl::bitset<128> playersInScope;
 	
 	eastl::fixed_hash_map<uint32_t, SyncedEntityData, 128> syncedEntities;
-	eastl::fixed_hash_map<uint32_t, sync::SyncEntityPtr, 16> entitiesToDestroy;
+	eastl::fixed_hash_map<uint32_t, std::tuple<sync::SyncEntityPtr, EntityDeletionData>, 16> entitiesToDestroy;
 
 	uint32_t syncTs = 0;
 	uint32_t ackTs = 0;
@@ -793,7 +819,6 @@ private:
 
 	// as bitset is not thread-safe
 	std::mutex m_objectIdsMutex;
-
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
