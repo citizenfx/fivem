@@ -536,7 +536,7 @@ const EXT_LOCALFUNCREF = 11;
 
 			set(_, k, v) {
 				const payload = msgpack_pack(v);
-				SetStateBagValue(es, k, payload, payload.length, sv);
+				return SetStateBagValue(es, k, payload, payload.length, sv);
 			},
 		});
 	};
