@@ -832,7 +832,7 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 
 	if (icgi->NetProtoVersion >= 0x202010191044)
 	{
-		m_dependentFrameIndex = uint64_t(buffer.Read<uint32_t>(32) << 32) | buffer.Read<uint32_t>(32);
+		m_dependentFrameIndex = (uint64_t(buffer.Read<uint32_t>(32)) << 32) | buffer.Read<uint32_t>(32);
 	}
 
 	m_timestamp = buffer.Read<uint32_t>(32);
