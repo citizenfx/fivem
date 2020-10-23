@@ -6,6 +6,8 @@ if (!process.env.LOCALAPPDATA) {
 }
 
 export const realCwd = process.cwd();
+export const citizen = path.normalize(GetConvar('citizen_path'));
+
 export const sdkResources = path.join(__dirname, '../../..');
 
 export const sdkRoot = path.join(sdkResources, 'sdk-root');
@@ -22,3 +24,5 @@ export const serverDataPath = path.join(localAppData, 'serverData');
 
 export const setupFilePath = path.join(localAppData, 'setup.json');
 export const recentProjectsFilePath = path.join(localAppData, 'recentProjects.json');
+
+export const wellKnownPathsPath = path.join(sdkRoot, 'well-known-paths.json');

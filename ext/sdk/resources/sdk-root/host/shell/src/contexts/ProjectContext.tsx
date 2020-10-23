@@ -84,6 +84,7 @@ export const ProjectContextProvider = React.memo(({ children }) => {
   projectRef.current = project;
 
   const projectOpenPendingRef = React.useRef(false);
+  const theiaFoldersStringRef = React.useRef('');
 
   const openProject = React.useCallback((path: string) => {
     if (!projectOpenPendingRef.current) {
@@ -107,11 +108,18 @@ export const ProjectContextProvider = React.memo(({ children }) => {
   // Handling project change so we open that in theia correctly
   React.useEffect(() => {
     if (project && theiaIsReady) {
-      openProjectInTheia({
-        name: project.manifest.name,
-        path: project.path,
-        folders: getFoldersForTheia(project),
-      });
+      const folders = getFoldersForTheia(project);
+      const theiaFoldersString = JSON.stringify(folders);
+
+      if (theiaFoldersStringRef.current !== theiaFoldersString) {
+        theiaFoldersStringRef.current = theiaFoldersString;
+
+        openProjectInTheia({
+          name: project.manifest.name,
+          path: project.path,
+          folders,
+        });
+      }
     }
   }, [project, theiaIsReady, openProjectInTheia]);
 

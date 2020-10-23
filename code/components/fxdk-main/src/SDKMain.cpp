@@ -803,7 +803,7 @@ public:
 			{
 				std::string pr = pathRef.substr(1);
 
-				resource = m_manager->CreateResource(fragRef);
+				resource = m_manager->CreateResource(fragRef, this);
 				resource->LoadFrom(*skyr::percent_decode(pr));
 			}
 		}
@@ -852,6 +852,7 @@ void SdkMain()
 #endif
 	ConVar<std::string> sdkUrlVar("sdk_url", ConVar_None, "http://localhost:35419/");
 	ConVar<std::string> sdkRootPath("sdk_root_path", ConVar_None, "built-in");
+	ConVar<std::string> citizenPath("citizen_path", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen/")));
 
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", nullptr);
 
@@ -875,12 +876,20 @@ void SdkMain()
 	launcherTalk.Bind("sdk:message", [](const std::string& message)
 	{
 		auto jsc = fmt::sprintf("window.postMessage(%s, '*')", message);
-		auto instance = SDKCefClient::GetInstance();
 
+		auto instance = SDKCefClient::GetInstance();
 		if (instance == nullptr)
 		{
-			instance->GetBrowser()->GetMainFrame()->ExecuteJavaScript(jsc, "fxdk://sdk-message", 0);
+			return;
 		}
+
+		auto browser = instance->GetBrowser();
+		if (browser == nullptr)
+		{
+			return;
+		}
+
+		browser->GetMainFrame()->ExecuteJavaScript(jsc, "fxdk://sdk-message", 0);
 	});
 
 	proxyLauncherTalk = [&launcherTalk]() -> ipc::Endpoint&

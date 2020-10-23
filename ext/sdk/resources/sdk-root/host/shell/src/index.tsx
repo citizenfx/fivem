@@ -31,7 +31,7 @@ ReactDOM.render(
 
 serviceWorker.unregister();
 
-// openDevTools();
+openDevTools();
 
 document.addEventListener('contextmenu', (event) => {
   event.preventDefault();

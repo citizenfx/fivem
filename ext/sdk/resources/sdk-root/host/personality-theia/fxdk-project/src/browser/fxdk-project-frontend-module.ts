@@ -15,9 +15,13 @@ import { rebindWorkspaceFrontendContribution } from './rebindWorkspaceFrontendCo
 import { rebindApplicationShell } from './rebindApplicationShell';
 import URI from '@theia/core/lib/common/uri';
 import { rebindNavigator } from './rebindNavigator';
+import { CommandService } from '@theia/core';
 
 @injectable()
 export class FxdkProjectContribution implements FrontendApplicationContribution {
+  @inject(CommandService)
+  protected readonly commandService: CommandService;
+
   @inject(WorkspacePreferences) protected preferences: WorkspacePreferences;
   @inject(PreferenceService) protected readonly preferenceService: PreferenceService;
 
@@ -39,6 +43,7 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
   initialize() {
     console.log('INIT-----------------------------------------------');
+
     window.parent.postMessage({ type: 'theia:ready' }, '*');
 
     let shouldReload = false;
@@ -79,7 +84,7 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
           const lastIndexOfBackslash = file.lastIndexOf('\\');
 
-          const baseUri = new URI('file:///' + file.substr(0, lastIndexOfBackslash));
+          const baseUri = new URI('file:///' + file.substr(0, lastIndexOfBackslash).replace(/\\/g, '/'));
           const fileName = file.substr(lastIndexOfBackslash + 1);
 
           const uri = baseUri.resolve(fileName);
