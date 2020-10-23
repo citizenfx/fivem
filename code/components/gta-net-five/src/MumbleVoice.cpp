@@ -615,7 +615,19 @@ static std::shared_ptr<lab::AudioContext> getAudioContext(int playerId)
 	std::string name = fmt::sprintf("[%d] %s",
 		FxNativeInvoke::Invoke<int>(getServerId, playerId),
 		FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId));
+	return g_mumbleClient->GetAudioContext(name);
+}
 
+static std::shared_ptr<lab::AudioContext> getAudioContextByServerId(int serverId)
+{
+	if (!g_mumble.connected)
+	{
+		return {};
+	}
+
+	std::string name = fmt::sprintf("[%d] %s",
+		serverId,
+		ToNarrow(g_mumbleClient->GetPlayerNameFromServerId(serverId)));
 	return g_mumbleClient->GetAudioContext(name);
 }
 
@@ -894,6 +906,7 @@ static HookFunction hookFunction([]()
 		});
 
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
+		scrBindGlobal("GET_AUDIOCONTEXT_FOR_SERVERID", getAudioContextByServerId);
 
 		fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_TALKING_OVERRIDE", [](fx::ScriptContext& context)
 		{
