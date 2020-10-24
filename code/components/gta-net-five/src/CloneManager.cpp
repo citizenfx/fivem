@@ -1917,10 +1917,11 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 			int delay = 0;
 
 			// don't send peds unless they're staying
-			if (object->objectType == (int)NetObjEntityType::Ped)
+			// UPDATE 2020-10-24: this is somewhat useless, the only time these get created is misuse of GET_PED_IN_VEHICLE_SEAT
+			/*if (object->objectType == (int)NetObjEntityType::Ped)
 			{
 				delay = 75;
-			}
+			}*/
 
 			m_extendedData[object->objectId].dontSyncBefore = (*rage__s_NetworkTimeThisFrameStart) + delay;
 		}
