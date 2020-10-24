@@ -8,18 +8,6 @@
 
 #include <boost/type_index.hpp>
 
-extern std::string g_enforcedGameBuild;
-
-inline bool Is2060()
-{
-	static bool value = ([]()
-	{
-		return g_enforcedGameBuild == "2060";
-	})();
-
-	return value;
-}
-
 namespace fx::sync
 {
 template<int Id1, int Id2, int Id3, bool CanSendOnFirst = true>

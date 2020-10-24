@@ -47,6 +47,18 @@
 
 #include <StateBagComponent.h>
 
+extern std::string g_enforcedGameBuild;
+
+inline bool Is2060()
+{
+	static bool value = ([]()
+	{
+		return g_enforcedGameBuild == "2060";
+	})();
+
+	return value;
+}
+
 template<typename T>
 inline constexpr T roundToWord(T val)
 {
