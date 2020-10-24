@@ -3696,18 +3696,18 @@ struct CWeaponDamageEvent
 	bool silenced;
 
 	uint32_t damageFlags;
-	bool f80_1;
+	bool hasActionResult;
 
-	uint32_t f100;
-	uint16_t f116;
+	uint32_t actionResultName;
+	uint16_t actionResultId;
 	uint32_t f104;
 
 	uint16_t weaponDamage;
-	bool f135;
+	bool isNetTargetPos;
 
-	uint16_t f48;
-	uint16_t f52;
-	uint16_t f56;
+	float localPosX;
+	float localPosY;
+	float localPosZ;
 
 	bool f112;
 
@@ -3726,17 +3726,21 @@ struct CWeaponDamageEvent
 	uint8_t hitComponent;
 
 	bool f133;
-	bool f125;
+	bool hasImpactDir;
 
-	uint16_t f64;
-	uint16_t f68;
-	uint16_t f72;
+	float impactDirX;
+	float impactDirY;
+	float impactDirZ;
 
-	MSGPACK_DEFINE_MAP(damageType, weaponType, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, damageFlags, f80_1, f100, f116, f104, weaponDamage, f135, f48, f52, f56, f112, damageTime, willKill, f120, hasVehicleData, f112_1, parentGlobalId, hitGlobalId, tyreIndex, suspensionIndex, hitComponent, f133, f125, f64, f68, f72);
+	MSGPACK_DEFINE_MAP(damageType, weaponType, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, damageFlags, hasActionResult, actionResultName, actionResultId, f104, weaponDamage, isNetTargetPos, localPosX, localPosY, localPosZ, f112, damageTime, willKill, f120, hasVehicleData, f112_1, parentGlobalId, hitGlobalId, tyreIndex, suspensionIndex, hitComponent, f133, hasImpactDir, impactDirX, impactDirY, impactDirZ);
 };
 
 void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 {
+	if (Is2060()) {
+		buffer.Read<uint16_t>(16);
+	}
+
 	damageType = buffer.Read<uint8_t>(2);
 	weaponType = buffer.Read<uint32_t>(32);
 
@@ -3745,14 +3749,14 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 	hitWeaponAmmoAttachment = buffer.Read<uint8_t>(1);
 	silenced = buffer.Read<uint8_t>(1);
 
-	damageFlags = buffer.Read<uint32_t>(21);
+	damageFlags = buffer.Read<uint32_t>(Is2060() ? 24 : 21);
 	// (damageFlags >> 1) & 1
-	f80_1 = buffer.Read<uint8_t>(1);
+	hasActionResult = buffer.Read<uint8_t>(1);
 
-	if (f80_1)
+	if (hasActionResult)
 	{
-		f100 = buffer.Read<uint32_t>(32);
-		f116 = buffer.Read<uint16_t>(16);
+		actionResultName = buffer.Read<uint32_t>(32);
+		actionResultId = buffer.Read<uint16_t>(16);
 		f104 = buffer.Read<uint32_t>(32);
 	}
 
@@ -3765,13 +3769,20 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 		weaponDamage = 0;
 	}
 
-	f135 = buffer.Read<uint8_t>(1);
+	if (Is2060()) {
+		bool _f92 = buffer.Read<uint8_t>(1);
+		if (_f92) {
+			buffer.Read<uint8_t>(4);
+		}
+	}
 
-	if (f135)
+	isNetTargetPos = buffer.Read<uint8_t>(1);
+
+	if (isNetTargetPos)
 	{
-		f48 = buffer.Read<uint16_t>(16);
-		f52 = buffer.Read<uint16_t>(16);
-		f56 = buffer.Read<uint16_t>(16);
+		localPosX = buffer.ReadSignedFloat(16, 55.f);  // divisor: 0x425C0000
+		localPosY = buffer.ReadSignedFloat(16, 55.f);
+		localPosZ = buffer.ReadSignedFloat(16, 55.f);
 	}
 
 	if (damageType == 3)
@@ -3779,7 +3790,7 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 		damageTime = buffer.Read<uint32_t>(32);
 		willKill = buffer.Read<uint8_t>(1);
 
-		if (f80_1)
+		if (hasActionResult)
 		{
 			hitGlobalId = buffer.Read<uint16_t>(13);
 		}
@@ -3801,40 +3812,40 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 	}
 	else
 	{
-		parentGlobalId = buffer.Read<uint16_t>(13);
-		hitGlobalId = buffer.Read<uint16_t>(13);
+		parentGlobalId = buffer.Read<uint16_t>(13);  // +118
+		hitGlobalId = buffer.Read<uint16_t>(13);  // +120
+	}
 
-		if (damageType < 2)
+	if (damageType < 2)
+	{
+		localPosX = buffer.ReadSignedFloat(16, 55.f);  // divisor: 0x425C0000
+		localPosY = buffer.ReadSignedFloat(16, 55.f);
+		localPosZ = buffer.ReadSignedFloat(16, 55.f);
+
+		if (damageType == 1)
 		{
-			f48 = buffer.Read<uint16_t>(16);
-			f52 = buffer.Read<uint16_t>(16);
-			f56 = buffer.Read<uint16_t>(16);
+			hasVehicleData = buffer.Read<uint8_t>(1);
 
-			if (damageType == 1)
+			if (hasVehicleData)
 			{
-				hasVehicleData = buffer.Read<uint8_t>(1);
-
-				if (hasVehicleData)
-				{
-					tyreIndex = buffer.Read<uint8_t>(4); // +122
-					suspensionIndex = buffer.Read<uint8_t>(4); // +123
-				}
+				tyreIndex = buffer.Read<uint8_t>(4); // +122
+				suspensionIndex = buffer.Read<uint8_t>(4); // +123
 			}
 		}
-		else
-		{
-			hitComponent = buffer.Read<uint8_t>(5); // +108
-		}
+	}
+	else
+	{
+		hitComponent = buffer.Read<uint8_t>(5); // +108
 	}
 
 	f133 = buffer.Read<uint8_t>(1);
-	f125 = buffer.Read<uint8_t>(1);
+	hasImpactDir = buffer.Read<uint8_t>(1);
 
-	if (f125)
+	if (hasImpactDir)
 	{
-		f64 = buffer.Read<uint16_t>(16);
-		f68 = buffer.Read<uint16_t>(16);
-		f72 = buffer.Read<uint16_t>(16);
+		impactDirX = buffer.ReadSignedFloat(16, 6.2831854820251f);  // divisor: 0x40C90FDB
+		impactDirY = buffer.ReadSignedFloat(16, 6.2831854820251f);
+		impactDirZ = buffer.ReadSignedFloat(16, 6.2831854820251f);
 	}
 }
 
