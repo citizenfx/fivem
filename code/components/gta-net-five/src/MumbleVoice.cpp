@@ -564,9 +564,7 @@ static std::shared_ptr<lab::AudioContext> getAudioContextByServerId(int serverId
 		return {};
 	}
 
-	std::string name = fmt::sprintf("[%d] %s",
-		serverId,
-		ToNarrow(g_mumbleClient->GetPlayerNameFromServerId(serverId)));
+	std::string name = ToNarrow(g_mumbleClient->GetPlayerNameFromServerId(serverId));
 	return g_mumbleClient->GetAudioContext(name);
 }
 
