@@ -377,7 +377,6 @@ static InitFunction initFunction([]()
 			auto guidIt = postMap.find("guid");
 			auto gameBuildIt = postMap.find("gameBuild");
 			auto gameNameIt = postMap.find("gameName");
-			auto updateChannelIt = postMap.find("updateChannel");
 
 			auto protocolIt = postMap.find("protocol");
 
@@ -392,7 +391,6 @@ static InitFunction initFunction([]()
 			auto protocol = atoi(protocolIt->second.c_str());
 			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
-			auto updateChannel = (updateChannelIt != postMap.end()) ? updateChannelIt->second : "production";
 
 			if (protocol < 6)
 			{
@@ -520,7 +518,6 @@ static InitFunction initFunction([]()
 			client->SetConnectionToken(token);
 			client->SetTcpEndPoint(ra.substr(0, ra.find_last_of(':')));
 			client->SetNetId(0x10000 + tempId);
-			client->SetUpdateChannel(updateChannel);
 
 			// add the entitlement hash if needed
 			if (ticketData.entitlementHash)

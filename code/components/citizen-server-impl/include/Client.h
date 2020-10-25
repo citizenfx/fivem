@@ -145,16 +145,6 @@ namespace fx
 			OnAssignConnectionToken();
 		}
 
-		inline const std::string& GetUpdateChannel()	
-		{
-			return m_updateChannel;
-		}
-
-		inline void SetUpdateChannel(const std::string& updateChannel)
-		{
-			m_updateChannel = updateChannel;
-		}
-
 		inline std::chrono::milliseconds GetLastSeen()
 		{
 			return m_lastSeen;
@@ -295,9 +285,6 @@ namespace fx
 
 		// the client's remote endpoint used for HTTP
 		std::string m_tcpEndPoint;
-
-		// the client's update channel (production, canary, ...)
-		std::string m_updateChannel;
 
 		// the client's ENet peer
 		std::unique_ptr<int, gs_peer_deleter> m_peer;
