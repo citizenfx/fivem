@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChildren, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
-import { Subject } from 'rxjs/Subject';
+import { Subject } from 'rxjs';
 
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/distinctUntilChanged';

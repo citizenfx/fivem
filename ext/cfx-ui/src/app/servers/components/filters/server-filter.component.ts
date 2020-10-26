@@ -6,7 +6,7 @@ import { ServersService } from '../../servers.service';
 
 import { GameService } from '../../../game.service';
 
-import { Subject } from 'rxjs/Subject';
+import { Subject } from 'rxjs';
 
 import 'rxjs/add/operator/throttleTime';
 

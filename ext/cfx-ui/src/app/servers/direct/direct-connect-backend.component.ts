@@ -1,5 +1,5 @@
 import { Component, Inject, Output, EventEmitter, Input, OnChanges, ChangeDetectorRef } from '@angular/core';
-import { Subject } from 'rxjs/Subject';
+import { Subject } from 'rxjs';
 
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/distinctUntilChanged';
