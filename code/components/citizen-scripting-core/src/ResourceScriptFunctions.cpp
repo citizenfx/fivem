@@ -225,6 +225,42 @@ static InitFunction initFunction([] ()
 		context.SetResult(resources[i]->GetName().c_str());
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_STARTED_RESOURCES", [](fx::ScriptContext& context)
+	{
+		int count = 0;
+
+		auto manager = fx::ResourceManager::GetCurrent();
+		manager->ForAllResources([&] (fwRefContainer<fx::Resource> resource)
+		{
+			auto c_state = resource->GetState();
+			if (c_state == fx::ResourceState::Started) {
+				count++;
+			}
+		});
+
+		context.SetResult<int>(count);
+	});
+	
+	fx::ScriptEngine::RegisterNativeHandler("VERIFY_RESOURCE_NUM", [](fx::ScriptContext& context)
+	{
+		int user_num = context.GetArgument<int>(0);
+
+		resources.clear();
+		
+		auto manager = fx::ResourceManager::GetCurrent();
+		manager->ForAllResources([&] (fwRefContainer<fx::Resource> resource)
+		{
+			resources.push_back(resource.GetRef());
+		});
+
+		if (resources.size() != user_num) {
+			context.setResult<bool>(false);
+			return;
+		}
+		
+		context.setResult<bool>(true);
+	});
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_STATE", [](fx::ScriptContext& context)
 	{
 		// find the resource
