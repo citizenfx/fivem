@@ -748,10 +748,8 @@ struct GetAuthSessionTicketResponse_t
 	int m_eResult;
 };
 
-static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrlRef)
+static concurrency::task<std::optional<std::string>> ResolveUrl(const std::string& rootUrl)
 {
-	auto rootUrl = rootUrlRef;
-
 	try
 	{
 		auto uri = skyr::make_url(rootUrl);
@@ -801,12 +799,14 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 		ro.responseHeaders = std::make_shared<HttpHeaderList>();
 
 		// prefix cfx.re/join if we can
-		if (rootUrl.find("cfx.re/join") == std::string::npos)
+		auto joinRootUrl = rootUrl;
+
+		if (joinRootUrl.find("cfx.re/join") == std::string::npos)
 		{
-			rootUrl = "cfx.re/join/" + rootUrl;
+			joinRootUrl = "cfx.re/join/" + rootUrl;
 		}
 
-		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", rootUrl), ro, [ro, tce](bool success, const char* data, size_t callback)
+		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", joinRootUrl), ro, [ro, tce](bool success, const char* data, size_t callback)
 		{
 			if (success)
 			{
