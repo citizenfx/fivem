@@ -6,7 +6,7 @@
   "dependencies": {
     "recursive-readdir": "^2.2.2",
     "string.prototype.replaceall": "^1.0.3",
-    "typedoc": "^0.17.6",
-    "typescript": "^3.8.3"
+    "typedoc": "^0.19.2",
+    "typescript": "^4.0.3"
   }
 }
