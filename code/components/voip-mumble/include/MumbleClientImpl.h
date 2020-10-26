@@ -120,6 +120,10 @@ public:
 
 	virtual void SetAudioDistance(float distance) override;
 
+	virtual void SetAudioInputDistance(float distance) override;
+
+	virtual void SetAudioOutputDistance(float distance) override;
+
 	virtual float GetAudioDistance() override;
 
 	virtual void SetActorPosition(float position[3]) override;
