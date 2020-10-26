@@ -842,6 +842,20 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_AUDIO_INPUT_DISTANCE", [=](fx::ScriptContext& context)
+		{
+			float dist = context.GetArgument<float>(0);
+
+			g_mumbleClient->SetAudioInputDistance(dist);
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_AUDIO_OUTPUT_DISTANCE", [=](fx::ScriptContext& context)
+		{
+			float dist = context.GetArgument<float>(0);
+
+			g_mumbleClient->SetAudioOutputDistance(dist);
+		});
+
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_SERVERID", getAudioContextByServerId);
 
