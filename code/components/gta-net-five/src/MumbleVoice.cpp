@@ -882,7 +882,7 @@ static HookFunction hookFunction([]()
 			}
 		});
 
-		fx::ScriptEngine::RegisterNativeHandler(0x031E11F3D447647E, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(0x031E11F3D447647E, [](fx::ScriptContext& context)
 		{
 			if (!g_mumble.connected)
 			{
@@ -904,7 +904,7 @@ static HookFunction hookFunction([]()
 		auto origSetChannel = fx::ScriptEngine::GetNativeHandler(0xEF6212C2EFEF1A23);
 		auto origClearChannel = fx::ScriptEngine::GetNativeHandler(0xE036A705F989E049);
 
-		fx::ScriptEngine::RegisterNativeHandler(0xEF6212C2EFEF1A23, [=](fx::ScriptContext& context)
+		fx::ScriptEngine::RegisterNativeHandler(0xEF6212C2EFEF1A23, [](fx::ScriptContext& context)
 		{
 			(*origSetChannel)(context);
 
