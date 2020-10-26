@@ -35,7 +35,11 @@ static VisualSettingsData* g_visualSettings;
 
 static hook::cdecl_stub<void(void*)> _loadVisualSettings([]()
 {
+#ifdef GTA_FIVE
 	return hook::get_call(hook::get_pattern("48 83 25 ? ? ? ? 00 48 8D ? ? ? ? ? E8 ? ? ? ? E8", 15));
+#elif IS_RDR3
+	return hook::get_call(hook::get_pattern("48 89 2D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D", 7));
+#endif
 });
 
 static std::unordered_map<uint32_t, float> g_visualSettingsOverrides;
@@ -123,11 +127,19 @@ static InitFunction initFunction([]()
 
 static HookFunction hookFunction([]()
 {
+#ifdef GTA_FIVE
 	g_visualSettings = hook::get_address<VisualSettingsData*>(hook::get_pattern("48 83 25 ? ? ? ? 00 48 8D ? ? ? ? ? E8 ? ? ? ? E8", 11));
+#elif IS_RDR3
+	g_visualSettings = hook::get_address<VisualSettingsData*>(hook::get_pattern("48 89 2D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D", -11));
+#endif
 
 	{
+#ifdef GTA_FIVE
 		auto location = (char*)hook::get_call(hook::get_pattern("48 83 25 ? ? ? ? 00 48 8D ? ? ? ? ? E8 ? ? ? ? E8", 15));
-		
+#elif IS_RDR3
+		auto location = (char*)hook::get_call(hook::get_pattern("48 89 2D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D", 7));
+#endif
+
 		hook::set_call(&g_origLoadVisualSettingsDat, location + 0x12);
 		hook::call(location + 0x12, LoadVisualSettingsDatStub);
 	}
