@@ -1854,7 +1854,7 @@ struct CPlayerGameStateDataNode {
 		auto collisionProof = state.buffer.ReadBit();
 		auto meleeProof = state.buffer.ReadBit();
 		auto drownProof = state.buffer.ReadBit();
-		auto unk20 = state.buffer.ReadBit(); // p6 proof
+		auto steamProof = state.buffer.ReadBit();
 		auto unk21 = state.buffer.ReadBit();
 		auto unk22 = state.buffer.ReadBit();
 
