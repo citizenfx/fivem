@@ -505,6 +505,16 @@ void MumbleClient::SetAudioDistance(float distance)
 	m_audioOutput.SetDistance(distance);
 }
 
+void MumbleClient::SetAudioInputDistance(float distance)
+{
+	m_audioInput.SetDistance(distance);
+}
+
+void MumbleClient::SetAudioOutputDistance(float distance)
+{
+	m_audioOutput.SetDistance(distance);
+}
+
 float MumbleClient::GetAudioDistance()
 {
 	return m_audioOutput.GetDistance();
