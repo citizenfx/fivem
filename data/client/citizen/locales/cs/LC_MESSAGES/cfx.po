@@ -1,22 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Weblate Admin <pr@fivem.net>, 2020.
-# Leon Kappes <meluten@gmail.com>, 2020.
+# Petr Šopf <trsak1@seznam.cz>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-10-24 18:01+0000\n"
-"Last-Translator: Leon Kappes <meluten@gmail.com>\n"
-"Language-Team: German <http://translations.cfx.re/projects/citizenfx/client/"
-"de/>\n"
-"Language: de\n"
+"PO-Revision-Date: 2020-10-25 09:27+0000\n"
+"Last-Translator: Petr Šopf <trsak1@seznam.cz>\n"
+"Language-Team: Czech <http://translations.cfx.re/projects/citizenfx/client/"
+"cs/>\n"
+"Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 "X-Generator: Weblate 4.3\n"
 
 #: client/launcher/MiniDump.cpp:1208
@@ -28,7 +27,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Fehler Informationen: %s"
+"Detaily vyjímky: %s"
 
 #: client/launcher/MiniDump.cpp:1213
 #, c-format
@@ -39,70 +38,64 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Alter crash hash: %s"
+"Hash pádu hry: %s"
 
 #: client/launcher/MiniDump.cpp:1277
 msgid ""
 "\n"
 "\n"
-"This is a fatal error because game unloading failed. Please report this "
-"issue and how to cause it (what server you played on, any resources/scripts, "
-"etc.) so this can be solved."
+"This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
 msgstr ""
 "\n"
 "\n"
-"Dies ist ein fataler Feherl, weil das spiel sich nicht entladen konnte. "
-"Bitte melden diesen Fehler udn wie man ihn produziert(auf welchem Server du "
-"warst, welche Scripts/Resourcen dort vorhanden waren, etc.), damit es "
-"behoben werden kann."
+"Došlo k fatální chybě protože se nepovedlo správně ukončit hru. Prosím "
+"nahlaste tento problém a popište jak ho způsobit (na jakém serveru jste "
+"hráli, jaké skripty, atd.), aby mohlo dojít k opravě."
 
 #: client/launcher/MiniDump.cpp:1204
 #, c-format
-msgid ""
-"%s caused %s to stop working. A crash report is being uploaded to the %s "
-"developers."
-msgstr ""
-"%s verursachte, dass %s aufhört zu arbeiten. Ein Fehlerbericht wird an die "
-"%s Entwichkler gesendet."
+msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
+msgstr "%s způsobilo pád %s. Hlášení o pádu se nahrává pro %s vývojáře."
 
 #: client/launcher/Main.cpp:510
 #, c-format
-msgid ""
-"%s could not create a file in the folder it is placed in. Please move your "
-"installation out of Program Files or another protected folder."
+msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
 msgstr ""
-"%s konnte keine Datei, in dem Ordner in dem sie plaziert ist, erstellen. "
-"Bitte verschiebe deine Installation aus dem Programme Ordner oder einem "
-"anderen geschützen Ordner heraus."
+"%s nemohl vytvořit soubor v adresáři, ve kterém se nachází. Prosím "
+"přemístěte vaši instalaci jinam z Program Files nebo jiného chráněného "
+"adresáře."
 
 #: client/launcher/MiniDump.cpp:340
 #, c-format
 msgid ""
-"A game error (at %016llx) caused %s to stop working. A crash report has been "
-"uploaded to the %s developers.\n"
+"A game error (at %016llx) caused %s to stop working. A crash report has been uploaded to the %s developers.\n"
 "\n"
 "%s"
 msgstr ""
+"Chyba hry (na %016llx) způsobila pád %s. Hlášení o pádu se nahrává pro %s "
+"vývojáře.\n"
+"\n"
+"%s"
 
 #: client/launcher/MiniDump.cpp:1179
 #, c-format
 msgid "An error at %s"
-msgstr ""
+msgstr "Chyba v %s"
 
 #: client/launcher/Installer.cpp:126
 #, c-format
 msgid "Are you sure you want to remove %s from the installation root at %s?"
-msgstr ""
+msgstr "Jsi si jistý, že chceš odstranit %s z kořenu instalace v %s?"
 
 #: client/launcher/Bootstrap.cpp:35
 #, c-format
 msgid "Bootstrapping %s..."
-msgstr ""
+msgstr "Bootstrapping %s..."
 
 #: client/launcher/Updater.cpp:360
 #, c-format
 msgid "Checking %s"
-msgstr ""
+msgstr "Kontroluji %s"
 
 #: client/launcher/MiniDump.cpp:1333
 #, c-format
@@ -111,6 +104,9 @@ msgid ""
 "%s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Podpis pádu: %s\n"
+"%s\n"
+"Můžeš zmáčknout Ctrl-C pro zkopírování zprávy pádu hry a někam ho vložit."
 
 #: client/launcher/MiniDump.cpp:1329
 #, c-format
@@ -119,6 +115,9 @@ msgid ""
 "Report ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Podpis pádu: %s\n"
+"ID nahlášení: %s\n"
+"Můžeš zmáčknout Ctrl-C pro zkopírování zprávy pádu hry a někam ho vložit."
 
 #: client/launcher/MiniDump.cpp:1270
 #, c-format
@@ -127,72 +126,76 @@ msgid ""
 "Report ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Podpis pádu: %s\n"
+"ID nahlášení: ... [nahrávám]\n"
+"Můžeš zmáčknout Ctrl-C pro zkopírování zprávy pádu hry a někam ho vložit."
 
 #: client/launcher/GameCache.cpp:643
-msgid ""
-"DLC files are missing (or corrupted) in your game installation. Please "
-"update or verify the game using Steam or the Social Club launcher and try "
-"again. See http://rsg.ms/verify step 4 for more info."
+msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
 msgstr ""
+"DLC soubory nebyly nalezeny (nebo jsou poškozené) ve tvé instalaci. Prosím "
+"aktualizuj nebo ověř hru pomocí klienta Steam nebo Social Club launcher a "
+"zkus to znovu. Podívej se na http://rsg.ms/verify krok 4 pro více informací."
 
 #: client/launcher/ViabilityChecks.cpp:53
 #, c-format
 msgid "DXGI 1.2 support is required to run this product %s"
-msgstr ""
+msgstr "DXGI 1.2 musí být podporování pro spuštění tohoto produktu %s"
 
 #: client/launcher/Download.cpp:222
 #, c-format
 msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
-msgstr ""
+msgstr "Staženo %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
 
 #: client/launcher/MiniDump.cpp:1175
 #, c-format
 msgid "Error %s"
-msgstr ""
+msgstr "Chyba %s"
 
 #: client/launcher/InstallerExtraction.cpp:532
 #, c-format
 msgid "Extracting %s"
-msgstr ""
+msgstr "Extrahuji %s"
 
 #: client/launcher/InstallerExtraction.cpp:268
 #, c-format
 msgid "Extracting %s (scanning)"
-msgstr ""
+msgstr "Extrahuji %s (skenuji)"
 
 #: client/launcher/MiniDump.cpp:1189
 msgid "FiveM crashed... but we're on it!"
-msgstr ""
+msgstr "FiveM spadlo... ale děláme na tom!"
 
 #: client/launcher/Main.cpp:491
 msgid ""
-"FiveM does not support running under elevated privileges. Please change your "
-"Windows settings to not run FiveM as administrator.\n"
+"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
 "The game will exit now."
 msgstr ""
+"FiveM nepodporuje běh se zvýšenými oprávněními. Změňte nastavení systému "
+"Windows tak, aby nespouštěl FiveM jako správce.\n"
+"Hra se nyní ukončí."
 
 #: client/launcher/MiniDump.cpp:1237
 msgid "Game crashed: "
-msgstr ""
+msgstr "Pád hry: "
 
 #: client/launcher/ViabilityChecks.cpp:46
 msgid "Please install Windows 7 SP1 or greater, and try again."
-msgstr ""
+msgstr "Prosím nainstalujte Windows 7 SP1 nebo novější a zkuste to znovu."
 
 #: client/launcher/ViabilityChecks.cpp:50
 msgid "Please install the Platform Update for Windows 7, and try again."
-msgstr ""
+msgstr "Prosím nainstaluje Platforum Update pro Windows 7 a zkuste to znovu."
 
 #: client/launcher/MiniDump.cpp:339
 #, c-format
 msgid "RAGE error: %s"
-msgstr ""
+msgstr "RAGE chyba: %s"
 
 #: client/launcher/MiniDump.cpp:1267
 msgid ""
 "Save information\n"
-"Stores a file with crash information that you should copy and upload when "
-"asking for help."
+"Stores a file with crash information that you should copy and upload when asking for help."
 msgstr ""
 
 #: client/launcher/GameSelect.cpp:107
@@ -210,9 +213,7 @@ msgstr ""
 #: client/launcher/GameCache.cpp:635
 #, c-format
 msgid ""
-"The local %s game cache is outdated, and needs to be updated. This will copy "
-"%.2f MB of data from the local disk, and download %.2f MB of data from the "
-"internet.\n"
+"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
 "Do you wish to continue?"
 msgstr ""
 
@@ -222,9 +223,7 @@ msgid "The selected path does not contain a %s file."
 msgstr ""
 
 #: client/launcher/ViabilityChecks.cpp:72
-msgid ""
-"This product requires Security Update for Windows 7 for x64-based systems "
-"(KB2758857) to be installed to run. Please install it, and try again."
+msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
 msgstr ""
 
 #: client/launcher/Main.cpp:634
@@ -268,9 +267,5 @@ msgstr ""
 
 #: client/launcher/Main.cpp:471
 #, c-format
-msgid ""
-"You are currently using an outdated version of Windows. This may lead to "
-"issues using the %s client. Please update to Windows 10 version 1703 "
-"(\"Creators Update\") or higher in case you are experiencing any issues. The "
-"game will continue to start now."
+msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
 msgstr ""
