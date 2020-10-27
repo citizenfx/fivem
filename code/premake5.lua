@@ -297,7 +297,7 @@ premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
     
     if prj.name == 'CitiMono' then
 		_p(1, '<PropertyGroup>')
-		_p(2, '<GenAPITargetDir>%s/</GenAPITargetDir>', path.getabsolute("client/clrref/"))
+		_p(2, '<GenAPITargetDir>%s/</GenAPITargetDir>', path.getabsolute("client/clrref/" .. _OPTIONS['game'] .. "/"))
 		_p(2, '<GenAPIAdditionalParameters>%s</GenAPIAdditionalParameters>', ('-excludeApiList:"%s" -excludeAttributesList:"%s"'):format(
 			path.getabsolute("client/clrref/exclude_list.txt"),
 			path.getabsolute("client/clrref/exclude_attributes_list.txt")
@@ -421,7 +421,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 			
 			links { "System.dll", "System.Drawing.dll" }
 			
-			files { "client/clrref/CitizenFX.Core.cs" }
+			files { "client/clrref/" .. _OPTIONS['game'] .. "/CitizenFX.Core.cs" }
 			
 			buildoptions '/debug:portable /langversion:7.3'
 			
