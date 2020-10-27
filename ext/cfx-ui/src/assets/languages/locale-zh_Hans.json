@@ -89,5 +89,6 @@
     "#ServerDetail_ScriptHook": "允许客户端脚本",
     "#ServerDetail_AddFavorite": "加入收藏",
     "#ServerDetail_Resources": "资源",
-    "#Settings_LowPerf_Off": "关闭"
+    "#Settings_LowPerf_Off": "关闭",
+    "#Settings_AccountLink": "链接"
 }
