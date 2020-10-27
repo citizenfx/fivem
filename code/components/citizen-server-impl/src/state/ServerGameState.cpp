@@ -1707,7 +1707,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			GS_LOG("%d %s\n", client->GetNetId(), ss.str());
 
-			ss = {};
+			ss.str(std::string());
 
 			ss << "delta path: " << deltaPath.size() << " -> ";
 
