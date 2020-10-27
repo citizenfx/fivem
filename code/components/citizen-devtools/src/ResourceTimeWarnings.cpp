@@ -18,6 +18,8 @@
 #ifdef GTA_FIVE
 #include <Streaming.h>
 #include <ScriptHandlerMgr.h>
+
+#include <nutsnbolts.h>
 #endif
 
 using namespace std::chrono_literals;
@@ -27,12 +29,49 @@ inline std::chrono::microseconds usec()
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+template<int SampleCount>
+struct TickMetrics
+{
+	int curTickTime = 0;
+	std::chrono::microseconds tickTimes[SampleCount];
+
+	inline void Append(std::chrono::microseconds time)
+	{
+		tickTimes[curTickTime++] = time;
+
+		if (curTickTime >= _countof(tickTimes))
+		{
+			curTickTime = 0;
+		}
+	}
+
+	inline std::chrono::microseconds GetAverage() const
+	{
+		std::chrono::microseconds avgTickTime(0);
+
+		for (auto tickTime : tickTimes)
+		{
+			avgTickTime += tickTime;
+		}
+
+		avgTickTime /= std::size(tickTimes);
+
+		return avgTickTime;
+	}
+
+	inline void Reset()
+	{
+		for (auto& tt : tickTimes)
+		{
+			tt = std::chrono::microseconds{ 0 };
+		}
+	}
+};
+
 struct ResourceMetrics
 {
 	std::chrono::microseconds tickStart;
-
-	int curTickTime = 0;
-	std::chrono::microseconds tickTimes[64];
+	TickMetrics<64> ticks;
 
 	std::chrono::microseconds memoryLastFetched;
 
@@ -130,8 +169,21 @@ static InitFunction initFunction([]()
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive, false, &taskMgrEnabled);
 
 	static tbb::concurrent_unordered_map<std::string, std::optional<ResourceMetrics>> metrics;
+	static TickMetrics<64> scriptFrameMetrics;
+	static TickMetrics<64> gameFrameMetrics;
 
 #ifdef GTA_FIVE
+	OnGameFrame.Connect([]()
+	{
+		static auto lastFrame = usec();
+		auto now = usec();
+		auto frameTime = now - lastFrame;
+
+		lastFrame = now;
+
+		gameFrameMetrics.Append(frameTime);
+	});
+
 	OnDeleteResourceThread.Connect([](rage::scrThread* thread)
 	{
 		for (auto& metric : metrics)
@@ -153,10 +205,7 @@ static InitFunction initFunction([]()
 		{
 			metrics[resource->GetName()] = ResourceMetrics{};
 
-			for (auto& tt : metrics[resource->GetName()]->tickTimes)
-			{
-				tt = std::chrono::microseconds{ 0 };
-			}
+			metrics[resource->GetName()]->ticks.Reset();
 		});
 
 		resource->OnActivate.Connect([resource]()
@@ -172,12 +221,7 @@ static InitFunction initFunction([]()
 		resource->OnTick.Connect([resource]()
 		{
 			auto& metric = *metrics[resource->GetName()];
-			metric.tickTimes[metric.curTickTime++] = usec() - metric.tickStart;
-
-			if (metric.curTickTime >= _countof(metric.tickTimes))
-			{
-				metric.curTickTime = 0;
-			}
+			metric.ticks.Append(usec() - metric.tickStart);
 
 			if ((usec() - metric.memoryLastFetched) > (!taskMgrEnabled ? 20s : 500ms))
 			{
@@ -216,6 +260,19 @@ static InitFunction initFunction([]()
 
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
+		static std::chrono::microseconds scriptBeginTime;
+
+		manager->OnTick.Connect([]()
+		{
+			scriptBeginTime = usec();
+		}, INT32_MIN);
+
+		manager->OnTick.Connect([]()
+		{
+			auto scriptEndTime = usec() - scriptBeginTime;
+			scriptFrameMetrics.Append(scriptEndTime);
+		}, INT32_MAX);
+
 		manager->OnTick.Connect([]()
 		{
 			bool showWarning = false;
@@ -229,15 +286,7 @@ static InitFunction initFunction([]()
 				}
 
 				auto& metric = *metricRef;
-
-				std::chrono::microseconds avgTickTime(0);
-
-				for (auto tickTime : metric.tickTimes)
-				{
-					avgTickTime += tickTime;
-				}
-
-				avgTickTime /= std::size(metric.tickTimes);
+				auto avgTickTime = metric.ticks.GetAverage();
 
 				if (avgTickTime > 6ms)
 				{
@@ -251,6 +300,25 @@ static InitFunction initFunction([]()
 				{
 					showWarning = true;
 					warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0 / 1024.0);
+				}
+			}
+
+			auto avgFrameTime = gameFrameMetrics.GetAverage();
+			auto avgScriptTime = scriptFrameMetrics.GetAverage();
+
+			double avgFrameMs = (avgFrameTime.count() / 1000.0);
+			double avgScriptMs = (avgScriptTime.count() / 1000.0);
+
+			if (avgFrameTime > 0us)
+			{
+				double avgFrameFraction = (avgScriptMs / avgFrameMs);
+
+				// 30%, when a frame takes more than 10ms (<100 FPS)
+				// or 22% when a frame takes more than 16ms (<~60 FPS)
+				if ((avgFrameFraction > 0.30 && avgFrameMs >= 10.0) || (avgFrameFraction > 0.22 && avgFrameMs >= 16.0))
+				{
+					showWarning = true;
+					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs);
 				}
 			}
 
@@ -297,21 +365,14 @@ static InitFunction initFunction([]()
 
 		if (taskMgrEnabled)
 		{
-			if (ImGui::Begin("Resource Monitor"))
+			if (ImGui::Begin("Resource Monitor") && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
 			{
-				ImGui::Columns(4);
-
-				ImGui::Text("Resource");
-				ImGui::NextColumn();
-
-				ImGui::Text("CPU msec");
-				ImGui::NextColumn();
-
-				ImGui::Text("Memory");
-				ImGui::NextColumn();
-
-				ImGui::Text("Streaming");
-				ImGui::NextColumn();
+				ImGui::TableSetupColumn("Resource");
+				ImGui::TableSetupColumn("CPU msec");
+				ImGui::TableSetupColumn("Time %");
+				ImGui::TableSetupColumn("Memory");
+				ImGui::TableSetupColumn("Streaming");
+				ImGui::TableHeadersRow();
 
 				std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
 
@@ -320,12 +381,40 @@ static InitFunction initFunction([]()
 					resourceList.insert({ resource->GetName(), resource });
 				});
 
+				auto avgScriptTime = scriptFrameMetrics.GetAverage();
+				double avgScriptMs = (avgScriptTime.count() / 1000.0);
+
+				auto avgFrameTime = gameFrameMetrics.GetAverage();
+				double avgFrameMs = (avgFrameTime.count() / 1000.0);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4(0.7f, 0.3f, 0.3f, 0.65f)));
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("[Total CPU]");
+
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.2f", avgScriptMs);
+
+				ImGui::TableSetColumnIndex(2);
+
+				if (avgFrameMs == 0.0f)
+				{
+					ImGui::Text("-");
+				}
+				else
+				{
+					ImGui::Text("%.1f%%", (avgScriptMs / avgFrameMs) * 100.0);
+				}
+
 				for (const auto& resourcePair : resourceList)
 				{
+					ImGui::TableNextRow();
+
 					auto[resourceName, resource] = resourcePair;
 
+					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("%s", resource->GetName().c_str());
-					ImGui::NextColumn();
 
 					auto metric = metrics.find(resourceName);
 
@@ -334,18 +423,26 @@ static InitFunction initFunction([]()
 						const auto& [ key, valueRef ] = *metric;
 						auto value = *valueRef;
 
-						std::chrono::microseconds avgTickTime(0);
+						auto avgTickTime = value.ticks.GetAverage();
 
-						for (auto tickTime : value.tickTimes)
-						{
-							avgTickTime += tickTime;
-						}
-
-						avgTickTime /= std::size(value.tickTimes);
-
+						ImGui::TableSetColumnIndex(1);
 						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickTime.count() / 1000.0), "%.2f ms", avgTickTime.count() / 1000.0);
 
-						ImGui::NextColumn();
+						double avgTickMs = (avgTickTime.count() / 1000.0);
+						ImGui::TableSetColumnIndex(2);
+
+						if (avgScriptMs == 0.0f)
+						{
+							ImGui::Text("-");
+						}
+						else
+						{
+							double avgFrameFraction = (avgTickMs / avgScriptMs);
+
+							ImGui::Text("%.2f%%", avgFrameFraction * 100.0);
+						}
+
+						ImGui::TableSetColumnIndex(3);
 
 						int64_t totalBytes = value.memorySize;
 
@@ -373,7 +470,7 @@ static InitFunction initFunction([]()
 							ImGui::Text("%s+", humanSize.c_str());
 						}
 
-						ImGui::NextColumn();
+						ImGui::TableSetColumnIndex(4);
 
 #ifdef GTA_FIVE
 						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
@@ -402,21 +499,24 @@ static InitFunction initFunction([]()
 						{
 							ImGui::Text("-");
 						}
-
-						ImGui::NextColumn();
 					}
 					else
 					{
+						ImGui::TableSetColumnIndex(1);
 						ImGui::Text("?");
-						ImGui::NextColumn();
 
+						ImGui::TableSetColumnIndex(2);
 						ImGui::Text("?");
-						ImGui::NextColumn();
 
+						ImGui::TableSetColumnIndex(3);
 						ImGui::Text("?");
-						ImGui::NextColumn();
+
+						ImGui::TableSetColumnIndex(4);
+						ImGui::Text("?");
 					}
 				}
+
+				ImGui::EndTable();
 			}
 
 			ImGui::End();
