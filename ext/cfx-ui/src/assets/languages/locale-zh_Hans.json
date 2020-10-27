@@ -57,5 +57,19 @@
     "#Settings_BoostLoading": "加载中...",
     "#Servers_ConnectingTo": "正在连接到 {{ serverName }}...",
     "#Servers_Connecting": "正在连接中",
-    "#ServerList_Connect": "连接中..."
+    "#ServerList_Connect": "连接中...",
+    "#SettingsCat_Game": "游戏设置",
+    "#SettingsCat_Interface": "界面设置",
+    "#SettingsCat_Connection": "连接设置",
+    "#EmptyServers_Favorites": "您收藏的服务器将出现在这里，只需单击您收藏的服务器旁边的星形图标！",
+    "#ServerDetail_PlayersEmpty": "此服务器上没有在线玩家。",
+    "#ServerDetail_Players": "玩家",
+    "#DirectConnect_LastPlayed": "上次加入",
+    "#DirectConnect_Connect": "加入游戏",
+    "#DirectConnect_ServerInvalid_SubTitle": "请确保您输入了正确的地址。",
+    "#DirectConnect_ServerInvalid": "找不到该服务器",
+    "#DirectConnect_Failed": "服务器查询失败。",
+    "#DirectConnect_TimedOut": "服务器查询超时。",
+    "#SettingsCat_Account": "账户设置",
+    "#Settings_GameStreamProgressDesc": "当下载游戏内流媒体资源时显示进度(BETA™)"
 }
