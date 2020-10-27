@@ -13,7 +13,7 @@
 
 #include <EnvironmentBlockHelpers.h>
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <boost/random/random_device.hpp>
 #include <boost/uuid/random_generator.hpp>
@@ -255,7 +255,7 @@ public:
 	{
 		auto gid = GenerateGid();
 
-		auto path = boost::filesystem::path(filePath);
+		auto path = std::filesystem::path(filePath);
 
 		auto headers = json::array();
 

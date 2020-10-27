@@ -8,6 +8,7 @@
 		"gta:core",
 		"scripting:gta",
 		"rage:device",
+		"rage:input",
 		"conhost",
 		"font-renderer",
 		"citizen:game:ipc",

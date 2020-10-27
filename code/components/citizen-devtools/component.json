@@ -1,0 +1,13 @@
+{
+	"name": "citizen:devtools",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"vendor:imgui",
+		"conhost",
+		"citizen:resources:core",
+		"citizen:scripting:core",
+		"citizen:resources:client"
+	],
+	"provides": []
+}

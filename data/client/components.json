@@ -61,5 +61,6 @@
 	"adhesive",
 	"citizen:game:ipc",
 	"legacy-game:re3",
-	"fxdk:main"
+	"fxdk:main",
+	"citizen:devtools"
 ]
