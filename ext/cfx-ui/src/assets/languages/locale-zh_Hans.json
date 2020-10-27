@@ -53,5 +53,8 @@
     "#Settings_DarkThemeDesc": "界面使用\\\"深色主题\\\"",
     "#Settings_DarkTheme": "\\\"深色主题\\\"",
     "#ServerList_AddFavorite": "加入收藏",
-    "#Settings_StreamerModeDesc": "在界面上隐藏敏感信息（如IP地址）"
+    "#Settings_StreamerModeDesc": "在界面上隐藏敏感信息（如IP地址）",
+    "#Settings_BoostLoading": "加载中...",
+    "#Servers_ConnectingTo": "正在连接到 {{ serverName }}...",
+    "#Servers_Connecting": "正在连接中"
 }
