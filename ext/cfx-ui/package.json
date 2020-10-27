@@ -104,6 +104,8 @@
     "webpack-cli": "^4.1.0"
   },
   "resolutions": {
-    "webpack-subresource-integrity": "1.5.1"
+    "webpack-subresource-integrity": "1.5.1",
+    "elliptic": "6.5.3",
+    "http-proxy": "1.18.1"
   }
 }
