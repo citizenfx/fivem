@@ -81,6 +81,7 @@ static const char* g_knownPackets[]
 	"msgFrame",
 	"msgIHost",
 	"gameStateAck",
+	"gameStateNAck",
 	"msgNetEvent",
 	"msgServerEvent",
 };
