@@ -1876,13 +1876,13 @@ struct CPlayerGameStateDataNode {
 		int unk11 = state.buffer.Read<int>(2);
 		auto unk12 = state.buffer.ReadBit();
 		auto unk13 = state.buffer.ReadBit();
-		auto unk14 = state.buffer.ReadBit();
-		auto unk15 = state.buffer.ReadBit();
-		auto unk16 = state.buffer.ReadBit();
-		auto unk17 = state.buffer.ReadBit();
-		auto unk18 = state.buffer.ReadBit();
-		auto unk19 = state.buffer.ReadBit();
-		auto unk20 = state.buffer.ReadBit();
+		auto bulletProof = state.buffer.ReadBit();
+		auto fireProof = state.buffer.ReadBit();
+		auto explosionProof = state.buffer.ReadBit();
+		auto collisionProof = state.buffer.ReadBit();
+		auto meleeProof = state.buffer.ReadBit();
+		auto drownProof = state.buffer.ReadBit();
+		auto steamProof = state.buffer.ReadBit();
 		auto unk21 = state.buffer.ReadBit();
 		auto unk22 = state.buffer.ReadBit();
 
