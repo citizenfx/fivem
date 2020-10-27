@@ -80,5 +80,6 @@
     "#ServerDetail_Back": "返回",
     "#ServerDetail_Locale": "语言",
     "#DirectConnect_Loading": "加载中",
-    "#Settings_BoostNone": "没有！加成™任何服务器，点选服务器清单上的向上按钮图标来为服务器提升排名。"
+    "#Settings_BoostNone": "没有！加成™任何服务器，点选服务器清单上的向上按钮图标来为服务器提升排名。",
+    "#Settings_LowPerfMode": "低性能模式(用于低配电脑)"
 }
