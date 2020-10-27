@@ -249,6 +249,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	ConHost::OnDrawGui();
 
 	ImGui::Render();
+	RenderDrawLists(ImGui::GetDrawData());
 
 	lastDrawTime = timeGetTime();
 
@@ -401,7 +402,6 @@ static InitFunction initFunction([]()
 	})();
 
 	io.IniFilename = const_cast<char*>(imguiIni.c_str());
-	io.RenderDrawListsFn = RenderDrawLists; // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.
 	//io.ImeWindowHandle = g_hWnd;
 
 	ImGuiStyle& style = ImGui::GetStyle();
