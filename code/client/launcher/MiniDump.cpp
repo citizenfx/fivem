@@ -1176,10 +1176,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			if (crashHash.find(L"libcef") != std::string::npos)
 			{
 				shouldTerminate = false;
+
+				// we want a cef.log and don't want the core log (given its frequency)
+				files[L"cef_log"] = MakeRelativeCitPath(L"cef.log");
+				files.erase(L"upload_file_log");
 			}
 
 			// NVIDIA crashes in Chrome GPU process
-			if (crashHash.find(L"nvwgf2") != std::string::npos)
+			if (wcsstr(imageName, L"GTAProcess") == nullptr && crashHash.find(L"nvwgf2") != std::string::npos)
 			{
 				shouldTerminate = false;
 				shouldUpload = false;
@@ -1451,13 +1455,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		int timeout = 20000;
 
 		// upload the actual minidump file as well
-#ifdef GTA_NY
-		if (HTTPUpload::SendRequest(L"http://cr.citizen.re:5100/submit", parameters, files, nullptr, &responseBody, &responseCode))
-#elif defined(GTA_FIVE)
+#if defined(GTA_FIVE)
 		if (uploadCrashes && shouldUpload && HTTPUpload::SendMultipartPostRequest(L"https://crash-ingress.fivem.net/post", parameters, files, &timeout, &responseBody, &responseCode))
-#else
-		if (false)
-#endif
 		{
 			trace("Crash report service returned %s\n", ToNarrow(responseBody));
 			crashId = responseBody;
@@ -1467,6 +1466,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
 			crashId = L"";
 		}
+#else
+		crashIdError = L"Crash reporting is disabled for this title.";
+		crashId = L"";
+#endif
 
 		if (thread.joinable())
 		{
