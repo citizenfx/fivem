@@ -71,5 +71,14 @@
     "#DirectConnect_Failed": "服务器查询失败。",
     "#DirectConnect_TimedOut": "服务器查询超时。",
     "#SettingsCat_Account": "账户设置",
-    "#Settings_GameStreamProgressDesc": "当下载游戏内流媒体资源时显示进度(BETA™)"
+    "#Settings_GameStreamProgressDesc": "当下载游戏内流媒体资源时显示进度(BETA™)",
+    "#No": "否",
+    "#Yes": "是",
+    "#ServerDetail_OneSync": "OneSync",
+    "#ServerDetail_Refresh": "刷新",
+    "#ServerDetail_DelFavorite": "取消收藏",
+    "#ServerDetail_Back": "返回",
+    "#ServerDetail_Locale": "语言",
+    "#DirectConnect_Loading": "加载中",
+    "#Settings_BoostNone": "没有！加成™任何服务器，点选服务器清单上的向上按钮图标来为服务器提升排名。"
 }
