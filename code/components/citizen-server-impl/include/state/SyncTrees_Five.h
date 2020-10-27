@@ -1513,7 +1513,35 @@ struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { re
 struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CDoorCreationDataNode
+{
+	float m_posX;
+	float m_posY;
+	float m_posZ;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto modelHash = state.buffer.Read<uint32_t>(32);
+
+		float positionX = state.buffer.ReadSignedFloat(19, 27648.0f);
+		float positionY = state.buffer.ReadSignedFloat(19, 27648.0f);
+		float positionZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+		m_posX = positionX;
+		m_posY = positionY;
+		m_posZ = positionZ;
+
+		bool scriptDoor = state.buffer.ReadBit();
+		if (!scriptDoor)
+		{
+			bool playerWantsControl = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
 struct CDoorMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -2354,6 +2382,7 @@ struct SyncTree : public SyncTreeBase
 		auto [hasPspdn, playerSecPosDataNode] = GetData<CPlayerSectorPosNode>();
 		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
 		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
+		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
 
 		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
 		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
@@ -2383,6 +2412,13 @@ struct SyncTree : public SyncTreeBase
 		posOut[0] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
 		posOut[1] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
 		posOut[2] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
+
+		if (hasDoor)
+		{
+			posOut[0] = doorCreationDataNode->m_posX;
+			posOut[1] = doorCreationDataNode->m_posY;
+			posOut[2] = doorCreationDataNode->m_posZ;
+		}
 	}
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() override
