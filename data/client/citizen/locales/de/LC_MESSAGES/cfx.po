@@ -2,18 +2,22 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # Weblate Admin <pr@fivem.net>, 2020.
+# Leon Kappes <meluten@gmail.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2020-10-24 18:01+0000\n"
+"Last-Translator: Leon Kappes <meluten@gmail.com>\n"
+"Language-Team: German <http://translations.cfx.re/projects/citizenfx/client/"
+"de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3\n"
 
 #: client/launcher/MiniDump.cpp:1208
 #, c-format
@@ -22,6 +26,9 @@ msgid ""
 "\n"
 "Exception details: %s"
 msgstr ""
+"\n"
+"\n"
+"Fehler Informationen: %s"
 
 #: client/launcher/MiniDump.cpp:1213
 #, c-format
@@ -30,6 +37,9 @@ msgid ""
 "\n"
 "Legacy crash hash: %s"
 msgstr ""
+"\n"
+"\n"
+"Alter crash hash: %s"
 
 #: client/launcher/MiniDump.cpp:1277
 msgid ""
@@ -39,6 +49,12 @@ msgid ""
 "issue and how to cause it (what server you played on, any resources/scripts, "
 "etc.) so this can be solved."
 msgstr ""
+"\n"
+"\n"
+"Dies ist ein fataler Feherl, weil das spiel sich nicht entladen konnte. "
+"Bitte melden diesen Fehler udn wie man ihn produziert(auf welchem Server du "
+"warst, welche Scripts/Resourcen dort vorhanden waren, etc.), damit es "
+"behoben werden kann."
 
 #: client/launcher/MiniDump.cpp:1204
 #, c-format
@@ -46,6 +62,8 @@ msgid ""
 "%s caused %s to stop working. A crash report is being uploaded to the %s "
 "developers."
 msgstr ""
+"%s verursachte, dass %s aufhört zu arbeiten. Ein Fehlerbericht wird an die "
+"%s Entwichkler gesendet."
 
 #: client/launcher/Main.cpp:510
 #, c-format
@@ -53,6 +71,9 @@ msgid ""
 "%s could not create a file in the folder it is placed in. Please move your "
 "installation out of Program Files or another protected folder."
 msgstr ""
+"%s konnte keine Datei, in dem Ordner in dem sie plaziert ist, erstellen. "
+"Bitte verschiebe deine Installation aus dem Programme Ordner oder einem "
+"anderen geschützen Ordner heraus."
 
 #: client/launcher/MiniDump.cpp:340
 #, c-format
