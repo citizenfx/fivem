@@ -56,5 +56,6 @@
     "#Settings_StreamerModeDesc": "在界面上隐藏敏感信息（如IP地址）",
     "#Settings_BoostLoading": "加载中...",
     "#Servers_ConnectingTo": "正在连接到 {{ serverName }}...",
-    "#Servers_Connecting": "正在连接中"
+    "#Servers_Connecting": "正在连接中",
+    "#ServerList_Connect": "连接中..."
 }
