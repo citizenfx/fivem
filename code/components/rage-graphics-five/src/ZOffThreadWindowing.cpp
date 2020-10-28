@@ -5,14 +5,22 @@
 
 static decltype(&CreateWindowExW) g_origCreateWindowExW;
 
-static concurrency::concurrent_queue<std::tuple<HWND, UINT, WPARAM, LPARAM>> g_wndMsgQueue;
+static concurrency::concurrent_queue<std::tuple<HWND, UINT, WPARAM, LPARAM, std::function<void(LRESULT)>>> g_wndMsgQueue;
 static WNDPROC g_origWndProc;
+static DWORD g_renderThreadId;
+static HANDLE g_renderThread;
+static HANDLE g_renderThreadGate;
+
+static uint64_t g_renderThreadLastPoll;
+
+void HandleMessageLoop(ULONG_PTR);
 
 static LRESULT CALLBACK NewWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// list of unsafe messages
 	bool unsafe = false;
-	LRESULT unsafeResult = 0;
+	bool forwardNow = false;
+	volatile LRESULT unsafeResult = 0;
 
 	if (uMsg == WM_SYSKEYDOWN && wParam == 13)
 	{
@@ -32,16 +40,26 @@ static LRESULT CALLBACK NewWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		unsafeResult = 0;
 	}
 
-	if (uMsg == WM_SIZE)
+	if (uMsg == WM_PAINT)
 	{
-		unsafe = true;
-		unsafeResult = DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 	}
 
-	if (uMsg == WM_PAINT)
+	if (uMsg == WM_TIMER)
 	{
 		unsafe = true;
 		unsafeResult = 0;
+	}
+
+	if (uMsg == WM_ENTERSIZEMOVE)
+	{
+		ResetEvent(g_renderThreadGate);
+	}
+
+	if (uMsg == WM_SIZING || uMsg == WM_ENTERSIZEMOVE || uMsg == WM_EXITSIZEMOVE || uMsg == WM_CHAR || uMsg == WM_SIZE || uMsg == WM_MOVE || uMsg == WM_MOVING)
+	{
+		unsafe = true;
+		forwardNow = true;
 	}
 
 	if (uMsg > 0xC000)
@@ -52,12 +70,49 @@ static LRESULT CALLBACK NewWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 	if (unsafe)
 	{
-		g_wndMsgQueue.push({ hWnd, uMsg, wParam, lParam });
+		if (forwardNow && (GetTickCount64() - g_renderThreadLastPoll) < 100)
+		{
+			static thread_local bool done = false;
+
+			g_wndMsgQueue.push({ hWnd, uMsg, wParam, lParam, [&unsafeResult](LRESULT r)
+			{
+				if (!done)
+				{
+					unsafeResult = r;
+					done = true;
+				}
+			} });
+
+			QueueUserAPC(HandleMessageLoop, g_renderThread, NULL);
+
+			while (!done && ((GetTickCount64() - g_renderThreadLastPoll) < 100))
+			{
+				Sleep(0);
+			}
+
+			done = true;
+		}
+		else
+		{
+			g_wndMsgQueue.push({ hWnd, uMsg, wParam, lParam, {} });
+		}
+
+		if (uMsg == WM_EXITSIZEMOVE)
+		{
+			SetEvent(g_renderThreadGate);
+		}
 
 		return unsafeResult;
 	}
 
-	return g_origWndProc(hWnd, uMsg, wParam, lParam);
+	LRESULT lr = g_origWndProc(hWnd, uMsg, wParam, lParam);
+
+	if (uMsg == WM_EXITSIZEMOVE)
+	{
+		SetEvent(g_renderThreadGate);
+	}
+
+	return lr;
 }
 
 static HANDLE g_windowThreadWakeEvent;
@@ -70,6 +125,7 @@ void WakeWindowThreadFor(std::function<void()>&& func)
 }
 
 static CURSORINFO g_ci;
+static HANDLE g_ourHwnd;
 
 static HWND WINAPI CreateWindowExWStub(
 DWORD dwExStyle,
@@ -89,9 +145,13 @@ LPVOID lpParam)
 	{
 		HANDLE hDoneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		auto parentThreadId = GetCurrentThreadId();
+		g_renderThreadId = parentThreadId;
+
 		HWND hWnd;
 
-		g_windowThreadWakeEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		g_renderThread = OpenThread(THREAD_SET_CONTEXT, FALSE, parentThreadId);
+		g_renderThreadGate = CreateEvent(NULL, TRUE, TRUE, NULL);
+		g_windowThreadWakeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 		static HANDLE handles[1] = { g_windowThreadWakeEvent };
 
@@ -107,7 +167,6 @@ LPVOID lpParam)
 			while (TRUE)
 			{
 				auto waitOn = MsgWaitForMultipleObjects(std::size(handles), handles, FALSE, 50, QS_ALLINPUT);
-				ResetEvent(g_windowThreadWakeEvent);
 
 				std::function<void()> fn;
 				while (g_wndFuncQueue.try_pop(fn))
@@ -119,7 +178,7 @@ LPVOID lpParam)
 				GetCursorInfo(&g_ci);
 
 				MSG msg = { 0 };
-				if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+				while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
 				{
 					TranslateMessage(&msg);
 					DispatchMessageW(&msg);
@@ -130,14 +189,33 @@ LPVOID lpParam)
 		WaitForSingleObject(hDoneEvent, INFINITE);
 		CloseHandle(hDoneEvent);
 
+		g_ourHwnd = hWnd;
+
 		return hWnd;
 	}
 
 	return g_origCreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
+static std::function<void(LRESULT)> g_curFn;
+static thread_local bool g_inMessageLoop;
+
 static BOOL PeekMessageWFake(_Out_ LPMSG lpMsg, _In_opt_ HWND hWnd, _In_ UINT wMsgFilterMin, _In_ UINT wMsgFilterMax, _In_ UINT wRemoveMsg)
 {
+	if (GetCurrentThreadId() != g_renderThreadId)
+	{
+		return FALSE;
+	}
+
+	g_renderThreadLastPoll = GetTickCount64();
+
+	if (!g_inMessageLoop)
+	{
+		WaitForSingleObjectEx(g_renderThreadGate, INFINITE, TRUE);
+	}
+
+	g_renderThreadLastPoll = GetTickCount64();
+
 	decltype(g_wndMsgQueue)::value_type m;
 
 	if (g_wndMsgQueue.try_pop(m))
@@ -146,6 +224,11 @@ static BOOL PeekMessageWFake(_Out_ LPMSG lpMsg, _In_opt_ HWND hWnd, _In_ UINT wM
 		lpMsg->message = std::get<1>(m);
 		lpMsg->wParam = std::get<2>(m);
 		lpMsg->lParam = std::get<3>(m);
+
+		if (std::get<4>(m))
+		{
+			g_curFn = std::move(std::get<4>(m));
+		}
 
 		return TRUE;
 	}
@@ -159,13 +242,48 @@ static void TranslateMessageFake()
 
 static void DispatchMessageWFake(_In_ CONST MSG *lpMsg)
 {
-	g_origWndProc(lpMsg->hwnd, lpMsg->message, lpMsg->wParam, lpMsg->lParam);
+	LRESULT lr = g_origWndProc(lpMsg->hwnd, lpMsg->message, lpMsg->wParam, lpMsg->lParam);
+
+	if (g_curFn)
+	{
+		g_curFn(lr);
+		g_curFn = {};
+	}
+}
+
+void HandleMessageLoop(ULONG_PTR)
+{
+	MSG msg;
+	g_inMessageLoop = true;
+
+	while (PeekMessageWFake(&msg, 0, 0, 0, PM_REMOVE))
+	{
+		TranslateMessageFake();
+		DispatchMessageWFake(&msg);
+	}
+
+	g_inMessageLoop = false;
 }
 
 static BOOL GetCursorInfoFake(PCURSORINFO i)
 {
 	*i = g_ci;
 	return TRUE;
+}
+
+static BOOL ShowWindowWrap(_In_ HWND hWnd, _In_ int nCmdShow)
+{
+	if (hWnd == g_ourHwnd)
+	{
+		WakeWindowThreadFor([hWnd, nCmdShow]()
+		{
+			ShowWindow(hWnd, nCmdShow);
+		});
+
+		return TRUE;
+	}
+
+	return ShowWindow(hWnd, nCmdShow);
 }
 
 static int ShowCursorWrap(BOOL ye)
@@ -217,6 +335,7 @@ static HookFunction hookFunction([]()
 	hook::iat("user32.dll", GetCursorInfoFake, "GetCursorInfo");
 	hook::iat("user32.dll", GetAsyncKeyState, "GetKeyState");
 	hook::iat("user32.dll", ShowCursorWrap, "ShowCursor");
+	hook::iat("user32.dll", ShowWindowWrap, "ShowWindow");
 
 	// watch dog function for weird counters
 	{
