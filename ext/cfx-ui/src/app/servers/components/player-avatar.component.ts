@@ -4,8 +4,7 @@ import { DomSanitizer, SafeStyle } from '@angular/platform-browser';
 
 import { Avatar } from '../avatar';
 
-import { Observable } from 'rxjs';
-import { of } from 'rxjs/observable/of';
+import { Observable, of } from 'rxjs';
 import { delay, share, flatMap } from 'rxjs/operators';
 
 import { Int64BE } from 'int64-buffer';
