@@ -1221,10 +1221,17 @@ static int Return1()
 
 static void DisplayD3DCrashMessage(HRESULT hr)
 {
-	wchar_t errorBuffer[16384];
+	wchar_t errorBuffer[8192] = { 0 };
 	DXGetErrorDescriptionW(hr, errorBuffer, _countof(errorBuffer));
 
-	FatalError("DirectX encountered an unrecoverable error: %s - %s", ToNarrow(DXGetErrorStringW(hr)), ToNarrow(errorBuffer));
+	auto errorString = DXGetErrorStringW(hr);
+
+	if (!errorString)
+	{
+		errorString = va(L"0x%08x", hr);
+	}
+
+	FatalError("DirectX encountered an unrecoverable error: %s - %s", ToNarrow(errorString), ToNarrow(errorBuffer));
 }
 
 static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)
