@@ -1847,7 +1847,7 @@ struct CPlayerGameStateDataNode {
 
 		if (!isAirDragMultiplierDefault)
 		{
-			float airDragMultiplier = state.buffer.ReadFloat(7, 1.0f);
+			float airDragMultiplier = state.buffer.ReadFloat(7, 50.0f);
 			data.airDragMultiplier = airDragMultiplier;
 		}
 		else
@@ -2074,8 +2074,8 @@ struct CPlayerGameStateDataNode {
 		auto unk95 = state.buffer.ReadBit();
 		auto unk96 = state.buffer.ReadBit();
 
-		float weaponDefenseModifier = state.buffer.ReadFloat(8, 4.04761615646f);
-		float weaponDefenseModifier2 = state.buffer.ReadFloat(8, 4.04761615646f);
+		float weaponDefenseModifier = state.buffer.ReadFloat(8, 2.0f);
+		float weaponDefenseModifier2 = state.buffer.ReadFloat(8, 2.0f);
 
 		data.weaponDefenseModifier = weaponDefenseModifier;
 		data.weaponDefenseModifier2 = weaponDefenseModifier2;
@@ -2102,23 +2102,12 @@ struct CPlayerGameStateDataNode {
 			int unk108 = state.buffer.Read<int>(2);
 		}
 
-		float unk109 = state.buffer.ReadFloat(8, 10.20002244f);
-		auto isSomethingModifierSet = state.buffer.ReadBit();
-
-		if (isSomethingModifierSet)
-		{
-			float unk111 = state.buffer.ReadFloat(10, 25.5747934835f);
-		}
-		else
-		{
-			// 1.0
-		}
-
+		float unk109 = state.buffer.ReadFloat(8, 10.0f);
 		auto isWeaponDamageModifierSet = state.buffer.ReadBit();
 
 		if (isWeaponDamageModifierSet)
 		{
-			float weaponDamageModifier = state.buffer.ReadFloat(10, 25.5747934835f);
+			float weaponDamageModifier = state.buffer.ReadFloat(10, 10.0f);
 			data.weaponDamageModifier = weaponDamageModifier;
 		}
 		else
@@ -2130,12 +2119,23 @@ struct CPlayerGameStateDataNode {
 
 		if (isMeleeWeaponDamageModifierSet)
 		{
-			float meleeWeaponDamageModifier = state.buffer.ReadFloat(10, 25.5747934835f);
+			float meleeWeaponDamageModifier = state.buffer.ReadFloat(10, 100.0f);
 			data.meleeWeaponDamageModifier = meleeWeaponDamageModifier;
 		}
 		else
 		{
 			data.meleeWeaponDamageModifier = 1.0f;
+		}
+
+		auto isSomethingModifierSet = state.buffer.ReadBit();
+
+		if (isSomethingModifierSet)
+		{
+			float somethingModifier = state.buffer.ReadFloat(10, 100.0f);
+		}
+		else
+		{
+			// 1.0f
 		}
 
 		auto isSuperJumpEnabled = state.buffer.ReadBit();
