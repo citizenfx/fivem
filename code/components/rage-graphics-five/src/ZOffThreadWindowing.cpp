@@ -56,7 +56,7 @@ static LRESULT CALLBACK NewWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		ResetEvent(g_renderThreadGate);
 	}
 
-	if (uMsg == WM_SIZING || uMsg == WM_ENTERSIZEMOVE || uMsg == WM_EXITSIZEMOVE || uMsg == WM_CHAR || uMsg == WM_SIZE || uMsg == WM_MOVE || uMsg == WM_MOVING)
+	if (uMsg == WM_SIZING || uMsg == WM_ENTERSIZEMOVE || uMsg == WM_EXITSIZEMOVE || uMsg == WM_SIZE || uMsg == WM_MOVE || uMsg == WM_MOVING)
 	{
 		unsafe = true;
 		forwardNow = true;
