@@ -313,9 +313,9 @@ static InitFunction initFunction([]()
 			{
 				double avgFrameFraction = (avgScriptMs / avgFrameMs);
 
-				// 30%, when a frame takes more than 10ms (<100 FPS)
-				// or 22% when a frame takes more than 16ms (<~60 FPS)
-				if ((avgFrameFraction > 0.30 && avgFrameMs >= 10.0) || (avgFrameFraction > 0.22 && avgFrameMs >= 16.0))
+				// 42%, when a frame takes more than 10ms (<100 FPS)
+				// or 25% when a frame takes more than 16ms (<~60 FPS)
+				if ((avgFrameFraction > 0.42 && avgFrameMs >= 10.0) || (avgFrameFraction > 0.25 && avgFrameMs >= 16.0))
 				{
 					showWarning = true;
 					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs);
@@ -365,13 +365,13 @@ static InitFunction initFunction([]()
 
 		if (taskMgrEnabled)
 		{
-			if (ImGui::Begin("Resource Monitor") && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+			if (ImGui::Begin("Resource Monitor") && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 			{
 				ImGui::TableSetupColumn("Resource");
-				ImGui::TableSetupColumn("CPU msec");
-				ImGui::TableSetupColumn("Time %");
-				ImGui::TableSetupColumn("Memory");
-				ImGui::TableSetupColumn("Streaming");
+				ImGui::TableSetupColumn("CPU msec", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("Time %", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("Memory", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("Streaming", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableHeadersRow();
 
 				std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
@@ -407,112 +407,179 @@ static InitFunction initFunction([]()
 					ImGui::Text("%.1f%%", (avgScriptMs / avgFrameMs) * 100.0);
 				}
 
-				for (const auto& resourcePair : resourceList)
+				std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatas;
+
+				for (const auto& [ resourceName, resource ] : resourceList)
 				{
-					ImGui::TableNextRow();
-
-					auto[resourceName, resource] = resourcePair;
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("%s", resource->GetName().c_str());
-
 					auto metric = metrics.find(resourceName);
+					double avgTickMs = -1.0;
+					double avgFrameFraction = -1.0f;
+					int64_t memorySize = -1;
+					int64_t streamingSize = -1;
 
 					if (metric != metrics.end() && metric->second)
 					{
-						const auto& [ key, valueRef ] = *metric;
+						const auto& [key, valueRef] = *metric;
 						auto value = *valueRef;
 
 						auto avgTickTime = value.ticks.GetAverage();
+						avgTickMs = (avgTickTime.count() / 1000.0);
 
-						ImGui::TableSetColumnIndex(1);
-						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickTime.count() / 1000.0), "%.2f ms", avgTickTime.count() / 1000.0);
-
-						double avgTickMs = (avgTickTime.count() / 1000.0);
-						ImGui::TableSetColumnIndex(2);
-
-						if (avgScriptMs == 0.0f)
+						if (avgScriptMs != 0.0f)
 						{
-							ImGui::Text("-");
-						}
-						else
-						{
-							double avgFrameFraction = (avgTickMs / avgScriptMs);
-
-							ImGui::Text("%.2f%%", avgFrameFraction * 100.0);
+							avgFrameFraction = (avgTickMs / avgScriptMs);
 						}
 
-						ImGui::TableSetColumnIndex(3);
-
-						int64_t totalBytes = value.memorySize;
-
-						if (totalBytes == 0)
+						if (value.memorySize != 0)
 						{
-							ImGui::Text("?");
+							memorySize = value.memorySize;
 						}
-						else
-						{
-							std::string humanSize = fmt::sprintf("%d B", totalBytes);
-
-							if (totalBytes > (1024 * 1024 * 1024))
-							{
-								humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
-							}
-							else if (totalBytes > (1024 * 1024))
-							{
-								humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
-							}
-							else if (totalBytes > 1024)
-							{
-								humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
-							}
-
-							ImGui::Text("%s+", humanSize.c_str());
-						}
-
-						ImGui::TableSetColumnIndex(4);
 
 #ifdef GTA_FIVE
 						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
 
 						if (streamingUsage > 0)
 						{
-							std::string humanSize = fmt::sprintf("%d B", streamingUsage);
-
-							if (streamingUsage > (1024 * 1024 * 1024))
-							{
-								humanSize = fmt::sprintf("%.2f GiB", streamingUsage / 1024.0 / 1024.0 / 1024.0);
-							}
-							else if (streamingUsage > (1024 * 1024))
-							{
-								humanSize = fmt::sprintf("%.2f MiB", streamingUsage / 1024.0 / 1024.0);
-							}
-							else if (streamingUsage > 1024)
-							{
-								humanSize = fmt::sprintf("%.2f KiB", streamingUsage / 1024.0);
-							}
-
-							ImGui::Text("%s", humanSize.c_str());
+							streamingSize = streamingUsage;
 						}
-						else
 #endif
+
+						resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize);
+					}
+				}
+
+				{
+					auto sortSpecs = ImGui::TableGetSortSpecs();
+
+					if (sortSpecs && sortSpecs->SpecsCount > 0)
+					{
+						std::sort(resourceDatas.begin(), resourceDatas.end(), [sortSpecs](const auto& left, const auto& right)
 						{
-							ImGui::Text("-");
-						}
+							auto compare = [](const auto& left, const auto& right)
+							{
+								if (left < right)
+									return -1;
+
+								if (left > right)
+									return 1;
+
+								return 0;
+							};
+
+							for (int n = 0; n < sortSpecs->SpecsCount; n++)
+							{
+								const ImGuiTableSortSpecsColumn* sortSpec = &sortSpecs->Specs[n];
+								int delta = 0;
+								switch (sortSpec->ColumnIndex)
+								{
+									case 0:
+										delta = compare(std::get<0>(left), std::get<0>(right));
+										break;
+									case 1:
+										delta = compare(std::get<1>(left), std::get<1>(right));
+										break;
+									case 2:
+										delta = compare(std::get<2>(left), std::get<2>(right));
+										break;
+									case 3:
+										delta = compare(std::get<3>(left), std::get<3>(right));
+										break;
+									case 4:
+										delta = compare(std::get<4>(left), std::get<4>(right));
+										break;
+								}
+								if (delta > 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? false : true;
+								if (delta < 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
+							}
+
+							return (left < right);
+						});
+					}
+				}
+
+				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage] : resourceDatas)
+				{
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("%s", resourceName.c_str());
+
+					ImGui::TableSetColumnIndex(1);
+
+					if (avgTickMs >= 0.0)
+					{
+						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickMs), "%.2f ms", avgTickMs);
 					}
 					else
 					{
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("?");
+						ImGui::Text("-");
+					}
 
-						ImGui::TableSetColumnIndex(2);
-						ImGui::Text("?");
+					ImGui::TableSetColumnIndex(2);
 
-						ImGui::TableSetColumnIndex(3);
-						ImGui::Text("?");
+					if (avgFrameFraction < 0.0f)
+					{
+						ImGui::Text("-");
+					}
+					else
+					{
+						ImGui::Text("%.2f%%", avgFrameFraction * 100.0);
+					}
 
-						ImGui::TableSetColumnIndex(4);
+					ImGui::TableSetColumnIndex(3);
+
+					int64_t totalBytes = memorySize;
+
+					if (totalBytes == 0 || totalBytes == -1)
+					{
 						ImGui::Text("?");
+					}
+					else
+					{
+						std::string humanSize = fmt::sprintf("%d B", totalBytes);
+
+						if (totalBytes > (1024 * 1024 * 1024))
+						{
+							humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
+						}
+						else if (totalBytes > (1024 * 1024))
+						{
+							humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
+						}
+						else if (totalBytes > 1024)
+						{
+							humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
+						}
+
+						ImGui::Text("%s+", humanSize.c_str());
+					}
+
+					ImGui::TableSetColumnIndex(4);
+
+					if (streamingUsage > 0)
+					{
+						std::string humanSize = fmt::sprintf("%d B", streamingUsage);
+
+						if (streamingUsage > (1024 * 1024 * 1024))
+						{
+							humanSize = fmt::sprintf("%.2f GiB", streamingUsage / 1024.0 / 1024.0 / 1024.0);
+						}
+						else if (streamingUsage > (1024 * 1024))
+						{
+							humanSize = fmt::sprintf("%.2f MiB", streamingUsage / 1024.0 / 1024.0);
+						}
+						else if (streamingUsage > 1024)
+						{
+							humanSize = fmt::sprintf("%.2f KiB", streamingUsage / 1024.0);
+						}
+
+						ImGui::Text("%s", humanSize.c_str());
+					}
+					else
+					{
+						ImGui::Text("-");
 					}
 				}
 
