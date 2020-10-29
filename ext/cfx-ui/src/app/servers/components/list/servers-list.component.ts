@@ -69,8 +69,15 @@ export class ServersListComponent implements OnInit, OnDestroy {
 			this.changeDetectorRef.markForCheck();
 		});
 
+		const finalFilter = this.finalFilter.bind(this);
+
 		this.filtersService.sortedServersUpdate.subscribe((servers) => {
-			this.sortedServers = servers;
+			this.sortedServers = servers.filter(finalFilter);
+
+			if (this.type === 'pins') {
+				this.sortedServers.sort((a, b) => b.currentPlayers - a.currentPlayers);
+			}
+
 			this.changeDetectorRef.markForCheck();
 		});
 	}
@@ -92,6 +99,14 @@ export class ServersListComponent implements OnInit, OnDestroy {
 			case 'history': return '#EmptyServers_History';
 			case 'favorites': return '#EmptyServers_Favorites';
 		}
+	}
+
+	finalFilter(server: Server) {
+		if (this.type === 'pins') {
+			return this.isPinned(server);
+		}
+
+		return true;
 	}
 
 	isBrowser() {

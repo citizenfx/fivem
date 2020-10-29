@@ -2,6 +2,7 @@
 	class="server-list-item"
 	[class.pt]="premium === 'pt'"
 	[class.pinned]="pinned"
+	[class.isPinList]="isPinList"
 	(click)="showServerDetail()"
 >
 	<div
@@ -29,7 +30,7 @@
 
     <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
 
-    <div class="actions">
+    <div class="actions" *ngIf="!isPinList">
 		<button
 			(click)="enableBoost($event)"
 			[class.active]="isBoost()"

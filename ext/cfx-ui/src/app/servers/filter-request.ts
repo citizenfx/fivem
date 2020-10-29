@@ -8,4 +8,5 @@ export class FilterRequest {
 	public sortOrder: ServerSorting;
 	public pinConfig: PinConfig;
 	public fromInteraction: boolean;
+	public listType: string;
 }

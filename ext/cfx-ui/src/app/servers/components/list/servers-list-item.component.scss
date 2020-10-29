@@ -31,6 +31,32 @@
 		}
 	};
 
+	&.isPinList {
+		height: calc(var(--q3) + 1px);
+
+		.icon {
+			width: calc(var(--q3) - 4px + 1px);
+			height: calc(var(--q3) - 4px + 1px);
+		}
+
+		.badge {
+			display: none;
+		}
+
+		.name {
+			white-space: normal;
+			word-break: break-all;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+		}
+
+		.players {
+			width: var(--q4);
+			font-size: calc(var(--fs-1) * 0.8);
+		}
+	}
+
 	.premium {
 		position: absolute;
 		top: 2px;

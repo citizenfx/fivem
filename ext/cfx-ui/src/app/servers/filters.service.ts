@@ -220,7 +220,8 @@ export class FiltersService {
 			},
 			sortOrder: this.sortOrder,
 			pinConfig: this.pinConfig.data,
-			fromInteraction: fromInteraction
+			fromInteraction: fromInteraction,
+			listType: this.type
 		}, (sortedServers: string[]) => {
 			this.sortedServers = sortedServers
 				.map(a => this.serversService.servers[a])

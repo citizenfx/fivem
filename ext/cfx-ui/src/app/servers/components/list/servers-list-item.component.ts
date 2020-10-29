@@ -29,6 +29,9 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	@Input()
 	pinned = false;
 
+	@Input()
+	isPinList = false;
+
 	@ViewChild('iconFigure')
 	iconFigure: ElementRef;
 

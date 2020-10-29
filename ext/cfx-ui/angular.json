@@ -121,7 +121,12 @@
           },
           "configurations": {
             "production": {
-              "browserTarget": "cfx-ui:build:production"
+              "browserTarget": "cfx-ui:build:production",
+              "sourceMap": {
+                "scripts": true,
+                "styles": true,
+                "vendor": true
+              }
             },
             "web": {
               "browserTarget": "cfx-ui:build:web"

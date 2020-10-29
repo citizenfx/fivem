@@ -5,6 +5,7 @@
 
 	<article>
 		<servers-list [type]="type"></servers-list>
+		<servers-list [style.display]="(type == 'browse' && !isFiltering() && !isLoading()) ? 'block' : 'none'" type="pins" class="pins"></servers-list>
 	</article>
 
 	<div class="ad with-links">

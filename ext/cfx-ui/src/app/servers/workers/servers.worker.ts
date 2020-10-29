@@ -204,7 +204,7 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
 	};
 }
 
-function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer): (server: master.IServer) => boolean {
+function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer, listType: string): (server: master.IServer) => boolean {
 	const nameMatchCallback = buildSearchMatch(filterList);
 	const filters = filterList.filters;
 
@@ -267,6 +267,8 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 		return !matchesLocales;
 	};
 
+	const shownAsPin = (server: master.IServer) => (isPinned(pinConfig, server) && listType === 'browse');
+
 	return (server) => {
 		if (!nameMatchCallback(server)) {
 			return false;
@@ -283,13 +285,13 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 		}
 
 		if (filterList.tags.tagList) {
-			if (hiddenByTags(server)) {
+			if (hiddenByTags(server) && !shownAsPin(server)) {
 				return false;
 			}
 		}
 
 		if (filterList.tags.localeList) {
-			if (hiddenByLocales(server)) {
+			if (hiddenByLocales(server) && !shownAsPin(server)) {
 				return false;
 			}
 		}
@@ -367,7 +369,7 @@ function sortServers(e: MessageEvent) {
 			EndPoint,
 			Data,
 		})) || [])
-		.filter(getFilter(pinConfig, filterRequest.filters));
+		.filter(getFilter(pinConfig, filterRequest.filters, filterRequest.listType));
 
 	const sortChain = (a: master.IServer, b: master.IServer, ...stack: ((a: master.IServer, b: master.IServer) => number)[]) => {
 		for (const entry of stack) {
@@ -409,6 +411,11 @@ function sortServers(e: MessageEvent) {
 
 	const sortList = [
 		(a: master.IServer, b: master.IServer) => {
+			if (filterRequest.listType === 'browse' &&
+				(filterRequest.filters.filters.searchText ?? '') === '') {
+				return 0;
+			}
+
 			const aPinned = isPinned(pinConfig, a);
 			const bPinned = isPinned(pinConfig, b);
 

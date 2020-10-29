@@ -41,6 +41,7 @@
 			*cdkVirtualFor="let server of sortedServers"
 			[server]="server"
 			[pinned]="isPinned(server)"
+			[isPinList]="type === 'pins'"
 		></servers-list-item>
 	</cdk-virtual-scroll-viewport>
 
