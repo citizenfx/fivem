@@ -36,6 +36,12 @@ echo "private_repo '../../fivem-private/'" > fivem/code/privates_config.lua
 # start building
 cd fivem
 
+# workaround for native-doc-tooling being broken on linux node due to node-ffi-napi
+cd ext/native-doc-tooling/
+git fetch --depth=1000
+git checkout 272dbe87ad0b24f63fe1458305ea99984c82d557
+cd ../../
+
 # make a temporary build user
 adduser -D -u 1000 build
 
