@@ -56,7 +56,7 @@ interface CitizenInterface {
     resultAsString(): ResultAsString
     resultAsVector(): ResultAsVector
     resultAsLong(): ResultAsLong
-    rsesultAsObject(): ResultAsObject
+    resultAsObject(): ResultAsObject
 
     makeRefFunction(refFunction: Function): string
 }
