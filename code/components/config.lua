@@ -25,6 +25,7 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-server-monitor'
 	component 'vfs-impl-server'
 else
+	component 'citizen-devtools'
 	component 'legacy-game-re3'
 	component 'sticky'
 
@@ -113,4 +114,3 @@ component 'gta-core-rdr3'
 component 'gta-net-rdr3'
 component 'extra-natives-rdr3'
 component 'citizen-playernames-rdr3'
-component 'citizen-devtools'
