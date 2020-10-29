@@ -1,4 +1,5 @@
 import React from 'react';
+import classnames from 'classnames';
 import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
 import { ContextMenu } from '../../../controls/ContextMenu/ContextMenu';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
@@ -7,6 +8,8 @@ import { ProjectItemProps } from '../ProjectExplorer.item';
 import { FilesystemEntry, Project } from '../../../../sdkApi/api.types';
 import { useExpandablePath, useItem } from '../ProjectExplorer.hooks';
 import s from './Directory.module.scss';
+import { useDrop } from 'react-dnd';
+import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean, project: Project) => {
@@ -48,10 +51,24 @@ export const Directory = React.memo((props: DirectoryProps) => {
   const nodes = renderItemChildren();
   const iconNode = icon || getDirectoryIcon(entry, expanded, project);
 
+  const [{ canDrop, isOver }, dropRef] = useDrop({
+    accept: [projectExplorerItemType.FILE, projectExplorerItemType.FOLDER],
+    drop: () => ({ entry }),
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  });
+
+  const nameClassName = classnames(s.name, {
+    [s['drop-ready']]: canDrop && isOver,
+  });
+
   return (
     <div className={s.root}>
       <ContextMenu
-        className={s.name}
+        ref={dropRef}
+        className={nameClassName}
         items={contextItems}
         onClick={toggleExpanded}
         activeClassName={s.active}

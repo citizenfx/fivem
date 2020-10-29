@@ -9,6 +9,7 @@ import {
   AssetDeleteRequest,
   AssetMeta,
   AssetRenameRequest,
+  MoveEntryRequest,
   Project,
   ProjectFsTree,
   ProjectManifest,
@@ -141,6 +142,14 @@ export class ProjectInstance {
     return getEnabledResourcesPaths(this.project, this.resources);
   }
 
+  get entryMetaExtras(): EntryMetaExtras {
+    return {
+      assetMeta: async (entryPath: string) => {
+        return this.getAssetMeta(entryPath, { silent: true });
+      },
+    };
+  }
+
   constructor(
     private path: string,
     private readonly client: ApiClient,
@@ -163,6 +172,8 @@ export class ProjectInstance {
       this.client.on(projectApi.createFile, ({ filePath, fileName }) => this.createFile(filePath, fileName)),
       this.client.on(projectApi.deleteFile, ({ filePath }) => this.deleteFile(filePath)),
       this.client.on(projectApi.renameFile, ({ filePath, newFileName }) => this.renameFile(filePath, newFileName)),
+
+      this.client.on(projectApi.moveEntry, (request: MoveEntryRequest) => this.moveEntry(request)),
     );
   }
 
@@ -374,6 +385,23 @@ export class ProjectInstance {
   }
   // /Files methods
 
+  // FS methods
+  async moveEntry(request: MoveEntryRequest) {
+    this.reconcileLock.withLock(async () => {
+      const { sourcePath, targetPath } = request;
+
+      const newPath = path.join(targetPath, path.basename(sourcePath));
+
+      await fs.promises.rename(sourcePath, newPath);
+
+      // const [source, target] = await Promise.all([
+      //   this.explorerApi.getEntry(sourcePath, this.entryMetaExtras),
+      //   this.explorerApi.getEntry(targetPath, this.entryMetaExtras),
+      // ]);
+    });
+  }
+  // /FS methods
+
   readAndNotifyFsTree = debounce(async () => {
     this.log('reading fs tree, reconciling resources and sending update');
 
@@ -434,13 +462,7 @@ export class ProjectInstance {
   }
 
   private async readFsTree(): Promise<ProjectFsTree> {
-    const extras: EntryMetaExtras = {
-      assetMeta: async (entryPath: string) => {
-        return this.getAssetMeta(entryPath, { silent: true });
-      },
-    };
-
-    const pathsMap = await this.explorerApi.readDirRecursively(this.path, extras);
+    const pathsMap = await this.explorerApi.readDirRecursively(this.path, this.entryMetaExtras);
     const entries = pathsMap[this.path];
 
     this.fsTree = {

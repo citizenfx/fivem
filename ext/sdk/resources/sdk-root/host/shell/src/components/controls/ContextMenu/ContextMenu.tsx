@@ -33,7 +33,7 @@ interface Coords {
   left: number,
 }
 
-export const ContextMenu = React.memo((props: ContextMenuProps) => {
+export const ContextMenu = React.forwardRef((props: ContextMenuProps, ref) => {
   const {
     children,
     items,
@@ -121,6 +121,7 @@ export const ContextMenu = React.memo((props: ContextMenuProps) => {
 
   return (
     <div
+      ref={ref}
       className={classnames(className, { [activeClassName]: !!coords })}
       onContextMenu={handleOpenMenu}
       onClick={handleClick}

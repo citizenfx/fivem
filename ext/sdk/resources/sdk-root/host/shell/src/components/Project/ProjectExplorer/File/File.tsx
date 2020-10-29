@@ -1,4 +1,5 @@
 import * as React from 'react';
+import classnames from 'classnames';
 import { ProjectContext } from '../../../../contexts/ProjectContext';
 import { ProjectItemProps } from '../ProjectExplorer.item';
 import { getFileIcon } from './File.utils';
@@ -9,6 +10,11 @@ import { useOpenFlag } from '../../../../utils/hooks';
 import { FileRenamer } from './FileRenamer/FileRenamer';
 import { FileDeleter } from './FileDeleter/FileDeleter';
 import s from './File.module.scss';
+import { useDrag } from 'react-dnd';
+import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { sendApiMessage } from '../../../../utils/api';
+import { projectApi } from '../../../../sdkApi/events';
+import { MoveEntryRequest } from '../../../../sdkApi/api.types';
 
 
 export const File = React.memo((props: ProjectItemProps) => {
@@ -31,23 +37,56 @@ export const File = React.memo((props: ProjectItemProps) => {
       id: 'delete-file',
       icon: deleteIcon,
       text: 'Delete file',
+      disabled: options.disableFileDelete,
       onClick: openFileDeleter,
     },
     {
       id: 'rename-file',
       icon: renameIcon,
       text: 'Rename file',
+      disabled: options.disableFileRename,
       onClick: openFileRenamer,
     },
   ], [options, openFileDeleter, openFileRenamer]);
 
   const icon = getFileIcon(entry);
 
+  const [{ isDragging }, dragRef] = useDrag({
+    item: {
+      entry,
+      type: projectExplorerItemType.FILE,
+    },
+    canDrag: () => !options.disableEntryMove,
+    end: (item, monitor) => {
+      const dropTarget = monitor.getDropResult();
+
+      const sourcePath = item?.entry.path;
+      const targetPath = dropTarget?.entry.path;
+
+      if (sourcePath && targetPath) {
+        const moveEntryRequest: MoveEntryRequest = {
+          sourcePath,
+          targetPath,
+        };
+
+        sendApiMessage(projectApi.moveEntry, moveEntryRequest);
+      }
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const rootClassName = classnames(s.root, {
+    [s.dragging]: isDragging,
+  });
+
   return (
     <>
       <ContextMenu
+        ref={dragRef}
         items={contextMenuItems}
-        className={s.root}
+        className={rootClassName}
         onClick={handleClick}
       >
         {icon}

@@ -30,6 +30,7 @@ const contextOptions: Partial<ProjectExplorerItemContext> = {
   disableFileDelete: true,
   disableFileOpen: true,
   disableFileRename: true,
+  disableEntryMove: true,
   visibilityFilter,
 };
 

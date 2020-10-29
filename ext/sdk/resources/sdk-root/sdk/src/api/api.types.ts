@@ -204,3 +204,8 @@ export interface ServerRefreshResourcesRequest {
   projectPath: string,
   enabledResourcesPaths: string[],
 }
+
+export interface MoveEntryRequest {
+  sourcePath: string,
+  targetPath: string,
+}

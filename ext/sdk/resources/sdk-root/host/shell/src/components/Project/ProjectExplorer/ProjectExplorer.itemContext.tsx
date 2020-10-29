@@ -16,6 +16,8 @@ export interface ProjectExplorerItemContext {
   disableFileDelete: boolean,
   disableFileRename: boolean,
 
+  disableEntryMove: boolean,
+
   disableAssetCreate: boolean,
   disableAssetRename: boolean,
   disableAssetDelete: boolean,
@@ -31,6 +33,7 @@ const defaultValues: ProjectExplorerItemContext = {
   disableFileCreate: false,
   disableFileDelete: false,
   disableFileRename: false,
+  disableEntryMove: false,
   disableAssetCreate: false,
   disableAssetRename: false,
   disableAssetDelete: false,

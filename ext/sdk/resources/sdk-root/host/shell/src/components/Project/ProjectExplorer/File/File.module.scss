@@ -19,4 +19,8 @@
 
     color: rgba($fgColor, .5);
   }
+
+  &.dragging {
+    background-color: $acColor;
+  }
 }

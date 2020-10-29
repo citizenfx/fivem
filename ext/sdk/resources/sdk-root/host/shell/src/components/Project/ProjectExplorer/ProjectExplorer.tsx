@@ -14,6 +14,8 @@ import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
 import { ContextMenu, ContextMenuItem } from '../../controls/ContextMenu/ContextMenu';
 import { newDirectoryIcon, newResourceIcon } from '../../../constants/icons';
 import s from './ProjectExplorer.module.scss';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 
 const assetTypeRenderers = {
@@ -62,7 +64,23 @@ const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
   }
 };
 
-export const ProjectExplorer = React.memo(() => {
+const fsTreeFilter = (entry) => {
+  if (entry.name === '.fxserver') {
+    return false;
+  }
+
+  if (entry.name === '.fxdk') {
+    return false;
+  }
+
+  if (entry.isFile) {
+    return false;
+  }
+
+  return true;
+};
+
+export const ProjectExplorer = React.memo(function ProjectExplorer() {
   const {
     project,
     projectResources,
@@ -83,31 +101,15 @@ export const ProjectExplorer = React.memo(() => {
         directoryName,
       });
     }
-  }, [project, closeDirectoryCreator]);
+  }, [project.path, closeDirectoryCreator]);
 
   const handleOpenAssetCreator = React.useCallback(() => {
-    if (project) {
-      setAssetCreatorDir(project.path);
-      openAssetCreator();
-    }
-  }, [project, setAssetCreatorDir, openAssetCreator]);
+    setAssetCreatorDir(project.path);
+    openAssetCreator();
+  }, [project.path, setAssetCreatorDir, openAssetCreator]);
 
   const nodes = project.fsTree.entries
-    .filter((entry) => {
-      if (entry.name === '.fxserver') {
-        return false;
-      }
-
-      if (entry.name === '.fxdk') {
-        return false;
-      }
-
-      if (entry.isFile) {
-        return false;
-      }
-
-      return true;
-    })
+    .filter(fsTreeFilter)
     .map((entry) => itemRenderer({
       entry,
       project,
@@ -117,20 +119,22 @@ export const ProjectExplorer = React.memo(() => {
       creatorClassName: s.creator,
     }));
 
-  const contextItems: ContextMenuItem[] = [
-    {
-      id: 'new-asset',
-      icon: newResourceIcon,
-      text: 'New asset',
-      onClick: handleOpenAssetCreator,
-    },
-    {
-      id: 'new-directory',
-      icon: newDirectoryIcon,
-      text: 'New directory',
-      onClick: openDirectoryCreator,
-    },
-  ];
+  const contextItems: ContextMenuItem[] = React.useMemo(() => {
+    return [
+      {
+        id: 'new-asset',
+        icon: newResourceIcon,
+        text: 'New asset',
+        onClick: handleOpenAssetCreator,
+      },
+      {
+        id: 'new-directory',
+        icon: newDirectoryIcon,
+        text: 'New directory',
+        onClick: openDirectoryCreator,
+      },
+    ];
+  }, [handleOpenAssetCreator, openDirectoryCreator]);
 
   return (
     <ProjectExplorerContextProvider>
@@ -144,7 +148,9 @@ export const ProjectExplorer = React.memo(() => {
             onCreate={handleDirectoryCreate}
           />
         )}
-        {nodes}
+        <DndProvider backend={HTML5Backend}>
+          {nodes}
+        </DndProvider>
       </ContextMenu>
     </ProjectExplorerContextProvider>
   );

@@ -28,6 +28,8 @@ export const projectApi = {
   createFile: 'project:createFile',
   renameFile: 'project:renameFile',
   deleteFile: 'project:deleteFile',
+
+  moveEntry: 'project:moveEntry',
 };
 
 export const assetApi = {
