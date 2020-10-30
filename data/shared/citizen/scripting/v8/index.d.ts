@@ -88,6 +88,11 @@ declare function removeEventListener(eventName: string, callback: Function): voi
 declare function setTick(callback: Function): number
 declare function clearTick(callback: number): void
 
+declare function Entity(entity: number): number
+declare var GlobalState;
+declare function NewStateBag(name: string): any
+declare function Player(entity: number|string ): number|string
+
 declare var exports: any;
 
 declare var source: string;
