@@ -246,7 +246,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 		auto& io = ImGui::GetIO();
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
-		ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x + g_netOverlayOffsetX, io.DisplaySize.y + g_netOverlayOffsetY), ImGuiCond_Once, ImVec2(1.0f, 1.0f));
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + io.DisplaySize.x + g_netOverlayOffsetX, ImGui::GetMainViewport()->Pos.y + io.DisplaySize.y + g_netOverlayOffsetY), ImGuiCond_Once, ImVec2(1.0f, 1.0f));
 		ImGui::SetNextWindowSize(ImVec2(g_netOverlayWidth, g_netOverlayHeight));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 

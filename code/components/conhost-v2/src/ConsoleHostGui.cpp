@@ -255,7 +255,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetFrameHeightWithSpacing() * 12.0f), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + 0));
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
@@ -545,7 +545,7 @@ struct MiniConsole : CfxBigConsole
 		ImGui::PushFont(consoleFontSmall);
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
-		ImGui::SetNextWindowPos(ImVec2(20, io.DisplaySize.y - 20), ImGuiCond_Once, ImVec2(0.0f, 1.0f));
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 20, ImGui::GetMainViewport()->Pos.y + io.DisplaySize.y - 20), ImGuiCond_Once, ImVec2(0.0f, 1.0f));
 		ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.4f, ImGui::GetFrameHeightWithSpacing() * 12.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing

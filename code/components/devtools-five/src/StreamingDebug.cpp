@@ -70,7 +70,7 @@ private:
 
 ComPtr<IWICImagingFactory> g_imagingFactory;
 
-static rage::grcTexture* MakeIcon(const std::string& filename)
+static void* MakeIcon(const std::string& filename)
 {
 	if (!g_imagingFactory)
 	{
@@ -131,7 +131,10 @@ static rage::grcTexture* MakeIcon(const std::string& filename)
 				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
 				reference.pixelData = (uint8_t*)pixelData;
 
-				return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+				auto iconPtr = new void*[2];
+				iconPtr[0] = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+				iconPtr[1] = nullptr;
+				return iconPtr;
 			}
 		}
 	}
@@ -139,7 +142,7 @@ static rage::grcTexture* MakeIcon(const std::string& filename)
 	return nullptr;
 }
 
-static std::map<uint32_t, rage::grcTexture*> MakeIcons()
+static std::map<uint32_t, void*> MakeIcons()
 {
 	return {
 		{ HashString("rage::strPackfileStreamingModule"), MakeIcon("citizen:/resources/icons/rpf.png") },
@@ -167,7 +170,7 @@ static std::map<uint32_t, rage::grcTexture*> MakeIcons()
 	};
 }
 
-static std::map<uint32_t, ImGui::ListViewBase::CellData::IconData> MakeIconDatas(const std::map<uint32_t, rage::grcTexture*>& icons)
+static std::map<uint32_t, ImGui::ListViewBase::CellData::IconData> MakeIconDatas(const std::map<uint32_t, void*>& icons)
 {
 	std::map<uint32_t, ImGui::ListViewBase::CellData::IconData> ids;
 
@@ -188,7 +191,7 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	auto strModule = m_streaming->moduleMgr.GetStreamingModule(num);
 	auto relativeIndex = (num - strModule->baseIdx);
 
-	static std::map<uint32_t, rage::grcTexture*> icons = MakeIcons();
+	static std::map<uint32_t, void*> icons = MakeIcons();
 	static std::map<uint32_t, CellData::IconData> iconDatas = MakeIconDatas(icons);
 
 	switch (column)

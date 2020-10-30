@@ -62,7 +62,7 @@ static InitFunction initFunction([]()
 		previousTimes[index % std::size(previousTimes)] = frameTime;
 		index++;
 
-		ImGui::SetNextWindowPos(ImVec2(-1, -1), 0, ImVec2(0, 0));
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y), 0, ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
 

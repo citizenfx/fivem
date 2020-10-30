@@ -347,7 +347,7 @@ static InitFunction initFunction([]()
 		if ((usec() - warningLastShown) < 1s)
 		{
 			const float DISTANCE = 10.0f;
-			ImVec2 window_pos = ImVec2(ImGui::GetIO().DisplaySize.x - DISTANCE, ImGui::GetIO().DisplaySize.y - DISTANCE);
+			ImVec2 window_pos = ImVec2(ImGui::GetMainViewport()->Pos.x + ImGui::GetIO().DisplaySize.x - DISTANCE, ImGui::GetMainViewport()->Pos.y + ImGui::GetIO().DisplaySize.y - DISTANCE);
 			ImVec2 window_pos_pivot = ImVec2(1.0f, 1.0f);
 			ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
 
