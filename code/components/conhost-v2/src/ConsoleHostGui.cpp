@@ -254,7 +254,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return;
 		}
 
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetFrameHeightWithSpacing() * 12.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetFrameHeightWithSpacing() * 12.0f), ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + 0));
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
