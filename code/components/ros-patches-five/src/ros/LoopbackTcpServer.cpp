@@ -1486,7 +1486,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 	// set the command line
 	//const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\"", fxApplicationName, toolName, GetCurrentProcessId(), MakeRelativeGamePath(L"GTAVLauncher.exe").c_str());
-	const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\"", fxApplicationName, toolName, GetCurrentProcessId(), L"C:\\program files\\rockstar games\\launcher\\launcher.exe");
+	const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\" -noRecogniser", fxApplicationName, toolName, GetCurrentProcessId(), L"C:\\program files\\rockstar games\\launcher\\launcher.exe");
 
 	// create a waiting event
 	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
