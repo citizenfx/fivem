@@ -32,7 +32,7 @@ extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpR
 void InitializeDummies();
 std::optional<int> EnsureGamePath();
 
-bool InitializeExceptionHandler();
+extern "C" bool InitializeExceptionHandler();
 
 std::map<std::string, std::string> UpdateGameCache();
 

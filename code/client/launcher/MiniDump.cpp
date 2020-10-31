@@ -1550,8 +1550,26 @@ void InitializeMiniDumpOverride()
 
 static ExceptionHandler* g_exceptionHandler;
 
-bool InitializeExceptionHandler()
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
+
+extern "C" DLL_EXPORT void EarlyInitializeExceptionHandler()
 {
+	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_PROCESS_ATTACH, nullptr);
+	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_THREAD_ATTACH, nullptr);
+}
+
+extern "C" DLL_EXPORT bool InitializeExceptionHandler()
+{
+	static bool initialized = false;
+
+	if (initialized)
+	{
+		return false;
+	}
+
+	initialized = true;
+
 	AllocateExceptionBuffer();
 
 	// don't initialize when under a debugger, as debugger filtering is only done when execution gets to UnhandledExceptionFilter in basedll
