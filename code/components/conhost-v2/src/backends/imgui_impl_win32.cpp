@@ -615,6 +615,13 @@ static void ImGui_ImplWin32_CreateWindow(ImGuiViewport* viewport)
         if (ImGuiViewport* parent_viewport = ImGui::FindViewportByID(viewport->ParentViewportId))
             parent_window = (HWND)parent_viewport->PlatformHandle;
 
+#ifdef IS_RDR3
+	if (parent_window == ImGui::GetMainViewport()->PlatformHandle)
+	{
+		parent_window = NULL;
+	}
+#endif
+
     // Create window
     RECT rect = { (LONG)viewport->Pos.x, (LONG)viewport->Pos.y, (LONG)(viewport->Pos.x + viewport->Size.x), (LONG)(viewport->Pos.y + viewport->Size.y) };
     ::AdjustWindowRectEx(&rect, data->DwStyle, FALSE, data->DwExStyle);
@@ -660,7 +667,7 @@ static void ImGui_ImplWin32_ShowWindow(ImGuiViewport* viewport)
     if (viewport->Flags & ImGuiViewportFlags_NoFocusOnAppearing)
         ::ShowWindow(data->Hwnd, SW_SHOWNA);
     else
-        ::ShowWindow(data->Hwnd, SW_SHOW);
+		::ShowWindow(data->Hwnd, SW_SHOW);
 }
 
 static void ImGui_ImplWin32_UpdateWindow(ImGuiViewport* viewport)
@@ -689,7 +696,7 @@ static void ImGui_ImplWin32_UpdateWindow(ImGuiViewport* viewport)
         RECT rect = { (LONG)viewport->Pos.x, (LONG)viewport->Pos.y, (LONG)(viewport->Pos.x + viewport->Size.x), (LONG)(viewport->Pos.y + viewport->Size.y) };
         ::AdjustWindowRectEx(&rect, data->DwStyle, FALSE, data->DwExStyle); // Client to Screen
         ::SetWindowPos(data->Hwnd, insert_after, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, swp_flag | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-        ::ShowWindow(data->Hwnd, SW_SHOWNA); // This is necessary when we alter the style
+		::ShowWindow(data->Hwnd, SW_SHOWNA); // This is necessary when we alter the style
         viewport->PlatformRequestMove = viewport->PlatformRequestResize = true;
     }
 }
@@ -890,10 +897,16 @@ void ImGui_ImplWin32_InitPlatformInterface()
 
 	ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 	ImGuiViewportDataWin32* data = IM_NEW(ImGuiViewportDataWin32)();
-	data->Hwnd = FindWindow(L"grcWindow", NULL);
+	data->Hwnd = FindWindow(
+#ifdef IS_RDR3
+		L"sgaWindow", 
+#else
+		L"grcWindow", 
+#endif
+		NULL);
 	data->HwndOwned = false;
 	main_viewport->PlatformUserData = data;
-	main_viewport->PlatformHandle = (void*)FindWindow(L"grcWindow", NULL);
+	main_viewport->PlatformHandle = data->Hwnd;
 }
 
 static void ImGui_ImplWin32_ShutdownPlatformInterface()
