@@ -178,10 +178,10 @@ void RuntimeTex::SetPixel(int x, int y, int r, int g, int b, int a)
 
 	auto start = &m_backingPixels[offset];
 
-	start[3] = b;
-	start[2] = g;
-	start[1] = r;
-	start[0] = a;
+	start[3] = a;
+	start[2] = r;
+	start[1] = g;
+	start[0] = b;
 }
 
 bool RuntimeTex::SetPixelData(const void* data, size_t length)
