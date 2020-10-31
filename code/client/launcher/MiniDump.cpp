@@ -1553,16 +1553,21 @@ static ExceptionHandler* g_exceptionHandler;
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
+static bool initialized = false;
+
 extern "C" DLL_EXPORT void EarlyInitializeExceptionHandler()
 {
+	if (initialized)
+	{
+		return;
+	}
+
 	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_PROCESS_ATTACH, nullptr);
 	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_THREAD_ATTACH, nullptr);
 }
 
 extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 {
-	static bool initialized = false;
-
 	if (initialized)
 	{
 		return false;
