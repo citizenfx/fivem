@@ -770,7 +770,7 @@ public:
 
 	virtual void AttachToObject(fx::ServerInstanceBase* instance) override;
 
-	void HandleClientDrop(const fx::ClientSharedPtr& client);
+	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
 	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
 

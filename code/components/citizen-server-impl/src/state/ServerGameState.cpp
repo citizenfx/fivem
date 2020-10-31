@@ -246,7 +246,18 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 		client->SetSyncData(data);
 		client->OnDrop.Connect([weakClient, state]()
 		{
-			state->HandleClientDrop(weakClient.lock());
+			auto client = weakClient.lock();
+
+			if (client)
+			{
+				auto slotId = client->GetSlotId();
+				auto netId = client->GetNetId();
+
+				gscomms_execute_callback_on_sync_thread([state, client, slotId, netId]()
+				{
+					state->HandleClientDrop(client, netId, slotId);
+				});
+			}
 		});
 	}
 
@@ -2407,7 +2418,7 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 	return true;
 }
 
-void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
+void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId)
 {
 	if (!IsOneSync())
 	{
@@ -2422,20 +2433,18 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 	GS_LOG("client drop - reassigning\n");
 #endif
 
-	auto slotId = client->GetSlotId();
-
 	if (fx::IsBigMode())
 	{
-		clientRegistry->ForAllClients([this, &client](const fx::ClientSharedPtr& tgtClient)
+		clientRegistry->ForAllClients([this, &client, netId](const fx::ClientSharedPtr& tgtClient)
 		{
 			auto [lock, clientData] = GetClientData(this, tgtClient);
 
-			auto si = clientData->playersToSlots.find(client->GetNetId());
+			auto si = clientData->playersToSlots.find(netId);
 
 			if (si != clientData->playersToSlots.end())
 			{
 				fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
-				events->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", tgtClient->GetNetId()), client->GetNetId(), client->GetName(), si->second);
+				events->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", tgtClient->GetNetId()), netId, client->GetName(), si->second);
 
 				clientData->slotsToPlayers.erase(si->second);
 				clientData->playersToSlots.erase(si);
@@ -2444,8 +2453,6 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 	}
 
 	// clear the player's world grid ownership
-	auto netId = client->GetNetId();
-
 	if (slotId != -1)
 	{
 		WorldGridState* gridState = &m_worldGrid[slotId];
@@ -2525,7 +2532,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 	}
 
 	// remove ACKs for this client
-	if (client->GetSlotId() != 0xFFFFFFFF)
+	if (slotId != 0xFFFFFFFF)
 	{
 		std::shared_lock<std::shared_mutex> lock(m_entityListMutex);
 
@@ -2533,9 +2540,9 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client)
 		{
 			if (entity->syncTree)
 			{
-				entity->syncTree->Visit([&client](sync::NodeBase& node)
+				entity->syncTree->Visit([slotId](sync::NodeBase& node)
 				{
-					node.ackedPlayers.reset(client->GetSlotId());
+					node.ackedPlayers.reset(slotId);
 
 					return true;
 				});

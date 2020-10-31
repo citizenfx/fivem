@@ -70,6 +70,10 @@ namespace fx
 			DropClientv(client, reason, fmt::make_printf_args(args...));
 		}
 
+	private:
+		void DropClientInternal(const fx::ClientSharedPtr& client, const std::string& reason);
+
+	public:
 		void ForceHeartbeat();
 
 		void ForceHeartbeatSoon();

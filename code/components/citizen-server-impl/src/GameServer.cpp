@@ -1010,6 +1010,21 @@ namespace fx
 			realReason = "Dropped.";
 		}
 
+		if (client->IsDropping())
+		{
+			return;
+		}
+
+		client->SetDropping();
+
+		gscomms_execute_callback_on_main_thread([this, client, realReason]()
+		{
+			DropClientInternal(client, realReason);
+		});
+	}
+
+	void GameServer::DropClientInternal(const fx::ClientSharedPtr& client, const std::string& realReason)
+	{
 		// send an out-of-band error to the client
 		if (client->GetPeer())
 		{
@@ -1047,8 +1062,6 @@ namespace fx
 		}
 
 		// signal a drop
-		client->SetDropping();
-
 		client->OnDrop();
 
 		{
