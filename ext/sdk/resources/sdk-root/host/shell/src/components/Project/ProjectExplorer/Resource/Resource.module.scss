@@ -1,6 +1,9 @@
 @import "variables";
 
 .root {
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
 
   .resource {
     position: relative;

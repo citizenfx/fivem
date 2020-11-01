@@ -5,11 +5,13 @@ import { ContextMenu } from '../../../controls/ContextMenu/ContextMenu';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
 import { ProjectItemProps } from '../ProjectExplorer.item';
-import { FilesystemEntry, Project } from '../../../../sdkApi/api.types';
-import { useExpandablePath, useItem } from '../ProjectExplorer.hooks';
+import { FilesystemEntry, MoveEntryRequest, Project } from '../../../../sdkApi/api.types';
+import { useExpandablePath, useItem, useItemDragAndDrop } from '../ProjectExplorer.hooks';
 import s from './Directory.module.scss';
-import { useDrop } from 'react-dnd';
-import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { DropTargetMonitor, useDrop } from 'react-dnd';
+import { EntryMoveItem, projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { sendApiMessage } from '../../../../utils/api';
+import { projectApi } from '../../../../sdkApi/events';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean, project: Project) => {
@@ -42,7 +44,7 @@ export const Directory = React.memo((props: DirectoryProps) => {
     deleteDirectory,
   } = useDirectoryContextMenu(entry.path, project, directoryChildren.length);
 
-  const { contextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
+  const { contextMenuItems, renderItemControls, renderItemChildren, options } = useItem(props);
 
   const contextItems = [
     ...directoryContextMenuItems,
@@ -51,27 +53,29 @@ export const Directory = React.memo((props: DirectoryProps) => {
   const nodes = renderItemChildren();
   const iconNode = icon || getDirectoryIcon(entry, expanded, project);
 
-  const [{ canDrop, isOver }, dropRef] = useDrop({
-    accept: [projectExplorerItemType.FILE, projectExplorerItemType.FOLDER],
-    drop: () => ({ entry }),
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-    }),
-  });
+  /**
+   * Drag'n'Drop functionality
+   */
+  const { isDragging, isDropping, dragRef, dropRef } = useItemDragAndDrop(entry, projectExplorerItemType.FOLDER, [
+    projectExplorerItemType.FILE, projectExplorerItemType.FOLDER
+  ]);
+
+  const rootClassName = classnames(s.root, {
+    [s.dropping]: isDropping,
+  })
 
   const nameClassName = classnames(s.name, {
-    [s['drop-ready']]: canDrop && isOver,
+    [s.dragging]: isDragging,
   });
 
   return (
-    <div className={s.root}>
+    <div className={rootClassName} ref={dropRef}>
       <ContextMenu
-        ref={dropRef}
         className={nameClassName}
         items={contextItems}
         onClick={toggleExpanded}
         activeClassName={s.active}
+        ref={dragRef}
       >
         {iconNode}
         {entry.name}

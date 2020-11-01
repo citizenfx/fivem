@@ -392,12 +392,11 @@ export class ProjectInstance {
 
       const newPath = path.join(targetPath, path.basename(sourcePath));
 
-      await fs.promises.rename(sourcePath, newPath);
+      if (newPath === sourcePath) {
+        return;
+      }
 
-      // const [source, target] = await Promise.all([
-      //   this.explorerApi.getEntry(sourcePath, this.entryMetaExtras),
-      //   this.explorerApi.getEntry(targetPath, this.entryMetaExtras),
-      // ]);
+      await fs.promises.rename(sourcePath, newPath);
     });
   }
   // /FS methods
@@ -409,7 +408,7 @@ export class ProjectInstance {
     await this.reconcileResourcesInManifest();
 
     this.notifyProjectUpdated();
-  }, 50);
+  }, 10);
 
   /**
    * Extra handler for asset rename

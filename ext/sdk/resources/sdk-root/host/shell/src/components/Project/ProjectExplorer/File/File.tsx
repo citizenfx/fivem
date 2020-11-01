@@ -12,9 +12,7 @@ import { FileDeleter } from './FileDeleter/FileDeleter';
 import s from './File.module.scss';
 import { useDrag } from 'react-dnd';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
-import { sendApiMessage } from '../../../../utils/api';
-import { projectApi } from '../../../../sdkApi/events';
-import { MoveEntryRequest } from '../../../../sdkApi/api.types';
+import { useItemDrag } from '../ProjectExplorer.hooks';
 
 
 export const File = React.memo((props: ProjectItemProps) => {
@@ -51,31 +49,7 @@ export const File = React.memo((props: ProjectItemProps) => {
 
   const icon = getFileIcon(entry);
 
-  const [{ isDragging }, dragRef] = useDrag({
-    item: {
-      entry,
-      type: projectExplorerItemType.FILE,
-    },
-    canDrag: () => !options.disableEntryMove,
-    end: (item, monitor) => {
-      const dropTarget = monitor.getDropResult();
-
-      const sourcePath = item?.entry.path;
-      const targetPath = dropTarget?.entry.path;
-
-      if (sourcePath && targetPath) {
-        const moveEntryRequest: MoveEntryRequest = {
-          sourcePath,
-          targetPath,
-        };
-
-        sendApiMessage(projectApi.moveEntry, moveEntryRequest);
-      }
-    },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
+  const { isDragging, dragRef } = useItemDrag(entry, projectExplorerItemType.FILE);
 
   const rootClassName = classnames(s.root, {
     [s.dragging]: isDragging,

@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { DropTargetMonitor, useDrag, useDrop } from 'react-dnd';
 import { newDirectoryIcon, newFileIcon } from '../../../constants/icons';
+import { FilesystemEntry, MoveEntryRequest } from '../../../sdkApi/api.types';
 import { projectApi } from '../../../sdkApi/events';
 import { sendApiMessage } from '../../../utils/api';
 import { useOpenFlag } from '../../../utils/hooks';
@@ -10,6 +12,7 @@ import { FileCreator } from './File/FileCreator/FileCreator';
 import { ProjectExplorerContext } from './ProjectExplorer.context';
 import { ProjectItemProps, renderChildren } from './ProjectExplorer.item';
 import { ProjectExplorerItemContext } from './ProjectExplorer.itemContext';
+import { EntryMoveItem } from './ProjectExplorer.itemTypes';
 
 export interface UseExpandedPathHook {
   expanded: boolean,
@@ -50,6 +53,7 @@ export interface UseItemHook {
   renderItemControls: () => React.ReactNode,
   renderItemChildren: (overrideVisibilityFilter?: VisibilityFilter) => React.ReactNode,
   contextMenuItems: ContextMenuItem[],
+  options: ProjectExplorerItemContext,
 }
 
 export const useItem = (item: ProjectItemProps): UseItemHook => {
@@ -130,5 +134,70 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
     renderItemControls,
     renderItemChildren,
     contextMenuItems,
+    options,
+  };
+};
+
+export const useItemDrag = (entry: FilesystemEntry, type: string) => {
+  const options = React.useContext(ProjectExplorerItemContext);
+
+  const [{ isDragging }, dragRef] = useDrag({
+    item: { entry, type },
+    canDrag: () => !options.disableEntryMove,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  return {
+    isDragging,
+    dragRef,
+  };
+};
+
+export const useItemDrop = (entry: FilesystemEntry, accept: string | string[]) => {
+  const options = React.useContext(ProjectExplorerItemContext);
+
+  const [{ isDropping }, dropRef] = useDrop({
+    accept,
+    drop: (item: EntryMoveItem, monitor: DropTargetMonitor) => {
+      // Only allowing the closest drop target to accept drop
+      if (monitor.didDrop()) {
+        return;
+      }
+
+      const sourcePath = item?.entry?.path;
+      const targetPath = entry.path;
+
+      if (sourcePath && targetPath) {
+        const moveEntryRequest: MoveEntryRequest = {
+          sourcePath,
+          targetPath,
+        };
+
+        sendApiMessage(projectApi.moveEntry, moveEntryRequest);
+      }
+    },
+    canDrop: () => !options.disableEntryMove,
+    collect: (monitor) => ({
+      isDropping: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+    }),
+  });
+
+  return {
+    isDropping,
+    dropRef,
+  };
+};
+
+export const useItemDragAndDrop = (entry: FilesystemEntry, type: string, accept: string | string[]) => {
+  const { isDragging, dragRef } = useItemDrag(entry, type);
+  const { isDropping, dropRef } = useItemDrop(entry, accept);
+
+  return {
+    isDragging,
+    isDropping,
+    dragRef,
+    dropRef,
   };
 };

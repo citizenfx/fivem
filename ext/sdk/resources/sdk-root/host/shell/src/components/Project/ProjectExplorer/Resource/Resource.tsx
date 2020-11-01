@@ -10,10 +10,11 @@ import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, ren
 import { ServerContext } from '../../../../contexts/ServerContext';
 import { projectApi, serverApi } from '../../../../sdkApi/events';
 import { FilesystemEntry, ServerStates } from '../../../../sdkApi/api.types';
-import { useExpandablePath, useItem } from '../ProjectExplorer.hooks';
+import { useExpandablePath, useItem, useItemDrop } from '../ProjectExplorer.hooks';
 import { BsCheckBox, BsSquare } from 'react-icons/bs';
 import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 import s from './Resource.module.scss';
+import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 
 
 const resourceChildrenFilter = (entry: FilesystemEntry) => {
@@ -167,8 +168,17 @@ export const Resource = React.memo((props: ProjectItemProps) => {
 
   const children = renderChildren(entry, props, resourceChildrenFilter);
 
+  const { isDropping, dropRef } = useItemDrop(entry, [
+    projectExplorerItemType.FILE,
+    projectExplorerItemType.FOLDER,
+  ]);
+
+  const rootClassName = classnames(s.root, {
+    [s.dropping]: isDropping,
+  })
+
   return (
-    <div className={s.root}>
+    <div className={rootClassName} ref={dropRef}>
       <ContextMenu
         className={s.resource}
         activeClassName={s.active}

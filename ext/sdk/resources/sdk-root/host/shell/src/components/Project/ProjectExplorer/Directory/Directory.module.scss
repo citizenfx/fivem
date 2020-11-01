@@ -1,6 +1,10 @@
 @import "variables";
 
 .root {
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
   .name {
     display: flex;
     align-items: center;
@@ -23,9 +27,8 @@
     svg {
       margin-right: $q*2;
     }
-
-    &.drop-ready {
-      background-color: rgba($acColor, .25);
+    &.dragging {
+      background-color: $acColor;
     }
   }
 
