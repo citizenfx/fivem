@@ -202,6 +202,7 @@ static void RenderDrawLists(ImDrawData* drawData)
 #endif
 
 void DrawConsole();
+void DrawDevGui();
 
 static std::mutex g_conHostMutex;
 
@@ -266,6 +267,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	if (g_consoleFlag)
 	{
+		DrawDevGui();
 		DrawConsole();
 	}
 

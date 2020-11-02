@@ -202,6 +202,8 @@ struct FiveMConsoleBase
 	}
 };
 
+extern float g_menuHeight;
+
 struct CfxBigConsole : FiveMConsoleBase
 {
 	char InputBuf[1024];
@@ -254,8 +256,8 @@ struct CfxBigConsole : FiveMConsoleBase
 			return;
 		}
 
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetFrameHeightWithSpacing() * 12.0f), ImGuiCond_Always);
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + 0));
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
