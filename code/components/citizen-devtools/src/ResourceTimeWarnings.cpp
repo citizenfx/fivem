@@ -313,12 +313,24 @@ static InitFunction initFunction([]()
 			{
 				double avgFrameFraction = (avgScriptMs / avgFrameMs);
 
-				// 42%, when a frame takes more than 10ms (<100 FPS)
-				// or 25% when a frame takes more than 16ms (<~60 FPS)
-				if ((avgFrameFraction > 0.42 && avgFrameMs >= 10.0) || (avgFrameFraction > 0.25 && avgFrameMs >= 16.0))
+				bool wouldBeOver60 = false;
+
+				// if <60 FPS
+				if (avgFrameMs >= 16.66)
+				{
+					// and without scripts it would be 60 FPS
+					if ((avgFrameMs - avgScriptMs) < 16.6666)
+					{
+						// use a 30% threshold in that case
+						wouldBeOver60 = (avgFrameFraction >= 0.3);
+					}
+				}
+
+				// 50%, when a frame takes more than 8.33ms (<120 FPS)
+				if ((avgFrameFraction >= 0.5 && avgFrameMs >= 8.33) || wouldBeOver60)
 				{
 					showWarning = true;
-					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs);
+					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts would bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : nullptr);
 				}
 			}
 
