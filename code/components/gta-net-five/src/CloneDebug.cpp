@@ -534,7 +534,8 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					}
 				}
 
-				bool isResendSkipped = ((state.time - nodeData->lastResend) < 150);
+				// resend skipping is broken, perhaps?
+				bool isResendSkipped = false; //((state.time - nodeData->lastResend) < 150);
 
 				if (state.pass == 2)
 				{
