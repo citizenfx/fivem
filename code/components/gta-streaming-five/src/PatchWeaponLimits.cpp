@@ -92,6 +92,10 @@ static HookFunction initFunction([]()
 	{
 		RelocateRelative({
 			{ "48 8D 1D ? ? ? ? 41 39 BE 54 01 00 00 76 7E", 1, 0, 3 }, // 1868+
+			{ "48 8D 1D ? ? ? ? 45 3B C8 7E", 1, 0, 3 },
+			{ "48 8D 1D ? ? ? ? 41 3B BE ? ? ? ? 72", 1, 0, 3 },
+			{ "48 8D 1D ? ? ? ? 33 FF 41 39 BE", 1, 0, 3 },
+			{ "48 8D 1D ? ? ? ? 41 3B BE ? ? ? ? 0F", 1, 0, 3 },
 		});
 	}
 	else
