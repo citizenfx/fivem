@@ -36,7 +36,7 @@ local function isSafeNative(native)
 			safe = false
 		end
 		
-		if arg.type.isPointer then
+		if arg.pointer then
 			safe = false
 		end
 	end
