@@ -14,21 +14,21 @@ on('onClientResourceStart', (resourceName) => {
 });
 
 setTick(() => {
-	sendSdkData({
-		type: 'pos',
-		payload: GetEntityCoords(PlayerPedId()),
-	});
-});
+  const playerPedId = PlayerPedId();
 
-RegisterCommand('sdk:dataRequest', (_, [cmd]) => {
-	switch (cmd) {
-		case 'pos': {
-			return sendSdkData({
-				type: 'pos',
-				payload: GetEntityCoords(GetPlayerPed()),
-			});
-		}
-	}
+	sendSdkData({
+		type: 'fxdk:data',
+		data: [
+      {
+        key: 'player_ped_pos',
+        value: GetEntityCoords(playerPedId),
+      },
+      {
+        key: 'player_ped_rot',
+        value: GetEntityRotation(playerPedId, 2),
+      },
+    ],
+	});
 });
 
 RegisterCommand('sdk:ackConnected', () => {
