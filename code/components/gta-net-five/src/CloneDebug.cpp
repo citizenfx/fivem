@@ -328,7 +328,7 @@ static TSyncLog TraverseSyncTree(TSyncLog* old, int oldId, rage::netSyncTree* sy
 
 #include <array>
 
-void DirtyNode(void* object, void* node);
+void DirtyNode(rage::netObject* object, rage::netSyncDataNodeBase* node);
 
 namespace rage
 {
@@ -352,6 +352,7 @@ struct NetObjectNodeData
 	uint32_t lastChange;
 	uint32_t lastAck;
 	uint32_t lastResend;
+	bool manuallyDirtied = false;
 
 	NetObjectNodeData()
 	{
@@ -471,8 +472,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 		sizeLength = 11;
 	}
 
+	std::set<rage::netSyncDataNodeBase*> processedNodes;
+
 	// callback
-	auto nodeWriter = [sizeLength](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	auto nodeWriter = [sizeLength, &processedNodes](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		auto buffer = state.buffer;
 		bool didWrite = false;
@@ -481,7 +484,6 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 		{
 			// save position to allow rewinding
 			auto startPos = buffer->GetPosition();
-			bool nodeDidChange = false;
 
 			if (state.pass == 2)
 			{
@@ -509,34 +511,86 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
-				if (state.pass == 1)
+				// throttle sends by waiting for the requested node delay
+				uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
+
+				if (state.pass == 1 && lastChangeDelta > nodeSyncDelay)
 				{
-					// calculate node change state
-					std::array<uint8_t, 1024> tempData;
-					memset(tempData.data(), 0, tempData.size());
-
-					rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
-					node->WriteObject(state.object, &tempBuf, state.logger, true);
-
-					if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
+					auto updateNode = [&state, &processedNodes, sizeLength](rage::netSyncDataNodeBase* dataNode, bool force) -> bool
 					{
-						// throttle sends by waiting for the requested node delay
-						uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
+						auto nodeData = &g_syncData[state.object->objectId].nodes[dataNode];
 
-						if (lastChangeDelta > nodeSyncDelay)
+						if (processedNodes.find(dataNode) != processedNodes.end())
+						{
+							return nodeData->lastChange == state.time || force;
+						}
+
+						// calculate node change state
+						std::array<uint8_t, 1024> tempData;
+						memset(tempData.data(), 0, tempData.size());
+
+						rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
+						dataNode->WriteObject(state.object, &tempBuf, state.logger, true);
+
+						if (force || memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
 						{
 							nodeData->lastResend = 0;
 							nodeData->lastChange = state.time;
 							nodeData->lastData = tempData;
 							nodeData->currentData = { tempData, tempBuf.m_curBit };
 
-							nodeDidChange = true;
+							return true;
 						}
+
+						processedNodes.insert(dataNode);
+
+						return false;
+					};
+
+					auto dataNode = (rage::netSyncDataNodeBase*)node;
+
+					static_assert(offsetof(rage::netSyncDataNodeBase, externalDependentNodeRoot) == 0x50, "parentData off");
+
+					// if we are a data node, we will have to ensure external-dependent nodes are sent as a bundle at all times
+					// this means:
+					// 1. trace up to the root of the external-dependent node tree.
+					// 2. from this point, *recursively* dirty all children, for we are dirty as well.
+					//
+					// the original implementation here did not take rage::netSyncTree::Update nor rage::AddNodeAndExternalDependentNodes as a reference
+					// and wasn't tracing up to the root of the external-dependent node tree, nor did it recursively dirty children.
+
+					if (dataNode->externalDependentNodeRoot || dataNode->externalDependencyCount > 0)
+					{
+						auto rootNode = dataNode;
+
+						while (rootNode->externalDependentNodeRoot)
+						{
+							rootNode = rootNode->externalDependentNodeRoot;
+						}
+
+						if (rootNode)
+						{
+							rage::netSyncDataNodeBase* children[16];
+							size_t childCount = 0;
+
+							AddNodeAndExternalDependentNodes(rootNode, children, &childCount, std::size(children));
+
+							bool written = false;
+
+							for (int child = 0; child < childCount; child++)
+							{
+								written |= updateNode(children[child], nodeData->manuallyDirtied || written);
+							}
+						}
+					}
+					else
+					{
+						updateNode(dataNode, nodeData->manuallyDirtied);
 					}
 				}
 
 				// resend skipping is broken, perhaps?
-				bool isResendSkipped = false; //((state.time - nodeData->lastResend) < 150);
+				bool isResendSkipped = false;//((state.time - nodeData->lastResend) < 150);
 
 				if (state.pass == 2)
 				{
@@ -599,44 +653,6 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			else
 			{
 				state.wroteAny = true;
-
-				if (nodeDidChange && node->IsDataNode())
-				{
-					auto dataNode = (rage::netSyncDataNodeBase*)node;
-
-					static_assert(offsetof(rage::netSyncDataNodeBase, externalDependentNodeRoot) == 0x50, "parentData off");
-
-					// if we are a data node, we will have to ensure external-dependent nodes are sent as a bundle at all times
-					// this means:
-					// 1. trace up to the root of the external-dependent node tree.
-					// 2. from this point, *recursively* dirty all children, for we are dirty as well.
-					//
-					// the original implementation here did not take rage::netSyncTree::Update nor rage::AddNodeAndExternalDependentNodes as a reference
-					// and wasn't tracing up to the root of the external-dependent node tree, nor did it recursively dirty children.
-
-					if (dataNode->externalDependentNodeRoot || dataNode->externalDependencyCount > 0)
-					{
-						auto rootNode = dataNode;
-
-						while (rootNode->externalDependentNodeRoot)
-						{
-							rootNode = rootNode->externalDependentNodeRoot;
-						}
-
-						if (rootNode)
-						{
-							rage::netSyncDataNodeBase* children[16];
-							size_t childCount = 0;
-
-							AddNodeAndExternalDependentNodes(rootNode, children, &childCount, std::size(children));
-
-							for (int child = 0; child < childCount; child++)
-							{
-								DirtyNode(state.object, children[child]);
-							}
-						}
-					}
-				}
 
 				if (state.object)
 				{
@@ -848,13 +864,15 @@ void RenderNetDrilldownWindow()
 	ImGui::End();
 }
 
-extern uint32_t* rage__s_NetworkTimeLastFrameStart;
+extern uint32_t* rage__s_NetworkTimeThisFrameStart;
 
-void DirtyNode(void* object, void* node)
+void DirtyNode(rage::netObject* object, rage::netSyncDataNodeBase* node)
 {
 	auto& nodeData = rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node];
-	nodeData.lastChange = *rage__s_NetworkTimeLastFrameStart;
+	nodeData.lastChange = *rage__s_NetworkTimeThisFrameStart;
+	nodeData.lastAck = 0;
 	nodeData.lastResend = 0;
+	nodeData.manuallyDirtied = true;
 }
 
 static bool g_captureSyncLog;

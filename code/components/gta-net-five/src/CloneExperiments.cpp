@@ -2153,9 +2153,14 @@ static void UpdateSyncDataOn108Stub(void* node, void* object)
 
 static void(*g_origManuallyDirtyNode)(void* node, void* object);
 
-extern void DirtyNode(void* object, void* node);
+namespace rage
+{
+class netSyncDataNodeBase;
+}
 
-static void ManuallyDirtyNodeStub(void* node, void* object)
+extern void DirtyNode(rage::netObject* object, rage::netSyncDataNodeBase* node);
+
+static void ManuallyDirtyNodeStub(rage::netSyncDataNodeBase* node, rage::netObject* object)
 {
 	if (!icgi->OneSyncEnabled)
 	{
@@ -2168,7 +2173,7 @@ static void ManuallyDirtyNodeStub(void* node, void* object)
 
 static void(*g_orig_netSyncDataNode_ForceSend)(void* node, int actFlag1, int actFlag2, rage::netObject* object);
 
-static void netSyncDataNode_ForceSendStub(void* node, int actFlag1, int actFlag2, rage::netObject* object)
+static void netSyncDataNode_ForceSendStub(rage::netSyncDataNodeBase* node, int actFlag1, int actFlag2, rage::netObject* object)
 {
 	if (!icgi->OneSyncEnabled)
 	{
@@ -2182,7 +2187,7 @@ static void netSyncDataNode_ForceSendStub(void* node, int actFlag1, int actFlag2
 
 static void(*g_orig_netSyncDataNode_ForceSendToPlayer)(void* node, int player, int actFlag1, int actFlag2, rage::netObject* object);
 
-static void netSyncDataNode_ForceSendToPlayerStub(void* node, int player, int actFlag1, int actFlag2, rage::netObject* object)
+static void netSyncDataNode_ForceSendToPlayerStub(rage::netSyncDataNodeBase* node, int player, int actFlag1, int actFlag2, rage::netObject* object)
 {
 	if (!icgi->OneSyncEnabled)
 	{
