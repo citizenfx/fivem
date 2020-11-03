@@ -177,7 +177,22 @@ static InitFunction initFunction([] ()
 				{
 					if (nfn == entry)
 					{
-						return "common:/data/gameconfig.xml";
+						auto files = mdComponent->GlobEntriesVector("file");
+						bool isFile = false;
+
+						for (auto& fileEntry : files)
+						{
+							if (nfn == fileEntry)
+							{
+								isFile = true;
+								break;
+							}
+						}
+
+						if (!isFile)
+						{
+							return "common:/data/gameconfig.xml";
+						}
 					}
 				}
 
