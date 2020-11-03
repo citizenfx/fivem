@@ -39,6 +39,11 @@ static hook::cdecl_stub<bool(void*, bool)> _netBuffer_WriteBit([]()
 	return hook::get_pattern("F6 43 1C 01 75 5E", -0xF);
 });
 
+static hook::cdecl_stub<bool(void*, const void* src, size_t length, size_t srcOffset)> _netBuffer_WriteBits([]()
+{
+	return hook::get_pattern("48 8B D9 75 44 8B 49 10", -0x14);
+});
+
 static hook::cdecl_stub<bool(void*, uint32_t*, int)> _netBuffer_ReadInteger([]()
 {
 	return hook::get_pattern("8B 44 24 30 8B D6 48 8B CB 89 07 E8", -0x50);
@@ -115,6 +120,11 @@ namespace rage
 	bool datBitBuffer::WriteBit(bool bit)
 	{
 		return _netBuffer_WriteBit(this, bit);
+	}
+
+	bool datBitBuffer::WriteBits(const void* src, size_t length, size_t srcOffset)
+	{
+		return _netBuffer_WriteBits(this, src, length, srcOffset);
 	}
 }
 

@@ -52,6 +52,8 @@ public:
 
 	bool WriteBit(bool bit);
 
+	bool WriteBits(const void* src, size_t length, size_t srcOffset);
+
 public:
 	void* m_data;
 	uint32_t m_f8;

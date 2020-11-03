@@ -348,6 +348,7 @@ struct WriteTreeState
 struct NetObjectNodeData
 {
 	std::array<uint8_t, 1024> lastData;
+	std::tuple<std::array<uint8_t, 1024>, int> currentData;
 	uint32_t lastChange;
 	uint32_t lastAck;
 	uint32_t lastResend;
@@ -515,8 +516,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					memset(tempData.data(), 0, tempData.size());
 
 					rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
-
-					node->WriteObject(state.object, &tempBuf, nullptr, true);
+					node->WriteObject(state.object, &tempBuf, state.logger, true);
 
 					if (memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
 					{
@@ -528,9 +528,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 							nodeData->lastResend = 0;
 							nodeData->lastChange = state.time;
 							nodeData->lastData = tempData;
-						}
+							nodeData->currentData = { tempData, tempBuf.m_curBit };
 
-						nodeDidChange = true;
+							nodeDidChange = true;
+						}
 					}
 				}
 
@@ -573,7 +574,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				{
 					if (state.pass == 2)
 					{
-						node->WriteObject(state.object, buffer, state.logger, false);
+						buffer->WriteBits(std::get<0>(nodeData->currentData).data(), std::get<1>(nodeData->currentData), 0);
 					}
 
 					didWrite = true;
@@ -847,10 +848,12 @@ void RenderNetDrilldownWindow()
 	ImGui::End();
 }
 
+extern uint32_t* rage__s_NetworkTimeLastFrameStart;
+
 void DirtyNode(void* object, void* node)
 {
 	auto& nodeData = rage::g_syncData[((rage::netObject*)object)->objectId].nodes[(rage::netSyncNodeBase*)node];
-	nodeData.lastChange = rage::netInterface_queryFunctions::GetInstance()->GetTimestamp();
+	nodeData.lastChange = *rage__s_NetworkTimeLastFrameStart;
 	nodeData.lastResend = 0;
 }
 
