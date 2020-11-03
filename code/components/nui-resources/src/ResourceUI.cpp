@@ -134,7 +134,7 @@ static InitFunction initFunction([] ()
 {
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
-		nui::SetResourceLookupFunction([manager](const std::string& resourceName)
+		nui::SetResourceLookupFunction([manager](const std::string& resourceName, const std::string& fileName) -> std::string
 		{
 			auto resource = manager->GetResource(resourceName);
 
@@ -147,10 +147,44 @@ static InitFunction initFunction([] ()
 					path += "/";
 				}
 
-				return path;
+				// check if it's a client script of any sorts
+				std::stringstream normalFileName;
+				char lastC = '/';
+
+				for (size_t i = 0; i < fileName.length(); i++)
+				{
+					char c = fileName[i];
+
+					if (c != '/' || lastC != '/')
+					{
+						normalFileName << c;
+					}
+
+					lastC = c;
+				}
+
+				auto nfn = normalFileName.str();
+
+				auto mdComponent = resource->GetComponent<fx::ResourceMetaDataComponent>();
+				bool valid = false;
+
+				if (nfn == "__resource.lua" || nfn == "fxmanifest.lua")
+				{
+					return "common:/data/gameconfig.xml";
+				}
+				
+				for (auto& entry : mdComponent->GlobEntriesVector("client_script"))
+				{
+					if (nfn == entry)
+					{
+						return "common:/data/gameconfig.xml";
+					}
+				}
+
+				return path + fileName;
 			}
 
-			return fmt::sprintf("resources:/%s/", resourceName);
+			return fmt::sprintf("resources:/%s/%s", resourceName, fileName);
 		});
 	});
 

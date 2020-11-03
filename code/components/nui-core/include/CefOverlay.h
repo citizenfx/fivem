@@ -358,7 +358,7 @@ namespace nui
 
 	OVERLAY_DECL void SetAudioSink(IAudioSink* sinkRef);
 
-	using TResourceLookupFn = std::function<std::string(const std::string&)>;
+	using TResourceLookupFn = std::function<std::string(const std::string&, const std::string&)>;
 
 	OVERLAY_DECL void SetResourceLookupFunction(const TResourceLookupFn& fn);
 }

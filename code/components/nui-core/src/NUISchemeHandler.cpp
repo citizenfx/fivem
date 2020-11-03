@@ -98,15 +98,14 @@ public:
 
 			if (g_resourceLookupFunc)
 			{
-				filename_ = g_resourceLookupFunc(ToNarrow(hostname));
+				filename_ = g_resourceLookupFunc(ToNarrow(hostname), ToNarrow(path));
 			}
 			else
 			{
 				filename_ = "resources:/";
 				filename_ += converter.to_bytes(hostname) + "/";
+				filename_ += converter.to_bytes(path);
 			}
-
-			filename_ += converter.to_bytes(path);
 		}
 
 		// remove # parts
