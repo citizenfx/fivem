@@ -1409,9 +1409,7 @@ int Lua_LoadNative(lua_State* L)
 		runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
 	}
 
-#ifndef GTA_FIVE
 	if (isCfxv2)
-#endif
 	{
 		auto nativeImpl = Lua_GetNative(L, fn);
 
