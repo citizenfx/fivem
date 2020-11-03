@@ -381,6 +381,13 @@ static InitFunction initFunction([]()
 					resourceList.insert({ resource->GetName(), resource });
 				});
 
+				if (resourceList.size() < 2)
+				{
+					ImGui::EndTable();
+					ImGui::End();
+					return;
+				}
+
 				auto avgScriptTime = scriptFrameMetrics.GetAverage();
 				double avgScriptMs = (avgScriptTime.count() / 1000.0);
 
