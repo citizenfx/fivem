@@ -2,16 +2,17 @@
   "name": "markdown-language-features",
   "displayName": "Markdown Language Features (built-in)",
   "description": "Provides rich language support for Markdown.",
-  "version": "1.39.1",
+  "version": "1.50.1",
   "icon": "icon.png",
   "publisher": "vscode",
   "enableProposedApi": true,
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
   "engines": {
     "vscode": "^1.20.0"
   },
   "main": "./dist/extension",
+  "browser": "./dist/browser/extension",
   "categories": [
     "Programming Languages"
   ],
@@ -25,7 +26,8 @@
     "onCommand:markdown.showSource",
     "onCommand:markdown.showPreviewSecuritySelector",
     "onCommand:markdown.api.render",
-    "onWebviewPanel:markdown.preview"
+    "onWebviewPanel:markdown.preview",
+    "onCustomEditor:vscode.markdown.preview.editor"
   ],
   "contributes": {
     "commands": [
@@ -42,28 +44,19 @@
         "command": "markdown.showPreviewToSide",
         "title": "%markdown.previewSide.title%",
         "category": "Markdown",
-        "icon": {
-          "light": "./media/preview-right-light.svg",
-          "dark": "./media/preview-right-dark.svg"
-        }
+        "icon": "$(open-preview)"
       },
       {
         "command": "markdown.showLockedPreviewToSide",
         "title": "%markdown.showLockedPreviewToSide.title%",
         "category": "Markdown",
-        "icon": {
-          "light": "./media/preview-right-light.svg",
-          "dark": "./media/preview-right-dark.svg"
-        }
+        "icon": "$(open-preview)"
       },
       {
         "command": "markdown.showSource",
         "title": "%markdown.showSource.title%",
         "category": "Markdown",
-        "icon": {
-          "light": "./media/view-source-light.svg",
-          "dark": "./media/view-source-dark.svg"
-        }
+        "icon": "$(go-to-file)"
       },
       {
         "command": "markdown.showPreviewSecuritySelector",
@@ -85,7 +78,7 @@
       "editor/title": [
         {
           "command": "markdown.showPreviewToSide",
-          "when": "editorLangId == markdown",
+          "when": "editorLangId == markdown && !notebookEditorFocused",
           "alt": "markdown.showPreview",
           "group": "navigation"
         },
@@ -121,23 +114,23 @@
         {
           "command": "markdown.showPreview",
           "when": "resourceLangId == markdown",
-          "group": "navigation"
+          "group": "1_open"
         }
       ],
       "commandPalette": [
         {
           "command": "markdown.showPreview",
-          "when": "editorLangId == markdown",
+          "when": "editorLangId == markdown && !notebookEditorFocused",
           "group": "navigation"
         },
         {
           "command": "markdown.showPreviewToSide",
-          "when": "editorLangId == markdown",
+          "when": "editorLangId == markdown && !notebookEditorFocused",
           "group": "navigation"
         },
         {
           "command": "markdown.showLockedPreviewToSide",
-          "when": "editorLangId == markdown",
+          "when": "editorLangId == markdown && !notebookEditorFocused",
           "group": "navigation"
         },
         {
@@ -147,7 +140,7 @@
         },
         {
           "command": "markdown.showPreviewSecuritySelector",
-          "when": "editorLangId == markdown"
+          "when": "editorLangId == markdown && !notebookEditorFocused"
         },
         {
           "command": "markdown.showPreviewSecuritySelector",
@@ -159,7 +152,7 @@
         },
         {
           "command": "markdown.preview.refresh",
-          "when": "editorLangId == markdown"
+          "when": "editorLangId == markdown && !notebookEditorFocused"
         },
         {
           "command": "markdown.preview.refresh",
@@ -172,13 +165,13 @@
         "command": "markdown.showPreview",
         "key": "shift+ctrl+v",
         "mac": "shift+cmd+v",
-        "when": "editorLangId == markdown"
+        "when": "editorLangId == markdown && !notebookEditorFocused"
       },
       {
         "command": "markdown.showPreviewToSide",
         "key": "ctrl+k v",
         "mac": "cmd+k v",
-        "when": "editorLangId == markdown"
+        "when": "editorLangId == markdown && !notebookEditorFocused"
       }
     ],
     "configuration": {
@@ -209,7 +202,7 @@
         },
         "markdown.preview.fontFamily": {
           "type": "string",
-          "default": "-apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif",
+          "default": "-apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif",
           "description": "%markdown.preview.fontFamily.desc%",
           "scope": "resource"
         },
@@ -307,29 +300,19 @@
     ],
     "markdown.previewScripts": [
       "./media/index.js"
+    ],
+    "customEditors": [
+      {
+        "viewType": "vscode.markdown.preview.editor",
+        "displayName": "Markdown Preview (Experimental)",
+        "priority": "option",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ]
+      }
     ]
-  },
-  "scripts": {},
-  "dependencies": {
-    "highlight.js": "9.15.8",
-    "markdown-it": "^9.1.0",
-    "markdown-it-front-matter": "^0.1.2",
-    "vscode-extension-telemetry": "0.1.1",
-    "vscode-nls": "^4.0.0"
-  },
-  "devDependencies": {
-    "@types/highlight.js": "9.12.3",
-    "@types/lodash.throttle": "^4.1.3",
-    "@types/markdown-it": "0.0.2",
-    "@types/node": "^10.14.8",
-    "lodash.throttle": "^4.1.1",
-    "mocha-junit-reporter": "^1.17.0",
-    "mocha-multi-reporters": "^1.1.7",
-    "ts-loader": "^4.0.1",
-    "typescript": "^3.3.1",
-    "vscode": "^1.1.10",
-    "webpack": "^4.1.0",
-    "webpack-cli": "^2.0.10"
   },
   "keywords": [
     "Built-in"
@@ -337,5 +320,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/theia-ide/vscode-builtin-extensions"
-  }
+  },
+  "scripts": {}
 }

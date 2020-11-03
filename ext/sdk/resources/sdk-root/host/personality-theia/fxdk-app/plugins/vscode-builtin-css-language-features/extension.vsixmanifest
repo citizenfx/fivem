@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="css-language-features" Version="1.45.1" Publisher="vscode"/>
+    <Identity Language="en-US" Id="css-language-features" Version="1.50.1" Publisher="vscode"/>
     <DisplayName>CSS Language Features (built-in)</DisplayName>
     <Description xml:space="preserve">Provides rich language support for CSS, LESS and SCSS files.</Description>
     <Tags>Built-in,json,css,less,scss</Tags>

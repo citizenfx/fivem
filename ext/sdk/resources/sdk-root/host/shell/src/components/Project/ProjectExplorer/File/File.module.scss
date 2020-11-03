@@ -20,6 +20,9 @@
     color: rgba($fgColor, .5);
   }
 
+  &.active {
+    background-color: rgba($acColor, .25);
+  }
   &.dragging {
     background-color: $acColor;
   }

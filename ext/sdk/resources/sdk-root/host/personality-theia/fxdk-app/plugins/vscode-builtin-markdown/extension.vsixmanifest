@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="markdown" Version="1.44.2" Publisher="vscode"/>
+    <Identity Language="en-US" Id="markdown" Version="1.50.1" Publisher="vscode"/>
     <DisplayName>Markdown Language Basics (built-in)</DisplayName>
     <Description xml:space="preserve">Provides snippets and syntax highlighting for Markdown.</Description>
     <Tags>Built-in,snippet,markdown,Markdown,__ext_md,__ext_mkd,__ext_mdwn,__ext_mdown,__ext_markdown,__ext_markdn,__ext_mdtxt,__ext_mdtext,__ext_workbook</Tags>
@@ -28,7 +28,7 @@
       
       
     </Properties>
-    
+    <License>extension/LICENSE-vscode.txt</License>
     
   </Metadata>
   <Installation>
@@ -37,6 +37,6 @@
   <Dependencies/>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
-    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" /><Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE-vscode.txt" Addressable="true" />
   </Assets>
 </PackageManifest>

@@ -2,7 +2,7 @@
   "name": "json",
   "displayName": "JSON Language Basics (built-in)",
   "description": "Provides syntax highlighting & bracket matching in JSON files.",
-  "version": "1.46.1",
+  "version": "1.50.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {
@@ -46,14 +46,14 @@
           "JSON with Comments"
         ],
         "extensions": [
-          ".hintrc",
-          ".babelrc",
           ".jsonc",
           ".eslintrc",
           ".eslintrc.json",
           ".jsfmtrc",
           ".jshintrc",
-          ".swcrc"
+          ".swcrc",
+          ".hintrc",
+          ".babelrc"
         ],
         "configuration": "./language-configuration.json"
       }

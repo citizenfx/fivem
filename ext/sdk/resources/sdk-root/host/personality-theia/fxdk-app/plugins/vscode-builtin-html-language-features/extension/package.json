@@ -3,7 +3,7 @@
   "name": "html-language-features",
   "displayName": "HTML Language Features (built-in)",
   "description": "Provides rich language support for HTML and Handlebar files",
-  "version": "1.48.0-next.4a1bcdafe9",
+  "version": "1.50.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
@@ -17,7 +17,6 @@
   ],
   "main": "./client/dist/node/htmlClientMain",
   "browser": "./client/dist/browser/htmlClientMain",
-  "scripts": {},
   "categories": [
     "Programming Languages"
   ],
@@ -188,21 +187,13 @@
     "jsonValidation": [
       {
         "fileMatch": "*.html-data.json",
-        "url": "https://raw.githubusercontent.com/Microsoft/vscode-html-languageservice/master/docs/customData.schema.json"
+        "url": "https://raw.githubusercontent.com/microsoft/vscode-html-languageservice/master/docs/customData.schema.json"
       },
       {
         "fileMatch": "package.json",
         "url": "./schemas/package.schema.json"
       }
     ]
-  },
-  "dependencies": {
-    "vscode-extension-telemetry": "0.1.1",
-    "vscode-languageclient": "7.0.0-next.5.1",
-    "vscode-nls": "^4.1.2"
-  },
-  "devDependencies": {
-    "@types/node": "^12.11.7"
   },
   "keywords": [
     "Built-in"
@@ -211,5 +202,5 @@
     "type": "git",
     "url": "https://github.com/theia-ide/vscode-builtin-extensions"
   },
-  "preview": true
+  "scripts": {}
 }

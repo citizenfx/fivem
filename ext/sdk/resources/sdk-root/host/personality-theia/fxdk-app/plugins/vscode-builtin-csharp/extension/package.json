@@ -2,9 +2,9 @@
   "name": "csharp",
   "displayName": "C# Language Basics (built-in)",
   "description": "Provides snippets, syntax highlighting, bracket matching and folding in C# files.",
-  "version": "1.44.2",
+  "version": "1.50.1",
   "publisher": "vscode",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {
     "vscode": "0.10.x"
   },
@@ -35,7 +35,7 @@
     "snippets": [
       {
         "language": "csharp",
-        "path": "./snippets/csharp.json"
+        "path": "./snippets/csharp.code-snippets"
       }
     ]
   },

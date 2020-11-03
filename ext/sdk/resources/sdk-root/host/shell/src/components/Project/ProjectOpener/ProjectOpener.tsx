@@ -37,7 +37,7 @@ export const ProjectOpener = React.memo(() => {
     // No need to show current open porject
     .filter((recentProject) => project?.path !== recentProject.path)
     .map((recentProject) => (
-      <div className={s['recent-project']}>
+      <div key={recentProject.path} className={s['recent-project']}>
         <div className={s.info} onClick={() => openProject(recentProject.path)}>
           <div className={s.name}>
             {recentProject.name}

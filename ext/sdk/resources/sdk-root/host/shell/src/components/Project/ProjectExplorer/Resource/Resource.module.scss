@@ -15,10 +15,10 @@
     &:hover,
     &.active {
       color: $fgColor;
+    }
 
-      .controls {
-        opacity: 1;
-      }
+    &.active {
+      background-color: rgba($acColor, .25);
     }
 
     .name {
@@ -39,21 +39,6 @@
 
           margin-right: $q*2;
         }
-      }
-    }
-
-    .controls {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-
-      display: flex;
-
-      opacity: 0;
-
-      button {
-        height: 100%;
       }
     }
   }

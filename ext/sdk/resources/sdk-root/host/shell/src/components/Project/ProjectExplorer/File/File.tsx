@@ -61,6 +61,7 @@ export const File = React.memo((props: ProjectItemProps) => {
         ref={dragRef}
         items={contextMenuItems}
         className={rootClassName}
+        activeClassName={s.active}
         onClick={handleClick}
       >
         {icon}

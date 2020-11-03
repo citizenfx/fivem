@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="npm" Version="1.44.2" Publisher="vscode"/>
+    <Identity Language="en-US" Id="npm" Version="1.50.1" Publisher="vscode"/>
     <DisplayName>NPM support for VS Code (built-in)</DisplayName>
     <Description xml:space="preserve">Extension to add task support for npm scripts.</Description>
-    <Tags>Built-in,json,ignore,properties,node</Tags>
+    <Tags>Built-in,json,ignore,__ext_npmignore,properties,__ext_npmrc,node</Tags>
     <Categories>Other</Categories>
     <GalleryFlags>Public</GalleryFlags>
     <Badges></Badges>
@@ -28,7 +28,7 @@
       
       
     </Properties>
-    
+    <License>extension/LICENSE-vscode.txt</License>
     <Icon>extension/images/npm_icon.png</Icon>
   </Metadata>
   <Installation>
@@ -37,6 +37,6 @@
   <Dependencies/>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
-    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" /><Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/images/npm_icon.png" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" /><Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE-vscode.txt" Addressable="true" /><Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/images/npm_icon.png" Addressable="true" />
   </Assets>
 </PackageManifest>

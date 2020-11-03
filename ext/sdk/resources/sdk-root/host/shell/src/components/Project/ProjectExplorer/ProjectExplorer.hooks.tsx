@@ -101,7 +101,7 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
         )}
       </>
     );
-  }, [item, directoryCreatorOpen, handleDirectoryCreate]);
+  }, [item, directoryCreatorOpen, fileCreatorOpen, handleDirectoryCreate, handleFileCreate]);
 
   const renderItemChildren = React.useCallback((overrideVisibilityFilter?: VisibilityFilter) => {
     return renderChildren(item.entry, item, overrideVisibilityFilter || options.visibilityFilter);
