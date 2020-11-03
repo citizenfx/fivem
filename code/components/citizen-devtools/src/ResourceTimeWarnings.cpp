@@ -330,7 +330,7 @@ static InitFunction initFunction([]()
 				if ((avgFrameFraction >= 0.5 && avgFrameMs >= 8.33) || wouldBeOver60)
 				{
 					showWarning = true;
-					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts would bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : nullptr);
+					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts would bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "");
 				}
 			}
 
