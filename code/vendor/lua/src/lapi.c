@@ -359,6 +359,17 @@ LUA_API
 #ifdef _MSC_VER
 __forceinline
 #endif
+int
+  lua_uisnil(lua_State* L, int idx)
+{
+	const TValue* val = L->ci->func + idx;
+	return val->tt_ == LUA_TNIL;
+}
+
+LUA_API
+#ifdef _MSC_VER
+__forceinline
+#endif
 	int lua_asserttop(const lua_State* L, int idx) {
 
   const TValue *o = L->ci->func + idx;

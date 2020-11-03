@@ -201,6 +201,8 @@ local function printNative(native)
 	
 	local lIdx = 1
 	local aIdx = 0
+	
+	n = n .. t .. ("const int Ltop = lua_gettop(L);\n")
 
 	for argn, arg in pairs(native.arguments) do
 		if arg.pointer then
@@ -212,7 +214,7 @@ local function printNative(native)
 			
 			aIdx = aIdx + 1
 		else
-			n = n .. t .. ("nCtx.SetArgument(%d, lua_asserttop(L, %d) ? %s : 0); // %s\n"):format(aIdx, aIdx + 1, printTypeGetter(arg, native, lIdx), arg.name)
+			n = n .. t .. ("nCtx.SetArgument(%d, (%d >= Ltop && !lua_uisnil(L, %d)) ? %s : 0); // %s\n"):format(aIdx, aIdx + 1, aIdx + 1, printTypeGetter(arg, native, lIdx), arg.name)
 			
 			lIdx = lIdx + 1
 			

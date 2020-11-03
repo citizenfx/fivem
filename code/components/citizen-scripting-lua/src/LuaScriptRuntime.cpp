@@ -1409,7 +1409,9 @@ int Lua_LoadNative(lua_State* L)
 		runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
 	}
 
+#if !defined(GTA_FIVE) || (LUA_VERSION_NUM == 504)
 	if (isCfxv2)
+#endif
 	{
 		auto nativeImpl = Lua_GetNative(L, fn);
 
@@ -2110,6 +2112,24 @@ struct LuaNativeWrapper
 	}
 };
 
+static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier)
+{
+	// C++ exceptions?
+	if (exceptionCode == 0xE06D7363)
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	// INVOKE_FUNCTION_REFERENCE crashing as top-level is usually related to native state corruption,
+	// we'll likely want to crash on this instead rather than on an assertion down the chain
+	if (identifier == HashString("INVOKE_FUNCTION_REFERENCE"))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
 struct LuaNativeContext
 {
 	NativeContextRaw rawCxt;
@@ -2126,7 +2146,16 @@ struct LuaNativeContext
 
 	LUA_INLINE void Invoke(lua_State* L, uint64_t hash)
 	{
-		nw->handler(&rawCxt);
+		static void* exceptionAddress;
+
+		__try
+		{
+			nw->handler(&rawCxt);
+		}
+		__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, hash))
+		{
+			throw std::exception(va("Error executing native 0x%016llx at address %p.", hash, exceptionAddress));
+		}
 	}
 
 	template<typename TVal>
@@ -2268,6 +2297,7 @@ LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
 	lua_call(L, 1, 1);
 }
 
+#if LUA_VERSION_NUM < 504
 #ifndef IS_FXSERVER
 #include "Natives.h"
 #else
@@ -2280,6 +2310,12 @@ lua_CFunction Lua_GetNative(lua_State* L, const char* name)
 
 	return (it != natives.end()) ? it->second : nullptr;
 }
+#else
+lua_CFunction Lua_GetNative(lua_State* L, const char* name)
+{
+	return nullptr;
+}
+#endif
 
 #if LUA_VERSION_NUM == 504
 // {91A81564-E5F1-4FD6-BC6A-9865A081011D}

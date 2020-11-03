@@ -618,6 +618,7 @@ LUA_API void *lua_valuetouserdata(lua_State *L, TValue o);
 LUA_API int lua_asserttop(const lua_State* L, int count);
 LUA_API lua_Integer lua_utointeger(lua_State* L, int idx);
 LUA_API lua_Number lua_utonumber(lua_State* L, int idx);
+LUA_API int lua_uisnil(lua_State* L, int idx);
 
 /*
 ** internal dbg
