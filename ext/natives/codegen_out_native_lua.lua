@@ -214,7 +214,7 @@ local function printNative(native)
 			
 			aIdx = aIdx + 1
 		else
-			n = n .. t .. ("nCtx.SetArgument(%d, (%d >= Ltop && !lua_uisnil(L, %d)) ? %s : 0); // %s\n"):format(aIdx, aIdx + 1, aIdx + 1, printTypeGetter(arg, native, lIdx), arg.name)
+			n = n .. t .. ("nCtx.SetArgument(%d, (%d <= Ltop && !lua_uisnil(L, %d)) ? %s : 0); // %s\n"):format(aIdx, aIdx + 1, aIdx + 1, printTypeGetter(arg, native, lIdx), arg.name)
 			
 			lIdx = lIdx + 1
 			
