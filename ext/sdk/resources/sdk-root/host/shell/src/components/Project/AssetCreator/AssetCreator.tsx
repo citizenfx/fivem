@@ -21,7 +21,7 @@ const resourceFolderVisibilityFilter = combineVisibilityFilters(
   visibilityFilters.hideDotFilesAndDirs,
 );
 
-export const AssetCreator = React.memo(() => {
+export const AssetCreator = React.memo(function AssetCreator() {
   const { project, assetCreatorDir, closeAssetCreator } = React.useContext(ProjectContext);
 
   invariant(project, `AssetCreator has been rendered without project set`);

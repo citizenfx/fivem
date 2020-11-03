@@ -46,7 +46,7 @@ export const ServerContext = React.createContext<ServerContext>({
   installUpdate: () => {},
 });
 
-export const ServerContextProvider = React.memo(({ children }) => {
+export const ServerContextProvider = React.memo(function ServerContextProvider({ children }) {
   const { project, projectResources } = React.useContext(ProjectContext);
   const { gameLaunched } = React.useContext(StateContext);
 

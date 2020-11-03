@@ -11,7 +11,7 @@ export interface ModalProps {
   children: React.ReactNode,
 }
 
-export const Modal = React.memo(({ children, onClose = noop }: ModalProps) => {
+export const Modal = React.memo(function Modal({ children, onClose = noop }: ModalProps) {
   const [modalOutlet, setModalOutlet] = React.useState<HTMLElement | null>(null);
 
   React.useLayoutEffect(() => {

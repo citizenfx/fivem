@@ -84,7 +84,7 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
     }
   }, [item, closeFileCreator]);
 
-  const renderItemControls = React.useCallback(() => {
+  const renderItemControls = React.useCallback(function $RenderItemControls() {
     return (
       <>
         {directoryCreatorOpen && (
@@ -103,7 +103,7 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
     );
   }, [item, directoryCreatorOpen, fileCreatorOpen, handleDirectoryCreate, handleFileCreate]);
 
-  const renderItemChildren = React.useCallback((overrideVisibilityFilter?: VisibilityFilter) => {
+  const renderItemChildren = React.useCallback(function $RenderItemChildren(overrideVisibilityFilter?: VisibilityFilter) {
     return renderChildren(item.entry, item, overrideVisibilityFilter || options.visibilityFilter);
   }, [item, options.visibilityFilter]);
 

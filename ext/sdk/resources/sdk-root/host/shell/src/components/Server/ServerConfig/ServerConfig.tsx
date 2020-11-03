@@ -34,7 +34,7 @@ export interface ServerConfigProps {
   onClose: () => void,
 }
 
-export const ServerConfig = React.memo(({ onClose }: ServerConfigProps) => {
+export const ServerConfig = React.memo(function ServerConfig({ onClose }: ServerConfigProps) {
   const { project } = React.useContext(ProjectContext);
   invariant(project, 'No project');
 

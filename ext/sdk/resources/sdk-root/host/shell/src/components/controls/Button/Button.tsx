@@ -20,7 +20,7 @@ export interface ButtonProps {
   tabIndex?: number,
 }
 
-export const Button = React.memo((props: ButtonProps) => {
+export const Button = React.memo(function Button(props: ButtonProps) {
   const {
     text = null,
     icon = null,

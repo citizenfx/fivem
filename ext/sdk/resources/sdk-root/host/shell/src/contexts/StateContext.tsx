@@ -36,7 +36,7 @@ const defaultState: StateContext = {
 
 export const StateContext = React.createContext<StateContext>(defaultState);
 
-export const StateContextProvider = React.memo(({ children }) => {
+export const StateContextProvider = React.memo(function StateContextProvider({ children }) {
   const [state, setState] = React.useState<States>(defaultState.state);
   const [gameLaunched, setGameLaunched] = React.useState(defaultState.gameLaunched);
   const [toolbarOpen, openToolbar, closeToolbar] = useOpenFlag(defaultState.toolbarOpen);

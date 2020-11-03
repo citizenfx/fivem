@@ -24,7 +24,7 @@ export const TheiaContext = React.createContext<TheiaState>({
   sendTheiaMessage: () => { console.error('Theia is not initialized yet') },
 });
 
-export const TheiaContextProvider = React.memo(({ children }) => {
+export const TheiaContextProvider = React.memo(function TheiaContextProvider({ children }) {
   const [theiaIsReady, setTheiaIsReady] = React.useState(false);
 
   const sendTheiaMessage = React.useCallback((message: any) => {

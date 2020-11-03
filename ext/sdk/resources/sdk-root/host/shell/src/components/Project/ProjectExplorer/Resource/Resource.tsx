@@ -30,7 +30,7 @@ export interface ResourceProps {
   path: string,
 };
 
-export const Resource = React.memo((props: ProjectItemProps) => {
+export const Resource = React.memo(function Resource(props: ProjectItemProps) {
   const { entry, project, projectResources } = props;
   const projectResource = projectResources[entry.path];
 

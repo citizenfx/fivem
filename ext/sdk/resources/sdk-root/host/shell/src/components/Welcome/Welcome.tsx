@@ -2,11 +2,10 @@ import React from 'react';
 import classnames from 'classnames';
 import { ProjectContext } from '../../contexts/ProjectContext';
 import { Button } from '../controls/Button/Button';
-
 import s from './Welcome.module.scss';
 
 
-export const Welcome = React.memo(() => {
+export const Welcome = React.memo(function Welcome() {
   const { openCreator, openOpener } = React.useContext(ProjectContext);
 
   return (

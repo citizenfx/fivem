@@ -10,7 +10,7 @@ import { States } from '../../sdkApi/api.types';
 import s from './Toolbar.module.scss';
 
 
-export const Toolbar = React.memo(() => {
+export const Toolbar = React.memo(function Toolbar() {
   const { state, toolbarOpen, openToolbar, closeToolbar } = React.useContext(StateContext);
   const { openCreator, openOpener, creatorOpen, openerOpen } = React.useContext(ProjectContext);
 

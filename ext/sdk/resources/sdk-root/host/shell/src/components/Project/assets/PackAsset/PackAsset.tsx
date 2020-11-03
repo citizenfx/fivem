@@ -34,7 +34,7 @@ const contextOptions: Partial<ProjectExplorerItemContext> = {
   visibilityFilter,
 };
 
-export const PackAsset = React.memo((props: ProjectItemProps) => {
+export const PackAsset = React.memo(function PackAsset(props: ProjectItemProps) {
   const { entry } = props;
   const { assetMeta } = entry.meta;
 

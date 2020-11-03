@@ -22,7 +22,7 @@ export interface SwitchProps {
   disabled?: boolean,
 }
 
-export const Switch = React.memo((props: SwitchProps) => {
+export const Switch = React.memo(function Switch(props: SwitchProps) {
   const {
     value,
     options,

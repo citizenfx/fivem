@@ -72,7 +72,7 @@ interface ExplorerDirProps extends BaseExplorerProps {
 /**
  * Explorer dir component
  */
-const ExplorerDir = React.memo((props: ExplorerDirProps) => {
+const ExplorerDir = React.memo(function ExplorerDir(props: ExplorerDirProps) {
   const {
     childs,
     childsCache,
@@ -83,15 +83,6 @@ const ExplorerDir = React.memo((props: ExplorerDirProps) => {
     selectableFilter = defaultSelectableFilter,
     visibilityFilter = defaultVisibilityFilter,
   } = props;
-
-  // FIXME: OLD MECHANISM, USE visibilityFilter instead
-  if (dir.isFile && props.hideFiles) {
-    return null;
-  }
-
-  if (!visibilityFilter(dir)) {
-    return null;
-  }
 
   // Open by default if props.open or if selectedPath starts with current dir
   const [open, setOpen] = React.useState(props.open || (selectedPath || '').startsWith(dir.path));
@@ -108,6 +99,15 @@ const ExplorerDir = React.memo((props: ExplorerDirProps) => {
       onSelectPath(dir.path, dir);
     }
   }, [dir, onSelectPath, selectableFilter]);
+
+  // FIXME: OLD MECHANISM, USE visibilityFilter instead
+  if (dir.isFile && props.hideFiles) {
+    return null;
+  }
+
+  if (!visibilityFilter(dir)) {
+    return null;
+  }
 
   const childsNodes = childs
     ? childs.map((childDir) => (
@@ -147,7 +147,7 @@ export interface ExplorerProps extends BaseExplorerProps {
   basePath: string,
   pathsMap?: FilesystemEntryMap,
 }
-export const Explorer = React.memo((props: ExplorerProps) => {
+export const Explorer = React.memo(function Explorer(props: ExplorerProps) {
   const { basePath, loadAllRecursively = false, pathsMap = {} } = props;
 
   const pathsMapRef = React.useRef<FilesystemEntryMap>(pathsMap);
@@ -220,7 +220,7 @@ export interface RootsExplorerProps extends BaseExplorerProps {
   basePath?: undefined,
   loadAllRecursively?: undefined,
 }
-export const RootsExplorer = React.memo((props: RootsExplorerProps) => {
+export const RootsExplorer = React.memo(function RoosExplorer(props: RootsExplorerProps) {
   const childrensRef = React.useRef({});
   const [updateBeacon, setUpdateBeacon] = React.useState({});
 

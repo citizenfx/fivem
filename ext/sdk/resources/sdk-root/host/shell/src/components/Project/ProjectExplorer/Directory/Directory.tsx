@@ -5,13 +5,10 @@ import { ContextMenu } from '../../../controls/ContextMenu/ContextMenu';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
 import { ProjectItemProps } from '../ProjectExplorer.item';
-import { FilesystemEntry, MoveEntryRequest, Project } from '../../../../sdkApi/api.types';
+import { FilesystemEntry, Project } from '../../../../sdkApi/api.types';
 import { useExpandablePath, useItem, useItemDragAndDrop } from '../ProjectExplorer.hooks';
+import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import s from './Directory.module.scss';
-import { DropTargetMonitor, useDrop } from 'react-dnd';
-import { EntryMoveItem, projectExplorerItemType } from '../ProjectExplorer.itemTypes';
-import { sendApiMessage } from '../../../../utils/api';
-import { projectApi } from '../../../../sdkApi/events';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean, project: Project) => {
@@ -29,7 +26,7 @@ export interface DirectoryProps extends ProjectItemProps {
   icon?: React.ReactNode,
 }
 
-export const Directory = React.memo((props: DirectoryProps) => {
+export const Directory = React.memo(function Directory(props: DirectoryProps) {
   const { entry, project, pathsMap } = props;
   const { icon } = props;
 

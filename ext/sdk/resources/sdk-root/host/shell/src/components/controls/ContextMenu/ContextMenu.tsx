@@ -33,7 +33,7 @@ interface Coords {
   left: number,
 }
 
-export const ContextMenu = React.forwardRef((props: ContextMenuProps, ref) => {
+export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextMenuProps, ref) {
   const {
     children,
     items,

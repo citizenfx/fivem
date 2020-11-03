@@ -16,7 +16,7 @@ export interface ResourceRenamerProps {
   path: string,
 }
 
-export const ResourceRenamer = React.memo(({ name, path, onClose }: ResourceRenamerProps) => {
+export const ResourceRenamer = React.memo(function ResourceRenamer({ name, path, onClose }: ResourceRenamerProps) {
   const [newName, setNewName] = React.useState(name);
 
   const handleRenameResource = React.useCallback(() => {

@@ -8,7 +8,7 @@ export interface FileCreatorProps {
   className: string,
 }
 
-export const FileCreator = React.memo(({ onCreate, className }: FileCreatorProps) => {
+export const FileCreator = React.memo(function FileCreator({ onCreate, className }: FileCreatorProps) {
   const [name, setName] = React.useState('');
 
   const handleChange = React.useCallback((event: ChangeEvent) => {

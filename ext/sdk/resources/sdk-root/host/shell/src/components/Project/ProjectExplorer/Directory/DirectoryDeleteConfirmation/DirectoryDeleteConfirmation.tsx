@@ -10,7 +10,7 @@ export interface DirectoryDeleteConfirmationProps {
   onDelete: () => void,
 }
 
-export const DirectoryDeleteConfirmation = React.memo(({ path, onClose, onDelete }: DirectoryDeleteConfirmationProps) => {
+export const DirectoryDeleteConfirmation = React.memo(function DirectoryDeleteConfirmation({ path, onClose, onDelete }: DirectoryDeleteConfirmationProps) {
   const { project } = React.useContext(ProjectContext);
   const directoryRelativePath = getRelativePath(project?.path || '', path);
 

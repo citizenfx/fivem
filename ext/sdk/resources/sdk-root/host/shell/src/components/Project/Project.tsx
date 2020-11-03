@@ -7,7 +7,7 @@ import { Server } from '../Server/Server';
 import s from './Project.module.scss';
 
 
-export const Project = React.memo(() => {
+export const Project = React.memo(function Project() {
   const {
     project,
     projectResources,

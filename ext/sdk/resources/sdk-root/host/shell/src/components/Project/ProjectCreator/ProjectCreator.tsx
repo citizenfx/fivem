@@ -12,7 +12,7 @@ import { projectApi, errorsApi } from '../../../sdkApi/events';
 import s from './ProjectCreator.module.scss';
 
 
-export const ProjectCreator = React.memo(() => {
+export const ProjectCreator = React.memo(function ProjectCreator() {
   const { creatorOpen, closeCreator } = React.useContext(ProjectContext);
 
   const [name, setName] = React.useState('');

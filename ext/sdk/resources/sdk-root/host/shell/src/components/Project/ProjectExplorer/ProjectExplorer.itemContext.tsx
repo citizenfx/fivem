@@ -47,7 +47,7 @@ export interface ProjectExplorerItemContextProviderProps {
   children: React.ReactNode,
 }
 
-export const ProjectExplorerItemContextProvider = React.memo(({ options, children }: ProjectExplorerItemContextProviderProps) => {
+export const ProjectExplorerItemContextProvider = React.memo(function ProjectExplorerItemContextProvider({ options, children }: ProjectExplorerItemContextProviderProps) {
   const value = {
     ...defaultValues,
     ...options,

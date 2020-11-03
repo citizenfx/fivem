@@ -1,11 +1,10 @@
 import React from 'react';
 import classnames from 'classnames';
 import { TheiaContext } from '../contexts/TheiaContext';
-
-import s from './Theia.module.scss';
 import { StateContext } from '../contexts/StateContext';
 import { ProjectContext } from '../contexts/ProjectContext';
 import { States } from '../sdkApi/api.types';
+import s from './Theia.module.scss';
 
 
 const address = {
@@ -13,7 +12,7 @@ const address = {
   port: parseInt(window.location.port, 10) + 1,
 };
 
-export const TheiaPersonality = React.memo(() => {
+export const TheiaPersonality = React.memo(function TheiaPersonality() {
   const { ref } = React.useContext(TheiaContext);
   const { state, toolbarOpen } = React.useContext(StateContext);
   const { project } = React.useContext(ProjectContext);

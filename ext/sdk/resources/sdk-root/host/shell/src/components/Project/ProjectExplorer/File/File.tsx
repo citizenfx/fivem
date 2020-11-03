@@ -10,12 +10,11 @@ import { useOpenFlag } from '../../../../utils/hooks';
 import { FileRenamer } from './FileRenamer/FileRenamer';
 import { FileDeleter } from './FileDeleter/FileDeleter';
 import s from './File.module.scss';
-import { useDrag } from 'react-dnd';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { useItemDrag } from '../ProjectExplorer.hooks';
 
 
-export const File = React.memo((props: ProjectItemProps) => {
+export const File = React.memo(function File(props: ProjectItemProps) {
   const { entry } = props;
 
   const { openFile } = React.useContext(ProjectContext);

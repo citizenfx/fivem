@@ -5,11 +5,12 @@ import { ServerContext } from '../../contexts/ServerContext';
 import { rotatingRefreshIcon } from '../../constants/icons';
 import { ServerStates, ServerUpdateStates } from '../../sdkApi/api.types';
 import { ProjectContext } from '../../contexts/ProjectContext';
-import s from './Server.module.scss';
 import { useOpenFlag } from '../../utils/hooks';
 import { ServerConfig } from './ServerConfig/ServerConfig';
+import s from './Server.module.scss';
 
-export const Server = React.memo(() => {
+
+export const Server = React.memo(function Server() {
   const { serverState, updateChannelsState, installationState, startServer, stopServer, installUpdate } = React.useContext(ServerContext);
   const { project } = React.useContext(ProjectContext);
 

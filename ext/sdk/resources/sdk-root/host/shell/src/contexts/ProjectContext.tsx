@@ -66,7 +66,7 @@ export const ProjectContext = React.createContext<ProjectContext>({
   openFile: () => { },
 });
 
-export const ProjectContextProvider = React.memo(({ children }) => {
+export const ProjectContextProvider = React.memo(function ProjectContextProvider({ children }) {
   const { state } = React.useContext(StateContext);
   const { theiaIsReady, openProjectInTheia, openFileInTheia } = React.useContext(TheiaContext);
 

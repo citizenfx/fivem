@@ -11,7 +11,7 @@ export interface CheckboxProps {
   className?: string,
 }
 
-export const Checkbox = React.memo((props: CheckboxProps) => {
+export const Checkbox = React.memo(function Checkbox(props: CheckboxProps) {
   const {
     value,
     onChange,

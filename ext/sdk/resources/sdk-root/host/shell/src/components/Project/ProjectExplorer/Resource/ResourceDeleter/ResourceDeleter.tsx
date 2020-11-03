@@ -14,7 +14,7 @@ export interface ResourceDeleterProps {
   path: string,
 }
 
-export const ResourceDeleter = React.memo(({ name, path, onClose }: ResourceDeleterProps) => {
+export const ResourceDeleter = React.memo(function ResourceDeleter({ name, path, onClose }: ResourceDeleterProps) {
   const handleDeleteResource = React.useCallback(() => {
     const request: AssetDeleteRequest = {
       assetPath: path,

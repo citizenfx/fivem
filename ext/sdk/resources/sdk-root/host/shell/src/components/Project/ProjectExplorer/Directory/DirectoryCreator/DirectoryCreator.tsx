@@ -8,7 +8,7 @@ export interface DirectoryCreatorProps {
   className: string,
 }
 
-export const DirectoryCreator = React.memo(({ onCreate, className }: DirectoryCreatorProps) => {
+export const DirectoryCreator = React.memo(function DirectoryCreator({ onCreate, className }: DirectoryCreatorProps) {
   const [name, setName] = React.useState('');
 
   const handleChange = React.useCallback((event: ChangeEvent) => {

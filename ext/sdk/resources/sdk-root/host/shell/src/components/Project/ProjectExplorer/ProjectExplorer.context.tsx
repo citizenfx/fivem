@@ -20,7 +20,7 @@ const defaultValues: ProjectExplorerContext = {
 
 export const ProjectExplorerContext = React.createContext<ProjectExplorerContext>(defaultValues);
 
-export const ProjectExplorerContextProvider = React.memo(({ children }) => {
+export const ProjectExplorerContextProvider = React.memo(function ProjectExplorerContextProvider({ children }) {
   const { project } = React.useContext(ProjectContext);
   const [pathsState, setPathsState] = React.useState<ProjectPathsState>(defaultValues.pathsState);
 

@@ -11,7 +11,7 @@ export interface FileDeleterProps {
   onClose: () => void,
 }
 
-export const FileDeleter = React.memo((props: FileDeleterProps) => {
+export const FileDeleter = React.memo(function FileDeleter(props: FileDeleterProps) {
   const { entry, onClose } = props;
 
   const handleDelete = React.useCallback(() => {

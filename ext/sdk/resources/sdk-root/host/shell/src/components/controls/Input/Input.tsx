@@ -17,7 +17,7 @@ export interface InputProps {
   onSubmit?: () => void,
 }
 
-export const Input = React.memo((props: InputProps) => {
+export const Input = React.memo(function Input(props: InputProps) {
   const {
     label,
     value,

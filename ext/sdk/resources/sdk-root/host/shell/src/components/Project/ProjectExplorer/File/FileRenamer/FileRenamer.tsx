@@ -14,7 +14,7 @@ export interface FileRenamerProps {
   onClose: () => void,
 }
 
-export const FileRenamer = React.memo((props: FileRenamerProps) => {
+export const FileRenamer = React.memo(function FileRenamer(props: FileRenamerProps) {
   const { entry, onClose } = props;
 
   const [newFileName, setNewFileName] = React.useState(entry.name);

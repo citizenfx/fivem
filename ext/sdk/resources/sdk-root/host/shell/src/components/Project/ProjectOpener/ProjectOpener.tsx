@@ -13,7 +13,7 @@ const selectableFilter = (entry: FilesystemEntry): boolean => {
   return !!entry.meta.isFxdkProject;
 };
 
-export const ProjectOpener = React.memo(() => {
+export const ProjectOpener = React.memo(function ProjectOpener() {
   const { project, recentProjects, closeOpener } = React.useContext(ProjectContext);
   const [projectPath, setProjectPath] = React.useState<string>();
 
