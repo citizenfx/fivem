@@ -1,6 +1,6 @@
-local USE_SPLIT_LUA = ...
+local USE_SPLIT_LUA, USE_DOC_LUA = ...
 
-if USE_SPLIT_LUA then
+if USE_SPLIT_LUA or USE_DOC_LUA then
 	if not os.getenv('NATIVES_DIR') or #os.getenv('NATIVES_DIR') < 2 then
 		error('no dir')
 	end
@@ -55,7 +55,9 @@ print("end\n")
 
 print("local Global = setmetatable({}, { __newindex = function(_, n, v)\n\tg[n] = v\n\n\trs(_, n, v)\nend})\n")
 
-print("_ENV = nil\n")
+if not USE_DOC_LUA then
+	print("_ENV = nil\n")
+end
 
 -- functions
 local function printArgumentName(name)
@@ -177,53 +179,120 @@ local function formatCommentedLine(line, indent)
 	return line:gsub('\r\n', '\n'):gsub('\n', '\n-- ' .. indentStr)
 end
 
+local function printLuaType(type)
+	if type.nativeType == 'float' then
+		return 'number'
+	elseif type.nativeType == 'int' or type.nativeType == 'long' then
+		return 'integer'
+	elseif type.nativeType == 'bool' then
+		return 'boolean'
+	end
+
+	return type.nativeType
+end
+
 local function formatDocString(native)
 	local d = parseDocString(native)
 
 	if not d then
-		return ''
+		if USE_DOC_LUA then
+			d = {
+				summary = ''
+			}
+		else
+			return ''
+		end
 	end
 
 	local firstLine, nextLines = d.summary:match("([^\n]+)\n?(.*)")
 
 	if not firstLine then
-		return ''
-	end
-
-	local l = '--- ' .. trim(firstLine) .. "\n"
-
-	for line in nextLines:gmatch("([^\n]+)") do
-		l = l .. '-- ' .. trim(line) .. "\n"
-	end
-
-	if d.hasParams then
-		for _, v in ipairs(d.params) do
-			l = l .. '-- @param ' .. v[1] .. ' ' .. v[2] .. '\n'
+		if not USE_DOC_LUA then
+			return ''
+		else
+			firstLine = ''
+			nextLines = ''
 		end
 	end
 
-	if d.returns then
-		l = l .. '-- @return ' .. formatCommentedLine(d.returns, 2) .. '\n'
+	local l = '--- ' .. trim(firstLine) .. "\n"
+	
+	-- doclua wants `---` stuff
+	local docPrefix = USE_DOC_LUA and '--- ' or '-- '
+
+	for line in nextLines:gmatch("([^\n]+)") do
+		l = l .. docPrefix .. trim(line) .. "\n"
+	end
+
+	if USE_DOC_LUA then
+		-- params
+		local paramToDesc = {}
+		
+		if d.hasParams then
+			for _, v in ipairs(d.params) do
+				paramToDesc[printArgumentName(v[1])] = v[2]
+			end
+		end
+	
+		if native.arguments then
+			for _, v in ipairs(native.arguments) do
+				if not v.pointer or isSinglePointerNative(native) then
+					local an = printArgumentName(v.name)
+					l = l .. docPrefix .. '@param ' .. an .. ' ' .. printLuaType(v.type) .. ' ' .. (paramToDesc[an] and ('@comment ' .. paramToDesc[an]) or '') .. '\n'
+				end
+			end
+		end
+		
+		if native.returns then
+			if d.returns then
+				l = l .. docPrefix .. '@return ' .. printLuaType(native.returns) .. ' @comment ' .. formatCommentedLine(d.returns, 2) .. '\n'
+			else
+				l = l .. docPrefix .. '@return ' .. printLuaType(native.returns) .. '\n'
+			end
+		end
+		
+		if native.arguments then
+			for _, v in ipairs(native.arguments) do
+				if v.pointer then
+					local an = printArgumentName(v.name)
+					l = l .. docPrefix .. '@return ' .. printLuaType(v.type) .. ' ' .. an --[[.. (paramToDesc[an] or '')]] .. '\n'
+				end
+			end
+		end
+	else
+		if d.hasParams then
+			for _, v in ipairs(d.params) do
+				l = l .. docPrefix .. '@param ' .. v[1] .. ' ' .. v[2] .. '\n'
+			end
+		end
+
+		if d.returns then
+			l = l .. docPrefix .. '@return ' .. formatCommentedLine(d.returns, 2) .. '\n'
+		end
 	end
 
 	return l
 end
 
+local idx = 0
+
 local function printNative(native)
 	local str = ""
 
 	local function printThis(name)
-		local str = string.format("%sfunction Global.%s(%s)\n", formatDocString(native), name, printArgumentList(native))
+		local str = string.format("%sfunction %s%s(%s)\n", formatDocString(native), USE_DOC_LUA and '' or 'Global.', name, printArgumentList(native))
 
-		local preCall = ''
-		local postCall = ''
-	
-		if native.returns and native.returns.nativeType == 'object' then
-			preCall = 'msgpack.unpack('
-			postCall = ')'
+		if not USE_DOC_LUA then
+			local preCall = ''
+			local postCall = ''
+		
+			if native.returns and native.returns.nativeType == 'object' then
+				preCall = 'msgpack.unpack('
+				postCall = ')'
+			end
+		
+			str = str .. string.format("\treturn %s_in(%s)%s\n", preCall, printInvocationArguments(native), postCall)
 		end
-	
-		str = str .. string.format("\treturn %s_in(%s)%s\n", preCall, printInvocationArguments(native), postCall)
 	
 		str = str .. "end\n"
 
@@ -242,6 +311,20 @@ local function printNative(native)
 		for _, alias in ipairs(native.aliases) do
 			saveThis(printFunctionName({ name = alias }), printThis(printFunctionName({ name = alias })))
 		end
+	elseif USE_DOC_LUA then
+		local function saveThis(name, str)
+			local f = io.open(('%s/natives_%d.lua'):format(os.getenv('NATIVES_DIR'), math.floor(idx / 100)), 'a')
+			f:write(str)
+			f:close()
+		end
+		
+		saveThis(printFunctionName(native), printThis(printFunctionName(native)))
+
+		for _, alias in ipairs(native.aliases) do
+			saveThis(printFunctionName({ name = alias }), printThis(printFunctionName({ name = alias })))
+		end
+		
+		idx = idx + 1
 	else
 		str = str .. printThis(printFunctionName(native))
 
@@ -255,7 +338,7 @@ end
 
 for _, v in pairs(_natives) do
 	if matchApiSet(v) then
-		if USE_SPLIT_LUA then
+		if USE_SPLIT_LUA or USE_DOC_LUA then
 			printNative(v)
 		else
 			print(printNative(v))
