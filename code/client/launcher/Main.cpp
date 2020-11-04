@@ -423,11 +423,6 @@ int RealMain()
 	LoadLibrary(MakeRelativeCitPath(L"v8.dll").c_str());
 #endif
 
-	if (addDllDirectory)
-	{
-		addDllDirectory(MakeRelativeGamePath(L"").c_str());
-	}
-
 	if (!toolMode)
 	{
 		if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex") == nullptr)

@@ -577,7 +577,14 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 			}
 		}
 
-		return LoadLibraryA(libName);
+		HMODULE hMod = LoadLibraryA(libName);
+
+		if (!hMod)
+		{
+			hMod = LoadLibraryW(MakeRelativeGamePath(ToWide(libName)).c_str());
+		}
+
+		return hMod;
 	});
 
 	exeLoader.SetFunctionResolver([] (HMODULE module, const char* functionName) -> LPVOID
