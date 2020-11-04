@@ -108,7 +108,7 @@ local function printTypeGetter(argument, native, idx)
 	elseif argument.type.nativeType == 'Any*' then
 		argType = 'lua_utointeger(L, ' .. idx .. ')'
 	elseif argument.type.nativeType == 'string' then
-		argType = 'lua_tostring(L, ' .. idx .. ')'
+		argType = '((lua_type(L, ' .. idx .. ') != LUA_TNUMBER || lua_utointeger(L, ' .. idx ..') != 0) ? lua_tostring(L, ' .. idx .. ') : 0)'
 	elseif argument.type.nativeType == 'int' then
 		argType = 'lua_utointeger(L, ' .. idx .. ')'
 	elseif argument.type.nativeType == 'float' then
