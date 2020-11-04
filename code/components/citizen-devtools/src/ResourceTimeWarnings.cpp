@@ -22,6 +22,8 @@
 #include <nutsnbolts.h>
 #endif
 
+DLL_IMPORT ImFont* GetConsoleFontTiny();
+
 using namespace std::chrono_literals;
 
 inline std::chrono::microseconds usec()
@@ -329,8 +331,39 @@ static InitFunction initFunction([]()
 				// 50%, when a frame takes more than 8.33ms (<120 FPS)
 				if ((avgFrameFraction >= 0.5 && avgFrameMs >= 8.33) || wouldBeOver60)
 				{
+					std::vector<std::tuple<uint64_t, std::string>> topEntries;
+
+					for (const auto& [key, metricRef] : metrics)
+					{
+						if (!metricRef)
+						{
+							continue;
+						}
+
+						auto& metric = *metricRef;
+						auto avgTickTime = metric.ticks.GetAverage();
+
+						topEntries.emplace_back(avgTickTime.count(), key);
+					}
+
+					std::sort(topEntries.begin(), topEntries.end());
+
+					std::string topList = "";
+					int c = 0;
+
+					for (auto it = topEntries.rbegin(); it != topEntries.rend(); it++)
+					{
+						if (c >= 3)
+						{
+							break;
+						}
+
+						topList += ((c != 0) ? " " : "") + std::get<1>(*it);
+						c++;
+					}
+
 					showWarning = true;
-					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts would bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "");
+					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\nTop resources: [%s]\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts would bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "", topList);
 				}
 			}
 
@@ -338,12 +371,27 @@ static InitFunction initFunction([]()
 			{
 				std::unique_lock<std::mutex> lock(mutex);
 				
+				if (!resourceTimeWarningShown)
+				{
+					warningLastShown = usec();
+				}
+				
+				// warn again 5 minutes later
+				if ((usec() - warningLastShown) > 300s)
+				{
+					warningLastShown = usec();
+				}
+
 				resourceTimeWarningShown = true;
-				warningLastShown = usec();
 				resourceTimeWarningText = warningText;
 			}
 			else
 			{
+				if (resourceTimeWarningShown && (usec() - warningLastShown) >= 3s && (usec() - warningLastShown) < 20s)
+				{
+					warningLastShown = usec() - 17s;
+				}
+
 				resourceTimeWarningShown = false;
 			}
 		});
@@ -351,13 +399,15 @@ static InitFunction initFunction([]()
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || ((usec() - warningLastShown) < 1s) || taskMgrEnabled;
+		*should = *should || ((usec() - warningLastShown) < 20s) || taskMgrEnabled;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
-		if ((usec() - warningLastShown) < 1s)
+		if ((usec() - warningLastShown) < 20s)
 		{
+			ImGui::PushFont(GetConsoleFontTiny());
+
 			const float DISTANCE = 10.0f;
 			ImVec2 window_pos = ImVec2(ImGui::GetMainViewport()->Pos.x + ImGui::GetIO().DisplaySize.x - DISTANCE, ImGui::GetMainViewport()->Pos.y + ImGui::GetIO().DisplaySize.y - DISTANCE);
 			ImVec2 window_pos_pivot = ImVec2(1.0f, 1.0f);
@@ -373,6 +423,8 @@ static InitFunction initFunction([]()
 				ImGui::Text("Please contact the server owner to resolve this issue.");
 				ImGui::End();
 			}
+
+			ImGui::PopFont();
 		}
 
 		if (taskMgrEnabled)
