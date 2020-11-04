@@ -2,6 +2,8 @@ import { Component, OnInit, Input, OnChanges } from '@angular/core';
 import { ChangelogService } from 'app/changelogs.service';
 import { GameService } from 'app/game.service';
 
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+
 @Component({
 	moduleId: module.id,
 	selector: 'app-changelog-entry',
@@ -13,9 +15,9 @@ export class ChangelogEntryComponent implements OnInit, OnChanges {
 	version = '';
 	lastVersion = '';
 
-	text = '';
+	text: SafeHtml | string = '';
 
-	constructor(private changelog: ChangelogService, private gameService: GameService) {
+	constructor(private changelog: ChangelogService, private gameService: GameService, private sanitizer: DomSanitizer) {
 
 	}
 
@@ -32,7 +34,7 @@ export class ChangelogEntryComponent implements OnInit, OnChanges {
 	private async fetchVersion() {
 		this.lastVersion = this.version;
 
-		this.text = await this.changelog.getVersion(this.version);
+		this.text = this.sanitizer.bypassSecurityTrustHtml(await this.changelog.getVersion(this.version));
 	}
 
 	clickContent(event: MouseEvent) {
