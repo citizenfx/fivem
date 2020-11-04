@@ -679,6 +679,16 @@ fwEvent<const char*, const char*> ConHost::OnInvokeNative;
 fwEvent<> ConHost::OnDrawGui;
 fwEvent<bool*> ConHost::OnShouldDrawGui;
 
+DLL_EXPORT ImFont* GetConsoleFontSmall()
+{
+	return consoleFontSmall;
+}
+
+DLL_EXPORT ImFont* GetConsoleFontTiny()
+{
+	return consoleFontTiny;
+}
+
 // GTA-specific
 #include <Hooking.h>
 
