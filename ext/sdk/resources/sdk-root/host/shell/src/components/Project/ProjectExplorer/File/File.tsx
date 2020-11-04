@@ -1,17 +1,17 @@
 import * as React from 'react';
 import classnames from 'classnames';
-import { ProjectContext } from '../../../../contexts/ProjectContext';
-import { ProjectItemProps } from '../ProjectExplorer.item';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { useOpenFlag } from 'utils/hooks';
+import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
+import { deleteIcon, renameIcon } from 'constants/icons';
 import { getFileIcon } from './File.utils';
-import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
-import { ContextMenu, ContextMenuItemsCollection } from '../../../controls/ContextMenu/ContextMenu';
-import { deleteIcon, renameIcon } from '../../../../constants/icons';
-import { useOpenFlag } from '../../../../utils/hooks';
 import { FileRenamer } from './FileRenamer/FileRenamer';
 import { FileDeleter } from './FileDeleter/FileDeleter';
-import s from './File.module.scss';
+import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { ProjectItemProps } from '../ProjectExplorer.item';
 import { useItemDrag } from '../ProjectExplorer.hooks';
+import s from './File.module.scss';
 
 
 export const File = React.memo(function File(props: ProjectItemProps) {

@@ -1,5 +1,5 @@
+import { combineVisibilityFilters, VisibilityFilter, visibilityFilters } from 'components/Explorer/Explorer';
 import * as React from 'react';
-import { combineVisibilityFilters, VisibilityFilter, visibilityFilters } from '../../Explorer/Explorer';
 
 
 export const ProjectExplorerVisibilityFilter = combineVisibilityFilters(

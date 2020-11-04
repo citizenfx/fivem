@@ -1,13 +1,12 @@
 import React from 'react';
-import * as path from 'path';
-import { sendApiMessage } from '../utils/api';
-import { useApiMessage, useOpenFlag } from '../utils/hooks';
+import { FilesystemEntry, Project, ProjectResources, RecentProject, States } from 'sdkApi/api.types';
+import { projectApi } from 'sdkApi/events';
+import { getProjectResources } from 'sdkApi/utils';
+import { sendApiMessage } from 'utils/api';
+import { useApiMessage, useOpenFlag } from 'utils/hooks';
+import { getFoldersForTheia } from 'utils/project';
 import { StateContext } from './StateContext';
 import { TheiaContext } from './TheiaContext';
-import { getFoldersForTheia } from '../utils/project';
-import { States, Project, ProjectResources, RecentProject, FilesystemEntry } from '../sdkApi/api.types';
-import { projectApi } from '../sdkApi/events';
-import { getProjectResources } from '../sdkApi/utils';
 
 
 export interface ProjectContext {

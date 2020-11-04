@@ -1,11 +1,11 @@
 import React from 'react';
 import classnames from 'classnames';
 import { BsExclamationTriangleFill, BsFillGearFill, BsPlayFill, BsStopFill } from 'react-icons/bs';
-import { ServerContext } from '../../contexts/ServerContext';
-import { rotatingRefreshIcon } from '../../constants/icons';
-import { ServerStates, ServerUpdateStates } from '../../sdkApi/api.types';
-import { ProjectContext } from '../../contexts/ProjectContext';
-import { useOpenFlag } from '../../utils/hooks';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { ServerContext } from 'contexts/ServerContext';
+import { useOpenFlag } from 'utils/hooks';
+import { ServerStates, ServerUpdateStates } from 'sdkApi/api.types';
+import { rotatingRefreshIcon } from 'constants/icons';
 import { ServerConfig } from './ServerConfig/ServerConfig';
 import s from './Server.module.scss';
 

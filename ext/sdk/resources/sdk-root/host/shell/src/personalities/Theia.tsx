@@ -1,9 +1,9 @@
 import React from 'react';
 import classnames from 'classnames';
-import { TheiaContext } from '../contexts/TheiaContext';
-import { StateContext } from '../contexts/StateContext';
-import { ProjectContext } from '../contexts/ProjectContext';
-import { States } from '../sdkApi/api.types';
+import { TheiaContext } from 'contexts/TheiaContext';
+import { StateContext } from 'contexts/StateContext';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { States } from 'sdkApi/api.types';
 import s from './Theia.module.scss';
 
 

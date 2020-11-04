@@ -1,21 +1,21 @@
 import React from 'react';
-import { ProjectContext } from '../../../contexts/ProjectContext';
-import { assetKinds } from '../../../sdkApi/api.types';
-import { projectApi } from '../../../sdkApi/events';
-import { sendApiMessage } from '../../../utils/api';
-import { invariant } from '../../../utils/invariant';
-import { PackAsset } from '../assets/PackAsset/PackAsset';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { assetKinds } from 'sdkApi/api.types';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { invariant } from 'utils/invariant';
+import { sendApiMessage } from 'utils/api';
+import { projectApi } from 'sdkApi/events';
+import { ContextMenu, ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
+import { newDirectoryIcon, newResourceIcon } from 'constants/icons';
 import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
 import { Resource } from './Resource/Resource';
 import { ProjectItemProps, ProjectItemRenderer } from './ProjectExplorer.item';
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
-import { ContextMenu, ContextMenuItem } from '../../controls/ContextMenu/ContextMenu';
-import { newDirectoryIcon, newResourceIcon } from '../../../constants/icons';
+import { PackAsset } from '../assets/PackAsset/PackAsset';
 import s from './ProjectExplorer.module.scss';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
 
 const assetTypeRenderers = {

@@ -1,12 +1,12 @@
 import React from 'react';
 import classnames from 'classnames';
-import { StateContext } from '../../contexts/StateContext';
-import { Project } from '../Project/Project';
-import { ProjectCreator } from '../Project/ProjectCreator/ProjectCreator';
-import { ProjectContext } from '../../contexts/ProjectContext';
-import { ProjectOpener } from '../Project/ProjectOpener/ProjectOpener';
-import { devtoolsIcon, newProjectIcon, openProjectIcon } from '../../constants/icons';
-import { States } from '../../sdkApi/api.types';
+import { StateContext } from 'contexts/StateContext';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { States } from 'sdkApi/api.types';
+import { devtoolsIcon, newProjectIcon, openProjectIcon } from 'constants/icons';
+import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator';
+import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
+import { Project } from 'components/Project/Project';
 import s from './Toolbar.module.scss';
 
 

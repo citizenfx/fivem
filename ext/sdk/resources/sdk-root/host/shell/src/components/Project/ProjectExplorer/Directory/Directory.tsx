@@ -1,17 +1,17 @@
 import React from 'react';
 import classnames from 'classnames';
 import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
-import { ContextMenu } from '../../../controls/ContextMenu/ContextMenu';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
 import { ProjectItemProps } from '../ProjectExplorer.item';
-import { FilesystemEntry, Project } from '../../../../sdkApi/api.types';
 import { useExpandablePath, useItem, useItemDragAndDrop } from '../ProjectExplorer.hooks';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { FilesystemEntry } from 'sdkApi/api.types';
+import { ContextMenu } from 'components/controls/ContextMenu/ContextMenu';
 import s from './Directory.module.scss';
 
 
-const getDirectoryIcon = (entry: FilesystemEntry, open: boolean, project: Project) => {
+const getDirectoryIcon = (entry: FilesystemEntry, open: boolean) => {
   if (entry.meta.assetMeta) {
     return <BsPuzzle />;
   }
@@ -41,14 +41,14 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
     deleteDirectory,
   } = useDirectoryContextMenu(entry.path, project, directoryChildren.length);
 
-  const { contextMenuItems, renderItemControls, renderItemChildren, options } = useItem(props);
+  const { contextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
 
   const contextItems = [
     ...directoryContextMenuItems,
     ...contextMenuItems,
   ];
   const nodes = renderItemChildren();
-  const iconNode = icon || getDirectoryIcon(entry, expanded, project);
+  const iconNode = icon || getDirectoryIcon(entry, expanded);
 
   /**
    * Drag'n'Drop functionality

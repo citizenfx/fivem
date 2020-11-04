@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { fileNamePattern } from '../../../../../constants/patterns';
-import { FilesystemEntry } from '../../../../../sdkApi/api.types';
-import { projectApi } from '../../../../../sdkApi/events';
-import { sendApiMessage } from '../../../../../utils/api';
-import { Button } from '../../../../controls/Button/Button';
-import { Input } from '../../../../controls/Input/Input';
-import { Modal } from '../../../../Modal/Modal';
+import { Button } from 'components/controls/Button/Button';
+import { Input } from 'components/controls/Input/Input';
+import { Modal } from 'components/Modal/Modal';
+import { fileNamePattern } from 'constants/patterns';
+import { FilesystemEntry } from 'sdkApi/api.types';
+import { projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
 import s from './FileRenamer.module.scss';
 
 

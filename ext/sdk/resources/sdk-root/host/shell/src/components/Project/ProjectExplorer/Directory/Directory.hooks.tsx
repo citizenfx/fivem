@@ -1,11 +1,11 @@
 import React from 'react';
-import { deleteIcon, newResourceIcon } from '../../../../constants/icons';
-import { ProjectContext } from '../../../../contexts/ProjectContext';
-import { Project } from '../../../../sdkApi/api.types';
-import { projectApi } from '../../../../sdkApi/events';
-import { sendApiMessage } from '../../../../utils/api';
-import { useOpenFlag } from '../../../../utils/hooks';
-import { ContextMenuItem } from '../../../controls/ContextMenu/ContextMenu';
+import { ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
+import { deleteIcon, newResourceIcon } from 'constants/icons';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { Project } from 'sdkApi/api.types';
+import { projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
+import { useOpenFlag } from 'utils/hooks';
 import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 
 

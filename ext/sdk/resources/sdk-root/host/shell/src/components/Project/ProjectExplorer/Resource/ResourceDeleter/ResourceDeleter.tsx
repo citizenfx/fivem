@@ -1,10 +1,9 @@
 import React from 'react';
-import { AssetDeleteRequest } from '../../../../../sdkApi/api.types';
-import { assetApi } from '../../../../../sdkApi/events';
-import { sendApiMessage } from '../../../../../utils/api';
-import { Button } from '../../../../controls/Button/Button';
-import { Modal } from '../../../../Modal/Modal';
-
+import { Button } from 'components/controls/Button/Button';
+import { Modal } from 'components/Modal/Modal';
+import { AssetDeleteRequest } from 'sdkApi/api.types';
+import { assetApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
 import s from './ResourceDeleter.module.scss';
 
 

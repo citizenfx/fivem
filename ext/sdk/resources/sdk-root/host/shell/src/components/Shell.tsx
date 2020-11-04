@@ -1,11 +1,11 @@
 import React from 'react';
+import { StateContext } from 'contexts/StateContext';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { States } from 'sdkApi/api.types';
+import { sendApiMessage } from 'utils/api';
+import { TheiaPersonality } from 'personalities/Theia';
 import { Toolbar } from './Toolbar/Toolbar';
-import { StateContext } from '../contexts/StateContext';
-import { sendApiMessage } from '../utils/api';
-import { TheiaPersonality } from '../personalities/Theia';
-import { ProjectContext } from '../contexts/ProjectContext';
 import { Welcome } from './Welcome/Welcome';
-import { States } from '../sdkApi/api.types';
 import s from './Shell.module.scss';
 
 

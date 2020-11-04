@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { BiFile } from 'react-icons/bi';
 import { SiJavascript, SiJson, SiLua } from 'react-icons/si';
-import { FilesystemEntry } from "../../../../sdkApi/api.types";
+import { FilesystemEntry } from 'sdkApi/api.types';
 
 export const getFileIcon = (entry: FilesystemEntry): React.ReactNode => {
   const indexOfExtDot = entry.name.lastIndexOf('.');

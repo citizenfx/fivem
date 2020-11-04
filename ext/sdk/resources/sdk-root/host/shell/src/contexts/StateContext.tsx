@@ -1,7 +1,7 @@
 import React from 'react';
-import { DownloadState, States } from '../sdkApi/api.types';
-import { stateApi } from '../sdkApi/events';
-import { useApiMessage, useOpenFlag } from '../utils/hooks';
+import { DownloadState, States } from 'sdkApi/api.types';
+import { stateApi } from 'sdkApi/events';
+import { useApiMessage, useOpenFlag } from 'utils/hooks';
 
 
 export interface StateContext {

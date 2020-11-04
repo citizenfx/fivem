@@ -1,11 +1,11 @@
 import React from 'react';
-import { Modal } from '../../Modal/Modal';
-import { sendApiMessage } from '../../../utils/api';
-import { ProjectContext } from '../../../contexts/ProjectContext';
-import { Button } from '../../controls/Button/Button';
-import { RootsExplorer } from '../../Explorer/Explorer';
-import { FilesystemEntry } from '../../../sdkApi/api.types';
-import { projectApi } from '../../../sdkApi/events';
+import { Button } from 'components/controls/Button/Button';
+import { RootsExplorer } from 'components/Explorer/Explorer';
+import { Modal } from 'components/Modal/Modal';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { FilesystemEntry } from 'sdkApi/api.types';
+import { projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
 import s from './ProjectOpener.module.scss';
 
 

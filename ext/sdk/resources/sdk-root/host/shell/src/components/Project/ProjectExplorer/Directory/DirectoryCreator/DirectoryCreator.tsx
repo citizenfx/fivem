@@ -1,6 +1,6 @@
 import React, { ChangeEvent } from 'react';
-import { newDirectoryIcon } from '../../../../../constants/icons';
-import { directoryNamePattern } from '../../../../../constants/patterns';
+import { newDirectoryIcon } from 'constants/icons';
+import { directoryNamePattern } from 'constants/patterns';
 
 
 export interface DirectoryCreatorProps {

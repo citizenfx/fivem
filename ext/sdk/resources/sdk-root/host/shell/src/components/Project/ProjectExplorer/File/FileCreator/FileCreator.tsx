@@ -1,6 +1,6 @@
 import React, { ChangeEvent } from 'react';
-import { newFileIcon } from '../../../../../constants/icons';
-import { fileNamePattern } from '../../../../../constants/patterns';
+import { newFileIcon } from 'constants/icons';
+import { fileNamePattern } from 'constants/patterns';
 
 
 export interface FileCreatorProps {

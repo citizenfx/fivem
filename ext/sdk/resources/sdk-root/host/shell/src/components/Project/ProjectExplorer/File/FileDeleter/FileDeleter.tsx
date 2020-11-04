@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { FilesystemEntry } from '../../../../../sdkApi/api.types';
-import { projectApi } from '../../../../../sdkApi/events';
-import { sendApiMessage } from '../../../../../utils/api';
-import { Button } from '../../../../controls/Button/Button';
-import { Modal } from '../../../../Modal/Modal';
+import { Button } from 'components/controls/Button/Button';
+import { Modal } from 'components/Modal/Modal';
+import { FilesystemEntry } from 'sdkApi/api.types';
+import { projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
 
 
 export interface FileDeleterProps {

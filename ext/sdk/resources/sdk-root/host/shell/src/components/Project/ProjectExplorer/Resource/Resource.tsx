@@ -1,20 +1,20 @@
 import React from 'react';
 import classnames from 'classnames';
+import { BsCheckBox, BsSquare } from 'react-icons/bs';
+import { FilesystemEntry, ServerStates } from 'sdkApi/api.types';
+import { ServerContext } from 'contexts/ServerContext';
+import { useOpenFlag } from 'utils/hooks';
+import { sendApiMessage } from 'utils/api';
+import { projectApi, serverApi } from 'sdkApi/events';
+import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
+import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
+import { useExpandablePath, useItem, useItemDrop } from '../ProjectExplorer.hooks';
+import { ProjectItemProps, renderChildren } from '../ProjectExplorer.item';
+import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
+import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
-import { useOpenFlag } from '../../../../utils/hooks';
-import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from '../../../controls/ContextMenu/ContextMenu';
-import { sendApiMessage } from '../../../../utils/api';
-import { ProjectItemProps, renderChildren } from '../ProjectExplorer.item';
-import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from '../../../../constants/icons';
-import { ServerContext } from '../../../../contexts/ServerContext';
-import { projectApi, serverApi } from '../../../../sdkApi/events';
-import { FilesystemEntry, ServerStates } from '../../../../sdkApi/api.types';
-import { useExpandablePath, useItem, useItemDrop } from '../ProjectExplorer.hooks';
-import { BsCheckBox, BsSquare } from 'react-icons/bs';
-import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 import s from './Resource.module.scss';
-import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 
 
 const resourceChildrenFilter = (entry: FilesystemEntry) => {

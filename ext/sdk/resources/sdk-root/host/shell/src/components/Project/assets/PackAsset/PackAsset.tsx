@@ -1,16 +1,12 @@
 import React from 'react';
 import classnames from 'classnames';
-import { combineVisibilityFilters, visibilityFilters } from '../../../Explorer/Explorer';
-import { ProjectItemProps } from '../../ProjectExplorer/ProjectExplorer.item';
-import { assetStatus } from '../../../../sdkApi/api.types';
-import { invariant } from '../../../../utils/invariant';
-import { assetIcon, rotatingRefreshIcon } from '../../../../constants/icons';
-import { useExpandablePath, useItem } from '../../ProjectExplorer/ProjectExplorer.hooks';
-import {
-  ProjectExplorerItemContext,
-  ProjectExplorerItemContextProvider,
-  ProjectExplorerVisibilityFilter,
-} from '../../ProjectExplorer/ProjectExplorer.itemContext';
+import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer/Explorer';
+import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider, ProjectExplorerVisibilityFilter } from 'components/Project/ProjectExplorer/ProjectExplorer.itemContext';
+import { ProjectItemProps } from 'components/Project/ProjectExplorer/ProjectExplorer.item';
+import { invariant } from 'utils/invariant';
+import { useExpandablePath, useItem } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
+import { assetStatus } from 'sdkApi/api.types';
+import { assetIcon, rotatingRefreshIcon } from 'constants/icons';
 import s from './PackAsset.module.scss';
 
 

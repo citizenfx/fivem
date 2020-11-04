@@ -1,14 +1,14 @@
 import * as React from 'react';
 import Ansi from 'ansi-to-react';
-import { ProjectContext } from '../../../contexts/ProjectContext';
-import { ServerContext } from '../../../contexts/ServerContext';
-import { ServerUpdateChannel, serverUpdateChannels } from '../../../sdkApi/api.types';
-import { projectApi } from '../../../sdkApi/events';
-import { sendApiMessage } from '../../../utils/api';
-import { invariant } from '../../../utils/invariant';
-import { Button } from '../../controls/Button/Button';
-import { Switch, SwitchOption } from '../../controls/Switch/Switch';
-import { Modal } from '../../Modal/Modal';
+import { Switch, SwitchOption } from 'components/controls/Switch/Switch';
+import { ServerUpdateChannel, serverUpdateChannels } from 'sdkApi/api.types';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { invariant } from 'utils/invariant';
+import { ServerContext } from 'contexts/ServerContext';
+import { projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
+import { Modal } from 'components/Modal/Modal';
+import { Button } from 'components/controls/Button/Button';
 import s from './ServerConfig.module.scss';
 
 

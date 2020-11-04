@@ -1,14 +1,14 @@
 import React from 'react';
-import { resourceNamePattern } from '../../../constants/patterns';
-import { ProjectContext } from '../../../contexts/ProjectContext';
-import { AssetCreateRequest, assetKinds, FilesystemEntry } from '../../../sdkApi/api.types';
-import { assetApi } from '../../../sdkApi/events';
-import { sendApiMessage } from '../../../utils/api';
-import { invariant } from '../../../utils/invariant';
-import { Button } from '../../controls/Button/Button';
-import { Input } from '../../controls/Input/Input';
-import { combineVisibilityFilters, Explorer, getRelativePath, visibilityFilters } from '../../Explorer/Explorer';
-import { Modal } from '../../Modal/Modal';
+import { Button } from 'components/controls/Button/Button';
+import { Input } from 'components/controls/Input/Input';
+import { combineVisibilityFilters, Explorer, getRelativePath, visibilityFilters } from 'components/Explorer/Explorer';
+import { Modal } from 'components/Modal/Modal';
+import { resourceNamePattern } from 'constants/patterns';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { AssetCreateRequest, assetKinds, FilesystemEntry } from 'sdkApi/api.types';
+import { assetApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
+import { invariant } from 'utils/invariant';
 import s from './AssetCreator.module.scss';
 
 
@@ -39,7 +39,6 @@ export const AssetCreator = React.memo(function AssetCreator() {
       const request: AssetCreateRequest = {
         assetName,
         assetPath,
-        projectPath: project.path,
         assetKind: assetKinds.resource,
       };
 

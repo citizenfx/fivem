@@ -1,10 +1,10 @@
 import React from 'react';
-import { ServerInstallationState, ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from '../sdkApi/api.types';
-import { serverApi } from '../sdkApi/events';
-import { getEnabledResourcesPaths } from '../sdkApi/utils';
-import { sendApiMessage } from '../utils/api';
-import { useApiMessage } from '../utils/hooks';
-import { sendCommand } from '../utils/sendCommand';
+import { ServerInstallationState, ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'sdkApi/api.types';
+import { serverApi } from 'sdkApi/events';
+import { getEnabledResourcesPaths } from 'sdkApi/utils';
+import { sendApiMessage } from 'utils/api';
+import { useApiMessage } from 'utils/hooks';
+import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
 import { StateContext } from './StateContext';
 

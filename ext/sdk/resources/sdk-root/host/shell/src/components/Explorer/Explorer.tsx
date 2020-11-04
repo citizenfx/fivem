@@ -1,10 +1,10 @@
 import React from 'react';
 import classnames from 'classnames';
-import { useApiMessage } from '../../utils/hooks';
-import { sendApiMessage } from '../../utils/api';
-import { closedDirectoryIcon, fileIcon, openDirectoryIcon, projectIcon, resourceIcon } from '../../constants/icons';
-import { FilesystemEntry, FilesystemEntryMap } from '../../sdkApi/api.types';
-import { explorerApi } from '../../sdkApi/events';
+import { FilesystemEntry, FilesystemEntryMap } from 'sdkApi/api.types';
+import { closedDirectoryIcon, fileIcon, openDirectoryIcon, projectIcon, resourceIcon } from 'constants/icons';
+import { sendApiMessage } from 'utils/api';
+import { explorerApi } from 'sdkApi/events';
+import { useApiMessage } from 'utils/hooks';
 import s from './Explorer.module.scss';
 
 

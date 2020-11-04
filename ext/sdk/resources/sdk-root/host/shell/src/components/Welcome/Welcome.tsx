@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
-import { ProjectContext } from '../../contexts/ProjectContext';
-import { Button } from '../controls/Button/Button';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { Button } from 'components/controls/Button/Button';
 import s from './Welcome.module.scss';
 
 

@@ -1,4 +1,4 @@
-import { FilesystemEntry, Project } from "../sdkApi/api.types";
+import { FilesystemEntry, Project } from "sdkApi/api.types";
 
 export const filesystemEntryToTheiaResource = (entry: FilesystemEntry): string => {
   return 'file:///' + entry.path.replace('\\', '/');

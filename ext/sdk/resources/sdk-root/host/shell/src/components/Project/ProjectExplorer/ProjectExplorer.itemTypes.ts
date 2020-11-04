@@ -1,4 +1,5 @@
-import { FilesystemEntry } from "../../../sdkApi/api.types";
+import { FilesystemEntry } from "sdkApi/api.types";
+
 
 export const projectExplorerItemType = {
   FILE: 'projectExplorer:file',

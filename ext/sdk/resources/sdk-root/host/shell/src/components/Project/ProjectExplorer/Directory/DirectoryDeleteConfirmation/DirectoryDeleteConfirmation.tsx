@@ -1,8 +1,8 @@
 import React from 'react';
-import { ProjectContext } from '../../../../../contexts/ProjectContext';
-import { Button } from '../../../../controls/Button/Button';
-import { Explorer, getRelativePath } from '../../../../Explorer/Explorer';
-import { Modal } from '../../../../Modal/Modal';
+import { Button } from 'components/controls/Button/Button';
+import { Explorer, getRelativePath } from 'components/Explorer/Explorer';
+import { Modal } from 'components/Modal/Modal';
+import { ProjectContext } from 'contexts/ProjectContext';
 
 export interface DirectoryDeleteConfirmationProps {
   path: string,

@@ -1,9 +1,9 @@
 import React from 'react';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { resourceIcon } from 'constants/icons';
+import { Server } from 'components/Server/Server';
 import { AssetCreator } from './AssetCreator/AssetCreator';
-import { ProjectContext } from '../../contexts/ProjectContext';
 import { ProjectExplorer } from './ProjectExplorer/ProjectExplorer';
-import { projectConfigIcon, resourceIcon } from '../../constants/icons';
-import { Server } from '../Server/Server';
 import s from './Project.module.scss';
 
 

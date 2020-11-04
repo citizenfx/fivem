@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FilesystemEntry, Project, ProjectResources } from '../../../sdkApi/api.types';
+import { FilesystemEntry, Project, ProjectResources } from 'sdkApi/api.types';
 
 export type ProjectItemRenderer = (props: ProjectItemProps) => React.ReactNode;
 

@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { ProjectContext } from '../../../contexts/ProjectContext';
-import { ProjectPathsState } from '../../../sdkApi/api.types';
-import { projectApi } from '../../../sdkApi/events';
-import { sendApiMessage } from '../../../utils/api';
-import { useApiMessage } from '../../../utils/hooks';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { ProjectPathsState } from 'sdkApi/api.types';
+import { projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
+import { useApiMessage } from 'utils/hooks';
 
 
 export interface ProjectExplorerContext {

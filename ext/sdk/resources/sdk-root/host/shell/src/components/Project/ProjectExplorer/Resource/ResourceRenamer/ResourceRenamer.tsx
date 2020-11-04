@@ -1,12 +1,11 @@
 import React from 'react';
-import { resourceNamePattern } from '../../../../../constants/patterns';
-import { AssetRenameRequest } from '../../../../../sdkApi/api.types';
-import { assetApi } from '../../../../../sdkApi/events';
-import { sendApiMessage } from '../../../../../utils/api';
-import { Button } from '../../../../controls/Button/Button';
-import { Input } from '../../../../controls/Input/Input';
-import { Modal } from '../../../../Modal/Modal';
-
+import { Button } from 'components/controls/Button/Button';
+import { Input } from 'components/controls/Input/Input';
+import { Modal } from 'components/Modal/Modal';
+import { resourceNamePattern } from 'constants/patterns';
+import { AssetRenameRequest } from 'sdkApi/api.types';
+import { assetApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
 import s from './ResourceRenamer.module.scss';
 
 

@@ -1,14 +1,14 @@
 import React from 'react';
-import { sendApiMessage } from '../../../utils/api';
-import { useApiMessage } from '../../../utils/hooks';
-import { Button } from '../../controls/Button/Button';
-import { Input } from '../../controls/Input/Input';
-import { RootsExplorer } from '../../Explorer/Explorer';
-import { Modal } from '../../Modal/Modal';
-import { ProjectContext } from '../../../contexts/ProjectContext';
-import { projectNamePattern } from '../../../constants/patterns';
-import { Checkbox } from '../../controls/Checkbox/Checkbox';
-import { projectApi, errorsApi } from '../../../sdkApi/events';
+import { Button } from 'components/controls/Button/Button';
+import { Checkbox } from 'components/controls/Checkbox/Checkbox';
+import { Input } from 'components/controls/Input/Input';
+import { RootsExplorer } from 'components/Explorer/Explorer';
+import { Modal } from 'components/Modal/Modal';
+import { projectNamePattern } from 'constants/patterns';
+import { ProjectContext } from 'contexts/ProjectContext';
+import { errorsApi, projectApi } from 'sdkApi/events';
+import { sendApiMessage } from 'utils/api';
+import { useApiMessage } from 'utils/hooks';
 import s from './ProjectCreator.module.scss';
 
 
