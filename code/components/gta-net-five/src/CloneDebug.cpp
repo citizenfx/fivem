@@ -538,6 +538,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 							nodeData->lastChange = state.time;
 							nodeData->lastData = tempData;
 							nodeData->currentData = { tempData, tempBuf.m_curBit };
+							nodeData->manuallyDirtied = false;
 
 							return true;
 						}
