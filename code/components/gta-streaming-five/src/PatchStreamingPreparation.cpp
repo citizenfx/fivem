@@ -423,6 +423,11 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 
 						std::function<void(uint32_t)> addDependents = [&addDependents, &removeIndices, strMgr](uint32_t strIdx)
 						{
+							if (strIdx == -1)
+							{
+								return;
+							}
+
 							atArray<uint32_t> dependents;
 							strMgr->FindAllDependentsCustomPred(dependents, strIdx, [](const StreamingDataEntry& entry)
 							{
