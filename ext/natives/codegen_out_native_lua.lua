@@ -32,7 +32,9 @@ local function isSafeNative(native)
 	for argn, arg in pairs(native.arguments) do
 		if arg.type.nativeType ~= 'int' and
 		   arg.type.nativeType ~= 'bool' and
-		   arg.type.nativeType ~= 'string' then
+		   arg.type.nativeType ~= 'string' or
+		   (arg.type.name == 'Any' or 
+		    arg.type.name == 'Hash') then
 			safe = false
 		end
 		
