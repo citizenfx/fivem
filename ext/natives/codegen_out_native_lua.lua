@@ -72,7 +72,7 @@ local function parseArgumentType(type, native)
 	local argType
 
 	if type.name == 'Hash' then
-		argType = 'uint32_t'
+		argType = 'int32_t'
 	elseif type.name == 'uint' then
 		argType = 'uint32_t'
 	elseif type.nativeType == 'Any*' then
