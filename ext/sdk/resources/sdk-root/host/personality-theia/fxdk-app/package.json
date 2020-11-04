@@ -60,6 +60,7 @@
   "theiaPluginsDir": "plugins",
   "theiaPlugins": {
     "fxdk-ts-plugin": "http://example.com/fxdk.ts-1.50.1.vsix",
+    "vscode-builtin-xml": "https://open-vsx.org/api/vscode/xml/1.50.1/file/vscode.xml-1.50.1.vsix",
     "vscode-builtin-css": "https://open-vsx.org/api/vscode/css/1.50.1/file/vscode.css-1.50.1.vsix",
     "vscode-builtin-css-language-features": "https://open-vsx.org/api/vscode/css-language-features/1.50.1/file/vscode.css-language-features-1.50.1.vsix",
     "vscode-builtin-html": "https://open-vsx.org/api/vscode/html/1.50.1/file/vscode.html-1.50.1.vsix",

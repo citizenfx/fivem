@@ -24,16 +24,6 @@ export const getFoldersForTheia = (project: Project): string[] => {
     }
 
     editableFolders.push(filesystemEntryToTheiaResource(entry));
-
-    // if (entry.meta.isResource) {
-    //   editableFolders.push(filesystemEntryToTheiaResource(entry));
-    // } else {
-    //   const entryChildren = project.fsTree.pathsMap[entry.path] || [];
-
-    //   for (const entryChild of entryChildren) {
-    //     entriesToInspect.add(entryChild);
-    //   }
-    // }
   }
 
   return editableFolders;
