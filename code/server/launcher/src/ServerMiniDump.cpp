@@ -42,8 +42,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	static bool g_running = true;
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
-	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | SYNCHRONIZE, FALSE, parentPid);
-
 	static std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 
 	CrashGenerationServer::OnClientConnectedCallback connectCallback = [](void*, const ClientInfo* info)
@@ -124,18 +122,18 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			std::string friendlyReason = "Server crashed.";
 
 			// try to send the clients a bit of a obituary notice
-			LPVOID memPtr = VirtualAllocEx(parentProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+			LPVOID memPtr = VirtualAllocEx(client->process_handle(), NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 			if (memPtr)
 			{
-				WriteProcessMemory(parentProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
+				WriteProcessMemory(client->process_handle(), memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
 			}
 
 			// we assume that (since unlike the game, we enable ASLR), as both processes are usually created around the same time, that we'll be the same binary
 			// and have the same ASLR location. this might need some better logic in the future if this turns out to not be the case.
 			//
 			// however, if it isn't - the target will just crash again.
-			HANDLE hThread = CreateRemoteThread(parentProcess, NULL, 0, BeforeTerminateHandler, memPtr, 0, NULL);
+			HANDLE hThread = CreateRemoteThread(client->process_handle(), NULL, 0, BeforeTerminateHandler, memPtr, 0, NULL);
 
 			if (hThread)
 			{
@@ -144,7 +142,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			}
 		}
 
-		DebugActiveProcess(GetProcessId(parentProcess));
+		DebugActiveProcess(GetProcessId(client->process_handle()));
 
 		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA dump can be found at %s.\n", ToNarrow(dumpPath).c_str());
 
@@ -166,9 +164,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		printf("=================================================================\n");
 
-		DebugActiveProcessStop(GetProcessId(parentProcess));
+		DebugActiveProcessStop(GetProcessId(client->process_handle()));
 
-		TerminateProcess(parentProcess, -2);
+		TerminateProcess(client->process_handle(), -2);
 	};
 
 	CrashGenerationServer::OnClientExitedCallback exitCallback = [](void*, const ClientInfo* info)
@@ -181,6 +179,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	};
 
 	std::wstring pipeName = L"\\\\.\\pipe\\CitizenFX_Server_Dump";
+
+	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | SYNCHRONIZE, FALSE, parentPid);
 
 	CrashGenerationServer server(pipeName, nullptr, connectCallback, nullptr, dumpCallback, nullptr, exitCallback, nullptr, uploadCallback, nullptr, false, &crashDirectory);
 	if (server.Start())
