@@ -16,6 +16,8 @@ static int extRamMode = 0;
 static HookFunction hookFunction([]()
 {
 	MEMORYSTATUSEX msex = { 0 };
+	msex.dwLength = sizeof(msex);
+
 	GlobalMemoryStatusEx(&msex);
 
 	uint32_t allocatorReservation = 0;
