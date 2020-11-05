@@ -205,6 +205,7 @@ void DrawConsole();
 void DrawDevGui();
 
 static std::mutex g_conHostMutex;
+ImFont* consoleFontSmall;
 
 void DrawMiniConsole();
 
@@ -265,6 +266,19 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	ImGui::NewFrame();
 
+	bool wasSmallFont = false;
+
+	{
+		int x, y;
+		GetGameResolution(x, y);
+
+		if (x <= 1920 && y <= 1080)
+		{
+			ImGui::PushFont(consoleFontSmall);
+			wasSmallFont = true;
+		}
+	}
+
 	if (g_consoleFlag)
 	{
 		DrawDevGui();
@@ -274,6 +288,11 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	DrawMiniConsole();
 
 	ConHost::OnDrawGui();
+
+	if (wasSmallFont)
+	{
+		ImGui::PopFont();
+	}
 
 	ImGui::Render();
 	RenderDrawLists(ImGui::GetDrawData());
@@ -380,7 +399,6 @@ DLL_EXPORT void RunConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 	OnConsoleWndProc(hWnd, msg, wParam, lParam, pass, result);
 }
 
-ImFont* consoleFontSmall;
 ImFont* consoleFontTiny;
 
 #pragma comment(lib, "d3d11.lib")
