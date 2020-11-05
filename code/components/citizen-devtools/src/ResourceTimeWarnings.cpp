@@ -175,13 +175,17 @@ static InitFunction initFunction([]()
 	static TickMetrics<64> gameFrameMetrics;
 
 #ifdef GTA_FIVE
-	OnGameFrame.Connect([]()
-	{
-		static auto lastFrame = usec();
-		auto now = usec();
-		auto frameTime = now - lastFrame;
+	static auto frameBegin = usec();
 
-		lastFrame = now;
+	OnBeginGameFrame.Connect([]()
+	{
+		frameBegin = usec();
+	});
+
+	OnEndGameFrame.Connect([]()
+	{
+		auto now = usec();
+		auto frameTime = now - frameBegin;
 
 		gameFrameMetrics.Append(frameTime);
 	});
@@ -317,19 +321,19 @@ static InitFunction initFunction([]()
 
 				bool wouldBeOver60 = false;
 
-				// if <60 FPS
-				if (avgFrameMs >= 16.66)
+				// if <60 FPS (minus render frame queueing guess)
+				if (avgFrameMs >= 15.66)
 				{
 					// and without scripts it would be 60 FPS
-					if ((avgFrameMs - avgScriptMs) < 16.6666)
+					if ((avgFrameMs - avgScriptMs) < 15.6666)
 					{
 						// use a 30% threshold in that case
 						wouldBeOver60 = (avgFrameFraction >= 0.3);
 					}
 				}
 
-				// 50%, when a frame takes more than 8.33ms (<120 FPS)
-				if ((avgFrameFraction >= 0.5 && avgFrameMs >= 8.33) || wouldBeOver60)
+				// 60%, when a frame takes more than 8.33ms (<120 FPS)
+				if ((avgFrameFraction >= 0.6 && avgFrameMs >= 8.33) || wouldBeOver60)
 				{
 					std::vector<std::tuple<uint64_t, std::string>> topEntries;
 
@@ -363,7 +367,7 @@ static InitFunction initFunction([]()
 					}
 
 					showWarning = true;
-					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\nTop resources: [%s]\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts would bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "", topList);
+					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\nTop resources: [%s]\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts might bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "", topList);
 				}
 			}
 

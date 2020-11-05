@@ -18,6 +18,9 @@ fwEvent<> OnMainGameFrame;
 fwEvent<> OnCriticalGameFrame;
 fwEvent<> OnFirstLoadCompleted;
 
+fwEvent<> OnBeginGameFrame;
+fwEvent<> OnEndGameFrame;
+
 static int(*g_appState)(void* fsm, int state, void* unk, int type);
 
 int DoAppState(void* fsm, int state, void* unk, int type)
@@ -31,7 +34,17 @@ int DoAppState(void* fsm, int state, void* unk, int type)
 		firstLoadCompleted = true;
 	}
 
+	if (state == 2 && type == 1)
+	{
+		OnBeginGameFrame();
+	}
+
 	return g_appState(fsm, state, unk, type);
+}
+
+static void RunEndGameFrame()
+{
+	OnEndGameFrame();
 }
 
 static void WaitThing(int i)
@@ -202,6 +215,9 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::get_pattern("45 8D 67 01 74 05 41 8B C4", 4), 2);
 
 	std::thread(RunCriticalGameLoop).detach();
+
+	// game end frame (after main thread proc)
+	hook::call(hook::get_pattern("B9 05 00 00 00 E8 ? ? ? ? 48 8D 0D", 5), RunEndGameFrame);
 
 	//__debugbreak();
 });
