@@ -376,8 +376,8 @@ static InitFunction initFunction([]()
 					warningLastShown = usec();
 				}
 				
-				// warn again 5 minutes later
-				if ((usec() - warningLastShown) > 300s)
+				// warn again 10 minutes later
+				if ((usec() - warningLastShown) > 600s)
 				{
 					warningLastShown = usec();
 				}
@@ -387,7 +387,7 @@ static InitFunction initFunction([]()
 			}
 			else
 			{
-				if (resourceTimeWarningShown && (usec() - warningLastShown) >= 3s && (usec() - warningLastShown) < 20s)
+				if (resourceTimeWarningShown && (usec() - warningLastShown) < 17s)
 				{
 					warningLastShown = usec() - 17s;
 				}
