@@ -646,6 +646,7 @@ bool DL_ProcessDownload()
 			curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 			curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
 			curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+			curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT | CURL_SSLVERSION_MAX_TLSv1_2);
 
 			if (getenv("CFX_CURL_DEBUG"))
 			{
@@ -843,10 +844,16 @@ const char* DL_RequestURLError()
 	return g_curlError;
 }
 
+static struct CurlInit
+{
+	CurlInit()
+	{
+		curl_global_init(CURL_GLOBAL_ALL);
+	}
+} curlInit;
+
 int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 {
-	curl_global_init(CURL_GLOBAL_ALL);
-
 	CURL* curl = curl_easy_init();
 
 	if (curl)
@@ -863,11 +870,16 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, g_curlError);
+		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT | CURL_SSLVERSION_MAX_TLSv1_2);
+
+		if (getenv("CFX_CURL_DEBUG"))
+		{
+			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+			curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DL_CurlDebug);
+		}
 
 		CURLcode code = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
-
-		curl_global_cleanup();
 
 		buffer[bufferData.curSize] = '\0';
 
@@ -880,8 +892,6 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 			return (int)code;
 		}
 	}
-
-	curl_global_cleanup();
 
 	return 0;
 }
