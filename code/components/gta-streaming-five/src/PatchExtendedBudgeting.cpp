@@ -37,6 +37,14 @@ static HookFunction hookFunction([]()
 		extRamMode = 1;
 	}
 
+	// extend grcResourceCache pool a bit
+	{
+		auto location = hook::get_pattern<char>("BA 00 00 05 00 48 8B C8 44 88");
+		hook::put<uint32_t>(location + 1, 0xA0000);
+		hook::put<uint32_t>(location + 23, 0xA001B);
+	}
+
+	// increase allocator amount
 	auto location = hook::get_pattern("41 B8 00 00 00 40 48 8B D5 89", 2);
 
 	if (allocatorReservation)
@@ -71,7 +79,8 @@ static HookFunction hookFunction([]()
 						{
 							auto changeBudget = [vramLocation, totalPhys](uint64_t budget)
 							{
-								auto maxBudget = std::min(budget, totalPhys / 2);
+								auto maxBudget = std::max(std::min(budget, (totalPhys / 2)) - (2 * GB), uint64_t(0xBBA00000));
+
 								trace("VRAM budget change: patching game to use %d byte budget (clamped to %d due to system RAM)\n", budget, maxBudget);
 
 								for (int i = 0; i < 80; i++)
