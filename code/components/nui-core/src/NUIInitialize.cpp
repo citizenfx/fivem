@@ -699,6 +699,23 @@ static bool g_reshit;
 
 static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext)
 {
+#if defined(GTA_FIVE)
+	auto rgf = GetModuleHandleW(L"rage-graphics-five.dll");
+
+	if (rgf)
+	{
+		auto proc = (bool (*)())GetProcAddress(rgf, "AreWeCreatingTheGameDevice");
+
+		if (proc)
+		{
+			if (!proc())
+			{
+				return;
+			}
+		}
+	}
+#endif
+
 	bool can = true;
 
 #if !defined(IS_RDR3)
