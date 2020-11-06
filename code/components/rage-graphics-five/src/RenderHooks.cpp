@@ -427,19 +427,10 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 	return hr;
 }
 
-bool yepThisIsIt = false;
-
-extern "C" DLL_EXPORT bool AreWeCreatingTheGameDevice()
-{
-	return yepThisIsIt;
-}
-
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	HRESULT hresult = E_FAIL;
-
-	yepThisIsIt = true;
 
 	WakeWindowThreadFor([&]()
 	{
@@ -450,8 +441,6 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 	WaitForSingleObject(hEvent, INFINITE);
 	CloseHandle(hEvent);
-
-	yepThisIsIt = false;
 
 	return hresult;
 }
