@@ -37,6 +37,12 @@ static HookFunction hookFunction([]()
 		extRamMode = 1;
 	}
 
+	// this code will 100% break 4/4GB systems
+	if (extRamMode == 0)
+	{
+		return;
+	}
+
 	// extend grcResourceCache pool a bit
 	{
 		auto location = hook::get_pattern<char>("BA 00 00 05 00 48 8B C8 44 88");
