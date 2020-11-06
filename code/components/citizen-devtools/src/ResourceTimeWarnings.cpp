@@ -309,6 +309,7 @@ static InitFunction initFunction([]()
 				}
 			}
 
+#if 0
 			auto avgFrameTime = gameFrameMetrics.GetAverage();
 			auto avgScriptTime = scriptFrameMetrics.GetAverage();
 
@@ -370,6 +371,7 @@ static InitFunction initFunction([]()
 					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\nTop resources: [%s]\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts might bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "", topList);
 				}
 			}
+#endif
 
 			if (showWarning)
 			{
