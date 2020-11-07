@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <CoreConsole.h>
 #include <DrawCommands.h>
 
 #include <dxgi1_4.h>
@@ -85,9 +86,9 @@ static HookFunction hookFunction([]()
 						{
 							auto changeBudget = [vramLocation, totalPhys](uint64_t budget)
 							{
-								auto maxBudget = std::max(std::min(budget, (totalPhys / 2)) - (2 * GB), uint64_t(0xBBA00000));
+								auto maxBudget = std::max(std::min(int64_t(budget), int64_t(totalPhys / 2)) - int64_t(2 * GB), int64_t(0xBBA00000));
 
-								trace("VRAM budget change: patching game to use %d byte budget (clamped to %d due to system RAM)\n", budget, maxBudget);
+								console::DPrintf("graphics", "VRAM budget change: patching game to use %d byte budget (clamped to %d due to system RAM)\n", budget, maxBudget);
 
 								for (int i = 0; i < 80; i++)
 								{
