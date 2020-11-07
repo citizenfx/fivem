@@ -1,6 +1,11 @@
 #pragma once
 
 #include <atArray.h>
+#include <atPool.h>
+
+#include <Pool.h>
+
+#include <boost/type_index/ctti_type_index.hpp>
 
 #include <directxmath.h>
 
@@ -365,8 +370,38 @@ private:
 	fwEntity* m_occupants[16];
 };
 
+struct CHandlingObject
+{
+	// boost::typeindex::ctti_type_index doesn't expose a string_view :(
+	static constexpr uint32_t kHash = HashString("CHandlingObject");
+};
 
-class CBaseSubHandlingData
+template<typename TPoolName>
+struct PoolAllocated
+{
+public:
+	inline void* operator new(size_t size)
+	{
+		return rage::PoolAllocate(rage::GetPoolBase(TPoolName::kHash));
+	}
+
+	inline void* operator new[](size_t size)
+	{
+		return PoolAllocated::operator new(size);
+	}
+
+	inline void operator delete(void* memory)
+	{
+		rage::PoolRelease(rage::GetPoolBase(TPoolName::kHash), memory);
+	}
+
+	inline void operator delete[](void* memory)
+	{
+		return PoolAllocated::operator delete(memory);
+	}
+};
+
+class CBaseSubHandlingData : public PoolAllocated<CHandlingObject>
 {
 public:
 	virtual ~CBaseSubHandlingData() = default;
@@ -375,7 +410,7 @@ public:
 	virtual void ProcessOnLoad() = 0;
 };
 
-class CHandlingData
+class CHandlingData : public PoolAllocated<CHandlingObject>
 {
 private:
 	uint32_t m_name;
@@ -387,7 +422,8 @@ private:
 public:
 	CHandlingData(CHandlingData* orig)
 	{
-		memcpy(this, orig, sizeof(*this));
+		static auto pool = rage::GetPoolBase(CHandlingObject::kHash);
+		memcpy(this, orig, pool->GetEntrySize());
 
 		CBaseSubHandlingData* shds[6] = { 0 };
 
@@ -395,8 +431,8 @@ public:
 		{
 			if (m_subHandlingData.Get(i))
 			{
-				shds[i] = (CBaseSubHandlingData*)rage::GetAllocator()->allocate(1024, 16, 0);
-				memcpy(shds[i], m_subHandlingData.Get(i), 1024);
+				shds[i] = (CBaseSubHandlingData*)rage::PoolAllocate(pool);
+				memcpy(shds[i], m_subHandlingData.Get(i), pool->GetEntrySize());
 			}
 		}
 

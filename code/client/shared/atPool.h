@@ -67,6 +67,11 @@ public:
 		return m_count;
 	}
 
+	size_t GetEntrySize()
+	{
+		return m_entrySize;
+	}
+
 	void Clear()
 	{
 		for (int i = 0; i < m_count; i++)

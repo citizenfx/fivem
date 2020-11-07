@@ -778,7 +778,7 @@ static HookFunction hookFunction([]()
 	}
 
 	// increase the heap size for allocator 0
-	hook::put<uint32_t>(hook::get_pattern("83 C8 01 48 8D 0D ? ? ? ? 41 B1 01 45 33 C0", 17), 600 * 1024 * 1024); // 600 MiB, default in 323 was 412 MiB
+	hook::put<uint32_t>(hook::get_pattern("83 C8 01 48 8D 0D ? ? ? ? 41 B1 01 45 33 C0", 17), 700 * 1024 * 1024); // 700 MiB, default in 323 was 412 MiB
 
 	// 1737+: increase rline allocator size using a hook (as Arxan)
 	MH_Initialize();

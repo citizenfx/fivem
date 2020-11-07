@@ -77,11 +77,11 @@
 						</Item>
 						<Item>
 							<PoolName>PedProp req data</PoolName>
-							<PoolSize value="200"/>
+							<PoolSize value="250"/>
 						</Item>
 						<Item>
 							<PoolName>PedProp render data</PoolName>
-							<PoolSize value="480"/>
+							<PoolSize value="560"/>
 						</Item>
 						<Item>
 							<!-- Size of CVehicleRecordingMgr's streaming module. -->
@@ -461,6 +461,10 @@
 							<PoolSize value="250"/>
 						</Item>
 						<Item>
+							<PoolName>CVehicleSyncData</PoolName>
+							<PoolSize value="255"/>
+						</Item>
+						<Item>
 							<PoolName>Vehicles</PoolName>
 							<PoolSize value="300"/>
 						</Item>
@@ -478,7 +482,7 @@
 						</Item>
         					<Item>
 							<PoolName>HandlingData</PoolName>
-							<PoolSize value="8000"/>
+							<PoolSize value="16000"/>
 						</Item>
 						<Item>
 							<!-- Size of the CWaypointRecording streaming module. -->

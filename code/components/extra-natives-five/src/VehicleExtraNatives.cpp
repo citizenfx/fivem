@@ -243,7 +243,7 @@ static void DeleteVehicleWrap(fwEntity* vehicle)
 	}
 
 	// save handling data pointer
-	void* handling = readValue<void*>(vehicle, HandlingDataPtrOffset);
+	CHandlingData* handling = readValue<CHandlingData*>(vehicle, HandlingDataPtrOffset);
 
 	// call original destructor
 	g_origDeleteVehicle(vehicle);
