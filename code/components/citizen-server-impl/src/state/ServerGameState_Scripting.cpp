@@ -975,6 +975,27 @@ static InitFunction initFunction([]()
 		return uint32_t(node ? node->curWeapon : 0);
 	}));
 
+		fx::ScriptEngine::RegisterNativeHandler(0x69696969, makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+		{
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+			auto gameState = instance->GetComponent<fx::ServerGameState>();
+			// get the server's client registry
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+			// parse the client ID
+			const char* id = context.CheckArgument<const char*>(1);
+
+			uint32_t netId = atoi(id);
+
+			auto client = clientRegistry->GetClientByNetID(netId);
+
+
+			gameState->ReassignEntity(entity->handle, client);
+
+			return 69;
+		}));
+
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_A_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		return entity->type == fx::sync::NetObjEntityType::Player;

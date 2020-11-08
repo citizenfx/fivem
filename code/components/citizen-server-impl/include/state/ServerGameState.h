@@ -392,6 +392,7 @@ struct SyncEntityState
 	std::shared_mutex clientMutex;
 	NetObjEntityType type;
 	uint32_t timestamp;
+	uint32_t lastOutOfBandTimestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
@@ -406,13 +407,15 @@ struct SyncEntityState
 	std::array<uint64_t, MAX_CLIENTS> lastFramesSent;
 
 	std::chrono::milliseconds lastReceivedAt;
+	std::chrono::milliseconds lastMigratedAt;
 
 	std::shared_ptr<SyncTreeBase> syncTree;
 
-	ScriptGuid* guid;
+	ScriptGuid* guid = nullptr;
 	uint32_t handle;
 
 	bool deleting = false;
+	bool finalizing = false;
 	bool hasSynced = false;
 	bool passedFilter = false;
 	bool wantsReassign = false;
@@ -470,6 +473,11 @@ struct SyncEntityState
 		return firstOwner;
 	}
 
+	fx::ClientWeakPtr& GetLastOwnerUnsafe()
+	{
+		return lastOwner;
+	}
+
 
 	fx::ClientSharedPtr GetClient()
 	{
@@ -483,10 +491,17 @@ struct SyncEntityState
 		return firstOwner.lock();
 	}
 
+	fx::ClientSharedPtr GetLastOwner()
+	{
+		std::shared_lock _lock(clientMutex);
+		return lastOwner.lock();
+	}
+
 	// make absolutely sure we don't accidentally mess up and get this info without a lock
 private:
 	fx::ClientWeakPtr client;
 	fx::ClientWeakPtr firstOwner;
+	fx::ClientWeakPtr lastOwner;
 };
 }
 
@@ -724,6 +739,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	uint32_t syncTs = 0;
 	uint32_t ackTs = 0;
 
+	eastl::fixed_hash_map<uint16_t /* (x << 8) | y */, std::chrono::milliseconds, 10> worldGridCooldown;
+
 	std::shared_ptr<fx::StateBag> playerBag;
 
 	GameStateClientData()
@@ -799,6 +816,8 @@ private:
 	void OnCloneRemove(const fx::sync::SyncEntityPtr& entity, const std::function<void()>& doRemove);
 
 	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
+
+	void FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
 
 	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
@@ -887,7 +906,7 @@ public:
 	std::vector<sync::SyncEntityWeakPtr> m_entitiesById;
 
 	std::shared_mutex m_entityListMutex;
-	std::list<fx::sync::SyncEntityPtr> m_entityList;
+	std::set<fx::sync::SyncEntityPtr> m_entityList;
 
 	EntityLockdownMode m_entityLockdownMode;
 };

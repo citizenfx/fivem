@@ -3229,63 +3229,6 @@ using CPlayerSyncTree = SyncTree<
 		>
 	>
 >;
-using CAutomobileSyncTree = SyncTree<
-	ParentNode<
-		NodeIds<127, 0, 0>, 
-		ParentNode<
-			NodeIds<1, 0, 0>, 
-			NodeWrapper<NodeIds<1, 0, 0>, CVehicleCreationDataNode>, 
-			NodeWrapper<NodeIds<1, 0, 0>, CAutomobileCreationDataNode>
-		>, 
-		ParentNode<
-			NodeIds<127, 127, 0>, 
-			ParentNode<
-				NodeIds<127, 127, 0>, 
-				ParentNode<
-					NodeIds<127, 127, 0>, 
-					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>, 
-					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode>, 
-					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode>, 
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode>
-				>, 
-				ParentNode<
-					NodeIds<127, 127, 1>, 
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode>, 
-					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode>, 
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode>, 
-					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode>
-				>
-			>, 
-			NodeWrapper<NodeIds<127, 127, 0>, CPhysicalAttachDataNode>, 
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleAppearanceDataNode>, 
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleDamageStatusDataNode>, 
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleComponentReservationDataNode>, 
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleHealthDataNode>, 
-			NodeWrapper<NodeIds<127, 127, 0>, CVehicleTaskDataNode>
-		>, 
-		ParentNode<
-			NodeIds<127, 86, 0>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CSectorPositionDataNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CVehicleAngVelocityDataNode>, 
-			ParentNode<
-				NodeIds<127, 86, 0>, 
-				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode>, 
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode>, 
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode>
-			>
-		>, 
-		ParentNode<
-			NodeIds<4, 0, 0>, 
-			NodeWrapper<NodeIds<4, 0, 0>, CMigrationDataNode>, 
-			NodeWrapper<NodeIds<4, 0, 0>, CPhysicalMigrationDataNode>, 
-			NodeWrapper<NodeIds<4, 0, 1>, CPhysicalScriptMigrationDataNode>, 
-			NodeWrapper<NodeIds<4, 0, 0>, CVehicleProximityMigrationDataNode>
-		>
-	>
->;
 using CTrainSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>, 

@@ -465,7 +465,10 @@ static InitFunction initFunction([]()
 
 				auto sendToClient = [&](const fx::ClientSharedPtr& cl)
 				{
-					cl->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+					if (cl)
+					{
+						cl->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+					}
 				};
 
 				if (clientIdx == -2)
