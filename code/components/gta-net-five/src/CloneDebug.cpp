@@ -347,7 +347,7 @@ struct WriteTreeState
 
 struct NetObjectNodeData
 {
-	std::array<uint8_t, 1024> lastData;
+	std::tuple<std::array<uint8_t, 1024>, int> lastData;
 	std::tuple<std::array<uint8_t, 1024>, int> currentData;
 	uint32_t lastChange;
 	uint32_t lastAck;
@@ -356,7 +356,12 @@ struct NetObjectNodeData
 
 	NetObjectNodeData()
 	{
-		memset(lastData.data(), 0, lastData.size());
+		std::array<uint8_t, 1024> dummyData;
+		memset(dummyData.data(), 0, dummyData.size());
+		
+		lastData = { dummyData, 0 };
+		currentData = { dummyData, 0 };
+
 		lastChange = 0;
 		lastAck = 0;
 		lastResend = 0;
@@ -514,7 +519,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				// throttle sends by waiting for the requested node delay
 				uint32_t lastChangeDelta = (state.time - nodeData->lastChange);
 
-				if (state.pass == 1 && lastChangeDelta > nodeSyncDelay)
+				if (state.pass == 1 && (lastChangeDelta > nodeSyncDelay || nodeData->manuallyDirtied))
 				{
 					auto updateNode = [&state, &processedNodes, sizeLength](rage::netSyncDataNodeBase* dataNode, bool force) -> bool
 					{
@@ -532,11 +537,11 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 						rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
 						dataNode->WriteObject(state.object, &tempBuf, state.logger, true);
 
-						if (force || memcmp(tempData.data(), nodeData->lastData.data(), tempData.size()) != 0)
+						if (force || tempBuf.m_curBit != std::get<1>(nodeData->lastData) || memcmp(tempData.data(), std::get<0>(nodeData->lastData).data(), tempData.size()) != 0)
 						{
 							nodeData->lastResend = 0;
 							nodeData->lastChange = state.time;
-							nodeData->lastData = tempData;
+							nodeData->lastData = { tempData, tempBuf.m_curBit };
 							nodeData->currentData = { tempData, tempBuf.m_curBit };
 							nodeData->manuallyDirtied = false;
 
