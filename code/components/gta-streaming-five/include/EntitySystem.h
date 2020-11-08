@@ -410,14 +410,21 @@ public:
 	virtual void ProcessOnLoad() = 0;
 };
 
+struct BoardingPointData : public rage::sysUseAllocator
+{
+	uint8_t m_pad[132];
+};
+
 class CHandlingData : public PoolAllocated<CHandlingObject>
 {
 private:
 	uint32_t m_name;
-	char m_pad[332]; // 1290, 1365, 1493, 1604, 1868, 2060
-	atArray<CBaseSubHandlingData*> m_subHandlingData;
+	char m_pad[316]; // 1290, 1365, 1493, 1604, 1868, 2060
+	BoardingPointData* m_boardingPoints;
+	char m_pad2[8];
+	atArray<CBaseSubHandlingData*> m_subHandlingData; // +344?
 	// ^ find offset using a variant of 48 85 C9 74 13 BA 04 00 00 00 E8 (and go to the call in there)
-	char m_pad2[1000];
+	char m_pad3[1000];
 
 public:
 	CHandlingData(CHandlingData* orig)
@@ -438,6 +445,7 @@ public:
 
 		m_subHandlingData.m_offset = nullptr;
 		m_subHandlingData.Clear();
+		m_subHandlingData.Expand(6);
 
 		m_subHandlingData.Set(0, shds[0]);
 		m_subHandlingData.Set(1, shds[1]);
@@ -445,6 +453,12 @@ public:
 		m_subHandlingData.Set(3, shds[3]);
 		m_subHandlingData.Set(4, shds[4]);
 		m_subHandlingData.Set(5, shds[5]);
+
+		if (orig->m_boardingPoints)
+		{
+			m_boardingPoints = new BoardingPointData();
+			memcpy(m_boardingPoints, orig->m_boardingPoints, sizeof(*m_boardingPoints));
+		}
 	}
 
 	virtual ~CHandlingData() = default;
