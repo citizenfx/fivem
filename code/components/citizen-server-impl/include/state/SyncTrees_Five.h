@@ -2091,7 +2091,7 @@ struct CPlayerGameStateDataNode {
 
 		int unk101 = state.buffer.Read<int>(13);
 		auto unk102 = state.buffer.ReadBit();
-		auto unk103 = state.buffer.ReadBit();
+		auto noCollision = state.buffer.ReadBit();
 		auto unk104 = state.buffer.ReadBit();
 		auto unk105 = state.buffer.ReadBit();
 		auto unk106 = state.buffer.ReadBit();
