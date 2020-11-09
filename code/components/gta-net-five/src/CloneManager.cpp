@@ -1978,7 +1978,12 @@ void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* pla
 	m_netObjects[player->physicalPlayerIndex()][object->objectId] = object;
 }
 
-static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDistance, CNetGamePlayer** firstPlayer)> _isSphereVisibleForAnyPlayer([]()
+static hook::cdecl_stub<bool(const Vector3* position, float radius)> _isSphereVisibleForLocalPlayer([]()
+{
+	return hook::get_pattern("48 85 C9 74 2B F3 0F 10 58 08", -0x12);
+});
+
+static hook::cdecl_stub<bool(const Vector3* position, float radius, float maxDistance, CNetGamePlayer** firstPlayer)> _isSphereVisibleForAnyRemotePlayer([]()
 {
 	return hook::get_call(hook::get_pattern("0F 29 4C 24 30 0F 28 C8 E8", 8));
 });
@@ -2128,7 +2133,7 @@ void CloneManagerLocal::WriteUpdates()
 			auto entity = (fwEntity*)object->GetGameObject();
 			auto entityPos = entity->GetPosition();
 
-			if (!_isSphereVisibleForAnyPlayer(&entityPos, entity->GetRadius(), 250.0f, nullptr))
+			if (!_isSphereVisibleForLocalPlayer(&entityPos, entity->GetRadius()) && !_isSphereVisibleForAnyRemotePlayer(&entityPos, entity->GetRadius(), 250.0f, nullptr))
 			{
 				syncLatency = 250ms;
 			}
