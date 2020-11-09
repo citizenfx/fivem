@@ -1280,7 +1280,7 @@ static InitFunction initFunction([]()
 
 		if (controller)
 		{
-			*(float*)(&controller[0]) = volume * 10.0f;
+			*(float*)(&controller[0]) = volume * 2.0f;
 			*(float*)(&controller[4]) = 0.0f;
 		}
 	});
