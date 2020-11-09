@@ -33,6 +33,7 @@ private:
 
 private:
 	void CreateEnvironments();
+	void CreateEmptyEnvironments();
 
 public:
 	ResourceScriptingComponent(Resource* resource);
