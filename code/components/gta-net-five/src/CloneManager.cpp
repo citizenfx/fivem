@@ -234,7 +234,7 @@ private:
 		uint32_t nextKeepaliveSync;
 		uint16_t uniqifier;
 		std::shared_ptr<fx::StateBag> stateBag;
-		uint64_t lastFrameUpdated;
+		uint64_t lastFrameUpdated = 0;
 		bool hi = false;
 
 		ObjectData()
@@ -1427,6 +1427,18 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 				isMissingFrames = true;
 				firstMissingFrame = m_lastReceivedFrame.frameIndex + 1;
 				lastMissingFrame = newIndex.frameIndex - 1;
+			}
+
+			// check for missing earlier fragment in this frame
+			else if (m_lastReceivedFrame.lastFragment && newIndex.currentFragment != 1)
+			{
+				isMissingFrames = true;
+
+				// everything since last frame was missing definitely
+				firstMissingFrame = m_lastReceivedFrame.frameIndex + 1;
+
+				// only resend this one
+				lastMissingFrame = newIndex.frameIndex;
 			}
 
 			// check for missing last fragment
