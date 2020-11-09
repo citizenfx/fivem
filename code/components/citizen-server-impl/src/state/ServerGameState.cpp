@@ -1396,12 +1396,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
 
-							// ???
-							// if (len > 4096)
-							// {
-							// 	return;
-							// }
-
 							auto startBit = cmdState.cloneBuffer.GetCurrentBit();
 							cmdState.maybeFlushBuffer(3 + /* 13 */ 16 + 16 + 4 + 32 + 16 + 64 + 32 + 12 + (len * 8));
 							cmdState.cloneBuffer.Write(3, syncType);
@@ -1435,26 +1429,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								mayWrite = false;
 							}
 
-							// handled above now
-							// if (syncType == 2 && entity->GetLastUpdater() == cmdState.client && !isFirstFrameUpdate)
-							// {
-							// 	mayWrite = false;
-							// }
-
 							if (mayWrite)
 							{
 								cmdState.cloneBuffer.Write(12, len);
 								cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
-
-								/* this should never happen and if it does we're corrupting stuff anyway
-									if (!cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8))
-									{
-										cmdState.cloneBuffer.SetCurrentBit(startBit);
-
-										// force a buffer flush, we're oversize
-										cmdState.flushBuffer(false);
-									}
-									*/
 							}
 							else
 							{
@@ -1471,11 +1449,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					syncData.hasCreated = true;
 
 					// first-frame update
-					/*syncType = 2;
+					syncType = 2;
 					runSync([](uint64_t& lfi, bool& isLfi) {
 						lfi = 0;
 						isLfi = true;
-					});*/
+					});
 				}
 			}
 
@@ -2625,41 +2603,9 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 	entity->lastReceivedAt = now;
 
-	/*
-	// force the client to have the new entity so we don't send duplicate creations
-	if (createdHere)
-	{
-		auto [lock, clientData] = GetClientData(this, client);
-
-		for (auto& state : clientData->entityStates)
-		{
-			ClientEntityState ces;
-			ces.frameIndex = entity->frameIndex;
-			ces.uniqifier = entity->uniqifier;
-			ces.syncDelay = 0ms;
-			ces.isPlayer = (entity->type == sync::NetObjEntityType::Player);
-			ces.netId = (client) ? client->GetNetId() : -1;
-			ces.overrideFrameIndex = false;
-
-			(*state.second)[entity->handle] = ces;
-		}
-	}
-	*/
-
 	if (length > 0)
 	{
 		entity->timestamp = timestamp;
-
-		/*
-		// reset everyone's last sync
-		{
-			std::unique_lock _(entity->newSendsMutex);
-
-			for (size_t i = 0; i < entity->newSends.size(); i++)
-			{
-				entity->newSends[i].clear();
-			}
-		}*/
 
 		GS_LOG("sync for entity %d and length %d\n", entity->handle, length);
 		auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
@@ -4016,10 +3962,7 @@ static InitFunction initFunction([]()
 						}
 						else
 						{
-							gscomms_execute_callback_on_main_thread([=]() 
-							{
-								instance->GetComponent<fx::GameServer>()->DropClient(client, "Missing NAck frame!");
-							});
+							instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out: Missing NAck frame!");
 							return;
 						}
 					}
@@ -4085,361 +4028,11 @@ static InitFunction initFunction([]()
 				}
 				else
 				{
-					gscomms_execute_callback_on_main_thread([=]() 
-					{
-						instance->GetComponent<fx::GameServer>()->DropClient(client, "Missing ignore/recreate frame!");
-					});
+					instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out: Missing ignore/recreate frame!");
 					return;
 				}
 			}
 		});
-
-		/*
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("gameStateAck"), { 
-			fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer) {
-				auto sgs = instance->GetComponent<fx::ServerGameState>();
-
-				uint64_t frameIndex = buffer.Read<uint64_t>();
-				
-				auto slotId = client->GetSlotId();
-				if (slotId == -1)
-				{
-					return;
-				}
-				
-				{
-					auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-					clientData->lastAckIndex = frameIndex;
-				}
-
-				eastl::fixed_hash_set<uint16_t, 100> ignoredUpdates;
-				uint8_t ignoreCount = buffer.Read<uint8_t>();
-				for (int i = 0; i < ignoreCount; i++)
-				{
-					ignoredUpdates.insert(buffer.Read<uint16_t>());
-				}
-
-				eastl::fixed_hash_set<uint16_t, 100> entitiesToRecreate;
-				uint8_t recreateCount = buffer.Read<uint8_t>();
-				for (int i = 0; i < recreateCount; i++)
-				{
-					entitiesToRecreate.insert(buffer.Read<uint16_t>());
-				}
-
-				{
-					auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-					for (auto pendingIt = clientData->pendingCreates.begin(), pendingEnd = clientData->pendingCreates.end(); pendingIt != pendingEnd;)
-					{
-						auto [objectId, targetFrame] = *pendingIt;
-
-						// erase creation frame if possible
-						if (targetFrame <= frameIndex)
-						{
-							pendingIt = clientData->pendingCreates.erase(pendingIt);
-
-							// it's our entity, we don't really care
-							if (auto it = clientData->syncedEntities.find(objectId); it != clientData->syncedEntities.end())
-							{
-								auto& targetEnt = std::get<2>(it->second);
-								if (targetEnt->GetClient() == client)
-								{
-									continue;
-								}
-							}
-
-							// if we need to recreate this entity, do so
-							if (entitiesToRecreate.find(objectId) != entitiesToRecreate.end())
-							{
-								GS_LOG("forcing recreate of entity %d for client %d (failed update)\n", objectId, client->GetNetId());
-								clientData->createdEntities.reset(objectId);
-							}
-
-							// if we're in the ignore list for this frame, reset too
-							else if (targetFrame == frameIndex && ignoredUpdates.find(objectId) != ignoredUpdates.end())
-							{
-								GS_LOG("forcing recreate of entity %d for client %d (failed create)\n", objectId, client->GetNetId());
-								clientData->createdEntities.reset(objectId);
-							}
-						}
-						else
-						{
-							// for next step, make sure we erase any updates that are actually pending creates for different entities
-							ignoredUpdates.erase(objectId);
-							++pendingIt;
-						}
-					}
-
-					// force full update for every ignored sync frame
-					// whatever u get to wait for next force update loop
-					// for (auto objectId : ignoredUpdates) 
-					// {
-					// 	if (auto it = clientData->syncedEntities.find(objectId); it != clientData->syncedEntities.end())
-					// 	{
-					// 		std::get<3>(it->second) = true;
-					// 	}
-					// }
-				}
-
-				GS_LOG("gsack for client %d completed\n", client->GetNetId());
-
-			/*
-			eastl::fixed_set<uint16_t, 100, false> ignoreEntities;
-			uint8_t ignoreCount = buffer.Read<uint8_t>();
-
-			for (int i = 0; i < std::min(ignoreCount, uint8_t(100)); i++)
-			{
-				ignoreEntities.insert(buffer.Read<uint16_t>());
-			}
-
-			eastl::fixed_set<uint16_t, 100, false> recreateEntities;
-			uint8_t recreateCount = buffer.Read<uint8_t>();
-
-			for (int i = 0; i < std::min(recreateCount, uint8_t(100)); i++)
-			{
-				auto objectId = buffer.Read<uint16_t>();
-				ignoreEntities.erase(objectId);
-				recreateEntities.insert(objectId);
-			}
-
-			auto sgs = instance->GetComponent<fx::ServerGameState>();
-			
-			eastl::fixed_vector<fx::sync::SyncEntityPtr, 16> relevantExits;
-
-			{
-				auto slotId = client->GetSlotId();
-				if (slotId == -1)
-				{
-					return;
-				}
-
-				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
-
-				auto origAckIndex = clientData->lastAckIndex;
-
-				// if duplicate/out-of-order, ignore
-				if (origAckIndex >= frameIndex)
-				{
-					GS_LOG("%s ack skipped - %d >= %d\n", client->GetName(), origAckIndex, frameIndex);
-					return;
-				}
-
-				// generate delta path for this ack (inclusive)
-				eastl::fixed_vector<std::tuple<uint64_t, fx::EntityStateObject*>, 5> deltaPath;
-
-				for (auto lastIdx = origAckIndex; lastIdx <= frameIndex; lastIdx++)
-				{
-					auto lastIt = clientData->entityStates.find(lastIdx);
-
-					if (lastIt != clientData->entityStates.end())
-					{
-						deltaPath.push_back({ lastIdx, lastIt->second.get() });
-					}
-				}
-
-				// use delta path
-				auto lastAck = clientData->entityStates.find(origAckIndex);
-				auto es = clientData->entityStates.find(frameIndex);
-
-				bool wasDropped = abs(int64_t(origAckIndex) - int64_t(frameIndex)) > 1;
-
-				clientData->lastAckIndex = frameIndex;
-
-				GS_LOG("%s ack is now %lld\n", client->GetName(), frameIndex);
-
-				// diff current and last ack
-				if (deltaPath.size() > 0)
-				{
-					eastl::fixed_map<uint16_t, fx::ClientEntityState, 128> deletedKeys;
-
-					for (size_t deltaIdx = 0; deltaIdx < (deltaPath.size() - 1); deltaIdx++)
-					{
-						eastl::fixed_vector<eastl::pair<uint16_t, fx::ClientEntityState>, 128> deletedKeysLocal;
-
-						std::set_difference(std::get<1>(deltaPath[deltaIdx])->begin(), std::get<1>(deltaPath[deltaIdx])->end(),
-							std::get<1>(deltaPath[deltaIdx + 1])->begin(), std::get<1>(deltaPath[deltaIdx + 1])->end(),
-							std::back_inserter(deletedKeysLocal), [](const auto& left, const auto& right)
-						{
-							return left.first < right.first;
-						});
-
-						for (auto& pair : deletedKeysLocal)
-						{
-							deletedKeys[pair.first] = pair.second;
-						}
-					}
-
-					for (auto& entityPair : deletedKeys)
-					{
-						auto entity = sgs->GetEntity(0, entityPair.first);
-
-						if (!entity)
-						{
-							continue;
-						}
-
-						// that's an entirely different entity
-						if (entity->uniqifier != entityPair.second.uniqifier)
-						{
-							continue;
-						}
-						
-						relevantExits.push_back(entity);
-					}
-
-					for (auto& entityPair : *es->second)
-					{
-						auto entity = sgs->GetEntity(0, entityPair.first);
-
-						if (!entity)
-						{
-							continue;
-						}
-
-						{
-							std::unique_lock _(entity->newSendsMutex);
-							auto& newSends = entity->newSends[slotId];
-
-							if (wasDropped)
-							{
-								for (auto it = deltaPath.rbegin(), ite = deltaPath.rend(); it != ite; ++it)
-								{
-									auto& pair = *it;
-									auto frameIdx = std::get<0>(pair);
-									if (std::find_if(std::begin(newSends), std::end(newSends), [=](auto& pair) {
-											return pair.first == frameIdx;
-										}) != newSends.end())
-									{
-										entity->lastClientFrames[slotId] = std::get<0>(pair);
-										break;
-									}
-								}
-							}
-
-							if (auto sendIt = std::find_if(std::begin(newSends), std::end(newSends), [=](auto& pair) {
-									return pair.first == frameIndex;
-								});
-								sendIt != newSends.end())
-							{
-								newSends.erase(newSends.begin(), std::next(sendIt));
-							}
-						}
-
-						if (entity->stateBag)
-						{
-							entity->stateBag->AddRoutingTarget(slotId);
-						}
-					}
-				}
-
-				if (es != clientData->entityStates.end())
-				{
-					for (auto& entity : ignoreEntities)
-					{
-						GS_LOG("%s is ignoring entity %d\n", client->GetName(), entity);
-
-						for (auto& ackEntry : deltaPath)
-						{
-							if (lastAck != clientData->entityStates.end() && lastAck->second->find(entity) != lastAck->second->end())
-							{
-								// #TODO1SACK: better frame index handling to allow ignoring on node granularity
-								auto eIt = std::get<1>(ackEntry)->find(entity);
-
-								if (eIt != std::get<1>(ackEntry)->end())
-								{
-									eIt->second.frameIndex = 0;
-									eIt->second.overrideFrameIndex = true;
-								}
-
-								auto ent = sgs->GetEntity(0, entity);
-
-								if (ent)
-								{
-									std::unique_lock _(ent->newSendsMutex);
-									ent->newSends[slotId].clear();
-									ent->lastClientFrames[slotId] = 0;
-								}
-							}
-							else
-							{
-								std::get<1>(ackEntry)->erase(entity);
-							}
-						}
-					}
-
-					for (auto& entity : recreateEntities)
-					{
-						GS_LOG("%s is requesting recreate of creating entity %d\n", client->GetName(), entity);
-
-						for (auto& ackEntry : deltaPath)
-						{
-							std::get<1>(ackEntry)->erase(entity);
-						}
-					}
-				}
-
-				client->SetData("syncFrameIndex", frameIndex);
-
-				// erase all states up to (and including) the one we just approved
-				if (lastAck != clientData->entityStates.end())
-				{
-					clientData->entityStates.erase(clientData->entityStates.begin(), ++lastAck);
-				}
-			}
-
-			for (auto& entity : relevantExits)
-			{
-				auto entityClient = entity->GetClient();
-
-				{
-					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-					entity->relevantTo.reset(client->GetSlotId());
-				}
-
-				if (entity->stateBag)
-				{
-					entity->stateBag->RemoveRoutingTarget(client->GetSlotId());
-				}
-
-				// give the entity a chance
-				if (!entity->hasSynced)
-				{
-					continue;
-				}
-
-				auto notRelevant = false;
-
-				{
-					std::shared_lock<std::shared_mutex> sharedLock(entity->guidMutex);
-
-					// poor entity, it's relevant to nobody :( disown/delete it
-					if (entity->relevantTo.none() && entityClient && entity->type != fx::sync::NetObjEntityType::Player)
-					{
-						notRelevant = true;
-					}
-				}
-
-				if (notRelevant)
-				{
-					if (entity->IsOwnedByScript())
-					{
-						std::unique_lock _lock(entity->clientMutex);
-						sgs->ReassignEntity(entity->handle, {});
-
-						continue;
-					}
-				}
-
-				else if (client != entityClient)
-				{
-					continue;
-				}
-
-				if (!sgs->MoveEntityToCandidate(entity, entityClient))
-				{
-					sgs->DeleteEntity(entity);
-				}
-			}
-		} });*/
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgTimeSyncReq"), { fx::ThreadIdx::Net, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 		{
