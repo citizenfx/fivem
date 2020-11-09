@@ -409,9 +409,18 @@ struct NodeWrapper : public NodeBase
 			couldWrite = false;
 		}
 
-		if (state.isFirstUpdate && !TIds::CanSendOnFirstUpdate())
+		if (state.isFirstUpdate)
 		{
-			couldWrite = false;
+			if (!TIds::CanSendOnFirstUpdate())
+			{
+				couldWrite = false;
+			}
+
+			// if this doesn't need activation flags, don't write it
+			if ((std::get<2>(TIds::GetIds()) & 1) == 0)
+			{
+				couldWrite = false;
+			}
 		}
 		
 		if (shouldWrite(state, TIds::GetIds(), couldWrite))

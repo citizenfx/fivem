@@ -858,6 +858,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			// if this is an owned entity and we're deleting it, delete the heck out of it
+			if (ownsEntity && entity->deleting)
+			{
+				isRelevant = true;
+			}
+
 			// only update sync delay if should-be-created
 			// isRelevant should **not** be updated after this
 			auto syncDelay = 50ms;
@@ -1290,8 +1296,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			bool wasThisIt = false;
+
 			if (entity->timestamp <= entity->lastOutOfBandTimestamp)
 			{
+				wasThisIt = !forceUpdate;
+
 				forceUpdate = true;
 				GS_LOG("Oh, is this it? %d <= %d\n", entity->timestamp, entity->lastOutOfBandTimestamp);
 			}
@@ -1305,7 +1315,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			uint64_t baseFrameIndex;
 
-			if (forceUpdate)
+			if (forceUpdate && !wasThisIt)
 			{
 				baseFrameIndex = 0;
 				entity->lastFramesSent[slotId] = 0;
@@ -1391,7 +1401,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							if (!isFirstFrameUpdate && syncType == 2)
 							{
 								std::lock_guard _(entity->frameMutex);
-								entity->lastFramesSent[slotId] = m_frameIndex;
+								entity->lastFramesSent[slotId] = entity->lastFrameIndex;
 							}
 
 							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
@@ -2565,14 +2575,22 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		return false;
 	}
 
-	if (client->GetSlotId() < 0 || client->GetSlotId() > MAX_CLIENTS)
+	auto slotId = client->GetSlotId();
+
+	if (slotId < 0 || slotId > MAX_CLIENTS)
+	{
+		return false;
+	}
+
+	// so we won't set relevantTo right after and deadlock finalization
+	if (entity->deletedFor.test(slotId))
 	{
 		return false;
 	}
 
 	{
 		std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-		entity->relevantTo.set(client->GetSlotId());
+		entity->relevantTo.set(slotId);
 	}
 
 	fx::ClientSharedPtr entityClient = entity->GetClient();
@@ -2605,6 +2623,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 	if (length > 0)
 	{
+		entity->lastFrameIndex = m_frameIndex;
 		entity->timestamp = timestamp;
 
 		GS_LOG("sync for entity %d and length %d\n", entity->handle, length);
@@ -2758,7 +2777,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 	if (entity->stateBag)
 	{
-		entity->stateBag->AddRoutingTarget(client->GetSlotId());
+		entity->stateBag->AddRoutingTarget(slotId);
 	}
 
 	return true;
