@@ -492,12 +492,28 @@ void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* base
 
 void MumbleAudioOutput::ExternalAudioState::PushSound(int16_t* voiceBuffer, int len)
 {
+	// 48kHz = 48 samples/msec, 30ms to account for ticking anomaly
+	lastPush = timeGetTime() + (len / 48) + 30;
+
 	sink->PushAudio(voiceBuffer, len);
 }
 
 bool MumbleAudioOutput::ExternalAudioState::Valid()
 {
 	return sink.GetRef();
+}
+
+bool MumbleAudioOutput::ExternalAudioState::IsTalking()
+{
+	if (isTalking)
+	{
+		if (timeGetTime() >= lastPush)
+		{
+			isTalking = false;
+		}
+	}
+
+	return isTalking;
 }
 
 void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
@@ -1000,7 +1016,7 @@ void MumbleAudioOutput::GetTalkers(std::vector<uint32_t>* talkers)
 			continue;
 		}
 
-		if (client.second->isTalking)
+		if (client.second->IsTalking())
 		{
 			talkers->push_back(client.first);
 		}

@@ -11,6 +11,9 @@
 #include <wrl.h>
 #include <audioclient.h>
 #include <mmdeviceapi.h>
+
+#include <CoreConsole.h>
+
 extern "C"
 {
 #include <libswresample/swresample.h>
@@ -59,7 +62,13 @@ private:
 
 	uint8_t m_cachedBytes[512 * 1024];
 
-	uint8_t m_encodedBytes[65536];
+	uint8_t m_encodedBytes[131072];
+
+	int m_lastBitrate;
+
+	int m_curBitrate;
+
+	std::shared_ptr<ConVar<int>> m_bitrateVar;
 
 	OpusEncoder* m_opus;
 

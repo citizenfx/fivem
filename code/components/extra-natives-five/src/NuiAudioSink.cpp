@@ -54,7 +54,7 @@ namespace rage
 
 		void PrepareAndPlay(audWaveSlot* waveSlot, bool a2, int a3, bool a4);
 
-		void StopAndForget(void* a1);
+		void StopAndForget(bool a1);
 
 		audRequestedSettings* GetRequestedSettings();
 
@@ -68,7 +68,7 @@ namespace rage
 		return hook::get_pattern("0F 85 D3 00 00 00 41 83 CB FF", -0x35);
 	});
 
-	static hook::cdecl_stub<void(audSound*, void*)> _audSound_StopAndForget([]()
+	static hook::cdecl_stub<void(audSound*, bool)> _audSound_StopAndForget([]()
 	{
 		return hook::get_pattern("74 24 45 0F B6 41 62", -0x10);
 	});
@@ -78,7 +78,7 @@ namespace rage
 		_audSound_PrepareAndPlay(this, a1, a2, a3, a4);
 	}
 
-	void audSound::StopAndForget(void* a1)
+	void audSound::StopAndForget(bool a1)
 	{
 		_audSound_StopAndForget(this, a1);
 	}
@@ -88,8 +88,10 @@ namespace rage
 	public:
 		audReferencedRingBuffer();
 
+	private:
 		~audReferencedRingBuffer();
 
+	public:
 		inline void SetBuffer(void* buffer, uint32_t size)
 		{
 			m_data = buffer;
@@ -98,6 +100,14 @@ namespace rage
 		}
 
 		uint32_t PushAudio(const void* data, uint32_t size);
+
+		inline void Release()
+		{
+			if (InterlockedDecrement(&m_usageCount) == 0)
+			{
+				delete this;
+			}
+		}
 
 	private:
 		void* m_data; // +0
@@ -133,6 +143,12 @@ namespace rage
 
 	audReferencedRingBuffer::~audReferencedRingBuffer()
 	{
+		if (m_data)
+		{
+			rage::GetAllocator()->Free(m_data);
+			m_data = nullptr;
+		}
+
 		DeleteCriticalSection(&m_lock);
 	}
 
@@ -215,7 +231,8 @@ namespace rage
 
 	class audEnvironmentGroupInterface
 	{
-
+	public:
+		virtual ~audEnvironmentGroupInterface() = 0;
 	};
 
 	class audSoundInitParams
@@ -312,6 +329,8 @@ namespace rage
 	class audRequestedSettings
 	{
 	public:
+		void SetQuadSpeakerLevels(float levels[4]);
+
 		void SetVolume(float vol);
 
 		void SetVolumeCurveScale(float sca);
@@ -346,9 +365,19 @@ namespace rage
 		return hook::get_pattern("F3 0F 11 8C D1 98 00 00 00", -0x11);
 	});
 
+	static hook::thiscall_stub<void(audRequestedSettings*, float[4])> _audRequestedSettings_SetQuadSpeakerLevels([]()
+	{
+		return hook::get_pattern("B8 00 80 00 00 66 09 84", -0x61);
+	});
+
 	void audRequestedSettings::SetVolume(float vol)
 	{
 		_audRequestedSettings_SetVolume(this, vol);
+	}
+
+	void audRequestedSettings::SetQuadSpeakerLevels(float levels[4])
+	{
+		_audRequestedSettings_SetQuadSpeakerLevels(this, levels);
 	}
 
 	void audRequestedSettings::SetVolumeCurveScale(float vol)
@@ -662,6 +691,12 @@ public:
 
 	virtual void Init() override;
 
+	virtual void Shutdown() override;
+
+	void MInit();
+	
+	void MShutdown();
+
 	virtual rage::Vec3V GetPosition() override
 	{
 		if (m_positionForce.x != 0.0f || m_positionForce.y != 0.0f || m_positionForce.z != 0.0f)
@@ -717,6 +752,18 @@ void MumbleAudioEntity::Init()
 {
 	rage::audEntity::Init();
 
+	MInit();
+}
+
+void MumbleAudioEntity::Shutdown()
+{
+	MShutdown();
+
+	rage::audEntity::Shutdown();
+}
+
+void MumbleAudioEntity::MInit()
+{
 	m_environmentGroup = naEnvironmentGroup::Create();
 	m_environmentGroup->Init(nullptr, 20.0f, 1000, 4000, 0.5f, 1000);
 	m_environmentGroup->SetPosition(m_position);
@@ -745,13 +792,33 @@ void MumbleAudioEntity::Init()
 		auto size = 48000 * sizeof(int16_t) * 1;
 		m_bufferData = (uint8_t*)rage::GetAllocator()->Allocate(size, 16, 0);
 
-		m_buffer = new rage::audReferencedRingBuffer();
-		m_buffer->SetBuffer(m_bufferData, size);
+		auto buffer = new rage::audReferencedRingBuffer();
+		buffer->SetBuffer(m_bufferData, size);
 
-		m_sound->InitStreamPlayer(m_buffer, 1, 48000);
+		m_sound->InitStreamPlayer(buffer, 1, 48000);
 		m_sound->PrepareAndPlay(nullptr, true, -1, false);
 
+		m_buffer = buffer;
+
 		_updateAudioThread();
+	}
+}
+
+void MumbleAudioEntity::MShutdown()
+{
+	m_sound->StopAndForget(false);
+	m_sound = nullptr;
+
+	// needs to be delayed to when the sound is removed
+	//delete m_environmentGroup;
+	m_environmentGroup = nullptr;
+
+	auto buffer = m_buffer;
+
+	if (buffer)
+	{
+		buffer->Release();
+		buffer = nullptr;
 	}
 }
 
@@ -791,6 +858,26 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 		{
 			settings->SetVolume(rage::GetDbForLinear(1.0f));
 			*((char*)settings + 369) |= 8;
+		}
+
+		if (m_overrideVolume >= 0.0f)
+		{
+			float levels[4] = { 1.0f,
+				1.0f,
+				1.0f,
+				1.0f };
+
+			auto settings = m_sound->GetRequestedSettings();
+			settings->SetQuadSpeakerLevels(levels);
+
+			m_positionForce = { 1.0f,
+				1.0f,
+				1.0f,
+				1.0f };
+		}
+		else
+		{
+			m_positionForce = {};
 		}
 
 		settings->SetEnvironmentalLoudness(60);
@@ -865,6 +952,7 @@ private:
 	alignas(16) rage::Vec3V m_position;
 	float m_distance;
 	float m_overrideVolume;
+	float m_lastOverrideVolume = -1.0f;
 };
 
 static std::mutex g_sinksMutex;
@@ -970,6 +1058,14 @@ void MumbleAudioSink::Process()
 			m_entity->Init();
 		}
 
+		if (m_overrideVolume != m_lastOverrideVolume)
+		{
+			m_lastOverrideVolume = m_overrideVolume;
+
+			m_entity->MShutdown();
+			m_entity->MInit();
+		}
+
 		m_entity->SetPosition((float*)&m_position, m_distance, m_overrideVolume);
 		
 		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
@@ -1054,7 +1150,7 @@ RageAudioStream::~RageAudioStream()
 {
 	if (m_sound)
 	{
-		m_sound->StopAndForget(nullptr);
+		m_sound->StopAndForget(false);
 	}
 
 	swr_free(&m_avr);
@@ -1250,7 +1346,7 @@ static InitFunction initFunction([]()
 			}
 			else if ((g_sound && !active) || musicThemeVariable.GetValue() != lastSong)
 			{
-				g_sound->StopAndForget(nullptr);
+				g_sound->StopAndForget(false);
 				g_sound = nullptr;
 
 				_updateAudioThread();

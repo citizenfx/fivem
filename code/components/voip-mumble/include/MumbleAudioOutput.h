@@ -94,6 +94,11 @@ private:
 		{
 		}
 
+		virtual bool IsTalking()
+		{
+			return isTalking;
+		}
+
 		uint64_t sequence;
 		float volume;
 		float position[3];
@@ -117,7 +122,11 @@ private:
 
 		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
 
+		virtual bool IsTalking() override;
+
 		fwRefContainer<IMumbleAudioSink> sink;
+
+		uint32_t lastPush = 0;
 	};
 
 	struct ClientAudioState : public ClientAudioStateBase, public IXAudio2VoiceCallback

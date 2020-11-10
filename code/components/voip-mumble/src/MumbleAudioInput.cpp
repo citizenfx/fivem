@@ -22,13 +22,16 @@ extern "C"
 
 MumbleAudioInput::MumbleAudioInput()
 	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_audioLevel(0.0f),
-	  m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false)
+	  m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false), m_lastBitrate(48000), m_curBitrate(48000)
 {
 
 }
 
 void MumbleAudioInput::Initialize()
 {
+	m_bitrateVar = std::make_shared<ConVar<int>>("voice_inBitrate", ConVar_None, m_curBitrate, &m_curBitrate);
+	m_bitrateVar->GetHelper()->SetConstraints(16000, 128000);
+
 	m_startEvent = CreateEvent(0, 0, 0, 0);
 
 	m_thread = std::thread(ThreadStart, this);
@@ -254,6 +257,14 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		}
 
 		m_isTalking = true;
+
+		if (m_lastBitrate != m_curBitrate)
+		{
+			if (opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(m_curBitrate)) >= 0)
+			{
+				m_lastBitrate = m_curBitrate;
+			}
+		}
 
 		// encode
 		int len = opus_encode(m_opus, (const int16_t*)m_resampledBytes, frameSize * 48, m_encodedBytes, sizeof(m_encodedBytes));
@@ -529,7 +540,7 @@ void MumbleAudioInput::InitializeAudioDevice()
 	int error;
 	m_opus = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &error);
 
-	opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(24000));
+	opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(48000));
 
 	// set event handle
 	m_audioClient->SetEventHandle(m_startEvent);
