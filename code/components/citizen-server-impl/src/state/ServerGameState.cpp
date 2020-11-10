@@ -663,7 +663,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						}
 					}
 					// it's a script-less entity, we can collect it.
-					else if (!entity->IsOwnedByScript() && entity->type != sync::NetObjEntityType::Player)
+					else if (!entity->IsOwnedByScript() && (entity->type != sync::NetObjEntityType::Player || !entity->GetClient()))
 					{
 						FinalizeClone({}, entity->handle);
 						continue;
