@@ -209,6 +209,7 @@ static int WheelTractionVectorLengthOffset = 0x1B8;
 static int WheelSteeringAngleOffset = 0x1CC;
 static int WheelBrakePressureOffset = 0x1D0;
 static int WheelHealthOffset = 0x1E8; // 75 24 F3 0F 10 81 ? ? ? ? F3 0F
+static int WheelSurfaceMaterialOffset;
 
 static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
@@ -313,6 +314,7 @@ static HookFunction initFunction([]()
 		DrawnWheelAngleMultOffset = *hook::get_pattern<uint32_t>("48 8B C8 E8 ? ? ? ? 84 C0 74 ? F3 0F 10 83", 33);
 		VehicleTopSpeedModifierPtr = hook::get_pattern<char>("48 8B D9 48 81 C1 ? ? ? ? 48 89 5C 24 28 44 0F 29 40 C8");
 		VehicleCheatPowerIncreaseOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 8B 83 ? ? ? ? C7 83", 23);
+		WheelSurfaceMaterialOffset = *hook::get_pattern<uint32_t>("48 8B 4A 10 0F 28 CF F3 0F 59 05 ? ? ? ?", -4);
 	}
 
 	{
@@ -570,6 +572,11 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_HEALTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
 		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelHealthOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_SURFACE_MATERIAL", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
+	{
+		context.SetResult<unsigned char>(*reinterpret_cast<unsigned char*>(wheelAddr + WheelSurfaceMaterialOffset));
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEEL_HEALTH", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
