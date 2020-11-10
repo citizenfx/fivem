@@ -37,3 +37,38 @@ inline bool Is372()
 
 	return false;
 }
+
+namespace xbr
+{
+inline int GetGameBuild()
+{
+	static int build = ([]()
+	{
+		if (Is2060())
+		{
+			return 2060;
+		}
+
+		if (Is372())
+		{
+			return 372;
+		}
+
+		return 1604;
+	})();
+
+	return build;
+}
+
+template<int Build>
+inline bool IsGameBuildOrGreater()
+{
+	return GetGameBuild() >= Build;
+}
+
+template<int Build>
+inline bool IsGameBuild()
+{
+	return GetGameBuild() == Build;
+}
+}
