@@ -34,11 +34,11 @@
 
 			files
 			{
-				"../../shared/**.cpp", "../../shared/**.h", "**.cpp", "**.h"
+				"../../shared/**.cpp", "../../shared/**.h", "**.cpp", "**.h", "**.asm"
 			}
 
 			configuration "not windows"
-				excludes { "Hooking.*" }
+				excludes { "Hooking.*", "*.asm" }
 	end
 
 	do_shared(false)

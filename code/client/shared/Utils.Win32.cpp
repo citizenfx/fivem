@@ -240,6 +240,9 @@ void AddCrashometryV(const std::string& key, const std::string& format, fmt::pri
 }
 
 #if !defined(COMPILING_SHARED_LIBC)
+
+extern "C" void Win32TrapAndJump64();
+
 void __cdecl _wwassert(
 	_In_z_ wchar_t const* _Message,
 	_In_z_ wchar_t const* _File,
@@ -248,10 +251,9 @@ void __cdecl _wwassert(
 {
 	FatalErrorNoExcept("Assertion failure: %s (%s:%d)", ToNarrow(_Message), ToNarrow(_File), _Line);
 
-#if defined(_M_IX86) || defined(_M_AMD64)
-	DWORD oldProtect;
-	VirtualProtect(_ReturnAddress(), 1, PAGE_EXECUTE_READWRITE, &oldProtect);
-	*(uint8_t*)_ReturnAddress() = 0xCC;
+#if defined(_M_AMD64)
+	__writegsqword(0x38, (uintptr_t)_ReturnAddress());
+	*(void**)_AddressOfReturnAddress() = &Win32TrapAndJump64;
 #else
 #error No architecture for asserts?
 #endif
