@@ -122,6 +122,11 @@ struct shared_reference
 		return value == other.value;
 	}
 
+	bool operator<(const shared_reference& other) const
+	{
+		return value < other.value;
+	}
+
 	T& operator*() const
 	{
 		return *value;
@@ -309,6 +314,16 @@ struct weak_reference
 	bool operator==(const weak_reference& other) const
 	{
 		return value == other.value;
+	}
+
+	bool operator<(const SharedT& other) const
+	{
+		return value < other.value;
+	}
+
+	bool operator<(const weak_reference& other) const
+	{
+		return value < other.value;
 	}
 
 	~weak_reference()

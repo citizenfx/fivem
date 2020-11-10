@@ -485,7 +485,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202007151853;
+			data["bitVersion"] = 0x202010191044;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
 			data["onesync"] = fx::IsOneSync();

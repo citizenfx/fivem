@@ -9,17 +9,17 @@
 
 #include <state/RlMessageBuffer.h>
 
-#include <variant>
-#include <shared_mutex>
-
 #include <array>
 #include <optional>
+#include <shared_mutex>
+#include <unordered_set>
+#include <variant>
+
 #include <EASTL/bitset.h>
 #include <EASTL/fixed_map.h>
 #include <EASTL/fixed_hash_map.h>
 #include <EASTL/fixed_hash_set.h>
 #include <EASTL/fixed_vector.h>
-#include <shared_mutex>
 
 #include <tbb/concurrent_unordered_map.h>
 #include <thread_pool.hpp>
@@ -392,37 +392,34 @@ struct SyncEntityState
 	std::shared_mutex clientMutex;
 	NetObjEntityType type;
 	uint32_t timestamp;
+	uint32_t lastOutOfBandTimestamp;
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
 	uint32_t creationToken;
 	float overrideCullingRadius = 0.0f;
 
+	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> deletedFor;
 
-	// list of delta *source* frames sent (but unacked) at a time per player
-	using TNewSendsMap = eastl::fixed_map<uint64_t /* index */, std::chrono::milliseconds /* at */, 10, false>;
-
-	std::shared_mutex newSendsMutex;
-	std::array<TNewSendsMap, MAX_CLIENTS> newSends;
-
-	// last frame sent per player
-	std::array<uint64_t, MAX_CLIENTS> lastClientFrames;
-
-	// last time a packet was *queued to send* for a particular peer
-	std::array<std::chrono::milliseconds, MAX_CLIENTS> lastSyncs;
+	std::mutex frameMutex;
+	std::array<uint64_t, MAX_CLIENTS> lastFramesSent;
 
 	std::chrono::milliseconds lastReceivedAt;
+	std::chrono::milliseconds lastMigratedAt;
 
 	std::shared_ptr<SyncTreeBase> syncTree;
 
-	std::shared_mutex guidMutex;
-	ScriptGuid* guid;
+	ScriptGuid* guid = nullptr;
 	uint32_t handle;
 
-	bool deleting;
+	bool deleting = false;
+	bool finalizing = false;
 	bool hasSynced = false;
 	bool passedFilter = false;
+	bool wantsReassign = false;
+	bool firstOwnerDropped = false;
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
@@ -434,35 +431,35 @@ struct SyncEntityState
 
 	virtual ~SyncEntityState();
 
-	inline void ReinitNewSends(size_t id)
-	{
-		if (!newSends[id].empty())
-		{
-			// manually call the constructor to clean out - nothing should be allocated externally in there and
-			// constructors are expected to understand clobbered memory, so this should be fine.
-			new (&newSends[id]) TNewSendsMap;
-		}
-	}
-
 	inline float GetDistanceCullingRadius()
 	{
 		// #TODO1S: figure out a good value for this
 		return overrideCullingRadius != 0.0f ? overrideCullingRadius : (424.0f * 424.0f);
 	}
 
-	inline bool IsOwnedByScript()
+	inline uint32_t GetScriptHash()
 	{
 		uint32_t scriptHash = 0;
-
-		if (syncTree && syncTree->GetScriptHash(&scriptHash) && scriptHash != 0)
+		if (syncTree)
 		{
-			if (creationToken != 0)
-			{
-				return true;
-			}
+			syncTree->GetScriptHash(&scriptHash);
 		}
+		return scriptHash;
+	}
 
-		return false;
+	inline bool IsOwnedByScript()
+	{
+		return GetScriptHash() != 0;
+	}
+
+	inline bool IsOwnedByClientScript()
+	{
+		return GetScriptHash() != 0 && creationToken == 0;
+	}
+
+	inline bool IsOwnedByServerScript()
+	{
+		return GetScriptHash() != 0 && creationToken != 0;
 	}
 
 	// MAKE SURE YOU HAVE A LOCK BEFORE CALLING THIS
@@ -471,11 +468,16 @@ struct SyncEntityState
 		return client;
 	}
 
-	//THIS ONE TOO
-	fx::ClientWeakPtr& GetLastUpdaterUnsafe()
+	fx::ClientWeakPtr& GetFirstOwnerUnsafe()
 	{
-		return lastUpdater;
+		return firstOwner;
 	}
+
+	fx::ClientWeakPtr& GetLastOwnerUnsafe()
+	{
+		return lastOwner;
+	}
+
 
 	fx::ClientSharedPtr GetClient()
 	{
@@ -483,16 +485,23 @@ struct SyncEntityState
 		return client.lock();
 	}
 
-	fx::ClientSharedPtr GetLastUpdater()
+	fx::ClientSharedPtr GetFirstOwner()
 	{
 		std::shared_lock _lock(clientMutex);
-		return lastUpdater.lock();
+		return firstOwner.lock();
+	}
+
+	fx::ClientSharedPtr GetLastOwner()
+	{
+		std::shared_lock _lock(clientMutex);
+		return lastOwner.lock();
 	}
 
 	// make absolutely sure we don't accidentally mess up and get this info without a lock
 private:
 	fx::ClientWeakPtr client;
-	fx::ClientWeakPtr lastUpdater;
+	fx::ClientWeakPtr firstOwner;
+	fx::ClientWeakPtr lastOwner;
 };
 }
 
@@ -521,10 +530,8 @@ struct SyncUnparseState
 	int objType;
 	uint32_t timestamp;
 	uint64_t lastFrameIndex;
-
 	uint32_t targetSlotId;
-
-	bool isFirstUpdate = false;
+	bool isFirstUpdate;
 
 	SyncUnparseState(rl::MessageBuffer& buffer)
 		: buffer(buffer), lastFrameIndex(0)
@@ -670,27 +677,40 @@ struct AckPacketWrapper
 
 static constexpr const int MaxObjectId = (1 << 16) - 1;
 
-struct ClientEntityState
+struct ClientEntityData
 {
-	uint16_t uniqifier;
-	bool isPlayer;
-	bool overrideFrameIndex;
-	uint32_t netId;
-
-	uint64_t frameIndex;
-
-	std::chrono::milliseconds syncDelay;
-
-	eastl::fixed_vector<uint64_t, 10> linkedTo;
+	sync::SyncEntityWeakPtr entityWeak;
+	uint64_t lastSent;
+	bool isCreated;
 };
 
-using EntityStateObject = eastl::fixed_map<uint16_t, ClientEntityState, 400>;
-inline object_pool<EntityStateObject, 2 * 1024 * 1024> gameStateClientPool;
+struct EntityDeletionData
+{
+	bool outOfScope; // is this a deletion due to being out-of-scope?
+	bool forceSteal; // should we force a steal from the client?
+};
+
+struct ClientEntityState
+{
+	eastl::fixed_hash_map<uint16_t, ClientEntityData, 64> syncedEntities;
+	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 16> deletions;
+};
+
+struct SyncedEntityData
+{
+	std::chrono::milliseconds nextSync;
+	std::chrono::milliseconds syncDelta;
+	sync::SyncEntityPtr entity;
+	bool forceUpdate;
+	bool hasCreated;
+};
+
+constexpr auto maxSavedClientFrames = 768;
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
 	rl::MessageBuffer ackBuffer{ 16384 };
-	std::set<int> objectIds;
+	std::unordered_set<int> objectIds;
 
 	std::mutex selfMutex;
 
@@ -704,39 +724,27 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	glm::mat4x4 viewMatrix{};
 
-	struct EntityStateDeleter
-	{
-		void operator()(EntityStateObject* obj)
-		{
-			gameStateClientPool.destruct(obj);
-		}
-	};
-
-	static auto MakeEntityState()
-	{
-		return std::unique_ptr<EntityStateObject, EntityStateDeleter>(gameStateClientPool.construct(), {});
-	}
-
-	eastl::fixed_map<uint64_t, std::unique_ptr<EntityStateObject, EntityStateDeleter>, 200> entityStates;
-	eastl::fixed_set<uint32_t, 20> pendingEntities;
-	eastl::bitset<roundToWord(MaxObjectId)> createdEntities;
-
-	uint64_t lastAckIndex;
+	eastl::fixed_hash_map<uint32_t, uint64_t, 100> pendingCreates;
+	eastl::fixed_hash_map<uint64_t, ClientEntityState, maxSavedClientFrames, maxSavedClientFrames, false> frameStates;
+	uint64_t firstSavedFrameState = 0;
 
 	fx::ClientWeakPtr client;
 
-	std::map<int, int> playersToSlots;
-	std::map<int, int> slotsToPlayers;
-
-	std::vector<std::tuple<uint16_t, std::chrono::milliseconds, bool>> relevantEntities;
+	eastl::fixed_hash_map<int, int, 128> playersToSlots;
+	eastl::bitset<128> playersInScope;
+	
+	eastl::fixed_hash_map<uint32_t, SyncedEntityData, 128> syncedEntities;
+	eastl::fixed_hash_map<uint32_t, std::tuple<sync::SyncEntityPtr, EntityDeletionData>, 16> entitiesToDestroy;
 
 	uint32_t syncTs = 0;
 	uint32_t ackTs = 0;
 
+	eastl::fixed_hash_map<uint16_t /* (x << 8) | y */, std::chrono::milliseconds, 10> worldGridCooldown;
+
 	std::shared_ptr<fx::StateBag> playerBag;
 
 	GameStateClientData()
-		: syncing(false), lastAckIndex(0)
+		: syncing(false)
 	{
 	}
 
@@ -809,6 +817,8 @@ private:
 
 	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
 
+	void FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
+
 	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
 	void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
@@ -827,8 +837,7 @@ private:
 	std::unique_ptr<ThreadPool> m_tg;
 
 	// as bitset is not thread-safe
-	std::mutex m_objectIdsMutex;
-
+	std::shared_mutex m_objectIdsMutex;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
@@ -897,7 +906,7 @@ public:
 	std::vector<sync::SyncEntityWeakPtr> m_entitiesById;
 
 	std::shared_mutex m_entityListMutex;
-	std::list<fx::sync::SyncEntityPtr> m_entityList;
+	std::set<fx::sync::SyncEntityPtr> m_entityList;
 
 	EntityLockdownMode m_entityLockdownMode;
 };
