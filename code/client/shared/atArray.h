@@ -41,6 +41,13 @@ public:
 
 	atArray& operator=(const atArray& right)
 	{
+		if (m_offset)
+		{
+			std::destroy(m_offset, m_offset + m_count);
+
+			rage::GetAllocator()->free(m_offset);
+		}
+
 		m_count = right.m_count;
 		m_size = right.m_size;
 

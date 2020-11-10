@@ -406,8 +406,23 @@ class CBaseSubHandlingData : public PoolAllocated<CHandlingObject>
 public:
 	virtual ~CBaseSubHandlingData() = default;
 	virtual void* GetParser() = 0;
-	virtual int GetUnk() = 0;
+	virtual int GetTypeIndex() = 0;
 	virtual void ProcessOnLoad() = 0;
+};
+
+struct CAdvancedData : public rage::sysUseAllocator
+{
+	void* vtbl;
+	uint8_t pad[16];
+};
+
+class CCarHandlingData2060 : public CBaseSubHandlingData
+{
+private:
+	char pad[64 - 8];
+
+public:
+	atArray<CAdvancedData> AdvancedData;
 };
 
 struct BoardingPointData : public rage::sysUseAllocator
@@ -429,6 +444,9 @@ private:
 public:
 	CHandlingData(CHandlingData* orig)
 	{
+		static_assert(offsetof(CHandlingData, m_boardingPoints) == 328, "m_boardingPoints");
+		static_assert(offsetof(CHandlingData, m_subHandlingData) == 344, "m_subHandlingData");
+
 		static auto pool = rage::GetPoolBase(CHandlingObject::kHash);
 		memcpy(this, orig, pool->GetEntrySize());
 
@@ -440,6 +458,19 @@ public:
 			{
 				shds[i] = (CBaseSubHandlingData*)rage::PoolAllocate(pool);
 				memcpy(shds[i], m_subHandlingData.Get(i), pool->GetEntrySize());
+
+				if (xbr::IsGameBuildOrGreater<2060>())
+				{
+					// CCarHandlingData
+					if (shds[i]->GetTypeIndex() == 8)
+					{
+						auto origChd = static_cast<CCarHandlingData2060*>(m_subHandlingData.Get(i));
+						auto chd = static_cast<CCarHandlingData2060*>(shds[i]);
+
+						chd->AdvancedData.m_offset = 0;
+						chd->AdvancedData = origChd->AdvancedData;
+					}
+				}
 			}
 		}
 
