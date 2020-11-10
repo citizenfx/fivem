@@ -1171,7 +1171,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		for (auto syncIt = syncedEntities.begin(), syncItEnd = syncedEntities.end(); syncIt != syncItEnd;)
 		{
 			auto& [identPair, syncData] = *syncIt;
-			auto& [objectId, uniqifier] = DeconstructHandleUniqifierPair(identPair);
+			auto [objectId, uniqifier] = DeconstructHandleUniqifierPair(identPair);
 			auto& entity = syncData.entity;
 			auto& forceUpdate = syncData.forceUpdate;
 
@@ -1342,12 +1342,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				auto _ent = entity;
 
-				auto runSync = [this, _ent, &syncType, curTime, &scl, baseFrameIndex, wasForceUpdate](auto& preCb) 
+				auto runSync = [this, _ent, &syncType, curTime, &scl, baseFrameIndex, wasForceUpdate](auto&& preCb) 
 				{
 					scl->EnqueueCommand([this,
 										entity = _ent,
 										syncType,
-										preCb,
+										preCb = std::move(preCb),
 										baseFrameIndex,
 										curTime,
 										wasForceUpdate](sync::SyncCommandState& cmdState) 
