@@ -1082,15 +1082,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						GS_LOG("marking object %d as stolen from client %d\n", objectId, client->GetNetId());
 
 						// mark the object as stolen already, in case we're not stealing it later
-						std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+						std::unique_lock lock(m_objectIdsMutex);
 						m_objectIdsStolen.set(objectId);
 					}
 				}
 
 				// marked as stolen? if so, yea
 				{
-					// TODO: shared
-					std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+					std::shared_lock lock(m_objectIdsMutex);
 					deletionData.forceSteal = m_objectIdsStolen.test(objectId);
 				}
 
@@ -1954,7 +1953,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 	// when deleted, we want to make this object ID return to the global pool, not to the player who last owned it
 	// therefore, mark it as stolen
 	{
-		std::unique_lock<std::mutex> lock(m_objectIdsMutex);
+		std::unique_lock lock(m_objectIdsMutex);
 		m_objectIdsStolen.set(entityHandle);
 	}
 }
@@ -2189,7 +2188,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 		// remove object IDs from sent map
 		auto [ lock, data ] = GetClientData(this, client);
 
-		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+		std::unique_lock objectIdsLock(m_objectIdsMutex);
 
 		for (auto& objectId : data->objectIds)
 		{
@@ -2225,7 +2224,7 @@ void ServerGameState::ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::
 	uint16_t uniqifier = 0;
 	if (ProcessClonePacket(client, inPacket, 1, &objectId, &uniqifier))
 	{
-		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+		std::unique_lock objectIdsLock(m_objectIdsMutex);
 		m_objectIdsUsed.set(objectId);
 	}
 
@@ -2373,7 +2372,7 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t 
 			bool stolen = false;
 
 			{
-				std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+				std::unique_lock objectIdsLock(m_objectIdsMutex);
 				m_objectIdsUsed.reset(objectId);
 
 				if (m_objectIdsStolen.test(objectId))
@@ -2418,7 +2417,7 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 
 	int id = fx::IsLengthHack() ? (MaxObjectId - 1) : 8191;
 
-	std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+	std::unique_lock objectIdsLock(m_objectIdsMutex);
 
 	for (; id >= 1; id--)
 	{
@@ -2949,7 +2948,7 @@ void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numId
 
 	{
 		auto [lock, data] = GetClientData(this, client);
-		std::unique_lock<std::mutex> objectIdsLock(m_objectIdsMutex);
+		std::unique_lock objectIdsLock(m_objectIdsMutex);
 
 		int id = 1;
 

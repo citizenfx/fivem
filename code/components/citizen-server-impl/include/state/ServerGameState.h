@@ -705,7 +705,7 @@ struct SyncedEntityData
 	bool hasCreated;
 };
 
-constexpr auto maxSavedClientFrames = 256;
+constexpr auto maxSavedClientFrames = 768;
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
@@ -837,7 +837,7 @@ private:
 	std::unique_ptr<ThreadPool> m_tg;
 
 	// as bitset is not thread-safe
-	std::mutex m_objectIdsMutex;
+	std::shared_mutex m_objectIdsMutex;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsSent;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsUsed;
 	eastl::bitset<roundToWord(MaxObjectId)> m_objectIdsStolen;
