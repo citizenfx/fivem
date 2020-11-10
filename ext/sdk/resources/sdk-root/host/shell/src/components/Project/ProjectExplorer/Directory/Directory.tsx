@@ -4,10 +4,10 @@ import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
 import { ProjectItemProps } from '../ProjectExplorer.item';
-import { useExpandablePath, useItem, useItemDragAndDrop } from '../ProjectExplorer.hooks';
+import { useExpandablePath, useItem, useItemDragAndDrop, useItemRelocateSourceContextMenu, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { FilesystemEntry } from 'sdkApi/api.types';
-import { ContextMenu } from 'components/controls/ContextMenu/ContextMenu';
+import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import s from './Directory.module.scss';
 
 
@@ -43,10 +43,16 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
 
   const { contextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
 
-  const contextItems = [
+  const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
+  const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
+
+  const contextItems = React.useMemo((): ContextMenuItemsCollection => [
+    ...relocateSourceContextMenu,
+    ...relocateTargetContextMenu,
+    ContextMenuItemSeparator,
     ...directoryContextMenuItems,
     ...contextMenuItems,
-  ];
+  ], [relocateSourceContextMenu, relocateTargetContextMenu, directoryContextMenuItems, contextMenuItems]);
   const nodes = renderItemChildren();
   const iconNode = icon || getDirectoryIcon(entry, expanded);
 

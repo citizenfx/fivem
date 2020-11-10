@@ -40,7 +40,7 @@
       align-items: center;
       justify-content: flex-start;
 
-      padding: $q*2 $q*4;
+      padding: $q*2 $q*3 $q*2 $q*3;
 
       font-size: .8rem;
 
@@ -53,10 +53,24 @@
 
       &:hover {
         background-color: $acColor;
+
+        svg {
+          opacity: 1;
+
+          &.dummy {
+            opacity: 0;
+          }
+        }
       }
 
       svg {
-        margin-right: $q*4;
+        margin-right: $q*3;
+
+        opacity: .75;
+
+        &.dummy {
+          opacity: 0;
+        }
       }
     }
   }

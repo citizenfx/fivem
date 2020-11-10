@@ -5,10 +5,10 @@ import { combineVisibilityFilters, Explorer, getRelativePath, visibilityFilters 
 import { Modal } from 'components/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { AssetCreateRequest, assetKinds, FilesystemEntry } from 'sdkApi/api.types';
-import { assetApi } from 'sdkApi/events';
 import { sendApiMessage } from 'utils/api';
 import { invariant } from 'utils/invariant';
+import { assetApi } from 'sdkApi/events';
+import { AssetCreateRequest, assetKinds, FilesystemEntry } from 'sdkApi/api.types';
 import s from './AssetCreator.module.scss';
 
 
@@ -54,7 +54,7 @@ export const AssetCreator = React.memo(function AssetCreator() {
     : `Path: ${resourceRelativePath}`;
 
   return (
-    <Modal onClose={closeAssetCreator}>
+    <Modal fullWidth onClose={closeAssetCreator}>
       <div className={s.root}>
         <div className="modal-header">
           Create Asset

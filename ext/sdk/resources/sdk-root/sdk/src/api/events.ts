@@ -30,6 +30,7 @@ export const projectApi = {
   deleteFile: 'project:deleteFile',
 
   moveEntry: 'project:moveEntry',
+  copyEntry: 'project:copyEntry',
 };
 
 export const assetApi = {

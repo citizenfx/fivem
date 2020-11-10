@@ -8,7 +8,7 @@ import { sendApiMessage } from 'utils/api';
 import { projectApi, serverApi } from 'sdkApi/events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
-import { useExpandablePath, useItem, useItemDrop } from '../ProjectExplorer.hooks';
+import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
 import { ProjectItemProps, renderChildren } from '../ProjectExplorer.item';
 import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
@@ -71,6 +71,8 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     sendApiMessage(serverApi.startResource, entry.name);
   }, [entry]);
 
+  const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
+
   const itemContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
     const serverIsDown = serverState !== ServerStates.up;
 
@@ -124,6 +126,8 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
         onClick: handleToggleAutorestartEnabled,
       },
       ContextMenuItemSeparator,
+      ...relocateTargetContextMenu,
+      ContextMenuItemSeparator,
       {
         id: 'delete',
         icon: deleteIcon,
@@ -152,6 +156,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     handleToggleEnabled,
     openDeleter,
     openRenamer,
+    relocateTargetContextMenu,
   ]);
 
   const iconTitle = projectResource?.enabled

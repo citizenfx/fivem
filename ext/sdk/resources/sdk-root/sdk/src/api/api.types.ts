@@ -209,3 +209,5 @@ export interface MoveEntryRequest {
   sourcePath: string,
   targetPath: string,
 }
+
+export type CopyEntryRequest = MoveEntryRequest;

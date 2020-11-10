@@ -2,6 +2,7 @@ import React, { MouseEvent } from 'react';
 import ReactDOM from 'react-dom';
 import classnames from 'classnames';
 import s from './ContextMenu.module.scss';
+import { BsAlt } from 'react-icons/bs';
 
 
 const noop = () => {};
@@ -11,8 +12,8 @@ export const ContextMenuItemSeparator = Symbol('context-menu-separator');
 
 export interface ContextMenuItem {
   id: string,
-  text: string,
-  icon: React.ReactNode,
+  text: React.ReactNode,
+  icon?: React.ReactNode,
   onClick: () => void,
   disabled?: boolean,
 }
@@ -102,7 +103,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
             className={classnames(s.item, { [s.disabled]: item.disabled })}
             onClick={item.onClick}
           >
-            {item.icon}
+            {item.icon || <BsAlt className={s.dummy} />}
             {item.text}
           </div>
         );

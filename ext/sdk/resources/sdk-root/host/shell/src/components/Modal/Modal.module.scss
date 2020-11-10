@@ -13,6 +13,12 @@
 
   z-index: 2000;
 
+  &.full-width {
+    .content {
+      width: 60vw;
+    }
+  }
+
   .backdrop {
     position: fixed;
     top: 0;
@@ -26,7 +32,8 @@
   }
 
   .content {
-    width: 60vw;
+    max-width: 60vw;
+    min-width: 30vw;
     max-height: calc(#{$modalContentHeight} + 4px);
     overflow-y: auto;
 

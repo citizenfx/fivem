@@ -9,6 +9,7 @@ import {
   AssetDeleteRequest,
   AssetMeta,
   AssetRenameRequest,
+  CopyEntryRequest,
   MoveEntryRequest,
   Project,
   ProjectFsTree,
@@ -174,6 +175,7 @@ export class ProjectInstance {
       this.client.on(projectApi.renameFile, ({ filePath, newFileName }) => this.renameFile(filePath, newFileName)),
 
       this.client.on(projectApi.moveEntry, (request: MoveEntryRequest) => this.moveEntry(request)),
+      this.client.on(projectApi.copyEntry, (request: CopyEntryRequest) => this.copyEntry(request)),
     );
   }
 
@@ -387,6 +389,20 @@ export class ProjectInstance {
 
   // FS methods
   async moveEntry(request: MoveEntryRequest) {
+    this.reconcileLock.withLock(async () => {
+      const { sourcePath, targetPath } = request;
+
+      const newPath = path.join(targetPath, path.basename(sourcePath));
+
+      if (newPath === sourcePath) {
+        return;
+      }
+
+      await fs.promises.rename(sourcePath, newPath);
+    });
+  }
+
+  async copyEntry(request: CopyEntryRequest) {
     this.reconcileLock.withLock(async () => {
       const { sourcePath, targetPath } = request;
 

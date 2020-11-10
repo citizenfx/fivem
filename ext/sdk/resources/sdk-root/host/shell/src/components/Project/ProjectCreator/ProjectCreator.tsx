@@ -49,7 +49,7 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
   }
 
   return (
-    <Modal onClose={closeCreator}>
+    <Modal fullWidth onClose={closeCreator}>
       <div className={s.root}>
         <h3 className="modal-header">
           Create New Project

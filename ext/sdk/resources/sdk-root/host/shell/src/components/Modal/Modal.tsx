@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-
+import classnames from 'classnames';
 import s from './Modal.module.scss';
 
 
@@ -9,9 +9,17 @@ const noop = () => {};
 export interface ModalProps {
   onClose?: () => void,
   children: React.ReactNode,
+
+  fullWidth?: boolean,
 }
 
-export const Modal = React.memo(function Modal({ children, onClose = noop }: ModalProps) {
+export const Modal = React.memo(function Modal(props: ModalProps) {
+  const {
+    children,
+    onClose = noop,
+    fullWidth = false,
+  } = props;
+
   const [modalOutlet, setModalOutlet] = React.useState<HTMLElement | null>(null);
 
   React.useLayoutEffect(() => {
@@ -31,8 +39,12 @@ export const Modal = React.memo(function Modal({ children, onClose = noop }: Mod
   }, [onClose]);
 
   if (modalOutlet) {
+    const rootClassName = classnames(s.root, {
+      [s['full-width']]: fullWidth,
+    });
+
     return ReactDOM.createPortal(
-      <div className={s.root}>
+      <div className={rootClassName}>
         <div className={s.backdrop} onClick={onClose}/>
         <div className={s.content}>
           {children}

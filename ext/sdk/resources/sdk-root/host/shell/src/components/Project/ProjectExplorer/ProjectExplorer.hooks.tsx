@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DropTargetMonitor, useDrag, useDrop } from 'react-dnd';
-import { ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
+import { ContextMenuItem, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { VisibilityFilter } from 'components/Explorer/Explorer';
 import { newDirectoryIcon, newFileIcon } from 'constants/icons';
 import { FilesystemEntry, MoveEntryRequest } from 'sdkApi/api.types';
@@ -9,7 +9,7 @@ import { sendApiMessage } from 'utils/api';
 import { useOpenFlag } from 'utils/hooks';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
 import { FileCreator } from './File/FileCreator/FileCreator';
-import { ProjectExplorerContext } from './ProjectExplorer.context';
+import { EntryRelocateOperation, ProjectExplorerContext } from './ProjectExplorer.context';
 import { ProjectItemProps, renderChildren } from './ProjectExplorer.item';
 import { ProjectExplorerItemContext } from './ProjectExplorer.itemContext';
 import { EntryMoveItem } from './ProjectExplorer.itemTypes';
@@ -200,4 +200,40 @@ export const useItemDragAndDrop = (entry: FilesystemEntry, type: string, accept:
     dragRef,
     dropRef,
   };
+};
+
+export const useItemRelocateSourceContextMenu = (entry: FilesystemEntry) => {
+  const { setRelocationContext } = React.useContext(ProjectExplorerContext);
+  const { disableEntryMove } = React.useContext(ProjectExplorerItemContext);
+
+  return React.useMemo((): ContextMenuItemsCollection => [
+    {
+      id: 'relocate-copy',
+      text: 'Copy',
+      disabled: disableEntryMove,
+      onClick: () => setRelocationContext(entry, EntryRelocateOperation.Copy),
+    },
+    {
+      id: 'relocate-move',
+      text: 'Cut',
+      disabled: disableEntryMove,
+      onClick: () => setRelocationContext(entry, EntryRelocateOperation.Move),
+    },
+  ], [entry, setRelocationContext, disableEntryMove]);
+};
+
+export const useItemRelocateTargetContextMenu = (entry: FilesystemEntry) => {
+  const { applyRelocation, relocateSourceEntry } = React.useContext(ProjectExplorerContext);
+  const { disableEntryMove } = React.useContext(ProjectExplorerItemContext);
+
+  return React.useMemo((): ContextMenuItemsCollection => [
+    {
+      id: 'relocate-paste',
+      text: relocateSourceEntry
+        ? `Paste "${relocateSourceEntry.name}"`
+        : 'Paste',
+      disabled: disableEntryMove || !relocateSourceEntry,
+      onClick: () => applyRelocation(entry),
+    },
+  ], [entry, applyRelocation, relocateSourceEntry, disableEntryMove]);
 };

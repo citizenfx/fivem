@@ -2,7 +2,7 @@ import * as React from 'react';
 import classnames from 'classnames';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { useOpenFlag } from 'utils/hooks';
-import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
+import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, renameIcon } from 'constants/icons';
 import { getFileIcon } from './File.utils';
 import { FileRenamer } from './FileRenamer/FileRenamer';
@@ -10,7 +10,7 @@ import { FileDeleter } from './FileDeleter/FileDeleter';
 import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { ProjectItemProps } from '../ProjectExplorer.item';
-import { useItemDrag } from '../ProjectExplorer.hooks';
+import { useItemDrag, useItemRelocateSourceContextMenu } from '../ProjectExplorer.hooks';
 import s from './File.module.scss';
 
 
@@ -19,6 +19,8 @@ export const File = React.memo(function File(props: ProjectItemProps) {
 
   const { openFile } = React.useContext(ProjectContext);
   const options = React.useContext(ProjectExplorerItemContext);
+
+  const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
 
   const [fileRenamerOpen, openFileRenamer, closeFileRenamer] = useOpenFlag(false);
   const [fileDeleterOpen, openFileDeleter, closeFileDeleter] = useOpenFlag(false);
@@ -30,6 +32,8 @@ export const File = React.memo(function File(props: ProjectItemProps) {
   }, [entry, options, openFile]);
 
   const contextMenuItems: ContextMenuItemsCollection = React.useMemo(() => [
+    ...relocateSourceContextMenu,
+    ContextMenuItemSeparator,
     {
       id: 'delete-file',
       icon: deleteIcon,
@@ -44,7 +48,7 @@ export const File = React.memo(function File(props: ProjectItemProps) {
       disabled: options.disableFileRename,
       onClick: openFileRenamer,
     },
-  ], [options, openFileDeleter, openFileRenamer]);
+  ], [options, openFileDeleter, openFileRenamer, relocateSourceContextMenu]);
 
   const icon = getFileIcon(entry);
 

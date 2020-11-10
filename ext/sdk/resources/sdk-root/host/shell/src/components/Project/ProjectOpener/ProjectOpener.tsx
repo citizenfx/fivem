@@ -57,7 +57,7 @@ export const ProjectOpener = React.memo(function ProjectOpener() {
     ));
 
   return (
-    <Modal onClose={closeOpener}>
+    <Modal fullWidth onClose={closeOpener}>
       <div className={s.root}>
         <div className="modal-header">
           Open project
