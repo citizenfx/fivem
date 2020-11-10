@@ -39,6 +39,17 @@ public:
 		std::uninitialized_copy(right.m_offset, right.m_offset + right.m_count, m_offset);
 	}
 
+	atArray& operator=(const atArray& right)
+	{
+		m_count = right.m_count;
+		m_size = right.m_size;
+
+		m_offset = (TValue*)rage::GetAllocator()->allocate(m_size * sizeof(TValue), 16, 0);
+		std::uninitialized_copy(right.m_offset, right.m_offset + right.m_count, m_offset);	
+
+		return *this;
+	}
+
 	atArray(int capacity)
 	{
 		m_offset = (TValue*)rage::GetAllocator()->allocate(capacity * sizeof(TValue), 16, 0);
