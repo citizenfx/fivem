@@ -2,11 +2,14 @@
 	<div class="oi">
 		<div class="left">
 			<ul class="links">
+				<li (click)="openLink('https://fivem.net')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="gameName == 'gta5'">
+					FiveM.net
+				</li>
+				<li (click)="openLink('https://redm.gg')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="gameName == 'rdr3'">
+					RedM.gg
+				</li>
 				<li (click)="openLink('https://forum.cfx.re')" aria-label="Opens in browser" data-balloon-pos="right">
 					Forum
-				</li>
-				<li (click)="openLink('https://discord.gg/fivem')" aria-label="Opens in browser" data-balloon-pos="right">
-					Discord
 				</li>
 				<li (click)="openLink('https://patreon.com/fivem')" aria-label="Opens in browser" data-balloon-pos="right">
 					Patreon
