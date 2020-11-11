@@ -412,6 +412,7 @@ ServerGameState::ServerGameState()
 	: m_frameIndex(1), m_entitiesById(MaxObjectId), m_entityLockdownMode(EntityLockdownMode::Inactive)
 {
 	m_tg = std::make_unique<ThreadPool>();
+	fx::g_serverGameState = this;
 }
 
 fx::sync::SyncEntityPtr ServerGameState::GetEntity(uint8_t playerId, uint16_t objectId)
