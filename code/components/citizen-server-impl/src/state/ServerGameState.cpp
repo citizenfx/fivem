@@ -865,9 +865,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// if this is an owned entity and we're deleting it, delete the heck out of it
-			if (ownsEntity && entity->deleting)
+			// (and if not, why are we even trying?)
+			if (entity->deleting)
 			{
-				isRelevant = true;
+				if (ownsEntity)
+				{
+					isRelevant = true;
+				}
+				else
+				{
+					isRelevant = false;
+				}
 			}
 
 			// only update sync delay if should-be-created
@@ -1445,11 +1453,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							cmdState.cloneBuffer.Write(32, (uint32_t)(frameIndex >> 32));
 							cmdState.cloneBuffer.Write(32, (uint32_t)frameIndex);
 
-							cmdState.cloneBuffer.Write<uint32_t>(32, (syncType == 1) ? curTime.count() : entity->timestamp);
+							cmdState.cloneBuffer.Write<uint32_t>(32, (syncType == 1) ?
+								curTime.count() :
+								(isFirstFrameUpdate) ? (curTime.count() + 1) : entity->timestamp);
 
 							bool mayWrite = true;
 
-							if (syncType == 2 && wasForceUpdate && entity->GetClient() == cmdState.client)
+							if (syncType == 2 && !isFirstFrameUpdate && wasForceUpdate && entity->GetClient() == cmdState.client)
 							{
 								mayWrite = false;
 							}
