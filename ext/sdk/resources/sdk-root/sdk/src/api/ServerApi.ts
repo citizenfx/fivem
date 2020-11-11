@@ -145,7 +145,7 @@ export class ServerApi {
     await this.setupIpc();
 
     server.stdout.on('data', (data) => {
-      this.client.emit(serverApi.output, data.toString());
+      this.client.emit(serverApi.output, data.toString('utf8'));
     });
 
     server.on('exit', () => {

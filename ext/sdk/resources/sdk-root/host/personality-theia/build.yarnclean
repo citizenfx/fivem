@@ -1,0 +1,11 @@
+*.ts
+*.tsx
+*.js.map
+*.d.ts
+*.d.ts.map
+browser
+electron
+electron-browser
+electron-main
+electron-common
+electron-node

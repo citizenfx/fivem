@@ -101,7 +101,26 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
             this.dataService.data[data.key] = data.value;
           }
         }
+        case 'fxdk:toolbarOpen': {
+          const toolbarOpen = e.data.data;
+
+          if (toolbarOpen) {
+            document.body.classList.add('fxdk-toolbar-open');
+          } else {
+            document.body.classList.remove('fxdk-toolbar-open');
+          }
+        }
       }
     });
+
+    // Setup our styles for theia:icon
+    const styleNode = document.createElement('style');
+    styleNode.innerHTML = `
+    .fxdk-toolbar-open .theia-icon {
+      display: none !important;
+    }
+    `;
+
+    document.head.appendChild(styleNode);
   }
 }

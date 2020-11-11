@@ -1,7 +1,7 @@
 {
   "name": "fxdk-ts-plugin",
-  "description": "Provides rich language support for JavaScript and TypeScript.",
-  "displayName": "TypeScript and JavaScript Language Features (built-in)",
+  "description": "Provides CitizenFX js runtime code completion.",
+  "displayName": "FxDK JS/TS typings support",
   "version": "1.50.1",
   "icon": "icon.png",
   "author": "vscode",

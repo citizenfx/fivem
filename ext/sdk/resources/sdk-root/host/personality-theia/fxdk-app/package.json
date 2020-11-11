@@ -52,7 +52,8 @@
     "build": "theia build --mode production",
     "download:plugins": "theia download:plugins",
     "rebuild:browser": "theia rebuild:browser",
-    "rebuild:fxdk": "theia rebuild:electron"
+    "rebuild:fxdk": "theia rebuild:electron",
+    "spack": "webpack --config server.webpack.config.js"
   },
   "theia": {
     "target": "browser"

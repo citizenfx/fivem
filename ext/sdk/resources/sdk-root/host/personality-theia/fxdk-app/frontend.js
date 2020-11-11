@@ -14,8 +14,6 @@ const { messagingFrontendModule } = require('@theia/core/lib/browser/messaging/m
 const { loggerFrontendModule } = require('@theia/core/lib/browser/logger-frontend-module');
 const { ThemeService } = require('@theia/core/lib/browser/theming');
 
-console.log('MINE!!!');
-
 const container = new Container();
 container.load(frontendApplicationModule);
 container.load(messagingFrontendModule);

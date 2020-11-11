@@ -2,13 +2,7 @@
   "name": "sdk",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
-  "resolutions": {
-    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz"
-  },
   "scripts": {
-    "postinstall": "yarn rebuild",
-    "rebuild": "electron-rebuild --force",
     "watch": "rimraf lib && tsc -w",
     "build": "rimraf lib && tsc"
   },
@@ -28,7 +22,6 @@
     "@types/cors": "^2.8.7",
     "@types/express-ws": "^3.0.0",
     "@types/node-fetch": "^2.5.7",
-    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz",
     "typescript": "^4.0.3"
   }
 }

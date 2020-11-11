@@ -11,6 +11,7 @@
     "prepare": "lerna run prepare",
     "watch": "lerna run watch",
     "build": "lerna run build",
+    "spack": "lerna run spack",
     "rebuild:browser": "theia rebuild:browser",
     "rebuild:fxdk": "theia rebuild:electron"
   },

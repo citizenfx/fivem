@@ -13,7 +13,6 @@
   },
   "scripts": {
     "postinstall": "yarn --cwd personality-theia install --pure-lockfile && yarn --cwd shell install --pure-lockfile",
-    "start": "node scripts/start.js",
-    "build": "node scripts/build.js"
+    "start": "node scripts/start.js"
   }
 }

@@ -2,6 +2,9 @@
 
 #include "StdInc.h"
 
+#include <LauncherIPC.h>
+#include <ICoreGameInit.h>
+
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
 #include "include/views/cef_browser_view.h"
@@ -10,6 +13,18 @@
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_closure_task.h"
+
+
+namespace fxdk
+{
+	void InitRender();
+	void Render();
+
+	void ResizeRender(int w, int h);
+
+	ipc::Endpoint& GetLauncherTalk();
+}
+
 
 class SDKInit : public ICoreGameInit
 {
@@ -129,7 +144,6 @@ private:
 	IMPLEMENT_REFCOUNTING(SDKCefClient);
 };
 
-
 class SDKCefApp : public CefApp, public CefBrowserProcessHandler
 {
 public:
@@ -150,4 +164,37 @@ public:
 private:
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(SDKCefApp);
+};
+
+class SimpleWindowDelegate : public CefWindowDelegate
+{
+public:
+	explicit SimpleWindowDelegate(CefRefPtr<CefBrowserView> browser_view);
+
+	void OnWindowCreated(CefRefPtr<CefWindow> window) OVERRIDE;
+	void OnWindowDestroyed(CefRefPtr<CefWindow> window) OVERRIDE;
+
+	bool CanClose(CefRefPtr<CefWindow> window) OVERRIDE;
+
+	CefSize GetPreferredSize(CefRefPtr<CefView> view) OVERRIDE;
+
+private:
+	CefRefPtr<CefBrowserView> browser_view_;
+
+	IMPLEMENT_REFCOUNTING(SimpleWindowDelegate);
+	DISALLOW_COPY_AND_ASSIGN(SimpleWindowDelegate);
+};
+
+class SubViewDelegate : public CefBrowserViewDelegate
+{
+public:
+	SubViewDelegate();
+
+	virtual CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(CefRefPtr<CefBrowserView> browser_view, const CefBrowserSettings& settings, CefRefPtr<CefClient> client, bool is_devtools);
+
+	virtual bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools);
+
+private:
+	IMPLEMENT_REFCOUNTING(SubViewDelegate);
+	DISALLOW_COPY_AND_ASSIGN(SubViewDelegate);
 };

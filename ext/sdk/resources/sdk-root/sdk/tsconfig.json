@@ -19,7 +19,6 @@
       "dom",
       "esnext"
     ],
-    "sourceMap": true,
     "rootDir": "src",
     "outDir": "lib"
   },

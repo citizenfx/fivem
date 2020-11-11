@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Ansi from 'ansi-to-react';
+import AnsiToHTMLConverter from 'ansi-to-html';
 import { Switch, SwitchOption } from 'components/controls/Switch/Switch';
 import { ServerUpdateChannel, serverUpdateChannels } from 'sdkApi/api.types';
 import { ProjectContext } from 'contexts/ProjectContext';
@@ -11,6 +11,28 @@ import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/controls/Button/Button';
 import s from './ServerConfig.module.scss';
 
+
+const converter = new AnsiToHTMLConverter({
+  newline: true,
+  colors: {
+    0: '#5F5F5F',
+    1: '#D96468',
+    2: '#A2D964',
+    3: '#D9C964',
+    4: '#64A2D9',
+    5: '#9A64D9',
+    6: '#64D9D5',
+    7: '#989898',
+    8: '#828282',
+    9: '#D98F93',
+    10: '#B8D98F',
+    11: '#D9CF8F',
+    12: '#8F99D9',
+    13: '#B08FD9',
+    14: '#8FD9D5',
+    15: '#C5C5C5',
+  }
+});
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -40,7 +62,7 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
 
   const updateChannel = project.manifest.serverUpdateChannel;
 
-  const { serverOutput, serverState, updateChannelsState, checkForUpdates } = React.useContext(ServerContext);
+  const { serverOutput, checkForUpdates } = React.useContext(ServerContext);
 
   const [checkingForUpdates, setCheckingForUpdates] = React.useState(false);
 
@@ -53,8 +75,12 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
     sendApiMessage(projectApi.setServerUpdateChannel, updateChannel);
   }, []);
 
+  const serverHtmlOutput = React.useMemo(() => {
+    return converter.toHtml(serverOutput);
+  }, [serverOutput]);
+
   return (
-    <Modal onClose={onClose}>
+    <Modal fullWidth onClose={onClose}>
       <div className={s.root}>
         <div className="modal-header">
           Server configuration
@@ -73,10 +99,8 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
 
         <div
           className={s.output}
+          dangerouslySetInnerHTML={{ __html: serverHtmlOutput }}
         >
-          <Ansi>
-            {serverOutput}
-          </Ansi>
         </div>
 
         <div className="modal-actions">

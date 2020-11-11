@@ -10,8 +10,8 @@
     "ajv": "^6.5.3",
     "jsonc-parser": "^2.2.0",
     "moment": "2.24.0",
-    "react": "^16.13.1",
-    "valid-filename": "^2.0.1"
+    "valid-filename": "^2.0.1",
+    "react": "^16.13.1"
   },
   "devDependencies": {
     "rimraf": "latest",
