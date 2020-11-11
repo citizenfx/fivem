@@ -176,7 +176,7 @@ deploy_rdr3_specific:
 upload_review:
   stage: postdeploy
   needs:
-    - job: deploy_canary
+    - job: build_client
       artifacts: true
   script:
     - ".\\code\\tools\\ci\\upload_review.ps1"

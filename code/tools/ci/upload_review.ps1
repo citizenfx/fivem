@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
 $WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
-$WorkRootDir = "$WorkDir\code\"
-$CacheDir = "$WorkDir\caches\"
+$WorkRootDir = "$WorkDir\code"
+$CacheDir = "$WorkDir\caches"
 
 $TempDir = "$env:TEMP\FxUpload"
 
