@@ -13,6 +13,31 @@ class CNetGamePlayer;
 
 namespace sync
 {
+struct FrameIndex
+{
+	union
+	{
+		struct
+		{
+			uint64_t lastFragment : 1;
+			uint64_t currentFragment : 7;
+			uint64_t frameIndex : 56;
+		};
+
+		uint64_t full;
+	};
+
+	FrameIndex()
+		: full(0)
+	{
+	}
+
+	FrameIndex(uint64_t idx)
+		: full(idx)
+	{
+	}
+};
+
 class INetObjMgrAbstraction
 {
 public:

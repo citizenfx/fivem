@@ -842,7 +842,7 @@ void RenderNetDrilldownWindow()
 			g_recordedDrilldown = false;
 
 			g_recordingDrilldown = true;
-			g_drilldownEnd = GetTickCount64() + 1000;
+			g_drilldownEnd = GetTickCount64() + 1500;
 		}
 		
 		if (g_recordingDrilldown)
@@ -854,7 +854,9 @@ void RenderNetDrilldownWindow()
 		{
 			for (auto& [id, node] : g_drilldownData)
 			{
-				if (ImGui::TreeNode(va("Packet %d @+%d (%d)", id, node.ts, node.frameIdx)))
+				sync::FrameIndex fi{ node.frameIdx };
+
+				if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
 				{
 					for (auto& message : node.messages)
 					{
