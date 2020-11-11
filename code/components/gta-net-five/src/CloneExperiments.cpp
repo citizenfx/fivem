@@ -410,10 +410,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 	}
 }
 
-static CNetGamePlayer* g_player31;
-
-static CNetGamePlayer* AllocateNetPlayer(void* mgr);
-static CNetGamePlayer* (*g_origGetOwnerNetPlayer)(rage::netObject*);
+static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 
 CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
@@ -433,14 +430,7 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 		}
 	}
 
-	// return a fake remote player if we need to
-	if (!g_player31)
-	{
-		g_player31 = AllocateNetPlayer(nullptr);
-		g_player31->physicalPlayerIndex() = 31;
-	}
-
-	return g_player31;
+	return g_playerMgr->localPlayer;
 }
 
 static uint8_t(*g_origGetOwnerPlayerId)(rage::netObject*);
