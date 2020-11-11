@@ -651,8 +651,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				
 				if (entity->relevantTo.none())
 				{
+					// entity was requested as delete, nobody knows of it anymore: finalize
+					if (entity->deleting)
+					{
+						FinalizeClone({}, entity->handle);
+						continue;
+					}
 					// it's a client-owned entity, let's check for a few things
-					if (entity->IsOwnedByClientScript())
+					else if (entity->IsOwnedByClientScript())
 					{
 						// is the original owner offline?
 						if (entity->firstOwnerDropped)
@@ -2301,7 +2307,6 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 	auto objectId = inPacket.Read<uint16_t>(13);
 	auto uniqifier = inPacket.Read<uint16_t>(16);
 
-	// TODO: verify ownership
 	auto entity = GetEntity(0, objectId);
 
 	// ack remove no matter if we accept it
@@ -2328,7 +2333,7 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 			return;
 		}
 
-		GS_LOG("%s: finalizing (%d - %d)\n", __func__, objectId, uniqifier);
+		GS_LOG("%s: queueing remove (%d - %d)\n", __func__, objectId, uniqifier);
 		RemoveClone(client, objectId, uniqifier);
 	}
 }
@@ -2353,6 +2358,8 @@ void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t ob
 
 void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier)
 {
+	GS_LOG("%s: finalizing object %d\n", __func__, objectId);
+
 	sync::SyncEntityPtr entityRef;
 
 	{
