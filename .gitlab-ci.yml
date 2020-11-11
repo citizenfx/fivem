@@ -1,6 +1,7 @@
 stages:
   - build
   - deploy
+  - postdeploy
 
 .buildscript: &build_windows
   stage: build
@@ -171,6 +172,18 @@ deploy_rdr3_specific:
     - master
     - server-ci
     - tags
+
+upload_review:
+  stage: postdeploy
+  needs:
+    - job: deploy_canary
+      artifacts: true
+  script:
+    - ".\\code\\tools\\ci\\upload_review.ps1"
+  tags:
+    - vs2017
+  only:
+    - master
 
 deploy_canary:
   stage: deploy
