@@ -1523,6 +1523,8 @@ namespace rage
 	};
 }
 
+static CNetGamePlayer* g_player31;
+
 #include <chrono>
 
 using namespace std::chrono_literals;
