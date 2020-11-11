@@ -102,6 +102,11 @@ public:
 	//
 	virtual void UnregisterTarget(int id) = 0;
 
+	//
+	// Marks a given prefix as 'safe to pre-create'.
+	//
+	virtual void AddSafePreCreatePrefix(std::string_view idPrefix) = 0;
+
 public:
 	static fwRefContainer<StateBagComponent> Create(StateBagRole role);
 };

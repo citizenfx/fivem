@@ -1158,6 +1158,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			GS_LOG("Tick: deleting object %d@%d for %d\n", objectId, uniqifier, client->GetNetId());
 
+			if (auto stateBag = entity->stateBag)
+			{
+				stateBag->RemoveRoutingTarget(slotId);
+			}
+
 			// delet
 			scl->EnqueueCommand([this, objectId, uniqifier, deletionData](sync::SyncCommandState& cmdState)
 			{
@@ -1339,6 +1344,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				if (!forceUpdate)
 				{
 					syncData.nextSync = curTime + syncData.syncDelta;
+				}
+
+				if (auto stateBag = entity->stateBag)
+				{
+					stateBag->AddRoutingTarget(slotId);
 				}
 
 				bool wasForceUpdate = forceUpdate;

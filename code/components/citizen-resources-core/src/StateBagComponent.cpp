@@ -34,6 +34,8 @@ public:
 
 	virtual void UnregisterTarget(int id) override;
 
+	virtual void AddSafePreCreatePrefix(std::string_view idPrefix) override;
+
 	void UnregisterStateBag(std::string_view id);
 
 	// #TODO: this should eventually actually queue a send to allow for throttling
@@ -47,6 +49,10 @@ public:
 		};
 	}
 
+	bool IsSafePreCreateName(std::string_view id);
+
+	std::shared_ptr<StateBag> PreCreateStateBag(std::string_view id);
+
 private:
 	StateBagGameInterface* m_gameInterface;
 
@@ -57,6 +63,16 @@ private:
 	// TODO: evaluate transparent usage when we switch to C++20 compiler modes
 	std::unordered_map<std::string, std::weak_ptr<StateBagImpl>> m_stateBags;
 	std::shared_mutex m_mapMutex;
+
+	// pre-created state bag stuff
+
+	// list of state bag prefixes
+	std::set<std::string> m_preCreatePrefixes;
+	std::shared_mutex m_preCreatePrefixMutex;
+
+	// *owning* pointers for pre-created bags
+	std::set<std::shared_ptr<StateBagImpl>> m_preCreatedStateBags;
+	std::shared_mutex m_preCreatedStateBagsMutex;
 };
 
 class StateBagImpl : public StateBag
@@ -281,16 +297,31 @@ void StateBagComponentImpl::SetGameInterface(StateBagGameInterface* gi)
 
 std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_view id)
 {
-	auto bag = std::make_shared<StateBagImpl>(this, id);
+	std::shared_ptr<StateBagImpl> bag;
 
 	{
-		std::unique_lock<std::shared_mutex> lock(m_mapMutex);
+		std::unique_lock lock(m_mapMutex);
 
 		if (auto exIt = m_stateBags.find(std::string{ id }); exIt != m_stateBags.end())
 		{
-			return exIt->second.lock();
+			auto bagRef = exIt->second.lock();
+
+			if (bagRef)
+			{
+				lock.unlock();
+
+				// disown pre-created state bag reference, if this one came from there
+				{
+					std::unique_lock preLock(m_preCreatedStateBagsMutex);
+					m_preCreatedStateBags.erase(bagRef);
+				}
+
+				return bagRef;
+			}
 		}
 
+		// *only* start making a new one here as otherwise we'll delete the existing bag
+		bag = std::make_shared<StateBagImpl>(this, id);
 		m_stateBags[std::string{ id }] = bag;
 	}
 
@@ -299,13 +330,13 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 
 void StateBagComponentImpl::UnregisterStateBag(std::string_view id)
 {
-	std::unique_lock<std::shared_mutex> lock(m_mapMutex);
+	std::unique_lock lock(m_mapMutex);
 	m_stateBags.erase(std::string{ id });
 }
 
 std::shared_ptr<StateBag> StateBagComponentImpl::GetStateBag(std::string_view id)
 {
-	std::shared_lock<std::shared_mutex> lock(m_mapMutex);
+	std::shared_lock lock(m_mapMutex);
 	auto bag = m_stateBags.find(std::string{ id });
 
 	return (bag != m_stateBags.end()) ? bag->second.lock() : nullptr;
@@ -316,7 +347,7 @@ void StateBagComponentImpl::RegisterTarget(int id)
 	bool isNew = false;
 
 	{
-		std::unique_lock<std::shared_mutex> lock(m_mapMutex);
+		std::unique_lock lock(m_mapMutex);
 
 		if (m_targets.find(id) == m_targets.end())
 		{
@@ -328,7 +359,7 @@ void StateBagComponentImpl::RegisterTarget(int id)
 
 	if (isNew)
 	{
-		std::shared_lock<std::shared_mutex> lock(m_mapMutex);
+		std::shared_lock lock(m_mapMutex);
 
 		for (auto& data : m_stateBags)
 		{
@@ -344,7 +375,7 @@ void StateBagComponentImpl::RegisterTarget(int id)
 
 void StateBagComponentImpl::UnregisterTarget(int id)
 {
-	std::unique_lock<std::shared_mutex> lock(m_mapMutex);
+	std::unique_lock lock(m_mapMutex);
 	m_targets.erase(id);
 
 	for (auto& bag : m_stateBags)
@@ -356,6 +387,39 @@ void StateBagComponentImpl::UnregisterTarget(int id)
 			b->RemoveRoutingTarget(id);
 		}
 	}
+}
+
+void StateBagComponentImpl::AddSafePreCreatePrefix(std::string_view idPrefix)
+{
+	std::unique_lock lock(m_preCreatePrefixMutex);
+	m_preCreatePrefixes.insert(std::string{ idPrefix });
+}
+
+bool StateBagComponentImpl::IsSafePreCreateName(std::string_view id)
+{
+	std::shared_lock lock(m_preCreatePrefixMutex);
+
+	for (const auto& prefix : m_preCreatePrefixes)
+	{
+		if (id.find(prefix) == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+std::shared_ptr<StateBag> StateBagComponentImpl::PreCreateStateBag(std::string_view id)
+{
+	auto bag = RegisterStateBag(id);
+
+	{
+		std::unique_lock lock(m_preCreatedStateBagsMutex);
+		m_preCreatedStateBags.insert(std::static_pointer_cast<StateBagImpl>(bag));
+	}
+
+	return bag;
 }
 
 void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
@@ -383,7 +447,7 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)
 		buffer.ReadBits(rbuffer.data(), rbuffer.size() * 8);
 		buffer.Read<uint8_t>(8);
 
-		return rbuffer;
+		return std::move(rbuffer);
 	};
 
 	// read id
@@ -409,7 +473,19 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)
 	buffer.ReadBits(data.data(), dataLength);
 
 	// handle data
-	auto bag = GetStateBag(std::string_view{ idNameBuffer.data(), idNameBuffer.size() });
+	auto bagName = std::string_view{
+		idNameBuffer.data(), idNameBuffer.size()
+	};
+
+	auto bag = GetStateBag(bagName);
+
+	if (!bag)
+	{
+		if (IsSafePreCreateName(bagName))
+		{
+			bag = PreCreateStateBag(bagName);
+		}
+	}
 
 	if (bag)
 	{
