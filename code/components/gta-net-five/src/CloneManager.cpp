@@ -980,48 +980,12 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	auto syncTree = rage::netSyncTree::GetForType(msg.GetEntityType());
 	syncTree->ReadFromBuffer(1, 0, &rlBuffer, nullptr);
 
-	// find existence
-	bool exists = false;
-
-	CloneObjectMgr->ForAllNetObjects(31, [&](rage::netObject* object)
-	{
-		if (object->objectId == msg.GetObjectId())
-		{
-			exists = true;
-		}
-	});
-
-	// already exists! bail out
-	if (exists)
-	{
-		if (auto objectDataIt = m_trackedObjects.find(msg.GetObjectId()); objectDataIt == m_trackedObjects.end() || objectDataIt->second.uniqifier != msg.GetUniqifier())
-		{
-			Log("%s: duplicate remote object, undoing sync\n", __func__);
-
-			ObjectIds_StealObjectId(msg.GetObjectId());
-			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
-			DeleteObjectId(msg.GetObjectId(), true);
-
-			return false;
-		}
-
-		// update client id if changed
-		CheckMigration(msg);
-
-		// hm
-		Log("%s: tried to create a duplicate (remote) object\n", __func__);
-
-		ackPacket();
-
-		return true;
-	}
-
 	// check if the object already exists *locally*
 	if (rage::netObjectMgr::GetInstance()->GetNetworkObject(msg.GetObjectId(), true) != nullptr)
 	{
 		if (auto objectDataIt = m_trackedObjects.find(msg.GetObjectId()); objectDataIt == m_trackedObjects.end() || objectDataIt->second.uniqifier != msg.GetUniqifier())
 		{
-			Log("%s: duplicate local object, undoing sync\n", __func__);
+			Log("%s: duplicate object, undoing sync\n", __func__);
 
 			ObjectIds_StealObjectId(msg.GetObjectId());
 			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
@@ -1034,7 +998,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		CheckMigration(msg);
 
 		// continue
-		Log("%s: tried to create a duplicate (local) object - [obj:%d]\n", __func__, msg.GetObjectId());
+		Log("%s: tried to create a duplicate object - [obj:%d]\n", __func__, msg.GetObjectId());
 
 		ackPacket();
 
