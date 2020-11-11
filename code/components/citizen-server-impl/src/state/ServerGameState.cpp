@@ -848,8 +848,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				isRelevant = false;
 			}
 
-			// if we own this client-scripted entity, we need to assign as relevant.
-			if (ownsEntity && entity->IsOwnedByClientScript())
+			// if we own this entity, we need to assign as relevant.
+			// -> even if not client-script, as if it isn't, we'll end up stuck without migrating it
+			if (ownsEntity/* && entity->IsOwnedByClientScript()*/)
 			{
 				// we're fine
 				if (isRelevant)
@@ -1167,9 +1168,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			GS_LOG("Tick: deleting object %d@%d for %d\n", objectId, uniqifier, client->GetNetId());
 
-			if (auto stateBag = entity->stateBag)
+			if (entity)
 			{
-				stateBag->RemoveRoutingTarget(slotId);
+				if (auto stateBag = entity->stateBag)
+				{
+					stateBag->RemoveRoutingTarget(slotId);
+				}
 			}
 
 			// delet
