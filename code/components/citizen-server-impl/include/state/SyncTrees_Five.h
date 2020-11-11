@@ -2188,7 +2188,12 @@ struct CPlayerSectorPosNode
 	float m_sectorPosY;
 	float m_sectorPosZ;
 
-	int isStandingOn;
+	uint16_t m_standingOnHandle;
+	float m_standingOffsetX;
+	float m_standingOffsetY;
+	float m_standingOffsetZ;
+
+	bool isStandingOn;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -2203,10 +2208,17 @@ struct CPlayerSectorPosNode
 			bool isStandingOn = state.buffer.ReadBit();
 			if (isStandingOn)
 			{
-				state.buffer.Read<int>(13); // Standing On
-				state.buffer.ReadFloat(14, 16.0f); // Standing On Local Offset X
-				state.buffer.ReadFloat(14, 16.0f); // Standing On Local Offset Y
-				state.buffer.ReadFloat(10, 4.0f); // Standing On Local Offset Z
+				m_standingOnHandle = state.buffer.Read<int>(13); // Standing On
+				m_standingOffsetX = state.buffer.ReadSignedFloat(14, 40.0f); // Standing On Local Offset X
+				m_standingOffsetY = state.buffer.ReadSignedFloat(14, 40.0f); // Standing On Local Offset Y
+				m_standingOffsetZ = state.buffer.ReadSignedFloat(10, 20.0f); // Standing On Local Offset Z
+			}
+			else
+			{
+				m_standingOnHandle = 0;
+				m_standingOffsetX = 0.0f;
+				m_standingOffsetY = 0.0f;
+				m_standingOffsetZ = 0.0f;
 			}
 
 			isStandingOn = isStandingOn;
@@ -2427,6 +2439,23 @@ struct SyncTree : public SyncTreeBase
 			posOut[0] = doorCreationDataNode->m_posX;
 			posOut[1] = doorCreationDataNode->m_posY;
 			posOut[2] = doorCreationDataNode->m_posZ;
+		}
+
+		if (hasPspdn)
+		{
+			if (g_serverGameState && playerSecPosDataNode->isStandingOn)
+			{
+				auto entity = g_serverGameState->GetEntity(0, playerSecPosDataNode->m_standingOnHandle);
+
+				if (entity && entity->type != sync::NetObjEntityType::Player)
+				{
+					entity->syncTree->GetPosition(posOut);
+
+					posOut[0] += playerSecPosDataNode->m_standingOffsetX;
+					posOut[1] += playerSecPosDataNode->m_standingOffsetY;
+					posOut[2] += playerSecPosDataNode->m_standingOffsetZ;
+				}
+			}
 		}
 	}
 

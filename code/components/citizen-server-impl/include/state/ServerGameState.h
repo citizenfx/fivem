@@ -911,6 +911,9 @@ public:
 	EntityLockdownMode m_entityLockdownMode;
 };
 
+// for use in sync trees
+inline ServerGameState* g_serverGameState = nullptr;
+
 std::shared_ptr<sync::SyncTreeBase> MakeSyncTree(sync::NetObjEntityType objectType);
 }
 
