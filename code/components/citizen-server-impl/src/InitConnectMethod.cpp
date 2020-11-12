@@ -273,6 +273,9 @@ static InitFunction initFunction([]()
 		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
 
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
+		// list of space-separated endpoints that can but don't have to include a port
+		// for example: sv_endpoints "123.123.123.123 124.124.124.124"
+		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
 
 		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly, "", &g_enforcedGameBuild);
 
@@ -314,17 +317,13 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
-			// list of space-separated endpoints that can but don't have to include a port
-			// for example: sv_endpoints "123.123.123.123 124.124.124.124"
-			auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
-			auto endpointList = srvEndpoints->GetValue();
-
 			if (!client)
 			{
 				cb(json{ false });
 			}
 			else
 			{
+				auto endpointList = srvEndpoints->GetValue();
 				if (endpointList.empty()) 
 				{
 					cb(json::array());
