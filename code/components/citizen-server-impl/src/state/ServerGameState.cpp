@@ -862,7 +862,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				else
 				{
 					entity->wantsReassign = true;
-					isRelevant = true;
+
+					// but don't force it to exist for ourselves if it's not script-owned
+					if (entity->IsOwnedByClientScript())
+					{
+						isRelevant = true;
+					}
 				}
 			}
 
