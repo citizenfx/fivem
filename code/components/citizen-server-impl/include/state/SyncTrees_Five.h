@@ -2404,6 +2404,7 @@ struct SyncTree : public SyncTreeBase
 		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
 		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
 		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
+		auto [hasPgsdn, pedGameStateDataNode] = GetData<CPedGameStateDataNode>();
 
 		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
 		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
@@ -2454,6 +2455,20 @@ struct SyncTree : public SyncTreeBase
 					posOut[0] += playerSecPosDataNode->m_standingOffsetX;
 					posOut[1] += playerSecPosDataNode->m_standingOffsetY;
 					posOut[2] += playerSecPosDataNode->m_standingOffsetZ;
+				}
+			}
+		}
+
+		// if in a vehicle, force the current vehicle's position to be used
+		if (hasPgsdn)
+		{
+			if (g_serverGameState && pedGameStateDataNode->data.curVehicle != -1)
+			{
+				auto entity = g_serverGameState->GetEntity(0, pedGameStateDataNode->data.curVehicle);
+
+				if (entity)
+				{
+					entity->syncTree->GetPosition(posOut);
 				}
 			}
 		}

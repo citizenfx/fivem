@@ -655,7 +655,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					// entity was requested as delete, nobody knows of it anymore: finalize
 					if (entity->deleting)
 					{
-						FinalizeClone({}, entity->handle);
+						FinalizeClone({}, entity->handle, 0, "Requested deletion");
 						continue;
 					}
 					// it's a client-owned entity, let's check for a few things
@@ -665,14 +665,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						if (entity->firstOwnerDropped)
 						{
 							// we can delete
-							FinalizeClone({}, entity->handle);
+							FinalizeClone({}, entity->handle, 0, "First owner dropped");
 							continue;
 						}
 					}
 					// it's a script-less entity, we can collect it.
 					else if (!entity->IsOwnedByScript() && (entity->type != sync::NetObjEntityType::Player || !entity->GetClient()))
 					{
-						FinalizeClone({}, entity->handle);
+						FinalizeClone({}, entity->handle, 0, "Regular entity GC");
 						continue;
 					}
 				}
@@ -683,7 +683,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			glm::vec3 entityPosition(position[0], position[1], position[2]);
 
-			GS_LOG("found relevant entity %d for with position (%f, %f, %f)\n", entity->handle, entityPosition.x, entityPosition.y, entityPosition.z);
+			GS_LOG("found relevant entity %d for %d clients with position (%f, %f, %f)\n", entity->handle, entity->relevantTo.count(), entityPosition.x, entityPosition.y, entityPosition.z);
 
 			sync::CVehicleGameStateNodeData* vehicleData = nullptr;
 
@@ -970,7 +970,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				{
 					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-					entity->relevantTo.set(client->GetSlotId());
+					entity->relevantTo.set(slotId);
+					entity->outOfScopeFor.reset(slotId);
 				}
 
 				newSyncedEntities[entIdentifier] = { 0ms, syncDelay, entity, true, false };
@@ -1084,6 +1085,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				// entity still exists, just going out of scope
 				else
 				{
+					entity->outOfScopeFor.set(slotId);
+
 					auto entityClient = entity->GetClient();
 
 					// if the entity still exists, and this is the *owner* we're deleting it for
@@ -2192,6 +2195,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
 					entity->relevantTo.reset(slotId);
 					entity->deletedFor.reset(slotId);
+					entity->outOfScopeFor.reset(slotId);
 				}
 
 				{
@@ -2386,10 +2390,8 @@ void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t ob
 	}
 }
 
-void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier)
+void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier, std::string_view finalizeReason)
 {
-	GS_LOG("%s: finalizing object %d\n", __func__, objectId);
-
 	sync::SyncEntityPtr entityRef;
 
 	{
@@ -2404,7 +2406,7 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t 
 		{
 			entityRef->finalizing = true;
 
-			GS_LOG("%s: finalizing object %d\n", __func__, (client) ? client->GetNetId() : 0, objectId);
+			GS_LOG("%s: finalizing object %d (for reason %s)\n", __func__, objectId, finalizeReason);
 
 			bool stolen = false;
 
@@ -2619,7 +2621,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	}
 
 	// so we won't set relevantTo right after and deadlock finalization
-	if (entity->deletedFor.test(slotId))
+	if (entity->deletedFor.test(slotId) || entity->outOfScopeFor.test(slotId))
 	{
 		return false;
 	}
@@ -2627,6 +2629,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	{
 		std::lock_guard<std::shared_mutex> _(entity->guidMutex);
 		entity->relevantTo.set(slotId);
+		entity->outOfScopeFor.reset(slotId);
 	}
 
 	fx::ClientSharedPtr entityClient = entity->GetClient();

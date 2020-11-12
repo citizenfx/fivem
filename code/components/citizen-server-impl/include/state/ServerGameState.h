@@ -402,6 +402,7 @@ struct SyncEntityState
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> deletedFor;
+	eastl::bitset<roundToWord(MAX_CLIENTS)> outOfScopeFor;
 
 	std::mutex frameMutex;
 	std::array<uint64_t, MAX_CLIENTS> lastFramesSent;
@@ -817,7 +818,7 @@ private:
 
 	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
 
-	void FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
+	void FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0, std::string_view finalizeReason = "");
 
 	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
