@@ -272,6 +272,9 @@ static InitFunction initFunction([]()
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
 
+		// list of space-separated endpoints that can but don't have to include a port
+		// for example: sv_endpoints "123.123.123.123 124.124.124.124"
+		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
 		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly, "", &g_enforcedGameBuild);
@@ -296,7 +299,7 @@ static InitFunction initFunction([]()
 			});
 		});
 
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getEndpoints", [instance](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getEndpoints", [instance, srvEndpoints](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
 			{
@@ -314,17 +317,13 @@ static InitFunction initFunction([]()
 
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
-			// list of space-separated endpoints that can but don't have to include a port
-			// for example: sv_endpoints "123.123.123.123 124.124.124.124"
-			auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
-			auto endpointList = srvEndpoints->GetValue();
-
 			if (!client)
 			{
 				cb(json{ false });
 			}
 			else
 			{
+				auto endpointList = srvEndpoints->GetValue();
 				if (endpointList.empty()) 
 				{
 					cb(json::array());
