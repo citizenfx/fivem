@@ -8,6 +8,7 @@
 
 #include <Resource.h>
 #include <fxScripting.h>
+#include <CL2LaunchMode.h>
 
 leveldb::Env* GetVFSEnvironment();
 
@@ -21,7 +22,8 @@ struct DatabaseHolder
 		options.env = GetVFSEnvironment();
 		options.create_if_missing = true;
 
-		auto status = leveldb::DB::Open(options, "fxd:/kvs/", &dbPointer);
+		std::string dbName = IsCL2() ? "fxd:/kvs_cl2/" : "fxd:/kvs/";
+		auto status = leveldb::DB::Open(options, dbName, &dbPointer);
 
 		if (!status.ok())
 		{
@@ -32,18 +34,18 @@ struct DatabaseHolder
 				repairOptions.create_if_missing = true;
 				repairOptions.env = GetVFSEnvironment();
 				
-				status = leveldb::RepairDB("fxd:/kvs/", repairOptions);
+				status = leveldb::RepairDB(dbName, repairOptions);
 
 				if (status.ok())
 				{
-					status = leveldb::DB::Open(options, "fxd:/kvs/", &dbPointer);
+					status = leveldb::DB::Open(options, dbName, &dbPointer);
 				}
 
 				if (!status.ok())
 				{
-					status = leveldb::DestroyDB("fxd:/kvs/", options);
+					status = leveldb::DestroyDB(dbName, options);
 
-					status = leveldb::DB::Open(options, "fxd:/kvs/", &dbPointer);
+					status = leveldb::DB::Open(options, dbName, &dbPointer);
 				}
 			}
 		}
