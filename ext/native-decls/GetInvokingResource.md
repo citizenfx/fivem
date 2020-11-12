@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## GET_INVOKING_RESOURCE
 
