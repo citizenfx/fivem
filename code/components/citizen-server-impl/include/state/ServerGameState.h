@@ -706,7 +706,7 @@ struct SyncedEntityData
 	bool hasCreated;
 };
 
-constexpr auto maxSavedClientFrames = 768;
+constexpr auto maxSavedClientFrames = 1792;
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
