@@ -875,13 +875,34 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			// (and if not, why are we even trying?)
 			if (entity->deleting)
 			{
-				if (ownsEntity)
+				// we should be relevant to delete if we own the entity...
+				bool shouldDelete = ownsEntity;
+
+				// ... or if it's currently created for us (as otherwise relevantTo won't clear as we never get a delete)
+				if (!shouldDelete)
+				{
+					if (auto syncIt = currentSyncedEntities.find(MakeHandleUniqifierPair(entity->handle, entity->uniqifier)); syncIt != currentSyncedEntities.end())
+					{
+						auto& entityData = syncIt->second;
+
+						if (entityData.hasCreated)
+						{
+							shouldDelete = true;
+						}
+					}
+				}
+
+				if (shouldDelete)
 				{
 					isRelevant = true;
 				}
 				else
 				{
 					isRelevant = false;
+
+					// we aren't going to delete this entity as it is, reset relevantTo to be sure we won't block finalization
+					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
+					entity->relevantTo.reset(slotId);
 				}
 			}
 
