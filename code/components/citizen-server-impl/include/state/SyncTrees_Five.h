@@ -2466,7 +2466,7 @@ struct SyncTree : public SyncTreeBase
 			{
 				auto entity = g_serverGameState->GetEntity(0, pedGameStateDataNode->data.curVehicle);
 
-				if (entity)
+				if (entity && entity->type != fx::sync::NetObjEntityType::Ped && entity->type != fx::sync::NetObjEntityType::Player)
 				{
 					entity->syncTree->GetPosition(posOut);
 				}
