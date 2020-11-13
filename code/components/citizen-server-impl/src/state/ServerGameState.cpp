@@ -2477,19 +2477,21 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 
 	int id = fx::IsLengthHack() ? (MaxObjectId - 1) : 8191;
 
-	std::unique_lock objectIdsLock(m_objectIdsMutex);
-
-	for (; id >= 1; id--)
 	{
-		if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
-		{
-			break;
-		}
-	}
+		std::unique_lock objectIdsLock(m_objectIdsMutex);
 
-	m_objectIdsSent.set(id);
-	m_objectIdsUsed.set(id);
-	m_objectIdsStolen.set(id);
+		for (; id >= 1; id--)
+		{
+			if (!m_objectIdsSent.test(id) && !m_objectIdsUsed.test(id))
+			{
+				break;
+			}
+		}
+
+		m_objectIdsSent.set(id);
+		m_objectIdsUsed.set(id);
+		m_objectIdsStolen.set(id);
+	}
 
 	fx::sync::SyncEntityPtr entity = fx::sync::SyncEntityPtr::Construct();
 	entity->type = type;
