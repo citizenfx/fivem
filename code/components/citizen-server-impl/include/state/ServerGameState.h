@@ -706,7 +706,8 @@ struct SyncedEntityData
 	bool hasCreated;
 };
 
-constexpr auto maxSavedClientFrames = 1792;
+constexpr auto maxSavedClientFrames = 2133;
+constexpr auto maxSavedClientFramesWorstCase = (maxSavedClientFrames * 2);
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {
@@ -726,7 +727,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	glm::mat4x4 viewMatrix{};
 
 	eastl::fixed_hash_map<uint32_t, uint64_t, 100> pendingCreates;
-	eastl::fixed_hash_map<uint64_t, ClientEntityState, maxSavedClientFrames, maxSavedClientFrames, false> frameStates;
+	eastl::fixed_hash_map<uint64_t, ClientEntityState, maxSavedClientFrames, maxSavedClientFrames, true> frameStates;
 	uint64_t firstSavedFrameState = 0;
 
 	fx::ClientWeakPtr client;

@@ -1030,11 +1030,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		NetPeerStackBuffer stackBuffer;
 		gscomms_get_peer(client->GetPeer(), stackBuffer);
 		auto enPeer = stackBuffer.GetBase();
+		bool fakeSend = false;
 
 		if (!enPeer || enPeer->GetPing() == -1)
 		{
 			// no peer, no connection, no service
-			return;
+			// we still need to process the player though so we can tell what to NAck!
+			fakeSend = true;
 		}
 
 		static fx::object_pool<sync::SyncCommandList, 512 * 1024> syncPool;
@@ -1206,15 +1208,18 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			// delet
-			scl->EnqueueCommand([this, objectId, uniqifier, deletionData](sync::SyncCommandState& cmdState)
+			if (!fakeSend)
 			{
-				cmdState.maybeFlushBuffer(3 + 1 + 16 + 16);
-				cmdState.cloneBuffer.Write(3, 3);
+				scl->EnqueueCommand([this, objectId, uniqifier, deletionData](sync::SyncCommandState& cmdState)
+				{
+					cmdState.maybeFlushBuffer(3 + 1 + 16 + 16);
+					cmdState.cloneBuffer.Write(3, 3);
 
-				cmdState.cloneBuffer.WriteBit(deletionData.forceSteal);
-				cmdState.cloneBuffer.Write(13, int32_t(objectId));
-				cmdState.cloneBuffer.Write(16, uniqifier);
-			});
+					cmdState.cloneBuffer.WriteBit(deletionData.forceSteal);
+					cmdState.cloneBuffer.Write(13, int32_t(objectId));
+					cmdState.cloneBuffer.Write(16, uniqifier);
+				});
+			}
 
 			ces.deletions.push_back({ MakeHandleUniqifierPair(objectId, uniqifier), deletionData });
 		}
@@ -1511,18 +1516,22 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					});
 				};
 
-				runSync([](uint64_t&, bool&) {});
-
-				if (syncType == 1)
+				if (!fakeSend)
 				{
-					syncData.hasCreated = true;
+					runSync([](uint64_t&, bool&) {});
 
-					// first-frame update
-					syncType = 2;
-					runSync([](uint64_t& lfi, bool& isLfi) {
-						lfi = 0;
-						isLfi = true;
-					});
+					if (syncType == 1)
+					{
+						syncData.hasCreated = true;
+
+						// first-frame update
+						syncType = 2;
+						runSync([](uint64_t& lfi, bool& isLfi)
+						{
+							lfi = 0;
+							isLfi = true;
+						});
+					}
 				}
 			}
 
@@ -1533,8 +1542,18 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		auto& firstFrameState = clientDataUnlocked->firstSavedFrameState;
 		if (firstFrameState != 0)
 		{
+			size_t thisMaxBacklog = maxSavedClientFrames;
+
+			if (client->GetLastSeen() > 5s)
+			{
+				thisMaxBacklog = maxSavedClientFramesWorstCase;
+			}
+
+			// gradually remove if needed
+			thisMaxBacklog = std::max(thisMaxBacklog, clientDataUnlocked->frameStates.size() - 2);
+
 			// *should* only be looped once but meh
-			while (m_frameIndex - firstFrameState >= maxSavedClientFrames - 1)
+			while (m_frameIndex - firstFrameState >= thisMaxBacklog - 1)
 			{
 				clientDataUnlocked->frameStates.erase(firstFrameState);
 				++firstFrameState;
@@ -4043,7 +4062,7 @@ static InitFunction initFunction([]()
 						}
 						else
 						{
-							instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out: Missing NAck frame!");
+							instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out after 60 seconds (1, %d)", lastMissingFrame - firstMissingFrame);
 							return;
 						}
 					}
@@ -4109,7 +4128,7 @@ static InitFunction initFunction([]()
 				}
 				else
 				{
-					instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out: Missing ignore/recreate frame!");
+					instance->GetComponent<fx::GameServer>()->DropClient(client, "Timed out after 60 seconds (2)");
 					return;
 				}
 			}
