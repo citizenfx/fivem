@@ -98,11 +98,11 @@ static void CreateUninstallEntryIfNeeded()
 
 	setUninstallString(L"DisplayName", PRODUCT_NAME);
 	setUninstallString(L"DisplayIcon", filename + std::wstring(L",0"));
-	setUninstallString(L"HelpLink", L"https://fivem.net/");
+	setUninstallString(L"HelpLink", L"https://cfx.re/");
 	setUninstallString(L"InstallLocation", GetRootPath());
-	setUninstallString(L"Publisher", L"The CitizenFX Collective");
+	setUninstallString(L"Publisher", L"Cfx.re");
 	setUninstallString(L"UninstallString", fmt::sprintf(L"\"%s\" -uninstall app", filename));
-	setUninstallString(L"URLInfoAbout", L"https://fivem.net/");
+	setUninstallString(L"URLInfoAbout", L"https://cfx.re/");
 	setUninstallDword(L"NoModify", 1);
 	setUninstallDword(L"NoRepair", 1);
 }
@@ -256,7 +256,7 @@ bool Install_PerformInstallation()
 		if (SUCCEEDED(hr))
 		{
 			shellLink->SetPath(targetExePath.c_str());
-			shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
+			shellLink->SetDescription(PRODUCT_NAME L" is a modification framework based on the Cfx.re platform");
 			shellLink->SetIconLocation(targetExePath.c_str(), 0);
 			
 			SetAumid(shellLink);
@@ -271,6 +271,7 @@ bool Install_PerformInstallation()
 			}
 		}
 
+#if 0
 		// make the SP shortcut
 		hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, (void**)shellLink.ReleaseAndGetAddressOf());
 
@@ -292,6 +293,7 @@ bool Install_PerformInstallation()
 				persist->Save((GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk").c_str(), TRUE);
 			}
 		}
+#endif
 
 		CoUninitialize();
 	}
@@ -337,8 +339,10 @@ bool Install_RunInstallMode()
 		std::vector<std::tuple<std::wstring, std::wstring>> links;
 
 #ifdef GTA_FIVE
+#if 0
 		links.push_back({ L" Singleplayer", L"-sp" });
 		links.push_back({ L" Singleplayer (patch 1.27)", L"-b372" });
+#endif
 #endif
 
 		for (auto& link : links)
@@ -371,6 +375,21 @@ bool Install_RunInstallMode()
 				}
 
 				CoUninitialize();
+			}
+		}
+
+		auto removeLinks = {
+			fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, L" Singleplayer"),
+			fmt::sprintf(L"%s\\%s%s.lnk", exePath, PRODUCT_NAME, L" Singleplayer (patch 1.27)"),
+			GetFolderPath(FOLDERID_Programs) + L"\\" PRODUCT_NAME L" Singleplayer.lnk",
+			GetFolderPath(FOLDERID_Desktop) + L"\\" PRODUCT_NAME L" Singleplayer.lnk"
+		};
+
+		for (const auto& link : removeLinks)
+		{
+			if (GetFileAttributesW(link.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				DeleteFileW(link.c_str());
 			}
 		}
 

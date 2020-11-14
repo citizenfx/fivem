@@ -95,7 +95,7 @@ BEGIN
 #endif
             VALUE "FileVersion", "1.1.0.0"
             VALUE "InternalName", "Citizen"
-            VALUE "LegalCopyright", "(C) 2015-2020 CitizenFX Collective"
+            VALUE "LegalCopyright", "(C) 2015-2020 Cfx.re"
             VALUE "OriginalFilename", "citizenmp.exe"
             VALUE "ProductName", "CitizenFX"
             VALUE "ProductVersion", "1.1.0.0"
