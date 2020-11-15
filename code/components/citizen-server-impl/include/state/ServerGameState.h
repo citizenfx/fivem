@@ -26,8 +26,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-// TODO: clang style defines/checking
-#if defined(_M_IX86) || defined(_M_AMD64)
+#if defined(_M_IX86) || defined(_M_AMD64) || defined(__x86_64__) || defined(__i386__)
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_SSE2
 #define GLM_FORCE_SSE3
