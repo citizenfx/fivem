@@ -69,6 +69,7 @@ inline constexpr T roundToWord(T val)
 namespace fx
 {
 struct ScriptGuid;
+class ServerGameState;
 }
 
 extern CPool<fx::ScriptGuid>* g_scriptHandlePool;
@@ -679,9 +680,19 @@ static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityData
 {
-	sync::SyncEntityWeakPtr entityWeak;
 	uint64_t lastSent;
+	uint32_t entityPair;
 	bool isCreated;
+
+	inline ClientEntityData()
+		: lastSent(0), entityPair(0), isCreated(false)
+	{
+	
+	}
+
+	ClientEntityData(const sync::SyncEntityPtr& entity, uint64_t lastSent, bool isCreated);
+
+	sync::SyncEntityPtr GetEntity(fx::ServerGameState* sgs);
 };
 
 struct EntityDeletionData
@@ -692,8 +703,8 @@ struct EntityDeletionData
 
 struct ClientEntityState
 {
-	eastl::fixed_hash_map<uint16_t, ClientEntityData, 64> syncedEntities;
-	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 16> deletions;
+	eastl::fixed_hash_map<uint16_t, ClientEntityData, 56> syncedEntities;
+	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 12> deletions;
 };
 
 struct SyncedEntityData
@@ -705,8 +716,8 @@ struct SyncedEntityData
 	bool hasCreated;
 };
 
-constexpr auto maxSavedClientFrames = 2133;
-constexpr auto maxSavedClientFramesWorstCase = (maxSavedClientFrames * 2);
+constexpr auto maxSavedClientFrames = 450; // enough for ~6-7 seconds, after 5 we'll start using worst-case frames
+constexpr auto maxSavedClientFramesWorstCase = (60000 / 15); // enough for ~60 seconds
 
 struct GameStateClientData : public sync::ClientSyncDataBase
 {

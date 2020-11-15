@@ -95,6 +95,28 @@ static std::tuple<uint16_t, uint16_t> DeconstructHandleUniqifierPair(uint32_t pa
 	};
 }
 
+namespace fx
+{
+ClientEntityData::ClientEntityData(const sync::SyncEntityPtr& entity, uint64_t lastSent, bool isCreated)
+	: entityPair(MakeHandleUniqifierPair(entity->handle, entity->uniqifier)), lastSent(lastSent), isCreated(isCreated)
+{
+	
+}
+
+sync::SyncEntityPtr ClientEntityData::GetEntity(fx::ServerGameState* sgs)
+{
+	auto [id, uniqifier] = DeconstructHandleUniqifierPair(entityPair);
+	auto entity = sgs->GetEntity(0, id);
+
+	if (entity && entity->uniqifier == uniqifier)
+	{
+		return std::move(entity);
+	}
+
+	return {};
+}
+}
+
 extern tbb::concurrent_unordered_map<uint32_t, fx::EntityCreationState> g_entityCreationList;
 
 static tbb::concurrent_queue<std::string> g_logQueue;
@@ -1383,7 +1405,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				baseFrameIndex = entity->lastFramesSent[slotId];
 			}
 
-			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex };
+			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
 			// should we sync?
 			if (forceUpdate || syncData.nextSync - curTime <= 0ms)
@@ -4034,7 +4056,7 @@ static InitFunction initFunction([]()
 							auto& [synced, deletions] = frameIt->second;
 							for (auto& [objectId, entData] : synced)
 							{
-								if (auto ent = entData.entityWeak.lock())
+								if (auto ent = entData.GetEntity(sgs.GetRef()))
 								{
 									const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
 
@@ -4086,7 +4108,7 @@ static InitFunction initFunction([]()
 							auto& [synced, deletions] = frameIt->second;
 							if (auto entIter = synced.find(objectId); entIter != synced.end())
 							{
-								if (auto ent = entIter->second.entityWeak.lock())
+								if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
 								{
 									std::lock_guard _(ent->frameMutex);
 									ent->lastFramesSent[slotId] = std::min(entIter->second.lastSent, ent->lastFramesSent[slotId]);
@@ -4111,7 +4133,7 @@ static InitFunction initFunction([]()
 							auto& [synced, deletions] = frameIt->second;
 							if (auto entIter = synced.find(objectId); entIter != synced.end())
 							{
-								if (auto ent = entIter->second.entityWeak.lock())
+								if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
 								{
 									const auto entIdentifier = MakeHandleUniqifierPair(objectId, ent->uniqifier);
 									if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
