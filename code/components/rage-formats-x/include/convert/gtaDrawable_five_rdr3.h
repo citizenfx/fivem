@@ -580,7 +580,8 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 
 	for (sh = 0; sh < shaderGroup->GetNumShaders(); sh++)
 	{
-		auto shs = shaderGroup->GetShader(sh)->GetShaderHash();
+		auto osh = shaderGroup->GetShader(sh);
+		auto shs = osh->GetShaderHash();
 
 		if (shs == HashString("vehicle_track2") || shs == HashString("vehicle_track2_emissive"))
 		{
@@ -600,7 +601,8 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		//shader->m_shaderHash = HashString("default");
 		shader->m_shaderHash = shs;
 		shader->m_shaderHashPad = 'meta';
-		shader->m_drawBucketMask = 0xFF01;
+		shader->m_drawBucket = osh->m_drawBucket;
+		shader->m_drawBucketMask = osh->m_drawBucketMask & 0x7FFF;
 
 		// we don't even have to follow the full shader logic: the game will copy defaults *at runtime* where needed
 		std::vector<std::tuple<uint32_t, void*>> textureRefs;
@@ -771,7 +773,7 @@ inline void ConvertBaseDrawable(five::rmcDrawable* drawable, rdr3::gtaDrawable* 
 			auto newModel = convert<rdr3::grmModel*>(oldModel);
 
 			lodGroup.SetModel(i, newModel);
-			lodGroup.SetDrawBucketMask(i, 0xff01); // TODO: change this
+			lodGroup.SetDrawBucketMask(i, oldLodGroup.GetDrawBucketMask(i));
 
 			{
 				auto oldBounds = oldModel->GetGeometryBounds();

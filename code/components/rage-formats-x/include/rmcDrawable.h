@@ -1173,7 +1173,9 @@ public:
 	pgPtr<sgaShaderParamData> m_parameterData;
 	uintptr_t m_pad2;
 	uintptr_t m_pad3;
-	uint8_t m_unk[4];
+	uint8_t m_unk;
+	uint8_t m_drawBucket;
+	uint8_t m_unk2[2];
 	uint32_t m_drawBucketMask;
 #endif
 
@@ -2526,6 +2528,16 @@ public:
 		models[0] = model;
 
 		m_models[idx] = new(false) pgObjectArray<grmModel>(models, 1);
+	}
+
+	inline int GetDrawBucketMask(int idx)
+	{
+		if (idx < 0 || idx >= _countof(m_models))
+		{
+			abort();
+		}
+
+		return m_drawBucketMask[idx];
 	}
 
 	inline void SetDrawBucketMask(int idx, int mask)
