@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <ScriptEngine.h>
 
+#include <Local.h>
 #include <ScriptSerialization.h>
 #include <NetworkPlayerMgr.h>
 #include <scrEngine.h>
@@ -52,6 +53,11 @@ static int WeaponDefenseModifier2Offset;
 static int MeleeWeaponDamageModifierOffset;
 static int MeleeWeaponDefenseModifierOffset;
 
+static hook::cdecl_stub<void*(CNetGamePlayer* player)> _accessViewPortPtrFromPlayer([]()
+{
+	return hook::pattern("74 2C 48 8B CF E8 ? ? ? ? 48 39 98 ? ? ? ?").count(1).get(0).get<void>(-23);
+});
+
 static HookFunction hookFunction([]()
 {
 	WeaponDamageModifierOffset = *hook::get_pattern<int>("F3 41 0F 59 85 ? ? ? ? 74 ? 48 8B 83", 0x16);
@@ -98,6 +104,24 @@ static HookFunction hookFunction([]()
 		}
 
 		context.SetResult<bool>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_FINAL_RENDERED_CAM_COORD_FOR_PLAYER", [] (fx::ScriptContext& context)
+	{
+		CNetGamePlayer* player = CNetworkPlayerMgr::GetPlayer(context.GetArgument<int>(0));
+
+		if (player)
+		{
+			void* viewPort = _accessViewPortPtrFromPlayer(player);
+			if (viewPort)
+			{
+				Vector* position = (Vector*)((char*)viewPort + 0xF0);
+
+				*context.GetArgument<float*>(1) = position->x;
+				*context.GetArgument<float*>(2) = position->y;
+				*context.GetArgument<float*>(3) = position->z;
+			}
+		}
 	});
 
 	using namespace std::placeholders;

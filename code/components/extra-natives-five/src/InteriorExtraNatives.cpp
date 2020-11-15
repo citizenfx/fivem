@@ -21,14 +21,6 @@
 
 using Matrix3x4 = DirectX::XMFLOAT3X4;
 
-struct Vector
-{
-	float x; // +0
-	float y; // +4
-	float z; // +8
-	float w; // +16
-};
-
 struct CEntityDef
 {
 	void* vtable; // +0
