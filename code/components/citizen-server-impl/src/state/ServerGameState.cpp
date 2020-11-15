@@ -2115,23 +2115,22 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 		eastl::fixed_set<std::tuple<float, fx::ClientSharedPtr>, MAX_CLIENTS> candidates;
 
 		uint32_t eh = entity->handle;
+		auto candidateSet = entity->relevantTo;
+		constexpr auto maxCandidates = 5;
 
-		clientRegistry->ForAllClients([this, &client, &candidates, &entity, eh, pos](const fx::ClientSharedPtr& tgtClient)
+		if (entity->type != sync::NetObjEntityType::Player)
 		{
-			if (client && tgtClient == client)
+			for (auto bit = candidateSet.find_last(); bit != decltype(candidateSet)::kSize; bit = candidateSet.find_prev(bit))
 			{
-				return;
-			}
+				auto tgtClient = clientRegistry->GetClientBySlotID(bit);
 
-			if (tgtClient->GetSlotId() == 0xFFFFFFFF)
-			{
-				return;
-			}
+				if (!tgtClient || tgtClient == client)
+				{
+					continue;
+				}
 
-			float distance = std::numeric_limits<float>::max();
+				float distance = std::numeric_limits<float>::max();
 
-			try
-			{
 				auto data = GetClientDataUnlocked(this, tgtClient);
 				sync::SyncEntityPtr playerEntity;
 				{
@@ -2148,21 +2147,14 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 						distance = glm::distance2(tgt, pos);
 					}
 				}
-			}
-			catch (std::bad_any_cast&)
-			{
 
-			}
-
-			if (entity->relevantTo.test(tgtClient->GetSlotId()))
-			{
 				candidates.emplace(distance, tgtClient);
-			}
-		});
 
-		if (entity->type == sync::NetObjEntityType::Player)
-		{
-			candidates.clear();
+				if (candidates.size() >= maxCandidates)
+				{
+					break;
+				}
+			}
 		}
 
 		if (candidates.empty()) // no candidate?
