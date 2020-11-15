@@ -515,7 +515,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		std::set<HttpRequestData*> streams;
 
 		// cache responses independently from streams so 'clean' closes don't invalidate session
-		std::list<fwRefContainer<HttpResponse>> responses;
+		std::set<fwRefContainer<HttpResponse>> responses;
 	};
 
 	struct HttpRequestData
@@ -715,7 +715,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 					fwRefContainer<HttpRequest> request = new HttpRequest(2, 0, method, path, headerList, req->connection->stream->GetPeerAddress());
 					
 					fwRefContainer<HttpResponse> response = new Http2Response(request, req->connection->session, frame->hd.stream_id, req->connection->stream);
-					req->connection->responses.push_back(response);
+					req->connection->responses.insert(response);
 
 					req->httpResp = response;
 					reqState->blocked = true;
@@ -768,6 +768,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		if (resp)
 		{
 			((net::Http2Response*)resp)->Cancel();
+			req->connection->responses.erase(resp);
 		}
 
 		req->connection->streams.erase(req);
