@@ -118,6 +118,7 @@ public:
 	}
 };
 
+#pragma pack(push, 1)
 template<typename TValue>
 class pgObjectArray : public pgStreamableBase
 {
@@ -156,6 +157,7 @@ public:
 
 			if (!object)
 			{
+				(*m_objects)[i] = nullptr;
 				continue;
 			}
 
@@ -245,6 +247,7 @@ public:
 		}
 	}
 };
+#pragma pack(pop)
 
 template<typename TValue>
 class pgDictionary : public pgBase

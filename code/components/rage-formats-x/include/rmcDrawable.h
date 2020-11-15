@@ -508,6 +508,7 @@ static uint32_t GetHashMapCount(int nHashes)
 		return 65521;
 }
 
+#pragma pack(push, 1)
 template<typename TEntry>
 class pgHashMap
 {
@@ -557,7 +558,7 @@ public:
 			auto hentry = new (false) HashEntry();
 			hentry->hash = entry.first;
 			hentry->data = entry.second;
-			hentry->next = bucketList[bucketIdx];
+			hentry->next = *bucketList[bucketIdx];
 
 			bucketList[bucketIdx] = hentry;
 		}
@@ -566,6 +567,7 @@ public:
 		m_initialized = true;
 	}
 };
+#pragma pack(pop)
 
 enum crBoneFlags : uint16_t
 {
@@ -639,7 +641,7 @@ public:
 
 	inline void Init(const char* name, int16_t index, crBoneFlags flags, Vector4 rotation, Vector3 scale, Vector3 translation, int16_t parentIndex = -1, int16_t siblingIndex = -1)
 	{
-		m_name = name ? strdup(name) : strdup("Root");
+		m_name = name ? pgStreamManager::StringDup(name) : pgStreamManager::StringDup("Root");
 		m_tag = name ? atHash16(name) : 0;
 		m_index = index;
 		m_index2 = index;
@@ -695,6 +697,12 @@ class crBoneData
 	crBone m_bones[0];
 
 public:
+	crBone& GetStart()
+	{
+		return m_bones[0];
+	}
+
+
 	static inline crBoneData* Create(uint32_t boneCount, const crBone* bones)
 	{
 		auto dataRef = (crBoneData*)pgStreamManager::Allocate(sizeof(crBoneData) + sizeof(crBone) * boneCount, false, nullptr);
@@ -729,7 +737,7 @@ class crSkeletonData : public pgBase
 {
 #if defined(RAGE_FORMATS_GAME_FIVE)
 	pgHashMap<int> m_boneTags;
-	pgPtr<crBoneData> m_bones;
+	pgPtr<crBone> m_bones;
 	pgPtr<dMatrix3x4> m_inverseMats;
 	pgPtr<dMatrix3x4> m_mats;
 	pgPtr<uint16_t> m_parentIndices;
@@ -755,7 +763,7 @@ public:
 		m_unk_58 = 65978143;
 
 		m_pad = 0;
-		m_usageCount = 0;
+		m_usageCount = 1;
 		m_pad_62 = 0;
 		m_pad_64 = 0;
 		m_pad_68 = 0;
@@ -763,7 +771,8 @@ public:
 
 	inline void SetBones(uint32_t boneCount, const crBone* bones)
 	{
-		m_bones = crBoneData::Create(boneCount, bones);
+		auto boneData = crBoneData::Create(boneCount, bones);
+		m_bones = &boneData->GetStart();
 		m_boneCount = boneCount;
 
 		// create indices
@@ -1086,6 +1095,7 @@ public:
 #if defined(RAGE_FORMATS_GAME_RDR3)
 class sgaShaderParamName
 {
+public:
 	uint32_t hash;
 	
 	union

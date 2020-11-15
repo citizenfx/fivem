@@ -224,9 +224,12 @@ public:
 
 	pgPtr(const pgPtr& from)
 	{
+		//on_disk = from.on_disk;
+
 #ifndef RAGE_FORMATS_IN_GAME
 		if (pgStreamManager::IsResolved(&from))
 		{
+			//pgStreamManager::MarkToBePacked(&on_disk, Physical, _ReturnAddress());
 			pgStreamManager::MarkResolved(this);
 		}
 #endif
@@ -236,9 +239,12 @@ public:
 
 	pgPtr& operator=(const pgPtr& arg)
 	{
+		//pointer = arg.pointer;
+
 #ifndef RAGE_FORMATS_IN_GAME
 		if (pgStreamManager::IsResolved(&arg))
 		{
+			//pgStreamManager::MarkToBePacked(&on_disk, Physical, _ReturnAddress());
 			pgStreamManager::MarkResolved(this);
 		}
 #endif
