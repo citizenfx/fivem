@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#if 0
 #include <Hooking.h>
 
 #include <CoreConsole.h>
@@ -133,3 +135,4 @@ static HookFunction hookFunction([]()
 		}
 	});
 });
+#endif
