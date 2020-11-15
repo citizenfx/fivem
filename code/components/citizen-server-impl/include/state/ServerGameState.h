@@ -703,8 +703,11 @@ struct EntityDeletionData
 
 struct ClientEntityState
 {
-	eastl::fixed_hash_map<uint16_t, ClientEntityData, 56> syncedEntities;
-	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 12> deletions;
+	// we assume 192 entities per client (and don't use hash_map which will frequently 'rehash')
+	eastl::fixed_map<uint16_t, ClientEntityData, 192> syncedEntities;
+
+	// and 24 deletions per frame
+	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 24> deletions;
 };
 
 struct SyncedEntityData
@@ -716,7 +719,7 @@ struct SyncedEntityData
 	bool hasCreated;
 };
 
-constexpr auto maxSavedClientFrames = 450; // enough for ~6-7 seconds, after 5 we'll start using worst-case frames
+constexpr auto maxSavedClientFrames = 650; // enough for ~8-9 seconds, after 5 we'll start using worst-case frames
 constexpr auto maxSavedClientFramesWorstCase = (60000 / 15); // enough for ~60 seconds
 
 struct GameStateClientData : public sync::ClientSyncDataBase
