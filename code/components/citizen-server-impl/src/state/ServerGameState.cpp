@@ -2437,7 +2437,6 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t 
 	{
 		std::shared_lock entitiesByIdLock(m_entitiesByIdMutex);
 		entityRef = m_entitiesById[objectId].lock();
-		m_entitiesById[objectId].reset();
 	}
 
 	if (entityRef)
@@ -2473,18 +2472,17 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t 
 				}
 			}
 
-			OnCloneRemove(entityRef, [this, entityRef]()
+			OnCloneRemove(entityRef, [this, objectId, entityRef]()
 			{
-				std::unique_lock elm(m_entityListMutex);
-
-				/*
-				auto entityIt = std::find(m_entityList.begin(), m_entityList.end(), entityRef);
-
-				if (entityIt != m_entityList.end())
 				{
-					m_entityList.erase(entityIt);
-				}*/
-				m_entityList.erase(entityRef);
+					std::unique_lock entitiesByIdLock(m_entitiesByIdMutex);
+					m_entitiesById[objectId].reset();
+				}
+
+				{
+					std::unique_lock elm(m_entityListMutex);
+					m_entityList.erase(entityRef);
+				}
 			});
 		}
 	}
