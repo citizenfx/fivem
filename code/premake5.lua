@@ -81,6 +81,8 @@ workspace "CitizenMP"
 		end
 
 		systemversion '10.0.18362.0'
+	else
+		vectorextensions 'SSSE3'
 	end
 
 	-- special build dirs for FXServer
