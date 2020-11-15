@@ -1590,7 +1590,26 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// emplace new frame
 		clientDataUnlocked->frameStates.emplace(m_frameIndex, std::move(ces));
 
-		scl->Execute(client);
+		// #TODO: syncing flag check and queue afterwards!
+		if (!m_tg->tryPost([this, scl = std::move(scl), client]() mutable
+			{
+				scl->Execute(client);
+
+				{
+					auto [clientDataLock, clientData] = GetClientData(this, client);
+					clientData->syncing = false;
+				}
+
+				scl = {};
+				client = {};
+			}))
+		{
+#ifndef _MSC_VER
+			GS_LOG("Thread pool full?\n", 0);
+#else
+			GS_LOG("Thread pool full?\n");
+#endif
+		}
 	
 		GS_LOG("Tick completed for cl %d.\n", client->GetNetId());
 	});
