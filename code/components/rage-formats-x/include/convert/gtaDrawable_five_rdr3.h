@@ -567,6 +567,7 @@ template<>
 rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 {
 	auto out = new (false) rdr3::grmShaderGroup;
+	static_assert(sizeof(*out) > 48, "rdr3 shader group size is off");
 
 	auto texDict = shaderGroup->GetTextures();
 
@@ -678,6 +679,24 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 			else
 			{
 				auto pn = parameterNames[i];
+
+				// more mapping of name1->name2
+				if (pn == HashString("specularFresnel"))
+				{
+					pn = HashString("Fresnel");
+				}
+				else if (pn == HashString("specularFalloffMult"))
+				{
+					pn = HashString("Specular");
+				}
+				else if (pn == HashString("specularIntensityMult"))
+				{
+					pn = HashString("SpecularColor");
+				}
+				else if (pn == HashString("specularFresnelSelector"))
+				{
+					pn = HashString("FresnelSelector");
+				}
 
 				std::array<uint8_t, 16> value;
 				memcpy(value.data(), params[i].GetValue(), 16);

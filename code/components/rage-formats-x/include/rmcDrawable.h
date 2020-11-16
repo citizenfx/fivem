@@ -1557,9 +1557,9 @@ private:
 	pgObjectArray<int> _f38;
 	pgArray<uint32_t> m_vertexFormats;
 	pgArray<uint32_t> m_shaderIndices;
-#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE)|| defined(RAGE_FORMATS_GAME_RDR3)
+#elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE) || defined(RAGE_FORMATS_GAME_RDR3)
 	pgObjectArray<int> _f20;
-	uint32_t _f30;
+	TPtr _f30;
 	TPtr _f38;
 #endif
 

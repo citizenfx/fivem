@@ -49,7 +49,7 @@ class BlockMap;
 #define RAGE_NATIVE_ARCHITECTURE 0
 #endif
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 using TPtr = uint64_t;
 #else
 using TPtr = uint32_t;
