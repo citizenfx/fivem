@@ -1393,16 +1393,21 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 
 			uint64_t baseFrameIndex;
+			uint64_t localLastFrameIndex = 0;
 
 			if (forceUpdate && !wasThisIt)
 			{
 				baseFrameIndex = 0;
+
+				std::lock_guard _(entity->frameMutex);
 				entity->lastFramesSent[slotId] = 0;
+				localLastFrameIndex = entity->lastFrameIndex;
 			}
 			else
 			{
 				std::lock_guard _(entity->frameMutex);
 				baseFrameIndex = entity->lastFramesSent[slotId];
+				localLastFrameIndex = entity->lastFrameIndex;
 			}
 
 			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
@@ -1427,13 +1432,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				auto _ent = entity;
 
-				auto runSync = [this, _ent, &syncType, curTime, &scl, baseFrameIndex, wasForceUpdate](auto&& preCb) 
+				auto runSync = [this, _ent, &syncType, curTime, &scl, baseFrameIndex, localLastFrameIndex, wasForceUpdate](auto&& preCb) 
 				{
 					scl->EnqueueCommand([this,
 										entity = _ent,
 										syncType,
 										preCb = std::move(preCb),
 										baseFrameIndex,
+										localLastFrameIndex,
 										curTime,
 										wasForceUpdate](sync::SyncCommandState& cmdState) 
 					{
@@ -1485,7 +1491,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							if (!isFirstFrameUpdate && syncType == 2)
 							{
 								std::lock_guard _(entity->frameMutex);
-								entity->lastFramesSent[slotId] = entity->lastFrameIndex;
+								entity->lastFramesSent[slotId] = localLastFrameIndex;
 							}
 
 							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
