@@ -269,14 +269,14 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 				if (newShader->GetParameter("specularIntensityMult"))
 				{
-					newShader->SetParameter("specularIntensityMult", &multiplier, sizeof(multiplier));
+					newShader->SetParameter("specularIntensityMult", &multiplier, 4);
 				}
 
 				multiplier[0] *= 125.0f;
 
 				if (newShader->GetParameter("SpecularFalloffMult"))
 				{
-					newShader->SetParameter("SpecularFalloffMult", &multiplier, sizeof(multiplier));
+					newShader->SetParameter("SpecularFalloffMult", &multiplier, 4);
 				}
 			}
 		}
@@ -284,13 +284,13 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 		if (auto emissiveMult = newShader->GetParameter("EmissiveMultiplier"); emissiveMult != nullptr)
 		{
 			float emissiveMultValue[] = { *(float*)emissiveMult->GetValue() / 4.0f, 0.0f, 0.0f, 0.0f };
-			memcpy(emissiveMult->GetValue(), emissiveMultValue, sizeof(emissiveMultValue));
+			memcpy(emissiveMult->GetValue(), emissiveMultValue, 4);
 		}
 
 		if (newShaderName == "trees")
 		{
 			float alphaValues[4] = { 0.5f, 0.0f, 0.0f, 0.0f };
-			newShader->SetParameter("AlphaTest", alphaValues, sizeof(alphaValues));
+			newShader->SetParameter("AlphaTest", alphaValues, 4);
 		}
 
 		if (newShader->GetResourceCount() != rescount)
