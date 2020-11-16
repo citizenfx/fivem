@@ -145,7 +145,6 @@ struct phBoundMaterial1
 
 	uint8_t roomId : 5;
 	uint8_t unk3 : 3;
-	uint8_t unk4;
 #endif
 };
 
