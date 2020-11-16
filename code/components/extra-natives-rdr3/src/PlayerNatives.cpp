@@ -26,7 +26,7 @@ static HookFunction hookFunction([]()
 
 		for (int i = 0; i < playerNum; i++)
 		{
-			playerList.push_back(players[i]->physicalPlayerIndex);
+			playerList.push_back(players[i]->physicalPlayerIndex());
 		}
 
 		context.SetResult(fx::SerializeObject(playerList));

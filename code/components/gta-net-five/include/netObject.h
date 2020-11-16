@@ -213,6 +213,16 @@ public:
 
 #undef FORWARD_FUNC
 
+	inline uint16_t GetObjectId()
+	{
+		return objectId;
+	}
+
+	inline uint16_t GetObjectType()
+	{
+		return objectType;
+	}
+
 	inline std::string ToString()
 	{
 		return fmt::sprintf("[netObj:%d:%s]", objectId, GetTypeString());

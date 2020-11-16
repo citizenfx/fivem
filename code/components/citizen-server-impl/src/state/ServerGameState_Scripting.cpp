@@ -16,7 +16,7 @@ namespace fx
 void DisownEntityScript(const fx::sync::SyncEntityPtr& entity);
 }
 
-static InitFunction initFunction([]()
+static void Init()
 {
 	auto makeEntityFunction = [](auto fn, uintptr_t defaultValue = 0)
 	{
@@ -367,9 +367,16 @@ static InitFunction initFunction([]()
 		case fx::sync::NetObjEntityType::Submarine:
 		case fx::sync::NetObjEntityType::Trailer:
 		case fx::sync::NetObjEntityType::Train:
+#ifdef STATE_RDR3
+		case fx::sync::NetObjEntityType::DraftVeh:
+#endif
 			return 2;
 		case fx::sync::NetObjEntityType::Ped:
 		case fx::sync::NetObjEntityType::Player:
+#ifdef STATE_RDR3
+		case fx::sync::NetObjEntityType::Animal:
+		case fx::sync::NetObjEntityType::Horse:
+#endif
 			return 1;
 		case fx::sync::NetObjEntityType::Object:
 		case fx::sync::NetObjEntityType::Door:
@@ -677,6 +684,10 @@ static InitFunction initFunction([]()
 		for (auto& entity : gameState->m_entityList)
 		{
 			if (entity && (entity->type == fx::sync::NetObjEntityType::Ped ||
+#ifdef STATE_RDR3
+				entity->type == fx::sync::NetObjEntityType::Animal ||
+				entity->type == fx::sync::NetObjEntityType::Horse ||
+#endif
 				entity->type == fx::sync::NetObjEntityType::Player))
 			{
 				entityList.push_back(gameState->MakeScriptHandle(entity));
@@ -931,6 +942,9 @@ static InitFunction initFunction([]()
 				entity->type == fx::sync::NetObjEntityType::Plane ||
 				entity->type == fx::sync::NetObjEntityType::Submarine ||
 				entity->type == fx::sync::NetObjEntityType::Trailer ||
+#ifdef STATE_RDR3
+				entity->type == fx::sync::NetObjEntityType::DraftVeh ||
+#endif
 				entity->type == fx::sync::NetObjEntityType::Train))
 			{
 				entityList.push_back(gameState->MakeScriptHandle(entity));
@@ -1597,4 +1611,18 @@ static InitFunction initFunction([]()
 		auto& task = tree->tasks[index];
 		return static_cast<int>(task.type);
 	}));
+}
+
+static InitFunction initFunction([]()
+{
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		if (!IsStateGame())
+		{
+			return;
+		}
+
+		Init();
+	},
+	INT32_MIN);
 });

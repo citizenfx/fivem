@@ -23,6 +23,7 @@ namespace rage
 {
 class netObject;
 class datBitBuffer;
+class netSyncNodeBase;
 
 class netSyncTree
 {
@@ -99,5 +100,11 @@ public:
 
 public:
 	static netSyncTree* GetForType(NetObjEntityType type);
+
+private:
+	char pad[8]; // +8
+
+public:
+	rage::netSyncNodeBase* syncNode; // +16
 };
 }

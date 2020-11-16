@@ -91,20 +91,22 @@ static InitFunction initFunction([]()
 			{
 				if (infoJsonMutex.try_lock())
 				{
-					auto varman = instanceRef->GetComponent<console::Context>()->GetVariableManager();
-
 					infoJson["vars"] = json::object();
-
-					varman->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+					
+					for (auto varman : { instanceRef->GetComponent<console::Context>()->GetVariableManager(), console::GetDefaultContext()->GetVariableManager() })
 					{
-						// don't return more variable information
-						if (name == "sv_infoVersion" || name == "sv_hostname")
+						varman->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
 						{
-							return;
-						}
+							// don't return more variable information
+							if (name == "sv_infoVersion" || name == "sv_hostname")
+							{
+								return;
+							}
 
-						infoJson["vars"][name] = var->GetValue();
-					}, ConVar_ServerInfo);
+							infoJson["vars"][name] = var->GetValue();
+						},
+						ConVar_ServerInfo);
+					}
 
 					infoJson["resources"] = json::array();
 					infoJson["resources"].push_back("hardcap");

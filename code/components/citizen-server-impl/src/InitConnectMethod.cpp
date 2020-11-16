@@ -56,9 +56,6 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 	g_serverProviders.push_front(provider);
 	g_providersByType.insert({ provider->GetIdentifierPrefix(), provider });
 }
-
-extern bool IsOneSync();
-extern bool IsLengthHack();
 }
 
 static std::mutex g_ticketMapMutex;
