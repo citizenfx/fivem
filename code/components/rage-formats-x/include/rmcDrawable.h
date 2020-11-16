@@ -997,7 +997,7 @@ private:
 	uint8_t m_pad;
 	uint8_t m_type;
 	uint16_t m_pad2;
-#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
+#if defined(RAGE_FORMATS_GAME_FIVE)
 	uint32_t m_pad3;
 #endif
 #endif
@@ -1175,7 +1175,7 @@ public:
 	uintptr_t m_pad3;
 	uint8_t m_unk;
 	uint8_t m_drawBucket;
-	uint8_t m_unk2[2];
+	uint16_t m_parameterDataSize;
 	uint32_t m_drawBucketMask;
 #endif
 

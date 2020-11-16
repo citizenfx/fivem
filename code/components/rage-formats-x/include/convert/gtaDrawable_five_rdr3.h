@@ -603,7 +603,7 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		shader->m_shaderHash = shs;
 		shader->m_shaderHashPad = 'meta';
 		shader->m_drawBucket = osh->m_drawBucket;
-		shader->m_drawBucketMask = osh->m_drawBucketMask & 0x7FFF;
+		shader->m_drawBucketMask = osh->m_drawBucketMask & 0xFFFF;
 
 		// we don't even have to follow the full shader logic: the game will copy defaults *at runtime* where needed
 		std::vector<std::tuple<uint32_t, void*>> textureRefs;
@@ -701,6 +701,15 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 				std::array<uint8_t, 16> value;
 				memcpy(value.data(), params[i].GetValue(), 16);
 
+				if (pn == HashString("SpecularColor"))
+				{
+					*(float*)(value.data()) = 1.0f;
+				}
+				else if (pn == HashString("Specular"))
+				{
+					*(float*)(value.data()) /= 1.35f;
+				}
+
 				paramRefs.emplace_back(pn, value);
 			}
 		}
@@ -736,7 +745,17 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 			}
 		}
 
-		auto trs = (rdr3::grmShaderParameter*)rdr3::pgStreamManager::Allocate(sizeof(rdr3::grmShaderParameter) * textureRefs.size(), false, nullptr);
+		size_t paramPtrSize = sizeof(uintptr_t) * 4 * shader->m_parameterData->numCBuffers;
+		size_t paramDataSize = 4 * (16 * paramRefs.size());
+		size_t texRefDataSize = (8 * textureRefs.size());
+		size_t finalParamSize = (paramPtrSize + paramDataSize + texRefDataSize + shader->m_parameterData->numSamplers);
+
+		// we are allocating (final size * 2) so we can account for the game wanting to stuff its corrections in here
+		shader->m_parameterDataSize = finalParamSize * 2;
+
+		auto paramBuffer = (char*)rdr3::pgStreamManager::Allocate(finalParamSize * 2, false, nullptr);
+		auto prs = (rdr3::grmShaderParameter*)(paramBuffer);
+		auto trs = (rdr3::grmShaderParameter*)(paramBuffer + paramPtrSize + paramDataSize); //rdr3::pgStreamManager::Allocate(sizeof(rdr3::grmShaderParameter) * textureRefs.size(), false, nullptr);
 
 		for (int i = 0; i < textureRefs.size(); i++)
 		{
@@ -745,17 +764,18 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 
 		shader->m_textureRefs = trs;
 
-		auto prs = (rdr3::grmShaderParameter*)rdr3::pgStreamManager::Allocate(sizeof(uintptr_t) * 4 * shader->m_parameterData->numCBuffers, false, nullptr);
-
-		for (int i = 0; i < 4; i++)
 		{
-			auto arg = (char*)rdr3::pgStreamManager::Allocate(16 * paramRefs.size(), false, nullptr);
-			prs[i].SetValue(arg);
+			auto arg = paramBuffer + paramPtrSize;
 
-			for (auto& [ hash, value ] : paramRefs)
+			for (int i = 0; i < 4; i++)
 			{
-				memcpy(arg, value.data(), value.size());
-				arg += value.size();
+				prs[i].SetValue(arg);
+
+				for (auto& [hash, value] : paramRefs)
+				{
+					memcpy(arg, value.data(), value.size());
+					arg += value.size();
+				}
 			}
 		}
 
