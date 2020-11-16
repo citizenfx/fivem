@@ -717,6 +717,7 @@ struct SyncedEntityData
 	sync::SyncEntityPtr entity;
 	bool forceUpdate;
 	bool hasCreated;
+	bool hasNAckedCreate = false;
 };
 
 constexpr auto maxSavedClientFrames = 650; // enough for ~8-9 seconds, after 5 we'll start using worst-case frames

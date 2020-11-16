@@ -999,9 +999,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				if (isRelevant)
 				{
 					const auto deltaTime = syncDelay - entityData.syncDelta;
-					newSyncedEntities[entIdentifier] = { entityData.nextSync + deltaTime, syncDelay, entity, entityData.forceUpdate, entityData.hasCreated };
+					newSyncedEntities[entIdentifier] = { entityData.nextSync + deltaTime, syncDelay, entity, entityData.forceUpdate, entityData.hasCreated, false };
 				}
-				else if (entityData.hasCreated)
+				else if (entityData.hasCreated || entityData.hasNAckedCreate)
 				{
 					GS_LOG("destroying entity %d:%d for client %d due to scope exit\n", entity->handle, entity->uniqifier, client->GetNetId());
 					clientDataUnlocked->entitiesToDestroy[entIdentifier] = { entity, { true, false } };
@@ -1017,7 +1017,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->outOfScopeFor.reset(slotId);
 				}
 
-				newSyncedEntities[entIdentifier] = { 0ms, syncDelay, entity, true, false };
+				newSyncedEntities[entIdentifier] = { 0ms, syncDelay, entity, true, false, false };
 			}
 		}
 
@@ -2830,7 +2830,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			auto [lock, data] = GetClientData(this, client);
 			auto identPair = MakeHandleUniqifierPair(objectId, uniqifier);
 
-			data->syncedEntities[identPair] = { 0ms, 10ms, entity, false, true };
+			data->syncedEntities[identPair] = { 0ms, 10ms, entity, false, true, false };
 			data->pendingCreates.erase(identPair);
 		}
 
@@ -4082,6 +4082,7 @@ static InitFunction initFunction([]()
 										if (auto syncedIt = clientData->syncedEntities.find(entIdentifier); syncedIt != clientData->syncedEntities.end())
 										{
 											syncedIt->second.hasCreated = false;
+											syncedIt->second.hasNAckedCreate = true;
 										}
 									}
 									else
@@ -4157,6 +4158,7 @@ static InitFunction initFunction([]()
 									{
 										GS_LOG("recreating id %d for client %d\n", objectId, client->GetNetId());
 										syncedIt->second.hasCreated = false;
+										syncedIt->second.hasNAckedCreate = true;
 									}
 								}
 							}
