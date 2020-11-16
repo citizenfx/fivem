@@ -1405,8 +1405,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				baseFrameIndex = entity->lastFramesSent[slotId];
 			}
 
-			// investigate changing this to `true` when the code path works again
-			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, /*syncData.hasCreated*/false };
+			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
 			// should we sync?
 			if (forceUpdate || syncData.nextSync - curTime <= 0ms)
