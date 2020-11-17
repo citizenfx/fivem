@@ -72,6 +72,11 @@ public:
 	virtual ~StateBagComponent() override = default;
 
 	//
+	// Resets the state stored in the state bag component.
+	//
+	virtual void Reset() = 0;
+
+	//
 	// Should be called when receiving a state bag control packet.
 	//
 	virtual void HandlePacket(int source, std::string_view data) = 0;

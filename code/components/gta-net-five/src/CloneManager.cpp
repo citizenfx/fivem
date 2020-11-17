@@ -95,6 +95,8 @@ enum class AckResult
 class CloneManagerLocal : public CloneManager, public INetObjMgrAbstraction, public fx::StateBagGameInterface
 {
 public:
+	virtual void Reset() override;
+
 	virtual void Update() override;
 
 	virtual void BindNetLibrary(NetLibrary* netLibrary) override;
@@ -438,6 +440,29 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	{
 		rm->SetComponent(sbac);
 	});
+}
+
+void CloneManagerLocal::Reset()
+{
+	m_trackedObjects.clear();
+	m_savedEntities.clear();
+	m_savedEntitySet.clear();
+	m_savedEntityVec.clear();
+	m_extendedData.clear();
+	m_pendingRemoveAcks.clear();
+	m_pendingConfirmObjectIds.clear();
+	m_logQueue.clear();
+
+	m_netObjects = {};
+
+	m_lastReceivedFrame = { 0 };
+
+	m_lastSend = 0ms;
+	m_lastAck = 0ms;
+
+	m_ackTimestamp = 0;
+
+	m_sbac->Reset();
 }
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
@@ -2403,3 +2428,13 @@ CloneManagerLocal g_cloneMgr;
 
 sync::CloneManager* TheClones = &sync::g_cloneMgr;
 sync::INetObjMgrAbstraction* CloneObjectMgr = &sync::g_cloneMgr;
+
+#include <GameInit.h>
+
+static InitFunction initFunction([]()
+{
+	OnKillNetworkDone.Connect([]()
+	{
+		TheClones->Reset();
+	});
+});

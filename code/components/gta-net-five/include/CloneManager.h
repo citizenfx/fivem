@@ -59,6 +59,8 @@ class CloneManager
 public:
 	virtual ~CloneManager() = default;
 
+	virtual void Reset() = 0;
+
 	virtual void Update() = 0;
 
 	virtual void BindNetLibrary(NetLibrary* netLibrary) = 0;

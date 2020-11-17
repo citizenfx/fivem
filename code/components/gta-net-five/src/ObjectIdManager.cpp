@@ -238,6 +238,7 @@ static HookFunction hookFunction([]()
 	{
 		g_objectIds.clear();
 		g_usedObjectIds.clear();
+		g_stolenObjectIds.clear();
 
 		g_requestedIds = false;
 	});

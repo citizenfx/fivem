@@ -22,6 +22,8 @@ public:
 
 	virtual void AttachToObject(fx::ResourceManager* object) override;
 
+	virtual void Reset() override;
+
 	virtual void HandlePacket(int source, std::string_view data) override;
 
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) override;
@@ -512,6 +514,19 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)
 void StateBagComponentImpl::QueueSend(int target, std::string_view packet)
 {
 	m_gameInterface->SendPacket(target, packet);
+}
+
+void StateBagComponentImpl::Reset()
+{
+	{
+		std::unique_lock _(m_mapMutex);
+		m_stateBags.clear();
+	}
+
+	{
+		std::unique_lock _(m_preCreatedStateBagsMutex);
+		m_preCreatedStateBags.clear();
+	}
 }
 
 fwRefContainer<StateBagComponent> StateBagComponent::Create(StateBagRole role)
