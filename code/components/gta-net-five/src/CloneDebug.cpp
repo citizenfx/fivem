@@ -585,7 +585,9 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 							for (int child = 0; child < childCount; child++)
 							{
-								written |= updateNode(children[child], nodeData->manuallyDirtied || written);
+								auto childData = &g_syncData[state.object->objectId].nodes[children[child]];
+
+								written |= updateNode(children[child], nodeData->manuallyDirtied || childData->manuallyDirtied || written);
 							}
 						}
 					}
