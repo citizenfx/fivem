@@ -1421,7 +1421,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							});
 						};
 
-						auto blacklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
+						auto blocklistResultHandler = [this, continueAfterAllowance](bool success, const char* data, size_t length)
 						{
 							if (success)
 							{
@@ -1430,7 +1430,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								std::uniform_int_distribution<int> distribution(1, 224);
 								std::uniform_int_distribution<int> distribution2(1, 254);
 
-								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blacklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
+								auto rndQ = fmt::sprintf("https://runtime.fivem.net/blocklist/%u.%u.%u.%u", distribution(generator), distribution2(generator), distribution2(generator), distribution2(generator));
 								auto dStr = std::string(data, length);
 
 								m_httpClient->DoGetRequest(rndQ, [this, continueAfterAllowance, dStr](bool success, const char* data, size_t length)
@@ -1455,7 +1455,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						OnConnectionProgress("Requesting server permissions...", 0, 100);
 
-						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blacklist/%s", address.GetHost()), blacklistResultHandler);
+						HttpRequestOptions options;
+						options.timeoutNoResponse = std::chrono::seconds(5);
+
+						m_httpClient->DoGetRequest(fmt::sprintf("https://runtime.fivem.net/blocklist/%s", address.GetHost()), options, blocklistResultHandler);
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
