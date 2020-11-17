@@ -298,7 +298,8 @@ export class ServersService {
 	public loadPinConfig(): Promise<PinConfig> {
 		return this.httpClient.get('https://runtime.fivem.net/pins.json')
 			.toPromise()
-			.then((result: PinConfig) => result);
+			.then((result: PinConfig) => result)
+			.catch(() => new PinConfig());
 	}
 
 	parseAddress(addr: string): [string, number] {

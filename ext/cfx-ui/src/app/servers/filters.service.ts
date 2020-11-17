@@ -29,7 +29,7 @@ export class FiltersService {
 
 	filters: ServerFilters;
 	tags: ServerTags;
-	pinConfig: PinConfigCached;
+	pinConfig = new PinConfigCached(null);
 	sortOrder: ServerSorting;
 
 	sortOrderPerType: { [key: string]: ServerSorting } = {};

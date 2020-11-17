@@ -36,7 +36,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 	localhostPort = '';
 	nickname = '';
 
-	playerStats: [number, number];
+	playerStats: [number, number, number];
 
 	gameName = 'gta5';
 
@@ -169,6 +169,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 		window.fetch('https://runtime.fivem.net/counts.json')
 			.then(async (res) => {
 				this.playerStats = (await res.json()).map((c) => (Math.floor(c) / 1000).toFixed(1));
+			})
+			.catch(() => {
+				this.playerStats = [-1, -1, -1];
 			});
 	}
 
