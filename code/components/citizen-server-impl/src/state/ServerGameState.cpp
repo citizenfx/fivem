@@ -1595,6 +1595,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// emplace new frame
 		clientDataUnlocked->frameStates.emplace(m_frameIndex, std::move(ces));
 
+#ifdef USE_ASYNC_SCL_POSTING
 		// #TODO: syncing flag check and queue afterwards!
 		if (!m_tg->tryPost([this, scl = std::move(scl), client]() mutable
 			{
@@ -1615,6 +1616,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			GS_LOG("Thread pool full?\n");
 #endif
 		}
+#else
+		scl->Execute(client);
+#endif
 	
 		GS_LOG("Tick completed for cl %d.\n", client->GetNetId());
 	});
