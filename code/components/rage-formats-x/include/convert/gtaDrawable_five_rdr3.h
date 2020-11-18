@@ -53,23 +53,6 @@ enum class FVFType
 	Dec3N
 };
 
-struct meh : public rdr3::pgStreamableBase
-{
-	char stuff[64];
-
-	meh()
-	{
-		static unsigned char hexData[64] = {
-			0x80, 0x00, 0x91, 0x40, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-		};
-
-		memcpy(stuff, hexData, 64);
-	}
-};
-
 inline std::optional<rdr3::sgaInputSemantic> mapVertexSemantic(int semantic)
 {
 	switch (semantic)
@@ -241,7 +224,7 @@ rdr3::grcVertexBufferD3D* convert(five::grcVertexBufferD3D* buffer)
 	auto out = new (false) rdr3::grcVertexBufferD3D;
 	memset(out, 0, sizeof(*out));
 
-	out->m_unkBuffer = new (false) meh;
+	out->m_srv = new (false) rdr3::sgaShaderResourceView;
 	out->m_bindFlags = 0x209000;
 
 	auto ob = (char*)buffer->GetVertices();
@@ -421,7 +404,7 @@ template<>
 rdr3::grcIndexBufferD3D* convert(five::grcIndexBufferD3D* buffer)
 {
 	auto out = new (false) rdr3::grcIndexBufferD3D(buffer->GetIndexCount(), buffer->GetIndexData());
-	out->m_unkBuffer = new (false) meh;
+	out->m_srv = new (false) rdr3::sgaShaderResourceView;
 
 	return out;
 }
@@ -701,13 +684,9 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 				std::array<uint8_t, 16> value;
 				memcpy(value.data(), params[i].GetValue(), 16);
 
-				if (pn == HashString("SpecularColor"))
+				if (pn == HashString("Specular"))
 				{
-					*(float*)(value.data()) = 1.0f;
-				}
-				else if (pn == HashString("Specular"))
-				{
-					*(float*)(value.data()) /= 1.35f;
+					*(float*)(value.data()) /= 20.f;
 				}
 
 				paramRefs.emplace_back(pn, value);
