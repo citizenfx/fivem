@@ -38,7 +38,7 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 			{
 				modName = "GTA5.exe";
 			}
-			else if (modName == "RedM_GTAProcess.exe")
+			else if (modName == "RedM_GTAProcess.exe" || modName == "RedM.exe")
 			{
 				modName = "RDR2.exe";
 			}

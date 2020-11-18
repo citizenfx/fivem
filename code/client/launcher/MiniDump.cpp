@@ -956,6 +956,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 							}
 						}
 
+						bool moduleFound = false;
 						DWORD processLen = 0;
 						if (EnumProcessModules(process_handle, nullptr, 0, &processLen))
 						{
@@ -1001,6 +1002,82 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 											moduleBaseString = va(L"%s+%X", wcsrchr(filename, '\\') + 1, (uintptr_t)((char*)ex.ExceptionAddress - (char*)module));
 
 											crashHash = moduleBaseString;
+											moduleFound = true;
+
+											break;
+										}
+									}
+								}
+							}
+						}
+
+						if (!moduleFound)
+						{
+							// is this an unloaded module?
+							typedef VOID (WINAPI* _tRtlGetUnloadEventTraceEx)(
+							_Out_ PULONG * ElementSize,
+							_Out_ PULONG * ElementCount,
+							_Out_ PVOID * EventTrace);
+
+							typedef struct _RTL_UNLOAD_EVENT_TRACE
+							{
+								PVOID BaseAddress; // Base address of dll
+								SIZE_T SizeOfImage; // Size of image
+								ULONG Sequence; // Sequence number for this event
+								ULONG TimeDateStamp; // Time and date of image
+								ULONG CheckSum; // Image checksum
+								WCHAR ImageName[32]; // Image name
+							} RTL_UNLOAD_EVENT_TRACE, *PRTL_UNLOAD_EVENT_TRACE;
+
+							// collect memory addresses of unloaded modules in *client*
+							auto _RtlGetUnloadEventTraceEx = (_tRtlGetUnloadEventTraceEx)GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetUnloadEventTraceEx");
+
+							if (_RtlGetUnloadEventTraceEx)
+							{
+								PULONG RtlpUnloadEventTraceExSizePtr;
+								PULONG RtlpUnloadEventTraceExNumberPtr;
+								PVOID RtlpUnloadEventTraceExPtr;
+
+								_RtlGetUnloadEventTraceEx(&RtlpUnloadEventTraceExSizePtr, &RtlpUnloadEventTraceExNumberPtr, &RtlpUnloadEventTraceExPtr);
+
+								// these addresses are going to be the same in the client process, so...
+								PCHAR RtlpUnloadEventTraceEx = NULL;
+								ULONG RtlpUnloadEventTraceExSize = 0;
+								ULONG RtlpUnloadEventTraceExNumber = 0;
+
+								bool canDo = readClient(RtlpUnloadEventTraceExSizePtr, &RtlpUnloadEventTraceExSize)
+									&& readClient(RtlpUnloadEventTraceExNumberPtr, &RtlpUnloadEventTraceExNumber)
+									&& readClient(RtlpUnloadEventTraceExPtr, &RtlpUnloadEventTraceEx);
+
+								if (canDo && RtlpUnloadEventTraceExSize >= sizeof(RTL_UNLOAD_EVENT_TRACE))
+								{
+									for (ULONG idx = 0; idx < RtlpUnloadEventTraceExNumber; idx++)
+									{
+										RTL_UNLOAD_EVENT_TRACE traceEntry;
+										if (readClient(RtlpUnloadEventTraceEx + (idx * RtlpUnloadEventTraceExSize), &traceEntry))
+										{
+											auto base = reinterpret_cast<char*>(traceEntry.BaseAddress);
+
+											if (ex.ExceptionAddress >= base && ex.ExceptionAddress < (base + traceEntry.SizeOfImage))
+											{
+												wchar_t filename[MAX_PATH] = { 0 };
+												wcscpy(filename, traceEntry.ImageName);
+
+												// lowercase the filename
+												for (wchar_t* p = filename; *p; ++p)
+												{
+													if (*p >= 'A' && *p <= 'Z')
+													{
+														*p += 0x20;
+													}
+												}
+
+												// create the string
+												auto moduleBaseString = va(L"%s_unloaded+%X", filename, (uintptr_t)((char*)ex.ExceptionAddress - base));
+												crashHash = moduleBaseString;
+
+												break;
+											}
 										}
 									}
 								}
