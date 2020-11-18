@@ -1138,6 +1138,18 @@ static HookFunction inputFunction([]()
 		return;
 	}
 
+	HMODULE hLib = LoadLibraryW(L"Windows.Gaming.Input.dll");
+
+	if (!hLib)
+	{
+		return;
+	}
+
+	if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)hLib, &hLib))
+	{
+		trace("Failed to pin WGI DLL.\n");
+	}
+
 	{
 		auto getStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("75 13 48 8D 54 24 20 8B CF E8", 9)) + 2);
 		g_origXInputGetState = (decltype(g_origXInputGetState))*getStateRef;
