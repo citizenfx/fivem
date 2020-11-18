@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="npm" Version="1.50.1" Publisher="vscode"/>
+    <Identity Language="en-US" Id="npm" Version="1.51.1" Publisher="vscode"/>
     <DisplayName>NPM support for VS Code (built-in)</DisplayName>
     <Description xml:space="preserve">Extension to add task support for npm scripts.</Description>
     <Tags>Built-in,json,ignore,__ext_npmignore,properties,__ext_npmrc,node</Tags>

@@ -12,19 +12,22 @@ import { ProjectContextProvider } from './contexts/ProjectContext';
 import { TheiaContextProvider } from './contexts/TheiaContext';
 import { TitleManager } from './TitleManager';
 import { ServerContextProvider } from './contexts/ServerContext';
+import { StatusContextProvider } from 'contexts/StatusContext';
 
 ReactDOM.render(
   <React.StrictMode>
-    <StateContextProvider>
-      <TheiaContextProvider>
-        <ProjectContextProvider>
-          <ServerContextProvider>
-            <TitleManager />
-            <Shell />
-          </ServerContextProvider>
-        </ProjectContextProvider>
-      </TheiaContextProvider>
-    </StateContextProvider>
+    <StatusContextProvider>
+      <StateContextProvider>
+        <TheiaContextProvider>
+          <ProjectContextProvider>
+            <ServerContextProvider>
+              <TitleManager />
+              <Shell />
+            </ServerContextProvider>
+          </ProjectContextProvider>
+        </TheiaContextProvider>
+      </StateContextProvider>
+    </StatusContextProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

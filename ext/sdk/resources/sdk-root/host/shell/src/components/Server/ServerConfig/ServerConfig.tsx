@@ -62,7 +62,7 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
 
   const updateChannel = project.manifest.serverUpdateChannel;
 
-  const { serverOutput, checkForUpdates } = React.useContext(ServerContext);
+  const { serverOutput, checkForUpdates, sendServerCommand } = React.useContext(ServerContext);
 
   const [checkingForUpdates, setCheckingForUpdates] = React.useState(false);
 
@@ -108,6 +108,10 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
             text="Check for updates"
             disabled={checkingForUpdates}
             onClick={handleCheckForUpdates}
+          />
+          <Button
+            text="Show server GUI"
+            onClick={() => sendServerCommand('svgui')}
           />
           <Button
             text="Close"

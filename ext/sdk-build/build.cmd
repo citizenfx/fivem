@@ -19,7 +19,7 @@ set FXDKSdk=%FXDKRoot%\sdk
 
 :: build sdk
 pushd %FXDKSdk%
-rmdir /s /q build
+if exist build rmdir /s /q build
 call yarn install --frozen-lockfile --ignore-scripts
 call yarn build
 xcopy /y /e lib\*.*  	 build\lib\
@@ -35,7 +35,7 @@ popd
 
 :: build shell
 pushd %FXDKShell%
-rmdir /s /q build
+if exist build rmdir /s /q build
 call yarn install --frozen-lockfile --ignore-scripts
 call yarn build
 popd
@@ -45,7 +45,7 @@ popd
 
 :: build theia
 pushd %FXDKTheia%
-rmdir /s /q build
+if exist build rmdir /s /q build
 call yarn install --frozen-lockfile --ignore-scripts
 call yarn build
 xcopy /y /e fxdk-app\lib\*.* 	    build\lib\
@@ -56,22 +56,32 @@ xcopy /y    yarn.lock               build\
 echo F|xcopy /y    fxdk-app\backend-package.json build\package.json
 echo F|xcopy /y    build.yarnclean               build\.yarnclean
 
-call yarn --cwd build install --frozen-lockfile --ignore-scripts --no-bin-links --production
+call yarn --cwd build install --frozen-lockfile --ignore-scripts --production
 
 xcopy /y /e node_modules\fxdk-project\lib\*.*      build\node_modules\fxdk-project\lib\
 xcopy /y    node_modules\fxdk-project\package.json build\node_modules\fxdk-project\
 
-for %%m in (@theia\node-pty, nsfw, find-git-repositories, drivelist) do (
+for %%m in (nsfw, find-git-repositories, drivelist) do (
 	call yarn electron-rebuild -f -m build\node_modules\%%m
 )
 call yarn autoclean --force
+
+:: make a cleanup
 del /q /f /s "build\*.gz"
-del /q /f /s "build\*.map"
+del /q /f /s "build\lib\*.map"
+del /q /f /s "build\node_modules\*.map"
 del build\yarn.lock
 del build\.yarnclean
 rmdir /s /q build\node_modules\font-awesome
+rmdir /s /q build\node_modules\@theia\editor
+rmdir /s /q build\node_modules\@theia\monaco
+rmdir /s /q build\node_modules\@theia\outline-view
+rmdir /s /q build\node_modules\@theia\monaco-editor-core
+
+for /d %%G in ("build\node_modules\react*") do rmdir /s /q %%G
 
 %~dp0\..\..\code\tools\ci\7z a -mx=0 personality-theia.tar build\*
+
 rmdir /s /q build
 popd
 :: /build theia
@@ -79,7 +89,7 @@ popd
 
 
 :: move builds
-rmdir /s /q %BuildRoot%\resource
+if exist %BuildRoot%\resource rmdir /s /q %BuildRoot%\resource
 
 mkdir %BuildRoot%\resource\host\
 

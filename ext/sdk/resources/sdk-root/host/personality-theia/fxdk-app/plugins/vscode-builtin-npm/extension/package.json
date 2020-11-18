@@ -3,7 +3,7 @@
   "publisher": "vscode",
   "displayName": "NPM support for VS Code (built-in)",
   "description": "Extension to add task support for npm scripts.",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {
     "vscode": "0.10.x"
@@ -78,6 +78,10 @@
       {
         "command": "npm.runScriptFromFolder",
         "title": "%command.runScriptFromFolder%"
+      },
+      {
+        "command": "npm.packageManager",
+        "title": "%command.packageManager"
       }
     ],
     "menus": {
@@ -108,6 +112,10 @@
         },
         {
           "command": "npm.runScriptFromFolder",
+          "when": "false"
+        },
+        {
+          "command": "npm.packageManager",
           "when": "false"
         }
       ],

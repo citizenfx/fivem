@@ -2,7 +2,7 @@
   "name": "markdown-language-features",
   "displayName": "Markdown Language Features (built-in)",
   "description": "Provides rich language support for Markdown.",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "icon": "icon.png",
   "publisher": "vscode",
   "enableProposedApi": true,

@@ -59,6 +59,7 @@ export class ServerApi {
     this.client.on(serverApi.ackState, () => this.ackState());
     this.client.on(serverApi.start, (request: ServerStartRequest) => this.start(request));
     this.client.on(serverApi.stop, () => this.stop());
+    this.client.on(serverApi.sendCommand, (cmd: string) => this.sendCommand(cmd));
     this.client.on(serverApi.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
     this.client.on(serverApi.refreshResources, (request: ServerRefreshResourcesRequest) => this.refreshResources(request));
   }
@@ -220,6 +221,10 @@ export class ServerApi {
     this.client.log('Restarting resource', resourceName);
 
     this.sendIpcEvent('restart', resourceName);
+  }
+
+  sendCommand(cmd: string) {
+    this.server?.stdin?.write(cmd + '\n');
   }
 
   private sendIpcEvent(eventType: string, data?: any) {

@@ -3,7 +3,7 @@
   "name": "html-language-features",
   "displayName": "HTML Language Features (built-in)",
   "description": "Provides rich language support for HTML and Handlebar files",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",

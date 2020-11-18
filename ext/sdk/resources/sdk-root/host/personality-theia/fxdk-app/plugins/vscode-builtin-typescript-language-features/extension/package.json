@@ -2,7 +2,7 @@
   "name": "typescript-language-features",
   "description": "Provides rich language support for JavaScript and TypeScript.",
   "displayName": "TypeScript and JavaScript Language Features (built-in)",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "icon": "icon.png",
   "author": "vscode",
   "publisher": "vscode",
@@ -310,6 +310,12 @@
           "description": "%format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces%",
           "scope": "resource"
         },
+        "typescript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": {
+          "type": "boolean",
+          "default": true,
+          "description": "%format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces%",
+          "scope": "resource"
+        },
         "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": {
           "type": "boolean",
           "default": false,
@@ -426,6 +432,12 @@
           "type": "boolean",
           "default": true,
           "description": "%format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces%",
+          "scope": "resource"
+        },
+        "javascript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": {
+          "type": "boolean",
+          "default": true,
+          "description": "%format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces%",
           "scope": "resource"
         },
         "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": {

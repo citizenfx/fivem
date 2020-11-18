@@ -2,7 +2,7 @@
   "name": "javascript",
   "displayName": "JavaScript Language Basics (built-in)",
   "description": "Provides snippets, syntax highlighting, bracket matching and folding in JavaScript files.",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {

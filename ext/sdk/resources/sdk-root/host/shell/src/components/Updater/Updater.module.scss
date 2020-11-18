@@ -1,0 +1,42 @@
+@import "variables";
+
+.root {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .title {
+    @include fontPrimary;
+  }
+
+  .current-file-name {
+    font-size: $fs08;
+    color: rgba($fgColor, .5);
+  }
+
+  .progress {
+    height: $q;
+    width: 60vw;
+
+    position: relative;
+
+    margin-top: $q*8;
+
+    background-color: rgba($acColor, .25);
+
+    .bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+
+      background-color: $acColor;
+
+      transition: width .1s linear;
+    }
+  }
+}

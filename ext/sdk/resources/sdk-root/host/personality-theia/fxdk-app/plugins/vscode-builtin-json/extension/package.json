@@ -2,7 +2,7 @@
   "name": "json",
   "displayName": "JSON Language Basics (built-in)",
   "description": "Provides syntax highlighting & bracket matching in JSON files.",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {

@@ -2,7 +2,7 @@
   "name": "scss",
   "displayName": "SCSS Language Basics (built-in)",
   "description": "Provides syntax highlighting, bracket matching and folding in SCSS files.",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {

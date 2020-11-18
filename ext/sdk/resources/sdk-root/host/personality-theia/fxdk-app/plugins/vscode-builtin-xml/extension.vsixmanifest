@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="xml" Version="1.50.1" Publisher="vscode"/>
+    <Identity Language="en-US" Id="xml" Version="1.51.1" Publisher="vscode"/>
     <DisplayName>XML Language Basics (built-in)</DisplayName>
     <Description xml:space="preserve">Provides syntax highlighting and bracket matching in XML files.</Description>
     <Tags>Built-in,xml,XML,__ext_xml,__ext_xsd,__ext_ascx,__ext_atom,__ext_axml,__ext_bpmn,__ext_cpt,__ext_csl,__ext_csproj,__ext_csprojuser,__ext_dita,__ext_ditamap,__ext_dtd,__ext_ent,__ext_mod,__ext_dtml,__ext_fsproj,__ext_fxml,__ext_iml,__ext_isml,__ext_jmx,__ext_launch,__ext_menu,__ext_mxml,__ext_nuspec,__ext_opml,__ext_owl,__ext_proj,__ext_props,__ext_pt,__ext_publishsettings,__ext_pubxml,__ext_pubxmluser,__ext_rbxlx,__ext_rbxmx,__ext_rdf,__ext_rng,__ext_rss,__ext_shproj,__ext_storyboard,__ext_svg,__ext_targets,__ext_tld,__ext_tmx,__ext_vbproj,__ext_vbprojuser,__ext_vcxproj,__ext_vcxprojfilters,__ext_wsdl,__ext_wxi,__ext_wxl,__ext_wxs,__ext_xaml,__ext_xbl,__ext_xib,__ext_xlf,__ext_xliff,__ext_xpdl,__ext_xul,__ext_xoml,xsl,XSL,__ext_xsl,__ext_xslt</Tags>

@@ -3,4 +3,4 @@ node_modules
 lib
 *.log
 ./build
-build.tar
+personality-theia.tar

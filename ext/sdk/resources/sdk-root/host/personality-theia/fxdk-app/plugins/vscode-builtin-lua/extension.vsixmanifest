@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Language="en-US" Id="lua" Version="1.50.1" Publisher="vscode"/>
+    <Identity Language="en-US" Id="lua" Version="1.51.1" Publisher="vscode"/>
     <DisplayName>Lua Language Basics (built-in)</DisplayName>
     <Description xml:space="preserve">Provides syntax highlighting and bracket matching in Lua files.</Description>
     <Tags>Built-in,lua,Lua,__ext_lua</Tags>

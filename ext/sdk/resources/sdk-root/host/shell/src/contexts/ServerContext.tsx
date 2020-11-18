@@ -25,6 +25,8 @@ export interface ServerContext {
   startServer: () => void,
   stopServer: () => void,
 
+  sendServerCommand: (cmd: string) => void,
+
   checkForUpdates: (updateChannel: ServerUpdateChannel) => void,
   installUpdate: (updateChannel: ServerUpdateChannel) => void,
 }
@@ -41,6 +43,8 @@ export const ServerContext = React.createContext<ServerContext>({
 
   startServer: () => {},
   stopServer: () => {},
+
+  sendServerCommand: () => {},
 
   checkForUpdates: () => {},
   installUpdate: () => {},
@@ -77,6 +81,10 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
   const stopServer = React.useCallback(() => {
     sendApiMessage(serverApi.stop);
+  }, []);
+
+  const sendServerCommand = React.useCallback((cmd: string) => {
+    sendApiMessage(serverApi.sendCommand, cmd);
   }, []);
 
   const checkForUpdates = React.useCallback((updateChannel: ServerUpdateChannel) => {
@@ -182,6 +190,8 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
     startServer,
     stopServer,
+
+    sendServerCommand,
 
     checkForUpdates,
     installUpdate,

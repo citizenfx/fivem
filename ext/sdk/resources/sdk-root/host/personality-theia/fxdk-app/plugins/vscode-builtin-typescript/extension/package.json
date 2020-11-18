@@ -2,7 +2,7 @@
   "name": "typescript",
   "description": "Provides snippets, syntax highlighting, bracket matching and folding in TypeScript files.",
   "displayName": "TypeScript Language Basics (built-in)",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "author": "vscode",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
@@ -77,6 +77,22 @@
           "meta.import string.quoted": "other",
           "variable.other.jsdoc": "other"
         }
+      },
+      {
+        "scopeName": "documentation.injection.ts",
+        "path": "./syntaxes/jsdoc.ts.injection.tmLanguage.json",
+        "injectTo": [
+          "source.ts",
+          "source.tsx"
+        ]
+      },
+      {
+        "scopeName": "documentation.injection.js.jsx",
+        "path": "./syntaxes/jsdoc.js.injection.tmLanguage.json",
+        "injectTo": [
+          "source.js",
+          "source.js.jsx"
+        ]
       }
     ],
     "semanticTokenScopes": [

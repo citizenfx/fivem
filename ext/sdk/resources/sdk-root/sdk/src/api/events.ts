@@ -76,6 +76,7 @@ export const serverApi = {
 
   output: 'server:output',
   clearOutput: 'server:clearOutput',
+  sendCommand: 'server:sendCommand',
 
   ackResourcesState: 'server:ackResourcesState',
   resourcesState: 'server:resourcesState',
@@ -95,4 +96,10 @@ export const serverApi = {
 
 export const errorsApi = {
   projectCreateError: 'error:projectCreate',
+};
+
+export const statusesApi = {
+  ack: 'statuses:ack',
+  update: 'statuses:update',
+  statuses: 'statuses:statuses',
 };

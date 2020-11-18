@@ -2,7 +2,7 @@
   "name": "css",
   "displayName": "CSS Language Basics (built-in)",
   "description": "Provides syntax highlighting and bracket matching for CSS, LESS and SCSS files.",
-  "version": "1.50.1",
+  "version": "1.51.1",
   "publisher": "vscode",
   "license": "SEE LICENSE IN LICENSE-vscode.txt",
   "engines": {

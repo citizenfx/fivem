@@ -25,6 +25,22 @@ export const debounce = <T extends Function>(fn: T, timeout: number): T => {
   return newFn as any;
 };
 
+export const createDeferred = <T extends any>() => {
+  let resolve;
+  let reject;
+
+  const promise = new Promise<T>((rs, rj) => {
+    resolve = rs;
+    reject = rj;
+  }) as any;
+
+  return {
+    resolve,
+    reject,
+    promise,
+  };
+};
+
 export const createLock = () => {
   let locks = 0;
   let pendingUnlockPromises: (() => void)[] = [];

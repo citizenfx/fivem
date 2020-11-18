@@ -31,7 +31,7 @@ static const int g_colors[] = {
 
 static void Print(const char* str)
 {
-	printf("%s", str);
+	fprintf(stderr, "%s", str);
 }
 
 static auto g_printf = &Print;

@@ -16,12 +16,14 @@
     "node-fetch": "^2.6.1",
     "rimraf": "^3.0.2",
     "simple-git": "^2.20.1",
+    "tar-fs": "^2.1.1",
     "yauzl": "^2.10.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.7",
     "@types/express-ws": "^3.0.0",
     "@types/node-fetch": "^2.5.7",
+    "@types/tar-fs": "^2.0.0",
     "typescript": "^4.0.3"
   }
 }

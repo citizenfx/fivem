@@ -7,6 +7,7 @@ import { ProjectApi } from "./ProjectApi";
 import { ServerApi } from "./ServerApi";
 import { ServerManagerApi } from "./ServerManagerApi";
 import { StateApi } from "./StateApi";
+import { StatusesApi } from "./StatusesApi";
 
 
 const clients = new Set<ws>();
@@ -30,12 +31,9 @@ export const apiClient: ApiClient = {
   on<T>(eventType: string, cb: ApiEventCallback<T>): ApiEventCallbackDisposer {
     const listeners = messageTypeListeners[eventType] || (messageTypeListeners[eventType] = new Set());
 
-    this.log('listening to event', eventType);
-
     listeners.add(cb);
 
     return () => {
-      this.log('stopped listening to event', eventType);
       messageTypeListeners[eventType].delete(cb);
     };
   },
@@ -66,8 +64,6 @@ export const mountApi = (app: expressWs.Application) => {
 
         const typedListeners = messageTypeListeners[type];
 
-        apiClient.log('num of listeners of message type', type, 'is', typedListeners?.size);
-
         if (typedListeners) {
           typedListeners.forEach((listener) => listener(data));
         }
@@ -78,6 +74,7 @@ export const mountApi = (app: expressWs.Application) => {
   });
 };
 
+export const statuses = new StatusesApi(apiClient);
 export const serverManager = new ServerManagerApi(apiClient);
 export const state = new StateApi(apiClient);
 export const server = new ServerApi(apiClient, serverManager);

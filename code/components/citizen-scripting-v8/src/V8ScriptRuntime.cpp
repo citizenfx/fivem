@@ -2417,6 +2417,11 @@ void V8ScriptGlobals::Initialize()
 				g_argv[0] = const_cast<char*>(selfPath.c_str());
 #endif
 
+				auto icuDataPath = MakeRelativeCitPath(L"citizen/scripting/v8/icudtl.dat");
+				auto icuEnv = fmt::format("CFX_ICU_PATH={}", ToNarrow(icuDataPath).c_str());
+
+				_wputenv(ToWide(icuEnv).c_str());
+
 				const char* execArgv[] = {
 #ifndef _WIN32
 					"--library-path",
@@ -2424,11 +2429,11 @@ void V8ScriptGlobals::Initialize()
 					"--",
 					selfPath.c_str(),
 #endif
-					"--start-node",
+					"--start-node"
 				};
 
 				int nextArgc = g_argc;
-
+				
 				std::vector<char*> nextArgv(g_argc);
 				memcpy(nextArgv.data(), g_argv, g_argc * sizeof(*g_argv));
 
