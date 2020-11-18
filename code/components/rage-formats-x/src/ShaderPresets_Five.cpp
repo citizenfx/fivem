@@ -108,6 +108,12 @@ void grmShaderFx::DoPreset(const char* shaderName, const char* spsName)
 		if (!parameter->IsSampler())
 		{
 			parameterValues[idx] = parameter->GetDefaultValue();
+
+			if (parameterValues[idx].size() < 16)
+			{
+				parameterValues[idx].resize(16);
+			}
+
 			parameters[idx].registerIdx = shaderFile->MapRegister(parameter->GetRegister());
 		}
 		else

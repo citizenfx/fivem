@@ -559,7 +559,7 @@ inline void ConvertBaseDrawable(ny::rmcDrawable* drawable, five::gtaDrawable* ou
 	}
 
 	out->SetPrimaryModel();
-	out->SetName("lovely.#dr");
+	out->SetName("converted.#dr");
 }
 
 template<>
