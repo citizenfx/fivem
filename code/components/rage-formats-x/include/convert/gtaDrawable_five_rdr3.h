@@ -575,7 +575,7 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("default");
 		}
-		else if (shs == HashString("emissive_clip"))
+		else if (shs == HashString("emissive_clip") || shs == HashString("emissivenight"))
 		{
 			shs = HashString("emissive");
 		}
