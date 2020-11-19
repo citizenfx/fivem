@@ -128,6 +128,11 @@ public:
 	{
 		return m_remoteAddress.ToString();
 	}
+
+	inline const net::PeerAddress& GetRemotePeer() const
+	{
+		return m_remoteAddress;
+	}
 };
 
 struct HttpState

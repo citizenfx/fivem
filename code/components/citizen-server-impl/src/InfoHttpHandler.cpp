@@ -16,6 +16,7 @@
 #include <json.hpp>
 
 #include <KeyedRateLimiter.h>
+#include <TcpListenManager.h>
 
 #include <cfx_version.h>
 #include <optional>
@@ -42,7 +43,31 @@ static InitFunction initFunction([]()
 		{
 			*(volatile int*)0 = 0;
 		});
+		static int paranoiaLevel = 0;
+		static auto paranoiaVar = instance->AddVariable<int>("sv_requestParanoia", ConVar_None, 0, &paranoiaLevel);
 		auto epPrivacy = instance->AddVariable<bool>("sv_endpointPrivacy", ConVar_None, true);
+
+		static auto processRequestParanoia = [](const fwRefContainer<net::HttpRequest>& request)
+		{
+			bool shouldMurder = false;
+
+			if (!request->GetHeader("via", "").empty())
+			{
+				shouldMurder = paranoiaLevel >= 1;
+			}
+			else if (!request->GetHeader("upgrade-insecure-requests", "").empty())
+			{
+				shouldMurder = paranoiaLevel >= 2;
+			}
+
+			if (shouldMurder)
+			{
+				static auto tcpListenMgr = instanceRef->GetComponent<fx::TcpListenManager>();
+				tcpListenMgr->BlockPeer(request->GetRemotePeer());
+			}
+
+			return shouldMurder;
+		};
 
 		// max clients cap
 		maxClientsVar->GetHelper()->SetConstraints(1, MAX_CLIENTS);
@@ -199,12 +224,25 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			if (processRequestParanoia(request))
+			{
+				response->SetStatusCode(403);
+				response->End("Nope.");
+
+				if (paranoiaLevel >= 3)
+				{
+					response->CloseSocket();
+				}
+
+				return;
+			}
+
 			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_info", fx::RateLimiterDefaults{ 4.0, 10.0 });
-			auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
+			auto address = request->GetRemotePeer();
 
 			bool cooldown = false;
 
-			if (address && !limiter->Consume(*address, 1.0, &cooldown))
+			if (!limiter->Consume(address, 1.0, &cooldown))
 			{
 				if (cooldown)
 				{
@@ -227,6 +265,13 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			if (processRequestParanoia(request))
+			{
+				response->SetStatusCode(403);
+				response->End("Nope.");
+				return;
+			}
+
 			auto server = instance->GetComponent<fx::GameServer>();
 
 			int numClients = 0;
@@ -256,12 +301,25 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [instance](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			if (processRequestParanoia(request))
+			{
+				response->SetStatusCode(403);
+				response->End("Nope.");
+
+				if (paranoiaLevel >= 3)
+				{
+					response->CloseSocket();
+				}
+
+				return;
+			}
+
 			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_players", fx::RateLimiterDefaults{ 4.0, 10.0 });
-			auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
+			auto address = request->GetRemotePeer();
 
 			bool cooldown = false;
 
-			if (address && !limiter->Consume(*address, 1.0, &cooldown))
+			if (!limiter->Consume(address, 1.0, &cooldown))
 			{
 				if (cooldown)
 				{

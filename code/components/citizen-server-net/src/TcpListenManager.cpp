@@ -12,6 +12,24 @@
 
 #include <CoreConsole.h>
 
+static auto GetAddrByPeer(const net::PeerAddress& peer)
+{
+	auto addr = peer.GetSocketAddress();
+	std::array<uint8_t, 16> addrBuf;
+	memset(addrBuf.data(), 0, addrBuf.size());
+
+	if (peer.GetAddressFamily() == AF_INET)
+	{
+		*(in_addr*)addrBuf.data() = ((const sockaddr_in*)peer.GetSocketAddress())->sin_addr;
+	}
+	else if (peer.GetAddressFamily() == AF_INET6)
+	{
+		*(in6_addr*)addrBuf.data() = ((const sockaddr_in6*)peer.GetSocketAddress())->sin6_addr;
+	}
+
+	return addrBuf;
+}
+
 namespace fx
 {
 	TcpListenManager::TcpListenManager(const std::string& loopName)
@@ -39,12 +57,12 @@ namespace fx
 				}
 			}
 
-			auto host = peer.GetHost();
-			auto it = m_tcpLimitByHost.find(host);
+			auto addrBuf = GetAddrByPeer(peer);
+			auto it = m_tcpLimitByHost.find(addrBuf);
 
 			if (it == m_tcpLimitByHost.end())
 			{
-				it = m_tcpLimitByHost.emplace(host, 0).first;
+				it = m_tcpLimitByHost.emplace(addrBuf, 0).first;
 			}
 
 			if (it->second.fetch_add(1) >= m_tcpLimit)
@@ -58,7 +76,7 @@ namespace fx
 
 		m_tcpStack->OnCloseConnection.Connect([this](const net::PeerAddress& peer)
 		{
-			auto host = peer.GetHost();
+			auto host = GetAddrByPeer(peer);
 			auto it = m_tcpLimitByHost.find(host);
 
 			if (it != m_tcpLimitByHost.end())
@@ -66,6 +84,21 @@ namespace fx
 				it->second--;
 			}
 		});
+	}
+
+	void TcpListenManager::BlockPeer(const net::PeerAddress& peer)
+	{
+		auto addy = GetAddrByPeer(peer);
+		auto it = m_tcpLimitByHost.find(addy);
+
+		if (it == m_tcpLimitByHost.end())
+		{
+			m_tcpLimitByHost.emplace(addy, INT32_MAX / 2);
+		}
+		else
+		{
+			it->second = INT32_MAX / 2;
+		}
 	}
 
 	void TcpListenManager::AddEndpoint(const std::string& endPoint)
