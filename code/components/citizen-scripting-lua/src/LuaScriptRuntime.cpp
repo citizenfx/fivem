@@ -331,7 +331,7 @@ const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
 	OMPtr<IScriptRuntime> runtime;
 
 	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
-	assert(luaRuntime = dynamic_cast<LuaScriptRuntime*>(runtime.GetRef()));
+	assert(luaRuntime = static_cast<LuaScriptRuntime*>(runtime.GetRef()));
 
 	assert(luaRuntime == g_currentLuaRuntime.GetRef());
 #endif
@@ -2297,7 +2297,7 @@ LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
 	lua_call(L, 1, 1);
 }
 
-#if LUA_VERSION_NUM < 504
+#if 0 && LUA_VERSION_NUM < 504
 #ifndef IS_FXSERVER
 #include "Natives.h"
 #else

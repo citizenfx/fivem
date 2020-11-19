@@ -3,6 +3,8 @@ premake.downloadModule = function()
 	return false
 end
 
+_G._ROOTPATH = path.getabsolute('.')
+
 xpcall(function()
 newoption {
 	trigger 	= "with-asan",
