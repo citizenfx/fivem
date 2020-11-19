@@ -444,16 +444,9 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 void CloneManagerLocal::Reset()
 {
-	m_trackedObjects.clear();
-	m_savedEntities.clear();
-	m_savedEntitySet.clear();
-	m_savedEntityVec.clear();
-	m_extendedData.clear();
 	m_pendingRemoveAcks.clear();
 	m_pendingConfirmObjectIds.clear();
 	m_logQueue.clear();
-
-	m_netObjects = {};
 
 	m_lastReceivedFrame = { 0 };
 
