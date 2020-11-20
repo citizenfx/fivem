@@ -26,6 +26,7 @@
 #include <shobjidl.h>
 
 #include <CfxLocale.h>
+#include <filesystem>
 
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
@@ -430,6 +431,23 @@ int RealMain()
 
 	if (!toolMode)
 	{
+		// try removing any old updater files
+		try
+		{
+			for (auto& f : std::filesystem::directory_iterator{ MakeRelativeCitPath(L"") })
+			{
+				std::filesystem::path path = f.path();
+				if (path.filename().string().find(".updater-remove-") == 0)
+				{
+					std::error_code ec;
+					std::filesystem::remove(path, ec);
+				}
+			}
+		}
+		catch (std::exception&)
+		{
+		}
+
 		if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex") == nullptr)
 		{
 			// create the mutex

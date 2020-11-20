@@ -460,6 +460,52 @@ static bool PollIPFS()
 	return true;
 }
 
+#include <shellapi.h>
+#include <shobjidl.h>
+#include <wrl.h>
+namespace WRL = Microsoft::WRL;
+
+static bool ReallyMoveFile(const std::wstring& from, const std::wstring& to)
+{
+	CoInitialize(NULL);
+
+	WRL::ComPtr<IFileOperation> ifo;
+	HRESULT hr = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_INPROC_SERVER, IID_IFileOperation, (void**)&ifo);
+
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	ifo->SetOperationFlags(FOF_NOCONFIRMATION);
+	ifo->SetOwnerWindow(UI_GetWindowHandle());
+
+	WRL::ComPtr<IShellItem> shitem;
+	if (FAILED(SHCreateItemFromParsingName(from.c_str(), NULL, IID_IShellItem, (void**)&shitem)))
+	{
+		return false;
+	}
+
+	ifo->RenameItem(shitem.Get(), to.c_str(), NULL);
+
+	hr = ifo->PerformOperations();
+
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	BOOL aborted = FALSE;
+	ifo->GetAnyOperationsAborted(&aborted);
+
+	if (aborted)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 bool DL_ProcessDownload()
 {
 	if (!dls.currentDownloads.size())
@@ -541,9 +587,18 @@ bool DL_ProcessDownload()
 		{
 			if (GetLastError() != ERROR_FILE_NOT_FOUND)
 			{
-				MessageBoxA(NULL, va("Deleting old %s failed (err = %d) - make sure you don't have any existing FiveM processes running", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
+				auto toDeleteName = MakeRelativeCitPath(fmt::sprintf(".updater-remove-%08x-%d", HashString(download->tmpPath.c_str()), GetTickCount64()));
 
-				return false;
+				if (MoveFile(opathWide.c_str(), toDeleteName.c_str()) == 0)
+				{
+					// let's try asking the shell
+					if (!ReallyMoveFile(opathWide, toDeleteName))
+					{
+						//MessageBoxA(NULL, va("Deleting old %s failed (err = %d) - make sure you don't have any existing FiveM processes running", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
+
+						return false;
+					}
+				}
 			}
 		}
 
