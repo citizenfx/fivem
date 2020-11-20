@@ -1579,7 +1579,11 @@ private:
 	pgArray<uint32_t> m_shaderIndices;
 #elif defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_PAYNE) || defined(RAGE_FORMATS_GAME_RDR3)
 	pgObjectArray<int> _f20;
+#if defined(RAGE_FORMATS_GAME_RDR3)
 	TPtr _f30;
+#else
+	uint32_t _f30;
+#endif
 	TPtr _f38;
 #endif
 
