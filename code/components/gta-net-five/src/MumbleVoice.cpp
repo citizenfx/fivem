@@ -819,6 +819,10 @@ static HookFunction hookFunction([]()
 					{
 						channelId = std::stoi(channelName.substr(13));
 					}
+					else if (channelName == "Root")
+					{
+						channelId = 0;
+					}
 				}
 			}
 
