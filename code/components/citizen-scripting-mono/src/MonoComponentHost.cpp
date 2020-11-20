@@ -456,9 +456,13 @@ static void InitMono()
 	mono_security_enable_core_clr();
 	mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 	mono_security_set_core_clr_platform_callback(CoreClrCallback);
+
+	mono_profiler_install(&_monoProfiler, profiler_shutdown);
+	mono_profiler_install_gc(gc_event, gc_resize);
+	mono_profiler_set_events(MONO_PROFILE_GC);
 #endif
 
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(IS_FXSERVER)
 	auto monoProfilerHandle = mono_profiler_create(&_monoProfiler);
 
 	mono_profiler_set_gc_event_callback(monoProfilerHandle, gc_event);
