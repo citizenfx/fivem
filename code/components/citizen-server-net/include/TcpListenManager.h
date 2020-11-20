@@ -8,6 +8,15 @@
 #include <ServerInstanceBase.h>
 #include <ComponentHolder.h>
 
+namespace tbb
+{
+template<std::size_t Len>
+size_t tbb_hasher(const std::array<uint8_t, Len>& arr)
+{
+	return std::hash<std::string_view>()({ (const char*)arr.data(), Len });
+}
+}
+
 #include <tbb/concurrent_unordered_map.h>
 
 #ifdef COMPILING_CITIZEN_SERVER_NET
@@ -15,15 +24,6 @@
 #else
 #define CSNET_EXPORT DLL_IMPORT
 #endif
-
-namespace tbb
-{
-template<size_t Len>
-size_t tbb_hasher(const std::array<uint8_t, Len>& arr)
-{
-	return std::hash<std::string_view>()({ (const char*)arr.data(), Len });
-}
-}
 
 namespace fx
 {
