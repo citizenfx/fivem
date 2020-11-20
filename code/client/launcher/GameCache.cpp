@@ -698,6 +698,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		}
 	}
 
+	bool hadIpfsFile = false;
+
 	for (auto& entry : entries)
 	{
 		// check if the file is outdated
@@ -799,6 +801,11 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				// if the file isn't of the original size
 				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, false);
 
+				if (strncmp(remotePath, "ipfs://", 7) == 0)
+				{
+					hadIpfsFile = true;
+				}
+
 				referencedFiles.insert(entry.remotePath);
 
 				notificationEntries.push_back({ entry, false });
@@ -839,7 +846,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 	static HostSharedData<CfxState> initState("CfxInitState");
 
-	if (ipfsPeer && initState->IsMasterProcess())
+	if (ipfsPeer && initState->IsMasterProcess() && hadIpfsFile)
 	{
 		StartIPFS();
 	}
