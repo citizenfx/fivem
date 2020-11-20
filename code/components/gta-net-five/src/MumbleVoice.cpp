@@ -807,11 +807,19 @@ static HookFunction hookFunction([]()
 		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_GET_VOICE_CHANNEL_FROM_SERVER_ID", [](fx::ScriptContext& context)
 		{
 			int serverId = context.GetArgument<int>(0);
-			int channelId = 0;
+			int channelId = -1;
 
 			if (g_mumble.connected)
 			{
-				channelId = g_mumbleClient->GetVoiceChannelFromServerId(serverId);
+				auto channelName = g_mumbleClient->GetVoiceChannelFromServerId(serverId);
+
+				if (!channelName.empty())
+				{
+					if (channelName.find("Game Channel ") == 0)
+					{
+						channelId = std::stoi(channelName.substr(13));
+					}
+				}
 			}
 
 			context.SetResult<int>(channelId);

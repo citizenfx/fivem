@@ -112,7 +112,7 @@ public:
 
 	virtual std::wstring GetPlayerNameFromServerId(uint32_t serverId) override;
 
-	virtual uint32_t GetVoiceChannelFromServerId(uint32_t serverId) override;
+	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) override;
 
 	virtual void GetTalkers(std::vector<std::string>* referenceIds) override;
 

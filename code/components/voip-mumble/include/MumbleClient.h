@@ -95,7 +95,7 @@ public:
 
 	virtual std::wstring GetPlayerNameFromServerId(uint32_t serverId) = 0;
 
-	virtual uint32_t GetVoiceChannelFromServerId(uint32_t serverId) = 0;
+	virtual std::string GetVoiceChannelFromServerId(uint32_t serverId) = 0;
 
 	virtual void GetTalkers(std::vector<std::string>* names) = 0;
 

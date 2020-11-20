@@ -572,24 +572,31 @@ std::wstring MumbleClient::GetPlayerNameFromServerId(uint32_t serverId)
 	return retName;
 }
 
-uint32_t MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
+std::string MumbleClient::GetVoiceChannelFromServerId(uint32_t serverId)
 {
-	uint32_t retId = -1;
+	std::string retString = "";
 
-	m_state.ForAllUsers([serverId, &retId](const std::shared_ptr<MumbleUser>& user)
+	m_state.ForAllUsers([this, serverId, &retString](const std::shared_ptr<MumbleUser>& user)
 	{
-		if (retId != -1)
+		if (!retString.empty())
 		{
 			return;
 		}
 
 		if (user && user->GetServerId() == serverId)
 		{
-			retId = user->GetChannelId();
+			const auto& channels = m_state.GetChannels();
+			auto channelId = user->GetChannelId();
+			auto chit = channels.find(channelId);
+
+			if (chit != channels.end())
+			{
+				retString = ToNarrow(chit->second.GetName());
+			}
 		}
 	});
 
-	return retId;
+	return retString;
 }
 
 void MumbleClient::GetTalkers(std::vector<std::string>* referenceIds)
