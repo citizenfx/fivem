@@ -4,7 +4,10 @@
 #include <ResourceManager.h>
 #include <ConsoleHost.h>
 #include <ResourceScriptingComponent.h>
+
+#if __has_include(<ResourceGameLifetimeEvents.h>)
 #include <ResourceGameLifetimeEvents.h>
+#endif
 
 #include <CoreConsole.h>
 
@@ -12,8 +15,10 @@
 
 #include <chrono>
 
+#if __has_include(<scrThread.h>)
 #include <scrThread.h>
 #include <scrEngine.h>
+#endif
 
 #ifdef GTA_FIVE
 #include <Streaming.h>
@@ -79,7 +84,9 @@ struct ResourceMetrics
 
 	int64_t memorySize;
 
+#if __has_include(<scrThread.h>)
 	GtaThread* gtaThread;
+#endif
 };
 
 static ImVec4 GetColorForRange(float min, float max, float num)
@@ -214,10 +221,12 @@ static InitFunction initFunction([]()
 			metrics[resource->GetName()]->ticks.Reset();
 		});
 
+#if __has_include(<scrThread.h>)
 		resource->OnActivate.Connect([resource]()
 		{
 			metrics[resource->GetName()]->gtaThread = (GtaThread*)rage::scrEngine::GetActiveThread();
 		}, 9999);
+#endif
 
 		resource->OnTick.Connect([resource]()
 		{
@@ -243,6 +252,7 @@ static InitFunction initFunction([]()
 			metrics[resource->GetName()] = {};
 		});
 
+#if __has_include(<scrThread.h>) && __has_include(<ResourceGameLifeTimeEvents.h>)
 		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([resource]()
 		{
 			auto m = metrics[resource->GetName()];
@@ -262,6 +272,7 @@ static InitFunction initFunction([]()
 				m->gtaThread = nullptr;
 			}
 		}, -50);
+#endif
 	});
 
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
@@ -410,6 +421,7 @@ static InitFunction initFunction([]()
 
 	ConHost::OnDrawGui.Connect([]()
 	{
+#ifndef IS_FXSERVER
 		if ((usec() - warningLastShown) < 20s)
 		{
 			ImGui::PushFont(GetConsoleFontTiny());
@@ -432,10 +444,11 @@ static InitFunction initFunction([]()
 
 			ImGui::PopFont();
 		}
+#endif
 
 		if (taskMgrEnabled)
 		{
-			if (ImGui::Begin("Resource Monitor") && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 			{
 				ImGui::TableSetupColumn("Resource");
 				ImGui::TableSetupColumn("CPU msec", ImGuiTableColumnFlags_PreferSortDescending);
@@ -446,7 +459,7 @@ static InitFunction initFunction([]()
 
 				std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
 
-				Instance<fx::ResourceManager>::Get()->ForAllResources([&resourceList](fwRefContainer<fx::Resource> resource)
+				fx::ResourceManager::GetCurrent()->ForAllResources([&resourceList](fwRefContainer<fx::Resource> resource)
 				{
 					resourceList.insert({ resource->GetName(), resource });
 				});

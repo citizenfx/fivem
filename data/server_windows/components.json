@@ -11,6 +11,7 @@
   "citizen:server:instance",
   "citizen:server:monitor",
   "citizen:server:impl",
+  "citizen:devtools",
   "citizen:resources:core",
   "citizen:resources:metadata:lua",
   "vfs:core",
@@ -20,5 +21,6 @@
   "citizen:scripting:mono",
   "citizen:scripting:v8",
   "voip-server:mumble",
-  "http-client"
+  "http-client",
+  "citizen:server:gui"
 ]
