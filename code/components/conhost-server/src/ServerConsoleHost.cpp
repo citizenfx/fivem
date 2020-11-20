@@ -4,6 +4,8 @@
 #include "ServerConsoleHost.h"
 
 #ifdef _WIN32
+#include <wrl.h>
+
 // SvCon stuff
 fwEvent<> ConHost::OnDrawGui;
 fwEvent<bool*> ConHost::OnShouldDrawGui;
@@ -75,6 +77,7 @@ private:
 	HWND hwnd;
 
 	bool initialized = false;
+	bool isWarp = false;
 };
 
 ConHostSv::ConHostSv()
@@ -111,6 +114,30 @@ ConHostSvImpl::ConHostSvImpl()
 		CleanupDeviceD3D();
 		::UnregisterClass(wc.lpszClassName, wc.hInstance);
 		return;
+	}
+
+	{
+		Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
+		if (SUCCEEDED(g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&dxgiDevice))))
+		{
+			Microsoft::WRL::ComPtr<IDXGIAdapter> dxgiAdapter;
+			if (SUCCEEDED(dxgiDevice->GetAdapter(&dxgiAdapter)))
+			{
+				Microsoft::WRL::ComPtr<IDXGIAdapter1> adap1;	
+
+				if (SUCCEEDED(dxgiAdapter.As(&adap1)))
+				{
+					DXGI_ADAPTER_DESC1 adapDesc1;
+					if (SUCCEEDED(adap1->GetDesc1(&adapDesc1)))
+					{
+						if (adapDesc1.VendorId == 0x1414)
+						{
+							isWarp = true;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	g_consoleFlag = true;
@@ -161,6 +188,10 @@ void ConHostSvImpl::Run(std::function<bool()>&& fn)
 	// Main loop
 	MSG msg;
 	ZeroMemory(&msg, sizeof(msg));
+
+	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	std::chrono::microseconds frameStart{ 0 };
+
 	while (msg.message != WM_QUIT)
 	{
 		if (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
@@ -192,7 +223,27 @@ void ConHostSvImpl::Run(std::function<bool()>&& fn)
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 
-		g_pSwapChain->Present(1, 0);
+		if (isWarp && hTimer)
+		{
+			g_pSwapChain->Present(0, 0);
+
+			std::chrono::microseconds frameLimit{ 75000 };
+			auto timeLeft = frameLimit - (std::chrono::high_resolution_clock::now().time_since_epoch() - frameStart);
+
+			LARGE_INTEGER liDueTime;
+			liDueTime.QuadPart = -(LONGLONG)(std::chrono::duration_cast<std::chrono::microseconds>(timeLeft).count() * 10);
+
+			if (SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0))
+			{
+				WaitForSingleObject(hTimer, INFINITE);
+			}
+
+			frameStart = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		}
+		else
+		{
+			g_pSwapChain->Present(1, 0);
+		}
 
 		if (!cont)
 		{
