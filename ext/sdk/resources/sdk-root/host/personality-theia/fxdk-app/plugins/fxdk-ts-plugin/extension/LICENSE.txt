@@ -1,9 +1,0 @@
-  CitizenFX/FiveM are (c) 2017-2020 the CitizenFX Collective.
-
-  Use of this source code is subject to the terms provided on the CitizenFX
-Collective web site, currently versioned (4) at the following web URL:
-
-  https://fivem.net/terms
-
-  Files in this directory are optionally available under the LGPLv2, as in
-point 21) of the FiveM Platform Service Agreement.

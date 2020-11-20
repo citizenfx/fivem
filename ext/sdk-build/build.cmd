@@ -11,31 +11,16 @@ set BuildRoot=%~dp0\sdk-root
 
 set FXDK=..\sdk\resources
 set FXDKRoot=..\sdk\resources\sdk-root
-set FXDKTheia=%FXDKRoot%\host\personality-theia
-set FXDKShell=%FXDKRoot%\host\shell
-set FXDKSdk=%FXDKRoot%\sdk
 
-
-
-:: build sdk
-pushd %FXDKSdk%
-if exist build rmdir /s /q build
-call yarn install --frozen-lockfile --ignore-scripts
-call yarn build
-xcopy /y /e lib\*.*  	 build\lib\
-xcopy /y    index.js 	 build\
-xcopy /y    package.json build\
-xcopy /y    yarn.lock 	 build\
-call yarn --cwd build install --frozen-lockfile --ignore-scripts --no-bin-links --production
-del build\yarn.lock
-popd
-:: /build sdk
+set FXDKTheia=%FXDKRoot%\personality-theia
+set FXDKShell=%FXDKRoot%\shell
 
 
 
 :: build shell
 pushd %FXDKShell%
-if exist build rmdir /s /q build
+if exist build        rmdir /s /q build
+if exist build_server rmdir /s /q build_server
 call yarn install --frozen-lockfile --ignore-scripts
 call yarn build
 popd
@@ -91,13 +76,12 @@ popd
 :: move builds
 if exist %BuildRoot%\resource rmdir /s /q %BuildRoot%\resource
 
-mkdir %BuildRoot%\resource\host\
-
 xcopy /y %FXDKRoot%\fxmanifest.lua %BuildRoot%\resource\
+xcopy /y %FXDKShell%\index.js      %BuildRoot%\resource\shell\
 
-move %FXDKSdk%\build                   %BuildRoot%\resource\sdk
-move %FXDKShell%\build                 %BuildRoot%\resource\host\shell
-move %FXDKTheia%\personality-theia.tar %BuildRoot%\resource\host\personality-theia.tar
+move %FXDKShell%\build                 %BuildRoot%\resource\shell\build
+move %FXDKShell%\build_server          %BuildRoot%\resource\shell\build_server
+move %FXDKTheia%\personality-theia.tar %BuildRoot%\resource\personality-theia.tar
 :: /move builds
 
 

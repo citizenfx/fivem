@@ -1,5 +1,5 @@
 fx_version 'bodacious'
 
 client_script {
-	'sdk/index.js'
+	'shell/index.js'
 }
