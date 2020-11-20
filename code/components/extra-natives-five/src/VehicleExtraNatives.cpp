@@ -430,7 +430,7 @@ static HookFunction initFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern<char>("45 0f 57 ? f3 0f 11 ? ? ? 00 00 f3 0f 5c");
+		auto location = hook::get_pattern<char>("45 0F 57 ? F3 0F 11 ? ? ? 00 00 F3 0F 5C");
 
 		WheelSuspensionCompressionOffset = *(uint32_t*)(location + 8);
 		WheelRotationSpeedOffset = *(uint32_t*)(location + 8) + 0xC;
@@ -451,7 +451,7 @@ static HookFunction initFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern<char>("75 11 48 8b 01 8b 88");
+		auto location = hook::get_pattern<char>("75 11 48 8B 01 8B 88");
 
 		WheelFlagsOffset = *(uint32_t*)(location + 7);
 	}
