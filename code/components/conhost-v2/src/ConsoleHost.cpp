@@ -9,7 +9,7 @@
 #include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
 
-#ifndef IS_LAUNCHER
+#if __has_include("InputHook.h")
 #include "InputHook.h"
 #endif
 
@@ -88,7 +88,7 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-#ifndef IS_LAUNCHER
+#if __has_include("InputHook.h")
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
 		if (g_consoleFlag)

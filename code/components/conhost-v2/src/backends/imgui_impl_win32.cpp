@@ -201,6 +201,7 @@ static void ImGui_ImplWin32_UpdateMousePos()
 			if ((viewport->Flags & ImGuiViewportFlags_NoInputs) == 0) // FIXME: We still get our NoInputs window with WM_NCHITTEST/HTTRANSPARENT code when decorated?
 				io.MouseHoveredViewport = viewport->ID;
 
+#ifndef IS_FXSERVER
 	if (io.MouseHoveredViewport == ImGui::GetMainViewport()->ID)
 	{
 		if (!g_consoleFlag)
@@ -208,6 +209,7 @@ static void ImGui_ImplWin32_UpdateMousePos()
 			return;
 		}
 	}
+#endif
 
     // Set imgui mouse position
     if (HWND focused_hwnd = ::GetForegroundWindow())
@@ -318,15 +320,19 @@ void    ImGui_ImplWin32_NewFrame()
 
     // Setup display size (every frame to accommodate for window resizing)
     RECT rect;
-    //::GetClientRect(g_hWnd, &rect);
-    //io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+#ifdef IS_FXSERVER
+    ::GetClientRect(g_hWnd, &rect);
+    io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+#endif
     if (g_WantUpdateMonitors)
         ImGui_ImplWin32_UpdateMonitors();
 
     // Setup time step
     INT64 current_time;
     ::QueryPerformanceCounter((LARGE_INTEGER*)&current_time);
-    //io.DeltaTime = (float)(current_time - g_Time) / g_TicksPerSecond;
+#ifdef IS_FXSERVER
+    io.DeltaTime = (float)(current_time - g_Time) / g_TicksPerSecond;
+#endif
     g_Time = current_time;
 
     // Read keyboard modifiers inputs
@@ -651,6 +657,35 @@ static void ImGui_ImplWin32_CreateWindow(ImGuiViewport* viewport)
 	all.cyTopHeight = -1;
 
 	DwmExtendFrameIntoClientArea(data->Hwnd, &all);
+
+	{
+		const HINSTANCE hModule = LoadLibrary(TEXT("user32.dll"));
+		if (hModule)
+		{
+			struct ACCENTPOLICY
+			{
+				int nAccentState;
+				int nFlags;
+				int nColor;
+				int nAnimationId;
+			};
+			struct WINCOMPATTRDATA
+			{
+				int nAttribute;
+				PVOID pData;
+				ULONG ulDataSize;
+			};
+			typedef BOOL(WINAPI * pSetWindowCompositionAttribute)(HWND, WINCOMPATTRDATA*);
+			const pSetWindowCompositionAttribute SetWindowCompositionAttribute = (pSetWindowCompositionAttribute)GetProcAddress(hModule, "SetWindowCompositionAttribute");
+			if (SetWindowCompositionAttribute)
+			{
+				ACCENTPOLICY policy = { 3, 0, 0, 0 }; // ACCENT_ENABLE_BLURBEHIND=3...
+				WINCOMPATTRDATA wdata = { 19, &policy, sizeof(ACCENTPOLICY) }; // WCA_ACCENT_POLICY=19
+				SetWindowCompositionAttribute(data->Hwnd, &wdata);
+			}
+			FreeLibrary(hModule);
+		}
+	}
 }
 
 static void ImGui_ImplWin32_DestroyWindow(ImGuiViewport* viewport)
@@ -908,6 +943,10 @@ void ImGui_ImplWin32_InitPlatformInterface()
 
 	ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 	ImGuiViewportDataWin32* data = IM_NEW(ImGuiViewportDataWin32)();
+
+#ifdef IS_FXSERVER
+	data->Hwnd = g_hWnd;
+#else
 	data->Hwnd = FindWindow(
 #ifdef IS_RDR3
 		L"sgaWindow", 
@@ -915,6 +954,7 @@ void ImGui_ImplWin32_InitPlatformInterface()
 		L"grcWindow", 
 #endif
 		NULL);
+#endif
 	data->HwndOwned = false;
 	main_viewport->PlatformUserData = data;
 	main_viewport->PlatformHandle = data->Hwnd;

@@ -8,6 +8,8 @@
 		
 		if os.istarget('windows') then
 			links { "psapi", "wininet", "winhttp" }
+			flags { "NoManifest", "NoImportLib" }
+			files { "server.rc" }
 		else
 			links { 'dl', 'pthread' }
 		end

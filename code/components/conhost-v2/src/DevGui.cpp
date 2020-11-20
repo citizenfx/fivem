@@ -5,6 +5,8 @@
 
 #include <CoreConsole.h>
 
+extern console::Context* GetConsoleContext();
+
 struct DevGuiPath
 {
 	std::vector<std::string> pathEntries;
@@ -132,17 +134,23 @@ static void DevGui_Draw(const DevGuiNode* node)
 			se::ScopedPrincipal scope{
 				se::Principal{ "system.console" }
 			};
-			console::GetDefaultContext()->ExecuteSingleCommand(node->commandOrConVar);
+			GetConsoleContext()->ExecuteSingleCommand(node->commandOrConVar);
 		}
 	}
 	else if (node->type == DevGuiNode::DevGuiNode_ConVar)
 	{
-		auto varMan = console::GetDefaultContext()->GetVariableManager();
+		auto varMan = GetConsoleContext()->GetVariableManager();
 		auto entry = varMan->FindEntryRaw(node->commandOrConVar);
 
 		if (!entry)
 		{
-			return;
+			auto varMan = console::GetDefaultContext()->GetVariableManager();
+			entry = varMan->FindEntryRaw(node->commandOrConVar);
+
+			if (!entry)
+			{
+				return;
+			}
 		}
 
 		try
@@ -230,6 +238,7 @@ static InitFunction initFunction([]()
 		node->commandOrConVar = convarName;
 	});
 
+#ifndef IS_FXSERVER
 	console::GetDefaultContext()->AddToBuffer(R"(
 devgui_convar "Tools/Performance/Resource Monitor" resmon
 devgui_convar "Tools/Performance/Streaming Memory Viewer" strmem
@@ -265,4 +274,5 @@ devgui_convar "Game/SFX Volume" profile_sfxVolume
 devgui_cmd "Game/Mute" "vstr game_mute"
 devgui_cmd "Game/Unmute" "vstr game_unmute"
 )");
+#endif
 });

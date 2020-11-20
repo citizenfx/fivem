@@ -154,7 +154,11 @@ static void GI_PrintLogCall(MonoString* channel, MonoString* str)
 }
 
 static void
-gc_resize(MonoProfiler *profiler, int64_t new_size)
+#ifdef IS_FXSERVER
+gc_resize(MonoProfiler *profiler, uintptr_t new_size)
+#else
+gc_resize(MonoProfiler* profiler, int64_t new_size)
+#endif
 {
 }
 
@@ -203,12 +207,12 @@ static bool g_requestedMemoryUsage;
 #ifndef IS_FXSERVER
 static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
 #else
-static void gc_event(MonoProfiler *profiler, MonoProfilerGCEvent event, int generation)
+static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t generation, mono_bool is_serial)
 #endif
 {
 	switch (event) {
 	case MONO_GC_EVENT_PRE_START_WORLD:
-#ifndef IS_FXSERVER
+#if defined(_WIN32)
 		if (g_requestedMemoryUsage)
 		{
 			std::unique_lock<std::shared_mutex> lock(g_memoryUsagesMutex);
@@ -452,10 +456,13 @@ static void InitMono()
 	mono_security_enable_core_clr();
 	mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 	mono_security_set_core_clr_platform_callback(CoreClrCallback);
+#endif
 
-	mono_profiler_install(&_monoProfiler, profiler_shutdown);
-	mono_profiler_install_gc(gc_event, gc_resize);
-	mono_profiler_set_events(MONO_PROFILE_GC);
+#if defined(_WIN32)
+	auto monoProfilerHandle = mono_profiler_create(&_monoProfiler);
+
+	mono_profiler_set_gc_event_callback(monoProfilerHandle, gc_event);
+	mono_profiler_set_gc_resize_callback(monoProfilerHandle, gc_resize);
 #endif
 
 	char* args[2];
