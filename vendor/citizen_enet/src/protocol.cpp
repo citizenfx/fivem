@@ -627,7 +627,7 @@ enet_protocol_handle_send_fragment (ENetHost * host, ENetPeer * peer, const ENet
                fragmentLength);
 
         if (startCommand -> fragmentsRemaining <= 0)
-          enet_peer_dispatch_incoming_reliable_commands (peer, channel);
+          enet_peer_dispatch_incoming_reliable_commands (peer, channel, NULL);
     }
 
     return 0;
@@ -745,7 +745,7 @@ enet_protocol_handle_send_unreliable_fragment (ENetHost * host, ENetPeer * peer,
                fragmentLength);
 
         if (startCommand -> fragmentsRemaining <= 0)
-          enet_peer_dispatch_incoming_unreliable_commands (peer, channel);
+          enet_peer_dispatch_incoming_unreliable_commands (peer, channel, NULL);
     }
 
     return 0;
