@@ -24,7 +24,9 @@
 // hacky include path to not conflict with our own NetBuffer.h
 #include <../../components/net-base/include/NetBuffer.h>
 
+#ifdef COMPILING_NET
 #include <enet/enet.h>
+#endif
 
 #include <concurrent_queue.h>
 
@@ -57,7 +59,11 @@ public:
 	NetAddress(const sockaddr* addr);
 	NetAddress(const sockaddr_in* addr) : NetAddress((const sockaddr*)addr) {}
 	NetAddress(const sockaddr_in6* addr) : NetAddress((const sockaddr*)addr) {}
+
+#ifdef COMPILING_NET
 	NetAddress(const ENetAddress* addr);
+#endif
+
 	NetAddress(const char* address, uint16_t port);
 
 	bool operator==(const NetAddress& right) const;
@@ -69,7 +75,9 @@ public:
 
 	void GetSockAddr(sockaddr_storage* addr, int* addrLen) const;
 
+#ifdef COMPILING_NET
 	ENetAddress GetENetAddress() const;
+#endif
 };
 
 #include "NetBuffer.h"

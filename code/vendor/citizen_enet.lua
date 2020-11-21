@@ -20,5 +20,11 @@ return {
 		files_project "../vendor/citizen_enet/src/" {
 			"*.cpp"
 		}
+		
+		if _OPTIONS['game'] == 'server' then
+			removefiles {
+				'../vendor/citizen_enet/src/win32.cpp'
+			}
+		end
 	end
 }
