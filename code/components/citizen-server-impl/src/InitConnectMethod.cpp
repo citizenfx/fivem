@@ -275,6 +275,7 @@ static InitFunction initFunction([]()
 		// list of space-separated endpoints that can but don't have to include a port
 		// for example: sv_endpoints "123.123.123.123 124.124.124.124"
 		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
+		auto dynamicEndpoints = instance->AddVariable<bool>("sv_dynamicEndpoints", ConVar_None, false);
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
 		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly, "", &g_enforcedGameBuild);
@@ -299,7 +300,7 @@ static InitFunction initFunction([]()
 			});
 		});
 
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getEndpoints", [instance, srvEndpoints](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
+		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getEndpoints", [instance, srvEndpoints, dynamicEndpoints](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
 			{
@@ -308,7 +309,6 @@ static InitFunction initFunction([]()
 			};
 
 			auto tokenIt = postMap.find("token");
-
 			if (tokenIt == postMap.end())
 			{
 				sendError("fields missing");
@@ -324,6 +324,36 @@ static InitFunction initFunction([]()
 			else
 			{
 				auto endpointList = srvEndpoints->GetValue();
+				if (dynamicEndpoints->GetValue())
+				{
+					auto resman = instance->GetComponent<fx::ResourceManager>();
+					auto eventManager = resman->GetComponent<fx::ResourceEventManagerComponent>();
+					auto cbComponent = resman->GetComponent<fx::ResourceCallbackComponent>();
+
+					/*NETEV getEndpoints SERVER
+					/#*
+					 * A server-side event that is triggered when a client is trying to obtain endpoints.
+					 *
+					 * @param remoteIP - Client remote address.
+					 * @param sourceIP - Client X-Cfx-Source-Ip request header data.
+					 * @param realIP - Client X-Real-Ip request header data.
+					 * @param availableEndpoints - A function used to set endpoints for the client.
+					 #/
+					*/
+					auto readEndpoints = eventManager->TriggerEvent2("getEndpoints", request->GetRemoteAddress(), request->GetHeader("X-Cfx-Source-Ip", ""), request->GetHeader("X-Real-Ip", ""), cbComponent->CreateCallback([availableEndpoints](const msgpack::unpacked& unpacked)
+					{
+						auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+						if (obj.size() == 1)
+						{
+							**availableEndpoints = obj[0].as<std::string>();
+						}
+					}));
+					if (readEndpoints)
+					{
+						endpointList = **availableEndpoints;
+					}
+				}
+
 				if (endpointList.empty()) 
 				{
 					cb(json::array());
