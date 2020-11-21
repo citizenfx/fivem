@@ -858,35 +858,17 @@ enet_protocol_handle_acknowledge (ENetHost * host, ENetEvent * event, ENetPeer *
     roundTripTime = ENET_TIME_DIFFERENCE (host -> serviceTime, receivedSentTime);
     roundTripTime = ENET_MAX (roundTripTime, 1);
 
-    enet_peer_throttle (peer, roundTripTime);
-
     if (peer -> lastReceiveTime > 0)
     {
        enet_uint32 accumRoundTripTime = (peer -> roundTripTime << 8) + peer -> roundTripTimeRemainder;
        enet_uint32 accumRoundTripTimeVariance = (peer -> roundTripTimeVariance << 8) + peer -> roundTripTimeVarianceRemainder;
+
+       enet_peer_throttle (peer, roundTripTime);
+
        roundTripTime <<= 8;
-       if (roundTripTime >= accumRoundTripTime)
-       {
-          enet_uint32 diff = roundTripTime - accumRoundTripTime;
-          accumRoundTripTimeVariance -= accumRoundTripTimeVariance / 4;
-          accumRoundTripTimeVariance += diff / 4;
-          accumRoundTripTime += diff / 8;
-       }
-       else
-       {
-          enet_uint32 diff = accumRoundTripTime - roundTripTime;
-          if (diff <= accumRoundTripTimeVariance)
-          {
-             accumRoundTripTimeVariance -= accumRoundTripTimeVariance / 4;
-             accumRoundTripTimeVariance += diff / 4;
-          }
-          else
-          {
-             accumRoundTripTimeVariance -= accumRoundTripTimeVariance / 32;
-             accumRoundTripTimeVariance += diff / 32;
-          }
-          accumRoundTripTime -= diff / 8;
-       }
+       accumRoundTripTimeVariance = (accumRoundTripTimeVariance * 3 + ENET_DIFFERENCE (roundTripTime, accumRoundTripTime)) / 4;
+       accumRoundTripTime = (accumRoundTripTime * 7 + roundTripTime) / 8;
+
        peer -> roundTripTime = accumRoundTripTime >> 8;
        peer -> roundTripTimeRemainder = accumRoundTripTime & 0xFF;
        peer -> roundTripTimeVariance = accumRoundTripTimeVariance >> 8;
@@ -895,7 +877,7 @@ enet_protocol_handle_acknowledge (ENetHost * host, ENetEvent * event, ENetPeer *
     else
     {
        peer -> roundTripTime = roundTripTime;
-       peer -> roundTripTimeVariance = roundTripTime / 2;
+       peer -> roundTripTimeVariance = (roundTripTime + 1) / 2;
     }
 
     if (peer -> roundTripTime < peer -> lowestRoundTripTime)
@@ -908,7 +890,7 @@ enet_protocol_handle_acknowledge (ENetHost * host, ENetEvent * event, ENetPeer *
         ENET_TIME_DIFFERENCE (host -> serviceTime, peer -> packetThrottleEpoch) >= peer -> packetThrottleInterval)
     {
         peer -> lastRoundTripTime = peer -> lowestRoundTripTime;
-        peer -> lastRoundTripTimeVariance = peer -> highestRoundTripTimeVariance;
+        peer -> lastRoundTripTimeVariance = ENET_MAX (peer -> highestRoundTripTimeVariance, 2);
         peer -> lowestRoundTripTime = peer -> roundTripTime;
         peer -> highestRoundTripTimeVariance = peer -> roundTripTimeVariance;
         peer -> packetThrottleEpoch = host -> serviceTime;
@@ -1694,19 +1676,9 @@ enet_protocol_send_outgoing_commands (ENetHost * host, ENetEvent * event, int ch
 #ifdef ENET_DEBUG
            printf ("peer %u: %f%%+-%f%% packet loss, %u+-%u ms round trip time, %f%% throttle, %u/%u outgoing, %u/%u incoming\n", currentPeer -> incomingPeerID, currentPeer -> packetLoss / (float) ENET_PEER_PACKET_LOSS_SCALE, currentPeer -> packetLossVariance / (float) ENET_PEER_PACKET_LOSS_SCALE, currentPeer -> roundTripTime, currentPeer -> roundTripTimeVariance, currentPeer -> packetThrottle / (float) ENET_PEER_PACKET_THROTTLE_SCALE, enet_list_size (& currentPeer -> outgoingReliableCommands), enet_list_size (& currentPeer -> outgoingUnreliableCommands), currentPeer -> channels != NULL ? enet_list_size (& currentPeer -> channels -> incomingReliableCommands) : 0, currentPeer -> channels != NULL ? enet_list_size (& currentPeer -> channels -> incomingUnreliableCommands) : 0);
 #endif
-          
-           currentPeer -> packetLossVariance -= currentPeer -> packetLossVariance / 4;
 
-           if (packetLoss >= currentPeer -> packetLoss)
-           {
-              currentPeer -> packetLoss += (packetLoss - currentPeer -> packetLoss) / 8;
-              currentPeer -> packetLossVariance += (packetLoss - currentPeer -> packetLoss) / 4;
-           }
-           else
-           {
-              currentPeer -> packetLoss -= (currentPeer -> packetLoss - packetLoss) / 8;
-              currentPeer -> packetLossVariance += (currentPeer -> packetLoss - packetLoss) / 4;
-           }
+           currentPeer -> packetLossVariance = (currentPeer -> packetLossVariance * 3 + ENET_DIFFERENCE (packetLoss, currentPeer -> packetLoss)) / 4;
+           currentPeer -> packetLoss = (currentPeer -> packetLoss * 7 + packetLoss) / 8;
 
            currentPeer -> packetLossEpoch = host -> serviceTime;
            currentPeer -> packetsSent = 0;
