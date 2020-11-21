@@ -329,6 +329,7 @@ static InitFunction initFunction([]()
 					auto resman = instance->GetComponent<fx::ResourceManager>();
 					auto eventManager = resman->GetComponent<fx::ResourceEventManagerComponent>();
 					auto cbComponent = resman->GetComponent<fx::ResourceCallbackComponent>();
+					auto availableEndpoints = std::make_shared<std::shared_ptr<std::string>>();
 
 					/*NETEV getEndpoints SERVER
 					/#*
