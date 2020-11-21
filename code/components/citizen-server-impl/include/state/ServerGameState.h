@@ -680,12 +680,12 @@ static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityData
 {
+	sync::SyncEntityWeakPtr entityWeak;
 	uint64_t lastSent;
-	uint32_t entityPair;
 	bool isCreated;
 
 	inline ClientEntityData()
-		: lastSent(0), entityPair(0), isCreated(false)
+		: lastSent(0), entityWeak(), isCreated(false)
 	{
 	
 	}
@@ -741,7 +741,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	glm::mat4x4 viewMatrix{};
 
 	eastl::fixed_hash_map<uint32_t, uint64_t, 100> pendingCreates;
-	eastl::fixed_hash_map<uint64_t, ClientEntityState, maxSavedClientFrames, maxSavedClientFrames, true> frameStates;
+	eastl::fixed_map<uint64_t, ClientEntityState, maxSavedClientFrames, true> frameStates;
 	uint64_t firstSavedFrameState = 0;
 
 	fx::ClientWeakPtr client;

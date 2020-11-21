@@ -98,22 +98,14 @@ static std::tuple<uint16_t, uint16_t> DeconstructHandleUniqifierPair(uint32_t pa
 namespace fx
 {
 ClientEntityData::ClientEntityData(const sync::SyncEntityPtr& entity, uint64_t lastSent, bool isCreated)
-	: entityPair(MakeHandleUniqifierPair(entity->handle, entity->uniqifier)), lastSent(lastSent), isCreated(isCreated)
+	: entityWeak(entity), lastSent(lastSent), isCreated(isCreated)
 {
 	
 }
 
 sync::SyncEntityPtr ClientEntityData::GetEntity(fx::ServerGameState* sgs)
 {
-	auto [id, uniqifier] = DeconstructHandleUniqifierPair(entityPair);
-	auto entity = sgs->GetEntity(0, id);
-
-	if (entity && entity->uniqifier == uniqifier)
-	{
-		return std::move(entity);
-	}
-
-	return {};
+	return entityWeak.lock();
 }
 }
 
@@ -1410,7 +1402,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				localLastFrameIndex = entity->lastFrameIndex;
 			}
 
-			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
+			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, /*syncData.hasCreated*/true };
 
 			// should we sync?
 			if (forceUpdate || syncData.nextSync - curTime <= 0ms)
@@ -1496,6 +1488,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
 
+							bool mayWrite = true;
+
+							if (syncType == 2 && !isFirstFrameUpdate && wasForceUpdate && entity->GetClient() == cmdState.client)
+							{
+								mayWrite = false;
+								len = 0;
+							}
+
 							auto startBit = cmdState.cloneBuffer.GetCurrentBit();
 							cmdState.maybeFlushBuffer(3 + /* 13 */ 16 + 16 + 4 + 32 + 16 + 64 + 32 + 12 + (len * 8));
 							cmdState.cloneBuffer.Write(3, syncType);
@@ -1523,13 +1523,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							cmdState.cloneBuffer.Write<uint32_t>(32, (syncType == 1) ?
 								curTime.count() :
 								(isFirstFrameUpdate) ? (curTime.count() + 1) : entity->timestamp);
-
-							bool mayWrite = true;
-
-							if (syncType == 2 && !isFirstFrameUpdate && wasForceUpdate && entity->GetClient() == cmdState.client)
-							{
-								mayWrite = false;
-							}
 
 							if (mayWrite)
 							{
