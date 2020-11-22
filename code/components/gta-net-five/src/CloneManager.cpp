@@ -89,6 +89,7 @@ enum class AckResult
 {
 	OK,
 	ResendClone,
+	ResendCloneMinimal,
 	ResendCreate
 };
 
@@ -1177,14 +1178,17 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	}
 
 	// check dependent frame index
+	auto prevUpdate = objectData.lastFrameUpdated;
+
 	if (icgi->NetProtoVersion >= 0x202010191044)
 	{
 		Log("dependent frame is %d (our last frame %d) for object %d\n", msg.m_dependentFrameIndex, objectData.lastFrameUpdated, msg.GetObjectId());
 
 		if (objectData.lastFrameUpdated < msg.m_dependentFrameIndex)
 		{
-			// we're missing a frame! we know this already (and will resend soon enough) but for now just send OK.
-			return AckResult::OK;
+			// we're missing a frame! we're supposed to be able to tell this to the server already, but they're often too busy with
+			// sending us more packets so we may remain perpetually out of sync, so request a re-clone of the object.
+			return AckResult::ResendCloneMinimal;
 		}
 		else
 		{
@@ -1232,7 +1236,13 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 			Log("%s: couldn't apply object\n", __func__);
 
-			return AckResult::ResendClone;
+			// revert last-updated-frame as a baseline for newer servers
+			if (icgi->NetProtoVersion >= 0x202011220919)
+			{
+				objectData.lastFrameUpdated = prevUpdate;
+			}
+
+			return AckResult::ResendCloneMinimal;
 		}
 
 		// apply pre-blend
@@ -1374,7 +1384,9 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 
 				else if (m_lastReceivedFrame.currentFragment != newIndex.currentFragment - 1)
 				{
-					// we're missing a fragment! make sure to resent this frame
+					Log("NAK -> missing fragment: newIndex -> %d\n", newIndex.frameIndex);
+
+					// we're missing a fragment! make sure to resend this frame
 					isMissingFrames = true;
 					firstMissingFrame = lastMissingFrame = newIndex.frameIndex;
 				}
@@ -1383,6 +1395,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			// check for missing frame
 			else if (m_lastReceivedFrame.frameIndex != newIndex.frameIndex - 1)
 			{
+				Log("NAK -> missing frame: fmf -> %d, lmf -> %d\n", m_lastReceivedFrame.frameIndex, newIndex.frameIndex - 1);
+
 				isMissingFrames = true;
 				firstMissingFrame = m_lastReceivedFrame.frameIndex + 1;
 				lastMissingFrame = newIndex.frameIndex - 1;
@@ -1392,6 +1406,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			else if (m_lastReceivedFrame.lastFragment && newIndex.currentFragment != 1)
 			{
 				isMissingFrames = true;
+
+				Log("NAK -> missing fragment, new frame: fmf -> %d, lmf -> %d\n", m_lastReceivedFrame.frameIndex + 1, newIndex.frameIndex);
 
 				// everything since last frame was missing definitely
 				firstMissingFrame = m_lastReceivedFrame.frameIndex + 1;
@@ -1403,6 +1419,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			// check for missing last fragment
 			else if (!m_lastReceivedFrame.lastFragment)
 			{
+				Log("NAK -> missing last fragment, new frame: lmf -> %d\n", m_lastReceivedFrame.frameIndex);
+
 				isMissingFrames = true;
 				firstMissingFrame = lastMissingFrame = m_lastReceivedFrame.frameIndex;
 			}
@@ -1455,7 +1473,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		drillTs = 0;
 	}
 
-	static std::vector<uint16_t> ignoreList;
+	static std::vector<std::tuple<uint16_t, uint64_t>> ignoreList;
 	static std::vector<uint16_t> recreateList;
 
 	for (auto& clone : msg.GetClones())
@@ -1477,7 +1495,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 					} 
 					else if (icgi->NetProtoVersion >= 0x202007022353)
 					{
-						ignoreList.push_back(clone.GetObjectId());
+						ignoreList.emplace_back(clone.GetObjectId(), 0);
 					}
 				}
 
@@ -1493,9 +1511,11 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 					{
 						recreateList.push_back(clone.GetObjectId());
 					}
-					else
+					else if (acked == AckResult::ResendClone || acked == AckResult::ResendCloneMinimal)
 					{
-						ignoreList.push_back(clone.GetObjectId());
+						auto& objectData = m_trackedObjects[clone.GetObjectId()];
+
+						ignoreList.emplace_back(clone.GetObjectId(), (acked == AckResult::ResendCloneMinimal) ? objectData.lastFrameUpdated : 0);
 					}
 				}
 
@@ -1562,7 +1582,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			outBuffer.Write<uint64_t>(msg.GetFrameIndex() & ~(uint64_t(1) << 63));
 			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
 
-			for (uint16_t entry : ignoreList)
+			for (auto [entry, _] : ignoreList)
 			{
 				outBuffer.Write<uint16_t>(entry);
 			}
@@ -1605,6 +1625,10 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		{
 			flags |= 4;
 		}
+		if (icgi->NetProtoVersion >= 0x202011220919)
+		{
+			flags |= 8;
+		}
 
 		net::Buffer outBuffer;
 		outBuffer.Write<uint8_t>(flags);
@@ -1622,9 +1646,10 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		if (!ignoreList.empty())
 		{
 			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
-			for (uint16_t entry : ignoreList)
+			for (auto [entry, lastFrame] : ignoreList)
 			{
 				outBuffer.Write<uint16_t>(entry);
+				outBuffer.Write<uint64_t>(lastFrame);
 			}
 		}
 

@@ -1402,7 +1402,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				localLastFrameIndex = entity->lastFrameIndex;
 			}
 
-			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, /*syncData.hasCreated*/true };
+			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
 			// should we sync?
 			if (forceUpdate || syncData.nextSync - curTime <= 0ms)
@@ -4063,6 +4063,8 @@ static InitFunction initFunction([]()
 					auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
 					auto& states = clientData->frameStates;
 
+					eastl::fixed_map<uint16_t, uint64_t, 64> lastSentCorrections;
+
 					for (uint64_t frame = lastMissingFrame; frame >= firstMissingFrame; --frame)
 					{
 						if (auto frameIt = states.find(frame); frameIt != states.end())
@@ -4086,6 +4088,7 @@ static InitFunction initFunction([]()
 									{
 										std::lock_guard _(ent->frameMutex);
 										ent->lastFramesSent[slotId] = std::min(entData.lastSent, ent->lastFramesSent[slotId]);
+										lastSentCorrections[objectId] = ent->lastFramesSent[slotId];
 									}
 								}
 							}
@@ -4101,6 +4104,20 @@ static InitFunction initFunction([]()
 							return;
 						}
 					}
+
+					// propagate these frames into newer states, as well
+					for (auto frameIt = states.upper_bound(lastMissingFrame); frameIt != states.end(); frameIt++)
+					{
+						auto& [synced, deletions] = frameIt->second;
+
+						for (const auto& [objectId, correction] : lastSentCorrections)
+						{
+							if (auto entIt = synced.find(objectId); entIt != synced.end())
+							{
+								entIt->second.lastSent = correction;
+							}
+						}
+					}
 				}
 
 				auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
@@ -4111,14 +4128,22 @@ static InitFunction initFunction([]()
 					// ignore list
 					if (flags & 2)
 					{
-						eastl::fixed_vector<uint16_t, 100> ignoredUpdates;
+						eastl::fixed_vector<std::tuple<uint16_t, uint64_t>, 100> ignoredUpdates;
 						uint8_t ignoreCount = buffer.Read<uint8_t>();
 						for (int i = 0; i < ignoreCount; i++)
 						{
-							ignoredUpdates.push_back(buffer.Read<uint16_t>());
+							auto objectId = buffer.Read<uint16_t>();
+							uint64_t resendFrame = 0;
+
+							if (flags & 8)
+							{
+								resendFrame = buffer.Read<uint64_t>();
+							}
+
+							ignoredUpdates.emplace_back(objectId, resendFrame);
 						}
 
-						for (auto objectId : ignoredUpdates)
+						for (auto [objectId, resendFrame] : ignoredUpdates)
 						{
 							auto& [synced, deletions] = frameIt->second;
 							if (auto entIter = synced.find(objectId); entIter != synced.end())
@@ -4126,7 +4151,7 @@ static InitFunction initFunction([]()
 								if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
 								{
 									std::lock_guard _(ent->frameMutex);
-									ent->lastFramesSent[slotId] = std::min(entIter->second.lastSent, ent->lastFramesSent[slotId]);
+									ent->lastFramesSent[slotId] = std::min(resendFrame, ent->lastFramesSent[slotId]);
 								}
 							}
 						}
