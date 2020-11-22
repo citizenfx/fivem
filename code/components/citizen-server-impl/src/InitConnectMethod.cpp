@@ -272,9 +272,6 @@ static InitFunction initFunction([]()
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
 
-		// list of space-separated endpoints that can but don't have to include a port
-		// for example: sv_endpoints "123.123.123.123 124.124.124.124"
-		auto srvEndpoints = instance->AddVariable<std::string>("sv_endpoints", ConVar_None, "");
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
 		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly, "", &g_enforcedGameBuild);
@@ -297,63 +294,6 @@ static InitFunction initFunction([]()
 					}
 				}
 			});
-		});
-
-		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getEndpoints", [instance, srvEndpoints](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
-		{
-			auto sendError = [=](const std::string& error)
-			{
-				cb(json::object({ { "error", error } }));
-				cb(json(nullptr));
-			};
-
-			auto tokenIt = postMap.find("token");
-
-			if (tokenIt == postMap.end())
-			{
-				sendError("fields missing");
-				return;
-			}
-
-			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
-			if (!client)
-			{
-				cb(json{ false });
-			}
-			else
-			{
-				auto endpointList = srvEndpoints->GetValue();
-				if (endpointList.empty()) 
-				{
-					cb(json::array());
-				}
-				else 
-				{
-					json endpoints;
-					for (auto item :
-						fx::GetIteratorView(
-							std::make_pair(
-								boost::algorithm::make_split_iterator(
-									endpointList,
-									boost::algorithm::token_finder(
-										boost::algorithm::is_space(),
-										boost::algorithm::token_compress_on
-									)
-								),
-								boost::algorithm::split_iterator<std::string::iterator>()
-							)
-						)
-					)
-					{
-						auto endpoint = folly::range(&*item.begin(), &*item.end());
-						endpoints += endpoint;
-					}
-					cb(endpoints);
-				}
-			}
-
-			cb(json(nullptr));
 		});
 
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
@@ -741,6 +681,9 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
+				auto setEndpoints = std::make_shared<std::shared_ptr<std::string>>();
+				*setEndpoints = std::make_shared<std::string>("[]");
+
 				MonoEnsureThreadAttached();
 
 				/*NETEV playerConnecting SERVER
@@ -752,6 +695,7 @@ static InitFunction initFunction([]()
 				 * @param playerName - The display name of the player connecting.
 				 * @param setKickReason - A function used to set a reason message for when the event is canceled.
 				 * @param deferrals - An object to control deferrals.
+				 * @param setEndpoints - A function used to set server endpoints for client connection.
 				 * @param source - The player's *temporary* NetID (a number in Lua/JS), **not a real argument, use [FromSource] or source**.
 				 #/
 				declare function playerConnecting(playerName: string, setKickReason: (reason: string) => void, deferrals: {
@@ -798,18 +742,23 @@ static InitFunction initFunction([]()
 					 * @param data - Data to pass to the connecting client.
 					 #/
 					handover(data: { [key: string]: any }): void,
-				}, source: string): void;
+				}, setEndpoints: (endpoints: string) => void, source: string): void;
 				*/
 				bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 				{
 					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
-
 					if (obj.size() == 1)
 					{
 						**noReason = obj[0].as<std::string>();
 					}
-				}), (*deferrals)->GetCallbacks());
-
+				}), (*deferrals)->GetCallbacks(), cbComponent->CreateCallback([setEndpoints](const msgpack::unpacked& unpacked)
+				{
+					auto obj = unpacked.get().as<std::vector<msgpack::object>>();
+					if (obj.size() == 1)
+					{
+						**setEndpoints = obj[0].as<std::string>();
+					}
+				}));
 				if (!shouldAllow)
 				{
 					clientRegistry->RemoveClient(lockedClient);
@@ -820,12 +769,12 @@ static InitFunction initFunction([]()
 
 				// was the deferral already completed/canceled this frame? if so, just don't respond at all
 				auto deferralsRef = *deferrals;
-
 				if (!deferralsRef)
 				{
 					return;
 				}
 
+				data["endpoints"] = **setEndpoints;
 				if (!deferralsRef->IsDeferred())
 				{
 					allowClient();
