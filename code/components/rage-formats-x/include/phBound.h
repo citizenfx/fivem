@@ -991,9 +991,9 @@ private:
 #endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
-	pgPtr<void> m_unkPtr3;
+	pgPtr<void> m_octantData;
 
-	pgPtr<pgPtr<void>> m_unkPtr4;
+	pgPtr<pgPtr<void>> m_octants;
 #elif defined(RAGE_FORMATS_GAME_NY)
 	uint8_t m_val;
 	uint8_t m_polyPad[3];
@@ -1105,8 +1105,8 @@ public:
 #endif
 
 #ifdef RAGE_FORMATS_GAME_FIVE
-		m_unkPtr3.Resolve(blockMap);
-		m_unkPtr4.Resolve(blockMap);
+		m_octantData.Resolve(blockMap);
+		m_octants.Resolve(blockMap);
 #endif
 	}
 
@@ -1119,6 +1119,14 @@ public:
 	{
 		return *m_polyEntries;
 	}
+
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
+	inline void ClearOctantMap()
+	{
+		m_octants = nullptr;
+		m_octantData = nullptr;
+	}
+#endif
 };
 
 class phBoundGeometry : public phBoundPolyhedron

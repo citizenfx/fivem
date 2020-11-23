@@ -146,6 +146,13 @@ static void ValidateGeometry(void* geomPtr)
 	auto numPolys = geom->GetNumPolygons();
 	auto numVerts = geom->GetNumVertices();
 
+	// Some exporter exports broken octant maps, which at this time (2020-11-23) is a #9 top crasher.
+	// Therefore, remove octant maps for any custom assets (pending research on what exactly is broken).
+	if (g_customStreamingFileRefs.find(g_currentStreamingName) != g_customStreamingFileRefs.end())
+	{
+		geom->ClearOctantMap();
+	}
+
 	bool error = false;
 
 	for (size_t i = 0; i < numPolys; i++)
