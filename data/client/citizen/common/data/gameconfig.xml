@@ -382,7 +382,7 @@
 						</Item>
 						<Item>
 							<PoolName>phInstGta</PoolName>
-							<PoolSize value="16384"/>
+							<PoolSize value="32768"/>
 						</Item>
 						<Item>
 							<PoolName>PhysicsBounds</PoolName>
