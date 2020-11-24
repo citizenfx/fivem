@@ -2160,7 +2160,30 @@ void V8ScriptGlobals::Initialize()
 	auto readBlob = [=](const std::wstring& name, std::vector<char>& outBlob)
 	{
 		FILE* f = _pfopen(MakeRelativeCitPath(_P("citizen/scripting/v8/" + name)).c_str(), _P("rb"));
+
+#ifndef IS_FXSERVER
+		if (!f)
+		{
+			static HostSharedData<CfxState> hostData("CfxInitState");
+			auto cli = va(L"\"%s\" -switchcl",
+				hostData->gameExePath);
+
+			STARTUPINFOW si = { 0 };
+			si.cb = sizeof(si);
+
+			PROCESS_INFORMATION pi;
+
+			if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
+			{
+				trace("failed to exit: %d\n", GetLastError());
+			}
+
+			_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
+			TerminateProcess(GetCurrentProcess(), 0);
+		}
+#else
 		assert(f);
+#endif
 
 		fseek(f, 0, SEEK_END);
 		outBlob.resize(ftell(f));
