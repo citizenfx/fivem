@@ -768,7 +768,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
 
-		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", 0xe3551879, error));
+		lua_pushstring(L, va("Execution of native %016x in script (%s) host failed: %s", 0xe3551879, GetResourceName(), error));
 		lua_error(L);
 	}
 
