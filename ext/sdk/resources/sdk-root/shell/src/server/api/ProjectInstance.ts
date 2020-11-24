@@ -511,7 +511,6 @@ export class ProjectInstance {
     this.client.log('Start watching project', this.path);
 
     this.watcher = chokidar.watch(this.path, {
-      ignored: /(^|[\/\\])\../, // ignore dotfiles
       persistent: true,
       ignoreInitial: true,
     });
@@ -525,6 +524,8 @@ export class ProjectInstance {
   }
 
   private async handleFsTreeUpdate(updateType: FsTreeUpdateType, updatedPath: string) {
+    this.log('FSTree update', { updateType, updatedPath });
+
     if (updateType !== FsTreeUpdateType.change) {
       this.readAndNotifyFsTree();
     }

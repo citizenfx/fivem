@@ -27,6 +27,10 @@ setTick(() => {
         key: 'player_ped_rot',
         value: GetEntityRotation(playerPedId, 2),
       },
+      {
+        key: 'player_ped_heading',
+        value: GetEntityHeading(playerPedId),
+      },
     ],
 	});
 });

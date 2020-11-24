@@ -1,8 +1,13 @@
 import { Command, CommandContribution, CommandHandler, CommandRegistry, MAIN_MENU_BAR, MenuContribution, MenuModelRegistry } from '@theia/core';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EDITOR_CONTEXT_MENU } from '@theia/editor/lib/browser/editor-menu';
+import { TextEditor } from '@theia/editor/lib/browser/editor';
 import { injectable, inject } from 'inversify';
 import { FxdkDataService } from './fxdk-data-service';
+
+function formatArrayOfFloats(arr: number[]): string {
+  return arr.map((coord) => coord.toFixed(3)).join(', ');
+}
 
 export namespace FxdkMenus {
   export const GAME = [...MAIN_MENU_BAR, '1_game'];
@@ -26,6 +31,11 @@ export namespace FxdkCommands {
     category: GAME_CATEGORY,
     label: 'Insert player rotation',
   };
+  export const INSERT_CURRENT_HEADING: Command = {
+    id: 'fxdk.insertCurrentHeading',
+    category: GAME_CATEGORY,
+    label: 'Insert player heading',
+  };
 }
 
 @injectable()
@@ -48,6 +58,9 @@ export class FxdkMenuContribution implements MenuContribution, CommandContributi
     registry.registerMenuAction(FxdkMenus.GAME_INSERTIONS, {
       commandId: FxdkCommands.INSERT_CURRENT_ROT.id,
     });
+    registry.registerMenuAction(FxdkMenus.GAME_INSERTIONS, {
+      commandId: FxdkCommands.INSERT_CURRENT_HEADING.id,
+    });
 
     registry.registerMenuAction(FxdkMenus.GAME_TOGGLES, {
       commandId: 'fxdkGameView:toggle',
@@ -66,34 +79,62 @@ export class FxdkMenuContribution implements MenuContribution, CommandContributi
   }
 
   registerCommands(registry: CommandRegistry): void {
-    registry.registerCommand(FxdkCommands.INSERT_CURRENT_POS, this.newCommandHandler(() => {
-      const editor = this.editorManager.activeEditor?.editor;
-      if (!editor) {
-        console.log('No active editor');
+    registry.registerCommand(FxdkCommands.INSERT_CURRENT_POS, this.newEditorCommandHandler((editor: TextEditor) => {
+      const pos = this.dataService.data['player_ped_pos'];
+      if (!pos) {
+        console.log('No pos yet');
         return;
       }
 
       editor.executeEdits([{
         range: editor.selection,
-        newText: this.dataService.data['player_ped_pos'] + '',
+        newText: formatArrayOfFloats(pos),
       }]);
     }));
-    registry.registerCommand(FxdkCommands.INSERT_CURRENT_ROT, this.newCommandHandler(() => {
-      const editor = this.editorManager.activeEditor?.editor;
-      if (!editor) {
-        console.log('No active editor');
+
+    registry.registerCommand(FxdkCommands.INSERT_CURRENT_ROT, this.newEditorCommandHandler((editor: TextEditor) => {
+      const rot = this.dataService.data['player_ped_rot'];
+      if (!rot) {
+        console.log('No rot yet');
         return;
       }
 
       editor.executeEdits([{
         range: editor.selection,
-        newText: this.dataService.data['player_ped_rot'] + '',
+        newText: formatArrayOfFloats(rot),
+      }]);
+    }));
+
+    registry.registerCommand(FxdkCommands.INSERT_CURRENT_HEADING, this.newEditorCommandHandler((editor: TextEditor) => {
+      const heading = this.dataService.data['player_ped_heading'];
+      if (!heading) {
+        console.log('No heading yet');
+        return;
+      }
+
+      editor.executeEdits([{
+        range: editor.selection,
+        newText: heading.toFixed(3),
       }]);
     }));
   }
 
   private newCommandHandler(handler: Function): FxdkMenuCommandHandler {
     return new FxdkMenuCommandHandler(handler);
+  }
+
+  private newEditorCommandHandler(handler: (editor: TextEditor) => void): FxdkMenuCommandHandler {
+    const commandHandler = () => {
+      const editor = this.editorManager.activeEditor?.editor;
+      if (!editor) {
+        console.log('No active editor');
+        return;
+      }
+
+      handler(editor);
+    };
+
+    return this.newCommandHandler(commandHandler);
   }
 }
 
