@@ -101,8 +101,8 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 	else
 	{
 		in_addr addr;
+		in6_addr addr6;
 
-		// #TODO: IPv6 support
 		if (inet_pton(AF_INET, resolveName.c_str(), &addr) == 1)
 		{
 			sockaddr_in inAddr;
@@ -113,6 +113,16 @@ boost::optional<PeerAddress> PeerAddress::FromString(const std::string& str, int
 			inAddr.sin_port = htons(port);
 
 			retval = PeerAddress((sockaddr*)&inAddr, sizeof(inAddr));
+		}
+		else if (inet_pton(AF_INET6, resolveName.c_str(), &addr6) == 1) {
+			sockaddr_in6 in6Addr;
+			memset(&in6Addr, 0, sizeof(in6Addr));
+
+			in6Addr.sin6_family = AF_INET6;
+			in6Addr.sin6_addr = addr6;
+			in6Addr.sin6_port = htons(port);
+
+			retval = PeerAddress((sockaddr*)&in6Addr, sizeof(in6Addr));
 		}
 	}
 
