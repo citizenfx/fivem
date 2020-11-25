@@ -2127,8 +2127,11 @@ void CloneManagerLocal::WriteUpdates()
 
 		++m_serverSendFrame;
 
-		m_sendBuffer.Write(3, 6);
-		m_sendBuffer.Write<uint32_t>(32, m_serverSendFrame);
+		if (icgi->NetProtoVersion >= 0x202011231556)
+		{
+			m_sendBuffer.Write(3, 6);
+			m_sendBuffer.Write<uint32_t>(32, m_serverSendFrame);
+		}
 
 		hitTimestamp = true;
 	};
@@ -2378,8 +2381,11 @@ void CloneManagerLocal::WriteUpdates()
 					// touch the timestamp
 					touchTimestamp();
 
-					// add pending ack
-					m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(syncType, objectId, objectData.uniqifier, ts));
+					if (icgi->NetProtoVersion >= 0x202011231556)
+					{
+						// add pending ack
+						m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(syncType, objectId, objectData.uniqifier, ts));
+					}
 
 					// write header to send buffer
 					netBuffer.Write(3, syncType);
@@ -2474,11 +2480,14 @@ void CloneManagerLocal::WriteUpdates()
 
 		auto& netBuffer = m_sendBuffer;
 
-		// touch the timestamp (needed for acks)
-		touchTimestamp();
+		if (icgi->NetProtoVersion >= 0x202011231556)
+		{
+			// touch the timestamp (needed for acks)
+			touchTimestamp();
 
-		// add pending *server* ack
-		m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(3, objectId, uniqifier, ts));
+			// add pending *server* ack
+			m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(3, objectId, uniqifier, ts));
+		}
 
 		// write packet
 		netBuffer.Write(3, 3);
