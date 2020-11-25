@@ -28,7 +28,7 @@
 #include <ReverseGameData.h>
 
 #include <SDK.h>
-#include <console\OptionTokenizer.h>
+#include <console/OptionTokenizer.h>
 
 
 static std::function<ipc::Endpoint&()> proxyLauncherTalk;

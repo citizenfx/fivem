@@ -125,9 +125,14 @@ bool Bootstrap_DoBootstrap()
     }
 
 #ifdef GTA_NY
-	return Updater_RunUpdate(1, "citiv");
+	return Updater_RunUpdate({ "citiv" });
 #else
-	return Updater_RunUpdate(1, "fivereborn");
+	if (launch::IsSDK())
+	{
+		return Updater_RunUpdate({ "fivereborn", "fxdk-five" });
+	}
+
+	return Updater_RunUpdate({ "fivereborn" });
 #endif
 }
 

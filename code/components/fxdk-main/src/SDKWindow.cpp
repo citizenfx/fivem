@@ -455,6 +455,7 @@ void SimpleWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
 	window->AddChildView(browser_view_);
 	window->SetWindowAppIcon(icon);
 	window->SetWindowIcon(icon);
+	LoadPlacement(window);
 	window->Show();
 
 	// Give keyboard focus to the browser view.
@@ -478,6 +479,8 @@ void SimpleWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window)
 
 bool SimpleWindowDelegate::CanClose(CefRefPtr<CefWindow> window)
 {
+	SavePlacement(window);
+
 	// Allow the window to close if the browser says it's OK.
 	CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
 	if (browser)
@@ -485,11 +488,34 @@ bool SimpleWindowDelegate::CanClose(CefRefPtr<CefWindow> window)
 	return true;
 }
 
-CefSize SimpleWindowDelegate::GetPreferredSize(CefRefPtr<CefView> view)
+CefSize SimpleWindowDelegate::GetMinimumSize(CefRefPtr<CefView> view)
 {
 	return CefSize(1360, 768);
 }
 
+void SimpleWindowDelegate::LoadPlacement(CefRefPtr<CefWindow> window)
+{
+	DWORD dataSize = 0;
+	if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", RRF_RT_REG_BINARY, NULL, NULL, &dataSize) == ERROR_SUCCESS)
+	{
+		std::vector<uint8_t> data(dataSize);
+		if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", RRF_RT_REG_BINARY, NULL, data.data(), &dataSize) == ERROR_SUCCESS)
+		{
+			SetWindowPlacement(window->GetWindowHandle(), (const WINDOWPLACEMENT*)data.data());
+		}
+	}
+}
+
+void SimpleWindowDelegate::SavePlacement(CefRefPtr<CefWindow> window)
+{
+	WINDOWPLACEMENT wndpl = { 0 };
+	wndpl.length = sizeof(wndpl);
+
+	if (GetWindowPlacement(window->GetWindowHandle(), &wndpl))
+	{
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", REG_BINARY, &wndpl, sizeof(wndpl));
+	}
+}
 
 SubViewDelegate::SubViewDelegate()
 {

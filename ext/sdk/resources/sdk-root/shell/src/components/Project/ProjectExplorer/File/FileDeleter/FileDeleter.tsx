@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button } from 'components/controls/Button/Button';
 import { Modal } from 'components/Modal/Modal';
 import { FilesystemEntry } from 'shared/api.types';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 
 

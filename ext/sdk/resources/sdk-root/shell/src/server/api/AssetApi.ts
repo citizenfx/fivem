@@ -2,13 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as rimrafSync from 'rimraf';
 import { promisify } from 'util';
-import { assetApi } from '../../shared/events';
+import { assetApi } from '../../shared/api.events';
 import { ProjectApi } from "./ProjectApi";
 import { IAssetKind, IAssetManager } from './assets/types';
 import { ResourceKind } from './assets/kinds/ResourceKind';
 import { GitManager } from './assets/managers/GitManager';
 import { invariant } from '../invariant';
-import { SystemEvent, systemEvents } from './api.events';
+import { SystemEvent, systemEvents } from './systemEvents';
 import { ApiClient, AssetCreateRequest, AssetDeleteRequest, assetKinds, assetManagerTypes, AssetRenameRequest } from 'shared/api.types';
 
 const rimraf = promisify(rimrafSync);

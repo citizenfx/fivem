@@ -583,6 +583,12 @@ if (!$DontUpload) {
     Copy-Item -Force CitizenFX.exe.xz $WorkDir\upload\$Branch\bootstrap
     Copy-Item -Force version.txt $WorkDir\upload\$Branch\bootstrap
     Copy-Item -Force caches.xml $WorkDir\upload\$Branch\content
+
+    if (!$IsLauncher -and !$IsRDR) {
+        Copy-Item -Force $WorkDir\caches\caches_sdk.xml $WorkDir\upload\$Branch\content
+        Copy-Item -Recurse -Force $WorkDir\caches\diff\fxdk-five\ $WorkDir\upload\$Branch\content\
+    }
+
     Copy-Item -Recurse -Force diff\fivereborn\ $WorkDir\upload\$Branch\content\
 
     $BaseRoot = (Split-Path -Leaf $WorkDir)

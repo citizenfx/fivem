@@ -1,6 +1,6 @@
 import React from 'react';
 import { DownloadState, States } from 'shared/api.types';
-import { stateApi } from 'shared/events';
+import { stateApi } from 'shared/api.events';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';
 
 

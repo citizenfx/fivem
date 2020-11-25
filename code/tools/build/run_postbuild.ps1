@@ -52,7 +52,7 @@ if (!$IsServer) {
     Pop-Location
 
 	## build sdk
-    Push-Location $WorkDir
+    <#Push-Location $WorkDir
     $SDKCommit = (git rev-list -1 HEAD ext/sdk-build/ ext/sdk/)
     Pop-Location
 
@@ -67,7 +67,7 @@ if (!$IsServer) {
 		robocopy $WorkDir\ext\sdk-build\sdk-root\resource\ $LayoutDir\citizen\sdk\sdk-root\ /mir /xo /fft /ndl /njh /njs /nc /ns /np
 		xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\*.* $LayoutDir\citizen\sdk\sdk-game\
     }
-    Pop-Location
+    Pop-Location#>
 
     ## setup layout
     New-Item -ItemType Directory -Force $LayoutDir\bin

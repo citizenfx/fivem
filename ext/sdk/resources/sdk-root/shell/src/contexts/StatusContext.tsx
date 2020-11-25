@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { statusesApi } from 'shared/events';
+import { statusesApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
 

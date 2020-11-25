@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilesystemEntry, Project, ProjectResources, RecentProject, States } from 'shared/api.types';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { getProjectResources } from 'shared/utils';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';

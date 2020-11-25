@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { FilesystemEntry, FilesystemEntryMap } from 'shared/api.types';
 import { closedDirectoryIcon, fileIcon, openDirectoryIcon, projectIcon, resourceIcon } from 'constants/icons';
 import { sendApiMessage } from 'utils/api';
-import { explorerApi } from 'shared/events';
+import { explorerApi } from 'shared/api.events';
 import { useApiMessage } from 'utils/hooks';
 import s from './Explorer.module.scss';
 

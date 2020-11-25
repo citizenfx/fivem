@@ -176,7 +176,11 @@ public:
 
 	bool CanClose(CefRefPtr<CefWindow> window) OVERRIDE;
 
-	CefSize GetPreferredSize(CefRefPtr<CefView> view) OVERRIDE;
+	CefSize GetMinimumSize(CefRefPtr<CefView> view) OVERRIDE;
+
+private:
+	void LoadPlacement(CefRefPtr<CefWindow> window);
+	void SavePlacement(CefRefPtr<CefWindow> window);
 
 private:
 	CefRefPtr<CefBrowserView> browser_view_;

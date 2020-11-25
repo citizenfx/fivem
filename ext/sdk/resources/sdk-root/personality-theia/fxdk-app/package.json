@@ -58,7 +58,7 @@
   },
   "theiaPluginsDir": "plugins",
   "theiaPlugins": {
-    "fxdk-ts-plugin": "http://example.com/fxdk.ts-1.51.1.vsix",
+    "fxdk-ts-plugin": "https://runtime.fivem.net/build/fxdk-ts-plugin.1.50.1.vsix",
     "vscode-builtin-xml": "https://open-vsx.org/api/vscode/xml/1.51.1/file/vscode.xml-1.51.1.vsix",
     "vscode-builtin-css": "https://open-vsx.org/api/vscode/css/1.51.1/file/vscode.css-1.51.1.vsix",
     "vscode-builtin-css-language-features": "https://open-vsx.org/api/vscode/css-language-features/1.51.1/file/vscode.css-language-features-1.51.1.vsix",

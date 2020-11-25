@@ -10,6 +10,7 @@ export enum SystemEvent {
   assetDeleteRequest,
   assetDeleted,
 
+  refreshResources,
   relinkResources,
   restartResource,
 

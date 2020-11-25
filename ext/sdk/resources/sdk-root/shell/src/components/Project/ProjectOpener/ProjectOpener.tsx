@@ -4,7 +4,7 @@ import { RootsExplorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { FilesystemEntry } from 'shared/api.types';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './ProjectOpener.module.scss';
 

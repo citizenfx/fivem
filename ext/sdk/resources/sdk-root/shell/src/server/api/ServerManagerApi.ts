@@ -7,7 +7,7 @@ import { promisify } from 'util';
 import { ApiClient, ServerInstallationState, ServerUpdateChannel, serverUpdateChannels, ServerUpdateChannelsState, ServerUpdateStates } from 'shared/api.types';
 import * as paths from '../paths';
 import { downloadArtifact, prepareServer, unpackArtifact, versionFilename } from '../serverInstaller';
-import { serverApi } from 'shared/events';
+import { serverApi } from 'shared/api.events';
 
 const rimraf = promisify(rimrafSync);
 

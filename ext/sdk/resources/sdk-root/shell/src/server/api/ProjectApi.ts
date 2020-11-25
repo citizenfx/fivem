@@ -2,10 +2,10 @@ import * as fs from 'fs';
 import { ApiClient, AssetCreateRequest, assetManagerTypes, RecentProject} from 'shared/api.types';
 import { ExplorerApi } from './ExplorerApi';
 import * as paths from '../paths';
-import { errorsApi, projectApi } from 'shared/events';
+import { errorsApi, projectApi } from 'shared/api.events';
 import { ProjectCreateRequest, ProjectInstance } from './ProjectInstance';
 import { createLock, notNull } from '../../shared/utils';
-import { SystemEvent, systemEvents } from './api.events';
+import { SystemEvent, systemEvents } from './systemEvents';
 
 
 const cfxServerDataEnabledResources = [

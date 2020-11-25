@@ -5,7 +5,7 @@ import { FilesystemEntry, ServerStates } from 'shared/api.types';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
-import { projectApi, serverApi } from 'shared/events';
+import { projectApi, serverApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
 import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';

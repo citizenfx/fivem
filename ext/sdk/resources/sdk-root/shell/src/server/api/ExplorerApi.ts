@@ -4,7 +4,7 @@ import * as mkdirp from 'mkdirp';
 import * as cp from 'child_process';
 
 import { ApiClient, ExplorerChildsMap, FilesystemEntry, FilesystemEntryMeta } from "shared/api.types";
-import { explorerApi } from "shared/events";
+import { explorerApi } from "shared/api.events";
 import { fxdkProjectFilename, resourceManifestFilename, resourceManifestLegacyFilename } from './constants';
 import { notNull } from '../../shared/utils';
 

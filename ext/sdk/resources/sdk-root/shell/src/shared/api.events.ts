@@ -81,7 +81,7 @@ export const serverApi = {
   ackResourcesState: 'server:ackResourcesState',
   resourcesState: 'server:resourcesState',
 
-  refreshResources: 'server:refreshResources',
+  setEnabledResources: 'server:refreshResources',
   restartResource: 'server:restartResource',
   stopResource: 'server:stopResource',
   startResource: 'server:startResource',

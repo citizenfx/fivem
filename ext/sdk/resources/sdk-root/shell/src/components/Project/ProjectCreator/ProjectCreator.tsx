@@ -6,7 +6,7 @@ import { RootsExplorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
 import { projectNamePattern } from 'constants/patterns';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { errorsApi, projectApi } from 'shared/events';
+import { errorsApi, projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
 import s from './ProjectCreator.module.scss';

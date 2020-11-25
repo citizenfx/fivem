@@ -4,7 +4,7 @@ import { Input } from 'components/controls/Input/Input';
 import { Modal } from 'components/Modal/Modal';
 import { fileNamePattern } from 'constants/patterns';
 import { FilesystemEntry } from 'shared/api.types';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './FileRenamer.module.scss';
 

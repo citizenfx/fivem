@@ -21,11 +21,11 @@ import {
   ServerUpdateChannel,
   serverUpdateChannels,
 } from 'shared/api.types';
-import { projectApi } from 'shared/events';
-import { createLock, debounce, getEnabledResourcesPaths, getResourceConfig, getProjectResources } from '../../shared/utils';
-import { fxdkAssetFilename, fxdkProjectFilename } from './constants';
+import { projectApi } from 'shared/api.events';
+import { createLock, debounce, getEnabledResourcesPaths, getResourceConfig, getProjectResources } from 'shared/utils';
+import { fxdkAssetFilename, fxdkProjectFilename, resourceManifestFilename, resourceManifestLegacyFilename } from './constants';
 import { EntryMetaExtras, ExplorerApi } from './ExplorerApi';
-import { SystemEvent, systemEvents } from './api.events';
+import { SystemEvent, systemEvents } from './systemEvents';
 
 
 const rimraf = promisify(rimrafSync);
@@ -533,9 +533,15 @@ export class ProjectInstance {
     switch (updateType) {
       case FsTreeUpdateType.change:
       case FsTreeUpdateType.add:
+        const updatedPathBaseName = path.basename(updatedPath);
+        if (updatedPathBaseName === resourceManifestFilename || updatedPathBaseName === resourceManifestLegacyFilename) {
+          systemEvents.emit(SystemEvent.refreshResources);
+
+          break;
+        }
+
         const enabledResourcesPaths = this.enabledResourcesPaths;
         const updatedResourcePath = enabledResourcesPaths.find((enabledResourcePath) => updatedPath.startsWith(enabledResourcePath));
-
         if (updatedResourcePath) {
           const resourceName = path.basename(updatedResourcePath);
           const resourceConfig = getResourceConfig(this.manifest, resourceName);
@@ -543,6 +549,8 @@ export class ProjectInstance {
           if (resourceConfig.restartOnChange) {
             systemEvents.emit(SystemEvent.restartResource, resourceName);
           }
+
+          break;
         }
 
         break;

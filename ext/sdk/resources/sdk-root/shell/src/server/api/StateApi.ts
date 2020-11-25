@@ -1,5 +1,5 @@
 import { ApiClient, ServerDataStates, States } from "shared/api.types";
-import { stateApi } from "shared/events";
+import { stateApi } from "shared/api.events";
 
 
 export class StateApi {

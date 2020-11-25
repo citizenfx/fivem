@@ -5,7 +5,7 @@ import { assetKinds } from 'shared/api.types';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { invariant } from 'utils/invariant';
 import { sendApiMessage } from 'utils/api';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
 import { newDirectoryIcon, newResourceIcon } from 'constants/icons';
 import { Directory } from './Directory/Directory';

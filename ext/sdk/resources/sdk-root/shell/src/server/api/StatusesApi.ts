@@ -1,6 +1,6 @@
-import { SystemEvent, systemEvents } from "./api.events";
+import { SystemEvent, systemEvents } from "./systemEvents";
 import { ApiClient } from "shared/api.types";
-import { statusesApi } from "shared/events";
+import { statusesApi } from "shared/api.events";
 
 export class StatusesApi {
   private statuses: Record<string, any> = {};

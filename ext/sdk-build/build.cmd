@@ -32,6 +32,7 @@ popd
 pushd %FXDKTheia%
 if exist build rmdir /s /q build
 call yarn install --frozen-lockfile --ignore-scripts
+call yarn --cwd fxdk-app run download:plugins
 call yarn build
 xcopy /y /e fxdk-app\lib\*.* 	    build\lib\
 xcopy /y /e fxdk-app\plugins\*.*    build\plugins\

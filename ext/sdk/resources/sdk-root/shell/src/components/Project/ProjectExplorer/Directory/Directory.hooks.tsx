@@ -3,7 +3,7 @@ import { ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, newResourceIcon } from 'constants/icons';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { Project } from 'shared/api.types';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useOpenFlag } from 'utils/hooks';
 import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';

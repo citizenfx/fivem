@@ -7,7 +7,7 @@ import { resourceNamePattern } from 'constants/patterns';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { sendApiMessage } from 'utils/api';
 import { invariant } from 'utils/invariant';
-import { assetApi } from 'shared/events';
+import { assetApi } from 'shared/api.events';
 import { AssetCreateRequest, assetKinds, FilesystemEntry } from 'shared/api.types';
 import s from './AssetCreator.module.scss';
 

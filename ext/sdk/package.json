@@ -6,7 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "postinstall": "yarn --cwd resources/sdk-root/shell install --pure-lockfile && yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile",
+    "postinstall": "yarn --cwd resources/sdk-root/shell install --pure-lockfile && yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile && yarn run download:theia-plugins",
     "start": "yarn --cwd resources/sdk-root/shell run start",
     "download:theia-plugins": "yarn --cwd resources/sdk-root/personality-theia/fxdk-app download:plugins"
   },

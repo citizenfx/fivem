@@ -5,7 +5,7 @@ import { ServerUpdateChannel, serverUpdateChannels } from 'shared/api.types';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { invariant } from 'utils/invariant';
 import { ServerContext } from 'contexts/ServerContext';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/controls/Button/Button';

@@ -7,10 +7,10 @@ import * as mkdirp from 'mkdirp';
 import * as paths from '../paths';
 import * as rimrafSync from 'rimraf'
 import { promisify } from 'util';
-import { ApiClient, RelinkResourcesRequest, ServerRefreshResourcesRequest, ServerStartRequest, ServerStates } from 'shared/api.types';
-import { serverApi } from 'shared/events';
+import { ApiClient, RelinkResourcesRequest, ServerRefreshResourcesRequest as ServerSetEnabledResourcesRequest, ServerStartRequest, ServerStates } from 'shared/api.types';
+import { serverApi } from 'shared/api.events';
 import { sdkGamePipeName } from './constants';
-import { SystemEvent, systemEvents } from './api.events';
+import { SystemEvent, systemEvents } from './systemEvents';
 import { ServerManagerApi } from './ServerManagerApi';
 import { createLock } from '../../shared/utils';
 
@@ -46,6 +46,7 @@ export class ServerApi {
     private readonly client: ApiClient,
     private readonly serverManager: ServerManagerApi,
   ) {
+    systemEvents.on(SystemEvent.refreshResources, () => this.handleRefreshResources());
     systemEvents.on(SystemEvent.relinkResources, (request: RelinkResourcesRequest) => this.handleRelinkResources(request));
     systemEvents.on(SystemEvent.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
     systemEvents.on(SystemEvent.forceStopServer, () => this.stop());
@@ -61,21 +62,7 @@ export class ServerApi {
     this.client.on(serverApi.stop, () => this.stop());
     this.client.on(serverApi.sendCommand, (cmd: string) => this.sendCommand(cmd));
     this.client.on(serverApi.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
-    this.client.on(serverApi.refreshResources, (request: ServerRefreshResourcesRequest) => this.refreshResources(request));
-  }
-
-  async handleRelinkResources(request: RelinkResourcesRequest) {
-    if (this.state !== ServerStates.up) {
-      return;
-    }
-
-    await this.serverLock.withLock(async () => {
-      const { projectPath, enabledResourcesPaths } = request;
-
-      await this.linkResources(getProjectServerPath(projectPath), enabledResourcesPaths);
-
-      this.reconcileEnabledResources(enabledResourcesPaths);
-    });
+    this.client.on(serverApi.setEnabledResources, (request: ServerSetEnabledResourcesRequest) => this.setEnabledResources(request));
   }
 
   ackState() {
@@ -89,9 +76,9 @@ export class ServerApi {
   }
 
   async start(request: ServerStartRequest) {
-    const { projectPath, enabledResourcesPaths } = request;
-
     this.client.log('Starting server', request);
+
+    const { projectPath, enabledResourcesPaths } = request;
 
     await this.serverLock.waitForUnlock();
 
@@ -100,21 +87,23 @@ export class ServerApi {
     this.toState(ServerStates.booting);
 
     const fxserverCwd = getProjectServerPath(projectPath);
-
     this.client.log('FXServer cwd', fxserverCwd);
 
-    await mkdirp(fxserverCwd);
+    const blankPath = path.join(fxserverCwd, 'blank.cfg');
+    if (await doesPathExist(blankPath)) {
+      await fs.promises.writeFile(blankPath, '');
+    }
 
+    await mkdirp(fxserverCwd);
     this.client.log('Ensured FXServer cwd exist');
 
     await this.linkResources(fxserverCwd, enabledResourcesPaths);
-
     this.client.log('Linked resources');
 
     const fxserverPath = this.serverManager.getServerBinaryPath(request.updateChannel);
     this.client.log('FXServer path', fxserverPath, request);
     const fxserverArgs = [
-      '+exec', 'blank',
+      '+exec', 'blank.cfg',
       '+endpoint_add_tcp', '127.0.0.1:30120',
       '+endpoint_add_udp', '127.0.0.1:30120',
       '+set', 'onesync', 'on',
@@ -165,7 +154,7 @@ export class ServerApi {
     this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
-  async refreshResources(request: ServerRefreshResourcesRequest) {
+  async setEnabledResources(request: ServerSetEnabledResourcesRequest) {
     const { projectPath, enabledResourcesPaths } = request;
 
     const fxserverCwd = getProjectServerPath(projectPath);
@@ -178,7 +167,35 @@ export class ServerApi {
     this.sendIpcEvent('refresh');
   }
 
-  async linkResources(fxserverCwd: string, resourcesPaths: string[]) {
+  handleRefreshResources() {
+    this.sendIpcEvent('refresh');
+  }
+
+  async handleRelinkResources(request: RelinkResourcesRequest) {
+    if (this.state !== ServerStates.up) {
+      return;
+    }
+
+    await this.serverLock.withLock(async () => {
+      const { projectPath, enabledResourcesPaths } = request;
+
+      await this.linkResources(getProjectServerPath(projectPath), enabledResourcesPaths);
+
+      this.reconcileEnabledResources(enabledResourcesPaths);
+    });
+  }
+
+  handleResourceRestart(resourceName: string) {
+    this.client.log('Restarting resource', resourceName);
+
+    this.sendIpcEvent('restart', resourceName);
+  }
+
+  sendCommand(cmd: string) {
+    this.server?.stdin?.write(cmd + '\n');
+  }
+
+  private async linkResources(fxserverCwd: string, resourcesPaths: string[]) {
     await this.serverLock.withLock(async () => {
       const resourcesDirectoryPath = path.join(fxserverCwd, 'resources');
 
@@ -215,16 +232,6 @@ export class ServerApi {
 
       this.sendIpcEvent('refresh');
     });
-  }
-
-  handleResourceRestart(resourceName: string) {
-    this.client.log('Restarting resource', resourceName);
-
-    this.sendIpcEvent('restart', resourceName);
-  }
-
-  sendCommand(cmd: string) {
-    this.server?.stdin?.write(cmd + '\n');
   }
 
   private sendIpcEvent(eventType: string, data?: any) {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from 'components/controls/Button/Button';
 import { Modal } from 'components/Modal/Modal';
 import { AssetDeleteRequest } from 'shared/api.types';
-import { assetApi } from 'shared/events';
+import { assetApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './ResourceDeleter.module.scss';
 

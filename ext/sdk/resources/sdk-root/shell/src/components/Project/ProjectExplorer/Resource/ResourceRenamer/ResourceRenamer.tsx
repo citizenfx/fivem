@@ -4,7 +4,7 @@ import { Input } from 'components/controls/Input/Input';
 import { Modal } from 'components/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
 import { AssetRenameRequest } from 'shared/api.types';
-import { assetApi } from 'shared/events';
+import { assetApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './ResourceRenamer.module.scss';
 

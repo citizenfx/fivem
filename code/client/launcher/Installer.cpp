@@ -23,14 +23,14 @@ namespace WRL = Microsoft::WRL;
 
 namespace fs = std::filesystem;
 
-static void SetAumid(const WRL::ComPtr<IShellLink>& link)
+static void SetAumid(const WRL::ComPtr<IShellLink>& link, const std::wstring& custom = {})
 {
 	WRL::ComPtr<IPropertyStore> propertyStore;
 
 	if (SUCCEEDED(link.As(&propertyStore)))
 	{
 		PROPVARIANT pv;
-		if (SUCCEEDED(InitPropVariantFromString(L"CitizenFX." PRODUCT_NAME ".Client", &pv)))
+		if (SUCCEEDED(InitPropVariantFromString((!custom.empty() ? custom.c_str() : L"CitizenFX." PRODUCT_NAME L".Client"), &pv)))
 		{
 			propertyStore->SetValue(PKEY_AppUserModel_ID, pv);
 
@@ -336,13 +336,14 @@ bool Install_RunInstallMode()
 
 		wcsrchr(exePath, L'\\')[0] = L'\0';
 
-		std::vector<std::tuple<std::wstring, std::wstring>> links;
+		std::vector<std::tuple<std::wstring, std::wstring, int, std::wstring>> links;
 
 #ifdef GTA_FIVE
 #if 0
-		links.push_back({ L" Singleplayer", L"-sp" });
-		links.push_back({ L" Singleplayer (patch 1.27)", L"-b372" });
+		links.push_back({ L" Singleplayer", L"-sp", -202, L"" });
+		links.push_back({ L" Singleplayer (patch 1.27)", L"-b372", -202, L"" });
 #endif
+		links.push_back({ L" - Cfx.re Development Kit (FxDK)", L"-fxdk", -203, L"CitizenFX.FiveM.SDK" });
 #endif
 
 		for (auto& link : links)
@@ -361,9 +362,9 @@ bool Install_RunInstallMode()
 					shellLink->SetPath(exeName.c_str());
 					shellLink->SetArguments(std::get<1>(link).c_str());
 					shellLink->SetDescription(PRODUCT_NAME L" is a modification framework for Grand Theft Auto V");
-					shellLink->SetIconLocation(exeName.c_str(), -202);
+					shellLink->SetIconLocation(exeName.c_str(), std::get<2>(link));
 
-					SetAumid(shellLink);
+					SetAumid(shellLink, std::get<3>(link));
 
 					WRL::ComPtr<IPersistFile> persist;
 					hr = shellLink.As(&persist);
@@ -371,6 +372,11 @@ bool Install_RunInstallMode()
 					if (SUCCEEDED(hr))
 					{
 						persist->Save(linkPath.c_str(), TRUE);
+
+						if (GetFileAttributes(MakeRelativeCitPath(PRODUCT_NAME L".installroot").c_str()) != INVALID_FILE_ATTRIBUTES)
+						{
+							persist->Save(fmt::sprintf(L"%s\\%s%s.lnk", GetFolderPath(FOLDERID_Programs), PRODUCT_NAME, std::get<0>(link)).c_str(), TRUE);
+						}
 					}
 				}
 

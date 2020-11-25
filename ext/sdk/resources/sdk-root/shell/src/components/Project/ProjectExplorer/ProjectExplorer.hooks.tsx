@@ -4,7 +4,7 @@ import { ContextMenuItem, ContextMenuItemsCollection, ContextMenuItemSeparator }
 import { VisibilityFilter } from 'components/Explorer/Explorer';
 import { newDirectoryIcon, newFileIcon } from 'constants/icons';
 import { FilesystemEntry, MoveEntryRequest } from 'shared/api.types';
-import { projectApi } from 'shared/events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useOpenFlag } from 'utils/hooks';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';

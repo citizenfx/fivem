@@ -154,33 +154,35 @@ private:
 	}
 };
 
-bool Updater_RunUpdate(int numCaches, ...)
+bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 {
-	static char cachesFile[800000];
+	std::unordered_set<std::string> wantedCaches{
+		wantedCachesList
+	};
 
-	int result = DL_RequestURL(va(CONTENT_URL "/%s/content/caches.xml?timeStamp=%lld", GetUpdateChannel(), _time64(NULL)), cachesFile, sizeof(cachesFile));
-
-	if (result != 0)
-	{
-		MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-		return false;
-	}
-
-	// parse wanted caches
-	std::unordered_set<std::string> wantedCaches;
-	va_list ap;
-	va_start(ap, numCaches);
-
-	for (int i = 0; i < numCaches; i++)
-	{
-		wantedCaches.insert(va_arg(ap, const char*));
-	}
-
-	va_end(ap);
-
-	// get the caches we want to update
+	// fetch remote caches
 	cacheFile_t cacheFile;
-	cacheFile.Parse(cachesFile);
+
+	static char cachesFile[64000];
+
+	bool success = false;
+	for (auto& caches : { "caches.xml", "caches_sdk.xml" })
+	{
+		memset(cachesFile, 0, sizeof(cachesFile));
+
+		int result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s?timeStamp=%lld", GetUpdateChannel(), caches, _time64(NULL)), cachesFile, sizeof(cachesFile));
+
+		if (result != 0 && !success)
+		{
+			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			return false;
+		}
+
+		success = true;
+
+		// get the caches we want to update
+		cacheFile.Parse(cachesFile);
+	}
 
 	// error out if the remote caches file is empty
 	if (cacheFile.GetCaches().empty())
@@ -189,6 +191,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 		return false;
 	}
 
+	cacheFile_t localCacheFile;
 	std::list<cache_t> needsUpdate;
 
 	FILE* cachesReader = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"r");
@@ -210,7 +213,6 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 		cachesFile[length] = '\0';
 
-		cacheFile_t localCacheFile;
 		localCacheFile.Parse(cachesFile);
 
 		for (cache_t& cache : cacheFile.GetCaches())
@@ -238,7 +240,7 @@ bool Updater_RunUpdate(int numCaches, ...)
 
 	for (cache_t& cache : needsUpdate)
 	{
-		result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d&timeStamp=%lld", GetUpdateChannel(), cache.name.c_str(), cache.version, _time64(NULL)), cachesFile, sizeof(cachesFile));
+		int result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d&timeStamp=%lld", GetUpdateChannel(), cache.name.c_str(), cache.version, _time64(NULL)), cachesFile, sizeof(cachesFile));
 
 		manifest_t manifest(cache);
 		manifest.Parse(cachesFile);
@@ -321,7 +323,15 @@ bool Updater_RunUpdate(int numCaches, ...)
 			
 			for (cache_t& cache : cacheFile.GetCaches())
 			{
-				fprintf(outCachesFile, "\t<Cache ID=\"%s\" Version=\"%d\" />\n", cache.name.c_str(), cache.version);
+				if (wantedCaches.find(cache.name) != wantedCaches.end())
+				{
+					fprintf(outCachesFile, "\t<Cache ID=\"%s\" Version=\"%d\" />\n", cache.name.c_str(), cache.version);
+				}
+				else
+				{
+					cache_t localCache = localCacheFile.GetCache(cache.name);
+					fprintf(outCachesFile, "\t<Cache ID=\"%s\" Version=\"%d\" />\n", cache.name.c_str(), localCache.version);
+				}
 			}
 
 			fprintf(outCachesFile, "</Caches>");
