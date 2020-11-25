@@ -1,3 +1,5 @@
+local a = ...
+
 return {
 	include = function()
 		includedirs "../vendor/mbedtls/include/"
@@ -11,6 +13,10 @@ return {
 			"NATIVE_LITTLE_ENDIAN",
 			"MBEDTLS_HAVEGE_C"
 		}
+		
+		if a then
+			staticruntime 'On'
+		end
 		
 		files_project "../vendor/mbedtls/" {
 			"library/**.c"

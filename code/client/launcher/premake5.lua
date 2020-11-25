@@ -35,6 +35,7 @@ local function launcherpersonality(name)
 		flags { "NoManifest", "NoImportLib" }
 		
 		symbols "Full"
+		buildoptions "/MP"
 		
 		links { "SharedLibc", "dbghelp", "psapi", "comctl32", "breakpad", "wininet", "winhttp", "crypt32" }
 		
@@ -97,7 +98,7 @@ local function launcherpersonality(name)
 		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue', 'vendor:boost_locale-crt' }
 		
 		if isLauncherPersonality(name) then
-			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:openssl_crypto_crt' }
+			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:mbedtls_crt', 'vendor:openssl_crypto_crt' }
 		end
 		
 		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }

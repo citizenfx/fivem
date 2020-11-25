@@ -30,9 +30,45 @@
 #include <curl/easy.h>
 #include <curl/multi.h>
 
+#include <mbedtls/ssl.h>
+#include <mbedtls/x509.h>
+
+#include "SSLRoots.h"
+
 #include <math.h>
 #include <queue>
 #include <sstream>
+
+static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* userptr)
+{
+	auto config = (mbedtls_ssl_config*)ssl_ctx;
+
+	mbedtls_ssl_conf_ca_chain(config,
+		(mbedtls_x509_crt*)userptr,
+		nullptr);
+
+	return CURLE_OK;
+}
+
+static CURL* curl_easy_init_cfx()
+{
+	auto curlHandle = curl_easy_init();
+
+	if (curlHandle)
+	{
+		curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+		curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2);
+
+		static mbedtls_x509_crt cacert;
+		mbedtls_x509_crt_init(&cacert);
+		mbedtls_x509_crt_parse(&cacert, sslRoots, sizeof(sslRoots));
+
+		curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_DATA, &cacert);
+		curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+	}
+
+	return curlHandle;
+}
 
 #define restrict
 #define LZMA_API_STATIC
@@ -689,7 +725,7 @@ bool DL_ProcessDownload()
 			curl_slist* headers = nullptr;
 			headers = curl_slist_append(headers, va("X-Cfx-Client: 1"));
 
-			auto curlHandle = curl_easy_init();
+			auto curlHandle = curl_easy_init_cfx();
 			download->curlHandles[0] = curlHandle;
 
 			curl_easy_setopt(curlHandle, CURLOPT_URL, download->url);
@@ -700,8 +736,6 @@ bool DL_ProcessDownload()
 			curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
 			curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 			curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
-			curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-			curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT | CURL_SSLVERSION_MAX_TLSv1_2);
 
 			if (getenv("CFX_CURL_DEBUG"))
 			{
@@ -909,7 +943,7 @@ static struct CurlInit
 
 int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 {
-	CURL* curl = curl_easy_init();
+	CURL* curl = curl_easy_init_cfx();
 
 	if (curl)
 	{
@@ -925,7 +959,6 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, g_curlError);
-		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT | CURL_SSLVERSION_MAX_TLSv1_2);
 
 		if (getenv("CFX_CURL_DEBUG"))
 		{

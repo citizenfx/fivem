@@ -21,6 +21,8 @@ return {
 			
 			return
 		end
+		
+		local isCrt = not a and not static
 
 		if a then
 			targetname "curl"
@@ -56,14 +58,22 @@ return {
 				  'CURL_DISABLE_RTMP', 'CURL_DISABLE_GOPHER', 'CURL_DISABLE_SMB', 'USE_IPV6', 'USE_NGHTTP2' }
 
 		if os.istarget('windows') then
-			defines { 'USE_WINDOWS_SSPI', 'USE_OPENSSL', 'OPENSSL_NO_ENGINE' }
+			defines { 'USE_WINDOWS_SSPI' }
+			buildoptions '/MP'
 			
-			if a then
-				add_dependencies 'vendor:openssl_crypto'
-				add_dependencies 'vendor:openssl_ssl'
+			if not isCrt then			
+				defines { 'USE_OPENSSL', 'OPENSSL_NO_ENGINE' }
+			
+				if a then
+					add_dependencies 'vendor:openssl_crypto'
+					add_dependencies 'vendor:openssl_ssl'
+				else
+					add_dependencies 'vendor:openssl_crypto_crt'
+					add_dependencies 'vendor:openssl_ssl_crt'
+				end
 			else
-				add_dependencies 'vendor:openssl_crypto_crt'
-				add_dependencies 'vendor:openssl_ssl_crt'
+				defines { 'USE_MBEDTLS', 'MBEDTLS_HAVEGE_C' }
+				add_dependencies 'vendor:mbedtls_crt'
 			end
 		else
 			defines { 'USE_OPENSSL' }
