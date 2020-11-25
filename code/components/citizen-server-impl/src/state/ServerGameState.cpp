@@ -73,6 +73,7 @@ std::shared_ptr<ConVar<bool>> g_oneSyncBigMode;
 std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
+std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
 
 namespace fx
 {
@@ -103,7 +104,7 @@ ClientEntityData::ClientEntityData(const sync::SyncEntityPtr& entity, uint64_t l
 	
 }
 
-sync::SyncEntityPtr ClientEntityData::GetEntity(fx::ServerGameState* sgs)
+sync::SyncEntityPtr ClientEntityData::GetEntity(fx::ServerGameState* sgs) const
 {
 	return entityWeak.lock();
 }
@@ -624,6 +625,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		return;
 	}
 
+	if (g_oneSyncARQ->GetValue())
+	{
+		m_syncStyle = SyncStyle::ARQ;
+	}
+	else
+	{
+		m_syncStyle = SyncStyle::NAK;
+	}
+
 	// approximate amount of ticks per second, 120 is svSync from GameServer.cpp
 	int effectiveTicksPerSecond = (120 / (3 * tickMul));
 
@@ -1090,6 +1100,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (entity->deleting)
 			{
+				GS_LOG("deleting [obj:%d:%d] because it's deleting\n", entity->handle, entity->uniqifier);
 				entitiesToDestroy[identPair] = { entity, { false, false } };
 				syncedEntities.erase(oldIt);
 			}
@@ -1238,7 +1249,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			ces.deletions.push_back({ MakeHandleUniqifierPair(objectId, uniqifier), deletionData });
 		}
 
-		entitiesToDestroy.clear();
+		// #IFNAK
+		if (m_syncStyle == SyncStyle::NAK)
+		{
+			entitiesToDestroy.clear();
+		}
 
 		for (auto syncIt = syncedEntities.begin(), syncItEnd = syncedEntities.end(); syncIt != syncItEnd;)
 		{
@@ -1482,8 +1497,18 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							if (!isFirstFrameUpdate && syncType == 2)
 							{
-								std::lock_guard _(entity->frameMutex);
-								entity->lastFramesSent[slotId] = localLastFrameIndex;
+								// #IFNAK
+								if (m_syncStyle == SyncStyle::NAK)
+								{
+									std::lock_guard _(entity->frameMutex);
+									entity->lastFramesSent[slotId] = localLastFrameIndex;
+								}
+								// #IFARQ
+								else
+								{
+									std::lock_guard _(entity->frameMutex);
+									entity->lastFramesPreSent[slotId] = localLastFrameIndex;
+								}
 							}
 
 							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
@@ -1543,7 +1568,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					if (syncType == 1)
 					{
-						syncData.hasCreated = true;
+						// #IFNAK
+						if (m_syncStyle == SyncStyle::NAK)
+						{
+							syncData.hasCreated = true;
+						}
 
 						// first-frame update
 						syncType = 2;
@@ -2973,8 +3002,71 @@ void ServerGameState::ParseGameStatePacket(const fx::ClientSharedPtr& client, co
 	case HashString("netClones"):
 		ParseClonePacket(client, *packet);
 		break;
+	// #IFARQ
+	case HashString("netAcks"):
+		ParseAckPacket(client, *packet);
+		break;
 	}
 }
+
+void ServerGameState::ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer)
+{
+	rl::MessageBuffer msgBuf(buffer.GetData().data() + buffer.GetCurOffset(), buffer.GetRemainingBytes());
+
+	bool end = false;
+
+	while (!msgBuf.IsAtEnd() && !end)
+	{
+		auto dataType = msgBuf.Read<uint8_t>(3);
+
+		switch (dataType)
+		{
+			case 1: // clone create
+			{
+				auto objectId = msgBuf.Read<uint16_t>(13);
+				auto uniqifier = msgBuf.Read<uint16_t>(16);
+				auto entity = GetEntity(0, objectId);
+
+				if (entity && entity->uniqifier == uniqifier)
+				{
+					auto syncTree = entity->syncTree;
+
+					if (syncTree)
+					{
+						entity->deletedFor.reset(client->GetSlotId());
+						
+						auto [lock, clientData] = GetClientData(this, client);
+						if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, uniqifier)); secIt != clientData->syncedEntities.end())
+						{
+							secIt->second.hasCreated = true;
+						}
+					}
+				}
+
+				break;
+			}
+			case 3: // clone remove
+			{
+				auto objectId = msgBuf.Read<uint16_t>(13);
+				auto uniqifier = msgBuf.Read<uint16_t>(16);
+
+				auto [lock, clientData] = GetClientData(this, client);
+				clientData->entitiesToDestroy.erase(MakeHandleUniqifierPair(objectId, uniqifier));
+
+				GS_LOG("handle remove ack for [obj:%d:%d]\n", objectId, uniqifier);
+
+				break;
+			}
+			case 7: // end
+				end = true;
+				break;
+			default:
+				end = true;
+				break;
+		}
+	}
+}
+
 
 void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
@@ -2988,10 +3080,30 @@ void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::B
 		ackPacket = std::move(clientData->ackBuffer);
 	}
 
-	AckPacketWrapper ackPacketWrapper{ ackPacket };
-	ackPacketWrapper.flush = [&ackPacket, &client]()
+	auto prepare = [this, &client, &ackPacket]
 	{
-		MaybeFlushBuffer(ackPacket, HashRageString("msgPackedAcks"), 0, client);
+		uint64_t fidx = 0;
+
+		{
+			auto [lock, data] = GetClientData(this, client);
+			fidx = data->fidx;
+		}
+
+		// #IFARQ: frame index didn't use to be 0
+		if (fidx)
+		{
+			// we don't send any data here
+			ackPacket.SetCurrentBit(0);
+		}
+
+		return fidx;
+	};
+
+	AckPacketWrapper ackPacketWrapper{ ackPacket };
+	ackPacketWrapper.flush = [&ackPacket, &client, &prepare]()
+	{
+		auto fidx = prepare();
+		MaybeFlushBuffer(ackPacket, HashRageString("msgPackedAcks"), fidx, client);
 	};
 
 	uint32_t numCreates = 0, numSyncs = 0, numRemoves = 0;
@@ -3039,6 +3151,14 @@ void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::B
 
 			break;
 		}
+		case 6: // set index
+		{
+			auto newIndex = msgBuf.Read<uint32_t>(32);
+			auto [lock, data] = GetClientData(this, client);
+			data->fidx = newIndex;
+
+			break;
+		}
 		case 7: // end
 			end = true;
 			break;
@@ -3048,7 +3168,8 @@ void ServerGameState::ParseClonePacket(const fx::ClientSharedPtr& client, net::B
 		}
 	}
 
-	FlushBuffer(ackPacket, HashRageString("msgPackedAcks"), 0, client, nullptr, true);
+	auto fidx = prepare();
+	FlushBuffer(ackPacket, HashRageString("msgPackedAcks"), fidx, client, nullptr, true);
 
 	{
 		auto [lock, clientData] = GetClientData(this, client);
@@ -3926,6 +4047,7 @@ static InitFunction initFunction([]()
 	{
 		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_ReadOnly, fx::OneSyncState::Off);
 		g_oneSyncPopulation = instance->AddVariable<bool>("onesync_population", ConVar_ReadOnly, true);
+		g_oneSyncARQ = instance->AddVariable<bool>("onesync_automaticResend", ConVar_None, false);
 
 		// .. to infinity?
 		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_ReadOnly, false);
@@ -4042,9 +4164,132 @@ static InitFunction initFunction([]()
 			instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 6 : 32);
 		} });
 
+		// #IFARQ
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(
+		HashRageString("gameStateAck"),
+		{ fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
+		{
+			auto sgs = instance->GetComponent<fx::ServerGameState>();
+
+			if (sgs->GetSyncStyle() != fx::SyncStyle::ARQ)
+			{
+				return;
+			}
+
+			auto slotId = client->GetSlotId();
+
+			if (slotId == -1)
+			{
+				return;
+			}
+
+			// read packet
+			uint64_t frameIndex = buffer.Read<uint64_t>();
+
+			eastl::fixed_map<uint16_t, uint64_t, 32> ignoreHandles;
+			eastl::fixed_set<uint16_t, 32> recreateHandles;
+			uint8_t ignoreCount = buffer.Read<uint8_t>();
+
+			for (int i = 0; i < ignoreCount; i++)
+			{
+				uint16_t id = buffer.Read<uint16_t>();
+				uint64_t lastFrame = buffer.Read<uint64_t>();
+				ignoreHandles.emplace(id, lastFrame);
+			}
+
+			uint8_t recreateCount = buffer.Read<uint8_t>();
+
+			for (int i = 0; i < recreateCount; i++)
+			{
+				uint16_t id = buffer.Read<uint16_t>();
+				recreateHandles.emplace(id);
+			}
+
+			// process
+			auto [lock, clientData] = GetClientData(sgs.GetRef(), client);
+
+			
+			const auto& ref = clientData->frameStates[frameIndex];
+			const auto& [synced, deletions] = ref;
+
+			{
+				for (uint16_t objectId : recreateHandles)
+				{
+					if (auto entIter = synced.find(objectId); entIter != synced.end())
+					{
+						if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
+						{
+							if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, ent->uniqifier)); secIt != clientData->syncedEntities.end())
+							{
+								secIt->second.hasCreated = false;
+							}
+						}
+					}
+				}
+
+				for (auto [objectId, lastFrame] : ignoreHandles)
+				{
+					if (auto entIter = synced.find(objectId); entIter != synced.end())
+					{
+						if (auto ent = entIter->second.GetEntity(sgs.GetRef()))
+						{
+							std::lock_guard _(ent->frameMutex);
+							ent->lastFramesSent[slotId] = std::min(ent->lastFramesSent[slotId], lastFrame);
+							ent->lastFramesPreSent[slotId] = std::min(ent->lastFramesPreSent[slotId], lastFrame);
+						}
+					}
+				}
+			}
+
+			{
+				for (auto& [id, entityData] : synced)
+				{
+					fx::sync::SyncEntityPtr entityRef = entityData.GetEntity(sgs.GetRef());
+
+					if (entityRef)
+					{
+						if (!entityRef->syncTree)
+						{
+							continue;
+						}
+
+						bool hasCreated = false;
+
+						if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(id, entityRef->uniqifier)); secIt != clientData->syncedEntities.end())
+						{
+							hasCreated = secIt->second.hasCreated;
+						}
+
+						bool hasDeleted = entityRef->deletedFor.test(slotId);
+
+						if (!hasCreated || hasDeleted)
+						{
+							continue;
+						}
+
+						if (ignoreHandles.find(entityRef->handle) != ignoreHandles.end())
+						{
+							continue;
+						}
+
+						std::lock_guard _(entityRef->frameMutex);
+						entityRef->lastFramesSent[slotId] = std::min(frameIndex, entityRef->lastFramesPreSent[slotId]);
+					}
+				}
+
+				clientData->frameStates.erase(frameIndex);
+			}
+		} });
+
+		// #IFNAK
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("gameStateNAck"), {
 			fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer) {
 				auto sgs = instance->GetComponent<fx::ServerGameState>();
+
+				if (sgs->GetSyncStyle() != fx::SyncStyle::NAK)
+				{
+					return;
+				}
 				
 				auto slotId = client->GetSlotId();
 				if (slotId == -1)

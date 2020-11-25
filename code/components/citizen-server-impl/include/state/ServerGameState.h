@@ -405,7 +405,12 @@ struct SyncEntityState
 	eastl::bitset<roundToWord(MAX_CLIENTS)> outOfScopeFor;
 
 	std::mutex frameMutex;
+
+	// #IFARQ this means lastFramesAcked
 	std::array<uint64_t, MAX_CLIENTS> lastFramesSent;
+
+	// #IFARQ this means lastFramesSent
+	std::array<uint64_t, MAX_CLIENTS> lastFramesPreSent;
 
 	std::chrono::milliseconds lastReceivedAt;
 	std::chrono::milliseconds lastMigratedAt;
@@ -692,7 +697,7 @@ struct ClientEntityData
 
 	ClientEntityData(const sync::SyncEntityPtr& entity, uint64_t lastSent, bool isCreated);
 
-	sync::SyncEntityPtr GetEntity(fx::ServerGameState* sgs);
+	sync::SyncEntityPtr GetEntity(fx::ServerGameState* sgs) const;
 };
 
 struct EntityDeletionData
@@ -754,6 +759,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	uint32_t syncTs = 0;
 	uint32_t ackTs = 0;
+	uint64_t fidx = 0;
 
 	eastl::fixed_hash_map<uint16_t /* (x << 8) | y */, std::chrono::milliseconds, 10> worldGridCooldown;
 
@@ -774,6 +780,12 @@ enum class EntityLockdownMode
 	Inactive,
 	Relaxed,
 	Strict
+};
+
+enum class SyncStyle
+{
+	NAK = 0,
+	ARQ = 1
 };
 
 class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>, public StateBagGameInterface
@@ -812,6 +824,11 @@ public:
 	inline void SetEntityLockdownMode(EntityLockdownMode mode)
 	{
 		m_entityLockdownMode = mode;
+	}
+
+	inline SyncStyle GetSyncStyle()
+	{
+		return m_syncStyle;
 	}
 
 	uint32_t MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr);
@@ -925,6 +942,7 @@ public:
 	std::set<fx::sync::SyncEntityPtr> m_entityList;
 
 	EntityLockdownMode m_entityLockdownMode;
+	SyncStyle m_syncStyle = SyncStyle::NAK;
 };
 
 // for use in sync trees

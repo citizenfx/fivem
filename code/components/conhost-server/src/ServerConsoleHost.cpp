@@ -250,6 +250,8 @@ void ConHostSvImpl::Run(std::function<bool()>&& fn)
 			break;
 		}
 	}
+
+	CloseHandle(hTimer);
 }
 
 ConHostSvImpl::~ConHostSvImpl()

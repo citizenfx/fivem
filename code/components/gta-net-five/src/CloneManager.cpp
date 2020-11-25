@@ -32,6 +32,7 @@
 
 #include <ResourceManager.h>
 #include <StateBagComponent.h>
+#include <IteratorView.h>
 
 #include <CoreConsole.h>
 
@@ -114,7 +115,7 @@ public:
 
 	virtual rage::netObject* GetNetObject(uint16_t objectId) override;
 
-	virtual void DeleteObjectId(uint16_t objectId, bool force) override;
+	virtual void DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bool force) override;
 
 	virtual void Logv(const char* format, fmt::printf_args argumentList) override;
 
@@ -177,9 +178,9 @@ private:
 
 	void CheckMigration(const msgClone& msg);
 
-	void AddCreateAck(uint16_t objectId);
+	void AddCreateAck(uint16_t objectId, uint16_t uniqifier);
 
-	void AddRemoveAck(uint16_t objectId);
+	void AddRemoveAck(uint16_t objectId, uint16_t uniqifier);
 
 	void ProcessCreateAck(uint16_t objectId, uint16_t uniqifier = 0);
 
@@ -272,6 +273,10 @@ private:
 	fwRefContainer<fx::StateBagComponent> m_sbac;
 
 	FrameIndex m_lastReceivedFrame;
+
+	uint64_t m_serverSendFrame;
+
+	std::multimap<uint64_t, std::tuple<int /* type */, uint16_t /* object */, uint16_t /* identifier */, uint32_t /* timestamp */>> m_serverAcks;
 };
 
 uint16_t CloneManagerLocal::GetClientId(rage::netObject* netObject)
@@ -441,6 +446,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	{
 		rm->SetComponent(sbac);
 	});
+
+	m_serverSendFrame = 0;
 }
 
 void CloneManagerLocal::Reset()
@@ -455,6 +462,8 @@ void CloneManagerLocal::Reset()
 	m_lastAck = 0ms;
 
 	m_ackTimestamp = 0;
+	m_serverAcks.clear();
+	m_serverSendFrame = 0;
 
 	m_sbac->Reset();
 }
@@ -634,7 +643,51 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 	net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
 
 	// dummy frame index
-	buffer.Read<uint64_t>();
+	auto frameIndex = buffer.Read<uint64_t>();
+	FrameIndex frameIndexData{ frameIndex };
+
+	// new handling expects us to send our own little piece of data
+	if (frameIndexData.frameIndex != 0)
+	{
+		auto acks = fx::GetIteratorView(m_serverAcks.equal_range(frameIndexData.frameIndex));
+
+		for (const auto& [key, ack] : acks)
+		{
+			auto [type, objId, uniqifier, ts] = ack;
+
+			switch (type)
+			{
+				// create ack?
+				case 1:
+				{
+					ProcessTimestampAck(ts);
+					ProcessCreateAck(objId, uniqifier);
+
+					break;
+				}
+				// sync ack?
+				case 2:
+				{
+					ProcessTimestampAck(ts);
+					ProcessSyncAck(objId, uniqifier);
+
+					break;
+				}
+				// remove ack?
+				case 3:
+				{
+					ProcessTimestampAck(ts);
+					ProcessRemoveAck(objId, uniqifier);
+
+					break;
+				}
+			}
+		}
+
+		m_serverAcks.erase(frameIndexData.frameIndex);
+
+		return;
+	}
 
 	uint8_t bufferData[16384] = { 0 };
 	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), buffer.GetRemainingBytes(), sizeof(bufferData));
@@ -715,8 +768,19 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 	}
 }
 
-void CloneManagerLocal::AddCreateAck(uint16_t objectId)
+void CloneManagerLocal::AddCreateAck(uint16_t objectId, uint16_t uniqifier)
 {
+	if (icgi->NetProtoVersion >= 0x202011231556 && icgi->SyncIsARQ)
+	{
+		m_ackBuffer.Write(3, 1);
+		m_ackBuffer.Write(13, objectId);
+		m_ackBuffer.Write(16, uniqifier);
+
+		AttemptFlushAckBuffer();
+
+		return;
+	}
+
 	if (icgi->NetProtoVersion >= 0x202007022353)
 	{
 		return;
@@ -728,8 +792,19 @@ void CloneManagerLocal::AddCreateAck(uint16_t objectId)
 	AttemptFlushAckBuffer();
 }
 
-void CloneManagerLocal::AddRemoveAck(uint16_t objectId)
+void CloneManagerLocal::AddRemoveAck(uint16_t objectId, uint16_t uniqifier)
 {
+	if (icgi->NetProtoVersion >= 0x202011231556 && icgi->SyncIsARQ)
+	{
+		m_ackBuffer.Write(3, 3);
+		m_ackBuffer.Write(13, objectId);
+		m_ackBuffer.Write(16, uniqifier);
+
+		AttemptFlushAckBuffer();
+
+		return;
+	}
+
 	if (icgi->NetProtoVersion >= 0x202007022353)
 	{
 		return;
@@ -963,7 +1038,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 		// #NETVER: refactored ACKs
 		if (icgi->NetProtoVersion >= 0x201905310838)
 		{
-			AddCreateAck(msg.GetObjectId());
+			AddCreateAck(msg.GetObjectId(), msg.GetUniqifier());
 		}
 		else
 		{
@@ -1008,7 +1083,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 			ObjectIds_StealObjectId(msg.GetObjectId());
 			g_dontParrotDeletionAcks.insert(msg.GetObjectId());
-			DeleteObjectId(msg.GetObjectId(), true);
+			DeleteObjectId(msg.GetObjectId(), msg.GetUniqifier(), true);
 
 			return false;
 		}
@@ -1554,6 +1629,8 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 				if (uniqifier && objectIt->second.uniqifier != uniqifier)
 				{
 					Log("Invalid uniqifier!\n");
+					AddRemoveAck(remove, uniqifier);
+
 					continue;
 				}
 			}
@@ -1571,20 +1648,39 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			}
 		}
 
-		DeleteObjectId(remove, false);
+		DeleteObjectId(remove, uniqifier, false);
 	}
 
-	if (icgi->NetProtoVersion < 0x202010191044)
+	if (icgi->NetProtoVersion < 0x202010191044 || (icgi->NetProtoVersion >= 0x202011231556 && icgi->SyncIsARQ))
 	{
-		if (msg.GetFrameIndex() & (uint64_t(1) << 63) || icgi->NetProtoVersion < 0x202007022353)
+		bool isLast = false;
+		uint64_t frameIndex = 0;
+
+		if (icgi->NetProtoVersion >= 0x202011231556)
+		{
+			isLast = m_lastReceivedFrame.lastFragment;
+			frameIndex = m_lastReceivedFrame.frameIndex;
+		}
+		else
+		{
+			isLast = msg.GetFrameIndex() & (uint64_t(1) << 63) || icgi->NetProtoVersion < 0x202007022353;
+			frameIndex = msg.GetFrameIndex() & ~(uint64_t(1) << 63);
+		}
+
+		if (isLast)
 		{
 			net::Buffer outBuffer;
-			outBuffer.Write<uint64_t>(msg.GetFrameIndex() & ~(uint64_t(1) << 63));
+			outBuffer.Write<uint64_t>(frameIndex);
 			outBuffer.Write<uint8_t>(uint8_t(ignoreList.size()));
 
-			for (auto [entry, _] : ignoreList)
+			for (auto [entry, lastFrame] : ignoreList)
 			{
 				outBuffer.Write<uint16_t>(entry);
+
+				if (icgi->NetProtoVersion >= 0x202011231556)
+				{
+					outBuffer.Write<uint64_t>(lastFrame);
+				}
 			}
 
 			if (icgi->NetProtoVersion >= 0x202007022353)
@@ -1597,7 +1693,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 				}
 			}
 
-			Log("GSAck for frame index %d w/ %d ignore and %d rec\n", msg.GetFrameIndex() & ~(uint64_t(1) << 63), ignoreList.size(), recreateList.size());
+			Log("GSAck for frame index %d w/ %d ignore and %d rec\n", frameIndex, ignoreList.size(), recreateList.size());
 
 			m_netLibrary->SendUnreliableCommand("gameStateAck", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 
@@ -1676,10 +1772,10 @@ void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
 
 	Log("%s: deleting [obj:%d]\n", __func__, objectId);
 
-	DeleteObjectId(objectId, false);
+	DeleteObjectId(objectId, 0, false);
 }
 
-void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
+void CloneManagerLocal::DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bool force)
 {
 	// find object and remove
 	auto objectIt = m_savedEntities.find(objectId);
@@ -1710,7 +1806,7 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId, bool force)
 	// #NETVER: refactored ACKs
 	if (icgi->NetProtoVersion >= 0x201905310838 && !force)
 	{
-		AddRemoveAck(objectId);
+		AddRemoveAck(objectId, uniqifier);
 	}
 }
 
@@ -1808,7 +1904,7 @@ void CloneManagerLocal::Update()
 
 	SendUpdates(m_sendBuffer, HashString("netClones"));
 
-	if (icgi->NetProtoVersion < 0x202007022353)
+	if (icgi->NetProtoVersion < 0x202007022353 || (icgi->NetProtoVersion >= 0x202011231556 && icgi->SyncIsARQ))
 	{
 		SendUpdates(m_ackBuffer, HashString("netAcks"));
 	}
@@ -2016,10 +2112,23 @@ void CloneManagerLocal::WriteUpdates()
 			return;
 		}
 
+		// remove any old acks
+		if (m_serverSendFrame > 5000)
+		{
+			auto firstAckRemove = (m_serverSendFrame - 5000);
+			auto firstIt = m_serverAcks.lower_bound(firstAckRemove);
+			m_serverAcks.erase(m_serverAcks.begin(), firstIt);
+		}
+
 		uint32_t timestamp = ts;
 
 		m_sendBuffer.Write(3, 5);
 		m_sendBuffer.Write(32, timestamp);
+
+		++m_serverSendFrame;
+
+		m_sendBuffer.Write(3, 6);
+		m_sendBuffer.Write<uint32_t>(32, m_serverSendFrame);
 
 		hitTimestamp = true;
 	};
@@ -2163,8 +2272,7 @@ void CloneManagerLocal::WriteUpdates()
 			}
 		}
 
-		// #TODO1S: make this dynamic based on net_targetRate
-		//syncLatency = std::max(syncLatency, 20ms);
+		syncLatency = std::max(syncLatency, 10ms);
 
 		// determine sync type from sync data
 		int syncType = 0;
@@ -2270,6 +2378,9 @@ void CloneManagerLocal::WriteUpdates()
 					// touch the timestamp
 					touchTimestamp();
 
+					// add pending ack
+					m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(syncType, objectId, objectData.uniqifier, ts));
+
 					// write header to send buffer
 					netBuffer.Write(3, syncType);
 
@@ -2363,6 +2474,13 @@ void CloneManagerLocal::WriteUpdates()
 
 		auto& netBuffer = m_sendBuffer;
 
+		// touch the timestamp (needed for acks)
+		touchTimestamp();
+
+		// add pending *server* ack
+		m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(3, objectId, uniqifier, ts));
+
+		// write packet
 		netBuffer.Write(3, 3);
 		netBuffer.Write(13, objectId); // object ID (short)
 
@@ -2392,7 +2510,7 @@ void CloneManagerLocal::AttemptFlushCloneBuffer()
 
 void CloneManagerLocal::AttemptFlushAckBuffer()
 {
-	if (icgi->NetProtoVersion < 0x202007022353)
+	if (icgi->NetProtoVersion < 0x202007022353 || (icgi->NetProtoVersion >= 0x202011231556 && icgi->SyncIsARQ))
 	{
 		AttemptFlushNetBuffer(m_ackBuffer, HashString("netAcks"));
 	}

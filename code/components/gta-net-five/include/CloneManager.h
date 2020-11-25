@@ -82,7 +82,7 @@ public:
 	virtual bool IsRemovingObjectId(uint16_t objectId) = 0;
 
 	// TEMP: for temporary use during player deletion
-	virtual void DeleteObjectId(uint16_t objectId, bool force = false) = 0;
+	virtual void DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bool force = false) = 0;
 
 public:
 	virtual void Logv(const char* format, fmt::printf_args argumentList) = 0;

@@ -823,7 +823,7 @@ void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, st
 		bit.messages.push_back(std::move(msg));
 	}
 
-	bit.ts = 1000 - (g_drilldownEnd - GetTickCount64());
+	bit.ts = 1500 - (g_drilldownEnd - GetTickCount64());
 
 	g_drilldownData[g_drilldownIdx++] = std::move(bit);
 }

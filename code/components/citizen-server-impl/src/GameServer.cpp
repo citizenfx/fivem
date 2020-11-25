@@ -878,6 +878,7 @@ namespace fx
 			std::vector<fx::ClientSharedPtr> toRemove;
 
 			bool lockdownMode = m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode() == fx::EntityLockdownMode::Strict;
+			uint8_t syncStyle = (uint8_t)m_instance->GetComponent<fx::ServerGameState>()->GetSyncStyle();
 
 			m_clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 			{
@@ -887,17 +888,23 @@ namespace fx
 				{
 					const auto& lm = client->GetData("lockdownMode");
 					const auto& lf = client->GetData("lastFrame");
+					const auto& ss = client->GetData("syncStyle");
 
-					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode || !lf.has_value() || (m_serverTime - std::any_cast<uint64_t>(lf)) > 1000)
+					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode ||
+						!ss.has_value() || std::any_cast<uint8_t>(ss) != syncStyle ||
+						!lf.has_value() ||
+						(m_serverTime - std::any_cast<uint64_t>(lf)) > 1000)
 					{
 						net::Buffer outMsg;
 						outMsg.Write(HashRageString("msgFrame"));
 						outMsg.Write<uint32_t>(0);
 						outMsg.Write<uint8_t>(lockdownMode);
+						outMsg.Write<uint8_t>(syncStyle);
 
 						client->SendPacket(0, outMsg, NetPacketType_Reliable);
 
 						client->SetData("lockdownMode", lockdownMode);
+						client->SetData("syncStyle", syncStyle);
 						client->SetData("lastFrame", m_serverTime);
 					}
 				}

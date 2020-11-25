@@ -35,6 +35,8 @@ public:
 
 	bool OneSyncBigIdEnabled = false;
 
+	bool SyncIsARQ = false;
+
 	uint64_t NetProtoVersion = 0;
 
 private:

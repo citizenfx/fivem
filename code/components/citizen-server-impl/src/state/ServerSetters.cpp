@@ -135,6 +135,9 @@ auto GetNode(sync::NetObjEntityType objectType, const std::shared_ptr<sync::Sync
 		case sync::NetObjEntityType::Train:
 			return std::static_pointer_cast<sync::CTrainSyncTree>(tree)->GetNode<TNode>();
 	}
+
+	assert(!"Invalid object type!");
+	return static_cast<sync::CAutomobileSyncTree*>(nullptr)->GetNode<TNode>();
 }
 
 void DisownEntityScript(const fx::sync::SyncEntityPtr& entity)

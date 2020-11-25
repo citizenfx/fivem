@@ -795,10 +795,16 @@ static HookFunction initFunction([]()
 		auto icgi = Instance<ICoreGameInit>::Get();
 
 		uint8_t strictLockdown = 0;
+		uint8_t syncStyle = 0;
 
 		if (icgi->NetProtoVersion >= 0x202002271209)
 		{
 			strictLockdown = buffer.Read<uint8_t>();
+		}
+
+		if (icgi->NetProtoVersion >= 0x202011231556)
+		{
+			syncStyle = buffer.Read<uint8_t>();
 		}
 
 		static uint8_t lastStrictLockdown;
@@ -816,6 +822,8 @@ static HookFunction initFunction([]()
 
 			lastStrictLockdown = strictLockdown;
 		}
+
+		icgi->SyncIsARQ = syncStyle == 1;
 	}, true);
 
 	/*g_netLibrary->OnInitReceived.Connect([] (NetAddress)
