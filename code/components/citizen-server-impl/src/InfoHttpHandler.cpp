@@ -224,6 +224,7 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			response->SetHeader("Access-Control-Allow-Origin", "*");
 			if (processRequestParanoia(request))
 			{
 				response->SetStatusCode(403);
@@ -265,6 +266,7 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			response->SetHeader("Access-Control-Allow-Origin", "*");
 			if (processRequestParanoia(request))
 			{
 				response->SetStatusCode(403);
@@ -301,6 +303,7 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [instance](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			response->SetHeader("Access-Control-Allow-Origin", "*");
 			if (processRequestParanoia(request))
 			{
 				response->SetStatusCode(403);
@@ -408,6 +411,7 @@ static InitFunction initFunction([]()
 
 		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
 		{
+			response->SetHeader("Access-Control-Allow-Origin", "*");
 			if (!lastProfile)
 			{
 				response->SetStatusCode(404);
@@ -416,7 +420,6 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			response->SetHeader("Access-Control-Allow-Origin", "*");
 
 			response->End(lastProfile->dump(-1, ' ', false, json::error_handler_t::replace));
 		});
