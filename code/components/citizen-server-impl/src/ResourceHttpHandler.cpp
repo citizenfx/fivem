@@ -88,19 +88,9 @@ public:
 	void HandleRequest(const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		auto limiter = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_" + m_resource->GetName(), fx::RateLimiterDefaults{ 10.0, 25.0 });
+		auto address = request->GetRemotePeer();
 
-		auto address = net::PeerAddress::FromString(request->GetRemoteAddress(), 30120, net::PeerAddress::LookupType::NoResolution);
-
-		if (!address)
-		{
-			response->SetStatusCode(400);
-			response->SetHeader("Content-Type", "text/plain; charset=utf-8");
-			response->End("Invalid peer address.");
-
-			return;
-		}
-
-		if (!limiter->Consume(*address))
+		if (!limiter->Consume(address))
 		{
 			response->SetStatusCode(429);
 			response->SetHeader("Content-Type", "text/plain; charset=utf-8");
