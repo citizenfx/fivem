@@ -1523,12 +1523,6 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 				}
 				else
 				{
-					// release the object if it was likely to have been faked
-					if (streaming::IsStreamerShuttingDown())
-					{
-						streaming::Manager::GetInstance()->ReleaseObject(strId + strModule->baseIdx);
-					}
-
 					g_pendingRemovals.insert({ strModule, strId });
 
 					g_customStreamingFileRefs.erase(baseName);
