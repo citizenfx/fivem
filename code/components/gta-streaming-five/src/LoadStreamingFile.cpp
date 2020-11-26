@@ -2069,7 +2069,7 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 		// unload pre-unloaded data files
-		UnloadDataFilesOfTypes({ 0xB3 /* popgroups override */, 166 /* DLC_WEAPON_PICKUPS */ });
+		UnloadDataFilesOfTypes({ 0xB3 /* DLC_POP_GROUPS */, 166 /* DLC_WEAPON_PICKUPS */ });
 #endif
 	}, 99900);
 

@@ -691,6 +691,9 @@ static void SceneLoaderScan(char* loader, uint8_t flags1, uint8_t flags2, uint8_
 
 static HookFunction hookFunction([]()
 {
+	// crash fix: popgroup unloading does an unknown streaming flush, which we don't want
+	hook::put<uint8_t>(hook::get_pattern("33 D2 E8 ? ? ? ? B2 01 8A CA E8 ? ? ? ? 48", 27), 0xC3);
+
 	// crash fix: sceneloader doesn't check if mapdatas obtained from boxstreamer still exist
 	// we'll check for that, as removing anything from boxstreamer is weird
 	MH_Initialize();
