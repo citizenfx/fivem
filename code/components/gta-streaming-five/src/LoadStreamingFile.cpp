@@ -2115,6 +2115,10 @@ static HookFunction hookFunction([]()
 #endif
 			}
 
+			// ClearRequiredFlag
+			streaming::Manager::GetInstance()->ReleaseObject(idx + module->baseIdx, 0xF1);
+
+			// RemoveObject
 			streaming::Manager::GetInstance()->ReleaseObject(idx + module->baseIdx);
 
 #ifdef GTA_FIVE
