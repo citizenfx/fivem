@@ -78,6 +78,7 @@ static void send_sentry_session(const json& data)
 	auto r = cpr::Post(
 	cpr::Url{ "https://sentry.fivem.net/api/2/envelope/" },
 	cpr::Body{bodyData.str()},
+	cpr::VerifySsl{ false },
 	cpr::Header{
 		{
 			"X-Sentry-Auth",
