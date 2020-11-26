@@ -2097,6 +2097,7 @@ static HookFunction hookFunction([]()
 
 		auto typesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
 		auto navMeshStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ynv");
+		auto staticBoundsStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn");
 
 		for (auto [module, idx] : g_pendingRemovals)
 		{
@@ -2129,9 +2130,14 @@ static HookFunction hookFunction([]()
 				rage__fwArchetypeManager__FreeArchetypes(idx);
 			}
 #endif
+		}
 
+		// call RemoveSlot after we have removed all objects, or dependency tracking may crash
+		for (auto [module, idx] : g_pendingRemovals)
+		{
 			// navmeshstore won't remove from some internal 'name hash' and therefore re-registration crashes
-			if (module != navMeshStore)
+			// staticboundsstore has a weird issue too at times (regarding interior proxies?)
+			if (module != navMeshStore && module != staticBoundsStore)
 			{
 				module->RemoveSlot(idx);
 			}
