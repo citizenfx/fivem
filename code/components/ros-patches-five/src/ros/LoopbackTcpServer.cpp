@@ -681,25 +681,32 @@ private:
 		for (const auto& rootTree : { L"", L"bin" })
 		{
 			fs::path plugins_path(MakeRelativeCitPath(rootTree));
-			fs::directory_iterator it(plugins_path), end;
 
-			while (it != end)
+			try
 			{
-				// gta-net-five hooks select() after us, so our hook will think any caller is Cfx
-				if (it->path().extension() == ".dll" && it->path().filename() != "gta-net-five.dll" && it->path().filename() != "gta-net-rdr3.dll")
+				fs::directory_iterator it(plugins_path), end;
+
+				while (it != end)
 				{
-					HMODULE hMod = GetModuleHandle(it->path().c_str());
-
-					if (hMod)
+					// gta-net-five hooks select() after us, so our hook will think any caller is Cfx
+					if (it->path().extension() == ".dll" && it->path().filename() != "gta-net-five.dll" && it->path().filename() != "gta-net-rdr3.dll")
 					{
-						MODULEINFO mi;
-						GetModuleInformation(GetCurrentProcess(), hMod, &mi, sizeof(mi));
+						HMODULE hMod = GetModuleHandle(it->path().c_str());
 
-						set.insert({ (uintptr_t)hMod, (uintptr_t)hMod + mi.SizeOfImage });
+						if (hMod)
+						{
+							MODULEINFO mi;
+							GetModuleInformation(GetCurrentProcess(), hMod, &mi, sizeof(mi));
+
+							set.insert({ (uintptr_t)hMod, (uintptr_t)hMod + mi.SizeOfImage });
+						}
 					}
-				}
 
-				it++;
+					it++;
+				}
+			}
+			catch (std::exception& e)
+			{
 			}
 		}
 
@@ -841,7 +848,21 @@ static int __stdcall EP_WSARecv(SOCKET s, LPWSABUF buffers, DWORD bufferCount, L
 	{
 		// we don't handle any other case yet
 		assert(bufferCount == 1);
-		assert(overlapped);
+		
+		if (!overlapped)
+		{
+			assert(bytesRead);
+
+			int dummy;
+			g_manager->Recv(s, buffers[0].buf, buffers[0].len, 0, &dummy);
+
+			if (dummy >= 0)
+			{
+				*bytesRead = dummy;
+			}
+
+			return (dummy >= 0) ? 0 : SOCKET_ERROR;
+		}
 
 		// check if there's any data to initially read
 		if (g_manager->HasDataInSocket(s))
