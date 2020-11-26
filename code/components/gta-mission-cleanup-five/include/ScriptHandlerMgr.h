@@ -181,3 +181,27 @@ public:
 
 extern MISCLEAN_EXPORT fwEvent<rage::scrThread*, const std::string&> OnCreateResourceThread;
 extern MISCLEAN_EXPORT fwEvent<rage::scrThread*> OnDeleteResourceThread;
+
+#define MISCLEAN_HAS_SCRIPT_PROCESS_TICK
+
+#include <optional>
+
+class MISCLEAN_EXPORT UpdatingScriptThreadsScope
+{
+public:
+	explicit UpdatingScriptThreadsScope(bool newState);
+
+	UpdatingScriptThreadsScope(const UpdatingScriptThreadsScope&) = delete;
+
+	inline UpdatingScriptThreadsScope& operator=(const UpdatingScriptThreadsScope&) = delete;
+
+	inline UpdatingScriptThreadsScope(UpdatingScriptThreadsScope&& other) noexcept
+	{
+		m_lastProcessTick = std::move(other.m_lastProcessTick);
+	}
+
+	~UpdatingScriptThreadsScope();
+
+private:
+	std::optional<bool> m_lastProcessTick;
+};

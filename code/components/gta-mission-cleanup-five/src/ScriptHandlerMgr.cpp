@@ -28,6 +28,22 @@ static rage::scrThread*(*g_origGetThreadById)(uint32_t hash);
 static std::map<uint32_t, rage::scrThread*> g_customThreads;
 static std::map<uint32_t, std::string> g_customThreadsToNames;
 
+static bool* CTheScripts__ms_bUpdatingScriptThreads;
+
+UpdatingScriptThreadsScope::UpdatingScriptThreadsScope(bool newState)
+{
+	m_lastProcessTick = *CTheScripts__ms_bUpdatingScriptThreads;
+	*CTheScripts__ms_bUpdatingScriptThreads = newState;
+}
+
+UpdatingScriptThreadsScope::~UpdatingScriptThreadsScope()
+{
+	if (m_lastProcessTick)
+	{
+		*CTheScripts__ms_bUpdatingScriptThreads = *m_lastProcessTick;
+	}
+}
+
 static rage::scrThread* GetThreadById(uint32_t hash)
 {
 	auto it = g_customThreads.find(hash);
@@ -222,4 +238,6 @@ static HookFunction hookFunctionVtbl([]()
 		g_origDetachScript = ((decltype(g_origDetachScript))vtable[11]);
 		vtable[11] = (uintptr_t)WrapDetachScript;
 	}
+
+	CTheScripts__ms_bUpdatingScriptThreads = hook::get_address<bool*>(hook::get_pattern("45 33 F6 41 8A F0 8B EA 44 38 35", 11));
 });
