@@ -24,6 +24,8 @@
 #include <tbb/concurrent_unordered_map.h>
 #include <thread_pool.hpp>
 
+#include <OneSyncVars.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 
 #if defined(_M_IX86) || defined(_M_AMD64) || defined(__x86_64__) || defined(__i386__)
@@ -775,13 +777,6 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	void MaybeFlushAcks();
 };
 
-enum class EntityLockdownMode
-{
-	Inactive,
-	Relaxed,
-	Strict
-};
-
 enum class SyncStyle
 {
 	NAK = 0,
@@ -932,6 +927,8 @@ private:
 	fwRefContainer<fx::StateBagComponent> m_sbac;
 
 	std::shared_ptr<fx::StateBag> m_globalBag;
+
+	std::shared_ptr<ConVar<EntityLockdownMode>> m_lockdownModeVar;
 
 	//private:
 public:
