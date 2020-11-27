@@ -7,6 +7,7 @@ import { ApiClient, ExplorerChildsMap, FilesystemEntry, FilesystemEntryMeta } fr
 import { explorerApi } from "shared/api.events";
 import { fxdkProjectFilename, resourceManifestFilename, resourceManifestLegacyFilename } from './constants';
 import { notNull } from '../../shared/utils';
+import { NotificationsApi } from './NotificationsApi';
 
 const dirComparator = (a: FilesystemEntry, b: FilesystemEntry): number => {
   if (a.isDirectory && !b.isDirectory) {
@@ -30,6 +31,7 @@ export class ExplorerApi {
 
   constructor(
     private readonly client: ApiClient,
+    private readonly notifications: NotificationsApi,
   ) {
     this.client.on(explorerApi.readRoots, this.onReadRoots);
     this.client.on(explorerApi.readRoot, this.onReadRoot);
@@ -41,19 +43,28 @@ export class ExplorerApi {
   onReadRoots = async () => {
     const drives = await this.readDrives();
 
-    const roots: FilesystemEntry[] = [];
+    const roots: FilesystemEntry[] = (await Promise.all(
+      drives.map(async (drive) => {
+        let children;
+        try {
+          children = await this.readDir(drive + '/');
+        } catch (e) {
+          this.notifications.warning(`Failed to read drive ${drive}: ${e.toString()}`);
 
-    for (const drive of drives) {
-      roots.push({
-        path: drive,
-        name: drive.substr(0, 2),
-        meta: {},
-        isFile: false,
-        isDirectory: true,
-        isSymbolicLink: false,
-        children: await this.readDir(drive),
-      });
-    }
+          return null;
+        }
+
+        return {
+          path: drive,
+          name: drive,
+          meta: {},
+          isFile: false,
+          isDirectory: true,
+          isSymbolicLink: false,
+          children,
+        };
+      }),
+    )).filter(notNull);
 
     this.client.emit(explorerApi.roots, roots);
   };
@@ -101,7 +112,7 @@ export class ExplorerApi {
         cp.exec('wmic logicaldisk get name', { windowsHide: true }, (error, stdout) => {
           resolve(stdout.split('\n')
             .filter(value => /[A-Za-z]:/.test(value))
-            .map(value => value.trim() + '/'));
+            .map(value => value.trim()));
         });
       });
     }

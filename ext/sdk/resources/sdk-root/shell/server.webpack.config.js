@@ -9,6 +9,7 @@ module.exports = {
   resolve: {
     alias: {
       shared: path.join(__dirname, 'src/shared/'),
+      utils: path.join(__dirname, 'src/utils/'),
     },
     extensions: ['.ts', '.tsx', '.js'],
   },

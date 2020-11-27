@@ -16,23 +16,27 @@
   }
 
   .indicator {
-    width: $q*4;
-    height: $q*4;
+    width: $q*3;
+    height: $q*3;
 
-    border: solid 2px $fgColor;
-    box-shadow: 0 0 0 0 $fgColor inset;
+    border: solid $q/2 transparent;
+    box-shadow: 0 0 0 $q/2 $fgColor, 0 0 0 0 $fgColor inset;
 
     transition: box-shadow .2s ease, border .2s ease;
   }
 
   input:checked + .indicator {
-    box-shadow: 0 0 0 $q*4 $fgColor inset;
+    box-shadow: 0 0 0 $q/2 $fgColor, 0 0 0 $q*4 $fgColor inset;
   }
 
   &:hover {
     .indicator {
-      border-color: $acColor;
+      box-shadow: 0 0 0 $q/2 $acColor, 0 0 0 0 $fgColor inset;
       transition: box-shadow .2s ease;
+    }
+
+    input:checked + .indicator {
+      box-shadow: 0 0 0 $q/2 $acColor, 0 0 0 $q*4 $fgColor inset;
     }
   }
 

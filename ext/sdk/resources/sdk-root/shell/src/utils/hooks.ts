@@ -64,3 +64,34 @@ export const useOpenFlag = (defaultValue: boolean = false): UseOpenFlagHook => {
 
   return [isOpen, open, close, toggle];
 };
+
+
+export const useStore = <T>(defaultValue: Record<string, T>) => {
+  const [sentinel, setSentinel] = React.useState({});
+
+  const storeRef = React.useRef(defaultValue);
+
+  const set = React.useCallback((id: string, item: T) => {
+    storeRef.current[id] = item;
+
+    setSentinel({});
+  }, [setSentinel]);
+
+  const get = React.useCallback((id: string) => {
+    return storeRef.current[id];
+  }, []);
+
+  const remove = React.useCallback((id: string) => {
+    delete storeRef.current[id];
+
+    setSentinel({});
+  }, [setSentinel]);
+
+  return {
+    store: storeRef.current,
+    set,
+    get,
+    remove,
+    ___sentinel: sentinel,
+  };
+};

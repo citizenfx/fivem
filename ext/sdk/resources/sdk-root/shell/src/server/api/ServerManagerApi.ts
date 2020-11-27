@@ -8,6 +8,7 @@ import { ApiClient, ServerInstallationState, ServerUpdateChannel, serverUpdateCh
 import * as paths from '../paths';
 import { downloadArtifact, prepareServer, unpackArtifact, versionFilename } from '../serverInstaller';
 import { serverApi } from 'shared/api.events';
+import { NotificationsApi } from './NotificationsApi';
 
 const rimraf = promisify(rimrafSync);
 
@@ -54,6 +55,7 @@ export class ServerManagerApi {
 
   constructor(
     private readonly client: ApiClient,
+    private readonly notifications: NotificationsApi,
   ) {
     this.client.on(serverApi.installUpdate, (updateChannel: ServerUpdateChannel) => this.install(updateChannel));
     this.client.on(serverApi.ackInstallationState, () => this.ackInstallationState());
@@ -138,19 +140,29 @@ export class ServerManagerApi {
    * Fetches recent server versions from build server
    */
   private async fetchVersions() {
-    const versionsContent = await fetch('https://changelogs-live.fivem.net/api/changelog/versions/win32/server').then((res) => res.json());
+    try {
+      const versionsContent = await fetch('https://changelogs-live.fivem.net/api/changelog/versions/win32/server').then((res) => res.json());
 
-    this.versions = {};
+      this.versions = {};
 
-    updateChannels.forEach((updateChannel) => {
-      const versionField = updateChannel;
-      const linkField = `${updateChannel}_download`;
+      updateChannels.forEach((updateChannel) => {
+        const versionField = updateChannel;
+        const linkField = `${updateChannel}_download`;
 
-      this.versions[updateChannel] = {
-        version: versionsContent[versionField],
-        link: versionsContent[linkField],
-      };
-    });
+        this.versions[updateChannel] = {
+          version: versionsContent[versionField],
+          link: versionsContent[linkField],
+        };
+      });
+    } catch (e) {
+      this.notifications.error(`Failed to fetch server versions from remote host: ${e.toString()}`);
+
+      updateChannels.map((updateChannel) => {
+        this.updateChannelsState[updateChannel] = ServerUpdateStates.ready;
+      });
+
+      this.ackUpdateChannelsState();
+    }
   }
 
   private async install(updateChannel: ServerUpdateChannel) {
@@ -184,17 +196,22 @@ export class ServerManagerApi {
       let totalDownloadSize = 0;
       let doneDownloadSize = 0;
 
-      await downloadArtifact(
-        link,
-        downloadingArtifactPath,
-        (totalSize) => totalDownloadSize = totalSize,
-        (chunkSize) => {
-          doneDownloadSize += chunkSize;
+      try {
+        await downloadArtifact(
+          link,
+          downloadingArtifactPath,
+          (totalSize) => totalDownloadSize = totalSize,
+          (chunkSize) => {
+            doneDownloadSize += chunkSize;
 
-          installationState.downloadedPercentage = doneDownloadSize / totalDownloadSize;
-          this.ackInstallationState();
-        },
-      );
+            installationState.downloadedPercentage = doneDownloadSize / totalDownloadSize;
+            this.ackInstallationState();
+          },
+        );
+      } catch (e) {
+        this.notifications.error(`Failed to download server artifact: ${e.toString()}`);
+        return;
+      }
 
       await fs.promises.rename(downloadingArtifactPath, artifactPath);
     } else {
@@ -210,17 +227,22 @@ export class ServerManagerApi {
       let totalUnpackSize = 0;
       let doneUnpackSize = 0;
 
-      await unpackArtifact(
-        artifactPath,
-        artifactExtractionPath,
-        (totalSize) => totalUnpackSize = totalSize,
-        (chunkSize) => {
-          doneUnpackSize += chunkSize;
+      try {
+        await unpackArtifact(
+          artifactPath,
+          artifactExtractionPath,
+          (totalSize) => totalUnpackSize = totalSize,
+          (chunkSize) => {
+            doneUnpackSize += chunkSize;
 
-          installationState.unpackedPercentage = doneUnpackSize / totalUnpackSize;
-          this.ackInstallationState();
-        },
-      );
+            installationState.unpackedPercentage = doneUnpackSize / totalUnpackSize;
+            this.ackInstallationState();
+          },
+        );
+      } catch (e) {
+        this.notifications.error(`Failed to unpack server artifact: ${e.toString()}`);
+        return;
+      }
     }
 
     await prepareServer(artifactExtractionPath, version);

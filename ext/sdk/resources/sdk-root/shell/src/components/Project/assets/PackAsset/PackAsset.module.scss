@@ -1,14 +1,6 @@
 @import "variables";
 
 .root {
-  box-shadow: 0 0 0 0 rgba($acColor, .75) inset;
-
-  transition: all .2s ease;
-
-  &.open {
-    box-shadow: 4px 0 0 0 rgba($acColor, .75) inset;
-  }
-
   .name {
     position: relative;
     display: flex;

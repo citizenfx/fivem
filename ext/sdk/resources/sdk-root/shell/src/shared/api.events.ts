@@ -103,3 +103,9 @@ export const statusesApi = {
   update: 'statuses:update',
   statuses: 'statuses:statuses',
 };
+
+export const notificationsApi = {
+  ack: 'notifications:ack',
+  create: 'notifications:create',
+  delete: 'notifications:delete',
+};

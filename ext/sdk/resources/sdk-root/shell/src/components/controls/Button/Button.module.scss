@@ -24,16 +24,14 @@
 
   cursor: pointer;
 
-	transition: all .2s ease;
-
 	color: $fgColor;
   border: solid 2px rgba($fgColor, .75);
+
+  @include interactiveTransition;
 
   &:hover {
     color: $bgColor;
     background-color: $fgColor;
-
-    transition: none;
   }
 
   &.disabled {

@@ -65,3 +65,15 @@ lineStream.on('data', (msg) => {
 });
 
 ipc.pipe(lineStream);
+
+setTimeout(() => {
+  // Check for resources state that we can't catch with `onResourceStart` as they start before sdk-game
+  ['sessionmanager', 'sessionmanager-rdr3'].map((resourceName) => {
+    const resourceState = GetResourceState(resourceName);
+
+    if (resourceState === 'starting' || resourceState === 'started') {
+      resourcesState[resourceName] = true;
+      sendState();
+    }
+  });
+}, 0);

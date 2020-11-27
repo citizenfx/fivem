@@ -13,6 +13,7 @@ import { StatusContextProvider } from 'contexts/StatusContext';
 import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
 import { enableLogger } from 'utils/logger';
+import { NotificationsManager } from 'managers/NotificationsManager/NotificationsManager';
 
 enableLogger('shell,shell:*,host');
 
@@ -25,6 +26,8 @@ ReactDOM.render(
             <ServerContextProvider>
               <TitleManager />
               <TheiaProjectManager />
+              <NotificationsManager />
+
               <Shell />
             </ServerContextProvider>
           </ProjectContextProvider>
