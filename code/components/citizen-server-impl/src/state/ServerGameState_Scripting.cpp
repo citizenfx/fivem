@@ -8,6 +8,7 @@
 #include <ScriptEngine.h>
 
 #include <ScriptSerialization.h>
+#include <MakeClientFunction.h>
 #include <MakePlayerEntityFunction.h>
 
 namespace fx
@@ -1126,6 +1127,79 @@ static InitFunction initFunction([]()
 		{
 			float radius = context.GetArgument<float>(1);
 			entity->overrideCullingRadius = radius * radius;
+		}
+
+		return true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ROUTING_BUCKET", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		auto [lock, clientData] = gameState->ExternalGetClientData(client);
+		return int(clientData->routingBucket);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_ROUTING_BUCKET", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			auto bucket = context.GetArgument<int>(1);
+
+			if (bucket >= 0 && bucket < fx::kNumRoutingBuckets)
+			{
+				// get the current resource manager
+				auto resourceManager = fx::ResourceManager::GetCurrent();
+
+				// get the owning server instance
+				auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+				// get the server's game state
+				auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+				auto [lock, clientData] = gameState->ExternalGetClientData(client);
+				gameState->ClearClientFromWorldGrid(client);
+				clientData->routingBucket = bucket;
+				
+				fx::sync::SyncEntityPtr playerEntity;
+
+				{
+					std::shared_lock _lock(clientData->playerEntityMutex);
+					playerEntity = clientData->playerEntity.lock();
+				}
+
+				if (playerEntity)
+				{
+					playerEntity->routingBucket = bucket;
+				}
+			}
+		}
+
+		return true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROUTING_BUCKET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		return int(entity->routingBucket);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ROUTING_BUCKET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			auto bucket = context.GetArgument<int>(1);
+
+			if (bucket >= 0 && bucket < fx::kNumRoutingBuckets)
+			{
+				entity->routingBucket = bucket;
+			}
 		}
 
 		return true;

@@ -872,6 +872,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				isRelevant = false;
 			}
 
+			// don't route entities that aren't part of the routing bucket
+			if (clientDataUnlocked->routingBucket != entity->routingBucket)
+			{
+				if (!(entity == playerEntity))
+				{
+					isRelevant = false;
+				}
+			}
+
 			// if we own this entity, we need to assign as relevant.
 			// -> even if not client-script, as if it isn't, we'll end up stuck without migrating it
 			if (ownsEntity/* && entity->IsOwnedByClientScript()*/)
@@ -888,7 +897,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->wantsReassign = true;
 
 					// but don't force it to exist for ourselves if it's not script-owned
-					if (entity->IsOwnedByClientScript())
+					if (entity->IsOwnedByClientScript() && entity->routingBucket == clientDataUnlocked->routingBucket)
 					{
 						isRelevant = true;
 					}
@@ -1812,15 +1821,17 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 {
 	auto sendWorldGrid = [this, entry](const fx::ClientSharedPtr& client)
 	{
+		auto data = GetClientDataUnlocked(this, client);
+
 		net::Buffer msg;
 		msg.Write<uint32_t>(HashRageString("msgWorldGrid3"));
 
 		uint32_t base = 0;
-		uint32_t length = sizeof(m_worldGrid);
+		uint32_t length = sizeof(m_worldGrids[data->routingBucket].state[0]);
 
 		if (entry)
 		{
-			base = ((WorldGridEntry*)entry - &m_worldGrid[0].entries[0]) * sizeof(WorldGridEntry);
+			base = ((WorldGridEntry*)entry - &m_worldGrids[data->routingBucket].state[0].entries[0]) * sizeof(WorldGridEntry);
 			length = sizeof(WorldGridEntry);
 		}
 
@@ -1830,8 +1841,8 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 		}
 
 		// really bad way to snap the world grid data to a client's own base
-		uint32_t baseRef = sizeof(m_worldGrid[0]) * client->GetSlotId();
-		uint32_t lengthRef = sizeof(m_worldGrid[0]);
+		uint32_t baseRef = sizeof(m_worldGrids[data->routingBucket].state[0]) * client->GetSlotId();
+		uint32_t lengthRef = sizeof(m_worldGrids[data->routingBucket].state[0]);
 
 		if (base < baseRef)
 		{
@@ -1848,7 +1859,7 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 		msg.Write<uint32_t>(base - baseRef);
 		msg.Write<uint32_t>(length);
 
-		msg.Write(reinterpret_cast<char*>(m_worldGrid) + base, length);
+		msg.Write(reinterpret_cast<char*>(m_worldGrids[data->routingBucket].state) + base, length);
 
 		client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 	};
@@ -1876,13 +1887,16 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 
 	if (now >= nextWorldCheck)
 	{
-		for (size_t x = 0; x < std::size(m_worldGridAccel.netIDs); x++)
+		for (auto& grid : m_worldGrids)
 		{
-			for (size_t y = 0; y < std::size(m_worldGridAccel.netIDs[x]); y++)
+			for (size_t x = 0; x < std::size(grid.accel.netIDs); x++)
 			{
-				if (m_worldGridAccel.netIDs[x][y] != 0xFFFF && !clientRegistry->GetClientByNetID(m_worldGridAccel.netIDs[x][y]))
+				for (size_t y = 0; y < std::size(grid.accel.netIDs[x]); y++)
 				{
-					m_worldGridAccel.netIDs[x][y] = 0xFFFF;
+					if (grid.accel.netIDs[x][y] != 0xFFFF && !clientRegistry->GetClientByNetID(grid.accel.netIDs[x][y]))
+					{
+						grid.accel.netIDs[x][y] = 0xFFFF;
+					}
 				}
 			}
 		}
@@ -1920,15 +1934,14 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		int minSectorY = std::max((pos.y - 299.0f) + 8192.0f, 0.0f) / 150;
 		int maxSectorY = std::max((pos.y + 299.0f) + 8192.0f, 0.0f) / 150;
 
-		if (minSectorX < 0 || minSectorX > std::size(m_worldGridAccel.netIDs) ||
-			minSectorY < 0 || minSectorY > std::size(m_worldGridAccel.netIDs[0]))
+		if (minSectorX < 0 || minSectorX > std::size(m_worldGrids[data->routingBucket].accel.netIDs) || minSectorY < 0 || minSectorY > std::size(m_worldGrids[data->routingBucket].accel.netIDs[0]))
 		{
 			return;
 		}
 
 		auto netID = client->GetNetId();
 
-		WorldGridState* gridState = &m_worldGrid[slotID];
+		WorldGridState* gridState = &m_worldGrids[data->routingBucket].state[slotID];
 
 		// remove any cooldowns we're not at
 		for (auto it = data->worldGridCooldown.begin(); it != data->worldGridCooldown.end();)
@@ -1955,9 +1968,9 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 				if (entry.sectorX < minSectorX || entry.sectorX > maxSectorX ||
 					entry.sectorY < minSectorY || entry.sectorY > maxSectorY)
 				{
-					if (m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] == netID)
+					if (m_worldGrids[data->routingBucket].accel.netIDs[entry.sectorX][entry.sectorY] == netID)
 					{
-						m_worldGridAccel.netIDs[entry.sectorX][entry.sectorY] = -1;
+						m_worldGrids[data->routingBucket].accel.netIDs[entry.sectorX][entry.sectorY] = -1;
 					}
 
 					data->worldGridCooldown.erase((uint16_t(entry.sectorX) << 8) | entry.sectorY);
@@ -1979,7 +1992,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			for (int y = minSectorY; y <= maxSectorY; y++)
 			{
 				// find if this x/y is owned by someone already
-				bool found = (m_worldGridAccel.netIDs[x][y] != 0xFFFF);
+				bool found = (m_worldGrids[data->routingBucket].accel.netIDs[x][y] != 0xFFFF);
 
 				// if not, find out if we even have any chance at having an entity in there (cooldown of ~5 ticks, might need a more accurate query somewhen)
 				auto secAddr = (uint16_t(x) << 8) | y;
@@ -2018,7 +2031,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 							entry.sectorY = y;
 							entry.netID = netID;
 
-							m_worldGridAccel.netIDs[x][y] = netID;
+							m_worldGrids[data->routingBucket].accel.netIDs[x][y] = netID;
 
 							SendWorldGrid(&entry, client);
 
@@ -2251,30 +2264,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 	}
 
 	// clear the player's world grid ownership
-	if (slotId != -1)
-	{
-		WorldGridState* gridState = &m_worldGrid[slotId];
-
-		for (auto& entry : gridState->entries)
-		{
-			entry.netID = -1;
-			entry.sectorX = 0;
-			entry.sectorY = 0;
-		}
-	}
-
-	{
-		for (size_t x = 0; x < std::size(m_worldGridAccel.netIDs); x++)
-		{
-			for (size_t y = 0; y < std::size(m_worldGridAccel.netIDs[x]); y++)
-			{
-				if (m_worldGridAccel.netIDs[x][y] == netId)
-				{
-					m_worldGridAccel.netIDs[x][y] = 0xFFFF;
-				}
-			}
-		}
-	}
+	ClearClientFromWorldGrid(client);
 
 	std::set<uint32_t> toErase;
 
@@ -2361,6 +2351,40 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 	}
 
 	client->SetSyncData({});
+}
+
+void ServerGameState::ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient)
+{
+	auto clientDataUnlocked = GetClientDataUnlocked(this, targetClient);
+	auto slotId = targetClient->GetSlotId();
+	auto netId = targetClient->GetNetId();
+
+	if (slotId != -1)
+	{
+		WorldGridState* gridState = &m_worldGrids[clientDataUnlocked->routingBucket].state[slotId];
+
+		for (auto& entry : gridState->entries)
+		{
+			entry.netID = -1;
+			entry.sectorX = 0;
+			entry.sectorY = 0;
+		}
+	}
+
+	{
+		for (size_t x = 0; x < std::size(m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs); x++)
+		{
+			for (size_t y = 0; y < std::size(m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs[x]); y++)
+			{
+				if (m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs[x][y] == netId)
+				{
+					m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs[x][y] = 0xFFFF;
+				}
+			}
+		}
+	}
+
+	SendWorldGrid(nullptr, targetClient);
 }
 
 void ServerGameState::ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket)
@@ -2681,6 +2705,9 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			entity->uniqifier = uniqifier;
 			entity->creationToken = creationToken;
 			entity->syncTree = MakeSyncTree(objectType);
+
+			auto data = GetClientDataUnlocked(this, client);
+			entity->routingBucket = data->routingBucket;
 
 			createdHere = true;
 		}

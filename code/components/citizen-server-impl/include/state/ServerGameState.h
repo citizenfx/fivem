@@ -398,6 +398,7 @@ struct SyncEntityState
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
+	uint8_t routingBucket = 0;
 	uint32_t creationToken;
 	float overrideCullingRadius = 0.0f;
 
@@ -683,6 +684,7 @@ struct AckPacketWrapper
 	}
 };
 
+static constexpr const int kNumRoutingBuckets = 64;
 static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityData
@@ -767,6 +769,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	std::shared_ptr<fx::StateBag> playerBag;
 
+	uint8_t routingBucket = 0;
+
 	GameStateClientData()
 		: syncing(false)
 	{
@@ -808,6 +812,8 @@ public:
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
 
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
+
+	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);
 
 	fx::sync::SyncEntityPtr CreateEntityFromTree(sync::NetObjEntityType type, const std::shared_ptr<sync::SyncTreeBase>& tree);
 
@@ -891,8 +897,6 @@ private:
 		WorldGridEntry entries[32];
 	};
 
-	WorldGridState m_worldGrid[MAX_CLIENTS];
-
 	struct WorldGridOwnerIndexes
 	{
 		uint16_t netIDs[256][256];
@@ -909,8 +913,14 @@ private:
 		}
 	};
 
-	WorldGridOwnerIndexes m_worldGridAccel;
+	struct WorldGrid
+	{
+		WorldGridState state[MAX_CLIENTS];
+		WorldGridOwnerIndexes accel;
+	};
 
+	WorldGrid m_worldGrids[kNumRoutingBuckets];
+	
 	void SendWorldGrid(void* entry = nullptr, const fx::ClientSharedPtr& client = {});
 
 public:
