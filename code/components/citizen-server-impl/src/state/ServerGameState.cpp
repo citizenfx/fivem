@@ -2834,20 +2834,33 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			}
 		}
 
+		auto startDelete = [this, entity, client, objectId, uniqifier]()
+		{
+			RemoveClone({}, entity->handle);
+
+			// if the entity isn't added yet, the owner should be told of its deletion too
+			{
+				auto [lock, data] = GetClientData(this, client);
+				data->entitiesToDestroy[MakeHandleUniqifierPair(objectId, uniqifier)] = { entity, { false, false } };
+			}
+		};
+
 		// if we're in entity lockdown, validate the entity first
 		if (m_entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
 		{
 			if (!ValidateEntity(entity))
 			{
 				// yeet
-				RemoveClone({}, entity->handle);
+				startDelete();
+
 				return false;
 			}
 		}
 
 		if (!OnEntityCreate(entity))
 		{
-			RemoveClone({}, entity->handle);
+			startDelete();
+
 			return false;
 		}
 
