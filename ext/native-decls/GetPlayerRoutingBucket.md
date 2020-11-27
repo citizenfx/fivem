@@ -2,10 +2,10 @@
 ns: CFX
 apiset: server
 ---
-## GET_ENTITY_ROUTING_BUCKET
+## GET_PLAYER_ROUTING_BUCKET
 
 ```c
-int GET_ENTITY_ROUTING_BUCKET(char* playerSrc);
+int GET_PLAYER_ROUTING_BUCKET(char* playerSrc);
 ```
 
 Gets the routing bucket for the specified player.
