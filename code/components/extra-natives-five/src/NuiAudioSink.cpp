@@ -23,7 +23,10 @@
 #include <MumbleAudioSink.h>
 #include <concurrent_queue.h>
 
+#include <MinHook.h>
+
 #include <ScriptEngine.h>
+#include <audDspEffect.h>
 
 static concurrency::concurrent_queue<std::function<void()>> g_mainQueue;
 
@@ -33,6 +36,177 @@ namespace rage
 	{
 	public:
 		static audWaveSlot* FindWaveSlot(uint32_t hash);
+	};
+
+	class audChannelVoiceVolumes
+	{
+	public:
+		alignas(16) float volumes[6];
+
+		audChannelVoiceVolumes()
+		{
+			memset(volumes, 0, sizeof(volumes));
+		}
+	};
+
+	class audMixerSubmix
+	{
+	public:
+		void AddOutput(uint32_t output, bool a2, bool a3);
+		void SetEffect(int slot, audDspEffect* effect, uint32_t mask = 0xF);
+		void SetFlag(int id, bool value);
+		void SetEffectParam(int slot, uint32_t hash, uint32_t value);
+		void SetEffectParam(int slot, uint32_t hash, float value);
+		void SetOutputVolumes(uint32_t slot, const audChannelVoiceVolumes& volumes);
+	};
+
+	static hook::thiscall_stub<void(audMixerSubmix* self, uint32_t output, bool a2, bool a3)> _audMixerSubmix_AddOutput([]
+	{
+		return hook::get_pattern("44 88 4C 24 29 0D 28 00 00 03", -0x1B);
+	});
+
+	static hook::thiscall_stub<void(audMixerSubmix* self, int slot, audDspEffect* effect, uint32_t mask)> _audMixerSubmix_SetEffect([]
+	{
+		return hook::get_pattern("0D 08 00 00 06 89 44 24 20", -0x20);
+	});
+
+	static hook::thiscall_stub<void(audMixerSubmix* self, int slot, uint32_t hash, uint32_t value)> _audMixerSubmix_SetEffectParam_int([]
+	{
+		return hook::get_pattern("44 89 44 24 24 44 89 4C 24 28 0D 10 00 00", -0x16);
+	});
+
+	static hook::thiscall_stub<void(audMixerSubmix* self, int slot, uint32_t hash, float value)> _audMixerSubmix_SetEffectParam_float([]
+	{
+		return hook::get_pattern("F3 0F 11 5C 24 28 25 07 F8 3F 00 44 89", -0x11);
+	});
+
+	static hook::thiscall_stub<void(audMixerSubmix* self, int id, bool value)> _audMixerSubmix_SetFlag([]
+	{
+		return hook::get_pattern("0D 20 00 00 03 89 44 24 20", -0x1B);
+	});
+
+	static hook::thiscall_stub<void(audMixerSubmix* self, uint32_t slot, const audChannelVoiceVolumes& volumes)> _audMixerSubmix_SetOutputVolumes([]
+	{
+		return hook::get_pattern("25 07 F8 3F 00 89 54 24 24 48 8D", -0x11);
+	});
+
+	void audMixerSubmix::AddOutput(uint32_t output, bool a2, bool a3)
+	{
+		return _audMixerSubmix_AddOutput(this, output, a2, a3);
+	}
+
+	void audMixerSubmix::SetEffect(int slot, audDspEffect* effect, uint32_t mask /* = 0xF */)
+	{
+		return _audMixerSubmix_SetEffect(this, slot, effect, mask);
+	}
+
+	void audMixerSubmix::SetEffectParam(int slot, uint32_t hash, float value)
+	{
+		return _audMixerSubmix_SetEffectParam_float(this, slot, hash, value);
+	}
+
+	void audMixerSubmix::SetEffectParam(int slot, uint32_t hash, uint32_t value)
+	{
+		return _audMixerSubmix_SetEffectParam_int(this, slot, hash, value);
+	}
+
+	void audMixerSubmix::SetFlag(int id, bool value)
+	{
+		return _audMixerSubmix_SetFlag(this, id, value);
+	}
+
+	void audMixerSubmix::SetOutputVolumes(uint32_t slot, const audChannelVoiceVolumes& volumes)
+	{
+		return _audMixerSubmix_SetOutputVolumes(this, slot, volumes);
+	}
+
+	class audMixerDevice
+	{
+	public:
+		audMixerSubmix* CreateSubmix(const char* name, int numOutputChannels, bool a3);
+		uint8_t GetSubmixIndex(audMixerSubmix* submix);
+		void ComputeProcessingGraph();
+		void FlagThreadCommandBufferReadyToProcess(uint32_t a1 = 0);
+		void InitClientThread(const char* name, uint32_t bufferSize);
+
+		inline audMixerSubmix* GetSubmix(int idx)
+		{
+			if (idx < 0 || idx >= 40)
+			{
+				return nullptr;
+			}
+
+			return (audMixerSubmix*)m_submixes[idx];
+		}
+
+	private:
+		virtual ~audMixerDevice() = 0;
+
+		uint64_t m_8;
+		uint8_t m_submixes[40][256];
+		uint32_t m_numSubmixes;
+	};
+
+	static hook::thiscall_stub<audMixerSubmix*(audMixerDevice* self, const char* name, int numOutputChannels, bool a3)> _audMixerDevice_CreateSubmix([]
+	{
+		return hook::get_pattern("48 C1 E3 08 89 82 00 28 00", -0x17);
+	});
+
+	static hook::thiscall_stub<uint8_t(audMixerDevice* self, audMixerSubmix* submix)> _audMixerDevice_GetSubmixIndex([]
+	{
+		return hook::get_pattern("83 C8 FF C3 48 2B D1", -0x5);
+	});
+
+	static hook::thiscall_stub<void(audMixerDevice* self)> _audMixerDevice_ComputeProcessingGraph([]
+	{
+		return hook::get_pattern("48 63 83 00 28 00 00 48 8B CB 41 BD", -0x28);
+	});
+
+	static hook::thiscall_stub<void(audMixerDevice* self, uint32_t)> _audMixerDevice_FlagThreadCommandBufferReadyToProcess([]
+	{
+		return hook::get_pattern("48 8B 81 68 F2 00 00 4E 8B", -0x25);
+	});
+
+	static hook::thiscall_stub<void(audMixerDevice* self, const char*, uint32_t)> _audMixerDevice_InitClientThread([]
+	{
+		return hook::get_pattern("B9 B0 00 00 00 45 8B F0 48 8B FA E8", -0x1C);
+	});
+
+	audMixerSubmix* audMixerDevice::CreateSubmix(const char* name, int numOutputChannels, bool a3)
+	{
+		return _audMixerDevice_CreateSubmix(this, name, numOutputChannels, a3);
+	}
+
+	uint8_t audMixerDevice::GetSubmixIndex(audMixerSubmix* submix)
+	{
+		return _audMixerDevice_GetSubmixIndex(this, submix);
+	}
+
+	void audMixerDevice::ComputeProcessingGraph()
+	{
+		return _audMixerDevice_ComputeProcessingGraph(this);
+	}
+
+	void audMixerDevice::FlagThreadCommandBufferReadyToProcess(uint32_t a1 /* = 0 */)
+	{
+		return _audMixerDevice_FlagThreadCommandBufferReadyToProcess(this, a1);
+	}
+
+	void audMixerDevice::InitClientThread(const char* name, uint32_t bufferSize)
+	{
+		return _audMixerDevice_InitClientThread(this, name, bufferSize);
+	}
+
+	class audDriver
+	{
+	public:
+		inline static audMixerDevice* GetMixer()
+		{
+			return *sm_Mixer;
+		}
+
+	public:
+		static audMixerDevice** sm_Mixer;
 	};
 
 	class audRequestedSettings;
@@ -304,7 +478,10 @@ namespace rage
 
 	void audSoundInitParams::SetSubmixIndex(uint8_t submix)
 	{
-		*(uint8_t*)(&m_pad[152]) = submix;
+		m_pad[155] = (submix - 0x1C) | 0x20;
+		// this field does really weird stuff in game
+		//*(uint8_t*)(&m_pad[0x98]) = submix;
+		//*(uint16_t*)(&m_pad[0x9B]) = 3;
 	}
 
 	void audSoundInitParams::SetUnk()
@@ -569,6 +746,8 @@ namespace rage
 		g_categoryMgr = hook::get_address<audCategoryManager*>(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", -4));
 
 		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16));
+
+		audDriver::sm_Mixer = hook::get_address<audMixerDevice**>(hook::get_pattern("75 64 44 0F B7 45 06 48 8B 0D", 10));
 	});
 
 	static hook::cdecl_stub<audWaveSlot*(uint32_t)> _findWaveSlot([]()
@@ -730,6 +909,11 @@ public:
 
 	void PushAudio(int16_t* pcm, int len);
 
+	void SetSubmixId(int id)
+	{
+		m_submixId = id;
+	}
+
 private:
 	rage::audExternalStreamSound* m_sound;
 
@@ -744,6 +928,8 @@ private:
 	uint8_t* m_bufferData;
 
 	naEnvironmentGroup* m_environmentGroup;
+
+	int m_submixId = -1;
 
 	CPed* m_ped;
 };
@@ -781,7 +967,11 @@ void MumbleAudioEntity::MInit()
 	initValues.SetPositional(true);
 
 	initValues.SetEnvironmentGroup(m_environmentGroup);
-	//initValues.SetSubmixIndex(12);
+
+	if (m_submixId >= 0)
+	{
+		initValues.SetSubmixIndex(m_submixId);
+	}
 
 	//CreateSound_PersistentReference(0xD8CE9439, (rage::audSound**)&m_sound, initValues);
 	CreateSound_PersistentReference(0x8460F301, (rage::audSound**)&m_sound, initValues);
@@ -953,10 +1143,15 @@ private:
 	float m_distance;
 	float m_overrideVolume;
 	float m_lastOverrideVolume = -1.0f;
+
+	int m_lastSubmixId = -1;
 };
 
 static std::mutex g_sinksMutex;
 static std::set<MumbleAudioSink*> g_sinks;
+
+static std::shared_mutex g_submixMutex;
+static std::map<int, int> g_submixIds;
 
 MumbleAudioSink::MumbleAudioSink(const std::wstring& name)
 	: m_serverId(-1), m_position(rage::Vec3V{ 0.f, 0.f, 0.f }), m_distance(5.0f), m_overrideVolume(-1.0f)
@@ -1046,6 +1241,16 @@ void MumbleAudioSink::Process()
 	auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, m_serverId);
 	bool isNoPlayer = (playerId > 256 || playerId == -1);
 
+	int submixId = -1;
+
+	{
+		std::shared_lock _(g_submixMutex);
+		if (auto it = g_submixIds.find(m_serverId); it != g_submixIds.end())
+		{
+			submixId = it->second;
+		}
+	}
+
 	if (isNoPlayer && m_overrideVolume <= 0.0f)
 	{
 		m_entity = {};
@@ -1055,14 +1260,20 @@ void MumbleAudioSink::Process()
 		if (!m_entity)
 		{
 			m_entity = std::make_shared<MumbleAudioEntity>();
+			m_entity->SetSubmixId(submixId);
 			m_entity->Init();
+
+			m_lastSubmixId = submixId;
 		}
 
-		if (m_overrideVolume != m_lastOverrideVolume)
+		if (m_overrideVolume != m_lastOverrideVolume ||
+			submixId != m_lastSubmixId)
 		{
 			m_lastOverrideVolume = m_overrideVolume;
+			m_lastSubmixId = submixId;
 
 			m_entity->MShutdown();
+			m_entity->SetSubmixId(submixId);
 			m_entity->MInit();
 		}
 
@@ -1270,6 +1481,31 @@ bool LoadCategories(void* a1, const char* why, const char* filename, int a4, int
 	return g_origLoadCategories(a1, why, "citizen:/platform/audio/config/categories.dat", a4, version, a6, a7);
 }
 
+static void (*g_origOddFunc)(void*, uint16_t, float, int, int, int, int);
+static bool (*g_origaudEnvironmentSound_Init)(void* sound, void* a, void* b, void* params);
+
+static bool audEnvironmentSound_InitStub(char* sound, void* a, void* b, char* params)
+{
+	auto oldField = params[21] & 0x3F;
+	int submixIdx = -1;
+
+	if (oldField >= 32)
+	{
+		params[21] &= ~0x3F;
+		submixIdx = (oldField - 32) + 0x1C;
+	}
+
+	bool rv = g_origaudEnvironmentSound_Init(sound, a, b, params);
+
+	if (submixIdx >= 0)
+	{
+		sound[248] |= 0x80;
+		*(int*)(&sound[216]) = submixIdx;
+	}
+
+	return rv;
+}
+
 static HookFunction hookFunction([]()
 {
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
@@ -1279,10 +1515,210 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origLoadCategories, location);
 		hook::call(location, LoadCategories);
 	}
+
+	// hook to enable submix index reading
+
+	// add submix value to padding for rage::audEnvironment::UpdateVoiceMetrics
+	{
+		auto location = hook::get_pattern("48 8D 54 24 30 89 74 24 20 E8", 9);
+		void* origUpdateVoiceMetrics;
+		hook::set_call(&origUpdateVoiceMetrics, location);
+
+		static struct : jitasm::Frontend
+		{
+			void* origCall;
+
+			virtual void InternalMain() override
+			{
+				test(byte_ptr[rdi + 247], 0x10);	// if ((rdi+247) & 0x10) {
+				jz("unsure");
+				L("sure");							// sure:
+				mov(eax, dword_ptr[rdi + 216]);		//    eax = (rdi + 216)
+				cmp(eax, 0x1C);						//    if (eax >= 0x1C) {
+				jl("go");
+				and(byte_ptr[rdi + 247], ~0x10);    //       (rdi + 247) &= ~0x10
+				or (byte_ptr[rdi + 248], 0x80);		//       (rdi + 248) |=  0x80
+				jmp("go");							//    }
+				L("unsure");						// } else {
+				test(byte_ptr[rdi + 248], 0x80);	//    if ((rdi+248) & 0x80) {
+				jnz("sure");						//        goto sure;
+													//    }
+				mov(eax, 0xFFFFFFFF);				//    eax = -1;
+				L("go");							// }
+				mov(byte_ptr[rdx + 0x6A], al);		// (rdx + 0x6A) = eax
+				mov(rax, (uint64_t)origCall);		// return to sender
+				jmp(rax);
+			}
+		} updateVoiceMetricsStub;
+
+		updateVoiceMetricsStub.origCall = origUpdateVoiceMetrics;
+
+		hook::call(location, updateVoiceMetricsStub.GetCode());
+	}
+
+	// intervene in audEnvironment::ComputeVoiceRoutes
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				sub(rsp, 0x28);
+				mov(rcx, qword_ptr[rsi]);
+				lea(rdx, qword_ptr[rsp + 0x30 + 0x20]);
+
+				mov(rax, (uint64_t)DoVoiceRoute);
+				call(rax);
+
+				add(rsp, 0x28);
+
+				mov(rdi, rbx);
+				mov(r13, rbx);
+
+				ret();
+			}
+
+			static void DoVoiceRoute(uint8_t* voiceData, int* outRoutes)
+			{
+				if (voiceData[0x6A] != 0xFF && voiceData[0x6A] >= 0x1C) // first route we have 'ourselves'
+				{
+					outRoutes[0] = voiceData[0x6A];
+				}
+			}
+		} computeVoiceRoutesStub;
+
+		auto location = hook::get_pattern("75 E8 48 8B FB 4C 8B EB 4C 8D", 2);
+		hook::nop(location, 6);
+		hook::call(location, computeVoiceRoutesStub.GetCode());
+	}
+
+	// make sure a value that's needed to remove submix flag is set
+	{
+		auto location = hook::get_pattern<char>("48 8B CB C7 44 24 28 58 CB 00 00 44 88 74 24 20 E8", -0x2C4);
+		hook::set_call(&g_origOddFunc, location + 0x2D4);
+
+		MH_Initialize();
+		MH_CreateHook(location, audEnvironmentSound_InitStub, (void**)&g_origaudEnvironmentSound_Init);
+		MH_EnableHook(location);
+	}
 });
+
+rage::audDspEffect* MakeRadioFX();
 
 static InitFunction initFunction([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("CREATE_AUDIO_SUBMIX", [](fx::ScriptContext& ctx)
+	{
+		std::string name = ctx.CheckArgument<const char*>(0);
+		
+		if (audioRunning)
+		{
+			static std::map<uint32_t, int> submixesByName;
+			auto hash = HashString(name.c_str());
+
+			if (auto it = submixesByName.find(hash); it != submixesByName.end())
+			{
+				ctx.SetResult(it->second);
+				return;
+			}
+
+			auto mixer = rage::audDriver::GetMixer();
+			if (auto submix = mixer->CreateSubmix(name.c_str(), 6, true); submix)
+			{
+				int idx = mixer->GetSubmixIndex(submix);
+				submixesByName[hash] = idx;
+
+				mixer->FlagThreadCommandBufferReadyToProcess();
+
+				ctx.SetResult(idx);
+				return;
+			}
+		}
+
+		ctx.SetResult(-1);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ADD_AUDIO_SUBMIX_OUTPUT", [](fx::ScriptContext& ctx)
+	{
+		int sourceIdx = ctx.GetArgument<int>(0);
+		int destIdx = ctx.GetArgument<int>(1);
+
+		auto mixer = rage::audDriver::GetMixer();
+		auto submix = mixer->GetSubmix(sourceIdx);
+
+		if (submix)
+		{
+			submix->AddOutput(destIdx, true, true);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_AUDIO_SUBMIX_EFFECT_PARAM_INT", [](fx::ScriptContext& ctx)
+	{
+		int sourceIdx = ctx.GetArgument<int>(0);
+		uint32_t effectIdx = ctx.GetArgument<uint32_t>(1);
+		uint32_t paramIdx = ctx.GetArgument<uint32_t>(2);
+		uint32_t paramValue = ctx.GetArgument<uint32_t>(3);
+
+		auto mixer = rage::audDriver::GetMixer();
+		auto submix = mixer->GetSubmix(sourceIdx);
+
+		if (submix)
+		{
+			submix->SetEffectParam(effectIdx, paramIdx, paramValue);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_AUDIO_SUBMIX_EFFECT_PARAM_FLOAT", [](fx::ScriptContext& ctx)
+	{
+		int sourceIdx = ctx.GetArgument<int>(0);
+		uint32_t effectIdx = ctx.GetArgument<uint32_t>(1);
+		uint32_t paramIdx = ctx.GetArgument<uint32_t>(2);
+		float paramValue = ctx.GetArgument<float>(3);
+
+		auto mixer = rage::audDriver::GetMixer();
+		auto submix = mixer->GetSubmix(sourceIdx);
+
+		if (submix)
+		{
+			submix->SetEffectParam(effectIdx, paramIdx, paramValue);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_AUDIO_SUBMIX_EFFECT_RADIO_FX", [](fx::ScriptContext& ctx)
+	{
+		int sourceIdx = ctx.GetArgument<int>(0);
+		uint32_t effectIdx = ctx.GetArgument<uint32_t>(1);
+
+		auto mixer = rage::audDriver::GetMixer();
+		auto submix = mixer->GetSubmix(sourceIdx);
+
+		if (submix)
+		{
+			submix->SetEffect(effectIdx, MakeRadioFX());
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_SUBMIX_FOR_SERVER_ID", [](fx::ScriptContext& ctx)
+	{
+		int idx = ctx.GetArgument<int>(1);
+
+		if (idx < 0 || idx > 40)
+		{
+			idx = -1;
+		}
+
+		std::unique_lock _(g_submixMutex);
+		int player = ctx.GetArgument<int>(0);
+
+		if (idx >= 0)
+		{
+			g_submixIds[player] = idx;
+		}
+		else
+		{
+			g_submixIds.erase(player);
+		}
+	});
+
 	rage::OnInitFunctionInvoked.Connect([](rage::InitFunctionType type, const rage::InitFunctionData& data)
 	{
 		if (type == rage::InitFunctionType::INIT_CORE && data.funcHash == /*0xE6D408DF*/0xF0F5A94D)
@@ -1324,6 +1760,38 @@ static InitFunction initFunction([]()
 			{
 				active = true;
 			}
+
+#if SMTEST
+			static uint8_t mySubmix = 0;
+
+			if (!mySubmix)
+			{
+				auto mixer = rage::audDriver::GetMixer();
+				mixer->InitClientThread("RenderThread", 0x8000);
+				auto submix = mixer->CreateSubmix("meme", 6, true);
+				//auto submix = (rage::audMixerSubmix*)((char*)mixer + 16);
+				submix->AddOutput(0, true, true);
+				submix->SetEffect(0, MakeRadioFX());
+				submix->SetEffectParam(0, HashString("default"), uint32_t(1));
+				submix->SetEffectParam(0, 0x1234, 25.f);
+				//submix->SetFlag(1, true);
+
+				mixer->ComputeProcessingGraph();
+				mixer->FlagThreadCommandBufferReadyToProcess();
+
+				/*rage::audChannelVoiceVolumes volumes;
+				volumes.volumes[0] = 500.0f;
+				volumes.volumes[1] = 5.0f;
+				volumes.volumes[2] = 5.0f;
+				volumes.volumes[3] = 5.0f;
+				volumes.volumes[4] = 5.0f;
+				volumes.volumes[5] = 5.0f;
+
+				submix->SetOutputVolumes(0, volumes);*/
+
+				mySubmix = mixer->GetSubmixIndex(submix);
+			}
+#endif
 
 			if (active && !g_sound)
 			{
@@ -1383,3 +1851,5 @@ static InitFunction initFunction([]()
 
 	//nui::SetAudioSink(&g_audioSink);
 });
+
+rage::audMixerDevice** rage::audDriver::sm_Mixer;

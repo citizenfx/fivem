@@ -253,3 +253,6 @@
 [submodule "ext/jexl-eval/deps/jexl-rs"]
 	path = ext/jexl-eval/deps/jexl-rs
 	url = https://github.com/blattersturm/jexl-rs
+[submodule "vendor/dspfilters"]
+	path = vendor/dspfilters
+	url = https://github.com/thorwe/DSPFilters.git
