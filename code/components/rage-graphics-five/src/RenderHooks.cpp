@@ -371,9 +371,12 @@ public:
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
 
+static HANDLE g_gameWindowEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
 void DLL_EXPORT UiDone()
 {
 	static HostSharedData<CfxState> initState("CfxInitState");
+	WaitForSingleObject(g_gameWindowEvent, INFINITE);
 
 	auto uiExitEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
 	auto uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
@@ -421,6 +424,8 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 			}
 		}
 	}
+
+	SetEvent(g_gameWindowEvent);
 
 	if (g_disableRendering)
 	{
