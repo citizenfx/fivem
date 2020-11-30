@@ -8,6 +8,7 @@ import { States } from 'shared/api.types';
 import { setStatus } from './api/StatusesApi';
 import { rimraf } from './rimraf';
 import { createDeferred } from '../shared/utils';
+import { updaterStatuses } from 'shared/api.statuses';
 
 export interface UpdaterData {
   personality_theia_tar_mtimeMs: number,
@@ -38,7 +39,7 @@ async function maybeUnpackTheia(): Promise<void> {
   let unpackedSize = 0;
   let currentFileName = '';
 
-  const sendStatus = () => setStatus('updater', { completed: unpackedSize / archiveSize, currentFileName });
+  const sendStatus = () => setStatus(updaterStatuses.state, { completed: unpackedSize / archiveSize, currentFileName });
 
   // rm theia dir
   if (await statSafe(paths.sdkRootTheia)) {

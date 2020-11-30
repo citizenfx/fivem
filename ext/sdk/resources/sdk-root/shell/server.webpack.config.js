@@ -10,6 +10,7 @@ module.exports = {
     alias: {
       shared: path.join(__dirname, 'src/shared/'),
       utils: path.join(__dirname, 'src/utils/'),
+      server: path.join(__dirname, 'src/server/'),
     },
     extensions: ['.ts', '.tsx', '.js'],
   },

@@ -127,12 +127,6 @@ export interface RecentProject {
 }
 
 
-export interface DownloadState {
-  total: number,
-  downloaded: number,
-}
-
-
 export const assetManagerTypes = {
   none: 'none',
   git: 'git',
@@ -211,3 +205,12 @@ export interface MoveEntryRequest {
 }
 
 export type CopyEntryRequest = MoveEntryRequest;
+
+
+
+export enum Feature {
+  systemGitClientAvailable,
+  windowsDevModeEnabled,
+}
+
+export type FeaturesMap = Partial<Record<Feature, boolean>>;

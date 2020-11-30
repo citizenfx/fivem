@@ -37,20 +37,6 @@ export class StateApi {
     this.client.emit(stateApi.serverDataState, this.serverDataState);
   }
 
-  ackFxserverDownloadState(total: number, downloaded: number) {
-    this.client.emit(stateApi.fxserverDownload, {
-      total,
-      downloaded,
-    });
-  }
-
-  ackFxserverUnpackState(total: number, downloaded: number) {
-    this.client.emit(stateApi.fxserverUnpack, {
-      total,
-      downloaded,
-    });
-  }
-
   toState(newState: States) {
     this.state = newState;
     this.ackState();

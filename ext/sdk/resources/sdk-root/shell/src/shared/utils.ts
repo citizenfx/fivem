@@ -25,7 +25,12 @@ export const debounce = <T extends Function>(fn: T, timeout: number): T => {
   return newFn as any;
 };
 
-export const createDeferred = <T extends any>() => {
+export interface Deferred<T> {
+  promise: Promise<T>,
+  resolve: (val?: T) => void,
+  reject: (val?: any) => void,
+}
+export const createDeferred = <T extends any>(): Deferred<T> => {
   let resolve;
   let reject;
 

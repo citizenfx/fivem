@@ -21,6 +21,16 @@ const dirComparator = (a: FilesystemEntry, b: FilesystemEntry): number => {
   return 0;
 };
 
+export async function doesPathExist(entryPath: string): Promise<boolean> {
+  try {
+    await fs.promises.stat(entryPath);
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 export type EntryMetaExtras = {
   [key: string]: (entryPath: string) => Promise<any>,
 };

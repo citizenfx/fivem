@@ -1,4 +1,7 @@
+import { useStatus } from 'contexts/StatusContext';
 import React from 'react';
+import { featuresStatuses } from 'shared/api.statuses';
+import { Feature } from 'shared/api.types';
 import { ANY_MESSAGE, ApiMessageListener, onApiMessage } from './api';
 import { fastRandomId } from './random';
 
@@ -95,3 +98,10 @@ export const useStore = <T>(defaultValue: Record<string, T>) => {
     ___sentinel: sentinel,
   };
 };
+
+
+export const useFeature = (feature: Feature): boolean | void => {
+  const featuresState = useStatus(featuresStatuses.state, {});
+
+  return featuresState[feature];
+}

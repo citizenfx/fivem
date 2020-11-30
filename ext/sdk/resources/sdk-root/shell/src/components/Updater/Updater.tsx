@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useStatus } from 'contexts/StatusContext';
+import { updaterStatuses } from 'shared/api.statuses';
 import s from './Updater.module.scss';
 
 const defaultStatus = {
@@ -8,7 +9,7 @@ const defaultStatus = {
 };
 
 export const Update = React.memo(function Update() {
-  const status = useStatus('updater', defaultStatus);
+  const status = useStatus(updaterStatuses.state, defaultStatus);
 
   return (
     <div className={s.root}>

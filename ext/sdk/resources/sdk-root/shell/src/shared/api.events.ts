@@ -49,8 +49,6 @@ export const stateApi = {
   state: 'state',
   serverDataState: 'serverDataState',
   gameLaunched: 'state:gameLaunched',
-  fxserverDownload: 'state:fxserverDownload',
-  fxserverUnpack: 'state:fxserverUnpack',
 };
 
 export const explorerApi = {

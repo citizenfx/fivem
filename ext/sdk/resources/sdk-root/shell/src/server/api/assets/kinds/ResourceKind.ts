@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as mkdirp from 'mkdirp';
-import { AssetCreateRequest, assetKinds, AssetMeta } from 'shared/api.types';
+import { AssetCreateRequest } from 'shared/api.types';
 import { BaseAssetKind } from "../types";
 
 export class ResourceKind extends BaseAssetKind {
@@ -13,12 +13,6 @@ export class ResourceKind extends BaseAssetKind {
     this.client.log('Creating resource asset', request);
 
     const resourcePath = path.join(request.assetPath, request.assetName);
-    const assetMeta: AssetMeta = {
-      kind: assetKinds.resource,
-      flags: {
-        readOnly: false,
-      },
-    };
 
     await mkdirp(resourcePath);
 
@@ -37,7 +31,6 @@ games { 'gta5' }
     };
 
     await Promise.all([
-      this.project.projectInstance.setAssetMeta(resourcePath, assetMeta, { forceReal: true }),
       fs.promises.writeFile(fxmanifestPath, fxmanifestContent),
       this.project.projectInstance.setManifest(manifest),
     ]);

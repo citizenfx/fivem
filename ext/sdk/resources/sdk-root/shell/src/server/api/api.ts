@@ -9,6 +9,7 @@ import { ServerManagerApi } from "./ServerManagerApi";
 import { StateApi } from "./StateApi";
 import { StatusesApi } from "./StatusesApi";
 import { NotificationsApi } from "./NotificationsApi";
+import { FeaturesApi } from "./FeaturesApi";
 
 
 const clients = new Set<ws>();
@@ -77,9 +78,12 @@ export const mountApi = (app: expressWs.Application) => {
 
 export const notifications = new NotificationsApi(apiClient);
 export const statuses = new StatusesApi(apiClient);
+
+export const features = new FeaturesApi(apiClient, statuses);
+
 export const serverManager = new ServerManagerApi(apiClient, notifications);
 export const state = new StateApi(apiClient);
-export const server = new ServerApi(apiClient, serverManager);
+export const server = new ServerApi(apiClient, serverManager, features);
 export const explorer = new ExplorerApi(apiClient, notifications);
 export const project = new ProjectApi(apiClient, explorer);
 export const asset = new AssetApi(apiClient, project);

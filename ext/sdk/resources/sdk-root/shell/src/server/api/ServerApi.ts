@@ -7,28 +7,20 @@ import * as mkdirp from 'mkdirp';
 import * as paths from '../paths';
 import * as rimrafSync from 'rimraf'
 import { promisify } from 'util';
-import { ApiClient, RelinkResourcesRequest, ServerRefreshResourcesRequest as ServerSetEnabledResourcesRequest, ServerStartRequest, ServerStates } from 'shared/api.types';
+import { ApiClient, Feature, RelinkResourcesRequest, ServerRefreshResourcesRequest as ServerSetEnabledResourcesRequest, ServerStartRequest, ServerStates } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
 import { sdkGamePipeName } from './constants';
 import { SystemEvent, systemEvents } from './systemEvents';
 import { ServerManagerApi } from './ServerManagerApi';
 import { createLock } from '../../shared/utils';
+import { doesPathExist } from './ExplorerApi';
+import { FeaturesApi } from './FeaturesApi';
 
 const rimraf = promisify(rimrafSync);
 
 
 function getProjectServerPath(projectPath: string): string {
   return path.join(projectPath, '.fxdk/fxserver');
-}
-
-async function doesPathExist(entryPath: string): Promise<boolean> {
-  try {
-    await fs.promises.stat(entryPath);
-
-    return true;
-  } catch (e) {
-    return false;
-  }
 }
 
 export class ServerApi {
@@ -45,6 +37,7 @@ export class ServerApi {
   constructor(
     private readonly client: ApiClient,
     private readonly serverManager: ServerManagerApi,
+    private readonly features: FeaturesApi,
   ) {
     systemEvents.on(SystemEvent.refreshResources, () => this.handleRefreshResources());
     systemEvents.on(SystemEvent.relinkResources, (request: RelinkResourcesRequest) => this.handleRelinkResources(request));
@@ -195,6 +188,21 @@ export class ServerApi {
     this.server?.stdin?.write(cmd + '\n');
   }
 
+  toState(newState: ServerStates) {
+    this.state = newState;
+    this.ackState();
+  }
+
+  private async linkResource(source: string, dest: string) {
+    const windowsDevModeEnabled = await this.features.get(Feature.windowsDevModeEnabled);
+
+    const linkType = windowsDevModeEnabled
+      ? 'dir'
+      : 'junction';
+
+    return fs.promises.symlink(source, dest, linkType);
+  }
+
   private async linkResources(fxserverCwd: string, resourcesPaths: string[]) {
     await this.serverLock.withLock(async () => {
       const resourcesDirectoryPath = path.join(fxserverCwd, 'resources');
@@ -223,7 +231,7 @@ export class ServerApi {
           }
 
           try {
-            await fs.promises.symlink(source, dest, 'dir');
+            await this.linkResource(source, dest);
           } catch (e) {
             this.client.log('Failed to link resource', e.toString());
           }
@@ -343,11 +351,6 @@ export class ServerApi {
     });
 
     this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
-  }
-
-  toState(newState: ServerStates) {
-    this.state = newState;
-    this.ackState();
   }
 }
 

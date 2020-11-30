@@ -8,7 +8,8 @@ import { projectNamePattern } from 'constants/patterns';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { errorsApi, projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { useApiMessage } from 'utils/hooks';
+import { useApiMessage, useFeature } from 'utils/hooks';
+import { Feature } from 'shared/api.types';
 import s from './ProjectCreator.module.scss';
 
 
@@ -18,7 +19,8 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
   const [name, setName] = React.useState('');
   const [error, setError] = React.useState('');
   const [projectPath, setProjectPath] = React.useState<string>();
-  const [withServerData, setWithServerData] = React.useState(true);
+  const [withServerData, setWithServerData] = React.useState(false);
+  const canInstallServerData = useFeature(Feature.systemGitClientAvailable);
 
   let hint = 'Select a folder in which project will be created';
 
@@ -71,6 +73,7 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
           onChange={setWithServerData}
           label="Add cfx-server-data?"
           className={s.checkbox}
+          disabled={!canInstallServerData}
         />
 
         <div className={s['explorer-hint']}>

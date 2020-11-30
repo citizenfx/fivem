@@ -5,14 +5,28 @@ import { statusesApi } from "shared/api.events";
 export class StatusesApi {
   private statuses: Record<string, any> = {};
 
-  constructor(client: ApiClient) {
+  constructor(private readonly client: ApiClient) {
     client.on(statusesApi.ack, () => client.emit(statusesApi.statuses, this.statuses));
 
     systemEvents.on(SystemEvent.setStatus, ({ statusName, statusContent }) => {
       this.statuses[statusName] = statusContent;
 
-      client.emit(statusesApi.update, [statusName, statusContent]);
+      this.ackClient(statusName, statusContent);
     });
+  }
+
+  get<T>(statusName: string): T | void {
+    return this.statuses[statusName];
+  }
+
+  set<T>(statusName: string, statusContent: T) {
+    this.statuses[statusName] = statusContent;
+
+    this.ackClient(statusName, statusContent);
+  }
+
+  private ackClient(statusName: string, statusContent: any) {
+    this.client.emit(statusesApi.update, [statusName, statusContent]);
   }
 }
 
