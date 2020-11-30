@@ -363,7 +363,7 @@ void LoadsThread::DoRun()
 		NativeInvoke::Invoke<0x07E5B515DB0636FC, int>(true, false, 0, false, false);
 
 		// LOAD_SCENE(?)
-		NativeInvoke::Invoke<0x4448EB75B4904BDB, int>(-2153.641f, 4597.957f, 116.662f);
+		//NativeInvoke::Invoke<0x4448EB75B4904BDB, int>(-2153.641f, 4597.957f, 116.662f);
 
 		// SHUTDOWN_LOADING_SCREEN
 		fx::ScriptContextBuffer ctx;
