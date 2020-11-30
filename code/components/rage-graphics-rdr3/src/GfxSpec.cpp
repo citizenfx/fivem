@@ -248,6 +248,13 @@ namespace rage
 
 void GetGameResolution(int& x, int& y)
 {
+	if (!rage::g_WindowWidth || !rage::g_WindowHeight)
+	{
+		x = 0;
+		y = 0;
+		return;
+	}
+
 	x = *rage::g_WindowWidth;
 	y = *rage::g_WindowHeight;
 }
