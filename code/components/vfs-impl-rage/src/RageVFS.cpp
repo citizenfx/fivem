@@ -679,6 +679,11 @@ static InitFunction initFunction([]()
 {
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
+		g_vfsInit = true;
+	}, INT32_MIN);
+
+	rage::fiDevice::OnInitialMount.Connect([]()
+	{
 		std::function<void()> fn;
 
 		while (!g_onInitQueue.empty())
@@ -690,7 +695,6 @@ static InitFunction initFunction([]()
 		}
 
 		g_mountCache.clear();
-		g_vfsInit = true;
 	}, 1);
 
 	Instance<vfs::Manager>::Set(new RageVFSManager());
