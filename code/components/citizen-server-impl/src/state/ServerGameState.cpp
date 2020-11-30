@@ -2054,6 +2054,12 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		return;
 	}
 
+	// a client can have only one player, handing a player to someone else would be really awkward
+	if (entity->type == sync::NetObjEntityType::Player)
+	{
+		return;
+	}
+
 	auto oldClientRef = entity->GetClientUnsafe().lock();
 	{
 		entity->lastMigratedAt = msec();
