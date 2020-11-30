@@ -167,7 +167,7 @@ public:
 	}
 	virtual HRESULT __stdcall QueryBlanket(IUnknown* pProxy, DWORD* pAuthnSvc, DWORD* pAuthzSvc, OLECHAR** pServerPrincName, DWORD* pAuthnLevel, DWORD* pImpLevel, void** pAuthInfo, DWORD* pCapabilites) override
 	{
-		return E_NOTIMPL;
+		return S_OK;
 	}
 	virtual HRESULT __stdcall SetBlanket(IUnknown* pProxy, DWORD dwAuthnSvc, DWORD dwAuthzSvc, OLECHAR* pServerPrincName, DWORD dwAuthnLevel, DWORD dwImpLevel, void* pAuthInfo, DWORD dwCapabilities) override
 	{
@@ -237,7 +237,7 @@ public:
 	}
 	virtual HRESULT __stdcall QueryBlanket(IUnknown* pProxy, DWORD* pAuthnSvc, DWORD* pAuthzSvc, OLECHAR** pServerPrincName, DWORD* pAuthnLevel, DWORD* pImpLevel, void** pAuthInfo, DWORD* pCapabilites) override
 	{
-		return E_NOTIMPL;
+		return S_OK;
 	}
 	virtual HRESULT __stdcall SetBlanket(IUnknown* pProxy, DWORD dwAuthnSvc, DWORD dwAuthzSvc, OLECHAR* pServerPrincName, DWORD dwAuthnLevel, DWORD dwImpLevel, void* pAuthInfo, DWORD dwCapabilities) override
 	{
@@ -403,7 +403,7 @@ public:
 	// Inherited via IClientSecurity
 	virtual HRESULT __stdcall QueryBlanket(IUnknown* pProxy, DWORD* pAuthnSvc, DWORD* pAuthzSvc, OLECHAR** pServerPrincName, DWORD* pAuthnLevel, DWORD* pImpLevel, void** pAuthInfo, DWORD* pCapabilites) override
 	{
-		return E_NOTIMPL;
+		return S_OK;
 	}
 	virtual HRESULT __stdcall SetBlanket(IUnknown* pProxy, DWORD dwAuthnSvc, DWORD dwAuthzSvc, OLECHAR* pServerPrincName, DWORD dwAuthnLevel, DWORD dwImpLevel, void* pAuthInfo, DWORD dwCapabilities) override
 	{
@@ -450,14 +450,32 @@ HRESULT WINAPI CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUn
 
 BOOL CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation)
 {
-	if (strstr(lpCommandLine, "wmic.exe") != nullptr)
+	std::string fakeData;
+
+	if (lpCommandLine)
 	{
-		DWORD bw;
-		std::wstring data = LR"(UUID                                  
+		if (StrStrIA(lpCommandLine, "wmic.exe") != nullptr)
+		{
+			fakeData = R"(UUID                                  
 12345678-9abc-0000-0000-000000000000  
 )";
+		}
+		else if (StrStrIA(lpCommandLine, "hostname.exe") != nullptr)
+		{
+			fakeData = R"(PHONE-NGNFJS
+)";
+		}
+		else if (StrStrIA(lpCommandLine, "whoami.exe") != nullptr)
+		{
+			fakeData = R"(phone-ngnfjs\admin
+)";
+		}
+	}
 
-		WriteFile(lpStartupInfo->hStdOutput, data.data(), data.size() * 2, &bw, NULL);
+	if (!fakeData.empty())
+	{
+		DWORD bw;
+		WriteFile(lpStartupInfo->hStdOutput, fakeData.data(), fakeData.size() * sizeof(fakeData[0]), &bw, NULL);
 
 		HANDLE hEvent = CreateEventW(NULL, TRUE, TRUE, NULL);
 		HANDLE hEvent2 = CreateEventW(NULL, TRUE, TRUE, NULL);
