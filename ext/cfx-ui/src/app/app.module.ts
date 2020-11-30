@@ -13,7 +13,12 @@ import { environment } from '../environments/environment'
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ScrollingModule as ExperimentalScrollingModule } from '@angular/cdk-experimental/scrolling';
 
-import { MomentModule } from 'angular2-moment';
+import { DateFnsConfigurationService } from 'ngx-date-fns';
+import {
+  FormatDistanceToNowPipeModule,
+  ParsePipeModule
+} from 'ngx-date-fns';
+
 import { Angulartics2Module } from 'angulartics2';
 import { LinkyModule } from 'ngx-linky';
 import { NgxFilesizeModule } from 'ngx-filesize';
@@ -49,6 +54,7 @@ import { DiscourseService } from './discourse.service';
 
 import { ColorizePipe } from './colorize.pipe';
 import { EscapePipe } from './escape.pipe';
+import { SafeHtmlPipe } from './safe.pipe';
 import { LocalStorage } from './local-storage';
 
 import { Languages } from './languages';
@@ -191,6 +197,7 @@ export function metaFactory(): MetaLoader {
 		PlayerAvatarComponent,
 		ColorizePipe,
 		EscapePipe,
+		SafeHtmlPipe,
 		ModsComponent,
 		ModListComponent,
 		ModDetailComponent,
@@ -210,7 +217,9 @@ export function metaFactory(): MetaLoader {
 		ScrollingModule,
 		ExperimentalScrollingModule,
 
-		MomentModule,
+		FormatDistanceToNowPipeModule,
+		ParsePipeModule,
+
 		HttpClientModule,
 		L10nTranslationModule.forRoot(l10nConfig, {
 			translationLoader: HttpTranslationLoader,
@@ -255,6 +264,7 @@ export function metaFactory(): MetaLoader {
 			multi: true
 		},
 		ModsService,
+		DateFnsConfigurationService,
 	],
 	bootstrap: [
 		AppComponent

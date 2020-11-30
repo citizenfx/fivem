@@ -76,7 +76,7 @@
 					{{HistoryServerStatus[server.status]}}
 				</span>
 
-				<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.historyEntry.time | amTimeAgo }}</span>
+				<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.historyEntry.time | dfnsFormatDistanceToNow:{ addSuffix: true } }}</span>
 			</div>
 		</div>
 	</div>

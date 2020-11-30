@@ -9,7 +9,7 @@
 				</small>
 			</div>
 			<div class="bottom">
-				<small>{{tweet.date | amTimeAgo}}
+				<small>{{ tweet.date | dfnsFormatDistanceToNow:{ addSuffix: true } }}
 					<span
 						class="additional"
 						aria-label="Open tweet in browser."
@@ -31,7 +31,7 @@
             <div class="media-content">
                 <div class="content __cfx_ap_content" (click)="clickContent($event)">
                     <p *ngIf="!actuallyTweet" [innerHTML]="tweet.content | dompurify"></p>
-                    <p *ngIf="actuallyTweet" [innerHTML]="tweet.content | linky"></p>
+                    <p *ngIf="actuallyTweet" [innerHTML]="tweet.content | linky | safehtml"></p>
                 </div>
                 <nav class="level is-mobile"></nav>
             </div>

@@ -158,6 +158,8 @@ export abstract class GameService {
 
 	abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
 
+	sayHello() {}
+
 	getProfile(): Profile {
 		return this.profile;
 	}
@@ -323,7 +325,6 @@ export class CfxGameService extends GameService {
 	init() {
 		(<any>window).invokeNative('getFavorites', '');
 		(<any>window).invokeNative('getConvars', '');
-		(<any>window).invokeNative('getMinModeInfo', '');
 
 		fetch('https://nui-internal/profiles/list').then(async response => {
 			try {
@@ -346,16 +347,18 @@ export class CfxGameService extends GameService {
 			const convarItem = this.convars[name];
 			convarItem.value = value;
 
-			this.zone.run(() => convar.next(value));
+			convar.next(value);
 
-			setTimeout(() => {
-				if (this.ownershipTicket !== this.getConvarValue('cl_ownershipTicket')) {
-					this.ownershipTicket = this.getConvarValue('cl_ownershipTicket');
-					this.updateProfiles();
+			if (name === 'cl_ownershipTicket' && value !== '') {
+				setTimeout(() => {
+					if (this.ownershipTicket !== this.getConvarValue('cl_ownershipTicket')) {
+						this.ownershipTicket = this.getConvarValue('cl_ownershipTicket');
+						this.updateProfiles();
 
-					this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
-				}
-			}, 500);
+						this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
+					}
+				}, 500);
+			}
 		};
 
 		this.zone.runOutsideAngular(() => {
@@ -402,12 +405,16 @@ export class CfxGameService extends GameService {
 						this.saveHistory();
 						break;
 					case 'convarSet':
-						handleSetConvar(event.data.name, event.data.value);
+						this.zone.run(() => {
+							handleSetConvar(event.data.name, event.data.value);
+						});
 						break;
 					case 'convarsSet':
-						for (const { key, value } of event.data.vars) {
-							handleSetConvar(key, value);
-						}
+						this.zone.run(() => {
+							for (const { key, value } of event.data.vars) {
+								handleSetConvar(key, value);
+							}
+						});
 						break;
 					case 'setMinModeInfo':
 						const enabled: boolean = event.data.enabled;
@@ -542,7 +549,10 @@ export class CfxGameService extends GameService {
 	}
 
 	getServerHistory() {
-		return (JSON.parse((localStorage.getItem('lastServers') || '[]')) as ServerHistoryEntry[]);
+		return (JSON.parse((localStorage.getItem('lastServers') || '[]')) as ServerHistoryEntry[]).map(a => ({
+			...a,
+			time: new Date(a.time)
+		}));
 	}
 
 	invokeAuthPayload(data: string) {
@@ -613,6 +623,10 @@ export class CfxGameService extends GameService {
 
 	private saveHistory() {
 		localStorage.setItem('history', JSON.stringify(this.history));
+	}
+
+	sayHello() {
+		(<any>window).invokeNative('getMinModeInfo', '');
 	}
 
 	async connectTo(server: Server, enteredAddress?: string) {

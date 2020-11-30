@@ -89,9 +89,9 @@
 						{{HistoryServerStatus[lastServer.status]}}
 					</span>
 
-					<span class="time">
+					<span class="time" *ngIf="lastServer.historyEntry.time">
 						{{ '#DirectConnect_LastPlayed' | translate:locale.language }}:
-						{{ lastServer.historyEntry.time | amTimeAgo }}
+						{{ lastServer.historyEntry.time | dfnsFormatDistanceToNow:{ addSuffix: true } }}
 					</span>
 				</div>
 			</div>

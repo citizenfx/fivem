@@ -31,7 +31,7 @@
 		<div class="content">
 			<h3 class="title" [innerHTML]="(server && server.entry.hostname)||'test' | escape | colorize"></h3>
 			<span class="players" *ngIf="server.server">{{server.server.currentPlayers}}/{{server.server.maxPlayers}}</span>
-			<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.entry.time | amTimeAgo }}</span>
+			<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.entry.time | dfnsFormatDistanceToNow:{ addSuffix: true } }}</span>
 		</div>
 	</div>
 </section>

@@ -65,21 +65,27 @@ export class HomeTweetComponent implements AfterViewInit, OnInit, OnDestroy {
 	}
 
 	ngAfterViewInit() {
-		this.embeddedViewRef = new DomPortalOutlet(
-			document.getElementById('overlays'),
-			this.cfr,
-			this.ar,
-			this.injector,
-		).attach(new TemplatePortal(this.portal, this.vcr));
+		if (this.tweet.image) {
+			this.embeddedViewRef = new DomPortalOutlet(
+				document.getElementById('overlays'),
+				this.cfr,
+				this.ar,
+				this.injector,
+			).attach(new TemplatePortal(this.portal, this.vcr));
+		}
 	}
 
 	ngOnInit() {
-		document.addEventListener('keydown', this.handleEsc);
+		if (this.tweet.image) {
+			document.addEventListener('keydown', this.handleEsc);
+		}
 	}
 
 	ngOnDestroy() {
-		this.embeddedViewRef.destroy();
+		if (this.tweet.image) {
+			this.embeddedViewRef.destroy();
 
-		document.removeEventListener('keydown', this.handleEsc);
+			document.removeEventListener('keydown', this.handleEsc);
+		}
 	}
 }
