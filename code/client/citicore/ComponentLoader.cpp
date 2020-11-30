@@ -244,7 +244,15 @@ fwRefContainer<ComponentData> ComponentLoader::LoadComponent(const char* compone
 
 	if (!component.GetRef())
 	{
-		FatalError("Unknown component %s.", componentName);
+		if (strcmp(componentName, "adhesive") == 0)
+		{
+			component = m_knownComponents["sticky"];
+		}
+
+		if (!component.GetRef())
+		{
+			FatalError("Unknown component %s.", componentName);
+		}
 	}
 
 	if (component->IsLoaded())

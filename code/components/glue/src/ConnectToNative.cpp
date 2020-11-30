@@ -662,14 +662,19 @@ static InitFunction initFunction([] ()
 		if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
 #ifdef GTA_FIVE
-			UiDone();
+			static bool done = ([]
+			{
+				UiDone();
 
-			auto hWnd = FindWindowW(L"grcWindow", NULL);
-			ShowWindow(hWnd, SW_SHOW);
+				auto hWnd = FindWindowW(L"grcWindow", NULL);
+				ShowWindow(hWnd, SW_SHOW);
 
-			// game code locks it
-			LockSetForegroundWindow(LSFW_UNLOCK);
-			SetForegroundWindow(hWnd);
+				// game code locks it
+				LockSetForegroundWindow(LSFW_UNLOCK);
+				SetForegroundWindow(hWnd);
+
+				return true;
+			})();
 #endif
 
 			auto manifest = CoreGetMinModeManifest();
