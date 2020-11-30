@@ -243,7 +243,7 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 
 	LoadSections(ntHeader);
 
-	if (getenv("CitizenFX_ToolMode") == nullptr)
+	//if (getenv("CitizenFX_ToolMode") == nullptr)
 	{
 		LoadSnapshot(ntHeader);
 	}

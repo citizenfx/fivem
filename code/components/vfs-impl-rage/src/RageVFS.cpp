@@ -12,6 +12,9 @@
 #include <VFSDevice.h>
 #include <VFSManager.h>
 
+#include <LocalDevice.h>
+#include <RelativeDevice.h>
+
 #include <IteratorView.h>
 
 #include <strsafe.h>
@@ -19,6 +22,9 @@
 #include <Error.h>
 
 #include <optional>
+#include <queue>
+
+static bool g_vfsInit;
 
 class RageVFSDeviceAdapter : public rage::fiCustomDevice
 {
@@ -554,9 +560,44 @@ public:
 	virtual void Unmount(const std::string& path) override;
 };
 
+static std::multimap<std::string, fwRefContainer<vfs::Device>> g_mountCache;
+
 fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
+
+	if (!g_vfsInit)
+	{
+		// logic from server device
+		for (const auto& mount : g_mountCache)
+		{
+			// if the prefix patches
+			if (strncmp(path.c_str(), mount.first.c_str(), mount.first.length()) == 0)
+			{
+				vfs::Device::THandle handle;
+
+				auto device = mount.second;
+
+				if ((handle = device->Open(path, true)) != vfs::Device::InvalidHandle)
+				{
+					device->Close(handle);
+
+					return device;
+				}
+			}
+		}
+
+		if (path.find("citizen:/") == 0)
+		{
+			static fwRefContainer<vfs::RelativeDevice> g_citizenDevice = new vfs::RelativeDevice(ToNarrow(MakeRelativeCitPath(L"citizen/")));
+			g_citizenDevice->SetPathPrefix("citizen:/");
+
+			return g_citizenDevice;
+		}
+
+		static fwRefContainer<vfs::LocalDevice> g_localDevice = new vfs::LocalDevice;
+		return g_localDevice;
+	}
 
 	rage::fiDevice* nativeDevice = rage::fiDevice::GetDevice(path.c_str(), true);
 
@@ -579,22 +620,38 @@ fwRefContainer<vfs::Device> RageVFSManager::GetNativeDevice(void* nativeDevice)
 	return it->second;
 }
 
+static std::queue<std::function<void()>> g_onInitQueue;
+
 void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string& path)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
 
-	auto adapter = new RageVFSDeviceAdapter(device);
+	auto run = [this, path, device]()
+	{
+		auto adapter = new RageVFSDeviceAdapter(device);
 
-	m_mountedDevices.insert({ path, adapter });
+		m_mountedDevices.insert({ path, adapter });
 
-	// track the owner of the VFS device so it won't have to go
-	// through a VFS adapter (which loses refcounts) if the caller is the VFS.
-	m_deviceCache.insert({ adapter, device });
+		// track the owner of the VFS device so it won't have to go
+		// through a VFS adapter (which loses refcounts) if the caller is the VFS.
+		m_deviceCache.insert({ adapter, device });
 
-	// ensure the allocator is defined
-	rage::sysMemAllocator::UpdateAllocatorValue();
+		// ensure the allocator is defined
+		rage::sysMemAllocator::UpdateAllocatorValue();
 
-	rage::fiDevice::MountGlobal(path.c_str(), adapter, true);
+		rage::fiDevice::MountGlobal(path.c_str(), adapter, true);
+	};
+
+	if (g_vfsInit)
+	{
+		run();
+	}
+	else
+	{
+		g_mountCache.insert({ path, device });
+
+		g_onInitQueue.push(run);
+	}
 
 	device->SetPathPrefix(path);
 }
@@ -620,5 +677,22 @@ void RageVFSManager::Unmount(const std::string& path)
 
 static InitFunction initFunction([]()
 {
+	rage::fiDevice::OnInitialMount.Connect([]()
+	{
+		g_vfsInit = true;
+
+		std::function<void()> fn;
+
+		while (!g_onInitQueue.empty())
+		{
+			fn = std::move(g_onInitQueue.front());
+			g_onInitQueue.pop();
+
+			fn();
+		}
+
+		g_mountCache.clear();
+	}, INT32_MIN);
+
 	Instance<vfs::Manager>::Set(new RageVFSManager());
 });

@@ -12,6 +12,7 @@
 		"conhost",
 		"font-renderer",
 		"citizen:game:ipc",
+		"vfs:impl",
 		"vendor:cpp-url",
 		"vendor:nng",
 		"vendor:msgpack-c"

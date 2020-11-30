@@ -1285,6 +1285,59 @@ void Component_RunPreInit()
 	}
 }
 
+static bool WaitWithWait(HANDLE handle)
+{
+	return WaitForSingleObject(handle, 500) == WAIT_OBJECT_0;
+}
+
+static hook::cdecl_stub<void()> _setRenderDeleg([]
+{
+	return hook::get_pattern("48 89 5D 0F 48 8D 55 37 0F 10 4D 07 0F", -0xA7);
+});
+
+static hook::cdecl_stub<void(void*, bool)> _kickRender([]
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E"));
+});
+
+static void (*g_origCtrlInit)();
+
+static void OnCtrlInit()
+{
+	uint8_t orig1, orig2, orig3;
+
+	static auto location1 = hook::get_pattern<uint8_t>("E8 ? ? ? ? 84 C0 74 1F 48 8B 05 ? ? ? ? 48 8B 40", 7);
+
+	{
+		orig1 = location1[0];
+		orig2 = location1[-0x5F];
+		hook::put<uint8_t>(location1, 0xEB);
+		hook::put<uint8_t>(location1 - 0x5F, 0xEB);
+	}
+
+	static auto location3 = hook::get_pattern<uint8_t>("33 D2 89 7C 24 44 66 C7", -0x37);
+
+	{
+		orig3 = *location3;
+		hook::return_function(location3);
+	}
+
+	static auto rti = hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E", -6));
+
+	_setRenderDeleg();
+	_kickRender(rti, true);
+
+	OnMainGameFrame.Connect([orig1, orig2, orig3]
+	{
+		hook::put<uint8_t>(location1, orig1);
+		hook::put<uint8_t>(location1 - 0x5F, orig2);
+		hook::put<uint8_t>(location3, orig3);
+	});
+
+	// orig
+	g_origCtrlInit();
+}
+
 static HookFunction hookFunction([] ()
 {
 	// continue on
@@ -1703,5 +1756,27 @@ static HookFunction hookFunction([] ()
 
 	// don't downscale photos a lot
 	hook::put<uint8_t>(hook::get_pattern("41 3B D9 72 09", 3), 0xEB);
+
+	// don't do 500ms waits for renderer
+	{
+		auto location = hook::get_pattern<char>("EB 0A B9 F4 01 00 00 E8", 7);
+		hook::nop(location, 5); // sleep call
+		hook::call(location + 21, WaitWithWait); // wait call
+	}
+
+	// kick renderer before slow dinput code
+	{
+		auto location = hook::get_pattern("74 0B E8 ? ? ? ? 8A 0D ? ? ? ? 80", 2);
+		hook::set_call(&g_origCtrlInit, location);
+		hook::call(location, OnCtrlInit);
+	}
+
+	// no showwindow early
+	{
+		auto location = hook::get_pattern<char>("41 8B D4 48 8B C8 48 8B D8 FF 15", 9);
+		hook::nop(location, 6);
+		hook::nop(location + 9, 6);
+		hook::nop(location + 18, 6);
+	}
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9

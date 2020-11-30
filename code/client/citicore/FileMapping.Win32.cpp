@@ -86,6 +86,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"nodontfuckingplaygtav.exe");
 	}
 
+	if (wcsstr(origFileName, L"NVIDIA Corporation\\NV_Cache") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\") + &wcsstr(origFileName, L"NVIDIA Corporation\\NV_Cache")[19];
+	}
+
 	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_data2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
@@ -185,6 +190,11 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	}
 
 	if (fileName.find(L"Data\\Rockstar Games\\Launcher") != std::string::npos)
+	{
+		return true;
+	}
+
+	if (fileName.find(L"NVIDIA Corporation\\NV_Cache") != std::string::npos)
 	{
 		return true;
 	}

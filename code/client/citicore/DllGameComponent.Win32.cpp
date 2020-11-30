@@ -117,6 +117,7 @@ HardErrorScope* HardErrorScope::ms_curErrScope;
 Component* DllGameComponent::CreateComponent()
 {
 	HardErrorScope scope;
+	DisableToolHelpScope thScope;
 
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	HMODULE hModule = LoadLibrary(MakeRelativeCitPath(m_path).c_str());

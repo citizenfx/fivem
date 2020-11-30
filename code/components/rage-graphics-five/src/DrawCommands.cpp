@@ -309,6 +309,13 @@ static uint32_t g_realResolution[2];
 
 void GetGameResolution(int& resX, int& resY)
 {
+	if (!g_resolution)
+	{
+		resX = 0;
+		resY = 0;
+		return;
+	}
+
 	resX = g_resolution[0];
 	resY = g_resolution[1];
 
@@ -438,6 +445,11 @@ static int g_d3d11DeviceContextOffset;
 
 ID3D11Device* GetD3D11Device()
 {
+	if (!g_d3d11Device)
+	{
+		return nullptr;
+	}
+
 	return *g_d3d11Device;
 }
 

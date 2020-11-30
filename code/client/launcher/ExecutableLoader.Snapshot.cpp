@@ -6,10 +6,34 @@
 #include <CrossBuildRuntime.h>
 
 #ifdef GTA_FIVE
+inline uintptr_t GetTriggerEP()
+{
+	if (getenv("CitizenFX_ToolMode"))
+	{
+		if (wcsstr(GetCommandLineW(), L"launcher.exe"))
+		{
+			// launcher.exe with sha256 hash 82935c8082c823e9ee275670ab218618b2101e3bc14091fe424539d8b44a68fe
+			return 0x1401BD2A4;
+		}
+	}
+
+	if (Is372())
+	{
+		return 0x141623FC8;
+	}
+
+	if (Is2060())
+	{
+		return 0x141796A34;
+	}
+
+	return 0x14175DE00;
+}
+
 // 1604
 // 1868 now...!
 // 2060 realities
-#define TRIGGER_EP (Is372() ? 0x141623FC8 : ((Is2060()) ? 0x141796A34 : 0x14175DE00))
+#define TRIGGER_EP (GetTriggerEP())
 #elif defined(IS_RDR3)
 // 1207.58
 //#define TRIGGER_EP 0x142D55C2C

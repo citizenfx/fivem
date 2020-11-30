@@ -94,6 +94,8 @@ public:
 
 	void TouchMessage();
 
+	void InitializeRenderBacking();
+
 	inline const std::string& GetName()
 	{
 		return m_name;

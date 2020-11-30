@@ -338,6 +338,8 @@ static void UpdateJumpList(const std::vector<ServerLink>& links)
 	pcdl->CommitList();
 }
 
+void DLL_IMPORT UiDone();
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
@@ -659,6 +661,17 @@ static InitFunction initFunction([] ()
 	{
 		if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
+#ifdef GTA_FIVE
+			UiDone();
+
+			auto hWnd = FindWindowW(L"grcWindow", NULL);
+			ShowWindow(hWnd, SW_SHOW);
+
+			// game code locks it
+			LockSetForegroundWindow(LSFW_UNLOCK);
+			SetForegroundWindow(hWnd);
+#endif
+
 			auto manifest = CoreGetMinModeManifest();
 
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setMinModeInfo", "enabled": %s, "data": %s })", manifest->IsEnabled() ? "true" : "false", manifest->GetRaw()));

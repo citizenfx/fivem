@@ -954,6 +954,7 @@ namespace nui
 {
 extern std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
 extern std::shared_mutex windowListMutex;
+bool g_rendererInit;
 
 void Initialize(nui::GameInterface* gi)
 {
@@ -1089,18 +1090,35 @@ void Initialize(nui::GameInterface* gi)
 		}
 	});
 
+	{
+		auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
+
+		for (auto zip : zips)
+		{
+			fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
+
+			if (file->OpenArchive(zip))
+			{
+				vfs::Mount(file, "citizen:/ui/");
+			}
+		}
+	}
+
+#ifndef USE_NUI_ROOTLESS
+	CreateRootWindow();
+#else
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+
+	if (nui::HasMainUI())
+	{
+		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+	}
+#endif
+
 	g_nuiGi->OnInitRenderer.Connect([]()
 	{
-#ifndef USE_NUI_ROOTLESS
-		CreateRootWindow();
-#else
-		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-
-		if (nui::HasMainUI())
-		{
-			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
-		}
-#endif
+		g_rendererInit = true;
+		Instance<NUIWindowManager>::Get()->GetRootWindow()->InitializeRenderBacking();
 	});
 
 	g_nuiGi->OnRender.Connect([]()
@@ -1154,21 +1172,6 @@ void Initialize(nui::GameInterface* gi)
 			g_recreateBrowsers.clear();
 		}
 #endif
-	});
-
-	g_nuiGi->OnInitVfs.Connect([]()
-	{
-		auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
-
-		for (auto zip : zips)
-		{
-			fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
-
-			if (file->OpenArchive(zip))
-			{
-				vfs::Mount(file, "citizen:/ui/");
-			}
-		}
 	});
 }
 }

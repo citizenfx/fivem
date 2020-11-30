@@ -6,9 +6,16 @@
 #include <grcTexture.h>
 #include <InputHook.h>
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 #include <tbb/concurrent_queue.h>
 
 #include "ResumeComponent.h"
+
+#include <wrl.h>
+
+namespace WRL = Microsoft::WRL;
 
 using nui::GITexture;
 using nui::GITextureFormat;
@@ -263,6 +270,12 @@ void GtaNuiInterface::GetGameResolution(int* width, int* height)
 	int w, h;
 	::GetGameResolution(w, h);
 
+	if (w == 0 || h == 0)
+	{
+		w = 1919;
+		h = 1080;
+	}
+
 	*width = w;
 	*height = h;
 }
@@ -271,8 +284,6 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTexture(int width, int height, 
 {
 #ifdef GTA_FIVE
 	rage::sysMemAllocator::UpdateAllocatorValue();
-	auto pixelMem = std::make_shared<std::vector<uint8_t>>(width * height * 4);
-	memcpy(pixelMem->data(), pixelData, pixelMem->size());
 
 	rage::grcTextureReference reference;
 	memset(&reference, 0, sizeof(reference));
@@ -333,9 +344,6 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 }
 
 #include <d3d12.h>
-#include <wrl.h>
-
-namespace WRL = Microsoft::WRL;
 
 #pragma comment(lib, "vulkan-1.lib")
 
@@ -651,10 +659,12 @@ static InitFunction initFunction([]()
 		nuiGi.OnInitVfs();
 	}, 100);
 
-	OnResumeGame.Connect([]()
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->IsGameProcess())
 	{
 		nui::Initialize(&nuiGi);
-	});
+	}
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{

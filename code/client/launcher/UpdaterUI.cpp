@@ -283,7 +283,7 @@ static std::wstring g_mainXaml = LR"(
         M 147.99,-77.01 L 148.47,-77.01 C 147.03,-83.74 143.83,-88.86 138.54,-92.54 122.69,-108.88 106.83,-124.73 90.98,-140.26
         L 90.5,-140.26 C 91.46,-134.65 93.7,-130.49 97.06,-127.61 L 147.99,-77.01 z
         M 173.62,0 L 174.58,-0.48 C 162.89,-35.22 156.64,-53.16 155.68,-54.28 L 99.46,-110.16 99.46,-109.68
-        C 101.55,-101.19 112.12,-64.52 130.86,0 L 173.62,0 173.62,0 z" Fill="#ffffffff" Stretch="Fill">
+        C 101.55,-101.19 112.12,-64.52 130.86,0 L 173.62,0 173.62,0 z" Fill="#f40552" Stretch="Fill">
                 </Path>
                 <Viewbox.RenderTransform>
                     <ScaleTransform ScaleX="-1" />
@@ -340,7 +340,7 @@ void BackdropBrush::OnConnected()
 		auto effect = winrt::Microsoft::Graphics::Canvas::Effects::ColorSourceEffect();
 
 #ifdef GTA_FIVE
-		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 229, 151, 74));
+		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 0x16, 0x19, 0x23));
 #elif defined(IS_RDR3)
 		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
 #endif
@@ -364,9 +364,10 @@ void BackdropBrush::OnConnected()
 		mat.M44 = 1.0f;
 
 #ifdef GTA_FIVE
-		mat.M11 = 241 / 255.f;
-		mat.M22 = 163 / 255.f;
-		mat.M33 = 85 / 255.f;
+		mat.M11 = 1.0f;
+		mat.M22 = 1.0f;
+		mat.M33 = 1.0f;
+		mat.M44 = 0.03f;
 #elif defined(IS_RDR3)
 		mat.M11 = 1.0f;
 		mat.M22 = 1.0f;
@@ -886,7 +887,8 @@ void UI_DoDestruction()
 
 	g_uui.ten = {};
 
-	AllowSetForegroundWindow(GetCurrentProcessId());
+	static HostSharedData<CfxState> initState("CfxInitState");
+	AllowSetForegroundWindow(initState->gamePid);
 
 	DestroyWindow(g_uui.rootWindow);
 }

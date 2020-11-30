@@ -739,6 +739,26 @@ int RealMain()
 			//MessageBox(nullptr, va(L"Gameruntime starting (pid %d)", GetCurrentProcessId()), L"CitizenFx", MB_OK);
 #endif
 
+#if defined(GTA_FIVE) && !defined(LAUNCHER_PERSONALITY_GAME) && defined(LAUNCHER_PERSONALITY_MAIN)
+			if (initState->IsMasterProcess())
+			{
+				// run game mode
+				HMODULE coreRT = LoadLibrary(MakeRelativeCitPath(L"CoreRT.dll").c_str());
+
+				if (coreRT)
+				{
+					auto gameProc = (void (*)())GetProcAddress(coreRT, "EarlyMode_Init");
+
+					if (gameProc)
+					{
+						gameProc();
+					}
+				}
+
+				return 0;
+			}
+#endif
+
 			// game launcher initialization
 			CitizenGame::Launch(gameExecutable);
 		}

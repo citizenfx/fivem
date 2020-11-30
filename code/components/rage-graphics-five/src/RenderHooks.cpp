@@ -261,10 +261,133 @@ public:
 	}
 };
 
+class DeferredFullscreenSwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGISwapChain>
+{
+	WRL::ComPtr<IDXGISwapChain> m_orig;
+	bool m_defer = true;
+
+public:
+	DeferredFullscreenSwapChain(WRL::ComPtr<IDXGISwapChain> swapChain)
+		: m_orig(swapChain)
+	{
+	
+	}
+
+	virtual HRESULT __stdcall SetPrivateData(REFGUID Name, UINT DataSize, const void* pData) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall SetPrivateDataInterface(REFGUID Name, const IUnknown* pUnknown) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall GetPrivateData(REFGUID Name, UINT* pDataSize, void* pData) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall GetParent(REFIID riid, void** ppParent) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall GetDevice(REFIID riid, void** ppDevice) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall Present(UINT SyncInterval, UINT Flags) override
+	{
+		return m_orig->Present(SyncInterval, Flags);
+	}
+	virtual HRESULT __stdcall GetBuffer(UINT Buffer, REFIID riid, void** ppSurface) override
+	{
+		return m_orig->GetBuffer(Buffer, riid, ppSurface);
+	}
+	virtual HRESULT __stdcall SetFullscreenState(BOOL Fullscreen, IDXGIOutput* pTarget) override
+	{
+		if (m_defer && !Fullscreen)
+		{
+			m_defer = false;
+		}
+
+		return m_orig->SetFullscreenState(Fullscreen, pTarget);
+	}
+	virtual HRESULT __stdcall GetFullscreenState(BOOL* pFullscreen, IDXGIOutput** ppTarget) override
+	{
+		auto rv = m_orig->GetFullscreenState(pFullscreen, ppTarget);
+
+		if (SUCCEEDED(rv))
+		{
+			if (m_defer)
+			{
+				if (!*pFullscreen)
+				{
+					WRL::ComPtr<IDXGIOutput> output;
+					m_orig->GetContainingOutput(&output);
+					m_orig->SetFullscreenState(TRUE, output.Get());
+
+					if (ppTarget)
+					{
+						output.CopyTo(ppTarget);
+					}
+
+					*pFullscreen = true;
+				}
+				else
+				{
+					m_defer = false;
+				}
+			}
+		}
+
+		return rv;
+	}
+	virtual HRESULT __stdcall GetDesc(DXGI_SWAP_CHAIN_DESC* pDesc) override
+	{
+		return m_orig->GetDesc(pDesc);
+	}
+	virtual HRESULT __stdcall ResizeBuffers(UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags) override
+	{
+		return m_orig->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
+	}
+	virtual HRESULT __stdcall ResizeTarget(const DXGI_MODE_DESC* pNewTargetParameters) override
+	{
+		return m_orig->ResizeTarget(pNewTargetParameters);
+	}
+	virtual HRESULT __stdcall GetContainingOutput(IDXGIOutput** ppOutput) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall GetFrameStatistics(DXGI_FRAME_STATISTICS* pStats) override
+	{
+		return E_NOTIMPL;
+	}
+	virtual HRESULT __stdcall GetLastPresentCount(UINT* pLastPresentCount) override
+	{
+		return E_NOTIMPL;
+	}
+};
+
 #include <dxgi1_6.h>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
+
+void DLL_EXPORT UiDone()
+{
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	auto uiExitEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
+	auto uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
+
+	if (uiExitEvent)
+	{
+		SetEvent(uiExitEvent);
+	}
+
+	if (uiDoneEvent && !g_disableRendering)
+	{
+		WaitForSingleObject(uiDoneEvent, INFINITE);
+	}
+}
 
 static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
@@ -299,21 +422,6 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		}
 	}
 
-	static HostSharedData<CfxState> initState("CfxInitState");
-
-	auto uiExitEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
-	auto uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
-
-	if (uiExitEvent)
-	{
-		SetEvent(uiExitEvent);
-	}
-
-	if (uiDoneEvent && !g_disableRendering)
-	{
-		WaitForSingleObject(uiDoneEvent, INFINITE);
-	}
-
 	if (g_disableRendering)
 	{
 		*pFeatureLevel = D3D_FEATURE_LEVEL_11_0;
@@ -336,6 +444,8 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 	WRL::ComPtr<IDXGIDevice> dxgiDevice;
 	WRL::ComPtr<IDXGIAdapter> dxgiAdapter;
+
+	static HostSharedData<CfxState> initState("CfxInitState");
 
 	if (SUCCEEDED(hr))
 	{
@@ -380,6 +490,11 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		fsDesc.ScanlineOrdering = pSwapChainDesc->BufferDesc.ScanlineOrdering;
 		fsDesc.Windowed = pSwapChainDesc->Windowed;
 
+		if (!fsDesc.Windowed)
+		{
+			fsDesc.Windowed = true;
+		}
+
 		OnTryCreateSwapChain(dxgiFactory.Get(), *ppDevice, pSwapChainDesc->OutputWindow, &scDesc1, &fsDesc, &swapChain1);
 
 		if (!swapChain1)
@@ -394,6 +509,11 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		if (initState->isReverseGame)
 		{
 			auto sc = WRL::Make<BufferBackedDXGISwapChain>(*ppDevice, *pSwapChainDesc);
+			sc.CopyTo(ppSwapChain);
+		}
+		else if (!pSwapChainDesc->Windowed)
+		{
+			auto sc = WRL::Make<DeferredFullscreenSwapChain>(*ppSwapChain);
 			sc.CopyTo(ppSwapChain);
 		}
 	}

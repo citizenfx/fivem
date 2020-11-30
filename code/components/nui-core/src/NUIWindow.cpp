@@ -25,6 +25,11 @@ extern nui::GameInterface* g_nuiGi;
 
 #include "memdbgon.h"
 
+namespace nui
+{
+extern bool g_rendererInit;
+}
+
 NUIWindow::NUIWindow(bool rawBlit, int width, int height)
 	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
 	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0), m_roundedHeight(0), m_roundedWidth(0),
@@ -361,23 +366,7 @@ void NUIWindow::Initialize(CefString url)
 	m_roundedHeight = roundUp(m_height, 16);
 	m_roundedWidth = roundUp(m_width, 16);
 
-	// create the backing texture
-	{
-		std::lock_guard<std::shared_mutex> _(m_textureMutex);
-		m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
-	}
-	
-	if (!m_rawBlit)
-	{
-		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-
-		auto d3d = g_nuiGi->GetD3D11Device();
-		d3d->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture);
-
-		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture, D3D11_RTV_DIMENSION_TEXTURE2D);
-
-		d3d->CreateRenderTargetView(m_swapTexture, &rtDesc, &m_swapRtv);
-	}
+	InitializeRenderBacking();
 
 	// create the client/browser instance
 	m_client = new NUIClient(this);
@@ -404,6 +393,32 @@ void NUIWindow::Initialize(CefString url)
 	}
 }
 
+void NUIWindow::InitializeRenderBacking()
+{
+	if (!nui::g_rendererInit)
+	{
+		return;
+	}
+
+	// create the backing texture
+	{
+		std::lock_guard<std::shared_mutex> _(m_textureMutex);
+		m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+	}
+
+	if (!m_rawBlit)
+	{
+		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+
+		auto d3d = g_nuiGi->GetD3D11Device();
+		d3d->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture);
+
+		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture, D3D11_RTV_DIMENSION_TEXTURE2D);
+
+		d3d->CreateRenderTargetView(m_swapTexture, &rtDesc, &m_swapRtv);
+	}
+}
+
 void NUIWindow::AddDirtyRect(const CefRect& rect)
 {
 	EnterCriticalSection(&m_renderBufferLock);
@@ -425,6 +440,12 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 {
 	if (!m_rawBlit && type != CefRenderHandler::PaintElementType::PET_VIEW)
 	{
+		return;
+	}
+
+	if (!m_nuiTexture.GetRef())
+	{
+		// hope we'll resize soon
 		return;
 	}
 

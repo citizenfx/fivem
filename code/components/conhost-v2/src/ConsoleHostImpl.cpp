@@ -405,7 +405,7 @@ ImFont* consoleFontTiny;
 
 void ImGui_ImplWin32_InitPlatformInterface();
 
-static InitFunction initFunction([]()
+static HookFunction initFunction([]()
 {
 	auto cxt = ImGui::CreateContext();
 	ImGui::SetCurrentContext(cxt);
