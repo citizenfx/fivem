@@ -141,7 +141,7 @@ namespace streaming
 		virtual void* GetResource(uint32_t object) = 0;
 
 		// nullsub
-		virtual void m_70() = 0;
+		virtual void GetModelMapTypeIndex(uint32_t localIndex, uint32_t& outIndex) = 0;
 
 		// unknown function, involving releasing
 		virtual void m_78(uint32_t object, int) = 0;
