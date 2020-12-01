@@ -501,6 +501,11 @@ const std::unique_ptr<Dsp::Filter>& mono_filter)
 
 void RadioDSPEffect::Process(rage::audDspEffectBuffer& buffers)
 {
+	if (!m_settings.enabled)
+	{
+		return;
+	}
+
 	update_filter_frequencies(m_settings.freq_low.load(), m_settings.freq_hi.load(), m_last_eq_in, f);
 	update_filter_frequencies(m_settings.o_freq_lo.load(), m_settings.o_freq_hi.load(), m_last_eq_out, f_o);
 
