@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as mkdirp from 'mkdirp';
-import { AssetCreateRequest } from 'shared/api.types';
+import { AssetCreateRequest } from 'shared/api.requests';
 import { BaseAssetKind } from "../types";
 
 export class ResourceKind extends BaseAssetKind {

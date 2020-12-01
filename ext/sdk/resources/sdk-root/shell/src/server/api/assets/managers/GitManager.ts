@@ -1,8 +1,9 @@
 import * as path from 'path';
 import simpleGitPromised from 'simple-git/promise';
 import { invariant } from '../../../invariant';
-import { AssetCreateRequest, assetKinds, assetManagerTypes, assetStatus } from 'shared/api.types';
+import { assetKinds, assetManagerTypes, assetStatus } from 'shared/api.types';
 import { BaseAssetManager } from "../types";
+import { AssetCreateRequest } from 'shared/api.requests';
 
 export class GitManager extends BaseAssetManager {
   async create(request: AssetCreateRequest): Promise<boolean> {

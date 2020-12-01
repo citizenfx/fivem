@@ -6,18 +6,13 @@ import * as rimrafSync from 'rimraf';
 import { promisify } from 'util';
 import {
   ApiClient,
-  AssetDeleteRequest,
   AssetMeta,
-  AssetRenameRequest,
-  CopyEntryRequest,
-  MoveEntryRequest,
   Project,
   ProjectFsTree,
   ProjectManifest,
   ProjectManifestResource,
   ProjectPathsState,
   ProjectResources,
-  RelinkResourcesRequest,
   ServerUpdateChannel,
   serverUpdateChannels,
 } from 'shared/api.types';
@@ -26,6 +21,7 @@ import { createLock, debounce, getEnabledResourcesPaths, getResourceConfig, getP
 import { fxdkAssetFilename, fxdkProjectFilename, resourceManifestFilename, resourceManifestLegacyFilename } from './constants';
 import { EntryMetaExtras, ExplorerApi } from './ExplorerApi';
 import { SystemEvent, systemEvents } from './systemEvents';
+import { AssetDeleteRequest, AssetRenameRequest, CopyEntryRequest, MoveEntryRequest, ProjectCreateRequest, RelinkResourcesRequest } from 'shared/api.requests';
 
 
 const rimraf = promisify(rimrafSync);
@@ -36,11 +32,6 @@ enum FsTreeUpdateType {
   change,
   unlink,
   unlinkDir,
-}
-
-export interface ProjectCreateRequest {
-  path: string,
-  name: string,
 }
 
 
@@ -74,12 +65,12 @@ export class ProjectInstance {
   static async createProject(request: ProjectCreateRequest, client: ApiClient, explorer: ExplorerApi): Promise<ProjectInstance> {
     client.log('Creating project', request);
 
-    const projectPath = path.join(request.path, request.name);
+    const projectPath = path.join(request.projectPath, request.projectName);
     const projectShadowRootPath = path.join(projectPath, '.fxdk/shadowRoot');
 
     const projectManifestPath = path.join(projectPath, fxdkProjectFilename);
     const projectManifest: ProjectManifest = {
-      name: request.name,
+      name: request.projectName,
       serverUpdateChannel: serverUpdateChannels.recommended,
       createdAt: new Date().toISOString(),
       resources: {},

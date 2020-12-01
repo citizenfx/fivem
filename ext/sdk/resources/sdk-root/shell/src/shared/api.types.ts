@@ -5,7 +5,6 @@ export interface ApiClient {
   emit<T>(eventType: string, data?: T): void,
   emitSid<T>(sid: string, eventType: string, data?: T): void,
   on(eventType: string, cb: Function): ApiEventCallbackDisposer,
-  onAny(cb: Function): ApiEventCallbackDisposer,
   log(...args: any[]): void,
 }
 
@@ -163,50 +162,6 @@ export type AssetMeta =
   | AssetMetaResource
   | AssetMetaPack;
 
-export interface AssetCreateRequest {
-  assetPath: string,
-  assetName: string,
-  assetKind?: AssetKind,
-  managerType?: AssetManagerType,
-  managerData?: any,
-  readOnly?: boolean,
-  data?: any,
-  callback?: Function,
-}
-
-export interface AssetDeleteRequest {
-  assetPath: string,
-}
-
-export interface AssetRenameRequest {
-  assetPath: string,
-  newAssetName: string,
-}
-
-export interface RelinkResourcesRequest {
-  projectPath: string,
-  enabledResourcesPaths: string[],
-}
-
-export interface ServerStartRequest {
-  projectPath: string,
-  updateChannel: ServerUpdateChannel,
-  enabledResourcesPaths: string[],
-}
-
-export interface ServerRefreshResourcesRequest {
-  projectPath: string,
-  enabledResourcesPaths: string[],
-}
-
-export interface MoveEntryRequest {
-  sourcePath: string,
-  targetPath: string,
-}
-
-export type CopyEntryRequest = MoveEntryRequest;
-
-
 
 export enum Feature {
   systemGitClientAvailable,
@@ -214,3 +169,8 @@ export enum Feature {
 }
 
 export type FeaturesMap = Partial<Record<Feature, boolean>>;
+
+export interface ProjectCreateCheckResult {
+  openProject?: boolean,
+  ignoreCfxServerData?: boolean,
+}

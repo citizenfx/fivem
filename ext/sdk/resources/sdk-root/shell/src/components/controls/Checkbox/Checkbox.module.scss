@@ -19,6 +19,8 @@
     width: $q*3;
     height: $q*3;
 
+    margin: $q/2;
+
     border: solid $q/2 transparent;
     box-shadow: 0 0 0 $q/2 $fgColor, 0 0 0 0 $fgColor inset;
 

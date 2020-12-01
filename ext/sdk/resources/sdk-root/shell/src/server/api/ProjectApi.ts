@@ -1,11 +1,15 @@
-import * as fs from 'fs';
-import { ApiClient, AssetCreateRequest, assetManagerTypes, RecentProject} from 'shared/api.types';
-import { ExplorerApi } from './ExplorerApi';
+import fs from 'fs';
+import path from 'path';
+import { ApiClient, assetManagerTypes, ProjectCreateCheckResult, RecentProject} from 'shared/api.types';
+import { doesPathExist, ExplorerApi } from './ExplorerApi';
 import * as paths from '../paths';
-import { errorsApi, projectApi } from 'shared/api.events';
-import { ProjectCreateRequest, ProjectInstance } from './ProjectInstance';
+import { projectApi } from 'shared/api.events';
+import { ProjectInstance } from './ProjectInstance';
 import { createLock, notNull } from '../../shared/utils';
 import { SystemEvent, systemEvents } from './systemEvents';
+import { AssetCreateRequest, ProjectCreateRequest } from 'shared/api.requests';
+import { NotificationsApi } from './NotificationsApi';
+import { fxdkProjectFilename } from './constants';
 
 
 const cfxServerDataEnabledResources = [
@@ -27,19 +31,14 @@ export class ProjectApi {
   constructor(
     private readonly client: ApiClient,
     private readonly explorer: ExplorerApi,
+    private readonly notifications: NotificationsApi,
   ) {
     this.client.on(projectApi.getRecents, () => this.updateRecentProjects());
     this.client.on(projectApi.removeRecent, (projectPath: string) => this.deleteRecentProject(projectPath));
 
     this.client.on(projectApi.open, (projectPath: string) => this.openProject(projectPath));
-    this.client.on(projectApi.create, async ({ projectPath, name, withServerData }) => {
-      try {
-        await this.createProject(projectPath, name, withServerData);
-      } catch (e) {
-        console.error(e);
-        this.client.emit(errorsApi.projectCreateError, e.toString());
-      }
-    });
+    this.client.on(projectApi.create, (request: ProjectCreateRequest) => this.createProject(request));
+    this.client.on(projectApi.checkCreateRequest, (request: ProjectCreateRequest) => this.checkCreateRequest(request));
   }
 
   async getRecentProjects(): Promise<RecentProject[]> {
@@ -52,7 +51,7 @@ export class ProjectApi {
 
       return JSON.parse(content.toString('utf8'));
     } catch (e) {
-      this.client.log('error reading recents', e);
+      this.notifications.warning(`Failed to read recent projects file at ${paths.recentProjectsFilePath}, error: ${e.toString()}`);
       return [];
     }
   }
@@ -111,12 +110,40 @@ export class ProjectApi {
     return this.projectInstance;
   }
 
-  async createProject(projectBasePath: string, name: string, withServerData: boolean = false) {
-    this.client.log('Creating project', {
-      projectBasePath,
-      name,
-      withServerData,
-    });
+  async checkCreateRequest(request: ProjectCreateRequest): Promise<ProjectCreateCheckResult> {
+    const result: ProjectCreateCheckResult = {};
+    const finish = () => {
+      this.client.emit(projectApi.checkCreateResult, result);
+
+      return result;
+    };
+
+    const projectPath = path.join(request.projectPath, request.projectName);
+
+    // Check if project already exist within given path
+    const projectManifestPath = path.join(projectPath, fxdkProjectFilename);
+    if (await doesPathExist(projectManifestPath)) {
+      result.openProject = true;
+
+      return finish();
+    }
+
+    const serverDataPath = path.join(projectPath, 'cfx-server-data');
+    if (request.withServerData && await doesPathExist(serverDataPath)) {
+      result.ignoreCfxServerData = true;
+    }
+
+    return finish();
+  }
+
+  async createProject(request: ProjectCreateRequest) {
+    const checkResult = await this.checkCreateRequest(request);
+
+    if (checkResult.openProject) {
+      return this.openProject(path.join(request.projectPath, request.projectName));
+    }
+
+    this.client.log('Creating project', request);
 
     await this.projectLock.waitForUnlock();
     this.projectLock.lock();
@@ -126,14 +153,9 @@ export class ProjectApi {
       this.projectInstance = null;
     }
 
-    const projectCreateRequest: ProjectCreateRequest = {
-      path: projectBasePath,
-      name,
-    };
+    const instance = this.projectInstance = await ProjectInstance.createProject(request, this.client, this.explorer);
 
-    const instance = this.projectInstance = await ProjectInstance.createProject(projectCreateRequest, this.client, this.explorer);
-
-    if (withServerData) {
+    if (!checkResult.ignoreCfxServerData && request.withServerData) {
       const assetCreateRequest: AssetCreateRequest = {
         assetName: 'cfx-server-data',
         assetPath: instance.project.path,

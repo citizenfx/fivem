@@ -6,49 +6,96 @@ import { RootsExplorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
 import { projectNamePattern } from 'constants/patterns';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { errorsApi, projectApi } from 'shared/api.events';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { useApiMessage, useFeature } from 'utils/hooks';
-import { Feature } from 'shared/api.types';
+import { useApiMessage, useDebouncedCallback, useFeature } from 'utils/hooks';
+import { Feature, ProjectCreateCheckResult } from 'shared/api.types';
 import s from './ProjectCreator.module.scss';
+import { ProjectCreateRequest } from 'shared/api.requests';
 
 
-export const ProjectCreator = React.memo(function ProjectCreator() {
-  const { creatorOpen, closeCreator } = React.useContext(ProjectContext);
-
-  const [name, setName] = React.useState('');
-  const [error, setError] = React.useState('');
-  const [projectPath, setProjectPath] = React.useState<string>();
-  const [withServerData, setWithServerData] = React.useState(false);
-  const canInstallServerData = useFeature(Feature.systemGitClientAvailable);
-
+function formatProjectPathHint(projectPath: string, projectName: string) {
   let hint = 'Select a folder in which project will be created';
 
   if (projectPath) {
     hint = 'Project path: ' + projectPath;
 
-    if (name) {
-      hint += '\\' + name;
+    if (projectName) {
+      hint += '\\' + projectName;
     }
   }
 
+  return hint;
+}
+
+export const ProjectCreator = React.memo(function ProjectCreator() {
+  const { closeCreator } = React.useContext(ProjectContext);
+
+  const [projectName, setProjectName] = React.useState('');
+  const [projectPath, setProjectPath] = React.useState('');
+  const [withServerData, setWithServerData] = React.useState(false);
+  const [checkResult, setCheckResult] = React.useState<ProjectCreateCheckResult>({});
+
+  const canInstallServerData = useFeature(Feature.systemGitClientAvailable);
+
+  // Whenever we see project open - close creator
   useApiMessage(projectApi.open, closeCreator);
 
-  useApiMessage(errorsApi.projectCreateError, (error: string) => {
-    setError(error);
-  }, [setError]);
+  useApiMessage(projectApi.checkCreateResult, (results) => {
+    setCheckResult(results);
+  }, [setCheckResult]);
+
+  const checkRequest = useDebouncedCallback((projectPath: string, projectName: string, withServerData: boolean) => {
+    if (!projectPath || !projectName) {
+      return;
+    }
+
+    const request: ProjectCreateRequest = {
+      projectPath,
+      projectName,
+      withServerData,
+    };
+
+    sendApiMessage(projectApi.checkCreateRequest, request);
+  }, 250);
 
   const handleCreateProject = React.useCallback(() => {
-    setError('');
-
     if (projectPath) {
-      sendApiMessage(projectApi.create, { projectPath, name, withServerData });
-    }
-  }, [name, projectPath, withServerData, setError]);
+      const request: ProjectCreateRequest = {
+        projectPath,
+        projectName,
+        withServerData,
+      };
 
-  if (!creatorOpen) {
-    return null;
-  }
+      sendApiMessage(projectApi.create, request);
+    }
+  }, [projectName, projectPath, withServerData]);
+
+  const handleProjectPathChange = React.useCallback((newProjectPath: string) => {
+    setProjectPath(newProjectPath);
+    checkRequest(newProjectPath, projectName, withServerData);
+  }, [projectName, withServerData, setProjectPath]);
+
+  const handleProjectNameChange = React.useCallback((newProjectName: string) => {
+    setProjectName(newProjectName);
+    checkRequest(projectPath, newProjectName, withServerData);
+  }, [projectPath, withServerData, setProjectName]);
+
+  const handleWithServerDataChange = React.useCallback((newWithServerData: boolean) => {
+    setWithServerData(newWithServerData);
+    checkRequest(projectPath, projectName, newWithServerData);
+  }, [projectPath, projectName, setWithServerData]);
+
+  const hint = formatProjectPathHint(projectPath, projectName);
+  const canCreate = projectPath && projectName;
+
+  const serverDataCheckboxLabel = !canInstallServerData
+    ? `Can't install cfx-server-data automatically as we failed to find git client on this machine, we're working on resolving this issue, sorry for inconveniece :(`
+    : (
+      checkResult.ignoreCfxServerData
+        ? `cfx-server-data is already there! Though we don't know if that is what you need`
+        : 'Add cfx-server-data automatically?'
+    );
 
   return (
     <Modal fullWidth onClose={closeCreator}>
@@ -59,19 +106,20 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
 
         <div className={s['name-input']}>
           <Input
+            autofocus
             className={s.input}
             label="Project name"
             placeholder="Definitely not an RP project name"
-            value={name}
-            onChange={setName}
+            value={projectName}
+            onChange={handleProjectNameChange}
             pattern={projectNamePattern}
           />
         </div>
 
         <Checkbox
           value={withServerData}
-          onChange={setWithServerData}
-          label="Add cfx-server-data?"
+          onChange={handleWithServerDataChange}
+          label={serverDataCheckboxLabel}
           className={s.checkbox}
           disabled={!canInstallServerData}
         />
@@ -82,17 +130,17 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
         <RootsExplorer
           hideFiles
           selectedPath={projectPath}
-          onSelectPath={setProjectPath}
+          onSelectPath={handleProjectPathChange}
         />
 
-        {!!error && (
-          <div className="modal-error">
-            {error}
-          </div>
-        )}
-
         <div className="modal-actions">
-          <Button theme="primary" text="Create" disabled={!projectPath || !name} onClick={handleCreateProject} />
+          <Button
+            theme="primary"
+            text={checkResult.openProject ? 'Open' : 'Create'}
+            disabled={!canCreate}
+            onClick={handleCreateProject}
+          />
+
           <Button text="Cancel" onClick={closeCreator} />
         </div>
       </div>

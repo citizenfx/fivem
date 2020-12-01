@@ -14,7 +14,6 @@ import { FeaturesApi } from "./FeaturesApi";
 
 const clients = new Set<ws>();
 
-const messageListeners: Set<ApiEventCallback<any>> = new Set();
 const messageTypeListeners: { [eventType: string]: Set<ApiEventCallback<any>> } = {};
 
 
@@ -39,11 +38,6 @@ export const apiClient: ApiClient = {
       messageTypeListeners[eventType].delete(cb);
     };
   },
-  onAny<T>(cb: ApiEventCallback<T>): ApiEventCallbackDisposer {
-    messageListeners.add(cb);
-
-    return () => messageListeners.delete(cb);
-  },
 
   log(...args: any[]): void {
     return this.emit('@@log', args);
@@ -58,20 +52,28 @@ export const mountApi = (app: expressWs.Application) => {
       clients.delete(ws);
     });
 
-    ws.on('message', (msg: string) => {
+    ws.on('message', async (msg: string) => {
+      let type, data;
+
       try {
-        const [type, data] = JSON.parse(msg);
-
-        messageListeners.forEach((listener) => listener(type, data));
-
-        const typedListeners = messageTypeListeners[type];
-
-        if (typedListeners) {
-          typedListeners.forEach((listener) => listener(data));
-        }
+        [type, data] = JSON.parse(msg);
       } catch (e) {
-        console.error(e);
+        return console.log('Invalid api message:', msg, e);
       }
+
+      const typedListeners = messageTypeListeners[type];
+      if (!typedListeners?.size) {
+        return console.log('No listeners for event of type:', type);
+      }
+
+      typedListeners.forEach(async (listener) => {
+        try {
+          await listener(data);
+        } catch (e) {
+          console.log('Unexpected error occured:', e);
+          notifications.error(`Unexpected error occured: ${e.toString()}`);
+        }
+      });
     });
   });
 };
@@ -85,5 +87,5 @@ export const serverManager = new ServerManagerApi(apiClient, notifications);
 export const state = new StateApi(apiClient);
 export const server = new ServerApi(apiClient, serverManager, features);
 export const explorer = new ExplorerApi(apiClient, notifications);
-export const project = new ProjectApi(apiClient, explorer);
+export const project = new ProjectApi(apiClient, explorer, notifications);
 export const asset = new AssetApi(apiClient, project);

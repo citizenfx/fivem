@@ -9,7 +9,8 @@ import { ResourceKind } from './assets/kinds/ResourceKind';
 import { GitManager } from './assets/managers/GitManager';
 import { invariant } from '../invariant';
 import { SystemEvent, systemEvents } from './systemEvents';
-import { ApiClient, AssetCreateRequest, AssetDeleteRequest, assetKinds, assetManagerTypes, AssetRenameRequest } from 'shared/api.types';
+import { ApiClient, assetKinds, assetManagerTypes } from 'shared/api.types';
+import { AssetCreateRequest, AssetDeleteRequest, AssetRenameRequest } from 'shared/api.requests';
 
 const rimraf = promisify(rimrafSync);
 
@@ -64,7 +65,6 @@ export class AssetApi {
       return systemEvents.emit(SystemEvent.assetCreated, request);
     }
 
-    this.client.log('Invalid asset create request, either assetKind or managerType must be specified');
     throw new Error('Invalid asset create request, either assetKind or managerType must be specified');
   }
 

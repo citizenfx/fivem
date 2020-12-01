@@ -7,7 +7,7 @@ import * as mkdirp from 'mkdirp';
 import * as paths from '../paths';
 import * as rimrafSync from 'rimraf'
 import { promisify } from 'util';
-import { ApiClient, Feature, RelinkResourcesRequest, ServerRefreshResourcesRequest as ServerSetEnabledResourcesRequest, ServerStartRequest, ServerStates } from 'shared/api.types';
+import { ApiClient, Feature, ServerStates } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
 import { sdkGamePipeName } from './constants';
 import { SystemEvent, systemEvents } from './systemEvents';
@@ -15,6 +15,7 @@ import { ServerManagerApi } from './ServerManagerApi';
 import { createLock } from '../../shared/utils';
 import { doesPathExist } from './ExplorerApi';
 import { FeaturesApi } from './FeaturesApi';
+import { RelinkResourcesRequest, ServerRefreshResourcesRequest, ServerStartRequest } from 'shared/api.requests';
 
 const rimraf = promisify(rimrafSync);
 
@@ -55,7 +56,7 @@ export class ServerApi {
     this.client.on(serverApi.stop, () => this.stop());
     this.client.on(serverApi.sendCommand, (cmd: string) => this.sendCommand(cmd));
     this.client.on(serverApi.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
-    this.client.on(serverApi.setEnabledResources, (request: ServerSetEnabledResourcesRequest) => this.setEnabledResources(request));
+    this.client.on(serverApi.setEnabledResources, (request: ServerRefreshResourcesRequest) => this.setEnabledResources(request));
   }
 
   ackState() {
@@ -83,7 +84,7 @@ export class ServerApi {
     this.client.log('FXServer cwd', fxserverCwd);
 
     const blankPath = path.join(fxserverCwd, 'blank.cfg');
-    if (await doesPathExist(blankPath)) {
+    if (!await doesPathExist(blankPath)) {
       await fs.promises.writeFile(blankPath, '');
     }
 
@@ -147,7 +148,7 @@ export class ServerApi {
     this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
-  async setEnabledResources(request: ServerSetEnabledResourcesRequest) {
+  async setEnabledResources(request: ServerRefreshResourcesRequest) {
     const { projectPath, enabledResourcesPaths } = request;
 
     const fxserverCwd = getProjectServerPath(projectPath);

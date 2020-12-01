@@ -1,4 +1,5 @@
-import { ApiClient, AssetCreateRequest } from 'shared/api.types';
+import { AssetCreateRequest } from 'shared/api.requests';
+import { ApiClient } from 'shared/api.types';
 import { AssetApi } from '../AssetApi';
 import { ProjectApi } from '../ProjectApi';
 

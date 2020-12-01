@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { DropTargetMonitor, useDrag, useDrop } from 'react-dnd';
-import { ContextMenuItem, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
+import { ContextMenuItem, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
 import { VisibilityFilter } from 'components/Explorer/Explorer';
 import { newDirectoryIcon, newFileIcon } from 'constants/icons';
-import { FilesystemEntry, MoveEntryRequest } from 'shared/api.types';
+import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useOpenFlag } from 'utils/hooks';
@@ -13,6 +13,7 @@ import { EntryRelocateOperation, ProjectExplorerContext } from './ProjectExplore
 import { ProjectItemProps, renderChildren } from './ProjectExplorer.item';
 import { ProjectExplorerItemContext } from './ProjectExplorer.itemContext';
 import { EntryMoveItem } from './ProjectExplorer.itemTypes';
+import { MoveEntryRequest } from 'shared/api.requests';
 
 export interface UseExpandedPathHook {
   expanded: boolean,

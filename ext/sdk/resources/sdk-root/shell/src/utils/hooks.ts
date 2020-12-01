@@ -5,7 +5,7 @@ import { Feature } from 'shared/api.types';
 import { ANY_MESSAGE, ApiMessageListener, onApiMessage } from './api';
 import { fastRandomId } from './random';
 
-export const useSid = (watchers: any[] = []) => {
+export const useSid = (watchers: React.DependencyList = []) => {
   const initialSid = React.useMemo(fastRandomId, []);
   const sidRef = React.useRef(initialSid);
 
@@ -16,11 +16,11 @@ export const useSid = (watchers: any[] = []) => {
   return sidRef.current;
 };
 
-export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener, watchers: any[] = []) => {
+export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener, watchers: React.DependencyList = []) => {
   React.useEffect(() => onApiMessage(type, cb), watchers); // eslint-disable-line react-hooks/exhaustive-deps
 };
 
-export const useSidApiMessage = (sid: string, type: string, cb: ApiMessageListener, watchers: any[] = []) => {
+export const useSidApiMessage = (sid: string, type: string, cb: ApiMessageListener, watchers: React.DependencyList = []) => {
   useApiMessage(`${type}(${sid})`, cb, watchers); // eslint-disable-line react-hooks/exhaustive-deps
 };
 
@@ -105,3 +105,29 @@ export const useFeature = (feature: Feature): boolean | void => {
 
   return featuresState[feature];
 }
+
+
+export const useDebouncedCallback = <T extends any[], U extends any, R = (...args: T) => any>(
+  cb: (...args: T) => U,
+  timeout: number,
+  watchers: React.DependencyList = [],
+): R => {
+  const cbRef = React.useRef(cb);
+  const timerRef = React.useRef<any>();
+
+  cbRef.current = cb;
+
+  const realCb = (...args: T): any => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      timerRef.current = undefined;
+
+      cbRef.current(...args);
+    }, timeout);
+  };
+
+  return React.useCallback<any>(realCb, [...watchers]);
+};

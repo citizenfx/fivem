@@ -8,8 +8,9 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { sendApiMessage } from 'utils/api';
 import { invariant } from 'utils/invariant';
 import { assetApi } from 'shared/api.events';
-import { AssetCreateRequest, assetKinds, FilesystemEntry } from 'shared/api.types';
+import { assetKinds, FilesystemEntry } from 'shared/api.types';
 import s from './AssetCreator.module.scss';
+import { AssetCreateRequest } from 'shared/api.requests';
 
 
 const resourceFolderSelectableFilter = (entry: FilesystemEntry) => {
@@ -75,6 +76,7 @@ export const AssetCreator = React.memo(function AssetCreator() {
         />
 
         <Input
+          autofocus
           label="Resource name"
           placeholder="kiwigrape-matchmaking"
           value={assetName}

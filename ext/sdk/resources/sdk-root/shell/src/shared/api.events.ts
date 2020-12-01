@@ -1,4 +1,6 @@
 export const projectApi = {
+  checkCreateRequest: 'project:checkCreateRequest',
+  checkCreateResult: 'project:checkCreateResult',
   create: 'project:create',
   open: 'project:open',
   update: 'project:update',
@@ -90,10 +92,6 @@ export const serverApi = {
   ackUpdateChannelsState: 'server:ackUpdateChannelsState',
   checkForUpdates: 'server:checkForUpdates',
   installUpdate: 'server:installUpdate',
-};
-
-export const errorsApi = {
-  projectCreateError: 'error:projectCreate',
 };
 
 export const statusesApi = {
