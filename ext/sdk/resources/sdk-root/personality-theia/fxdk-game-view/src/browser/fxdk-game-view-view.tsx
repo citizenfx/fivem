@@ -7,6 +7,18 @@ import './common/game-view.webcomponent.js';
 
 
 const stylesheet = /*css*/`
+  @keyframes hint-animation {
+    0% {
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
   .fxdk-game-view {
     display: flex;
     flex-direction: column;
@@ -31,6 +43,13 @@ const stylesheet = /*css*/`
   }
 
   .fxdk-game-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .fxdk-game-bar.fxdk-pointer-locked .fxdk-play-button {
+    display: none;
   }
 
   .fxdk-play-button {
@@ -69,25 +88,45 @@ const stylesheet = /*css*/`
 `;
 
 const GameView = React.memo(() => {
-  const ref = React.useRef<any>(null);
+  const [pointerLocked, setPointerLocked] = React.useState(false);
+  const gameViewRef = React.useRef<any>(null);
 
   const enterFullscreen = React.useCallback(() => {
-    if (ref.current) {
-      ref.current.enterFullscreen();
-      ref.current.lockPointer();
+    if (gameViewRef.current) {
+      gameViewRef.current.enterFullscreen();
+      gameViewRef.current.lockPointer();
     }
+  }, []);
+
+  React.useEffect(() => {
+    const pointerlockchangeCallback = (e) => {
+      setPointerLocked(e.detail.locked);
+    };
+
+    if (gameViewRef.current) {
+      gameViewRef.current.addEventListener('pointerlockchange', pointerlockchangeCallback);
+    }
+
+    return () => {
+      if (gameViewRef.current) {
+        gameViewRef.current.removeEventListener('pointerlockchange', pointerlockchangeCallback);
+      }
+    };
   }, []);
 
   return (
     <div tabIndex={0} className="fxdk-game-view">
       <div className="fxdk-game-bar-wrapper">
-        <div className="fxdk-game-bar">
-          <button onClick={enterFullscreen} className="fxdk-play-button">
+        <div className={`fxdk-game-bar ${pointerLocked ? 'fxdk-pointer-locked' : ''}`}>
+          <button
+            onClick={enterFullscreen}
+            className="fxdk-play-button"
+          >
             Go fullscreen
           </button>
         </div>
       </div>
-      <game-view ref={ref}></game-view>
+      <game-view ref={gameViewRef}></game-view>
     </div>
   );
 });

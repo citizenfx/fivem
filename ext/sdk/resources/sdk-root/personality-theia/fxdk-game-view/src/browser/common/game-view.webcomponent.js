@@ -127,7 +127,6 @@ function createGameView() {
       gl.canvas.height = height;
     },
     destroy: () => {
-      this.gl.loseContext();
       cancelAnimationFrame(this.animationFrame);
     },
   };
@@ -217,7 +216,6 @@ class GameView extends HTMLElement {
       cancelable: false,
       composed: true,
       detail: {
-        target: this,
         mode: this.mode,
       },
     }));
@@ -262,7 +260,56 @@ class GameView extends HTMLElement {
 
 				width: 60vw;
 				height: 60vh;
-			}
+      }
+
+      hint {
+        display: block;
+
+        position: absolute;
+        top: 10vw;
+        left: 50%;
+        transform: translateX(-50%);
+
+        padding: 5px 15px;
+
+        backdrop-filter: blur(20px);
+        background-color: hsla(226, 23%, 11%, .45);
+
+        border: solid 1px hsla(226, 23%, 11%, .1);
+        border-radius: 4px;
+
+        color: white;
+        font-size: 14px;
+        font-family: 'Segoe UI';
+        font-weight: 300;
+        letter-spacing: 1px;
+
+        pointer-events: none;
+
+        opacity: 0;
+
+        z-index: 2;
+      }
+
+      @keyframes hint-animation {
+        0% {
+          opacity: 0;
+        }
+        25% {
+          opacity: 1;
+        }
+        75% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      hint.active {
+        animation-name: hint-animation;
+        animation-duration: 2s;
+      }
 
 			canvas {
 				position: absolute;
@@ -279,12 +326,30 @@ class GameView extends HTMLElement {
 
     this._canvas = this.gameView.canvas;
 
+    this._hint = document.createElement('hint');
+    this._hint.innerHTML = `<strong>Shift+Esc</strong> to release mouse`;
+
     this._createHandlers();
-    this._setupResizeObserver();
-    this._addEventListeners();
 
     shadow.appendChild(style);
     shadow.appendChild(this._canvas);
+    shadow.appendChild(this._hint);
+  }
+
+  /**
+   * @lifecycle
+   */
+  connectedCallback() {
+    this._setupResizeObserver();
+    this._addEventListeners();
+  }
+
+  /**
+   * @lifecycle
+   */
+  disconnectedCallback() {
+    this._resizeObserver.disconnect();
+    this._removeEventListeners();
   }
 
   /**
@@ -355,19 +420,13 @@ class GameView extends HTMLElement {
     document.removeEventListener('mousemove', this._handleDocumentMouseMove);
   }
 
-  disconnectedCallback() {
-    this.gameView.destroy();
-
-    this._removeEventListeners();
-  }
-
   _setupResizeObserver() {
     let width = 0
     let height = 0;
 
     let debounce;
 
-    const resizeObserver = new ResizeObserver(entries => {
+    this._resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         width = entry.contentRect.width;
         height = entry.contentRect.height;
@@ -382,7 +441,7 @@ class GameView extends HTMLElement {
       }
     });
 
-    resizeObserver.observe(this._canvas);
+    this._resizeObserver.observe(this._canvas);
   }
 
   _resetStates() {
@@ -409,6 +468,23 @@ class GameView extends HTMLElement {
       this._pointerLocked = pointerLocked;
       this._acceptInput = pointerLocked;
 
+      if (pointerLocked !== wasPointerLocked) {
+        this.dispatchEvent(new CustomEvent('pointerlockchange', {
+          bubbles: true,
+          cancelable: false,
+          composed: true,
+          detail: {
+            locked: pointerLocked,
+          },
+        }));
+
+        if (pointerLocked) {
+          this._hint.classList.add('active');
+        } else {
+          this._hint.classList.remove('active');
+        }
+      }
+
       if (!pointerLocked && wasPointerLocked) {
         this._resetStates();
       }
@@ -421,6 +497,7 @@ class GameView extends HTMLElement {
 
     this._handleDocumentMouseMove = (e) => {
       // Handling cases when pointer was unlocked externally
+      // Like if you alt-tab from FxDK or something like that
       if (this._pointerLocked && e.target !== this) {
         document.exitPointerLock();
       }
