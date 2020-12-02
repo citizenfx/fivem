@@ -18,18 +18,30 @@ void main()
 }
 `;
 
-function makeShader(gl, type, src) {
+function attachShader(gl, program, type, src) {
   const shader = gl.createShader(type);
 
   gl.shaderSource(shader, src);
-  gl.compileShader(shader);
-
-  const infoLog = gl.getShaderInfoLog(shader);
-  if (infoLog) {
-    console.error(infoLog);
-  }
+  gl.attachShader(program, shader);
 
   return shader;
+}
+
+function compileAndLinkShaders(gl, program, vs, fs) {
+  gl.compileShader(vs);
+  gl.compileShader(fs);
+
+  gl.linkProgram(program);
+
+  if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    return;
+  }
+
+  console.error('Link failed:', gl.getProgramInfoLog(program));
+  console.error('vs log:', gl.getShaderInfoLog(vs));
+  console.error('fs log:', gl.getShaderInfoLog(fs));
+
+  throw new Error('Failed to compile shaders');
 }
 
 function createTexture(gl) {
@@ -78,14 +90,13 @@ function createBuffers(gl) {
 }
 
 function createProgram(gl) {
-  const vertexShader = makeShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
-  const fragmentShader = makeShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSrc);
-
   const program = gl.createProgram();
 
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
+  const vertexShader = attachShader(gl, program, gl.VERTEX_SHADER, vertexShaderSrc);
+  const fragmentShader = attachShader(gl, program, gl.FRAGMENT_SHADER, fragmentShaderSrc);
+
+  compileAndLinkShaders(gl, program, vertexShader, fragmentShader);
+
   gl.useProgram(program);
 
   const vloc = gl.getAttribLocation(program, "a_position");
@@ -114,6 +125,10 @@ function createGameView() {
       gl.viewport(0, 0, width, height);
       gl.canvas.width = width;
       gl.canvas.height = height;
+    },
+    destroy: () => {
+      this.gl.loseContext();
+      cancelAnimationFrame(this.animationFrame);
     },
   };
 
@@ -147,42 +162,93 @@ function createGameView() {
   return gameView;
 }
 
+function mapMouseButton(button) {
+  if (button === 2) {
+    return 1;
+  }
+
+  if (button == 1) {
+    return 2;
+  }
+
+  return button;
+}
+
+function mapKey(which, location) {
+  // Alt
+  if (which === 18) {
+    return location === 1
+      ? 0xA4
+      : 0xA5;
+  }
+
+  // Ctrl
+  if (which === 17) {
+    return location === 1
+      ? 0xA2
+      : 0xA3;
+  }
+
+  // Shift
+  if (which === 16) {
+    return location === 1
+      ? 0xA0
+      : 0xA1;
+  }
+
+  return which;
+}
+
+function isLMB(e) {
+  return e.button === 0;
+}
+
+
 class GameView extends HTMLElement {
+  get mode() {
+    return this._mode;
+  }
+
+  set mode(newMode) {
+    this._mode = newMode;
+
+    this.dispatchEvent(new CustomEvent('modechange', {
+      bubbles: true,
+      cancelable: false,
+      composed: true,
+      detail: {
+        target: this,
+        mode: this.mode,
+      },
+    }));
+  }
+
   get isObservingMode() {
-    return this.mode === this.modes.observing;
+    return this.mode === GameView.ModeObserving;
   }
 
   get isControlingMode() {
-    return this.mode === this.modes.controling;
-  }
-
-  get _acceptingInput() {
-    if (this.isObservingMode) {
-      return this._observingModeMouseLock;
-    }
-
-    return this._controlingModeMouseLock;
+    return this.mode === GameView.ModeControling;
   }
 
   constructor() {
     super();
 
-    this.modes = {
-      observing: 0,
-      controling: 1,
-    };
-
-    this.mode = this.modes.observing;
     this.mouseMoveMultiplier = 1.0;
 
+    this._mode = GameView.ModeControling;
+
     this._keysState = [];
+    this._buttonsState = [];
+
+    this._acceptInput = false;
+    this._acceptMouseButtons = false;
+
+    this._pointerLocked = false;
+    this._fullscreenActive = false;
 
     this._observingModeActiveKeys = new Set();
     this._observingModeActiveMouseButtons = new Set();
-    this._observingModeMouseLock = false;
-
-    this._controlingModeMouseLock = false;
-    this._controlingModeFullscreen = false;
 
 
     const shadow = this.attachShadow({ mode: 'open' });
@@ -215,13 +281,49 @@ class GameView extends HTMLElement {
 
     this._createHandlers();
     this._setupResizeObserver();
-    this._setupEvents();
+    this._addEventListeners();
 
     shadow.appendChild(style);
     shadow.appendChild(this._canvas);
   }
 
-  _setupEvents() {
+  /**
+   * @api
+   */
+  enterFullscreenControlingMode() {
+    this.mode = GameView.ModeControling;
+
+    this.requestPointerLock();
+    this.requestFullscreen();
+  }
+
+  /**
+   * @api
+   */
+  lockPointer() {
+    if (!this.isControlingMode) {
+      console.warn('game-view is not in controling mode thus it is impossible to lock pointer');
+      return false;
+    }
+
+    this.requestPointerLock();
+    return true;
+  }
+
+  /**
+   * @api
+   */
+  enterFullscreen() {
+    if (!this.isControlingMode) {
+      console.warn('game-view is not in controling mode thus it is impossible to enter fullscreen');
+      return false;
+    }
+
+    this.requestFullscreen();
+    return true;
+  }
+
+  _addEventListeners() {
     this.addEventListener('mousedown', this._handleMousedown);
     this.addEventListener('mouseup', this._handleMouseup);
 
@@ -231,14 +333,13 @@ class GameView extends HTMLElement {
     document.addEventListener('keydown', this._handleKeydown);
     document.addEventListener('keyup', this._handleKeyup);
 
-    document.addEventListener('pointerlockchange', this._handlePointerLock);
+    document.addEventListener('pointerlockchange', this._handlePointerLockChange);
+    document.addEventListener('fullscreenchange', this._handleFullscreenChange);
 
     document.addEventListener('mousemove', this._handleDocumentMouseMove);
   }
 
-  disconnectedCallback() {
-    cancelAnimationFrame(this.gameView.animationFrame);
-
+  _removeEventListeners() {
     this.removeEventListener('mousedown', this._handleMousedown);
     this.removeEventListener('mouseup', this._handleMouseup);
 
@@ -248,46 +349,16 @@ class GameView extends HTMLElement {
     document.removeEventListener('keydown', this._handleKeydown);
     document.removeEventListener('keyup', this._handleKeyup);
 
-    document.removeEventListener('pointerlockchange', this._handlePointerLock);
+    document.removeEventListener('pointerlockchange', this._handlePointerLockChange);
+    document.removeEventListener('fullscreenchange', this._handleFullscreenChange);
 
     document.removeEventListener('mousemove', this._handleDocumentMouseMove);
   }
 
-  _mapMouseButton(button) {
-    if (button === 2) {
-      return 1;
-    }
+  disconnectedCallback() {
+    this.gameView.destroy();
 
-    if (button == 1) {
-      return 2;
-    }
-
-    return button;
-  }
-
-  _mapKey(which, location) {
-    // Alt
-    if (which === 18) {
-      return location === 1
-        ? 0xA4
-        : 0xA5;
-    }
-
-    // Ctrl
-    if (which === 17) {
-      return location === 1
-        ? 0xA2
-        : 0xA3;
-    }
-
-    // Shift
-    if (which === 16) {
-      return location === 1
-        ? 0xA0
-        : 0xA1;
-    }
-
-    return which;
+    this._removeEventListeners();
   }
 
   _setupResizeObserver() {
@@ -314,145 +385,159 @@ class GameView extends HTMLElement {
     resizeObserver.observe(this._canvas);
   }
 
-  enterFullscreenControlingMode() {
-    this.mode = this.modes.controling;
-    this._controlingModeMouseLock = true;
-    this._controlingModeFullscreen = true;
-    this.requestPointerLock();
-    this.requestFullscreen();
-  }
+  _resetStates() {
+    this._keysState.map((active, key) => {
+      if (active) {
+        this._keysState[key] = false;
+        setKeyState(key, false);
+      }
+    });
 
-  _changeMode(mode) {
-    this.mode = mode;
-
-    this.dispatchEvent(new Event('modechange'));
+    this._buttonsState.map((active, button) => {
+      if (active) {
+        this._buttonsState[button] = false;
+        setMouseButtonState(button, false);
+      }
+    });
   }
 
   _createHandlers() {
-    this._handlePointerLock = () => {
-      if (!document.pointerLockElement) {
-        this._controlingModeMouseLock = false;
+    this._handlePointerLockChange = () => {
+      const pointerLocked = document.pointerLockElement === this;
+      const wasPointerLocked = this._pointerLocked;
+
+      this._pointerLocked = pointerLocked;
+      this._acceptInput = pointerLocked;
+
+      if (!pointerLocked && wasPointerLocked) {
+        this._resetStates();
       }
+    };
+    this._handleFullscreenChange = () => {
+      const fullscreenActive = document.fullscreenElement === this;
+
+      this._fullscreenActive = fullscreenActive;
     };
 
     this._handleDocumentMouseMove = (e) => {
       // Handling cases when pointer was unlocked externally
-      if (this._controlingModeMouseLock && e.target !== this) {
+      if (this._pointerLocked && e.target !== this) {
         document.exitPointerLock();
       }
     };
 
     this._handleMousedown = (e) => {
-      if (e.button !== 0) {
+      const leftMouseButton = isLMB(e);
+
+      // Preventing default behaviour for other mouse buttons
+      if (!leftMouseButton) {
         e.preventDefault();
       }
 
-      if (this.isObservingMode) {
-        if (e.button === 0) {
-          this._observingModeMouseLock = true;
-        }
-      } else {
-        if (e.button === 0) {
-          if (!this._controlingModeMouseLock) {
-            this._controlingModeMouseLock = true;
-            this.requestPointerLock();
-            return;
-          }
+      if (this.isObservingMode && leftMouseButton) {
+        this._acceptInput = true;
+      }
+
+      if (this.isControlingMode) {
+        // Lock mouse pointer to GameView if it's LMB
+        if (!this._pointerLocked && leftMouseButton) {
+          return this.requestPointerLock();
         }
 
-        setMouseButtonState(this._mapMouseButton(e.button), true);
+        // Pass mouse button state to game
+        this._buttonsState[e.button] = true;
+        setMouseButtonState(mapMouseButton(e.button), true);
       }
     };
     this._handleMouseup = (e) => {
       e.preventDefault();
 
-      if (this.isObservingMode) {
-        if (e.button === 0) {
-          this._observingModeMouseLock = false;
+      const leftMouseButton = isLMB(e);
 
-          for (const activeKey of this._observingModeActiveKeys) {
-            setKeyState(activeKey, false);
-          }
+      if (this.isObservingMode && leftMouseButton) {
+        this._acceptInput = false;
 
-          for (const activeMouseButton of this._observingModeActiveMouseButtons) {
-            setMouseButtonState(activeMouseButton, false);
-          }
-        }
-      } else {
-        setMouseButtonState(this._mapMouseButton(e.button), false);
+        this._resetStates();
+      }
+
+      if (this.isControlingMode) {
+        // Pass mouse button state to game
+        this._buttonsState[e.button] = false;
+        setMouseButtonState(mapMouseButton(e.button), false);
       }
     };
     this._handleMousewheel = (e) => {
       e.preventDefault();
 
-      if (this._acceptingInput) {
+      if (this._acceptInput) {
         sendMouseWheel(e.deltaY);
       }
     };
     this._handleMousemove = (e) => {
       e.preventDefault();
 
-      if (this._acceptingInput) {
+      if (this._acceptInput) {
         sendMousePos(e.movementX, e.movementY);
       }
     };
 
     this._handleKeydown = (e) => {
-      if (!this._observingModeMouseLock && !this._controlingModeMouseLock) {
+      if (!this._acceptInput) {
         return;
       }
 
       e.preventDefault();
 
-      // Handling mouse unlock
+      // Handling pointer unlock
       if (e.key === 'Escape' && e.shiftKey) {
-        if (this._controlingModeFullscreen) {
-          this.mode = this.modes.observing;
-          this._controlingModeFullscreen = false;
+        if (this._fullscreenActive) {
           document.exitFullscreen();
         }
 
-        if (this._controlingModeMouseLock) {
+        if (this._pointerLocked) {
           document.exitPointerLock();
-          return;
         }
+
+        return;
       }
 
-      const vk = this._mapKey(e.which, e.location);
+      const vk = mapKey(e.which, e.location);
 
       // Don't spam
       if (this._keysState[vk]) {
         return;
       }
 
-      if (this._acceptingInput) {
-        this._keysState[vk] = true;
-        setKeyState(vk, true);
-
-        if (this.isObservingMode) {
-          this._observingModeActiveKeys.add(vk);
-        }
-      }
+      this._keysState[vk] = true;
+      setKeyState(vk, true);
     };
     this._handleKeyup = (e) => {
-      if (!this._observingModeMouseLock && !this._controlingModeMouseLock) {
+      if (!this._acceptInput) {
         return;
       }
 
       e.preventDefault();
 
-      const vk = this._mapKey(e.which, e.location);
+      const vk = mapKey(e.which, e.location);
 
-      if (this._acceptingInput) {
-        this._keysState[vk] = false;
-        setKeyState(vk, false);
-
-        if (this.isObservingMode) {
-          this._observingModeActiveKeys.delete(vk);
-        }
-      }
+      this._keysState[vk] = false;
+      setKeyState(vk, false);
     };
   }
 }
+
+/**
+ * DEFAULT MODE
+ *
+ * GameView fully captures all input, locks pointer to itself
+ */
+GameView.ModeControling = 0;
+
+/**
+ * GameView only captures all keyboard input and mouse movements while user holding LeftMouseButton over it
+ *
+ * No mouse buttons state will be passed to game
+ */
+GameView.ModeObserving = 1;
 
 window.customElements.define('game-view', GameView);

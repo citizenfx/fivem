@@ -73,7 +73,8 @@ const GameView = React.memo(() => {
 
   const enterFullscreen = React.useCallback(() => {
     if (ref.current) {
-      ref.current.enterFullscreenControlingMode();
+      ref.current.enterFullscreen();
+      ref.current.lockPointer();
     }
   }, []);
 
