@@ -877,6 +877,11 @@ void UI_DoCreation(bool safeMode)
 
 void UI_DoDestruction()
 {
+	static HostSharedData<CfxState> initState("CfxInitState");
+	AllowSetForegroundWindow((initState->gamePid) ? initState->gamePid : GetCurrentProcessId());
+
+	ShowWindow(g_uui.rootWindow, SW_HIDE);
+
 	if (g_uui.ten)
 	{
 		if (g_uui.ten->uiSource)
@@ -886,9 +891,6 @@ void UI_DoDestruction()
 	}
 
 	g_uui.ten = {};
-
-	static HostSharedData<CfxState> initState("CfxInitState");
-	AllowSetForegroundWindow(initState->gamePid);
 
 	DestroyWindow(g_uui.rootWindow);
 }
