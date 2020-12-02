@@ -368,14 +368,14 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 		SHA1_Init(&ctx);
 
 		bool doneReading = false;
-		DWORD fileOffset = 0;
+		uint64_t fileOffset = 0;
 
 		double lastProgress = 0.0;
 
 		while (!doneReading)
 		{
 			memset(&overlapped, 0, sizeof(overlapped));
-			overlapped.OffsetHigh = 0;
+			overlapped.OffsetHigh = fileOffset >> 32;
 			overlapped.Offset = fileOffset;
 
 			char buffer[131072];
