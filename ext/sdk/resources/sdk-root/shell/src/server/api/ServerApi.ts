@@ -83,13 +83,13 @@ export class ServerApi {
     const fxserverCwd = getProjectServerPath(projectPath);
     this.client.log('FXServer cwd', fxserverCwd);
 
+    await mkdirp(fxserverCwd);
+    this.client.log('Ensured FXServer cwd exist');
+
     const blankPath = path.join(fxserverCwd, 'blank.cfg');
     if (!await doesPathExist(blankPath)) {
       await fs.promises.writeFile(blankPath, '');
     }
-
-    await mkdirp(fxserverCwd);
-    this.client.log('Ensured FXServer cwd exist');
 
     await this.linkResources(fxserverCwd, enabledResourcesPaths);
     this.client.log('Linked resources');
@@ -103,6 +103,7 @@ export class ServerApi {
       '+set', 'onesync', 'on',
       '+set', 'sv_maxclients', '64',
       '+set', 'sv_lan', '1',
+      '+set', 'svgui_disable', '1',
       '+add_ace', 'resource.sdk-game', 'command', 'allow',
       '+ensure', 'sdk-game',
     ];

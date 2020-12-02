@@ -1,7 +1,7 @@
 import * as React from 'react';
 import AnsiToHTMLConverter from 'ansi-to-html';
 import { Switch, SwitchOption } from 'components/controls/Switch/Switch';
-import { ServerUpdateChannel, serverUpdateChannels } from 'shared/api.types';
+import { ServerStates, ServerUpdateChannel, serverUpdateChannels } from 'shared/api.types';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { invariant } from 'utils/invariant';
 import { ServerContext } from 'contexts/ServerContext';
@@ -60,6 +60,8 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
   const { project } = React.useContext(ProjectContext);
   invariant(project, 'No project');
 
+  const { serverState } = React.useContext(ServerContext);
+
   const updateChannel = project.manifest.serverUpdateChannel;
 
   const { serverOutput, checkForUpdates, sendServerCommand } = React.useContext(ServerContext);
@@ -78,6 +80,8 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
   const serverHtmlOutput = React.useMemo(() => {
     return converter.toHtml(serverOutput);
   }, [serverOutput]);
+
+  const canShowServerGui = serverState !== ServerStates.down;
 
   return (
     <Modal fullWidth onClose={onClose}>
@@ -111,6 +115,7 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
           />
           <Button
             text="Show server GUI"
+            disabled={!canShowServerGui}
             onClick={() => sendServerCommand('svgui')}
           />
           <Button
