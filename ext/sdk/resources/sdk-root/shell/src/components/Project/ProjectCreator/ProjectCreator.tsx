@@ -74,17 +74,17 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
   const handleProjectPathChange = React.useCallback((newProjectPath: string) => {
     setProjectPath(newProjectPath);
     checkRequest(newProjectPath, projectName, withServerData);
-  }, [projectName, withServerData, setProjectPath]);
+  }, [projectName, withServerData, setProjectPath, checkRequest]);
 
   const handleProjectNameChange = React.useCallback((newProjectName: string) => {
     setProjectName(newProjectName);
     checkRequest(projectPath, newProjectName, withServerData);
-  }, [projectPath, withServerData, setProjectName]);
+  }, [projectPath, withServerData, setProjectName, checkRequest]);
 
   const handleWithServerDataChange = React.useCallback((newWithServerData: boolean) => {
     setWithServerData(newWithServerData);
     checkRequest(projectPath, projectName, newWithServerData);
-  }, [projectPath, projectName, setWithServerData]);
+  }, [projectPath, projectName, setWithServerData, checkRequest]);
 
   const hint = formatProjectPathHint(projectPath, projectName);
   const canCreate = projectPath && projectName;
