@@ -1,12 +1,11 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import * as cp from 'child_process';
-import * as net from 'net';
-import * as byline from 'byline';
-import * as mkdirp from 'mkdirp';
+import path from 'path';
+import fs from 'fs';
+import cp from 'child_process';
+import net from 'net';
+import byline from 'byline';
+import mkdirp from 'mkdirp';
 import * as paths from '../paths';
-import * as rimrafSync from 'rimraf'
-import { promisify } from 'util';
+import { rimraf } from 'server/rimraf';
 import { ApiClient, Feature, ServerStates } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
 import { sdkGamePipeName } from './constants';
@@ -15,20 +14,20 @@ import { ServerManagerApi } from './ServerManagerApi';
 import { createLock } from '../../shared/utils';
 import { doesPathExist } from './ExplorerApi';
 import { FeaturesApi } from './FeaturesApi';
-import { RelinkResourcesRequest, ServerRefreshResourcesRequest, ServerStartRequest } from 'shared/api.requests';
-
-const rimraf = promisify(rimrafSync);
+import { RelinkResourcesRequest, ServerRefreshResourcesRequest as SetEnabledResourcesRequest, ServerStartRequest } from 'shared/api.requests';
+import { ApiBase } from './ApiBase';
+import { TheiaContext } from 'contexts/TheiaContext';
 
 
 function getProjectServerPath(projectPath: string): string {
   return path.join(projectPath, '.fxdk/fxserver');
 }
 
-export class ServerApi {
+export class ServerApi extends ApiBase {
   state: ServerStates = ServerStates.down;
 
-  ipcServer: net.Server | null = null;
-  ipcSocket: net.Socket | null = null;
+  sdkGameIPCServer: net.Server | null = null;
+  sdkGameIPCSocket: net.Socket | null = null;
 
   server: cp.ChildProcess | null = null;
   currentEnabledResourcesPaths = new Set<string>();
@@ -40,10 +39,12 @@ export class ServerApi {
     private readonly serverManager: ServerManagerApi,
     private readonly features: FeaturesApi,
   ) {
-    systemEvents.on(SystemEvent.refreshResources, () => this.handleRefreshResources());
-    systemEvents.on(SystemEvent.relinkResources, (request: RelinkResourcesRequest) => this.handleRelinkResources(request));
-    systemEvents.on(SystemEvent.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
-    systemEvents.on(SystemEvent.forceStopServer, () => this.stop());
+    super();
+
+    systemEvents.on(SystemEvent.refreshResources, this.bind(this.handleRefreshResources));
+    systemEvents.on(SystemEvent.relinkResources, this.bind(this.handleRelinkResources));
+    systemEvents.on(SystemEvent.restartResource, this.bind(this.handleResourceRestart));
+    systemEvents.on(SystemEvent.forceStopServer, this.bind(this.stop));
 
     process.on('exit', () => {
       if (this.server) {
@@ -51,12 +52,12 @@ export class ServerApi {
       }
     });
 
-    this.client.on(serverApi.ackState, () => this.ackState());
-    this.client.on(serverApi.start, (request: ServerStartRequest) => this.start(request));
-    this.client.on(serverApi.stop, () => this.stop());
-    this.client.on(serverApi.sendCommand, (cmd: string) => this.sendCommand(cmd));
-    this.client.on(serverApi.restartResource, (resourceName: string) => this.handleResourceRestart(resourceName));
-    this.client.on(serverApi.setEnabledResources, (request: ServerRefreshResourcesRequest) => this.setEnabledResources(request));
+    this.client.on(serverApi.ackState, this.bind(this.ackState));
+    this.client.on(serverApi.start, this.bind(this.start));
+    this.client.on(serverApi.stop, this.bind(this.stop));
+    this.client.on(serverApi.sendCommand, this.bind(this.sendCommand));
+    this.client.on(serverApi.restartResource, this.bind(this.handleResourceRestart));
+    this.client.on(serverApi.setEnabledResources, this.bind(this.setEnabledResources));
   }
 
   ackState() {
@@ -127,15 +128,15 @@ export class ServerApi {
       return;
     }
 
-    await this.setupIpc();
+    await this.initSdkGameIPC();
 
     server.stdout.on('data', (data) => {
       this.client.emit(serverApi.output, data.toString('utf8'));
     });
 
     server.on('exit', () => {
-      if (this.ipcServer) {
-        this.ipcServer.close();
+      if (this.sdkGameIPCServer) {
+        this.sdkGameIPCServer.close();
       }
 
       this.server = null;
@@ -149,7 +150,9 @@ export class ServerApi {
     this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
-  async setEnabledResources(request: ServerRefreshResourcesRequest) {
+  async setEnabledResources(request: SetEnabledResourcesRequest) {
+    this.client.log('Setting enabled resources', request);
+
     const { projectPath, enabledResourcesPaths } = request;
 
     const fxserverCwd = getProjectServerPath(projectPath);
@@ -157,13 +160,11 @@ export class ServerApi {
     await mkdirp(fxserverCwd);
     await this.linkResources(fxserverCwd, enabledResourcesPaths);
 
-    this.reconcileEnabledResources(enabledResourcesPaths);
-
-    this.sendIpcEvent('refresh');
+    this.reconcileEnabledResourcesAndRefresh(enabledResourcesPaths);
   }
 
   handleRefreshResources() {
-    this.sendIpcEvent('refresh');
+    this.emitSdkGameEvent('refresh');
   }
 
   async handleRelinkResources(request: RelinkResourcesRequest) {
@@ -171,19 +172,21 @@ export class ServerApi {
       return;
     }
 
+    this.client.log('Relinking resources', request);
+
     await this.serverLock.withLock(async () => {
       const { projectPath, enabledResourcesPaths } = request;
 
       await this.linkResources(getProjectServerPath(projectPath), enabledResourcesPaths);
 
-      this.reconcileEnabledResources(enabledResourcesPaths);
+      this.reconcileEnabledResourcesAndRefresh(enabledResourcesPaths);
     });
   }
 
   handleResourceRestart(resourceName: string) {
     this.client.log('Restarting resource', resourceName);
 
-    this.sendIpcEvent('restart', resourceName);
+    this.emitSdkGameEvent('restart', resourceName);
   }
 
   sendCommand(cmd: string) {
@@ -239,47 +242,78 @@ export class ServerApi {
           }
         }),
       );
-
-      this.sendIpcEvent('refresh');
     });
   }
 
-  private sendIpcEvent(eventType: string, data?: any) {
-    if (!this.ipcSocket) {
-      this.client.log('No ipcSocket', eventType, data);
+  /**
+   * Starts newly enabled resources,
+   * Stops disabled resources
+   *
+   * Asks server to refresh it's state
+   */
+  private reconcileEnabledResourcesAndRefresh(enabledResourcesPaths: string[]) {
+    if (this.state !== ServerStates.up) {
       return;
     }
 
-    this.client.log('Sending ipcEvent', eventType, data);
+    this.client.log('Reconciling enabled resources', { enabledResourcesPaths });
 
-    const msg = JSON.stringify([eventType, data]) + '\n';
+    this.emitSdkGameEvent('refresh');
 
-    this.ipcSocket.write(msg);
+    const resourcesStates = {};
+
+    enabledResourcesPaths.forEach((resourcePath) => {
+      const resourceName = path.basename(resourcePath);
+
+      resourcesStates[resourceName] = this.currentEnabledResourcesPaths.has(resourcePath)
+        ? ResourceReconcilationState.idle
+        : ResourceReconcilationState.start;
+    });
+
+    this.currentEnabledResourcesPaths.forEach((resourcePath) => {
+      const resourceName = path.basename(resourcePath);
+
+      if (!resourcesStates[resourceName]) {
+        resourcesStates[resourceName] = ResourceReconcilationState.stop;
+      }
+    });
+
+    Object.entries(resourcesStates).forEach(([resourceName, state]) => {
+      if (state === ResourceReconcilationState.start) {
+        return this.emitSdkGameEvent('start', resourceName);
+      }
+
+      if (state === ResourceReconcilationState.stop) {
+        return this.emitSdkGameEvent('stop', resourceName);
+      }
+    });
+
+    this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
-  // IPC channel to communicate with sdk-game resources loaded in fxserver
-  private async setupIpc() {
+  // IPC with sdk-game resources loaded in fxserver
+  private async initSdkGameIPC() {
     let disposableHandlers: (() => void)[] = [];
 
-    this.ipcServer = net.createServer();
+    this.sdkGameIPCServer = net.createServer();
 
-    this.ipcServer.on('connection', (socket) => {
-      this.ipcSocket = socket;
+    this.sdkGameIPCServer.on('connection', (socket) => {
+      this.sdkGameIPCSocket = socket;
 
       this.client.log('IPC connection!');
 
       disposableHandlers.push(
         this.client.on(serverApi.ackResourcesState, () => {
-          this.sendIpcEvent('state');
+          this.emitSdkGameEvent('state');
         }),
         this.client.on(serverApi.restartResource, (resourceName) => {
-          this.sendIpcEvent('restart', resourceName);
+          this.emitSdkGameEvent('restart', resourceName);
         }),
         this.client.on(serverApi.stopResource, (resourceName) => {
-          this.sendIpcEvent('stop', resourceName);
+          this.emitSdkGameEvent('stop', resourceName);
         }),
         this.client.on(serverApi.startResource, (resourceName) => {
-          this.sendIpcEvent('start', resourceName);
+          this.emitSdkGameEvent('start', resourceName);
         }),
       );
 
@@ -305,9 +339,9 @@ export class ServerApi {
       socket.pipe(lineStream);
     });
 
-    this.ipcServer.on('close', () => {
-      this.ipcServer = null;
-      this.ipcSocket = null;
+    this.sdkGameIPCServer.on('close', () => {
+      this.sdkGameIPCServer = null;
+      this.sdkGameIPCSocket = null;
 
       // Copy to clear original immediately
       const disposeHandlersCopy = disposableHandlers;
@@ -316,43 +350,20 @@ export class ServerApi {
       disposeHandlersCopy.map((disposeHandler) => disposeHandler());
     });
 
-    this.ipcServer.listen(sdkGamePipeName);
+    this.sdkGameIPCServer.listen(sdkGamePipeName);
   }
 
-  private reconcileEnabledResources(enabledResourcesPaths: string[]) {
-    if (this.state !== ServerStates.up) {
+  private emitSdkGameEvent(eventType: string, data?: any) {
+    if (!this.sdkGameIPCSocket) {
+      this.client.log('No sdk-game IPC socket', { eventType, data });
       return;
     }
 
-    const resourcesStates = {};
+    this.client.log('Emitting event to sdk-game', eventType, data);
 
-    enabledResourcesPaths.forEach((resourcePath) => {
-      const resourceName = path.basename(resourcePath);
+    const msg = JSON.stringify([eventType, data]) + '\n';
 
-      resourcesStates[resourceName] = this.currentEnabledResourcesPaths.has(resourcePath)
-        ? ResourceReconcilationState.idle
-        : ResourceReconcilationState.start;
-    });
-
-    this.currentEnabledResourcesPaths.forEach((resourcePath) => {
-      const resourceName = path.basename(resourcePath);
-
-      if (!resourcesStates[resourceName]) {
-        resourcesStates[resourceName] = ResourceReconcilationState.stop;
-      }
-    });
-
-    Object.entries(resourcesStates).forEach(([resourceName, state]) => {
-      if (state === ResourceReconcilationState.start) {
-        return this.sendIpcEvent('start', resourceName);
-      }
-
-      if (state === ResourceReconcilationState.stop) {
-        return this.sendIpcEvent('stop', resourceName);
-      }
-    });
-
-    this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
+    this.sdkGameIPCSocket.write(msg);
   }
 }
 

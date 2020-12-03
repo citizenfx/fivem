@@ -31,6 +31,7 @@ export enum ServerUpdateStates {
   checking,
   updateRequired,
   updating,
+  missingArtifact,
 }
 
 export const serverUpdateChannels = {

@@ -10,6 +10,7 @@ import { SystemEvent, systemEvents } from './systemEvents';
 import { AssetCreateRequest, ProjectCreateRequest } from 'shared/api.requests';
 import { NotificationsApi } from './NotificationsApi';
 import { fxdkProjectFilename } from './constants';
+import { ApiBase } from './ApiBase';
 
 
 const cfxServerDataEnabledResources = [
@@ -24,7 +25,7 @@ const cfxServerDataEnabledResources = [
   'hardcap',
 ];
 
-export class ProjectApi {
+export class ProjectApi extends ApiBase {
   projectInstance: ProjectInstance | null = null;
   projectLock = createLock();
 
@@ -33,12 +34,14 @@ export class ProjectApi {
     private readonly explorer: ExplorerApi,
     private readonly notifications: NotificationsApi,
   ) {
-    this.client.on(projectApi.getRecents, () => this.updateRecentProjects());
-    this.client.on(projectApi.removeRecent, (projectPath: string) => this.deleteRecentProject(projectPath));
+    super();
 
-    this.client.on(projectApi.open, (projectPath: string) => this.openProject(projectPath));
-    this.client.on(projectApi.create, (request: ProjectCreateRequest) => this.createProject(request));
-    this.client.on(projectApi.checkCreateRequest, (request: ProjectCreateRequest) => this.checkCreateRequest(request));
+    this.client.on(projectApi.getRecents, this.bind(this.updateRecentProjects));
+    this.client.on(projectApi.removeRecent, this.bind(this.deleteRecentProject));
+
+    this.client.on(projectApi.open, this.bind(this.openProject));
+    this.client.on(projectApi.create, this.bind(this.createProject));
+    this.client.on(projectApi.checkCreateRequest, this.bind(this.checkCreateRequest));
   }
 
   async getRecentProjects(): Promise<RecentProject[]> {
@@ -89,25 +92,21 @@ export class ProjectApi {
     this.client.emit(projectApi.recents, newRecentProjects);
   }
 
-  async openProject(projectPath: string): Promise<ProjectInstance> {
-    this.client.log('Opening project', projectPath);
+  async openProject(projectPath: string): Promise<ProjectInstance | null | void> {
+    return this.projectLock.withExclusiveLock(async () => {
+      this.client.log('Opening project', projectPath);
 
-    await this.projectLock.waitForUnlock();
+      if (this.projectInstance) {
+        await this.projectInstance.close();
+      }
 
-    this.projectLock.lock();
+      this.projectInstance = await ProjectInstance.openProject(projectPath, this.client, this.explorer);
 
-    if (this.projectInstance) {
-      await this.projectInstance.close();
-    }
+      this.emitProjectOpen();
+      this.setCurrentProjectInstanceAsMostRecent();
 
-    this.projectInstance = await ProjectInstance.openProject(projectPath, this.client, this.explorer);
-
-    this.emitProjectOpen();
-    this.setCurrentProjectInstanceAsMostRecent();
-
-    this.projectLock.unlock();
-
-    return this.projectInstance;
+      return this.projectInstance;
+    });
   }
 
   async checkCreateRequest(request: ProjectCreateRequest): Promise<ProjectCreateCheckResult> {

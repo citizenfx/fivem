@@ -33,6 +33,12 @@
     }
   }
 
+  &.error {
+    .button, .button:hover {
+      background-color: $erColor;
+    }
+  }
+
   .button {
     display: flex;
     align-items: center;

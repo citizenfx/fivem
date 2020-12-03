@@ -48,6 +48,7 @@ export const createDeferred = <T extends any>(): Deferred<T> => {
 
 export const createLock = () => {
   let locks = 0;
+  let exclusiveLock = false;
   let pendingUnlockPromises: Function[] = [];
 
   return {
@@ -60,28 +61,60 @@ export const createLock = () => {
       if (locks === 0) {
         const copy = pendingUnlockPromises;
         pendingUnlockPromises = [];
-        copy.forEach((resolve) => resolve());
+        copy.forEach((resolve) => resolve(true));
       }
     },
-    async withLock(cb: Function) {
+    async withLock<U extends any>(cb: () => U): Promise<U> {
       this.lock();
 
       try {
-        await cb();
+        return cb();
       } catch (e) {
         throw e;
       } finally {
         this.unlock();
       }
     },
-    waitForUnlock() {
+    waitersCount() {
+      return pendingUnlockPromises.length;
+    },
+    waitForUnlock(): Promise<boolean> {
       if (locks === 0) {
-        return Promise.resolve();
+        return Promise.resolve(true);
       }
 
       return new Promise((resolve) => {
         pendingUnlockPromises.push(resolve);
       });
+    },
+
+    // If there're other waiters will return false, true otherwise
+    waitForUnlockOnce(): Promise<boolean> {
+      if (pendingUnlockPromises.length > 0) {
+        return Promise.resolve(false);
+      }
+
+      return this.waitForUnlock();
+    },
+
+    async withExclusiveLock<T extends any>(cb: () => T): Promise<T | void> {
+      if (exclusiveLock) {
+        return;
+      }
+
+      exclusiveLock = true;
+
+      await this.waitForUnlock();
+
+      try {
+        const res = await this.withLock(cb);
+
+        return res;
+      } catch (e) {
+        throw e;
+      } finally {
+        exclusiveLock = false;
+      }
     }
   };
 };

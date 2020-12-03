@@ -402,6 +402,8 @@ class GameView extends HTMLElement {
     document.addEventListener('fullscreenchange', this._handleFullscreenChange);
 
     document.addEventListener('mousemove', this._handleDocumentMouseMove);
+
+    window.addEventListener('blur', this._handleWindowBlur);
   }
 
   _removeEventListeners() {
@@ -418,6 +420,8 @@ class GameView extends HTMLElement {
     document.removeEventListener('fullscreenchange', this._handleFullscreenChange);
 
     document.removeEventListener('mousemove', this._handleDocumentMouseMove);
+
+    window.removeEventListener('blur', this._handleWindowBlur);
   }
 
   _setupResizeObserver() {
@@ -461,6 +465,10 @@ class GameView extends HTMLElement {
   }
 
   _createHandlers() {
+    this._handleWindowBlur = () => {
+      this._resetStates();
+    };
+
     this._handlePointerLockChange = () => {
       const pointerLocked = document.pointerLockElement === this;
       const wasPointerLocked = this._pointerLocked;

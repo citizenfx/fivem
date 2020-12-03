@@ -1,6 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsExclamationTriangleFill, BsFillGearFill, BsPlayFill, BsStopFill } from 'react-icons/bs';
+import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsFillGearFill, BsPlayFill, BsStopFill } from 'react-icons/bs';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
@@ -28,6 +28,7 @@ export const Server = React.memo(function Server() {
     [s.up]: serverState === ServerStates.up,
     [s.down]: serverState === ServerStates.down,
     [s.booting]: serverState === ServerStates.booting,
+    [s.error]: updateChannelState === ServerUpdateStates.missingArtifact,
   });
 
   let icon;
@@ -56,6 +57,12 @@ export const Server = React.memo(function Server() {
     }
   } else {
     switch (updateChannelState) {
+      case ServerUpdateStates.missingArtifact: {
+        icon = <BsExclamationDiamondFill />;
+        title = 'Missing server artifact';
+        break;
+      }
+
       case ServerUpdateStates.updateRequired: {
         icon = <BsExclamationTriangleFill />;
         title = 'Install update';

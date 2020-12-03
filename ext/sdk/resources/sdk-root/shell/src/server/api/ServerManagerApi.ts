@@ -27,7 +27,7 @@ async function doesPathExist(entrypath: string): Promise<boolean> {
 
 
 interface ServerVersions {
-  [updateChannel: string]: {
+  [updateChannel: string]: null | {
     version: string,
     link: string,
   },
@@ -50,8 +50,8 @@ export class ServerManagerApi {
     [serverUpdateChannels.latest]: null,
   };
 
-  private versions: ServerVersions | void = undefined;
-  private installedVersions: InstalledVersions | void = undefined;
+  private versions: ServerVersions = updateChannels.reduce((acc, updateChannel) => { acc[updateChannel] = null; return acc }, {});
+  private installedVersions: InstalledVersions = updateChannels.reduce((acc, updateChannel) => { acc[updateChannel] = null; return acc }, {});
 
   constructor(
     private readonly client: ApiClient,
@@ -80,11 +80,20 @@ export class ServerManagerApi {
 
     await Promise.all(
       updateChannels.map((updateChannel) => {
-        if (this.installedVersions[updateChannel] !== this.versions[updateChannel].version) {
+        const installedVersion = this.installedVersions[updateChannel];
+        const version = this.versions[updateChannel];
+
+        if (!version) {
+          return this.setUpdateChannelState(
+            updateChannel,
+            installedVersion
+              ? ServerUpdateStates.ready
+              : ServerUpdateStates.missingArtifact,
+          );
+        } else if (installedVersion !== version.version) {
           return this.install(updateChannel);
         } else {
-          this.updateChannelsState[updateChannel] = ServerUpdateStates.ready;
-          this.ackUpdateChannelsState();
+          return this.setUpdateChannelState(updateChannel, ServerUpdateStates.ready);
         }
       }),
     );
@@ -104,7 +113,10 @@ export class ServerManagerApi {
     await this.fetchVersions();
 
     updateChannels.forEach((updateChannel) => {
-      if (this.installedVersions[updateChannel] !== this.versions[updateChannel].version) {
+      const installedVersion = this.installedVersions[updateChannel];
+      const version = this.versions[updateChannel];
+
+      if (version && installedVersion !== version.version) {
         newUpdateChannelsState[updateChannel] = ServerUpdateStates.updateRequired;
       }
     });
@@ -114,12 +126,16 @@ export class ServerManagerApi {
     this.ackUpdateChannelsState();
   }
 
+  private setUpdateChannelState(updateChannel: ServerUpdateChannel, state: ServerUpdateStates) {
+    this.updateChannelsState[updateChannel] = state;
+
+    this.ackUpdateChannelsState();
+  }
+
   /**
    * Fetches installed server versions
    */
   private async fetchInstalledVersions() {
-    this.installedVersions = {};
-
     await Promise.all(
       updateChannels.map(async (updateChannel) => {
         const serverPath = this.getServerPath(updateChannel);
@@ -143,8 +159,6 @@ export class ServerManagerApi {
     try {
       const versionsContent = await fetch('https://changelogs-live.fivem.net/api/changelog/versions/win32/server').then((res) => res.json());
 
-      this.versions = {};
-
       updateChannels.forEach((updateChannel) => {
         const versionField = updateChannel;
         const linkField = `${updateChannel}_download`;
@@ -155,19 +169,22 @@ export class ServerManagerApi {
         };
       });
     } catch (e) {
-      this.notifications.error(`Failed to fetch server versions from remote host: ${e.toString()}`);
-
-      updateChannels.map((updateChannel) => {
-        this.updateChannelsState[updateChannel] = ServerUpdateStates.ready;
+      updateChannels.forEach((updateChannel) => {
+        this.versions[updateChannel] = null;
       });
 
-      this.ackUpdateChannelsState();
+      this.notifications.error(`Failed to fetch server versions from remote host: ${e.toString()}`);
     }
   }
 
   private async install(updateChannel: ServerUpdateChannel) {
-    this.updateChannelsState[updateChannel] = ServerUpdateStates.updating;
-    this.ackUpdateChannelsState();
+    const versionConfig = this.versions[updateChannel];
+
+    if (!versionConfig) {
+      return;
+    }
+
+    this.setUpdateChannelState(updateChannel, ServerUpdateStates.updating);
 
     await Promise.all([
       mkdirp(paths.serverArtifacts),
@@ -179,10 +196,11 @@ export class ServerManagerApi {
       downloadedPercentage: 0,
       unpackedPercentage: 0,
     };
+
     this.installationState[updateChannel] = installationState;
     this.ackInstallationState();
 
-    const { version, link } = this.versions[updateChannel];
+    const { version, link } = versionConfig;
 
     const artifactPath = this.getArtifactPath(updateChannel, version);
     const artifactExtractionPath = this.getServerPath(updateChannel);
@@ -209,6 +227,8 @@ export class ServerManagerApi {
           },
         );
       } catch (e) {
+        // Ready as unpacked thing still exist
+        this.setUpdateChannelState(updateChannel, ServerUpdateStates.ready);
         this.notifications.error(`Failed to download server artifact: ${e.toString()}`);
         return;
       }
@@ -240,6 +260,7 @@ export class ServerManagerApi {
           },
         );
       } catch (e) {
+        this.setUpdateChannelState(updateChannel, ServerUpdateStates.missingArtifact);
         this.notifications.error(`Failed to unpack server artifact: ${e.toString()}`);
         return;
       }
@@ -249,8 +270,7 @@ export class ServerManagerApi {
 
     this.installedVersions[updateChannel] = version;
 
-    this.updateChannelsState[updateChannel] = ServerUpdateStates.ready;
-    this.ackUpdateChannelsState();
+    this.setUpdateChannelState(updateChannel, ServerUpdateStates.ready);
   }
 
   private async deleteOldArtifact(updateChannel: ServerUpdateChannel) {

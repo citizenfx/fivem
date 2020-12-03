@@ -39,7 +39,7 @@ interface Silentable {
   silent?: boolean,
 }
 
-export interface SetManifestOptions extends Silentable {
+export interface ManifestPropagationOptions extends Silentable {
 }
 
 export interface AssetMetaAccessorOptions extends Silentable {
@@ -57,9 +57,7 @@ export class ProjectInstance {
   static async openProject(projectPath: string, client: ApiClient, explorer: ExplorerApi): Promise<ProjectInstance> {
     const project = new ProjectInstance(projectPath, client, explorer);
 
-    await project.init();
-
-    return project;
+    return project.init();
   }
 
   static async createProject(request: ProjectCreateRequest, client: ApiClient, explorer: ExplorerApi): Promise<ProjectInstance> {
@@ -95,9 +93,8 @@ export class ProjectInstance {
     ]);
 
     const projectInstance = new ProjectInstance(projectPath, client, explorer);
-    await projectInstance.init();
 
-    return projectInstance;
+    return projectInstance.init();
   }
 
   private fsTree: ProjectFsTree = undefined as any;
@@ -106,7 +103,7 @@ export class ProjectInstance {
 
   private watcher: chokidar.FSWatcher = undefined as any;
 
-  private reconcileLock = createLock();
+  private reconcileManifestResourcesLock = createLock();
 
   private disposers: Function[] = [];
 
@@ -142,7 +139,7 @@ export class ProjectInstance {
     };
   }
 
-  constructor(
+  private constructor(
     private path: string,
     private readonly client: ApiClient,
     private readonly explorerApi: ExplorerApi,
@@ -174,7 +171,7 @@ export class ProjectInstance {
     this.client.log(`[ProjectInstance: ${this.path}]`, msg, ...args);
   }
 
-  async init() {
+  async init(): Promise<ProjectInstance> {
     this.log('initializing...');
 
     await Promise.all([
@@ -185,6 +182,8 @@ export class ProjectInstance {
     this.watchProject();
 
     this.log('initialized');
+
+    return this;
   }
 
   async close() {
@@ -204,7 +203,7 @@ export class ProjectInstance {
     return this.resources;
   }
 
-  private setManifestDebounced = debounce(async (options?: SetManifestOptions) => {
+  private propagateManifestChanges = debounce(async (options?: ManifestPropagationOptions) => {
     await this.writeManifest();
 
     if (!options?.silent) {
@@ -212,10 +211,10 @@ export class ProjectInstance {
     }
   }, 10);
 
-  async setManifest(manifest: ProjectManifest, options?: SetManifestOptions) {
+  async setManifest(manifest: ProjectManifest, options?: ManifestPropagationOptions) {
     this.manifest = manifest;
 
-    this.setManifestDebounced(options);
+    this.propagateManifestChanges(options);
   }
 
   async setResourceEnabled(resourceName: string, enabled: boolean) {
@@ -239,16 +238,13 @@ export class ProjectInstance {
       ...config,
     };
 
-    this.writeManifest();
-    this.notifyProjectUpdated();
+    this.propagateManifestChanges();
   }
 
   setPathsState(pathsState: ProjectPathsState) {
-    this.log('saving paths state', pathsState);
-
     this.manifest.pathsState = pathsState;
 
-    this.setManifestDebounced();
+    this.propagateManifestChanges();
   }
 
   /**
@@ -272,7 +268,7 @@ export class ProjectInstance {
 
       this.manifest.serverUpdateChannel = updateChannel;
 
-      this.setManifestDebounced();
+      this.propagateManifestChanges();
     }
   }
 
@@ -380,7 +376,7 @@ export class ProjectInstance {
 
   // FS methods
   async moveEntry(request: MoveEntryRequest) {
-    this.reconcileLock.withLock(async () => {
+    this.reconcileManifestResourcesLock.withLock(async () => {
       const { sourcePath, targetPath } = request;
 
       const newPath = path.join(targetPath, path.basename(sourcePath));
@@ -394,7 +390,7 @@ export class ProjectInstance {
   }
 
   async copyEntry(request: CopyEntryRequest) {
-    this.reconcileLock.withLock(async () => {
+    this.reconcileManifestResourcesLock.withLock(async () => {
       const { sourcePath, targetPath } = request;
 
       const newPath = path.join(targetPath, path.basename(sourcePath));
@@ -412,10 +408,10 @@ export class ProjectInstance {
     this.log('reading fs tree, reconciling resources and sending update');
 
     await this.readFsTree();
-    await this.reconcileResourcesInManifest();
+    await this.reconcileManifestResources();
 
     this.notifyProjectUpdated();
-  }, 10);
+  }, 100);
 
   /**
    * Extra handler for asset rename
@@ -423,15 +419,15 @@ export class ProjectInstance {
    * @param request
    */
   async handleAssetRename(request: AssetRenameRequest) {
-    this.reconcileLock.withLock(async () => {
+    this.reconcileManifestResourcesLock.withLock(async () => {
       const { newAssetName } = request;
 
       const oldAssetName = path.basename(request.assetPath);
 
-      const resourceMeta = this.manifest.resources[oldAssetName];
-      if (resourceMeta) {
+      const resourceConfig = this.manifest.resources[oldAssetName];
+      if (resourceConfig) {
         this.manifest.resources[newAssetName] = {
-          ...resourceMeta,
+          ...resourceConfig,
           name: newAssetName,
         };
 
@@ -446,13 +442,13 @@ export class ProjectInstance {
    * @param request
    */
   async handleAssetDelete(request: AssetDeleteRequest) {
-    this.reconcileLock.withLock(async () => {
+    this.reconcileManifestResourcesLock.withLock(async () => {
       const { assetPath } = request;
 
       const assetName = path.basename(assetPath);
 
-      const resourceMeta = this.manifest.resources[assetName];
-      if (resourceMeta) {
+      const resourceConfig = this.manifest.resources[assetName];
+      if (resourceConfig) {
         delete this.manifest.resources[assetName];
 
         await this.writeManifest();
@@ -465,19 +461,6 @@ export class ProjectInstance {
    */
   private notifyProjectUpdated() {
     this.client.emit(projectApi.update, this.project);
-  }
-
-  private async readFsTree(): Promise<ProjectFsTree> {
-    const pathsMap = await this.explorerApi.readDirRecursively(this.path, this.entryMetaExtras);
-    const entries = pathsMap[this.path];
-
-    this.fsTree = {
-      entries,
-      pathsMap,
-    };
-    this.resources = getProjectResources(this.project);
-
-    return this.fsTree;
   }
 
   private async readManifest(): Promise<ProjectManifest> {
@@ -502,6 +485,7 @@ export class ProjectInstance {
     this.client.log('Start watching project', this.path);
 
     this.watcher = chokidar.watch(this.path, {
+      ignored: path.join(this.path, '.fxdk'),
       persistent: true,
       ignoreInitial: true,
     });
@@ -526,6 +510,7 @@ export class ProjectInstance {
       case FsTreeUpdateType.add:
         const updatedPathBaseName = path.basename(updatedPath);
         if (updatedPathBaseName === resourceManifestFilename || updatedPathBaseName === resourceManifestLegacyFilename) {
+          this.log('Resource manifest changed, refreshing');
           systemEvents.emit(SystemEvent.refreshResources);
 
           break;
@@ -548,30 +533,43 @@ export class ProjectInstance {
     }
   }
 
-  private async reconcileResourcesInManifest() {
-    await this.reconcileLock.waitForUnlock();
+  private async readFsTree(): Promise<ProjectFsTree> {
+    const pathsMap = await this.explorerApi.readDirRecursively(this.path, this.entryMetaExtras);
+    const entries = pathsMap[this.path];
 
-    const manifestResources = {};
+    this.fsTree = {
+      entries,
+      pathsMap,
+    };
+    this.resources = getProjectResources(this.project);
 
-    Object.values(this.resources)
-      .forEach(({ name }) => {
-        manifestResources[name] = this.manifest.resources[name];
-      });
-
-    if (Object.keys(this.manifest.resources).length !== Object.keys(manifestResources).length) {
-      this.manifest.resources = manifestResources;
-      await this.writeManifest();
-
-      this.emitResourcesRelinkRequest();
-    }
+    return this.fsTree;
   }
 
-  private emitResourcesRelinkRequest() {
+  private async reconcileManifestResources() {
+    this.reconcileManifestResourcesLock.withExclusiveLock(() => {
+      const manifestResources = {};
+
+      Object.values(this.resources)
+        .forEach(({ name }) => {
+          manifestResources[name] = this.manifest.resources[name];
+        });
+
+      if (Object.keys(this.manifest.resources).length !== Object.keys(manifestResources).length) {
+        this.manifest.resources = manifestResources;
+        this.propagateManifestChanges();
+
+        this.emitResourcesRelinkRequest();
+      }
+    });
+  }
+
+  private emitResourcesRelinkRequest = debounce(() => {
     const relinkRequest: RelinkResourcesRequest = {
       projectPath: this.path,
       enabledResourcesPaths: this.enabledResourcesPaths,
     };
 
     systemEvents.emit(SystemEvent.relinkResources, relinkRequest);
-  }
+  }, 250);
 }
