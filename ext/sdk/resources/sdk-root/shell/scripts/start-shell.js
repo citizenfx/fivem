@@ -15,6 +15,10 @@ const personalityTheiaGameView = path.join(personalityTheia, 'fxdk-game-view');
 const personalityTheiaProject = path.join(personalityTheia, 'fxdk-project');
 
 function rebuild() {
+  if (argv.norebuild) {
+    return;
+  }
+
   console.log('Rebuilding theia native node modules');
 
   // from https://github.com/eclipse-theia/theia/blob/master/dev-packages/application-manager/src/rebuild.ts#L23
