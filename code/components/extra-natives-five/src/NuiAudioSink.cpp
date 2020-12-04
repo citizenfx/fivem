@@ -996,8 +996,13 @@ void MumbleAudioEntity::MInit()
 
 void MumbleAudioEntity::MShutdown()
 {
-	m_sound->StopAndForget(false);
-	m_sound = nullptr;
+	auto sound = m_sound;
+
+	if (sound)
+	{
+		sound->StopAndForget(false);
+		m_sound = nullptr;
+	}
 
 	// needs to be delayed to when the sound is removed
 	//delete m_environmentGroup;
@@ -1008,7 +1013,7 @@ void MumbleAudioEntity::MShutdown()
 	if (buffer)
 	{
 		buffer->Release();
-		buffer = nullptr;
+		m_buffer = nullptr;
 	}
 }
 
@@ -1822,7 +1827,10 @@ static InitFunction initFunction([]()
 				lastSong = musicThemeVariable.GetValue();
 			}
 		}
+	});
 
+	OnMainGameFrame.Connect([]()
+	{
 		ProcessAudioSinks();
 	});
 
