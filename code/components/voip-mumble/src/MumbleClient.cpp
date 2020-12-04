@@ -411,17 +411,35 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 		m_tlsClient->close();
 	}
 
-	m_loop->EnqueueCallback([this]()
+	auto tcs = concurrency::task_completion_event<void>{};
+
+	m_loop->EnqueueCallback([this, tcs]()
 	{
 		if (m_idleTimer)
 		{
 			m_idleTimer->stop();
 		}
+
+		if (m_tcp)
+		{
+			m_tcp->once<uvw::CloseEvent>([this, tcs](const uvw::CloseEvent& e, uvw::TCPHandle& h)
+			{
+				tcs.set();
+				m_tcp = {};
+			});
+
+			m_tcp->shutdown();
+			m_tcp->close();
+		}
+		else
+		{
+			tcs.set();
+		}
 	});
 
 	m_connectionInfo = {};
 
-	return concurrency::task_from_result();
+	return concurrency::task<void>(tcs);
 }
 
 void MumbleClient::SetActivationMode(MumbleActivationMode mode)
