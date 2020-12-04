@@ -15,9 +15,6 @@
 
 #include "memdbgon.h"
 
-static std::atomic<int> g_fileHandleCount;
-static std::queue<std::function<void()>> g_deleteQueue;
-
 static nui::TResourceLookupFn g_resourceLookupFunc;
 
 extern const std::map<std::string, std::string, std::less<>> g_mimeTypeMap;
@@ -58,14 +55,6 @@ public:
 		if (file_ && file_ != -1 && !closed_)
 		{
 			device_->Close(file_);
-		}
-
-		g_fileHandleCount.fetch_sub(1);
-
-		if (!g_deleteQueue.empty())
-		{
-			g_deleteQueue.front()();
-			g_deleteQueue.pop();
 		}
 	}
 
@@ -113,7 +102,6 @@ public:
 
 		if (hash != std::string::npos)
 		{
-			//filename_.resize(hash);
 			filename_.erase(hash);
 		}
 
@@ -121,7 +109,6 @@ public:
 
 		if (hash != std::string::npos)
 		{
-			//filename_.resize(hash);
 			filename_.erase(hash);
 		}
 
@@ -132,38 +119,24 @@ public:
 
 		device_ = vfs::GetDevice(filename_);
 
-		int count = g_fileHandleCount.fetch_add(1);
-
-		auto handleOpen = [=] ()
+		if (device_.GetRef() && filename_.find("..") == std::string::npos)
 		{
-			if (device_.GetRef() && filename_.find("..") == std::string::npos)
-			{
-				file_ = device_->Open(filename_.c_str(), true);
-			}
-
-			// set mime type
-			std::string ext = url.substr(url.rfind('.') + 1);
-
-			mimeType_ = "text/html";
-
-			auto it = g_mimeTypeMap.find(ext);
-
-			if (it != g_mimeTypeMap.end())
-			{
-				mimeType_ = it->second;
-			}
-
-			callback->Continue();
-		};
-
-		if (count < 2)
-		{
-			handleOpen();
+			file_ = device_->Open(filename_.c_str(), true);
 		}
-		else
+
+		// set mime type
+		std::string ext = url.substr(url.rfind('.') + 1);
+
+		mimeType_ = "text/html";
+
+		auto it = g_mimeTypeMap.find(ext);
+
+		if (it != g_mimeTypeMap.end())
 		{
-			g_deleteQueue.push(handleOpen);
+			mimeType_ = it->second;
 		}
+
+		callback->Continue();
 
 		return true;
 	}
