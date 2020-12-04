@@ -142,14 +142,8 @@ void MumbleAudioInput::ThreadFunc()
 
 		if (FAILED(hr))
 		{
-			if (hr == AUDCLNT_E_DEVICE_INVALIDATED)
-			{
-				recreateDevice = true;
-
-				continue;
-			}
-
-			continue;
+			trace("%s: HandleIncomingAudio got HRESULT %08x. Recreating audio device.\n", __func__, hr);
+			recreateDevice = true;
 		}
 	}
 }
@@ -350,7 +344,7 @@ HRESULT MumbleAudioInput::HandleIncomingAudio()
 {
 	if (!m_audioCaptureClient)
 	{
-		return S_FALSE;
+		return E_NOT_VALID_STATE;
 	}
 
 	uint32_t packetLength = 0;
