@@ -504,14 +504,14 @@ static InitFunction initFunction([]()
 	{
 		auto vn = entity->syncTree->GetVehicleHealth();
 
-		return vn ? vn->engineHealth : 0;
+		return vn ? float(vn->engineHealth) : 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_PETROL_TANK_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto vn = entity->syncTree->GetVehicleHealth();
 
-		return vn ? vn->petrolTankHealth : 0;
+		return vn ? float(vn->petrolTankHealth) : 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_TYRE_BURST", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
@@ -546,7 +546,7 @@ static InitFunction initFunction([]()
 	{
 		auto vn = entity->syncTree->GetVehicleHealth();
 
-		return vn ? vn->bodyHealth : 0;
+		return vn ? float(vn->bodyHealth) : 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MAX_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
