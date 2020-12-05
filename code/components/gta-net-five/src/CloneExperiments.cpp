@@ -1607,6 +1607,22 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	}
 }
 
+static bool EventNeedsOriginalPlayer(rage::netGameEvent* ev)
+{
+	auto nameHash = HashString(ev->GetName());
+
+	// synced scenes depend on this to target the correct remote player
+	if (nameHash == HashString("REQUEST_NETWORK_SYNCED_SCENE_EVENT") ||
+		nameHash == HashString("START_NETWORK_SYNCED_SCENE_EVENT") ||
+		nameHash == HashString("STOP_NETWORK_SYNCED_SCENE_EVENT") ||
+		nameHash == HashString("UPDATE_NETWORK_SYNCED_SCENE_EVENT"))
+	{
+		return true;
+	}
+
+	return false;
+}
+
 static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 {
 	// TODO: use a real player for some things
@@ -1637,7 +1653,11 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 			{
 				// make it 31 for a while (objectmgr dependencies mandate this)
 				auto originalIndex = player->physicalPlayerIndex();
-				player->physicalPlayerIndex() = (player != g_playerMgr->localPlayer) ? 31 : 0;
+
+				if (!EventNeedsOriginalPlayer(ev))
+				{
+					player->physicalPlayerIndex() = (player != g_playerMgr->localPlayer) ? 31 : 0;
+				}
 
 				if (ev->IsInScope(player))
 				{
@@ -1672,6 +1692,9 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 }
 
 static atPoolBase** g_netGameEventPool;
+
+static std::deque<net::Buffer> g_reEventQueue;
+static void HandleNetGameEvent(const char* idata, size_t len);
 
 static void EventManager_Update()
 {
@@ -1711,7 +1734,24 @@ static void EventManager_Update()
 	{
 		g_events.erase(var);
 	}
+
+	// re-events
+	std::vector<net::Buffer> reEvents;
+
+	while (!g_reEventQueue.empty())
+	{
+		reEvents.push_back(std::move(g_reEventQueue.front()));
+		g_reEventQueue.pop_front();
+	}
+
+	for (auto& evBuf : reEvents)
+	{
+		evBuf.Seek(0);
+		HandleNetGameEvent(reinterpret_cast<const char*>(evBuf.GetBuffer()), evBuf.GetLength());
+	}
 }
+
+static bool g_lastEventGotRejected;
 
 static void HandleNetGameEvent(const char* idata, size_t len)
 {
@@ -1776,6 +1816,8 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	{
 		using TEventHandlerFn = void(*)(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
 
+		bool rejected = false;
+
 		// for all intents and purposes, the player will be 31
 		auto lastIndex = player->physicalPlayerIndex();
 		player->physicalPlayerIndex() = 31;
@@ -1790,27 +1832,23 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(0x146000000))
 			{
 				eh(&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
+				rejected = g_lastEventGotRejected;
 			}
 		}
 
 		player->physicalPlayerIndex() = lastIndex;
+
+		if (rejected)
+		{
+			g_reEventQueue.push_back(buf);
+		}
 	}
 }
 
-static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
-
-static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
+static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, CNetGamePlayer* unkConn, rage::datBitBuffer* buffer, uint16_t evH)
 {
-	if (!icgi->OneSyncEnabled)
-	{
-		return g_origExecuteNetGameEvent(eventMgr, ev, buffer, player, unkConn, evH, a, b);
-	}
+	g_lastEventGotRejected = false;
 
-	//trace("executing a %s\n", ev->GetName());
-
-	ev->Handle(buffer, player, unkConn);
-
-	// missing: some checks
 	if (ev->Decide(player, unkConn))
 	{
 		ev->HandleExtraData(buffer, false, player, unkConn);
@@ -1838,6 +1876,25 @@ static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::da
 			g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 		}
 	}
+	else
+	{
+		g_lastEventGotRejected = !ev->HasTimedOut() && ev->MustPersist();
+	}
+}
+
+static void(*g_origExecuteNetGameEvent)(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t, uint32_t);
+
+static void ExecuteNetGameEvent(void* eventMgr, rage::netGameEvent* ev, rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t evH, uint32_t a, uint32_t b)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origExecuteNetGameEvent(eventMgr, ev, buffer, player, unkConn, evH, a, b);
+	}
+
+	ev->Handle(buffer, player, unkConn);
+
+	// missing: some checks
+	DecideNetGameEvent(ev, player, unkConn, buffer, evH);
 }
 
 static InitFunction initFunctionEv([]()
@@ -2732,6 +2789,7 @@ static InitFunction initFunction([]()
 	OnKillNetwork.Connect([](const char*)
 	{
 		g_events.clear();
+		g_reEventQueue.clear();
 	});
 
 	OnKillNetworkDone.Connect([]()
