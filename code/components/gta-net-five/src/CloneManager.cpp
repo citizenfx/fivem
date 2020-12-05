@@ -1287,17 +1287,9 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		return AckResult::OK;
 	}
 
-	bool canApply = true;
-
-	// is this a migration? if so, don't apply, aaaa!
-	if (extData.clientId != msg.GetClientId())
-	{
-		canApply = false;
-	}
-
 	g_curNetObject = obj;
 
-	if (msg.GetCloneData().size() && canApply)
+	if (msg.GetCloneData().size())
 	{
 		// get sync tree and read data
 		auto syncTree = obj->GetSyncTree();
