@@ -16,10 +16,12 @@
 #include <variant>
 
 #include <EASTL/bitset.h>
+#include <EASTL/deque.h>
 #include <EASTL/fixed_map.h>
 #include <EASTL/fixed_hash_map.h>
 #include <EASTL/fixed_hash_set.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/vector_map.h>
 
 #include <tbb/concurrent_unordered_map.h>
 #include <thread_pool.hpp>
@@ -712,8 +714,7 @@ struct EntityDeletionData
 
 struct ClientEntityState
 {
-	// we assume 192 entities per client (and don't use hash_map which will frequently 'rehash')
-	eastl::fixed_map<uint16_t, ClientEntityData, 192> syncedEntities;
+	eastl::vector_map<uint16_t, ClientEntityData, std::less<uint16_t>, EASTLAllocatorType, eastl::deque<eastl::pair<uint16_t, ClientEntityData>, EASTLAllocatorType>> syncedEntities;
 
 	// and 24 deletions per frame
 	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 24> deletions;
@@ -758,7 +759,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	eastl::fixed_hash_map<int, int, 128> playersToSlots;
 	eastl::bitset<128> playersInScope;
 	
-	eastl::fixed_hash_map<uint32_t, SyncedEntityData, 128> syncedEntities;
+	// use fixed_map to make insertion into the vector_map cheap (as sorted)
+	eastl::fixed_map<uint32_t, SyncedEntityData, 256> syncedEntities;
 	eastl::fixed_hash_map<uint32_t, std::tuple<sync::SyncEntityPtr, EntityDeletionData>, 16> entitiesToDestroy;
 
 	uint32_t syncTs = 0;
