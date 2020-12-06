@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FilesystemEntry, Project, ProjectResources } from 'shared/api.types';
+import { FilesystemEntry, ProjectData, ProjectResources } from 'shared/api.types';
 
 export type ProjectItemRenderer = (props: ProjectItemProps) => React.ReactNode;
 
@@ -7,7 +7,7 @@ export type ProjectItemFilter = (entry: FilesystemEntry) => boolean;
 
 export interface ProjectItemProps {
   entry: FilesystemEntry,
-  project: Project,
+  project: ProjectData,
   projectResources: ProjectResources,
   pathsMap: {
     [path: string]: FilesystemEntry[],

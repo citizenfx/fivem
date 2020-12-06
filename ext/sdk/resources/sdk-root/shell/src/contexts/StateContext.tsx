@@ -1,11 +1,14 @@
 import React from 'react';
-import { States } from 'shared/api.types';
+import { AppStates } from 'shared/api.types';
 import { stateApi } from 'shared/api.events';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';
+import { logger } from 'utils/logger';
 
+
+const log = logger('StateContext');
 
 export interface StateContext {
-  state: States,
+  state: AppStates,
   gameLaunched: boolean,
 
   toolbarOpen: boolean,
@@ -14,7 +17,7 @@ export interface StateContext {
 };
 
 const defaultState: StateContext = {
-  state: States.booting,
+  state: AppStates.booting,
   gameLaunched: false,
 
   toolbarOpen: true,
@@ -25,15 +28,16 @@ const defaultState: StateContext = {
 export const StateContext = React.createContext<StateContext>(defaultState);
 
 export const StateContextProvider = React.memo(function StateContextProvider({ children }) {
-  const [state, setState] = React.useState<States>(defaultState.state);
+  const [state, setState] = React.useState<AppStates>(defaultState.state);
   const [gameLaunched, setGameLaunched] = React.useState(defaultState.gameLaunched);
   const [toolbarOpen, openToolbar, closeToolbar] = useOpenFlag(defaultState.toolbarOpen);
 
-  useApiMessage(stateApi.state, (newState: States) => {
+  useApiMessage(stateApi.state, (newState: AppStates) => {
     setState(newState);
   }, [setState]);
 
   useApiMessage(stateApi.gameLaunched, () => {
+    log('Game launched!');
     setGameLaunched(true);
   }, [setGameLaunched]);
 

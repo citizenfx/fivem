@@ -2,7 +2,7 @@ import React from 'react';
 import classnames from 'classnames';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { States } from 'shared/api.types';
+import { AppStates } from 'shared/api.types';
 import { devtoolsIcon, newProjectIcon, openProjectIcon } from 'constants/icons';
 import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator';
 import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
@@ -30,7 +30,7 @@ export const Toolbar = React.memo(function Toolbar() {
     : openToolbar;
 
   const toolbarClasses = classnames(s.root, {
-    [s.visible]: state === States.ready,
+    [s.visible]: state === AppStates.ready,
     [s.active]: toolbarOpen,
   });
 

@@ -1,10 +1,43 @@
-import { AssetKind, AssetManagerType, ServerUpdateChannel } from "./api.types";
+import { AssetKind, AssetManagerType, ProjectManifestResource, ServerUpdateChannel } from "./api.types";
 
 
 export interface ProjectCreateRequest {
   projectName: string,
   projectPath: string,
   withServerData?: boolean,
+}
+
+export interface ProjectSetResourceConfigRequest {
+  resourceName: string,
+  config: Partial<ProjectManifestResource>,
+}
+
+export interface ProjectCreateDirectoryRequest {
+  directoryPath: string,
+  directoryName: string,
+}
+
+export interface ProjectDeleteDirectoryRequest {
+  directoryPath: string,
+}
+
+export interface ProjectRenameDirectoryRequest {
+  directoryPath: string,
+  newDirectoryName: string,
+}
+
+export interface ProjectCreateFileRequest {
+  filePath: string,
+  fileName: string,
+}
+
+export interface ProjectDeleteFileRequest {
+  filePath: string,
+}
+
+export interface ProjectRenameFileRequest {
+  filePath: string,
+  newFileName: string,
 }
 
 export interface AssetCreateRequest {
@@ -38,7 +71,7 @@ export interface ServerStartRequest {
   enabledResourcesPaths: string[],
 }
 
-export interface ServerRefreshResourcesRequest {
+export interface SetEnabledResourcesRequest {
   projectPath: string,
   enabledResourcesPaths: string[],
 }

@@ -17,11 +17,11 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   bind(FxdkDataService).toSelf().inSingletonScope();
 
   bind(FxdkMenuContribution).toSelf().inSingletonScope();
-  bind(MenuContribution).to(FxdkMenuContribution);
-  bind(CommandContribution).to(FxdkMenuContribution);
+  bind(MenuContribution).toService(FxdkMenuContribution);
+  bind(CommandContribution).toService(FxdkMenuContribution);
 
   bind(FxdkProjectContribution).toSelf().inSingletonScope();
-  bind(FrontendApplicationContribution).to(FxdkProjectContribution).inSingletonScope();
+  bind(FrontendApplicationContribution).toService(FxdkProjectContribution);
 
   rebindApplicationShell(bind, rebind);
   rebindNavigator(bind, rebind);

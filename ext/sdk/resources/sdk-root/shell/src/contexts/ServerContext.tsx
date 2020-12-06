@@ -113,6 +113,12 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     if (serverState === ServerStates.up) {
       sendApiMessage(serverApi.ackResourcesState);
 
+      log('Will connect now?', {
+        gameLaunched,
+        connectPending: connectPending.current,
+        clientConnected,
+      });
+
       if (gameLaunched && connectPending.current && !clientConnected) {
         log('CONNECTING TO THE SERVER');
         connectPending.current = false;
@@ -141,22 +147,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
     return () => window.removeEventListener('message', handleMessage);
   }, [setClientConnected]);
-
-  // Handling project changes
-  React.useEffect(() => {
-    if (!project) {
-      return;
-    }
-
-    if (serverState === ServerStates.up) {
-      const enabledResourcesPaths = getEnabledResourcesPaths(project, projectResources);
-
-      sendApiMessage(serverApi.setEnabledResources, {
-        projectPath: project.path,
-        enabledResourcesPaths,
-      });
-    }
-  }, [project, projectResources, serverState]);
 
   useApiMessage(serverApi.state, (state: ServerStates) => {
     setServerState(state);

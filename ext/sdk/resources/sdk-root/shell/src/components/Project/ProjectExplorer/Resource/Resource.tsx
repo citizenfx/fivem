@@ -15,6 +15,7 @@ import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
 import s from './Resource.module.scss';
+import { ProjectSetResourceConfigRequest } from 'shared/api.requests';
 
 
 const resourceChildrenFilter = (entry: FilesystemEntry) => {
@@ -47,18 +48,24 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
   const [renamerOpen, openRenamer, closeRenamer] = useOpenFlag(false);
 
   const handleToggleEnabled = React.useCallback(() => {
-    sendApiMessage(projectApi.setResourceEnabled, {
+    const request: ProjectSetResourceConfigRequest = {
       resourceName: entry.name,
-      enabled: !isEnabled,
-    });
+      config: {
+        enabled: !isEnabled,
+      },
+    };
+
+    sendApiMessage(projectApi.setResourceConfig, request);
   }, [entry, project, isEnabled]);
   const handleToggleAutorestartEnabled = React.useCallback(() => {
-    sendApiMessage(projectApi.setResourceConfig, {
+    const request: ProjectSetResourceConfigRequest = {
       resourceName: entry.name,
       config: {
         restartOnChange: !isAutorestartOnChangeEnabled,
       },
-    });
+    };
+
+    sendApiMessage(projectApi.setResourceConfig, request);
   }, [entry, isAutorestartOnChangeEnabled]);
 
   const handleRestart = React.useCallback(() => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { States } from 'shared/api.types';
+import { AppStates } from 'shared/api.types';
 import { sendApiMessage } from 'utils/api';
 import { TheiaPersonality } from 'personalities/Theia';
 import { Toolbar } from './Toolbar/Toolbar';
@@ -14,8 +14,8 @@ export function Shell() {
   const { state } = React.useContext(StateContext);
   const { project, recentProjects } = React.useContext(ProjectContext);
 
-  const showWelcome = state === States.ready && !project && recentProjects.length === 0;
-  const showUpdate = state === States.preparing;
+  const showWelcome = state === AppStates.ready && !project && recentProjects.length === 0;
+  const showUpdate = state === AppStates.preparing;
 
   React.useEffect(() => {
     sendApiMessage('ackState');

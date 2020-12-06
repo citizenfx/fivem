@@ -1,14 +1,4 @@
-export type ApiEventCallback<T extends any> = (data: T, type?: string) => unknown;
-export type ApiEventCallbackDisposer = () => unknown;
-
-export interface ApiClient {
-  emit<T>(eventType: string, data?: T): void,
-  emitSid<T>(sid: string, eventType: string, data?: T): void,
-  on(eventType: string, cb: Function): ApiEventCallbackDisposer,
-  log(...args: any[]): void,
-}
-
-export enum States {
+export enum AppStates {
   booting,
   preparing,
   ready,
@@ -115,7 +105,7 @@ export interface ProjectFsTree {
   entries: FilesystemEntry[],
   pathsMap: FilesystemEntryMap,
 }
-export interface Project {
+export interface ProjectData {
   path: string,
   manifest: ProjectManifest,
   fsTree: ProjectFsTree,

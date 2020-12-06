@@ -2,14 +2,14 @@ import React from 'react';
 import { ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, newResourceIcon } from 'constants/icons';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { Project } from 'shared/api.types';
+import { ProjectData } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useOpenFlag } from 'utils/hooks';
 import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 
 
-export const useDirectoryContextMenu = (path: string, project: Project, childrenLength: number) => {
+export const useDirectoryContextMenu = (path: string, project: ProjectData, childrenLength: number) => {
   const { setAssetCreatorDir, openAssetCreator } = React.useContext(ProjectContext);
   const { disableDirectoryDelete, disableAssetCreate } = React.useContext(ProjectExplorerItemContext);
 

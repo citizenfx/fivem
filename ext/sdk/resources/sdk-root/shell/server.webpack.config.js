@@ -6,6 +6,7 @@ module.exports = {
     global: false,
     __dirname: false,
   },
+  mode: 'development',
   resolve: {
     alias: {
       shared: path.join(__dirname, 'src/shared/'),

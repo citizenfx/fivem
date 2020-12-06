@@ -71,5 +71,5 @@ export class FxdkApplicationShell extends ApplicationShell {
 
 export const rebindApplicationShell = (bind: interfaces.Bind, rebind: interfaces.Rebind) => {
   bind(FxdkApplicationShell).toSelf().inSingletonScope();
-  rebind(ApplicationShell).to(FxdkApplicationShell).inSingletonScope();
+  rebind(ApplicationShell).toService(FxdkApplicationShell);
 };

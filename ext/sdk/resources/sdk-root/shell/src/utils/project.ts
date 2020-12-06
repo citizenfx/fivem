@@ -1,4 +1,4 @@
-import { FilesystemEntry, Project } from "shared/api.types";
+import { FilesystemEntry, ProjectData } from "shared/api.types";
 
 export const filesystemEntryToTheiaResource = (entry: FilesystemEntry): string => {
   return 'file:///' + entry.path.replace('\\', '/');
@@ -8,7 +8,7 @@ export const isReadOnlyEntry = (entry: FilesystemEntry): boolean => {
   return !!entry.meta.assetMeta?.flags.readOnly;
 };
 
-export const getFoldersForTheia = (project: Project): string[] => {
+export const getFoldersForTheia = (project: ProjectData): string[] => {
   const entriesToInspect = new Set(project.fsTree.entries);
   const editableFolders: string[] = [];
 

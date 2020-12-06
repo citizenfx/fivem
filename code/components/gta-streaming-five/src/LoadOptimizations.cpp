@@ -5,6 +5,7 @@
 #include <atPool.h>
 #include <Streaming.h>
 #include <CrossBuildRuntime.h>
+#include <CL2LaunchMode.h>
 
 #include <tbb/combinable.h>
 #include <tbb/parallel_for.h>
@@ -134,6 +135,7 @@ static void CreateDependentsGraph(strStreamingInfoManager* self, atArray<int>& p
 					auto lidx = idx - module->baseIdx;
 					
 					uint32_t depList[48];
+					// In FxDK this results in access violation error somehow
 					int numDeps = module->GetDependencies(lidx, depList, std::size(depList));
 
 					for (int di = 0; di < numDeps; di++)
@@ -246,6 +248,12 @@ static void AnimDirector_InitAfterMapLoaded(int why)
 
 static HookFunction hookFunction([]()
 {
+	// Somehow in FxDK results in access violation error in CreateDependentsGraph
+	if (launch::IsSDKGuest())
+	{
+		return;
+	}
+	
 	//hook::jump(hook::get_pattern("45 8D 70 01 66 39 B1 A2 01 00 00 74 41", -0x38), CreateDependentsGraph);
 
 	if (!xbr::IsGameBuildOrGreater<2060>())

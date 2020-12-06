@@ -537,5 +537,5 @@ export class FxdkFileNavigatorContribution implements FrontendApplicationContrib
 
 export const rebindNavigator = (bind: interfaces.Bind, rebind: interfaces.Rebind) => {
   bind(FxdkFileNavigatorContribution).toSelf().inSingletonScope();
-  rebind(FileNavigatorContribution).to(FxdkFileNavigatorContribution as any).inSingletonScope();
+  rebind(FileNavigatorContribution).toService(FxdkFileNavigatorContribution as any);
 };

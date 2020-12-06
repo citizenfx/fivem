@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { TheiaContext } from 'contexts/TheiaContext';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { States } from 'shared/api.types';
+import { AppStates } from 'shared/api.types';
 import s from './Theia.module.scss';
 
 
@@ -27,7 +27,7 @@ export const TheiaPersonality = React.memo(function TheiaPersonality() {
   }, []);
 
   React.useEffect(() => {
-    if (state === States.ready) {
+    if (state === AppStates.ready) {
       unveilTimerRef.current = setTimeout(() => {
         setShowPersonality(true);
       }, 500);

@@ -352,5 +352,5 @@ export class FxdkWorkspaceFrontendContribution implements CommandContribution, K
 
 export function rebindWorkspaceFrontendContribution(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceFrontendContribution).toSelf().inSingletonScope();
-  rebind(WorkspaceFrontendContribution).to(FxdkWorkspaceFrontendContribution as any).inSingletonScope();
+  rebind(WorkspaceFrontendContribution).toService(FxdkWorkspaceFrontendContribution as any);
 }

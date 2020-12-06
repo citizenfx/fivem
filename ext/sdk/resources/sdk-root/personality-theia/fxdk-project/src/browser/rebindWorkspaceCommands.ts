@@ -455,11 +455,11 @@ export class WorkspaceRootUriAwareCommandHandler extends UriAwareCommandHandler<
 
 export function rebindWorkspaceCommands(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceCommandContribution).toSelf().inSingletonScope();
-  rebind(WorkspaceCommandContribution).to(FxdkWorkspaceCommandContribution as any).inSingletonScope();
+  rebind(WorkspaceCommandContribution).toService(FxdkWorkspaceCommandContribution as any);
 
   bind(FxdkFileMenuContribution).toSelf().inSingletonScope();
-  rebind(FileMenuContribution).to(FxdkFileMenuContribution as any).inSingletonScope();
+  rebind(FileMenuContribution).toService(FxdkFileMenuContribution as any);
 
   bind(FxdkEditMenuContribution).toSelf().inSingletonScope();
-  rebind(EditMenuContribution).to(FxdkEditMenuContribution as any).inSingletonScope();
+  rebind(EditMenuContribution).toService(FxdkEditMenuContribution as any);
 }

@@ -18,7 +18,6 @@ export const projectApi = {
   renameResource: 'project:renameResource',
   deleteResource: 'project:deleteResource',
   updateResources: 'project:updateResources',
-  setResourceEnabled: 'project:setResourceEnabled',
   setResourceConfig: 'project:setResourceConfig',
 
   fsTreeUpdate: 'project:fsTreeUpdate',

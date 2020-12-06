@@ -1,5 +1,5 @@
 import React from 'react';
-import { FilesystemEntry, Project, ProjectResources, RecentProject, States } from 'shared/api.types';
+import { FilesystemEntry, ProjectData, ProjectResources, RecentProject, AppStates } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { getProjectResources } from 'shared/utils';
 import { sendApiMessage } from 'utils/api';
@@ -29,7 +29,7 @@ export interface ProjectContext {
   closeDirectoryCreator: () => void,
 
   openProject: (string) => void,
-  project: Project | null,
+  project: ProjectData | null,
   projectResources: ProjectResources,
   recentProjects: RecentProject[],
 
@@ -71,14 +71,14 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
   const [creatorOpen, openCreator, closeCreator] = useOpenFlag(false);
   const [openerOpen, openOpener, closeOpener] = useOpenFlag(false);
 
-  const [project, setProject] = React.useState<Project | null>(null);
+  const [project, setProject] = React.useState<ProjectData | null>(null);
   const [recentProjects, setRecentProjects] = React.useState<RecentProject[]>([]);
 
   const [assetCreatorDir, setAssetCreatorDir] = React.useState('');
   const [assetCreatorOpen, openAssetCreator, closeAssetCreator] = useOpenFlag(false);
   const [directoryCreatorOpen, openDirectoryCreator, closeDirectoryCreator] = useOpenFlag(false);
 
-  const projectRef = React.useRef<Project | null>(null);
+  const projectRef = React.useRef<ProjectData | null>(null);
   projectRef.current = project;
 
   const projectOpenPendingRef = React.useRef(false);
@@ -97,7 +97,7 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
   }, [project, openFileInTheia]);
 
   React.useEffect(() => {
-    if (state === States.ready) {
+    if (state === AppStates.ready) {
       sendApiMessage(projectApi.getRecents);
     }
   }, [state]);

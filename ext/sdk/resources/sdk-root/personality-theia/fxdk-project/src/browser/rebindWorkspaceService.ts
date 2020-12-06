@@ -463,5 +463,5 @@ export namespace WorkspaceData {
 export function rebindWorkspaceService(bind: interfaces.Bind, rebind: interfaces.Rebind) {
   bind(FxdkWorkspaceService).toSelf().inSingletonScope();
 
-  rebind(WorkspaceService).to((FxdkWorkspaceService as any)).inSingletonScope();
+  rebind(WorkspaceService).toService(FxdkWorkspaceService as any);
 }
