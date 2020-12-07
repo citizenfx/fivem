@@ -21,6 +21,7 @@
 #include <CrossBuildRuntime.h>
 
 #include <GameInput.h>
+#include <InputHook.h>
 
 namespace rage
 {
@@ -758,6 +759,7 @@ bool IsTagActive(const std::string& tag)
 }
 
 static void(*ioMapper_Update)(void*, uint32_t, bool);
+void UpdateButtonPlumbing();
 
 static void ioMapper_UpdateStub(rage::ioMapper* mapper, uint32_t time, bool a3)
 {
@@ -766,6 +768,8 @@ static void ioMapper_UpdateStub(rage::ioMapper* mapper, uint32_t time, bool a3)
 	ioMapper_Update(mapper, time, a3);
 
 	bindingManager.UpdateButtons();
+
+	UpdateButtonPlumbing();
 }
 
 void ProfileSettingsInit();
@@ -1022,6 +1026,33 @@ static void MapFuncHook(void* a1, uint32_t controlIdx, void* a3, void* a4)
 	{
 		g_origMapFunc(a1, controlIdx, a3, a4);
 	}
+}
+
+static hook::thiscall_stub<rage::ioInputSource*(void* control, rage::ioInputSource* outParam, int controlIdx, int unkN1, bool secondaryBinding, bool)> _control_getBinding([]()
+{
+	return hook::get_call(hook::get_pattern("40 88 6C 24 28 40 88 6C 24 20 E8 ? ? ? ? 41 8D", 10));
+});
+
+void UpdateButtonPlumbing()
+{
+	rage::ioInputSource controlDatas[2];
+	_control_getBinding(g_control, &controlDatas[0], 249 /* INPUT_PUSH_TO_TALK */, -1, false, false);
+	_control_getBinding(g_control, &controlDatas[1], 249 /* INPUT_PUSH_TO_TALK */, -1, true, false);
+
+	auto mapBypass = [](rage::ioInputSource& controlData)
+	{
+		InputHook::ControlBypass bypass = { 0 };
+
+		if (controlData.source == 0 /* IOMS_KEYBOARD */ || controlData.source == 7 /* IOMS_MOUSE_BUTTON */)
+		{
+			bypass.isMouse = controlData.source == 7;
+			bypass.ctrlIdx = controlData.parameter;
+		}
+
+		return bypass;
+	};
+
+	InputHook::SetControlBypasses({ mapBypass(controlDatas[0]), mapBypass(controlDatas[1]) });
 }
 
 #include <boost/algorithm/string.hpp>
