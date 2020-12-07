@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <shared_mutex>
 #include <VFSDevice.h>
 
 #ifdef COMPILING_VFS_CORE
@@ -64,7 +65,9 @@ namespace vfs
 
 		Header2 m_header;
 
-		HandleData m_handles[128];
+		std::vector<HandleData> m_handles;
+
+		std::shared_mutex m_handlesMutex;
 
 		std::vector<Entry> m_entries;
 

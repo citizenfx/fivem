@@ -14,7 +14,7 @@
 namespace vfs
 {
 	RagePackfile::RagePackfile()
-		: m_parentHandle(InvalidHandle)
+	: m_parentHandle(InvalidHandle), m_handles(128)
 	{
 
 	}
@@ -226,22 +226,30 @@ namespace vfs
 
 	RagePackfile::HandleData* RagePackfile::AllocateHandle(THandle* outHandle)
 	{
-		for (int i = 0; i < _countof(m_handles); i++)
 		{
-			if (!m_handles[i].valid)
-			{
-				*outHandle = i;
+			std::shared_lock _(m_handlesMutex);
 
-				return &m_handles[i];
+			for (int i = 0; i < m_handles.size(); i++)
+			{
+				if (!m_handles[i].valid)
+				{
+					*outHandle = i;
+
+					return &m_handles[i];
+				}
 			}
 		}
 
-		return nullptr;
+		std::unique_lock _(m_handlesMutex);
+		m_handles.push_back({});
+
+		*outHandle = m_handles.size() - 1;
+		return &m_handles[m_handles.size() - 1];
 	}
 
 	RagePackfile::HandleData* RagePackfile::GetHandle(THandle inHandle)
 	{
-		if (inHandle >= 0 && inHandle < _countof(m_handles))
+		if (inHandle >= 0 && inHandle < m_handles.size())
 		{
 			if (m_handles[inHandle].valid)
 			{
