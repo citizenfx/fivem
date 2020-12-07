@@ -6,6 +6,9 @@
  */
 
 #include "StdInc.h"
+
+#include <unordered_set>
+
 #ifdef GTA_FIVE
 #include "Hooking.h"
 #include <atPool.h>
@@ -16,8 +19,6 @@
 
 #include <CoreConsole.h>
 #include <MinHook.h>
-
-#include <unordered_set>
 
 struct ResBmInfoInt
 {
