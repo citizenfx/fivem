@@ -1836,7 +1836,7 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 	}
 }
 
-std::set<std::string> g_streamingSuffixSet;
+std::unordered_set<std::string> g_streamingSuffixSet;
 
 static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int idx, int* status)
 {

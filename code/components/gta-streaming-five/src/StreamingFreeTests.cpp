@@ -17,6 +17,8 @@
 #include <CoreConsole.h>
 #include <MinHook.h>
 
+#include <unordered_set>
+
 struct ResBmInfoInt
 {
 	void* pad;
@@ -85,10 +87,16 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 }
 #endif
 
+#ifdef _DEBUG
 static std::map<std::string, uint32_t, std::less<>> g_streamingNamesToIndices;
 static std::map<uint32_t, std::string> g_streamingIndexesToNames;
 static std::map<uint32_t, std::string> g_streamingHashesToNames;
-extern std::set<std::string> g_streamingSuffixSet;
+#else
+static std::unordered_map<std::string, uint32_t> g_streamingNamesToIndices;
+static std::unordered_map<uint32_t, std::string> g_streamingIndexesToNames;
+static std::unordered_map<uint32_t, std::string> g_streamingHashesToNames;
+#endif
+extern std::unordered_set<std::string> g_streamingSuffixSet;
 
 #ifdef GTA_FIVE
 template<bool IsRequest>
