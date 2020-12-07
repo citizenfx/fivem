@@ -321,15 +321,18 @@ public:
 				if (!*pFullscreen)
 				{
 					WRL::ComPtr<IDXGIOutput> output;
-					m_orig->GetContainingOutput(&output);
-					m_orig->SetFullscreenState(TRUE, output.Get());
-
-					if (ppTarget)
+					
+					if (SUCCEEDED(m_orig->GetContainingOutput(&output)) && output.Get())
 					{
-						output.CopyTo(ppTarget);
-					}
+						m_orig->SetFullscreenState(TRUE, output.Get());
 
-					*pFullscreen = true;
+						if (ppTarget)
+						{
+							output.CopyTo(ppTarget);
+						}
+
+						*pFullscreen = true;
+					}
 				}
 				else
 				{
