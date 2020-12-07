@@ -84,9 +84,9 @@ bool BaseLdrCheck()
 
 bool MediaFeatureCheck()
 {
-	auto status = RegGetValueW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\WindowsFeatures\\WindowsMediaVersion", NULL, RRF_RT_ANY, NULL, NULL, NULL);
+	auto module = LoadLibraryW(L"mfreadwrite.dll");
 
-	if (status != ERROR_SUCCESS)
+	if (!module)
 	{
 		MessageBox(nullptr, fmt::sprintf(
 			gettext(L"%s requires the Windows Media Feature Pack for Windows N editions to be installed to run. Please install it, and try again."),
@@ -97,6 +97,8 @@ bool MediaFeatureCheck()
 
 		return false;
 	}
+
+	FreeLibrary(module);
 
 	return true;
 }
