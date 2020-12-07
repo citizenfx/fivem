@@ -82,6 +82,25 @@ bool BaseLdrCheck()
 	return true;
 }
 
+bool MediaFeatureCheck()
+{
+	auto status = RegGetValueW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Setup\\WindowsFeatures\\WindowsMediaVersion", NULL, RRF_RT_ANY, NULL, NULL, NULL);
+
+	if (status != ERROR_SUCCESS)
+	{
+		MessageBox(nullptr, fmt::sprintf(
+			gettext(L"%s requires the Windows Media Feature Pack for Windows N editions to be installed to run. Please install it, and try again."),
+			PRODUCT_NAME)
+		.c_str(), PRODUCT_NAME, MB_OK | MB_ICONSTOP);
+
+		ShellExecute(nullptr, L"open", L"https://support.microsoft.com/help/3145500/media-feature-pack-list-for-windows-n-editions", nullptr, nullptr, SW_SHOWNORMAL);
+
+		return false;
+	}
+
+	return true;
+}
+
 bool VerifyViability()
 {
 	// if we run DXGI checks on non-downlevel versions, DList drivers won't be hooked, and iGPU+dGPU systems
@@ -98,6 +117,11 @@ bool VerifyViability()
 	}
 
 	if (!BaseLdrCheck())
+	{
+		return false;
+	}
+
+	if (!MediaFeatureCheck())
 	{
 		return false;
 	}
