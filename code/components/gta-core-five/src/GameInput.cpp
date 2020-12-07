@@ -403,6 +403,19 @@ void Binding::Update(rage::ioMapper* mapper)
 				std::string thisString = thisCmd.str();
 				thisCmd.str("");
 
+				// suppress any missing commands (requested via https://forum.cfx.re/t/1859314/3)
+				if (!m_tag.empty())
+				{
+					auto parsed = ProgramArguments{
+						thisString
+					};
+
+					if (!console::GetDefaultContext()->GetCommandManager()->HasCommand(parsed[0]))
+					{
+						continue;
+					}
+				}
+
 				// if this is a button binding
 				if (thisString[0] == '+')
 				{
