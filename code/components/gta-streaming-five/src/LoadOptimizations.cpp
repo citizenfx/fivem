@@ -65,7 +65,7 @@ static hook::cdecl_stub<void(void*, const uint32_t&, atArray<int>*& const)> _has
 
 static hook::cdecl_stub<bool(void*, uint32_t)> _IsObjectInImage([]()
 {
-	return hook::get_pattern("74 20 8B C2 48", -7);
+	return hook::get_pattern("74 20 8B C2 48 8B", -7);
 });
 
 static void CreateDependentsGraph(strStreamingInfoManager* self, atArray<int>& packfiles)
