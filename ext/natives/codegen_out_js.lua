@@ -112,7 +112,7 @@ print("\treturn num.toString();")
 print("}")
 
 print("function _fv(flt) {")
-print("\treturn flt + 0.0000001;")
+print("\treturn (flt === 0.0) ? flt : (flt + 0.0000001);")
 print("}\n")
 
 print("function _mfr(fn) {")
