@@ -64,7 +64,7 @@ namespace vfs
 
 		Header2 m_header;
 
-		HandleData m_handles[32];
+		HandleData m_handles[128];
 
 		std::vector<Entry> m_entries;
 

@@ -191,7 +191,15 @@ public:
 		{
 			bytes_read = device_->Read(file_, data_out, bytes_to_read);
 
-			return (bytes_read > 0);
+			bool readMore = (bytes_read > 0);
+
+			if (!readMore)
+			{
+				device_->Close(file_);
+				file_ = -1;
+			}
+
+			return readMore;
 		}
 
 		return false;
