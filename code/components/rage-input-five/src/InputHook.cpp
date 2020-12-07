@@ -267,7 +267,7 @@ static bool g_mainThreadId;
 static HookFunction setOffsetsHookFunction([]()
 {
 	g_inputOffset = hook::get_address<int*>(hook::get_pattern("89 3D ? ? ? ? EB 0F 48 8B CB", 2));
-	g_mouseX = hook::get_address<int*>(hook::get_pattern("48 63 D0 8B 46 24 41 01 84 90", 10));
+	g_mouseX = (int*)hook::get_adjusted(0x140000000 + *hook::get_pattern<int32_t>("48 63 D0 8B 46 24 41 01 84 90", 10));
 	g_mouseY = g_mouseX + 2;
 	g_mouseButtons = hook::get_address<int*>(hook::get_pattern("FF 15 ? ? ? ? 85 C0 8B 05 ? ? ? ? 74 05", 10));
 	g_mouseWheel = hook::get_address<int*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
@@ -275,14 +275,6 @@ static HookFunction setOffsetsHookFunction([]()
 
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 {
-	static HostSharedData<CfxState> initState("CfxInitState");
-
-	if (!initState->isReverseGame)
-	{
-		origSetInput(a1, a2, a3, a4);
-		return;
-	}
-
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
 	WaitForSingleObject(rgd->inputMutex, INFINITE);
@@ -507,6 +499,11 @@ static HookFunction hookFunction([] ()
 	// don't allow SetCursorPos during focus
 	hook::iat("user32.dll", SetCursorPosWrap, "SetCursorPos");
 
+	// NOTE: this specific flow should *only* be used if RG!
+	// there's a call above in OnGameFrame which handles all other ancillary responsibilities
+	static HostSharedData<CfxState> initState("CfxInitState");
+
+	if (initState->isReverseGame)
 	{
 		auto location = hook::get_pattern("45 33 C9 44 8A C7 40 8A D7 33 C9 E8", 11);
 		hook::set_call(&origSetInput, location);
