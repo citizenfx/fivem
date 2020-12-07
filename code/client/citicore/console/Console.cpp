@@ -382,7 +382,7 @@ static inline bool IsEscapeChar(typename ProgramArguments::TCharType c)
 	return (c == U'"');
 }
 
-ProgramArguments Tokenize(const std::string& lineUtf8)
+DLL_EXPORT ProgramArguments Tokenize(const std::string& lineUtf8)
 {
 	int i = 0;
 	int j = 0;

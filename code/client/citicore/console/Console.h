@@ -146,7 +146,7 @@ void ExecuteSingleCommand(const std::string& command);
 
 void ExecuteSingleCommandDirect(const ProgramArguments& arguments);
 
-ProgramArguments Tokenize(const std::string& line);
+CORE_EXPORT ProgramArguments Tokenize(const std::string& line);
 
 void AddToBuffer(const std::string& text);
 

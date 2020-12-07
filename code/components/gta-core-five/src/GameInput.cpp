@@ -407,12 +407,11 @@ void Binding::Update(rage::ioMapper* mapper)
 				// suppress any missing commands (requested via https://forum.cfx.re/t/1859314/3)
 				if (!m_tag.empty())
 				{
-					auto parsed = ProgramArguments{
-						thisString
-					};
+					auto parsed = console::Tokenize(thisString);
 
 					if (!console::GetDefaultContext()->GetCommandManager()->HasCommand(parsed[0]))
 					{
+						i++;
 						continue;
 					}
 				}
