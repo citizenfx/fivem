@@ -246,7 +246,7 @@ static void AnimDirector_InitAfterMapLoaded(int why)
 
 static HookFunction hookFunction([]()
 {
-	hook::jump(hook::get_pattern("45 8D 70 01 66 39 B1 A2 01 00 00 74 41", -0x38), CreateDependentsGraph);
+	//hook::jump(hook::get_pattern("45 8D 70 01 66 39 B1 A2 01 00 00 74 41", -0x38), CreateDependentsGraph);
 
 	if (!Is2060())
 	{
