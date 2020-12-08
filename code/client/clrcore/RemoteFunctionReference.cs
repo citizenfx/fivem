@@ -122,24 +122,26 @@ namespace CitizenFX.Core
 					var arg = args[1] as List<object>;
 					var err = args.Length > 2 ? args[2] : null;
 
-					if (m_rpcList.TryGetValue(repId, out var tcs))
+#if IS_FXSERVER
+					if (m_playerPromises.TryGetValue(sourceString, out var set))
+#endif
 					{
-						m_rpcList.Remove(repId);
+						if (m_rpcList.TryGetValue(repId, out var tcs))
+						{
+							m_rpcList.Remove(repId);
 
 #if IS_FXSERVER
-						foreach (var player in m_playerPromises)
-						{
-							player.Value.Remove(repId);
-						}
+							set.Remove(repId);
 #endif
 
-						if (arg != null)
-						{
-							tcs.TrySetResult(arg[0]);
-						}
-						else if (err != null)
-						{
-							tcs.TrySetException(new Exception(err.ToString()));
+							if (arg != null)
+							{
+								tcs.TrySetResult(arg[0]);
+							}
+							else if (err != null)
+							{
+								tcs.TrySetException(new Exception(err.ToString()));
+							}
 						}
 					}
 				}
