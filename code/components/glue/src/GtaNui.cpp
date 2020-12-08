@@ -34,6 +34,10 @@ private:
 
 	uint32_t m_pointSamplerState;
 
+	bool m_targetMouseFocus = true;
+
+	bool m_lastTargetMouseFocus = false;
+
 public:
 	virtual void GetGameResolution(int* width, int* height) override;
 
@@ -58,7 +62,16 @@ public:
 
 	virtual void SetGameMouseFocus(bool val) override
 	{
-		InputHook::SetGameMouseFocus(val);
+		m_targetMouseFocus = val;
+	}
+
+	void UpdateMouseFocus()
+	{
+		if (m_targetMouseFocus != m_lastTargetMouseFocus)
+		{
+			InputHook::SetGameMouseFocus(m_targetMouseFocus);
+			m_lastTargetMouseFocus = m_targetMouseFocus;
+		}
 	}
 
 	virtual HWND GetHWND() override
@@ -650,6 +663,8 @@ static InitFunction initFunction([]()
 			GfxForceVsync(false);
 		}
 #endif
+
+		nuiGi.UpdateMouseFocus();
 
 		nuiGi.OnRender();
 	}, -1000);
