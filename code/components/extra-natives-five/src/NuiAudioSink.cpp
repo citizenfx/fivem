@@ -895,8 +895,19 @@ public:
 
 	void SetPosition(float position[3], float distance, float overrideVolume)
 	{
-		m_position = { position[0],
-			position[1], position[2] };
+		if (m_ped)
+		{
+			auto pedPos = m_ped->GetPosition();
+
+			m_position = {
+				pedPos.x, pedPos.y, pedPos.z
+			};
+		}
+		else
+		{
+			m_position = { position[0],
+				position[1], position[2] };
+		}
 
 		m_distance = distance;
 		m_overrideVolume = overrideVolume;
@@ -1150,6 +1161,7 @@ private:
 	float m_lastOverrideVolume = -1.0f;
 
 	int m_lastSubmixId = -1;
+	int m_lastPed = 0;
 };
 
 static std::mutex g_sinksMutex;
@@ -1262,6 +1274,8 @@ void MumbleAudioSink::Process()
 	}
 	else
 	{
+		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
+
 		if (!m_entity)
 		{
 			m_entity = std::make_shared<MumbleAudioEntity>();
@@ -1272,10 +1286,12 @@ void MumbleAudioSink::Process()
 		}
 
 		if (m_overrideVolume != m_lastOverrideVolume ||
-			submixId != m_lastSubmixId)
+			submixId != m_lastSubmixId ||
+			ped != m_lastPed)
 		{
 			m_lastOverrideVolume = m_overrideVolume;
 			m_lastSubmixId = submixId;
+			m_lastPed = ped;
 
 			m_entity->MShutdown();
 			m_entity->SetSubmixId(submixId);
@@ -1284,8 +1300,6 @@ void MumbleAudioSink::Process()
 
 		m_entity->SetPosition((float*)&m_position, m_distance, m_overrideVolume);
 		
-		auto ped = (!isNoPlayer) ? FxNativeInvoke::Invoke<int>(getPlayerPed, playerId) : 0;
-
 		if (ped > 0)
 		{
 			auto address = FxNativeInvoke::Invoke<CPed*>(getEntityAddress, ped);
