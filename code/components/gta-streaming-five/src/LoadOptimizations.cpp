@@ -100,7 +100,7 @@ static void CreateDependentsGraph(strStreamingInfoManager* self, atArray<int>& p
 	}
 
 	// sort the set into a real one, please
-	std::unordered_set<uint32_t> realSet;
+	std::set<uint32_t> realSet;
 	auto str = (streaming::Manager*)self;
 
 	for (auto& entry : set.entries)
@@ -117,7 +117,7 @@ static void CreateDependentsGraph(strStreamingInfoManager* self, atArray<int>& p
 
 	while (true)
 	{
-		tbb::combinable<std::unordered_set<uint32_t>> dependents;
+		tbb::combinable<std::set<uint32_t>> dependents;
 
 		// for time
 		// R* did a similar division in RDR3, each thread gets a chunk of streaming entries
@@ -153,11 +153,11 @@ static void CreateDependentsGraph(strStreamingInfoManager* self, atArray<int>& p
 		});
 
 		// collect both sets
-		std::unordered_set<uint32_t> bigSet;
-		dependents.combine_each([&bigSet](const std::unordered_set<uint32_t>& right)
+		std::set<uint32_t> bigSet;
+		dependents.combine_each([&bigSet](const std::set<uint32_t>& right)
 		{
 			// let's violate const safety
-			bigSet.merge(const_cast<std::unordered_set<uint32_t>&>(right));
+			bigSet.merge(const_cast<std::set<uint32_t>&>(right));
 		});
 
 		dependents.clear();
