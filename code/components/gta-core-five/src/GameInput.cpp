@@ -405,40 +405,44 @@ void Binding::Update(rage::ioMapper* mapper)
 				thisCmd.str("");
 
 				// suppress any missing commands (requested via https://forum.cfx.re/t/1859314/3)
+				bool ignore = false;
+
 				if (!m_tag.empty())
 				{
 					auto parsed = console::Tokenize(thisString);
 
-					if (!console::GetDefaultContext()->GetCommandManager()->HasCommand(parsed[0]))
+					if (parsed.Count() > 0 && !console::GetDefaultContext()->GetCommandManager()->HasCommand(parsed[0]))
 					{
-						i++;
-						continue;
+						ignore = true;
 					}
 				}
 
-				// if this is a button binding
-				if (thisString[0] == '+')
+				if (!ignore)
 				{
-					if (isDownEvent)
+					// if this is a button binding
+					if (thisString[0] == '+')
 					{
-						// TODO: add key code arguments
-						console::GetDefaultContext()->AddToBuffer(thisString + "\n");
+						if (isDownEvent)
+						{
+							// TODO: add key code arguments
+							console::GetDefaultContext()->AddToBuffer(thisString + "\n");
+						}
+						else
+						{
+							// up event is -[button cmd]
+							// TODO: add key code arguments
+							console::GetDefaultContext()->AddToBuffer("-" + thisString.substr(1) + "\n");
+						}
+
+						hadButtonEvent = true;
 					}
 					else
 					{
-						// up event is -[button cmd]
-						// TODO: add key code arguments
-						console::GetDefaultContext()->AddToBuffer("-" + thisString.substr(1) + "\n");
-					}
-
-					hadButtonEvent = true;
-				}
-				else
-				{
-					// if not, just execute the command on down
-					if (isDownEvent || hadButtonEvent)
-					{
-						console::GetDefaultContext()->AddToBuffer(thisString + "\n");
+						// if not, just execute the command on down
+						if (isDownEvent || hadButtonEvent)
+						{
+							console::GetDefaultContext()->AddToBuffer(thisString + "\n");
+						}
 					}
 				}
 			}
