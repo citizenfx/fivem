@@ -1191,6 +1191,9 @@ static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChai
 
 			g_pSwapChain->Present(1, 0);
 		}
+
+		// prevent the thread from exiting (the CRT is broken and will crash on thread exit in some cases)
+		WaitForSingleObject(GetCurrentProcess(), INFINITE);
 	}).detach();
 }
 
