@@ -31,6 +31,12 @@ ResourceUI::~ResourceUI()
 
 bool ResourceUI::Create()
 {
+	// initialize callback handlers
+	auto resourceName = m_resource->GetName();
+	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
+	CefRegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	CefRegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+
 	// get the metadata component
 	fwRefContainer<fx::ResourceMetaDataComponent> metaData = m_resource->GetComponent<fx::ResourceMetaDataComponent>();
 
@@ -56,12 +62,6 @@ bool ResourceUI::Create()
 
 	// get the page name from the iterator
 	std::string pageName = uiPageData.begin()->second;
-
-	// initialize the page
-	auto resourceName = m_resource->GetName();
-	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
-	CefRegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
-	CefRegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
 	CefRegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
