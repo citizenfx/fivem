@@ -38,6 +38,33 @@ DLL_EXPORT fwEvent<bool*> OnFlipModelHook;
 fwEvent<bool*> OnRequestInternalScreenshot;
 fwEvent<const uint8_t*, int, int> OnInternalScreenshot;
 
+struct WaitableTimer {
+	WaitableTimer(
+		_In_opt_ LPSECURITY_ATTRIBUTES lpTimerAttributes,
+		_In_ BOOL bManualReset,
+		_In_opt_ LPCWSTR lpTimerName
+	) : handle(CreateWaitableTimer(lpTimerAttributes, bManualReset, lpTimerName)) {}
+	~WaitableTimer() { CloseHandle(handle); }
+
+	template<class Rep, class Period = std::ratio<1>>
+	BOOL Wait(std::chrono::duration<Rep, Period> dueTime)
+	{
+		LARGE_INTEGER liDueTime;
+
+		liDueTime.QuadPart = -(LONGLONG)(std::chrono::duration_cast<std::chrono::microseconds>(dueTime).count() * 10);
+
+		if (handle && SetWaitableTimer(handle, &liDueTime, 0, NULL, NULL, 0))
+		{
+			WaitForSingleObject(handle, INFINITE);
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+private:
+	HANDLE handle;
+};
+
 static void* g_lastBackbufTexture;
 static bool g_useFlipModel = false;
 
@@ -90,6 +117,8 @@ fwEvent<IDXGIFactory2*, ID3D11Device*, HWND, DXGI_SWAP_CHAIN_DESC1*, DXGI_SWAP_C
 
 #include <mmsystem.h>
 
+using namespace std::chrono_literals;
+
 class BufferBackedDXGISwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGISwapChain>
 {
 public:
@@ -126,6 +155,26 @@ public:
 
 		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
+		GetD3D11DeviceContext()->Flush();
+
+		static auto getNowUs = []()
+		{
+			return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		};
+		static std::chrono::microseconds lastFrameTime{ 0 };
+
+		if (rgd->fpsLimit > 0)
+		{
+			std::chrono::microseconds fpsLimitUs{ 1000000 / rgd->fpsLimit };
+
+			auto timeLeft = std::chrono::duration_cast<std::chrono::microseconds>(fpsLimitUs - (getNowUs() - lastFrameTime));
+
+			if (timeLeft > 0us)
+			{
+				m_fpsLimitTimer.Wait(timeLeft);
+			}
+		}
+
 		int idx = rgd->GetNextSurface(INFINITE);
 
 		if (idx >= 0)
@@ -140,6 +189,8 @@ public:
 		{
 			trace("frame dropped - presenter was busy?\n");
 		}
+
+		lastFrameTime = getNowUs();
 
 		return S_OK;
 	}
@@ -171,13 +222,14 @@ public:
 private:
 	WRL::ComPtr<ID3D11Texture2D> m_texture;
 	WRL::ComPtr<ID3D11Texture2D> m_frontTextures[4];
+	WaitableTimer m_fpsLimitTimer;
 
 public:
 	DXGI_SWAP_CHAIN_DESC desc;
 	ID3D11Device* device;
 
 	BufferBackedDXGISwapChain(ID3D11Device* device, DXGI_SWAP_CHAIN_DESC desc)
-		: desc(desc), device(device)
+		: desc(desc), device(device), m_fpsLimitTimer(NULL, TRUE, NULL)
 	{
 		RecreateFromDesc();
 	}

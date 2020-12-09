@@ -144,12 +144,23 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
 
 	// FxDK API
-	window->SetValue("resizeGame", CefV8Value::CreateFunction("resizeGame", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-	window->SetValue("sendMousePos", CefV8Value::CreateFunction("sendMousePos", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-	window->SetValue("sendMouseWheel", CefV8Value::CreateFunction("sendMouseWheel", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-	window->SetValue("setKeyState", CefV8Value::CreateFunction("setKeyState", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-	window->SetValue("setMouseButtonState", CefV8Value::CreateFunction("setMouseButtonState", this), V8_PROPERTY_ATTRIBUTE_READONLY);
-	window->SetValue("openDevTools", CefV8Value::CreateFunction("openDevTools", this), V8_PROPERTY_ATTRIBUTE_READONLY);
+	{
+		std::vector<std::string> fxdkHandlers{
+			"resizeGame",
+			"sendMousePos",
+			"sendMouseWheel",
+			"setKeyState",
+			"setMouseButtonState",
+			"openDevTools",
+			"setFPSLimit",
+			"setInputChar"
+		};
+
+		for (auto const& handler : fxdkHandlers)
+		{
+			window->SetValue(handler, CefV8Value::CreateFunction(handler, this), V8_PROPERTY_ATTRIBUTE_READONLY);
+		}
+	}
 }
 
 void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)

@@ -36,6 +36,9 @@
 
 #include <ShlObj.h>
 
+#include <HostSharedData.h>
+#include <ReverseGameData.h>
+
 static bool g_conHostInitialized = false;
 extern bool g_consoleFlag;
 int g_scrollTop;
@@ -209,6 +212,31 @@ ImFont* consoleFontSmall;
 
 void DrawMiniConsole();
 
+static void HandleFxDKInput(ImGuiIO& io)
+{
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+	static uint16_t lastInputChar = 0;
+	static uint32_t inputCharChangedAt = timeGetTime();
+
+	auto currentInputChar = rgd->inputChar;
+	auto inputCharChanged = currentInputChar != lastInputChar;
+
+	lastInputChar = currentInputChar;
+
+	if (currentInputChar > 0 && currentInputChar < 0x10000)
+	{
+		if (inputCharChanged)
+		{
+			inputCharChangedAt = timeGetTime();
+			io.AddInputCharacterUTF16(currentInputChar);
+		}
+		else if (timeGetTime() - inputCharChangedAt > 300)
+		{
+			io.AddInputCharacterUTF16(currentInputChar);
+		}
+	}
+}
+
 DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 {
 	if (!g_conHostMutex.try_lock())
@@ -238,6 +266,9 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	}
 
 	ImGuiIO& io = ImGui::GetIO();
+
+	HandleFxDKInput(io);
+
 	io.MouseDrawCursor = g_consoleFlag;
 
 	{
@@ -584,7 +615,7 @@ static HookFunction initFunction([]()
 			virtual inline void KeyDown(UINT vKey, UINT scanCode) override
 			{
 				std::unique_lock<std::mutex> g_conHostMutex;
-
+				
 				ImGuiIO& io = ImGui::GetIO();
 
 				if (vKey < 256)

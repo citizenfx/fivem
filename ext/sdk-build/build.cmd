@@ -31,6 +31,7 @@ popd
 :: build theia
 pushd %FXDKTheia%
 if exist build rmdir /s /q build
+set NODE_OPTIONS=--max_old_space_size=4096
 call yarn install --frozen-lockfile --ignore-scripts
 call yarn --cwd fxdk-app run download:plugins
 call yarn build

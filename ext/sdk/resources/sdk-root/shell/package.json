@@ -33,8 +33,8 @@
     "build": "yarn build:client && yarn build:server",
     "start:client": "node scripts/start-dev.js",
     "build:client": "node scripts/build.js",
-    "watch:server": "webpack --config server.webpack.config.js --watch",
-    "build:server": "webpack --config server.webpack.config.js"
+    "watch:server": "webpack --config backend.webpack.config.js --watch",
+    "build:server": "webpack --config backend.webpack.config.js --mode=production"
   },
   "eslintConfig": {
     "extends": "react-app"

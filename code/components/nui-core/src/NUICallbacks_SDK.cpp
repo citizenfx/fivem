@@ -145,4 +145,29 @@ static InitFunction initFunction([]()
 
 		return CefV8Value::CreateUndefined();
 	});
+
+	nuiApp->AddV8Handler("setFPSLimit", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() > 0)
+		{
+			rgd->fpsLimit = arguments[0]->IsInt() ? arguments[0]->GetIntValue() : 0;
+		}
+
+		return CefV8Value::CreateUndefined();
+	});
+
+	nuiApp->AddV8Handler("setInputChar", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() == 1)
+		{
+			if (arguments[0]->IsString())
+			{
+				auto charString = arguments[0]->GetStringValue();
+				
+				rgd->inputChar = charString.c_str()[0];
+			}
+		}
+
+		return CefV8Value::CreateUndefined();
+	});
 }, 1);

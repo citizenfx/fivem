@@ -122,6 +122,7 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
       if (gameLaunched && connectPending.current && !clientConnected) {
         log('CONNECTING TO THE SERVER');
         connectPending.current = false;
+
         sendCommand('connect 127.0.0.1:30120');
         sendTheiaMessage({
           type: 'fxdk:openGameView',
@@ -130,6 +131,7 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     }
     if (serverState === ServerStates.down) {
       setResourcesState({});
+      window.setFPSLimit(60);
       sendCommand('disconnect');
       setClientConnected(false);
     }
@@ -139,6 +141,7 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
   React.useEffect(() => {
     const handleMessage = (e) => {
       if (e.data.type === 'connected') {
+        window.setFPSLimit(0);
         setClientConnected(true);
       }
     };

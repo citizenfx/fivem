@@ -14,7 +14,17 @@ export const Update = React.memo(function Update() {
   return (
     <div className={s.root}>
       <h1 className={s.title}>
-        Preparing FxDK
+        <ul>
+          <li>Preparing FxDK</li>
+          <li>Unwrapping singularity</li>
+          <li>Merging black holes</li>
+          <li>Asserting dominance</li>
+          <li>Fixing bugs</li>
+          <li>Almost there</li>
+          <li>Why are we here</li>
+          <li>What is the point?</li>
+          <li>Okay, this takes way too much time 😒</li>
+        </ul>
       </h1>
 
       <div className={s['current-file-name']}>

@@ -449,6 +449,8 @@ class GameView extends HTMLElement {
   }
 
   _resetStates() {
+    setInputChar('\0');
+
     this._keysState.map((active, key) => {
       if (active) {
         this._keysState[key] = false;
@@ -595,6 +597,10 @@ class GameView extends HTMLElement {
 
       this._keysState[vk] = true;
       setKeyState(vk, true);
+
+      if (e.key.length === 1){
+        setInputChar(e.key);
+      }
     };
     this._handleKeyup = (e) => {
       if (!this._acceptInput) {
@@ -607,6 +613,7 @@ class GameView extends HTMLElement {
 
       this._keysState[vk] = false;
       setKeyState(vk, false);
+      setInputChar('\0');
     };
   }
 }

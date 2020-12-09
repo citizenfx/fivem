@@ -30,7 +30,6 @@
 #include <SDK.h>
 #include <console/OptionTokenizer.h>
 
-
 static std::function<ipc::Endpoint&()> proxyLauncherTalk;
 
 namespace fxdk
@@ -188,7 +187,11 @@ void SdkMain()
 			hostData->isReverseGame = true;
 
 			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
 			HANDLE nestHandles[] = { rgd->inputMutex, rgd->consumeSema, rgd->produceSema };
+
+			// as we start at loading screen, limit to 60fps by default
+			rgd->fpsLimit = 60;
 
 			// prepare initial structures
 			STARTUPINFOEX startupInfo = { 0 };
