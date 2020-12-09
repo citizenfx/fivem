@@ -70,7 +70,7 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("66 3B F0 73 ? 48 8D", 0), 5);
 	hook::nop(hook::get_pattern("66 41 3B C0 73 ? 48 8D", 0), 6);
 	hook::nop(hook::get_pattern("66 3B D1 73 ? 8B C2", 0), 5);
-	hook::nop(hook::get_pattern("66 39 4B 2A 73 ? 0F", 0), 5);
+	hook::nop(hook::get_pattern("66 39 4B 2A 73 ? 0F", 0), 6);
 	hook::nop(hook::get_pattern("41 81 F8 00 04 00 00 7C", 0), 9);
 
 	{
