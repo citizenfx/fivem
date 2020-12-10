@@ -701,9 +701,12 @@ struct MiniConsole : CfxBigConsole
 };
 
 static std::unique_ptr<FiveMConsoleBase> g_consoles[2];
+static std::recursive_mutex g_consolesMutex;
 
 static void EnsureConsoles()
 {
+	std::unique_lock _(g_consolesMutex);
+
 	if (!g_consoles[0])
 	{
 		g_consoles[0] = std::make_unique<CfxBigConsole>();
@@ -731,13 +734,17 @@ void DrawMiniConsole()
 
 void SendPrintMessage(const std::string& channel, const std::string& message)
 {
-	EnsureConsoles();
-
-	for (auto& console : g_consoles)
 	{
-		if (console->Items.Size == 0)
+		std::unique_lock _(g_consolesMutex);
+
+		EnsureConsoles();
+
+		for (auto& console : g_consoles)
 		{
-			console->AddLog("", "");
+			if (console->Items.Size == 0)
+			{
+				console->AddLog("", "");
+			}
 		}
 	}
 
