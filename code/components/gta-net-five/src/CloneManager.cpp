@@ -1289,7 +1289,7 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 
 	g_curNetObject = obj;
 
-	if (msg.GetCloneData().size())
+	if (msg.GetCloneData().size() && GetPlayerByNetId(msg.GetClientId()) != nullptr)
 	{
 		// get sync tree and read data
 		auto syncTree = obj->GetSyncTree();

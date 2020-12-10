@@ -356,6 +356,9 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			return;
 		}
 
+		// reset player first
+		player->Reset();
+
 		// reassign the player's ped
 		// TODO: only do this on a single client(!)
 
@@ -381,7 +384,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			// prevent stack overflow
 			if (!info.name.empty())
 			{
-				TheClones->DeleteObjectId(objectId, true);
+				TheClones->DeleteObjectId(objectId, 0, true);
 			}
 
 			console::DPrintf("onesync", "deleted object id\n");
@@ -445,8 +448,6 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		{
 			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
 		});
-
-		player->Reset();
 
 		g_players[info.slotId] = nullptr;
 		g_playerBags.erase(info.netId);
