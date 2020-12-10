@@ -63,13 +63,11 @@ function Invoke-WebHook
 
     iwr -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 
-    $payload.text += " <:mascot:295575900446130176>"#<@&297070674898321408>"
-
+    $payload.text += " <:mascot:780071492469653515>"#<@&297070674898321408>"
     iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 }
 
 $UseNewCI = $true
-$inCI = $false
 $Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
 $IsServer = $false
@@ -396,7 +394,7 @@ if (!$DontBuild -and $IsServer) {
     Invoke-WebHook "Bloop, building a SERVER/WINDOWS build completed!"
 }
 
-$CacheDir = "$SaveDir\caches"
+$CacheDir = "$SaveDir\caches\$Branch"
 
 if ($IsLauncher) {
     $CacheDir = "$SaveDir\lcaches"

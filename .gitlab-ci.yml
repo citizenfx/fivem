@@ -16,6 +16,7 @@ build_client:
   variables:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   artifacts:
     paths:
       - caches/diff/
@@ -25,7 +26,7 @@ build_client:
       - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
-    key: client
+    key: client_$CI_BUILD_REF_NAME
     untracked: true
     paths:
       - code/shared/citversion.h
@@ -136,6 +137,8 @@ deploy_specific:
   needs:
     - job: build_client
       artifacts: true
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
   environment:
@@ -175,6 +178,8 @@ deploy_rdr3_specific:
 
 upload_review:
   stage: postdeploy
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   needs:
     - job: build_client
       artifacts: true
@@ -187,6 +192,8 @@ upload_review:
 
 deploy_canary:
   stage: deploy
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   needs:
     - job: build_client
       artifacts: true
@@ -238,6 +245,8 @@ deploy_launcher:
 
 deploy_prod:
   stage: deploy
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   needs:
     - job: build_client
       artifacts: true
