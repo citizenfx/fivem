@@ -956,16 +956,7 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 			pPerf->BeginEvent(L"DrawRenderTexture");
 		}
 
-		auto deviceContextGame = GetD3D11DeviceContext();
-		
-		// get original device context (i.e. not the game's, nor any upper-layer D3D proxy)
-		WRL::ComPtr<ID3D11DeviceContext> deviceContext = deviceContextGame;
-		
-		WRL::ComPtr<IUnknown> devicepUnk;
-		if (SUCCEEDED(deviceContextGame->QueryInterface(IID_PPV_ARGS(&devicepUnk))))
-		{
-			devicepUnk.As(&deviceContext);
-		}
+		auto deviceContext = GetD3D11DeviceContext();
 
 		ID3D11RenderTargetView* oldRtv = nullptr;
 		ID3D11DepthStencilView* oldDsv = nullptr;
