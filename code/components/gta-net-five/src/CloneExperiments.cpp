@@ -257,7 +257,8 @@ namespace sync
 
 		// so we can safely remove (do this *before* assigning physical player index, or the game will add
 		// to a lot of lists which aren't >32-safe)
-		g_playerMgr->UpdatePlayerListsForPlayer(player);
+		//g_playerMgr->UpdatePlayerListsForPlayer(player);
+		// NOTE: THIS IS NOT SAFE unless array manager/etc. are patched
 
 		if (idx == -1)
 		{
@@ -392,10 +393,21 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		}
 
 		// make non-physical so we will remove from the non-physical list only
-		auto physIdx = player->physicalPlayerIndex();
+		/*auto physIdx = player->physicalPlayerIndex();
 		player->physicalPlayerIndex() = -1;
+
+		// remove object manager pointer temporarily
+		static auto objectMgr = hook::get_address<void**>(hook::get_pattern("48 8B FA 0F B7 51 30 48 8B 0D ? ? ? ? 45 33 C0", 10));
+		auto ogMgr = *objectMgr;
+		*objectMgr = nullptr;
+
+		// remove
 		g_playerMgr->RemovePlayer(player);
-		player->physicalPlayerIndex() = physIdx;
+
+		// restore
+		*objectMgr = ogMgr;
+		player->physicalPlayerIndex() = physIdx;*/
+		// ^ is NOT safe, array handler manager etc. have 32 limits
 
 		// TEMP: properly handle order so that we don't have to fake out the game
 		g_playersByNetId[info.netId] = nullptr;
