@@ -63,7 +63,7 @@ public:
 
 static hook::thiscall_stub<void(netPlayerMgrBase*, CNetGamePlayer*)> _netPlayerMgrBase_UpdatePlayerListsForPlayer([]
 {
-	return hook::get_pattern("48 8B EC 48 83 EC 50 48 8D B1", -0x17);
+	return hook::get_call(hook::get_pattern("FF 57 30 48 8B D6 49 8B CE E8", 9));
 });
 
 void netPlayerMgrBase::UpdatePlayerListsForPlayer(CNetGamePlayer* player)
