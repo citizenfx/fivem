@@ -255,6 +255,10 @@ namespace sync
 		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonPhys);
 		g_tempRemotePlayer = player;
 
+		// so we can safely remove (do this *before* assigning physical player index, or the game will add
+		// to a lot of lists which aren't >32-safe)
+		g_playerMgr->UpdatePlayerListsForPlayer(player);
+
 		if (idx == -1)
 		{
 			idx = g_physIdx;
@@ -283,9 +287,6 @@ namespace sync
 		{
 			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
 		});
-
-		// so we can safely remove
-		g_playerMgr->UpdatePlayerListsForPlayer(player);
 
 		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 			->GetComponent<fx::StateBagComponent>()
@@ -390,7 +391,11 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			console::DPrintf("onesync", "success! reassigned the ped!\n");
 		}
 
+		// make non-physical so we will remove from the non-physical list only
+		auto physIdx = player->physicalPlayerIndex();
+		player->physicalPlayerIndex() = -1;
 		g_playerMgr->RemovePlayer(player);
+		player->physicalPlayerIndex() = physIdx;
 
 		// TEMP: properly handle order so that we don't have to fake out the game
 		g_playersByNetId[info.netId] = nullptr;
