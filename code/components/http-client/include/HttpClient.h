@@ -57,6 +57,7 @@ struct HttpRequestOptions
 	int weight;
 	bool ipv4;
 	bool addErrorBody;
+	bool followLocation = true;
 
 	inline HttpRequestOptions()
 	{

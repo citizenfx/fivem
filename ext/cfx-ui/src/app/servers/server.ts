@@ -6,14 +6,15 @@ import { master } from './master';
 import { Avatar } from './avatar';
 
 export class Server {
-    readonly address: string;
     readonly hostname: string;
     readonly sortname: string;
     readonly strippedname: string;
     readonly maxPlayers: number;
     readonly data: any;
-    readonly connectEndPoints: string[];
-	readonly int: master.IServerData;
+    readonly int: master.IServerData;
+
+    connectEndPoints: string[];
+    address: string;
 
 	private _live: boolean;
 
@@ -55,9 +56,9 @@ export class Server {
 
     public static fromNative(sanitizer: DomSanitizer, object: any): Server {
         const mappedData = {
-            hostname: object.name,
+            hostname: object.name || object.hostname,
             clients: object.clients,
-            svMaxclients: object.maxclients,
+            svMaxclients: object.maxclients ?? object.sv_maxclients,
             resources: [],
             mapname: object.mapname,
             gametype: object.gametype
@@ -107,6 +108,11 @@ export class Server {
     private constructor(private sanitizer: DomSanitizer, address: string, object: master.IServerData) {
         // temp compat behavior
         this.address = address;
+
+        if (!object) {
+            return;
+        }
+
         this.hostname = object.hostname;
         this.currentPlayers = object.clients | 0;
         this.maxPlayers = object.svMaxclients | 0;

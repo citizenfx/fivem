@@ -140,6 +140,70 @@ export class ServersService {
 				this.servers[server.address] = server;
 				this.serversEvent.next(server);
 			});
+
+		this.gameService.tryConnecting.subscribe(async (serverHost: string) => {
+			let server: Server = null;
+
+			this.gameService.connecting.emit(Server.fromObject(this.domSanitizer, serverHost, {}));
+
+			// strip join URL portion
+			if (serverHost.startsWith('cfx.re/join/')) {
+				serverHost = serverHost.substring(12);
+			} else if (serverHost.startsWith('https://cfx.re/join/')) {
+				serverHost = serverHost.substring(20);
+			}
+
+			// try finding the server in server detail
+			if (serverHost.indexOf('.') === -1 && serverHost.indexOf(':') === -1) {
+				try {
+					server = await this.getServer(serverHost, false);
+				} catch {}
+			}
+
+			// not found yet? try finding the join ID at least
+			if (!server) {
+				// fetch it
+				const serverID = await this.httpClient.post('https://nui-internal/gsclient/url', `url=${serverHost}`, {
+					responseType: 'text'
+				}).toPromise();
+
+				if (serverID && serverID !== '') {
+					try {
+						server = await this.getServer(serverID, false);
+					} catch {}
+				}
+			}
+
+			// meh, no progress at all. probably private/unlisted
+			// try getting dynamic.json to at least populate basic details
+			if (!server) {
+				try {
+					const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
+						responseType: 'text'
+					}).toPromise();
+
+					if (serverData) {
+						const sd = JSON.parse(serverData);
+						sd.addr = serverHost;
+						sd.infoBlob = {};
+
+						server = Server.fromNative(this.domSanitizer, sd);
+					}
+				} catch { }
+			}
+
+			if (server) {
+				server.connectEndPoints = [serverHost];
+
+				gameService.connectTo(server);
+			} else {
+				const invokeNative: any = (<any>window).invokeNative;
+
+				if (invokeNative) {
+					invokeNative('connectTo', serverHost);
+				}
+			}
+		});
 	}
 
 	public onInitialized() {

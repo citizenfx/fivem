@@ -48,6 +48,7 @@ export abstract class GameService {
 	connectStatus = new EventEmitter<ConnectStatus>();
 	connectCard = new EventEmitter<ConnectCard>();
 	connecting = new EventEmitter<Server>();
+	tryConnecting = new EventEmitter<string>();
 
 	errorMessage = new EventEmitter<string>();
 	infoMessage = new EventEmitter<string>();
@@ -426,6 +427,18 @@ export class CfxGameService extends GameService {
 						this.zone.run(() => {
 							this.minModeChanged.next(enabled);
 						});
+
+						break;
+					case 'connectTo':
+						const address: string = event.data.hostnameStr;
+
+						if (!this.inConnecting) {
+							this.zone.run(() => {
+								this.inConnecting = true;
+
+								this.tryConnecting.emit(address);
+							});
+						}
 
 						break;
 				}

@@ -501,7 +501,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	curl_easy_setopt(curlHandle, CURLOPT_XFERINFODATA, curlDataPtr);
 	curl_easy_setopt(curlHandle, CURLOPT_XFERINFOFUNCTION, CurlXferInfo);
 	curl_easy_setopt(curlHandle, CURLOPT_NOPROGRESS, 0);
-	curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
+	curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, options.followLocation);
 	curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
 	curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, &curlData->errBuffer);
 	curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0);

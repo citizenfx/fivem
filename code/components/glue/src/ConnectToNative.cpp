@@ -168,8 +168,19 @@ inline bool HasDefaultName()
 static NetLibrary* netLibrary;
 static bool g_connected;
 
-static void ConnectTo(const std::string& hostnameStr)
+static void ConnectTo(const std::string& hostnameStr, bool fromUI = false)
 {
+	if (!fromUI)
+	{
+		if (nui::HasMainUI())
+		{
+			auto j = nlohmann::json::object({ { "type", "connectTo" }, { "hostnameStr", hostnameStr } });
+			nui::PostFrameMessage("mpMenu", j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
+
+			return;
+		}
+	}
+
 	if (g_connected)
 	{
 		trace("Ignoring ConnectTo because we're already connecting/connected.\n");
@@ -686,7 +697,7 @@ static InitFunction initFunction([] ()
 			std::wstring hostnameStrW = arg;
 			std::string hostnameStr(hostnameStrW.begin(), hostnameStrW.end());
 
-			ConnectTo(hostnameStr);
+			ConnectTo(hostnameStr, true);
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{
