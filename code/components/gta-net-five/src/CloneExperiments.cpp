@@ -356,9 +356,6 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			return;
 		}
 
-		// reset player first
-		player->Reset();
-
 		// reassign the player's ped
 		// TODO: only do this on a single client(!)
 
@@ -366,6 +363,9 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		uint16_t objectId = 0;
 		//auto ped = ((void*(*)(void*, uint16_t*, CNetGamePlayer*))hook::get_adjusted(0x141022B20))(nullptr, &objectId, player);
 		auto ped = getPlayerPedForNetPlayer(player);
+
+		// reset player (but not until we have gotten the ped)
+		player->Reset();
 
 		if (ped)
 		{
