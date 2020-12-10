@@ -6,8 +6,10 @@
  */
 
 #include "StdInc.h"
-#include <ShlObj.h>
 #include <optional>
+
+#if defined(LAUNCHER_PERSONALITY_MAIN)
+#include <ShlObj.h>
 #include <CfxLocale.h>
 
 #include <wrl.h>
@@ -309,3 +311,9 @@ std::optional<int> EnsureGamePath()
 
 	return {};
 }
+#else
+std::optional<int> EnsureGamePath()
+{
+	return {};
+}
+#endif
