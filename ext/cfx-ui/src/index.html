@@ -168,8 +168,10 @@ _paq.push(['enableLinkTracking']);
 	_paq.push(['setSiteId', (window.invokeNative) ? '3' : '4']);
 	_paq.push(['setCustomDimension', customDimensionId = 1, customDimensionValue = getGPU()]);
 	_paq.push(['setCustomDimension', customDimensionId = 2, customDimensionValue = navigator.hardwareConcurrency]);
+	_paq.push(['setCookieSameSite', 'None']);
+	_paq.push(['setSecureCookie', true]);
 	var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-	g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+	g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js?2'; s.parentNode.insertBefore(g,s);
 })();
 </script>
 </body>
