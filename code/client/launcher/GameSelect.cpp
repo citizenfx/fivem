@@ -43,6 +43,71 @@ private:
 	HRESULT m_hr;
 };
 
+static std::wstring GetFolderPath(const KNOWNFOLDERID& folderId)
+{
+	PWSTR path;
+	if (SUCCEEDED(SHGetKnownFolderPath(folderId, 0, nullptr, &path)))
+	{
+		std::wstring pathStr = path;
+
+		CoTaskMemFree(path);
+
+		return pathStr;
+	}
+
+	return L"";
+}
+
+#include <openssl/aes.h>
+#include <json.hpp>
+
+using json = nlohmann::json;
+
+static std::string GetMtlGamePath(std::string_view gameName)
+{
+	auto appdataRoot = GetFolderPath(FOLDERID_ProgramData);
+	auto titlesFile = appdataRoot + L"\\Rockstar Games\\Launcher\\titles.dat";
+
+	FILE* f = _wfopen(titlesFile.c_str(), L"rb");
+	if (f)
+	{
+		// read to end
+		fseek(f, 0, SEEK_END);
+		
+		auto len = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		std::vector<uint8_t> fileData(len);
+		fread(fileData.data(), 1, len, f);
+		fclose(f);
+
+		uint8_t key[32] = { 0 };
+		uint8_t iv[16] = { 0 };
+
+		AES_KEY decKey = { 0 };
+		AES_set_decrypt_key(key, 256, &decKey);
+		AES_cbc_encrypt(fileData.data(), fileData.data(), fileData.size(), &decKey, iv, AES_DECRYPT);
+
+		try
+		{
+			auto titleData = json::parse(fileData.begin() + 16, fileData.end());
+
+			for (auto& t : titleData["tl"])
+			{
+				if (t["ti"].get<std::string>() == gameName)
+				{
+					return t["il"].get<std::string>();
+				}
+			}
+		}
+		catch (std::exception& e)
+		{
+		}
+	}
+
+	return "";
+}
+
 std::optional<int> EnsureGamePath()
 {
 #ifdef IS_LAUNCHER
@@ -105,7 +170,9 @@ std::optional<int> EnsureGamePath()
 	fileDialog->SetTitle(L"Select the folder containing " GAME_EXECUTABLE);
 #else
 	fileDialog->SetTitle(gettext(L"Select the folder containing Grand Theft Auto V").c_str());
+#endif
 
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 	// set the default folder, if we can find one
 	{
 		wchar_t gameRootBuf[1024];
@@ -113,10 +180,58 @@ std::optional<int> EnsureGamePath()
 
 		// 5 is the amount of characters to strip off the end
 		const std::tuple<std::wstring, std::wstring, int> folderAttempts[] = {
+#if defined(GTA_FIVE)
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\GTAV", 5 },
 			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
-			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto V", 0 }
+#elif defined(IS_RDR3)
+			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
+#endif
 		};
+
+		auto proposeDirectory = [&](const std::wstring& gameRoot)
+		{
+			WRL::ComPtr<IShellItem> item;
+
+			if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_PPV_ARGS(&item))))
+			{
+				auto checkFile = [&](const std::wstring& path)
+				{
+					return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
+				};
+
+				fileDialog->SetFolder(item.Get());
+
+#ifdef GTA_FIVE
+				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf"))
+#elif defined(IS_RDR3)
+				if (checkFile(L"common.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
+#endif
+				{
+					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
+
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		// try finding the MTL game path first
+		auto mtlGamePath = GetMtlGamePath(
+#if defined(GTA_FIVE)
+		"gta5"
+#elif defined(IS_RDR3)
+		"rdr2"
+#endif
+		);
+
+		if (!mtlGamePath.empty())
+		{
+			if (proposeDirectory(ToWide(mtlGamePath)))
+			{
+				return {};
+			}
+		}
 
 		for (const auto& folder : folderAttempts)
 		{
@@ -124,31 +239,14 @@ std::optional<int> EnsureGamePath()
 				std::get<1>(folder).c_str(), std::get<0>(folder).c_str(),
 				RRF_RT_REG_SZ, nullptr, gameRootBuf, &gameRootLength) == ERROR_SUCCESS)
 			{
-				WRL::ComPtr<IShellItem> item;
-
 				std::wstring gameRoot(gameRootBuf);
 
 				// strip \GTAV if needed
 				gameRoot = gameRoot.substr(0, gameRoot.length() - std::get<int>(folder));
 
-				if (SUCCEEDED(SHCreateItemFromParsingName(gameRoot.c_str(), nullptr, IID_IShellItem, (void**)item.GetAddressOf())))
+				if (proposeDirectory(gameRoot))
 				{
-					auto checkFile = [&](const std::wstring& path)
-					{
-						return GetFileAttributesW((gameRoot + (L"\\" + path)).c_str()) != INVALID_FILE_ATTRIBUTES;
-					};
-
-					fileDialog->SetFolder(item.Get());
-
-					if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") &&
-						checkFile(L"x64g.rpf") && checkFile(L"common.rpf") &&
-						checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") &&
-						checkFile(L"GTA5.exe"))
-					{
-						WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
-
-						return {};
-					}
+					return {};
 				}
 			}
 		}
