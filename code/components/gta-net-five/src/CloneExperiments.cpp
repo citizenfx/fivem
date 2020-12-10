@@ -57,7 +57,19 @@ public:
 	virtual CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData) = 0;
 
 	virtual void RemovePlayer(CNetGamePlayer* player) = 0;
+
+	void UpdatePlayerListsForPlayer(CNetGamePlayer* player);
 };
+
+static hook::thiscall_stub<void(netPlayerMgrBase*, CNetGamePlayer*)> _netPlayerMgrBase_UpdatePlayerListsForPlayer([]
+{
+	return hook::get_pattern("48 8B EC 48 83 EC 50 48 8D B1", -0x17);
+});
+
+void netPlayerMgrBase::UpdatePlayerListsForPlayer(CNetGamePlayer* player)
+{
+	_netPlayerMgrBase_UpdatePlayerListsForPlayer(this, player);
+}
 }
 
 static rage::netPlayerMgrBase* g_playerMgr;
@@ -161,6 +173,18 @@ static CNetGamePlayer* GetPlayerByIndexNet(int index)
 	return GetPlayerByIndex(index);
 }
 
+static bool (*g_origNetPlayer_IsActive)(CNetGamePlayer*);
+
+static bool netPlayer_IsActiveStub(CNetGamePlayer* player)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetPlayer_IsActive(player);
+	}
+
+	return true;
+}
+
 static bool(*g_origIsNetworkPlayerActive)(int);
 
 static bool IsNetworkPlayerActive(int index)
@@ -259,6 +283,9 @@ namespace sync
 		{
 			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
 		});
+
+		// so we can safely remove
+		g_playerMgr->UpdatePlayerListsForPlayer(player);
 
 		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 			->GetComponent<fx::StateBagComponent>()
@@ -363,12 +390,11 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 			console::DPrintf("onesync", "success! reassigned the ped!\n");
 		}
 
+		g_playerMgr->RemovePlayer(player);
+
 		// TEMP: properly handle order so that we don't have to fake out the game
 		g_playersByNetId[info.netId] = nullptr;
 		g_netIdsByPlayer[player] = -1;
-
-		// TODO: actually leave the player including playerinfo
-		//g_playerMgr->RemovePlayer(player);
 
 		for (int i = 0; i < g_playerListCount; i++)
 		{
@@ -1284,6 +1310,8 @@ static HookFunction hookFunction([]()
 
 	MH_CreateHook(hook::get_pattern("75 07 85 C9 0F 94 C3 EB", -0x19), IsNetworkPlayerActive, (void**)&g_origIsNetworkPlayerActive);
 	MH_CreateHook(hook::get_pattern("75 07 85 C9 0F 94 C0 EB", -0x13), IsNetworkPlayerConnected, (void**)&g_origIsNetworkPlayerConnected); // connected
+
+	MH_CreateHook(hook::get_pattern("84 C0 74 0B 8A 9F ? ? 00 00", -0x14), netPlayer_IsActiveStub, (void**)&g_origNetPlayer_IsActive);
 
 	{
 		auto location = hook::get_pattern<char>("44 0F 28 CF F3 41 0F 59 C0 F3 44 0F 59 CF F3 44 0F 58 C8 E8", 19);
