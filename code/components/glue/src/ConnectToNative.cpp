@@ -973,12 +973,11 @@ static void ProtocolRegister()
 		return; \
 	}
 
-	HKEY key;
-	wchar_t path[MAX_PATH];
-	wchar_t command[1024];
+	static HostSharedData<CfxState> hostData("CfxInitState");
 
-	GetModuleFileNameW(NULL, path, sizeof(path));
-	swprintf_s(command, L"\"%s\" \"%%1\"", path);
+	HKEY key;
+	wchar_t command[1024];
+	swprintf_s(command, L"\"%s\" \"%%1\"", hostData->gameExePath);
 
 	CHECK_STATUS(RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\fivem", &key));
 	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"FiveM", 6 * 2));
@@ -1023,7 +1022,11 @@ void Component_RunPreInit()
 {
 	static HostSharedData<CfxState> hostData("CfxInitState");
 
+#ifndef _DEBUG
 	if (hostData->IsGameProcess())
+#else
+	if (hostData->IsMasterProcess())
+#endif
 	{
 		ProtocolRegister();
 	}
