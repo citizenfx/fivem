@@ -7,16 +7,8 @@
 
 #include "StdInc.h"
 #include "Hooking.h"
-#include "base64.h"
 
 #include <Error.h>
-
-#include <botan/auto_rng.h>
-#include <botan/rsa.h>
-#include <botan/sha160.h>
-#include <botan/pubkey.h>
-
-#include "RSAKey.h"
 
 extern HANDLE g_rosClearedEvent;
 
@@ -24,10 +16,14 @@ static HookFunction hookFunction([] ()
 {
 	g_rosClearedEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
-	std::thread([]()
+	HMODULE rosDll = LoadLibrary(L"ros.dll");
+	if (rosDll != nullptr)
 	{
-		HMODULE rosDll = LoadLibrary(L"ros.dll");
+		((void (*)(const wchar_t*))GetProcAddress(rosDll, "runEarly"))(MakeRelativeCitPath(L"").c_str());
+	}
 
+	std::thread([=]()
+	{
 		if (rosDll != nullptr)
 		{
 			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
