@@ -1000,8 +1000,6 @@ void MumbleAudioEntity::MInit()
 		m_sound->PrepareAndPlay(nullptr, true, -1, false);
 
 		m_buffer = buffer;
-
-		_updateAudioThread();
 	}
 }
 
