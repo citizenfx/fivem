@@ -274,7 +274,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 
 			setTimeout(() => {
 				this.gameService.sayHello();
-			}, 50);
+			}, 150);
 		};
 
 		if (environment.web || !environment.production) {

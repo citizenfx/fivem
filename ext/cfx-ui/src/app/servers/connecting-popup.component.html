@@ -6,7 +6,7 @@
 		<p
 			class="content"
 			(click)="clickContent($event)"
-			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }|nl2br"
+			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }|nl2br|allowify"
 		></p>
 		<div class="card" #card></div>
 		<button

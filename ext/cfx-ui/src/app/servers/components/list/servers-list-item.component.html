@@ -28,7 +28,7 @@
 		<span><div>{{ premium }}</div></span>
 	</div>
 
-    <div class="name" [innerHTML]="server.hostname | escape | colorize"></div>
+    <div class="name" [innerHTML]="server.hostname | allowify | escape | colorize"></div>
 
     <div class="actions" *ngIf="!isPinList">
 		<button

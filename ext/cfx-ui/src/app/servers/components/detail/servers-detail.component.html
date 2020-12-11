@@ -33,7 +33,7 @@
 
 				<div class="info">
 					<div class="title">
-						<span [innerHTML]="(server && server.hostname)||'test' | escape | colorize"></span>
+						<span [innerHTML]="(server && server.hostname)||'test' | allowify | escape | colorize"></span>
 					</div>
 
 					<div class="connect-bar">
