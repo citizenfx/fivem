@@ -494,12 +494,19 @@ if IsDuplicityVersion() then
 		end
 	end)
 
-	function PerformHttpRequest(url, cb, method, data, headers)
+	function PerformHttpRequest(url, cb, method, data, headers, options)
+		local followLocation = true
+		
+		if options and options.followLocation ~= nil then
+			followLocation = options.followLocation
+		end
+	
 		local t = {
 			url = url,
 			method = method or 'GET',
 			data = data or '',
-			headers = headers or {}
+			headers = headers or {},
+			followLocation = followLocation
 		}
 
 		local d = json.encode(t)
