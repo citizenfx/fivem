@@ -110,7 +110,7 @@ result_t ResourceUIScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, 
 {
 	// preset retval to be null
 	{
-		static msgpack::sbuffer sb;
+		static thread_local msgpack::sbuffer sb;
 		sb.clear();
 		
 		msgpack::packer<msgpack::sbuffer> packer(sb);
@@ -164,11 +164,13 @@ result_t ResourceUIScriptRuntime::CallRef(int32_t refIdx, char* argsSerialized, 
 		{
 			if (sb.GetString() && sb.GetSize())
 			{
-				cb(std::string{ sb.GetString(), sb.GetSize() });
+				cb(200, {
+					{ "Content-Type", "application/json; charset=utf-8" }
+				}, std::string{ sb.GetString(), sb.GetSize() });
 			}
 			else
 			{
-				cb("null");
+				cb(200, { { "Content-Type", "application/json; charset=utf-8" } }, "null");
 			}
 		}
 	}
@@ -257,7 +259,7 @@ DECLARE_INSTANCE_TYPE(ResourceUICallbackComponent);
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type)
 {
-	return [=] (const std::string& postData, ResUIResultCallback cb)
+	return [resource, type](const std::string& path, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
 	{
 		// get the event component
 		fwRefContainer<fx::ResourceEventComponent> eventComponent = resource->GetComponent<fx::ResourceEventComponent>();
@@ -285,7 +287,15 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 
 		// serialize the post object JSON as a msgpack object
 		rapidjson::Document postJSON;
-		postJSON.Parse(postData.c_str());
+
+		if (postData.empty())
+		{
+			postJSON.SetNull();
+		}
+		else
+		{
+			postJSON.Parse(postData.c_str());
+		}
 
 		if (!postJSON.HasParseError())
 		{

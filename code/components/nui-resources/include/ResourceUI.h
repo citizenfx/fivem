@@ -12,8 +12,8 @@
 
 using fx::Resource;
 
-typedef std::function<void(const std::string&)> ResUIResultCallback;
-typedef std::function<void(const std::string&, ResUIResultCallback)> ResUICallback;
+typedef std::function<void(int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& body)> ResUIResultCallback;
+typedef std::function<void(const std::string& path, const std::multimap<std::string, std::string>& headers, const std::string& body, ResUIResultCallback)> ResUICallback;
 
 class
 #ifdef COMPILING_NUI_RESOURCES
@@ -58,7 +58,7 @@ public:
 
 	void AddCallback(const std::string& type, ResUICallback callback);
 
-	bool InvokeCallback(const std::string& type, const std::string& data, ResUIResultCallback resultCB);
+	bool InvokeCallback(const std::string& type, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB);
 
 	void SignalPoll();
 };

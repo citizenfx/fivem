@@ -70,6 +70,12 @@ bool ResourceUI::Create()
 
 	std::string path = uiPrefix + m_resource->GetName() + "/" + pageName;
 
+	// allow direct mentions of absolute URIs
+	if (pageName.find("://") != std::string::npos)
+	{
+		path = pageName;
+	}
+
 	auto uiPagePreloadData = metaData->GetEntries("ui_page_preload");
 	bool uiPagePreload = std::distance(uiPagePreloadData.begin(), uiPagePreloadData.end()) > 0;
 
@@ -103,18 +109,26 @@ void ResourceUI::AddCallback(const std::string& type, ResUICallback callback)
 	m_callbacks.insert({ type, callback });
 }
 
-bool ResourceUI::InvokeCallback(const std::string& type, const std::string& data, ResUIResultCallback resultCB)
+bool ResourceUI::InvokeCallback(const std::string& type, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB)
 {
 	auto set = fx::GetIteratorView(m_callbacks.equal_range(type));
 
 	if (set.begin() == set.end())
 	{
-		return false;
+		// try mapping only the first part
+		auto firstType = type.substr(0, type.find_first_of('/'));
+
+		set = fx::GetIteratorView(m_callbacks.equal_range(firstType));
+
+		if (set.begin() == set.end())
+		{
+			return false;
+		}
 	}
 
 	for (auto& cb : set)
 	{
-		cb.second(data, resultCB);
+		cb.second(type, headers, data, resultCB);
 	}
 
 	return true;

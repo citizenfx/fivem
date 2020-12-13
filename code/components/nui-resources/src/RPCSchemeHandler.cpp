@@ -23,6 +23,8 @@ private:
 	bool m_found;
 
 	fwString m_result;
+	std::multimap<std::string, std::string> m_headers;
+	int m_statusCode = 200;
 
 public:
 	RPCResourceHandler()
@@ -85,7 +87,7 @@ public:
 			path.erase(hash);
 		}
 
-		std::string postDataString = "null";
+		std::string postDataString;
 
 		if (request->GetMethod() == "POST")
 		{
@@ -129,8 +131,20 @@ public:
 			}
 		}
 
-		auto result = ui->InvokeCallback(path.substr(1), postDataString, [=] (const std::string& callResult)
+		std::multimap<std::string, std::string> headers;
+
+		CefRequest::HeaderMap origHeaders;
+		request->GetHeaderMap(origHeaders);
+
+		for (auto& header : origHeaders)
 		{
+			headers.emplace(header.first.ToString(), header.second.ToString());
+		}
+
+		auto result = ui->InvokeCallback(path.substr(1), headers, postDataString, [this, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
+		{
+			m_headers = headers;
+			m_statusCode = statusCode;
 			m_result = callResult;
 
 			callback->Continue();
@@ -152,23 +166,40 @@ public:
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
 	{
-		response->SetMimeType("application/json");
-
+		if (auto hit = m_headers.find("content-type"); hit != m_headers.end())
+		{
+			response->SetMimeType(hit->second.substr(0, hit->second.find_first_of(';')));
+		}
+		else
+		{
+			response->SetMimeType("application/json");
+		}
+		
 		if (!m_found)
 		{
 			response->SetStatus(404);
 		}
 		else
 		{
-			response->SetStatus(200);
+			response->SetStatus(m_statusCode);
 		}
 
 		CefResponse::HeaderMap map;
 		response->GetHeaderMap(map);
 
-		map.insert({ "cache-control", "no-cache, must-revalidate" });
-		map.insert({ "access-control-allow-origin", "*" });
-		map.insert({ "access-control-allow-methods", "POST, GET, OPTIONS" });
+		if (m_headers.size() <= 1)
+		{
+			map.insert({ "cache-control", "no-cache, must-revalidate" });
+			map.insert({ "access-control-allow-origin", "*" });
+			map.insert({ "access-control-allow-methods", "POST, GET, OPTIONS" });
+		}
+		else
+		{
+			for (auto& header : m_headers)
+			{
+				map.emplace(header.first, header.second);
+			}
+		}
 
 		response->SetHeaderMap(map);
 
