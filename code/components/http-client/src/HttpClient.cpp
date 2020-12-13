@@ -457,7 +457,7 @@ static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* use
 		
 		if (colonPos != std::string::npos)
 		{
-			(*cd->responseHeaders)[str.substr(0, colonPos)] = str.substr(colonPos + 2, str.length() - 2 - colonPos - 2);
+			(*cd->responseHeaders).emplace(str.substr(0, colonPos), str.substr(colonPos + 2, str.length() - 2 - colonPos - 2));
 		}
 	}
 
