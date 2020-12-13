@@ -310,6 +310,11 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 	// get the resource manager and eventing component
 	fwRefContainer<fx::ResourceEventManagerComponent> eventManager = m_resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
 
+	if (m_sink->LimitEvent(source))
+	{
+		return;
+	}
+
 	// and queue the event
 	eventManager->QueueEvent(
 		std::string{ eventName },

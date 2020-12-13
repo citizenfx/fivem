@@ -313,6 +313,33 @@ public:
 		}
 	}
 
+	virtual bool LimitEvent(int source) override
+	{
+		static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
+		static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEvent", fx::RateLimiterDefaults{ 50.f, 200.f });
+		static auto netFloodRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventFlood", fx::RateLimiterDefaults{ 75.f, 300.f });
+
+		if (!netEventRateLimiter->Consume(source))
+		{
+			if (!netFloodRateLimiter->Consume(source))
+			{
+				gscomms_execute_callback_on_main_thread([this, source]()
+				{
+					auto client = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(source);
+
+					if (client)
+					{
+						instance->GetComponent<fx::GameServer>()->DropClient(client, "Unreliable network event overflow.");
+					}
+				});
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 public:
 	fx::ServerInstanceBase* instance;
 } g_reassemblySink;

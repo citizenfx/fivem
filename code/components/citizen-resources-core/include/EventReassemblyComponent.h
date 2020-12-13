@@ -13,10 +13,15 @@ namespace fx
 class Resource;
 class ResourceManager;
 
-class EventReassemblySink
+class CRC_EXPORT EventReassemblySink
 {
 public:
 	virtual void SendPacket(int target, std::string_view data) = 0;
+
+	virtual bool LimitEvent(int source) 
+	{
+		return false;
+	}
 };
 
 class CRC_EXPORT EventReassemblyComponent : public fwRefCountable, public IAttached<ResourceManager>
