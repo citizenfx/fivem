@@ -62,6 +62,13 @@ static hook::cdecl_stub<rage::fiCollection* ()> getRawStreamer([]()
 	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
 });
 
+#include <atHashMap.h>
+
+struct strRequestInfo
+{
+	uint64_t pad[3];
+};
+
 static void StreamingProgress_Update()
 {
 	// process requests
@@ -70,7 +77,25 @@ static void StreamingProgress_Update()
 
 	std::set<std::string> foundNow;
 
-	for (uint32_t idx = 0; idx < streaming->numEntries; idx++)
+	std::vector<uint32_t> loadingOrRequestedList;
+	loadingOrRequestedList.reserve(64);
+
+	// gather loading/requested list rather than looping over every index
+	atMap<uint32_t, bool>* loadingList = (atMap<uint32_t, bool>*)((char*)streaming + 152); // see rage::strStreamingInfoManager::SetObjectToLoading
+	loadingList->ForAllEntriesWithHash([&loadingOrRequestedList](uint32_t idx, bool*)
+	{
+		loadingOrRequestedList.push_back(idx);
+	});
+
+	// request list
+	atMap<uint32_t, strRequestInfo>* requestList = (atMap<uint32_t, strRequestInfo>*)((char*)streaming + 64); // see rage::strInfoStatus::AddRequest
+	requestList->ForAllEntriesWithHash([&loadingOrRequestedList](uint32_t idx, strRequestInfo*)
+	{
+		loadingOrRequestedList.push_back(idx);
+	});
+
+	// loop over loading/requested list
+	for (uint32_t idx : loadingOrRequestedList)
 	{
 		auto data = &streaming->Entries[idx];
 		auto flags = data->flags & 3;
