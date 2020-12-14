@@ -2802,6 +2802,8 @@ static std::map<int, ObjectData> trackedObjects;
 
 #include <lz4.h>
 
+extern void ArrayManager_Update();
+
 static InitFunction initFunction([]()
 {
 	OnMainGameFrame.Connect([]()
@@ -2828,6 +2830,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
+		ArrayManager_Update();
 		EventManager_Update();
 		TheClones->Update();
 	});

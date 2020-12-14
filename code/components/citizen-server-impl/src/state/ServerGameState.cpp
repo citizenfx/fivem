@@ -1072,6 +1072,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			fakeSend = true;
 		}
 
+		SendArrayData(client);
+
 		static fx::object_pool<sync::SyncCommandList, 512 * 1024> syncPool;
 		auto scl = shared_reference<sync::SyncCommandList, &syncPool>::Construct(m_frameIndex);
 
@@ -2361,6 +2363,19 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 
 void ServerGameState::ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient)
 {
+	{
+		for (auto& handlerList : m_arrayHandlers)
+		{
+			for (auto& handler : handlerList.handlers)
+			{
+				if (handler)
+				{
+					handler->PlayerHasLeft(targetClient);
+				}
+			}
+		}
+	}
+
 	auto clientDataUnlocked = GetClientDataUnlocked(this, targetClient);
 	auto slotId = targetClient->GetSlotId();
 	auto netId = targetClient->GetNetId();
@@ -3296,6 +3311,173 @@ void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numId
 	client->SendPacket(1, outBuffer, NetPacketType_ReliableReplayed);
 }
 
+template<int MaxElemSize, int Count>
+struct ArrayHandler : public ServerGameState::ArrayHandlerBase
+{
+public:
+	ArrayHandler(int index)
+		: m_index(index)
+	{
+	}
+
+	virtual uint32_t GetElementSize() override
+	{
+		return MaxElemSize;
+	}
+
+	virtual uint32_t GetCount() override
+	{
+		return Count;
+	}
+
+	virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) override
+	{
+		std::unique_lock lock(m_mutex);
+
+		auto elem = buffer.Read<uint16_t>();
+		auto byteSize = buffer.Read<uint16_t>();
+
+		if (elem > Count)
+		{
+			return false;
+		}
+
+		if (byteSize > MaxElemSize)
+		{
+			return false;
+		}
+
+		{
+			auto curClient = m_owners[elem].lock();
+
+			if (curClient && !(curClient == client))
+			{
+				return false;
+			}
+		}
+
+		if (byteSize)
+		{
+			m_owners[elem] = client;
+		}
+		else
+		{
+			m_owners[elem] = {};
+		}
+
+		buffer.Read(&m_array[elem * MaxElemSize], byteSize);
+		m_sizes[elem] = byteSize;
+
+		m_dirtyFlags[elem].set();
+		m_dirtyFlags[elem].reset(client->GetSlotId());
+
+		return true;
+	}
+
+	virtual void PlayerHasLeft(const fx::ClientSharedPtr& client) override
+	{
+		std::unique_lock lock(m_mutex);
+
+		auto slotId = client->GetSlotId();
+
+		if (slotId != -1)
+		{
+			for (auto& flagSet : m_dirtyFlags)
+			{
+				flagSet.reset(slotId);
+			}
+		}
+
+		int i = 0;
+
+		for (auto& owner : m_owners)
+		{
+			if (owner == client)
+			{
+				owner = {};
+				m_sizes[i] = 0;
+				m_dirtyFlags[i].set();
+			}
+
+			i++;
+		}
+	}
+
+	virtual void WriteUpdates(const fx::ClientSharedPtr& client) override
+	{
+		std::shared_lock lock(m_mutex);
+
+		for (int i = 0; i < Count; i++)
+		{
+			if (m_dirtyFlags[i].test(client->GetSlotId()))
+			{
+				auto owner = m_owners[i].lock();
+
+				if (owner)
+				{
+					net::Buffer msg;
+					msg.Write<uint32_t>(HashRageString("msgArrayUpdate"));
+					msg.Write<uint8_t>(m_index);
+					msg.Write<uint16_t>(owner->GetNetId());
+					msg.Write<uint32_t>(i);
+					msg.Write<uint32_t>(m_sizes[i]);
+
+					if (m_sizes[i])
+					{
+						msg.Write(&m_array[i * MaxElemSize], m_sizes[i]);
+					}
+
+					client->SendPacket(0, msg, NetPacketType_Reliable);
+				}
+
+				m_dirtyFlags[i].reset(client->GetSlotId());
+			}
+		}
+	}
+
+private:
+	std::array<uint32_t, Count> m_sizes;
+	std::array<fx::ClientWeakPtr, Count> m_owners;
+	std::array<uint8_t, MaxElemSize * Count> m_array;
+	std::array<eastl::bitset<MAX_CLIENTS + 1>, Count> m_dirtyFlags;
+
+	int m_index;
+	std::shared_mutex m_mutex;
+};
+
+void ServerGameState::SendArrayData(const fx::ClientSharedPtr& client)
+{
+	auto data = GetClientDataUnlocked(this, client);
+
+	for (auto& handler : m_arrayHandlers[data->routingBucket].handlers)
+	{
+		if (handler)
+		{
+			handler->WriteUpdates(client);
+		}
+	}
+}
+
+void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer)
+{
+	auto arrayIndex = buffer.Read<uint8_t>();
+	auto data = GetClientDataUnlocked(this, client);
+
+	if (arrayIndex > m_arrayHandlers[data->routingBucket].handlers.size())
+	{
+		return;
+	}
+
+	auto handler = m_arrayHandlers[data->routingBucket].handlers[arrayIndex];
+
+	if (!handler)
+	{
+		return;
+	}
+
+	handler->ReadUpdate(client, buffer);
+}
+
 void ServerGameState::DeleteEntity(const fx::sync::SyncEntityPtr& entity)
 {
 	if (entity->type != sync::NetObjEntityType::Player && entity->syncTree)
@@ -3331,6 +3513,12 @@ void ServerGameState::SendPacket(int peer, std::string_view data)
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 {
 	m_instance = instance;
+
+	for (auto& ha : m_arrayHandlers)
+	{
+		ha.handlers[4] = std::make_shared<ArrayHandler<128, 50>>(4);
+		ha.handlers[7] = std::make_shared<ArrayHandler<128, 50>>(7);
+	}	
 
 	m_lockdownModeVar = instance->AddVariable<fx::EntityLockdownMode>("sv_entityLockdown", ConVar_None, m_entityLockdownMode, &m_entityLockdownMode);
 
@@ -4205,6 +4393,11 @@ static InitFunction initFunction([]()
 			{
 				routeEvent();
 			}
+		} });
+
+		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgArrayUpdate"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
+		{
+			instance->GetComponent<fx::ServerGameState>()->HandleArrayUpdate(client, buffer);
 		} });
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)

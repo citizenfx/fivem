@@ -809,6 +809,8 @@ public:
 
 	void HandleClientDrop(const fx::ClientSharedPtr& client, uint16_t netId, uint32_t slotId);
 
+	void HandleArrayUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer);
+
 	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
@@ -924,6 +926,32 @@ private:
 	WorldGrid m_worldGrids[kNumRoutingBuckets];
 	
 	void SendWorldGrid(void* entry = nullptr, const fx::ClientSharedPtr& client = {});
+
+public:
+	struct ArrayHandlerBase
+	{
+		virtual ~ArrayHandlerBase() = default;
+
+		virtual bool ReadUpdate(const fx::ClientSharedPtr& client, net::Buffer& buffer) = 0;
+
+		virtual void WriteUpdates(const fx::ClientSharedPtr& client) = 0;
+
+		virtual void PlayerHasLeft(const fx::ClientSharedPtr& client) = 0;
+
+		virtual uint32_t GetCount() = 0;
+
+		virtual uint32_t GetElementSize() = 0;
+	};
+
+private:
+	struct ArrayHandlerData
+	{
+		std::array<std::shared_ptr<ArrayHandlerBase>, 16> handlers;
+	};
+
+	ArrayHandlerData m_arrayHandlers[kNumRoutingBuckets];
+
+	void SendArrayData(const fx::ClientSharedPtr& client);
 
 public:
 	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
