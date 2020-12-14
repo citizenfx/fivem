@@ -634,12 +634,10 @@ static void ImGui_ImplWin32_CreateWindow(ImGuiViewport* viewport)
         if (ImGuiViewport* parent_viewport = ImGui::FindViewportByID(viewport->ParentViewportId))
             parent_window = (HWND)parent_viewport->PlatformHandle;
 
-#ifdef IS_RDR3
 	if (parent_window == ImGui::GetMainViewport()->PlatformHandle)
 	{
 		parent_window = NULL;
 	}
-#endif
 
     // Create window
     RECT rect = { (LONG)viewport->Pos.x, (LONG)viewport->Pos.y, (LONG)(viewport->Pos.x + viewport->Size.x), (LONG)(viewport->Pos.y + viewport->Size.y) };

@@ -206,6 +206,9 @@ LPVOID lpParam)
 static std::function<void(LRESULT)> g_curFn;
 static thread_local bool g_inMessageLoop;
 
+static bool done;
+static HANDLE g_preRenderThreadKick = CreateEvent(NULL, TRUE, FALSE, NULL);
+
 static BOOL PeekMessageWFake(_Out_ LPMSG lpMsg, _In_opt_ HWND hWnd, _In_ UINT wMsgFilterMin, _In_ UINT wMsgFilterMax, _In_ UINT wRemoveMsg)
 {
 	if (GetCurrentThreadId() != g_renderThreadId)
@@ -326,10 +329,36 @@ static int ShowCursorWrap(BOOL ye)
 	}
 }
 
+#include <MinHook.h>
+
+static void (*g_origRenderThreadKick)(void* rti, bool value);
+
+static void RenderThreadKickStub(void* rti, bool value)
+{
+	if (!done)
+	{
+		WaitForSingleObject(g_preRenderThreadKick, INFINITE);
+		done = true;
+		CloseHandle(g_preRenderThreadKick);
+	}
+
+	g_origRenderThreadKick(rti, value);
+}
+
+static void* (*g_origRenderThreadWait)(void*);
+
+static void* RenderThreadWaitStub(void* a1)
+{
+	if (!done)
+	{
+		SetEvent(g_preRenderThreadKick);
+	}
+
+	return g_origRenderThreadWait(a1);
+}
+
 static HookFunction hookFunction([]()
 {
-	return;
-
 	g_origCreateWindowExW = hook::iat("user32.dll", CreateWindowExWStub, "CreateWindowExW");
 
 	char* location = hook::pattern("48 8D 05 ? ? ? ? 33 C9 44 89 75 20 4C 89 7D").count(1).get(0).get<char>(3);
@@ -344,6 +373,12 @@ static HookFunction hookFunction([]()
 	hook::iat("user32.dll", GetAsyncKeyState, "GetKeyState");
 	hook::iat("user32.dll", ShowCursorWrap, "ShowCursor");
 	hook::iat("user32.dll", ShowWindowWrap, "ShowWindow");
+
+	// render thread kick waiting until render thread settles
+	MH_Initialize();
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E")), RenderThreadKickStub, (void**)&g_origRenderThreadKick);
+	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B F9 48 83 C1 50 E8 ? ? ? ? 48 8B D8 48 85", 7)), RenderThreadWaitStub, (void**)&g_origRenderThreadWait);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// watch dog function for weird counters
 	{

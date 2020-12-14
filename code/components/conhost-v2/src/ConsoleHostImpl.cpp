@@ -251,15 +251,16 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	io.KeyAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
 	io.KeySuper = false;
 
-#ifdef IS_RDR3
-	MSG msg = { 0 };
-
-	while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+	if (ImGui::GetPlatformIO().Viewports.Size > 1)
 	{
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
+		MSG msg = { 0 };
+
+		while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
 	}
-#endif
 
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
