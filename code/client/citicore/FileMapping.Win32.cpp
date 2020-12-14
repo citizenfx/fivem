@@ -313,6 +313,10 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 	if (moduleNameStr.find(L"fraps64.dll") != std::string::npos || moduleNameStr.find(L"avghooka.dll") != std::string::npos ||
 		// apparently crashes NUI
 		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
+		// ASUS/A-Volute/Nahimic audio software
+		moduleNameStr.find(L"A-Volute") != std::string::npos || moduleNameStr.find(L"AudioDevProps") != std::string::npos ||
+		// Canon camera software
+		moduleNameStr.find(L"EDSDK.dll") != std::string::npos ||
 		// lots of crashes occur in the DiscordApp overlay
 		//moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
 		// new DiscordApp overlay name :/
