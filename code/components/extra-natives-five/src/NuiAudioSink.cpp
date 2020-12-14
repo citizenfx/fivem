@@ -989,8 +989,8 @@ void MumbleAudioEntity::MInit()
 
 	if (m_sound)
 	{
-		// have ~1 second of audio buffer room
-		auto size = 48000 * sizeof(int16_t) * 1;
+		// have 0.125 second of audio buffer, as it seems the game will consume the full buffer where possible
+		auto size = (48000 * sizeof(int16_t) * 1) / 8;
 		m_bufferData = (uint8_t*)rage::GetAllocator()->Allocate(size, 16, 0);
 
 		auto buffer = new rage::audReferencedRingBuffer();
