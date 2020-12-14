@@ -189,7 +189,7 @@ void UvTcpServer::OnConnection(int status)
 #ifdef _WIN32
 	if (m_tryDetachFromIOCP)
 	{
-		auto fd = clientHandle->fileno();
+		auto fd = clientHandle->fd();
 
 		FILE_COMPLETION_INFORMATION info = { 0 };
 		IO_STATUS_BLOCK block;

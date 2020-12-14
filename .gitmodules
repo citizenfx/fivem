@@ -147,7 +147,7 @@
 	url = https://github.com/citizenfx/Win2D.git
 [submodule "vendor/uvw"]
 	path = vendor/uvw
-	url = https://github.com/skypjack/uvw.git
+	url = https://github.com/citizenfx/uvw.git
 [submodule "vendor/uws"]
 	path = vendor/uws
 	url = https://github.com/uNetworking/uWebSockets.git
