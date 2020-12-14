@@ -429,9 +429,9 @@ NTSTATUS WINAPI NtCreateFileStub(PHANDLE fileHandle, ACCESS_MASK desiredAccess, 
 			attributes.ObjectName = &newString;
 		}
 
-		NTSTATUS retval = g_origNtCreateFile(fileHandle, desiredAccess, &attributes, ioBlock, allocationSize, fileAttributes, shareAccess, createDisposition, createOptions, eaBuffer, eaLength);
-
 		tls->inCreateFile = false;
+
+		NTSTATUS retval = g_origNtCreateFile(fileHandle, desiredAccess, &attributes, ioBlock, allocationSize, fileAttributes, shareAccess, createDisposition, createOptions, eaBuffer, eaLength);
 
 		return retval;
 	}
@@ -467,9 +467,9 @@ NTSTATUS WINAPI NtOpenFileStub(PHANDLE fileHandle, ACCESS_MASK desiredAccess, PO
 			attributes.ObjectName = &newString;
 		}
 
-		NTSTATUS retval = g_origNtOpenFile(fileHandle, desiredAccess, &attributes, ioBlock, shareAccess, openOptions);
-
 		tls->inOpenFile = false;
+
+		NTSTATUS retval = g_origNtOpenFile(fileHandle, desiredAccess, &attributes, ioBlock, shareAccess, openOptions);
 
 		return retval;
 	}
@@ -505,9 +505,9 @@ NTSTATUS WINAPI NtDeleteFileStub(POBJECT_ATTRIBUTES objectAttributes)
 			attributes.ObjectName = &newString;
 		}
 
-		NTSTATUS retval = g_origNtDeleteFile(&attributes);
-
 		tls->inDeleteFile = false;
+
+		NTSTATUS retval = g_origNtDeleteFile(&attributes);
 
 		return retval;
 	}
@@ -543,9 +543,9 @@ NTSTATUS WINAPI NtQueryAttributesFileStub(POBJECT_ATTRIBUTES objectAttributes, v
 			attributes.ObjectName = &newString;
 		}
 
-		NTSTATUS retval = g_origNtQueryAttributesFile(&attributes, basicInformation);
-
 		tls->inQueryAttributes = false;
+
+		NTSTATUS retval = g_origNtQueryAttributesFile(&attributes, basicInformation);
 
 		return retval;
 	}
