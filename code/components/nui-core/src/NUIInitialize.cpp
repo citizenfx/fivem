@@ -707,12 +707,33 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 
 	if (ppDevice && ppImmediateContext && can)
 	{
-		auto vtbl = **(intptr_t***)ppDevice;
-		auto vtblCxt = **(intptr_t***)ppImmediateContext;
-		MH_CreateHook((void*)vtbl[5], CreateTexture2DHook, (void**)&g_origCreateTexture2D);
-		MH_CreateHook((void*)vtbl[28], OpenSharedResourceHook, (void**)&g_origOpenSharedResourceHook);
-		MH_CreateHook((void*)vtblCxt[47], CopyResourceHook, (void**)&g_origCopyResource);
-		MH_EnableHook(MH_ALL_HOOKS);
+		static std::set<ID3D11Device*> hooked;
+
+		if (hooked.find(*ppDevice) == hooked.end())
+		{
+			auto vtbl = **(intptr_t***)ppDevice;
+			auto vtblCxt = **(intptr_t***)ppImmediateContext;
+
+			auto newDevVtbl = new intptr_t[1024];
+			memcpy(newDevVtbl, vtbl, 1024 * sizeof(intptr_t*));
+
+			auto newDevVtblCxt = new intptr_t[1024];
+			memcpy(newDevVtblCxt, vtblCxt, 1024 * sizeof(intptr_t*));
+
+			g_origCreateTexture2D = (decltype(g_origCreateTexture2D))vtbl[5];
+			newDevVtbl[5] = (intptr_t)CreateTexture2DHook;
+
+			g_origOpenSharedResourceHook = (decltype(g_origOpenSharedResourceHook))vtbl[28];
+			newDevVtbl[28] = (intptr_t)OpenSharedResourceHook;
+
+			g_origCopyResource = (decltype(g_origCopyResource))vtblCxt[47];
+			newDevVtblCxt[47] = (intptr_t)CopyResourceHook;
+
+			**(intptr_t***)ppDevice = newDevVtbl;
+			**(intptr_t***)ppImmediateContext = newDevVtblCxt;
+
+			hooked.insert(*ppDevice);
+		}
 	}
 
 	if (ppImmediateContext && *ppImmediateContext)
