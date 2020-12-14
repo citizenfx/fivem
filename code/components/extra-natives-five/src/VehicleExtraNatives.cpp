@@ -219,6 +219,8 @@ static std::unordered_set<void*> g_deletionTraces2;
 
 static void(*g_origDeleteVehicle)(void* vehicle);
 
+static void SetCanPedStandOnVehicle(fwEntity* vehicle, int flag);
+
 static void DeleteVehicleWrap(fwEntity* vehicle)
 {
 	if (g_deletionTraces.find(vehicle) != g_deletionTraces.end())
@@ -251,6 +253,9 @@ static void DeleteVehicleWrap(fwEntity* vehicle)
 
 	// run cleanup after destructor
 	g_skipRepairVehicles.erase(vehicle);
+
+	// remove flag
+	SetCanPedStandOnVehicle(vehicle, 0);
 
 	// Delete the handling if it has been set to hooked.
 	if (*((char*)handling + 28) == 1)
@@ -295,6 +300,45 @@ static void ResetFlyThroughWindscreenParams()
 	{
 		*entry.currentPtr = *entry.defaultPtr;
 	}
+}
+
+static bool (*g_origCanPedStandOnVehicle)(CVehicle*);
+static bool g_overrideCanPedStandOnVehicle;
+static std::unordered_map<fwEntity*, int> g_canPedStandOnVehicles;
+
+static void SetCanPedStandOnVehicle(fwEntity* vehicle, int flag)
+{
+	if (flag == 0)
+	{
+		g_canPedStandOnVehicles.erase(vehicle);
+		return;
+	}
+
+	g_canPedStandOnVehicles[vehicle] = flag;
+}
+
+static bool CanPedStandOnVehicleWrap(CVehicle* vehicle)
+{
+	if (g_overrideCanPedStandOnVehicle)
+	{
+		return true;
+	}
+
+	if (auto it = g_canPedStandOnVehicles.find(vehicle); it != g_canPedStandOnVehicles.end())
+	{
+		auto can = it->second;
+
+		if (can == -1)
+		{
+			return false;
+		}
+		else if (can == 1)
+		{
+			return true;
+		}
+	}
+
+	return g_origCanPedStandOnVehicle(vehicle);
 }
 
 static HookFunction initFunction([]()
@@ -957,9 +1001,38 @@ static HookFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_VEHICLE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
+	{
+		auto vehHandle = context.GetArgument<int>(0);
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
+
+		if (entity->IsOfType<CVehicle>())
+		{
+			bool can = context.GetArgument<bool>(1);
+			SetCanPedStandOnVehicle(entity, can ? 1 : -1);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_VEHICLE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
+	{
+		auto vehHandle = context.GetArgument<int>(0);
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
+
+		if (entity->IsOfType<CVehicle>())
+		{
+			SetCanPedStandOnVehicle(entity, 0);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
+	{
+		g_overrideCanPedStandOnVehicle = context.GetArgument<bool>(0);
+	});
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
 	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
+	MH_CreateHook(hook::get_call(hook::get_pattern("74 22 48 8B CA E8 ? ? ? ? 84 C0 74 16", 5)), CanPedStandOnVehicleWrap, (void**)&g_origCanPedStandOnVehicle);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
