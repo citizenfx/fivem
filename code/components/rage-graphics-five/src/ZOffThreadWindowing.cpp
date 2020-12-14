@@ -359,6 +359,11 @@ static void* RenderThreadWaitStub(void* a1)
 
 static HookFunction hookFunction([]()
 {
+	if (wcsstr(GetCommandLineW(), L"-otw") == nullptr)
+	{
+		return;
+	}
+
 	g_origCreateWindowExW = hook::iat("user32.dll", CreateWindowExWStub, "CreateWindowExW");
 
 	char* location = hook::pattern("48 8D 05 ? ? ? ? 33 C9 44 89 75 20 4C 89 7D").count(1).get(0).get<char>(3);
