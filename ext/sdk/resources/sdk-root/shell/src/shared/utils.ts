@@ -6,7 +6,7 @@ const resourceDefault: ProjectManifestResource = {
   restartOnChange: false,
 };
 
-export const debounce = <T extends Function>(fn: T, timeout: number): T => {
+export const debounce = <T extends Function>(fn: T, timeout: number): T & { cancel: () => void } => {
   // any as should be suitable both for node and browser
   let timer: any = null;
 
@@ -22,6 +22,34 @@ export const debounce = <T extends Function>(fn: T, timeout: number): T => {
     }, timeout);
   };
 
+  newFn.cancel = () => clearTimeout(timer);
+
+  return newFn as any;
+};
+
+export const throttle = <T extends Function>(fn: T, timeout: number): T & { cancel: () => void } => {
+  // any as should be suitable both for node and browser
+  let timer: any = null;
+  let canRun = true;
+
+  const newFn = (...args) => {
+    if (canRun) {
+      fn(...args);
+    }
+
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    canRun = false;
+    timer = setTimeout(() => {
+      timer = null;
+      canRun = true;
+    }, timeout);
+  };
+
+  newFn.cancel = () => clearTimeout(timer);
+
   return newFn as any;
 };
 
@@ -30,13 +58,11 @@ export function notNull<T>(e: T | null): e is T {
 }
 
 export function getResourceConfig(manifest: ProjectManifest | void, resourceName: string): ProjectManifestResource {
-  const defaults = {
-    ...resourceDefault,
-    name: resourceName,
-  };
-
   if (!manifest) {
-    return defaults;
+    return {
+      ...resourceDefault,
+      name: resourceName,
+    };
   }
 
   return manifest.resources[resourceName] || {
@@ -46,7 +72,7 @@ export function getResourceConfig(manifest: ProjectManifest | void, resourceName
 }
 
 export const getProjectResources = (project: ProjectData): ProjectResources => {
-  const entries = new Set(project.fsTree.entries);
+  const entries = new Set(project.fs[project.path]);
   const resources: ProjectResources = {};
 
   for (const entry of entries) {
@@ -65,7 +91,7 @@ export const getProjectResources = (project: ProjectData): ProjectResources => {
     }
 
     if (entry.isDirectory) {
-      const childEntries = project.fsTree.pathsMap[entry.path] || [];
+      const childEntries = project.fs[entry.path] || [];
 
       for (const childEntry of childEntries) {
         entries.add(childEntry);
@@ -74,10 +100,4 @@ export const getProjectResources = (project: ProjectData): ProjectResources => {
   }
 
   return resources;
-};
-
-export const getEnabledResourcesPaths = (project: ProjectData, projectResources: ProjectResources) => {
-  return Object.values(projectResources)
-    .filter((resource) => getResourceConfig(project.manifest, resource.name).enabled)
-    .map((resource) => resource.path);
 };

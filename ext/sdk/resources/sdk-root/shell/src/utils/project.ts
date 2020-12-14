@@ -9,7 +9,7 @@ export const isReadOnlyEntry = (entry: FilesystemEntry): boolean => {
 };
 
 export const getFoldersForTheia = (project: ProjectData): string[] => {
-  const entriesToInspect = new Set(project.fsTree.entries);
+  const entriesToInspect = new Set(project.fs[project.path]);
   const editableFolders: string[] = [];
 
   for (const entry of entriesToInspect) {

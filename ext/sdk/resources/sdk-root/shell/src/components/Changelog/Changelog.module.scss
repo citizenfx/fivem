@@ -1,0 +1,51 @@
+@import "variables";
+
+.root {
+  .entry {
+    .title {
+      @include fontSecondary;
+      font-size: $fs2;
+      font-weight: 400;
+    }
+
+    .content {
+      @include fontPrimary;
+
+      margin-top: $q*4;
+
+      line-height: 1.2;
+
+      p {
+        margin: $q*2 0;
+        line-height: 1.2;
+      }
+
+      strong {
+        font-weight: 500;
+      }
+
+      ul {
+        margin-left: $q*6;
+
+        li {
+          line-height: 1.2;
+        }
+      }
+    }
+  }
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+
+  height: $modalContentHeight;
+
+  .changelog {
+    flex-grow: 1;
+
+    overflow-y: auto;
+
+    padding: $q*4;
+  }
+}

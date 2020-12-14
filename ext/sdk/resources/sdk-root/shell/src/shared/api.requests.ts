@@ -40,14 +40,14 @@ export interface ProjectRenameFileRequest {
   newFileName: string,
 }
 
-export interface AssetCreateRequest {
+export type AssetCreateAction = 'create' | 'import';
+export interface AssetCreateRequest<T = any> {
+  action: AssetCreateAction,
+  managerName: string,
   assetPath: string,
   assetName: string,
-  assetKind?: AssetKind,
-  managerType?: AssetManagerType,
-  managerData?: any,
   readOnly?: boolean,
-  data?: any,
+  data?: T,
   callback?: Function,
 }
 
@@ -68,7 +68,6 @@ export interface RelinkResourcesRequest {
 export interface ServerStartRequest {
   projectPath: string,
   updateChannel: ServerUpdateChannel,
-  enabledResourcesPaths: string[],
 }
 
 export interface SetEnabledResourcesRequest {

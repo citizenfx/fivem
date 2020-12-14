@@ -91,6 +91,7 @@ export type ProjectPathsState = {
 export interface ProjectManifest {
   name: string,
   createdAt: string,
+  updatedAt: string,
   serverUpdateChannel: ServerUpdateChannel,
   resources: {
     [name: string]: ProjectManifestResource,
@@ -99,16 +100,22 @@ export interface ProjectManifest {
 }
 
 export type FilesystemEntryMap = {
-  [key: string]: FilesystemEntry[],
+  [path: string]: FilesystemEntry[],
 };
-export interface ProjectFsTree {
-  entries: FilesystemEntry[],
-  pathsMap: FilesystemEntryMap,
-}
+
 export interface ProjectData {
   path: string,
   manifest: ProjectManifest,
-  fsTree: ProjectFsTree,
+
+  fs: FilesystemEntryMap,
+  resources: ProjectResources,
+}
+
+export interface ProjectFsUpdate {
+  replace: {
+    [path: string]: FilesystemEntry[],
+  },
+  delete: string[],
 }
 
 export interface RecentProject {

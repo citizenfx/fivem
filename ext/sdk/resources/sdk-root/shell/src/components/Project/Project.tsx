@@ -14,7 +14,7 @@ export const Project = React.memo(function Project() {
     assetCreatorOpen,
   } = React.useContext(ProjectContext);
 
-  const showProjectExplorer = !!project?.fsTree.entries.length;
+  const showProjectExplorer = !!project?.fs[project?.path];
 
   const resourcesCount = Object.keys(projectResources).length;
 

@@ -21,12 +21,6 @@
   }
 
   &.active {
-    .trigger {
-      // left: $toolbarWidth;
-      // color: $fgColor;
-      // background-color: $acColor;
-    }
-
     .bar {
       pointer-events: all;
       transform: translateX(0);
@@ -44,18 +38,17 @@
     align-items: center;
     justify-content: center;
 
+    background-color: rgba($fgColor, .1);
+
     padding: 0 16px;
 
     font-size: 13px;
-    color: $acColor;
-    background-color: rgba($acColor, .25);
+    color: $fgColor;
 
     border: none;
     outline: none;
 
     z-index: 3;
-
-    // transition: left .2s ease;
 
     &:hover {
       color: $fgColor;

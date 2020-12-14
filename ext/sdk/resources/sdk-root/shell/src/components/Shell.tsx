@@ -6,16 +6,18 @@ import { sendApiMessage } from 'utils/api';
 import { TheiaPersonality } from 'personalities/Theia';
 import { Toolbar } from './Toolbar/Toolbar';
 import { Welcome } from './Welcome/Welcome';
-import { Update } from './Updater/Updater';
+import { Updater } from './Updater/Updater';
+import { ChangelogModal } from './Changelog/Changelog.modal';
 import s from './Shell.module.scss';
 
 
 export function Shell() {
-  const { state } = React.useContext(StateContext);
-  const { project, recentProjects } = React.useContext(ProjectContext);
+  const { state, updaterOpen, changelogOpen } = React.useContext(StateContext);
+  const { project, creatorOpen, openerOpen } = React.useContext(ProjectContext);
 
-  const showWelcome = state === AppStates.ready && !project && recentProjects.length === 0;
-  const showUpdate = state === AppStates.preparing;
+  const showToolbar = !!project || creatorOpen || openerOpen;
+  const showWelcome = state === AppStates.ready && !showToolbar;
+  const showUpdater = state === AppStates.preparing || updaterOpen;
 
   React.useEffect(() => {
     sendApiMessage('ackState');
@@ -23,14 +25,20 @@ export function Shell() {
 
   return (
     <div className={s.root}>
-      <Toolbar />
+      {!showWelcome && (
+        <Toolbar />
+      )}
 
-      {showUpdate && (
-        <Update />
+      {showUpdater && (
+        <Updater />
       )}
 
       {showWelcome && (
         <Welcome />
+      )}
+
+      {changelogOpen && (
+        <ChangelogModal />
       )}
 
       <TheiaPersonality />

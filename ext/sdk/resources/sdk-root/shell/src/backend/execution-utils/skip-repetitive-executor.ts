@@ -7,6 +7,12 @@ enum SkipRepetitiveExecutorState {
 }
 
 export class SkipRepetitiveExecutor<RetType> implements BoundExecutor<Promise<RetType>> {
+  static wrap<T>(fn: () => Promise<T>): () => Promise<T> {
+    const instance = new SkipRepetitiveExecutor<T>(fn);
+
+    return () => instance.execute();
+  }
+
   protected state = SkipRepetitiveExecutorState.idle;
 
   protected pendingExec: Deferred<RetType> | void;

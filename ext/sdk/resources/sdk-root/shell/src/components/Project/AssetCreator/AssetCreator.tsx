@@ -8,9 +8,9 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { sendApiMessage } from 'utils/api';
 import { invariant } from 'utils/invariant';
 import { assetApi } from 'shared/api.events';
-import { assetKinds, FilesystemEntry } from 'shared/api.types';
-import s from './AssetCreator.module.scss';
+import { FilesystemEntry } from 'shared/api.types';
 import { AssetCreateRequest } from 'shared/api.requests';
+import s from './AssetCreator.module.scss';
 
 
 const resourceFolderSelectableFilter = (entry: FilesystemEntry) => {
@@ -38,9 +38,10 @@ export const AssetCreator = React.memo(function AssetCreator() {
   const handleCreateResource = React.useCallback(() => {
     if (assetName && project) {
       const request: AssetCreateRequest = {
+        action: 'create',
+        managerName: 'resource',
         assetName,
         assetPath,
-        assetKind: assetKinds.resource,
       };
 
       sendApiMessage(assetApi.create, request);
@@ -68,7 +69,7 @@ export const AssetCreator = React.memo(function AssetCreator() {
         <Explorer
           className={s.explorer}
           basePath={project.path}
-          pathsMap={project.fsTree.pathsMap}
+          pathsMap={project.fs}
           selectedPath={assetPath}
           onSelectPath={setAssetPath}
           selectableFilter={resourceFolderSelectableFilter}

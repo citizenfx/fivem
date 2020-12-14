@@ -1,23 +1,35 @@
+import { FsUpdateType } from "backend/fs/fs-mapping";
 import { interfaces } from "inversify";
 import { AssetCreateRequest } from "shared/api.requests";
+import { FilesystemEntry } from "shared/api.types";
 import { Project } from "../project";
 
-interface AssetContributionInterface {
-  create(project: Project, request: AssetCreateRequest): Promise<boolean>,
+export interface AssetContributionCapabilities {
+  import?: boolean;
+  create?: boolean;
 }
 
-export const AssetManager = Symbol('AssetManager');
-export interface AssetManager extends AssetContributionInterface {
+export interface AssetInterface {
+  setEntry?(entry: FilesystemEntry): Promise<void> | void;
+  onFsEvent?(event: FsUpdateType, entry: FilesystemEntry | null): Promise<void> | void;
+}
+export interface AssetCreator {
+  createAsset(project: Project, request: AssetCreateRequest): Promise<boolean>;
 }
 
-export const AssetKind = Symbol('AssetKind');
-export interface AssetKind extends AssetContributionInterface {
+export interface AssetImporter {
+  importAsset(project: Project, request: AssetCreateRequest): Promise<boolean>;
 }
 
-export const bindAssetKind = <T>(container: interfaces.Container, service: interfaces.Newable<T>, kindName: string) => {
-  container.bind(AssetKind).to(service).inSingletonScope().whenTargetTagged('kindName', kindName);
-};
 
-export const bindAssetManager = <T>(container: interfaces.Container, service: interfaces.Newable<T>, managerName: string) => {
-  container.bind(AssetManager).to(service).inSingletonScope().whenTargetTagged('managerName', managerName);
+export const AssetContribution = Symbol('AssetContribution');
+export interface AssetContribution extends Partial<AssetCreator>, Partial<AssetImporter> {
+  readonly name: string;
+  readonly capabilities: AssetContributionCapabilities;
+
+  loadAsset(project: Project, assetEntry: FilesystemEntry): Promise<AssetInterface | void>;
+}
+
+export const bindAssetContribution = <T>(container: interfaces.Container, service: interfaces.Newable<T>, managerName: string) => {
+  container.bind(AssetContribution).to(service).inSingletonScope().whenTargetTagged('managerName', managerName);
 };

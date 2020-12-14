@@ -1,13 +1,14 @@
 import React from 'react';
-import { FilesystemEntry, ProjectData, ProjectResources, RecentProject, AppStates } from 'shared/api.types';
+import { FilesystemEntry, ProjectData, ProjectResources, RecentProject, AppStates, ProjectFsUpdate, FilesystemEntryMap } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { getProjectResources } from 'shared/utils';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';
 import { StateContext } from './StateContext';
 import { TheiaContext } from './TheiaContext';
+import { logger } from 'utils/logger';
 
-
+const log = logger('ProjectContext');
 export interface ProjectContext {
   creatorOpen: boolean,
   openCreator: () => void,
@@ -72,6 +73,7 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
   const [openerOpen, openOpener, closeOpener] = useOpenFlag(false);
 
   const [project, setProject] = React.useState<ProjectData | null>(null);
+
   const [recentProjects, setRecentProjects] = React.useState<RecentProject[]>([]);
 
   const [assetCreatorDir, setAssetCreatorDir] = React.useState('');
@@ -105,20 +107,45 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
   useApiMessage(projectApi.open, (project) => {
     projectOpenPendingRef.current = false;
     setProject(project);
+    localStorage.setItem('last-project-path', project.path);
   }, [setProject]);
 
   useApiMessage(projectApi.update, (updatedProject) => {
     setProject({ ...projectRef.current, ...updatedProject });
   }, [setProject]);
 
+  useApiMessage(projectApi.fsUpdate, (update: ProjectFsUpdate) => {
+    const newProject = { ...projectRef.current };
+
+    log('Processing fs update', update);
+
+    if (update.replace) {
+      Object.entries(update.replace).forEach(([key, value]) => {
+        newProject.fs[key] = value;
+      });
+    }
+
+    if (update.delete) {
+      update.delete.forEach((key) => {
+        delete newProject.fs[key];
+      });
+    }
+
+    log('New project state', newProject);
+
+    setProject(newProject);
+  }, [setProject]);
+
   useApiMessage(projectApi.recents, (recentProjects: RecentProject[]) => {
     setRecentProjects(recentProjects);
 
-    // Only open last recent project if no project open
+    const lastProjectPath = localStorage.getItem('last-project-path');
+
+    // Only open matching last recent project if no project open
     if (!project) {
       const [lastProject] = recentProjects;
 
-      if (lastProject) {
+      if (lastProject && lastProject.path === lastProjectPath) {
         openProject(lastProject.path);
       }
     }

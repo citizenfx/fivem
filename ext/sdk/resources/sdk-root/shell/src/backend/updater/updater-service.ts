@@ -21,6 +21,31 @@ export class UpdaterService implements AppContribution {
 
   async prepare() {
     await this.maybeUnpackTheia();
+
+    // await this.simulateUpdate();
+  }
+
+  protected async simulateUpdate(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      let steps = 0;
+      const limit = 100;
+
+      const sendStatus = () => {
+        this.statusService.set(updaterStatuses.state, {
+          completed: steps / limit,
+          currentFileName: `Step ${steps}/${limit}`,
+        });
+      }
+
+      const int = setInterval(() => {
+        if (steps++ >= limit) {
+          clearInterval(int);
+          return resolve();
+        }
+
+        sendStatus();
+      }, 50);
+    });
   }
 
   protected async maybeUnpackTheia(): Promise<void> {

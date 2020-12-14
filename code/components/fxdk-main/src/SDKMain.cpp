@@ -13,6 +13,7 @@
 
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
+#include <ResourceMetaDataComponent.h>
 
 #include <UvLoopManager.h>
 #include <UvTcpServer.h>
@@ -29,6 +30,8 @@
 
 #include <SDK.h>
 #include <console/OptionTokenizer.h>
+
+#include <json.hpp>
 
 static std::function<ipc::Endpoint&()> proxyLauncherTalk;
 
@@ -167,7 +170,7 @@ void SdkMain()
 
 	HANDLE gameProcessHandle;
 
-	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([&gameProcessHandle] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([&gameProcessHandle, resman] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 	{
 		// is this our event?
 		if (eventName == "sdk:openBrowser")
@@ -180,6 +183,40 @@ void SdkMain()
 			std::string url = obj.as<std::vector<std::string>>()[0];
 
 			CefPostTask(TID_UI, base::Bind(&MakeBrowser, url));
+		}
+		else if (eventName == "sdk:requestResourceMetaData")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			auto args = obj.as<std::vector<std::string>>();
+
+			if (args.size() >= 2)
+			{
+				std::string resPath = args[0];
+				std::string resName = args[1];
+
+
+				skyr::url_record record;
+				record.scheme = "file";
+
+				skyr::url url{ std::move(record) };
+
+				url.set_pathname(*skyr::percent_encode(resPath, skyr::encode_set::path));
+				url.set_hash(*skyr::percent_encode(resName, skyr::encode_set::fragment));
+
+				resman->AddResource(url.href())
+					.then([resman, resName](fwRefContainer<fx::Resource> resource)
+						{
+							auto metaData = resource->GetComponent<ResourceMetaDataComponent>()->GetAllEntries();
+
+							resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:resourceMetaDataResponse", {}, resName, metaData);
+
+							resman->RemoveResource(resource);
+						});
+			}
 		}
 		else if (eventName == "sdk:startGame")
 		{

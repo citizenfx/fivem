@@ -10,7 +10,7 @@ import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { projectApi } from "shared/api.events";
 import { AssetCreateRequest, ProjectCreateRequest } from "shared/api.requests";
-import { assetManagerTypes, ProjectCreateCheckResult, RecentProject } from "shared/api.types";
+import { ProjectCreateCheckResult, RecentProject } from "shared/api.types";
 import { notNull } from "shared/utils";
 import { Project } from "./project";
 
@@ -166,33 +166,34 @@ export class ProjectManager implements ApiContribution {
 
     this.logService.log('Creating project', request);
 
-    return this.projectOpsSequencer.executeBlocking(async () => {
+    await this.projectOpsSequencer.executeBlocking(async () => {
       if (this.project) {
         await this.project.unload();
       }
 
       this.project = await this.createProjectBoundToPath().create(request);
 
-      if (!checkResult.ignoreCfxServerData && request.withServerData) {
-        const assetCreateRequest: AssetCreateRequest = {
-          assetName: 'cfx-server-data',
-          assetPath: this.project.getPath(),
-          managerType: assetManagerTypes.git,
-          managerData: {
-            repoUrl: 'https://github.com/citizenfx/cfx-server-data.git',
-          },
-          readOnly: true,
-          callback: () => {
-            this.project?.setResourcesEnabled(cfxServerDataEnabledResources, true);
-          },
-        };
-
-        this.project.createAsset(assetCreateRequest);
-      }
-
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();
     });
+
+    if (!checkResult.ignoreCfxServerData && request.withServerData) {
+      const assetCreateRequest: AssetCreateRequest = {
+        action: 'import',
+        managerName: 'git',
+        assetName: 'cfx-server-data',
+        assetPath: this.project.getPath(),
+        data: {
+          repoUrl: 'https://github.com/citizenfx/cfx-server-data.git',
+        },
+        readOnly: true,
+        callback: () => {
+          this.project?.setResourcesEnabled(cfxServerDataEnabledResources, true);
+        },
+      };
+
+      this.project.createAsset(assetCreateRequest);
+    }
   }
 
   @handlesClientEvent(projectApi.getRecents)
@@ -224,7 +225,7 @@ export class ProjectManager implements ApiContribution {
       return;
     }
 
-    this.apiClient.emit(projectApi.open, this.project.projectData);
+    this.apiClient.emit(projectApi.open, this.project.getProjectData());
   }
 
   private setCurrentProjectInstanceAsMostRecent() {
@@ -232,8 +233,6 @@ export class ProjectManager implements ApiContribution {
       return;
     }
 
-    const project = this.project.projectData;
-
-    this.saveMostRecentProject(project.path, project.manifest.name);
+    this.saveMostRecentProject(this.project.getPath(), this.project.getName());
   }
 }

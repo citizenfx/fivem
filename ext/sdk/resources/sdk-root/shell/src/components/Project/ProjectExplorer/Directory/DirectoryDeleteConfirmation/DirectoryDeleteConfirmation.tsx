@@ -26,7 +26,7 @@ export const DirectoryDeleteConfirmation = React.memo(function DirectoryDeleteCo
 
       <Explorer
         basePath={path}
-        pathsMap={project?.fsTree.pathsMap}
+        pathsMap={project?.fs}
       />
 
       <div className="modal-actions">

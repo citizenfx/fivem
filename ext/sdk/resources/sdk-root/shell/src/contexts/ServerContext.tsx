@@ -1,7 +1,6 @@
 import React from 'react';
 import { ServerInstallationState, ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
-import { getEnabledResourcesPaths } from 'shared/utils';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
 import { logger } from 'utils/logger';
@@ -70,12 +69,9 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
   const startServer = React.useCallback(() => {
     if (project) {
-      const enabledResourcesPaths = getEnabledResourcesPaths(project, projectResources);
-
       sendApiMessage(serverApi.start, {
         projectPath: project.path,
         updateChannel: project.manifest.serverUpdateChannel,
-        enabledResourcesPaths,
       });
 
       connectPending.current = true;

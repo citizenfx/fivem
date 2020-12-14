@@ -26,7 +26,7 @@ export interface ContextMenuProps {
   disabled?: boolean,
   className?: string,
   activeClassName?: string,
-  onClick?: () => void,
+  onClick?: (openMenu?: () => void) => void,
 }
 
 interface Coords {
@@ -83,11 +83,11 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     setCoords(null);
   }, []);
 
-  const handleClick = React.useCallback(() => {
+  const handleClick = React.useCallback((event: MouseEvent) => {
     if (!coords) {
-      onClick();
+      onClick(() => handleOpenMenu(event));
     }
-  }, [onClick, coords]);
+  }, [onClick, coords, handleOpenMenu]);
 
   let menu: React.ReactPortal | null = null;
   if (coords && outlet) {

@@ -81,7 +81,7 @@ export class GameServerService implements AppContribution, ApiContribution {
   async start(request: ServerStartRequest) {
     this.logService.log('Starting server', request);
 
-    const { projectPath, enabledResourcesPaths } = request;
+    const { projectPath } = request;
 
     this.logService.log('Ops sequencer state', this.serverOpsSequencer.getStateString(), this.serverOpsSequencer);
 
@@ -100,9 +100,6 @@ export class GameServerService implements AppContribution, ApiContribution {
       await fs.promises.writeFile(blankPath, '');
     }
 
-    await this.linkResources(fxserverCwd, enabledResourcesPaths);
-    this.logService.log('Linked resources');
-
     const fxserverPath = this.gameServerManagerService.getServerBinaryPath(request.updateChannel);
     this.logService.log('FXServer path', fxserverPath, request);
     const fxserverArgs = [
@@ -118,9 +115,11 @@ export class GameServerService implements AppContribution, ApiContribution {
       '+ensure', 'sdk-game',
     ];
 
-    enabledResourcesPaths.forEach((resourcePath) => {
+    this.currentEnabledResourcesPaths.forEach((resourcePath) => {
       fxserverArgs.push('+ensure', this.fsService.basename(resourcePath));
     });
+
+    this.logService.log('FXServer args', fxserverArgs);
 
     const server = cp.execFile(
       fxserverPath,
@@ -158,7 +157,6 @@ export class GameServerService implements AppContribution, ApiContribution {
     server.unref();
 
     this.server = server;
-    this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
   @handlesClientEvent(serverApi.setEnabledResources)
@@ -259,6 +257,7 @@ export class GameServerService implements AppContribution, ApiContribution {
         }),
       );
     });
+    this.logService.log('Linked resources', resourcesPaths);
   }
 
   /**
@@ -269,6 +268,7 @@ export class GameServerService implements AppContribution, ApiContribution {
    */
   private reconcileEnabledResourcesAndRefresh(enabledResourcesPaths: string[]) {
     if (this.state !== ServerStates.up) {
+      this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
       return;
     }
 

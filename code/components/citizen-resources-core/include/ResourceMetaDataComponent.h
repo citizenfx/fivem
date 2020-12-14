@@ -64,6 +64,18 @@ public:
 		m_metaDataLoader = loader;
 	}
 
+	inline std::map<std::string, std::vector<std::string>> GetAllEntries()
+	{
+		std::map<std::string, std::vector<std::string>> newMap;
+
+		for (auto it = m_metaDataEntries.begin(), end = m_metaDataEntries.end(); it != end; it++)
+		{
+			newMap[it->first].push_back(it->second);
+		}
+
+		return newMap;
+	}
+
 	inline auto GetEntries(const std::string& key)
 	{
 		return GetIteratorView(m_metaDataEntries.equal_range(key));

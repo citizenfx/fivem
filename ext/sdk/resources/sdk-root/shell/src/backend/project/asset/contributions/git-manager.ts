@@ -1,7 +1,7 @@
 import simpleGitPromised from 'simple-git/promise';
-import { assetKinds, assetManagerTypes, assetStatus } from 'shared/api.types';
+import { assetKinds, assetManagerTypes, assetStatus, FilesystemEntry } from 'shared/api.types';
 import { AssetCreateRequest } from 'shared/api.requests';
-import { AssetManager } from '../asset-contribution';
+import { AssetContribution, AssetInterface } from '../asset-contribution';
 import { inject, injectable } from 'inversify';
 import { ApiClient } from 'backend/api/api-client';
 import { LogService } from 'backend/logger/log-service';
@@ -10,7 +10,12 @@ import { Project } from 'backend/project/project';
 import { invariant } from 'utils/invariant';
 
 @injectable()
-export class GitManager implements AssetManager {
+export class GitManager implements AssetContribution {
+  readonly name = 'git';
+  readonly capabilities = {
+    import: true,
+  };
+
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
@@ -20,14 +25,16 @@ export class GitManager implements AssetManager {
   @inject(FsService)
   protected readonly fsService: FsService;
 
-  async create(project: Project, request: AssetCreateRequest): Promise<boolean> {
+  async importAsset(project: Project, request: AssetCreateRequest<{ repoUrl: string }>): Promise<boolean> {
     const {
       assetName,
-      managerData,
+      data,
       readOnly,
     } = request;
 
-    invariant(managerData?.repoUrl, `Can't create git managed asset without managerData.repoUrl`);
+    invariant(data.repoUrl, `Can't create git managed asset without managerData.repoUrl`);
+
+    const { repoUrl } = data;
 
     this.logService.log('Creating asset managed by git', request);
 
@@ -37,7 +44,7 @@ export class GitManager implements AssetManager {
       manager: {
         type: assetManagerTypes.git,
         data: {
-          ...managerData,
+          ...data,
           status: assetStatus.updating,
         },
       },
@@ -54,7 +61,7 @@ export class GitManager implements AssetManager {
     try {
       this.logService.log('Importing git asset', request);
 
-      await git.clone(managerData?.repoUrl, assetName);
+      await git.clone(repoUrl, assetName);
       this.logService.log('Done: Importing git asset', request);
 
       if (request.callback) {
@@ -63,8 +70,6 @@ export class GitManager implements AssetManager {
 
       assetMeta.manager.data.status = assetStatus.ready;
       await project.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
-
-      project.readAndNotifyFsTree();
 
       return true;
     } catch (e) {
@@ -75,5 +80,9 @@ export class GitManager implements AssetManager {
 
       return false;
     }
+  }
+
+  async loadAsset(project: Project, assetEntry: FilesystemEntry): Promise<AssetInterface | void> {
+    return;
   }
 }

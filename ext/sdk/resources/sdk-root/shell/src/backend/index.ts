@@ -29,11 +29,13 @@ import { bindLogger } from './logger/logger-bindings';
 import { bindTheia } from './theia/theia-bindings';
 import { bindGameServer } from './game-server/game-server-bindings';
 import { bindProject } from './project/project-bindings';
+import { ContainerAccess } from './container-access';
 
 const appContainer = new Container();
 
 const configService = new ConfigService();
 appContainer.bind(ConfigService).toConstantValue(configService);
+appContainer.bind(ContainerAccess).toConstantValue(new ContainerAccess(appContainer));
 
 bindApp(appContainer);
 bindFeatures(appContainer);

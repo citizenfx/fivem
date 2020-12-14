@@ -1,4 +1,5 @@
 import React from 'react';
+import { BsArrowBarLeft, BsArrowBarRight, BsCardHeading, BsList } from 'react-icons/bs';
 import classnames from 'classnames';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
@@ -8,15 +9,12 @@ import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator
 import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
 import { Project } from 'components/Project/Project';
 import s from './Toolbar.module.scss';
+import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
 
 
 export const Toolbar = React.memo(function Toolbar() {
-  const { state, toolbarOpen, openToolbar, closeToolbar } = React.useContext(StateContext);
+  const { state, toolbarOpen, openToolbar, closeToolbar, openChangelog } = React.useContext(StateContext);
   const { openCreator, openOpener, creatorOpen, openerOpen } = React.useContext(ProjectContext);
-
-  const handleOpenDevtools = React.useCallback(() => {
-    window.openDevTools();
-  }, []);
 
   const handleOpenCreator = React.useCallback(() => {
     openCreator();
@@ -34,13 +32,37 @@ export const Toolbar = React.memo(function Toolbar() {
     [s.active]: toolbarOpen,
   });
 
+  const contextMenuItems: ContextMenuItemsCollection = React.useMemo((): ContextMenuItemsCollection => [
+    {
+      id: 'changelog',
+      text: 'Changelog',
+      icon: <BsCardHeading />,
+      onClick: openChangelog,
+    },
+    {
+      id: 'dev-tools',
+      text: 'DevTools',
+      icon: devtoolsIcon,
+      onClick: () => window.openDevTools(),
+    },
+  ], []);
+
+  const triggerTitle = toolbarOpen
+    ? 'Collapse FxDK toolbar'
+    : 'Expand FxDK toolbar';
+  const triggerIcon = toolbarOpen
+    ? <BsArrowBarLeft />
+    : <BsArrowBarRight />;
+
   return (
     <div
       className={toolbarClasses}
     >
       <div className={s.backdrop} onClick={closeToolbar} />
 
-      <button className={s.trigger} onClick={toggleToolbar}>FxDK</button>
+      <button className={s.trigger} onClick={toggleToolbar} title={triggerTitle}>
+        {triggerIcon}
+      </button>
 
       <div className={s.bar}>
         <div className={s.controls}>
@@ -50,11 +72,15 @@ export const Toolbar = React.memo(function Toolbar() {
             </button>
           <button onClick={handleOpenOpener} style={{ flexGrow: 1 }}>
             {openProjectIcon}
-              Open Project
-            </button>
-          <button onClick={handleOpenDevtools} style={{ flexGrow: 0 }} title="Open DevTools">
-            {devtoolsIcon}
+            Open Project
           </button>
+
+
+          <ContextMenu items={contextMenuItems} onClick={(openMenu) => openMenu()}>
+            <button style={{ flexGrow: 0 }} title="Open DevTools">
+              <BsList />
+            </button>
+          </ContextMenu>
         </div>
 
         {creatorOpen && <ProjectCreator />}

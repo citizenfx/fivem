@@ -108,13 +108,13 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
     openAssetCreator();
   }, [project.path, setAssetCreatorDir, openAssetCreator]);
 
-  const nodes = project.fsTree.entries
+  const nodes = project.fs[project.path]
     .filter(fsTreeFilter)
     .map((entry) => itemRenderer({
       entry,
       project,
       projectResources,
-      pathsMap: project.fsTree.pathsMap,
+      pathsMap: project.fs,
       itemRenderer,
       creatorClassName: s.creator,
     }));

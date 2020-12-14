@@ -58,7 +58,7 @@ export const ProjectExplorerContextProvider = React.memo(function ProjectExplore
 
     setPathsState(newPathsState);
 
-    sendApiMessage(projectApi.setPathsState, newPathsState);
+    sendApiMessage(projectApi.setPathsStatePatch, { [path]: expanded });
   }, [pathsState, setPathsState]);
 
   const [relocateSourceEntry, setRelocateSourceEntry] = React.useState<FilesystemEntry | void>(undefined);

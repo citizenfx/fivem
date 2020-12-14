@@ -11,6 +11,7 @@ export const projectApi = {
   removeRecent: 'project:removeRecent',
 
   setPathsState: 'project:setPathsState',
+  setPathsStatePatch: 'project:setPathsStatePatch',
   pathsState: 'project:pathsState',
 
   createResource: 'project:createResource',
@@ -20,7 +21,7 @@ export const projectApi = {
   updateResources: 'project:updateResources',
   setResourceConfig: 'project:setResourceConfig',
 
-  fsTreeUpdate: 'project:fsTreeUpdate',
+  fsUpdate: 'project:fsUpdate',
 
   createDirectory: 'project:createDirectory',
   renameDirectory: 'project:renameDirectory',

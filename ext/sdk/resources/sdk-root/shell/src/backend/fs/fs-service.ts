@@ -6,6 +6,7 @@ import rimrafSync from 'rimraf';
 import { promisify } from 'util';
 import { injectable } from "inversify";
 import { FsAtomicWriter } from './fs-atomic-writer';
+import { FsJsonFileMapping, FsJsonFileMappingOptions } from './fs-json-file-mapping';
 
 const rimraf = promisify(rimrafSync);
 
@@ -92,5 +93,23 @@ export class FsService {
 
   createAtomicWrite(entryPath: string) {
     return new FsAtomicWriter(entryPath, this.writeFile.bind(this));
+  }
+
+  async createJsonFileMapping<T extends object>(
+    entryPath: string,
+    options?: FsJsonFileMappingOptions<T>,
+  ): Promise<FsJsonFileMapping<T>> {
+    const writer = this.createAtomicWrite(entryPath);
+    const reader = async () => {
+      const content = await this.readFile(entryPath);
+      return {
+        ...(options?.defaults || null),
+        ...JSON.parse(content.toString()),
+      };
+    };
+
+    const snapshot = await reader();
+
+    return new FsJsonFileMapping(snapshot, writer, reader, options);
   }
 }

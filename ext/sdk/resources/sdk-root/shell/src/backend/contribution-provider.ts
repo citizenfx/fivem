@@ -1,4 +1,4 @@
-import { Container, interfaces } from "inversify";
+import { interfaces } from "inversify";
 
 export const ContributionProvider = Symbol('ContributionProvider');
 export interface ContributionProvider<T> {

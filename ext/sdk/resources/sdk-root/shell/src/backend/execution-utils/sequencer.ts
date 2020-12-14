@@ -34,12 +34,20 @@ export class Sequencer {
     return this.execute(SequencerPriority.parallel, fn);
   }
 
+  wrapParallel<T>(fn: () => Promise<T> | T): () => Promise<T> {
+    return () => this.executeParallel(fn);
+  }
+
   async executeBlocking<T>(fn: () => Promise<T> | T): Promise<T> {
     if (this.blockingExecutionFuse) {
       throw new Error(`Sequencer:executeBlocking() was called inside of another Sequencer:executeBlocking(), this is a deadlock, tell devs, please`);
     }
 
     return this.execute(SequencerPriority.blocking, fn);
+  }
+
+  wrapBlocking<T>(fn: () => Promise<T> | T): () => Promise<T> {
+    return () => this.executeBlocking(fn);
   }
 
   protected execute<T extends any[], U>(priority: SequencerPriority, fn: (...args: T) => Promise<U> | U): Promise<U> {

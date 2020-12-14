@@ -1,16 +1,15 @@
 import { interfaces } from "inversify";
 import { bindContributionProvider } from "backend/contribution-provider";
-import { AssetKind, AssetManager, bindAssetKind, bindAssetManager } from "./asset-contribution";
-import { ResourceKind } from "./kinds/ResourceKind";
-import { GitManager } from "./managers/GitManager";
+import { AssetContribution, bindAssetContribution } from "./asset-contribution";
+import { ResourceManager } from "./contributions/resource-manager";
+import { GitManager } from "./contributions/git-manager";
 
 export const bindAsset = (container: interfaces.Container) => {
-  bindContributionProvider(container, AssetKind);
-  bindContributionProvider(container, AssetManager);
+  bindContributionProvider(container, AssetContribution);
 
-  container.bind(ResourceKind).toSelf().inSingletonScope();
-  bindAssetKind(container, ResourceKind, 'resource');
+  container.bind(ResourceManager).toSelf().inSingletonScope();
+  bindAssetContribution(container, ResourceManager, 'resource');
 
   container.bind(GitManager).toSelf().inSingletonScope();
-  bindAssetManager(container, GitManager, 'git');
+  bindAssetContribution(container, GitManager, 'git');
 };

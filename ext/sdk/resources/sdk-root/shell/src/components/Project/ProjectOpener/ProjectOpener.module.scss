@@ -15,55 +15,5 @@
 
   .recents {
     margin-bottom: $q*4;
-
-    .recent-project {
-      display: flex;
-
-      cursor: pointer;
-
-      &:hover {
-        background-color: rgba($acColor, .5);
-
-        .actions {
-          opacity: 1;
-        }
-      }
-
-      .info {
-        flex-grow: 1;
-
-        padding: $q*2 $q*4;
-
-        &:hover {
-          background-color: rgba($acColor, .5);
-        }
-
-        .name {
-          font-size: 1.2rem;
-        }
-
-        .path {
-          padding-top: $q;
-
-          font-size: .8rem;
-          color: rgba($fgColor, .5);
-        }
-      }
-
-      .actions {
-        flex-shrink: 1;
-
-        opacity: 0;
-
-        button {
-          height: 100%;
-
-          &:hover {
-            color: $fgColor;
-            background-color: rgba($acColor, .5);
-          }
-        }
-      }
-    }
   }
 }

@@ -3,7 +3,7 @@ import { inject, injectable, named } from 'inversify';
 import { ApiClient } from 'backend/api/api-client';
 import { ApiContribution } from "backend/api/api-contribution";
 import { handlesClientEvent } from 'backend/api/api-decorators';
-import { fxdkAssetFilename, fxdkProjectFilename, resourceManifestFilename, resourceManifestLegacyFilename } from 'backend/constants';
+import { fxdkAssetFilename, fxdkProjectFilename } from 'backend/constants';
 import { EntryMetaExtras, ExplorerService } from 'backend/explorer/explorer-service';
 import { FsService } from 'backend/fs/fs-service';
 import { LogService } from 'backend/logger/log-service';
@@ -26,29 +26,23 @@ import {
 } from 'shared/api.requests';
 import {
   AssetMeta,
+  FilesystemEntry,
+  FilesystemEntryMap,
   ProjectData,
-  ProjectFsTree,
+  ProjectFsUpdate,
   ProjectManifest,
+  ProjectManifestResource,
   ProjectPathsState,
   ProjectResources,
   ServerUpdateChannel,
   serverUpdateChannels,
 } from "shared/api.types";
-import { debounce, getEnabledResourcesPaths, getProjectResources, getResourceConfig } from 'shared/utils';
+import { debounce, getResourceConfig } from 'shared/utils';
 import { ContributionProvider } from 'backend/contribution-provider';
-import { AssetKind, AssetManager } from './asset/asset-contribution';
+import { AssetContribution, AssetInterface } from './asset/asset-contribution';
 import { GameServerService } from 'backend/game-server/game-server-service';
-import { FsAtomicWriter } from 'backend/fs/fs-atomic-writer';
-import { SkipRepetitiveExecutor } from 'backend/execution-utils/skip-repetitive-executor';
-import { Sequencer } from 'backend/execution-utils/sequencer';
-
-enum FsTreeUpdateType {
-  add,
-  addDir,
-  change,
-  unlink,
-  unlinkDir,
-}
+import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
+import { FsMapping } from 'backend/fs/fs-mapping';
 
 interface Silentable {
   silent?: boolean,
@@ -94,64 +88,67 @@ export class Project implements ApiContribution {
   @inject(GameServerService)
   protected readonly gameServerService: GameServerService;
 
-  @inject(ContributionProvider) @named(AssetManager)
-  protected readonly assetManagers: ContributionProvider<AssetManager>;
+  @inject(ContributionProvider) @named(AssetContribution)
+  protected readonly assetContributions: ContributionProvider<AssetContribution>;
 
-  @inject(ContributionProvider) @named(AssetKind)
-  protected readonly assetKinds: ContributionProvider<AssetKind>;
+  @inject(FsMapping)
+  private fsMapping: FsMapping;
 
   private path: string;
-  private fsTree: ProjectFsTree = undefined as any;
-  private manifest: ProjectManifest = undefined as any;
-  private resources: ProjectResources = undefined as any;
+  private assets: Map<string, AssetInterface> = new Map();
+  private resources: ProjectResources = {};
+  private manifestMapping: FsJsonFileMapping<ProjectManifest>;
+  private manifestPath: string;
+  private storagePath: string;
+  private shadowPath: string;
 
-  private watcher: chokidar.FSWatcher = undefined as any;
-
-  private fsOpsSequencer = new Sequencer();
-
-  get projectData(): ProjectData {
-    return {
-      path: this.path,
-      fsTree: this.fsTree,
-      manifest: this.manifest,
-    };
+  applyManifest(fn: (manifest: ProjectManifest) => void) {
+    this.manifestMapping.apply(fn);
   }
 
-  getManifest() {
-    return this.manifest;
+  getManifest(): ProjectManifest {
+    return this.manifestMapping.get();
+  }
+
+  getName(): string {
+    return this.getManifest().name;
   }
 
   getPath(): string {
     return this.path;
   }
 
-  get manifestPath(): string {
-    return this.fsService.joinPath(this.path, fxdkProjectFilename);
+  getFs(): FilesystemEntryMap {
+    return this.fsMapping.getMap();
   }
 
-  get storagePath(): string {
-    return this.fsService.joinPath(this.path, '.fxdk');
+  getResources(): ProjectResources {
+    return this.resources;
   }
 
-  get shadowPath(): string {
-    return this.fsService.joinPath(this.storagePath, 'shadowRoot');
-  }
-
-  get enabledResourcesPaths(): string[] {
-    return getEnabledResourcesPaths(this.projectData, this.resources);
-  }
-
-  get entryMetaExtras(): EntryMetaExtras {
+  getProjectData(): ProjectData {
     return {
-      assetMeta: async (entryPath: string) => {
-        return this.getAssetMeta(entryPath, { silent: true });
-      },
+      path: this.getPath(),
+      manifest: this.getManifest(),
+
+      fs: this.getFs(),
+      resources: this.getResources(),
     };
+  }
+
+  getResourceConfig(resourceName: string): ProjectManifestResource {
+    return getResourceConfig(this.getManifest(), resourceName);
+  }
+
+  getEnabledResourcesPaths(): string[] {
+    return Object.values(this.resources).filter((resource) => resource.enabled).map((resource) => resource.path);
   }
 
   log(msg: string, ...args) {
     this.logService.log(`[ProjectInstance: ${this.path}]`, msg, ...args);
   }
+
+  //#region lifecycle
 
   async create(request: ProjectCreateRequest): Promise<Project> {
     this.logService.log('Creating project', request);
@@ -165,6 +162,7 @@ export class Project implements ApiContribution {
       name: request.projectName,
       serverUpdateChannel: serverUpdateChannels.recommended,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       resources: {},
       pathsState: {},
     };
@@ -196,14 +194,14 @@ export class Project implements ApiContribution {
       this.path = path;
     }
 
+    this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
+    this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
+    this.shadowPath = this.fsService.joinPath(this.storagePath, 'shadowRoot');
+
     this.log('loading project...');
 
-    await Promise.all([
-      this.readManifest(),
-      this.readFsTree(),
-    ]);
-
-    this.watchProject();
+    await this.initManifest();
+    await this.initFs();
 
     this.setGameServerServiceEnabledResources();
 
@@ -212,37 +210,103 @@ export class Project implements ApiContribution {
     return this;
   }
 
-  async unload() {
-    this.log('closing...');
+  private async initManifest() {
+    const options: FsJsonFileMappingOptions<ProjectManifest> = {
+      defaults: {
+        pathsState: {},
+        resources: {},
+        serverUpdateChannel: serverUpdateChannels.recommended,
+      },
+      onApply: () => this.notifyProjectUpdated(),
+      beforeApply: (snapshot) => snapshot.updatedAt = new Date().toISOString(),
+    };
 
+    this.manifestMapping = await this.fsService.createJsonFileMapping<ProjectManifest>(this.manifestPath, options);
+  }
+
+  private async initFs() {
+    this.log('Initializing project fs...');
+
+    this.fsMapping.setShouldProcessUpdate((type, path) => path !== this.manifestPath);
+    this.fsMapping.setEntryMetaExtras({
+      assetMeta: async (entryPath: string) => {
+        return this.getAssetMeta(entryPath, { silent: true });
+      },
+    });
+    this.fsMapping.setProcessEntry(this.processFsEntry);
+
+    this.fsMapping.setAfterUpdate((updateType, updatedPath, updatedEntry) => {
+      this.sendFsUpdate();
+      this.gcManifestResources();
+
+      // Now notify related assets
+      for (const asset of this.findAssetsForPath(updatedPath)) {
+        asset.onFsEvent(updateType, updatedEntry);
+      }
+    });
+
+    this.fsMapping.setOnUnlink((entryPath) => {
+      this.assets.delete(entryPath);
+    });
+
+    this.fsMapping.setOnUnlinkDir((entryPath) => {
+      delete this.resources[this.fsService.basename(entryPath)];
+      this.assets.delete(entryPath);
+    });
+
+    await this.fsMapping.init(this.path, this.storagePath);
+  }
+
+  async unload() {
+    this.log('Unloading...');
+
+    await this.fsMapping.deinit();
     this.eventDisposers.forEach((disposer) => disposer());
 
     this.gameServerService.stop();
 
-    if (this.watcher) {
-      await this.watcher.close();
+    this.log('Unloaded');
+  }
+
+  private notifyProjectUpdated() {
+    this.apiClient.emit(projectApi.update, this.getProjectData());
+  }
+
+  private sendFsUpdate = debounce(() => {
+    if (this.fsMapping.hasUpdates()) {
+      this.apiClient.emit(projectApi.fsUpdate, this.fsMapping.flushUpdates());
+    }
+  }, 100);
+
+  private processFsEntry = async (entry: FilesystemEntry) => {
+    if (entry.path.startsWith(this.storagePath)) {
+      return;
     }
 
-    this.log('closed');
-  }
-
-  getProjectResources(): ProjectResources {
-    return this.resources;
-  }
-
-  private async propagateManifestChanges(options?: ManifestPropagationOptions) {
-    this.writeManifest();
-
-    if (!options?.silent) {
-      this.notifyProjectUpdated();
+    if (entry.meta.isResource) {
+      this.resources[entry.name] = {
+        ...this.getResourceConfig(entry.name),
+        path: entry.path,
+        running: false,
+      };
     }
+
+    const existingAsset = this.assets.get(entry.path);
+    if (existingAsset) {
+      existingAsset.setEntry?.(entry);
+
+      return;
+    }
+
+    this.assetContributions.getAll().forEach(async (contribution) => {
+      const asset = await contribution.loadAsset(this, entry);
+      if (asset) {
+        this.assets.set(entry.path, asset);
+      }
+    });
   }
 
-  async setManifest(manifest: ProjectManifest, options?: ManifestPropagationOptions) {
-    this.manifest = manifest;
-
-    this.propagateManifestChanges(options);
-  }
+  //#endregion lifecycle
 
   async setResourcesEnabled(resourceNames: string[], enabled: boolean) {
     resourceNames.forEach((resourceName) => {
@@ -252,19 +316,38 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.setResourceConfig)
   async setResourceConfig({ resourceName, config }: ProjectSetResourceConfigRequest) {
-    this.manifest.resources[resourceName] = {
-      ...getResourceConfig(this.manifest, resourceName),
+    const newConfig = {
+      ...this.getResourceConfig(resourceName),
       ...config,
     };
 
-    this.propagateManifestChanges();
+    this.applyManifest((manifest) => {
+      manifest.resources[resourceName] = newConfig;
+    });
+
+    const cachedResource = this.resources[resourceName];
+    if (resourceName) {
+      Object.assign(cachedResource, newConfig);
+    }
+
+    this.setGameServerServiceEnabledResources();
   }
 
   @handlesClientEvent(projectApi.setPathsState)
   setPathsState(pathsState: ProjectPathsState) {
-    this.manifest.pathsState = pathsState;
+    this.applyManifest((manifest) => {
+      manifest.pathsState = pathsState;
+    });
+  }
 
-    this.propagateManifestChanges();
+  @handlesClientEvent(projectApi.setPathsStatePatch)
+  setPathsStatePatch(patch: ProjectPathsState) {
+    this.applyManifest((manifest) => {
+      manifest.pathsState = {
+        ...manifest.pathsState,
+        ...patch,
+      };
+    });
   }
 
   /**
@@ -282,14 +365,16 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.setServerUpdateChannel)
   setServerUpdateChannel(updateChannel: ServerUpdateChannel) {
-    if (this.manifest.serverUpdateChannel !== updateChannel) {
+    if (this.getManifest().serverUpdateChannel !== updateChannel) {
       this.gameServerService.stop();
 
-      this.manifest.serverUpdateChannel = updateChannel;
-
-      this.propagateManifestChanges();
+      this.applyManifest((manifest) => {
+        manifest.serverUpdateChannel = updateChannel;
+      });
     }
   }
+
+  //#region assets
 
   /**
    * Returns meta filepath that exist in assetPath
@@ -351,8 +436,99 @@ export class Project implements ApiContribution {
     await this.fsService.mkdirp(this.fsService.dirname(assetMetaFilepath));
 
     await this.fsService.writeFile(assetMetaFilepath, JSON.stringify(assetMeta, null, 2));
+
+    this.fsMapping.syncEntry(assetPath);
   }
 
+  protected getNamedAssetContribution(managerName: string): AssetContribution {
+    try {
+      return this.assetContributions.getTagged('managerName', managerName);
+    } catch (e) {
+      throw new Error(`No asset manager of type ${managerName}`);
+    }
+  }
+
+  @handlesClientEvent(assetApi.create)
+  async createAsset(request: AssetCreateRequest) {
+    this.log('Creating asset', request);
+
+    if (request.managerName) {
+      const contribution = this.getNamedAssetContribution(request.managerName);
+
+      if (contribution.capabilities[request.action]) {
+        switch (request.action) {
+          case 'create': {
+            if (!contribution.createAsset) {
+              throw new Error(`Asset contribution ${contribution.name} have create capability but does not implement createAsset method`);
+            }
+            return contribution.createAsset(this, request);
+          }
+          case 'import': {
+            if (!contribution.importAsset) {
+              throw new Error(`Asset contribution ${contribution.name} have import capability but does not implement importAsset method`);
+            }
+            return contribution.importAsset(this, request);
+          }
+        }
+      }
+
+      throw new Error(`Asset contribution ${request.managerName} has no ${request.action} capability`);
+    }
+
+    throw new Error('Invalid asset create request managerName must be specified');
+  }
+
+  @handlesClientEvent(assetApi.rename)
+  async renameAsset(request: AssetRenameRequest) {
+    this.log('Renaming asset', request);
+
+    // Applying changes to project manifest first
+    const { newAssetName, assetPath } = request;
+    const oldAssetName = this.fsService.basename(request.assetPath);
+
+    const resourceConfig = this.getManifest().resources[oldAssetName];
+    if (resourceConfig) {
+      this.applyManifest((manifest) => {
+        manifest.resources[newAssetName] = {
+          ...resourceConfig,
+          name: newAssetName,
+        };
+      });
+    }
+
+    const newAssetPath = this.fsService.joinPath(this.fsService.dirname(assetPath), newAssetName);
+
+    const promises = [
+      this.fsService.rename(assetPath, newAssetPath),
+    ];
+
+    const oldShadowAssetPath = this.getPathInShadow(assetPath);
+    const newShadowAssetPath = this.getPathInShadow(newAssetPath);
+
+    if (await this.fsService.statSafe(oldShadowAssetPath)) {
+      promises.push(
+        this.fsService.rename(oldShadowAssetPath, newShadowAssetPath),
+      );
+    }
+
+    await Promise.all(promises);
+  }
+
+  @handlesClientEvent(assetApi.delete)
+  async deleteAsset(request: AssetDeleteRequest) {
+    this.log('Deleting asset', request);
+
+    const { assetPath } = request;
+
+    await Promise.all([
+      this.fsService.rimraf(assetPath),
+      this.fsService.rimraf(this.getPathInShadow(assetPath)),
+    ]);
+  }
+
+  //#endregion assets
+
+  //#region fs-methods
   // Directories methods
   @handlesClientEvent(projectApi.createDirectory)
   async createDirectory({ directoryName, directoryPath }: ProjectCreateDirectoryRequest) {
@@ -398,8 +574,7 @@ export class Project implements ApiContribution {
   // FS methods
   @handlesClientEvent(projectApi.moveEntry)
   async moveEntry(request: MoveEntryRequest) {
-    this.fsOpsSequencer.executeParallel(async () => {
-      const { sourcePath, targetPath } = request;
+    const { sourcePath, targetPath } = request;
 
       const newPath = this.fsService.joinPath(targetPath, this.fsService.basename(sourcePath));
 
@@ -408,7 +583,6 @@ export class Project implements ApiContribution {
       }
 
       await this.fsService.rename(sourcePath, newPath);
-    });
   }
 
   @handlesClientEvent(projectApi.copyEntry)
@@ -416,240 +590,41 @@ export class Project implements ApiContribution {
     this.notificationService.warning('Copying is not implemented yet :sob:');
   }
   // /FS methods
+  //#endregion fs-methods
 
-  // Asset methods
-  protected getAssetKind(kindName: string): AssetKind {
-    try {
-      return this.assetKinds.getTagged('kindName', kindName);
-    } catch (e) {
-      throw new Error(`No asset kind of type ${kindName}`);
-    }
-  }
+  private gcManifestResources = debounce(() => {
+    this.log('Cleaning up manifest resources');
 
-  protected getAssetManager(managerName: string): AssetManager {
-    try {
-      return this.assetManagers.getTagged('managerName', managerName);
-    } catch (e) {
-      throw new Error(`No asset manager of type ${managerName}`);
-    }
-  }
+    this.applyManifest((manifest) => {
+      const manifestResources = {};
 
-  @handlesClientEvent(assetApi.create)
-  createAsset(request: AssetCreateRequest) {
-    this.log('Creating asset', request);
+      Object.values(this.resources)
+        .forEach(({ name }) => {
+          manifestResources[name] = manifest.resources[name];
+        });
 
-    if (request.managerType) {
-      return this.getAssetManager(request.managerType).create(this, request);
-    }
+      if (Object.keys(manifest.resources).length !== Object.keys(manifestResources).length) {
+        manifest.resources = manifestResources;
 
-    if (request.assetKind) {
-      return this.getAssetKind(request.assetKind).create(this, request);
-    }
-
-    throw new Error('Invalid asset create request, either assetKind or managerType must be specified');
-  }
-
-  @handlesClientEvent(assetApi.rename)
-  async renameAsset(request: AssetRenameRequest) {
-    this.log('Renaming asset', request);
-
-    // Applying changes to project manifest first
-    await this.fsOpsSequencer.executeParallel(async () => {
-      const { newAssetName } = request;
-
-      const oldAssetName = this.fsService.basename(request.assetPath);
-
-      const resourceConfig = this.manifest.resources[oldAssetName];
-      if (resourceConfig) {
-        this.manifest.resources[newAssetName] = {
-          ...resourceConfig,
-          name: newAssetName,
-        };
-
-        await this.writeManifest();
+        this.setGameServerServiceEnabledResources();
       }
     });
-
-    const { assetPath, newAssetName } = request;
-
-    const newAssetPath = this.fsService.joinPath(this.fsService.dirname(assetPath), newAssetName);
-
-    const promises = [
-      this.fsService.rename(assetPath, newAssetPath),
-    ];
-
-    const oldShadowAssetPath = this.getPathInShadow(assetPath);
-    const newShadowAssetPath = this.getPathInShadow(newAssetPath);
-
-    if (await this.fsService.statSafe(oldShadowAssetPath)) {
-      promises.push(
-        this.fsService.rename(oldShadowAssetPath, newShadowAssetPath),
-      );
-    }
-
-    await Promise.all(promises);
-  }
-
-  @handlesClientEvent(assetApi.delete)
-  async deleteAsset(request: AssetDeleteRequest) {
-    this.log('Deleting asset', request);
-
-    // Apply changes to project manifest first
-    await this.fsOpsSequencer.executeParallel(async () => {
-      const { assetPath } = request;
-
-      const assetName = this.fsService.basename(assetPath);
-
-      const resourceConfig = this.manifest.resources[assetName];
-      if (resourceConfig) {
-        delete this.manifest.resources[assetName];
-
-        await this.writeManifest();
-      }
-    });
-
-    const { assetPath } = request;
-
-    await Promise.all([
-      this.fsService.rimraf(assetPath),
-      this.fsService.rimraf(this.getPathInShadow(assetPath)),
-    ]);
-  }
-  // /Asset methods
-
-  /**
-   * Send partial project update
-   */
-  private notifyProjectUpdated() {
-    this.apiClient.emit(projectApi.update, this.projectData);
-  }
-
-  private async readManifest(): Promise<ProjectManifest> {
-    const manifestContent = await this.fsService.readFile(this.manifestPath);
-
-    return this.manifest = {
-      pathsState: {},
-      resources: {},
-      serverUpdateChannel: serverUpdateChannels.recommended,
-      ...JSON.parse(manifestContent.toString('utf8')),
-    };
-  }
-
-  private _manifestWriter: FsAtomicWriter | void;
-  private async writeManifest() {
-    if (!this._manifestWriter) {
-      this._manifestWriter = this.fsService.createAtomicWrite(this.manifestPath);
-    }
-
-    await this._manifestWriter.write(JSON.stringify({
-      ...this.manifest,
-      updatedAt: new Date().toISOString(),
-    }, null, 2));
-
-    this.log('Finished writing manifest!');
-  }
-
-  private async watchProject() {
-    this.log('Start watching project');
-
-    this.watcher = chokidar.watch(this.path, {
-      // Ignoring fxdk system folder of project
-      ignored: this.fsService.joinPath(this.path, '.fxdk'),
-      persistent: true,
-      ignoreInitial: true,
-    });
-
-    this.watcher
-      .on('add', (updatedPath: string) => this.handleFsTreeUpdate(FsTreeUpdateType.add, updatedPath))
-      .on('addDir', (updatedPath: string) => this.handleFsTreeUpdate(FsTreeUpdateType.addDir, updatedPath))
-      .on('change', (updatedPath: string) => this.handleFsTreeUpdate(FsTreeUpdateType.change, updatedPath))
-      .on('unlink', (updatedPath: string) => this.handleFsTreeUpdate(FsTreeUpdateType.unlink, updatedPath))
-      .on('unlinkDir', (updatedPath: string) => this.handleFsTreeUpdate(FsTreeUpdateType.unlinkDir, updatedPath));
-  }
-
-  readAndNotifyFsTree = debounce(async () => {
-    this.log('reading fs tree, reconciling resources and sending update');
-
-    await this.readFsTree();
-    await this.reconcileManifestResources();
-
-    this.notifyProjectUpdated();
   }, 100);
 
-  private async handleFsTreeUpdate(updateType: FsTreeUpdateType, updatedPath: string) {
-    this.log('FSTree update', { updateType, updatedPath });
-
-    if (updateType !== FsTreeUpdateType.change) {
-      this.readAndNotifyFsTree();
+  private *findAssetsForPath(entryPath: string): IterableIterator<AssetInterface> {
+    for (const [assetPath, asset] of this.assets.entries()) {
+      if (entryPath.indexOf(assetPath) > -1) {
+        yield asset;
+      }
     }
-
-    switch (updateType) {
-      case FsTreeUpdateType.change:
-      case FsTreeUpdateType.add:
-        const updatedPathBaseName = this.fsService.basename(updatedPath);
-        if (updatedPathBaseName === resourceManifestFilename || updatedPathBaseName === resourceManifestLegacyFilename) {
-          this.log('Resource manifest changed, refreshing');
-          this.gameServerService.refreshResources();
-
-          break;
-        }
-
-        const enabledResourcesPaths = this.enabledResourcesPaths;
-        const updatedResourcePath = enabledResourcesPaths.find((enabledResourcePath) => updatedPath.startsWith(enabledResourcePath));
-        if (updatedResourcePath) {
-          const resourceName = this.fsService.basename(updatedResourcePath);
-          const resourceConfig = getResourceConfig(this.manifest, resourceName);
-
-          if (resourceConfig.restartOnChange) {
-            this.gameServerService.restartResource(resourceName);
-          }
-
-          break;
-        }
-
-        break;
-    }
-  }
-
-  private async readFsTree(): Promise<ProjectFsTree> {
-    const pathsMap = await this.explorerService.readDirRecursively(this.path, this.entryMetaExtras);
-    const entries = pathsMap[this.path];
-
-    this.fsTree = {
-      entries,
-      pathsMap,
-    };
-    this.resources = getProjectResources(this.projectData);
-
-    return this.fsTree;
-  }
-
-  private reconcileManifestResourcesWorker = new SkipRepetitiveExecutor(() => this.fsOpsSequencer.executeBlocking(() => {
-    this.log('Reconciling manifest resources');
-
-    const manifestResources = {};
-
-    Object.values(this.resources)
-      .forEach(({ name }) => {
-        manifestResources[name] = this.manifest.resources[name];
-      });
-
-    if (Object.keys(this.manifest.resources).length !== Object.keys(manifestResources).length) {
-      this.manifest.resources = manifestResources;
-      this.propagateManifestChanges();
-
-      this.setGameServerServiceEnabledResources();
-    }
-  }));
-
-  private async reconcileManifestResources() {
-    this.reconcileManifestResourcesWorker.execute();
   }
 
   private setGameServerServiceEnabledResources() {
+    this.log('Setting resources as enabled', this.resources, this.getEnabledResourcesPaths());
+
     this.gameServerService.setEnabledResources({
       projectPath: this.path,
-      enabledResourcesPaths: this.enabledResourcesPaths,
+      enabledResourcesPaths: this.getEnabledResourcesPaths(),
     });
   }
 }

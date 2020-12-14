@@ -200,10 +200,18 @@ export class ExplorerService implements ApiContribution {
     }
   }
 
-  async readDir(dir: string, extras?: EntryMetaExtras): Promise<FilesystemEntry[]> {
+  async readDir(dir: string, extras?: EntryMetaExtras, onEntry?: (entry: FilesystemEntry) => void | Promise<void>): Promise<FilesystemEntry[]> {
     const entries = await fs.promises.readdir(dir);
     const entriesStats = await Promise.all(
-      entries.map((file) => this.getEntry(path.join(dir, file), extras)),
+      entries.map(async (file) => {
+        const entry = await this.getEntry(path.join(dir, file), extras);
+
+        if (onEntry) {
+          await onEntry(entry);
+        }
+
+        return entry;
+      }),
     );
 
     return entriesStats
@@ -211,8 +219,8 @@ export class ExplorerService implements ApiContribution {
       .sort(dirComparator);
   }
 
-  async readDirRecursively(dir: string, extras?: EntryMetaExtras): Promise<ExplorerChildsMap> {
-    const entries = await this.readDir(dir, extras);
+  async readDirRecursively(dir: string, extras?: EntryMetaExtras, onEntry?: (entry: FilesystemEntry) => void | Promise<void>): Promise<ExplorerChildsMap> {
+    const entries = await this.readDir(dir, extras, onEntry);
 
     let cache = {
       [dir]: entries,
@@ -221,7 +229,7 @@ export class ExplorerService implements ApiContribution {
     await Promise.all(
       entries.map(async (entry) => {
         if (entry.isDirectory) {
-          Object.assign(cache, await this.readDirRecursively(entry.path, extras));
+          Object.assign(cache, await this.readDirRecursively(entry.path, extras, onEntry));
         }
       }),
     );
