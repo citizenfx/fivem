@@ -425,17 +425,8 @@ static HookFunction initFunction([]()
 		StreamRenderWheelSizeOffset = *(uint8_t*)(location + 20);
 	}
 
-	// #TODO2189
-	if (!xbr::IsGameBuildOrGreater<2189>())
 	{
-		auto location = hook::get_pattern<char>("44 0F 2F 43 ? 45 8D 74 24 01");
-
-		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
-		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
-	}
-	else
-	{
-		auto location = hook::get_pattern<char>("44 0F 2F 43 ? 45 8D 6C 24 01");
+		auto location = hook::get_pattern<char>("44 0F 2F 43 48 45 8D");
 
 		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
 		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
@@ -947,7 +938,7 @@ static HookFunction initFunction([]()
 			jne("skiprepair");
 			pop(rax);
 			sub(rsp, 0x28);
-			AppendInstr(jitasm::InstrID::I_CALL, 0xFF, 0, jitasm::Imm8(2), qword_ptr[rax + 0x5D0]);
+			AppendInstr(jitasm::InstrID::I_CALL, 0xFF, 0, jitasm::Imm8(2), qword_ptr[rax + (xbr::IsGameBuildOrGreater<2189>() ? 0x5D8 : 0x5D0)]);
 			add(rsp, 0x28);
 			ret();
 			L("skiprepair");
@@ -956,10 +947,9 @@ static HookFunction initFunction([]()
 		}
 	} asmfunc;
 
-	// #TODO2189
-	if (GetModuleHandle(L"AdvancedHookV.dll") == nullptr && !xbr::IsGameBuildOrGreater<2189>())
+	if (GetModuleHandle(L"AdvancedHookV.dll") == nullptr)
 	{
-		auto repairFunc = hook::get_pattern("48 8B 03 45 33 C0 B2 01 48 8B CB FF 90 D0 05 00 00 48 8B 4B 20", 11);
+		auto repairFunc = hook::get_pattern("F7 D0 48 8B CB 21 83 ? ? ? ? E8 ? ? ? ? 48 8B 03", 27);
 		hook::nop(repairFunc, 6);
 		hook::call_reg<2>(repairFunc, asmfunc.GetCode());
 	}
