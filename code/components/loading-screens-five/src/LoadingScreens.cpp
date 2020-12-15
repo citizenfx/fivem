@@ -118,16 +118,6 @@ static fx::TNativeHandler g_origShutdown;
 
 static HookFunction hookFunction([]()
 {
-	// 2189
-	OnMainGameFrame.Connect([]()
-	{
-		if (GetAsyncKeyState(VK_F11))
-		{
-			((void (*)(int))0x1402AC214)(0);
-			((void (*)())0x140201AEC)();
-		}
-	});
-
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		static bool endedLoadingScreens = false;
