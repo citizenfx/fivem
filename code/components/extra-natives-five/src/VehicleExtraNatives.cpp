@@ -425,8 +425,17 @@ static HookFunction initFunction([]()
 		StreamRenderWheelSizeOffset = *(uint8_t*)(location + 20);
 	}
 
+	// #TODO2189
+	if (!xbr::IsGameBuildOrGreater<2189>())
 	{
 		auto location = hook::get_pattern<char>("44 0F 2F 43 ? 45 8D 74 24 01");
+
+		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
+		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
+	}
+	else
+	{
+		auto location = hook::get_pattern<char>("44 0F 2F 43 ? 45 8D 6C 24 01");
 
 		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
 		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
@@ -947,7 +956,8 @@ static HookFunction initFunction([]()
 		}
 	} asmfunc;
 
-	if (GetModuleHandle(L"AdvancedHookV.dll") == nullptr)
+	// #TODO2189
+	if (GetModuleHandle(L"AdvancedHookV.dll") == nullptr && !xbr::IsGameBuildOrGreater<2189>())
 	{
 		auto repairFunc = hook::get_pattern("48 8B 03 45 33 C0 B2 01 48 8B CB FF 90 D0 05 00 00 48 8B 4B 20", 11);
 		hook::nop(repairFunc, 6);

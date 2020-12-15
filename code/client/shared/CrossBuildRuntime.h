@@ -1,5 +1,24 @@
 #pragma once
 
+inline bool Is2189()
+{
+#ifdef GTA_FIVE
+	static bool retval = ([]()
+	{
+		if (wcsstr(GetCommandLine(), L"b2189") != nullptr)
+		{
+			return true;
+		}
+
+		return false;
+	})();
+
+	return retval;
+#endif
+
+	return false;
+}
+
 inline bool Is2060()
 {
 #ifdef GTA_FIVE
@@ -44,6 +63,11 @@ inline int GetGameBuild()
 {
 	static int build = ([]()
 	{
+		if (Is2189())
+		{
+			return 2189;
+		}
+
 		if (Is2060())
 		{
 			return 2060;

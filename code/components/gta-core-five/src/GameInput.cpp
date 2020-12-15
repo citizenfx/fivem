@@ -731,7 +731,7 @@ void BindingManager::CreateButtons()
 			auto button = std::make_unique<Button>(thisNameStr);
 			button->SetFromControl(g_control, field->index);
 
-			if (!Is2060())
+			if (!xbr::IsGameBuildOrGreater<2060>())
 			{
 				button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
 			}

@@ -531,7 +531,7 @@ public:
 
 	inline CHandlingData* GetHandlingData()
 	{
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			return impl.m2060.m_handlingData;
 		}
@@ -546,7 +546,7 @@ public:
 		// Use an alignment byte within CHandlingDataMgr to represent the handling as hooked.
 		*((char*)ptr + 28) = 1;
 		
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			impl.m2060.m_handlingData = ptr;
 		}

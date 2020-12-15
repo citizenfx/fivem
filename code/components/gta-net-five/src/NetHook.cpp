@@ -274,7 +274,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	// 505 has it be a xchg-type jump
 	// same for 1032
 	// 1737: changed
-	if (!Is2060())
+	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
 
@@ -841,7 +841,7 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern("FF C8 0F 85 AC 00 00 00 48 39 35", 11);
 
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			g_gamerInfo<2060> = hook::get_address<decltype(g_gamerInfo<2060>)>(location);
 		}
@@ -855,7 +855,7 @@ static HookFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			RunGameFrame<2060>();
 		}
@@ -935,7 +935,7 @@ static HookFunction initFunction([]()
 
 			if (*g_dlcMountCount != 132)
 			{
-				if (!Is2060())
+				if (!xbr::IsGameBuildOrGreater<2060>())
 				{
 					// #TODO1737
 					GlobalError("DLC count mismatch - %d DLC mounts exist locally, but %d are expected. Please check that you have installed all core game updates and try again.", *g_dlcMountCount, 132);
@@ -1004,7 +1004,7 @@ static HookFunction initFunction([]()
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
-			if (Is2060())
+			if (xbr::IsGameBuildOrGreater<2060>())
 			{
 				hostSystem.process<2060>();			
 			}
@@ -1491,12 +1491,19 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 		// 1737
 		// 1868
 		// 2060
-		if (!Is2060())
+		if (!xbr::IsGameBuildOrGreater<2060>())
 		{
 			((void(*)())hook::get_adjusted(0x1400067E8))();
 			((void(*)())hook::get_adjusted(0x1407D1960))();
 			((void(*)())hook::get_adjusted(0x140025F7C))();
 			((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
+		}
+		else if (xbr::IsGameBuildOrGreater<2189>())
+		{
+			((void (*)())hook::get_adjusted(0x140006748))();
+			((void (*)())hook::get_adjusted(0x1407F4150))();
+			((void (*)())hook::get_adjusted(0x140026120))();
+			((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
 		}
 		else
 		{
@@ -1597,9 +1604,9 @@ static HookFunction hookFunction([] ()
 	// 463/505 change
 	//void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	// 1032 change
-	void* migrateCmd = hook::get_pattern((Is2060()) ? "48 8B 87 80 00 00 00 48 81 C1 A0 00 00 00" : "48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8", (Is2060()) ? 0x12 : 15);
+	void* migrateCmd = hook::get_pattern((xbr::IsGameBuildOrGreater<2060>()) ? "48 8B 87 80 00 00 00 48 81 C1 A0 00 00 00" : "48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8", (xbr::IsGameBuildOrGreater<2060>()) ? 0x12 : 15);
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
-	hook::call(migrateCmd, (Is2060()) ? (void*)&MigrateSessionCopy<2060> : &MigrateSessionCopy<1604>);
+	hook::call(migrateCmd, (xbr::IsGameBuildOrGreater<2060>()) ? (void*)&MigrateSessionCopy<2060> : &MigrateSessionCopy<1604>);
 
 	// session key getting system key; replace with something static for migration purposes
 	//hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
@@ -1648,7 +1655,7 @@ static HookFunction hookFunction([] ()
 
 	char* onlineAddressFunc;
 
-	if (!Is2060())
+	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		char* netAddressFunc = hook::pattern("89 79 10 48 89 39 48 89 79 08 89 69 14 66 89 79").count(1).get(0).get<char>(-0x23);
 		hook::jump(netAddressFunc, GetOurOnlineAddress);
@@ -1759,7 +1766,7 @@ static HookFunction hookFunction([] ()
 	//hook::call(hook::pattern("89 44 24 28 41 8B 87 80 01 00 00 48 8B CB 89 44").count(1).get(0).get<void>(18), StartLookUpInAddr);
 	//hook::jump(hook::get_call(hook::pattern("48 8B D0 C7 44 24 28 04 00 00 00 44 89 7C 24 20").count(1).get(0).get<void>(16)), StartLookUpInAddr);
 	hook::jump(hook::get_call(hook::pattern("45 33 C0 C6 44 24 28 01 44 89 7C 24 20").count(1).get(0).get<void>(13)), 
-		(Is2060()) ? (void*)StartLookUpInAddr<2060> : StartLookUpInAddr<1604>);
+		(xbr::IsGameBuildOrGreater<2060>()) ? (void*)StartLookUpInAddr<2060> : StartLookUpInAddr<1604>);
 
 	// temp dbg: always clone a player (to see why this CTaskMove flag is being a twat)
 	//hook::jump(hook::pattern("74 06 F6 40 2F 01 75 0E 48 8B D7").count(1).get(0).get<void>(-0x27), ReturnTrue);
@@ -1955,7 +1962,7 @@ static HookFunction hookFunction([] ()
 
 	// don't switch clipset manager to network mode
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
-	if (!Is2060()) // arxan
+	if (!xbr::IsGameBuildOrGreater<2060>()) // arxan
 	{
 		hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
 	}
@@ -2011,7 +2018,7 @@ static HookFunction hookFunction([] ()
 	// disable unknown stuff
 	{
 		// 1032/1103!
-		if (!Is2060())
+		if (!xbr::IsGameBuildOrGreater<2060>())
 		{
 			// 1868 integrity checks this
 			hook::return_function(hook::get_pattern("44 8B 99 08 E0 00 00 4C 8B C9 B9 00 04", 0));

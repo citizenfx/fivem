@@ -12,11 +12,11 @@
 #define DECLARE_ACCESSOR(x) \
 	decltype(impl.m2060.x)& x()        \
 	{                       \
-		return (Is2060() ? impl.m2060.x : impl.m1604.x);   \
+		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
 	} \
 	const decltype(impl.m2060.x)& x() const                         \
 	{                                                    \
-		return (Is2060() ? impl.m2060.x : impl.m1604.x);  \
+		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
 	}
 
 using Matrix3x4 = DirectX::XMFLOAT3X4;
@@ -191,7 +191,7 @@ static CMloModelInfo* GetInteriorArchetype(int interiorId)
 {
 	CInteriorInst* instance;
 
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
 		if (proxy)
@@ -286,7 +286,7 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("BA A1 85 94 52 41 B8 01", 0x34);
 
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			g_interiorProxyPool<2060> = hook::get_address<decltype(g_interiorProxyPool<2060>)>(location);
 		}
@@ -645,7 +645,7 @@ static HookFunction initFunction([]()
 
 		Vector* position;
 
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
 			position = &proxy->position;
@@ -667,7 +667,7 @@ static HookFunction initFunction([]()
 
 		Vector* rotation;
 
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
 			rotation = &proxy->rotation;
@@ -691,7 +691,7 @@ static HookFunction initFunction([]()
 		Vector* bbMin;
 		Vector* bbMax;
 
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			CInteriorProxy<2060>* proxy = GetInteriorProxy<2060>(interiorId);
 			bbMin = &proxy->entitiesExtentsMin;

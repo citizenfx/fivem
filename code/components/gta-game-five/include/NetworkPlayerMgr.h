@@ -18,11 +18,11 @@
 #define DECLARE_ACCESSOR(x) \
 	decltype(impl.m2060.x)& x()        \
 	{                       \
-		return (Is2060() ? impl.m2060.x : impl.m1604.x);   \
+		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
 	} \
 	const decltype(impl.m2060.x)& x() const                         \
 	{                                                    \
-		return (Is2060() ? impl.m2060.x : impl.m1604.x);  \
+		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
 	}
 
 struct netIpAddress

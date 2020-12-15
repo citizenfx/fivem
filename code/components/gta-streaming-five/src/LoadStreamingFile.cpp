@@ -1990,7 +1990,7 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 20));
-	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("83 F9 08 75 43 48 8D 0D", 8));
+	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("C7 80 74 01 00 00 02 00 00 00 E8 ? ? ? ? 8B 06", -4));
 #elif IS_RDR3
 	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("B1 01 E8 ? ? ? ? B9 FF FF 00 00 E8", -28));
 	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern<char>("F6 44 24 70 04 74 ? 80 3D ? ? ? ? 00 74", 31));

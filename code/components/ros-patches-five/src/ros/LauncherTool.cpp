@@ -717,6 +717,6 @@ static HookFunction hookFunction([] ()
 	// same for distantlights
 	void* distantLightInit = hook::pattern("48 8D 68 A1 48 81 EC F0 00 00 00 BE 01 00").count(1).get(0).get<void>(-0x10);
 
-	hook::call(skyInitLoc + (Is2060() ? 0x2FA : 0x30B), distantLightInit);
+	hook::call(skyInitLoc + (xbr::IsGameBuildOrGreater<2060>() ? 0x2FA : 0x30B), distantLightInit);
 #endif
 });

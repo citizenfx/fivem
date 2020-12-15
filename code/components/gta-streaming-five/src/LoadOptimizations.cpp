@@ -248,7 +248,7 @@ static HookFunction hookFunction([]()
 {
 	//hook::jump(hook::get_pattern("45 8D 70 01 66 39 B1 A2 01 00 00 74 41", -0x38), CreateDependentsGraph);
 
-	if (!Is2060())
+	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		auto location = hook::get_pattern<char>("33 FF 44 8D 71 7C C1 E0 02", -0x1F);
 		hook::set_call(&g_origInitAnim, location + 0x2D0);

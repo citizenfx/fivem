@@ -254,7 +254,7 @@ void PopDrawBlitImShader()
 // params2 is unused for drawblit, params1 is global color multiplier (default multiplies alpha by 0 :( )
 static hook::cdecl_stub<void(const float[4], const float[4])> setImGenParams([] ()
 {
-	return hook::get_call(hook::pattern("48 8D 4D A7 0F 29 4D A7 0F 29 45 97 E8").count(1).get(0).get<void>(12));
+	return hook::get_call(hook::pattern("48 83 65 5F 00 48 8D 55 FF 48 8D 4D 0F E8 ? ? ? ? 83 65").count(1).get(0).get<void>(13));
 });
 
 static hook::cdecl_stub<void(rage::grcTexture*)> setTextureGtaIm([] ()
@@ -699,7 +699,15 @@ static HookFunction hookFunction([] ()
 
 		auto refloc = hook::get_address<char*>(location + 2);
 		hook::put<uint32_t>(refloc, 0x4000000);
-		hook::put<uint32_t>(refloc + 4, 0x7FFF8 * 4);
+
+		if (!xbr::IsGameBuildOrGreater<2189>())
+		{
+			hook::put<uint32_t>(refloc + 4, 0x7FFF8 * 4);
+		}
+		else
+		{
+			// #TODO2189
+		}
 
 		hook::nop(location, 6); // setter
 		hook::put<uint8_t>(location, 0xB8); // write to eax for later
