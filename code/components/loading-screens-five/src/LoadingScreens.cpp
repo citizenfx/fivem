@@ -28,6 +28,8 @@
 #include <CfxRect.h>
 #include <DrawCommands.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <Error.h>
 
 static std::shared_ptr<ConVar<bool>> g_loadProfileConvar;
@@ -517,8 +519,11 @@ static InitFunction initFunction([] ()
 
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 
-		// 2189
-		//nui::OverrideFocus(true);
+		// #TODO2189
+		if (!Is2189())
+		{
+			nui::OverrideFocus(true);
+		}
 
 #ifndef USE_NUI_ROOTLESS
 		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");
