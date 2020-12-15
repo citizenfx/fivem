@@ -609,8 +609,23 @@ int RealMain()
 				VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
 
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
+
+				auto expectedVersion = 1604;
+
+				if (Is372())
+				{
+					expectedVersion = 372;
+				}
+				else if (Is2060())
+				{
+					expectedVersion = 2060;
+				}
+				else if (Is2189())
+				{
+					expectedVersion = 2189;
+				}
 				
-				if ((fixedInfo->dwFileVersionLS >> 16) != (Is372() ? 372 : ((Is2060()) ? 2060 : 1604)))
+				if ((fixedInfo->dwFileVersionLS >> 16) != expectedVersion)
 				{
 					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.372.2/1.0.1604.0/1.0.2060.0 is currently supported. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),

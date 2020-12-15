@@ -296,7 +296,7 @@ namespace sync
 
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
 	{
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			TempHackMakePhysicalPlayerImpl<2060>(clientId, idx);
 		}
@@ -605,7 +605,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 		return g_origAllocateNetPlayer(mgr);
 	}
 
-	void* plr = malloc(Is2060() ? 688 : 672);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 
 	return _netPlayerCtor(plr);
 }
@@ -1046,7 +1046,7 @@ static float VectorDistance(const float* point1, const float* point2)
 static hook::cdecl_stub<float*(float*, CNetGamePlayer*, void*, bool)> getNetPlayerRelevancePosition([]()
 {
 	// 1737: Arxan.
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		return hook::get_call(hook::get_pattern("48 8D 4C 24 40 45 33 C9 45 33 C0 48 8B D0 E8", 0xE));
 	}
@@ -1308,7 +1308,7 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		if (!Is2060())
+		if (!xbr::IsGameBuildOrGreater<2060>())
 		{
 			auto match = hook::pattern("80 F9 20 73 13 48 8B").count(2);
 			MH_CreateHook(match.get(0).get<void>(0), GetPlayerByIndex, (void**)&g_origGetPlayerByIndex);
@@ -1343,7 +1343,7 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(location + 0x2F), netInterface_GetAllPhysicalPlayers, (void**)&g_origGetNetworkPlayerList2);
 	}
 
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), (Is2060()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), (xbr::IsGameBuildOrGreater<2060>()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
 
 	MH_CreateHook(hook::get_pattern("4C 8B F9 74 7D", -0x2B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 
@@ -1443,7 +1443,7 @@ static HookFunction hookFunction([]()
 
 	// 32 array size for network object limiting
 	// #TODO: unwind info for these??
-	if (!Is372() && !Is2060()) // only validated for 1604 so far
+	if (!Is372() && !xbr::IsGameBuildOrGreater<2060>()) // only validated for 1604 so far
 	{
 		auto location = hook::get_pattern<char>("48 85 C0 0F 84 C3 06 00 00 E8", -0x4A);
 
@@ -1833,7 +1833,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
 	rlBuffer.m_f1C = 1;
 
-	static auto maxEvent = (Is2060() ? 0x5B : 0x5A);
+	static auto maxEvent = (xbr::IsGameBuildOrGreater<2060>() ? 0x5B : 0x5A);
 
 	if (eventType > maxEvent)
 	{
@@ -1872,7 +1872,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 		if (eventMgr)
 		{
-			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (Is2060() ? 0x3ABD0 : 0x3AB80));
+			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (xbr::IsGameBuildOrGreater<2060>() ? 0x3ABD0 : 0x3AB80));
 			auto eh = eventHandlerList[eventType];
 			
 			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(0x146000000))
@@ -2109,7 +2109,7 @@ static HookFunction hookFunctionEv([]()
 	MH_CreateHook(hook::get_pattern("85 DB 74 78 44 8B F3 48", -0x30), GetFireApplicability, (void**)&g_origGetFireApplicability);
 
 	// CAlterWantedLevelEvent pool check
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		MH_CreateHook(hook::get_call(hook::get_pattern("45 8A C4 48 8B C8 41 8B D7", 8)), SendAlterWantedLevelEvent1Hook, (void**)&g_origSendAlterWantedLevelEvent1);
 		MH_CreateHook(hook::get_pattern("4C 8B 78 10 48 85 F6", -0x58), SendAlterWantedLevelEvent2Hook, (void**)&g_origSendAlterWantedLevelEvent2);
@@ -2536,7 +2536,7 @@ static netTimeSync<Build>** g_netTimeSync;
 
 bool IsWaitingForTimeSync()
 {
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		return !(*g_netTimeSync<2060>)->IsInitialized();
 	}
@@ -2552,7 +2552,7 @@ static InitFunction initFunctionTime([]()
 		{
 			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
 
-			if (Is2060())
+			if (xbr::IsGameBuildOrGreater<2060>())
 			{
 				(*g_netTimeSync<2060>)->HandleTimeSync(buf);
 			}
@@ -2580,13 +2580,13 @@ bool netTimeSync__InitializeTimeStub(netTimeSync<Build>* timeSync, void* connect
 
 static HookFunction hookFunctionTime([]()
 {
-	void* func = (Is2060()) ? (void*)&netTimeSync__InitializeTimeStub<2060> : &netTimeSync__InitializeTimeStub<1604>;
+	void* func = (xbr::IsGameBuildOrGreater<2060>()) ? (void*)&netTimeSync__InitializeTimeStub<2060> : &netTimeSync__InitializeTimeStub<1604>;
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("48 8B D9 48 39 79 08 0F 85 ? ? 00 00 41 8B E8", -32), func, (void**)&g_origInitializeTime);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		g_netTimeSync<2060> = hook::get_address<netTimeSync<2060>**>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C9 45 33 C0 41 8D 51 01 E8", 3));
 	}
@@ -2597,7 +2597,7 @@ static HookFunction hookFunctionTime([]()
 
 	OnMainGameFrame.Connect([]()
 	{
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			(*g_netTimeSync<2060>)->Update();
 		}
@@ -2741,7 +2741,7 @@ static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
 
 static HookFunction hookFunctionWorldGrid([]()
 {
-	if (!Is2060())
+	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		auto p = hook::pattern("BE 01 00 00 00 8B E8 85 C0 0F 84").count(1);
 		hook::jump(p.get(0).get<void>(-0x4D), DoesLocalPlayerOwnWorldGrid);
@@ -2752,7 +2752,7 @@ static HookFunction hookFunctionWorldGrid([]()
 		hook::jump(0x141050614, DoesLocalPlayerOwnWorldGrid);
 	}
 	
-	hook::jump(hook::get_pattern(((Is2060()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((Is2060()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
+	hook::jump(hook::get_pattern(((xbr::IsGameBuildOrGreater<2060>()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((xbr::IsGameBuildOrGreater<2060>()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
 
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("44 8A 40 ? 41 80 F8 FF 0F", -0x1B), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);

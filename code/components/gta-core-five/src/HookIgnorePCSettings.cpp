@@ -29,7 +29,7 @@ static HookFunction hookFunction([] ()
 	// testing hook to not kill blip data when changing to a network game
 	{
 		// #TODO2060: compiler redid it, 0x1401C16B0 
-		if (!Is2060())
+		if (!xbr::IsGameBuildOrGreater<2060>())
 		{
 			char* location = hook::pattern("84 C0 0F 84 ? 00 00 00 40 38 3D ? ? ? ? 48").count(1).get(0).get<char>();
 

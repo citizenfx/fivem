@@ -697,7 +697,7 @@ static HookFunction hookFunction([]()
 	// crash fix: sceneloader doesn't check if mapdatas obtained from boxstreamer still exist
 	// we'll check for that, as removing anything from boxstreamer is weird
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("49 8B 0F 41 8A D9 40 8A F2 E8 ", -0x3A), SceneLoaderScan, (void**)&g_origSceneLoaderScan);
+	MH_CreateHook(hook::get_call(hook::get_pattern("0F 29 81 80 00 00 00 F3 0F 11 99 90 00 00 00 E9", 15)), SceneLoaderScan, (void**)&g_origSceneLoaderScan);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 #if 0
@@ -749,9 +749,13 @@ static HookFunction hookFunction([]()
 		// additional netgame checks for scenarios
 
 		// 1737<
-		if (!Is2060())
+		if (!xbr::IsGameBuildOrGreater<2060>())
 		{
 			hook::nop(hook::get_pattern("B2 04 75 65 80 7B 39", 2), 2);
+		}
+		else if (xbr::IsGameBuildOrGreater<2189>())
+		{
+			// #TODO2189
 		}
 		else
 		{

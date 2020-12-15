@@ -44,7 +44,7 @@ static inline int MapInitState(int initState)
 		{
 			initState += 1;
 		}
-		else if (Is2060())
+		else if (xbr::IsGameBuild<2060>())
 		{
 			initState += 1;
 		}
@@ -1173,7 +1173,14 @@ void ShutdownSessionWrap()
 		// 1604 (same as nethook)
 		// 1868
 		// 2060
-		if (!Is2060())
+		if (Is2189())
+		{
+			((void (*)())hook::get_adjusted(0x140006748))();
+			((void (*)())hook::get_adjusted(0x1407F4150))();
+			((void (*)())hook::get_adjusted(0x140026120))();
+			((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
+		}
+		else if (!Is2060())
 		{
 			((void(*)())hook::get_adjusted(0x1400067E8))();
 			((void(*)())hook::get_adjusted(0x1407D1960))();
@@ -1391,8 +1398,16 @@ static HookFunction hookFunction([] ()
 		// and call our little internal loop function from there
 		hook::call(p, WaitForInitLoop);
 
-		// also add a silly loop to state 6 ('wait for landing page'?)
-		p = hook::pattern("C7 05 ? ? ? ? 06 00 00 00 EB 3F").count(1).get(0).get<char>(0);
+		// also add a silly loop to state 6 ('wait for landing page'?) - or 20 in 2189+
+		if (!xbr::IsGameBuildOrGreater<2189>())
+		{
+			p = hook::pattern("C7 05 ? ? ? ? 06 00 00 00 EB 3F").count(1).get(0).get<char>(0);
+		}
+		else
+		{
+			p = hook::get_pattern<char>("85 C0 74 E8 83 F8 01 75 37", 0x20);
+
+		}
 
 		hook::nop(p, 10);
 		hook::call(p, WaitForInitLoopWrap);
@@ -1537,7 +1552,7 @@ static HookFunction hookFunction([] ()
 	g_extraContentMgr = (void**)(location + *(int32_t*)location + 4);
 
 	// loading screen frame limit
-	location = hook::pattern("0F 2F 05 ? ? ? ? 0F 82 E6 02 00 00").count(1).get(0).get<char>(3);
+	location = hook::pattern("0F 2F 05 ? ? ? ? 0F 82 ? ? ? ? E8 ? ? ? ? 48 89").count(1).get(0).get<char>(3);
 
 	hook::put<float>(location + *(int32_t*)location + 4, 0.0f);
 
@@ -1772,6 +1787,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	// no showwindow early
+	if (!CfxIsSinglePlayer())
 	{
 		auto location = hook::get_pattern<char>("41 8B D4 48 8B C8 48 8B D8 FF 15", 9);
 		hook::nop(location, 6);

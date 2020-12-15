@@ -88,7 +88,7 @@ static HookFunction initFunction([]()
 		{ "33 DB 48 8D 3D ? ? ? ? 8B D3", 1, 0, 5 } // _loadWeaponComponentInfos
 	});
 
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		RelocateRelative({
 			{ "48 8D 1D ? ? ? ? 41 39 BE 54 01 00 00 76 7E", 1, 0, 3 }, // 1868+

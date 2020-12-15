@@ -270,7 +270,7 @@ static void OnInputLanguageChange()
 
 	if (g_controlData)
 	{
-		if (Is2060())
+		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			UpdateControlData((ControlClass1868*)g_controlData);
 		}
@@ -291,7 +291,7 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 45 88 48 3B D8 74 1E");
 		hook::set_call(&g_origLoadLayout, location);
-		hook::call(location, (Is2060() ? (void*)&LoadKeyboardLayoutWrap<ControlClass1868> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
+		hook::call(location, (xbr::IsGameBuildOrGreater<2060>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass1868> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
 	}
 
 	{

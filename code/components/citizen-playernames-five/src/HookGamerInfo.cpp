@@ -142,7 +142,7 @@ static HookFunction hookFunction([]()
 	}
 
 	// #TODO2060
-	if (Is2060())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		return;
 	}

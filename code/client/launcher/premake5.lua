@@ -9,7 +9,7 @@ local function isGamePersonality(name)
 		return isLauncherPersonality(name)
 	end
 
-	if name == 'game' or name == 'game_2060' or name == 'game_372' then
+	if name == 'game' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' then
 		return true
 	end
 	
@@ -59,6 +59,7 @@ local function launcherpersonality(name)
 			if _OPTIONS['game'] == 'five' then
 				local gameBuild = '1604'
 				
+				if name == 'game_2189' then gameBuild = '2189_0' end
 				if name == 'game_2060' then gameBuild = '2060_2' end
 				if name == 'game_372' then gameBuild = '372' end
 			
@@ -153,6 +154,7 @@ if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game'
 	launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
+	launcherpersonality 'game_2189'
 end
 
 externalproject "Win2D"

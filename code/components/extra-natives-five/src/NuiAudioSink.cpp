@@ -239,7 +239,7 @@ namespace rage
 
 	static hook::cdecl_stub<void(audSound*, void*, bool, int, bool)> _audSound_PrepareAndPlay([]()
 	{
-		return hook::get_pattern("0F 85 D3 00 00 00 41 83 CB FF", -0x35);
+		return hook::get_pattern("0F 85 ? 00 00 00 41 83 CB FF 45 33 C0", -0x35);
 	});
 
 	static hook::cdecl_stub<void(audSound*, bool)> _audSound_StopAndForget([]()
@@ -813,7 +813,7 @@ static hook::cdecl_stub<naEnvironmentGroup*()> _naEnvironmentGroup_create([]()
 
 static hook::thiscall_stub<void(naEnvironmentGroup*, void* a2, float a3, int a4, int a5, float a6, int a7)> _naEnvironmentGroup_init([]()
 {
-	return hook::get_pattern("80 A7 10 01 00 00 FC", -0x22);
+	return hook::get_pattern("80 A7 ? 01 00 00 FC F3 0F 10", -0x22);
 });
 
 static hook::thiscall_stub<void(naEnvironmentGroup*, const rage::Vec3V& position)> _naEnvironmentGroup_setPosition([]()
@@ -823,7 +823,7 @@ static hook::thiscall_stub<void(naEnvironmentGroup*, const rage::Vec3V& position
 
 static hook::thiscall_stub<void(naEnvironmentGroup*, rage::fwInteriorLocation)> _naEnvironmentGroup_setInteriorLocation([]()
 {
-	return hook::get_pattern("3B 91 EC 00 00 00 74 07 80 89", -0x17);
+	return hook::get_pattern("3B 91 ? 00 00 00 74 07 80 89", -0x17);
 });
 
 naEnvironmentGroup* naEnvironmentGroup::Create()

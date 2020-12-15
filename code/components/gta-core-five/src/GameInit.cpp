@@ -110,7 +110,7 @@ static void** g_textInputBox;
 static HookFunction hookFunction([]()
 {
 	// really bad pattern pointing to switch-to-netgame
-	if (!Is2060() && !Is372())
+	if (!xbr::IsGameBuildOrGreater<2060>() && !Is372())
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? B9 08 00 00 00 E8 ? ? ? ? E8", 15);
 
@@ -172,7 +172,7 @@ static InitFunction initFunction([] ()
 
 			// also early-load MULTIPLAYER_TEXT_CHAT gfx, this changed sometime between 323 and 505
 			// and also causes a blocking load.
-			if (!Is2060() && g_origLoadMultiplayerTextChat)
+			if (!xbr::IsGameBuildOrGreater<2060>() && g_origLoadMultiplayerTextChat)
 			{
 				g_origLoadMultiplayerTextChat();
 			}

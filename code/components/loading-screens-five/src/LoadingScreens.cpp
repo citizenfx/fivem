@@ -114,8 +114,20 @@ static LoadsThread loadsThread;
 static bool autoShutdownNui = true;
 static fx::TNativeHandler g_origShutdown;
 
+#include <nutsnbolts.h>
+
 static HookFunction hookFunction([]()
 {
+	// 2189
+	OnMainGameFrame.Connect([]()
+	{
+		if (GetAsyncKeyState(VK_F11))
+		{
+			((void (*)(int))0x1402AC214)(0);
+			((void (*)())0x140201AEC)();
+		}
+	});
+
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		static bool endedLoadingScreens = false;
@@ -138,7 +150,8 @@ static HookFunction hookFunction([]()
 
 			if (!handler)
 			{
-				FatalError("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!");
+				trace("Couldn't find SHUTDOWN_LOADING_SCREEN to hook!\n");
+				return;
 			}
 
 			g_origShutdown = *handler;
@@ -513,7 +526,9 @@ static InitFunction initFunction([] ()
 #endif
 
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
-		nui::OverrideFocus(true);
+
+		// 2189
+		//nui::OverrideFocus(true);
 
 #ifndef USE_NUI_ROOTLESS
 		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");

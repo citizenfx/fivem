@@ -218,7 +218,11 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Aug  5 2020", 11) == 0)
+	if (strncmp(buildString, "Dec 10 2020", 11) == 0)
+	{
+		versionIdx = 2189;
+	}
+	else if (strncmp(buildString, "Aug  5 2020", 11) == 0)
 	{
 		versionIdx = 2060;
 	}
@@ -305,6 +309,11 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	else if (Is2060())
 	{
 		assert(maxVersion == 22);
+	}
+	else if (Is2189())
+	{
+		// #TODO2189 not really
+		maxVersion = 22;
 	}
 	else
 	{

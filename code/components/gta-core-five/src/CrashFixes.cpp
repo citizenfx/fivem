@@ -482,7 +482,7 @@ static float sysPerformanceTimer__GetElapsedTimeMS(sysPerformanceTimer* self)
 static HookFunction hookFunction{[] ()
 {
 	// TEMP DBG for investigation: don't crash blindly (but error cleanly) on odd object spawn
-	if (!Is2060())
+	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		auto location = hook::get_pattern("48 85 C0 74 43 48 8B CE E8 ? ? ? ? 48 8B", 8);
 		hook::set_call(&g_origInitAnim, location);
@@ -941,7 +941,7 @@ static HookFunction hookFunction{[] ()
 
 	// fix STAT_SET_INT saving for unknown-typed stats directly using stack garbage as int64
 	// #TODO1737: around 0x140D376DD
-	if (!Is2060())
+	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 	}
