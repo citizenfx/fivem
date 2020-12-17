@@ -256,3 +256,6 @@
 [submodule "vendor/dspfilters"]
 	path = vendor/dspfilters
 	url = https://github.com/thorwe/DSPFilters.git
+[submodule "vendor/hdiffpatch"]
+	path = vendor/hdiffpatch
+	url = https://github.com/sisong/HDiffPatch.git

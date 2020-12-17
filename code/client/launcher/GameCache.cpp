@@ -19,6 +19,26 @@
 #include <Error.h>
 
 #if defined(GTA_FIVE) || defined(IS_RDR3)
+struct GameCacheEntry;
+
+struct DeltaEntry
+{
+	std::array<uint8_t, 20> fromChecksum;
+	std::array<uint8_t, 20> toChecksum;
+	std::string remoteFile;
+	uint64_t dlSize;
+
+	std::string GetFileName() const;
+	GameCacheEntry MakeEntry() const;
+
+	inline std::wstring GetLocalFileName() const
+	{
+		return MakeRelativeCitPath(ToWide("cache\\game\\" + GetFileName()));
+	}
+
+	DeltaEntry(std::string_view fromChecksum, std::string_view toChecksum, const std::string& remoteFile, uint64_t dlSize);
+};
+
 // entry for a cached-intent file
 struct GameCacheEntry
 {
@@ -40,27 +60,35 @@ struct GameCacheEntry
 	// remote size of the archive file
 	size_t remoteSize;
 
+	// delta sets
+	std::vector<DeltaEntry> deltas;
+
 	// constructor
-	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize)
-		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
+	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize, std::initializer_list<DeltaEntry> deltas = {})
+		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr), deltas(deltas)
 	{
 
 	}
 
-	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize)
-		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
+	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize, size_t remoteSize, std::initializer_list<DeltaEntry> deltas = {})
+		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(nullptr), deltas(deltas)
+	{
+	}
+
+	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize, std::initializer_list<DeltaEntry> deltas = {})
+		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile), deltas(deltas)
 	{
 
 	}
 
-	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, size_t localSize)
-		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr)
+	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, size_t localSize, std::initializer_list<DeltaEntry> deltas = {})
+		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr), deltas(deltas)
 	{
 
 	}
 
-	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize)
-		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile)
+	GameCacheEntry(const char* filename, std::initializer_list<const char*> checksums, const char* remotePath, const char* archivedFile, size_t localSize, size_t remoteSize, std::initializer_list<DeltaEntry> deltas = {})
+		: filename(filename), checksums(checksums), remotePath(remotePath), localSize(localSize), remoteSize(remoteSize), archivedFile(archivedFile), deltas(deltas)
 	{
 
 	}
@@ -89,7 +117,7 @@ struct GameCacheEntry
 	{
 		std::string remoteNameBase = remotePath;
 
-		int slashIndex = remoteNameBase.find_last_of('/') + 1;
+		size_t slashIndex = remoteNameBase.find_last_of('/') + 1;
 
 		return MakeRelativeCitPath(ToWide("cache\\game\\" + remoteNameBase.substr(slashIndex)));
 	}
@@ -125,6 +153,24 @@ struct GameCacheEntry
 		return MakeRelativeGamePath(ToWide(filename));
 	}
 };
+
+GameCacheEntry DeltaEntry::MakeEntry() const
+{
+	return GameCacheEntry{ remoteFile.c_str(), "0000000000000000000000000000000000000000", remoteFile.c_str(), dlSize };
+}
+
+std::string DeltaEntry::GetFileName() const
+{
+	std::basic_string_view<uint8_t> from{
+		fromChecksum.data(), 20
+	};
+
+	std::basic_string_view<uint8_t> to{
+		toChecksum.data(), 20
+	};
+
+	return fmt::sprintf("%x_%x", std::hash<decltype(from)>()(from), std::hash<decltype(to)>()(to));
+}
 
 struct GameCacheStorageEntry
 {
@@ -225,7 +271,8 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 
 	{ "launcher/Launcher.exe", "54456C7E24724BF76CBA02210CF2737339663744", "https://mirrors.fivem.net/emergency_mirror/launcher/Launcher.exe", 37970576 },
 	{ "launcher/Launcher.rpf", "619AFA8203CF1DACEAE115898DE3EE30F40B678D", "https://mirrors.fivem.net/emergency_mirror/launcher/Launcher.rpf", 784384 },
-	{ "launcher/Redistributables/SocialClub/Social-Club-Setup.exe", "8260133F1A5BF9131BF01172D2A181881BB98BD0", "https://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/SocialClub/Social-Club-Setup.exe", 99013544 },
+	// do we need to download this?
+	//{ "launcher/Redistributables/SocialClub/Social-Club-Setup.exe", "8260133F1A5BF9131BF01172D2A181881BB98BD0", "https://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/SocialClub/Social-Club-Setup.exe", 99013544 },
 	{ "launcher/Redistributables/VCRed/vc_redist.x64.exe", "BE4F7AD520349D9D0683AB9DD171B3A1E4DB426B", "https://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/VCRed/vc_redist.x64.exe", 15080792 },
 	{ "launcher/Redistributables/VCRed/vc_redist.x86.exe", "13439C916FAAF5E08CAFCE790381578685B0A552", "https://mirrors.fivem.net/emergency_mirror/launcher/Redistributables/VCRed/vc_redist.x86.exe", 14381032 },
 	{ "launcher/RockstarService.exe", "724C0E73F5E59DF9302AE734D918D364E3ACEF54", "https://mirrors.fivem.net/emergency_mirror/launcher/RockstarService.exe", 474256 },
@@ -288,7 +335,7 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "ros_2034/icudtl.dat", "5CC62646E6C73B4BE276D08719BC5E257AF972BB", "https://mirrors.fivem.net/emergency_mirror/ros_2034/icudtl.dat", 10326688 },
 	{ "ros_2034/libEGL.dll", "DAF2E612B503771FB07366749F65C46BA50E2561", "https://mirrors.fivem.net/emergency_mirror/ros_2034/libEGL.dll", 146408 },
 	{ "ros_2034/libGLESv2.dll", "23ED37EC635B37A236EB70C4833114DD4AA18AD8", "https://mirrors.fivem.net/emergency_mirror/ros_2034/libGLESv2.dll", 5431272 },
-	{ "ros_2034/libcef.dll", "C7788FE47331F6E63C806734EB52A73F462CA33B", "https://mirrors.fivem.net/emergency_mirror/ros_2034/libcef.dll", 109920232 },
+	{ "ros_2034/libcef.dll", "C7788FE47331F6E63C806734EB52A73F462CA33B", "https://mirrors.fivem.net/emergency_mirror/ros_2034/libcef.dll.xz", 109920232, 35346184 },
 	{ "ros_2034/locales/am.pak", "C38470C74EC5FA6C39C557A9AE1C62EA8C5949E7", "https://mirrors.fivem.net/emergency_mirror/ros_2034/locales/am.pak", 308569 },
 	{ "ros_2034/locales/ar.pak", "488117B83394AC599F68D89EE6CB4AFDC101617D", "https://mirrors.fivem.net/emergency_mirror/ros_2034/locales/ar.pak", 309144 },
 	{ "ros_2034/locales/bg.pak", "82BB3358F6404168A22618C666736D45B9652C15", "https://mirrors.fivem.net/emergency_mirror/ros_2034/locales/bg.pak", 354995 },
@@ -362,7 +409,7 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, std::string& hashOut)
 {
 	// check if the file name meets the minimum length for there to be a hash
-	int length = strlen(inString);
+	size_t length = strlen(inString);
 
 	if (length < 44)
 	{
@@ -401,22 +448,27 @@ static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, s
 	return true;
 }
 
+#include <charconv>
+
 template<int Size>
-static std::array<uint8_t, Size> ParseHexString(const char* string)
+static constexpr std::array<uint8_t, Size> ParseHexString(const std::string_view string)
 {
 	std::array<uint8_t, Size> retval;
 
-	assert(strlen(string) == Size * 2);
-
-	for (int i = 0; i < Size; i++)
+	for (size_t i = 0; i < Size; i++)
 	{
-		const char* startIndex = &string[i * 2];
-		char byte[3] = { startIndex[0], startIndex[1], 0 };
+		size_t idx = i * 2;
+		char byte[3] = { string[idx], string[idx + 1], 0 };
 
-		retval[i] = strtoul(byte, nullptr, 16);
+		std::from_chars(&byte[0], &byte[2], retval[i], 16);
 	}
 
 	return retval;
+}
+
+DeltaEntry::DeltaEntry(std::string_view fromChecksum, std::string_view toChecksum, const std::string& remoteFile, uint64_t dlSize)
+	: fromChecksum(ParseHexString<20>(fromChecksum)), toChecksum(ParseHexString<20>(toChecksum)), remoteFile(remoteFile), dlSize(dlSize)
+{
 }
 
 static std::vector<GameCacheStorageEntry> LoadCacheStorage()
@@ -671,6 +723,8 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 extern void StartIPFS();
 
+#include "ZlibDecompressPlugin.h"
+
 static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 {
 	// create UI
@@ -699,6 +753,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	}
 
 	bool hadIpfsFile = false;
+	std::vector<std::tuple<DeltaEntry, GameCacheEntry>> theseDeltas;
 
 	for (auto& entry : entries)
 	{
@@ -709,12 +764,20 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		{
 			hashes.push_back(ParseHexString<20>(checksum));
 		}
+
+		const auto& deltaEntries = entry.deltas;
+
+		for (auto& deltaEntry : deltaEntries)
+		{
+			hashes.push_back(deltaEntry.fromChecksum);
+		}
 		
 		std::array<uint8_t, 20> outHash;
 		bool fileOutdated = false;
 		
 		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
 		{
+			// does *not* start with nope: (manual download)
 			UI_UpdateText(0, gettext(L"Verifying game content...").c_str());
 
 			fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &fileStart, fileTotal, &outHash);
@@ -764,6 +827,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			// should we 'nope' this file?
 			if (_strnicmp(entry.remotePath, "nope:", 5) == 0)
 			{
+				// *does* start with nope:
 				if (FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\cache.dat").c_str(), L"ab"))
 				{
 					auto hash = outHash;
@@ -779,9 +843,27 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			}
 			else
 			{
-				CL_QueueDownload(va("file:///%s", converter.to_bytes(entry.GetLocalFileName()).c_str()), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
+				if (outHash == hashes[0])
+				{
+					CL_QueueDownload(va("file:///%s", converter.to_bytes(entry.GetLocalFileName()).c_str()), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
 
-				notificationEntries.push_back({ entry, true });
+					notificationEntries.push_back({ entry, true });
+				}
+				else
+				{
+					for (auto& deltaEntry : deltaEntries)
+					{
+						if (outHash == deltaEntry.fromChecksum)
+						{
+							CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, false);
+
+							notificationEntries.push_back({ deltaEntry.MakeEntry(), false });
+							theseDeltas.emplace_back(deltaEntry, entry);
+
+							break;
+						}
+					}
+				}
 			}
 		}
 		else
@@ -799,7 +881,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				}
 
 				// if the file isn't of the original size
-				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, false);
+				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, (entry.remoteSize != entry.localSize && !entry.archivedFile));
 
 				if (strncmp(remotePath, "ipfs://", 7) == 0)
 				{
@@ -863,6 +945,116 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		{
 			return strcmp(left.remotePath, right.remotePath) < 0;
 		});
+
+		// apply deltas
+		if (!theseDeltas.empty())
+		{
+			for (auto& [ deltaEntry, entry ] : theseDeltas)
+			{
+				if (retval)
+				{
+					hpatch_TStreamInput oldFile;
+					hpatch_TStreamInput deltaFile;
+					hpatch_TStreamOutput outFile;
+
+					auto openRead = [](hpatch_TStreamInput* entry, const std::wstring& fn) 
+					{
+						FILE* f = _wfopen(fn.c_str(), L"rb");
+
+						if (!f)
+						{
+							return;
+						}
+
+						fseek(f, 0, SEEK_END);
+						entry->streamImport = (void*)f;
+						entry->streamSize = ftell(f);
+
+						entry->read = [](const hpatch_TStreamInput* entry, hpatch_StreamPos_t at, uint8_t* begin, uint8_t* end) -> hpatch_BOOL {
+							auto size = end - begin;
+
+							FILE* f = (FILE*)entry->streamImport;
+							fseek(f, at, SEEK_SET);
+
+							return (fread(begin, 1, size, f) == size);
+						};
+					};
+
+					UI_UpdateText(1, va(L"Patching %s", ToWide(entry.filename)));
+
+					auto outSize = entry.localSize;
+
+					auto openWrite = [outSize](hpatch_TStreamOutput* entry, const std::wstring& fn)
+					{
+						FILE* f = _wfopen(fn.c_str(), L"wb");
+
+						if (!f)
+						{
+							return;
+						}
+
+						entry->streamImport = (void*)f;
+						entry->streamSize = outSize;
+						entry->read_writed = NULL;
+
+						static uint64_t numWritten;
+						numWritten = 0;
+
+						entry->write = [](const hpatch_TStreamOutput* entry, hpatch_StreamPos_t at, const uint8_t* begin, const uint8_t* end) -> hpatch_BOOL
+						{
+							auto size = end - begin;
+
+							FILE* f = (FILE*)entry->streamImport;
+							fseek(f, at, SEEK_SET);
+
+							numWritten += size;
+
+							static auto ticks = 0;
+
+							if ((ticks % 400) == 0)
+							{
+								UI_UpdateProgress((numWritten / (double)entry->streamSize) * 100.0);
+
+								MSG msg;
+
+								// poll message loop
+								while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+								{
+									TranslateMessage(&msg);
+									DispatchMessage(&msg);
+								}
+							}
+
+							ticks++;
+
+							return (fwrite(begin, 1, size, f) == size);
+						};
+					};
+
+					auto doClose = [](const auto* entry) 
+					{
+						fclose((FILE*)entry->streamImport);
+					};
+
+					auto theFile = entry.GetCacheFileName();
+					auto tmpFile = theFile + L".tmp";
+
+					openRead(&oldFile, entry.GetLocalFileName());
+					openRead(&deltaFile, deltaEntry.GetLocalFileName());
+					openWrite(&outFile, tmpFile);
+
+					retval = retval && patch_decompress(&outFile, &oldFile, &deltaFile, &zlibDecompressPlugin);
+
+					doClose(&oldFile);
+					doClose(&deltaFile);
+					doClose(&outFile);
+
+					_wunlink(theFile.c_str());
+					_wrename(tmpFile.c_str(), theFile.c_str());
+					_wunlink(deltaEntry.GetLocalFileName().c_str());
+				}
+			}
+		}
 
 		// batch up entries per archive
 		if (!extractedEntries.empty())
@@ -1057,16 +1249,21 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "fcd5fd8a9f99f2e08b0cab5d500740f28a75b75a", "https://mirrors.fivem.net/patches/2060.2/GTA5.exe", 63124096 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2060.2/update.rpf", 1276805120 });
 	}
-
 	else if (xbr::IsGameBuild<2060>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "741c8b91ef57140c023d8d29e38aab599759de76", "https://mirrors.fivem.net/patches/2060.2/GTA5.exe", 60589184 });
-		g_requiredEntries.push_back({ "update/update.rpf", "736f1cb26e59167f302c22385463d231cce302d3", "https://mirrors.fivem.net/patches/2060.2/update.rpf", 1229002752 });
+		g_requiredEntries.push_back({ "update/update.rpf", "736f1cb26e59167f302c22385463d231cce302d3", "https://mirrors.fivem.net/patches/2060.2/update.rpf", 1229002752,
+		{
+			{ "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "736f1cb26e59167f302c22385463d231cce302d3", "https://mirrors.fivem.net/patches/2189_2060_update.rpf.hdiff", 249363428 } 
+		} });
 	}
 	else
 	{
-		g_requiredEntries.push_back({ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/GTA5.exe", 72484280, 1031302600 });
-		g_requiredEntries.push_back({ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600 });
+		g_requiredEntries.push_back({ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://mirrors.fivem.net/patches/1604.0/GTA5.exe", 72484280 });
+		g_requiredEntries.push_back({ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600,
+		{
+			{ "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://mirrors.fivem.net/patches/2189_1604_update.rpf.hdiff", 257064151 }
+		} });
 	}
 #endif
 
