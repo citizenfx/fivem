@@ -24,6 +24,44 @@ using std::min;
 
 #include <gdiplus.h>
 #include <shlwapi.h>
+
+#include <wtsapi32.h>
+
+static bool IsUserConnected()
+{
+#ifdef _WIN32
+	auto wtsapi = LoadLibraryW(L"wtsapi32.dll");
+
+	if (wtsapi)
+	{
+		auto _WTSQuerySessionInformationW = (decltype(&WTSQuerySessionInformationW))GetProcAddress(wtsapi, "WTSQuerySessionInformationW");
+		auto _WTSFreeMemory = (decltype(&WTSFreeMemory))GetProcAddress(wtsapi, "WTSFreeMemory");
+
+		if (_WTSQuerySessionInformationW)
+		{
+			LPWSTR data;
+			DWORD dataSize;
+			if (_WTSQuerySessionInformationW(WTS_CURRENT_SERVER_HANDLE, WTS_CURRENT_SESSION, WTSConnectState, &data, &dataSize))
+			{
+				auto connectState = *(WTS_CONNECTSTATE_CLASS*)data;
+
+				bool rv = (connectState == WTSActive);
+
+				_WTSFreeMemory(data);
+
+				return rv;
+			}
+		}
+	}
+#endif
+
+	return true;
+}
+#else
+static bool IsUserConnected()
+{
+	return false;
+}
 #endif
 
 DLL_IMPORT void RunConsoleGameFrame();
@@ -53,7 +91,7 @@ public:
 	void AttachToObject(ServerInstanceBase* object) override
 	{
 		m_instance = object;
-		m_disableVar = m_instance->AddVariable<bool>("svgui_disable", ConVar_None, false);
+		m_disableVar = m_instance->AddVariable<bool>("svgui_disable", ConVar_None, !IsUserConnected());
 		m_enableCmd = m_instance->AddCommand("svgui", [this]()
 		{
 			m_runConsoleHost = !m_runConsoleHost;
