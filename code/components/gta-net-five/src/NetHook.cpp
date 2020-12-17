@@ -274,7 +274,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	// 505 has it be a xchg-type jump
 	// same for 1032
 	// 1737: changed
-	if (!xbr::IsGameBuildOrGreater<2060>())
+	if (!xbr::IsGameBuildOrGreater<1737>())
 	{
 		uint8_t* loc = hook::pattern("BA 01 00 00 00 41 B8 05 01 00 00").count(1).get(0).get<uint8_t>(11);
 
@@ -284,6 +284,12 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 		}
 
 		return loc;
+	}
+
+	if (xbr::IsGameBuild<2189>())
+	{
+		// 2189
+		return (void*)0x14105DFE8;
 	}
 
 	// 1737

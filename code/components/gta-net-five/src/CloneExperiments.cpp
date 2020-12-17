@@ -3162,7 +3162,7 @@ static HookFunction hookFunctionNative([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("49 8B 0F 40 8A D6 41 2B C4 44 3B 25", 12));
-	rage__s_NetworkTimeLastFrameStart = rage__s_NetworkTimeThisFrameStart - 1;
+	rage__s_NetworkTimeLastFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 48 8B 01 FF 50 10 80 3D", 2));
 });
 
 static hook::cdecl_stub<const char*(int, uint32_t)> rage__atHashStringNamespaceSupport__GetString([]
