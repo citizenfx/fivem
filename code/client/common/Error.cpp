@@ -115,7 +115,7 @@ static int SysError(const char* buffer)
 #else
 	fprintf(stderr, "%s", buffer);
 
-	abort();
+	raise(SIGTERM);
 #endif
 
 	return 0;
