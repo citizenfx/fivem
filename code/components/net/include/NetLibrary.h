@@ -320,6 +320,8 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
+	fwEvent<int> OnRequestBuildSwitch;
+
 	fwEvent<const char*> OnAttemptDisconnect;
 
 	fwEvent<NetAddress> OnInitReceived;

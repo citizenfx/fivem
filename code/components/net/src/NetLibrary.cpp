@@ -25,6 +25,8 @@
 #include <pplawait.h>
 #include <ppltasks.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <json.hpp>
 
 #include <Error.h>
@@ -1530,12 +1532,46 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	performRequest = [=]()
 	{
-		OnConnectionProgress("Handshaking with server...", 0, 100);
+		OnConnectionProgress("Requesting server variables...", 0, 100);
 
-		HttpRequestOptions options;
-		options.streamingCallback = handleAuthResultData;
+		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+		{
+			using json = nlohmann::json;
 
-		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
+			if (success)
+			{
+				try
+				{
+					json info = json::parse(data, data + size);
+#ifdef GTA_FIVE
+					if (info.is_object() && info["vars"].is_object())
+					{
+						auto val = info["vars"].value("sv_enforceGameBuild", "");
+
+						if (!val.empty())
+						{
+							int buildRef = std::stoi(val);
+
+							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
+							{
+								OnRequestBuildSwitch(buildRef);
+							}
+						}
+					}
+#endif
+				}
+				catch (std::exception& e)
+				{
+				}
+			}
+
+			OnConnectionProgress("Handshaking with server...", 0, 100);
+
+			HttpRequestOptions options;
+			options.streamingCallback = handleAuthResultData;
+
+			m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
+		});
 	};
 
 	m_cardResponseHandler = [this, url](const std::string& cardData, const std::string& token)

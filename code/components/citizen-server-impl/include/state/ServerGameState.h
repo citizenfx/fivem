@@ -56,7 +56,7 @@ inline bool Is2060()
 {
 	static bool value = ([]()
 	{
-		return g_enforcedGameBuild == "2060";
+		return g_enforcedGameBuild == "2060" || g_enforcedGameBuild == "2189";
 	})();
 
 	return value;

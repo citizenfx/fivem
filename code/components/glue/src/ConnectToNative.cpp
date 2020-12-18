@@ -61,14 +61,26 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-static void RestartGameToOtherBuild()
+static void RestartGameToOtherBuild(int build = 0)
 {
 #ifdef GTA_FIVE
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
+	const wchar_t* cli;
+
+	if (!build)
+	{
+		cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
 		hostData->gameExePath,
 		Is2060() ? L"" : L"-b2060",
 		ToWide(g_lastConn));
+	}
+	else
+	{
+		cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
+		hostData->gameExePath,
+		build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
+		ToWide(g_lastConn));
+	}
 
 	STARTUPINFOW si = { 0 };
 	si.cb = sizeof(si);
@@ -381,6 +393,11 @@ static InitFunction initFunction([] ()
 			auto peerAddress = netLibrary->GetCurrentPeer().ToString();
 
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
+		});
+
+		netLibrary->OnRequestBuildSwitch.Connect([](int build)
+		{
+			RestartGameToOtherBuild(build);
 		});
 
 		netLibrary->OnConnectionError.Connect([] (const char* error)
