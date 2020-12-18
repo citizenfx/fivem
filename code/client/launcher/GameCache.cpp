@@ -1246,8 +1246,8 @@ std::map<std::string, std::string> UpdateGameCache()
 	}
 	else if (xbr::IsGameBuild<2189>())
 	{
-		g_requiredEntries.push_back({ "GTA5.exe", "fcd5fd8a9f99f2e08b0cab5d500740f28a75b75a", "https://mirrors.fivem.net/patches/2060.2/GTA5.exe", 63124096 });
-		g_requiredEntries.push_back({ "update/update.rpf", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2060.2/update.rpf", 1276805120 });
+		g_requiredEntries.push_back({ "GTA5.exe", "fcd5fd8a9f99f2e08b0cab5d500740f28a75b75a", "https://mirrors.fivem.net/patches/2189.0/GTA5.exe", 63124096 });
+		g_requiredEntries.push_back({ "update/update.rpf", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2189.0/update.rpf", 1276805120 });
 	}
 	else if (xbr::IsGameBuild<2060>())
 	{
@@ -1266,6 +1266,16 @@ std::map<std::string, std::string> UpdateGameCache()
 			{ "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://mirrors.fivem.net/patches/2189_1604_update.rpf.hdiff", 257064151 },
 			{ "2d9756564bece80205165a724536b2fce731c600", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://mirrors.fivem.net/patches/2060_1_1604_update.rpf.hdiff", 252578172 },
 		} });
+	}
+
+	if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsum/dlc.rpf", "ffd81a2ce5741b38eae69e47132ddbfc5cfdf9f4", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 980621312 });
+	}
+
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpheist4/dlc.rpf", "1ddd73a584126793478c835efef9899a1c9d6fe7", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3452489728 });
 	}
 #endif
 
