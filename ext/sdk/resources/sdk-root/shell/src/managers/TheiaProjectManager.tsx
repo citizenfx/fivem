@@ -8,7 +8,7 @@ const log = logger('TheiaProjectManager');
 
 export const TheiaProjectManager = React.memo(function TheiaProjectManager() {
   const { project } = React.useContext(ProjectContext);
-  const { openProjectInTheia, theiaIsReady, sendTheiaMessage } = React.useContext(TheiaContext);
+  const { openProjectInTheia, theiaIsReady, sendTheiaMessage, setTheiaIsReady } = React.useContext(TheiaContext);
 
   const flags = React.useRef({
     reloadPending: false,
@@ -64,8 +64,12 @@ export const TheiaProjectManager = React.memo(function TheiaProjectManager() {
           });
         }
       }
+    } else {
+      lastProjectPathRef.current = '';
+      lastFoldersStringRef.current = '';
+      setTheiaIsReady(false);
     }
-  }, [project, theiaIsReady, openProjectInTheia, sendTheiaMessage]);
+  }, [project, theiaIsReady, openProjectInTheia, sendTheiaMessage, setTheiaIsReady]);
 
   return null;
 });

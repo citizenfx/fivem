@@ -1,5 +1,5 @@
 import React from 'react';
-import { ServerInstallationState, ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'shared/api.types';
+import { ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
@@ -15,7 +15,6 @@ export interface ServerContext {
   serverOutput: string,
 
   updateChannelsState: ServerUpdateChannelsState,
-  installationState: ServerInstallationState,
 
   clientConnected: boolean,
 
@@ -36,7 +35,6 @@ export const ServerContext = React.createContext<ServerContext>({
   serverOutput: '',
 
   updateChannelsState: {},
-  installationState: {},
 
   clientConnected: false,
 
@@ -60,7 +58,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
   const [serverOutput, setServerOutput] = React.useState<string>('');
 
   const [updateChannelsState, setUpdateChannelsState] = React.useState<ServerUpdateChannelsState>({});
-  const [installationState, setInstallationState] = React.useState<ServerInstallationState>({});
 
   const [clientConnected, setClientConnected] = React.useState(false);
   const connectPending = React.useRef(false);
@@ -98,7 +95,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
   React.useEffect(() => {
     sendApiMessage(serverApi.ackState);
     sendApiMessage(serverApi.ackUpdateChannelsState);
-    sendApiMessage(serverApi.ackInstallationState);
 
     // Ack sdk-game state
     sendCommand('sdk:ackConnected');
@@ -109,7 +105,7 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     if (serverState === ServerStates.up) {
       sendApiMessage(serverApi.ackResourcesState);
 
-      log('Will connect now?', {
+      log('Will connect now?', gameLaunched && connectPending.current && !clientConnected, {
         gameLaunched,
         connectPending: connectPending.current,
         clientConnected,
@@ -159,10 +155,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     setUpdateChannelsState(newUpdateChannelsState);
   });
 
-  useApiMessage(serverApi.installationState, (newInstallationState) => {
-    setInstallationState(newInstallationState);
-  });
-
   useApiMessage(serverApi.clearOutput, () => {
     setServerOutput('');
   }, [setServerOutput]);
@@ -177,7 +169,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     serverOutput,
 
     updateChannelsState,
-    installationState,
 
     clientConnected,
 

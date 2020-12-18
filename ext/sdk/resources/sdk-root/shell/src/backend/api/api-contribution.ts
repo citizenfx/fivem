@@ -3,8 +3,7 @@ import { ApiClient } from "backend/api/api-client";
 import { AppContribution } from "backend/app/app-contribution";
 import { ContributionProvider } from "backend/contribution-provider";
 import { LogService } from "backend/logger/log-service";
-import { ClientEventBinding, getClientEventHandlers, getSystemEventHandlers, SystemEventBinding } from "./api-decorators";
-import { systemEvents } from "../systemEvents";
+import { ClientEventBinding, getClientEventHandlers } from "./api-decorators";
 
 export const ApiContributionFactory = Symbol('Factory<ApiContribution>');
 export type ApiContributionFactory = <T extends ApiContribution>(service: interfaces.Newable<T>) => T;
@@ -38,16 +37,8 @@ export class ApiService implements AppContribution {
       .filter(({ propKey }) => !!contribution[propKey])
       .map(({ propKey, eventName }: ClientEventBinding) => this.apiClient.on(eventName, contribution[propKey].bind(contribution)));
 
-    // binding to system events
-    const systemEventHandlers = getSystemEventHandlers(contribution);
-    this.logService.log('system event handlers', systemEventHandlers);
-
-    const systemEventDisposers = systemEventHandlers
-      .filter(({ propKey }) => !!contribution[propKey])
-      .map(({ propKey, event }: SystemEventBinding) => systemEvents.on(event, contribution[propKey].bind(contribution)));
-
     if (Array.isArray(contribution.eventDisposers)) {
-      contribution.eventDisposers.push(...clientEventDisposers, ...systemEventDisposers);
+      contribution.eventDisposers.push(...clientEventDisposers);
     }
   }
 

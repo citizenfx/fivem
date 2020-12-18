@@ -20,10 +20,6 @@ export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageL
   React.useEffect(() => onApiMessage(type, cb), watchers); // eslint-disable-line react-hooks/exhaustive-deps
 };
 
-export const useSidApiMessage = (sid: string, type: string, cb: ApiMessageListener, watchers: React.DependencyList = []) => {
-  useApiMessage(`${type}(${sid})`, cb, watchers); // eslint-disable-line react-hooks/exhaustive-deps
-};
-
 export const useCounter = (initial: number = 0) => {
   const [counter, setCounter] = React.useState<number>(initial);
   const counterRef = React.useRef(counter);

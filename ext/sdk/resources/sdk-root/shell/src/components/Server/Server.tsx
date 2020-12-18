@@ -1,27 +1,24 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsFillGearFill, BsPlayFill, BsStopFill } from 'react-icons/bs';
+import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsGear, BsPlay, BsStop } from 'react-icons/bs';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { ServerStates, ServerUpdateStates } from 'shared/api.types';
 import { rotatingRefreshIcon } from 'constants/icons';
 import { ServerConfig } from './ServerConfig/ServerConfig';
+import { Indicator } from 'components/Indicator/Indicator';
 import s from './Server.module.scss';
 
 
 export const Server = React.memo(function Server() {
-  const { serverState, updateChannelsState, installationState, startServer, stopServer, installUpdate } = React.useContext(ServerContext);
+  const { serverState, updateChannelsState, startServer, stopServer, installUpdate } = React.useContext(ServerContext);
   const { project } = React.useContext(ProjectContext);
 
   const [configuratorOpen, openConfigurator, closeConfigurator] = useOpenFlag(false);
 
   const updateChannelState = project
     ? updateChannelsState[project.manifest.serverUpdateChannel]
-    : null;
-
-  const installerState = project
-    ? installationState[project.manifest.serverUpdateChannel]
     : null;
 
   const rootClassName = classnames(s.root, {
@@ -33,24 +30,23 @@ export const Server = React.memo(function Server() {
 
   let icon;
   let title;
-  let progress: React.ReactNode = null;
 
   if (updateChannelState === ServerUpdateStates.ready) {
     switch (serverState) {
       case ServerStates.up: {
-        icon = <BsStopFill />;
+        icon = <BsStop />;
         title = 'Stop server';
         break;
       }
 
       case ServerStates.down: {
-        icon = <BsPlayFill />;
+        icon = <BsPlay />;
         title = 'Start server';
         break;
       }
 
       case ServerStates.booting: {
-        icon = rotatingRefreshIcon;
+        icon = <Indicator />;
         title = 'Stop server';
         break;
       }
@@ -70,24 +66,14 @@ export const Server = React.memo(function Server() {
       }
 
       case ServerUpdateStates.checking: {
-        icon = rotatingRefreshIcon;
+        icon = <Indicator />;
         title = 'Checking updates';
         break;
       }
 
       case ServerUpdateStates.updating: {
-        icon = rotatingRefreshIcon;
+        icon = <Indicator />;
         title = 'Updating';
-
-        const percentage = ((installerState?.downloadedPercentage || 0) + (installerState?.unpackedPercentage || 0)) / 2;
-        const width = `${percentage * 100}px`;
-
-        progress = (
-          <div
-            className={s.progress}
-            style={{ width }}
-          />
-        );
       }
     }
   }
@@ -111,16 +97,18 @@ export const Server = React.memo(function Server() {
 
   return (
     <div className={rootClassName}>
-      {progress}
-
-      <div className={s.button} onClick={handleClick} title={title}>
+      <div
+        className={s.button}
+        onClick={handleClick}
+        title={title}
+      >
         {icon}
       </div>
 
       {updateChannelState === ServerUpdateStates.ready && (
         <>
           <div className={s.config} onClick={openConfigurator}>
-            <BsFillGearFill />
+            <BsGear />
           </div>
           {configuratorOpen && (
             <ServerConfig onClose={closeConfigurator} />

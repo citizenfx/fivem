@@ -1,5 +1,6 @@
 import { inject, injectable } from "inversify";
 import fetch from 'node-fetch';
+import filesize from 'filesize';
 import { ApiClient } from "backend/api/api-client";
 import { ApiContribution } from "backend/api/api-contribution";
 import { AppContribution } from "backend/app/app-contribution";
@@ -7,10 +8,11 @@ import { ConfigService } from "backend/config-service";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { GameServerInstaller, versionFilename } from "./game-server-installer";
-import { ServerInstallationState, ServerUpdateChannel, serverUpdateChannels, ServerUpdateChannelsState, ServerUpdateStates } from "shared/api.types";
+import { ServerUpdateChannel, serverUpdateChannels, ServerUpdateChannelsState, ServerUpdateStates } from "shared/api.types";
 import { handlesClientEvent } from "backend/api/api-decorators";
 import { serverApi } from "shared/api.events";
 import { NotificationService } from "backend/notification/notification-service";
+import { TaskReporterService } from "backend/task/task-reporter-service";
 
 const updateChannels = Object.keys(serverUpdateChannels);
 
@@ -46,6 +48,9 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
 
+  @inject(TaskReporterService)
+  protected readonly taskReporterService: TaskReporterService;
+
   @inject(GameServerInstaller)
   protected readonly gameServerInstaller: GameServerInstaller;
 
@@ -53,12 +58,6 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     [serverUpdateChannels.recommended]: ServerUpdateStates.checking,
     [serverUpdateChannels.optional]: ServerUpdateStates.checking,
     [serverUpdateChannels.latest]: ServerUpdateStates.checking,
-  };
-
-  protected installationState: ServerInstallationState = {
-    [serverUpdateChannels.recommended]: null,
-    [serverUpdateChannels.optional]: null,
-    [serverUpdateChannels.latest]: null,
   };
 
   protected versions: ServerVersions = updateChannels.reduce((acc, updateChannel) => { acc[updateChannel] = null; return acc }, {});
@@ -160,6 +159,8 @@ export class GameServerManagerService implements AppContribution, ApiContributio
    * Fetches recent server versions from build server
    */
   private async fetchVersions() {
+    const fetchTask = this.taskReporterService.create(`Fetching recent server artifact versions`);
+
     try {
       const versionsContent = await fetch('https://changelogs-live.fivem.net/api/changelog/versions/win32/server').then((res) => res.json());
 
@@ -185,13 +186,14 @@ export class GameServerManagerService implements AppContribution, ApiContributio
       });
 
       this.notificationService.error(`Failed to fetch server versions from remote host: ${e.toString()}`);
+    } finally {
+      fetchTask.done();
     }
   }
 
   @handlesClientEvent(serverApi.installUpdate)
   private async install(updateChannel: ServerUpdateChannel) {
     const versionConfig = this.versions[updateChannel];
-
     if (!versionConfig) {
       return;
     }
@@ -204,14 +206,6 @@ export class GameServerManagerService implements AppContribution, ApiContributio
       this.deleteOldArtifact(updateChannel),
     ]);
 
-    const installationState = {
-      downloadedPercentage: 0,
-      unpackedPercentage: 0,
-    };
-
-    this.installationState[updateChannel] = installationState;
-    this.ackInstallationState();
-
     const { version, link } = versionConfig;
 
     const artifactPath = this.getArtifactPath(updateChannel, version);
@@ -223,6 +217,10 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     }
 
     if (!(await this.fsService.statSafe(artifactPath))) {
+      const downloadTask = this.taskReporterService.create(`Downloading server artifact #${updateChannel}`);
+
+      downloadTask.setText(`Downloaded: ${filesize(0)}`);
+
       let totalDownloadSize = 0;
       let doneDownloadSize = 0;
 
@@ -234,21 +232,20 @@ export class GameServerManagerService implements AppContribution, ApiContributio
           (chunkSize) => {
             doneDownloadSize += chunkSize;
 
-            installationState.downloadedPercentage = doneDownloadSize / totalDownloadSize;
-            this.ackInstallationState();
+            downloadTask.setText(`Downloaded: ${filesize(doneDownloadSize)}`);
+            downloadTask.setProgress(doneDownloadSize / totalDownloadSize);
           },
         );
       } catch (e) {
-        // Ready as unpacked thing still exist
+        // Ready as unpacked thing still exist, right?
         this.setUpdateChannelState(updateChannel, ServerUpdateStates.ready);
         this.notificationService.error(`Failed to download server artifact: ${e.toString()}`);
         return;
+      } finally {
+        downloadTask.done();
       }
 
       await this.fsService.rename(downloadingArtifactPath, artifactPath);
-    } else {
-      installationState.downloadedPercentage = 1;
-      this.ackInstallationState();
     }
 
     if (await this.fsService.statSafe(artifactExtractionPath)) {
@@ -256,6 +253,8 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     }
 
     {
+      const unpackTask = this.taskReporterService.create(`Unpacking server artifact #${updateChannel}`);
+
       let totalUnpackSize = 0;
       let doneUnpackSize = 0;
 
@@ -267,14 +266,16 @@ export class GameServerManagerService implements AppContribution, ApiContributio
           (chunkSize) => {
             doneUnpackSize += chunkSize;
 
-            installationState.unpackedPercentage = doneUnpackSize / totalUnpackSize;
-            this.ackInstallationState();
+            unpackTask.setText(`Unpacked: ${filesize(doneUnpackSize)}`);
+            unpackTask.setProgress(doneUnpackSize / totalUnpackSize);
           },
         );
       } catch (e) {
         this.setUpdateChannelState(updateChannel, ServerUpdateStates.missingArtifact);
         this.notificationService.error(`Failed to unpack server artifact: ${e.toString()}`);
         return;
+      } finally {
+        unpackTask.done();
       }
     }
 
@@ -294,7 +295,15 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     const artifactPath = this.getArtifactPath(updateChannel, version);
 
     if (await this.fsService.statSafe(artifactPath)) {
-      await this.fsService.unlink(artifactPath);
+      const deleteTask = this.taskReporterService.create(`Deleting old server artifact #${updateChannel}`);
+
+      try {
+        await this.fsService.unlink(artifactPath);
+      } catch (e) {
+        this.notificationService.error(`Failed to delete old server artifact: ${e.toString()}`);
+      } finally {
+        deleteTask.done();
+      }
     }
   }
 
@@ -304,11 +313,6 @@ export class GameServerManagerService implements AppContribution, ApiContributio
 
   private getDownloadingArtifactPath(updateChannel: ServerUpdateChannel, version: string) {
     return this.fsService.joinPath(this.configService.serverArtifacts, `${updateChannel}.${version}.fxdkdownload`);
-  }
-
-  @handlesClientEvent(serverApi.ackInstallationState)
-  private ackInstallationState() {
-    this.apiClient.emit(serverApi.installationState, this.installationState);
   }
 
   @handlesClientEvent(serverApi.ackUpdateChannelsState)

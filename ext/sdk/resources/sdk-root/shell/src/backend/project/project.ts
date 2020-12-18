@@ -44,6 +44,9 @@ import { GameServerService } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
 import { ChangeAwareContainer } from 'backend/change-aware-container';
+import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
+import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
+import { TheiaService } from 'backend/theia/theia-service';
 
 interface Silentable {
   silent?: boolean,
@@ -93,6 +96,12 @@ export class Project implements ApiContribution {
 
   @inject(ContributionProvider) @named(AssetContribution)
   protected readonly assetContributions: ContributionProvider<AssetContribution>;
+
+  @inject(TaskReporterService)
+  protected readonly taskReporterService: TaskReporterService;
+
+  @inject(TheiaService)
+  protected readonly theiaService: TheiaService;
 
   @inject(FsMapping)
   private fsMapping: FsMapping;
@@ -160,38 +169,40 @@ export class Project implements ApiContribution {
   async create(request: ProjectCreateRequest): Promise<Project> {
     this.logService.log('Creating project', request);
 
-    this.path = this.fsService.joinPath(request.projectPath, request.projectName);
+    const creatingTask = this.taskReporterService.createNamed(projectCreatingTaskName, `Creating project ${request.projectName}`);
 
-    const projectShadowRootPath = this.fsService.joinPath(this.path, '.fxdk/shadowRoot');
+    try {
+      this.path = this.fsService.joinPath(request.projectPath, request.projectName);
+      this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
+      this.shadowPath = this.fsService.joinPath(this.storagePath, 'shadowRoot');
 
-    const projectManifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
-    const projectManifest: ProjectManifest = {
-      name: request.projectName,
-      serverUpdateChannel: serverUpdateChannels.recommended,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      resources: {},
-      pathsState: {},
-    };
+      const projectManifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
+      const projectManifest: ProjectManifest = {
+        name: request.projectName,
+        serverUpdateChannel: serverUpdateChannels.recommended,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        resources: {},
+        pathsState: {},
+      };
 
-    const theiaSettingsPath = this.fsService.joinPath(this.path, '.fxdk/theia-settings.json');
-    const theiaSettings = {
-      folders: [],
-      settings: {},
-    };
+      // It will create this.path as well
+      await this.fsService.mkdirp(this.shadowPath)
 
-    // It will create this.path as well
-    await this.fsService.mkdirp(projectShadowRootPath)
+      await Promise.all([
+        // Write project manifest
+        this.fsService.writeFile(projectManifestPath, JSON.stringify(projectManifest, null, 2)),
 
-    await Promise.all([
-      // Write project manifest
-      this.fsService.writeFile(projectManifestPath, JSON.stringify(projectManifest, null, 2)),
+        // Write theia-personality settings
+        this.theiaService.createDefaultProjectSettings(this.storagePath),
+      ]);
 
-      // Write theia-personality settings
-      this.fsService.writeFile(theiaSettingsPath, JSON.stringify(theiaSettings, null, 2)),
-    ]);
-
-    this.logService.log('Done creating project', request);
+      this.logService.log('Done creating project', request);
+    } catch (e) {
+      throw e;
+    } finally {
+      creatingTask.done();
+    }
 
     return this.load();
   }
@@ -201,19 +212,32 @@ export class Project implements ApiContribution {
       this.path = path;
     }
 
+    const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${path}`);
+
     this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
     this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
     this.shadowPath = this.fsService.joinPath(this.storagePath, 'shadowRoot');
 
-    this.log('loading project...');
+    try {
+      this.log('loading project...');
 
-    await this.initManifest();
-    await this.initFs();
+      loadTask.setText('Loading manifest...');
+      await this.initManifest();
 
-    this.setGameServerServiceEnabledResources();
+      loadTask.setText('Loading project files...');
+      await this.initFs();
 
-    this.log('done loading project');
-    this.ready = true;
+      this.setGameServerServiceEnabledResources();
+
+      loadTask.setText('Done loading project');
+
+      this.log('done loading project');
+      this.ready = true;
+    } catch (e) {
+      throw e;
+    } finally {
+      loadTask.done();
+    }
 
     return this;
   }
@@ -269,6 +293,8 @@ export class Project implements ApiContribution {
 
   async unload() {
     this.log('Unloading...');
+
+    this.apiClient.emit(projectApi.close);
 
     await this.fsMapping.deinit();
     this.eventDisposers.forEach((disposer) => disposer());

@@ -3,15 +3,11 @@
 .root {
   position: relative;
 
-  height: 100%;
-
   display: flex;
   align-items: stretch;
   justify-content: stretch;
 
-  // border-radius: $q/2;
-
-  // background-color: rgba($fgColor, .1);
+  height: 100%;
 
   cursor: pointer;
   user-select: none;
@@ -56,7 +52,7 @@
     z-index: 2;
 
     svg {
-      font-size: $fs1;
+      font-size: $fs4;
       color: rgba($fgColor, .75);
     }
 

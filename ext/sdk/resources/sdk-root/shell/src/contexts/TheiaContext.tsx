@@ -17,6 +17,7 @@ export interface TheiaState {
   openProjectInTheia: (theiaProject: TheiaProject) => void,
   openFileInTheia: (file: string) => void,
   sendTheiaMessage: (msg: any) => void,
+  setTheiaIsReady: (readyState: boolean) => void,
 }
 
 export const TheiaContext = React.createContext<TheiaState>({
@@ -25,6 +26,7 @@ export const TheiaContext = React.createContext<TheiaState>({
   openProjectInTheia: () => { console.error('Theia is not initialized yet') },
   openFileInTheia: () => { console.error('Theia is not initialized yet') },
   sendTheiaMessage: () => { console.error('Theia is not initialized yet') },
+  setTheiaIsReady: () => { console.error('Theia is not initialized yet') },
 });
 
 export const TheiaContextProvider = React.memo(function TheiaContextProvider({ children }) {
@@ -75,6 +77,7 @@ export const TheiaContextProvider = React.memo(function TheiaContextProvider({ c
     sendTheiaMessage,
     openProjectInTheia,
     openFileInTheia,
+    setTheiaIsReady,
   };
 
   return (

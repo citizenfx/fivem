@@ -1,6 +1,6 @@
 import { produce } from 'immer';
 
-export class ChangeAwareContainer<T> {
+export class ChangeAwareContainer<T extends (object|Array<any>)> {
   constructor(
     protected snapshot: T,
     protected onApply: (snapshot: T) => void = () => {},

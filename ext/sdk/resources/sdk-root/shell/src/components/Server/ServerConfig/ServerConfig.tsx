@@ -64,14 +64,7 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
 
   const updateChannel = project.manifest.serverUpdateChannel;
 
-  const { serverOutput/*, checkForUpdates*/, sendServerCommand } = React.useContext(ServerContext);
-
-  // const [checkingForUpdates, setCheckingForUpdates] = React.useState(false);
-
-  // const handleCheckForUpdates = React.useCallback(() => {
-  //   setCheckingForUpdates(true);
-  //   checkForUpdates(updateChannel);
-  // }, [setCheckingForUpdates, checkForUpdates, updateChannel]);
+  const { serverOutput, sendServerCommand } = React.useContext(ServerContext);
 
   const handleUpdateChannelChange = React.useCallback((updateChannel: ServerUpdateChannel) => {
     sendApiMessage(projectApi.setServerUpdateChannel, updateChannel);
@@ -108,11 +101,6 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
         </div>
 
         <div className="modal-actions">
-          {/* <Button
-            text="Check for updates"
-            disabled={checkingForUpdates}
-            onClick={handleCheckForUpdates}
-          /> */}
           <Button
             text="Show server GUI"
             disabled={!canShowServerGui}

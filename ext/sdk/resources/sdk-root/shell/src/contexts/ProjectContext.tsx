@@ -108,6 +108,10 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     localStorage.setItem('last-project-path', project.path);
   }, [setProject]);
 
+  useApiMessage(projectApi.close, () => {
+    setProject(null);
+  }, [setProject]);
+
   useApiMessage(projectApi.update, (updatedProject) => {
     setProject({ ...projectRef.current, ...updatedProject });
   }, [setProject]);

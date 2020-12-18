@@ -9,13 +9,20 @@ import { Welcome } from './Welcome/Welcome';
 import { Updater } from './Updater/Updater';
 import { ChangelogModal } from './Changelog/Changelog.modal';
 import s from './Shell.module.scss';
+import { useTask } from 'contexts/TaskContext';
+import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
 
 
 export function Shell() {
   const { state, updaterOpen, changelogOpen } = React.useContext(StateContext);
   const { project, creatorOpen, openerOpen } = React.useContext(ProjectContext);
 
-  const showToolbar = !!project || creatorOpen || openerOpen;
+  const projectCreatingTask = useTask(projectCreatingTaskName);
+  const projectLoadingTask = useTask(projectLoadingTaskName);
+
+  const showToolbar = Boolean(
+    project || creatorOpen || openerOpen || projectCreatingTask || projectLoadingTask
+  );
   const showWelcome = state === AppStates.ready && !showToolbar;
   const showUpdater = state === AppStates.preparing || updaterOpen;
 

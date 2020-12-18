@@ -16,7 +16,6 @@ import { Container } from 'inversify';
 import { ConfigService } from './config-service';
 import { AppService } from './app/app-service';
 import { bindShellBackend } from './shell-backend';
-import { bindCommandService } from './commands/command-service';
 import { bindFs } from './fs/fs-bindings';
 import { bindApi } from './api/api-bindings';
 import { bindFeatures } from './features/features-bindings';
@@ -30,6 +29,7 @@ import { bindTheia } from './theia/theia-bindings';
 import { bindGameServer } from './game-server/game-server-bindings';
 import { bindProject } from './project/project-bindings';
 import { ContainerAccess } from './container-access';
+import { bindTask } from './task/task-bindings';
 
 const appContainer = new Container();
 
@@ -40,11 +40,11 @@ appContainer.bind(ContainerAccess).toConstantValue(new ContainerAccess(appContai
 bindApp(appContainer);
 bindFeatures(appContainer);
 bindFs(appContainer);
+bindTask(appContainer);
 bindStatus(appContainer);
 bindExplorer(appContainer);
 bindNotification(appContainer);
 bindLogger(appContainer);
-bindCommandService(appContainer);
 bindShellBackend(appContainer);
 bindApi(appContainer);
 bindGameServer(appContainer);

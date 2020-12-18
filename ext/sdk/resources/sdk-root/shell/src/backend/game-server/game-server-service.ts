@@ -17,6 +17,7 @@ import { ConfigService } from 'backend/config-service';
 import { ApiClient } from 'backend/api/api-client';
 import { sdkGamePipeName } from 'backend/constants';
 import { Sequencer } from 'backend/execution-utils/sequencer';
+import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 
 enum ResourceReconcilationState {
   start = 1,
@@ -45,6 +46,9 @@ export class GameServerService implements AppContribution, ApiContribution {
   @inject(FeaturesService)
   protected readonly featuresService: FeaturesService;
 
+  @inject(TaskReporterService)
+  protected readonly taskReporterService: TaskReporterService;
+
   @inject(GameServerManagerService)
   protected readonly gameServerManagerService: GameServerManagerService;
 
@@ -55,6 +59,9 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   protected server: cp.ChildProcess | null = null;
   protected currentEnabledResourcesPaths = new Set<string>();
+
+  protected startTask: Task | null = null;
+  protected stopTask: Task | null = null;
 
   protected serverOpsSequencer = new Sequencer();
 
@@ -74,16 +81,19 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @handlesClientEvent(serverApi.stop)
   stop() {
-    this.server?.kill('SIGKILL');
+    if (this.server) {
+      this.stopTask = this.taskReporterService.create('Stopping server');
+      this.server?.kill('SIGKILL');
+    }
   }
 
   @handlesClientEvent(serverApi.start)
   async start(request: ServerStartRequest) {
+    this.startTask = this.taskReporterService.create('Starting server');
+
     this.logService.log('Starting server', request);
 
     const { projectPath } = request;
-
-    this.logService.log('Ops sequencer state', this.serverOpsSequencer.getStateString(), this.serverOpsSequencer);
 
     this.apiClient.emit(serverApi.clearOutput);
 
@@ -151,6 +161,8 @@ export class GameServerService implements AppContribution, ApiContribution {
 
       this.server = null;
 
+      this.startTask?.done();
+      this.stopTask?.done();
       this.toState(ServerStates.down);
     });
 
@@ -332,6 +344,7 @@ export class GameServerService implements AppContribution, ApiContribution {
               return this.apiClient.emit(serverApi.resourcesState, data);
             }
             case 'ready': {
+              this.startTask?.done();
               return this.toState(ServerStates.up);
             }
           }

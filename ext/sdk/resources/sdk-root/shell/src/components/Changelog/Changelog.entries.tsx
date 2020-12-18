@@ -13,11 +13,19 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>21 december 2020</strong>
+        </p>
+        <ul>
+          <li>Show toolbar immediately after project open/create process begins</li>
+        </ul>
+
+        <p>
           <strong>18 december 2020</strong>
         </p>
         <ul>
           <li>Compact FxDK toolbar design, allowing more space for project explorer</li>
           <li>Granular-ish resources state propagation to shell-client</li>
+          <li>Some tasks are now reporting their state including server installer bits</li>
         </ul>
 
         <p>

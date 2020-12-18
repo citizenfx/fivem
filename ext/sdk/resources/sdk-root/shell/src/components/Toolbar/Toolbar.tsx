@@ -11,6 +11,7 @@ import { Project } from 'components/Project/Project';
 import s from './Toolbar.module.scss';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { Server } from 'components/Server/Server';
+import { TaskReporter } from 'components/TaskReporter/TaskReporter';
 
 export const Toolbar = React.memo(function Toolbar() {
   const { state, toolbarOpen, openToolbar, closeToolbar, openChangelog } = React.useContext(StateContext);
@@ -100,6 +101,8 @@ export const Toolbar = React.memo(function Toolbar() {
         {openerOpen && <ProjectOpener />}
 
         <Project />
+
+        <TaskReporter />
       </div>
     </div>
   );

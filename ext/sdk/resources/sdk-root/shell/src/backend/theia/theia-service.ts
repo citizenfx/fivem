@@ -31,4 +31,14 @@ export class TheiaService implements AppContribution {
       console.error(e);
     }
   }
+
+  async createDefaultProjectSettings(projectStoragePath: string) {
+    const settingsPath = this.fsService.joinPath(projectStoragePath, 'theia-settings.json');
+    const settings = {
+      folders: [],
+      settings: {},
+    };
+
+    await this.fsService.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+  }
 }

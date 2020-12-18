@@ -36,13 +36,6 @@ export interface ServerUpdateChannelsState {
   [updateChannel: string]: ServerUpdateStates,
 }
 
-export interface ServerInstallationState {
-  [updateChannel: string]: null | {
-    downloadedPercentage: number,
-    unpackedPercentage: number,
-  },
-}
-
 export interface FilesystemEntryMeta {
   isFxdkProject?: boolean,
   isResource?: boolean,

@@ -8,6 +8,8 @@ import { LogService } from 'backend/logger/log-service';
 import { FsService } from 'backend/fs/fs-service';
 import { Project } from 'backend/project/project';
 import { invariant } from 'utils/invariant';
+import { TaskReporterService } from 'backend/task/task-reporter-service';
+import { NotificationService } from 'backend/notification/notification-service';
 
 @injectable()
 export class GitManager implements AssetContribution {
@@ -25,6 +27,12 @@ export class GitManager implements AssetContribution {
   @inject(FsService)
   protected readonly fsService: FsService;
 
+  @inject(TaskReporterService)
+  protected readonly taskReporterService: TaskReporterService;
+
+  @inject(NotificationService)
+  protected readonly notificationService: NotificationService;
+
   async importAsset(project: Project, request: AssetCreateRequest<{ repoUrl: string }>): Promise<boolean> {
     const {
       assetName,
@@ -33,6 +41,9 @@ export class GitManager implements AssetContribution {
     } = request;
 
     invariant(data.repoUrl, `Can't create git managed asset without managerData.repoUrl`);
+
+    const importTask = this.taskReporterService.create('Importing git asset');
+    importTask.setText('Preparing')
 
     const { repoUrl } = data;
 
@@ -43,16 +54,14 @@ export class GitManager implements AssetContribution {
       kind: assetKinds.pack,
       manager: {
         type: assetManagerTypes.git,
-        data: {
-          ...data,
-          status: assetStatus.updating,
-        },
+        data,
       },
       flags: {
         readOnly,
       },
     };
 
+    importTask.setText('Creating meta data');
     // Asset meta for imported git pack asset is always in shadow root
     await project.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
 
@@ -61,6 +70,8 @@ export class GitManager implements AssetContribution {
     try {
       this.logService.log('Importing git asset', request);
 
+      importTask.setText(`Cloning repository ${repoUrl}`);
+
       await git.clone(repoUrl, assetName);
       this.logService.log('Done: Importing git asset', request);
 
@@ -68,17 +79,16 @@ export class GitManager implements AssetContribution {
         request.callback();
       }
 
-      assetMeta.manager.data.status = assetStatus.ready;
-      await project.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
+      importTask.setText('Done');
 
       return true;
     } catch (e) {
-      assetMeta.manager.data.status = assetStatus.error;
-      await project.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
-
+      this.notificationService.error(`Git asset import failed: ${e.toString()}`);
       this.logService.log('Importing git asset ERROR', e, request);
 
       return false;
+    } finally {
+      importTask.done();
     }
   }
 

@@ -3,6 +3,7 @@ export const projectApi = {
   checkCreateResult: 'project:checkCreateResult',
   create: 'project:create',
   open: 'project:open',
+  close: 'project:close',
   update: 'project:update',
   setServerUpdateChannel: 'project:setServerUpdateChannel',
 
@@ -87,8 +88,6 @@ export const serverApi = {
   stopResource: 'server:stopResource',
   startResource: 'server:startResource',
 
-  ackInstallationState: 'server:ackInstallationState',
-  installationState: 'server:installationState',
   updateChannelsState: 'server:updateChannelsState',
   ackUpdateChannelsState: 'server:ackUpdateChannelsState',
   checkForUpdates: 'server:checkForUpdates',
@@ -105,4 +104,12 @@ export const notificationsApi = {
   ack: 'notifications:ack',
   create: 'notifications:create',
   delete: 'notifications:delete',
+};
+
+export const taskReporterApi = {
+  ackTasks: 'taskReporter:ackTasks',
+  tasks: 'taskReporter:tasks',
+  taskAdded: 'taskReporter:taskAdded',
+  taskChanged: 'taskReporter:taskChanged',
+  taskDeleted: 'taskReporter:taskDeleted',
 };

@@ -1,7 +1,6 @@
 import * as ws from 'ws';
 import { inject, injectable, postConstruct } from 'inversify';
 import { SingleEventEmitter } from 'backend/single-event-emitter';
-import { CommandService } from 'backend/commands/command-service';
 import { LogService } from 'backend/logger/log-service';
 import { ShellBackend } from 'backend/shell-backend';
 
@@ -21,9 +20,6 @@ export class ApiClient {
 
   @inject(LogService)
   protected readonly logService: LogService;
-
-  @inject(CommandService)
-  protected readonly commandService: CommandService;
 
   @postConstruct()
   protected initialize() {
