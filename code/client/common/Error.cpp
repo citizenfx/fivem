@@ -25,6 +25,8 @@ using json = nlohmann::json;
 
 #ifdef _WIN32
 #include <wtsapi32.h>
+#else
+#include <signal.h>
 #endif
 
 static thread_local std::tuple<const char*, int, uint32_t> g_thisError;
