@@ -261,62 +261,73 @@ public:
 		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
 	}
 
-	virtual void m_10() = 0;
+private:
+	template<typename TMember>
+	inline static TMember get_member(void* ptr)
+	{
+		union member_cast
+		{
+			TMember function;
+			struct  
+			{
+				void* ptr;
+				uintptr_t off;
+			};
+		};
 
-	virtual void m_18() = 0;
+		member_cast cast;
+		cast.ptr = ptr;
+		cast.off = 0;
 
-	virtual void m_20() = 0;
+		return cast.function;
+	} 
 
-	virtual void m_28() = 0;
+public:
 
-	virtual void m_30() = 0;
+#define FORWARD_FUNC(name, offset, ...) \
+	using TFn = decltype(&fwEntity::name); \
+	void** vtbl = *(void***)(this); \
+	return (this->*(get_member<TFn>(vtbl[(offset / 8) + (xbr::IsGameBuildOrGreater<2189>() ? 1 : 0)])))(__VA_ARGS__);
 
-	virtual void SetupFromEntityDef(fwEntityDef* entityDef, fwArchetype* archetype, uint32_t) = 0;
+	inline void SetupFromEntityDef(fwEntityDef* entityDef, fwArchetype* archetype, uint32_t a3)
+	{
+		FORWARD_FUNC(SetupFromEntityDef, 0x38, entityDef, archetype, a3);
+	}
 
-	virtual void SetModelIndex(uint32_t* mi) = 0;
+	inline void SetModelIndex(uint32_t* mi)
+	{
+		FORWARD_FUNC(SetModelIndex, 0x40, mi);
+	}
 
-	virtual void m_48() = 0;
-	virtual void m_50() = 0;
-	virtual void m_58() = 0;
-	virtual void m_60() = 0;
-	virtual void m_68() = 0;
-	virtual void m_70() = 0;
-	virtual void m_78() = 0;
-	virtual void m_80() = 0;
-	virtual void m_88() = 0;
-	virtual void m_90() = 0;
-	virtual void m_98() = 0;
-	virtual void m_a0() = 0;
-	virtual void m_a8() = 0;
-	virtual void m_b0() = 0;
-	virtual void SetTransform(const Matrix4x4& matrix, bool updateScene) = 0;
-	virtual void UpdateTransform(const Matrix4x4& matrix, bool updateScene) = 0;
-	virtual void m_c8() = 0;
-	virtual void m_d0() = 0;
-	virtual void m_d8() = 0;
-	virtual void m_e0() = 0;
-	virtual void m_e8() = 0;
-	virtual void m_f0() = 0;
-	virtual void m_f8() = 0;
-	virtual void m_100() = 0;
-	virtual void m_108() = 0;
-	virtual void AddToSceneWrap() = 0;
-	virtual void AddToScene() = 0;
-	virtual void RemoveFromScene() = 0; // ?
-	virtual void m_128() = 0;
-	virtual void m_130() = 0;
-	virtual void m_138() = 0;
-	virtual void m_140() = 0;
-	virtual void m_148() = 0;
-	virtual void m_150() = 0;
-	virtual void m_158() = 0;
-	virtual void m_160() = 0;
-	virtual void m_168() = 0;
-	virtual void m_170() = 0;
-	virtual void m_178() = 0;
-	virtual void m_180() = 0;
-	virtual void m_188() = 0;
-	virtual float GetRadius() = 0;
+	inline void SetTransform(const Matrix4x4& matrix, bool updateScene)
+	{
+		FORWARD_FUNC(SetTransform, 0xb8, matrix, updateScene);
+	}
+
+	inline void UpdateTransform(const Matrix4x4& matrix, bool updateScene)
+	{
+		FORWARD_FUNC(UpdateTransform, 0xc0, matrix, updateScene);
+	}
+
+	inline void AddToSceneWrap()
+	{
+		FORWARD_FUNC(AddToSceneWrap, 0x110);
+	}
+
+	inline void AddToScene()
+	{
+		FORWARD_FUNC(AddToScene, 0x118);
+	}
+
+	inline void RemoveFromScene()
+	{
+		FORWARD_FUNC(AddToSceneWrap, 0x120);
+	}
+
+	inline float GetRadius()
+	{
+		FORWARD_FUNC(GetRadius, 0x190);
+	}
 
 public:
 	inline const Matrix4x4& GetTransform() const
