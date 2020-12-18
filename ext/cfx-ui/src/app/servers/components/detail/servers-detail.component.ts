@@ -128,6 +128,12 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 				value: (pair.value === 'true') ? '#Yes' : '#No'
 			};
 		};
+		this.filterFuncs['sv_enforceGameBuild'] = (pair) => {
+			return {
+				key: '#ServerDetail_DLCLevel',
+				value: (pair.value === '2060') ? 'Los Santos Summer Special' : 'Cayo Perico Heist'
+			};
+		};
 
 		this.route.params.subscribe(params => {
 			this.currentAddr = params['addr'];
@@ -158,6 +164,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					.filter(({ key }) => key.indexOf('banner_') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('version') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('uuid') < 0)
+					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || value !== '1604')
 					.filter(({ key, value }) => key !== 'sv_scriptHookAllowed' || value === 'true')
 					.map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
 
