@@ -2183,7 +2183,7 @@ static HookFunction hookFunction([]()
 
 		hook::set_call(&g_disableContentGroup, location + 0x23);
 		hook::set_call(&g_enableContentGroup, location + 0x34);
-		hook::set_call(&g_clearContentCache, location + 0x50);
+		hook::set_call(&g_clearContentCache, location + ((xbr::IsGameBuildOrGreater<2189>()) ? 0x5C : 0x50));
 
 #elif IS_RDR3
 		char* location = hook::get_pattern<char>("E8 ? ? ? ? 8B 05 ? ? ? ? 48 8B 0D ? ? ? ? 48 8D 95");
