@@ -28,7 +28,7 @@
               ]
             },
             "assets": [
-              "src/assets",
+              "src/assets/languages/",
               "src/favicon.ico"
             ],
             "styles": [

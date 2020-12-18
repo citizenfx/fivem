@@ -50,14 +50,19 @@ if exist %CacheRoot% (
 :: pop directory
 popd
 
-mkdir %~dp0\data_big\app\assets\images
-move /y %UIRoot%\app\assets\images\bg*.* %~dp0\data_big\app\assets\images
+mkdir %~dp0\data_big\app\
+move /y %UIRoot%\app\bg*.* %~dp0\data_big\app\
+move /y %UIRoot%\app\*.svg %~dp0\data_big\app\
+move /y %UIRoot%\app\*.woff %~dp0\data_big\app\
+move /y %UIRoot%\app\*.woff2 %~dp0\data_big\app\
+
+powershell -ExecutionPolicy Unrestricted .\make_dates.ps1 %~dp0\data
+powershell -ExecutionPolicy Unrestricted .\make_dates.ps1 %~dp0\data_big
 
 del %~dp0\data.zip
 %~dp0\..\..\code\tools\ci\7z a -mx=0 %~dp0\data.zip %UIRoot%\*
 
 del %~dp0\data_big.zip
-
 %~dp0\..\..\code\tools\ci\7z a -mx=0 %~dp0\data_big.zip %~dp0\data_big\*
 
 exit /B 0
