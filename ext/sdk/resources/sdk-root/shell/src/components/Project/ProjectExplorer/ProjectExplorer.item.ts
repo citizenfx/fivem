@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FilesystemEntry, ProjectData, ProjectResources } from 'shared/api.types';
+import { FilesystemEntry, ProjectData } from 'shared/api.types';
 
 export type ProjectItemRenderer = (props: ProjectItemProps) => React.ReactNode;
 
@@ -8,7 +8,6 @@ export type ProjectItemFilter = (entry: FilesystemEntry) => boolean;
 export interface ProjectItemProps {
   entry: FilesystemEntry,
   project: ProjectData,
-  projectResources: ProjectResources,
   pathsMap: {
     [path: string]: FilesystemEntry[],
   },
@@ -19,7 +18,6 @@ export interface ProjectItemProps {
 export const getItemProps = <T extends ProjectItemProps>(props: T): ProjectItemProps => ({
   entry: props.entry,
   project: props.project,
-  projectResources: props.projectResources,
   pathsMap: props.pathsMap,
   itemRenderer: props.itemRenderer,
   creatorClassName: props.creatorClassName,

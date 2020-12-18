@@ -13,6 +13,14 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>18 december 2020</strong>
+        </p>
+        <ul>
+          <li>Compact FxDK toolbar design, allowing more space for project explorer</li>
+          <li>Granular-ish resources state propagation to shell-client</li>
+        </ul>
+
+        <p>
           <strong>16 december 2020</strong>
         </p>
         <ul>

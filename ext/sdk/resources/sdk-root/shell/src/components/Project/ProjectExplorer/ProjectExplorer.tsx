@@ -83,7 +83,6 @@ const fsTreeFilter = (entry) => {
 export const ProjectExplorer = React.memo(function ProjectExplorer() {
   const {
     project,
-    projectResources,
     directoryCreatorOpen,
     closeDirectoryCreator,
     setAssetCreatorDir,
@@ -113,7 +112,6 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
     .map((entry) => itemRenderer({
       entry,
       project,
-      projectResources,
       pathsMap: project.fs,
       itemRenderer,
       creatorClassName: s.creator,

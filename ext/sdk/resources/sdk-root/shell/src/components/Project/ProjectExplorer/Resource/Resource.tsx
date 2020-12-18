@@ -32,8 +32,8 @@ export interface ResourceProps {
 };
 
 export const Resource = React.memo(function Resource(props: ProjectItemProps) {
-  const { entry, project, projectResources } = props;
-  const projectResource = projectResources[entry.path];
+  const { entry, project } = props;
+  const projectResource = project.resources[entry.name];
 
   const { serverState, resourcesState } = React.useContext(ServerContext);
   const options = React.useContext(ProjectExplorerItemContext);

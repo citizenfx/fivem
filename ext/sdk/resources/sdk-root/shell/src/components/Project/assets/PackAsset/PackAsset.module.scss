@@ -6,7 +6,7 @@
     display: flex;
     align-items: center;
 
-    padding: $q*2 $q*4;
+    padding: $q*2;
 
     color: rgba($fgColor, .5);
 
@@ -15,6 +15,10 @@
 
     &:hover {
       color: $fgColor;
+
+      svg {
+        color: $fgColor;
+      }
     }
 
     svg {
@@ -45,6 +49,6 @@
   }
 
   .children {
-    margin-left: $q*4;
+    margin-left: $q*2;
   }
 }

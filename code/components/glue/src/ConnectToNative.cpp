@@ -225,7 +225,7 @@ static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const
 		switched = true;
 	}
 
-	if (!fromUI)
+	if (!fromUI && !launch::IsSDKGuest())
 	{
 		if (nui::HasMainUI())
 		{

@@ -9,12 +9,12 @@ import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator
 import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
 import { Project } from 'components/Project/Project';
 import s from './Toolbar.module.scss';
-import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
-
+import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
+import { Server } from 'components/Server/Server';
 
 export const Toolbar = React.memo(function Toolbar() {
   const { state, toolbarOpen, openToolbar, closeToolbar, openChangelog } = React.useContext(StateContext);
-  const { openCreator, openOpener, creatorOpen, openerOpen } = React.useContext(ProjectContext);
+  const { project, openCreator, openOpener, creatorOpen, openerOpen } = React.useContext(ProjectContext);
 
   const handleOpenCreator = React.useCallback(() => {
     openCreator();
@@ -33,6 +33,19 @@ export const Toolbar = React.memo(function Toolbar() {
   });
 
   const contextMenuItems: ContextMenuItemsCollection = React.useMemo((): ContextMenuItemsCollection => [
+    {
+      id: 'open-project',
+      text: 'Open Project',
+      icon: openProjectIcon,
+      onClick: handleOpenOpener,
+    },
+    {
+      id: 'new-project',
+      text: 'New Project',
+      icon: newProjectIcon,
+      onClick: handleOpenCreator,
+    },
+    ContextMenuItemSeparator,
     {
       id: 'changelog',
       text: 'Changelog',
@@ -54,30 +67,30 @@ export const Toolbar = React.memo(function Toolbar() {
     ? <BsArrowBarLeft />
     : <BsArrowBarRight />;
 
+  const projectTitle = project?.manifest.name || 'No project open yet';
+
   return (
     <div
       className={toolbarClasses}
     >
-      <div className={s.backdrop} onClick={closeToolbar} />
-
       <button className={s.trigger} onClick={toggleToolbar} title={triggerTitle}>
         {triggerIcon}
       </button>
 
       <div className={s.bar}>
         <div className={s.controls}>
-          <button onClick={handleOpenCreator} style={{ flexGrow: 1 }}>
-            {newProjectIcon}
-              New Project
-            </button>
-          <button onClick={handleOpenOpener} style={{ flexGrow: 1 }}>
-            {openProjectIcon}
-            Open Project
-          </button>
+          <div className={s['project-name']} title={projectTitle}>
+            <span>
+              {projectTitle}
+            </span>
+          </div>
 
+          <div className={s.server}>
+            <Server />
+          </div>
 
           <ContextMenu items={contextMenuItems} onClick={(openMenu) => openMenu()}>
-            <button style={{ flexGrow: 0 }} title="Open DevTools">
+            <button title="FxDK Menu">
               <BsList />
             </button>
           </ContextMenu>

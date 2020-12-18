@@ -22,6 +22,7 @@ export const projectApi = {
   setResourceConfig: 'project:setResourceConfig',
 
   fsUpdate: 'project:fsUpdate',
+  resourcesUpdate: 'project:resourcesUpdate',
 
   createDirectory: 'project:createDirectory',
   renameDirectory: 'project:renameDirectory',

@@ -1,6 +1,5 @@
 import React from 'react';
 import { logger } from 'utils/logger';
-import { StateContext } from './StateContext';
 
 const log = logger('TheiaContext');
 
@@ -29,7 +28,6 @@ export const TheiaContext = React.createContext<TheiaState>({
 });
 
 export const TheiaContextProvider = React.memo(function TheiaContextProvider({ children }) {
-  const { toolbarOpen } = React.useContext(StateContext);
   const [theiaIsReady, setTheiaIsReady] = React.useState(false);
 
   const sendTheiaMessage = React.useCallback((message: any) => {
@@ -57,10 +55,6 @@ export const TheiaContextProvider = React.memo(function TheiaContextProvider({ c
       switch (e.data.type) {
         case 'theia:ready': {
           log('ready!');
-          sendTheiaMessage({
-            type: 'fxdk:toolbarOpen',
-            data: toolbarOpen,
-          });
           return setTheiaIsReady(true);
         }
         case 'theia:notReady': {
@@ -73,14 +67,7 @@ export const TheiaContextProvider = React.memo(function TheiaContextProvider({ c
     window.addEventListener('message', handler);
 
     return () => window.removeEventListener('message', handler);
-  }, [toolbarOpen]);
-
-  React.useEffect(() => {
-    sendTheiaMessage({
-      type: 'fxdk:toolbarOpen',
-      data: toolbarOpen,
-    });
-  }, [toolbarOpen, sendTheiaMessage]);
+  }, []);
 
   const value = {
     ref,

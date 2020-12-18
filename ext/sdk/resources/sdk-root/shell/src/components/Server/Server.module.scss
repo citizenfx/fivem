@@ -3,12 +3,15 @@
 .root {
   position: relative;
 
+  height: 100%;
+
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  justify-content: stretch;
 
-  border-radius: $q/2;
+  // border-radius: $q/2;
 
-  background-color: rgba($fgColor, .1);
+  // background-color: rgba($fgColor, .1);
 
   cursor: pointer;
   user-select: none;
@@ -44,32 +47,54 @@
     align-items: center;
     justify-content: center;
 
-    padding: $q*2 $q*2;
+    width: $toolbarHeight*1.5;
+
+    background-color: rgba($fgColor, .1);
 
     @include interactiveTransition;
 
     z-index: 2;
 
     svg {
-      margin-right: $q;
+      font-size: $fs1;
+      color: rgba($fgColor, .75);
+    }
+
+    &:hover svg {
+      color: rgba($fgColor, 1);
     }
   }
 
   .config {
-    padding: $q*2 $q*3;
-    border-left: solid 1px $bgColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: $toolbarHeight;
+
+    margin-left: $q*2;
+
+    color: rgba($fgColor, .75);
+
+    z-index: 2;
 
     &:hover {
+      color: rgba($fgColor, 1);
       background-color: $acColor;
+    }
+
+    svg {
+      font-size: $fs1;
     }
   }
 
   .progress {
     position: absolute;
 
-    top: 0;
     left: 0;
     bottom: 0;
+
+    height: 2px;
 
     background-color: $acColor;
 

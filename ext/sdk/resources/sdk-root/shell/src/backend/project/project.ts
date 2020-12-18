@@ -43,6 +43,7 @@ import { AssetContribution, AssetInterface } from './asset/asset-contribution';
 import { GameServerService } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
+import { ChangeAwareContainer } from 'backend/change-aware-container';
 
 interface Silentable {
   silent?: boolean,
@@ -70,6 +71,8 @@ export class Project implements ApiContribution {
 
   eventDisposers: Function[] = [];
 
+  protected ready: boolean = false;
+
   @inject(FsService)
   protected readonly fsService: FsService;
 
@@ -96,11 +99,15 @@ export class Project implements ApiContribution {
 
   private path: string;
   private assets: Map<string, AssetInterface> = new Map();
-  private resources: ProjectResources = {};
   private manifestMapping: FsJsonFileMapping<ProjectManifest>;
   private manifestPath: string;
   private storagePath: string;
   private shadowPath: string;
+  private resources = new ChangeAwareContainer<ProjectResources>({}, (resources: ProjectResources) => {
+    if (this.ready) {
+      this.apiClient.emit(projectApi.resourcesUpdate, resources);
+    }
+  });
 
   applyManifest(fn: (manifest: ProjectManifest) => void) {
     this.manifestMapping.apply(fn);
@@ -123,7 +130,7 @@ export class Project implements ApiContribution {
   }
 
   getResources(): ProjectResources {
-    return this.resources;
+    return this.resources.get();
   }
 
   getProjectData(): ProjectData {
@@ -141,7 +148,7 @@ export class Project implements ApiContribution {
   }
 
   getEnabledResourcesPaths(): string[] {
-    return Object.values(this.resources).filter((resource) => resource.enabled).map((resource) => resource.path);
+    return Object.values(this.getResources()).filter((resource) => resource.enabled).map((resource) => resource.path);
   }
 
   log(msg: string, ...args) {
@@ -206,6 +213,7 @@ export class Project implements ApiContribution {
     this.setGameServerServiceEnabledResources();
 
     this.log('done loading project');
+    this.ready = true;
 
     return this;
   }
@@ -250,7 +258,9 @@ export class Project implements ApiContribution {
     });
 
     this.fsMapping.setOnUnlinkDir((entryPath) => {
-      delete this.resources[this.fsService.basename(entryPath)];
+      this.resources.apply((resources) => {
+        delete resources[this.fsService.basename(entryPath)];
+      });
       this.assets.delete(entryPath);
     });
 
@@ -284,11 +294,13 @@ export class Project implements ApiContribution {
     }
 
     if (entry.meta.isResource) {
-      this.resources[entry.name] = {
-        ...this.getResourceConfig(entry.name),
-        path: entry.path,
-        running: false,
-      };
+      this.resources.apply((resources) => {
+        resources[entry.name] = {
+          ...this.getResourceConfig(entry.name),
+          path: entry.path,
+          running: false,
+        };
+      });
     }
 
     const existingAsset = this.assets.get(entry.path);
@@ -325,9 +337,13 @@ export class Project implements ApiContribution {
       manifest.resources[resourceName] = newConfig;
     });
 
-    const cachedResource = this.resources[resourceName];
-    if (resourceName) {
-      Object.assign(cachedResource, newConfig);
+    if (this.getResources()[resourceName]) {
+      this.resources.apply((resources) => {
+        resources[resourceName] = {
+          ...resources[resourceName],
+          ...newConfig,
+        };
+      });
     }
 
     this.setGameServerServiceEnabledResources();
@@ -576,13 +592,13 @@ export class Project implements ApiContribution {
   async moveEntry(request: MoveEntryRequest) {
     const { sourcePath, targetPath } = request;
 
-      const newPath = this.fsService.joinPath(targetPath, this.fsService.basename(sourcePath));
+    const newPath = this.fsService.joinPath(targetPath, this.fsService.basename(sourcePath));
 
-      if (newPath === sourcePath) {
-        return;
-      }
+    if (newPath === sourcePath) {
+      return;
+    }
 
-      await this.fsService.rename(sourcePath, newPath);
+    await this.fsService.rename(sourcePath, newPath);
   }
 
   @handlesClientEvent(projectApi.copyEntry)
@@ -598,7 +614,7 @@ export class Project implements ApiContribution {
     this.applyManifest((manifest) => {
       const manifestResources = {};
 
-      Object.values(this.resources)
+      Object.values(this.getResources())
         .forEach(({ name }) => {
           manifestResources[name] = manifest.resources[name];
         });
@@ -620,7 +636,7 @@ export class Project implements ApiContribution {
   }
 
   private setGameServerServiceEnabledResources() {
-    this.log('Setting resources as enabled', this.resources, this.getEnabledResourcesPaths());
+    this.log('Setting resources as enabled', this.getResources(), this.getEnabledResourcesPaths());
 
     this.gameServerService.setEnabledResources({
       projectPath: this.path,

@@ -65,16 +65,6 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
       }
     });
 
-    // Setup our styles for theia:icon
-    const styleNode = document.createElement('style');
-    styleNode.innerHTML = `
-    .fxdk-toolbar-open .theia-icon {
-      display: none !important;
-    }
-    `;
-
-    document.head.appendChild(styleNode);
-
     document.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -120,14 +110,6 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
       });
     } else {
       this.dataService.data[data.key] = data.value;
-    }
-  }
-
-  private handleToolbarOpen(toolbarOpen: boolean) {
-    if (toolbarOpen) {
-      document.body.classList.add('fxdk-toolbar-open');
-    } else {
-      document.body.classList.remove('fxdk-toolbar-open');
     }
   }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FilesystemEntry, ProjectData, ProjectResources, RecentProject, AppStates, ProjectFsUpdate, FilesystemEntryMap } from 'shared/api.types';
+import { FilesystemEntry, ProjectData, RecentProject, AppStates, ProjectFsUpdate, ProjectResources } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { getProjectResources } from 'shared/utils';
 import { sendApiMessage } from 'utils/api';
@@ -31,7 +31,6 @@ export interface ProjectContext {
 
   openProject: (string) => void,
   project: ProjectData | null,
-  projectResources: ProjectResources,
   recentProjects: RecentProject[],
 
   openFile: (entry: FilesystemEntry) => void,
@@ -59,7 +58,6 @@ export const ProjectContext = React.createContext<ProjectContext>({
 
   openProject: () => { },
   project: null,
-  projectResources: {},
   recentProjects: [],
 
   openFile: () => { },
@@ -114,6 +112,7 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     setProject({ ...projectRef.current, ...updatedProject });
   }, [setProject]);
 
+  // Handle fs update
   useApiMessage(projectApi.fsUpdate, (update: ProjectFsUpdate) => {
     const newProject = { ...projectRef.current };
 
@@ -136,6 +135,17 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     setProject(newProject);
   }, [setProject]);
 
+  // Handle resources update
+  useApiMessage(projectApi.resourcesUpdate, (resources: ProjectResources) => {
+    const newProject = { ...projectRef.current };
+
+    log('Processing resources update', resources);
+
+    newProject.resources = resources;
+
+    setProject(newProject);
+  }, [setProject]);
+
   useApiMessage(projectApi.recents, (recentProjects: RecentProject[]) => {
     setRecentProjects(recentProjects);
 
@@ -150,14 +160,6 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
       }
     }
   }, [project, openProject]);
-
-  const projectResources = React.useMemo(() => {
-    if (!project) {
-      return {};
-    }
-
-    return getProjectResources(project);
-  }, [project]);
 
   const value = {
     creatorOpen,
@@ -181,7 +183,6 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
 
     openProject,
     project,
-    projectResources,
     recentProjects,
 
     openFile,

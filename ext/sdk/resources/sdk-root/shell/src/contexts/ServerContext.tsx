@@ -52,7 +52,7 @@ export const ServerContext = React.createContext<ServerContext>({
 });
 
 export const ServerContextProvider = React.memo(function ServerContextProvider({ children }) {
-  const { project, projectResources } = React.useContext(ProjectContext);
+  const { project } = React.useContext(ProjectContext);
   const { gameLaunched } = React.useContext(StateContext);
   const { sendTheiaMessage } = React.useContext(TheiaContext);
 
@@ -76,7 +76,7 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
       connectPending.current = true;
     }
-  }, [project, projectResources]);
+  }, [project]);
 
   const stopServer = React.useCallback(() => {
     sendApiMessage(serverApi.stop);

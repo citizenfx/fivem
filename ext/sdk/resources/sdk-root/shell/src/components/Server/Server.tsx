@@ -113,13 +113,8 @@ export const Server = React.memo(function Server() {
     <div className={rootClassName}>
       {progress}
 
-      <div className={s.button} onClick={handleClick}>
-        <div className={s.icon}>
-          {icon}
-        </div>
-        <div className={s.title}>
-          {title}
-        </div>
+      <div className={s.button} onClick={handleClick} title={title}>
+        {icon}
       </div>
 
       {updateChannelState === ServerUpdateStates.ready && (

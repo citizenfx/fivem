@@ -7,7 +7,7 @@
 
   .resource {
     position: relative;
-    padding: $q*2 $q*4;
+    padding: $q*2;
 
     color: rgba($fgColor, .5);
     cursor: pointer;
@@ -15,6 +15,10 @@
     &:hover,
     &.active {
       color: $fgColor;
+
+      .name .icon {
+        color: $fgColor;
+      }
     }
 
     &.active {
@@ -27,8 +31,6 @@
 
       .icon {
         color: rgba($fgColor, .5);
-
-        transition: all .2s ease;
 
         &.active {
           color: $scColor;
@@ -44,8 +46,8 @@
   }
 
   .children {
-    margin-left: $q*4;
+    margin-left: $q*2;
 
-    box-shadow: -1px 0 0 0 rgba($fgColor, .025);
+    box-shadow: -1px 0 0 0 rgba($fgColor, .05);
   }
 }
