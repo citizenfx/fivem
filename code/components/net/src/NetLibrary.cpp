@@ -1554,6 +1554,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
 							{
+								if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
+								{
+									OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef));
+									m_connectionState = CS_IDLE;
+									return;
+								}
+
 								OnRequestBuildSwitch(buildRef);
 							}
 						}
