@@ -700,14 +700,8 @@ static HookFunction hookFunction([] ()
 		auto refloc = hook::get_address<char*>(location + 2);
 		hook::put<uint32_t>(refloc, 0x4000000);
 
-		if (!xbr::IsGameBuildOrGreater<2189>())
-		{
-			hook::put<uint32_t>(refloc + 4, 0x7FFF8 * 4);
-		}
-		else
-		{
-			// #TODO2189
-		}
+		auto otherLoc = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 54 24 60 45 33 C0 FF 50 18 8B 05", 13));
+		hook::put<uint32_t>(otherLoc, 0x7FFF8 * 4);
 
 		hook::nop(location, 6); // setter
 		hook::put<uint8_t>(location, 0xB8); // write to eax for later

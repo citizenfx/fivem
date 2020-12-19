@@ -755,7 +755,7 @@ static HookFunction hookFunction([]()
 		}
 		else if (xbr::IsGameBuildOrGreater<2189>())
 		{
-			// #TODO2189
+			hook::nop(hook::get_pattern("41 B0 04 75 72 0F B7 43 3A", 3), 2);
 		}
 		else
 		{

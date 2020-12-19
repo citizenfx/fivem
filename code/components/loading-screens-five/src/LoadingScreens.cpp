@@ -516,12 +516,7 @@ static InitFunction initFunction([] ()
 #endif
 
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
-
-		// #TODO2189
-		if (!Is2189())
-		{
-			nui::OverrideFocus(true);
-		}
+		nui::OverrideFocus(true);
 
 #ifndef USE_NUI_ROOTLESS
 		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");
