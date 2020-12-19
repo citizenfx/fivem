@@ -237,7 +237,10 @@ class STREAMING_EXPORT fwEntity : public rage::fwRefAwareBase
 public:
 	virtual ~fwEntity() = default;
 
-	virtual bool IsOfType(uint32_t hash) = 0;
+	inline bool IsOfType(uint32_t hash)
+	{
+		return IsOfTypeH(hash);
+	}
 
 	inline fwArchetype* GetArchetype()
 	{
@@ -287,8 +290,25 @@ public:
 #define FORWARD_FUNC(name, offset, ...) \
 	using TFn = decltype(&fwEntity::name); \
 	void** vtbl = *(void***)(this); \
-	return (this->*(get_member<TFn>(vtbl[(offset / 8) + (xbr::IsGameBuildOrGreater<2189>() ? 1 : 0)])))(__VA_ARGS__);
+	return (this->*(get_member<TFn>(vtbl[(offset / 8) + ((offset > 0x10) ? (xbr::IsGameBuildOrGreater<2189>() ? 1 : 0) : 0)])))(__VA_ARGS__);
 
+private:
+	inline bool IsOfTypeH(uint32_t hash)
+	{
+		if (xbr::IsGameBuildOrGreater<2189>())
+		{
+			return IsOfTypeRef(hash);
+		}
+
+		FORWARD_FUNC(IsOfTypeH, 0x8, hash);
+	}
+
+	inline bool IsOfTypeRef(const uint32_t& hash)
+	{
+		FORWARD_FUNC(IsOfTypeRef, 0x8, hash);
+	}
+
+public:
 	inline void SetupFromEntityDef(fwEntityDef* entityDef, fwArchetype* archetype, uint32_t a3)
 	{
 		FORWARD_FUNC(SetupFromEntityDef, 0x38, entityDef, archetype, a3);
