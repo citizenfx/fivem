@@ -116,6 +116,7 @@ static struct
 
 static void Mumble_Connect()
 {
+	g_mumble.connected = false;
 	g_mumble.errored = false;
 	g_mumble.connecting = true;
 
