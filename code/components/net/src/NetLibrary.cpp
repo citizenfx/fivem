@@ -1530,55 +1530,16 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		return true;
 	};
 
+	std::function<void()> continueRequest;
+
 	performRequest = [=]()
 	{
-		OnConnectionProgress("Requesting server variables...", 0, 100);
+		OnConnectionProgress("Handshaking with server...", 0, 100);
 
-		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
-		{
-			using json = nlohmann::json;
+		HttpRequestOptions options;
+		options.streamingCallback = handleAuthResultData;
 
-			if (success)
-			{
-				try
-				{
-					json info = json::parse(data, data + size);
-#ifdef GTA_FIVE
-					if (info.is_object() && info["vars"].is_object())
-					{
-						auto val = info["vars"].value("sv_enforceGameBuild", "");
-
-						if (!val.empty())
-						{
-							int buildRef = std::stoi(val);
-
-							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
-							{
-								if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
-								{
-									OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef));
-									m_connectionState = CS_IDLE;
-									return;
-								}
-
-								OnRequestBuildSwitch(buildRef);
-							}
-						}
-					}
-#endif
-				}
-				catch (std::exception& e)
-				{
-				}
-			}
-
-			OnConnectionProgress("Handshaking with server...", 0, 100);
-
-			HttpRequestOptions options;
-			options.streamingCallback = handleAuthResultData;
-
-			m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
-		});
+		m_handshakeRequest = m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(postMap), options, handleAuthResult);
 	};
 
 	m_cardResponseHandler = [this, url](const std::string& cardData, const std::string& token)
@@ -1595,7 +1556,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		}), handleCardResult);
 	};
 
-	auto continueRequest = [=]()
+	continueRequest = [=]()
 	{
 		auto steamComponent = GetSteam();
 
@@ -1662,28 +1623,78 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			performRequest();
 		}
 	};
-
-	auto initiateRequest = [this, url, continueRequest]()
+	
+	auto initiateRequest = [=]()
 	{
-		if (OnInterceptConnectionForAuth(url, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
+		OnConnectionProgress("Requesting server variables...", 0, 100);
+
+		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
 		{
+			using json = nlohmann::json;
+
+			std::string licenseKeyToken;
+
 			if (success)
 			{
-				for (const auto& entry : additionalPostData)
+				try
 				{
-					postMap[entry.first] = entry.second;
-				}
+					json info = json::parse(data, data + size);
+#ifdef GTA_FIVE
+					if (info.is_object() && info["vars"].is_object())
+					{
+						auto val = info["vars"].value("sv_enforceGameBuild", "");
 
+						if (!val.empty())
+						{
+							int buildRef = std::stoi(val);
+
+							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
+							{
+								if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
+								{
+									OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef));
+									m_connectionState = CS_IDLE;
+									return;
+								}
+
+								OnRequestBuildSwitch(buildRef);
+							}
+						}
+
+						auto ival = info["vars"].value("sv_licenseKeyToken", "");
+
+						if (!ival.empty())
+						{
+							licenseKeyToken = ival;
+						}
+					}
+#endif
+				}
+				catch (std::exception& e)
+				{
+				}
+			}
+
+			if (OnInterceptConnectionForAuth(url, licenseKeyToken, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)
+				{
+					if (success)
+					{
+						for (const auto& entry : additionalPostData)
+						{
+							postMap[entry.first] = entry.second;
+						}
+
+						continueRequest();
+					}
+					else
+					{
+						m_connectionState = CS_IDLE;
+					}
+				}))
+			{
 				continueRequest();
 			}
-			else
-			{
-				m_connectionState = CS_IDLE;
-			}
-		}))
-		{
-			continueRequest();
-		}
+		});
 	};
 
 	if (OnInterceptConnection(url, initiateRequest))
