@@ -176,7 +176,42 @@ public:
 	virtual void m_310() = 0;
 	virtual void m_318() = 0;
 	virtual void m_320() = 0;
-	virtual void UpdatePendingVisibilityChanges() = 0;
+
+private:
+	template<typename TMember>
+	inline static TMember get_member(void* ptr)
+	{
+		union member_cast
+		{
+			TMember function;
+			struct
+			{
+				void* ptr;
+				uintptr_t off;
+			};
+		};
+
+		member_cast cast;
+		cast.ptr = ptr;
+		cast.off = 0;
+
+		return cast.function;
+	}
+
+public:
+#undef FORWARD_FUNC
+#define FORWARD_FUNC(name, offset, ...)    \
+	using TFn = decltype(&netObject::name); \
+	void** vtbl = *(void***)(this);        \
+	return (this->*(get_member<TFn>(vtbl[(offset) / 8])))(__VA_ARGS__);
+
+
+	inline void UpdatePendingVisibilityChanges()
+	{
+		FORWARD_FUNC(UpdatePendingVisibilityChanges, (xbr::IsGameBuildOrGreater<2189>()) ? 0x338 : 0x330);
+	}
+
+#undef FORWARD_FUNC
 
 	inline std::string ToString()
 	{
