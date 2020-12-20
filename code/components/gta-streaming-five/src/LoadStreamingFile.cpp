@@ -27,6 +27,8 @@
 
 #include <MinHook.h>
 
+#include <CrossBuildRuntime.h>
+
 #ifdef GTA_FIVE
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
@@ -193,6 +195,11 @@ static int LookupDataFileType(const std::string& type)
 
 #ifdef GTA_FIVE
 	int typesCount = 0xC9;
+
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		typesCount = 0xCA;
+	}
 #elif IS_RDR3
 	int typesCount = 0x18B;
 #endif
