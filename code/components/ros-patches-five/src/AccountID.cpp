@@ -34,6 +34,8 @@
 struct ExternalROSBlob
 {
 	uint8_t data[16384];
+	uint8_t steamData[64 * 1024];
+	size_t steamSize;
 	bool valid;
 	bool tried;
 
@@ -42,10 +44,38 @@ struct ExternalROSBlob
 		valid = false;
 		tried = false;
 		memset(data, 0, sizeof(data));
+		memset(steamData, 0, sizeof(steamData));
 	}
 };
 
-#if defined(IS_RDR3)
+std::string GetAuthSessionTicket(uint32_t appID);
+
+std::string GetExternalSteamTicket()
+{
+	static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+
+	if (blob->steamSize)
+	{
+		return GetAuthSessionTicket(271590);
+	}
+
+	return "";
+}
+
+std::string GetROSEmail()
+{
+	static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+
+	if (!blob->valid)
+	{
+		return "";
+	}
+
+	auto accountBlob = blob->data;
+	return (const char*)&accountBlob[8];
+}
+
+#if defined(IS_RDR3) || defined(GTA_FIVE)
 static uint8_t* accountBlob;
 
 static DWORD GetMTLPid()
@@ -95,16 +125,30 @@ static DWORD GetMTLPid()
 	return -1;
 }
 
-bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey)
+static bool InitAccountRemote();
+
+bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey, uint64_t& accountId)
 {
 	if (!accountBlob)
 	{
-		return false;
+#if defined(GTA_FIVE)
+		if (!InitAccountRemote())
+#endif
+		{
+
+			return false;
+		}
+
+		if (!accountBlob)
+		{
+			return false;
+		}
 	}
 
 	ticket = std::string((const char*)&accountBlob[2800]);
 	sessionTicket = std::string((const char*)&accountBlob[3312]);
 	memcpy(sessionKey.data(), &accountBlob[0x10D8], sessionKey.size());
+	accountId = *(uint64_t*)&accountBlob[3816];
 
 	return true;
 }
@@ -117,7 +161,9 @@ static bool InitAccountSteam()
 
 	if (!blob->tried)
 	{
+#ifndef GTA_FIVE
 		if (!getenv("CitizenFX_ToolMode"))
+#endif
 		{
 			RunLauncher(L"ros:steam", true);
 		}
@@ -132,14 +178,33 @@ static bool InitAccountSteam()
 	return blob->valid;
 }
 
-std::string GetAuthSessionTicket(uint32_t appID);
-
 void ValidateSteam(int parentPid)
 {
 	static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
 	blob->tried = true;
 
-	std::string s = GetAuthSessionTicket(1174180);
+	uint32_t appId =
+#ifdef GTA_FIVE
+	271590
+#elif defined(IS_RDR3)
+	1174180
+#else
+	0
+#endif
+	;
+
+	auto appName =
+#ifdef GTA_FIVE
+	"gta5"
+#elif defined(IS_RDR3)
+	"rdr2"
+#else
+	0
+#endif
+	;
+
+
+	std::string s = GetAuthSessionTicket(appId);
 
 	if (s.empty())
 	{
@@ -147,7 +212,7 @@ void ValidateSteam(int parentPid)
 	}
 
 	auto j = nlohmann::json::object({
-		{ "appName", "rdr2" },
+		{ "appName", appName },
 		{ "platform", "pcros" },
 		{ "authTicket", s }
 	});
@@ -168,14 +233,22 @@ void ValidateSteam(int parentPid)
 
 	if (r.error)
 	{
+#ifdef IS_RDR3
 		FatalError("Error during auto-signin with ROS using Steam: %s", r.error.message);
+#endif
+
+		return;
 	}
 
 	j = nlohmann::json::parse(r.text);
 
 	if (!j["Status"].get<bool>())
 	{
+#ifdef IS_RDR3
 		FatalError("Error during Steam ROS signin: %s %s", j.value("Error", ""), j.value("Message", ""));
+#endif
+
+		return;
 	}
 
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
@@ -195,10 +268,10 @@ void ValidateSteam(int parentPid)
 	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
 
 	j = nlohmann::json::object({
-		{ "title", "rdr2" },
+		{ "title", appName },
 		{ "env", "prod" },
 		{ "steamAuthTicket", s },
-		{ "steamAppId", 1174180 },
+		{ "steamAppId", appId },
 		{ "playerTicket", tick },
 		{ "version", 11 },
 	});
@@ -220,10 +293,17 @@ void ValidateSteam(int parentPid)
 
 	if (r.error)
 	{
+#ifdef IS_RDR3
 		FatalError("Error during binding of ROS to Steam: %s", r.error.message);
+#endif
+
+		return;
 	}
 
 	j = nlohmann::json::parse(r.text);
+
+	memcpy(blob->steamData, s.data(), s.size());
+	blob->steamSize = s.size();
 
 	blob->valid = true;
 }
@@ -234,7 +314,9 @@ static bool InitAccountMTL()
 
 	if (pid == -1)
 	{
+#if defined(IS_RDR3)
 		MessageBoxW(NULL, L"Currently, you have to run the Rockstar Games Launcher to be able to run this product.", L"RedM", MB_OK | MB_ICONSTOP);
+#endif
 
 		return false;
 	}
@@ -243,7 +325,9 @@ static bool InitAccountMTL()
 
 	if (!hProcess)
 	{
+#if defined(IS_RDR3)
 		MessageBoxW(NULL, L"Could not read data from the Rockstar Games Launcher. If you are running it as administrator, please launch it as regular user.", L"RedM", MB_OK | MB_ICONSTOP);
+#endif
 
 		return false;
 	}
@@ -280,7 +364,9 @@ static bool InitAccountMTL()
 
 	if (!scModule)
 	{
+#if defined(IS_RDR3)
 		FatalError("MTL didn't have SC SDK loaded.");
+#endif
 		return false;
 	}
 
@@ -309,7 +395,11 @@ static bool InitAccountMTL()
 
 	if (!isalnum(accountBlob[8]))
 	{
-		FatalError("No account blob info?");
+#if defined(IS_RDR3)
+		FatalError("No account blob info. Make sure to sign in to the Rockstar Games Launcher.");
+#endif
+
+		return false;
 	}
 
 	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[8]);
@@ -319,6 +409,7 @@ static bool InitAccountMTL()
 
 void PreInitGameSpec()
 {
+#if defined(IS_RDR3)
 	static bool accountSetUp;
 
 	if (accountSetUp)
@@ -337,14 +428,22 @@ void PreInitGameSpec()
 	{
 		TerminateProcess(GetCurrentProcess(), 0);
 	}
+#endif
 }
 
+static bool InitAccountRemote()
+{
+	return InitAccountSteam() || InitAccountMTL();
+}
+
+#ifdef IS_RDR3
 #include <ICoreGameInit.h>
 
 static HookFunction hookFunction([]()
 {
 	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[8]);
 });
+#endif
 #else
 void ValidateSteam(int)
 {

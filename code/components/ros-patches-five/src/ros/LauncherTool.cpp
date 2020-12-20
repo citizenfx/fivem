@@ -153,7 +153,7 @@ static void Steam_Run(const boost::program_options::variables_map& map)
 
 	ValidateSteam(g_rosParentPid);
 
-	HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch");
+	HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"CitizenFX_GTA5_ClearedForLaunch_Steam");
 
 	if (hEvent != INVALID_HANDLE_VALUE)
 	{

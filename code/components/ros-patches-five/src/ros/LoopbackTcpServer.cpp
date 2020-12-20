@@ -1510,7 +1510,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 	const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\" -noRecogniser", fxApplicationName, toolName, GetCurrentProcessId(), L"C:\\program files\\rockstar games\\launcher\\launcher.exe");
 
 	// create a waiting event
-	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", IsCL2() ? L"CL2" : L""));
+	HANDLE hEvent = CreateEvent(nullptr, TRUE, FALSE, va(L"CitizenFX_GTA5_ClearedForLaunch%s", wcsstr(toolName, L"steam") ? L"_Steam" : (IsCL2() ? L"CL2" : L"")));
 
 	// and go create the new fake process
 	PROCESS_INFORMATION pi;

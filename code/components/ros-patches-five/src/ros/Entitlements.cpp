@@ -220,7 +220,7 @@ private:
 };
 
 #if defined(IS_RDR3)
-bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey);
+bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey, uint64_t& accountId);
 
 static std::string GetRosTicket(const std::string& body)
 {
@@ -229,8 +229,9 @@ static std::string GetRosTicket(const std::string& body)
 	std::string ticket;
 	std::string sessionTicket;
 	std::array<uint8_t, 16> sessionKeyArray;
+	uint64_t accountId = 0;
 	
-	assert(GetMTLSessionInfo(ticket, sessionTicket, sessionKeyArray));
+	assert(GetMTLSessionInfo(ticket, sessionTicket, sessionKeyArray, accountId));
 
 	std::string sessionKey = Botan::base64_encode(sessionKeyArray.data(), 16);
 

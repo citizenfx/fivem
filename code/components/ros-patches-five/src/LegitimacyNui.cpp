@@ -543,6 +543,7 @@ void RunLegitimacyNui()
 	CefString(&settings.resources_dir_path).FromWString(resPath);
 	CefString(&settings.locales_dir_path).FromWString(resPath);
 	CefString(&settings.cache_path).FromWString(cachePath);
+	CefString(&settings.user_agent).FromWString(L"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 RockstarGames/2.0.7.5/1.0.33.319/launcher/PC Safari/537.36");
 
 	// SimpleApp implements application-level callbacks for the browser process.
 	// It will create the first browser instance in OnContextInitialized() after
