@@ -636,7 +636,7 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
+				if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5 && !enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
 				{
 					clientRegistry->RemoveClient(lockedClient);
 
