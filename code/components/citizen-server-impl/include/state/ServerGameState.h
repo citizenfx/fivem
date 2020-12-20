@@ -62,6 +62,16 @@ inline bool Is2060()
 	return value;
 }
 
+inline bool Is2189()
+{
+	static bool value = ([]()
+	{
+		return g_enforcedGameBuild == "2189";
+	})();
+
+	return value;
+}
+
 template<typename T>
 inline constexpr T roundToWord(T val)
 {

@@ -1348,6 +1348,11 @@ struct CPedGameStateDataNode
 		{
 			state.buffer.ReadBit();
 			state.buffer.ReadBit();
+
+			if (Is2189())
+			{
+				state.buffer.ReadBit();
+			}
 		}
 
 		auto arrestState = state.buffer.Read<int>(1);
