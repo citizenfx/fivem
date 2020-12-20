@@ -1216,7 +1216,36 @@ struct CVehicleHealthDataNode
 	}
 };
 
-struct CVehicleTaskDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleTaskDataNode
+{
+	int m_taskId;
+	int m_taskType;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto taskId = state.buffer.Read<int>(7);
+
+		if (taskId >= 453)
+		{
+			taskId -= 453;
+		}
+
+		m_taskId = taskId;
+
+		auto taskType = state.buffer.Read<int>(8);
+		m_taskType = taskType;
+
+		return true;
+	}
+
+	bool Unparse(rl::MessageBuffer& buffer)
+	{
+		buffer.Write<int>(7, m_taskId);
+		buffer.Write<int>(8, m_taskType);
+
+		return true;
+	}
+};
 
 struct CSectorDataNode
 {
