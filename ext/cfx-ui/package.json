@@ -107,6 +107,7 @@
   "resolutions": {
     "webpack-subresource-integrity": "1.5.1",
     "elliptic": "6.5.3",
-    "http-proxy": "1.18.1"
+    "http-proxy": "1.18.1",
+    "ini": "^1.3.6"
   }
 }
