@@ -55,6 +55,23 @@ static void CreatePlayerCommands()
 		return client->GetIdentifiers()[idx].c_str();
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_TOKENS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		return client->GetTokens().size();
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TOKEN", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		int idx = context.GetArgument<int>(1);
+
+		if (idx < 0 || idx >= client->GetTokens().size())
+		{
+			return (const char*)nullptr;
+		}
+
+		return client->GetTokens()[idx].c_str();
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ENDPOINT", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		static thread_local std::string str;

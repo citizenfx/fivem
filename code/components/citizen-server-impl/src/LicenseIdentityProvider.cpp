@@ -46,13 +46,22 @@ static InitFunction initFunction([]()
 			{
 				try
 				{
-					json json = json::parse(std::any_cast<std::string>(jsonAny));
+					auto jsonStr = std::any_cast<std::string>(jsonAny);
+					json json = json::parse(jsonStr);
 
 					if (json["tk"].is_array())
 					{
 						for (auto& entry : json["tk"])
 						{
 							clientPtr->AddIdentifier(entry.get<std::string>());
+						}
+					}
+
+					if (json["hw"].is_array())
+					{
+						for (auto& entry : json["hw"])
+						{
+							clientPtr->AddToken(entry.get<std::string>());
 						}
 					}
 				}

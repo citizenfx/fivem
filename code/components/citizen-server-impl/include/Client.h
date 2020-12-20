@@ -155,6 +155,11 @@ namespace fx
 			return m_identifiers;
 		}
 
+		inline const std::vector<std::string>& GetTokens()
+		{
+			return m_tokens;
+		}
+
 		inline bool HasRouted()
 		{
 			return m_hasRouted;
@@ -170,6 +175,11 @@ namespace fx
 			m_identifiers.emplace_back(identifier);
 
 			UpdateCachedPrincipalValues();
+		}
+
+		inline void AddToken(const std::string& token)
+		{
+			m_tokens.emplace_back(token);
 		}
 
 		inline auto EnterPrincipalScope()
@@ -270,6 +280,9 @@ namespace fx
 
 		// the client's identifiers
 		std::vector<std::string> m_identifiers;
+
+		// the client's tokens
+		std::vector<std::string> m_tokens;
 
 		// the client's netid
 		uint32_t m_netId;
