@@ -773,6 +773,11 @@ struct CVehicleGameStateDataNode
 		bool unk67 = state.buffer.ReadBit();
 		bool unk68 = state.buffer.ReadBit();
 
+		if (Is2060())
+		{
+			// #TODO2189
+		}
+
 		return true;
 	}
 };
@@ -1090,6 +1095,11 @@ struct CVehicleAppearanceDataNode {
 			bool rightNeonEnabled = state.buffer.ReadBit();
 			bool frontNeonEnabled = state.buffer.ReadBit();
 			bool rearNeonEnabled = state.buffer.ReadBit();
+
+			if (Is2060())
+			{
+				state.buffer.ReadBit();
+			}
 		}
 		*/
 
@@ -1170,8 +1180,12 @@ struct CVehicleHealthDataNode
 
 					if (unk13)
 					{
-						int unk14 = state.buffer.Read<int>(10); // Maximum 10000.0
+						int unk14 = state.buffer.Read<int>(10);
 					}
+					else
+					{
+						/* 1000.0 */	
+					}					
 				}
 			}
 		}
@@ -1348,6 +1362,7 @@ struct CPedGameStateDataNode
 		{
 			state.buffer.ReadBit();
 			state.buffer.ReadBit();
+			state.buffer.ReadBit(); // b2189
 		}
 
 		auto arrestState = state.buffer.Read<int>(1);
