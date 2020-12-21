@@ -1,11 +1,11 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <EntitySystem.h>
+
 #include "scrEngine.h"
 
 #include <boost/type_index.hpp>
-
-class fwEntity;
 
 struct netObject
 {
@@ -17,38 +17,12 @@ struct netObject
 	fwEntity* gameObject;
 };
 
-class fwEntity
-{
-public:
-	virtual ~fwEntity() = 0;
-
-	virtual bool IsOfType(uint32_t hash) = 0;
-
-	template<typename T>
-	bool IsOfType()
-	{
-		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
-	}
-
-public:
-	char m_pad[32];
-	uint8_t entityType;
-	char m_pad2[3];
-	char m_pad3[164];
-	netObject* netObject;
-};
-
 class CPickup : public fwEntity
 {
 
 };
 
 class CObject : public fwEntity
-{
-
-};
-
-class CVehicle : public fwEntity
 {
 
 };
@@ -150,7 +124,7 @@ static HookFunction hookFunction([] ()
 			return;
 		}
 
-		auto netObject = entity->netObject;
+		auto netObject = (::netObject*)entity->GetNetObject();
 
 		if (!netObject)
 		{
@@ -239,9 +213,9 @@ static HookFunction hookFunction([] ()
 
 		if (entity)
 		{
-			if (entity->netObject && entity->netObject->isRemote)
+			if (entity->GetNetObject() && ((netObject*)entity->GetNetObject())->isRemote)
 			{
-				sendMarkAsNoLongerNeededEvent(entity->netObject, false);
+				sendMarkAsNoLongerNeededEvent((netObject*)entity->GetNetObject(), false);
 			}
 			else
 			{
@@ -301,7 +275,7 @@ static HookFunction hookFunction([] ()
 
 		if (entity)
 		{
-			switch (entity->entityType)
+			switch (entity->GetType())
 			{
 			case 3:
 				deleteVehicle(entity);

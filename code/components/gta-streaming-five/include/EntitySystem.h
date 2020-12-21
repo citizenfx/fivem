@@ -366,12 +366,18 @@ public:
 		return m_netObject;
 	}
 
+	inline uint8_t GetType() const
+	{
+		return m_entityType;
+	}
+
 private:
 	char m_pad[8];
 	fwExtensionList m_extensionList;
 	char m_pad2[8];
 	fwArchetype* m_archetype;
-	char m_pad3[96 - 40];
+	uint8_t m_entityType;
+	char m_pad3[96 - 41];
 	Matrix4x4 m_transform;
 	char m_pad4[48];
 	void* m_netObject;
