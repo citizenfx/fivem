@@ -223,7 +223,7 @@ void ConHostSvImpl::Run(std::function<bool()>&& fn)
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 
-		if (isWarp && hTimer)
+		if ((isWarp || IsIconic(hwnd)) && hTimer)
 		{
 			g_pSwapChain->Present(0, 0);
 
