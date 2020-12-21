@@ -17,6 +17,7 @@ export const changelogEntries: ChangelogEntry[] = [
         </p>
         <ul>
           <li>Show toolbar immediately after project open/create process begins</li>
+          <li>Copy-paste functionality for folders and files</li>
         </ul>
 
         <p>

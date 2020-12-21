@@ -33,6 +33,18 @@ export class TaskReporterService implements ApiContribution {
     return this.startWithId(name, title);
   }
 
+  async wrap<T = void>(title: string, fn: (task: Task) => Promise<T>): Promise<T> {
+    const task = this.create(title);
+
+    try {
+      return await fn(task);
+    } catch (e) {
+      throw e;
+    } finally {
+      task.done();
+    }
+  }
+
   private startWithId(id: TaskId, title: string): Task {
     const task = new Task(
       this.apiClient,

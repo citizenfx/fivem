@@ -3,10 +3,14 @@ import os from 'os';
 import path from 'path';
 import mkdirp from 'mkdirp';
 import rimrafSync from 'rimraf';
+import filesize from 'filesize';
 import { promisify } from 'util';
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { FsAtomicWriter } from './fs-atomic-writer';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from './fs-json-file-mapping';
+import { TaskReporterService } from 'backend/task/task-reporter-service';
+import { LogService } from 'backend/logger/log-service';
+import { NotificationService } from 'backend/notification/notification-service';
 
 const rimraf = promisify(rimrafSync);
 
@@ -15,6 +19,15 @@ const rimraf = promisify(rimrafSync);
  */
 @injectable()
 export class FsService {
+  @inject(LogService)
+  protected readonly logService: LogService;
+
+  @inject(NotificationService)
+  protected readonly notificationService: NotificationService;
+
+  @inject(TaskReporterService)
+  protected readonly taskReporterService: TaskReporterService;
+
   tmpdir() {
     return os.tmpdir();
   }
@@ -57,6 +70,10 @@ export class FsService {
 
   rimraf(entryPath: string) {
     return rimraf(entryPath);
+  }
+
+  readdir(entryPath: string): Promise<string[]> {
+    return fs.promises.readdir(entryPath);
   }
 
   mkdirp(entryPath: string) {
@@ -111,5 +128,118 @@ export class FsService {
     const snapshot = await reader();
 
     return new FsJsonFileMapping(snapshot, writer, reader, options);
+  }
+
+  async copy(sourcePath: string, target: string) {
+    const sourceName = this.basename(sourcePath);
+    const targetPath = this.joinPath(target, sourceName);
+
+    const sourceStat = await this.statSafe(sourcePath);
+    if (!sourceStat) {
+      throw new Error(`Can't copy ${sourcePath} -> ${target} as ${sourcePath} does not exist`);
+    }
+
+    // Handle file first
+    if (!sourceStat.isDirectory()) {
+      const sourceSize = sourceStat.size;
+      let doneSize = 0;
+
+      return this.taskReporterService.wrap(`Copying ${sourcePath} to ${target}`, (task) => {
+        return this.doCopyFile(sourcePath, targetPath, (bytesRead) => {
+          doneSize += bytesRead;
+          task.setProgress(doneSize / sourceSize);
+        });
+      });
+    }
+
+    // Now directories
+    this.taskReporterService.wrap(`Copying ${sourcePath} to ${target}`, async (task) => {
+      type SourcePath = string;
+      type TargetPath = string;
+
+      const sourceDirPaths = new Set<SourcePath>([sourcePath]);
+      const filesToCopy = new Map<SourcePath, TargetPath>();
+      const ignoredFiles = new Set();
+
+      let totalSize = 0;
+      let doneSize = 0;
+
+      task.setText('Calculating files to copy...');
+
+      for (const sourceDirPath of sourceDirPaths) {
+        const targetDirPath = this.joinPath(targetPath, this.relativePath(sourcePath, sourceDirPath));
+
+        const [dirEntryNames] = await Promise.all([
+          this.readdir(sourceDirPath),
+          this.mkdirp(targetDirPath),
+        ]);
+
+        await Promise.all(dirEntryNames.map(async (dirEntryName) => {
+          const dirEntrySourcePath = this.joinPath(sourceDirPath, dirEntryName);
+          const dirEntryTargetPath = this.joinPath(targetDirPath, dirEntryName);
+
+          const dirEntrySourceStat = await this.statSafe(dirEntrySourcePath);
+          if (dirEntrySourceStat) {
+            if (dirEntrySourceStat.isDirectory()) {
+              return sourceDirPaths.add(dirEntrySourcePath);
+            }
+
+            // Can't overwrite files yet
+            if (await this.statSafe(dirEntryTargetPath)) {
+              return ignoredFiles.add(dirEntrySourcePath);
+            }
+
+            filesToCopy.set(dirEntrySourcePath, dirEntryTargetPath);
+            totalSize += dirEntrySourceStat.size;
+
+            task.setText(`Files to copy: ${filesToCopy.size}`);
+          }
+        }));
+      }
+
+      if (ignoredFiles.size) {
+        this.notificationService.warning(`Following files won't be copied as they will overwrite existing files: ${[...ignoredFiles.values()].join(', ')}`);
+      }
+
+      let filesCounter = 1;
+
+      for (const [fileSourcePath, fileTargetPath] of filesToCopy.entries()) {
+        task.setText(`Copying files: ${filesCounter++}/${filesToCopy.size}`);
+
+        await this.doCopyFile(fileSourcePath, fileTargetPath, (bytesRead) => {
+          doneSize += bytesRead;
+          task.setProgress(doneSize / totalSize);
+        });
+      }
+    });
+  }
+
+  private doCopyFile(sourcePath: string, targetPath: string, reportProgress: (bytesRead: number) => void = () => {}): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const reader = this.createReadStream(sourcePath);
+      const writer = this.createWriteStream(targetPath);
+
+      let finished = false;
+      const finish = (error?: Error) => {
+        if (!finished) {
+          finished = true;
+
+          if (error) {
+            return reject(error);
+          }
+
+          return resolve();
+        }
+      };
+
+      reader.once('error', finish);
+      writer.once('error', finish);
+
+      writer.once('close', () => finish());
+
+      reader.on('data', (chunk) => reportProgress(chunk.length));
+
+      reader.pipe(writer);
+    });
   }
 }

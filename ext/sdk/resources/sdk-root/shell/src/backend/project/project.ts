@@ -629,7 +629,7 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.copyEntry)
   async copyEntry(request: CopyEntryRequest) {
-    this.notificationService.warning('Copying is not implemented yet :sob:');
+    this.fsService.copy(request.sourcePath, request.targetPath);
   }
   // /FS methods
   //#endregion fs-methods
