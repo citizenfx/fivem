@@ -1032,7 +1032,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			}
 		}
 
-		clientDataUnlocked->syncedEntities = std::move(newSyncedEntities);
+		{
+			std::unique_lock _(clientDataUnlocked->selfMutex);
+			clientDataUnlocked->syncedEntities = std::move(newSyncedEntities);
+		}
 	}
 
 	lastUpdateSlot = slot;
@@ -1600,33 +1603,36 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 
 		// erase old frames
-		auto& firstFrameState = clientDataUnlocked->firstSavedFrameState;
-		if (firstFrameState != 0)
 		{
-			size_t thisMaxBacklog = maxSavedClientFrames;
-
-			if (client->GetLastSeen() > 5s)
+			std::unique_lock _(clientDataUnlocked->selfMutex);
+			auto& firstFrameState = clientDataUnlocked->firstSavedFrameState;
+			if (firstFrameState != 0)
 			{
-				thisMaxBacklog = maxSavedClientFramesWorstCase;
+				size_t thisMaxBacklog = maxSavedClientFrames;
+
+				if (client->GetLastSeen() > 5s)
+				{
+					thisMaxBacklog = maxSavedClientFramesWorstCase;
+				}
+
+				// gradually remove if needed
+				thisMaxBacklog = std::max(thisMaxBacklog, clientDataUnlocked->frameStates.size() - 2);
+
+				// *should* only be looped once but meh
+				while (m_frameIndex - firstFrameState >= thisMaxBacklog - 1)
+				{
+					clientDataUnlocked->frameStates.erase(firstFrameState);
+					++firstFrameState;
+				}
+			}
+			else
+			{
+				firstFrameState = m_frameIndex;
 			}
 
-			// gradually remove if needed
-			thisMaxBacklog = std::max(thisMaxBacklog, clientDataUnlocked->frameStates.size() - 2);
-
-			// *should* only be looped once but meh
-			while (m_frameIndex - firstFrameState >= thisMaxBacklog - 1)
-			{
-				clientDataUnlocked->frameStates.erase(firstFrameState);
-				++firstFrameState;
-			}
+			// emplace new frame
+			clientDataUnlocked->frameStates.emplace(m_frameIndex, std::move(ces));
 		}
-		else
-		{
-			firstFrameState = m_frameIndex;
-		}
-
-		// emplace new frame
-		clientDataUnlocked->frameStates.emplace(m_frameIndex, std::move(ces));
 
 #ifdef USE_ASYNC_SCL_POSTING
 		// #TODO: syncing flag check and queue afterwards!
