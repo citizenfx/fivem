@@ -16,6 +16,7 @@ export const changelogEntries: ChangelogEntry[] = [
           <strong>22 december 2020</strong>
         </p>
         <ul>
+          <li>FxDK-flavored ayu theme by default</li>
           <li>Check if 30120 port is available for built-in fxserver upon start</li>
         </ul>
 

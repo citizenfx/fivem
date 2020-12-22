@@ -25,6 +25,7 @@ export class ConfigService {
   readonly sdkRootShell: string;
   readonly sdkRootShellBuild: string;
 
+  readonly theiaConfigPath: string;
   readonly sdkRootTheia: string;
   readonly sdkRootTheiaArchive: string;
 
@@ -55,6 +56,9 @@ export class ConfigService {
 
     this.sdkRootShell = path.join(this.sdkRoot, 'shell');
     this.sdkRootShellBuild = path.join(this.sdkRootShell, 'build');
+
+    // Also defined at personality-theia/fxdk-project/src/backend/rebindEnvVariablesServerImpl.ts
+    this.theiaConfigPath = path.join(process.env.LOCALAPPDATA, 'citizenfx/sdk-personality-theia');
 
     this.sdkRootTheia = path.join(this.sdkRoot, 'personality-theia');
     this.sdkRootTheiaArchive = path.join(this.sdkRoot, 'personality-theia.tar');

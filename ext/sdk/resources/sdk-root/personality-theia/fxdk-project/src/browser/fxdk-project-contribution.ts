@@ -23,6 +23,10 @@ function mapStateToNumber(state: FrontendApplicationState): number {
   return stateToNumber[state];
 }
 
+function mapFxdkFolderToTheiaFolder(folder: string): string {
+  return folder.replace(/\\/g, '/');
+}
+
 @injectable()
 export class FxdkProjectContribution implements FrontendApplicationContribution {
   @inject(CommandService)
@@ -76,12 +80,19 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
   private handleSetProject(project: { name: string, path: string, folders: string[] }) {
     console.log('setting or updating project', project);
-    return this.fxdkWorkspaceService.setProject(project);
+
+    const theiaProject = {
+      name: project.name,
+      path: project.path,
+      folders: project.folders.map(mapFxdkFolderToTheiaFolder),
+    }
+
+    return this.fxdkWorkspaceService.setProject(theiaProject);
   }
 
   private handleAddFolders(folders: string[]) {
     console.log('adding folders', folders);
-    return this.fxdkWorkspaceService.addFolders(folders);
+    return this.fxdkWorkspaceService.addFolders(folders.map(mapFxdkFolderToTheiaFolder));
   }
 
   private handleOpenFile(file: string) {

@@ -105,7 +105,7 @@ h6 {
 }
 ::-webkit-scrollbar-thumb {
   width: 2px;
-  background-color: rgba($acColor, .5);
+  background-color: rgba($fgColor, .1);
 }
 ::selection {
   background-color: $acColor;

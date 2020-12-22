@@ -77,6 +77,7 @@
     font-size: 13px;
 
     background-color: $bgColor;
+    box-shadow: -1px 0 0 0 rgba($fgColor, .05) inset;
 
     pointer-events: none;
     transform: translateX(-$toolbarWidth);
@@ -91,7 +92,7 @@
       align-items: stretch;
       justify-content: stretch;
 
-      background-color: rgba($fgColor, .1);
+      // background-color: rgba($fgColor, .1);
 
       .project-name {
         flex-grow: 1;

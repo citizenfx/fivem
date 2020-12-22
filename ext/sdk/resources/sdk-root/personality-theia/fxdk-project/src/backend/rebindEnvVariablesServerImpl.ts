@@ -6,6 +6,14 @@ import { EnvVariable, EnvVariablesServer } from '@theia/core/lib/common/env-vari
 import { FileUri } from '@theia/core/lib/node/file-uri';
 
 
+const invariant = (s: string | void, err: string) => {
+  if (!s) {
+    throw new Error(err);
+  }
+
+  return s;
+}
+
 @injectable()
 export class FxdkEnvVariablesServerImpl implements EnvVariablesServer {
 
@@ -25,7 +33,7 @@ export class FxdkEnvVariablesServerImpl implements EnvVariablesServer {
   }
 
   protected async createConfigDirUri(): Promise<string> {
-    return FileUri.create(process.env.THEIA_CONFIG_DIR || join(homedir(), '.theia')).toString();
+    return FileUri.create(join(invariant(process.env.LOCALAPPDATA, 'No LOCALAPPDATA env var'), 'citizenfx/sdk-personality-theia')).toString();
   }
 
   async getExecPath(): Promise<string> {

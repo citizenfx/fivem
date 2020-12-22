@@ -5,9 +5,12 @@ require('./frontend-appearance')();
 const { Container } = require('inversify');
 const { FrontendApplicationConfigProvider } = require('@theia/core/lib/browser/frontend-application-config-provider');
 FrontendApplicationConfigProvider.set({
-    "applicationName": "FxDK",
-    "defaultTheme": "dark",
-    "defaultIconTheme": "none"
+    applicationName: 'FxDK',
+    defaultTheme: 'Ayu Mirage',
+    defaultIconTheme: 'ayu',
+    preferences: {
+      'workbench.colorTheme': 'Ayu Mirage'
+    },
 });
 const { FrontendApplication } = require('@theia/core/lib/browser');
 const { frontendApplicationModule } = require('@theia/core/lib/browser/frontend-application-module');
