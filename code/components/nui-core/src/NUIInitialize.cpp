@@ -33,6 +33,7 @@
 #include "memdbgon.h"
 
 #include <CoreConsole.h>
+#include <Hooking.h>
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -900,6 +901,15 @@ void Component_RunPreInit()
 		MessageBoxW(NULL, L"Could not load bin/libcef.dll.", L"CitizenFX", MB_ICONSTOP | MB_OK);
 
 		ExitProcess(0);
+	}
+
+	{
+		auto network__SetFetchMetadataHeaders = (uint8_t*)((char*)libcef + 0x3c7a2c8);
+
+		if (*network__SetFetchMetadataHeaders == 0x41)
+		{
+			hook::putVP<uint8_t>(network__SetFetchMetadataHeaders, 0xC3);
+		}
 	}
 
 	__HrLoadAllImportsForDll("libcef.dll");
