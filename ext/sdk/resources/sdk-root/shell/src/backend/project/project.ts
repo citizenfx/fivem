@@ -1,10 +1,9 @@
-import chokidar from 'chokidar';
 import { inject, injectable, named } from 'inversify';
 import { ApiClient } from 'backend/api/api-client';
 import { ApiContribution } from "backend/api/api-contribution";
 import { handlesClientEvent } from 'backend/api/api-decorators';
 import { fxdkAssetFilename, fxdkProjectFilename } from 'backend/constants';
-import { EntryMetaExtras, ExplorerService } from 'backend/explorer/explorer-service';
+import { ExplorerService } from 'backend/explorer/explorer-service';
 import { FsService } from 'backend/fs/fs-service';
 import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
@@ -29,7 +28,6 @@ import {
   FilesystemEntry,
   FilesystemEntryMap,
   ProjectData,
-  ProjectFsUpdate,
   ProjectManifest,
   ProjectManifestResource,
   ProjectPathsState,
@@ -44,7 +42,7 @@ import { GameServerService } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
 import { ChangeAwareContainer } from 'backend/change-aware-container';
-import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
+import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
 import { TheiaService } from 'backend/theia/theia-service';
 

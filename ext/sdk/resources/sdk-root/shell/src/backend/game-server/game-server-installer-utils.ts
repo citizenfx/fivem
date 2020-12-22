@@ -8,7 +8,7 @@ export const versionFilename = '.fxserver-version';
 export type Setter = (size: number) => void;
 
 @injectable()
-export class GameServerInstaller {
+export class GameServerInstallerUtils {
   @inject(FsService)
   protected readonly fsService: FsService;
 

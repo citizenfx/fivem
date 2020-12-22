@@ -13,6 +13,13 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>22 december 2020</strong>
+        </p>
+        <ul>
+          <li>Check if 30120 port is available for built-in fxserver upon start</li>
+        </ul>
+
+        <p>
           <strong>21 december 2020</strong>
         </p>
         <ul>

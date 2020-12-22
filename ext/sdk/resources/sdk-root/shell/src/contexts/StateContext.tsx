@@ -3,7 +3,7 @@ import { AppStates } from 'shared/api.types';
 import { stateApi } from 'shared/api.events';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';
 import { logger } from 'utils/logger';
-import { changelogEntries } from 'components/Changelog/Changelog.entries';
+import { hasNewChangelogEntries } from 'components/Changelog/Changelog.utils';
 
 
 const log = logger('StateContext');
@@ -29,7 +29,7 @@ const defaultState: StateContext = {
   state: AppStates.booting,
   gameLaunched: false,
 
-  updaterOpen: localStorage['last-changelog-id'] !== changelogEntries[0].id,
+  updaterOpen: hasNewChangelogEntries(),
   openUpdater: () => {},
   closeUpdater: () => {},
 

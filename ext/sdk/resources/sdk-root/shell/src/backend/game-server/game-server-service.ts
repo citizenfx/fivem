@@ -18,6 +18,7 @@ import { ApiClient } from 'backend/api/api-client';
 import { sdkGamePipeName } from 'backend/constants';
 import { Sequencer } from 'backend/execution-utils/sequencer';
 import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
+import { NotificationService } from 'backend/notification/notification-service';
 
 enum ResourceReconcilationState {
   start = 1,
@@ -48,6 +49,9 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @inject(TaskReporterService)
   protected readonly taskReporterService: TaskReporterService;
+
+  @inject(NotificationService)
+  protected readonly notificationService: NotificationService;
 
   @inject(GameServerManagerService)
   protected readonly gameServerManagerService: GameServerManagerService;
@@ -89,15 +93,17 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @handlesClientEvent(serverApi.start)
   async start(request: ServerStartRequest) {
-    this.startTask = this.taskReporterService.create('Starting server');
-
-    this.logService.log('Starting server', request);
-
     const { projectPath } = request;
 
-    this.apiClient.emit(serverApi.clearOutput);
+    // Check if port is available
+    if (!await this.isPortAvailable(30120)) {
+      return this.notificationService.error(`Port 30120 is already taken, make sure nothing is using it`);
+    }
 
     this.toState(ServerStates.booting);
+    this.logService.log('Starting server', request);
+    this.startTask = this.taskReporterService.create('Starting server');
+    this.apiClient.emit(serverApi.clearOutput);
 
     const fxserverCwd = this.getProjectServerPath(projectPath);
     this.logService.log('FXServer cwd', fxserverCwd);
@@ -143,6 +149,7 @@ export class GameServerService implements AppContribution, ApiContribution {
     if (!server || !server.stdout) {
       this.logService.log('Server has failed to start');
       this.toState(ServerStates.down);
+      this.startTask.done();
       return;
     }
 
@@ -153,7 +160,7 @@ export class GameServerService implements AppContribution, ApiContribution {
     });
 
     server.on('exit', () => {
-      this.logService.log('fxserver terminated');
+      this.logService.log('FXServer terminated');
 
       if (this.sdkGameIPCServer) {
         this.sdkGameIPCServer.close();
@@ -375,5 +382,19 @@ export class GameServerService implements AppContribution, ApiContribution {
     const msg = JSON.stringify([eventType, data]) + '\n';
 
     this.sdkGameIPCSocket.write(msg);
+  }
+
+  private isPortAvailable(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const server = net.createServer();
+
+      server.on('error', () => resolve(false));
+      server.on('listening', () => {
+        server.close();
+        resolve(true);
+      });
+
+      server.listen(port, '127.0.0.1');
+    });
   }
 }

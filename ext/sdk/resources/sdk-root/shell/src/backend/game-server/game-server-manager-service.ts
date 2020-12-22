@@ -7,7 +7,7 @@ import { AppContribution } from "backend/app/app-contribution";
 import { ConfigService } from "backend/config-service";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
-import { GameServerInstaller, versionFilename } from "./game-server-installer";
+import { GameServerInstallerUtils, versionFilename } from "./game-server-installer-utils";
 import { ServerUpdateChannel, serverUpdateChannels, ServerUpdateChannelsState, ServerUpdateStates } from "shared/api.types";
 import { handlesClientEvent } from "backend/api/api-decorators";
 import { serverApi } from "shared/api.events";
@@ -51,8 +51,8 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   @inject(TaskReporterService)
   protected readonly taskReporterService: TaskReporterService;
 
-  @inject(GameServerInstaller)
-  protected readonly gameServerInstaller: GameServerInstaller;
+  @inject(GameServerInstallerUtils)
+  protected readonly gameServerInstallerUtils: GameServerInstallerUtils;
 
   protected updateChannelsState: ServerUpdateChannelsState = {
     [serverUpdateChannels.recommended]: ServerUpdateStates.checking,
@@ -225,7 +225,7 @@ export class GameServerManagerService implements AppContribution, ApiContributio
       let doneDownloadSize = 0;
 
       try {
-        await this.gameServerInstaller.downloadArtifact(
+        await this.gameServerInstallerUtils.downloadArtifact(
           link,
           downloadingArtifactPath,
           (totalSize) => totalDownloadSize = totalSize,
@@ -259,7 +259,7 @@ export class GameServerManagerService implements AppContribution, ApiContributio
       let doneUnpackSize = 0;
 
       try {
-        await this.gameServerInstaller.unpackArtifact(
+        await this.gameServerInstallerUtils.unpackArtifact(
           artifactPath,
           artifactExtractionPath,
           (totalSize) => totalUnpackSize = totalSize,
@@ -279,7 +279,7 @@ export class GameServerManagerService implements AppContribution, ApiContributio
       }
     }
 
-    await this.gameServerInstaller.prepareServer(artifactExtractionPath, version);
+    await this.gameServerInstallerUtils.prepareServer(artifactExtractionPath, version);
 
     this.installedVersions[updateChannel] = version;
 

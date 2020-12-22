@@ -7,7 +7,7 @@ import { StateContext } from 'contexts/StateContext';
 import { AppStates } from 'shared/api.types';
 import { BsArrowRepeat } from 'react-icons/bs';
 import { Button } from 'components/controls/Button/Button';
-import { changelogEntries } from 'components/Changelog/Changelog.entries';
+import { setLatestChangelogEntryAsSeen } from 'components/Changelog/Changelog.utils';
 import s from './Updater.module.scss';
 
 const defaultStatus = {
@@ -42,7 +42,7 @@ export const Updater = React.memo(function Update() {
 
   const handleContinue = React.useCallback(() => {
     closeUpdater();
-    localStorage['last-changelog-id'] = changelogEntries[0].id;
+    setLatestChangelogEntryAsSeen();
   }, [closeUpdater]);
 
   const isReady = state === AppStates.ready;
