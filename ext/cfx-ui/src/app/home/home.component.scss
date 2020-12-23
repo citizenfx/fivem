@@ -237,6 +237,10 @@
 				}
 				animation: bganim 40s linear 0s infinite;
 
+				@include theme() using ($theme) {
+					box-shadow: 0 0 0 2px rgba(gtv($theme, accentColor1), .5) inset;
+				}
+
 				&:hover {
 					transition: none;
 
@@ -629,7 +633,7 @@
 				}
 
 				content: ' ';
-				
+
 				position: absolute;
 				top: 0px;
 				left: 0px;
