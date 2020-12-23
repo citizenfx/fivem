@@ -111,12 +111,20 @@ input[type="password"] {
 	&:hover {
 		.cfx-checkbox-indicator {
 			@include themeNoHost() using ($theme) {
-				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset, 0 0 0 0 gtv($theme, fgColor) inset;
+				border-color: gtv($theme, accentColor1);
+
+				&::after {
+					box-shadow: 0 0 0 0 gtv($theme, fgColor) inset;
+				}
 			}
 		}
 		input:checked + .cfx-checkbox-indicator {
 			@include themeNoHost() using ($theme) {
-				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset, 0 0 0 var(--qh) gtv($theme, fgColor) inset;
+				border-color: gtv($theme, accentColor1);
+
+				&::after {
+					box-shadow: 0 0 0 var(--qh) gtv($theme, fgColor) inset;
+				}
 			}
 		}
 	}
@@ -132,22 +140,40 @@ input[type="password"] {
 
 	input:checked + .cfx-checkbox-indicator {
 		@include themeNoHost() using ($theme) {
-			box-shadow: 0 0 0 2px transparent inset, 0 0 0 var(--qh) gtv($theme, fgColor) inset;
+			&::after {
+				box-shadow: 0 0 0 var(--qh) gtv($theme, fgColor) inset;
+			}
 		}
 	}
 
 	.cfx-checkbox-indicator {
 		flex-shrink: 0;
 
+		position: relative;
+
 		width: var(--q1);
 		height: var(--q1);
 
 		margin-right: var(--qh);
 
-		transition: box-shadow .2s ease;
-
 		@include themeNoHost() using ($theme) {
-			box-shadow: 0 0 0 2px gtv($theme, fgColor) inset;
+			border: solid 2px gtv($theme, fgColor);
+		}
+
+		transition: border-color .2s ease;
+		transform: translateZ(0);
+
+		&::after {
+			display: block;
+			content: '';
+
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			right: 2px;
+			bottom: 2px;
+
+			transition: box-shadow .2s ease;
 		}
 	}
 }
