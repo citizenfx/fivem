@@ -174,7 +174,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 		{
 			do
 			{
-				if (findData.name[0] == '.')
+				if (findData.name == "." || findData.name == "..")
 				{
 					continue;
 				}
