@@ -339,59 +339,74 @@ public:
 		// don't have transfer_encoding at all!
 		m_headers.erase("transfer-encoding");
 
-		nghttp2_data_provider provider;
-		provider.source.ptr = this;
-		provider.read_callback = [](nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data) -> ssize_t
+		auto stream = m_tcpStream;
+
+		if (stream.GetRef())
 		{
-			auto resp = reinterpret_cast<Http2Response*>(source->ptr);
-
-			if (resp->m_ended)
+			stream->ScheduleCallback([this, session]()
 			{
-				*data_flags = NGHTTP2_DATA_FLAG_EOF;
-			}
+				nghttp2_data_provider provider;
+				provider.source.ptr = this;
+				provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t
+				{
+					auto resp = reinterpret_cast<Http2Response*>(source->ptr);
 
-			if (resp->m_buffer.Empty())
-			{
-				return (resp->m_ended) ? 0 : NGHTTP2_ERR_DEFERRED;
-			}
+					if (resp->m_ended)
+					{
+						*data_flags = NGHTTP2_DATA_FLAG_EOF;
+					}
 
-			*data_flags |= NGHTTP2_DATA_FLAG_NO_COPY;
-			return std::min(size_t(resp->m_buffer.PeekLength()), length);
-		};
+					if (resp->m_buffer.Empty())
+					{
+						return (resp->m_ended) ? 0 : NGHTTP2_ERR_DEFERRED;
+					}
 
-		std::vector<nghttp2_nv> nv(m_headers.size());
+					*data_flags |= NGHTTP2_DATA_FLAG_NO_COPY;
+					return std::min(size_t(resp->m_buffer.PeekLength()), length);
+				};
 
-		size_t i = 0;
-		for (auto& hdr : m_headers)
-		{
-			auto& v = nv[i];
+				std::vector<nghttp2_nv> nv(m_headers.size());
 
-			v.flags = 0;
-			v.name = (uint8_t*)hdr.first.c_str();
-			v.namelen = hdr.first.length();
-			v.value = (uint8_t*)hdr.second.c_str();
-			v.valuelen = hdr.second.length();
+				size_t i = 0;
+				for (auto& hdr : m_headers)
+				{
+					auto& v = nv[i];
 
-			++i;
+					v.flags = 0;
+					v.name = (uint8_t*)hdr.first.c_str();
+					v.namelen = hdr.first.length();
+					v.value = (uint8_t*)hdr.second.c_str();
+					v.valuelen = hdr.second.length();
+
+					++i;
+				}
+				nghttp2_submit_response(*session, m_stream, nv.data(), nv.size(), &provider);
+				nghttp2_session_send(*session);
+
+				m_sentHeaders = true;
+			});
 		}
-
-		nghttp2_submit_response(*session, m_stream, nv.data(), nv.size(), &provider);
-		nghttp2_session_send(*session);
-
-		m_sentHeaders = true;
 	}
 
 	template<typename TContainer>
 	void WriteOutInternal(TContainer data, fu2::unique_function<void(bool)> && cb = {})
 	{
-		auto session = m_session;
+		auto stream = m_tcpStream;
 
-		if (session)
+		if (stream.GetRef())
 		{
-			m_buffer.Push(std::forward<TContainer>(data), std::move(cb));
+			stream->ScheduleCallback([this, data = std::move(data), cb = std::move(cb)]() mutable
+			{
+				auto session = m_session;
 
-			nghttp2_session_resume_data(*session, m_stream);
-			nghttp2_session_send(*session);
+				if (session)
+				{
+					m_buffer.Push(std::forward<TContainer>(data), std::move(cb));
+
+					nghttp2_session_resume_data(*session, m_stream);
+					nghttp2_session_send(*session);
+				}
+			});
 		}
 	}
 
@@ -417,28 +432,45 @@ public:
 
 	virtual void WriteOut(std::unique_ptr<char[]> data, size_t size, fu2::unique_function<void(bool)>&& cb = {}) override
 	{
-		auto session = m_session;
+		auto stream = m_tcpStream;
 
-		if (session)
+		if (stream.GetRef())
 		{
-			m_buffer.Push(std::move(data), size, std::move(cb));
+			stream->ScheduleCallback([this, data = std::move(data), size, cb = std::move(cb)]() mutable
+			{
+				auto session = m_session;
 
-			nghttp2_session_resume_data(*session, m_stream);
-			nghttp2_session_send(*session);
+				if (session)
+				{
+					m_buffer.Push(std::move(data), size, std::move(cb));
+
+					nghttp2_session_resume_data(*session, m_stream);
+					nghttp2_session_send(*session);
+				}
+			});
 		}
 	}
 
 	virtual void End() override
 	{
 		m_ended = true;
-		m_tcpStream = nullptr;
 
-		auto session = m_session;
+		auto stream = m_tcpStream;
 
-		if (session)
+		if (stream.GetRef())
 		{
-			nghttp2_session_resume_data(*session, m_stream);
-			nghttp2_session_send(*session);
+			stream->ScheduleCallback([this]()
+			{
+				m_tcpStream = nullptr;
+
+				auto session = m_session;
+
+				if (session)
+				{
+					nghttp2_session_resume_data(*session, m_stream);
+					nghttp2_session_send(*session);
+				}
+			});
 		}
 	}
 
