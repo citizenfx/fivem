@@ -143,7 +143,11 @@ function Citizen.CreateThread(threadFunction)
 end
 
 function Citizen.Wait(msec)
-	coroutine.yield(GetGameTimer() + msec)
+	if msec > 5 then
+		coroutine.yield(GetGameTimer() + msec)
+	else
+		coroutine.yield(0)
+	end
 end
 
 -- legacy alias (and to prevent people from calling the game's function)
