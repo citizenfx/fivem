@@ -696,7 +696,6 @@ struct AckPacketWrapper
 	}
 };
 
-static constexpr const int kNumRoutingBuckets = 64;
 static constexpr const int MaxObjectId = (1 << 16) - 1;
 
 struct ClientEntityData
@@ -841,6 +840,11 @@ public:
 		m_entityLockdownMode = mode;
 	}
 
+	EntityLockdownMode GetEntityLockdownMode(const fx::ClientSharedPtr& client);
+	void SetEntityLockdownMode(int bucket, EntityLockdownMode mode);
+
+	void SetPopulationDisabled(int bucket, bool disabled);
+
 	inline SyncStyle GetSyncStyle()
 	{
 		return m_syncStyle;
@@ -871,7 +875,7 @@ private:
 
 	void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
-	bool ValidateEntity(const fx::sync::SyncEntityPtr& entity);
+	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
 
 public:
 	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);
@@ -933,7 +937,8 @@ private:
 		WorldGridOwnerIndexes accel;
 	};
 
-	WorldGrid m_worldGrids[kNumRoutingBuckets];
+	std::map<int, std::unique_ptr<WorldGrid>> m_worldGrids;
+	std::shared_mutex m_worldGridsMutex;
 	
 	void SendWorldGrid(void* entry = nullptr, const fx::ClientSharedPtr& client = {});
 
@@ -957,9 +962,21 @@ private:
 	struct ArrayHandlerData
 	{
 		std::array<std::shared_ptr<ArrayHandlerBase>, 16> handlers;
+
+		ArrayHandlerData();
 	};
 
-	ArrayHandlerData m_arrayHandlers[kNumRoutingBuckets];
+	std::map<int, std::unique_ptr<ArrayHandlerData>> m_arrayHandlers;
+	std::shared_mutex m_arrayHandlersMutex;
+
+	struct RoutingBucketMetaData
+	{
+		std::optional<EntityLockdownMode> lockdownMode;
+		bool noPopulation = false;
+	};
+
+	std::map<int, RoutingBucketMetaData> m_routingData;
+	std::shared_mutex m_routingDataMutex;
 
 	void SendArrayData(const fx::ClientSharedPtr& client);
 

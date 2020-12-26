@@ -346,6 +346,50 @@ static InitFunction initFunction([]()
 		}
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_ROUTING_BUCKET_POPULATION_ENABLED", [](fx::ScriptContext& context)
+	{
+		int bucket = context.GetArgument<int>(0);
+		bool enabled = context.GetArgument<bool>(1);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+		gameState->SetPopulationDisabled(bucket, !enabled);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ROUTING_BUCKET_ENTITY_LOCKDOWN_MODE", [](fx::ScriptContext& context)
+	{
+		int bucket = context.GetArgument<int>(0);
+		std::string_view sv = context.CheckArgument<const char*>(1);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		if (sv == "strict")
+		{
+			gameState->SetEntityLockdownMode(bucket, fx::EntityLockdownMode::Strict);
+		}
+		else if (sv == "relaxed")
+		{
+			gameState->SetEntityLockdownMode(bucket, fx::EntityLockdownMode::Relaxed);
+		}
+		else if (sv == "inactive")
+		{
+			gameState->SetEntityLockdownMode(bucket, fx::EntityLockdownMode::Inactive);
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_SYNC_ENTITY_LOCKDOWN_MODE", [](fx::ScriptContext& context)
 	{
 		std::string_view sv = context.CheckArgument<const char*>(0);
@@ -1153,7 +1197,7 @@ static InitFunction initFunction([]()
 		{
 			auto bucket = context.GetArgument<int>(1);
 
-			if (bucket >= 0 && bucket < fx::kNumRoutingBuckets)
+			if (bucket >= 0)
 			{
 				// get the current resource manager
 				auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -1196,7 +1240,7 @@ static InitFunction initFunction([]()
 		{
 			auto bucket = context.GetArgument<int>(1);
 
-			if (bucket >= 0 && bucket < fx::kNumRoutingBuckets)
+			if (bucket >= 0)
 			{
 				entity->routingBucket = bucket;
 			}

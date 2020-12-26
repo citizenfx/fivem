@@ -1831,45 +1831,57 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 	{
 		auto data = GetClientDataUnlocked(this, client);
 
-		net::Buffer msg;
-		msg.Write<uint32_t>(HashRageString("msgWorldGrid3"));
+		decltype(m_worldGrids)::iterator gridRef;
 
-		uint32_t base = 0;
-		uint32_t length = sizeof(m_worldGrids[data->routingBucket].state[0]);
-
-		if (entry)
 		{
-			base = ((WorldGridEntry*)entry - &m_worldGrids[data->routingBucket].state[0].entries[0]) * sizeof(WorldGridEntry);
-			length = sizeof(WorldGridEntry);
+			std::shared_lock s(m_worldGridsMutex);
+			gridRef = m_worldGrids.find(data->routingBucket);
 		}
 
-		if (client->GetSlotId() == -1)
+		if (gridRef != m_worldGrids.end())
 		{
-			return;
+			auto& grid = gridRef->second;
+
+			net::Buffer msg;
+			msg.Write<uint32_t>(HashRageString("msgWorldGrid3"));
+
+			uint32_t base = 0;
+			uint32_t length = sizeof(grid->state[0]);
+
+			if (entry)
+			{
+				base = ((WorldGridEntry*)entry - &grid->state[0].entries[0]) * sizeof(WorldGridEntry);
+				length = sizeof(WorldGridEntry);
+			}
+
+			if (client->GetSlotId() == -1)
+			{
+				return;
+			}
+
+			// really bad way to snap the world grid data to a client's own base
+			uint32_t baseRef = sizeof(grid->state[0]) * client->GetSlotId();
+			uint32_t lengthRef = sizeof(grid->state[0]);
+
+			if (base < baseRef)
+			{
+				base = baseRef;
+			}
+			else if (base > baseRef + lengthRef)
+			{
+				return;
+			}
+
+			// everyone's state starts at their own
+			length = std::min(lengthRef, length);
+
+			msg.Write<uint32_t>(base - baseRef);
+			msg.Write<uint32_t>(length);
+
+			msg.Write(reinterpret_cast<char*>(grid->state) + base, length);
+
+			client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 		}
-
-		// really bad way to snap the world grid data to a client's own base
-		uint32_t baseRef = sizeof(m_worldGrids[data->routingBucket].state[0]) * client->GetSlotId();
-		uint32_t lengthRef = sizeof(m_worldGrids[data->routingBucket].state[0]);
-
-		if (base < baseRef)
-		{
-			base = baseRef;
-		}
-		else if (base > baseRef + lengthRef)
-		{
-			return;
-		}
-
-		// everyone's state starts at their own
-		length = std::min(lengthRef, length);
-
-		msg.Write<uint32_t>(base - baseRef);
-		msg.Write<uint32_t>(length);
-
-		msg.Write(reinterpret_cast<char*>(m_worldGrids[data->routingBucket].state) + base, length);
-
-		client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 	};
 
 	if (client)
@@ -1895,21 +1907,64 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 
 	if (now >= nextWorldCheck)
 	{
-		for (auto& grid : m_worldGrids)
 		{
-			for (size_t x = 0; x < std::size(grid.accel.netIDs); x++)
+			std::shared_lock _(m_worldGridsMutex);
+
+			for (auto& [id, grid] : m_worldGrids)
 			{
-				for (size_t y = 0; y < std::size(grid.accel.netIDs[x]); y++)
+				for (size_t x = 0; x < std::size(grid->accel.netIDs); x++)
 				{
-					if (grid.accel.netIDs[x][y] != 0xFFFF && !clientRegistry->GetClientByNetID(grid.accel.netIDs[x][y]))
+					for (size_t y = 0; y < std::size(grid->accel.netIDs[x]); y++)
 					{
-						grid.accel.netIDs[x][y] = 0xFFFF;
+						if (grid->accel.netIDs[x][y] != 0xFFFF && !clientRegistry->GetClientByNetID(grid->accel.netIDs[x][y]))
+						{
+							grid->accel.netIDs[x][y] = 0xFFFF;
+						}
 					}
+				}
+			}
+
+			nextWorldCheck = now + 10s;
+		}
+
+		eastl::fixed_set<int, 128> liveBuckets;
+
+		auto creg = m_instance->GetComponent<fx::ClientRegistry>();
+		creg->ForAllClients([this, &liveBuckets](const fx::ClientSharedPtr& client)
+		{
+			auto data = GetClientDataUnlocked(this, client);
+			liveBuckets.insert(data->routingBucket);
+		});
+
+		{
+			std::unique_lock _(m_worldGridsMutex);
+			for (auto it = m_worldGrids.begin(); it != m_worldGrids.end();)
+			{
+				if (liveBuckets.find(it->first) == liveBuckets.end())
+				{
+					it = m_worldGrids.erase(it);
+				}
+				else
+				{
+					it++;
 				}
 			}
 		}
 
-		nextWorldCheck = now + 10s;
+		{
+			std::unique_lock _(m_arrayHandlersMutex);
+			for (auto it = m_arrayHandlers.begin(); it != m_arrayHandlers.end();)
+			{
+				if (liveBuckets.find(it->first) == liveBuckets.end())
+				{
+					it = m_arrayHandlers.erase(it);
+				}
+				else
+				{
+					it++;
+				}
+			}
+		}
 	}
 
 	// update world grid
@@ -1942,14 +1997,30 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		int minSectorY = std::max((pos.y - 299.0f) + 8192.0f, 0.0f) / 150;
 		int maxSectorY = std::max((pos.y + 299.0f) + 8192.0f, 0.0f) / 150;
 
-		if (minSectorX < 0 || minSectorX > std::size(m_worldGrids[data->routingBucket].accel.netIDs) || minSectorY < 0 || minSectorY > std::size(m_worldGrids[data->routingBucket].accel.netIDs[0]))
+		decltype(m_worldGrids)::iterator gridRef;
+
+		{
+			std::shared_lock s(m_worldGridsMutex);
+			gridRef = m_worldGrids.find(data->routingBucket);
+
+			if (gridRef == m_worldGrids.end())
+			{
+				s.unlock();
+				std::unique_lock l(m_worldGridsMutex);
+				gridRef = m_worldGrids.emplace(data->routingBucket, std::make_unique<WorldGrid>()).first;
+			}
+		}
+
+		auto& grid = gridRef->second;
+
+		if (minSectorX < 0 || minSectorX > std::size(grid->accel.netIDs) || minSectorY < 0 || minSectorY > std::size(grid->accel.netIDs[0]))
 		{
 			return;
 		}
 
 		auto netID = client->GetNetId();
 
-		WorldGridState* gridState = &m_worldGrids[data->routingBucket].state[slotID];
+		WorldGridState* gridState = &grid->state[slotID];
 
 		// remove any cooldowns we're not at
 		for (auto it = data->worldGridCooldown.begin(); it != data->worldGridCooldown.end();)
@@ -1976,9 +2047,9 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 				if (entry.sectorX < minSectorX || entry.sectorX > maxSectorX ||
 					entry.sectorY < minSectorY || entry.sectorY > maxSectorY)
 				{
-					if (m_worldGrids[data->routingBucket].accel.netIDs[entry.sectorX][entry.sectorY] == netID)
+					if (grid->accel.netIDs[entry.sectorX][entry.sectorY] == netID)
 					{
-						m_worldGrids[data->routingBucket].accel.netIDs[entry.sectorX][entry.sectorY] = -1;
+						grid->accel.netIDs[entry.sectorX][entry.sectorY] = -1;
 					}
 
 					data->worldGridCooldown.erase((uint16_t(entry.sectorX) << 8) | entry.sectorY);
@@ -2000,7 +2071,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			for (int y = minSectorY; y <= maxSectorY; y++)
 			{
 				// find if this x/y is owned by someone already
-				bool found = (m_worldGrids[data->routingBucket].accel.netIDs[x][y] != 0xFFFF);
+				bool found = (grid->accel.netIDs[x][y] != 0xFFFF);
 
 				// if not, find out if we even have any chance at having an entity in there (cooldown of ~5 ticks, might need a more accurate query somewhen)
 				auto secAddr = (uint16_t(x) << 8) | y;
@@ -2039,7 +2110,7 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 							entry.sectorY = y;
 							entry.netID = netID;
 
-							m_worldGrids[data->routingBucket].accel.netIDs[x][y] = netID;
+							grid->accel.netIDs[x][y] = netID;
 
 							SendWorldGrid(&entry, client);
 
@@ -2050,6 +2121,18 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			}
 		}
 	});
+}
+
+void ServerGameState::SetEntityLockdownMode(int bucket, EntityLockdownMode mode)
+{
+	std::unique_lock _(m_routingDataMutex);
+	m_routingData[bucket].lockdownMode = mode;
+}
+
+void ServerGameState::SetPopulationDisabled(int bucket, bool disabled)
+{
+	std::unique_lock _(m_routingDataMutex);
+	m_routingData[bucket].noPopulation = disabled;
 }
 
 // make sure you have a lock to the client mutex before calling this function!
@@ -2370,9 +2453,11 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 void ServerGameState::ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient)
 {
 	{
-		for (auto& handlerList : m_arrayHandlers)
+		std::shared_lock _(m_arrayHandlersMutex);
+
+		for (auto& [ id, handlerList ] : m_arrayHandlers)
 		{
-			for (auto& handler : handlerList.handlers)
+			for (auto& handler : handlerList->handlers)
 			{
 				if (handler)
 				{
@@ -2386,26 +2471,39 @@ void ServerGameState::ClearClientFromWorldGrid(const fx::ClientSharedPtr& target
 	auto slotId = targetClient->GetSlotId();
 	auto netId = targetClient->GetNetId();
 
-	if (slotId != -1)
-	{
-		WorldGridState* gridState = &m_worldGrids[clientDataUnlocked->routingBucket].state[slotId];
+	
+	decltype(m_worldGrids)::iterator gridRef;
 
-		for (auto& entry : gridState->entries)
-		{
-			entry.netID = -1;
-			entry.sectorX = 0;
-			entry.sectorY = 0;
-		}
+	{
+		std::shared_lock s(m_worldGridsMutex);
+		gridRef = m_worldGrids.find(clientDataUnlocked->routingBucket);
 	}
 
+	if (gridRef != m_worldGrids.end())
 	{
-		for (size_t x = 0; x < std::size(m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs); x++)
+		auto& grid = gridRef->second;
+
+		if (slotId != -1)
 		{
-			for (size_t y = 0; y < std::size(m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs[x]); y++)
+			WorldGridState* gridState = &grid->state[slotId];
+
+			for (auto& entry : gridState->entries)
 			{
-				if (m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs[x][y] == netId)
+				entry.netID = -1;
+				entry.sectorX = 0;
+				entry.sectorY = 0;
+			}
+		}
+
+		{
+			for (size_t x = 0; x < std::size(grid->accel.netIDs); x++)
+			{
+				for (size_t y = 0; y < std::size(grid->accel.netIDs[x]); y++)
 				{
-					m_worldGrids[clientDataUnlocked->routingBucket].accel.netIDs[x][y] = 0xFFFF;
+					if (grid->accel.netIDs[x][y] == netId)
+					{
+						grid->accel.netIDs[x][y] = 0xFFFF;
+					}
 				}
 			}
 		}
@@ -2899,10 +2997,27 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			}
 		};
 
-		// if we're in entity lockdown, validate the entity first
-		if (m_entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
+		auto entityLockdownMode = m_entityLockdownMode;
+
 		{
-			if (!ValidateEntity(entity))
+			auto clientData = GetClientDataUnlocked(this, client);
+			std::shared_lock _(m_routingDataMutex);
+
+			if (auto rbmdIt = m_routingData.find(clientData->routingBucket); rbmdIt != m_routingData.end())
+			{
+				auto& rbmd = rbmdIt->second;
+
+				if (rbmd.lockdownMode)
+				{
+					entityLockdownMode = *rbmd.lockdownMode;
+				}
+			}
+		}
+
+		// if we're in entity lockdown, validate the entity first
+		if (entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
+		{
+			if (!ValidateEntity(entityLockdownMode, entity))
 			{
 				// yeet
 				startDelete();
@@ -2994,11 +3109,11 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	return true;
 }
 
-bool ServerGameState::ValidateEntity(const fx::sync::SyncEntityPtr& entity)
+bool ServerGameState::ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity)
 {
 	bool allowed = false;
 	// allow auto-generated population in non-strict lockdown
-	if (m_entityLockdownMode != EntityLockdownMode::Strict)
+	if (entityLockdownMode != EntityLockdownMode::Strict)
 	{
 		sync::ePopType popType;
 
@@ -3455,11 +3570,21 @@ void ServerGameState::SendArrayData(const fx::ClientSharedPtr& client)
 {
 	auto data = GetClientDataUnlocked(this, client);
 
-	for (auto& handler : m_arrayHandlers[data->routingBucket].handlers)
+	decltype(m_arrayHandlers)::iterator arrayRef;
+
 	{
-		if (handler)
+		std::shared_lock s(m_arrayHandlersMutex);
+		arrayRef = m_arrayHandlers.find(data->routingBucket);
+	}
+
+	if (arrayRef != m_arrayHandlers.end())
+	{
+		for (auto& handler : arrayRef->second->handlers)
 		{
-			handler->WriteUpdates(client);
+			if (handler)
+			{
+				handler->WriteUpdates(client);
+			}
 		}
 	}
 }
@@ -3469,12 +3594,28 @@ void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::
 	auto arrayIndex = buffer.Read<uint8_t>();
 	auto data = GetClientDataUnlocked(this, client);
 
-	if (arrayIndex > m_arrayHandlers[data->routingBucket].handlers.size())
+	decltype(m_arrayHandlers)::iterator gridRef;
+
+	{
+		std::shared_lock s(m_arrayHandlersMutex);
+		gridRef = m_arrayHandlers.find(data->routingBucket);
+
+		if (gridRef == m_arrayHandlers.end())
+		{
+			s.unlock();
+			std::unique_lock l(m_arrayHandlersMutex);
+			gridRef = m_arrayHandlers.emplace(data->routingBucket, std::make_unique<ArrayHandlerData>()).first;
+		}
+	}
+
+	auto& ah = gridRef->second;
+
+	if (arrayIndex > ah->handlers.size())
 	{
 		return;
 	}
 
-	auto handler = m_arrayHandlers[data->routingBucket].handlers[arrayIndex];
+	auto handler = ah->handlers[arrayIndex];
 
 	if (!handler)
 	{
@@ -3516,15 +3657,39 @@ void ServerGameState::SendPacket(int peer, std::string_view data)
 	}
 }
 
+ServerGameState::ArrayHandlerData::ArrayHandlerData()
+{
+	handlers[4] = std::make_shared<ArrayHandler<128, 50>>(4);
+	handlers[7] = std::make_shared<ArrayHandler<128, 50>>(7);
+}
+
+auto ServerGameState::GetEntityLockdownMode(const fx::ClientSharedPtr& client) -> EntityLockdownMode
+{
+	auto clientData = GetClientDataUnlocked(this, client);
+	std::shared_lock _(m_routingDataMutex);
+
+	if (auto rbmdIt = m_routingData.find(clientData->routingBucket); rbmdIt != m_routingData.end())
+	{
+		auto& rbmd = rbmdIt->second;
+
+		// since this API is for external use
+		if (rbmd.noPopulation)
+		{
+			return EntityLockdownMode::Strict;
+		}
+
+		if (rbmd.lockdownMode)
+		{
+			return *rbmd.lockdownMode;
+		}
+	}
+
+	return GetEntityLockdownMode();
+}
+
 void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 {
 	m_instance = instance;
-
-	for (auto& ha : m_arrayHandlers)
-	{
-		ha.handlers[4] = std::make_shared<ArrayHandler<128, 50>>(4);
-		ha.handlers[7] = std::make_shared<ArrayHandler<128, 50>>(7);
-	}	
 
 	m_lockdownModeVar = instance->AddVariable<fx::EntityLockdownMode>("sv_entityLockdown", ConVar_None, m_entityLockdownMode, &m_entityLockdownMode);
 
@@ -4352,6 +4517,7 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgNetGameEvent"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 		{
+			auto sgs = instance->GetComponent<fx::ServerGameState>();
 			auto targetPlayerCount = buffer.Read<uint8_t>();
 			std::vector<uint16_t> targetPlayers(targetPlayerCount);
 
@@ -4365,9 +4531,12 @@ static InitFunction initFunction([]()
 			netBuffer.Write<uint16_t>(client->GetNetId());
 			buffer.ReadTo(netBuffer, buffer.GetRemainingBytes());
 
+			auto sourceClientData = GetClientDataUnlocked(sgs.GetRef(), client);
+			auto bucket = sourceClientData->routingBucket;
+
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-			auto routeEvent = [netBuffer, targetPlayers, clientRegistry]()
+			auto routeEvent = [sgs, bucket, netBuffer, targetPlayers, clientRegistry]()
 			{
 				for (uint16_t player : targetPlayers)
 				{
@@ -4375,7 +4544,12 @@ static InitFunction initFunction([]()
 
 					if (targetClient)
 					{
-						targetClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+						auto targetClientData = GetClientDataUnlocked(sgs.GetRef(), targetClient);
+
+						if (targetClientData->routingBucket == bucket)
+						{
+							targetClient->SendPacket(1, netBuffer, NetPacketType_Reliable);
+						}
 					}
 				}
 			};

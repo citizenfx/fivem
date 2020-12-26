@@ -877,7 +877,6 @@ namespace fx
 		{
 			std::vector<fx::ClientSharedPtr> toRemove;
 
-			bool lockdownMode = m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode() == fx::EntityLockdownMode::Strict;
 			uint8_t syncStyle = (uint8_t)m_instance->GetComponent<fx::ServerGameState>()->GetSyncStyle();
 
 			m_clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
@@ -889,6 +888,8 @@ namespace fx
 					const auto& lm = client->GetData("lockdownMode");
 					const auto& lf = client->GetData("lastFrame");
 					const auto& ss = client->GetData("syncStyle");
+
+					bool lockdownMode = m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict;
 
 					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode ||
 						!ss.has_value() || std::any_cast<uint8_t>(ss) != syncStyle ||
