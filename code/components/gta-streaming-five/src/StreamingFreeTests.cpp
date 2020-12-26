@@ -322,8 +322,14 @@ static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 {
 	g_origArchetypeInit(at, a3, def, a4);
 
-	auto atIdx = *g_archetypeHash->find(def->name);
-	g_archetypeDeletionStack[def->name].push_front(atIdx);
+	auto atIdx = g_archetypeHash->find(def->name);
+
+	if (atIdx != nullptr) {
+		g_archetypeDeletionStack[def->name].push_front(*atIdx);
+	}
+	else {
+		trace("archetype %s was not found!\n", def->name);
+	}
 }
 
 static HookFunction hookFunction([] ()
