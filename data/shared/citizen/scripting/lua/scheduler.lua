@@ -4,6 +4,7 @@ local coresume, costatus = coroutine.resume, coroutine.status
 local debug = debug
 local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibility
 local hadThread = false
+local curTime = 0
 
 -- setup msgpack compat
 msgpack.set_string('string_compat')
@@ -143,7 +144,7 @@ function Citizen.CreateThread(threadFunction)
 end
 
 function Citizen.Wait(msec)
-	coroutine.yield(GetGameTimer() + msec)
+	coroutine.yield(curTime + msec)
 end
 
 -- legacy alias (and to prevent people from calling the game's function)
@@ -219,7 +220,7 @@ function Citizen.SetTimeout(msec, callback)
 
 	local coro = coroutine.create(tfn)
 	threads[coro] = {
-		wakeTime = GetGameTimer() + msec,
+		wakeTime = curTime + msec,
 		boundary = bid
 	}
 
@@ -235,7 +236,7 @@ Citizen.SetTickRoutine(function()
 
 	-- flag to skip thread exec if we don't have any
 	local thisHadThread = false
-	local curTime = GetGameTimer()
+	curTime = GetGameTimer()
 
 	for coro, thread in pairs(newThreads) do
 		rawset(threads, coro, thread)
