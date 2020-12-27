@@ -249,10 +249,12 @@ static void(*g_origMakeDefragmentable)(rage::pgBase*, const rage::datResourceMap
 
 static void MakeDefragmentableHook(rage::pgBase* self, const rage::datResourceMap& map, bool a3)
 {
-	if (self->pageMap)
+	auto pageMap = self->pageMap;
+
+	if (pageMap)
 	{
 		auto newPageMap = new rage::PageMap;
-		memcpy(newPageMap, self->pageMap, offsetof(rage::PageMap, pageInfo) + (3 * sizeof(void*) * (map.numPages1 + map.numPages2)));
+		memcpy(newPageMap, pageMap, offsetof(rage::PageMap, pageInfo) + (3 * sizeof(void*) * (map.numPages1 + map.numPages2)));
 
 		self->pageMap = newPageMap;
 	}
@@ -322,8 +324,12 @@ static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 {
 	g_origArchetypeInit(at, a3, def, a4);
 
-	auto atIdx = *g_archetypeHash->find(def->name);
-	g_archetypeDeletionStack[def->name].push_front(atIdx);
+	auto atIdx = g_archetypeHash->find(def->name);
+
+	if (atIdx)
+	{
+		g_archetypeDeletionStack[def->name].push_front(*atIdx);
+	}
 }
 
 static HookFunction hookFunction([] ()
