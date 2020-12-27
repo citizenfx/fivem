@@ -3,6 +3,8 @@
 setlocal EnableDelayedExpansion
 
 set path=C:\msys64\usr\bin;%path%
+set LUA_PATH=
+set LUA_CPATH=
 
 pacman --noconfirm --needed -Sy make curl diffutils libcurl
 
