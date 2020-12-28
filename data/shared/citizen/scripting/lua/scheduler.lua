@@ -154,6 +154,10 @@ CreateThread = Citizen.CreateThread
 function Citizen.CreateThreadNow(threadFunction, name)
 	local bid = boundaryIdx + 1
 	boundaryIdx = boundaryIdx + 1
+
+	if not hadThread then
+		curTime = GetGameTimer()
+	end
 	
 	local di = debug.getinfo(threadFunction, 'S')
 	name = name or ('thread_now %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
