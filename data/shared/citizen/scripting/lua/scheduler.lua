@@ -230,13 +230,14 @@ end
 SetTimeout = Citizen.SetTimeout
 
 Citizen.SetTickRoutine(function()
+	curTime = GetGameTimer()
+
 	if not hadThread then
 		return
 	end
 
 	-- flag to skip thread exec if we don't have any
 	local thisHadThread = false
-	curTime = GetGameTimer()
 
 	for coro, thread in pairs(newThreads) do
 		rawset(threads, coro, thread)
