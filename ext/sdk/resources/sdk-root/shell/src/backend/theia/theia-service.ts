@@ -2,7 +2,6 @@ import { inject, injectable } from "inversify";
 import { AppContribution } from "backend/app/app-contribution";
 import { ConfigService } from "backend/config-service";
 import { FsService } from "backend/fs/fs-service";
-import { settings } from "cluster";
 
 @injectable()
 export class TheiaService implements AppContribution {
