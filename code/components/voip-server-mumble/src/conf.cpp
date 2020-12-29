@@ -38,7 +38,7 @@
 #include "log.h"
 
 #define DEFAULT_WELCOME "Welcome to uMurmur!"
-#define DEFAULT_MAX_CLIENTS 512
+#define DEFAULT_MAX_CLIENTS 1024
 #define DEFAULT_MAX_BANDWIDTH 76000
 #define DEFAULT_BINDPORT 64738
 #define DEFAULT_BAN_LENGTH (60*60)
