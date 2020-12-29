@@ -723,7 +723,12 @@ struct EntityDeletionData
 
 struct ClientEntityState
 {
+#ifdef _WIN32
 	eastl::vector_map<uint16_t, ClientEntityData, std::less<uint16_t>, EASTLAllocatorType, eastl::deque<eastl::pair<uint16_t, ClientEntityData>, EASTLAllocatorType>> syncedEntities;
+#else
+	// on Linux/Clang/libstdc++/dunno the above vector_map leads to very rare corruption under high load
+	eastl::fixed_map<uint16_t, ClientEntityData, 192> syncedEntities;
+#endif
 
 	// and 24 deletions per frame
 	eastl::fixed_vector<std::tuple<uint32_t, EntityDeletionData>, 24> deletions;
