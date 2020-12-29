@@ -331,7 +331,7 @@ public:
 					{
 						instance->GetComponent<fx::GameServer>()->DropClient(client, "Unreliable network event overflow.");
 					}
-				});
+				}, true);
 			}
 
 			return true;
