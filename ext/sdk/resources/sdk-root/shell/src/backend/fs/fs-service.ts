@@ -32,8 +32,8 @@ export class FsService {
     return os.tmpdir();
   }
 
-  basename(entryPath: string) {
-    return path.basename(entryPath);
+  basename(entryPath: string, ext?: string) {
+    return path.basename(entryPath, ext);
   }
 
   dirname(entryPath: string) {
@@ -72,6 +72,18 @@ export class FsService {
     return rimraf(entryPath);
   }
 
+  async ensureDeleted(entryPath: string) {
+    const stat = await this.statSafe(entryPath);
+
+    if (stat) {
+      if (stat.isDirectory()) {
+        await this.rimraf(entryPath);
+      } else {
+        await this.unlink(entryPath);
+      }
+    }
+  }
+
   readdir(entryPath: string): Promise<string[]> {
     return fs.promises.readdir(entryPath);
   }
@@ -82,6 +94,18 @@ export class FsService {
 
   mkdirpSync(entryPath: string) {
     return mkdirp.sync(entryPath);
+  }
+
+  async ensureDir(entryPath: string) {
+    const stat = await this.statSafe(entryPath);
+
+    if (!stat) {
+      return this.mkdirp(entryPath);
+    }
+
+    if (!stat.isDirectory()) {
+      throw new Error(`${entryPath} exist but is not a directory`);
+    }
   }
 
   unlink(entryPath: string) {

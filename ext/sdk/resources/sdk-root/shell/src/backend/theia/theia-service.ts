@@ -11,9 +11,25 @@ export class TheiaService implements AppContribution {
   @inject(FsService)
   protected readonly fsService: FsService;
 
-  async beforeAppStart() {
+  async prepare() {
     await this.ensureTheiaDefaultSettings();
+  }
 
+  async beforeAppStart() {
+    await this.startTheiaBackend();
+  }
+
+  async createDefaultProjectSettings(projectStoragePath: string) {
+    const settingsPath = this.fsService.joinPath(projectStoragePath, 'theia-settings.json');
+    const settings = {
+      folders: [],
+      settings: {},
+    };
+
+    await this.fsService.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+  }
+
+  private async startTheiaBackend() {
     if (!this.configService.selfHosted) {
       return;
     }
@@ -34,22 +50,15 @@ export class TheiaService implements AppContribution {
     }
   }
 
-  async createDefaultProjectSettings(projectStoragePath: string) {
-    const settingsPath = this.fsService.joinPath(projectStoragePath, 'theia-settings.json');
-    const settings = {
-      folders: [],
-      settings: {},
-    };
-
-    await this.fsService.writeFile(settingsPath, JSON.stringify(settings, null, 2));
-  }
-
   private async ensureTheiaDefaultSettings() {
     const settingsPath = this.fsService.joinPath(this.configService.theiaConfigPath, 'settings.json');
 
     if (await this.fsService.statSafe(settingsPath)) {
       return;
     }
+
+    // Ensure folder exists
+    await this.fsService.mkdirp(this.configService.theiaConfigPath);
 
     await this.fsService.writeFile(settingsPath, JSON.stringify({
       'workbench.colorTheme': 'FxDK Dark',

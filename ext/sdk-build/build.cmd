@@ -33,17 +33,15 @@ pushd %FXDKTheia%
 if exist build rmdir /s /q build
 set NODE_OPTIONS=--max_old_space_size=4096
 call yarn install --frozen-lockfile --ignore-scripts
-call yarn --cwd fxdk-app run download:plugins
 call yarn build
 xcopy /y /e fxdk-app\lib\*.* 	    build\lib\
-xcopy /y /e fxdk-app\plugins\*.*    build\plugins\
 xcopy /y    fxdk-app\backend.js     build\
 xcopy /y    yarn.lock               build\
 
 echo F|xcopy /y    fxdk-app\backend-package.json build\package.json
 echo F|xcopy /y    build.yarnclean               build\.yarnclean
 
-call yarn --cwd build install --frozen-lockfile --ignore-scripts --production
+call yarn --cwd build install --frozen-lockfile --production
 
 xcopy /y /e node_modules\fxdk-project\lib\*.*      build\node_modules\fxdk-project\lib\
 xcopy /y    node_modules\fxdk-project\package.json build\node_modules\fxdk-project\

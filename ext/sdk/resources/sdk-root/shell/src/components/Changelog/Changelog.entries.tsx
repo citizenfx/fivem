@@ -13,6 +13,14 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>30 december 2020</strong>
+        </p>
+        <ul>
+          <li>Full CSharp language support (w/o proper resource creation, yet)</li>
+          <li>Move theia plugins out of theia distribution package, as omnisharp extension downloads <em>a lot</em> of files afterwards</li>
+        </ul>
+
+        <p>
           <strong>22 december 2020</strong>
         </p>
         <ul>
