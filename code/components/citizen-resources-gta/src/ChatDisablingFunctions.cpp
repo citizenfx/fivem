@@ -26,6 +26,12 @@ static InitFunction initFunction([] ()
 		g_textChatDisableResources.clear();
 	});
 
+	// disable legacy text chat by default, for it is confusing
+	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+	{
+		game::SetTextChatEnabled(false);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_TEXT_CHAT_ENABLED", [] (fx::ScriptContext& context)
 	{
 		fx::OMPtr<IScriptRuntime> runtime;
