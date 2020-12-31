@@ -793,7 +793,7 @@ static InitFunction initFunction([]()
 	{
 		auto vn = entity->syncTree->GetVehicleAppearance();
 
-		return vn ? vn->dirtLevel : 0;
+		return vn ? float(vn->dirtLevel) : 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
