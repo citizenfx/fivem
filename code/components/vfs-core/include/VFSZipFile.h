@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shared_mutex>
 #include <VFSDevice.h>
 
 #ifdef COMPILING_VFS_CORE
@@ -53,7 +54,9 @@ namespace vfs
 
 		std::string m_pathPrefix;
 
-		HandleData m_handles[32];
+		std::vector<HandleData> m_handles;
+
+		std::shared_mutex m_handlesMutex;
 
 		std::unordered_map<std::string, Entry> m_entries;
 
