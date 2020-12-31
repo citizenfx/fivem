@@ -6,6 +6,7 @@ import { Server, ServerHistoryEntry } from './servers/server';
 import { environment } from '../environments/environment';
 import { LocalStorage } from './local-storage';
 import { Observable, BehaviorSubject } from 'rxjs';
+import * as query from 'query-string';
 
 export class ConnectStatus {
 	public server: Server;
@@ -431,8 +432,15 @@ export class CfxGameService extends GameService {
 						break;
 					case 'connectTo':
 						const address: string = event.data.hostnameStr;
+						const connectParams = query.parse(event.data.connectParams);
 
 						if (!this.inConnecting) {
+							if ('streamerMode' in connectParams) {
+								const streamerMode = ['true', '1'].includes(<string>connectParams.streamerMode);
+								this._streamerMode = streamerMode;
+								this.invokeStreamerModeChanged(streamerMode);
+							}
+
 							this.zone.run(() => {
 								this.inConnecting = true;
 
