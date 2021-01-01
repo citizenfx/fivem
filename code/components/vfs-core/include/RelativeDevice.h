@@ -52,6 +52,8 @@ class
 
 	virtual size_t GetLength(const std::string& fileName) override;
 
+	virtual uint32_t GetAttributes(const std::string& fileName) override;
+
 	virtual THandle FindFirst(const std::string& folder, FindData* findData) override;
 
 	virtual bool FindNext(THandle handle, FindData* findData) override;

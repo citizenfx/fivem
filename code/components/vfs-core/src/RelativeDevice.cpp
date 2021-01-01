@@ -102,6 +102,11 @@ size_t RelativeDevice::GetLength(const std::string& fileName)
 	return m_otherDevice->GetLength(TranslatePath(fileName));
 }
 
+uint32_t RelativeDevice::GetAttributes(const std::string& fileName)
+{
+	return m_otherDevice->GetAttributes(TranslatePath(fileName));
+}
+
 Device::THandle RelativeDevice::FindFirst(const std::string& folder, FindData* findData)
 {
 	return m_otherDevice->FindFirst(TranslatePath(folder), findData);
