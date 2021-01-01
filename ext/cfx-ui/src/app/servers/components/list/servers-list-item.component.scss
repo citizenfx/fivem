@@ -127,7 +127,7 @@
 	.actions {
 		flex-shrink: 0;
 
-		width: var(--q6);
+		width: 0;
 		height: 100%;
 
 		display: flex;
@@ -266,6 +266,10 @@
 		@include theme() using ($theme) {
 			box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 		};
+
+		.actions {
+			width: var(--q6);
+		}
 
 		.actions button {
 			opacity: 1;
