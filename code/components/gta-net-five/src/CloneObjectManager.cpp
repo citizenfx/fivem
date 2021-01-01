@@ -13,10 +13,15 @@
 
 static ICoreGameInit* icgi;
 
+extern void CD_AllocateSyncData(uint16_t objectId);
+extern void CD_FreeSyncData(uint16_t objectId);
+
 static void(*g_orig_netObjectMgrBase__RegisterNetworkObject)(rage::netObjectMgr*, rage::netObject*);
 
 static void netObjectMgrBase__RegisterNetworkObject(rage::netObjectMgr* manager, rage::netObject* object)
 {
+	CD_AllocateSyncData(object->objectId);
+
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_orig_netObjectMgrBase__RegisterNetworkObject(manager, object);
@@ -50,6 +55,8 @@ void ObjectIds_ReturnObjectId(uint16_t objectId);
 
 static void netObjectMgrBase__DestroyNetworkObject(rage::netObjectMgr* manager, rage::netObject* object)
 {
+	CD_FreeSyncData(object->objectId);
+
 	if (!icgi->OneSyncEnabled)
 	{
 		return g_orig_netObjectMgrBase__DestroyNetworkObject(manager, object);
