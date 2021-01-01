@@ -79,6 +79,8 @@ export class AppNavComponent {
 	}
 
 	goThere() {
+		(<any>window).invokeNative('enterGameplay', '');
+		document.body.style.visibility = 'hidden';
 	}
 
 	exitGame() {

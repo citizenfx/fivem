@@ -187,6 +187,15 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
+	{
+		if (wcscmp(type, L"enterGameplay") == 0)
+		{
+			nui::SetHideCursor(true);
+			bWantsGameplay = true;
+		}
+	});
+
 	OnPostFrontendRender.Connect([]()
 	{
 		static rage::grcTexture* gTex = NULL;

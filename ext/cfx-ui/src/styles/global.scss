@@ -145,7 +145,7 @@ body {
 
 	--header-height: var(--q3);
 	--header-safe-left-raw: var(--q3);
-	--header-safe-right-raw: var(--q9);
+	--header-safe-right-raw: var(--q12);
 	--header-safe-left: calc(var(--header-safe-left-raw) + var(--qh));
 	--header-safe-right: calc(var(--header-safe-right-raw) + var(--qh));
 }

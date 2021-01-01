@@ -35,8 +35,8 @@
 			flex-grow: 1;
 
 			&.pins {
-				/* should match amount of header buttons - 3x unpadded, 3x padded) */
-				width: calc((var(--q3) * 3) + (3 * (var(--q3) + var(--qh))));
+				/* should match amount of header buttons - unpadded (without qh) + padded (with qh) */
+				width: calc((var(--q3) * 4) + (3 * (var(--q3) + var(--qh))));
 				flex-shrink: 0;
 				margin-left: var(--qh);
 			}
