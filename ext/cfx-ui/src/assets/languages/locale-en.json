@@ -39,6 +39,7 @@
     "#ServerList_Locales": "Languages",
     "#Settings_Nickname": "Player name",
     "#Settings_LocalhostPort": "Custom port",
+    "#Settings_LocalhostPort2": "Localhost port",
     "#Settings_DarkTheme": "\"Dark\" \"theme\"",
     "#Settings_DarkThemeDesc": "Make the interface use a \"dark\" \"theme\"",
     "#Settings_StreamerMode": "Streamer mode",

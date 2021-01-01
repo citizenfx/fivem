@@ -457,16 +457,26 @@ export class CfxGameService extends GameService {
 
 				this.pingListEvents = [];
 			}, 250);
+
+			window.setInterval(async () => {
+				try {
+					const localhostServer = await this.queryAddress(['localhost', parseInt(this.localhostPort, 10) || 30120]);
+
+					if (localhostServer) {
+						this.devMode = true;
+					} else {
+						this.devMode = false;
+					}
+				} catch {
+					this.devMode = false;
+				}
+			}, 5000);
 		});
 
 		this.history = JSON.parse(localStorage.getItem('history')) || [];
 
 		if (localStorage.getItem('nickOverride')) {
 			this.nickname = localStorage.getItem('nickOverride');
-		}
-
-		if (localStorage.getItem('devMode')) {
-			this.devMode = localStorage.getItem('devMode') === 'yes';
 		}
 
 		if (localStorage.getItem('darkThemeNew')) {
@@ -609,9 +619,12 @@ export class CfxGameService extends GameService {
 	}
 
 	set devMode(value: boolean) {
+		const oldValue = this._devMode;
 		this._devMode = value;
-		localStorage.setItem('devMode', value ? 'yes' : 'no');
-		this.invokeDevModeChanged(value);
+
+		if (oldValue !== value) {
+			this.invokeDevModeChanged(value);
+		}
 	}
 
 	get localhostPort(): string {
@@ -810,7 +823,7 @@ export class CfxGameService extends GameService {
 	async queryAddress(address: [string, number]): Promise<Server> {
 		const tries = [];
 
-		if (address[0].match(/^[a-z0-9]{6,}$/)) {
+		if (address[0].match(/^[a-z0-9]{6,}$/) && address[0] !== 'localhost') {
 			tries.push(`cfx.re/join/${address[0]}`);
 		}
 
@@ -914,10 +927,6 @@ export class DummyGameService extends GameService {
 
 		if (this.localStorage.getItem('streamerMode')) {
 			this._streamerMode = localStorage.getItem('streamerMode') === 'yes';
-		}
-
-		if (this.localStorage.getItem('devMode')) {
-			this._devMode = localStorage.getItem('devMode') === 'yes';
 		}
 	}
 
@@ -1062,7 +1071,6 @@ export class DummyGameService extends GameService {
 
 	set devMode(value: boolean) {
 		this._devMode = value;
-		this.localStorage.setItem('devMode', value ? 'yes' : 'no');
 
 		this.invokeDevModeChanged(value);
 	}
