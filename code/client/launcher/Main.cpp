@@ -315,11 +315,18 @@ int RealMain()
 		LoadLibrary(systemPath);
 	};
 
-	// load some popular DLLs over the system-wide variants
+	// load some popular DLLs as system-wide variants instead of game variants
 	auto systemDlls = {
 		// common ASI loaders
 		L"\\dinput8.dll",
 		L"\\dsound.dll", // breaks DSound init in game code
+
+		// X360CE v3 is buggy with COM hooks
+		L"\\xinput9_1_0.dll",
+		L"\\xinput1_1.dll",
+		L"\\xinput1_2.dll",
+		L"\\xinput1_3.dll",
+		L"\\xinput1_4.dll",
 
 		// packed DLL commonly shipping with RDR mods
 		L"\\version.dll"
