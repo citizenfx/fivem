@@ -458,7 +458,7 @@ export class CfxGameService extends GameService {
 				this.pingListEvents = [];
 			}, 250);
 
-			window.setInterval(async () => {
+			const requestLocalhost = async () => {
 				try {
 					const localhostServer = await this.queryAddress(['localhost', parseInt(this.localhostPort, 10) || 30120]);
 
@@ -470,7 +470,10 @@ export class CfxGameService extends GameService {
 				} catch {
 					this.devMode = false;
 				}
-			}, 5000);
+			};
+			requestLocalhost();
+
+			window.setInterval(requestLocalhost, 5000);
 		});
 
 		this.history = JSON.parse(localStorage.getItem('history')) || [];
