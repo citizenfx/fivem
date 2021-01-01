@@ -926,8 +926,14 @@ void DirtyNode(rage::netObject* object, rage::netSyncDataNodeBase* node)
 	InitTree(tree);
 
 	size_t nodeIdx = GET_NIDX(tree, node);
+	const auto& sd = rage::g_syncData[((rage::netObject*)object)->objectId];
 
-	auto& nodeData = rage::g_syncData[((rage::netObject*)object)->objectId]->nodes[nodeIdx];
+	if (!sd)
+	{
+		return;
+	}
+
+	auto& nodeData = sd->nodes[nodeIdx];
 	nodeData.lastChange = *rage__s_NetworkTimeThisFrameStart;
 	nodeData.lastAck = 0;
 	nodeData.lastResend = 0;
