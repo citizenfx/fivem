@@ -516,7 +516,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	eastl::bitset<200> processedNodes;
 
 	// callback
-	auto nodeWriter = [this, sizeLength, &processedNodes, &ttNode, &tdNode](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	auto nodeWriter = [this, sizeLength, &processedNodes](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		auto buffer = state.buffer;
 		bool didWrite = false;
