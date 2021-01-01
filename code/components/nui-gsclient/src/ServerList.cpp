@@ -504,7 +504,7 @@ void GSClient_PollSocket(SOCKET socket)
 
 			if (error != WSAEWOULDBLOCK)
 			{
-				trace("recv() failed - %d\n", error);
+				console::DPrintf("nui:gsclient", "recv() failed - %d\n", error);
 			}
 
 			return;
@@ -876,7 +876,7 @@ static InitFunction initFunction([] ()
 
 		if (!_wcsicmp(type, L"queryServer"))
 		{
-			trace("Pinging specified server...\n");
+			console::DPrintf("nui:gsclient", "Pinging specified server...\n");
 
 			QueueUserWorkItem(GSClient_QueryOneServerWrap, new std::wstring(arg), 0);
 		}
