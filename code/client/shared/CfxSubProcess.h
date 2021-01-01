@@ -84,8 +84,54 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 
 	outPath += productName + processType;
 
-	DeleteFile(outPath.c_str());
-	CopyFile(fxApplicationName, outPath.c_str(), FALSE);
+	bool changed = false;
+
+	WIN32_FILE_ATTRIBUTE_DATA outData = { 0 };
+	if (!GetFileAttributesExW(outPath.c_str(), GetFileExInfoStandard, &outData))
+	{
+		changed = true;
+	}
+	else
+	{
+		WIN32_FILE_ATTRIBUTE_DATA inData = { 0 };
+		if (!GetFileAttributesExW(fxApplicationName, GetFileExInfoStandard, &inData))
+		{
+			changed = true;
+		}
+		else
+		{
+			auto getFileTime = [](const FILETIME& time)
+			{
+				ULARGE_INTEGER uli = { 0 };
+				uli.LowPart = time.dwLowDateTime;
+				uli.HighPart = time.dwHighDateTime;
+
+				return uli.QuadPart;
+			};
+
+			if (getFileTime(inData.ftLastWriteTime) > getFileTime(outData.ftLastWriteTime))
+			{
+				changed = true;
+			}
+
+			if (inData.nFileSizeLow != outData.nFileSizeLow || inData.nFileSizeHigh != outData.nFileSizeHigh)
+			{
+				changed = true;
+			}
+		}
+	}
+
+	if (changed)
+	{
+		if (!DeleteFile(outPath.c_str()))
+		{
+			auto oldPath = outPath + L".old";
+			DeleteFile(oldPath.c_str());
+			MoveFile(outPath.c_str(), oldPath.c_str());
+		}
+
+		CopyFile(fxApplicationName, outPath.c_str(), FALSE);
+	}
 
 	if (GetFileAttributes(outPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
