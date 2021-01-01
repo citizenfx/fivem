@@ -203,11 +203,25 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand assertCmd("_assert", []()
 	{
+#ifndef _DEBUG
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			return;
+		}
+#endif
+
 		assert(!"_assert command used");
 	});
 
 	static ConsoleCommand crashCmd("_crash", []()
 	{
+#ifndef _DEBUG
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			return;
+		}
+#endif
+
 		CrashCommand();
 	});
 
