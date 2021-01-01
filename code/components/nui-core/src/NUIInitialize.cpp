@@ -44,6 +44,8 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
+#include <Error.h>
+
 namespace nui
 {
 fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
@@ -898,9 +900,9 @@ void Component_RunPreInit()
 
 	if (!libcef)
 	{
-		MessageBoxW(NULL, L"Could not load bin/libcef.dll.", L"CitizenFX", MB_ICONSTOP | MB_OK);
+		auto gle = GetLastError();
 
-		ExitProcess(0);
+		FatalError("Could not load bin/libcef.dll.\nLoadLibraryW failed for reason %d.", gle);
 	}
 
 	{
