@@ -2449,6 +2449,20 @@ static int uv_exepath_custom(char*, int)
 	return -1;
 }
 
+static decltype(&fopen) g_origFopen;
+
+static FILE* fopen_wrap(const char* name, const char* mode)
+{
+	static auto __wfopen = ((decltype(&_wfopen))GetProcAddress(GetModuleHandleW(L"ucrtbase.dll"), "_wfopen"));
+
+	if (name && strstr(name, "icudt"))
+	{
+		return __wfopen(ToWide(name).c_str(), ToWide(mode).c_str());
+	}
+
+	return g_origFopen(name, mode);
+}
+
 void Component_RunPreInit()
 {
 	// since otherwise we'll invoke the game again and again and again
@@ -2457,6 +2471,11 @@ void Component_RunPreInit()
 	MH_Initialize();
 	MH_CreateHook(ep, uv_exepath_custom, NULL);
 	MH_EnableHook(ep);
+
+	// fopen utf-8 bugfix (for icudt?.dat)
+	auto fopen_ep = GetProcAddress(GetModuleHandleW(L"ucrtbase.dll"), "fopen");
+	MH_CreateHook(fopen_ep, fopen_wrap, (void**)&g_origFopen);
+	MH_EnableHook(fopen_ep);
 
 	fx::g_v8.Initialize();
 }
