@@ -16,6 +16,29 @@ extern "C" {
 #include <lua_rapidjsonlib.h>
 }
 
+// luaL_openlibs version without io/os libs
+static const luaL_Reg lualibs[] = {
+	{ "_G", luaopen_base },
+	{ LUA_TABLIBNAME, luaopen_table },
+	{ LUA_STRLIBNAME, luaopen_string },
+	{ LUA_MATHLIBNAME, luaopen_math },
+	{ LUA_DBLIBNAME, luaopen_debug },
+	{ LUA_COLIBNAME, luaopen_coroutine },
+	{ LUA_UTF8LIBNAME, luaopen_utf8 },
+	{ "json", luaopen_rapidjson },
+	{ NULL, NULL }
+};
+
+LUALIB_API void safe_openlibs(lua_State* L)
+{
+	const luaL_Reg* lib = lualibs;
+	for (; lib->func; lib++)
+	{
+		luaL_requiref(L, lib->name, lib->func, 1);
+		lua_pop(L, 1);
+	}
+}
+
 class LuaMetaDataLoader : public fx::ResourceMetaDataLoader
 {
 private:
@@ -136,11 +159,7 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	assert(m_luaState);
 
 	// openlibs as well
-	luaL_openlibs(m_luaState);
-
-	// open lua_rapidjson
-	luaL_requiref(m_luaState, "json", luaopen_rapidjson, 1);
-	lua_pop(m_luaState, 1);  /* remove lib */
+	safe_openlibs(m_luaState);
 
 	// register a metadata adder for ourselves
 	lua_pushlightuserdata(m_luaState, this);
@@ -168,12 +187,10 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 
 	// run global initialization code
 	bool result = true;
-	//result = result && DoFile("citizen:/scripting/lua/json.lua", 0);
-
 	result = result && DoFile("citizen:/scripting/resource_init.lua", 1);
 
 	// remove unsafe handlers from the Lua state
-	const char* unsafeGlobals[] = { "ffi", "require", "dofile", "load", "loadfile", "package", /*"AddMetaData", */"os", "io" };
+	const char* unsafeGlobals[] = { "dofile", "load", "loadfile" };
 
 	for (auto removeThat : unsafeGlobals)
 	{
