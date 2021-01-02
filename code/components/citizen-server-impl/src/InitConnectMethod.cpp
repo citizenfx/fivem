@@ -444,6 +444,11 @@ static InitFunction initFunction([]()
 				name = name.substr(0, 200);
 			}
 
+			if (name.find("<") != std::string::npos || name.find(">") != std::string::npos) {
+				sendError("Your name contains illegal characters. Please remove '<' and/or '>' from your name and try again.\n\nWhy I can't have '<' or '>' on my name?\nSometimes names are not escaped correctly on community resources so servers can be affected by XSS attacks injecting javascript code on clients.");
+				return;
+			}
+			
 			TicketData ticketData;
 
 			if (!lanVar->GetValue())
