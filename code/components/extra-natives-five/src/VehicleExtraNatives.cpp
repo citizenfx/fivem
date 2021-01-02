@@ -438,7 +438,7 @@ static HookFunction initFunction([]()
 
 	{
 		char* location;
-		if (Is2060()) {
+		if (xbr::IsGameBuildOrGreater<2060>()) {
 			location = hook::get_pattern<char>("0F 2F ? ? ? 00 00 0F 97 C0 EB ? D1");
 		}
 		else {
