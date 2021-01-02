@@ -1,11 +1,19 @@
-
 #include "StdInc.h"
+
+#include <EntitySystem.h>
 
 #include <Local.h>
 #include <Hooking.h>
 #include <ScriptEngine.h>
 #include <nutsnbolts.h>
 #include "NativeWrappers.h"
+
+#include <GameInit.h>
+
+static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
+{
+	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
+});
 
 class CPedHeadBlendData
 {
@@ -53,6 +61,11 @@ static uint64_t* _id_CPedHeadBlendData;
 static hook::cdecl_stub<uint64_t(void* entity, uint64_t list)> g_extensionList_get([]()
 {
 	return hook::get_pattern("41 83 E0 1F 8B 44 81 08 44 0F A3 C0", -31);
+});
+
+static hook::cdecl_stub<uint16_t(uint32_t)> _getPedPersonalityIndex([]()
+{
+	return hook::get_call(hook::get_pattern("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12));
 });
 
 static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
@@ -167,5 +180,47 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult<int>(result);
+	});
+
+	static std::list<std::tuple<uint32_t, uint16_t>> undoPersonalities;
+
+	OnKillNetworkDone.Connect([]()
+	{
+		for (auto& [pedModel, personality] : undoPersonalities)
+		{
+			uint64_t index;
+			auto archetype = getArchetype(pedModel, &index);
+
+			// if is ped
+			if (archetype && archetype->miType == 6)
+			{
+				*(uint16_t*)((char*)archetype + 0x14A) = personality;
+			}
+		}
+
+		undoPersonalities.clear();
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+		auto personality = context.GetArgument<uint32_t>(1);
+
+		uint64_t index;
+		auto archetype = getArchetype(pedModel, &index);
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			auto index = _getPedPersonalityIndex(personality);
+
+			if (index != 0xFFFF)
+			{
+				auto oldIndex = *(uint16_t*)((char*)archetype + 0x14A);
+				*(uint16_t*)((char*)archetype + 0x14A) = index;
+
+				undoPersonalities.push_front({ pedModel, oldIndex });
+			}
+		}
 	});
 });
