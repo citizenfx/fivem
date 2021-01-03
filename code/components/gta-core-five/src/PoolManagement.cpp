@@ -288,8 +288,17 @@ static void(*g_origLoadObjectsNow)(void*, bool);
 
 #include <ICoreGameInit.h>
 
+static void* volatile* resourcePlacement;
+
 static void LoadObjectsNowWrap(void* streaming, bool a2)
 {
+	// await resource placement having initialized first (the game does this very asynchronously, but doesn't ever block on it)
+	while (!*resourcePlacement)
+	{
+		YieldProcessor();
+	}
+
+	// usual loop
 	uint64_t beginTime = GetTickCount64();
 
 	ICoreGameInit* init = Instance<ICoreGameInit>::Get();
@@ -447,4 +456,10 @@ static HookFunction hookFunction([] ()
 	//hook::nop(0x141056E6F, 5);
 
 	MH_EnableHook(MH_ALL_HOOKS);
+
+	// resource placement internal ptr
+	{
+		char* basePtr = hook::get_address<char*>(hook::get_pattern("48 89 85 30 02 00 00 48 8D 45 30 48 8D 0D", 14));
+		resourcePlacement = (decltype(resourcePlacement))(basePtr + *hook::get_pattern<uint32_t>("7E 22 48 8B 8B ? ? ? ? 8B D7 48 69", 5));
+	}
 });
