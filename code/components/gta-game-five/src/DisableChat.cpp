@@ -11,6 +11,7 @@
 #include <MinHook.h>
 
 #include <Hooking.h>
+#include <GameInit.h>
 
 static void(*g_origTextChatShutdown)(void*);
 static void** g_textChat;
@@ -50,7 +51,7 @@ namespace game
 		{
 			if (enabled)
 			{
-				//*g_textChat = g_textChatBackup;
+				*g_textChat = g_textChatBackup;
 			}
 		}
 	}
@@ -58,6 +59,11 @@ namespace game
 
 static HookFunction hookFunction([] ()
 {
+	OnKillNetwork.Connect([](const char*)
+	{
+		g_textChatBackup = nullptr;
+	});
+
 	// find the text chat shutdown function (to patch, and to get the text chat pointer)
 #ifdef PRE_PATCH_EXECUTABLE
 	auto matches = hook::pattern("48 8B CB C7 45 10 EB 8F 56 B8").count(2);

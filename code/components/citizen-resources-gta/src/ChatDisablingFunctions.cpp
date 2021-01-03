@@ -14,6 +14,7 @@
 #include <fxScripting.h>
 
 #include <DisableChat.h>
+#include <nutsnbolts.h>
 
 #include <ICoreGameInit.h>
 
@@ -27,9 +28,19 @@ static InitFunction initFunction([] ()
 	});
 
 	// disable legacy text chat by default, for it is confusing
-	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+	OnMainGameFrame.Connect([]()
 	{
-		game::SetTextChatEnabled(false);
+		static bool chatOff = false;
+
+		if (!chatOff && Instance<ICoreGameInit>::Get()->HasVariable("gameSettled"))
+		{
+			game::SetTextChatEnabled(false);
+			chatOff = true;
+		}
+		else if (chatOff && !Instance<ICoreGameInit>::Get()->HasVariable("gameSettled"))
+		{
+			chatOff = false;
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_TEXT_CHAT_ENABLED", [] (fx::ScriptContext& context)
