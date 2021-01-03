@@ -12,6 +12,10 @@
 #include <HostSharedData.h>
 #include <CfxLocale.h>
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
+#include <openssl/sha.h>
+#endif
+
 #undef interface
 #include "InstallerExtraction.h"
 #include <array>
@@ -1296,6 +1300,47 @@ std::map<std::string, std::string> UpdateGameCache()
 	}
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+	// check the game executable(s)
+	for (auto& entry : g_requiredEntries)
+	{
+		// if it's a root-directory .exe
+		if (entry.filename && strstr(entry.filename, ".exe") && !strstr(entry.filename, "/"))
+		{
+			auto cacheName = entry.GetCacheFileName();
+
+			if (auto f = _wfopen(cacheName.c_str(), L"rb"); f)
+			{
+				SHA_CTX ctx;
+				SHA1_Init(&ctx);
+
+				uint8_t buffer[32768];
+
+				while (!feof(f))
+				{
+					int read = fread(buffer, 1, sizeof(buffer), f);
+					assert(read >= 0);
+
+					SHA1_Update(&ctx, buffer, read);
+				}
+
+				fclose(f);
+
+				uint8_t hash[20];
+				SHA1_Final(hash, &ctx);
+
+				auto origCheck = ParseHexString<20>(entry.checksums[0]);
+				if (memcmp(hash, origCheck.data(), 20) != 0)
+				{
+					// delete both the cache metadata and the corrupted file itself
+					auto dataPath = MakeRelativeCitPath(L"cache\\game\\cache.dat");
+
+					_wunlink(dataPath.c_str());
+					_wunlink(cacheName.c_str());
+				}
+			}
+		}
+	}
+
 	// perform a game update
 	auto differences = CompareCacheDifferences();
 
