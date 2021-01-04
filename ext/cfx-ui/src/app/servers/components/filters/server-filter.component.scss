@@ -54,7 +54,7 @@
 				@include theme() using ($theme) {
 					color: gtv($theme, fgColor);
 
-					&:hover {
+					&:hover, &:focus {
 						color: gtv($theme, accentContrastColor);
 						background-color: gtv($theme, accentColor1);
 					}
@@ -91,7 +91,7 @@
 					z-index: 10;
 				}
 
-				&:hover {
+				&:hover, &:focus {
 					transition: none;
 
 					.label {
@@ -279,7 +279,7 @@
 				}
 			}
 
-			&:hover {
+			&:hover, &:focus-within {
 				@include theme() using($theme) {
 					.trigger {
 						color: gtv($theme, accentContrastColor);
@@ -383,7 +383,7 @@
 					text-transform: uppercase;
 					letter-spacing: 1px;
 
-					&:hover {
+					&:hover, &:focus {
 						@include theme() using ($theme) {
 							background-color: rgba(gtv($theme, accentColor1), .25);
 						}
@@ -398,7 +398,7 @@
 				}
 			}
 
-			&:hover {
+			&:hover, &:focus-within {
 				@include theme() using($theme) {
 					.trigger {
 						color: gtv($theme, accentContrastColor);

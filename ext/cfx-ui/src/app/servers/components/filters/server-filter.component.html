@@ -46,7 +46,7 @@
 		<input class="name" id="searchBox" [type]="streamerMode ? 'password' : 'search'" placeholder="Search or enter an IP address" [(ngModel)]="filters.searchText"
 			(ngModelChange)="updateFiltersDebounced()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
 
-		<div class="search-dropdown" [class.active]="searchFocused">
+		<div class="search-dropdown" [class.active]="searchFocused" tabindex="-1">
 			<ul>
 				<li class="streamer-mode-warning" *ngIf="streamerMode">
 					<h4 l10nTranslate>
@@ -62,7 +62,7 @@
 	</section>
 
     <section class="filter" [class.disabled]="type === 'history'">
-        <div class="extra-filters">
+        <div class="extra-filters" tabindex="0">
 			<div class="trigger">
 				<span class="material-icons-outlined">filter_alt</span>
 			</div>
@@ -74,12 +74,12 @@
 			<div class="dropdown">
 				<div class="checkboxes">
 					<label class="cfx-checkbox">
-						<input id="hide-empty" type="checkbox" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()"/>
+						<input id="hide-empty" type="checkbox" [(ngModel)]="filters.hideEmpty" (ngModelChange)="updateFilters()" tabindex="0"/>
 						<div class="cfx-checkbox-indicator"></div>
 						<span l10nTranslate>#ServerList_HideEmpty</span>
 					</label>
 					<label class="cfx-checkbox">
-						<input id="hide-full" type="checkbox" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()"/>
+						<input id="hide-full" type="checkbox" [(ngModel)]="filters.hideFull" (ngModelChange)="updateFilters()" tabindex="0"/>
 						<div class="cfx-checkbox-indicator"></div>
 						<span l10nTranslate>#ServerList_HideFull</span>
 					</label>
@@ -91,7 +91,7 @@
 	</section>
 
 	<section class="filter" [class.disabled]="type === 'history'">
-		<div class="sorting">
+		<div class="sorting" tabindex="0">
 			<div class="trigger">
 				<span class="material-icons-outlined">sort</span>
 			</div>
@@ -101,15 +101,15 @@
 			</div>
 
 			<div class="dropdown">
-				<div class="sort-by" (click)="updateSort(sortBy.Boosts)" [class.active]="sortByBoosts">
+				<div class="sort-by" (click)="updateSort(sortBy.Boosts)" [class.active]="sortByBoosts" tabindex="0">
 					BOOST Power
 				</div>
-				<div class="sort-by" (click)="updateSort(sortBy.Name)" [class.active]="sortByName">
+				<div class="sort-by" (click)="updateSort(sortBy.Name)" [class.active]="sortByName" tabindex="0">
 					Server name:
 					<span *ngIf="sortByNameDesc">A-Z</span>
 					<span *ngIf="sortByNameAsc">Z-A</span>
 				</div>
-				<div class="sort-by" (click)="updateSort(sortBy.Players)" [class.active]="sortByPlayers">
+				<div class="sort-by" (click)="updateSort(sortBy.Players)" [class.active]="sortByPlayers" tabindex="0">
 					Players:
 					<span *ngIf="sortByPlayersDesc && filters.hideEmpty">∞ to 1</span>
 					<span *ngIf="sortByPlayersDesc && !filters.hideEmpty">∞ to 0</span>

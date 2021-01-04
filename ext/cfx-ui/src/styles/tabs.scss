@@ -27,7 +27,7 @@ ul.tabs {
 				box-shadow: 0 2px 0 gtv($theme, accentColor1) inset;
 			}
 
-			&:hover {
+			&:hover, &:focus {
 				color: rgba(gtv($theme, textColor), 1);
 				background-color: gtv($theme, accentColor1);
 

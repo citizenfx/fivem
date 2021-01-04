@@ -13,7 +13,7 @@ $modItemHeight: 9vh;
 		background-color: rgba(gtv($theme, bgColor), .5);
     };
 
-    &:hover {
+    &:hover, &:focus {
         @include theme() using ($theme) {
             background-color: rgba(gtv($theme, bgColor), 1);
         };

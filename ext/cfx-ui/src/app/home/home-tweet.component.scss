@@ -26,12 +26,12 @@
         padding-left: 0;
         transition: all .2s ease;
 
-        &:hover {
+        &:hover, &:focus {
             color: #fff;
         }
     }
 
-    &:hover {
+    &:hover, &:focus {
         .additional {
             opacity: 1;
             padding-left: 5px;

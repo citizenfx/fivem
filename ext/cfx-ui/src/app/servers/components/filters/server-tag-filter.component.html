@@ -13,6 +13,7 @@
 				(click)="toggleLocale(locale)"
 				[class.active]="isLocaleActive(locale)"
 				[class.inactive]="isLocaleInactive(locale)"
+				tabindex="0"
 			>
 				<div class="indicator"></div>
 				<div class="name">
@@ -39,6 +40,7 @@
 				(click)="toggleTag(tag)"
 				[class.active]="isActive(tag)"
 				[class.inactive]="isInactive(tag)"
+				tabindex="0"
 			>
 				<div class="indicator"></div>
 				<div class="name">

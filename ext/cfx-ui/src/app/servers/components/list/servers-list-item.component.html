@@ -1,9 +1,10 @@
-<div
+<a
 	class="server-list-item"
 	[class.pt]="premium === 'pt'"
 	[class.pinned]="pinned"
 	[class.isPinList]="isPinList"
 	(click)="showServerDetail()"
+	tabindex="0"
 >
 	<div
 		*ngIf="premium"
@@ -37,6 +38,7 @@
 			aria-label="Give this server a BOOST™!"
 			data-balloon-pos="left"
 			class="boost"
+			tabindex="-1"
 		>
             <span class="material-icons-outlined">arrow_upward</span>
 			<span class="boosts-counter">
@@ -52,6 +54,7 @@
 			(click)="toggleFavorite($event)"
 			[class.active]="isFavorite()"
 			class="fav"
+			tabindex="-1"
 		>
 			<span *ngIf="!isFavorite()" class="material-icons-outlined">star_bordered</span>
 			<span *ngIf="isFavorite()" class="material-icons-outlined">star</span>
@@ -61,4 +64,4 @@
     <div class="players">
 		{{server.currentPlayers}}<span class="max">/{{server.maxPlayers}}</span>
     </div>
-</div>
+</a>

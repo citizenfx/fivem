@@ -79,7 +79,7 @@
 			background-image: url(../../../../assets/images/favhint2.png);
 		}
 
-		&:hover {
+		&:hover, &:focus {
 			.lol {
 				opacity: 1;
 				transform: translateY(0);
@@ -120,7 +120,7 @@ virtual-scroller {
 
 		margin-bottom: var(--qh);
 
-		&:hover {
+		&:hover, &:focus {
 			.content {
 				@include theme() using ($theme) {
 					box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
@@ -237,7 +237,7 @@ virtual-scroller {
 
 						border-right: solid 2px transparent;
 
-						&:hover {
+						&:hover, &:focus {
 							@include theme() using ($theme) {
 								color: gtv($theme, accentColor1);
 							}

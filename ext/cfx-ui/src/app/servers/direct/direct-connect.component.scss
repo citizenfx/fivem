@@ -33,7 +33,7 @@
 			color: darken(gtv($theme, textColor), 10%);
 		}
 
-		&:hover {
+		&:hover, &:focus {
 			background-color: rgba(lighten(gtv($theme, bgColor), 10%), .3);
 		}
 	}
@@ -50,7 +50,7 @@
 
 		padding: var(--q1);
 
-		&:hover {
+		&:hover, &:focus {
 			@include theme() using ($theme) {
 				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 			}

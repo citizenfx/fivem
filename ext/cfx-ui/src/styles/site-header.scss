@@ -41,7 +41,7 @@ header {
 				margin-left: var(--q1);
 			}
 
-			&:hover {
+			&:hover, &:focus {
 				color:  gtv($theme, accentColor1);
 				box-shadow: none;
 				background-color: transparent;
@@ -68,7 +68,7 @@ header {
 
 				transition: all .2s ease;
 
-				&:hover {
+				&:hover, &:focus {
 					background-color: gtv($theme, accentColor1);
 					box-shadow: none;
 					transition: none;

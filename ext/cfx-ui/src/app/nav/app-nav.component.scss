@@ -76,7 +76,7 @@
 		transition: all .2s ease;
 
 		@include theme() using ($theme) {
-			&:hover {
+			&:hover, &:focus {
 				color: gtv($theme, accentContrastColor);
 				background-color: gtv($theme, accentColor1);
 
@@ -176,7 +176,7 @@
 				transition: all .2s ease;
 			}
 
-			&:hover {
+			&:hover, &:focus {
 				transition: none;
 
 				@include theme() using ($theme) {

@@ -4,11 +4,11 @@
 	[class.with-home-button]="hasHomeButton"
 	[class.pulsating]="homeButtonPulsating"
 >
-	<div class="nav-button" [routerLink]="['/home']">
+	<a class="nav-button" [routerLink]="['/home']">
 		<svg class="logo">
 			<use [attr.xlink:href]="'#logo-' + gameName"></use>
 		</svg>
-	</div>
+	</a>
 
 	<div class="rightButtons">
 		<a
@@ -47,7 +47,7 @@
 			</span>
 		</a>
 
-		<div
+		<a
 			class="close-app"
 			(click)="exitConfirmationActive = true"
 		>
@@ -56,7 +56,7 @@
 			<span class="label" l10nTranslate>
 				#ExitToDesktop
 			</span>
-		</div>
+		</a>
 	</div>
 </div>
 

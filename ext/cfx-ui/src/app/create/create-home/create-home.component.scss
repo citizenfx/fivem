@@ -90,7 +90,7 @@
 					letter-spacing: 0px;
 				}
 
-				&:hover {
+				&:hover, &:focus {
 					@include theme() using ($theme) {
 						box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 						background-color: rgba(gtv($theme, accentColor1), .05);

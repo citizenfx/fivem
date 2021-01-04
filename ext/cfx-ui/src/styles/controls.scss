@@ -19,7 +19,7 @@ input[type="password"] {
 
 	transition: all .2s ease;
 
-	&:hover {
+	&:hover, &:focus {
 		transition: none;
 
 		@include themeNoHost() using ($theme) {
@@ -77,7 +77,7 @@ input[type="password"] {
 		color: gtv($theme, fgColor);
 		box-shadow: 0 0 0 2px gtv($theme, fgColor) inset;
 
-		&:hover {
+		&:hover, &:focus {
 			color: gtv($theme, bgColor);
 			background-color: gtv($theme, fgColor);
 
@@ -87,7 +87,7 @@ input[type="password"] {
 		&.primary {
 			box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 
-			&:hover {
+			&:hover, &:focus {
 				color: gtv($theme, accentContrastColor);
 				background-color: gtv($theme, accentColor1);
 			}
@@ -108,7 +108,7 @@ input[type="password"] {
 	line-height: 1;
 	text-transform: lowercase;
 
-	&:hover {
+	&:hover, &:focus {
 		.cfx-checkbox-indicator {
 			@include themeNoHost() using ($theme) {
 				border-color: gtv($theme, accentColor1);
@@ -243,7 +243,7 @@ input[type="password"] {
 	@include themeNoHost() using ($theme) {
 		color: gtv($theme, fgColor);
 
-		&:hover {
+		&:hover, &:focus {
 			background-color: gtv($theme, accentColor1);
 
 			transition: none;
@@ -286,7 +286,7 @@ input[type="password"] {
 			}
 		}
 
-		&:hover {
+		&:hover, &:focus {
 			transition: none;
 
 			@include themeNoHost() using ($theme) {
@@ -302,7 +302,7 @@ input[type="password"] {
 	@include themeNoHost() using ($theme) {
 		box-shadow: 0 2px 0 rgba(gtv($theme, fgColor), .5) inset, 0 -2px 0 rgba(gtv($theme, fgColor), .5) inset;
 
-		&:hover {
+		&:hover, &:focus {
 			background-color: rgba(gtv($theme, fgColor), .1);
 		}
 	}
@@ -334,7 +334,7 @@ input[type="password"] {
 
 			padding: 0 var(--qh);
 
-			&:hover {
+			&:hover, &:focus {
 				@include themeNoHost() using ($theme) {
 					background-color: rgba(gtv($theme, fgColor), .2);
 				}

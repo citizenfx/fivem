@@ -5,6 +5,12 @@ import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 import { enableDebugTools } from '@angular/platform-browser';
 
+Object.defineProperty(window, 'parent', {
+  get: () => window
+});
+
+import './spatial-navigation-polyfill.js';
+
 if (environment.production) {
   enableProdMode();
 }

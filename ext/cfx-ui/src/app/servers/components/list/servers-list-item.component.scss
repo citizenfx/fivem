@@ -130,7 +130,7 @@
 		width: 0;
 		height: 100%;
 
-		display: flex;
+		display: none;
 		align-items: center;
 		justify-content: flex-end;
 
@@ -169,7 +169,7 @@
 
 				border-right: solid 2px transparent;
 
-				&:hover {
+				&:hover, &:focus {
 					@include theme() using ($theme) {
 						color: gtv($theme, accentColor1);
 					}
@@ -231,7 +231,7 @@
 					transition: all .2s ease;
 				}
 
-				&:hover {
+				&:hover, &:focus {
 					.booster {
 						opacity: 1;
 						transform: scale(1);
@@ -262,13 +262,14 @@
 		}
 	}
 
-	&:hover {
+	&:hover, &:focus {
 		@include theme() using ($theme) {
 			box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
 		};
 
 		.actions {
 			width: var(--q6);
+			display: flex;
 		}
 
 		.actions button {
