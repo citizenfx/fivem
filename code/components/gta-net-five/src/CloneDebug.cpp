@@ -474,6 +474,9 @@ static void AddNodeAndExternalDependentNodes(netSyncDataNodeBase* node, rage::ne
 	}
 }
 
+static void LoadPlayerAppearanceDataNode(rage::netSyncNodeBase* node);
+static void StorePlayerAppearanceDataNode(rage::netSyncNodeBase* node);
+
 bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull, uint32_t* lastChangeTime)
 {
 	InitTree(this);
@@ -573,8 +576,12 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 						std::array<uint8_t, 1024> tempData;
 						memset(tempData.data(), 0, tempData.size());
 
+						LoadPlayerAppearanceDataNode(dataNode);
+
 						rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
 						dataNode->WriteObject(state.object, &tempBuf, state.logger, true);
+
+						StorePlayerAppearanceDataNode(dataNode);
 
 						if (force || tempBuf.m_curBit != std::get<1>(nodeData->lastData) || memcmp(tempData.data(), std::get<0>(nodeData->lastData).data(), tempData.size()) != 0)
 						{
@@ -994,7 +1001,9 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 		left.push_back(line);
 	});
 
+	LoadPlayerAppearanceDataNode(node);
 	node->LogObject(netObject, &logger);
+	StorePlayerAppearanceDataNode(node);
 
 	std::vector<std::string> right = syncLog[netObject->objectId][node];
 
@@ -1166,6 +1175,30 @@ static void DumpSyncTree(rage::netSyncTree* syncTree)
 }
 #endif
 
+static uintptr_t g_vtbl_playerAppearanceDataNode;
+static uint32_t g_offset_playerAppearanceDataNode_hasDecorations;
+
+static char g_localPlayer_hasDecorations;
+
+namespace rage
+{
+static void LoadPlayerAppearanceDataNode(rage::netSyncNodeBase* node)
+{
+	if (*(uintptr_t*)node == g_vtbl_playerAppearanceDataNode)
+	{
+		*((char*)node + g_offset_playerAppearanceDataNode_hasDecorations) = g_localPlayer_hasDecorations;
+	}
+}
+
+static void StorePlayerAppearanceDataNode(rage::netSyncNodeBase* node)
+{
+	if (*(uintptr_t*)node == g_vtbl_playerAppearanceDataNode)
+	{
+		g_localPlayer_hasDecorations = *((char*)node + g_offset_playerAppearanceDataNode_hasDecorations);
+	}
+}
+}
+
 static HookFunction hookFunction([]()
 {
 #if _DEBUG
@@ -1180,6 +1213,12 @@ static HookFunction hookFunction([]()
 		}
 	});
 #endif
+
+	// CPlayerAppearanceDataNode decorations uninitialized value
+	{
+		g_vtbl_playerAppearanceDataNode = hook::get_address<uintptr_t>(hook::pattern("48 89 BB B8 00 00 00 48 89 83 B0 00 00 00").count(2).get(1).get<void*>(-0xE));
+		g_offset_playerAppearanceDataNode_hasDecorations = *hook::get_pattern<uint32_t>("88 83 ? ? ? ? 84 C0 75 0D 44 8B C5 33", 2);
+	}
 
 	// allow CSyncDataLogger even without label string
 	hook::nop(hook::get_pattern("4D 85 C9 74 44 48 8D 4C", 3), 2);
