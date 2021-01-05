@@ -261,14 +261,38 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 
 		data = std::make_shared<GameStateClientData>();
 		data->client = weakClient;
-		data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
 
-		if (fx::IsBigMode())
+		std::weak_ptr<GameStateClientData> weakData;
+
+		auto setupBag = [weakClient, weakData, state]()
 		{
-			data->playerBag->AddRoutingTarget(client->GetSlotId());
-		}
+			auto client = weakClient.lock();
+			auto data = weakData.lock();
 
-		data->playerBag->SetOwningPeer(client->GetSlotId());
+			if (client && data)
+			{
+				data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
+
+				if (fx::IsBigMode())
+				{
+					data->playerBag->AddRoutingTarget(client->GetSlotId());
+				}
+
+				data->playerBag->SetOwningPeer(client->GetSlotId());
+			}
+		};
+
+		if (client->GetNetId() < 0xFFFF)
+		{
+			setupBag();
+		}
+		else
+		{
+			client->OnAssignNetId.Connect([setupBag]()
+			{
+				setupBag();
+			}, INT32_MAX);
+		}
 
 		client->SetSyncData(data);
 		client->OnDrop.Connect([weakClient, state]()
@@ -1224,7 +1248,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 										evMan->QueueEvent2("playerLeftScope", {}, std::map<std::string, std::string>{ { "player", fmt::sprintf("%d", ownerNetId) }, { "for", fmt::sprintf("%d", client->GetNetId()) } });
 
 										auto oldClientData = GetClientDataUnlocked(this, ownerRef);
-										oldClientData->playerBag->RemoveRoutingTarget(client->GetSlotId());
+
+										if (oldClientData->playerBag)
+										{
+											oldClientData->playerBag->RemoveRoutingTarget(client->GetSlotId());
+										}
 
 										clientData->playersInScope.reset(otherSlot);
 										clientData->playersToSlots.erase(ownerNetId);
@@ -1328,7 +1356,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									sec->TriggerClientEventReplayed("onPlayerJoining", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
 
 									auto ecData = GetClientDataUnlocked(this, entityClient);
-									ecData->playerBag->AddRoutingTarget(client->GetSlotId());
+
+									if (ecData->playerBag)
+									{
+										ecData->playerBag->AddRoutingTarget(client->GetSlotId());
+									}
 
 									/*NETEV playerEnteredScope SERVER
 								/#*
