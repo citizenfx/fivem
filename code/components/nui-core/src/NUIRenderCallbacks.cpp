@@ -1,6 +1,9 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
 #include "NUIWindowManager.h"
+#include <CL2LaunchMode.h>
+#include <HostSharedData.h>
+#include <ReverseGameData.h>
 
 extern nui::GameInterface* g_nuiGi;
 
@@ -123,8 +126,18 @@ static HookFunction initFunction([] ()
 		{
 			POINT cursorPos = g_cursorPos;
 
-			GetCursorPos(&cursorPos);
-			ScreenToClient(g_nuiGi->GetHWND(), &cursorPos);
+			if (launch::IsSDKGuest())
+			{
+				static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+				cursorPos.x = rgd->mouseX;
+				cursorPos.y = rgd->mouseY;
+			}
+			else
+			{
+				GetCursorPos(&cursorPos);
+				ScreenToClient(g_nuiGi->GetHWND(), &cursorPos);
+			}
 
 			if (g_cursorTexture.GetRef())
 			{

@@ -12,6 +12,7 @@ export type ButtonTheme =
 
 export interface ButtonProps {
   text?: string,
+  title?: string,
   icon?: React.ReactNode,
   theme?: ButtonTheme,
   disabled?: boolean,
@@ -24,6 +25,7 @@ export const Button = React.memo(function Button(props: ButtonProps) {
   const {
     text = null,
     icon = null,
+    title = '',
     theme = 'default',
     disabled = false,
     onClick = noop,
@@ -44,6 +46,7 @@ export const Button = React.memo(function Button(props: ButtonProps) {
       onClick={onClick}
       autoFocus={autofocus}
       tabIndex={tabIndex}
+      title={title}
     >
       {icon}
       {text}

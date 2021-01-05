@@ -13,6 +13,7 @@ import { AssetCreateRequest, ProjectCreateRequest } from "shared/api.requests";
 import { ProjectCreateCheckResult, RecentProject } from "shared/api.types";
 import { notNull } from "shared/utils";
 import { Project } from "./project";
+import { ProjectAccess } from "./project-access";
 
 export const cfxServerDataEnabledResources = [
   'basic-gamemode',
@@ -50,6 +51,9 @@ export class ProjectManager implements ApiContribution {
   @inject(ApiContributionFactory)
   protected readonly apiContributionFactory: ApiContributionFactory;
 
+  @inject(ProjectAccess)
+  protected readonly projectAccess: ProjectAccess;
+
   protected project: Project | null = null;
 
   protected projectOpsSequencer = new Sequencer();
@@ -59,14 +63,13 @@ export class ProjectManager implements ApiContribution {
   }
 
   async getRecentProjects(): Promise<RecentProject[]> {
+    const recentProjectsFileStat = await this.fsService.statSafe(this.configService.recentProjectsFilePath);
+    if (!recentProjectsFileStat) {
+      return [];
+    }
+
     try {
-      await this.fsService.stat(this.configService.recentProjectsFilePath);
-
-      this.logService.log('recents file exists');
-
-      const content = await this.fsService.readFile(this.configService.recentProjectsFilePath);
-
-      return JSON.parse(content.toString('utf8'));
+      return this.fsService.readFileJson(this.configService.recentProjectsFilePath);
     } catch (e) {
       this.notificationService.warning(`Failed to read recent projects file at ${this.configService.recentProjectsFilePath}, error: ${e.toString()}`);
       return [];
@@ -108,7 +111,11 @@ export class ProjectManager implements ApiContribution {
   }
 
   protected createProjectBoundToPath(): Project {
-    return this.apiContributionFactory<Project>(Project);
+    const project = this.apiContributionFactory<Project>(Project);
+
+    this.projectAccess.setInstance(project);
+
+    return project;
   }
 
   @handlesClientEvent(projectApi.open)
@@ -118,6 +125,7 @@ export class ProjectManager implements ApiContribution {
 
       if (this.project) {
         await this.project.unload();
+        this.projectAccess.setInstance(null);
       }
 
       this.project = await this.createProjectBoundToPath().load(projectPath);
@@ -169,6 +177,7 @@ export class ProjectManager implements ApiContribution {
     await this.projectOpsSequencer.executeBlocking(async () => {
       if (this.project) {
         await this.project.unload();
+        this.projectAccess.setInstance(null);
       }
 
       this.project = await this.createProjectBoundToPath().create(request);

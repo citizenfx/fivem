@@ -72,6 +72,9 @@ h6 {
   @include fontPrimary;
   font-size: $fs08;
   font-weight: 300;
+
+  cursor: default;
+  user-select: none;
 }
 .modal-error {
   padding: $q*4;

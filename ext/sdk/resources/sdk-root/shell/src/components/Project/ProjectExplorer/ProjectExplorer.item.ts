@@ -1,6 +1,22 @@
 import * as React from 'react';
 import { FilesystemEntry, ProjectData } from 'shared/api.types';
 
+export const entryCollator = new Intl.Collator(undefined, {
+  usage: 'sort',
+});
+
+export const entriesSorter = (a: FilesystemEntry, b: FilesystemEntry) => {
+  if (a.isDirectory && !b.isDirectory) {
+    return -1;
+  }
+
+  if (!a.isDirectory && b.isDirectory) {
+    return 1;
+  }
+
+  return entryCollator.compare(a.name, b.name);
+};
+
 export type ProjectItemRenderer = (props: ProjectItemProps) => React.ReactNode;
 
 export type ProjectItemFilter = (entry: FilesystemEntry) => boolean;
@@ -13,6 +29,8 @@ export interface ProjectItemProps {
   },
   itemRenderer: ProjectItemRenderer,
   creatorClassName: string,
+
+  childrenCollapsed?: boolean | void,
 }
 
 export const getItemProps = <T extends ProjectItemProps>(props: T): ProjectItemProps => ({
@@ -21,6 +39,7 @@ export const getItemProps = <T extends ProjectItemProps>(props: T): ProjectItemP
   pathsMap: props.pathsMap,
   itemRenderer: props.itemRenderer,
   creatorClassName: props.creatorClassName,
+  childrenCollapsed: props.childrenCollapsed,
 });
 
 export const renderChildren = (entry: FilesystemEntry, itemProps: ProjectItemProps, filter?: ProjectItemFilter): React.ReactNode => {
@@ -29,6 +48,8 @@ export const renderChildren = (entry: FilesystemEntry, itemProps: ProjectItemPro
   if (filter) {
     entryChildren = entryChildren.filter(filter);
   }
+
+  entryChildren.sort(entriesSorter);
 
   return entryChildren.map((childEntry) => itemProps.itemRenderer({
     ...getItemProps(itemProps),

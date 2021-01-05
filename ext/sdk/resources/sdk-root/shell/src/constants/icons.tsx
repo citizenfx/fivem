@@ -17,7 +17,8 @@ import {
   BsDiamondFill,
   BsFileEarmarkPlus,
   BsStopFill,
-  BsPlayFill
+  BsPlayFill,
+  BsX,
 } from 'react-icons/bs';
 
 export const devtoolsIcon = <BsTerminal />;
@@ -49,3 +50,5 @@ export const rotatingRefreshIcon = <RefreshIconComponent className="rotating" />
 
 export const stopIcon = <BsStopFill />;
 export const startIcon = <BsPlayFill />;
+
+export const closeIcon = <BsX />;

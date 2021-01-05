@@ -9,6 +9,7 @@ import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { featuresStatuses } from "shared/api.statuses";
 import { Feature, FeaturesMap } from "shared/api.types";
+import { concurrently } from 'utils/concurrently';
 
 @injectable()
 export class FeaturesService implements AppContribution {
@@ -67,56 +68,70 @@ export class FeaturesService implements AppContribution {
   private async probeFeatures() {
     this.logService.log('Start probing features...');
 
-    // Checking windows dev mode enabled by trying to create directory symlink
-    {
-      let windowsDevModeEnabled: boolean;
+    await concurrently(
+      this.probeWindowsDevMode(),
+      this.probeSystemGit(),
+      this.probeDotnet(),
+    );
+  }
 
-      const tmpdir = this.fsService.tmpdir();
+  protected async probeWindowsDevMode() {
+    let windowsDevModeEnabled: boolean;
 
-      const source = this.fsService.joinPath(tmpdir, '__fxdk_devmode_feature_probe_source');
-      const target = this.fsService.joinPath(tmpdir, '__fxdk_devmode_feature_probe_target');
+    const tmpdir = this.fsService.tmpdir();
+
+    const source = this.fsService.joinPath(tmpdir, '__fxdk_devmode_feature_probe_source');
+    const target = this.fsService.joinPath(tmpdir, '__fxdk_devmode_feature_probe_target');
 
 
-      await Promise.all([
-        await this.fsService.rimraf(source),
-        await this.fsService.rimraf(target),
-      ]);
+    await Promise.all([
+      await this.fsService.rimraf(source),
+      await this.fsService.rimraf(target),
+    ]);
 
-      await this.fsService.mkdirp(source);
+    await this.fsService.mkdirp(source);
 
-      try {
-        await fs.promises.symlink(source, target, 'dir');
+    try {
+      await fs.promises.symlink(source, target, 'dir');
 
-        windowsDevModeEnabled = true;
-      } catch (e) {
-        windowsDevModeEnabled = false;
-      }
-
-      this.resolveFeature(Feature.windowsDevModeEnabled, windowsDevModeEnabled);
-
-      await Promise.all([
-        await this.fsService.rimraf(source),
-        await this.fsService.rimraf(target),
-      ]);
+      windowsDevModeEnabled = true;
+    } catch (e) {
+      windowsDevModeEnabled = false;
     }
 
-    // Checking system git client installed
-    {
-      await new Promise((resolve) => {
-        let systemGitClientAvailable: boolean;
+    this.resolveFeature(Feature.windowsDevModeEnabled, windowsDevModeEnabled);
 
-        try {
-          const response = cp.execSync('git --version').toString();
+    await Promise.all([
+      await this.fsService.rimraf(source),
+      await this.fsService.rimraf(target),
+    ]);
+  }
 
-          systemGitClientAvailable = response.startsWith('git version');
-        } catch (e) {
-          systemGitClientAvailable = false;
-        }
+  protected async probeSystemGit() {
+    let systemGitClientAvailable: boolean;
 
-        this.resolveFeature(Feature.systemGitClientAvailable, systemGitClientAvailable);
+    try {
+      const response = cp.execSync('git --version').toString();
 
-        resolve();
-      });
+      systemGitClientAvailable = response.startsWith('git version');
+    } catch (e) {
+      systemGitClientAvailable = false;
     }
+
+    this.resolveFeature(Feature.systemGitClientAvailable, systemGitClientAvailable);
+  }
+
+  protected async probeDotnet() {
+    let dotnetAvailable = false;
+
+    try {
+      cp.execSync('dotnet --version');
+
+      dotnetAvailable = true;
+    } catch (e) {
+      // unavailable
+    }
+
+    this.resolveFeature(Feature.dotnetAvailable, dotnetAvailable);
   }
 }

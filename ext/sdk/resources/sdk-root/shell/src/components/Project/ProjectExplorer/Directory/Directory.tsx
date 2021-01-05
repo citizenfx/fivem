@@ -30,7 +30,7 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
   const { entry, project, pathsMap } = props;
   const { icon } = props;
 
-  const { expanded, toggleExpanded } = useExpandablePath(entry.path);
+  const { expanded, toggleExpanded } = useExpandablePath(entry.path, !props.childrenCollapsed);
 
   const directoryChildren = pathsMap[entry.path] || [];
 
@@ -94,7 +94,7 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
 
       {deleteConfirmationOpen && (
         <DirectoryDeleteConfirmation
-          path={entry.path}
+          entry={entry}
           onClose={closeDeleteConfirmation}
           onDelete={deleteDirectory}
         />

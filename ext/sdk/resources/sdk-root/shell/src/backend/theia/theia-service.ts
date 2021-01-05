@@ -11,7 +11,17 @@ export class TheiaService implements AppContribution {
   @inject(FsService)
   protected readonly fsService: FsService;
 
-  async prepare() {
+  getReferenceTheiaConfig(): Record<string, unknown> {
+    return {
+      'workbench.colorTheme': 'FxDK Dark',
+      'Lua.workspace.library': {
+        [this.configService.nativesDocluaPath.replace(/\\/g, '/')]: true,
+      },
+      'Lua.diagnostics.enable': false,
+    };
+  }
+
+  async boot() {
     await this.ensureTheiaDefaultSettings();
   }
 
@@ -26,7 +36,7 @@ export class TheiaService implements AppContribution {
       settings: {},
     };
 
-    await this.fsService.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+    await this.fsService.writeFileJson(settingsPath, settings);
   }
 
   private async startTheiaBackend() {
@@ -52,16 +62,31 @@ export class TheiaService implements AppContribution {
 
   private async ensureTheiaDefaultSettings() {
     const settingsPath = this.fsService.joinPath(this.configService.theiaConfigPath, 'settings.json');
+    const referenceConfig = this.getReferenceTheiaConfig();
 
     if (await this.fsService.statSafe(settingsPath)) {
+      // Add missing bits
+      let currentConfig: Record<string, unknown> = {};
+
+      try {
+        currentConfig = await this.fsService.readFileJson(settingsPath);
+      } catch (e) {
+        // welp, we'll just write reference then
+      }
+
+      Object.entries(referenceConfig).forEach(([key, value]) => {
+        if (!(key in currentConfig)) {
+          currentConfig[key] = value;
+        }
+      });
+
+      await this.fsService.writeFileJson(settingsPath, currentConfig);
+
       return;
     }
 
     // Ensure folder exists
     await this.fsService.mkdirp(this.configService.theiaConfigPath);
-
-    await this.fsService.writeFile(settingsPath, JSON.stringify({
-      'workbench.colorTheme': 'FxDK Dark',
-    }, null, 2));
+    await this.fsService.writeFileJson(settingsPath, referenceConfig);
   }
 }

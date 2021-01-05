@@ -1,27 +1,45 @@
+import * as fs from 'fs';
 import * as path from 'path';
-import { injectable, inject } from 'inversify';
+import { injectable } from 'inversify';
 
-import URI from '@theia/core/lib/common/uri';
-import { PluginTheiaEnvironment } from '@theia/plugin-ext/lib/main/common/plugin-theia-environment';
-import { PluginDeployerParticipant, PluginDeployerStartContext } from '@theia/plugin-ext/lib/common/plugin-protocol';
-
-const invariant = (s: string | void, err: string) => {
-  if (!s) {
-    throw new Error(err);
-  }
-
-  return s;
-}
+import {
+  PluginDeployerParticipant,
+  PluginDeployerStartContext,
+  PluginDeployerResolver,
+  PluginDeployerResolverContext,
+} from '@theia/plugin-ext/lib/common/plugin-protocol';
 
 @injectable()
 export class FxdkPluginDeployerParticipant implements PluginDeployerParticipant {
-  @inject(PluginTheiaEnvironment)
-  protected readonly environments: PluginTheiaEnvironment;
-
   async onWillStart(context: PluginDeployerStartContext): Promise<void> {
-    const localAppData = invariant(process.env.LOCALAPPDATA, 'No LOCALAPPDATA env var');
-    const fxdkTheiaPluginsDir = new URI(path.join(localAppData, 'citizenfx/sdk-personality-theia-plugins'));
+    context.systemEntries.push('fxdk-plugins');
+  }
+}
 
-    context.userEntries.push(fxdkTheiaPluginsDir.withScheme('local-dir').toString());
+@injectable()
+export class FxdkPluginDeployerResolver implements PluginDeployerResolver {
+  async resolve(pluginResolverContext: PluginDeployerResolverContext): Promise<void> {
+    const localAppData = process.env.LOCALAPPDATA;
+    if (!localAppData) {
+      console.error('No LOCALAPPDATA env var');
+
+      return;
+    }
+
+    const fxdkPluginsPath = path.join(localAppData, 'citizenfx/sdk-personality-theia-plugins');
+    const fxdkPluginsPathChildren = await fs.promises.readdir(fxdkPluginsPath);
+
+    await Promise.all(fxdkPluginsPathChildren.map(async (pluginId) => {
+      const pluginPath = path.join(fxdkPluginsPath, pluginId);
+      const stat = await fs.promises.stat(pluginPath);
+
+      if (stat.isDirectory()) {
+        pluginResolverContext.addPlugin(pluginId, pluginPath);
+      }
+    }));
+  }
+
+  accept(pluginId: string): boolean {
+    return pluginId === 'fxdk-plugins';
   }
 }

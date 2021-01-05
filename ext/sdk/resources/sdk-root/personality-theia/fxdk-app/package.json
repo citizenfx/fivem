@@ -46,7 +46,7 @@
     "@theia/cli": "1.9.0"
   },
   "scripts": {
-    "start": "theia start --plugins=local-dir:plugins",
+    "start": "theia start --plugins=local-dir:plugins --vscode-api-version=1.52.0",
     "watch": "theia build --watch --mode development",
     "build": "theia build --mode production",
     "download:plugins": "theia download:plugins",

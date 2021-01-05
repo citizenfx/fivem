@@ -10,15 +10,19 @@ export interface AssetContributionCapabilities {
 }
 
 export interface AssetInterface {
+  getId?(): string;
+
   setEntry?(entry: FilesystemEntry): Promise<void> | void;
-  onFsEvent?(event: FsUpdateType, entry: FilesystemEntry | null): Promise<void> | void;
+  onFsUpdate?(updateType: FsUpdateType, entry: FilesystemEntry | null): Promise<void> | void;
+
+  onDestroy?(): Promise<void> | void;
 }
 export interface AssetCreator {
-  createAsset(project: Project, request: AssetCreateRequest): Promise<boolean>;
+  createAsset(request: AssetCreateRequest): Promise<boolean>;
 }
 
 export interface AssetImporter {
-  importAsset(project: Project, request: AssetCreateRequest): Promise<boolean>;
+  importAsset(request: AssetCreateRequest): Promise<boolean>;
 }
 
 
@@ -27,7 +31,8 @@ export interface AssetContribution extends Partial<AssetCreator>, Partial<AssetI
   readonly name: string;
   readonly capabilities: AssetContributionCapabilities;
 
-  loadAsset(project: Project, assetEntry: FilesystemEntry): Promise<AssetInterface | void>;
+  loadAsset(assetEntry: FilesystemEntry): AssetInterface | void;
+  onFsEntry?(entry: FilesystemEntry): Promise<void> | void;
 }
 
 export const bindAssetContribution = <T>(container: interfaces.Container, service: interfaces.Newable<T>, managerName: string) => {

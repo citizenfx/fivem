@@ -17,6 +17,8 @@ export class ConfigService {
   readonly realCwd: string = process.cwd();
   readonly citizen: string = path.normalize(GetConvar('citizen_path'));
 
+  readonly cfxLocalAppData: string;
+
   readonly sdkResources: string;
 
   readonly sdkRoot: string;
@@ -31,11 +33,12 @@ export class ConfigService {
   readonly sdkRootTheia: string;
   readonly sdkRootTheiaArchive: string;
 
-  readonly localAppData: string;
+  readonly sdkStorage: string;
   readonly serverArtifacts: string;
   readonly serverContainer: string;
   readonly serverDataPath: string;
 
+  readonly nativesDocluaPath: string;
   readonly recentProjectsFilePath: string;
 
   readonly wellKnownPathsPath: string;
@@ -50,6 +53,8 @@ export class ConfigService {
     this.realCwd = process.cwd();
     this.citizen = path.normalize(GetConvar('citizen_path'));
 
+    this.cfxLocalAppData = path.join(process.env.LOCALAPPDATA, 'citizenfx');
+
     // __dirname will be like `resources/sdk-root/shell/build_server/index.js`
     this.sdkResources = path.join(__dirname, '../../..');
 
@@ -60,19 +65,21 @@ export class ConfigService {
     this.sdkRootShellBuild = path.join(this.sdkRootShell, 'build');
 
     // Also defined at personality-theia/fxdk-project/src/backend/rebindEnvVariablesServerImpl.ts
-    this.theiaConfigPath = path.join(process.env.LOCALAPPDATA, 'citizenfx/sdk-personality-theia');
-    this.theiaPluginsPath = path.join(process.env.LOCALAPPDATA, 'citizenfx/sdk-personality-theia-plugins');
+    this.theiaConfigPath = path.join(this.cfxLocalAppData, 'sdk-personality-theia');
+    this.theiaPluginsPath = path.join(this.cfxLocalAppData, 'sdk-personality-theia-plugins');
 
     this.sdkRootTheia = path.join(this.sdkRoot, 'personality-theia');
     this.sdkRootTheiaArchive = path.join(this.sdkRoot, 'personality-theia.tar');
 
-    this.localAppData = path.join(process.env.LOCALAPPDATA, 'citizenfx/sdk-storage');
-    this.serverArtifacts = path.join(this.localAppData, 'artifacts');
-    this.serverContainer = path.join(this.localAppData, 'server');
-    this.serverDataPath = path.join(this.localAppData, 'serverData');
+    this.sdkStorage = path.join(this.cfxLocalAppData, 'sdk-storage');
 
-    this.recentProjectsFilePath = path.join(this.localAppData, 'recent-projects.json');
+    this.serverArtifacts = path.join(this.sdkStorage, 'artifacts');
+    this.serverContainer = path.join(this.sdkStorage, 'server');
+    this.serverDataPath = path.join(this.sdkStorage, 'serverData');
 
-    this.wellKnownPathsPath = path.join(this.localAppData, 'well-known-paths.json');
+    this.nativesDocluaPath = path.join(this.cfxLocalAppData, 'natives-doclua');
+    this.recentProjectsFilePath = path.join(this.sdkStorage, 'recent-projects.json');
+
+    this.wellKnownPathsPath = path.join(this.sdkStorage, 'well-known-paths.json');
   }
 }

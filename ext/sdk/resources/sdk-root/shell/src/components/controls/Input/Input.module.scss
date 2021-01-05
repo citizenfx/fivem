@@ -30,7 +30,7 @@
     font-family: Rubik;
 
     border: none;
-    box-shadow: 0 -2px 0 rgba($fgColor, .5) inset, 0 0 0 2px transparent inset;
+    box-shadow: 0 0 0 2px rgba($fgColor, .25) inset;
 
     transition: all .2s ease;
 
@@ -42,12 +42,12 @@
     &:hover {
       transition: none;
 
-      box-shadow: 0 -2px 0 transparent inset, 0 0 0 2px rgba($fgColor, .5) inset;
+      box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
     }
 
     &:focus,
     &:focus:hover {
-      box-shadow: 0 -2px 0 transparent inset, 0 0 0 2px $acColor inset;
+      box-shadow: 0 0 0 2px $acColor inset;
     }
 
     &::-webkit-input-placeholder {

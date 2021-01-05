@@ -1,7 +1,6 @@
 import React from 'react';
 import { FilesystemEntry, ProjectData, RecentProject, AppStates, ProjectFsUpdate, ProjectResources } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
-import { getProjectResources } from 'shared/utils';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';
 import { StateContext } from './StateContext';
@@ -18,12 +17,12 @@ export interface ProjectContext {
   openOpener: () => void,
   closeOpener: () => void,
 
-  assetCreatorDir: string,
-  setAssetCreatorDir: (dir: string) => void,
+  resourceCreatorDir: string,
+  setResourceCreatorDir: (dir: string) => void,
 
-  assetCreatorOpen: boolean,
-  openAssetCreator: () => void,
-  closeAssetCreator: () => void,
+  resourceCreatorOpen: boolean,
+  openResourceCreator: () => void,
+  closeResourceCreator: () => void,
 
   directoryCreatorOpen: boolean,
   openDirectoryCreator: () => void,
@@ -31,7 +30,11 @@ export interface ProjectContext {
 
   openProject: (string) => void,
   project: ProjectData | null,
+  projectEntry: FilesystemEntry | null,
   recentProjects: RecentProject[],
+
+  pendingDirectoryDeletions: Set<string>,
+  addPendingDirectoryDeletion: (directoryPath: string) => void,
 
   openFile: (entry: FilesystemEntry) => void,
 }
@@ -45,12 +48,12 @@ export const ProjectContext = React.createContext<ProjectContext>({
   openOpener: () => { },
   closeOpener: () => { },
 
-  assetCreatorDir: '',
-  setAssetCreatorDir: () => { },
+  resourceCreatorDir: '',
+  setResourceCreatorDir: () => { },
 
-  assetCreatorOpen: false,
-  openAssetCreator: () => { },
-  closeAssetCreator: () => { },
+  resourceCreatorOpen: false,
+  openResourceCreator: () => { },
+  closeResourceCreator: () => { },
 
   directoryCreatorOpen: false,
   openDirectoryCreator: () => { },
@@ -58,7 +61,11 @@ export const ProjectContext = React.createContext<ProjectContext>({
 
   openProject: () => { },
   project: null,
+  projectEntry: null,
   recentProjects: [],
+
+  pendingDirectoryDeletions: new Set(),
+  addPendingDirectoryDeletion: () => {},
 
   openFile: () => { },
 });
@@ -74,9 +81,12 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
 
   const [recentProjects, setRecentProjects] = React.useState<RecentProject[]>([]);
 
-  const [assetCreatorDir, setAssetCreatorDir] = React.useState('');
-  const [assetCreatorOpen, openAssetCreator, closeAssetCreator] = useOpenFlag(false);
+  const [resourceCreatorDir, setResourceCreatorDir] = React.useState('');
+  const [resourceCreatorOpen, openResourceCreator, closeResourceCreator] = useOpenFlag(false);
+
   const [directoryCreatorOpen, openDirectoryCreator, closeDirectoryCreator] = useOpenFlag(false);
+
+  const [pendingDirectoryDeletions, setPendingDirectoryDeletions] = React.useState(new Set<string>());
 
   const projectRef = React.useRef<ProjectData | null>(null);
   projectRef.current = project;
@@ -165,7 +175,52 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     }
   }, [project, openProject]);
 
-  const value = {
+  useApiMessage(projectApi.freePendingFolderDeletion, (directoryPath: string) => {
+    if (pendingDirectoryDeletions.has(directoryPath)) {
+      const newPendingDeletions = new Set(pendingDirectoryDeletions);
+
+      newPendingDeletions.delete(directoryPath);
+
+      setPendingDirectoryDeletions(newPendingDeletions);
+    }
+  }, [pendingDirectoryDeletions, setPendingDirectoryDeletions]);
+
+  const addPendingDirectoryDeletion = React.useCallback((directoryPath: string) => {
+    const newPendingDeletions = new Set(pendingDirectoryDeletions);
+
+    newPendingDeletions.add(directoryPath);
+
+    setPendingDirectoryDeletions(newPendingDeletions);
+  }, [pendingDirectoryDeletions, setPendingDirectoryDeletions]);
+
+  const projectEntry = React.useMemo((): FilesystemEntry | null => {
+    if (!project) {
+       return null;
+    }
+
+    return {
+      path: project.path,
+      name: project.path.substr(
+        Math.max(
+          Math.max(
+            project.path.lastIndexOf('/'),
+            project.path.lastIndexOf('\\'),
+          ) + 1,
+          0,
+        ),
+      ),
+      isDirectory: true,
+      isFile: false,
+      isSymbolicLink: false,
+      meta: {
+        isFxdkProject: true,
+        isResource: false,
+        assetMeta: null,
+      },
+    };
+  }, [project?.path]);
+
+  const value: ProjectContext = {
     creatorOpen,
     openCreator,
     closeCreator,
@@ -174,12 +229,12 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     openOpener,
     closeOpener,
 
-    assetCreatorDir,
-    setAssetCreatorDir,
+    resourceCreatorDir,
+    setResourceCreatorDir,
 
-    assetCreatorOpen,
-    openAssetCreator,
-    closeAssetCreator,
+    resourceCreatorOpen,
+    openResourceCreator,
+    closeResourceCreator,
 
     directoryCreatorOpen,
     openDirectoryCreator,
@@ -187,7 +242,11 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
 
     openProject,
     project,
+    projectEntry,
     recentProjects,
+
+    pendingDirectoryDeletions,
+    addPendingDirectoryDeletion,
 
     openFile,
   };

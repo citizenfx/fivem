@@ -12,6 +12,9 @@
 #include "CefImeHandler.h"
 #include "NUIRenderHandler.h"
 
+#include <HostSharedData.h>
+#include <ReverseGameData.h>
+
 #include <windowsx.h>
 
 extern nui::GameInterface* g_nuiGi;
@@ -364,19 +367,51 @@ static HookFunction initFunction([] ()
 	{
 		void KeyEvent(UINT vKey, UINT scanCode, bool down)
 		{
+			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+			auto browser = GetFocusBrowser();
+			if (!browser)
+			{
+				return;
+			}
+
 			CefKeyEvent keyEvent;
 
 			keyEvent.windows_key_code = vKey;
 			keyEvent.native_key_code = scanCode;
 			keyEvent.modifiers = GetCefKeyboardModifiers(vKey, scanCode);
-			keyEvent.type = (down) ? KEYEVENT_RAWKEYDOWN : KEYEVENT_KEYUP;
 
-			auto browser = GetFocusBrowser();
-
-			if (browser)
+			if (down)
 			{
-				browser->GetHost()->SendKeyEvent(keyEvent);
+				keyEvent.type = KEYEVENT_RAWKEYDOWN;
+
+				if (vKey == VK_RETURN)
+				{
+					keyEvent.character = '\r';
+					keyEvent.unmodified_character = '\r';
+					
+					browser->GetHost()->SendKeyEvent(keyEvent);
+
+					keyEvent.type = KEYEVENT_CHAR;
+				}
+
+				if (rgd->inputChar)
+				{
+					keyEvent.character = rgd->inputChar;
+					keyEvent.unmodified_character = rgd->inputChar;
+
+					browser->GetHost()->SendKeyEvent(keyEvent);
+
+					keyEvent.windows_key_code = rgd->inputChar;
+					keyEvent.type = KEYEVENT_CHAR;
+				}
 			}
+			else
+			{
+				keyEvent.type = KEYEVENT_KEYUP;
+			}
+
+			browser->GetHost()->SendKeyEvent(keyEvent);
 		}
 
 		void MouseEvent(int button, int x, int y, bool down)

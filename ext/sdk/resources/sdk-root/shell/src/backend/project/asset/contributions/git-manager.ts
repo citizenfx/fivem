@@ -10,6 +10,7 @@ import { Project } from 'backend/project/project';
 import { invariant } from 'utils/invariant';
 import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
+import { ProjectAccess } from 'backend/project/project-access';
 
 @injectable()
 export class GitManager implements AssetContribution {
@@ -33,7 +34,10 @@ export class GitManager implements AssetContribution {
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
 
-  async importAsset(project: Project, request: AssetCreateRequest<{ repoUrl: string }>): Promise<boolean> {
+  @inject(ProjectAccess)
+  protected readonly projectAccess: ProjectAccess;
+
+  async importAsset(request: AssetCreateRequest<{ repoUrl: string }>): Promise<boolean> {
     const {
       assetName,
       data,
@@ -63,7 +67,7 @@ export class GitManager implements AssetContribution {
 
     importTask.setText('Creating meta data');
     // Asset meta for imported git pack asset is always in shadow root
-    await project.setAssetMeta(assetPath, assetMeta, { forceShadow: true });
+    await this.projectAccess.getInstance().setAssetMeta(assetPath, assetMeta, { forceShadow: true });
 
     const git = simpleGitPromised(request.assetPath);
 
@@ -92,7 +96,7 @@ export class GitManager implements AssetContribution {
     }
   }
 
-  async loadAsset(project: Project, assetEntry: FilesystemEntry): Promise<AssetInterface | void> {
+  loadAsset(assetEntry: FilesystemEntry): AssetInterface | void {
     return;
   }
 }

@@ -128,8 +128,22 @@ export class FsService {
     return fs.promises.readFile(entryPath);
   }
 
+  async readFileString(entryPath: string): Promise<string> {
+    return (await this.readFile(entryPath)).toString();
+  }
+
+  async readFileJson<T>(entryPath: string): Promise<T> {
+    const content = await this.readFileString(entryPath);
+
+    return JSON.parse(content);
+  }
+
   writeFile(entryPath: string, content: string | Buffer) {
     return fs.promises.writeFile(entryPath, content);
+  }
+
+  writeFileJson<T>(entryPath: string, content: T, pretty = true) {
+    return this.writeFile(entryPath, JSON.stringify(content, undefined, pretty ? 2 : undefined));
   }
 
   createAtomicWrite(entryPath: string) {

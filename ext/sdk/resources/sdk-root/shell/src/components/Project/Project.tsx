@@ -1,8 +1,6 @@
 import React from 'react';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { resourceIcon } from 'constants/icons';
-import { Server } from 'components/Server/Server';
-import { AssetCreator } from './AssetCreator/AssetCreator';
+import { ResourceCreator } from './ProjectExplorer/Resource/ResourceCreator/ResourceCreator';
 import { ProjectExplorer } from './ProjectExplorer/ProjectExplorer';
 import s from './Project.module.scss';
 
@@ -10,7 +8,7 @@ import s from './Project.module.scss';
 export const Project = React.memo(function Project() {
   const {
     project,
-    assetCreatorOpen,
+    resourceCreatorOpen: assetCreatorOpen,
   } = React.useContext(ProjectContext);
 
   const showProjectExplorer = !!project?.fs[project?.path];
@@ -18,7 +16,7 @@ export const Project = React.memo(function Project() {
   return (
     <>
       {assetCreatorOpen && (
-        <AssetCreator />
+        <ResourceCreator />
       )}
 
       <div className={s.root}>

@@ -10,17 +10,19 @@ import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
 
 
 export const useDirectoryContextMenu = (path: string, project: ProjectData, childrenLength: number) => {
-  const { setAssetCreatorDir, openAssetCreator } = React.useContext(ProjectContext);
+  const { setResourceCreatorDir: setAssetCreatorDir, openResourceCreator, addPendingDirectoryDeletion } = React.useContext(ProjectContext);
   const { disableDirectoryDelete, disableAssetCreate } = React.useContext(ProjectExplorerItemContext);
 
   const [deleteConfirmationOpen, openDeleteConfirmation, closeDeleteConfirmation] = useOpenFlag(false);
 
   const deleteDirectory = React.useCallback(() => {
+    addPendingDirectoryDeletion(path);
+
     sendApiMessage(projectApi.deleteDirectory, {
       projectPath: project.path,
       directoryPath: path,
     });
-  }, [project, path]);
+  }, [project, path, addPendingDirectoryDeletion]);
 
   const handleDirectoryDelete = React.useCallback(() => {
     if (childrenLength > 0) {
@@ -32,8 +34,8 @@ export const useDirectoryContextMenu = (path: string, project: ProjectData, chil
 
   const handleCreateResource = React.useCallback(() => {
     setAssetCreatorDir(path);
-    openAssetCreator();
-  }, [path, setAssetCreatorDir, openAssetCreator]);
+    openResourceCreator();
+  }, [path, setAssetCreatorDir, openResourceCreator]);
 
   const directoryContextMenuItems: ContextMenuItem[] = React.useMemo(() => {
     return [
@@ -45,8 +47,8 @@ export const useDirectoryContextMenu = (path: string, project: ProjectData, chil
         onClick: handleDirectoryDelete,
       },
       {
-        id: 'new-asset',
-        text: 'New asset',
+        id: 'new-resource',
+        text: 'New resource',
         icon: newResourceIcon,
         disabled: disableAssetCreate,
         onClick: handleCreateResource,

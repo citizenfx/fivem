@@ -157,6 +157,7 @@ export type AssetMeta =
 export enum Feature {
   systemGitClientAvailable,
   windowsDevModeEnabled,
+  dotnetAvailable,
 }
 
 export type FeaturesMap = Partial<Record<Feature, boolean>>;

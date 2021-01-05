@@ -1,5 +1,5 @@
 import { Button } from 'components/controls/Button/Button';
-import { deleteIcon, projectIcon } from 'constants/icons';
+import { closeIcon, projectIcon } from 'constants/icons';
 import { ProjectContext } from 'contexts/ProjectContext';
 import * as React from 'react';
 import { projectApi } from 'shared/api.events';
@@ -43,8 +43,9 @@ export const RecentProjectItem = React.memo(function RecentProjectItem({ recentP
       <div className={s.actions}>
         <Button
           theme="transparent"
-          icon={deleteIcon}
+          icon={closeIcon}
           onClick={removeRecentProject}
+          title="Remove recent project from the list"
         />
       </div>
     </div>

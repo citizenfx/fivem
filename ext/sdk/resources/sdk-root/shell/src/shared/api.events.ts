@@ -15,10 +15,6 @@ export const projectApi = {
   setPathsStatePatch: 'project:setPathsStatePatch',
   pathsState: 'project:pathsState',
 
-  createResource: 'project:createResource',
-  resourceAdded: 'project:addResource',
-  renameResource: 'project:renameResource',
-  deleteResource: 'project:deleteResource',
   updateResources: 'project:updateResources',
   setResourceConfig: 'project:setResourceConfig',
 
@@ -28,6 +24,8 @@ export const projectApi = {
   createDirectory: 'project:createDirectory',
   renameDirectory: 'project:renameDirectory',
   deleteDirectory: 'project:deleteDirectory',
+
+  freePendingFolderDeletion: 'project:freePendingFolderDeletion',
 
   createFile: 'project:createFile',
   renameFile: 'project:renameFile',

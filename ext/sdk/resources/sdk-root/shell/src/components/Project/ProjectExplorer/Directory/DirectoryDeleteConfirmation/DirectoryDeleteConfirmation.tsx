@@ -1,18 +1,20 @@
 import React from 'react';
 import { Button } from 'components/controls/Button/Button';
-import { Explorer, getRelativePath } from 'components/Explorer/Explorer';
+import { Explorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
 import { ProjectContext } from 'contexts/ProjectContext';
+import { getRelativePath } from 'components/Explorer/Explorer.utils';
+import { FilesystemEntry } from 'shared/api.types';
 
 export interface DirectoryDeleteConfirmationProps {
-  path: string,
+  entry: FilesystemEntry,
   onClose: () => void,
   onDelete: () => void,
 }
 
-export const DirectoryDeleteConfirmation = React.memo(function DirectoryDeleteConfirmation({ path, onClose, onDelete }: DirectoryDeleteConfirmationProps) {
+export const DirectoryDeleteConfirmation = React.memo(function DirectoryDeleteConfirmation({ entry, onClose, onDelete }: DirectoryDeleteConfirmationProps) {
   const { project } = React.useContext(ProjectContext);
-  const directoryRelativePath = getRelativePath(project?.path || '', path);
+  const directoryRelativePath = getRelativePath(project?.path || '', entry.path);
 
   return (
     <Modal onClose={onClose}>
@@ -25,7 +27,7 @@ export const DirectoryDeleteConfirmation = React.memo(function DirectoryDeleteCo
       </div>
 
       <Explorer
-        basePath={path}
+        baseEntry={entry}
         pathsMap={project?.fs}
       />
 

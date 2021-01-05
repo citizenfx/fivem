@@ -1,4 +1,4 @@
-import { combineVisibilityFilters, VisibilityFilter, visibilityFilters } from 'components/Explorer/Explorer';
+import { combineVisibilityFilters, VisibilityFilter, visibilityFilters } from 'components/Explorer/Explorer.filters';
 import * as React from 'react';
 
 
@@ -48,8 +48,10 @@ export interface ProjectExplorerItemContextProviderProps {
 }
 
 export const ProjectExplorerItemContextProvider = React.memo(function ProjectExplorerItemContextProvider({ options, children }: ProjectExplorerItemContextProviderProps) {
+  const parentValues = React.useContext(ProjectExplorerItemContext);
+
   const value = {
-    ...defaultValues,
+    ...parentValues,
     ...options,
   };
 

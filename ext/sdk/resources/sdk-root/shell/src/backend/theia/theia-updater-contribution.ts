@@ -146,7 +146,7 @@ export class TheiaUpdaterContribution implements UpdaterContribution {
     ]);
   }
 
-  protected async maybeUpdatePlugins(): Promise<void> {
+  protected async maybeUpdatePlugins() {
     const versionsLockFilePath = this.fsService.joinPath(this.configService.theiaPluginsPath, versionsLockFileName);
 
     // Create plugins dir if it does not exist

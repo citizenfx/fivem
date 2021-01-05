@@ -5,6 +5,7 @@ import { AssetDeleteRequest } from 'shared/api.requests';
 import { assetApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './ResourceDeleter.module.scss';
+import { ProjectContext } from 'contexts/ProjectContext';
 
 
 export interface ResourceDeleterProps {
@@ -14,14 +15,18 @@ export interface ResourceDeleterProps {
 }
 
 export const ResourceDeleter = React.memo(function ResourceDeleter({ name, path, onClose }: ResourceDeleterProps) {
+  const { addPendingDirectoryDeletion } = React.useContext(ProjectContext);
+
   const handleDeleteResource = React.useCallback(() => {
+    addPendingDirectoryDeletion(path);
+
     const request: AssetDeleteRequest = {
       assetPath: path,
     };
 
     sendApiMessage(assetApi.delete, request);
     onClose();
-  }, [path, onClose]);
+  }, [path, onClose, addPendingDirectoryDeletion]);
 
   return (
     <Modal onClose={onClose}>

@@ -90,6 +90,12 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
     return this.fxdkWorkspaceService.setProject(theiaProject);
   }
 
+  private handleSetFolders(folders: string[]) {
+    console.log('setting folders', folders);
+
+    return this.fxdkWorkspaceService.setFolders(folders.map(mapFxdkFolderToTheiaFolder));
+  }
+
   private handleAddFolders(folders: string[]) {
     console.log('adding folders', folders);
     return this.fxdkWorkspaceService.addFolders(folders.map(mapFxdkFolderToTheiaFolder));

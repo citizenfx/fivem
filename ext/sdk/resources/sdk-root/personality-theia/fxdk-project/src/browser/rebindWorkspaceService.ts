@@ -143,6 +143,12 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     this.updateWorkspace();
   }
 
+  setFolders(dirs: string[]): void {
+    this._folders = new Set(dirs);
+
+    this.updateWorkspace();
+  }
+
   removeFolder(dir: string): void {
     this._folders.delete(dir);
     this.updateWorkspace();
@@ -189,7 +195,6 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
       if (valid) {
         roots.push(valid);
       } else {
-        debugger;
         roots.push(FileStat.dir(path));
       }
     }

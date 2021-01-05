@@ -1,154 +1,19 @@
 import React from 'react';
 import classnames from 'classnames';
 import { FilesystemEntry, FilesystemEntryMap } from 'shared/api.types';
-import { closedDirectoryIcon, fileIcon, openDirectoryIcon, projectIcon, resourceIcon } from 'constants/icons';
-import { sendApiMessage } from 'utils/api';
 import { explorerApi } from 'shared/api.events';
 import { useApiMessage } from 'utils/hooks';
+import { BaseExplorerProps } from './Explorer.types';
+import { ExplorerDir } from './ExplorerDir';
+import { readDir, readDrives } from './Explorer.utils';
 import s from './Explorer.module.scss';
 
-
-export type VisibilityFilter = (entry: FilesystemEntry) => boolean;
-
-export const combineVisibilityFilters = (...filters: VisibilityFilter[]): VisibilityFilter => (entry: FilesystemEntry) => {
-  return filters.every((filter) => filter(entry));
-};
-
-export const visibilityFilters = {
-  hideFiles: (entry: FilesystemEntry) => !entry.isFile,
-  hideAssets: (entry: FilesystemEntry) => !entry.meta.assetMeta,
-  hideDotFilesAndDirs: (entry: FilesystemEntry) => !entry.name.startsWith('.'),
-};
-
-export const getRelativePath = (basePath: string, path: string): string => {
-  return path.replace(basePath, '').replace('\\', '').replace('/', '');
-}
-
-export const defaultVisibilityFilter: VisibilityFilter = () => true;
-const defaultSelectableFilter = () => true;
-const noop = () => { };
-
-const getEntryIcon = (entry: FilesystemEntry, open: boolean) => {
-  if (entry.meta.isFxdkProject) {
-    return projectIcon;
-  }
-
-  if (entry.meta.isResource) {
-    return resourceIcon;
-  }
-
-  if (entry.isDirectory) {
-    return open ? openDirectoryIcon : closedDirectoryIcon;
-  } else {
-    return fileIcon;
-  }
-}
-
-export interface BaseExplorerProps {
-  className?: string,
-  hideFiles?: boolean,
-  disableFiles?: boolean,
-  selectedPath?: string | void,
-  onSelectPath?: (path: string, entry: FilesystemEntry) => void,
-  selectableFilter?: (entry: FilesystemEntry) => boolean,
-  visibilityFilter?: VisibilityFilter,
-  basePath?: string,
-  loadAllRecursively?: boolean,
-}
-
-interface ExplorerDirProps extends BaseExplorerProps {
-  childs?: FilesystemEntry[],
-  childsCache: {
-    [key: string]: FilesystemEntry[],
-  },
-
-  dir: FilesystemEntry,
-  open: boolean,
-
-  loadDir: (dir: string) => void,
-  updateBeacon: {},
-}
-
-/**
- * Explorer dir component
- */
-const ExplorerDir = React.memo(function ExplorerDir(props: ExplorerDirProps) {
-  const {
-    childs,
-    childsCache,
-    dir,
-    selectedPath,
-    onSelectPath = noop,
-    loadDir,
-    selectableFilter = defaultSelectableFilter,
-    visibilityFilter = defaultVisibilityFilter,
-  } = props;
-
-  // Open by default if props.open or if selectedPath starts with current dir
-  const [open, setOpen] = React.useState(props.open || (selectedPath || '').startsWith(dir.path));
-  const toggleOpen = React.useCallback(() => {
-    setOpen(!open);
-
-    if (!childs) {
-      loadDir(dir.path);
-    }
-  }, [dir, open, childs, loadDir]);
-
-  const handleSelectDir = React.useCallback(() => {
-    if (selectableFilter(dir)) {
-      onSelectPath(dir.path, dir);
-    }
-  }, [dir, onSelectPath, selectableFilter]);
-
-  // FIXME: OLD MECHANISM, USE visibilityFilter instead
-  if (dir.isFile && props.hideFiles) {
-    return null;
-  }
-
-  if (!visibilityFilter(dir)) {
-    return null;
-  }
-
-  const childsNodes = childs
-    ? childs.map((childDir) => (
-      <ExplorerDir
-        key={childDir.path}
-        {...props}
-        open={false}
-        dir={childDir}
-        childs={childsCache[childDir.path]}
-      />
-    ))
-    : null;
-
-  const nameClassName = classnames(s.name, {
-    [s.selected]: selectedPath === dir.path,
-  });
-
-  const icon = getEntryIcon(dir, open);
-
-  return (
-    <div className={s.dir}>
-      <div className={nameClassName} onClick={handleSelectDir} onDoubleClick={toggleOpen}>
-        {icon} {props.dir.name}
-      </div>
-
-      {childsNodes && open && (
-        <div className={s.children}>
-          {childsNodes}
-        </div>
-      )}
-    </div>
-  );
-});
-
-
 export interface ExplorerProps extends BaseExplorerProps {
-  basePath: string,
+  baseEntry: FilesystemEntry,
   pathsMap?: FilesystemEntryMap,
 }
 export const Explorer = React.memo(function Explorer(props: ExplorerProps) {
-  const { basePath, loadAllRecursively = false, pathsMap = {} } = props;
+  const { baseEntry, loadAllRecursively = false, pathsMap = {} } = props;
 
   const pathsMapRef = React.useRef<FilesystemEntryMap>(pathsMap);
   const [updateBeacon, setUpdateBeacon] = React.useState({});
@@ -159,20 +24,14 @@ export const Explorer = React.memo(function Explorer(props: ExplorerProps) {
       return;
     }
 
-    if (loadAllRecursively) {
-      console.log('loading recursively');
-      sendApiMessage(explorerApi.readDirRecursive, basePath);
-    } else {
-      console.log('loading normally');
-      sendApiMessage(explorerApi.readDir, basePath);
-    }
-  }, [loadAllRecursively, basePath, pathsMap]);
+    readDir(baseEntry.path, loadAllRecursively);
+  }, [loadAllRecursively, baseEntry, pathsMap]);
 
   useApiMessage(explorerApi.root, (entry: FilesystemEntry) => {
     setRoot(entry);
   });
   useApiMessage(explorerApi.dirRecursive, (pathsMap: FilesystemEntryMap) => {
-    console.log('dir rec', basePath, pathsMap);
+    console.log('dir rec', baseEntry, pathsMap);
     pathsMapRef.current = pathsMap;
     setUpdateBeacon({});
   });
@@ -183,31 +42,24 @@ export const Explorer = React.memo(function Explorer(props: ExplorerProps) {
   const loadDir = React.useCallback((dir: string) => {
     setUpdateBeacon({});
 
-    sendApiMessage(explorerApi.readDir, dir);
+    readDir(dir);
   }, []);
 
   const rootClassName = classnames(s.root, props.className || '', {
     [s.loading]: !root,
   });
 
-  const basePathChilds = pathsMapRef.current[basePath] || [];
-
-  const childsNodes = basePathChilds.map((child) => (
-    <ExplorerDir
-      key={child.path}
-      {...props}
-      childs={pathsMapRef.current[child.path]}
-      childsCache={pathsMapRef.current}
-      open={true}
-      dir={child}
-      loadDir={loadDir}
-      updateBeacon={updateBeacon}
-    />
-  ));
-
   return (
     <div className={rootClassName}>
-      {childsNodes}
+      <ExplorerDir
+        {...props}
+        childs={pathsMapRef.current[baseEntry.path]}
+        childsCache={pathsMapRef.current}
+        open={true}
+        dir={baseEntry}
+        loadDir={loadDir}
+        updateBeacon={updateBeacon}
+      />
     </div>
   );
 });
@@ -228,7 +80,7 @@ export const RootsExplorer = React.memo(function RoosExplorer(props: RootsExplor
   const [rootsLoaded, setRootsLoaded] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    sendApiMessage(explorerApi.readRoots);
+    readDrives();
   }, []);
 
   useApiMessage(explorerApi.roots, (roots: FilesystemEntry[]) => {
@@ -247,8 +99,7 @@ export const RootsExplorer = React.memo(function RoosExplorer(props: RootsExplor
 
   const loadDir = React.useCallback((dir: string) => {
     setUpdateBeacon({});
-
-    sendApiMessage(explorerApi.readDir, dir);
+    readDir(dir);
   }, []);
 
   const dirs = roots.map((root, index) => (

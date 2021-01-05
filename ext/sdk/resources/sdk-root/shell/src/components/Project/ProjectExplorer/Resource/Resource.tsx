@@ -10,7 +10,7 @@ import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } fro
 import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
 import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
 import { ProjectItemProps, renderChildren } from '../ProjectExplorer.item';
-import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
+import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../ProjectExplorer.itemContext';
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
@@ -24,6 +24,10 @@ const resourceChildrenFilter = (entry: FilesystemEntry) => {
   }
 
   return true;
+};
+
+const contextOptions: Partial<ProjectExplorerItemContext> = {
+  disableAssetCreate: true,
 };
 
 export interface ResourceProps {
@@ -178,7 +182,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     ? enabledResourceIcon
     : resourceIcon;
 
-  const children = renderChildren(entry, props, resourceChildrenFilter);
+  const children = renderChildren(entry, { ...props, childrenCollapsed: true }, resourceChildrenFilter);
 
   const { isDropping, dropRef } = useItemDrop(entry, [
     projectExplorerItemType.FILE,
@@ -208,7 +212,9 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
       {expanded && (
         <div className={s.children}>
           {renderItemControls()}
-          {children}
+          <ProjectExplorerItemContextProvider options={contextOptions}>
+            {children}
+          </ProjectExplorerItemContextProvider>
         </div>
       )}
 

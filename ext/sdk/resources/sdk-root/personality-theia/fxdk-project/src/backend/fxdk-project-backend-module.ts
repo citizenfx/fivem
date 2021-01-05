@@ -1,11 +1,11 @@
 import { ContainerModule, interfaces } from 'inversify';
 
-import { PluginDeployerParticipant } from '@theia/plugin-ext/lib/common/plugin-protocol';
+import { PluginDeployerParticipant, PluginDeployerResolver } from '@theia/plugin-ext/lib/common/plugin-protocol';
 import { DiskFileSystemProvider } from '@theia/filesystem/lib/node/disk-file-system-provider';
 
 import { rebindEnvVariablesServerImpl } from '../backend/rebindEnvVariablesServerImpl';
 import { FxdkDiskFileSystemProvider } from './fxdk-disk-file-system-provider';
-import { FxdkPluginDeployerParticipant } from './fxdk-plugin-deployer-participant';
+import { FxdkPluginDeployerParticipant, FxdkPluginDeployerResolver } from './fxdk-plugin-deployer-participant';
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
   rebindEnvVariablesServerImpl(bind, rebind);
@@ -15,4 +15,6 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
 
   bind(FxdkPluginDeployerParticipant).toSelf().inSingletonScope();
   bind(PluginDeployerParticipant).toService(FxdkPluginDeployerParticipant);
+
+  bind(PluginDeployerResolver).to(FxdkPluginDeployerResolver).inSingletonScope();
 });

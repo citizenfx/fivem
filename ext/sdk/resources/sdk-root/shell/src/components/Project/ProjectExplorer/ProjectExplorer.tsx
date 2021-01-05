@@ -12,7 +12,7 @@ import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
 import { Resource } from './Resource/Resource';
-import { ProjectItemProps, ProjectItemRenderer } from './ProjectExplorer.item';
+import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './ProjectExplorer.item';
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
 import { PackAsset } from '../assets/PackAsset/PackAsset';
 import s from './ProjectExplorer.module.scss';
@@ -85,8 +85,8 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
     project,
     directoryCreatorOpen,
     closeDirectoryCreator,
-    setAssetCreatorDir,
-    openAssetCreator,
+    setResourceCreatorDir,
+    openResourceCreator,
     openDirectoryCreator,
   } = React.useContext(ProjectContext);
   invariant(project, `ProjectExplorer was rendered without project set`);
@@ -102,13 +102,14 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
     }
   }, [project.path, closeDirectoryCreator]);
 
-  const handleOpenAssetCreator = React.useCallback(() => {
-    setAssetCreatorDir(project.path);
-    openAssetCreator();
-  }, [project.path, setAssetCreatorDir, openAssetCreator]);
+  const handleOpenResourceCreator = React.useCallback(() => {
+    setResourceCreatorDir(project.path);
+    openResourceCreator();
+  }, [project.path, setResourceCreatorDir, openResourceCreator]);
 
   const nodes = project.fs[project.path]
     .filter(fsTreeFilter)
+    .sort(entriesSorter)
     .map((entry) => itemRenderer({
       entry,
       project,
@@ -120,10 +121,10 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
   const contextItems: ContextMenuItem[] = React.useMemo(() => {
     return [
       {
-        id: 'new-asset',
+        id: 'new-resource',
         icon: newResourceIcon,
-        text: 'New asset',
-        onClick: handleOpenAssetCreator,
+        text: 'New resource',
+        onClick: handleOpenResourceCreator,
       },
       {
         id: 'new-directory',
@@ -132,7 +133,7 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
         onClick: openDirectoryCreator,
       },
     ];
-  }, [handleOpenAssetCreator, openDirectoryCreator]);
+  }, [handleOpenResourceCreator, openDirectoryCreator]);
 
   return (
     <ProjectExplorerContextProvider>

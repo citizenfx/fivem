@@ -22,6 +22,8 @@
       padding: $q;
       font-size: .8rem;
 
+      border-radius: 2px;
+
       svg {
         margin-right: $q;
 
@@ -29,7 +31,7 @@
       }
 
       &:hover {
-        background-color: rgba($acColor, .25);
+        background-color: rgba($fgColor, .1);
       }
 
       &.selected {

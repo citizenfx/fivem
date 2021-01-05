@@ -8,7 +8,7 @@ export const isReadOnlyEntry = (entry: FilesystemEntry): boolean => {
   return !!entry.meta.assetMeta?.flags.readOnly;
 };
 
-export const getFoldersForTheia = (project: ProjectData): string[] => {
+export const getFoldersForTheia = (project: ProjectData, pendingDeletions: Set<string>): string[] => {
   const entriesToInspect = new Set(project.fs[project.path]);
   const editableFolders: string[] = [];
 
@@ -18,6 +18,10 @@ export const getFoldersForTheia = (project: ProjectData): string[] => {
     }
 
     if (entry.name[0] === '.') {
+      continue;
+    }
+
+    if (pendingDeletions.has(entry.path)) {
       continue;
     }
 

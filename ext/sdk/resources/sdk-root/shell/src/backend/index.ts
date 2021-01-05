@@ -1,5 +1,7 @@
 import 'reflect-metadata';
 
+console.log('FxDK Shell Backend is now loading');
+
 (Error as any).prepareStackTrace = (error: Error) => error.stack?.toString();
 
 process.on('uncaughtException', (error) => {

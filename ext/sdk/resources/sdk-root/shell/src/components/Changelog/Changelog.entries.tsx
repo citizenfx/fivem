@@ -13,6 +13,23 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>14 january 2021</strong>
+        </p>
+        <ul>
+          <li>Resource templates in resource creator</li>
+          <li>
+            C# template enabled autobuild-on-change for .cs files in projects
+            <br />
+            (you need .NET installed to create resource with C# template)
+          </li>
+          <li>
+            Specify <kbd>fxdk_watch_command</kbd> in your <kbd>fxmanifest.lua</kbd>,
+            <br />
+            FxDK will run it if resource is enabled AND restart-on-change is on
+          </li>
+        </ul>
+
+        <p>
           <strong>30 december 2020</strong>
         </p>
         <ul>

@@ -7,7 +7,7 @@ import { logger } from 'utils/logger';
 const log = logger('TheiaProjectManager');
 
 export const TheiaProjectManager = React.memo(function TheiaProjectManager() {
-  const { project } = React.useContext(ProjectContext);
+  const { project, pendingDirectoryDeletions } = React.useContext(ProjectContext);
   const { openProjectInTheia, theiaIsReady, sendTheiaMessage, setTheiaIsReady } = React.useContext(TheiaContext);
 
   const flags = React.useRef({
@@ -49,7 +49,7 @@ export const TheiaProjectManager = React.memo(function TheiaProjectManager() {
       if (theiaIsReady && !flags.current.reloadPending) {
         log('Theia is ready and no reload is pending');
 
-        const folders = getFoldersForTheia(project);
+        const folders = getFoldersForTheia(project, pendingDirectoryDeletions);
         const foldersString = JSON.stringify(folders);
 
         if (lastFoldersStringRef.current !== foldersString) {
@@ -69,7 +69,7 @@ export const TheiaProjectManager = React.memo(function TheiaProjectManager() {
       lastFoldersStringRef.current = '';
       setTheiaIsReady(false);
     }
-  }, [project, theiaIsReady, openProjectInTheia, sendTheiaMessage, setTheiaIsReady]);
+  }, [project, theiaIsReady, pendingDirectoryDeletions, openProjectInTheia, sendTheiaMessage, setTheiaIsReady]);
 
   return null;
 });
