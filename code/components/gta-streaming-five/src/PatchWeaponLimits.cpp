@@ -39,8 +39,8 @@ struct PatternPair
 	int offset;
 };
 
-// Should be synced with CWeaponComponentInfo in gameconfig.xml
-constexpr int NUM_WEAPON_COMPONENT_INFOS = 1024;
+// should be synced with CWeaponComponentInfo in gameconfig.xml
+constexpr int kNumWeaponComponentInfos = 1024;
 
 static CWeaponComponentInfo** weaponComponentInfoCollection;
 
@@ -68,7 +68,10 @@ static void RelocateRelative(std::initializer_list<PatternPair> list)
 
 static HookFunction initFunction([]()
 {
-	weaponComponentInfoCollection = (CWeaponComponentInfo**)hook::AllocateStubMemory(sizeof(CWeaponComponentInfo*) * NUM_WEAPON_COMPONENT_INFOS);
+	// adjust CWeaponInfoBlob limit
+	hook::put<uint32_t>(hook::get_pattern("44 89 40 FE 48 8D 40 10 79 ? 44 89 83", 0x12), kNumWeaponInfoBlobs);
+
+	weaponComponentInfoCollection = (CWeaponComponentInfo**)hook::AllocateStubMemory(sizeof(CWeaponComponentInfo*) * kNumWeaponComponentInfos);
 
 	RelocateRelative({
 		{ "42 8D 0C 02 4C 8D 0D ? ? ? ? D1 F9", 1, 0, 7 },

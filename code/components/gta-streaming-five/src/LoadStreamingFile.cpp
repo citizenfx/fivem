@@ -1806,7 +1806,7 @@ static void UnloadWeaponInfosStub()
 	g_origUnloadWeaponInfos();
 
 	g_weaponInfoArray->Clear();
-	g_weaponInfoArray->Expand(0x80);
+	g_weaponInfoArray->Expand(kNumWeaponInfoBlobs);
 }
 
 static hook::cdecl_stub<void(int32_t)> rage__fwArchetypeManager__FreeArchetypes([]()
