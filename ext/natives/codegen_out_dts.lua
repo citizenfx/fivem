@@ -157,11 +157,7 @@ local function printArgument(argument, native)
 
 	if argument.pointer then
 		if argument.type.nativeType == 'int' or argument.type.nativeType == 'float' then
-			if isSinglePointerNative(native) then
-				argType = 'number'
-			else
-				retType = 'number'
-			end
+			retType = 'number'
 		elseif argument.type.nativeType == 'vector3' then
 			retType = 'number[]'
 		else
