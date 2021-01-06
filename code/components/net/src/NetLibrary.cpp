@@ -1314,13 +1314,41 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											AddCrashometry("last_server_ver", serverData);
 										}
 
-										auto oneSyncPolicyFailure = [this, onesyncType]()
+										static std::set<std::string> policies;
+
+										auto oneSyncPolicyFailure = [this, onesyncType, maxClients, big1s]()
 										{
-											OnConnectionError(va("OneSync (policy type %s) is not allowed for this server, or a transient issue occurred.%s",
-											onesyncType,
-											(onesyncType == "onesync_plus" || onesyncType == "onesync_big")
-											? " To use more than 64 slots, you need to have a higher subscription tier than to use up to 64 slots."
-											: ""));
+											int maxSlots = 48;
+
+											if (policies.find("onesync") != policies.end())
+											{
+												maxSlots = 64;
+											}
+
+											if (!big1s)
+											{
+												if (policies.find("onesync_plus") != policies.end())
+												{
+													maxSlots = 128;
+												}
+											}
+											else
+											{
+												if (policies.find("onesync_medium") != policies.end())
+												{
+													maxSlots = 128;
+												}
+											}
+
+											if (policies.find("onesync_big") != policies.end())
+											{
+												maxSlots = 1024;
+											}
+
+											OnConnectionError(va("This server uses more slots than allowed by policy. The allowed slot count is %d, but the server has a maximum slot count of %d.",
+												maxSlots,
+												maxClients));
+
 											m_connectionState = CS_IDLE;
 										};
 
@@ -1328,6 +1356,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 										{
 											m_connectionState = CS_INITRECEIVED;
 										};
+
+										policies.clear();
 
 										OnConnectionProgress("Requesting server feature policy...", 0, 100);
 
@@ -1339,7 +1369,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											{
 												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s", val), [=](bool success, const char* data, size_t size)
 												{
-													std::set<std::string> policies;
+													std::string fact;
 
 													// process policy response
 													if (success)
@@ -1358,10 +1388,21 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 																	}
 																}
 															}
+															else
+															{
+																fact = "Parsing policy failed (2).";
+															}
 														}
-														catch (const std::exception&)
+														catch (const std::exception& e)
 														{
+															trace("Policy parsing failed. %s\n", e.what());
+															fact = "Parsing policy failed.";
 														}
+													}
+													else
+													{
+														trace("Policy request failed. %s\n", std::string{ data, size });
+														fact = "Requesting policy failed.";
 													}
 
 													// add forced policies
@@ -1393,6 +1434,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 													{
 														if (policies.find(onesyncType) == policies.end())
 														{
+															if (!fact.empty())
+															{
+																OnConnectionError(va("Could not check server feature policy. %s", fact));
+
+																m_connectionState = CS_IDLE;
+
+																return;
+															}
+
 															oneSyncPolicyFailure();
 															return;
 														}
