@@ -1630,7 +1630,7 @@ static const char* pgRawStreamer__GetEntryNameToBuffer(pgRawStreamer* streamer, 
 }
 
 #ifdef GTA_FIVE
-static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint16_t index)
+static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint16_t index, const char* why)
 {
 	auto streamingMgr = streaming::Manager::GetInstance();
 
@@ -1652,19 +1652,39 @@ static void DisplayRawStreamerError [[noreturn]] (pgRawStreamer* streamer, uint1
 		}
 	}
 
-	FatalError("Invalid pgRawStreamer call - fileName == NULL.\nStreaming index: %d\n%s", index, extraData);
+	FatalError("Invalid pgRawStreamer call - %s.\nStreaming index: %d\n%s", why, index, extraData);
+}
+
+static void ValidateRawStreamerReq(pgRawStreamer* streamer, uint16_t index)
+{
+	uint32_t index0 = index >> 10;
+	uint32_t index1 = index & 0x3FF;
+
+	if (index0 >= std::size(streamer->m_entries))
+	{
+		DisplayRawStreamerError(streamer, index, "index >= size(entries)");
+	}
+
+	auto entryList = streamer->m_entries[index0];
+
+	if (!entryList)
+	{
+		DisplayRawStreamerError(streamer, index, "!entryList");
+	}
+
+	const char* fileName = entryList[index1].fileName;
+
+	if (fileName == nullptr)
+	{
+		DisplayRawStreamerError(streamer, index, "fileName == NULL");
+	}
 }
 
 static int64_t(*g_origOpenCollectionEntry)(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr);
 
 static int64_t pgRawStreamer__OpenCollectionEntry(pgRawStreamer* streamer, uint16_t index, uint64_t* ptr)
 {
-	const char* fileName = streamer->m_entries[index >> 10][index & 0x3FF].fileName;
-
-	if (fileName == nullptr)
-	{
-		DisplayRawStreamerError(streamer, index);
-	}
+	ValidateRawStreamerReq(streamer, index);
 
 	return g_origOpenCollectionEntry(streamer, index, ptr);
 }
@@ -1673,12 +1693,7 @@ static int64_t(*g_origGetEntry)(pgRawStreamer* streamer, uint16_t index);
 
 static int64_t pgRawStreamer__GetEntry(pgRawStreamer* streamer, uint16_t index)
 {
-	const char* fileName = streamer->m_entries[index >> 10][index & 0x3FF].fileName;
-
-	if (fileName == nullptr)
-	{
-		DisplayRawStreamerError(streamer, index);
-	}
+	ValidateRawStreamerReq(streamer, index);
 
 	return g_origGetEntry(streamer, index);
 }
