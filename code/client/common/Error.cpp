@@ -123,19 +123,85 @@ static int SysError(const char* buffer)
 	return 0;
 }
 
+struct ErrorDataPerProcess
+{
+	bool inFatalError = false;
+	std::string lastFatalError;
+};
+
+struct ErrorData
+{
+	ErrorDataPerProcess* perProcess;
+
+	bool inRecursiveError = false;
+	std::string lastRecursiveError;
+
+	bool inError = false;
+	std::string lastError;
+};
+
+#if defined(COMPILING_CORE) || defined(COMPILING_LAUNCHER)
+extern "C" DLL_EXPORT ErrorData* GetErrorData()
+{
+	static thread_local ErrorData errorData;
+	if (!errorData.perProcess)
+	{
+		static ErrorDataPerProcess edpp;
+		errorData.perProcess = &edpp;
+	}
+
+	return &errorData;
+}
+#elif defined(_WIN32)
+inline ErrorData* GetErrorData()
+{
+	using TCoreFunc = decltype(&GetErrorData);
+
+	static TCoreFunc func;
+
+	if (!func)
+	{
+		auto hCore = GetModuleHandleW(L"CoreRT.dll");
+
+		if (hCore)
+		{
+			func = (TCoreFunc)GetProcAddress(hCore, "GetErrorData");
+		}
+	}
+
+	return (func) ? func() : 0;
+}
+#else
+extern "C" ErrorData* GetErrorData();
+#endif
+
 static int GlobalErrorHandler(int eType, const char* buffer)
 {
-	static thread_local bool inError = false;
-	static thread_local std::string lastError;
-	static bool inFatalError = false;
-	static std::string lastFatalError;
+	auto errorData = GetErrorData();
+
+	if (!errorData)
+	{
+		static thread_local ErrorData dummyErrorData;
+		if (!dummyErrorData.perProcess)
+		{
+			static ErrorDataPerProcess edpp;
+			dummyErrorData.perProcess = &edpp;
+		}
+
+		errorData = &dummyErrorData;
+	}
+
+	bool& inError = errorData->inError;
+	std::string& lastError = errorData->lastError;
+	bool& inFatalError = errorData->perProcess->inFatalError;
+	std::string& lastFatalError = errorData->perProcess->lastFatalError;
 
 	trace("Error: %s\n", buffer);
 
 	if (inError || (eType == ERR_FATAL && inFatalError))
 	{
-		static thread_local bool inRecursiveError = false;
-		static thread_local std::string lastRecursiveError;
+		bool& inRecursiveError = errorData->inRecursiveError;
+		std::string& lastRecursiveError = errorData->lastRecursiveError;
 
 		if (inRecursiveError)
 		{
