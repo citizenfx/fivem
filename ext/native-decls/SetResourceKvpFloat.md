@@ -8,8 +8,14 @@ apiset: shared
 void SET_RESOURCE_KVP_FLOAT(char* key, float value);
 ```
 
+A setter for [GET_RESOURCE_KVP_FLOAT](#_0x35BDCEEA).
 
 ## Parameters
-* **key**: 
-* **value**: 
+* **key**: The key to set
+* **value**: The value to write
 
+## Examples
+```lua
+local lickMy = 42
+SetResourceKvp('bananabread', lickMy)
+```
