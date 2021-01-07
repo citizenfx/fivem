@@ -123,6 +123,12 @@ static InitFunction initFunction([]()
 
 		for (auto& native : rpcConfiguration->GetNatives())
 		{
+			// deprecated by ServerSetters
+			if (native->GetName() == "CREATE_PED" || native->GetName() == "CREATE_OBJECT_NO_OFFSET")
+			{
+				continue;
+			}
+
 			// RPC NATIVE
 			fx::ScriptEngine::RegisterNativeHandler(native->GetName(), [=](fx::ScriptContext& ctx)
 			{
