@@ -476,6 +476,17 @@ public:
 		WriteBitsSingle(&data, length);
 	}
 
+	template<typename T>
+	inline void WriteSigned(int length, T data)
+	{
+		int sign = data < 0;
+		int signEx = (data < 0) ? 0xFFFFFFFF : 0;
+		int d = (data ^ signEx);
+
+		Write<int>(1, sign);
+		Write<int>(length - 1, d);
+	}
+
 	inline float ReadFloat(int length, float divisor)
 	{
 		auto integer = Read<int>(length);
@@ -498,6 +509,14 @@ public:
 
 		float max = (1 << (length - 1)) - 1;
 		return ((float)integer / max) * divisor;
+	}
+
+	inline void WriteSignedFloat(int length, float divisor, float value)
+	{
+		float max = (1 << (length - 1)) - 1;
+		int integer = (int)((value / divisor) * max);
+
+		WriteSigned<int>(length, integer);
 	}
 
 	inline uint64_t ReadLong(int length)
