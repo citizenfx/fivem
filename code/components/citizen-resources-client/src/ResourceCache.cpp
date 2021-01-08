@@ -15,6 +15,10 @@
 
 #include <Error.h>
 
+#include <tbb/concurrent_unordered_map.h>
+
+tbb::concurrent_unordered_map<std::string, bool> g_stuffWritten;
+
 ResourceCache::ResourceCache(const std::string& cachePath, const std::string& physCachePath)
 	: m_cachePath(cachePath), m_physCachePath(physCachePath)
 {
@@ -165,6 +169,8 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	device->RemoveFile(targetFileName);
 	device->RenameFile(localFileName, targetFileName);
 
+	g_stuffWritten.emplace(targetFileName, true);
+
 	// serialize the data for placement in the database
 	msgpack::sbuffer buffer;
 	msgpack::packer<msgpack::sbuffer> packer(buffer);
@@ -181,9 +187,10 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 	packer.pack("m");
 	packer.pack(metaData);
 
+	static std::atomic<uint32_t> writeCount;
 
 	leveldb::WriteOptions options;
-	options.sync = true;
+	options.sync = (writeCount++ % 20) == 0;
 
 	{
 		// add an entry to the database
@@ -192,6 +199,8 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
 		m_entryCache[key] = {};
 	}
+
+	options.sync = false;
 
 	{
 		// add a URL entry as well

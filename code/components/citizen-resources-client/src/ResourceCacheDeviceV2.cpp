@@ -32,6 +32,7 @@
 
 #include <IteratorView.h>
 
+extern tbb::concurrent_unordered_map<std::string, bool> g_stuffWritten;
 extern std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
 
 namespace resources
@@ -80,9 +81,10 @@ bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&
 				}
 			}
 
-			m_metaData = task.get().metaData;
+			const auto& result = task.get();
+			m_metaData = result.metaData;
 
-			const auto& localPath = task.get().localPath;
+			const auto& localPath = result.localPath;
 			m_parentDevice = vfs::GetDevice(localPath);
 			assert(m_parentDevice.GetRef());
 
@@ -274,16 +276,20 @@ bool ResourceCacheDeviceV2::ExistsOnDisk(const std::string& fileName)
 	}
 
 	const std::string& localPath = cacheEntry->GetLocalPath();
-	auto device = vfs::GetDevice(localPath);
 
-	if (!device.GetRef())
+	if (g_stuffWritten.find(localPath) == g_stuffWritten.end())
 	{
-		return false;
-	}
+		auto device = vfs::GetDevice(localPath);
 
-	if (device->GetAttributes(localPath) == -1)
-	{
-		return false;
+		if (!device.GetRef())
+		{
+			return false;
+		}
+
+		if (device->GetAttributes(localPath) == -1)
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -693,15 +699,6 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 			vfs::Device::THandle hdl;
 		};
 
-		{
-			THandle hdl;
-
-			while (m_handleDeleteQueue.try_pop(hdl))
-			{
-				CloseBulk(hdl);
-			}
-		}
-
 		RequestHandleExtension* data = (RequestHandleExtension*)controlData;
 
 		auto handle = std::make_shared<HandleContainer>(this, data->handle);
@@ -710,6 +707,15 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 
 		tp_work work{ [this, handle, hd, cb]()
 			{
+				{
+					THandle hdl;
+
+					while (m_handleDeleteQueue.try_pop(hdl))
+					{
+						CloseBulk(hdl);
+					}
+				}
+
 				try
 				{
 					hd->bulkStream->EnsureRead([this, handle, cb](bool success, const std::string& error)
