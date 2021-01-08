@@ -35,7 +35,12 @@ void* InterfaceMapper::LookupMethod(const char* methodName)
 	while (IsValidCodePointer(*methodPtr))
 	{
 		// disassemble the method to find a name
-		const char* thisMethodName = GetMethodName(*methodPtr);
+		const char* thisMethodName = GetMethodName(*methodPtr, true);
+
+		if (!thisMethodName)
+		{
+			thisMethodName = GetMethodName(*methodPtr, false);
+		}
 
 		// if it's a valid method name
 		if (thisMethodName)
@@ -124,7 +129,7 @@ static void PatchSteamAMD64Bug(void* methodPtr)
 	}
 }
 
-const char* InterfaceMapper::GetMethodName(void* methodPtr)
+const char* InterfaceMapper::GetMethodName(void* methodPtr, bool ignoreOld)
 {
 	// output variable
 	const char* name = nullptr;
@@ -188,7 +193,8 @@ const char* InterfaceMapper::GetMethodName(void* methodPtr)
 #elif defined(_M_AMD64)
 		if (ud_insn_mnemonic(&ud) == UD_Ilea)
 		{
-			// get the first operand
+			// get the operands
+			auto op0 = ud_insn_opr(&ud, 0);
 			auto operand = ud_insn_opr(&ud, 1);
 
 			// if the operand is immediate
@@ -197,6 +203,11 @@ const char* InterfaceMapper::GetMethodName(void* methodPtr)
 				// and relative to the instruction...
 				if (operand->base == UD_R_RIP)
 				{
+					if (ignoreOld && (op0->type == UD_OP_REG && op0->base == UD_R_RCX))
+					{
+						continue;
+					}
+
 					// cast the relative offset as a char
 					char* operandPtr = reinterpret_cast<char*>(ud_insn_len(&ud) + ud_insn_off(&ud) + operand->lval.sdword);
 

@@ -24,7 +24,7 @@ private:
 	std::unordered_map<std::string, void*> m_methodCache;
 
 private:
-	const char* GetMethodName(void* methodPtr);
+	const char* GetMethodName(void* methodPtr, bool ignoreOld);
 
 	void* LookupMethod(const char* methodName);
 
