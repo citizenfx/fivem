@@ -31,8 +31,8 @@ void UnparseTo(TNode& node, TWrapper wrapper)
 template<typename TTree, typename TFn>
 void SetupNode(const std::shared_ptr<TTree>& tree, TFn fn)
 {
-	using TArgs = boost::function_types::parameter_types<decltype(&TFn::operator())>::type;
-	using TArg = boost::mpl::at_c<TArgs, 1>::type;
+	using TArgs = typename boost::function_types::parameter_types<decltype(&TFn::operator())>::type;
+	using TArg = typename boost::mpl::at_c<TArgs, 1>::type;
 	using TNode = std::remove_reference_t<TArg>;
 
 	auto n = tree->GetNode<TNode>();

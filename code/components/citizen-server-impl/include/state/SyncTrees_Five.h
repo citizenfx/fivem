@@ -1866,7 +1866,7 @@ struct CObjectSectorPosNode : GenericSerializeDataNode<CObjectSectorPosNode>
 		s.Serialize(bits, 54.0f, m_posY);
 		s.Serialize(bits, 69.0f, m_posZ);
 
-		if constexpr (typename Serializer::isReader)
+		if constexpr (Serializer::isReader)
 		{
 			s.state->entity->syncTree->CalculatePosition();
 		}
@@ -2024,7 +2024,7 @@ struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 		s.Serialize(12, 54.0f, m_posY);
 		s.Serialize(12, 69.0f, m_posZ);
 
-		if constexpr (typename TSerializer::isReader)
+		if constexpr (TSerializer::isReader)
 		{
 			s.state->entity->syncTree->CalculatePosition();
 		}
