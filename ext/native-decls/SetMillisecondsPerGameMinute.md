@@ -13,3 +13,5 @@ A setter for [`GetMillisecondsPerGameMinute`](#_0x2F8B4D1C595B11DB).
 
 ## Parameters
 * **value**: Milliseconds.
+
+default is 2000
