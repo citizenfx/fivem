@@ -174,8 +174,10 @@ static InitFunction initFunction([]()
 	static std::mutex mutex;
 
 	static bool taskMgrEnabled;
+	static bool disableMemoryProfiler;
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive, false, &taskMgrEnabled);
+	static ConVar<bool> disableMemoryProfilerVar("disableMemoryProfiler", ConVar_Archive, false, &disableMemoryProfiler);
 
 	static tbb::concurrent_unordered_map<std::string, std::optional<ResourceMetrics>> metrics;
 	static TickMetrics<64> scriptFrameMetrics;
@@ -238,7 +240,7 @@ static InitFunction initFunction([]()
 			auto& metric = *metrics[resource->GetName()];
 			metric.ticks.Append(usec() - metric.tickStart);
 
-			if ((usec() - metric.memoryLastFetched) > (!taskMgrEnabled ? 20s : 500ms))
+			if (!disableMemoryProfiler && (usec() - metric.memoryLastFetched) > (!taskMgrEnabled ? 20s : 500ms))
 			{
 				int64_t totalBytes = GetTotalBytes(resource);
 
