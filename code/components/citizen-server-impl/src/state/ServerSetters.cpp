@@ -35,7 +35,7 @@ void SetupNode(const std::shared_ptr<TTree>& tree, TFn fn)
 	using TArg = typename boost::mpl::at_c<TArgs, 1>::type;
 	using TNode = std::remove_reference_t<TArg>;
 
-	auto n = tree->GetNode<TNode>();
+	auto n = tree->template GetNode<TNode>();
 	fn(n->node);
 
 	UnparseTo(n->node, n);
