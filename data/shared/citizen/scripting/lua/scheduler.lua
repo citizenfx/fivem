@@ -39,6 +39,12 @@ local threads = setmetatable({}, {
 	-- This is needed for CreateThreadNow to work correctly
 	__index = newThreads
 })
+acthreads = = setmetatable({}, { --useful tool for anticheaters
+	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
+	__newindex = newThreads,
+	-- This is needed for CreateThreadNow to work correctly
+	__index = newThreads
+})
 
 local boundaryIdx = 1
 local runningThread
@@ -80,6 +86,7 @@ local runWithBoundaryEnd = getBoundaryFunc(Citizen.SubmitBoundaryEnd)
 local function resumeThread(coro) -- Internal utility
 	if coroutine.status(coro) == "dead" then
 		threads[coro] = nil
+		acthreads[coro] = nil
 		coroutine_close(coro)
 		return false
 	end
@@ -139,6 +146,11 @@ function Citizen.CreateThread(threadFunction)
 		boundary = bid,
 		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
 	}
+	acthreads[coroutine.create(tfn)] = {
+		wakeTime = 0,
+		boundary = bid,
+		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+	}
 
 	hadThread = true
 end
@@ -172,6 +184,11 @@ function Citizen.CreateThreadNow(threadFunction, name)
 		boundary = bid,
 		name = name
 	}
+	acthreads[coro] = {
+		wakeTime = 0,
+		boundary = bid,
+		name = name
+	}
 
 	return resumeThread(coro)
 end
@@ -197,9 +214,10 @@ function Citizen.Await(promise)
 	if not isDone then
 		local threadData = threads[coro]
 		threads[coro] = nil
-
+		acthreads[coro] = nil
 		local function reattach()
 			threads[coro] = threadData
+			acthreads[coro] = threadData
 			resumeThread(coro)
 		end
 
@@ -227,6 +245,10 @@ function Citizen.SetTimeout(msec, callback)
 		wakeTime = curTime + msec,
 		boundary = bid
 	}
+	acthreads[coro] = {
+		wakeTime = curTime + msec,
+		boundary = bid
+	}
 
 	hadThread = true
 end
@@ -244,6 +266,7 @@ Citizen.SetTickRoutine(function()
 
 	for coro, thread in pairs(newThreads) do
 		rawset(threads, coro, thread)
+		rawset(acthreads, coro, thread)
 		newThreads[coro] = nil
 
 		thisHadThread = true
