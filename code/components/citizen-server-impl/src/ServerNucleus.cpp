@@ -174,8 +174,6 @@ static InitFunction initFunction([]()
 							{ "ipOverride", instance->GetComponent<fx::GameServer>()->GetIpOverrideVar()->GetValue() },
 						});
 
-						trace("^3%suthenticating with Nucleus...^7\n", setNucleus ? "Rea" : "A");
-
 						static auto authDelay = 15s;
 
 						setNucleusTimeout = msec() + authDelay;
@@ -190,8 +188,6 @@ static InitFunction initFunction([]()
 								}
 
 								setNucleusTimeout = msec() + authDelay;
-
-								trace("^1Authenticating with Nucleus failed! That's possibly bad.^7\n");
 							}
 							else
 							{
