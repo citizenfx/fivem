@@ -1254,10 +1254,10 @@
 			<Flags>EnterMenuOnMouseClick</Flags>
 			<MenuItems>
 				<!-- <Item> <cTextId>PM_PANE_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item> -->
-				<Item> <cTextId>PM_PANE_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InMP</Contexts> </Item>
+				<Item> <cTextId>PM_PANE_MIS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> </Item>
 				<!-- <Item> <cTextId>PM_PANE_MPJ</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_MISSION</MenuUniqueId> <Contexts>*ANY*,InMP</Contexts> </Item> -->
 				<Item> <cTextId>PM_PANE_HLP</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_HELP</MenuUniqueId> </Item>
-				<!-- <Item> <cTextId>PM_PANE_BRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_BRIEF</MenuUniqueId> </Item> -->
+				<Item> <cTextId>PM_PANE_BRI</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_BRIEF</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_PANE_FEE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_FEED</MenuUniqueId>	</Item>
 				<!-- <Item> <cTextId>PM_PANE_NEWS</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HOME_NEWSWIRE</MenuUniqueId>	</Item> -->
 				<!-- <Item> <cTextId>PM_PANE_XBHELP</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_HELP</MenuUniqueId> <Contexts>*ALL*, DURANGO</Contexts></Item> -->
