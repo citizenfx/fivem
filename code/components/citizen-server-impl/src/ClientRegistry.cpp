@@ -115,6 +115,12 @@ namespace fx
 		*/
 		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID));
 
+		// user code may lead to a drop event being sent here
+		if (client->IsDropping())
+		{
+			return;
+		}
+
 		if (!fx::IsBigMode())
 		{
 			// for name handling, send player state
