@@ -53,19 +53,6 @@ void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pas
 			}
 		}
 	}
-	else
-	{
-		// check if the console should be opened
-		if (msg == WM_KEYUP && wParam == VK_F8)
-		{
-			g_consoleFlag = true;
-
-			pass = false;
-			lresult = 0;
-
-			return;
-		}
-	}
 }
 
 static InitFunction initFunction([] ()
@@ -136,9 +123,27 @@ static InitFunction initFunction([] ()
 		return true;
 	}, -100);
 
+	static bool hadConsoleFlag = false;
+
 	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
+		hadConsoleFlag = g_consoleFlag;
+
 		ProcessWndProc(hWnd, msg, wParam, lParam, pass, lresult);
 	}, -10);
+
+	// check this last so we don't keep the event from the game due to g_consoleFlag
+	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
+	{
+		// check a *different* flag so it doesn't get toggled back on when we just disabled the console
+		if (!hadConsoleFlag)
+		{
+			// check if the console should be opened
+			if (msg == WM_KEYUP && wParam == VK_F8)
+			{
+				g_consoleFlag = true;
+			}
+		}
+	}, 10);
 #endif
 });
