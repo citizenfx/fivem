@@ -710,8 +710,21 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, clientRegistry](const std::string& message)
+				auto earlyReject = std::make_shared<bool>(false);
+				auto weakEarlyReject = std::weak_ptr(earlyReject);
+				auto weakNoReason = std::weak_ptr(noReason);
+
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, clientRegistry, weakEarlyReject, weakNoReason](const std::string& message)
 				{
+					auto earlyReject = weakEarlyReject.lock();
+					auto noReason = weakNoReason.lock();
+
+					if (earlyReject && noReason)
+					{
+						*noReason = std::make_shared<std::string>(message);
+						*earlyReject = true;
+					}
+
 					auto newLockedClient = clientWeak.lock();
 					if (newLockedClient)
 					{
@@ -812,6 +825,14 @@ static InitFunction initFunction([]()
 				}), (*deferrals)->GetCallbacks());
 
 				if (!shouldAllow)
+				{
+					clientRegistry->RemoveClient(lockedClient);
+
+					sendError(**noReason);
+					return;
+				}
+
+				if (*earlyReject)
 				{
 					clientRegistry->RemoveClient(lockedClient);
 
