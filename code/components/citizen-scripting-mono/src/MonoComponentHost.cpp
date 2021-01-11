@@ -16,6 +16,8 @@
 
 #include <Error.h>
 
+#include <EASTL/fixed_map.h>
+
 #include <mono/jit/jit.h>
 #include <mono/utils/mono-logger.h>
 #include <mono/metadata/assembly.h>
@@ -174,31 +176,7 @@ struct _MonoProfiler
 
 MonoProfiler _monoProfiler;
 
-#ifdef _WIN32
-// custom heap so we won't end up depending on any suspended threads
-// (we need to be safe even if the GC suspended the world)
-static HANDLE g_heap = HeapCreate(0, 0, 0);
-
-template<typename T>
-struct StaticHeapAllocator
-{
-	using value_type = T;
-
-	T* allocate(size_t n)
-	{
-		return (T*)HeapAlloc(g_heap, 0, n * sizeof(T));
-	}
-
-	void deallocate(T* p, size_t n)
-	{
-		HeapFree(g_heap, 0, p);
-	}
-};
-
-static std::map<MonoDomain*, uint64_t, std::less<>, StaticHeapAllocator<std::pair<MonoDomain* const, uint64_t>>> g_memoryUsages;
-#else
-static std::map<MonoDomain*, uint64_t> g_memoryUsages;
-#endif
+static eastl::fixed_map<MonoDomain*, uint64_t, 4096, false> g_memoryUsages;
 
 static std::shared_mutex g_memoryUsagesMutex;
 
@@ -210,9 +188,9 @@ static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
 static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t generation, mono_bool is_serial)
 #endif
 {
-	switch (event) {
-	case MONO_GC_EVENT_PRE_START_WORLD:
 #if defined(_WIN32)
+	switch (event) {
+	case MONO_GC_EVENT_PRE_STOP_WORLD:
 		if (g_requestedMemoryUsage)
 		{
 			std::unique_lock<std::shared_mutex> lock(g_memoryUsagesMutex);
@@ -228,9 +206,9 @@ static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t
 
 			g_requestedMemoryUsage = false;
 		}
-#endif
 		break;
 	}
+#endif
 }
 
 static uint64_t GI_GetMemoryUsage()

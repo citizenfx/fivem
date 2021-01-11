@@ -14,3 +14,10 @@ else
 
 	linkoptions '/usr/lib/libmonosgen-2.0.a'
 end
+
+return function()
+	filter {}
+	configuration {}
+	
+	add_dependencies { 'vendor:eastl' }
+end
