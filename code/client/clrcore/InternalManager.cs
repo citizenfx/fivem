@@ -127,7 +127,21 @@ namespace CitizenFX.Core
 
 			ms_loadedAssemblies[assemblyFile] = assembly;
 
-			var definedTypes = assembly.GetTypes().Where(t => !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)) && t.GetConstructor(Type.EmptyTypes) != null);
+			Func<Type, bool> typesPredicate = t =>
+				t != null && !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)) && t.GetConstructor(Type.EmptyTypes) != null;
+
+			// We have ClientScript and ServerScript defined only in the respective environments.
+			// Handle type load exceptions and keep going.
+			// See https://stackoverflow.com/a/11915414
+			IEnumerable<Type> definedTypes;
+			try
+			{
+				definedTypes = assembly.GetTypes().Where(typesPredicate);
+			}
+			catch (ReflectionTypeLoadException e)
+			{
+				definedTypes = e.Types.Where(typesPredicate);
+			}
 
 			foreach (var type in definedTypes)
 			{
