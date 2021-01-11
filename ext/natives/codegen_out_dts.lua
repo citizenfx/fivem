@@ -159,6 +159,7 @@ local function printArgument(argument, native)
 		if argument.type.nativeType == 'int' or argument.type.nativeType == 'float' then
 			if isSinglePointerNative(native) then
 				argType = 'number'
+				retType = 'pointer'
 			else
 				retType = 'number'
 			end
@@ -194,6 +195,8 @@ end
 local function formatDefinition(native)
 	local argsDefs = {}
 	local retTypes = {}
+	local markOptional = {}
+	local castUnknown = false -- We are not able to know whether a pointer is a return value or input, thus casting unknown
 
 	if native.returns then
 		table.insert(retTypes, printReturnType(native.returns))
@@ -205,6 +208,11 @@ local function formatDefinition(native)
 
 			if argType ~= nil then
 				table.insert(argsDefs, argumentName .. ': ' .. argType)
+				if retType == 'pointer' then markOptional[#argsDefs] = argumentName .. '?: ' .. argType end
+			end
+
+			if retType == 'pointer' then
+			    castUnknown = true
 			elseif retType ~= nil then
 				table.insert(retTypes, retType)
 			end
@@ -212,8 +220,12 @@ local function formatDefinition(native)
 	end
 
 	local retType
-
-	if #retTypes > 1 then
+	if castUnknown and #retTypes > 0 then
+		for index, optional in pairs(markOptional) do
+			argsDefs[index] = optional
+		end
+		retType = 'unknown[]'
+	elseif #retTypes > 1 then
 		retType = '[' .. table.concat(retTypes, ', ') .. ']'
 	elseif #retTypes == 1 then
 		retType = retTypes[1]
@@ -221,13 +233,17 @@ local function formatDefinition(native)
 		retType = 'void'
 	end
 
-	return '(' .. table.concat(argsDefs, ', ') .. '): ' .. retType
+	return '(' .. table.concat(argsDefs, ', ') .. '): ' .. retType, castUnknown and #retTypes > 0
 end
 
 local function printNative(native)
 	local name = printFunctionName(native)
 	local doc = formatDocString(native)
-	local def = formatDefinition(native)
+	local def, addCastWarning = formatDefinition(native)
+
+	if addCastWarning then
+		doc = ('%s// Return is unknown[] due to pointer value being input of the function\n'):format(doc)
+	end
 
 	local str = string.format("%sdeclare function %s%s;\n", doc, name, def)
 
