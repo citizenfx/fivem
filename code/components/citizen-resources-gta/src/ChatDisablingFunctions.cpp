@@ -30,6 +30,11 @@ static InitFunction initFunction([] ()
 	// disable legacy text chat by default, for it is confusing
 	OnMainGameFrame.Connect([]()
 	{
+		if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+		{
+			return;
+		}
+
 		static bool chatOff = false;
 
 		if (!chatOff && Instance<ICoreGameInit>::Get()->HasVariable("gameSettled"))
