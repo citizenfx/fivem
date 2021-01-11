@@ -419,6 +419,7 @@ int RealMain()
 		loadSystemDll(L"\\d3d11.dll");
 	}
 
+	LoadLibrary(MakeRelativeCitPath(L"botan.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"dinput8.dll").c_str());
 	LoadLibrary(MakeRelativeCitPath(L"steam_api64.dll").c_str());
 
