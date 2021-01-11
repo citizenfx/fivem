@@ -102,7 +102,7 @@ void DrawEntry::Render() const
 	}
 	else
 	{
-		// todo: some white texture
+		// #TODO: some white texture
 		SetTextureGtaIm(nullptr);
 		//SetTextureGtaIm(LookupTexture(txd, txn));
 	}
@@ -270,15 +270,14 @@ static InitFunction initFunction([]
 	});
 });
 
-#if 0
 static HookFunction hookFunction([]
 {
-	// 1604 unused
-	auto location = 0x1404F48C1;
-	//hook::set_call(&g_origThing, location);
-	//hook::call(location, WrapThing);
+	auto location = hook::get_pattern("48 8B CF E8 ? ? ? ? 4C 8D 45 10 48 8D 0D", 3);
+	hook::set_call(&g_origThing, location);
+	hook::call(location, WrapThing);
 });
 
+#if 0
 static rage::grmShaderFx* g_default;
 static int g_sampler;
 
