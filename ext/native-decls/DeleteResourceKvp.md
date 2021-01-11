@@ -8,7 +8,10 @@ apiset: shared
 void DELETE_RESOURCE_KVP(char* key);
 ```
 
-
 ## Parameters
-* **key**: 
+* **key**: The key to delete
 
+## Examples
+```lua
+DeleteResourceKvp('liberty_city')
+```
