@@ -22,6 +22,8 @@
 
 #include <MonoThreadAttachment.h>
 
+#include <TcpListenManager.h>
+
 // HTTP handler
 static auto GetHttpHandler(fx::Resource* resource)
 {
@@ -90,7 +92,7 @@ public:
 		auto limiter = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_" + m_resource->GetName(), fx::RateLimiterDefaults{ 10.0, 25.0 });
 		auto address = request->GetRemotePeer();
 
-		if (!limiter->Consume(address))
+		if (!fx::IsProxyAddress(address) && !limiter->Consume(address))
 		{
 			response->SetStatusCode(429);
 			response->SetHeader("Content-Type", "text/plain; charset=utf-8");

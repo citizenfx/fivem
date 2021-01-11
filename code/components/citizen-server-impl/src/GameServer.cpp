@@ -1185,7 +1185,7 @@ namespace fx
 			{
 				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getinfo", fx::RateLimiterDefaults{ 2.0, 10.0 });
 
-				if (!limiter->Consume(from))
+				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 				{
 					return;
 				}
@@ -1225,7 +1225,7 @@ namespace fx
 			{
 				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
 
-				if (!limiter->Consume(from))
+				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 				{
 					return;
 				}
@@ -1279,7 +1279,7 @@ namespace fx
 			{
 				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
 
-				if (!limiter->Consume(from))
+				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 				{
 					return;
 				}

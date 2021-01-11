@@ -242,7 +242,7 @@ static InitFunction initFunction([]()
 
 			bool cooldown = false;
 
-			if (!limiter->Consume(address, 1.0, &cooldown))
+			if (!fx::IsProxyAddress(address) && !limiter->Consume(address, 1.0, &cooldown))
 			{
 				if (cooldown)
 				{
@@ -319,7 +319,7 @@ static InitFunction initFunction([]()
 
 			bool cooldown = false;
 
-			if (!limiter->Consume(address, 1.0, &cooldown))
+			if (!fx::IsProxyAddress(address) && !limiter->Consume(address, 1.0, &cooldown))
 			{
 				if (cooldown)
 				{

@@ -8,6 +8,19 @@
 #include <ServerInstanceBase.h>
 #include <ComponentHolder.h>
 
+#ifdef COMPILING_CITIZEN_SERVER_NET
+#define CSNET_EXPORT DLL_EXPORT
+#else
+#define CSNET_EXPORT DLL_IMPORT
+#endif
+
+namespace fx
+{
+bool CSNET_EXPORT IsProxyAddress(std::string_view ep);
+
+bool CSNET_EXPORT IsProxyAddress(const net::PeerAddress& ep);
+}
+
 namespace tbb
 {
 template<std::size_t Len>
@@ -18,12 +31,6 @@ size_t tbb_hasher(const std::array<uint8_t, Len>& arr)
 }
 
 #include <tbb/concurrent_unordered_map.h>
-
-#ifdef COMPILING_CITIZEN_SERVER_NET
-#define CSNET_EXPORT DLL_EXPORT
-#else
-#define CSNET_EXPORT DLL_IMPORT
-#endif
 
 namespace fx
 {

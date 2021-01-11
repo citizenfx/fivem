@@ -45,8 +45,12 @@ namespace fx
 
 		m_tcpStack->OnStartConnection.Connect([this](const net::PeerAddress& peer)
 		{
+			if (fx::IsProxyAddress(peer))
+			{
+				return true;
+			}
+
 			// allow unlimited connections from loopback
-			// #TODO: allow configuring safe ranges and use folly range stuff
 			if (peer.GetAddressFamily() == AF_INET)
 			{
 				auto sa = (const sockaddr_in*)peer.GetSocketAddress();
