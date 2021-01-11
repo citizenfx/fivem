@@ -59,6 +59,11 @@ public:
 
 	void Update(double genRate, double burstSize)
 	{
+		if (genRate <= 0.01 || burstSize <= 0.01)
+		{
+			return;
+		}
+
 		if (m_genRate != genRate || m_burstSize != burstSize)
 		{
 			std::unique_lock<std::mutex> lock(m_mutex);
