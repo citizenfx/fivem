@@ -14,4 +14,4 @@ Routing buckets are also known as 'dimensions' or 'virtual worlds' in past echoe
 
 ## Parameters
 * **playerSrc**: The player to set the routing bucket for.
-* **bucket**: The bucket ID, from 0-63.
+* **bucket**: The bucket ID.
