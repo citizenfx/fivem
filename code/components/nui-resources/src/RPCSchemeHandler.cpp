@@ -26,6 +26,8 @@ private:
 	std::multimap<std::string, std::string> m_headers;
 	int m_statusCode = 200;
 
+	std::mutex m_mutex;
+
 public:
 	RPCResourceHandler()
 	{
@@ -141,11 +143,16 @@ public:
 			headers.emplace(header.first.ToString(), header.second.ToString());
 		}
 
-		auto result = ui->InvokeCallback(path.substr(1), headers, postDataString, [this, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
+		CefRefPtr<RPCResourceHandler> self = this;
+
+		auto result = ui->InvokeCallback(path.substr(1), headers, postDataString, [self, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
 		{
-			m_headers = headers;
-			m_statusCode = statusCode;
-			m_result = callResult;
+			{
+				std::unique_lock _(self->m_mutex);
+				self->m_headers = headers;
+				self->m_statusCode = statusCode;
+				self->m_result = callResult;
+			}
 
 			callback->Continue();
 		});
@@ -166,6 +173,8 @@ public:
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl)
 	{
+		std::unique_lock _(m_mutex);
+
 		if (auto hit = m_headers.find("content-type"); hit != m_headers.end())
 		{
 			response->SetMimeType(hit->second.substr(0, hit->second.find_first_of(';')));
@@ -221,13 +230,15 @@ public:
 	}
 
 private:
-	uint32_t m_cursor;
+	uint32_t m_cursor = 0;
 
 public:
 	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback)
 	{
 		if (m_found)
 		{
+			std::unique_lock _(m_mutex);
+
 			int toRead = std::min((unsigned int)m_result.size() - m_cursor, (unsigned int)bytes_to_read);
 
 			memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
