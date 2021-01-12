@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -42,7 +43,7 @@ namespace CitizenFX.Core
 			public string name;
 		}
 
-		private Dictionary<int, Task> CurrentTaskList { get; set; }
+		private ConcurrentDictionary<int, Task> CurrentTaskList { get; set; }
 
 		private DelegateEqualityComparer m_dec = new DelegateEqualityComparer();
 
@@ -112,7 +113,7 @@ namespace CitizenFX.Core
 		{
 			EventHandlers = new EventHandlerDictionary();
 			Exports = new ExportDictionary();
-			CurrentTaskList = new Dictionary<int, Task>();
+			CurrentTaskList = new ConcurrentDictionary<int, Task>();
 			GlobalState = new StateBag("global");
 #if !IS_RDR3
 			Players = new PlayerList();
@@ -158,7 +159,7 @@ namespace CitizenFX.Core
 
 					using (var scope = new ProfilerScope(() => curName))
 					{
-						CurrentTaskList.Add(callWrap.hashCode, CitizenTaskScheduler.Factory.StartNew(() =>
+						CurrentTaskList.TryAdd(callWrap.hashCode, CitizenTaskScheduler.Factory.StartNew(() =>
 						{
 							ms_curName = curName;
 
@@ -182,7 +183,7 @@ namespace CitizenFX.Core
 								Debug.WriteLine($"Failed to run a tick for {GetType().Name}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
 							}
 
-							CurrentTaskList.Remove(callWrap.hashCode);
+							CurrentTaskList.TryRemove(callWrap.hashCode, out _);
 						}));
 					}
 				}
