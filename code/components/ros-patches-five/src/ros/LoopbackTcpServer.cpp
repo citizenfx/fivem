@@ -1446,7 +1446,7 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak)
 						backOffFile(L"cache\\game\\ros_launcher_game2");
 						backOffFile(L"cache\\game\\ros_profiles");
 
-						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please attach the log file from the 'Save information' button.");
+						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please save and upload the log file from the 'Save information' button.\n\nAgain, please save and UPLOAD the log file from the 'Save information' button to https://forum.cfx.re/t/2009848 or anywhere you're asking for help!");
 					}
 
 					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
