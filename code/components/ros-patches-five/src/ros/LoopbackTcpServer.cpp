@@ -1432,6 +1432,20 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak)
 					{
 						SetCanSafelySkipLauncher(false);
 
+						auto backOffSuffix = fmt::sprintf(L"%d", GetTickCount64());
+						
+						auto backOffFile = [backOffSuffix](const std::wstring& fileName)
+						{
+							MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
+						};
+
+						backOffFile(L"cache\\game\\ros_documents");
+						backOffFile(L"cache\\game\\ros_launcher_appdata2");
+						backOffFile(L"cache\\game\\ros_launcher_data2");
+						backOffFile(L"cache\\game\\ros_launcher_documents");
+						backOffFile(L"cache\\game\\ros_launcher_game2");
+						backOffFile(L"cache\\game\\ros_profiles");
+
 						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please attach the log file from the 'Save information' button.");
 					}
 

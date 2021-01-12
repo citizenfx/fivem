@@ -91,6 +91,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\") + &wcsstr(origFileName, L"NVIDIA Corporation\\NV_Cache")[19];
 	}
 
+	if (wcsstr(origFileName, L"Files\\Rockstar Games\\Launcher") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\launcher") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+	}
+
 	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_data2") + &wcsstr(origFileName, L"Games\\Launcher")[14];
