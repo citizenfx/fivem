@@ -4341,6 +4341,165 @@ struct CRemoveWeaponEvent
     MSGPACK_DEFINE_MAP(pedId, weaponType);
 };
 
+/*NETEV startProjectileEvent SERVER
+/#*
+ * Triggered when a projectile is created.
+ *
+ * @param sender - The ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function startProjectileEvent(sender: number, data: {
+    ownerId: number,
+	projectileHash: number,
+	weaponHash: number,
+	initialPositionX: number,
+	initialPositionY: number,
+	initialPositionZ: number,
+	targetEntity: number,
+	firePositionX: number,
+	firePositionY: number,
+	firePositionZ: number,
+	effectGroup: number,
+	unk3: number,
+	commandFireSingleBullet: boolean,
+	unk4: number,
+	unk5: number,
+	unk6: number,
+	unk7: number,
+	unkX8: number,
+	unkY8: number,
+	unkZ8: number,
+	unk9: number,
+	unk10: number,
+	unk11: number,
+	throwTaskSequence: number,
+	unk12: number,
+	unk13: number,
+	unk14: number,
+	unk15: number,
+	unk16: number
+}): void;
+*/
+struct CStartProjectileEvent
+{
+    void Parse(rl::MessageBuffer& buffer)
+    {
+        ownerId = buffer.Read<uint16_t>(13);
+        projectileHash = buffer.Read<uint32_t>(32);
+
+        weaponHash = buffer.Read<uint32_t>(32);
+        initialPositionX = buffer.ReadSignedFloat(32, 16000.0f);
+        initialPositionY = buffer.ReadSignedFloat(32, 16000.0f);
+        initialPositionZ = buffer.ReadSignedFloat(32, 16000.0f);
+
+        targetEntity = buffer.Read<uint16_t>(13);
+        firePositionX = buffer.ReadSignedFloat(16, 1.1f);
+        firePositionY = buffer.ReadSignedFloat(16, 1.1f);
+        firePositionZ = buffer.ReadSignedFloat(16, 1.1f);
+
+        effectGroup = buffer.Read<uint16_t>(5);
+        unk3 = buffer.Read<uint16_t>(8);
+
+        commandFireSingleBullet = buffer.Read<uint8_t>(1);
+        unk4 = buffer.Read<uint8_t>(1);
+        unk5 = buffer.Read<uint8_t>(1);
+        unk6 = buffer.Read<uint8_t>(1);
+
+        if (unk6)
+        {
+            unk7 = buffer.Read<uint16_t>(7);
+        }
+
+        if (unk4)
+        {
+            unkX8 = buffer.ReadSignedFloat(16, 400.0f); // divisor 0x1418BC42C
+            unkY8 = buffer.ReadSignedFloat(16, 400.0f);
+            unkZ8 = buffer.ReadSignedFloat(16, 400.0f);
+        }
+
+        unk9 = buffer.Read<uint8_t>(1);
+        unk10 = buffer.Read<uint8_t>(1);
+
+        if (unk10)
+        {
+            // 0x1419E9B08 - 0x1418F0FDC
+            unk11 = buffer.ReadSignedFloat(18, 8000.0f) * 0.000003814712f;
+        }
+        else
+        {
+            unk11 = -1;
+        }
+
+        if (unk9)
+        {
+            throwTaskSequence = buffer.Read<uint32_t>(32);
+        }
+
+        unk12 = buffer.Read<uint8_t>(1);
+        unk13 = buffer.Read<uint16_t>(13);
+        unk14 = buffer.Read<uint16_t>(13);
+        unk15 = buffer.Read<uint8_t>(1);
+
+        if (unk15)
+        {
+            // TODO
+            buffer.Read<uint8_t>(9);
+            buffer.Read<uint8_t>(9);
+            buffer.Read<uint8_t>(9);
+        }
+
+        unk16 = buffer.Read<uint8_t>(16);
+    }
+
+    inline std::string GetName()
+    {
+        return "startProjectileEvent";
+    }
+
+    int ownerId;
+    int projectileHash; // Ammo hash
+
+    int weaponHash;
+    float initialPositionX;
+    float initialPositionY;
+    float initialPositionZ;
+
+    int targetEntity;
+    float firePositionX; // Direction?
+    float firePositionY;
+    float firePositionZ;
+
+    int effectGroup;
+    int unk3;
+
+    bool commandFireSingleBullet;
+    bool unk4;
+    bool unk5;
+    bool unk6;
+
+    int unk7;
+
+    float unkX8;
+    float unkY8;
+    float unkZ8;
+
+    bool unk9;
+    bool unk10;
+
+    int unk11;
+
+    int throwTaskSequence;
+
+    bool unk12;
+    int unk13;
+    int unk14;
+    bool unk15;
+
+    int unk16;
+
+    MSGPACK_DEFINE_MAP(ownerId, projectileHash, weaponHash, initialPositionX, initialPositionY, initialPositionZ, targetEntity, firePositionX, firePositionY, firePositionZ, effectGroup, unk3, commandFireSingleBullet, unk4, unk5, unk6, unk7, unkX8, unkY8, unkZ8, unk9, unk10, unk11, throwTaskSequence, unk12, unk13, unk14, unk15, unk16);
+};
+
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
 {
@@ -4473,6 +4632,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
+		case START_PROJECTILE_EVENT: return GetHandler<CStartProjectileEvent>(instance, client, std::move(buffer));
 		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
 	};
 
