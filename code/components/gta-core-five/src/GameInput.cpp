@@ -896,7 +896,14 @@ static void GetMappingCategoryInputs(uint32_t* categoryId, atArray<uint32_t>& co
 
 	if (*categoryId == HashString("PM_PANE_CFX"))
 	{
-		for (auto& binding : g_registeredBindings)
+		std::vector<std::pair<std::string, std::tuple<std::string, std::string>>> sortedBindings(g_registeredBindings.begin(), g_registeredBindings.end());
+		std::sort(sortedBindings.begin(), sortedBindings.end(), [](const auto& left, const auto& right)
+		{
+			// #TODO: Unicode-aware comparison
+			return std::get<1>(left.second) < std::get<1>(right.second);
+		});
+
+		for (auto& binding : sortedBindings)
 		{
 			controlIds.Set(controlIds.GetCount(), HashBinding(binding.first));
 		}
