@@ -15,6 +15,6 @@ Max number of wheels can be retrieved with the native GET_VEHICLE_NUMBER_OF_WHEE
 ## Parameters
 * **vehicle**:
 * **wheelIndex**:
- 
- ## Return value
+
+## Return value
 The angular velocity of the wheel.
