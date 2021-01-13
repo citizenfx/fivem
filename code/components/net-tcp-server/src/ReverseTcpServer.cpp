@@ -382,12 +382,42 @@ namespace net
 
 		m_control = {};
 
-		auto peer = net::PeerAddress::FromString(m_remote);
-		if (!peer)
+		m_addr = m_loop->resource<uvw::GetAddrInfoReq>();
+
+		auto hostStr = m_remote.substr(0, m_remote.find_last_of(':'));
+		std::string portStr;
+
+		if (auto colonPos = m_remote.find_last_of(':'); colonPos != std::string::npos)
 		{
-			m_reconnectTimer->start(2500ms, 0ms);
-			return;
+			portStr = m_remote.substr(colonPos + 1);
 		}
+
+		fwRefContainer<ReverseTcpServer> thisRef(this);
+
+		m_addr->on<uvw::ErrorEvent>([thisRef](const uvw::ErrorEvent& e, uvw::GetAddrInfoReq& req)
+		{
+			thisRef->m_reconnectTimer->start(2500ms, 0ms);
+		});
+
+		m_addr->on<uvw::AddrInfoEvent>([thisRef](const uvw::AddrInfoEvent& e, uvw::GetAddrInfoReq& req)
+		{
+			if (e.data)
+			{
+				net::PeerAddress peerAddress(e.data->ai_addr, e.data->ai_addrlen);
+				thisRef->ReconnectWithPeer(peerAddress);
+
+				return;	
+			}
+
+			thisRef->m_reconnectTimer->start(2500ms, 0ms);
+		});
+
+		m_addr->addrInfo(hostStr, portStr);
+	}
+
+	void ReverseTcpServer::ReconnectWithPeer(const net::PeerAddress& peer)
+	{
+		using namespace std::chrono_literals;
 
 		m_control = m_loop->resource<uvw::TCPHandle>();
 
@@ -448,7 +478,7 @@ namespace net
 		});
 
 		m_control->keepAlive(true, std::chrono::duration<unsigned int>{5});
-		m_control->connect(*peer->GetSocketAddress());
-		m_curRemote = *peer;
+		m_control->connect(*peer.GetSocketAddress());
+		m_curRemote = peer;
 	}
 }
