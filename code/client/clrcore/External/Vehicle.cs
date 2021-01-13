@@ -1364,6 +1364,25 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets the suspension height of this <see cref="Vehicle"/>.
+		/// </summary>
+		/// <value>
+		/// The suspension height.
+		/// </value>
+		public float SuspensionHeight
+		{
+			set
+			{
+				API.SetVehicleSuspensionHeight(Handle, value);
+			}
+			get
+			{
+				return API.GetVehicleSuspensionHeight(Handle);
+			}
+
+		}
+
 		public bool ExtraExists(int extra)
 		{
 			return API.DoesExtraExist(Handle, extra);
