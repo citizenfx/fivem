@@ -30,6 +30,10 @@
 
 #include <CrossBuildRuntime.h>
 
+#if __has_include(<GameAudioState.h>)
+#include <GameAudioState.h>
+#endif
+
 class FxNativeInvoke
 {
 private:
@@ -253,7 +257,16 @@ static void Mumble_RunFrame()
 
 	g_mumbleClient->SetActivationMode(activationMode);
 
-	g_mumbleClient->SetOutputVolume(g_preferenceArray[PREF_VOICE_OUTPUT_VOLUME] * 0.1f);
+#if __has_include(<GameAudioState.h>)
+	if (ShouldMuteGameAudio())
+	{
+		g_mumbleClient->SetOutputVolume(0.0f);
+	}
+	else
+#endif
+	{
+		g_mumbleClient->SetOutputVolume(g_preferenceArray[PREF_VOICE_OUTPUT_VOLUME] * 0.1f);
+	}
 
 	float cameraFront[3];
 	float cameraTop[3];

@@ -28,6 +28,8 @@
 #include <ScriptEngine.h>
 #include <audDspEffect.h>
 
+#include <GameAudioState.h>
+
 static concurrency::concurrent_queue<std::function<void()>> g_mainQueue;
 
 namespace rage
@@ -1776,6 +1778,11 @@ static InitFunction initFunction([]()
 			if (arenaWarVariableForce.GetValue())
 			{
 				active = true;
+			}
+
+			if (ShouldMuteGameAudio())
+			{
+				active = false;
 			}
 
 #if SMTEST

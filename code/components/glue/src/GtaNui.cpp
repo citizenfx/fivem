@@ -15,6 +15,10 @@
 
 #include <wrl.h>
 
+#if __has_include(<GameAudioState.h>)
+#include <GameAudioState.h>
+#endif
+
 namespace WRL = Microsoft::WRL;
 
 using nui::GITexture;
@@ -634,6 +638,13 @@ static GtaNuiInterface nuiGi;
 
 static InitFunction initFunction([]()
 {
+#if __has_include(<GameAudioState.h>)
+	nuiGi.QueryShouldMute.Connect([](bool& shouldMute)
+	{
+		shouldMute = shouldMute || ShouldMuteGameAudio();
+	});
+#endif
+
 	OnGrcCreateDevice.Connect([]()
 	{
 		nuiGi.OnInitRenderer();

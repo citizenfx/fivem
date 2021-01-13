@@ -159,6 +159,8 @@ namespace nui
 		fwEvent<> OnInitRenderer;
 
 		fwEvent<> OnRender;
+		
+		fwEvent<bool&> QueryShouldMute;
 	};
 
 	void OVERLAY_DECL Initialize(nui::GameInterface* gi);

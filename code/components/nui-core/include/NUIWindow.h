@@ -142,6 +142,8 @@ public:
 private:
 	CefString m_initUrl;
 
+	bool m_isMuted = false;
+
 public:
 	~NUIWindow();
 

@@ -587,6 +587,29 @@ void NUIWindow::TouchMessage()
 
 void NUIWindow::UpdateFrame()
 {
+	if (m_client)
+	{
+		auto browser = ((NUIClient*)m_client.get())->GetBrowser();
+
+		if (browser)
+		{
+			// the CEF API has a 'is muted' getter but it doesn't work
+			bool shouldMute = false;
+			g_nuiGi->QueryShouldMute(shouldMute);
+
+			if (!m_isMuted && shouldMute)
+			{
+				browser->GetHost()->SetAudioMuted(true);
+				m_isMuted = true;
+			}
+			else if (m_isMuted && !shouldMute)
+			{
+				browser->GetHost()->SetAudioMuted(false);
+				m_isMuted = false;
+			}
+		}
+	}
+
 #ifndef IS_RDR3
 	if (GetPaintType() != NUIPaintTypePostRender)
 #endif
