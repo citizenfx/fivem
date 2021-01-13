@@ -246,6 +246,18 @@ static InitFunction initFunction([] ()
 			relativeDeviceCrc->Mount("platformcrc:/");
 		}
 
+		{
+			auto narrowPath = ToNarrow(MakeRelativeCitPath(fmt::sprintf(L"citizen\\platform-%d", xbr::GetGameBuild())));
+
+			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
+			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDevice->Mount("platform:/");
+
+			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
+			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
+			relativeDeviceCrc->Mount("platformcrc:/");
+		}
+
 		if (CfxIsSinglePlayer() || true)
 		{
 			rage::fiFindData findData;
