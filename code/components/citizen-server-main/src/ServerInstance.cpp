@@ -220,10 +220,14 @@ namespace fx
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command.quit" }, se::AccessType::Allow);
 
+				consoleCtx->GetVariableManager()->ShouldSuppressReadOnlyWarning(true);
+
 				for (const auto& bit : optionParser->GetArguments())
 				{
 					consoleCtx->ExecuteSingleCommandDirect(bit);
 				}
+
+				consoleCtx->GetVariableManager()->ShouldSuppressReadOnlyWarning(false);
 
 				OnInitialConfiguration();
 			});

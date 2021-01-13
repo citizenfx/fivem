@@ -90,6 +90,16 @@ public:
 
 	virtual void SaveConfiguration(const TWriteLineCB& writeLineFunction);
 
+	inline bool ShouldSuppressReadOnlyWarning()
+	{
+		return m_suppressReadOnlyWarning;
+	}
+
+	inline void ShouldSuppressReadOnlyWarning(bool should)
+	{
+		m_suppressReadOnlyWarning = should;
+	}
+
 	inline console::Context* GetParentContext()
 	{
 		return m_parentContext;
@@ -132,6 +142,8 @@ private:
 	std::unique_ptr<ConsoleCommand> m_vstrHoldCommand;
 	std::unique_ptr<ConsoleCommand> m_vstrReleaseCommand;
 
+	bool m_suppressReadOnlyWarning = false;
+
 public:
 	inline static ConsoleVariableManager* GetDefaultInstance()
 	{
@@ -165,7 +177,11 @@ public:
 		{
 			if (m_manager->GetEntryFlags(m_name) & ConVar_ReadOnly)
 			{
-				console::PrintWarning("cmd", "'%s' is read only. Try using `+set` in the command line.\n", m_name);
+				if (!m_manager->ShouldSuppressReadOnlyWarning() || !(typename ConsoleArgumentTraits<T>::Equal()(GetRawValue(), m_curValue)))
+				{
+					console::PrintWarning("cmd", "'%s' is read only. Try using `+set` in the command line, or prefixing the command with `set` in the server startup script.\n", m_name);
+				}
+
 				return;
 			}
 
@@ -209,7 +225,11 @@ public:
 	{
 		if (m_manager->GetEntryFlags(m_name) & ConVar_ReadOnly)
 		{
-			console::PrintWarning("cmd", "'%s' is read only. Try using `+set` in the command line.\n", m_name);
+			if (!m_manager->ShouldSuppressReadOnlyWarning())
+			{
+				console::PrintWarning("cmd", "'%s' is read only. Try using `+set` in the command line.\n", m_name);
+			}
+
 			return false;
 		}
 
