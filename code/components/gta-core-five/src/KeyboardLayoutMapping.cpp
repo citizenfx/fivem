@@ -218,6 +218,15 @@ struct ControlClass1868
 	uint32_t numKeys;
 };
 
+struct ControlClass2060
+{
+	// 2060 (+16)
+	uint8_t pad[2544 + 16];
+
+	KeyLayoutMap keys[255];
+	uint32_t numKeys;
+};
+
 static void(*g_origLoadLayout)(void*);
 
 static void* g_controlData;
@@ -272,7 +281,7 @@ static void OnInputLanguageChange()
 	{
 		if (xbr::IsGameBuildOrGreater<2060>())
 		{
-			UpdateControlData((ControlClass1868*)g_controlData);
+			UpdateControlData((ControlClass2060*)g_controlData);
 		}
 		else
 		{
@@ -291,7 +300,7 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 45 88 48 3B D8 74 1E");
 		hook::set_call(&g_origLoadLayout, location);
-		hook::call(location, (xbr::IsGameBuildOrGreater<2060>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass1868> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
+		hook::call(location, (xbr::IsGameBuildOrGreater<2060>() ? (void*)&LoadKeyboardLayoutWrap<ControlClass2060> : (void*)&LoadKeyboardLayoutWrap<ControlClass1604>));
 	}
 
 	{

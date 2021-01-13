@@ -735,6 +735,10 @@ void BindingManager::CreateButtons()
 			{
 				button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
 			}
+			else
+			{
+				button->SetFromControl((char*)g_control + 0x21B78, field->index); // 2198
+			}
 
 			m_buttons.push_back(std::move(button));
 
