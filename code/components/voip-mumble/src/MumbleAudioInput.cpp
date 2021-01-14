@@ -440,14 +440,21 @@ void MumbleAudioInput::InitializeAudioDevice()
 	HRESULT hr = 0;
 	ComPtr<IMMDevice> device;
 
+	std::string lastDeviceId;
+
 	while (!device.Get())
 	{
 		if (m_deviceId.empty())
 		{
 			if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
 			{
-				trace(__FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
-				return;
+				console::DPrintf("voip:mumble", __FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
+
+				// retry with the last device in case the only device was intermittently unplugged
+				// #TODO: retry default device on change/preferred device on return
+				Sleep(5000);
+
+				m_deviceId = lastDeviceId;
 			}
 		}
 		else
@@ -456,6 +463,8 @@ void MumbleAudioInput::InitializeAudioDevice()
 
 			if (!device)
 			{
+				lastDeviceId = m_deviceId;
+
 				trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
 				m_deviceId = "";
 			}
