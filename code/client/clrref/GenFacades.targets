@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- I’m out of this XML build script logic insanity. Keep it simple. -->
   <UsingTask
     TaskName="GenFacadesTask"
     AssemblyFile="$(ProjectDir)\packages\Microsoft.DotNet.GenFacades.6.0.0-beta.21063.5\tools\net472\Microsoft.DotNet.GenFacades.dll"
   />
-  <Target Name="PostBuild" AfterTargets="Build">
+
+  <PropertyGroup>
+    <TargetsTriggeredByCompilation Condition="'$(DesignTimeBuild)' != 'true'">
+      $(TargetsTriggeredByCompilation);GenFacades
+    </TargetsTriggeredByCompilation>
+  </PropertyGroup>
+
+  <Target Name="GenFacades">
     <Copy
       SourceFiles="$(TargetDir)\..\CitizenFX.Core.xml"
       DestinationFolder="$(TargetDir)\$(TargetName).xml"
