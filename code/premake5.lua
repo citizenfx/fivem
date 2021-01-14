@@ -302,7 +302,7 @@ premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
     if prj.name == 'CitiMono' then
 		_p(1, '<PropertyGroup>')
 		_p(2, '<GenAPITargetDir>%s/</GenAPITargetDir>', path.getabsolute("client/clrref/" .. _OPTIONS['game'] .. "/"))
-		_p(2, '<GenAPIAdditionalParameters>%s</GenAPIAdditionalParameters>', ('-excludeApiList:"%s" -excludeAttributesList:"%s"'):format(
+		_p(2, '<GenAPIAdditionalParameters>%s</GenAPIAdditionalParameters>', ('--exclude-api-list "%s" --exclude-attributes-list "%s"'):format(
 			path.getabsolute("client/clrref/exclude_list.txt"),
 			path.getabsolute("client/clrref/exclude_attributes_list.txt")
 		))
@@ -311,6 +311,10 @@ premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
 		
 		_p(1, '<Import Project="%s" />', path.getabsolute("client/clrcore/GenAPI.targets"))
     end
+
+	if prj.name == 'CitiMonoRef' then
+		_p(1, '<Import Project="%s" />', path.getabsolute("client/clrref/GenFacades.targets"))
+	end
 end)
 
 premake.override(premake.vstudio.nuget2010, "supportsPackageReferences", function(base, prj)
@@ -355,12 +359,13 @@ if _OPTIONS['game'] ~= 'launcher' then
 		else
 			files { "client/clrcore/Server/*.cs" }
 		end
-		
+
 		if os.istarget('windows') then
-			nuget { "Microsoft.DotNet.BuildTools.GenAPI:3.0.0-preview1-03805-01", "Microsoft.DotNet.BuildTools.GenFacades:3.0.0-preview1-03805-01" }
-			nugetsource "https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json"
-			
-			
+			nuget {
+				"Microsoft.DotNet.GenAPI:6.0.0-beta.21063.5",
+				"Microsoft.DotNet.GenFacades:6.0.0-beta.21063.5",
+			}
+			nugetsource "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json"
 		end
 
 		links {
@@ -428,20 +433,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 			files { "client/clrref/" .. _OPTIONS['game'] .. "/CitizenFX.Core.cs" }
 			
 			buildoptions '/debug:portable /langversion:7.3'
-			
-			postbuildcommands {
-				('copy /y "%s" "%s"'):format(
-					"$(TargetDir)..\\CitizenFX.Core.xml",
-					"$(TargetDir)$(TargetName).xml"
-				),				
-				('"%s" -facadePath:"%s" -seeds:"%s" -contracts:"%s"'):format(
-					"$(SolutionDir)\\packages\\Microsoft.DotNet.BuildTools.GenFacades.3.0.0-preview1-03805-01\\tools\\GenFacades.exe",
-					"$(TargetDir)..",
-					"$(TargetDir)..\\CitizenFX.Core.dll",
-					"$(TargetPath)"
-				)
-			}
-			
+
 			configuration "Debug*"
 				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/ref/')
 
