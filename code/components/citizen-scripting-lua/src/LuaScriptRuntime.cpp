@@ -1998,7 +1998,7 @@ result_t LuaScriptRuntime::RequestMemoryUsage()
 result_t LuaScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
 {
 	LuaPushEnvironment pushed(this);
-	*memoryUsage = (lua_gc(m_state, LUA_GCCOUNT, 0) * 1024) + lua_gc(m_state, LUA_GCCOUNTB, 0);
+	*memoryUsage = (int64_t(lua_gc(m_state, LUA_GCCOUNT, 0)) * 1024) + int64_t(lua_gc(m_state, LUA_GCCOUNTB, 0));
 
 	return FX_S_OK;
 }
