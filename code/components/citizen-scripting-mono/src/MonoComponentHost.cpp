@@ -199,7 +199,7 @@ static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t
 
 			mono_gc_walk_heap(0, [](MonoObject *obj, MonoClass *klass, uintptr_t size, uintptr_t num, MonoObject **refs, uintptr_t *offsets, void *data) -> int
 			{
-				g_memoryUsages[mono_object_get_domain(obj)] += size;
+				g_memoryUsages[mono_object_get_domain(obj)] += size / 1024;
 
 				return 0;
 			}, nullptr);

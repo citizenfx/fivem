@@ -112,12 +112,12 @@ static ImVec4 GetColorForRange(float min, float max, float num)
 	}
 }
 
-static int64_t GetTotalBytes(const fwRefContainer<fx::Resource>& resource)
+static int64_t GetTotalKilobytes(const fwRefContainer<fx::Resource>& resource)
 {
-	int64_t totalBytes = 0;
+	int64_t totalKilobytes = 0;
 
 	auto scripting = resource->GetComponent<fx::ResourceScriptingComponent>();
-	scripting->ForAllRuntimes([&totalBytes](fx::OMPtr<IScriptRuntime> scRt)
+	scripting->ForAllRuntimes([&totalKilobytes](fx::OMPtr<IScriptRuntime> scRt)
 	{
 		fx::OMPtr<IScriptMemInfoRuntime> miRt;
 
@@ -129,13 +129,13 @@ static int64_t GetTotalBytes(const fwRefContainer<fx::Resource>& resource)
 
 				if (FX_SUCCEEDED(miRt->GetMemoryUsage(&bytes)))
 				{
-					totalBytes += bytes;
+					totalKilobytes += bytes;
 				}
 			}
 		}
 	});
 
-	return totalBytes;
+	return totalKilobytes;
 }
 
 #ifdef GTA_FIVE
@@ -240,9 +240,9 @@ static InitFunction initFunction([]()
 
 			if ((usec() - metric.memoryLastFetched) > (!taskMgrEnabled ? 20s : 500ms))
 			{
-				int64_t totalBytes = GetTotalBytes(resource);
+				int64_t totalKilobytes = GetTotalKilobytes(resource);
 
-				metric.memorySize = totalBytes;
+				metric.memorySize = totalKilobytes;
 				metric.memoryLastFetched = usec();
 			}
 		}, 99999999);
@@ -313,10 +313,10 @@ static InitFunction initFunction([]()
 					warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", key, avgTickTime.count() / 1000.0, fpsCount);
 				}
 
-				if (metric.memorySize > (50 * 1024 * 1024))
+				if (metric.memorySize > (50 * 1024))
 				{
 					showWarning = true;
-					warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0 / 1024.0);
+					warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0);
 				}
 			}
 
@@ -620,27 +620,23 @@ static InitFunction initFunction([]()
 
 					ImGui::TableSetColumnIndex(3);
 
-					int64_t totalBytes = memorySize;
+					int64_t totalKilobytes = memorySize;
 
-					if (totalBytes == 0 || totalBytes == -1)
+					if (totalKilobytes == 0 || totalKilobytes == -1)
 					{
 						ImGui::Text("?");
 					}
 					else
 					{
-						std::string humanSize = fmt::sprintf("%d B", totalBytes);
+						std::string humanSize = fmt::sprintf("%d KiB", totalKilobytes);
 
-						if (totalBytes > (1024 * 1024 * 1024))
+						if (totalKilobytes > (1024 * 1024))
 						{
-							humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
+							humanSize = fmt::sprintf("%.2f GiB", totalKilobytes / 1024.0 / 1024.0);
 						}
-						else if (totalBytes > (1024 * 1024))
+						else if (totalKilobytes > 1024)
 						{
-							humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
-						}
-						else if (totalBytes > 1024)
-						{
-							humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
+							humanSize = fmt::sprintf("%.2f MiB", totalKilobytes / 1024.0);
 						}
 
 						ImGui::Text("%s+", humanSize.c_str());
