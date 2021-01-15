@@ -770,6 +770,12 @@ static InitFunction initFunction([] ()
 	nui::RPCHandlerManager* rpcHandlerManager = Instance<nui::RPCHandlerManager>::Get();
 	rpcHandlerManager->RegisterEndpoint("gsclient", [](std::string functionName, std::string arguments, std::map<std::string, std::string> postMap, nui::RPCHandlerManager::TCallbackFn cb)
 	{
+		if (!nui::HasMainUI())
+		{
+			cb("null");
+			return;
+		}
+
 		if (functionName == "url" || functionName == "dynamic")
 		{
 			auto urlEntry = postMap["url"];

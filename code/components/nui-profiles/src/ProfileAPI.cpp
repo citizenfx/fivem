@@ -9,6 +9,8 @@
 #include "InternalRPCHandler.h"
 #include "ProfileManager.h"
 
+#include <CefOverlay.h>
+
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
@@ -20,6 +22,12 @@ static InitFunction initFunction([] ()
 	
 	rpcHandlerManager->RegisterEndpoint("profiles", [] (std::string functionName, std::string arguments, std::map<std::string, std::string> postMap, nui::RPCHandlerManager::TCallbackFn cb)
 	{
+		if (!nui::HasMainUI())
+		{
+			cb("null");
+			return;
+		}
+
 		ProfileManager* profileManager = Instance<ProfileManager>::Get();
 
 		if (functionName == "list")
