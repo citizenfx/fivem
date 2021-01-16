@@ -262,7 +262,7 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 		data = std::make_shared<GameStateClientData>();
 		data->client = weakClient;
 
-		std::weak_ptr<GameStateClientData> weakData;
+		std::weak_ptr<GameStateClientData> weakData(data);
 
 		auto setupBag = [weakClient, weakData, state]()
 		{
