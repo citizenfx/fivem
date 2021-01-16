@@ -1078,9 +1078,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	{
 		// get our own pointer ownership
 		auto client = clientRef;
+		auto slotId = client->GetSlotId();
 
 		// no
-		if (client->GetSlotId() == -1)
+		// #TODO: imagine if this mutates state alongside but after OnDrop clears it. WHAT COULD GO WRONG?
+		// serialize OnDrop for gamestate onto the sync thread?
+		if (slotId == -1)
 		{
 			return;
 		}
@@ -1119,8 +1122,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerPos = GetPlayerFocusPos(playerEntity);
 		}
 
-		auto slotId = client->GetSlotId();
-		
+	
 		// process entities leaving our scope
 		const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 		
