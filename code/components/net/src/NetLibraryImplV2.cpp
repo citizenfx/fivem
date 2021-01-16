@@ -311,6 +311,9 @@ void NetLibraryImplV2::SendConnect(const std::string& connectData)
 	auto addr = m_base->GetCurrentServer().GetENetAddress();
 	m_serverPeer = enet_host_connect(m_host, &addr, 2, 0);
 
+	// all-but-disable the backoff-based timeout, and set the hard timeout to 30 seconds (equivalent to server-side check!)
+	enet_peer_timeout(m_serverPeer, 10000000, 10000000, 30000);
+
 #ifdef _DEBUG
 	//enet_peer_timeout(m_serverPeer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
 #endif
