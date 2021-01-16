@@ -5,11 +5,8 @@
   "license": "PROPRIETARY",
   "dependencies": {
     "recursive-readdir": "^2.2.2",
-    "string.prototype.replaceall": "^1.0.3",
-    "typedoc": "^0.19.2",
-    "typescript": "^4.0.3"
-  },
-  "resolutions": {
-    "highlight.js": "^10.4.1"
+    "string.prototype.replaceall": "^1.0.4",
+    "typedoc": "^0.20.14",
+    "typescript": "^4.1.3"
   }
 }

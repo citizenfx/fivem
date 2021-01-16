@@ -62,16 +62,32 @@ async function writeDocs(docList, checkType) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fxed'));
     fs.writeFileSync(dir + '/main.ts', file);
 
+    fs.writeFileSync(dir + '/tsconfig.json', JSON.stringify({
+        compilerOptions: {
+            experimentalDecorators: true,
+        },
+        include: ["main.ts"],
+    }))
+
     const app = new td.Application();
+    app.options.addReader(new td.TSConfigReader());
     app.bootstrap({
-        mode: 'file',
         name: `CitizenFX events: ${checkType}`,
         disableSources: true,
         excludeTags: ['@return'],
         readme: 'none',
-        experimentalDecorators: true,
+        tsconfig: dir + '/tsconfig.json',
+        plugin: [],
+        theme: './theme/',
     });
-    app.generateDocs([ dir + '/main.ts'], `${__dirname}/out/${checkType}/`);
 
+    app.options.setValue("entryPoints", app.expandInputFiles([dir + '/main.ts']));
 
+    const project = app.convert();
+    await app.generateDocs(project, `${__dirname}/out/${checkType}/`);
+
+    const outDir = `${__dirname}/out/${checkType}/`;
+    const data = fs.readFileSync(outDir + 'index.html', 'utf8');
+    const out = { content: data.replace(/index\.html/g, '') };
+    fs.writeFileSync(outDir + 'index.html.json', JSON.stringify(out));
 }
