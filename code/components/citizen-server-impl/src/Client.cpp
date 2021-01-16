@@ -57,6 +57,16 @@ namespace fx
 			}
 		}
 
+		// new policy (2021-01-17): if the ENet peer has vanished, we shall be dead
+		fx::NetPeerStackBuffer stackBuffer;
+		gscomms_get_peer(GetPeer(), stackBuffer);
+		auto peer = stackBuffer.GetBase();
+
+		if (!peer || peer->GetPing() == -1)
+		{
+			return true;
+		}
+
 		return (msec() - m_lastSeen) > CLIENT_DEAD_TIMEOUT;
 	}
 

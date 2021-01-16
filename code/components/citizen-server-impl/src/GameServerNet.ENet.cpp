@@ -138,11 +138,8 @@ namespace fx
 			// disable peer throttling
 			enet_peer_throttle_configure(peer, 1000, ENET_PEER_PACKET_THROTTLE_SCALE, 0);
 
-#ifdef _DEBUG
-			//enet_peer_timeout(peer, 86400 * 1000, 86400 * 1000, 86400 * 1000);
-#endif
-
-			enet_peer_timeout(peer, ENET_PEER_TIMEOUT_LIMIT, ENET_PEER_TIMEOUT_MINIMUM, 10000);
+			// all-but-disable the backoff-based timeout, and set the hard timeout to 30 seconds
+			enet_peer_timeout(peer, 10000000, 10000000, 30000);
 		}
 
 	private:

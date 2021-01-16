@@ -919,7 +919,7 @@ namespace fx
 
 			for (auto& client : toRemove)
 			{
-				DropClient(client, "Timed out after %d seconds.", std::chrono::duration_cast<std::chrono::seconds>(CLIENT_DEAD_TIMEOUT).count());
+				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", (msec() - client->GetLastSeen()).count());
 			}
 		}
 
@@ -1589,9 +1589,9 @@ void gscomms_send_packet(fx::Client* client, int peer, int channel, const net::B
 	g_gameServer->InternalSendPacket(client, peer, channel, buffer, flags);
 }
 
-void gscomms_get_peer(int peer, fx::NetPeerStackBuffer& stacKBuffer)
+void gscomms_get_peer(int peer, fx::NetPeerStackBuffer& stackBuffer)
 {
-	g_gameServer->InternalGetPeer(peer, stacKBuffer);
+	g_gameServer->InternalGetPeer(peer, stackBuffer);
 }
 
 static InitFunction initFunction([]()
