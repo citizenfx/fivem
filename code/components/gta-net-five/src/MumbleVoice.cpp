@@ -194,6 +194,8 @@ public:
 static CViewportGame** g_viewportGame;
 static float* g_actorPos;
 
+static bool g_voiceActiveByScript = true;
+
 #pragma comment(lib, "dsound.lib")
 
 static void Mumble_RunFrame()
@@ -208,7 +210,7 @@ static void Mumble_RunFrame()
 		return;
 	}
 
-	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE] && Instance<ICoreGameInit>::Get()->OneSyncEnabled;
+	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE] && Instance<ICoreGameInit>::Get()->OneSyncEnabled && g_voiceActiveByScript;
 
 	if (!g_mumble.connected || (g_mumble.connectionInfo && !g_mumble.connectionInfo->isConnected))
 	{
@@ -470,6 +472,8 @@ static HookFunction initFunction([]()
 
 		Mumble_Disconnect();
 		o_talkers.reset();
+
+		g_voiceActiveByScript = true;
 	});
 });
 
@@ -969,6 +973,15 @@ static HookFunction hookFunction([]()
 			float proximity = g_mumbleClient->GetAudioDistance();
 
 			context.SetResult<float>(proximity);
+		});
+
+		auto origSetVoiceActive = fx::ScriptEngine::GetNativeHandler(0xBABEC9E69A91C57B);
+
+		fx::ScriptEngine::RegisterNativeHandler(0xBABEC9E69A91C57B, [origSetVoiceActive](fx::ScriptContext& context)
+		{
+			(*origSetVoiceActive)(context);
+
+			g_voiceActiveByScript = context.GetArgument<bool>(0);
 		});
 	});
 
