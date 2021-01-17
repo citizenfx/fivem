@@ -387,6 +387,15 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
     ImGuiIO& io = ImGui::GetIO();
     switch (msg)
     {
+	case WM_ACTIVATEAPP: // CFX addition
+		if (!wParam)
+		{
+			for (auto& key : io.KeysDown)
+			{
+				key = false;
+			}
+		}
+		return 0;
     case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
     case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
     case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
