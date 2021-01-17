@@ -302,7 +302,7 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 
 	if (recurse)
 	{
-		auto submask = patternNorm.substr(0, starPos) + patternNorm.substr(starPos + 2);
+		auto submask = patternNorm.substr(0, starPos) + patternNorm.substr(starPos + 1);
 		results = MatchFiles(device, submask);
 
 		auto findPattern = patternNorm.substr(0, starPos + 1);
