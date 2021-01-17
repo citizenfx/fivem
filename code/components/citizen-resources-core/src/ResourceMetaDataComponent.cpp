@@ -298,12 +298,22 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 		patternNorm.substr(starPos + 1, 1) == "*" &&
 		(starPos == 0 || patternNorm.substr(starPos - 1, 1) == "/"));
 
-	std::vector<std::string> results;
+	std::set<std::string> results;
 
 	if (recurse)
 	{
-		auto submask = patternNorm.substr(0, starPos) + patternNorm.substr(starPos + 1);
-		results = MatchFiles(device, submask);
+		// 1 is correct behavior, 2 is legacy behavior we have to retain(...)
+		for (auto submaskOff : { 1, 2 })
+		{
+			auto submask = patternNorm.substr(0, starPos) + patternNorm.substr(starPos + submaskOff);
+
+			auto rawResults = MatchFiles(device, submask);
+			
+			for (auto& result : rawResults)
+			{
+				results.insert(std::move(result));
+			}
+		}
 
 		auto findPattern = patternNorm.substr(0, starPos + 1);
 
@@ -316,7 +326,7 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 
 				for (auto& result : resultsSecond)
 				{
-					results.push_back(std::move(result));
+					results.insert(std::move(result));
 				}
 			}
 		}
@@ -340,18 +350,19 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 
 					for (auto& result : resultsSecond)
 					{
-						results.push_back(std::move(result));
+						results.insert(std::move(result));
 					}
 				}
 				else
 				{
-					results.push_back(matchPath);
+					results.insert(matchPath);
 				}
 			}
 		}
 	}
 
-	return results;
+	std::vector<std::string> resultsVec{ results.begin(), results.end() };
+	return resultsVec;
 }
 
 void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::function<void(const std::string&)>& entryCallback)
