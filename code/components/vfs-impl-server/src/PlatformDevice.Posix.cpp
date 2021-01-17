@@ -135,6 +135,27 @@ struct DirFind
 	std::string path;
 };
 
+// via https://stackoverflow.com/a/39430337/10995747
+static bool is_directory(const std::string& root, const dirent* de)
+{
+	bool is_dir = false;
+
+#ifdef _DIRENT_HAVE_D_TYPE
+	if (de->d_type != DT_UNKNOWN && de->d_type != DT_LNK)
+	{
+		is_dir = (de->d_type == DT_DIR);
+	}
+	else
+#endif
+	{
+		struct stat stbuf;
+		stat((root + "/" + de->d_name).c_str(), &stbuf);
+		is_dir = S_ISDIR(stbuf.st_mode);
+	}
+
+	return is_dir;
+}
+
 Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* findData)
 {
 	DIR* dir = opendir(folder.c_str());
@@ -145,11 +166,8 @@ Device::THandle LocalDevice::FindFirst(const std::string& folder, FindData* find
 
 		if (entry)
 		{
-			struct stat st;
-			stat((folder + "/" + entry->d_name).c_str(), &st);
-
 			findData->name = entry->d_name;
-			findData->attributes = S_ISDIR(st.st_mode) ? FILE_ATTRIBUTE_DIRECTORY : 0;
+			findData->attributes = (is_directory(folder, entry)) ? FILE_ATTRIBUTE_DIRECTORY : 0;
 			findData->length = 0; // TODO: implement
 
 			auto find = new DirFind();
@@ -169,11 +187,8 @@ bool LocalDevice::FindNext(THandle handle, FindData* findData)
 
 	if (entry)
 	{
-		struct stat st;
-		stat((reinterpret_cast<DirFind*>(handle)->path + "/" + entry->d_name).c_str(), &st);
-
 		findData->name = entry->d_name;
-		findData->attributes = S_ISDIR(st.st_mode) ? FILE_ATTRIBUTE_DIRECTORY : 0;
+		findData->attributes = (is_directory(reinterpret_cast<DirFind*>(handle)->path, entry)) ? FILE_ATTRIBUTE_DIRECTORY : 0;
 		findData->length = 0; // TODO: implement
 
 		return true;
