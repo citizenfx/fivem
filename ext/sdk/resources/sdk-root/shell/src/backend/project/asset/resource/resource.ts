@@ -12,6 +12,12 @@ import { ProjectAccess } from "backend/project/project-access";
 import { ResourceManifest } from "./resource-manifest";
 import { ShellCommand } from "backend/process/ShellCommand";
 import { NotificationService } from "backend/notification/notification-service";
+import { DisposableContainer } from "backend/disposable-container";
+import { StatusProxy, StatusService } from "backend/status/status-service";
+import { ResourceStatus } from "./resource-types";
+import { watch } from "chokidar";
+import { Stats } from "fs";
+import { OutputService } from "backend/output/output-service";
 
 
 interface IdealResourceMetaData {
@@ -56,6 +62,12 @@ export class Resource implements AssetInterface {
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
 
+  @inject(StatusService)
+  protected readonly statusService: StatusService;
+
+  @inject(OutputService)
+  protected readonly outputService: OutputService;
+
   protected entry: FilesystemEntry;
 
   protected manifest: ResourceManifest = new ResourceManifest();
@@ -67,7 +79,8 @@ export class Resource implements AssetInterface {
   protected restartInducingPaths: string[] = [];
   protected restartInducingPatterns: Record<string, IMinimatch> = {};
 
-  private destroyConfigListener: Function = () => {};
+  protected disposableContainer = new DisposableContainer();
+  protected status: StatusProxy<ResourceStatus>;
 
   setEntry(assetEntry: FilesystemEntry) {
     this.entry = assetEntry;
@@ -78,10 +91,18 @@ export class Resource implements AssetInterface {
   }
 
   async init() {
+    this.disposableContainer.add(
+      this.status = this.statusService.createProxy(`resource-${this.path}`),
+    );
+
+    this.status.setValue({
+      watchCommands: {},
+    });
+
     this.logService.log('Resource asset inited', this.name, this.entry);
 
     this.projectAccess.withInstance((project) => {
-      this.destroyConfigListener = project.onResourceConfigChange(this.name, (cfg) => this.onConfigChanged(cfg));
+      this.disposableContainer.add(project.onResourceConfigChange(this.name, (cfg) => this.onConfigChanged(cfg)));
     });
 
     const manifestPath = this.fsService.joinPath(this.path, resourceManifestFilename);
@@ -136,10 +157,10 @@ export class Resource implements AssetInterface {
     }
   }
 
-  async onDestroy() {
-    await Promise.all([...this.runningWatchCommands.values()].map((cmd) => cmd.stop()));
+  async dispose() {
+    await this.disposableContainer.dispose();
 
-    this.destroyConfigListener();
+    await Promise.all([...this.runningWatchCommands.values()].map((cmd) => cmd.stop()));
 
     this.projectAccess.withInstance((project) => project.applyResourcesChange((resources) => {
       delete resources[this.entry.name];
@@ -151,12 +172,7 @@ export class Resource implements AssetInterface {
   private async ensureWatchCommandsRunning() {
     const { enabled, restartOnChange } = this.getConfig();
     if (!enabled || !restartOnChange) {
-      this.runningWatchCommands.forEach((cmd, hash) => {
-        this.logService.log('Stopping watch command of', this.name, hash);
-
-        oldCommandsPromises.push(cmd.stop());
-        this.runningWatchCommands.delete(hash);
-      });
+      this.stopAllWatchCommands();
 
       return;
     }
@@ -171,14 +187,25 @@ export class Resource implements AssetInterface {
 
     // Killing old promises
     const oldCommandsPromises = [];
+    const commandHashesToDelete = [];
 
     this.runningWatchCommands.forEach((cmd, hash) => {
       if (!stubs[hash]) {
         this.logService.log('Stopping watch command of', this.name, hash);
 
         oldCommandsPromises.push(cmd.stop());
+        commandHashesToDelete.push(hash);
+
         this.runningWatchCommands.delete(hash);
       }
+    });
+
+    this.status.applyValue((status) => {
+      if (status) {
+        commandHashesToDelete.forEach((hash) => status.watchCommands[hash]);
+      }
+
+      return status;
     });
 
     await Promise.all(oldCommandsPromises);
@@ -186,18 +213,90 @@ export class Resource implements AssetInterface {
     // Starting commands
     Object.entries(stubs).map(([hash, { command, args }]) => {
       if (!this.runningWatchCommands.has(hash)) {
-        const cmd = new ShellCommand(command, Array.isArray(args) ? args : [], this.path);
-
-        this.runningWatchCommands.set(hash, cmd);
-
-        cmd.onError((err) => {
-          this.notificationService.error(`Watch command for resource ${this.name} has failed to start: ${err.toString()}`);
-        });
-
-        cmd.start();
-
-        this.logService.log(`Started watch command`, this.name, command, args);
+        return this.startWatchCommand(hash, command, args);
       }
+    });
+  }
+
+  private async stopWatchCommand(hash: string) {
+    const cmd = this.runningWatchCommands.get(hash);
+    if (cmd) {
+      this.runningWatchCommands.delete(hash);
+
+      this.logService.log('Stopping watch command', hash);
+
+      cmd.stop();
+
+      this.status.applyValue((status) => {
+        if (status) {
+          status.watchCommands[hash].running = false;
+        }
+
+        return status;
+      });
+    }
+  }
+
+  private async startWatchCommand(hash: string, command: string, args: unknown) {
+    const cmd = new ShellCommand(command, Array.isArray(args) ? args : [], this.path);
+    const cmdChannel = this.outputService.createOutputChannelFromProvider(cmd);
+    const outputId = cmd.getOutputChannelId();
+
+    this.runningWatchCommands.set(hash, cmd);
+
+    cmd.onClose(() => {
+      cmdChannel.dispose();
+
+      this.status.applyValue((status) => {
+        if (status) {
+          status.watchCommands[hash] = {
+            outputChannelId: outputId,
+            running: false,
+          };
+        }
+
+        return status;
+      });
+    });
+
+    cmd.onError((err) => {
+      this.notificationService.error(`Watch command for resource ${this.name} has failed to start: ${err.toString()}`);
+    });
+
+    cmd.start();
+
+    this.status.applyValue((status) => {
+      if (status) {
+        status.watchCommands[hash] = {
+          outputChannelId: outputId,
+          running: true,
+        };
+      }
+
+      return status;
+    });
+
+    this.logService.log(`Started watch command`, this.name, command, args);
+  }
+
+  private async stopAllWatchCommands() {
+    if (this.runningWatchCommands.size === 0) {
+      return;
+    }
+
+    const promises: Promise<void>[] = [];
+
+    this.runningWatchCommands.forEach((_cmd, hash) => {
+      promises.push(this.stopWatchCommand(hash));
+    });
+
+    await Promise.all(promises);
+    this.status.applyValue((status) => {
+      if (status) {
+        Object.values(status.watchCommands).forEach((watchCommandStatus) => watchCommandStatus.running = false);
+      }
+
+      return status;
     });
   }
 

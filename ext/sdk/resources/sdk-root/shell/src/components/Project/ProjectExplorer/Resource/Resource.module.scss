@@ -19,6 +19,10 @@
       .name .icon {
         color: $fgColor;
       }
+
+      .name .status .item {
+        background-color: $fgColor;
+      }
     }
 
     &.active {
@@ -30,6 +34,7 @@
       align-items: center;
 
       .icon {
+        flex-shrink: 0;
         color: rgba($fgColor, .5);
 
         &.active {
@@ -40,6 +45,41 @@
           font-size: $fs08;
 
           margin-right: $q*2;
+        }
+      }
+
+      .title {
+        flex-grow: 1;
+        width: 100%;
+        height: 100%;
+        line-height: 1.1;
+
+        @include ellipsis;
+      }
+
+      .status {
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+
+        .item {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          margin-left: $q;
+          padding: $q/2 $q;
+
+          border-radius: $q/2;
+
+          background-color: rgba($fgColor, .5);
+          color: $bgColor;
+          font-size: $fs08;
+
+          svg {
+            margin-right: $q;
+          }
         }
       }
     }

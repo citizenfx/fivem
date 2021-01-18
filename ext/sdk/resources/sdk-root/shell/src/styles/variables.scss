@@ -41,3 +41,9 @@ $modalContentHeight: 90vh;
     transition: none;
   }
 }
+
+@mixin ellipsis() {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

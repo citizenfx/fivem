@@ -15,28 +15,31 @@ import { TaskContextProvider } from 'contexts/TaskContext';
 import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
 import { NotificationsManager } from 'managers/NotificationsManager/NotificationsManager';
+import { OutputContextProvider } from 'contexts/OutputContext';
 
 enableLogger('shell,shell:*,host');
 
 ReactDOM.render(
   <React.StrictMode>
-    <TaskContextProvider>
-      <StatusContextProvider>
-        <StateContextProvider>
-          <TheiaContextProvider>
-            <ProjectContextProvider>
-              <ServerContextProvider>
-                <TitleManager />
-                <TheiaProjectManager />
-                <NotificationsManager />
+    <OutputContextProvider>
+      <TaskContextProvider>
+        <StatusContextProvider>
+          <StateContextProvider>
+            <TheiaContextProvider>
+              <ProjectContextProvider>
+                <ServerContextProvider>
+                  <TitleManager />
+                  <TheiaProjectManager />
+                  <NotificationsManager />
 
-                <Shell />
-              </ServerContextProvider>
-            </ProjectContextProvider>
-          </TheiaContextProvider>
-        </StateContextProvider>
-      </StatusContextProvider>
-    </TaskContextProvider>
+                  <Shell />
+                </ServerContextProvider>
+              </ProjectContextProvider>
+            </TheiaContextProvider>
+          </StateContextProvider>
+        </StatusContextProvider>
+      </TaskContextProvider>
+    </OutputContextProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

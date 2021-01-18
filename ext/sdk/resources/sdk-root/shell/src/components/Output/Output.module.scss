@@ -1,0 +1,12 @@
+@import "variables";
+
+.root {
+  overflow: auto;
+
+  padding: $q;
+
+  font-family: monospace;
+  line-height: 1.2;
+
+  background-color: rgba($fgColor, .1);
+}

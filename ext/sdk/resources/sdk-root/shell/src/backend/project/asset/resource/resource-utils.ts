@@ -1,6 +1,6 @@
 import { resourceManifestFilename, resourceManifestLegacyFilename } from "backend/constants";
 import { FilesystemEntry } from "shared/api.types";
-import { ResourceManifest, ResourceManifestKind } from "./resource-manifest";
+import { ResourceManifestKind } from "./resource-manifest";
 
 export const getResourceManifestKind = (entry: FilesystemEntry): ResourceManifestKind => {
   if (entry.name === resourceManifestLegacyFilename) {

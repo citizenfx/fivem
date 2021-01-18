@@ -10,6 +10,9 @@ import { StateContext } from './StateContext';
 import { TheiaContext } from './TheiaContext';
 
 const log = logger('ServerContext');
+
+export type ResourcesState = Record<string, boolean>;
+
 export interface ServerContext {
   serverState: ServerStates | null,
   serverOutput: string,
@@ -18,9 +21,7 @@ export interface ServerContext {
 
   clientConnected: boolean,
 
-  resourcesState: {
-    [name: string]: boolean,
-  },
+  resourcesState: ResourcesState,
 
   startServer: () => void,
   stopServer: () => void,

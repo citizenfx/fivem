@@ -32,6 +32,7 @@ import { bindGameServer } from './game-server/game-server-bindings';
 import { bindProject } from './project/project-bindings';
 import { ContainerAccess } from './container-access';
 import { bindTask } from './task/task-bindings';
+import { bindOutput } from './output/output-bindings';
 
 const appContainer = new Container();
 
@@ -41,6 +42,7 @@ appContainer.bind(ContainerAccess).toConstantValue(new ContainerAccess(appContai
 
 bindApp(appContainer);
 bindFeatures(appContainer);
+bindOutput(appContainer);
 bindFs(appContainer);
 bindTask(appContainer);
 bindStatus(appContainer);

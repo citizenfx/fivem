@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsCheckBox, BsSquare } from 'react-icons/bs';
-import { FilesystemEntry, ServerStates } from 'shared/api.types';
+import { BsCheckBox, BsFillEyeFill, BsSquare } from 'react-icons/bs';
+import { FilesystemEntry, ProjectResource, ServerStates } from 'shared/api.types';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
@@ -14,8 +14,11 @@ import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '
 import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
-import s from './Resource.module.scss';
 import { ProjectSetResourceConfigRequest } from 'shared/api.requests';
+import { ResourceStatus } from 'backend/project/asset/resource/resource-types';
+import { useStatus } from 'contexts/StatusContext';
+import s from './Resource.module.scss';
+import { ResourceCommandsOutputModal } from './ResourceCommandsOutputModal/ResourceCommandsOutputModal';
 
 
 const resourceChildrenFilter = (entry: FilesystemEntry) => {
@@ -30,6 +33,10 @@ const contextOptions: Partial<ProjectExplorerItemContext> = {
   disableAssetCreate: true,
 };
 
+const defaultResourceStatus: ResourceStatus = {
+  watchCommands: {},
+};
+
 export interface ResourceProps {
   name: string,
   path: string,
@@ -37,59 +44,206 @@ export interface ResourceProps {
 
 export const Resource = React.memo(function Resource(props: ProjectItemProps) {
   const { entry, project } = props;
-  const projectResource = project.resources[entry.name];
 
-  const { serverState, resourcesState } = React.useContext(ServerContext);
+  const resourceConfig = project.resources[entry.name];
+  const resourceStatus = useStatus<ResourceStatus>(`resource-${entry.path}`, defaultResourceStatus);
+
   const options = React.useContext(ProjectExplorerItemContext);
 
   const { renderItemControls, contextMenuItems } = useItem(props);
   const { expanded, toggleExpanded } = useExpandablePath(entry.path);
 
-  const isEnabled = !!projectResource?.enabled;
-  const isAutorestartOnChangeEnabled = !!projectResource?.restartOnChange;
-
   const [deleterOpen, openDeleter, closeDeleter] = useOpenFlag(false);
   const [renamerOpen, openRenamer, closeRenamer] = useOpenFlag(false);
 
+  const {
+    resourceIsRunning,
+    resourceIsEnabled,
+    lifecycleContextMenuItems,
+    commandsOutputOpen,
+    closeCommandsOutput,
+  } = useResourceLifecycle(entry.name, resourceConfig, resourceStatus);
+
+  const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
+
+  const itemContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
+    return [
+      ...lifecycleContextMenuItems,
+      ContextMenuItemSeparator,
+      ...relocateTargetContextMenu,
+      ContextMenuItemSeparator,
+      {
+        id: 'delete',
+        icon: deleteIcon,
+        text: 'Delete resource',
+        disabled: options.disableAssetDelete,
+        onClick: openDeleter,
+      },
+      {
+        id: 'rename',
+        icon: renameIcon,
+        text: 'Rename resource',
+        disabled: options.disableAssetRename,
+        onClick: openRenamer,
+      },
+      ContextMenuItemSeparator,
+      ...contextMenuItems,
+    ];
+  }, [
+    lifecycleContextMenuItems,
+    contextMenuItems,
+    options,
+    openDeleter,
+    openRenamer,
+    relocateTargetContextMenu,
+  ]);
+
+  const children = renderChildren(entry, { ...props, childrenCollapsed: true }, resourceChildrenFilter);
+
+  const { isDropping, dropRef } = useItemDrop(entry, [
+    projectExplorerItemType.FILE,
+    projectExplorerItemType.FOLDER,
+  ]);
+
+  const rootClassName = classnames(s.root, {
+    [s.dropping]: isDropping,
+  })
+
+  return (
+    <div className={rootClassName} ref={dropRef}>
+      <ContextMenu
+        className={s.resource}
+        activeClassName={s.active}
+        items={itemContextMenuItems}
+        onClick={toggleExpanded}
+      >
+        <div className={s.name}>
+          <ResourceIcon
+            enabled={resourceIsEnabled}
+            running={resourceIsRunning}
+          />
+          <div className={s.title} title={entry.name}>
+            {entry.name}
+          </div>
+          <ResourceStatusNode
+            resourceStatus={resourceStatus}
+          />
+        </div>
+      </ContextMenu>
+
+      {expanded && (
+        <div className={s.children}>
+          {renderItemControls()}
+          <ProjectExplorerItemContextProvider options={contextOptions}>
+            {children}
+          </ProjectExplorerItemContextProvider>
+        </div>
+      )}
+
+      {deleterOpen && (
+        <ResourceDeleter path={entry.path} name={entry.name} onClose={closeDeleter} />
+      )}
+      {renamerOpen && (
+        <ResourceRenamer path={entry.path} name={entry.name} onClose={closeRenamer} />
+      )}
+
+      {commandsOutputOpen && (
+        <ResourceCommandsOutputModal
+          onClose={closeCommandsOutput}
+          resourceName={entry.name}
+          resourceStatus={resourceStatus}
+        />
+      )}
+    </div>
+  );
+});
+
+interface ResourceStatusNodeProps {
+  resourceStatus: ResourceStatus,
+}
+const ResourceStatusNode = React.memo(function ResourceStatusNode({ resourceStatus }: ResourceStatusNodeProps) {
+  const watchCommands = Object.values(resourceStatus.watchCommands);
+  const watchCommandsNode = watchCommands.length
+    ? (
+      <div className={s.item} title="Watch commands: running / declared">
+        <BsFillEyeFill /> {watchCommands.filter((cmd) => cmd.running).length}/{watchCommands.length}
+      </div>
+    )
+    : null;
+
+  return (
+    <div className={s.status}>
+      {watchCommandsNode}
+    </div>
+  );
+});
+
+const ResourceIcon = React.memo(function ResourceIcon({ enabled, running }: { enabled: boolean, running: boolean }) {
+  const icon = enabled
+    ? enabledResourceIcon
+    : resourceIcon;
+
+  const iconTitle = enabled
+    ? 'Enabled'
+    : 'Disabled';
+
+  const iconsClassName = classnames(s.icon, {
+    [s.active]: running,
+  });
+
+  return (
+    <span className={iconsClassName} title={iconTitle}>
+      {icon}
+    </span>
+  );
+});
+
+function useResourceLifecycle(resourceName: string, resourceConfig: ProjectResource, resourceStatus: ResourceStatus) {
+  const { serverState, resourcesState } = React.useContext(ServerContext);
+
+  const [commandsOutputOpen, openCommandsOutput, closeCommandsOutput] = useOpenFlag(false);
+
+  const isEnabled = !!resourceConfig?.enabled;
+  const isAutorestartOnChangeEnabled = !!resourceConfig?.restartOnChange;
+
   const handleToggleEnabled = React.useCallback(() => {
     const request: ProjectSetResourceConfigRequest = {
-      resourceName: entry.name,
+      resourceName,
       config: {
         enabled: !isEnabled,
       },
     };
 
     sendApiMessage(projectApi.setResourceConfig, request);
-  }, [entry, project, isEnabled]);
+  }, [resourceName, isEnabled]);
+
   const handleToggleAutorestartEnabled = React.useCallback(() => {
     const request: ProjectSetResourceConfigRequest = {
-      resourceName: entry.name,
+      resourceName,
       config: {
         restartOnChange: !isAutorestartOnChangeEnabled,
       },
     };
 
     sendApiMessage(projectApi.setResourceConfig, request);
-  }, [entry, isAutorestartOnChangeEnabled]);
+  }, [resourceName, isAutorestartOnChangeEnabled]);
 
   const handleRestart = React.useCallback(() => {
-    sendApiMessage(serverApi.restartResource, entry.name);
-  }, [entry]);
+    sendApiMessage(serverApi.restartResource, resourceName);
+  }, [resourceName]);
   const handleStop = React.useCallback(() => {
-    sendApiMessage(serverApi.stopResource, entry.name);
-  }, [entry]);
+    sendApiMessage(serverApi.stopResource, resourceName);
+  }, [resourceName]);
   const handleStart = React.useCallback(() => {
-    sendApiMessage(serverApi.startResource, entry.name);
-  }, [entry]);
+    sendApiMessage(serverApi.startResource, resourceName);
+  }, [resourceName]);
 
-  const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
-
-  const itemContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
+  const lifecycleContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
     const serverIsDown = serverState !== ServerStates.up;
 
     const serverRelatedItems: ContextMenuItemsCollection = [];
 
-    if (resourcesState[entry.name]) {
+    if (resourcesState[resourceName]) {
       serverRelatedItems.push({
         id: 'stop',
         icon: stopIcon,
@@ -110,6 +264,16 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
         text: 'Start',
         disabled: serverIsDown,
         onClick: handleStart,
+      });
+    }
+
+    const fxdkCommandsItems: ContextMenuItemsCollection = [];
+    if (Object.values(resourceStatus.watchCommands).length) {
+      fxdkCommandsItems.push(ContextMenuItemSeparator, {
+        id: 'open-watch-commands-output',
+        icon: <BsFillEyeFill />,
+        text: 'Watch commands output',
+        onClick: openCommandsOutput,
       });
     }
 
@@ -136,94 +300,25 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
           : 'Enable restart on change',
         onClick: handleToggleAutorestartEnabled,
       },
-      ContextMenuItemSeparator,
-      ...relocateTargetContextMenu,
-      ContextMenuItemSeparator,
-      {
-        id: 'delete',
-        icon: deleteIcon,
-        text: 'Delete resource',
-        disabled: options.disableAssetDelete,
-        onClick: openDeleter,
-      },
-      {
-        id: 'rename',
-        icon: renameIcon,
-        text: 'Rename resource',
-        disabled: options.disableAssetRename,
-        onClick: openRenamer,
-      },
-      ContextMenuItemSeparator,
-      ...contextMenuItems,
+      ...fxdkCommandsItems,
     ];
   }, [
-    serverState,
+    resourceName,
+    resourceStatus,
     resourcesState,
-    contextMenuItems,
-    options,
     isEnabled,
     isAutorestartOnChangeEnabled,
-    handleToggleAutorestartEnabled,
-    handleToggleEnabled,
-    openDeleter,
-    openRenamer,
-    relocateTargetContextMenu,
+    handleStop,
+    handleRestart,
+    handleStart,
+    openCommandsOutput,
   ]);
 
-  const iconTitle = projectResource?.enabled
-    ? 'Enabled'
-    : 'Disabled';
-
-  const iconsClassName = classnames(s.icon, {
-    [s.active]: resourcesState[entry.name],
-  });
-
-  const icon = projectResource?.enabled
-    ? enabledResourceIcon
-    : resourceIcon;
-
-  const children = renderChildren(entry, { ...props, childrenCollapsed: true }, resourceChildrenFilter);
-
-  const { isDropping, dropRef } = useItemDrop(entry, [
-    projectExplorerItemType.FILE,
-    projectExplorerItemType.FOLDER,
-  ]);
-
-  const rootClassName = classnames(s.root, {
-    [s.dropping]: isDropping,
-  })
-
-  return (
-    <div className={rootClassName} ref={dropRef}>
-      <ContextMenu
-        className={s.resource}
-        activeClassName={s.active}
-        items={itemContextMenuItems}
-        onClick={toggleExpanded}
-      >
-        <div className={s.name}>
-          <span className={iconsClassName} title={iconTitle}>
-            {icon}
-          </span>
-          {entry.name}
-        </div>
-      </ContextMenu>
-
-      {expanded && (
-        <div className={s.children}>
-          {renderItemControls()}
-          <ProjectExplorerItemContextProvider options={contextOptions}>
-            {children}
-          </ProjectExplorerItemContextProvider>
-        </div>
-      )}
-
-      {deleterOpen && (
-        <ResourceDeleter path={entry.path} name={entry.name} onClose={closeDeleter} />
-      )}
-      {renamerOpen && (
-        <ResourceRenamer path={entry.path} name={entry.name} onClose={closeRenamer} />
-      )}
-    </div>
-  );
-});
+  return {
+    resourceIsEnabled: isEnabled,
+    resourceIsRunning: !!resourcesState[resourceName],
+    lifecycleContextMenuItems,
+    commandsOutputOpen,
+    closeCommandsOutput,
+  };
+}

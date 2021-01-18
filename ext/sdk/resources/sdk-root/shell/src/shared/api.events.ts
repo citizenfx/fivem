@@ -111,3 +111,9 @@ export const taskReporterApi = {
   taskChanged: 'taskReporter:taskChanged',
   taskDeleted: 'taskReporter:taskDeleted',
 };
+
+export const outputApi = {
+  ack: 'output:ack',
+  output: 'output:output',
+  flush: 'output:flush',
+};

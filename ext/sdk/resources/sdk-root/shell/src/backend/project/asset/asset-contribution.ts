@@ -1,21 +1,19 @@
+import { DisposableObject } from "backend/disposable-container";
 import { FsUpdateType } from "backend/fs/fs-mapping";
 import { interfaces } from "inversify";
 import { AssetCreateRequest } from "shared/api.requests";
 import { FilesystemEntry } from "shared/api.types";
-import { Project } from "../project";
 
 export interface AssetContributionCapabilities {
   import?: boolean;
   create?: boolean;
 }
 
-export interface AssetInterface {
+export interface AssetInterface extends DisposableObject {
   getId?(): string;
 
   setEntry?(entry: FilesystemEntry): Promise<void> | void;
   onFsUpdate?(updateType: FsUpdateType, entry: FilesystemEntry | null): Promise<void> | void;
-
-  onDestroy?(): Promise<void> | void;
 }
 export interface AssetCreator {
   createAsset(request: AssetCreateRequest): Promise<boolean>;

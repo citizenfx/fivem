@@ -1,0 +1,23 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  height: $modalContentHeight;
+
+  overflow: hidden;
+
+  .select {
+    flex-shrink: 0;
+
+    margin: 0 $q*4;
+  }
+
+  .output {
+    flex-grow: 1;
+
+    margin-top: $q*4;
+    padding: $q $q*4;
+  }
+}

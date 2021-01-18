@@ -608,7 +608,7 @@ export class Project implements ApiContribution {
     }
 
     this.assets.delete(assetPath);
-    await asset.onDestroy?.();
+    await asset.dispose?.();
   }
 
   //#endregion assets

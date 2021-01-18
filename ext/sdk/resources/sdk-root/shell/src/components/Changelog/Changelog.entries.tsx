@@ -13,6 +13,14 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>18 january 2021</strong>
+        </p>
+        <ul>
+          <li>Resource watch commands are now more visible</li>
+          <li>You can now see watch commands output (Right click on resource -&gt; Watch commands output)</li>
+        </ul>
+
+        <p>
           <strong>14 january 2021</strong>
         </p>
         <ul>
