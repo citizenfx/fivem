@@ -1110,9 +1110,9 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	objectData.uniqifier = msg.GetUniqifier();
 
-	// owner ID
-	auto isRemote = (msg.GetClientId() != m_netLibrary->GetServerNetID());
-	auto owner = isRemote ? 31 : GetLocalPlayer()->physicalPlayerIndex();
+	// owner ID (forced to be remote so we can call ChangeOwner later)
+	auto isRemote = true;
+	auto owner = 31;
 
 	// create the object
 	auto obj = rage::CreateCloneObject(msg.GetEntityType(), msg.GetObjectId(), owner, 0, 32);
@@ -1182,6 +1182,16 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	if (msg.GetClientId() == m_netLibrary->GetServerNetID())
 	{
 		Log("%s: making obj %s our own\n", __func__, obj->ToString());
+
+		// call ChangeOwner as this create didn't originate from us, in reality
+		// and ChangeOwner does some fixups (e.g. ped tasks) for sync data
+		if (obj->syncData.isRemote)
+		{
+			auto player = GetLocalPlayer();
+
+			// add the object
+			rage::netObjectMgr::GetInstance()->ChangeOwner(obj, player, 0);
+		}
 
 		// give us the object ID
 		ObjectIds_AddObjectId(msg.GetObjectId());
