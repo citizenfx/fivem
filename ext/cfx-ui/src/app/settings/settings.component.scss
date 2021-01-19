@@ -63,8 +63,10 @@
 				}
 
 				.html {
-					::ng-deep .fab {
-						margin-right: var(--qh);
+					::ng-deep {
+						.fa, .fab {
+							margin-right: var(--qh);
+						}
 					}
 				}
 
