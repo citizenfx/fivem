@@ -125,6 +125,8 @@ private:
 private:
 	UniquePersistent<Context> m_context;
 
+	std::unique_ptr<v8::MicrotaskQueue> m_taskQueue;
+
 	node::Environment* m_nodeEnvironment;
 
 	std::function<void()> m_tickRoutine;
@@ -232,6 +234,14 @@ public:
 		return resourceName;
 	}
 
+	void RunMicrotasks()
+	{
+		if (m_taskQueue)
+		{
+			m_taskQueue->PerformCheckpoint(GetV8Isolate());
+		}
+	}
+
 	const char* AssignStringValue(const Local<Value>& value);
 
 	NS_DECL_ISCRIPTRUNTIME;
@@ -249,6 +259,40 @@ public:
 
 static OMPtr<V8ScriptRuntime> g_currentV8Runtime;
 
+class FxMicrotaskScope
+{
+public:
+	inline FxMicrotaskScope(V8ScriptRuntime* runtime)
+		: m_runtime(runtime)
+	{
+	}
+
+	inline ~FxMicrotaskScope()
+	{
+		m_runtime->RunMicrotasks();
+	}
+
+private:
+	V8ScriptRuntime* m_runtime;
+};
+
+class ScopeDtor
+{
+public:
+	explicit ScopeDtor(std::function<void()>&& fn)
+		: fn(fn)
+	{
+	}
+
+	~ScopeDtor()
+	{
+		fn();
+	}
+
+private:
+	std::function<void()> fn;
+};
+
 class V8PushEnvironment
 {
 private:
@@ -264,9 +308,16 @@ private:
 
 	OMPtr<V8ScriptRuntime> m_lastV8Runtime;
 
+	ScopeDtor m_scoped;
+
+	FxMicrotaskScope m_microtaskScope;
+
 public:
 	inline V8PushEnvironment(V8ScriptRuntime* runtime)
-		: m_pushEnvironment(runtime), m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext())
+		: m_pushEnvironment(runtime), m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext()), m_microtaskScope(runtime), m_scoped([this]()
+		{
+			g_currentV8Runtime = m_lastV8Runtime;
+		})
 	{
 		m_lastV8Runtime = g_currentV8Runtime;
 		g_currentV8Runtime = runtime;
@@ -274,7 +325,6 @@ public:
 
 	inline ~V8PushEnvironment()
 	{
-		g_currentV8Runtime = m_lastV8Runtime;
 	}
 };
 
@@ -302,16 +352,26 @@ private:
 
 	OMPtr<V8ScriptRuntime> m_lastV8Runtime;
 
+	ScopeDtor m_scoped;
+
+	FxMicrotaskScope m_microtaskScope;
+
 public:
 	inline V8LitePushEnvironment(V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_pushEnvironment(runtime), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env))
+		: m_pushEnvironment(runtime), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_microtaskScope(runtime), m_scoped([this]()
+		{
+			g_currentV8Runtime = m_lastV8Runtime;
+		})
 	{
 		m_lastV8Runtime = g_currentV8Runtime;
 		g_currentV8Runtime = runtime;
 	}
 
 	inline V8LitePushEnvironment(PushEnvironment&& pushEnv, V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_pushEnvironment(std::move(pushEnv)), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env))
+		: m_pushEnvironment(std::move(pushEnv)), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_microtaskScope(runtime), m_scoped([this]()
+		{
+			g_currentV8Runtime = m_lastV8Runtime;
+		})
 	{
 		m_lastV8Runtime = g_currentV8Runtime;
 		g_currentV8Runtime = runtime;
@@ -319,7 +379,6 @@ public:
 
 	inline ~V8LitePushEnvironment()
 	{
-		g_currentV8Runtime = m_lastV8Runtime;
 	}
 };
 
@@ -1693,7 +1752,9 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 	citizenObject);
 
 	// create a V8 context and store it
-	Local<Context> context = Context::New(GetV8Isolate(), nullptr, global);
+	m_taskQueue = v8::MicrotaskQueue::New(GetV8Isolate(), MicrotasksPolicy::kExplicit);
+
+	Local<Context> context = Context::New(GetV8Isolate(), nullptr, global, {}, {}, m_taskQueue.get());
 	m_context.Reset(GetV8Isolate(), context);
 
 	// run the following entries in the context scope
