@@ -525,26 +525,6 @@ static std::mutex g_netFrameMutex;
 
 inline uint64_t GetGUID()
 {
-	auto steamComponent = GetSteam();
-
-	if (steamComponent)
-	{
-		IClientEngine* steamClient = steamComponent->GetPrivateClient();
-
-		if (steamClient)
-		{
-			InterfaceMapper steamUser(steamClient->GetIClientUser(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
-
-			if (steamUser.IsValid())
-			{
-				uint64_t steamID;
-				steamUser.Invoke<void>("GetSteamID", &steamID);
-
-				return steamID;
-			}
-		}
-	}
-
 	return (uint64_t)(0x210000100000000 | m_tempGuid);
 }
 
