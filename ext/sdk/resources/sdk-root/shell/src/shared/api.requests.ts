@@ -1,4 +1,4 @@
-import { AssetKind, AssetManagerType, ProjectManifestResource, ServerUpdateChannel } from "./api.types";
+import { ProjectManifestResource, ServerUpdateChannel } from "./api.types";
 
 
 export interface ProjectCreateRequest {

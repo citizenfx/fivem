@@ -377,7 +377,7 @@ void SdkMain()
 	if (gameProcessHandle)
 	{
 		TerminateProcess(gameProcessHandle, 0);
-		WaitForSingleObject(gameProcessHandle, INFINITE);
+		CloseHandle(gameProcessHandle);
 	}
 
 	trace(__FUNCTION__ ": Shut down game.\n");
