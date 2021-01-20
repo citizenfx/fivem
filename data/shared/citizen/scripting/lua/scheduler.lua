@@ -127,6 +127,10 @@ end
 function Citizen.CreateThread(threadFunction)
 	local bid = boundaryIdx + 1
 	boundaryIdx = boundaryIdx + 1
+	
+	if not hadThread then
+		curTime = GetGameTimer()
+	end
 
 	local tfn = function()
 		return runWithBoundaryStart(threadFunction, bid)
