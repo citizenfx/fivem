@@ -117,7 +117,7 @@ export class SettingsService {
 				name: '#Settings_GameStreamProgress',
 				description: '#Settings_GameStreamProgressDesc',
 				type: 'checkbox',
-				getCb: () => this.gameService.getConvar('game_showStreamingProgress'),
+				getCb: () => this.gameService.getConvar('game_showStreamingProgress').pipe(map(a => a === 'true' ? 'true' : 'false')),
 				setCb: (value) => this.gameService.setConvar('game_showStreamingProgress', value),
 				category: '#SettingsCat_Game',
 			});
