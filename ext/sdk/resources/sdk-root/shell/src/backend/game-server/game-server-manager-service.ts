@@ -185,7 +185,7 @@ export class GameServerManagerService implements AppContribution, ApiContributio
         this.versions[updateChannel] = null;
       });
 
-      this.notificationService.error(`Failed to fetch server versions from remote host: ${e.toString()}`);
+      return this.logService.log(`Failed to fetch server versions from remote host: ${e.toString()}`);
     } finally {
       fetchTask.done();
     }
