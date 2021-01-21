@@ -1,6 +1,4 @@
 #include <StdInc.h>
-
-#if 0
 #include <Hooking.h>
 
 #include <CoreConsole.h>
@@ -64,7 +62,19 @@ static HookFunction hookFunction([]()
 	auto totalPhys = msex.ullTotalPhys;
 	auto vramLocation = hook::get_address<uint64_t*>(hook::get_pattern("4C 63 C0 48 8D 05 ? ? ? ? 48 8D 14", 6));
 
-	OnGrcCreateDevice.Connect([vramLocation, totalPhys]()
+	auto changeBudget = [vramLocation, totalPhys](uint64_t budget)
+	{
+		auto maxBudget = std::max(std::min(int64_t(budget), int64_t(totalPhys / 2)), int64_t(0xBBA00000));
+
+		console::DPrintf("graphics", "VRAM budget change: patching game to use %d byte budget (clamped to %d due to system RAM)\n", budget, maxBudget);
+
+		for (int i = 0; i < 80; i++)
+		{
+			vramLocation[i] = maxBudget;
+		}
+	};
+
+	OnGrcCreateDevice.Connect([changeBudget]()
 	{
 		auto device = GetD3D11Device();
 		
@@ -86,48 +96,7 @@ static HookFunction hookFunction([]()
 					{
 						if (vmi.Budget >= (3 * GB))
 						{
-							auto changeBudget = [vramLocation, totalPhys](uint64_t budget)
-							{
-								auto maxBudget = std::max(std::min(int64_t(budget), int64_t(totalPhys / 2)) - int64_t(2 * GB), int64_t(0xBBA00000));
-
-								console::DPrintf("graphics", "VRAM budget change: patching game to use %d byte budget (clamped to %d due to system RAM)\n", budget, maxBudget);
-
-								for (int i = 0; i < 80; i++)
-								{
-									vramLocation[i] = maxBudget;
-								}
-							};
-
-							changeBudget(vmi.Budget);
-
-							std::thread([adapter3, changeBudget]()
-							{
-								SetThreadName(-1, "[Cfx] VRAM Budgeting");
-
-								HANDLE hEvent = CreateEventW(NULL, FALSE, FALSE, NULL);
-
-								if (!hEvent)
-								{
-									return;
-								}
-
-								DWORD cookie;
-
-								if (SUCCEEDED(adapter3->RegisterVideoMemoryBudgetChangeNotificationEvent(hEvent, &cookie)))
-								{
-									while (true)
-									{
-										WaitForSingleObject(hEvent, INFINITE);
-
-										DXGI_QUERY_VIDEO_MEMORY_INFO vmi;
-
-										if (SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vmi)))
-										{
-											changeBudget(vmi.Budget);
-										}
-									}
-								}
-							}).detach();
+							changeBudget(4 * GB);
 						}
 					}
 				}
@@ -135,4 +104,3 @@ static HookFunction hookFunction([]()
 		}
 	});
 });
-#endif
