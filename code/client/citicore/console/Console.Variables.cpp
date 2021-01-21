@@ -35,9 +35,8 @@ ConsoleVariableManager::ConsoleVariableManager(console::Context* parentContext)
 		flags |= addFlags;
 
 		auto entry = CreateVariableEntry<std::string>(this, variable, "");
-		entry->SetValue(value);
-
 		Register(variable, flags, entry);
+		entry->SetValue(value);
 	};
 
 	m_setCommand = std::make_unique<ConsoleCommand>(m_parentContext, "set", [=](const std::string& variable, const std::string& value) {
