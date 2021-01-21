@@ -312,7 +312,14 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 		if type(data) == 'table' then
 			-- loop through all the event handlers
 			for k, handler in pairs(eventHandlerEntry.handlers) do
-				local di = debug.getinfo(handler)
+				local handlerFn = handler
+				local handlerMT = getmetatable(handlerFn)
+
+				if handlerMT and handlerMT.__call then
+					handlerFn = handlerMT.__call
+				end
+
+				local di = debug.getinfo(handlerFn)
 			
 				Citizen.CreateThreadNow(function()
 					handler(table.unpack(data))
@@ -430,7 +437,7 @@ function RemoveEventHandler(eventData)
 	eventHandlers[eventData.name].handlers[eventData.key] = nil
 end
 
-function RegisterNetEvent(eventName)
+function RegisterNetEvent(eventName, cb)
 	local tableEntry = eventHandlers[eventName]
 
 	if not tableEntry then
@@ -440,6 +447,10 @@ function RegisterNetEvent(eventName)
 	end
 
 	tableEntry.safeForNet = true
+
+	if cb then
+		AddEventHandler(eventName, cb)
+	end
 end
 
 function TriggerEvent(eventName, ...)
