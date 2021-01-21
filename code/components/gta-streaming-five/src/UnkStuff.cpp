@@ -807,5 +807,8 @@ static HookFunction hookFunction([]()
 	// trace ERR_GEN_ZLIB_2 errors
 	CompTrace();
 
+	// don't disable low-priority objects when LOD distance is <20%
+	hook::nop(hook::get_pattern("0F 2F 47 24 0F 93 05", 4), 7);
+
 	//HookStereo();
 });
