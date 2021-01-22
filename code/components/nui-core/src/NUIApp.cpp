@@ -158,11 +158,10 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
-	command_line->AppendSwitch("use-fake-ui-for-media-stream");
-	command_line->AppendSwitch("enable-speech-input");
+	//command_line->AppendSwitch("use-fake-ui-for-media-stream");
+	//command_line->AppendSwitch("enable-speech-input");
 	command_line->AppendSwitch("ignore-gpu-blacklist");
 	command_line->AppendSwitch("ignore-gpu-blocklist"); // future proofing for when Google disables the above
-	command_line->AppendSwitch("enable-usermedia-screen-capture");
 	command_line->AppendSwitch("disable-direct-composition");
 	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
