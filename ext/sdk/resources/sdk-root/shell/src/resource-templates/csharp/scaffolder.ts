@@ -4,8 +4,17 @@ import * as cp from 'child_process';
 import { FsService } from 'backend/fs/fs-service';
 import { concurrently } from 'utils/concurrently';
 import { ResourceTemplateScaffolder, ResourceTemplateScaffolderArgs } from "../types";
-import { resolve } from 'dns';
 import { TaskReporterService } from 'backend/task/task-reporter-service';
+
+const resourceNameRegexp = /([a-zA-Z0-9]+)/g;
+
+function ucfirst(str: string): string {
+  return str[0].toUpperCase() + str.substr(1);
+}
+
+function resourceNameToNamespace(resourceName: string): string {
+  return resourceName.match(resourceNameRegexp).map(ucfirst).join('');
+}
 
 @injectable()
 export default class CsharpScaffolder implements ResourceTemplateScaffolder {
@@ -160,19 +169,21 @@ function getServerProjectFileContent(): string {
 }
 
 function getClientScriptFileContent(resourceName: string): string {
+  const namespaceName = resourceNameToNamespace(resourceName);
+
   return `
 using System;
 using System.Threading.Tasks;
 using CitizenFX.Core;
 using static CitizenFX.Core.Native.API;
 
-namespace ${resourceName}.Client
+namespace ${namespaceName}.Client
 {
     public class ClientMain : BaseScript
     {
         public ClientMain()
         {
-            Debug.WriteLine("Hi from ${resourceName}.Client!");
+            Debug.WriteLine("Hi from ${namespaceName}.Client!");
         }
 
         [Tick]
@@ -188,18 +199,20 @@ namespace ${resourceName}.Client
 }
 
 function getServerScriptFileContent(resourceName: string): string {
+  const namespaceName = resourceNameToNamespace(resourceName);
+
   return `
 using System;
 using System.Threading.Tasks;
 using CitizenFX.Core;
 
-namespace ${resourceName}.Server
+namespace ${namespaceName}.Server
 {
     public class ServerMain : BaseScript
     {
         public ServerMain()
         {
-            Debug.WriteLine("Hi from ${resourceName}.Server!");
+            Debug.WriteLine("Hi from ${namespaceName}.Server!");
         }
 
         [Command("hello_server")]

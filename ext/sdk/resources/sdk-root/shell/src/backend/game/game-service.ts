@@ -42,9 +42,13 @@ export class GameService implements ApiContribution, AppContribution {
       this.gameProcessState = current;
 
       if (this.gameLaunched && (current === SDKGameProcessState.GP_STOPPED || current === SDKGameProcessState.GP_STOPPING)) {
-        this.gameLaunched = false;
+        const previousConnectionState = this.connectionState;
 
-        this.apiClient.emit(gameApi.gameLaunched, false);
+        this.gameLaunched = false;
+        this.connectionState = NetLibraryConnectionState.CS_IDLE;
+
+        this.apiClient.emit(gameApi.connectionStateChanged, { current: this.connectionState, previous: previousConnectionState });
+        this.apiClient.emit(gameApi.gameLaunched, this.gameLaunched);
       }
 
       if (current === SDKGameProcessState.GP_STOPPED) {

@@ -23,6 +23,13 @@ static InitFunction initFunction([]()
 	auto init = false;
 
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+	static auto canUseRgdInput = []()
+	{
+		return WaitForSingleObject(rgd->inputMutex, 10) != WAIT_TIMEOUT;
+	};
+
+	static auto v8False = CefV8Value::CreateBool(false);
+	static auto v8True = CefV8Value::CreateBool(true);
 
 	nuiApp->AddV8Handler("sendMousePos", [&](const CefV8ValueList& arguments, CefString& exception)
 	{
@@ -31,17 +38,18 @@ static InitFunction initFunction([]()
 			auto dx = arguments[0]->GetIntValue();
 			auto dy = arguments[1]->GetIntValue();
 
-			WaitForSingleObject(rgd->inputMutex, INFINITE);
+			if (canUseRgdInput())
+			{
+				rgd->mouseX += dx;
+				rgd->mouseY += dy;
 
-			rgd->mouseX += dx;
-			rgd->mouseY += dy;
+				ReleaseMutex(rgd->inputMutex);
 
-			ReleaseMutex(rgd->inputMutex);
-
-			return CefV8Value::CreateBool(true);
+				return v8True;
+			}
 		}
 
-		return CefV8Value::CreateBool(false);
+		return v8False;
 	});
 
 	nuiApp->AddV8Handler("setKeyState", [&](const CefV8ValueList& arguments, CefString& exception)
@@ -53,14 +61,17 @@ static InitFunction initFunction([]()
 
 			WaitForSingleObject(rgd->inputMutex, INFINITE);
 
-			rgd->keyboardState[key] = state;
+			if (canUseRgdInput())
+			{
+				rgd->keyboardState[key] = state;
 
-			ReleaseMutex(rgd->inputMutex);
+				ReleaseMutex(rgd->inputMutex);
 
-			return CefV8Value::CreateBool(true);
+				return v8True;
+			}
 		}
 
-		return CefV8Value::CreateBool(false);
+		return v8False;
 	});
 
 	nuiApp->AddV8Handler("setMouseButtonState", [&](const CefV8ValueList& arguments, CefString& exception)
@@ -72,22 +83,22 @@ static InitFunction initFunction([]()
 
 			WaitForSingleObject(rgd->inputMutex, INFINITE);
 
-			if (state)
+			if (canUseRgdInput())
 			{
-				rgd->mouseButtons |= (1 << buttonIndex);
+				if (state)
+				{
+					rgd->mouseButtons |= (1 << buttonIndex);
+				}
+				else
+				{
+					rgd->mouseButtons &= ~(1 << buttonIndex);
+				}
+
+				return v8True;
 			}
-			else
-			{
-				rgd->mouseButtons &= ~(1 << buttonIndex);
-			}
-
-
-			ReleaseMutex(rgd->inputMutex);
-
-			return CefV8Value::CreateBool(true);
 		}
 
-		return CefV8Value::CreateBool(false);
+		return v8False;
 	});
 
 	nuiApp->AddV8Handler("sendMouseWheel", [&](const CefV8ValueList& arguments, CefString& exception)
@@ -96,17 +107,17 @@ static InitFunction initFunction([]()
 		{
 			auto wheel = arguments[0]->GetIntValue();
 
-			WaitForSingleObject(rgd->inputMutex, INFINITE);
+			if (canUseRgdInput())
+			{
+				rgd->mouseWheel = wheel;
 
-			rgd->mouseWheel = wheel;
+				ReleaseMutex(rgd->inputMutex);
 
-
-			ReleaseMutex(rgd->inputMutex);
-
-			return CefV8Value::CreateBool(true);
+				return v8True;
+			}
 		}
 
-		return CefV8Value::CreateBool(false);
+		return v8False;
 	});
 
 	nuiApp->AddV8Handler("resizeGame", [](const CefV8ValueList& arguments, CefString& exception)

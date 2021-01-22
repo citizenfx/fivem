@@ -1257,11 +1257,6 @@ void CaptureInternalScreenshot()
 
 void CaptureBufferOutput()
 {
-	if (launch::IsSDKGuest())
-	{
-		return;
-	}
-
 	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
 
 	static D3D11_TEXTURE2D_DESC resDesc;

@@ -48,10 +48,26 @@ void SDKGameProcessManager::StartGame()
 
 	gameProcessInfo = { 0 };
 
-	auto processName = MakeCfxSubProcess(L"GameRuntime.exe", L"game");
-	auto processCommand = const_cast<wchar_t*>(va(L"\"%s\" -dkguest -windowed", processName));
 
-	BOOL result = CreateProcessW(processName, processCommand, nullptr, nullptr, TRUE, CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr, &startupInfo.StartupInfo, &gameProcessInfo);
+	auto processName = MakeCfxSubProcess(L"GameRuntime.exe", L"game");
+	auto processCommand = const_cast<wchar_t*>(va(L"\"%s\" -windowed", processName));
+
+	SetEnvironmentVariable(L"CitizenFX_SDK_Guest", L"1");
+
+	BOOL result = CreateProcessW(
+		processName,
+		processCommand,
+		nullptr,
+		nullptr,
+		TRUE,
+		CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT,
+		nullptr,
+		nullptr, 
+		&startupInfo.StartupInfo, 
+		&gameProcessInfo
+	);
+
+	SetEnvironmentVariable(L"CitizenFX_SDK_Guest", NULL);
 
 	if (result)
 	{
