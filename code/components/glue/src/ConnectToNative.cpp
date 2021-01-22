@@ -518,6 +518,11 @@ static InitFunction initFunction([] ()
 			ep.Call("connectionError", std::string("Cards don't exist here yet!"));
 		});
 
+		netLibrary->OnStateChanged.Connect([](NetLibrary::ConnectionState currentState, NetLibrary::ConnectionState previousState)
+		{
+			ep.Call("connectionStateChanged", (int)currentState, (int)previousState);
+		});
+
 		static std::function<void()> finishConnectCb;
 		static bool disconnected;
 

@@ -6,8 +6,7 @@ import { useApiMessage } from 'utils/hooks';
 import { logger } from 'utils/logger';
 import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
-import { StateContext } from './StateContext';
-import { TheiaContext } from './TheiaContext';
+import { GameContext } from './GameContext';
 
 const log = logger('ServerContext');
 
@@ -20,6 +19,7 @@ export interface ServerContext {
   updateChannelsState: ServerUpdateChannelsState,
 
   clientConnected: boolean,
+  setClientConnected: (connected: boolean) => void,
 
   resourcesState: ResourcesState,
 
@@ -38,6 +38,7 @@ export const ServerContext = React.createContext<ServerContext>({
   updateChannelsState: {},
 
   clientConnected: false,
+  setClientConnected: () => {},
 
   resourcesState: {},
 
@@ -52,18 +53,14 @@ export const ServerContext = React.createContext<ServerContext>({
 
 export const ServerContextProvider = React.memo(function ServerContextProvider({ children }) {
   const { project } = React.useContext(ProjectContext);
-  const { gameLaunched } = React.useContext(StateContext);
-  const { sendTheiaMessage } = React.useContext(TheiaContext);
+  const { gameLaunched } = React.useContext(GameContext);
 
   const [serverState, setServerState] = React.useState<ServerStates | null>(null);
   const [serverOutput, setServerOutput] = React.useState<string>('');
-
+  const [resourcesState, setResourcesState] = React.useState({});
   const [updateChannelsState, setUpdateChannelsState] = React.useState<ServerUpdateChannelsState>({});
 
   const [clientConnected, setClientConnected] = React.useState(false);
-  const connectPending = React.useRef(false);
-
-  const [resourcesState, setResourcesState] = React.useState({});
 
   const startServer = React.useCallback(() => {
     if (project) {
@@ -71,8 +68,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
         projectPath: project.path,
         updateChannel: project.manifest.serverUpdateChannel,
       });
-
-      connectPending.current = true;
     }
   }, [project]);
 
@@ -103,46 +98,15 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
   // Handling server state
   React.useEffect(() => {
-    if (serverState === ServerStates.up) {
-      sendApiMessage(serverApi.ackResourcesState);
-
-      log('Will connect now?', gameLaunched && connectPending.current && !clientConnected, {
-        gameLaunched,
-        connectPending: connectPending.current,
-        clientConnected,
-      });
-
-      if (gameLaunched && connectPending.current && !clientConnected) {
-        log('CONNECTING TO THE SERVER');
-        connectPending.current = false;
-
-        sendCommand('connect 127.0.0.1:30120');
-        sendTheiaMessage({
-          type: 'fxdk:openGameView',
-        });
+    switch (serverState) {
+      case ServerStates.up: {
+        return sendApiMessage(serverApi.ackResourcesState);
       }
-    }
-    if (serverState === ServerStates.down) {
-      setResourcesState({});
-      window.setFPSLimit(60);
-      sendCommand('disconnect');
-      setClientConnected(false);
+      case ServerStates.down: {
+        return setResourcesState({});
+      }
     }
   }, [serverState, gameLaunched, clientConnected, setResourcesState, setClientConnected]);
-
-  // Handling game events
-  React.useEffect(() => {
-    const handleMessage = (e) => {
-      if (e.data.type === 'connected') {
-        window.setFPSLimit(0);
-        setClientConnected(true);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    return () => window.removeEventListener('message', handleMessage);
-  }, [setClientConnected]);
 
   useApiMessage(serverApi.state, (state: ServerStates) => {
     setServerState(state);
@@ -172,6 +136,7 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     updateChannelsState,
 
     clientConnected,
+    setClientConnected,
 
     resourcesState,
 

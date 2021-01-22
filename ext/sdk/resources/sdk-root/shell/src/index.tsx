@@ -16,30 +16,37 @@ import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
 import { NotificationsManager } from 'managers/NotificationsManager/NotificationsManager';
 import { OutputContextProvider } from 'contexts/OutputContext';
+import { GameContextProvider } from 'contexts/GameContext';
+import { SdkMessageManager } from 'managers/SdkMessageManager';
+import { GameConnectionManager } from 'managers/GameConnectionManager';
 
 enableLogger('shell,shell:*,host');
 
 ReactDOM.render(
   <React.StrictMode>
-    <OutputContextProvider>
-      <TaskContextProvider>
-        <StatusContextProvider>
-          <StateContextProvider>
-            <TheiaContextProvider>
-              <ProjectContextProvider>
-                <ServerContextProvider>
-                  <TitleManager />
-                  <TheiaProjectManager />
-                  <NotificationsManager />
+    <GameContextProvider>
+      <OutputContextProvider>
+        <TaskContextProvider>
+          <StatusContextProvider>
+            <StateContextProvider>
+              <TheiaContextProvider>
+                <ProjectContextProvider>
+                  <ServerContextProvider>
+                    <SdkMessageManager />
+                    <GameConnectionManager />
+                    <TitleManager />
+                    <TheiaProjectManager />
+                    <NotificationsManager />
 
-                  <Shell />
-                </ServerContextProvider>
-              </ProjectContextProvider>
-            </TheiaContextProvider>
-          </StateContextProvider>
-        </StatusContextProvider>
-      </TaskContextProvider>
-    </OutputContextProvider>
+                    <Shell />
+                  </ServerContextProvider>
+                </ProjectContextProvider>
+              </TheiaContextProvider>
+            </StateContextProvider>
+          </StatusContextProvider>
+        </TaskContextProvider>
+      </OutputContextProvider>
+    </GameContextProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

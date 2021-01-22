@@ -33,6 +33,7 @@ import { bindProject } from './project/project-bindings';
 import { ContainerAccess } from './container-access';
 import { bindTask } from './task/task-bindings';
 import { bindOutput } from './output/output-bindings';
+import { bindGame } from './game/game-bindings';
 
 const appContainer = new Container();
 
@@ -51,6 +52,7 @@ bindNotification(appContainer);
 bindLogger(appContainer);
 bindShellBackend(appContainer);
 bindApi(appContainer);
+bindGame(appContainer);
 bindGameServer(appContainer);
 bindUpdater(appContainer);
 bindTheia(appContainer);
@@ -60,8 +62,3 @@ bindProject(appContainer);
 appContainer.get(AppService).startContributions().catch((e) => {
   console.error('Failed to start app contributions', e.message, e.stack);
 });
-
-
-setTimeout(() => {
-  emit('sdk:startGame');
-}, 2500);

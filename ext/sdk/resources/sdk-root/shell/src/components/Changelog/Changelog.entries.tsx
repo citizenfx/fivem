@@ -13,6 +13,13 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>2 january 2021</strong>
+        </p>
+        <ul>
+          <li>If game crashes it will be restarted automatically, if it was connected to built-in server it will reconnect upon restart as well.</li>
+        </ul>
+
+        <p>
           <strong>18 january 2021</strong>
         </p>
         <ul>

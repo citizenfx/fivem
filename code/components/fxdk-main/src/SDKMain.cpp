@@ -29,11 +29,13 @@
 #include <ReverseGameData.h>
 
 #include <SDK.h>
+#include <SDKGameProcessManager.h>
 #include <console/OptionTokenizer.h>
 
 #include <json.hpp>
 
 static std::function<ipc::Endpoint&()> proxyLauncherTalk;
+static SDKGameProcessManager gameProcessManager;
 
 namespace fxdk
 {
@@ -115,6 +117,23 @@ static void RenderThread()
 	trace(__FUNCTION__ ": Shutting down render thread.\n");
 }
 
+void ExecuteJavascriptOnMainFrame(const std::string& jsc, const std::string& origin)
+{
+	auto instance = SDKCefClient::GetInstance();
+	if (instance == nullptr)
+	{
+		return;
+	}
+
+	auto browser = instance->GetBrowser();
+	if (browser == nullptr)
+	{
+		return;
+	}
+
+	browser->GetMainFrame()->ExecuteJavaScript(jsc, origin, 0);
+}
+
 void SdkMain()
 {
 	// increase timer resolution on Windows
@@ -146,21 +165,35 @@ void SdkMain()
 	});
 	launcherTalk.Bind("sdk:message", [](const std::string& message)
 	{
-		auto jsc = fmt::sprintf("window.postMessage(%s, '*')", message);
+		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.postMessage(%s, '*')", message), "fxdk://sdk-message");
+	});
+	launcherTalk.Bind("connectionStateChanged", [resman](const int currentState, const int previousState)
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:connectionStateChanged", {}, (int)currentState, (int)previousState);
 
-		auto instance = SDKCefClient::GetInstance();
-		if (instance == nullptr)
+		ExecuteJavascriptOnMainFrame(
+			fmt::sprintf("window.postMessage({type: 'connection-state-changed', data: {current:%d, previous:%d}}, '*')", currentState, previousState),
+			"fxdk://connection-state-changed"
+		);
+	});
+
+	gameProcessManager.OnGameProcessStateChanged.Connect([resman](const SDKGameProcessManager::GameProcessState state)
+	{
+		static SDKGameProcessManager::GameProcessState previousState = gameProcessManager.GetGameProcessState();
+
+		if (state == previousState)
 		{
 			return;
 		}
 
-		auto browser = instance->GetBrowser();
-		if (browser == nullptr)
-		{
-			return;
-		}
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameProcessStateChanged", {}, (int)state, (int)previousState);
 
-		browser->GetMainFrame()->ExecuteJavaScript(jsc, "fxdk://sdk-message", 0);
+		ExecuteJavascriptOnMainFrame(
+			fmt::sprintf("window.postMessage({type: 'game-process-state-changed', data: {current:%d, previous:%d}}, '*')", (int)state, (int)previousState),
+			"fxdk://game-process-state-changed"
+		);
+
+		previousState = state;
 	});
 
 	proxyLauncherTalk = [&launcherTalk]() -> ipc::Endpoint&
@@ -168,9 +201,7 @@ void SdkMain()
 		return launcherTalk;
 	};
 
-	HANDLE gameProcessHandle;
-
-	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([&gameProcessHandle, resman] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+	resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([resman] (const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 	{
 		// is this our event?
 		if (eventName == "sdk:openBrowser")
@@ -220,47 +251,15 @@ void SdkMain()
 		}
 		else if (eventName == "sdk:startGame")
 		{
-			static HostSharedData<CfxState> hostData("CfxInitState");
-			hostData->isReverseGame = true;
-
-			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-
-			HANDLE nestHandles[] = { rgd->inputMutex, rgd->consumeSema, rgd->produceSema };
-
-			// as we start at loading screen, limit to 60fps by default
-			rgd->fpsLimit = 60;
-
-			// prepare initial structures
-			STARTUPINFOEX startupInfo = { 0 };
-			startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-
-			SIZE_T size = 0;
-			InitializeProcThreadAttributeList(NULL, 1, 0, &size);
-
-			std::vector<uint8_t> attListData(size);
-			auto attList = (LPPROC_THREAD_ATTRIBUTE_LIST)attListData.data();
-
-			assert(attList);
-
-			InitializeProcThreadAttributeList(attList, 1, 0, &size);
-			UpdateProcThreadAttribute(attList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &nestHandles, std::size(nestHandles) * sizeof(HANDLE), NULL, NULL);
-
-			startupInfo.lpAttributeList = attList;
-
-			PROCESS_INFORMATION processInfo = { 0 };
-
-			auto processName = MakeCfxSubProcess(L"GameRuntime.exe", L"game");
-
-			BOOL result = CreateProcessW(processName, const_cast<wchar_t*>(va(L"\"%s\" -dkguest -windowed", processName)), nullptr, nullptr, TRUE, CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr, &startupInfo.StartupInfo, &processInfo);
-
-			if (result)
-			{
-				gameProcessHandle = processInfo.hProcess;
-
-				// set the PID and create the game thread
-				hostData->gamePid = processInfo.dwProcessId;
-				ResumeThread(processInfo.hThread);
-			}
+			gameProcessManager.StartGame();
+		}
+		else if (eventName == "sdk:stopGame")
+		{
+			gameProcessManager.StopGame();
+		}
+		else if (eventName == "sdk:restartGame")
+		{
+			gameProcessManager.RestartGame();
 		}
 	});
 
@@ -368,17 +367,17 @@ void SdkMain()
 	// called.
 	CefRunMessageLoop();
 
+	trace(__FUNCTION__ ": CEF Loop finished.\n");
+
+	uv_stop(loop->GetLoop());
+
 	terminateRenderThread = true;
 	renderThreadMutex.lock();
 	renderThreadMutex.unlock();
 
 	trace(__FUNCTION__ ": Shutting down game.\n");
 
-	if (gameProcessHandle)
-	{
-		TerminateProcess(gameProcessHandle, 0);
-		CloseHandle(gameProcessHandle);
-	}
+	gameProcessManager.StopGame();
 
 	trace(__FUNCTION__ ": Shut down game.\n");
 

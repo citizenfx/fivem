@@ -117,3 +117,13 @@ export const outputApi = {
   output: 'output:output',
   flush: 'output:flush',
 };
+
+export const gameApi = {
+  ack: 'game:ack',
+  gameLaunched: 'game:gameLaunched',
+  gameProcessStateChanged: 'game:gameStateChanged',
+  connectionStateChanged: 'game:connectionStateChanged',
+  start: 'game:start',
+  stop: 'game:stop',
+  restart: 'game:restart',
+};

@@ -5,7 +5,6 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { ServerStates, ServerUpdateStates } from 'shared/api.types';
-import { rotatingRefreshIcon } from 'constants/icons';
 import { ServerConfig } from './ServerConfig/ServerConfig';
 import { Indicator } from 'components/Indicator/Indicator';
 import s from './Server.module.scss';

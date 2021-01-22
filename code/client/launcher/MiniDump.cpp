@@ -1239,7 +1239,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		// avoid libcef.dll subprocess crashes terminating the entire job
 		bool shouldTerminate = true;
-		bool shouldUpload = true;
+		bool shouldUpload = !launch::IsSDKGuest();
 
 		if (GetProcessId(parentProcess) != GetProcessId(info->process_handle()))
 		{
@@ -1496,7 +1496,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		auto thread = std::thread([=]()
 		{
-			if (shouldTerminate)
+			// Should not show taskdialog when in fxdk mode
+			if (shouldTerminate && !launch::IsSDKGuest())
 			{
 				TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
 			}
@@ -1504,7 +1505,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
-		bool uploadCrashes = true;
+		bool uploadCrashes = !launch::IsSDKGuest();
 		bool bigMemoryDump = false;
 
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
