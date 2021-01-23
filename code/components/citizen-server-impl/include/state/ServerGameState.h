@@ -410,7 +410,7 @@ struct SyncEntityState
 	uint64_t frameIndex;
 	uint64_t lastFrameIndex;
 	uint16_t uniqifier;
-	uint8_t routingBucket = 0;
+	uint16_t routingBucket = 0;
 	uint32_t creationToken;
 	float overrideCullingRadius = 0.0f;
 
@@ -785,7 +785,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	std::shared_ptr<fx::StateBag> playerBag;
 
-	uint8_t routingBucket = 0;
+	uint16_t routingBucket = 0;
 
 	GameStateClientData()
 		: syncing(false)
