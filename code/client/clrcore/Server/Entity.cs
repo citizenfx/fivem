@@ -116,14 +116,15 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets the network owner of the this <see cref="Entity"/>.
 		/// </summary>
-		/// <returns>Returns the <see cref="Player"/> of the network owner.</returns>
+		/// <returns>Returns the <see cref="Player"/> of the network owner.
+		/// Returns <c>null</c> if this <see cref="Entity"/> is in an unowned state.</returns>
 		public Player Owner
 		{
 			get
 			{
-				string playerHandle = Convert.ToString(API.NetworkGetEntityOwner(this.Handle));
+				int playerHandle = API.NetworkGetEntityOwner(this.Handle);
 
-				return new Player(playerHandle);
+				return playerHandle == -1 ? null : new Player(Convert.ToString(playerHandle));
 			}
 		}
 
