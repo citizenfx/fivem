@@ -803,6 +803,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		}
 
 		auto slotId = client->GetSlotId();
+		auto netId = client->GetNetId();
 
 		auto& currentSyncedEntities = clientDataUnlocked->syncedEntities;
 		decltype(clientDataUnlocked->syncedEntities) newSyncedEntities{};
@@ -840,11 +841,30 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					{
 						isRelevant = true;
 					}
+					else
+					{
+						// are we owning the world grid in which this entity exists?
+						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
+						int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
+
+						auto selfBucket = clientDataUnlocked->routingBucket;
+
+						std::shared_lock _(m_worldGridsMutex);
+						const auto& grid = m_worldGrids[selfBucket];
+
+						if (grid && sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
+						{
+							if (grid->accel.netIDs[sectorX][sectorY] == netId)
+							{
+								isRelevant = true;
+							}
+						}
+					}
 				}
 				else
 				{
 					// can't really say otherwise if the player entity doesn't exist
-					isRelevant = !fx::IsBigMode();
+					isRelevant = false;
 				}
 			}
 
