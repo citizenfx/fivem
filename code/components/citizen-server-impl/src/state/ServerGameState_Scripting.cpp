@@ -1255,4 +1255,26 @@ static InitFunction initFunction([]()
 
 		return pn ? pn->isInvincible : false;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_CAMERA_ROTATION", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto camData = entity->syncTree->GetPlayerCamera();
+
+		scrVector resultVector = { 0 };
+
+		if (camData)
+		{
+			resultVector.x = camData->cameraX;
+			resultVector.y = 0.0f;
+			resultVector.z = camData->cameraZ;
+		}
+		else
+		{
+			resultVector.x = 0.0f;
+			resultVector.y = 0.0f;
+			resultVector.z = 0.0f;
+		}
+
+		return resultVector;
+	}));
 });
