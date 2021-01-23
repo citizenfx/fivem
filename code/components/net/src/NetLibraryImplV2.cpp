@@ -155,7 +155,7 @@ void NetLibraryImplV2::SendData(const NetAddress& netAddress, const char* data, 
 
 bool NetLibraryImplV2::HasTimedOut()
 {
-	return m_timedOut;
+	return m_timedOut || !m_serverPeer;
 }
 
 bool NetLibraryImplV2::IsDisconnected()
