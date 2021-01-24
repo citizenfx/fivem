@@ -121,6 +121,8 @@ public:
 		// unused
 		return NULL;
 	}
+
+	virtual bool RequestMediaAccess(const std::string& frameOrigin, const std::string& url, int permissions, const std::function<void(bool, int)>& onComplete) override;
 };
 
 static tbb::concurrent_queue<std::function<void()>> g_onRenderQueue;
@@ -632,6 +634,13 @@ void GtaNuiInterface::UnsetTexture()
 	SetImDiffuseSamplerState(m_oldSamplerState);
 
 	g_currentTexture = {};
+}
+
+extern bool HandleMediaRequest(const std::string& frameOrigin, const std::string& url, int permissions, const std::function<void(bool, int)>& onComplete);
+
+bool GtaNuiInterface::RequestMediaAccess(const std::string& frameOrigin, const std::string& url, int permissions, const std::function<void(bool, int)>& onComplete)
+{
+	return HandleMediaRequest(frameOrigin, url, permissions, onComplete);
 }
 
 static GtaNuiInterface nuiGi;

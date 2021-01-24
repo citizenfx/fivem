@@ -12,11 +12,26 @@
 #include <NUIWindow.h>
 #include <include/cef_client.h>
 
+#if __has_include(<include/cef_media_access_handler.h>)
+#define NUI_WITH_MEDIA_ACCESS
+
+#include <include/cef_media_access_handler.h>
+#endif
+
 #include <CefOverlay.h>
 
 #include <regex>
 
-class NUIClient : public CefClient, public CefLifeSpanHandler, public CefDisplayHandler, public CefContextMenuHandler, public CefLoadHandler, public CefRequestHandler, public CefResourceRequestHandler
+class NUIClient : public CefClient,
+	public CefLifeSpanHandler,
+	public CefDisplayHandler,
+	public CefContextMenuHandler,
+	public CefLoadHandler,
+#ifdef NUI_WITH_MEDIA_ACCESS
+	public CefMediaAccessHandler,
+#endif
+	public CefRequestHandler,
+	public CefResourceRequestHandler
 {
 private:
 	NUIWindow* m_window;
@@ -60,6 +75,10 @@ protected:
 	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override;
 	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
 
+#ifdef NUI_WITH_MEDIA_ACCESS
+	virtual CefRefPtr<CefMediaAccessHandler> GetMediaAccessHandler() override;
+#endif
+
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
 public:
@@ -91,6 +110,17 @@ protected:
 // CefDisplayHandler
 protected:
 	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
+
+#ifdef NUI_WITH_MEDIA_ACCESS
+// CefMediaAccessHandler
+protected:
+	virtual bool OnRequestMediaAccessPermission(
+	CefRefPtr<CefBrowser> browser,
+	CefRefPtr<CefFrame> frame,
+	const CefString& requesting_url,
+	int32_t requested_permissions,
+	CefRefPtr<CefMediaAccessCallback> callback) override;
+#endif
 
 #if 0
 // CefAudioHandler

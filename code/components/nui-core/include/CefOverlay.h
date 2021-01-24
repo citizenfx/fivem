@@ -114,6 +114,38 @@ namespace nui
 		CRGBA color;
 	};
 
+	///
+	// Represents the state of a setting.
+	///
+	/*--cef()--*/
+	typedef enum
+	{
+		///
+		// No permission
+		///
+		NUI_MEDIA_PERMISSION_NONE = 0,
+
+		///
+		// Audio capture permission
+		///
+		NUI_MEDIA_PERMISSION_DEVICE_AUDIO_CAPTURE = 1 << 0,
+
+		///
+		// Video capture permission
+		///
+		NUI_MEDIA_PERMISSION_DEVICE_VIDEO_CAPTURE = 1 << 1,
+
+		///
+		// Desktop audio capture permission
+		///
+		NUI_MEDIA_PERMISSION_DESKTOP_AUDIO_CAPTURE = 1 << 2,
+
+		///
+		// Desktop video capture permission
+		///
+		NUI_MEDIA_PERMISSION_DESKTOP_VIDEO_CAPTURE = 1 << 3,
+	} media_access_permission_types_t;
+
 	class OVERLAY_DECL GameInterface
 	{
 	public:
@@ -147,6 +179,11 @@ namespace nui
 		virtual ID3D11DeviceContext* GetD3D11DeviceContext() = 0;
 
 		virtual fwRefContainer<GITexture> CreateTextureFromD3D11Texture(ID3D11Texture2D* texture) = 0;
+
+		virtual bool RequestMediaAccess(const std::string& frameOrigin, const std::string& url, int permissions, const std::function<void(bool /* success */, int /* allowed mask */)>& onComplete)
+		{
+			return false;
+		}
 
 		fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> OnWndProc;
 
