@@ -902,6 +902,7 @@ void Component_RunPreInit()
 	{
 		auto gle = GetLastError();
 
+		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
 		FatalError("Could not load bin/libcef.dll.\nLoadLibraryW failed for reason %d.", gle);
 	}
 
