@@ -847,16 +847,19 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
 						int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
 
-						auto selfBucket = clientDataUnlocked->routingBucket;
-
-						std::shared_lock _(m_worldGridsMutex);
-						const auto& grid = m_worldGrids[selfBucket];
-
-						if (grid && sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
+						if (sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
 						{
-							if (grid->accel.netIDs[sectorX][sectorY] == netId)
+							auto selfBucket = clientDataUnlocked->routingBucket;
+
+							std::shared_lock _(m_worldGridsMutex);
+							const auto& grid = m_worldGrids[selfBucket];
+
+							if (grid)
 							{
-								isRelevant = true;
+								if (grid->accel.netIDs[sectorX][sectorY] == netId)
+								{
+									isRelevant = true;
+								}
 							}
 						}
 					}
