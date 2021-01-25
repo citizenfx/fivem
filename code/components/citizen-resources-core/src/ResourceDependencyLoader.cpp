@@ -7,11 +7,20 @@
 
 static InitFunction initFunction([]()
 {
+	static std::multimap<std::string, std::string> resourceDependencies;
+	static std::multimap<std::string, std::string> resourceDependants;
+
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* resman)
+	{
+		resman->OnAfterReset.Connect([]()
+		{
+			resourceDependants.clear();
+			resourceDependencies.clear();
+		});
+	});
+
 	fx::Resource::OnInitializeInstance.Connect([] (fx::Resource* resource)
 	{
-		static std::multimap<std::string, std::string> resourceDependencies;
-		static std::multimap<std::string, std::string> resourceDependants;
-
 		resource->OnBeforeStart.Connect([=] ()
 		{
 			fx::ResourceManager* manager = resource->GetManager();
