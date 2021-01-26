@@ -96,7 +96,11 @@ namespace fx
 
 	void ClientRegistry::HandleConnectingClient(const fx::ClientSharedPtr& client)
 	{
-		client->SetNetId(m_curNetId.fetch_add(1));
+		if (m_curNetId == 0xFFFF) {
+			client->SetNetId(m_curNetId.fetch_add(2));
+		} else {
+			client->SetNetId(m_curNetId.fetch_add(1));
+		}
 	}
 
 	void ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID)
