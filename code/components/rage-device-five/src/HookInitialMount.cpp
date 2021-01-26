@@ -24,13 +24,24 @@ static thread_local std::string currentPack;
 
 static bool(*g_origOpenPackfile)(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5);
 
+static DWORD PackfileEh(PEXCEPTION_POINTERS ei)
+{
+	if ((uintptr_t)ei->ExceptionRecord->ExceptionAddress < hook::get_adjusted(0x140000000) ||
+		(uintptr_t)ei->ExceptionRecord->ExceptionAddress > hook::get_adjusted(0x146000000))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
 static bool OpenArchiveWrapSeh(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
 {
 	__try
 	{
 		return g_origOpenPackfile(packfile, archive, a3, a4, a5);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	__except (PackfileEh(GetExceptionInformation()))
 	{
 		FatalError("Failed to read rage::fiPackfile %s - an exception occurred in game code.", archive);
 		return false;
