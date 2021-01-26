@@ -407,7 +407,8 @@ function RGSC_GET_TITLE_ID()
 function RGSC_GET_VERSION_INFO()
 {
 	return JSON.stringify({
-		Version: 'ROS.. in browser!'
+		Version: '2.0.3.7',
+		TitleVersion: ''
 	});
 }
 
@@ -498,16 +499,6 @@ function RGSC_READY_TO_ACCEPT_COMMANDS()
 	return true;
 }
 
-RGSC_JS_RECEIVE_MESSAGE(JSON.stringify({
-	Commands: [
-		{
-			Command: 'SetLauncherVersions',
-			Parameter: {
-				"launcher":"","socialclub":"2.0.3.7"
-			}
-		}
-	]
-}));
 RGSC_JS_READY_TO_ACCEPT_COMMANDS();
 RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: "SIGNIN" }));
 
