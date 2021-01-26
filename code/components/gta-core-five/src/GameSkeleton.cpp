@@ -50,9 +50,15 @@ namespace rage
 	{
 		if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 		{
-			FatalErrorNoExcept("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
-				exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
-				InitFunctionTypeToString(type), func->GetName());
+			AddCrashometry("init_function", "%s:%s", InitFunctionTypeToString(type), func->GetName());
+
+			if ((uintptr_t)exception->ExceptionRecord->ExceptionAddress >= hook::get_adjusted(0x140000000) &&
+				(uintptr_t)exception->ExceptionRecord->ExceptionAddress < hook::get_adjusted(0x146000000))
+			{
+				FatalError("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
+					exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
+					InitFunctionTypeToString(type), func->GetName());
+			}
 		}
 
 		return EXCEPTION_CONTINUE_SEARCH;
