@@ -52,6 +52,8 @@ static bool IsBlockedResource(const std::string& resourceName, std::string* why)
 
 static NetAddress g_netAddress;
 
+static std::string g_netUrl;
+
 static std::set<std::string> g_resourceStartRequestSet;
 
 using ResultTuple = std::tuple<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>, std::string>;
@@ -198,6 +200,8 @@ static InitFunction initFunction([] ()
 
 			NetAddress address = g_netAddress;
 
+			std::string serverUrl = g_netUrl;
+
 			// fetch configuration
 			HttpClient* httpClient = Instance<HttpClient>::Get();
 
@@ -218,15 +222,7 @@ static InitFunction initFunction([] ()
 				options.headers["X-CitizenFX-Token"] = connectionToken;
 			}
 
-			std::string addressAddress = address.GetAddress();
-			uint32_t addressPort = address.GetPort();
-
-			auto curServerUrl = fmt::sprintf("https://%s/", netLibrary->GetCurrentPeer().ToString()); 
-
-			// #TODO: remove this once server version with `18d5259f60dd203b5705130491ddda4e95665171` becomes mandatory
-			auto curServerUrlNonTls = fmt::sprintf("http://%s/", netLibrary->GetCurrentPeer().ToString()); 
-
-			httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrlNonTls), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
+			httpClient->DoPostRequest(fmt::sprintf("%sclient", serverUrl), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
 			{
 				// keep a reference to the HTTP client
 				auto httpClientRef = httpClient;
@@ -310,8 +306,8 @@ static InitFunction initFunction([] ()
 							baseUrl = (*it)["fileServer"].GetString();
 						}
 
-						boost::algorithm::replace_all(baseUrl, "http://%s/", curServerUrl);
-						boost::algorithm::replace_all(baseUrl, "https://%s/", curServerUrl);
+						boost::algorithm::replace_all(baseUrl, "http://%s/", serverUrl);
+						boost::algorithm::replace_all(baseUrl, "https://%s/", serverUrl);
 
 						// define the resource in the mounter
 						std::string resourceName = resource["name"].GetString();
@@ -511,9 +507,10 @@ static InitFunction initFunction([] ()
 		});
 
 		// download trigger
-		netLibrary->OnInitReceived.Connect([=] (NetAddress address)
+		netLibrary->OnInitReceived.Connect([=] (NetAddress address, std::string url)
 		{
 			g_netAddress = address;
+			g_netUrl = url;
 
 			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 			resourceManager->ResetResources();

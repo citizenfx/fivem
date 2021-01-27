@@ -324,7 +324,7 @@ public:
 
 	fwEvent<const char*> OnAttemptDisconnect;
 
-	fwEvent<NetAddress> OnInitReceived;
+	fwEvent<NetAddress, std::string> OnInitReceived;
 
 	fwEvent<NetAddress> OnConnectOKReceived;
 

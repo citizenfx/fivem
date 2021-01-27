@@ -572,7 +572,7 @@ void NetLibrary::RunFrame()
 
 			// trigger task event
 			OnConnectionProgress("Downloading content", 0, 1);
-			OnInitReceived(m_currentServer);
+			OnInitReceived(m_currentServer, m_currentServerUrl);
 
 			break;
 
