@@ -214,6 +214,25 @@ const EXT_LOCALFUNCREF = 11;
 	
 			TriggerLatentClientEventInternal(name, source, dataSerialized, dataSerialized.length, bps);
 		};
+		global.getPlayerIdentifiers = (player) => {
+			const numIds = GetNumPlayerIdentifiers(player);
+			let t = [];
+			for(let i = 0; i < numIds; i++) {
+				t[i] = GetPlayerIdentifier(player, i);
+			}
+			return t;
+		};
+
+		global.getPlayers = () => {
+			const num = GetNumPlayerIndices();
+			let t = [];
+	
+			for(let i = 0; i < num; i++) {
+				t[i] = GetPlayerFromIndex(i);
+			}
+	
+			return t;
+		};
 	} else {
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
