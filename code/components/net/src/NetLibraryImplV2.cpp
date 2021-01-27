@@ -153,9 +153,19 @@ void NetLibraryImplV2::SendData(const NetAddress& netAddress, const char* data, 
 	enet_socket_send(m_host->socket, &addr, &buffer, 1);
 }
 
+extern int g_serverVersion;
+
 bool NetLibraryImplV2::HasTimedOut()
 {
-	return m_timedOut || !m_serverPeer;
+	if (!m_serverPeer)
+	{
+		if (g_serverVersion >= 3419)
+		{
+			return true;
+		}
+	}
+
+	return m_timedOut;
 }
 
 bool NetLibraryImplV2::IsDisconnected()

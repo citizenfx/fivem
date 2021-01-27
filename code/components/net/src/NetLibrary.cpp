@@ -838,6 +838,9 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 	co_return {};
 }
 
+// hack for NetLibraryImplV2
+int g_serverVersion;
+
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
 	std::string ruRef = rootUrl;
@@ -1024,6 +1027,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	} stream;
 
 	stream.Reset();
+
+	g_serverVersion = 0;
 
 	static std::function<bool(const std::string&)> handleAuthResultData;
 	handleAuthResultData = [=](const std::string& chunk)
@@ -1290,6 +1295,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 											boost::algorithm::replace_all(serverData, " linux", "");
 											boost::algorithm::replace_all(serverData, " SERVER", "");
 											boost::algorithm::replace_all(serverData, "FXServer-", "");
+
+											try
+											{
+												g_serverVersion = std::stoi(serverData.substr(serverData.find_last_of('.') + 1));
+											}
+											catch (std::exception& e)
+											{
+												g_serverVersion = 0;
+											}
 
 											AddCrashometry("last_server_ver", serverData);
 										}
