@@ -1896,45 +1896,48 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 		{
 			auto& grid = gridRef->second;
 
-			net::Buffer msg;
-			msg.Write<uint32_t>(HashRageString("msgWorldGrid3"));
-
-			uint32_t base = 0;
-			uint32_t length = sizeof(grid->state[0]);
-
-			if (entry)
+			if (grid)
 			{
-				base = ((WorldGridEntry*)entry - &grid->state[0].entries[0]) * sizeof(WorldGridEntry);
-				length = sizeof(WorldGridEntry);
+				net::Buffer msg;
+				msg.Write<uint32_t>(HashRageString("msgWorldGrid3"));
+
+				uint32_t base = 0;
+				uint32_t length = sizeof(grid->state[0]);
+
+				if (entry)
+				{
+					base = ((WorldGridEntry*)entry - &grid->state[0].entries[0]) * sizeof(WorldGridEntry);
+					length = sizeof(WorldGridEntry);
+				}
+
+				if (client->GetSlotId() == -1)
+				{
+					return;
+				}
+
+				// really bad way to snap the world grid data to a client's own base
+				uint32_t baseRef = sizeof(grid->state[0]) * client->GetSlotId();
+				uint32_t lengthRef = sizeof(grid->state[0]);
+
+				if (base < baseRef)
+				{
+					base = baseRef;
+				}
+				else if (base > baseRef + lengthRef)
+				{
+					return;
+				}
+
+				// everyone's state starts at their own
+				length = std::min(lengthRef, length);
+
+				msg.Write<uint32_t>(base - baseRef);
+				msg.Write<uint32_t>(length);
+
+				msg.Write(reinterpret_cast<char*>(grid->state) + base, length);
+
+				client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 			}
-
-			if (client->GetSlotId() == -1)
-			{
-				return;
-			}
-
-			// really bad way to snap the world grid data to a client's own base
-			uint32_t baseRef = sizeof(grid->state[0]) * client->GetSlotId();
-			uint32_t lengthRef = sizeof(grid->state[0]);
-
-			if (base < baseRef)
-			{
-				base = baseRef;
-			}
-			else if (base > baseRef + lengthRef)
-			{
-				return;
-			}
-
-			// everyone's state starts at their own
-			length = std::min(lengthRef, length);
-
-			msg.Write<uint32_t>(base - baseRef);
-			msg.Write<uint32_t>(length);
-
-			msg.Write(reinterpret_cast<char*>(grid->state) + base, length);
-
-			client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
 		}
 	};
 
@@ -1966,6 +1969,11 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 
 			for (auto& [id, grid] : m_worldGrids)
 			{
+				if (!grid)
+				{
+					continue;
+				}
+
 				for (size_t x = 0; x < std::size(grid->accel.netIDs); x++)
 				{
 					for (size_t y = 0; y < std::size(grid->accel.netIDs[x]); y++)
@@ -2066,6 +2074,11 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 		}
 
 		auto& grid = gridRef->second;
+
+		if (!grid)
+		{
+			return;
+		}
 
 		if (minSectorX < 0 || minSectorX > std::size(grid->accel.netIDs) || minSectorY < 0 || minSectorY > std::size(grid->accel.netIDs[0]))
 		{
@@ -2537,26 +2550,29 @@ void ServerGameState::ClearClientFromWorldGrid(const fx::ClientSharedPtr& target
 	{
 		auto& grid = gridRef->second;
 
-		if (slotId != -1)
+		if (grid)
 		{
-			WorldGridState* gridState = &grid->state[slotId];
-
-			for (auto& entry : gridState->entries)
+			if (slotId != -1)
 			{
-				entry.netID = -1;
-				entry.sectorX = 0;
-				entry.sectorY = 0;
-			}
-		}
+				WorldGridState* gridState = &grid->state[slotId];
 
-		{
-			for (size_t x = 0; x < std::size(grid->accel.netIDs); x++)
-			{
-				for (size_t y = 0; y < std::size(grid->accel.netIDs[x]); y++)
+				for (auto& entry : gridState->entries)
 				{
-					if (grid->accel.netIDs[x][y] == netId)
+					entry.netID = -1;
+					entry.sectorX = 0;
+					entry.sectorY = 0;
+				}
+			}
+
+			{
+				for (size_t x = 0; x < std::size(grid->accel.netIDs); x++)
+				{
+					for (size_t y = 0; y < std::size(grid->accel.netIDs[x]); y++)
 					{
-						grid->accel.netIDs[x][y] = 0xFFFF;
+						if (grid->accel.netIDs[x][y] == netId)
+						{
+							grid->accel.netIDs[x][y] = 0xFFFF;
+						}
 					}
 				}
 			}
