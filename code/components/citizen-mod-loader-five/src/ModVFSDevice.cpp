@@ -281,6 +281,8 @@ static void MountFauxStreamingRpf(const std::string& fn)
 
 		if (findHandle != INVALID_DEVICE_HANDLE)
 		{
+			bool shouldUseCache = false;
+
 			do 
 			{
 				if (!(findData.attributes & FILE_ATTRIBUTE_DIRECTORY))
@@ -292,10 +294,21 @@ static void MountFauxStreamingRpf(const std::string& fn)
 					packfile->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &data, sizeof(data));
 
 					CfxCollection_AddStreamingFileByTag(mount, tfn, data.flags);
+
+					if (boost::algorithm::ends_with(tfn, ".ymf"))
+					{
+						shouldUseCache = true;
+					}
 				}
 			} while (packfile->FindNext(findHandle, &findData));
 
 			packfile->FindClose(findHandle);
+
+			// in case of .#mf file
+			if (shouldUseCache)
+			{
+				streaming::AddDataFileToLoadList("CFX_PSEUDO_CACHE", mount);
+			}
 		}
 
 		g_devices.push_back(packfile);
