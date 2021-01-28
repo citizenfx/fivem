@@ -184,7 +184,8 @@ namespace fx
 		std::mutex m_clientSlotMutex;
 		std::vector<fx::ClientWeakPtr> m_clientsBySlotId;
 
-		std::atomic<uint16_t> m_curNetId;
+		std::mutex m_curNetIdMutex;
+		uint16_t m_curNetId;
 
 		ServerInstanceBase* m_instance;
 	};

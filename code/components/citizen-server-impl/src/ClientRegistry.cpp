@@ -96,7 +96,28 @@ namespace fx
 
 	void ClientRegistry::HandleConnectingClient(const fx::ClientSharedPtr& client)
 	{
-		client->SetNetId(m_curNetId.fetch_add(1));
+		std::unique_lock _(m_curNetIdMutex);
+
+		auto incrementId = [this]()
+		{
+			m_curNetId++;
+
+			// 0xFFFF is a sentinel value for 'invalid' ID
+			// 0 is not a valid ID
+			if (m_curNetId == 0xFFFF)
+			{
+				m_curNetId = 1;
+			}
+		};
+
+		// in case of overflow, ensure no client is currently using said ID
+		while (m_clientsByNetId[m_curNetId].lock())
+		{
+			incrementId();
+		}
+
+		client->SetNetId(m_curNetId);
+		incrementId();
 	}
 
 	void ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID)
