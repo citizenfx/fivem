@@ -198,7 +198,7 @@ static int LookupDataFileType(const std::string& type)
 
 	if (xbr::IsGameBuildOrGreater<2189>())
 	{
-		typesCount = 0xCA;
+		typesCount = 0xCB;
 	}
 #elif IS_RDR3
 	int typesCount = 0x18B;
