@@ -115,6 +115,37 @@ namespace fx
 							return net::MultiplexPatternMatchResult::NoMatch;
 						}
 					}
+
+					// length safety check
+					if (bytes.size() > 4096)
+					{
+						// 4096-byte+ but no HTTP/? that's awkward
+						return net::MultiplexPatternMatchResult::NoMatch;
+					}
+
+					// try to avoid classifying non-HTTP traffic as maybe-HTTP
+					auto spacePos = std::find(bytes.begin(), bytes.end(), ' ');
+
+					// method shouldn't be more than 64 bytes
+					if (std::distance(bytes.begin(), spacePos) > 64)
+					{
+						return net::MultiplexPatternMatchResult::NoMatch;
+					}
+
+					// should start with a letter
+					if (bytes[0] < 'A' || bytes[0] > 'Z')
+					{
+						return net::MultiplexPatternMatchResult::NoMatch;
+					}
+
+					for (auto it = bytes.begin(); it != spacePos; it++)
+					{
+						// HTTP methods *usually* should contain A-Z or - only
+						if ((*it < 'A' || *it > 'Z') && *it != '-')
+						{
+							return net::MultiplexPatternMatchResult::NoMatch;
+						}
+					}
 				}
 
 				return net::MultiplexPatternMatchResult::InsufficientData;
