@@ -282,6 +282,7 @@ static void MountFauxStreamingRpf(const std::string& fn)
 		if (findHandle != INVALID_DEVICE_HANDLE)
 		{
 			bool shouldUseCache = false;
+			bool shouldUseMapStore = false;
 
 			do 
 			{
@@ -299,6 +300,11 @@ static void MountFauxStreamingRpf(const std::string& fn)
 					{
 						shouldUseCache = true;
 					}
+
+					if (boost::algorithm::ends_with(tfn, ".ybn") || boost::algorithm::ends_with(tfn, ".ymap"))
+					{
+						shouldUseMapStore = true;
+					}
 				}
 			} while (packfile->FindNext(findHandle, &findData));
 
@@ -308,6 +314,12 @@ static void MountFauxStreamingRpf(const std::string& fn)
 			if (shouldUseCache)
 			{
 				streaming::AddDataFileToLoadList("CFX_PSEUDO_CACHE", mount);
+			}
+
+			// in case of .#bn/.#map file
+			if (shouldUseMapStore)
+			{
+				streaming::AddDataFileToLoadList("CFX_PSEUDO_ENTRY", "RELOAD_MAP_STORE");
 			}
 		}
 
