@@ -2,11 +2,12 @@ import React from 'react';
 import { ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { useApiMessage } from 'utils/hooks';
+import { useApiMessage, useSdkMessage } from 'utils/hooks';
 import { logger } from 'utils/logger';
 import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
 import { GameContext } from './GameContext';
+import { TheiaContext } from './TheiaContext';
 
 const log = logger('ServerContext');
 
@@ -14,7 +15,6 @@ export type ResourcesState = Record<string, boolean>;
 
 export interface ServerContext {
   serverState: ServerStates | null,
-  serverOutput: string,
 
   updateChannelsState: ServerUpdateChannelsState,
 
@@ -33,7 +33,6 @@ export interface ServerContext {
 }
 export const ServerContext = React.createContext<ServerContext>({
   serverState: ServerStates.down,
-  serverOutput: '',
 
   updateChannelsState: {},
 
@@ -54,9 +53,9 @@ export const ServerContext = React.createContext<ServerContext>({
 export const ServerContextProvider = React.memo(function ServerContextProvider({ children }) {
   const { project } = React.useContext(ProjectContext);
   const { gameLaunched } = React.useContext(GameContext);
+  const { sendTheiaMessage } = React.useContext(TheiaContext);
 
   const [serverState, setServerState] = React.useState<ServerStates | null>(null);
-  const [serverOutput, setServerOutput] = React.useState<string>('');
   const [resourcesState, setResourcesState] = React.useState({});
   const [updateChannelsState, setUpdateChannelsState] = React.useState<ServerUpdateChannelsState>({});
 
@@ -112,17 +111,25 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     setServerState(state);
   }, [setServerState]);
 
-  useApiMessage(serverApi.output, (chunks: string) => {
-    setServerOutput(serverOutput + chunks);
-  }, [setServerOutput, serverOutput]);
+  useApiMessage(serverApi.bufferedOutput, (data: string) => {
+    sendTheiaMessage({ type: 'fxdk:serverOutput', data });
+  }, [sendTheiaMessage]);
+
+  useApiMessage(serverApi.structuredOutputMessage, (data) => {
+    sendTheiaMessage({ type: 'fxdk:serverOutputStructured', data });
+  }, [sendTheiaMessage]);
 
   useApiMessage(serverApi.updateChannelsState, (newUpdateChannelsState) => {
     setUpdateChannelsState(newUpdateChannelsState);
   });
 
   useApiMessage(serverApi.clearOutput, () => {
-    setServerOutput('');
-  }, [setServerOutput]);
+    sendTheiaMessage({ type: 'fxdk:clearServerOutput' });
+  }, [sendTheiaMessage]);
+
+  useSdkMessage('server:sendCommand', (command) => {
+    sendApiMessage(serverApi.sendCommand, command);
+  });
 
   useApiMessage(serverApi.resourcesState, (newResourcesState) => {
     log('Resources state', newResourcesState);
@@ -131,7 +138,6 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
   const value = {
     serverState,
-    serverOutput,
 
     updateChannelsState,
 

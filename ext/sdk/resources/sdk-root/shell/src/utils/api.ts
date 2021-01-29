@@ -43,7 +43,7 @@ ws.addEventListener('message', (event: MessageEvent) => {
       return hostLog(msg, ...args);
     }
 
-    apiRxLog(type, data);
+    // apiRxLog(type, data);
 
     const typeListeners = new Set(messageListeners[type]);
     const anyListeners = new Set(messageListeners[ANY_MESSAGE as any]);
@@ -66,7 +66,7 @@ export interface ApiMessage {
 };
 
 export const sendApiMessage = (type: string, data?: any) => {
-  apiTxLog(type, data);
+  // apiTxLog(type, data);
 
   const message= JSON.stringify([type, data]);
 

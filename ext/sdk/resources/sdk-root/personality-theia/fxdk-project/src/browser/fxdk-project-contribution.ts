@@ -5,7 +5,7 @@ import { FrontendApplicationContribution, OpenerService, open, WidgetManager } f
 import { FxdkWorkspaceService } from './rebindWorkspaceService';
 import URI from '@theia/core/lib/common/uri';
 import { CommandService } from '@theia/core';
-import { FxdkDataService } from './fxdk-data-service';
+import { FxdkDataService, StructuredMessage } from './fxdk-data-service';
 
 import { FxdkGameView, FxdkGameViewContribution } from 'fxdk-game-view/lib/browser/fxdk-game-view-view';
 import { FrontendApplicationState, FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
@@ -139,6 +139,18 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
       console.log('Opening Game View');
       this.commandService.executeCommand(FxdkGameViewContribution.FXDK_GAME_VIEW_TOGGLE_COMMAND_ID);
     }
+  }
+
+  private handleServerOutput(output: string) {
+    this.dataService.setBufferedServerOutput(output);
+  }
+
+  private handleServerOutputStructured(msg: StructuredMessage) {
+    this.dataService.receiveStructuredServerMessage(msg);
+  }
+
+  private handleClearServerOutput() {
+    this.dataService.clearAllServerOutputs();
   }
 
   private reachedState(state: FrontendApplicationState) {

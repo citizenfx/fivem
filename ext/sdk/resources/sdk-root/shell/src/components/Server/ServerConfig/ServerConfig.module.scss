@@ -19,23 +19,4 @@
       margin-bottom: $q;
     }
   }
-
-  .output {
-    flex-grow: 1;
-
-    margin-top: $q*4;
-    padding: $q*4;
-
-    overflow: auto;
-
-    font-family: monospace;
-    line-height: 1.2;
-
-    background-color: rgba($fgColor, .1);
-
-    pre {
-      white-space: pre-line;
-      line-height: 1.1;
-    }
-  }
 }

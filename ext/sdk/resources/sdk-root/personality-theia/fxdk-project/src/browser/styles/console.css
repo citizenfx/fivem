@@ -1,0 +1,68 @@
+.fxdk-console-widget {
+  font-family: var(--fontFamily);
+  font-size: var(--fontSize);
+  font-weight: var(--fontWeight);
+  letter-spacing: var(--letterSpacing);
+  line-height: var(--lineHeight);
+}
+
+.fxdk-console-widget .structured-message {
+  display: flex;
+  align-items: flex-start;
+  justify-content: stretch;
+
+  width: 100%;
+}
+.fxdk-console-widget .structured-message .channel {
+  flex-shrink: 0;
+
+  padding: 2px;
+  margin-right: 4px;
+
+  border-radius: 4px;
+
+  color: black;
+  background-color: var(--channel-color);
+}
+.fxdk-console-widget .structured-message .message {
+  padding: 2px;
+
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+.fxdk-console-widget .label {
+  position: relative;
+}
+.fxdk-console-widget .label span {
+  position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    padding: 4px;
+
+    pointer-events: none;
+    user-select: none;
+
+    z-index: 1;
+}
+.fxdk-console-widget .label input {
+  width: 100%;
+  border: none;
+  color: var(--theia-foreground);
+  background-color: rgba(0, 0, 0, .1);
+  padding: 4px;
+  padding-left: 42px;
+  box-sizing: border-box;
+  font-family: var(--fontFamily);
+  font-weight: var(--fontWeight);
+  border: solid 1px var(--theia-focusBorder);
+}
+.fxdk-console-widget .label input:focus {
+  border: solid 1px var(--theia-panelTitle-activeBorder);
+}

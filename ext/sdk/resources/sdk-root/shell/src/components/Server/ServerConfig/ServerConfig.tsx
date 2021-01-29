@@ -1,5 +1,4 @@
 import * as React from 'react';
-import AnsiToHTMLConverter from 'ansi-to-html';
 import { Switch, SwitchOption } from 'components/controls/Switch/Switch';
 import { ServerStates, ServerUpdateChannel, serverUpdateChannels } from 'shared/api.types';
 import { ProjectContext } from 'contexts/ProjectContext';
@@ -10,29 +9,6 @@ import { sendApiMessage } from 'utils/api';
 import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/controls/Button/Button';
 import s from './ServerConfig.module.scss';
-
-
-const converter = new AnsiToHTMLConverter({
-  newline: true,
-  colors: {
-    0: '#5F5F5F',
-    1: '#D96468',
-    2: '#A2D964',
-    3: '#D9C964',
-    4: '#64A2D9',
-    5: '#9A64D9',
-    6: '#64D9D5',
-    7: '#989898',
-    8: '#828282',
-    9: '#D98F93',
-    10: '#B8D98F',
-    11: '#D9CF8F',
-    12: '#8F99D9',
-    13: '#B08FD9',
-    14: '#8FD9D5',
-    15: '#C5C5C5',
-  }
-});
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -64,15 +40,11 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
 
   const updateChannel = project.manifest.serverUpdateChannel;
 
-  const { serverOutput, sendServerCommand } = React.useContext(ServerContext);
+  const { sendServerCommand } = React.useContext(ServerContext);
 
   const handleUpdateChannelChange = React.useCallback((updateChannel: ServerUpdateChannel) => {
     sendApiMessage(projectApi.setServerUpdateChannel, updateChannel);
   }, []);
-
-  const serverHtmlOutput = React.useMemo(() => {
-    return converter.toHtml(serverOutput);
-  }, [serverOutput]);
 
   const canShowServerGui = serverState !== ServerStates.down;
 
@@ -92,12 +64,6 @@ export const ServerConfig = React.memo(function ServerConfig({ onClose }: Server
             options={updateChannelOptions}
             onChange={handleUpdateChannelChange}
           />
-        </div>
-
-        <div
-          className={s.output}
-          dangerouslySetInnerHTML={{ __html: serverHtmlOutput }}
-        >
         </div>
 
         <div className="modal-actions">

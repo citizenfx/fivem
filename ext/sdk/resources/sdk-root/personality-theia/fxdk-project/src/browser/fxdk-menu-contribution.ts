@@ -4,6 +4,7 @@ import { EDITOR_CONTEXT_MENU } from '@theia/editor/lib/browser/editor-menu';
 import { TextEditor } from '@theia/editor/lib/browser/editor';
 import { injectable, inject } from 'inversify';
 import { FxdkDataService } from './fxdk-data-service';
+import { ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ICON } from './console/server-console';
 
 function formatArrayOfFloats(arr: number[]): string {
   return arr.map((coord) => coord.toFixed(3)).join(', ');
@@ -65,6 +66,12 @@ export class FxdkMenuContribution implements MenuContribution, CommandContributi
     registry.registerMenuAction(FxdkMenus.GAME_TOGGLES, {
       commandId: 'fxdkGameView:toggle',
       label: 'Toggle Game View',
+      icon: 'fa fa-gamepad',
+    });
+    registry.registerMenuAction(FxdkMenus.GAME_TOGGLES, {
+      commandId: ServerConsoleViewContribution.TOGGLE_COMMAND_ID,
+      label: 'Toggle Server Console',
+      icon: SERVER_CONSOLE_WIDGET_ICON,
     });
 
     /**

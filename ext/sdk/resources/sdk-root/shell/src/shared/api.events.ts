@@ -74,7 +74,8 @@ export const serverApi = {
   start: 'server:start',
   stop: 'server:stop',
 
-  output: 'server:output',
+  bufferedOutput: 'server:output',
+  structuredOutputMessage: 'server:outputStructured',
   clearOutput: 'server:clearOutput',
   sendCommand: 'server:sendCommand',
 

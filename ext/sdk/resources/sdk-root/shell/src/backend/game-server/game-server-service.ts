@@ -19,6 +19,7 @@ import { sdkGamePipeName } from 'backend/constants';
 import { Sequencer } from 'backend/execution-utils/sequencer';
 import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
+import { ShellCommand } from 'backend/process/ShellCommand';
 
 enum ResourceReconcilationState {
   start = 1,
@@ -61,6 +62,7 @@ export class GameServerService implements AppContribution, ApiContribution {
   protected sdkGameIPCServer: net.Server | null = null;
   protected sdkGameIPCSocket: net.Socket | null = null;
 
+  protected serverCmd: ShellCommand | null = null;
   protected server: cp.ChildProcess | null = null;
   protected currentEnabledResourcesPaths = new Set<string>();
 
@@ -70,7 +72,7 @@ export class GameServerService implements AppContribution, ApiContribution {
   protected serverOpsSequencer = new Sequencer();
 
   boot() {
-    process.on('exit', () => this.server?.kill('SIGKILL'));
+    process.on('exit', () => this.serverCmd?.stop());
   }
 
   getProjectServerPath(projectPath: string): string {
@@ -85,9 +87,9 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @handlesClientEvent(serverApi.stop)
   stop() {
-    if (this.server) {
+    if (this.serverCmd) {
       this.stopTask = this.taskReporterService.create('Stopping server');
-      this.server?.kill('SIGKILL');
+      this.serverCmd.stop();
     }
   }
 
@@ -103,7 +105,6 @@ export class GameServerService implements AppContribution, ApiContribution {
     this.toState(ServerStates.booting);
     this.logService.log('Starting server', request);
     this.startTask = this.taskReporterService.create('Starting server');
-    this.apiClient.emit(serverApi.clearOutput);
 
     const fxserverCwd = this.getProjectServerPath(projectPath);
     this.logService.log('FXServer cwd', fxserverCwd);
@@ -137,45 +138,33 @@ export class GameServerService implements AppContribution, ApiContribution {
 
     this.logService.log('FXServer args', fxserverArgs);
 
-    const server = cp.execFile(
-      fxserverPath,
-      fxserverArgs,
-      {
-        cwd: fxserverCwd,
-        windowsHide: true,
-      },
-    );
+    this.serverCmd = new ShellCommand(fxserverPath, fxserverArgs, fxserverCwd);
 
-    if (!server || !server.stdout) {
-      this.logService.log('Server has failed to start');
-      this.toState(ServerStates.down);
-      this.startTask.done();
-      return;
-    }
+    this.serverCmd.onClose(() => {
+      this.apiClient.emit(serverApi.clearOutput);
 
-    await this.initSdkGameIPC();
-
-    server.stdout.on('data', (data) => {
-      this.apiClient.emit(serverApi.output, data.toString('utf8'));
-    });
-
-    server.on('exit', () => {
       this.logService.log('FXServer terminated');
 
       if (this.sdkGameIPCServer) {
         this.sdkGameIPCServer.close();
+        this.sdkGameIPCServer = null;
+        this.sdkGameIPCSocket = null;
       }
 
-      this.server = null;
+      this.serverCmd = null;
 
       this.startTask?.done();
       this.stopTask?.done();
       this.toState(ServerStates.down);
     });
 
-    server.unref();
+    this.serverCmd.onError((error) => {
+      this.logService.log('Server has failed to start', error);
+    });
 
-    this.server = server;
+    this.serverCmd.start();
+
+    await this.initSdkGameIPC();
   }
 
   @handlesClientEvent(serverApi.setEnabledResources)
@@ -222,7 +211,7 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @handlesClientEvent(serverApi.sendCommand)
   sendCommand(cmd: string) {
-    this.server?.stdin?.write(cmd + '\n');
+    this.serverCmd?.writeStdin(cmd + '\n');
   }
 
   toState(newState: ServerStates) {
@@ -353,6 +342,16 @@ export class GameServerService implements AppContribution, ApiContribution {
             case 'ready': {
               this.startTask?.done();
               return this.toState(ServerStates.up);
+            }
+            case 'consoleBuffer': {
+              return this.apiClient.emit(serverApi.bufferedOutput, data);
+            }
+            case 'console': {
+              if (!data.message.trim()) {
+                return;
+              }
+              this.apiClient.emit(serverApi.structuredOutputMessage, data);
+              return;
             }
           }
         } catch (e) {

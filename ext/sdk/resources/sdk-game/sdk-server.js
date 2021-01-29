@@ -1,6 +1,27 @@
 const net = require('net');
 const byline = require('./byline');
 
+function joaat(key) {
+  key = key.toLowerCase();
+
+  const hash = new Uint32Array(1);
+
+  for (const i in key) {
+      hash[0] += key.charCodeAt(i);
+      hash[0] += hash[0] << 10;
+      hash[0] ^= hash[0] >>> 6;
+  }
+
+  hash[0] += hash[0] << 3;
+  hash[0] ^= hash[0] >>> 11;
+  hash[0] += hash[0] << 15;
+
+  return '0x' + hash[0].toString(16).toUpperCase();
+}
+
+const REGISTER_CONSOLE_LISTENER = joaat('REGISTER_CONSOLE_LISTENER');
+const GET_CONSOLE_BUFFER = joaat('GET_CONSOLE_BUFFER');
+
 const pipe = '\\\\.\\pipe\\fxdk_fxserver_sdk_game';
 const ipc = net.createConnection(pipe);
 const send = (type, data) => {
@@ -67,6 +88,9 @@ lineStream.on('data', (msg) => {
 ipc.pipe(lineStream);
 
 setTimeout(() => {
+  send('consoleBuffer', Citizen.invokeNative(GET_CONSOLE_BUFFER, Citizen.resultAsString()));
+  Citizen.invokeNative(REGISTER_CONSOLE_LISTENER, Citizen.makeRefFunction((channel, message) => send('console', { channel, message })));
+
   // Check for resources state that we can't catch with `onResourceStart` as they start before sdk-game
   ['sessionmanager', 'sessionmanager-rdr3'].map((resourceName) => {
     const resourceState = GetResourceState(resourceName);

@@ -4,6 +4,7 @@ import AnsiToHTMLConverter from 'ansi-to-html';
 import { OutputContext } from 'contexts/OutputContext';
 import s from './Output.module.scss';
 import { useOpenFlag } from 'utils/hooks';
+import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
 
 const converter = new AnsiToHTMLConverter({
   newline: true,
@@ -38,7 +39,7 @@ export const Output = React.memo(function Output({ channelId, className }: Outpu
   const output = outputs[channelId] || '';
 
   const [override, setOverriden, releaseOverride] = useOpenFlag(false);
-  const ref = React.useRef<HTMLDivElement>();
+  const ref = React.useRef<HTMLElement>();
 
   React.useLayoutEffect(() => {
     const div = ref.current;
@@ -47,31 +48,19 @@ export const Output = React.memo(function Output({ channelId, className }: Outpu
       return;
     }
 
-    div.scrollTop = div.scrollHeight;
+    div.scrollTop = div.scrollHeight - div.clientHeight;
   }, [output, override]);
-
-  const handleWheel = React.useCallback(() => {
-    const div = ref.current;
-
-    if (!div) {
-      return;
-    }
-
-    if (div.scrollTop < div.scrollHeight - div.offsetHeight) {
-      return setOverriden();
-    }
-
-    return releaseOverride();
-  }, [setOverriden, releaseOverride]);
 
   const htmlOutput = React.useMemo(() => converter.toHtml(output), [output]);
 
   return (
-    <div
-      ref={ref}
-      onWheel={handleWheel}
+    <ScrollContainer
+      onScrollUp={setOverriden}
+      onYReachEnd={releaseOverride}
+      containerRef={(cref) => ref.current = cref}
       className={classnames(s.root, className)}
       dangerouslySetInnerHTML={{ __html: htmlOutput }}
-    />
+    >
+    </ScrollContainer>
   );
 });

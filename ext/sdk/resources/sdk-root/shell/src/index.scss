@@ -103,6 +103,49 @@ h6 {
   animation: rotate 1s linear 0s infinite;
 }
 
+// Perfect scrollbar
+.fxdk .ps {
+  .ps__thumb-y,
+  .ps__thumb-x {
+    border-radius: 0;
+    background-color: rgba($fgColor, .1);
+  }
+
+  .ps__rail-y {
+    width: 10px;
+    background-color: transparent !important;
+
+    .ps__thumb-y {
+      right: 0;
+      width: 10px;
+    }
+
+    &:hover {
+      .ps__thumb-y {
+        right: 0;
+        width: 10px;
+      }
+    }
+  }
+
+  .ps__rail-x {
+    height: 10px;
+    background-color: transparent !important;
+
+    .ps__thumb-x {
+      bottom: 0;
+      height: 10px;
+    }
+
+    &:hover {
+      .ps__thumb-x {
+        bottom: 0;
+        height: 10px;
+      }
+    }
+  }
+}
+
 ::-webkit-scrollbar {
   width: 2px;
 }

@@ -23,102 +23,107 @@ static InitFunction initFunction([]()
 	auto init = false;
 
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-	static auto canUseRgdInput = []()
+
+	auto wrapWithRgdInputMutex = [](int argsSize, auto fn)
 	{
-		return WaitForSingleObject(rgd->inputMutex, 10) != WAIT_TIMEOUT;
+		return [=](const CefV8ValueList& arguments, CefString& exception)
+		{
+			if (arguments.size() != argsSize)
+			{
+				trace(__FUNCTION__ ": V8 Handler args size mismatch\n");
+				return CefV8Value::CreateBool(false);
+			}
+
+			// FUCKING INPUT MUTEX OK
+			return fn(arguments, exception);
+
+			/*trace(__FUNCTION__ ": rgd->inputMutex == %p\n", rgd->inputMutex);
+
+			auto waitResult = WaitForSingleObject(rgd->inputMutex, INFINITE);
+
+			if (waitResult == WAIT_OBJECT_0)
+			{
+				try {
+					auto ret = fn(arguments, exception);
+					trace(__FUNCTION__ ": V8 Handler is ok, releasing mutex\n");
+					ReleaseMutex(rgd->inputMutex);
+					return ret;
+				}
+				catch (...) {
+					trace(__FUNCTION__ ": V8 Handler fucked up, releasing mutex\n");
+					ReleaseMutex(rgd->inputMutex);
+					return CefV8Value::CreateBool(false);
+				}
+			}
+			else if (waitResult == WAIT_TIMEOUT)
+			{
+				trace(__FUNCTION__ ": INPUT MUTEX TIEMOUT???\n");
+				return CefV8Value::CreateBool(false);
+			}
+			else if (waitResult == WAIT_ABANDONED)
+			{
+				trace(__FUNCTION__ ": INPUT MUTEX ABANDONED\n");
+				return CefV8Value::CreateBool(false);
+			}
+			else if (waitResult == WAIT_FAILED)
+			{
+				trace(__FUNCTION__ ": INPUT MUTEX WAIT FAILED, LAST ERROR: %x\n", GetLastError());
+				return CefV8Value::CreateBool(false);
+			}
+			else
+			{
+				trace(__FUNCTION__ ": INPUT MUTEX FUCKED: %x\n", waitResult);
+				return CefV8Value::CreateBool(false);
+			}*/
+		};
 	};
 
-	static auto v8False = CefV8Value::CreateBool(false);
-	static auto v8True = CefV8Value::CreateBool(true);
-
-	nuiApp->AddV8Handler("sendMousePos", [&](const CefV8ValueList& arguments, CefString& exception)
+	nuiApp->AddV8Handler("sendMousePos", wrapWithRgdInputMutex(2, [&](const CefV8ValueList& arguments, CefString& exception)
 	{
-		if (arguments.size() == 2)
+		auto dx = arguments[0]->GetIntValue();
+		auto dy = arguments[1]->GetIntValue();
+
+		rgd->mouseX += dx;
+		rgd->mouseY += dy;
+
+		return CefV8Value::CreateBool(true);
+	}));
+
+	nuiApp->AddV8Handler("setKeyState", wrapWithRgdInputMutex(2, [&](const CefV8ValueList& arguments, CefString& exception)
+	{
+		auto key = arguments[0]->GetIntValue();
+		auto state = arguments[1]->GetBoolValue() ? 0x80 : 0;
+
+		rgd->keyboardState[key] = state;
+
+		return CefV8Value::CreateBool(true);
+	}));
+
+	nuiApp->AddV8Handler("setMouseButtonState", wrapWithRgdInputMutex(2, [&](const CefV8ValueList& arguments, CefString& exception)
+	{
+		auto buttonIndex = arguments[0]->GetIntValue();
+		auto state = arguments[1]->GetBoolValue();
+
+		if (state)
 		{
-			auto dx = arguments[0]->GetIntValue();
-			auto dy = arguments[1]->GetIntValue();
-
-			if (canUseRgdInput())
-			{
-				rgd->mouseX += dx;
-				rgd->mouseY += dy;
-
-				ReleaseMutex(rgd->inputMutex);
-
-				return v8True;
-			}
+			rgd->mouseButtons |= (1 << buttonIndex);
+		}
+		else
+		{
+			rgd->mouseButtons &= ~(1 << buttonIndex);
 		}
 
-		return v8False;
-	});
+		return CefV8Value::CreateBool(true);
+	}));
 
-	nuiApp->AddV8Handler("setKeyState", [&](const CefV8ValueList& arguments, CefString& exception)
+	nuiApp->AddV8Handler("sendMouseWheel", wrapWithRgdInputMutex(1, [&](const CefV8ValueList& arguments, CefString& exception)
 	{
-		if (arguments.size() == 2)
-		{
-			auto key = arguments[0]->GetIntValue();
-			auto state = arguments[1]->GetBoolValue() ? 0x80 : 0;
+		auto wheel = arguments[0]->GetIntValue();
 
-			WaitForSingleObject(rgd->inputMutex, INFINITE);
+		rgd->mouseWheel = wheel;
 
-			if (canUseRgdInput())
-			{
-				rgd->keyboardState[key] = state;
-
-				ReleaseMutex(rgd->inputMutex);
-
-				return v8True;
-			}
-		}
-
-		return v8False;
-	});
-
-	nuiApp->AddV8Handler("setMouseButtonState", [&](const CefV8ValueList& arguments, CefString& exception)
-	{
-		if (arguments.size() == 2)
-		{
-			auto buttonIndex = arguments[0]->GetIntValue();
-			auto state = arguments[1]->GetBoolValue();
-
-			WaitForSingleObject(rgd->inputMutex, INFINITE);
-
-			if (canUseRgdInput())
-			{
-				if (state)
-				{
-					rgd->mouseButtons |= (1 << buttonIndex);
-				}
-				else
-				{
-					rgd->mouseButtons &= ~(1 << buttonIndex);
-				}
-
-				return v8True;
-			}
-		}
-
-		return v8False;
-	});
-
-	nuiApp->AddV8Handler("sendMouseWheel", [&](const CefV8ValueList& arguments, CefString& exception)
-	{
-		if (arguments.size() == 1)
-		{
-			auto wheel = arguments[0]->GetIntValue();
-
-			if (canUseRgdInput())
-			{
-				rgd->mouseWheel = wheel;
-
-				ReleaseMutex(rgd->inputMutex);
-
-				return v8True;
-			}
-		}
-
-		return v8False;
-	});
+		return CefV8Value::CreateBool(true);
+	}));
 
 	nuiApp->AddV8Handler("resizeGame", [](const CefV8ValueList& arguments, CefString& exception)
 	{

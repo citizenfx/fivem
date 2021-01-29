@@ -1,3 +1,4 @@
+import '../../src/browser/styles/game-view.css';
 import { FxdkGameView, FxdkGameViewContribution } from './fxdk-game-view-view';
 import { ContainerModule } from "inversify";
 import { bindViewContribution, WidgetFactory } from '@theia/core/lib/browser';

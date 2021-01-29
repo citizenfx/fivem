@@ -16,6 +16,7 @@ import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './ProjectE
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
 import { PackAsset } from '../assets/PackAsset/PackAsset';
 import s from './ProjectExplorer.module.scss';
+import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
 
 
 const assetTypeRenderers = {
@@ -141,15 +142,17 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
         className={s.root}
         items={contextItems}
       >
-        {directoryCreatorOpen && (
-          <DirectoryCreator
-            className={s.creator}
-            onCreate={handleDirectoryCreate}
-          />
-        )}
-        <DndProvider backend={HTML5Backend}>
-          {nodes}
-        </DndProvider>
+        <ScrollContainer>
+          {directoryCreatorOpen && (
+            <DirectoryCreator
+              className={s.creator}
+              onCreate={handleDirectoryCreate}
+            />
+          )}
+          <DndProvider backend={HTML5Backend}>
+            {nodes}
+          </DndProvider>
+        </ScrollContainer>
       </ContextMenu>
     </ProjectExplorerContextProvider>
   );
