@@ -2120,6 +2120,7 @@ static HookFunction hookFunction([]()
 		auto typesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
 		auto navMeshStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ynv");
 		auto staticBoundsStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn");
+		auto str = streaming::Manager::GetInstance();
 
 		for (auto [module, idx] : g_pendingRemovals)
 		{
@@ -2138,11 +2139,20 @@ static HookFunction hookFunction([]()
 #endif
 			}
 
+			// if this is loaded by means of dependents, in Five we should remove the flags indicating this, or RemoveObject will fail and RemoveSlot will lead to inconsistent state
+			// in RDR3 this will have a special-case check in RemoveObject for dependents, but in case it fails we shall remove this still (otherwise RemoveSlot will corrupt)
+			//
+			// we don't do this for fwStaticBoundsStore since we don't call RemoveSlot for other reasons (will lead to odd state for interiors)
+			if (module != staticBoundsStore && str->Entries[idx + module->baseIdx].flags & 0xFFFC)
+			{
+				str->Entries[idx + module->baseIdx].flags &= ~0xFFFC;
+			}
+
 			// ClearRequiredFlag
-			streaming::Manager::GetInstance()->ReleaseObject(idx + module->baseIdx, 0xF1);
+			str->ReleaseObject(idx + module->baseIdx, 0xF1);
 
 			// RemoveObject
-			streaming::Manager::GetInstance()->ReleaseObject(idx + module->baseIdx);
+			str->ReleaseObject(idx + module->baseIdx);
 
 #ifdef GTA_FIVE
 			if (module == typesStore)
