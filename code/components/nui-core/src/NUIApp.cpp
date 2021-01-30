@@ -158,16 +158,13 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
-	//command_line->AppendSwitch("use-fake-ui-for-media-stream");
-	//command_line->AppendSwitch("enable-speech-input");
 	command_line->AppendSwitch("ignore-gpu-blacklist");
 	command_line->AppendSwitch("ignore-gpu-blocklist"); // future proofing for when Google disables the above
 	command_line->AppendSwitch("disable-direct-composition");
 	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
-	//command_line->AppendSwitch("disable-gpu-vsync");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
-	command_line->AppendSwitch("force-gpu-rasterization");
+	command_line->AppendSwitch("enable-gpu-rasterization");
 	command_line->AppendSwitch("disable-gpu-process-crash-limit");
 
 	// important switch to prevent users from mentioning 'why are there 50 chromes again'
@@ -179,6 +176,11 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 
 	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
 	command_line->AppendSwitch("disable-web-security");
+
+	// disable these to verify impact on GPU crashes
+	command_line->AppendSwitch("disable-accelerated-video-decode");
+	command_line->AppendSwitch("disable-accelerated-video-encode");
+	command_line->AppendSwitch("disable-accelerated-mjpeg-decode");
 
 	// register the CitizenFX game view plugin
 	// in M73+ it ends up entirely breaking UI rendering
