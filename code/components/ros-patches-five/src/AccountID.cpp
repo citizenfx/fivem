@@ -383,7 +383,14 @@ static bool InitAccountMTL()
 	std::vector<uint8_t> exeCode(len);
 	ReadProcessMemory(hProcess, (char*)scModule + 0x1000, exeCode.data(), len, &nr);
 
-	auto p = hook::range_pattern((uintptr_t)exeCode.data(), (uintptr_t)exeCode.data() + exeCode.size(), "84 C0 75 19 FF C7 83 FF 01 7C D8").count(1).get(0).get<uint8_t>(-35);
+	auto pl = hook::range_pattern((uintptr_t)exeCode.data(), (uintptr_t)exeCode.data() + exeCode.size(), "84 C0 75 19 FF C7 83 FF 01 7C D8").count_hint(1);
+
+	if (pl.size() < 1)
+	{
+		return false;
+	}
+
+	auto p = pl.get(0).get<uint8_t>(-35);
 	auto memOff = *(uint32_t*)p;
 
 	// rebase to MODULE-RELATIVE offset
