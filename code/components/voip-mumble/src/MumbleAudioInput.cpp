@@ -166,7 +166,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 	int frameSize = 40;
 
-	// split to a multiple of 20ms chunks
+	// split to a multiple of [frameSize]ms chunks
 	int chunkLength = (m_waveFormat.nSamplesPerSec / (1000 / frameSize)) * (m_waveFormat.wBitsPerSample / 8) * m_waveFormat.nChannels;
 
 	size_t bytesLeft = numBytes;
@@ -240,7 +240,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 			memcpy(&m_resampledBytes[frameStart], frame.data_, 480 * sizeof(int16_t));
 		}
 
-		if (m_mode == MumbleActivationMode::VoiceActivity && numVoice < 2)
+		if (m_mode == MumbleActivationMode::VoiceActivity && numVoice < 1)
 		{
 			m_isTalking = false;
 			m_audioLevel = 0.0f;

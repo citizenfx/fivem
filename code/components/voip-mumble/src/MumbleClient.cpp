@@ -380,7 +380,14 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 	m_connectionInfo.address = address;
 	m_connectionInfo.username = userName;
 
-	m_curManualChannel = "Root";
+	if (m_curManualChannel.empty())
+	{
+		m_curManualChannel = "Root";
+	}
+	else
+	{
+		m_lastManualChannel = "Root";
+	}
 
 	m_tcpPingAverage = 0.0f;
 	m_tcpPingVariance = 0.0f;
@@ -418,6 +425,11 @@ concurrency::task<void> MumbleClient::DisconnectAsync()
 		if (m_idleTimer)
 		{
 			m_idleTimer->stop();
+		}
+
+		if (m_connectTimer)
+		{
+			m_connectTimer->stop();
 		}
 
 		if (m_tcp)
