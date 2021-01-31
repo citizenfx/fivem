@@ -233,6 +233,38 @@ const EXT_LOCALFUNCREF = 11;
 	
 			return t;
 		};
+
+		let httpDispatch = {};
+
+		on('__cfx_internal:httpResponse', (token, status, body, headers) => {
+			if (httpDispatch[token]) {
+				let userCallback = httpDispatch[token];
+
+				httpDispatch[token] = null;
+				userCallback(status, body, headers);
+			}
+		});
+
+		global.PerformHttpRequest = (url, cb, method, data, headers, options) => {
+			let followLocation = true;
+
+			if (options && options.followLocation != null) {
+				followLocation = options.followLocation;
+			}
+
+			const t = {
+				url: url,
+				method: (method || 'GET'),
+				data: (data || ''),
+				headers: (headers || {}),
+				followLocation: followLocation
+			};
+
+			const d = JSON.stringify(t);
+			const id = PerformHttpRequestInternal(d, d.length);
+
+			httpDispatch[id] = cb;
+		};
 	} else {
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);

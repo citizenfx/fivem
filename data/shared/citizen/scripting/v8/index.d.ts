@@ -81,6 +81,7 @@ declare function TriggerLatentServerEvent(eventName: string, bps: number, ...arg
 
 declare function getPlayerIdentifiers(player: string): string[]
 declare function getPlayers(): number[]
+declare function PerformHttpRequest(url: string, callback: Function): void
 
 declare function emitNet(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerClientEvent(eventName: string, target: number|string, ...args: any[]): void
