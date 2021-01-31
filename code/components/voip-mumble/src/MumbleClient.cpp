@@ -29,8 +29,13 @@ inline std::chrono::milliseconds msec()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+static std::shared_ptr<ConVar<bool>> m_rememberChannel;
+
 void MumbleClient::Initialize()
 {
+
+	m_rememberChannel = std::make_shared<ConVar<bool>>("voice_rememberChannel", ConVar_None, true);
+
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
 	m_voiceTarget = 0;
@@ -380,7 +385,7 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 	m_connectionInfo.address = address;
 	m_connectionInfo.username = userName;
 
-	if (m_curManualChannel.empty())
+	if (!m_rememberChannel->GetValue() || m_curManualChannel.empty())
 	{
 		m_curManualChannel = "Root";
 	}
