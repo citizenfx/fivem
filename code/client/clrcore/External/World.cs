@@ -1318,26 +1318,23 @@ namespace CitizenFX.Core
 
 			return new Vehicle(API.CreateVehicle((uint)model.Hash, position.X, position.Y, position.Z, heading, true, false));
 		}
-		// CFX-TODO: NEEDS TESTING.
+
 		/// <summary>
 		/// Spawns a <see cref="Vehicle"/> of a random <see cref="Model"/> at the position specified.
 		/// </summary>
 		/// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
 		/// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
-		public static Vehicle CreateRandomVehicle(Vector3 position, float heading = 0f)
+		public static Task<Vehicle> CreateRandomVehicle(Vector3 position, float heading = 0f)
 		{
-			int vehiclesCount = Enum.GetValues(typeof(VehicleHash)).Length;
-			int randomIndex = new Random().Next(0, vehiclesCount - 1);
-
-			string randomVehicleName = Enum.GetNames(typeof(VehicleHash)).GetValue(randomIndex).ToString();
-			uint modelHash = (uint)API.GetHashKey(randomVehicleName);
-
-			if (API.IsModelValid(modelHash) && API.IsModelInCdimage(modelHash) && API.IsModelAVehicle(modelHash))
+			Array vehicleHashes = Enum.GetValues(typeof(VehicleHash));
+			Random random = new Random();
+			Model model = null;
+			while (model is null || !model.IsValid || !model.IsInCdImage || !model.IsVehicle)
 			{
-				return new Vehicle(API.CreateVehicle(modelHash, position.X, position.Y, position.Z, heading, true, false));
+				model = (VehicleHash)vehicleHashes.GetValue(random.Next(vehicleHashes.Length));
 			}
-			return null;
+			return CreateVehicle(model, position, heading);
 		}
 
 		//[SecurityCritical]
