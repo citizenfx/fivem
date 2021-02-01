@@ -30,6 +30,9 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
+
 #if __has_include(<GameAudioState.h>)
 #include <GameAudioState.h>
 #endif
@@ -131,6 +134,18 @@ static void Mumble_Connect()
 		try
 		{
 			auto info = task.get();
+
+			auto eventManager = Instance<fx::ResourceManager>::Get()->GetComponent<fx::ResourceEventManagerComponent>();
+
+			/*NETEV mumbleConnected CLIENT
+			/#*
+			 * An event triggered when the game completes (re)connecting to a Mumble server.
+			 *
+			 * @param address - The address of the Mumble server connected to.
+			 #/
+			declare function mumbleConnected(address: string): void;
+			*/
+			eventManager->QueueEvent2("mumbleConnected", {}, info->address.ToString());
 
 			g_mumble.connectionInfo = g_mumbleClient->GetConnectionInfo();
 
