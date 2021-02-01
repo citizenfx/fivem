@@ -37,7 +37,7 @@ void*(*g_eventCall3)(void* group, void* event);
 template<decltype(g_eventCall1)* TFunc>
 void* HandleEventWrap(void* group, rage::fwEvent* event)
 {
-	if (event && !xbr::IsGameBuildOrGreater<2189>())
+	if (event)
 	{
 		try
 		{
