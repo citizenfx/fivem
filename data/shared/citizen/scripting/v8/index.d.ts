@@ -29,6 +29,15 @@ type InputArgument =
     ResultAsLong |
     ResultAsObject;
 
+interface StateBagInterface {
+    [key: string]: any;
+    set(key: string, value: any, replicated: boolean): void
+}
+
+interface EntityInterface {
+    state: StateBagInterface
+}
+
 interface CitizenInterface {
     trace(...args: string[]): void
     setTickFunction(callback: Function): void
@@ -90,6 +99,11 @@ declare function removeEventListener(eventName: string, callback: Function): voi
 
 declare function setTick(callback: Function): number
 declare function clearTick(callback: number): void
+
+declare function NewStateBag(name: string) : StateBagInterface;
+declare function Entity(entity: number): EntityInterface
+declare var GlobalState : StateBagInterface
+declare function Player(entity: number|string): EntityInterface
 
 declare var exports: any;
 
