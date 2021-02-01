@@ -167,6 +167,18 @@ void SdkMain()
 	{
 		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.postMessage(%s, '*')", message), "fxdk://sdk-message");
 	});
+	launcherTalk.Bind("sdk:consoleMessage", [](const std::string& channel, const std::string& message)
+	{
+		auto msg = nlohmann::json::object({
+			{"type", "game:consoleMessage"},
+			{"data", {{"channel", channel}, {"message", message}}}
+		});
+
+		ExecuteJavascriptOnMainFrame(
+			fmt::sprintf("window.postMessage(%s, '*')", msg.dump()),
+			"fxdk://console-message"
+		);
+	});
 	launcherTalk.Bind("connectionStateChanged", [resman](const int currentState, const int previousState)
 	{
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:connectionStateChanged", {}, (int)currentState, (int)previousState);

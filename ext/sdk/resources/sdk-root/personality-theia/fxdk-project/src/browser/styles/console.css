@@ -6,6 +6,15 @@
   line-height: var(--lineHeight);
 }
 
+.fxdk-console-widget .color-1{color: #ff4444;}
+.fxdk-console-widget .color-2{color: #99cc00;}
+.fxdk-console-widget .color-3{color: #ffbb33;}
+.fxdk-console-widget .color-4{color: #0099cc;}
+.fxdk-console-widget .color-5{color: #33b5e5;}
+.fxdk-console-widget .color-6{color: #aa66cc;}
+.fxdk-console-widget .color-8{color: #cc0000;}
+.fxdk-console-widget .color-9{color: #cc0000;}
+
 .fxdk-console-widget .structured-message {
   display: flex;
   align-items: flex-start;

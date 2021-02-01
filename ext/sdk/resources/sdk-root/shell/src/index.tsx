@@ -19,6 +19,7 @@ import { OutputContextProvider } from 'contexts/OutputContext';
 import { GameContextProvider } from 'contexts/GameContext';
 import { SdkMessageManager } from 'managers/SdkMessageManager';
 import { GameConnectionManager } from 'managers/GameConnectionManager';
+import { ConsolesManager } from 'managers/ConsolesManager';
 
 enableLogger('shell,shell:*,host');
 
@@ -37,6 +38,7 @@ ReactDOM.render(
                     <TitleManager />
                     <TheiaProjectManager />
                     <NotificationsManager />
+                    <ConsolesManager />
 
                     <Shell />
                   </ServerContextProvider>

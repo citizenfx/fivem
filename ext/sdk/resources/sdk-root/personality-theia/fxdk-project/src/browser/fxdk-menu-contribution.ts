@@ -5,6 +5,7 @@ import { TextEditor } from '@theia/editor/lib/browser/editor';
 import { injectable, inject } from 'inversify';
 import { FxdkDataService } from './fxdk-data-service';
 import { ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ICON } from './console/server-console';
+import { ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ICON } from './console/client-console';
 
 function formatArrayOfFloats(arr: number[]): string {
   return arr.map((coord) => coord.toFixed(3)).join(', ');
@@ -72,6 +73,11 @@ export class FxdkMenuContribution implements MenuContribution, CommandContributi
       commandId: ServerConsoleViewContribution.TOGGLE_COMMAND_ID,
       label: 'Toggle Server Console',
       icon: SERVER_CONSOLE_WIDGET_ICON,
+    });
+    registry.registerMenuAction(FxdkMenus.GAME_TOGGLES, {
+      commandId: ClientConsoleViewContribution.TOGGLE_COMMAND_ID,
+      label: 'Toggle Client Console',
+      icon: CLIENT_CONSOLE_WIDGET_ICON,
     });
 
     /**

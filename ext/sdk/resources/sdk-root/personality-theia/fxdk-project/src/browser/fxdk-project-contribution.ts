@@ -153,6 +153,14 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
     this.dataService.clearAllServerOutputs();
   }
 
+  private handleGameStructuredMessage(msg: StructuredMessage) {
+    this.dataService.receiveStructuredGameMessage(msg);
+  }
+
+  private handleClearGameOutput() {
+    this.dataService.clearGameOutput();
+  }
+
   private reachedState(state: FrontendApplicationState) {
     const stateNumber = mapStateToNumber(state);
     const currentStateNumber = mapStateToNumber(this.stateService.state);

@@ -15,8 +15,6 @@ import { NotificationService } from "backend/notification/notification-service";
 import { DisposableContainer } from "backend/disposable-container";
 import { StatusProxy, StatusService } from "backend/status/status-service";
 import { ResourceStatus } from "./resource-types";
-import { watch } from "chokidar";
-import { Stats } from "fs";
 import { OutputService } from "backend/output/output-service";
 
 
@@ -146,8 +144,6 @@ export class Resource implements AssetInterface {
 
     const isRestartInducingPath = Object.values(this.restartInducingPatterns)
       .some((pattern) => {
-        this.logService.log('Matching', entry.path, 'against', pattern.makeRe() + '');
-
         return pattern.match(entry.path);
       });
 
@@ -311,8 +307,6 @@ export class Resource implements AssetInterface {
 
     scripts.forEach((script) => {
       const fullScript = this.fsService.joinPath(this.path, script);
-
-      this.logService.log(`New pattern`, fullScript);
 
       this.restartInducingPatterns[script] = new Minimatch(fullScript, {
         dot: true,

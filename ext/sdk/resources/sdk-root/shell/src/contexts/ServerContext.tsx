@@ -2,12 +2,11 @@ import React from 'react';
 import { ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'shared/api.types';
 import { serverApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { useApiMessage, useSdkMessage } from 'utils/hooks';
+import { useApiMessage } from 'utils/hooks';
 import { logger } from 'utils/logger';
 import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
 import { GameContext } from './GameContext';
-import { TheiaContext } from './TheiaContext';
 
 const log = logger('ServerContext');
 
@@ -53,7 +52,6 @@ export const ServerContext = React.createContext<ServerContext>({
 export const ServerContextProvider = React.memo(function ServerContextProvider({ children }) {
   const { project } = React.useContext(ProjectContext);
   const { gameLaunched } = React.useContext(GameContext);
-  const { sendTheiaMessage } = React.useContext(TheiaContext);
 
   const [serverState, setServerState] = React.useState<ServerStates | null>(null);
   const [resourcesState, setResourcesState] = React.useState({});
@@ -111,24 +109,8 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
     setServerState(state);
   }, [setServerState]);
 
-  useApiMessage(serverApi.bufferedOutput, (data: string) => {
-    sendTheiaMessage({ type: 'fxdk:serverOutput', data });
-  }, [sendTheiaMessage]);
-
-  useApiMessage(serverApi.structuredOutputMessage, (data) => {
-    sendTheiaMessage({ type: 'fxdk:serverOutputStructured', data });
-  }, [sendTheiaMessage]);
-
   useApiMessage(serverApi.updateChannelsState, (newUpdateChannelsState) => {
     setUpdateChannelsState(newUpdateChannelsState);
-  });
-
-  useApiMessage(serverApi.clearOutput, () => {
-    sendTheiaMessage({ type: 'fxdk:clearServerOutput' });
-  }, [sendTheiaMessage]);
-
-  useSdkMessage('server:sendCommand', (command) => {
-    sendApiMessage(serverApi.sendCommand, command);
   });
 
   useApiMessage(serverApi.resourcesState, (newResourcesState) => {

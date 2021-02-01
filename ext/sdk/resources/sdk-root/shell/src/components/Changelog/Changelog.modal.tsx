@@ -2,8 +2,9 @@ import * as React from 'react';
 import { Modal } from 'components/Modal/Modal';
 import { StateContext } from 'contexts/StateContext';
 import { Changelog } from './Changelog';
-import s from './Changelog.module.scss';
 import { Button } from 'components/controls/Button/Button';
+import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
+import s from './Changelog.module.scss';
 
 export const ChangelogModal = React.memo(function ChangelogModal() {
   const { closeChangelog } = React.useContext(StateContext);
@@ -15,9 +16,9 @@ export const ChangelogModal = React.memo(function ChangelogModal() {
           Changelog
         </div>
 
-        <div className={s.changelog}>
+        <ScrollContainer className={s.changelog}>
           <Changelog />
-        </div>
+        </ScrollContainer>
 
         <div className="modal-actions">
           <Button

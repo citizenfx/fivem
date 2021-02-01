@@ -15,6 +15,8 @@ namespace ipc
 
 	Endpoint::Endpoint(const std::string& bindingPrefix, bool server)
 	{
+		bool shouldSetCustomOptions = true;
+
 		if (server)
 		{
 			repSock = nng::pair::open();
@@ -29,8 +31,15 @@ namespace ipc
 			}
 			catch (nng::exception& e)
 			{
+				shouldSetCustomOptions = false;
 				repSock = {};
 			}
+		}
+
+		if (shouldSetCustomOptions)
+		{
+			nng::set_opt_send_buffer(repSock, 2048);
+			nng::set_opt_recv_buffer(repSock, 2048);
 		}
 	}
 

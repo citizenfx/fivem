@@ -13,7 +13,22 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
-          <strong>2 january 2021</strong>
+          <strong>1 february 2021</strong>
+        </p>
+        <ul>
+          <li>Welcome client console as well<br/>(Game -&gt; Toggle Client Console)</li>
+        </ul>
+
+        <p>
+          <strong>29 january 2021</strong>
+        </p>
+        <ul>
+          <li>Server console moved from server configuration modal to dedicated theia widget<br/>(Game -&gt; Toggle Server Console)</li>
+          <li>Server console is now able to accept commands from you right in FxDK, woo</li>
+        </ul>
+
+        <p>
+          <strong>20 january 2021</strong>
         </p>
         <ul>
           <li>If game crashes it will be restarted automatically, if it was connected to built-in server it will reconnect upon restart as well.</li>

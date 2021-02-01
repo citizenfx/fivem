@@ -52,8 +52,6 @@ lineStream.on('data', (msg) => {
   try {
     const [type, data] = JSON.parse(msg.toString());
 
-    console.log('ipcMessage received', msg.toString(), type, data);
-
     switch (type) {
       case 'state': {
         return sendState();

@@ -68,6 +68,31 @@ export class FxdkDataService {
     this.structuredServerMessageReceivedEvent.emit(message);
   }
 
+  private structuredGameMessages: StructuredMessage[] = [];
+  private readonly structuredGameMessageReceivedEvent = new SingleEventEmitter<StructuredMessage>();
+  public onStructuredGameMessageReceived(cb: (st: StructuredMessage) => void): Disposable {
+    return this.structuredGameMessageReceivedEvent.on(cb);
+  }
+
+  private readonly clearGameOutputEvent = new SingleEventEmitter<void>();
+  public onClearGameOutput(cb: () => void): Disposable {
+    return this.clearGameOutputEvent.on(cb);
+  }
+
+  getStructuredGameMessage(): StructuredMessage[] {
+    return this.structuredGameMessages;
+  }
+
+  receiveStructuredGameMessage(message: StructuredMessage) {
+    this.structuredGameMessages.push(message);
+    this.structuredGameMessageReceivedEvent.emit(message);
+  }
+
+  clearGameOutput() {
+    this.structuredGameMessages = [];
+    this.clearGameOutputEvent.emit();
+  }
+
   sendMessageToShell(type: string, data?: any) {
     window.parent.postMessage({ type, data }, '*');
   }

@@ -14,6 +14,7 @@ import { FxdkDataService } from './fxdk-data-service';
 import { FxdkMenuContribution } from './fxdk-menu-contribution';
 import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
+import { ClientConsole, ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ID } from './console/client-console';
 
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
@@ -38,5 +39,11 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   bind(WidgetFactory).toDynamicValue((ctx) => ({
     id: SERVER_CONSOLE_WIDGET_ID,
     createWidget: () => ctx.container.resolve(ServerConsole),
+  }));
+
+  bindViewContribution(bind, ClientConsoleViewContribution);
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: CLIENT_CONSOLE_WIDGET_ID,
+    createWidget: () => ctx.container.resolve(ClientConsole),
   }));
 });

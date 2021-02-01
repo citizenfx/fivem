@@ -36,7 +36,7 @@ export class ServerConsole extends BaseConsole {
 
 @injectable()
 export class ServerConsoleViewContribution extends AbstractViewContribution<ServerConsole> {
-  static readonly TOGGLE_COMMAND_ID = 'fxdkServerConsole:toggle';
+  static readonly TOGGLE_COMMAND_ID = 'Z_fxdkServerConsole:toggle';
 
   constructor() {
     super({

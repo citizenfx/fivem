@@ -5,7 +5,7 @@ import { BaseWidget } from '@theia/core/lib/browser/widgets/widget';
 import { TerminalThemeService } from '@theia/terminal/lib/browser/terminal-theme-service';
 import { TerminalPreferences } from '@theia/terminal/lib/browser/terminal-preferences';
 import { StructuredMessage } from '../fxdk-data-service';
-import { hslForKey } from '../utils/color';
+import { colorizeString, rgbForKey } from '../utils/color';
 
 const asIs = x => x;
 const asPx = x => `${x}px`;
@@ -97,13 +97,15 @@ export abstract class BaseConsole extends BaseWidget {
   protected nodeQueue: HTMLElement[] = [];
   protected raf: number | null = null;
   protected receiveStructuredMessage({ channel, message }: StructuredMessage) {
-    const [hue, saturation, lightness] = hslForKey(channel);
+    const [r, g, b] = rgbForKey(channel);
     const node = document.createElement('div');
 
     node.classList.add('structured-message');
+
+    // Yes, ImGUI uses BGR but who would have known, right
     node.innerHTML = `
-      <div class="channel" style="--channel-color: hsl(${hue}, ${saturation}%, ${lightness}%)">${channel}</div>
-      <div class="message">${message}</div>
+      <div class="channel" style="--channel-color: rgb(${b}, ${g}, ${r})">${channel}</div>
+      <div class="message">${colorizeString(message)}</div>
     `;
 
     this.nodeQueue.push(node);

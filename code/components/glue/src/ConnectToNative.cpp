@@ -631,10 +631,18 @@ static InitFunction initFunction([] ()
 		g_connected = false;
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SEND_SDK_MESSAGE", [](fx::ScriptContext& context)
+	if (launch::IsSDKGuest())
 	{
-		ep.Call("sdk:message", std::string(context.GetArgument<const char*>(0)));
-	});
+		fx::ScriptEngine::RegisterNativeHandler("SEND_SDK_MESSAGE", [](fx::ScriptContext& context)
+		{
+			ep.Call("sdk:message", std::string(context.GetArgument<const char*>(0)));
+		});
+
+		console::CoreAddPrintListener([](ConsoleChannel channel, const char* msg)
+		{
+			ep.Call("sdk:consoleMessage", channel, std::string(msg));
+		});
+	}
 
 	static ConsoleCommand connectCommand("connect", [](const std::string& server)
 	{
