@@ -392,11 +392,15 @@ int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client)
 	return 0;
 }
 
+extern void Server_onFree(client_t* client);
+
 void Client_free(client_t *client)
 {
 	struct dlist *itr, *save;
 	message_t *sendmsg;
 	bool_t authenticatedLeft = client->authenticated;
+
+	Server_onFree(client);
 
 	if (client->authenticated) {
 		int leave_id;

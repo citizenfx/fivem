@@ -295,6 +295,12 @@ static std::map<net::PeerAddress, bool> mumblePairs;
 
 extern std::recursive_mutex g_mumbleClientMutex;
 
+void Server_onFree(client_t* client)
+{
+	std::lock_guard _(mumblePairsMutex);
+	mumblePairs.erase(client->remote_udp);
+}
+
 static InitFunction initFunction([]()
 {
 	Chan_init();
