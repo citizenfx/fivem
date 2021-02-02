@@ -273,6 +273,7 @@ struct CPedHealthNodeData
 	int health;
 	int armour;
 	uint32_t causeOfDeath;
+	int lastDamageEntity;
 };
 
 struct CPedOrientationNodeData

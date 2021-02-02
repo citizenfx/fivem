@@ -1959,12 +1959,16 @@ struct CPedHealthDataNode
 		}
 
 
-		auto unk8 = state.buffer.ReadBit();
+		auto recentDamage = state.buffer.ReadBit();
 
-		if (unk8) // unk9 != 0
+		if (recentDamage)
 		{
-			// object ID
-			auto unk9 = state.buffer.Read<short>(13);
+			int damageEntity = state.buffer.Read<int>(13);
+			data.lastDamageEntity = damageEntity;
+		}
+		else 
+		{
+			data.lastDamageEntity = 0;
 		}
 
 		int causeOfDeath = state.buffer.Read<int>(32);

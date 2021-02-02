@@ -1277,4 +1277,30 @@ static InitFunction initFunction([]()
 
 		return resultVector;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SOURCE_OF_DAMAGE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPedHealth();
+
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		if (!node || node->lastDamageEntity == 0)
+			return (uint32_t)0;
+
+		auto returnEntity = gameState->GetEntity(0, node->lastDamageEntity);
+
+		if (!returnEntity)
+			return (uint32_t)0;
+
+		// Return the entity
+		return gameState->MakeScriptHandle(returnEntity);
+	}));
 });
