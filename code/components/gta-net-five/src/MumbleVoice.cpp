@@ -121,6 +121,13 @@ static struct
 	concurrency::concurrent_queue<std::function<void()>> mainFrameExecQueue;
 } g_mumble;
 
+static bool g_voiceActiveByScript = true;
+
+static bool Mumble_ShouldConnect()
+{
+	return g_preferenceArray[PREF_VOICE_ENABLE] && Instance<ICoreGameInit>::Get()->OneSyncEnabled && g_voiceActiveByScript;
+}
+
 static void Mumble_Connect()
 {
 	g_mumble.connected = false;
@@ -177,7 +184,7 @@ static void Mumble_Disconnect(bool reconnect = false)
 
 	g_mumbleClient->DisconnectAsync().then([=]()
 	{
-		if (reconnect)
+		if (reconnect && Mumble_ShouldConnect())
 		{
 			Mumble_Connect();
 		}
@@ -209,8 +216,6 @@ public:
 static CViewportGame** g_viewportGame;
 static float* g_actorPos;
 
-static bool g_voiceActiveByScript = true;
-
 #pragma comment(lib, "dsound.lib")
 
 static void Mumble_RunFrame()
@@ -225,11 +230,9 @@ static void Mumble_RunFrame()
 		return;
 	}
 
-	bool shouldConnect = g_preferenceArray[PREF_VOICE_ENABLE] && Instance<ICoreGameInit>::Get()->OneSyncEnabled && g_voiceActiveByScript;
-
 	if (!g_mumble.connected || (g_mumble.connectionInfo && !g_mumble.connectionInfo->isConnected))
 	{
-		if (shouldConnect && !g_mumble.connecting && !g_mumble.errored)
+		if (Mumble_ShouldConnect() && !g_mumble.connecting && !g_mumble.errored)
 		{
 			if (GetTickCount64() > g_mumble.nextConnectAt)
 			{
@@ -248,7 +251,7 @@ static void Mumble_RunFrame()
 	}
 	else
 	{
-		if (!shouldConnect)
+		if (!Mumble_ShouldConnect())
 		{
 			Mumble_Disconnect();
 		}
