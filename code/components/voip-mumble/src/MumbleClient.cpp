@@ -129,26 +129,36 @@ void MumbleClient::Initialize()
 				}
 			});
 
-			if (!m_udp)
+			// if reconnecting, close the existing UDP handle so that servers that try to match source IP/port pairs won't be unhappy
+			if (m_udp)
 			{
-				m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
+				auto udp = std::move(m_udp);
 
-				m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
+				udp->once<uvw::CloseEvent>([udp](const uvw::CloseEvent& ev, uvw::UDPHandle& self)
 				{
-					std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
-
-					try
-					{
-						HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
-					}
-					catch (std::exception& e)
-					{
-						trace("Mumble exception: %s\n", e.what());
-					}
+					(void)udp;
 				});
 
-				m_udp->recv();
+				udp->close();
 			}
+
+			m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
+
+			m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
+			{
+				std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+
+				try
+				{
+					HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
+				}
+				catch (std::exception& e)
+				{
+					trace("Mumble exception: %s\n", e.what());
+				}
+			});
+
+			m_udp->recv();
 
 			const auto& address = m_connectionInfo.address;
 			m_tcp->connect(*address.GetSocketAddress());
