@@ -60,6 +60,9 @@ void MumbleClient::Initialize()
 
 			m_tcp = m_loop->Get()->resource<uvw::TCPHandle>();
 
+			// this is real-time audio, we don't want nagling
+			m_tcp->noDelay(true);
+
 			m_tcp->on<uvw::ConnectEvent>([this](const uvw::ConnectEvent& ev, uvw::TCPHandle& tcp)
 			{
 				m_handler.Reset();
