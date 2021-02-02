@@ -48,6 +48,8 @@ private:
 
 	ComPtr<IAudioCaptureClient> m_audioCaptureClient;
 
+	ComPtr<ISimpleAudioVolume> m_audioVolume;
+
 	WAVEFORMATEX m_waveFormat;
 
 	HANDLE m_startEvent;

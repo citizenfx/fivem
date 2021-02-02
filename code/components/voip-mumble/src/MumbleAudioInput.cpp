@@ -214,6 +214,13 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 			continue;
 		}
 
+		float audioLevel = 1.0f;
+
+		if (m_audioVolume && SUCCEEDED(m_audioVolume->GetMasterVolume(&audioLevel)))
+		{
+			m_apm->gain_control()->set_stream_analog_level(int(audioLevel * 255.0f));
+		}
+
 		int numVoice = 0;
 
 		for (int off = 0; off < frameSize; off += 10)
@@ -250,12 +257,31 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 			continue;
 		}
 
+		// reset state if this is a new talking stream
+		if (!m_isTalking)
+		{
+			opus_encoder_ctl(m_opus, OPUS_RESET_STATE, nullptr);
+		}
+
 		m_isTalking = true;
 
 		if (m_lastBitrate != m_curBitrate)
 		{
 			if (opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(m_curBitrate)) >= 0)
 			{
+				if (m_curBitrate >= 64000)
+				{
+					opus_encoder_ctl(m_opus, OPUS_SET_APPLICATION(OPUS_APPLICATION_RESTRICTED_LOWDELAY));
+				}
+				else if (m_curBitrate >= 32000)
+				{
+					opus_encoder_ctl(m_opus, OPUS_SET_APPLICATION(OPUS_APPLICATION_AUDIO));
+				}
+				else
+				{
+					opus_encoder_ctl(m_opus, OPUS_SET_APPLICATION(OPUS_APPLICATION_VOIP));
+				}
+
 				m_lastBitrate = m_curBitrate;
 			}
 		}
@@ -324,7 +350,7 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		buffer << (packet.size() | (bTerminate ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
-		m_sequence += 2;
+		++m_sequence;
 
 		//buffer << uint64_t(1 << 13);
 
@@ -365,7 +391,7 @@ HRESULT MumbleAudioInput::HandleIncomingAudio()
 				break;
 			}
 
-			size_t size = numFramesAvailable * m_waveFormat.nBlockAlign;
+			size_t size = numFramesAvailable * size_t(m_waveFormat.nBlockAlign);
 			if (size > m_audioBuffer.size())
 			{
 				m_audioBuffer.resize(size);
@@ -499,6 +525,12 @@ void MumbleAudioInput::InitializeAudioDevice()
 		return;
 	}
 
+	if (FAILED(hr = m_audioClient->GetService(__uuidof(ISimpleAudioVolume), (void**)m_audioVolume.ReleaseAndGetAddressOf())))
+	{
+		trace(__FUNCTION__ ": Initiailize ISimpleAudioVolume for capture device failed. HR = %08x\n", hr);
+		return;
+	}
+
 	WAVEFORMATEXTENSIBLE* formatEx = (WAVEFORMATEXTENSIBLE*)waveFormat;
 
 	SetInputFormat(waveFormat);
@@ -541,8 +573,8 @@ void MumbleAudioInput::InitializeAudioDevice()
 	swr_init(m_avr);
 
 	int error;
-	m_opus = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &error);
-
+	m_opus = opus_encoder_create(48000, 1, OPUS_APPLICATION_AUDIO, &error);
+	opus_encoder_ctl(m_opus, OPUS_SET_VBR(0));
 	opus_encoder_ctl(m_opus, OPUS_SET_BITRATE(48000));
 
 	// set event handle
@@ -574,15 +606,17 @@ void MumbleAudioInput::InitializeAudioDevice()
 	m_apm->high_pass_filter()->Enable(true);
 	m_apm->echo_cancellation()->Enable(false);
 	m_apm->noise_suppression()->Enable(true);
+	m_apm->noise_suppression()->set_level(webrtc::NoiseSuppression::kHigh);
 	m_apm->level_estimator()->Enable(true);
 	m_apm->voice_detection()->set_likelihood(ConvertLikelihood(m_likelihood));
-	m_apm->voice_detection()->set_frame_size_ms(10);
+	//m_apm->voice_detection()->set_frame_size_ms(10);
 	m_apm->voice_detection()->Enable(true);
 
-	m_apm->gain_control()->set_mode(webrtc::GainControl::kAdaptiveDigital);
-	m_apm->gain_control()->set_target_level_dbfs(3);
-	m_apm->gain_control()->set_compression_gain_db(9);
-	m_apm->gain_control()->enable_limiter(true);
+	m_apm->gain_control()->set_mode(webrtc::GainControl::kAdaptiveAnalog);
+	m_apm->gain_control()->set_analog_level_limits(0, 255);
+	//m_apm->gain_control()->set_target_level_dbfs(3);
+	//m_apm->gain_control()->set_compression_gain_db(9);
+	//m_apm->gain_control()->enable_limiter(true);
 	m_apm->gain_control()->Enable(true);
 
 	trace(__FUNCTION__ ": Initialized audio capture device.\n");
