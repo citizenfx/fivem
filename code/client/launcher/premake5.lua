@@ -64,10 +64,10 @@ local function launcherpersonality(name)
 				if name == 'game_372' then gameBuild = '372' end
 			
 				postbuildcommands {
-					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
+					("if not exist \"%%{cfg.buildtarget.directory}\\msobj140.dll\" ( copy /y \"%s\" \"%%{cfg.buildtarget.directory}\" )"):format(
 						path.getabsolute('../../tools/dbg/bin/msobj140.dll'):gsub('/', '\\')
 					),
-					("copy /y \"%s\" \"%%{cfg.buildtarget.directory}\""):format(
+					("if not exist \"%%{cfg.buildtarget.directory}\\mspdbcore.dll\" ( copy /y \"%s\" \"%%{cfg.buildtarget.directory}\" )"):format(
 						path.getabsolute('../../tools/dbg/bin/mspdbcore.dll'):gsub('/', '\\')
 					),
 					("if exist C:\\f\\GTA5_%s_dump.exe ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" C:\\f\\GTA5_%s_dump.exe )"):format(
