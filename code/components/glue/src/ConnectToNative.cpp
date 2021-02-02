@@ -1118,9 +1118,12 @@ void Component_RunPreInit()
 			nng_socket socket;
 			nng_dialer dialer;
 
+			auto j = nlohmann::json::object({ { "host", connectHost }, { "params", connectParams } });
+			std::string connectMsg = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::strict);
+
 			nng_push0_open(&socket);
 			nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
-			nng_send(socket, const_cast<char*>(connectHost.c_str()), connectHost.size(), 0);
+			nng_send(socket, const_cast<char*>(connectMsg.c_str()), connectMsg.size(), 0);
 
 			if (!hostData->gamePid)
 			{
@@ -1204,7 +1207,8 @@ static InitFunction connectInitFunction([]()
 			std::string connectMsg(buffer, buffer + bufLen);
 			nng_free(buffer, bufLen);
 
-			ConnectTo(connectMsg);
+			auto connectData = nlohmann::json::parse(connectMsg);
+			ConnectTo(connectData["host"], false, connectData["params"]);
 
 			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
 		}
