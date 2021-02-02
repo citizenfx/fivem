@@ -51,6 +51,11 @@ public:
 		m_stream->Write(data);
 	}
 
+	inline void Write(const void* data, size_t size)
+	{
+		m_stream->Write(data, size);
+	}
+
 	inline void Align(size_t alignment)
 	{
 		size_t pos = Tell();
@@ -248,8 +253,23 @@ namespace fi
 					writer.WriteMark<uint32_t>("fLen_" + m_fullName, backingStream->GetLength());
 					writer.WriteMark<uint32_t>("fLen2_" + m_fullName, backingStream->GetLength());
 
-					// TODO(fxserver): optimize
-					writer.Write(backingStream->ReadToEnd());
+					std::array<uint8_t, 32768> buffer;
+					size_t read = 0;
+
+					do
+					{
+						read = backingStream->Read(buffer.data(), buffer.size());
+
+						if (read == -1)
+						{
+							break;
+						}
+						else if (read > 0)
+						{
+							writer.Write(buffer.data(), read);
+						}
+					} while (read == buffer.size());
+
 					writer.Align(2048);
 				}
 
