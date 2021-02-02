@@ -180,13 +180,17 @@ inline bool HasDefaultName()
 static NetLibrary* netLibrary;
 static bool g_connected;
 
-static void ConnectTo(const std::string& hostnameStr, bool fromUI = false)
+static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const std::string& connectParams = "")
 {
 	if (!fromUI)
 	{
 		if (nui::HasMainUI())
 		{
-			auto j = nlohmann::json::object({ { "type", "connectTo" }, { "hostnameStr", hostnameStr } });
+			auto j = nlohmann::json::object({
+				{ "type", "connectTo" },
+				{ "hostnameStr", hostnameStr },
+				{ "connectParams", connectParams }
+			});
 			nui::PostFrameMessage("mpMenu", j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 
 			return;
@@ -1052,6 +1056,7 @@ void Component_RunPreInit()
 	LPWSTR* argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
 	static std::string connectHost;
+	static std::string connectParams;
 	static std::string authPayload;
 
 	for (int i = 1; i < argc; i++)
@@ -1071,6 +1076,11 @@ void Component_RunPreInit()
 						if (!parsed->pathname().empty())
 						{
 							connectHost = parsed->pathname().substr(1);
+							const auto& search = parsed->search_parameters();
+							if (!search.empty())
+							{
+								connectParams = search.to_string();
+							}
 						}
 					}
 					else if (parsed->host() == "accept-auth")
@@ -1097,8 +1107,9 @@ void Component_RunPreInit()
 			{
 				if (type == rage::InitFunctionType::INIT_CORE)
 				{
-					ConnectTo(connectHost);
+					ConnectTo(connectHost, false, connectParams);
 					connectHost = "";
+					connectParams = "";
 				}
 			}, 999999);
 		}
@@ -1107,9 +1118,12 @@ void Component_RunPreInit()
 			nng_socket socket;
 			nng_dialer dialer;
 
+			auto j = nlohmann::json::object({ { "host", connectHost }, { "params", connectParams } });
+			std::string connectMsg = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::strict);
+
 			nng_push0_open(&socket);
 			nng_dial(socket, "ipc:///tmp/fivem_connect", &dialer, 0);
-			nng_send(socket, const_cast<char*>(connectHost.c_str()), connectHost.size(), 0);
+			nng_send(socket, const_cast<char*>(connectMsg.c_str()), connectMsg.size(), 0);
 
 			if (!hostData->gamePid)
 			{
@@ -1193,7 +1207,8 @@ static InitFunction connectInitFunction([]()
 			std::string connectMsg(buffer, buffer + bufLen);
 			nng_free(buffer, bufLen);
 
-			ConnectTo(connectMsg);
+			auto connectData = nlohmann::json::parse(connectMsg);
+			ConnectTo(connectData["host"], false, connectData["params"]);
 
 			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
 		}
