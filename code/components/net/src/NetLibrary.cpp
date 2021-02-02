@@ -65,7 +65,7 @@ static std::string CollectTimeoutInfo()
 	};
 
 	return fmt::sprintf(
-		"DEBUG INFO FOR TIMEOUTS:\nrun frame: %s\nreceive data: %s\nsend data: %s",
+		"TIMEOUT INFO:\nRun game frame: %s\nReceive data from server: %s\nSend data to server: %s\n\nGuide to interpreting above data: each number is the amount of milliseconds between now and a 'tick' of this type.\nIf any are above ~5000, the specified row is likely to be an issue.",
 		gatherInfo(g_runFrameTicks),
 		gatherInfo(g_receiveDataTicks),
 		gatherInfo(g_sendDataTicks)
@@ -424,7 +424,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 				const char* errorStr = &oob[6];
 				auto errText = std::string(errorStr, length - 6);
 
-				if (strstr(errorStr, "Timed out") != nullptr)
+				if (strstr(errorStr, "Timed out") != nullptr || strstr(errorStr, "timed out") != nullptr)
 				{
 					errText += fmt::sprintf("\n%s", CollectTimeoutInfo());
 				}
