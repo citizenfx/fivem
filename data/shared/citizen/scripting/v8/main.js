@@ -234,11 +234,11 @@ const EXT_LOCALFUNCREF = 11;
 			return t;
 		};
 
-		let httpDispatch = {};
+		const httpDispatch = {};
 
 		on('__cfx_internal:httpResponse', (token, status, body, headers) => {
 			if (httpDispatch[token]) {
-				let userCallback = httpDispatch[token];
+				const userCallback = httpDispatch[token];
 
 				httpDispatch[token] = null;
 				userCallback(status, body, headers);
