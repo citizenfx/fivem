@@ -306,9 +306,6 @@ static void ArchetypeDtorHook1(fwArchetype* at)
 			}
 		}
 
-		// call original before replacing with the one we want to keep! otherwise these get removed the wrong way around
-		g_origArchetypeDtor(at);
-
 		if (!stack.empty())
 		{
 			// update hash map with the front
@@ -317,11 +314,8 @@ static void ArchetypeDtorHook1(fwArchetype* at)
 			*g_archetypeHash->find(at->hash) = oldArchetype;
 		}
 	}
-	else
-	{
-		// not tracked, just call original
-		g_origArchetypeDtor(at);
-	}
+
+	g_origArchetypeDtor(at);
 }
 
 static void(*g_origArchetypeInit)(void* at, void* a3, fwArchetypeDef* def, void* a4);
