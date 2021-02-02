@@ -30,6 +30,9 @@ void WakeWindowThreadFor(std::function<void()>&& func);
 fwEvent<> OnGrcCreateDevice;
 fwEvent<> OnPostFrontendRender;
 
+fwEvent<IDXGISwapChain*, int, int> OnPreD3DPresent;
+fwEvent<IDXGISwapChain*, int, int> OnPostD3DPresent;
+
 DLL_EXPORT fwEvent<bool*> OnFlipModelHook;
 
 fwEvent<bool*> OnRequestInternalScreenshot;
@@ -1314,30 +1317,58 @@ void CaptureBufferOutput()
 
 void D3DPresent(int syncInterval, int flags)
 {
+#if __has_include(<ENBApi.h>)
+	static auto beforePresent = GetENBProcedure<TPresentHook>("API_BeforePresent");
+	static auto afterPresent = GetENBProcedure<TPresentHook>("API_AfterPresent");
+
+	if (beforePresent)
+	{
+		beforePresent();
+	}
+#endif
+
 	if (g_overrideVsync)
 	{
 		syncInterval = 1;
 	}
 
-	if (syncInterval == 0)
-	{
-		BOOL fullscreen;
+	OnPreD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
 
-		if (SUCCEEDED((*g_dxgiSwapChain)->GetFullscreenState(&fullscreen, nullptr)) && !fullscreen)
+	if (IsWindows10OrGreater())
+	{
+		if (syncInterval == 0)
 		{
-			if (g_allowTearing)
+			BOOL fullscreen;
+
+			if (SUCCEEDED((*g_dxgiSwapChain)->GetFullscreenState(&fullscreen, nullptr)) && !fullscreen)
 			{
-				flags |= DXGI_PRESENT_ALLOW_TEARING;
+				if (g_allowTearing)
+				{
+					flags |= DXGI_PRESENT_ALLOW_TEARING;
+				}
 			}
 		}
+
+		HRESULT hr = (*g_dxgiSwapChain)->Present(syncInterval, flags);
+
+		if (FAILED(hr))
+		{
+			trace("IDXGISwapChain::Present failed: %08x\n", hr);
+		}
 	}
-
-	HRESULT hr = (*g_dxgiSwapChain)->Present(syncInterval, flags);
-
-	if (FAILED(hr))
+	else
 	{
-		trace("IDXGISwapChain::Present failed: %08x\n", hr);
+		(*g_dxgiSwapChain)->Present(syncInterval, flags);
 	}
+
+	OnPostD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
+
+#if __has_include(<ENBApi.h>)
+	if (afterPresent)
+	{
+		afterPresent();
+	}
+#endif
 }
 
 static int Return1()
@@ -1660,27 +1691,28 @@ static HookFunction hookFunction([] ()
 	hook::set_call(&g_origRunGame, ptrFunc);
 	hook::jump(ptrFunc, RunGameWrap);
 
+	// present hook function
+	hook::put(hook::get_address<void*>(hook::get_pattern("48 8B 05 ? ? ? ? 48 85 C0 74 0C 8B 4D 50 8B", 3)), D3DPresent);
+
+	char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);	
+	g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
+
+	MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);
+
+	g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
+
 	// set the present hook
 	if (IsWindows10OrGreater())
 	{
-		// present hook function
-		hook::put(hook::get_address<void*>(hook::get_pattern("48 8B 05 ? ? ? ? 48 85 C0 74 0C 8B 4D 50 8B", 3)), D3DPresent);
-
 		// wrap video mode changing
-		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);
-
-		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);
 		MH_CreateHook(hook::get_pattern("57 48 83 EC 20 49 83 63 08 00", -0xB), WrapCreateBackbuffer, (void**)&g_origCreateBackbuffer);
-		MH_EnableHook(MH_ALL_HOOKS);
-
-		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
-
-		g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
 
 		// remove render thread semaphore checks from buffer resizing
 		/*hook::nop((char*)g_resetVideoMode + 0x48, 5);
 		hook::nop((char*)g_resetVideoMode + 0x163, 5);*/
 	}
+
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	if (g_disableRendering)
 	{

@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include <scrEngine.h>
 #include <ScriptHandlerMgr.h>
+#include <nutsnbolts.h>
+#include <DrawCommands.h>
 
 #include "ICoreGameInit.h"
 #include <InputHook.h>
@@ -405,11 +407,33 @@ int DLL_EXPORT worldGetAllObjects(int* array, int arraySize)
 	return 0;
 }
 
+typedef void(*PresentCallback)(void*);
+
+static std::set<PresentCallback> g_presentCallbacks;
+
+void DLL_EXPORT presentCallbackRegister(PresentCallback cb)
+{
+	g_presentCallbacks.insert(cb);
+}
+
+void DLL_EXPORT presentCallbackUnregister(PresentCallback cb)
+{
+	g_presentCallbacks.erase(cb);
+}
+
 static InitFunction initFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		rage::scrEngine::CreateThread(&g_fish);
+	});
+
+	OnPreD3DPresent.Connect([](IDXGISwapChain* sc, int, int)
+	{
+		for (auto& cb : g_presentCallbacks)
+		{
+			cb(sc);
+		}
 	});
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
