@@ -71,6 +71,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\ros_profiles") + &wcsstr(origFileName, L"Social Club\\Profiles")[20];
 	}
 
+	if (wcsstr(origFileName, L"GTA V\\Profiles") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\game_profiles") + &wcsstr(origFileName, L"GTA V\\Profiles")[14];
+	}
+
 	if (wcsstr(origFileName, L"version.txt") != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\version_orig.txt");
@@ -238,6 +243,11 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	}
 
 	if (wcsstr(fileName.c_str(), L"Social Club\\Profiles") != nullptr)
+	{
+		return true;
+	}
+
+	if (wcsstr(fileName.c_str(), L"GTA V\\Profiles") != nullptr)
 	{
 		return true;
 	}
