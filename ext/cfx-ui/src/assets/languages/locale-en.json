@@ -98,7 +98,7 @@
     "#Yes": "Yes",
 	"#No": "No",
     "#BuildSwitch_Heading": "FiveM needs to restart",
-    "#BuildSwitch_Body": "The server you are joining requires a different game version ({{build}}). The game will close and restart shortly to change to this version and connect to this server.",
+    "#BuildSwitch_Body": "The server you are joining requires a different game version ({{build}}). The game will close and restart shortly to change to this version and connect to the server.",
     "#BuildSwitch_Cancel": "Cancel",
     "#BuildSwitch_OK": "OK ({{seconds}})",
 	"#EmptyServers_History": "Servers you have played on before will appear here. Check out the server list and join one now!",
