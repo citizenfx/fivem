@@ -728,9 +728,12 @@ static InitFunction initFunction([] ()
 
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setMinModeInfo", "enabled": %s, "data": %s })", manifest->IsEnabled() ? "true" : "false", manifest->GetRaw()));
 
-			if (wcsstr(GetCommandLineW(), L"-switchcl"))
+			static bool initSwitched;
+
+			if (wcsstr(GetCommandLineW(), L"-switchcl") && !initSwitched)
 			{
 				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setSwitchCl", "enabled": %s })", true));
+				initSwitched = true;
 			}
 		}
 		else if (!_wcsicmp(type, L"connectTo"))
