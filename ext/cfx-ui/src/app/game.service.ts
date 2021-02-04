@@ -573,6 +573,7 @@ export class CfxGameService extends GameService {
 			card.addItem(heading);
 
 			const body = new TextBlock(this.translation.translate('#BuildSwitch_Body', { build, seconds }));
+			body.wrap = true;
 			card.addItem(body);
 
 			const cancelAction = new SubmitAction();
@@ -620,6 +621,7 @@ export class CfxGameService extends GameService {
 		card.addItem(heading);
 
 		const body = new TextBlock(content);
+		body.wrap = true;
 		card.addItem(body);
 
 		const cancelAction = new SubmitAction();
