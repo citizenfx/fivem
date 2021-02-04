@@ -45,6 +45,12 @@
 		}
 	}
 
+	.wrap {
+		display: flex;
+		justify-content: center;
+		@include aspectLimited();
+	}
+
 	.inner {
 		display: none;
 		flex-direction: column;
