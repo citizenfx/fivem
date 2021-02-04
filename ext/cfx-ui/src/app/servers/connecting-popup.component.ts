@@ -48,6 +48,7 @@ export class ConnectingPopupComponent implements OnInit {
 				serverName: a?.address || 'unknown',
 			};
 			this.showOverlay = true;
+			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = false;
 
 			this.overlayBg = a?.data?.vars?.banner_connecting || '';
@@ -60,6 +61,7 @@ export class ConnectingPopupComponent implements OnInit {
 			this.overlayMessage = '#Servers_Message';
 			this.overlayMessageData = { message };
 			this.showOverlay = true;
+			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
 			this.closeLabel = "#Servers_CloseOverlay";
 
@@ -78,7 +80,8 @@ export class ConnectingPopupComponent implements OnInit {
 				serverName: this.gameService.minmodeBlob.productName,
 			};
 			this.showOverlay = true;
-			this.overlayClosable = (a.count == 133 && a.total == 133); // magic numbers, yeah :(
+			this.gameService.showConnectingOverlay = true;
+			this.overlayClosable = (a.count === 133 && a.total === 133); // magic numbers, yeah :(
 
 			if (this.overlayClosable) {
 				this.closeLabel = "#Servers_CancelOverlay";
@@ -97,6 +100,7 @@ export class ConnectingPopupComponent implements OnInit {
 			}
 
 			this.showOverlay = true;
+			this.gameService.showConnectingOverlay = true;
 
 			const adaptiveCard = new AdaptiveCards.AdaptiveCard();
 			adaptiveCard.hostConfig = new AdaptiveCards.HostConfig({
@@ -298,6 +302,7 @@ export class ConnectingPopupComponent implements OnInit {
 			this.overlayMessage = '#Servers_Message';
 			this.overlayMessageData = { message };
 			this.showOverlay = true;
+			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
 			this.closeLabel = "#Servers_CloseOverlay";
 
@@ -309,6 +314,7 @@ export class ConnectingPopupComponent implements OnInit {
 			this.overlayMessage = '#Servers_Message';
 			this.overlayMessageData = { message };
 			this.showOverlay = true;
+			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
 			this.closeLabel = "#Servers_CloseOverlay";
 
@@ -335,6 +341,7 @@ export class ConnectingPopupComponent implements OnInit {
 	closeOverlay() {
 		if (this.overlayClosable) {
 			this.showOverlay = false;
+			this.gameService.showConnectingOverlay = false;
 
 			this.gameService.cancelNativeConnect();
 		}

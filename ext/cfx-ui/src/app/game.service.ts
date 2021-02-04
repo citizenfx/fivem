@@ -74,6 +74,7 @@ export abstract class GameService {
 	profile: Profile = null;
 
 	convars: { [name: string]: ConvarWrapper } = {};
+	showConnectingOverlay: boolean;
 
 	get systemLanguages(): string[] {
 		return ['en-us'];

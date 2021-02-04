@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, Inject } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, Inject, OnDestroy } from '@angular/core';
 
 import { Server } from '../../server';
 
@@ -22,7 +22,7 @@ import { FiltersService, ServerAutocompleteEntry, SearchAutocompleteIndex } from
 	styleUrls: ['server-filter.component.scss'],
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ServerFilterComponent implements OnInit {
+export class ServerFilterComponent implements OnInit, OnDestroy {
 	filters: ServerFilters = new ServerFilters();
 
 	gameName = 'gta5';
@@ -55,6 +55,8 @@ export class ServerFilterComponent implements OnInit {
 
 	sortBy = ServerSortBy;
 	sortDirection = ServerSortDirection;
+
+	keyEventListener: (ev: KeyboardEvent) => void;
 
 	public mouseState = false;
 	public maxPingPercent = 0;
@@ -183,11 +185,21 @@ export class ServerFilterComponent implements OnInit {
 	ngOnInit() {
 		this.setDefaultAutocompleteFilters();
 
-		document.onkeydown = (ev: KeyboardEvent) => {
+		this.keyEventListener = (ev: KeyboardEvent) => {
+			if (this.gameService.showConnectingOverlay) {
+				return;
+			}
+
 			if (ev.keyCode >= 65 && ev.keyCode <= 90 && !ev.ctrlKey) {
 				(<HTMLInputElement>document.querySelector('#searchBox')).focus();
 			}
-		};
+		}
+
+		document.addEventListener('keydown', this.keyEventListener);
+	}
+
+	ngOnDestroy() {
+		document.removeEventListener('keydown', this.keyEventListener);
 	}
 
 	setDefaultAutocompleteFilters() {
