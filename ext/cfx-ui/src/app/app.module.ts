@@ -1,6 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector } from '@angular/core';
+import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpHeaders, HttpClient } from '@angular/common/http';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -65,7 +65,7 @@ import { ChangelogEntryComponent } from './changelog/app-changelog-entry.compone
 import { ChangelogService } from './changelogs.service';
 import {
 	L10nConfig, L10nTranslationLoader, L10nProvider, L10nLoader, L10nTranslationModule,
-	L10nMissingTranslationHandler, L10nTranslationService
+	L10nTranslationFallback, L10nTranslationService, L10N_CONFIG, L10nCache
 } from 'angular-l10n';
 import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
@@ -122,30 +122,31 @@ const localePrefix = (environment.web) ? '/' : './';
 
 }
 
-@Injectable() export class MissingTranslationHandler implements L10nMissingTranslationHandler {
+@Injectable() export class TranslationFallback implements L10nTranslationFallback {
 
-	private translation: L10nTranslationService;
-	private inTranslation = false;
+	constructor(
+		@Inject(L10N_CONFIG) private config: L10nConfig,
+		private cache: L10nCache,
+		private translationLoader: L10nTranslationLoader
+	) { }
 
-	constructor(@Optional() private injector: Injector) { }
+    get(language: string, provider: L10nProvider): Observable<any>[] {
+        const loaders: Observable<any>[] = [];
 
-	public handle(key: string): string | any {
-		if (!this.translation) {
-			this.translation = this.injector.get(L10nTranslationService);
-		}
+        if (this.config.cache) {
+            loaders.push(
+                this.cache.read(`${provider.name}-fallback-${language}`,
+                    this.translationLoader.get('en', provider)));
+            loaders.push(
+                this.cache.read(`${provider.name}-${language}`,
+                    this.translationLoader.get(language, provider)));
+        } else {
+            loaders.push(this.translationLoader.get('en', provider));
+            loaders.push(this.translationLoader.get(language, provider));
+        }
 
-		if (this.inTranslation) {
-			return key;
-		}
-
-		this.inTranslation = true;
-
-		try {
-			return this.translation.translate(key, null, 'en');
-		} finally {
-			this.inTranslation = false;
-		}
-	}
+        return loaders;
+    }
 }
 
 const l10nConfig: L10nConfig = {
@@ -225,7 +226,7 @@ export function metaFactory(): MetaLoader {
 		HttpClientModule,
 		L10nTranslationModule.forRoot(l10nConfig, {
 			translationLoader: HttpTranslationLoader,
-			missingTranslationHandler: MissingTranslationHandler,
+			translationFallback: TranslationFallback
 		}),
 		Angulartics2Module.forRoot(),
 		LinkyModule,
