@@ -51,6 +51,9 @@
 
 std::string g_lastConn;
 
+extern bool XBR_InterceptCardResponse(const nlohmann::json& j);
+extern bool XBR_InterceptCancelDefer();
+
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 {
 	if (pointers->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
@@ -61,7 +64,7 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-static void RestartGameToOtherBuild(int build = 0)
+void RestartGameToOtherBuild(int build = 0)
 {
 #ifdef GTA_FIVE
 	static HostSharedData<CfxState> hostData("CfxInitState");
@@ -95,6 +98,8 @@ static void RestartGameToOtherBuild(int build = 0)
 	ExitProcess(0x69);
 #endif
 }
+
+extern void InitializeBuildSwitch(int build);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -177,11 +182,20 @@ inline bool HasDefaultName()
 	return false;
 }
 
-static NetLibrary* netLibrary;
+NetLibrary* netLibrary;
 static bool g_connected;
 
 static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const std::string& connectParams = "")
 {
+	auto connectParamsReal = connectParams;
+	static bool switched;
+
+	if (wcsstr(GetCommandLineW(), L"-switchcl") && !switched)
+	{
+		connectParamsReal = "switchcl=true&" + connectParamsReal;
+		switched = true;
+	}
+
 	if (!fromUI)
 	{
 		if (nui::HasMainUI())
@@ -189,7 +203,7 @@ static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const
 			auto j = nlohmann::json::object({
 				{ "type", "connectTo" },
 				{ "hostnameStr", hostnameStr },
-				{ "connectParams", connectParams }
+				{ "connectParams", connectParamsReal }
 			});
 			nui::PostFrameMessage("mpMenu", j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
 
@@ -401,7 +415,8 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnRequestBuildSwitch.Connect([](int build)
 		{
-			RestartGameToOtherBuild(build);
+			InitializeBuildSwitch(build);
+			g_connected = false;
 		});
 
 		netLibrary->OnConnectionError.Connect([] (const char* error)
@@ -712,6 +727,11 @@ static InitFunction initFunction([] ()
 			auto manifest = CoreGetMinModeManifest();
 
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setMinModeInfo", "enabled": %s, "data": %s })", manifest->IsEnabled() ? "true" : "false", manifest->GetRaw()));
+
+			if (wcsstr(GetCommandLineW(), L"-switchcl"))
+			{
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "setSwitchCl", "enabled": %s })", true));
+			}
 		}
 		else if (!_wcsicmp(type, L"connectTo"))
 		{
@@ -722,7 +742,10 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{
-			netLibrary->CancelDeferredConnection();
+			if (!XBR_InterceptCancelDefer())
+			{
+				netLibrary->CancelDeferredConnection();
+			}
 
 			g_connected = false;
 		}
@@ -896,9 +919,12 @@ static InitFunction initFunction([] ()
 			{
 				auto json = nlohmann::json::parse(ToNarrow(arg));
 
-				if (!g_cardConnectionToken.empty())
+				if (!XBR_InterceptCardResponse(json))
 				{
-					netLibrary->SubmitCardResponse(json["data"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace), g_cardConnectionToken);
+					if (!g_cardConnectionToken.empty())
+					{
+						netLibrary->SubmitCardResponse(json["data"].dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace), g_cardConnectionToken);
+					}
 				}
 			}
 			catch (const std::exception& e)

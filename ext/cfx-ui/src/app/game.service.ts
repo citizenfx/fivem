@@ -7,6 +7,8 @@ import { environment } from '../environments/environment';
 import { LocalStorage } from './local-storage';
 import { Observable, BehaviorSubject } from 'rxjs';
 import * as query from 'query-string';
+import { ActionSet, AdaptiveCard, SubmitAction, TextBlock, TextSize, Version } from 'adaptivecards';
+import { L10nTranslationService } from 'angular-l10n';
 
 export class ConnectStatus {
 	public server: Server;
@@ -67,6 +69,7 @@ export abstract class GameService {
 	authPayloadSet = new EventEmitter<string>();
 
 	inMinMode = false;
+	inSwitchCL = false;
 	minmodeBlob: any = {};
 
 	minModeChanged = new BehaviorSubject<boolean>(false);
@@ -320,8 +323,9 @@ export class CfxGameService extends GameService {
 	private inConnecting = false;
 
 	private profileList: any[] = [];
+	card: boolean;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone) {
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private translation: L10nTranslationService) {
 		super();
 	}
 
@@ -392,6 +396,16 @@ export class CfxGameService extends GameService {
 							this.invokeConnectCard(
 								this.lastServer, event.data.data.card));
 						break;
+					case 'connectBuildSwitchRequest':
+						this.zone.run(() =>
+							this.invokeBuildSwitchRequest(
+								this.lastServer, event.data.data.build));
+						break;
+					case 'connectBuildSwitch':
+						this.zone.run(() =>
+							this.invokeBuildSwitch(
+								this.lastServer, event.data.data.title, event.data.data.content));
+						break;
 					case 'serverAdd':
 						if (event.data.addr in this.pingList) {
 							this.pingListEvents.push([event.data.addr, event.data.ping]);
@@ -431,6 +445,11 @@ export class CfxGameService extends GameService {
 						});
 
 						break;
+					case 'setSwitchCl':
+						this.zone.run(() => {
+							this.inSwitchCL = event.data.enabled;
+						});
+						break;
 					case 'connectTo':
 						const address: string = event.data.hostnameStr;
 						const connectParams = query.parse(event.data.connectParams);
@@ -440,6 +459,11 @@ export class CfxGameService extends GameService {
 								const streamerMode = ['true', '1'].includes(<string>connectParams.streamerMode);
 								this._streamerMode = streamerMode;
 								this.invokeStreamerModeChanged(streamerMode);
+							}
+
+							if ('switchcl' in connectParams) {
+								const switchCL = ['true', 1].includes(<string>connectParams.switchcl);
+								this.inSwitchCL = switchCL;
 							}
 
 							this.zone.run(() => {
@@ -531,6 +555,91 @@ export class CfxGameService extends GameService {
 				}
 			);
 		}
+	}
+
+	protected invokeBuildSwitchRequest(server: Server, build: number) {
+		this.card = true;
+
+		const presentCard = (seconds: number) => {
+			if (!this.card) {
+				return;
+			}
+
+			const card = new AdaptiveCard();
+			card.version = new Version(1, 0);
+
+			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build }));
+			heading.size = TextSize.ExtraLarge;
+			card.addItem(heading);
+
+			const body = new TextBlock(this.translation.translate('#BuildSwitch_Body', { build, seconds }));
+			card.addItem(body);
+
+			const cancelAction = new SubmitAction();
+			cancelAction.data = { action: 'cancel' };
+			cancelAction.title = this.translation.translate('#BuildSwitch_Cancel');
+
+			const okAction = new SubmitAction();
+			okAction.data = { action: 'ok' };
+			okAction.style = 'positive';
+			okAction.title = this.translation.translate('#BuildSwitch_OK', { seconds });
+
+			const actionSet = new ActionSet();
+			actionSet.addAction(cancelAction);
+			actionSet.addAction(okAction);
+			card.addItem(actionSet);
+
+			this.connectCard.emit({
+				server: server,
+				card: JSON.stringify(card.toJSON())
+			});
+		};
+
+		for (let i = 0; i < 10; i++) {
+			const msec = (10 - i) * 1000;
+			const sec = i;
+
+			setTimeout(() => presentCard(sec), msec);
+		}
+
+		setTimeout(() => {
+			if (this.card) {
+				this.submitCardResponse({
+					action: 'ok'
+				});
+			}
+		}, 10000);
+	}
+
+	protected invokeBuildSwitch(server: Server, title: string, content: string) {
+		const card = new AdaptiveCard();
+		card.version = new Version(1, 0);
+
+		const heading = new TextBlock(title);
+		heading.size = TextSize.ExtraLarge;
+		card.addItem(heading);
+
+		const body = new TextBlock(content);
+		card.addItem(body);
+
+		const cancelAction = new SubmitAction();
+		cancelAction.data = { action: 'cancel' };
+		cancelAction.title = this.translation.translate('#No');
+
+		const okAction = new SubmitAction();
+		okAction.data = { action: 'ok' };
+		okAction.style = 'positive';
+		okAction.title = this.translation.translate('#Yes');
+
+		const actionSet = new ActionSet();
+		actionSet.addAction(cancelAction);
+		actionSet.addAction(okAction);
+		card.addItem(actionSet);
+
+		this.connectCard.emit({
+			server: server,
+			card: JSON.stringify(card.toJSON())
+		});
 	}
 
 	get systemLanguages(): string[] {
@@ -867,6 +976,8 @@ export class CfxGameService extends GameService {
 	}
 
 	public submitCardResponse(data: any) {
+		this.card = false;
+
 		(<any>window).invokeNative('submitCardResponse', JSON.stringify({ data }));
 	}
 

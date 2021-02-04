@@ -38,6 +38,10 @@ export class ConnectingPopupComponent implements OnInit {
 
 	}
 
+	get inSwitchCL() {
+		return this.gameService.inSwitchCL;
+	}
+
 	ngOnInit() {
 		this.gameService.connecting.subscribe(a => {
 			this.overlayTitle = '#Servers_Connecting';
@@ -270,10 +274,18 @@ export class ConnectingPopupComponent implements OnInit {
 			adaptiveCard.onExecuteAction = (action) => {
 				if (action instanceof AdaptiveCards.SubmitAction) {
 					if (!this.submitting) {
-						let data = action.data;
+						let data = action.data as any;
 
 						if (action.id) {
 							data = { ...action.data, submitId: action.id };
+						}
+
+						// hack
+						if (data.action && data.action === 'cancel') {
+							setTimeout(() => {
+								this.overlayClosable = true;
+								this.closeOverlay();
+							}, 150);
 						}
 
 						this.gameService.submitCardResponse(data);
@@ -342,6 +354,7 @@ export class ConnectingPopupComponent implements OnInit {
 		if (this.overlayClosable) {
 			this.showOverlay = false;
 			this.gameService.showConnectingOverlay = false;
+			this.gameService.inSwitchCL = false;
 
 			this.gameService.cancelNativeConnect();
 		}

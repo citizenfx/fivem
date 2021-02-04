@@ -40,7 +40,7 @@ export class DiscourseUser {
 	public static fromApi(apiRes, userRes): DiscourseUser {
 		const user = new DiscourseUser();
 
-		user.id = apiRes.current_user.id;``
+		user.id = apiRes.current_user.id;
 		user.username = apiRes.current_user.username;
 		user.avatarTemplate = apiRes.current_user.avatar_template;
 		user.isStaff = (apiRes.current_user.admin || apiRes.current_user.moderator);

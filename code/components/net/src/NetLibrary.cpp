@@ -1702,6 +1702,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								}
 
 								OnRequestBuildSwitch(buildRef);
+								m_connectionState = CS_IDLE;
+								return;
 							}
 						}
 

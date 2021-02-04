@@ -20,6 +20,14 @@
 
 	transition: all .2s ease;
 
+	&.bigBlur {
+		opacity: 1;
+
+		@include theme() using ($theme) {
+			background-color: rgba(gtv($theme, bgColor), 1) !important;
+		}
+	}
+
 	&.active {
 		opacity: 1;
 
@@ -31,10 +39,14 @@
 		transition: none;
 
 		will-change: opacity;
+
+		.inner {
+			display: flex;
+		}
 	}
 
 	.inner {
-		display: flex;
+		display: none;
 		flex-direction: column;
 		align-items: flex-start;
 

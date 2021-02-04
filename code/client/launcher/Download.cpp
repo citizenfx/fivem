@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#ifdef LAUNCHER_PERSONALITY_MAIN
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 #include <CfxLocale.h>
 
 // the maximum number of concurrent downloads

@@ -1,4 +1,4 @@
-<div class="overlay" [class.active]="showOverlay" (keydown)="onKeyPress($event)" tabindex="1">
+<div class="overlay" [class.active]="showOverlay" [class.bigBlur]="inSwitchCL" (keydown)="onKeyPress($event)" tabindex="1">
 	<div class="inner" style="--bg: url({{overlayBg}})">
 		<h1 class="title">
 			{{(overlayTitle)|translate:locale.language:overlayMessageData}}

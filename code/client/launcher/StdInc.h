@@ -5,7 +5,9 @@
  * regarding licensing.
  */
 
+#ifndef COMPILING_GLUE
 #include "../shared/StdInc.h"
+#endif
 
 int DL_RequestURL(const char* url, char* buffer, size_t bufSize);
 const char* DL_RequestURLError();

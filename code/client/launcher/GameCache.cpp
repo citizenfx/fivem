@@ -7,12 +7,12 @@
 
 #include "StdInc.h"
 
-#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(LAUNCHER_PERSONALITY_GAME)
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(LAUNCHER_PERSONALITY_GAME) || defined(COMPILING_GLUE)
 #include <CfxState.h>
 #include <HostSharedData.h>
 #include <CfxLocale.h>
 
-#if defined(LAUNCHER_PERSONALITY_MAIN)
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 #include <openssl/sha.h>
 #endif
 
@@ -545,7 +545,7 @@ static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 	return cacheStorage;
 }
 
-#ifdef LAUNCHER_PERSONALITY_MAIN
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 static std::vector<GameCacheEntry> CompareCacheDifferences()
 {
 	// load the cache storage from disk
@@ -634,6 +634,10 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::string& 
 
 #include <commctrl.h>
 
+#if defined(COMPILING_GLUE)
+extern void TaskDialogEmulated(TASKDIALOGCONFIG* config, int* button, void*, void*);
+#endif
+
 static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry, bool>>& entries)
 {
 	// iterate over the entries
@@ -720,7 +724,11 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 	int outButton;
 
+#if defined(COMPILING_GLUE)
+	TaskDialogEmulated(&taskDialogConfig, &outButton, nullptr, nullptr);
+#else
 	TaskDialogIndirect(&taskDialogConfig, &outButton, nullptr, nullptr);
+#endif
 
 	return (outButton != IDNO && outButton != 42);
 }
@@ -1239,8 +1247,40 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 #include <CrossBuildRuntime.h>
 
+#if defined(COMPILING_GLUE)
+extern int gameCacheTargetBuild;
+
+template<int Build>
+bool IsTargetGameBuild()
+{
+	return (gameCacheTargetBuild == Build);
+}
+
+template<int Build>
+bool IsTargetGameBuildOrGreater()
+{
+	return (gameCacheTargetBuild >= Build);
+}
+#else
+template<int Build>
+bool IsTargetGameBuild()
+{
+	return xbr::IsGameBuild<Build>();
+}
+
+template<int Build>
+bool IsTargetGameBuildOrGreater()
+{
+	return xbr::IsGameBuildOrGreater<Build>();
+}
+#endif
+
 std::map<std::string, std::string> UpdateGameCache()
 {
+#if defined(COMPILING_GLUE)
+	g_requiredEntries.clear();
+#endif
+
 	// 1604/1868 toggle
 #ifdef GTA_FIVE
 	if (Is372())
@@ -1248,12 +1288,12 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "ae6e9cc116e8435e4dcfb5b870deee00a8b0904c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/GTA5.exe", 55559560, 399999536 });
 		g_requiredEntries.push_back({ "update/update.rpf", "b72884c9af7170908f558ec5d629d805857b80f2", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/update/update.rpf", 352569344, 399999536 });
 	}
-	else if (xbr::IsGameBuild<2189>())
+	else if (IsTargetGameBuild<2189>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "fcd5fd8a9f99f2e08b0cab5d500740f28a75b75a", "https://mirrors.fivem.net/patches/2189.0/GTA5.exe", 63124096 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2189.0/update.rpf", 1276805120 });
 	}
-	else if (xbr::IsGameBuild<2060>())
+	else if (IsTargetGameBuild<2060>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "741c8b91ef57140c023d8d29e38aab599759de76", "https://mirrors.fivem.net/patches/2060.2/GTA5.exe", 60589184 });
 		g_requiredEntries.push_back({ "update/update.rpf", "736f1cb26e59167f302c22385463d231cce302d3", "https://mirrors.fivem.net/patches/2060.2/update.rpf", 1229002752,
@@ -1272,12 +1312,12 @@ std::map<std::string, std::string> UpdateGameCache()
 		} });
 	}
 
-	if (xbr::IsGameBuildOrGreater<2060>())
+	if (IsTargetGameBuildOrGreater<2060>())
 	{
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsum/dlc.rpf", "ffd81a2ce5741b38eae69e47132ddbfc5cfdf9f4", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 980621312 });
 	}
 
-	if (xbr::IsGameBuildOrGreater<2189>())
+	if (IsTargetGameBuildOrGreater<2189>())
 	{
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpheist4/dlc.rpf", "1ddd73a584126793478c835efef9899a1c9d6fe7", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3452489728 });
 	}
@@ -1299,7 +1339,7 @@ std::map<std::string, std::string> UpdateGameCache()
 		}
 	}
 
-#ifdef LAUNCHER_PERSONALITY_MAIN
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 	// check the game executable(s)
 	for (auto& entry : g_requiredEntries)
 	{
