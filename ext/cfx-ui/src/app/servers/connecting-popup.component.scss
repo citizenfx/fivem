@@ -48,6 +48,7 @@
 	.wrap {
 		display: flex;
 		justify-content: center;
+		width: 100%; /* aspectLimited will override this, but for more narrow sizes, keep it */
 		@include aspectLimited();
 	}
 
