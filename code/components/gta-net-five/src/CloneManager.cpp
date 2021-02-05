@@ -466,6 +466,10 @@ void CloneManagerLocal::Reset()
 	m_serverSendFrame = 0;
 
 	m_sbac->Reset();
+
+	// re-add the global bag, since Reset() removes it
+	m_globalBag = {}; // first unset, as the handle keeps by name and otherwise we'd remove it due to destruction order
+	m_globalBag = m_sbac->RegisterStateBag("global");
 }
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
