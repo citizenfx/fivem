@@ -133,6 +133,7 @@ struct CPlayerCameraNodeData
 
 struct CPlayerWantedAndLOSNodeData
 {
+	int fakeWantedLevel;
 	int wantedLevel;
 	int isWanted;
 	int isEvading;

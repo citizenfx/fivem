@@ -2536,8 +2536,9 @@ struct CPlayerWantedAndLOSDataNode
 		auto wantedLevel = state.buffer.Read<int>(3);
 		data.wantedLevel = wantedLevel;
 		auto unk0 = state.buffer.Read<int>(3);
-		auto unk1 = state.buffer.Read<int>(3);
-		auto unk2 = state.buffer.ReadBit();
+		auto fakeWantedLevel = state.buffer.Read<int>(3);
+		data.fakeWantedLevel = fakeWantedLevel;
+		auto pendingWantedLevel = state.buffer.ReadBit();
 		auto unk3 = state.buffer.ReadBit();
 		auto isWanted = state.buffer.ReadBit();
 

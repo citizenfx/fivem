@@ -1277,4 +1277,11 @@ static InitFunction initFunction([]()
 
 		return resultVector;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FAKE_WANTED_LEVEL", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerWantedAndLOS();
+
+		return pn ? pn->fakeWantedLevel : 0;
+	}));
 });
