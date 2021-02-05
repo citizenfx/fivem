@@ -250,7 +250,7 @@ if (!$DontBuild)
 	    
 	    $CIBranch = "master-old"
 	    
-	    if (!$IsServer -and !$IsRDR -and $UseNewCI) {
+	    if (!$IsRDR -and $UseNewCI) {
 			$CIBranch = "master"
 	    }
 
