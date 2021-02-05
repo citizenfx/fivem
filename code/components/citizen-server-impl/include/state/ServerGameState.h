@@ -141,6 +141,10 @@ struct CPlayerWantedAndLOSNodeData
 	int timeInPursuit;
 	int timeInPrevPursuit;
 
+	float wantedPositionX;
+	float wantedPositionY;
+	float wantedPositionZ;
+
 	inline CPlayerWantedAndLOSNodeData()
 		: timeInPursuit(-1), timeInPrevPursuit(-1)
 	{

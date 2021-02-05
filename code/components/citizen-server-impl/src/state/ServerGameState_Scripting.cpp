@@ -1284,4 +1284,26 @@ static InitFunction initFunction([]()
 
 		return pn ? pn->fakeWantedLevel : 0;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_WANTED_CENTRE_POSITION", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto pn = entity->syncTree->GetPlayerWantedAndLOS();
+
+		scrVector resultVector = { 0 };
+
+		if (pn)
+		{
+			resultVector.x = pn->wantedPositionX;
+			resultVector.y = pn->wantedPositionY;
+			resultVector.z = pn->wantedPositionZ;
+		}
+		else
+		{
+			resultVector.x = 0.0f;
+			resultVector.y = 0.0f;
+			resultVector.z = 0.0f;
+		}
+
+		return resultVector;
+	}));
 });
