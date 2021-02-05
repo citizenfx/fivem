@@ -9,6 +9,12 @@ namespace fx
 	class Client;
 }
 
+#ifdef COMPILING_CITIZEN_SERVER_IMPL
+DLL_EXPORT
+#else
+DLL_IMPORT
+#endif
+
 void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force = false);
 void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn);
 void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn);
