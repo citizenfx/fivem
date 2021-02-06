@@ -265,12 +265,8 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "update/x64/dlcpacks/mpchristmas2018/dlc.rpf", "c4cda116420f14a28e5a999740cc53cf53a950ec", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3247781888 },
 	{ "update/x64/dlcpacks/patchday20ng/dlc.rpf", "fbba396a0ede622e08f76c5ced8ac1d6839c0227", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday12ng/dlc.rpf", 457129984 },
 #elif defined(IS_RDR3)
-	{ "RDR2.exe", "ac3c2abd80bfa949279d8e1d32105a3d9345c6c8", "ipfs://bafybeihtqz54b4or4xxqyvrih5wi4il7ni72e7qxg6mtt2c47s6bbkgy4q", 91439232 },
-	{ "appdata0_update.rpf", "1715741785ce3c28adf9a78633e57f478229bb84", "ipfs://bafybeiapjt7ifvkqrtscmbgghgq2jz7ptpdxvvyqwcrxzqqoqolh45ybwq", 3003087 },
-	{ "update.rpf", "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "ipfs://bafybeidgpk6as7ebr4sakax2cy5mulmjr6gbb32mj74i3apbfbjbeoi2ki", 3515071792 },
-	{ "shaders_x64.rpf", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "ipfs://bafybeia5ol2sjowvyfzyncn4wiyp5wtr6tdb6hlq3imbh4ed5v5hgll6jm", 233487310 },
-
 	{ "x64/dlcpacks/mp007/dlc.rpf", "f9d085bc889fc89d205c43a63d784d131be3ae8f", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1425958473 },
+	{ "x64/dlcpacks/patchpack007/dlc.rpf", "1847fa67af881ae8f6b88149948db6a181b698ac", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 58027818 },
 #endif
 
 	{ "launcher/api-ms-win-core-console-l1-1-0.dll", "724F4F91041AD595E365B724A0348C83ACF12BBB", "https://mirrors.fivem.net/emergency_mirror/launcher_1_0_33_319/launcher/api-ms-win-core-console-l1-1-0.dll", 19208 },
@@ -1317,6 +1313,27 @@ std::map<std::string, std::string> UpdateGameCache()
 	if (IsTargetGameBuildOrGreater<2189>())
 	{
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpheist4/dlc.rpf", "1ddd73a584126793478c835efef9899a1c9d6fe7", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3452489728 });
+	}
+#elif IS_RDR3
+	// 1311/1355 toggle
+	if (xbr::IsGameBuild<1355>())
+	{
+		g_requiredEntries.push_back({ "RDR2.exe", "c2fab1d25daef4779aafd2754ec9c593e674e7c3", "ipfs://bafybeihtqz54b4or4xxqyvrih5wi4il7ni72e7qxg6mtt2c47s6bbkgy4q", 84664448 });
+		g_requiredEntries.push_back({ "appdata0_update.rpf", "307609c164e78adaf4e50e993328485e6264803f", "ipfs://bafybeiapjt7ifvkqrtscmbgghgq2jz7ptpdxvvyqwcrxzqqoqolh45ybwq", 3069247 });
+		g_requiredEntries.push_back({ "update.rpf", "5a087ef32e6b30b4fde8bbeda7babc45f2c1cf4d", "ipfs://bafybeidgpk6as7ebr4sakax2cy5mulmjr6gbb32mj74i3apbfbjbeoi2ki", 4685758145 });
+		g_requiredEntries.push_back({ "shaders_x64.rpf", "a7a45988a6067964214cc4b3af21797249817469", "ipfs://bafybeia5ol2sjowvyfzyncn4wiyp5wtr6tdb6hlq3imbh4ed5v5hgll6jm", 233487310 });
+	}
+	else
+	{
+		g_requiredEntries.push_back({ "RDR2.exe", "ac3c2abd80bfa949279d8e1d32105a3d9345c6c8", "ipfs://bafybeihtqz54b4or4xxqyvrih5wi4il7ni72e7qxg6mtt2c47s6bbkgy4q", 91439232 });
+		g_requiredEntries.push_back({ "appdata0_update.rpf", "1715741785ce3c28adf9a78633e57f478229bb84", "ipfs://bafybeiapjt7ifvkqrtscmbgghgq2jz7ptpdxvvyqwcrxzqqoqolh45ybwq", 3003087 });
+		g_requiredEntries.push_back({ "update.rpf", "835a767055cfbf2c2ad86cf4462c7dfb931970fd", "ipfs://bafybeidgpk6as7ebr4sakax2cy5mulmjr6gbb32mj74i3apbfbjbeoi2ki", 3515071792 });
+		g_requiredEntries.push_back({ "shaders_x64.rpf", "77bad0ab74cd1ef7c646206ea12152449ec56cdf", "ipfs://bafybeia5ol2sjowvyfzyncn4wiyp5wtr6tdb6hlq3imbh4ed5v5hgll6jm", 233487310 });
+	}
+
+	if (xbr::IsGameBuildOrGreater<1355>())
+	{
+		g_requiredEntries.push_back({ "x64/dlcpacks/mp008/dlc.rpf", "66a50ed07293b92466423e1db5eed159551d8c25", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 487150980 });
 	}
 #endif
 

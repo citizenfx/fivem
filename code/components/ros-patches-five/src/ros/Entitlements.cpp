@@ -241,7 +241,16 @@ static std::string GetRosTicket(const std::string& body)
 	doc2.AddMember("ticket", rapidjson::Value(ticket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
 	doc2.AddMember("sessionKey", rapidjson::Value(sessionKey.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
 	doc2.AddMember("sessionTicket", rapidjson::Value(sessionTicket.c_str(), doc2.GetAllocator()), doc2.GetAllocator());
-	doc2.AddMember("payload", rapidjson::Value(postData["payload"].c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+
+	if (postData.find("payload") != postData.end())
+	{
+		doc2.AddMember("payload", rapidjson::Value(postData["payload"].c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	}
+	else
+	{
+		doc2.AddMember("machineHash", rapidjson::Value(postData["machineHash"].c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+		doc2.AddMember("locale", rapidjson::Value(postData["locale"].c_str(), doc2.GetAllocator()), doc2.GetAllocator());
+	}
 
 	rapidjson::StringBuffer sb;
 	rapidjson::Writer<rapidjson::StringBuffer> w(sb);
@@ -275,7 +284,11 @@ static InitFunction initFunction([] ()
 		auto accountId = ROS_DUMMY_ACCOUNT_ID;
 		auto machineHash = postData["machineHash"];
 
+#ifdef GTA_FIVE
 		auto outStr = GetEntitlementBlock(accountId, machineHash);
+#elif IS_RDR3
+		auto outStr = GetRosTicket(body);
+#endif
 
 		return fmt::sprintf(
 			"<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"0.574\" xmlns=\"GetEntitlementBlockResponse\"><Status>1</Status><Result Version=\"1\"><Data>%s</Data></Result></Response>",
@@ -693,7 +706,30 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 			auto rs = rss.str();
 			rs = "";
 
-			return fmt::sprintf(R"(
+			if (Is1355())
+			{
+				return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="80" VersionNumber="1.0.1355.18" BuildDateUtc="2019-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="84664448" TimestampUtc="2019-11-05T11:39:34.8800000">
+			<RelativePath>RDR2.exe</RelativePath>
+			<SHA256Hash>e80698b7f53395912d34bbbf15ac852b452126e7315b3a5115a6d9a30ad33d4c</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="e80698b7f53395912d34bbbf15ac852b452126e7315b3a5115a6d9a30ad33d4c" StartByteOffset="0" Size="84664448" />
+			</FileChunks>
+		</FileDetails>
+%s
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)", rs);
+			}
+			else
+			{
+				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
   <Status>1</Status>
@@ -711,6 +747,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     <IsPreload>false</IsPreload>
   </Result>
 </Response>)", rs);
+			}
 		}
 		else if (postData["branchAccessToken"].find("GTA5") != std::string::npos)
 		{
@@ -877,7 +914,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
 		<!--<Branches />-->
       <Branches>
-        <Branch Id="12" Name="default" BuildId="79" IsDefault="true" AppId="10">
+        <Branch Id="12" Name="default" BuildId="%d" IsDefault="true" AppId="10">
           <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
         </Branch>
       </Branches>
@@ -930,7 +967,8 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </App>
   </Result>
 </Response>)",
-		Is372() ? 4 : (Is2060() ? 83 : (Is2189() ? 88 : 80)));
+		Is372() ? 4 : (Is2060() ? 83 : (Is2189() ? 88 : 80)),
+		Is1355() ? 80 : 79);
 	});
 
 

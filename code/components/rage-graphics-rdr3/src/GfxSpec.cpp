@@ -3,6 +3,7 @@
 #include <grcTexture.h>
 
 #include <MinHook.h>
+#include <CrossBuildRuntime.h>
 
 #include <Hooking.h>
 
@@ -581,8 +582,16 @@ static HookFunction hookFunction([]()
 	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01", 17));
 
 	g_textureFactory = hook::get_address<decltype(g_textureFactory)>(hook::get_pattern("48 8D 54 24 50 C7 44 24 50 80 80 00 00 48 8B C8", 0x25));
+	
+	if (xbr::IsGameBuildOrGreater<1355>())
+	{
+		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("B9 01 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
+	}
+	else
+	{
+		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("83 E9 01 74 ? 83 F9 02 75 ? 48 8B CF E8", -4));
+	}
 
-	g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("83 E9 01 74 ? 83 F9 02 75 ? 48 8B CF E8", -4));
 	g_vkDriver = hook::get_address<void*>(hook::get_pattern("B9 03 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
 
 	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("48 8B 01 FF 50 78 48 8B 0B 48 8D", -7));

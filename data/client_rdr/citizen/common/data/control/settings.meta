@@ -3342,6 +3342,10 @@
         <Item>INPUT_CAMERA_PUT_AWAY</Item>
 		<Item>INPUT_PUSH_TO_TALK</Item>
       </Actions>
+	  <AllowedActions>
+		<Item>INPUT_SPECIAL_ABILITY</Item>
+		<Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+	  </AllowedActions>
     </Item>
 
     <Item>
@@ -3422,7 +3426,17 @@
 		<Item>INPUT_INTERACT_LOCKON_TARGET_INFO</Item>
 		<Item>INPUT_SPRINT</Item>
 		<Item>INPUT_WHISTLE</Item>
+		<Item>INPUT_HORSE_MOVE_UD</Item>
+		<Item>INPUT_HORSE_MOVE_LR</Item>
+		<Item>INPUT_HORSE_SPRINT</Item>
+		<Item>INPUT_HORSE_STOP</Item>
+		<Item>INPUT_HORSE_GUN_LR</Item>
+		<Item>INPUT_HORSE_GUN_UD</Item>
       </Actions>
+	  <AllowedActions>
+		<Item>INPUT_SPECIAL_ABILITY</Item>
+		<Item>INPUT_SECONDARY_SPECIAL_ABILITY_SECONDARY</Item>
+	  </AllowedActions>
     </Item>
 	
 	<Item>
@@ -3718,6 +3732,13 @@
 		<Item>INPUT_EMOTE_ACTION</Item>
 		<Item>INPUT_FRONTEND_PAUSE</Item>
 		<Item>INPUT_PUSH_TO_TALK</Item>
+	  </Actions>
+    </Item>
+	
+	<Item>
+      <Name>OnlineCrafting</Name>
+      <Actions>
+		<Item>INPUT_GAME_MENU_LS</Item>
 	  </Actions>
     </Item>
 		
@@ -4389,6 +4410,17 @@
         <Item>INPUT_MINIGAME_DOMINOES_MOVE_DOWN_ONLY</Item>
       </Actions>
     </Item>
+	
+	<Item>
+      <Name>INPUTGROUP_CAMERA_ADVANCED_ZOOM</Name>
+      <Actions>
+		<Item>INPUT_CAMERA_ADVANCED_ZOOM_IN</Item>
+        <Item>INPUT_CAMERA_ADVANCED_ZOOM_OUT</Item>
+      </Actions>
+    </Item>
+	
+	
+	
 
   </ActionGroups>
 

@@ -40,29 +40,18 @@ inline uintptr_t GetTriggerEP()
 // 2060 realities
 #define TRIGGER_EP (GetTriggerEP())
 #elif defined(IS_RDR3)
-// 1207.58
-//#define TRIGGER_EP 0x142D55C2C
+inline uintptr_t GetTriggerEP()
+{
+	if (xbr::IsGameBuild<1355>())
+	{
+		return 0x142DE455C;
+	}
 
-// 1207.69
-//#define TRIGGER_EP 0x142D5B8FC
+	// 1311.20
+	return 0x142E0F92C;
+}
 
-// 1207.77
-//#define TRIGGER_EP 0x142D5F80C
-
-// 1207.80
-//#define TRIGGER_EP 0x142D601AC
-
-// 1311.12
-//#define TRIGGER_EP 0x142E0E63C
-
-// 1311.14
-//#define TRIGGER_EP 0x142E0F9BC
-
-// 1311.16
-#define TRIGGER_EP 0x142E0EF1C
-
-// 1311.20
-#define TRIGGER_EP 0x142E0F92C
+#define TRIGGER_EP (GetTriggerEP())
 #else
 #define TRIGGER_EP 0xDECEA5ED
 #endif
