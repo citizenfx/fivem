@@ -4379,6 +4379,17 @@ struct CRemoveWeaponEvent
     MSGPACK_DEFINE_MAP(pedId, weaponType);
 };
 
+/*NETEV removeAllWeaponsEvent SERVER
+/#*
+ * Triggered when a player removes all weapons from a ped owned by another player.
+ *
+ * @param sender - The ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function removeAllWeaponsEvent(sender: number, data: {
+	pedId: number
+}): void;
+*/
 struct CRemoveAllWeaponsEvent
 {
 	void Parse(rl::MessageBuffer& buffer)
@@ -4395,6 +4406,7 @@ struct CRemoveAllWeaponsEvent
 
 	MSGPACK_DEFINE_MAP(pedId);
 };
+
 /*NETEV startProjectileEvent SERVER
 /#*
  * Triggered when a projectile is created.
