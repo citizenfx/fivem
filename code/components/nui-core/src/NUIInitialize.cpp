@@ -708,7 +708,7 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr;
 #endif
 
-	if (ppDevice && ppImmediateContext && can)
+	if (ppDevice && ppImmediateContext && can && *ppDevice && *ppImmediateContext)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
@@ -728,7 +728,7 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		(*ppDevice)->GetImmediateContext(&g_origImContext);
 	}
 
-	if (ppDevice && ppImmediateContext)
+	if (ppDevice && ppImmediateContext && *ppDevice)
 	{
 		g_origDevice = *ppDevice;
 	}
