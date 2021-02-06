@@ -1317,6 +1317,13 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		DWORD channelMask = 0;
 		m_masteringVoice->GetChannelMask(&channelMask);
 
+		// some devices (like Sony 'Wireless Controller') return 0 channels
+		// assume these will be stereo
+		if (channelMask == 0)
+		{
+			channelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+		}
+
 		m_channelCount = 0;
 
 		for (int i = 0; i < 32; i++)
