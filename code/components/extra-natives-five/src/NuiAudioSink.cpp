@@ -1525,6 +1525,13 @@ static bool audEnvironmentSound_InitStub(char* sound, void* a, void* b, char* pa
 	return rv;
 }
 
+static void (*g_origaudMixerDevice_InitClientThread)(void* device, const char* name, uint32_t size);
+
+static void audMixerDevice_InitClientThreadStub(void* device, const char* name, uint32_t size)
+{
+	return g_origaudMixerDevice_InitClientThread(device, name, size * 3);
+}
+
 static HookFunction hookFunction([]()
 {
 	g_preferenceArray = hook::get_address<uint32_t*>(hook::get_pattern("48 8D 15 ? ? ? ? 8D 43 01 83 F8 02 77 2D", 3));
@@ -1617,6 +1624,15 @@ static HookFunction hookFunction([]()
 
 		MH_Initialize();
 		MH_CreateHook(location, audEnvironmentSound_InitStub, (void**)&g_origaudEnvironmentSound_Init);
+		MH_EnableHook(location);
+	}
+
+	// triple audio command buffer size
+	{
+		auto location = hook::get_pattern("B9 B0 00 00 00 45 8B F0 48 8B FA E8", -0x1C);
+
+		MH_Initialize();
+		MH_CreateHook(location, audMixerDevice_InitClientThreadStub, (void**)&g_origaudMixerDevice_InitClientThread);
 		MH_EnableHook(location);
 	}
 });
