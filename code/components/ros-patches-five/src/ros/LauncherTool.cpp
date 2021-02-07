@@ -516,7 +516,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		MH_CreateHook(pref, pf, (void**)&opf);
 		MH_EnableHook(MH_ALL_HOOKS);
 
-		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 C3"), LogStuff);
+		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
 
 		hook::iat("version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA");
 
@@ -698,8 +698,12 @@ static HookFunction hookFunction([] ()
 	{
 		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
 		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
-		hook::iat("kernel32.dll", LocalFreeStub, "LocalFree");
+		hook::iat("wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust");
 	}
+
+	// newer SC SDK will otherwise overflow in cert name
+	hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
+	hook::iat("kernel32.dll", LocalFreeStub, "LocalFree");
 
     hook::iat("user32.dll", LoadIconStub, "LoadIconA");
     hook::iat("user32.dll", LoadIconStub, "LoadIconW");

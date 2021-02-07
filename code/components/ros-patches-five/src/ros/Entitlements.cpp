@@ -820,6 +820,15 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     <App Id="10" Name="rdr2" TitleId="13" IsReleased="true">
       <Branches />
     </App>
+	<App Id="12" Name="rdr2_rdo" TitleId="13" IsReleased="false">
+		<Branches/>
+	</App>
+	<App Id="13" Name="rdr2_sp" TitleId="13" IsReleased="false">
+		<Branches/>
+	</App>
+	<App Id="14" Name="rdr2_sp_rgl" TitleId="13" IsReleased="false">
+		<Branches/>
+	</App>
     <App Id="6" Name="gtasa" TitleId="18" IsReleased="true">
       <Branches />
     </App>
@@ -872,6 +881,30 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
           <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
         </Branch>
       </Branches>
+    </App>
+    <App Id="12" Name="rdr2_rdo" TitleId="13" IsReleased="false">
+		<!--<Branches />-->
+      <Branches>
+        <Branch Id="14" Name="default" BuildId="-1" IsDefault="true" AppId="12">
+          <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
+        </Branch>
+      </Branches>
+    </App>
+    <App Id="13" Name="rdr2_sp" TitleId="13" IsReleased="false">
+		<Branches />
+      <!--<Branches>
+        <Branch Id="16" Name="default" BuildId="-1" IsDefault="true" AppId="13">
+          <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
+        </Branch>
+      </Branches>-->
+    </App>
+    <App Id="14" Name="rdr2_sp_rgl" TitleId="13" IsReleased="false">
+		<Branches />
+      <!--<Branches>
+        <Branch Id="15" Name="default" BuildId="-1" IsDefault="true" AppId="14">
+          <AccessToken>BRANCHACCESS token="RDR2",signature="RDR2"</AccessToken>
+        </Branch>
+      </Branches>-->
     </App>
     <App Id="6" Name="gtasa" TitleId="18" IsReleased="true">
       <Branches />

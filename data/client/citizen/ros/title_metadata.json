@@ -467,7 +467,27 @@
 				"pl-PL",
 				"ja-JP"
 			]
-		}
+		},
+    "18": {
+      "titleId": "rdr2_sp",
+      "parentApp": "rdr2"
+    },
+    "19": {
+      "titleId": "rdr2_rdo",
+      "parentApp": "rdr2"
+    },
+    "20": {
+      "titleId": "rdr2_sp_rgl",
+      "parentApp": "rdr2"
+    },
+    "21": {
+      "titleId": "rdr2_sp_steam",
+      "parentApp": "rdr2"
+    },
+    "22": {
+      "titleId": "rdr2_sp_epic",
+      "parentApp": "rdr2"
+    }
 	},
 	"preqs":
 	{
@@ -537,7 +557,7 @@
 		{
 			"friendlyName": "Rockstar Games Social Club",
 			"locKey": "PREREQUISITE_SOCIAL_CLUB",
-			"version": "2.0.3.7",
+			"version": "2.0.7.5",
 			"executableName": "Redistributables/SocialClub/Social-Club-Setup.exe",
 			"commandline": "/silent"
 		},

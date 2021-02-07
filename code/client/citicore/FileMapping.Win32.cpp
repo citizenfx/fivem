@@ -21,6 +21,8 @@
 #include <winternl.h>
 #include <commctrl.h>
 
+#include <CrossBuildRuntime.h>
+
 typedef wchar_t*(*MappingFunctionType)(const wchar_t*, void*(*)(size_t));
 
 static MappingFunctionType g_mappingFunction;
@@ -76,6 +78,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\game_profiles") + &wcsstr(origFileName, L"GTA V\\Profiles")[14];
 	}
 
+	if (wcsstr(origFileName, L"Red Dead Redemption 2\\Profiles") != nullptr)
+	{
+		return MakeRelativeCitPath(L"cache\\game\\game_profiles") + &wcsstr(origFileName, L"ion 2\\Profiles")[14];
+	}
+
 	if (wcsstr(origFileName, L"version.txt") != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\version_orig.txt");
@@ -123,39 +130,52 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 	if (getenv("CitizenFX_ToolMode"))
 	{
-		if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
+		if (wcsstr(origFileName, L".lnk"))
 		{
-			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2").c_str(), NULL);
-
-			static std::wstring s;
-			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"d Redemption 2")[14];
-			origFileName = s.c_str();
+			return MakeRelativeCitPath(L"cache\\game\\dummy.lnk");
 		}
-		else if (wcsstr(origFileName, L"Rockstar Games\\Grand Theft Auto V") != nullptr)
-		{
-			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2").c_str(), NULL);
 
-			static std::wstring s;
-			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"d Theft Auto V")[14];
-			origFileName = s.c_str();
-		}
-		else if (wcsstr(origFileName, L"Rockstar Games\\index.bin") != nullptr) // lol
-		{
-			CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2").c_str(), NULL);
+		auto gameDir = MakeRelativeCitPath(fmt::sprintf(L"cache\\game\\ros_launcher_game_%d", xbr::GetGameBuild()));
 
-			static std::wstring s;
-			s = MakeRelativeCitPath(L"cache\\game\\ros_launcher_game2") + &wcsstr(origFileName, L"Rockstar Games")[14];
-			origFileName = s.c_str();
-		}
-		else if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr || wcsstr(origFileName, L"Rockstar Games\\RDR2.exe") != nullptr)
+		if (wcsstr(origFileName, L".exe.part") != nullptr)
 		{
-			static std::wstring s;
+			return MakeRelativeCitPath(L"cache\\game\\dummy.exe.part");
+		}
+
+		if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr || wcsstr(origFileName, L"Rockstar Games\\RDR2.exe") != nullptr ||
+			wcsstr(origFileName, L"Grand Theft Auto V\\GTA5.exe") != nullptr || wcsstr(origFileName, L"Red Dead Redemption 2\\RDR2.exe") != nullptr)
+		{
+			static thread_local std::wstring s;
 #ifdef GTA_FIVE
 			s = MakeRelativeGamePath(L"GTA5.exe");
 #else
 			s = MakeRelativeGamePath(L"RDR2.exe");
 #endif
 			origFileName = s.c_str();
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\Games") != nullptr)
+		{
+			CreateDirectoryW(gameDir.c_str(), NULL);
+			//CreateDirectoryW((gameDir + L"\\Grand Theft Auto V").c_str(), NULL);
+			//CreateDirectoryW((gameDir + L"\\Red Dead Redemption 2").c_str(), NULL);
+
+			return gameDir + &wcsstr(origFileName, L"ar Games\\Games")[14];
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
+		{
+			return gameDir + &wcsstr(origFileName, L"d Redemption 2")[14];
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\Grand Theft Auto V") != nullptr)
+		{
+			CreateDirectoryW(gameDir.c_str(), NULL);
+
+			return gameDir + &wcsstr(origFileName, L"d Theft Auto V")[14];
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\index.bin") != nullptr) // lol
+		{
+			CreateDirectoryW(gameDir.c_str(), NULL);
+
+			return gameDir + &wcsstr(origFileName, L"Rockstar Games")[14];
 		}
 	}
 
@@ -247,7 +267,7 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
-	if (wcsstr(fileName.c_str(), L"GTA V\\Profiles") != nullptr)
+	if (wcsstr(fileName.c_str(), L"GTA V\\Profiles") != nullptr || wcsstr(fileName.c_str(), L"Redemption 2\\Profiles") != nullptr)
 	{
 		return true;
 	}
@@ -264,11 +284,25 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	if (getenv("CitizenFX_ToolMode"))
 	{
+		if (wcsstr(fileName.c_str(), L"Auto V.lnk") != nullptr || wcsstr(fileName.c_str(), L"ion 2.lnk") != nullptr)
+		{
+			return true;
+		}
+
+		if (wcsstr(fileName.c_str(), L".exe.part") != nullptr)
+		{
+			return true;
+		}
+
 		if (wcsstr(fileName.c_str(), L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
 		{
 			return true;
 		}
 		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\Grand Theft Auto V") != nullptr)
+		{
+			return true;
+		}
+		else if (wcsstr(fileName.c_str(), L"Rockstar Games\\Games") != nullptr)
 		{
 			return true;
 		}

@@ -12,8 +12,8 @@ inline uintptr_t GetTriggerEP()
 	{
 		if (wcsstr(GetCommandLineW(), L"launcher.exe"))
 		{
-			// launcher.exe with sha256 hash 82935c8082c823e9ee275670ab218618b2101e3bc14091fe424539d8b44a68fe
-			return 0x1401BD2A4;
+			// launcher.exe with sha256 hash 0cc0862222ab2a8aa714658aff7d9f5897dfd8eceb0b279ffcda1df9de7e9774
+			return 0x1401F227C;
 		}
 	}
 

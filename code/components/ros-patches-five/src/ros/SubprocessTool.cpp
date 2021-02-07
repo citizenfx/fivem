@@ -79,6 +79,30 @@ std::string HandleCfxLogin();
 
 bool g_launchDone;
 
+#ifdef ROS_2037
+constexpr const int ViewMsg_NavigateTo = 0x1000A;
+constexpr const int ViewMsg_ExecuteJavascript = 0x1000B;
+constexpr const int ViewHostMsg_OnLoadingStateChanged = 0x20008;
+constexpr const int ViewHostMsg_OnWindowCreated = 0x20013;
+constexpr const int ViewHostMsg_OnLoadStart = 0x20006;
+constexpr const int ViewHostMsg_OnAddressBarChanged = 0x2000B;
+constexpr const int ViewHostMsg_OnLoadEnd = 0x20007;
+constexpr const int ViewHostMsg_OnJavascriptCallbackAsync = 0x20009;
+constexpr const int ViewHostMsg_OnJavascriptCallbackSync = 0x2000A;
+constexpr const int ViewHostMsg_CreateIpcChannel = 0x2001B;
+#else
+constexpr const int ViewMsg_NavigateTo = 0x1000A;
+constexpr const int ViewMsg_ExecuteJavascript = 0x1000B;
+constexpr const int ViewHostMsg_OnLoadingStateChanged = 0x2000B;
+constexpr const int ViewHostMsg_OnWindowCreated = 0x20016;
+constexpr const int ViewHostMsg_OnLoadStart = 0x20009;
+constexpr const int ViewHostMsg_OnAddressBarChanged = 0x2000E;
+constexpr const int ViewHostMsg_OnLoadEnd = 0x2000A;
+constexpr const int ViewHostMsg_OnJavascriptCallbackAsync = 0x2000C;
+constexpr const int ViewHostMsg_OnJavascriptCallbackSync = 0x2000D;
+constexpr const int ViewHostMsg_CreateIpcChannel = 0x20020;
+#endif
+
 struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 {
 	HANDLE hPipe;
@@ -100,16 +124,16 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 		std::vector<char> data((char*)payload, (char*)payload + payloadSize);
 
-		if (type == 0x1000a)
+		if (type == ViewMsg_NavigateTo)
 		{
 			iter.ReadString(&url);
 
-			IPC::SyncMessage outMsg(0x7FFFFFFF, 0x2001B, IPC::Message::PRIORITY_NORMAL, new MyListener());
+			IPC::SyncMessage outMsg(0x7FFFFFFF, ViewHostMsg_CreateIpcChannel, IPC::Message::PRIORITY_NORMAL, new MyListener());
 			initWindowReplyId = IPC::SyncMessage::GetMessageId(outMsg);
 
 			Write(outMsg);
 		}
-		else if (type == 0x1000b)
+		else if (type == ViewMsg_ExecuteJavascript)
 		{
 			// exec js
 			std::wstring js;
@@ -190,7 +214,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 												{"Action", "Install"},
 												{"Parameter", json::object({
 													{"titleName", targetTitle},
-													{"location", "C:\\Program Files\\Rockstar Games\\Red Dead Redemption 2"},
+													{"location", "C:\\Program Files\\Rockstar Games\\Games"},
 													{"desktopShortcut", false},
 													{"startMenuShortcut", false}
 												})}
@@ -200,7 +224,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 										verifying = true;
 									}
 
-									if (p["status"].value("updateState", "") == "starting")
+									if ((p["status"].value("updateState", "") == "starting" || p["status"].value("updateState", "") == "updateQueued") && !verified)
 									{
 										Sleep(500);
 
@@ -216,7 +240,10 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 											}).dump());
 									}
 								}
-								else if (p["status"].value("install", false) && (p["status"].value("updateState", "") == "notUpdating" || p["status"].value("updateState", "") == "updateQueued"))
+								else if (p["status"].value("install", false) &&
+									(p["status"].value("updateState", "") == "notUpdating" ||
+										p["status"].value("updateState", "") == "updateQueued" ||
+										p["status"].value("updateState", "") == "verifyQueued"))
 								{
 									if (verified && !launched)
 									{
@@ -240,7 +267,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 												{"Data", json::object({
 													{"Action", "Launch"},
 													{"Parameter", json::object({
-														{"titleName", targetTitle},
+														{ "titleName", targetTitle },
 														{"args", ""}
 													})}
 												})}
@@ -292,14 +319,14 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				child = RunListener(ToWide(str));
 
 				{
-					IPC::Message outMsg(1, 0x20008, IPC::Message::PRIORITY_NORMAL);
+					IPC::Message outMsg(1, ViewHostMsg_OnLoadingStateChanged, IPC::Message::PRIORITY_NORMAL);
 					outMsg.WriteInt(1);
 
 					Write(outMsg);
 				}
 
 				{
-					IPC::Message outMsg(1, 0x20013, IPC::Message::PRIORITY_NORMAL);
+					IPC::Message outMsg(1, ViewHostMsg_OnWindowCreated, IPC::Message::PRIORITY_NORMAL);
 					outMsg.WriteInt64(0); // hwnd
 					outMsg.WriteInt64(0); // more hwnd
 
@@ -307,7 +334,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				}
 
 				{
-					IPC::Message outMsg(1, 0x20006, IPC::Message::PRIORITY_NORMAL);
+					IPC::Message outMsg(1, ViewHostMsg_OnLoadStart, IPC::Message::PRIORITY_NORMAL);
 					outMsg.WriteString(url);
 					outMsg.WriteInt(1);
 					outMsg.WriteInt(1);
@@ -316,14 +343,14 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				}
 
 				{
-					IPC::Message outMsg(1, 0x2000B, IPC::Message::PRIORITY_NORMAL);
+					IPC::Message outMsg(1, ViewHostMsg_OnAddressBarChanged, IPC::Message::PRIORITY_NORMAL);
 					outMsg.WriteString(url);
 
 					Write(outMsg);
 				}
 
 				{
-					IPC::Message outMsg(1, 0x20007, IPC::Message::PRIORITY_NORMAL);
+					IPC::Message outMsg(1, ViewHostMsg_OnLoadEnd, IPC::Message::PRIORITY_NORMAL);
 					outMsg.WriteString(url);
 					outMsg.WriteInt(1);
 					outMsg.WriteInt(200);
@@ -332,7 +359,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				}
 
 				{
-					IPC::Message outMsg(1, 0x20008, IPC::Message::PRIORITY_NORMAL);
+					IPC::Message outMsg(1, ViewHostMsg_OnLoadingStateChanged, IPC::Message::PRIORITY_NORMAL);
 					outMsg.WriteInt(0);
 
 					Write(outMsg);
@@ -376,7 +403,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 	void SendJSCallback(const std::string& name, const std::string& json)
 	{
-		IPC::Message outMsg(1, 0x20009, IPC::Message::PRIORITY_NORMAL);
+		IPC::Message outMsg(1, ViewHostMsg_OnJavascriptCallbackAsync, IPC::Message::PRIORITY_NORMAL);
 		outMsg.WriteString16(ToWide(name));
 		outMsg.WriteString16(ToWide(json));
 
@@ -388,7 +415,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 	void SendJSSync(const std::string& name, const std::string& json, const std::function<void(bool, const std::string&)>& fn)
 	{
-		IPC::SyncMessage outMsg(1, 0x2000A, IPC::Message::PRIORITY_NORMAL, new MyListener());
+		IPC::SyncMessage outMsg(1, ViewHostMsg_OnJavascriptCallbackSync, IPC::Message::PRIORITY_NORMAL, new MyListener());
 		outMsg.WriteString16(ToWide(name));
 		outMsg.WriteString16(ToWide(json));
 
