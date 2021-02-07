@@ -134,7 +134,7 @@ inline int GetGameBuild()
 		return 1311;
 	})();
 #else
-	build = 0;
+	static int build = 0;
 #endif
 
 	return build;
