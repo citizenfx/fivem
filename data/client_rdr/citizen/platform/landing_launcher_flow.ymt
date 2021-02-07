@@ -74,12 +74,12 @@
         <Target>^.landing_page_mp_or_sp</Target>
        </Item>
       </LinkMap>-->
-	  <State type="StateDispatchScriptEvent">
-	   <Channel>LANDING_PAGE</Channel>
-	   <Event>
-		<Type>UISCRIPTEVENTTYPE_ITEM_SELECTED</Type>
-		<HashParameter>LOAD_SP</HashParameter>
-	   </Event>
+	  <State type="StateDispatchCodeEvent">
+	    <EventChannel>UI_EVENT_CHANNEL_LANDING_PAGE</EventChannel>
+	    <EventData type="uiGenericEventData_HashString">
+	      <data>set_on_online</data>
+	    </EventData>
+	    <ActionMode>ACTION_ON_EXITING</ActionMode>
 	  </State>
 	  <LinkMap>
 	   <Item key="next">

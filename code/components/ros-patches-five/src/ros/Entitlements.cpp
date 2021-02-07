@@ -687,6 +687,19 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 #endif
 	});
 
+	mapper->AddGameService("legalpolicies.asmx/GetAcceptedVersion", [](const std::string& body)
+	{
+		auto postData = ParsePOSTString(body);
+
+		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="http://services.ros.rockstargames.com/">
+  <Status>1</Status>
+  <Version>4</Version>
+  <PolicyTag>%s</PolicyTag>
+</Response>)",
+		postData["policyTag"]);
+	});
+
 	mapper->AddGameService("App.asmx/GetBuildManifestFull", [](const std::string& body)
 	{
 		auto postData = ParsePOSTString(body);

@@ -702,8 +702,10 @@ static HookFunction hookFunction([] ()
 	}
 
 	// newer SC SDK will otherwise overflow in cert name
+#ifndef IS_RDR3
 	hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
 	hook::iat("kernel32.dll", LocalFreeStub, "LocalFree");
+#endif
 
     hook::iat("user32.dll", LoadIconStub, "LoadIconA");
     hook::iat("user32.dll", LoadIconStub, "LoadIconW");
