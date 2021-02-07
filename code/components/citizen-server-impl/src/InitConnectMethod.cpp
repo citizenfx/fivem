@@ -280,8 +280,16 @@ static InitFunction initFunction([]()
 		g_enforcedGameBuild = "1604";
 		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
 
-		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance]()
+		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
 		{
+			if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::RDR3)
+			{
+				if (g_enforcedGameBuild == "1604")
+				{
+					enforceGameBuildVar->GetHelper()->SetValue("1311");
+				}
+			}
+
 			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
 			clientRegistry->ForAllClients([](const fx::ClientSharedPtr& client)
