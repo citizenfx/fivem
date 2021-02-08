@@ -6,7 +6,12 @@ return {
 	end,
 
 	run = function()
-		targetname "xz-crt"
+		if dynamic then
+			targetname "xz"
+		else
+			targetname "xz-crt"
+		end
+
 		language "C"
 		kind "StaticLib"
 		
