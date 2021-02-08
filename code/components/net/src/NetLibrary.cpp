@@ -1694,7 +1694,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
 							{
+#if defined(GTA_FIVE)
 								if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
+#else
+								if (buildRef != 1311 && buildRef != 1355)
+#endif
 								{
 									OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef));
 									m_connectionState = CS_IDLE;
