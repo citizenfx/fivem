@@ -75,6 +75,31 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     return this.fsService.joinPath(this.getServerPath(updateChannel), 'FXServer.exe');
   }
 
+  async ensureSvAdhesiveEnabled(updateChannel: ServerUpdateChannel, enabled: boolean) {
+    const componentsPath = this.fsService.joinPath(this.getServerPath(updateChannel), 'components.json');
+    const componentsContent = await this.fsService.readFile(componentsPath);
+
+    const components: string[] = JSON.parse(componentsContent.toString('utf8'));
+    const svadhesiveIndex = components.indexOf('svadhesive');
+
+    // Should be enabled and is enabled -> noop
+    if (enabled && svadhesiveIndex > -1) {
+      return;
+    }
+    // Should not be enable and is not enabled -> also noop
+    if (!enabled && svadhesiveIndex === -1) {
+      return;
+    }
+
+    if (enabled) {
+      components.push('svadhesive');
+    } else {
+      components.splice(svadhesiveIndex, 1);
+    }
+
+    await this.fsService.writeFile(componentsPath, JSON.stringify(components, null, 2));
+  }
+
   async checkAndInstallUpdates() {
     await Promise.all([
       this.fetchInstalledVersions(),

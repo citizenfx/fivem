@@ -120,18 +120,24 @@ static void RenderThread()
 void ExecuteJavascriptOnMainFrame(const std::string& jsc, const std::string& origin)
 {
 	auto instance = SDKCefClient::GetInstance();
-	if (instance == nullptr)
+	if (!instance)
 	{
 		return;
 	}
 
 	auto browser = instance->GetBrowser();
-	if (browser == nullptr)
+	if (!browser)
 	{
 		return;
 	}
 
-	browser->GetMainFrame()->ExecuteJavaScript(jsc, origin, 0);
+	auto mainFrame = browser->GetMainFrame();
+	if (!mainFrame)
+	{
+		return;
+	}
+
+	mainFrame->ExecuteJavaScript(jsc, origin, 0);
 }
 
 void SdkMain()
@@ -272,6 +278,20 @@ void SdkMain()
 		else if (eventName == "sdk:restartGame")
 		{
 			gameProcessManager.RestartGame();
+		}
+		else if (eventName == "sdk:api:send")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			std::string message = obj.as<std::vector<std::string>>()[0];
+
+			ExecuteJavascriptOnMainFrame(
+				fmt::sprintf("window.postMessage({type: 'sdkApiMessage', data: %s}, '*')", message),
+				"fxdk://api"
+			);
 		}
 	});
 

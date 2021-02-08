@@ -31,12 +31,11 @@ import {
   ProjectManifest,
   ProjectManifestResource,
   ProjectPathsState,
-  ProjectResource,
   ProjectResources,
   ServerUpdateChannel,
   serverUpdateChannels,
 } from "shared/api.types";
-import { debounce, getResourceConfig } from 'shared/utils';
+import { debounce, getResourceConfig, notNull } from 'shared/utils';
 import { ContributionProvider } from 'backend/contribution-provider';
 import { AssetContribution, AssetInterface } from './asset/asset-contribution';
 import { GameServerService } from 'backend/game-server/game-server-service';
@@ -46,6 +45,8 @@ import { ChangeAwareContainer } from 'backend/change-aware-container';
 import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
 import { TheiaService } from 'backend/theia/theia-service';
+import { getAssetsPriorityQueue } from './project-utils';
+import { Resource } from './asset/resource/resource';
 
 interface Silentable {
   silent?: boolean,
@@ -63,6 +64,11 @@ export interface GetAssetMetaOptions extends AssetMetaAccessorOptions {
 }
 
 export interface SetAssetMetaOptions extends AssetMetaAccessorOptions {
+}
+
+export enum ProjectState {
+  Development,
+  Building,
 }
 
 @injectable()
@@ -104,6 +110,8 @@ export class Project implements ApiContribution {
 
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
+
+  private state: ProjectState = ProjectState.Development;
 
   private path: string;
   private assets: Map<string, AssetInterface> = new Map();
@@ -173,6 +181,19 @@ export class Project implements ApiContribution {
     return Object.values(this.getResources()).filter((resource) => resource.enabled).map((resource) => resource.path);
   }
 
+  getEnabledResourcesAssets(): Resource[] {
+    const enabledResourcesPaths = this.getEnabledResourcesPaths();
+
+    return enabledResourcesPaths.map((resourcePath) => {
+      const asset = this.assets.get(resourcePath);
+      if (asset instanceof Resource) {
+        return asset;
+      }
+
+      return null;
+    }).filter(notNull);
+  }
+
   hasAsset(assetPath: string): boolean {
     return this.assets.has(assetPath);
   }
@@ -185,6 +206,47 @@ export class Project implements ApiContribution {
 
   log(msg: string, ...args) {
     this.logService.log(`[ProjectInstance: ${this.path}]`, msg, ...args);
+  }
+
+  enterState(state: ProjectState) {
+    this.state = state;
+  }
+
+  isNotInDevState(): boolean {
+    return this.state !== ProjectState.Development;
+  }
+
+  async suspendWatchCommands() {
+    const suspendPromises = [];
+
+    for (const asset of this.assets.values()) {
+      if (asset.suspendWatchCommands) {
+        suspendPromises.push(asset.suspendWatchCommands());
+      }
+    }
+
+    await Promise.all(suspendPromises);
+  }
+
+  resumeWatchCommands() {
+    for (const asset of this.assets.values()) {
+      asset.resumeWatchCommands?.();
+    }
+  }
+
+  async runBuildCommands() {
+    const priorityQueue = getAssetsPriorityQueue(this.assets);
+
+    for (const assetPathsBatch of priorityQueue) {
+      await Promise.all(assetPathsBatch.map((assetPath) => {
+        const asset = this.assets.get(assetPath);
+        if (!asset?.runBuildCommands) {
+          return;
+        }
+
+        return asset.runBuildCommands();
+      }));
+    }
   }
 
   //#region lifecycle

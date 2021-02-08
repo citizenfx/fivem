@@ -19,9 +19,15 @@ import {
   BsStopFill,
   BsPlayFill,
   BsX,
+  BsBoxArrowInDown,
+  BsBoxArrowUpRight,
 } from 'react-icons/bs';
 
 export const devtoolsIcon = <BsTerminal />;
+
+export const projectBuildIcon = <BsBoxArrowInDown />;
+
+export const openInExplorerIcon = <BsBoxArrowUpRight />;
 
 export const projectConfigIcon = <BsGear />;
 export const newProjectIcon = <BsLayersFill />;

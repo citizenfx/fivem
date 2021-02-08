@@ -7,11 +7,12 @@ import { deleteIcon, renameIcon } from 'constants/icons';
 import { getFileIcon } from './File.utils';
 import { FileRenamer } from './FileRenamer/FileRenamer';
 import { FileDeleter } from './FileDeleter/FileDeleter';
-import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
-import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
-import { ProjectItemProps } from '../ProjectExplorer.item';
+import { ProjectExplorerItemContext } from '../item.context';
+import { projectExplorerItemType } from '../item.types';
+import { ProjectItemProps } from '../item';
 import { useItemDrag, useItemRelocateSourceContextMenu } from '../ProjectExplorer.hooks';
-import s from './File.module.scss';
+import { itemsStyles } from '../item.styles';
+import { BsBoxArrowUpRight } from 'react-icons/bs';
 
 
 export const File = React.memo(function File(props: ProjectItemProps) {
@@ -48,27 +49,38 @@ export const File = React.memo(function File(props: ProjectItemProps) {
       disabled: options.disableFileRename,
       onClick: openFileRenamer,
     },
-  ], [options, openFileDeleter, openFileRenamer, relocateSourceContextMenu]);
+    ContextMenuItemSeparator,
+    {
+      id: 'open-in-explorer',
+      icon: <BsBoxArrowUpRight />,
+      text: 'Open in Explorer',
+      onClick: () => invokeNative('openFolderAndSelectFile', entry.path),
+    },
+  ], [entry, options, openFileDeleter, openFileRenamer, relocateSourceContextMenu]);
 
   const icon = getFileIcon(entry);
 
   const { isDragging, dragRef } = useItemDrag(entry, projectExplorerItemType.FILE);
 
-  const rootClassName = classnames(s.root, {
-    [s.dragging]: isDragging,
+  const rootClassName = classnames(itemsStyles.wrapper, {
+    [itemsStyles.dragging]: isDragging,
   });
 
   return (
-    <>
+    <div className={rootClassName}>
       <ContextMenu
         ref={dragRef}
         items={contextMenuItems}
-        className={rootClassName}
-        activeClassName={s.active}
+        className={itemsStyles.item}
+        activeClassName={itemsStyles.itemActive}
         onClick={handleClick}
       >
-        {icon}
-        {entry.name}
+        <div className={itemsStyles.itemIcon}>
+          {icon}
+        </div>
+        <div className={itemsStyles.itemTitle}>
+          {entry.name}
+        </div>
       </ContextMenu>
 
       {fileRenamerOpen && (
@@ -78,6 +90,6 @@ export const File = React.memo(function File(props: ProjectItemProps) {
       {fileDeleterOpen && (
         <FileDeleter entry={entry} onClose={closeFileDeleter} />
       )}
-    </>
+    </div>
   );
 });

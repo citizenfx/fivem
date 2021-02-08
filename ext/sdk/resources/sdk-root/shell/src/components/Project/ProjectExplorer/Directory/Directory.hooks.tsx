@@ -6,7 +6,7 @@ import { ProjectData } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useOpenFlag } from 'utils/hooks';
-import { ProjectExplorerItemContext } from '../ProjectExplorer.itemContext';
+import { ProjectExplorerItemContext } from '../item.context';
 
 
 export const useDirectoryContextMenu = (path: string, project: ProjectData, childrenLength: number) => {

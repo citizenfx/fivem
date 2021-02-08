@@ -5,6 +5,8 @@
 
   display: flex;
 
+  height: $q*9;
+
   border: solid 2px $fgColor;
 
   user-select: none;
@@ -14,10 +16,14 @@
     pointer-events: none;
   }
 
+  &.descripted {
+    margin-bottom: $q*4;
+  }
+
   .description {
     position: absolute;
     bottom: 0;
-    left: 0;
+    left: -2px; // as there's also border
 
     padding-top: $q*2;
 

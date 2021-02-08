@@ -95,7 +95,7 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @handlesClientEvent(serverApi.start)
   async start(request: ServerStartRequest) {
-    const { projectPath } = request;
+    const { projectPath, updateChannel, licenseKey, steamWebApiKey } = request;
 
     // Check if port is available
     if (!await this.isPortAvailable(30120)) {
@@ -117,20 +117,32 @@ export class GameServerService implements AppContribution, ApiContribution {
       await fs.promises.writeFile(blankPath, '');
     }
 
-    const fxserverPath = this.gameServerManagerService.getServerBinaryPath(request.updateChannel);
+    const fxserverPath = this.gameServerManagerService.getServerBinaryPath(updateChannel);
     this.logService.log('FXServer path', fxserverPath, request);
     const fxserverArgs = [
       '+exec', 'blank.cfg',
       '+endpoint_add_tcp', '127.0.0.1:30120',
       '+endpoint_add_udp', '127.0.0.1:30120',
+      '+set', 'sv_hostname', 'FxDK Dev Server',
       '+set', 'onesync', 'on',
       '+set', 'sv_maxclients', '64',
-      '+set', 'sv_lan', '1',
-      '+set', 'steam_webApiKey', 'none',
       '+set', 'svgui_disable', '1',
+      '+set', 'steam_webApiKey', steamWebApiKey || 'none',
       '+add_ace', 'resource.sdk-game', 'command', 'allow',
       '+ensure', 'sdk-game',
     ];
+
+    if (licenseKey) {
+      fxserverArgs.push('+set', 'sv_licenseKey', licenseKey);
+      fxserverArgs.push('+set', 'sv_master1', '');
+      fxserverArgs.push('+set', 'sv_endpointPrivacy', '1');
+
+      await this.gameServerManagerService.ensureSvAdhesiveEnabled(updateChannel, true);
+    } else {
+      fxserverArgs.push('+set', 'sv_lan', '1');
+
+      await this.gameServerManagerService.ensureSvAdhesiveEnabled(updateChannel, false);
+    }
 
     this.currentEnabledResourcesPaths.forEach((resourcePath) => {
       fxserverArgs.push('+ensure', this.fsService.basename(resourcePath));

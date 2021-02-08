@@ -68,6 +68,8 @@ export interface RelinkResourcesRequest {
 export interface ServerStartRequest {
   projectPath: string,
   updateChannel: ServerUpdateChannel,
+  licenseKey?: string,
+  steamWebApiKey?: string,
 }
 
 export interface SetEnabledResourcesRequest {
@@ -81,3 +83,8 @@ export interface MoveEntryRequest {
 }
 
 export type CopyEntryRequest = MoveEntryRequest;
+
+export interface ProjectBuildRequest {
+  buildPath: string,
+  useVersioning: boolean,
+}

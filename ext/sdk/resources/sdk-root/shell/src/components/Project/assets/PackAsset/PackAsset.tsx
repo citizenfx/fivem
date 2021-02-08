@@ -1,17 +1,17 @@
 import React from 'react';
-import classnames from 'classnames';
 import {
   ProjectExplorerItemContext,
   ProjectExplorerItemContextProvider,
   ProjectExplorerVisibilityFilter,
-} from 'components/Project/ProjectExplorer/ProjectExplorer.itemContext';
-import { ProjectItemProps } from 'components/Project/ProjectExplorer/ProjectExplorer.item';
+} from 'components/Project/ProjectExplorer/item.context';
+import { ProjectItemProps } from 'components/Project/ProjectExplorer/item';
 import { invariant } from 'utils/invariant';
 import { useExpandablePath, useItem } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
 import { assetStatus } from 'shared/api.types';
 import { assetIcon, rotatingRefreshIcon } from 'constants/icons';
-import s from './PackAsset.module.scss';
 import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer/Explorer.filters';
+import { itemsStyles } from 'components/Project/ProjectExplorer/item.styles';
+import { ContextMenu } from 'components/controls/ContextMenu/ContextMenu';
 
 
 const visibilityFilter = combineVisibilityFilters(
@@ -40,7 +40,7 @@ export const PackAsset = React.memo(function PackAsset(props: ProjectItemProps) 
 
   invariant(assetMeta, 'No asset meta');
 
-  const { renderItemChildren } = useItem(props);
+  const { requiredContextMenuItems, renderItemChildren } = useItem(props);
   const { expanded, toggleExpanded } = useExpandablePath(entry.path, false);
 
   const [updating, setUpdating] = React.useState(assetMeta.manager?.data?.status === assetStatus.updating);
@@ -50,33 +50,36 @@ export const PackAsset = React.memo(function PackAsset(props: ProjectItemProps) 
 
   const children = renderItemChildren(visibilityFilter);
 
-  const rootClassName = classnames(s.root, {
-    [s.open]: expanded,
-  });
-
   const icon = updating
     ? rotatingRefreshIcon
     : assetIcon;
 
   return (
-    <div className={rootClassName}>
-      <div
-        className={s.name}
+    <div className={itemsStyles.wrapper}>
+      <ContextMenu
+        items={requiredContextMenuItems}
+        className={itemsStyles.item}
         onClick={toggleExpanded}
         title={`Imported from: ${assetMeta.manager?.data?.repoUrl || 'unknown'}`}
       >
-        {icon}
-        {entry.name}
+        <div className={itemsStyles.itemIcon}>
+          {icon}
+        </div>
+        <div className={itemsStyles.itemTitle}>
+          {entry.name}
+        </div>
 
         {assetMeta.flags.readOnly && (
-          <div className={s.readonly}>
-            <span>readonly</span>
+          <div className={itemsStyles.itemStatus}>
+            <div className={itemsStyles.itemStatusEntry}>
+              readonly
+            </div>
           </div>
         )}
-      </div>
+      </ContextMenu>
 
       {expanded && (
-        <div className={s.children}>
+        <div className={itemsStyles.children}>
           <ProjectExplorerItemContextProvider
             options={contextOptions}
           >

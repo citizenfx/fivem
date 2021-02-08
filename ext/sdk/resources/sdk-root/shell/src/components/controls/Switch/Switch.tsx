@@ -68,6 +68,7 @@ export const Switch = React.memo(function Switch(props: SwitchProps) {
 
   const rootClassName = classnames(s.root, className, {
     [s.disabled]: disabled,
+    [s.descripted]: optionDescription,
   });
 
   return (

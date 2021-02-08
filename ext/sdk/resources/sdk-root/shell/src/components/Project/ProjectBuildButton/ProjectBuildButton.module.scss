@@ -1,0 +1,9 @@
+@import "variables";
+
+.root {
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: $q*12 !important;
+
+  cursor: pointer;
+}

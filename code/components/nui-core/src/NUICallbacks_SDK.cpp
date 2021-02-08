@@ -34,7 +34,7 @@ static InitFunction initFunction([]()
 				return CefV8Value::CreateBool(false);
 			}
 
-			// FUCKING INPUT MUTEX OK
+			// working with input mutex induces horrible and random freezes
 			return fn(arguments, exception);
 
 			/*trace(__FUNCTION__ ": rgd->inputMutex == %p\n", rgd->inputMutex);
@@ -185,5 +185,102 @@ static InitFunction initFunction([]()
 		}
 
 		return CefV8Value::CreateUndefined();
+	});
+
+	nuiApp->AddV8Handler("fxdkSendApiMessage", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() == 1)
+		{
+			auto msg = arguments[0];
+			if (!msg->IsString())
+			{
+				return CefV8Value::CreateBool(false);
+			}
+
+			auto cefMsg = CefProcessMessage::Create("fxdkSendApiMessage");
+			auto cefMsgArgs = cefMsg->GetArgumentList();
+
+			cefMsgArgs->SetSize(1);
+			cefMsgArgs->SetString(0, msg->GetStringValue());
+
+			CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, cefMsg);
+
+			return CefV8Value::CreateBool(true);
+		}
+
+		return CefV8Value::CreateBool(false);
+	});
+
+	static bool selectFolderDialogOpen = false;
+	static std::pair<CefRefPtr<CefV8Context>, CefRefPtr<CefV8Value>> selectFolderDialogCallback;
+
+	nuiApp->AddV8Handler("fxdkOpenSelectFolderDialog", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (selectFolderDialogOpen)
+		{
+			return CefV8Value::CreateBool(false);
+		}
+
+		selectFolderDialogOpen = true;
+
+		if (arguments.size() < 3)
+		{
+			return CefV8Value::CreateBool(false);
+		}
+
+		if (!arguments[0]->IsString())
+		{
+			exception.FromWString(L"First argument (Select Dialog start path) must be a string"); // = ;
+			return CefV8Value::CreateBool(false);
+		}
+		if (!arguments[1]->IsString())
+		{
+			exception.FromWString(L"Second argument (Select Dialog Title) must be a string");
+			return CefV8Value::CreateBool(false);
+		}
+		if (!arguments[2]->IsFunction())
+		{
+			exception.FromWString(L"Third argument (Select Dialog callback) must be a function");
+			return CefV8Value::CreateBool(false);
+		}
+
+		selectFolderDialogCallback.first = CefV8Context::GetCurrentContext();
+		selectFolderDialogCallback.second = arguments[2];
+
+		auto cefMsg = CefProcessMessage::Create("fxdkOpenSelectFolderDialog");
+		auto cefMsgArgs = cefMsg->GetArgumentList();
+
+		cefMsgArgs->SetSize(2);
+
+		cefMsgArgs->SetString(0, arguments[0]->GetStringValue());
+		cefMsgArgs->SetString(1, arguments[1]->GetStringValue());
+
+		CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, cefMsg);
+
+		return CefV8Value::CreateBool(true);
+	});
+
+	nuiApp->AddProcessMessageHandler("fxdkOpenSelectFolderDialogResult", [](CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> message)
+	{
+		selectFolderDialogOpen = false;
+
+		CefRefPtr<CefV8Context> context = selectFolderDialogCallback.first;
+		CefRefPtr<CefV8Value> callback = selectFolderDialogCallback.second;
+
+		std::string path = message->GetArgumentList()->GetString(0);
+
+		context->Enter();
+
+		CefV8ValueList args;
+		args.push_back(CefV8Value::CreateString(path));
+
+		callback->ExecuteFunction(NULL, args);
+
+		context->Exit();
+
+		selectFolderDialogCallback.first = nullptr;
+		selectFolderDialogCallback.second = nullptr;
+
+		return true;
 	});
 }, 1);

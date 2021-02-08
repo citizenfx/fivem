@@ -1,9 +1,9 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import fg from 'fast-glob';
 import mkdirp from 'mkdirp';
 import rimrafSync from 'rimraf';
-import filesize from 'filesize';
 import { promisify } from 'util';
 import { inject, injectable } from "inversify";
 import { FsAtomicWriter } from './fs-atomic-writer';
@@ -13,6 +13,10 @@ import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
 
 const rimraf = promisify(rimrafSync);
+
+export interface CopyOptions {
+  onProgress?: (progress: number) => void,
+}
 
 /**
  * Yes, stupid-ass abstraction
@@ -168,7 +172,15 @@ export class FsService {
     return new FsJsonFileMapping(snapshot, writer, reader, options);
   }
 
-  async copy(sourcePath: string, target: string) {
+  /**
+   * If sourcePath is /a/b/entry
+   * And target is /a/c
+   * It will copy content of /a/b/entry to /a/c/entry
+   *
+   * @param sourcePath
+   * @param target
+   */
+  async copy(sourcePath: string, target: string, options: CopyOptions = {}) {
     const sourceName = this.basename(sourcePath);
     const targetPath = this.joinPath(target, sourceName);
 
@@ -177,10 +189,18 @@ export class FsService {
       throw new Error(`Can't copy ${sourcePath} -> ${target} as ${sourcePath} does not exist`);
     }
 
+    const {
+      onProgress = () => {},
+    } = options;
+
     // Handle file first
     if (!sourceStat.isDirectory()) {
       const sourceSize = sourceStat.size;
       let doneSize = 0;
+
+      if (onProgress) {
+        return this.doCopyFile(sourcePath, targetPath, onProgress);
+      }
 
       return this.taskReporterService.wrap(`Copying ${sourcePath} to ${target}`, (task) => {
         return this.doCopyFile(sourcePath, targetPath, (bytesRead) => {
@@ -191,65 +211,70 @@ export class FsService {
     }
 
     // Now directories
-    this.taskReporterService.wrap(`Copying ${sourcePath} to ${target}`, async (task) => {
-      type SourcePath = string;
-      type TargetPath = string;
+    if (onProgress) {
+      return this.doCopyDir(sourcePath, targetPath, onProgress);
+    }
 
-      const sourceDirPaths = new Set<SourcePath>([sourcePath]);
-      const filesToCopy = new Map<SourcePath, TargetPath>();
-      const ignoredFiles = new Set();
-
-      let totalSize = 0;
-      let doneSize = 0;
-
-      task.setText('Calculating files to copy...');
-
-      for (const sourceDirPath of sourceDirPaths) {
-        const targetDirPath = this.joinPath(targetPath, this.relativePath(sourcePath, sourceDirPath));
-
-        const [dirEntryNames] = await Promise.all([
-          this.readdir(sourceDirPath),
-          this.mkdirp(targetDirPath),
-        ]);
-
-        await Promise.all(dirEntryNames.map(async (dirEntryName) => {
-          const dirEntrySourcePath = this.joinPath(sourceDirPath, dirEntryName);
-          const dirEntryTargetPath = this.joinPath(targetDirPath, dirEntryName);
-
-          const dirEntrySourceStat = await this.statSafe(dirEntrySourcePath);
-          if (dirEntrySourceStat) {
-            if (dirEntrySourceStat.isDirectory()) {
-              return sourceDirPaths.add(dirEntrySourcePath);
-            }
-
-            // Can't overwrite files yet
-            if (await this.statSafe(dirEntryTargetPath)) {
-              return ignoredFiles.add(dirEntrySourcePath);
-            }
-
-            filesToCopy.set(dirEntrySourcePath, dirEntryTargetPath);
-            totalSize += dirEntrySourceStat.size;
-
-            task.setText(`Files to copy: ${filesToCopy.size}`);
-          }
-        }));
-      }
-
-      if (ignoredFiles.size) {
-        this.notificationService.warning(`Following files won't be copied as they will overwrite existing files: ${[...ignoredFiles.values()].join(', ')}`);
-      }
-
-      let filesCounter = 1;
-
-      for (const [fileSourcePath, fileTargetPath] of filesToCopy.entries()) {
-        task.setText(`Copying files: ${filesCounter++}/${filesToCopy.size}`);
-
-        await this.doCopyFile(fileSourcePath, fileTargetPath, (bytesRead) => {
-          doneSize += bytesRead;
-          task.setProgress(doneSize / totalSize);
-        });
-      }
+    return this.taskReporterService.wrap(`Copying ${sourcePath} to ${target}`, async (task) => {
+      return this.doCopyDir(sourcePath, targetPath, (progress: number) => task.setProgress(progress));
     });
+  }
+
+  private async doCopyDir(
+    sourcePath: string,
+    targetPath: string,
+    reportProgress: (bytesRead: number) => void = () => {},
+  ): Promise<void> {
+    type SourcePath = string;
+    type TargetPath = string;
+
+    const sourceDirPaths = new Set<SourcePath>([sourcePath]);
+    const filesToCopy = new Map<SourcePath, TargetPath>();
+    const ignoredFiles = new Set();
+
+    let totalSize = 0;
+    let doneSize = 0;
+
+
+    for (const sourceDirPath of sourceDirPaths) {
+      const targetDirPath = this.joinPath(targetPath, this.relativePath(sourcePath, sourceDirPath));
+
+      const [dirEntryNames] = await Promise.all([
+        this.readdir(sourceDirPath),
+        this.mkdirp(targetDirPath),
+      ]);
+
+      await Promise.all(dirEntryNames.map(async (dirEntryName) => {
+        const dirEntrySourcePath = this.joinPath(sourceDirPath, dirEntryName);
+        const dirEntryTargetPath = this.joinPath(targetDirPath, dirEntryName);
+
+        const dirEntrySourceStat = await this.statSafe(dirEntrySourcePath);
+        if (dirEntrySourceStat) {
+          if (dirEntrySourceStat.isDirectory()) {
+            return sourceDirPaths.add(dirEntrySourcePath);
+          }
+
+          // TODO: Support file overwrites
+          if (await this.statSafe(dirEntryTargetPath)) {
+            return ignoredFiles.add(dirEntrySourcePath);
+          }
+
+          filesToCopy.set(dirEntrySourcePath, dirEntryTargetPath);
+          totalSize += dirEntrySourceStat.size;
+        }
+      }));
+    }
+
+    if (ignoredFiles.size) {
+      this.notificationService.warning(`Following files won't be copied as they will overwrite existing files: ${[...ignoredFiles.values()].join(', ')}`);
+    }
+
+    for (const [fileSourcePath, fileTargetPath] of filesToCopy.entries()) {
+      await this.doCopyFile(fileSourcePath, fileTargetPath, (bytesRead) => {
+        doneSize += bytesRead;
+        reportProgress(doneSize / totalSize);
+      });
+    }
   }
 
   private doCopyFile(sourcePath: string, targetPath: string, reportProgress: (bytesRead: number) => void = () => {}): Promise<void> {
@@ -279,5 +304,20 @@ export class FsService {
 
       reader.pipe(writer);
     });
+  }
+
+  async glob(patterns: string | string[], options: fg.Options): Promise<string[]> {
+    return fg(patterns, options);
+  }
+
+  async readIgnorePatterns(basePath: string, fileName: string = '.fxdkignore'): Promise<string[]> {
+    try {
+      const filePath = this.joinPath(basePath, fileName);
+      const fileContent = await this.readFileString(filePath);
+
+      return fileContent.trim().split('\n').map((line) => line.trim()).filter(Boolean);
+    } catch (e) {
+      return [];
+    }
   }
 }

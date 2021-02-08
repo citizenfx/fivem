@@ -4,8 +4,6 @@
   display: flex;
   flex-direction: column;
 
-  height: $modalContentHeight;
-
   overflow: hidden;
 
   .update-channel {
@@ -13,10 +11,7 @@
     flex-direction: column;
     align-items: flex-start;
 
-    padding: $q*4;
-
-    .label {
-      margin-bottom: $q;
-    }
+    padding: 0 $q*4;
+    padding-bottom: $q*4;
   }
 }

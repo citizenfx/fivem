@@ -42,12 +42,6 @@
     box-shadow: 0 0 $q*4 rgba($acColor, .75);
   }
 
-  &.icon.text {
-    svg {
-      margin-right: $q;
-    }
-  }
-
   &.primary {
     border-color: $acColor;
 

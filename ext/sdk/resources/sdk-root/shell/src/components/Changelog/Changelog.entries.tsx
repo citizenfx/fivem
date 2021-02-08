@@ -13,6 +13,22 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>8 february 2021</strong>
+        </p>
+        <ul>
+          <li>Basic project builder</li>
+          <li>Theia updated from 1.9.0 to 1.10.0</li>
+          <li>Game menu of theia is now "FxDK" with two more options</li>
+        </ul>
+
+        <p>
+          <strong>3 february 2021</strong>
+        </p>
+        <ul>
+          <li>"Open in Explorer" context menu item available in ProjectExplorer now</li>
+        </ul>
+
+        <p>
           <strong>1 february 2021</strong>
         </p>
         <ul>

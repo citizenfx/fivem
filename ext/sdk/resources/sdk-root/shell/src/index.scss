@@ -1,4 +1,5 @@
 @import "variables.scss";
+@import "panels.scss";
 
 @font-face {
   font-family: 'Mensch';
@@ -44,6 +45,21 @@ body,
   animation: bganim 40s linear 0s infinite;
 }
 
+a {
+  color: currentColor;
+  text-decoration: underline;
+
+  cursor: pointer;
+
+  @include interactiveTransition;
+
+  &:hover {
+    color: $fgColor;
+    background-color: $acColor;
+    box-shadow: 0 0 0 4px $acColor;
+  }
+}
+
 h1,
 h2,
 h3,
@@ -63,6 +79,8 @@ h6 {
   padding: $q*3 $q*4;
   text-transform: uppercase;
   margin-bottom: 0;
+
+  user-select: none;
 }
 .modal-label {
   padding: $q*2 $q*4;
@@ -75,6 +93,19 @@ h6 {
 
   cursor: default;
   user-select: none;
+}
+.modal-block {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+
+  padding: 0 $q*4;
+
+  margin-bottom: $q*4;
+
+  & > * {
+    flex-grow: 1;
+  }
 }
 .modal-error {
   padding: $q*4;
@@ -143,6 +174,14 @@ h6 {
         height: 10px;
       }
     }
+  }
+}
+
+kbd {
+  &::before,
+  &::after {
+    display: inline-block;
+    content: ' ';
   }
 }
 

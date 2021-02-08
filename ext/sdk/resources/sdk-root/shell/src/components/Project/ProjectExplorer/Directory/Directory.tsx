@@ -1,14 +1,14 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
+import { BsBoxArrowUpRight, BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
-import { ProjectItemProps } from '../ProjectExplorer.item';
+import { ProjectItemProps } from '../item';
 import { useExpandablePath, useItem, useItemDragAndDrop, useItemRelocateSourceContextMenu, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
-import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { projectExplorerItemType } from '../item.types';
 import { FilesystemEntry } from 'shared/api.types';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
-import s from './Directory.module.scss';
+import { itemsStyles } from '../item.styles';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean) => {
@@ -41,7 +41,7 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
     deleteDirectory,
   } = useDirectoryContextMenu(entry.path, project, directoryChildren.length);
 
-  const { contextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
+  const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
 
   const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
   const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
@@ -52,7 +52,9 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
     ContextMenuItemSeparator,
     ...directoryContextMenuItems,
     ...contextMenuItems,
-  ], [relocateSourceContextMenu, relocateTargetContextMenu, directoryContextMenuItems, contextMenuItems]);
+    ContextMenuItemSeparator,
+    ...requiredContextMenuItems,
+  ], [entry, relocateSourceContextMenu, relocateTargetContextMenu, directoryContextMenuItems, contextMenuItems, requiredContextMenuItems]);
   const nodes = renderItemChildren();
   const iconNode = icon || getDirectoryIcon(entry, expanded);
 
@@ -63,29 +65,33 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
     projectExplorerItemType.FILE, projectExplorerItemType.FOLDER
   ]);
 
-  const rootClassName = classnames(s.root, {
-    [s.dropping]: isDropping,
+  const rootClassName = classnames(itemsStyles.wrapper, {
+    [itemsStyles.dropping]: isDropping,
   })
 
-  const nameClassName = classnames(s.name, {
-    [s.dragging]: isDragging,
+  const itemClassName = classnames(itemsStyles.item, {
+    [itemsStyles.dragging]: isDragging,
   });
 
   return (
     <div className={rootClassName} ref={dropRef}>
       <ContextMenu
-        className={nameClassName}
+        className={itemClassName}
         items={contextItems}
         onClick={toggleExpanded}
-        activeClassName={s.active}
+        activeClassName={itemsStyles.itemActive}
         ref={dragRef}
       >
-        {iconNode}
-        {entry.name}
+        <div className={itemsStyles.itemIcon}>
+          {iconNode}
+        </div>
+        <div className={itemsStyles.itemTitle}>
+          {entry.name}
+        </div>
       </ContextMenu>
 
       {expanded && (
-        <div className={s.children}>
+        <div className={itemsStyles.children}>
           {renderItemControls()}
 
           {nodes}

@@ -9,16 +9,17 @@ import { projectApi, serverApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
 import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
-import { ProjectItemProps, renderChildren } from '../ProjectExplorer.item';
-import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../ProjectExplorer.itemContext';
-import { projectExplorerItemType } from '../ProjectExplorer.itemTypes';
+import { ProjectItemProps, renderChildren } from '../item';
+import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../item.context';
+import { projectExplorerItemType } from '../item.types';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
 import { ProjectSetResourceConfigRequest } from 'shared/api.requests';
 import { ResourceStatus } from 'backend/project/asset/resource/resource-types';
 import { useStatus } from 'contexts/StatusContext';
-import s from './Resource.module.scss';
 import { ResourceCommandsOutputModal } from './ResourceCommandsOutputModal/ResourceCommandsOutputModal';
+import { itemsStyles } from '../item.styles';
+import s from './Resource.module.scss';
 
 
 const resourceChildrenFilter = (entry: FilesystemEntry) => {
@@ -50,7 +51,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
 
   const options = React.useContext(ProjectExplorerItemContext);
 
-  const { renderItemControls, contextMenuItems } = useItem(props);
+  const { renderItemControls, contextMenuItems, requiredContextMenuItems } = useItem(props);
   const { expanded, toggleExpanded } = useExpandablePath(entry.path);
 
   const [deleterOpen, openDeleter, closeDeleter] = useOpenFlag(false);
@@ -88,6 +89,8 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
       },
       ContextMenuItemSeparator,
       ...contextMenuItems,
+      ContextMenuItemSeparator,
+      ...requiredContextMenuItems,
     ];
   }, [
     lifecycleContextMenuItems,
@@ -96,6 +99,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     openDeleter,
     openRenamer,
     relocateTargetContextMenu,
+    requiredContextMenuItems,
   ]);
 
   const children = renderChildren(entry, { ...props, childrenCollapsed: true }, resourceChildrenFilter);
@@ -105,34 +109,32 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     projectExplorerItemType.FOLDER,
   ]);
 
-  const rootClassName = classnames(s.root, {
-    [s.dropping]: isDropping,
+  const rootClassName = classnames(itemsStyles.wrapper, {
+    [itemsStyles.dropping]: isDropping,
   })
 
   return (
     <div className={rootClassName} ref={dropRef}>
       <ContextMenu
-        className={s.resource}
-        activeClassName={s.active}
+        className={itemsStyles.item}
+        activeClassName={itemsStyles.itemActive}
         items={itemContextMenuItems}
         onClick={toggleExpanded}
       >
-        <div className={s.name}>
-          <ResourceIcon
-            enabled={resourceIsEnabled}
-            running={resourceIsRunning}
-          />
-          <div className={s.title} title={entry.name}>
-            {entry.name}
-          </div>
-          <ResourceStatusNode
-            resourceStatus={resourceStatus}
-          />
+        <ResourceIcon
+          enabled={resourceIsEnabled}
+          running={resourceIsRunning}
+        />
+        <div className={itemsStyles.itemTitle} title={entry.name}>
+          {entry.name}
         </div>
+        <ResourceStatusNode
+          resourceStatus={resourceStatus}
+        />
       </ContextMenu>
 
       {expanded && (
-        <div className={s.children}>
+        <div className={itemsStyles.children}>
           {renderItemControls()}
           <ProjectExplorerItemContextProvider options={contextOptions}>
             {children}
@@ -165,14 +167,14 @@ const ResourceStatusNode = React.memo(function ResourceStatusNode({ resourceStat
   const watchCommands = Object.values(resourceStatus.watchCommands);
   const watchCommandsNode = watchCommands.length
     ? (
-      <div className={s.item} title="Watch commands: running / declared">
+      <div className={itemsStyles.itemStatusEntry} title="Watch commands: running / declared">
         <BsFillEyeFill /> {watchCommands.filter((cmd) => cmd.running).length}/{watchCommands.length}
       </div>
     )
     : null;
 
   return (
-    <div className={s.status}>
+    <div className={itemsStyles.itemStatus}>
       {watchCommandsNode}
     </div>
   );
@@ -187,8 +189,8 @@ const ResourceIcon = React.memo(function ResourceIcon({ enabled, running }: { en
     ? 'Enabled'
     : 'Disabled';
 
-  const iconsClassName = classnames(s.icon, {
-    [s.active]: running,
+  const iconsClassName = classnames(itemsStyles.itemIcon, {
+    [s.running]: running,
   });
 
   return (

@@ -1,0 +1,45 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  .step {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    margin-top: $q*2;
+    color: rgba($fgColor, .5);
+
+    &.active {
+      color: $fgColor;
+    }
+
+    &.passed {
+      color: rgba($fgColor, .75);
+
+      .icon {
+        color: $scColor;
+      }
+    }
+
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        font-size: $fs08;
+      }
+    }
+
+    .label {
+      flex-grow: 1;
+
+      margin-left: $q*2;
+
+      font-size: $fs08;
+    }
+  }
+}

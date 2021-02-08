@@ -20,8 +20,31 @@ import { GameContextProvider } from 'contexts/GameContext';
 import { SdkMessageManager } from 'managers/SdkMessageManager';
 import { GameConnectionManager } from 'managers/GameConnectionManager';
 import { ConsolesManager } from 'managers/ConsolesManager';
+import { TheiaCommandsManager } from 'managers/TheiaCommandsManager';
 
 enableLogger('shell,shell:*,host');
+
+document.addEventListener('click', (event: MouseEvent) => {
+  const target: HTMLElement = event.target as any;
+
+  const isA = target.matches('a');
+  const isAChild = target.matches('a *');
+
+  if (!isA && !isAChild) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const link = isA
+    ? target.getAttribute('href')
+    : target.closest('a')?.getAttribute('href');
+
+
+  if (link) {
+    invokeNative('openUrl', link);
+  }
+});
 
 ReactDOM.render(
   <React.StrictMode>
@@ -37,6 +60,7 @@ ReactDOM.render(
                     <GameConnectionManager />
                     <TitleManager />
                     <TheiaProjectManager />
+                    <TheiaCommandsManager />
                     <NotificationsManager />
                     <ConsolesManager />
 

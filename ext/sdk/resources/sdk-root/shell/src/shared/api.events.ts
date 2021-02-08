@@ -5,6 +5,7 @@ export const projectApi = {
   open: 'project:open',
   close: 'project:close',
   update: 'project:update',
+  build: 'project:build',
   setServerUpdateChannel: 'project:setServerUpdateChannel',
 
   getRecents: 'project:getRecents',

@@ -7,6 +7,8 @@ import { logger } from 'utils/logger';
 import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
 import { GameContext } from './GameContext';
+import { ServerStartRequest } from 'shared/api.requests';
+// import { getProjectClientStorageItem } from 'utils/projectStorage';
 
 const log = logger('ServerContext');
 
@@ -61,10 +63,15 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
   const startServer = React.useCallback(() => {
     if (project) {
+      const licenseKey = ''; //getProjectClientStorageItem(project, 'licenseKey', '');
+      const steamWebApiKey = ''; //getProjectClientStorageItem(project, 'steamWebApiKey', '');
+
       sendApiMessage(serverApi.start, {
         projectPath: project.path,
         updateChannel: project.manifest.serverUpdateChannel,
-      });
+        licenseKey,
+        steamWebApiKey,
+      } as ServerStartRequest);
     }
   }, [project]);
 

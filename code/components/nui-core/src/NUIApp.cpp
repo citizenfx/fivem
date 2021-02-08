@@ -153,7 +153,9 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 			"setMouseButtonState",
 			"openDevTools",
 			"setFPSLimit",
-			"setInputChar"
+			"setInputChar",
+			"fxdkSendApiMessage",
+			"fxdkOpenSelectFolderDialog"
 		};
 
 		for (auto const& handler : fxdkHandlers)

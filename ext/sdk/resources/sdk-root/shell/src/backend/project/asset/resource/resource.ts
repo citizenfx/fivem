@@ -16,6 +16,7 @@ import { DisposableContainer } from "backend/disposable-container";
 import { StatusProxy, StatusService } from "backend/status/status-service";
 import { ResourceStatus } from "./resource-types";
 import { OutputService } from "backend/output/output-service";
+import { uniqueArray } from "utils/unique";
 
 
 interface IdealResourceMetaData {
@@ -31,10 +32,28 @@ export type ResourceMetaData = Partial<IdealResourceMetaData>;
 
 export const AssetEntry = Symbol('AssetEntry');
 
+const resourceGlobConfig = {
+  dot: true,
+  nobrace: true,
+  nocase: true,
+  nocomment: true,
+  noext: true,
+  nonegate: true,
+  nonull: true,
+};
+
 @injectable()
 export class Resource implements AssetInterface {
   getId() {
     return this.path;
+  }
+
+  getName() {
+    return this.entry.name;
+  }
+
+  getPath() {
+    return this.entry.path;
   }
 
   get name(): string {
@@ -80,12 +99,56 @@ export class Resource implements AssetInterface {
   protected disposableContainer = new DisposableContainer();
   protected status: StatusProxy<ResourceStatus>;
 
+  private watchCommandsSuspended = false;
+  private runningWatchCommands: Map<string, ShellCommand> = new Map();
+
   setEntry(assetEntry: FilesystemEntry) {
     this.entry = assetEntry;
   }
 
   getConfig(): ProjectManifestResource {
     return this.projectAccess.getInstance().getResourceConfig(this.name);
+  }
+
+  async getIgnorePatterns(): Promise<string[]> {
+    return this.fsService.readIgnorePatterns(this.getPath());
+  }
+
+  async getDeployablePaths(): Promise<string[]> {
+    const resourcePath = this.getPath();
+    const ignorePatterns = await this.getIgnorePatterns();
+
+    const patternPaths = ignorePatterns.concat('**/*')
+      .map((pattern) => pattern.replace(/\\/g, '/'));
+
+    const allPaths = await this.fsService.glob(
+      patternPaths,
+      {
+        cwd: resourcePath.replace(/\\/g, '/'),
+      },
+    );
+
+    return uniqueArray(allPaths.map((pathItem) => this.fsService.joinPath(resourcePath, pathItem)).concat(this.manifestPath));
+  }
+
+  async suspendWatchCommands() {
+    if (this.watchCommandsSuspended) {
+      return;
+    }
+
+    this.watchCommandsSuspended = true;
+
+    await this.stopAllWatchCommands();
+  }
+
+  resumeWatchCommands() {
+    if (!this.watchCommandsSuspended) {
+      return;
+    }
+
+    this.watchCommandsSuspended = false;
+
+    this.ensureWatchCommandsRunning();
   }
 
   async init() {
@@ -163,9 +226,11 @@ export class Resource implements AssetInterface {
     }));
   }
 
-  private runningWatchCommands: Map<string, ShellCommand> = new Map();
-
   private async ensureWatchCommandsRunning() {
+    if (this.watchCommandsSuspended) {
+      return;
+    }
+
     const { enabled, restartOnChange } = this.getConfig();
     if (!enabled || !restartOnChange) {
       this.stopAllWatchCommands();
@@ -221,7 +286,7 @@ export class Resource implements AssetInterface {
 
       this.logService.log('Stopping watch command', hash);
 
-      cmd.stop();
+      await cmd.stop();
 
       this.status.applyValue((status) => {
         if (status) {
@@ -287,13 +352,14 @@ export class Resource implements AssetInterface {
     });
 
     await Promise.all(promises);
-    this.status.applyValue((status) => {
-      if (status) {
-        Object.values(status.watchCommands).forEach((watchCommandStatus) => watchCommandStatus.running = false);
-      }
+    // this.status.applyValue((status) => {
+    //   if (status) {
+    //     this.logService.log('Reporting watch command not running');
+    //     Object.values(status.watchCommands).forEach((watchCommandStatus) => watchCommandStatus.running = false);
+    //   }
 
-      return status;
-    });
+    //   return status;
+    // });
   }
 
   private rebuildRestartInducingPatterns() {
@@ -308,15 +374,7 @@ export class Resource implements AssetInterface {
     scripts.forEach((script) => {
       const fullScript = this.fsService.joinPath(this.path, script);
 
-      this.restartInducingPatterns[script] = new Minimatch(fullScript, {
-        dot: true,
-        nobrace: true,
-        nocase: true,
-        nocomment: true,
-        noext: true,
-        nonegate: true,
-        nonull: true,
-      });
+      this.restartInducingPatterns[script] = new Minimatch(fullScript, resourceGlobConfig);
     });
   }
 

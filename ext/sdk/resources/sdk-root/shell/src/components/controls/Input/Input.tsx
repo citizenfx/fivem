@@ -12,9 +12,12 @@ export interface InputProps {
   inputClassName?: string,
   label?: string,
   placeholder?: string,
+  description?: React.ReactNode,
   value: string,
   onChange: (string) => void,
   onSubmit?: () => void,
+
+  noSpellCheck?: boolean,
 }
 
 export const Input = React.memo(function Input(props: InputProps) {
@@ -25,11 +28,13 @@ export const Input = React.memo(function Input(props: InputProps) {
     onSubmit,
     pattern,
     tabIndex,
+    noSpellCheck = false,
     autofocus = false,
     disabled = false,
     className = '',
     placeholder = '',
     inputClassName = '',
+    description = '',
   } = props;
 
   const handleChange = React.useCallback((event) => {
@@ -60,8 +65,17 @@ export const Input = React.memo(function Input(props: InputProps) {
       disabled={disabled}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
+      spellCheck={!noSpellCheck}
     />
   );
+
+  const descriptionNode = description
+    ? (
+      <div className={s.description}>
+        {description}
+      </div>
+    )
+    : null;
 
   const content = label
     ? (
@@ -75,6 +89,7 @@ export const Input = React.memo(function Input(props: InputProps) {
   return (
     <div className={classnames(s.root, className)}>
       {content}
+      {descriptionNode}
     </div>
   );
 });

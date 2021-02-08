@@ -16,16 +16,16 @@ export class TaskReporterService implements ApiContribution {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
-  protected tasks: Record<TaskId, Task> = {};
+  protected tasks: Record<TaskId, Task<any>> = {};
 
-  create(title: string): Task {
+  create<StageType = number>(title: string): Task<StageType> {
     return this.startWithId(fastRandomId(), title);
   }
 
   /**
    * Only one task with given name can exist simultaneously
    */
-  createNamed(name: TaskId, title: string): Task {
+  createNamed<StageType = number>(name: TaskId, title: string): Task<StageType> {
     if (this.tasks[name]) {
       throw new Error(`Task with name ${name} already running`);
     }
@@ -33,8 +33,8 @@ export class TaskReporterService implements ApiContribution {
     return this.startWithId(name, title);
   }
 
-  async wrap<T = void>(title: string, fn: (task: Task) => Promise<T>): Promise<T> {
-    const task = this.create(title);
+  async wrap<StageType = number, T = void>(title: string, fn: (task: Task<StageType>) => Promise<T>): Promise<T> {
+    const task = this.create<StageType>(title);
 
     try {
       return await fn(task);
@@ -45,8 +45,8 @@ export class TaskReporterService implements ApiContribution {
     }
   }
 
-  private startWithId(id: TaskId, title: string): Task {
-    const task = new Task(
+  private startWithId<StageType = number>(id: TaskId, title: string): Task<StageType> {
+    const task = new Task<StageType>(
       this.apiClient,
       title,
       () => {
@@ -71,8 +71,9 @@ export class TaskReporterService implements ApiContribution {
   }
 }
 
-export class Task {
+export class Task<StageType = number> {
   protected text: string = '';
+  protected stage: number = 0;
   protected progress: string = '';
 
   protected isDone = false;
@@ -105,6 +106,17 @@ export class Task {
     }
   }
 
+  setStage(stage: StageType) {
+    if (typeof stage !== 'number') {
+      console.log('NOT A NUMBER STAGE!!!: ', typeof stage, stage);
+      return;
+    }
+
+    this.stage = stage;
+
+    this.emitChange();
+  }
+
   done() {
     if (!this.isDone) {
       this.isDone = true;
@@ -117,6 +129,7 @@ export class Task {
     return {
       id: this.id,
       text: this.text,
+      stage: this.stage,
       title: this.title,
       progress: Number(this.progress),
     };

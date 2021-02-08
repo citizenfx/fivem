@@ -1,5 +1,5 @@
 declare var openDevTools: () => void;
-declare var invokeNative: (native: string, ...arg: string[]) => void;
+declare var invokeNative: (native: string, ...arg: string[]) => unknown;
 
 declare var on: <T extends any[]>(event: string, cb: (...args: T) => void) => void;
 declare var RemoveEventHandler: <T extends any[]>(event: string, cb: (...args: T) => void) => void;

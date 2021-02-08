@@ -27,6 +27,8 @@ export const debounce = <T extends Function>(fn: T, timeout: number): T & { canc
   return newFn as any;
 };
 
+// Throttle, but not really :p
+// Will also fire after timeout
 export const throttle = <T extends Function>(fn: T, timeout: number): T & { cancel: () => void } => {
   // any as should be suitable both for node and browser
   let timer: any = null;
@@ -45,6 +47,7 @@ export const throttle = <T extends Function>(fn: T, timeout: number): T & { canc
     timer = setTimeout(() => {
       timer = null;
       canRun = true;
+      fn(...args);
     }, timeout);
   };
 

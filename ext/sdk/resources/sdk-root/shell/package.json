@@ -11,6 +11,7 @@
     "debug": "^4.3.1",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
+    "fast-glob": "^3.2.5",
     "filesize": "^6.1.0",
     "immer": "^8.0.0",
     "inversify": "^5.0.1",

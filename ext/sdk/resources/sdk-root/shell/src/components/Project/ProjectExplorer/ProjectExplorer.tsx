@@ -12,7 +12,7 @@ import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
 import { Resource } from './Resource/Resource';
-import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './ProjectExplorer.item';
+import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './item';
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
 import { PackAsset } from '../assets/PackAsset/PackAsset';
 import s from './ProjectExplorer.module.scss';

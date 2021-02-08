@@ -1,21 +1,28 @@
 import React from 'react';
-import { BsArrowBarLeft, BsArrowBarRight, BsCardHeading, BsList } from 'react-icons/bs';
+import { BsArrowBarLeft, BsArrowBarRight, BsCardHeading, BsGear, BsList } from 'react-icons/bs';
 import classnames from 'classnames';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { AppStates } from 'shared/api.types';
-import { devtoolsIcon, newProjectIcon, openProjectIcon } from 'constants/icons';
+import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon } from 'constants/icons';
 import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator';
 import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
 import { Project } from 'components/Project/Project';
-import s from './Toolbar.module.scss';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
-import { Server } from 'components/Server/Server';
+import { ServerButton } from 'components/ServerButton/ServerButton';
 import { TaskReporter } from 'components/TaskReporter/TaskReporter';
+import s from './Toolbar.module.scss';
+import { ProjectBuildButton } from 'components/Project/ProjectBuildButton/ProjectBuildButton';
+
+const handleMenuClick = (openMenu) => openMenu();
+const handleGetMenuCoords = () => ({
+  top: 0,
+  left: 0,
+});
 
 export const Toolbar = React.memo(function Toolbar() {
   const { state, toolbarOpen, openToolbar, closeToolbar, openChangelog } = React.useContext(StateContext);
-  const { project, openCreator, openOpener, creatorOpen, openerOpen } = React.useContext(ProjectContext);
+  const { project, openCreator, openOpener, creatorOpen, openerOpen, openSettings, openBuilder } = React.useContext(ProjectContext);
 
   const handleOpenCreator = React.useCallback(() => {
     openCreator();
@@ -23,6 +30,10 @@ export const Toolbar = React.memo(function Toolbar() {
   const handleOpenOpener = React.useCallback(() => {
     openOpener();
   }, [openOpener]);
+
+  const handleOpenSettings = React.useCallback(() => {
+    openSettings();
+  }, [openSettings]);
 
   const toggleToolbar = toolbarOpen
     ? closeToolbar
@@ -46,6 +57,26 @@ export const Toolbar = React.memo(function Toolbar() {
       icon: newProjectIcon,
       onClick: handleOpenCreator,
     },
+    ...(
+      project
+        ? [
+          ContextMenuItemSeparator,
+          {
+            id: 'project-settings',
+            text: 'Project settings',
+            icon: <BsGear />,
+            onClick: handleOpenSettings,
+          },
+        ] as ContextMenuItemsCollection
+        : []
+    ),
+    ContextMenuItemSeparator,
+    {
+      id: 'build-project',
+      text: 'Build Project',
+      icon: projectBuildIcon,
+      onClick: openBuilder,
+    },
     ContextMenuItemSeparator,
     {
       id: 'changelog',
@@ -59,7 +90,7 @@ export const Toolbar = React.memo(function Toolbar() {
       icon: devtoolsIcon,
       onClick: () => window.openDevTools(),
     },
-  ], []);
+  ], [project, openBuilder]);
 
   const triggerTitle = toolbarOpen
     ? 'Collapse FxDK toolbar'
@@ -80,21 +111,31 @@ export const Toolbar = React.memo(function Toolbar() {
 
       <div className={s.bar}>
         <div className={s.controls}>
+          <ContextMenu
+            items={contextMenuItems}
+            onClick={handleMenuClick}
+            getCoords={handleGetMenuCoords}
+          >
+            <button title="FxDK Menu">
+              <BsList />
+            </button>
+          </ContextMenu>
+
           <div className={s['project-name']} title={projectTitle}>
             <span>
               {projectTitle}
             </span>
           </div>
 
-          <div className={s.server}>
-            <Server />
-          </div>
+          {!!project && (
+            <ProjectBuildButton />
+          )}
 
-          <ContextMenu items={contextMenuItems} onClick={(openMenu) => openMenu()}>
-            <button title="FxDK Menu">
-              <BsList />
-            </button>
-          </ContextMenu>
+          {!!project && (
+            <div className={s.server}>
+              <ServerButton />
+            </div>
+          )}
         </div>
 
         {creatorOpen && <ProjectCreator />}

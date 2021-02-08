@@ -1,0 +1,20 @@
+@import "variables";
+
+.panel {
+  padding: $q*2;
+
+  font-size: $fs08;
+
+  color: var(--panel-color);
+  border: solid 1px var(--panel-border-color);
+  box-shadow: 0 0 2px 0 var(--panel-border-color);
+
+  svg {
+    vertical-align: middle;
+  }
+
+  &.panel-info {
+    --panel-color: #{$scColor};
+    --panel-border-color: #{rgba($scColor, .5)};
+  }
+}

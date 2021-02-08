@@ -1,10 +1,129 @@
 #include <SDK.h>
 
+#include <shellapi.h>
+#include <ShlObj_core.h>
+
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
+
 
 namespace {
 	SDKCefClient* g_instance = NULL;
 }
 
+
+void BrowseToFile(LPCTSTR filename)
+{
+	ITEMIDLIST* pidl = ILCreateFromPath(filename);
+	if (pidl) {
+		SHOpenFolderAndSelectItems(pidl, 0, 0, 0);
+		ILFree(pidl);
+	}
+}
+
+void FixPath(wchar_t* outPath, const wchar_t* inPath)
+{
+	for (const wchar_t* c = inPath; *c && outPath - inPath < MAX_PATH - 1; ++c, ++outPath)
+	{
+		*outPath = *c == '/' ? '\\' : *c;
+	}
+
+	*outPath = 0;
+}
+
+template <class T>
+void SafeRelease(T** ppT)
+{
+	if (*ppT)
+	{
+		(*ppT)->Release();
+		*ppT = NULL;
+	}
+}
+
+const std::string FxdkSelectFolder2(const std::string& startPath, const std::string& title)
+{
+	IFileDialog* fileDialog;
+
+	if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&fileDialog))))
+	{
+		SafeRelease(&fileDialog);
+		return std::string{ 0 };
+	}
+
+	WCHAR wstartPath[MAX_PATH];
+	FixPath(wstartPath, ToWide(startPath).c_str());
+
+	// Set start folder
+	{
+		PIDLIST_ABSOLUTE pidl;
+		if (FAILED(::SHParseDisplayName(wstartPath, 0, &pidl, SFGAO_FOLDER, 0)))
+		{
+			SafeRelease(&fileDialog);
+			ILFree(pidl);
+			return std::string{};
+		}
+
+		IShellItem* psi;
+		if (FAILED(::SHCreateShellItem(NULL, NULL, pidl, &psi)))
+		{
+			SafeRelease(&fileDialog);
+			SafeRelease(&psi);
+			ILFree(pidl);
+			return std::string{};
+		}
+
+		fileDialog->SetFolder(psi);
+
+		ILFree(pidl);
+	}
+	
+	fileDialog->SetTitle(ToWide(title).c_str());
+
+	DWORD options;
+	if (FAILED(fileDialog->GetOptions(&options)))
+	{
+		SafeRelease(&fileDialog);
+		return std::string{};
+	}
+
+	options |= FOS_PICKFOLDERS;
+
+	fileDialog->SetOptions(options);
+
+	HRESULT showResult = fileDialog->Show(NULL);
+	if (FAILED(showResult) || showResult == HRESULT_FROM_WIN32(ERROR_CANCELLED))
+	{
+		SafeRelease(&fileDialog);
+		return std::string{};
+	}
+
+	IShellItem* resultItem;
+	if (FAILED(fileDialog->GetResult(&resultItem)))
+	{
+		SafeRelease(&fileDialog);
+		SafeRelease(&resultItem);
+		return std::string{};
+	}
+
+	LPWSTR pwszFilePath = NULL;
+	if (FAILED(resultItem->GetDisplayName(SIGDN_FILESYSPATH, &pwszFilePath)) || pwszFilePath == NULL)
+	{
+		SafeRelease(&fileDialog);
+		SafeRelease(&resultItem);
+		CoTaskMemFree(pwszFilePath);
+		return std::string{};
+	}
+
+	SafeRelease(&fileDialog);
+	SafeRelease(&resultItem);
+
+	const std::string selectedFolder = ToNarrow(pwszFilePath).c_str();
+
+	CoTaskMemFree(pwszFilePath);
+
+	return selectedFolder;
+}
 
 #pragma region SDKCefApp
 SDKCefApp::SDKCefApp()
@@ -70,6 +189,11 @@ void SDKCefClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
 CefRefPtr<CefBrowser> SDKCefClient::GetBrowser()
 {
+	if (browser_list_.size() == 0)
+	{
+		return nullptr;
+	}
+
 	return browser_list_.front();
 }
 
@@ -158,10 +282,21 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 	if (messageName == "invokeNative")
 	{
 		auto args = message->GetArgumentList();
-		auto nativeType = args->GetString(0);
-		auto messageData = args->GetString(1);
+		std::string nativeType = args->GetString(0);
+		std::string messageData = args->GetString(1);
 
-		fxdk::GetLauncherTalk().Call("sdk:invokeNative", std::string{ nativeType }, std::string{ messageData });
+		if (nativeType == "openUrl")
+		{
+			ShellExecute(nullptr, L"open", ToWide(messageData).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+		}
+		else if (nativeType == "openFolderAndSelectFile")
+		{
+			BrowseToFile(ToWide(messageData).c_str());
+		}
+		else
+		{
+			fxdk::GetLauncherTalk().Call("sdk:invokeNative", nativeType, messageData);
+		}
 	}
 	else if (messageName == "resizeGame")
 	{
@@ -179,6 +314,31 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 		CefBrowserSettings s;
 
 		browser->GetHost()->ShowDevTools(wi, SDKCefClient::GetInstance(), s, {});
+	}
+	else if (messageName == "fxdkSendApiMessage")
+	{
+		std::string apiMsg = message->GetArgumentList()->GetString(0);
+
+		fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:api:recv", {}, apiMsg);
+	}
+	else if (messageName == "fxdkOpenSelectFolderDialog")
+	{
+		std::string defaultPath = message->GetArgumentList()->GetString(0);
+		std::string title = message->GetArgumentList()->GetString(1);
+
+		std::thread([=]()
+		{
+			std::string path = FxdkSelectFolder2(defaultPath, title);
+
+			auto cefMsg = CefProcessMessage::Create("fxdkOpenSelectFolderDialogResult");
+			auto cefMsgArgs = cefMsg->GetArgumentList();
+
+			cefMsgArgs->SetSize(1);
+			cefMsgArgs->SetString(0, path);
+
+			browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, cefMsg);
+		})
+		.detach();
 	}
 
 	return true;

@@ -23,6 +23,30 @@ export class ApiClient {
 
   @postConstruct()
   protected initialize() {
+    // on('sdk:api:recv', (msg: string) => {
+    //   let type, data;
+
+    //   try {
+    //     [type, data] = JSON.parse(msg);
+    //   } catch (e) {
+    //     return this.logService.log('Invalid api message:', msg, e);
+    //   }
+
+    //   const typedListeners = this.eventTypeListeners[type];
+    //   if (!typedListeners?.size) {
+    //     return console.log('No listeners for event of type:', type);
+    //   }
+
+    //   typedListeners.forEach(async (listener) => {
+    //     try {
+    //       await listener(data);
+    //     } catch (e) {
+    //       this.onEventListenerError.emit(e);
+    //       this.logService.log('Unexpected error occured:', e);
+    //     }
+    //   });
+    // });
+
     this.shellBackend.expressApp.ws('/api', (ws) => {
       this.clients.add(ws);
 
@@ -63,6 +87,7 @@ export class ApiClient {
         : [eventType],
     );
 
+    // emit('sdk:api:send', message);
     this.clients.forEach((client) => client.send(message));
   }
 

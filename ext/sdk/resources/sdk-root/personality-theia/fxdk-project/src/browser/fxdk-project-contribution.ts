@@ -1,6 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { FrontendApplicationContribution, OpenerService, open, WidgetManager } from '@theia/core/lib/browser';
+import { EditorWidget } from '@theia/editor/lib/browser/editor-widget';
 
 import { FxdkWorkspaceService } from './rebindWorkspaceService';
 import URI from '@theia/core/lib/common/uri';
@@ -113,7 +114,7 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
     const uri = baseUri.resolve(fileName);
 
-    return open(this.openService, uri);
+    return open(this.openService, uri, { readOnly: true });
   }
 
   private handleData(data: { key: string, value: any } | Array<{ key: string, value: any }>) {

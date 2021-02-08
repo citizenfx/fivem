@@ -5,16 +5,13 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { ServerStates, ServerUpdateStates } from 'shared/api.types';
-import { ServerConfig } from './ServerConfig/ServerConfig';
 import { Indicator } from 'components/Indicator/Indicator';
-import s from './Server.module.scss';
+import s from './ServerButton.module.scss';
 
 
-export const Server = React.memo(function Server() {
+export const ServerButton = React.memo(function Server() {
   const { serverState, updateChannelsState, startServer, stopServer, installUpdate } = React.useContext(ServerContext);
   const { project } = React.useContext(ProjectContext);
-
-  const [configuratorOpen, openConfigurator, closeConfigurator] = useOpenFlag(false);
 
   const updateChannelState = project
     ? updateChannelsState[project.manifest.serverUpdateChannel]
@@ -103,17 +100,6 @@ export const Server = React.memo(function Server() {
       >
         {icon}
       </div>
-
-      {updateChannelState === ServerUpdateStates.ready && (
-        <>
-          <div className={s.config} onClick={openConfigurator}>
-            <BsGear />
-          </div>
-          {configuratorOpen && (
-            <ServerConfig onClose={closeConfigurator} />
-          )}
-        </>
-      )}
     </div>
   );
 });

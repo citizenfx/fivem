@@ -24,9 +24,11 @@ export interface ContextMenuProps {
   children: React.ReactNode,
   items: ContextMenuItemsCollection,
   disabled?: boolean,
+  title?: string,
   className?: string,
   activeClassName?: string,
   onClick?: (openMenu?: () => void) => void,
+  getCoords?: (node: HTMLDivElement) => { top: number, left: number },
 }
 
 interface Coords {
@@ -38,9 +40,11 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
   const {
     children,
     items,
+    title = '',
     className = '',
     activeClassName = '',
     onClick = noop,
+    getCoords,
   } = props;
 
   const [coords, setCoords] = React.useState<Coords | null>(null);
@@ -72,13 +76,21 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     event.preventDefault();
     event.stopPropagation();
 
-    setCoords({
-      top: event.pageY,
-      left: event.pageX,
-    });
+    let coords;
+
+    if (getCoords) {
+      coords = getCoords(event.target as HTMLDivElement);
+    } else {
+      coords = {
+        top: event.pageY,
+        left: event.pageX,
+      };
+    }
+
+    setCoords(coords);
 
     return false;
-  }, []);
+  }, [getCoords]);
   const handleCloseMenu = React.useCallback(() => {
     setCoords(null);
   }, []);
@@ -123,6 +135,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
   return (
     <div
       ref={ref}
+      title={title}
       className={classnames(className, { [activeClassName]: !!coords })}
       onContextMenu={handleOpenMenu}
       onClick={handleClick}

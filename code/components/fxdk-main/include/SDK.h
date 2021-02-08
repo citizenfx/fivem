@@ -144,9 +144,11 @@ private:
 	IMPLEMENT_REFCOUNTING(SDKCefClient);
 };
 
-class SDKCefApp : public CefApp, public CefBrowserProcessHandler
+class SDKCefApp : public CefApp, public CefBrowserProcessHandler/*, public CefRenderProcessHandler*/
 {
 public:
+	typedef std::function<CefRefPtr<CefV8Value>(const CefV8ValueList&, CefString&)> TV8Handler;
+
 	SDKCefApp();
 
 	// CefApp methods:
@@ -156,12 +158,17 @@ public:
 		return this;
 	}
 
+	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) OVERRIDE;
+
 	// CefBrowserProcessHandler methods:
 	virtual void OnContextInitialized() OVERRIDE;
 
-	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) OVERRIDE;
+	// CefRenderProcessHandler methods:
+	//virtual void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) OVERRIDE;
 
 private:
+	int m_v8Callbacks;
+
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(SDKCefApp);
 };

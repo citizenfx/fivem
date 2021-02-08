@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { DropTargetMonitor, useDrag, useDrop } from 'react-dnd';
 import { ContextMenuItem, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
-import { newDirectoryIcon, newFileIcon } from 'constants/icons';
+import { newDirectoryIcon, newFileIcon, openInExplorerIcon } from 'constants/icons';
 import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
@@ -9,11 +9,12 @@ import { useOpenFlag } from 'utils/hooks';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
 import { FileCreator } from './File/FileCreator/FileCreator';
 import { EntryRelocateOperation, ProjectExplorerContext } from './ProjectExplorer.context';
-import { ProjectItemProps, renderChildren } from './ProjectExplorer.item';
-import { ProjectExplorerItemContext } from './ProjectExplorer.itemContext';
-import { EntryMoveItem } from './ProjectExplorer.itemTypes';
+import { ProjectItemProps, renderChildren } from './item';
+import { ProjectExplorerItemContext } from './item.context';
+import { EntryMoveItem } from './item.types';
 import { MoveEntryRequest } from 'shared/api.requests';
 import { VisibilityFilter } from 'components/Explorer/Explorer.filters';
+import { openInExplorer, openInExplorerAndSelect } from 'utils/natives';
 
 export interface UseExpandedPathHook {
   expanded: boolean,
@@ -54,6 +55,7 @@ export interface UseItemHook {
   renderItemControls: () => React.ReactNode,
   renderItemChildren: (overrideVisibilityFilter?: VisibilityFilter) => React.ReactNode,
   contextMenuItems: ContextMenuItem[],
+  requiredContextMenuItems: ContextMenuItem[],
   options: ProjectExplorerItemContext,
 }
 
@@ -131,10 +133,26 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
     },
   ], [item, setPathState, openFileCreator]);
 
+  const requiredContextMenuItems: ContextMenuItem[] = React.useMemo(() => [
+    {
+      id: 'open-in-explorer',
+      icon: openInExplorerIcon,
+      text: 'Open in Explorer',
+      onClick: () => {
+        if (item.entry.isDirectory) {
+          return openInExplorer(item.entry.path);
+        } else {
+          return openInExplorerAndSelect(item.entry.path);
+        }
+      },
+    },
+  ], [item]);
+
   return {
     renderItemControls,
     renderItemChildren,
     contextMenuItems,
+    requiredContextMenuItems,
     options,
   };
 };

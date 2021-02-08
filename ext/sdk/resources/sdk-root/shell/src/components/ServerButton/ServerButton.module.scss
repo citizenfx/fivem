@@ -18,6 +18,10 @@
     .button {
       background-color: $scColor;
 
+      svg {
+        color: $bgColor;
+      }
+
       &:hover {
         background-color: $erColor;
       }

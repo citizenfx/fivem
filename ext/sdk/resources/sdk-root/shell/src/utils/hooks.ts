@@ -150,3 +150,14 @@ export const useDebouncedCallback = <T extends any[], U extends any, R = (...arg
 
   return React.useCallback<any>(realCb, [...watchers]);
 };
+
+export const useOpenFolderSelectDialog = (startPath: string, dialogTitle: string, onSelected: (folderPath: string | null) => void) => {
+  const callbackRef = React.useRef(onSelected);
+  callbackRef.current = onSelected;
+
+  React.useEffect(() => () => callbackRef.current = null, []);
+
+  return React.useCallback(() => {
+    fxdkOpenSelectFolderDialog(startPath, dialogTitle, (folderPath) => callbackRef.current?.(folderPath));
+  }, [startPath, dialogTitle]);
+};

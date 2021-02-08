@@ -6,6 +6,8 @@ import { useApiMessage, useOpenFlag } from 'utils/hooks';
 import { StateContext } from './StateContext';
 import { TheiaContext } from './TheiaContext';
 import { logger } from 'utils/logger';
+import { ProjectBuildRequest } from 'shared/api.requests';
+import { getProjectClientStorageItem } from 'utils/projectStorage';
 
 const log = logger('ProjectContext');
 export interface ProjectContext {
@@ -16,6 +18,15 @@ export interface ProjectContext {
   openerOpen: boolean,
   openOpener: () => void,
   closeOpener: () => void,
+
+  settingsOpen: boolean,
+  openSettings: () => void,
+  closeSettings: () => void,
+
+  build: () => void,
+  builderOpen: boolean,
+  openBuilder: () => void,
+  closeBuilder: () => void,
 
   resourceCreatorDir: string,
   setResourceCreatorDir: (dir: string) => void,
@@ -48,6 +59,15 @@ export const ProjectContext = React.createContext<ProjectContext>({
   openOpener: () => { },
   closeOpener: () => { },
 
+  settingsOpen: false,
+  openSettings: () => { },
+  closeSettings: () => { },
+
+  build: () => { },
+  builderOpen: false,
+  openBuilder: () => { },
+  closeBuilder: () => { },
+
   resourceCreatorDir: '',
   setResourceCreatorDir: () => { },
 
@@ -78,6 +98,9 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
   const [openerOpen, openOpener, closeOpener] = useOpenFlag(false);
 
   const [project, setProject] = React.useState<ProjectData | null>(null);
+
+  const [settingsOpen, openSettings, closeSettings] = useOpenFlag(false);
+  const [builderOpen, openBuilder, closeBuilder] = useOpenFlag(false);
 
   const [recentProjects, setRecentProjects] = React.useState<RecentProject[]>([]);
 
@@ -220,6 +243,24 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     };
   }, [project?.path]);
 
+  const build = React.useCallback(() => {
+    if (!project) {
+      return;
+    }
+
+    const buildPath = getProjectClientStorageItem(project, 'buildPath', '');
+    const useVersioning = getProjectClientStorageItem(project, 'useVersioning', false);
+
+    if (!buildPath) {
+      return openBuilder();
+    }
+
+    sendApiMessage(projectApi.build, {
+      buildPath,
+      useVersioning,
+    } as ProjectBuildRequest);
+  }, [project, openBuilder]);
+
   const value: ProjectContext = {
     creatorOpen,
     openCreator,
@@ -228,6 +269,15 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     openerOpen,
     openOpener,
     closeOpener,
+
+    settingsOpen,
+    openSettings,
+    closeSettings,
+
+    build,
+    builderOpen,
+    openBuilder,
+    closeBuilder,
 
     resourceCreatorDir,
     setResourceCreatorDir,
