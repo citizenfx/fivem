@@ -343,10 +343,12 @@ public:
 
 		if (stream.GetRef())
 		{
-			stream->ScheduleCallback([this, session]()
+			fwRefContainer thisRef = this;
+
+			stream->ScheduleCallback([thisRef, session]()
 			{
 				nghttp2_data_provider provider;
-				provider.source.ptr = this;
+				provider.source.ptr = thisRef.GetRef();
 				provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t
 				{
 					auto resp = reinterpret_cast<Http2Response*>(source->ptr);
@@ -365,10 +367,10 @@ public:
 					return std::min(size_t(resp->m_buffer.PeekLength()), length);
 				};
 
-				std::vector<nghttp2_nv> nv(m_headers.size());
+				std::vector<nghttp2_nv> nv(thisRef->m_headers.size());
 
 				size_t i = 0;
-				for (auto& hdr : m_headers)
+				for (auto& hdr : thisRef->m_headers)
 				{
 					auto& v = nv[i];
 
@@ -380,10 +382,10 @@ public:
 
 					++i;
 				}
-				nghttp2_submit_response(*session, m_stream, nv.data(), nv.size(), &provider);
+				nghttp2_submit_response(*session, thisRef->m_stream, nv.data(), nv.size(), &provider);
 				nghttp2_session_send(*session);
 
-				m_sentHeaders = true;
+				thisRef->m_sentHeaders = true;
 			});
 		}
 	}
@@ -395,15 +397,17 @@ public:
 
 		if (stream.GetRef())
 		{
-			stream->ScheduleCallback([this, data = std::move(data), cb = std::move(cb)]() mutable
+			fwRefContainer thisRef = this;
+
+			stream->ScheduleCallback([thisRef, data = std::move(data), cb = std::move(cb)]() mutable
 			{
-				auto session = m_session;
+				auto session = thisRef->m_session;
 
 				if (session)
 				{
-					m_buffer.Push(std::forward<TContainer>(data), std::move(cb));
+					thisRef->m_buffer.Push(std::forward<TContainer>(data), std::move(cb));
 
-					nghttp2_session_resume_data(*session, m_stream);
+					nghttp2_session_resume_data(*session, thisRef->m_stream);
 					nghttp2_session_send(*session);
 				}
 			});
@@ -436,15 +440,17 @@ public:
 
 		if (stream.GetRef())
 		{
-			stream->ScheduleCallback([this, data = std::move(data), size, cb = std::move(cb)]() mutable
+			fwRefContainer thisRef = this;
+
+			stream->ScheduleCallback([thisRef, data = std::move(data), size, cb = std::move(cb)]() mutable
 			{
-				auto session = m_session;
+				auto session = thisRef->m_session;
 
 				if (session)
 				{
-					m_buffer.Push(std::move(data), size, std::move(cb));
+					thisRef->m_buffer.Push(std::move(data), size, std::move(cb));
 
-					nghttp2_session_resume_data(*session, m_stream);
+					nghttp2_session_resume_data(*session, thisRef->m_stream);
 					nghttp2_session_send(*session);
 				}
 			});
@@ -459,15 +465,17 @@ public:
 
 		if (stream.GetRef())
 		{
-			stream->ScheduleCallback([this]()
-			{
-				m_tcpStream = nullptr;
+			fwRefContainer thisRef = this;
 
-				auto session = m_session;
+			stream->ScheduleCallback([thisRef]()
+			{
+				thisRef->m_tcpStream = nullptr;
+
+				auto session = thisRef->m_session;
 
 				if (session)
 				{
-					nghttp2_session_resume_data(*session, m_stream);
+					nghttp2_session_resume_data(*session, thisRef->m_stream);
 					nghttp2_session_send(*session);
 				}
 			});
