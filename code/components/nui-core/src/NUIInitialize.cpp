@@ -527,7 +527,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 
 	if (SUCCEEDED(hr))
 	{
-		auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, initState->gamePid);
+		auto proc = OpenProcess(PROCESS_DUP_HANDLE, FALSE, (initState->gamePid) ? initState->gamePid : initState->GetInitialPid());
 		DuplicateHandle(GetCurrentProcess(), handle, proc, pSharedHandle, 0, FALSE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE);
 		CloseHandle(proc);
 
