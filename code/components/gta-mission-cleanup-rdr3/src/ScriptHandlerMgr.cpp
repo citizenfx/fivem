@@ -17,6 +17,8 @@
 
 #include <Error.h>
 
+#include <CrossBuildRuntime.h>
+
 static CGameScriptHandlerMgr* g_scriptHandlerMgr;
 
 static std::map<uint32_t, rage::scrThread*> g_customThreads;
@@ -61,6 +63,17 @@ static HookFunction hookFunction([]()
 		g_customThreads.erase(thread->GetContext()->ThreadId);
 		g_customThreadsToNames.erase(thread->GetContext()->ThreadId);
 	});
+
+	// remove assertion for duplicate scripts (R* prod debug)
+	if (xbr::IsGameBuildOrGreater<1355>())
+	{
+		auto pattern = hook::pattern("FF 50 ? 84 C0 74 ? BA ? ? ? ? 41").count(3);
+
+		for (int i = 0; i < pattern.size(); i++)
+		{
+			hook::put<uint8_t>(pattern.get(i).get<void>(5), 0xEB);
+		}
+	}
 });
 
 // functions
