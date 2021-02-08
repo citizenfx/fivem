@@ -308,6 +308,10 @@ export class AppComponent implements OnInit, AfterViewInit {
 	}
 
 	ngAfterViewInit(): void {
+		if (!this.gameCanvas) {
+			return;
+		}
+
 		this.gameView = createGameView(this.gameCanvas.nativeElement);
 		this.gameView.resize(window.innerWidth, window.innerHeight);
 
