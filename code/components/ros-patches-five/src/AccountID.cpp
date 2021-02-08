@@ -36,6 +36,7 @@ struct ExternalROSBlob
 	uint8_t data[16384];
 	uint8_t steamData[64 * 1024];
 	size_t steamSize;
+	uint32_t steamAppId;
 	bool valid;
 	bool tried;
 
@@ -43,6 +44,7 @@ struct ExternalROSBlob
 	{
 		valid = false;
 		tried = false;
+		steamAppId = 0;
 		memset(data, 0, sizeof(data));
 		memset(steamData, 0, sizeof(steamData));
 	}
@@ -173,6 +175,25 @@ static bool InitAccountSteam()
 	{
 		accountBlob = blob->data;
 		trace("Steam ROS says it's signed in: %s\n", (const char*)&accountBlob[8]);
+
+		// move the game to Steam mode
+#if defined(IS_RDR3)
+		if (!getenv("CitizenFX_ToolMode"))
+		{
+			if (blob->steamAppId)
+			{
+				static HookFunction lateHookFunction([]()
+				{
+					auto location = hook::get_pattern<char>("75 21 48 89 59 48 48 89 59 50 48 89 59", -4);
+					auto useSteam = hook::get_address<int*>(location);
+					auto steamAppId = hook::get_address<char**>(location + 0x31) + 1;
+
+					*useSteam = 1;
+					*steamAppId = strdup(va("%d", blob->steamAppId));
+				});
+			}
+		}
+#endif
 	}
 
 	return blob->valid;
@@ -208,7 +229,16 @@ void ValidateSteam(int parentPid)
 
 	if (s.empty())
 	{
-		return;
+#if defined(IS_RDR3)
+		appId = 1404210; // RDO
+		appName = "rdr2_rdo";
+		s = GetAuthSessionTicket(appId);
+
+		if (s.empty())
+#endif
+		{
+			return;
+		}
 	}
 
 	auto j = nlohmann::json::object({
@@ -245,7 +275,7 @@ void ValidateSteam(int parentPid)
 	if (!j["Status"].get<bool>())
 	{
 #ifdef IS_RDR3
-		FatalError("Error during Steam ROS signin: %s %s", j.value("Error", ""), j.value("Message", ""));
+		FatalError("Error during Steam ROS signin: %s %s", j["Error"].value("Code", ""), j.value("Message", ""));
 #endif
 
 		return;
@@ -304,6 +334,7 @@ void ValidateSteam(int parentPid)
 
 	memcpy(blob->steamData, s.data(), s.size());
 	blob->steamSize = s.size();
+	blob->steamAppId = appId;
 
 	blob->valid = true;
 }
