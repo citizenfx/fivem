@@ -18,7 +18,13 @@ extern "C" DLL_EXPORT void EarlyMode_Init()
 
 	std::vector<fwRefContainer<Component>> components;
 
-	for (auto compName : { "ros-patches:five", "adhesive" })
+	for (auto compName : {
+#ifdef IS_RDR3
+		"ros-patches:rdr3",
+#else
+		"ros-patches:five",
+#endif
+		"adhesive" })
 	{
 		fwRefContainer<ComponentData> cliComponent = loader->LoadComponent(compName);
 		components.push_back(cliComponent->CreateInstance(""));

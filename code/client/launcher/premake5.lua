@@ -5,11 +5,15 @@ end
 
 -- is game host?
 local function isGamePersonality(name)
-	if _OPTIONS['game'] ~= 'five' then
+	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' then
 		return isLauncherPersonality(name)
 	end
 
-	if name == 'game' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' then
+	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' then
+		return true
+	end
+	
+	if name == 'game_1311' or name == 'game_1355' then
 		return true
 	end
 	
@@ -79,8 +83,14 @@ local function launcherpersonality(name)
 					)
 				}
 			elseif _OPTIONS['game'] == 'rdr3' then
+				local gameBuild = '1311'
+				
+				if name == 'game_1355' then gameBuild = '1355_18' end
+			
 				postbuildcommands {
-					"if exist C:\\f\\RDR2.exe ( %{cfg.buildtarget.directory}\\retarget_pe \"%{cfg.buildtarget.abspath}\" C:\\f\\RDR2.exe )",
+					("if exist C:\\f\\RDR2_%s.exe ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" C:\\f\\RDR2_%s.exe )"):format(
+						gameBuild, gameBuild
+					),
 				}
 			end
 		end
@@ -151,10 +161,13 @@ launcherpersonality 'main'
 launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
-	launcherpersonality 'game'
+	launcherpersonality 'game_1604'
 	launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 	launcherpersonality 'game_2189'
+else
+	launcherpersonality 'game_1311'
+	launcherpersonality 'game_1355'
 end
 
 externalproject "Win2D"

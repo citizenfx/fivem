@@ -1683,7 +1683,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				try
 				{
 					json info = json::parse(data, data + size);
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 					if (info.is_object() && info["vars"].is_object())
 					{
 						auto val = info["vars"].value("sv_enforceGameBuild", "");

@@ -762,7 +762,7 @@ int RealMain()
 			//MessageBox(nullptr, va(L"Gameruntime starting (pid %d)", GetCurrentProcessId()), L"CitizenFx", MB_OK);
 #endif
 
-#if defined(GTA_FIVE) && !defined(LAUNCHER_PERSONALITY_GAME) && defined(LAUNCHER_PERSONALITY_MAIN)
+#if (defined(GTA_FIVE) || defined(IS_RDR3)) && !defined(LAUNCHER_PERSONALITY_GAME) && defined(LAUNCHER_PERSONALITY_MAIN)
 			if (initState->IsMasterProcess())
 			{
 				// run game mode

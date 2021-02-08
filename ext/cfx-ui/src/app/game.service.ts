@@ -568,7 +568,15 @@ export class CfxGameService extends GameService {
 			const card = new AdaptiveCard();
 			card.version = new Version(1, 0);
 
-			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build }));
+			let gameBrand = 'CitizenFX';
+
+			if (this.gameName === 'rdr3') {
+				gameBrand = 'RedM';
+			} else if (this.gameName === 'gta5') {
+				gameBrand = 'FiveM';
+			}
+
+			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build, gameBrand }));
 			heading.size = TextSize.ExtraLarge;
 			card.addItem(heading);
 

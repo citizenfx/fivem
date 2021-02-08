@@ -1298,7 +1298,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 
 			BuildEnvironmentBlock(environmentMap, newEnvironment);
 
-			auto fxApplicationName = MakeCfxSubProcess(L"ROSService", L"game");
+			auto fxApplicationName = MakeCfxSubProcess(L"ROSService", fmt::sprintf(L"game_%d", xbr::GetGameBuild()));
 
 			// set the command line
 			const wchar_t* newCommandLine = va(L"\"%s\" ros:service", fxApplicationName, commandLine);
@@ -1517,7 +1517,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 	//SetEnvironmentVariable(L"CitizenFX_ToolMode", L"1");
 
 	// create a new application name
-	auto fxApplicationName = MakeCfxSubProcess(L"ROSLauncher", L"game");
+	auto fxApplicationName = MakeCfxSubProcess(L"ROSLauncher", fmt::sprintf(L"game_%d", xbr::GetGameBuild()));
 
 	// set the command line
 	//const wchar_t* newCommandLine = va(L"\"%s\" %s --parent_pid=%d \"%s\"", fxApplicationName, toolName, GetCurrentProcessId(), MakeRelativeGamePath(L"GTAVLauncher.exe").c_str());

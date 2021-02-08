@@ -128,8 +128,13 @@ bool XBR_InterceptCancelDefer()
 
 HWND UI_GetWindowHandle()
 {
-	// #TODORDR
-	return FindWindow(L"grcWindow", NULL);
+	return FindWindow(
+#if defined(IS_RDR3)
+		L"sgaWindow"
+#else
+		L"grcWindow"
+#endif
+	, NULL);
 }
 
 bool UI_IsCanceled()

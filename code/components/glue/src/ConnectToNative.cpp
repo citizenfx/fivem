@@ -66,7 +66,7 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 
 void RestartGameToOtherBuild(int build = 0)
 {
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 	static HostSharedData<CfxState> hostData("CfxInitState");
 	const wchar_t* cli;
 
