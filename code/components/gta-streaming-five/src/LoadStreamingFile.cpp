@@ -1248,7 +1248,7 @@ static hook::cdecl_stub<void(void*, void* packfile, const char*)> loadManifest([
 #elif IS_RDR3
 static hook::cdecl_stub<void(void*, void* packfile, const char*, bool)> loadManifest([]()
 {
-	return hook::get_pattern("41 8A F1 49 8B D8 48 8B FA 4C 8B", -0x23);
+	return hook::get_pattern("83 A5 ? ? ? ? 00 E8 ? ? ? ? 48 8B C8 4C", -0x38);
 });
 #endif
 void LoadManifest(const char* tagName)
