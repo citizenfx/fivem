@@ -48,7 +48,7 @@ component
 workspace "CitizenMP"
 	configurations { "Debug", "Release" }
 
-	symbols "On"
+	symbols "Full"
 	characterset "Unicode"
 
 	flags { "No64BitChecks" }
@@ -74,10 +74,10 @@ workspace "CitizenMP"
 	libdirs { "deplibs/lib/" }
 
 	location ((_OPTIONS['builddir'] or "build/") .. _OPTIONS['game'])
+	
+	cppdialect "C++17"
 
 	if os.istarget('windows') then
-		buildoptions '/std:c++17'
-		
 		if _OPTIONS['game'] ~= 'server' then
 			buildoptions { '/await', '/d2FH4-' }
 		end
