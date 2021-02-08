@@ -175,25 +175,6 @@ static bool InitAccountSteam()
 	{
 		accountBlob = blob->data;
 		trace("Steam ROS says it's signed in: %s\n", (const char*)&accountBlob[8]);
-
-		// move the game to Steam mode
-#if defined(IS_RDR3)
-		if (!getenv("CitizenFX_ToolMode"))
-		{
-			if (blob->steamAppId)
-			{
-				static HookFunction lateHookFunction([]()
-				{
-					auto location = hook::get_pattern<char>("75 21 48 89 59 48 48 89 59 50 48 89 59", -4);
-					auto useSteam = hook::get_address<int*>(location);
-					auto steamAppId = hook::get_address<char**>(location + 0x31) + 1;
-
-					*useSteam = 1;
-					*steamAppId = strdup(va("%d", blob->steamAppId));
-				});
-			}
-		}
-#endif
 	}
 
 	return blob->valid;
@@ -679,3 +660,45 @@ void SaveAccountData(const std::string& data)
     fwrite(data.c_str(), 1, data.size(), f);
     fclose(f);
 }
+
+#include <CrossBuildRuntime.h>
+
+static HMODULE WINAPI LoadLibraryExWStub(
+LPCWSTR lpLibFileName,
+HANDLE hFile,
+DWORD dwFlags)
+{
+	if (dwFlags == LOAD_WITH_ALTERED_SEARCH_PATH)
+	{
+		if (wcsstr(lpLibFileName, L"\\steam_api64.dll"))
+		{
+			lpLibFileName = va(L"%s", MakeRelativeCitPath(L"steam_api64.dll"));
+		}
+	}
+
+	return LoadLibraryExW(lpLibFileName, hFile, dwFlags);
+}
+
+static HookFunction hookFunctionSteamBlob([]()
+{
+// move the game to Steam mode if needed
+#if defined(IS_RDR3)
+	static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+
+	if (!getenv("CitizenFX_ToolMode") && xbr::IsGameBuildOrGreater<1355>())
+	{
+		if (blob->steamAppId)
+		{
+			// hook LoadLibraryExW to be able to find steam_api64.dll
+			hook::iat("kernel32.dll", LoadLibraryExWStub, "LoadLibraryExW");
+
+			auto location = hook::get_pattern<char>("75 21 48 89 59 48 48 89 59 50 48 89 59", -4);
+			auto useSteam = hook::get_address<int*>(location);
+			auto steamAppId = hook::get_address<char**>(location + 0x31) + 1;
+
+			*useSteam = 1;
+			*steamAppId = strdup(va("%d", blob->steamAppId));
+		}
+	}
+#endif
+});
