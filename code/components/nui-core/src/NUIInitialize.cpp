@@ -907,7 +907,7 @@ void Component_RunPreInit()
 	}
 
 	{
-		auto network__SetFetchMetadataHeaders = (uint8_t*)((char*)libcef + 0x3c7a2c8);
+		auto network__SetFetchMetadataHeaders = (uint8_t*)((char*)libcef + 0x3d36e0c);
 
 		if (*network__SetFetchMetadataHeaders == 0x41)
 		{
