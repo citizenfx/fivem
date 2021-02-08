@@ -212,7 +212,7 @@ void ValidateSteam(int parentPid)
 	}
 
 	auto j = nlohmann::json::object({
-		{ "appName", appName },
+		{ "appId", appId },
 		{ "platform", "pcros" },
 		{ "authTicket", s }
 	});
