@@ -4697,7 +4697,7 @@ struct CNetworkPtFXEvent
 
 	bool f111;
 
-	int f100;
+	float f100;
 
 	MSGPACK_DEFINE_MAP(effectHash, assetHash, posX, posY, posZ, offsetX, offsetY, offsetZ, rotX, rotY, rotZ, scale, axisBitset, isOnEntity, entityNetId, f109, f92, f110, f105, f106, f107, f111, f100);
 };
