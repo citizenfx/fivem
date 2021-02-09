@@ -4651,7 +4651,7 @@ struct CNetworkPtFXEvent
 		}
 		else
 		{
-			f100 = -1;
+			f100 = -1.0f;
 		}
 	}
 
