@@ -1920,8 +1920,8 @@ struct CPedHealthDataNode
 		if (!isFine)
 		{
 			int pedHealth = state.buffer.Read<int>(13);
-			auto unk4 = state.buffer.ReadBit();
-			auto unk5 = state.buffer.ReadBit();
+			auto killedWithHeadshot = state.buffer.ReadBit();
+			auto killedWithMelee = state.buffer.ReadBit();
 
 			data.health = pedHealth;
 		}
@@ -1959,16 +1959,16 @@ struct CPedHealthDataNode
 		}
 
 
-		auto recentDamage = state.buffer.ReadBit();
+		auto hasSource = state.buffer.ReadBit();
 
-		if (recentDamage)
+		if (hasSource)
 		{
 			int damageEntity = state.buffer.Read<int>(13);
-			data.lastDamageEntity = damageEntity;
+			data.sourceOfDamage = damageEntity;
 		}
 		else 
 		{
-			data.lastDamageEntity = 0;
+			data.sourceOfDamage = 0;
 		}
 
 		int causeOfDeath = state.buffer.Read<int>(32);
