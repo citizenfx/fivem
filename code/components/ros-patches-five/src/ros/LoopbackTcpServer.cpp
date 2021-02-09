@@ -1440,9 +1440,9 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak)
 						};
 
 						backOffFile(L"cache\\game\\ros_documents");
-						backOffFile(L"cache\\game\\ros_launcher_appdata2");
-						backOffFile(L"cache\\game\\ros_launcher_data2");
-						backOffFile(L"cache\\game\\ros_launcher_documents");
+						backOffFile(L"cache\\game\\ros_launcher_appdata3");
+						backOffFile(L"cache\\game\\ros_launcher_data3");
+						backOffFile(L"cache\\game\\ros_launcher_documents2");
 						backOffFile(L"cache\\game\\ros_launcher_game2");
 						backOffFile(L"cache\\game\\ros_profiles");
 
