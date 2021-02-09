@@ -1947,12 +1947,12 @@ struct CPedHealthDataNode
 			bool hasUnk1 = state.buffer.ReadBit();
 			bool hasUnk2 = state.buffer.ReadBit();
 
-			if (hasUnk1)
+			if (hasUnk2)
 			{
 				state.buffer.Read<int>(13);
 			}
 
-			if (!hasUnk2)
+			if (!hasUnk1)
 			{
 				state.buffer.Read<int>(13);
 			}
@@ -1970,13 +1970,15 @@ struct CPedHealthDataNode
 		int causeOfDeath = state.buffer.Read<int>(32);
 		data.causeOfDeath = causeOfDeath;
 
-		int injuredStatus = state.buffer.Read<int>(2); // Change below 150 HP, injured data?
+		auto hurtStarted = state.buffer.ReadBit();
 
-		auto unk13 = state.buffer.ReadBit();
+		int hurtEndTime = state.buffer.Read<int>(2);
 
-		if (unk13)
+		auto hasWeaponDamageComponent = state.buffer.ReadBit();
+
+		if (hasWeaponDamageComponent)
 		{
-			int unk14 = state.buffer.Read<int>(8);
+			int weaponDamageComponent = state.buffer.Read<int>(8);
 		}
 
 		return true;
