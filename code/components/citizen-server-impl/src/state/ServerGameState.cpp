@@ -4539,6 +4539,39 @@ struct CStartProjectileEvent
     MSGPACK_DEFINE_MAP(ownerId, projectileHash, weaponHash, initialPositionX, initialPositionY, initialPositionZ, targetEntity, firePositionX, firePositionY, firePositionZ, effectGroup, unk3, commandFireSingleBullet, unk4, unk5, unk6, unk7, unkX8, unkY8, unkZ8, unk9, unk10, unk11, throwTaskSequence, unk12, unk13, unk14, unk15, unk16);
 };
 
+/*NETEV ptFxEvent SERVER
+/#*
+ * Triggered when a particle fx (ptFx) is created.
+ *
+ * @param sender - The ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function ptFxEvent(sender: number, data: {
+	effectHash: number,
+	assetHash: number,
+	posX: number,
+	posY: number,
+	posZ: number,
+	offsetX: number,
+	offsetY: number,
+	offsetZ: number,
+	rotX: number,
+	rotY: number,
+	rotZ: number,
+	scale: number,
+	axisBitset: number,
+	isOnEntity: boolean,
+	entityNetId: number,
+	f109: boolean,
+	f92: number,
+	f110: boolean,
+	f105: number,
+	f106: number,
+	f107: number,
+	f111: boolean,
+	f100: number
+}): void;
+*/
 struct CNetworkPtFXEvent
 {
 	void Parse(rl::MessageBuffer& buffer)
