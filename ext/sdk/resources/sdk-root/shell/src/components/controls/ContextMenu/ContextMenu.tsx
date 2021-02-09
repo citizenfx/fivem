@@ -51,6 +51,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
   const [outlet, setOutlet] = React.useState<HTMLElement | null>(null);
 
   const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const backdropRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useLayoutEffect(() => {
     setOutlet(document.getElementById('context-menu-outlet'));
@@ -91,11 +92,14 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
 
     return false;
   }, [getCoords]);
-  const handleCloseMenu = React.useCallback(() => {
-    setCoords(null);
+
+  const handleBackdropMouseDown = React.useCallback((event: MouseEvent) => {
+    if (backdropRef.current === event.target) {
+      setCoords(null);
+    }
   }, []);
 
-  const handleClick = React.useCallback((event: MouseEvent) => {
+  const handleRootClick = React.useCallback((event: MouseEvent) => {
     if (!coords) {
       onClick(() => handleOpenMenu(event));
     }
@@ -109,11 +113,16 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
           <div key={index} className={s.separator}/>
         );
       } else {
+        const handleItemMouseUp = () => {
+          item.onClick();
+          setCoords(null);
+        };
+
         return (
           <div
             key={item.id}
             className={classnames(s.item, { [s.disabled]: item.disabled })}
-            onClick={item.onClick}
+            onMouseUp={handleItemMouseUp}
           >
             {item.icon || <BsAlt className={s.dummy} />}
             {item.text}
@@ -123,7 +132,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     });
 
     menu = ReactDOM.createPortal(
-      <div className={s.backdrop} onClick={handleCloseMenu}>
+      <div ref={backdropRef} className={s.backdrop} onMouseDown={handleBackdropMouseDown}>
         <div ref={menuRef} className={s.menu} style={{ top: coords.top + 'px', left: coords.left + 'px' }}>
           {itemsNodes}
         </div>
@@ -138,7 +147,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
       title={title}
       className={classnames(className, { [activeClassName]: !!coords })}
       onContextMenu={handleOpenMenu}
-      onClick={handleClick}
+      onClick={handleRootClick}
     >
       {children}
       {menu}

@@ -206,7 +206,7 @@ export class ExplorerService implements ApiContribution {
       entries.map(async (file) => {
         const entry = await this.getEntry(path.join(dir, file), extras);
 
-        if (onEntry) {
+        if (entry && onEntry) {
           await onEntry(entry);
         }
 

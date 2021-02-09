@@ -62,7 +62,8 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
    * Drag'n'Drop functionality
    */
   const { isDragging, isDropping, dragRef, dropRef } = useItemDragAndDrop(entry, projectExplorerItemType.FOLDER, [
-    projectExplorerItemType.FILE, projectExplorerItemType.FOLDER
+    projectExplorerItemType.FILE,
+    projectExplorerItemType.FOLDER,
   ]);
 
   const rootClassName = classnames(itemsStyles.wrapper, {

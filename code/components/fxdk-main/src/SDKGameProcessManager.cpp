@@ -5,6 +5,7 @@
 #include <CfxState.h>
 #include <ReverseGameData.h>
 #include <CfxSubProcess.h>
+#include <CrossBuildRuntime.h>
 
 static std::mutex gameProcessMutex;
 
@@ -49,7 +50,7 @@ void SDKGameProcessManager::StartGame()
 	gameProcessInfo = { 0 };
 
 
-	auto processName = MakeCfxSubProcess(L"GameRuntime.exe", L"game");
+	auto processName = MakeCfxSubProcess(L"GameRuntime.exe", fmt::sprintf(L"game_%d", xbr::GetGameBuild()));
 	auto processCommand = const_cast<wchar_t*>(va(L"\"%s\" -windowed", processName));
 
 	SetEnvironmentVariable(L"CitizenFX_SDK_Guest", L"1");

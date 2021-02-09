@@ -6,6 +6,9 @@ import { TerminalThemeService } from '@theia/terminal/lib/browser/terminal-theme
 import { TerminalPreferences } from '@theia/terminal/lib/browser/terminal-preferences';
 import { StructuredMessage } from '../fxdk-data-service';
 import { colorizeString, rgbForKey } from '../utils/color';
+import { Deferred } from '@theia/core/lib/common/promise-util';
+import { FixedLengthBuffer } from '../utils/fixed-length-buffer';
+import { Disposable } from '@theia/core';
 
 const asIs = x => x;
 const asPx = x => `${x}px`;
@@ -28,9 +31,17 @@ export abstract class BaseConsole extends BaseWidget {
   @inject(TerminalPreferences)
   protected readonly preferences: TerminalPreferences;
 
+  protected logNode: HTMLDivElement;
   protected outputNode: HTMLDivElement;
   protected outputStructuredNode: HTMLDivElement;
   protected inputNode: HTMLInputElement;
+
+  protected scrollNodeDeferred = new Deferred();
+
+  protected removeNodeQueue: HTMLElement[] = [];
+  protected appendNodeQueue: HTMLElement[] = [];
+  protected nodesBuffer = new FixedLengthBuffer<HTMLElement>(500);
+  protected raf: number | null = null;
 
   protected abstract setup();
 
@@ -42,6 +53,7 @@ export abstract class BaseConsole extends BaseWidget {
 
     this.addClass('fxdk-console-widget');
 
+    this.logNode = document.createElement('div');
     this.outputNode = document.createElement('div');
     this.outputStructuredNode = document.createElement('div');
     this.inputNode = this.createInputNode();
@@ -53,6 +65,68 @@ export abstract class BaseConsole extends BaseWidget {
 
       this.updateCssVar(change.preferenceName);
     }));
+
+    this.toDispose.push(this.nodesBuffer);
+
+    this.nodesBuffer.onRemove((removedNode) => {
+      this.removeNodeQueue.push(removedNode);
+
+      this.performRafActions();
+    });
+
+    this.toDispose.push(Disposable.create(() => {
+      if (this.raf !== null) {
+        cancelAnimationFrame(this.raf);
+      }
+    }));
+  }
+
+  protected receiveStructuredMessage({ channel, message }: StructuredMessage) {
+    const [r, g, b] = rgbForKey(channel);
+    const node = document.createElement('div');
+
+    this.nodesBuffer.push(node);
+
+    node.classList.add('structured-message');
+
+    // Yes, ImGUI uses BGR but who would have known, right
+    node.innerHTML = `
+      <div class="channel" style="--channel-color: rgb(${b}, ${g}, ${r})">${channel}</div>
+      <div class="message">${colorizeString(message)}</div>
+    `;
+
+    this.appendNodeQueue.push(node);
+
+    this.performRafActions();
+  }
+
+  protected performRafActions() {
+    if (this.raf === null ){
+      this.raf = requestAnimationFrame(() => {
+        this.raf = null;
+
+        if (this.appendNodeQueue.length) {
+          const appendNodes = this.appendNodeQueue;
+          this.appendNodeQueue = [];
+          this.outputStructuredNode.append(...appendNodes);
+        }
+
+        if (this.removeNodeQueue.length) {
+          const removedNodes = this.removeNodeQueue;
+          this.removeNodeQueue = [];
+          removedNodes.forEach((removedNode) => {
+            this.outputStructuredNode.removeChild(removedNode);
+          });
+        }
+
+        this.updateScroll();
+      });
+    }
+  }
+
+  protected async getScrollContainer() {
+    await this.scrollNodeDeferred.promise;
+    return this.logNode;
   }
 
   protected abstract handleCommand(command: string);
@@ -92,33 +166,6 @@ export abstract class BaseConsole extends BaseWidget {
       this.outputNode.innerHTML = output.split('\n').join('\n<br/>\n');
       this.updateScroll();
     });
-  }
-
-  protected nodeQueue: HTMLElement[] = [];
-  protected raf: number | null = null;
-  protected receiveStructuredMessage({ channel, message }: StructuredMessage) {
-    const [r, g, b] = rgbForKey(channel);
-    const node = document.createElement('div');
-
-    node.classList.add('structured-message');
-
-    // Yes, ImGUI uses BGR but who would have known, right
-    node.innerHTML = `
-      <div class="channel" style="--channel-color: rgb(${b}, ${g}, ${r})">${channel}</div>
-      <div class="message">${colorizeString(message)}</div>
-    `;
-
-    this.nodeQueue.push(node);
-
-    if (this.raf === null ){
-      this.raf = requestAnimationFrame(() => {
-        this.raf = null;
-        const nodes = this.nodeQueue;
-        this.nodeQueue = [];
-        this.outputStructuredNode.append(...nodes);
-        this.updateScroll();
-      });
-    }
   }
 
   protected clear() {
@@ -163,17 +210,21 @@ export abstract class BaseConsole extends BaseWidget {
 
     this.populateCssVars();
 
+    this.logNode.classList.add('log');
+    this.logNode.prepend(this.outputNode, this.outputStructuredNode);
+    this.node.prepend(this.logNode);
+
+    const cmdInputNode = document.createElement('div');
+    cmdInputNode.innerHTML = '<span>cmd:</span>';
+    cmdInputNode.classList.add('cmd-input');
+    cmdInputNode.appendChild(this.inputNode);
+
+    this.node.prepend(cmdInputNode);
+
+    console.log('Created console dom tree');
+    this.scrollNodeDeferred.resolve();
+
     this.setupScrollListeners();
-
-    this.node.appendChild(this.outputNode);
-    this.node.appendChild(this.outputStructuredNode);
-
-    const labelNode = document.createElement('div');
-    labelNode.innerHTML = '<span>cmd:</span>';
-    labelNode.classList.add('label');
-    labelNode.appendChild(this.inputNode);
-
-    this.node.appendChild(labelNode);
 
     this.initilizeConsole();
   }
@@ -194,7 +245,8 @@ export abstract class BaseConsole extends BaseWidget {
     this.scrollBar?.update();
 
     if (!this.scrollOverride) {
-      this.node.scrollTop = this.node.scrollHeight - this.node.clientHeight;
+      const node = this.logNode;
+      node.scrollTop = node.scrollHeight - node.clientHeight;
     }
   }
 

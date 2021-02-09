@@ -62,7 +62,7 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
   const buildPathDescription = buildPath
     ? (
       <>
-        {buildPath}\\resources directory will be created containing project resources.
+        {buildPath}\resources directory will be created containing project resources.
         &nbsp;<a onClick={openBuildPath}>Open Build Path {openInExplorerIcon}</a>
       </>
     )
