@@ -26,6 +26,7 @@
 #include <ServerEventComponent.h>
 
 #include <boost/range/adaptors.hpp>
+#include <boost/math/constants/constants.hpp>
 
 #include <OneSyncVars.h>
 #include <DebugAlias.h>
@@ -4538,6 +4539,136 @@ struct CStartProjectileEvent
     MSGPACK_DEFINE_MAP(ownerId, projectileHash, weaponHash, initialPositionX, initialPositionY, initialPositionZ, targetEntity, firePositionX, firePositionY, firePositionZ, effectGroup, unk3, commandFireSingleBullet, unk4, unk5, unk6, unk7, unkX8, unkY8, unkZ8, unk9, unk10, unk11, throwTaskSequence, unk12, unk13, unk14, unk15, unk16);
 };
 
+struct CNetworkPtFXEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		effectHash = buffer.Read<uint32_t>(32);
+		assetHash = buffer.Read<uint32_t>(32);
+
+		int _posX = buffer.ReadSignedFloat(19, 27648.0f);
+		int _posY = buffer.ReadSignedFloat(19, 27648.0f);
+		int _posZ = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+		rotX = buffer.ReadSignedFloat(19, 27648.0f) * toDegrees;
+		rotY = buffer.ReadSignedFloat(19, 27648.0f) * toDegrees;
+		rotZ = (buffer.ReadFloat(19, 4416.0f) - 1700.0f) * toDegrees;
+
+		scale = (buffer.Read<int>(10) / 1023.0f) * 10.0f;
+
+		axisBitset = buffer.Read<uint8_t>(3);
+
+		isOnEntity = buffer.Read<uint8_t>(1);
+
+		if (isOnEntity)
+		{
+			posX = 0.0f;
+			posY = 0.0f;
+			posZ = 0.0f;
+
+			offsetX = _posX;
+			offsetY = _posY;
+			offsetZ = _posZ;
+
+			entityNetId = buffer.Read<uint16_t>(13);
+		}
+		else
+		{
+			posX = _posX;
+			posY = _posY;
+			posZ = _posZ;
+
+			offsetX = 0.0f;
+			offsetY = 0.0f;
+			offsetZ = 0.0f;
+
+			entityNetId = 0;
+		}
+
+		f109 = buffer.Read<uint8_t>(1);
+
+		if (f109)
+		{
+			f92 = buffer.Read<int>(32);
+		}
+		else
+		{
+			f92 = -1;
+		}
+
+		f110 = buffer.Read<uint8_t>(1);
+
+		if (f110)
+		{
+			f105 = buffer.Read<uint16_t>(8);
+			f106 = buffer.Read<uint16_t>(8);
+			f107 = buffer.Read<uint16_t>(8);
+		}
+		else
+		{
+			f105 = 0;
+			f107 = 0;
+		}
+
+		f111 = buffer.Read<uint8_t>(1);
+
+		if (f111)
+		{
+			f100 = buffer.Read<int>(8) / 255.0f;
+		}
+		else
+		{
+			f100 = -1;
+		}
+	}
+
+	inline std::string GetName()
+	{
+		return "ptFxEvent";
+	}
+
+	double toDegrees = 180.0 / boost::math::constants::pi<double>();
+
+	uint32_t effectHash;
+	uint32_t assetHash;
+
+	float posX;
+	float posY;
+	float posZ;
+
+	float offsetX;
+	float offsetY;
+	float offsetZ;
+
+	float rotX;
+	float rotY;
+	float rotZ;
+
+	float scale;
+
+	uint8_t axisBitset;
+
+	bool isOnEntity;
+
+	uint16_t entityNetId;
+
+	bool f109;
+
+	int f92;
+
+	bool f110;
+
+	int f105;
+	int f106;
+	int f107;
+
+	bool f111;
+
+	int f100;
+
+	MSGPACK_DEFINE_MAP(effectHash, assetHash, posX, posY, posZ, offsetX, offsetY, offsetZ, rotX, rotY, rotZ, scale, axisBitset, isOnEntity, entityNetId, f109, f92, f110, f105, f106, f107, f111, f100);
+};
+
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
 {
@@ -4661,6 +4792,11 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 	bool isReply = buffer.Read<uint8_t>(); // is reply
 	uint16_t eventType = buffer.Read<uint16_t>(); // event ID
 
+	if (Is2060() && eventType > 55) // patch for 1868+ game build as `NETWORK_AUDIO_BARK_EVENT` was added
+	{
+		eventType--;
+	}
+
 	switch(eventType)
 	{
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
@@ -4672,6 +4808,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
 		case START_PROJECTILE_EVENT: return GetHandler<CStartProjectileEvent>(instance, client, std::move(buffer));
 		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
+		case NETWORK_PTFX_EVENT: return GetHandler<CNetworkPtFXEvent>(instance, client, std::move(buffer));
 	};
 
 	return {};
