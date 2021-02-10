@@ -286,7 +286,7 @@ static InitFunction initFunction([]()
 			{
 				if (g_enforcedGameBuild == "1604")
 				{
-					enforceGameBuildVar->GetHelper()->SetValue("1311");
+					enforceGameBuildVar->GetHelper()->SetRawValue("1311");
 				}
 			}
 
