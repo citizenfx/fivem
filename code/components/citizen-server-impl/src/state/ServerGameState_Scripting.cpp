@@ -1277,4 +1277,31 @@ static InitFunction initFunction([]()
 
 		return resultVector;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CARRIAGE_ENGINE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		if (!train)
+		{
+			return uint32_t(0);
+		}
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		auto engine = gameState->GetEntity(0, train->engineCarriage);
+
+		return engine ? gameState->MakeScriptHandle(engine) : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CARRIAGE_INDEX", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto train = entity->syncTree->GetTrainState();
+
+		return train ? train->carriageIndex : -1;
+	}));
 });
