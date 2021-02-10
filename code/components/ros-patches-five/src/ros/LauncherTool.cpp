@@ -164,6 +164,17 @@ static void Steam_Run(const boost::program_options::variables_map& map)
 	TerminateProcess(GetCurrentProcess(), 0);
 }
 
+void ValidateEpic(int parentPid);
+
+static void Epic_Run(const boost::program_options::variables_map& map)
+{
+	auto args = map["cake"].as<std::vector<std::wstring>>();
+	g_rosParentPid = map["parent_pid"].as<int>();
+
+	ValidateEpic(g_rosParentPid);
+	TerminateProcess(GetCurrentProcess(), 0);
+}
+
 #include <wincrypt.h>
 
 static HLOCAL WINAPI LocalFreeStub(HLOCAL hMem)
@@ -584,6 +595,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 static FxToolCommand rosSubprocess("ros:launcher", Launcher_HandleArguments, Launcher_Run);
 static FxToolCommand rosSubprocess2("ros:legit", Launcher_HandleArguments, Legit_Run);
 static FxToolCommand rosSubprocess3("ros:steam", Launcher_HandleArguments, Steam_Run);
+static FxToolCommand rosSubprocess4("ros:epic", Launcher_HandleArguments, Epic_Run);
 
 void RunLauncher(const wchar_t* toolName, bool instantWait);
 void RunLauncherAwait();
