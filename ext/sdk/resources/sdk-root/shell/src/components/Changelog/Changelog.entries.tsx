@@ -17,6 +17,12 @@ export const changelogEntries: ChangelogEntry[] = [
         </p>
         <ul>
           <li>You can now drag'n'drop files or folders from desktop to folders/resources in fxdk</li>
+          <li>
+            Server is running with <kbd>sv_fxdkMode=1</kbd> convar now,
+            so you can use different logic for fetching players tokens/identifiers while in fxdk environment.
+            <br/>
+            Test it like so: <kbd>const isFxdk = GetConvarInt('sv_fxdkMode', 0) == 1</kbd>.
+          </li>
         </ul>
 
         <p>

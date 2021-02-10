@@ -6,13 +6,16 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { BsBoxArrowUpRight, BsExclamationCircle } from 'react-icons/bs';
 import { useTask } from 'contexts/TaskContext';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
-import { useOpenFolderSelectDialog } from 'utils/hooks';
+import { useApiMessage, useOpenFolderSelectDialog } from 'utils/hooks';
 import { useProjectClientStorageItem } from 'utils/projectStorage';
 import { Stepper } from 'components/controls/Stepper/Stepper';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 import s from './ProjectBuilder.module.scss';
 import { openInExplorerIcon, projectBuildIcon } from 'constants/icons';
 import { openInExplorerAndSelect } from 'utils/natives';
+import { ProjectBuildError } from 'shared/api.types';
+import { projectApi } from 'shared/api.events';
+import { ProjectBuilderError } from './ProjectBuilderError';
 
 const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
   [ProjectBuildTaskStage.VerifyingBuildSite]: 'Verifying build site',
@@ -27,6 +30,11 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
   const { project, closeBuilder, build } = React.useContext(ProjectContext);
   const buildTask = useTask(projectBuildingTaskName);
   const buildInProgress = !!buildTask;
+
+  const [buildError, setBuildError] = React.useState<ProjectBuildError | null>(null);
+  useApiMessage(projectApi.buildError, (projectBuildError: ProjectBuildError) => {
+    setBuildError(projectBuildError);
+  }, [setBuildError]);
 
   const [buildTriggered, setBuildTriggered] = React.useState(false);
   const buildStage = buildTask
@@ -70,9 +78,10 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
 
   const handleBuildProject = React.useCallback(() => {
     setBuildTriggered(false);
+    setBuildError(null);
 
     build();
-  }, [setBuildTriggered, build]);
+  }, [setBuildTriggered, setBuildError, build]);
 
   const buildAllowed = !buildInProgress && !!buildPath;
 
@@ -126,15 +135,30 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
           </div>
         </div>
 
-        <div className="modal-label">
-          Building steps:
-        </div>
-        <div className="modal-block">
-          <Stepper
-            step={buildStage}
-            steps={buildSteps}
-          />
-        </div>
+        {!buildError && (
+          <>
+            <div className="modal-label">
+              Building steps:
+            </div>
+            <div className="modal-block">
+              <Stepper
+                step={buildStage}
+                steps={buildSteps}
+              />
+            </div>
+          </>
+        )}
+
+        {!!buildError && (
+          <div className={s.error}>
+            <div className="modal-label">
+              Building error:
+            </div>
+            <div className="modal-block">
+              <ProjectBuilderError error={buildError} />
+            </div>
+          </div>
+        )}
 
         <div className="modal-actions">
           <Button

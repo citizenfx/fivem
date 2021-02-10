@@ -22,4 +22,8 @@ export class DisposableContainer {
       return disposable.dispose?.();
     }));
   }
+
+  empty(): boolean {
+    return this.container.length === 0;
+  }
 }

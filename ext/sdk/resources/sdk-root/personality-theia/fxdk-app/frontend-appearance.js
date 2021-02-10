@@ -84,4 +84,26 @@ module.exports = function attachFxdkAppearance() {
   const cssNode = document.createElement('style');
   cssNode.innerText = fxdkAppearanceCss;
   document.head.appendChild(cssNode);
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+
+    const isA = target.matches('a');
+    const isAChild = target.matches('a *');
+
+    if (!isA && !isAChild) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const link = isA
+      ? target.getAttribute('href')
+      : target.closest('a').getAttribute('href');
+
+
+    if (link) {
+      invokeNative('openUrl', link);
+    }
+  });
 }

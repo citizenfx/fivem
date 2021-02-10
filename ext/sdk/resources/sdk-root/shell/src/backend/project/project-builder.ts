@@ -9,8 +9,10 @@ import { Stats } from 'fs';
 import { injectable, inject } from 'inversify';
 import { projectApi } from 'shared/api.events';
 import { ProjectBuildRequest } from 'shared/api.requests';
+import { ProjectBuildError } from 'shared/api.types';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
 import { formatDateForFilename } from 'utils/date';
+import { AssetBuildCommandError } from './asset/asset-error';
 import { Project, ProjectState } from './project';
 import { ProjectAccess } from './project-access';
 
@@ -74,6 +76,23 @@ export class ProjectBuilder implements ApiContribution {
     try {
       project.enterState(ProjectState.Building);
       await this.doBuildProject(request, project, task);
+    } catch (e) {
+      let projectBuildError: ProjectBuildError = {
+        type: 'generic',
+        data: e.toString(),
+      };
+
+      if (e instanceof AssetBuildCommandError) {
+        projectBuildError = {
+          type: 'assetBuildError',
+          data: {
+            assetName: e.assetName,
+            outputChannelId: e.outputChannelId,
+          },
+        };
+      }
+
+      this.apiClient.emit(projectApi.buildError, projectBuildError);
     } finally {
       project.enterState(ProjectState.Development);
       task.done();

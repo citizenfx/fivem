@@ -3,16 +3,14 @@ import { BsArrowBarLeft, BsArrowBarRight, BsCardHeading, BsGear, BsList } from '
 import classnames from 'classnames';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { AppStates } from 'shared/api.types';
 import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon } from 'constants/icons';
 import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator';
 import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
 import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
-import { ServerButton } from 'components/ServerButton/ServerButton';
 import { TaskReporter } from 'components/TaskReporter/TaskReporter';
+import { ProjectToolbar } from 'components/Project/ProjectToolbar/ProjectToolbar';
 import s from './Toolbar.module.scss';
-import { ProjectBuildButton } from 'components/Project/ProjectBuildButton/ProjectBuildButton';
 
 const handleMenuClick = (openMenu) => openMenu();
 const handleGetMenuCoords = () => ({
@@ -40,7 +38,6 @@ export const Toolbar = React.memo(function Toolbar() {
     : openToolbar;
 
   const toolbarClasses = classnames(s.root, {
-    [s.visible]: state === AppStates.ready,
     [s.active]: toolbarOpen,
   });
 
@@ -128,13 +125,7 @@ export const Toolbar = React.memo(function Toolbar() {
           </div>
 
           {!!project && (
-            <ProjectBuildButton />
-          )}
-
-          {!!project && (
-            <div className={s.server}>
-              <ServerButton />
-            </div>
+            <ProjectToolbar />
           )}
         </div>
 

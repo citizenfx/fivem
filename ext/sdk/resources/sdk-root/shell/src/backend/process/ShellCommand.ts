@@ -34,6 +34,10 @@ export class ShellCommand implements OutputChannelProvider {
     return JSON.stringify([this.command, this.args, this.cwd]);
   }
 
+  getOutputChannelLabel(): string {
+    return `${this.cwd}: ${this.command} ${this.args.join(' ')}`.trim();
+  }
+
   onOutputData(listener: OutputListener) {
     return this.onStdout(listener);
   }
@@ -80,6 +84,7 @@ export class ShellCommand implements OutputChannelProvider {
     });
 
     this.proc.stderr.on('data', (data) => {
+      this.stdoutListeners.forEach((listener) => listener(data));
       this.stderrListeners.forEach((listener) => listener(data));
     });
 

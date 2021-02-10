@@ -166,3 +166,7 @@ export interface ProjectCreateCheckResult {
   openProject?: boolean,
   ignoreCfxServerData?: boolean,
 }
+
+export type ProjectBuildError =
+  | { type: 'generic', data: string }
+  | { type: 'assetBuildError', data: { assetName: string, outputChannelId: string } };

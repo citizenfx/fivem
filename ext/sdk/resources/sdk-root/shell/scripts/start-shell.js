@@ -45,19 +45,22 @@ async function prebuild() {
   const projectLibPath = path.join(personalityTheiaProject, 'lib');
 
   if (await doesNotExist(gameViewLibPath)) {
-    await concurrently({ name: 'theia:fxdk-game-view:pre-build', command: `yarn --cwd ${personalityTheiaGameView} build` });
+    console.log('Prebuilding fxdk-game-view');
+    await concurrently([{ name: 'theia:fxdk-game-view:pre-build', command: `yarn --cwd ${personalityTheiaGameView} build` }]);
   } else {
     console.log('Skipping fxdk-game-view prebuild');
   }
 
   if (await doesNotExist(projectLibPath)) {
-    await concurrently({ name: 'theia:fxdk-project:pre-build', command: `yarn --cwd ${personalityTheiaProject} build` });
+    console.log('Prebuilding fxdk-project');
+    await concurrently([{ name: 'theia:fxdk-project:pre-build', command: `yarn --cwd ${personalityTheiaProject} build` }]);
   } else {
     console.log('Skipping fxdk-project prebuild');
   }
 
   if (await doesNotExist(appLibPath)) {
-    await concurrently({ name: 'theia:fxdk-app:pre-build', command: `yarn --cwd ${personalityTheiaApp} build` });
+    console.log('Prebuilding fxdk-app');
+    await concurrently([{ name: 'theia:fxdk-app:pre-build', command: `yarn --cwd ${personalityTheiaApp} build` }]);
   } else {
     console.log('Skipping fxdk-app prebuild');
   }

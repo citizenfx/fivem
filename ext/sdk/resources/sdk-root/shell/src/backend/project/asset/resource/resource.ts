@@ -17,6 +17,8 @@ import { StatusProxy, StatusService } from "backend/status/status-service";
 import { ResourceStatus } from "./resource-types";
 import { OutputService } from "backend/output/output-service";
 import { uniqueArray } from "utils/unique";
+import { Deferred } from "backend/deferred";
+import { AssetBuildCommandError } from "../asset-error";
 
 
 interface IdealResourceMetaData {
@@ -96,6 +98,7 @@ export class Resource implements AssetInterface {
   protected restartInducingPaths: string[] = [];
   protected restartInducingPatterns: Record<string, IMinimatch> = {};
 
+  protected buildCommandsDisposableContainer = new DisposableContainer();
   protected disposableContainer = new DisposableContainer();
   protected status: StatusProxy<ResourceStatus>;
 
@@ -149,6 +152,58 @@ export class Resource implements AssetInterface {
     this.watchCommandsSuspended = false;
 
     this.ensureWatchCommandsRunning();
+  }
+
+  async runBuildCommands() {
+    if (!this.buildCommandsDisposableContainer.empty()) {
+      this.buildCommandsDisposableContainer.dispose();
+      this.buildCommandsDisposableContainer = new DisposableContainer();
+    }
+
+    const commands = this.manifest.fxdkBuildCommands;
+    if (!commands.length) {
+      return;
+    }
+
+    const promises = commands.map(([cmd, args]) => {
+      const shellCommand = new ShellCommand(cmd, Array.isArray(args) ? args : [], this.path);
+      const shellCommandOutputChannel = this.outputService.createOutputChannelFromProvider(shellCommand);
+
+      this.buildCommandsDisposableContainer.add(shellCommandOutputChannel);
+
+      const outputId = shellCommand.getOutputChannelId();
+      const deferred = new Deferred();
+
+      let closed = false;
+
+      shellCommand.onClose((code) => {
+        if (!closed) {
+          closed = true;
+
+          if (code === 0) {
+            deferred.resolve();
+          } else {
+            deferred.reject(new AssetBuildCommandError(
+              this.name,
+              outputId,
+            ));
+          }
+        }
+      });
+
+      shellCommand.onError((error) => {
+        if (!closed) {
+          closed = true;
+          deferred.reject(error);
+        }
+      });
+
+      shellCommand.start();
+
+      return deferred.promise;
+    });
+
+    await Promise.all(promises);
   }
 
   async init() {
@@ -352,14 +407,6 @@ export class Resource implements AssetInterface {
     });
 
     await Promise.all(promises);
-    // this.status.applyValue((status) => {
-    //   if (status) {
-    //     this.logService.log('Reporting watch command not running');
-    //     Object.values(status.watchCommands).forEach((watchCommandStatus) => watchCommandStatus.running = false);
-    //   }
-
-    //   return status;
-    // });
   }
 
   private rebuildRestartInducingPatterns() {

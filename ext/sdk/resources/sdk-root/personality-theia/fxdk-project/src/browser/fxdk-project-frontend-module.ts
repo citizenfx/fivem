@@ -1,4 +1,5 @@
 import '../../src/browser/styles/console.css';
+import '../../src/browser/styles/faq.css';
 
 import { ContainerModule, interfaces } from 'inversify';
 import { bindViewContribution, FrontendApplicationContribution, WidgetFactory } from '@theia/core/lib/browser';
@@ -15,6 +16,7 @@ import { FxdkMenuContribution } from './fxdk-menu-contribution';
 import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
 import { ClientConsole, ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ID } from './console/client-console';
+import { rebindHelpContribution } from './help/rebindHelpContribution';
 
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
@@ -34,6 +36,8 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   rebindWorkspaceService(bind, rebind);
   rebindWorkspaceCommands(bind, rebind);
   rebindWorkspaceFrontendContribution(bind, rebind);
+
+  rebindHelpContribution(bind, rebind);
 
   bindViewContribution(bind, ServerConsoleViewContribution);
   bind(WidgetFactory).toDynamicValue((ctx) => ({

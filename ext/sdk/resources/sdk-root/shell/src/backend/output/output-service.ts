@@ -33,6 +33,11 @@ export class OutputService implements ApiContribution {
 
     this.channels[channelId] = channel;
 
+    this.apiClient.emit(outputApi.outputLabel, {
+      channelId,
+      label: provider.getOutputChannelLabel(),
+    });
+
     return channel;
   }
 }

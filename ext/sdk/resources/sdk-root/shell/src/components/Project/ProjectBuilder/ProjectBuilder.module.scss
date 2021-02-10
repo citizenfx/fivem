@@ -20,4 +20,19 @@
       flex-grow: 1;
     }
   }
+
+  .error {
+    background-color: rgba($erColor, .5);
+
+    .asset-build-error {
+      display: flex;
+      flex-direction: column;
+
+      line-height: 1.2;
+
+      :last-child {
+        margin-top: $q*2;
+      }
+    }
+  }
 }

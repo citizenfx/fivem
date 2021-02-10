@@ -123,6 +123,7 @@ export class GameServerService implements AppContribution, ApiContribution {
       '+exec', 'blank.cfg',
       '+endpoint_add_tcp', '127.0.0.1:30120',
       '+endpoint_add_udp', '127.0.0.1:30120',
+      '+set', 'sv_fxdkMode', '1',
       '+set', 'sv_hostname', 'FxDK Dev Server',
       '+set', 'onesync', 'on',
       '+set', 'sv_maxclients', '64',
