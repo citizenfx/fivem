@@ -9,6 +9,7 @@ import { projectExplorerItemType } from '../item.types';
 import { FilesystemEntry } from 'shared/api.types';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { itemsStyles } from '../item.styles';
+import { NativeTypes } from 'react-dnd-html5-backend';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean) => {
@@ -64,6 +65,7 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
   const { isDragging, isDropping, dragRef, dropRef } = useItemDragAndDrop(entry, projectExplorerItemType.FOLDER, [
     projectExplorerItemType.FILE,
     projectExplorerItemType.FOLDER,
+    NativeTypes.FILE,
   ]);
 
   const rootClassName = classnames(itemsStyles.wrapper, {

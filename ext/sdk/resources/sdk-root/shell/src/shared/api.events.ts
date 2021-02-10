@@ -34,6 +34,7 @@ export const projectApi = {
 
   moveEntry: 'project:moveEntry',
   copyEntry: 'project:copyEntry',
+  copyEntries: 'project:copyEntries',
 };
 
 export const assetApi = {

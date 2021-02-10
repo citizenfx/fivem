@@ -12,7 +12,7 @@ import { EntryRelocateOperation, ProjectExplorerContext } from './ProjectExplore
 import { ProjectItemProps, renderChildren } from './item';
 import { ProjectExplorerItemContext } from './item.context';
 import { EntryMoveItem } from './item.types';
-import { MoveEntryRequest } from 'shared/api.requests';
+import { CopyEntriesRequest, MoveEntryRequest } from 'shared/api.requests';
 import { VisibilityFilter } from 'components/Explorer/Explorer.filters';
 import { openInExplorer, openInExplorerAndSelect } from 'utils/natives';
 
@@ -185,7 +185,27 @@ export const useItemDrop = (entry: FilesystemEntry, accept: string | string[]) =
         return;
       }
 
-      const sourcePath = item?.entry?.path;
+      const item_ANY: any = item;
+
+      // Thanks ts for not allowing narrowing non-discriminative unions...
+      // Handling native files drop from desktop
+      if (Array.isArray(item_ANY?.files)) {
+        const sourcePaths: string[] = item_ANY.files.map((file) => file.path);
+        const targetPath = entry.path;
+
+        if (sourcePaths.length && targetPath) {
+          const request: CopyEntriesRequest = {
+            sourcePaths,
+            targetPath,
+          };
+
+          return sendApiMessage(projectApi.copyEntries, request);
+        }
+
+        return;
+      }
+
+      const sourcePath = item_ANY?.entry?.path;
       const targetPath = entry.path;
 
       if (sourcePath && targetPath) {

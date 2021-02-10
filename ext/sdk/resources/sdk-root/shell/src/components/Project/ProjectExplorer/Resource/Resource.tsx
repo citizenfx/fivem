@@ -20,6 +20,7 @@ import { useStatus } from 'contexts/StatusContext';
 import { ResourceCommandsOutputModal } from './ResourceCommandsOutputModal/ResourceCommandsOutputModal';
 import { itemsStyles } from '../item.styles';
 import s from './Resource.module.scss';
+import { NativeTypes } from 'react-dnd-html5-backend';
 
 
 const resourceChildrenFilter = (entry: FilesystemEntry) => {
@@ -107,6 +108,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
   const { isDropping, dropRef } = useItemDrop(entry, [
     projectExplorerItemType.FILE,
     projectExplorerItemType.FOLDER,
+    NativeTypes.FILE,
   ]);
 
   const rootClassName = classnames(itemsStyles.wrapper, {

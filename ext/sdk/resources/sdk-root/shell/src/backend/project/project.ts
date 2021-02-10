@@ -12,6 +12,7 @@ import {
   AssetCreateRequest,
   AssetDeleteRequest,
   AssetRenameRequest,
+  CopyEntriesRequest,
   CopyEntryRequest,
   MoveEntryRequest,
   ProjectCreateDirectoryRequest,
@@ -745,7 +746,24 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.copyEntry)
   async copyEntry(request: CopyEntryRequest) {
+    const sourceDirName = this.fsService.dirname(request.sourcePath);
+
+    if (sourceDirName === request.targetPath) {
+      return;
+    }
+
     this.fsService.copy(request.sourcePath, request.targetPath);
+  }
+
+  @handlesClientEvent(projectApi.copyEntries)
+  async copyEntries(request: CopyEntriesRequest) {
+    if (!request.sourcePaths.length) {
+      return;
+    }
+
+    await Promise.all(request.sourcePaths.map((sourcePath) => {
+      return this.fsService.copy(sourcePath, request.targetPath);
+    }));
   }
   // /FS methods
   //#endregion fs-methods

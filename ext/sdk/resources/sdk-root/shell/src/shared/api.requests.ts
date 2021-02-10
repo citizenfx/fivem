@@ -82,6 +82,11 @@ export interface MoveEntryRequest {
   targetPath: string,
 }
 
+export interface CopyEntriesRequest {
+  sourcePaths: string[];
+  targetPath: string
+}
+
 export type CopyEntryRequest = MoveEntryRequest;
 
 export interface ProjectBuildRequest {

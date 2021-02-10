@@ -6,7 +6,14 @@ export const projectExplorerItemType = {
   FOLDER: 'projectExplorer:folder',
 };
 
-export interface EntryMoveItem {
-  entry?: FilesystemEntry,
-  type: string,
+export interface NativeDropItem {
+  files: (File & { path: string })[],
 }
+
+export interface FxDKDropItem {
+  entry?: FilesystemEntry,
+  type: string | Symbol,
+}
+export type EntryMoveItem =
+  | NativeDropItem
+  | FxDKDropItem;

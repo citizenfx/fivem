@@ -13,6 +13,13 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>10 february 2021</strong>
+        </p>
+        <ul>
+          <li>You can now drag'n'drop files or folders from desktop to folders/resources in fxdk</li>
+        </ul>
+
+        <p>
           <strong>8 february 2021</strong>
         </p>
         <ul>
