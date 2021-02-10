@@ -907,6 +907,7 @@ void Component_RunPreInit()
 	}
 
 	{
+		// echo network::SetFetchMetadataHeaders | pdbdump -r libcef.dll.pdb:0x180000000
 		auto network__SetFetchMetadataHeaders = (uint8_t*)((char*)libcef + 0x3d36e0c);
 
 		if (*network__SetFetchMetadataHeaders == 0x41)
