@@ -644,15 +644,19 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				if (instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5 && !enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
+				auto svGame = instance->GetComponent<fx::GameServer>()->GetGameName();
+				bool canEnforceBuild = (svGame == fx::GameName::GTA5 || svGame == fx::GameName::RDR3);
+
+				if (canEnforceBuild && !enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
 				{
 					clientRegistry->RemoveClient(lockedClient);
 
 					sendError(
 						fmt::sprintf(
-							"This server requires a different game build (%s) from the one you're using (%s). Tell the server owner to remove this check.",
+							"This server requires a different game build (%s) from the one you're using (%s).%s",
 							enforceGameBuildVar->GetValue(),
-							gameBuild
+							gameBuild,
+							(svGame == fx::GameName::GTA5) ? " Tell the server owner to remove this check." : ""
 						)
 					);
 
