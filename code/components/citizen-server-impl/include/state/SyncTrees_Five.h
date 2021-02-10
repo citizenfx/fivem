@@ -2069,7 +2069,6 @@ struct CTrainGameStateDataNode
 
 	bool Parse(SyncParseState& state)
 	{
-		// Engine carriage
 		int engineCarriage = state.buffer.Read<int>(13);
 		data.engineCarriage = engineCarriage;
 
@@ -2082,18 +2081,18 @@ struct CTrainGameStateDataNode
 		// Offset from the engine carriage?
 		float engineOffset = state.buffer.ReadSignedFloat(32, 1000.0f);
 
-		int variation = state.buffer.Read<int>(8);
+		int trainConfigIndex = state.buffer.Read<int>(8);
 
 		int carriageIndex = state.buffer.Read<int>(8);
 		data.carriageIndex = carriageIndex;
 
 		// 0 = Main Line, 3 = Metro line
-		int track = state.buffer.Read<int>(8);
+		int trackId = state.buffer.Read<int>(8);
 
 		float cruiseSpeed = state.buffer.ReadSignedFloat(8, 30.0f);
 
-		// 0 = Moving, 1 = Slowing down, 3 = Stopped, 5 = About to depart?
-		int status = state.buffer.Read<int>(3);
+		// 0 = Moving, 1 = Slowing down, 2 = Doors opening, 3 = Stopped, 4 = Doors closing, 5 = Before depart
+		int trainState = state.buffer.Read<int>(3);
 
 		bool isStartCarriage = state.buffer.ReadBit();
 
@@ -2105,10 +2104,9 @@ struct CTrainGameStateDataNode
 
 		bool unk14 = state.buffer.ReadBit();
 
-		bool isDerailed = state.buffer.ReadBit();
+		bool renderDerailed = state.buffer.ReadBit();
 
-		// Turns true when player enters metrotrain. Remains true after leaving.
-		bool unk16 = state.buffer.ReadBit();
+		bool forceDoorsOpen = state.buffer.ReadBit();
 
 		return true;
 	}
