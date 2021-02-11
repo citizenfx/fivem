@@ -849,7 +849,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	if (!urlRef)
 	{
-		OnConnectionError(va("Couldn't resolve URL %s.", ruRef));
+		OnConnectionError(fmt::sprintf("Couldn't resolve URL %s.", ruRef).c_str());
 		co_return;
 	}
 
@@ -945,13 +945,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			// TODO: add UI output
 			m_connectionState = CS_IDLE;
 
-			OnConnectionError(va("Failed handshake to server %s%s%s.", url, connData.length() > 0 ? " - " : "", connData));
+			OnConnectionError(fmt::sprintf("Failed handshake to server %s%s%s.", url, connData.length() > 0 ? " - " : "", connData).c_str());
 
 			return;
 		}
 		else if (!isLegacyDeferral && !Instance<ICoreGameInit>::Get()->OneSyncEnabled)
 		{
-			OnConnectionError(va("Failed handshake to server %s - it closed the connection while deferring.", url));
+			OnConnectionError(fmt::sprintf("Failed handshake to server %s - it closed the connection while deferring.", url).c_str());
 		}
 	};
 
@@ -1424,7 +1424,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 														{
 															if (!fact.empty())
 															{
-																OnConnectionError(va("Could not check server feature policy. %s", fact));
+																OnConnectionError(fmt::sprintf("Could not check server feature policy. %s", fact).c_str());
 
 																m_connectionState = CS_IDLE;
 
@@ -1447,7 +1447,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 									}
 									catch (std::exception& e)
 									{
-										OnConnectionError(va("Info get failed for %s\n", e.what()));
+										OnConnectionError(fmt::sprintf("Info get failed for %s\n", e.what()).c_str());
 
 										m_connectionState = CS_IDLE;
 									}
@@ -1477,7 +1477,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								{
 									if (!success)
 									{
-										OnConnectionError(va("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr));
+										OnConnectionError(fmt::sprintf("This server has been blocked from the FiveM platform. Stated reason: %sIf you manage this server and you feel this is not justified, please contact your Technical Account Manager.", dStr).c_str());
 
 										m_connectionState = CS_IDLE;
 
