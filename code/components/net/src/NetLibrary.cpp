@@ -915,13 +915,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
-
-	std::string gameBuild;
-
-	if (Instance<ICoreGameInit>::Get()->GetData("gameBuild", &gameBuild))
-	{
-		postMap["gameBuild"] = gameBuild;
-	}
+	postMap["gameBuild"] = fmt::sprintf("%d", xbr::GetGameBuild());
 
 #if defined(IS_RDR3)
 	postMap["gameName"] = "rdr3";
