@@ -446,7 +446,7 @@ function RegisterNetEvent(eventName, cb)
 	tableEntry.safeForNet = true
 
 	if cb then
-		AddEventHandler(eventName, cb)
+		return AddEventHandler(eventName, cb)
 	end
 end
 
