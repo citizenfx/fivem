@@ -53,7 +53,7 @@
 						</Item>
 						<Item>
 							<PoolName>AttachmentExtension</PoolName>
-							<PoolSize value="430"/>
+							<PoolSize value="860"/>
 						</Item>
 						<Item>
 						  <PoolName>AudioHeap</PoolName>
