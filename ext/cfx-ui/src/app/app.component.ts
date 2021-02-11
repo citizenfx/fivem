@@ -273,6 +273,8 @@ export class AppComponent implements OnInit, AfterViewInit {
 			(<HTMLDivElement>document.querySelector('app-root')).style.opacity = '1';
 
 			setTimeout(() => {
+				(<HTMLDivElement>document.querySelector('.booting')).style.display = 'none';
+
 				this.gameService.sayHello();
 			}, 150);
 		};

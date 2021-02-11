@@ -103,19 +103,21 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		// So we have to check if other levels don't violate that
 		if (this.premium !== 'pt') {
 			if (this.server.iconNeedsResolving) {
-				this.resolveIcon();
+				this.zone.runOutsideAngular(() => {
+					this.resolveIcon();
+				});
 				return;
 			}
 
 			if (this.server.cachedResolvedIcon) {
-				this.placeIconNode(this.server.cachedResolvedIcon);
+				this.zone.runOutsideAngular(() => {
+					this.placeIconNode(this.server.cachedResolvedIcon);
+				});
 			}
 		}
 	}
 
 	private async resolveIcon() {
-		const figureElement = this.iconFigure.nativeElement as HTMLDivElement;
-
 		try {
 			const response = await fetch(this.server.iconUri);
 

@@ -32,7 +32,7 @@
 <div class="list" *ngIf="isBrowser()" #list [class.hidden]="!serversLoaded || !sortingComplete">
 	<cdk-virtual-scroll-viewport
 		*ngIf="type !== 'history'"
-		autosize
+		[itemSize]="screenHeight * .018 * 2"
 		[minBufferPx]="screenHeight * 1.2"
 		[maxBufferPx]="screenHeight * 1.5"
 		class="scroll"

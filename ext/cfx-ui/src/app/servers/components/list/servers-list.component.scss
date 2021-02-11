@@ -108,6 +108,14 @@ virtual-scroller {
 	will-change: transform;
 }
 
+/*cdk-virtual-scroll-viewport {
+	will-change: transform;
+}*/
+
+::ng-deep .cdk-virtual-scroll-content-wrapper {
+	will-change: transform;
+}
+
 .history-list {
 	height: 100%;
 	width: 100%;
