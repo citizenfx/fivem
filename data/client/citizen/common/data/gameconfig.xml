@@ -134,7 +134,7 @@
 						</Item>
 						<Item>
 							<PoolName>AnimStore</PoolName>
-							<PoolSize value="20000"/>
+							<PoolSize value="21000"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
@@ -326,15 +326,15 @@
 						</Item>
 						<Item>
 							<PoolName>MapDataStore</PoolName>
-							<PoolSize value="11000"/>
+							<PoolSize value="12000"/>
 						</Item>
 						<Item>
 							<PoolName>MapTypesStore</PoolName>
-							<PoolSize value="1800"/>
+							<PoolSize value="3000"/>
 						</Item>
 						<Item>
 							<PoolName>MetaDataStore</PoolName>
-							<PoolSize value="5000"/>
+							<PoolSize value="6000"/>
 						</Item>
 						<Item>
 							<PoolName>NavMeshes</PoolName>
@@ -362,7 +362,7 @@
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalEntity</PoolName>
-							<PoolSize value="250"/>
+							<PoolSize value="260"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalInfo</PoolName>
@@ -426,7 +426,7 @@
 						</Item>
 						<Item>
 							<PoolName>QuadTreeNodes</PoolName>
-							<PoolSize value="1310"/>
+							<PoolSize value="1500"/>
 						</Item>
 						<Item>
 							<PoolName>ScaleformStore</PoolName>
