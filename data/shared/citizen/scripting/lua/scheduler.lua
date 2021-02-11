@@ -587,7 +587,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	if not refPtr then
 		Citizen.Trace('Invalid ref call attempt: ' .. refId .. "\n")
 
-		return msgpack.pack({})
+		return msgpack.pack(nil)
 	end
 	
 	local ref = refPtr.func
