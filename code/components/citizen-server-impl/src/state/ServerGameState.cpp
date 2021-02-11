@@ -4380,6 +4380,34 @@ struct CRemoveWeaponEvent
     MSGPACK_DEFINE_MAP(pedId, weaponType);
 };
 
+/*NETEV removeAllWeaponsEvent SERVER
+/#*
+ * Triggered when a player removes all weapons from a ped owned by another player.
+ *
+ * @param sender - The ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function removeAllWeaponsEvent(sender: number, data: {
+	pedId: number
+}): void;
+*/
+struct CRemoveAllWeaponsEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		pedId = buffer.Read<uint16_t>(13);
+	}
+
+	inline std::string GetName()
+	{
+		return "removeAllWeaponsEvent";
+	}
+
+	int pedId;
+
+	MSGPACK_DEFINE_MAP(pedId);
+};
+
 /*NETEV startProjectileEvent SERVER
 /#*
  * Triggered when a projectile is created.
@@ -4836,6 +4864,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case GIVE_WEAPON_EVENT: return GetHandler<CGiveWeaponEvent>(instance, client, std::move(buffer));
 		case REMOVE_WEAPON_EVENT: return GetHandler<CRemoveWeaponEvent>(instance, client, std::move(buffer));
+		case REMOVE_ALL_WEAPONS_EVENT: return GetHandler<CRemoveAllWeaponsEvent>(instance, client, std::move(buffer));
 		case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlEvent>(instance, client, std::move(buffer));
 		case FIRE_EVENT: return GetHandler<CFireEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
