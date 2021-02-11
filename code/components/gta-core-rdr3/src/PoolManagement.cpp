@@ -275,11 +275,6 @@ namespace rage
 	}
 }
 
-static bool ret0()
-{
-	return false;
-}
-
 static hook::cdecl_stub<void()> _loadStreamingFiles([]()
 {
 	return hook::get_pattern("C7 85 78 02 00 00 61 00 00 00 41 BE", -0x28);
@@ -350,23 +345,6 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("4C 63 41 1C 4C 8B D1 49 3B D0 76", -4), PoolAllocateWrap, (void**)&g_origPoolAllocate);
 	MH_CreateHook(hook::get_pattern("8B 41 28 A9 00 00 00 C0 74", -15), PoolDtorWrap, (void**)&g_origPoolDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
-
-	// mapdatastore/maptypesstore 'should async place'
-
-	// typesstore
-	{
-		auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 00 01 00 00 45 8D 41 49 E8", 19));
-		hook::put(&vtbl[34], ret0);
-	}
-
-	// datastore
-	{
-		auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 C7 01 00 00 44 8D 47 49 E8", 19));
-		hook::put(&vtbl[34], ret0);
-	}
-
-	// raw #map/#typ loading
-	hook::nop(hook::get_pattern("D1 E8 A8 01 74 7D 48 8B 84", 4), 2);
 
 	// raw sfe reg from non-startup
 	MH_Initialize();
