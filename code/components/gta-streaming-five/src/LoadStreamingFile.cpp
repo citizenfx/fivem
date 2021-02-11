@@ -1943,6 +1943,11 @@ static void fwMapDataStore__FinishLoadingHook(streaming::strStreamingModule* sto
 }
 #endif
 
+static bool ret0()
+{
+	return false;
+}
+
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
@@ -2251,6 +2256,36 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	hook::jump(hook::get_pattern("4D 63 C1 81 E2 FF 03 00 00 48 C1 E8 0A 48 8B 84 C1 B0 05 00 00", -8), pgRawStreamer__GetEntryNameToBuffer);
 #endif
+
+
+	{
+		// mapdatastore/maptypesstore 'should async place'
+		
+		// typesstore
+		{
+#ifdef GTA_FIVE
+			auto vtbl = hook::get_address<void**>(hook::get_pattern("45 8D 41 1C 48 8B D9 C7 40 D8 00 01 00 00", 22));
+			hook::put(&vtbl[29], ret0);
+#elif IS_RDR3
+			auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 00 01 00 00 45 8D 41 49 E8", 19));
+			hook::put(&vtbl[34], ret0);
+#endif
+		}
+
+		// datastore
+		{
+#ifdef GTA_FIVE
+			auto vtbl = hook::get_address<void**>(hook::get_pattern("44 8D 46 0E C7 40 D8 C7 01 00 00 E8", 19));
+			hook::put(&vtbl[29], ret0);
+#elif IS_RDR3
+			auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 C7 01 00 00 44 8D 47 49 E8", 19));
+			hook::put(&vtbl[34], ret0);
+#endif
+		}
+
+		// raw #map/#typ loading
+		hook::nop(hook::get_pattern("D1 E8 A8 01 74 ? 48 8B 84", 4), 2);
+	}
 
 #ifdef GTA_FIVE
 	// replay dlc loading
