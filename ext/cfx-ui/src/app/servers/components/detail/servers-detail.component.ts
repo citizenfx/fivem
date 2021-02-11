@@ -129,9 +129,19 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 			};
 		};
 		this.filterFuncs['sv_enforceGameBuild'] = (pair) => {
+			let value = pair.value;
+
+			if (this.gameService.gameName === 'gta5') {
+				if (pair.value === '2060') {
+					value = 'Los Santos Summer Special';
+				} else if (pair.value === '2189' || pair.value === '2215') {
+					value = 'Cayo Perico Heist';
+				}
+			}
+
 			return {
 				key: '#ServerDetail_DLCLevel',
-				value: (pair.value === '2060') ? 'Los Santos Summer Special' : 'Cayo Perico Heist'
+				value
 			};
 		};
 
@@ -164,7 +174,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					.filter(({ key }) => key.indexOf('banner_') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('version') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('uuid') < 0)
-					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || value !== '1604')
+					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || (value !== '1604' && value !== '1311'))
 					.filter(({ key, value }) => key !== 'sv_scriptHookAllowed' || value === 'true')
 					.map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
 
