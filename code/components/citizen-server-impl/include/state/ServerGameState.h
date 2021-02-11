@@ -286,6 +286,13 @@ struct CDynamicEntityGameStateNodeData
 	std::map<int, int> decors;
 };
 
+struct CTrainGameStateDataNodeData
+{
+	int engineCarriage;
+
+	int carriageIndex;
+};
+
 struct CPlayerGameStateNodeData
 {
 	int playerTeam;
@@ -357,6 +364,8 @@ public:
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CTrainGameStateDataNodeData* GetTrainState() = 0;
 
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() = 0;
 

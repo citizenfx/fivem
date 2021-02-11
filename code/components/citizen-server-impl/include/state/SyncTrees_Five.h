@@ -2062,7 +2062,56 @@ struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true
 struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CTrainGameStateDataNode
+{
+	CTrainGameStateDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		int engineCarriage = state.buffer.Read<int>(13);
+		data.engineCarriage = engineCarriage;
+
+		// What carriage is attached to this carriage
+		int connectedCarriage = state.buffer.Read<int>(13);
+
+		// What this carriage is attached to
+		int connectedToCarriage = state.buffer.Read<int>(13);
+
+		// Offset from the engine carriage?
+		float engineOffset = state.buffer.ReadSignedFloat(32, 1000.0f);
+
+		int trainConfigIndex = state.buffer.Read<int>(8);
+
+		int carriageIndex = state.buffer.Read<int>(8);
+		data.carriageIndex = carriageIndex;
+
+		// 0 = Main Line, 3 = Metro line
+		int trackId = state.buffer.Read<int>(8);
+
+		float cruiseSpeed = state.buffer.ReadSignedFloat(8, 30.0f);
+
+		// 0 = Moving, 1 = Slowing down, 2 = Doors opening, 3 = Stopped, 4 = Doors closing, 5 = Before depart
+		int trainState = state.buffer.Read<int>(3);
+
+		bool isStartCarriage = state.buffer.ReadBit();
+
+		bool isEndCarriage = state.buffer.ReadBit();
+
+		bool unk12 = state.buffer.ReadBit();
+
+		bool direction = state.buffer.ReadBit();
+
+		bool unk14 = state.buffer.ReadBit();
+
+		bool renderDerailed = state.buffer.ReadBit();
+
+		bool forceDoorsOpen = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CPlayerGameStateDataNode {
@@ -2731,6 +2780,13 @@ struct SyncTree : public SyncTreeBase
 		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
+	}
+
+	virtual CTrainGameStateDataNodeData* GetTrainState()
+	{
+		auto [hasNode, node] = GetData<CTrainGameStateDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() override
