@@ -133,12 +133,17 @@ struct CPlayerCameraNodeData
 
 struct CPlayerWantedAndLOSNodeData
 {
+	int fakeWantedLevel;
 	int wantedLevel;
 	int isWanted;
 	int isEvading;
 
 	int timeInPursuit;
 	int timeInPrevPursuit;
+
+	float wantedPositionX;
+	float wantedPositionY;
+	float wantedPositionZ;
 
 	inline CPlayerWantedAndLOSNodeData()
 		: timeInPursuit(-1), timeInPrevPursuit(-1)

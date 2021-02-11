@@ -2587,17 +2587,20 @@ struct CPlayerWantedAndLOSDataNode
 		auto wantedLevel = state.buffer.Read<int>(3);
 		data.wantedLevel = wantedLevel;
 		auto unk0 = state.buffer.Read<int>(3);
-		auto unk1 = state.buffer.Read<int>(3);
-		auto unk2 = state.buffer.ReadBit();
+		auto fakeWantedLevel = state.buffer.Read<int>(3);
+		data.fakeWantedLevel = fakeWantedLevel;
+		auto pendingWantedLevel = state.buffer.ReadBit();
 		auto unk3 = state.buffer.ReadBit();
 		auto isWanted = state.buffer.ReadBit();
 
 		if (isWanted) {
-			// These coordinates need more exploration.
-			// But I think these coordinates rely to where crime was started or last position seen of player by cops
-			auto posX = state.buffer.ReadSignedFloat(19, 27648.0f);
-			auto posY = state.buffer.ReadSignedFloat(19, 27648.0f);
-			auto posZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+			auto wantedPositionX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			auto wantedPositionY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			auto wantedPositionZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+			data.wantedPositionX = wantedPositionX;
+			data.wantedPositionY = wantedPositionY;
+			data.wantedPositionZ = wantedPositionZ;
+
 			auto posX2 = state.buffer.ReadSignedFloat(19, 27648.0f);
 			auto posY2 = state.buffer.ReadSignedFloat(19, 27648.0f);
 			auto posZ2 = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
@@ -2610,9 +2613,15 @@ struct CPlayerWantedAndLOSDataNode
 			else
 				data.timeInPursuit = 0;
 		}
-		else if (data.timeInPursuit != -1) {
-			data.timeInPrevPursuit = data.timeInPursuit;
-			data.timeInPursuit = -1;
+		else {
+			data.wantedPositionX = 0.0f;
+			data.wantedPositionY = 0.0f;
+			data.wantedPositionZ = 0.0f;
+
+			if (data.timeInPursuit != -1) {
+				data.timeInPrevPursuit = data.timeInPursuit;
+				data.timeInPursuit = -1;
+			}
 		}
 
 		auto unk4 = state.buffer.ReadBit();
