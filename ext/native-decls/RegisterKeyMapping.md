@@ -15,8 +15,8 @@ See the related [cookbook post](https://cookbook.fivem.net/2020/01/06/using-the-
 ## Parameters
 * **commandString**: The command to execute, and the identifier of the binding.
 * **description**: A description for in the settings menu.
-* **defaultMapper**: The mapper ID to use for the default binding, e.g. `keyboard`.
-* **defaultParameter**: The IO parameter ID to use for the default binding, e.g. `f3`.
+* **defaultMapper**: The [mapper ID](https://docs.fivem.net/docs/game-references/input-mapper-parameter-ids/) to use for the default binding, e.g. `keyboard`.
+* **defaultParameter**: The [IO parameter ID](https://docs.fivem.net/docs/game-references/input-mapper-parameter-ids/) to use for the default binding, e.g. `f3`.
 
 ## Examples
 
