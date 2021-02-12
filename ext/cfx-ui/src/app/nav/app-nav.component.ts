@@ -79,7 +79,7 @@ export class AppNavComponent {
 	}
 
 	goThere() {
-		if (this.gameName !== 'rdr3') {
+		if (this.gameName !== 'rdr3' && this.gameName !== 'gta5') {
 			(<any>window).invokeNative('enterGameplay', '');
 			document.body.style.visibility = 'hidden';
 		}

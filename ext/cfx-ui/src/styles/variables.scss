@@ -17,7 +17,7 @@ $colorsLight: (
 	blueColor: hsl(180, 100%, 40%),
     textColor: hsl(226, 23%, 11%),
     acrylicBlur: url(#acrylicBlur),
-    backgroundImage: none
+    backgroundImage: url(../assets/images/bg.jpg)
 );
 
 $colorsDark: (
@@ -39,7 +39,7 @@ $colorsDark: (
 	blueColor: hsl(180, 100%, 40%),
     textColor: hsl(60, 100%, 97%),
     acrylicBlur: url(#acrylicBlurDark),
-    backgroundImage: none
+    backgroundImage: url(../assets/images/bg.jpg)
 );
 
 $colorsRdr: (
