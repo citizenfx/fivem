@@ -238,6 +238,7 @@ export class SettingsService {
 				category: '#SettingsCat_Account',
 			});
 		}
+
 		this.addSetting('updateChannel', {
 			name: '#Settings_UpdateChannel',
 			description: '#Settings_UpdateChannelDesc',
