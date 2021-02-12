@@ -60,6 +60,7 @@
 	"citizen:mod-loader:five",
 	"adhesive",
 	"citizen:game:ipc",
+	"legacy-game:re3",
 	"fxdk:main",
 	"citizen:devtools"
 ]
