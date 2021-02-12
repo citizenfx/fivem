@@ -237,7 +237,7 @@ export class SettingsService {
 				colorizeValue: true,
 				category: '#SettingsCat_Account',
 			});
-
+		}
 			this.addSetting('updateChannel', {
 				name: '#Settings_UpdateChannel',
 				description: '#Settings_UpdateChannelDesc',
@@ -250,7 +250,6 @@ export class SettingsService {
 				},
 				category: '#SettingsCat_Game',
 			});
-		}
 	}
 
 	public addSetting(label: string, setting: Setting) {
