@@ -1879,6 +1879,11 @@ void origCfxCollection_AddStreamingFileByTag(const std::string& tag, const std::
 #endif
 }
 
+void origCfxCollection_BackoutStreamingTag(const std::string& tag)
+{
+	g_customStreamingFilesByTag.erase(tag);
+}
+
 /*void ForAllStreamingFiles(const std::function<void(const std::string&)>& cb)
 {
 	for (auto& entry : g_customStreamingFileRefs)

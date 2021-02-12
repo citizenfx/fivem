@@ -44,6 +44,7 @@ fwRefContainer<fx::ResourceManager> g_resourceManager;
 #if __has_include(<streaming.h>)
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 void DLL_IMPORT CfxCollection_RemoveStreamingTag(const std::string& tag);
+void DLL_IMPORT CfxCollection_BackoutStreamingTag(const std::string& tag);
 void DLL_IMPORT CfxCollection_SetStreamingLoadLocked(bool locked);
 
 namespace streaming
@@ -95,9 +96,26 @@ DECLARE_INSTANCE_TYPE(ResourceEntryListComponent);
 static InitFunction initFunction([] ()
 {
 #if __has_include(<streaming.h>)
+	static std::unordered_set<std::string> removeTags;
+
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
 		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+		removeTags.insert(entry.resourceName);
+	});
+
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* mgr)
+	{
+		mgr->OnAfterReset.Connect([]()
+		{
+			for (auto& tag : removeTags)
+			{
+				CfxCollection_BackoutStreamingTag(tag);
+			}
+
+			removeTags.clear();
+		},
+		INT32_MIN);
 	});
 
 	fx::OnLockStreaming.Connect([]()
@@ -287,5 +305,7 @@ static InitFunction initFunction([] ()
 
 			Instance<fx::ResourceManager>::Get()->ResetResources();
 		}
+
+		removeTags.clear();
 	});
 });

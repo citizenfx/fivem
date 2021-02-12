@@ -1434,6 +1434,7 @@ static std::atomic<int> g_lockedStreamingFiles;
 
 #ifdef GTA_FIVE
 void origCfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+void origCfxCollection_BackoutStreamingTag(const std::string& tag);
 #endif
 
 void DLL_EXPORT CfxCollection_SetStreamingLoadLocked(bool locked)
@@ -1465,6 +1466,23 @@ void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, cons
 
 #ifdef GTA_FIVE
 	origCfxCollection_AddStreamingFileByTag(tag, fileName, flags);
+#endif
+}
+
+void DLL_EXPORT CfxCollection_BackoutStreamingTag(const std::string& tag)
+{
+	// undo whatever AddStreamingFileByTag did
+	for (auto& name : g_customStreamingFilesByTag[tag])
+	{
+		g_customStreamingFiles.erase({ name, tag });
+		g_customStreamingFileRefs.erase(name);
+	}
+
+	g_manifestNames.erase(tag);
+	g_customStreamingFilesByTag.erase(tag);
+
+#ifdef GTA_FIVE
+	origCfxCollection_BackoutStreamingTag(tag);
 #endif
 }
 
