@@ -193,10 +193,40 @@ public:
 
 	virtual void End() override
 	{
+		bool skipClose = false;
+		fwRefContainer thisRef = this;
+
+		auto doClose = [thisRef]()
+		{
+			if (thisRef->m_closeConnection)
+			{
+				auto clientStream = thisRef->m_clientStream;
+
+				if (clientStream.GetRef())
+				{
+					clientStream->Close();
+				}
+			}
+		};
+
 		if (m_chunked && m_clientStream.GetRef())
 		{
 			// assume chunked
-			m_clientStream->Write("0\r\n\r\n");
+			m_clientStream->Write("0\r\n\r\n", [doClose](bool)
+			{
+				doClose();
+			});
+
+			skipClose = true;
+		}
+		else
+		{
+			m_clientStream->Write("", [doClose](bool)
+			{
+				doClose();
+			});
+
+			skipClose = true;
 		}
 
 		if (m_requestState->blocked)
@@ -216,9 +246,9 @@ public:
 			}
 		}
 
-		if (m_closeConnection && m_clientStream.GetRef())
+		if (!skipClose)
 		{
-			m_clientStream->Close();
+			doClose();
 		}
 	}
 
