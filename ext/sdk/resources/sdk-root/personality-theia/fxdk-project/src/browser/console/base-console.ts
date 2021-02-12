@@ -224,7 +224,7 @@ export abstract class BaseConsole extends BaseWidget {
     console.log('Created console dom tree');
     this.scrollNodeDeferred.resolve();
 
-    this.setupScrollListeners();
+    this.setupEventListeners();
 
     this.initilizeConsole();
   }
@@ -250,7 +250,31 @@ export abstract class BaseConsole extends BaseWidget {
     }
   }
 
-  private setupScrollListeners() {
+  private setupEventListeners() {
+    const mouseDownHandler = (e) => {
+      // Handling right-click
+      if (e.button === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const selection = window.getSelection();
+        if (!selection) {
+          return;
+        }
+
+        const selectionString = selection.toString();
+        if (!selectionString) {
+          return;
+        }
+
+        document.execCommand('copy');
+        selection.empty();
+      }
+    };
+
+    this.logNode.addEventListener('mousedown', mouseDownHandler);
+    this.toDispose.push(Disposable.create(() => this.logNode.removeEventListener('mousedown', mouseDownHandler)));
+
     this.toDispose.push(this.onScrollUp(() => this.scrollOverride = true));
     this.toDispose.push(this.onScrollYReachEnd(() => this.scrollOverride = false));
   }

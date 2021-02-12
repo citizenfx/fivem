@@ -13,6 +13,13 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>12 february 2021</strong>
+        </p>
+        <ul>
+          <li>Right-click to copy selection while in client/server console</li>
+        </ul>
+
+        <p>
           <strong>10 february 2021</strong>
         </p>
         <ul>
