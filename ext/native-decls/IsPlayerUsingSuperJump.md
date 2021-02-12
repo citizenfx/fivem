@@ -1,4 +1,4 @@
----
+CFX---DEBUG
 ns: CFX
 apiset: server
 ---
