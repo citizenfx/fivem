@@ -5,8 +5,8 @@
 
 #include <CrossBuildRuntime.h>
 
-#ifdef GTA_FIVE
-inline uintptr_t GetTriggerEP()
+#if defined(GTA_FIVE) || defined(IS_RDR3)
+inline static uintptr_t GetLauncherTriggerEP()
 {
 	if (getenv("CitizenFX_ToolMode"))
 	{
@@ -15,6 +15,18 @@ inline uintptr_t GetTriggerEP()
 			// launcher.exe with sha256 hash 0cc0862222ab2a8aa714658aff7d9f5897dfd8eceb0b279ffcda1df9de7e9774
 			return 0x1401F227C;
 		}
+	}
+
+	return 0;
+}
+#endif
+
+#ifdef GTA_FIVE
+inline uintptr_t GetTriggerEP()
+{
+	if (auto ep = GetLauncherTriggerEP(); ep != 0)
+	{
+		return ep;
 	}
 
 	if (Is372())
@@ -42,6 +54,11 @@ inline uintptr_t GetTriggerEP()
 #elif defined(IS_RDR3)
 inline uintptr_t GetTriggerEP()
 {
+	if (auto ep = GetLauncherTriggerEP(); ep != 0)
+	{
+		return ep;
+	}
+
 	if (xbr::IsGameBuild<1355>())
 	{
 		return 0x142DE455C;
