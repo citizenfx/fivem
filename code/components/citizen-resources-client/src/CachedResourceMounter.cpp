@@ -31,7 +31,7 @@ using fx::CachedResourceMounter;
 std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
 static std::mutex g_referenceHashListMutex;
 
-static std::map<std::string, std::function<void(int, int)>> g_statusCallbacks;
+static std::map<std::string, std::function<void(CachedResourceMounter::StatusType, int, int)>> g_statusCallbacks;
 static std::mutex g_statusCallbacksMutex;
 
 void MountResourceCacheDevice(std::shared_ptr<ResourceCache> cache);
@@ -122,7 +122,7 @@ tl::expected<fwRefContainer<vfs::Device>, fx::ResourceManagerError> CachedResour
 	return tl::make_unexpected(ResourceManagerError{ fmt::sprintf("Failed to open packfile: %s", errorState) });
 }
 
-void CachedResourceMounter::AddStatusCallback(const std::string& resourceName, const std::function<void(int, int)>& callback)
+void CachedResourceMounter::AddStatusCallback(const std::string& resourceName, const std::function<void(StatusType, int, int)>& callback)
 {
 	auto path = FormatPath(resourceName, "resource.rpf");
 
@@ -149,6 +149,12 @@ pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>>
 			// follow up by mounting resource.rpf (using the legacy mounter) from the resource on a background thread
 			return pplx::create_task([=]() -> tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>
 			{
+				auto dropCallback = [this, resource]()
+				{
+					std::unique_lock<std::mutex> lock(g_statusCallbacksMutex);
+					g_statusCallbacks.erase(FormatPath(resource->GetName(), "resource.rpf"));
+				};
+
 				m_manager->MakeCurrent();
 
 				// copy the pointer in case we need to nullptr it
@@ -158,6 +164,7 @@ pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>>
 				{
 					trace("Our resource - %s - disappeared right from under our nose?\n", resource->GetName());
 
+					dropCallback();
 					localResource = nullptr;
 
 					return localResource;
@@ -182,11 +189,17 @@ pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>>
 							vfs::Unmount(resourceRoot);
 						});
 
+						dropCallback();
+
 						return localResource;
 					}
 
+					dropCallback();
+
 					return tl::make_unexpected(fx::ResourceManagerError{ fmt::sprintf("Couldn't load resource %s from %s: %s", resource->GetName(), resourceRoot, errorState) });
 				}
+
+				dropCallback();
 				
 				return tl::make_unexpected(packfileResult.error());
 			}, pplx::task_options(g_schedulerWrap));
@@ -259,7 +272,7 @@ namespace fx
 
 static InitFunction initFunction([]()
 {
-	fx::OnCacheDownloadStatus.Connect([](const std::string& fileName, size_t done, size_t total)
+	auto onStatus = [](fx::CachedResourceMounter::StatusType type, const std::string& fileName, size_t done, size_t total)
 	{
 		std::unique_lock<std::mutex> lock(g_statusCallbacksMutex);
 		auto it = g_statusCallbacks.find(fileName);
@@ -268,14 +281,18 @@ static InitFunction initFunction([]()
 		{
 			lock.unlock();
 
-			it->second(done, total);
-
-			if (done >= total)
-			{
-				lock.lock();
-				g_statusCallbacks.erase(fileName);
-			}
+			it->second(type, done, total);
 		}
+	};
+
+	fx::OnCacheDownloadStatus.Connect([onStatus](const std::string& fileName, size_t done, size_t total)
+	{
+		onStatus(fx::CachedResourceMounter::StatusType::Downloading, fileName, done, total);
+	});
+
+	fx::OnCacheVerifyStatus.Connect([onStatus](const std::string& fileName, size_t done, size_t total)
+	{
+		onStatus(fx::CachedResourceMounter::StatusType::Verifying, fileName, done, total);
 	});
 
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)

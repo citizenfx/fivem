@@ -383,6 +383,9 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				SHA_CTX sha1;
 				size_t numRead;
 
+				size_t readNow = 0;
+				size_t readTotal = localStream->GetLength();
+
 				// initialize context
 				SHA1_Init(&sha1);
 
@@ -393,6 +396,9 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 					{
 						break;
 					}
+
+					readNow += numRead;
+					fx::OnCacheVerifyStatus(fmt::sprintf("%s%s/%s", m_pathPrefix, entry.resourceName, entry.basename), readNow, readTotal);
 
 					SHA1_Update(&sha1, reinterpret_cast<char*>(&data[0]), numRead);
 				}
@@ -425,7 +431,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 		}
 		else if (downloaded)
 		{
-			lastError = "Failed to add entry to local storage";
+			lastError = "Failed to add entry to local storage (download corrupted?)";
 		}
 		
 		if (!result)

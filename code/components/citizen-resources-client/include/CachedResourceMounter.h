@@ -68,13 +68,20 @@ namespace fx
 		std::multimap<std::string, ResourceFileEntry> m_resourceEntries;
 
 	public:
+		enum class StatusType
+		{
+			Downloading,
+			Verifying,
+		};
+
+	public:
 		virtual void RemoveResourceEntries(const std::string& resourceName);
 
 		virtual void AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size = 0, const std::map<std::string, std::string>& extData = {});
 
 		virtual std::string FormatPath(const std::string& resourceName, const std::string& basename);
 
-		virtual void AddStatusCallback(const std::string& resourceName, const std::function<void(int, int)>& callback);
+		virtual void AddStatusCallback(const std::string& resourceName, const std::function<void(StatusType, int, int)>& callback);
 	};
 
 
