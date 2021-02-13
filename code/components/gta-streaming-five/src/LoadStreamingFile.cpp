@@ -808,7 +808,14 @@ inline void HandleDataFileListWithTypes(TList& list, const TFn& fn, const std::s
 }
 #endif
 
-void LoadStreamingFiles(bool earlyLoad = false);
+enum class LoadType
+{
+	BeforeMapLoad,
+	BeforeSession,
+	AfterSession
+};
+
+void LoadStreamingFiles(LoadType loadType = LoadType::AfterSession);
 
 static LONG FilterUnmountOperation(DataFileEntry& entry)
 {
@@ -939,12 +946,29 @@ namespace rage
 	});
 }
 
-static void LoadStreamingFiles(bool earlyLoad)
+static void LoadStreamingFiles(LoadType loadType)
 {
 	// register any custom streaming assets
 	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
 	{
 		auto [file, tag] = *it;
+
+		if (loadType == LoadType::BeforeMapLoad)
+		{
+			// only support tags mod_ and faux_pack
+			if (tag.find("mod_") != 0 && tag.find("faux_pack") != 0)
+			{
+				++it;
+				continue;
+			}
+
+			// don't allow spoofing for a (comp)cache
+			if (file.find("cache:/") != std::string::npos)
+			{
+				++it;
+				continue;
+			}
+		}
 
 		// get basename ('thing.ytd') and asset name ('thing')
 		const char* slashPos = strrchr(file.c_str(), '/');
@@ -977,7 +1001,7 @@ static void LoadStreamingFiles(bool earlyLoad)
 			continue;
 		}
 
-		if (earlyLoad)
+		if (loadType != LoadType::AfterSession)
 		{
 			if (ext == "ymap" || ext == "ytyp" || ext == "ybn")
 			{
@@ -1918,11 +1942,11 @@ static void LoadReplayDlc(void* ecw)
 {
 	g_lockReload = false;
 
-	LoadStreamingFiles(true);
+	LoadStreamingFiles(LoadType::BeforeSession);
 
 	g_origLoadReplayDlc(ecw);
 
-	LoadStreamingFiles();
+	LoadStreamingFiles(LoadType::AfterSession);
 	LoadDataFiles();
 }
 
@@ -2212,7 +2236,7 @@ static HookFunction hookFunction([]()
 #endif
 		)
 		{
-			LoadStreamingFiles();
+			LoadStreamingFiles(LoadType::AfterSession);
 
 			g_reloadStreamingFiles = false;
 		}
@@ -2255,15 +2279,19 @@ static HookFunction hookFunction([]()
 		{
 			g_lockReload = false;
 
-			LoadStreamingFiles(true);
+			LoadStreamingFiles(LoadType::BeforeSession);
 		}
 	});
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
 	{
-		if (type == rage::INIT_SESSION)
+		if (type == rage::INIT_BEFORE_MAP_LOADED)
 		{
-			LoadStreamingFiles();
+			LoadStreamingFiles(LoadType::BeforeMapLoad);
+		}
+		else if (type == rage::INIT_SESSION)
+		{
+			LoadStreamingFiles(LoadType::AfterSession);
 			LoadDataFiles();
 		}
 	});
