@@ -1762,6 +1762,11 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	if (UseNode())
 	{
+		if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode"))
+		{
+			putenv("NODE_CFX_IS_MONITOR_MODE=1");
+		}
+
 #ifdef _WIN32
 #ifdef IS_FXSERVER
 		std::string selfPath = ToNarrow(MakeRelativeCitPath(_P("FXServer.exe")));

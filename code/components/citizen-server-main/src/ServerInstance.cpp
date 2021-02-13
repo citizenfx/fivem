@@ -110,6 +110,12 @@ namespace fx
 
 			for (const auto& set : optionParser->GetSetList())
 			{
+				// save this in the default context so V8ScriptRuntime can read this
+				if (set.first == "txAdminServerMode")
+				{
+					console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
+				}
+
 				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 			}
 
