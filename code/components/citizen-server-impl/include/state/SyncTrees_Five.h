@@ -1752,7 +1752,7 @@ struct CObjectCreationDataNode
 	// #TODO: universal serializer
 	bool Unparse(SyncUnparseState& state)
 	{
-		state.buffer.Write<int>(5, 1);
+		state.buffer.Write<int>(5, 4); // ENTITY_OWNEDBY_SCRIPT
 		state.buffer.Write<uint32_t>(32, m_model);
 		state.buffer.WriteBit(m_dynamic);
 		state.buffer.WriteBit(false);
@@ -1770,6 +1770,26 @@ struct CObjectCreationDataNode
 		/*
 			Probably a subsystem ID
 			If it's 0 or 2, it's a dummy object
+
+			Enum from X360:
+			0: ENTITY_OWNEDBY_RANDOM
+			1: ENTITY_OWNEDBY_TEMP
+			2: ENTITY_OWNEDBY_FRAGMENT_CACHE
+			3: ENTITY_OWNEDBY_GAME
+			4: ENTITY_OWNEDBY_SCRIPT
+			5: ENTITY_OWNEDBY_AUDIO
+			6: ENTITY_OWNEDBY_CUTSCENE
+			7: ENTITY_OWNEDBY_DEBUG
+			8: ENTITY_OWNEDBY_OTHER
+			9: ENTITY_OWNEDBY_PROCEDURAL
+			10: ENTITY_OWNEDBY_POPULATION
+			11: ENTITY_OWNEDBY_STATICBOUNDS
+			12: ENTITY_OWNEDBY_PHYSICS
+			13: ENTITY_OWNEDBY_IPL
+			14: ENTITY_OWNEDBY_VFX
+			15: ENTITY_OWNEDBY_NAVMESHEXPORTER
+			16: ENTITY_OWNEDBY_INTERIOR
+			17: ENTITY_OWNEDBY_COMPENTITY
 		*/
 		int createdBy = state.buffer.Read<int>(5);
 		if (createdBy != 0 && createdBy != 2)
