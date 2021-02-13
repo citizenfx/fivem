@@ -2,16 +2,25 @@
 project 'CfxPrebuild'
 	kind 'Utility'
 	
-	prebuildcommands {
-		('"%s"'):format(
-			path.getabsolute('tools/build/run_prebuild.cmd')
-		)
+	files {
+		'tools/build/run_prebuild.ps1'
 	}
 	
+	filter 'files:**.ps1'
+		buildmessage 'Running pre-build preparation jobs...'
+
+		buildcommands {
+			path.getabsolute('tools/build/run_prebuild.cmd')
+		}
+
+		buildoutputs { 'tools/build/prebuild_run.txt' }
+
 project 'CfxPostbuild'
 	kind 'Utility'
 	
-	if _OPTIONS['game'] ~= 'launcher' then
+	if _OPTIONS['game'] == 'server' then
+		dependson { 'citizen-server-impl' }
+	elseif _OPTIONS['game'] ~= 'launcher' then
 		dependson { 'glue' }
 	else
 		dependson { 'citizen-game-main' }

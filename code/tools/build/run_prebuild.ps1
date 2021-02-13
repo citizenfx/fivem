@@ -23,3 +23,6 @@ if (!(Test-Path $InstRoot\code\tools\idl\deps)) {
 }
 
 Pop-Location
+
+Set-Content -Path "$PSScriptRoot\prebuild_run.txt" -Value ($null)
+(Get-Item "$PSScriptRoot\prebuild_run.txt").LastWriteTime = Get-Date
