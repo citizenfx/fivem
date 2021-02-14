@@ -552,13 +552,13 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		Http2ServerImpl* server;
 
-		std::set<HttpRequestData*> streams;
+		std::set<fwRefContainer<HttpRequestData>> streams;
 
 		// cache responses independently from streams so 'clean' closes don't invalidate session
 		std::set<fwRefContainer<HttpResponse>> responses;
 	};
 
-	struct HttpRequestData
+	struct HttpRequestData : fwRefCountable
 	{
 		HttpConnectionData* connection;
 
@@ -663,14 +663,14 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			return 0;
 		}
 
-		auto reqData = new HttpRequestData;
+		fwRefContainer reqData = new HttpRequestData;
 		reqData->connection = conn;
 		reqData->httpReq = nullptr;
 		reqData->httpResp = nullptr;
 
 		conn->streams.insert(reqData);
 
-		nghttp2_session_set_stream_user_data(session, frame->hd.stream_id, reqData);
+		nghttp2_session_set_stream_user_data(session, frame->hd.stream_id, reqData.GetRef());
 
 		return 0;
 	});
@@ -812,18 +812,17 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		}
 
 		req->connection->streams.erase(req);
-		delete req;
 
 		return 0;
 	});
 
 	// create a server
-	auto data = new HttpConnectionData;
+	auto data = std::make_shared<HttpConnectionData>();
 	data->stream = stream;
 	data->server = this;
 
 	nghttp2_session* session;
-	nghttp2_session_server_new(&session, callbacks, data);
+	nghttp2_session_server_new(&session, callbacks, data.get());
 
 	data->session = std::make_shared<nghttp2_session_wrap>(session);
 
@@ -839,14 +838,14 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 	//nghttp2_session_send(data->session);
 
 	// handle receive
-	stream->SetReadCallback([=](const std::vector<uint8_t>& bytes)
+	stream->SetReadCallback([data](const std::vector<uint8_t>& bytes)
 	{
 		nghttp2_session_mem_recv(*data->session, bytes.data(), bytes.size());
 
 		nghttp2_session_send(*data->session);
 	});
 
-	stream->SetCloseCallback([=]()
+	stream->SetCloseCallback([data]()
 	{
 		{
 			for (auto& response : data->responses)
@@ -865,15 +864,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		}
 
 		// free any leftover stream data
-		for (auto& stream : data->streams)
-		{
-			delete stream;
-		}
-
-		// delete the session, and bye data
-		delete data;
+		data->streams.clear();
 	});
-
-
 }
 }
