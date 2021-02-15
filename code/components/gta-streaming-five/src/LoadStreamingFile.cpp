@@ -1596,7 +1596,8 @@ static void UnloadDataFiles()
 	{
 		trace("Unloading data files (%d entries)\n", g_loadedDataFiles.size());
 
-		HandleDataFileList(g_loadedDataFiles, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
+		HandleDataFileList(fx::GetIteratorView(std::make_reverse_iterator(g_loadedDataFiles.end()), std::make_reverse_iterator(g_loadedDataFiles.begin())),
+			[](CDataFileMountInterface* mounter, DataFileEntry& entry)
 		{
 			return mounter->UnmountFile(&entry);
 		}, "unloading");
@@ -1990,6 +1991,110 @@ static bool ret0()
 	return false;
 }
 
+#ifdef GTA_FIVE
+static void (*g_origLoadVehicleMeta)(DataFileEntry* entry, int a2, uint32_t modelHash);
+
+static void GetTxdRelationships(std::map<int, int>& map)
+{
+	static auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytd");
+	
+	atPoolBase* entryPool = (atPoolBase*)((char*)module + 56);
+	for (size_t i = 0; i < entryPool->GetSize(); i++)
+	{
+		if (auto entry = entryPool->GetAt<char>(i); entry)
+		{
+			int idx = -1;
+
+			if (xbr::IsGameBuildOrGreater<1868>())
+			{
+				idx = *(int32_t*)(entry + 16);
+			}
+			else
+			{
+				idx = *(uint16_t*)(entry + 16);
+
+				if (idx == 0xFFFF)
+				{
+					idx = -1;
+				}
+			}
+
+			if (idx >= 0)
+			{
+				map[i] = idx;
+			}
+		}
+	}
+}
+
+static std::multimap<uint32_t, std::pair<int, int>> g_undoTxdRelationships;
+
+static void LoadVehicleMetaForDlc(DataFileEntry* entry, int a2, uint32_t modelHash)
+{
+	// try logging any and all txdstore relationships we made, to find any differences
+	std::map<int, int> txdRelationships;
+	GetTxdRelationships(txdRelationships);
+
+	// we use DLC name as hash
+	auto entryHash = HashString(entry->name);
+	g_archetypeFactories->Get(5)->GetOrCreate(entryHash, 512);
+
+	g_origLoadVehicleMeta(entry, a2, entryHash);
+
+	// get the txdstore relationships, again
+	std::map<int, int> txdRelationshipsAfter;
+	GetTxdRelationships(txdRelationshipsAfter);
+
+	// find a difference
+	std::vector<std::pair<int, int>> newRelationships;
+	std::set_difference(txdRelationshipsAfter.begin(), txdRelationshipsAfter.end(), txdRelationships.begin(), txdRelationships.end(), std::back_inserter(newRelationships));
+
+	for (auto& relationship : newRelationships)
+	{
+		if (auto relIt = txdRelationships.find(relationship.first); relIt != txdRelationships.end())
+		{
+			g_undoTxdRelationships.emplace(entryHash, *relIt);
+		}
+		else
+		{
+			g_undoTxdRelationships.insert({ entryHash, { relationship.first, -1 } });
+		}
+	}
+}
+
+static void (*g_origUnloadVehicleMeta)(DataFileEntry* entry);
+
+static void UnloadVehicleMetaForDlc(DataFileEntry* entry)
+{
+	auto hash = HashString(entry->name);
+	g_origUnloadVehicleMeta(entry);
+
+	// unload TXD relationships
+	for (auto& relationship : fx::GetIteratorView(g_undoTxdRelationships.equal_range(hash)))
+	{
+		static auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytd");
+
+		atPoolBase* entryPool = (atPoolBase*)((char*)module + 56);
+		if (auto entry = entryPool->GetAt<char>(relationship.second.first); entry)
+		{
+			if (xbr::IsGameBuildOrGreater<1868>())
+			{
+				*(int32_t*)(entry + 16) = relationship.second.second;
+			}
+			else
+			{
+				*(uint16_t*)(entry + 16) = relationship.second.second;
+			}
+		}
+	}
+
+	g_undoTxdRelationships.erase(hash);
+
+	// unload vehicle models
+	rage__fwArchetypeManager__FreeArchetypes(hash);
+}
+#endif
+
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
@@ -1999,6 +2104,23 @@ static HookFunction hookFunction([]()
 	}
 
 	g_interiorProxyArray = hook::get_address<decltype(g_interiorProxyArray)>(hook::get_pattern("83 FA FF 75 4D 48 8D 0D ? ? ? ? BA", 8));
+
+	// vehicle metadata removal could be per DLC
+	// therefore, replace 0xF000 with an actual hash of the filename
+	{
+		auto location = hook::get_pattern("41 B8 00 F0 00 00 33 D2 E8", 8);
+		hook::set_call(&g_origLoadVehicleMeta, location);
+		hook::call(location, LoadVehicleMetaForDlc);
+	}
+
+	// unloading wrapper
+	{
+		MH_Initialize();
+
+		auto location = hook::get_pattern("49 89 43 18 49 8D 43 10 33 F6", -0x21);
+		MH_CreateHook(location, UnloadVehicleMetaForDlc, (void**)&g_origUnloadVehicleMeta);
+		MH_EnableHook(location);
+	}
 #endif
 
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
