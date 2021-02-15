@@ -34,14 +34,27 @@ static void LoadCacheHook(const char* filenameBase, const char* rootPath, int is
 {
 	if (!isDlc)
 	{
+		size_t i = 0;
+
 		for (auto& file : *g_streamingPackfiles)
 		{
 			if (file.isDLC)
 			{
+				static auto streamingModule = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("rpf");
+				const auto& packName = streaming::GetStreamingNameForIndex(streamingModule->baseIdx + i);
+
+				// downtown_01_metadata for *whatever* reason breaks if this is used as long as mpheist4 dlc is loaded
+				if (packName.find("downtown_01_metadata") != std::string::npos)
+				{
+					continue;
+				}
+
 				file.isDLC = false;
 
 				file.cacheFlags &= ~1;
 			}
+
+			++i;
 		}
 	}
 
