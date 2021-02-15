@@ -1992,7 +1992,8 @@ static bool ret0()
 }
 
 #ifdef GTA_FIVE
-static void (*g_origLoadVehicleMeta)(DataFileEntry* entry, int a2, uint32_t modelHash);
+static void (*g_origLoadVehicleMeta)(DataFileEntry* entry, bool notMapTypes, uint32_t modelHash);
+static void (*g_origAddArchetype)(fwArchetype*, uint32_t typesHash);
 
 static void GetTxdRelationships(std::map<int, int>& map)
 {
@@ -2028,8 +2029,9 @@ static void GetTxdRelationships(std::map<int, int>& map)
 }
 
 static std::multimap<uint32_t, std::pair<int, int>> g_undoTxdRelationships;
+static thread_local bool overrideTypesHash;
 
-static void LoadVehicleMetaForDlc(DataFileEntry* entry, int a2, uint32_t modelHash)
+static void LoadVehicleMetaForDlc(DataFileEntry* entry, bool notMapTypes, uint32_t modelHash)
 {
 	// try logging any and all txdstore relationships we made, to find any differences
 	std::map<int, int> txdRelationships;
@@ -2039,7 +2041,9 @@ static void LoadVehicleMetaForDlc(DataFileEntry* entry, int a2, uint32_t modelHa
 	auto entryHash = HashString(entry->name);
 	g_archetypeFactories->Get(5)->GetOrCreate(entryHash, 512);
 
-	g_origLoadVehicleMeta(entry, a2, entryHash);
+	overrideTypesHash = true;
+	g_origLoadVehicleMeta(entry, notMapTypes, entryHash);
+	overrideTypesHash = false;
 
 	// get the txdstore relationships, again
 	std::map<int, int> txdRelationshipsAfter;
@@ -2060,6 +2064,16 @@ static void LoadVehicleMetaForDlc(DataFileEntry* entry, int a2, uint32_t modelHa
 			g_undoTxdRelationships.insert({ entryHash, { relationship.first, -1 } });
 		}
 	}
+}
+
+static void AddVehicleArchetype(fwArchetype* self, uint32_t typesHash)
+{
+	if (overrideTypesHash)
+	{
+		typesHash = 0xF000;
+	}
+
+	g_origAddArchetype(self, typesHash);
 }
 
 static void (*g_origUnloadVehicleMeta)(DataFileEntry* entry);
@@ -2111,6 +2125,10 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern("41 B8 00 F0 00 00 33 D2 E8", 8);
 		hook::set_call(&g_origLoadVehicleMeta, location);
 		hook::call(location, LoadVehicleMetaForDlc);
+
+		location = hook::get_pattern("8B D5 48 8B CE 89 46 18 40 84 FF 74 0A", 0x17);
+		hook::set_call(&g_origAddArchetype, location);
+		hook::call(location, AddVehicleArchetype);
 	}
 
 	// unloading wrapper
