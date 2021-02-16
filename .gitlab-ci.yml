@@ -98,6 +98,7 @@ build_server_windows:
   artifacts:
     paths:
       - out/server.zip
+      - out/server.7z
   except:
     - tags
     #- master

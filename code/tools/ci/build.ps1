@@ -373,6 +373,7 @@ if (!$DontBuild -and $IsServer) {
     Copy-Item -Force "$WorkRootDir\tools\ci\7z.exe" 7z.exe
 
     .\7z.exe a -mx=9 $WorkDir\out\server.zip $WorkDir\out\server\*
+    .\7z.exe a -mx=7 $WorkDir\out\server.7z $WorkDir\out\server\*
 
     $uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
     $json = @{
