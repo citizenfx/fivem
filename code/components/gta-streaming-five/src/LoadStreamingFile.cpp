@@ -1596,7 +1596,7 @@ static void UnloadDataFiles()
 	{
 		trace("Unloading data files (%d entries)\n", g_loadedDataFiles.size());
 
-		HandleDataFileList(fx::GetIteratorView(std::make_reverse_iterator(g_loadedDataFiles.end()), std::make_reverse_iterator(g_loadedDataFiles.begin())),
+		HandleDataFileList(g_loadedDataFiles,
 			[](CDataFileMountInterface* mounter, DataFileEntry& entry)
 		{
 			return mounter->UnmountFile(&entry);
@@ -2056,6 +2056,8 @@ static void calc_z(std::string& s, std::vector<int>& z)
 		}
 }
 
+static std::unordered_set<uint32_t> g_hashes;
+
 static void LoadVehicleMetaForDlc(DataFileEntry* entry, bool notMapTypes, uint32_t modelHash)
 {
 	// try logging any and all txdstore relationships we made, to find any differences
@@ -2100,6 +2102,7 @@ static void LoadVehicleMetaForDlc(DataFileEntry* entry, bool notMapTypes, uint32
 
 	overrideTypesHash = true;
 	g_origLoadVehicleMeta(entry, notMapTypes, entryHash);
+	g_hashes.insert(entryHash);
 	overrideTypesHash = false;
 
 	// get the txdstore relationships, again
@@ -2164,6 +2167,23 @@ static void UnloadVehicleMetaForDlc(DataFileEntry* entry)
 	// unload vehicle models
 	rage__fwArchetypeManager__FreeArchetypes(hash);
 }
+
+static void (*g_origFreeArchetypes)(uint32_t idx);
+
+static void FreeArchetypesHook(uint32_t idx)
+{
+	if (idx == 0xF000)
+	{
+		for (uint32_t hash : g_hashes)
+		{
+			g_origFreeArchetypes(hash);
+		}
+
+		g_hashes.clear();
+	}
+
+	g_origFreeArchetypes(idx);
+}
 #endif
 
 static HookFunction hookFunction([]()
@@ -2194,6 +2214,10 @@ static HookFunction hookFunction([]()
 
 		auto location = hook::get_pattern("49 89 43 18 49 8D 43 10 33 F6", -0x21);
 		MH_CreateHook(location, UnloadVehicleMetaForDlc, (void**)&g_origUnloadVehicleMeta);
+		MH_EnableHook(location);
+
+		location = hook::get_pattern("8B F9 8B DE 66 41 3B F0 73 33", -0x19);
+		MH_CreateHook(location, FreeArchetypesHook, (void**)&g_origFreeArchetypes);
 		MH_EnableHook(location);
 	}
 #endif
