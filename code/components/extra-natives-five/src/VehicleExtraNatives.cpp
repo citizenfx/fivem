@@ -1189,6 +1189,14 @@ static bool g_useWGI = true;
 
 static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState)
 {
+	// if we're running Steam, don't - Steam will crash in numerous scenarios.
+	static auto gameOverlay = GetModuleHandleW(L"gameoverlayrenderer64.dll");
+
+	if (gameOverlay != NULL)
+	{
+		return g_origXInputGetState(dwUserIndex, pState);
+	}
+
 	auto gamepads = Gamepad::Gamepads();
 
 	if (gamepads.Size() == 0 || !g_useWGI)
@@ -1289,6 +1297,14 @@ static DWORD(*WINAPI g_origXInputSetState)(_In_ DWORD dwUserIndex, _In_ XINPUT_V
 
 static DWORD WINAPI XInputSetStateHook(_In_ DWORD dwUserIndex, _In_ XINPUT_VIBRATION* pVibration)
 {
+	// if we're running Steam, don't - Steam will crash in numerous scenarios.
+	static auto gameOverlay = GetModuleHandleW(L"gameoverlayrenderer64.dll");
+
+	if (gameOverlay != NULL)
+	{
+		return g_origXInputSetState(dwUserIndex, pVibration);
+	}
+
 	auto gamepads = Gamepad::Gamepads();
 
 	if (gamepads.Size() == 0 || !g_useWGI)
