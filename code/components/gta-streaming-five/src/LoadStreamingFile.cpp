@@ -2031,15 +2031,72 @@ static void GetTxdRelationships(std::map<int, int>& map)
 static std::multimap<uint32_t, std::pair<int, int>> g_undoTxdRelationships;
 static thread_local bool overrideTypesHash;
 
+#include <VFSManager.h>
+
+// since algorithms are hard, this
+// copied from SO: https://stackoverflow.com/a/5816029
+static void calc_z(std::string& s, std::vector<int>& z)
+{
+	int len = s.size();
+	z.resize(len);
+
+	int l = 0, r = 0;
+	for (int i = 1; i < len; ++i)
+		if (z[i - l] + i <= r)
+			z[i] = z[i - l];
+		else
+		{
+			l = i;
+			if (i > r)
+				r = i;
+			for (z[i] = r - i; r < len; ++r, ++z[i])
+				if (s[r] != s[z[i]])
+					break;
+			--r;
+		}
+}
+
 static void LoadVehicleMetaForDlc(DataFileEntry* entry, bool notMapTypes, uint32_t modelHash)
 {
 	// try logging any and all txdstore relationships we made, to find any differences
 	std::map<int, int> txdRelationships;
 	GetTxdRelationships(txdRelationships);
 
+	// try to guess the amount of entries this meta file has
+	int entryCount = 16;
+
+	{
+		auto stream = vfs::OpenRead(entry->name);
+
+		if (stream.GetRef())
+		{
+			auto text = stream->ReadToEnd();
+			std::string textString{ text.begin(), text.end() };
+
+			std::string substring = "</modelName>";
+
+			// safe margin to start
+			entryCount = 4;
+
+			// more SO code: https://stackoverflow.com/a/5816029
+			textString = substring + textString;
+
+			std::vector<int> z;
+			calc_z(textString, z);
+
+			for (int i = substring.size(); i < textString.size(); ++i)
+			{
+				if (z[i] >= substring.size())
+				{
+					entryCount++;
+				}
+			}
+		}
+	}
+
 	// we use DLC name as hash
 	auto entryHash = HashString(entry->name);
-	g_archetypeFactories->Get(5)->GetOrCreate(entryHash, 512);
+	g_archetypeFactories->Get(5)->GetOrCreate(entryHash, entryCount);
 
 	overrideTypesHash = true;
 	g_origLoadVehicleMeta(entry, notMapTypes, entryHash);
