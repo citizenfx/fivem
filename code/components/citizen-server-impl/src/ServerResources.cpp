@@ -41,6 +41,8 @@ static std::set<std::string> g_managedResources = {
 	"monitor"
 };
 
+// net event logging convars
+std::shared_ptr<ConVar<bool>> g_netEventsConsole;
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -356,6 +358,8 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		g_netEventsConsole = instance->AddVariable<bool>("netevents_logToConsole", ConVar_None, false);
+
 		instance->SetComponent(fx::CreateResourceManager());
 		instance->SetComponent(new fx::ServerEventComponent());
 
@@ -812,6 +816,9 @@ static InitFunction initFunction([]()
 
 void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc, bool replayed)
 {
+	// start timing the net event duration
+	auto startTime = std::chrono::high_resolution_clock::now();
+
 	// build the target event
 	net::Buffer outBuffer;
 	outBuffer.Write(0x7337FD7A);
@@ -842,6 +849,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 			// TODO(fxserver): >MTU size?
 			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		}
+
+		// calculate the event duration
+		auto endTime = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+
+		if (g_netEventsConsole->GetValue()) {
+			trace("Network Event %s (size %d) triggered on client %d took %d microseconds\n", eventName, dataLen, targetNetId, duration);
+		}
 	}
 	else
 	{
@@ -849,6 +864,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		{
 			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
 		});
+
+		// calculate the event duration
+		auto endTime = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+
+		if (g_netEventsConsole->GetValue()) {
+			trace("Network Event %s (size %d) triggered on all clients took %d microseconds\n", eventName, dataLen, duration);
+		}
 	}
 }
 
