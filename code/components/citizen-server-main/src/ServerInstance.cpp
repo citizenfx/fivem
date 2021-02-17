@@ -141,11 +141,6 @@ namespace fx
 					consoleCtxRef->ExecuteSingleCommandDirect(ProgramArguments{ argList });
 				};
 
-				ConsoleCommand fakeSetCommand(execContext.GetRef(), "set", [forwardArgs](const std::string& variable, const std::string& value)
-				{
-					forwardArgs("set", ProgramArguments{ variable, value });
-				});
-
 				execContext->GetCommandManager()->FallbackEvent.Connect([consoleCtxRef, forwardArgs](const std::string& cmd, const ProgramArguments& args, const std::any& context)
 				{
 					if (consoleCtxRef->GetVariableManager()->FindEntryRaw(cmd))
@@ -197,6 +192,14 @@ namespace fx
 					execContext->AddToBuffer(std::string(reinterpret_cast<char*>(&data[0]), data.size()));
 					execContext->ExecuteBuffer();
 				}
+
+				execContext->GetVariableManager()->ForAllVariables([forwardArgs](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+				{
+					if (!(flags & ConVar_ServerInfo))
+					{
+						forwardArgs("set", ProgramArguments{ name, var->GetValue() });
+					}
+				});
 			}
 
 			boost::filesystem::path rootPath;
