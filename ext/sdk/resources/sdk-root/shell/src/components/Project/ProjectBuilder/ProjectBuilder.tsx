@@ -7,15 +7,21 @@ import { BsBoxArrowUpRight, BsExclamationCircle } from 'react-icons/bs';
 import { useTask } from 'contexts/TaskContext';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
 import { useApiMessage, useOpenFolderSelectDialog } from 'utils/hooks';
-import { useProjectClientStorageItem } from 'utils/projectStorage';
+import {
+  useProjectBuildPathVar,
+  useProjectDeployArtifactVar,
+  useProjectSteamWebApiKeyVar,
+  useProjectTebexSecretVar,
+  useProjectUseVersioningVar,
+} from 'utils/projectStorage';
 import { Stepper } from 'components/controls/Stepper/Stepper';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
-import s from './ProjectBuilder.module.scss';
 import { openInExplorerIcon, projectBuildIcon } from 'constants/icons';
 import { openInExplorerAndSelect } from 'utils/natives';
-import { ProjectBuildError } from 'shared/api.types';
+import { ProjectBuildError, serverUpdateChannels } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { ProjectBuilderError } from './ProjectBuilderError';
+import s from './ProjectBuilder.module.scss';
 
 const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
   [ProjectBuildTaskStage.VerifyingBuildSite]: 'Verifying build site',
@@ -41,11 +47,11 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
     ? buildTask.stage
     : (buildTriggered ? 9999 : -1);
 
-    React.useEffect(() => {
-      if (buildTask && !buildTriggered) {
-        setBuildTriggered(true);
-      }
-    }, [buildTask, buildTriggered, setBuildTriggered]);
+  React.useEffect(() => {
+    if (buildTask && !buildTriggered) {
+      setBuildTriggered(true);
+    }
+  }, [buildTask, buildTriggered, setBuildTriggered]);
 
   const handleModalClose = React.useCallback(() => {
     if (buildTask) {
@@ -55,9 +61,12 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
     closeBuilder();
   }, [buildTask, closeBuilder]);
 
-  const [useVersioning, setUseVersioning] = useProjectClientStorageItem(project, 'useVersioning', true);
+  const [useVersioning, setUseVersioning] = useProjectUseVersioningVar(project);
+  const [deployArtifact, setDeployArtifact] = useProjectDeployArtifactVar(project);
+  const [steamWebApiKey, setSteamWebApiKey] = useProjectSteamWebApiKeyVar(project);
+  const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
 
-  const [buildPath, setBuildPath] = useProjectClientStorageItem(project, 'buildPath', '');
+  const [buildPath, setBuildPath] = useProjectBuildPathVar(project);
   const openFolderSelectDialog = useOpenFolderSelectDialog(project.path, 'Select Project Build Folder...', (folderPath) => {
     if (folderPath) {
       setBuildPath(folderPath);
@@ -80,8 +89,21 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
     setBuildTriggered(false);
     setBuildError(null);
 
-    build();
-  }, [setBuildTriggered, setBuildError, build]);
+    build({
+      useVersioning,
+      deployArtifact,
+      steamWebApiKey,
+      tebexSecret,
+    });
+  }, [
+    setBuildTriggered,
+    setBuildError,
+    build,
+    useVersioning,
+    deployArtifact,
+    steamWebApiKey,
+    tebexSecret,
+  ]);
 
   const buildAllowed = !buildInProgress && !!buildPath;
 
@@ -118,13 +140,35 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
         </div>
 
         <div className="modal-label">
-          Use versions:
+          Deploy options:
         </div>
-        <div className="modal-block">
+        <div className="modal-block modal-combine">
           <Checkbox
             value={useVersioning}
             onChange={setUseVersioning}
             label="If possible, save previous build allowing build rollback"
+          />
+          <Checkbox
+            value={deployArtifact}
+            onChange={setDeployArtifact}
+            label={`Include server ${serverUpdateChannels[project.manifest.serverUpdateChannel]} artifact`}
+          />
+        </div>
+
+        <div className="modal-block modal-combine">
+          <Input
+            type="password"
+            label="Steam API key:"
+            value={steamWebApiKey}
+            onChange={setSteamWebApiKey}
+            description={<>If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
+          />
+          <Input
+            type="password"
+            label="Tebex secret:"
+            value={tebexSecret}
+            onChange={setTebexSecret}
+            description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
           />
         </div>
 

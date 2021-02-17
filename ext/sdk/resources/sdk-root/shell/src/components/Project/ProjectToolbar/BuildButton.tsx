@@ -13,7 +13,7 @@ export const BuildButton = React.memo(function BuildButton({ className }: BuildB
     <button
       className={className}
       disabled={!project}
-      onClick={build}
+      onClick={() => build()}
       title="Build project"
     >
       {projectBuildIcon}

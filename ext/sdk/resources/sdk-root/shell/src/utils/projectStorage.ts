@@ -28,3 +28,18 @@ export function useProjectClientStorageItem<ValueType>(project: ProjectData | nu
 
   return [value, handleSetValue];
 }
+
+export const getProjectBuildPathVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'buildPath', '');
+export const useProjectBuildPathVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'buildPath', '');
+
+export const getProjectUseVersioningVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'useVersioning', true);
+export const useProjectUseVersioningVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'useVersioning', true);
+
+export const getProjectDeployArtifactVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'deployArtifact', false);
+export const useProjectDeployArtifactVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'deployArtifact', false);
+
+export const getProjectSteamWebApiKeyVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'steamWebApiKey', '');
+export const useProjectSteamWebApiKeyVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'steamWebApiKey', '');
+
+export const getProjectTebexSecretVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'tebexSecret', '');
+export const useProjectTebexSecretVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'tebexSecret', '');

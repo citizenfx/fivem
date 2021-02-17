@@ -13,6 +13,7 @@ import { handlesClientEvent } from "backend/api/api-decorators";
 import { serverApi } from "shared/api.events";
 import { NotificationService } from "backend/notification/notification-service";
 import { TaskReporterService } from "backend/task/task-reporter-service";
+import { Deferred } from "backend/deferred";
 
 const updateChannels = Object.keys(serverUpdateChannels);
 
@@ -63,6 +64,8 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   protected versions: ServerVersions = updateChannels.reduce((acc, updateChannel) => { acc[updateChannel] = null; return acc }, {});
   protected installedVersions: InstalledVersions = updateChannels.reduce((acc, updateChannel) => { acc[updateChannel] = null; return acc }, {});
 
+  protected updateChannelPromises: Set<{ deferred: Deferred<void>, channel: ServerUpdateChannel, state: ServerUpdateStates }> = new Set();
+
   boot() {
     this.checkAndInstallUpdates();
   }
@@ -75,8 +78,49 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     return this.fsService.joinPath(this.getServerPath(updateChannel), 'FXServer.exe');
   }
 
-  async ensureSvAdhesiveEnabled(updateChannel: ServerUpdateChannel, enabled: boolean) {
-    const componentsPath = this.fsService.joinPath(this.getServerPath(updateChannel), 'components.json');
+  getUpdateChannelPromise(updateChannel: ServerUpdateChannel, targetState: ServerUpdateStates): Promise<void> {
+    const currentState = this.updateChannelsState[updateChannel];
+    if (currentState === ServerUpdateStates.missingArtifact) {
+      throw new Error('Server artifact missing');
+    }
+
+    if (currentState === targetState) {
+      return Promise.resolve();
+    }
+
+    const item = {
+      state: targetState,
+      channel: updateChannel,
+      deferred: new Deferred<void>(),
+    };
+
+    this.updateChannelPromises.add(item);
+
+    return item.deferred.promise;
+  }
+
+  async getInstalledServerVersion(updateChannel: ServerUpdateChannel): Promise<string | null> {
+    const versionFilePath = this.fsService.joinPath(this.getServerPath(updateChannel), versionFilename);
+    const versionFileStat = await this.fsService.statSafe(versionFilePath);
+    if (!versionFileStat) {
+      return null;
+    }
+
+    try {
+      const versionFileContent = await this.fsService.readFileString(versionFilePath);
+
+      return versionFileContent?.trim() || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  ensureSvAdhesiveEnabled(updateChannel: ServerUpdateChannel, enabled: boolean) {
+    return this.ensureSvAdhesiveEnabledAtPath(this.getServerPath(updateChannel), enabled);
+  }
+
+  async ensureSvAdhesiveEnabledAtPath(artifactPath: string, enabled: boolean) {
+    const componentsPath = this.fsService.joinPath(artifactPath, 'components.json');
     const componentsContent = await this.fsService.readFile(componentsPath);
 
     const components: string[] = JSON.parse(componentsContent.toString('utf8'));
@@ -343,5 +387,16 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   @handlesClientEvent(serverApi.ackUpdateChannelsState)
   private ackUpdateChannelsState() {
     this.apiClient.emit(serverApi.updateChannelsState, this.updateChannelsState);
+
+    for (const item of this.updateChannelPromises) {
+      const channelState = this.updateChannelsState[item.channel];
+      if (channelState === ServerUpdateStates.missingArtifact) {
+        this.updateChannelPromises.delete(item);
+        item.deferred.reject(new Error('Server artifact missing'));
+      } else if(item.state === channelState) {
+        this.updateChannelPromises.delete(item);
+        item.deferred.resolve();
+      }
+    }
   }
 }

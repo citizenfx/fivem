@@ -70,6 +70,7 @@ export interface ServerStartRequest {
   updateChannel: ServerUpdateChannel,
   licenseKey?: string,
   steamWebApiKey?: string,
+  tebexSecret?: string,
 }
 
 export interface SetEnabledResourcesRequest {
@@ -92,4 +93,7 @@ export type CopyEntryRequest = MoveEntryRequest;
 export interface ProjectBuildRequest {
   buildPath: string,
   useVersioning: boolean,
+  deployArtifact: boolean,
+  steamWebApiKey: string,
+  tebexSecret: string,
 }

@@ -4,6 +4,7 @@ import s from './Input.module.scss';
 
 
 export interface InputProps {
+  type?: 'text' | 'password' | 'search',
   tabIndex?: number,
   disabled?: boolean,
   autofocus?: boolean,
@@ -35,6 +36,7 @@ export const Input = React.memo(function Input(props: InputProps) {
     placeholder = '',
     inputClassName = '',
     description = '',
+    type = 'text',
   } = props;
 
   const handleChange = React.useCallback((event) => {
@@ -57,6 +59,7 @@ export const Input = React.memo(function Input(props: InputProps) {
 
   const input = (
     <input
+      type={type}
       tabIndex={tabIndex}
       autoFocus={autofocus}
       className={inputClassName}

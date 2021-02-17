@@ -28,7 +28,7 @@ export default {
   // @see https://open-vsx.org/extension/vscode/csharp
   "vscode-builtin-csharp": "https://static.cfx-services.net/fxdk-theia-plugins/vscode.csharp-1.53.0.vsix",
   // @see https://github.com/OmniSharp/omnisharp-vscode/releases
-  "vscode-builtin-csharp-language-features": "https://static.cfx-services.net/fxdk-theia-plugins/ms-dotnettools.csharp-1.23.8.vsix",
+  "vscode-builtin-csharp-language-features": "https://static.cfx-services.net/fxdk-theia-plugins/ms-dotnettools.csharp-1.23.9.vsix",
   // @see https://open-vsx.org/extension/vscode/scss
   "vscode-builtin-scss": "https://static.cfx-services.net/fxdk-theia-plugins/vscode.scss-1.53.0.vsix",
   // @see https://open-vsx.org/extension/vscode/typescript

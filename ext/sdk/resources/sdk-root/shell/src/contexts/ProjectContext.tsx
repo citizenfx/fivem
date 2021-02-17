@@ -7,7 +7,7 @@ import { StateContext } from './StateContext';
 import { TheiaContext } from './TheiaContext';
 import { logger } from 'utils/logger';
 import { ProjectBuildRequest } from 'shared/api.requests';
-import { getProjectClientStorageItem } from 'utils/projectStorage';
+import { getProjectBuildPathVar, getProjectClientStorageItem, getProjectDeployArtifactVar, getProjectSteamWebApiKeyVar, getProjectTebexSecretVar, getProjectUseVersioningVar } from 'utils/projectStorage';
 
 const log = logger('ProjectContext');
 export interface ProjectContext {
@@ -23,7 +23,7 @@ export interface ProjectContext {
   openSettings: () => void,
   closeSettings: () => void,
 
-  build: () => void,
+  build: (overrides?: Partial<ProjectBuildRequest>) => void,
   builderOpen: boolean,
   openBuilder: () => void,
   closeBuilder: () => void,
@@ -243,13 +243,16 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     };
   }, [project?.path]);
 
-  const build = React.useCallback(() => {
+  const build = React.useCallback((overrides?: Partial<ProjectBuildRequest>) => {
     if (!project) {
       return;
     }
 
-    const buildPath = getProjectClientStorageItem(project, 'buildPath', '');
-    const useVersioning = getProjectClientStorageItem(project, 'useVersioning', false);
+    const buildPath = getProjectBuildPathVar(project);
+    const useVersioning = getProjectUseVersioningVar(project);
+    const deployArtifact = getProjectDeployArtifactVar(project);
+    const steamWebApiKey = getProjectSteamWebApiKeyVar(project);
+    const tebexSecret = getProjectTebexSecretVar(project);
 
     if (!buildPath) {
       return openBuilder();
@@ -258,6 +261,10 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     sendApiMessage(projectApi.build, {
       buildPath,
       useVersioning,
+      deployArtifact,
+      steamWebApiKey,
+      tebexSecret,
+      ...overrides,
     } as ProjectBuildRequest);
   }, [project, openBuilder]);
 

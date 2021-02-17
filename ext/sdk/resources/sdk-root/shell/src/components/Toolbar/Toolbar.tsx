@@ -64,16 +64,15 @@ export const Toolbar = React.memo(function Toolbar() {
             icon: <BsGear />,
             onClick: handleOpenSettings,
           },
+          {
+            id: 'build-project',
+            text: 'Build Project',
+            icon: projectBuildIcon,
+            onClick: openBuilder,
+          },
         ] as ContextMenuItemsCollection
         : []
     ),
-    ContextMenuItemSeparator,
-    {
-      id: 'build-project',
-      text: 'Build Project',
-      icon: projectBuildIcon,
-      onClick: openBuilder,
-    },
     ContextMenuItemSeparator,
     {
       id: 'changelog',

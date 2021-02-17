@@ -13,6 +13,13 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>17 february 2021</strong>
+        </p>
+        <ul>
+          <li>Project builder just got better, it is now capable of building "complete" server</li>
+        </ul>
+
+        <p>
           <strong>12 february 2021</strong>
         </p>
         <ul>

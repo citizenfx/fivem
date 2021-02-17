@@ -6,7 +6,9 @@ import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/controls/Button/Button';
+import { useProjectSteamWebApiKeyVar, useProjectTebexSecretVar } from 'utils/projectStorage';
 import s from './ProjectSettings.module.scss';
+import { Input } from 'components/controls/Input/Input';
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -34,6 +36,9 @@ export const ProjectSettings = React.memo(function ProjectSettings() {
     sendApiMessage(projectApi.setServerUpdateChannel, updateChannel);
   }, []);
 
+  const [steamWebApiKey, setSteamWebApiKey] = useProjectSteamWebApiKeyVar(project);
+  const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
+
   return (
     <Modal fullWidth onClose={closeSettings}>
       <div className={s.root}>
@@ -49,6 +54,23 @@ export const ProjectSettings = React.memo(function ProjectSettings() {
             value={updateChannel}
             options={updateChannelOptions}
             onChange={handleUpdateChannelChange}
+          />
+        </div>
+
+        <div className="modal-block modal-combine">
+          <Input
+            type="password"
+            label="Steam API key:"
+            value={steamWebApiKey}
+            onChange={setSteamWebApiKey}
+            description={<>Used only for build. If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
+          />
+          <Input
+            type="password"
+            label="Tebex secret:"
+            value={tebexSecret}
+            onChange={setTebexSecret}
+            description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
           />
         </div>
 

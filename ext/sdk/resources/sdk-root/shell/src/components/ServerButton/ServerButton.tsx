@@ -1,9 +1,8 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsGear, BsPlay, BsStop } from 'react-icons/bs';
+import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsPlay, BsStop } from 'react-icons/bs';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { ServerContext } from 'contexts/ServerContext';
-import { useOpenFlag } from 'utils/hooks';
 import { ServerStates, ServerUpdateStates } from 'shared/api.types';
 import { Indicator } from 'components/Indicator/Indicator';
 import s from './ServerButton.module.scss';

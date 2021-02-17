@@ -2,13 +2,14 @@
 
 .root {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
 
+  line-height: 1.2;
   user-select: none;
 
   @include fontPrimary;
-  color: rgba($fgColor, 1);
+  color: rgba($fgColor, .75);
 
   input {
     width: 0;
@@ -20,6 +21,7 @@
     height: $q*3;
 
     margin: $q/2;
+    margin-top: $q; // Compensating for line height
 
     border: solid $q/2 transparent;
     box-shadow: 0 0 0 $q/2 rgba($fgColor, .75), 0 0 0 0 rgba($fgColor, .75) inset;

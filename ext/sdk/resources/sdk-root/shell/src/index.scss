@@ -120,6 +120,22 @@ h6 {
 
   padding: $q*4;
 }
+.modal-combine {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+
+  & > * {
+    flex-grow: 1;
+    width: 1px;
+
+    margin-left: $q*4;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+}
 
 .rotating {
   @keyframes rotate {

@@ -11,6 +11,7 @@ import { FsJsonFileMapping, FsJsonFileMappingOptions } from './fs-json-file-mapp
 import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
+import { concurrently } from 'utils/concurrently';
 
 const rimraf = promisify(rimrafSync);
 
@@ -220,6 +221,17 @@ export class FsService {
     });
   }
 
+  /**
+   * Copies /a/b/* to /a/c/*
+   */
+  async copyContent(sourcePath: string, targetPath: string, options: CopyOptions = {}) {
+    const {
+      onProgress = () => {},
+    } = options;
+
+    return this.doCopyDir(sourcePath, targetPath, onProgress);
+  }
+
   private async doCopyDir(
     sourcePath: string,
     targetPath: string,
@@ -235,14 +247,13 @@ export class FsService {
     let totalSize = 0;
     let doneSize = 0;
 
-
     for (const sourceDirPath of sourceDirPaths) {
       const targetDirPath = this.joinPath(targetPath, this.relativePath(sourcePath, sourceDirPath));
 
-      const [dirEntryNames] = await Promise.all([
+      const [dirEntryNames] = await concurrently(
         this.readdir(sourceDirPath),
         this.mkdirp(targetDirPath),
-      ]);
+      );
 
       await Promise.all(dirEntryNames.map(async (dirEntryName) => {
         const dirEntrySourcePath = this.joinPath(sourceDirPath, dirEntryName);

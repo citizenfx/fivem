@@ -79,6 +79,10 @@ export class GameServerService implements AppContribution, ApiContribution {
     return this.fsService.joinPath(projectPath, '.fxdk/fxserver');
   }
 
+  getBlankConfigPath(projectPath: string): string {
+    return this.fsService.joinPath(this.getProjectServerPath(projectPath), 'blank.cfg');
+  }
+
   @handlesClientEvent(serverApi.ackState)
   ackState() {
     this.logService.log('Server state now', ServerStates[this.state]);
@@ -126,7 +130,7 @@ export class GameServerService implements AppContribution, ApiContribution {
       '+set', 'sv_fxdkMode', '1',
       '+set', 'sv_hostname', 'FxDK Dev Server',
       '+set', 'onesync', 'on',
-      '+set', 'sv_maxclients', '64',
+      '+set', 'sv_maxclients', '48',
       '+set', 'svgui_disable', '1',
       '+set', 'steam_webApiKey', steamWebApiKey || 'none',
       '+add_ace', 'resource.sdk-game', 'command', 'allow',

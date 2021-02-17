@@ -8,7 +8,7 @@ import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
 import { GameContext } from './GameContext';
 import { ServerStartRequest } from 'shared/api.requests';
-// import { getProjectClientStorageItem } from 'utils/projectStorage';
+import { getProjectTebexSecretVar } from 'utils/projectStorage';
 
 const log = logger('ServerContext');
 
@@ -63,14 +63,14 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
 
   const startServer = React.useCallback(() => {
     if (project) {
-      const licenseKey = ''; //getProjectClientStorageItem(project, 'licenseKey', '');
-      const steamWebApiKey = ''; //getProjectClientStorageItem(project, 'steamWebApiKey', '');
+      const steamWebApiKey = ''; //getProjectSteamWebApiKeyVar(project);
+      const tebexSecret = getProjectTebexSecretVar(project);
 
       sendApiMessage(serverApi.start, {
         projectPath: project.path,
         updateChannel: project.manifest.serverUpdateChannel,
-        licenseKey,
         steamWebApiKey,
+        tebexSecret,
       } as ServerStartRequest);
     }
   }, [project]);

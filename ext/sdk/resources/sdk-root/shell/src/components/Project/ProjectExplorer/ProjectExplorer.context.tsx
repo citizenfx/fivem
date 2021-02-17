@@ -65,11 +65,6 @@ export const ProjectExplorerContextProvider = React.memo(function ProjectExplore
   const [relocateOperation, setRelocateOperation] = React.useState<EntryRelocateOperation | undefined>(undefined);
 
   const setRelocationContext = React.useCallback((entry: FilesystemEntry, operation: EntryRelocateOperation) => {
-    console.log('Setting relocation context', {
-      entry,
-      operation,
-    });
-
     setRelocateSourceEntry(entry);
     setRelocateOperation(operation);
   }, [setRelocateSourceEntry, setRelocateOperation]);

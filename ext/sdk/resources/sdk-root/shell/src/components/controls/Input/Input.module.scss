@@ -8,10 +8,11 @@
 
     @include fontPrimary;
     font-size: $fs08;
+    font-weight: 300;
     color: rgba($fgColor, .5);
 
     input {
-      margin-top: $q;
+      margin-top: $q*2;
     }
   }
 
@@ -60,6 +61,6 @@
 
     color: rgba($fgColor, .5);
     font-size: $fs08;
-    white-space: nowrap;
+    // white-space: nowrap;
   }
 }
