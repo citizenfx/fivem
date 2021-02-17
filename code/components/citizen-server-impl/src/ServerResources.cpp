@@ -43,6 +43,79 @@ static std::set<std::string> g_managedResources = {
 
 // net event logging convars
 std::shared_ptr<ConVar<bool>> g_netEventsConsole;
+std::shared_ptr<ConVar<std::string>> g_netEventsFile;
+
+// net event log to file
+static std::once_flag g_neteventsLogOnceFlag;
+
+static tbb::concurrent_queue<std::string> g_neteventLogQueue;
+
+static std::condition_variable g_neteventConsoleCondVar;
+static std::mutex g_neteventConsoleMutex;
+
+static void LogNetEvent(std::string_view eventName, size_t dataLen, int targetNetId, long long duration) {
+	if (!g_netEventsFile->GetValue().empty()) {
+		std::call_once(g_neteventsLogOnceFlag, []()
+		{
+			std::thread([]()
+			{
+				static std::string lastLogFile = "";
+				static FILE* file;
+
+				while (true)
+				{
+					{
+						std::unique_lock<std::mutex> lock(g_neteventConsoleMutex);
+						g_neteventConsoleCondVar.wait(lock);
+					}		
+
+					if (lastLogFile != g_netEventsFile->GetValue())
+					{
+						if (file)
+						{
+							fclose(file);
+							file = nullptr;
+						}
+
+						if (!g_netEventsFile->GetValue().empty())
+						{
+							trace("Started logging net events to file %s\n", g_netEventsFile->GetValue());
+							file = _pfopen(MakeRelativeCitPath(g_netEventsFile->GetValue()).c_str(), _P("w"));
+						}
+						else 
+						{
+							trace("Stopped logging net events to file\n");
+						}
+
+						// write header to the file
+						if (file) {
+							std::string header = "time,eventName,payloadSize,target,duration\n";
+							fprintf(file, "%s", header.c_str());
+						}
+
+						lastLogFile = g_netEventsFile->GetValue();
+					}
+
+					std::string str;
+
+					while (g_neteventLogQueue.try_pop(str))
+					{
+						if (file)
+						{
+							fprintf(file, "%s\n", str.c_str());
+						}
+					}
+				}
+			}).detach();
+		});
+
+
+		g_neteventLogQueue.push(fmt::sprintf("%d,%s,%d,%d,%d", msec().count(), eventName, dataLen, targetNetId, duration));
+
+		g_neteventConsoleCondVar.notify_all();
+	}
+}
+
 class LocalResourceMounter : public fx::ResourceMounter
 {
 public:
@@ -359,6 +432,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		g_netEventsConsole = instance->AddVariable<bool>("netevents_logToConsole", ConVar_None, false);
+		g_netEventsFile = instance->AddVariable<std::string>("netevents_logToFile", ConVar_None, "");
 
 		instance->SetComponent(fx::CreateResourceManager());
 		instance->SetComponent(new fx::ServerEventComponent());
@@ -857,6 +931,8 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (g_netEventsConsole->GetValue()) {
 			trace("Network Event %s (size %d) triggered on client %d took %d microseconds\n", eventName, dataLen, targetNetId, duration);
 		}
+
+		LogNetEvent(eventName, dataLen, targetNetId, duration);
 	}
 	else
 	{
@@ -872,6 +948,8 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (g_netEventsConsole->GetValue()) {
 			trace("Network Event %s (size %d) triggered on all clients took %d microseconds\n", eventName, dataLen, duration);
 		}
+
+		LogNetEvent(eventName, dataLen, 0, duration);
 	}
 }
 
