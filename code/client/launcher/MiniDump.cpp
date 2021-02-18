@@ -703,9 +703,9 @@ static void GatherCrashInformation()
 				auto extraDumpFiles = {
 					L"cache\\extra_dump_info.bin",
 					L"cache\\extra_dump_info2.bin",
-					L"cache\\game\\ros_launcher_documents\\launcher.log",
-					L"cache\\game\\ros_documents\\socialclub.log",
-					L"cache\\game\\ros_documents\\socialclub_launcher.log"
+					L"cache\\game\\ros_launcher_documents2\\launcher.log",
+					L"cache\\game\\ros_documents2\\socialclub.log",
+					L"cache\\game\\ros_documents2\\socialclub_launcher.log"
 				};
 
 				for (auto path : extraDumpFiles)
