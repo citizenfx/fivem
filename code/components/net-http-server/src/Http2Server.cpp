@@ -550,7 +550,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 		fwRefContainer<TcpServerStream> stream;
 
-		Http2ServerImpl* server;
+		Http2ServerImpl* server = nullptr;
 
 		std::set<fwRefContainer<HttpRequestData>> streams;
 
@@ -558,9 +558,10 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		std::set<fwRefContainer<HttpResponse>> responses;
 	};
 
-	struct HttpRequestData : fwRefCountable
+	class HttpRequestData : public fwRefCountable
 	{
-		HttpConnectionData* connection;
+	public:
+		HttpConnectionData* connection = nullptr;
 
 		HeaderMap headers;
 
@@ -569,6 +570,8 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 		fwRefContainer<HttpRequest> httpReq;
 
 		fwRefContainer<HttpResponse> httpResp;
+
+		virtual ~HttpRequestData() override = default;
 	};
 
 	nghttp2_session_callbacks* callbacks;
