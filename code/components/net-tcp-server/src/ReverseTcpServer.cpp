@@ -51,8 +51,9 @@ namespace net
 	void ReverseTcpServerStream::Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete)
 	{
 		auto worker = m_tcp.lock();
+		auto writeCallback = m_writeCallback;
 
-		if (worker)
+		if (worker && writeCallback)
 		{
 			m_pendingRequests.push([worker, data, onComplete = std::move(onComplete)]() mutable
 			{
@@ -70,14 +71,19 @@ namespace net
 				worker->write(std::move(msg), data.size());
 			});
 
-			m_writeCallback->send();
+			writeCallback->send();
 		}
 	}
 
 	void ReverseTcpServerStream::ScheduleCallback(TScheduledCallback&& callback, bool performInline)
 	{
-		m_pendingRequests.push(std::move(callback));
-		m_writeCallback->send();
+		auto writeCallback = m_writeCallback;
+
+		if (writeCallback)
+		{
+			m_pendingRequests.push(std::move(callback));
+			writeCallback->send();
+		}
 	}
 
 	void ReverseTcpServerStream::ConsumeData(const void* data, size_t length)
@@ -101,13 +107,25 @@ namespace net
 		{
 			auto writeCallback = m_writeCallback;
 
-			m_pendingRequests.push([writeCallback, worker]()
+			if (writeCallback)
 			{
-				worker->close();
-				writeCallback->close();
-			});
+				fwRefContainer thisRef = this;
 
-			m_writeCallback->send();
+				m_pendingRequests.push([thisRef, writeCallback, worker]()
+				{
+					worker->once<uvw::ShutdownEvent>([](const uvw::ShutdownEvent& e, uvw::TCPHandle& h)
+					{
+						h.close();
+					});
+
+					worker->shutdown();
+					writeCallback->close();
+
+					thisRef->m_writeCallback = {};
+				});
+
+				m_writeCallback->send();
+			}
 		}
 	}
 
@@ -348,7 +366,12 @@ namespace net
 				ccb();
 			}
 
-			it->second->m_writeCallback->close();
+			auto writeCallback = it->second->m_writeCallback;
+
+			if (writeCallback)
+			{
+				writeCallback->close();
+			}
 		}
 
 		m_streams.erase(worker);
