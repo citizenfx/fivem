@@ -40,9 +40,20 @@ DEFINE_GUID(CfxStorageGuidRDR,
 std::string GetOwnershipPath()
 {
     PWSTR appDataPath;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPath))) {
+	HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &appDataPath);
+
+    if (SUCCEEDED(hr))
+	{
         std::string cfxPath = ToNarrow(appDataPath) + "\\DigitalEntitlements";
-        CreateDirectory(ToWide(cfxPath).c_str(), nullptr);
+		if (!CreateDirectory(ToWide(cfxPath).c_str(), nullptr))
+		{
+			auto error = GetLastError();
+
+			if (error != ERROR_ALREADY_EXISTS)
+			{
+				FatalError("CreateDirectory for %s failed: GetLastError = 0x%x\n\nMake sure your AppData folder is not write-protected.", cfxPath, error);
+			}
+		}
 
         CoTaskMemFree(appDataPath);
 
@@ -64,6 +75,7 @@ std::string GetOwnershipPath()
         return cfxPath;
     }
 
+	FatalError("SHGetKnownFolderPath for FOLDERID_LocalAppData failed: HRESULT = 0x%08x\n\nMake sure your AppData folder is not write-protected.", hr);
     return "";
 }
 
