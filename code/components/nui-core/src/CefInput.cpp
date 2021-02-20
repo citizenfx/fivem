@@ -18,6 +18,8 @@
 #include <windowsx.h>
 #include <console/Console.VariableHelpers.h>
 
+using nui::HasFocus;
+
 extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
@@ -32,11 +34,6 @@ static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 bool isKeyDown(WPARAM wparam)
 {
 	return (GetKeyState(wparam) & 0x8000) != 0;
-}
-
-bool HasFocus()
-{
-	return (g_hasFocus || g_hasOverriddenFocus);
 }
 
 #include <shared_mutex>
@@ -75,6 +72,16 @@ namespace nui
 	}
 
 	extern fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
+
+	bool HasFocus()
+	{
+		return (g_hasFocus || g_hasOverriddenFocus);
+	}
+
+	bool HasFocusKeepInput()
+	{
+		return g_keepInput;
+	}
 
 	void GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor)
 	{
