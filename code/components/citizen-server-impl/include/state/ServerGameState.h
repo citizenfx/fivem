@@ -427,6 +427,7 @@ struct SyncEntityState
 	uint32_t creationToken;
 	uint32_t routingBucket = 0;
 	float overrideCullingRadius = 0.0f;
+	float playerCullingRadius = 0.0f;
 
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
@@ -801,6 +802,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	uint32_t routingBucket = 0;
 
+	float playerCullingRadius = 0.0f;
+	
 	GameStateClientData()
 		: syncing(false)
 	{

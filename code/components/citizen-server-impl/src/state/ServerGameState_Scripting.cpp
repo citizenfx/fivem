@@ -1333,4 +1333,41 @@ static InitFunction initFunction([]()
 
 		return resultVector;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_CULLING_RADIUS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			float radius = context.GetArgument<float>(1);
+
+			if (radius >= 0)
+			{
+				// get the current resource manager
+				auto resourceManager = fx::ResourceManager::GetCurrent();
+
+				// get the owning server instance
+				auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+				// get the server's game state
+				auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+				auto [lock, clientData] = gameState->ExternalGetClientData(client);
+				clientData->playerCullingRadius = radius * radius;
+
+				fx::sync::SyncEntityPtr playerEntity;
+
+				{
+					std::shared_lock _lock(clientData->playerEntityMutex);
+					playerEntity = clientData->playerEntity.lock();
+				}
+
+				if (playerEntity)
+				{
+					playerEntity->playerCullingRadius = radius * radius;
+				}
+			}
+		}
+
+		return true;
+	}));
 });
