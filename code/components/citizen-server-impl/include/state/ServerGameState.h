@@ -427,7 +427,6 @@ struct SyncEntityState
 	uint32_t creationToken;
 	uint32_t routingBucket = 0;
 	float overrideCullingRadius = 0.0f;
-	float playerCullingRadius = 0.0f;
 
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
@@ -467,10 +466,24 @@ struct SyncEntityState
 
 	virtual ~SyncEntityState();
 
-	inline float GetDistanceCullingRadius()
+
+	inline float GetDistanceCullingRadius(float playerCullingRadius)
 	{
-		// #TODO1S: figure out a good value for this
-		return overrideCullingRadius != 0.0f ? overrideCullingRadius : (424.0f * 424.0f);
+		//Use priority ordering
+		if (overrideCullingRadius != 0.0f) 
+		{
+			return overrideCullingRadius;
+		}
+		else if (playerCullingRadius != 0.0f) 
+		{
+			return playerCullingRadius;
+		}
+		else
+		{
+			// #TODO1S: figure out a good value for this
+			return (424.0f * 424.0f);
+		}
+		return false;
 	}
 
 	inline uint32_t GetScriptHash()
@@ -804,6 +817,11 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	float playerCullingRadius = 0.0f;
 	
+	inline float GetPlayerCullingRadius()
+	{
+		return playerCullingRadius;
+	}
+
 	GameStateClientData()
 		: syncing(false)
 	{

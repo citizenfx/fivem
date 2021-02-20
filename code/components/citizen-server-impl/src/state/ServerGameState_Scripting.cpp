@@ -1353,18 +1353,6 @@ static InitFunction initFunction([]()
 
 				auto [lock, clientData] = gameState->ExternalGetClientData(client);
 				clientData->playerCullingRadius = radius * radius;
-
-				fx::sync::SyncEntityPtr playerEntity;
-
-				{
-					std::shared_lock _lock(clientData->playerEntityMutex);
-					playerEntity = clientData->playerEntity.lock();
-				}
-
-				if (playerEntity)
-				{
-					playerEntity->playerCullingRadius = radius * radius;
-				}
 			}
 		}
 

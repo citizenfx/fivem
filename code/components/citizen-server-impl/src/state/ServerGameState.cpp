@@ -838,18 +838,17 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float diffY = entityPos.y - playerPos.y;
 
 					float distSquared = (diffX * diffX) + (diffY * diffY);
-					if (distSquared < entity->GetDistanceCullingRadius())
-					{
-						if (playerEntity->playerCullingRadius == 0.0f || distSquared < playerEntity->playerCullingRadius) {
-							isRelevant = true;
-						}
+
+					float cullingRadius = entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius());
+					if (distSquared < cullingRadius) {
+						isRelevant = true;
 					}
 					else
 					{
 						// are we owning the world grid in which this entity exists?
 						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
 						int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
-
+						
 						auto selfBucket = clientDataUnlocked->routingBucket;
 
 						std::shared_lock _(m_worldGridsMutex);
