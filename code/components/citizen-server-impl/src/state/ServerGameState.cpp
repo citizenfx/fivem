@@ -838,7 +838,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					float diffY = entityPos.y - playerPos.y;
 
 					float distSquared = (diffX * diffX) + (diffY * diffY);
-					if (distSquared < entity->GetDistanceCullingRadius())
+
+					if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius())) 
 					{
 						isRelevant = true;
 					}

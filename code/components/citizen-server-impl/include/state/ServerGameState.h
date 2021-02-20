@@ -466,10 +466,23 @@ struct SyncEntityState
 
 	virtual ~SyncEntityState();
 
-	inline float GetDistanceCullingRadius()
+
+	inline float GetDistanceCullingRadius(float playerCullingRadius)
 	{
-		// #TODO1S: figure out a good value for this
-		return overrideCullingRadius != 0.0f ? overrideCullingRadius : (424.0f * 424.0f);
+		//Use priority ordering
+		if (overrideCullingRadius != 0.0f) 
+		{
+			return overrideCullingRadius;
+		}
+		else if (playerCullingRadius != 0.0f) 
+		{
+			return playerCullingRadius;
+		}
+		else
+		{
+			// #TODO1S: figure out a good value for this
+			return (424.0f * 424.0f);
+		}
 	}
 
 	inline uint32_t GetScriptHash()
@@ -800,6 +813,13 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	std::shared_ptr<fx::StateBag> playerBag;
 
 	uint32_t routingBucket = 0;
+
+	float playerCullingRadius = 0.0f;
+	
+	inline float GetPlayerCullingRadius()
+	{
+		return playerCullingRadius;
+	}
 
 	GameStateClientData()
 		: syncing(false)
