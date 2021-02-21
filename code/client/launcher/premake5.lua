@@ -45,6 +45,8 @@ local function launcherpersonality(name)
 		
 		if isLauncherPersonality(name) then
 			links "Win2D"
+			
+			add_dependencies { 'vendor:minhook-crt' }
 		else
 			targetextension '.bin'
 		end
