@@ -400,8 +400,8 @@ const EXT_LOCALFUNCREF = 11;
 	 * @param {UInt8Array} payloadSerialized
 	 * @param {string} source
 	 */
-	Citizen.setEventFunction(async function(name, payloadSerialized, source) {
-		runWithBoundaryStart(async () => {
+	Citizen.setEventFunction(function(name, payloadSerialized, source) {
+		runWithBoundaryStart(() => {
 		global.source = source;
 
 		if (source.startsWith('net')) {
@@ -425,10 +425,20 @@ const EXT_LOCALFUNCREF = 11;
 
 		// Running normal event listeners
 		for (const listener of listeners) {
-			const retval = listener.apply(null, payload);
+			try {
+				const retval = listener.apply(null, payload);
 
-			if (retval instanceof Promise) {
-				await retval;
+				if (retval instanceof Promise) {
+					(async() => {
+						try {
+							await retval;
+						} catch (e) {
+							console.error('Unhandled promise failure:', e);
+						}
+					})();
+				}
+			} catch (e) {
+				global.printError('event `' + name + '\'', e);
 			}
 		}
 
