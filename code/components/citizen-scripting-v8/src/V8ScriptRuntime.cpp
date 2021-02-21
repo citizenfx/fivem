@@ -22,6 +22,11 @@
 #include <CfxSubProcess.h>
 #endif
 
+inline static std::chrono::milliseconds msec()
+{
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+}
+
 inline bool UseNode()
 {
 #ifndef IS_FXSERVER
@@ -293,14 +298,15 @@ private:
 	std::function<void()> fn;
 };
 
+template<typename TLocker = v8::Locker, typename TIsolateScope = v8::Isolate::Scope>
 class V8PushEnvironment
 {
 private:
 	fx::PushEnvironment m_pushEnvironment;
 
-	Locker m_locker;
+	TLocker m_locker;
 
-	Isolate::Scope m_isolateScope;
+	TIsolateScope m_isolateScope;
 
 	HandleScope m_handleScope;
 
@@ -488,7 +494,12 @@ static void V8_SetTickFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
 		{
 			TryCatch eh(GetV8Isolate());
 
-			MaybeLocal<Value> value = tickFunction->Call(runtime->GetContext(), Null(GetV8Isolate()), 0, nullptr);
+			auto time = v8::Number::New(GetV8Isolate(), (double)msec().count());
+			v8::Local<v8::Value> args[] = {
+				time.As<v8::Value>()
+			};
+
+			MaybeLocal<Value> value = tickFunction->Call(runtime->GetContext(), Null(GetV8Isolate()), std::size(args), args);
 
 			if (value.IsEmpty())
 			{
@@ -867,11 +878,6 @@ static void V8_MakeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>& 
 	{
 		delete data;
 	}
-}
-
-inline static std::chrono::milliseconds msec()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
 static void V8_GetTickCount(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -2026,17 +2032,28 @@ int32_t V8ScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData
 	return strstr(fileName, ".js") != 0;
 }
 
+struct FakeScope
+{
+	template<typename... TArgs>
+	FakeScope(TArgs... args)
+	{
+	}
+};
+
 result_t V8ScriptRuntime::Tick()
 {
-	if (m_tickRoutine)
+	//for (int i = 0; i < 10000; i++)
 	{
-		V8PushEnvironment pushed(this);
-		if (!UseNode())
+		if (m_tickRoutine)
 		{
-			v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
-		}
+			V8PushEnvironment<FakeScope, FakeScope> pushed(this);
+			if (!UseNode())
+			{
+				v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
+			}
 
-		m_tickRoutine();
+			m_tickRoutine();
+		}
 	}
 
 	return FX_S_OK;
@@ -2557,6 +2574,25 @@ static InitFunction initFunction([]()
 	// trigger removing funcrefs on the *resource manager* so that it'll still happen when a runtime is destroyed
 	ResourceManager::OnInitializeInstance.Connect([](ResourceManager* manager)
 	{
+		static uint8_t buffer[sizeof(v8::Locker)];
+		static v8::Locker* locker = nullptr;
+		static uint8_t isolateBuffer[sizeof(v8::Isolate::Scope)];
+		static v8::Isolate::Scope* isolateScope = nullptr;
+
+		manager->OnTick.Connect([]()
+		{
+			locker = new (buffer) Locker(GetV8Isolate());
+			isolateScope = new (isolateBuffer) Isolate::Scope(GetV8Isolate());
+		},
+		INT32_MIN);
+
+		manager->OnTick.Connect([]()
+		{
+			isolateScope->~Scope();
+			locker->~Locker();
+		},
+		INT32_MAX);
+
 		manager->OnTick.Connect([]()
 		{
 			RefAndPersistent* deleteRef;

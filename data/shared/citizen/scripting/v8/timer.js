@@ -12,13 +12,13 @@
     let animationFrames = [];
 
     global.printError = function(where, e) {
-		const stackBlob = global.msgpack_pack(e.stack);
-		const fst = global.FormatStackTrace(stackBlob, stackBlob.length);
-		
-		if (fst) {
-			console.log('^1SCRIPT ERROR in ' + where + ': ' + e.toString() + "^7\n");
-			console.log(fst);
-		}
+        const stackBlob = global.msgpack_pack(e.stack);
+        const fst = global.FormatStackTrace(stackBlob, stackBlob.length);
+        
+        if (fst) {
+            console.log('^1SCRIPT ERROR in ' + where + ': ' + e.toString() + "^7\n");
+            console.log(fst);
+        }
         //console.error(`Unhandled error in ${where}: ${e.toString()}\n${e.stack}`);
     }
 
@@ -91,7 +91,7 @@
         setTimer(
             id,
             function() {
-		callback(...argsForCallback);
+        callback(...argsForCallback);
             },
             interval
         );
@@ -121,8 +121,7 @@
         return setTimeout(callback, 0, ...argsForCallback);
     }
 
-    function onTick() {
-        const localGameTime = Citizen.getTickCount(); // ms
+    function onTick(localGameTime) {
         let i;
 
         // Process timers
@@ -215,10 +214,35 @@
         clearImmediate: clearTimer,
         requestAnimationFrame,
     });
+    
+    global.Citizen.setTickFunction(localGameTime => {
+        let hasTimer = false;
+        let hasTicker = false;
+        
+        for (let key in timers) {
+            hasTimer = true;
+            break;
+        }
+        
+        for (let key in tickers) {
+            hasTicker = true;
+            break;
+        }
+    
+        if (!hasTicker && !hasTimer && animationFrames.length == 0) {
+            gameTime = localGameTime;
 
-    global.Citizen.setTickFunction(() => {
-		global.runWithBoundaryStart(() => {
-			onTick();
-		});
-	});
+            // Manually fire callbacks that were enqueued by process.nextTick.
+            // Since we override setImmediate/etc, this doesn't happen automatically.
+            if (global.process && typeof global.process._tickCallback === 'function') {
+                global.process._tickCallback();
+            }
+            
+            return;
+        }
+    
+        global.runWithBoundaryStart(() => {
+            onTick(localGameTime);
+        });
+    });
 })(this || window);
