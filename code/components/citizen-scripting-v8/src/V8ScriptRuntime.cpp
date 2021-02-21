@@ -302,11 +302,11 @@ template<typename TLocker = v8::Locker, typename TIsolateScope = v8::Isolate::Sc
 class V8PushEnvironment
 {
 private:
-	fx::PushEnvironment m_pushEnvironment;
-
 	TLocker m_locker;
 
 	TIsolateScope m_isolateScope;
+
+	fx::PushEnvironment m_pushEnvironment;
 
 	HandleScope m_handleScope;
 
@@ -320,7 +320,7 @@ private:
 
 public:
 	inline V8PushEnvironment(V8ScriptRuntime* runtime)
-		: m_pushEnvironment(runtime), m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext()), m_microtaskScope(runtime), m_scoped([this]()
+		: m_locker(GetV8Isolate()), m_isolateScope(GetV8Isolate()), m_pushEnvironment(runtime), m_handleScope(GetV8Isolate()), m_contextScope(runtime->GetContext()), m_microtaskScope(runtime), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
@@ -350,11 +350,11 @@ public:
 class V8LitePushEnvironment : public BasePushEnvironment
 {
 private:
-	fx::PushEnvironment m_pushEnvironment;
-
 	Locker m_locker;
 
 	Isolate::Scope m_isolateScope;
+
+	fx::PushEnvironment m_pushEnvironment;
 
 	OMPtr<V8ScriptRuntime> m_lastV8Runtime;
 
@@ -364,7 +364,7 @@ private:
 
 public:
 	inline V8LitePushEnvironment(V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_pushEnvironment(runtime), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_microtaskScope(runtime), m_scoped([this]()
+		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(runtime), m_microtaskScope(runtime), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
@@ -374,7 +374,7 @@ public:
 	}
 
 	inline V8LitePushEnvironment(PushEnvironment&& pushEnv, V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_pushEnvironment(std::move(pushEnv)), m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_microtaskScope(runtime), m_scoped([this]()
+		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(std::move(pushEnv)), m_microtaskScope(runtime), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
