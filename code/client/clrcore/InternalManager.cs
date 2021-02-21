@@ -372,7 +372,13 @@ namespace CitizenFX.Core
 
 			try
 			{
-				var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource: (sourceString.StartsWith("net") ? sourceString : null)) as List<object> ?? (IEnumerable<object>)new object[0];
+#if IS_FXSERVER
+				var netSource = (sourceString.StartsWith("net") || sourceString.StartsWith("internal-net")) ? sourceString : null;
+#else
+				var netSource = sourceString.StartsWith("net") ? sourceString : null;
+#endif
+
+				var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource) as List<object> ?? (IEnumerable<object>)new object[0];
 
 				var scripts = ms_definedScripts.ToArray();
 

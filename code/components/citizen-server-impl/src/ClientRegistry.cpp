@@ -134,7 +134,7 @@ namespace fx
 		 #/
 		declare function playerJoining(source: string, oldID: string): void;
 		*/
-		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID));
+		eventManager->TriggerEvent2("playerJoining", { fmt::sprintf("internal-net:%d", client->GetNetId()) }, fmt::sprintf("%d", oldNetID));
 
 		// user code may lead to a drop event being sent here
 		if (client->IsDropping())

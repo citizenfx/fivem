@@ -159,7 +159,7 @@ const EXT_LOCALFUNCREF = 11;
 	// Events
 	const emitter = new EventEmitter2();
 	const rawEmitter = new EventEmitter2();
-	const netSafeEventNames = new Set(['playerDropped', 'playerConnecting']);
+	const netSafeEventNames = new Set();
 
 	// Raw events
 	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
@@ -398,6 +398,8 @@ const EXT_LOCALFUNCREF = 11;
 				}
 
 				global.source = parseInt(source.substr(4));
+			} else if (IsDuplicityVersion() && source.startsWith('internal-net')) {
+				global.source = parseInt(source.substr(13));
 			}
 
 			const payload = unpack(payloadSerialized) || [];

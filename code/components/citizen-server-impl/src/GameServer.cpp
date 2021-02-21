@@ -1051,7 +1051,7 @@ namespace fx
 			->GetComponent<fx::ResourceEventManagerComponent>()
 			->TriggerEvent2(
 				"playerDropped",
-				{ fmt::sprintf("net:%d", client->GetNetId()) },
+				{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
 				realReason
 			);
 
