@@ -8,12 +8,12 @@ const EXT_LOCALFUNCREF = 11;
 (function (global) {
 	let boundaryIdx = 1;
 	let lastBoundaryStart = null;
-	
+
 	// temp
-	global.FormatStackTrace = function(args, argLength) {
+	global.FormatStackTrace = function (args, argLength) {
 		return Citizen.invokeNativeByHash(0, 0xd70c3bca, args, argLength, Citizen.resultAsString());
 	}
-	
+
 	function getBoundaryFunc(pushFunc, id) {
 		return (func, ...args) => {
 			const boundary = id || (boundaryIdx++);
@@ -23,13 +23,13 @@ const EXT_LOCALFUNCREF = 11;
 				return func(...args);
 			}
 
-			Object.defineProperty(wrap, 'name', {writable: true});
+			Object.defineProperty(wrap, 'name', { writable: true });
 			wrap.name = `__cfx_wrap_${boundary}`;
-			
+
 			return wrap.call(boundary, ...args);
 		};
 	}
-	
+
 	global.runWithBoundaryStart = getBoundaryFunc(boundary => {
 		Citizen.submitBoundaryStart(boundary);
 		lastBoundaryStart = boundary;
@@ -48,11 +48,11 @@ const EXT_LOCALFUNCREF = 11;
 
 	const pack = data => msgpack.encode(data, { codec });
 	const unpack = data => msgpack.decode(data, { codec });
-	
+
 	// store for use by natives.js
 	global.msgpack_pack = pack;
 	global.msgpack_unpack = unpack;
-	
+
 	/**
 	 * @param {Function} refFunction
 	 * @returns {string}
@@ -67,7 +67,7 @@ const EXT_LOCALFUNCREF = 11;
 
 		return Citizen.canonicalizeRef(ref);
 	};
-	
+
 	function refFunctionPacker(refFunction) {
 		const ref = Citizen.makeRefFunction(refFunction);
 
@@ -76,7 +76,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	function refFunctionUnpacker(refSerialized) {
 		const fnRef = Citizen.makeFunctionReference(refSerialized);
-	
+
 		return function (...args) {
 			return runWithBoundaryEnd(() => {
 				const retvals = unpack(fnRef(pack(args)));
@@ -106,11 +106,11 @@ const EXT_LOCALFUNCREF = 11;
 	 * 
 	 * @param {int} ref
 	 */
-	Citizen.setDeleteRefFunction(function(ref) {
+	Citizen.setDeleteRefFunction(function (ref) {
 		if (refFunctionsMap.has(ref)) {
 			const data = refFunctionsMap.get(ref);
-			
-			if (--data.refCount <= 0) {		
+
+			if (--data.refCount <= 0) {
 				refFunctionsMap.delete(ref);
 			}
 		}
@@ -122,7 +122,7 @@ const EXT_LOCALFUNCREF = 11;
 	 * @param {int} ref 
 	 * @param {UInt8Array} args 
 	 */
-	Citizen.setCallRefFunction(function(ref, argsSerialized) {
+	Citizen.setCallRefFunction(function (ref, argsSerialized) {
 		if (!refFunctionsMap.has(ref)) {
 			console.error('Invalid ref call attempt:', ref);
 
@@ -135,7 +135,7 @@ const EXT_LOCALFUNCREF = 11;
 			});
 		} catch (e) {
 			global.printError('call ref', e);
-			
+
 			return pack(null);
 		}
 	});
@@ -145,7 +145,7 @@ const EXT_LOCALFUNCREF = 11;
 	 * 
 	 * @param {int} ref
 	 */
-	Citizen.setDuplicateRefFunction(function(ref) {
+	Citizen.setDuplicateRefFunction(function (ref) {
 		if (refFunctionsMap.has(ref)) {
 			const refFunction = refFunctionsMap.get(ref);
 			++refFunction.refCount;
@@ -170,7 +170,7 @@ const EXT_LOCALFUNCREF = 11;
 		if (netSafe) {
 			netSafeEventNames.add(name);
 		}
-		
+
 		RegisterResourceAsEventHandler(name);
 
 		emitter.on(name, callback);
@@ -203,21 +203,21 @@ const EXT_LOCALFUNCREF = 11;
 	if (IsDuplicityVersion()) {
 		global.emitNet = (name, source, ...args) => {
 			const dataSerialized = pack(args);
-	
+
 			TriggerClientEventInternal(name, source, dataSerialized, dataSerialized.length);
 		};
 
 		global.TriggerClientEvent = global.emitNet;
-		
+
 		global.TriggerLatentClientEvent = (name, source, bps, ...args) => {
 			const dataSerialized = pack(args);
-	
+
 			TriggerLatentClientEventInternal(name, source, dataSerialized, dataSerialized.length, bps);
 		};
 		global.getPlayerIdentifiers = (player) => {
 			const numIds = GetNumPlayerIdentifiers(player);
 			let t = [];
-			for(let i = 0; i < numIds; i++) {
+			for (let i = 0; i < numIds; i++) {
 				t[i] = GetPlayerIdentifier(player, i);
 			}
 			return t;
@@ -226,73 +226,73 @@ const EXT_LOCALFUNCREF = 11;
 		global.getPlayers = () => {
 			const num = GetNumPlayerIndices();
 			let t = [];
-	
-			for(let i = 0; i < num; i++) {
+
+			for (let i = 0; i < num; i++) {
 				t[i] = GetPlayerFromIndex(i);
 			}
-	
+
 			return t;
 		};
 	} else {
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
-	
+
 			TriggerServerEventInternal(name, dataSerialized, dataSerialized.length);
 		};
 
 		global.TriggerServerEvent = global.emitNet;
-		
+
 		global.TriggerLatentServerEvent = (name, bps, ...args) => {
 			const dataSerialized = pack(args);
-	
+
 			TriggerLatentServerEventInternal(name, dataSerialized, dataSerialized.length, bps);
 		};
 	}
-	
+
 	let currentStackDumpError = null;
-	
+
 	function prepareStackTrace(error, trace) {
 		const frames = [];
 		let skip = false;
-		
+
 		if (error.bs) {
 			skip = true;
 		}
-		
+
 		if (!error.be) {
 			error.be = lastBoundaryStart;
 		}
 
 		for (const frame of trace) {
 			const functionName = frame.getFunctionName();
-		
+
 			if (functionName && functionName.startsWith('__cfx_wrap_')) {
 				const boundary = functionName.substring('__cfx_wrap_'.length) | 0;
-				
+
 				if (boundary == error.bs) {
 					skip = false;
 				}
-				
+
 				if (boundary == error.be) {
 					break;
 				}
 			}
-			
+
 			if (skip) {
 				continue;
 			}
-			
+
 			const fn = frame.getFileName();
-			
+
 			if (fn && !fn.startsWith('citizen:/')) {
 				const isConstruct = frame.isConstructor();
 				const isEval = frame.isEval();
 				const isNative = frame.isNative();
 				const methodName = frame.getMethodName();
 				const type = (!frame.isToplevel() && frame.getTypeName() !== 'Object') ? frame.getTypeName() + '.' : '';
-				
+
 				let frameName = '';
-				
+
 				if (isNative) {
 					frameName = 'native';
 				} else if (isEval) {
@@ -304,7 +304,7 @@ const EXT_LOCALFUNCREF = 11;
 				} else if (methodName || functionName) {
 					frameName = `${type}${functionName ? functionName : methodName}`;
 				}
-			
+
 				frames.push({
 					file: fn,
 					line: frame.getLineNumber(),
@@ -312,58 +312,58 @@ const EXT_LOCALFUNCREF = 11;
 				});
 			}
 		}
-		
+
 		return frames;
 	}
-	
+
 	Error.prepareStackTrace = prepareStackTrace;
-	
+
 	class StackDumpError {
 		constructor(bs, be) {
 			this.bs = bs;
 			this.be = be;
-			
+
 			Error.captureStackTrace(this);
 		}
-		
+
 		prepareStackTrace(error, trace) {
 			const frames = [];
 			let skip = false;
-			
+
 			if (this.bs) {
 				skip = true;
 			}
 
 			for (const frame of trace) {
 				const functionName = frame.getFunctionName();
-			
+
 				if (functionName && functionName.startsWith('__cfx_wrap_')) { // todo: filename
 					const boundary = functionName.substring('__cfx_wrap_'.length) | 0;
-					
+
 					if (boundary == this.bs) {
 						skip = false;
 					}
-					
+
 					if (boundary == this.be) {
 						break;
 					}
 				}
-				
+
 				if (skip) {
 					continue;
 				}
-				
+
 				const fn = frame.getFileName();
-				
+
 				if (fn && !fn.startsWith('citizen:/')) {
 					const isConstruct = frame.isConstructor();
 					const isEval = frame.isEval();
 					const isNative = frame.isNative();
 					const methodName = frame.getMethodName();
 					const type = (!frame.isToplevel() && frame.getTypeName() !== 'Object') ? frame.getTypeName() + '.' : '';
-					
+
 					let frameName = '';
-					
+
 					if (isNative) {
 						frameName = 'native';
 					} else if (isEval) {
@@ -375,7 +375,7 @@ const EXT_LOCALFUNCREF = 11;
 					} else if (methodName || functionName) {
 						frameName = `${type}${functionName ? functionName : methodName}`;
 					}
-				
+
 					frames.push({
 						file: fn,
 						line: frame.getLineNumber(),
@@ -383,15 +383,15 @@ const EXT_LOCALFUNCREF = 11;
 					});
 				}
 			}
-			
+
 			return frames;
 		}
 	}
-	
-	Citizen.setStackTraceFunction(function(bs, be) {
+
+	Citizen.setStackTraceFunction(function (bs, be) {
 		const sde = new StackDumpError(bs, be);
 		const rv = pack(sde.stack);
-		
+
 		return rv;
 	});
 
@@ -400,56 +400,56 @@ const EXT_LOCALFUNCREF = 11;
 	 * @param {UInt8Array} payloadSerialized
 	 * @param {string} source
 	 */
-	Citizen.setEventFunction(function(name, payloadSerialized, source) {
+	Citizen.setEventFunction(function (name, payloadSerialized, source) {
 		runWithBoundaryStart(() => {
-		global.source = source;
+			global.source = source;
 
-		if (source.startsWith('net')) {
-			if (emitter.listeners(name).length > 0 && !netSafeEventNames.has(name)) {
-				console.error(`Event ${name} was not safe for net`);
+			if (source.startsWith('net')) {
+				if (emitter.listeners(name).length > 0 && !netSafeEventNames.has(name)) {
+					console.error(`Event ${name} was not safe for net`);
 
+					global.source = null;
+					return;
+				}
+
+				global.source = parseInt(source.substr(4));
+			}
+
+			const payload = unpack(payloadSerialized) || [];
+			const listeners = emitter.listeners(name);
+
+			if (listeners.length === 0 || !Array.isArray(payload)) {
 				global.source = null;
 				return;
 			}
 
-			global.source = parseInt(source.substr(4));
-		}
+			// Running normal event listeners
+			for (const listener of listeners) {
+				try {
+					const retval = listener.apply(null, payload);
 
-		const payload = unpack(payloadSerialized) || [];
-		const listeners = emitter.listeners(name);
-
-		if (listeners.length === 0 || !Array.isArray(payload)) {
-			global.source = null;
-			return;
-		}
-
-		// Running normal event listeners
-		for (const listener of listeners) {
-			try {
-				const retval = listener.apply(null, payload);
-
-				if (retval instanceof Promise) {
-					(async() => {
-						try {
-							await retval;
-						} catch (e) {
-							console.error('Unhandled promise failure:', e);
-						}
-					})();
+					if (retval instanceof Promise) {
+						(async () => {
+							try {
+								await retval;
+							} catch (e) {
+								console.error('Unhandled promise failure:', e);
+							}
+						})();
+					}
+				} catch (e) {
+					global.printError('event `' + name + '\'', e);
 				}
-			} catch (e) {
-				global.printError('event `' + name + '\'', e);
 			}
-		}
 
-		// Running raw event listeners
-		try {
-			rawEmitter.emit(name, payloadSerialized, source);
-		} catch(e) {
-			console.error('Unhandled error during running raw event listeners', e);
-		}
+			// Running raw event listeners
+			try {
+				rawEmitter.emit(name, payloadSerialized, source);
+			} catch (e) {
+				console.error('Unhandled error during running raw event listeners', e);
+			}
 
-		global.source = null;
+			global.source = null;
 		});
 	});
 
@@ -482,7 +482,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	// export invocation
 	const createExports = () => {
-		return new Proxy(() => {}, {
+		return new Proxy(() => { }, {
 			get(t, k) {
 				const resource = k;
 
@@ -530,7 +530,7 @@ const EXT_LOCALFUNCREF = 11;
 					throw new Error('this needs 2 arguments');
 				}
 
-				const [ exportName, func ] = args;
+				const [exportName, func] = args;
 
 				on(getExportEventName(GetCurrentResourceName(), exportName), (setCB) => {
 					setCB(func);
@@ -651,5 +651,5 @@ const EXT_LOCALFUNCREF = 11;
 
 		return ent;
 	};
-	
+
 })(this || globalThis);
