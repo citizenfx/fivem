@@ -307,7 +307,7 @@ const EXT_LOCALFUNCREF = 11;
 
 				frames.push({
 					file: fn,
-					line: frame.lineNumber,
+					line: frame.lineNumber | 0,
 					name: frameName
 				});
 			}
@@ -681,9 +681,14 @@ const EXT_LOCALFUNCREF = 11;
 			parts[4] = submatch[3]; // column
 		}
 
+		const methodParts = (parts[1] || UNKNOWN_FUNCTION).split(/\./, 2);
+		const typeName = methodParts.length == 2 ? (methodParts[0] + '.') : '';
+		const methodName = methodParts[methodParts.length - 1];
+
 		return {
 			file: !isNative ? parts[2] : null,
-			methodName: parts[1] || UNKNOWN_FUNCTION,
+			methodName,
+			typeName,
 			arguments: isNative ? [parts[2]] : [],
 			lineNumber: parts[3] ? +parts[3] : null,
 			column: parts[4] ? +parts[4] : null,
