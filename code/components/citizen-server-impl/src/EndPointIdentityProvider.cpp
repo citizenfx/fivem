@@ -66,10 +66,23 @@ static InitFunction initFunction([]()
 		{
 			auto sourceIP = request->GetHeader("X-Cfx-Source-Ip", "");
 			auto realIP = request->GetHeader("X-Real-Ip", "");
+			auto cfSourceIp = request->GetHeader("CF-Connecting-IP", "");
 
-			if (sourceIP.empty() && realIP.empty())
+			if (sourceIP.empty() && realIP.empty() && cfSourceIp.empty())
 			{
 				return RunAuthentication(clientPtr, postMap, cb);
+			}
+			
+			if (!cfSourceIp.empty())
+			{
+				auto rCfSourceIp = cfSourceIp.substr(0, cfSourceIp.find_last_of(':'));
+
+				clientPtr->AddIdentifier("ip:" + rCfSourceIp);
+				clientPtr->SetTcpEndPoint(rCfSourceIp);
+
+
+				cb({});
+				return;
 			}
 
 			if (!realIP.empty())
