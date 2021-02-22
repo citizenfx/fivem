@@ -325,15 +325,19 @@ const EXT_LOCALFUNCREF = 11;
 		}
 	}
 
-	global.printError = function (where, e) {
+	function getError(where, e) {
 		const stackBlob = global.msgpack_pack(prepareStackTrace(e, parseStack(e.stack)));
 		const fst = global.FormatStackTrace(stackBlob, stackBlob.length);
 
 		if (fst) {
-			console.log('^1SCRIPT ERROR in ' + where + ': ' + e.toString() + "^7\n");
-			console.log(fst);
+			return '^1SCRIPT ERROR in ' + where + ': ' + e.toString() + "^7\n" + fst;
 		}
-		//console.error(`Unhandled error in ${where}: ${e.toString()}\n${e.stack}`);
+
+		return '';
+	}
+
+	global.printError = function (where, e) {
+		console.log(getError(where, e));
 	}
 
 	Citizen.setStackTraceFunction(function (bs, be) {
@@ -343,11 +347,36 @@ const EXT_LOCALFUNCREF = 11;
 		return rv;
 	});
 
+	let errorQueue = [];
+
+	function processErrorQueue() {
+		for (const error of errorQueue) {
+			console.log(error.error);
+		}
+
+		errorQueue = [];
+	}
+
 	Citizen.setUnhandledPromiseRejectionFunction(function (event, promise, value) {
-		if (value instanceof Error) {
-			global.printError('promise (unhandled)', value);
-		} else {
-			global.printError('promise (unhandled)', new Error((value || '').toString()));
+		// unhandled
+		// we might get a `1` in which case it actually was handled and we should.. un-print
+		if (event === 0) {
+			let error = '';
+
+			if (value instanceof Error) {
+				error = getError('promise (unhandled)', value);
+			} else {
+				error = getError('promise (unhandled)', new Error((value || '').toString()));
+			}
+
+			errorQueue.push({
+				error,
+				promise
+			});
+
+			global.setImmediate(processErrorQueue);
+		} else if (event === 1) {
+			errorQueue = errorQueue.filter(a => a.promise !== promise);
 		}
 	});
 
