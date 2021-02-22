@@ -483,7 +483,6 @@ struct SyncEntityState
 			// #TODO1S: figure out a good value for this
 			return (424.0f * 424.0f);
 		}
-		return false;
 	}
 
 	inline uint32_t GetScriptHash()
