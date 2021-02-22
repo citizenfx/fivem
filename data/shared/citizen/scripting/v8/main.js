@@ -343,6 +343,14 @@ const EXT_LOCALFUNCREF = 11;
 		return rv;
 	});
 
+	Citizen.setUnhandledPromiseRejectionFunction(function (event, promise, value) {
+		if (value instanceof Error) {
+			global.printError('promise (unhandled)', value);
+		} else {
+			global.printError('promise (unhandled)', new Error((value || '').toString()));
+		}
+	});
+
 	/**
 	 * @param {string} name
 	 * @param {UInt8Array} payloadSerialized

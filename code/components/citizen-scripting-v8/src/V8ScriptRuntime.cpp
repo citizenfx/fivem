@@ -130,6 +130,8 @@ private:
 
 	typedef std::function<void(void*, void*, char**, size_t*)> TStackTraceRoutine;
 
+	using TUnhandledPromiseRejectionRoutine = std::function<void(v8::PromiseRejectMessage&)>;
+
 private:
 	UniquePersistent<Context> m_context;
 
@@ -156,6 +158,8 @@ private:
 	int m_instanceId;
 
 	TStackTraceRoutine m_stackTraceRoutine;
+
+	TUnhandledPromiseRejectionRoutine m_unhandledPromiseRejectionRoutine;
 
 	void* m_parentObject;
 
@@ -193,27 +197,42 @@ public:
 
 	inline void SetTickRoutine(const std::function<void()>& tickRoutine)
 	{
-		m_tickRoutine = tickRoutine;
+		if (!m_tickRoutine)
+		{
+			m_tickRoutine = tickRoutine;
+		}
 	}
 
 	inline void SetEventRoutine(const TEventRoutine& eventRoutine)
 	{
-		m_eventRoutine = eventRoutine;
+		if (!m_eventRoutine)
+		{
+			m_eventRoutine = eventRoutine;
+		}
 	}
 
 	inline void SetCallRefRoutine(const TCallRefRoutine& routine)
 	{
-		m_callRefRoutine = routine;
+		if (!m_callRefRoutine)
+		{
+			m_callRefRoutine = routine;
+		}
 	}
 
 	inline void SetDuplicateRefRoutine(const TDuplicateRefRoutine& routine)
 	{
-		m_duplicateRefRoutine = routine;
+		if (!m_duplicateRefRoutine)
+		{
+			m_duplicateRefRoutine = routine;
+		}
 	}
 
 	inline void SetDeleteRefRoutine(const TDeleteRefRoutine& routine)
 	{
-		m_deleteRefRoutine = routine;
+		if (!m_deleteRefRoutine)
+		{
+			m_deleteRefRoutine = routine;
+		}
 	}
 
 	inline void SetStackTraceRoutine(const TStackTraceRoutine& routine)
@@ -221,6 +240,16 @@ public:
 		if (!m_stackTraceRoutine)
 		{
 			m_stackTraceRoutine = routine;
+		}
+	}
+
+	void HandlePromiseRejection(v8::PromiseRejectMessage& message);
+
+	inline void SetUnhandledPromiseRejectionRoutine(const TUnhandledPromiseRejectionRoutine& routine)
+	{
+		if (!m_unhandledPromiseRejectionRoutine)
+		{
+			m_unhandledPromiseRejectionRoutine = routine;
 		}
 	}
 
@@ -755,6 +784,56 @@ static void V8_SetStackTraceRoutine(const v8::FunctionCallbackInfo<v8::Value>& a
 			}
 		}
 	}));
+}
+
+static void V8_SetUnhandledPromiseRejectionRoutine(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	V8ScriptRuntime* runtime = GetScriptRuntimeFromArgs(args);
+
+	Local<Function> function = Local<Function>::Cast(args[0]);
+	UniquePersistent<Function> functionRef(GetV8Isolate(), function);
+
+	runtime->SetUnhandledPromiseRejectionRoutine(make_shared_function([runtime, functionRef{ std::move(functionRef) }](v8::PromiseRejectMessage& message)
+	{
+		Local<Promise> promise = message.GetPromise();
+		Isolate* isolate = promise->GetIsolate();
+		Local<Value> value = message.GetValue();
+		Local<Integer> event = Integer::New(isolate, message.GetEvent());
+
+		if (value.IsEmpty())
+		{
+			value = Undefined(isolate);
+		}
+
+		Local<Function> function = functionRef.Get(GetV8Isolate());
+
+		{
+			TryCatch eh(GetV8Isolate());
+
+			auto time = v8::Number::New(GetV8Isolate(), (double)msec().count());
+			v8::Local<v8::Value> args[] = {
+				event, promise, value
+			};
+
+			MaybeLocal<Value> value = function->Call(runtime->GetContext(), Null(GetV8Isolate()), std::size(args), args);
+
+			if (value.IsEmpty())
+			{
+				String::Utf8Value str(GetV8Isolate(), eh.Exception());
+				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+
+				ScriptTrace("Unhandled error during handling of unhandled promise rejection in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
+			}
+		}
+	}));
+}
+
+void V8ScriptRuntime::HandlePromiseRejection(v8::PromiseRejectMessage& message)
+{
+	if (m_unhandledPromiseRejectionRoutine)
+	{
+		m_unhandledPromiseRejectionRoutine(message);
+	}
 }
 
 static void V8_CanonicalizeRef(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -1610,6 +1689,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "snap", V8_Snap },
 	{ "startProfiling", V8_StartProfiling },
 	{ "stopProfiling", V8_StopProfiling },
+	{ "setUnhandledPromiseRejectionFunction", V8_SetUnhandledPromiseRejectionRoutine },
 	// boundary
 	{ "submitBoundaryStart", V8_SubmitBoundaryStart },
 	{ "submitBoundaryEnd", V8_SubmitBoundaryEnd },
@@ -1768,6 +1848,9 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	Local<Context> context = Context::New(GetV8Isolate(), nullptr, global, {}, {}, m_taskQueue.get());
 	m_context.Reset(GetV8Isolate(), context);
+
+	// store the ScRT in the context
+	context->SetEmbedderData(16, External::New(GetV8Isolate(), this));
 
 	// run the following entries in the context scope
 	Context::Scope scope(context);
@@ -2048,18 +2131,15 @@ struct FakeScope
 
 result_t V8ScriptRuntime::Tick()
 {
-	//for (int i = 0; i < 10000; i++)
+	if (m_tickRoutine)
 	{
-		if (m_tickRoutine)
+		V8PushEnvironment<FakeScope, FakeScope> pushed(this);
+		if (!UseNode())
 		{
-			V8PushEnvironment<FakeScope, FakeScope> pushed(this);
-			if (!UseNode())
-			{
-				v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
-			}
-
-			m_tickRoutine();
+			v8::platform::PumpMessageLoop(GetV8Platform(), GetV8Isolate());
 		}
+
+		m_tickRoutine();
 	}
 
 	return FX_S_OK;
@@ -2450,6 +2530,24 @@ void V8ScriptGlobals::Initialize()
 	{
 		platform->RegisterIsolate(m_isolate, Instance<net::UvLoopManager>::Get()->GetOrCreate(std::string("svMain"))->GetLoop());
 	}
+
+	m_isolate->SetPromiseRejectCallback([](PromiseRejectMessage message)
+	{
+		Local<Promise> promise = message.GetPromise();
+		Local<Context> context = promise->CreationContext();
+
+		auto embedderData = context->GetEmbedderData(16);
+
+		if (embedderData.IsEmpty())
+		{
+			return;
+		}
+
+		auto external = Local<External>::Cast(embedderData);
+		auto scRT = reinterpret_cast<V8ScriptRuntime*>(external->Value());
+
+		scRT->HandlePromiseRejection(message);
+	});
 
 	Isolate::Initialize(m_isolate, params);
 
