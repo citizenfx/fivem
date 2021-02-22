@@ -360,11 +360,9 @@ private:
 
 	ScopeDtor m_scoped;
 
-	FxMicrotaskScope m_microtaskScope;
-
 public:
 	inline V8LitePushEnvironment(V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(runtime), m_microtaskScope(runtime), m_scoped([this]()
+		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(runtime), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
@@ -374,7 +372,7 @@ public:
 	}
 
 	inline V8LitePushEnvironment(PushEnvironment&& pushEnv, V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(std::move(pushEnv)), m_microtaskScope(runtime), m_scoped([this]()
+		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(std::move(pushEnv)), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
