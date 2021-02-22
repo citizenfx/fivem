@@ -114,6 +114,9 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
+// this is *technically* per-isolate, but we only register the callback for our host isolate
+static std::atomic<int> g_isV8InGc;
+
 class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime>
 {
 private:
@@ -243,7 +246,10 @@ public:
 	{
 		if (m_taskQueue)
 		{
-			m_taskQueue->PerformCheckpoint(GetV8Isolate());
+			if (g_isV8InGc == 0)
+			{
+				m_taskQueue->PerformCheckpoint(GetV8Isolate());
+			}
 		}
 	}
 
@@ -360,9 +366,11 @@ private:
 
 	ScopeDtor m_scoped;
 
+	FxMicrotaskScope m_microtaskScope;
+
 public:
 	inline V8LitePushEnvironment(V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(runtime), m_scoped([this]()
+		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(runtime), m_microtaskScope(runtime), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
@@ -372,7 +380,7 @@ public:
 	}
 
 	inline V8LitePushEnvironment(PushEnvironment&& pushEnv, V8ScriptRuntime* runtime, const node::Environment* env)
-		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(std::move(pushEnv)), m_scoped([this]()
+		: m_locker(node::GetIsolate(env)), m_isolateScope(node::GetIsolate(env)), m_pushEnvironment(std::move(pushEnv)), m_microtaskScope(runtime), m_scoped([this]()
 		{
 			g_currentV8Runtime = m_lastV8Runtime;
 		})
@@ -2425,6 +2433,18 @@ void V8ScriptGlobals::Initialize()
 	params.array_buffer_allocator = m_arrayBufferAllocator.get();
 
 	m_isolate = Isolate::Allocate();
+
+	m_isolate->AddGCPrologueCallback([](Isolate* isolate, GCType type,
+									 GCCallbackFlags flags)
+	{
+		g_isV8InGc++;
+	});
+
+	m_isolate->AddGCEpilogueCallback([](Isolate* isolate, GCType type,
+									 GCCallbackFlags flags)
+	{
+		g_isV8InGc--;
+	});
 
 	if (UseNode())
 	{
