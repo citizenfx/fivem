@@ -1651,6 +1651,35 @@ struct CEntityOrientationDataNode : GenericSerializeDataNode<CEntityOrientationD
 	}
 };
 
+struct CObjectOrientationDataNode : GenericSerializeDataNode<CObjectOrientationDataNode>
+{
+	CObjectOrientationNodeData data;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		s.Serialize(data.highRes);
+
+		if (data.highRes)
+		{
+			const float divisor = glm::pi<float>() * 4;
+
+			s.SerializeSigned(20, divisor, data.rotX);
+			s.SerializeSigned(20, divisor, data.rotY);
+			s.SerializeSigned(20, divisor, data.rotZ);
+		}
+		else
+		{
+			s.Serialize(2, data.quat.largest);
+			s.Serialize(11, data.quat.integer_a);
+			s.Serialize(11, data.quat.integer_b);
+			s.Serialize(11, data.quat.integer_c);
+		}
+
+		return true;
+	}
+};
+
 struct CPhysicalVelocityDataNode
 {
 	CPhysicalVelocityNodeData data;
@@ -2866,6 +2895,13 @@ struct SyncTree : public SyncTreeBase
 		return (hasNode) ? &node->data : nullptr;
 	}
 
+	virtual CObjectOrientationNodeData* GetObjectOrientation() override
+	{
+		auto [hasNode, node] = GetData<CObjectOrientationDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() override
 	{
 		{
@@ -3304,7 +3340,7 @@ using CObjectSyncTree = SyncTree<
 			NodeIds<87, 87, 0>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorPosNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CObjectOrientationDataNode>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode>
 		>, 

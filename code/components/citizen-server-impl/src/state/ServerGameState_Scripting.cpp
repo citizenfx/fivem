@@ -205,26 +205,47 @@ static InitFunction initFunction([]()
 		else
 		{
 			auto en = entity->syncTree->GetEntityOrientation();
+			auto on = entity->syncTree->GetObjectOrientation();
 
-			if (en)
+			if (en || on)
 			{
-#if 0
-				resultVec.x = en->rotX * 180.0 / pi;
-				resultVec.y = en->rotY * 180.0 / pi;
-				resultVec.z = en->rotZ * 180.0 / pi;
-#else
-				float qx, qy, qz, qw;
-				en->quat.Save(qx, qy, qz, qw);
+				bool highRes = false;
+				fx::sync::compressed_quaternion<11> quat;
+				float rotX, rotY, rotZ;
 
-				auto m4 = glm::toMat4(glm::quat{qw, qx, qy, qz});
+				if (en)
+				{
+					quat = en->quat;
+				}
+				else if (on)
+				{
+					highRes = on->highRes;
+					quat = on->quat;
+					rotX = on->rotX;
+					rotY = on->rotY;
+					rotZ = on->rotZ;
+				}
 
-				// common GTA rotation (2) is ZXY
-				glm::extractEulerAngleZXY(m4, resultVec.z, resultVec.x, resultVec.y);
+				if (highRes)
+				{
+					resultVec.x = rotX * 180.0 / pi;
+					resultVec.y = rotY * 180.0 / pi;
+					resultVec.z = rotZ * 180.0 / pi;
+				}
+				else
+				{
+					float qx, qy, qz, qw;
+					quat.Save(qx, qy, qz, qw);
 
-				resultVec.x = glm::degrees(resultVec.x);
-				resultVec.y = glm::degrees(resultVec.y);
-				resultVec.z = glm::degrees(resultVec.z);
-#endif
+					auto m4 = glm::toMat4(glm::quat{ qw, qx, qy, qz });
+
+					// common GTA rotation (2) is ZXY
+					glm::extractEulerAngleZXY(m4, resultVec.z, resultVec.x, resultVec.y);
+
+					resultVec.x = glm::degrees(resultVec.x);
+					resultVec.y = glm::degrees(resultVec.y);
+					resultVec.z = glm::degrees(resultVec.z);
+				}
 			}
 		}
 

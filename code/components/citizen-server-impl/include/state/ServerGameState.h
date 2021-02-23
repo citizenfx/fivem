@@ -258,6 +258,13 @@ struct CEntityOrientationNodeData
 	compressed_quaternion<11> quat;
 };
 
+struct CObjectOrientationNodeData
+{
+	bool highRes;
+	compressed_quaternion<11> quat;
+	float rotX, rotY, rotZ;
+};
+
 struct CPhysicalVelocityNodeData
 {
 	float velX;
@@ -382,6 +389,8 @@ public:
 	virtual CPedOrientationNodeData* GetPedOrientation() = 0;
 
 	virtual CEntityOrientationNodeData* GetEntityOrientation() = 0;
+
+	virtual CObjectOrientationNodeData* GetObjectOrientation() = 0;
 
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() = 0;
 
