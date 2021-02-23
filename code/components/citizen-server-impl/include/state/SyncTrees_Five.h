@@ -2962,7 +2962,20 @@ struct SyncTree : public SyncTreeBase
 
 		return false;
 	}
-		
+
+	virtual bool IsEntityVisible(bool* visible)
+	{
+		auto [hasNode, node] = GetData<CPhysicalGameStateDataNode>();
+
+		if (hasNode)
+		{
+			*visible = node->isVisible;
+			return true;
+		}
+
+		return false;
+	}
+
 	virtual void Parse(SyncParseState& state) final override
 	{
 		std::unique_lock<std::mutex> lock(mutex);

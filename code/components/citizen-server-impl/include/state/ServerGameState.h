@@ -393,6 +393,8 @@ public:
 	virtual bool GetModelHash(uint32_t* modelHash) = 0;
 
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
+
+	virtual bool IsEntityVisible(bool* visible) = 0;
 };
 
 enum class NetObjEntityType

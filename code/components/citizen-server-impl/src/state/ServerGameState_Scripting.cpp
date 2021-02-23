@@ -1333,4 +1333,12 @@ static InitFunction initFunction([]()
 
 		return resultVector;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_ENTITY_VISIBLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		bool visible = false;
+		entity->syncTree->IsEntityVisible(&visible);
+
+		return visible;
+	}));
 });
