@@ -1681,10 +1681,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					if (info.is_object() && info["vars"].is_object())
 					{
 						auto val = info["vars"].value("sv_enforceGameBuild", "");
+						int buildRef = 0;
 
 						if (!val.empty())
 						{
-							int buildRef = std::stoi(val);
+							buildRef = std::stoi(val);
 
 							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
 							{
@@ -1704,6 +1705,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 						}
+
+#if defined(GTA_FIVE)
+						if (xbr::GetGameBuild() != 1604 && buildRef == 0)
+						{
+							OnRequestBuildSwitch(1604);
+							m_connectionState = CS_IDLE;
+							return;
+						}
+#endif
 
 						auto ival = info["vars"].value("sv_licenseKeyToken", "");
 

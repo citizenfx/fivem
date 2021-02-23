@@ -454,6 +454,8 @@ export class CfxGameService extends GameService {
 						const address: string = event.data.hostnameStr;
 						const connectParams = query.parse(event.data.connectParams);
 
+						(<any>window).invokeNative('checkNickname', this.realNickname);
+
 						if (!this.inConnecting) {
 							if ('streamerMode' in connectParams) {
 								const streamerMode = ['true', '1'].includes(<string>connectParams.streamerMode);

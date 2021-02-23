@@ -195,8 +195,7 @@ end
 local function formatDefinition(native)
 	local argsDefs = {}
 	local retTypes = {}
-	local markOptional = {}
-	local castUnknown = false -- We are not able to know whether a pointer is a return value or input, thus casting unknown
+	local pointerArgs = {}
 
 	if native.returns then
 		table.insert(retTypes, printReturnType(native.returns))
@@ -208,11 +207,13 @@ local function formatDefinition(native)
 
 			if argType ~= nil then
 				table.insert(argsDefs, argumentName .. ': ' .. argType)
-				if retType == 'pointer' then markOptional[#argsDefs] = argumentName .. '?: ' .. argType end
 			end
 
-			if retType == 'pointer' then
-			    castUnknown = true
+			if argType ~= nil and retType == 'pointer' then
+				pointerArgs[#argsDefs] = {
+					name = argumentName,
+					type = argType
+				}
 			elseif retType ~= nil then
 				table.insert(retTypes, retType)
 			end
@@ -220,12 +221,18 @@ local function formatDefinition(native)
 	end
 
 	local retType
-	if castUnknown and #retTypes > 0 then
-		for index, optional in pairs(markOptional) do
-			argsDefs[index] = optional
+
+	for index, pointer in pairs(pointerArgs) do
+		if (#retTypes > 0 and #argsDefs == 0) or #argsDefs > 1 then
+			argsDefs[index] = pointer.name .. '?: ' .. pointer.type
 		end
-		retType = 'unknown[]'
-	elseif #retTypes > 1 then
+
+		if not (#retTypes == 0 and #argsDefs == 1) then
+			table.insert(retTypes, pointer.type)
+		end
+	end
+
+	if #retTypes > 1 then
 		retType = '[' .. table.concat(retTypes, ', ') .. ']'
 	elseif #retTypes == 1 then
 		retType = retTypes[1]
@@ -233,17 +240,13 @@ local function formatDefinition(native)
 		retType = 'void'
 	end
 
-	return '(' .. table.concat(argsDefs, ', ') .. '): ' .. retType, castUnknown and #retTypes > 0
+	return '(' .. table.concat(argsDefs, ', ') .. '): ' .. retType
 end
 
 local function printNative(native)
 	local name = printFunctionName(native)
 	local doc = formatDocString(native)
-	local def, addCastWarning = formatDefinition(native)
-
-	if addCastWarning then
-		doc = ('%s// Return is unknown[] due to pointer value being input of the function\n'):format(doc)
-	end
+	local def = formatDefinition(native)
 
 	local str = string.format("%sdeclare function %s%s;\n", doc, name, def)
 

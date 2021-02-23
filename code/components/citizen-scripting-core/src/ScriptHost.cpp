@@ -496,14 +496,19 @@ static InitFunction initFunction([]()
 		{
 			msgpack::unpacked up = msgpack::unpack(topLevelStackBlob, topLevelStackSize);
 
-			auto o = up.get().as<std::vector<msgpack::object>>();
+			const auto& ref = up.get();
 
-			for (auto& e : o)
+			if (ref.type == msgpack::type::ARRAY)
 			{
-				msgpack::sbuffer sb;
-				msgpack::pack(sb, e);
+				auto o = ref.as<std::vector<msgpack::object>>();
 
-				vis->SubmitStackFrame(sb.data(), sb.size());
+				for (auto& e : o)
+				{
+					msgpack::sbuffer sb;
+					msgpack::pack(sb, e);
+
+					vis->SubmitStackFrame(sb.data(), sb.size());
+				}
 			}
 		}
 

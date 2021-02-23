@@ -69,10 +69,17 @@ static HookFunction hookFunction([]()
 		g_currentWeather = hook::get_address<int*>(location + 30);
 	}
 
-	// 2060/2189 might be obfuscated or different
-	if (xbr::IsGameBuild<1604>())
 	{
-		auto location = hook::get_pattern("C6 44 24 20 00 E8 ? ? ? ? C6 05 ? ? ? ? 01 E8", 12);
-		g_weatherNetFlag = hook::get_address<bool*>(location) + 1; // address offset
+		auto location = hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? 84 C0 75 4F EB 3C"));
+
+		// in 2060+ this is obfuscated a bit
+		if (xbr::IsGameBuildOrGreater<2060>())
+		{
+			g_weatherNetFlag = hook::get_address<bool*>(hook::get_call(location) + 2);
+		}
+		else
+		{
+			g_weatherNetFlag = hook::get_address<bool*>(location + 2);
+		}
 	}
 });
