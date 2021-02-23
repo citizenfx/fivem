@@ -1063,9 +1063,17 @@ static HookFunction initFunction([]()
 
 	if (GetModuleHandle(L"AdvancedHookV.dll") == nullptr)
 	{
-		auto repairFunc = hook::get_pattern("F7 D0 48 8B CB 21 83 ? ? ? ? E8 ? ? ? ? 48 8B 03", 27);
-		hook::nop(repairFunc, 6);
-		hook::call_reg<2>(repairFunc, asmfunc.GetCode());
+		{
+			auto repairFunc = hook::get_pattern("F7 D0 48 8B CB 21 83 ? ? ? ? E8 ? ? ? ? 48 8B 03", 27);
+			hook::nop(repairFunc, 6);
+			hook::call_reg<2>(repairFunc, asmfunc.GetCode());
+		}
+
+		{
+			auto repairFunc = hook::get_pattern("FF 90 ? ? ? ? 8A 83 ? ? ? ? 24 07");
+			hook::nop(repairFunc, 6);
+			hook::call_reg<2>(repairFunc, asmfunc.GetCode());
+		}
 	}
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)

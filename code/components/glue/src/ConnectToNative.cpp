@@ -64,6 +64,16 @@ static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
+static void SaveBuildNumber(uint32_t build)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"SavedBuildNumber", fmt::sprintf(L"%d", build).c_str(), fpath.c_str());
+	}
+}
+
 void RestartGameToOtherBuild(int build = 0)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
@@ -72,17 +82,35 @@ void RestartGameToOtherBuild(int build = 0)
 
 	if (!build)
 	{
-		cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
+		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
 		hostData->gameExePath,
 		Is2060() ? L"" : L"-b2060",
 		ToWide(g_lastConn));
+
+		build = (Is2060()) ? 1604 : 2060;
 	}
 	else
 	{
-		cli = va(L"\"%s\" %s -switchcl +connect \"%s\"",
+		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
 		hostData->gameExePath,
 		build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
 		ToWide(g_lastConn));
+	}
+
+	uint32_t defaultBuild =
+#ifdef GTA_FIVE
+	1604
+#elif defined(IS_RDR3)
+	1311
+#else
+	0
+#endif
+	;
+
+	// we won't launch the default build if we don't do this
+	if (build == defaultBuild)
+	{
+		SaveBuildNumber(defaultBuild);
 	}
 
 	STARTUPINFOW si = { 0 };
@@ -1205,6 +1233,16 @@ void Component_RunPreInit()
 
 static InitFunction connectInitFunction([]()
 {
+#if __has_include(<gameSkeleton.h>)
+	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_BEFORE_MAP_LOADED)
+		{
+			SaveBuildNumber(xbr::GetGameBuild());
+		}
+	});
+#endif
+
 	static nng_socket netSocket;
 	static nng_listener listener;
 

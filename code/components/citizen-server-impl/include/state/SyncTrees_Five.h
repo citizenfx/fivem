@@ -1651,6 +1651,35 @@ struct CEntityOrientationDataNode : GenericSerializeDataNode<CEntityOrientationD
 	}
 };
 
+struct CObjectOrientationDataNode : GenericSerializeDataNode<CObjectOrientationDataNode>
+{
+	CObjectOrientationNodeData data;
+
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
+	{
+		s.Serialize(data.highRes);
+
+		if (data.highRes)
+		{
+			const float divisor = glm::pi<float>() * 4;
+
+			s.SerializeSigned(20, divisor, data.rotX);
+			s.SerializeSigned(20, divisor, data.rotY);
+			s.SerializeSigned(20, divisor, data.rotZ);
+		}
+		else
+		{
+			s.Serialize(2, data.quat.largest);
+			s.Serialize(11, data.quat.integer_a);
+			s.Serialize(11, data.quat.integer_b);
+			s.Serialize(11, data.quat.integer_c);
+		}
+
+		return true;
+	}
+};
+
 struct CPhysicalVelocityDataNode
 {
 	CPhysicalVelocityNodeData data;
@@ -1940,8 +1969,8 @@ struct CPedHealthDataNode
 		if (!isFine)
 		{
 			int pedHealth = state.buffer.Read<int>(13);
-			auto unk4 = state.buffer.ReadBit();
-			auto unk5 = state.buffer.ReadBit();
+			auto killedWithHeadshot = state.buffer.ReadBit();
+			auto killedWithMelee = state.buffer.ReadBit();
 
 			data.health = pedHealth;
 		}
@@ -1979,12 +2008,16 @@ struct CPedHealthDataNode
 		}
 
 
-		auto unk8 = state.buffer.ReadBit();
+		auto hasSource = state.buffer.ReadBit();
 
-		if (unk8) // unk9 != 0
+		if (hasSource)
 		{
-			// object ID
-			auto unk9 = state.buffer.Read<short>(13);
+			int damageEntity = state.buffer.Read<int>(13);
+			data.sourceOfDamage = damageEntity;
+		}
+		else 
+		{
+			data.sourceOfDamage = 0;
 		}
 
 		int causeOfDeath = state.buffer.Read<int>(32);
@@ -2862,6 +2895,13 @@ struct SyncTree : public SyncTreeBase
 		return (hasNode) ? &node->data : nullptr;
 	}
 
+	virtual CObjectOrientationNodeData* GetObjectOrientation() override
+	{
+		auto [hasNode, node] = GetData<CObjectOrientationDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() override
 	{
 		{
@@ -2962,7 +3002,20 @@ struct SyncTree : public SyncTreeBase
 
 		return false;
 	}
-		
+
+	virtual bool IsEntityVisible(bool* visible)
+	{
+		auto [hasNode, node] = GetData<CPhysicalGameStateDataNode>();
+
+		if (hasNode)
+		{
+			*visible = node->isVisible;
+			return true;
+		}
+
+		return false;
+	}
+
 	virtual void Parse(SyncParseState& state) final override
 	{
 		std::unique_lock<std::mutex> lock(mutex);
@@ -3287,7 +3340,7 @@ using CObjectSyncTree = SyncTree<
 			NodeIds<87, 87, 0>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CSectorDataNode>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CObjectSectorPosNode>, 
-			NodeWrapper<NodeIds<87, 87, 0>, CEntityOrientationDataNode>, 
+			NodeWrapper<NodeIds<87, 87, 0>, CObjectOrientationDataNode>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalVelocityDataNode>, 
 			NodeWrapper<NodeIds<87, 87, 0>, CPhysicalAngVelocityDataNode>
 		>, 

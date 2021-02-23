@@ -42,7 +42,8 @@ vendor_component 'boost_locale-crt'
 
 if os.target() == 'windows' then
 	vendor_component 'discord-rpc'
-	vendor_component 'minhook' -- r
+	vendor_component 'minhook'
+	vendor_component 'minhook-crt'
 end
 
 vendor_component 'hdiffpatch'

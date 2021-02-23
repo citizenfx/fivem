@@ -1,3 +1,5 @@
+local staticRuntime = ...
+
 return {
 	include = function()
 		includedirs "../vendor/minhook/include/"
@@ -6,6 +8,10 @@ return {
 	run = function()
 		language "C"
 		kind "StaticLib"
+		
+		if staticRuntime then
+			staticruntime "On"
+		end
 
 		-- TODO: 32-bit stuffies
 		files_project "../vendor/minhook/src/" {

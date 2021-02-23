@@ -258,6 +258,13 @@ struct CEntityOrientationNodeData
 	compressed_quaternion<11> quat;
 };
 
+struct CObjectOrientationNodeData
+{
+	bool highRes;
+	compressed_quaternion<11> quat;
+	float rotX, rotY, rotZ;
+};
+
 struct CPhysicalVelocityNodeData
 {
 	float velX;
@@ -278,6 +285,7 @@ struct CPedHealthNodeData
 	int health;
 	int armour;
 	uint32_t causeOfDeath;
+	int sourceOfDamage;
 };
 
 struct CPedOrientationNodeData
@@ -382,6 +390,8 @@ public:
 
 	virtual CEntityOrientationNodeData* GetEntityOrientation() = 0;
 
+	virtual CObjectOrientationNodeData* GetObjectOrientation() = 0;
+
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() = 0;
 
 	virtual CPhysicalVelocityNodeData* GetVelocity() = 0;
@@ -393,6 +403,8 @@ public:
 	virtual bool GetModelHash(uint32_t* modelHash) = 0;
 
 	virtual bool GetScriptHash(uint32_t* scriptHash) = 0;
+
+	virtual bool IsEntityVisible(bool* visible) = 0;
 };
 
 enum class NetObjEntityType

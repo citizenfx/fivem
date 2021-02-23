@@ -630,16 +630,16 @@ void BindingManager::Initialize()
 
 std::shared_ptr<Binding> BindingManager::Bind(int ioSource, int ioParameter, const std::string& commandString)
 {
-	for (auto& binding : m_bindings)
+	for (auto it = m_bindings.begin(); it != m_bindings.end(); )
 	{
-		if (binding.second->GetCommand() == commandString && IsTagActive(binding.second->GetTag()))
+		if (it->second->GetCommand() == commandString && IsTagActive(it->second->GetTag()))
 		{
-			m_bindings.erase(binding.first);
-			break;
+			it = m_bindings.erase(it);
+			continue;
 		}
-	}
 
-	//m_bindings.erase({ ioSource, ioParameter });
+		it++;
+	}
 
 	auto binding = std::make_shared<Binding>(commandString);
 	binding->SetBinding({ ioSource, ioParameter });

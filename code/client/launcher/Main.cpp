@@ -46,6 +46,7 @@ extern "C" int wmainCRTStartup();
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
 void SteamInput_Initialize();
+void XBR_EarlySelect();
 bool ExecutablePreload_Init();
 void InitLogging();
 
@@ -293,6 +294,8 @@ int RealMain()
 			return 0;
 		}
 	}
+
+	XBR_EarlySelect();
 #endif
 
 	// add DLL directories post-installer (in case we moved into a Product.app directory)

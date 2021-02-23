@@ -116,6 +116,10 @@
 			};
 		}
 
+		input {
+			user-select: text;
+		}
+
 		input:focus + .search-dropdown {
 			transform: translateY(0);
 			opacity: 1;

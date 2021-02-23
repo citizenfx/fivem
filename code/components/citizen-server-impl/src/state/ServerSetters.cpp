@@ -175,7 +175,14 @@ std::shared_ptr<sync::SyncTreeBase> MakeObject(uint32_t model, float posX, float
 	});
 
 	SetupPosition<sync::CSectorDataNode, sync::CObjectSectorPosNode>(tree, posX, posY, posZ);
-	SetupHeading(tree, heading);
+	
+	SetupNode(tree, [heading](sync::CObjectOrientationDataNode& node)
+	{
+		node.data.highRes = false;
+
+		glm::quat q = glm::quat(glm::vec3(0.0f, 0.0f, heading * 0.01745329252f));
+		node.data.quat.Load(q.x, q.y, q.z, q.w);
+	});
 
 	SetupNode(tree, [resourceHash](sync::CEntityScriptInfoDataNode& cdn)
 	{
