@@ -1415,7 +1415,7 @@ static InitFunction initFunction([]()
 		return gameState->MakeScriptHandle(returnEntity);
 	}));
   
-  fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_CULLING_RADIUS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_CULLING_RADIUS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		if (context.GetArgumentCount() > 1)
 		{
@@ -1438,5 +1438,5 @@ static InitFunction initFunction([]()
 		}
 
 		return true;
-  }));
+	}));
 });
