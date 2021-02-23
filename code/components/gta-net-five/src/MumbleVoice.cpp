@@ -587,8 +587,9 @@ static std::shared_ptr<lab::AudioContext> getAudioContext(int playerId)
 		return {};
 	}
 
-	
-	std::string name = ToNarrow(g_mumbleClient->GetPlayerNameFromServerId(serverId));
+	std::string name = fmt::sprintf("[%d] %s",
+		FxNativeInvoke::Invoke<int>(getServerId, playerId),
+		FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId));
 	return g_mumbleClient->GetAudioContext(name);
 }
 
