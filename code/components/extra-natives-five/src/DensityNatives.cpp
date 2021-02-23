@@ -6,6 +6,8 @@
 #include <Resource.h>
 #include <fxScripting.h>
 
+#include <GameInit.h>
+
 static float* g_pedDensity;
 static float* g_pedScenarioDensity;
 static float* g_ambientPedRange;
@@ -107,5 +109,18 @@ static HookFunction hookFunction([]()
 	{
 		float multiplier = context.GetArgument<float>(0);
 		hook::put<float>(g_vehicleLocation + 31, multiplier);
+	});
+
+	OnKillNetworkDone.Connect([]
+	{
+		// Ped Density, Scenario Ped Density, Ped Ambient Range 
+		hook::put<float>(g_pedLocation + 39, 1.0f);
+		hook::put<float>(g_pedLocation + 49, 1.0f);
+		hook::put<float>(g_pedLocation + 69, 1.0f);
+
+		// Vehicle Ambient Range, Vehicle Density, Parked Vehicle Density
+		hook::put<float>(g_vehicleLocation + 11, 1.0f);
+		hook::put<float>(g_vehicleLocation + 21, 1.0f);
+		hook::put<float>(g_vehicleLocation + 31, 1.0f);
 	});
 });
