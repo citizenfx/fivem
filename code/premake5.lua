@@ -355,6 +355,14 @@ if _OPTIONS['game'] ~= 'launcher' then
 		
 		files { "../vendor/ben-demystifier/src/Ben.Demystifier/**.cs" }
 		
+		if _OPTIONS['game'] == 'five' then
+			files { "client/clrcore/NativesFive.cs" }
+		elseif _OPTIONS['game'] == 'rdr3' then
+			files { "client/clrcore/NativesRDR3.cs" }
+		elseif _OPTIONS['game'] == 'server' then
+			files { "client/clrcore/NativesServer.cs" }
+		end
+
 		if _OPTIONS['game'] ~= 'server' then
 			defines { 'USE_HYPERDRIVE' }
 			
