@@ -1,0 +1,31 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: flex-end;
+
+  width: 100%;
+
+  .extender {
+    flex-grow: 1;
+    border-bottom: solid 2px rgba($fgColor, .2);
+  }
+
+  .item {
+    padding: $q*2 $q*4;
+
+    border-bottom: solid 2px rgba($fgColor, .2);
+
+    user-select: none;
+    cursor: default;
+
+    &.active {
+      padding-bottom: $q*2 + 2px;
+
+      border: solid 2px;
+      border-image-slice: 1;
+      border-image-source: linear-gradient(to bottom, $acColor, rgba($fgColor, .2));
+      border-bottom: none;
+    }
+  }
+}

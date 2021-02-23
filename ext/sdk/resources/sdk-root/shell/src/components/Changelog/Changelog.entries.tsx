@@ -13,6 +13,14 @@ export const changelogEntries: ChangelogEntry[] = [
     content: (
       <>
         <p>
+          <strong>23 february 2021</strong>
+        </p>
+        <ul>
+          <li>FxDK now supports recycling deleted items, woo</li>
+          <li>Resource rename leading to shell crash got fixed, oops</li>
+        </ul>
+
+        <p>
           <strong>17 february 2021</strong>
         </p>
         <ul>

@@ -1,8 +1,8 @@
 import { inject, injectable, named } from 'inversify';
 import { ApiClient } from 'backend/api/api-client';
 import { ApiContribution } from "backend/api/api-contribution";
-import { handlesClientEvent } from 'backend/api/api-decorators';
-import { fxdkAssetFilename, fxdkProjectFilename } from 'backend/constants';
+import { handlesClientCallbackEvent, handlesClientEvent } from 'backend/api/api-decorators';
+import { fxdkProjectFilename } from 'backend/constants';
 import { ExplorerService } from 'backend/explorer/explorer-service';
 import { FsService } from 'backend/fs/fs-service';
 import { LogService } from 'backend/logger/log-service';
@@ -11,6 +11,8 @@ import { assetApi, projectApi } from 'shared/api.events';
 import {
   AssetCreateRequest,
   AssetDeleteRequest,
+  AssetDeleteResponse,
+  AssetImportRequest,
   AssetRenameRequest,
   CopyEntriesRequest,
   CopyEntryRequest,
@@ -18,27 +20,23 @@ import {
   ProjectCreateDirectoryRequest,
   ProjectCreateFileRequest,
   ProjectCreateRequest,
-  ProjectDeleteDirectoryRequest,
-  ProjectDeleteFileRequest,
+  DeleteDirectoryRequest,
+  DeleteFileRequest,
   ProjectRenameDirectoryRequest,
   ProjectRenameFileRequest,
   ProjectSetResourceConfigRequest,
+  DeleteDirectoryResponse,
+  DeleteFileResponse,
 } from 'shared/api.requests';
 import {
-  AssetMeta,
   FilesystemEntry,
   FilesystemEntryMap,
-  ProjectData,
-  ProjectManifest,
-  ProjectManifestResource,
-  ProjectPathsState,
-  ProjectResources,
   ServerUpdateChannel,
   serverUpdateChannels,
 } from "shared/api.types";
 import { debounce, getResourceConfig, notNull } from 'shared/utils';
 import { ContributionProvider } from 'backend/contribution-provider';
-import { AssetContribution, AssetInterface } from './asset/asset-contribution';
+import { AssetManagerContribution } from './asset/asset-manager-contribution';
 import { GameServerService } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
@@ -47,7 +45,14 @@ import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
 import { TheiaService } from 'backend/theia/theia-service';
 import { getAssetsPriorityQueue } from './project-utils';
-import { Resource } from './asset/resource/resource';
+import { Resource } from './asset/asset-contributions/resource/resource';
+import { concurrently } from 'utils/concurrently';
+import { AssetImporterType, AssetMeta, assetMetaFileExt, AssetType } from 'shared/asset.types';
+import { AssetImporterContribution } from './asset/asset-importer-contribution';
+import { AssetInterface } from './asset/asset-types';
+import { ProjectData, ProjectManifest, ProjectManifestResource, ProjectPathsState, ProjectResources } from 'shared/project.types';
+import { isAssetMetaFile, stripAssetMetaExt } from 'utils/project';
+import { ProjectUpgrade } from './project-upgrade';
 
 interface Silentable {
   silent?: boolean,
@@ -56,15 +61,10 @@ interface Silentable {
 export interface ManifestPropagationOptions extends Silentable {
 }
 
-export interface AssetMetaAccessorOptions extends Silentable {
-  forceShadow?: boolean,
-  forceReal?: boolean,
+export interface GetAssetMetaOptions extends Silentable {
 }
 
-export interface GetAssetMetaOptions extends AssetMetaAccessorOptions {
-}
-
-export interface SetAssetMetaOptions extends AssetMetaAccessorOptions {
+export interface SetAssetMetaOptions extends Silentable {
 }
 
 export enum ProjectState {
@@ -75,7 +75,7 @@ export enum ProjectState {
 @injectable()
 export class Project implements ApiContribution {
   getId() {
-    return `ProjectService(${this.path})`;
+    return `ProjectService(${this.path || '#loading#'})`;
   }
 
   eventDisposers: Function[] = [];
@@ -100,14 +100,20 @@ export class Project implements ApiContribution {
   @inject(GameServerService)
   protected readonly gameServerService: GameServerService;
 
-  @inject(ContributionProvider) @named(AssetContribution)
-  protected readonly assetContributions: ContributionProvider<AssetContribution>;
+  @inject(ContributionProvider) @named(AssetManagerContribution)
+  protected readonly assetManagerContributions: ContributionProvider<AssetManagerContribution>;
+
+  @inject(ContributionProvider) @named(AssetImporterContribution)
+  protected readonly assetImporterContributions: ContributionProvider<AssetImporterContribution>;
 
   @inject(TaskReporterService)
   protected readonly taskReporterService: TaskReporterService;
 
   @inject(TheiaService)
   protected readonly theiaService: TheiaService;
+
+  @inject(ProjectUpgrade)
+  protected readonly projectUpgrade: ProjectUpgrade;
 
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
@@ -119,7 +125,6 @@ export class Project implements ApiContribution {
   private manifestMapping: FsJsonFileMapping<ProjectManifest>;
   private manifestPath: string;
   private storagePath: string;
-  private shadowPath: string;
 
   private readonly resources = new ChangeAwareContainer<ProjectResources>({}, (resources: ProjectResources) => {
     if (this.ready) {
@@ -260,7 +265,6 @@ export class Project implements ApiContribution {
     try {
       this.path = this.fsService.joinPath(request.projectPath, request.projectName);
       this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
-      this.shadowPath = this.fsService.joinPath(this.storagePath, 'shadowRoot');
 
       const projectManifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
       const projectManifest: ProjectManifest = {
@@ -272,8 +276,8 @@ export class Project implements ApiContribution {
         pathsState: {},
       };
 
-      // It will create this.path as well
-      await this.fsService.mkdirp(this.shadowPath)
+      // This will create this.path as well
+      await this.fsService.mkdirp(this.storagePath);
 
       await Promise.all([
         // Write project manifest
@@ -302,10 +306,16 @@ export class Project implements ApiContribution {
 
     this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
     this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
-    this.shadowPath = this.fsService.joinPath(this.storagePath, 'shadowRoot');
 
     try {
       this.log('loading project...');
+
+      await this.projectUpgrade.maybeUpgradeProject({
+        task: loadTask,
+        projectPath: path,
+        manifestPath: this.manifestPath,
+        storagePath: this.storagePath,
+      });
 
       loadTask.setText('Loading manifest...');
       await this.initManifest();
@@ -347,9 +357,7 @@ export class Project implements ApiContribution {
 
     this.fsMapping.setShouldProcessUpdate((type, path) => path !== this.manifestPath);
     this.fsMapping.setEntryMetaExtras({
-      assetMeta: async (entryPath: string) => {
-        return this.getAssetMeta(entryPath, { silent: true });
-      },
+      assetMeta: (entryPath: string) => this.getAssetMeta(entryPath, { silent: true }),
     });
     this.fsMapping.setProcessEntry(this.processFsEntry);
 
@@ -398,7 +406,13 @@ export class Project implements ApiContribution {
       return;
     }
 
-    this.getAssetContributions().forEach((contribution) => contribution.onFsEntry?.(entry));
+    if (isAssetMetaFile(entry.name)) {
+      const assetPath = stripAssetMetaExt(entry.path);
+
+      return this.fsMapping.forceEntryScan(assetPath);
+    }
+
+    this.getAssetManagerContributions().forEach((manager) => manager.onFsEntry?.(entry));
 
     const existingAsset = this.assets.get(entry.path);
     if (existingAsset) {
@@ -407,7 +421,7 @@ export class Project implements ApiContribution {
       return;
     }
 
-    this.getAssetContributions().forEach(async (contribution) => {
+    this.getAssetManagerContributions().forEach(async (contribution) => {
       const asset = contribution.loadAsset(entry);
       if (asset) {
         this.assets.set(entry.path, asset);
@@ -465,19 +479,6 @@ export class Project implements ApiContribution {
     });
   }
 
-  /**
-   * Returns path but in shadow root
-   */
-  getPathInShadow(requestPath: string): string {
-    let relativePath = requestPath;
-
-    if (this.fsService.isAbsolutePath(requestPath)) {
-      relativePath = this.fsService.relativePath(this.path, requestPath);
-    }
-
-    return this.fsService.joinPath(this.shadowPath, relativePath);
-  }
-
   @handlesClientEvent(projectApi.setServerUpdateChannel)
   setServerUpdateChannel(updateChannel: ServerUpdateChannel) {
     if (this.getManifest().serverUpdateChannel !== updateChannel) {
@@ -491,33 +492,15 @@ export class Project implements ApiContribution {
 
   //#region assets
 
-  /**
-   * Returns meta filepath that exist in assetPath
-   * Otherwise will return meta filepath in shadow root
-   *
-   * Can be overridden by options
-   */
-  async getAssetMetaPath(assetPath: string, options?: AssetMetaAccessorOptions): Promise<string> {
-    const shadowPath = this.fsService.joinPath(this.getPathInShadow(assetPath), fxdkAssetFilename);
-    const realPath = this.fsService.joinPath(assetPath, fxdkAssetFilename);
+  getAssetMetaPath(assetPath: string): string {
+    const assetName = this.fsService.basename(assetPath);
+    const assetMetaFilename = assetName + assetMetaFileExt;
 
-    if (options?.forceShadow) {
-      return shadowPath;
-    }
-
-    if (options?.forceReal) {
-      return realPath;
-    }
-
-    if (await this.fsService.statSafe(realPath)) {
-      return realPath;
-    }
-
-    return shadowPath;
+    return this.fsService.joinPath(this.fsService.dirname(assetPath), assetMetaFilename);;
   }
 
   async getAssetMeta(assetPath: string, options?: GetAssetMetaOptions): Promise<AssetMeta | null> {
-    const assetMetaFilepath = await this.getAssetMetaPath(assetPath, options);
+    const assetMetaFilepath = this.getAssetMetaPath(assetPath);
 
     try {
       await this.fsService.stat(assetMetaFilepath);
@@ -545,61 +528,54 @@ export class Project implements ApiContribution {
       options,
     });
 
-    const assetMetaFilepath = await this.getAssetMetaPath(assetPath, options);
+    const assetMetaFilepath = this.getAssetMetaPath(assetPath);
 
-    // Ensure directory exist
-    await this.fsService.mkdirp(this.fsService.dirname(assetMetaFilepath));
+    await this.fsService.writeFileJson(assetMetaFilepath, assetMeta);
 
-    await this.fsService.writeFile(assetMetaFilepath, JSON.stringify(assetMeta, null, 2));
-
-    this.fsMapping.syncEntry(assetPath);
+    this.fsMapping.forceEntryScan(assetPath);
   }
 
-  protected getNamedAssetContribution(managerName: string): AssetContribution {
+  async hasAssetMeta(assetPath: string) {
+    return !!(await this.fsService.statSafe(this.getAssetMetaPath(assetPath)));
+  }
+
+  protected getAssetManagerContribution(assetType: AssetType): AssetManagerContribution {
     try {
-      return this.assetContributions.getTagged('managerName', managerName);
+      return this.assetManagerContributions.getTagged('assetType', assetType);
     } catch (e) {
-      throw new Error(`No asset manager of type ${managerName}`);
+      throw new Error(`No asset contribution of type ${assetType}`);
     }
   }
 
-  private assetContributionsCache: AssetContribution[] | void = undefined;
-  protected getAssetContributions(): AssetContribution[] {
-    if (!this.assetContributionsCache) {
-      this.assetContributionsCache = this.assetContributions.getAll();
+  protected getAssetImporterContribution(importerType: AssetImporterType): AssetImporterContribution {
+    try {
+      return this.assetImporterContributions.getTagged('importerType', importerType);
+    } catch (e) {
+      throw new Error(`No asset importer contribution of type ${importerType}`);
+    }
+  }
+
+  private assetManagersContributionsCache: AssetManagerContribution[] | void = undefined;
+  protected getAssetManagerContributions(): AssetManagerContribution[] {
+    if (!this.assetManagersContributionsCache) {
+      this.assetManagersContributionsCache = this.assetManagerContributions.getAll();
     }
 
-    return this.assetContributionsCache as any;
+    return this.assetManagersContributionsCache as any;
+  }
+
+  @handlesClientEvent(assetApi.import)
+  async importAsset(request: AssetImportRequest) {
+    this.log('Importing asset', request);
+
+    return this.getAssetImporterContribution(request.importerType).importAsset(request);
   }
 
   @handlesClientEvent(assetApi.create)
   async createAsset(request: AssetCreateRequest) {
     this.log('Creating asset', request);
 
-    if (request.managerName) {
-      const contribution = this.getNamedAssetContribution(request.managerName);
-
-      if (contribution.capabilities[request.action]) {
-        switch (request.action) {
-          case 'create': {
-            if (!contribution.createAsset) {
-              throw new Error(`Asset contribution ${contribution.name} have create capability but does not implement createAsset method`);
-            }
-            return contribution.createAsset(request);
-          }
-          case 'import': {
-            if (!contribution.importAsset) {
-              throw new Error(`Asset contribution ${contribution.name} have import capability but does not implement importAsset method`);
-            }
-            return contribution.importAsset(request);
-          }
-        }
-      }
-
-      throw new Error(`Asset contribution ${request.managerName} has no ${request.action} capability`);
-    }
-
-    throw new Error('Invalid asset create request managerName must be specified');
+    return this.getAssetManagerContribution(request.assetType).createAsset(request);
   }
 
   @handlesClientEvent(assetApi.rename)
@@ -628,38 +604,59 @@ export class Project implements ApiContribution {
       this.fsService.rename(assetPath, newAssetPath),
     ];
 
-    const oldShadowAssetPath = this.getPathInShadow(assetPath);
-    const newShadowAssetPath = this.getPathInShadow(newAssetPath);
+    const oldAssetMetaPath = this.getAssetMetaPath(assetPath);
+    const newAssetMetaPath = this.getAssetMetaPath(newAssetPath);
 
-    if (await this.fsService.statSafe(oldShadowAssetPath)) {
+    if (await this.fsService.statSafe(oldAssetMetaPath)) {
       promises.push(
-        this.fsService.rename(oldShadowAssetPath, newShadowAssetPath),
+        this.fsService.rename(oldAssetMetaPath, newAssetMetaPath),
       );
     }
 
     await Promise.all(promises);
   }
 
-  @handlesClientEvent(assetApi.delete)
-  async deleteAsset(request: AssetDeleteRequest) {
+  @handlesClientCallbackEvent(assetApi.delete)
+  async deleteAsset(request: AssetDeleteRequest): Promise<AssetDeleteResponse> {
     this.log('Deleting asset', request);
 
     const { assetPath } = request;
+    const assetMetaPath = this.getAssetMetaPath(assetPath);
+    const hasAssetMeta = !!(await this.fsService.statSafe(assetMetaPath));
+
+    const assetStat = await this.fsService.statSafe(assetPath);
+    if (!assetStat) {
+      return AssetDeleteResponse.Ok;
+    }
 
     await this.releaseAsset(assetPath);
 
-    const assetStat = await this.fsService.statSafe(request.assetPath);
-
     try {
-      await Promise.all([
-        this.fsService.rimraf(assetPath),
-        this.fsService.rimraf(this.getPathInShadow(assetPath)),
-      ]);
+      if (request.hardDelete) {
+        await this.fsService.rimraf(assetPath);
+        if (hasAssetMeta) {
+          await this.fsService.rimraf(assetMetaPath);
+        }
+      } else {
+        try {
+          await this.fsService.moveToTrashBin(assetPath);
+          if (hasAssetMeta) {
+            await this.fsService.moveToTrashBin(assetMetaPath);
+          }
+        } catch (e) {
+          this.logService.log(`Failed to recycle asset: ${e.toString()}`);
+          this.fsMapping.forceEntryScan(assetPath);
+          return AssetDeleteResponse.FailedToRecycle;
+        }
+      }
+
+      return AssetDeleteResponse.Ok;
     } catch (e) {
+      this.fsMapping.forceEntryScan(assetPath);
       throw e;
     } finally {
-      if (assetStat?.isDirectory()) {
-        this.apiClient.emit(projectApi.freePendingFolderDeletion, request.assetPath);
+      if (assetStat.isDirectory()) {
+        this.apiClient.emit(projectApi.freePendingFolderDeletion, assetPath);
       }
     }
   }
@@ -685,12 +682,30 @@ export class Project implements ApiContribution {
     await this.fsService.mkdirp(directoryFullPath);
   }
 
-  @handlesClientEvent(projectApi.deleteDirectory)
-  async deleteDirectory({ directoryPath }: ProjectDeleteDirectoryRequest) {
+  @handlesClientCallbackEvent(projectApi.deleteDirectory)
+  async deleteDirectory({ directoryPath, hardDelete }: DeleteDirectoryRequest): Promise<DeleteDirectoryResponse> {
+    if (!(await this.fsService.statSafe(directoryPath))) {
+      return DeleteDirectoryResponse.Ok;
+    }
+
+    await this.releaseAsset(directoryPath);
+
     try {
-      await this.releaseAsset(directoryPath);
-      await this.fsService.rimraf(directoryPath);
+      if (hardDelete) {
+        await this.fsService.rimraf(directoryPath);
+      } else {
+        try {
+          await this.fsService.moveToTrashBin(directoryPath);
+        } catch (e) {
+          this.logService.log(`Failed to recycle directory: ${e.toString()}`);
+          this.fsMapping.forceEntryScan(directoryPath);
+          return DeleteDirectoryResponse.FailedToRecycle;
+        }
+      }
+
+      return DeleteDirectoryResponse.Ok;
     } catch (e) {
+      this.fsMapping.forceEntryScan(directoryPath);
       throw e;
     } finally {
       this.apiClient.emit(projectApi.freePendingFolderDeletion, directoryPath);
@@ -714,10 +729,27 @@ export class Project implements ApiContribution {
     await this.fsService.writeFile(fileFullPath, '');
   }
 
-  @handlesClientEvent(projectApi.deleteFile)
-  async deleteFile({ filePath }: ProjectDeleteFileRequest) {
+  @handlesClientCallbackEvent(projectApi.deleteFile)
+  async deleteFile({ filePath, hardDelete }: DeleteFileRequest): Promise<DeleteFileResponse> {
+    if (!(await this.fsService.statSafe(filePath))) {
+      return DeleteFileResponse.Ok;
+    }
+
     await this.releaseAsset(filePath);
-    await this.fsService.unlink(filePath);
+
+    if (hardDelete) {
+      await this.fsService.rimraf(filePath);
+    } else {
+      try {
+        await this.fsService.moveToTrashBin(filePath);
+      } catch (e) {
+        this.logService.log(`Failed to recycle file: ${e.toString()}`);
+        this.fsMapping.forceEntryScan(filePath);
+        return DeleteFileResponse.FailedToRecycle;
+      }
+    }
+
+    return DeleteFileResponse.Ok;
   }
 
   @handlesClientEvent(projectApi.renameFile)

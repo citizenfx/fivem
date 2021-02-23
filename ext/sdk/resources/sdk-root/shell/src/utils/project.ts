@@ -1,4 +1,6 @@
-import { FilesystemEntry, ProjectData } from "shared/api.types";
+import { FilesystemEntry } from "shared/api.types";
+import { assetMetaFileExt } from "shared/asset.types";
+import { ProjectData } from "shared/project.types";
 
 export const filesystemEntryToTheiaResource = (entry: FilesystemEntry): string => {
   return 'file:///' + entry.path.replace('\\', '/');
@@ -29,4 +31,17 @@ export const getFoldersForTheia = (project: ProjectData, pendingDeletions: Set<s
   }
 
   return editableFolders;
+};
+
+export const stripAssetMetaExt = (str: string): string => {
+  return str.substr(0, str.indexOf(assetMetaFileExt));
+};
+
+export const isAssetMetaFile = (str: string): boolean => {
+  const index = str.indexOf(assetMetaFileExt);
+  if (index === -1) {
+    return;
+  }
+
+  return (index + assetMetaFileExt.length) === str.length;
 };

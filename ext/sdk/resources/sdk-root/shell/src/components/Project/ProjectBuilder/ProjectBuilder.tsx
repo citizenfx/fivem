@@ -6,7 +6,7 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { BsBoxArrowUpRight, BsExclamationCircle } from 'react-icons/bs';
 import { useTask } from 'contexts/TaskContext';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
-import { useApiMessage, useOpenFolderSelectDialog } from 'utils/hooks';
+import { useApiMessage, useOpenFolderSelectDialog, UseOpenFolderSelectDialogOptions } from 'utils/hooks';
 import {
   useProjectBuildPathVar,
   useProjectDeployArtifactVar,
@@ -18,10 +18,11 @@ import { Stepper } from 'components/controls/Stepper/Stepper';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 import { openInExplorerIcon, projectBuildIcon } from 'constants/icons';
 import { openInExplorerAndSelect } from 'utils/natives';
-import { ProjectBuildError, serverUpdateChannels } from 'shared/api.types';
+import { serverUpdateChannels } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { ProjectBuilderError } from './ProjectBuilderError';
 import s from './ProjectBuilder.module.scss';
+import { ProjectBuildError } from 'shared/project.types';
 
 const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
   [ProjectBuildTaskStage.VerifyingBuildSite]: 'Verifying build site',
@@ -67,11 +68,17 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
   const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
 
   const [buildPath, setBuildPath] = useProjectBuildPathVar(project);
-  const openFolderSelectDialog = useOpenFolderSelectDialog(project.path, 'Select Project Build Folder...', (folderPath) => {
+
+  const folderSelectOptions: UseOpenFolderSelectDialogOptions = React.useMemo(() => ({
+    startPath: project.path,
+    dialogTitle: 'Select Project Build Folder...',
+  }), [project.path]);
+  const openFolderSelectDialog = useOpenFolderSelectDialog(folderSelectOptions, (folderPath) => {
     if (folderPath) {
       setBuildPath(folderPath);
     }
   });
+
   const openBuildPath = React.useCallback(() => {
     openInExplorerAndSelect(buildPath + '\\resources');
   }, [buildPath]);

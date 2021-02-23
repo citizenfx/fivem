@@ -6,6 +6,7 @@ declare var renderGame: () => void;
 declare var setFPSLimit: (limit: number) => void;
 declare var fxdkSendApiMessage: (msg: string) => boolean;
 declare var fxdkOpenSelectFolderDialog: (startPath: string, dialogTitle: string, callback: (selectedFolder: string | null) => void) => boolean;
+declare var fxdkOpenSelectFileDialog: (startPath: string, dialogTitle: string, callback: (selectedFolder: string | null) => void) => boolean;
 
 declare var dev: any;
 

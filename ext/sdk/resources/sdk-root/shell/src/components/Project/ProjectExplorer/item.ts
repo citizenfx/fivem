@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { FilesystemEntry, ProjectData } from 'shared/api.types';
+import { FilesystemEntry } from 'shared/api.types';
+import { ProjectData } from 'shared/project.types';
+import { isAssetMetaFile } from 'utils/project';
 
 export const entryCollator = new Intl.Collator(undefined, {
   usage: 'sort',
@@ -46,7 +48,13 @@ export const renderChildren = (entry: FilesystemEntry, itemProps: ProjectItemPro
   let entryChildren = itemProps.pathsMap[entry.path] || [];
 
   if (filter) {
-    entryChildren = entryChildren.filter(filter);
+    entryChildren = entryChildren.filter((childEntry) => {
+      if (isAssetMetaFile(childEntry.name)) {
+        return false;
+      }
+
+      return filter(childEntry);
+    });
   }
 
   entryChildren.sort(entriesSorter);

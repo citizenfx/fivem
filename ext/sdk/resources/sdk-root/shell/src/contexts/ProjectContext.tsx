@@ -1,5 +1,5 @@
 import React from 'react';
-import { FilesystemEntry, ProjectData, RecentProject, AppStates, ProjectFsUpdate, ProjectResources } from 'shared/api.types';
+import { FilesystemEntry, AppStates } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage, useOpenFlag } from 'utils/hooks';
@@ -7,7 +7,14 @@ import { StateContext } from './StateContext';
 import { TheiaContext } from './TheiaContext';
 import { logger } from 'utils/logger';
 import { ProjectBuildRequest } from 'shared/api.requests';
-import { getProjectBuildPathVar, getProjectClientStorageItem, getProjectDeployArtifactVar, getProjectSteamWebApiKeyVar, getProjectTebexSecretVar, getProjectUseVersioningVar } from 'utils/projectStorage';
+import {
+  getProjectBuildPathVar,
+  getProjectDeployArtifactVar,
+  getProjectSteamWebApiKeyVar,
+  getProjectTebexSecretVar,
+  getProjectUseVersioningVar,
+} from 'utils/projectStorage';
+import { ProjectData, ProjectFsUpdate, ProjectResources, RecentProject } from 'shared/project.types';
 
 const log = logger('ProjectContext');
 export interface ProjectContext {
@@ -34,6 +41,10 @@ export interface ProjectContext {
   resourceCreatorOpen: boolean,
   openResourceCreator: () => void,
   closeResourceCreator: () => void,
+
+  importerOpen: boolean,
+  openImporter: () => void,
+  closeImporter: () => void,
 
   directoryCreatorOpen: boolean,
   openDirectoryCreator: () => void,
@@ -75,6 +86,10 @@ export const ProjectContext = React.createContext<ProjectContext>({
   openResourceCreator: () => { },
   closeResourceCreator: () => { },
 
+  importerOpen: false,
+  openImporter: () => { },
+  closeImporter: () => { },
+
   directoryCreatorOpen: false,
   openDirectoryCreator: () => { },
   closeDirectoryCreator: () => { },
@@ -106,6 +121,8 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
 
   const [resourceCreatorDir, setResourceCreatorDir] = React.useState('');
   const [resourceCreatorOpen, openResourceCreator, closeResourceCreator] = useOpenFlag(false);
+
+  const [importerOpen, openImporter, closeImporter] = useOpenFlag(false);
 
   const [directoryCreatorOpen, openDirectoryCreator, closeDirectoryCreator] = useOpenFlag(false);
 
@@ -292,6 +309,10 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
     resourceCreatorOpen,
     openResourceCreator,
     closeResourceCreator,
+
+    importerOpen,
+    openImporter,
+    closeImporter,
 
     directoryCreatorOpen,
     openDirectoryCreator,

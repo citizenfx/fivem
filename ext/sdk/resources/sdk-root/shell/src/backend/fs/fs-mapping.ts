@@ -1,8 +1,9 @@
 import chokidar from 'chokidar';
 import { EntryMetaExtras, ExplorerService } from "backend/explorer/explorer-service";
 import { inject, injectable } from "inversify";
-import { FilesystemEntry, FilesystemEntryMap, ProjectFsUpdate } from "shared/api.types";
+import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { FsService } from "./fs-service";
+import { ProjectFsUpdate } from 'shared/project.types';
 
 
 export enum FsUpdateType {
@@ -126,7 +127,7 @@ export class FsMapping {
     await this.watcher.close();
   }
 
-  async syncEntry(entryPath: string) {
+  async forceEntryScan(entryPath: string) {
     const entry = await this.explorerService.getEntry(entryPath, this.entryMetaExtras);
 
     const parentPath = this.fsService.dirname(entryPath);

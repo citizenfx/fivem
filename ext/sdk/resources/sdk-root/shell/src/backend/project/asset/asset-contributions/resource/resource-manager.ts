@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { AssetCreateRequest } from 'shared/api.requests';
-import { AssetContribution, AssetCreator, AssetInterface } from '../asset-contribution';
+import { AssetManagerContribution } from '../../asset-manager-contribution';
 import { ApiClient } from 'backend/api/api-client';
 import { LogService } from 'backend/logger/log-service';
 import { FsService } from 'backend/fs/fs-service';
@@ -12,14 +12,10 @@ import { ResourceTemplateScaffolderArgs } from 'resource-templates/types';
 import { resourceTemplateScaffolders } from 'resource-templates/scaffolders-list';
 import { ProjectAccess } from 'backend/project/project-access';
 import { getResourceManifestKind } from './resource-utils';
+import { AssetInterface } from '../../asset-types';
 
 @injectable()
-export class ResourceManager implements AssetContribution, AssetCreator {
-  readonly name: 'resource';
-  readonly capabilities = {
-    create: true,
-  };
-
+export class ResourceManager implements AssetManagerContribution {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
@@ -104,9 +100,11 @@ export class ResourceManager implements AssetContribution, AssetCreator {
     }
 
     this.projectAccess.withInstance((project) => {
+      const entryParentDirPath = this.fsService.dirname(entry.path);
+
       // It might be so folder entry was process before manifest file created leading us to having no resource asset at all
-      if (!project.isAsset(entry.path, Resource)) {
-        project.fsMapping.syncEntry(entry.path);
+      if (!project.isAsset(entryParentDirPath, Resource)) {
+        project.fsMapping.forceEntryScan(entryParentDirPath);
       }
     });
   }

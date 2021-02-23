@@ -9,11 +9,13 @@ import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { projectApi } from "shared/api.events";
-import { AssetCreateRequest, ProjectCreateRequest } from "shared/api.requests";
-import { ProjectCreateCheckResult, RecentProject } from "shared/api.types";
+import { ProjectCreateRequest } from "shared/api.requests";
+import { ProjectCreateCheckResult, RecentProject } from "shared/project.types";
 import { notNull } from "shared/utils";
 import { Project } from "./project";
 import { ProjectAccess } from "./project-access";
+import { assetImporterTypes } from "shared/asset.types";
+import { GitAssetImportRequest } from "./asset/importer-contributions/git-importer/git-importer.types";
 
 export const cfxServerDataEnabledResources = [
   'basic-gamemode',
@@ -187,21 +189,22 @@ export class ProjectManager implements ApiContribution {
     });
 
     if (!checkResult.ignoreCfxServerData && request.withServerData) {
-      const assetCreateRequest: AssetCreateRequest = {
-        action: 'import',
-        managerName: 'git',
+      const assetImportRequest: GitAssetImportRequest = {
+        importerType: assetImporterTypes.git,
         assetName: 'cfx-server-data',
-        assetPath: this.project.getPath(),
+        assetBasePath: this.project.getPath(),
+        assetMetaFlags: {
+          readOnly: true,
+        },
         data: {
           repoUrl: 'https://github.com/citizenfx/cfx-server-data.git',
         },
-        readOnly: true,
         callback: () => {
           this.project?.setResourcesEnabled(cfxServerDataEnabledResources, true);
         },
       };
 
-      this.project.createAsset(assetCreateRequest);
+      this.project.importAsset(assetImportRequest);
     }
   }
 

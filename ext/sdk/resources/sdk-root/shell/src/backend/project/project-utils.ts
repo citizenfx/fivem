@@ -1,4 +1,4 @@
-import { AssetInterface } from "./asset/asset-contribution";
+import { AssetInterface } from "./asset/asset-types";
 
 type AssetPath = string;
 type AssetPathsTree = { [key: string]: AssetPathsTree | null };

@@ -24,7 +24,7 @@ export class StatusService implements ApiContribution {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
-  get<T>(statusName: string): T | void {
+  get<T>(statusName: string): T | null {
     return this.statuses[statusName];
   }
 
@@ -37,7 +37,7 @@ export class StatusService implements ApiContribution {
   delete(statusName: string) {
     delete this.statuses[statusName];
 
-    this.ackClient(statusName, undefined);
+    this.ackClient(statusName, null);
   }
 
   createProxy<T>(statusName: string): StatusProxy<T> {
@@ -60,11 +60,11 @@ class StatusProxyImpl<T> implements StatusProxy<T> {
     protected readonly statusName: string,
   ) { }
 
-  setValue(value: T | void) {
+  setValue(value: T) {
     this.statusService.set(this.statusName, value);
   }
 
-  getValue(): T | void {
+  getValue(): T | null {
     return this.statusService.get<T>(this.statusName);
   }
 
@@ -72,7 +72,7 @@ class StatusProxyImpl<T> implements StatusProxy<T> {
     this.statusService.delete(this.statusName);
   }
 
-  applyValue(cb: (value: T | void) => T | void) {
+  applyValue(cb: (value: T) => T | null) {
     this.setValue(cb(this.getValue()));
   }
 

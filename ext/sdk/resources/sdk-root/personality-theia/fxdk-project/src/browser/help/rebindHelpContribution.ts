@@ -45,7 +45,9 @@ export class FxdkHelpContribution extends AbstractViewContribution<GettingStarte
   }
 
   async onStart(app: FrontendApplication): Promise<void> {
-    if (!this.workspaceService.opened) {
+    if (!window.localStorage['fxdk-faq-shown']) {
+      window.localStorage['fxdk-faq-shown'] = 'yes';
+
       this.stateService.reachedState('ready').then(
         () => this.openView({ reveal: true })
       );

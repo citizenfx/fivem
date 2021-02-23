@@ -9,9 +9,10 @@ import { ProjectContext } from 'contexts/ProjectContext';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage, useDebouncedCallback, useFeature } from 'utils/hooks';
-import { Feature, ProjectCreateCheckResult } from 'shared/api.types';
+import { Feature } from 'shared/api.types';
 import s from './ProjectCreator.module.scss';
 import { ProjectCreateRequest } from 'shared/api.requests';
+import { ProjectCreateCheckResult } from 'shared/project.types';
 
 
 function formatProjectPathHint(projectPath: string, projectName: string) {

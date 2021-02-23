@@ -446,8 +446,21 @@ SimpleWindowDelegate::SimpleWindowDelegate(CefRefPtr<CefBrowserView> browser_vie
 {
 }
 
+static HWND m_mainWindow;
+
 void SimpleWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
 {
+	static bool mainWindowIdSet = false;
+
+	if (!mainWindowIdSet)
+	{
+		mainWindowIdSet = true;
+		m_mainWindow = window->GetWindowHandle();
+
+		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+		rgd->mainWindowHandle = window->GetWindowHandle();
+	}
+
 	auto icon = CefImage::CreateImage();
 	icon->AddPNG(1.0f, componentIcon, sizeof(componentIcon));
 
@@ -455,21 +468,11 @@ void SimpleWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
 	window->AddChildView(browser_view_);
 	window->SetWindowAppIcon(icon);
 	window->SetWindowIcon(icon);
-	LoadPlacement(window);
 	window->Show();
+	LoadPlacement(window);
 
 	// Give keyboard focus to the browser view.
 	browser_view_->RequestFocus();
-
-	static bool hwndAssigned = false;
-
-	// Make wonders!
-	if (!hwndAssigned) {
-		hwndAssigned = true;
-
-		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-		rgd->mainWindowHandle = window->GetWindowHandle();
-	}
 }
 
 void SimpleWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window)
@@ -495,6 +498,12 @@ CefSize SimpleWindowDelegate::GetMinimumSize(CefRefPtr<CefView> view)
 
 void SimpleWindowDelegate::LoadPlacement(CefRefPtr<CefWindow> window)
 {
+	// Only load placement for main window
+	if (m_mainWindow != window->GetWindowHandle())
+	{
+		return;
+	}
+
 	DWORD dataSize = 0;
 	if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", RRF_RT_REG_BINARY, NULL, NULL, &dataSize) == ERROR_SUCCESS)
 	{
@@ -508,6 +517,12 @@ void SimpleWindowDelegate::LoadPlacement(CefRefPtr<CefWindow> window)
 
 void SimpleWindowDelegate::SavePlacement(CefRefPtr<CefWindow> window)
 {
+	// Only save placement for main window
+	if (m_mainWindow != window->GetWindowHandle())
+	{
+		return;
+	}
+
 	WINDOWPLACEMENT wndpl = { 0 };
 	wndpl.length = sizeof(wndpl);
 

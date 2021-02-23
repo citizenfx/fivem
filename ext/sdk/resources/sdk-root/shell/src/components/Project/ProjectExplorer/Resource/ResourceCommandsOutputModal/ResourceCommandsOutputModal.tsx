@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ResourceStatus } from 'backend/project/asset/resource/resource-types';
+import { ResourceStatus } from 'backend/project/asset/asset-contributions/resource/resource-types';
 import { Modal } from 'components/Modal/Modal';
 import { Output } from 'components/Output/Output';
 import s from './ResourceCommandsOutputModal.module.scss';

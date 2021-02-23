@@ -1,0 +1,14 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+  max-height: $modalContentHeight;
+
+  overflow: hidden;
+
+  .explorer {
+    overflow: auto;
+    margin-bottom: 0;
+  }
+}

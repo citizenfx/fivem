@@ -2,7 +2,7 @@ import { useStatus } from 'contexts/StatusContext';
 import React from 'react';
 import { featuresStatuses } from 'shared/api.statuses';
 import { Feature } from 'shared/api.types';
-import { ANY_MESSAGE, ApiMessageListener, onApiMessage } from './api';
+import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, sendApiMessageCallback } from './api';
 import { fastRandomId } from './random';
 
 export const useSid = (watchers: React.DependencyList = []) => {
@@ -151,13 +151,49 @@ export const useDebouncedCallback = <T extends any[], U extends any, R = (...arg
   return React.useCallback<any>(realCb, [...watchers]);
 };
 
-export const useOpenFolderSelectDialog = (startPath: string, dialogTitle: string, onSelected: (folderPath: string | null) => void) => {
+export interface UseOpenFolderSelectDialogOptions {
+  startPath: string,
+  dialogTitle: string,
+  notOnlyFolders?: boolean,
+}
+
+export const useOpenFolderSelectDialog = (options: UseOpenFolderSelectDialogOptions, onSelected: (folderPath: string | null) => void) => {
+  const { startPath, dialogTitle, notOnlyFolders = false } = options;
+
   const callbackRef = React.useRef(onSelected);
   callbackRef.current = onSelected;
 
   React.useEffect(() => () => callbackRef.current = null, []);
 
   return React.useCallback(() => {
-    fxdkOpenSelectFolderDialog(startPath, dialogTitle, (folderPath) => callbackRef.current?.(folderPath));
-  }, [startPath, dialogTitle]);
+    if (notOnlyFolders) {
+      fxdkOpenSelectFileDialog(startPath, dialogTitle, (folderPath) => callbackRef.current?.(folderPath));
+    } else {
+      fxdkOpenSelectFolderDialog(startPath, dialogTitle, (folderPath) => callbackRef.current?.(folderPath));
+    }
+  }, [startPath, dialogTitle, notOnlyFolders]);
+};
+
+export const useSendApiMessageCallback = <Data, ResponseData>(type: string, callback: ApiMessageCallback<ResponseData>) => {
+  const disposerRef = React.useRef<Function | null>(null);
+  const callbackRef = React.useRef<ApiMessageCallback<ResponseData>>(callback);
+  callbackRef.current = callback;
+
+  React.useEffect(() => () => {
+    disposerRef.current?.();
+
+    callbackRef.current = null;
+  }, []);
+
+  return React.useCallback(async (data: Data) => {
+    if (disposerRef.current) {
+      return;
+    }
+
+    disposerRef.current = sendApiMessageCallback(type, data, (error, response) => {
+      disposerRef.current = null;
+
+      callbackRef.current?.(error, response as any);
+    });
+  }, [type]);
 };

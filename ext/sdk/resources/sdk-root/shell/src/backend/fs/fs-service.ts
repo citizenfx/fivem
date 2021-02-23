@@ -12,6 +12,7 @@ import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { concurrently } from 'utils/concurrently';
+import { fastRandomId } from 'utils/random';
 
 const rimraf = promisify(rimrafSync);
 
@@ -221,10 +222,53 @@ export class FsService {
     });
   }
 
+  async copyFileContent(sourcePath: string, targetPath: string, options: CopyOptions = {}): Promise<void> {
+    const sourcePathStats = await this.statSafe(sourcePath);
+    if (!sourcePathStats) {
+      throw new Error('No source path: '+ sourcePath);
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = this.createReadStream(sourcePath);
+      const writer = this.createWriteStream(targetPath);
+
+      let finished = false;
+      const finish = (error?: Error) => {
+        if (!finished) {
+          finished = true;
+
+          if (error) {
+            return reject(error);
+          }
+
+          return resolve();
+        }
+      };
+
+      reader.once('error', finish);
+      writer.once('error', finish);
+
+      writer.once('close', () => finish());
+
+      if (options.onProgress) {
+        const totalSize = sourcePathStats.size;
+        let doneSize = 0;
+
+        reader.on('data', (chunk) => {
+          doneSize += chunk.length;
+
+          options.onProgress(doneSize / totalSize);
+        });
+      }
+
+      reader.pipe(writer);
+    });
+  }
+
   /**
    * Copies /a/b/* to /a/c/*
    */
-  async copyContent(sourcePath: string, targetPath: string, options: CopyOptions = {}) {
+  async copyDirContent(sourcePath: string, targetPath: string, options: CopyOptions = {}) {
     const {
       onProgress = () => {},
     } = options;
@@ -330,5 +374,29 @@ export class FsService {
     } catch (e) {
       return [];
     }
+  }
+
+  async moveToTrashBin(...entryPaths: string[]): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const msgId = fastRandomId();
+
+      emit('sdk:recycleShellItems', msgId, entryPaths);
+
+      const handler = (rmsgId: string, error: string) => {
+        if (msgId !== rmsgId) {
+          return;
+        }
+
+        RemoveEventHandler('sdk:recycleShellItemsResponse', handler);
+
+        if (error) {
+          return reject(new Error(error));
+        }
+
+        return resolve();
+      }
+
+      on('sdk:recycleShellItemsResponse', handler);
+    });
   }
 }

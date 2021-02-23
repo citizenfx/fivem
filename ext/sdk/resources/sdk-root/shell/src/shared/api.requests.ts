@@ -1,4 +1,6 @@
-import { ProjectManifestResource, ServerUpdateChannel } from "./api.types";
+import { ServerUpdateChannel } from "./api.types";
+import { AssetImporterType, AssetMetaFlags, AssetType } from "./asset.types";
+import { ProjectManifestResource } from "./project.types";
 
 
 export interface ProjectCreateRequest {
@@ -17,8 +19,13 @@ export interface ProjectCreateDirectoryRequest {
   directoryName: string,
 }
 
-export interface ProjectDeleteDirectoryRequest {
+export interface DeleteDirectoryRequest {
   directoryPath: string,
+  hardDelete?: boolean,
+}
+export enum DeleteDirectoryResponse {
+  Ok,
+  FailedToRecycle,
 }
 
 export interface ProjectRenameDirectoryRequest {
@@ -31,8 +38,13 @@ export interface ProjectCreateFileRequest {
   fileName: string,
 }
 
-export interface ProjectDeleteFileRequest {
+export interface DeleteFileRequest {
   filePath: string,
+  hardDelete?: boolean,
+}
+export enum DeleteFileResponse {
+  Ok,
+  FailedToRecycle,
 }
 
 export interface ProjectRenameFileRequest {
@@ -40,19 +52,31 @@ export interface ProjectRenameFileRequest {
   newFileName: string,
 }
 
-export type AssetCreateAction = 'create' | 'import';
-export interface AssetCreateRequest<T = any> {
-  action: AssetCreateAction,
-  managerName: string,
+export interface AssetCreateRequest<T extends object = object> {
+  assetType: AssetType,
   assetPath: string,
   assetName: string,
-  readOnly?: boolean,
+  assetMetaFlags?: AssetMetaFlags,
   data?: T,
-  callback?: Function,
+  callback?: () => void,
+}
+
+export interface AssetImportRequest<T extends object = object> {
+  importerType: AssetImporterType,
+  assetName: string,
+  assetBasePath: string,
+  assetMetaFlags?: AssetMetaFlags,
+  data?: T,
+  callback?: () => void,
 }
 
 export interface AssetDeleteRequest {
   assetPath: string,
+  hardDelete: boolean,
+}
+export enum AssetDeleteResponse {
+  Ok,
+  FailedToRecycle,
 }
 
 export interface AssetRenameRequest {

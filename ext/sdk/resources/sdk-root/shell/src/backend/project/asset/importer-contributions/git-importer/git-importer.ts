@@ -1,24 +1,17 @@
 import simpleGitPromised from 'simple-git/promise';
-import { assetKinds, assetManagerTypes, assetStatus, FilesystemEntry } from 'shared/api.types';
-import { AssetCreateRequest } from 'shared/api.requests';
-import { AssetContribution, AssetInterface } from '../asset-contribution';
 import { inject, injectable } from 'inversify';
 import { ApiClient } from 'backend/api/api-client';
 import { LogService } from 'backend/logger/log-service';
 import { FsService } from 'backend/fs/fs-service';
-import { Project } from 'backend/project/project';
 import { invariant } from 'utils/invariant';
 import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { ProjectAccess } from 'backend/project/project-access';
+import { AssetImporterContribution } from '../../asset-importer-contribution';
+import { GitAssetImportRequest } from './git-importer.types';
 
 @injectable()
-export class GitManager implements AssetContribution {
-  readonly name = 'git';
-  readonly capabilities = {
-    import: true,
-  };
-
+export class GitImporter implements AssetImporterContribution {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
@@ -37,39 +30,33 @@ export class GitManager implements AssetContribution {
   @inject(ProjectAccess)
   protected readonly projectAccess: ProjectAccess;
 
-  async importAsset(request: AssetCreateRequest<{ repoUrl: string }>): Promise<boolean> {
+  async importAsset(request: GitAssetImportRequest): Promise<boolean> {
     const {
       assetName,
+      assetMetaFlags,
       data,
-      readOnly,
     } = request;
 
-    invariant(data.repoUrl, `Can't create git managed asset without managerData.repoUrl`);
+    invariant(data.repoUrl, `Invalid git asset import request, missing repoUrl in data`);
 
-    const importTask = this.taskReporterService.create('Importing git asset');
-    importTask.setText('Preparing')
+    const importTask = this.taskReporterService.create('Importing asset from git');
+    importTask.setText('Preparing');
 
     const { repoUrl } = data;
 
-    this.logService.log('Creating asset managed by git', request);
+    this.logService.log('Importing asset from git', request);
 
-    const assetPath = this.fsService.joinPath(request.assetPath, assetName);
-    const assetMeta = {
-      kind: assetKinds.pack,
-      manager: {
-        type: assetManagerTypes.git,
-        data,
-      },
-      flags: {
-        readOnly,
-      },
-    };
+    if (assetMetaFlags) {
+      const assetPath = this.fsService.joinPath(request.assetBasePath, assetName);
 
-    importTask.setText('Creating meta data');
-    // Asset meta for imported git pack asset is always in shadow root
-    await this.projectAccess.getInstance().setAssetMeta(assetPath, assetMeta, { forceShadow: true });
+      await this.projectAccess.withInstance(async (project) => {
+        await project.setAssetMeta(assetPath, {
+          flags: assetMetaFlags,
+        });
+      });
+    }
 
-    const git = simpleGitPromised(request.assetPath);
+    const git = simpleGitPromised(request.assetBasePath);
 
     try {
       this.logService.log('Importing git asset', request);
@@ -85,6 +72,7 @@ export class GitManager implements AssetContribution {
 
       importTask.setText('Done');
 
+      this.notificationService.info(`Succefully imported asset from ${repoUrl}`, 5000);
       return true;
     } catch (e) {
       this.notificationService.error(`Git asset import failed: ${e.toString()}`);
@@ -94,9 +82,5 @@ export class GitManager implements AssetContribution {
     } finally {
       importTask.done();
     }
-  }
-
-  loadAsset(assetEntry: FilesystemEntry): AssetInterface | void {
-    return;
   }
 }

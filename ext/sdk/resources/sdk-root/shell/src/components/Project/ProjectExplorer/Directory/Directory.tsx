@@ -1,6 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
-import { BsBoxArrowUpRight, BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
+import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
 import { ProjectItemProps } from '../item';
@@ -10,6 +10,7 @@ import { FilesystemEntry } from 'shared/api.types';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { itemsStyles } from '../item.styles';
 import { NativeTypes } from 'react-dnd-html5-backend';
+import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../item.context';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean) => {
@@ -40,7 +41,7 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
     deleteConfirmationOpen,
     closeDeleteConfirmation,
     deleteDirectory,
-  } = useDirectoryContextMenu(entry.path, project, directoryChildren.length);
+  } = useDirectoryContextMenu(entry.path, directoryChildren.length);
 
   const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
 
@@ -76,6 +77,31 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
     [itemsStyles.dragging]: isDragging,
   });
 
+  const assetMetaFlags = entry.meta?.assetMeta?.flags;
+  const itemContext = React.useMemo(() => {
+    if (!assetMetaFlags) {
+      return null;
+    }
+
+    const ctx: Partial<ProjectExplorerItemContext> = {};
+
+    if (assetMetaFlags.readOnly) {
+      ctx.disableAssetCreate = true;
+      ctx.disableAssetDelete = true;
+      ctx.disableAssetRename = true;
+      ctx.disableDirectoryCreate = true;
+      ctx.disableDirectoryDelete = true;
+      ctx.disableDirectoryRename = true;
+      ctx.disableEntryMove = true;
+      ctx.disableFileCreate = true;
+      ctx.disableFileDelete = true;
+      ctx.disableFileOpen = true;
+      ctx.disableFileRename = true;
+    }
+
+    return ctx;
+  }, [assetMetaFlags]);
+
   return (
     <div className={rootClassName} ref={dropRef}>
       <ContextMenu
@@ -91,13 +117,22 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
         <div className={itemsStyles.itemTitle}>
           {entry.name}
         </div>
+        {assetMetaFlags?.readOnly && (
+          <div className={itemsStyles.itemStatus}>
+            <div className={itemsStyles.itemStatusEntry}>
+              readonly
+            </div>
+          </div>
+        )}
       </ContextMenu>
 
       {expanded && (
         <div className={itemsStyles.children}>
           {renderItemControls()}
 
-          {nodes}
+          <ProjectExplorerItemContextProvider options={itemContext}>
+            {nodes}
+          </ProjectExplorerItemContextProvider>
         </div>
       )}
 

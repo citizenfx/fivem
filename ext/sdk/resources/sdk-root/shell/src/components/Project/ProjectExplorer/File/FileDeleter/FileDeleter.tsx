@@ -4,6 +4,8 @@ import { Modal } from 'components/Modal/Modal';
 import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
+import { useSendApiMessageCallback } from 'utils/hooks';
+import { DeleteFileRequest, DeleteFileResponse } from 'shared/api.requests';
 
 
 export interface FileDeleterProps {
@@ -14,11 +16,26 @@ export interface FileDeleterProps {
 export const FileDeleter = React.memo(function FileDeleter(props: FileDeleterProps) {
   const { entry, onClose } = props;
 
+  const deleteFile = useSendApiMessageCallback<DeleteFileRequest, DeleteFileResponse>(projectApi.deleteFile, (error, response) => {
+    if (error) {
+      return;
+    }
+
+    if (response === DeleteFileResponse.FailedToRecycle) {
+      if (window.confirm('Failed to recycle file, delete it permanently?')) {
+        sendApiMessage(projectApi.deleteFile, {
+          filePath: entry.path,
+          hardDelete: true,
+        } as DeleteFileRequest);
+      }
+    }
+  });
+
   const handleDelete = React.useCallback(() => {
-    sendApiMessage(projectApi.deleteFile, {
+    deleteFile({
       filePath: entry.path,
     });
-  }, [entry]);
+  }, [entry, deleteFile]);
 
   return (
     <Modal onClose={onClose}>
@@ -32,10 +49,10 @@ export const FileDeleter = React.memo(function FileDeleter(props: FileDeleterPro
           onClick={handleDelete}
         />
         <Button
+          autofocus
           theme="primary"
           text="Cancel"
           onClick={onClose}
-          autofocus
         />
       </div>
     </Modal>

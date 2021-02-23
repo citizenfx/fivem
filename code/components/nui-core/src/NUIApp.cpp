@@ -155,7 +155,8 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 			"setFPSLimit",
 			"setInputChar",
 			"fxdkSendApiMessage",
-			"fxdkOpenSelectFolderDialog"
+			"fxdkOpenSelectFolderDialog",
+			"fxdkOpenSelectFileDialog",
 		};
 
 		for (auto const& handler : fxdkHandlers)

@@ -3,7 +3,7 @@ import { closeIcon, projectIcon } from 'constants/icons';
 import { ProjectContext } from 'contexts/ProjectContext';
 import * as React from 'react';
 import { projectApi } from 'shared/api.events';
-import { RecentProject } from 'shared/api.types';
+import { RecentProject } from 'shared/project.types';
 import { sendApiMessage } from 'utils/api';
 import s from './RecentProjectItem.module.scss';
 

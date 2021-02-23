@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Output } from 'components/Output/Output';
-import { ProjectBuildError } from 'shared/api.types';
+import { ProjectBuildError } from 'shared/project.types';
 import s from './ProjectBuilder.module.scss';
 import { OutputContext } from 'contexts/OutputContext';
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { assetKinds } from 'shared/api.types';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { invariant } from 'utils/invariant';
 import { sendApiMessage } from 'utils/api';
@@ -14,14 +13,10 @@ import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator'
 import { Resource } from './Resource/Resource';
 import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './item';
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
-import { PackAsset } from '../assets/PackAsset/PackAsset';
-import s from './ProjectExplorer.module.scss';
 import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
+import s from './ProjectExplorer.module.scss';
+import { isAssetMetaFile } from 'utils/project';
 
-
-const assetTypeRenderers = {
-  [assetKinds.pack]: PackAsset,
-};
 
 const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
   const { entry } = props;
@@ -45,17 +40,6 @@ const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
   }
 
   if (entry.isDirectory) {
-    if (entry.meta.assetMeta) {
-      const AssetRenderer = assetTypeRenderers[entry.meta.assetMeta.kind];
-
-      return (
-        <AssetRenderer
-          key={entry.path}
-          {...props}
-        />
-      );
-    }
-
     return (
       <Directory
         key={entry.path}
@@ -74,7 +58,11 @@ const fsTreeFilter = (entry) => {
     return false;
   }
 
-  if (entry.isFile) {
+  if (entry.name === 'fxproject.json') {
+    return false;
+  }
+
+  if (isAssetMetaFile(entry.name)) {
     return false;
   }
 

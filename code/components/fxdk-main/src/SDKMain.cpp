@@ -293,6 +293,30 @@ void SdkMain()
 				"fxdk://api"
 			);
 		}
+		else if (eventName == "sdk:recycleShellItems")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+
+			std::vector<msgpack::object> args;
+			obj.convert(args);
+
+			if (args.size() != 2)
+			{
+				return;
+			}
+
+			auto msgId = args[0].as<std::string>();
+			auto items = args[1].as<std::vector<std::string>>();
+
+			fxdk::ioUtils::RecycleShellItems(items, [resman, msgId](const std::string& error)
+			{
+				resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:recycleShellItemsResponse", {}, msgId, error);
+			});
+		}
 	});
 
 	// Provide CEF with command-line arguments.

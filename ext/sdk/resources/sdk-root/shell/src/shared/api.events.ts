@@ -26,12 +26,14 @@ export const projectApi = {
   createDirectory: 'project:createDirectory',
   renameDirectory: 'project:renameDirectory',
   deleteDirectory: 'project:deleteDirectory',
+  hardDeleteDirectory: 'project:hardDeleteDirectory',
 
   freePendingFolderDeletion: 'project:freePendingFolderDeletion',
 
   createFile: 'project:createFile',
   renameFile: 'project:renameFile',
   deleteFile: 'project:deleteFile',
+  hardDeleteFile: 'project:hardDeleteFile',
 
   moveEntry: 'project:moveEntry',
   copyEntry: 'project:copyEntry',
@@ -40,13 +42,9 @@ export const projectApi = {
 
 export const assetApi = {
   create: 'asset:create',
+  import: 'asset:import',
   rename: 'asset:rename',
   delete: 'asset:delete',
-
-  git: {
-    import: 'asset:git:import',
-    update: 'asset:git:update',
-  },
 };
 
 export const stateApi = {

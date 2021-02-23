@@ -35,7 +35,7 @@ export const useStatus = <T extends any>(statusName: string, defaultContent: T):
 
   const statusContent = statuses[statusName];
 
-  return typeof statusContent === 'undefined'
+  return (statusContent === null || typeof statusContent === 'undefined')
     ? defaultContent
     : statusContent;
 };

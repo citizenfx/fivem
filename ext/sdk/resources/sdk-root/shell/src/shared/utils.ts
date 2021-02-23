@@ -1,4 +1,4 @@
-import { ProjectData, ProjectManifest, ProjectManifestResource, ProjectResources } from 'shared/api.types';
+import { ProjectData, ProjectManifest, ProjectManifestResource, ProjectResources } from 'shared/project.types';
 
 const resourceDefault: ProjectManifestResource = {
   name: '',

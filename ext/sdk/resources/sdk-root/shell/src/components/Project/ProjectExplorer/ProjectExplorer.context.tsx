@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { ProjectContext } from 'contexts/ProjectContext';
-import { FilesystemEntry, ProjectPathsState } from 'shared/api.types';
+import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
 import { CopyEntryRequest, MoveEntryRequest } from 'shared/api.requests';
+import { ProjectPathsState } from 'shared/project.types';
 
 
 export enum EntryRelocateOperation {

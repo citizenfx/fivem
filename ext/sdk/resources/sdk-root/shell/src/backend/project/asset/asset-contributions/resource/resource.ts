@@ -1,11 +1,10 @@
 import { inject, injectable } from "inversify";
 import { IMinimatch, Minimatch } from 'minimatch';
 import { GameServerService } from "backend/game-server/game-server-service";
-import { AssetInterface } from "../asset-contribution";
 import { resourceManifestFilename, resourceManifestLegacyFilename } from 'backend/constants';
 import { fastRandomId } from 'utils/random';
 import { FsUpdateType } from 'backend/fs/fs-mapping';
-import { FilesystemEntry, ProjectManifestResource } from "shared/api.types";
+import { FilesystemEntry } from "shared/api.types";
 import { LogService } from "backend/logger/log-service";
 import { FsService } from "backend/fs/fs-service";
 import { ProjectAccess } from "backend/project/project-access";
@@ -18,7 +17,9 @@ import { ResourceStatus } from "./resource-types";
 import { OutputService } from "backend/output/output-service";
 import { uniqueArray } from "utils/unique";
 import { Deferred } from "backend/deferred";
-import { AssetBuildCommandError } from "../asset-error";
+import { AssetBuildCommandError } from "../../asset-error";
+import { AssetInterface } from "../../asset-types";
+import { ProjectManifestResource } from "shared/project.types";
 
 
 interface IdealResourceMetaData {

@@ -115,7 +115,7 @@ export class FxdkFAQWidget extends GettingStartedWidget {
             <main>
               Unfortunately, all existing vscode Lua language server extensions are not ready for production use.
               <br/>
-              For we don't have a manpower to fix existing products or create our own from the scratch.
+              For now we don't have manpower to fix existing products or create our own from scratch.
             </main>
           </article>
 

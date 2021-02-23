@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ProjectData } from 'shared/api.types';
+import { useState, useCallback, useMemo } from 'react';
+import { ProjectData } from 'shared/project.types';
 
 function composeKey(project: ProjectData | null, key: string): string {
   return `${project?.path || '__noproject'}:${key}`;

@@ -1,4 +1,4 @@
-import { ResourceManifest } from "backend/project/asset/resource/resource-manifest";
+import { ResourceManifest } from "backend/project/asset/asset-contributions/resource/resource-manifest";
 import { AssetCreateRequest } from "shared/api.requests";
 
 export interface ResourceTemplateDescriptor {
@@ -12,7 +12,7 @@ export interface ResourceTemplateDescriptor {
 }
 
 export interface ResourceTemplateScaffolderArgs {
-  request: AssetCreateRequest,
+  request: AssetCreateRequest<{ resourceTemplateId?: string }>,
   manifest: ResourceManifest,
   resourcePath: string,
 }

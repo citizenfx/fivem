@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { BsCheckBox, BsFillEyeFill, BsSquare } from 'react-icons/bs';
-import { FilesystemEntry, ProjectResource, ServerStates } from 'shared/api.types';
+import { ServerStates } from 'shared/api.types';
 import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
@@ -15,21 +15,14 @@ import { projectExplorerItemType } from '../item.types';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
 import { ProjectSetResourceConfigRequest } from 'shared/api.requests';
-import { ResourceStatus } from 'backend/project/asset/resource/resource-types';
+import { ResourceStatus } from 'backend/project/asset/asset-contributions/resource/resource-types';
 import { useStatus } from 'contexts/StatusContext';
 import { ResourceCommandsOutputModal } from './ResourceCommandsOutputModal/ResourceCommandsOutputModal';
 import { itemsStyles } from '../item.styles';
-import s from './Resource.module.scss';
 import { NativeTypes } from 'react-dnd-html5-backend';
+import { ProjectResource } from 'shared/project.types';
+import s from './Resource.module.scss';
 
-
-const resourceChildrenFilter = (entry: FilesystemEntry) => {
-  if (entry.name === 'fxasset.json') {
-    return false;
-  }
-
-  return true;
-};
 
 const contextOptions: Partial<ProjectExplorerItemContext> = {
   disableAssetCreate: true,
@@ -103,7 +96,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     requiredContextMenuItems,
   ]);
 
-  const children = renderChildren(entry, { ...props, childrenCollapsed: true }, resourceChildrenFilter);
+  const children = renderChildren(entry, { ...props, childrenCollapsed: true });
 
   const { isDropping, dropRef } = useItemDrop(entry, [
     projectExplorerItemType.FILE,

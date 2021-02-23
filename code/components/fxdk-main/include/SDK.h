@@ -25,6 +25,12 @@ namespace fxdk
 	ipc::Endpoint& GetLauncherTalk();
 }
 
+namespace fxdk::ioUtils
+{
+	typedef std::function<void(const std::string& error)> RecycleShellItemsCallback;
+
+	void RecycleShellItems(const std::vector<std::string> items, const RecycleShellItemsCallback cb);
+}
 
 class SDKInit : public ICoreGameInit
 {

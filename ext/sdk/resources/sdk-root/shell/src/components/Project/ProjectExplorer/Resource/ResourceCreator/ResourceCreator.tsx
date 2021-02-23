@@ -14,6 +14,7 @@ import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer
 import { getRelativePath } from 'components/Explorer/Explorer.utils';
 import { ResourceTemplate } from './ResourceTemplate/ResourceTemplate';
 import { resourceTemplateDescriptors } from 'resource-templates/descriptors-list';
+import { assetTypes } from 'shared/asset.types';
 import s from './ResourceCreator.module.scss';
 
 
@@ -43,8 +44,7 @@ export const ResourceCreator = React.memo(function ResourceCreator() {
   const handleCreateResource = React.useCallback(() => {
     if (resourceName && project) {
       const request: AssetCreateRequest = {
-        action: 'create',
-        managerName: 'resource',
+        assetType: assetTypes.resource,
         assetName: resourceName,
         assetPath: resourcePath,
         data: {

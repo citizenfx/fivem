@@ -1,3 +1,5 @@
+import { AssetMeta } from "./asset.types";
+
 export enum AppStates {
   booting,
   preparing,
@@ -62,96 +64,9 @@ export const assetStatus = {
   error: 'error',
 };
 
-export interface ProjectResource extends ProjectManifestResource {
-  path: string,
-  running: boolean,
-}
-
-export type ProjectResources = {
-  [path: string]: ProjectResource,
-};
-
-export interface ProjectManifestResource {
-  name: string,
-  enabled: boolean,
-  restartOnChange: boolean,
-}
-
-export type ProjectPathsState = {
-  [path: string]: boolean,
-};
-
-export interface ProjectManifest {
-  name: string,
-  createdAt: string,
-  updatedAt: string,
-  serverUpdateChannel: ServerUpdateChannel,
-  resources: {
-    [name: string]: ProjectManifestResource,
-  },
-  pathsState: ProjectPathsState,
-}
-
 export type FilesystemEntryMap = {
   [path: string]: FilesystemEntry[],
 };
-
-export interface ProjectData {
-  path: string,
-  manifest: ProjectManifest,
-
-  fs: FilesystemEntryMap,
-  resources: ProjectResources,
-}
-
-export interface ProjectFsUpdate {
-  replace: {
-    [path: string]: FilesystemEntry[],
-  },
-  delete: string[],
-}
-
-export interface RecentProject {
-  name: string,
-  path: string,
-}
-
-
-export const assetManagerTypes = {
-  none: 'none',
-  git: 'git',
-};
-export type AssetManagerType = (typeof assetManagerTypes)[keyof typeof assetManagerTypes];
-export interface AssetManager {
-  type: AssetManagerType,
-  data?: any,
-}
-
-export interface AssetMetaFlags {
-  readOnly?: boolean,
-}
-
-interface BaseAssetMeta {
-  flags: AssetMetaFlags,
-  manager?: AssetManager,
-}
-
-export const assetKinds = {
-  resource: 'resource',
-  pack: 'pack',
-};
-
-export type AssetKind = (typeof assetKinds)[keyof typeof assetKinds];
-export interface AssetMetaResource extends BaseAssetMeta {
-  kind: typeof assetKinds.resource,
-}
-export interface AssetMetaPack extends BaseAssetMeta {
-  kind: typeof assetKinds.pack,
-}
-
-export type AssetMeta =
-  | AssetMetaResource
-  | AssetMetaPack;
 
 
 export enum Feature {
@@ -161,12 +76,3 @@ export enum Feature {
 }
 
 export type FeaturesMap = Partial<Record<Feature, boolean>>;
-
-export interface ProjectCreateCheckResult {
-  openProject?: boolean,
-  ignoreCfxServerData?: boolean,
-}
-
-export type ProjectBuildError =
-  | { type: 'generic', data: string }
-  | { type: 'assetBuildError', data: { assetName: string, outputChannelId: string } };

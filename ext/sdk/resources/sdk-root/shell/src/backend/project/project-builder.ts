@@ -12,7 +12,8 @@ import { Stats } from 'fs';
 import { injectable, inject } from 'inversify';
 import { projectApi } from 'shared/api.events';
 import { ProjectBuildRequest } from 'shared/api.requests';
-import { ProjectBuildError, ServerUpdateChannel, ServerUpdateStates } from 'shared/api.types';
+import { ServerUpdateChannel, ServerUpdateStates } from 'shared/api.types';
+import { ProjectBuildError } from 'shared/project.types';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
 import { formatDateForFilename } from 'utils/date';
 import { AssetBuildCommandError } from './asset/asset-error';
@@ -294,7 +295,7 @@ export class ProjectBuilder implements ApiContribution {
     buildInfo.task.setText('Deploying server artifact');
 
     // Copy artifact
-    await this.fsService.copyContent(this.gameServerManagerService.getServerPath(buildInfo.serverUpdateChannel), buildInfo.artifactDeployPath);
+    await this.fsService.copyDirContent(this.gameServerManagerService.getServerPath(buildInfo.serverUpdateChannel), buildInfo.artifactDeployPath);
 
     // Ensure svadhesive enabled for deployed artifact
     await this.gameServerManagerService.ensureSvAdhesiveEnabledAtPath(buildInfo.artifactDeployPath, true);

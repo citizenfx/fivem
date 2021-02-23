@@ -4,6 +4,7 @@ import { ResourceCreator } from './ProjectExplorer/Resource/ResourceCreator/Reso
 import { ProjectExplorer } from './ProjectExplorer/ProjectExplorer';
 import { ProjectSettings } from './ProjectSettings/ProjectSettings';
 import { ProjectBuilder } from './ProjectBuilder/ProjectBuilder';
+import { Importer } from './Importer/Importer';
 import s from './Project.module.scss';
 
 
@@ -12,6 +13,7 @@ export const Project = React.memo(function Project() {
     project,
     builderOpen,
     settingsOpen,
+    importerOpen,
     resourceCreatorOpen,
   } = React.useContext(ProjectContext);
 
@@ -25,6 +27,10 @@ export const Project = React.memo(function Project() {
 
       {builderOpen && (
         <ProjectBuilder />
+      )}
+
+      {importerOpen && (
+        <Importer />
       )}
 
       {resourceCreatorOpen && (

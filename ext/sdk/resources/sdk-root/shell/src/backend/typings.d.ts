@@ -3,6 +3,7 @@ declare var invokeNative: (native: string, ...arg: string[]) => unknown;
 
 declare var on: <T extends any[]>(event: string, cb: (...args: T) => void) => void;
 declare var RemoveEventHandler: <T extends any[]>(event: string, cb: (...args: T) => void) => void;
+declare var removeEventListener: <T extends any[]>(event: string, cb: (...args: T) => void) => void;
 declare var emit: <T extends any[]>(event: string, ...data?: T) => void;
 declare var GetConvar: (name: string) => string;
 

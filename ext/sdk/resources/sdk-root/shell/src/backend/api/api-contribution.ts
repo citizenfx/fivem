@@ -3,7 +3,7 @@ import { ApiClient } from "backend/api/api-client";
 import { AppContribution } from "backend/app/app-contribution";
 import { ContributionProvider } from "backend/contribution-provider";
 import { LogService } from "backend/logger/log-service";
-import { ClientEventBinding, getClientEventHandlers } from "./api-decorators";
+import { ClientEventBinding, getClientCallbackEventHandlers, getClientEventHandlers } from "./api-decorators";
 
 export const ApiContributionFactory = Symbol('Factory<ApiContribution>');
 export type ApiContributionFactory = <T extends ApiContribution>(service: interfaces.Newable<T>) => T;
@@ -27,25 +27,27 @@ export class ApiService implements AppContribution {
   protected readonly apiContributions: ContributionProvider<ApiContribution>;
 
   initContribution(contribution: ApiContribution) {
-    this.logService.log('\nInitializing api contribution', contribution.getId());
-
     // binding to client events
     const clientEventHandlers = getClientEventHandlers(contribution);
-    this.logService.log('client event handlers', clientEventHandlers);
 
     const clientEventDisposers = clientEventHandlers
       .filter(({ propKey }) => !!contribution[propKey])
       .map(({ propKey, eventName }: ClientEventBinding) => this.apiClient.on(eventName, contribution[propKey].bind(contribution)));
 
+    // binding to client callback events
+    const clientCallbackEventHandlers = getClientCallbackEventHandlers(contribution);
+    const clientCallbackEventDisposers = clientCallbackEventHandlers
+      .filter(({ propKey }) => !!contribution[propKey])
+      .map(({ propKey, eventName }: ClientEventBinding) => this.apiClient.onCallback(eventName, contribution[propKey].bind(contribution)));
+
     if (Array.isArray(contribution.eventDisposers)) {
       contribution.eventDisposers.push(...clientEventDisposers);
+      contribution.eventDisposers.push(...clientCallbackEventDisposers);
     }
   }
 
   boot() {
     const apiContributions = this.apiContributions.getAll();
-
-    this.logService.log(`Initializing ${apiContributions.length} api contributions...`);
 
     apiContributions.forEach((apiContribution) => {
       this.initContribution(apiContribution);

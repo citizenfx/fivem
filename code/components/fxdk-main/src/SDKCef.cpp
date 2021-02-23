@@ -41,7 +41,7 @@ void SafeRelease(T** ppT)
 	}
 }
 
-const std::string FxdkSelectFolder2(const std::string& startPath, const std::string& title)
+const std::string FxdkSelectFolder(const std::string& startPath, const std::string& title, bool onlyFolders)
 {
 	IFileDialog* fileDialog;
 
@@ -87,7 +87,10 @@ const std::string FxdkSelectFolder2(const std::string& startPath, const std::str
 		return std::string{};
 	}
 
-	options |= FOS_PICKFOLDERS;
+	if (onlyFolders)
+	{
+		options |= FOS_PICKFOLDERS;
+	}
 
 	fileDialog->SetOptions(options);
 
@@ -325,10 +328,11 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 	{
 		std::string defaultPath = message->GetArgumentList()->GetString(0);
 		std::string title = message->GetArgumentList()->GetString(1);
+		bool onlyFolders = message->GetArgumentList()->GetBool(2);
 
 		std::thread([=]()
 		{
-			std::string path = FxdkSelectFolder2(defaultPath, title);
+			std::string path = FxdkSelectFolder(defaultPath, title, onlyFolders);
 
 			auto cefMsg = CefProcessMessage::Create("fxdkOpenSelectFolderDialogResult");
 			auto cefMsgArgs = cefMsg->GetArgumentList();

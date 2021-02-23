@@ -250,10 +250,58 @@ static InitFunction initFunction([]()
 		auto cefMsg = CefProcessMessage::Create("fxdkOpenSelectFolderDialog");
 		auto cefMsgArgs = cefMsg->GetArgumentList();
 
-		cefMsgArgs->SetSize(2);
+		cefMsgArgs->SetSize(3);
 
 		cefMsgArgs->SetString(0, arguments[0]->GetStringValue());
 		cefMsgArgs->SetString(1, arguments[1]->GetStringValue());
+		cefMsgArgs->SetBool(2, true);
+
+		CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, cefMsg);
+
+		return CefV8Value::CreateBool(true);
+	});
+
+	nuiApp->AddV8Handler("fxdkOpenSelectFileDialog", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (selectFolderDialogOpen)
+		{
+			return CefV8Value::CreateBool(false);
+		}
+
+		selectFolderDialogOpen = true;
+
+		if (arguments.size() < 3)
+		{
+			return CefV8Value::CreateBool(false);
+		}
+
+		if (!arguments[0]->IsString())
+		{
+			exception.FromWString(L"First argument (Select Dialog start path) must be a string"); // = ;
+			return CefV8Value::CreateBool(false);
+		}
+		if (!arguments[1]->IsString())
+		{
+			exception.FromWString(L"Second argument (Select Dialog Title) must be a string");
+			return CefV8Value::CreateBool(false);
+		}
+		if (!arguments[2]->IsFunction())
+		{
+			exception.FromWString(L"Third argument (Select Dialog callback) must be a function");
+			return CefV8Value::CreateBool(false);
+		}
+
+		selectFolderDialogCallback.first = CefV8Context::GetCurrentContext();
+		selectFolderDialogCallback.second = arguments[2];
+
+		auto cefMsg = CefProcessMessage::Create("fxdkOpenSelectFolderDialog");
+		auto cefMsgArgs = cefMsg->GetArgumentList();
+
+		cefMsgArgs->SetSize(3);
+
+		cefMsgArgs->SetString(0, arguments[0]->GetStringValue());
+		cefMsgArgs->SetString(1, arguments[1]->GetStringValue());
+		cefMsgArgs->SetBool(2, false);
 
 		CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, cefMsg);
 
