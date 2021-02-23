@@ -237,20 +237,20 @@ export class SettingsService {
 				colorizeValue: true,
 				category: '#SettingsCat_Account',
 			});
-
-			this.addSetting('updateChannel', {
-				name: '#Settings_UpdateChannel',
-				description: '#Settings_UpdateChannelDesc',
-				type: 'switch',
-				getCb: () => this.gameService.getConvar('ui_updateChannel'),
-				setCb: (value) => this.gameService.setConvar('ui_updateChannel', value),
-				options: {
-					'production': 'Release',
-					'canary': 'Canary (Experimental/Unstable)',
-				},
-				category: '#SettingsCat_Game',
-			});
 		}
+
+		this.addSetting('updateChannel', {
+			name: '#Settings_UpdateChannel',
+			description: '#Settings_UpdateChannelDesc',
+			type: 'switch',
+			getCb: () => this.gameService.getConvar('ui_updateChannel'),
+			setCb: (value) => this.gameService.setConvar('ui_updateChannel', value),
+			options: {
+				'production': 'Release',
+				'canary': 'Canary (Experimental/Unstable)',
+			},
+			category: '#SettingsCat_Game',
+		});
 	}
 
 	public addSetting(label: string, setting: Setting) {
