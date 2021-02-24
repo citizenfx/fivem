@@ -54,7 +54,7 @@ BOOL SetServiceStatusHook(
 
 	if (lpServiceStatus->dwCurrentState == SERVICE_RUNNING)
 	{
-		auto hEvent = CreateEventW(NULL, TRUE, FALSE, L"Cfx_ROSServiceEvent");
+		auto hEvent = CreateEventW(NULL, TRUE, FALSE, va(L"Cfx_ROSServiceEvent_%s", ToWide(launch::GetLaunchModeKey())));
 		SetEvent(hEvent);
 	}
 
@@ -157,6 +157,8 @@ static void Service_Run(const boost::program_options::variables_map& map)
 		hook::iat("advapi32.dll", QueryServiceConfigWHook, "QueryServiceConfigW");
 		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
 	});
+
+	auto mutex = CreateMutexW(NULL, TRUE, va(L"Cfx_ROSServiceMutex_%s", ToWide(launch::GetLaunchModeKey())));
 
 	g_origProcess = programPath.wstring();
 	ToolMode_LaunchGame(programPath.wstring().c_str());

@@ -1277,6 +1277,14 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 		if (isService ||
 			boost::filesystem::path(applicationName).filename() == "RockstarService.exe")
 		{
+			auto mutex = OpenMutexW(SYNCHRONIZE, FALSE, va(L"Cfx_ROSServiceMutex_%s", ToWide(launch::GetLaunchModeKey())));
+
+			if (mutex)
+			{
+				WaitForSingleObject(mutex, INFINITE);
+				CloseHandle(mutex);
+			}
+
 			BOOL retval;
 
 			// parse the existing environment block
@@ -1318,16 +1326,9 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			}
 
 			information->hThread = NULL;
-			information->hProcess = CreateEventW(NULL, TRUE, FALSE, L"Cfx_ROSServiceEvent");
-
-			// unset the environment variable
-			//SetEnvironmentVariable(L"CitizenFX_ToolMode", L"0");
+			information->hProcess = CreateEventW(NULL, TRUE, FALSE, va(L"Cfx_ROSServiceEvent_%s", ToWide(launch::GetLaunchModeKey())));
 
 			return retval;
-
-			//static auto an = MakeRelativeCitPath(L"cache\\game\\launcher\\RockstarService.exe");
-
-			//applicationName = an.c_str();
 		}
 	}
 
