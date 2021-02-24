@@ -158,6 +158,24 @@ namespace CitizenFX.Core
 
 					passArgs.Add(ChangeType(sourceString, type));
 				}
+				else if (info.GetCustomAttribute<ParamArrayAttribute>() != null)
+				{
+					// respect parameter arrays
+					var elementType = type.GetElementType();
+					var paramArrayArgs = new List<dynamic>();
+					
+					if (argIdx < args.Length)
+					{
+						for (int pArgIdx = argIdx; pArgIdx < args.Length; pArgIdx++)
+						{
+							paramArrayArgs.Add(ChangeType(args[pArgIdx], elementType));
+						}
+					}
+
+					passArgs.Add(ChangeType(paramArrayArgs.ToArray(), type));
+
+					break;
+				}
 				else
 				{
 					if (argIdx >= args.Length)
