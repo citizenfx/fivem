@@ -830,6 +830,20 @@ VOID CALLBACK LdrDllNotification(
 	}
 }
 
+static decltype(&::CreateThread) g_origCreateThread;
+static decltype(&::CreateThread) g_origCreateThread32;
+
+template<decltype(&g_origCreateThread) Orig>
+static HANDLE WINAPI CreateThreadStub( _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ SIZE_T dwStackSize, _In_ LPTHREAD_START_ROUTINE lpStartAddress, _In_opt_ __drv_aliasesMem LPVOID lpParameter, _In_ DWORD dwCreationFlags, _Out_opt_ LPDWORD lpThreadId )
+{
+	if (dwStackSize > 0 && dwStackSize < (1 * 1024 * 1024))
+	{
+		dwStackSize = 0;
+	}
+
+	return (*Orig)(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
+}
+
 extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 {
 	DisableToolHelpScope scope;
@@ -859,6 +873,8 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExW", RegOpenKeyExWStub, (void**)&g_origRegOpenKeyExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetFileAttributesExW", GetFileAttributesExWStub, (void**)&g_origGetFileAttributesExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetProcAddressForCaller", GetProcAddressStub, (void**)&g_origGetProcAddress);
+	MH_CreateHookApi(L"kernel32.dll", "CreateThread", CreateThreadStub<&g_origCreateThread32>, (void**)&g_origCreateThread32);
+	MH_CreateHookApi(L"kernelbase.dll", "CreateThread", CreateThreadStub<&g_origCreateThread>, (void**)&g_origCreateThread);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	static auto _LdrRegisterDllNotification = (decltype(&LdrRegisterDllNotification))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "LdrRegisterDllNotification");
