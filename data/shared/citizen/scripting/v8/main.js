@@ -8,6 +8,7 @@ const EXT_LOCALFUNCREF = 11;
 (function (global) {
 	let boundaryIdx = 1;
 	let lastBoundaryStart = null;
+	const isDuplicityVersion = IsDuplicityVersion();
 
 	// temp
 	global.FormatStackTrace = function (args, argLength) {
@@ -159,7 +160,7 @@ const EXT_LOCALFUNCREF = 11;
 	// Events
 	const emitter = new EventEmitter2();
 	const rawEmitter = new EventEmitter2();
-	const netSafeEventNames = new Set(['playerDropped', 'playerConnecting']);
+	const netSafeEventNames = new Set();
 
 	// Raw events
 	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
@@ -200,7 +201,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	global.TriggerEvent = global.emit;
 
-	if (IsDuplicityVersion()) {
+	if (isDuplicityVersion) {
 		global.emitNet = (name, source, ...args) => {
 			const dataSerialized = pack(args);
 
@@ -398,6 +399,8 @@ const EXT_LOCALFUNCREF = 11;
 				}
 
 				global.source = parseInt(source.substr(4));
+			} else if (isDuplicityVersion && source.startsWith('internal-net')) {
+				global.source = parseInt(source.substr(13));
 			}
 
 			const payload = unpack(payloadSerialized) || [];
@@ -440,8 +443,8 @@ const EXT_LOCALFUNCREF = 11;
 
 	// Compatibility layer for legacy exports
 	const exportsCallbackCache = {};
-	const exportKey = (IsDuplicityVersion()) ? 'server_export' : 'export';
-	const eventType = (IsDuplicityVersion() ? 'Server' : 'Client');
+	const exportKey = isDuplicityVersion ? 'server_export' : 'export';
+	const eventType = isDuplicityVersion ? 'Server' : 'Client';
 
 	const getExportEventName = (resource, name) => `__cfx_export_${resource}_${name}`;
 
@@ -534,8 +537,6 @@ const EXT_LOCALFUNCREF = 11;
 	const EXT_PLAYER = 42;
 
 	global.NewStateBag = (es) => {
-		const sv = IsDuplicityVersion();
-
 		return new Proxy({}, {
 			get(_, k) {
 				if (k === 'set') {
@@ -550,7 +551,7 @@ const EXT_LOCALFUNCREF = 11;
 
 			set(_, k, v) {
 				const payload = msgpack_pack(v);
-				return SetStateBagValue(es, k, payload, payload.length, sv);
+				return SetStateBagValue(es, k, payload, payload.length, isDuplicityVersion);
 			},
 		});
 	};
@@ -562,7 +563,7 @@ const EXT_LOCALFUNCREF = 11;
 			if (k === 'state') {
 				const es = `entity:${NetworkGetNetworkIdFromEntity(t.__data)}`;
 
-				if (IsDuplicityVersion()) {
+				if (isDuplicityVersion) {
 					EnsureEntityStateBag(t.__data);
 				}
 

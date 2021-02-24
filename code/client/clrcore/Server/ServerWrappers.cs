@@ -21,6 +21,12 @@ namespace CitizenFX.Core
 			{
 				sourceString = sourceString.Substring(4);
 			}
+#if IS_FXSERVER
+			else if (sourceString.StartsWith("internal-net:"))
+			{
+				sourceString = sourceString.Substring(13);
+			}
+#endif
 
 			m_handle = sourceString;
 		}
