@@ -13,6 +13,8 @@
 #include <array>
 #include <filesystem>
 
+constexpr const size_t kFileSendSize = 128 * 1024 * 1024;
+
 namespace fx
 {
 	struct Request
@@ -176,10 +178,10 @@ namespace fx
 
 					// read buffer and file handle
 					auto buffer = std::make_shared<std::unique_ptr<char[]>>();
-					*buffer = std::unique_ptr<char[]>(new char[16384]);
+					*buffer = std::unique_ptr<char[]>(new char[kFileSendSize]);
 
 					auto uvBufRef = std::make_shared<uv_buf_t>();
-					*uvBufRef = uv_buf_init(buffer->get(), 16384);
+					*uvBufRef = uv_buf_init(buffer->get(), kFileSendSize);
 
 					// mutable read offset pointer
 					auto readOffset = std::make_shared<size_t>(0);
@@ -241,8 +243,8 @@ namespace fx
 							// if not, call another read
 							if (*readOffset != size)
 							{
-								*buffer = std::unique_ptr<char[]>(new char[16384]);
-								*uvBufRef = uv_buf_init(buffer->get(), 16384);
+								*buffer = std::unique_ptr<char[]>(new char[kFileSendSize]);
+								*uvBufRef = uv_buf_init(buffer->get(), kFileSendSize);
 
 								uv_fs_read(uvLoop, req.get(), file->get(), uvBufRef.get(), 1, *readOffset, UvCallbackWrap<uv_fs_t>(req.get(), *readCallback));
 							}
