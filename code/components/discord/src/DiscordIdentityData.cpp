@@ -84,7 +84,7 @@ static HookFunction initFunction([]()
 							writePipe(1 /* FRAME */, json::object({
 								{ "cmd", "AUTHORIZE" },
 								{ "args", json::object({
-									{ "scopes", json::array({"identify"}) },
+									{ "scopes", json::array({"identify", "guilds.join"}) },
 									{ "client_id", "382624125287399424" },
 									{ "redirect_url", "https://cfx.re" },
 									{ "prompt", "none" },
@@ -117,7 +117,8 @@ static HookFunction initFunction([]()
 								{
 									{ "entitlementId", ros::GetEntitlementSource() },
 									{ "authCode", code },
-									{ "userId", userId }
+									{ "userId", userId },
+									{ "v", "2" },
 								},
 								[](bool, const char*, size_t)
 							{
