@@ -1865,6 +1865,7 @@ void ServerGameState::UpdateEntities()
 					if (curVehicleData && curVehicleData->occupants[vehicleData->curVehicleSeat] == 0)
 					{
 						curVehicleData->occupants[vehicleData->curVehicleSeat] = pedHandle;
+						curVehicleData->lastOccupant[vehicleData->curVehicleSeat] = pedHandle;
 
 						if (entity->type == sync::NetObjEntityType::Player)
 						{

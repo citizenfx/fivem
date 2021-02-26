@@ -228,6 +228,7 @@ struct CVehicleGameStateNodeData
 {
 	uint16_t occupants[32];
 	eastl::bitset<32> playerOccupants;
+	uint16_t lastOccupant[32];
 	int radioStation;
 	bool isEngineOn;
 	bool isEngineStarting;
