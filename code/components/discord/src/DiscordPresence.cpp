@@ -1,6 +1,7 @@
-﻿#include <StdInc.h>
-#include <discord-rpc.h>
+#include <StdInc.h>
+#include <discord_rpc.h>
 
+#include <optional>
 #include <nutsnbolts.h>
 
 #include <GameInit.h>
@@ -44,6 +45,8 @@ static std::string g_discordAppAssetSmall;
 static std::string g_discordAppAssetText;
 
 static std::string g_discordAppAssetSmallText;
+
+static std::optional<std::tuple<std::pair<std::string, std::string>, std::pair<std::string, std::string>>> g_buttons;
 
 static void UpdatePresence()
 {
@@ -119,6 +122,17 @@ static void UpdatePresence()
 			discordPresence.smallImageText = g_discordAppAssetSmallText.c_str();
 		}
 
+		if (g_buttons)
+		{
+			DiscordButton buttons[2];
+			buttons[0].label = std::get<0>(*g_buttons).first.c_str();
+			buttons[0].url = std::get<0>(*g_buttons).second.c_str();
+			buttons[1].label = std::get<1>(*g_buttons).first.c_str();
+			buttons[1].url = std::get<1>(*g_buttons).second.c_str();
+
+			discordPresence.buttons = buttons;
+		}
+
 		Discord_UpdatePresence(&discordPresence);
 
 		g_richPresenceChanged = false;
@@ -172,6 +186,7 @@ static InitFunction initFunction([]()
 		g_richPresenceOverrideAssetSmall = DEFAULT_APP_ASSET_SMALL;
 		g_richPresenceOverrideAssetText = DEFAULT_APP_ASSET_TEXT;
 		g_richPresenceOverrideAssetSmallText = DEFAULT_APP_ASSET_SMALL_TEXT;
+		g_buttons = {};
 		g_richPresenceChanged = true;
 
 		OnRichPresenceSetTemplate("In the menus\n");
@@ -190,6 +205,41 @@ static InitFunction initFunction([]()
 			g_richPresenceOverride = "";
 		}
 
+		g_richPresenceChanged = true;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_ACTION", [](fx::ScriptContext& context)
+	{
+		int idx = context.GetArgument<int>(0);
+		std::string label = context.CheckArgument<const char*>(1);
+		std::string url = context.CheckArgument<const char*>(2);
+
+		if (idx < 0 || idx >= 2)
+		{
+			return;
+		}
+
+		if (url.find("https://") != 0 && url.find("fivem://connect/") != 0)
+		{
+			return;
+		}
+
+		std::decay_t<decltype(*g_buttons)> buttons;
+		if (g_buttons)
+		{
+			buttons = *g_buttons;
+		}
+
+		if (idx == 0)
+		{
+			std::get<0>(buttons) = { label, url };
+		}
+		else if (idx == 1)
+		{
+			std::get<1>(buttons) = { label, url };
+		}
+
+		g_buttons = buttons;
 		g_richPresenceChanged = true;
 	});
 

@@ -12,7 +12,7 @@ return {
 		links { "psapi" }
 
 		files_project "../vendor/discord-rpc/" {
-			"src/discord-rpc.cpp",
+			"src/discord_rpc.cpp",
 			"src/rpc_connection.cpp",
 			"src/serialization.cpp",
 			"src/connection_win.cpp",
