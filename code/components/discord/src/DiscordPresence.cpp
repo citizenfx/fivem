@@ -122,9 +122,10 @@ static void UpdatePresence()
 			discordPresence.smallImageText = g_discordAppAssetSmallText.c_str();
 		}
 
+		DiscordButton buttons[2];
+
 		if (g_buttons)
 		{
-			DiscordButton buttons[2];
 			buttons[0].label = std::get<0>(*g_buttons).first.c_str();
 			buttons[0].url = std::get<0>(*g_buttons).second.c_str();
 			buttons[1].label = std::get<1>(*g_buttons).first.c_str();
