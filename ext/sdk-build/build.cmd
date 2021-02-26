@@ -23,6 +23,10 @@ if exist build        rmdir /s /q build
 if exist build_server rmdir /s /q build_server
 call yarn install --frozen-lockfile --ignore-scripts
 call yarn build
+del /q /f /s "build\static\js\*.map"
+del /q /f /s "build\static\js\*.txt"
+del /q /f /s "build\static\css\*.map"
+del /q /f /s "build_server\*.map"
 popd
 :: /build shell
 

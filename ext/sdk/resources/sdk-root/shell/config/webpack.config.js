@@ -20,9 +20,11 @@ const getCSSModuleLocalIdent = require('react-dev-utils/getCSSModuleLocalIdent')
 const paths = require('./paths');
 const modules = require('./modules');
 const getClientEnvironment = require('./env');
+const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
 const ForkTsCheckerWebpackPlugin = require('react-dev-utils/ForkTsCheckerWebpackPlugin');
 const typescriptFormatter = require('react-dev-utils/typescriptFormatter');
+const sentry = require('./sentry');
 
 const postcssNormalize = require('postcss-normalize');
 
@@ -52,6 +54,8 @@ const sassModuleRegex = /\.module\.(scss|sass)$/;
 module.exports = function(webpackEnv) {
   const isEnvDevelopment = webpackEnv === 'development';
   const isEnvProduction = webpackEnv === 'production';
+
+  const sentryAuthToken = sentry.getSentryAuthToken(isEnvProduction);
 
   // Variable used for enabling profiling in Production
   // passed into alias object. Uses a flag if passed into the build command
@@ -652,6 +656,13 @@ module.exports = function(webpackEnv) {
           silent: false,
           // The formatter is invoked directly in WebpackDevServerUtils during development
           formatter: isEnvProduction ? typescriptFormatter : undefined,
+        }),
+        sentryAuthToken && new SentryWebpackPlugin({
+          url: 'https://sentry.fivem.net/',
+          authToken: sentryAuthToken,
+          org: "citizenfx",
+          project: "fxdk",
+          include: path.join(__dirname, '../build'),
         }),
     ].filter(Boolean),
     // Some libraries import Node modules but don't use them in the browser.

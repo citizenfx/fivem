@@ -4,6 +4,8 @@ import './index.scss';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import * as Sentry from "@sentry/react";
+import { Integrations } from "@sentry/tracing";
 import { Shell } from './components/Shell';
 import { enableLogger } from 'utils/logger';
 import { StateContextProvider } from './contexts/StateContext';
@@ -23,6 +25,15 @@ import { ConsolesManager } from 'managers/ConsolesManager';
 import { TheiaCommandsManager } from 'managers/TheiaCommandsManager';
 
 enableLogger('shell,shell:*,host');
+
+Sentry.init({
+  dsn: "https://e3b160e20aa24ffd9b74a222a4d5c07a@sentry.fivem.net/7",
+  release: process.env.CI_PIPELINE_ID,
+  integrations: [
+    new Integrations.BrowserTracing(),
+  ],
+  tracesSampleRate: 1.0,
+});
 
 document.addEventListener('click', (event: MouseEvent) => {
   const target: HTMLElement = event.target as any;
@@ -44,6 +55,10 @@ document.addEventListener('click', (event: MouseEvent) => {
   if (link) {
     invokeNative('openUrl', link);
   }
+});
+
+document.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
 });
 
 ReactDOM.render(
@@ -76,7 +91,3 @@ ReactDOM.render(
   </React.StrictMode>,
   document.getElementById('root')
 );
-
-document.addEventListener('contextmenu', (event) => {
-  event.preventDefault();
-});

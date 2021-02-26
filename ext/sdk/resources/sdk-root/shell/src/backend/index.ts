@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'backend/logger/logger-init';
 
 console.log('FxDK Shell Backend is now loading');
 

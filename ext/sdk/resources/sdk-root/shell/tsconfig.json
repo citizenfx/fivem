@@ -25,7 +25,8 @@
     "baseUrl": "src",
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "sourceMap": true
   },
   "include": [
     "src"

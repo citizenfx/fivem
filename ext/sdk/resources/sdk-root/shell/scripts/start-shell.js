@@ -4,7 +4,13 @@ const path = require('path');
 const concurrently = require('concurrently');
 const { argv } = require('yargs');
 
-const env = require('dotenv').parse(fs.readFileSync(path.join(__dirname, '../.env')));
+let envFile = '';
+
+try {
+  envFile = fs.readFileSync(path.join(__dirname, '../.env'));
+} catch {}
+
+const env = require('dotenv').parse(envFile);
 
 const hostname = argv.hostname || os.hostname();
 const port = parseInt(argv.port || env.PORT || '3000', 10);
