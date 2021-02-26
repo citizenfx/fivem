@@ -70,6 +70,61 @@ static int _archetypeGetDependencies(void* self, uint32_t localIdx, uint32_t* in
 	return outCount;
 }
 
+static hook::cdecl_stub<bool(void*, uint32_t)> _IsObjectInImage([]()
+{
+	return hook::get_pattern("74 20 8B C2 48 8B", -7);
+});
+
+static void strStreamingModule__GetObjectAndDependencies(streaming::strStreamingModule* self, uint32_t globalIdx, atArray<uint32_t>& outArray, uint32_t* ignoreList, int ignoreCount)
+{
+	static auto str = streaming::Manager::GetInstance();
+
+	// should we be ignored?
+	for (int i = 0; i < ignoreCount; i++)
+	{
+		if (ignoreList[i] == globalIdx)
+		{
+			return;
+		}
+	}
+
+	if (!_IsObjectInImage(str, globalIdx))
+	{
+		return;
+	}
+
+	// start relocating the output array
+	if (outArray.GetSize() == 80 && outArray.GetCount() == 0)
+	{
+		static thread_local uint32_t strIdxList[512];
+
+		outArray.m_offset = strIdxList;
+		outArray.m_size = std::size(strIdxList);
+	}
+
+	// are we already in the list?
+	for (uint32_t entry : outArray)
+	{
+		if (entry == globalIdx)
+		{
+			return;
+		}
+	}
+
+	// add ourselves
+	outArray[outArray.m_count++] = globalIdx;
+
+	// add our dependencies
+	uint32_t dependencies[80];
+	int numDeps = self->GetDependencies(globalIdx - self->baseIdx, dependencies, std::size(dependencies));
+
+	for (int i = 0; i < numDeps; i++)
+	{
+		auto module = str->moduleMgr.GetStreamingModule(dependencies[i]);
+		strStreamingModule__GetObjectAndDependencies(module, dependencies[i], outArray, ignoreList, ignoreCount);
+	}
+}
+
 static HookFunction hookFunctionMetadataDep([]
 {
 	// CModelInfoStreamingModule::GetDependencies
@@ -89,6 +144,9 @@ static HookFunction hookFunctionMetadataDep([]
 	{
 		g_extraMetadataInheritance.clear();
 	});
+
+	// strStreamingModule::GetObjectAndDependencies rewrite-hack to properly cap-resize
+	hook::jump(hook::get_pattern("49 8B D8 8D 48 01 48 85 D2 7E 12", -0x2C), strStreamingModule__GetObjectAndDependencies);
 });
 
 // increase stack frame size for implied atArray in some clothing metadata loader
