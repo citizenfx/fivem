@@ -26,7 +26,7 @@
     <div class="message-body">
         <article class="media">
             <figure class="media-left" *ngIf="tweet.image">
-                <img src="{{tweet.image}}" (click)="zoomImage($event)">
+                <img src="{{tweet.image}}" (click)="zoomImage()">
             </figure>
             <div class="media-content">
                 <div class="content __cfx_ap_content" (click)="clickContent($event)">

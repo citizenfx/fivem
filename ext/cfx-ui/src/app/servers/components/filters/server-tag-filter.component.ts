@@ -78,11 +78,11 @@ export class ServerTagFilterComponent {
 		});
 	}
 
-	tagName(tag: ServerTag) {
+	tagName(idx: number, tag: ServerTag) {
 		return tag?.name;
 	}
 
-	localeName(tag: ServerLocale) {
+	localeName(idx: number, tag: ServerLocale) {
 		return tag?.name;
 	}
 

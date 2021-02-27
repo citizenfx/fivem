@@ -10,11 +10,11 @@ export class ColorizePipe implements PipeTransform {
 
     }
 
-    transform(value: any, args: any): any {
+    transform(value: any, args?: any): any {
         const s = '<span>' + (String(value).replace(/\^([0-9])/g, (str, color) => `</span><span class="color-${color}">`)) + '</span>';
         const rep = s.replace(/<span[^>]*><\/span[^>]*>/g, '');
 
-        if (args && args.trust) {
+        if (args?.trust) {
             return this.sanitizer.bypassSecurityTrustHtml(rep);
         }
 

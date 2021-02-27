@@ -37,7 +37,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	serverVariables: VariablePair[] = [];
 	filterFuncs: { [key: string]: (pair: VariablePair) => VariablePair } = {};
 	resourceCount = 0;
-	resources: String[] = [];
+	resources: string[] = [];
 	error = '';
 	canRefresh = true;
 
@@ -259,6 +259,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		if (this.interval) {
 			clearInterval(this.interval);
 		}
+	}
+
+	trackResource(i: number, item: string) {
+		return item;
 	}
 
 	openLink(event: MouseEvent) {

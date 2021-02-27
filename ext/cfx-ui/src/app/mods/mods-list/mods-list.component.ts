@@ -20,7 +20,7 @@ export class ModsListComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  trackFn(mod: ModInfo) {
+  trackFn(idx: number, mod: ModInfo) {
     return mod.modId;
   }
 
