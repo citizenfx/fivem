@@ -10,6 +10,8 @@
 #include <fxScripting.h>
 #include <CL2LaunchMode.h>
 
+#include <Error.h>
+
 leveldb::Env* GetVFSEnvironment();
 
 struct DatabaseHolder
@@ -50,7 +52,10 @@ struct DatabaseHolder
 			}
 		}
 
-		assert(status.ok());
+		if (!status.ok())
+		{
+			FatalError("Failed to open client KVS LevelDB %s: %s", dbName, status.ToString());
+		}
 
 		db = std::unique_ptr<leveldb::DB>(dbPointer);
 		dbPointer = nullptr; // as the unique_ptr 'owns' it now
