@@ -456,6 +456,8 @@ static InitFunction initFunction([] ()
 			}
 #endif
 
+			console::Printf("no_console", "OnConnectionError: %s\n", error);
+
 			g_connected = false;
 
 			rapidjson::Document document;
@@ -473,6 +475,8 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
 		{
+			console::Printf("no_console", "OnConnectionProgress: %s\n", message);
+
 			rapidjson::Document document;
 			document.SetObject();
 			document.AddMember("message", rapidjson::Value(message.c_str(), message.size(), document.GetAllocator()), document.GetAllocator());
@@ -851,7 +855,12 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
-			if (!arg || !arg[0] || !netLibrary) return;
+			if (!arg || !arg[0] || !netLibrary)
+			{
+				trace("Failed to set nickname\n");
+				return;
+			}
+
 			const char* text = netLibrary->GetPlayerName();
 			std::string newusername = ToNarrow(arg);
 

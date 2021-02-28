@@ -734,6 +734,11 @@ void DrawMiniConsole()
 
 void SendPrintMessage(const std::string& channel, const std::string& message)
 {
+	if (channel == "no_console")
+	{
+		return;
+	}
+
 	{
 		std::unique_lock _(g_consolesMutex);
 
