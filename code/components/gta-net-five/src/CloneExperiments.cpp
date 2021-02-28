@@ -2741,16 +2741,7 @@ static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
 
 static HookFunction hookFunctionWorldGrid([]()
 {
-	if (!xbr::IsGameBuildOrGreater<2060>())
-	{
-		auto p = hook::pattern("BE 01 00 00 00 8B E8 85 C0 0F 84").count(1);
-		hook::jump(p.get(0).get<void>(-0x4D), DoesLocalPlayerOwnWorldGrid);
-	}
-	else
-	{
-		// 2060
-		hook::jump(0x141050614, DoesLocalPlayerOwnWorldGrid);
-	}
+	hook::jump(hook::get_pattern("48 8D 4C 24 30 45 33 C9 C6", -0x30), DoesLocalPlayerOwnWorldGrid);
 	
 	hook::jump(hook::get_pattern(((xbr::IsGameBuildOrGreater<2060>()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((xbr::IsGameBuildOrGreater<2060>()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
 
