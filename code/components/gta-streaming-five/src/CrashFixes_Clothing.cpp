@@ -41,10 +41,19 @@ static int _archetypeGetDependencies(void* self, uint32_t localIdx, uint32_t* in
 		}
 	};
 
+	std::set<uint32_t> handled;
+
 	uint32_t rootMetadataIndex = 0;
 
 	for (size_t i = 0; i < depCount; i++)
 	{
+		if (handled.find(dependencies[i]) != handled.end())
+		{
+			continue;
+		}
+
+		handled.insert(dependencies[i]);
+
 		auto module = strMgr->moduleMgr.GetStreamingModule(dependencies[i]);
 
 		// if this *isn't* metadata, let's just continue
