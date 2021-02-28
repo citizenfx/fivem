@@ -5,6 +5,11 @@
 
 #include <variant>
 
+#ifdef trace
+#undef trace
+#define trace(...)
+#endif
+
 namespace WRL = Microsoft::WRL;
 
 enum class QueryType
@@ -468,6 +473,11 @@ BOOL CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpC
 		else if (StrStrIA(lpCommandLine, "whoami.exe") != nullptr)
 		{
 			fakeData = R"(phone-ngnfjs\admin
+)";
+		}
+		else if (StrStrIA(lpCommandLine, "dxdiag.exe") != nullptr)
+		{
+			fakeData = R"(
 )";
 		}
 	}
