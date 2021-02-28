@@ -159,6 +159,10 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 	// save scanned resource names so we don't scan them twice
 	std::set<std::string> scannedNow;
+	size_t newResources = 0;
+	size_t reloadedResources = 0;
+
+	trace("^2Scanning resources.^7\n", newResources);
 
 	while (!pathsToIterate.empty())
 	{
@@ -199,10 +203,12 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						if (oldRes.GetRef())
 						{
 							oldRes->GetComponent<fx::ResourceMetaDataComponent>()->LoadMetaData(resPath);
+							reloadedResources++;
 						}
 						else
 						{
-							trace("Found new resource %s in %s\n", findData.name, resPath);
+							console::DPrintf("resources", "Found new resource %s in %s\n", findData.name, resPath);
+							newResources++;
 
 							auto path = std::filesystem::u8path(resPath);
 
@@ -283,6 +289,15 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	}
 
 	pplx::when_all(tasks.begin(), tasks.end()).wait();
+
+	if (reloadedResources > 0)
+	{
+		trace("^2Found %d resources, and refreshed %d resources.^7\n", newResources, reloadedResources);
+	}
+	else
+	{
+		trace("^2Found %d resources.^7\n", newResources);
+	}
 
 	/*NETEV onResourceListRefresh SERVER
 	/#*
