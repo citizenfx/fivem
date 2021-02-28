@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#if 0
 #include <Hooking.h>
 #include <MinHook.h>
 
@@ -255,4 +257,5 @@ static HookFunction hookFunction([]
 		hook::call_rcx(location + 0x31C, stub4.GetCode());
 	}
 });
+#endif
 #endif
