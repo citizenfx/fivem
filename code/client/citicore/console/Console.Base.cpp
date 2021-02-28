@@ -35,6 +35,35 @@ static void Print(const char* str)
 }
 
 static auto g_printf = &Print;
+static thread_local std::string g_printChannel;
+static bool g_startOfLine = true;
+
+template<typename Stream>
+inline void WriteChannel(Stream& buf, const std::string& channelName)
+{
+	if (g_allowVt)
+	{
+		auto hash = HashString(channelName.c_str());
+		buf << fmt::sprintf("\x1B[38;5;%dm", (hash % (231 - 17)) + 17);
+	}
+
+	std::string effectiveChannelName = channelName;
+
+	if (channelName.length() > 20)
+	{
+		if (channelName.find("citizen-") == 0)
+		{
+			effectiveChannelName = "c-" + channelName.substr(8);
+		}
+	}
+
+	buf << fmt::sprintf("[%20s] ", effectiveChannelName.substr(0, std::min(size_t(20), effectiveChannelName.length())));
+
+	if (g_allowVt)
+	{
+		buf << fmt::sprintf("\x1B[%dm", 0);
+	}
+}
 
 static void CfxPrintf(const std::string& str)
 {
@@ -42,6 +71,12 @@ static void CfxPrintf(const std::string& str)
 
 	for (size_t i = 0; i < str.size(); i++)
 	{
+		if (g_startOfLine)
+		{
+			WriteChannel(buf, g_printChannel);
+			g_startOfLine = false;
+		}
+
 		if (str[i] == '^' && _isdigit(str[i + 1]))
 		{
 			if (g_allowVt)
@@ -54,6 +89,10 @@ static void CfxPrintf(const std::string& str)
 		else
 		{
 			buf << fmt::sprintf("%c", str[i]);
+			if (str[i] == '\n')
+			{
+				g_startOfLine = true;
+			}
 		}
 	}
 
@@ -64,7 +103,7 @@ static std::once_flag g_initConsoleFlag;
 static std::condition_variable g_consoleCondVar;
 static std::mutex g_consoleMutex;
 
-static tbb::concurrent_queue<std::string> g_consolePrintQueue;
+static tbb::concurrent_queue<std::tuple<std::string, std::string>> g_consolePrintQueue;
 static bool g_isPrinting;
 
 static void PrintfTraceListener(ConsoleChannel channel, const char* out)
@@ -129,19 +168,21 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 					g_consoleCondVar.wait(lock);
 				}
 
-				std::string str;
+				std::tuple<std::string, std::string> strRef;
 
-				while (g_consolePrintQueue.try_pop(str))
+				while (g_consolePrintQueue.try_pop(strRef))
 				{
 					g_isPrinting = true;
-					CfxPrintf(str);
+					g_printChannel = std::get<0>(strRef);
+					CfxPrintf(std::get<1>(strRef));
+					g_printChannel = "";
 					g_isPrinting = false;
 				}
 			}
 		}).detach();
 	});
 
-	g_consolePrintQueue.push(std::string{ out });
+	g_consolePrintQueue.push({ channel, std::string{ out } });
 	g_consoleCondVar.notify_all();
 }
 }
