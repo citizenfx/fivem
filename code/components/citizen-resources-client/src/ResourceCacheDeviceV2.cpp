@@ -69,11 +69,7 @@ bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&
 				});
 			}
 
-			if (m_fetcher->IsBlocking())
-			{
-				task.wait();
-			}
-			else
+			if (!m_fetcher->IsBlocking())
 			{
 				if (!task.is_done())
 				{
