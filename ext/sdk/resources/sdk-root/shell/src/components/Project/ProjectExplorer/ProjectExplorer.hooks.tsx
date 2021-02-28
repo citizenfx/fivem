@@ -13,7 +13,7 @@ import { ProjectItemProps, renderChildren } from './item';
 import { ProjectExplorerItemContext } from './item.context';
 import { EntryMoveItem } from './item.types';
 import { CopyEntriesRequest, MoveEntryRequest } from 'shared/api.requests';
-import { VisibilityFilter } from 'components/Explorer/Explorer.filters';
+import { combineVisibilityFilters, VisibilityFilter } from 'components/Explorer/Explorer.filters';
 import { openInExplorer, openInExplorerAndSelect } from 'utils/natives';
 
 export interface UseExpandedPathHook {
@@ -107,7 +107,10 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
   }, [item, directoryCreatorOpen, fileCreatorOpen, handleDirectoryCreate, handleFileCreate]);
 
   const renderItemChildren = React.useCallback(function $RenderItemChildren(overrideVisibilityFilter?: VisibilityFilter) {
-    return renderChildren(item.entry, item, overrideVisibilityFilter || options.visibilityFilter);
+    return renderChildren(item.entry, item, combineVisibilityFilters(
+      overrideVisibilityFilter || options.visibilityFilter,
+      (entry) => entry.name !== '.git'
+    ));
   }, [item, options.visibilityFilter]);
 
   const contextMenuItems: ContextMenuItem[] = React.useMemo(() => [

@@ -9,7 +9,7 @@ import { projectApi, serverApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
 import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
-import { ProjectItemProps, renderChildren } from '../item';
+import { ProjectItemProps } from '../item';
 import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../item.context';
 import { projectExplorerItemType } from '../item.types';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
@@ -45,7 +45,10 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
 
   const options = React.useContext(ProjectExplorerItemContext);
 
-  const { renderItemControls, contextMenuItems, requiredContextMenuItems } = useItem(props);
+  const { renderItemControls, contextMenuItems, requiredContextMenuItems, renderItemChildren } = useItem({
+    ...props,
+    childrenCollapsed: true
+  });
   const { expanded, toggleExpanded } = useExpandablePath(entry.path);
 
   const [deleterOpen, openDeleter, closeDeleter] = useOpenFlag(false);
@@ -96,7 +99,7 @@ export const Resource = React.memo(function Resource(props: ProjectItemProps) {
     requiredContextMenuItems,
   ]);
 
-  const children = renderChildren(entry, { ...props, childrenCollapsed: true });
+  const children = renderItemChildren();
 
   const { isDropping, dropRef } = useItemDrop(entry, [
     projectExplorerItemType.FILE,

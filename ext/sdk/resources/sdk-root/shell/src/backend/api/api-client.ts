@@ -138,7 +138,7 @@ export class ApiClient {
 
   private emitCallbackError(id: string, error: Error) {
     const message = JSON.stringify(
-      ['@@cb', id, 'error', error + ''],
+      ['@@cb', [ id, 'error', error + ''] ],
     );
 
     // emit('sdk:api:send', message);
@@ -147,7 +147,7 @@ export class ApiClient {
 
   private emitCallbackResponse(id: string, response: any) {
     const message = JSON.stringify(
-      ['@@cb', id, 'response', response],
+      ['@@cb', [ id, 'response', response] ],
     );
 
     // emit('sdk:api:send', message);
