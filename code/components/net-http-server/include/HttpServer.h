@@ -15,6 +15,8 @@
 #include <EASTL/fixed_map.h>
 #include <EASTL/fixed_string.h>
 
+#include <optional>
+
 namespace net
 {
 struct HeaderComparator
@@ -56,6 +58,8 @@ private:
 
 	std::shared_mutex m_cancelHandlerMutex;
 
+	std::optional<std::vector<uint8_t>> m_pendingData;
+
 public:
 	HttpRequest(int httpVersionMajor, int httpVersionMinor, const HeaderString& requestMethod, const HeaderString& path, const HeaderMap& headerList, const net::PeerAddress& remoteAddress);
 
@@ -75,8 +79,21 @@ public:
 
 	inline void SetDataHandler(const std::function<void(const std::vector<uint8_t>& data)>& handler)
 	{
+		if (m_pendingData)
+		{
+			handler(*m_pendingData);
+			m_pendingData = {};
+
+			return;
+		}
+
 		std::unique_lock<std::shared_mutex> lock(m_dataHandlerMutex);
 		m_dataHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
+	}
+
+	inline void SetPendingData(std::vector<uint8_t>&& data)
+	{
+		m_pendingData = std::move(data);
 	}
 
 	inline std::shared_ptr<std::function<void()>> GetCancelHandler()

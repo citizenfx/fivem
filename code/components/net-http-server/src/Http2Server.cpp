@@ -459,8 +459,6 @@ public:
 
 	virtual void End() override
 	{
-		m_ended = true;
-
 		auto stream = m_tcpStream;
 
 		if (stream.GetRef())
@@ -472,6 +470,7 @@ public:
 				thisRef->m_tcpStream = nullptr;
 
 				auto session = thisRef->m_session;
+				thisRef->m_ended = true;
 
 				if (session)
 				{
@@ -479,6 +478,10 @@ public:
 					nghttp2_session_send(*session);
 				}
 			});
+		}
+		else
+		{
+			m_ended = true;
 		}
 	}
 
@@ -799,6 +802,10 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 						if (handler)
 						{
 							(*handler)(req->body);
+						}
+						else
+						{
+							req->httpReq->SetPendingData(std::move(req->body));
 						}
 					}
 				}

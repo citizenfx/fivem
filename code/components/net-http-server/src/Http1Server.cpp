@@ -504,6 +504,10 @@ void HttpServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 
 							(*dataHandler)(requestData);
 						}
+						else
+						{
+							localConnectionData->request->SetPendingData(std::move(requestData));
+						}
 					}
 
 					// clean up the req/res
