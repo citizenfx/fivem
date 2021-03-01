@@ -1207,6 +1207,16 @@ static HookFunction hookFunction([]()
 		hook::call(location, MapFuncHook);
 	}
 
+	// GetControlInstructionalButton
+	{
+		// limit check
+		auto location = hook::get_pattern<char>("81 FA ? ? 00 00 77 4F 48", -6);
+		hook::nop(location + 12, 2);
+
+		// return array index (force to 0)
+		hook::put<uint32_t>(location + 0x24, 0x90DB3148);
+	}
+
 	// control
 	g_control = hook::get_address<void*>(hook::get_pattern("74 09 48 8D 05 ? ? ? ? EB 07 48 8D 05", 5));
 	g_controlSize = *hook::get_pattern<int>("E8 ? ? ? ? 48 81 C3 ? ? ? ? 48 FF CF 75 EA", 8);
