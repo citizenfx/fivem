@@ -239,20 +239,22 @@ TCallbackMap ClientDeferral::GetCallbacks()
 
 						self->SetCardResponseHandler(make_shared_function([self, functionRef = std::move(functionRef)](const std::string& cardJson)
 						{
-							rapidjson::Document cardJSON;
-							cardJSON.Parse(cardJson.c_str(), cardJson.size());
+							auto fnRef = functionRef.GetRef();
 
-							if (!cardJSON.HasParseError())
+							gscomms_execute_callback_on_main_thread([self, fnRef, cardJson]
 							{
-								msgpack::object cardObject;
-								msgpack::zone zone;
-								ConvertToMsgPack(cardJSON, cardObject, zone);
+								rapidjson::Document cardJSON;
+								cardJSON.Parse(cardJson.c_str(), cardJson.size());
 
-								// make sure the monkeys are happy
-								MonoEnsureThreadAttached();
+								if (!cardJSON.HasParseError())
+								{
+									msgpack::object cardObject;
+									msgpack::zone zone;
+									ConvertToMsgPack(cardJSON, cardObject, zone);
 
-								self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(functionRef.GetRef(), cardObject, cardJson);
-							}
+									self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(fnRef, cardObject, cardJson);
+								}
+							});
 						}));
 					}
 				}

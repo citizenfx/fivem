@@ -20,6 +20,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <GameServerComms.h>
+
 #include <MonoThreadAttachment.h>
 
 #include <TcpListenManager.h>
@@ -114,7 +116,12 @@ public:
 		auto localPath = (path.length() >= rl) ? path.substr(rl) : "";
 
 		// pass to the registered handler for the resource
-		if (m_handlerRef)
+		if (!m_handlerRef)
+		{
+			return;
+		}
+
+		gscomms_execute_callback_on_main_thread([this, localPath, request, response]
 		{
 			auto cbComponent = m_resource->GetManager()->GetComponent<fx::ResourceCallbackComponent>();
 
@@ -146,9 +153,12 @@ public:
 					{
 						fx::FunctionRef functionRef{ std::string{callback.via.ext.data(), callback.via.ext.size} };
 
-						request->SetCancelHandler(make_shared_function([this, functionRef = std::move(functionRef)]()
+						request->SetCancelHandler(make_shared_function([this, functionRef = std::move(functionRef)]() mutable
 						{
-							m_resource->GetManager()->CallReference<void>(functionRef.GetRef());
+							gscomms_execute_callback_on_main_thread(make_shared_function([this, functionRef = std::move(functionRef)]()
+							{
+								m_resource->GetManager()->CallReference<void>(functionRef.GetRef());
+							}));
 						}));
 					}
 				}
@@ -172,16 +182,19 @@ public:
 					{
 						fx::FunctionRef functionRef{ std::string{callback.via.ext.data(), callback.via.ext.size} };
 
-						request->SetDataHandler(make_shared_function([this, functionRef = std::move(functionRef), isBinary](const std::vector<uint8_t>& bodyArray)
+						request->SetDataHandler(make_shared_function([this, functionRef = std::move(functionRef), isBinary](const std::vector<uint8_t>& bodyArray) mutable
 						{
-							if (isBinary)
+							gscomms_execute_callback_on_main_thread(make_shared_function([this, functionRef = std::move(functionRef), isBinary, bodyArray]()
 							{
-								m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), bodyArray);
-							}
-							else
-							{
-								m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), std::string(bodyArray.begin(), bodyArray.end()));
-							}
+								if (isBinary)
+								{
+									m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), bodyArray);
+								}
+								else
+								{
+									m_resource->GetManager()->CallReference<void>(functionRef.GetRef(), std::string(bodyArray.begin(), bodyArray.end()));
+								}
+							}));
 						}));
 					}
 				}
@@ -239,9 +252,10 @@ public:
 				}
 			});
 
-			MonoEnsureThreadAttached();
+			//MonoEnsureThreadAttached();
+
 			m_resource->GetManager()->CallReference<void>(*m_handlerRef, requestWrap, responseWrap);
-		}
+		});
 	}
 
 	inline void SetHandlerRef(const std::string& ref)
