@@ -70,6 +70,22 @@ export interface AssetImportRequest<T extends object = object> {
   callback?: () => void,
 }
 
+export interface FetchReleasesRequest {
+  repoUrl: string,
+}
+
+export interface ReleaseInfo {
+  name: string,
+  body: string,
+  createdAt: string,
+  downloadUrl: string,
+}
+
+export interface FetchReleasesResponse {
+  success: boolean,
+  releases: ReleaseInfo[],
+}
+
 export interface AssetDeleteRequest {
   assetPath: string,
   hardDelete: boolean,

@@ -1,10 +1,10 @@
 import chokidar from 'chokidar';
-import { isAbsolute, relative } from 'path';
 import { EntryMetaExtras, ExplorerService } from "backend/explorer/explorer-service";
 import { inject, injectable } from "inversify";
 import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { FsService } from "./fs-service";
 import { ProjectFsUpdate } from 'shared/project.types';
+import { LogService } from 'backend/logger/log-service';
 
 
 export enum FsUpdateType {
@@ -28,6 +28,9 @@ export class FsMapping {
 
   @inject(FsService)
   protected readonly fsService: FsService;
+
+  @inject(LogService)
+  protected readonly logService: LogService;
 
   protected map: FilesystemEntryMap = {};
   getMap(): FilesystemEntryMap {
@@ -234,18 +237,8 @@ export class FsMapping {
       }
     }
 
-    // Also recursively change parent directories (in case we added a __resource.lua e.g.)
-    if (isParented(parentPath, this.rootPath)) {
-      promises.push(this.processFsUpdate(FsUpdateType.change, parentPath));
-    }
-
     await Promise.all(promises);
 
     this.afterUpdate(type, path, entry);
-
-    function isParented(path: string, root: string) {
-      const relPath = relative(root, path);
-      return (relPath && !relPath.startsWith('..') && !isAbsolute(relPath));
-    }
   }
 }

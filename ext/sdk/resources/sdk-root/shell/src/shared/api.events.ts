@@ -47,6 +47,10 @@ export const assetApi = {
   delete: 'asset:delete',
 };
 
+export const githubApi = {
+  fetchReleases: 'github:fetchReleases',
+};
+
 export const stateApi = {
   ackState: 'ackState',
   state: 'state',

@@ -6,6 +6,7 @@ import { assetImporterTypes, assetTypes } from "shared/asset.types";
 import { ResourceManager } from "./asset-contributions/resource/resource-manager";
 import { GitImporter } from "./importer-contributions/git-importer/git-importer";
 import { FsImporter } from "./importer-contributions/fs-importer/fs-importer";
+import { ReleaseImporter } from "./importer-contributions/release-importer/release-importer";
 
 export const bindAsset = (container: interfaces.Container) => {
   bindContributionProvider(container, AssetManagerContribution);
@@ -19,4 +20,7 @@ export const bindAsset = (container: interfaces.Container) => {
 
   container.bind(FsImporter).toSelf().inSingletonScope();
   bindAssetImporterContribution(container, FsImporter, assetImporterTypes.fs);
+
+  container.bind(ReleaseImporter).toSelf().inSingletonScope();
+  bindAssetImporterContribution(container, ReleaseImporter, assetImporterTypes.release);
 };

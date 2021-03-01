@@ -137,6 +137,7 @@ export const sendApiMessageCallback = <ResponseData>(type: string, data: any, ca
   messageCallbacks[id] = callback;
 
   const message = JSON.stringify(['@@cb', id, type, data]);
+  console.log(message);
 
   if (connected) {
     ws.send(message);

@@ -35,6 +35,7 @@ import { ContainerAccess } from './container-access';
 import { bindTask } from './task/task-bindings';
 import { bindOutput } from './output/output-bindings';
 import { bindGame } from './game/game-bindings';
+import { bindGithub } from './github/github-bindings';
 
 const appContainer = new Container();
 
@@ -58,6 +59,7 @@ bindGameServer(appContainer);
 bindUpdater(appContainer);
 bindTheia(appContainer);
 bindProject(appContainer);
+bindGithub(appContainer);
 
 
 appContainer.get(AppService).startContributions().catch((e) => {

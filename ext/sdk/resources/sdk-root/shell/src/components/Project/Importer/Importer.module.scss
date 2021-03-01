@@ -10,5 +10,31 @@
   .explorer {
     overflow: auto;
     margin-bottom: 0;
+    flex-shrink: 0;
   }
+}
+
+.releases {
+  display: flex;
+  flex-direction: column;
+
+  padding: 0 $q*4;
+  margin-bottom: $q*4;
+
+  overflow-y: auto;
+
+  & > * {
+    flex-grow: 1;
+
+    text-overflow: ellipsis;
+
+    margin-bottom: $q*2;
+
+    cursor: pointer;
+  }
+}
+
+.checkbox {
+  padding: 0 $q*4;
+  margin: $q 0;
 }

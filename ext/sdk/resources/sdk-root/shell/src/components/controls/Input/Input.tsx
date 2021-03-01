@@ -1,6 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import s from './Input.module.scss';
+import { Indicator } from 'components/Indicator/Indicator';
 
 
 export interface InputProps {
@@ -18,6 +19,7 @@ export interface InputProps {
   onChange: (string) => void,
   onSubmit?: () => void,
 
+  showLoader?: boolean,
   noSpellCheck?: boolean,
 }
 
@@ -29,6 +31,7 @@ export const Input = React.memo(function Input(props: InputProps) {
     onSubmit,
     pattern,
     tabIndex,
+    showLoader = false,
     noSpellCheck = false,
     autofocus = false,
     disabled = false,
@@ -57,19 +60,30 @@ export const Input = React.memo(function Input(props: InputProps) {
     }
   }, [onSubmit]);
 
-  const input = (
-    <input
-      type={type}
-      tabIndex={tabIndex}
-      autoFocus={autofocus}
-      className={inputClassName}
-      value={value}
-      placeholder={placeholder}
-      disabled={disabled}
-      onChange={handleChange}
-      onKeyDown={handleKeyDown}
-      spellCheck={!noSpellCheck}
-    />
+  const loaderNode = showLoader
+    ? (
+      <div className={s.loader}>
+        <Indicator />
+      </div>
+    )
+    : null;
+
+  const inputNode = (
+    <div className={s.input}>
+      <input
+        type={type}
+        tabIndex={tabIndex}
+        autoFocus={autofocus}
+        className={inputClassName}
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        spellCheck={!noSpellCheck}
+      />
+      {loaderNode}
+    </div>
   );
 
   const descriptionNode = description
@@ -80,18 +94,18 @@ export const Input = React.memo(function Input(props: InputProps) {
     )
     : null;
 
-  const content = label
+  const contentNode = label
     ? (
       <label>
         {label}
-        {input}
+        {inputNode}
       </label>
     )
-    : input;
+    : inputNode;
 
   return (
     <div className={classnames(s.root, className)}>
-      {content}
+      {contentNode}
       {descriptionNode}
     </div>
   );

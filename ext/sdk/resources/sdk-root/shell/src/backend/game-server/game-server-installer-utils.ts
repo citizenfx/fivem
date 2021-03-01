@@ -1,7 +1,9 @@
-import http from 'https';
+import { https } from 'follow-redirects';
+import { RequestOptions } from 'https';
 import yauzl from 'yauzl';
 import { inject, injectable } from 'inversify';
 import { FsService } from 'backend/fs/fs-service';
+import { parse } from 'url';
 
 export const versionFilename = '.fxserver-version';
 
@@ -17,8 +19,13 @@ export class GameServerInstallerUtils {
       await this.fsService.unlink(artifactPath);
     }
 
+    const options: RequestOptions = parse(url);
+    options.headers = {
+      'User-Agent': 'FxDK/1.0'
+    };
+
     return new Promise((resolve, reject) => {
-      http.get(url, (res) => {
+      https.get(options, (res) => {
         const artifactWriteStream = this.fsService.createWriteStream(artifactPath);
 
         const contentLength = parseInt(res.headers['content-length'] || '0', 10) || 0;

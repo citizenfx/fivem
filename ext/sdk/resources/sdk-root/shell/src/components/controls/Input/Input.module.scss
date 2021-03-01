@@ -16,43 +16,53 @@
     }
   }
 
-  input {
-    display: block;
-    width: 100%;
+  .input {
+    position: relative;
 
-    backdrop-filter: blur($blurSize);
-    background-color: rgba($bgColor, .8);
+    input {
+      display: block;
+      width: 100%;
 
-    height: $q*9;
-    padding: $q*3 $q*4;
+      backdrop-filter: blur($blurSize);
+      background-color: rgba($bgColor, .8);
 
-    color: $fgColor;
-    font-size: $fs1;
-    font-family: Rubik;
+      height: $q*9;
+      padding: $q*3 $q*4;
 
-    border: none;
-    box-shadow: 0 0 0 2px rgba($fgColor, .25) inset;
+      color: $fgColor;
+      font-size: $fs1;
+      font-family: Rubik;
 
-    transition: all .2s ease;
+      border: none;
+      box-shadow: 0 0 0 2px rgba($fgColor, .25) inset;
 
-    &:disabled {
-      pointer-events: none;
-      color: rgba($fgColor, .5);
+      transition: all .2s ease;
+
+      &:disabled {
+        pointer-events: none;
+        color: rgba($fgColor, .5);
+      }
+
+      &:hover {
+        transition: none;
+
+        box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+      }
+
+      &:focus,
+      &:focus:hover {
+        box-shadow: 0 0 0 2px $acColor inset;
+      }
+
+      &::-webkit-input-placeholder {
+        color: rgba($fgColor, .6);
+      }
     }
 
-    &:hover {
-      transition: none;
-
-      box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
-    }
-
-    &:focus,
-    &:focus:hover {
-      box-shadow: 0 0 0 2px $acColor inset;
-    }
-
-    &::-webkit-input-placeholder {
-      color: rgba($fgColor, .6);
+    .loader {
+      position: absolute;
+      right: $q*3;
+      bottom: $q*3;
     }
   }
 

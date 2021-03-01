@@ -46,7 +46,6 @@ import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.nam
 import { TheiaService } from 'backend/theia/theia-service';
 import { getAssetsPriorityQueue } from './project-utils';
 import { Resource } from './asset/asset-contributions/resource/resource';
-import { concurrently } from 'utils/concurrently';
 import { AssetImporterType, AssetMeta, assetMetaFileExt, AssetType } from 'shared/asset.types';
 import { AssetImporterContribution } from './asset/asset-importer-contribution';
 import { AssetInterface } from './asset/asset-types';

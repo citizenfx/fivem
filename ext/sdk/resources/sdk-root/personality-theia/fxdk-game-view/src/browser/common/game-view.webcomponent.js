@@ -395,8 +395,8 @@ class GameView extends HTMLElement {
     this.addEventListener('mousemove', this._handleMousemove);
     this.addEventListener('mousewheel', this._handleMousewheel);
 
-    document.addEventListener('keydown', this._handleKeydown);
-    document.addEventListener('keyup', this._handleKeyup);
+    document.addEventListener('keydown', this._handleKeydown, true);
+    document.addEventListener('keyup', this._handleKeyup, true);
 
     document.addEventListener('pointerlockchange', this._handlePointerLockChange);
     document.addEventListener('fullscreenchange', this._handleFullscreenChange);
@@ -413,8 +413,8 @@ class GameView extends HTMLElement {
     this.removeEventListener('mousemove', this._handleMousemove);
     this.removeEventListener('mousewheel', this._handleMousewheel);
 
-    document.removeEventListener('keydown', this._handleKeydown);
-    document.removeEventListener('keyup', this._handleKeyup);
+    document.removeEventListener('keydown', this._handleKeydown, true);
+    document.removeEventListener('keyup', this._handleKeyup, true);
 
     document.removeEventListener('pointerlockchange', this._handlePointerLockChange);
     document.removeEventListener('fullscreenchange', this._handleFullscreenChange);
@@ -574,6 +574,9 @@ class GameView extends HTMLElement {
       }
 
       e.preventDefault();
+      e.stopPropagation();
+
+      console.log('Propagation stopped');
 
       // Handling pointer unlock
       if (e.key === 'Escape' && e.shiftKey) {
@@ -608,6 +611,7 @@ class GameView extends HTMLElement {
       }
 
       e.preventDefault();
+      e.stopPropagation();
 
       const vk = mapKey(e.which, e.location);
 
