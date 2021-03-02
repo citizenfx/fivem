@@ -14,6 +14,8 @@
 #include <FontRenderer.h>
 #include <DrawCommands.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <boost/algorithm/string.hpp>
 
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
@@ -433,6 +435,7 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 
 				std::string devName;
 				int order = 0;
+				std::string requiredVersion;
 
 				vfs::Mount(packfile, "tempModDlc:/");
 
@@ -449,17 +452,57 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 						{
 							order = orderEl->IntAttribute("value");
 						}
+
+						if (auto requiredVersionEl = doc.RootElement()->FirstChildElement("requiredVersion"); requiredVersionEl)
+						{
+							if (requiredVersionEl->GetText())
+							{
+								requiredVersion = requiredVersionEl->GetText();
+							}
+						}
 					}
 				}
 
 				vfs::Unmount("tempModDlc:/");
 
-				DlcEntry entry;
-				entry.deviceName = devName;
-				entry.angryZip = packfile;
-				entry.order = order;
+				bool valid = true;
 
-				dlcs.push_back(entry);
+				if (!requiredVersion.empty())
+				{
+					int minBuild = 0;
+					int maxBuild = INT32_MAX;
+
+					// Cfx extension
+					if (auto dashPos = requiredVersion.find("-"); dashPos != std::string::npos)
+					{
+						minBuild = std::stoi(requiredVersion.substr(0, dashPos));
+						maxBuild = std::stoi(requiredVersion.substr(dashPos + 1));
+					}
+					else
+					{
+						minBuild = std::stoi(requiredVersion);
+					}
+
+					auto gameBuild = xbr::GetGameBuild();
+					if (gameBuild < minBuild)
+					{
+						valid = false;
+					}
+					else if (gameBuild > maxBuild)
+					{
+						valid = false;
+					}
+				}
+
+				if (valid)
+				{
+					DlcEntry entry;
+					entry.deviceName = devName;
+					entry.angryZip = packfile;
+					entry.order = order;
+
+					dlcs.push_back(entry);
+				}
 			}
 		}
 
