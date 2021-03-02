@@ -2169,7 +2169,8 @@ struct CTrainGameStateDataNode
 
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 
-struct CPlayerGameStateDataNode {
+struct CPlayerGameStateDataNode
+{
 	CPlayerGameStateNodeData data;
 
 	bool Parse(SyncParseState& state)
@@ -2222,11 +2223,6 @@ struct CPlayerGameStateDataNode {
 		auto steamProof = state.buffer.ReadBit();
 		auto unk21 = state.buffer.ReadBit();
 		auto unk22 = state.buffer.ReadBit();
-
-		if (Is2060())
-		{
-			state.buffer.ReadBit();
-		}
 
 		if (unk12)
 		{
@@ -2320,9 +2316,18 @@ struct CPlayerGameStateDataNode {
 		auto unk67 = state.buffer.ReadBit();
 		auto unk68 = state.buffer.ReadBit();
 		auto unk69 = state.buffer.ReadBit();
-		auto unk70 = state.buffer.ReadBit();
 
-		// #TODO2060: maybe extra read near here? list is weird
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		if (Is2189())
+		{
+			state.buffer.ReadBit();
+		}
+
+		auto unk70 = state.buffer.ReadBit();
 
 		if (unk70)
 		{
