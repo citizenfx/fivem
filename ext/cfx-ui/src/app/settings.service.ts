@@ -122,6 +122,24 @@ export class SettingsService {
 				category: '#SettingsCat_Game',
 			});
 
+			this.addSetting('useAudioFrameLimiter', {
+				name: '#Settings_UseAudioFrameLimiter',
+				description: '#Settings_UseAudioFrameLimiterDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('game_useAudioFrameLimiter').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('game_useAudioFrameLimiter', value),
+				category: '#SettingsCat_Game',
+			});
+
+			this.addSetting('enableHandbrakeCamera', {
+				name: '#Settings_HandbrakeCamera',
+				description: '#Settings_HandbrakeCameraDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('cam_enableHandbrakeCamera').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('cam_enableHandbrakeCamera', value),
+				category: '#SettingsCat_Game',
+			});
+
 			this.addSetting('customEmoji', {
 				name: '#Settings_CustomEmoji',
 				description: '#Settings_CustomEmojiDesc',
@@ -144,23 +162,6 @@ export class SettingsService {
 				category: '#SettingsCat_Game',
 			});
 		}
-
-		this.addSetting('queriesPerMinute', {
-			name: '#Settings_QueriesPerMinute',
-			type: 'switch',
-			getCb: () => this.gameService.getConvar('ui_maxQueriesPerMinute'),
-			setCb: (value) => this.gameService.setConvar('ui_maxQueriesPerMinute', value),
-			options: {
-				'10000': '10000',
-				'5000': '5000',
-				'3000': '3000',
-				'1500': '1500',
-				'1000': '1000',
-				'500': '500',
-				'250': '250',
-			},
-			category: '#SettingsCat_Connection',
-		});
 
 		this.addSetting('connectedProfiles', {
 			name: '#Settings_ConnectedProfiles',
