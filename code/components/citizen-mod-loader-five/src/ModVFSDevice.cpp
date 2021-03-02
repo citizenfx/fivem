@@ -402,6 +402,15 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 	}
 
 	// add pseudo-DLCs
+	struct DlcEntry
+	{
+		fwRefContainer<vfs::RagePackfile7> angryZip;
+		std::string deviceName;
+		int order;
+	};
+
+	std::vector<DlcEntry> dlcs;
+
 	for (auto& entry : modPackage->GetContent().entries)
 	{
 		if (entry.type != ModPackage::Content::Entry::Type::Add)
@@ -423,6 +432,7 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 				}
 
 				std::string devName;
+				int order = 0;
 
 				vfs::Mount(packfile, "tempModDlc:/");
 
@@ -434,11 +444,36 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 					if (doc.Parse(reinterpret_cast<char*>(text.data()), text.size()) == tinyxml2::XML_SUCCESS)
 					{
 						devName = doc.RootElement()->FirstChildElement("deviceName")->GetText();
+
+						if (auto orderEl = doc.RootElement()->FirstChildElement("order"); order)
+						{
+							order = orderEl->IntAttribute("value");
+						}
 					}
 				}
 
 				vfs::Unmount("tempModDlc:/");
 
+				DlcEntry entry;
+				entry.deviceName = devName;
+				entry.angryZip = packfile;
+				entry.order = order;
+
+				dlcs.push_back(entry);
+			}
+		}
+
+		std::stable_sort(dlcs.begin(), dlcs.end(), [](const DlcEntry& left, const DlcEntry& right)
+		{
+			return (left.order < right.order);
+		});
+
+		for (const auto& dlc : dlcs)
+		{
+			const auto& packfile = dlc.angryZip;
+			const auto& devName = dlc.deviceName;
+
+			{
 				vfs::Mount(packfile, devName + ":/");
 
 				{
