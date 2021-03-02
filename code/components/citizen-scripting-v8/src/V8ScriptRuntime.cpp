@@ -1924,6 +1924,9 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 		context->Global()->Set(context, String::NewFromUtf8(GetV8Isolate(), "window", NewStringType::kNormal).ToLocalChecked(), context->Global());
 	}
 
+	static Global<Object> sharedObject = Global<Object>::Global(GetV8Isolate(), Object::New(GetV8Isolate()));
+	context->Global()->Set(context, String::NewFromUtf8(GetV8Isolate(), "shared", NewStringType::kNormal).ToLocalChecked(), sharedObject.Get(GetV8Isolate()));
+
 	std::string nativesBuild = "natives_universal.js";
 
 	{
