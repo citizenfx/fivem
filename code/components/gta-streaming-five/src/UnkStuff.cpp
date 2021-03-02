@@ -811,7 +811,10 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("0F 2F 47 24 0F 93 05", 4), 7);
 
 	// don't clamp on-foot FOV to 1.0
-	hook::nop(hook::get_pattern("0F 2F C6 77 03 0F 28 F0 48 8B 83 ? ? ? ? F3 44", 3), 2);
+	if (!xbr::IsGameBuildOrGreater<2060>())
+	{
+		hook::nop(hook::get_pattern("0F 2F C6 77 03 0F 28 F0 48 8B 83 ? ? ? ? F3 44", 3), 2);
+	}
 
 	//HookStereo();
 });
