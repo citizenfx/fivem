@@ -106,7 +106,6 @@ input[type="password"] {
 	@include fontRubik;
 	font-size: var(--fs-1);
 	line-height: 1;
-	text-transform: lowercase;
 
 	&:hover, &:focus {
 		.cfx-checkbox-indicator {
