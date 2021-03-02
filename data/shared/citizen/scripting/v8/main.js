@@ -592,11 +592,7 @@ const EXT_LOCALFUNCREF = 11;
 	const playerTM = {
 		get(t, k) {
 			if (k === 'state') {
-				const pid = t.__data;
-
-				if (pid === -1) {
-					pid = GetPlayerServerId(PlayerId());
-				}
+				const pid = t.__data === -1 ? GetPlayerServerId(PlayerId()) : t.__data;
 
 				const es = `player:${pid}`;
 
