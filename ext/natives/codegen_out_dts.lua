@@ -172,7 +172,7 @@ local function printArgument(argument, native)
 		argType = 'Function'
 	elseif argument.type.name == 'Hash' then
 		argType = 'string | number'
-	elseif argument.type.name == 'charPtr' then
+	elseif argument.type.nativeType == 'string' then
 		argType = 'string'
 	elseif argument.type.nativeType == 'int' then
 		argType = 'number'

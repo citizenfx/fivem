@@ -109,7 +109,7 @@ local function printArgument(argument, native)
 		return '_mfr(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
 		return '_ch(' .. printArgumentName(argument.name) .. ')'
-	elseif argument.type.name == 'charPtr' then
+	elseif argument.type.nativeType == 'string' then
 		return '_ts(' .. printArgumentName(argument.name) .. ')'
 	end
 
