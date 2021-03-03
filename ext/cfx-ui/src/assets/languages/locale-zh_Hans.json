@@ -74,7 +74,7 @@
     "#Settings_GameStreamProgressDesc": "当下载游戏内流媒体资源时显示进度(BETA™)",
     "#No": "否",
     "#Yes": "是",
-    "#ServerDetail_OneSync": "OneSync",
+    "#ServerDetail_OneSync": "OneSync框架",
     "#ServerDetail_Refresh": "刷新",
     "#ServerDetail_DelFavorite": "取消收藏",
     "#ServerDetail_Back": "返回",
@@ -92,5 +92,6 @@
     "#Settings_LowPerf_Off": "关闭",
     "#Settings_AccountLink": "链接",
     "#DirectConnect_IPPort": "IP:端口",
-    "#Home_AdDetail": "您所在地区排名最高的服务器"
+    "#Home_AdDetail": "您所在地区排名最高的服务器",
+    "#Settings_LowPerf_ReduceBackdrop": "仅背景"
 }
