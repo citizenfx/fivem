@@ -1646,6 +1646,16 @@ extern "C" DLL_EXPORT void EarlyInitializeExceptionHandler()
 	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_THREAD_ATTACH, nullptr);
 }
 
+extern "C" DLL_EXPORT bool TerminateForException(PEXCEPTION_POINTERS exception)
+{
+	if (g_exceptionHandler)
+	{
+		return g_exceptionHandler->WriteMinidumpForException(exception);
+	}
+
+	return false;
+}
+
 extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 {
 	if (initialized)

@@ -236,6 +236,8 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 static LONG(*g_exceptionHandler)(EXCEPTION_POINTERS*);
 static BOOLEAN(*g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
 
+static thread_local std::tuple<EXCEPTION_RECORD*, CONTEXT*> g_lastExc;
+
 static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
 {
 	// anti-anti-anti-anti-debug
@@ -244,7 +246,9 @@ static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* conte
 		return TRUE;
 	}
 
+	g_lastExc = { record, context };
 	BOOLEAN success = g_origRtlDispatchException(record, context);
+	g_lastExc = { nullptr, nullptr };
 
 	if (CoreIsDebuggerPresent())
 	{
@@ -277,8 +281,28 @@ static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* conte
 	return success;
 }
 
+static bool (*_TerminateForException)(PEXCEPTION_POINTERS exc);
+
+static void terminateStub()
+{
+	auto exc = std::get<0>(g_lastExc);
+
+	if (exc && exc->ExceptionCode == 0xE06D7363)
+	{
+		EXCEPTION_POINTERS ptrs;
+		ptrs.ExceptionRecord = exc;
+		ptrs.ContextRecord = std::get<1>(g_lastExc);
+
+		_TerminateForException(&ptrs);
+	}
+
+	FatalError("UCRT terminate() called");
+}
+
 extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POINTERS*))
 {
+	_TerminateForException = (decltype(_TerminateForException))GetProcAddress(GetModuleHandle(NULL), "TerminateForException");
+
 	g_exceptionHandler = handler;
 
 	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "KiUserExceptionDispatcher");
@@ -290,6 +314,7 @@ extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POI
 		{
 			DisableToolHelpScope scope;
 			MH_CreateHook(internalAddress, RtlDispatchExceptionStub, (void**)&g_origRtlDispatchException);
+			MH_CreateHook(GetProcAddress(GetModuleHandle(L"ucrtbase.dll"), "terminate"), terminateStub, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
 	}
