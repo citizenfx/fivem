@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-12-27 09:42+0000\n"
-"Last-Translator: Adobe <kamkam0626@naver.com>\n"
+"PO-Revision-Date: 2020-12-27 17:57+0000\n"
+"Last-Translator: whoisme <activate@kakao.com>\n"
 "Language-Team: Korean <http://translations.cfx.re/projects/citizenfx/client/"
 "ko/>\n"
 "Language: ko\n"
@@ -70,29 +70,29 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"%016ll 에서 게임 오류로 인해 %s 이(가) 작동을 중지했습니다. 개발자에게 %s 에 대한 충돌 보고서가 업로드되었습니다.\n"
+"게임 오류(%016llx 에서)로 인하여 %s 의 작동이 중지되었습니다. %s에게 충돌 보고서가 업로드 되었습니다.\n"
 "\n"
 "%s"
 
 #: client/launcher/MiniDump.cpp:1179
 #, c-format
 msgid "An error at %s"
-msgstr "%s 에서 오류가 발생하였습니다"
+msgstr "%s 에서 오류가 발생했습니다"
 
 #: client/launcher/Installer.cpp:126
 #, c-format
 msgid "Are you sure you want to remove %s from the installation root at %s?"
-msgstr "정말 %s의 설치 루트에서 %s를 제거하길 원하십니까?"
+msgstr "정말 %s 을(를) %s 에서 제거하시겠습니까?"
 
 #: client/launcher/Bootstrap.cpp:35
 #, c-format
 msgid "Bootstrapping %s..."
-msgstr "%s을(를) 부트스트래핑중..."
+msgstr "%s을(를) 초기화 중..."
 
 #: client/launcher/Updater.cpp:360
 #, c-format
 msgid "Checking %s"
-msgstr "%s을 확인중"
+msgstr "%s을(를) 확인 중"
 
 #: client/launcher/MiniDump.cpp:1333
 #, c-format
@@ -101,9 +101,9 @@ msgid ""
 "%s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"충돌 신호: %s\n"
+"충돌 서명: %s\n"
 "%s\n"
-"컨트롤+C를 눌러 이 메세지를 복사 붙여넣기 할 수 있습니다."
+"Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
 #: client/launcher/MiniDump.cpp:1329
 #, c-format
@@ -112,9 +112,9 @@ msgid ""
 "Report ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"충돌 신호: %s\n"
+"충돌 서명: %s\n"
 "보고 ID: %s\n"
-"컨트롤+C를 눌러 이 메세지를 복사 붙여넣기 할 수 있습니다."
+"Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
 #: client/launcher/MiniDump.cpp:1270
 #, c-format
@@ -123,15 +123,15 @@ msgid ""
 "Report ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"충돌 신호: %s\n"
-"보고 ID: 업로드중...\n"
-"컨트롤+C를 눌러 이 메세지를 복사 붙여넣기 할 수 있습니다."
+"충돌 서명: %s\n"
+"보고 ID: ... [업로드 중]\n"
+"Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
 #: client/launcher/GameCache.cpp:643
 msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
 msgstr ""
-"게임 파일에 DLC 파일이 없거나 손상되었습니다. 스팀 또는 소셜 클럽 런처를 사용하여 게임을 업데이트하거나 확인한 후 다시 "
-"시도하십시오. 자세한 내용은 http://rsg.ms/verify 4단계를 참조하십시오."
+"게임 파일에 DLC 파일이 없거나 손상되었습니다. 스팀 또는 소셜 클럽 런처를 사용하여 게임을 업데이트하거나 확인한 후 다시 시도하세요. "
+"자세한 정보는 http://rsg.ms/verify의 4번째 단계를 확인하세요."
 
 #: client/launcher/ViabilityChecks.cpp:53
 #, c-format
@@ -146,7 +146,7 @@ msgstr "%.2f/%.2f MB가 다운로드됨 (%.0f%%, %.1f MB/s)"
 #: client/launcher/MiniDump.cpp:1175
 #, c-format
 msgid "Error %s"
-msgstr "에러 %s"
+msgstr "오류 %s"
 
 #: client/launcher/InstallerExtraction.cpp:532
 #, c-format
@@ -167,12 +167,12 @@ msgid ""
 "FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
 "The game will exit now."
 msgstr ""
-"FiveM이 관리자 권한으로 실행되고 있지 않습니다. 관리자 권한으로 실행해주세요.\n"
-"게임이 종료됩니다."
+"FiveM은 관리자 권한으로 실행 할 수 없습니다. FiveM을 관리자 권한으로 실행하지 않도록 윈도우 설정을 변경해주세요.\n"
+"게임이 곧 종료 됩니다."
 
 #: client/launcher/MiniDump.cpp:1237
 msgid "Game crashed: "
-msgstr "게임이 충돌함: "
+msgstr "게임 충돌: "
 
 #: client/launcher/ViabilityChecks.cpp:46
 msgid "Please install Windows 7 SP1 or greater, and try again."
@@ -185,7 +185,7 @@ msgstr "윈도우7 용 플랫폼 업데이트를 설치한 후 다시 시도해�
 #: client/launcher/MiniDump.cpp:339
 #, c-format
 msgid "RAGE error: %s"
-msgstr "RAGE 에러: %s"
+msgstr "RAGE 오류: %s"
 
 #: client/launcher/MiniDump.cpp:1267
 msgid ""
@@ -193,11 +193,11 @@ msgid ""
 "Stores a file with crash information that you should copy and upload when asking for help."
 msgstr ""
 "정보 저장\n"
-"파일을 복사하여 도움을 요청할 때 업로드해야 하는 충돌 정보와 함께 저장합니다."
+"충돌 정보를 저장하고, 도움이 필요할 때 복사하여 업로드하세요."
 
 #: client/launcher/GameSelect.cpp:107
 msgid "Select the folder containing Grand Theft Auto V"
-msgstr "Gta5를 포함한 폴더를 선택해주세요"
+msgstr "Grand Theft Auto V가 있는 폴더를 선택하세요"
 
 #: client/launcher/Download.cpp:423
 msgid "Starting IPFS discovery..."
