@@ -3,13 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Weblate Admin <pr@fivem.net>, 2020.
 # Leon Kappes <meluten@gmail.com>, 2020.
+# d0p3t <d0p3t89+weblate@gmail.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-10-24 18:01+0000\n"
-"Last-Translator: Leon Kappes <meluten@gmail.com>\n"
+"PO-Revision-Date: 2020-12-30 18:31+0000\n"
+"Last-Translator: d0p3t <d0p3t89+weblate@gmail.com>\n"
 "Language-Team: German <http://translations.cfx.re/projects/citizenfx/client/"
 "de/>\n"
 "Language: de\n"
@@ -83,26 +84,31 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
+"Ein Spielfehler (at %016llx) führte %s dazu zu funktionieren. Ein "
+"Absturzbericht wurde an den %s Entwickler hochgeladen.\n"
+"\n"
+"%s"
 
 #: client/launcher/MiniDump.cpp:1179
 #, c-format
 msgid "An error at %s"
-msgstr ""
+msgstr "Ein Fehler an %s"
 
 #: client/launcher/Installer.cpp:126
 #, c-format
 msgid "Are you sure you want to remove %s from the installation root at %s?"
 msgstr ""
+"Sind Sie sicher das Sie %s entfernen wollen vom Installation root in %s?"
 
 #: client/launcher/Bootstrap.cpp:35
 #, c-format
 msgid "Bootstrapping %s..."
-msgstr ""
+msgstr "Bootstrapping %s..."
 
 #: client/launcher/Updater.cpp:360
 #, c-format
 msgid "Checking %s"
-msgstr ""
+msgstr "Überprüfe %s"
 
 #: client/launcher/MiniDump.cpp:1333
 #, c-format
@@ -111,6 +117,10 @@ msgid ""
 "%s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Absturzsignatur: %s\n"
+"%s\n"
+"Sie können Strg-C drücken, um diese Nachricht zu kopieren und an einer "
+"anderen Stelle einzufügen."
 
 #: client/launcher/MiniDump.cpp:1329
 #, c-format
@@ -119,6 +129,10 @@ msgid ""
 "Report ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Absturzsignatur: %s\n"
+"Meldung ID: %s\n"
+"Sie können Strg-C drücken, um diese Nachricht zu kopieren und an einer "
+"anderen Stelle einzufügen."
 
 #: client/launcher/MiniDump.cpp:1270
 #, c-format
@@ -127,6 +141,10 @@ msgid ""
 "Report ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
+"Absturzsignatur: %s\n"
+"Meldung ID: ... [lädt hoch]\n"
+"Sie können Strg-C drücken, um diese Nachricht zu kopieren und an einer "
+"anderen Stelle einzufügen."
 
 #: client/launcher/GameCache.cpp:643
 msgid ""
@@ -134,35 +152,40 @@ msgid ""
 "update or verify the game using Steam or the Social Club launcher and try "
 "again. See http://rsg.ms/verify step 4 for more info."
 msgstr ""
+"DLC dateien fehlen (oder beschädigt) in deine Spielinstallation. Bitte "
+"aktualisieren oder überprüfen Sie das Spiel mit Steam oder dem Social Club "
+"Launcher und versuchen Sie es erneut. Weitere Informationen finden Sie unter "
+"http://rsg.ms/verify Schritt 4."
 
 #: client/launcher/ViabilityChecks.cpp:53
 #, c-format
 msgid "DXGI 1.2 support is required to run this product %s"
 msgstr ""
+"DXGI 1.2 Unterstützung ist erforderlich um dieses Produkt auszuführen %s"
 
 #: client/launcher/Download.cpp:222
 #, c-format
 msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
-msgstr ""
+msgstr "%.2f/%.2f MB (%.0f%%, %.1f MB/s) heruntergeladen"
 
 #: client/launcher/MiniDump.cpp:1175
 #, c-format
 msgid "Error %s"
-msgstr ""
+msgstr "Fehler %s"
 
 #: client/launcher/InstallerExtraction.cpp:532
 #, c-format
 msgid "Extracting %s"
-msgstr ""
+msgstr "Entpacke %s"
 
 #: client/launcher/InstallerExtraction.cpp:268
 #, c-format
 msgid "Extracting %s (scanning)"
-msgstr ""
+msgstr "Entpacke %s (Scannen)"
 
 #: client/launcher/MiniDump.cpp:1189
 msgid "FiveM crashed... but we're on it!"
-msgstr ""
+msgstr "FiveM ist abgestürzt... aber wir sind dran!"
 
 #: client/launcher/Main.cpp:491
 msgid ""
