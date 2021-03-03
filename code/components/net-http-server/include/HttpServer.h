@@ -81,7 +81,11 @@ public:
 	{
 		if (m_pendingData)
 		{
-			handler(*m_pendingData);
+			if (handler)
+			{
+				handler(*m_pendingData);
+			}
+
 			m_pendingData = {};
 
 			return;
