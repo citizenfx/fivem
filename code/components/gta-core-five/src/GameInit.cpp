@@ -225,6 +225,18 @@ static InitFunction initFunction([] ()
 		CrashCommand();
 	});
 
+	static ConsoleCommand exceptCmd("_except", []()
+	{
+#ifndef _DEBUG
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			return;
+		}
+#endif
+
+		throw std::runtime_error("_except command used");
+	});
+
 	static int warningMessageActive = false;
 	static ConVar<int> warningMessageResult("warningMessageResult", ConVar_None, 0);
 	static int wmButtons;
