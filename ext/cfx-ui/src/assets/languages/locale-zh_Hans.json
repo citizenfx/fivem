@@ -26,7 +26,7 @@
     "#BottomNav_Create": "创建",
     "#BottomNav_Mods": "模组",
     "#BottomNav_Settings": "设置",
-    "#BottomNav_Servers": "服务器",
+    "#BottomNav_Servers": "服务器列表",
     "#ServerList_Premium": "作者",
     "#BottomNav_Play": "开始游戏",
     "#Settings_CustomEmoji": "自定义FiveM水印表情符号",
@@ -94,5 +94,6 @@
     "#DirectConnect_IPPort": "IP:端口",
     "#Home_AdDetail": "您所在地区排名最高的服务器",
     "#Settings_LowPerf_ReduceBackdrop": "仅背景",
-    "#Settings_LowPerf_ReduceFull": "移除虚化背景"
+    "#Settings_LowPerf_ReduceFull": "移除虚化背景",
+    "#Settings_LowPerfModeDesc": " "
 }
