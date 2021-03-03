@@ -90,5 +90,7 @@
     "#ServerDetail_AddFavorite": "加入收藏",
     "#ServerDetail_Resources": "资源",
     "#Settings_LowPerf_Off": "关闭",
-    "#Settings_AccountLink": "链接"
+    "#Settings_AccountLink": "链接",
+    "#DirectConnect_IPPort": "IP:端口",
+    "#Home_AdDetail": "您所在地区排名最高的服务器"
 }
