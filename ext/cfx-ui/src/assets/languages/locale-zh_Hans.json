@@ -96,5 +96,6 @@
     "#Settings_LowPerf_ReduceBackdrop": "仅背景",
     "#Settings_LowPerf_ReduceFull": "移除虚化背景",
     "#Settings_LowPerfModeDesc": " ",
-    "#Settings_Boost": "当前服务器加成™"
+    "#Settings_Boost": "当前服务器加成™",
+    "#Servers_Error": "错误 (Error)"
 }
