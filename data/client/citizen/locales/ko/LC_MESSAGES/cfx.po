@@ -2,13 +2,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # Adobe <kamkam0626@naver.com>, 2020.
+# whoisme <activate@kakao.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-12-26 14:29+0000\n"
-"Last-Translator: Adobe <kamkam0626@naver.com>\n"
+"PO-Revision-Date: 2020-12-27 09:22+0000\n"
+"Last-Translator: whoisme <activate@kakao.com>\n"
 "Language-Team: Korean <http://translations.cfx.re/projects/citizenfx/client/"
 "ko/>\n"
 "Language: ko\n"
@@ -25,6 +26,9 @@ msgid ""
 "\n"
 "Exception details: %s"
 msgstr ""
+"\n"
+"\n"
+"오류 상세 정보: %s"
 
 #: client/launcher/MiniDump.cpp:1213
 #, c-format
@@ -33,6 +37,9 @@ msgid ""
 "\n"
 "Legacy crash hash: %s"
 msgstr ""
+"\n"
+"\n"
+"충돌 해시: %s"
 
 #: client/launcher/MiniDump.cpp:1277
 msgid ""
@@ -40,16 +47,21 @@ msgid ""
 "\n"
 "This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
 msgstr ""
+"\n"
+"\n"
+"치명적 오류가 발생하여 게임을 정상적으로 종료하지 못했습니다. 이 오류가 해결될 수 있도록 이 오류가 왜 발생했는지(어느 서버를 플레이 "
+"했는지, 어떤 리소스나 스크립트를 사용했는지 등)를 보고해주세요."
 
 #: client/launcher/MiniDump.cpp:1204
-#, c-format
+#, c-format, fuzzy
 msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
-msgstr ""
+msgstr "%s 으(로) 인해 %s 이(가) 작동이 중지되었습니다. 충돌 보고서를 %s에 업로드 하고 있습니다."
 
 #: client/launcher/Main.cpp:510
 #, c-format
 msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
 msgstr ""
+"%s 이(가) 있는 폴더에 파일을 만들 수 없습니다. 설치 폴더를 \"Program Files\" 또는 기타 보호된 폴더로 옮겨주세요."
 
 #: client/launcher/MiniDump.cpp:340
 #, c-format
@@ -204,42 +216,42 @@ msgstr ""
 
 #: client/launcher/MiniDump.cpp:1234
 msgid "Unhandled exception: "
-msgstr ""
+msgstr "처리 되지 않은 예외: "
 
 #: client/launcher/Installer.cpp:124
 #, c-format
 msgid "Uninstall %s"
-msgstr ""
+msgstr "%s 을(를) 제거합니다"
 
 #: client/launcher/Installer.cpp:125
 #, c-format
 msgid "Uninstall %s?"
-msgstr ""
+msgstr "%s 을(를) 제거 하시겠습니까?"
 
 #: client/launcher/Updater.cpp:297
 #, c-format
 msgid "Updating %s..."
-msgstr ""
+msgstr "%s 업데이트 중..."
 
 #: client/launcher/GameCache.cpp:845
 msgid "Updating game cache..."
-msgstr ""
+msgstr "게임 캐시 업데이트 중..."
 
 #: client/launcher/Updater.cpp:268
 msgid "Verifying content..."
-msgstr "콘텐스 검증중..."
+msgstr "파일 검증 중..."
 
 #: client/launcher/GameCache.cpp:714
 msgid "Verifying game content..."
-msgstr "게임 콘텐츠 검증중..."
+msgstr "게임 파일 검증 중..."
 
 #: client/launcher/Main.cpp:638
 msgid "We're getting there."
-msgstr "거의 다 됬습니다."
+msgstr "거의 다 됐습니다."
 
 #: client/launcher/Main.cpp:471
 #, c-format
 msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
 msgstr ""
-"현재 구 버전의 Windows를 사용하고 있습니다. 이로 인해 %s 클라이언트를 사용하는 도중 문제가 발생할 수 있습니다. 문제가 발생할 "
-"경우 Windows 10 버전 1703 이상으로 업데이트하십시오. 게임은 지금 시작됩니다."
+"현재 구 버전의 Windows를 사용하고 있습니다. %s 클라이언트를 사용하면 문제가 발생할 수 있습니다. 만약 문제가 발생할 경우, "
+"Windows 10 1703 (\"크리에이터 업데이트\") 이상의 버전으로 업데이트 하세요. 게임은 지금 시작됩니다."
