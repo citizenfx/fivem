@@ -9,5 +9,5 @@ echo //registry.npmjs.org/:_authToken=%NPM_TOKEN% > .npmrc
 
 call npm config set git-tag-version false
 
-call npm version "1.0.%CI_PIPELINE_ID%-1"
+call npm version "2.0.%CI_PIPELINE_ID%-1"
 call npm publish

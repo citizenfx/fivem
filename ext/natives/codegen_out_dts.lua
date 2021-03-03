@@ -98,8 +98,8 @@ end
 local function printReturnType(type)
 	if type.nativeType == 'string' then
 		return 'string'
-	elseif type.nativeType == 'boolean' then
-		return 'bool'
+	elseif type.nativeType == 'bool' then
+		return 'boolean'
 	elseif type.nativeType == 'float' then
 		return 'number'
 	elseif type.nativeType == 'vector3' then
