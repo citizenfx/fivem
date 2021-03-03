@@ -148,7 +148,7 @@ static InitFunction initFunction([]()
 					{
 					case RpcConfiguration::ArgumentType::Player:
 					{
-						clientIdx = ctx.GetArgument<int>(ctxIdx);
+						clientIdx = std::stoi(ctx.CheckArgument<const char*>(ctxIdx));
 						contextId = clientIdx;
 						break;
 					}
@@ -435,7 +435,7 @@ static InitFunction initFunction([]()
 					}
 					case RpcConfiguration::ArgumentType::Player:
 					{
-						int player = ctx.GetArgument<int>(i);
+						int player = std::stoi(ctx.CheckArgument<const char*>(i));
 						auto client = clientRegistry->GetClientByNetID(player);
 
 						if (!client)
@@ -443,7 +443,7 @@ static InitFunction initFunction([]()
 							return;
 						}
 
-						buffer.Write<uint8_t>(client->GetSlotId());
+						buffer.Write<uint16_t>(client->GetNetId());
 
 						break;
 					}

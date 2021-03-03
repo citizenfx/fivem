@@ -162,6 +162,20 @@ public:
 
 namespace rage
 {
+struct fwModelId
+{
+	uint64_t id;
+};
+
+class STREAMING_EXPORT fwArchetypeManager
+{
+public:
+	static fwArchetype* GetArchetypeFromHashKey(uint32_t hash, fwModelId& id);
+};
+}
+
+namespace rage
+{
 class parStructure;
 }
 

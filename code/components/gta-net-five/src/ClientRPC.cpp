@@ -19,11 +19,40 @@
 
 #include <Hooking.h>
 
+#include <EntitySystem.h>
+#include <scrEngine.h>
+
 extern NetLibrary* g_netLibrary;
 
 #include <nutsnbolts.h>
 
 #include <concurrentqueue.h>
+
+class FxNativeInvoke
+{
+private:
+	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
+	{
+		(*handler)(cxt);
+	}
+
+public:
+	template<typename R, typename... Args>
+	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
+	{
+		fx::ScriptContextBuffer cxt;
+
+		pass{ ([&]()
+		{
+			cxt.Push(args);
+		}(),
+		1)... };
+
+		Invoke(cxt, handler);
+
+		return cxt.GetResult<R>();
+	}
+};
 
 static std::shared_ptr<RpcConfiguration> g_rpcConfiguration;
 
@@ -196,6 +225,7 @@ static InitFunction initFunction([]()
 
 				g_netLibrary->AddReliableHandler("msgRpcNative", [](const char* data, size_t len)
 				{
+					static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
 					std::shared_ptr<net::Buffer> buf = std::make_shared<net::Buffer>(reinterpret_cast<const uint8_t*>(data), len);
 
 					auto nativeHash = buf->Read<uint64_t>();
@@ -277,7 +307,15 @@ static InitFunction initFunction([]()
 							{
 							case RpcConfiguration::ArgumentType::Player:
 							{
-								buf->Read<uint8_t>();
+								if (icgi->NetProtoVersion >= 0x202103030422)
+								{
+									buf->Read<uint16_t>();
+								}
+								else
+								{
+									buf->Read<uint8_t>();
+								}
+
 								break;
 							}
 							case RpcConfiguration::ArgumentType::ObjRef:
@@ -316,8 +354,9 @@ static InitFunction initFunction([]()
 							case RpcConfiguration::ArgumentType::Hash:
 							{
 								uint32_t hash = buf->Read<int>();
+								rage::fwModelId idx; // unused
 
-								if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
+								if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate || rage::fwArchetypeManager::GetArchetypeFromHashKey(hash, idx))
 								{
 									ntq->Enqueue([=]()
 									{
@@ -404,8 +443,23 @@ static InitFunction initFunction([]()
 								{
 								case RpcConfiguration::ArgumentType::Player:
 								{
-									int id = buf->Read<uint8_t>();
-									executionCtx->Push(uint32_t(id));
+									if (icgi->NetProtoVersion >= 0x202103030422)
+									{
+										uint32_t netId = buf->Read<uint16_t>();
+										auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, netId);
+
+										if (playerId == 0xFFFFFFFF)
+										{
+											return;
+										}
+
+										executionCtx->Push(playerId);
+									}
+									else
+									{
+										int id = buf->Read<uint8_t>();
+										executionCtx->Push(uint32_t(id));
+									}
 
 									break;
 								}
@@ -462,7 +516,15 @@ static InitFunction initFunction([]()
 
 							if (n)
 							{
-								(*n)(*executionCtx);
+								try
+								{
+									(*n)(*executionCtx);
+								}
+								catch (std::exception& e)
+								{
+									trace("failure executing native rpc: %s\n", e.what());
+									return;
+								}
 
 								if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 								{
