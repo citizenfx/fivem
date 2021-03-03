@@ -2,13 +2,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # Victor Lellis <victorlwernay@gmail.com>, 2020.
+# Antonio Santos <muawayatuatu156@gmail.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-12-04 14:03+0000\n"
-"Last-Translator: Victor Lellis <victorlwernay@gmail.com>\n"
+"PO-Revision-Date: 2021-01-25 07:09+0000\n"
+"Last-Translator: Antonio Santos <muawayatuatu156@gmail.com>\n"
 "Language-Team: Portuguese <http://translations.cfx.re/projects/citizenfx/"
 "client/pt/>\n"
 "Language: pt\n"
@@ -54,7 +55,7 @@ msgstr ""
 msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
 msgstr ""
 "%s fez com que %s parasse de funcionar. O relatório de crash está sendo "
-"enviado para os %s desenvolvedores."
+"enviado para os desenvolvedores do %s."
 
 #: client/launcher/Main.cpp:510
 #, c-format
@@ -165,7 +166,7 @@ msgstr "Extraindo %s (digitalizando)"
 
 #: client/launcher/MiniDump.cpp:1189
 msgid "FiveM crashed... but we're on it!"
-msgstr ""
+msgstr "O FiveM travou... mas já estamos de olho!"
 
 #: client/launcher/Main.cpp:491
 msgid ""
@@ -193,7 +194,7 @@ msgstr ""
 #: client/launcher/MiniDump.cpp:339
 #, c-format
 msgid "RAGE error: %s"
-msgstr "RAGE erro: %s"
+msgstr "Erro do RAGE: %s"
 
 #: client/launcher/MiniDump.cpp:1267
 msgid ""
