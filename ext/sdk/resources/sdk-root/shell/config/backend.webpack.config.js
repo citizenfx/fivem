@@ -11,6 +11,7 @@ const buildServerPath = path.join(__dirname, '../build_server');
 module.exports = (env, args) => {
   const isProd = args.mode === 'production' || env === 'production';
   const sentryAuthToken = sentry.getSentryAuthToken(isProd);
+  const sentryRelease = sentry.getSentryRelease(isProd);
 
   return {
     target: 'node',
@@ -59,6 +60,7 @@ module.exports = (env, args) => {
       sentryAuthToken && new SentryWebpackPlugin({
         url: 'https://sentry.fivem.net/',
         authToken: sentryAuthToken,
+        release: sentryRelease,
         org: "citizenfx",
         project: "fxdk-backend",
 

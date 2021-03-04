@@ -56,6 +56,7 @@ module.exports = function(webpackEnv) {
   const isEnvProduction = webpackEnv === 'production';
 
   const sentryAuthToken = sentry.getSentryAuthToken(isEnvProduction);
+  const sentryRelease = sentry.getSentryRelease(isProd);
 
   // Variable used for enabling profiling in Production
   // passed into alias object. Uses a flag if passed into the build command
@@ -660,6 +661,7 @@ module.exports = function(webpackEnv) {
         sentryAuthToken && new SentryWebpackPlugin({
           url: 'https://sentry.fivem.net/',
           authToken: sentryAuthToken,
+          release: sentryRelease,
           org: "citizenfx",
           project: "fxdk",
           include: path.join(__dirname, '../build'),
