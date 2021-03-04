@@ -328,7 +328,7 @@ static InitFunction initFunction([]()
 			auto client = clientRegistry->GetClientByConnectionToken(tokenIt->second);
 			if (!client)
 			{
-				cb(json{ false });
+				cb(false);
 			}
 			else
 			{
