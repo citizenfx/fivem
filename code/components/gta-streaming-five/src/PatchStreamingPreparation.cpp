@@ -336,16 +336,20 @@ static void ProcessRemoval()
 	}
 
 	std::list<uint32_t> r;
+	auto str = streaming::Manager::GetInstance();
 
 	while (g_removalQueue.try_pop(r))
 	{
 		for (auto i : r)
 		{
 			// ClearRequiredFlag
-			streaming::Manager::GetInstance()->ReleaseObject(i, 0xF1);
+			str->ReleaseObject(i, 0xF1);
+
+			// unmark as dependent (safe, as `r` should contain all dependents)
+			str->Entries[i].flags &= ~0xFFFC;
 
 			// RemoveObject
-			streaming::Manager::GetInstance()->ReleaseObject(i);
+			str->ReleaseObject(i);
 		}
 	}
 
