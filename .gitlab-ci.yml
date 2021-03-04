@@ -34,6 +34,21 @@ build_client:
   except:
     - server-ci
     - tags
+    
+build_sdk:
+  stage: build
+  tags:
+    - sdk
+  artifacts:
+    paths:
+      - caches/diff/
+      - caches/caches_sdk.xml
+  cache:
+    key: sdk
+  except:
+    - tags
+  script:
+    - ".\\code\\tools\\ci\\build_sdk.ps1"
 
 build_client_rdr3:
   <<: *build_windows
@@ -60,6 +75,7 @@ build_client_rdr3:
   except:
     - server-ci
     - tags
+    - fxdk-releng
     
 build_launcher:
   <<: *build_windows
@@ -86,6 +102,7 @@ build_launcher:
     - master
     - server-ci
     - tags
+    - fxdk-releng
 
 build_server_windows:
   <<: *build_windows
@@ -101,10 +118,7 @@ build_server_windows:
       - out/server.7z
   except:
     - tags
-    #- master
-    - feature/update-to-1365
-    #- portability-rdr3
-    #- feature/update-to-1493
+    - fxdk-releng
   cache:
     key: server
     untracked: true
@@ -130,6 +144,7 @@ build_proot_linux:
     - feature/cloning-stuff-releng
     - feature/cloning-plus
     - portability-rdr3
+    - fxdk-releng
   tags:
     - linux
 
@@ -137,6 +152,8 @@ deploy_specific:
   stage: deploy
   needs:
     - job: build_client
+      artifacts: true
+    - job: build_sdk
       artifacts: true
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
@@ -176,6 +193,7 @@ deploy_rdr3_specific:
     - master
     - server-ci
     - tags
+    - fxdk-releng
 
 upload_review:
   stage: postdeploy
@@ -197,6 +215,8 @@ deploy_canary:
     GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   needs:
     - job: build_client
+      artifacts: true
+    - job: build_sdk
       artifacts: true
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
@@ -250,6 +270,8 @@ deploy_prod:
     GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   needs:
     - job: build_client
+      artifacts: true
+    - job: build_sdk
       artifacts: true
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"

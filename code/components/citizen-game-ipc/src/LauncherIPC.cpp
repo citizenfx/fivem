@@ -32,6 +32,12 @@ namespace ipc
 				repSock = {};
 			}
 		}
+
+		if (repSock)
+		{
+			nng::set_opt_send_buffer(repSock, 2048);
+			nng::set_opt_recv_buffer(repSock, 2048);
+		}
 	}
 
 	void Endpoint::RunFrame()

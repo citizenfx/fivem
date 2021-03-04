@@ -1,0 +1,162 @@
+@import "variables";
+
+.root {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: $bgColor;
+
+  transition: backgroun-color .5s ease;
+
+  z-index: 1000;
+
+  &.shrimp {
+    background-color: rgba($bgColor, .5);
+
+    .content {
+      box-shadow: 0 0 0 $q/2 $borderColor;
+
+      .title ul {
+        animation: none;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .content {
+    flex-grow: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+
+    height: calc(100% - #{$q*20});
+    max-width: 60vw;
+
+    padding: $q*4;
+
+    background-color: $bgColor;
+
+    .title {
+      @include fontPrimary;
+
+      $itemHeight: $q*12;
+      $itemsCount: 9;
+
+      width: 100%;
+      height: $itemHeight;
+      position: relative;
+
+      // background-color: red;
+
+      &::after {
+        position: absolute;
+        content: '';
+        display: block;
+
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+
+        box-shadow: 0 $q*2 $q*2 $q*-2 $bgColor inset, 0 $q*-2 $q*2 $q*-2 $bgColor inset;
+
+        z-index: 2;
+      }
+
+      overflow: hidden;
+
+      ul {
+        @keyframes scroll {
+          0% {
+            transform: translateY(0);
+          }
+          100% {
+            transform: translateY(-1 * $itemsCount * $itemHeight);
+          }
+        }
+
+        animation: scroll 45s linear;
+        animation-iteration-count: infinite;
+
+        position: absolute;
+
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+
+        list-style: none;
+
+        li {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          height: $itemHeight;
+        }
+      }
+    }
+
+    .progress {
+      height: $q;
+
+      position: relative;
+
+      margin-top: $q*4;
+
+      background-color: rgba($acColor, .25);
+
+      .bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+
+        background-color: $acColor;
+
+        transition: width .1s linear;
+      }
+    }
+
+    .current-file-name {
+      text-align: right;
+      margin-top: $q;
+
+      height: $fs08;
+      line-height: 1;
+
+      font-size: $fs08;
+      color: rgba($fgColor, .5);
+
+      margin-bottom: $q*10;
+    }
+
+    .changelog {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .actions {
+      display: none;
+    }
+  }
+}

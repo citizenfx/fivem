@@ -1,0 +1,78 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+
+  cursor: pointer;
+
+  @include interactiveTransition;
+
+  &:hover {
+    background-color: rgba($fgColor, .1);
+
+    .actions {
+      opacity: 1;
+    }
+  }
+
+  .content {
+    flex-grow: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: stretch;
+
+    @include interactiveTransition;
+
+    &:hover {
+      background-color: rgba($acColor, 1);
+    }
+
+    .icon {
+      padding: $q*2 $q*4;
+      padding-right: 0;
+
+      svg {
+        font-size: $fs2;
+      }
+    }
+
+    .info {
+      flex-grow: 1;
+
+      padding: $q*2 $q*4;
+
+      .name {
+        font-size: 1.2rem;
+      }
+
+      .path {
+        padding-top: $q;
+
+        font-size: .8rem;
+        color: rgba($fgColor, .5);
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+
+    opacity: 0;
+
+    button {
+      height: 100%;
+
+      @include interactiveTransition;
+
+      &:hover {
+        color: $fgColor;
+        background-color: rgba($acColor, 1);
+      }
+    }
+  }
+}

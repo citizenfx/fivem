@@ -1,0 +1,118 @@
+@import "variables";
+
+// Matching theia bottom-bar height
+$height: 18px;
+$maxHeight: 15vh;
+
+.root {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+
+  background-color: rgba($fgColor, .05);
+
+  cursor: pointer;
+
+  transition: all .2s ease;
+
+  &.with-bar {
+    height: $height;
+
+    .bar {
+      display: flex;
+    }
+  }
+
+  &.open {
+    height: $maxHeight;
+  }
+
+  .bar {
+    flex-shrink: 0;
+
+    display: none;
+    align-items: center;
+    justify-content: flex-start;
+
+    height: $height;
+
+    color: rgba($fgColor, .75);
+    font-size: $fs08;
+    font-weight: 100;
+
+    .indicator {
+      margin-left: $q*2;
+    }
+
+    .title {
+      flex-grow: 1;
+
+      margin-left: $q*2;
+
+      span {
+        width: 100%;
+
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  .details {
+    flex-grow: 1;
+
+    overflow-y: auto;
+  }
+
+  .task {
+    position: relative;
+
+    // Just to enable content z-index
+    display: flex;
+
+    padding: $q $q*2;
+
+    font-weight: 100;
+
+    &:nth-child(odd) {
+      background-color: rgba($fgColor, .05);
+    }
+
+    .progress {
+      position: absolute;
+
+      top: 0;
+      left: 0;
+      bottom: 0;
+
+      background-color: $acColor;
+
+      transition: width .2s linear;
+
+      z-index: 1;
+    }
+
+    .content {
+      z-index: 2;
+
+      .title {
+        @include fontPrimary;
+
+        color: rgba($fgColor, .75);
+        font-size: $fs08;
+        font-weight: 100;
+      }
+
+      .text {
+        font-size: $fs08;
+        color: rgba($fgColor, .5);
+
+        margin-top: $q;
+      }
+    }
+  }
+}

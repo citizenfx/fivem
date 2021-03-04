@@ -1,0 +1,62 @@
+@import "variables";
+
+.root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 2000;
+
+  &.full-width {
+    .content {
+      width: 60vw;
+    }
+  }
+
+  .backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    background-color: rgba($bgColor, .8);
+
+    z-index: 1;
+  }
+
+  .content {
+    max-width: 60vw;
+    min-width: 30vw;
+    max-height: calc(#{$modalContentHeight} + 4px);
+    overflow-y: auto;
+
+    border: solid 2px rgba($fgColor, .5);
+
+    background-color: $bgColor;
+
+    z-index: 2;
+
+    @keyframes appearance {
+      0% {
+        opacity: 0;
+        transform: scale(.9);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    animation: appearance .2s ease;
+
+    & > * {
+      overflow: hidden;
+    }
+  }
+}

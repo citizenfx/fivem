@@ -30,6 +30,8 @@
 
 #include <GameAudioState.h>
 
+#include <CL2LaunchMode.h>
+
 static concurrency::concurrent_queue<std::function<void()>> g_mainQueue;
 
 namespace rage
@@ -1875,14 +1877,20 @@ static InitFunction initFunction([]()
 		{
 			bool active = nui::HasMainUI() && (!netLibrary || netLibrary->GetConnectionState() == NetLibrary::CS_IDLE) && !arenaWarVariable.GetValue();
 
-			if (arenaWarVariableForce.GetValue())
-			{
-				active = true;
-			}
-
-			if (ShouldMuteGameAudio())
-			{
+			if (launch::IsSDKGuest()) {
 				active = false;
+			}
+			else
+			{
+				if (arenaWarVariableForce.GetValue())
+				{
+					active = true;
+				}
+
+				if (ShouldMuteGameAudio())
+				{
+					active = false;
+				}
 			}
 
 #if SMTEST

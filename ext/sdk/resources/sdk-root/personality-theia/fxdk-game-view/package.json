@@ -1,0 +1,29 @@
+{
+  "name": "fxdk-game-view",
+  "keywords": [
+    "theia-extension"
+  ],
+  "version": "0.0.0",
+  "license": "MIT",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "dependencies": {
+    "@theia/core": "1.10.0"
+  },
+  "devDependencies": {
+    "rimraf": "latest",
+    "typescript": "^4.0.2"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "yarn clean && tsc",
+    "watch": "tsc -w"
+  },
+  "theiaExtensions": [
+    {
+      "frontend": "lib/browser/fxdk-game-view-frontend-module"
+    }
+  ]
+}

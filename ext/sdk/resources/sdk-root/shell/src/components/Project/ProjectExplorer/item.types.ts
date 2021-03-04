@@ -1,0 +1,19 @@
+import { FilesystemEntry } from "shared/api.types";
+
+
+export const projectExplorerItemType = {
+  FILE: 'projectExplorer:file',
+  FOLDER: 'projectExplorer:folder',
+};
+
+export interface NativeDropItem {
+  files: (File & { path: string })[],
+}
+
+export interface FxDKDropItem {
+  entry?: FilesystemEntry,
+  type: string | Symbol,
+}
+export type EntryMoveItem =
+  | NativeDropItem
+  | FxDKDropItem;

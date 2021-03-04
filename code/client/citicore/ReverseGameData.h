@@ -31,8 +31,12 @@ struct ReverseGameData
 
 	HWND mainWindowHandle;
 
+	uint32_t fpsLimit;
+
+	uint16_t inputChar;
+
 	ReverseGameData()
-		: mouseX(0), mouseY(0), mouseWheel(0), mouseButtons(0), inputMutex(NULL), produceSema(NULL), consumeSema(NULL), surfaceLimit(0), produceIdx(0), consumeIdx(0), inited(false), isLauncher(false), editWidth(false)
+		: mouseX(0), mouseY(0), mouseWheel(0), mouseButtons(0), inputMutex(NULL), produceSema(NULL), consumeSema(NULL), surfaceLimit(0), produceIdx(0), consumeIdx(0), inited(false), isLauncher(false), editWidth(false), fpsLimit(0)
 	{
 		memset(keyboardState, 0, sizeof(keyboardState));
 		memset(surfaces, 0, sizeof(surfaces));

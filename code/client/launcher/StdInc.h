@@ -37,7 +37,7 @@ bool UI_IsCanceled();
 HWND UI_GetWindowHandle();
 
 // updater functions
-bool Updater_RunUpdate(int numCaches, ...);
+bool Updater_RunUpdate(std::initializer_list<std::string> wantedCaches);
 const char* GetUpdateChannel();
 
 #include <array>

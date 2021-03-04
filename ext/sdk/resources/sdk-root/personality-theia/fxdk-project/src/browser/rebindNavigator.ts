@@ -1,0 +1,541 @@
+import { inject, injectable, postConstruct, interfaces } from 'inversify';
+// import { AbstractViewContribution } from '@theia/core/lib/browser/shell/view-contribution';
+import {
+  // CommonCommands,
+  // CompositeTreeNode,
+  FrontendApplication,
+  FrontendApplicationContribution,
+  KeybindingContribution,
+  KeybindingRegistry,
+  // Navigatable,
+  OpenerService,
+  // PreferenceScope,
+  PreferenceService,
+  // SelectableTreeNode,
+  // SHELL_TABBAR_CONTEXT_MENU,
+  Widget
+} from '@theia/core/lib/browser';
+// import { FileDownloadCommands } from '@theia/filesystem/lib/browser/download/file-download-command-contribution';
+import {
+  CommandRegistry,
+  DisposableCollection,
+  // isOSX,
+  MenuModelRegistry,
+  Mutable,
+  // isWindows,
+  CommandContribution,
+  MenuContribution
+} from '@theia/core/lib/common';
+import {
+  DidCreateNewResourceEvent,
+  WorkspaceCommandContribution,
+  // WorkspaceCommands,
+  WorkspacePreferences,
+  WorkspaceService
+} from '@theia/workspace/lib/browser';
+import {
+  TabBarToolbarContribution,
+  TabBarToolbarItem,
+  TabBarToolbarRegistry
+} from '@theia/core/lib/browser/shell/tab-bar-toolbar';
+// import { FileSystemCommands } from '@theia/filesystem/lib/browser/filesystem-frontend-contribution';
+// import { UriSelection } from '@theia/core/lib/common/selection';
+import { ClipboardService } from '@theia/core/lib/browser/clipboard-service';
+import { SelectionService } from '@theia/core/lib/common/selection-service';
+// import { UriAwareCommandHandler } from '@theia/core/lib/common/uri-command-handler';
+// import URI from '@theia/core/lib/common/uri';
+import { /*DirNode,*/ FileNode } from '@theia/filesystem/lib/browser';
+
+import { /*EXPLORER_VIEW_CONTAINER_ID, FILE_NAVIGATOR_ID,*/ FileNavigatorWidget } from '@theia/navigator/lib/browser/navigator-widget';
+import { FileNavigatorPreferences } from '@theia/navigator/lib/browser/navigator-preferences';
+// import { NavigatorKeybindingContexts } from '@theia/navigator/lib/browser/navigator-keybinding-context';
+import { FileNavigatorFilter } from '@theia/navigator/lib/browser/navigator-filter';
+// import { WorkspaceNode } from '@theia/navigator/lib/browser/navigator-tree';
+import { NavigatorContextKeyService } from '@theia/navigator/lib/browser/navigator-context-key-service';
+import { NavigatorDiff/*, NavigatorDiffCommands*/ } from '@theia/navigator/lib/browser/navigator-diff';
+// import { FileNavigatorModel } from '@theia/navigator/lib/browser/navigator-model';
+
+import {
+  FileNavigatorContribution,
+  // FileNavigatorCommands,
+  // NavigatorMoreToolbarGroups,
+  // NAVIGATOR_CONTEXT_MENU,
+  // NavigatorContextMenu,
+} from '@theia/navigator/lib/browser/navigator-contribution';
+
+
+@injectable()
+export class FxdkFileNavigatorContribution implements FrontendApplicationContribution, TabBarToolbarContribution, CommandContribution, MenuContribution, KeybindingContribution {
+
+  @inject(ClipboardService)
+  protected readonly clipboardService: ClipboardService;
+
+  @inject(CommandRegistry)
+  protected readonly commandRegistry: CommandRegistry;
+
+  @inject(TabBarToolbarRegistry)
+  protected readonly tabbarToolbarRegistry: TabBarToolbarRegistry;
+
+  @inject(NavigatorContextKeyService)
+  protected readonly contextKeyService: NavigatorContextKeyService;
+
+  @inject(MenuModelRegistry)
+  protected readonly menuRegistry: MenuModelRegistry;
+
+  @inject(NavigatorDiff)
+  protected readonly navigatorDiff: NavigatorDiff;
+
+  @inject(PreferenceService)
+  protected readonly preferenceService: PreferenceService;
+
+  @inject(SelectionService)
+  protected readonly selectionService: SelectionService;
+
+  @inject(WorkspaceCommandContribution)
+  protected readonly workspaceCommandContribution: WorkspaceCommandContribution;
+
+  constructor(
+    @inject(FileNavigatorPreferences) protected readonly fileNavigatorPreferences: FileNavigatorPreferences,
+    @inject(OpenerService) protected readonly openerService: OpenerService,
+    @inject(FileNavigatorFilter) protected readonly fileNavigatorFilter: FileNavigatorFilter,
+    @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
+    @inject(WorkspacePreferences) protected readonly workspacePreferences: WorkspacePreferences
+  ) {
+    // super({
+    //   viewContainerId: EXPLORER_VIEW_CONTAINER_ID,
+    //   widgetId: FILE_NAVIGATOR_ID,
+    //   widgetName: 'Explorer',
+    //   defaultWidgetOptions: {
+    //     // area: 'left',
+    //     // rank: 100
+    //   },
+    //   // toggleCommandId: 'fileNavigator:toggle',
+    //   // toggleKeybinding: 'ctrlcmd+shift+e'
+    // });
+  }
+
+  @postConstruct()
+  protected async init(): Promise<void> {
+    await this.fileNavigatorPreferences.ready;
+    // this.shell.currentChanged.connect(() => this.onCurrentWidgetChangedHandler());
+
+    // const updateFocusContextKeys = () => {
+    //   // const hasFocus = this.shell.activeWidget instanceof FileNavigatorWidget;
+    //   // this.contextKeyService.explorerViewletFocus.set(hasFocus);
+    //   // this.contextKeyService.filesExplorerFocus.set(hasFocus);
+    // };
+    // updateFocusContextKeys();
+    // this.shell.activeChanged.connect(updateFocusContextKeys);
+    this.workspaceCommandContribution.onDidCreateNewFile(async event => this.onDidCreateNewResource(event));
+    this.workspaceCommandContribution.onDidCreateNewFolder(async event => this.onDidCreateNewResource(event));
+  }
+
+  private async onDidCreateNewResource(event: DidCreateNewResourceEvent): Promise<void> {
+    return;
+    // const navigator = this.tryGetWidget();
+    // if (!navigator || !navigator.isVisible) {
+    //   return;
+    // }
+    // const model: FileNavigatorModel = navigator.model;
+    // const parent = await model.revealFile(event.parent);
+    // if (DirNode.is(parent)) {
+    //   await model.refresh(parent);
+    // }
+    // const node = await model.revealFile(event.uri);
+    // if (SelectableTreeNode.is(node)) {
+    //   model.selectNode(node);
+    //   if (DirNode.is(node)) {
+    //     this.openView({ activate: true });
+    //   }
+    // }
+  }
+
+  async onStart(app: FrontendApplication): Promise<void> {
+    this.workspacePreferences.ready.then(() => {
+      this.updateAddRemoveFolderActions(this.menuRegistry);
+      this.workspacePreferences.onPreferenceChanged(change => {
+        if (change.preferenceName === 'workspace.supportMultiRootWorkspace') {
+          this.updateAddRemoveFolderActions(this.menuRegistry);
+        }
+      });
+    });
+  }
+
+  async initializeLayout(app: FrontendApplication): Promise<void> {
+    // await this.openView();
+  }
+
+  registerCommands(registry: CommandRegistry): void {
+    // super.registerCommands(registry);
+    return;
+    // registry.registerCommand(FileNavigatorCommands.FOCUS, {
+    //   execute: () => this.openView({ activate: true })
+    // });
+    // registry.registerCommand(FileNavigatorCommands.REVEAL_IN_NAVIGATOR, {
+    //   execute: () => this.openView({ activate: true }).then(() => this.selectWidgetFileNode(this.shell.currentWidget)),
+    //   isEnabled: () => Navigatable.is(this.shell.currentWidget),
+    //   isVisible: () => Navigatable.is(this.shell.currentWidget)
+    // });
+    // registry.registerCommand(FileNavigatorCommands.TOGGLE_HIDDEN_FILES, {
+    //   execute: () => {
+    //     this.fileNavigatorFilter.toggleHiddenFiles();
+    //   },
+    //   isEnabled: () => true,
+    //   isVisible: () => true
+    // });
+    // registry.registerCommand(FileNavigatorCommands.TOGGLE_AUTO_REVEAL, {
+    //   isEnabled: widget => this.withWidget(widget, () => this.workspaceService.opened),
+    //   isVisible: widget => this.withWidget(widget, () => this.workspaceService.opened),
+    //   execute: () => {
+    //     const autoReveal = !this.fileNavigatorPreferences['explorer.autoReveal'];
+    //     this.preferenceService.set('explorer.autoReveal', autoReveal, PreferenceScope.User);
+    //     if (autoReveal) {
+    //       this.selectWidgetFileNode(this.shell.currentWidget);
+    //     }
+    //   },
+    //   isToggled: () => this.fileNavigatorPreferences['explorer.autoReveal']
+    // });
+    // registry.registerCommand(FileNavigatorCommands.COLLAPSE_ALL, {
+    //   execute: widget => this.withWidget(widget, () => this.collapseFileNavigatorTree()),
+    //   isEnabled: widget => this.withWidget(widget, () => this.workspaceService.opened),
+    //   isVisible: widget => this.withWidget(widget, () => this.workspaceService.opened)
+    // });
+    // registry.registerCommand(FileNavigatorCommands.REFRESH_NAVIGATOR, {
+    //   execute: widget => this.withWidget(widget, () => this.refreshWorkspace()),
+    //   isEnabled: widget => this.withWidget(widget, () => this.workspaceService.opened),
+    //   isVisible: widget => this.withWidget(widget, () => this.workspaceService.opened)
+    // });
+    // registry.registerCommand(FileNavigatorCommands.ADD_ROOT_FOLDER, {
+    //   execute: (...args) => registry.executeCommand(WorkspaceCommands.ADD_FOLDER.id, ...args),
+    //   isEnabled: (...args) => registry.isEnabled(WorkspaceCommands.ADD_FOLDER.id, ...args),
+    //   isVisible: (...args) => {
+    //     if (!registry.isVisible(WorkspaceCommands.ADD_FOLDER.id, ...args)) {
+    //       return false;
+    //     }
+    //     const navigator = this.tryGetWidget();
+    //     const model = navigator && navigator.model;
+    //     const uris = UriSelection.getUris(model && model.selectedNodes);
+    //     return this.workspaceService.areWorkspaceRoots(uris);
+    //   }
+    // });
+
+    // registry.registerCommand(NavigatorDiffCommands.COMPARE_FIRST, {
+    //   execute: () => {
+    //     this.navigatorDiff.addFirstComparisonFile();
+    //   },
+    //   isEnabled: () => true,
+    //   isVisible: () => true
+    // });
+    // registry.registerCommand(NavigatorDiffCommands.COMPARE_SECOND, {
+    //   execute: () => {
+    //     this.navigatorDiff.compareFiles();
+    //   },
+    //   isEnabled: () => this.navigatorDiff.isFirstFileSelected,
+    //   isVisible: () => this.navigatorDiff.isFirstFileSelected
+    // });
+    // registry.registerCommand(FileNavigatorCommands.COPY_RELATIVE_FILE_PATH, new UriAwareCommandHandler<URI[]>(this.selectionService, {
+    //   isEnabled: uris => !!uris.length,
+    //   isVisible: uris => !!uris.length,
+    //   execute: async uris => {
+    //     const lineDelimiter = isWindows ? '\r\n' : '\n';
+    //     const text = uris.map((uri: URI) => {
+    //       const workspaceRoot = this.workspaceService.getWorkspaceRootUri(uri);
+    //       if (workspaceRoot) {
+    //         return workspaceRoot.relative(uri);
+    //       }
+    //     }).join(lineDelimiter);
+    //     await this.clipboardService.writeText(text);
+    //   }
+    // }, { multi: true }));
+    // registry.registerCommand(FileNavigatorCommands.OPEN, {
+    //   isEnabled: () => this.getSelectedFileNodes().length > 0,
+    //   isVisible: () => this.getSelectedFileNodes().length > 0,
+    //   execute: () => {
+    //     this.getSelectedFileNodes().forEach(async node => {
+    //       const opener = await this.openerService.getOpener(node.uri);
+    //       opener.open(node.uri);
+    //     });
+    //   }
+    // });
+  }
+
+  protected getSelectedFileNodes(): FileNode[] {
+    return [];
+    // return this.tryGetWidget()?.model.selectedNodes.filter(FileNode.is) || [];
+  }
+
+  // protected withWidget<T>(widget: Widget | undefined = this.tryGetWidget(), cb: (navigator: FileNavigatorWidget) => T): T | false {
+  //   if (widget instanceof FileNavigatorWidget && widget.id === FILE_NAVIGATOR_ID) {
+  //     return cb(widget);
+  //   }
+  //   return false;
+  // }
+
+  registerMenus(registry: MenuModelRegistry): void {
+    // super.registerMenus(registry);
+
+    return;
+
+    // registry.registerMenuAction(SHELL_TABBAR_CONTEXT_MENU, {
+    //   commandId: FileNavigatorCommands.REVEAL_IN_NAVIGATOR.id,
+    //   label: FileNavigatorCommands.REVEAL_IN_NAVIGATOR.label,
+    //   order: '5'
+    // });
+
+    // registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+    //   commandId: FileNavigatorCommands.OPEN.id,
+    //   label: 'Open'
+    // });
+    // registry.registerSubmenu(NavigatorContextMenu.OPEN_WITH, 'Open With');
+    // this.openerService.getOpeners().then(openers => {
+    //   for (const opener of openers) {
+    //     const openWithCommand = WorkspaceCommands.FILE_OPEN_WITH(opener);
+    //     registry.registerMenuAction(NavigatorContextMenu.OPEN_WITH, {
+    //       commandId: openWithCommand.id,
+    //       label: opener.label,
+    //       icon: opener.iconClass
+    //     });
+    //   }
+    // });
+
+    // // registry.registerMenuAction([CONTEXT_MENU_PATH, CUT_MENU_GROUP], {
+    // //     commandId: Commands.FILE_CUT
+    // // });
+
+    // registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
+    //   commandId: CommonCommands.COPY.id,
+    //   order: 'a'
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
+    //   commandId: CommonCommands.PASTE.id,
+    //   order: 'b'
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
+    //   commandId: CommonCommands.COPY_PATH.id,
+    //   order: 'c'
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
+    //   commandId: FileNavigatorCommands.COPY_RELATIVE_FILE_PATH.id,
+    //   label: 'Copy Relative Path',
+    //   order: 'd'
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
+    //   commandId: FileDownloadCommands.COPY_DOWNLOAD_LINK.id,
+    //   order: 'z'
+    // });
+
+    // registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
+    //   commandId: WorkspaceCommands.FILE_RENAME.id
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
+    //   commandId: WorkspaceCommands.FILE_DELETE.id
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
+    //   commandId: WorkspaceCommands.FILE_DUPLICATE.id
+    // });
+
+    // const downloadUploadMenu = [...NAVIGATOR_CONTEXT_MENU, '6_downloadupload'];
+    // registry.registerMenuAction(downloadUploadMenu, {
+    //   commandId: FileSystemCommands.UPLOAD.id,
+    //   order: 'a'
+    // });
+    // registry.registerMenuAction(downloadUploadMenu, {
+    //   commandId: FileDownloadCommands.DOWNLOAD.id,
+    //   order: 'b'
+    // });
+
+    // registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+    //   commandId: WorkspaceCommands.NEW_FILE.id
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.NAVIGATION, {
+    //   commandId: WorkspaceCommands.NEW_FOLDER.id
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.COMPARE, {
+    //   commandId: WorkspaceCommands.FILE_COMPARE.id
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
+    //   commandId: FileNavigatorCommands.COLLAPSE_ALL.id,
+    //   label: 'Collapse All',
+    //   order: 'z2'
+    // });
+
+    // registry.registerMenuAction(NavigatorContextMenu.COMPARE, {
+    //   commandId: NavigatorDiffCommands.COMPARE_FIRST.id,
+    //   order: 'z'
+    // });
+    // registry.registerMenuAction(NavigatorContextMenu.COMPARE, {
+    //   commandId: NavigatorDiffCommands.COMPARE_SECOND.id,
+    //   order: 'z'
+    // });
+  }
+
+  registerKeybindings(registry: KeybindingRegistry): void {
+    // super.registerKeybindings(registry);
+    return;
+    // registry.registerKeybinding({
+    //   command: FileNavigatorCommands.REVEAL_IN_NAVIGATOR.id,
+    //   keybinding: 'alt+r'
+    // });
+
+    // registry.registerKeybinding({
+    //   command: WorkspaceCommands.FILE_DELETE.id,
+    //   keybinding: isOSX ? 'cmd+backspace' : 'del',
+    //   context: NavigatorKeybindingContexts.navigatorActive
+    // });
+
+    // registry.registerKeybinding({
+    //   command: WorkspaceCommands.FILE_RENAME.id,
+    //   keybinding: 'f2',
+    //   context: NavigatorKeybindingContexts.navigatorActive
+    // });
+
+    // registry.registerKeybinding({
+    //   command: FileNavigatorCommands.TOGGLE_HIDDEN_FILES.id,
+    //   keybinding: 'ctrlcmd+i',
+    //   context: NavigatorKeybindingContexts.navigatorActive
+    // });
+
+    // registry.registerKeybinding({
+    //   command: FileNavigatorCommands.COPY_RELATIVE_FILE_PATH.id,
+    //   keybinding: isWindows ? 'ctrl+k ctrl+shift+c' : 'ctrlcmd+shift+alt+c',
+    //   when: '!editorFocus'
+    // });
+  }
+
+  async registerToolbarItems(toolbarRegistry: TabBarToolbarRegistry): Promise<void> {
+    return;
+    // toolbarRegistry.registerItem({
+    //   id: FileNavigatorCommands.REFRESH_NAVIGATOR.id,
+    //   command: FileNavigatorCommands.REFRESH_NAVIGATOR.id,
+    //   tooltip: 'Refresh Explorer',
+    //   priority: 0,
+    // });
+    // toolbarRegistry.registerItem({
+    //   id: FileNavigatorCommands.COLLAPSE_ALL.id,
+    //   command: FileNavigatorCommands.COLLAPSE_ALL.id,
+    //   tooltip: 'Collapse All',
+    //   priority: 1,
+    // });
+    // this.registerMoreToolbarItem({
+    //   id: WorkspaceCommands.NEW_FILE.id,
+    //   command: WorkspaceCommands.NEW_FILE.id,
+    //   tooltip: WorkspaceCommands.NEW_FILE.label,
+    //   group: NavigatorMoreToolbarGroups.NEW_OPEN,
+    // });
+    // this.registerMoreToolbarItem({
+    //   id: WorkspaceCommands.NEW_FOLDER.id,
+    //   command: WorkspaceCommands.NEW_FOLDER.id,
+    //   tooltip: WorkspaceCommands.NEW_FOLDER.label,
+    //   group: NavigatorMoreToolbarGroups.NEW_OPEN,
+    // });
+    // this.registerMoreToolbarItem({
+    //   id: FileNavigatorCommands.TOGGLE_AUTO_REVEAL.id,
+    //   command: FileNavigatorCommands.TOGGLE_AUTO_REVEAL.id,
+    //   tooltip: FileNavigatorCommands.TOGGLE_AUTO_REVEAL.label,
+    //   group: NavigatorMoreToolbarGroups.TOOLS,
+    // });
+    // this.registerMoreToolbarItem({
+    //   id: WorkspaceCommands.ADD_FOLDER.id,
+    //   command: WorkspaceCommands.ADD_FOLDER.id,
+    //   tooltip: WorkspaceCommands.ADD_FOLDER.label,
+    //   group: NavigatorMoreToolbarGroups.WORKSPACE,
+    // });
+  }
+
+  /**
+   * Register commands to the `More Actions...` navigator toolbar item.
+   */
+  public registerMoreToolbarItem = (item: Mutable<TabBarToolbarItem>) => {
+    const commandId = item.command;
+    const id = 'navigator.tabbar.toolbar.' + commandId;
+    const command = this.commandRegistry.getCommand(commandId);
+    this.commandRegistry.registerCommand({ id, iconClass: command && command.iconClass }, {
+      execute: (w, ...args) => w instanceof FileNavigatorWidget
+        && this.commandRegistry.executeCommand(commandId, ...args),
+      isEnabled: (w, ...args) => w instanceof FileNavigatorWidget
+        && this.commandRegistry.isEnabled(commandId, ...args),
+      isVisible: (w, ...args) => w instanceof FileNavigatorWidget
+        && this.commandRegistry.isVisible(commandId, ...args),
+      isToggled: (w, ...args) => w instanceof FileNavigatorWidget
+        && this.commandRegistry.isToggled(commandId, ...args),
+    });
+    item.command = id;
+    this.tabbarToolbarRegistry.registerItem(item);
+  };
+
+  /**
+   * Reveals and selects node in the file navigator to which given widget is related.
+   * Does nothing if given widget undefined or doesn't have related resource.
+   *
+   * @param widget widget file resource of which should be revealed and selected
+   */
+  async selectWidgetFileNode(widget: Widget | undefined): Promise<void> {
+    // if (Navigatable.is(widget)) {
+    //   const resourceUri = widget.getResourceUri();
+    //   if (resourceUri) {
+    //     const { model } = await this.widget;
+    //     const node = await model.revealFile(resourceUri);
+    //     if (SelectableTreeNode.is(node)) {
+    //       model.selectNode(node);
+    //     }
+    //   }
+    // }
+  }
+
+  protected onCurrentWidgetChangedHandler(): void {
+    // if (this.fileNavigatorPreferences['explorer.autoReveal']) {
+    //   this.selectWidgetFileNode(this.shell.currentWidget);
+    // }
+  }
+
+  /**
+   * Collapse file navigator nodes and set focus on first visible node
+   * - single root workspace: collapse all nodes except root
+   * - multiple root workspace: collapse all nodes, even roots
+   */
+  async collapseFileNavigatorTree(): Promise<void> {
+    // const { model } = await this.widget;
+
+    // // collapse all child nodes which are not the root (single root workspace)
+    // // collapse all root nodes (multiple root workspace)
+    // let root = model.root as CompositeTreeNode;
+    // if (WorkspaceNode.is(root) && root.children.length === 1) {
+    //   root = root.children[0];
+    // }
+    // root.children.forEach(child => CompositeTreeNode.is(child) && model.collapseAll(child));
+
+    // // select first visible node
+    // const firstChild = WorkspaceNode.is(root) ? root.children[0] : root;
+    // if (SelectableTreeNode.is(firstChild)) {
+    //   model.selectNode(firstChild);
+    // }
+  }
+
+  /**
+   * force refresh workspace in navigator
+   */
+  async refreshWorkspace(): Promise<void> {
+    // const { model } = await this.widget;
+    // await model.refresh();
+  }
+
+  private readonly toDisposeAddRemoveFolderActions = new DisposableCollection();
+  private updateAddRemoveFolderActions(registry: MenuModelRegistry): void {
+    this.toDisposeAddRemoveFolderActions.dispose();
+    if (this.workspacePreferences['workspace.supportMultiRootWorkspace']) {
+      return;
+      // this.toDisposeAddRemoveFolderActions.push(registry.registerMenuAction(NavigatorContextMenu.WORKSPACE, {
+      //   commandId: FileNavigatorCommands.ADD_ROOT_FOLDER.id,
+      //   label: WorkspaceCommands.ADD_FOLDER.label!
+      // }));
+      // this.toDisposeAddRemoveFolderActions.push(registry.registerMenuAction(NavigatorContextMenu.WORKSPACE, {
+      //   commandId: WorkspaceCommands.REMOVE_FOLDER.id
+      // }));
+    }
+  }
+}
+
+export const rebindNavigator = (bind: interfaces.Bind, rebind: interfaces.Rebind) => {
+  bind(FxdkFileNavigatorContribution).toSelf().inSingletonScope();
+  rebind(FileNavigatorContribution).toService(FxdkFileNavigatorContribution as any);
+};

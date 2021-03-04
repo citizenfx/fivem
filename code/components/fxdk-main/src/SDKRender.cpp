@@ -119,7 +119,7 @@ static void CreateTextures(int width, int height)
 	bgfx::overrideInternal(m_frontTexture2, (uintptr_t)d3dTex.Get());
 	bgfx::updateTexture2D(m_frontTexture2, 0, 0, 0, 0, width, height, bgfx::copy(mem.data(), mem.size() * 4));
 
-	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandleFxDK");
 	handleData->width = width;
 	handleData->height = height;
 
@@ -201,7 +201,7 @@ void InitRender()
 	rgd->produceIdx = 1;
 }
 
-extern ipc::Endpoint& GetIPC();
+extern ipc::Endpoint& GetLauncherTalk();
 static bool widthChanged = false;
 
 void ResizeRender(int w, int h)
@@ -215,14 +215,14 @@ void ResizeRender(int w, int h)
 
 		widthChanged = true;
 
-		GetIPC().Call("resizeWindow", w, h);
+		GetLauncherTalk().Call("resizeWindow", w, h);
 	}
 }
 
 void Render()
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandleFxDK");
 	static bool inited;
 	static WRL::ComPtr<IDXGIKeyedMutex> mutexes[4];
 

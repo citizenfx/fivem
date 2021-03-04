@@ -1,0 +1,51 @@
+$fgColor: hsl(60, 100%, 97%);
+$bgColor: hsl(226, 23%, 11%);
+$acColor: #f40552;
+// $scColor: #00ac5c;
+$scColor: #05F4A7;
+$wrColor: #ffae00;
+$erColor: #ff2600;
+$blColor: #2F05F4;
+
+$borderColor: rgba($fgColor, .5);
+
+$fs08: .8rem;
+$fs1: 1rem;
+$fs2: 1.2rem;
+$fs3: 1.4rem;
+$fs4: 1.5rem;
+
+$q: 4px;
+
+$blurSize: 20px;
+
+$toolbarHeight: 32px;
+$toolbarWidth: 430px;
+$triggerWidth: 50px;
+$toolbarHeight: 32px;
+
+$modalContentHeight: 90vh;
+
+@mixin fontPrimary {
+  font-family: Rubik;
+  font-weight: 400;
+}
+
+@mixin fontSecondary {
+  font-family: Montserrat;
+  font-weight: 300;
+}
+
+@mixin interactiveTransition {
+  transition: all .2s ease;
+
+  &:hover {
+    transition: none;
+  }
+}
+
+@mixin ellipsis() {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

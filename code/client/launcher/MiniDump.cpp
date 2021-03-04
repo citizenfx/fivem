@@ -1496,7 +1496,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		auto thread = std::thread([=]()
 		{
-			if (shouldTerminate)
+			// Should not show taskdialog when in fxdk mode
+			if (shouldTerminate && !launch::IsSDKGuest())
 			{
 				TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
 			}

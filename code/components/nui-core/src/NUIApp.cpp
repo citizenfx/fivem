@@ -141,6 +141,29 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 		"unknown"
 #endif
 	), V8_PROPERTY_ATTRIBUTE_READONLY);
+
+
+	// FxDK API
+	{
+		std::vector<std::string> fxdkHandlers{
+			"resizeGame",
+			"sendMousePos",
+			"sendMouseWheel",
+			"setKeyState",
+			"setMouseButtonState",
+			"openDevTools",
+			"setFPSLimit",
+			"setInputChar",
+			"fxdkSendApiMessage",
+			"fxdkOpenSelectFolderDialog",
+			"fxdkOpenSelectFileDialog",
+		};
+
+		for (auto const& handler : fxdkHandlers)
+		{
+			window->SetValue(handler, CefV8Value::CreateFunction(handler, this), V8_PROPERTY_ATTRIBUTE_READONLY);
+		}
+	}
 }
 
 void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)

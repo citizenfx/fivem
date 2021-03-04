@@ -1,0 +1,136 @@
+@import "variables";
+
+.root {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  width: $toolbarWidth;
+  max-height: 100vh;
+
+  overflow-y: auto;
+
+  z-index: 3000;
+
+  .item {
+    position: relative;
+
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+
+    width: 100%;
+    overflow: hidden;
+
+    margin-top: 1px;
+
+    @include interactiveTransition;
+
+    backdrop-filter: blur($blurSize);
+    border-left: solid $q;
+
+    @keyframes appearance {
+      0% {
+        transform: translateY($q*2);
+      }
+      100% {
+        transform: translateY(0);
+      }
+    }
+
+    animation: appearance .2s linear;
+
+    .progress {
+      position: absolute;
+
+      left: 0;
+      bottom: 0;
+
+      height: $q/2;
+
+      background-color: rgba($fgColor, .5);
+
+      @keyframes shrimp {
+        0% {
+          width: 100%;
+        }
+        100% {
+          width: 0px;
+        }
+      }
+
+      animation-name: shrimp;
+      animation-timing-function: linear;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: stretch;
+
+      cursor: pointer;
+
+      .button {
+        flex-grow: 1;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: $q;
+
+        font-size: $q*4;
+
+        &:hover {
+          background-color: rgba($fgColor, .25);
+        }
+      }
+    }
+
+    .content {
+      flex-grow: 1;
+
+      display: flex;
+      align-items: center;
+      justify-content: stretch;
+
+      padding: $q*2;
+
+      .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        font-size: $fs1;
+      }
+
+      .text {
+        flex-grow: 1;
+
+        @include fontPrimary();
+        font-size: $fs08;
+
+        margin-left: $q*2;
+      }
+    }
+
+    &.info {
+      background-color: rgba($fgColor, .25);
+      border-color: $fgColor;
+    }
+
+    &.warning {
+      background-color: rgba($wrColor, .5);
+      border-color: $wrColor;
+    }
+
+    &.error {
+      background-color: rgba($erColor, .5);
+      border-color: $erColor;
+    }
+  }
+}

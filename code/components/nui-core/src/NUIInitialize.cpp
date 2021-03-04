@@ -112,7 +112,7 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 
 	// this gets called really frequently but do we want to do so here?
 	static HANDLE lastBackbufHandle;
-	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
 
 	if (handleData->handle != lastBackbufHandle)
 	{
@@ -140,7 +140,7 @@ static void BindGameRenderHandle()
 
 	auto m_display = _eglGetCurrentDisplay();
 
-	static HostSharedData<GameRenderData> handleData("CfxGameRenderHandle");
+	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
 
 	EGLint pbuffer_attributes[] = {
 		EGL_WIDTH, handleData->width,

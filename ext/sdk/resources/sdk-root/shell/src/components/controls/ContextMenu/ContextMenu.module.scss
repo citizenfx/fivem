@@ -1,0 +1,78 @@
+@import "variables";
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 1000;
+
+  .menu {
+    position: fixed;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+
+    border: solid 2px $acColor;
+    background-color: rgba($bgColor, .5);
+    backdrop-filter: blur($blurSize);
+
+    box-shadow: 0 0 $q*8 $bgColor;
+
+    pointer-events: all;
+
+    z-index: 1001;
+
+    .separator {
+      height: 1px;
+
+      margin: $q $q*2;
+
+      background-color: $borderColor;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+
+      padding: $q*2 $q*3 $q*2 $q*3;
+
+      font-size: .8rem;
+      user-select: none;
+
+      cursor: pointer;
+
+      &.disabled {
+        pointer-events: none;
+        opacity: .5;
+      }
+
+      &:hover {
+        background-color: $acColor;
+
+        svg {
+          opacity: 1;
+
+          &.dummy {
+            opacity: 0;
+          }
+        }
+      }
+
+      svg {
+        margin-right: $q*3;
+
+        opacity: .75;
+
+        &.dummy {
+          opacity: 0;
+        }
+      }
+    }
+  }
+}

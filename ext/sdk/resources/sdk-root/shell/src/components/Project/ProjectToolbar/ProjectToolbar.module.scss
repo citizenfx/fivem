@@ -1,0 +1,13 @@
+@import "variables";
+
+.item {
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: $q*10 !important;
+
+  cursor: pointer;
+
+  svg {
+    font-size: $fs08 !important;
+  }
+}

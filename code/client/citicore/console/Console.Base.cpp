@@ -4,6 +4,7 @@
 #include "Console.VariableHelpers.h"
 
 #include <stdarg.h>
+#include <CL2LaunchMode.h>
 
 #include <tbb/concurrent_queue.h>
 
@@ -31,7 +32,14 @@ static const int g_colors[] = {
 
 static void Print(const char* str)
 {
-	printf("%s", str);
+	if (launch::IsSDK() || launch::IsSDKGuest())
+	{
+		fprintf(stderr, "%s", str);
+	}
+	else
+	{
+		printf("%s", str);
+	}
 }
 
 static auto g_printf = &Print;

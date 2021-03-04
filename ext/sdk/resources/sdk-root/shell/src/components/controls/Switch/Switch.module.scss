@@ -1,0 +1,49 @@
+@import "variables";
+
+.root {
+  position: relative;
+
+  display: flex;
+
+  height: $q*9;
+
+  border: solid 2px $fgColor;
+
+  user-select: none;
+
+  &.disabled {
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  &.descripted {
+    margin-bottom: $q*4;
+  }
+
+  .description {
+    position: absolute;
+    bottom: 0;
+    left: -2px; // as there's also border
+
+    padding-top: $q*2;
+
+    transform: translateY(100%);
+
+    color: rgba($fgColor, .5);
+    font-size: $fs08;
+    white-space: nowrap;
+  }
+
+  .option {
+    padding: $q*2 $q*3;
+
+    &:hover {
+      background-color: rgba($fgColor, .25);
+    }
+
+    &.active {
+      color: $bgColor;
+      background-color: $fgColor;
+    }
+  }
+}

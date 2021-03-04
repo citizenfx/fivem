@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"citizen:resources:core",
+		"citizen:resources:client",
 		"citizen:scripting:core",
 		"citizen:resources:metadata:lua",
 		"citizen:scripting:v8",

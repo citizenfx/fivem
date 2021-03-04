@@ -1,0 +1,58 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+
+  line-height: 1.2;
+  user-select: none;
+
+  @include fontPrimary;
+  color: rgba($fgColor, .75);
+
+  input {
+    width: 0;
+    height: 0;
+  }
+
+  .indicator {
+    width: $q*3;
+    height: $q*3;
+
+    margin: $q/2;
+    margin-top: $q; // Compensating for line height
+
+    border: solid $q/2 transparent;
+    box-shadow: 0 0 0 $q/2 rgba($fgColor, .75), 0 0 0 0 rgba($fgColor, .75) inset;
+
+    transition: box-shadow .2s ease, border .2s ease;
+  }
+
+  input:checked + .indicator {
+    box-shadow: 0 0 0 $q/2 rgba($fgColor, .75), 0 0 0 $q*4 rgba($fgColor, .75) inset;
+  }
+
+  &:hover {
+    .indicator {
+      box-shadow: 0 0 0 $q/2 $acColor, 0 0 0 0 rgba($fgColor, .75) inset;
+      transition: none;
+    }
+
+    input:checked + .indicator {
+      box-shadow: 0 0 0 $q/2 $acColor, 0 0 0 $q*4 rgba($fgColor, .75) inset;
+      transition: none;
+    }
+  }
+
+  &.with-label {
+    .indicator {
+      margin-right: $q*2;
+    }
+  }
+
+  &.disabled {
+    pointer-events: none;
+    opacity: .5;
+  }
+}

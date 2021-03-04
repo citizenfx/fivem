@@ -1,0 +1,19 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  height: $modalContentHeight;
+
+  .label {
+    padding: $q $q*4;
+
+    font-size: .8rem;
+    color: rgba($fgColor, .5);
+  }
+
+  .recents {
+    margin-bottom: $q*4;
+  }
+}

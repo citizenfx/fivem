@@ -5,6 +5,7 @@
 #include <atPool.h>
 #include <Streaming.h>
 #include <CrossBuildRuntime.h>
+#include <CL2LaunchMode.h>
 
 #include <tbb/combinable.h>
 #include <tbb/parallel_for.h>
@@ -134,6 +135,7 @@ static void CreateDependentsGraph(strStreamingInfoManager* self, atArray<int>& p
 					auto lidx = idx - module->baseIdx;
 					
 					uint32_t depList[48];
+					// In FxDK this results in access violation error somehow
 					int numDeps = module->GetDependencies(lidx, depList, std::size(depList));
 
 					for (int di = 0; di < numDeps; di++)

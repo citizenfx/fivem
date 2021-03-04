@@ -1,0 +1,76 @@
+@import "variables";
+
+.root {
+  display: inline-block;
+
+  label {
+    width: 100%;
+
+    @include fontPrimary;
+    font-size: $fs08;
+    font-weight: 300;
+    color: rgba($fgColor, .5);
+
+    input {
+      margin-top: $q*2;
+    }
+  }
+
+  .input {
+    position: relative;
+
+    input {
+      display: block;
+      width: 100%;
+
+      backdrop-filter: blur($blurSize);
+      background-color: rgba($bgColor, .8);
+
+      height: $q*9;
+      padding: $q*3 $q*4;
+
+      color: $fgColor;
+      font-size: $fs1;
+      font-family: Rubik;
+
+      border: none;
+      box-shadow: 0 0 0 2px rgba($fgColor, .25) inset;
+
+      transition: all .2s ease;
+
+      &:disabled {
+        pointer-events: none;
+        color: rgba($fgColor, .5);
+      }
+
+      &:hover {
+        transition: none;
+
+        box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+      }
+
+      &:focus,
+      &:focus:hover {
+        box-shadow: 0 0 0 2px $acColor inset;
+      }
+
+      &::-webkit-input-placeholder {
+        color: rgba($fgColor, .6);
+      }
+    }
+
+    .loader {
+      position: absolute;
+      right: $q*3;
+      bottom: $q*3;
+    }
+  }
+
+  .description {
+    margin-top: $q;
+
+    color: rgba($fgColor, .5);
+    font-size: $fs08;
+    // white-space: nowrap;
+  }
+}

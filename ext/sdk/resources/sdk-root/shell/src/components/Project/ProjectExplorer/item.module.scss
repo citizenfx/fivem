@@ -1,0 +1,126 @@
+@import "variables";
+
+.item-wrapper {
+  .dropping {
+    background-color: rgba($acColor, .25);
+  }
+
+  .dragging {
+    background-color: $acColor;
+  }
+}
+
+.item {
+  position: relative;
+  padding: $q*2;
+  padding-left: $q*2.5;
+
+  color: rgba($fgColor, .5);
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+
+  user-select: none;
+
+  &:hover,
+  &.active {
+    color: $fgColor;
+
+    .icon {
+      color: $fgColor;
+    }
+
+    .status .entry {
+      --status-entry-color: #{rgba($fgColor, .5)};
+    }
+  }
+
+  &.active {
+    background-color: rgba($acColor, .25);
+  }
+
+  .icon {
+    flex-shrink: 0;
+    color: rgba($fgColor, .5);
+
+    svg {
+      font-size: $fs08;
+
+      margin-right: $q*2;
+    }
+  }
+
+  .title {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    line-height: 1.1;
+
+    @include ellipsis;
+  }
+
+  .status {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+
+    .entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      margin-left: $q;
+      padding: $q/2 $q;
+
+      border-radius: $q/2;
+
+      --status-entry-color: #{rgba($fgColor, .25)};
+
+      color: var(--status-entry-color);
+      // border: solid 1px var(--status-entry-color);
+
+      // background-color: rgba($fgColor, .5);
+      font-size: $fs08;
+      font-weight: 100;
+
+      svg {
+        margin-right: $q;
+      }
+    }
+  }
+}
+
+.children {
+  margin-left: $q*4;
+
+  box-shadow: -1px 0 0 0 rgba($fgColor, .05);
+}
+
+.creator {
+  position: relative;
+
+  svg {
+    position: absolute;
+    top: $q*2;
+    left: $q*2;
+  }
+
+  input {
+    width: 100%;
+    height: 100%;
+
+    padding: $q*2;
+    padding-left: $q*7;
+
+    border: none;
+
+    @include fontPrimary;
+
+    color: $fgColor;
+    background-color: transparent;
+
+    box-shadow: 0 0 0 2px $acColor inset;
+  }
+}

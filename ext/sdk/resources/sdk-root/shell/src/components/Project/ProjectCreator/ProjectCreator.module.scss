@@ -1,0 +1,33 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  height: $modalContentHeight;
+
+  .name-input {
+    padding: 0 $q*4;
+    margin-top: $q*4;
+
+    .input {
+      width: 100%;
+    }
+  }
+
+  .checkbox {
+    padding: $q*4;
+    padding-bottom: $q;
+    margin-top: $q*2;
+  }
+
+  .explorer-hint {
+    padding: $q $q*4;
+    margin-top: $q*8;
+
+    font-family: Rubik;
+    font-size: .8rem;
+    color: rgba($fgColor, .5);
+  }
+}

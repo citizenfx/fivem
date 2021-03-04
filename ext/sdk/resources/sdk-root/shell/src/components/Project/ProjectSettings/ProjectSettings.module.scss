@@ -1,0 +1,17 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  .update-channel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    padding: 0 $q*4;
+    padding-bottom: $q*4;
+  }
+}

@@ -1,0 +1,6 @@
+node_modules
+.browser_modules
+lib
+*.log
+./build
+personality-theia.tar

@@ -1,0 +1,26 @@
+@import "variables";
+
+.root {
+  display: block;
+
+  backdrop-filter: blur($blurSize);
+  background-color: rgba($bgColor, .8);
+
+  height: $q*9;
+  padding: 0 $q*4;
+
+  color: $fgColor;
+  font-size: $fs1;
+  font-family: Rubik;
+
+  border: none;
+
+  background-color: rgba($fgColor, .1);
+  box-shadow: 0 2px 0 0 rgba($fgColor, .25) inset, 0 -2px 0 0 rgba($fgColor, .25) inset;
+
+  option {
+    font-size: $fs1;
+
+    background-color: $bgColor;
+  }
+}

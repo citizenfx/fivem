@@ -1,0 +1,42 @@
+@import "variables";
+
+.root {
+  flex-grow: 0;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  flex-wrap: wrap;
+
+  $size: $fs08;
+
+  width: $size;
+  height: $size;
+
+  overflow: hidden;
+
+  border-radius: 2px;
+
+  div {
+    width: 50%;
+    height: 50%;
+
+    background-color: red;
+
+    @keyframes indicator {
+      0% {
+        background-color: rgba($acColor, .1);
+      }
+      50% {
+        background-color: rgba($acColor, 1);
+      }
+      100% {
+        background-color: rgba($acColor, .1);
+      }
+    }
+
+    animation: indicator 1s ease;
+    animation-iteration-count: infinite;
+  }
+}

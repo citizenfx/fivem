@@ -1,0 +1,34 @@
+@import "variables";
+
+.root {
+  flex-grow: 1;
+  // weird flex hacks...
+  height: 1px;
+
+  .creator {
+    position: relative;
+
+    svg {
+      position: absolute;
+      top: $q*2;
+      left: $q*2.5;
+    }
+
+    input {
+      width: 100%;
+      height: 100%;
+
+      padding: $q*2;
+      padding-left: $q*7.5;
+
+      border: none;
+
+      @include fontPrimary;
+
+      color: $fgColor;
+      background-color: transparent;
+
+      box-shadow: 0 0 0 2px $acColor inset;
+    }
+  }
+}

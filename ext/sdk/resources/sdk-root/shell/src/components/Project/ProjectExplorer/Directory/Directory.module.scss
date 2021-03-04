@@ -1,0 +1,40 @@
+@import "variables";
+
+.root {
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
+  .name {
+    display: flex;
+    align-items: center;
+
+    padding: $q*2;
+
+    color: rgba($fgColor, .5);
+
+    cursor: pointer;
+    user-select: none;
+
+    &:hover,
+    &.active {
+      color: $fgColor;
+    }
+    &.active {
+      background-color: rgba($acColor, .25);
+    }
+
+    svg {
+      margin-right: $q*2;
+    }
+    &.dragging {
+      background-color: $acColor;
+    }
+  }
+
+  .children {
+    margin-left: $q*2;
+
+    box-shadow: -1px 0 0 0 rgba($fgColor, .05);
+  }
+}

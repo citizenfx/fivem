@@ -1,0 +1,63 @@
+@import "variables";
+
+.root {
+  .entry {
+    .title {
+      @include fontSecondary;
+      font-size: $fs2;
+      font-weight: 400;
+    }
+
+    .content {
+      @include fontPrimary;
+
+      margin-top: $q*4;
+
+      * {
+        line-height: 1.3;
+        font-weight: 100;
+        font-size: $fs1;
+      }
+
+      p {
+        margin: $q*2 0;
+      }
+
+      strong {
+        font-weight: 500;
+      }
+
+      ul {
+        margin-left: $q*6;
+
+        li {
+          line-height: 1.2;
+
+          margin-bottom: $q;
+        }
+      }
+
+      kbd {
+        background-color: rgba($fgColor, .1);
+        padding: 0 $q;
+
+        border-radius: 2px;
+      }
+    }
+  }
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+
+  height: $modalContentHeight;
+
+  .changelog {
+    flex-grow: 1;
+
+    overflow-y: auto;
+
+    padding: $q*4;
+  }
+}

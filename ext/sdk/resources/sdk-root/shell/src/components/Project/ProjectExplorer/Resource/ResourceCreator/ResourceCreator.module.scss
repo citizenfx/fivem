@@ -1,0 +1,51 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  max-height: $modalContentHeight;
+
+  .name-input {
+    padding: $q*4;
+    width: 100%;
+  }
+
+  .label {
+    padding: $q*2 $q*4;
+    font-size: $fs08;
+    @include fontPrimary;
+
+    color: rgba($fgColor, .5);
+  }
+
+  .templates {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: space-evenly;
+
+    width: calc(100% - #{$q*6});
+    max-height: 50%;
+
+    margin: 0 $q*4;
+    margin-bottom: $q*2;
+
+    overflow-y: auto;
+
+    & > * {
+      flex-grow: 1;
+
+      width: 1px;
+
+      margin-right: $q*2;
+      margin-bottom: $q*2;
+
+      cursor: pointer;
+    }
+  }
+
+  .explorer {
+    min-height: 10%;
+  }
+}
