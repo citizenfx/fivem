@@ -28,7 +28,7 @@ enableLogger('shell,shell:*,host');
 
 Sentry.init({
   dsn: "https://e3b160e20aa24ffd9b74a222a4d5c07a@sentry.fivem.net/7",
-  release: process.env.CI_PIPELINE_ID,
+  release: `cfx-${process.env.CI_PIPELINE_ID}`
   integrations: [
     new Integrations.BrowserTracing(),
   ],
