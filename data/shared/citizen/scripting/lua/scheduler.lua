@@ -1,6 +1,6 @@
 local GetGameTimer = GetGameTimer
 local _sbs = Citizen.SubmitBoundaryStart
-local coresume, costatus = coroutine.resume, coroutine.status
+local coresume, costatus, tinsert, tremove = coroutine.resume, coroutine.status, table.insert, table.remove
 local debug = debug
 local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibility
 local hadThread = false
@@ -33,13 +33,40 @@ local function ProfilerExitScope()
 	return _in(`PROFILER_EXIT_SCOPE` & 0xFFFFFFFF)
 end
 
-local newThreads = {}
-local threads = setmetatable({}, {
-	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
-	__newindex = newThreads,
-	-- This is needed for CreateThreadNow to work correctly
-	__index = newThreads
-})
+local newThreads = {
+	push = function(self, thread)
+		self[#self + 1] = thread
+	end,
+	pop = function(self)
+		local thread = self[#self]
+		self[#self] = nil
+		return thread
+	end
+}
+local threads = {
+	enqueue = function(self, newThread)
+		for i=1,#self do
+			local thread = self[#self-i+1]
+			if newThread.wakeTime <= thread.wakeTime then
+				tinsert(self, i+1, newThread)
+				return
+			end
+		end
+		tinsert(self, 1, newThread)
+	end
+}
+
+local runningThreadStack = {
+	push = function(self, thread)
+		self[#self+1] = thread
+	end,
+	peek = function(self)
+		return self[#self]
+	end,
+	pop = function(self)
+		self[#self] = nil
+	end
+}
 
 local boundaryIdx = 1
 local runningThread
@@ -78,16 +105,14 @@ local runWithBoundaryEnd = getBoundaryFunc(Citizen.SubmitBoundaryEnd)
 	Thread handling
 
 ]]
-local function resumeThread(coro) -- Internal utility
+local function resumeThread(thread) -- Internal utility
+	local coro = thread.coroutine
 	if coroutine.status(coro) == "dead" then
-		threads[coro] = nil
 		coroutine_close(coro)
 		return false
 	end
 
 	runningThread = coro
-	
-	local thread = threads[coro]
 
 	if thread then
 		if thread.name then
@@ -99,12 +124,15 @@ local function resumeThread(coro) -- Internal utility
 		_sbs(thread.boundary, coro)
 	end
 	
+	runningThreadStack:push(thread)
 	local ok, wakeTimeOrErr = coresume(coro)
+	runningThreadStack:pop()
 	
 	if ok then
-		thread = threads[coro]
-		if thread then
-			thread.wakeTime = wakeTimeOrErr or 0
+		local wakeTime = wakeTimeOrErr or 0
+		if wakeTime >= 0 then
+			thread.wakeTime = wakeTime
+			newThreads:push(thread)
 			hadThread = true
 		end
 	else
@@ -135,11 +163,12 @@ function Citizen.CreateThread(threadFunction)
 	
 	local di = debug.getinfo(threadFunction, 'S')
 	
-	threads[coroutine.create(tfn)] = {
+	newThreads:push({
+		coroutine = coroutine.create(tfn),
 		wakeTime = 0,
 		boundary = bid,
 		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
-	}
+	})
 
 	hadThread = true
 end
@@ -164,14 +193,12 @@ function Citizen.CreateThreadNow(threadFunction, name)
 		return runWithBoundaryStart(threadFunction, bid)
 	end
 
-	local coro = coroutine.create(tfn)
-	threads[coro] = {
+	return resumeThread({
+		coroutine = coroutine.create(tfn),
 		wakeTime = 0,
 		boundary = bid,
 		name = name
-	}
-
-	return resumeThread(coro)
+	})
 end
 
 function Citizen.Await(promise)
@@ -193,16 +220,14 @@ function Citizen.Await(promise)
 	end)
 
 	if not isDone then
-		local threadData = threads[coro]
-		threads[coro] = nil
+		local threadData = runningThreadStack:peek()
 
 		local function reattach()
-			threads[coro] = threadData
-			resumeThread(coro)
+			resumeThread(threadData)
 		end
 
 		promise:next(reattach, reattach)
-		Citizen.Wait(0)
+		coroutine.yield(-1)
 	end
 
 	if err then
@@ -220,11 +245,11 @@ function Citizen.SetTimeout(msec, callback)
 		return runWithBoundaryStart(callback, bid)
 	end
 
-	local coro = coroutine.create(tfn)
-	threads[coro] = {
+	newThreads:push({
+		coroutine = coroutine.create(tfn),
 		wakeTime = curTime + msec,
 		boundary = bid
-	}
+	})
 
 	hadThread = true
 end
@@ -240,19 +265,22 @@ Citizen.SetTickRoutine(function()
 	local thisHadThread = false
 	curTime = GetGameTimer()
 
-	for coro, thread in pairs(newThreads) do
-		rawset(threads, coro, thread)
-		newThreads[coro] = nil
+	for i=1,#newThreads do
+		threads:enqueue(newThreads:pop()) 
 
 		thisHadThread = true
 	end
 
-	for coro, thread in pairs(threads) do
-		if curTime >= thread.wakeTime then
-			resumeThread(coro)
-		end
-
-		thisHadThread = true
+	while true do
+		local index = #threads
+		local thread = threads[index]
+		if thread then
+			thisHadThread = true
+			if thread.wakeTime <= curTime then
+				threads[index] = nil
+				resumeThread(thread)
+			else break end
+		else break end
 	end
 
 	if not thisHadThread then
