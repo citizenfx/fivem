@@ -1282,10 +1282,28 @@ void LoadManifest(const char* tagName)
 	for (auto& namePair : fx::GetIteratorView(range))
 	{
 		auto name = namePair.second;
+		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
+
+		// see if we can even read the file
+		{
+			auto handle = rel->Open(name.c_str(), true);
+
+			if (handle == uint64_t(-1))
+			{
+				continue;
+			}
+
+			char buf[16];
+			if (rel->Read(handle, buf, 16) != 16)
+			{
+				continue;
+			}
+
+			rel->Close(handle);
+		}
 
 		_initManifestChunk(manifestChunkPtr);
 
-		auto rel = new ForcedDevice(rage::fiDevice::GetDevice(name.c_str(), true), name);
 		rage::fiDevice::MountGlobal("localPack:/", rel, true);
 
 #ifdef GTA_FIVE
