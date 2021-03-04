@@ -21,7 +21,7 @@ set FXDKShell=%FXDKRoot%\shell
 pushd %FXDKShell%
 if exist build        rmdir /s /q build
 if exist build_server rmdir /s /q build_server
-call yarn install --frozen-lockfile --ignore-scripts
+call yarn install --frozen-lockfile
 call yarn build
 del /q /f /s "build\static\js\*.map"
 del /q /f /s "build\static\js\*.txt"
