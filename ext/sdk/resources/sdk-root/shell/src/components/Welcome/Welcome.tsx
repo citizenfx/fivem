@@ -23,7 +23,7 @@ export const Welcome = React.memo(function Welcome() {
           Welcome to FxDK
         </h1>
         <span>
-          The present and the future of development for cfx.re platform
+          The reordered future of Cfx.re platform development
         </span>
       </div>
 

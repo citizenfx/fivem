@@ -1,7 +1,7 @@
 import React from 'react';
 import { ProjectContext } from '../contexts/ProjectContext';
 
-const titleBase = 'CitizenFX Development Kit (FiveM)';
+const titleBase = 'Cfx.re Development Kit (FiveM)';
 
 export const TitleManager = React.memo(() => {
   const { project } = React.useContext(ProjectContext);

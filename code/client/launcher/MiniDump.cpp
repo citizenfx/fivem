@@ -1239,7 +1239,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		// avoid libcef.dll subprocess crashes terminating the entire job
 		bool shouldTerminate = true;
-		bool shouldUpload = !launch::IsSDKGuest();
+		bool shouldUpload = true;
 
 		if (GetProcessId(parentProcess) != GetProcessId(info->process_handle()))
 		{
@@ -1505,7 +1505,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
-		bool uploadCrashes = !launch::IsSDKGuest();
+		bool uploadCrashes = true;
 		bool bigMemoryDump = false;
 
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)

@@ -2415,12 +2415,14 @@ void V8ScriptGlobals::Initialize()
 
 #ifdef _WIN32
 				g_argv[0] = const_cast<char*>(selfPath.c_str());
-#endif
 
+#ifndef IS_FXSERVER
 				auto icuDataPath = MakeRelativeCitPath(L"citizen/scripting/v8/icudtl.dat");
-				auto icuEnv = fmt::format("CFX_ICU_PATH={}", ToNarrow(icuDataPath).c_str());
+				auto icuEnv = fmt::format("CFX_ICU_PATH={}", ToNarrow(icuDataPath));
 
 				_wputenv(ToWide(icuEnv).c_str());
+#endif
+#endif
 
 				const char* execArgv[] = {
 #ifndef _WIN32
