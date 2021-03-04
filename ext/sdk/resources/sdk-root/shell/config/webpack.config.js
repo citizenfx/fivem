@@ -56,7 +56,7 @@ module.exports = function(webpackEnv) {
   const isEnvProduction = webpackEnv === 'production';
 
   const sentryAuthToken = sentry.getSentryAuthToken(isEnvProduction);
-  const sentryRelease = sentry.getSentryRelease(isProd);
+  const sentryRelease = sentry.getSentryRelease(isEnvProduction);
 
   // Variable used for enabling profiling in Production
   // passed into alias object. Uses a flag if passed into the build command
