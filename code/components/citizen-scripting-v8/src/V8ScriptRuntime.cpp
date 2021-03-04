@@ -2632,7 +2632,8 @@ void V8ScriptGlobals::Initialize()
 
 		for (int i = 1; i < g_argc; i++)
 		{
-			if (g_argv[i] && g_argv[i][0] == '-' && strcmp(g_argv[i], "-fxdk") != 0)
+			// `-b` should be ignored for `-bXXXX` cross-build runtime
+			if (g_argv[i] && g_argv[i][0] == '-' && strcmp(g_argv[i], "-fxdk") != 0 && strncmp(g_argv[i], "-b", 2) != 0)
 			{
 				args.push_back(g_argv[i]);
 			}
