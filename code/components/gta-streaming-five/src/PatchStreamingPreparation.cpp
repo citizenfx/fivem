@@ -17,7 +17,10 @@
 #include <VFSError.h>
 #include <VFSManager.h>
 
-static int(*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
+#include <tbb/concurrent_queue.h>
+
+static tbb::concurrent_queue<std::function<void()>> g_onCriticalFrameQueue;
+static int (*g_origHandleObjectLoad)(streaming::Manager*, int, int, int*, int, int, int);
 
 static std::unordered_map<std::string, std::tuple<rage::fiDevice*, uint64_t, uint64_t>> g_handleMap;
 static std::unordered_map<std::string, int> g_failures;
@@ -399,7 +402,7 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 			{
 				RequestHandleExtension ext;
 				ext.handle = deviceHandle;
-				ext.onRead = [fileName, handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10](bool success, const std::string& error)
+				auto resultCb = [fileName, handle, outChunks, numChunks, flags, callback, userData, streamerIdx, streamerFlags, unk9, unk10](bool success, const std::string& error)
 				{
 					if (success)
 					{
@@ -460,6 +463,21 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 					}
 				};
 
+				ext.onRead = [resultCb](bool success, const std::string& error)
+				{
+					// if succeeding, report sooner rather than later
+					if (success)
+					{
+						resultCb(success, error);
+						return;
+					}
+
+					g_onCriticalFrameQueue.push([resultCb, error]()
+					{
+						resultCb(false, error);
+					});
+				};
+
 				device->ExtensionCtl(VFS_RCD_REQUEST_HANDLE, &ext, sizeof(ext));
 			}
 
@@ -478,6 +496,19 @@ static uint32_t NoLSN(void* streamer, uint16_t idx)
 
 static HookFunction hookFunction([] ()
 {
+	OnCriticalGameFrame.Connect([]()
+	{
+		decltype(g_onCriticalFrameQueue)::value_type fn;
+
+		while (g_onCriticalFrameQueue.try_pop(fn))
+		{
+			if (fn)
+			{
+				fn();
+			}
+		}
+	});
+
 	Hook_StreamingSema();
 
 	// dequeue GTA streaming request function
