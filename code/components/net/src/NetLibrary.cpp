@@ -845,6 +845,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
 	std::string ruRef = rootUrl;
 
+	// increment the GUID so servers won't race to remove us
+	m_tempGuid++;
+
 	auto urlRef = co_await ResolveUrl(ruRef);
 
 	if (!urlRef)
