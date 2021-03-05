@@ -1,5 +1,6 @@
 import { inject, injectable } from "inversify";
 import { FsService } from "backend/fs/fs-service";
+import * as cp from 'child_process';
 import { concurrently } from "utils/concurrently";
 import { ResourceTemplateScaffolder, ResourceTemplateScaffolderArgs } from "../types";
 
@@ -11,8 +12,15 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
   async scaffold({ request, manifest, resourcePath }: ResourceTemplateScaffolderArgs) {
     const resourceName = request.assetName;
     
-    manifest.clientScripts.push('dist/*.client.js');
-    manifest.serverScripts.push('dist/*.server.js');
+    manifest.clientScripts.push('dist/client/*.client.js');
+    manifest.serverScripts.push('dist/server/*.server.js');
+
+    manifest.fxdkWatchCommands.push(['yarn', [
+      'webpack', '--mode', 'development', '--watch'
+    ]]);
+    manifest.fxdkWatchCommands.push(['yarn', [
+      'webpack', '--mode', 'production'
+    ]]);
     
     const promises = [];
     const relativePath = (to: string) => this.fsService.joinPath(resourcePath, to);
@@ -20,13 +28,13 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
 
     // webpack and package.json
     promises.push(this.fsService.writeFile(relativePath('webpack.config.js'), getWebpackContent()));
-    promises.push(this.fsService.writeFile(relativePath('package.json'), getPackageContent(resourceName))); 
+    promises.push(this.fsService.writeFile(relativePath('package.json'), getPackageContent(resourceName)));
     
     // client
     promises.push(
       this.fsService.mkdirp(relativePath('client'))
         .then(() => concurrently(
-          this.fsService.writeFile(relativePath('client/client.ts'), ''),
+          this.fsService.writeFile(relativePath('client/client.ts'), getCode('client')),
           this.fsService.writeFile(relativePath('client/tsconfig.json'), getTsConfigClient())
         )),
     );
@@ -35,30 +43,40 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
     promises.push(
       this.fsService.mkdirp(relativePath('server'))
         .then(() => concurrently(
-          this.fsService.writeFile(relativePath('server/server.ts'), ''),
+          this.fsService.writeFile(relativePath('server/server.ts'), getCode('server')),
           this.fsService.writeFile(relativePath('server/tsconfig.json'), getTsConfigServer())
         )),
     );
 
-
     await Promise.all(promises);
+
+    await this.installModules(resourcePath);
   };
+
+  private async installModules(path: string) {
+    return new Promise<void>((resolve, reject) => {
+      cp.exec(`cd ${path} && yarn`, { windowsHide: true }, (err) => {
+        if (err) {
+          return reject(err);
+        }
+
+        return resolve();
+      })
+    })
+  }
 }
+
 
 function getTsConfigClient() {
   return `
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "paths": {
-      "*": ["types/*"]
-    },
-    "outDir": "./",
     "noImplicitAny": true,
     "module": "commonjs",
-    "target": "es6",
+    "target": "ES2018",
     "allowJs": true,
-    "lib": ["es2017"],
+    "lib": ["ES2018"],
     "types": ["@citizenfx/client", "@types/node"],
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -76,19 +94,13 @@ function getTsConfigServer() {
   {
   "compilerOptions": {
     "baseUrl": ".",
-    "paths": {
-      "*": ["types/*"]
-    },
-    "outDir": "./",
     "noImplicitAny": true,
     "module": "commonjs",
     "target": "es6",
     "allowJs": false,
-    "lib": ["es2015", "DOM"],
+    "lib": ["es2015"],
     "types": ["@citizenfx/server", "@types/node"],
     "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
     "resolveJsonModule": true,
     "esModuleInterop": true
   },
@@ -97,6 +109,10 @@ function getTsConfigServer() {
 }
   `
 }
+
+// TODO: needs an alias - but why
+// TODO: check it contenthash is really needed or not
+// Does seem like it it....
 
 function getWebpackContent() {
   return `
@@ -112,14 +128,13 @@ const client = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.ts$/,
         use: "ts-loader",
         exclude: /node_modules/,
       },
     ],
   },
   plugins: [
-    new webpack.DefinePlugin({ "global.GENTLY": false }),
     new RemovePlugin({
       before: {
         include: [path.resolve(buildPath, "client")]
@@ -133,12 +148,12 @@ const client = {
     minimize: true
   },
   resolve: {
-    extensions: [".tsx", ".ts", ".js"]
+    extensions: [".ts", ".js"]
   },
 
   output: {
     path: path.resolve(buildPath, "client"),
-    filename: "[contenthash].client.js"
+    filename: "client.js"
   }
 }
 
@@ -148,14 +163,13 @@ const server = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.ts$/,
         use: "ts-loader",
         exclude: /node_modules/,
       },
     ],
   },
   plugins: [
-    new webpack.DefinePlugin({ "global.GENTLY": false }),
     new RemovePlugin({
       before: {
         include: [path.resolve(buildPath, "server")]
@@ -165,11 +179,9 @@ const server = {
       }
     })
   ],
-  optimization: {
-    minimize: true
-  },
+
   resolve: {
-    extensions: [".tsx", ".ts", ".js"]
+    extensions: [".ts", ".js"]
   },
 
   output: {
@@ -183,6 +195,7 @@ module.exports = [client, server];
   `
 }
 
+// TODO: Some comma forgotton
 function getPackageContent(resourceName: string) {
   return `
 {
@@ -192,8 +205,8 @@ function getPackageContent(resourceName: string) {
   "author": "Your name",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --mode production --color --progress",
-    "watch": "webpack --mode development --progress --watch"
+    "build": "webpack --mode production",
+    "watch": "webpack --mode development --watch"
   },
   "devDependencies": {
     "@citizenfx/client": "^2.0.3602-1",
@@ -201,12 +214,27 @@ function getPackageContent(resourceName: string) {
     "@types/node": "^14.14.31",
     "ts-loader": "^8.0.17",
     "webpack": "^5.24.3",
-    "webpack-cli": "^4.5.0"
-  },
-  "dependencies": {
+    "webpack-cli": "^4.5.0",
     "remove-files-webpack-plugin": "^1.4.4",
     "typescript": "^4.2.2"
   }
 }
   `
+}
+
+// TODO: Check server side code
+function getCode (type: string) {
+  if (type === 'client') {
+    return `
+RegisterCommand('helloserver', () => {
+  emitNet('helloServer', 'Hi');
+}, false);
+    `
+  } else {
+    return `
+onNet('helloServer', (message: string) => {
+  console.log(message);
+});
+    `
+  }
 }
