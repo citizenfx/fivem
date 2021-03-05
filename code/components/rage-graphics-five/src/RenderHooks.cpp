@@ -976,7 +976,26 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 	}
 
 	// guess what we can't just CopyResource, so time for copy/pasted D3D11 garbage
+	if (backBuf)
 	{
+		WRL::ComPtr<IUnknown> realSrvUnk;
+		WRL::ComPtr<ID3D11ShaderResourceView> realSrv;
+
+		backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
+		realSrvUnk.As(&realSrv);
+
+		WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
+		WRL::ComPtr<ID3D11Device> realDevice;
+
+		GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
+		realDeviceDxgi.As(&realDevice);
+
+		WRL::ComPtr<IUnknown> realDeviceContextUnk;
+		WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
+
+		GetD3D11DeviceContext()->QueryInterface(IID_PPV_ARGS(&realDeviceContextUnk));
+		realDeviceContextUnk.As(&realDeviceContext);
+
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
 
@@ -989,30 +1008,30 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		static ID3D11PixelShader* ps;
 
 		static std::once_flag of;
-		std::call_once(of, []()
+		std::call_once(of, [&realDevice]()
 		{
 			D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-			GetD3D11Device()->CreateSamplerState(&sd, &ss);
+			realDevice->CreateSamplerState(&sd, &ss);
 
 			D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
 			bd.RenderTarget[0].BlendEnable = FALSE;
 
-			GetD3D11Device()->CreateBlendState(&bd, &bs);
+			realDevice->CreateBlendState(&bd, &bs);
 
-			GetD3D11Device()->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
-			GetD3D11Device()->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
+			realDevice->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
+			realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 		});
 
 		ID3DUserDefinedAnnotation* pPerf = NULL;
-		GetD3D11DeviceContext()->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
+		realDeviceContext->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
 
 		if (pPerf)
 		{
 			pPerf->BeginEvent(L"DrawRenderTexture");
 		}
 
-		auto deviceContext = GetD3D11DeviceContext();
-
+		auto deviceContext = realDeviceContext;
+		
 		ID3D11RenderTargetView* oldRtv = nullptr;
 		ID3D11DepthStencilView* oldDsv = nullptr;
 		deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
@@ -1042,9 +1061,14 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
 		deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
 
+		ID3D11ShaderResourceView* srvs[] =
+		{
+			realSrv.Get()
+		};
+
 		deviceContext->PSSetShader(ps, nullptr, 0);
 		deviceContext->PSSetSamplers(0, 1, &ss);
-		deviceContext->PSSetShaderResources(0, 1, &backBuf->m_srv2);
+		deviceContext->PSSetShaderResources(0, 1, srvs);
 
 		deviceContext->VSSetShader(vs, nullptr, 0);
 
