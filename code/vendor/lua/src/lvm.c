@@ -265,7 +265,7 @@ static int luaV_gritparsestring(lua_State *L, const TValue* t, const char* key, 
     }
   }
   else if (ttisnumber(t)) {
-    lua_Float4 f4 = { 0, nvalue(t), 0, 0 };
+	  lua_Float4 f4 = { nvalue(t), 0, 0, 0 };
     switch (luaV_swizzle(key, &f4, 1, &out)) {
       case 1: setfltvalue(val, out.x); break;
       case 2: setv2value(val, out); break;
@@ -301,7 +301,7 @@ static int luaV_gritparsestring(lua_State *L, const TValue* t, const char* key, 
         }
 
         float il = 1 / l;
-        lua_Float4 v = { 0.0, il * f4.x, il * f4.y, il * f4.z };
+        lua_Float4 v = { il * f4.x, il * f4.y, il * f4.z, 0.0 };
         setv3value(val, v); result = 1;
       }
       break;

@@ -149,22 +149,26 @@ namespace fx
 		});
 	}
 
-	bool __declspec(safebuffers) ScriptEngine::CallNativeHandler(uint64_t nativeIdentifier, ScriptContext& context)
+	static bool __declspec(safebuffers) CallNativeHandlerUniversal(uint64_t nativeIdentifier, ScriptContext& context);
+
+	static bool (*g_callNativeHandler)(uint64_t nativeIdentifier, ScriptContext& context) = CallNativeHandlerUniversal;
+
+	static bool __declspec(safebuffers) CallNativeHandlerSdk(uint64_t nativeIdentifier, ScriptContext& context)
 	{
-		if (launch::IsSDK())
+		auto h = ScriptEngine::GetNativeHandler(nativeIdentifier);
+
+		if (h)
 		{
-			auto h = GetNativeHandler(nativeIdentifier);
-			
-			if (h)
-			{
-				(*h)(context);
+			(*h)(context);
 
-				return true;
-			}
-
-			return false;
+			return true;
 		}
 
+		return false;
+	}
+
+	static bool __declspec(safebuffers) CallNativeHandlerRage(uint64_t nativeIdentifier, ScriptContext& context)
+	{
 		auto rageHandler = rage::scrEngine::GetNativeHandler(nativeIdentifier);
 
 		if (rageHandler)
@@ -181,6 +185,25 @@ namespace fx
 		}
 
 		return false;
+	}
+
+	static bool __declspec(safebuffers) CallNativeHandlerUniversal(uint64_t nativeIdentifier, ScriptContext& context)
+	{
+		if (launch::IsSDK())
+		{
+			g_callNativeHandler = CallNativeHandlerSdk;
+		}
+		else
+		{
+			g_callNativeHandler = CallNativeHandlerRage;
+		}
+
+		return g_callNativeHandler(nativeIdentifier, context);
+	}
+
+	bool __declspec(safebuffers) ScriptEngine::CallNativeHandler(uint64_t nativeIdentifier, ScriptContext& context)
+	{
+		return g_callNativeHandler(nativeIdentifier, context);
 	}
 
 	void ScriptEngine::RegisterNativeHandler(const std::string& nativeName, TNativeHandler function)

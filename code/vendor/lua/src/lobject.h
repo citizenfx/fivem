@@ -11,6 +11,11 @@
 
 #include <stdarg.h>
 
+#ifdef _MSC_VER
+#define LUA_ALIGN_16 __declspec(align(16))
+#else
+#define LUA_ALIGN_16
+#endif
 
 #include "llimits.h"
 #include "lua.h"
@@ -89,8 +94,8 @@ struct GCObject {
 /*
 ** Vectors and quat extension by Spark
 */
-typedef struct lua_Float4 {
-  float w, x, y, z;
+typedef struct LUA_ALIGN_16 lua_Float4 {
+  float x, y, z, w;
 } lua_Float4;
 
 #define LUAI_MAXFLOAT2STR   16
@@ -332,7 +337,7 @@ typedef struct lua_TValue TValue;
 */
 
 
-union Value {
+union LUA_ALIGN_16 Value {
   GCObject *gc;    /* collectable objects */
   void *p;         /* light userdata */
   int b;           /* booleans */
@@ -343,12 +348,12 @@ union Value {
 };
 
 
-struct lua_TValue {
+struct LUA_ALIGN_16 lua_TValue {
   TValuefields;
 };
 
 
-typedef TValue *StkId;  /* index to stack elements */
+typedef TValue *__restrict StkId;  /* index to stack elements */
 
 
 
@@ -604,16 +609,17 @@ LUAI_FUNC void luaO_chunkid (char *out, const char *source, size_t len);
 /*
 ** fast access functions
 */
-LUA_API TValue lua_getvalue(lua_State *L, int idx);
-LUA_API int lua_valuetype(lua_State* L, TValue o);
-LUA_API int lua_valueisinteger(lua_State* L, TValue o);
-LUA_API int lua_valueisfloat(lua_State* L, TValue o);
-LUA_API lua_Integer lua_valuetointeger(lua_State* L, TValue o);
-LUA_API lua_Number lua_valuetonumber(lua_State* L, TValue o);
-LUA_API int lua_valuetoboolean(lua_State* L, TValue o);
-LUA_API const char *lua_valuetostring(lua_State *L, TValue o);
-LUA_API lua_Float4 lua_valuetofloat4(lua_State* L, TValue o);
-LUA_API void *lua_valuetouserdata(lua_State *L, TValue o);
+LUA_API const TValue* lua_getvalue(lua_State *L, int idx);
+LUA_API int lua_valuetype(lua_State* L, const TValue* o);
+LUA_API int lua_valueisinteger(lua_State* L, const TValue* o);
+LUA_API int lua_valueisfloat(lua_State* L, const TValue* o);
+LUA_API lua_Integer lua_valuetointeger(lua_State* L, const TValue* o);
+LUA_API lua_Number lua_valuetonumber(lua_State* L, const TValue* o);
+LUA_API int lua_valuetoboolean(lua_State* L, const TValue* o);
+LUA_API const char* lua_valuetostring(lua_State* L, const TValue* o);
+LUA_API lua_Float4 lua_valuetofloat4(lua_State* L, const TValue* o);
+LUA_API void* lua_valuetouserdata(lua_State* L, const TValue* o);
+LUA_API void* lua_valuetolightuserdata(lua_State* L, const TValue* o);
 
 LUA_API int lua_asserttop(const lua_State* L, int count);
 LUA_API lua_Integer lua_utointeger(lua_State* L, int idx);

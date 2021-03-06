@@ -29,6 +29,12 @@
 
 #include <sstream>
 
+#ifdef _WIN32
+#define SAFE_BUFFERS __declspec(safebuffers)
+#else
+#define SAFE_BUFFERS
+#endif
+
 #ifdef __has_feature
 #define HAS_FEATURE(x) __has_feature(x)
 #else
@@ -124,7 +130,7 @@ result_t TestScriptHost::GetLastErrorText(char** text)
 	return FX_S_OK;
 }
 
-result_t TestScriptHost::InvokeNative(fxNativeContext & context)
+result_t SAFE_BUFFERS TestScriptHost::InvokeNative(fxNativeContext & context)
 {
 #if SCRT_HAS_CALLNATIVEHANDLER
 	// prepare an invocation context

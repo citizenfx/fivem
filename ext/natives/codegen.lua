@@ -555,4 +555,6 @@ table.sort(_natives, function(a, b)
 	return a.name < b.name
 end)
 
+_G.gApiSet = gApiSet
+
 dofile('codegen_out_' .. outputType .. '.lua')

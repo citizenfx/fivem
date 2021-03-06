@@ -4,6 +4,8 @@ local _i, _f, _v, _r, _ri, _rf, _rl, _s, _rv, _ro, _in, _ii, _fi =
 	Citizen.ReturnResultAnyway(), Citizen.ResultAsInteger(), Citizen.ResultAsFloat(), Citizen.ResultAsLong(), Citizen.ResultAsString(), Citizen.ResultAsVector(), Citizen.ResultAsObject(),
 	Citizen.InvokeNative, Citizen.PointerValueIntInitialized, Citizen.PointerValueFloatInitialized
 
+local _in2, _gn = Citizen.InvokeNative2, Citizen.GetNative
+
 local g = _G
 local rg = rawget
 local rs = rawset
@@ -54,6 +56,8 @@ local nativeEnv = {
     _rv = _rv,
     _ro = _ro,
     _in = _in,
+    _in2 = _in2,
+    _gn = _gn,
     _ii = _ii,
     _fi = _fi
 }

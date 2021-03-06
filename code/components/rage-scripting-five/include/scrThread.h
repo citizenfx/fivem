@@ -51,6 +51,26 @@ enum eThreadState
 	ThreadState4,			// Sets opsToExecute to 1100000, and state to Idle in CallNative
 };
 
+struct scrVector
+{
+	alignas(8) float x;
+	alignas(8) float y;
+	alignas(8) float z;
+};
+
+struct alignas(16) scrVec3N
+{
+	float x;
+	float y;
+	float z;
+};
+
+struct scrVectorSpace
+{
+	scrVector* outVectors[4];
+	scrVec3N inVectors[4];
+};
+
 class scrNativeCallContext
 {
 protected:
@@ -61,7 +81,8 @@ protected:
 	uint32_t m_nDataCount; // +24
 
 	// scratch space for vector things
-	alignas(uintptr_t) uint8_t m_vectorSpace[192]; // +32
+	scrVectorSpace m_vectorSpace;
+	uint8_t pad[96];
 
 public:
 	template<typename T>
@@ -101,22 +122,20 @@ public:
 	// copy vector3 pointer results to the initial argument
 	inline void SetVectorResults()
 	{
-		// badly copied from IDA for optimization
-		auto a1 = (uintptr_t)this;
-
-		uint64_t result;
-
-		for (; *(DWORD *)(a1 + 24); *(DWORD *)(*(uint64_t *)(a1 + 8i64 * *(signed int *)(a1 + 24) + 32) + 16i64) = result)
+		for (size_t i = 0; i < m_nDataCount; i++)
 		{
-			--*(DWORD *)(a1 + 24);
-			**(DWORD **)(a1 + 8i64 * *(signed int *)(a1 + 24) + 32) = *(DWORD *)(a1 + 16 * (*(signed int *)(a1 + 24) + 4i64));
-			*(DWORD *)(*(uint64_t *)(a1 + 8i64 * *(signed int *)(a1 + 24) + 32) + 8i64) = *(DWORD *)(a1
-				+ 16i64
-				* *(signed int *)(a1 + 24)
-				+ 68);
-			result = *(unsigned int *)(a1 + 16i64 * *(signed int *)(a1 + 24) + 72);
+			auto outVector = m_vectorSpace.outVectors[i];
+			const auto& inVector = m_vectorSpace.inVectors[i];
+
+			outVector->x = inVector.x;
+			outVector->y = inVector.y;
+			outVector->z = inVector.z;
 		}
-		--*(DWORD *)(a1 + 24);
+	}
+
+	inline const scrVec3N* GetVector()
+	{
+		return &m_vectorSpace.inVectors[0];
 	}
 };
 
