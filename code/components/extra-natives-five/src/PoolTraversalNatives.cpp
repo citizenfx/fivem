@@ -7,8 +7,13 @@
 #include <atPool.h>
 #include <Pool.h>
 
+#ifdef IS_RDR3
+#include <NativeWrappers.h>
+#endif
+
 #include <Local.h>
 
+#ifdef GTA_FIVE
 template<typename TEntry>
 class RefPool
 {
@@ -41,10 +46,15 @@ public:
 		return m_count;
 	}
 };
+#endif
 
 static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
 {
+#ifdef GTA_FIVE
 	return hook::get_pattern("48 F7 F9 49 8B 48 08 48 63 D0 C1 E0 08 0F B6 1C 11 03 D8", -0x68);
+#elif IS_RDR3
+	return hook::get_pattern("32 DB E8 ? ? ? ? 48 85 C0 75 ? 8A 05", -35);
+#endif
 });
 
 struct PedPoolTraits
@@ -63,6 +73,7 @@ struct PedPoolTraits
 	}
 };
 
+#ifdef GTA_FIVE
 static RefPool<CVehicle>*** g_vehiclePool;
 
 struct VehiclePoolTraits
@@ -80,6 +91,23 @@ struct VehiclePoolTraits
 		return getScriptGuidForEntity((ObjectType*)e);
 	}
 };
+#elif IS_RDR3
+struct VehiclePoolTraits
+{
+	using ObjectType = CVehicle;
+	using PoolType = atPool<CVehicle>;
+
+	static PoolType* GetPool()
+	{
+		return rage::GetPool<ObjectType>("CVehicle");
+	}
+
+	static uint32_t getScriptGuid(ObjectType* e)
+	{
+		return getScriptGuidForEntity((ObjectType*)e);
+	}
+};
+#endif
 
 struct ObjectPoolTraits
 {
@@ -265,7 +293,9 @@ static InitFunction initFunction([]()
 	});
 });
 
+#ifdef GTA_FIVE
 static HookFunction hookFunction([]()
 {
 	g_vehiclePool = hook::get_address<decltype(g_vehiclePool)>(hook::get_pattern("48 8B 05 ? ? ? ? F3 0F 59 F6 48 8B 08", 3));
 });
+#endif
