@@ -8,6 +8,10 @@ return {
 		kind "StaticLib"
 		
 		defines { 'FOLLY_NO_CONFIG' }
+		
+		if os.istarget('linux') then
+			defines { 'FOLLY_HAVE_RECVMMSG' }
+		end
 
 		files_project '../vendor/folly/folly/'
 		{
