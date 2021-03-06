@@ -1020,6 +1020,7 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxNativeContext& conte
 				case LuaMetaFields::ResultAsFloat:
 				case LuaMetaFields::ResultAsVector:
 				case LuaMetaFields::ResultAsObject:
+					result.returnResultAnyway = true;
 					result.returnValueCoercion = metaField;
 					break;
 				default:

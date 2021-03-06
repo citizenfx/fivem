@@ -164,10 +164,10 @@ local function printInvocationArguments(native)
 	end
 
 	if native.returns then
-		table.insert(args, '_r')
-
 		if native.returns.nativeType ~= 'bool' then
 			table.insert(args, printReturnType(native.returns))
+		else
+			table.insert(args, '_r')
 		end
 	end
 
