@@ -788,7 +788,7 @@ static HookFunction hookFunction([]()
 		case 5:
 			static char sessionIdPtr[48];
 			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
-			joinOrHost(0, nullptr, sessionIdPtr);
+			joinOrHost(1, nullptr, sessionIdPtr);
 
 			tryHostStage = 6;
 
