@@ -33,7 +33,11 @@ namespace fx
 		fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
 		fx::ClientWeakPtr weakClient(client);
 
-		m_clients.emplace(guid, client);
+		{
+			folly::SharedMutex::WriteHolder writeHolder(m_clientMutex);
+			m_clients.emplace(guid, client);
+		}
+		
 		client->OnAssignNetId.Connect([this, weakClient]()
 		{
 			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;

@@ -1090,7 +1090,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	// gather client refs
 	eastl::fixed_vector<fx::ClientSharedPtr, MAX_CLIENTS> clientRefs;
 
-	creg->ForAllClients([&clientRefs](const fx::ClientSharedPtr& clientRef)
+	// since we're doing essentially the same thing as what ForAllClients does, we use ForAllClientsLocked to prevent extra copies
+	creg->ForAllClientsLocked([&clientRefs](const fx::ClientSharedPtr& clientRef)
 	{
 		clientRefs.push_back(clientRef);
 	});
