@@ -26,11 +26,11 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
     const relativePath = (to: string) => this.fsService.joinPath(resourcePath, to);
 
 
-    // webpack and package.json
+
     promises.push(this.fsService.writeFile(relativePath('webpack.config.js'), getWebpackContent()));
     promises.push(this.fsService.writeFile(relativePath('package.json'), getPackageContent(resourceName)));
     
-    // client
+
     promises.push(
       this.fsService.mkdirp(relativePath('client'))
         .then(() => concurrently(
@@ -39,7 +39,7 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
         )),
     );
 
-    // server
+
     promises.push(
       this.fsService.mkdirp(relativePath('server'))
         .then(() => concurrently(
@@ -55,7 +55,7 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
 
   private async installModules(path: string) {
     return new Promise<void>((resolve, reject) => {
-      cp.exec(`cd ${path} && yarn`, { windowsHide: true }, (err) => {
+      cp.exec('yarn', { cwd: path, windowsHide: true }, (err) => {
         if (err) {
           return reject(err);
         }
@@ -71,7 +71,6 @@ function getTsConfigClient() {
   return `
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "noImplicitAny": true,
     "module": "commonjs",
     "target": "ES2018",
@@ -93,10 +92,9 @@ function getTsConfigServer() {
   return `
   {
   "compilerOptions": {
-    "baseUrl": ".",
     "noImplicitAny": true,
     "module": "commonjs",
-    "target": "es6",
+    "target": "ES2018",
     "allowJs": false,
     "lib": ["es2015"],
     "types": ["@citizenfx/server", "@types/node"],
@@ -109,10 +107,6 @@ function getTsConfigServer() {
 }
   `
 }
-
-// TODO: needs an alias - but why
-// TODO: check it contenthash is really needed or not
-// Does seem like it it....
 
 function getWebpackContent() {
   return `
@@ -195,7 +189,6 @@ module.exports = [client, server];
   `
 }
 
-// TODO: Some comma forgotton
 function getPackageContent(resourceName: string) {
   return `
 {
@@ -222,7 +215,7 @@ function getPackageContent(resourceName: string) {
   `
 }
 
-// TODO: Check server side code
+
 function getCode (type: string) {
   if (type === 'client') {
     return `
