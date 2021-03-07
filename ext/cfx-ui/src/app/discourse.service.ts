@@ -59,7 +59,7 @@ export class BoostData {
 
 @Injectable()
 export class DiscourseService {
-	private static BASE_URL = 'https://forum.fivem.net';
+	private static BASE_URL = 'https://forum.cfx.re';
 
 	private rsaKeys: RSAKeyCollection;
 	private clientId: string;
