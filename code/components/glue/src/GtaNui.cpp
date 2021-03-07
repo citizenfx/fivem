@@ -40,7 +40,7 @@ private:
 
 	bool m_targetMouseFocus = true;
 
-	bool m_lastTargetMouseFocus = false;
+	bool m_lastTargetMouseFocus = true;
 
 public:
 	virtual void GetGameResolution(int* width, int* height) override;

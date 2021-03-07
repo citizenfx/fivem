@@ -47,6 +47,7 @@ void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pas
 				{
 					g_consoleClosing = false;
 					g_consoleFlag = false;
+					InputHook::SetGameMouseFocus(true);
 
 					return;
 				}
@@ -142,6 +143,7 @@ static InitFunction initFunction([] ()
 			if (msg == WM_KEYUP && wParam == VK_F8)
 			{
 				g_consoleFlag = true;
+				InputHook::SetGameMouseFocus(false);
 			}
 		}
 	}, 10);

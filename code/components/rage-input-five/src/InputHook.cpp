@@ -43,16 +43,27 @@ static void EnableFocus()
 
 static char* g_gameKeyArray;
 
+static std::atomic<int> g_isFocusStolenCount;
+
 void InputHook::SetGameMouseFocus(bool focus)
 {
-	g_isFocusStolen = !focus;
+	if (focus)
+	{
+		g_isFocusStolenCount--;
+	}
+	else if (!focus)
+	{
+		g_isFocusStolenCount++;
+	}
+
+	g_isFocusStolen = (g_isFocusStolenCount > 0);
 
 	if (g_isFocusStolen)
 	{
 		memset(g_gameKeyArray, 0, 256);
 	}
 
-	return (focus) ? enableFocus() : disableFocus();
+	return (!g_isFocusStolen) ? enableFocus() : disableFocus();
 }
 
 void InputHook::EnableSetCursorPos(bool enabled) {
@@ -217,7 +228,7 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 
 BOOL WINAPI SetCursorPosWrap(int X, int Y)
 {
-	if (!g_isFocused || g_enableSetCursorPos)
+	if (!g_isFocusStolen || g_enableSetCursorPos)
 	{
 		return SetCursorPos(X, Y);
 	}
