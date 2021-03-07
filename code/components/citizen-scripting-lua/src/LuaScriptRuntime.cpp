@@ -1427,6 +1427,7 @@ int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
 	if constexpr (IsPtr)
 	{
 		auto handler = hash;
+		context.SetArgumentCount(context.numArguments);
 
 		try
 		{
