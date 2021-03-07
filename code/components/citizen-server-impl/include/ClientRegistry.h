@@ -9,7 +9,7 @@
 #define FOLLY_NO_CONFIG
 #endif
 
-#if defined(ssize_t)
+#if defined(ssize_t) && defined(_WIN32)
 #undef ssize_t
 #endif
 #include <folly/SharedMutex.h>
