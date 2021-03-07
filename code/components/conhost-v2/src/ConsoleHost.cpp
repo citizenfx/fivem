@@ -26,6 +26,7 @@ bool g_consoleFlag;
 extern int g_scrollTop;
 extern int g_bufferHeight;
 
+#if __has_include("InputHook.h")
 void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 {
 	if (g_consoleFlag)
@@ -55,6 +56,7 @@ void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pas
 		}
 	}
 }
+#endif
 
 static InitFunction initFunction([] ()
 {
