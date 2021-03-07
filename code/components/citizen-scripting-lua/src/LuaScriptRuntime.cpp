@@ -1371,12 +1371,14 @@ int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
 		// get the hash
 		origHash = hash = lua_tointeger(L, 1);
 	}
+#ifndef IS_FXSERVER
 	else
 	{
 		auto handlerRef = (FastNativeHandler*)lua_touserdata(L, 1);
 		hash = handlerRef->handler;
 		origHash = handlerRef->hash;
 	}
+#endif
 
 #ifdef GTA_FIVE
 	// hacky super fast path for 323 GET_HASH_KEY in GTA
@@ -1446,7 +1448,7 @@ int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
 	else
 #endif
 	{
-		HRESULT hr = scriptHost->InvokeNative(context);
+		result_t hr = scriptHost->InvokeNative(context);
 
 		if (!FX_SUCCEEDED(hr))
 		{
