@@ -1433,7 +1433,10 @@ int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
 
 		try
 		{
-			g_callHandler(handler, origHash, context);
+			if (handler)
+			{
+				g_callHandler(handler, origHash, context);
+			}
 
 			// append vector3 result components
 			context.SetVectorResults();
