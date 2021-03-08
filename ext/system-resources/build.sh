@@ -8,7 +8,7 @@ dotnet publish -c Release
 cd ../../system-resources/
 
 cd ../txAdmin/
-npm i
+npm ci
 ./node_modules/.bin/webpack --config webpack.config.js --progress
 cd ../system-resources/
 

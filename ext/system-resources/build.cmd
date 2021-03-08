@@ -26,7 +26,7 @@ xcopy /y /e ..\webadmin\wwwroot\. %SRRoot%\webadmin\wwwroot\
 xcopy /y /e ..\webadmin\server\bin\Release\netstandard2.0\publish\. %SRRoot%\webadmin\server\bin\Release\netstandard2.0\publish\
 
 pushd ..\txAdmin
-call npm i
+call npm ci
 call node_modules\.bin\webpack.cmd --config webpack.config.js --progress 2>&1 | findstr /V "not found"
 popd
 
