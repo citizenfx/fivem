@@ -35,6 +35,10 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
+Sentry.setUser({
+  id: process.env.COMPUTERNAME,
+});
+
 document.addEventListener('click', (event: MouseEvent) => {
   const target: HTMLElement = event.target as any;
 

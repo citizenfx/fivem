@@ -5,3 +5,7 @@ Sentry.init({
   release: `cfx-${process.env.CI_PIPELINE_ID}`,
   tracesSampleRate: 1.0,
 });
+
+Sentry.setUser({
+  id: process.env.COMPUTERNAME,
+});
