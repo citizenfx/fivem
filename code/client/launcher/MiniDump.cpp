@@ -243,23 +243,23 @@ static void add_crashometry(json& data)
 	}
 }
 
-struct ErrorData
+struct GameErrorData
 {
 	std::string errorName;
 	std::string errorDescription;
 
-	ErrorData()
+	GameErrorData()
 	{
 	}
 
-	ErrorData(const std::string& errorName, const std::string& errorDescription)
+	GameErrorData(const std::string& errorName, const std::string& errorDescription)
 		: errorName(errorName), errorDescription(errorDescription)
 	{
 
 	}
 };
 
-static ErrorData LookupError(uint32_t hash)
+static GameErrorData LookupError(uint32_t hash)
 {
 	FILE* f = _wfopen(MakeRelativeGamePath(L"update/x64/data/errorcodes/american.txt").c_str(), L"r");
 
@@ -278,16 +278,16 @@ static ErrorData LookupError(uint32_t hash)
 					char data[8192] = { 0 };
 					fgets(data, 8191, f);
 
-					return ErrorData{&line[1], data};
+					return GameErrorData{ &line[1], data };
 				}
 			}
 		}
 	}
 
-	return ErrorData{};
+	return GameErrorData{};
 }
 
-static std::optional<std::tuple<ErrorData, uint64_t>> LoadErrorData()
+static std::optional<std::tuple<GameErrorData, uint64_t>> LoadErrorData()
 {
 	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"rb");
 
@@ -328,7 +328,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 		{
 			_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
 
-			static ErrorData errData = std::get<ErrorData>(*data);
+			static GameErrorData errData = std::get<GameErrorData>(*data);
 			static uint64_t retAddr = std::get<uint64_t>(*data);
 
 			if (errData.errorName.empty())
@@ -423,8 +423,8 @@ static std::wstring GetAdditionalData()
 		{
 			json jsonData = json::object({
 				{ "type", "rage_error" },
-				{ "key", std::get<ErrorData>(*errorData).errorName },
-				{ "description", std::get<ErrorData>(*errorData).errorDescription },
+				{ "key", std::get<GameErrorData>(*errorData).errorName },
+				{ "description", std::get<GameErrorData>(*errorData).errorDescription },
 				{ "retAddr", std::get<uint64_t>(*errorData) },
 			});
 
