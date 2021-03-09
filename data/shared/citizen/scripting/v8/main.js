@@ -104,7 +104,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	/**
 	 * Deletes ref function
-	 * 
+	 *
 	 * @param {int} ref
 	 */
 	Citizen.setDeleteRefFunction(function (ref) {
@@ -119,9 +119,9 @@ const EXT_LOCALFUNCREF = 11;
 
 	/**
 	 * Invokes ref function
-	 * 
-	 * @param {int} ref 
-	 * @param {UInt8Array} args 
+	 *
+	 * @param {int} ref
+	 * @param {UInt8Array} args
 	 */
 	Citizen.setCallRefFunction(function (ref, argsSerialized) {
 		if (!refFunctionsMap.has(ref)) {
@@ -143,7 +143,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	/**
 	 * Duplicates ref function
-	 * 
+	 *
 	 * @param {int} ref
 	 */
 	Citizen.setDuplicateRefFunction(function (ref) {
@@ -492,16 +492,8 @@ const EXT_LOCALFUNCREF = 11;
 
 						return (...args) => {
 							try {
-								const result = exportsCallbackCache[resource][k](...args);
-
-								if (Array.isArray(result) && result.length === 1) {
-									return result[0];
-								}
-
-								return result;
+								return exportsCallbackCache[resource][k](...args);
 							} catch (e) {
-								//console.error(e);
-
 								throw new Error(`An error happened while calling export ${k} of resource ${resource} - see above for details`);
 							}
 						};
@@ -808,5 +800,5 @@ const EXT_LOCALFUNCREF = 11;
 			column: parts[4] ? +parts[4] : null,
 		};
 	}
-	// END	
+	// END
 })(this || globalThis);
