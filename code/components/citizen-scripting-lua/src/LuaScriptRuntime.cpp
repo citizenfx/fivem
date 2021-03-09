@@ -1428,6 +1428,13 @@ int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
 #ifndef IS_FXSERVER
 	if constexpr (IsPtr)
 	{
+		// zero out two following arguments
+		if (context.numArguments <= 30)
+		{
+			context.arguments[context.numArguments + 0] = 0;
+			context.arguments[context.numArguments + 1] = 0;
+		}
+
 		auto handler = hash;
 		context.SetArgumentCount(context.numArguments);
 
