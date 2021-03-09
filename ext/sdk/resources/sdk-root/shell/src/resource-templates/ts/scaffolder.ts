@@ -96,7 +96,7 @@ function getTsConfigServer() {
     "module": "commonjs",
     "target": "ES2018",
     "allowJs": false,
-    "lib": ["es2015"],
+    "lib": ["ES2018"],
     "types": ["@citizenfx/server", "@types/node"],
     "moduleResolution": "node",
     "resolveJsonModule": true,
