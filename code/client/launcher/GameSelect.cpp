@@ -60,7 +60,7 @@ static std::wstring GetFolderPath(const KNOWNFOLDERID& folderId)
 	return L"";
 }
 
-#include <openssl/aes.h>
+#include <openssl/evp.h>
 #include <json.hpp>
 
 using json = nlohmann::json;
@@ -86,13 +86,29 @@ static std::string GetMtlGamePath(std::string_view gameName)
 		uint8_t key[32] = { 0 };
 		uint8_t iv[16] = { 0 };
 
-		AES_KEY decKey = { 0 };
-		AES_set_decrypt_key(key, 256, &decKey);
-		AES_cbc_encrypt(fileData.data(), fileData.data(), fileData.size(), &decKey, iv, AES_DECRYPT);
+		EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+		if (!ctx)
+		{
+			return "";
+		}
+
+		EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+
+		int outl = fileData.size();
+		size_t finalLen = 0;
+		EVP_DecryptUpdate(ctx, fileData.data(), &outl, fileData.data(), outl);
+		finalLen += outl;
+
+		int outl2 = fileData.size() - outl;
+		EVP_DecryptFinal_ex(ctx, fileData.data() + outl, &outl2);
+		finalLen += outl2;
+
+		EVP_CIPHER_CTX_free(ctx);
 
 		try
 		{
-			auto titleData = json::parse(fileData.begin() + 16, fileData.end());
+			std::string fileText(fileData.begin() + 16, fileData.begin() + finalLen);
+			auto titleData = json::parse(fileText);
 
 			for (auto& t : titleData["tl"])
 			{
@@ -104,6 +120,7 @@ static std::string GetMtlGamePath(std::string_view gameName)
 		}
 		catch (std::exception& e)
 		{
+			trace("%s\n", e.what());
 		}
 	}
 
