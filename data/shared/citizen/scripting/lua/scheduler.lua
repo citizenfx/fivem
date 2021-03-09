@@ -981,6 +981,13 @@ setmetatable(exports, {
 		AddEventHandler(getExportEventName(GetCurrentResourceName(), exportName), function(setCB)
 			setCB(func)
 		end)
+			
+		local provides = GetResourceMetadata(GetCurrentResourceName(), 'provide')
+		if provides then
+		    AddEventHandler(getExportEventName(provides, exportName), function(setCB)
+			setCB(func)
+		    end)
+		end
 	end
 })
 
