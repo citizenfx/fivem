@@ -310,7 +310,7 @@ static InitFunction initFunction([] ()
 	static auto updateFocus = []()
 	{
 		{
-			auto shouldFocus = !focusVotes.empty() || !focusCursorVotes.empty();
+			auto shouldFocus = !focusVotes.empty();
 			auto shouldCursor = !focusCursorVotes.empty();
 
 			if (shouldFocus != lastFocus || shouldCursor != lastFocusCursor)
@@ -385,21 +385,20 @@ static InitFunction initFunction([] ()
 
 							if (hasFocus)
 							{
-								auto& voteList = (hasCursor) ? focusCursorVotes : focusVotes;
-								voteList.insert(resource->GetName());
+								focusVotes.insert(resource->GetName());
 							}
-							else
+							else if (auto it = focusVotes.find(resource->GetName()); it != focusVotes.end())
 							{
-								// remove just one entry
-								// also, cursor votes are more 'important' to remove than regular votes
-								if (auto it = focusCursorVotes.find(resource->GetName()); it != focusCursorVotes.end())
-								{
-									focusCursorVotes.erase(it);
-								}
-								else if (auto it = focusVotes.find(resource->GetName()); it != focusVotes.end())
-								{
-									focusVotes.erase(it);
-								}
+								focusVotes.erase(it);
+							}
+
+							if (hasCursor)
+							{
+								focusCursorVotes.insert(resource->GetName());
+							}
+							else if (auto it = focusCursorVotes.find(resource->GetName()); it != focusCursorVotes.end())
+							{
+								focusCursorVotes.erase(it);
 							}
 
 							updateFocus();
