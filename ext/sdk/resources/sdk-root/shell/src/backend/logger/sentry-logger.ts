@@ -8,6 +8,10 @@ export class SentryLogger implements LogProvider {
     console.log('Started SentryLogger');
   }
 
+  setUserId(id: string) {
+    Sentry.setUser({ id });
+  }
+
   error(error, extra) {
     Sentry.captureException(error, { extra });
   }

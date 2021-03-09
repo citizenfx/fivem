@@ -56,6 +56,7 @@ export const stateApi = {
   state: 'state',
   serverDataState: 'serverDataState',
   gameLaunched: 'state:gameLaunched',
+  setUserId: 'state:setUserId',
 };
 
 export const explorerApi = {

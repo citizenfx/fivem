@@ -23,6 +23,8 @@ import { SdkMessageManager } from 'managers/SdkMessageManager';
 import { GameConnectionManager } from 'managers/GameConnectionManager';
 import { ConsolesManager } from 'managers/ConsolesManager';
 import { TheiaCommandsManager } from 'managers/TheiaCommandsManager';
+import { onApiMessage } from 'utils/api';
+import { stateApi } from 'shared/api.events';
 
 enableLogger('shell,shell:*,host');
 
@@ -34,6 +36,8 @@ Sentry.init({
   ],
   tracesSampleRate: 1.0,
 });
+
+onApiMessage(stateApi.setUserId, (id: string) => Sentry.setUser({ id }));
 
 document.addEventListener('click', (event: MouseEvent) => {
   const target: HTMLElement = event.target as any;

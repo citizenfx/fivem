@@ -27,6 +27,7 @@
 #include <RelativeDevice.h>
 
 #include <ReverseGameData.h>
+#include <LegitimacyAPI.h>
 
 #include <SDK.h>
 #include <SDKGameProcessManager.h>
@@ -316,6 +317,10 @@ void SdkMain()
 			{
 				resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:recycleShellItemsResponse", {}, msgId, error);
 			});
+		}
+		else if (eventName == "sdk:getUserId")
+		{
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setUserId", {}, ros::GetEntitlementSource());
 		}
 	});
 
