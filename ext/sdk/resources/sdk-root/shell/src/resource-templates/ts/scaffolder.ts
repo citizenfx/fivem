@@ -12,7 +12,7 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
   async scaffold({ request, manifest, resourcePath }: ResourceTemplateScaffolderArgs) {
     const resourceName = request.assetName;
     
-    manifest.clientScripts.push('dist/client/*.client.js');
+    manifest.clientScripts.push('dist/client/client.js');
     manifest.serverScripts.push('dist/server/*.server.js');
 
     manifest.fxdkWatchCommands.push(['yarn', [
@@ -25,12 +25,9 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
     const promises = [];
     const relativePath = (to: string) => this.fsService.joinPath(resourcePath, to);
 
-
-
     promises.push(this.fsService.writeFile(relativePath('webpack.config.js'), getWebpackContent()));
     promises.push(this.fsService.writeFile(relativePath('package.json'), getPackageContent(resourceName)));
     
-
     promises.push(
       this.fsService.mkdirp(relativePath('client'))
         .then(() => concurrently(
@@ -95,7 +92,7 @@ function getTsConfigServer() {
     "noImplicitAny": true,
     "module": "commonjs",
     "target": "ES2018",
-    "allowJs": false,
+    "allowJs": true,
     "lib": ["ES2018"],
     "types": ["@citizenfx/server", "@types/node"],
     "moduleResolution": "node",
