@@ -16,10 +16,7 @@ static bool g_enableSetCursorPos = false;
 static bool g_isFocusStolen = false;
 
 static int* g_inputOffset;
-static int* g_mouseX;
-static int* g_mouseY;
-static int* g_mouseButtons;
-static int* g_mouseWheel;
+static InputHook::MouseInputStruct *g_input;
 
 static void(*disableFocus)();
 
@@ -146,11 +143,11 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 				{
 					if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
 					{
-						*g_mouseButtons &= ~buttonIdx;
+						g_input->mouseButtons3 &= ~buttonIdx;
 					}
 					else
 					{
-						*g_mouseButtons |= buttonIdx;
+						g_input->mouseButtons3 |= buttonIdx;
 					}
 
 					break;
@@ -278,10 +275,9 @@ static bool g_mainThreadId;
 static HookFunction setOffsetsHookFunction([]()
 {
 	g_inputOffset = hook::get_address<int*>(hook::get_pattern("89 3D ? ? ? ? EB 0F 48 8B CB", 2));
-	g_mouseX = (int*)hook::get_adjusted(0x140000000 + *hook::get_pattern<int32_t>("48 63 D0 8B 46 24 41 01 84 90", 10));
-	g_mouseY = g_mouseX + 2;
-	g_mouseButtons = hook::get_address<int*>(hook::get_pattern("FF 15 ? ? ? ? 85 C0 8B 05 ? ? ? ? 74 05", 10));
-	g_mouseWheel = hook::get_address<int*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
+
+	// This is a sig to the first known member, which is mouseWheel
+	g_input = hook::get_address<InputHook::MouseInputStruct*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
 });
 
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
@@ -419,20 +415,38 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 		// TODO: handle flush of keyboard
 		memcpy(g_gameKeyArray, rgd->keyboardState, 256);
-		g_mouseX[off] = curInput.mouseX;
-		g_mouseY[off] = curInput.mouseY;
-		*g_mouseButtons = rgd->mouseButtons;
-		*g_mouseWheel = rgd->mouseWheel;
+		if( off )
+		{
+			g_input->lastMouseDiffX = curInput.mouseX;
+			g_input->lastMouseDiffY = curInput.mouseY;
+		}
+		else
+		{
+			g_input->mouseDiffX = curInput.mouseX;
+			g_input->mouseDiffY = curInput.mouseY;
+		}
+
+		g_input->mouseButtons3 = rgd->mouseButtons;
+		g_input->mouseWheel = rgd->mouseWheel;
+
 
 		origSetInput(a1, a2, a3, a4);
 
 		off = 0;
 
 		memcpy(rgd->keyboardState, g_gameKeyArray, 256);
-		rgd->mouseX = g_mouseX[off];
-		rgd->mouseY = g_mouseY[off];
-		rgd->mouseButtons = *g_mouseButtons;
-		rgd->mouseWheel = *g_mouseWheel;
+		if( off )
+		{
+			rgd->mouseX = g_input->lastMouseDiffX;
+			rgd->mouseY = g_input->lastMouseDiffY;
+		}
+		else
+		{
+			rgd->mouseX = g_input->mouseDiffX;
+			rgd->mouseY = g_input->mouseDiffY;
+		}
+		rgd->mouseButtons = g_input->mouseButtons3;
+		rgd->mouseWheel = g_input->mouseWheel;
 	}
 
 	ReleaseMutex(rgd->inputMutex);
