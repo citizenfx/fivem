@@ -408,17 +408,6 @@ void DoLauncherUiSkip()
 }
 
 #include <minhook.h>
-static void* (*opf)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7);
-
-static void* pf(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
-{
-	if (!strcmp((char*)a2, "payload") && *(char**)a3)
-	{
-		//*(int*)0 = 0xDEAD;
-	}
-
-	return opf(a1, a2, a3, a4, a5, a6, a7);
-}
 
 static HANDLE CreateMutexWStub(_In_opt_ LPSECURITY_ATTRIBUTES lpMutexAttributes, _In_ BOOL bInitialOwner, _In_opt_ LPCWSTR lpName)
 {
@@ -513,21 +502,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
 		}
 
-		DisableToolHelpScope scope;
-
-		// wfsopen debug hook
-		/*void* call = hook::pattern("49 8B 94 DE ? ? ? ? 44 8B C6 48 8B CD E8").count(1).get(0).get<void>(14);
-
-		hook::set_call(&wfsopenOrig, call);
-		hook::call(call, wfsopenCustom);*/
-
-		auto pref = hook::get_pattern("8B C3 4D 85 C0  74 11 48 83 C8 FF 48 FF", -0xb);
-
-		MH_Initialize();
-		MH_CreateHook(pref, pf, (void**)&opf);
-		MH_EnableHook(MH_ALL_HOOKS);
-
+#ifdef _DEBUG
 		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
+#endif
 
 		hook::iat("version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA");
 
@@ -556,6 +533,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		if (hSteam)
 		{
+			DisableToolHelpScope scope;
+			MH_Initialize();
 			MH_CreateHook(GetProcAddress(hSteam, "SteamAPI_Init"), ReturnFalse, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
