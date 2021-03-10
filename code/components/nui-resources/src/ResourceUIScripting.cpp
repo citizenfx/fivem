@@ -299,9 +299,10 @@ static InitFunction initFunction([] ()
 		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel)
 		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);		
 
-	static std::unordered_multiset<std::string> focusVotes;
-	static std::unordered_multiset<std::string> focusCursorVotes;
-	static std::unordered_multiset<std::string> focusKeepInputVotes;
+	// this *was* a multiset before but some resources would not correctly pair set/unset and then be stuck in 'set' state
+	static std::unordered_set<std::string> focusVotes;
+	static std::unordered_set<std::string> focusCursorVotes;
+	static std::unordered_set<std::string> focusKeepInputVotes;
 
 	static bool lastFocus = false;
 	static bool lastFocusCursor = false;
