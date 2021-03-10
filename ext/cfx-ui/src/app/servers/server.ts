@@ -135,6 +135,14 @@ export class Server {
         this.int = object;
         this.connectEndPoints = object.connectEndPoints;
 
+		if (this.data?.vars?.sv_projectName?.length >= 50) {
+			this.data.vars.sv_projectName = this.data.vars.sv_projectName.substring(0, 50);
+		}
+
+		if (this.data?.vars?.sv_projectDesc?.length >= 150) {
+			this.data.vars.sv_projectDesc = this.data.vars.sv_projectDesc.substring(0, 150);
+		}
+
         if (!object.iconVersion && sanitizer) {
             this.setDefaultIcon();
         } else {

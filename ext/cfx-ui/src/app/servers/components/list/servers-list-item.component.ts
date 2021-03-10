@@ -13,6 +13,7 @@ import * as hoverintent from 'hoverintent';
 import { ServersService } from '../../servers.service';
 
 import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
+import { ServerTagsService } from 'app/servers/server-tags.service';
 
 @Component({
 	moduleId: module.id,
@@ -39,7 +40,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 	private upvoting = false;
 
-	constructor(private gameService: GameService, private discourseService: DiscourseService,
+	constructor(private gameService: GameService, private discourseService: DiscourseService, private tagService: ServerTagsService,
 		private serversService: ServersService, private router: Router, private elementRef: ElementRef,
 		private zone: NgZone, private renderer: Renderer2) { }
 
@@ -241,5 +242,29 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 			this.upvoting = false;
 		}).catch(_=>_);
+	}
+
+	get locale() {
+		return this.server?.data?.vars?.locale ?? 'root-001';
+	}
+
+	get localeCountry() {
+		const parts = this.locale.split('-');
+		return parts[parts.length - 1].toLowerCase();
+	}
+
+	get localeName() {
+		return this.tagService.getLocaleDisplayName(this.locale);
+	}
+
+	get tags() {
+		const tagList = Array.from(new Set<string>(((this.server.data?.vars?.tags as string) ?? '').split(',').map(a => a.trim())));
+		const tagsByCount = tagList.map(a => this.tagService.coreTags[a]).filter(a => a).sort((a, b) => (b.count - a.count));
+
+		if (tagsByCount.length > 4) {
+			tagsByCount.length = 4;
+		}
+
+		return tagsByCount.map(a => a.name);
 	}
 }

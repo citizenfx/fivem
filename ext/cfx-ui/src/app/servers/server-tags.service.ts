@@ -23,12 +23,20 @@ export class ServerLocale {
 
 cldrjs.load(cldrLocales, cldrLanguages, cldrTerritories, cldrSubTags);
 
+function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
+	return [...iterable].reduce<{ [key: string]: TValue }>((obj, [key, val]) => {
+		(obj as any)[key] = val;
+		return obj;
+	}, {} as any);
+}
+
 @Injectable()
 export class ServerTagsService {
 	serverTags: { [addr: string]: true } = {};
 	serverLocale: { [addr: string]: true } = {};
 
 	tags: ServerTag[] = [];
+	coreTags: { [key: string]: ServerTag } = {};
 	locales: ServerLocale[] = [];
 
 	onUpdate = new EventEmitter<void>();
@@ -62,6 +70,7 @@ export class ServerTagsService {
 
 	private updateTagList() {
 		const tags = Object.entries(this.tagsIndex).sort((a, b) => b[1] - a[1]);
+		this.coreTags = fromEntries(tags.map(([name, count]) => ([name, { name, count }])));
 
 		tags.length = Math.min(50, tags.length);
 
