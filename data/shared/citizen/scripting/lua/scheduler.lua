@@ -957,13 +957,23 @@ setmetatable(exports, {
 				end
 
 				return function(self, ...)
-					local status, result = pcall(exportsCallbackCache[resource][k], ...)
+					local allPacked = table.pack(pcall(exportsCallbackCache[resource][k], ...))
+					local status, retValOrErr = allPacked[1], allPacked[2]
 
 					if not status then
-						error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
+						error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. retValOrErr .. '), see above for details')
 					end
 
-					return result
+					-- 1: status
+					-- 2: error or return value ?? nil
+					-- 3+: any other ret vals 
+					if retValOrErr ~= nil and #allPacked > 2 then
+						-- this is the status of the pcall, we won't need this
+						table.remove(allPacked, 1)
+						return table.unpack(allPacked)
+					end
+
+					return retValOrErr
 				end
 			end,
 
