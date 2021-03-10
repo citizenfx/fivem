@@ -142,15 +142,18 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 			return MakeRelativeCitPath(L"cache\\game\\dummy.exe.part");
 		}
 
-		if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr || wcsstr(origFileName, L"Rockstar Games\\RDR2.exe") != nullptr ||
-			wcsstr(origFileName, L"Grand Theft Auto V\\GTA5.exe") != nullptr || wcsstr(origFileName, L"Red Dead Redemption 2\\RDR2.exe") != nullptr)
+		if (wcsstr(origFileName, L"Rockstar Games\\GTA5.exe") != nullptr ||
+			wcsstr(origFileName, L"Grand Theft Auto V\\GTA5.exe") != nullptr)
 		{
 			static thread_local std::wstring s;
-#ifdef GTA_FIVE
 			s = MakeRelativeGamePath(L"GTA5.exe");
-#else
+			origFileName = s.c_str();
+		}
+		else if (wcsstr(origFileName, L"Rockstar Games\\RDR2.exe") != nullptr || 
+				 wcsstr(origFileName, L"Red Dead Redemption 2\\RDR2.exe") != nullptr)
+		{
+			static thread_local std::wstring s;
 			s = MakeRelativeGamePath(L"RDR2.exe");
-#endif
 			origFileName = s.c_str();
 		}
 		else if (wcsstr(origFileName, L"Rockstar Games\\Games") != nullptr)
