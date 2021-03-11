@@ -479,8 +479,34 @@ static float sysPerformanceTimer__GetElapsedTimeMS(sysPerformanceTimer* self)
 	return (curTime.QuadPart - self->startTime.QuadPart) * *rage__sysTimerConsts__TicksToMilliseconds;
 }
 
+struct EnumContext
+{
+	void* outPtr;
+	uint32_t max;
+	uint32_t cur;
+};
+
+static BOOL (*g_origDSoundEnumCallback)(void* a1, void* a2, void* a3, EnumContext* cxt);
+
+static BOOL DSoundEnumCallback(void* a1, void* a2, void* a3, EnumContext* cxt)
+{
+	if (cxt->cur >= cxt->max)
+	{
+		return FALSE;
+	}
+
+	return g_origDSoundEnumCallback(a1, a2, a3, cxt);
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// audio device count fix for dsound
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_address<void*>(hook::get_pattern("C6 45 F0 01 E8 ? ? ? ? 40 F6 C7 02", -4)), DSoundEnumCallback, (void**)&g_origDSoundEnumCallback);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
 	// TEMP DBG for investigation: don't crash blindly (but error cleanly) on odd object spawn
 	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
