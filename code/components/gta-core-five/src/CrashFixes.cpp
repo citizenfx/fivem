@@ -498,8 +498,41 @@ static BOOL DSoundEnumCallback(void* a1, void* a2, void* a3, EnumContext* cxt)
 	return g_origDSoundEnumCallback(a1, a2, a3, cxt);
 }
 
+struct CWeaponInfoBlob
+{
+	char pad[0xF8];
+};
+
+static uint16_t* g_weaponInfoArrayCount;
+
+static void (*g_origShiftWeaponInfoBlobsDown)(CWeaponInfoBlob* pArray[], uint16_t startIndex);
+
+void ShiftWeaponInfoBlobsDown(CWeaponInfoBlob* pArray[], uint16_t startIndex)
+{
+	uint16_t lastItemIndex = *g_weaponInfoArrayCount - 1;
+
+	g_origShiftWeaponInfoBlobsDown(pArray, startIndex);
+
+	// Only clear if a shift occured
+	if (startIndex < lastItemIndex)
+	{
+		// Copy the next empty weapon info into this unused one to reset it
+		(*pArray)[lastItemIndex] = (*pArray)[lastItemIndex + 1];
+	}
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// Clear out unused CWeaponInfoBlob when the array is shifted. This leads to a crash when another blob inserts in to the unused position
+	{
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? FF CD 0F B7 05 ? ? ? ?");
+
+		hook::set_call(&g_origShiftWeaponInfoBlobsDown, location);
+		hook::call(location, ShiftWeaponInfoBlobsDown);
+
+		g_weaponInfoArrayCount = hook::get_address<uint16_t*>(location + 0xA);
+	}
+
 	// audio device count fix for dsound
 	{
 		MH_Initialize();
