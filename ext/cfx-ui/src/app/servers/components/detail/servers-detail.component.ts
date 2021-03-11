@@ -172,6 +172,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					.map(([key, value]) => ({ key, value }))
 					.filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
 					.filter(({ key }) => key.indexOf('banner_') < 0)
+					.filter(({ key }) => key.indexOf('sv_project') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('version') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('uuid') < 0)
 					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || (value !== '1604' && value !== '1311'))
@@ -184,6 +185,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 				this.meta.setTag('og:description', `${this.server.currentPlayers} players on ${this.server.data.mapname}`);
 				this.meta.setTag('og:site_name', 'FiveM');
 			});
+	}
+
+	openOwner() {
+		this.gameService.openUrl(this.server.data?.ownerProfile ?? '');
 	}
 
 	trackPlayer(index: number, player: any) {

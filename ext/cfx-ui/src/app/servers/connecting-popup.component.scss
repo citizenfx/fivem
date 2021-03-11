@@ -45,6 +45,10 @@
 		}
 	}
 
+	::ng-deep img.avatar {
+		height: 1em;
+	}
+
 	.wrap {
 		display: flex;
 		justify-content: center;
@@ -70,6 +74,10 @@
 
 		.content {
 			user-select: text;
+
+			::ng-deep * {
+				user-select: text;
+			}
 
 			&:not(:empty) {
 				margin-top: var(--qh);

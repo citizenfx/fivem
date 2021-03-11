@@ -56,6 +56,7 @@ import { ColorizePipe } from './colorize.pipe';
 import { EscapePipe } from './escape.pipe';
 import { SafeHtmlPipe } from './safe.pipe';
 import { AllowifyPipe } from './allowify.pipe';
+import { RejectifyPipe } from './rejectify.pipe';
 import { LocalStorage } from './local-storage';
 
 import { Languages } from './languages';
@@ -201,6 +202,7 @@ export function metaFactory(): MetaLoader {
 		EscapePipe,
 		SafeHtmlPipe,
 		AllowifyPipe,
+		RejectifyPipe,
 		ModsComponent,
 		ModListComponent,
 		ModDetailComponent,

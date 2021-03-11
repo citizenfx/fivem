@@ -25,6 +25,7 @@ export class ConnectingPopupComponent implements OnInit {
 	retryLabel = "#Servers_Retry";
 	submitting = false;
 	closeKeys = ["Escape", "Backspace", "Delete"];
+	serverData: any = null;
 
 	@Output()
 	retry = new EventEmitter();
@@ -56,6 +57,7 @@ export class ConnectingPopupComponent implements OnInit {
 			this.overlayClosable = false;
 
 			this.overlayBg = a?.data?.vars?.banner_connecting || '';
+			this.serverData = a?.data;
 
 			this.clearElements();
 		});

@@ -97,6 +97,10 @@
 								></span>
 							</ng-container>
 						</li>
+						<li class="owner" *ngIf="server.data?.ownerName" (click)="openOwner()">
+							<span class="key" l10nTranslate>#ServerDetail_Owner</span>
+							<span class="value"><img [src]="server.data?.ownerAvatar"><span>{{server.data?.ownerName}}</span></span>
+						</li>
 					</ul>
 				</div>
 			</div>

@@ -259,7 +259,9 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 	get tags() {
 		const tagList = Array.from(new Set<string>(((this.server.data?.vars?.tags as string) ?? '').split(',').map(a => a.trim())));
-		const tagsByCount = tagList.map(a => this.tagService.coreTags[a]).filter(a => a).sort((a, b) => (b.count - a.count));
+		const tagsByCount = tagList
+			.map(a => this.tagService.coreTags[a]).filter(a => a).sort((a, b) => (b.count - a.count))
+			.filter(a => a.count >= 8);
 
 		if (tagsByCount.length > 4) {
 			tagsByCount.length = 4;

@@ -96,6 +96,7 @@
     "#ServerDetail_ScriptHook": "Client scripts allowed",
     "#ServerDetail_OneSync": "OneSync",
     "#ServerDetail_Updates": "Feed",
+	"#ServerDetail_Owner": "Owner",
     "#ServerDetail_Premium": "FiveM supporter tier",
     "#ServerDetail_DLCLevel": "DLC level",
     "#Changelogs": "Change logs",
