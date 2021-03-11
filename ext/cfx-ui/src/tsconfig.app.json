@@ -4,7 +4,8 @@
     "outDir": "../out-tsc/app",
     "module": "esnext",
     "baseUrl": "",
-    "types": ["node"]
+    "types": ["node"],
+	"allowSyntheticDefaultImports": true
   },
   "angularCompilerOptions": {
     "strictTemplates": true

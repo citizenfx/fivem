@@ -50,6 +50,7 @@
     "css-loader": "^5.0.0",
     "date-fns": "^2.16.1",
     "dompurify": "^2.2.0",
+    "emoji-regex": "^9.2.2",
     "emoji.json": "^13.0.0",
     "external-svg-sprite-loader": "^6.0.1",
     "fast-json-patch": "^2.2.1",
