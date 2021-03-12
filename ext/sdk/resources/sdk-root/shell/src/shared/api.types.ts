@@ -70,7 +70,6 @@ export type FilesystemEntryMap = {
 
 
 export enum Feature {
-  systemGitClientAvailable,
   windowsDevModeEnabled,
   dotnetAvailable,
 }

@@ -70,7 +70,6 @@ export class FeaturesService implements AppContribution {
 
     await concurrently(
       this.probeWindowsDevMode(),
-      this.probeSystemGit(),
       this.probeDotnet(),
     );
   }
@@ -105,20 +104,6 @@ export class FeaturesService implements AppContribution {
       await this.fsService.rimraf(source),
       await this.fsService.rimraf(target),
     ]);
-  }
-
-  protected async probeSystemGit() {
-    let systemGitClientAvailable: boolean;
-
-    try {
-      const response = cp.execSync('git --version').toString();
-
-      systemGitClientAvailable = response.startsWith('git version');
-    } catch (e) {
-      systemGitClientAvailable = false;
-    }
-
-    this.resolveFeature(Feature.systemGitClientAvailable, systemGitClientAvailable);
   }
 
   protected async probeDotnet() {

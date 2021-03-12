@@ -27,6 +27,8 @@ export const cfxServerDataEnabledResources = [
   'sessionmanager',
   'baseevents',
   'hardcap',
+  'webpack',
+  'yarn',
 ];
 
 @injectable()
@@ -159,7 +161,7 @@ export class ProjectManager implements ApiContribution {
     }
 
     const serverDataPath = this.fsService.joinPath(projectPath, 'cfx-server-data');
-    if (request.withServerData && await this.fsService.statSafe(serverDataPath)) {
+    if (await this.fsService.statSafe(serverDataPath)) {
       result.ignoreCfxServerData = true;
     }
 
@@ -188,10 +190,10 @@ export class ProjectManager implements ApiContribution {
       this.setCurrentProjectInstanceAsMostRecent();
     });
 
-    if (!checkResult.ignoreCfxServerData && request.withServerData) {
+    if (!checkResult.ignoreCfxServerData) {
       const assetImportRequest: GitAssetImportRequest = {
         importerType: assetImporterTypes.git,
-        assetName: 'cfx-server-data',
+        assetName: 'system-resources',
         assetBasePath: this.project.getPath(),
         assetMetaFlags: {
           readOnly: true,

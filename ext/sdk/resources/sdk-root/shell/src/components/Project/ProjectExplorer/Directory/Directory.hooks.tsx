@@ -38,9 +38,12 @@ export const useDeleteDirectoryApiCallbackMessage = (path: string) => {
   }, [path, deleteDirectory, addPendingDirectoryDeletion]);
 };
 
-export const useDirectoryContextMenu = (path: string, childrenLength: number) => {
+export const useDirectoryContextMenu = (path: string, childrenLength: number, optionsOverride: Partial<ProjectExplorerItemContext> = {}) => {
   const { setResourceCreatorDir: setAssetCreatorDir, openResourceCreator } = React.useContext(ProjectContext);
-  const { disableDirectoryDelete, disableAssetCreate } = React.useContext(ProjectExplorerItemContext);
+  const { disableDirectoryDelete, disableAssetCreate } = {
+    ...React.useContext(ProjectExplorerItemContext),
+    ...optionsOverride,
+  };
 
   const [deleteConfirmationOpen, openDeleteConfirmation, closeDeleteConfirmation] = useOpenFlag(false);
   const deleteDirectory = useDeleteDirectoryApiCallbackMessage(path);

@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-03-12',
+    title: 'March 12, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            <strong>Ditched embedded filesystem viewer (as seen in project creator) in favor of system's folder select dialog</strong>
+            <br/>
+            This is due to a big amount of unforeseen edge-cases that sometimes cause viewer to be completely broken.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: 'initial',
     title: 'FxDK Pre-release 🎉',
     content: (

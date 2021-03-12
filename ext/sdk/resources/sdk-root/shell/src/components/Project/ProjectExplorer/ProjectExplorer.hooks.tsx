@@ -59,9 +59,12 @@ export interface UseItemHook {
   options: ProjectExplorerItemContext,
 }
 
-export const useItem = (item: ProjectItemProps): UseItemHook => {
+export const useItem = (item: ProjectItemProps, overrideOptions: Partial<ProjectExplorerItemContext> = {}): UseItemHook => {
   const { setPathState } = React.useContext(ProjectExplorerContext);
-  const options = React.useContext(ProjectExplorerItemContext);
+  const options = {
+    ...React.useContext(ProjectExplorerItemContext),
+    ...overrideOptions,
+  };
 
   const [directoryCreatorOpen, openDirectoryCreator, closeDirectoryCreator] = useOpenFlag(false);
   const handleDirectoryCreate = React.useCallback((directoryName: string) => {
@@ -134,7 +137,7 @@ export const useItem = (item: ProjectItemProps): UseItemHook => {
         openFileCreator();
       },
     },
-  ], [item, setPathState, openFileCreator]);
+  ], [item, setPathState, openFileCreator, options]);
 
   const requiredContextMenuItems: ContextMenuItem[] = React.useMemo(() => [
     {

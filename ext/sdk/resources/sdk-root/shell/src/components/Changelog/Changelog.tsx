@@ -1,3 +1,4 @@
+import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
 import * as React from 'react';
 import { changelogEntries, ChangelogEntry } from './Changelog.entries';
 import s from './Changelog.module.scss';
@@ -16,16 +17,31 @@ const ChangelogNode = React.memo(function ChangelogNode(props: ChangelogEntry) {
 });
 
 export const Changelog = React.memo(function Changelog() {
-  const entriesNodes = changelogEntries.map((entry) => (
-    <ChangelogNode
-      key={entry.id}
-      {...entry}
-    />
-  ));
+  const entriesNodes = changelogEntries.map((entry, index) => {
+    if (index === 0) {
+      return (
+        <>
+          <ChangelogNode
+            key={entry.id}
+            {...entry}
+          />
+
+          <div className={s.older}>Older entries</div>
+        </>
+      );
+    }
+
+    return (
+      <ChangelogNode
+        key={entry.id}
+        {...entry}
+      />
+    );
+  });
 
   return (
-    <div className={s.root}>
+    <ScrollContainer className={s.root}>
       {entriesNodes}
-    </div>
+    </ScrollContainer>
   );
 });

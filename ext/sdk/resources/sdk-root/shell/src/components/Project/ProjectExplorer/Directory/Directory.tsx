@@ -36,14 +36,39 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
 
   const directoryChildren = pathsMap[entry.path] || [];
 
+  const assetMetaFlags = entry.meta?.assetMeta?.flags;
+  const itemContext = React.useMemo(() => {
+    if (!assetMetaFlags) {
+      return null;
+    }
+
+    const ctx: Partial<ProjectExplorerItemContext> = {};
+
+    if (assetMetaFlags.readOnly) {
+      ctx.disableAssetCreate = true;
+      ctx.disableAssetDelete = true;
+      ctx.disableAssetRename = true;
+      ctx.disableDirectoryCreate = true;
+      ctx.disableDirectoryDelete = true;
+      ctx.disableDirectoryRename = true;
+      ctx.disableEntryMove = true;
+      ctx.disableFileCreate = true;
+      ctx.disableFileDelete = true;
+      ctx.disableFileOpen = true;
+      ctx.disableFileRename = true;
+    }
+
+    return ctx;
+  }, [assetMetaFlags]);
+
   const {
     directoryContextMenuItems,
     deleteConfirmationOpen,
     closeDeleteConfirmation,
     deleteDirectory,
-  } = useDirectoryContextMenu(entry.path, directoryChildren.length);
+  } = useDirectoryContextMenu(entry.path, directoryChildren.length, itemContext);
 
-  const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
+  const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props, itemContext);
 
   const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
   const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
@@ -76,31 +101,6 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
   const itemClassName = classnames(itemsStyles.item, {
     [itemsStyles.dragging]: isDragging,
   });
-
-  const assetMetaFlags = entry.meta?.assetMeta?.flags;
-  const itemContext = React.useMemo(() => {
-    if (!assetMetaFlags) {
-      return null;
-    }
-
-    const ctx: Partial<ProjectExplorerItemContext> = {};
-
-    if (assetMetaFlags.readOnly) {
-      ctx.disableAssetCreate = true;
-      ctx.disableAssetDelete = true;
-      ctx.disableAssetRename = true;
-      ctx.disableDirectoryCreate = true;
-      ctx.disableDirectoryDelete = true;
-      ctx.disableDirectoryRename = true;
-      ctx.disableEntryMove = true;
-      ctx.disableFileCreate = true;
-      ctx.disableFileDelete = true;
-      ctx.disableFileOpen = true;
-      ctx.disableFileRename = true;
-    }
-
-    return ctx;
-  }, [assetMetaFlags]);
 
   return (
     <div className={rootClassName} ref={dropRef}>
