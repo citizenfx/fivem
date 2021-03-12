@@ -986,7 +986,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0x84F0F13120B4E098, [=](fx::ScriptContext& context)
 		{
-			(*origSetProximity)(context);
+			(*origGetProximity)(context);
 
 			float proximity = g_mumbleClient->GetAudioDistance();
 
