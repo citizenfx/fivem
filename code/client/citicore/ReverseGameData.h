@@ -53,10 +53,10 @@ struct RageIOPad
 	char _pad[24];
 	
 	bool isFresh; // +50 - supposedly set to Zero when conditions fail ( like GetXInputState )
-
+	char _padmotor[15];
 	short leftMotorSpeed;  // +66
 	short rightMotorSpeed; // +68
-	char _padend[45];
+	char _padend[20];
 };
 
 struct ReverseGameData
