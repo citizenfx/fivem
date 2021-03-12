@@ -984,6 +984,64 @@ static InitFunction initFunction([]()
 		return gameState->MakeScriptHandle(returnEntity);
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_IN_VEHICLE_SEAT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+    {
+        auto vn = entity->syncTree->GetVehicleGameState();
+
+        int seatArg = context.GetArgument<int>(1);
+
+        // get the current resource manager
+        auto resourceManager = fx::ResourceManager::GetCurrent();
+
+        // get the owning server instance
+        auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+        // get the server's game state
+        auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+        int retval = 0;
+
+        if (vn && vn->occupants[seatArg]) 
+        {
+            auto pedEntity = gameState->GetEntity(0, vn->occupants[seatArg]);
+            if (pedEntity) 
+            {
+                retval = gameState->MakeScriptHandle(pedEntity);
+            }
+        }
+
+        return retval;
+    }));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_LAST_PED_IN_VEHICLE_SEAT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+    {
+        auto vn = entity->syncTree->GetVehicleGameState();
+
+        int seatArg = context.GetArgument<int>(1);
+
+        // get the current resource manager
+        auto resourceManager = fx::ResourceManager::GetCurrent();
+
+        // get the owning server instance
+        auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+        // get the server's game state
+        auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+        int retval = 0;
+
+        if (vn && vn->lastOccupant[seatArg]) 
+        {
+            auto pedEntity = gameState->GetEntity(0, vn->lastOccupant[seatArg]);
+            if (pedEntity) 
+            {
+                retval = gameState->MakeScriptHandle(pedEntity);
+            }
+        }
+
+        return retval;
+    }));
+
 	fx::ScriptEngine::RegisterNativeHandler("DELETE_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto resourceManager = fx::ResourceManager::GetCurrent();
