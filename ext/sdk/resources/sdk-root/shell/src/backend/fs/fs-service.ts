@@ -58,6 +58,10 @@ export class FsService {
     return path.join(...args);
   }
 
+  resolvePath(entryPath: string) {
+    return path.resolve(entryPath);
+  }
+
   async statSafe(entryPath: string): Promise<fs.Stats | null> {
     try {
       return await this.stat(entryPath);

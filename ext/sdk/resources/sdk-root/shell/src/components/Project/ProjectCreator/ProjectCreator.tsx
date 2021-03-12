@@ -13,6 +13,8 @@ import { Feature } from 'shared/api.types';
 import s from './ProjectCreator.module.scss';
 import { ProjectCreateRequest } from 'shared/api.requests';
 import { ProjectCreateCheckResult } from 'shared/project.types';
+import { PathSelector } from 'components/controls/PathSelector/PathSelector';
+import { BsBoxArrowUpRight } from 'react-icons/bs';
 
 
 function formatProjectPathHint(projectPath: string, projectName: string) {
@@ -34,10 +36,7 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
 
   const [projectName, setProjectName] = React.useState('');
   const [projectPath, setProjectPath] = React.useState('');
-  const [withServerData, setWithServerData] = React.useState(false);
   const [checkResult, setCheckResult] = React.useState<ProjectCreateCheckResult>({});
-
-  const canInstallServerData = useFeature(Feature.systemGitClientAvailable);
 
   // Whenever we see project open - close creator
   useApiMessage(projectApi.open, closeCreator);
@@ -46,7 +45,7 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
     setCheckResult(results);
   }, [setCheckResult]);
 
-  const checkRequest = useDebouncedCallback((projectPath: string, projectName: string, withServerData: boolean) => {
+  const checkRequest = useDebouncedCallback((projectPath: string, projectName: string) => {
     if (!projectPath || !projectName) {
       return;
     }
@@ -54,7 +53,6 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
     const request: ProjectCreateRequest = {
       projectPath,
       projectName,
-      withServerData,
     };
 
     sendApiMessage(projectApi.checkCreateRequest, request);
@@ -65,38 +63,24 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
       const request: ProjectCreateRequest = {
         projectPath,
         projectName,
-        withServerData,
       };
 
       sendApiMessage(projectApi.create, request);
     }
-  }, [projectName, projectPath, withServerData]);
+  }, [projectName, projectPath]);
 
   const handleProjectPathChange = React.useCallback((newProjectPath: string) => {
     setProjectPath(newProjectPath);
-    checkRequest(newProjectPath, projectName, withServerData);
-  }, [projectName, withServerData, setProjectPath, checkRequest]);
+    checkRequest(newProjectPath, projectName);
+  }, [projectName, setProjectPath, checkRequest]);
 
   const handleProjectNameChange = React.useCallback((newProjectName: string) => {
     setProjectName(newProjectName);
-    checkRequest(projectPath, newProjectName, withServerData);
-  }, [projectPath, withServerData, setProjectName, checkRequest]);
-
-  const handleWithServerDataChange = React.useCallback((newWithServerData: boolean) => {
-    setWithServerData(newWithServerData);
-    checkRequest(projectPath, projectName, newWithServerData);
-  }, [projectPath, projectName, setWithServerData, checkRequest]);
+    checkRequest(projectPath, newProjectName);
+  }, [projectPath, setProjectName, checkRequest]);
 
   const hint = formatProjectPathHint(projectPath, projectName);
   const canCreate = projectPath && projectName;
-
-  const serverDataCheckboxLabel = !canInstallServerData
-    ? `Can't install cfx-server-data automatically as we failed to find git client on this machine, we're working on resolving this issue, sorry for inconveniece :(`
-    : (
-      checkResult.ignoreCfxServerData
-        ? `cfx-server-data is already there! Though we don't know if that is what you need`
-        : 'Add cfx-server-data automatically?'
-    );
 
   return (
     <Modal fullWidth onClose={closeCreator}>
@@ -117,22 +101,18 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
           />
         </div>
 
-        <Checkbox
-          value={withServerData}
-          onChange={handleWithServerDataChange}
-          label={serverDataCheckboxLabel}
-          className={s.checkbox}
-          disabled={!canInstallServerData}
-        />
-
         <div className={s['explorer-hint']}>
           {hint}
         </div>
-        <RootsExplorer
-          hideFiles
-          selectedPath={projectPath}
-          onSelectPath={handleProjectPathChange}
-        />
+        <div className="modal-block">
+          <PathSelector
+            value={projectPath}
+            onChange={handleProjectPathChange}
+            placeholder="Project path"
+            dialogTitle="Select folder in which project will be created..."
+            buttonIcon={<BsBoxArrowUpRight />}
+          />
+        </div>
 
         <div className="modal-actions">
           <Button

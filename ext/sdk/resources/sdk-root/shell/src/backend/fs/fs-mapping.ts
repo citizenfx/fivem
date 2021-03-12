@@ -163,6 +163,10 @@ export class FsMapping {
 
     switch (type) {
       case FsUpdateType.addDir: {
+        if (!entry) {
+          break;
+        }
+
         this.map[path] = [];
         this.pendingUpdates.replace[path] = [];
 
@@ -177,6 +181,10 @@ export class FsMapping {
         break;
       }
       case FsUpdateType.add: {
+        if (!entry) {
+          break;
+        }
+
         if (parent) {
           parent.push(entry);
           this.pendingUpdates.replace[parentPath] = parent;
@@ -189,6 +197,10 @@ export class FsMapping {
       }
 
       case FsUpdateType.change: {
+        if (!entry) {
+          break;
+        }
+
         if (parent) {
           const updatedEntryIndex = parent.findIndex((entry) => entry.path === path);
 

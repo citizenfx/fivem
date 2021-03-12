@@ -1,4 +1,3 @@
-import simpleGitPromised from 'simple-git/promise';
 import { inject, injectable } from 'inversify';
 import { ApiClient } from 'backend/api/api-client';
 import { LogService } from 'backend/logger/log-service';
@@ -9,6 +8,7 @@ import { NotificationService } from 'backend/notification/notification-service';
 import { ProjectAccess } from 'backend/project/project-access';
 import { AssetImporterContribution } from '../../asset-importer-contribution';
 import { GitAssetImportRequest } from './git-importer.types';
+import { GitService } from 'backend/git/git-service';
 
 @injectable()
 export class GitImporter implements AssetImporterContribution {
@@ -29,6 +29,9 @@ export class GitImporter implements AssetImporterContribution {
 
   @inject(ProjectAccess)
   protected readonly projectAccess: ProjectAccess;
+
+  @inject(GitService)
+  protected readonly gitService: GitService;
 
   async importAsset(request: GitAssetImportRequest): Promise<boolean> {
     const {
@@ -56,14 +59,13 @@ export class GitImporter implements AssetImporterContribution {
       });
     }
 
-    const git = simpleGitPromised(request.assetBasePath);
-
     try {
       this.logService.log('Importing git asset', request);
 
       importTask.setText(`Cloning repository ${repoUrl}`);
 
-      await git.clone(repoUrl, assetName);
+      await this.gitService.clone(request.assetBasePath, assetName, repoUrl);
+
       this.logService.log('Done: Importing git asset', request);
 
       if (request.callback) {

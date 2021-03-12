@@ -51,6 +51,8 @@
     background-color: $bgColor;
 
     .title {
+      flex-shrink: 0;
+
       @include fontPrimary;
 
       $itemHeight: $q*12;
@@ -153,6 +155,8 @@
     .changelog {
       flex-grow: 1;
       overflow-y: auto;
+
+      margin-bottom: $q*4;
     }
 
     .actions {

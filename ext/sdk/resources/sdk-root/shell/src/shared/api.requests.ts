@@ -6,7 +6,6 @@ import { ProjectManifestResource } from "./project.types";
 export interface ProjectCreateRequest {
   projectName: string,
   projectPath: string,
-  withServerData?: boolean,
 }
 
 export interface ProjectSetResourceConfigRequest {

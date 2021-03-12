@@ -262,7 +262,7 @@ export class Project implements ApiContribution {
     const creatingTask = this.taskReporterService.createNamed(projectCreatingTaskName, `Creating project ${request.projectName}`);
 
     try {
-      this.path = this.fsService.joinPath(request.projectPath, request.projectName);
+      this.path = this.fsService.resolvePath(this.fsService.joinPath(request.projectPath, request.projectName));
       this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
 
       const projectManifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
@@ -298,7 +298,7 @@ export class Project implements ApiContribution {
 
   async load(path?: string): Promise<Project> {
     if (path) {
-      this.path = path;
+      this.path = this.fsService.resolvePath(path);
     }
 
     const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${path}`);
