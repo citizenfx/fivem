@@ -1,6 +1,10 @@
 #pragma once
 
 #ifndef IS_FXSERVER
+namespace rage
+{
+	class parStructure;
+}
 // size in the game is exactly 96 bytes - 0x60
 struct RageIOPad
 {
@@ -26,7 +30,13 @@ struct RageIOPad
 		BUTTON_LEFT = (1 << 15), //0x8000
 
 	};
-	void* vtable;
+	inline rage::parStructure* GetParStructure()
+	{
+		typedef rage::parStructure* (*fnGetParStruct)();
+		fnGetParStruct GetParStruct = (*reinterpret_cast<fnGetParStruct**>(this))[9];
+		return GetParStruct();
+	}
+	void *vtable;
 	int controllerIndex; // could be a smaller value with some unk bytes
 	int buttonFlags; // +12
 	int lastButtonFlags; // buttonFlags is copied here and then set to 0 on a new cycle +16
