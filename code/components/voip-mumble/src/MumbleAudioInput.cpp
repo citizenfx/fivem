@@ -298,7 +298,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		}
 
 		// store packet
-		EnqueueOpusPacket(std::string((char*)m_encodedBytes, len));
+		EnqueueOpusPacket(std::string{ (char*)m_encodedBytes, size_t(len) }, frameSize / 10);
 	}
 
 	if (bytesLeft > 0)
@@ -321,9 +321,9 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	SendQueuedOpusPackets();
 }
 
-void MumbleAudioInput::EnqueueOpusPacket(std::string packet)
+void MumbleAudioInput::EnqueueOpusPacket(std::string&& packet, int numFrames)
 {
-	m_opusPackets.push(packet);
+	m_opusPackets.push({ std::move(packet), numFrames });
 }
 
 void MumbleAudioInput::SendQueuedOpusPackets()
@@ -335,8 +335,10 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 	while (!m_opusPackets.empty())
 	{
-		auto packet = m_opusPackets.front();
+		auto packetChunk = std::move(m_opusPackets.front());
 		m_opusPackets.pop();
+
+		const auto& [packet, frames] = packetChunk;
 
 		char outBuf[16384];
 		PacketDataStream buffer(outBuf, sizeof(outBuf));
@@ -350,7 +352,7 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		buffer << (packet.size() | (bTerminate ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
-		++m_sequence;
+		m_sequence += frames;
 
 		//buffer << uint64_t(1 << 13);
 

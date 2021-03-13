@@ -32,6 +32,9 @@ namespace WRL = Microsoft::WRL;
 class MumbleClient;
 class MumbleUser;
 
+struct JitterBuffer_;
+typedef struct JitterBuffer_ JitterBuffer;
+
 class MumbleAudioOutput
 {
 public:
@@ -79,7 +82,7 @@ private:
 	{
 		ClientAudioStateBase();
 
-		virtual ~ClientAudioStateBase() = default;
+		virtual ~ClientAudioStateBase();
 
 		virtual bool Valid()
 		{
@@ -99,6 +102,15 @@ private:
 			return isTalking;
 		}
 
+		virtual bool ShouldManagePoll()
+		{
+			return false;
+		}
+
+		virtual void PollAudio(int frameCount);
+
+		void resizeBuffer(size_t size);
+
 		uint64_t sequence;
 		float volume;
 		float position[3];
@@ -107,7 +119,26 @@ private:
 		bool isTalking;
 		bool isAudible;
 		OpusDecoder* opus;
+		JitterBuffer* jitter;
 		uint32_t lastTime;
+
+		std::mutex jitterLock;
+
+		int iLastConsume = 0;
+		int iBufferFilled = 0;
+		int iBufferOffset = 0;
+		float* pfBuffer = nullptr;
+		int iBufferSize = 48000;
+		bool bLastAlive = false;
+
+		bool notQuiet = false;
+		float fPowerMax = 0.0f;
+		float fPowerMin = 0.0f;
+
+		float fAverageAvailable = 0.0f;
+		int iMissCount = 0;
+
+		std::list<std::unique_ptr<std::vector<uint8_t>>> qlFrames;
 	};
 
 	struct ExternalAudioState : public ClientAudioStateBase
@@ -144,6 +175,11 @@ private:
 		virtual bool Valid() override
 		{
 			return context && context->destination();
+		}
+
+		virtual bool ShouldManagePoll()
+		{
+			return true;
 		}
 
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;

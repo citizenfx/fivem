@@ -259,3 +259,6 @@
 [submodule "vendor/hdiffpatch"]
 	path = vendor/hdiffpatch
 	url = https://github.com/sisong/HDiffPatch.git
+[submodule "vendor/speexdsp"]
+	path = vendor/speexdsp
+	url = https://github.com/xiph/speexdsp.git
