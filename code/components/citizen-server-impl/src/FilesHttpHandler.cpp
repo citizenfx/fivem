@@ -13,7 +13,7 @@
 #include <array>
 #include <filesystem>
 
-constexpr const size_t kFileSendSize = 128 * 1024 * 1024;
+constexpr const size_t kFileSendSize = 128 * 1024;
 
 namespace fx
 {
