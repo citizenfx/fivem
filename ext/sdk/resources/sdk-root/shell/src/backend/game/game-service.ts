@@ -19,13 +19,32 @@ export class GameService implements ApiContribution, AppContribution {
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
 
+  private gameBuildNumber: number = 0;
+
   private gameLaunched: boolean = false;
 
   private gameProcessState: SDKGameProcessState = SDKGameProcessState.GP_STOPPED;
 
   private connectionState: NetLibraryConnectionState = NetLibraryConnectionState.CS_IDLE;
 
-  boot() {
+  getBuildNumber(): number {
+    return this.gameBuildNumber;
+  }
+
+  async boot() {
+    const gameBuildNumberPromise = new Promise<void>((resolve) => {
+      const handler = (gameBuildNumber: number) => {
+        this.gameBuildNumber = gameBuildNumber;
+
+        RemoveEventHandler('sdk:setBuildNumber', handler);
+
+        resolve();
+      };
+
+      on('sdk:setBuildNumber', handler);
+      emit('sdk:getBuildNumber');
+    });
+
     on('sdk:gameLaunched', () => {
       this.gameLaunched = true;
 
@@ -60,6 +79,8 @@ export class GameService implements ApiContribution, AppContribution {
     });
 
     this.startGame();
+
+    await gameBuildNumberPromise;
   }
 
   @handlesClientEvent(gameApi.ack)
