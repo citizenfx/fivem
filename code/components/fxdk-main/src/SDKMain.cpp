@@ -322,6 +322,19 @@ void SdkMain()
 		{
 			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setUserId", {}, ros::GetEntitlementSource());
 		}
+		else if (eventName == "sdk:getBuildNumber")
+		{
+			uint32_t buildNumber = 0;
+
+			std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+			if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				buildNumber = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", buildNumber, fpath.c_str());
+			}
+
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setBuildNumber", {}, buildNumber);
+		}
 	});
 
 	// Provide CEF with command-line arguments.

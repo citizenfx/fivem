@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-03-13',
+    title: 'March 13, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Issue with different game builds not connecting to server has been fixed
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-03-12',
     title: 'March 12, 2021',
     content: (

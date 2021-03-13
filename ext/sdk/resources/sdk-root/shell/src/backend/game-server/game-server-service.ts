@@ -20,6 +20,7 @@ import { Sequencer } from 'backend/execution-utils/sequencer';
 import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { ShellCommand } from 'backend/process/ShellCommand';
+import { GameService } from 'backend/game/game-service';
 
 enum ResourceReconcilationState {
   start = 1,
@@ -53,6 +54,9 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
+
+  @inject(GameService)
+  protected readonly gameService: GameService;
 
   @inject(GameServerManagerService)
   protected readonly gameServerManagerService: GameServerManagerService;
@@ -136,6 +140,10 @@ export class GameServerService implements AppContribution, ApiContribution {
       '+add_ace', 'resource.sdk-game', 'command', 'allow',
       '+ensure', 'sdk-game',
     ];
+
+    if (this.gameService.getBuildNumber()) {
+      fxserverArgs.push('+set', 'sv_enforcegamebuild', this.gameService.getBuildNumber().toString());
+    }
 
     if (licenseKey) {
       fxserverArgs.push('+set', 'sv_licenseKey', licenseKey);
