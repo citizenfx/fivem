@@ -1136,14 +1136,14 @@ void MumbleAudioEntity::MInit()
 
 		{
 			std::unique_lock _(g_customEntriesLock);
-			static int i;
-			i++;
+			static std::atomic<int> i;
+			int id = ++i;
 
 			auto self = shared_from_this();
-			g_customEntries[i] = self;
-			m_customEntryId = i;
+			g_customEntries[id] = self;
+			m_customEntryId = id;
 
-			buffer->SetCustomMode(i);
+			buffer->SetCustomMode(id);
 		}
 
 		m_sound->InitStreamPlayer(buffer, 1, 48000);
