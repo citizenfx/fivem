@@ -898,7 +898,7 @@ extern "C"
 #include <libswresample/swresample.h>
 };
 
-class MumbleAudioEntity : public rage::audEntity, std::enable_shared_from_this<MumbleAudioEntity>
+class MumbleAudioEntity : public rage::audEntity, public std::enable_shared_from_this<MumbleAudioEntity>
 {
 public:
 	MumbleAudioEntity(const std::wstring& name)
