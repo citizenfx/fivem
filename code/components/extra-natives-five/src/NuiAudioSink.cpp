@@ -898,7 +898,7 @@ extern "C"
 #include <libswresample/swresample.h>
 };
 
-class MumbleAudioEntity : public rage::audEntity
+class MumbleAudioEntity : public rage::audEntity, std::enable_shared_from_this<MumbleAudioEntity>
 {
 public:
 	MumbleAudioEntity(const std::wstring& name)
@@ -1008,7 +1008,7 @@ private:
 static void (*g_origGenerateFrame)(rage::audStreamPlayer* self);
 static std::shared_mutex g_customEntriesLock;
 
-static std::map<int, MumbleAudioEntity*> g_customEntries;
+static std::map<int, std::weak_ptr<MumbleAudioEntity>> g_customEntries;
 
 void GenerateFrameHook(rage::audStreamPlayer* self)
 {
@@ -1020,8 +1020,13 @@ void GenerateFrameHook(rage::audStreamPlayer* self)
 			std::shared_lock _(g_customEntriesLock);
 			if (auto entry = g_customEntries.find(idx); entry != g_customEntries.end())
 			{
-				// every read is 256 samples?
-				entry->second->Poll(256 - self->frameOffset);
+				auto entity = entry->second.lock();
+
+				if (entity)
+				{
+					// every read (native frame) is 256 samples
+					entity->Poll(256 - self->frameOffset);
+				}
 			}
 		}
 	}
@@ -1134,7 +1139,8 @@ void MumbleAudioEntity::MInit()
 			static int i;
 			i++;
 
-			g_customEntries[i] = this;
+			auto self = shared_from_this();
+			g_customEntries[i] = self;
 			m_customEntryId = i;
 
 			buffer->SetCustomMode(i);
