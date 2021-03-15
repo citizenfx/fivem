@@ -841,8 +841,6 @@ export class Project implements ApiContribution {
   }
 
   private setGameServerServiceEnabledResources() {
-    this.log('Setting resources as enabled', this.getResources(), this.getEnabledResourcesPaths());
-
     this.gameServerService.setEnabledResources({
       projectPath: this.path,
       enabledResourcesPaths: this.getEnabledResourcesPaths(),

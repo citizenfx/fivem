@@ -92,6 +92,8 @@ ReactDOM.render(
         </TaskContextProvider>
       </OutputContextProvider>
     </GameContextProvider>
+
+    <div className="resize-sentinel"/>
   </React.StrictMode>,
   document.getElementById('root')
 );

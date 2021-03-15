@@ -3,11 +3,11 @@
 .root {
   position: fixed;
   top: 0;
-  left: $toolbarWidth;
+  left: var(--toolbar-width);
   right: 0;
   bottom: 0;
 
-  width: calc(100% - #{$toolbarWidth});
+  width: calc(100% - var(--toolbar-width));
   height: 100%;
 
   opacity: 0;

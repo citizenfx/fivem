@@ -1,6 +1,7 @@
 export const projectApi = {
   checkCreateRequest: 'project:checkCreateRequest',
   checkCreateResult: 'project:checkCreateResult',
+  checkOpenRequest: 'project:checkOpenRequest',
   create: 'project:create',
   open: 'project:open',
   close: 'project:close',

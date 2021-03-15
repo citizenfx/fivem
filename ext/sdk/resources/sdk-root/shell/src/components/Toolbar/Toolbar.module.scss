@@ -6,11 +6,11 @@
   left: 0;
   bottom: 0;
 
-  width: $toolbarWidth;
+  width: var(--toolbar-width);
 
   z-index: 1000;
 
-  transform: translateX(-$toolbarWidth);
+  transform: translateX(calc(-1 * var(--toolbar-width)));
 
   &.active {
     transform: translateX(0);
@@ -19,7 +19,7 @@
   .trigger {
     position: fixed;
     top: 0;
-    left: $toolbarWidth;
+    left: var(--toolbar-width);
 
     display: flex;
     align-items: center;
@@ -36,9 +36,12 @@
     border: none;
     outline: none;
 
-    z-index: 3;
+    cursor: ew-resize;
 
-    &:hover {
+    z-index: 4;
+
+    &:hover,
+    &.resizing {
       color: $fgColor;
       background-color: $acColor;
     }

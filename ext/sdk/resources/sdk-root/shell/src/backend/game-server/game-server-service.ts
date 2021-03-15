@@ -21,6 +21,7 @@ import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { ShellCommand } from 'backend/process/ShellCommand';
 import { GameService } from 'backend/game/game-service';
+import { debounce } from 'shared/utils';
 
 enum ResourceReconcilationState {
   start = 1,
@@ -89,7 +90,6 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @handlesClientEvent(serverApi.ackState)
   ackState() {
-    this.logService.log('Server state now', ServerStates[this.state]);
     this.apiClient.emit(serverApi.state, this.state);
   }
 
@@ -193,7 +193,7 @@ export class GameServerService implements AppContribution, ApiContribution {
   }
 
   @handlesClientEvent(serverApi.setEnabledResources)
-  async setEnabledResources(request: SetEnabledResourcesRequest) {
+  setEnabledResources = debounce(async (request: SetEnabledResourcesRequest) => {
     this.logService.log('Setting enabled resources', request);
 
     const { projectPath, enabledResourcesPaths } = request;
@@ -207,7 +207,7 @@ export class GameServerService implements AppContribution, ApiContribution {
     await this.linkResources(fxserverCwd, enabledResourcesPaths);
 
     this.reconcileEnabledResourcesAndRefresh(enabledResourcesPaths);
-  }
+  }, 5);
 
   refreshResources() {
     this.emitSdkGameEvent('refresh');

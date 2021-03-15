@@ -14,7 +14,7 @@ const address = {
 
 export const TheiaPersonality = React.memo(function TheiaPersonality() {
   const { ref } = React.useContext(TheiaContext);
-  const { state, toolbarOpen } = React.useContext(StateContext);
+  const { state, toolbarOpen, toolbarWidth } = React.useContext(StateContext);
   const { project } = React.useContext(ProjectContext);
 
   const [showPersonality, setShowPersonality] = React.useState(false);
@@ -56,12 +56,17 @@ export const TheiaPersonality = React.memo(function TheiaPersonality() {
     return null;
   }
 
+  const rootStyles: React.CSSProperties = {
+    '--toolbar-width': `${toolbarWidth}px`,
+  } as any;
+
   return (
     <iframe
       ref={ref}
+      style={rootStyles}
+      className={className}
       title="Theia personality"
       src={`http://${address.hostname}:${address.port}`}
-      className={className}
       frameBorder="0"
       allowFullScreen={true}
     ></iframe>

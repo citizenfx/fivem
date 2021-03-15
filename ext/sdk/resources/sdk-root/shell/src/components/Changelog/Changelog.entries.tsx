@@ -8,6 +8,25 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-03-16',
+    title: 'March 16, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fixed some system resources not actually be enabled right after project creation
+          </li>
+          <li>
+            Added default project build path: for project <kbd>C</kbd> in <kbd>/a/b/c</kbd> default build path will be <kbd>/a/b/c-build</kbd>
+          </li>
+          <li>
+            Added ability to resize FxDK's toolbar
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-03-13',
     title: 'March 13, 2021',
     content: (

@@ -5,6 +5,12 @@ function composeKey(project: ProjectData | null, key: string): string {
   return `${project?.path || '__noproject'}:${key}`;
 }
 
+function inferDefaultProjectBuildPath(projectPath: string): string {
+  const [projectDirName, ...parts] = projectPath.split(/[\/\\]/).reverse();
+
+  return parts.reverse().join('\\') + '\\' + `${projectDirName}-build`;
+}
+
 export function getProjectClientStorageItem<ValueType>(project: ProjectData | null, key: string, defaultValue: ValueType): ValueType {
   const composedKey = composeKey(project, key);
 
@@ -30,7 +36,9 @@ export function useProjectClientStorageItem<ValueType>(project: ProjectData | nu
 }
 
 export const getProjectBuildPathVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'buildPath', '');
-export const useProjectBuildPathVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'buildPath', '');
+export const useProjectBuildPathVar = (project: ProjectData | null) => {
+  return useProjectClientStorageItem(project, 'buildPath', useMemo(() => inferDefaultProjectBuildPath(project.path), [project.path]));
+}
 
 export const getProjectUseVersioningVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'useVersioning', true);
 export const useProjectUseVersioningVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'useVersioning', true);
