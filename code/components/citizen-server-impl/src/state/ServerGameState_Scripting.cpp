@@ -1001,7 +1001,7 @@ static InitFunction initFunction([]()
     {
         auto vn = entity->syncTree->GetVehicleGameState();
 
-        int seatArg = context.GetArgument<int>(1);
+        int seatArg = context.GetArgument<int>(1) + 2;
 
         // get the current resource manager
         auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -1030,7 +1030,7 @@ static InitFunction initFunction([]()
     {
         auto vn = entity->syncTree->GetVehicleGameState();
 
-        int seatArg = context.GetArgument<int>(1);
+        int seatArg = context.GetArgument<int>(1) + 2;
 
         // get the current resource manager
         auto resourceManager = fx::ResourceManager::GetCurrent();
