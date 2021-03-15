@@ -426,6 +426,10 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 			g_input->mouseDiffY = curInput.mouseY;
 		}
 
+		g_input->cursorAbsX = std::clamp( g_input->cursorAbsX + curInput.mouseX, 0, rgd->twidth );
+		g_input->cursorAbsY = std::clamp( g_input->cursorAbsY + curInput.mouseY, 0, rgd->theight );
+
+
 		g_input->mouseButtons3 = rgd->mouseButtons;
 		g_input->mouseWheel = rgd->mouseWheel;
 
@@ -533,6 +537,23 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("45 33 C9 44 8A C7 40 8A D7 33 C9 E8", 11);
 		hook::set_call(&origSetInput, location);
 		hook::call(location, SetInputWrap);
+
+		// NOP these out in ReverseGame so the cursor will work
+		// Cursor X
+		location = hook::get_pattern( "89 0D ? ? ? ? 8B 85" );
+		hook::nop( location, 6 );
+		location = hook::get_pattern( "89 15 ? ? ? ? 85 C9 79" );
+		hook::nop( location, 6 );
+		location = hook::get_pattern( "89 05 ? ? ? ? 8B C3 2B" );
+		hook::nop( location, 6 );
+
+		// Cursor Y
+		location = hook::get_pattern( "C4 89 05 ? ? ? ? E9", 1 );
+		hook::nop( location, 6 );
+		location = hook::get_pattern( "CC 89 0D ? ? ? ? 48 8B CB E8", 1 );
+		hook::nop( location, 6 );
+		location = hook::get_pattern( "4F C4 89 05 ? ? ? ? E8", 2 );
+		hook::nop( location, 6 );
 	}
 });
 
