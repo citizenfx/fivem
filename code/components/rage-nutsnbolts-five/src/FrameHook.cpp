@@ -64,8 +64,16 @@ static std::mutex g_criticalFrameMutex;
 static DWORD g_mainThreadId;
 static bool g_executedOnMainThread;
 
-static void DoGameFrame()
+// NOTE: depends indirectly on GameProfiling.cpp in gta:core!
+static bool g_safeGameFrame;
+
+extern "C" DLL_EXPORT void DoGameFrame()
 {
+	if (!g_safeGameFrame)
+	{
+		return;
+	}
+
 	if (g_gameFrameMutex.try_lock())
 	{
 		OnGameFrame();
@@ -93,36 +101,10 @@ static void DoGameFrame()
 
 static bool* g_isD3DInvalid;
 
-namespace rage
-{
-	static bool(**g_pProjectMainOrDoOneLoop)();
-}
-
-static bool(*g_origLoopFunc)();
-
-static bool LoopFunc()
-{
-	if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
-	{
-		DoGameFrame();
-	}
-
-	return g_origLoopFunc();
-}
-
 // actually: 'should exit game' function called by LookAlive
 static bool OnLookAlive()
 {
-/*	if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
-	{
-		DoGameFrame();
-	}*/
-
-	if (*rage::g_pProjectMainOrDoOneLoop != LoopFunc)
-	{
-		g_origLoopFunc = *rage::g_pProjectMainOrDoOneLoop;
-		*rage::g_pProjectMainOrDoOneLoop = LoopFunc;
-	}
+	g_safeGameFrame = true;
 
 	OnLookAliveFrame();
 
@@ -171,11 +153,6 @@ static void RunCriticalGameLoop()
 
 static HookFunction hookFunction([] ()
 {
-	{
-		auto location = hook::get_pattern<char>("84 C0 74 0F FF 15 ? ? ? ? 84 C0 75 F6 E8", -9);
-		rage::g_pProjectMainOrDoOneLoop = hook::get_address<decltype(rage::g_pProjectMainOrDoOneLoop)>(location + 15);
-	}
-
 	g_mainThreadId = GetCurrentThreadId();
 
 	void* lookAliveFrameCall = hook::pattern("48 81 EC ? 01 00 00 E8 ? ? ? ? 33 F6 48 8D").count(1).get(0).get<void>(7);
