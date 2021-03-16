@@ -1017,16 +1017,20 @@ void GenerateFrameHook(rage::audStreamPlayer* self)
 		auto buffer = self->ringBuffer;
 		if (auto idx = buffer->GetCustomMode(); idx >= 0)
 		{
-			std::shared_lock _(g_customEntriesLock);
-			if (auto entry = g_customEntries.find(idx); entry != g_customEntries.end())
-			{
-				auto entity = entry->second.lock();
+			std::shared_ptr<MumbleAudioEntity> entity;
 
-				if (entity)
+			{
+				std::shared_lock _(g_customEntriesLock);
+				if (auto entry = g_customEntries.find(idx); entry != g_customEntries.end())
 				{
-					// every read (native frame) is 256 samples
-					entity->Poll(256 - self->frameOffset);
+					entity = entry->second.lock();
 				}
+			}
+
+			if (entity)
+			{
+				// every read (native frame) is 256 samples
+				entity->Poll(256 - self->frameOffset);
 			}
 		}
 	}
