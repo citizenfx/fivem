@@ -21,7 +21,7 @@ static int* g_mouseY;
 static int* g_mouseButtons;
 static int* g_mouseWheel;
 
-static void(*disableFocus)();
+static void (*disableFocus)();
 
 static void DisableFocus()
 {
@@ -31,7 +31,7 @@ static void DisableFocus()
 	}
 }
 
-static void(*enableFocus)();
+static void (*enableFocus)();
 
 static void EnableFocus()
 {
@@ -66,7 +66,8 @@ void InputHook::SetGameMouseFocus(bool focus)
 	return (!g_isFocusStolen) ? enableFocus() : disableFocus();
 }
 
-void InputHook::EnableSetCursorPos(bool enabled) {
+void InputHook::EnableSetCursorPos(bool enabled)
+{
 	g_enableSetCursorPos = enabled;
 }
 
@@ -199,9 +200,7 @@ BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
 		lpRekt = nullptr;
 	}
 
-	if ((lpRekt && !lastRectPtr) ||
-		(lastRectPtr && !lpRekt) ||
-		(lpRekt && !EqualRect(&lastRect, lpRekt)))
+	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
 	{
 		// update last rect
 		if (lpRekt)
@@ -239,7 +238,7 @@ BOOL WINAPI SetCursorPosWrap(int X, int Y)
 #include <HostSharedData.h>
 #include <ReverseGameData.h>
 
-static void(*origSetInput)(int, void*, void*, void*);
+static void (*origSetInput)(int, void*, void*, void*);
 
 struct ReverseGameInputState
 {
@@ -438,45 +437,47 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	ReleaseMutex(rgd->inputMutex);
 }
 
+// testing valid gamepads, similar to how the game does it
+#if 0
+#include <Xinput.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "Xinput9_1_0")
+#endif
+#endif
 
-//#include <Xinput.h>
-//#ifdef _MSC_VER
-//#pragma comment(lib, "Xinput9_1_0")
-//#endif
-
-static void (*origSampleInput)(void*, bool);
+static void (*origIOPadUpdate)(void*, bool);
 
 // This hook is used for ReverseGame Gamepad input
-static void SampleIOPad(RageIOPad* out_RageIOPadState, bool onlyVibrate)
+static void rage__ioPad__Update(rage::ioPad* thisptr, bool onlyVibrate)
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 	WaitForSingleObject(rgd->inputMutex, INFINITE);
 
-	static char *location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
-	static int offset = *(int*)(location+3);
-	static void *ioPadArray = location + offset + 7;
+	static char* location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
+	static int offset = *(int*)(location + 3);
+	static void* ioPadArray = location + offset + 7;
 
-	//XINPUT_STATE state;
-	//DWORD dwUserIndex = ((uintptr_t)out_RageIOPadState - (uintptr_t)ioPadArray) / 96/*sizeof(RageIOPad)*/;
-	//if( !XInputGetState( dwUserIndex, &state ) )
-	//{
-	//	trace("Pad is Valid\n");
-	//}
+#if 0
+	XINPUT_STATE state;
+	DWORD dwUserIndex = ((uintptr_t)out_RageIOPadState - (uintptr_t)ioPadArray) / 96/*sizeof(RageIOPad)*/;
+	if( !XInputGetState( dwUserIndex, &state ) )
+	{
+		trace("Pad is Valid\n");
+	}
+#endif
 
-	origSampleInput( out_RageIOPadState, onlyVibrate );
+	origIOPadUpdate(thisptr, onlyVibrate);
 
-	// save this from the original function 
-	int lastFlags = out_RageIOPadState->lastButtonFlags;
+	// save this from the original function
+	rgd->gamepad.lastButtonFlags = thisptr->lastButtonFlags;
 
 	// apply gamepad struct to the game
-	*out_RageIOPadState = rgd->gamepad;
-
-	out_RageIOPadState->lastButtonFlags = lastFlags;
+	*thisptr = rgd->gamepad;
 
 	ReleaseMutex(rgd->inputMutex);
 }
 
-static HookFunction hookFunction([] ()
+static HookFunction hookFunction([]()
 {
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
 
@@ -559,9 +560,9 @@ static HookFunction hookFunction([] ()
 		hook::call(location, SetInputWrap);
 
 		// Hook the GamePad sampling function so we can inject events into it from Reverse Game.
-		char* sampleIOPad = hook::pattern("41 8A D6 48 8B CF E8 ? ? FF FF 48 83 c7 60").count(1).get(0).get<char>(6);
-		hook::set_call(&origSampleInput, sampleIOPad);
-		hook::call(sampleIOPad, SampleIOPad);
+		auto ioPadUpdate = hook::get_pattern("41 8A D6 48 8B CF E8 ? ? FF FF 48 83 C7 60", 6);
+		hook::set_call(&origIOPadUpdate, ioPadUpdate);
+		hook::call(ioPadUpdate, rage__ioPad__Update);
 	}
 });
 
