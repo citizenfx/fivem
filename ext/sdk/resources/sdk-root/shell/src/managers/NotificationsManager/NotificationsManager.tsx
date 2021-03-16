@@ -6,6 +6,7 @@ import { useApiMessage, useStore } from 'utils/hooks';
 import { notificationsApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { BsExclamationOctagonFill, BsExclamationTriangle, BsInfoSquare, BsX } from 'react-icons/bs';
+import { StateContext } from 'contexts/StateContext';
 
 const typeIcons = {
   [NotificationType.info]: <BsInfoSquare />,
@@ -20,6 +21,8 @@ export interface NotificationsStoreItem {
 }
 
 export const NotificationsManager = React.memo(function NotificationsManager() {
+  const { toolbarWidth } = React.useContext(StateContext);
+
   const notifications = useStore<NotificationsStoreItem>({});
 
   React.useEffect(() => sendApiMessage(notificationsApi.ack), []);
@@ -89,8 +92,15 @@ export const NotificationsManager = React.memo(function NotificationsManager() {
     );
   });
 
+  const rootStyles: React.CSSProperties = {
+    '--toolbar-width': `${toolbarWidth}px`,
+  } as any;
+
   return (
-    <div className={s.root}>
+    <div
+      style={rootStyles}
+      className={s.root}
+    >
       {notificationsNodes}
     </div>
   );

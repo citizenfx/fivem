@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
 import { ApiContribution, ApiContributionFactory } from "backend/api/api-contribution";
-import { handlesClientEvent } from "backend/api/api-decorators";
+import { handlesClientCallbackEvent, handlesClientEvent } from "backend/api/api-decorators";
 import { ConfigService } from "backend/config-service";
 import { fxdkProjectFilename } from "backend/constants";
 import { Sequencer } from "backend/execution-utils/sequencer";
@@ -120,6 +120,13 @@ export class ProjectManager implements ApiContribution {
     this.projectAccess.setInstance(project);
 
     return project;
+  }
+
+  @handlesClientCallbackEvent(projectApi.checkOpenRequest)
+  async checkOpenRequest(projectPath: string): Promise<boolean> {
+    const projectManifestPath: string = this.fsService.joinPath(projectPath, fxdkProjectFilename);
+
+    return !!(await this.fsService.statSafe(projectManifestPath));
   }
 
   @handlesClientEvent(projectApi.open)

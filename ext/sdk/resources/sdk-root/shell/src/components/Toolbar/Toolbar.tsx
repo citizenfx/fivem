@@ -1,5 +1,5 @@
 import React from 'react';
-import { BsArrowBarLeft, BsArrowBarRight, BsCardHeading, BsGear, BsList } from 'react-icons/bs';
+import { BsCardHeading, BsGear, BsList } from 'react-icons/bs';
 import classnames from 'classnames';
 import { StateContext } from 'contexts/StateContext';
 import { ProjectContext } from 'contexts/ProjectContext';
@@ -10,6 +10,7 @@ import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { TaskReporter } from 'components/TaskReporter/TaskReporter';
 import { ProjectToolbar } from 'components/Project/ProjectToolbar/ProjectToolbar';
+import { ToolbarTrigger } from './ToolbarTrigger';
 import s from './Toolbar.module.scss';
 
 const handleMenuClick = (openMenu) => openMenu();
@@ -19,7 +20,7 @@ const handleGetMenuCoords = () => ({
 });
 
 export const Toolbar = React.memo(function Toolbar() {
-  const { state, toolbarOpen, openToolbar, closeToolbar, openChangelog } = React.useContext(StateContext);
+  const { toolbarWidth, toolbarOpen, openChangelog } = React.useContext(StateContext);
   const { project, openCreator, openOpener, creatorOpen, openerOpen, openSettings, openBuilder } = React.useContext(ProjectContext);
 
   const handleOpenCreator = React.useCallback(() => {
@@ -32,10 +33,6 @@ export const Toolbar = React.memo(function Toolbar() {
   const handleOpenSettings = React.useCallback(() => {
     openSettings();
   }, [openSettings]);
-
-  const toggleToolbar = toolbarOpen
-    ? closeToolbar
-    : openToolbar;
 
   const toolbarClasses = classnames(s.root, {
     [s.active]: toolbarOpen,
@@ -88,22 +85,18 @@ export const Toolbar = React.memo(function Toolbar() {
     },
   ], [project, openBuilder]);
 
-  const triggerTitle = toolbarOpen
-    ? 'Collapse FxDK toolbar'
-    : 'Expand FxDK toolbar';
-  const triggerIcon = toolbarOpen
-    ? <BsArrowBarLeft />
-    : <BsArrowBarRight />;
-
   const projectTitle = project?.manifest.name || 'No project open yet';
+
+  const rootStyles: React.CSSProperties = {
+    '--toolbar-width': `${toolbarWidth}px`,
+  } as any;
 
   return (
     <div
+      style={rootStyles}
       className={toolbarClasses}
     >
-      <button className={s.trigger} onClick={toggleToolbar} title={triggerTitle}>
-        {triggerIcon}
-      </button>
+      <ToolbarTrigger />
 
       <div className={s.bar}>
         <div className={s.controls}>

@@ -69,6 +69,11 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
 
   const [buildPath, setBuildPath] = useProjectBuildPathVar(project);
 
+  // This is so we actually save default buildPath to localstorage allowing for fast-project-build next time w/o showing this modal
+  React.useEffect(() => {
+    setBuildPath(buildPath);
+  }, []);
+
   const folderSelectOptions: UseOpenFolderSelectDialogOptions = React.useMemo(() => ({
     startPath: project.path,
     dialogTitle: 'Select Project Build Folder...',

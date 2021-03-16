@@ -179,7 +179,7 @@ export class ProjectBuilder implements ApiContribution {
   protected async checkBuildSite(buildInfo: ProjectBuildInfo) {
     const buildPathStat = await this.fsService.statSafe(buildInfo.buildPath);
     if (!buildPathStat) {
-      throw new BuildError('Build path does not exist');
+      await this.fsService.mkdirp(buildInfo.buildPath);
     }
 
     buildInfo.resourcesDeployPathStats = await this.fsService.statSafe(buildInfo.resourcesDeployPath);
