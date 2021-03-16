@@ -16,9 +16,9 @@ static bool g_enableSetCursorPos = false;
 static bool g_isFocusStolen = false;
 
 static int* g_inputOffset;
-static InputHook::MouseInputStruct *g_input;
+static rage::ioMouse* g_input;
 
-static void(*disableFocus)();
+static void (*disableFocus)();
 
 static void DisableFocus()
 {
@@ -28,7 +28,7 @@ static void DisableFocus()
 	}
 }
 
-static void(*enableFocus)();
+static void (*enableFocus)();
 
 static void EnableFocus()
 {
@@ -63,7 +63,8 @@ void InputHook::SetGameMouseFocus(bool focus)
 	return (!g_isFocusStolen) ? enableFocus() : disableFocus();
 }
 
-void InputHook::EnableSetCursorPos(bool enabled) {
+void InputHook::EnableSetCursorPos(bool enabled)
+{
 	g_enableSetCursorPos = enabled;
 }
 
@@ -143,11 +144,11 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 				{
 					if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
 					{
-						g_input->mouseButtons3 &= ~buttonIdx;
+						g_input->m_Buttons &= ~buttonIdx;
 					}
 					else
 					{
-						g_input->mouseButtons3 |= buttonIdx;
+						g_input->m_Buttons |= buttonIdx;
 					}
 
 					break;
@@ -196,9 +197,7 @@ BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
 		lpRekt = nullptr;
 	}
 
-	if ((lpRekt && !lastRectPtr) ||
-		(lastRectPtr && !lpRekt) ||
-		(lpRekt && !EqualRect(&lastRect, lpRekt)))
+	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
 	{
 		// update last rect
 		if (lpRekt)
@@ -236,7 +235,7 @@ BOOL WINAPI SetCursorPosWrap(int X, int Y)
 #include <HostSharedData.h>
 #include <ReverseGameData.h>
 
-static void(*origSetInput)(int, void*, void*, void*);
+static void (*origSetInput)(int, void*, void*, void*);
 
 struct ReverseGameInputState
 {
@@ -277,7 +276,7 @@ static HookFunction setOffsetsHookFunction([]()
 	g_inputOffset = hook::get_address<int*>(hook::get_pattern("89 3D ? ? ? ? EB 0F 48 8B CB", 2));
 
 	// This is a sig to the first known member, which is mouseWheel
-	g_input = hook::get_address<InputHook::MouseInputStruct*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
+	g_input = hook::get_address<rage::ioMouse*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
 });
 
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
@@ -415,48 +414,46 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 		// TODO: handle flush of keyboard
 		memcpy(g_gameKeyArray, rgd->keyboardState, 256);
-		if( off )
+		if (off)
 		{
-			g_input->lastMouseDiffX = curInput.mouseX;
-			g_input->lastMouseDiffY = curInput.mouseY;
+			g_input->m_lastDX = curInput.mouseX;
+			g_input->m_lastDY = curInput.mouseY;
 		}
 		else
 		{
-			g_input->mouseDiffX = curInput.mouseX;
-			g_input->mouseDiffY = curInput.mouseY;
+			g_input->m_dX = curInput.mouseX;
+			g_input->m_dY = curInput.mouseY;
 		}
 
-		g_input->cursorAbsX = std::clamp( g_input->cursorAbsX + curInput.mouseX, 0, rgd->twidth );
-		g_input->cursorAbsY = std::clamp( g_input->cursorAbsY + curInput.mouseY, 0, rgd->theight );
+		g_input->cursorAbsX = std::clamp(g_input->cursorAbsX + curInput.mouseX, 0, rgd->twidth);
+		g_input->cursorAbsY = std::clamp(g_input->cursorAbsY + curInput.mouseY, 0, rgd->theight);
 
-
-		g_input->mouseButtons3 = rgd->mouseButtons;
-		g_input->mouseWheel = rgd->mouseWheel;
-
+		g_input->m_Buttons = rgd->mouseButtons;
+		g_input->m_dZ = rgd->mouseWheel;
 
 		origSetInput(a1, a2, a3, a4);
 
 		off = 0;
 
 		memcpy(rgd->keyboardState, g_gameKeyArray, 256);
-		if( off )
+		if (off)
 		{
-			rgd->mouseX = g_input->lastMouseDiffX;
-			rgd->mouseY = g_input->lastMouseDiffY;
+			rgd->mouseX = g_input->m_lastDX;
+			rgd->mouseY = g_input->m_lastDY;
 		}
 		else
 		{
-			rgd->mouseX = g_input->mouseDiffX;
-			rgd->mouseY = g_input->mouseDiffY;
+			rgd->mouseX = g_input->m_dX;
+			rgd->mouseY = g_input->m_dY;
 		}
-		rgd->mouseButtons = g_input->mouseButtons3;
-		rgd->mouseWheel = g_input->mouseWheel;
+		rgd->mouseButtons = g_input->m_Buttons;
+		rgd->mouseWheel = g_input->m_dZ;
 	}
 
 	ReleaseMutex(rgd->inputMutex);
 }
 
-static HookFunction hookFunction([] ()
+static HookFunction hookFunction([]()
 {
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
 
@@ -540,20 +537,11 @@ static HookFunction hookFunction([] ()
 
 		// NOP these out in ReverseGame so the cursor will work
 		// Cursor X
-		location = hook::get_pattern( "89 0D ? ? ? ? 8B 85" );
-		hook::nop( location, 6 );
-		location = hook::get_pattern( "89 15 ? ? ? ? 85 C9 79" );
-		hook::nop( location, 6 );
-		location = hook::get_pattern( "89 05 ? ? ? ? 8B C3 2B" );
-		hook::nop( location, 6 );
-
+		char* loc = hook::pattern("89 0D ? ? ? ? 8B 85").count(1).get(0).get<char>(0);
+		hook::nop(loc, 6);
 		// Cursor Y
-		location = hook::get_pattern( "C4 89 05 ? ? ? ? E9", 1 );
-		hook::nop( location, 6 );
-		location = hook::get_pattern( "CC 89 0D ? ? ? ? 48 8B CB E8", 1 );
-		hook::nop( location, 6 );
-		location = hook::get_pattern( "4F C4 89 05 ? ? ? ? E8", 2 );
-		hook::nop( location, 6 );
+		loc += 31;
+		hook::nop(loc, 6);
 	}
 });
 
