@@ -173,6 +173,20 @@ void MumbleClient::Initialize()
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
 		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
+			static bool hadUDP = true;
+			bool hasUDP = ((msec() - m_lastUdp) <= 7500ms);
+			
+			if (hasUDP && !hadUDP)
+			{
+				console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
+				hadUDP = true;
+			}
+			else if (!hasUDP && hadUDP)
+			{
+				console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
+				hadUDP = false;			
+			}
+
 			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
 			{
 				std::lock_guard<std::recursive_mutex> l(m_clientMutex);
