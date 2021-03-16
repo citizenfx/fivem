@@ -1286,7 +1286,7 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "fcd5fd8a9f99f2e08b0cab5d500740f28a75b75a", "https://mirrors.fivem.net/patches/2189.0/GTA5.exe", 63124096 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2189.0/update.rpf", 1276805120,
 		{
-			{ "748d16b81a34ad317b93cd85e2b088dabdce5cc7", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2245_2060_update.hdiff", 193145914 },
+			{ "748d16b81a34ad317b93cd85e2b088dabdce5cc7", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2245_2189_update.hdiff", 193145914 },
 			{ "36c5c94274602527f946497553e118d72500c09f", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://mirrors.fivem.net/patches/2215_2189_update.hdiff", 21294688 },	
 		} });
 	}
