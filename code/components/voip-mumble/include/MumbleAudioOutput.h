@@ -78,7 +78,7 @@ public:
 	friend struct XA2DestinationNode;
 
 private:
-	struct ClientAudioStateBase
+	struct ClientAudioStateBase : public std::enable_shared_from_this<ClientAudioStateBase>
 	{
 		ClientAudioStateBase();
 

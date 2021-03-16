@@ -456,9 +456,17 @@ OnSetMumbleVolume;
 MumbleAudioOutput::ExternalAudioState::ExternalAudioState(fwRefContainer<IMumbleAudioSink> sink)
 	: ClientAudioStateBase(), sink(sink)
 {
-	sink->SetPollHandler([this](int numSamples)
+	std::weak_ptr thisWeak = shared_from_this();
+
+	sink->SetPollHandler([thisWeak](int numSamples)
 	{
-		PollAudio(numSamples);
+		auto selfBase = thisWeak.lock();
+
+		if (selfBase)
+		{
+			auto self = std::static_pointer_cast<ExternalAudioState>(selfBase);
+			self->PollAudio(numSamples);
+		}
 	});
 }
 
