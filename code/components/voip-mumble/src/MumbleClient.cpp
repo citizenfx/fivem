@@ -42,8 +42,42 @@ void MumbleClient::Initialize()
 
 	m_loop->EnqueueCallback([this]()
 	{
+		auto recreateUDP = [this]()
+		{
+			// if reconnecting, close the existing UDP handle so that servers that try to match source IP/port pairs won't be unhappy
+			if (m_udp)
+			{
+				auto udp = std::move(m_udp);
+
+				udp->once<uvw::CloseEvent>([udp](const uvw::CloseEvent& ev, uvw::UDPHandle& self)
+				{
+					(void)udp;
+				});
+
+				udp->close();
+			}
+
+			m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
+
+			m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
+			{
+				std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
+
+				try
+				{
+					HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
+				}
+				catch (std::exception& e)
+				{
+					trace("Mumble exception: %s\n", e.what());
+				}
+			});
+
+			m_udp->recv();
+		};
+
 		m_connectTimer = m_loop->Get()->resource<uvw::TimerHandle>();
-		m_connectTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
+		m_connectTimer->on<uvw::TimerEvent>([this, recreateUDP](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
 			if (m_connectionInfo.isConnecting)
 			{
@@ -132,36 +166,7 @@ void MumbleClient::Initialize()
 				}
 			});
 
-			// if reconnecting, close the existing UDP handle so that servers that try to match source IP/port pairs won't be unhappy
-			if (m_udp)
-			{
-				auto udp = std::move(m_udp);
-
-				udp->once<uvw::CloseEvent>([udp](const uvw::CloseEvent& ev, uvw::UDPHandle& self)
-				{
-					(void)udp;
-				});
-
-				udp->close();
-			}
-
-			m_udp = m_loop->Get()->resource<uvw::UDPHandle>();
-
-			m_udp->on<uvw::UDPDataEvent>([this](const uvw::UDPDataEvent& ev, uvw::UDPHandle& udp)
-			{
-				std::unique_lock<std::recursive_mutex> lock(m_clientMutex);
-
-				try
-				{
-					HandleUDP(reinterpret_cast<const uint8_t*>(ev.data.get()), ev.length);
-				}
-				catch (std::exception& e)
-				{
-					trace("Mumble exception: %s\n", e.what());
-				}
-			});
-
-			m_udp->recv();
+			recreateUDP();
 
 			const auto& address = m_connectionInfo.address;
 			m_tcp->connect(*address.GetSocketAddress());
@@ -171,7 +176,7 @@ void MumbleClient::Initialize()
 		});
 
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
-		m_idleTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
+		m_idleTimer->on<uvw::TimerEvent>([this, recreateUDP](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
 			static bool hadUDP = true;
 			bool hasUDP = ((msec() - m_lastUdp) <= 7500ms);
@@ -184,7 +189,10 @@ void MumbleClient::Initialize()
 			else if (!hasUDP && hadUDP)
 			{
 				console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
-				hadUDP = false;			
+				hadUDP = false;
+
+				// try to recreate UDP if need be
+				recreateUDP();
 			}
 
 			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
