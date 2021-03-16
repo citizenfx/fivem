@@ -456,6 +456,15 @@ OnSetMumbleVolume;
 MumbleAudioOutput::ExternalAudioState::ExternalAudioState(fwRefContainer<IMumbleAudioSink> sink)
 	: ClientAudioStateBase(), sink(sink)
 {
+}
+
+MumbleAudioOutput::ExternalAudioState::~ExternalAudioState()
+{
+	
+}
+
+void MumbleAudioOutput::ExternalAudioState::AfterConstruct()
+{
 	std::weak_ptr thisWeak = shared_from_this();
 
 	sink->SetPollHandler([thisWeak](int numSamples)
@@ -468,11 +477,6 @@ MumbleAudioOutput::ExternalAudioState::ExternalAudioState(fwRefContainer<IMumble
 			self->PollAudio(numSamples);
 		}
 	});
-}
-
-MumbleAudioOutput::ExternalAudioState::~ExternalAudioState()
-{
-	
 }
 
 void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* baseIo, float position[3])
@@ -572,6 +576,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 		if (sinkRef.GetRef())
 		{
 			auto state = std::make_shared<ExternalAudioState>(sinkRef);
+			state->AfterConstruct();
 
 			int error;
 			state->opus = opus_decoder_create(48000, 1, &error);
@@ -593,6 +598,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	format.nAvgBytesPerSec = (format.nBlockAlign * format.nSamplesPerSec);
 
 	auto state = std::make_shared<ClientAudioState>();
+	state->AfterConstruct();
 
 	auto xa2 = m_xa2;
 

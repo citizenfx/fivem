@@ -109,6 +109,11 @@ private:
 
 		virtual void PollAudio(int frameCount);
 
+		virtual void AfterConstruct()
+		{
+		
+		}
+
 		void resizeBuffer(size_t size);
 
 		uint64_t sequence;
@@ -154,6 +159,8 @@ private:
 		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
 
 		virtual bool IsTalking() override;
+
+		virtual void AfterConstruct() override;
 
 		fwRefContainer<IMumbleAudioSink> sink;
 
