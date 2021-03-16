@@ -131,7 +131,7 @@ private:
 		int iBufferSize = 48000;
 		bool bLastAlive = false;
 
-		bool notQuiet = false;
+		bool quiet = true;
 		float fPowerMax = 0.0f;
 		float fPowerMin = 0.0f;
 

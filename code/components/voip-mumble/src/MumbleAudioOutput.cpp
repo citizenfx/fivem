@@ -733,7 +733,7 @@ void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 		}
 
 		PushSound(s16.data(), iLastConsume);
-		isTalking = notQuiet && isAudible;
+		isTalking = !quiet && isAudible;
 	};
 
 	if (iBufferFilled >= sampleCount)
@@ -866,7 +866,7 @@ void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 					update = (pow < (fPowerMin + 0.01f * (fPowerMax - fPowerMin))); // Update jitter buffer when quiet.
 				}
 
-				notQuiet = !update;
+				quiet = update;
 
 				// qlFrames.isEmpty() will always be true if using opus.
 				// Q_ASSERT(qlFrames.isEmpty());
@@ -889,6 +889,8 @@ void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 					decodedSamples = iFrameSize;
 					memset(pOut, 0, iFrameSize * sizeof(float));
 				}
+
+				quiet = true;
 			}
 
 /*
