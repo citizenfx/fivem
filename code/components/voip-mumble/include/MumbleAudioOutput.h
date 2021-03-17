@@ -116,7 +116,7 @@ private:
 
 		void resizeBuffer(size_t size);
 
-		uint64_t sequence;
+		uint64_t sequence = 0;
 		float volume;
 		float position[3];
 		float distance;
@@ -142,6 +142,7 @@ private:
 
 		float fAverageAvailable = 0.0f;
 		int iMissCount = 0;
+		int iInterpCount = 0;
 
 		std::list<std::unique_ptr<std::vector<uint8_t>>> qlFrames;
 	};

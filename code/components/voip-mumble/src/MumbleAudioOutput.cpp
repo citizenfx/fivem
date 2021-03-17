@@ -715,6 +715,11 @@ void MumbleAudioOutput::ClientAudioStateBase::resizeBuffer(size_t newsize)
 
 void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 {
+	if (sequence == 0)
+	{
+		return;
+	}
+
 	// adapted from Mumble reference code: https://github.com/mumble-voip/mumble/blob/3beb90245cf00f72de217a2819dc7bd1d564f5f9/src/mumble/AudioOutputSpeech.cpp#L219
 	// (c) 2011-2021 The Mumble Developers. 
 
@@ -889,9 +894,12 @@ void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 
 				if (qlFrames.empty()/* && bHasTerminator*/)
 					nextalive = false;
+
+				iInterpCount = 0;
 			}
 			else
 			{
+				// note this will interpolate since it's meant for packet loss - no data does *not* mean no audio
 				if (opus)
 				{
 					decodedSamples = opus_decode_float(opus, nullptr, 0, pOut, iFrameSize, 0);
@@ -904,7 +912,13 @@ void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 					memset(pOut, 0, iFrameSize * sizeof(float));
 				}
 
-				quiet = true;
+				// mitigate interpolation (we don't currently have terminators)
+				iInterpCount++;
+				if (iInterpCount > 10)
+				{
+					memset(pOut, 0, decodedSamples * sizeof(float));
+					quiet = true;
+				}
 			}
 
 /*
