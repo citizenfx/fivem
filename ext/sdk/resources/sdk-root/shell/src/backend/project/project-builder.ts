@@ -342,7 +342,7 @@ export class ProjectBuilder implements ApiContribution {
           ``,
         ];
 
-        const blankConfigPath = this.gameServerService.getBlankConfigPath(project.getPath());
+        const blankConfigPath = this.fsService.joinPath(project.getFxserverCwd(), 'blank.cfg');
         if (await this.fsService.statSafe(blankConfigPath)) {
           const blankConfigContent = (await this.fsService.readFileString(blankConfigPath)).trim();
           if (blankConfigContent) {

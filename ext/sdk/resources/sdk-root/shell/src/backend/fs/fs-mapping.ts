@@ -111,6 +111,8 @@ export class FsMapping {
       ignored,
       persistent: true,
       ignoreInitial: true,
+      disableGlobbing: true,
+      ignorePermissionErrors: true,
     });
 
     this.watcher
@@ -150,6 +152,8 @@ export class FsMapping {
   }
 
   protected async processFsUpdate(type: FsUpdateType, path: string) {
+    this.logService.log('AAA', { type: FsUpdateType[type], path });
+
     if (!this.shouldProcessUpdate(type, path)) {
       return;
     }

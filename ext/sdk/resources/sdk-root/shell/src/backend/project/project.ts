@@ -27,6 +27,7 @@ import {
   ProjectSetResourceConfigRequest,
   DeleteDirectoryResponse,
   DeleteFileResponse,
+  ProjectStartServerRequest,
 } from 'shared/api.requests';
 import {
   FilesystemEntry,
@@ -37,7 +38,7 @@ import {
 import { debounce, getResourceConfig, notNull } from 'shared/utils';
 import { ContributionProvider } from 'backend/contribution-provider';
 import { AssetManagerContribution } from './asset/asset-manager-contribution';
-import { GameServerService } from 'backend/game-server/game-server-service';
+import { GameServerService, ServerStartRequest } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
 import { ChangeAwareContainer } from 'backend/change-aware-container';
@@ -52,6 +53,7 @@ import { AssetInterface } from './asset/asset-types';
 import { ProjectData, ProjectManifest, ProjectManifestResource, ProjectPathsState, ProjectResources } from 'shared/project.types';
 import { isAssetMetaFile, stripAssetMetaExt } from 'utils/project';
 import { ProjectUpgrade } from './project-upgrade';
+import { ProjectResourcesMaintainer } from './project-resources-maintainer';
 
 interface Silentable {
   silent?: boolean,
@@ -117,6 +119,9 @@ export class Project implements ApiContribution {
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
 
+  @inject(ProjectResourcesMaintainer)
+  protected readonly resourcesMaintainer: ProjectResourcesMaintainer;
+
   private state: ProjectState = ProjectState.Development;
 
   private path: string;
@@ -124,6 +129,7 @@ export class Project implements ApiContribution {
   private manifestMapping: FsJsonFileMapping<ProjectManifest>;
   private manifestPath: string;
   private storagePath: string;
+  private fxserverCwd: string;
 
   private readonly resources = new ChangeAwareContainer<ProjectResources>({}, (resources: ProjectResources) => {
     if (this.ready) {
@@ -197,6 +203,10 @@ export class Project implements ApiContribution {
 
       return null;
     }).filter(notNull);
+  }
+
+  getFxserverCwd(): string {
+    return this.fxserverCwd;
   }
 
   hasAsset(assetPath: string): boolean {
@@ -305,6 +315,7 @@ export class Project implements ApiContribution {
 
     this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
     this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
+    this.fxserverCwd = this.fsService.joinPath(this.storagePath, 'fxserver');
 
     try {
       this.log('loading project...');
@@ -316,13 +327,18 @@ export class Project implements ApiContribution {
         storagePath: this.storagePath,
       });
 
+      loadTask.setText('Ensuring fxserver cwd exists...');
+      if (!await this.fsService.statSafe(this.fxserverCwd)) {
+        await this.fsService.mkdirp(this.fxserverCwd);
+      }
+
       loadTask.setText('Loading manifest...');
       await this.initManifest();
 
       loadTask.setText('Loading project files...');
       await this.initFs();
 
-      this.setGameServerServiceEnabledResources();
+      this.refreshEnabledResources();
 
       loadTask.setText('Done loading project');
 
@@ -458,7 +474,7 @@ export class Project implements ApiContribution {
 
     (this.resourceConfigChangeListeners[resourceName] || []).forEach((listener) => listener(newConfig));
 
-    this.setGameServerServiceEnabledResources();
+    this.refreshEnabledResources();
   }
 
   @handlesClientEvent(projectApi.setPathsState)
@@ -799,6 +815,22 @@ export class Project implements ApiContribution {
   // /FS methods
   //#endregion fs-methods
 
+  @handlesClientEvent(projectApi.startServer)
+  async startServer(request: ProjectStartServerRequest) {
+    const serverStartRequest: ServerStartRequest = {
+      fxserverCwd: this.fxserverCwd,
+      updateChannel: this.manifestMapping.get().serverUpdateChannel,
+      ...request,
+    };
+
+    this.gameServerService.start(serverStartRequest);
+  }
+
+  @handlesClientEvent(projectApi.stopServer)
+  stopServer() {
+    this.gameServerService.stop();
+  }
+
   private gcManifestResources = debounce(() => {
     this.log('Cleaning up manifest resources');
 
@@ -813,7 +845,7 @@ export class Project implements ApiContribution {
       if (Object.keys(manifest.resources).length !== Object.keys(manifestResources).length) {
         manifest.resources = manifestResources;
 
-        this.setGameServerServiceEnabledResources();
+        this.refreshEnabledResources();
       }
     });
   }, 100);
@@ -840,10 +872,7 @@ export class Project implements ApiContribution {
     }
   }
 
-  private setGameServerServiceEnabledResources() {
-    this.gameServerService.setEnabledResources({
-      projectPath: this.path,
-      enabledResourcesPaths: this.getEnabledResourcesPaths(),
-    });
+  private refreshEnabledResources() {
+    this.resourcesMaintainer.refreshEnabledResources();
   }
 }
