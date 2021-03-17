@@ -17,8 +17,6 @@ return {
 	end,
 
 	run = function()
-		targetname "nghttp2"
-
 		language "C"
 		kind "StaticLib"
 
