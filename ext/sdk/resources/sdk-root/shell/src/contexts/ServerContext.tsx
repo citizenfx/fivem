@@ -1,13 +1,13 @@
 import React from 'react';
 import { ServerStates, ServerUpdateChannel, ServerUpdateChannelsState } from 'shared/api.types';
-import { serverApi } from 'shared/api.events';
+import { projectApi, serverApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
 import { logger } from 'utils/logger';
 import { sendCommand } from 'utils/sendCommand';
 import { ProjectContext } from './ProjectContext';
 import { GameContext } from './GameContext';
-import { ServerStartRequest } from 'shared/api.requests';
+import { ProjectStartServerRequest } from 'shared/api.requests';
 import { getProjectTebexSecretVar } from 'utils/projectStorage';
 
 const log = logger('ServerContext');
@@ -66,17 +66,15 @@ export const ServerContextProvider = React.memo(function ServerContextProvider({
       const steamWebApiKey = ''; //getProjectSteamWebApiKeyVar(project);
       const tebexSecret = getProjectTebexSecretVar(project);
 
-      sendApiMessage(serverApi.start, {
-        projectPath: project.path,
-        updateChannel: project.manifest.serverUpdateChannel,
+      sendApiMessage(projectApi.startServer, {
         steamWebApiKey,
         tebexSecret,
-      } as ServerStartRequest);
+      } as ProjectStartServerRequest);
     }
   }, [project]);
 
   const stopServer = React.useCallback(() => {
-    sendApiMessage(serverApi.stop);
+    sendApiMessage(projectApi.stopServer);
   }, []);
 
   const sendServerCommand = React.useCallback((cmd: string) => {

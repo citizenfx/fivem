@@ -8,6 +8,25 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-03-17',
+    title: 'March 17, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fixed theia's terminal not working
+          </li>
+          <li>
+            Added directory rename (how did I forget about that 🧐)
+          </li>
+          <li>
+            Hopefully fixed rare deadlocks during opening/creating project
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-03-16',
     title: 'March 16, 2021',
     content: (

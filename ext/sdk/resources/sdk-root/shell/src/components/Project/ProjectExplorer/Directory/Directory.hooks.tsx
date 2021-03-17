@@ -1,6 +1,6 @@
 import React from 'react';
-import { ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
-import { deleteIcon, newResourceIcon } from 'constants/icons';
+import { ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
+import { deleteIcon, newResourceIcon, renameIcon } from 'constants/icons';
 import { ProjectContext } from 'contexts/ProjectContext';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
@@ -40,10 +40,12 @@ export const useDeleteDirectoryApiCallbackMessage = (path: string) => {
 
 export const useDirectoryContextMenu = (path: string, childrenLength: number, optionsOverride: Partial<ProjectExplorerItemContext> = {}) => {
   const { setResourceCreatorDir: setAssetCreatorDir, openResourceCreator } = React.useContext(ProjectContext);
-  const { disableDirectoryDelete, disableAssetCreate } = {
+  const { disableDirectoryDelete, disableDirectoryRename, disableAssetCreate } = {
     ...React.useContext(ProjectExplorerItemContext),
     ...optionsOverride,
   };
+
+  const [directoryRenameOpen, openDirectoryRename, closeDirectoryRename] = useOpenFlag(false);
 
   const [deleteConfirmationOpen, openDeleteConfirmation, closeDeleteConfirmation] = useOpenFlag(false);
   const deleteDirectory = useDeleteDirectoryApiCallbackMessage(path);
@@ -61,7 +63,7 @@ export const useDirectoryContextMenu = (path: string, childrenLength: number, op
     openResourceCreator();
   }, [path, setAssetCreatorDir, openResourceCreator]);
 
-  const directoryContextMenuItems: ContextMenuItem[] = React.useMemo(() => {
+  const directoryContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
     return [
       {
         id: 'delete-directory',
@@ -71,6 +73,14 @@ export const useDirectoryContextMenu = (path: string, childrenLength: number, op
         onClick: handleDirectoryDelete,
       },
       {
+        id: 'rename-directory',
+        text: 'Rename directory',
+        icon: renameIcon,
+        disabled: disableDirectoryRename,
+        onClick: openDirectoryRename,
+      },
+      ContextMenuItemSeparator,
+      {
         id: 'new-resource',
         text: 'New resource',
         icon: newResourceIcon,
@@ -78,10 +88,12 @@ export const useDirectoryContextMenu = (path: string, childrenLength: number, op
         onClick: handleCreateResource,
       },
     ];
-  }, [handleDirectoryDelete, handleCreateResource, disableDirectoryDelete, disableAssetCreate]);
+  }, [handleDirectoryDelete, handleCreateResource, openDirectoryRename, disableDirectoryDelete, disableAssetCreate, disableDirectoryRename]);
 
   return {
     directoryContextMenuItems,
+    directoryRenameOpen,
+    closeDirectoryRename,
     deleteConfirmationOpen,
     closeDeleteConfirmation,
     deleteDirectory,

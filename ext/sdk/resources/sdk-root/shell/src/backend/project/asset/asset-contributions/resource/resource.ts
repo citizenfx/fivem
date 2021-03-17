@@ -216,8 +216,6 @@ export class Resource implements AssetInterface {
       watchCommands: {},
     });
 
-    this.logService.log('Resource asset inited', this.name, this.entry);
-
     this.projectAccess.withInstance((project) => {
       this.disposableContainer.add(project.onResourceConfigChange(this.name, (cfg) => this.onConfigChanged(cfg)));
     });
@@ -241,12 +239,10 @@ export class Resource implements AssetInterface {
 
     const { enabled, restartOnChange } = this.projectAccess.getInstance().getResourceConfig(this.entry.name);
     if (!enabled) {
-      this.logService.log('Resource is disabled', this.name);
       return;
     }
 
     if (isChange && entry?.path === this.manifestPath) {
-      this.logService.log('Reloading meta data as manifest changed', this.name);
       this.loadMetaData();
       return this.gameServerService.refreshResources();
     }
@@ -294,8 +290,6 @@ export class Resource implements AssetInterface {
       return;
     }
 
-    this.logService.log('Running watch commands of', this.name, this.metaData, this.manifest.fxdkWatchCommands);
-
     const stubs: Record<string, { command: string, args: unknown }> = this.manifest.fxdkWatchCommands.reduce((acc, [command, args]) => {
       acc[JSON.stringify([command, args])] = { command, args };
 
@@ -308,8 +302,6 @@ export class Resource implements AssetInterface {
 
     this.runningWatchCommands.forEach((cmd, hash) => {
       if (!stubs[hash]) {
-        this.logService.log('Stopping watch command of', this.name, hash);
-
         oldCommandsPromises.push(cmd.stop());
         commandHashesToDelete.push(hash);
 
@@ -339,8 +331,6 @@ export class Resource implements AssetInterface {
     const cmd = this.runningWatchCommands.get(hash);
     if (cmd) {
       this.runningWatchCommands.delete(hash);
-
-      this.logService.log('Stopping watch command', hash);
 
       await cmd.stop();
 
@@ -392,8 +382,6 @@ export class Resource implements AssetInterface {
 
       return status;
     });
-
-    this.logService.log(`Started watch command`, this.name, command, args);
   }
 
   private async stopAllWatchCommands() {
@@ -427,8 +415,6 @@ export class Resource implements AssetInterface {
   }
 
   private async onConfigChanged(config: ProjectManifestResource) {
-    this.logService.log(`Resource ${this.name} config has changed`, config);
-
     this.ensureWatchCommandsRunning();
   }
 
@@ -456,8 +442,6 @@ export class Resource implements AssetInterface {
             this.metaDataLoading = false;
             return;
           }
-
-          this.logService.log('Loaded meta data for asset', uid, metaData, this.manifest);
 
           this.metaData = metaData;
           this.restartInducingPaths = this.manifest.getAllScripts().map(

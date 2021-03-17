@@ -104,17 +104,10 @@ export interface RelinkResourcesRequest {
   enabledResourcesPaths: string[],
 }
 
-export interface ServerStartRequest {
-  projectPath: string,
-  updateChannel: ServerUpdateChannel,
+export interface ProjectStartServerRequest {
   licenseKey?: string,
   steamWebApiKey?: string,
   tebexSecret?: string,
-}
-
-export interface SetEnabledResourcesRequest {
-  projectPath: string,
-  enabledResourcesPaths: string[],
 }
 
 export interface MoveEntryRequest {

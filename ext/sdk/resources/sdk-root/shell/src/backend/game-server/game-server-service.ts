@@ -5,28 +5,26 @@ import byline from 'byline';
 import { inject, injectable } from "inversify";
 import { ApiContribution } from "backend/api/api-contribution";
 import { AppContribution } from "backend/app/app-contribution";
-import { Feature, ServerStates } from 'shared/api.types';
+import { ServerStates, ServerUpdateChannel } from 'shared/api.types';
 import { handlesClientEvent } from 'backend/api/api-decorators';
 import { serverApi } from 'shared/api.events';
-import { ServerStartRequest, SetEnabledResourcesRequest } from 'shared/api.requests';
 import { FsService } from 'backend/fs/fs-service';
 import { LogService } from 'backend/logger/log-service';
 import { GameServerManagerService } from './game-server-manager-service';
-import { FeaturesService } from 'backend/features/features-service';
-import { ConfigService } from 'backend/config-service';
 import { ApiClient } from 'backend/api/api-client';
 import { sdkGamePipeName } from 'backend/constants';
-import { Sequencer } from 'backend/execution-utils/sequencer';
 import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { ShellCommand } from 'backend/process/ShellCommand';
 import { GameService } from 'backend/game/game-service';
-import { debounce } from 'shared/utils';
+import { Deferred } from 'backend/deferred';
 
-enum ResourceReconcilationState {
-  start = 1,
-  stop,
-  idle,
+export interface ServerStartRequest {
+  fxserverCwd: string,
+  updateChannel: ServerUpdateChannel,
+  licenseKey?: string,
+  steamWebApiKey?: string,
+  tebexSecret?: string,
 }
 
 @injectable()
@@ -43,12 +41,6 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   @inject(LogService)
   protected readonly logService: LogService;
-
-  @inject(ConfigService)
-  protected readonly configService: ConfigService;
-
-  @inject(FeaturesService)
-  protected readonly featuresService: FeaturesService;
 
   @inject(TaskReporterService)
   protected readonly taskReporterService: TaskReporterService;
@@ -69,23 +61,20 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   protected serverCmd: ShellCommand | null = null;
   protected server: cp.ChildProcess | null = null;
-  protected currentEnabledResourcesPaths = new Set<string>();
 
   protected startTask: Task | null = null;
   protected stopTask: Task | null = null;
 
-  protected serverOpsSequencer = new Sequencer();
+  protected serverLock: Deferred<void> = new Deferred();
+  protected serverLocked: boolean = false;
 
   boot() {
+    this.serverLock.resolve();
     process.on('exit', () => this.serverCmd?.stop());
   }
 
-  getProjectServerPath(projectPath: string): string {
-    return this.fsService.joinPath(projectPath, '.fxdk/fxserver');
-  }
-
-  getBlankConfigPath(projectPath: string): string {
-    return this.fsService.joinPath(this.getProjectServerPath(projectPath), 'blank.cfg');
+  getState(): ServerStates {
+    return this.state;
   }
 
   @handlesClientEvent(serverApi.ackState)
@@ -93,7 +82,6 @@ export class GameServerService implements AppContribution, ApiContribution {
     this.apiClient.emit(serverApi.state, this.state);
   }
 
-  @handlesClientEvent(serverApi.stop)
   stop() {
     if (this.serverCmd) {
       this.stopTask = this.taskReporterService.create('Stopping server');
@@ -101,9 +89,28 @@ export class GameServerService implements AppContribution, ApiContribution {
     }
   }
 
-  @handlesClientEvent(serverApi.start)
+  lock() {
+    if (this.serverLocked) {
+      return;
+    }
+
+    this.serverLocked = true;
+    this.serverLock = new Deferred();
+  }
+
+  unlock() {
+    if (!this.serverLocked) {
+      return;
+    }
+
+    this.serverLocked = false;
+    this.serverLock.resolve();
+  }
+
   async start(request: ServerStartRequest) {
-    const { projectPath, updateChannel, licenseKey, steamWebApiKey } = request;
+    const { fxserverCwd, updateChannel, licenseKey, steamWebApiKey } = request;
+
+    await this.serverLock.promise;
 
     // Check if port is available
     if (!await this.isPortAvailable(30120)) {
@@ -113,12 +120,6 @@ export class GameServerService implements AppContribution, ApiContribution {
     this.toState(ServerStates.booting);
     this.logService.log('Starting server', request);
     this.startTask = this.taskReporterService.create('Starting server');
-
-    const fxserverCwd = this.getProjectServerPath(projectPath);
-    this.logService.log('FXServer cwd', fxserverCwd);
-
-    await this.fsService.mkdirp(fxserverCwd);
-    this.logService.log('Ensured FXServer cwd exist');
 
     const blankPath = this.fsService.joinPath(fxserverCwd, 'blank.cfg');
     if (!await this.fsService.statSafe(blankPath)) {
@@ -157,8 +158,10 @@ export class GameServerService implements AppContribution, ApiContribution {
       await this.gameServerManagerService.ensureSvAdhesiveEnabled(updateChannel, false);
     }
 
-    this.currentEnabledResourcesPaths.forEach((resourcePath) => {
-      fxserverArgs.push('+ensure', this.fsService.basename(resourcePath));
+    const resourcesNames = await this.fsService.readdir(this.fsService.joinPath(fxserverCwd, 'resources'));
+
+    resourcesNames.forEach((resourceName) => {
+      fxserverArgs.push('+ensure', resourceName);
     });
 
     this.logService.log('FXServer args', fxserverArgs);
@@ -191,23 +194,6 @@ export class GameServerService implements AppContribution, ApiContribution {
 
     await this.initSdkGameIPC();
   }
-
-  @handlesClientEvent(serverApi.setEnabledResources)
-  setEnabledResources = debounce(async (request: SetEnabledResourcesRequest) => {
-    this.logService.log('Setting enabled resources', request);
-
-    const { projectPath, enabledResourcesPaths } = request;
-
-    const fxserverCwd = this.getProjectServerPath(projectPath);
-
-    if (!await this.fsService.statSafe(fxserverCwd)) {
-      await this.fsService.mkdirp(fxserverCwd);
-    }
-
-    await this.linkResources(fxserverCwd, enabledResourcesPaths);
-
-    this.reconcileEnabledResourcesAndRefresh(enabledResourcesPaths);
-  }, 5);
 
   refreshResources() {
     this.emitSdkGameEvent('refresh');
@@ -242,102 +228,6 @@ export class GameServerService implements AppContribution, ApiContribution {
   toState(newState: ServerStates) {
     this.state = newState;
     this.ackState();
-  }
-
-  private async linkResource(source: string, dest: string) {
-    const windowsDevModeEnabled = await this.featuresService.get(Feature.windowsDevModeEnabled);
-
-    const linkType = windowsDevModeEnabled
-      ? 'dir'
-      : 'junction';
-
-    return fs.promises.symlink(source, dest, linkType);
-  }
-
-  private async linkResources(fxserverCwd: string, resourcesPaths: string[]) {
-    this.logService.log('Linking resources', resourcesPaths);
-    await this.serverOpsSequencer.executeBlocking(async () => {
-      const resourcesDirectoryPath = this.fsService.joinPath(fxserverCwd, 'resources');
-
-      await this.fsService.rimraf(resourcesDirectoryPath);
-      await this.fsService.mkdirp(resourcesDirectoryPath);
-
-      const links = resourcesPaths.map((resourcePath) => ({
-        source: resourcePath,
-        dest: this.fsService.joinPath(resourcesDirectoryPath, this.fsService.basename(resourcePath)),
-      }));
-
-      links.unshift({
-        source: this.configService.sdkGame,
-        dest: this.fsService.joinPath(resourcesDirectoryPath, 'sdk-game'),
-      });
-
-      await Promise.all(
-        links.map(async ({ source, dest }) => {
-          if (await this.fsService.statSafe(dest)) {
-            const destRealpath = await fs.promises.realpath(dest);
-
-            if (destRealpath !== source) {
-              await fs.promises.unlink(dest);
-            }
-          }
-
-          try {
-            await this.linkResource(source, dest);
-          } catch (e) {
-            this.logService.log('Failed to link resource', e.toString());
-          }
-        }),
-      );
-    });
-    this.logService.log('Linked resources', resourcesPaths);
-  }
-
-  /**
-   * Starts newly enabled resources,
-   * Stops disabled resources
-   *
-   * Asks server to refresh it's state
-   */
-  private reconcileEnabledResourcesAndRefresh(enabledResourcesPaths: string[]) {
-    if (this.state !== ServerStates.up) {
-      this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
-      return;
-    }
-
-    this.logService.log('Reconciling enabled resources', { enabledResourcesPaths });
-
-    this.emitSdkGameEvent('refresh');
-
-    const resourcesStates = {};
-
-    enabledResourcesPaths.forEach((resourcePath) => {
-      const resourceName = this.fsService.basename(resourcePath);
-
-      resourcesStates[resourceName] = this.currentEnabledResourcesPaths.has(resourcePath)
-        ? ResourceReconcilationState.idle
-        : ResourceReconcilationState.start;
-    });
-
-    this.currentEnabledResourcesPaths.forEach((resourcePath) => {
-      const resourceName = this.fsService.basename(resourcePath);
-
-      if (!resourcesStates[resourceName]) {
-        resourcesStates[resourceName] = ResourceReconcilationState.stop;
-      }
-    });
-
-    Object.entries(resourcesStates).forEach(([resourceName, state]) => {
-      if (state === ResourceReconcilationState.start) {
-        return this.emitSdkGameEvent('start', resourceName);
-      }
-
-      if (state === ResourceReconcilationState.stop) {
-        return this.emitSdkGameEvent('stop', resourceName);
-      }
-    });
-
-    this.currentEnabledResourcesPaths = new Set(enabledResourcesPaths);
   }
 
   @handlesClientEvent(serverApi.ackResourcesState)
@@ -395,7 +285,7 @@ export class GameServerService implements AppContribution, ApiContribution {
     this.sdkGameIPCServer.listen(sdkGamePipeName);
   }
 
-  private emitSdkGameEvent(eventType: string, data?: any) {
+  emitSdkGameEvent(eventType: string, data?: any) {
     if (!this.sdkGameIPCSocket) {
       this.logService.log('No sdk-game IPC socket', { eventType, data });
       return;

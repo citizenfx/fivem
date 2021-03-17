@@ -39,6 +39,9 @@ export const projectApi = {
   moveEntry: 'project:moveEntry',
   copyEntry: 'project:copyEntry',
   copyEntries: 'project:copyEntries',
+
+  startServer: 'project:startServer',
+  stopServer: 'project:stopServer',
 };
 
 export const assetApi = {
@@ -78,9 +81,6 @@ export const serverApi = {
   ackState: 'server:ackState',
   state: 'server:state',
 
-  start: 'server:start',
-  stop: 'server:stop',
-
   bufferedOutput: 'server:output',
   structuredOutputMessage: 'server:outputStructured',
   clearOutput: 'server:clearOutput',
@@ -89,7 +89,6 @@ export const serverApi = {
   ackResourcesState: 'server:ackResourcesState',
   resourcesState: 'server:resourcesState',
 
-  setEnabledResources: 'server:refreshResources',
   restartResource: 'server:restartResource',
   stopResource: 'server:stopResource',
   startResource: 'server:startResource',

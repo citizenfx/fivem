@@ -4,7 +4,6 @@ import { ApiContribution, ApiContributionFactory } from "backend/api/api-contrib
 import { handlesClientCallbackEvent, handlesClientEvent } from "backend/api/api-decorators";
 import { ConfigService } from "backend/config-service";
 import { fxdkProjectFilename } from "backend/constants";
-import { Sequencer } from "backend/execution-utils/sequencer";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
@@ -59,8 +58,7 @@ export class ProjectManager implements ApiContribution {
   protected readonly projectAccess: ProjectAccess;
 
   protected project: Project | null = null;
-
-  protected projectOpsSequencer = new Sequencer();
+  protected projectLock: boolean = false;
 
   getProject() {
     return this.project;
@@ -130,10 +128,16 @@ export class ProjectManager implements ApiContribution {
   }
 
   @handlesClientEvent(projectApi.open)
-  async openProject(projectPath: string): Promise<Project | null | void> {
-    return this.projectOpsSequencer.executeBlocking(async () => {
-      this.logService.log('Opening project', projectPath);
+  async openProject(projectPath: string) {
+    if (this.projectLock) {
+      throw new Error('Can not open project while another project is being opened or created');
+    }
 
+    this.projectLock = true;
+
+    this.logService.log('Opening project', projectPath);
+
+    try {
       if (this.project) {
         await this.project.unload();
         this.projectAccess.setInstance(null);
@@ -143,9 +147,11 @@ export class ProjectManager implements ApiContribution {
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();
-
-      return this.project;
-    });
+    } catch (e) {
+      throw e;
+    } finally {
+      this.projectLock = false;
+    }
   }
 
   @handlesClientEvent(projectApi.checkCreateRequest)
@@ -177,15 +183,23 @@ export class ProjectManager implements ApiContribution {
 
   @handlesClientEvent(projectApi.create)
   async createProject(request: ProjectCreateRequest) {
-    const checkResult = await this.checkCreateRequest(request);
+    if (this.projectLock) {
+      throw new Error('Can not create project while another project is being opened or created');
+    }
 
+    this.projectLock = true;
+
+    const checkResult = await this.checkCreateRequest(request);
     if (checkResult.openProject) {
-      return this.openProject(this.fsService.joinPath(request.projectPath, request.projectName));
+      // Project open will lock it again
+      this.projectLock = false;
+      await this.openProject(this.fsService.joinPath(request.projectPath, request.projectName));
+      return;
     }
 
     this.logService.log('Creating project', request);
 
-    await this.projectOpsSequencer.executeBlocking(async () => {
+    try {
       if (this.project) {
         await this.project.unload();
         this.projectAccess.setInstance(null);
@@ -195,7 +209,11 @@ export class ProjectManager implements ApiContribution {
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();
-    });
+    } catch (e) {
+      throw e;
+    } finally {
+      this.projectLock = false;
+    }
 
     if (!checkResult.ignoreCfxServerData) {
       const assetImportRequest: GitAssetImportRequest = {
