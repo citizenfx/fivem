@@ -47,5 +47,7 @@
 	"devcon",
 	"adhesive",
 	"tool:formats",
-	"citizen:devtools"
+	"citizen:devtools",
+	"discord",
+	"lovely-script"
 ]

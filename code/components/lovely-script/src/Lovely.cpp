@@ -12,32 +12,9 @@
 #include <NetLibrary.h>
 
 #include <FontRenderer.h>
-
+#ifdef GTA_FIVE
 #include <ICoreGameInit.h>
-
-enum NativeIdentifiers : uint64_t
-{
-	GET_PLAYER_PED = 0x43A66C31C68491C0,
-	GET_ENTITY_COORDS = 0x3FEF770D40960D5A,
-	GET_FIRST_BLIP_INFO_ID = 0x1BEDE233E6CD2A1F,
-	GET_NEXT_BLIP_INFO_ID = 0x14F96AA50D6FBEA7,
-	GET_BLIP_INFO_ID_TYPE = 0xBE9B0959FFD0779B,
-	GET_BLIP_COORDS = 0x586AFE3FF72D996E,
-	GET_GROUND_Z_FOR_3D_COORD = 0xC906A7DAB05C8D2B,
-	SET_ENTITY_COORDS = 0x621873ECE1178967,
-	SET_ENTITY_COORDS_NO_OFFSET = 0x239A3351AC1DA385,
-	LOAD_SCENE = 0x4448EB75B4904BDB,
-	REQUEST_MODEL = 0x963D27A58DF860AC,
-	HAS_MODEL_LOADED = 0x98A4EB5D89A0C952,
-	CREATE_VEHICLE = 0xAF35D0D2583051B0,
-	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
-	DO_SCREEN_FADE_IN = 0xD4E8E24955024033,
-	NETWORK_IS_HOST = 0x8DB296B814EDDA07,
-	NETWORK_RESURRECT_LOCAL_PLAYER = 0xEA23C49EAA83ACFB,
-	NETWORK_IS_GAME_IN_PROGRESS = 0x10FAB35428CCC9D7,
-	IS_ENTITY_DEAD = 0x5F9532F3B5CC2551
-};
-
+#endif
 // BLIP_8 in global.gxt2 -> 'Waypoint'
 #define BLIP_WAYPOINT 8
 
@@ -78,6 +55,7 @@ public:
 
 	virtual void DoRun() override
 	{
+#ifdef GTA_FIVE
 		// TEMP: force-disable population for 1s big using script
 		auto icgi = Instance<ICoreGameInit>::Get();
 
@@ -107,18 +85,32 @@ public:
 			// SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
 			NativeInvoke::Invoke<0xB3B3359379FE77D3, int>(0.0f);
 		}
-
-		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
+#endif
+		// PLAYER_PED_ID
+#ifdef GTA_FIVE
+		uint32_t playerPedId = NativeInvoke::Invoke<0xD80958FC74E988A6, uint32_t>();
+#elif defined(IS_RDR3)
+		uint32_t playerPedId = NativeInvoke::Invoke<0x096275889B8E0EE0, uint32_t>();
+#endif
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
+#ifdef GTA_FIVE
 			CRect rect(0, 0, 22, 22);
 			CRGBA color;
-
-			if (!NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
+			// NETWORK_IS_SESSION_STARTED
+			constexpr const auto sessionActve = 0x9DE624D2FC4B603F;
+#elif defined(IS_RDR3)
+			// NETWORK_IS_SESSION_ACTIVE (NETWORK_IS_SESSION_STARTED in redm always return false)
+			constexpr const auto sessionActve = 0xD83C2B94E7508980;
+#endif
+			
+			if (!NativeInvoke::Invoke<sessionActve, bool>())
 			{
+#ifdef GTA_FIVE
 				color = CRGBA(200, 0, 0, 180);
 				TheFonts->DrawRectangle(rect, color);
+#endif
 			}
 			else
 			{
@@ -148,13 +140,14 @@ public:
 					lastPlayerCount = playerCount;
 				}
 			}
-
-			if (!m_hosted && NativeInvoke::Invoke<NETWORK_IS_HOST, bool>())
+#ifdef GTA_FIVE
+			if (!m_hosted && NativeInvoke::Invoke<0x8DB296B814EDDA07, bool>())
 			{
 				NativeInvoke::Invoke<0xC19F6C8E7865A6FF, int>(1);
 
 				m_hosted = true;
 			}
+#endif
 		}
 	}
 };
