@@ -263,10 +263,12 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	void Draw(const char* title, bool* p_open) override
 	{
+#ifndef IS_FXSERVER
 		if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
 		{
 			return;
 		}
+#endif
 
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 
