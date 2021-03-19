@@ -1563,16 +1563,34 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
+	if (!g_gameServer)
+	{
+		fn();
+		return;
+	}
+
 	g_gameServer->InternalAddMainThreadCb(fn, force);
 }
 
 void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn)
 {
+	if (!g_gameServer)
+	{
+		fn();
+		return;
+	}
+
 	g_gameServer->InternalAddNetThreadCb(fn);
 }
 
 void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
 {
+	if (!g_gameServer)
+	{
+		fn();
+		return;
+	}
+
 	g_gameServer->InternalAddSyncThreadCb(fn);
 }
 
