@@ -8,6 +8,9 @@
 				<li (click)="openLink('https://redm.gg')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="gameName == 'rdr3'">
 					RedM.gg
 				</li>
+				<li (click)="openLink('https://libertym.net')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="gameName == 'ny'">
+					LibertyM.net
+				</li>
 				<li (click)="openLink('https://forum.cfx.re')" aria-label="Opens in browser" data-balloon-pos="right">
 					Forum
 				</li>
@@ -25,7 +28,7 @@
 			>
 			</div>
 		</div>
-		<div class="right" *ngIf="gameName != 'rdr3'">
+		<div class="right" *ngIf="gameName != 'rdr3' && gameName != 'ny'">
 			<div class="player-stats" *ngIf="playerStats">
 				<div
 					aria-label="Current players count"
@@ -99,7 +102,7 @@
 
 		<div class="links">
 			<a [routerLink]="['/servers/premium']" class="nav-item subnav-item" routerLinkActive="active"
-				*ngIf="gameName !== 'rdr3'">
+				*ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 				<span class="material-icons-outlined supporters">monetization_on</span>
 				<span l10nTranslate>
 					#ServerList_Premium
@@ -112,7 +115,7 @@
 				</span>
 			</a>
 			<a [routerLink]="['/servers/favorites']" class="nav-item subnav-item" routerLinkActive="active"
-				*ngIf="gameName !== 'rdr3'">
+				*ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 				<span class="material-icons-outlined favorites">grade</span>
 				<span l10nTranslate>
 					#ServerList_Favorites
@@ -158,7 +161,7 @@
 			</div>
 		</a>
 
-		<a class="card story" [routerLink]="['/story']" *ngIf="gameName !== 'rdr3'">
+		<a class="card story" [routerLink]="['/story']" *ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 			<h3 class="card_title">
 				<span class="material-icons-outlined">play_arrow</span>
 				<span l10nTranslate>#BottomNav_Story</span>
@@ -170,7 +173,7 @@
 			</p>
 		</a>
 
-		<a class="card replay" [routerLink]="['/editor']" routerLinkActive="active" *ngIf="gameName !== 'rdr3'">
+		<a class="card replay" [routerLink]="['/editor']" routerLinkActive="active" *ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 			<h3 class="card_title">
 				<span class="material-icons-outlined">replay</span>
 				<span l10nTranslate>

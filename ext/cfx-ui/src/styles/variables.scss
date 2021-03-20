@@ -63,6 +63,28 @@ $colorsRdr: (
     backgroundImage: url(https://cdn.discordapp.com/attachments/644430138276184066/645339402847125504/Red_Dead_Redemption_2_Screenshot_2019.11.16_-_20.07.53.92.png) /* temp placeholder */
 );
 
+$colorsNy: (
+    bgColor: rgb(40, 40, 40),
+    fgColor: rgb(240, 240, 240),
+	secondaryColor: rgb(240, 240, 240),
+	accentContrastColor: hsl(60, 100%, 97%),
+	accentColor1: #0F97FF,
+	accentColor2: #0F97FF,
+	shadeColor: hsla(226, 23%, 11%, .1),
+
+	auColor: rgb(0, 217, 255),
+
+	activeColor: rgb(50, 55, 103),
+	inactiveColor: rgb(21, 0, 128),
+
+    yellowColor: hsl(53, 98%, 92%),
+    redColor: #0F97FF,
+	blueColor: #0F97FF,
+    textColor: rgb(240, 240, 240),
+    acrylicBlur: url(#acrylicBlurDark),
+    backgroundImage: url(https://mirrors.fivem.net/iv_pic.jpg)
+);
+
 
 @mixin backdropBlurred() {
 	backdrop-filter: blur(20px);
@@ -156,7 +178,12 @@ $themeRdr: (
     data: $colorsRdr
 );
 
-$themes: $themeLight $themeDark $themeRdr;
+$themeNy: (
+    name: ny,
+    data: $colorsNy
+);
+
+$themes: $themeLight $themeDark $themeRdr $themeNy;
 
 @function gtv($theme, $name) {
     @return map-get(

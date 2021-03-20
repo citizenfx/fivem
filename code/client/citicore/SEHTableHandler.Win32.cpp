@@ -9,8 +9,6 @@
 
 #ifndef IS_FXSERVER
 #include <minhook.h>
-
-#ifdef _M_AMD64
 #include "Hooking.Aux.h"
 
 #include <Error.h>
@@ -27,7 +25,13 @@ static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD
 	ud_init(&ud);
 
 	// set the correct architecture
-	ud_set_mode(&ud, 64);
+	ud_set_mode(&ud, 
+#ifdef _M_AMD64
+		64
+#elif defined(_M_IX86)
+		32
+#endif
+	);
 
 	// set the program counter
 	ud_set_pc(&ud, reinterpret_cast<uint64_t>(methodPtr));
@@ -79,6 +83,7 @@ static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD
 	return retval;
 }
 
+#ifdef _M_AMD64
 struct FUNCTION_TABLE_DATA
 {
 	DWORD64 TableAddress;
@@ -232,23 +237,34 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 }
+#else
+void DLL_EXPORT CoreRT_SetupSEHHandler(...)
+{
+	// no-op for non-AMD64
+}
+#endif
 
-static LONG(*g_exceptionHandler)(EXCEPTION_POINTERS*);
-static BOOLEAN(*g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
+
+static LONG (*g_exceptionHandler)(EXCEPTION_POINTERS*);
+static BOOLEAN(WINAPI *g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
 
 static thread_local std::tuple<EXCEPTION_RECORD*, CONTEXT*> g_lastExc;
 
-static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
+static BOOLEAN WINAPI RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
 {
 	// anti-anti-anti-anti-debug
-	if (CoreIsDebuggerPresent() && (record->ExceptionCode == 0xc0000008/* || record->ExceptionCode == 0x80000003*/))
+	if (CoreIsDebuggerPresent() && (record->ExceptionCode == 0xc0000008 /* || record->ExceptionCode == 0x80000003*/))
 	{
 		return TRUE;
 	}
 
+#ifndef _M_IX86
 	g_lastExc = { record, context };
+#endif
 	BOOLEAN success = g_origRtlDispatchException(record, context);
+#ifndef _M_IX86
 	g_lastExc = { nullptr, nullptr };
+#endif
 
 	if (CoreIsDebuggerPresent())
 	{
@@ -299,7 +315,7 @@ static void terminateStub()
 	FatalError("UCRT terminate() called");
 }
 
-extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POINTERS*))
+extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG (*handler)(EXCEPTION_POINTERS*))
 {
 	_TerminateForException = (decltype(_TerminateForException))GetProcAddress(GetModuleHandle(NULL), "TerminateForException");
 
@@ -319,12 +335,6 @@ extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POI
 		}
 	}
 }
-#else
-void DLL_EXPORT CoreRT_SetupSEHHandler(...)
-{
-	// no-op for non-AMD64
-}
-#endif
 
 struct InitMHWrapper
 {

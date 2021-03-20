@@ -74,6 +74,17 @@ protected:
 	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override;
 	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(
+		CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		CefRefPtr<CefRequest> request,
+		bool is_navigation,
+		bool is_download,
+		const CefString& request_initiator,
+		bool& disable_default_handling) OVERRIDE
+	{
+		return this;
+	}
 
 #ifdef NUI_WITH_MEDIA_ACCESS
 	virtual CefRefPtr<CefMediaAccessHandler> GetMediaAccessHandler() override;
@@ -147,11 +158,6 @@ protected:
 
 public:
 	virtual void OnAudioCategoryConfigure(const std::string& frame, const std::string& category);
-
-	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
-	{
-		return this;
-	}
 
 private:
 	std::map<std::pair<int, int>, std::tuple<std::shared_ptr<nui::IAudioStream>, nui::AudioStreamParams>> m_audioStreams;

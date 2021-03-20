@@ -344,10 +344,19 @@ const BYTE quadVS[] =
 }; 
 #pragma endregion
 
+static auto roundUp(int x, int y)
+{
+	return x + (y - (x % y));
+}
+
 void NUIWindow::Initialize(CefString url)
 {
+#if defined(GTA_NY)
+	static bool nuiSharedResourcesEnabled = false;
+#else
 	static bool nuiSharedResourcesEnabled = true;
 	static ConVar<bool> nuiSharedResources("nui_useSharedResources", ConVar_Archive, true, &nuiSharedResourcesEnabled);
+#endif
 
 	InitializeCriticalSection(&m_renderBufferLock);
 
@@ -355,12 +364,6 @@ void NUIWindow::Initialize(CefString url)
 	{
 		delete[] m_renderBuffer;
 	}
-
-	// rounding function
-	auto roundUp = [] (int x, int y)
-	{
-		return x + (y - (x % y));
-	};
 
 	// create the temporary backing store
 	m_roundedHeight = roundUp(m_height, 16);
@@ -374,7 +377,7 @@ void NUIWindow::Initialize(CefString url)
 	CefWindowInfo info;
 	info.SetAsWindowless(NULL);
 	info.shared_texture_enabled = (!CfxIsWine() && nuiSharedResourcesEnabled);
-	info.external_begin_frame_enabled = true;
+	info.external_begin_frame_enabled = nuiSharedResourcesEnabled;
 	info.width = m_width;
 	info.height = m_height;
 
@@ -573,7 +576,9 @@ void NUIWindow::SendBeginFrame()
 
 			if (host)
 			{
+#ifndef GTA_NY
 				host->SendExternalBeginFrame();
+#endif
 				m_lastFrameTime = curTime;
 			}
 		}
@@ -610,7 +615,7 @@ void NUIWindow::UpdateFrame()
 		}
 	}
 
-#ifndef IS_RDR3
+#if !defined(IS_RDR3) && !defined(GTA_NY)
 	if (GetPaintType() != NUIPaintTypePostRender)
 #endif
 	{
@@ -623,7 +628,7 @@ void NUIWindow::UpdateFrame()
 	}
 
 	if (m_rawBlit)
-	{
+	{		
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
 
@@ -631,6 +636,15 @@ void NUIWindow::UpdateFrame()
 		{
 			m_width = resX;
 			m_height = resY;
+
+			m_roundedHeight = roundUp(m_height, 16);
+			m_roundedWidth = roundUp(m_width, 16);
+
+			if (m_renderBuffer)
+			{
+				delete[] m_renderBuffer;
+				m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
+			}
 
 			if (m_client)
 			{
@@ -871,6 +885,11 @@ void NUIWindow::UpdateFrame()
 
 				discarded = true;
 			}
+			else
+			{
+				// really
+				pBits = nullptr;
+			}
 
 			if (pBits)
 			{
@@ -883,16 +902,25 @@ void NUIWindow::UpdateFrame()
 						m_dirtyRects.pop();
 						LeaveCriticalSection(&m_renderBufferLock);
 
-						int height = m_height;
-
-						for (int y = rect.y; y < (rect.y + rect.height); y++)
+						if (pitch >= (rect.width * 4))
 						{
-							int dy = height - y;
+							int height = m_height;
 
-							int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
-							int* dest = &((int*)(pBits))[(dy * (pitch / 4)) + rect.x];
+							// ignore invalid height/width
+							if (((rect.y + rect.height) > height) || ((rect.x + rect.width) > m_roundedWidth))
+							{
+								continue;
+							}
 
-							memcpy(dest, src, (rect.width * 4));
+							for (int y = rect.y; y < (rect.y + rect.height); y++)
+							{
+								int dy = height - y - 1;
+
+								int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
+								int* dest = &((int*)(pBits))[(dy * (pitch / 4)) + rect.x];
+
+								memcpy(dest, src, (rect.width * 4));
+							}
 						}
 					}
 				}

@@ -1,0 +1,10 @@
+{
+	"name": "extra-natives:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"scripting",
+		"gta:game:ny"
+	],
+	"provides": []
+}

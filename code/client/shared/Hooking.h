@@ -66,10 +66,14 @@ inline uintptr_t get_adjusted(T address)
 template<typename T>
 inline uintptr_t get_unadjusted(T address)
 {
+#ifdef _M_AMD64
 	if ((uintptr_t)address >= hook::get_adjusted(0x140000000) && (uintptr_t)address <= hook::get_adjusted(0x146000000))
 	{
 		return (uintptr_t)address - baseAddressDifference;
 	}
+#endif
+
+	return (uintptr_t)address;
 }
 
 struct pass
@@ -485,6 +489,42 @@ inline void set_call(TTarget* target, T address)
 	*(T*)target = get_call(address);
 }
 
+inline uintptr_t get_member_internal(void* function)
+{
+	return (uintptr_t)function;
+}
+
+template<typename T>
+inline uintptr_t get_member_old(T function)
+{
+	return ((uintptr_t(*)(T))get_member_internal)(function);
+}
+
+template<typename TClass, typename TMember>
+inline uintptr_t get_member(TMember TClass::* function)
+{
+	union member_cast
+	{
+		TMember TClass::* function;
+		struct
+		{
+			void* ptr;
+			void* offset;
+		};
+	};
+
+	member_cast cast;
+
+	if (sizeof(cast.function) != sizeof(cast.ptr))
+	{
+		return get_member_old(function);
+	}
+
+	cast.function = function;
+
+	return (uintptr_t)cast.ptr;
+}
+
 namespace vp
 {
 	template<typename T, typename AT>
@@ -523,7 +563,7 @@ public:
 
 		pass{([&]
 		{
-			int size = min(sizeof(Args), sizeof(uintptr_t));
+			int size = std::min(sizeof(Args), sizeof(uintptr_t));
 
 			argOffset += size;
 		}(), 1)...};
@@ -536,7 +576,7 @@ public:
 			mov(eax, dword_ptr[esp + stackOffset + argOffset]);
 			push(eax);
 
-			int size = max(sizeof(Args), sizeof(uintptr_t));
+			int size = std::max(sizeof(Args), sizeof(uintptr_t));
 
 			stackOffset += size;
 			argCleanup += size;
@@ -567,7 +607,8 @@ public:
 	{
 		if (*(uint8_t*)address != 0xE8)
 		{
-			FatalError("inject_call attempted on something that was not a call. Are you sure you have a compatible version of the game executable? You might need to try poking the guru.");
+			__debugbreak();
+			// "inject_call attempted on something that was not a call. Are you sure you have a compatible version of the game executable? You might need to try poking the guru."
 		}
 
 		m_address = address;
@@ -657,15 +698,6 @@ inline void call_rcx(AT address, T func)
 	call_reg<1>(address, func);
 }
 
-template<typename T, typename TAddr>
-inline T get_address(TAddr address)
-{
-	intptr_t target = *(int32_t*)(get_adjusted(address));
-	target += (get_adjusted(address) + 4);
-
-	return (T)target;
-}
-
 template<typename T>
 inline T get_call(T address)
 {
@@ -722,6 +754,15 @@ struct get_func_ptr<TMember TClass::*>
 	}
 };
 #endif
+
+template<typename T, typename TAddr>
+inline T get_address(TAddr address)
+{
+	intptr_t target = *(int32_t*)(get_adjusted(address));
+	target += (get_adjusted(address) + 4);
+
+	return (T)target;
+}
 }
 
 #include "Hooking.Invoke.h"

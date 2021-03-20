@@ -137,6 +137,10 @@ GameServicesHandler::GameServicesHandler(const std::string& gameName)
 	{
 		m_securityKey = "CxdAElo3H1WNntCCLZ0WEW6WaH1cFFyvF6JCK5Oo1+UqczD626BPGczMnOuv532+AqT/7n3lIQEYxO3hhuXJItk=";
 	}
+	else if (gameName == "gta4")
+	{
+		m_securityKey = "C4S+pkoYcYNOzAYOjhemqrc3Sk3az03HT2sKl51L3cJhtRmJDFEtjIZ5PG1HpS/3YaVzh4+bI4c99uuXMtgLwcE=";
+	}
 	else if (gameName == "launcher")
 	{
 
@@ -458,6 +462,7 @@ static InitFunction initFunction([] ()
 	EndpointMapper* endpointMapper = Instance<EndpointMapper>::Get();
 
 	endpointMapper->AddPrefix("/gta5/11/gameservices/", new GameServicesHandler("gta5"));
+	endpointMapper->AddPrefix("/gta4/11/gameservices/", new GameServicesHandler("gta4"));
 	endpointMapper->AddPrefix("/rdr2/11/gameservices/", new GameServicesHandler("rdr2"));
 	endpointMapper->AddPrefix("/rdr2/11/wcfgameservices/", new GameServicesHandler("rdr2"));
 	endpointMapper->AddPrefix("/launcher/11/launcherservices/", new GameServicesHandler("launcher"));

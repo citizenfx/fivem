@@ -421,6 +421,14 @@ static InitFunction initFunction([]()
 
 			switch (instance->GetComponent<fx::GameServer>()->GetGameName())
 			{
+			case fx::GameName::GTA4:
+				intendedGameName = "gta4";
+
+				if (gameName == "gta4")
+				{
+					validGameName = true;
+				}
+				break;
 			case fx::GameName::GTA5:
 				intendedGameName = "gta5";
 

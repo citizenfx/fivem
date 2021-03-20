@@ -14,6 +14,7 @@
 #include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 #include <utf8.h>
+#include <Hooking.h>
 
 #include "memdbgon.h"
 
@@ -77,36 +78,20 @@ FontRendererTexture* GtaGameInterface::CreateTexture(int width, int height, Font
 {
 	if (!IsRunningTests())
 	{
-#if defined(GTA_NY)
-		// odd NY-specific stuff to force DXT5
-		*(uint32_t*)0x10C45F8 = D3DFMT_DXT5;
-		rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, (format == FontRendererTextureFormat::ARGB) ? FORMAT_A8R8G8B8 : 0, 0, nullptr);
-		*(uint32_t*)0x10C45F8 = 0;
-
-		int pixelSize = (format == FontRendererTextureFormat::ARGB) ? 4 : 1;
-
-		// copy texture data
-		D3DLOCKED_RECT lockedRect;
-		texture->m_pITexture->LockRect(0, &lockedRect, nullptr, D3DLOCK_DISCARD);
-
-		memcpy(lockedRect.pBits, pixelData, width * height * pixelSize);
-
-		texture->m_pITexture->UnlockRect(0);
-
-		// store pixel data so the game can reload the texture
-		texture->m_pixelData = pixelData;
-#else
 		rage::grcTextureReference reference;
 		memset(&reference, 0, sizeof(reference));
 		reference.width = width;
 		reference.height = height;
 		reference.depth = 1;
-		reference.stride = width;
-		reference.format = 3; // dxt5?
+		reference.stride = width * 4;
+#ifdef GTA_NY
+		reference.format = 1;
+#else
+		reference.format = 11;
+#endif
 		reference.pixelData = (uint8_t*)pixelData;
 
 		rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
-#endif
 
 		return new GtaFontTexture(texture);
 	}
@@ -144,7 +129,7 @@ void GtaGameInterface::SetTexture(FontRendererTexture* texture)
 void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, FontRendererVertex* vertices, uint16_t* indices)
 {
 #if GTA_NY
-	IDirect3DDevice9* d3dDevice = *(IDirect3DDevice9**)0x188AB48;
+	IDirect3DDevice9* d3dDevice = GetD3D9Device();
 
 	d3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 	d3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
@@ -163,6 +148,11 @@ void GtaGameInterface::DrawIndexedVertices(int numVertices, int numIndices, Font
 	{
 		auto vertex = &vertices[indices[j]];
 		uint32_t color = *(uint32_t*)&vertex->color;
+
+#if GTA_NY
+		// this swaps ABGR (as CRGBA is ABGR in little-endian) to ARGB by rotating left
+		color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+#endif
 
 		rage::grcVertex(vertex->x, vertex->y, 0.0, 0.0, 0.0, -1.0, color, vertex->u, vertex->v);
 	}
@@ -298,7 +288,11 @@ static bool IsCanary()
 	return (_wcsicmp(resultPath, L"canary") == 0);
 }
 
+#if GTA_NY
+static HookFunction hookFunc([]()
+#else
 static InitFunction initFunction([] ()
+#endif
 {
 	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive, "");
 
@@ -306,6 +300,10 @@ static InitFunction initFunction([] ()
 	static std::mt19937 random(random_core());
 
 	static bool shouldDraw = false;
+
+#ifdef GTA_NY
+	shouldDraw = true;
+#endif
 
 	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 	{
@@ -344,7 +342,7 @@ static InitFunction initFunction([] ()
 
 	OnPostFrontendRender.Connect([=] ()
 	{
-#if defined(GTA_FIVE) || defined(IS_RDR3)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 		int gameWidth, gameHeight;
 		GetGameResolution(gameWidth, gameHeight);
 
@@ -398,7 +396,7 @@ static InitFunction initFunction([] ()
 
 			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
 			{
-#if !defined(IS_RDR3)
+#if !defined(IS_RDR3) && !defined(GTA_NY)
 				auto emoji = customBrandingEmoji.GetValue();
 
 				if (!emoji.empty())
@@ -438,10 +436,15 @@ static InitFunction initFunction([] ()
 				{
 					brandName += L" (b2189)";
 				}
-#endif
+#endif 
 
 #if defined(IS_RDR3)
 				brandName = L"RedM MILESTONE 2";
+#endif
+
+#if defined(GTA_NY)
+				brandName = L"LibertyM";
+				brandingEmoji = L"\U0001F5FD";
 #endif
 
 				if (isCanary)

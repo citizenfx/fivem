@@ -13,12 +13,22 @@ return {
 			staticruntime "On"
 		end
 
-		-- TODO: 32-bit stuffies
-		files_project "../vendor/minhook/src/" {
+		local minhook_dir = "../vendor/minhook/src/"
+
+		files_project(minhook_dir) {
 			"buffer.c",
-			"HDE/hde64.c",
 			"hook.c",
 			"trampoline.c",
 		}
+
+		filter { 'architecture:x86' }
+			files_project(minhook_dir) {
+				"HDE/hde32.c"
+			}
+
+		filter { 'architecture:x64' }
+			files_project(minhook_dir) {
+				"HDE/hde64.c"
+			}
 	end
 }

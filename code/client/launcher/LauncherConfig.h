@@ -8,13 +8,13 @@
 #pragma once
 
 #if defined(GTA_NY)
-#define PRODUCT_NAME L"CitizenFX:IV"
+#define PRODUCT_NAME L"LibertyM"
 #define CONTENT_URL "http://content.citizen.re/iv/"
 #define CONTENT_URL_WIDE L"http://content.citizen.re/iv/"
 #define GAME_EXECUTABLE L"GTAIV.exe"
-#define EXE_TEXT_SIZE 0x94C000
-#define EXE_RDATA_SIZE 0x1BF000
-#define EXE_DATA_SIZE 0xB46000
+#define EXE_TEXT_SIZE 0xA7181A
+#define EXE_RDATA_SIZE 0x1BCD03
+#define EXE_DATA_SIZE 0xC6B50C
 #elif defined(PAYNE)
 #define PRODUCT_NAME L"CitizenPayne"
 #define CONTENT_URL "http://content.citizen.re/payne/"

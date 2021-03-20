@@ -5,7 +5,7 @@ end
 
 -- is game host?
 local function isGamePersonality(name)
-	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' then
+	if _OPTIONS['game'] ~= 'five' and _OPTIONS['game'] ~= 'rdr3' and _OPTIONS['game'] ~= 'ny' then
 		return isLauncherPersonality(name)
 	end
 
@@ -14,6 +14,10 @@ local function isGamePersonality(name)
 	end
 	
 	if name == 'game_1311' or name == 'game_1355' then
+		return true
+	end
+	
+	if name == 'game_43' then
 		return true
 	end
 	
@@ -111,7 +115,7 @@ local function launcherpersonality(name)
 		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue', 'vendor:boost_locale-crt' }
 		
 		if isLauncherPersonality(name) then
-			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:mbedtls_crt', 'vendor:openssl_crypto_crt', 'vendor:hdiffpatch' }
+			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:mbedtls_crt', 'vendor:openssl_crypto_crt', 'vendor:hdiffpatch-crt' }
 		end
 		
 		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
@@ -119,7 +123,7 @@ local function launcherpersonality(name)
 		staticruntime 'On'
 
 		filter { "options:game=ny" }
-			targetname "CitizenFX"
+			targetname "LibertyM"
 
 		filter { "options:game=payne" }
 			targetname "CitizenPayne"
@@ -167,9 +171,11 @@ if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 	launcherpersonality 'game_2189'
-else
+elseif _OPTIONS['game'] == 'rdr3' then
 	launcherpersonality 'game_1311'
 	launcherpersonality 'game_1355'
+elseif _OPTIONS['game'] == 'ny' then
+	launcherpersonality 'game_43'
 end
 
 externalproject "Win2D"

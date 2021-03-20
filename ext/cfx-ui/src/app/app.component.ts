@@ -323,9 +323,13 @@ export class AppComponent implements OnInit, AfterViewInit {
 	}
 
 	ngOnInit() {
-		const themeName = this.gameService.gameName === 'rdr3'
-			? 'theme-rdr3'
-			: (this.gameService.darkTheme ? 'theme-dark' : 'theme-light');
+		let themeName = this.gameService.darkTheme ? 'theme-dark' : 'theme-light';
+
+		if (this.gameService.gameName === 'rdr3') {
+			themeName = 'theme-rdr3';
+		} else if (this.gameService.gameName === 'ny') {
+			themeName = 'theme-ny';
+		}
 
 		this.classes = {};
 		this.classes[environment.web ? 'webapp' : 'gameapp'] = true;
@@ -338,7 +342,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 		this.classes['no-header-safe-zone'] = !getNavConfigFromUrl(this.router.url).withHomeButton;
 
 		this.gameService.darkThemeChange.subscribe(value => {
-			if (this.gameService.gameName !== 'rdr3') {
+			if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 				const overlayElement = this.overlayContainer.getContainerElement();
 
 				overlayElement.classList.remove('theme-light');

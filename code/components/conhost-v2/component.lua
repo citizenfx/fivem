@@ -1,24 +1,21 @@
+
 return function()
-	if _OPTIONS['game'] == 'five' then
+	if _OPTIONS['game'] == 'five' or _OPTIONS['game'] == 'rdr3' or _OPTIONS['game'] == 'ny' then
 		filter {}
 		configuration {}
 
 		add_dependencies {
-			"rage:input:five",
-			"rage:graphics:five",
-			"rage:nutsnbolts:five",
+			"rage:input",
+			"rage:graphics",
+			"rage:nutsnbolts",
 		}
-	elseif _OPTIONS['game'] == 'rdr3' then
+	end
+	
+	if _OPTIONS['game'] == 'rdr3' then
 		filter {}
 		configuration {}
 		
 		includedirs { '../vendor/vulkan-headers/include/' }
-
-		add_dependencies {
-			"rage:input:rdr3",
-			"rage:graphics:rdr3",
-			"rage:nutsnbolts:rdr3",
-		}
 	end
 
 	filter {}

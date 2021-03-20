@@ -235,7 +235,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 			}
 
 			return true;
-		}, INT32_MIN);
+		},
+		INT32_MIN);
 
 		eventComponent->OnTriggerEvent.Connect([=](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
 		{
@@ -264,7 +265,7 @@ void ResourceScriptingComponent::CreateEnvironments()
 
 	// pre-cache tick runtimes
 	{
-		for (auto& [ id, runtime ] : m_scriptRuntimes)
+		for (auto& [id, runtime] : m_scriptRuntimes)
 		{
 			OMPtr<IScriptTickRuntime> tickRuntime;
 
@@ -276,27 +277,27 @@ void ResourceScriptingComponent::CreateEnvironments()
 	}
 
 	// iterate over the runtimes and load scripts as requested
-	for (auto& environmentPair : m_scriptRuntimes)
-	{
-		OMPtr<IScriptFileHandlingRuntime> ptr;
+	OMPtr<IScriptFileHandlingRuntime> ptr;
 
-		fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
+	fwRefContainer<ResourceMetaDataComponent> metaData = m_resource->GetComponent<ResourceMetaDataComponent>();
 
-		auto sharedScripts = metaData->GlobEntriesVector("shared_script");
-		auto clientScripts = metaData->GlobEntriesVector(
+	auto sharedScripts = metaData->GlobEntriesVector("shared_script");
+	auto clientScripts = metaData->GlobEntriesVector(
 #ifdef IS_FXSERVER
-			"server_script"
+	"server_script"
 #else
-			"client_script"
+	"client_script"
 #endif
-		);
+	);
 
-		if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
+	auto metaComponent = MakeNew<ScriptMetaDataComponent>(m_resource);
+	for (auto& list : { sharedScripts, clientScripts })
+	{
+		for (auto& script : list)
 		{
-			auto metaComponent = MakeNew<ScriptMetaDataComponent>(m_resource);
-			for (auto& list : { sharedScripts, clientScripts })
+			for (auto& environmentPair : m_scriptRuntimes)
 			{
-				for (auto& script : list)
+				if (FX_SUCCEEDED(environmentPair.second.As(&ptr)))
 				{
 					if (ptr->HandlesFile(const_cast<char*>(script.c_str()), metaComponent.GetRef()))
 					{
@@ -306,6 +307,8 @@ void ResourceScriptingComponent::CreateEnvironments()
 						{
 							trace("Failed to load script %s.\n", script.c_str());
 						}
+
+						continue;
 					}
 				}
 			}

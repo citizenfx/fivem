@@ -65,9 +65,16 @@ return {
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
 
+		filter { 'system:windows', 'architecture:x64' }
 			files_project "../vendor/tbb/" {
 				'src/tbb/intel64-masm/intel64_misc.asm',
 				'src/tbb/intel64-masm/atomic_support.asm',
+			}
+		
+		filter { 'system:windows', 'architecture:x86' }
+			files_project "../vendor/tbb/" {
+				'src/tbb/ia32-masm/lock_byte.asm',
+				'src/tbb/ia32-masm/atomic_support.asm',
 			}
 	end
 }

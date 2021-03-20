@@ -431,8 +431,21 @@ static InitFunction initFunction([]()
 				bool allowed = true;
 
 				// store the game name
-				std::string gameNameString = (gameServer->GetGameName() == fx::GameName::GTA5) ? "gta5" :
-					(gameServer->GetGameName() == fx::GameName::RDR3) ? "rdr3" : "unknown";
+				std::string gameNameString;
+				switch (gameServer->GetGameName())
+				{
+				case fx::GameName::GTA4:
+					gameNameString = "gta4";
+					break;
+				case fx::GameName::GTA5:
+					gameNameString = "gta5";
+					break;
+				case fx::GameName::RDR3:
+					gameNameString = "rdr3";
+					break;
+				default:
+					gameNameString = "unknown";
+				}
 
 				// if is FXv2
 				auto isCfxV2 = md->GetEntries("is_cfxv2");

@@ -3,6 +3,8 @@ return {
 		includedirs "../vendor/enet/include/"
 
 		if os.istarget('windows') then
+			defines { '_WIN32_WINNT=0x0A00' }
+
 			links { 'ws2_32', 'winmm' }
 		end
 	end,
@@ -20,7 +22,7 @@ return {
 		files_project "../vendor/enet/" {
 			"*.c"
 		}
-		
+
 		if _OPTIONS['game'] == 'server' then
 			removefiles '../vendor/enet/win32.c'
 			removefiles '../vendor/enet/unix.c'

@@ -51,6 +51,8 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	productName = L"FXS_";
 #elif defined(IS_RDR3)
 	productName = L"RedM_";
+#elif defined(GTA_NY)
+	productName = L"LibertyM_";
 #else
 #error No subprocess name!
 #endif

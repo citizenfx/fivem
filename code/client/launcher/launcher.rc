@@ -38,7 +38,7 @@ IDI_ICON1               ICON                    "redm.ico"
 1						RT_MANIFEST				"launcher.manifest"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(GTA_NY)
 1010					MEOW					"backdrop.png"
 #else
 1010					MEOW					"backdrop_rdr.png"
@@ -91,6 +91,8 @@ BEGIN
 			VALUE "FileDescription", "FiveM" SUFFIX
 #elif defined(IS_RDR3)
 			VALUE "FileDescription", "RedM" SUFFIX
+#elif defined(GTA_NY)
+			VALUE "FileDescription", "LibertyM" SUFFIX
 #else
 			VALUE "FileDescription", "CitizenFX" SUFFIX
 #endif

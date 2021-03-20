@@ -533,7 +533,7 @@ static void AllocateExceptionBuffer()
 	}
 }
 
-extern "C" DLL_EXPORT DWORD RemoteExceptionFunc(LPVOID objectPtr)
+extern "C" DLL_EXPORT DWORD WINAPI RemoteExceptionFunc(LPVOID objectPtr)
 {
 	__try
 	{
@@ -555,7 +555,7 @@ extern "C" DLL_EXPORT DWORD RemoteExceptionFunc(LPVOID objectPtr)
 	}
 }
 
-extern "C" DLL_EXPORT DWORD BeforeTerminateHandler(LPVOID arg)
+extern "C" DLL_EXPORT DWORD WINAPI BeforeTerminateHandler(LPVOID arg)
 {
 	__try
 	{
@@ -1631,7 +1631,9 @@ static ExceptionHandler* g_exceptionHandler;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
+#ifdef _M_AMD64
 extern "C" void WINAPI __security_init_cookie();
+#endif
 
 static bool initialized = false;
 
@@ -1642,7 +1644,9 @@ extern "C" DLL_EXPORT void EarlyInitializeExceptionHandler()
 		return;
 	}
 
+#ifdef _M_AMD64
 	__security_init_cookie();
+#endif
 	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_PROCESS_ATTACH, nullptr);
 	_CRT_INIT((HINSTANCE)&__ImageBase, DLL_THREAD_ATTACH, nullptr);
 }
@@ -1784,7 +1788,6 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 	g_exceptionHandler->set_handle_debug_exceptions(true);
 
 	// disable Windows' SetUnhandledExceptionFilter
-#ifdef _M_AMD64
 	DWORD oldProtect;
 
 	LPVOID unhandledFilters[] = { 
@@ -1798,10 +1801,13 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 		{
 			VirtualProtect(unhandledFilter, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
 
+#ifdef _M_AMD64
 			*(uint8_t*)unhandledFilter = 0xC3;
+#else
+			*(uint32_t*)unhandledFilter = 0x900004C2;
+#endif
 		}
 	}
-#endif
 
 	return false;
 }

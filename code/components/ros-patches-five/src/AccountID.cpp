@@ -86,7 +86,7 @@ std::string GetROSEmail()
 	return (const char*)&accountBlob[8];
 }
 
-#if defined(IS_RDR3) || defined(GTA_FIVE)
+#if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
 static uint8_t* accountBlob;
 
 static DWORD GetMTLPid()
@@ -142,7 +142,7 @@ bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::arr
 {
 	if (!accountBlob)
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(GTA_NY)
 		if (!InitAccountRemote())
 #endif
 		{
@@ -172,7 +172,7 @@ static bool InitAccountSteam()
 
 	if (!blob->tried)
 	{
-#ifndef GTA_FIVE
+#ifdef IS_RDR3
 		if (!getenv("CitizenFX_ToolMode"))
 #endif
 		{
@@ -200,7 +200,7 @@ static bool InitAccountEOS()
 
 	if (!blob->triedEpic)
 	{
-#ifndef GTA_FIVE
+#ifdef IS_RDR3
 		if (!getenv("CitizenFX_ToolMode"))
 #endif
 		{
@@ -545,6 +545,8 @@ void ValidateSteam(int parentPid)
 	271590
 #elif defined(IS_RDR3)
 	1174180
+#elif defined(GTA_NY)
+	12210
 #else
 	0
 #endif
@@ -555,8 +557,10 @@ void ValidateSteam(int parentPid)
 	"gta5"
 #elif defined(IS_RDR3)
 	"rdr2"
+#elif defined(GTA_NY)
+	"gta5"
 #else
-	0
+	""
 #endif
 	;
 
@@ -676,6 +680,7 @@ void ValidateSteam(int parentPid)
 
 static bool InitAccountMTL()
 {
+#if defined(_M_AMD64)
 	auto pid = GetMTLPid();
 
 	if (pid == -1)
@@ -778,6 +783,10 @@ static bool InitAccountMTL()
 	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[8]);
 
 	return true;
+#else
+	// #TODOLIBERTY
+	return false;
+#endif
 }
 
 void PreInitGameSpec()

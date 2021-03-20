@@ -13,7 +13,6 @@
 #include "Hooking.Aux.h"
 #include <minhook.h>
 
-#ifdef _M_AMD64
 #pragma comment(lib, "ntdll.lib")
 
 #include <shlobj.h>
@@ -27,7 +26,7 @@ typedef wchar_t*(*MappingFunctionType)(const wchar_t*, void*(*)(size_t));
 
 static MappingFunctionType g_mappingFunction;
 
-static NTSTATUS(*g_origLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*, HANDLE*);
+static NTSTATUS(NTAPI*g_origLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*, HANDLE*);
 
 static bool g_d3dx11;
 
@@ -326,18 +325,18 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	return false;
 }
 
-static HANDLE(*g_origCreateFileW)(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile);
+static HANDLE(WINAPI* g_origCreateFileW)(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile);
 
-static HANDLE CreateFileWStub(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
+static HANDLE WINAPI CreateFileWStub(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
 {
 	std::wstring fileName = MapRedirectedFilename(lpFileName);
 
 	return g_origCreateFileW(fileName.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
-static BOOL(*g_origGetFileAttributesExW)(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_INFO_LEVELS fInfoLevelId, _Out_writes_bytes_(sizeof(WIN32_FILE_ATTRIBUTE_DATA)) LPVOID lpFileInformation);
+static BOOL(WINAPI* g_origGetFileAttributesExW)(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_INFO_LEVELS fInfoLevelId, _Out_writes_bytes_(sizeof(WIN32_FILE_ATTRIBUTE_DATA)) LPVOID lpFileInformation);
 
-static BOOL GetFileAttributesExWStub(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_INFO_LEVELS fInfoLevelId, _Out_writes_bytes_(sizeof(WIN32_FILE_ATTRIBUTE_DATA)) LPVOID lpFileInformation)
+static BOOL WINAPI GetFileAttributesExWStub(_In_ LPCWSTR lpFileName, _In_ GET_FILEEX_INFO_LEVELS fInfoLevelId, _Out_writes_bytes_(sizeof(WIN32_FILE_ATTRIBUTE_DATA)) LPVOID lpFileInformation)
 {
 	std::wstring fileName = MapRedirectedFilename(lpFileName);
 
@@ -629,7 +628,7 @@ static HRESULT WINAPI QueryDListForApplication1Stub(BOOL* pDefaultToDiscrete, HA
 static FARPROC(WINAPI* g_origGetProcAddress)(HMODULE hModule, LPCSTR procName, void* caller);
 
 NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle);
-NTSTATUS NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCESSINFOCLASS ProcessInformationClass, OUT PVOID ProcessInformation, IN ULONG ProcessInformationLength, OUT PULONG ReturnLength OPTIONAL);
+NTSTATUS NTAPI NtQueryInformationProcessHook(IN HANDLE ProcessHandle, IN PROCESSINFOCLASS ProcessInformationClass, OUT PVOID ProcessInformation, IN ULONG ProcessInformationLength, OUT PULONG ReturnLength OPTIONAL);
 
 extern "C" NTSTATUS NTAPI NtQueryVirtualMemory(
 	HANDLE                   ProcessHandle,
@@ -640,7 +639,7 @@ extern "C" NTSTATUS NTAPI NtQueryVirtualMemory(
 	PSIZE_T                  ReturnLength
 );
 
-NTSTATUS NtQueryVirtualMemoryHook(
+NTSTATUS NTAPI NtQueryVirtualMemoryHook(
 	HANDLE                   ProcessHandle,
 	PVOID                    BaseAddress,
 	INT MemoryInformationClass,
@@ -654,15 +653,16 @@ NTSTATUS NtQueryVirtualMemoryHook(
 
 #include <Hooking.h>
 
+static const DWORD bigOne = 1;
+static auto ntdllRef = GetModuleHandleW(L"ntdll.dll");
+
 FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* caller)
 {
-	static const DWORD bigOne = 1;
-	static auto ntdllRef = GetModuleHandleW(L"ntdll.dll");
-
 	if (!IS_INTRESOURCE(lpProcName))
 	{
 		if (true)
 		{
+#ifdef _M_AMD64
 			if (hModule == ntdllRef && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)
 			{
 				char* ntdll = (char*)ntdllRef;
@@ -707,6 +707,12 @@ FARPROC WINAPI GetProcAddressStub(HMODULE hModule, LPCSTR lpProcName, void* call
 				//return (FARPROC)NtQueryInformationProcessHook;
 				//return (FARPROC)NtQueryInformationProcess;
 			}
+#else
+			if (hModule == ntdllRef && _stricmp(lpProcName, "NtQueryInformationProcess") == 0)
+			{
+				return (FARPROC)NtQueryInformationProcessHook;
+			}
+#endif
 
 			if (hModule == ntdllRef && _stricmp(lpProcName, "NtQueryVirtualMemory") == 0)
 			{
@@ -883,36 +889,4 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	static auto _LdrRegisterDllNotification = (decltype(&LdrRegisterDllNotification))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "LdrRegisterDllNotification");
 	_LdrRegisterDllNotification(0, LdrDllNotification, nullptr, &g_lastDllNotif);
 }
-
-#include <Hooking.Patterns.h>
-
-static std::multimap<uint64_t, uintptr_t> g_hints;
-
-extern "C" CORE_EXPORT auto CoreGetPatternHints()
-{
-	return &g_hints;
-}
-
-static InitFunction initFunction([]()
-{
-	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
-	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
-
-	if (hints)
-	{
-		while (!feof(hints))
-		{
-			uint64_t hash;
-			uintptr_t hint;
-
-			fread(&hash, 1, sizeof(hash), hints);
-			fread(&hint, 1, sizeof(hint), hints);
-
-			hook::pattern::hint(hash, hint);
-		}
-
-		fclose(hints);
-	}
-});
-#endif
 #endif

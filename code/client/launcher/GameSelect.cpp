@@ -191,7 +191,7 @@ std::optional<int> EnsureGamePath()
 	fileDialog->SetTitle(gettext(L"Select the folder containing Grand Theft Auto V").c_str());
 #endif
 
-#if defined(GTA_FIVE) || defined(IS_RDR3)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 	// set the default folder, if we can find one
 	{
 		wchar_t gameRootBuf[1024];
@@ -204,6 +204,8 @@ std::optional<int> EnsureGamePath()
 			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
 #elif defined(IS_RDR3)
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
+#elif defined(GTA_NY)
+			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto IV", 0 },
 #endif
 		};
 
@@ -224,6 +226,8 @@ std::optional<int> EnsureGamePath()
 				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf"))
 #elif defined(IS_RDR3)
 				if (checkFile(L"common.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
+#elif defined(GTA_NY)
+				if (checkFile(L"pc/audio/sfx/general.rpf"))
 #endif
 				{
 					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
@@ -241,6 +245,8 @@ std::optional<int> EnsureGamePath()
 		"gta5"
 #elif defined(IS_RDR3)
 		"rdr2"
+#elif defined(GTA_NY)
+		"gta4"
 #endif
 		);
 

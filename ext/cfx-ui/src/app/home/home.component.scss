@@ -451,7 +451,7 @@
 					// Make it point to the correct direction
 					transform: rotateY(180deg);
 
-					:host-context(.game-rdr3) & {
+					:host-context(.game-rdr3) &, :host-context(.game-ny) & {
 						transform: none;
 						width: var(--q2);
 						height: var(--q2);

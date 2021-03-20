@@ -1069,7 +1069,9 @@ static InitFunction initFunction([] ()
 	});
 });
 
+#ifndef GTA_NY
 #include <gameSkeleton.h>
+#endif
 #include <shellapi.h>
 
 #include <nng/nng.h>
@@ -1197,6 +1199,8 @@ void Component_RunPreInit()
 	{
 		if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 		{
+// #TODOLIBERTY: ?
+#ifndef GTA_NY
 			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 			{
 				if (type == rage::InitFunctionType::INIT_CORE)
@@ -1206,6 +1210,7 @@ void Component_RunPreInit()
 					connectParams = "";
 				}
 			}, 999999);
+#endif
 		}
 		else
 		{
@@ -1236,6 +1241,8 @@ void Component_RunPreInit()
 	{
 		if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 		{
+// #TODOLIBERTY: ?
+#ifndef GTA_NY
 			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 			{
 				if (type == rage::InitFunctionType::INIT_CORE)
@@ -1244,6 +1251,7 @@ void Component_RunPreInit()
 					authPayload = "";
 				}
 			}, 999999);
+#endif
 		}
 		else
 		{
