@@ -140,10 +140,10 @@ workspace "CitizenMP"
 		defines "NDEBUG"
 		optimize "Speed"
 
-	filter { "configurations:Release*", "kind:SharedLib or kind:ConsoleApp or kind:WindowedApp" }
-		linkoptions "/SAFESEH:NO"
-
 	if _OPTIONS["game"] == "ny" then
+		filter { "configurations:Release*", "kind:SharedLib or kind:ConsoleApp or kind:WindowedApp" }
+			linkoptions "/SAFESEH:NO"
+
 		configuration "game=ny"
 			defines "GTA_NY"
 

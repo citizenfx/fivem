@@ -163,8 +163,6 @@ static void InitialGameHook()
 	hook::nop(hook::get_pattern("0F 29 74 24 30 85 DB", 7), 6);
 }
 #elif defined(IS_RDR3)
-bool g_ranStartupInfo;
-
 static void* g_f;
 static char g_b[5];
 

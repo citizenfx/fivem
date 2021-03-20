@@ -598,7 +598,6 @@ int RealMain()
 	}
 
 	g_redirectionData = redirectionData;
-#endif
 
 #if !defined(IS_RDR3)
 #ifdef GTA_FIVE
@@ -657,6 +656,7 @@ int RealMain()
 			}
 		}
 	}
+#endif
 #endif
 #endif
 
