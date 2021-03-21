@@ -54,7 +54,7 @@ private:
 
 	unsigned long m_dirtyFlag;
 	RECT m_lastDirtyRect;
-	CRITICAL_SECTION m_renderBufferLock;
+	std::shared_mutex m_renderBufferLock;
 	char* m_renderBuffer;
 
 	std::queue<CefRect> m_dirtyRects;
@@ -88,6 +88,11 @@ private:
 public:
 	inline int		GetWidth() { return m_width; }
 	inline int		GetHeight() { return m_height; }
+
+	inline auto GetRenderBufferLock()
+	{
+		return std::unique_lock{ m_renderBufferLock };
+	}
 
 	inline void*	GetRenderBuffer() { return m_renderBuffer; }
 	inline int		GetRoundedWidth() { return m_roundedWidth; }

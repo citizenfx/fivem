@@ -177,6 +177,7 @@ void NUIRenderHandler::UpdatePopup()
 void NUIRenderHandler::PaintView(const RectList& dirtyRects, const void* buffer, int width, int height)
 {
 	NUIWindow* window = m_owner->GetWindow();
+	auto lock = window->GetRenderBufferLock();
 	void* renderBuffer = window->GetRenderBuffer();
 	int roundedWidth = window->GetRoundedWidth();
 

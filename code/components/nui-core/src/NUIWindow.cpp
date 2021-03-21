@@ -358,8 +358,6 @@ void NUIWindow::Initialize(CefString url)
 	static ConVar<bool> nuiSharedResources("nui_useSharedResources", ConVar_Archive, true, &nuiSharedResourcesEnabled);
 #endif
 
-	InitializeCriticalSection(&m_renderBufferLock);
-
 	if (m_renderBuffer)
 	{
 		delete[] m_renderBuffer;
@@ -424,9 +422,7 @@ void NUIWindow::InitializeRenderBacking()
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
 {
-	EnterCriticalSection(&m_renderBufferLock);
 	m_dirtyRects.push(rect);
-	LeaveCriticalSection(&m_renderBufferLock);
 }
 
 CefBrowser* NUIWindow::GetBrowser()
@@ -637,13 +633,16 @@ void NUIWindow::UpdateFrame()
 			m_width = resX;
 			m_height = resY;
 
-			m_roundedHeight = roundUp(m_height, 16);
-			m_roundedWidth = roundUp(m_width, 16);
-
-			if (m_renderBuffer)
 			{
-				delete[] m_renderBuffer;
-				m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
+				auto _ = GetRenderBufferLock();
+				m_roundedHeight = roundUp(m_height, 16);
+				m_roundedWidth = roundUp(m_width, 16);
+
+				if (m_renderBuffer)
+				{
+					delete[] m_renderBuffer;
+					m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
+				}
 			}
 
 			if (m_client)
@@ -897,10 +896,9 @@ void NUIWindow::UpdateFrame()
 				{
 					while (!m_dirtyRects.empty())
 					{
-						EnterCriticalSection(&m_renderBufferLock);
+						auto _ = GetRenderBufferLock();
 						CefRect rect = m_dirtyRects.front();
 						m_dirtyRects.pop();
-						LeaveCriticalSection(&m_renderBufferLock);
 
 						if (pitch >= (rect.width * 4))
 						{
@@ -926,9 +924,8 @@ void NUIWindow::UpdateFrame()
 				}
 				else
 				{
-					EnterCriticalSection(&m_renderBufferLock);
+					auto _ = GetRenderBufferLock();
 					m_dirtyRects = std::queue<CefRect>();
-					LeaveCriticalSection(&m_renderBufferLock);
 
 					memcpy(pBits, m_renderBuffer, m_height * pitch);
 				}
