@@ -78,8 +78,11 @@ void DrawNetworkNameText(float x, float y, const wchar_t* text, int, int)
 
 				g_drawnNameBitfield |= (1 << i);
 
-				wchar_t wideStr[512];
-				MultiByteToWideChar(CP_UTF8, 0, CPlayerInfo__GetEmojiName(player), -1, wideStr, _countof(wideStr));
+				std::wstring wideStr = ToWide(CPlayerInfo__GetEmojiName(player));
+				if (wideStr.length() > 128)
+				{
+					wideStr = wideStr.substr(0, 128);
+				}
 
 				x *= GetScreenResolutionX();
 				y *= GetScreenResolutionY();
