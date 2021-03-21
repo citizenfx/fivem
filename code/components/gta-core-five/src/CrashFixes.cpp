@@ -1124,6 +1124,9 @@ static HookFunction hookFunction{[] ()
 		hook::call(location, PoolInitX<3>);
 	}
 
+	// unloading crash: CConditionalAnimManager::ShutdownSession double-free
+	hook::nop(hook::get_pattern("74 08 41 8B D6 E8 ? ? ? ? 44 8B 07 EB 15", 5), 5);
+
 	// validate dlDrawListMgr cloth entries on flush
 	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), CDrawListMgr_ClothCleanup, (void**)&g_origDrawListMgr_ClothFlush);
 
