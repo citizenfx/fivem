@@ -113,6 +113,15 @@ export class SettingsService {
 				category: '#SettingsCat_Interface',
 			});
 
+			this.addSetting('inProcessGpu', {
+				name: '#Settings_InProcessGpu',
+				description: '#Settings_InProcessGpuDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('nui_useInProcessGpu').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('nui_useInProcessGpu', value),
+				category: '#SettingsCat_Game',
+			});
+
 			this.addSetting('streamingProgress', {
 				name: '#Settings_GameStreamProgress',
 				description: '#Settings_GameStreamProgressDesc',

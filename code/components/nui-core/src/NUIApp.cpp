@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include "NUIApp.h"
 #include "CefOverlay.h"
+#include <CoreConsole.h>
 #include "memdbgon.h"
 
 #include <winrt/Windows.Foundation.Collections.h>
@@ -182,6 +183,13 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
+	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
+
+	if (nuiUseInProcessGpu.GetValue())
+	{
+		command_line->AppendSwitch("in-process-gpu");
+	}
+
 	command_line->AppendSwitch("enable-experimental-web-platform-features");
 	command_line->AppendSwitch("ignore-gpu-blacklist");
 	command_line->AppendSwitch("ignore-gpu-blocklist"); // future proofing for when Google disables the above
