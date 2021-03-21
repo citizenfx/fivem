@@ -8,6 +8,8 @@
 
 #include <fiDevice.h>
 
+#include <ShlObj.h>
+
 #if defined(IS_RDR3)
 #define CONFIG_NAME "redm"
 #elif defined(GTA_FIVE)
@@ -51,9 +53,18 @@ static InitFunction initFunction([]()
 		console::GetDefaultContext()->SaveConfigurationIfNeeded(fmt::sprintf("fxd:/%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : ""));
 	});
 
+	static bool safeExec = false;
+
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
-		static ConsoleCommand execCommand("exec", [=](const std::string& path)
+		safeExec = true;
+	}, INT32_MAX);
+
+	static ConsoleCommand execCommand("exec", [=](const std::string& path)
+	{
+		std::vector<uint8_t> data;
+
+		if (safeExec)
 		{
 			fwRefContainer<vfs::Stream> stream = vfs::OpenRead(path);
 
@@ -63,16 +74,48 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			std::vector<uint8_t> data = stream->ReadToEnd();
-			data.push_back('\n'); // add a newline at the end
+			data = stream->ReadToEnd();
+		}
+		else
+		{
+			PWSTR appDataPath;
+			if (FAILED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+			{
+				return;
+			}
 
-			auto consoleCtx = console::GetDefaultContext();
+			// create the directory if not existent
+			std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+			CreateDirectory(cfxPath.c_str(), nullptr);
 
-			consoleCtx->AddToBuffer(std::string(reinterpret_cast<char*>(&data[0]), data.size()));
-			consoleCtx->ExecuteBuffer();
-		});
+			std::wstring profilePath = cfxPath + L"\\" + ToWide(path);
+			CoTaskMemFree(appDataPath);
 
-		se::ScopedPrincipal seContext(se::Principal{ "system.console" });
-		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", fmt::sprintf("fxd:/%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : "") });
-	}, INT32_MAX);
-});
+			FILE* f = _wfopen(profilePath.c_str(), L"rb");
+
+			if (!f)
+			{
+				return;
+			}
+
+			fseek(f, 0, SEEK_END);
+
+			size_t len = ftell(f);
+			data.resize(len);
+
+			fseek(f, 0, SEEK_SET);
+			fread(data.data(), 1, len, f);
+			fclose(f);
+		}
+
+		data.push_back('\n'); // add a newline at the end
+
+		auto consoleCtx = console::GetDefaultContext();
+
+		consoleCtx->AddToBuffer(std::string(reinterpret_cast<char*>(&data[0]), data.size()));
+		consoleCtx->ExecuteBuffer();
+	});
+
+	se::ScopedPrincipal seContext(se::Principal{ "system.console" });
+	console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", fmt::sprintf("%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : "") });
+}, INT32_MIN);
