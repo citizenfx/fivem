@@ -48,16 +48,26 @@ static InitFunction initFunction([]()
 {
 	SetConsoleWriter(&g_writer);
 
-	OnGameFrame.Connect([]()
-	{
-		console::GetDefaultContext()->SaveConfigurationIfNeeded(fmt::sprintf("fxd:/%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : ""));
-	});
-
 	static bool safeExec = false;
 
-	rage::fiDevice::OnInitialMount.Connect([]()
+	OnGameFrame.Connect([]()
+	{
+		if (safeExec)
+		{
+			console::GetDefaultContext()->SaveConfigurationIfNeeded(fmt::sprintf("fxd:/%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : ""));
+		}
+	});
+
+	auto execRoot = []()
+	{
+		se::ScopedPrincipal seContext(se::Principal{ "system.console" });
+		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", fmt::sprintf("%s%s%s.cfg", (safeExec) ? "fxd:/" : "", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : "") });
+	};
+
+	rage::fiDevice::OnInitialMount.Connect([execRoot]()
 	{
 		safeExec = true;
+		execRoot();
 	}, INT32_MAX);
 
 	static ConsoleCommand execCommand("exec", [=](const std::string& path)
@@ -116,6 +126,5 @@ static InitFunction initFunction([]()
 		consoleCtx->ExecuteBuffer();
 	});
 
-	se::ScopedPrincipal seContext(se::Principal{ "system.console" });
-	console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", fmt::sprintf("%s%s.cfg", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : "") });
+	execRoot();
 }, INT32_MIN);
