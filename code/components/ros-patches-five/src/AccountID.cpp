@@ -558,7 +558,7 @@ void ValidateSteam(int parentPid)
 #elif defined(IS_RDR3)
 	"rdr2"
 #elif defined(GTA_NY)
-	"gta5"
+	"gta4"
 #else
 	""
 #endif
@@ -590,11 +590,9 @@ void ValidateSteam(int parentPid)
 	auto r = cpr::Post(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
 		cpr::Header{
-			{
-				{"Content-Type", "application/json; charset=utf-8"},
-				{"Accept", "application/json"},
-				{"X-Requested-With", "XMLHttpRequest"}
-			}
+			{"Content-Type", "application/json; charset=utf-8"},
+			{"Accept", "application/json"},
+			{"X-Requested-With", "XMLHttpRequest"}
 		},
 		cpr::Body{
 			j.dump()
@@ -648,12 +646,10 @@ void ValidateSteam(int parentPid)
 	r = cpr::Post(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindsteamaccount" },
 		cpr::Header{
-			{
-				{"Content-Type", "application/json; charset=utf-8"},
-				{"Accept", "application/json"},
-				{"X-Requested-With", "XMLHttpRequest"},
-				{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
-			}
+			{"Content-Type", "application/json; charset=utf-8"},
+			{"Accept", "application/json"},
+			{"X-Requested-With", "XMLHttpRequest"},
+			{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 		},
 		cpr::Body{
 			j.dump()
