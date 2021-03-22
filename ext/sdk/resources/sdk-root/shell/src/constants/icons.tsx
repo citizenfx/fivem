@@ -21,6 +21,7 @@ import {
   BsX,
   BsBoxArrowInDown,
   BsBoxArrowUpRight,
+  BsMap
 } from 'react-icons/bs';
 
 export const devtoolsIcon = <BsTerminal />;
@@ -58,3 +59,4 @@ export const stopIcon = <BsStopFill />;
 export const startIcon = <BsPlayFill />;
 
 export const closeIcon = <BsX />;
+export const mapIcon = <BsMap />;
