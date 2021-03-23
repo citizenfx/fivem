@@ -3,7 +3,6 @@ import { IMinimatch, Minimatch } from 'minimatch';
 import { GameServerService } from "backend/game-server/game-server-service";
 import { resourceManifestFilename, resourceManifestLegacyFilename } from 'backend/constants';
 import { fastRandomId } from 'utils/random';
-import { FsUpdateType } from 'backend/fs/fs-mapping';
 import { FilesystemEntry } from "shared/api.types";
 import { LogService } from "backend/logger/log-service";
 import { FsService } from "backend/fs/fs-service";
@@ -20,6 +19,7 @@ import { Deferred } from "backend/deferred";
 import { AssetBuildCommandError } from "../../asset-error";
 import { AssetInterface } from "../../asset-types";
 import { ProjectManifestResource } from "shared/project.types";
+import { FsWatcherEventType } from "backend/fs/fs-watcher";
 
 
 interface IdealResourceMetaData {
@@ -232,10 +232,8 @@ export class Resource implements AssetInterface {
     this.loadMetaData();
   }
 
-  async onFsUpdate(updateType: FsUpdateType, entry: FilesystemEntry | null) {
-    const isChange = updateType === FsUpdateType.change;
-
-    this.logService.log('fs update', updateType, entry);
+  async onFsUpdate(updateType: FsWatcherEventType, entry: FilesystemEntry | null) {
+    const isChange = updateType === FsWatcherEventType.MODIFIED;
 
     const { enabled, restartOnChange } = this.projectAccess.getInstance().getResourceConfig(this.entry.name);
     if (!enabled) {

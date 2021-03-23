@@ -1,5 +1,6 @@
 #include "StdInc.h"
 #include "SDK.h"
+#include "SDKFileWatcher.h"
 
 #include <wrl.h>
 #include <shellapi.h>
@@ -264,5 +265,31 @@ namespace fxdk::ioUtils
 		{
 			cb(DeleteItems(items));
 		}).detach();
+	}
+
+	static uint32_t nextWatcherId = 0;
+	static std::unordered_map<uint32_t, std::unique_ptr<FXWatcher>> watchers;
+
+	uint32_t StartFileWatcher(const std::string& path, const EventCallback& eventCallback, const ErrorCallback& errorCallback)
+	{
+		auto watcherId = nextWatcherId++;
+		auto evCb = [=](const FileEvents& events) { eventCallback(watcherId, events); };
+		auto erCb = [=](const std::string& error) { errorCallback(watcherId, error); };
+
+		watchers[watcherId] = std::make_unique<FXWatcher>(path, evCb, erCb);
+
+		return watcherId;
+	}
+
+	void StopFileWatcher(uint32_t watcherId)
+	{
+		auto tuple = watchers.find(watcherId);
+
+		if (watchers.end() != tuple)
+		{
+			tuple->second->Stop();
+
+			watchers.erase(tuple);
+		}
 	}
 }

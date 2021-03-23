@@ -335,6 +335,43 @@ void SdkMain()
 
 			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setBuildNumber", {}, buildNumber);
 		}
+		else if (eventName == "sdk:startFileWatcher")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			auto args = obj.as<std::vector<std::string>>();
+
+			std::string path = args[0];
+			std::string requestId = args[1];
+
+			auto watcherId = fxdk::ioUtils::StartFileWatcher(
+				path,
+				[resman](uint32_t watcherId, const fxdk::ioUtils::FileEvents& events)
+				{
+					resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:fileWatcherEvents", {}, watcherId, events);
+				},
+				[resman](uint32_t watcherId, const std::string& error)
+				{
+					resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:fileWatcherError", {}, watcherId, error);
+				}
+			);
+
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:fileWatcherId", {}, requestId, watcherId);
+		}
+		else if (eventName == "sdk:stopFileWatcher")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			uint32_t watcherId = obj.as<std::vector<std::uint32_t>>()[0];
+
+			fxdk::ioUtils::StopFileWatcher(watcherId);
+		}
 	});
 
 	// Provide CEF with command-line arguments.
