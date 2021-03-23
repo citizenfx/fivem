@@ -8,6 +8,28 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-03-23',
+    title: 'March 23, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fix most cases of EPERM while deleting/renaming folders, but not all of them:
+            <ul>
+              <li>
+                tsserver of typescript-language-features ext of theia is still using node's broken file watcher
+                so it will still EPERM if deleting/renaming folder containing tsconfig.json, rip
+              </li>
+              <li>
+                omnisharp of csharp-language-features ext of theia will also block deleting/renaming of folder with cs resource, rip
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-03-17',
     title: 'March 17, 2021',
     content: (

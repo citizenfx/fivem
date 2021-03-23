@@ -370,7 +370,7 @@ export class Project implements ApiContribution {
   private async initFs() {
     this.log('Initializing project fs...');
 
-    this.fsMapping.setShouldProcessUpdate((type, path) => path !== this.manifestPath);
+    this.fsMapping.setShouldProcessUpdate((path) => path !== this.manifestPath);
     this.fsMapping.setEntryMetaExtras({
       assetMeta: (entryPath: string) => this.getAssetMeta(entryPath, { silent: true }),
     });
@@ -386,9 +386,13 @@ export class Project implements ApiContribution {
       }
     });
 
-    this.fsMapping.setOnUnlink((entryPath) => this.releaseAsset(entryPath));
+    this.fsMapping.setOnDeleted((entryPath) => {
+      this.releaseRelatedAssets(entryPath);
+    });
 
-    this.fsMapping.setOnUnlinkDir((entryPath) => this.releaseAsset(entryPath));
+    this.fsMapping.setOnRenamed((entry, oldEntryPath) => {
+      this.releaseRelatedAssets(oldEntryPath);
+    });
 
     await this.fsMapping.init(this.path, this.storagePath);
   }
@@ -601,7 +605,7 @@ export class Project implements ApiContribution {
     const { newAssetName, assetPath } = request;
     const oldAssetName = this.fsService.basename(request.assetPath);
 
-    await this.releaseAsset(assetPath);
+    await this.releaseRelatedAssets(assetPath);
 
     const resourceConfig = this.getManifest().resources[oldAssetName];
     if (resourceConfig) {
@@ -644,7 +648,7 @@ export class Project implements ApiContribution {
       return AssetDeleteResponse.Ok;
     }
 
-    await this.releaseAsset(assetPath);
+    await this.releaseRelatedAssets(assetPath);
 
     try {
       if (request.hardDelete) {
@@ -686,6 +690,13 @@ export class Project implements ApiContribution {
     await asset.dispose?.();
   }
 
+  private async releaseRelatedAssets(assetPath: string) {
+    for (const asset of this.findAssetsForPath(assetPath)) {
+      this.assets.delete(asset.getPath());
+      await asset.dispose?.();
+    }
+  }
+
   //#endregion assets
 
   //#region fs-methods
@@ -703,7 +714,7 @@ export class Project implements ApiContribution {
       return DeleteDirectoryResponse.Ok;
     }
 
-    await this.releaseAsset(directoryPath);
+    await this.releaseRelatedAssets(directoryPath);
 
     try {
       if (hardDelete) {
@@ -731,7 +742,7 @@ export class Project implements ApiContribution {
   async renameDirectory({ directoryPath, newDirectoryName }: ProjectRenameDirectoryRequest) {
     const newDirectoryPath = this.fsService.joinPath(this.fsService.dirname(directoryPath), newDirectoryName);
 
-    await this.releaseAsset(directoryPath);
+    await this.releaseRelatedAssets(directoryPath);
     await this.fsService.rename(directoryPath, newDirectoryPath);
   }
   // /Directory methods
