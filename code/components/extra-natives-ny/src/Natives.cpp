@@ -2,6 +2,7 @@
 #include <ScriptEngine.h>
 #include <HudPos.h>
 #include <scrEngine.h>
+#include <GameFlags.h>
 
 #include <Hooking.h>
 
@@ -77,5 +78,15 @@ static HookFunction hookFunc([]()
 		gameConfig[30] = 0;
 
 		NativeInvoke::Invoke<0x4CFE3998, int*>(gameConfig);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_NETWORK_WALK_MODE", [=](fx::ScriptContext& context) 
+	{
+		context.SetResult<bool>(GameFlags::GetFlag(GameFlag::NetworkWalkMode));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_NETWORK_WALK_MODE", [=](fx::ScriptContext& context)
+	{
+		GameFlags::SetFlag(GameFlag::NetworkWalkMode, context.GetArgument<bool>(0));
 	});
 });
