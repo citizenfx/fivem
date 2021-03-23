@@ -89,6 +89,9 @@ type 'ScrHandle'
 type 'BOOL'
 	nativeType 'bool'
 
+type 'bool'
+	nativeType 'bool'
+
 -- you wouldn't say
 type 'int'
 	nativeType 'int'
