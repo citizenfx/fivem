@@ -456,7 +456,9 @@ export class CfxGameService extends GameService {
 						const address: string = event.data.hostnameStr;
 						const connectParams = query.parse(event.data.connectParams);
 
-						(<any>window).invokeNative('checkNickname', this.realNickname);
+						if (this.realNickname && this.realNickname !== '') {
+							(<any>window).invokeNative('checkNickname', this.realNickname);
+						}
 
 						if (!this.inConnecting) {
 							if ('streamerMode' in connectParams) {
@@ -726,7 +728,9 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('nickOverride', name);
 		this.invokeNicknameChanged(name);
 
-		(<any>window).invokeNative('checkNickname', name);
+		if (name && name !== '') {
+			(<any>window).invokeNative('checkNickname', name);
+		}
 	}
 
 	get darkTheme(): boolean {
