@@ -35,7 +35,9 @@ enum NativeIdentifiers : uint64_t
 	NETWORK_IS_HOST = 0x8DB296B814EDDA07,
 	NETWORK_RESURRECT_LOCAL_PLAYER = 0xEA23C49EAA83ACFB,
 	NETWORK_IS_GAME_IN_PROGRESS = 0x10FAB35428CCC9D7,
-	IS_ENTITY_DEAD = 0x5F9532F3B5CC2551
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
+	IS_ENTITY_DEAD = 0x5F9532F3B5CC2551,
+	NETWORK_GET_NUM_CONNECTED_PLAYERS = 0xA4A79DD2D9600654
 };
 
 // BLIP_8 in global.gxt2 -> 'Waypoint'
@@ -108,37 +110,29 @@ public:
 			NativeInvoke::Invoke<0xB3B3359379FE77D3, int>(0.0f);
 		}
 
-		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
+		uint32_t playerPedId = NativeInvoke::Invoke<PLAYER_PED_ID, int>();
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
 			CRect rect(0, 0, 22, 22);
 			CRGBA color;
-
-			if (!NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
+			
+			if (!NativeInvoke::Invoke<NETWORK_IS_GAME_IN_PROGRESS, bool>())
 			{
 				color = CRGBA(200, 0, 0, 180);
 				TheFonts->DrawRectangle(rect, color);
 			}
 			else
 			{
-				auto steam = GetSteam();
-
-				int playerCount = 0;
-
-				for (int i = 0; i < 256; i++)
-				{
-					// NETWORK_IS_PLAYER_ACTIVE
-					if (NativeInvoke::Invoke<0xB8DFD30D6973E135, bool>(i))
-					{
-						++playerCount;
-					}
-				}
+				// unsure if 1s would be affected by this.
+				int playerCount = NativeInvoke::Invoke<NETWORK_GET_NUM_CONNECTED_PLAYERS, int>();
 
 				static int lastPlayerCount;
 
 				if (playerCount != lastPlayerCount)
 				{
+					auto steam = GetSteam();
+
 					if (steam)
 					{
 						steam->SetRichPresenceValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
