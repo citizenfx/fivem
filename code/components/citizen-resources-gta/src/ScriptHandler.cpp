@@ -120,9 +120,7 @@ static InitFunction initFunction([] ()
 	rage::scrEngine::OnScriptInit.Connect([] ()
 	{
 		rage::scrEngine::CreateThread(&thread);
-#if !defined(GTA_NY)
 		g_resourceThread = &thread;
-#endif
 	});
 
 #ifdef IS_RDR3
