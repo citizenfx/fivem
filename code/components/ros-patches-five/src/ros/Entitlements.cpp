@@ -344,8 +344,6 @@ static InitFunction initFunction([] ()
 
 	mapper->AddGameService("matchmaking.asmx/Advertise", [] (const std::string& body)
 	{
-		trace("advertise: %s\n", body);
-
 		return "<?xml version=\"1.0\" encoding=\"utf-8\"?><Response xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ms=\"15.6263\" xmlns=\"AdvertiseResponse\"><Status>1</Status><MatchId>875fd057-fe8d-4145-a4e1-76b57a81817d</MatchId></Response>";
 	});
 
