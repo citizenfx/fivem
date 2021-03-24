@@ -1,6 +1,6 @@
 local GetGameTimer = GetGameTimer
 local _sbs = Citizen.SubmitBoundaryStart
-local coresume, costatus = coroutine.resume, coroutine.status
+local coresume, costatus, tremove = coroutine.resume, coroutine.status, table.remove
 local debug = debug
 local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibility
 local hadThread = false
@@ -33,16 +33,35 @@ local function ProfilerExitScope()
 	return _in(`PROFILER_EXIT_SCOPE` & 0xFFFFFFFF)
 end
 
-local newThreads = {}
-local threads = setmetatable({}, {
-	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
-	__newindex = newThreads,
-	-- This is needed for CreateThreadNow to work correctly
-	__index = newThreads
-})
+local threads = {}
+local allThreadsAlive = true
+local function provisionThread(coro, wakeTime, bid, name)
+	hadThread = true
+	local i
+	if not allThreadsAlive then
+		for i=#threads, 1, -1 do
+			local thread = threads[i]
+			if not thread.wakeTime then
+				thread.coroutine = coro
+				thread.wakeTime = wakeTime
+				thread.boundary = bid
+				thread.name = name
+				return
+			end
+		end
+	end
+	allThreadsAlive = true
+	threads[#threads+1] = {
+		coroutine = coro, 
+		wakeTime = wakeTime, 
+		boundary = bid, 
+		name = name}
+end
 
 local boundaryIdx = 1
-local runningThread
+local runningCoroutine
+local runningBoundaryId
+local runningName
 
 local function dummyUseBoundary(idx)
 	return nil
@@ -78,36 +97,32 @@ local runWithBoundaryEnd = getBoundaryFunc(Citizen.SubmitBoundaryEnd)
 	Thread handling
 
 ]]
-local function resumeThread(coro) -- Internal utility
-	if coroutine.status(coro) == "dead" then
-		threads[coro] = nil
-		coroutine_close(coro)
-		return false
-	end
+local function resumeThread(coro, bid, name, thread) -- Internal utility
+	local hostCoroutine, hostBoundaryId, hostName = runningCoroutine, runningBoundaryId, runningName
+	runningCoroutine, runningBoundaryId, runningName = coro, bid, name
 
-	runningThread = coro
-	
-	local thread = threads[coro]
-
-	if thread then
-		if thread.name then
-			ProfilerEnterScope(thread.name)
-		else
-			ProfilerEnterScope('thread')
-		end
-
-		_sbs(thread.boundary, coro)
+	if bid then
+		ProfilerEnterScope(name or 'thread')
+		_sbs(bid, coro)
 	end
 	
 	local ok, wakeTimeOrErr = coresume(coro)
-	
-	if ok then
-		thread = threads[coro]
-		if thread then
-			thread.wakeTime = wakeTimeOrErr or 0
-			hadThread = true
+	local alive = costatus(coro) ~= "dead"
+	local await, wakeTime
+	if alive then
+		await = wakeTimeOrErr == '__await'
+		if await then
+			wakeTime = nil
+		else
+			wakeTime = wakeTimeOrErr or 0
 		end
-	else
+	end
+	if thread then
+		thread.wakeTime = wakeTime
+	elseif wakeTime then
+		provisionThread(coro, wakeTime, bid, name)
+	end
+	if not ok then
 		--Citizen.Trace("Error resuming coroutine: " .. debug.traceback(coro, wakeTimeOrErr) .. "\n")
 		local fst = FormatStackTrace()
 		
@@ -116,13 +131,16 @@ local function resumeThread(coro) -- Internal utility
 			Citizen.Trace(fst)
 		end
 	end
+	if not alive then
+		coroutine_close(coro)
+	end
 	
-	runningThread = nil
+	runningCoroutine, runningBoundaryId, runningName = hostCoroutine, hostBoundaryId, hostName
 	
 	ProfilerExitScope()
 	
 	-- Return not finished
-	return costatus(coro) ~= "dead"
+	return alive, await
 end
 
 function Citizen.CreateThread(threadFunction)
@@ -135,13 +153,11 @@ function Citizen.CreateThread(threadFunction)
 	
 	local di = debug.getinfo(threadFunction, 'S')
 	
-	threads[coroutine.create(tfn)] = {
-		wakeTime = 0,
-		boundary = bid,
-		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
-	}
-
-	hadThread = true
+	provisionThread(
+		coroutine.create(tfn), 
+		0, 
+		bid, 
+		('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 end
 
 function Citizen.Wait(msec)
@@ -164,14 +180,7 @@ function Citizen.CreateThreadNow(threadFunction, name)
 		return runWithBoundaryStart(threadFunction, bid)
 	end
 
-	local coro = coroutine.create(tfn)
-	threads[coro] = {
-		wakeTime = 0,
-		boundary = bid,
-		name = name
-	}
-
-	return resumeThread(coro)
+	return resumeThread(coroutine.create(tfn), bid, name)
 end
 
 function Citizen.Await(promise)
@@ -193,16 +202,17 @@ function Citizen.Await(promise)
 	end)
 
 	if not isDone then
-		local threadData = threads[coro]
-		threads[coro] = nil
+		local bid, name
+		if runningCoroutine == coro then
+			bid, name = runningBoundaryId, runningName
+		end
 
 		local function reattach()
-			threads[coro] = threadData
-			resumeThread(coro)
+			resumeThread(coro, bid, name)
 		end
 
 		promise:next(reattach, reattach)
-		Citizen.Wait(0)
+		coroutine.yield('__await')
 	end
 
 	if err then
@@ -220,17 +230,14 @@ function Citizen.SetTimeout(msec, callback)
 		return runWithBoundaryStart(callback, bid)
 	end
 
-	local coro = coroutine.create(tfn)
-	threads[coro] = {
-		wakeTime = curTime + msec,
-		boundary = bid
-	}
-
-	hadThread = true
+	provisionThread(
+		coroutine.create(tfn),
+		curTime + msec,
+		bid)
 end
 
 SetTimeout = Citizen.SetTimeout
-
+local nextCull = GetGameTimer() + 30000
 Citizen.SetTickRoutine(function()
 	if not hadThread then
 		return
@@ -240,21 +247,32 @@ Citizen.SetTickRoutine(function()
 	local thisHadThread = false
 	curTime = GetGameTimer()
 
-	for coro, thread in pairs(newThreads) do
-		rawset(threads, coro, thread)
-		newThreads[coro] = nil
-
-		thisHadThread = true
-	end
-
-	for coro, thread in pairs(threads) do
-		if curTime >= thread.wakeTime then
-			resumeThread(coro)
+	local n,i = #threads
+	for i=n, 1, -1 do
+		local thread = threads[i]
+		local wakeTime = thread.wakeTime
+		if wakeTime then
+			if wakeTime <= curTime then
+				local alive, await = resumeThread(thread.coroutine, thread.boundary, thread.name, thread)
+				if await or not alive then
+					allThreadsAlive = false
+				end
+			end
+			thisHadThread = true
 		end
-
-		thisHadThread = true
 	end
 
+	if nextCull <= curTime and not allThreadsAlive then
+		nextCull = curTime + 30000
+		allThreadsAlive = true
+		for i=#threads, 1, -1 do
+			local thread = threads[i]
+			if not thread.wakeTime then
+				tremove(threads, i)
+			end
+		end
+	end
+	
 	if not thisHadThread then
 		hadThread = false
 	end
@@ -332,7 +350,7 @@ local stackTraceBoundaryIdx
 
 Citizen.SetStackTraceRoutine(function(bs, ts, be, te)
 	if not ts then
-		ts = runningThread
+		ts = runningCoroutine
 	end
 
 	local t
