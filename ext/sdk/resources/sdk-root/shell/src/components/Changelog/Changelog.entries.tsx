@@ -14,7 +14,10 @@ export const changelogEntries: ChangelogEntry[] = [
       <>
         <ul>
           <li>
-            Fixed game connecting to server too early
+            Fixed game connecting to server too early, hopefully
+          </li>
+          <li>
+            Fixed project explorer not showing correct fs tree when importing stuff add over 9000 of files in a blink
           </li>
         </ul>
       </>

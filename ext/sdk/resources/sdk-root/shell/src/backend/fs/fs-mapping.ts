@@ -4,7 +4,8 @@ import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { FsService } from "./fs-service";
 import { ProjectFsUpdate } from 'shared/project.types';
 import { LogService } from 'backend/logger/log-service';
-import { FsWatcher, FsWatcherEventType } from './fs-watcher';
+import { FsWatcher, FsWatcherEvent, FsWatcherEventType } from './fs-watcher';
+import { Queue } from "backend/queue";
 
 export type FsMappingCreatedHandler = (entry: FilesystemEntry) => void | Promise<void>;
 export type FsMappingDeletedHandler = (entryPath: string) => void | Promise<void>;
@@ -82,6 +83,8 @@ export class FsMapping {
     replace: {},
   };
 
+  protected queue: Queue<FsWatcherEvent>;
+
   hasUpdates(): boolean {
     return this.pendingUpdates.delete.length > 0 && Object.keys(this.pendingUpdates.replace).length > 0;
   }
@@ -100,21 +103,21 @@ export class FsMapping {
     this.rootPath = rootPath;
     this.ignoredPath = ignored;
 
+    this.queue = new Queue(([action, entryPath, oldEntryPath]) => this.processFsUpdate(action, entryPath, oldEntryPath));
+
     this.watcher = new FsWatcher({
       path: rootPath,
       ignoredPaths: [ignored],
       logger: (...args) => this.logService.log(...args),
 
-      onCreated: (entryPath) => this.processFsUpdate(FsWatcherEventType.CREATED, entryPath),
-      onDeleted: (entryPath) => this.processFsUpdate(FsWatcherEventType.DELETED, entryPath),
-      onModified: (entryPath) => this.processFsUpdate(FsWatcherEventType.MODIFIED, entryPath),
-      onRenamed: (entryPath, oldEntryPath) => this.processFsUpdate(FsWatcherEventType.RENAMED, entryPath, oldEntryPath),
+      onEvent: (event) => this.queue.append(event),
     });
 
     this.map = await this.scanDir(rootPath);
   }
 
   async deinit() {
+    this.queue.dispose();
     this.watcher.dispose();
   }
 

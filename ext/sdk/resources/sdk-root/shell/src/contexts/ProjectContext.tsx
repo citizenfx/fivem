@@ -170,8 +170,6 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
   useApiMessage(projectApi.fsUpdate, (update: ProjectFsUpdate) => {
     const newProject = { ...projectRef.current };
 
-    log('Processing fs update', update);
-
     if (update.replace) {
       Object.entries(update.replace).forEach(([key, value]) => {
         newProject.fs[key] = value;
@@ -184,16 +182,12 @@ export const ProjectContextProvider = React.memo(function ProjectContextProvider
       });
     }
 
-    log('New project state', newProject);
-
     setProject(newProject);
   }, [setProject]);
 
   // Handle resources update
   useApiMessage(projectApi.resourcesUpdate, (resources: ProjectResources) => {
     const newProject = { ...projectRef.current };
-
-    log('Processing resources update', resources);
 
     newProject.resources = resources;
 

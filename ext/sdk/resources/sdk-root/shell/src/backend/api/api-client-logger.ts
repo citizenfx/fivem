@@ -11,6 +11,10 @@ export class ApiClientLogger implements LogProvider {
     console.log('Started ApiClientLogger');
   }
 
+  error(error, extra) {
+    this.apiClient.emit('@@log', ['Backend error:', error.toString(), extra]);
+  }
+
   log(...args) {
     this.apiClient.emit('@@log', args);
   }

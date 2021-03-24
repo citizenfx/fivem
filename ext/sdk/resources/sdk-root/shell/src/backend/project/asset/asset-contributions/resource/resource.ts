@@ -232,7 +232,14 @@ export class Resource implements AssetInterface {
     this.loadMetaData();
   }
 
-  async onFsUpdate(updateType: FsWatcherEventType, entry: FilesystemEntry | null) {
+  async onFsUpdate(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string) {
+    // If no more manifest - this no longer a resource, rip
+    if (updateType === FsWatcherEventType.DELETED && entryPath === this.manifestPath) {
+      return this.projectAccess.withInstance((project) => {
+        project.releaseAsset(this.getPath());
+      });
+    }
+
     const isChange = updateType === FsWatcherEventType.MODIFIED;
 
     const { enabled, restartOnChange } = this.projectAccess.getInstance().getResourceConfig(this.entry.name);
