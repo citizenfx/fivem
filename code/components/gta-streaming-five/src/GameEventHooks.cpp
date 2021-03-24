@@ -5,6 +5,9 @@
 
 #include <MinHook.h>
 
+#include <CrossBuildRuntime.h>
+
+
 namespace rage
 {
 	class fwEvent
@@ -35,7 +38,8 @@ namespace rage
 		fwEntity* GetSource() 
 		{
 			const auto vtable = *reinterpret_cast<uintptr_t*>(this);
-			return (*reinterpret_cast<fwEntity*(**)(rage::aiEvent*)>(vtable + 27 * sizeof(uintptr_t)))(this);
+			const auto idx = xbr::IsGameBuildOrGreater<2060>() ? 28 : 27;
+			return (*reinterpret_cast<fwEntity*(**)(rage::aiEvent*)>(vtable + idx * sizeof(uintptr_t)))(this);
 		}
 	};
 }
