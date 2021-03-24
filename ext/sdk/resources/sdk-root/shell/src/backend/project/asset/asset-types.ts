@@ -8,7 +8,7 @@ export interface AssetInterface extends DisposableObject {
   getPath(): string;
 
   setEntry?(entry: FilesystemEntry): Promise<void> | void;
-  onFsUpdate?(updateType: FsWatcherEventType, entry: FilesystemEntry | null): Promise<void> | void;
+  onFsUpdate?(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string): Promise<void> | void;
 
   suspendWatchCommands?(): Promise<void> | void;
   resumeWatchCommands?(): Promise<void> | void;

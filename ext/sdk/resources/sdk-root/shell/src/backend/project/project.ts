@@ -382,7 +382,7 @@ export class Project implements ApiContribution {
 
       // Now notify related assets
       for (const asset of this.findAssetsForPath(updatedPath)) {
-        asset.onFsUpdate(updateType, updatedEntry);
+        asset.onFsUpdate(updateType, updatedEntry, updatedPath);
       }
     });
 
@@ -680,7 +680,7 @@ export class Project implements ApiContribution {
     }
   }
 
-  private async releaseAsset(assetPath: string) {
+  async releaseAsset(assetPath: string) {
     const asset = this.assets.get(assetPath);
     if (!asset) {
       return;
@@ -690,8 +690,8 @@ export class Project implements ApiContribution {
     await asset.dispose?.();
   }
 
-  private async releaseRelatedAssets(assetPath: string) {
-    for (const asset of this.findAssetsForPath(assetPath)) {
+  private async releaseRelatedAssets(entryPath: string) {
+    for (const asset of this.findAssetsForPath(entryPath)) {
       this.assets.delete(asset.getPath());
       await asset.dispose?.();
     }

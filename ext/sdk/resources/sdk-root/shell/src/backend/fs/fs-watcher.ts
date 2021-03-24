@@ -41,25 +41,15 @@ export enum FsWatcherEventType {
   RENAMED = 3,
 }
 
-export interface FsWatcherEvent {
-  action: FsWatcherEventType,
-
-  entryPath: string,
-
-  /**
-   * For RENAMED event
-   */
-  oldEntryPath?: string,
-}
+type EntryPath = string;
+type OldEntryPath = string;
+export type FsWatcherEvent = [FsWatcherEventType, EntryPath, OldEntryPath?];
 
 export interface FsWatcherOptions {
   path: string,
   ignoredPaths: string[],
 
-  onCreated?: (entryPath: string) => void,
-  onDeleted?: (entryPath: string) => void,
-  onModified?: (entryPath: string) => void,
-  onRenamed?: (entryPath: string, oldEntryPath: string) => void,
+  onEvent?(event: FsWatcherEvent): void,
 
   logger?: (...args: any[]) => void,
 }
@@ -69,19 +59,15 @@ export class FsWatcher implements DisposableObject {
   private ignoredPaths: string[];
   private logger: (...args: any[]) => void;
 
-  protected onCreated = (entryPath: string) => this.logger('Created!', entryPath);
-  protected onDeleted = (entryPath: string) => this.logger('Deleted!', entryPath);
-  protected onModified = (entryPath: string) => this.logger('Modified!', entryPath);
-  protected onRenamed = (entryPath: string, oldEntryPath: string) => this.logger('Renamed! From', oldEntryPath, 'to', entryPath);
+  protected onEvent = (event: FsWatcherEvent) => this.logger('Event!', event);
 
   constructor(options: FsWatcherOptions) {
     this.ignoredPaths = options.ignoredPaths;
     this.logger = options.logger || ((...args) => console.log(...args));
 
-    this.onCreated = options.onCreated || ((entryPath: string) => this.logger('Created!', entryPath));
-    this.onDeleted = options.onDeleted || ((entryPath: string) => this.logger('Deleted!', entryPath));
-    this.onModified = options.onModified || ((entryPath: string) => this.logger('Modified!', entryPath));
-    this.onRenamed = options.onRenamed || ((entryPath: string, oldEntryPath: string) => this.logger('Renamed! From', oldEntryPath, 'to', entryPath));
+    if (options.onEvent) {
+      this.onEvent = options.onEvent;
+    }
 
     const requestId = fastRandomId();
 
@@ -110,29 +96,50 @@ export class FsWatcher implements DisposableObject {
   }
 
   private handleEvents = (rawEvents: RawEvent[]) => {
-    rawEvents.forEach(([action, fromDirectory, fromFile, toDirectory, toFile]: RawEvent) => {
+    const eventForPath: Record<string, [FsWatcherEventType, string, string?] | null> = Object.create(null);
+
+    rawEvents.forEach(([action, fromDirectory, fromFile, toDirectory, toFile]) => {
       const fromEntryPath = `${fromDirectory}\\${fromFile}`;
+      const toEntryPath = `${toDirectory}\\${toFile}`;
+
+      // Untill we have "complete" git integration - don't care about that
+      if (fromEntryPath.indexOf('\\.git\\') > -1 || fromFile === '.git') {
+        return;
+      }
+
       if (this.ignoredPaths.some((ignoredPath) => fromEntryPath.indexOf(ignoredPath) > -1)) {
         return;
       }
 
-      const toEntryPath = `${toDirectory}\\${toFile}`;
+      if (action === FsWatcherEventType.RENAMED) {
+        eventForPath[fromEntryPath] = null;
+        eventForPath[toEntryPath] = [action, toEntryPath, fromEntryPath];
+        return;
+      }
 
-      switch (action) {
-        case FsWatcherEventType.CREATED: {
-          return this.onCreated(fromEntryPath);
-        }
-        case FsWatcherEventType.DELETED: {
-          return this.onDeleted(fromEntryPath);
-        }
-        case FsWatcherEventType.MODIFIED: {
-          return this.onModified(fromEntryPath);
-        }
-        case FsWatcherEventType.RENAMED: {
-          return this.onRenamed(toEntryPath, fromEntryPath);
-        }
+      const event = eventForPath[fromEntryPath];
+
+      // This path is ignored
+      if (event === null) {
+        return;
+      }
+
+      if (!event) {
+        eventForPath[fromEntryPath] = [action, fromEntryPath];
+        return;
+      }
+
+      // CREATED -> [] -> DELETED in one batch - why bother then
+      if (action === FsWatcherEventType.DELETED && event[0] === FsWatcherEventType.CREATED) {
+        eventForPath[fromEntryPath] = null;
+        return;
       }
     });
+
+    Object.values(eventForPath)
+      .filter(Boolean)
+      .sort((a, b) => a[1].length - b[1].length)
+      .forEach((event) => this.onEvent(event));
   };
 
   private handleError = (error: string) => {

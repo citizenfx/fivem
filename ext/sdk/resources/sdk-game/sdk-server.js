@@ -44,8 +44,6 @@ on('onResourceStop', (name) => {
   sendState();
 });
 
-send('ready');
-
 const lineStream = byline.createStream();
 
 lineStream.on('data', (msg) => {
@@ -86,6 +84,8 @@ lineStream.on('data', (msg) => {
 ipc.pipe(lineStream);
 
 setTimeout(() => {
+  send('ready');
+
   send('consoleBuffer', Citizen.invokeNative(GET_CONSOLE_BUFFER, Citizen.resultAsString()));
   Citizen.invokeNative(REGISTER_CONSOLE_LISTENER, Citizen.makeRefFunction((channel, message) => send('console', { channel, message })));
 

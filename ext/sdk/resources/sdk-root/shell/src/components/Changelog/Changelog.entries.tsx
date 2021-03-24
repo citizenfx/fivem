@@ -8,6 +8,22 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-03-24',
+    title: 'March 24, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fixed game connecting to server too early, hopefully
+          </li>
+          <li>
+            Fixed project explorer not showing correct fs tree when importing stuff add over 9000 of files in a blink
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-03-23',
     title: 'March 23, 2021',
     content: (
