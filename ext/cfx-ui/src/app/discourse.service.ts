@@ -30,7 +30,8 @@ export class DiscourseUser {
 	isPremium: boolean;
 
 	getAvatarUrl(size = 250): string {
-		return 'https://forum.cfx.re' + this.avatarTemplate.replace('{size}', size.toString());
+		const prefix = this.avatarTemplate[0] === '/' ? 'https://forum.cfx.re' : '';
+		return prefix + this.avatarTemplate.replace('{size}', size.toString());
 	}
 
 	getAvatarUrlForCss(size = 250): string {
