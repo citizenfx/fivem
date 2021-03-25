@@ -6,6 +6,7 @@
 	};
 
 	@include appContent;
+	overflow: visible;
 }
 
 .home {
@@ -146,6 +147,21 @@
 			height: var(--header-height);
 
 			background-size: cover;
+			position: relative;
+
+			span {
+				position: absolute;
+				font-size: var(--q1);
+				bottom: calc(((var(--q1) + var(--qh) / 2) / 2) * -1);
+				right: calc(((var(--q1) + var(--qh) / 2) / 2) * -1);
+
+				@include theme() using ($theme) {
+					background-color: rgba(gtv($theme, accentColor1), 1);
+				}
+
+				border-radius: 100%;
+				padding: calc(var(--qh) / 2);
+			}
 		}
 	}
 

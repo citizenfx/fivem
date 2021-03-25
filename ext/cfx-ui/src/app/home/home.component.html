@@ -45,8 +45,12 @@
 			<div
 				*ngIf="currentAccount && !streamerMode"
 				[style.backgroundImage]="currentAccount.getAvatarUrlForCss()"
+				data-balloon-pos="left"
+				[attr.aria-label]="currentAccount.username"
 				class="userpic"
-			></div>
+			>
+				<span class="material-icons-outlined" *ngIf="currentAccount.isPremium || currentAccount.isStaff">star</span>
+			</div>
 		</div>
 	</div>
 
@@ -153,7 +157,7 @@
 						<span class="material-icons-outlined">arrow_upward</span>
 						{{(this.topServer && this.topServer.upvotePower)||0}}
 					</div>
-					
+
 					<span *ngIf="!this.currentAccount" l10nTranslate>
 						#Home_AdDetail
 					</span>
