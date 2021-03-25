@@ -65,7 +65,7 @@ void*(*g_eventCall1)(void* group, void* event);
 void*(*g_eventCall2)(void* group, void* event);
 void*(*g_eventCall3)(void* group, void* event);
 
-template<decltype(g_eventCall1)* TFunc, bool aiEvent = false>
+template<decltype(g_eventCall1)* TFunc, GameEventType eventType>
 void* HandleEventWrap(CEventGroup* group, rage::fwEvent* event)
 {
 	if (event)
@@ -75,10 +75,28 @@ void* HandleEventWrap(CEventGroup* group, rage::fwEvent* event)
 			const char* eventName = typeid(*event).name();
 
 			GameEventMetaData data = { 0 };
+			data.type = eventType;
 			strcpy(data.name, &eventName[6]);
 			data.numArguments = 0;
 
-			if (aiEvent) 
+			switch (eventType)
+			{
+			case GameEventType::NetworkEvent:
+			{
+				// brute-force the argument count
+				// since these functions should early exit, most cost here will be VMT dispatch
+				for (int i = 0; i < _countof(data.arguments); i++) 
+				{
+					if (event->GetArguments(data.arguments, i * sizeof(uintptr_t))) 
+					{
+						data.numArguments = i;
+						break;
+					}
+				}
+
+				break;
+			}
+			case GameEventType::AIEvent:
 			{
 				const auto ped = static_cast<CEventGroupPed*>(group)->GetPed();
 
@@ -95,19 +113,9 @@ void* HandleEventWrap(CEventGroup* group, rage::fwEvent* event)
 						data.arguments[data.numArguments++] = getScriptGuidForEntity(sourceEntity);
 					}
 				}
-			} 
-			else 
-			{
-				// brute-force the argument count
-				// since these functions should early exit, most cost here will be VMT dispatch
-				for (int i = 0; i < _countof(data.arguments); i++) 
-				{
-					if (event->GetArguments(data.arguments, i * sizeof(uintptr_t))) 
-					{
-						data.numArguments = i;
-						break;
-					}
-				}
+
+				break;
+			}
 			}
 
 			OnTriggerGameEvent(data);
@@ -132,14 +140,14 @@ static HookFunction hookFunction([]()
 	{
 		auto matches = hook::pattern("83 BF ? ? 00 00 ? 75 ? 48 8B CF E8 ? ? ? ? 83 BF").count(2);
 
-		MH_CreateHook(matches.get(0).get<void>(-0x36), HandleEventWrap<&g_eventCall1, true>, (void**)&g_eventCall1);
+		MH_CreateHook(matches.get(0).get<void>(-0x36), HandleEventWrap<&g_eventCall1, GameEventType::AIEvent>, (void**)&g_eventCall1);
 
 		// we can't read out any data from this event call yet
 		// MH_CreateHook(matches.get(1).get<void>(-0x36), HandleEventWrap<&g_eventCall2, true>, (void**)&g_eventCall2);
 	}
 
 	{
-		MH_CreateHook(hook::get_pattern("81 BF ? ? 00 00 ? ?  00 00 75 ? 48 8B CF E8", -0x36), HandleEventWrap<&g_eventCall3>, (void**)&g_eventCall3);
+		MH_CreateHook(hook::get_pattern("81 BF ? ? 00 00 ? ?  00 00 75 ? 48 8B CF E8", -0x36), HandleEventWrap<&g_eventCall3, GameEventType::NetworkEvent>, (void**)&g_eventCall3);
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
