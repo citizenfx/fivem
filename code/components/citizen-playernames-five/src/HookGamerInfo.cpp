@@ -75,7 +75,7 @@ struct CGamerInfo
 // This function is used to patch the hard-coded gamertag limits.
 // Since these limits are normally 32/20, the limit is stored as a byte internally by the game.
 // We use a stub/hook on each byte `cmp` to increase the size to at least 16-bit
-// The address passed into this function should be the start of a cmp line, which will start as 0x83 or a Prefix like 0x41/0x66
+// The address passed into this function should be the start of a cmp line, which will start as 0x83 or a 1-byte Prefix like 0x41/0x66
 void LimitPatch(void *address)
 {
 	const uint8_t* const addrStart = (uint8_t*)address;
@@ -124,7 +124,9 @@ void LimitPatch(void *address)
 
 	// Start building the stub... redo the original cmp, but make it imm16 instead of imm8
 	if (hasPrefix)
-		payload[i++] = prefix;
+	{
+		payload[i++] = prefix;	
+	}
 	payload[i++] = 0x81; // cmp reg imm16/imm32
 	payload[i++] = reg;
 	// If the prefix is 0x66, it's a 16-bit register and we need an imm16
@@ -141,7 +143,9 @@ void LimitPatch(void *address)
 
 	// 2-byte opcode 
 	if (*addr == 0x0F)
+	{
 		addr++;
+	}
 
 	uint8_t jump_op = *addr;
 	addr++;
