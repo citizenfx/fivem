@@ -636,6 +636,32 @@ static struct : GtaThread
 	}
 } fakeThread;
 
+struct LoggedInt
+{
+	LoggedInt(int a)
+		: value(a)
+	{
+	}
+
+	LoggedInt& operator=(int value)
+	{
+		if (this->value != value)
+		{
+			trace("tryHostState changing from %d to %d\n", this->value, value);
+			this->value = value;
+		}
+
+		return *this;
+	}
+
+	operator int() const
+	{
+		return value;
+	}
+
+	int value;
+};
+
 static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -704,7 +730,7 @@ static HookFunction hookFunction([]()
 
 	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
 
-	static int tryHostStage = 0;
+	static LoggedInt tryHostStage = 0;
 
 	static bool gameLoaded;
 
