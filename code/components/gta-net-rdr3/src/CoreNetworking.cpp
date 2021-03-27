@@ -761,7 +761,7 @@ static HookFunction hookFunction([]()
 			_rlPresence_refreshSigninState(0);
 			_rlPresence_refreshNetworkStatus(0);
 
-			tryHostStage = 2;
+			tryHostStage = 1;
 			break;
 		}
 		case 1:
