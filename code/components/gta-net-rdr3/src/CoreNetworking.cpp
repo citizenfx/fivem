@@ -101,7 +101,7 @@ int __stdcall CfxBind(SOCKET s, sockaddr* addr, int addrlen)
 {
 	sockaddr_in* addrIn = (sockaddr_in*)addr;
 
-	trace("binder on %i is %p\n", htons(addrIn->sin_port), s);
+	trace("binder on %d is %p\n", htons(addrIn->sin_port), (void*)s);
 
 	if (htons(addrIn->sin_port) == 6672)
 	{
