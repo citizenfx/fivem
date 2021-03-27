@@ -1668,7 +1668,7 @@ static HANDLE __stdcall CreateFileAStub(
 {
 	if (strcmp(lpFileName, PIPE_NAME_NARROW) == 0)
 	{
-		trace("^2Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
+		trace("^2Opening %s, waiting for launcher to load...\n", PIPE_NAME_NARROW);
 
 		lpFileName = va("%s%s", lpFileName, IsCL2() ? "_CL2" : "");
 
@@ -1676,7 +1676,7 @@ static HANDLE __stdcall CreateFileAStub(
 
 		trace("^2Launcher gave all-clear - waiting for pipe.\n");
 
-		WaitNamedPipeA(lpFileName, INFINITE);
+		WaitNamedPipeA(lpFileName, NMPWAIT_WAIT_FOREVER);
 
 		trace("^2Launcher is fine, continuing to initialize!\n");
 	}
