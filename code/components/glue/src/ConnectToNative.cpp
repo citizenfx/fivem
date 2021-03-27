@@ -410,6 +410,17 @@ static void UpdateJumpList(const std::vector<ServerLink>& links)
 
 void DLL_IMPORT UiDone();
 
+static void UpdatePendingAuthPayload()
+{
+	if (!g_pendingAuthPayload.empty())
+	{
+		auto pendingAuthPayload = g_pendingAuthPayload;
+		g_pendingAuthPayload = "";
+
+		HandleAuthPayload(pendingAuthPayload);
+	}
+}
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
@@ -766,7 +777,11 @@ static InitFunction initFunction([] ()
 
 	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
 	{
-		if (!_wcsicmp(type, L"getMinModeInfo"))
+		if (!_wcsicmp(type, L"getFavorites"))
+		{
+			UpdatePendingAuthPayload();
+		}
+		else if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
 #ifdef GTA_FIVE
 			static bool done = ([]
@@ -898,14 +913,7 @@ static InitFunction initFunction([] ()
 				netLibrary->SetPlayerName(newusername.c_str());
 			}
 
-			if (!g_pendingAuthPayload.empty())
-			{
-				auto pendingAuthPayload = g_pendingAuthPayload;
-
-				g_pendingAuthPayload = "";
-
-				HandleAuthPayload(pendingAuthPayload);
-			}
+			UpdatePendingAuthPayload();
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{
