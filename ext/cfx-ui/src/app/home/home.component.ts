@@ -33,6 +33,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	streamerMode = false;
 	devMode = false;
+	localhost = false;
+	localhostName = '';
 	localhostPort = '';
 	nickname = '';
 
@@ -78,6 +80,15 @@ export class HomeComponent implements OnInit, OnDestroy {
 		gameService.streamerModeChange.subscribe(value => this.streamerMode = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
+		gameService.localServerChange.subscribe(value => {
+			if (value.available) {
+				this.localhost = true;
+				this.localhostName = value.host;
+				this.localhostPort = value.port;
+			} else {
+				this.localhost = false;
+			}
+		});
 	}
 
 	ngOnInit() {
@@ -232,7 +243,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 	}
 
 	connectToLocal() {
-		(<any>window).invokeNative('connectTo', '127.0.0.1:' + (this.localhostPort || '30120'));
+		(<any>window).invokeNative('connectTo', (this.localhostName || '127.0.0.1') + ':' + (this.localhostPort || '30120'));
 	}
 
 	attemptConnectTo(entry: HistoryServer) {

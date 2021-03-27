@@ -750,4 +750,10 @@
 	::ng-deep a {
 		color: inherit;
 	}
+
+	.subnav-item span+span {
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow-x: hidden;
+	}
 }

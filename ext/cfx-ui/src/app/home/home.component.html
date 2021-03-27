@@ -125,10 +125,10 @@
 					#ServerList_Favorites
 				</span>
 			</a>
-			<a class="nav-item subnav-item" (click)="connectToLocal()" *ngIf="devMode">
+			<a class="nav-item subnav-item" (click)="connectToLocal()" *ngIf="localhost">
 				<span class="material-icons-outlined localhost">computer</span>
 				<span>
-					Localhost
+					{{localhostName}}
 				</span>
 			</a>
 		</div>

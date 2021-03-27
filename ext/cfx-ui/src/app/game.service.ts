@@ -45,6 +45,18 @@ class ConvarWrapper {
 	}
 }
 
+export class LocalhostAvailability {
+	available: boolean;
+	host: string;
+	port: string;
+
+	constructor(available: boolean, host?: string, port?: string) {
+		this.available = available;
+		this.host = host ?? '';
+		this.port = port ?? '';
+	}
+}
+
 @Injectable()
 export abstract class GameService {
 	connectFailed = new EventEmitter<[Server, string]>();
@@ -61,6 +73,7 @@ export abstract class GameService {
 	darkThemeChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
 	localhostPortChange = new BehaviorSubject<string>('');
+	localServerChange = new BehaviorSubject<LocalhostAvailability>(new LocalhostAvailability(false));
 	languageChange = new BehaviorSubject<string>('en');
 
 	signinChange = new EventEmitter<Profile>();
@@ -499,15 +512,26 @@ export class CfxGameService extends GameService {
 
 			const requestLocalhost = async () => {
 				try {
-					const localhostServer = await this.queryAddress(['localhost', parseInt(this.localhostPort, 10) || 30120]);
+					const localhostServer = await this.queryAddress(['localhost_sentinel', parseInt(this.localhostPort, 10) || 30120]);
 
 					if (localhostServer) {
+						this.localServerChange.next(
+							new LocalhostAvailability(
+								true,
+								localhostServer.data?.address ?? 'localhost',
+								localhostServer.data?.port ?? (this.localhostPort || '30120')
+							)
+						);
 						this.devMode = true;
 					} else {
 						this.devMode = false;
+
+						this.localServerChange.next(new LocalhostAvailability(false));
 					}
 				} catch {
 					this.devMode = false;
+
+					this.localServerChange.next(new LocalhostAvailability(false));
 				}
 			};
 			requestLocalhost();
