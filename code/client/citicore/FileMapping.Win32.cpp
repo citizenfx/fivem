@@ -30,6 +30,7 @@ static NTSTATUS(NTAPI*g_origLoadDll)(const wchar_t*, uint32_t*, UNICODE_STRING*,
 
 static bool g_d3dx11;
 
+// this uses SHGetFolderPathW since SC SDK does as well
 static std::wstring GetRoot(int folder)
 {
 	wchar_t pathRef[MAX_PATH];
@@ -43,10 +44,17 @@ static std::wstring GetRoot(int folder)
 
 static std::wstring g_documentsRoot = GetRoot(CSIDL_MYDOCUMENTS);
 static std::wstring g_localAppDataRoot = GetRoot(CSIDL_LOCAL_APPDATA);
+static std::wstring g_programFilesRoot = GetRoot(CSIDL_PROGRAM_FILES);
+static std::wstring g_programFilesX86Root = GetRoot(CSIDL_PROGRAM_FILESX86);
+static std::wstring g_programDataRoot = GetRoot(CSIDL_COMMON_APPDATA);
 
 static std::wstring g_scDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Social Club";
 static std::wstring g_launcherDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Launcher";
 static std::wstring g_launcherAppDataRoot = g_localAppDataRoot + L"\\Rockstar Games\\Launcher";
+static std::wstring g_launcherProgramDataRoot = g_programDataRoot + L"\\Rockstar Games\\Launcher";
+static std::wstring g_scFilesRoot = g_programFilesRoot + L"\\Rockstar Games\\Social Club";
+static std::wstring g_scX86FilesRoot = g_programFilesX86Root + L"\\Rockstar Games\\Social Club";
+static std::wstring g_launcherFilesRoot = g_programFilesRoot + L"\\Rockstar Games\\Launcher";
 
 static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 {
@@ -102,12 +110,14 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"cache\\game\\") + &wcsstr(origFileName, L"NVIDIA Corporation\\NV_Cache")[19];
 	}
 
-	if (wcsstr(origFileName, L"Files\\Rockstar Games\\Launcher") != nullptr)
+	// Program Files
+	if (wcsstr(origFileName, L"Files\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherFilesRoot.c_str()) != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\launcher") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
-	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr)
+	// ProgramData
+	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherProgramDataRoot.c_str()) != nullptr)
 	{
 		return MakeRelativeCitPath(L"cache\\game\\ros_launcher_data3") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
@@ -205,23 +215,27 @@ static std::wstring MapRedirectedNtFilename(const wchar_t* origFileName)
 
 static bool IsMappedFilename(const std::wstring& fileName)
 {
-	if (fileName.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos)
+	if (fileName.find(L"Files\\Rockstar Games\\Social Club") != std::string::npos ||
+		fileName.find(g_scFilesRoot) != std::string::npos)
 	{
 		return true;
 	}
 
 	// hopefully this'll trap most `Program Files (x86)` directories
-	if (fileName.find(L"Files (x86)\\Rockstar Games\\Social Club") != std::string::npos)
+	if (fileName.find(L"Files (x86)\\Rockstar Games\\Social Club") != std::string::npos ||
+		fileName.find(g_scX86FilesRoot) != std::string::npos)
 	{
 		return true;
 	}
 
-	if (fileName.find(L"Files\\Rockstar Games\\Launcher") != std::string::npos)
+	if (fileName.find(L"Files\\Rockstar Games\\Launcher") != std::string::npos ||
+		fileName.find(g_launcherFilesRoot) != std::string::npos)
 	{
 		return true;
 	}
 
-	if (fileName.find(L"Data\\Rockstar Games\\Launcher") != std::string::npos)
+	if (fileName.find(L"Data\\Rockstar Games\\Launcher") != std::string::npos ||
+		fileName.find(g_launcherProgramDataRoot) != std::string::npos)
 	{
 		return true;
 	}
