@@ -25,6 +25,9 @@
 #include <fnv.h>
 
 #include <HttpClient.h>
+#include <windns.h>
+
+#pragma comment(lib, "dnsapi.lib")
 
 #if defined(GTA_NY)
 #define GS_GAMENAME "GTA4"
@@ -373,6 +376,9 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 	}
 }
 
+static std::mutex g_queryArgMutex;
+static std::string g_queryArg;
+
 void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAddress& from)
 {
 	std::shared_ptr<gameserveritemext_t> server;
@@ -431,11 +437,18 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 
 		bool isThisOneQuery = (g_cls.isOneQuery && from == g_cls.oneQueryAddress);
 
+		std::string host, port;
+		{
+			std::unique_lock _(g_queryArgMutex);
+			host = g_queryArg.substr(0, g_queryArg.find_last_of(':'));
+			port = g_queryArg.substr(g_queryArg.find_last_of(':') + 1);
+		}
+
 		if (!doc.HasParseError() && nui::HasFrame("mpMenu"))
 		{
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
 				R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
-				R"("addr": "%s", "infoBlob": %s })",
+				R"("addr": "%s", "infoBlob": %s, "address": "%s", "port": "%s" })",
 				(isThisOneQuery) ? "serverQueried" : "serverAdd",
 				server->m_hostName,
 				mapname,
@@ -444,7 +457,9 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 				server->m_maxClients,
 				server->m_ping,
 				addressStr,
-				infoBlobJson));
+				infoBlobJson,
+				host,
+				port));
 		}
 
 		if (isThisOneQuery)
@@ -584,6 +599,28 @@ void GSClient_QueryAddresses(const TContainer& addrs)
 	}
 }
 
+static void ContinueLanQuery()
+{
+	std::string qarg;
+	{
+		std::unique_lock _(g_queryArgMutex);
+		qarg = g_queryArg;
+	}
+
+	auto peerAddress = net::PeerAddress::FromString(qarg);
+
+	if (peerAddress)
+	{
+		g_cls.isOneQuery = true;
+		g_cls.oneQueryAddress = peerAddress.get();
+		GSClient_QueryAddresses(std::vector<std::tuple<int, net::PeerAddress>>{ { 0, peerAddress.get() } });
+	}
+	else
+	{
+		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "queryingFailed", "arg": "%s" })", qarg));
+	}
+}
+
 void GSClient_QueryOneServer(const std::wstring& arg)
 {
 	auto narrowArg = ToNarrow(arg);
@@ -657,18 +694,89 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 		return;
 	}
 
-	auto peerAddress = net::PeerAddress::FromString(narrowArg);
+	if (narrowArg.find("localhost_sentinel") == 0)
+	{
+		{
+			std::unique_lock _(g_queryArgMutex);
+			g_queryArg = "localhost" + narrowArg.substr(strlen("localhost_sentinel"));
+		}
 
-	if (peerAddress)
-	{
-		g_cls.isOneQuery = true;
-		g_cls.oneQueryAddress = peerAddress.get();
-		GSClient_QueryAddresses(std::vector<std::tuple<int, net::PeerAddress>>{ { 0, peerAddress.get() } });
+		// try hunting down a LAN server, maybe?
+		static auto dnslib = LoadLibraryW(L"dnsapi.dll");
+
+		if (dnslib)
+		{
+			auto _DnsServiceBrowse = (decltype(&DnsServiceBrowse))GetProcAddress(dnslib, "DnsServiceBrowse");
+			auto _DnsServiceBrowseCancel = (decltype(&DnsServiceBrowseCancel))GetProcAddress(dnslib, "DnsServiceBrowseCancel");
+
+			if (_DnsServiceBrowse)
+			{
+				static bool result = false;
+				result = false;
+
+				DNS_SERVICE_BROWSE_REQUEST request = { 0 };
+				request.Version = DNS_QUERY_REQUEST_VERSION1;
+				request.InterfaceIndex = 0;
+				request.QueryName = L"_cfx._udp.local";
+				request.pBrowseCallback = [](DWORD Status,
+										  PVOID pQueryContext,
+										  PDNS_RECORD pDnsRecord)
+				{
+					if (Status == ERROR_SUCCESS)
+					{
+						result = true;
+
+						if (pDnsRecord)
+						{
+							for (auto rec = pDnsRecord; rec; rec = rec->pNext)
+							{
+								if (rec->wType == DNS_TYPE_SRV)
+								{
+									{
+										std::unique_lock _(g_queryArgMutex);
+										g_queryArg = fmt::sprintf("%s:%d", ToNarrow(rec->Data.Srv.pNameTarget), rec->Data.Srv.wPort);
+									}
+
+									ContinueLanQuery();
+									break;
+								}
+							}
+
+							DnsRecordListFree(pDnsRecord);
+							return;
+						}
+					}
+
+					ContinueLanQuery();
+				};
+
+				static DNS_SERVICE_CANCEL cancel;
+				if (_DnsServiceBrowse(&request, &cancel) == DNS_REQUEST_PENDING)
+				{
+					WaitForSingleObject(GetCurrentProcess(), 2000);
+
+					if (!result)
+					{
+						_DnsServiceBrowseCancel(&cancel);
+					}
+					else
+					{
+						return;
+					}
+				}
+			}
+		}
+
+		ContinueLanQuery();
+		return;
 	}
-	else
+
 	{
-		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "queryingFailed", "arg": "%s" })", ToNarrow(arg)));
+		std::unique_lock _(g_queryArgMutex);
+		g_queryArg = narrowArg;
 	}
+
+	ContinueLanQuery();
 }
 
 DWORD WINAPI GSClient_QueryOneServerWrap(LPVOID ctx)
