@@ -1573,13 +1573,6 @@ int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
 
 				case LuaMetaFields::PointerValueVector:
 				{
-#ifndef IS_FXSERVER
-					if constexpr (IsPtr)
-					{
-						context.SetVectorResults();
-					}
-#endif
-
 					scrVector vector = *reinterpret_cast<scrVector*>(&result.retvals[i]);
 					lua_pushvector3(L, vector.x, vector.y, vector.z);
 
