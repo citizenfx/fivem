@@ -16,7 +16,6 @@ import { getNavConfigFromUrl } from './nav/helpers';
 const vertexShaderSrc = `
   attribute vec2 a_position;
   attribute vec2 a_texcoord;
-  uniform mat3 u_matrix;
   varying vec2 textureCoordinate;
   void main() {
     gl_Position = vec4(a_position, 0.0, 1.0);
@@ -25,7 +24,7 @@ const vertexShaderSrc = `
 `;
 
 const fragmentShaderSrc = `
-varying highp vec2 textureCoordinate;
+varying mediump vec2 textureCoordinate;
 uniform sampler2D external_texture;
 void main()
 {
@@ -115,7 +114,7 @@ function createGameView(canvas: HTMLCanvasElement) {
 		depth: false,
 		stencil: false,
 		alpha: false,
-		desynchronized: true,
+		preserveDrawingBuffer: true,
 		failIfMajorPerformanceCaveat: false
 	}) as WebGLRenderingContext;
 
@@ -158,9 +157,8 @@ function createGameView(canvas: HTMLCanvasElement) {
 
 	render = () => {
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-		gl.finish();
 
-		gameView.animationFrame = requestAnimationFrame(render);
+		gameView.animationFrame = setTimeout(render, 33.3);
 	};
 
 	createStuff();
