@@ -469,9 +469,7 @@ export class CfxGameService extends GameService {
 						const address: string = event.data.hostnameStr;
 						const connectParams = query.parse(event.data.connectParams);
 
-						if (this.realNickname && this.realNickname !== '') {
-							(<any>window).invokeNative('checkNickname', this.realNickname);
-						}
+						this.updateNickname();
 
 						if (!this.inConnecting) {
 							if ('streamerMode' in connectParams) {
@@ -752,8 +750,12 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('nickOverride', name);
 		this.invokeNicknameChanged(name);
 
-		if (name && name !== '') {
-			(<any>window).invokeNative('checkNickname', name);
+		this.updateNickname();
+	}
+
+	updateNickname() {
+		if (this.realNickname && this.realNickname !== '') {
+			(<any>window).invokeNative('checkNickname', this.realNickname);
 		}
 	}
 
@@ -822,6 +824,8 @@ export class CfxGameService extends GameService {
 		if (this.inConnecting) {
 			return;
 		}
+
+		this.updateNickname();
 
 		this.inConnecting = true;
 
