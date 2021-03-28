@@ -816,5 +816,8 @@ static HookFunction hookFunction([]()
 		hook::nop(hook::get_pattern("0F 2F C6 77 03 0F 28 F0 48 8B 83 ? ? ? ? F3 44", 3), 2);
 	}
 
+	// misc fix: pause menu control delay on exit
+	hook::put<uint32_t>(hook::get_pattern("BA ? ? ? ? 48 8B C8 E8 ? ? ? ? 8B 05", 1), 0);
+
 	//HookStereo();
 });
