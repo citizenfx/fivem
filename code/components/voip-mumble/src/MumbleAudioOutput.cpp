@@ -1330,14 +1330,6 @@ void MumbleAudioOutput::ThreadFunc()
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
 
-	HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
-
-	if (FAILED(hr))
-	{
-		trace("%s: failed MMDeviceEnumerator\n", __func__);
-		return;
-	}
-
 	InitializeAudioDevice();
 }
 
@@ -1476,6 +1468,17 @@ void MumbleAudioOutput::InitializeAudioDevice()
 
 		MumbleAudioOutput* self;
 	} unlocker(this);
+
+	if (!m_mmDeviceEnumerator)
+	{
+		HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
+
+		if (FAILED(hr))
+		{
+			trace("%s: failed MMDeviceEnumerator (%08x)\n", __func__, hr);
+			return;
+		}
+	}
 
 	while (!device.Get())
 	{
