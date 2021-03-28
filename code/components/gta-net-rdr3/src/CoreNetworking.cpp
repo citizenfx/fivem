@@ -821,10 +821,18 @@ static HookFunction hookFunction([]()
 			break;
 
 		case 6:
-			if (*(BYTE*)((uint64_t)g_networkMgrPtr + 24))
+			struct
 			{
-				uint64_t networkMgr = *(uint64_t*)((uint64_t)g_networkMgrPtr);
-				auto networkState = *(BYTE*)(*(uint64_t*)networkMgr + networkStateOffset);
+				char* sessionMultiplayer;
+				char pad[16];
+				uint8_t networkInited;
+			}* networkMgr;
+
+			networkMgr = *(decltype(networkMgr)*)g_networkMgrPtr;
+
+			if (networkMgr->networkInited)
+			{
+				auto networkState = *(BYTE*)(networkMgr->sessionMultiplayer + networkStateOffset);
 
 				if (networkState == 4)
 				{
@@ -942,4 +950,7 @@ static HookFunction hookFunction([]()
 		hook::put<int>(location + 3, 1);
 		hook::put<int>(location + 10, 2);
 	}
+
+	// unusual script check before allowing session to continue
+	hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
 });
