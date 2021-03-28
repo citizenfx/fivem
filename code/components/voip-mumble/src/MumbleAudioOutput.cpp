@@ -556,7 +556,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	{
 		std::unique_lock<std::mutex> initLock(m_initializeMutex);
 
-		if (!m_initialized)
+		if (!m_initialized && !m_initializeSignaled)
 		{
 			m_initializeVar.wait(initLock);
 		}
@@ -1464,6 +1464,7 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		{
 			std::unique_lock<std::mutex> lock(self->m_initializeMutex);
 			self->m_initializeVar.notify_all();
+			self->m_initializeSignaled = true;
 		}
 
 		MumbleAudioOutput* self;
