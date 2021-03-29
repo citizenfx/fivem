@@ -319,6 +319,58 @@ bool Install_PerformInstallation()
 	return false;
 }
 
+#include <boost/algorithm/string.hpp>
+
+static void WriteVisualElementsManifest()
+{
+#ifdef GTA_FIVE
+	auto rootExe = GetModuleHandleW(NULL);
+	wchar_t rootPath[512] = { 0 };
+	GetModuleFileNameW(rootExe, rootPath, std::size(rootPath));
+
+	std::wstring rootDir = rootPath;
+	std::wstring manifestName = rootDir;
+
+	manifestName = manifestName.substr(0, manifestName.find_last_of(L'.')) + L".VisualElementsManifest.xml";
+	rootDir = rootDir.substr(0, rootDir.find_last_of(L"/\\") + 1);
+
+	if (GetFileAttributesW(manifestName.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		return;
+	}
+
+	auto citizenDir = MakeRelativeCitPath(L"citizen");
+	boost::algorithm::replace_all(citizenDir, rootDir, L"");
+
+	FILE* f = _wfopen(manifestName.c_str(), L"wb");
+
+	if (f)
+	{
+		fmt::fprintf(f, R"(<Application xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+  <VisualElements
+      ShowNameOnSquare150x150Logo='off'
+      Square150x150Logo='%s\VisualElements\VisualElements_150.png'
+      Square70x70Logo='%s\VisualElements\VisualElements_70.png'
+      ForegroundText='dark'
+      BackgroundColor='#F57F00'/>
+</Application>)",
+		ToNarrow(citizenDir), ToNarrow(citizenDir));
+		fclose(f);
+
+		// update .lnk time, if any
+		HANDLE hFile = CreateFile(fmt::sprintf(L"%s\\%s%s.lnk", GetFolderPath(FOLDERID_Programs), PRODUCT_NAME, L"").c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (hFile != INVALID_HANDLE_VALUE)
+		{
+			FILETIME rn = { 0 };
+			GetSystemTimeAsFileTime(&rn);
+			SetFileTime(hFile, NULL, NULL, &rn);
+			CloseHandle(hFile);
+		}
+	}
+#endif
+}
+
 bool Install_RunInstallMode()
 {
 	// if we're already installed 'sufficiently', this isn't a new install
@@ -400,6 +452,7 @@ bool Install_RunInstallMode()
 		}
 
 		CreateUninstallEntryIfNeeded();
+		WriteVisualElementsManifest();
 
 		return false;
 	}
