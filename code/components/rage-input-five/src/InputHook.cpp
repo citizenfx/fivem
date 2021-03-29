@@ -453,6 +453,46 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	ReleaseMutex(rgd->inputMutex);
 }
 
+// testing valid gamepads, similar to how the game does it
+#if 0
+#include <Xinput.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "Xinput9_1_0")
+#endif
+#endif
+
+static void (*origIOPadUpdate)(void*, bool);
+
+// This hook is used for ReverseGame Gamepad input
+static void rage__ioPad__Update(rage::ioPad* thisptr, bool onlyVibrate)
+{
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+	WaitForSingleObject(rgd->inputMutex, INFINITE);
+
+	static char* location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
+	static int offset = *(int*)(location + 3);
+	static void* ioPadArray = location + offset + 7;
+
+#if 0
+	XINPUT_STATE state;
+	DWORD dwUserIndex = ((uintptr_t)out_RageIOPadState - (uintptr_t)ioPadArray) / 96/*sizeof(RageIOPad)*/;
+	if( !XInputGetState( dwUserIndex, &state ) )
+	{
+		trace("Pad is Valid\n");
+	}
+#endif
+
+	origIOPadUpdate(thisptr, onlyVibrate);
+
+	// save this from the original function
+	rgd->gamepad.lastButtonFlags = thisptr->lastButtonFlags;
+
+	// apply gamepad struct to the game
+	*thisptr = rgd->gamepad;
+
+	ReleaseMutex(rgd->inputMutex);
+}
+
 static HookFunction hookFunction([]()
 {
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
@@ -542,6 +582,11 @@ static HookFunction hookFunction([]()
 		// Cursor Y
 		loc += 31;
 		hook::nop(loc, 6);
+
+		// Hook the GamePad sampling function so we can inject events into it from Reverse Game.
+		auto ioPadUpdate = hook::get_pattern("41 8A D6 48 8B CF E8 ? ? FF FF 48 83 C7 60", 6);
+		hook::set_call(&origIOPadUpdate, ioPadUpdate);
+		hook::call(ioPadUpdate, rage__ioPad__Update);
 	}
 });
 
