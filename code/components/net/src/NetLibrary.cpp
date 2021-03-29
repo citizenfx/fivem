@@ -2020,3 +2020,13 @@ int32_t NetLibrary::GetPing()
 
 	return -1;
 }
+
+int32_t NetLibrary::GetVariance()
+{
+	if (m_impl)
+	{
+		return m_impl->GetVariance();
+	}
+
+	return -1;
+}

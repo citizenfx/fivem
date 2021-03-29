@@ -51,6 +51,8 @@ public:
 	virtual void Flush() = 0;
 
 	virtual int32_t GetPing() = 0;
+
+	virtual int32_t GetVariance() = 0;
 };
 
 class INetLibraryInherit

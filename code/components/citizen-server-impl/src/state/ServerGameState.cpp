@@ -8,6 +8,7 @@
 #include <NetBuffer.h>
 
 #include <lz4.h>
+#include <lz4hc.h>
 
 #include <tbb/concurrent_queue.h>
 #include <tbb/parallel_for_each.h>
@@ -3227,8 +3228,12 @@ static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(co
 		return { std::optional<net::Buffer>{}, type };
 	}
 
-	uint8_t bufferData[16384] = { 0 };
-	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&readBuffer.GetData()[4]), reinterpret_cast<char*>(bufferData), readBuffer.GetRemainingBytes(), sizeof(bufferData));
+	const static uint8_t dictBuffer[65536] = 
+	{
+#include <state/dict_five_20210329.h>
+	};
+	uint8_t bufferData[16384];
+	int bufferLength = LZ4_decompress_safe_usingDict(reinterpret_cast<const char*>(&readBuffer.GetData()[4]), reinterpret_cast<char*>(bufferData), readBuffer.GetRemainingBytes(), sizeof(bufferData), reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
 
 	if (bufferLength <= 0)
 	{

@@ -13,7 +13,7 @@
 #include <netObjectMgr.h>
 #include <netSyncTree.h>
 
-#include <lz4.h>
+#include <lz4hc.h>
 
 #include <boost/range/adaptor/map.hpp>
 
@@ -245,6 +245,8 @@ private:
 	};
 
 private:
+	LZ4_streamHC_t m_compStream;
+
 	std::unordered_map<int, ObjectData> m_trackedObjects;
 
 	std::unordered_map<uint32_t, rage::netObject*> m_savedEntities;
@@ -448,6 +450,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	});
 
 	m_serverSendFrame = 0;
+
+	LZ4_initStreamHC(&m_compStream, sizeof(m_compStream));
 }
 
 void CloneManagerLocal::Reset()
@@ -474,7 +478,7 @@ void CloneManagerLocal::Reset()
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 {
-	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier)
+	if (icgi->NetProtoVersion >= 0x201912301309 && (m_trackedObjects.find(objId) == m_trackedObjects.end() || m_trackedObjects[objId].uniqifier != uniqifier))
 	{
 		Log("%s: invalid uniqifier for %d\n", __func__, objId);
 		return;
@@ -492,7 +496,7 @@ static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint
 
 void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 {
-	if (icgi->NetProtoVersion >= 0x201912301309 && m_trackedObjects[objId].uniqifier != uniqifier)
+	if (icgi->NetProtoVersion >= 0x201912301309 && (m_trackedObjects.find(objId) == m_trackedObjects.end() || m_trackedObjects[objId].uniqifier != uniqifier))
 	{
 		Log("%s: invalid uniqifier for %d\n", __func__, objId);
 		return;
@@ -2361,7 +2365,7 @@ void CloneManagerLocal::WriteUpdates()
 				// #TODO1S: dynamic resend time based on latency
 				bool shouldWrite = true;
 
-				if ((lastChangeTime == objectData.lastChangeTime || syncType == 1) && ts < (objectData.lastResendTime + std::max(100, m_netLibrary->GetPing())))
+				if ((lastChangeTime == objectData.lastChangeTime || syncType == 1) && ts < (objectData.lastResendTime + std::min(40, std::max(100, m_netLibrary->GetPing() + (m_netLibrary->GetVariance() * 4)))))
 				{
 					Log("%s: no early resend of object [obj:%d]\n", __func__, objectId);
 					shouldWrite = false;
@@ -2548,9 +2552,23 @@ void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 	{
 		buffer.Write(3, 7);
 
+		const static uint8_t dictBuffer[65536] = {
+#include <state/dict_five_20210329.h>
+		};
+
 		// compress and send data
 		std::vector<char> outData(LZ4_compressBound(buffer.GetDataLength()) + 4);
-		int len = LZ4_compress_default(reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
+		int len = 0;
+
+		if (icgi->NetProtoVersion >= 0x202103292050)
+		{
+			LZ4_loadDictHC(&m_compStream, reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
+			len = LZ4_compress_HC_continue(&m_compStream, reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
+		}
+		else
+		{
+			len = LZ4_compress_default(reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
+		}
 
 		Log("compressed %d bytes to %d bytes\n", buffer.GetDataLength(), len);
 
@@ -2564,7 +2582,7 @@ void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 
 		if (f)
 		{
-			fwrite(outData.data(), 1, len + 4, f);
+			fwrite(buffer.GetBuffer().data(), 1, buffer.GetDataLength(), f);
 			fclose(f);
 		}
 #endif

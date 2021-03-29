@@ -30,7 +30,7 @@
 
 #include <concurrent_queue.h>
 
-#define NETWORK_PROTOCOL 10
+#define NETWORK_PROTOCOL 11
 
 enum NetAddressType
 {
@@ -303,6 +303,8 @@ public:
 	}
 
 	int32_t GetPing();
+
+	int32_t GetVariance();
 
 	void SetMetricSink(fwRefContainer<INetMetricSink>& sink);
 
