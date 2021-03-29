@@ -763,6 +763,15 @@ inline T get_address(TAddr address)
 
 	return (T)target;
 }
+
+template<typename T, typename TAddr>
+inline T get_address(TAddr address, size_t offsetTo4ByteAddr, size_t numBytesInLine)
+{
+	intptr_t target = *(int32_t*)(get_adjusted((char*)address + offsetTo4ByteAddr));
+	target += (get_adjusted(address) + numBytesInLine);
+
+	return (T)target;
+}
 }
 
 #include "Hooking.Invoke.h"
