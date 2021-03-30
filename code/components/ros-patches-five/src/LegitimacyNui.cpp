@@ -412,6 +412,13 @@ function RGSC_GET_VERSION_INFO()
 	});
 }
 
+function RGSC_GET_COMMAND_LINE_ARGUMENTS()
+{
+	return JSON.stringify({
+		Arguments: []
+	});
+}
+
 var rosCredentials = {};
 
 function RGSC_SIGN_IN(s)
@@ -496,11 +503,11 @@ function RGSC_REQUEST_UI_STATE(a)
 
 function RGSC_READY_TO_ACCEPT_COMMANDS()
 {
+	RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: "SIGNIN" }));
 	return true;
 }
 
 RGSC_JS_READY_TO_ACCEPT_COMMANDS();
-RGSC_JS_REQUEST_UI_STATE(JSON.stringify({ Visible: true, Online: true, State: "SIGNIN" }));
 
 if (!localStorage.getItem('loadedOnce')) {
 	localStorage.setItem('loadedOnce', true);
@@ -509,7 +516,7 @@ if (!localStorage.getItem('loadedOnce')) {
 	}, 500);
 }
 
-var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .Alert__content:after { content: \'A Rockstar Games Social Club account owning %s is required to play %s.\'; max-width: 600px; display: inline-block; }',
+var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .SignInForm__descriptionText .Alert__content:after { content: \'A Rockstar Games Social Club account owning %s is required to play %s.\'; max-width: 600px; display: inline-block; }',
     head = document.head || document.getElementsByTagName('head')[0],
     style = document.createElement('style');
 
