@@ -345,6 +345,45 @@ extern std::unordered_map<int, std::string> g_handlesToTag;
 
 fwEvent<> OnReloadMapStore;
 
+#ifdef GTA_FIVE
+static hook::cdecl_stub<void()> _reloadMapIfNeeded([]()
+{
+	return hook::get_pattern("74 1F 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05", -0xB);
+});
+
+static void ReloadMapStoreNative()
+{
+	static auto loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
+	uint8_t origCode[0x4F3];
+	memcpy(origCode, loadChangeSet, sizeof(origCode));
+
+	// jump straight into the right block
+	hook::put<uint8_t>(loadChangeSet + 0x28, 0xE9);
+	hook::put<int32_t>(loadChangeSet + 0x29, (loadChangeSet + 0x15C) - (loadChangeSet + 0x29 + 4));
+
+	// don't load CS
+	hook::nop(loadChangeSet + 0x300, 5);
+
+	// don't use cache state
+	hook::nop(loadChangeSet + 0x356, 10);
+	hook::put<uint16_t>(loadChangeSet + 0x356, 0x00B3);
+
+	// ignore trailer
+	hook::nop(loadChangeSet + 0x4A3, 54);
+
+	// call
+	uint32_t hash = 0xDEADBDEF;
+	uint8_t csBuf[512] = { 0 };
+	uint8_t unkBuf[512] = { 0 };
+	((void (*)(void*, void*, void*))loadChangeSet)(csBuf, unkBuf, &hash);
+
+	memcpy(loadChangeSet, origCode, sizeof(origCode));
+
+	// reload map stuff
+	_reloadMapIfNeeded();
+}
+#endif
+
 static void ReloadMapStore()
 {
 	if (!g_reloadMapStore)
@@ -396,13 +435,23 @@ static void ReloadMapStore()
 
 	OnReloadMapStore();
 
-	// workaround by unloading/reloading MP map group
-	g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+#ifdef GTA_FIVE
+	// needs verification
+	if (!xbr::IsGameBuildOrGreater<2060>())
+	{
+		ReloadMapStoreNative();
+	}
+	else
+#endif
+	{
+		// workaround by unloading/reloading MP map group
+		g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
 
-	// again for enablement
-	OnReloadMapStore();
+		// again for enablement
+		OnReloadMapStore();
 
-	g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+		g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+	}
 
 #ifdef GTA_FIVE
 	g_clearContentCache(0);
