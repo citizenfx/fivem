@@ -357,9 +357,12 @@ static void ReloadMapStoreNative()
 	uint8_t origCode[0x4F3];
 	memcpy(origCode, loadChangeSet, sizeof(origCode));
 
+	// nop a call before the r13d load
+	hook::nop(loadChangeSet + 0x28, 5);
+
 	// jump straight into the right block
-	hook::put<uint8_t>(loadChangeSet + 0x28, 0xE9);
-	hook::put<int32_t>(loadChangeSet + 0x29, 0x12F);
+	hook::put<uint8_t>(loadChangeSet + 0x41, 0xE9);
+	hook::put<int32_t>(loadChangeSet + 0x42, 0x116);
 
 	// don't load CS
 	hook::nop(loadChangeSet + 0x300, 5);
