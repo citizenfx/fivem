@@ -371,6 +371,10 @@ static void ReloadMapStoreNative()
 	// ignore staticboundsstore too (crashes in release, thanks stack)
 	hook::nop(loadChangeSet + 0x434, 5);
 
+	// and the array fill/clear for this fake array
+	hook::nop(loadChangeSet + 0x395, 5);
+	hook::nop(loadChangeSet + 0x489, 5);
+
 	// ignore trailer
 	hook::nop(loadChangeSet + 0x4A3, 54);
 
