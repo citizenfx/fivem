@@ -621,6 +621,8 @@ static void ContinueLanQuery()
 	}
 }
 
+static bool g_inLanQuery;
+
 void GSClient_QueryOneServer(const std::wstring& arg)
 {
 	auto narrowArg = ToNarrow(arg);
@@ -696,6 +698,13 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 
 	if (narrowArg.find("localhost_sentinel") == 0)
 	{
+		if (g_inLanQuery)
+		{
+			return;
+		}
+
+		g_inLanQuery = true;
+
 		{
 			std::unique_lock _(g_queryArgMutex);
 			g_queryArg = "localhost" + narrowArg.substr(strlen("localhost_sentinel"));
@@ -753,7 +762,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 				static DNS_SERVICE_CANCEL cancel;
 				if (_DnsServiceBrowse(&request, &cancel) == DNS_REQUEST_PENDING)
 				{
-					WaitForSingleObject(GetCurrentProcess(), 2000);
+					Sleep(2000);
+					g_inLanQuery = false;
 
 					if (!result)
 					{
@@ -766,6 +776,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 				}
 			}
 		}
+
+		g_inLanQuery = false;
 
 		ContinueLanQuery();
 		return;
