@@ -46,6 +46,7 @@ static void LoadCacheHook(const char* filenameBase, const char* rootPath, int is
 				// downtown_01_metadata for *whatever* reason breaks if this is used as long as mpheist4 dlc is loaded
 				if (packName.find("downtown_01_metadata") != std::string::npos)
 				{
+					++i; // !!!!!
 					continue;
 				}
 
