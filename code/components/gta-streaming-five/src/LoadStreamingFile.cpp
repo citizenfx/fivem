@@ -359,7 +359,7 @@ static void ReloadMapStoreNative()
 
 	// jump straight into the right block
 	hook::put<uint8_t>(loadChangeSet + 0x28, 0xE9);
-	hook::put<int32_t>(loadChangeSet + 0x29, (loadChangeSet + 0x15C) - (loadChangeSet + 0x29 + 4));
+	hook::put<int32_t>(loadChangeSet + 0x29, 0x12F);
 
 	// don't load CS
 	hook::nop(loadChangeSet + 0x300, 5);
@@ -367,6 +367,9 @@ static void ReloadMapStoreNative()
 	// don't use cache state
 	hook::nop(loadChangeSet + 0x356, 10);
 	hook::put<uint16_t>(loadChangeSet + 0x356, 0x00B3);
+
+	// ignore staticboundsstore too (crashes in release, thanks stack)
+	hook::nop(loadChangeSet + 0x434, 5);
 
 	// ignore trailer
 	hook::nop(loadChangeSet + 0x4A3, 54);
