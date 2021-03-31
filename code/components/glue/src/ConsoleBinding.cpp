@@ -110,7 +110,14 @@ static InitFunction initFunction([]()
 
 			fseek(f, 0, SEEK_END);
 
-			size_t len = ftell(f);
+			auto len = _ftelli64(f);
+
+			if (len < 0)
+			{
+				fclose(f);
+				return;
+			}
+
 			data.resize(len);
 
 			fseek(f, 0, SEEK_SET);
