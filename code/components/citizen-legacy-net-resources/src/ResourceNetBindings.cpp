@@ -584,7 +584,7 @@ static InitFunction initFunction([] ()
 
 			static uint64_t lastDownloadTime;
 
-			if ((GetTickCount64() - lastDownloadTime) > 100)
+			if ((GetTickCount64() - lastDownloadTime) > 33)
 			{
 				std::lock_guard<std::mutex> _(progressMutex);
 
