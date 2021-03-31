@@ -1857,7 +1857,10 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 
 	if (UseNode())
 	{
-		if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode"))
+		auto fxdkMode = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("sv_fxdkMode");
+
+		if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode") ||
+			(fxdkMode && fxdkMode->GetValue() == "1"))
 		{
 			putenv("NODE_CFX_IS_MONITOR_MODE=1");
 		}
