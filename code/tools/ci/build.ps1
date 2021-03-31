@@ -351,6 +351,7 @@ if (!$DontBuild -and $IsServer) {
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\client\v8* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\client\bin\icu* $WorkDir\out\server\
+    Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
 
@@ -451,16 +452,19 @@ if (!$DontBuild -and !$IsServer) {
     if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
         
         Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
     } elseif ($IsLauncher) {
         Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
     } elseif ($IsRDR) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2 $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
