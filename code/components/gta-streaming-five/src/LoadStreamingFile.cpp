@@ -446,8 +446,8 @@ static void ReloadMapStore()
 	OnReloadMapStore();
 
 #ifdef GTA_FIVE
-	// needs verification
-	if (!xbr::IsGameBuildOrGreater<2060>())
+	// needs verification for newer builds
+	if (!xbr::IsGameBuildOrGreater<2189 + 1>())
 	{
 		ReloadMapStoreNative();
 	}
