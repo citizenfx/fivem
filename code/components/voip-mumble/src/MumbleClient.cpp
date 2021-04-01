@@ -799,6 +799,8 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 
 		// #TODOMUMBLE: unify with TCP pings
 
+		m_udpPingCount++;
+
 		// which ping this is in the history list
 		size_t thisPing = m_udpPingCount - 1;
 
