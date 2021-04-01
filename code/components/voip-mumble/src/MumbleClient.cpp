@@ -178,17 +178,28 @@ void MumbleClient::Initialize()
 		m_idleTimer = m_loop->Get()->resource<uvw::TimerHandle>();
 		m_idleTimer->on<uvw::TimerEvent>([this, recreateUDP](const uvw::TimerEvent& ev, uvw::TimerHandle& t)
 		{
-			static bool hadUDP = true;
+			static bool hadUDP = false;
+			static bool warnedUDP = false;
 			bool hasUDP = ((msec() - m_lastUdp) <= 7500ms);
 			
 			if (hasUDP && !hadUDP)
 			{
-				console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
+				if (warnedUDP)
+				{
+					console::Printf("mumble", "UDP packets can be received. Switching to UDP mode.\n");
+				}
+
+				warnedUDP = true;
 				hadUDP = true;
 			}
 			else if (!hasUDP && hadUDP)
 			{
-				console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
+				if (warnedUDP)
+				{
+					console::PrintWarning("mumble", "UDP packets can *not* be received. Switching to TCP tunnel mode.\n");
+				}
+
+				warnedUDP = true;
 				hadUDP = false;
 
 				// try to recreate UDP if need be
