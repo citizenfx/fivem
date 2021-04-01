@@ -325,9 +325,18 @@ void UvTcpServerStream::CloseClient()
 			writeTimeout->close();
 		}
 
+		client->once<uvw::ShutdownEvent>([client](const uvw::ShutdownEvent& e, uvw::TCPHandle& h)
+		{
+			client->once<uvw::CloseEvent>([client](const uvw::CloseEvent& e, uvw::TCPHandle& h)
+			{
+				(void)client;
+			});
+
+			client->close();
+		});
+
 		client->stop();
 		client->shutdown();
-		client->close();
 
 		m_client = {};
 	}
