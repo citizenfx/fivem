@@ -745,13 +745,13 @@ static InitFunction initFunction([] ()
 	curChannel = ToNarrow(resultPath);
 
 	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
-	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel);
 
-	OnGameFrame.Connect([]()
+	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel,
+	[](internal::ConsoleVariableEntry<std::string>* convar)
 	{
-		if (uiUpdateChannel.GetValue() != curChannel)
+		if (convar->GetValue() != curChannel)
 		{
-			curChannel = uiUpdateChannel.GetValue();
+			curChannel = convar->GetValue();
 
 			WritePrivateProfileString(L"Game", L"UpdateChannel", ToWide(curChannel).c_str(), fpath.c_str());
 
