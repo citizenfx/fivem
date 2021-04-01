@@ -39,7 +39,7 @@
 		style="--spatial-navigation-action: focus;"
 	>
 		<servers-list-item
-			*cdkVirtualFor="let server of sortedServers"
+			*cdkVirtualFor="let server of sortedServers; trackBy: svTrack"
 			[server]="server"
 			[pinned]="isPinned(server)"
 			[isPinList]="type === 'pins'"
