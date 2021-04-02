@@ -39,7 +39,7 @@ static hook::cdecl_stub<streaming::strStreamingModule*(void*, int)> g_getStreami
 	return hook::get_call(hook::get_pattern("48 85 FF 74 ? 48 8D 4F 01", 0x17));
 });
 
-static hook::cdecl_stub<uint32_t(uint32_t*, const char*, bool, const char*, bool, bool)> g_registerRawStreamingFile([]()
+static hook::cdecl_stub<uint32_t*(uint32_t*, const char*, bool, const char*, bool, bool)> g_registerRawStreamingFile([]()
 {
 	return hook::get_pattern("48 8B CE B2 01 4D 8B F9 45 8A E0 E8", -0x26);
 });
@@ -133,7 +133,7 @@ namespace streaming
 		return (Manager*)g_storeMgr;
 	}
 
-	uint32_t RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
+	uint32_t* RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
 	{
 		return g_registerRawStreamingFile(fileId, fileName, unkTrue, registerAs, errorIfFailed, true);
 	}

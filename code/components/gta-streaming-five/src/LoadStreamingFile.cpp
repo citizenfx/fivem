@@ -1136,7 +1136,11 @@ static void LoadStreamingFiles(LoadType loadType)
 					auto& entry = cstreaming->Entries[fileId];
 					g_handleStack[fileId].push_front(entry.handle);
 
-					rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+					// only for 'real' rawStreamer (mod variant likely won't reregister)
+					if ((entry.handle >> 16) == 0)
+					{
+						rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+					}
 
 					g_handlesToTag[entry.handle] = tag;
 				}
