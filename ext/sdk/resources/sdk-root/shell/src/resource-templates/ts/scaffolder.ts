@@ -1,68 +1,104 @@
 import { inject, injectable } from "inversify";
 import { FsService } from "backend/fs/fs-service";
-import * as cp from 'child_process';
+import * as cp from "child_process";
 import { concurrently } from "utils/concurrently";
-import { ResourceTemplateScaffolder, ResourceTemplateScaffolderArgs } from "../types";
+import {
+  ResourceTemplateScaffolder,
+  ResourceTemplateScaffolderArgs,
+} from "../types";
 
 @injectable()
 export default class TsScaffolder implements ResourceTemplateScaffolder {
   @inject(FsService)
   protected readonly fsService: FsService;
 
-  async scaffold({ request, manifest, resourcePath }: ResourceTemplateScaffolderArgs) {
+  async scaffold({
+    request,
+    manifest,
+    resourcePath,
+  }: ResourceTemplateScaffolderArgs) {
     const resourceName = request.assetName;
-    
-    manifest.clientScripts.push('dist/client/client.js');
-    manifest.serverScripts.push('dist/server/*.server.js');
 
-    manifest.fxdkWatchCommands.push(['yarn', [
-      'webpack', '--mode', 'development', '--watch'
-    ]]);
-    manifest.fxdkWatchCommands.push(['yarn', [
-      'webpack', '--mode', 'production'
-    ]]);
-    
+    manifest.clientScripts.push("dist/client/client.js");
+    manifest.serverScripts.push("dist/server/*.server.js");
+
+    manifest.fxdkWatchCommands.push([
+      "yarn",
+      ["webpack", "--mode", "development", "--watch"],
+    ]);
+    manifest.fxdkBuildCommands.push([
+      "yarn",
+      ["webpack", "--mode", "production"],
+    ]);
+
     const promises = [];
-    const relativePath = (to: string) => this.fsService.joinPath(resourcePath, to);
+    const relativePath = (to: string) =>
+      this.fsService.joinPath(resourcePath, to);
 
-    promises.push(this.fsService.writeFile(relativePath('webpack.config.js'), getWebpackContent()));
-    promises.push(this.fsService.writeFile(relativePath('package.json'), getPackageContent(resourceName)));
-    
     promises.push(
-      this.fsService.mkdirp(relativePath('client'))
-        .then(() => concurrently(
-          this.fsService.writeFile(relativePath('client/client.ts'), getCode('client')),
-          this.fsService.writeFile(relativePath('client/tsconfig.json'), getTsConfigClient())
-        )),
+      this.fsService.writeFile(
+        relativePath("webpack.config.js"),
+        getWebpackContent()
+      )
+    );
+    promises.push(
+      this.fsService.writeFile(
+        relativePath("package.json"),
+        getPackageContent(resourceName)
+      )
     );
 
+    promises.push(
+      this.fsService
+        .mkdirp(relativePath("client"))
+        .then(() =>
+          concurrently(
+            this.fsService.writeFile(
+              relativePath("client/client.ts"),
+              getCode("client")
+            ),
+            this.fsService.writeFile(
+              relativePath("client/tsconfig.json"),
+              getTsConfigClient()
+            )
+          )
+        )
+    );
 
     promises.push(
-      this.fsService.mkdirp(relativePath('server'))
-        .then(() => concurrently(
-          this.fsService.writeFile(relativePath('server/server.ts'), getCode('server')),
-          this.fsService.writeFile(relativePath('server/tsconfig.json'), getTsConfigServer())
-        )),
+      this.fsService
+        .mkdirp(relativePath("server"))
+        .then(() =>
+          concurrently(
+            this.fsService.writeFile(
+              relativePath("server/server.ts"),
+              getCode("server")
+            ),
+            this.fsService.writeFile(
+              relativePath("server/tsconfig.json"),
+              getTsConfigServer()
+            )
+          )
+        )
     );
 
     await Promise.all(promises);
 
     await this.installModules(resourcePath);
-  };
+  }
 
   private async installModules(path: string) {
     return new Promise<void>((resolve, reject) => {
-      cp.exec('yarn', { cwd: path, windowsHide: true }, (err) => {
+      cp.exec("yarn", { cwd: path, windowsHide: true }, (err) => {
         if (err) {
           return reject(err);
         }
 
         return resolve();
-      })
-    })
+      });
+    });
   }
 }
-
 
 function getTsConfigClient() {
   return `
@@ -81,9 +117,8 @@ function getTsConfigClient() {
   "include": ["./**/*"],
   "exclude": ["**/node_modules"]
 }
-  `
+  `;
 }
-
 
 function getTsConfigServer() {
   return `
@@ -102,7 +137,7 @@ function getTsConfigServer() {
   "include": ["./**/*"],
   "exclude": ["**/node_modules"]
 }
-  `
+  `;
 }
 
 function getWebpackContent() {
@@ -183,7 +218,7 @@ const server = {
 }
 
 module.exports = [client, server];
-  `
+  `;
 }
 
 function getPackageContent(resourceName: string) {
@@ -209,22 +244,21 @@ function getPackageContent(resourceName: string) {
     "typescript": "^4.2.2"
   }
 }
-  `
+  `;
 }
 
-
-function getCode (type: string) {
-  if (type === 'client') {
+function getCode(type: string) {
+  if (type === "client") {
     return `
 RegisterCommand('helloserver', () => {
   emitNet('helloServer', 'Hi');
 }, false);
-    `
+    `;
   } else {
     return `
 onNet('helloServer', (message: string) => {
   console.log(message);
 });
-    `
+    `;
   }
 }
