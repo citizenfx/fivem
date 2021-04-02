@@ -1005,6 +1005,10 @@ namespace rage
 	});
 }
 
+#ifdef GTA_FIVE
+extern bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+#endif
+
 static void LoadStreamingFiles(LoadType loadType)
 {
 	// register any custom streaming assets
@@ -1099,17 +1103,24 @@ static void LoadStreamingFiles(LoadType loadType)
 			{
 				// get the raw streamer and make an entry in there
 				auto rawStreamer = getRawStreamer();
+				int collectionId = 0;
+
+#ifdef GTA_FIVE
+				rage::fiCollection* customRawStreamer;
+
+				if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
+				{
+					rawStreamer = customRawStreamer;
+					collectionId = 1;
+				}
+#endif
+
 				uint32_t idx = rawStreamer->GetEntryByName(file.c_str());
 
 				if (strId != -1)
 				{
 					auto& entry = cstreaming->Entries[strId + strModule->baseIdx];
-
-#ifdef GTA_FIVE
-					console::DPrintf("gta:streaming:five", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
-#elif IS_RDR3
-					console::DPrintf("gta:streaming:rdr3", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
-#endif
+					console::DPrintf("gta:streaming", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (collectionId << 16) | idx);
 
 					// if no old handle was saved, save the old handle
 					auto& hs = g_handleStack[strId + strModule->baseIdx];
@@ -1119,7 +1130,7 @@ static void LoadStreamingFiles(LoadType loadType)
 						hs.push_front(entry.handle);
 					}
 
-					entry.handle = (rawStreamer->GetCollectionId() << 16) | idx;
+					entry.handle = (collectionId << 16) | idx;
 					g_handlesToTag[entry.handle] = tag;
 
 					// save the new handle
