@@ -575,8 +575,8 @@ static HookFunction initFunction([]()
 	ImColor hiliteBlue = ImColor(81, 179, 236);
 	ImColor hiliteBlueTransparent = ImColor(81, 179, 236, 180);
 	ImColor backgroundBlue = ImColor(22, 24, 28, 200);
-	ImColor semiTransparentBg = ImColor(255, 255, 255, 0.6);
-	ImColor semiTransparentBgHover = ImColor(255, 255, 255, 0.8);
+	ImColor semiTransparentBg = ImColor(50, 50, 50, 0.6 * 255);
+	ImColor semiTransparentBgHover = ImColor(80, 80, 80, 0.6 * 255);
 
 	style.Colors[ImGuiCol_WindowBg] = backgroundBlue;
 	style.Colors[ImGuiCol_TitleBg] = hiliteBlue;
