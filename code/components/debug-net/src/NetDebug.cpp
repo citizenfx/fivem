@@ -571,12 +571,18 @@ void NetOverlayMetricSink::DrawGraph()
 		&data3
 	};
 
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+
 	ImGui::PlotMultiLines("Net Bw", NET_PACKET_SUB_MAX, names, colors, [](const void* cxt, int idx) -> float
 	{
 		auto dataContext = (DataContext*)cxt;
 
 		return dataContext->metrics[idx].GetElementSize(dataContext->index);
 	}, datas, _countof(m_metrics) - 1, FLT_MAX, FLT_MAX, ImVec2(g_netOverlayWidth, g_netOverlayHeight - 100));
+
+	ImGui::PopStyleColor();
+	ImGui::PopStyleColor();
 }
 
 ImColor NetOverlayMetricSink::GetColorIndex(int index)
