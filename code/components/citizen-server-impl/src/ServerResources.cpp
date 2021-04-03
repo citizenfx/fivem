@@ -760,7 +760,7 @@ static InitFunction initFunction([]()
 
 				try
 				{
-					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + context }, rawCommand);
+					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "internal-net:" + context }, rawCommand);
 				}
 				catch (std::bad_any_cast& e)
 				{
