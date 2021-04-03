@@ -434,16 +434,22 @@ function RemoveEventHandler(eventData)
 	eventHandlers[eventData.name].handlers[eventData.key] = nil
 end
 
+local ignoreNetEvent = {
+	'__cfx_internal:commandFallback'
+}
+
 function RegisterNetEvent(eventName, cb)
-	local tableEntry = eventHandlers[eventName]
+	if not ignoreNetEvent[eventName] then
+		local tableEntry = eventHandlers[eventName]
 
-	if not tableEntry then
-		tableEntry = { }
+		if not tableEntry then
+			tableEntry = { }
 
-		eventHandlers[eventName] = tableEntry
+			eventHandlers[eventName] = tableEntry
+		end
+
+		tableEntry.safeForNet = true
 	end
-
-	tableEntry.safeForNet = true
 
 	if cb then
 		return AddEventHandler(eventName, cb)
@@ -636,8 +642,6 @@ Citizen.SetDuplicateRefRoutine(function(refId)
 	local ref = funcRefs[refId]
 
 	if ref then
-		--print(('%s %s ref %d - new refcount %d (from %s)'):format(GetCurrentResourceName(), 'duplicating', refId, ref.refs + 1, GetInvokingResource() or 'nil'))
-	
 		ref.refs = ref.refs + 1
 
 		return refId
@@ -650,8 +654,6 @@ Citizen.SetDeleteRefRoutine(function(refId)
 	local ref = funcRefs[refId]
 	
 	if ref then
-		--print(('%s %s ref %d - new refcount %d (from %s)'):format(GetCurrentResourceName(), 'deleting', refId, ref.refs - 1, GetInvokingResource() or 'nil'))
-	
 		ref.refs = ref.refs - 1
 		
 		if ref.refs <= 0 then
