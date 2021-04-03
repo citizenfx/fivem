@@ -220,6 +220,8 @@ void DrawDevGui()
 	}
 }
 
+extern bool IsNonProduction();
+
 static InitFunction initFunction([]()
 {
 	static ConsoleCommand devguiAddCmd("devgui_cmd", [](const DevGuiPath& path, const std::string& commandString)
@@ -240,19 +242,7 @@ static InitFunction initFunction([]()
 
 #ifndef IS_FXSERVER
 	console::GetDefaultContext()->AddToBuffer(R"(
-devgui_convar "Tools/Performance/Resource Monitor" resmon
-devgui_convar "Tools/Performance/Streaming Memory Viewer" strmem
-devgui_convar "Tools/Streaming/Streaming Stats" strdbg
-devgui_convar "Tools/Streaming/Streaming List" strlist
-devgui_convar "Tools/Network/OneSync/Network Object Viewer" netobjviewer
-devgui_convar "Tools/Network/OneSync/Network SyncLog" netobjviewer_syncLog
-devgui_convar "Tools/Network/OneSync/Network Time" net_showTime
-devgui_convar "Tools/Network/Network Command Log" net_showCommands
-devgui_convar "Tools/Network/Network Event Log" netEventLog
-devgui_cmd "Tools/NUI/Open DevTools" nui_devTools
-
 devgui_convar "Overlays/Draw FPS" cl_drawFPS
-devgui_convar "Overlays/Draw Performance" cl_drawPerf
 devgui_convar "Overlays/NetGraph" netgraph
 
 devgui_cmd "Launch/SP/Story Mode" "storymode"
@@ -269,10 +259,27 @@ devgui_cmd "Tools/Performance/Profiler/View Last Recording" "profiler view"
 set "game_mute" "profile_sfxVolume 0; profile_musicVolumeInMp 0; profile_musicVolume 0"
 set "game_unmute" "profile_sfxVolume 25; profile_musicVolumeInMp 10; profile_musicVolume 10"
 
-devgui_convar "Game/Enable Handbrake Camera" cam_enableHandbrakeCamera
 devgui_convar "Game/SFX Volume" profile_sfxVolume
 devgui_cmd "Game/Mute" "vstr game_mute"
 devgui_cmd "Game/Unmute" "vstr game_unmute"
 )");
+
+	if (IsNonProduction())
+	{
+		console::GetDefaultContext()->AddToBuffer(R"(
+devgui_convar "Tools/Performance/Resource Monitor" resmon
+devgui_convar "Tools/Performance/Streaming Memory Viewer" strmem
+devgui_convar "Tools/Streaming/Streaming Stats" strdbg
+devgui_convar "Tools/Streaming/Streaming List" strlist
+devgui_convar "Tools/Network/OneSync/Network Object Viewer" netobjviewer
+devgui_convar "Tools/Network/OneSync/Network SyncLog" netobjviewer_syncLog
+devgui_convar "Tools/Network/OneSync/Network Time" net_showTime
+devgui_convar "Tools/Network/Network Command Log" net_showCommands
+devgui_convar "Tools/Network/Network Event Log" netEventLog
+devgui_cmd "Tools/NUI/Open DevTools" nui_devTools
+
+devgui_convar "Overlays/Draw Performance" cl_drawPerf
+)");
+	}
 #endif
 });

@@ -716,12 +716,33 @@ static void EnsureConsoles()
 	}
 }
 
+bool IsNonProduction()
+{
+#if !defined(GTA_FIVE) || defined(_DEBUG)
+	return true;
+#else
+	static auto isProd = ([]()
+	{
+		wchar_t resultPath[1024];
+		static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+		return _wcsicmp(resultPath, L"production") == 0 || _wcsicmp(resultPath, L"prod") == 0;
+	})();
+
+	return !isProd;
+#endif
+}
+
 void DrawConsole()
 {
 	EnsureConsoles();
 
-	static bool pOpen = true;
-	g_consoles[0]->Draw("", &pOpen);
+	if (IsNonProduction())
+	{
+		static bool pOpen = true;
+		g_consoles[0]->Draw("", &pOpen);
+	}
 }
 
 void DrawMiniConsole()
