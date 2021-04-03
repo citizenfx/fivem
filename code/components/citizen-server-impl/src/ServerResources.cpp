@@ -103,6 +103,7 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 	static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
 	static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEvent", fx::RateLimiterDefaults{ 50.f, 200.f });
 	static auto netFloodRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventFlood", fx::RateLimiterDefaults{ 75.f, 300.f });
+	static auto netEventSizeRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventSize", fx::RateLimiterDefaults{ 128 * 1024.0, 384 * 1024.0 });
 
 	uint32_t netId = client->GetNetId();
 
@@ -124,6 +125,18 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 	buffer.Read<uint8_t>();
 
 	uint32_t dataLength = buffer.GetRemainingBytes();
+
+	if (!netEventSizeRateLimiter->Consume(netId, double(dataLength)))
+	{
+		gscomms_execute_callback_on_main_thread([client, instance]()
+		{
+			// if this happens, try increasing rateLimiter_netEventSize_rate and rateLimiter_netEventSize_burst
+			// preferably, fix client scripts to not have this large a set of events with high frequency
+			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event size overflow.");
+		});
+
+		return;
+	}
 
 	std::vector<uint8_t> data(dataLength);
 	buffer.Read(data.data(), data.size());
