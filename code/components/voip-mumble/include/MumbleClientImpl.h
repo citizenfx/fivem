@@ -27,6 +27,8 @@
 
 #include <uvw.hpp>
 
+using namespace std::literals::chrono_literals;
+
 namespace net
 {
 	class UvLoopHolder;
@@ -192,6 +194,10 @@ private:
 	uint32_t m_udpPings[12];
 
 	int m_voiceTarget;
+
+	const std::chrono::milliseconds m_udpTimeout = 10000ms;
+
+	const std::chrono::milliseconds m_udpPingFrequency = 1000ms;
 
 	std::chrono::milliseconds m_lastUdp;
 

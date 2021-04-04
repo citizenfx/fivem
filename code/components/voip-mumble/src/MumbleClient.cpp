@@ -22,8 +22,6 @@ using json = nlohmann::json;
 
 static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
-using namespace std::chrono_literals;
-
 inline std::chrono::milliseconds msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
@@ -180,7 +178,7 @@ void MumbleClient::Initialize()
 		{
 			static bool hadUDP = false;
 			static bool warnedUDP = false;
-			bool hasUDP = ((msec() - m_lastUdp) <= 7500ms);
+			bool hasUDP = ((msec() - m_lastUdp) <= m_udpTimeout);
 			
 			if (hasUDP && !hadUDP)
 			{
@@ -401,7 +399,7 @@ void MumbleClient::Initialize()
 						SendUDP(pingBuf, pds.size());
 					}
 
-					m_nextPing = msec() + 2500ms;
+					m_nextPing = msec() + m_udpPingFrequency;
 				}
 			}
 			else
@@ -719,9 +717,7 @@ void MumbleClient::SetListenerMatrix(float position[3], float front[3], float up
 
 void MumbleClient::SendVoice(const char* buf, size_t size)
 {
-	using namespace std::chrono_literals;
-
-	if ((msec() - m_lastUdp) > 7500ms)
+	if ((msec() - m_lastUdp) > m_udpTimeout)
 	{
 		Send(MumbleMessageType::UDPTunnel, buf, size);
 	}
