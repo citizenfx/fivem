@@ -300,6 +300,11 @@ public:
 
 		resource->OnDeactivate.Connect([this]()
 		{
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
+			{
+				return;
+			}
+
 			// #TODO: do we need a DCHECK?
 			assert(this == ms_activationStack.top().GetRef());
 			ms_activationStack.pop();
