@@ -227,9 +227,22 @@ function Citizen.SetTimeout(msec, callback)
 	}
 
 	hadThread = true
+	return coro
+end
+
+function Citizen.ClearTimeout(coro)
+	local coroType = type(coro)
+	if coroType == 'thread' then
+		threads[coro] = nil
+		coroutine_close(coro)
+	else
+		-- don't want to silently error if they send a invalid type
+		error(("ClearTimeout expected 'thread' got '%s'."):format(coroType))
+	end
 end
 
 SetTimeout = Citizen.SetTimeout
+ClearTimeout = Citizen.ClearTimeout
 
 Citizen.SetTickRoutine(function()
 	if not hadThread then
