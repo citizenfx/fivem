@@ -30,6 +30,8 @@ struct fiFindData
 	DWORD fileAttributes;
 };
 
+using ResourceFlags = uint32_t;
+
 class DEVICE_EXPORT __declspec(novtable) fiDevice : public sysUseAllocator
 {
 public:
@@ -83,12 +85,16 @@ public:
 	virtual size_t FindFirst(const char* path, fiFindData* findData) = 0;
 	virtual bool FindNext(size_t handle, fiFindData* findData) = 0;
 	virtual int FindClose(size_t handle) = 0;
+	virtual char* FixRelativeName(char* out, size_t s, const char* in) = 0;
 	virtual bool Truncate(uint32_t handle) = 0;
 
 	virtual uint32_t GetFileAttributes(const char* path) = 0;
 	virtual bool SetFileAttributes(const char* file, uint32_t FileAttributes) = 0;
-	virtual int m_6C() = 0;
+	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* version) = 0;
 	virtual uint32_t GetParentHandle() = 0;
+	virtual int64_t m_7C(int) = 0;
+	virtual void m_80() = 0;
+	virtual int32_t m_84(int) = 0;
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiDeviceImplemented : public fiDevice
@@ -138,12 +144,16 @@ public:
 	virtual size_t FindFirst(const char* path, fiFindData* findData);
 	virtual bool FindNext(size_t handle, fiFindData* findData);
 	virtual int FindClose(size_t handle);
+	virtual char* FixRelativeName(char* out, size_t s, const char* in) override;
 	virtual bool Truncate(uint32_t handle);
 
 	virtual uint32_t GetFileAttributes(const char* path);
 	virtual bool SetFileAttributes(const char* file, uint32_t FileAttributes);
-	virtual int m_6C();
+	virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* version);
 	virtual uint32_t GetParentHandle();
+	virtual int64_t m_7C(int) override;
+	virtual void m_80() override;
+	virtual int32_t m_84(int) override;
 };
 
 class DEVICE_EXPORT __declspec(novtable) fiDeviceRelative : public fiDeviceImplemented

@@ -161,13 +161,33 @@ bool fiCustomDevice::SetFileAttributes(const char* file, uint32_t FileAttributes
 	return m_parentDeviceRef->SetFileAttributes(file, FileAttributes);
 }
 
-int fiCustomDevice::m_6C()
+char* fiCustomDevice::FixRelativeName(char* out, size_t s, const char* in)
 {
-	return m_parentDeviceRef->m_6C();
+	return m_parentDeviceRef->FixRelativeName(out, s, in);
+}
+
+int32_t fiCustomDevice::GetResourceVersion(const char* fileName, ResourceFlags* version)
+{
+	return m_parentDeviceRef->GetResourceVersion(fileName, version);
 }
 
 uint32_t fiCustomDevice::GetParentHandle()
 {
 	return m_parentDeviceRef->GetParentHandle();
+}
+
+int64_t fiCustomDevice::m_7C(int a)
+{
+	return m_parentDeviceRef->m_7C(a);
+}
+
+void fiCustomDevice::m_80()
+{
+	return m_parentDeviceRef->m_80();
+}
+
+int32_t fiCustomDevice::m_84(int a)
+{
+	return m_parentDeviceRef->m_84(a);
 }
 }

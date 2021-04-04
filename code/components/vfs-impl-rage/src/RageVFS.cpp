@@ -60,9 +60,9 @@ public:
 
 	virtual int GetFileLength(size_t handle) override;
 
-#ifndef GTA_NY
 	virtual uint64_t GetFileLengthLong(const char* fileName) override;
 
+#ifndef GTA_NY
 	virtual uint64_t GetFileLengthUInt64(size_t handle) override;
 #endif
 
@@ -86,7 +86,6 @@ public:
 
 	virtual int FindClose(size_t handle) override;
 
-#ifndef GTA_NY
 	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override;
 	/*{
 		version->flag1 = 0;
@@ -97,6 +96,7 @@ public:
 		return 0;
 	}*/
 
+#ifndef GTA_NY
 	virtual int m_yx() override
 	{
 		return 2;
@@ -182,12 +182,12 @@ int RageVFSDeviceAdapter::GetFileLength(size_t handle)
 	return m_cfxDevice->GetLength(handle);
 }
 
-#ifndef GTA_NY
 uint64_t RageVFSDeviceAdapter::GetFileLengthLong(const char* fileName)
 {
 	return m_cfxDevice->GetLength(fileName);
 }
 
+#ifndef GTA_NY
 uint64_t RageVFSDeviceAdapter::GetFileLengthUInt64(uint64_t handle)
 {
 	return m_cfxDevice->GetLength(handle);
@@ -214,7 +214,6 @@ uint64_t RageVFSDeviceAdapter::GetFileTime(const char* file)
 	return 125213779100000000;
 }
 
-#ifndef GTA_NY
 #define VFS_GET_RAGE_PAGE_FLAGS 0x20001
 
 struct GetRagePageFlagsExtension
@@ -232,10 +231,17 @@ int RageVFSDeviceAdapter::GetResourceVersion(const char* file, rage::ResourceFla
 	if (m_cfxDevice->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &ext, sizeof(ext)))
 	{
 		*version = ext.flags;
+#if defined(GTA_NY)
+		// pgStreamer expects this in NY - has to be -1 or a version assertion will fail (North laziness)
+		return -1;
+#else
 		return ext.version;
+#endif
 	}
 
-#ifndef IS_RDR3
+#if defined(GTA_NY)
+	*version = 0;
+#elif !defined(IS_RDR3)
 	version->flag1 = 0;
 	version->flag2 = 0;
 #else
@@ -246,7 +252,6 @@ int RageVFSDeviceAdapter::GetResourceVersion(const char* file, rage::ResourceFla
 
 	return 0;
 }
-#endif
 
 bool RageVFSDeviceAdapter::SetFileTime(const char* file, FILETIME fileTime)
 {
@@ -458,11 +463,7 @@ size_t RageVFSDevice::GetLength(THandle handle)
 
 size_t RageVFSDevice::GetLength(const std::string& fileName)
 {
-#ifndef GTA_NY
 	return m_device->GetFileLengthLong(fileName.substr(m_pathPrefixLength).c_str());
-#else
-	return m_device->GetFileLengthLong(fileName.substr(m_pathPrefixLength).c_str());
-#endif
 }
 
 uint32_t RageVFSDevice::GetAttributes(const std::string& fileName)

@@ -3,6 +3,8 @@
 #include <fiDevice.h>
 #include <vector>
 
+#include <StreamingTypes.h>
+
 #ifdef COMPILING_GTA_STREAMING_NY
 #include <zlib.h>
 
@@ -13,38 +15,42 @@
 
 namespace rage
 {
-	struct ResourceFlags
-	{
-		uint32_t flags;
-		uint32_t version;
-
-		bool operator<(const ResourceFlags& right)
-		{
-			if (flags == right.flags)
-			{
-				return version < right.version;
-			}
-
-			return flags < right.flags;
-		}
-	};
+	using ResourceFlags = uint32_t;
 }
 
-// StreamingInfoManager?
+struct StreamHandle
+{
+	// +4
+	uint32_t imgIndex : 8;
+	uint32_t offset : 24;
+	// +8
+	uint32_t unk : 2;
+	uint32_t size : 30;
+};
+
+struct CStreamingInfo
+{
+	// +0
+	uint32_t realSize;
+	// +4
+	StreamHandle handle;
+	// +12
+	uint16_t unk2;
+	// +14
+	uint16_t flags;
+	// +16
+	uint32_t unk3;
+	// +20
+	uint16_t nextOnCd;
+	// +22
+	uint8_t moduleByIdx;
+	uint8_t module;
+};
+
 class STREAMING_EXPORT CStreamingInfoManager
 {
 public:
-	struct MgdFileData
-	{
-		uint32_t realSize;
-		uint8_t imgIndex;
-		char pad[9];
-		uint16_t flags;
-		char pad2[8];
-	};
-
-public:
-	MgdFileData* fileDatas;
+	CStreamingInfo* Entries;
 
 	// +36: used streaming memory, header blocks
 	// +48: used streaming memory, virtual blocks
@@ -219,45 +225,6 @@ public:
 
 StreamThread* GetStreamThread(int id);
 #endif
-
-void StreamWorker_Thread(int threadNum);
-LPOVERLAPPED StreamWorker_GetOverlapped(int streamThreadNum);
-
-class StreamingFile
-{
-public:
-	virtual ~StreamingFile();
-
-	virtual void Open() = 0;
-
-	virtual uint32_t Read(uint64_t ptr, void* buffer, uint32_t toRead) = 0;
-
-	virtual void Close() = 0;
-
-	virtual uint32_t GetUniqueIdentifier() = 0;
-};
-
-class StreamingModule
-{
-public:
-	virtual void ScanEntries() = 0;
-
-	virtual StreamingFile* GetEntryFromIndex(uint32_t handle) = 0;
-};
-
-class CStreaming
-{
-public:
-	static void ScanImgEntries();
-
-	static uint32_t OpenImgEntry(uint32_t handle);
-
-	static StreamingFile* GetImgEntry(uint32_t handle);
-
-	static uint32_t CloseImgEntry(uint32_t handle);
-
-	static void SetStreamingModule(StreamingModule* module);
-};
 
 #if 0
 #include "ResourceCache.h"

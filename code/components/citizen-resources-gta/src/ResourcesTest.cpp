@@ -102,7 +102,11 @@ static InitFunction initFunction([] ()
 
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
+#ifndef GTA_NY
 		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+#else
+		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, entry.rscPagesVirtual);
+#endif
 		removeTags.insert(entry.resourceName);
 	});
 

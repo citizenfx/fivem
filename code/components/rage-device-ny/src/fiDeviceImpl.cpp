@@ -153,12 +153,32 @@ bool WRAPPER fiDeviceImplemented::SetFileAttributes(const char* file, uint32_t F
 	PURECALL();
 }
 
-int WRAPPER fiDeviceImplemented::m_6C()
+WRAPPER char* fiDeviceImplemented::FixRelativeName(char* out, size_t s, const char* in)
+{
+	PURECALL();
+}
+
+WRAPPER int32_t fiDeviceImplemented::GetResourceVersion(const char* fileName, ResourceFlags* version)
 {
 	PURECALL();
 }
 
 uint32_t WRAPPER fiDeviceImplemented::GetParentHandle()
+{
+	PURECALL();
+}
+
+WRAPPER int64_t fiDeviceImplemented::m_7C(int a)
+{
+	PURECALL();
+}
+
+WRAPPER void fiDeviceImplemented::m_80()
+{
+	PURECALL();
+}
+
+WRAPPER int32_t fiDeviceImplemented::m_84(int a)
 {
 	PURECALL();
 }

@@ -674,10 +674,14 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 			data->flags.version = atoi(extData["rscVersion"].c_str());
 			data->flags.virtPages = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
 			data->flags.physPages = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
-#else
+#elif defined(GTA_FIVE)
 			data->version = atoi(extData["rscVersion"].c_str());
 			data->flags.flag1 = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
 			data->flags.flag2 = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
+#elif defined(GTA_NY)
+			data->version = atoi(extData["rscVersion"].c_str());
+			data->flags.flag1 = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
+			// flag2 would be out of bounds
 #endif
 			return true;
 		}

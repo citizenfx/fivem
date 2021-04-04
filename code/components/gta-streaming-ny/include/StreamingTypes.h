@@ -1,6 +1,6 @@
 #pragma once
 
-struct CStreamingType
+struct CStreamingModule
 {
 	uint32_t pad;
 	void*(*getAt)(int index);
@@ -22,9 +22,26 @@ struct CStreamingType
 	uint32_t fileVersion;
 };
 
-struct CStreamingTypeManager
+struct CStreamingModuleManager
 {
-	CStreamingType types[25];
+	CStreamingModule modules[25];
+	int moduleCount;
+
+	inline int GetModuleFromExt(const char* ext)
+	{
+		if (moduleCount > 0)
+		{
+			for (int i = 0; i < moduleCount; i++)
+			{
+				if (_strnicmp(modules[i].ext, ext, 3) == 0)
+				{
+					return i;
+				}
+			}
+		}
+
+		return 0xFF;
+	}
 };
 
-extern GAMESPEC_EXPORT CStreamingTypeManager* streamingTypes;
+extern GAMESPEC_EXPORT CStreamingModuleManager* streamingModuleMgr;

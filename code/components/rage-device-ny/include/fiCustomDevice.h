@@ -56,11 +56,15 @@ namespace rage
 		virtual size_t FindFirst(const char* path, fiFindData* findData);
 		virtual bool FindNext(size_t handle, fiFindData* findData);
 		virtual int FindClose(size_t handle);
+		virtual char* FixRelativeName(char* out, size_t s, const char* in) override;
 		virtual bool Truncate(uint32_t handle);
 
 		virtual uint32_t GetFileAttributes(const char* path);
 		virtual bool SetFileAttributes(const char* file, uint32_t FileAttributes);
-		virtual int m_6C();
+		virtual int32_t GetResourceVersion(const char* fileName, ResourceFlags* version) override;
 		virtual uint32_t GetParentHandle();
+		virtual int64_t m_7C(int) override;
+		virtual void m_80() override;
+		virtual int32_t m_84(int) override;
 	};
 }

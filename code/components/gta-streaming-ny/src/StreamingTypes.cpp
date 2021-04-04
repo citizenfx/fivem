@@ -9,9 +9,9 @@
 #include "StreamingTypes.h"
 #include <Hooking.h>
 
-CStreamingTypeManager* streamingTypes;
+CStreamingModuleManager* streamingModuleMgr;
 
 static HookFunction hookFunc([]()
 {
-	streamingTypes = *hook::get_pattern<CStreamingTypeManager*>("B8 FF FF 00 00 66 89 46 14", -20);
+	streamingModuleMgr = *hook::get_pattern<CStreamingModuleManager*>("B8 FF FF 00 00 66 89 46 14", -20);
 });
