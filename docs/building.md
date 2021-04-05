@@ -5,6 +5,7 @@
 To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 
 * A Windows machine with Visual Studio 2019 (Build Tools/Community is fine) installed with the following workloads:
+  - ASP.NET and web development
   - .NET desktop environment
   - Desktop development with C++
   - Universal Windows Platform development
@@ -22,6 +23,7 @@ Then, execute the following commands in a `cmd.exe` shell to set up the build en
 ```bat
 set BOOST_ROOT=C:\libraries\boost_1_63_0
 set PATH=%path%;C:\tools\python27amd64
+python -m pip install ply jinja2
 git clone https://github.com/citizenfx/fivem.git
 cd fivem
 git submodule init
