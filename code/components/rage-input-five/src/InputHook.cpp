@@ -15,6 +15,7 @@ static bool g_isFocused = true;
 static bool g_enableSetCursorPos = false;
 static bool g_isFocusStolen = false;
 
+static int* g_mouseButtons;
 static int* g_inputOffset;
 static rage::ioMouse* g_input;
 
@@ -144,11 +145,11 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 				{
 					if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
 					{
-						g_input->m_Buttons &= ~buttonIdx;
+						*g_mouseButtons &= ~buttonIdx;
 					}
 					else
 					{
-						g_input->m_Buttons |= buttonIdx;
+						*g_mouseButtons |= buttonIdx;
 					}
 
 					break;
@@ -274,6 +275,7 @@ static bool g_mainThreadId;
 static HookFunction setOffsetsHookFunction([]()
 {
 	g_inputOffset = hook::get_address<int*>(hook::get_pattern("89 3D ? ? ? ? EB 0F 48 8B CB", 2));
+	g_mouseButtons = hook::get_address<int*>(hook::get_pattern("FF 15 ? ? ? ? 85 C0 8B 05 ? ? ? ? 74 05", 10));
 
 	// This is a sig to the first known member, which is mouseWheel
 	g_input = hook::get_address<rage::ioMouse*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
