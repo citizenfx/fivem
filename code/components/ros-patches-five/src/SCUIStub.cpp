@@ -355,9 +355,17 @@ public:
 			if (r.error || r.status_code != 200)
 			{
 				trace("ROS error: %s\n", r.error.message);
-				trace("ROS error text: %s\n", DecryptROSData(r.text.c_str(), r.text.size(), sessionKey));
 
-				cb("Error contacting Rockstar Online Services.", "");
+				auto errorText = r.text;
+
+				if (r.header.find("scs-requestid") != r.header.end())
+				{
+					errorText = DecryptROSData(r.text.c_str(), r.text.size(), sessionKey);
+				}
+
+				trace("ROS error text: %s\n", r.text);
+
+				cb(fmt::sprintf("Error contacting Rockstar Online Services: %s -> %s.", r.error.message, errorText), "");
 
 				return;
 			}
@@ -808,6 +816,13 @@ std::string LoginHandler2::DecryptROSData(const char* data, size_t size, const s
         end -= 20;
 
         int thisLen = end - start;
+
+		if (thisLen < 0)
+		{
+			return std::string{
+				data, size
+			};
+		}
 
         // decrypt the block
         rc4->cipher(reinterpret_cast<const uint8_t*>(&data[start]), &blockData[0], thisLen);
