@@ -55,7 +55,7 @@ namespace fxc
 
 	class ShaderEntry
 	{
-	private:
+	public:
 		std::string m_name;
 		std::vector<std::string> m_arguments;
 		std::map<uint16_t, std::string> m_constantBuffers;
@@ -63,6 +63,10 @@ namespace fxc
 		std::vector<uint8_t> m_shaderData;
 
 	public:
+		inline ShaderEntry()
+		{
+		}
+
 		ShaderEntry(const TReader& reader, int);
 
 		void Write(const TWriter& writer, int);
@@ -90,7 +94,7 @@ namespace fxc
 
 	class ShaderParameter
 	{
-	private:
+	public:
 		std::string m_name;
 		std::string m_description;
 		ShaderParameterType m_type;
@@ -107,6 +111,10 @@ namespace fxc
 		std::map<std::string, std::variant<std::string, int, float>> m_annotations;
 
 	public:
+		inline ShaderParameter()
+		{
+		}
+
 		ShaderParameter(const TReader& reader);
 
 		void Write(const TWriter& writer);
@@ -196,11 +204,16 @@ namespace fxc
 		{
 			return m_rawData;
 		}
+
+		inline void SetRawData(const std::vector<uint8_t>& data)
+		{
+			m_rawData = data;
+		}
 	};
 
 	class FORMATS_EXPORT ShaderConstantBuffer
 	{
-	private:
+	public:
 		std::string m_name;
 		std::array<uint8_t, 16> m_data;
 
@@ -229,7 +242,7 @@ namespace fxc
 
 	class FORMATS_EXPORT ShaderFile
 	{
-	private:
+	public:
 		std::map<std::string, std::variant<std::string, int, float>> m_preValues;
 		std::vector<std::shared_ptr<ShaderEntry>> m_vertexShaders;
 		std::vector<std::shared_ptr<ShaderEntry>> m_pixelShaders;
@@ -247,6 +260,10 @@ namespace fxc
 		std::map<std::string, std::vector<TechniqueMapping>> m_techniqueMappings;
 
 	public:
+		inline ShaderFile()
+		{
+		}
+
 		ShaderFile(const TReader& reader);
 
 		inline ~ShaderFile() {}
@@ -293,6 +310,16 @@ namespace fxc
 		inline std::map<std::string, std::shared_ptr<ShaderParameter>>& GetLocalParameters()
 		{
 			return m_localParameters;
+		}
+
+		inline auto& GetLocalConstantBuffers()
+		{
+			return m_localConstantBuffers;
+		}
+
+		inline auto& GetTechniques()
+		{
+			return m_techniqueMappings;
 		}
 
 		inline uint8_t MapRegister(uint8_t inReg)

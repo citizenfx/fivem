@@ -44,6 +44,7 @@ if os.target() == 'windows' then
 	vendor_component 'discord-rpc'
 	vendor_component 'minhook'
 	vendor_component 'minhook-crt'
+	vendor_component 'fx11'
 end
 
 vendor_component 'hdiffpatch'

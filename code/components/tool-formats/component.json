@@ -6,7 +6,8 @@
 		"rage:formats:x",
 		"vendor:boost_filesystem",
 		"vendor:boost_program_options",
-		"vendor:tinygltf"
+		"vendor:tinygltf",
+		"vendor:fx11"
 	],
 	"provides": []
 }
