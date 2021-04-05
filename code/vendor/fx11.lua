@@ -7,6 +7,9 @@ return {
 		language "C++"
 		kind "StaticLib"
 
+		-- this library will use CreateFile2 otherwise
+		defines { "_WIN32_WINNT=0x0601"}
+
 		includedirs { "../vendor/fx11/", "../vendor/fx11/Binary/" }
 		
 		files_project "../vendor/fx11/" {
