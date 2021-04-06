@@ -213,7 +213,7 @@ namespace streaming
 		if (GetRawStreamerForFile(fileName, &rawStreamer))
 		{
 			auto fileIdx = rawStreamer->GetEntryByName(fileName);
-			if (fileIdx != -1)
+			if (fileIdx != uint16_t(-1))
 			{
 				const char* registerName = fileName;
 
