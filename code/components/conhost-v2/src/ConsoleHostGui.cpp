@@ -734,6 +734,38 @@ bool IsNonProduction()
 #endif
 }
 
+static void DrawNonProductionWarning()
+{
+#ifndef IS_FXSERVER
+	if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
+	{
+		return;
+	}
+#endif
+
+	ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
+	ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
+#ifndef IS_FXSERVER
+							 ImGui::GetFrameHeightWithSpacing() * 12.0f
+#else
+							 ImGui::GetIO().DisplaySize.y - g_menuHeight
+#endif
+							 ),
+	ImGuiCond_Always);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+
+	if (ImGui::Begin("Console", nullptr, flags))
+	{
+		ImGui::Text("^3--> WHERE'S THE CONSOLE?^7\n\nThe console is currently disabled as you're not on a server running in development mode, nor are you running a non-production build of FiveM.\nTo get console access for development, switch FiveM away from a production build (in the settings in the main menu UI).");
+	}
+
+	ImGui::End();
+	ImGui::PopStyleVar();
+}
+
 void DrawConsole()
 {
 	EnsureConsoles();
@@ -742,6 +774,10 @@ void DrawConsole()
 	{
 		static bool pOpen = true;
 		g_consoles[0]->Draw("", &pOpen);
+	}
+	else
+	{
+		DrawNonProductionWarning();
 	}
 }
 
