@@ -311,7 +311,9 @@ void Context::SaveConfigurationIfNeeded(const std::string& path)
 		console::DPrintf("cmd", "Saving configuration to %s...\n", path.c_str());
 
 		SaveConfiguration(path, this, GetVariableManager());
-
+		
+		console::DPrintf("cmd", "Successfully saved configuration to %s.\n", path.c_str());
+		
 		wasSavedBefore = true;
 
 		m_variableModifiedFlags &= ~ConVar_Archive;
