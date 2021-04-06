@@ -2,6 +2,7 @@
 set -e
 
 apk add --no-cache nodejs npm
+npm install -g npm@7.8.0
 
 cd ../txAdmin/
 npm ci
