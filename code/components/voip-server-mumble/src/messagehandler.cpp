@@ -201,11 +201,7 @@ void Mh_handle_message(client_t *client, message_t *msg)
 		/* Setup UDP encryption */
 		CryptState_init(&client->cryptState);
 		CryptState_genKey(&client->cryptState);
-		sendmsg = Msg_create(CryptSetup);
-		sendmsg->payload.cryptSetup->set_key(client->cryptState.raw_key, AES_BLOCK_SIZE);
-		sendmsg->payload.cryptSetup->set_server_nonce(client->cryptState.encrypt_iv, AES_BLOCK_SIZE);
-		sendmsg->payload.cryptSetup->set_client_nonce(client->cryptState.decrypt_iv, AES_BLOCK_SIZE);
-		Client_send_message(client, sendmsg);
+		Client_setup_encryption(client);
 
 		/* Channel stuff */
 		Chan_userJoin(defaultChan, client); /* Join default channel */

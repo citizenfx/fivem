@@ -193,6 +193,8 @@ private:
 
 	int m_voiceTarget;
 
+	bool m_udpReconnect;
+
 	std::chrono::milliseconds m_lastUdp;
 
 	std::chrono::milliseconds m_nextPing;

@@ -24,7 +24,8 @@ static __declspec(thread) MumbleClient* g_currentMumbleClient;
 
 using namespace std::chrono_literals;
 
-constexpr const auto kUDPTimeout = 10000ms;
+constexpr const auto kUDPTimeout = 5000ms;
+constexpr const auto kUDPResyncInterval = 5000ms;
 constexpr const auto kUDPPingInterval = 1000ms;
 
 inline std::chrono::milliseconds msec()
@@ -40,6 +41,7 @@ void MumbleClient::Initialize()
 
 	m_lastUdp = {};
 	m_nextPing = {};
+	m_udpReconnect = false;
 
 	m_loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("mumble");
 
@@ -183,6 +185,7 @@ void MumbleClient::Initialize()
 		{
 			static bool hadUDP = false;
 			static bool warnedUDP = false;
+			static auto lastResyncTime = msec();
 			bool hasUDP = ((msec() - m_lastUdp) <= kUDPTimeout);
 			
 			if (hasUDP && !hadUDP)
@@ -207,6 +210,13 @@ void MumbleClient::Initialize()
 
 				// try to recreate UDP if need be
 				recreateUDP();
+			}
+			else if (m_udpReconnect && !hasUDP && (msec() - lastResyncTime) >= kUDPResyncInterval)
+			{
+				MumbleProto::CryptSetup msg;
+				Send(MumbleMessageType::CryptSetup, msg);
+
+				lastResyncTime = msec();
 			}
 
 			if (m_tlsClient && m_tlsClient->is_active() && m_connectionInfo.isConnected)
@@ -396,10 +406,10 @@ void MumbleClient::Initialize()
 
 					{
 						char pingBuf[64] = { 0 };
-
 						PacketDataStream pds(pingBuf, sizeof(pingBuf));
-						pds.append((1 << 5));
+						pds << uint8_t(1 << 5);
 						pds << uint64_t(msec().count());
+						pds << false; // for udpReconnect -- will simply be forwarded back by older server builds
 
 						SendUDP(pingBuf, pds.size());
 					}
@@ -794,6 +804,12 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 	{
 		uint64_t timestamp;
 		pds >> timestamp;
+
+		bool udpReconnect;
+		pds >> udpReconnect;
+		if (udpReconnect) {
+			m_udpReconnect = true;
+		}
 
 		// time delta
 		auto timeDelta = msec().count() - timestamp;

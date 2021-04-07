@@ -743,6 +743,16 @@ int Client_send_message_except_ver(client_t *client, message_t *msg, uint32_t ve
 	return 0;
 }
 
+void Client_setup_encryption(client_t *client)
+{
+	message_t *sendmsg = Msg_create(CryptSetup);
+	sendmsg->payload.cryptSetup->set_key(client->cryptState.raw_key, AES_BLOCK_SIZE);
+	sendmsg->payload.cryptSetup->set_server_nonce(client->cryptState.encrypt_iv, AES_BLOCK_SIZE);
+	sendmsg->payload.cryptSetup->set_client_nonce(client->cryptState.decrypt_iv, AES_BLOCK_SIZE);
+	
+	Client_send_message(client, sendmsg);
+}
+
 bool_t checkDecrypt(client_t *client, const uint8_t *encrypted, uint8_t *plain, unsigned int len)
 {
 	if (CryptState_isValid(&client->cryptState) &&
@@ -754,9 +764,8 @@ bool_t checkDecrypt(client_t *client, const uint8_t *encrypted, uint8_t *plain, 
 			message_t *sendmsg;
 			Timer_restart(&client->cryptState.tLastRequest);
 
-			sendmsg = Msg_create(CryptSetup);
-			Log_info_client(client, "Requesting voice channel crypt resync");
-			Client_send_message(client, sendmsg);
+			Log_info_client(client, "Resetting voice channel crypt state");
+			Client_setup_encryption(client);
 		}
 	}
 	return false;

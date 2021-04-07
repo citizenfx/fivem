@@ -124,6 +124,7 @@ int Client_write_fd(int fd);
 int Client_send_message(client_t *client, message_t *msg);
 int Client_send_message_ver(client_t *client, message_t *msg, uint32_t version);
 int Client_send_message_except_ver(client_t *client, message_t *msg, uint32_t version);
+void Client_setup_encryption(client_t *client);
 int Client_count(void);
 void Client_close(client_t *client);
 client_t *Client_iterate(client_t **client);

@@ -46,6 +46,8 @@
 #include "util.h"
 #include "sharedmemory.h"
 
+#include "PacketDataStream.h"
+
 /* globals */
 bool_t shutdown_server;
 extern char *bindaddr;
@@ -519,7 +521,7 @@ static InitFunction initFunction([]()
 
 				while (Client_iterate(&itr) != nullptr)
 				{
-					if (itr->remote_udp == net::PeerAddress{} &&
+					if (itr->remote_udp == net::PeerAddress{} ||
 						(itr->remote_tcp.GetHost() == fromAddress ||
 						 fromAddress == fmt::sprintf("[::ffff:%s]", itr->remote_tcp.GetHost())))
 					{
@@ -605,7 +607,9 @@ static InitFunction initFunction([]()
 
 			client->bUDP = true;
 			len -= 4; /* Adjust for crypt header */
-			auto msgType = (UDPMessageType_t)((buffer[0] >> 5) & 0x7);
+
+			PacketDataStream pds(buffer, len);
+			auto msgType = (UDPMessageType_t)(pds.next8() >> 5);
 
 			switch (msgType) {
 			case UDPVoiceSpeex:
@@ -616,9 +620,15 @@ static InitFunction initFunction([]()
 				Client_voiceMsg(client, buffer, len);
 				break;
 			case UDPPing:
+			{
 				Log_debug("UDP Ping reply len %d", len);
-				Client_send_udp(client, buffer, len);
+				uint64_t timestamp;
+				pds >> timestamp;
+				pds << true; // enable UDP reconnects
+
+				Client_send_udp(client, buffer, pds.size());
 				break;
+			}
 			default:
 			{
 				auto clientAddressString = Util_clientAddressToString(client);
