@@ -102,7 +102,7 @@ private:
 			return isTalking;
 		}
 
-		virtual bool ShouldManagePoll()
+		virtual bool ShouldPollAudio()
 		{
 			return false;
 		}
@@ -185,9 +185,11 @@ private:
 			return context && context->destination();
 		}
 
-		virtual bool ShouldManagePoll()
+		virtual bool ShouldPollAudio()
 		{
-			return true;
+			XAUDIO2_VOICE_STATE vs;
+			voice->GetState(&vs);
+			return vs.BuffersQueued == 0;
 		}
 
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;

@@ -261,6 +261,11 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 	{
 		isTalking = false;
 	}
+
+	if (ShouldPollAudio())
+	{
+		PollAudio((48000 / 1000) * 10);
+	}
 }
 
 static std::map<lab::AudioContext*, std::weak_ptr<lab::AudioSourceNode>> g_audioToClients;
@@ -690,6 +695,11 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 	{
 		std::unique_lock _(client->jitterLock);
 		jitter_buffer_put(client->jitter, &jbp);
+	}
+
+	if (client->ShouldPollAudio())
+	{
+		client->PollAudio((48000 / 1000) * 10);
 	}
 }
 
@@ -1326,24 +1336,6 @@ void MumbleAudioOutput::ThreadFunc()
 	CoInitialize(nullptr);
 
 	InitializeAudioDevice();
-
-	while (true) {
-		const int opusFrameTime = 20;
-
-		{
-			std::shared_lock<std::shared_mutex> _(m_clientsMutex);
-
-			for (auto& client : m_clients)
-			{
-				if (client.second && client.second->ShouldManagePoll())
-				{
-					client.second->PollAudio((48000 / 1000) * opusFrameTime);
-				}
-			}
-		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(opusFrameTime));
-	}
 }
 
 void MumbleAudioOutput::SetAudioDevice(const std::string& deviceId)
