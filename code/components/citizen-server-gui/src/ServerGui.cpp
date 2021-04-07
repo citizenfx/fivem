@@ -240,6 +240,15 @@ DECLARE_INSTANCE_TYPE(fx::ServerGui);
 
 static InitFunction initFunction([]()
 {
+	// Don't start the UI on session0 ( Session for Services )
+	#ifdef _WIN32
+	DWORD sessionID;
+	if (ProcessIdToSessionId(GetCurrentProcessId(), &sessionID) && sessionID == 0)
+	{
+		return;
+	}
+	#endif
+
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		instance->SetComponent(new fx::ServerGui());
