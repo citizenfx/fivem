@@ -38,7 +38,7 @@ import {
 import { debounce, getResourceConfig, notNull } from 'shared/utils';
 import { ContributionProvider } from 'backend/contribution-provider';
 import { AssetManagerContribution } from './asset/asset-manager-contribution';
-import { GameServerService, ServerStartRequest } from 'backend/game-server/game-server-service';
+import { GameServerService } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
 import { ChangeAwareContainer } from 'backend/change-aware-container';
@@ -53,7 +53,7 @@ import { AssetInterface } from './asset/asset-types';
 import { ProjectData, ProjectManifest, ProjectManifestResource, ProjectPathsState, ProjectResources } from 'shared/project.types';
 import { isAssetMetaFile, stripAssetMetaExt } from 'utils/project';
 import { ProjectUpgrade } from './project-upgrade';
-import { ProjectResourcesMaintainer } from './project-resources-maintainer';
+import { ServerStartRequest } from 'backend/game-server/game-server-runtime';
 
 interface Silentable {
   silent?: boolean,
@@ -118,9 +118,6 @@ export class Project implements ApiContribution {
 
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
-
-  @inject(ProjectResourcesMaintainer)
-  protected readonly resourcesMaintainer: ProjectResourcesMaintainer;
 
   private state: ProjectState = ProjectState.Development;
 
@@ -884,6 +881,9 @@ export class Project implements ApiContribution {
   }
 
   private refreshEnabledResources() {
-    this.resourcesMaintainer.refreshEnabledResources();
+    this.gameServerService.setResources(this.getEnabledResourcesAssets().map((asset) => ({
+      name: asset.getName(),
+      path: asset.getPath(),
+    })));
   }
 }

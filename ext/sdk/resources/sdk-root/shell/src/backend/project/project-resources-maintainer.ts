@@ -113,7 +113,7 @@ export class ProjectResourcesMaintainer {
 
     this.logService.log('Reconciling enabled resources', { enabledResourcesPaths });
 
-    this.gameServerService.emitSdkGameEvent('refresh');
+    // this.gameServerService.emitSdkGameEvent('refresh');
 
     const resourcesStates = {};
 
@@ -135,11 +135,11 @@ export class ProjectResourcesMaintainer {
 
     Object.entries(resourcesStates).forEach(([resourceName, state]) => {
       if (state === ResourceReconcilationState.start) {
-        return this.gameServerService.emitSdkGameEvent('start', resourceName);
+        // return this.gameServerService.emitSdkGameEvent('start', resourceName);
       }
 
       if (state === ResourceReconcilationState.stop) {
-        return this.gameServerService.emitSdkGameEvent('stop', resourceName);
+        // return this.gameServerService.emitSdkGameEvent('stop', resourceName);
       }
     });
 

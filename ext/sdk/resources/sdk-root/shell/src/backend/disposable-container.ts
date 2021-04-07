@@ -27,3 +27,7 @@ export class DisposableContainer {
     return this.container.length === 0;
   }
 }
+
+export function disposableFromFunction(dispose: () => void): DisposableObject {
+  return { dispose };
+}

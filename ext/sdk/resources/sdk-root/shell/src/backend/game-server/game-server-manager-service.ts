@@ -30,6 +30,9 @@ interface InstalledVersions {
 
 @injectable()
 export class GameServerManagerService implements AppContribution, ApiContribution {
+  private forceServerLocation = 'C:/dev/fivem/fivem/code/bin/server/windows/release';
+  // private forceServerLocation = '';
+
   getId() {
     return 'GameServerManagerService';
   }
@@ -56,9 +59,9 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   protected readonly gameServerInstallerUtils: GameServerInstallerUtils;
 
   protected updateChannelsState: ServerUpdateChannelsState = {
-    [serverUpdateChannels.recommended]: ServerUpdateStates.checking,
-    [serverUpdateChannels.optional]: ServerUpdateStates.checking,
-    [serverUpdateChannels.latest]: ServerUpdateStates.checking,
+    [serverUpdateChannels.recommended]: ServerUpdateStates.ready,
+    [serverUpdateChannels.optional]: ServerUpdateStates.ready,
+    [serverUpdateChannels.latest]: ServerUpdateStates.ready,
   };
 
   protected versions: ServerVersions = updateChannels.reduce((acc, updateChannel) => { acc[updateChannel] = null; return acc }, {});
@@ -67,15 +70,35 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   protected updateChannelPromises: Set<{ deferred: Deferred<void>, channel: ServerUpdateChannel, state: ServerUpdateStates }> = new Set();
 
   boot() {
-    this.checkAndInstallUpdates();
+    if (!this.forceServerLocation) {
+      this.updateChannelsState = {
+        [serverUpdateChannels.recommended]: ServerUpdateStates.checking,
+        [serverUpdateChannels.optional]: ServerUpdateStates.checking,
+        [serverUpdateChannels.latest]: ServerUpdateStates.checking,
+      };
+
+      this.checkAndInstallUpdates();
+    }
   }
 
   getServerPath(updateChannel: ServerUpdateChannel): string {
+    if (this.forceServerLocation) {
+      return this.forceServerLocation;
+    }
+
     return this.fsService.joinPath(this.configService.serverContainer, updateChannel);
   }
 
   getServerBinaryPath(updateChannel: ServerUpdateChannel): string {
     return this.fsService.joinPath(this.getServerPath(updateChannel), 'FXServer.exe');
+  }
+
+  async getServerSupportsFxdkMode(updateChannel: ServerUpdateChannel): Promise<boolean> {
+    if (await this.fsService.statSafe(this.fsService.joinPath(this.getServerPath(updateChannel), 'citizen-server-fxdk.dll'))) {
+      return true;
+    }
+
+    return false;
   }
 
   getUpdateChannelPromise(updateChannel: ServerUpdateChannel, targetState: ServerUpdateStates): Promise<void> {

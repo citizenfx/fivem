@@ -249,7 +249,7 @@ export class Resource implements AssetInterface {
 
     if (isChange && entry?.path === this.manifestPath) {
       this.loadMetaData();
-      return this.gameServerService.refreshResources();
+      return this.gameServerService.reloadResource(this.name);
     }
 
     // No restarts while meta data is being loaded

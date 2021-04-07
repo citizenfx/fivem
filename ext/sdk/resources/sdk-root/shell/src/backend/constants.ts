@@ -1,5 +1,3 @@
-export const sdkGamePipeName = '\\\\.\\pipe\\fxdk_fxserver_sdk_game';
-
 export const fxdkProjectFilename = 'fxproject.json';
 
 export const resourceManifestFilename = 'fxmanifest.lua';
