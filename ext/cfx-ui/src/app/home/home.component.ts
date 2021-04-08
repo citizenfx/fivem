@@ -132,27 +132,33 @@ export class HomeComponent implements OnInit, OnDestroy {
 			};
 
 			const isAddressServer = this.lastServer.historyEntry.address.includes(':');
+			const done = () => {
+				this.changeDetectorRef.markForCheck();
+			};
 
 			if (!isAddressServer) {
 				try {
 					this.lastServer.server = await this.serversService.getServer(this.lastServer.historyEntry.address);
 					this.lastServer.status = HistoryServerStatus.Online;
-				} catch (e) {
-					this.lastServer.status = HistoryServerStatus.Offline;
-				}
-			} else {
-				try {
-					this.lastServer.server = await this.gameService.queryAddress(
-						this.serversService.parseAddress(this.lastServer.historyEntry.address),
-					);
 
-					this.lastServer.status = HistoryServerStatus.Online;
+					done();
+					return;
 				} catch (e) {
 					this.lastServer.status = HistoryServerStatus.Offline;
 				}
 			}
 
-			this.changeDetectorRef.markForCheck();
+			try {
+				this.lastServer.server = await this.gameService.queryAddress(
+					this.serversService.parseAddress(this.lastServer.historyEntry.address),
+				);
+
+				this.lastServer.status = HistoryServerStatus.Online;
+			} catch (e) {
+				this.lastServer.status = HistoryServerStatus.Offline;
+			}
+
+			done();
 		}
 	}
 
