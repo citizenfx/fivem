@@ -777,6 +777,8 @@ static InitFunction initFunction([]()
 
 				gscomms_execute_callback_on_main_thread([=]
 				{
+					auto deferralsRef = *deferrals;
+
 					/*NETEV playerConnecting SERVER
 					/#*
 					 * A server-side event that is triggered when a player is trying to connect.
@@ -834,7 +836,7 @@ static InitFunction initFunction([]()
 						handover(data: { [key: string]: any }): void,
 					}, source: string): void;
 					*/
-					bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("internal-net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
+					bool shouldAllow = (deferralsRef) ? (eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("internal-net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 					{
 						auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
@@ -843,7 +845,7 @@ static InitFunction initFunction([]()
 							**noReason = obj[0].as<std::string>();
 						}
 					}),
-					(*deferrals)->GetCallbacks());
+					deferralsRef->GetCallbacks())) : false;
 
 					if (!shouldAllow)
 					{
@@ -862,8 +864,6 @@ static InitFunction initFunction([]()
 					}
 
 					// was the deferral already completed/canceled this frame? if so, just don't respond at all
-					auto deferralsRef = *deferrals;
-
 					if (!deferralsRef)
 					{
 						return;
