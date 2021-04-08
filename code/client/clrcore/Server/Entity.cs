@@ -192,7 +192,6 @@ namespace CitizenFX.Core
 			return Vector3.Subtract(Position, position).LengthSquared() < range * range;
 		}
 
-		/// CM-TODO Add after adding Blip
 		/// <summary>
 		/// Creates a <see cref="Blip"/> on this <see cref="Entity"/>
 		/// </summary>
