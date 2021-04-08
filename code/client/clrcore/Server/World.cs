@@ -24,14 +24,14 @@ namespace CitizenFX.Core
 		{
 			List<Prop> props = new List<Prop>();
 
-            foreach (int entHandle in API.GetAllObjects())
-            {
-                Prop prop = (Prop)Entity.FromHandle(entHandle);
-                if (prop != null && prop.Exists())
-                {
-                    props.Add(prop);
-                }
-            }
+			foreach (int entHandle in API.GetAllObjects())
+			{
+				Prop prop = (Prop)Entity.FromHandle(entHandle);
+				if (prop != null && prop.Exists())
+				{
+					props.Add(prop);
+				}
+			}
 			
 			return props.ToArray();
 		}
@@ -43,14 +43,14 @@ namespace CitizenFX.Core
 		{
 			List<Ped> peds = new List<Ped>();
 
-            foreach (int entHandle in API.GetAllPeds())
-            {
-                Ped ped = (Ped)Entity.FromHandle(entHandle);
-                if (ped != null && ped.Exists())
-                {
-                    peds.Add(ped);
-                }
-            }
+			foreach (int entHandle in API.GetAllPeds())
+			{
+				Ped ped = (Ped)Entity.FromHandle(entHandle);
+				if (ped != null && ped.Exists())
+				{
+					peds.Add(ped);
+				}
+			}
 
 			return peds.ToArray();
 		}
@@ -60,19 +60,19 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static Vehicle[] GetAllVehicles()
 		{
-            List<Vehicle> vehicles = new List<Vehicle>();
+			List<Vehicle> vehicles = new List<Vehicle>();
 
-            foreach (int entHandle in API.GetAllVehicles())
-            {
-                Vehicle vehicle = (Vehicle)Entity.FromHandle(entHandle);
-                if (vehicle != null && vehicle.Exists())
-                {
-                    vehicles.Add(vehicle);
-                }
-            }
+			foreach (int entHandle in API.GetAllVehicles())
+			{
+				Vehicle vehicle = (Vehicle)Entity.FromHandle(entHandle);
+				if (vehicle != null && vehicle.Exists())
+				{
+					vehicles.Add(vehicle);
+				}
+			}
 
-            return vehicles.ToArray();
-        }
+			return vehicles.ToArray();
+		}
 
 		/// <summary>
 		/// Gets the closest <see cref="ISpatial"/> to a given position in the World.
@@ -143,26 +143,26 @@ namespace CitizenFX.Core
 			return new Blip(API.AddBlipForRadius(position.X, position.Y, position.Z, radius));
 		}
 
-        /// <summary>
-        /// Spawns a <see cref="Ped"/> of the given model name as <see cref="string"/> at the position and heading specified.
-        /// </summary>
-        /// <param name="model">The <see cref="Model"/> of the <see cref="Ped"/>.</param>
-        /// <param name="position">The position to spawn the <see cref="Ped"/> at.</param>
-        /// <param name="heading">The heading of the <see cref="Ped"/>.</param>
-        /// <remarks>returns <c>null</c> if the <see cref="Ped"/> could not be spawned</remarks>
-        public static Ped CreatePed(string model, Vector3 position, float heading = 0f)
+		/// <summary>
+		/// Spawns a <see cref="Ped"/> of the given model name as <see cref="string"/> at the position and heading specified.
+		/// </summary>
+		/// <param name="model">The <see cref="Model"/> of the <see cref="Ped"/>.</param>
+		/// <param name="position">The position to spawn the <see cref="Ped"/> at.</param>
+		/// <param name="heading">The heading of the <see cref="Ped"/>.</param>
+		/// <remarks>returns <c>null</c> if the <see cref="Ped"/> could not be spawned</remarks>
+		public static Ped CreatePed(string model, Vector3 position, float heading = 0f)
 		{
 			return new Ped(API.CreatePed(26, (uint)API.GetHashKey(model), position.X, position.Y, position.Z, heading, true, false));
 		}
 
-        /// <summary>
-        /// Spawns a <see cref="Vehicle"/> of the given model name as <see cref="string"/> at the position and heading specified.
-        /// </summary>
-        /// <param name="model">The model name as <see cref="string"/> of the <see cref="Vehicle"/>.</param>
-        /// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
-        /// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
-        /// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
-        public static Vehicle CreateVehicle(string model, Vector3 position, float heading = 0f)
+		/// <summary>
+		/// Spawns a <see cref="Vehicle"/> of the given model name as <see cref="string"/> at the position and heading specified.
+		/// </summary>
+		/// <param name="model">The model name as <see cref="string"/> of the <see cref="Vehicle"/>.</param>
+		/// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
+		/// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
+		/// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
+		public static Vehicle CreateVehicle(string model, Vector3 position, float heading = 0f)
 		{
 			return new Vehicle(API.CreateVehicle((uint)API.GetHashKey(model), position.X, position.Y, position.Z, heading, true, false));
 		}
@@ -179,15 +179,15 @@ namespace CitizenFX.Core
 			return new Prop(API.CreateObject(API.GetHashKey(model), position.X, position.Y, position.Z, true, true, dynamic));
 		}
 
-        /// <summary>
-        /// Spawns a <see cref="Prop"/> of the given model name as <see cref="string"/> at the position specified.
-        /// </summary>
+		/// <summary>
+		/// Spawns a <see cref="Prop"/> of the given model name as <see cref="string"/> at the position specified.
+		/// </summary>
 		/// <param name="model">The model name as <see cref="string"/> of the <see cref="Prop"/>.</param>
-        /// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
-        /// <param name="rotation">The rotation of the <see cref="Prop"/>.</param>
-        /// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
-        /// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-        public static Prop CreateProp(string model, Vector3 position, Vector3 rotation, bool dynamic)
+		/// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
+		/// <param name="rotation">The rotation of the <see cref="Prop"/>.</param>
+		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
+		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
+		public static Prop CreateProp(string model, Vector3 position, Vector3 rotation, bool dynamic)
 		{
 			Prop prop = CreateProp(model, position, dynamic);
 
@@ -199,27 +199,27 @@ namespace CitizenFX.Core
 			return prop;
 		}
 
-        /// <summary>
-        /// Spawns a <see cref="Prop"/> of the given model name as <see cref="string"/> at the position specified without any offset.
-        /// </summary>
+		/// <summary>
+		/// Spawns a <see cref="Prop"/> of the given model name as <see cref="string"/> at the position specified without any offset.
+		/// </summary>
 		/// <param name="model">The model name as <see cref="string"/> of the <see cref="Prop"/>.</param>
-        /// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
-        /// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
-        /// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-        public static Prop CreatePropNoOffset(string model, Vector3 position, bool dynamic)
+		/// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
+		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
+		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
+		public static Prop CreatePropNoOffset(string model, Vector3 position, bool dynamic)
 		{
 			return new Prop(API.CreateObjectNoOffset((uint)API.GetHashKey(model), position.X, position.Y, position.Z, true, true, dynamic));
 		}
 
-        /// <summary>
-        /// Spawns a <see cref="Prop"/> of the given model name as <see cref="string"/> at the position specified without any offset.
-        /// </summary>
+		/// <summary>
+		/// Spawns a <see cref="Prop"/> of the given model name as <see cref="string"/> at the position specified without any offset.
+		/// </summary>
 		/// <param name="model">The model name as <see cref="string"/> of the <see cref="Prop"/>.</param>
-        /// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
-        /// <param name="rotation">The rotation of the <see cref="Prop"/>.</param>
-        /// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
-        /// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-        public static Prop CreatePropNoOffset(string model, Vector3 position, Vector3 rotation, bool dynamic)
+		/// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
+		/// <param name="rotation">The rotation of the <see cref="Prop"/>.</param>
+		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
+		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
+		public static Prop CreatePropNoOffset(string model, Vector3 position, Vector3 rotation, bool dynamic)
 		{
 			Prop prop = CreatePropNoOffset(model, position, dynamic);
 

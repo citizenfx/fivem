@@ -240,7 +240,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-        /// <summary>
+		/// <summary>
 		/// Removes this <see cref="Blip"/>.
 		/// </summary>
 		[SecuritySafeCritical]
@@ -248,7 +248,7 @@ namespace CitizenFX.Core
 		{
 			int handle = Handle;
 
-            API.RemoveBlip(ref handle);
+			API.RemoveBlip(ref handle);
 		}
 
 		public static bool Exists(Blip blip)
