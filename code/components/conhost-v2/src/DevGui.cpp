@@ -273,6 +273,8 @@ set "game_unmute" "profile_sfxVolume 25; profile_musicVolumeInMp 10; profile_mus
 devgui_convar "Game/SFX Volume" profile_sfxVolume
 devgui_cmd "Game/Mute" "vstr game_mute"
 devgui_cmd "Game/Unmute" "vstr game_unmute"
+
+devgui_convar "Overlays/Draw Performance" cl_drawPerf
 )");
 
 	if (IsNonProduction())
@@ -288,8 +290,6 @@ devgui_convar "Tools/Network/OneSync/Network Time" net_showTime
 devgui_convar "Tools/Network/Network Command Log" net_showCommands
 devgui_convar "Tools/Network/Network Event Log" netEventLog
 devgui_cmd "Tools/NUI/Open DevTools" nui_devTools
-
-devgui_convar "Overlays/Draw Performance" cl_drawPerf
 )");
 	}
 #endif

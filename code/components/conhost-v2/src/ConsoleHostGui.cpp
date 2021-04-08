@@ -895,7 +895,7 @@ static InitFunction initFunction([]()
 
 static InitFunction initFunctionCon([]()
 {
-	for (auto& command : { "connect", "quit", "cl_drawFPS", "rbind", "unbind", "disconnect", "storymode", "loadlevel" })
+	for (auto& command : { "connect", "quit", "cl_drawFPS", "bind", "rbind", "unbind", "disconnect", "storymode", "loadlevel", "cl_drawPerf" })
 	{
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", command) }, se::AccessType::Allow);
 	}
