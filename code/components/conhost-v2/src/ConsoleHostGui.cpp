@@ -891,7 +891,7 @@ static InitFunction initFunction([]()
 		}
 	}, 999);
 
-	OnGameFrame.Connect([] { RunConsoleGameFrame(); });
+	OnCriticalGameFrame.Connect([] { RunConsoleGameFrame(); });
 });
 #endif
 
