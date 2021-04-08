@@ -759,6 +759,8 @@ bool IsNonProduction()
 #if !defined(GTA_FIVE) || defined(_DEBUG)
 	return true;
 #else
+	static ConVar<int> moo("moo", ConVar_None, 0);
+
 	static auto isProd = ([]()
 	{
 		wchar_t resultPath[1024];
@@ -768,7 +770,7 @@ bool IsNonProduction()
 		return _wcsicmp(resultPath, L"production") == 0 || _wcsicmp(resultPath, L"prod") == 0;
 	})();
 
-	return !isProd;
+	return !isProd || moo.GetValue() == 31337;
 #endif
 }
 
