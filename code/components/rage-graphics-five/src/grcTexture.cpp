@@ -83,3 +83,13 @@ void rage::grcResourceCache::FlushQueue()
 {
 	grcResourceCache_flushQueue(this);
 }
+
+static hook::cdecl_stub<rage::grcRenderTarget*(int idx, const char* name, int usage3, int width, int height, int format, void* metadata, uint8_t a, rage::grcRenderTarget* last)> _createRenderTarget([]()
+{
+	return hook::get_pattern("4C 8B 55 6F 4D 85 D2 74 57 49 8B 02", -0x3D);
+});
+
+rage::grcRenderTarget* CreateRenderTarget(int idx, const char* name, int usage3, int width, int height, int format, void* metadata, uint8_t a, rage::grcRenderTarget* last)
+{
+	return _createRenderTarget(idx, name, usage3, width, height, format, metadata, a, last);
+}
