@@ -16,6 +16,8 @@ namespace CitizenFX.Core
 	{
         #region Fields
         Tasks _tasks;
+        WeaponCollection _weapons;
+        Style _style;
         #endregion
 
 		public Ped(int handle) : base(handle)
@@ -50,6 +52,36 @@ namespace CitizenFX.Core
                     _tasks = new Tasks(this);
                 }
                 return _tasks;
+            }
+        }
+
+        /// <summary>
+        /// Gets a collection of all this <see cref="Ped"/>s <see cref="Weapon"/>s.
+        /// </summary>
+        public WeaponCollection Weapons
+        {
+            get
+            {
+                if (ReferenceEquals(_weapons, null))
+                {
+                    _weapons = new WeaponCollection(this);
+                }
+                return _weapons;
+            }
+        }
+
+        /// <summary>
+        /// Opens a list of clothing and prop configurations that this <see cref="Ped"/> can wear.
+        /// </summary>
+        public Style Style
+        {
+            get
+            {
+                if (ReferenceEquals(_style, null))
+                {
+                    _style = new Style(this);
+                }
+                return _style;
             }
         }
 
