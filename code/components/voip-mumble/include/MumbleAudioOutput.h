@@ -107,6 +107,11 @@ private:
 			return false;
 		}
 
+		virtual bool ShouldPollAudio()
+		{
+			return false;
+		}
+
 		virtual void PollAudio(int frameCount);
 
 		virtual void AfterConstruct()
@@ -128,6 +133,7 @@ private:
 		uint32_t lastTime;
 
 		std::mutex jitterLock;
+		std::shared_mutex pollLock;
 
 		int iLastConsume = 0;
 		int iBufferFilled = 0;
@@ -188,6 +194,13 @@ private:
 		virtual bool ShouldManagePoll()
 		{
 			return true;
+		}
+
+		virtual bool ShouldPollAudio()
+		{
+			XAUDIO2_VOICE_STATE vs;
+			voice->GetState(&vs);
+			return vs.BuffersQueued == 0;
 		}
 
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;

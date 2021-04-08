@@ -261,6 +261,12 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 	{
 		isTalking = false;
 	}
+
+	std::unique_lock<std::shared_mutex> _(pollLock);
+	if (ShouldPollAudio())
+	{
+		PollAudio((48000 / 1000) * 10);
+	}
 }
 
 static std::map<lab::AudioContext*, std::weak_ptr<lab::AudioSourceNode>> g_audioToClients;
@@ -692,7 +698,13 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 		jitter_buffer_put(client->jitter, &jbp);
 	}
 
-	if (client->ShouldManagePoll())
+	if (!client->ShouldManagePoll())
+	{
+		return;
+	}
+
+	std::unique_lock<std::shared_mutex> _(client->pollLock);
+	if (client->ShouldPollAudio())
 	{
 		client->PollAudio(numSamples);
 	}
