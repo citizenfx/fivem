@@ -699,7 +699,7 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 
 	if (client->ShouldPollAudio())
 	{
-		client->PollAudio((48000 / 1000) * 10);
+		client->PollAudio(numSamples);
 	}
 }
 
