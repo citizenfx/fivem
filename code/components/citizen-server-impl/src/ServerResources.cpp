@@ -30,6 +30,8 @@
 
 #include <filesystem>
 
+#include <ManifestVersion.h>
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -310,6 +312,40 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	else
 	{
 		trace("^2Found %d resources.^7\n", newResources);
+	}
+
+	// check for outdated
+	std::set<std::string> nonManifestResources;
+
+	resMan->ForAllResources([&nonManifestResources](const fwRefContainer<fx::Resource>& resource)
+	{
+		auto md = resource->GetComponent<fx::ResourceMetaDataComponent>();
+
+		auto fxV2 = md->IsManifestVersionBetween("adamant", "");
+		auto fxV1 = md->IsManifestVersionBetween(ManifestVersion{ "44febabe-d386-4d18-afbe-5e627f4af937" }.guid, guid_t{ 0 });
+
+		if (!fxV2 || !*fxV2)
+		{
+			if (!fxV1 || !*fxV1)
+			{
+				if (!md->GlobEntriesVector("client_script").empty())
+				{
+					nonManifestResources.insert(resource->GetName());
+				}
+			}
+		}
+	});
+
+	if (!nonManifestResources.empty())
+	{
+		trace("^1Some resources have an outdated resource manifest:^7\n");
+
+		for (auto& name : nonManifestResources)
+		{
+			trace("    - %s\n", name);
+		}
+
+		trace("\nPlease update these resources.\n");
 	}
 
 	/*NETEV onResourceListRefresh SERVER
