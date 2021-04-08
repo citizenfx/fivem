@@ -254,17 +254,12 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 
 	_aligned_free(buffer);
 
-	auto v = voice;
+	XAUDIO2_VOICE_STATE vs;
+	voice->GetState(&vs);
 
-	if (v)
+	if (vs.BuffersQueued == 0)
 	{
-		XAUDIO2_VOICE_STATE vs;
-		v->GetState(&vs);
-
-		if (vs.BuffersQueued == 0)
-		{
-			isTalking = false;
-		}
+		isTalking = false;
 	}
 
 	std::unique_lock<std::shared_mutex> _(pollLock);
@@ -321,13 +316,6 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 			return;
 		}
 
-		auto thisInBuffer = m_inBuffer;
-
-		if (!thisInBuffer)
-		{
-			return;
-		}
-
 		for (int i = 0; i < numFrames; i += lab::AudioNode::ProcessingSizeInFrames)
 		{
 			lab::AudioBus inBuffer{ 1, lab::AudioNode::ProcessingSizeInFrames, false };
@@ -336,7 +324,7 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 			float inFloats[lab::AudioNode::ProcessingSizeInFrames];
 			float outFloats[lab::AudioNode::ProcessingSizeInFrames];
 
-			memcpy(inFloats, thisInBuffer->channel(0)->data() + i, lab::AudioNode::ProcessingSizeInFrames * 4);
+			memcpy(inFloats, m_inBuffer->channel(0)->data() + i, lab::AudioNode::ProcessingSizeInFrames * 4);
 
 			inBuffer.setChannelMemory(0, inFloats, lab::AudioNode::ProcessingSizeInFrames);
 			outBuffer.setChannelMemory(0, outFloats, lab::AudioNode::ProcessingSizeInFrames);
