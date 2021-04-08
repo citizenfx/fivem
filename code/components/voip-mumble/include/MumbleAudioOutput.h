@@ -102,6 +102,11 @@ private:
 			return isTalking;
 		}
 
+		virtual bool ShouldManagePoll()
+		{
+			return false;
+		}
+
 		virtual bool ShouldPollAudio()
 		{
 			return false;
@@ -128,6 +133,7 @@ private:
 		uint32_t lastTime;
 
 		std::mutex jitterLock;
+		std::shared_mutex pollLock;
 
 		int iLastConsume = 0;
 		int iBufferFilled = 0;
@@ -183,6 +189,11 @@ private:
 		virtual bool Valid() override
 		{
 			return context && context->destination();
+		}
+
+		virtual bool ShouldManagePoll()
+		{
+			return true;
 		}
 
 		virtual bool ShouldPollAudio()
