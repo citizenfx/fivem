@@ -570,7 +570,7 @@ static InitFunction initFunction([] ()
 			});
 		}, -500);
 
-		OnGameFrame.Connect([] ()
+		OnCriticalGameFrame.Connect([]()
 		{
 			std::function<void()> func;
 
@@ -598,7 +598,10 @@ static InitFunction initFunction([] ()
 
 				lastDownloadTime = GetTickCount64();
 			}
+		});
 
+		OnGameFrame.Connect([]()
+		{
 			auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
 			reassembler->NetworkTick();
 		});
