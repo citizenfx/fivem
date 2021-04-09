@@ -34,6 +34,7 @@ public:
 	HttpClient* client;
 	uv_loop_t* loop;
 	uv_timer_t timeout;
+	std::string userAgent;
 
 	std::shared_ptr<uvw::AsyncHandle> addHandle;
 	std::shared_ptr<uvw::AsyncHandle> runCb;
@@ -310,6 +311,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 	: m_impl(new HttpClientImpl())
 {
 	m_impl->client = this;
+	m_impl->userAgent = ToNarrow(userAgent);
 	m_impl->multi = curl_multi_init();
 	curl_multi_setopt(m_impl->multi, CURLMOPT_PIPELINING, CURLPIPE_HTTP1 | CURLPIPE_MULTIPLEX);
 	curl_multi_setopt(m_impl->multi, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
@@ -494,6 +496,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 
 	auto curlDataPtr = new std::shared_ptr<CurlData>(curlData);
 
+	curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, impl->userAgent.c_str());
 	curl_easy_setopt(curlHandle, CURLOPT_URL, curlData->url.c_str());
 	curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, curlDataPtr);
 	curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, curlDataPtr);
