@@ -13,6 +13,7 @@
 #include <ICoreGameInit.h>
 
 fwEvent<> OnLookAliveFrame;
+fwEvent<> OnEarlyGameFrame;
 fwEvent<> OnGameFrame;
 fwEvent<> OnMainGameFrame;
 fwEvent<> OnCriticalGameFrame;
@@ -60,6 +61,7 @@ static bool(*g_origLookAlive)();
 static uint32_t g_lastGameFrame;
 static uint32_t g_lastCriticalFrame;
 static std::mutex g_gameFrameMutex;
+static std::mutex g_earlyGameFrameMutex;
 static std::mutex g_criticalFrameMutex;
 static DWORD g_mainThreadId;
 static bool g_executedOnMainThread;
@@ -69,6 +71,13 @@ static bool g_safeGameFrame;
 
 extern "C" DLL_EXPORT void DoGameFrame()
 {
+	if (g_earlyGameFrameMutex.try_lock())
+	{
+		OnEarlyGameFrame();
+
+		g_earlyGameFrameMutex.unlock();
+	}
+
 	if (!g_safeGameFrame)
 	{
 		return;
