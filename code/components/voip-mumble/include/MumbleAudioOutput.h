@@ -107,7 +107,7 @@ private:
 			return false;
 		}
 
-		virtual void PollAudio(int frameCount);
+		virtual void PollAudio(int frameCount, bool jitterLocked = false);
 
 		virtual void AfterConstruct()
 		{

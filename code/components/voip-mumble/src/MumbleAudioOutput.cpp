@@ -687,14 +687,28 @@ void MumbleAudioOutput::HandleClientVoiceData(const MumbleUser& user, uint64_t s
 	jbp.span = numSamples;
 	jbp.timestamp = (48000 / 100) * sequence;
 
+	std::unique_lock _(client->jitterLock);
+	jitter_buffer_put(client->jitter, &jbp);
+
+	if (!client->ShouldManagePoll())
 	{
-		std::unique_lock _(client->jitterLock);
-		jitter_buffer_put(client->jitter, &jbp);
+		return;
 	}
 
-	if (client->ShouldManagePoll())
-	{
-		client->PollAudio(numSamples);
+	int startingPackets;
+	jitter_buffer_ctl(client->jitter, JITTER_BUFFER_GET_AVAILABLE_COUNT, &startingPackets);
+
+	int availablePackets = startingPackets;
+	while (availablePackets != 0) {
+		client->PollAudio(numSamples, true);
+
+		// Give the jitter buffer up to four packets to work with prior to a flush.
+		if (startingPackets <= 4)
+		{
+			break;
+		}
+
+		jitter_buffer_ctl(client->jitter, JITTER_BUFFER_GET_AVAILABLE_COUNT, &availablePackets);
 	}
 }
 
@@ -713,7 +727,7 @@ void MumbleAudioOutput::ClientAudioStateBase::resizeBuffer(size_t newsize)
 	}
 }
 
-void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
+void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount, bool jitterLocked)
 {
 	if (sequence == 0)
 	{
@@ -772,8 +786,12 @@ void MumbleAudioOutput::ClientAudioStateBase::PollAudio(int frameCount)
 
 	while (iBufferFilled < sampleCount)
 	{
-		std::unique_lock _(jitterLock);
-
+		std::unique_lock<std::mutex> lock;
+		if (!jitterLocked)
+		{
+			lock = std::unique_lock(jitterLock);
+		}
+		
 		int decodedSamples = iFrameSize;
 		resizeBuffer(iBufferFilled + iOutputSize);
 		// TODO: allocating memory in the audio callback will crash mumble in some cases.
