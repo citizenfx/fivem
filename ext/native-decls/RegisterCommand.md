@@ -24,6 +24,11 @@ The restricted bool is not used on the client side. Permissions can only be chec
 * **handler**: A handler function that gets called whenever the command is executed.
 * **restricted**: If this is a server command and you set this to true, then players will need the command.yourCommandName ace permission to execute this command.
 
+## Handler Arguments
+* **source**: the player who triggered the command
+* **args**: a table containing all of the sent arguments
+* **rawCommand**: the raw command string (example: `/ping [any argument as string here]`)
+
 ## Examples
 
 ```lua
