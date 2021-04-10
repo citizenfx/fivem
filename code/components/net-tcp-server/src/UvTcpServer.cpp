@@ -569,14 +569,6 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 
 			client->once<uvw::WriteEvent>([clientWeak, cb, c1 = std::move(c1), c2 = std::move(c2)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
 			{
-				auto client = clientWeak.lock();
-
-				if (client)
-				{
-					client->erase<uvw::EndEvent>(c1);
-					client->erase<uvw::ErrorEvent>(c2);
-				}
-
 				auto c = *cb;
 
 				if (c)
