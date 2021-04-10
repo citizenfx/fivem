@@ -19,24 +19,31 @@ The restricted bool is not used on the client side. Permissions can only be chec
 ![](https://i.imgur.com/TaCnG09.png)
 
 
-## Parameters
+## Required Arguments
 * **commandName**: The command you want to register.
 * **handler**: A handler function that gets called whenever the command is executed.
+
+## Optional Arguments
 * **restricted**: If this is a server command and you set this to true, then players will need the command.yourCommandName ace permission to execute this command.
+
+## Handler function parameters
+* **playerSource**: The player font which executed the command.
+* **args**: returns the string the player entered after the command.
+* **rawCommand**: returns the string with the name of the executed command.
 
 ## Examples
 
 ```lua
 -- (server side script)
 -- Registers a command named 'ping'.
-RegisterCommand("ping", function(source, args, rawCommand)
-    -- If the source is > 0, then that means it must be a player.
-    if (source > 0) then
+RegisterCommand("ping", function(playerSource, args, rawCommand)
+    -- If the playerSource is > 0, then that means it must be a player.
+    if (playerSource > 0) then
     
         -- result (using the default GTA:O chat theme) https://i.imgur.com/TaCnG09.png
         TriggerClientEvent("chat:addMessage", -1, {
             args = {
-                GetPlayerName(source),
+                GetPlayerName(playerSource),
                 "PONG!"
             },
             color = { 5, 255, 255 }
@@ -50,14 +57,14 @@ end, false --[[this command is not restricted, everyone can use this.]])
 ```
 
 ```cs
-RegisterCommand("ping", new Action<int, List<object>, string>((source, args, rawCommand) =>
+RegisterCommand("ping", new Action<int, List<object>, string>((playerSource, args, rawCommand) =>
 {
-    if (source > 0) // it's a player.
+    if (playerSource > 0) // it's a player.
     {
         // Create a message object.
         dynamic messageObject = new ExpandoObject();
         // Set the message object args (message author, message content)
-        messageObject.args = new string[] { GetPlayerName(source.ToString()), "PONG!" };
+        messageObject.args = new string[] { GetPlayerName(playerSource.ToString()), "PONG!" };
         // Set the message color (r, g, b)
         messageObject.color = new int[] { 5, 255, 255 };
 
