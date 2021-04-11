@@ -19,7 +19,7 @@ NY_OUTPUTS_JS=$(NY_OUTPUTS_LUA:.lua=.js)
 NY_OUTPUTS_ZIP=$(NY_OUTPUTS_LUA:.lua=.zip)
 NY_OUTPUTS_DTS=$(NY_OUTPUTS_LUA:.lua=.d.ts)
 
-CODEGEN_SCRIPTS=codegen.lua codegen_cfx_natives.lua codegen_types.lua markdown.lua inp/natives_cfx.lua
+CODEGEN_SCRIPTS=codegen.lua codegen_types.lua markdown.lua inp/natives_cfx.lua
 
 define NATIVES_FIVE_HEADER
 #if GTA_FIVE
