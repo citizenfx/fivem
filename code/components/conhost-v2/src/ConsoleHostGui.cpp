@@ -754,6 +754,7 @@ static void EnsureConsoles()
 	}
 }
 
+<<<<<<< HEAD
 bool IsNonProduction()
 {
 #if !defined(GTA_FIVE) || defined(_DEBUG)
@@ -774,6 +775,8 @@ bool IsNonProduction()
 #endif
 }
 
+=======
+>>>>>>> parent of ab7ef4208 (tweak(conhost): censor out console and 'non-trivial' tools when running prod)
 void DrawConsole()
 {
 	EnsureConsoles();
