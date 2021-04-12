@@ -1425,7 +1425,7 @@ void CloneManagerLocal::CheckMigration(const msgClone& msg)
 net::Buffer g_cloneMsgPacket;
 std::vector<uint8_t> g_cloneMsgData;
 
-extern void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data);
+extern void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data, bool isIn);
 extern bool IsDrilldown();
 
 void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
@@ -1551,7 +1551,7 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 			list.push_back({ "remove", fmt::sprintf("obj:%d@%d", std::get<0>(m), std::get<1>(m)) });
 		}
 
-		AddDrilldown(msg.GetFrameIndex() & ~(uint64_t(1) << 63), std::move(list));
+		AddDrilldown(msg.GetFrameIndex() & ~(uint64_t(1) << 63), std::move(list), true);
 	}
 	else
 	{
@@ -2146,6 +2146,8 @@ void CloneManagerLocal::WriteUpdates()
 		hitTimestamp = true;
 	};
 
+	std::vector<std::tuple<std::string_view, std::string>> drillList;
+
 	// on each object...
 	auto objectCb = [&](rage::netObject* object)
 	{
@@ -2377,6 +2379,11 @@ void CloneManagerLocal::WriteUpdates()
 
 				if (shouldWrite)
 				{
+					if (IsDrilldown())
+					{
+						drillList.push_back({ syncType == 1 ? "create" : "sync", fmt::sprintf("obj:%d@%d[%s] sz %db", object->objectId, objectData.uniqifier, object->GetTypeString(), rlBuffer.GetDataLength()) });
+					}
+
 					objectData.nextKeepaliveSync = ts + 1000;
 
 					AssociateSyncTree(object->objectId, syncTree);
@@ -2406,8 +2413,6 @@ void CloneManagerLocal::WriteUpdates()
 					}
 
 					// write data
-					//netBuffer.Write<uint8_t>(getPlayerId()); // player ID (byte)
-					//netBuffer.Write<uint8_t>(0); // player ID (byte)
 					netBuffer.Write(13, objectId); // object ID (short)
 
 					if (syncType == 1)
@@ -2499,6 +2504,11 @@ void CloneManagerLocal::WriteUpdates()
 			m_serverAcks.emplace(m_serverSendFrame, std::make_tuple(3, objectId, uniqifier, ts));
 		}
 
+		if (IsDrilldown())
+		{
+			drillList.push_back({ "remove", fmt::sprintf("obj:%d@%d", objectId, uniqifier) });
+		}
+
 		// write packet
 		netBuffer.Write(3, 3);
 		netBuffer.Write(13, objectId); // object ID (short)
@@ -2520,6 +2530,11 @@ void CloneManagerLocal::WriteUpdates()
 	}
 
 	Log("sync: got %d creates, %d syncs, %d removes and %d migrates\n", syncCount1, syncCount2, syncCount3, syncCount4);
+
+	if (IsDrilldown())
+	{
+		AddDrilldown(m_serverSendFrame, std::move(drillList), false);
+	}
 }
 
 void CloneManagerLocal::AttemptFlushCloneBuffer()
