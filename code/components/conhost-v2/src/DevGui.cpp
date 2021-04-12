@@ -239,14 +239,6 @@ static InitFunction initFunction([]()
 	});
 
 #ifndef IS_FXSERVER
-	static ConVar<std::string> uiConnectHost("uiConnectHost", ConVar_Archive, "");
-
-	static ConsoleCommand uiConnect("uiConnect", []()
-	{
-		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{
-		"connect", uiConnectHost.GetValue() });
-	});
-
 	console::GetDefaultContext()->AddToBuffer(R"(
 devgui_convar "Tools/Performance/Resource Monitor" resmon
 devgui_convar "Tools/Performance/Streaming Memory Viewer" strmem
@@ -268,11 +260,8 @@ devgui_cmd "Launch/SP/GTA5" "loadlevel gta5"
 devgui_cmd "Launch/SP/RDR3" "loadlevel rdr3"
 devgui_cmd "Launch/SP/Blank Map" "loadlevel blank"
 devgui_cmd "Launch/MP/Localhost" "connect localhost"
-devgui_convar "Launch/MP/Connect" "uiConnectHost"
-devgui_cmd "Launch/MP/Connect to host above" "uiConnect"
 devgui_cmd "Launch/MP/Disconnect" "disconnect"
 devgui_cmd "Launch/Quit" "quit"
-devgui_cmd "Quit/Quit" "quit"
 
 devgui_cmd "Tools/Performance/Profiler/Start Recording - 5 frames" "profiler record 5"
 devgui_cmd "Tools/Performance/Profiler/View Last Recording" "profiler view"

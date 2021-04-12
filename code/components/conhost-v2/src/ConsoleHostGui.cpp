@@ -771,18 +771,33 @@ bool IsNonProduction()
 		return _wcsicmp(resultPath, L"production") == 0 || _wcsicmp(resultPath, L"prod") == 0;
 	})();
 
+<<<<<<< HEAD
 	return !isProd || moo.GetValue() == 31337;
 #endif
 }
 
 =======
 >>>>>>> parent of ab7ef4208 (tweak(conhost): censor out console and 'non-trivial' tools when running prod)
+=======
+	return !isProd;
+#endif
+}
+
+>>>>>>> parent of c5a9e4a53 (feat(conhost): add non-production warning and more obvious connect/quit commands)
 void DrawConsole()
 {
 	EnsureConsoles();
 
+<<<<<<< HEAD
 	static bool pOpen = true;
 	g_consoles[0]->Draw("", &pOpen);
+=======
+	if (IsNonProduction())
+	{
+		static bool pOpen = true;
+		g_consoles[0]->Draw("", &pOpen);
+	}
+>>>>>>> parent of c5a9e4a53 (feat(conhost): add non-production warning and more obvious connect/quit commands)
 }
 
 void DrawMiniConsole()
