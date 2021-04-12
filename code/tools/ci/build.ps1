@@ -304,6 +304,8 @@ if (!$DontBuild)
     #define GIT_TAG ""$GlobalTag""" | Out-File -Force shared\cfx_version.h
 
     remove-item env:\platform
+	$env:UseMultiToolTask = "true"
+	$env:EnforceProcessCountAcrossBuilds = "true"
 
 	# restore nuget packages
 	Invoke-Expression "& $WorkRootDir\tools\ci\nuget.exe restore $BuildPath\CitizenMP.sln"
