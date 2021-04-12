@@ -78,6 +78,15 @@ void InputHook::SetControlBypasses(std::initializer_list<ControlBypass> bypasses
 	g_controlBypasses = bypasses;
 }
 
+bool InputHook::IsKeyDown(int vk_keycode)
+{
+	if (vk_keycode < 0 || vk_keycode > 255)
+	{
+		return false;
+	}
+	return g_gameKeyArray[vk_keycode] & 0x80;
+}
+
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (uMsg == WM_CREATE)
