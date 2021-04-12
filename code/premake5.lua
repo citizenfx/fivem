@@ -238,6 +238,12 @@ premake.override(premake.vstudio.vc2010, 'ignoreImportLibrary', function(base, c
 	end
 end)
 
+premake.override(premake.vstudio.vc2010, 'buildCommands', function(base, cfg, cond)
+	base(cfg, cond)
+
+	premake.vstudio.vc2010.element("BuildInParallel", cond, "true")
+end)
+
 premake.override(premake.vstudio.vc2010, 'importLanguageTargets', function(base, prj)
 	base(prj)
 
