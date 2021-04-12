@@ -67,7 +67,7 @@ else
 		component 'citizen-scripting-v8'
 	end
 
-	component 'n19ui'
+	--component 'n19ui'
 end
 
 component 'net-base'
