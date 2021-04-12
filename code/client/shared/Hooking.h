@@ -11,7 +11,10 @@
 
 #ifndef IS_FXSERVER
 #define ASSERT(x) __noop
+
+#if !defined(GTA_FIVE) && !defined(JITASM_H)
 #include <jitasm.h>
+#endif
 
 #include <memory>
 #include <functional>
@@ -81,6 +84,7 @@ struct pass
 	template<typename ...T> pass(T...) {}
 };
 
+#ifdef JITASM_H
 #pragma region assembly generator
 class FunctionAssembly
 {
@@ -111,6 +115,7 @@ public:
 	}
 };
 #pragma endregion
+#endif
 
 template<typename ValueType, typename AddressType>
 inline void put(AddressType address, ValueType value)
@@ -339,6 +344,7 @@ public:
 	void injectCall();
 };
 
+#ifdef JITASM_H
 struct inject_hook_frontend : jitasm::Frontend
 {
 private:
@@ -405,6 +411,7 @@ public:
 #define DEFINE_INJECT_HOOK(hookName, hookAddress) class _zz_inject_hook_##hookName : public hook::inject_hook { public: _zz_inject_hook_##hookName(uint32_t address) : hook::inject_hook(address) {}; ReturnType run(); }; \
 	static _zz_inject_hook_##hookName hookName(hookAddress); \
 	_zz_inject_hook_##hookName::ReturnType _zz_inject_hook_##hookName::run()
+#endif
 
 
 #if 0
@@ -542,6 +549,7 @@ namespace vp
 	}
 }
 
+#ifdef JITASM_H
 #pragma region inject call: call stub
 template<typename R, typename... Args>
 struct CallStub : jitasm::function<void, CallStub<R, Args...>>
@@ -590,6 +598,7 @@ public:
 	}
 };
 #pragma endregion
+#endif
 
 #pragma region inject call
 template<typename R, typename... Args>

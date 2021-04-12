@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <CoreConsole.h>
+#include <jitasm.h>
 #include <Hooking.h>
 #include <ScriptEngine.h>
 

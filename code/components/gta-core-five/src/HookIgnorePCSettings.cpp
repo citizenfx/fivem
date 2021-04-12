@@ -6,6 +6,8 @@
  */
 
 #include "StdInc.h"
+
+#include <jitasm.h>
 #include "Hooking.h"
 
 #include <CrossBuildRuntime.h>

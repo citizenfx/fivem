@@ -3,6 +3,7 @@
 
 #include <gameSkeleton.h>
 
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <sysAllocator.h>

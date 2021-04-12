@@ -10,6 +10,7 @@
 #pragma comment(lib, "comctl32.lib")
 
 #ifndef IS_FXSERVER
+#include <jitasm.h>
 #include "Hooking.Aux.h"
 #include <minhook.h>
 

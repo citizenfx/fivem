@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include <ScriptEngine.h>
 
+#include <jitasm.h>
 #include "Hooking.h"
 
 #include <optick.h>
