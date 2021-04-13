@@ -23,7 +23,7 @@ if (GetConvarInt('sv_fxdkServerMode', 0) === 0) {
   const REGISTER_CONSOLE_LISTENER = joaat('REGISTER_CONSOLE_LISTENER');
   const GET_CONSOLE_BUFFER = joaat('GET_CONSOLE_BUFFER');
 
-  const pipe = '\\\\.\\pipe\\fxdk_fxserver_sdk_game';
+  const pipe = '\\\\.\\pipe\\fxdk_fxserver_sdk_game_' + GetConvar('sv_fxdkPipeAppendix', '');
   const ipc = net.createConnection(pipe);
   const send = (type, data) => {
     ipc.write(JSON.stringify([type, data]) + '\n');

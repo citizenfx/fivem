@@ -33,8 +33,6 @@ interface IdealResourceMetaData {
 
 export type ResourceMetaData = Partial<IdealResourceMetaData>;
 
-export const AssetEntry = Symbol('AssetEntry');
-
 const resourceGlobConfig = {
   dot: true,
   nobrace: true,
@@ -235,6 +233,8 @@ export class Resource implements AssetInterface {
   async onFsUpdate(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string) {
     // If no more manifest - this no longer a resource, rip
     if (updateType === FsWatcherEventType.DELETED && entryPath === this.manifestPath) {
+      this.logService.log(`Releasing ${this.name} as manifest got deleted`);
+
       return this.projectAccess.withInstance((project) => {
         project.releaseAsset(this.getPath());
       });
@@ -248,6 +248,7 @@ export class Resource implements AssetInterface {
     }
 
     if (isChange && entry?.path === this.manifestPath) {
+      this.logService.log(`Reloading ${this.name} meta data as manifest for changed`);
       this.loadMetaData();
       return this.gameServerService.reloadResource(this.name);
     }

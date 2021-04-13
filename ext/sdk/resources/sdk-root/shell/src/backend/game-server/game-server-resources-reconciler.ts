@@ -47,7 +47,7 @@ export class GameServerResourcesReconciler {
         continue;
       }
 
-      // paths are different ofr the same resource name - load new and unload old
+      // paths are different for the same resource name - load new and unload old
       reconciled.load.push({ name, path });
       reconciled.unload.push({ name, path: currentPath });
     }

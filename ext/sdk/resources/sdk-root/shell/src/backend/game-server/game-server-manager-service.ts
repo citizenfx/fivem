@@ -30,8 +30,9 @@ interface InstalledVersions {
 
 @injectable()
 export class GameServerManagerService implements AppContribution, ApiContribution {
-  private forceServerLocation = 'C:/dev/fivem/fivem/code/bin/server/windows/release';
-  // private forceServerLocation = '';
+  // Use this to override fxserver location
+  // private forceServerLocation = 'C:/dev/fivem/fivem/code/bin/server/windows/release';
+  private forceServerLocation = '';
 
   getId() {
     return 'GameServerManagerService';

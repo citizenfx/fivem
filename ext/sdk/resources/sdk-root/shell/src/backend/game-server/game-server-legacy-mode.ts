@@ -22,8 +22,9 @@ import { Feature } from 'shared/api.types';
 import { FeaturesService } from 'backend/features/features-service';
 import { Queue } from 'backend/queue';
 import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest } from './game-server-runtime';
+import { fastRandomId } from 'utils/random';
 
-const pipeBaseName = '\\\\.\\pipe\\fxdk_fxserver_sdk_game';
+const pipeBaseName = '\\\\.\\pipe\\fxdk_fxserver_sdk_game_';
 
 @injectable()
 export class GameServerLegacyMode implements GameServerMode {
@@ -51,7 +52,8 @@ export class GameServerLegacyMode implements GameServerMode {
   @inject(FeaturesService)
   protected readonly featuresService: FeaturesService;
 
-  private fxserverCwd: string = '';
+  private fxserverCwd = '';
+  private pipeAppendix = '';
 
   private disposableContainer = new DisposableContainer();
 
@@ -70,6 +72,8 @@ export class GameServerLegacyMode implements GameServerMode {
     const resources = this.gameServerRuntime.getResources()
 
     this.fxserverCwd = fxserverCwd;
+    this.pipeAppendix = fastRandomId();
+
     this.reconciler.setInitialResources(resources);
 
     await this.linkResources(getResourcePaths(resources));
@@ -95,6 +99,7 @@ export class GameServerLegacyMode implements GameServerMode {
       '+set', 'sv_maxclients', '48',
       '+set', 'svgui_disable', '1',
       '+set', 'steam_webApiKey', steamWebApiKey || 'none',
+      '+set', 'sv_fxdkPipeAppendix', this.pipeAppendix,
       '+add_ace', 'resource.sdk-game', 'command', 'allow',
       '+ensure', 'sdk-game',
     ];
@@ -214,7 +219,7 @@ export class GameServerLegacyMode implements GameServerMode {
 
     const listenDeferred = new Deferred<void>();
 
-    this.sdkGameIPCServer.listen(pipeBaseName, () => listenDeferred.resolve());
+    this.sdkGameIPCServer.listen(pipeBaseName + this.pipeAppendix, () => listenDeferred.resolve());
 
     await listenDeferred.promise;
   }
