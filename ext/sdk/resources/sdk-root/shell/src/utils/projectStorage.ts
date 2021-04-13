@@ -6,7 +6,7 @@ function composeKey(project: ProjectData | null, key: string): string {
 }
 
 function inferDefaultProjectBuildPath(projectPath: string): string {
-  const [projectDirName, ...parts] = projectPath.split(/[\/\\]/).reverse();
+  const [projectDirName, ...parts] = projectPath.split(/[\\/]/).reverse();
 
   return parts.reverse().join('\\') + '\\' + `${projectDirName}-build`;
 }

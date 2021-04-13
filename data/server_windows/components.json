@@ -11,6 +11,7 @@
   "citizen:server:instance",
   "citizen:server:monitor",
   "citizen:server:impl",
+  "citizen:server:fxdk",
   "citizen:devtools",
   "citizen:resources:core",
   "citizen:resources:metadata:lua",

@@ -16,6 +16,7 @@ if _OPTIONS['game'] == 'server' then
 	if os.istarget('windows') then
 		component 'citizen-server-gui'
 		component 'citizen-devtools'
+		component 'citizen-server-fxdk'
 	end
 	--[[if os.is('windows') then
 		component 'citizen-ssh-server'
