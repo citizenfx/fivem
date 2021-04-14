@@ -16,6 +16,8 @@ import { FrontendApplicationConfigProvider } from '@theia/core/lib/browser/front
 import { FileStat, BaseStat } from '@theia/filesystem/lib/common/files';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { FileSystemPreferences } from '@theia/filesystem/lib/browser';
+import { IJSONSchema } from '@theia/core/lib/common/json-schema';
+import { WorkspaceSchemaUpdater } from '@theia/workspace/lib/browser/workspace-schema-updater';
 
 @injectable()
 export class FxdkWorkspaceService implements FrontendApplicationContribution {
@@ -64,6 +66,9 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
 
   @inject(FileSystemPreferences)
   protected readonly fsPreferences: FileSystemPreferences;
+
+  @inject(WorkspaceSchemaUpdater)
+  protected readonly schemaUpdater: WorkspaceSchemaUpdater;
 
   protected applicationName: string;
 
@@ -362,6 +367,11 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     return Object.keys(patterns).filter(pattern => patterns[pattern]);
   }
 
+  // Filler
+  getWorkspaceRootUri() {
+    return;
+  }
+
   areWorkspaceRoots(uris: URI[]): boolean {
     if (!uris.length) {
       return false;
@@ -370,9 +380,8 @@ export class FxdkWorkspaceService implements FrontendApplicationContribution {
     return uris.every(uri => rootUris.has(uri.toString()));
   }
 
-  // Filler
-  getWorkspaceRootUri() {
-    return;
+  async updateSchema(key: string, schema?: IJSONSchema): Promise<boolean> {
+    return this.schemaUpdater.updateSchema({ key, schema });
   }
 }
 

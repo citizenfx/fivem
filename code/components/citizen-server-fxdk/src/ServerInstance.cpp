@@ -110,18 +110,19 @@ namespace fx
 				return;
 			}
 
-			// invoke target events
-			OnServerCreate(this);
-
 			// initial fxdk configuration
 			consoleCtx->GetVariableManager()->ShouldSuppressReadOnlyWarning(true);
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "endpoint_add_tcp", "127.0.0.1:30120" });
-			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "endpoint_add_udp", "127.0.0.1:30120" });
-
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "set", "sv_lan", "1" });
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "set", "onesync", "on" });
 			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "set", "sv_maxclients", "2" });
 			consoleCtx->GetVariableManager()->ShouldSuppressReadOnlyWarning(false);
+
+			// invoke target events
+			OnServerCreate(this);
+
+			// add endpoints
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "endpoint_add_tcp", "127.0.0.1:30120" });
+			consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "endpoint_add_udp", "127.0.0.1:30120" });
 
 			// grant sdk-game resource cmd access
 			seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.sdk-game" }, se::Object{ "command" }, se::AccessType::Allow);
