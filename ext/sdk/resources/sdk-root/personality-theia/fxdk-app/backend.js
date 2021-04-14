@@ -32,6 +32,7 @@ function start(port, host, argv = process.argv) {
 }
 
 module.exports = (port, host, argv) => main.start(Promise.resolve()
+    .then(function () { return Promise.resolve(require('@theia/core/lib/node/hosting/backend-hosting-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/filesystem/lib/node/filesystem-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/filesystem/lib/node/download/file-download-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/workspace/lib/node/workspace-backend-module')).then(load) })
