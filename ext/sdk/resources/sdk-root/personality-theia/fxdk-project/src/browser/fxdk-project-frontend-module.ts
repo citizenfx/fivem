@@ -17,6 +17,7 @@ import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
 import { ClientConsole, ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ID } from './console/client-console';
 import { rebindHelpContribution } from './help/rebindHelpContribution';
+import { rebindVsxEnvironment } from './rebindVsxEnvironment';
 
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
@@ -36,6 +37,8 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   rebindWorkspaceService(bind, rebind);
   rebindWorkspaceCommands(bind, rebind);
   rebindWorkspaceFrontendContribution(bind, rebind);
+
+  rebindVsxEnvironment(bind, rebind);
 
   rebindHelpContribution(bind, rebind);
 
