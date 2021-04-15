@@ -40,6 +40,7 @@ export class ConfigService {
 
   readonly nativesDocluaPath: string;
   readonly recentProjectsFilePath: string;
+  readonly featuresFilePath: string;
 
   readonly wellKnownPathsPath: string;
 
@@ -79,6 +80,7 @@ export class ConfigService {
 
     this.nativesDocluaPath = path.join(this.cfxLocalAppData, 'natives-doclua');
     this.recentProjectsFilePath = path.join(this.sdkStorage, 'recent-projects.json');
+    this.featuresFilePath = path.join(this.sdkStorage, 'features.json');
 
     this.wellKnownPathsPath = path.join(this.sdkStorage, 'well-known-paths.json');
   }
