@@ -1066,7 +1066,7 @@ void UpdateButtonPlumbing()
 		return bypass;
 	};
 
-	InputHook::SetControlBypasses({ mapBypass(controlDatas[0]), mapBypass(controlDatas[1]) });
+	InputHook::SetControlBypasses('B', { mapBypass(controlDatas[0]), mapBypass(controlDatas[1]) });
 }
 
 #include <boost/algorithm/string.hpp>

@@ -44,7 +44,7 @@ struct ControlBypass
 	int ctrlIdx; // (RAGE) VK if keyboard, mouse button bit if not
 };
 
-INPUT_DECL void SetControlBypasses(std::initializer_list<ControlBypass> bypasses);
+INPUT_DECL void SetControlBypasses(int subsystem, std::initializer_list<ControlBypass> bypasses);
 
 extern INPUT_DECL fwEvent<std::vector<InputTarget*>&> QueryInputTarget;
 

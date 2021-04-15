@@ -1,83 +1,24 @@
 #include <StdInc.h>
+
+#include <GamePrimitives.h>
+
 #include <Hooking.h>
-#include <CoreConsole.h>
 
 #include <DrawCommands.h>
 
+#include <fiAssetManager.h>
 #include <EntitySystem.h>
+#include <MinHook.h>
 
-// WIP
-#ifdef _DEBUG
-namespace rage
-{
-struct alignas(16) Vec3V
-{
-	float x;
-	float y;
-	float z;
-	float pad;
+#include <ScriptEngine.h>
 
-	Vec3V()
-		: x(0), y(0), z(0), pad(0)
-	{
-	
-	}
+#include <im3d.h>
 
-	Vec3V(float x, float y, float z)
-		: x(x), y(y), z(z), pad(NAN)
-	{
-	
-	}
-};
+#define RAGE_FORMATS_GAME five
+#define RAGE_FORMATS_GAME_FIVE
+#define RAGE_FORMATS_IN_GAME
 
-struct alignas(16) Vec4V
-{
-	float x;
-	float y;
-	float z;
-	float w;
-};
-
-struct spdAABB
-{
-	rage::Vec3V mins;
-	rage::Vec3V maxs;
-};
-
-struct spdSphere
-{
-	// xyz = center
-	// w   = radius
-	Vec4V sphere;
-};
-
-// fake name
-struct spdRay
-{
-	rage::Vec3V start;
-	rage::Vec3V end;
-};
-
-enum class eSearchVolumeType : int
-{
-	SphereContains,
-	SphereIntersect,
-	SphereIntersectPrecise,
-	AabbContainsAabb,
-	AabbContainsSphere,
-	AabbIntersectsSphere,
-	AabbIntersectsAabb,
-	RayIntersectsAabb
-};
-
-struct fwSearchVolume
-{
-	spdAABB aabb;
-	spdSphere sphere;
-	spdRay ray;
-	eSearchVolumeType type;
-};
-}
+#include <rmcDrawable.h>
 
 static hook::cdecl_stub<void(rage::fwSearchVolume* volume, bool (*callback)(fwEntity*, void*), void* context, int a4, int a5, int a6, int a7, int a8)> _scene_forAllEntitiesIntersecting([]()
 {
@@ -94,9 +35,17 @@ public:
 	}
 };
 
-static std::vector<fwEntity*> fakeHitEntities;
+namespace rage
+{
+using five::rmcDrawable;
+}
 
-static fwEntity* RunSelectionProbe(const rage::spdRay& ray)
+static hook::cdecl_stub<rage::rmcDrawable*(fwArchetype*)> _getDrawable([]()
+{
+	return hook::get_call(hook::get_pattern("66 C1 E8 0F 40 84 C5 0F 84 ? ? 00 00 E8", 13));
+});
+
+static fwEntity* RunSelectionProbe(const rage::spdRay& ray, int nth, const HitFlags& flags)
 {
 	rage::fwSearchVolume volume;
 	volume.ray = ray;
@@ -113,364 +62,271 @@ static fwEntity* RunSelectionProbe(const rage::spdRay& ray)
 	volume.type = rage::eSearchVolumeType::RayIntersectsAabb;
 
 	// fake list of entities to highlight or so
-	fakeHitEntities.clear();
+	static std::vector<fwEntity*> hitEntities;
+	hitEntities.clear();
 
 	CScene::ForAllEntitiesIntersecting(
 	&volume, [](fwEntity* entity, void* cxt)
 	{
-		trace("entity %p -> %08x\n", (void*)entity, entity->GetArchetype()->hash);
-		// this doesn't add ref, bad
-		fakeHitEntities.push_back(entity);
+		//trace("entity %p -> %08x\n", (void*)entity, entity->GetArchetype()->hash);
+		hitEntities.push_back(entity);
 		return true;
-	}, nullptr, 2, 3, 1, 8, 1);
+	}, nullptr, flags.entityTypeMask, 3, 1, 8, 1);
 
-	// #TODO: real ray->poly hit testing (on visual part) of referenced drawables
+	std::vector<std::tuple<fwEntity*, float>> hitPassedEntities;
+	
+	using namespace DirectX;
+	auto rayStart = XMLoadFloat3((XMFLOAT3*)&ray.start);
+	auto rayEnd = XMLoadFloat3((XMFLOAT3*)&ray.end);
+
+	// test all the drawables
+	for (auto& entity : hitEntities)
+	{
+		auto archetype = entity->GetArchetype();
+		if (!archetype)
+		{
+			continue;
+		}
+
+		if (!flags.preciseTesting)
+		{
+			auto pos = entity->GetPosition();
+			auto v3 = XMLoadFloat3((XMFLOAT3*)&pos);
+			float fraction = XMVectorGetX(XMVector3Length(v3 - rayStart));
+
+			hitPassedEntities.push_back({ entity, fraction });
+			continue;
+		}
+
+		auto drawable = _getDrawable(archetype);
+		if (!drawable)
+		{
+			continue;
+		}
+
+		float fraction = FLT_MAX;
+
+		auto cleanXform = entity->GetTransform();
+		cleanXform.m[0][3] = 0.0f;
+		cleanXform.m[1][3] = 0.0f;
+		cleanXform.m[2][3] = 0.0f;
+		cleanXform.m[3][3] = 1.0f;
+
+		auto lm = DirectX::XMLoadFloat4x4(&cleanXform);
+		auto tm = DirectX::XMMatrixInverse(NULL, lm);
+		auto localRayStart = DirectX::XMVector3Transform(rayStart, tm);
+		auto localRayEnd = DirectX::XMVector3Transform(rayEnd, tm);
+		auto localRayDir = XMVector3Normalize(localRayEnd - localRayStart);
+		auto localRayDirInv = XMVectorSplatOne() / XMVector3Normalize(localRayEnd - localRayStart);
+
+		rage::five::grmLodGroup& lodGroup = drawable->GetLodGroup();
+		auto models = lodGroup.GetPrimaryModel();
+		for (size_t m = 0; m < models->GetCount(); m++)
+		{
+			auto model = models->Get(m);
+			
+			auto& geoms = model->GetGeometries();
+			auto gbs = model->GetGeometryBounds();
+
+			for (size_t g = 0; g < geoms.GetCount(); g++)
+			{
+				auto geom = geoms.Get(g);
+				auto geomBound = gbs[(geoms.GetCount() == 1) ? 0 : g + 1];
+				
+				// ray/bound intersection test
+				// from https://tavianator.com/2015/ray_box_nan.html
+				{
+					float t1 = (geomBound.aabbMin.x - XMVectorGetX(localRayStart)) * XMVectorGetX(localRayDirInv);
+					float t2 = (geomBound.aabbMax.x - XMVectorGetX(localRayStart)) * XMVectorGetX(localRayDirInv);
+
+					float tmin = std::min(t1, t2);
+					float tmax = std::max(t1, t2);
+
+					t1 = (geomBound.aabbMin.y - XMVectorGetY(localRayStart)) * XMVectorGetY(localRayDirInv);
+					t2 = (geomBound.aabbMax.y - XMVectorGetY(localRayStart)) * XMVectorGetY(localRayDirInv);
+
+					tmin = std::max(tmin, std::min(t1, t2));
+					tmax = std::min(tmax, std::max(t1, t2));
+
+					t1 = (geomBound.aabbMin.z - XMVectorGetZ(localRayStart)) * XMVectorGetZ(localRayDirInv);
+					t2 = (geomBound.aabbMax.z - XMVectorGetZ(localRayStart)) * XMVectorGetZ(localRayDirInv);
+
+					tmin = std::max(tmin, std::min(t1, t2));
+					tmax = std::min(tmax, std::max(t1, t2));
+
+					if (tmax <= std::max(tmin, 0.0f))
+					{
+						continue;
+					}
+				}
+
+				// onwards!
+				auto vb = geom->GetVertexBuffer(0);
+				auto ib = geom->GetIndexBuffer(0);
+
+				auto vl = vb->GetVertices();
+				auto vs = vb->GetStride();
+
+				// in grcore FVFs we can assume vertex offset will be 0
+				size_t vo = 0;
+
+				auto getVert = [vl, vs, vo](size_t i)
+				{
+					return XMLoadFloat3((XMFLOAT3*)((char*)vl + (i * vs) + vo));
+				};
+
+				const uint16_t* idxs = ib->GetIndexData();
+				size_t prims = ib->GetIndexCount();
+
+				XMVECTOR e1, e2, h, s, q;
+				XMVECTOR a, f, u, v;
+				XMVECTOR e = DirectX::XMVectorSet(0.00001f, 0.00001f, 0.00001f, 0.00001f);
+				XMVECTOR ne = DirectX::XMVectorNegate(e);
+
+				for (size_t t = 0; t < prims; t += 3)
+				{
+					auto v0 = getVert(idxs[t + 0]);
+					auto v1 = getVert(idxs[t + 1]);
+					auto v2 = getVert(idxs[t + 2]);
+
+					e1 = v1 - v0;
+					e2 = v2 - v0;
+
+					h = XMVector3Cross(localRayDir, e2);
+					a = XMVector3Dot(e1, h);
+
+					if (XMVector4EqualInt(XMVectorAndInt(XMVectorGreater(a, ne), XMVectorLess(a, e)), DirectX::XMVectorTrueInt()))
+					{
+						continue;
+					}
+
+					f = DirectX::XMVectorSplatOne() / a;
+					s = localRayStart - v0;
+					u = f * XMVector3Dot(s, h);
+
+					if (XMVector4EqualInt(XMVectorOrInt(XMVectorLess(u, DirectX::XMVectorZero()), XMVectorGreater(u, DirectX::XMVectorSplatOne())), DirectX::XMVectorTrueInt()))
+					{
+						continue;
+					}
+
+					q = XMVector3Cross(s, e1);
+					v = f * XMVector3Dot(localRayDir, q);
+
+					if (XMVector4EqualInt(XMVectorOrInt(XMVectorLess(v, DirectX::XMVectorZero()), XMVectorGreater(u + v, DirectX::XMVectorSplatOne())), DirectX::XMVectorTrueInt()))
+					{
+						continue;
+					}
+
+					auto frac = f * XMVector3Dot(e2, q);
+
+					if (XMVector4EqualInt(XMVectorGreater(frac, e), DirectX::XMVectorTrueInt()))
+					{
+						fraction = XMVectorGetX(frac);
+						break;
+					}
+				}
+
+				if (fraction < FLT_MAX)
+				{
+					break;
+				}
+			}
+
+			if (fraction < FLT_MAX)
+			{
+				break;
+			}
+		}
+
+		if (fraction < FLT_MAX)
+		{
+			hitPassedEntities.push_back({ entity, fraction });
+		}
+	}
+
+	// sort the hits
+	std::sort(hitPassedEntities.begin(), hitPassedEntities.end(), [](const auto& l, const auto& r)
+	{
+		return std::get<1>(l) < std::get<1>(r);
+	});
+
+	if (nth >= 0 && nth < hitPassedEntities.size())
+	{
+		return std::get<0>(hitPassedEntities[nth]);
+	}
 
 	return nullptr;
 }
 
-struct grcViewport
+fwEntity* DoMouseHitTest(int mX, int mY, const HitFlags& flags)
 {
-	float m_mat1[16];
-	float m_mat2[16];
-	float m_viewProjection[16];
-	float m_inverseView[16];
-	char m_pad[64];
-	float m_projection[16];
-};
+	static float lx;
+	static float ly;
 
-struct CViewportGame
-{
-public:
-	virtual ~CViewportGame() = 0;
+	auto xp = mX;
+	auto yp = mY;
 
-private:
-	char m_pad[8];
+	float x = xp / (float)GetViewportW();
+	float y = yp / (float)GetViewportH();
 
-public:
-	grcViewport viewport;
-};
+	auto rayStart = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ x, y, 0.0f });
+	auto rayEnd = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ x, y, 1.0f });
 
-static CViewportGame** g_viewportGame;
+	rage::spdRay ray;
+	ray.start = rayStart;
+	ray.end = rayEnd;
 
-static rage::Vec3V Unproject(const grcViewport& viewport, const rage::Vec3V& viewPos)
-{
-	using namespace DirectX;
-	
-	auto invVP = XMMatrixInverse(NULL, XMLoadFloat4x4((const XMFLOAT4X4*)viewport.m_viewProjection));
-	auto inVec = XMVectorSet((viewPos.x * 2.0f) - 1.0f, ((1.0 - viewPos.y) * 2.0f) - 1.0f, viewPos.z, 1.0f);
-	auto outCoord = XMVector3TransformCoord(inVec, invVP);
-
-	return {
-		XMVectorGetX(outCoord),
-		XMVectorGetY(outCoord),
-		XMVectorGetZ(outCoord)
-	};
-}
-
-static InitFunction initFunction([]()
-{
-	static ConsoleCommand castProbe("spdRayProbe", []()
+	auto ptD = ((lx - xp) * (lx - xp)) + ((ly - yp) * (ly - yp));
+	static int nth = 0;
+	if (ptD > (8 * 8))
 	{
-		if (!*g_viewportGame)
+		nth = 0;
+	}
+
+	fwEntity* hitEnt;
+
+	for (int attempt = 0; attempt < 2; attempt++)
+	{
+		auto entity = RunSelectionProbe(ray, nth, flags);
+
+		if (entity)
 		{
-			return;
+			nth++;
+			hitEnt = entity;
+
+			break;
 		}
 
-		// #TODO: actual game res, real probe positions
-		POINT pt;
-		GetCursorPos(&pt);
-		float x = pt.x / 5120.0f;
-		float y = pt.y / 1440.0f;
+		nth = 0;
+		hitEnt = nullptr;
+	}
 
-		auto rayStart = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ x, y, 0.0f });
-		auto rayEnd = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ x, y, 1.0f });
+	lx = xp;
+	ly = yp;
 
-		rage::spdRay ray;
-		ray.start = rayStart;
-		ray.end = rayEnd;
-
-		auto entity = RunSelectionProbe(ray);
-		trace("hit: %p\n", (void*)entity);
-	});
-});
+	return hitEnt;
+}
 
 static void (*g_origDrawSceneEnd)(int);
-
-struct CEntityDrawHandler
-{
-	virtual ~CEntityDrawHandler() = 0;
-	virtual void m_8() = 0;
-	virtual void Draw(fwEntity* entity, void* a3) = 0;
-};
-
-namespace rage
-{
-struct fiAssetManager
-{
-	static fiAssetManager* GetInstance();
-
-	void PushFolder(const char* folder);
-
-	void PopFolder();
-};
-
-fiAssetManager* fiAssetManager::GetInstance()
-{
-	static auto instance = hook::get_address<fiAssetManager*>(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 8B DF 8D 77 01", 3));
-	return instance;
-}
-
-static hook::thiscall_stub<void(fiAssetManager*, const char*)> _pushFolder([]()
-{
-	return hook::get_call(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 8B DF 8D 77 01", 7));
-});
-
-static hook::thiscall_stub<void(fiAssetManager*)> _popFolder([]()
-{
-	return hook::get_call(hook::get_pattern("EB 0A C7 83 ? 00 00 00 05 00 00 00", 0x13));
-});
-
-void fiAssetManager::PushFolder(const char* folder)
-{
-	return _pushFolder(this, folder);
-}
-
-void fiAssetManager::PopFolder()
-{
-	return _popFolder(this);
-}
-}
-
-static rage::grcRenderTarget* maskRenderTarget;
-
-#define M_PI 3.14159265358979323846
-#define M_E 2.71828182845904523536
-
-static float Gauss(float x, float stdDev)
-{
-	auto stdDev2 = stdDev * stdDev * 2;
-	auto a = 1 / sqrtf(M_PI * stdDev2);
-	auto gauss = a * powf(M_E, -x * x / stdDev2);
-
-	return gauss;
-}
-
-// for entity prototypes
-static int* currentShader;
-static int* g_currentDrawBucket;
-
-static void Draw()
-{
-	static int screenSize, intensity, width, color, gaussSamples;
-	static int mainTex, maskTex;
-	static int h, v;
-	static rage::grmShaderFx* shader;
-
-	static auto init = ([]()
-	{
-		rage::fiAssetManager::GetInstance()->PushFolder("citizen:/shaderz/");
-		shader = rage::grmShaderFactory::GetInstance()->Create();
-		assert(shader->LoadTechnique("outlinez", nullptr, false));
-		rage::fiAssetManager::GetInstance()->PopFolder();
-
-		screenSize = shader->GetParameter("ScreenSize");
-		intensity = shader->GetParameter("Intensity");
-		width = shader->GetParameter("Width");
-		color = shader->GetParameter("Color");
-		gaussSamples = shader->GetParameter("GaussSamples");
-
-		mainTex = shader->GetParameter("MainTexSampler");
-		maskTex = shader->GetParameter("MaskTexSampler");
-
-		h = shader->GetTechnique("h");
-		v = shader->GetTechnique("v");
-
-		return true;
-	})();
-
-	if (!fakeHitEntities.empty())
-	{
-		// #TODO: actual game res
-		float screenSizeF[2] = { 1.0f / 5120.0f, 1.0f / 1440.0f };
-		shader->SetParameter(screenSize, screenSizeF, 8, 1);
-
-		int widthF = 30;
-		shader->SetParameter(width, &widthF, 4, 1);
-
-		float colorF[4] = { 1.0f, 0.0f, 1.0f, 1.0f };
-		shader->SetParameter(color, colorF, 16, 1);
-
-		// #TODO: don't recompute all the time
-		float gaussSamplesF[32] = { 0.f };
-
-		for (int i = 0; i < widthF; i++)
-		{
-			gaussSamplesF[i] = Gauss((float)i, widthF * 0.5f);
-		}
-
-		shader->SetParameter(gaussSamples, gaussSamplesF, 16, (32 * 4) / 16);
-
-		float intensityF = 55.f;
-		shader->SetParameter(intensity, &intensityF, 4, 1);
-
-		shader->SetSampler(maskTex, maskRenderTarget);
-		shader->SetSampler(mainTex, maskRenderTarget);
-
-		static rage::grcRenderTarget* tempRenderTarget;
-		if (!tempRenderTarget)
-		{
-			// #TODO: actual game res
-			tempRenderTarget = CreateRenderTarget(0, "outlineTempRT", 3, 5120, 1440, 32, nullptr, true, tempRenderTarget);
-		}
-
-		rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, tempRenderTarget, nullptr, 0, true, 0);
-		
-		float nah[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		ID3D11RenderTargetView* rt;
-		GetD3D11DeviceContext()->OMGetRenderTargets(1, &rt, nullptr);
-		GetD3D11DeviceContext()->ClearRenderTargetView(rt, nah);
-
-		if (rt)
-		{
-			rt->Release();
-		}
-
-		auto lastZ = GetDepthStencilState();
-		SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
-
-		auto lastBlend = GetBlendState();
-		SetBlendState(GetStockStateIdentifier(BlendStateDefault));
-
-		auto draw = []()
-		{
-			rage::grcBegin(4, 4);
-
-			uint32_t color = 0xffffffff;
-
-			rage::grcVertex(-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 1.0f);
-			rage::grcVertex(1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 1.0f);
-			rage::grcVertex(-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, color, 0.0f, 0.0f);
-			rage::grcVertex(1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 0.0f);
-
-			rage::grcEnd();
-		};
-
-		shader->PushTechnique(h, true, 0);
-		shader->PushPass(0);
-		draw();
-		shader->PopPass();
-		shader->PopTechnique();
-
-		rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
-
-		shader->SetSampler(mainTex, tempRenderTarget);
-
-		shader->PushTechnique(v, true, 0);
-		shader->PushPass(0);
-		draw();
-		shader->PopPass();
-		shader->PopTechnique();
-
-		SetDepthStencilState(lastZ);
-		SetBlendState(lastBlend);
-	}
-}
-
-static hook::cdecl_stub<int(const char*)> _getTechniqueDrawName([]()
-{
-	return hook::get_pattern("E8 ? ? ? ? 33 DB 48 8D 4C 24 20 44 8D", -0x11);
-});
-
 static void DrawSceneEnd(int a1)
 {
 	g_origDrawSceneEnd(a1);
 
-	static int last;
-	static int lastZ;
-	static int lastBlend;
-	uintptr_t a = 0, b = 0;
+	OnDrawSceneEnd();
+}
 
-	if (fakeHitEntities.empty())
-	{
-		return;
-	}
+static void (*g_origPostFxSetupHook)(int w, int h);
 
-	EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
-	{
-		// #TODO: should *actually* set these up in the usual buffer (re)create function for resizing
-		if (!maskRenderTarget)
-		{
-			// #TODO: actual game res
-			maskRenderTarget = CreateRenderTarget(0, "outlineMaskRT", 3, 5120, 1440, 32, nullptr, true, maskRenderTarget);
-		}
+void PostFxSetupHook(int w, int h)
+{
+	// width and height are *probably* scaled to frame scaling size
+	g_origPostFxSetupHook(w, h);
 
-		lastZ = GetDepthStencilState();
-		SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
-
-		lastBlend = GetBlendState();
-		SetBlendState(GetStockStateIdentifier(BlendStateNoBlend));
-
-		last = *currentShader;
-		*currentShader = _getTechniqueDrawName("unlit");
-
-		// draw bucket 0 pls, not 1
-		// #TODO: set via DC?
-		*g_currentDrawBucket = 0;
-
-		rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
-		ClearRenderTarget(true, 0, true, 0.0f, true, 0);
-
-		// ?? as ClearRenderTarget is no-op in V
-		// -> 0x1412EE818 (1604)?
-		float nah[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		ID3D11RenderTargetView* rt;
-		GetD3D11DeviceContext()->OMGetRenderTargets(1, &rt, nullptr);
-		GetD3D11DeviceContext()->ClearRenderTargetView(rt, nah);
-
-		if (rt)
-		{
-			rt->Release();
-		}
-	},
-	&a, &b);
-
-	// storing like this is very unsafe (entity deletion)
-	for (auto& ent : fakeHitEntities)
-	{
-		auto drawHandler = *(CEntityDrawHandler**)((char*)ent + 72);
-
-		if (drawHandler)
-		{
-			uint8_t meh[64] = { 0, 1, 0 };
-			drawHandler->Draw(ent, &meh);
-		}
-	}
-
-	EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
-	{
-		rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
-
-		*currentShader = last;
-
-		SetDepthStencilState(lastZ);
-		SetBlendState(lastBlend);
-
-		Draw();
-	},
-	&a, &b);
+	OnSetUpRenderBuffers(w, h);
 }
 
 static HookFunction hookFunction([]()
 {
-	// 1604: 0x141D8C6BC
-	currentShader = hook::get_address<int*>(hook::get_pattern("85 C9 75 13 8B 05 ? ? ? ? C6", 6));
-
-	// 1604: 0x142DD9C6C
-	g_currentDrawBucket = hook::get_address<int*>(hook::get_pattern("4C 8B E9 8B 0D ? ? ? ? 89 44 24 74 B8 01", 5));
-
 	g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("33 C0 48 39 05 ? ? ? ? 74 2E 48 8B 0D ? ? ? ? 48 85 C9 74 22", 5));
 
 	// 1604: 0x1404F42AC
@@ -480,5 +336,80 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origDrawSceneEnd, location);
 		hook::call(location, DrawSceneEnd);
 	}
+
+	// post fx setup hijack
+	// (we do this as it's called both on init as well as on render restart)
+	{
+		MH_Initialize();
+
+		auto location = hook::get_pattern("41 BF 01 00 00 00 BA FF FF 00 00", -0x35);
+		MH_CreateHook(location, PostFxSetupHook, (void**)&g_origPostFxSetupHook);
+		MH_EnableHook(location);
+	}
 });
-#endif
+
+fwEvent<int, int> OnSetUpRenderBuffers;
+fwEvent<> OnDrawSceneEnd;
+CViewportGame** g_viewportGame;
+
+static rage::spdViewport** rage__spdViewport__sm_Current;
+
+rage::spdViewport* rage::spdViewport::GetCurrent()
+{
+	return *rage__spdViewport__sm_Current;
+}
+
+static HookFunction hookFunctionSafe([]()
+{
+	rage__spdViewport__sm_Current = hook::get_address<rage::spdViewport**>(hook::get_pattern("48 8B 3D ? ? ? ? 40 8A F2 48 8B D9 75 14", 3));
+});
+
+#include <imgui.h>
+
+static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
+{
+	return hook::get_pattern("48 F7 F9 49 8B 48 08 48 63 D0 C1 E0 08 0F B6 1C 11 03 D8", -0x68);
+});
+
+static InitFunction initFunctionScript([]()
+{
+	fx::ScriptEngine::RegisterNativeHandler("SELECT_ENTITY_AT_CURSOR", [](fx::ScriptContext& context)
+	{
+		const auto& io = ImGui::GetIO();
+
+		float xp = io.MousePos.x - ImGui::GetMainViewport()->Pos.x;
+		float yp = io.MousePos.y - ImGui::GetMainViewport()->Pos.y;
+
+		HitFlags hf;
+		hf.entityTypeMask = context.GetArgument<int>(0);
+		hf.preciseTesting = context.GetArgument<bool>(1);
+
+		auto entity = DoMouseHitTest(xp, yp, hf);
+		if (entity)
+		{
+			context.SetResult(getScriptGuidForEntity(entity));
+			return;
+		}
+
+		context.SetResult(0);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SELECT_ENTITY_AT_POS", [](fx::ScriptContext& context)
+	{
+		float xp = context.GetArgument<float>(0) * GetViewportW();
+		float yp = context.GetArgument<float>(1) * GetViewportH();
+
+		HitFlags hf;
+		hf.entityTypeMask = context.GetArgument<int>(2);
+		hf.preciseTesting = context.GetArgument<bool>(3);
+
+		auto entity = DoMouseHitTest(xp, yp, hf);
+		if (entity)
+		{
+			context.SetResult(getScriptGuidForEntity(entity));
+			return;
+		}
+
+		context.SetResult(0);
+	});
+});

@@ -35,17 +35,14 @@ static HookFunction hookFunction([] ()
 
 __declspec(dllexport) fwEvent<> OnD3DPostReset;
 
+static hook::cdecl_stub<void(bool clearColor, uint32_t colorValue, bool clearDepth, float depthValue, bool clearStencil, uint8_t stencilValue)> _clearRenderTarget([]()
+{
+	return hook::get_pattern("41 8A E8 0F 84 ? ? ? ? F3 0F 10", -0x3D);
+});
+
 void ClearRenderTarget(bool a1, int value1, bool a2, float value2, bool a3, int value3)
 {
-	/*ClearRenderTargetDC dc;
-	dc.value1 = value1;
-	dc.value2 = value2;
-	dc.value3 = value3;
-	dc.a1 = a1;
-	dc.a2 = a2;
-	dc.a3 = a3;
-
-	ClearRenderTargetDC__process(&dc);*/
+	_clearRenderTarget(a1, value1, a2, value2, a3, value3);
 }
 
 bool __declspec(dllexport) rage::grcTexture::IsRenderSystemColorSwapped()

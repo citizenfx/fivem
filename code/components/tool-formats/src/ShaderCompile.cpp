@@ -90,8 +90,10 @@ static void Run(const boost::program_options::variables_map& map)
 
 				D3DX11_PASS_SHADER_DESC psd;
 				D3DX11_PASS_SHADER_DESC vsd;
+				D3DX11_PASS_SHADER_DESC gsd;
 				pass->GetPixelShaderDesc(&psd);
 				pass->GetVertexShaderDesc(&vsd);
+				pass->GetGeometryShaderDesc(&gsd);
 
 				auto processShader = [&bindPoints](auto& list, D3DX11_PASS_SHADER_DESC desc)
 				{
@@ -159,10 +161,15 @@ static void Run(const boost::program_options::variables_map& map)
 
 				int vertexShader = processShader(shaderFile->GetVertexShaders(), vsd);
 				int pixelShader = processShader(shaderFile->GetPixelShaders(), psd);
+				int geometryShader = (gsd.pShaderVariable->IsValid()) ? processShader(shaderFile->m_geometryShaders, gsd) : 0;
 
 				std::vector<uint8_t> d(7);
 				d[0] = vertexShader;
 				d[1] = pixelShader;
+				// compute
+				// domain
+				d[4] = geometryShader;
+				// hull
 
 				fxc::TechniqueMapping tmap;
 				tmap.SetRawData(d);
@@ -187,13 +194,15 @@ static void Run(const boost::program_options::variables_map& map)
 			cbuf->m_name = evDesc.Name;
 
 			*(uint32_t*)&cbuf->m_data[0] = td.UnpackedSize;
+
+			// bind point per shader type
+			// this assumes cb* register is the same across all of them!
 			*(uint16_t*)&cbuf->m_data[4] = bindPoints[evDesc.Name];
 			*(uint16_t*)&cbuf->m_data[6] = bindPoints[evDesc.Name];
-
-			*(uint16_t*)&cbuf->m_data[8] = 1;
-			*(uint16_t*)&cbuf->m_data[10] = 1;
-			*(uint16_t*)&cbuf->m_data[12] = 1;
-			*(uint16_t*)&cbuf->m_data[14] = 1;
+			*(uint16_t*)&cbuf->m_data[8] = bindPoints[evDesc.Name];
+			*(uint16_t*)&cbuf->m_data[10] = bindPoints[evDesc.Name];
+			*(uint16_t*)&cbuf->m_data[12] = bindPoints[evDesc.Name];
+			*(uint16_t*)&cbuf->m_data[14] = bindPoints[evDesc.Name];
 
 			cbs[evDesc.Name] = shaderFile->GetLocalConstantBuffers().size();
 			shaderFile->GetLocalConstantBuffers().push_back(cbuf);
@@ -234,11 +243,19 @@ static void Run(const boost::program_options::variables_map& map)
 			// 4: float3
 			// 5: float4
 			// 6: sampler
+			// 9: float4x4
 			// 11: int
 
 			if (tyd.Type == D3D_SVT_FLOAT)
 			{
-				param->m_type = (decltype(param->m_type))(2 + (tyd.Columns - 1));
+				if (tyd.Columns == 4 && tyd.Rows == 4)
+				{
+					param->m_type = (decltype(param->m_type))9;
+				}
+				else
+				{
+					param->m_type = (decltype(param->m_type))(2 + (tyd.Columns - 1));
+				}
 			}
 			else if (tyd.Type == D3D_SVT_INT)
 			{

@@ -119,6 +119,16 @@ bool GFXSPEC_EXPORT IsOnRenderThread();
 
 namespace rage
 {
+	enum grcDrawMode
+	{
+		grcPointList = 0,
+		grcLineList,
+		grcLineStrip,
+		grcTriangleList,
+		grcTriangleStrip,
+		// some more unknowns follow (lighting, etc.)
+	};
+
 	void GFXSPEC_EXPORT grcBegin(int drawMode, int count);
 	void GFXSPEC_EXPORT grcVertex(float x, float y, float z, float nX, float nY, float nZ, uint32_t color, float u, float v);
 	void GFXSPEC_EXPORT grcEnd();

@@ -71,11 +71,11 @@ void InputHook::EnableSetCursorPos(bool enabled)
 
 #include <LaunchMode.h>
 
-static std::initializer_list<InputHook::ControlBypass> g_controlBypasses;
+static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
 
-void InputHook::SetControlBypasses(std::initializer_list<ControlBypass> bypasses)
+void InputHook::SetControlBypasses(int subsystem, std::initializer_list<ControlBypass> bypasses)
 {
-	g_controlBypasses = bypasses;
+	g_controlBypasses[subsystem] = bypasses;
 }
 
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -139,20 +139,23 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 				buttonIdx = GET_XBUTTON_WPARAM(wParam) * 8;
 			}
 
-			for (auto bypass : g_controlBypasses)
+			for (const auto& bypassSystem : g_controlBypasses)
 			{
-				if (bypass.isMouse && (bypass.ctrlIdx & 0xFF) == buttonIdx)
+				for (auto bypass : bypassSystem.second)
 				{
-					if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
+					if (bypass.isMouse && (bypass.ctrlIdx & 0xFF) == buttonIdx)
 					{
-						*g_mouseButtons &= ~buttonIdx;
-					}
-					else
-					{
-						*g_mouseButtons |= buttonIdx;
-					}
+						if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
+						{
+							*g_mouseButtons &= ~buttonIdx;
+						}
+						else
+						{
+							*g_mouseButtons |= buttonIdx;
+						}
 
-					break;
+						break;
+					}
 				}
 			}
 		}
@@ -164,11 +167,14 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 		if (uMsg == WM_KEYUP || uMsg == WM_KEYDOWN)
 		{
-			for (auto bypass : g_controlBypasses)
+			for (const auto& bypassSystem : g_controlBypasses)
 			{
-				if (!bypass.isMouse && bypass.ctrlIdx == wParam)
+				for (auto bypass : bypassSystem.second)
 				{
-					shouldPassAnyway = true;
+					if (!bypass.isMouse && bypass.ctrlIdx == wParam)
+					{
+						shouldPassAnyway = true;
+					}
 				}
 			}
 		}

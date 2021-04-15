@@ -41,6 +41,7 @@
 
 static bool g_conHostInitialized = false;
 extern bool g_consoleFlag;
+extern bool g_cursorFlag;
 int g_scrollTop;
 int g_bufferHeight;
 
@@ -281,7 +282,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_consoleFlag && !shouldDrawGui)
+	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui)
 	{
 		lastDrawTime = timeGetTime();
 
@@ -293,7 +294,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	HandleFxDKInput(io);
 
-	io.MouseDrawCursor = g_consoleFlag;
+	io.MouseDrawCursor = g_consoleFlag || g_cursorFlag;
 
 	{
 		io.DisplaySize = ImVec2(width, height);
@@ -367,7 +368,7 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_consoleFlag || !pass)
+	if ((!g_consoleFlag && !g_cursorFlag) || !pass)
 	{
 		return;
 	}
@@ -435,8 +436,12 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 	
-	if (msg == WM_INPUT || (msg >= WM_KEYFIRST && msg <= WM_KEYLAST) ||
-		(msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST) || msg == WM_CHAR)
+	if (msg == WM_INPUT || (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
+	{
+		pass = false;
+	}
+
+	if (g_consoleFlag && ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR))
 	{
 		pass = false;
 	}
@@ -631,7 +636,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		if (!g_consoleFlag)
+		if (!g_consoleFlag && !g_cursorFlag)
 		{
 			return true;
 		}
@@ -716,7 +721,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryMayLockCursor.Connect([](int& may)
 	{
-		if (g_consoleFlag)
+		if (g_consoleFlag || g_cursorFlag)
 		{
 			may = 0;
 		}
@@ -772,7 +777,7 @@ static decltype(&ReleaseCapture) g_origReleaseCapture;
 
 static void WINAPI ReleaseCaptureStub()
 {
-	if (g_consoleFlag)
+	if (g_consoleFlag || g_cursorFlag)
 	{
 		return;
 	}

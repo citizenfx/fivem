@@ -23,6 +23,7 @@
 static std::thread g_consoleThread;
 static std::once_flag g_consoleInitialized;
 bool g_consoleFlag;
+bool g_cursorFlag;
 extern int g_scrollTop;
 extern int g_bufferHeight;
 
@@ -151,3 +152,9 @@ static InitFunction initFunction([] ()
 	}, 10);
 #endif
 });
+
+void ConHost::SetCursorMode(bool mode)
+{
+	g_cursorFlag = mode;
+	InputHook::SetGameMouseFocus(!mode);
+}

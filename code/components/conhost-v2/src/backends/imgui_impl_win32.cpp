@@ -169,6 +169,7 @@ static bool ImGui_ImplWin32_UpdateMouseCursor()
 }
 
 extern bool g_consoleFlag;
+extern bool g_cursorFlag;
 
 // This code supports multi-viewports (multiple OS Windows mapped into different Dear ImGui viewports)
 // Because of that, it is a little more complicated than your typical single-viewport binding code!
@@ -207,7 +208,7 @@ static void ImGui_ImplWin32_UpdateMousePos()
 #ifndef IS_FXSERVER
 	if (io.MouseHoveredViewport == ImGui::GetMainViewport()->ID)
 	{
-		if (!g_consoleFlag)
+		if (!g_consoleFlag && !g_cursorFlag)
 		{
 			return;
 		}
