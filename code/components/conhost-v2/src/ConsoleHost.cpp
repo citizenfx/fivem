@@ -156,5 +156,7 @@ static InitFunction initFunction([] ()
 void ConHost::SetCursorMode(bool mode)
 {
 	g_cursorFlag = mode;
+#if __has_include("InputHook.h")
 	InputHook::SetGameMouseFocus(!mode);
+#endif
 }
