@@ -325,14 +325,16 @@ void UvTcpServerStream::CloseClient()
 			writeTimeout->close();
 		}
 
-		auto onShutdown = [client]()
+		auto clientPtr = std::make_shared<decltype(client)>(client);
+
+		auto onShutdown = [clientPtr]()
 		{
-			client->once<uvw::CloseEvent>([client](const uvw::CloseEvent& e, uvw::TCPHandle& h)
+			(*clientPtr)->once<uvw::CloseEvent>([clientPtr](const uvw::CloseEvent& e, uvw::TCPHandle& h)
 			{
-				(void)client;
+				*clientPtr = {};
 			});
 
-			client->close();
+			(*clientPtr)->close();
 		};
 
 		// if uv_shutdown() fails, we still need to close the handle!
