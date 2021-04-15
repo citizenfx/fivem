@@ -439,7 +439,12 @@ static InitFunction initFunction([] ()
 #endif 
 
 #if defined(IS_RDR3)
-				brandName = L"RedM MILESTONE 2";
+				brandName = L"RedM MILESTONE 2+";
+
+				if (Is1355())
+				{
+					brandName += L" (b1355)";
+				}
 #endif
 
 #if defined(GTA_NY)
