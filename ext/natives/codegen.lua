@@ -31,6 +31,7 @@ function codeEnvironment.type(typeName)
 		return setmetatable(t, {
 			__call = function(t, list)
 				t.annotations = json.decode(list)
+				return t
 			end
 		})
 	end
