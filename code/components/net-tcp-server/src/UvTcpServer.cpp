@@ -325,7 +325,7 @@ void UvTcpServerStream::CloseClient()
 			writeTimeout->close();
 		}
 
-		client->once<uvw::ShutdownEvent>([client](const uvw::ShutdownEvent& e, uvw::TCPHandle& h)
+		auto onShutdown = [client]()
 		{
 			client->once<uvw::CloseEvent>([client](const uvw::CloseEvent& e, uvw::TCPHandle& h)
 			{
@@ -333,6 +333,18 @@ void UvTcpServerStream::CloseClient()
 			});
 
 			client->close();
+		};
+
+		// if uv_shutdown() fails, we still need to close the handle!
+		// therefore also trip on ErrorEvent.
+		client->once<uvw::ErrorEvent>([onShutdown](const uvw::ErrorEvent& e, uvw::TCPHandle& h)
+		{
+			onShutdown();
+		});
+
+		client->once<uvw::ShutdownEvent>([onShutdown](const uvw::ShutdownEvent& e, uvw::TCPHandle& h)
+		{
+			onShutdown();
 		});
 
 		client->stop();
