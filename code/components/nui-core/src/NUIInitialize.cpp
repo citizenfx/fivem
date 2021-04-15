@@ -15,6 +15,7 @@
 
 #include <CefOverlay.h>
 
+#include <psapi.h>
 #include <delayimp.h>
 
 #include <include/cef_origin_whitelist.h>
@@ -700,22 +701,48 @@ static void PatchAdapter(IDXGIAdapter** pAdapter)
 
 static bool g_reshit;
 
-static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext)
+template<typename TFnLeft, typename TFnRight>
+void VHook(intptr_t& ref, TFnLeft fn, TFnRight out)
+{
+	if (ref == (intptr_t)fn)
+	{
+		return;
+	}
+
+	if (*out)
+	{
+		return;
+	}
+
+	*out = (decltype(*out))ref;
+	ref = (intptr_t)fn;
+}
+
+static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext, bool forceGPU)
 {
 	bool can = true;
 
 #if !defined(IS_RDR3)
-	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr;
+	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr || forceGPU;
 #endif
 
 	if (ppDevice && ppImmediateContext && can && *ppDevice && *ppImmediateContext)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
-		MH_CreateHook((void*)vtbl[5], CreateTexture2DHook, (void**)&g_origCreateTexture2D);
-		MH_CreateHook((void*)vtbl[28], OpenSharedResourceHook, (void**)&g_origOpenSharedResourceHook);
-		MH_CreateHook((void*)vtblCxt[47], CopyResourceHook, (void**)&g_origCopyResource);
-		MH_EnableHook(MH_ALL_HOOKS);
+
+		auto ourVtbl = new intptr_t[640];
+		memcpy(ourVtbl, vtbl, 640 * sizeof(intptr_t));
+		VHook(ourVtbl[5], &CreateTexture2DHook, &g_origCreateTexture2D);
+		VHook(ourVtbl[28], &OpenSharedResourceHook, &g_origOpenSharedResourceHook);
+
+		auto ourVtblCxt = new intptr_t[640];
+		memcpy(ourVtblCxt, vtblCxt, 640 * sizeof(intptr_t));
+
+		VHook(ourVtblCxt[47], &CopyResourceHook, &g_origCopyResource);
+
+		**(intptr_t***)ppDevice = ourVtbl;
+		**(intptr_t***)ppImmediateContext = ourVtblCxt;
 	}
 
 	if (ppImmediateContext && *ppImmediateContext)
@@ -758,6 +785,60 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 
 static HRESULT (*g_origD3D11CreateDeviceAndSwapChain)(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
 
+struct ModuleData
+{
+	using TSet = std::map<uintptr_t, uintptr_t>;
+
+	const TSet dataSet;
+
+	ModuleData(std::initializer_list<std::wstring> moduleNames)
+		: dataSet(CreateSet(moduleNames))
+	{
+	}
+
+	bool IsInSet(void* address)
+	{
+		uintptr_t ptr = (uintptr_t)address;
+
+		auto it = dataSet.upper_bound(ptr);
+
+		if (it != dataSet.begin())
+		{
+			it--;
+
+			if (ptr >= it->first && ptr < it->second)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+private:
+	TSet CreateSet(std::initializer_list<std::wstring> moduleNames)
+	{
+		TSet set;
+
+		for (auto& name : moduleNames)
+		{
+			HMODULE hMod = GetModuleHandle(name.c_str());
+
+			if (hMod)
+			{
+				MODULEINFO mi;
+				GetModuleInformation(GetCurrentProcess(), hMod, &mi, sizeof(mi));
+
+				set.insert({ (uintptr_t)hMod, (uintptr_t)hMod + mi.SizeOfImage });
+			}
+		}
+
+		return std::move(set);
+	}
+};
+
+static std::unique_ptr<ModuleData> g_libgl;
+
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	PatchAdapter(&pAdapter);
@@ -770,7 +851,7 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 	auto hr = g_origD3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
-	PatchCreateResults(ppDevice, ppImmediateContext);
+	PatchCreateResults(ppDevice, ppImmediateContext, g_libgl->IsInSet(_ReturnAddress()));
 
 	return hr;
 }
@@ -787,7 +868,7 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
-	PatchCreateResults(ppDevice, ppImmediateContext);
+	PatchCreateResults(ppDevice, ppImmediateContext, g_libgl->IsInSet(_ReturnAddress()));
 
 	return hr;
 }
@@ -899,6 +980,8 @@ void Component_RunPreInit()
 
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
+
+	g_libgl = std::unique_ptr<ModuleData>(new ModuleData{ L"libGLESv2.dll", L"libEGL.dll", L"libcef.dll" });
 
 	if (!libcef)
 	{
