@@ -153,6 +153,8 @@ static InitFunction initFunction([] ()
 
 #ifndef IS_RDR3
 	if (initState->IsGameProcess() || wcsstr(GetCommandLineW(), L"ros:legit"))
+#else
+	if (!wcsstr(GetCommandLineW(), L"ros:epic") && !wcsstr(GetCommandLineW(), L"ros:steam"))
 #endif
 	{
 		net::PeerAddress address = net::PeerAddress::FromString("127.0.0.1:32891", 32891, net::PeerAddress::LookupType::NoResolution).get();
