@@ -1,26 +1,26 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
+import { NativeTypes } from 'react-dnd-html5-backend';
 import { BsCheckBox, BsFillEyeFill, BsSquare } from 'react-icons/bs';
-import { ServerStates } from 'shared/api.types';
-import { ServerContext } from 'contexts/ServerContext';
 import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
 import { projectApi, serverApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
 import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
-import { ProjectItemProps } from '../item';
 import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../item.context';
 import { projectExplorerItemType } from '../item.types';
 import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
 import { ProjectSetResourceConfigRequest } from 'shared/api.requests';
+import { ProjectResource } from 'shared/project.types';
+import { StatusState } from 'store/StatusState';
 import { ResourceStatus } from 'backend/project/asset/asset-contributions/resource/resource-types';
-import { useStatus } from 'contexts/StatusContext';
+import { ServerState } from 'store/ServerState';
 import { ResourceCommandsOutputModal } from './ResourceCommandsOutputModal/ResourceCommandsOutputModal';
 import { itemsStyles } from '../item.styles';
-import { NativeTypes } from 'react-dnd-html5-backend';
-import { ProjectResource } from 'shared/project.types';
+import { ProjectItemProps } from '../item';
 import s from './Resource.module.scss';
 
 
@@ -37,11 +37,11 @@ export interface ResourceProps {
   path: string,
 };
 
-export const Resource = React.memo(function Resource(props: ProjectItemProps) {
+export const Resource = observer(function Resource(props: ProjectItemProps) {
   const { entry, project } = props;
 
   const resourceConfig = project.resources[entry.name];
-  const resourceStatus = useStatus<ResourceStatus>(`resource-${entry.path}`, defaultResourceStatus);
+  const resourceStatus = StatusState.get<ResourceStatus>(`resource-${entry.path}`, defaultResourceStatus);
 
   const options = React.useContext(ProjectExplorerItemContext);
 
@@ -199,9 +199,10 @@ const ResourceIcon = React.memo(function ResourceIcon({ enabled, running }: { en
 });
 
 function useResourceLifecycle(resourceName: string, resourceConfig: ProjectResource, resourceStatus: ResourceStatus) {
-  const { serverState, resourcesState } = React.useContext(ServerContext);
-
   const [commandsOutputOpen, openCommandsOutput, closeCommandsOutput] = useOpenFlag(false);
+
+  const serverIsNotUp = !ServerState.isUp;
+  const resourceIsRunning = ServerState.isResourceRunning(resourceName);
 
   const isEnabled = !!resourceConfig?.enabled;
   const isAutorestartOnChangeEnabled = !!resourceConfig?.restartOnChange;
@@ -239,22 +240,20 @@ function useResourceLifecycle(resourceName: string, resourceConfig: ProjectResou
   }, [resourceName]);
 
   const lifecycleContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
-    const serverIsDown = serverState !== ServerStates.up;
-
     const serverRelatedItems: ContextMenuItemsCollection = [];
 
-    if (resourcesState[resourceName]) {
+    if (resourceIsRunning) {
       serverRelatedItems.push({
         id: 'stop',
         icon: stopIcon,
         text: 'Stop',
-        disabled: serverIsDown,
+        disabled: serverIsNotUp,
         onClick: handleStop,
       }, {
         id: 'restart',
         icon: refreshIcon,
         text: 'Restart',
-        disabled: serverIsDown,
+        disabled: serverIsNotUp,
         onClick: handleRestart,
       });
     } else {
@@ -262,7 +261,7 @@ function useResourceLifecycle(resourceName: string, resourceConfig: ProjectResou
         id: 'Start',
         icon: startIcon,
         text: 'Start',
-        disabled: serverIsDown,
+        disabled: serverIsNotUp,
         onClick: handleStart,
       });
     }
@@ -303,9 +302,10 @@ function useResourceLifecycle(resourceName: string, resourceConfig: ProjectResou
       ...fxdkCommandsItems,
     ];
   }, [
+    serverIsNotUp,
     resourceName,
     resourceStatus,
-    resourcesState,
+    resourceIsRunning,
     isEnabled,
     isAutorestartOnChangeEnabled,
     handleStop,
@@ -316,7 +316,7 @@ function useResourceLifecycle(resourceName: string, resourceConfig: ProjectResou
 
   return {
     resourceIsEnabled: isEnabled,
-    resourceIsRunning: !!resourcesState[resourceName],
+    resourceIsRunning,
     lifecycleContextMenuItems,
     commandsOutputOpen,
     closeCommandsOutput,

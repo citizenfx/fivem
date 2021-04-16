@@ -6,7 +6,7 @@ import { FsService } from 'backend/fs/fs-service';
 import { GameService } from 'backend/game/game-service';
 import { LogService } from 'backend/logger/log-service';
 import { ShellCommand } from 'backend/process/ShellCommand';
-import { SingleEventEmitter } from 'backend/single-event-emitter';
+import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { Task } from 'backend/task/task-reporter-service';
 import { Ticker } from 'backend/ticker';
 import { inject, injectable } from 'inversify';
@@ -276,7 +276,9 @@ export class GameServerFxdkMode implements GameServerMode {
     this.ipc.onEvent('ready', () => this.readyDeferred.resolve());
 
     this.ipc.onEvent('stdout', ([channel, message]: [string, string]) => {
-      this.apiClient.emit(serverApi.structuredOutputMessage, { channel, message });
+      if (message.trim()) {
+        this.apiClient.emit(serverApi.structuredOutputMessage, { channel, message });
+      }
     });
 
     this.ipc.onEvent('resource-start', (resourceName: string) => {

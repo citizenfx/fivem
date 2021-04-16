@@ -1,12 +1,11 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Button } from 'components/controls/Button/Button';
 import { Input } from 'components/controls/Input/Input';
 import { Explorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { sendApiMessage } from 'utils/api';
-import { invariant } from 'utils/invariant';
 import { assetApi } from 'shared/api.events';
 import { FilesystemEntry } from 'shared/api.types';
 import { AssetCreateRequest } from 'shared/api.requests';
@@ -15,6 +14,7 @@ import { getRelativePath } from 'components/Explorer/Explorer.utils';
 import { ResourceTemplate } from './ResourceTemplate/ResourceTemplate';
 import { resourceTemplateDescriptors } from 'resource-templates/descriptors-list';
 import { assetTypes } from 'shared/asset.types';
+import { ProjectState } from 'store/ProjectState';
 import s from './ResourceCreator.module.scss';
 
 
@@ -27,19 +27,17 @@ const resourceFolderVisibilityFilter = combineVisibilityFilters(
   visibilityFilters.hideDotFilesAndDirs,
 );
 
-export const ResourceCreator = React.memo(function ResourceCreator() {
-  const { project, projectEntry, resourceCreatorDir, closeResourceCreator } = React.useContext(ProjectContext);
-
-  invariant(project && projectEntry, `AssetCreator has been rendered without project set`);
+export const ResourceCreator = observer(function ResourceCreator() {
+  const project = ProjectState.project;
 
   const [resourceName, setResourceName] = React.useState('');
-  const [resourcePath, setResourcePath] = React.useState(resourceCreatorDir);
+  const [resourcePath, setResourcePath] = React.useState(ProjectState.resourceCreatorDir);
   const [resourceTemplateId, setResourceTemplateId] = React.useState(resourceTemplateDescriptors[0].id);
 
   // In case if path has been changed we should be acknowledged
   React.useEffect(() => {
-    setResourcePath(resourceCreatorDir);
-  }, [resourceCreatorDir, setResourcePath]);
+    setResourcePath(ProjectState.resourceCreatorDir);
+  }, [ProjectState.resourceCreatorDir, setResourcePath]);
 
   const handleCreateResource = React.useCallback(() => {
     if (resourceName && project) {
@@ -54,9 +52,9 @@ export const ResourceCreator = React.memo(function ResourceCreator() {
 
       sendApiMessage(assetApi.create, request);
 
-      closeResourceCreator();
+      ProjectState.closeResourceCreator();
     }
-  }, [resourceName, project, resourcePath, resourceTemplateId, closeResourceCreator]);
+  }, [resourceName, project, resourcePath, resourceTemplateId]);
 
   const resourceRelativePath = getRelativePath(project.path, resourcePath);
   const resourcePathHint = resourcePath === project.path
@@ -64,7 +62,7 @@ export const ResourceCreator = React.memo(function ResourceCreator() {
     : `Location: ${resourceRelativePath}`;
 
   return (
-    <Modal fullWidth onClose={closeResourceCreator}>
+    <Modal fullWidth onClose={ProjectState.closeResourceCreator}>
       <div className={s.root}>
         <div className="modal-header">
           Create Resource
@@ -100,7 +98,7 @@ export const ResourceCreator = React.memo(function ResourceCreator() {
         </div>
         <Explorer
           className={s.explorer}
-          baseEntry={projectEntry}
+          baseEntry={project.entry}
           pathsMap={project.fs}
           selectedPath={resourcePath}
           onSelectPath={setResourcePath}
@@ -117,7 +115,7 @@ export const ResourceCreator = React.memo(function ResourceCreator() {
           />
           <Button
             text="Cancel"
-            onClick={closeResourceCreator}
+            onClick={ProjectState.closeResourceCreator}
           />
         </div>
       </div>

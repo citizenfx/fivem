@@ -1,25 +1,22 @@
 import React from 'react';
 import classnames from 'classnames';
+import { observer } from 'mobx-react-lite';
 import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsPlay, BsStop } from 'react-icons/bs';
-import { ProjectContext } from 'contexts/ProjectContext';
-import { ServerContext } from 'contexts/ServerContext';
-import { ServerStates, ServerUpdateStates } from 'shared/api.types';
+import { ServerUpdateStates } from 'shared/api.types';
 import { Indicator } from 'components/Indicator/Indicator';
+import { ServerState } from 'store/ServerState';
+import { ProjectState } from 'store/ProjectState';
 import s from './ServerButton.module.scss';
 
 
-export const ServerButton = React.memo(function Server() {
-  const { serverState, updateChannelsState, startServer, stopServer, installUpdate } = React.useContext(ServerContext);
-  const { project } = React.useContext(ProjectContext);
-
-  const updateChannelState = project
-    ? updateChannelsState[project.manifest.serverUpdateChannel]
-    : null;
+export const ServerButton = observer(function Server() {
+  const project = ProjectState.project;
+  const updateChannelState = ServerState.getUpdateChannelState(project.manifest.serverUpdateChannel);
 
   const rootClassName = classnames(s.root, {
-    [s.up]: serverState === ServerStates.up,
-    [s.down]: serverState === ServerStates.down,
-    [s.booting]: serverState === ServerStates.booting,
+    [s.up]: ServerState.isUp,
+    [s.down]: ServerState.isDown,
+    [s.booting]: ServerState.isBooting,
     [s.error]: updateChannelState === ServerUpdateStates.missingArtifact,
   });
 
@@ -27,20 +24,20 @@ export const ServerButton = React.memo(function Server() {
   let title;
 
   if (updateChannelState === ServerUpdateStates.ready) {
-    switch (serverState) {
-      case ServerStates.up: {
+    switch (true) {
+      case ServerState.isUp: {
         icon = <BsStop />;
         title = 'Stop server';
         break;
       }
 
-      case ServerStates.down: {
+      case ServerState.isDown: {
         icon = <BsPlay />;
         title = 'Start server';
         break;
       }
 
-      case ServerStates.booting: {
+      case ServerState.isBooting: {
         icon = <Indicator />;
         title = 'Stop server';
         break;
@@ -75,20 +72,15 @@ export const ServerButton = React.memo(function Server() {
 
   const handleClick = React.useCallback(() => {
     if (project && updateChannelState === ServerUpdateStates.updateRequired) {
-      return installUpdate(project.manifest.serverUpdateChannel);
+      return ServerState.installUpdate(project.manifest.serverUpdateChannel);
     }
 
     if (updateChannelState !== ServerUpdateStates.ready) {
       return;
     }
 
-    if (serverState === ServerStates.down) {
-      startServer();
-    }
-    if (serverState === ServerStates.up) {
-      stopServer();
-    }
-  }, [serverState, updateChannelState, startServer, stopServer]);
+    ServerState.toggleServer();
+  }, [project, updateChannelState]);
 
   return (
     <div className={rootClassName}>

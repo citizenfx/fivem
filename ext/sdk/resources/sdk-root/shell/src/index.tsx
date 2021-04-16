@@ -8,34 +8,25 @@ import * as Sentry from "@sentry/react";
 import { Integrations } from "@sentry/tracing";
 import { Shell } from './components/Shell';
 import { enableLogger } from 'utils/logger';
-import { StateContextProvider } from './contexts/StateContext';
-import { ProjectContextProvider } from './contexts/ProjectContext';
-import { TheiaContextProvider } from './contexts/TheiaContext';
-import { ServerContextProvider } from './contexts/ServerContext';
-import { StatusContextProvider } from 'contexts/StatusContext';
-import { TaskContextProvider } from 'contexts/TaskContext';
 import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
 import { NotificationsManager } from 'managers/NotificationsManager/NotificationsManager';
-import { OutputContextProvider } from 'contexts/OutputContext';
-import { GameContextProvider } from 'contexts/GameContext';
-import { SdkMessageManager } from 'managers/SdkMessageManager';
 import { GameConnectionManager } from 'managers/GameConnectionManager';
-import { ConsolesManager } from 'managers/ConsolesManager';
-import { TheiaCommandsManager } from 'managers/TheiaCommandsManager';
 import { onApiMessage } from 'utils/api';
 import { stateApi } from 'shared/api.events';
 
 enableLogger('shell,shell:*,host');
 
-Sentry.init({
-  dsn: "https://e3b160e20aa24ffd9b74a222a4d5c07a@sentry.fivem.net/7",
-  release: `cfx-${process.env.CI_PIPELINE_ID}`,
-  integrations: [
-    new Integrations.BrowserTracing(),
-  ],
-  tracesSampleRate: 1.0,
-});
+if (process.env.CI_PIPELINE_ID !== 'dev') {
+  Sentry.init({
+    dsn: "https://e3b160e20aa24ffd9b74a222a4d5c07a@sentry.fivem.net/7",
+    release: `cfx-${process.env.CI_PIPELINE_ID}`,
+    integrations: [
+      new Integrations.BrowserTracing(),
+    ],
+    tracesSampleRate: 1.0,
+  });
+}
 
 onApiMessage(stateApi.setUserId, (id: string) => Sentry.setUser({ id }));
 
@@ -67,33 +58,14 @@ document.addEventListener('contextmenu', (event) => {
 
 ReactDOM.render(
   <React.StrictMode>
-    <GameContextProvider>
-      <OutputContextProvider>
-        <TaskContextProvider>
-          <StatusContextProvider>
-            <StateContextProvider>
-              <TheiaContextProvider>
-                <ProjectContextProvider>
-                  <ServerContextProvider>
-                    <SdkMessageManager />
-                    <GameConnectionManager />
-                    <TitleManager />
-                    <TheiaProjectManager />
-                    <TheiaCommandsManager />
-                    <NotificationsManager />
-                    <ConsolesManager />
+    <GameConnectionManager />
+    <TitleManager />
+    <TheiaProjectManager />
+    <NotificationsManager />
 
-                    <Shell />
-                  </ServerContextProvider>
-                </ProjectContextProvider>
-              </TheiaContextProvider>
-            </StateContextProvider>
-          </StatusContextProvider>
-        </TaskContextProvider>
-      </OutputContextProvider>
-    </GameContextProvider>
+    <Shell />
 
-    <div className="resize-sentinel"/>
+    <div className="resize-sentinel" />
   </React.StrictMode>,
   document.getElementById('root')
 );

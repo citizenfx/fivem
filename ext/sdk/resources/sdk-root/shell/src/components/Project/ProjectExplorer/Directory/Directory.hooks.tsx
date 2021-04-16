@@ -1,17 +1,15 @@
 import React from 'react';
 import { ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, newResourceIcon, renameIcon } from 'constants/icons';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useOpenFlag, useSendApiMessageCallback } from 'utils/hooks';
 import { ProjectExplorerItemContext } from '../item.context';
 import { DeleteDirectoryRequest, DeleteDirectoryResponse } from 'shared/api.requests';
+import { ProjectState } from 'store/ProjectState';
 
 
 export const useDeleteDirectoryApiCallbackMessage = (path: string) => {
-  const { addPendingDirectoryDeletion } = React.useContext(ProjectContext);
-
   const deleteDirectory = useSendApiMessageCallback<DeleteDirectoryRequest, DeleteDirectoryResponse>(projectApi.deleteDirectory, (error, response) => {
     if (error) {
       return;
@@ -19,7 +17,7 @@ export const useDeleteDirectoryApiCallbackMessage = (path: string) => {
 
     if (response === DeleteDirectoryResponse.FailedToRecycle) {
       if (window.confirm('Failed to recycle directory, delete it permanently?')) {
-        addPendingDirectoryDeletion(path);
+        ProjectState.addPendingFolderDeletion(path);
 
         sendApiMessage(projectApi.deleteDirectory, {
           directoryPath: path,
@@ -30,16 +28,15 @@ export const useDeleteDirectoryApiCallbackMessage = (path: string) => {
   });
 
   return React.useCallback(() => {
-    addPendingDirectoryDeletion(path);
+    ProjectState.addPendingFolderDeletion(path);
 
     deleteDirectory({
       directoryPath: path,
     });
-  }, [path, deleteDirectory, addPendingDirectoryDeletion]);
+  }, [path, deleteDirectory]);
 };
 
 export const useDirectoryContextMenu = (path: string, childrenLength: number, optionsOverride: Partial<ProjectExplorerItemContext> = {}) => {
-  const { setResourceCreatorDir: setAssetCreatorDir, openResourceCreator } = React.useContext(ProjectContext);
   const { disableDirectoryDelete, disableDirectoryRename, disableAssetCreate } = {
     ...React.useContext(ProjectExplorerItemContext),
     ...optionsOverride,
@@ -59,9 +56,9 @@ export const useDirectoryContextMenu = (path: string, childrenLength: number, op
   }, [deleteDirectory, openDeleteConfirmation, childrenLength]);
 
   const handleCreateResource = React.useCallback(() => {
-    setAssetCreatorDir(path);
-    openResourceCreator();
-  }, [path, setAssetCreatorDir, openResourceCreator]);
+    ProjectState.setResourceCreatorDir(path);
+    ProjectState.openResourceCreator();
+  }, [path]);
 
   const directoryContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {
     return [

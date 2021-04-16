@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
-import { SingleEventEmitter } from "backend/single-event-emitter";
+import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { stateApi } from "shared/api.events";
 import { ServerDataStates, AppStates } from "shared/api.types";
 import { handlesClientEvent } from "backend/api/api-decorators";

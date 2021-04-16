@@ -3,11 +3,12 @@ import classnames from 'classnames';
 import { TaskData } from 'shared/task.types';
 import { useOpenFlag } from 'utils/hooks';
 import { Indicator } from 'components/Indicator/Indicator';
-import { TaskContext } from 'contexts/TaskContext';
+import { TaskState } from 'store/TaskState';
+import { observer } from 'mobx-react-lite';
 import s from './TaskReporter.module.scss';
 
-export const TaskReporter = React.memo(function TaskReporter() {
-  const { tasks } = React.useContext(TaskContext);
+export const TaskReporter = observer(function TaskReporter() {
+  const tasks = TaskState.getAll();
   const [detailsOpen, _openDetails, closeDetails, toggleDetailsOpen] = useOpenFlag(false);
 
   React.useEffect(() => {

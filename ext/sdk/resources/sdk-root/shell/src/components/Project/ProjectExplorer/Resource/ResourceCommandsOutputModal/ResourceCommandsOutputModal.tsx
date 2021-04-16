@@ -2,10 +2,11 @@ import * as React from 'react';
 import { ResourceStatus } from 'backend/project/asset/asset-contributions/resource/resource-types';
 import { Modal } from 'components/Modal/Modal';
 import { Output } from 'components/Output/Output';
-import s from './ResourceCommandsOutputModal.module.scss';
 import { Button } from 'components/controls/Button/Button';
 import { Select, SelectOption } from 'components/controls/Select/Select';
-import { OutputContext } from 'contexts/OutputContext';
+import { observer } from 'mobx-react-lite';
+import { OutputState } from 'store/OutputState';
+import s from './ResourceCommandsOutputModal.module.scss';
 
 export interface ResourceCommandsOutputModalProps {
   onClose: () => void,
@@ -13,7 +14,7 @@ export interface ResourceCommandsOutputModalProps {
   resourceStatus: ResourceStatus,
 }
 
-export const ResourceCommandsOutputModal = React.memo(function ResourceCommandsOutputModal(props: ResourceCommandsOutputModalProps) {
+export const ResourceCommandsOutputModal = observer(function ResourceCommandsOutputModal(props: ResourceCommandsOutputModalProps) {
   const {
     onClose,
     resourceName,
@@ -21,8 +22,6 @@ export const ResourceCommandsOutputModal = React.memo(function ResourceCommandsO
   } = props;
 
   const { watchCommands } = resourceStatus;
-
-  const { outputsLabels } = React.useContext(OutputContext);
 
   const channelIds = React.useMemo(() => {
     return Object.values(watchCommands).map(({ outputChannelId }) => outputChannelId);
@@ -33,7 +32,7 @@ export const ResourceCommandsOutputModal = React.memo(function ResourceCommandsO
   const channelOptions: SelectOption<string>[] = React.useMemo(() => {
     return channelIds.map((cid) => ({
       value: cid,
-      title: outputsLabels[cid] || cid,
+      title: OutputState.getLabel(cid) || cid,
     }));
   }, [channelIds]);
 

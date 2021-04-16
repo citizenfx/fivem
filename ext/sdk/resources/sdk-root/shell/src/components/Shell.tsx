@@ -1,33 +1,37 @@
 import React from 'react';
-import { StateContext } from 'contexts/StateContext';
-import { ProjectContext } from 'contexts/ProjectContext';
+import { observer } from 'mobx-react-lite';
 import { AppStates } from 'shared/api.types';
-import { sendApiMessage } from 'utils/api';
-import { TheiaPersonality } from 'personalities/Theia';
 import { Toolbar } from './Toolbar/Toolbar';
 import { Welcome } from './Welcome/Welcome';
 import { Updater } from './Updater/Updater';
 import { ChangelogModal } from './Changelog/Changelog.modal';
-import s from './Shell.module.scss';
-import { useTask } from 'contexts/TaskContext';
 import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
+import { TheiaPersonality } from 'personalities/TheiaPersonality/TheiaPersonality';
+import { ShellState } from 'store/ShellState';
+import { GameState } from 'store/GameState';
+import { StatusState } from 'store/StatusState';
+import { TaskState } from 'store/TaskState';
+import { ServerState } from 'store/ServerState';
+import { ProjectState } from 'store/ProjectState';
+import s from './Shell.module.scss';
 
 
-export function Shell() {
-  const { state, updaterOpen, changelogOpen } = React.useContext(StateContext);
-  const { project, creatorOpen, openerOpen } = React.useContext(ProjectContext);
-
-  const projectCreatingTask = useTask(projectCreatingTaskName);
-  const projectLoadingTask = useTask(projectLoadingTaskName);
+export const Shell = observer(function Shell() {
+  const projectCreatingTask = TaskState.get(projectCreatingTaskName);
+  const projectLoadingTask = TaskState.get(projectLoadingTaskName);
 
   const showToolbar = Boolean(
-    project || creatorOpen || openerOpen || projectCreatingTask || projectLoadingTask
+    ProjectState.hasProject || ProjectState.creatorOpen || ProjectState.openerOpen || projectCreatingTask || projectLoadingTask
   );
-  const showWelcome = state === AppStates.ready && !showToolbar;
-  const showUpdater = state === AppStates.preparing || updaterOpen;
+  const showWelcome = ShellState.appState === AppStates.ready && !showToolbar;
+  const showUpdater = ShellState.appState === AppStates.preparing || ShellState.updaterOpen;
 
   React.useEffect(() => {
-    sendApiMessage('ackState');
+    ShellState.ack();
+    GameState.ack();
+    StatusState.ack();
+    TaskState.ack();
+    ServerState.ack();
   }, []);
 
   return (
@@ -44,11 +48,11 @@ export function Shell() {
         <Welcome />
       )}
 
-      {changelogOpen && (
+      {ShellState.changelogOpen && (
         <ChangelogModal />
       )}
 
       <TheiaPersonality />
     </div>
   );
-}
+});

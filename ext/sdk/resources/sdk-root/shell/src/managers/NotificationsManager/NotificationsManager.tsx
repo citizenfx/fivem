@@ -1,12 +1,13 @@
 import * as React from 'react';
 import classnames from 'classnames';
-import s from './NotificationsManager.module.scss';
 import { NotificationItem, NotificationType } from 'shared/notification.types';
 import { useApiMessage, useStore } from 'utils/hooks';
 import { notificationsApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { BsExclamationOctagonFill, BsExclamationTriangle, BsInfoSquare, BsX } from 'react-icons/bs';
-import { StateContext } from 'contexts/StateContext';
+import { ToolbarState } from 'store/ToolbarState';
+import { observer } from 'mobx-react-lite';
+import s from './NotificationsManager.module.scss';
 
 const typeIcons = {
   [NotificationType.info]: <BsInfoSquare />,
@@ -20,9 +21,7 @@ export interface NotificationsStoreItem {
   animationDuration?: string,
 }
 
-export const NotificationsManager = React.memo(function NotificationsManager() {
-  const { toolbarWidth } = React.useContext(StateContext);
-
+export const NotificationsManager = observer(function NotificationsManager() {
   const notifications = useStore<NotificationsStoreItem>({});
 
   React.useEffect(() => sendApiMessage(notificationsApi.ack), []);
@@ -93,7 +92,7 @@ export const NotificationsManager = React.memo(function NotificationsManager() {
   });
 
   const rootStyles: React.CSSProperties = {
-    '--toolbar-width': `${toolbarWidth}px`,
+    '--toolbar-width': `${ToolbarState.width}px`,
   } as any;
 
   return (

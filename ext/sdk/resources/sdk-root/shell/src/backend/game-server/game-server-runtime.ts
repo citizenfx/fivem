@@ -1,6 +1,6 @@
 import { injectable } from "inversify";
 import { disposableFromFunction, DisposableObject } from "backend/disposable-container";
-import { SingleEventEmitter } from "backend/single-event-emitter";
+import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { Ticker } from "backend/ticker";
 import { ServerUpdateChannel } from "shared/api.types";
 

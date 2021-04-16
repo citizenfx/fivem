@@ -1,19 +1,18 @@
 import * as React from 'react';
-import { ProjectContext } from 'contexts/ProjectContext';
+import { observer } from 'mobx-react-lite';
 import { projectBuildIcon } from 'constants/icons';
+import { ProjectState } from 'store/ProjectState';
 
 export interface BuildButtonProps {
   className: string,
 }
 
-export const BuildButton = React.memo(function BuildButton({ className }: BuildButtonProps) {
-  const { project, build } = React.useContext(ProjectContext);
-
+export const BuildButton = observer(function BuildButton({ className }: BuildButtonProps) {
   return (
     <button
       className={className}
-      disabled={!project}
-      onClick={() => build()}
+      disabled={!ProjectState.hasProject}
+      onClick={() => ProjectState.buildProject()}
       title="Build project"
     >
       {projectBuildIcon}

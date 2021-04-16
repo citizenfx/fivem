@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Modal } from 'components/Modal/Modal';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { AssetImporterType, assetImporterTypes } from 'shared/asset.types';
 import { GitImporter } from './GitImporter';
 import { ImporterProps } from './Importer.types';
 import { FsImporter } from './FsImporter';
 import { TabItem, TabSelector } from 'components/controls/TabSelector/TabSelector';
+import { observer } from 'mobx-react-lite';
+import { ProjectState } from 'store/ProjectState';
 import s from './Importer.module.scss';
 
 const importerTypeOptions: TabItem[] = [
@@ -24,15 +25,13 @@ const importerRenderers: Record<AssetImporterType, React.ComponentType<ImporterP
   [assetImporterTypes.fs]: FsImporter,
 };
 
-export const Importer = React.memo(function Importer() {
-  const { closeImporter } = React.useContext(ProjectContext);
-
+export const Importer = observer(function Importer() {
   const [importerType, setImporterType] = React.useState<AssetImporterType>(assetImporterTypes.git);
 
   const ImporterRenderer = importerRenderers[importerType];
 
   return (
-    <Modal fullWidth onClose={closeImporter}>
+    <Modal fullWidth onClose={ProjectState.closeImporter}>
       <div className={s.root}>
         <div className="modal-header">
           Import asset
@@ -46,7 +45,7 @@ export const Importer = React.memo(function Importer() {
           />
         </div>
 
-        <ImporterRenderer onClose={closeImporter} />
+        <ImporterRenderer onClose={ProjectState.closeImporter} />
       </div>
     </Modal>
   );

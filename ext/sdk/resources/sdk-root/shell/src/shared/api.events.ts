@@ -120,7 +120,6 @@ export const taskReporterApi = {
 };
 
 export const outputApi = {
-  ack: 'output:ack',
   output: 'output:output',
   outputLabel: 'output:outputLabel',
   flush: 'output:flush',

@@ -1,22 +1,22 @@
+import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { newResourceIcon } from 'constants/icons';
-import { ProjectContext } from 'contexts/ProjectContext';
-import * as React from 'react';
+import { ProjectState } from 'store/ProjectState';
 
 export interface NewResourceProps {
   className: string,
 }
 
-export const NewResource = React.memo(function NewResource({ className }: NewResourceProps) {
-  const { project, setResourceCreatorDir, openResourceCreator } = React.useContext(ProjectContext);
+export const NewResource = observer(function NewResource({ className }: NewResourceProps) {
+  const project = ProjectState.project;
 
   const handleClick = React.useCallback(() => {
     if (!project) {
       return;
     }
 
-    setResourceCreatorDir(project.path);
-    openResourceCreator();
-  }, [project?.path, setResourceCreatorDir, openResourceCreator]);
+    ProjectState.openResourceCreator(project.path);
+  }, [project.path]);
 
   return (
     <button

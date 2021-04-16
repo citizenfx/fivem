@@ -1,10 +1,11 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Button } from 'components/controls/Button/Button';
 import { Explorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { getRelativePath } from 'components/Explorer/Explorer.utils';
 import { FilesystemEntry } from 'shared/api.types';
+import { ProjectState } from 'store/ProjectState';
 
 export interface DirectoryDeleteConfirmationProps {
   entry: FilesystemEntry,
@@ -12,9 +13,10 @@ export interface DirectoryDeleteConfirmationProps {
   onDelete: () => void,
 }
 
-export const DirectoryDeleteConfirmation = React.memo(function DirectoryDeleteConfirmation({ entry, onClose, onDelete }: DirectoryDeleteConfirmationProps) {
-  const { project } = React.useContext(ProjectContext);
-  const directoryRelativePath = getRelativePath(project?.path || '', entry.path);
+export const DirectoryDeleteConfirmation = observer(function DirectoryDeleteConfirmation({ entry, onClose, onDelete }: DirectoryDeleteConfirmationProps) {
+  const project = ProjectState.project;
+
+  const directoryRelativePath = getRelativePath(project.path || '', entry.path);
 
   return (
     <Modal onClose={onClose}>

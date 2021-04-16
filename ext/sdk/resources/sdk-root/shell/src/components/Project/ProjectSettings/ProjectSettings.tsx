@@ -1,14 +1,15 @@
 import * as React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Switch, SwitchOption } from 'components/controls/Switch/Switch';
 import { ServerUpdateChannel, serverUpdateChannels } from 'shared/api.types';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/controls/Button/Button';
 import { useProjectSteamWebApiKeyVar, useProjectTebexSecretVar } from 'utils/projectStorage';
-import s from './ProjectSettings.module.scss';
 import { Input } from 'components/controls/Input/Input';
+import { ProjectState } from 'store/ProjectState';
+import s from './ProjectSettings.module.scss';
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -28,8 +29,8 @@ const updateChannelOptions: SwitchOption[] = [
   },
 ];
 
-export const ProjectSettings = React.memo(function ProjectSettings() {
-  const { project, closeSettings } = React.useContext(ProjectContext);
+export const ProjectSettings = observer(function ProjectSettings() {
+  const project = ProjectState.project;
 
   const updateChannel = project.manifest.serverUpdateChannel;
   const handleUpdateChannelChange = React.useCallback((updateChannel: ServerUpdateChannel) => {
@@ -40,7 +41,7 @@ export const ProjectSettings = React.memo(function ProjectSettings() {
   const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
 
   return (
-    <Modal fullWidth onClose={closeSettings}>
+    <Modal fullWidth onClose={ProjectState.closeSettings}>
       <div className={s.root}>
         <div className="modal-header">
           Project settings
@@ -77,7 +78,7 @@ export const ProjectSettings = React.memo(function ProjectSettings() {
         <div className="modal-actions">
           <Button
             text="Close"
-            onClick={closeSettings}
+            onClick={ProjectState.closeSettings}
           />
         </div>
       </div>

@@ -20,14 +20,14 @@ export const Changelog = React.memo(function Changelog() {
   const entriesNodes = changelogEntries.map((entry, index) => {
     if (index === 0) {
       return (
-        <>
+        <React.Fragment key={entry.id}>
           <ChangelogNode
             key={entry.id}
             {...entry}
           />
 
           <div className={s.older}>Older entries</div>
-        </>
+        </React.Fragment>
       );
     }
 

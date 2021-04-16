@@ -1,19 +1,17 @@
-import { ProjectContext } from 'contexts/ProjectContext';
-import * as React from 'react';
+import React from 'react';
 import { BsBoxArrowInDownRight } from 'react-icons/bs';
+import { ProjectState } from 'store/ProjectState';
 
 export interface ImportAssetProps {
   className: string,
 }
 
 export const ImportAsset = React.memo(function ImportAsset({ className }: ImportAssetProps) {
-  const { openImporter } = React.useContext(ProjectContext);
-
   return (
     <button
       title="Import asset"
       className={className}
-      onClick={openImporter}
+      onClick={ProjectState.openImporter}
     >
       <BsBoxArrowInDownRight />
     </button>

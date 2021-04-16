@@ -1,13 +1,13 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Button } from 'components/controls/Button/Button';
 import { Modal } from 'components/Modal/Modal';
 import { AssetDeleteRequest, AssetDeleteResponse } from 'shared/api.requests';
 import { assetApi } from 'shared/api.events';
-import { sendApiMessage } from 'utils/api';
-import s from './ResourceDeleter.module.scss';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { useSendApiMessageCallback } from 'utils/hooks';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
+import { ProjectState } from 'store/ProjectState';
+import s from './ResourceDeleter.module.scss';
 
 
 export interface ResourceDeleterProps {
@@ -16,8 +16,7 @@ export interface ResourceDeleterProps {
   path: string,
 }
 
-export const ResourceDeleter = React.memo(function ResourceDeleter({ name, path, onClose }: ResourceDeleterProps) {
-  const { addPendingDirectoryDeletion } = React.useContext(ProjectContext);
+export const ResourceDeleter = observer(function ResourceDeleter({ name, path, onClose }: ResourceDeleterProps) {
   const [recycle, setRecycle] = React.useState(true);
   const [deleteError, setDeleteError] = React.useState('');
 
@@ -36,7 +35,7 @@ export const ResourceDeleter = React.memo(function ResourceDeleter({ name, path,
   const handleDeleteResource = React.useCallback(() => {
     setDeleteError('');
 
-    addPendingDirectoryDeletion(path);
+    ProjectState.addPendingFolderDeletion(path);
 
     const request: AssetDeleteRequest = {
       assetPath: path,
@@ -46,7 +45,7 @@ export const ResourceDeleter = React.memo(function ResourceDeleter({ name, path,
     deleteResource(request);
 
     onClose();
-  }, [path, recycle, setDeleteError, deleteResource, addPendingDirectoryDeletion]);
+  }, [path, recycle, setDeleteError, deleteResource]);
 
   return (
     <Modal onClose={onClose}>

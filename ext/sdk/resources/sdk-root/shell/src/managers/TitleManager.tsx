@@ -1,21 +1,21 @@
 import React from 'react';
-import { ProjectContext } from '../contexts/ProjectContext';
+import { observer } from 'mobx-react-lite';
+import { ProjectState } from 'store/ProjectState';
 
 const titleBase = 'Cfx.re Development Kit (FiveM)';
 
-export const TitleManager = React.memo(() => {
-  const { project } = React.useContext(ProjectContext);
+export const TitleManager = observer(() => {
   const titleRef = React.useRef<HTMLTitleElement | null>();
 
   React.useEffect(() => {
     if (titleRef.current) {
-      const title = project
-        ? `${project.manifest.name} — ${titleBase}`
+      const title = ProjectState.hasProject
+        ? `${ProjectState.projectName} — ${titleBase}`
         : titleBase;
 
       titleRef.current.innerText = title;
     }
-  }, [project]);
+  }, [ProjectState.hasProject, ProjectState.projectName]);
 
   React.useLayoutEffect(() => {
     titleRef.current = document.querySelector('title');

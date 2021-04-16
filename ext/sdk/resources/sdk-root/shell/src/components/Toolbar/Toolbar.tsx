@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { BsCardHeading, BsGear, BsList } from 'react-icons/bs';
+import React from 'react';
+import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
-import { StateContext } from 'contexts/StateContext';
-import { ProjectContext } from 'contexts/ProjectContext';
+import { BsCardHeading, BsGear, BsList } from 'react-icons/bs';
 import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon, mapIcon } from 'constants/icons';
 import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator';
 import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
@@ -12,6 +11,9 @@ import { TaskReporter } from 'components/TaskReporter/TaskReporter';
 import { ProjectToolbar } from 'components/Project/ProjectToolbar/ProjectToolbar';
 import { ToolbarTrigger } from './ToolbarTrigger';
 import { Tour } from 'components/Tour/Tour';
+import { ToolbarState } from 'store/ToolbarState';
+import { ShellState } from 'store/ShellState';
+import { ProjectState } from 'store/ProjectState';
 import s from './Toolbar.module.scss';
 
 const handleMenuClick = (openMenu) => openMenu();
@@ -20,25 +22,11 @@ const handleGetMenuCoords = () => ({
   left: 0,
 });
 
-export const Toolbar = React.memo(function Toolbar() {
-  const { toolbarWidth, toolbarOpen, openChangelog } = React.useContext(StateContext);
-  const { project, openCreator, openOpener, creatorOpen, openerOpen, openSettings, openBuilder } = React.useContext(ProjectContext);
-  const [tourVisible, setTourVisible] = useState(false);
-  // const newResourceRef = useRef(null)
-
-  const handleOpenCreator = React.useCallback(() => {
-    openCreator();
-  }, [openCreator]);
-  const handleOpenOpener = React.useCallback(() => {
-    openOpener();
-  }, [openOpener]);
-
-  const handleOpenSettings = React.useCallback(() => {
-    openSettings();
-  }, [openSettings]);
+export const Toolbar = observer(function Toolbar() {
+  const [tourVisible, setTourVisible] = React.useState(false);
 
   const toolbarClasses = classnames(s.root, {
-    [s.active]: toolbarOpen,
+    [s.active]: ToolbarState.isOpen,
   });
 
   const contextMenuItems: ContextMenuItemsCollection = React.useMemo((): ContextMenuItemsCollection => [
@@ -46,29 +34,29 @@ export const Toolbar = React.memo(function Toolbar() {
       id: 'open-project',
       text: 'Open Project',
       icon: openProjectIcon,
-      onClick: handleOpenOpener,
+      onClick: ProjectState.openOpener,
     },
     {
       id: 'new-project',
       text: 'New Project',
       icon: newProjectIcon,
-      onClick: handleOpenCreator,
+      onClick: ProjectState.openCreator,
     },
     ...(
-      project
+      ProjectState.hasProject
         ? [
           ContextMenuItemSeparator,
           {
             id: 'project-settings',
             text: 'Project settings',
             icon: <BsGear />,
-            onClick: handleOpenSettings,
+            onClick: ProjectState.openSettings,
           },
           {
             id: 'build-project',
             text: 'Build Project',
             icon: projectBuildIcon,
-            onClick: openBuilder,
+            onClick: ProjectState.openBuilder,
           },
         ] as ContextMenuItemsCollection
         : []
@@ -78,7 +66,7 @@ export const Toolbar = React.memo(function Toolbar() {
       id: 'changelog',
       text: 'Changelog',
       icon: <BsCardHeading />,
-      onClick: openChangelog,
+      onClick: ShellState.openChangelog,
     },
     {
       id: 'dev-tools',
@@ -93,22 +81,20 @@ export const Toolbar = React.memo(function Toolbar() {
       icon: mapIcon,
       onClick: () => setTourVisible(true),
     },
-  ], [project, openBuilder]);
-
-  const projectTitle = project?.manifest.name || 'No project open yet';
+  ], [ProjectState.hasProject]);
 
   const rootStyles: React.CSSProperties = {
-    '--toolbar-width': `${toolbarWidth}px`,
+    '--toolbar-width': `${ToolbarState.width}px`,
   } as any;
 
   React.useEffect(() => {
     // localStorage.removeItem('firstLaunch');
     const firstLaunch = localStorage.getItem('firstLaunch');
-    if (!firstLaunch && project) {
+    if (!firstLaunch && ProjectState.hasProject) {
       setTourVisible(true);
       localStorage.setItem('firstLaunch', 'false');
     }
-  }, [project]);
+  }, [ProjectState.hasProject]);
 
   return (
     <div
@@ -130,19 +116,19 @@ export const Toolbar = React.memo(function Toolbar() {
             </button>
           </ContextMenu>
 
-          <div className={s['project-name']} title={projectTitle}>
+          <div className={s['project-name']} title={ProjectState.projectName}>
             <span>
-              {projectTitle}
+              {ProjectState.projectName}
             </span>
           </div>
 
-          {!!project && (
+          {ProjectState.hasProject && (
             <ProjectToolbar />
           )}
         </div>
 
-        {creatorOpen && <ProjectCreator />}
-        {openerOpen && <ProjectOpener />}
+        {ProjectState.creatorOpen && <ProjectCreator />}
+        {ProjectState.openerOpen && <ProjectOpener />}
 
         <Project />
 
