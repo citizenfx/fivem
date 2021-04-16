@@ -1354,6 +1354,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 											if (!val.empty())
 											{
+												try
+												{
+													auto targetContext = val.substr(val.find_first_of('_') + 1);
+													m_targetContext = targetContext.substr(0, targetContext.find_first_of(':'));
+												}
+												catch (std::exception& e)
+												{
+												}
+
 												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s", val), [=](bool success, const char* data, size_t size)
 												{
 													std::string fact;

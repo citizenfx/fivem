@@ -1029,6 +1029,11 @@ void Component_RunPreInit()
 }
 
 #ifndef USE_NUI_ROOTLESS
+namespace nui
+{
+std::string GetContext();
+}
+
 void CreateRootWindow()
 {
 	int resX, resY;
@@ -1036,7 +1041,7 @@ void CreateRootWindow()
 
 	static ConVar<std::string> rootUrl("ui_rootUrl", ConVar_None, "nui://game/ui/root.html");
 
-	auto rootWindow = NUIWindow::Create(true, resX, resY, rootUrl.GetValue(), true);
+	auto rootWindow = NUIWindow::Create(true, resX, resY, rootUrl.GetValue(), true, nui::GetContext());
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
 	rootWindow->SetName("root");
 
@@ -1051,9 +1056,76 @@ std::set<std::string> g_recreateBrowsers;
 
 namespace nui
 {
+static std::mutex g_rcHandlerMutex;
+static std::vector<std::tuple<CefString, CefString, CefRefPtr<CefSchemeHandlerFactory>>> g_schemeHandlers;
+static std::set<CefRefPtr<CefRequestContext>> g_requestContexts;
+
+void AddSchemeHandlerFactories(CefRefPtr<CefRequestContext> rc)
+{
+	std::unique_lock _(g_rcHandlerMutex);
+
+	for (const auto& [name, domain, factory] : g_schemeHandlers)
+	{
+		rc->RegisterSchemeHandlerFactory(name, domain, factory);
+	}
+
+	g_requestContexts.insert(rc);
+}
+
+void RegisterSchemeHandlerFactory(const CefString& scheme_name, const CefString& domain_name, CefRefPtr<CefSchemeHandlerFactory> factory)
+{
+	std::unique_lock _(g_rcHandlerMutex);
+
+	CefRegisterSchemeHandlerFactory(scheme_name, domain_name, factory);
+
+	for (auto& rc : g_requestContexts)
+	{
+		rc->RegisterSchemeHandlerFactory(scheme_name, domain_name, factory);
+	}
+
+	g_schemeHandlers.push_back({ scheme_name, domain_name, factory });
+}
+
 extern std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
 extern std::shared_mutex windowListMutex;
+static std::string g_currentContext;
 bool g_rendererInit;
+
+std::string GetContext()
+{
+	std::shared_lock _(windowListMutex);
+	return g_currentContext;
+}
+
+void SwitchContext(const std::string& contextId)
+{
+	bool switched = false;
+
+	{
+		std::unique_lock _(windowListMutex);
+
+		if (contextId != g_currentContext)
+		{
+			g_currentContext = contextId;
+			switched = true;
+		}
+	}
+
+	if (switched)
+	{
+		{
+			auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
+
+			if (rw)
+			{
+				Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
+				Instance<NUIWindowManager>::Get()->SetRootWindow({});
+			}
+		}
+
+		CreateRootWindow();
+	}
+}
 
 void Initialize(nui::GameInterface* gi)
 {
@@ -1097,18 +1169,18 @@ void Initialize(nui::GameInterface* gi)
 
 	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
 	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
-	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
 	CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
 
-	CefRegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
 	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
 	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
 	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
 
-	CefRegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
-	CefRegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
 
     HookFunctionBase::RunAll();
 

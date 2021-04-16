@@ -39,9 +39,11 @@ private:
 	concurrency::concurrent_queue<std::function<void()>> m_onLoadQueue;
 
 public:
-	NUIWindow(bool primary, int width, int height);
+	NUIWindow(bool primary, int width, int height, const std::string& windowContext);
 
 private:
+	std::string m_windowContext;
+
 	bool m_rawBlit;
 	int m_width;
 	int m_height;
@@ -140,7 +142,7 @@ public:
 	inline void		MarkRenderBufferDirty() { InterlockedIncrement(&m_dirtyFlag); }
 
 public:
-	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url, bool instant);
+	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url, bool instant, const std::string& context = {});
 
 	void DeferredCreate();
 

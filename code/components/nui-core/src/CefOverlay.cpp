@@ -191,9 +191,11 @@ namespace nui
 		g_shouldHideCursor = hide;
 	}
 
+	extern std::string GetContext();
+
 	fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit/* = false*/, bool instant)
 	{
-		auto window = NUIWindow::Create(rawBlit, width, height, windowURL, instant);
+		auto window = NUIWindow::Create(rawBlit, width, height, windowURL, instant, nui::GetContext());
 
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 		windowList[windowName] = window;

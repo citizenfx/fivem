@@ -160,6 +160,8 @@ private:
 
 	std::string m_infoString;
 
+	std::string m_targetContext;
+
 	HANDLE m_receiveEvent;
 
 	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
@@ -300,6 +302,11 @@ public:
 	inline uint64_t GetServerInitTime()
 	{
 		return m_serverTime;
+	}
+
+	inline const std::string& GetTargetContext()
+	{
+		return m_targetContext;
 	}
 
 	int32_t GetPing();

@@ -18,8 +18,11 @@
 
 #include <include/base/cef_bind.h>
 #include <include/wrapper/cef_closure_task.h>
+#include <include/cef_request_context_handler.h>
 
 #include <CefOverlay.h>
+
+#include <CL2LaunchMode.h>
 
 extern nui::GameInterface* g_nuiGi;
 
@@ -28,12 +31,14 @@ extern nui::GameInterface* g_nuiGi;
 namespace nui
 {
 extern bool g_rendererInit;
+
+extern void AddSchemeHandlerFactories(CefRefPtr<CefRequestContext> rc);
 }
 
-NUIWindow::NUIWindow(bool rawBlit, int width, int height)
+NUIWindow::NUIWindow(bool rawBlit, int width, int height, const std::string& windowContext)
 	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
 	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0), m_roundedHeight(0), m_roundedWidth(0),
-	  m_syncKey(0), m_paintType(NUIPaintTypeDummy)
+	  m_syncKey(0), m_paintType(NUIPaintTypeDummy), m_windowContext(windowContext)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 
@@ -94,9 +99,9 @@ NUIWindow::~NUIWindow()
 	Instance<NUIWindowManager>::Get()->RemoveWindow(this);
 }
 
-fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url, bool instant)
+fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url, bool instant, const std::string& context)
 {
-	auto window = new NUIWindow(primary, width, height);
+	auto window = new NUIWindow(primary, width, height, context);
 
 	if (instant)
 	{
@@ -385,7 +390,24 @@ void NUIWindow::Initialize(CefString url)
 	settings.windowless_frame_rate = 240;
 	CefString(&settings.default_encoding).FromString("utf-8");
 
-	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
+	CefRefPtr<CefRequestContext> rc;
+
+	if (m_windowContext.empty())
+	{
+		rc = CefRequestContext::GetGlobalContext();
+	}
+	else
+	{
+		auto cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s\\context-%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), ToWide(m_windowContext)));
+		CreateDirectory(cachePath.c_str(), nullptr);
+
+		CefRequestContextSettings rcConfig;
+		CefString(&rcConfig.cache_path).FromWString(cachePath);
+		rc = CefRequestContext::CreateContext(rcConfig, {});
+
+		nui::AddSchemeHandlerFactories(rc);
+	}
+
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, {}, rc);
 
 	if (!info.shared_texture_enabled)

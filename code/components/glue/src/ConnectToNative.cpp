@@ -1072,6 +1072,7 @@ static InitFunction initFunction([] ()
 		ep.Call("disconnected");
 
 		nui::SetMainUI(true);
+		nui::SwitchContext("");
 
 		nui::CreateFrame("mpMenu", console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_url")->GetValue());
 	});
