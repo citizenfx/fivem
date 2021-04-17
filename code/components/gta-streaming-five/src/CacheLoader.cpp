@@ -43,12 +43,15 @@ static void LoadCacheHook(const char* filenameBase, const char* rootPath, int is
 				static auto streamingModule = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("rpf");
 				const auto& packName = streaming::GetStreamingNameForIndex(streamingModule->baseIdx + i);
 
+				// this didn't fix anything, missing `++i` made it seem like it did
+#if 0
 				// downtown_01_metadata for *whatever* reason breaks if this is used as long as mpheist4 dlc is loaded
 				if (packName.find("downtown_01_metadata") != std::string::npos)
 				{
 					++i; // !!!!!
 					continue;
 				}
+#endif
 
 				file.isDLC = false;
 
@@ -203,7 +206,10 @@ static HookFunction hookFunction([]()
 	}
 
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("B9 00 00 04 00 BF 01 00 00 00 39", -0x5D), LoadCacheHook, (void**)& g_loadCacheOld);
+	if (!xbr::IsGameBuildOrGreater<2189>())
+	{
+		MH_CreateHook(hook::get_pattern("B9 00 00 04 00 BF 01 00 00 00 39", -0x5D), LoadCacheHook, (void**)&g_loadCacheOld);
+	}
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
