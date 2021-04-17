@@ -10,6 +10,7 @@
 #include <MinHook.h>
 
 #include <VFSManager.h>
+#include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<void(atHashMap<bool>*, const uint32_t&, const bool&)> atHashMap_bool_insert([]()
 {
